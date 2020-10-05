@@ -22,6 +22,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/fsnotify/fsnotify"
 	"github.com/neohugo/neohugo/identity"
 
 	radix "github.com/armon/go-radix"
@@ -85,6 +86,10 @@ type HugoSites struct {
 	// Keeps track of bundle directories and symlinks to enable partial rebuilding.
 	ContentChanges *contentChangeMap
 
+	// File change events with filename stored in this map will be skipped.
+	skipRebuildForFilenamesMu sync.Mutex
+	skipRebuildForFilenames   map[string]bool
+
 	init *hugoSitesInit
 
 	workers    *para.Workers
@@ -92,6 +97,14 @@ type HugoSites struct {
 
 	*fatalErrorHandler
 	*testCounters
+}
+
+// ShouldSkipFileChangeEvent allows skipping filesystem event early before
+// the build is started.
+func (h *HugoSites) ShouldSkipFileChangeEvent(ev fsnotify.Event) bool {
+	h.skipRebuildForFilenamesMu.Lock()
+	defer h.skipRebuildForFilenamesMu.Unlock()
+	return h.skipRebuildForFilenames[ev.Name]
 }
 
 func (h *HugoSites) getContentMaps() *pageMaps {
@@ -302,12 +315,13 @@ func newHugoSites(cfg deps.DepsCfg, sites ...*Site) (*HugoSites, error) {
 	}
 
 	h := &HugoSites{
-		running:      cfg.Running,
-		multilingual: langConfig,
-		multihost:    cfg.Cfg.GetBool("multihost"),
-		Sites:        sites,
-		workers:      workers,
-		numWorkers:   numWorkers,
+		running:                 cfg.Running,
+		multilingual:            langConfig,
+		multihost:               cfg.Cfg.GetBool("multihost"),
+		Sites:                   sites,
+		workers:                 workers,
+		numWorkers:              numWorkers,
+		skipRebuildForFilenames: make(map[string]bool),
 		init: &hugoSitesInit{
 			data:         lazy.New(),
 			layouts:      lazy.New(),

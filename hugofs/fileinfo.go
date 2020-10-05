@@ -37,6 +37,7 @@ import (
 const (
 	metaKeyFilename = "filename"
 
+	metaKeySourceRoot                 = "sourceRoot"
 	metaKeyBaseDir                    = "baseDir" // Abs base directory of source file.
 	metaKeyMountRoot                  = "mountRoot"
 	metaKeyModule                     = "module"
@@ -131,6 +132,10 @@ func (f FileMeta) PathFile() string {
 		return ""
 	}
 	return strings.TrimPrefix(strings.TrimPrefix(f.Filename(), base), filepathSeparator)
+}
+
+func (f FileMeta) SourceRoot() string {
+	return f.stringV(metaKeySourceRoot)
 }
 
 func (f FileMeta) MountRoot() string {
