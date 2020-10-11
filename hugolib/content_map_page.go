@@ -22,7 +22,6 @@ import (
 	"sync"
 
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/output"
 
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/resources"
@@ -200,13 +199,11 @@ func (m *pageMap) newPageFromContentNode(n *contentNode, parentBucket *pagesMapB
 
 			// Create a content provider for the first,
 			// we may be able to reuse it.
-			if po.f.Name == output.HTMLFormat.Name || po.f.Name == output.AMPFormat.Name {
-				contentProvider, err := newPageContentOutput(ps, po)
-				if err != nil {
-					return nil, err
-				}
-				po.initContentProvider(contentProvider)
+			contentProvider, err := newPageContentOutput(ps, po)
+			if err != nil {
+				return nil, err
 			}
+			po.initContentProvider(contentProvider)
 
 			ps.pageOutputs[i] = po
 			created[f.Name] = po
