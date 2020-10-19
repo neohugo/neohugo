@@ -123,7 +123,7 @@ func TestWalkSymbolicLink(t *testing.T) {
 		names, err := collectFilenames(fs, workDir, workDir)
 		c.Assert(err, qt.IsNil)
 
-		c.Assert(names, qt.DeepEquals, []string{"blog/real/sub/a.txt", "docs/b.txt"})
+		c.Assert(names, qt.DeepEquals, []string{"blog/real/sub/a.txt", "blog/symlinked/sub/a.txt", "docs/b.txt"})
 	})
 
 	t.Run("BasePath Fs", func(t *testing.T) {
