@@ -39,8 +39,9 @@ jobs:
             ${{ runner.os }}-go-
       - name: Install Module
         if: steps.cache.outputs.cache-hit != 'true'
-        run: go mod download
-        run: go mod verify
+        run: |
+          go mod download
+          go mod verify
       - name: Run Mage Tests
         uses: magefile/mage-action@v1
         with:
