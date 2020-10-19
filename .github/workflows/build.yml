@@ -1,12 +1,14 @@
 name: Build
 on:
-  - push
+  push:
     branches:
       - master
       - main
     tags:
       - '*'
-  - pull_request
+
+  pull_request:
+    types: [opened, synchronize, reopened]
 
 env:
   GO111MODULE: "on"
