@@ -200,7 +200,7 @@ type pageDeprecatedWarning struct {
 }
 
 func (p *pageDeprecatedWarning) IsDraft() bool          { return p.p.m.draft }
-func (p *pageDeprecatedWarning) Hugo() hugo.Info        { return p.p.s.Info.Hugo() }
+func (p *pageDeprecatedWarning) Hugo() neohugo.Info     { return p.p.s.Info.Hugo() }
 func (p *pageDeprecatedWarning) LanguagePrefix() string { return p.p.s.Info.LanguagePrefix }
 func (p *pageDeprecatedWarning) GetParam(key string) interface{} {
 	return p.p.m.params[strings.ToLower(key)]

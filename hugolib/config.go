@@ -123,7 +123,7 @@ var ErrNoConfigFile = errors.New("Unable to locate config file or config directo
 func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provider) error) (*viper.Viper, []string, error) {
 
 	if d.Environment == "" {
-		d.Environment = hugo.EnvironmentProduction
+		d.Environment = neohugo.EnvironmentProduction
 	}
 
 	if len(d.Environ) == 0 {
@@ -592,7 +592,7 @@ func loadDefaultSettingsFor(v *viper.Viper) error {
 	v.SetDefault("buildDrafts", false)
 	v.SetDefault("buildFuture", false)
 	v.SetDefault("buildExpired", false)
-	v.SetDefault("environment", hugo.EnvironmentProduction)
+	v.SetDefault("environment", neohugo.EnvironmentProduction)
 	v.SetDefault("uglyURLs", false)
 	v.SetDefault("verbose", false)
 	v.SetDefault("ignoreCache", false)

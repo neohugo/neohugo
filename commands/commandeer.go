@@ -125,7 +125,7 @@ func (c *commandeer) getErrorWithContext() interface{} {
 	m := make(map[string]interface{})
 
 	m["Error"] = errors.New(removeErrorPrefixFromLog(c.logger.Errors()))
-	m["Version"] = hugo.BuildVersionString()
+	m["Version"] = neohugo.BuildVersionString()
 
 	fe := herrors.UnwrapErrorWithFileContext(c.buildErr)
 	if fe != nil {

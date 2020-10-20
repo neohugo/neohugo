@@ -156,7 +156,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	cmd.Stdout = ctx.To
 	cmd.Stderr = io.MultiWriter(infoW, &errBuf)
-	cmd.Env = hugo.GetExecEnviron(t.rs.WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)
+	cmd.Env = neohugo.GetExecEnviron(t.rs.WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

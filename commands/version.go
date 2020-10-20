@@ -40,5 +40,5 @@ func newVersionCmd() *versionCmd {
 }
 
 func printHugoVersion() {
-	jww.FEEDBACK.Println(hugo.BuildVersionString())
+	jww.FEEDBACK.Println(neohugo.BuildVersionString())
 }

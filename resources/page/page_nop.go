@@ -29,8 +29,8 @@ import (
 	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/navigation"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/source"
 
 	"github.com/neohugo/neohugo/config"
@@ -197,7 +197,7 @@ func (p *nopPage) HasShortcode(name string) bool {
 	return false
 }
 
-func (p *nopPage) Hugo() (h hugo.Info) {
+func (p *nopPage) Hugo() (h neohugo.Info) {
 	return
 }
 

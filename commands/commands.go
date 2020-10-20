@@ -20,8 +20,8 @@ import (
 
 	"github.com/neohugo/neohugo/hugolib/paths"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/cobra"
@@ -261,10 +261,10 @@ func (cc *hugoBuilderCommon) getEnvironment(isServer bool) string {
 	}
 
 	if isServer {
-		return hugo.EnvironmentDevelopment
+		return neohugo.EnvironmentDevelopment
 	}
 
-	return hugo.EnvironmentProduction
+	return neohugo.EnvironmentProduction
 }
 
 func (cc *hugoBuilderCommon) handleCommonBuilderFlags(cmd *cobra.Command) {

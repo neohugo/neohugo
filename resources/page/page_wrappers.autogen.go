@@ -16,10 +16,11 @@
 package page
 
 import (
+	"html/template"
+
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
-	"html/template"
 )
 
 // NewDeprecatedWarningPage adds deprecation warnings to the given implementation.
@@ -47,7 +48,7 @@ func (p *pageDeprecated) Extension() string {
 	helpers.Deprecated("Page.Extension", "Use .File.Extension", false)
 	return p.p.Extension()
 }
-func (p *pageDeprecated) Hugo() hugo.Info {
+func (p *pageDeprecated) Hugo() neohugo.Info {
 	helpers.Deprecated("Page.Hugo", "Use the global hugo function.", false)
 	return p.p.Hugo()
 }

@@ -30,8 +30,8 @@ import (
 
 	"github.com/neohugo/neohugo/related"
 
-	"github.com/neohugo/neohugo/source"
 	"github.com/markbates/inflect"
+	"github.com/neohugo/neohugo/source"
 	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -482,7 +482,7 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 			}
 			lang := p.s.GetLanguagePrefix()
 			if lang != "" && !strings.HasPrefix(url, "/") && strings.HasPrefix(url, lang+"/") {
-				if strings.HasPrefix(hugo.CurrentVersion.String(), "0.55") {
+				if strings.HasPrefix(neohugo.CurrentVersion.String(), "0.55") {
 					// We added support for page relative URLs in Hugo 0.55 and
 					// this may get its language path added twice.
 					// TODO(bep) eventually remove this.

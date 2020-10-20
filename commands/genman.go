@@ -46,7 +46,7 @@ in the "man" directory under the current directory.`,
 			header := &doc.GenManHeader{
 				Section: "1",
 				Manual:  "Hugo Manual",
-				Source:  fmt.Sprintf("Hugo %s", hugo.CurrentVersion),
+				Source:  fmt.Sprintf("Hugo %s", neohugo.CurrentVersion),
 			}
 			if !strings.HasSuffix(cc.genmandir, helpers.FilePathSeparator) {
 				cc.genmandir += helpers.FilePathSeparator

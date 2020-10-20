@@ -344,7 +344,7 @@ func InitLoggers() {
 // plenty of time to fix their templates.
 func Deprecated(item, alternative string, err bool) {
 	if err {
-		DistinctErrorLog.Printf("%s is deprecated and will be removed in Hugo %s. %s", item, hugo.CurrentVersion.Next().ReleaseVersion(), alternative)
+		DistinctErrorLog.Printf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
 
 	} else {
 		DistinctWarnLog.Printf("%s is deprecated and will be removed in a future release. %s", item, alternative)

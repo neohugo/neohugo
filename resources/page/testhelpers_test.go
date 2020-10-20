@@ -32,8 +32,8 @@ import (
 
 	"github.com/neohugo/neohugo/navigation"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/langs"
@@ -249,7 +249,7 @@ func (p *testPage) HasShortcode(name string) bool {
 	panic("not implemented")
 }
 
-func (p *testPage) Hugo() hugo.Info {
+func (p *testPage) Hugo() neohugo.Info {
 	panic("not implemented")
 }
 

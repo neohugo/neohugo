@@ -642,7 +642,7 @@ type SiteInfo struct {
 	Authors page.AuthorList
 	Social  SiteSocial
 
-	hugoInfo     hugo.Info
+	hugoInfo     neohugo.Info
 	title        string
 	RSSLink      string
 	Author       map[string]interface{}
@@ -728,7 +728,7 @@ func (s *SiteInfo) Config() SiteConfig {
 	return s.s.siteConfigConfig
 }
 
-func (s *SiteInfo) Hugo() hugo.Info {
+func (s *SiteInfo) Hugo() neohugo.Info {
 	return s.hugoInfo
 }
 
@@ -1334,7 +1334,7 @@ func (s *Site) initializeSiteInfo() error {
 		permalinks:                     permalinks,
 		owner:                          s.h,
 		s:                              s,
-		hugoInfo:                       hugo.NewInfo(s.Cfg.GetString("environment")),
+		hugoInfo:                       neohugo.NewInfo(s.Cfg.GetString("environment")),
 	}
 
 	rssOutputFormat, found := s.outputFormats[page.KindHome].GetByName(output.RSSFormat.Name)

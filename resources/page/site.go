@@ -36,7 +36,7 @@ type Site interface {
 	ServerPort() int
 	Title() string
 	Sites() Sites
-	Hugo() hugo.Info
+	Hugo() neohugo.Info
 	BaseURL() template.URL
 	Taxonomies() interface{}
 	LastChange() time.Time
@@ -57,11 +57,11 @@ func (s Sites) First() Site {
 }
 
 type testSite struct {
-	h hugo.Info
+	h neohugo.Info
 	l *langs.Language
 }
 
-func (t testSite) Hugo() hugo.Info {
+func (t testSite) Hugo() neohugo.Info {
 	return t.h
 }
 
@@ -120,7 +120,7 @@ func (t testSite) Data() map[string]interface{} {
 // NewDummyHugoSite creates a new minimal test site.
 func NewDummyHugoSite(cfg config.Provider) Site {
 	return testSite{
-		h: hugo.NewInfo(hugo.EnvironmentProduction),
+		h: neohugo.NewInfo(neohugo.EnvironmentProduction),
 		l: langs.NewLanguage("en", cfg),
 	}
 }

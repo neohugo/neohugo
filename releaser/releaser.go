@@ -51,8 +51,8 @@ type ReleaseHandler struct {
 	git func(args ...string) (string, error)
 }
 
-func (r ReleaseHandler) calculateVersions() (hugo.Version, hugo.Version) {
-	newVersion := hugo.MustParseVersion(r.cliVersion)
+func (r ReleaseHandler) calculateVersions() (neohugo.Version, neohugo.Version) {
+	newVersion := neohugo.MustParseVersion(r.cliVersion)
 	finalVersion := newVersion.Next()
 	finalVersion.PatchLevel = 0
 
@@ -276,7 +276,7 @@ func (r *ReleaseHandler) release(releaseNotesFile string) error {
 	return nil
 }
 
-func (r *ReleaseHandler) bumpVersions(ver hugo.Version) error {
+func (r *ReleaseHandler) bumpVersions(ver neohugo.Version) error {
 	toDev := ""
 
 	if ver.Suffix != "" {

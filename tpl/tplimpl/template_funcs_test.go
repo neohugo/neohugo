@@ -26,8 +26,8 @@ import (
 	"github.com/neohugo/neohugo/resources/page"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/hugofs"
@@ -112,7 +112,7 @@ func TestTemplateFuncsExamples(t *testing.T) {
 	data.Title = "**BatMan**"
 	data.Section = "blog"
 	data.Params = map[string]interface{}{"langCode": "en"}
-	data.Hugo = map[string]interface{}{"Version": hugo.MustParseVersion("0.36.1").Version()}
+	data.Hugo = map[string]interface{}{"Version": neohugo.MustParseVersion("0.36.1").Version()}
 
 	for _, nsf := range internal.TemplateFuncsNamespaceRegistry {
 		ns := nsf(d)

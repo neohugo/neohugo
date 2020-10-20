@@ -24,8 +24,8 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/compare"
 	"github.com/neohugo/neohugo/hugofs/files"
 
@@ -383,7 +383,7 @@ type DeprecatedWarningPageMethods interface {
 
 type DeprecatedWarningPageMethods1 interface {
 	IsDraft() bool
-	Hugo() hugo.Info
+	Hugo() neohugo.Info
 	LanguagePrefix() string
 	GetParam(key string) interface{}
 	RSSLink() template.URL
