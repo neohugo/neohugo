@@ -42,21 +42,13 @@ jobs:
         run: |
           go mod download
           go mod verify
+          go get github.com/magefile/mage
       - name: Run Mage Tests
-        uses: magefile/mage-action@v1
-        with:
-          version: latest
-          args: '-v test'
+        run: mage -v test
       - name: Run Mage Tests and Linters
-        uses: magefile/mage-action@v1
-        with:
-          version: latest
-          args: '-v check'
+        run: mage -v check
       - name: Run Mage Build
-        uses: magefile/mage-action@v1
-        with:
-          version: latest
-          args: '-v neohugo'
+        run: mage -v neohugo
       - name: Run docs build
         run: ./neohugo -s docs/
       - name: Run docs build with renderToMemory
