@@ -18,12 +18,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/langs"
-	"github.com/mitchellh/mapstructure"
 )
 
 var DefaultModuleConfig = Config{
@@ -255,10 +255,10 @@ func (c Config) hasModuleImport() bool {
 // HugoVersion holds Hugo binary version requirements for a module.
 type HugoVersion struct {
 	// The minimum Hugo version that this module works with.
-	Min hugo.VersionString
+	Min neohugo.VersionString
 
 	// The maxium Hugo version that this module works with.
-	Max hugo.VersionString
+	Max neohugo.VersionString
 
 	// Set if the extended version is needed.
 	Extended bool
@@ -288,8 +288,8 @@ func (v HugoVersion) String() string {
 // IsValid reports whether this version is valid compared to the running
 // Hugo binary.
 func (v HugoVersion) IsValid() bool {
-	current := hugo.CurrentVersion.Version()
-	if v.Extended && !hugo.IsExtended {
+	current := neohugo.CurrentVersion.Version()
+	if v.Extended && !neohugo.IsExtended {
 		return false
 	}
 

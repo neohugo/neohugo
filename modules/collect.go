@@ -29,7 +29,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/neohugo/neohugo/hugofs/files"
@@ -128,7 +128,7 @@ func (m *ModulesConfig) setActiveMods(logger *loggers.Logger) error {
 	var activeMods Modules
 	for _, mod := range m.AllModules {
 		if !mod.Config().HugoVersion.IsValid() {
-			logger.WARN.Printf(`Module %q is not compatible with this Hugo version; run "hugo mod graph" for more information.`, mod.Path())
+			logger.WARN.Printf(`Module %q is not compatible with this Hugo version; run "nhugo mod graph" for more information.`, mod.Path())
 		}
 		if !mod.Disabled() {
 			activeMods = append(activeMods, mod)
@@ -453,7 +453,7 @@ func (c *collector) applyThemeConfig(tc *moduleAdapter) error {
 		// Merge old with new
 		if minVersion, found := themeCfg[oldVersionKey]; found {
 			if config.HugoVersion.Min == "" {
-				config.HugoVersion.Min = hugo.VersionString(cast.ToString(minVersion))
+				config.HugoVersion.Min = neohugo.VersionString(cast.ToString(minVersion))
 			}
 		}
 
@@ -477,10 +477,10 @@ func (c *collector) applyThemeConfig(tc *moduleAdapter) error {
 }
 
 func (c *collector) collect() {
-	defer c.logger.PrintTimerIfDelayed(time.Now(), "hugo: collected modules")
+	defer c.logger.PrintTimerIfDelayed(time.Now(), "nhugo: collected modules")
 	d := debounce.New(2 * time.Second)
 	d(func() {
-		c.logger.FEEDBACK.Println("hugo: downloading modules …")
+		c.logger.FEEDBACK.Println("nhugo: downloading modules …")
 	})
 	defer d(func() {})
 
