@@ -28,9 +28,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/neohugo/neohugo/media"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/neohugo/neohugo/media"
 	"github.com/spf13/afero"
 	"gocloud.dev/blob"
 	"gocloud.dev/blob/fileblob"

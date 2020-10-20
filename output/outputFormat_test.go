@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/media"
 	"github.com/google/go-cmp/cmp"
+	"github.com/neohugo/neohugo/media"
 )
 
 var eq = qt.CmpEquals(

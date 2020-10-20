@@ -16,8 +16,8 @@ import (
 
 	"github.com/neohugo/neohugo/output"
 
-	"github.com/neohugo/neohugo/parser/metadecoders"
 	"github.com/google/go-cmp/cmp"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/neohugo/neohugo/parser"
 	"github.com/pkg/errors"

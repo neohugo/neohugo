@@ -19,8 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/hugofs/glob"
 )
 
 // A PageMatcher can be used to match a Page with Glob patterns.

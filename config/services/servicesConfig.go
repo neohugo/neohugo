@@ -14,8 +14,8 @@
 package services
 
 import (
-	"github.com/neohugo/neohugo/config"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/config"
 )
 
 const (

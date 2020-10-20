@@ -18,10 +18,10 @@ import (
 	"regexp"
 
 	"github.com/gobwas/glob"
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/config"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/neohugo/neohugo/media"
-	"github.com/mitchellh/mapstructure"
 )
 
 const deploymentConfigKey = "deployment"

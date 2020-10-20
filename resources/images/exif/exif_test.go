@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neohugo/neohugo/htesting/hqt"
 	"github.com/google/go-cmp/cmp"
+	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
 )

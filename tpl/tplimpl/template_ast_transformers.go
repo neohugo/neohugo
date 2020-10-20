@@ -22,9 +22,9 @@ import (
 
 	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/mitchellh/mapstructure"
 	"github.com/pkg/errors"
 )
 

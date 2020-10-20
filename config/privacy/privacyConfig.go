@@ -14,8 +14,8 @@
 package privacy
 
 import (
-	"github.com/neohugo/neohugo/config"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/config"
 )
 
 const privacyConfigKey = "privacy"

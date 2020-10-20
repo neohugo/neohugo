@@ -23,8 +23,8 @@ import (
 	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/gobwas/glob"
-	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/spf13/cast"
 	jww "github.com/spf13/jwalterweatherman"
 )

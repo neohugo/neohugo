@@ -34,10 +34,10 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/google/go-cmp/cmp"
 
 	"github.com/neohugo/neohugo/htesting/hqt"
 

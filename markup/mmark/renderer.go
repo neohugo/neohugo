@@ -17,9 +17,9 @@ import (
 	"bytes"
 	"strings"
 
+	"github.com/miekg/mmark"
 	"github.com/neohugo/neohugo/markup/blackfriday/blackfriday_config"
 	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/miekg/mmark"
 )
 
 // hugoHTMLRenderer wraps a blackfriday.Renderer, typically a blackfriday.Html

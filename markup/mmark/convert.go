@@ -15,10 +15,10 @@
 package mmark
 
 import (
+	"github.com/miekg/mmark"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/blackfriday/blackfriday_config"
 	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/miekg/mmark"
 )
 
 // Provider is the package entry point.

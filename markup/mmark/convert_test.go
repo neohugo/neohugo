@@ -21,9 +21,9 @@ import (
 	"github.com/neohugo/neohugo/common/loggers"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/miekg/mmark"
 	"github.com/neohugo/neohugo/markup/blackfriday/blackfriday_config"
 	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/miekg/mmark"
 )
 
 func TestGetMmarkExtensions(t *testing.T) {
