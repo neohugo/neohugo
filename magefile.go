@@ -49,12 +49,12 @@ func runWith(env map[string]string, cmd string, inArgs ...interface{}) error {
 }
 
 // Build hugo binary
-func Hugo() error {
+func NeoHugo() error {
 	return runWith(flagEnv(), goexe, "build", "-ldflags", ldflags, buildFlags(), "-tags", buildTags(), packageName)
 }
 
 // Build hugo binary with race detector enabled
-func HugoRace() error {
+func NeoHugoRace() error {
 	return runWith(flagEnv(), goexe, "build", "-race", "-ldflags", ldflags, buildFlags(), "-tags", buildTags(), packageName)
 }
 
@@ -121,7 +121,7 @@ func GenDocsHelper() error {
 // Build hugo without git info
 func HugoNoGitInfo() error {
 	ldflags = noGitLdflags
-	return Hugo()
+	return NeoHugo()
 }
 
 var docker = sh.RunCmd("docker")

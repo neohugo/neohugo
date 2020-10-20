@@ -1,7 +1,11 @@
+# binary
+/neohugo
 /hugo
+hugo.exe
+neohugo.exe
+
 docs/public*
 /.idea
-hugo.exe
 *.test
 *.prof
 nohup.out

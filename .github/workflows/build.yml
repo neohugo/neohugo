@@ -56,8 +56,8 @@ jobs:
         uses: magefile/mage-action@v1
         with:
           version: latest
-          args: '-v hugo'
+          args: '-v neohugo'
       - name: Run docs build
-        run: ./hugo -s docs/
+        run: ./neohugo -s docs/
       - name: Run docs build with renderToMemory
-        run: ./hugo --renderToMemory -s docs/
+        run: ./neohugo --renderToMemory -s docs/
