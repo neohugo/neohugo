@@ -43,6 +43,8 @@ jobs:
           go mod download
           go mod verify
           go get github.com/magefile/mage
+      - name: Run GO Tests
+        run: go test -v ./... -tags extended
       - name: Run Mage Tests
         run: mage -v test
       - name: Run Mage Tests and Linters
