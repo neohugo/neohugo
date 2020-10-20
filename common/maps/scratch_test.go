@@ -85,7 +85,7 @@ func TestScratchAddSlice(t *testing.T) {
 	}
 }
 
-// https://github.com/gohugoio/hugo/issues/5275
+// https://github.com/neohugo/neohugo/issues/5275
 func TestScratchAddTypedSliceToInterfaceSlice(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
@@ -99,7 +99,7 @@ func TestScratchAddTypedSliceToInterfaceSlice(t *testing.T) {
 
 }
 
-// https://github.com/gohugoio/hugo/issues/5361
+// https://github.com/neohugo/neohugo/issues/5361
 func TestScratchAddDifferentTypedSliceToInterfaceSlice(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)

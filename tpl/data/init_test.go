@@ -17,9 +17,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/htesting/hqt"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/tpl/internal"
+	"github.com/neohugo/neohugo/htesting/hqt"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/tpl/internal"
 	"github.com/spf13/viper"
 )
 

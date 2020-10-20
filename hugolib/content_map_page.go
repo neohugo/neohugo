@@ -21,20 +21,20 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/resources"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/parser/pageparser"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/parser/pageparser"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/common/para"
+	"github.com/neohugo/neohugo/common/para"
 	"github.com/pkg/errors"
 )
 

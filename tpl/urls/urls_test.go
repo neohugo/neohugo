@@ -17,10 +17,10 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/gohugoio/hugo/htesting/hqt"
+	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/viper"
 )
 

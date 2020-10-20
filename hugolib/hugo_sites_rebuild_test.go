@@ -120,11 +120,11 @@ Edited content.
 		b.Build(BuildCfg{})
 
 		b.AssertFileContent("public/index.html", "* Page Paginate: Page 1 edit|Summary: Edited summary|Content: <p>Edited content.</p>")
-		// https://github.com/gohugoio/hugo/issues/5833
+		// https://github.com/neohugo/neohugo/issues/5833
 		b.AssertFileContent("public/index.html", "* Page Pages: Page 1 edit|Summary: Edited summary|Content: <p>Edited content.</p>")
 	})
 
-	// https://github.com/gohugoio/hugo/issues/6768
+	// https://github.com/neohugo/neohugo/issues/6768
 	t.Run("Edit data", func(t *testing.T) {
 		b := createSiteBuilder(t)
 
@@ -145,7 +145,7 @@ Data Inline: Rules!`)
 
 	})
 
-	// https://github.com/gohugoio/hugo/issues/6968
+	// https://github.com/neohugo/neohugo/issues/6968
 	t.Run("Edit single.html with base", func(t *testing.T) {
 		b := newTestSitesBuilder(t).Running()
 

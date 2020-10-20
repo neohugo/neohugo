@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/gohugoio/hugo/tpl/internal/go_templates/htmltemplate"
+	. "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 )
 
 func TestTemplateClone(t *testing.T) {

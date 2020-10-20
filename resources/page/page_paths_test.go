@@ -18,11 +18,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 
 	"fmt"
 
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/output"
 )
 
 func TestPageTargetPath(t *testing.T) {

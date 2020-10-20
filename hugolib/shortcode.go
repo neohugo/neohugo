@@ -18,12 +18,12 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
 	"html/template"
 	"path"
 
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/pkg/errors"
 
 	"reflect"
@@ -31,21 +31,21 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/gohugoio/hugo/parser/pageparser"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/parser/pageparser"
+	"github.com/neohugo/neohugo/resources/page"
 
 	_errors "github.com/pkg/errors"
 
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/common/urls"
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/common/urls"
+	"github.com/neohugo/neohugo/output"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/tpl"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 var (

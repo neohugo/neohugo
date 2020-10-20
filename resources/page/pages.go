@@ -17,9 +17,9 @@ import (
 	"fmt"
 	"math/rand"
 
-	"github.com/gohugoio/hugo/compare"
+	"github.com/neohugo/neohugo/compare"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 var (

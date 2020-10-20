@@ -18,10 +18,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/parser"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/parser"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -71,7 +71,7 @@ func TestMerge(t *testing.T) {
 			map[string]interface{}{"a": 1, "b": map[string]interface{}{"d": 1, "e": 2, "f": 3}, "c": 3}, false,
 		},
 		{
-			// https://github.com/gohugoio/hugo/issues/6633
+			// https://github.com/neohugo/neohugo/issues/6633
 			"params dst",
 			[]interface{}{
 				map[string]interface{}{"a": 42, "c": 3},

@@ -20,14 +20,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
 	radix "github.com/armon/go-radix"
 )

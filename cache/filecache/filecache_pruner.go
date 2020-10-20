@@ -17,7 +17,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"

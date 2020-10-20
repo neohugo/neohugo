@@ -10,7 +10,7 @@ import (
 	"github.com/fortytw2/leaktest"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 )
 
 type testSiteBuildErrorAsserter struct {
@@ -48,7 +48,7 @@ func TestSiteBuildErrors(t *testing.T) {
 		single      = "single"
 	)
 
-	// TODO(bep) add content tests after https://github.com/gohugoio/hugo/issues/5324
+	// TODO(bep) add content tests after https://github.com/neohugo/neohugo/issues/5324
 	// is implemented.
 
 	tests := []struct {
@@ -202,7 +202,7 @@ func TestSiteBuildErrors(t *testing.T) {
 			},
 		},
 		{
-			// See https://github.com/gohugoio/hugo/issues/5327
+			// See https://github.com/neohugo/neohugo/issues/5327
 			name:     "Panic in template Execute",
 			fileType: single,
 			fileFixer: func(content string) string {
@@ -322,7 +322,7 @@ Some content.
 	}
 }
 
-// https://github.com/gohugoio/hugo/issues/5375
+// https://github.com/neohugo/neohugo/issues/5375
 func TestSiteBuildTimeout(t *testing.T) {
 	if !isCI() {
 		defer leaktest.CheckTimeout(t, 10*time.Second)()

@@ -22,7 +22,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/cast"
 )
 

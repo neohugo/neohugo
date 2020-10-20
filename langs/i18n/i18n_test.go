@@ -18,21 +18,21 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/modules"
 
-	"github.com/gohugoio/hugo/tpl/tplimpl"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/resources/page"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 var logger = loggers.NewErrorLogger()
@@ -126,7 +126,7 @@ var i18nTests = []i18nTest{
 		expected:     "¡Hola, 50 gente!",
 		expectedFlag: "¡Hola, 50 gente!",
 	},
-	// https://github.com/gohugoio/hugo/issues/7787
+	// https://github.com/neohugo/neohugo/issues/7787
 	{
 		name: "readingTime-one",
 		data: map[string][]byte{
@@ -156,7 +156,7 @@ other = "{{ .Count }} minutes to read"
 		expectedFlag: "21 minutes to read",
 	},
 	// Same id and translation in current language
-	// https://github.com/gohugoio/hugo/issues/2607
+	// https://github.com/neohugo/neohugo/issues/2607
 	{
 		name: "same-id-and-translation",
 		data: map[string][]byte{
@@ -199,7 +199,7 @@ other = "{{ .Count }} minuttar lesing"`),
 		expected:     "3 minuttar lesing",
 		expectedFlag: "3 minuttar lesing",
 	},
-	// https://github.com/gohugoio/hugo/issues/7798
+	// https://github.com/neohugo/neohugo/issues/7798
 	{
 		name: "known-language-missing-plural",
 		data: map[string][]byte{
@@ -212,7 +212,7 @@ one =  "abc"`),
 		expected:     "abc",
 		expectedFlag: "abc",
 	},
-	// https://github.com/gohugoio/hugo/issues/7794
+	// https://github.com/neohugo/neohugo/issues/7794
 	{
 		name: "dotted-bare-key",
 		data: map[string][]byte{
@@ -226,7 +226,7 @@ one =  "abc"`),
 		expected:     "Show Me The Money",
 		expectedFlag: "Show Me The Money",
 	},
-	// https: //github.com/gohugoio/hugo/issues/7804
+	// https: //github.com/neohugo/neohugo/issues/7804
 	{
 		name: "lang-with-hyphen",
 		data: map[string][]byte{

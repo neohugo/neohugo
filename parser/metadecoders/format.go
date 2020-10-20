@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 )
 
 type Format string

@@ -16,7 +16,7 @@ package hugolib
 import (
 	"sync"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 func newPagePaginator(source *pageState) *pagePaginator {

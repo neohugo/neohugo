@@ -19,28 +19,28 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/modules"
 
 	"github.com/bep/gitmap"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/viper"
 
-	"github.com/gohugoio/hugo/navigation"
+	"github.com/neohugo/neohugo/navigation"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/related"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/related"
 
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/source"
 )
 
 var (

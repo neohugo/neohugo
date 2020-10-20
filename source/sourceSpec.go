@@ -19,10 +19,10 @@ import (
 	"regexp"
 	"runtime"
 
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/langs"
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/cast"
 )
 

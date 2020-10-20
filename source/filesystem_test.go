@@ -19,15 +19,15 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/modules"
 
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/langs"
 
 	"github.com/spf13/afero"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/spf13/viper"
 )

@@ -20,13 +20,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -164,7 +164,7 @@ func TestFlags(t *testing.T) {
 		check func(c *qt.C, cmd *serverCmd)
 	}{
 		{
-			// https://github.com/gohugoio/hugo/issues/7642
+			// https://github.com/neohugo/neohugo/issues/7642
 			name: "ignoreVendor as bool",
 			args: []string{"server", "--ignoreVendor"},
 			check: func(c *qt.C, cmd *serverCmd) {
@@ -174,7 +174,7 @@ func TestFlags(t *testing.T) {
 			},
 		},
 		{
-			// https://github.com/gohugoio/hugo/issues/7642
+			// https://github.com/neohugo/neohugo/issues/7642
 			name: "ignoreVendorPaths",
 			args: []string{"server", "--ignoreVendorPaths=github.com/**"},
 			check: func(c *qt.C, cmd *serverCmd) {
@@ -300,7 +300,7 @@ func TestCommandsExecute(t *testing.T) {
 		{[]string{"new", "new-page.md"}, []string{sourceFlag}, ""},
 		{[]string{"new", "site", filepath.Join(dirOut, "new-site")}, nil, ""},
 		{[]string{"unknowncommand"}, nil, "unknown command"},
-		// TODO(bep) cli refactor fix https://github.com/gohugoio/hugo/issues/4450
+		// TODO(bep) cli refactor fix https://github.com/neohugo/neohugo/issues/4450
 		//{[]string{"new", "theme", filepath.Join(dirOut, "new-theme")}, nil,false},
 	}
 

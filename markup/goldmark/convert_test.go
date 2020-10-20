@@ -17,15 +17,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
+	"github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
 
-	"github.com/gohugoio/hugo/markup/highlight"
+	"github.com/neohugo/neohugo/markup/highlight"
 
-	"github.com/gohugoio/hugo/markup/markup_config"
+	"github.com/neohugo/neohugo/markup/markup_config"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -54,7 +54,7 @@ func TestConvert(t *testing.T) {
 	content := `
 ## Links
 
-https://github.com/gohugoio/hugo/issues/6528
+https://github.com/neohugo/neohugo/issues/6528
 [Live Demo here!](https://docuapi.netlify.com/)
 
 [I'm an inline-style link with title](https://www.google.com "Google's Homepage")
@@ -198,7 +198,7 @@ func TestConvertAutoIDBlackfriday(t *testing.T) {
 func TestConvertIssues(t *testing.T) {
 	c := qt.New(t)
 
-	// https://github.com/gohugoio/hugo/issues/7619
+	// https://github.com/neohugo/neohugo/issues/7619
 	c.Run("Hyphen in HTML attributes", func(c *qt.C) {
 		mconf := markup_config.Default
 		mconf.Goldmark.Renderer.Unsafe = true

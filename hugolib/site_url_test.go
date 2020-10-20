@@ -18,12 +18,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
 	"html/template"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 const slugDoc1 = "---\ntitle: slug doc 1\nslug: slug-doc-1\naliases:\n - /sd1/foo/\n - /sd2\n - /sd3/\n - /sd4.html\n---\nslug doc 1 content\n"

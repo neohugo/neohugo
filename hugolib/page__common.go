@@ -17,13 +17,13 @@ import (
 	"sync"
 
 	"github.com/bep/gitmap"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/compare"
-	"github.com/gohugoio/hugo/lazy"
-	"github.com/gohugoio/hugo/navigation"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/compare"
+	"github.com/neohugo/neohugo/lazy"
+	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 type treeRefProvider interface {

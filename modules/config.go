@@ -18,11 +18,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/hugo"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/langs"
 	"github.com/mitchellh/mapstructure"
 )
 

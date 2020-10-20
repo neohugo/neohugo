@@ -13,7 +13,7 @@ import (
 	"os"
 	"path/filepath"
 
-	template "github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate"
+	template "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 )
 
 // templateFile defines the contents of a template to be stored in a file, for testing.

@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
 	"reflect"
 	"strings"
@@ -25,7 +25,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 func TestTaxonomiesCountOrder(t *testing.T) {
@@ -114,7 +114,7 @@ permalinkeds:
 		"p4.md", fmt.Sprintf(pageTemplate, "Hello World", "", "", "- \"Hello Hugo world\"", "- Pl1"),
 		"categories/_index.md", newTestPage("Category Terms", "2017-01-01", 10),
 		"tags/Tag1/_index.md", newTestPage("Tag1 List", "2017-01-01", 10),
-		// https://github.com/gohugoio/hugo/issues/5847
+		// https://github.com/neohugo/neohugo/issues/5847
 		"/tags/not-used/_index.md", newTestPage("Unused Tag List", "2018-01-01", 10),
 	)
 
@@ -205,8 +205,8 @@ permalinkeds:
 
 }
 
-// https://github.com/gohugoio/hugo/issues/5513
-// https://github.com/gohugoio/hugo/issues/5571
+// https://github.com/neohugo/neohugo/issues/5513
+// https://github.com/neohugo/neohugo/issues/5571
 func TestTaxonomiesPathSeparation(t *testing.T) {
 	t.Parallel()
 
@@ -288,7 +288,7 @@ title: "This is S3s"
 
 }
 
-// https://github.com/gohugoio/hugo/issues/5719
+// https://github.com/neohugo/neohugo/issues/5719
 func TestTaxonomiesNextGenLoops(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 
@@ -401,7 +401,7 @@ Content.
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6927
+// https://github.com/neohugo/neohugo/issues/6927
 func TestTaxonomiesHomeDraft(t *testing.T) {
 	t.Parallel()
 
@@ -445,7 +445,7 @@ NO HOME FOR YOU
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6173
+// https://github.com/neohugo/neohugo/issues/6173
 func TestTaxonomiesWithBundledResources(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithTemplates("_default/list.html", `
@@ -531,7 +531,7 @@ Funny:|/p2/|`)
 
 }
 
-//https://github.com/gohugoio/hugo/issues/6590
+//https://github.com/neohugo/neohugo/issues/6590
 func TestTaxonomiesListPages(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithTemplates("_default/list.html", `

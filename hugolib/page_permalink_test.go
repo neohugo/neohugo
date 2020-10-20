@@ -21,7 +21,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 func TestPermalink(t *testing.T) {

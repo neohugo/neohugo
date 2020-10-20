@@ -16,9 +16,9 @@ package modules
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/hugo"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
 	qt "github.com/frankban/quicktest"
 )

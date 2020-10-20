@@ -13,6 +13,6 @@
 
 // +build extended
 
-package hugo
+package neohugo
 
 var IsExtended = true

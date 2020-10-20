@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/htesting"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -27,7 +27,7 @@ func TestI18n(t *testing.T) {
 
 	c := qt.New(t)
 
-	//https://github.com/gohugoio/hugo/issues/7804
+	//https://github.com/neohugo/neohugo/issues/7804
 	c.Run("pt-br should be case insensitive", func(c *qt.C) {
 		b := newTestSitesBuilder(c)
 		langCode := func() string {

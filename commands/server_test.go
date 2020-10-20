@@ -22,7 +22,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/spf13/viper"

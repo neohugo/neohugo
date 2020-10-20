@@ -98,7 +98,7 @@ func ClassifyContentFile(filename string, open func() (afero.File, error)) Conte
 		// character is a "<", then we treat it as a regular file.
 		// Eearlier we created pages for these files, but that had all sorts
 		// of troubles, and isn't what it says in the documentation.
-		// See https://github.com/gohugoio/hugo/issues/7030
+		// See https://github.com/neohugo/neohugo/issues/7030
 		if open == nil {
 			panic(fmt.Sprintf("no file opener provided for %q", filename))
 		}

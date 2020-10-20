@@ -19,7 +19,7 @@ package hreflect
 import (
 	"reflect"
 
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/types"
 )
 
 // TODO(bep) replace the private versions in /tpl with these.

@@ -19,7 +19,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/hugofs/glob"
+	"github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/mitchellh/mapstructure"
 )
 

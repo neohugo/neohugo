@@ -22,11 +22,11 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/spf13/afero"
 )
 

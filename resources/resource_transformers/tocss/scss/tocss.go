@@ -23,10 +23,10 @@ import (
 	"strings"
 
 	"github.com/bep/golibsass/libsass"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources"
 	"github.com/pkg/errors"
 )
 
@@ -147,7 +147,7 @@ func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		}
 
 		// This needs to be Unix-style slashes, even on Windows.
-		// See https://github.com/gohugoio/hugo/issues/4968
+		// See https://github.com/neohugo/neohugo/issues/4968
 		sourcePath = filepath.ToSlash(sourcePath)
 
 		// This is a workaround for what looks like a bug in Libsass. But
@@ -170,7 +170,7 @@ func (c *Client) toCSS(options libsass.Options, dst io.Writer, src io.Reader) (l
 
 	in := helpers.ReaderToString(src)
 
-	// See https://github.com/gohugoio/hugo/issues/7059
+	// See https://github.com/neohugo/neohugo/issues/7059
 	// We need to preserver the regular CSS imports. This is by far
 	// a perfect solution, and only works for the main entry file, but
 	// that should cover many use cases, e.g. using SCSS as a preprocessor

@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/types"
 
 	qt "github.com/frankban/quicktest"
 )

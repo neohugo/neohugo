@@ -23,22 +23,22 @@ import (
 	"time"
 
 	"github.com/bep/debounce"
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/rogpeppe/go-internal/module"
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/afero"
 )
 
@@ -98,7 +98,7 @@ func (h *Client) collect(tidy bool) (ModulesConfig, *collector) {
 		return ModulesConfig{}, c
 	}
 
-	// https://github.com/gohugoio/hugo/issues/6115
+	// https://github.com/neohugo/neohugo/issues/6115
 	/*if !c.skipTidy && tidy {
 		if err := h.tidy(c.modules, true); err != nil {
 			c.err = err

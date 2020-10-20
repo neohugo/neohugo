@@ -26,24 +26,24 @@ import (
 	"path/filepath"
 	"regexp"
 
-	hglob "github.com/gohugoio/hugo/hugofs/glob"
+	hglob "github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/gobwas/glob"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
 	"github.com/rogpeppe/go-internal/module"
 
-	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/neohugo/neohugo/common/hugio"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
@@ -235,7 +235,7 @@ func (c *Client) Vendor() error {
 
 		if !t.IsGoMod() && !t.Vendor() {
 			// We currently do not vendor components living in the
-			// theme directory, see https://github.com/gohugoio/hugo/issues/5993
+			// theme directory, see https://github.com/neohugo/neohugo/issues/5993
 			continue
 		}
 
@@ -559,7 +559,7 @@ func (c *Client) runGo(
 		}
 
 		if strings.Contains(stderr.String(), "invalid version: unknown revision") {
-			// See https://github.com/gohugoio/hugo/issues/6825
+			// See https://github.com/neohugo/neohugo/issues/6825
 			c.logger.FEEDBACK.Println(`hugo: you need to manually edit go.mod to resolve the unknown revision.`)
 		}
 

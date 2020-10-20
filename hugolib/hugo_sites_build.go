@@ -23,24 +23,24 @@ import (
 	"runtime/trace"
 	"strings"
 
-	"github.com/gohugoio/hugo/publisher"
+	"github.com/neohugo/neohugo/publisher"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/common/para"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/resources/postpub"
+	"github.com/neohugo/neohugo/common/para"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/resources/postpub"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/output"
 
 	"github.com/pkg/errors"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 )
 
 // Build builds all sites. If filesystem events are provided,

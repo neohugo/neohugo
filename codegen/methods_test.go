@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 )
 
 func TestMethods(t *testing.T) {
@@ -47,7 +47,7 @@ func TestMethods(t *testing.T) {
 		c.Assert(methodsStr, qt.Contains, "Method0() string\n Method4() string")
 		c.Assert(methodsStr, qt.Contains, "MethodEmbed3(arg0 string) string\n MethodEmbed1() string")
 
-		c.Assert(methods.Imports(), qt.Contains, "github.com/gohugoio/hugo/common/herrors")
+		c.Assert(methods.Imports(), qt.Contains, "github.com/neohugo/neohugo/common/herrors")
 	})
 
 	t.Run("EmbedOnly", func(t *testing.T) {
@@ -72,7 +72,7 @@ func TestMethods(t *testing.T) {
 		c.Assert(m, qt.Contains, "Method0: method0,")
 		c.Assert(m, qt.Contains, "return json.Marshal(&s)")
 
-		c.Assert(pkg, qt.Contains, "github.com/gohugoio/hugo/common/herrors")
+		c.Assert(pkg, qt.Contains, "github.com/neohugo/neohugo/common/herrors")
 		c.Assert(pkg, qt.Contains, "encoding/json")
 
 		fmt.Println(pkg)

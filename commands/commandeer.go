@@ -18,14 +18,14 @@ import (
 	"errors"
 	"sync"
 
-	hconfig "github.com/gohugoio/hugo/config"
+	hconfig "github.com/neohugo/neohugo/config"
 
 	"golang.org/x/sync/semaphore"
 
 	"io/ioutil"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hugo"
 
 	jww "github.com/spf13/jwalterweatherman"
 
@@ -34,20 +34,20 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
 
 	"github.com/spf13/cobra"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 	"github.com/spf13/afero"
 
 	"github.com/bep/debounce"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/langs"
 )
 
 type commandeerHugoState struct {

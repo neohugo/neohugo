@@ -18,10 +18,10 @@ import (
 	"html"
 	"html/template"
 
-	"github.com/gohugoio/hugo/cache/namedmemcache"
+	"github.com/neohugo/neohugo/cache/namedmemcache"
 
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/cast"
 )
 

@@ -22,9 +22,9 @@ import (
 	"time"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 const pageCollectionsPageTemplate = `---
@@ -286,7 +286,7 @@ func TestGetPage(t *testing.T) {
 		{"Bundle regular", page.KindPage, nil, []string{"sect3/b1", "sect3/b1/index.md", "sect3/b1/index.en.md"}, "b1 bundle"},
 		{"Bundle index name", page.KindPage, nil, []string{"sect3/index/index.md", "sect3/index"}, "index bundle"},
 
-		// https://github.com/gohugoio/hugo/issues/7301
+		// https://github.com/neohugo/neohugo/issues/7301
 		{"Section and bundle overlap", page.KindPage, nil, []string{"section_bundle_overlap_bundle"}, "index overlap bundle"},
 	}
 
@@ -314,7 +314,7 @@ func TestGetPage(t *testing.T) {
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6034
+// https://github.com/neohugo/neohugo/issues/6034
 func TestGetPageRelative(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	for i, section := range []string{"what", "where", "who"} {
@@ -341,7 +341,7 @@ NOT FOUND
 
 }
 
-// https://github.com/gohugoio/hugo/issues/7016
+// https://github.com/neohugo/neohugo/issues/7016
 func TestGetPageMultilingual(t *testing.T) {
 	b := newTestSitesBuilder(t)
 

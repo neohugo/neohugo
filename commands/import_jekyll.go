@@ -26,17 +26,17 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/neohugo/neohugo/parser/pageparser"
 
-	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/neohugo/neohugo/common/hugio"
 
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/parser"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/parser"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"

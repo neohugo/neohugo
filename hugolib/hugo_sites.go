@@ -22,36 +22,36 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
 	radix "github.com/armon/go-radix"
 
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	"github.com/gohugoio/hugo/common/para"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/para"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/source"
 
 	"github.com/bep/gitmap"
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/publisher"
+	"github.com/neohugo/neohugo/publisher"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/lazy"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/lazy"
 
-	"github.com/gohugoio/hugo/langs/i18n"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
-	"github.com/gohugoio/hugo/tpl"
-	"github.com/gohugoio/hugo/tpl/tplimpl"
+	"github.com/neohugo/neohugo/langs/i18n"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/tpl"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 )
 
 // HugoSites represents the sites to build. Each site represents a language.

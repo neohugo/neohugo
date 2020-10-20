@@ -23,21 +23,21 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
-	"github.com/gohugoio/hugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/markup/converter/hooks"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 
-	"github.com/gohugoio/hugo/lazy"
+	"github.com/neohugo/neohugo/lazy"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/tpl"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 var (
@@ -88,7 +88,7 @@ func newPageContentOutput(p *pageState, po *pageOutput) (*pageContentOutput, err
 			return nil
 		}
 		defer func() {
-			// See https://github.com/gohugoio/hugo/issues/6210
+			// See https://github.com/neohugo/neohugo/issues/6210
 			if r := recover(); r != nil {
 				err = fmt.Errorf("%s", r)
 				p.s.Log.ERROR.Printf("[BUG] Got panic:\n%s\n%s", r, string(debug.Stack()))

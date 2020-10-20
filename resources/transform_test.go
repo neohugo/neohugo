@@ -23,17 +23,17 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/htesting"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/resources/internal"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources/internal"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/afero"
 
 	qt "github.com/frankban/quicktest"

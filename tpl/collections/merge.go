@@ -17,8 +17,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hreflect"
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/hreflect"
+	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/pkg/errors"
 )

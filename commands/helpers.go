@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/cobra"
 )
 

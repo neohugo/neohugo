@@ -14,9 +14,9 @@
 package navigation
 
 import (
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/compare"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/compare"
 
 	"html/template"
 	"sort"

@@ -23,15 +23,15 @@ import (
 
 	jww "github.com/spf13/jwalterweatherman"
 
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 )
 
 func TestResourceChainBabel(t *testing.T) {

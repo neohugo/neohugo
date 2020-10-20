@@ -16,7 +16,7 @@ package hugolib
 import (
 	"sync"
 
-	"github.com/gohugoio/hugo/navigation"
+	"github.com/neohugo/neohugo/navigation"
 )
 
 type pageMenus struct {

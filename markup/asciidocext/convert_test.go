@@ -21,10 +21,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/markup_config"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/markup_config"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"

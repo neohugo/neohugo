@@ -7,20 +7,20 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources/page"
 
-	"github.com/gohugoio/hugo/metrics"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/source"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/metrics"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/source"
+	"github.com/neohugo/neohugo/tpl"
 	jww "github.com/spf13/jwalterweatherman"
 )
 

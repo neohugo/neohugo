@@ -18,12 +18,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/gohugoio/hugo/hugolib/paths"
+	"github.com/neohugo/neohugo/hugolib/paths"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/cobra"
 )
 

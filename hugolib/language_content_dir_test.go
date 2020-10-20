@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -199,7 +199,7 @@ Content.
 	}
 
 	// Add some static files inside the content dir
-	// https://github.com/gohugoio/hugo/issues/5759
+	// https://github.com/neohugo/neohugo/issues/5759
 	for _, lang := range []string{"en", "nn", "sv"} {
 		contentRoot := contentRoot(lang)
 		for i := 0; i < 2; i++ {
@@ -320,7 +320,7 @@ Content.
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6463
+// https://github.com/neohugo/neohugo/issues/6463
 func TestLanguageRootSectionsMismatch(t *testing.T) {
 	t.Parallel()
 

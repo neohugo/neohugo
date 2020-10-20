@@ -20,7 +20,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/text"
+	"github.com/neohugo/neohugo/common/text"
 
 	"github.com/spf13/afero"
 )

@@ -17,14 +17,14 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 	"github.com/pkg/errors"
 
 	"github.com/spf13/cast"

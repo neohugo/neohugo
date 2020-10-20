@@ -20,10 +20,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/resources/images"
+	"github.com/neohugo/neohugo/resources/images"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/helpers"
 )
 
 type imageCache struct {

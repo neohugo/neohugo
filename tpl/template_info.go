@@ -14,7 +14,7 @@
 package tpl
 
 import (
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 )
 
 // Increments on breaking changes.

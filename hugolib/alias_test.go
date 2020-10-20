@@ -18,7 +18,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	qt "github.com/frankban/quicktest"
 )

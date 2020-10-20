@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hugo
+package neohugo
 
 import (
 	"fmt"
@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/gohugoio/hugo/compare"
+	"github.com/neohugo/neohugo/compare"
 	"github.com/spf13/cast"
 )
 

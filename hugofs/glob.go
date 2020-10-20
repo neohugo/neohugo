@@ -18,7 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/hugofs/glob"
+	"github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/spf13/afero"
 )

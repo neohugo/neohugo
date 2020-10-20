@@ -18,15 +18,15 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 func newPagesProcessor(h *HugoSites, sp *source.SourceSpec) *pagesProcessor {

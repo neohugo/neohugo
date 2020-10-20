@@ -20,9 +20,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 func TestWhere(t *testing.T) {

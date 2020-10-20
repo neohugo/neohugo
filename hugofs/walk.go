@@ -20,7 +20,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/pkg/errors"
 

@@ -23,15 +23,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/langs"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )

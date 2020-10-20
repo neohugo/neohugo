@@ -17,7 +17,7 @@ import (
 	"bytes"
 	"io"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
+	bp "github.com/neohugo/neohugo/bufferpool"
 )
 
 // Transformer is the func that needs to be implemented by a transformation step.

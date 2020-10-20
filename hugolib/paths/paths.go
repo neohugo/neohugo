@@ -18,12 +18,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/modules"
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 var FilePathSeparator = string(filepath.Separator)

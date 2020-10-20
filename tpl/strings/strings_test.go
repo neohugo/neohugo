@@ -17,7 +17,7 @@ import (
 	"html/template"
 	"testing"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/spf13/cast"

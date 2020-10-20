@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/alecthomas/chroma/lexers"
-	"github.com/gohugoio/hugo/docshelper"
+	"github.com/neohugo/neohugo/docshelper"
 )
 
 // This is is just some helpers used to create some JSON used in the Hugo docs.

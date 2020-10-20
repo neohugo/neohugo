@@ -18,9 +18,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/langs"
 )
 
 func TestNewPathSpecFromConfig(t *testing.T) {

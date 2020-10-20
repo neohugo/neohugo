@@ -20,8 +20,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	jww "github.com/spf13/jwalterweatherman"

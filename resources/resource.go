@@ -22,24 +22,24 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/gohugoio/hugo/resources/internal"
+	"github.com/neohugo/neohugo/resources/internal"
 
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/source"
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 )
 
 var (

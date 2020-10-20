@@ -29,51 +29,51 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/common/constants"
+	"github.com/neohugo/neohugo/common/constants"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/resources"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
-	"github.com/gohugoio/hugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/markup/converter/hooks"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/common/text"
+	"github.com/neohugo/neohugo/common/text"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/publisher"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/publisher"
 	_errors "github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/langs"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/lazy"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/lazy"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/fsnotify/fsnotify"
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/navigation"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/related"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
-	"github.com/gohugoio/hugo/source"
-	"github.com/gohugoio/hugo/tpl"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/related"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/source"
+	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"

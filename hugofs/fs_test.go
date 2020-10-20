@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/htesting/hqt"
+	"github.com/neohugo/neohugo/htesting/hqt"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )

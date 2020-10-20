@@ -18,9 +18,9 @@ import (
 	"regexp"
 
 	"github.com/gobwas/glob"
-	"github.com/gohugoio/hugo/config"
-	hglob "github.com/gohugoio/hugo/hugofs/glob"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/config"
+	hglob "github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/media"
 	"github.com/mitchellh/mapstructure"
 )
 

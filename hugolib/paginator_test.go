@@ -108,7 +108,7 @@ func TestPaginateWithSort(t *testing.T) {
 		filepath.FromSlash("|content/sect/doc1.nn.md|content/sect/doc1.nb.md|content/sect/doc1.fr.md|content/sect/doc1.en.md"))
 }
 
-// https://github.com/gohugoio/hugo/issues/6797
+// https://github.com/neohugo/neohugo/issues/6797
 func TestPaginateOutputFormat(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 	b.WithContent("_index.md", `---

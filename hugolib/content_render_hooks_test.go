@@ -204,7 +204,7 @@ SHORT3|
 	b.AssertFileContent("public/blog/p6/index.html", "<p>Inner Link: EDITED: https://www.gohugo.io|</p>")
 	b.AssertFileContent("public/blog/p7/index.html", "HEADING: With Headings||Level: 1|Anchor: heading-level-1|Text: Heading Level 1|END<p>some text</p>\nHEADING: With Headings||Level: 2|Anchor: heading-level-2|Text: Heading Level 2|ENDHEADING: With Headings||Level: 3|Anchor: heading-level-3|Text: Heading Level 3|END")
 
-	// https://github.com/gohugoio/hugo/issues/7349
+	// https://github.com/neohugo/neohugo/issues/7349
 	b.AssertFileContent("public/docs/p8/index.html", "Docs Level: 1")
 
 }
@@ -318,7 +318,7 @@ P3: <p>P3. xml-link: https://www.example.org|</p>
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6629
+// https://github.com/neohugo/neohugo/issues/6629
 func TestRenderLinkWithMarkupInText(t *testing.T) {
 
 	b := newTestSitesBuilder(t)
@@ -399,7 +399,7 @@ RSTART:Hook Heading: 2:REND
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6882
+// https://github.com/neohugo/neohugo/issues/6882
 func TestRenderStringOnListPage(t *testing.T) {
 	renderStringTempl := `
 {{ .RenderString "**Hello**" }}

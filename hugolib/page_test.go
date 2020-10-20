@@ -18,29 +18,29 @@ import (
 	"html/template"
 	"os"
 
-	"github.com/gohugoio/hugo/markup/rst"
+	"github.com/neohugo/neohugo/markup/rst"
 
-	"github.com/gohugoio/hugo/markup/asciidocext"
+	"github.com/neohugo/neohugo/markup/asciidocext"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
 )
 
 const (
@@ -509,7 +509,7 @@ title: No Date
 ---
 
 `,
-		// https://github.com/gohugoio/hugo/issues/5854
+		// https://github.com/neohugo/neohugo/issues/5854
 		"with-index-date/_index.md", `---
 title: Date
 date: 2018-01-15
@@ -622,7 +622,7 @@ func TestPageWithSummaryParameter(t *testing.T) {
 }
 
 // Issue #3854
-// Also see https://github.com/gohugoio/hugo/issues/3977
+// Also see https://github.com/neohugo/neohugo/issues/3977
 func TestPageWithDateFields(t *testing.T) {
 	c := qt.New(t)
 	pageWithDate := `---
@@ -1155,7 +1155,7 @@ title: "HTML Content"
 		"Permalink: http://example.com/noblackfridayforyou/|**Hugo!**|",
 	)
 
-	// https://github.com/gohugoio/hugo/issues/5723
+	// https://github.com/neohugo/neohugo/issues/5723
 	b.AssertFileContent(
 		"public/manualsummary/index.html",
 		"Single: HTML Content|Hello|en|RelPermalink: /manualsummary/|",
@@ -1165,7 +1165,7 @@ title: "HTML Content"
 
 }
 
-// https://github.com/gohugoio/hugo/issues/5381
+// https://github.com/neohugo/neohugo/issues/5381
 func TestPageManualSummary(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1178,7 +1178,7 @@ This is a {{< sc >}}.
 Content.
 `)
 
-	// https://github.com/gohugoio/hugo/issues/5464
+	// https://github.com/neohugo/neohugo/issues/5464
 	b.WithContent("page-md-only-shortcode.md", `---
 title: "Hugo"
 ---
@@ -1254,7 +1254,7 @@ CONTENT:{{ .Content }}
 	)
 }
 
-// https://github.com/gohugoio/hugo/issues/5478
+// https://github.com/neohugo/neohugo/issues/5478
 func TestPageWithCommentedOutFrontMatter(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1281,7 +1281,7 @@ Content:{{ .Content }}
 
 }
 
-// https://github.com/gohugoio/hugo/issues/5781
+// https://github.com/neohugo/neohugo/issues/5781
 func TestPageWithZeroFile(t *testing.T) {
 	newTestSitesBuilder(t).WithLogger(loggers.NewWarningLogger()).WithSimpleConfigFile().
 		WithTemplatesAdded("index.html", "{{ .File.Filename }}{{ with .File }}{{ .Dir }}{{ end }}").Build(BuildCfg{})
@@ -1440,7 +1440,7 @@ tags:
 	}
 }
 
-// https://github.com/gohugoio/hugo/issues/4675
+// https://github.com/neohugo/neohugo/issues/4675
 func TestWordCountAndSimilarVsSummary(t *testing.T) {
 
 	t.Parallel()

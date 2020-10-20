@@ -19,7 +19,7 @@ import (
 	_path "path"
 	"path/filepath"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/cast"
 )
 

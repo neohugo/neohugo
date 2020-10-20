@@ -21,8 +21,8 @@ import (
 
 	_errors "github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/resources"
 )
 
 // We allow string or a map as the first argument in some cases.

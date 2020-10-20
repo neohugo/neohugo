@@ -17,13 +17,13 @@ import (
 	"html/template"
 	"time"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/navigation"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/navigation"
 )
 
 // Site represents a site in the build. This is currently a very narrow interface,

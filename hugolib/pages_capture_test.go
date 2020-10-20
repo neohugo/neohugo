@@ -19,13 +19,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/spf13/afero"
 )
 

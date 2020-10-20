@@ -22,18 +22,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/modules/npm"
+	"github.com/neohugo/neohugo/modules/npm"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/hugo"
 
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugofs"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/gohugoio/testmodBuilder/mods"
@@ -51,7 +51,7 @@ workingDir = %q
 
 [module]
 [[module.imports]]
-path="github.com/gohugoio/hugoTestModule2"
+path="github.com/neohugo/neohugoTestModule2"
 %s
 `
 
@@ -88,8 +88,8 @@ module github.com/gohugoio/tests/testHugoModules
 `)
 
 		b.WithSourceFile("go.sum", `
-github.com/gohugoio/hugoTestModule2 v0.0.0-20200131160637-9657d7697877 h1:WLM2bQCKIWo04T6NsIWsX/Vtirhf0TnpY66xyqGlgVY=
-github.com/gohugoio/hugoTestModule2 v0.0.0-20200131160637-9657d7697877/go.mod h1:CBFZS3khIAXKxReMwq0le8sEl/D8hcXmixlOHVv+Gd0=
+github.com/neohugo/neohugoTestModule2 v0.0.0-20200131160637-9657d7697877 h1:WLM2bQCKIWo04T6NsIWsX/Vtirhf0TnpY66xyqGlgVY=
+github.com/neohugo/neohugoTestModule2 v0.0.0-20200131160637-9657d7697877/go.mod h1:CBFZS3khIAXKxReMwq0le8sEl/D8hcXmixlOHVv+Gd0=
 `)
 
 		return b, clean
@@ -168,12 +168,12 @@ JS imported in module: |
  "comments": {
   "dependencies": {
    "foo": "project",
-   "react-dom": "github.com/gohugoio/hugoTestModule2"
+   "react-dom": "github.com/neohugo/neohugoTestModule2"
   },
   "devDependencies": {
-   "@babel/cli": "github.com/gohugoio/hugoTestModule2",
-   "@babel/core": "github.com/gohugoio/hugoTestModule2",
-   "@babel/preset-env": "github.com/gohugoio/hugoTestModule2",
+   "@babel/cli": "github.com/neohugo/neohugoTestModule2",
+   "@babel/core": "github.com/neohugo/neohugoTestModule2",
+   "@babel/preset-env": "github.com/neohugo/neohugoTestModule2",
    "postcss-cli": "project",
    "tailwindcss": "project"
   }
@@ -220,14 +220,14 @@ JS imported in module: |
  "comments": {
   "dependencies": {
    "moo": "project",
-   "react-dom": "github.com/gohugoio/hugoTestModule2"
+   "react-dom": "github.com/neohugo/neohugoTestModule2"
   },
   "devDependencies": {
-   "@babel/cli": "github.com/gohugoio/hugoTestModule2",
-   "@babel/core": "github.com/gohugoio/hugoTestModule2",
-   "@babel/preset-env": "github.com/gohugoio/hugoTestModule2",
-   "postcss-cli": "github.com/gohugoio/hugoTestModule2",
-   "tailwindcss": "github.com/gohugoio/hugoTestModule2"
+   "@babel/cli": "github.com/neohugo/neohugoTestModule2",
+   "@babel/core": "github.com/neohugo/neohugoTestModule2",
+   "@babel/preset-env": "github.com/neohugo/neohugoTestModule2",
+   "postcss-cli": "github.com/neohugo/neohugoTestModule2",
+   "tailwindcss": "github.com/neohugo/neohugoTestModule2"
   }
  },
  "dependencies": {
@@ -247,7 +247,7 @@ JS imported in module: |
 }`
 		})
 
-		// https://github.com/gohugoio/hugo/issues/7690
+		// https://github.com/neohugo/neohugo/issues/7690
 		b.AssertFileContent("package.hugo.json", origPackageJSON)
 
 	})
@@ -264,14 +264,14 @@ JS imported in module: |
 			return s == `{
  "comments": {
   "dependencies": {
-   "react-dom": "github.com/gohugoio/hugoTestModule2"
+   "react-dom": "github.com/neohugo/neohugoTestModule2"
   },
   "devDependencies": {
-   "@babel/cli": "github.com/gohugoio/hugoTestModule2",
-   "@babel/core": "github.com/gohugoio/hugoTestModule2",
-   "@babel/preset-env": "github.com/gohugoio/hugoTestModule2",
-   "postcss-cli": "github.com/gohugoio/hugoTestModule2",
-   "tailwindcss": "github.com/gohugoio/hugoTestModule2"
+   "@babel/cli": "github.com/neohugo/neohugoTestModule2",
+   "@babel/core": "github.com/neohugo/neohugoTestModule2",
+   "@babel/preset-env": "github.com/neohugo/neohugoTestModule2",
+   "postcss-cli": "github.com/neohugo/neohugoTestModule2",
+   "tailwindcss": "github.com/neohugo/neohugoTestModule2"
   }
  },
  "dependencies": {
@@ -808,7 +808,7 @@ title: "My Page"
 	b.AssertFileContent("public/mypage/index.html", "Permalink: https://example.org/mypage/")
 }
 
-// https://github.com/gohugoio/hugo/issues/6684
+// https://github.com/neohugo/neohugo/issues/6684
 func TestMountsContentFile(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
@@ -1052,7 +1052,7 @@ title: P1
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6299
+// https://github.com/neohugo/neohugo/issues/6299
 func TestSiteWithGoModButNoModules(t *testing.T) {
 	t.Parallel()
 
@@ -1077,7 +1077,7 @@ func TestSiteWithGoModButNoModules(t *testing.T) {
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6622
+// https://github.com/neohugo/neohugo/issues/6622
 func TestModuleAbsMount(t *testing.T) {
 	t.Parallel()
 

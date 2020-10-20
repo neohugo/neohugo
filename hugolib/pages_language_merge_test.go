@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 // TODO(bep) move and rewrite in resource/page.
@@ -152,7 +152,7 @@ date: "2018-02-28"
 		}
 	}
 
-	// See https://github.com/gohugoio/hugo/issues/4644
+	// See https://github.com/neohugo/neohugo/issues/4644
 	// Add a bundles
 	j := 100
 	contentPairs = append(contentPairs, []string{"bundle/index.md", fmt.Sprintf(contentTemplate, j, j)}...)

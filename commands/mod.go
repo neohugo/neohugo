@@ -20,9 +20,9 @@ import (
 	"path/filepath"
 	"regexp"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/modules"
 	"github.com/spf13/cobra"
 )
 

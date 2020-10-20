@@ -17,7 +17,7 @@
 package modules
 
 import (
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 )
 
 var _ Module = (*moduleAdapter)(nil)

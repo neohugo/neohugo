@@ -19,10 +19,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/output"
 	"github.com/spf13/viper"
 )
 
@@ -158,7 +158,7 @@ func TestBugs(t *testing.T) {
 		rawString         string
 		expectedMinString string
 	}{
-		// https://github.com/gohugoio/hugo/issues/5506
+		// https://github.com/neohugo/neohugo/issues/5506
 		{media.CSSType, " body { color: rgba(000, 000, 000, 0.7); }", "body{color:rgba(0,0,0,.7)}"},
 	} {
 		var b bytes.Buffer

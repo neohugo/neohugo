@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/spf13/viper"
 

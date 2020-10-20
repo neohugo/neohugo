@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/htesting/hqt"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/htesting/hqt"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -66,7 +66,7 @@ func TestDefaultSort(t *testing.T) {
 	c.Assert(p[2].LinkTitle(), qt.Equals, "cl")
 }
 
-// https://github.com/gohugoio/hugo/issues/4953
+// https://github.com/neohugo/neohugo/issues/4953
 func TestSortByLinkTitle(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)

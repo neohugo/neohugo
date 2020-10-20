@@ -12,14 +12,14 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/htesting"
 
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/output"
 
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/gohugoio/hugo/parser"
+	"github.com/neohugo/neohugo/parser"
 	"github.com/pkg/errors"
 
 	"bytes"
@@ -29,25 +29,25 @@ import (
 	"text/template"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/resources/page"
 	"github.com/sanity-io/litter"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/spf13/viper"
 
 	"os"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 var (

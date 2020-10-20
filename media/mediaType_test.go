@@ -134,7 +134,7 @@ func TestFromTypeString(t *testing.T) {
 }
 
 // Add a test for the SVG case
-// https://github.com/gohugoio/hugo/issues/4920
+// https://github.com/neohugo/neohugo/issues/4920
 func TestFromExtensionMultipleSuffixes(t *testing.T) {
 	c := qt.New(t)
 	tp, found := DefaultTypes.GetBySuffix("svg")

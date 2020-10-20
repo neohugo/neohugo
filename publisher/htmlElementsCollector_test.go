@@ -52,12 +52,12 @@ func TestClassCollector(t *testing.T) {
 		{"single quote", `<body class='b a'></body>`, f("body", "a b", "")},
 		{"no quote", `<body class=b id=myelement></body>`, f("body", "b", "myelement")},
 		{"thead", `
-		https://github.com/gohugoio/hugo/issues/7318
+		https://github.com/neohugo/neohugo/issues/7318
 <table class="cl1">
     <thead class="cl2"><tr class="cl3"><td class="cl4"></td></tr></thead>
     <tbody class="cl5"><tr class="cl6"><td class="cl7"></td></tr></tbody>
 </table>`, f("table tbody td thead tr", "cl1 cl2 cl3 cl4 cl5 cl6 cl7", "")},
-		// https://github.com/gohugoio/hugo/issues/7161
+		// https://github.com/neohugo/neohugo/issues/7161
 		{"minified a href", `<a class="b a" href=/></a>`, f("a", "a b", "")},
 
 		{"AlpineJS bind 1", `<body>
@@ -87,7 +87,7 @@ func TestClassCollector(t *testing.T) {
 
 		{"Alpine transition 1", `<div x-transition:enter-start="opacity-0 transform mobile:-translate-x-8 sm:-translate-y-8">`, f("div", "mobile:-translate-x-8 opacity-0 sm:-translate-y-8 transform", "")},
 		{"Vue bind", `<div v-bind:class="{ active: isActive }"></div>`, f("div", "active", "")},
-		// https://github.com/gohugoio/hugo/issues/7746
+		// https://github.com/neohugo/neohugo/issues/7746
 		{"Apostrophe inside attribute value", `<a class="missingclass" title="Plus d'information">my text</a><div></div>`, f("a div", "missingclass", "")},
 	} {
 		c.Run(test.name, func(c *qt.C) {

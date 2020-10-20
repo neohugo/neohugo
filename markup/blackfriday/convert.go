@@ -17,9 +17,9 @@ package blackfriday
 import (
 	"unicode"
 
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/markup/blackfriday/blackfriday_config"
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/markup/blackfriday/blackfriday_config"
+	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/russross/blackfriday"
 )
 

@@ -18,9 +18,9 @@ import (
 
 	"errors"
 
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/langs"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 )
 
 // Multilingual manages the all languages used in a multilingual site.

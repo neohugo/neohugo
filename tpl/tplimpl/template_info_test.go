@@ -16,9 +16,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 func TestTemplateInfoShortcode(t *testing.T) {

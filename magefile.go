@@ -15,15 +15,15 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gohugoio/hugo/codegen"
-	"github.com/gohugoio/hugo/resources/page/page_generate"
+	"github.com/neohugo/neohugo/codegen"
+	"github.com/neohugo/neohugo/resources/page/page_generate"
 
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
 
 const (
-	packageName  = "github.com/gohugoio/hugo"
+	packageName  = "github.com/neohugo/neohugo"
 	noGitLdflags = "-X $PACKAGE/common/hugo.buildDate=$BUILD_DATE"
 )
 
@@ -233,7 +233,7 @@ func Fmt() error {
 }
 
 var (
-	pkgPrefixLen = len("github.com/gohugoio/hugo")
+	pkgPrefixLen = len("github.com/neohugo/neohugo")
 	pkgs         []string
 	pkgsInit     sync.Once
 )

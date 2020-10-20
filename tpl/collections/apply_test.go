@@ -21,9 +21,9 @@ import (
 	"fmt"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 type templateFinder int

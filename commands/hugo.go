@@ -24,19 +24,19 @@ import (
 	"runtime/trace"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/terminal"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/terminal"
 
 	"syscall"
 
-	"github.com/gohugoio/hugo/hugolib/filesystems"
+	"github.com/neohugo/neohugo/hugolib/filesystems"
 
 	"golang.org/x/sync/errgroup"
 
@@ -46,15 +46,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
 	flag "github.com/spf13/pflag"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/livereload"
-	"github.com/gohugoio/hugo/watcher"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/livereload"
+	"github.com/neohugo/neohugo/watcher"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	"github.com/spf13/fsync"

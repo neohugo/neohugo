@@ -22,26 +22,26 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/hugo"
 
-	"github.com/gohugoio/hugo/related"
+	"github.com/neohugo/neohugo/related"
 
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/source"
 	"github.com/markbates/inflect"
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/cast"
 )
 

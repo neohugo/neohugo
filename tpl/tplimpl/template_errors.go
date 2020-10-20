@@ -14,7 +14,7 @@
 package tplimpl
 
 import (
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/pkg/errors"
 	"github.com/spf13/afero"
 )

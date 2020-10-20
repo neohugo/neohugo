@@ -17,17 +17,17 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 	"golang.org/x/text/language"
 	yaml "gopkg.in/yaml.v2"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 	toml "github.com/pelletier/go-toml"
 
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/source"
 	_errors "github.com/pkg/errors"
 )
 
@@ -97,7 +97,7 @@ func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 	_, err = bundle.ParseMessageFileBytes(b, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "no plural rule") {
-			// https://github.com/gohugoio/hugo/issues/7798
+			// https://github.com/neohugo/neohugo/issues/7798
 			name = artificialLangTagPrefix + name
 			_, err = bundle.ParseMessageFileBytes(b, name)
 			if err == nil {

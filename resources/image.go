@@ -31,16 +31,16 @@ import (
 
 	"github.com/disintegration/gift"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/resources/images/exif"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/resources/images/exif"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/pkg/errors"
 	_errors "github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/resources/images"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/resources/images"
 
 	// Blind import for image.Decode
 	_ "golang.org/x/image/webp"

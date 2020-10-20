@@ -13,7 +13,7 @@
 
 package urlreplacers
 
-import "github.com/gohugoio/hugo/transform"
+import "github.com/neohugo/neohugo/transform"
 
 var ar = newAbsURLReplacer()
 

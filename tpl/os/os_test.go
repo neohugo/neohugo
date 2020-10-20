@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )

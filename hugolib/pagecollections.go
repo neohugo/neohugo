@@ -20,11 +20,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 // PageCollections contains the page collections for a site.
@@ -124,7 +124,7 @@ func (c *PageCollections) getPageOldVersion(ref ...string) (page.Page, error) {
 		if len(ref) == 2 && refs[0] == page.KindSection {
 			// This is an old style reference to the "Home Page section".
 			// Typically fetched via {{ .Site.GetPage "section" .Section }}
-			// See https://github.com/gohugoio/hugo/issues/4989
+			// See https://github.com/neohugo/neohugo/issues/4989
 			key = "/"
 		} else {
 			key = refs[0]

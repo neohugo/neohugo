@@ -158,7 +158,7 @@ menu:
 
 }
 
-// https://github.com/gohugoio/hugo/issues/5849
+// https://github.com/neohugo/neohugo/issues/5849
 func TestMenuPageMultipleOutputFormats(t *testing.T) {
 
 	config := `
@@ -217,7 +217,7 @@ menu: "main"
 	b.AssertFileContent("public/amp/index.html", "AMP and HTML|/amp/blog/html-amp/|AMP only|/amp/blog/amp/|Home Sweet Home|/amp/|HTML only|/blog/html/|")
 }
 
-// https://github.com/gohugoio/hugo/issues/5989
+// https://github.com/neohugo/neohugo/issues/5989
 func TestMenuPageSortByDate(t *testing.T) {
 
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()

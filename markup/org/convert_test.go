@@ -16,9 +16,9 @@ package org
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 
 	qt "github.com/frankban/quicktest"
 )

@@ -19,12 +19,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/spf13/viper"
 )
@@ -221,7 +221,7 @@ Some content
 	}
 }
 
-// https://github.com/gohugoio/hugo/issues/4895
+// https://github.com/neohugo/neohugo/issues/4895
 func TestTemplateBOM(t *testing.T) {
 
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
@@ -281,7 +281,7 @@ Base %d: {{ block "main" . }}FOO{{ end }}
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6790
+// https://github.com/neohugo/neohugo/issues/6790
 func TestTemplateNoBasePlease(t *testing.T) {
 	t.Parallel()
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
@@ -318,7 +318,7 @@ title: The Page
 
 }
 
-// https://github.com/gohugoio/hugo/issues/6816
+// https://github.com/neohugo/neohugo/issues/6816
 func TestTemplateBaseWithComment(t *testing.T) {
 	t.Parallel()
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
@@ -524,7 +524,7 @@ Partial cached3: {{ partialCached "p1" "input3" $key2 }}
 `)
 }
 
-// https://github.com/gohugoio/hugo/issues/6615
+// https://github.com/neohugo/neohugo/issues/6615
 func TestTemplateTruth(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithTemplatesAdded("index.html", `
@@ -715,7 +715,7 @@ P3: Inline: p3
 
 }
 
-// https://github.com/gohugoio/hugo/issues/7478
+// https://github.com/neohugo/neohugo/issues/7478
 func TestBaseWithAndWithoutDefine(t *testing.T) {
 
 	b := newTestSitesBuilder(t)

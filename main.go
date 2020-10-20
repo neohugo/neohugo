@@ -16,7 +16,7 @@ package main
 import (
 	"os"
 
-	"github.com/gohugoio/hugo/commands"
+	"github.com/neohugo/neohugo/commands"
 )
 
 func main() {

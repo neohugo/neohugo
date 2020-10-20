@@ -14,12 +14,12 @@
 package resource
 
 import (
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/resources/images/exif"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources/images/exif"
 
-	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/neohugo/neohugo/common/hugio"
 )
 
 // Cloner is an internal template and not meant for use in the templates. It

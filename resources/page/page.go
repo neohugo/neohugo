@@ -18,21 +18,21 @@ package page
 import (
 	"html/template"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/bep/gitmap"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/compare"
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/compare"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/navigation"
-	"github.com/gohugoio/hugo/related"
-	"github.com/gohugoio/hugo/resources/resource"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/related"
+	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/source"
 )
 
 // Clear clears any global package state.

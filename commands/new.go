@@ -19,9 +19,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/create"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/create"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugolib"
 	"github.com/spf13/afero"
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"

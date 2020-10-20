@@ -18,9 +18,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/transform"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/transform"
 )
 
 var metaTagsCheck = regexp.MustCompile(`(?i)<meta\s+name=['|"]?generator['|"]?`)

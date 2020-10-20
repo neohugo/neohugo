@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	issueLinkTemplate                        = "[#%d](https://github.com/gohugoio/hugo/issues/%d)"
+	issueLinkTemplate                        = "[#%d](https://github.com/neohugo/neohugo/issues/%d)"
 	linkTemplate                             = "[%s](%s)"
 	releaseNotesMarkdownTemplatePatchRelease = `
 {{ if eq (len .All) 1 }}
@@ -61,7 +61,7 @@ This release represents **{{ len .All }} contributions by {{ len $contribsPerAut
 {{- $u1.AuthorLink }} leads the Hugo development with a significant amount of contributions, but also a big shoutout to {{ $u2.AuthorLink }}, {{ $u3.AuthorLink }}, and {{ $u4.AuthorLink }} for their ongoing contributions.
 And a big thanks to [@digitalcraftsman](https://github.com/digitalcraftsman) for his relentless work on keeping the themes site in pristine condition and to [@davidsneighbour](https://github.com/davidsneighbour), [@coliff](https://github.com/coliff) and [@kaushalmodi](https://github.com/kaushalmodi) for all the great work on the documentation site.
 {{ end }}
-Many have also been busy writing and fixing the documentation in [hugoDocs](https://github.com/gohugoio/hugoDocs), 
+Many have also been busy writing and fixing the documentation in [hugoDocs](https://github.com/neohugo/neohugoDocs), 
 which has received **{{ len .Docs }} contributions by {{ len $docsContribsPerAuthor }} contributors**.
 {{- if  gt (len $docsContribsPerAuthor) 3 -}}
 {{- $u1 := index $docsContribsPerAuthor 0 -}}
@@ -73,8 +73,8 @@ which has received **{{ len .Docs }} contributions by {{ len $docsContribsPerAut
 Hugo now has:
 
 {{ with .Repo -}}
-* {{ .Stars }}+ [stars](https://github.com/gohugoio/hugo/stargazers)
-* {{ len .Contributors }}+ [contributors](https://github.com/gohugoio/hugo/graphs/contributors)
+* {{ .Stars }}+ [stars](https://github.com/neohugo/neohugo/stargazers)
+* {{ len .Contributors }}+ [contributors](https://github.com/neohugo/neohugo/graphs/contributors)
 {{- end -}}
 {{ with .ThemeCount }}
 * {{ . }}+ [themes](http://themes.gohugo.io/)

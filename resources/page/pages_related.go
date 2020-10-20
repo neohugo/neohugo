@@ -16,8 +16,8 @@ package page
 import (
 	"sync"
 
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/related"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/related"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 )

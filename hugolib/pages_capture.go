@@ -21,16 +21,16 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/neohugo/neohugo/parser/pageparser"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/spf13/afero"
 )
 

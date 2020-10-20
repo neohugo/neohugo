@@ -17,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/cast"
 )
 

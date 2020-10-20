@@ -16,7 +16,7 @@ package publisher
 import (
 	"regexp"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 	"golang.org/x/net/html"
 
 	"bytes"

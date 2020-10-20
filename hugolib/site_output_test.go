@@ -18,14 +18,14 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/spf13/afero"
 
 	"fmt"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/output"
 	"github.com/spf13/viper"
 )
 
@@ -430,7 +430,7 @@ func TestCreateSiteOutputFormatsCustomFormats(t *testing.T) {
 	c.Assert(outputs[page.KindHome], deepEqualsOutputFormats, output.Formats{customHTML, customRSS})
 }
 
-// https://github.com/gohugoio/hugo/issues/5849
+// https://github.com/neohugo/neohugo/issues/5849
 func TestOutputFormatPermalinkable(t *testing.T) {
 
 	config := `
@@ -558,7 +558,7 @@ Output Formats: {{ len .OutputFormats }};{{ range .OutputFormats }}{{ .Name }};{
 		"This RelPermalink: /ramp/blog/html-ramp/",
 		"Output Formats: 2;HTML;/blog/html-ramp/|ramp;/ramp/blog/html-ramp/|")
 
-	// https://github.com/gohugoio/hugo/issues/5877
+	// https://github.com/neohugo/neohugo/issues/5877
 	outputFormats := "Output Formats: 3;HTML;/blog/html-base-nobase/|base;/blog/html-base-nobase/that.html|nobase;/blog/html-base-nobase/index.json|"
 
 	b.AssertFileContent("public/blog/html-base-nobase/index.json",

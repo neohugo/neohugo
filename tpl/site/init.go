@@ -15,9 +15,9 @@
 package site
 
 import (
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 
-	"github.com/gohugoio/hugo/tpl/internal"
+	"github.com/neohugo/neohugo/tpl/internal"
 )
 
 const name = "site"

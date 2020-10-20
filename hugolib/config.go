@@ -19,27 +19,27 @@ import (
 	"strings"
 
 	"github.com/gobwas/glob"
-	hglob "github.com/gohugoio/hugo/hugofs/glob"
+	hglob "github.com/neohugo/neohugo/hugofs/glob"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/cache/filecache"
+	"github.com/neohugo/neohugo/cache/filecache"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/hugolib/paths"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/hugolib/paths"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/modules"
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/config/privacy"
-	"github.com/gohugoio/hugo/config/services"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/privacy"
+	"github.com/neohugo/neohugo/config/services"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/afero"
 	"github.com/spf13/viper"
 )

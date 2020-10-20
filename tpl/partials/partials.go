@@ -25,15 +25,15 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/hreflect"
-	texttemplate "github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate"
+	"github.com/neohugo/neohugo/common/hreflect"
+	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/tpl"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/deps"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/deps"
 )
 
 // TestTemplateProvider is global deps.ResourceProvider.

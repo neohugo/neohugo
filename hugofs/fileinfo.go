@@ -22,14 +22,14 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 	"golang.org/x/text/unicode/norm"
 
 	"github.com/pkg/errors"
 
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/common/hreflect"
+	"github.com/neohugo/neohugo/common/hreflect"
 
 	"github.com/spf13/afero"
 )

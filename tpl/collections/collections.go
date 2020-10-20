@@ -25,11 +25,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/common/collections"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/common/collections"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
 )

@@ -25,36 +25,36 @@ import (
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/bep/gitmap"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/neohugo/neohugo/parser/pageparser"
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/output"
 
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/source"
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/common/collections"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/markup/converter/hooks"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/collections"
+	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 var (

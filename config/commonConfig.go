@@ -20,10 +20,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/gobwas/glob"
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cast"
 	jww "github.com/spf13/jwalterweatherman"

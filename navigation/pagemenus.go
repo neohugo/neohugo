@@ -14,7 +14,7 @@
 package navigation
 
 import (
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"

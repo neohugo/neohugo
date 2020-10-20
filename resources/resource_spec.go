@@ -23,23 +23,23 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/identity"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/resources/postpub"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/resources/postpub"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/images"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/images"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/spf13/afero"
 )
 

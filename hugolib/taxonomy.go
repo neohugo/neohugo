@@ -17,9 +17,9 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/gohugoio/hugo/compare"
+	"github.com/neohugo/neohugo/compare"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 // The TaxonomyList is a list of all taxonomies and their values

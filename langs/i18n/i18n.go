@@ -17,10 +17,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hreflect"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/common/hreflect"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/helpers"
 
 	"github.com/nicksnyder/go-i18n/v2/i18n"
 )

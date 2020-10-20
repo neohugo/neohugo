@@ -16,7 +16,7 @@ package herrors
 import (
 	"encoding/json"
 
-	"github.com/gohugoio/hugo/common/text"
+	"github.com/neohugo/neohugo/common/text"
 
 	"github.com/pkg/errors"
 )

@@ -21,11 +21,11 @@ import (
 	"os/exec"
 	"path/filepath"
 
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/markup/asciidocext/asciidocext_config"
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/internal"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/markup/asciidocext/asciidocext_config"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/internal"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 	"golang.org/x/net/html"
 )
 

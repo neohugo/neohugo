@@ -14,8 +14,8 @@
 package commands
 
 import (
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/modules/npm"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/modules/npm"
 	"github.com/spf13/cobra"
 )
 

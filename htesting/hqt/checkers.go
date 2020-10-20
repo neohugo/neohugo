@@ -20,7 +20,7 @@ import (
 	"strings"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/htesting"
 	"github.com/google/go-cmp/cmp"
 	"github.com/spf13/cast"
 )

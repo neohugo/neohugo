@@ -24,7 +24,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/gohugoio/hugo/common/terminal"
+	"github.com/neohugo/neohugo/common/terminal"
 
 	jww "github.com/spf13/jwalterweatherman"
 )

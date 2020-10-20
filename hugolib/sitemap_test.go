@@ -19,9 +19,9 @@ import (
 	"reflect"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 const sitemapTemplate = `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -102,7 +102,7 @@ func TestParseSitemap(t *testing.T) {
 
 }
 
-// https://github.com/gohugoio/hugo/issues/5910
+// https://github.com/neohugo/neohugo/issues/5910
 func TestSitemapOutputFormats(t *testing.T) {
 
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()

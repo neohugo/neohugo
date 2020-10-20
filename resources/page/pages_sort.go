@@ -16,11 +16,11 @@ package page
 import (
 	"sort"
 
-	"github.com/gohugoio/hugo/common/collections"
+	"github.com/neohugo/neohugo/common/collections"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/compare"
+	"github.com/neohugo/neohugo/compare"
 	"github.com/spf13/cast"
 )
 

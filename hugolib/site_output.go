@@ -17,8 +17,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/page"
 	"github.com/spf13/cast"
 )
 

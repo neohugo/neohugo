@@ -23,19 +23,19 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/modules"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"fmt"
 
-	"github.com/gohugoio/hugo/hugolib/paths"
+	"github.com/neohugo/neohugo/hugolib/paths"
 	"github.com/spf13/afero"
 )
 

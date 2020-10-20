@@ -20,16 +20,16 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/resources/internal"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/resources/internal"
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/pkg/errors"
 )
 

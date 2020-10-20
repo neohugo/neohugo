@@ -19,20 +19,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/neohugo/neohugo/parser/pageparser"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/parser"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/parser"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 
 	"path/filepath"
 

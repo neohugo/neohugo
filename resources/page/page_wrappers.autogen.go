@@ -16,9 +16,9 @@
 package page
 
 import (
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
 	"html/template"
 )
 

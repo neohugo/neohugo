@@ -25,7 +25,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/hugo"
 	"github.com/pkg/errors"
 )
 

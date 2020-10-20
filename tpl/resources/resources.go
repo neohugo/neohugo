@@ -19,23 +19,23 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/gohugoio/hugo/tpl/internal/resourcehelpers"
+	"github.com/neohugo/neohugo/tpl/internal/resourcehelpers"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/resources/postpub"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/resources/postpub"
 
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/resources/resource_factories/bundler"
-	"github.com/gohugoio/hugo/resources/resource_factories/create"
-	"github.com/gohugoio/hugo/resources/resource_transformers/babel"
-	"github.com/gohugoio/hugo/resources/resource_transformers/integrity"
-	"github.com/gohugoio/hugo/resources/resource_transformers/minifier"
-	"github.com/gohugoio/hugo/resources/resource_transformers/postcss"
-	"github.com/gohugoio/hugo/resources/resource_transformers/templates"
-	"github.com/gohugoio/hugo/resources/resource_transformers/tocss/scss"
+	"github.com/neohugo/neohugo/resources/resource_factories/bundler"
+	"github.com/neohugo/neohugo/resources/resource_factories/create"
+	"github.com/neohugo/neohugo/resources/resource_transformers/babel"
+	"github.com/neohugo/neohugo/resources/resource_transformers/integrity"
+	"github.com/neohugo/neohugo/resources/resource_transformers/minifier"
+	"github.com/neohugo/neohugo/resources/resource_transformers/postcss"
+	"github.com/neohugo/neohugo/resources/resource_transformers/templates"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 	"github.com/spf13/cast"
 )
 

@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/neohugo/neohugo/common/hugio"
 
 	"github.com/spf13/afero"
 )
@@ -53,9 +53,9 @@ type goPackage struct {
 
 var (
 	textTemplateReplacers = strings.NewReplacer(
-		`"text/template/`, `"github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate/`,
-		`"internal/fmtsort"`, `"github.com/gohugoio/hugo/tpl/internal/go_templates/fmtsort"`,
-		`"internal/testenv"`, `"github.com/gohugoio/hugo/tpl/internal/go_templates/testenv"`,
+		`"text/template/`, `"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/`,
+		`"internal/fmtsort"`, `"github.com/neohugo/neohugo/tpl/internal/go_templates/fmtsort"`,
+		`"internal/testenv"`, `"github.com/neohugo/neohugo/tpl/internal/go_templates/testenv"`,
 		"TestLinkerGC", "_TestLinkerGC",
 		// Rename types and function that we want to overload.
 		"type state struct", "type stateOld struct",
@@ -66,13 +66,13 @@ var (
 	)
 
 	testEnvReplacers = strings.NewReplacer(
-		`"internal/cfg"`, `"github.com/gohugoio/hugo/tpl/internal/go_templates/cfg"`,
+		`"internal/cfg"`, `"github.com/neohugo/neohugo/tpl/internal/go_templates/cfg"`,
 	)
 
 	htmlTemplateReplacers = strings.NewReplacer(
-		`. "html/template"`, `. "github.com/gohugoio/hugo/tpl/internal/go_templates/htmltemplate"`,
-		`"html/template"`, `template "github.com/gohugoio/hugo/tpl/internal/go_templates/htmltemplate"`,
-		"\"text/template\"\n", "template \"github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate\"\n",
+		`. "html/template"`, `. "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"`,
+		`"html/template"`, `template "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"`,
+		"\"text/template\"\n", "template \"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate\"\n",
 		`"html/template"`, `htmltemplate "html/template"`,
 		`"fmt"`, `htmltemplate "html/template"`,
 	)
@@ -117,17 +117,17 @@ var goPackages = []goPackage{
 			for _, s := range []string{"CSS", "HTML", "HTMLAttr", "JS", "JSStr", "URL", "Srcset"} {
 				rewrite(name, fmt.Sprintf("%s -> htmltemplate.%s", s, s))
 			}
-			rewrite(name, `"text/template/parse" -> "github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate/parse"`)
+			rewrite(name, `"text/template/parse" -> "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"`)
 		}},
 	goPackage{srcPkg: "internal/fmtsort", dstPkg: "fmtsort", rewriter: func(name string) {
-		rewrite(name, `"internal/fmtsort" -> "github.com/gohugoio/hugo/tpl/internal/go_templates/fmtsort"`)
+		rewrite(name, `"internal/fmtsort" -> "github.com/neohugo/neohugo/tpl/internal/go_templates/fmtsort"`)
 	}},
 	goPackage{srcPkg: "internal/testenv", dstPkg: "testenv",
 		replacer: func(name, content string) string { return testEnvReplacers.Replace(content) }, rewriter: func(name string) {
-			rewrite(name, `"internal/testenv" -> "github.com/gohugoio/hugo/tpl/internal/go_templates/testenv"`)
+			rewrite(name, `"internal/testenv" -> "github.com/neohugo/neohugo/tpl/internal/go_templates/testenv"`)
 		}},
 	goPackage{srcPkg: "internal/cfg", dstPkg: "cfg", rewriter: func(name string) {
-		rewrite(name, `"internal/cfg" -> "github.com/gohugoio/hugo/tpl/internal/go_templates/cfg"`)
+		rewrite(name, `"internal/cfg" -> "github.com/neohugo/neohugo/tpl/internal/go_templates/cfg"`)
 	}},
 }
 

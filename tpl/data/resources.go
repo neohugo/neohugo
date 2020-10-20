@@ -22,10 +22,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/cache/filecache"
+	"github.com/neohugo/neohugo/cache/filecache"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/afero"
 )
 

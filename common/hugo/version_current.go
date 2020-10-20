@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hugo
+package neohugo
 
 // CurrentVersion represents the current build version.
 // This should be the only one.

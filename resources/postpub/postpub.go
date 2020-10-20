@@ -21,9 +21,9 @@ import (
 
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 type PostPublishedResource interface {

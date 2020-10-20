@@ -13,9 +13,9 @@ ENV CGO_ENABLED=${CGO}
 ENV GOOS=linux
 ENV GO111MODULE=on
 
-WORKDIR /go/src/github.com/gohugoio/hugo
+WORKDIR /go/src/github.com/neohugo/neohugo
 
-COPY . /go/src/github.com/gohugoio/hugo/
+COPY . /go/src/github.com/neohugo/neohugo/
 
 # gcc/g++ are required to build SASS libraries for extended version
 RUN apk update && \

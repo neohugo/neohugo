@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 )
 
 // Where returns a filtered subset of a given data type.

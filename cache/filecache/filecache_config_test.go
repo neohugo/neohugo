@@ -22,7 +22,7 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/spf13/viper"

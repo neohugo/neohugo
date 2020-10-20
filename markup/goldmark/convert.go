@@ -21,16 +21,16 @@ import (
 	"path/filepath"
 	"runtime/debug"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/pkg/errors"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/highlight"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/highlight"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 	"github.com/yuin/goldmark"
 	hl "github.com/yuin/goldmark-highlighting"
 	"github.com/yuin/goldmark/extension"

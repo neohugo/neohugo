@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hugo
+package neohugo
 
 import (
 	"fmt"
@@ -20,12 +20,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 const (

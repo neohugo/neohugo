@@ -16,7 +16,7 @@ package hugolib
 import (
 	"strings"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 var (

@@ -13,7 +13,7 @@
 
 package internal
 
-import "github.com/gohugoio/hugo/helpers"
+import "github.com/neohugo/neohugo/helpers"
 
 // ResourceTransformationKey are provided by the different transformation implementations.
 // It identifies the transformation (name) and its configuration (elements).

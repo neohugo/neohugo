@@ -17,7 +17,7 @@ package debug
 import (
 	"github.com/sanity-io/litter"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 // New returns a new instance of the debug-namespaced template functions.

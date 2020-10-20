@@ -14,14 +14,14 @@
 package markup_config
 
 import (
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/docshelper"
-	"github.com/gohugoio/hugo/markup/asciidocext/asciidocext_config"
-	"github.com/gohugoio/hugo/markup/blackfriday/blackfriday_config"
-	"github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
-	"github.com/gohugoio/hugo/markup/highlight"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
-	"github.com/gohugoio/hugo/parser"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/docshelper"
+	"github.com/neohugo/neohugo/markup/asciidocext/asciidocext_config"
+	"github.com/neohugo/neohugo/markup/blackfriday/blackfriday_config"
+	"github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
+	"github.com/neohugo/neohugo/markup/highlight"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/parser"
 	"github.com/mitchellh/mapstructure"
 )
 

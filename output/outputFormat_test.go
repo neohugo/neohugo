@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 	"github.com/google/go-cmp/cmp"
 )
 

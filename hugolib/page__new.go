@@ -17,16 +17,16 @@ import (
 	"html/template"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/hugo"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/output"
 
-	"github.com/gohugoio/hugo/lazy"
+	"github.com/neohugo/neohugo/lazy"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 func newPageBase(metaProvider *pageMeta) (*pageState, error) {

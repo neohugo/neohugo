@@ -17,9 +17,9 @@ package org
 import (
 	"bytes"
 
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/niklasfasching/go-org/org"
 	"github.com/spf13/afero"
 )

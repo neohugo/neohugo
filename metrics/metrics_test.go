@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 
 	qt "github.com/frankban/quicktest"
 )

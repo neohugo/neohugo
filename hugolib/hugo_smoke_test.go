@@ -154,7 +154,7 @@ Some **Markdown** in JSON shortcode.
 		b.WithContent(fmt.Sprintf("root%d.md", i), pageContentAutoSummary)
 	}
 
-	// https://github.com/gohugoio/hugo/issues/4695
+	// https://github.com/neohugo/neohugo/issues/4695
 	b.WithContent("blog/markyshort.md", pageContentWithMarkdownShortcodes)
 
 	// Add one bundle

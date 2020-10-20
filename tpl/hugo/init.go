@@ -11,12 +11,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package hugo provides template functions for accessing the Site Hugo object.
-package hugo
+// Package neohugo provides template functions for accessing the Site Hugo object.
+package neohugo
 
 import (
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/tpl/internal"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/tpl/internal"
 )
 
 const name = "hugo"

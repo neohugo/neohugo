@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 func TestRSSOutput(t *testing.T) {
@@ -66,7 +66,7 @@ func TestRSSOutput(t *testing.T) {
 // For the page kinds that can have multiple output formats, the Kind should be one of the
 // standard home, page etc.
 // This test has this single purpose: Check that the Kind is that of the source page.
-// See https://github.com/gohugoio/hugo/issues/5138
+// See https://github.com/neohugo/neohugo/issues/5138
 func TestRSSKind(t *testing.T) {
 	t.Parallel()
 
