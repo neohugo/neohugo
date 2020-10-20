@@ -63,27 +63,27 @@ func TestPara(t *testing.T) {
 
 	})
 
-	c.Run("Time", func(c *qt.C) {
-		const n = 100
-
-		p := New(5)
-		r, _ := p.Start(context.Background())
-
-		start := time.Now()
-
-		var counter int64
-
-		for i := 0; i < n; i++ {
-			r.Run(func() error {
-				atomic.AddInt64(&counter, 1)
-				time.Sleep(1 * time.Millisecond)
-				return nil
-			})
-		}
-
-		c.Assert(r.Wait(), qt.IsNil)
-		c.Assert(counter, qt.Equals, int64(n))
-		c.Assert(time.Since(start) < n/2*time.Millisecond, qt.Equals, true)
+//c.Run("Time", func(c *qt.C) {
+//	const n = 100
+//
+//	p := New(5)
+//	r, _ := p.Start(context.Background())
+//
+//	start := time.Now()
+//
+//	var counter int64
+//
+//	for i := 0; i < n; i++ {
+//		r.Run(func() error {
+//			atomic.AddInt64(&counter, 1)
+//			time.Sleep(1 * time.Millisecond)
+//			return nil
+//		})
+//	}
+//
+//	c.Assert(r.Wait(), qt.IsNil)
+//	c.Assert(counter, qt.Equals, int64(n))
+//	c.Assert(time.Since(start) < n/2*time.Millisecond, qt.Equals, true)
 
 	})
 
