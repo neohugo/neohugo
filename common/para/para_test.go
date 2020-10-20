@@ -63,7 +63,7 @@ func TestPara(t *testing.T) {
 
 	})
 
-//c.Run("Time", func(c *qt.C) {
+	c.Run("Time", func(c *qt.C) {
 //	const n = 100
 //
 //	p := New(5)
