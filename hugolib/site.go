@@ -51,7 +51,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/text"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/publisher"
 	_errors "github.com/pkg/errors"
 

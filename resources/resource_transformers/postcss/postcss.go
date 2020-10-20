@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/common/loggers"
 

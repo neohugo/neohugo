@@ -30,7 +30,7 @@ import (
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/hugolib/paths"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/modules"

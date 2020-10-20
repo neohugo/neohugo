@@ -25,7 +25,7 @@ import (
 	"io/ioutil"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	jww "github.com/spf13/jwalterweatherman"
 

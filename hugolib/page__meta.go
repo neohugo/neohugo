@@ -26,7 +26,7 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/related"
 

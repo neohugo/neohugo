@@ -26,7 +26,7 @@ import (
 	"github.com/neohugo/neohugo/resources/page"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"

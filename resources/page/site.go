@@ -21,7 +21,7 @@ import (
 
 	"github.com/neohugo/neohugo/config"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/navigation"
 )
