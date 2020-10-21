@@ -84,7 +84,10 @@ func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 		return _errors.Wrapf(err, "failed to open translations file %q:", r.LogicalName())
 	}
 
-	b := helpers.ReaderToBytes(f)
+	b, err := helpers.ReaderToBytes(f)
+	if err != nil {
+		return _errors.Wrapf(err, "failed to read translations file %q:", r.LogicalName())
+	}
 	f.Close()
 
 	name := r.LogicalName()

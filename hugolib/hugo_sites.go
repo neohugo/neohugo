@@ -930,7 +930,10 @@ func (h *HugoSites) readData(f source.File) (interface{}, error) {
 		return nil, errors.Wrap(err, "readData: failed to open data file")
 	}
 	defer file.Close()
-	content := helpers.ReaderToBytes(file)
+	content, err := helpers.ReaderToBytes(file)
+	if err != nil {
+		return nil, errors.Wrap(err, "readData: failed to read data file")
+	}
 
 	format := metadecoders.FormatFromString(f.Extension())
 	return metadecoders.Default.Unmarshal(content, format)

@@ -130,18 +130,20 @@ func UniqueStringsSorted(s []string) []string {
 
 // ReaderToBytes takes an io.Reader argument, reads from it
 // and returns bytes.
-func ReaderToBytes(lines io.Reader) []byte {
+func ReaderToBytes(lines io.Reader) ([]byte, error) {
 	if lines == nil {
-		return []byte{}
+		return []byte{}, nil
 	}
 	b := bp.GetBuffer()
 	defer bp.PutBuffer(b)
 
-	b.ReadFrom(lines)
+	if _, err := b.ReadFrom(lines); err != nil {
+		return nil, err
+	}
 
 	bc := make([]byte, b.Len())
 	copy(bc, b.Bytes())
-	return bc
+	return bc, nil
 }
 
 // ReaderToString is the same as ReaderToBytes, but returns a string.

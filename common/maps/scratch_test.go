@@ -26,9 +26,18 @@ func TestScratchAdd(t *testing.T) {
 	c := qt.New(t)
 
 	scratch := NewScratch()
-	scratch.Add("int1", 10)
-	scratch.Add("int1", 20)
-	scratch.Add("int2", 20)
+
+	if _, err := scratch.Add("int1", 10); err != nil {
+		t.Errorf("scratch: %s", err)
+	}
+
+	if _, err := scratch.Add("int1", 20); err != nil {
+		t.Errorf("scratch: %s", err)
+	}
+
+	if _, err := scratch.Add("int2", 20); err != nil {
+		t.Errorf("scratch: %s", err)
+	}
 
 	c.Assert(scratch.Get("int1"), qt.Equals, int64(30))
 	c.Assert(scratch.Get("int2"), qt.Equals, 20)

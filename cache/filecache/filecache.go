@@ -137,8 +137,8 @@ func (c *Cache) ReadOrCreate(id string,
 	defer c.nlocker.Unlock(id)
 
 	info = ItemInfo{Name: id}
-
-	if r := c.getOrRemove(id); r != nil {
+	// TODO: checking error
+	if r, _ := c.getOrRemove(id); r != nil {
 		err = read(info, r)
 		defer r.Close()
 		if err == nil || err == ErrFatal {
@@ -171,8 +171,8 @@ func (c *Cache) GetOrCreate(id string, create func() (io.ReadCloser, error)) (It
 	defer c.nlocker.Unlock(id)
 
 	info := ItemInfo{Name: id}
-
-	if r := c.getOrRemove(id); r != nil {
+	// TODO: checking error
+	if r, _ := c.getOrRemove(id); r != nil {
 		return info, r, nil
 	}
 
@@ -200,8 +200,9 @@ func (c *Cache) GetOrCreateBytes(id string, create func() ([]byte, error)) (Item
 	defer c.nlocker.Unlock(id)
 
 	info := ItemInfo{Name: id}
-
-	if r := c.getOrRemove(id); r != nil {
+	// TODO: checking error
+	r, _ := c.getOrRemove(id)
+	if r != nil {
 		defer r.Close()
 		b, err := ioutil.ReadAll(r)
 		return info, b, err
@@ -231,8 +232,9 @@ func (c *Cache) GetBytes(id string) (ItemInfo, []byte, error) {
 	defer c.nlocker.Unlock(id)
 
 	info := ItemInfo{Name: id}
-
-	if r := c.getOrRemove(id); r != nil {
+	// TODO: checking error
+	r, _ := c.getOrRemove(id)
+	if r != nil {
 		defer r.Close()
 		b, err := ioutil.ReadAll(r)
 		return info, b, err
@@ -250,38 +252,41 @@ func (c *Cache) Get(id string) (ItemInfo, io.ReadCloser, error) {
 
 	info := ItemInfo{Name: id}
 
-	r := c.getOrRemove(id)
+	// checking error
+	r, _ := c.getOrRemove(id)
 
 	return info, r, nil
 }
 
 // getOrRemove gets the file with the given id. If it's expired, it will
 // be removed.
-func (c *Cache) getOrRemove(id string) hugio.ReadSeekCloser {
+func (c *Cache) getOrRemove(id string) (hugio.ReadSeekCloser, error) {
 	if c.maxAge == 0 {
 		// No caching.
-		return nil
+		return nil, nil
 	}
 
 	if c.maxAge > 0 {
 		fi, err := c.Fs.Stat(id)
 		if err != nil {
-			return nil
+			return nil, err
 		}
 
 		if c.isExpired(fi.ModTime()) {
-			c.Fs.Remove(id)
-			return nil
+			if err := c.Fs.Remove(id); err != nil {
+				return nil, err
+			}
+			return nil, nil
 		}
 	}
 
 	f, err := c.Fs.Open(id)
 
 	if err != nil {
-		return nil
+		return nil, err
 	}
 
-	return f
+	return f, nil
 }
 
 func (c *Cache) isExpired(modTime time.Time) bool {
