@@ -228,6 +228,7 @@ func (b *packageBuilder) unmarshal(r io.Reader) map[string]interface{} {
 	byteData, err := helpers.ReaderToBytes(r)
 	if err != nil {
 		b.err = err
+		return nil
 	}
 	err = json.Unmarshal(byteData, &m)
 	if err != nil {
