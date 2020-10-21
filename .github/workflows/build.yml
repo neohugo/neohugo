@@ -57,7 +57,3 @@ jobs:
         with:
           version: latest
           args: '-v neohugo'
-      - name: Run docs build
-        run: ./neohugo -s docs/
-      - name: Run docs build with renderToMemory
-        run: ./neohugo --renderToMemory -s docs/
