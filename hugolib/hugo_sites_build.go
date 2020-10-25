@@ -288,6 +288,7 @@ func (h *HugoSites) render(config *BuildCfg) error {
 
 	if !config.PartialReRender {
 		h.renderFormats = output.Formats{}
+		//nolint
 		h.withSite(func(s *Site) error {
 			s.initRenderFormats()
 			return nil

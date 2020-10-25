@@ -114,7 +114,8 @@ BG4: {{ $blurryGrayscale4.RelPermalink }}/{{ $blurryGrayscale4.Width }}
 	c.Assert(err, qt.IsNil)
 	out.Close()
 
-	src.Seek(0, 0)
+	_, err = src.Seek(0, 0)
+	c.Assert(err, qt.IsNil)
 
 	out, err = os.Create(filepath.Join(bundleDir, "sunset.jpg"))
 	c.Assert(err, qt.IsNil)

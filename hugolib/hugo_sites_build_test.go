@@ -466,7 +466,7 @@ func TestMultiSitesRebuild(t *testing.T) {
 		// * Change language file
 		{
 			func(t *testing.T) {
-				fs.Source.Remove("content/sect/doc2.en.md")
+				c.Assert(fs.Source.Remove("content/sect/doc2.en.md"), qt.IsNil)
 			},
 			[]fsnotify.Event{{Name: filepath.FromSlash("content/sect/doc2.en.md"), Op: fsnotify.Remove}},
 			func(t *testing.T) {
@@ -1221,6 +1221,7 @@ func readFileFromFs(t testing.TB, fs afero.Fs, filename string) string {
 			root = helpers.FilePathSeparator + root
 		}
 
+		//nolint
 		helpers.PrintFs(fs, root, os.Stdout)
 
 		t.Fatalf("Failed to read file: %s", err)

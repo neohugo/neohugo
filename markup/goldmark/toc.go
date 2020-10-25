@@ -49,6 +49,8 @@ func (t *tocTransformer) Transform(n *ast.Document, reader text.Reader, pc parse
 		headingText bytes.Buffer
 	)
 
+	// TODO may check error
+	//nolint
 	ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		s := ast.WalkStatus(ast.WalkContinue)
 		if n.Kind() == ast.KindHeading {

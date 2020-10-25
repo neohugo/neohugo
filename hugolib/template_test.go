@@ -16,7 +16,6 @@ package hugolib
 import (
 	"fmt"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/neohugo/neohugo/identity"
@@ -631,9 +630,9 @@ func collectIdentities(set map[identity.Identity]bool, provider identity.Provide
 	}
 }
 
-func ident(level int) string {
-	return strings.Repeat(" ", level)
-}
+//func ident(level int) string {
+//return strings.Repeat(" ", level)
+//}
 
 func TestPartialInline(t *testing.T) {
 

@@ -107,9 +107,9 @@ func addMinifier(m *minify.M, mt media.Types, suffix string, min minify.Minifier
 	}
 }
 
-func addMinifierFunc(m *minify.M, mt media.Types, suffix string, min minify.MinifierFunc) {
-	types := mt.BySuffix(suffix)
-	for _, t := range types {
-		m.AddFunc(t.Type(), min)
-	}
-}
+//func addMinifierFunc(m *minify.M, mt media.Types, suffix string, min minify.MinifierFunc) {
+//types := mt.BySuffix(suffix)
+//for _, t := range types {
+//m.AddFunc(t.Type(), min)
+//}
+//}

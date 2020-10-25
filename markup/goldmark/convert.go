@@ -231,7 +231,9 @@ func (c *goldmarkConverter) Convert(ctx converter.RenderContext) (result convert
 			dir := afero.GetTempDir(hugofs.Os, "hugo_bugs")
 			name := fmt.Sprintf("goldmark_%s.txt", c.ctx.DocumentID)
 			filename := filepath.Join(dir, name)
-			afero.WriteFile(hugofs.Os, filename, ctx.Src, 07555)
+			if err := afero.WriteFile(hugofs.Os, filename, ctx.Src, 07555); err != nil {
+				fmt.Print(err)
+			}
 			fmt.Print(string(debug.Stack()))
 			err = errors.Errorf("[BUG] goldmark: %s: create an issue on GitHub attaching the file in: %s", r, filename)
 		}
@@ -297,6 +299,7 @@ func (p *parserContext) TableOfContents() tableofcontents.Root {
 	return tableofcontents.Root{}
 }
 
+// TODO may check error
 func newHighlighting(cfg highlight.Config) goldmark.Extender {
 	return hl.NewHighlighting(
 		hl.WithStyle(cfg.Style),
@@ -315,20 +318,20 @@ func newHighlighting(cfg highlight.Config) goldmark.Extender {
 
 			if entering {
 				if !ctx.Highlighted() {
-					w.WriteString(`<pre>`)
+					w.WriteString(`<pre>`) //nolint
 					highlight.WriteCodeTag(w, language)
 					return
 				}
-				w.WriteString(`<div class="highlight">`)
+				w.WriteString(`<div class="highlight">`) //nolint
 				return
 			}
 
 			if !ctx.Highlighted() {
-				w.WriteString(`</code></pre>`)
+				w.WriteString(`</code></pre>`) //nolint
 				return
 			}
 
-			w.WriteString("</div>")
+			w.WriteString("</div>") //nolint
 
 		}),
 	)

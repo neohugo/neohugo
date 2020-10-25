@@ -302,7 +302,9 @@ func attr(node *html.Node, key string) string {
 func nodeContent(node *html.Node) string {
 	var buf bytes.Buffer
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		html.Render(&buf, c)
+		if err := html.Render(&buf, c); err != nil {
+			panic(err)
+		}
 	}
 	return buf.String()
 }

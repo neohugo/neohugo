@@ -396,6 +396,8 @@ baseURL = "https://example.com"
 			createContent := func(dir, name string) {
 				var content string
 				if strings.Contains(name, "_index") {
+					// TODO update this test
+					//nolint
 					content = pageContent(1)
 				} else {
 					content = pageContentWithCategory(1, fmt.Sprintf("category%d", r.Intn(5)+1))

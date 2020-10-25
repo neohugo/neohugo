@@ -134,12 +134,13 @@ IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 `)
 
-	err = helpers.WriteToDisk(filepath.Join(createpath, "LICENSE"), bytes.NewReader(by), cfg.Fs.Source)
-	if err != nil {
+	if err := helpers.WriteToDisk(filepath.Join(createpath, "LICENSE"), bytes.NewReader(by), cfg.Fs.Source); err != nil {
 		return err
 	}
 
-	n.createThemeMD(cfg.Fs, createpath)
+	if err := n.createThemeMD(cfg.Fs, createpath); err != nil {
+		return err
+	}
 
 	return nil
 }
