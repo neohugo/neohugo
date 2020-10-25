@@ -43,6 +43,15 @@ var (
 	_ cmder = (*convertCmd)(nil)
 )
 
+//type parsedFile struct {
+//frontMatterFormat metadecoders.Format
+//frontMatterSource []byte
+//frontMatter       map[string]interface{}
+
+//// Everything after Front Matter
+//content []byte
+//}
+
 type convertCmd struct {
 	outputDir string
 	unsafe    bool
@@ -200,13 +209,4 @@ func (cc *convertCmd) convertAndSavePage(p page.Page, site *hugolib.Site, target
 	}
 
 	return nil
-}
-
-type parsedFile struct {
-	frontMatterFormat metadecoders.Format
-	frontMatterSource []byte
-	frontMatter       map[string]interface{}
-
-	// Everything after Front Matter
-	content []byte
 }

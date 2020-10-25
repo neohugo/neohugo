@@ -139,8 +139,8 @@ func NewBasicLoggerForWriter(t jww.Threshold, w io.Writer) *Logger {
 }
 
 var (
-	ansiColorRe = regexp.MustCompile("(?s)\\033\\[\\d*(;\\d*)*m")
-	errorRe     = regexp.MustCompile("^(ERROR|FATAL|WARN)")
+	ansiColorRe = regexp.MustCompile(`(?s)\033\[\d*(;\d*)*m`)
+	errorRe     = regexp.MustCompile(`^(ERROR|FATAL|WARN)`)
 )
 
 type ansiCleaner struct {
@@ -199,7 +199,17 @@ func getLogWriters(outHandle, logHandle io.Writer) (io.Writer, io.Writer) {
 
 }
 
+//nolint
 type fatalLogWriter int
+
+//var fatalLogListener = func(t jww.Threshold) io.Writer {
+//if t != jww.LevelError {
+//// Only interested in ERROR
+//return nil
+//}
+
+//return new(fatalLogWriter)
+//}
 
 func (s fatalLogWriter) Write(p []byte) (n int, err error) {
 	trace := make([]byte, 1500)
@@ -208,15 +218,6 @@ func (s fatalLogWriter) Write(p []byte) (n int, err error) {
 	os.Exit(-1)
 
 	return 0, nil
-}
-
-var fatalLogListener = func(t jww.Threshold) io.Writer {
-	if t != jww.LevelError {
-		// Only interested in ERROR
-		return nil
-	}
-
-	return new(fatalLogWriter)
 }
 
 func newLogger(stdoutThreshold, logThreshold jww.Threshold, outHandle, logHandle io.Writer, saveErrors bool) *Logger {

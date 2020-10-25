@@ -49,7 +49,9 @@ func FromConfigString(config, configType string) (Provider, error) {
 		return nil, err
 	}
 
-	v.MergeConfigMap(m)
+	if err = v.MergeConfigMap(m); err != nil {
+		return nil, err
+	}
 
 	return v, nil
 }

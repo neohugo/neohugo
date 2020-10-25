@@ -18,26 +18,27 @@ import (
 )
 
 var (
-	tstEOF            = nti(tEOF, "")
-	tstLeftNoMD       = nti(tLeftDelimScNoMarkup, "{{<")
-	tstRightNoMD      = nti(tRightDelimScNoMarkup, ">}}")
-	tstLeftMD         = nti(tLeftDelimScWithMarkup, "{{%")
-	tstRightMD        = nti(tRightDelimScWithMarkup, "%}}")
-	tstSCClose        = nti(tScClose, "/")
-	tstSC1            = nti(tScName, "sc1")
-	tstSC1Inline      = nti(tScNameInline, "sc1.inline")
-	tstSC2Inline      = nti(tScNameInline, "sc2.inline")
-	tstSC2            = nti(tScName, "sc2")
-	tstSC3            = nti(tScName, "sc3")
-	tstSCSlash        = nti(tScName, "sc/sub")
-	tstParam1         = nti(tScParam, "param1")
-	tstParam2         = nti(tScParam, "param2")
-	tstParamBoolTrue  = nti(tScParam, "true")
-	tstParamBoolFalse = nti(tScParam, "false")
-	tstParamInt       = nti(tScParam, "32")
-	tstParamFloat     = nti(tScParam, "3.14")
-	tstVal            = nti(tScParamVal, "Hello World")
-	tstText           = nti(tText, "Hello World")
+	tstEOF       = nti(tEOF, "")
+	tstLeftNoMD  = nti(tLeftDelimScNoMarkup, "{{<")
+	tstRightNoMD = nti(tRightDelimScNoMarkup, ">}}")
+	tstLeftMD    = nti(tLeftDelimScWithMarkup, "{{%")
+	tstRightMD   = nti(tRightDelimScWithMarkup, "%}}")
+	tstSCClose   = nti(tScClose, "/")
+	tstSC1       = nti(tScName, "sc1")
+	tstSC1Inline = nti(tScNameInline, "sc1.inline")
+	tstSC2Inline = nti(tScNameInline, "sc2.inline")
+	tstSC2       = nti(tScName, "sc2")
+	tstSC3       = nti(tScName, "sc3")
+	tstSCSlash   = nti(tScName, "sc/sub")
+	tstParam1    = nti(tScParam, "param1")
+	tstParam2    = nti(tScParam, "param2")
+	// TODO : Add Test
+	//tstParamBoolTrue  = nti(tScParam, "true")
+	//tstParamBoolFalse = nti(tScParam, "false")
+	//tstParamInt   = nti(tScParam, "32")
+	//tstParamFloat = nti(tScParam, "3.14")
+	tstVal  = nti(tScParamVal, "Hello World")
+	tstText = nti(tText, "Hello World")
 )
 
 var shortCodeLexerTests = []lexerTest{
@@ -219,7 +220,6 @@ func BenchmarkShortcodeLexer(b *testing.B) {
 			items := collectWithConfig(input, true, lexMainSection, cfg)
 			if len(items) == 0 {
 			}
-
 		}
 	}
 }

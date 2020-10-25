@@ -106,7 +106,9 @@ func TestSearch(t *testing.T) {
 		newTestDoc("tags", "g", "h").addKeywords("keywords", "a", "b"),
 	}
 
-	idx.Add(docs...)
+	c := qt.New(t)
+	err := idx.Add(docs...)
+	c.Assert(err, qt.IsNil)
 
 	t.Run("count", func(t *testing.T) {
 		c := qt.New(t)
@@ -168,7 +170,8 @@ func TestSearch(t *testing.T) {
 		doc := newTestDoc("tags", "a", "b", "d", "z").addKeywords("keywords", "a", "b")
 		// This will get a date newer than the others.
 		newDoc := newTestDoc("keywords", "a", "b")
-		idx.Add(newDoc)
+		err := idx.Add(newDoc)
+		c.Assert(err, qt.IsNil)
 
 		m, err := idx.SearchDoc(doc, "keywords")
 		c.Assert(err, qt.IsNil)
@@ -188,7 +191,8 @@ func TestSearch(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			docc := *doc
 			docc.name = fmt.Sprintf("doc%d", i)
-			idx.Add(&docc)
+			err := idx.Add(&docc)
+			c.Assert(err, qt.IsNil)
 		}
 
 		m, err := idx.SearchDoc(doc, "keywords")
@@ -254,28 +258,33 @@ func BenchmarkRelatedNewIndex(b *testing.B) {
 	}
 
 	b.Run("singles", func(b *testing.B) {
+		c := qt.New(b)
 		for i := 0; i < b.N; i++ {
 			idx := NewInvertedIndex(cfg)
 			for _, doc := range pages {
-				idx.Add(doc)
+				err := idx.Add(doc)
+				c.Assert(err, qt.IsNil)
 			}
 		}
 	})
 
 	b.Run("all", func(b *testing.B) {
+		c := qt.New(b)
 		for i := 0; i < b.N; i++ {
 			idx := NewInvertedIndex(cfg)
 			docs := make([]Document, len(pages))
 			for i := 0; i < len(pages); i++ {
 				docs[i] = pages[i]
 			}
-			idx.Add(docs...)
+			err := idx.Add(docs...)
+			c.Assert(err, qt.IsNil)
 		}
 	})
 
 }
 
 func BenchmarkRelatedMatchesIn(b *testing.B) {
+	c := qt.New(b)
 
 	q1 := newQueryElement("tags", StringsToKeywords("keyword2", "keyword5", "keyword32", "asdf")...)
 	q2 := newQueryElement("keywords", StringsToKeywords("keyword3", "keyword4")...)
@@ -309,7 +318,8 @@ func BenchmarkRelatedMatchesIn(b *testing.B) {
 			index = "keywords"
 		}
 
-		idx.Add(newTestDoc(index, allKeywords[start:end]...))
+		err := idx.Add(newTestDoc(index, allKeywords[start:end]...))
+		c.Assert(err, qt.IsNil)
 	}
 
 	b.ResetTimer()

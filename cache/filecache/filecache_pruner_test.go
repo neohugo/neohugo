@@ -60,9 +60,10 @@ dir = ":resourceDir/_gen"
 		cache := caches[name]
 		for i := 0; i < 10; i++ {
 			id := fmt.Sprintf("i%d", i)
-			cache.GetOrCreateBytes(id, func() ([]byte, error) {
+			_, _, err := cache.GetOrCreateBytes(id, func() ([]byte, error) {
 				return []byte("abc"), nil
 			})
+			c.Assert(err, qt.IsNil)
 			if i == 4 {
 				// This will expire the first 5
 				time.Sleep(201 * time.Millisecond)
@@ -87,9 +88,10 @@ dir = ":resourceDir/_gen"
 		c.Assert(err, qt.IsNil)
 		cache = caches[name]
 		// Touch one and then prune.
-		cache.GetOrCreateBytes("i5", func() ([]byte, error) {
+		_, _, err = cache.GetOrCreateBytes("i5", func() ([]byte, error) {
 			return []byte("abc"), nil
 		})
+		c.Assert(err, qt.IsNil)
 
 		count, err = caches.Prune()
 		c.Assert(err, qt.IsNil)

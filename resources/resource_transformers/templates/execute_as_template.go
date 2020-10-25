@@ -52,7 +52,10 @@ func (t *executeAsTemplateTransform) Key() internal.ResourceTransformationKey {
 }
 
 func (t *executeAsTemplateTransform) Transform(ctx *resources.ResourceTransformationCtx) error {
-	tplStr := helpers.ReaderToString(ctx.From)
+	tplStr, err := helpers.ReaderToString(ctx.From)
+	if err != nil {
+		return errors.Wrapf(err, "failed to read to string %q as Template:", ctx.InPath)
+	}
 	templ, err := t.t.TextTmpl().Parse(ctx.InPath, tplStr)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse Resource %q as Template:", ctx.InPath)

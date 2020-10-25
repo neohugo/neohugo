@@ -147,14 +147,17 @@ func ReaderToBytes(lines io.Reader) ([]byte, error) {
 }
 
 // ReaderToString is the same as ReaderToBytes, but returns a string.
-func ReaderToString(lines io.Reader) string {
+func ReaderToString(lines io.Reader) (string, error) {
 	if lines == nil {
-		return ""
+		return "", nil
 	}
 	b := bp.GetBuffer()
 	defer bp.PutBuffer(b)
-	b.ReadFrom(lines)
-	return b.String()
+	if _, err := b.ReadFrom(lines); err != nil {
+		return "", err
+	}
+
+	return b.String(), nil
 }
 
 // ReaderContains reports whether subslice is within r.

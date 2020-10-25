@@ -53,8 +53,9 @@ import (
 type commandeerHugoState struct {
 	*deps.DepsCfg
 	hugoSites *hugolib.HugoSites
-	fsCreate  sync.Once
-	created   chan struct{}
+	// no lint
+	fsCreate sync.Once
+	created  chan struct{}
 }
 
 type commandeer struct {

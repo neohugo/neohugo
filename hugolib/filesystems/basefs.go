@@ -16,7 +16,6 @@
 package filesystems
 
 import (
-	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -32,8 +31,6 @@ import (
 	"github.com/neohugo/neohugo/modules"
 
 	"github.com/neohugo/neohugo/hugofs"
-
-	"fmt"
 
 	"github.com/neohugo/neohugo/hugolib/paths"
 	"github.com/spf13/afero"
@@ -676,25 +673,25 @@ func (b *sourceFilesystemsBuilder) createModFs(
 
 }
 
-func printFs(fs afero.Fs, path string, w io.Writer) {
-	if fs == nil {
-		return
-	}
-	afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		var filename string
-		if fim, ok := info.(hugofs.FileMetaInfo); ok {
-			filename = fim.Meta().Filename()
-		}
-		fmt.Fprintf(w, "    %q %q\n", path, filename)
-		return nil
-	})
-}
+//func printFs(fs afero.Fs, path string, w io.Writer) {
+//if fs == nil {
+//return
+//}
+//afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
+//if err != nil {
+//return err
+//}
+//if info.IsDir() {
+//return nil
+//}
+//var filename string
+//if fim, ok := info.(hugofs.FileMetaInfo); ok {
+//filename = fim.Meta().Filename()
+//}
+//fmt.Fprintf(w, "    %q %q\n", path, filename)
+//return nil
+//})
+//}
 
 type filesystemsCollector struct {
 	sourceProject afero.Fs // Source for project folders

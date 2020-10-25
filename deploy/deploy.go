@@ -646,7 +646,8 @@ func findDiffs(localFiles map[string]*localFile, remoteFiles map[string]*blob.Li
 				upload = true
 				reason = reasonMD5Differs
 			} else {
-				// Nope! Leave uploaded = false.
+				// Nope! Leave
+				upload = false
 			}
 			found[path] = true
 		} else {

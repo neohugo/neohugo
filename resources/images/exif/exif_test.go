@@ -58,9 +58,8 @@ func TestExif(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	x2 := &Exif{}
 	err = json.Unmarshal(data, x2)
-
+	c.Assert(err, qt.IsNil)
 	c.Assert(x2, eq, x)
-
 }
 
 func TestExifPNG(t *testing.T) {
@@ -89,7 +88,8 @@ func BenchmarkDecodeExif(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		_, err = d.Decode(f)
 		c.Assert(err, qt.IsNil)
-		f.Seek(0, 0)
+		_, err = f.Seek(0, 0)
+		c.Assert(err, qt.IsNil)
 	}
 }
 

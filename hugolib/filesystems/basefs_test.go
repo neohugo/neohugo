@@ -95,10 +95,13 @@ func TestNewBaseFs(t *testing.T) {
 			base := filepath.Join(workingDir, "themes", theme, dir)
 			filenameTheme := filepath.Join(base, fmt.Sprintf("theme-file-%s.txt", theme))
 			filenameOverlap := filepath.Join(base, "f3.txt")
-			fs.Source.Mkdir(base, 0755)
+			err := fs.Source.Mkdir(base, 0755)
+			c.Assert(err, qt.IsNil)
 			content := []byte(fmt.Sprintf("content:%s:%s", theme, dir))
-			afero.WriteFile(fs.Source, filenameTheme, content, 0755)
-			afero.WriteFile(fs.Source, filenameOverlap, content, 0755)
+			err = afero.WriteFile(fs.Source, filenameTheme, content, 0755)
+			c.Assert(err, qt.IsNil)
+			err = afero.WriteFile(fs.Source, filenameOverlap, content, 0755)
+			c.Assert(err, qt.IsNil)
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
@@ -112,14 +115,22 @@ func TestNewBaseFs(t *testing.T) {
 theme = ["atheme"]
 `), 0755)
 
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "contentDir", "mycontent", 3)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "i18nDir", "myi18n", 4)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "layoutDir", "mylayouts", 5)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "staticDir", "mystatic", 6)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "dataDir", "mydata", 7)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "archetypeDir", "myarchetypes", 8)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "assetDir", "myassets", 9)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "resourceDir", "myrsesource", 10)
+	err := setConfigAndWriteSomeFilesTo(fs.Source, v, "contentDir", "mycontent", 3)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "i18nDir", "myi18n", 4)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "layoutDir", "mylayouts", 5)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "staticDir", "mystatic", 6)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "dataDir", "mydata", 7)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "archetypeDir", "myarchetypes", 8)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "assetDir", "myassets", 9)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "resourceDir", "myrsesource", 10)
+	c.Assert(err, qt.IsNil)
 
 	v.Set("publishDir", "public")
 	c.Assert(initConfig(fs.Source, v), qt.IsNil)
@@ -452,12 +463,19 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 	return counter, filenames, nil
 }
 
-func setConfigAndWriteSomeFilesTo(fs afero.Fs, v *viper.Viper, key, val string, num int) {
+func setConfigAndWriteSomeFilesTo(fs afero.Fs, v *viper.Viper, key, val string, num int) error {
 	workingDir := v.GetString("workingDir")
 	v.Set(key, val)
-	fs.Mkdir(val, 0755)
+	if err := fs.Mkdir(val, 0755); err != nil {
+		return err
+	}
 	for i := 0; i < num; i++ {
 		filename := filepath.Join(workingDir, val, fmt.Sprintf("f%d.txt", i+1))
-		afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0755)
+		if err := afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0755); err != nil {
+			return err
+		}
+
 	}
+
+	return nil
 }

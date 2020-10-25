@@ -29,14 +29,14 @@ import (
 func ToLower(m Params) {
 	for k, v := range m {
 		var retyped bool
-		switch v.(type) {
+		switch vtype := v.(type) {
 		case map[interface{}]interface{}:
-			var p Params = cast.ToStringMap(v)
+			var p Params = cast.ToStringMap(vtype)
 			v = p
 			ToLower(p)
 			retyped = true
 		case map[string]interface{}:
-			var p Params = v.(map[string]interface{})
+			var p Params = vtype
 			v = p
 			ToLower(p)
 			retyped = true
@@ -51,9 +51,9 @@ func ToLower(m Params) {
 }
 
 func ToStringMapE(in interface{}) (map[string]interface{}, error) {
-	switch in.(type) {
+	switch in := in.(type) {
 	case Params:
-		return in.(Params), nil
+		return in, nil
 	default:
 		return cast.ToStringMapE(in)
 	}
@@ -117,12 +117,12 @@ func (KeyRenamer) keyPath(k1, k2 string) string {
 func (r KeyRenamer) renamePath(parentKeyPath string, m map[string]interface{}) {
 	for key, val := range m {
 		keyPath := r.keyPath(parentKeyPath, key)
-		switch val.(type) {
+		switch valtype := val.(type) {
 		case map[interface{}]interface{}:
-			val = cast.ToStringMap(val)
+			val = cast.ToStringMap(valtype)
 			r.renamePath(keyPath, val.(map[string]interface{}))
 		case map[string]interface{}:
-			r.renamePath(keyPath, val.(map[string]interface{}))
+			r.renamePath(keyPath, valtype)
 		}
 
 		newKey := r.getNewKey(keyPath)

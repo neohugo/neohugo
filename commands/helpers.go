@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	ansiEsc    = "\u001B"
-	clearLine  = "\r\033[K"
+	ansiEsc   = "\u001B"
+	clearLine = "\r\033[K"
+	//nolint
 	hideCursor = ansiEsc + "[?25l"
 	showCursor = ansiEsc + "[?25h"
 )
