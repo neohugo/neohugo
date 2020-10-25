@@ -239,13 +239,14 @@ Banner: post.jpg`,
 }
 
 func newCascadeTestBuilder(t testing.TB, langs []string) *sitesBuilder {
+	c := qt.New(t)
 	p := func(m map[string]interface{}) string {
 		var yamlStr string
 
 		if len(m) > 0 {
 			var b bytes.Buffer
 
-			parser.InterfaceToConfig(m, metadecoders.YAML, &b)
+			c.Assert(parser.InterfaceToConfig(m, metadecoders.YAML, &b), qt.IsNil)
 			yamlStr = b.String()
 		}
 

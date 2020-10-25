@@ -700,8 +700,8 @@ type pageMaps struct {
 }
 
 // deleteSection deletes the entire section from s.
-func (m *pageMaps) deleteSection(s string) {
-	m.withMaps(func(pm *pageMap) error {
+func (m *pageMaps) deleteSection(s string) error {
+	return m.withMaps(func(pm *pageMap) error {
 		pm.deleteSectionByPath(s)
 		return nil
 	})
@@ -797,14 +797,14 @@ type pagesMapBucket struct {
 }
 
 type pagesMapBucketPages struct {
-	pagesInit sync.Once
-	pages     page.Pages
+	pagesInit sync.Once  //nolint
+	pages     page.Pages //nolint
 
-	pagesAndSectionsInit sync.Once
-	pagesAndSections     page.Pages
+	pagesAndSectionsInit sync.Once  //nolint
+	pagesAndSections     page.Pages //nolint
 
-	sectionsInit sync.Once
-	sections     page.Pages
+	sectionsInit sync.Once  //nolint
+	sections     page.Pages //nolint
 }
 
 func (b *pagesMapBucket) getPages() page.Pages {
@@ -843,6 +843,8 @@ func (b *pagesMapBucket) getTaxonomies() page.Pages {
 	b.sectionsInit.Do(func() {
 		var pas page.Pages
 		ref := b.owner.treeRef
+		// TODO may check error
+		//nolint
 		ref.m.collectTaxonomies(ref.key, func(c *contentNode) {
 			pas = append(pas, c.p)
 		})
@@ -870,9 +872,9 @@ func (b *pagesMapBucket) getTaxonomyEntries() page.Pages {
 type sectionAggregate struct {
 	datesAll             resource.Dates
 	datesSection         resource.Dates
-	pageCount            int
-	mainSection          string
-	mainSectionPageCount int
+	pageCount            int    //nolint
+	mainSection          string //nolint
+	mainSectionPageCount int    //nolint
 }
 
 type sectionAggregateHandler struct {

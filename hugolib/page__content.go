@@ -29,11 +29,11 @@ var (
 // The content related items on a Page.
 type pageContent struct {
 	selfLayout string
-	truncated  bool
+	truncated  bool //nolint
 
 	cmap *pageContentMap
 
-	shortcodeState *shortcodeHandler
+	shortcodeState *shortcodeHandler //nolint
 
 	source rawPageContent
 }

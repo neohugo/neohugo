@@ -266,14 +266,14 @@ func (fs *RootMappingFs) getRoots(key string) (string, []RootMapping) {
 
 }
 
-func (fs *RootMappingFs) debug() {
-	fmt.Println("debug():")
-	fs.rootMapToReal.Walk(func(s string, v interface{}) bool {
-		fmt.Println("Key", s)
-		return false
-	})
+//func (fs *RootMappingFs) debug() {
+//fmt.Println("debug():")
+//fs.rootMapToReal.Walk(func(s string, v interface{}) bool {
+//fmt.Println("Key", s)
+//return false
+//})
 
-}
+//}
 
 func (fs *RootMappingFs) getRootsWithPrefix(prefix string) []RootMapping {
 	var roots []RootMapping

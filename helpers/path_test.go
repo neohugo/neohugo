@@ -686,6 +686,7 @@ func TestFindCWD(t *testing.T) {
 }
 
 func TestSafeWriteToDisk(t *testing.T) {
+	c := qt.New(t)
 	emptyFile, _ := createZeroSizedFileInTempDir()
 	defer deleteFileInTempDir(emptyFile)
 	tmpDir, _ := createEmptyTempDir()
@@ -723,11 +724,13 @@ func TestSafeWriteToDisk(t *testing.T) {
 				t.Errorf("Test %d failed. Expected contents %q but got %q", i, randomString, string(contents))
 			}
 		}
-		reader.Seek(0, 0)
+		_, err := reader.Seek(0, 0)
+		c.Assert(err, qt.IsNil)
 	}
 }
 
 func TestWriteToDisk(t *testing.T) {
+	c := qt.New(t)
 	emptyFile, _ := createZeroSizedFileInTempDir()
 	defer deleteFileInTempDir(emptyFile)
 	tmpDir, _ := createEmptyTempDir()
@@ -760,7 +763,8 @@ func TestWriteToDisk(t *testing.T) {
 		if randomString != string(contents) {
 			t.Errorf("Test %d failed. Expected contents %q but got %q", i, randomString, string(contents))
 		}
-		reader.Seek(0, 0)
+		_, err := reader.Seek(0, 0)
+		c.Assert(err, qt.IsNil)
 	}
 }
 

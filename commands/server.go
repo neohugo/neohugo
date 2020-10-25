@@ -184,11 +184,13 @@ func (sc *serverCmd) server(cmd *cobra.Command, args []string) error {
 					if i == 0 && sc.cmd.Flags().Changed("port") {
 						// port set explicitly by user -- he/she probably meant it!
 						err = newSystemErrorF("Server startup failed: %s", err)
+						c.logger.FEEDBACK.Println(err)
 					}
 					c.logger.FEEDBACK.Println("port", sc.serverPort, "already in use, attempting to use an available port")
 					sp, err := helpers.FindAvailablePort()
 					if err != nil {
 						err = newSystemError("Unable to find alternative port to use:", err)
+						c.logger.FEEDBACK.Println(err)
 					}
 					serverPorts[i] = sp.Port
 				}

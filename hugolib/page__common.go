@@ -54,7 +54,7 @@ type pageCommon struct {
 	s *Site
 	m *pageMeta
 
-	bucket  *pagesMapBucket
+	bucket  *pagesMapBucket //nolint
 	treeRef *contentTreeRef
 
 	// Laziliy initialized dependencies.
@@ -93,23 +93,22 @@ type pageCommon struct {
 
 	// Describes how paths and URLs for this page and its descendants
 	// should look like.
-	targetPathDescriptor page.TargetPathDescriptor
-
-	layoutDescriptor     output.LayoutDescriptor
-	layoutDescriptorInit sync.Once
+	targetPathDescriptor page.TargetPathDescriptor //nolint
+	layoutDescriptor     output.LayoutDescriptor   //nolint
+	layoutDescriptorInit sync.Once                 //nolint
 
 	// The parsed page content.
 	pageContent
 
 	// Set if feature enabled and this is in a Git repo.
-	gitInfo *gitmap.GitInfo
+	gitInfo *gitmap.GitInfo //nolint
 
 	// Positional navigation
 	posNextPrev        *nextPrev
 	posNextPrevSection *nextPrev
 
 	// Menus
-	pageMenus *pageMenus
+	pageMenus *pageMenus //nolint
 
 	// Internal use
 	page.InternalDependencies
@@ -118,30 +117,30 @@ type pageCommon struct {
 	*pagePages
 
 	// Any bundled resources
-	resources            resource.Resources
-	resourcesInit        sync.Once
-	resourcesPublishInit sync.Once
+	resources            resource.Resources //nolint
+	resourcesInit        sync.Once          //nolint
+	resourcesPublishInit sync.Once          //nolint
 
-	translations    page.Pages
-	allTranslations page.Pages
+	translations    page.Pages //nolint
+	allTranslations page.Pages //nolint
 
 	// Calculated an cached translation mapping key
-	translationKey     string
-	translationKeyInit sync.Once
+	translationKey     string    //nolint
+	translationKeyInit sync.Once //nolint
 
 	// Will only be set for bundled pages.
-	parent *pageState
+	parent *pageState //nolint
 
 	// Set in fast render mode to force render a given page.
-	forceRender bool
+	forceRender bool //nolint
 }
 
 type pagePages struct {
-	pagesInit sync.Once
-	pages     page.Pages
+	pagesInit sync.Once  //nolint
+	pages     page.Pages //nolint
 
-	regularPagesInit          sync.Once
-	regularPages              page.Pages
-	regularPagesRecursiveInit sync.Once
-	regularPagesRecursive     page.Pages
+	regularPagesInit          sync.Once  //nolint
+	regularPages              page.Pages //nolint
+	regularPagesRecursiveInit sync.Once  //nolint
+	regularPagesRecursive     page.Pages //nolint
 }

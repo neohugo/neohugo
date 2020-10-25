@@ -39,17 +39,17 @@ func prepareSymlinks(t *testing.T) (string, func()) {
 	c.Assert(os.MkdirAll(blogSubDir, 0777), qt.IsNil)
 	blogFile1 := filepath.Join(blogDir, "a.txt")
 	blogFile2 := filepath.Join(blogSubDir, "b.txt")
-	afero.WriteFile(Os, filepath.Join(blogFile1), []byte("content1"), 0777)
-	afero.WriteFile(Os, filepath.Join(blogFile2), []byte("content2"), 0777)
-	os.Chdir(workDir)
+	c.Assert(afero.WriteFile(Os, filepath.Join(blogFile1), []byte("content1"), 0777), qt.IsNil)
+	c.Assert(afero.WriteFile(Os, filepath.Join(blogFile2), []byte("content2"), 0777), qt.IsNil)
+	c.Assert(os.Chdir(workDir), qt.IsNil)
 	c.Assert(os.Symlink("blog", "symlinkdedir"), qt.IsNil)
-	os.Chdir(blogDir)
+	c.Assert(os.Chdir(blogDir), qt.IsNil)
 	c.Assert(os.Symlink("sub", "symsub"), qt.IsNil)
 	c.Assert(os.Symlink("a.txt", "symlinkdedfile.txt"), qt.IsNil)
 
 	return workDir, func() {
 		clean()
-		os.Chdir(wd)
+		c.Assert(os.Chdir(wd), qt.IsNil)
 	}
 }
 

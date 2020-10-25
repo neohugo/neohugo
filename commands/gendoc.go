@@ -80,7 +80,9 @@ for rendering in Hugo.`,
 			}
 
 			jww.FEEDBACK.Println("Generating Hugo command-line documentation in", cc.gendocdir, "...")
-			doc.GenMarkdownTreeCustom(cmd.Root(), cc.gendocdir, prepender, linkHandler)
+			if err := doc.GenMarkdownTreeCustom(cmd.Root(), cc.gendocdir, prepender, linkHandler); err != nil {
+				return err
+			}
 			jww.FEEDBACK.Println("Done.")
 
 			return nil
@@ -90,6 +92,7 @@ for rendering in Hugo.`,
 	cc.cmd.PersistentFlags().StringVar(&cc.gendocdir, "dir", "/tmp/hugodoc/", "the directory to write the doc.")
 
 	// For bash-completion
+	//nolint
 	cc.cmd.PersistentFlags().SetAnnotation("dir", cobra.BashCompSubdirsInDir, []string{})
 
 	return cc

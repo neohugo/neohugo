@@ -97,6 +97,10 @@ func (f FileMeta) Translations() []string {
 	return cast.ToStringSlice(f[metaKeyTranslations])
 }
 
+func (f FileMeta) DecoraterPath() string {
+	return f.stringV(metaKeyDecoraterPath)
+}
+
 func (f FileMeta) Name() string {
 	return f.stringV(metaKeyName)
 }
@@ -363,12 +367,12 @@ func fileInfosToNames(fis []os.FileInfo) []string {
 	return names
 }
 
-func fromSlash(filenames []string) []string {
-	for i, name := range filenames {
-		filenames[i] = filepath.FromSlash(name)
-	}
-	return filenames
-}
+//func fromSlash(filenames []string) []string {
+//for i, name := range filenames {
+//filenames[i] = filepath.FromSlash(name)
+//}
+//return filenames
+//}
 
 func sortFileInfos(fis []os.FileInfo) {
 	sort.Slice(fis, func(i, j int) bool {

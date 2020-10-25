@@ -218,7 +218,7 @@ type hugoBuilderCommon struct {
 	logging    bool
 	verbose    bool
 	verboseLog bool
-	debug      bool
+	debug      bool //nolint
 	quiet      bool
 
 	cfgFile string
@@ -269,6 +269,7 @@ func (cc *hugoBuilderCommon) getEnvironment(isServer bool) string {
 
 func (cc *hugoBuilderCommon) handleCommonBuilderFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().StringVarP(&cc.source, "source", "s", "", "filesystem path to read files relative from")
+	//nolint
 	cmd.PersistentFlags().SetAnnotation("source", cobra.BashCompSubdirsInDir, []string{})
 	cmd.PersistentFlags().StringVarP(&cc.environment, "environment", "e", "", "build environment")
 	cmd.PersistentFlags().StringP("themesDir", "", "", "filesystem path to themes directory")
@@ -306,9 +307,9 @@ func (cc *hugoBuilderCommon) handleFlags(cmd *cobra.Command) {
 	cmd.Flags().StringVarP(&cc.traceprofile, "trace", "", "", "write trace to `file` (not useful in general)")
 
 	// Hide these for now.
-	cmd.Flags().MarkHidden("profile-cpu")
-	cmd.Flags().MarkHidden("profile-mem")
-	cmd.Flags().MarkHidden("profile-mutex")
+	cmd.Flags().MarkHidden("profile-cpu")   //nolint
+	cmd.Flags().MarkHidden("profile-mem")   //nolint
+	cmd.Flags().MarkHidden("profile-mutex") //nolint
 
 	cmd.Flags().StringSlice("disableKinds", []string{}, "disable different kind of pages (home, RSS etc.)")
 

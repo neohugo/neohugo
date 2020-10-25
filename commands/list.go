@@ -167,7 +167,7 @@ List requires a subcommand, e.g. ` + "`hugo list drafts`.",
 				writer := csv.NewWriter(os.Stdout)
 				defer writer.Flush()
 
-				writer.Write([]string{
+				err = writer.Write([]string{
 					"path",
 					"slug",
 					"title",
@@ -177,6 +177,10 @@ List requires a subcommand, e.g. ` + "`hugo list drafts`.",
 					"draft",
 					"permalink",
 				})
+				if err != nil {
+					return newSystemError("Error building sites", err)
+				}
+
 				for _, p := range sites.Pages() {
 					if !p.IsPage() {
 						continue

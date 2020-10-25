@@ -17,14 +17,19 @@ func captureStdout(f func() error) (string, error) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	err := f()
+	if err := f(); err != nil {
+		return "", err
+	}
 
 	w.Close()
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	return buf.String(), err
+
+	if _, err := io.Copy(&buf, r); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
 }
 
 func TestListAll(t *testing.T) {

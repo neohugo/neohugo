@@ -82,12 +82,12 @@ type pageContext interface {
 }
 
 // wrapErr adds some context to the given error if possible.
-func wrapErr(err error, ctx interface{}) error {
-	if pc, ok := ctx.(pageContext); ok {
-		return pc.wrapError(err)
-	}
-	return err
-}
+//func wrapErr(err error, ctx interface{}) error {
+//if pc, ok := ctx.(pageContext); ok {
+//return pc.wrapError(err)
+//}
+//return err
+//}
 
 type pageSiteAdapter struct {
 	p page.Page

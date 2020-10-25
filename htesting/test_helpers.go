@@ -37,6 +37,7 @@ func CreateTempDir(fs afero.Fs, prefix string) (string, func(), error) {
 		// mysterious, but so be it.
 		tempDir = "/private" + tempDir
 	}
+	//nolint
 	return tempDir, func() { fs.RemoveAll(tempDir) }, nil
 }
 

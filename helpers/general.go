@@ -372,9 +372,8 @@ func SliceToLower(s []string) []string {
 
 // MD5String takes a string and returns its MD5 hash.
 func MD5String(f string) string {
-	h := md5.New()
-	h.Write([]byte(f))
-	return hex.EncodeToString(h.Sum([]byte{}))
+	hash := md5.Sum([]byte(f))
+	return hex.EncodeToString(hash[:])
 }
 
 // MD5FromFileFast creates a MD5 hash from the given file. It only reads parts of
@@ -405,12 +404,16 @@ func MD5FromFileFast(r io.ReadSeeker) (string, error) {
 		_, err := io.ReadAtLeast(r, buff, peekSize)
 		if err != nil {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				h.Write(buff)
+				if _, err = h.Write(buff); err != nil {
+					return "", err
+				}
 				break
 			}
 			return "", err
 		}
-		h.Write(buff)
+		if _, err = h.Write(buff); err != nil {
+			return "", err
+		}
 	}
 
 	return hex.EncodeToString(h.Sum(nil)), nil
@@ -444,12 +447,12 @@ func NormalizeHugoFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
 
 // PrintFs prints the given filesystem to the given writer starting from the given path.
 // This is useful for debugging.
-func PrintFs(fs afero.Fs, path string, w io.Writer) {
+func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 	if fs == nil {
-		return
+		return nil
 	}
 
-	afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
+	err := afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
 		var filename string
 		var meta interface{}
 		if fim, ok := info.(hugofs.FileMetaInfo); ok {
@@ -459,6 +462,12 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) {
 		fmt.Fprintf(w, "    %q %q\t\t%v\n", path, filename, meta)
 		return nil
 	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // HashString returns a hash from the given elements.

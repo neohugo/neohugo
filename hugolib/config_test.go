@@ -467,7 +467,7 @@ path="n4"
 
 	modulesClient := b.H.Paths.ModulesClient
 	var graphb bytes.Buffer
-	modulesClient.Graph(&graphb)
+	c.Assert(modulesClient.Graph(&graphb), qt.IsNil)
 
 	expected := `project n1
 n1 o1

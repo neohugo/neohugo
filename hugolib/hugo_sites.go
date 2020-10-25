@@ -749,8 +749,8 @@ func (h *HugoSites) renderCrossSitesRobotsTXT() error {
 	return s.renderAndWritePage(&s.PathSpec.ProcessingStats.Pages, "Robots Txt", "robots.txt", p, templ)
 }
 
-func (h *HugoSites) removePageByFilename(filename string) {
-	h.getContentMaps().withMaps(func(m *pageMap) error {
+func (h *HugoSites) removePageByFilename(filename string) error {
+	return h.getContentMaps().withMaps(func(m *pageMap) error {
 		m.deleteBundleMatching(func(b *contentNode) bool {
 			if b.p == nil {
 				return false
@@ -764,7 +764,6 @@ func (h *HugoSites) removePageByFilename(filename string) {
 		})
 		return nil
 	})
-
 }
 
 func (h *HugoSites) createPageCollections() error {

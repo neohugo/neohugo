@@ -1144,7 +1144,9 @@ func (s *Site) processPartial(config *BuildCfg, init func(config *BuildCfg) erro
 		}
 
 		if removed && files.IsContentFile(ev.Name) {
-			h.removePageByFilename(ev.Name)
+			if err := h.removePageByFilename(ev.Name); err != nil {
+				return err
+			}
 		}
 
 		sourceReallyChanged = append(sourceReallyChanged, ev)

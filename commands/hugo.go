@@ -416,6 +416,7 @@ func (c *commandeer) initMutexProfile() (func(), error) {
 	runtime.SetMutexProfileFraction(1)
 
 	return func() {
+		//nolint
 		pprof.Lookup("mutex").WriteTo(f, 0)
 		f.Close()
 	}, nil
@@ -790,7 +791,10 @@ func (c *commandeer) fullRebuild(changeType string) {
 		c.fullRebuildSem.Release(1)
 	}
 
-	c.fullRebuildSem.Acquire(context.Background(), 1)
+	if err := c.fullRebuildSem.Acquire(context.Background(), 1); err != nil {
+		c.logger.ERROR.Println(err)
+		return
+	}
 
 	go func() {
 
@@ -864,7 +868,9 @@ func (c *commandeer) newWatcher(dirList ...string) (*watcher.Batcher, error) {
 
 	c.logger.FEEDBACK.Println("Watching for config changes in", strings.Join(c.configFiles, ", "))
 	for _, configFile := range c.configFiles {
-		watcher.Add(configFile)
+		if err := watcher.Add(configFile); err != nil {
+			return nil, err
+		}
 		configSet[configFile] = true
 	}
 

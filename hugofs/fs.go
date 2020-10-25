@@ -102,15 +102,21 @@ func MakeReadableAndRemoveAllModulePkgDir(fs afero.Fs, dir string) (int, error) 
 	}
 
 	counter := 0
-	afero.Walk(fs, dir, func(path string, info os.FileInfo, err error) error {
+	err := afero.Walk(fs, dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return nil
 		}
 		if info.IsDir() {
 			counter++
-			fs.Chmod(path, 0777)
+			if err := fs.Chmod(path, 0777); err != nil {
+				return err
+			}
 		}
 		return nil
 	})
+	if err != nil {
+		return 0, err
+	}
+
 	return counter, fs.RemoveAll(dir)
 }

@@ -43,6 +43,10 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 )
 
+//type publishStats struct {
+//CSSClasses string `json:"cssClasses"`
+//}
+
 // Build builds all sites. If filesystem events are provided,
 // this is considered to be a potential partial rebuild.
 func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
@@ -436,10 +440,6 @@ func (h *HugoSites) postProcess() error {
 
 	return g.Wait()
 
-}
-
-type publishStats struct {
-	CSSClasses string `json:"cssClasses"`
 }
 
 func (h *HugoSites) writeBuildStats() error {

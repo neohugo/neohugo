@@ -1386,14 +1386,17 @@ tags:
 *some content*`, i))
 				}
 
-				writeSource(t, fs, filepath.Join("content", "Blog", "Blog1.md"),
-					fmt.Sprintf(`---
+				writeSource(
+					t,
+					fs,
+					filepath.Join("content", "Blog", "Blog1.md"),
+					`---
 title: "testBlog"
 tags:
 - "Blog"
 ---
 # doc1
-*some blog content*`))
+*some blog content*`)
 
 				s := buildSingleSite(t, deps.DepsCfg{Fs: fs, Cfg: cfg}, BuildCfg{})
 

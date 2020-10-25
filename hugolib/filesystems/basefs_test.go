@@ -105,15 +105,20 @@ func TestNewBaseFs(t *testing.T) {
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
-		afero.WriteFile(fs.Source, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0755)
-		afero.WriteFile(fs.Source, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0755)
+		c.Assert(afero.WriteFile(fs.Source, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0755), qt.IsNil)
+		c.Assert(afero.WriteFile(fs.Source, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0755), qt.IsNil)
 	}
 
-	afero.WriteFile(fs.Source, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0755)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0755), qt.IsNil)
 
-	afero.WriteFile(fs.Source, filepath.Join(workingDir, "themes", "btheme", "config.toml"), []byte(`
+	c.Assert(
+		afero.WriteFile(
+			fs.Source,
+			filepath.Join(workingDir, "themes", "btheme", "config.toml"),
+			[]byte(`
 theme = ["atheme"]
-`), 0755)
+`), 0755),
+		qt.IsNil)
 
 	err := setConfigAndWriteSomeFilesTo(fs.Source, v, "contentDir", "mycontent", 3)
 	c.Assert(err, qt.IsNil)
