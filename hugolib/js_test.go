@@ -39,13 +39,13 @@ func TestJSBuildWithNPM(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skip NPM test on Windows")
 	}
-
-	wd, _ := os.Getwd()
-	defer func() {
-		os.Chdir(wd)
-	}()
-
 	c := qt.New(t)
+
+	wd, err := os.Getwd()
+	c.Assert(err, qt.IsNil)
+	defer func() {
+		c.Assert(os.Chdir(wd), qt.IsNil)
+	}()
 
 	mainJS := `
 	import "./included";

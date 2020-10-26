@@ -999,8 +999,8 @@ Styles Content: Len: 770878|
 		return err
 	}
 
-	build("always", false)
-	build("fallback", false)
+	c.Assert(build("always", false), qt.IsNil)
+	c.Assert(build("fallback", false), qt.IsNil)
 
 	// Introduce a syntax error in an import
 	b.WithSourceFile("assets/css/components/b.css", `@import "a.css";

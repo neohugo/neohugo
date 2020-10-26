@@ -34,11 +34,15 @@ type nextPrev struct {
 }
 
 func (n *nextPrev) next() page.Page {
+	// TODO may check error
+	//nolint
 	n.init.Do()
 	return n.nextPage
 }
 
 func (n *nextPrev) prev() page.Page {
+	// TODO may check error
+	//nolint
 	n.init.Do()
 	return n.prevPage
 }

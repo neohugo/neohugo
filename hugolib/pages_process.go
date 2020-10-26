@@ -59,9 +59,13 @@ func (proc *pagesProcessor) Process(item interface{}) error {
 	// Page bundles mapped to their language.
 	case pageBundles:
 		for _, vv := range v {
+			// TODO may check error
+			//nolint
 			proc.getProcFromFi(vv.header).Process(vv)
 		}
 	case hugofs.FileMetaInfo:
+		// TODO may check error
+		//nolint
 		proc.getProcFromFi(v).Process(v)
 	default:
 		panic(fmt.Sprintf("unrecognized item type in Process: %T", item))
