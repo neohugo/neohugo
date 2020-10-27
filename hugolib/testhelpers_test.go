@@ -180,7 +180,10 @@ func (s *sitesBuilder) WithConfigTemplate(data interface{}, format, configTempla
 		s.Fatalf("Template parse failed: %s", err)
 	}
 	var b bytes.Buffer
-	templ.Execute(&b, data)
+
+	if err := templ.Execute(&b, data); err != nil {
+		s.Fatalf("Template Execute failed: %s", err)
+	}
 	return s.WithConfigFile(format, b.String())
 }
 

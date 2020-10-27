@@ -218,6 +218,7 @@ func BenchmarkShortcodeLexer(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, input := range testInputs {
 			items := collectWithConfig(input, true, lexMainSection, cfg)
+			//nolint
 			if len(items) == 0 {
 			}
 		}

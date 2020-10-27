@@ -16,12 +16,12 @@ package pageparser
 type lexerShortcodeState struct {
 	currLeftDelimItem  ItemType
 	currRightDelimItem ItemType
-	isInline           bool
-	currShortcodeName  string          // is only set when a shortcode is in opened state
-	closingState       int             // > 0 = on its way to be closed
-	elementStepNum     int             // step number in element
-	paramElements      int             // number of elements (name + value = 2) found first
-	openShortcodes     map[string]bool // set of shortcodes in open state
+	isInline           bool            //nolint
+	currShortcodeName  string          //nolint // is only set when a shortcode is in opened state
+	closingState       int             //nolint // > 0 = on its way to be closed
+	elementStepNum     int             //nolint // step number in element
+	paramElements      int             //nolint // number of elements (name + value = 2) found first
+	openShortcodes     map[string]bool //nolint // set of shortcodes in open state
 
 }
 

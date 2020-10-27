@@ -235,9 +235,9 @@ func (d Decoder) unmarshalORG(data []byte, v interface{}) error {
 			frontMatter[k] = v
 		}
 	}
-	switch v.(type) {
+	switch v := v.(type) {
 	case *map[string]interface{}:
-		*v.(*map[string]interface{}) = frontMatter
+		*v = frontMatter
 	default:
 		*v.(*interface{}) = frontMatter
 	}
