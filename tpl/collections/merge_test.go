@@ -137,7 +137,8 @@ func TestMerge(t *testing.T) {
 				map[string]interface{}{"k": "v"},
 				map[string]interface{}{"k": map[string]interface{}{"k2": "v2"}},
 			},
-			map[string]interface{}{"k": map[string]interface{}{"k2": "v2"}}, false,
+			map[string]interface{}{"k": map[string]interface{}{"k2": "v2"}},
+			false,
 		},
 		{"src nil", []interface{}{nil, simpleMap}, simpleMap, false},
 		// Error cases.
