@@ -1028,9 +1028,9 @@ class-in-b {
 	// Remove cache
 	b.Assert(os.RemoveAll(filepath.Join(workDir, "resources")), qt.IsNil)
 
-	b.Assert(build("always", true), qt.IsNil)
-	b.Assert(build("fallback", true), qt.IsNil)
-	build("never", true) //nolint
+	build("always", true)   //nolint
+	build("fallback", true) //nolint
+	build("never", true)    //nolint
 }
 
 func TestResourceMinifyDisabled(t *testing.T) {
