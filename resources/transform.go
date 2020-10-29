@@ -144,8 +144,8 @@ func (ctx *ResourceTransformationCtx) addPathIdentifier(inPath, identifier strin
 }
 
 type publishOnce struct {
-	publisherInit sync.Once
-	publisherErr  error
+	publisherInit sync.Once //nolint
+	publisherErr  error     //nolint
 }
 
 type resourceAdapter struct {
@@ -566,8 +566,8 @@ type resourceAdapterInner struct {
 }
 
 type resourceTransformations struct {
-	transformationsInit sync.Once
-	transformationsErr  error
+	transformationsInit sync.Once //nolint
+	transformationsErr  error     //nolint
 	transformations     []ResourceTransformation
 }
 

@@ -107,7 +107,8 @@ func TestScpGetRemote(t *testing.T) {
 		c.Assert(err, qt.IsNil, msg)
 
 		srv, cl := getTestServer(func(w http.ResponseWriter, r *http.Request) {
-			w.Write(test.content)
+			_, err := w.Write(test.content)
+			c.Assert(err, qt.IsNil)
 		})
 		defer func() { srv.Close() }()
 
@@ -135,7 +136,8 @@ func TestScpGetRemoteParallel(t *testing.T) {
 
 	content := []byte(`T€st Content 123`)
 	srv, cl := getTestServer(func(w http.ResponseWriter, r *http.Request) {
-		w.Write(content)
+		_, err := w.Write(content)
+		c.Assert(err, qt.IsNil)
 	})
 
 	defer func() { srv.Close() }()
@@ -188,7 +190,10 @@ func newDeps(cfg config.Provider) *deps.Deps {
 	cfg.Set("layoutDir", "layouts")
 	cfg.Set("archetypeDir", "archetypes")
 
-	langs.LoadLanguageSettings(cfg, nil)
+	_, err := langs.LoadLanguageSettings(cfg, nil)
+	if err != nil {
+		panic(err)
+	}
 	mod, err := modules.CreateProjectModule(cfg)
 	if err != nil {
 		panic(err)

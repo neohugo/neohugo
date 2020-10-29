@@ -49,7 +49,7 @@ func TestTransform(t *testing.T) {
 	createTransformer := func(spec *Spec, filename, content string) Transformer {
 		filename = filepath.FromSlash(filename)
 		fs := spec.Fs.Source
-		afero.WriteFile(fs, filename, []byte(content), 0777)
+		c.Assert(afero.WriteFile(fs, filename, []byte(content), 0777), qt.IsNil)
 		r, _ := spec.New(ResourceSourceDescriptor{Fs: fs, SourceFilename: filename})
 		return r.(Transformer)
 	}

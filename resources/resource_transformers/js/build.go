@@ -144,7 +144,10 @@ func (t *buildTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	if len(result.Errors) > 0 {
 		return fmt.Errorf("%s", result.Errors[0].Text)
 	}
-	ctx.To.Write(result.OutputFiles[0].Contents)
+
+	if _, err := ctx.To.Write(result.OutputFiles[0].Contents); err != nil {
+		return err
+	}
 	return nil
 }
 

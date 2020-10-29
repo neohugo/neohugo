@@ -620,11 +620,11 @@ func HTMLEscape(w io.Writer, b []byte) {
 		default:
 			continue
 		}
-		w.Write(b[last:i])
-		w.Write(html)
+		w.Write(b[last:i]) //nolint
+		w.Write(html)      //nolint
 		last = i + 1
 	}
-	w.Write(b[last:])
+	w.Write(b[last:]) //nolint
 }
 
 // HTMLEscapeString returns the escaped HTML equivalent of the plain text data s.
@@ -660,6 +660,7 @@ var (
 )
 
 // JSEscape writes to w the escaped JavaScript equivalent of the plain text data b.
+//nolint
 func JSEscape(w io.Writer, b []byte) {
 	last := 0
 	for i := 0; i < len(b); i++ {

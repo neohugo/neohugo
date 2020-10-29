@@ -222,6 +222,8 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	go func() {
 		defer stdin.Close()
+		// TODO may check error
+		//nolint
 		io.Copy(stdin, src)
 	}()
 
@@ -334,8 +336,6 @@ func (imp *importResolver) importRecursive(
 }
 
 func (imp *importResolver) resolve() (io.Reader, error) {
-	const importIdentifier = "@import"
-
 	content, err := ioutil.ReadAll(imp.r)
 	if err != nil {
 		return nil, err

@@ -34,7 +34,7 @@ func New(deps *deps.Deps) *Namespace {
 
 // Namespace provides template functions for the "js" namespace.
 type Namespace struct {
-	deps   *deps.Deps
+	deps   *deps.Deps //nolint
 	client *js.Client
 }
 

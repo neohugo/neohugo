@@ -166,6 +166,9 @@ func doWithGoFiles(dir string,
 		filepath.Walk(
 			filepath.Join(forkRoot, dir),
 			func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
 				if info.IsDir() {
 					return nil
 				}

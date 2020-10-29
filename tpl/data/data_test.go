@@ -92,7 +92,8 @@ func TestGetCSV(t *testing.T) {
 
 			w.Header().Add("Content-type", "text/csv")
 
-			w.Write([]byte(test.content))
+			_, err := w.Write([]byte(test.content))
+			c.Assert(err, qt.IsNil)
 		})
 		defer func() { srv.Close() }()
 
@@ -100,7 +101,8 @@ func TestGetCSV(t *testing.T) {
 		if !strings.Contains(test.url, ":") && !strings.HasPrefix(test.url, "fail/") {
 			f, err := ns.deps.Fs.Source.Create(filepath.Join(ns.deps.Cfg.GetString("workingDir"), test.url))
 			c.Assert(err, qt.IsNil, msg)
-			f.WriteString(test.content)
+			_, err = f.WriteString(test.content)
+			c.Assert(err, qt.IsNil)
 			f.Close()
 		}
 
@@ -182,7 +184,8 @@ func TestGetJSON(t *testing.T) {
 
 			w.Header().Add("Content-type", "application/json")
 
-			w.Write([]byte(test.content))
+			_, err := w.Write([]byte(test.content))
+			c.Assert(err, qt.IsNil)
 		})
 		defer func() { srv.Close() }()
 
@@ -190,7 +193,8 @@ func TestGetJSON(t *testing.T) {
 		if !strings.Contains(test.url, ":") && !strings.HasPrefix(test.url, "fail/") {
 			f, err := ns.deps.Fs.Source.Create(filepath.Join(ns.deps.Cfg.GetString("workingDir"), test.url))
 			c.Assert(err, qt.IsNil, msg)
-			f.WriteString(test.content)
+			_, err = f.WriteString(test.content)
+			c.Assert(err, qt.IsNil)
 			f.Close()
 		}
 

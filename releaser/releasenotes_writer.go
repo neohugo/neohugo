@@ -189,6 +189,7 @@ func fetchThemeCount() (int, error) {
 	return bytes.Count(b, []byte("submodule")), nil
 }
 
+//nolint
 func writeReleaseNotesToTmpFile(version string, infosMain, infosDocs gitInfos) (string, error) {
 	f, err := ioutil.TempFile("", "hugorelease")
 	if err != nil {
@@ -247,7 +248,9 @@ func (r *ReleaseHandler) writeReleaseNotesToTemp(version string, isPatch bool, i
 	)
 
 	if !r.try {
-		os.Mkdir(docsTempPath, os.ModePerm)
+		if err := os.Mkdir(docsTempPath, os.ModePerm); err != nil {
+			return "", err
+		}
 
 		f, err := os.Create(filepath.Join(docsTempPath, name))
 		if err != nil {

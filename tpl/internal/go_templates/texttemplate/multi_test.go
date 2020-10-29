@@ -11,8 +11,9 @@ package template
 import (
 	"bytes"
 	"fmt"
-	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
 	"testing"
+
+	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
 )
 
 const (
@@ -272,7 +273,10 @@ func TestAddParseTreeToUnparsedTemplate(t *testing.T) {
 		t.Fatalf("unexpected parse err: %v", err)
 	}
 	masterTree := tree["master"]
-	tmpl.AddParseTree("master", masterTree) // used to panic
+	_, err = tmpl.AddParseTree("master", masterTree) // used to panic
+	if err != nil {
+		t.Fatalf("unexpected add parse err: %v", err)
+	}
 }
 
 func TestRedefinition(t *testing.T) {
@@ -292,6 +296,7 @@ func TestRedefinition(t *testing.T) {
 // Issue 10879
 func TestEmptyTemplateCloneCrash(t *testing.T) {
 	t1 := New("base")
+	//nolint
 	t1.Clone() // used to panic
 }
 
@@ -305,7 +310,10 @@ func TestTemplateLookUp(t *testing.T) {
 	if t1.Lookup("bar") != nil {
 		t.Error("Lookup returned non-nil value for undefined template bar")
 	}
-	t1.Parse(`{{define "foo"}}test{{end}}`)
+	_, err := t1.Parse(`{{define "foo"}}test{{end}}`)
+	if err != nil {
+		t.Fatalf("unexpected parse err: %v", err)
+	}
 	if t1.Lookup("foo") == nil {
 		t.Error("Lookup returned nil value for defined template")
 	}
@@ -417,7 +425,9 @@ func TestIssue19294(t *testing.T) {
 			}
 		}
 		var buf bytes.Buffer
-		res.Execute(&buf, 0)
+		if err := res.Execute(&buf, 0); err != nil {
+			t.Fatal(err)
+		}
 		if buf.String() != "stylesheet" {
 			t.Fatalf("iteration %d: got %q; expected %q", i, buf.String(), "stylesheet")
 		}

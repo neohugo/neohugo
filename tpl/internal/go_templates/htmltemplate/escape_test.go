@@ -1852,6 +1852,7 @@ func TestPipeToMethodIsEscaped(t *testing.T) {
 			}
 		}()
 		var b bytes.Buffer
+		//nolint
 		tmpl.Execute(&b, Issue7379(0))
 		return b.String()
 	}
@@ -1917,6 +1918,7 @@ func BenchmarkEscapedExecute(b *testing.B) {
 	var buf bytes.Buffer
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
+		//nolint
 		tmpl.Execute(&buf, "foo & 'bar' & baz")
 		buf.Reset()
 	}

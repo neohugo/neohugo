@@ -65,13 +65,17 @@ func (t *fingerprintTransformation) Transform(ctx *resources.ResourceTransformat
 	if rc, ok := ctx.From.(io.ReadSeeker); ok {
 		// This transformation does not change the content, so try to
 		// avoid writing to To if we can.
+		// TODO may check
+		//nolint
 		defer rc.Seek(0, 0)
 		w = h
 	} else {
 		w = io.MultiWriter(h, ctx.To)
 	}
 
-	io.Copy(w, ctx.From)
+	if _, err := io.Copy(w, ctx.From); err != nil {
+		return err
+	}
 	d, err := digest(h)
 	if err != nil {
 		return err

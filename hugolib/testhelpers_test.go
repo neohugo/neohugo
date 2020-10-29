@@ -283,6 +283,7 @@ func (s *sitesBuilder) WithSimpleConfigFileAndBaseURL(baseURL string) *sitesBuil
 func (s *sitesBuilder) WithSimpleConfigFileAndSettings(settings interface{}) *sitesBuilder {
 	s.T.Helper()
 	var buf bytes.Buffer
+	//nolint
 	parser.InterfaceToConfig(settings, metadecoders.TOML, &buf)
 	config := buf.String() + commonConfigSections
 	return s.WithConfigFile("toml", config)
@@ -875,7 +876,9 @@ func newTestCfg(withConfig ...func(cfg config.Provider) error) (*viper.Viper, *h
 		cfg.Set("defaultContentLanguageInSubdir", true)
 
 		for _, w := range withConfig {
-			w(cfg)
+			if err := w(cfg); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -1088,6 +1091,7 @@ func captureStdout(f func() error) (string, error) {
 	os.Stdout = old
 
 	var buf bytes.Buffer
+	//nolint
 	io.Copy(&buf, r)
 	return buf.String(), err
 }

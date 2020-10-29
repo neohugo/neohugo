@@ -160,7 +160,7 @@ func TestTemplates(t *testing.T) {
 func TestCloneCrash(t *testing.T) {
 	t1 := New("all")
 	Must(t1.New("t1").Parse(`{{define "foo"}}foo{{end}}`))
-	t1.Clone()
+	t1.Clone() //nolint maybe remove this test
 }
 
 // Ensure that this guarantee from the docs is upheld:
@@ -240,7 +240,7 @@ func TestCloneGrowth(t *testing.T) {
 	tmpl = Must(tmpl.Clone())
 	Must(tmpl.Parse(`{{define "B"}}Text{{end}}`))
 	for i := 0; i < 10; i++ {
-		tmpl.Execute(ioutil.Discard, nil)
+		tmpl.Execute(ioutil.Discard, nil) //nolint TODO may check error
 	}
 	if len(tmpl.DefinedTemplates()) > 200 {
 		t.Fatalf("too many templates: %v", len(tmpl.DefinedTemplates()))

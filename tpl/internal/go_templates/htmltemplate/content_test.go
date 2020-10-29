@@ -448,14 +448,14 @@ func TestEscapingNilNonemptyInterfaces(t *testing.T) {
 
 	got := new(bytes.Buffer)
 	testData := struct{ E error }{} // any non-empty interface here will do; error is just ready at hand
-	tmpl.Execute(got, testData)
+	tmpl.Execute(got, testData)     //nolint TODO may check error
 
 	// A non-empty interface should print like an empty interface.
 	want := new(bytes.Buffer)
 	data := struct{ E interface{} }{}
-	tmpl.Execute(want, data)
+	tmpl.Execute(want, data) //nolint TODO may check error
 
 	if !bytes.Equal(want.Bytes(), got.Bytes()) {
-		t.Errorf("expected %q got %q", string(want.Bytes()), string(got.Bytes()))
+		t.Errorf("expected %q got %q", want.String(), got.String())
 	}
 }
