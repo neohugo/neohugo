@@ -854,12 +854,12 @@ func TestResourceChainPostCSS(t *testing.T) {
 		t.Skip("skip npm test on Windows")
 	}
 
-	wd, _ := os.Getwd()
-	defer func() {
-		os.Chdir(wd)
-	}()
-
 	c := qt.New(t)
+	wd, err := os.Getwd()
+	c.Assert(err, qt.IsNil)
+	defer func() {
+		c.Assert(os.Chdir(wd), qt.IsNil)
+	}()
 
 	packageJSON := `{
   "scripts": {},
@@ -1021,17 +1021,16 @@ class-in-b {
 	// Remove PostCSS
 	b.Assert(os.RemoveAll(filepath.Join(workDir, "node_modules")), qt.IsNil)
 
-	build("always", false)
-	build("fallback", false)
-	build("never", true)
+	b.Assert(build("always", false), qt.IsNil)
+	b.Assert(build("fallback", false), qt.IsNil)
+	build("never", true) //nolint
 
 	// Remove cache
 	b.Assert(os.RemoveAll(filepath.Join(workDir, "resources")), qt.IsNil)
 
-	build("always", true)
-	build("fallback", true)
-	build("never", true)
-
+	b.Assert(build("always", true), qt.IsNil)
+	b.Assert(build("fallback", true), qt.IsNil)
+	build("never", true) //nolint
 }
 
 func TestResourceMinifyDisabled(t *testing.T) {

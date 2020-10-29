@@ -114,6 +114,8 @@ func (l PermalinkExpander) parse(patterns map[string]string) (map[string]func(Pa
 	const sectionCutSet = " /" + string(os.PathSeparator)
 
 	for k, pattern := range patterns {
+		// TODO check if we need os.PathSeparator
+		//nolint
 		k = strings.Trim(k, sectionCutSet)
 		if !l.validate(pattern) {
 			return nil, &permalinkExpandError{pattern: pattern, err: errPermalinkIllFormed}

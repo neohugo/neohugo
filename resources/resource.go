@@ -563,10 +563,9 @@ type permalinker interface {
 }
 
 type resourceContent struct {
-	content     string
-	contentInit sync.Once
-
-	publishInit sync.Once
+	content     string    //nolint
+	contentInit sync.Once //nolint
+	publishInit sync.Once //nolint
 }
 
 type resourceFileInfo struct {
@@ -670,5 +669,5 @@ type resourcePathDescriptor struct {
 	baseTargetPathDirs []string
 
 	// baseOffset is set when the output format's path has a offset, e.g. for AMP.
-	baseOffset string
+	baseOffset string //nolint
 }
