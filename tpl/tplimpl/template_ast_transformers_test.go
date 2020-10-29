@@ -111,7 +111,8 @@ func TestCollectInfo(t *testing.T) {
 				ts,
 				newTestTemplateLookup(ts),
 			)
-			ctx.applyTransformations(templ.Tree.Root)
+			_, err = ctx.applyTransformations(templ.Tree.Root)
+			c.Assert(err, qt.IsNil)
 			c.Assert(ctx.t.parseInfo, qt.DeepEquals, test.expected)
 		})
 	}

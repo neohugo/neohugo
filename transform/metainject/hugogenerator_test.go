@@ -51,7 +51,7 @@ func TestHugoGeneratorInject(t *testing.T) {
 		out := new(bytes.Buffer)
 
 		tr := transform.New(HugoGenerator)
-		tr.Apply(out, in)
+		tr.Apply(out, in) //nolint
 
 		if out.String() != this.expect {
 			t.Errorf("[%d] Expected \n%q got \n%q", i, this.expect, out.String())

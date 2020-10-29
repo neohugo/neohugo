@@ -583,7 +583,10 @@ func (t *templateHandler) addTemplateFile(name, path string) error {
 	if err != nil {
 		return tinfo.errWithFileContext("parse failed", err) //nolint
 	}
-	t.applyTemplateTransformers(t.main, templ)
+	_, err = t.applyTemplateTransformers(t.main, templ)
+	if err != nil {
+		return err
+	}
 
 	return nil
 

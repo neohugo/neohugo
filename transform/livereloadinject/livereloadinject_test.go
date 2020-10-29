@@ -31,7 +31,7 @@ func TestLiveReloadInject(t *testing.T) {
 		in := strings.NewReader(s)
 
 		tr := transform.New(New(1313))
-		tr.Apply(out, in)
+		c.Assert(tr.Apply(out, in), qt.IsNil)
 
 		return out.String()
 	}

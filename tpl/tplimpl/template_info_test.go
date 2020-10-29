@@ -52,7 +52,7 @@ func newD(c *qt.C) *deps.Deps {
 	c.Assert(err, qt.IsNil)
 
 	provider := DefaultTemplateProvider
-	provider.Update(d)
+	c.Assert(provider.Update(d), qt.IsNil)
 
 	return d
 
