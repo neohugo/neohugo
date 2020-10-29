@@ -325,11 +325,9 @@ func BenchmarkRelatedMatchesIn(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		if i%10 == 0 {
-			_, err := idx.search(q2)
-			c.Assert(err, qt.IsNil)
+			idx.search(q2)
 		} else {
-			_, err := idx.search(q1)
-			c.Assert(err, qt.IsNil)
+			idx.search(q1)
 		}
 	}
 }

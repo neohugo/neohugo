@@ -169,7 +169,6 @@ type Site struct {
 }
 
 func (s *Site) Taxonomies() TaxonomyList {
-	//nolint
 	s.init.taxonomies.Do()
 	return s.taxonomies
 }
@@ -254,8 +253,6 @@ func (s *Site) prepareInits() {
 	s.init.prevNextInSection = init.Branch(func() (interface{}, error) {
 
 		var sections page.Pages
-
-		//nolint
 		s.home.treeRef.m.collectSectionsRecursiveIncludingSelf(pageMapQuery{Prefix: s.home.treeRef.key}, func(n *contentNode) {
 			sections = append(sections, n.p)
 		})
@@ -289,7 +286,6 @@ func (s *Site) prepareInits() {
 			treeRef := sect.(treeRefProvider).getTreeRef()
 
 			var pas page.Pages
-			//nolint
 			treeRef.m.collectPages(pageMapQuery{Prefix: treeRef.key + cmBranchSeparator}, func(c *contentNode) {
 				pas = append(pas, c.p)
 			})
@@ -302,7 +298,6 @@ func (s *Site) prepareInits() {
 		treeRef := s.home.getTreeRef()
 
 		var pas page.Pages
-		//nolint
 		treeRef.m.collectPages(pageMapQuery{Prefix: treeRef.key + cmBranchSeparator}, func(c *contentNode) {
 			pas = append(pas, c.p)
 		})
@@ -330,7 +325,6 @@ type siteRenderingContext struct {
 }
 
 func (s *Site) Menus() navigation.Menus {
-	//nolint
 	s.init.menus.Do()
 	return s.menus
 }

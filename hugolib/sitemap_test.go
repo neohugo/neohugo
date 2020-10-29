@@ -52,13 +52,13 @@ func doTestSitemapOutput(t *testing.T, internal bool) {
 
 	depsCfg.WithTemplate = func(templ tpl.TemplateManager) error {
 		if !internal {
-			c.Assert(templ.AddTemplate("sitemap.xml", sitemapTemplate), qt.IsNil)
+			templ.AddTemplate("sitemap.xml", sitemapTemplate)
 		}
 
 		// We want to check that the 404 page is not included in the sitemap
 		// output. This template should have no effect either way, but include
 		// it for the clarity.
-		c.Assert(templ.AddTemplate("404.html", "Not found"), qt.IsNil)
+		templ.AddTemplate("404.html", "Not found")
 		return nil
 	}
 

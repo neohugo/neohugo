@@ -97,14 +97,12 @@ func (i *Image) EncodeTo(conf ImageConfig, img image.Image, w io.Writer) error {
 
 // Height returns i's height.
 func (i *Image) Height() int {
-	//nolint
 	i.initConfig()
 	return i.config.Height
 }
 
 // Width returns i's width.
 func (i *Image) Width() int {
-	//nolint
 	i.initConfig()
 	return i.config.Width
 }
@@ -293,7 +291,7 @@ func (f Format) MediaType() media.Type {
 
 type imageConfig struct {
 	config       image.Config
-	configInit   sync.Once //nolint
+	configInit   sync.Once
 	configLoaded bool
 }
 

@@ -96,8 +96,8 @@ func TestNonSC(t *testing.T) {
 func TestHyphenatedSC(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/hyphenated-video.html", `Playing Video {{ .Get 0 }}`), qt.IsNil)
+
+		tem.AddTemplate("_internal/shortcodes/hyphenated-video.html", `Playing Video {{ .Get 0 }}`)
 		return nil
 	}
 
@@ -108,8 +108,7 @@ func TestHyphenatedSC(t *testing.T) {
 func TestNoTrailingNewline(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/a.html", `{{ .Get 0 }}`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/a.html", `{{ .Get 0 }}`)
 		return nil
 	}
 
@@ -119,8 +118,7 @@ func TestNoTrailingNewline(t *testing.T) {
 func TestPositionalParamSC(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/video.html", `Playing Video {{ .Get 0 }}`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/video.html", `Playing Video {{ .Get 0 }}`)
 		return nil
 	}
 
@@ -134,8 +132,7 @@ func TestPositionalParamSC(t *testing.T) {
 func TestPositionalParamIndexOutOfBounds(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/video.html", `Playing Video {{ with .Get 1 }}{{ . }}{{ else }}Missing{{ end }}`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/video.html", `Playing Video {{ with .Get 1 }}{{ . }}{{ else }}Missing{{ end }}`)
 		return nil
 	}
 	CheckShortCodeMatch(t, "{{< video 47238zzb >}}", "Playing Video Missing", wt)
@@ -145,8 +142,7 @@ func TestPositionalParamIndexOutOfBounds(t *testing.T) {
 func TestShortcodeRelated(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/a.html", `{{ len (.Site.RegularPages.Related .Page) }}`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/a.html", `{{ len (.Site.RegularPages.Related .Page) }}`)
 		return nil
 	}
 
@@ -156,9 +152,8 @@ func TestShortcodeRelated(t *testing.T) {
 func TestShortcodeInnerMarkup(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("shortcodes/a.html", `<div>{{ .Inner }}</div>`), qt.IsNil)
-		c.Assert(tem.AddTemplate("shortcodes/b.html", `**Bold**: <div>{{ .Inner }}</div>`), qt.IsNil)
+		tem.AddTemplate("shortcodes/a.html", `<div>{{ .Inner }}</div>`)
+		tem.AddTemplate("shortcodes/b.html", `**Bold**: <div>{{ .Inner }}</div>`)
 		return nil
 	}
 
@@ -181,8 +176,7 @@ func TestShortcodeInnerMarkup(t *testing.T) {
 func TestNamedParamSC(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/img.html", `<img{{ with .Get "src" }} src="{{.}}"{{end}}{{with .Get "class"}} class="{{.}}"{{end}}>`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/img.html", `<img{{ with .Get "src" }} src="{{.}}"{{end}}{{with .Get "class"}} class="{{.}}"{{end}}>`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `{{< img src="one" >}}`, `<img src="one">`, wt)
@@ -197,10 +191,9 @@ func TestNamedParamSC(t *testing.T) {
 func TestNestedNamedMissingParam(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/acc.html", `<div class="acc">{{ .Inner }}</div>`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/div.html", `<div {{with .Get "class"}} class="{{ . }}"{{ end }}>{{ .Inner }}</div>`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/div2.html", `<div {{with .Get 0}} class="{{ . }}"{{ end }}>{{ .Inner }}</div>`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/acc.html", `<div class="acc">{{ .Inner }}</div>`)
+		tem.AddTemplate("_internal/shortcodes/div.html", `<div {{with .Get "class"}} class="{{ . }}"{{ end }}>{{ .Inner }}</div>`)
+		tem.AddTemplate("_internal/shortcodes/div2.html", `<div {{with .Get 0}} class="{{ . }}"{{ end }}>{{ .Inner }}</div>`)
 		return nil
 	}
 	CheckShortCodeMatch(t,
@@ -211,9 +204,8 @@ func TestNestedNamedMissingParam(t *testing.T) {
 func TestIsNamedParamsSC(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/bynameorposition.html", `{{ with .Get "id" }}Named: {{ . }}{{ else }}Pos: {{ .Get 0 }}{{ end }}`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/ifnamedparams.html", `<div id="{{ if .IsNamedParams }}{{ .Get "id" }}{{ else }}{{ .Get 0 }}{{end}}">`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/bynameorposition.html", `{{ with .Get "id" }}Named: {{ . }}{{ else }}Pos: {{ .Get 0 }}{{ end }}`)
+		tem.AddTemplate("_internal/shortcodes/ifnamedparams.html", `<div id="{{ if .IsNamedParams }}{{ .Get "id" }}{{ else }}{{ .Get 0 }}{{end}}">`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `{{< ifnamedparams id="name" >}}`, `<div id="name">`, wt)
@@ -225,8 +217,7 @@ func TestIsNamedParamsSC(t *testing.T) {
 func TestInnerSC(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/inside.html", `<div{{with .Get "class"}} class="{{.}}"{{end}}>{{ .Inner }}</div>`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/inside.html", `<div{{with .Get "class"}} class="{{.}}"{{end}}>{{ .Inner }}</div>`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `{{< inside class="aspen" >}}`, `<div class="aspen"></div>`, wt)
@@ -239,9 +230,8 @@ func TestInnerSCWithMarkdown(t *testing.T) {
 	wt := func(tem tpl.TemplateManager) error {
 		// Note: In Hugo 0.55 we made it so any outer {{%'s inner content was rendered as part of the surrounding
 		// markup. This solved lots of problems, but it also meant that this test had to be adjusted.
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/wrapper.html", `<div{{with .Get "class"}} class="{{.}}"{{end}}>{{ .Inner }}</div>`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/inside.html", `{{ .Inner }}`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/wrapper.html", `<div{{with .Get "class"}} class="{{.}}"{{end}}>{{ .Inner }}</div>`)
+		tem.AddTemplate("_internal/shortcodes/inside.html", `{{ .Inner }}`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `{{< wrapper >}}{{% inside %}}
@@ -261,9 +251,8 @@ func TestEmbeddedSC(t *testing.T) {
 func TestNestedSC(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/scn1.html", `<div>Outer, inner is {{ .Inner }}</div>`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/scn2.html", `<div>SC2</div>`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/scn1.html", `<div>Outer, inner is {{ .Inner }}</div>`)
+		tem.AddTemplate("_internal/shortcodes/scn2.html", `<div>SC2</div>`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `{{% scn1 %}}{{% scn2 %}}{{% /scn1 %}}`, "<div>Outer, inner is <div>SC2</div></div>", wt)
@@ -274,10 +263,9 @@ func TestNestedSC(t *testing.T) {
 func TestNestedComplexSC(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/row.html", `-row-{{ .Inner}}-rowStop-`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/column.html", `-col-{{.Inner    }}-colStop-`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/aside.html", `-aside-{{    .Inner  }}-asideStop-`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/row.html", `-row-{{ .Inner}}-rowStop-`)
+		tem.AddTemplate("_internal/shortcodes/column.html", `-col-{{.Inner    }}-colStop-`)
+		tem.AddTemplate("_internal/shortcodes/aside.html", `-aside-{{    .Inner  }}-asideStop-`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `{{< row >}}1-s{{% column %}}2-**s**{{< aside >}}3-**s**{{< /aside >}}4-s{{% /column %}}5-s{{< /row >}}6-s`,
@@ -291,10 +279,9 @@ func TestNestedComplexSC(t *testing.T) {
 func TestParentShortcode(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/r1.html", `1: {{ .Get "pr1" }} {{ .Inner }}`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/r2.html", `2: {{ .Parent.Get "pr1" }}{{ .Get "pr2" }} {{ .Inner }}`), qt.IsNil)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/r3.html", `3: {{ .Parent.Parent.Get "pr1" }}{{ .Parent.Get "pr2" }}{{ .Get "pr3" }} {{ .Inner }}`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/r1.html", `1: {{ .Get "pr1" }} {{ .Inner }}`)
+		tem.AddTemplate("_internal/shortcodes/r2.html", `2: {{ .Parent.Get "pr1" }}{{ .Get "pr2" }} {{ .Inner }}`)
+		tem.AddTemplate("_internal/shortcodes/r3.html", `3: {{ .Parent.Parent.Get "pr1" }}{{ .Parent.Get "pr2" }}{{ .Get "pr3" }} {{ .Inner }}`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `{{< r1 pr1="p1" >}}1: {{< r2 pr2="p2" >}}2: {{< r3 pr3="p3" >}}{{< /r3 >}}{{< /r2 >}}{{< /r1 >}}`,
@@ -347,8 +334,7 @@ func TestFigureLinkWithTargetAndRel(t *testing.T) {
 func TestShortcodeWrappedInPIssue(t *testing.T) {
 	t.Parallel()
 	wt := func(tem tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(tem.AddTemplate("_internal/shortcodes/bug.html", `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`), qt.IsNil)
+		tem.AddTemplate("_internal/shortcodes/bug.html", `xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`)
 		return nil
 	}
 	CheckShortCodeMatch(t, `
@@ -584,16 +570,16 @@ title: "Foo"
 	}
 
 	addTemplates := func(templ tpl.TemplateManager) error {
-		c := qt.New(t)
-		c.Assert(templ.AddTemplate("_default/single.html", "{{.Content}} Word Count: {{ .WordCount }}"), qt.IsNil)
-		c.Assert(templ.AddTemplate("_internal/shortcodes/b.html", `b`), qt.IsNil)
-		c.Assert(templ.AddTemplate("_internal/shortcodes/c.html", `c`), qt.IsNil)
-		c.Assert(templ.AddTemplate("_internal/shortcodes/d.html", `d`), qt.IsNil)
-		c.Assert(templ.AddTemplate("_internal/shortcodes/html-indented-v1.html", "{{ $_hugo_config := `{ \"version\": 1 }` }}"+`
+		templ.AddTemplate("_default/single.html", "{{.Content}} Word Count: {{ .WordCount }}")
+
+		templ.AddTemplate("_internal/shortcodes/b.html", `b`)
+		templ.AddTemplate("_internal/shortcodes/c.html", `c`)
+		templ.AddTemplate("_internal/shortcodes/d.html", `d`)
+		templ.AddTemplate("_internal/shortcodes/html-indented-v1.html", "{{ $_hugo_config := `{ \"version\": 1 }` }}"+`
     <h1>Hugo!</h1>
-`), qt.IsNil)
-		c.Assert(templ.AddTemplate("_internal/shortcodes/menu.html", `{{ len (index .Page.Menus "main").Children }}`), qt.IsNil)
-		c.Assert(templ.AddTemplate("_internal/shortcodes/tags.html", `{{ len .Page.Site.Taxonomies.tags }}`), qt.IsNil)
+`)
+		templ.AddTemplate("_internal/shortcodes/menu.html", `{{ len (index .Page.Menus "main").Children }}`)
+		templ.AddTemplate("_internal/shortcodes/tags.html", `{{ len .Page.Site.Taxonomies.tags }}`)
 
 		return nil
 

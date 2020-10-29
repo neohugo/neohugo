@@ -43,13 +43,12 @@ func TestResourceChainBabel(t *testing.T) {
 		t.Skip("skip npm test on Windows")
 	}
 
-	c := qt.New(t)
-	wd, err := os.Getwd()
-	c.Assert(err, qt.IsNil)
+	wd, _ := os.Getwd()
 	defer func() {
-
-		c.Assert(os.Chdir(wd), qt.IsNil)
+		os.Chdir(wd)
 	}()
+
+	c := qt.New(t)
 
 	packageJSON := `{
   "scripts": {},

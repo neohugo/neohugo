@@ -70,10 +70,7 @@ func newTestPathSpec() *helpers.PathSpec {
 
 func newTestPathSpecFor(cfg config.Provider) *helpers.PathSpec {
 	config.SetBaseTestDefaults(cfg)
-	_, err := langs.LoadLanguageSettings(cfg, nil)
-	if err != nil {
-		panic(err)
-	}
+	langs.LoadLanguageSettings(cfg, nil)
 	mod, err := modules.CreateProjectModule(cfg)
 	if err != nil {
 		panic(err)

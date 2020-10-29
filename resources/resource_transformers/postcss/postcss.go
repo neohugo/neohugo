@@ -264,8 +264,9 @@ func (imp *importResolver) contentHash(filename string) ([]byte, string) {
 	if err != nil {
 		return nil, ""
 	}
-	hash := sha256.Sum256(b)
-	return b, hex.EncodeToString(hash[:])
+	h := sha256.New()
+	h.Write(b)
+	return b, hex.EncodeToString(h.Sum(nil))
 }
 
 func (imp *importResolver) importRecursive(

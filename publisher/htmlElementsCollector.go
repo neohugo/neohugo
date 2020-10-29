@@ -107,7 +107,7 @@ func (w *cssClassCollectorWriter) Write(p []byte) (n int, err error) {
 
 					// See https://github.com/dominikh/go-tools/issues/723
 					//lint:ignore S1030 This construct avoids memory allocation for the string.
-					seen := w.collector.elementSet[string(w.buff.Bytes())] //nolint
+					seen := w.collector.elementSet[string(w.buff.Bytes())]
 					w.collector.mu.RUnlock()
 					if seen {
 						w.buff.Reset()

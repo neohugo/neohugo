@@ -464,9 +464,9 @@ func lexDone(l *pageLexer) stateFunc {
 	return nil
 }
 
-//func (l *pageLexer) printCurrentInput() {
-//fmt.Printf("input[%d:]: %q", l.pos, string(l.input[l.pos:]))
-//}
+func (l *pageLexer) printCurrentInput() {
+	fmt.Printf("input[%d:]: %q", l.pos, string(l.input[l.pos:]))
+}
 
 // state helpers
 
