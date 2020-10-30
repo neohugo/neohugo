@@ -290,7 +290,10 @@ func getConfig() *viper.Viper {
 	v.Set("assetDir", "assets")
 	v.Set("resourceDir", "resources")
 	v.Set("publishDir", "public")
-	langs.LoadLanguageSettings(v, nil)
+
+	if _, err := langs.LoadLanguageSettings(v, nil); err != nil {
+		panic(err)
+	}
 	mod, err := modules.CreateProjectModule(v)
 	if err != nil {
 		panic(err)

@@ -184,11 +184,13 @@ func (sc *serverCmd) server(cmd *cobra.Command, args []string) error {
 					if i == 0 && sc.cmd.Flags().Changed("port") {
 						// port set explicitly by user -- he/she probably meant it!
 						err = newSystemErrorF("Server startup failed: %s", err)
+						c.logger.FEEDBACK.Println(err)
 					}
 					c.logger.FEEDBACK.Println("port", sc.serverPort, "already in use, attempting to use an available port")
 					sp, err := helpers.FindAvailablePort()
 					if err != nil {
 						err = newSystemError("Unable to find alternative port to use:", err)
+						c.logger.FEEDBACK.Println(err)
 					}
 					serverPorts[i] = sp.Port
 				}
@@ -357,7 +359,11 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, string, string, erro
 					if !f.c.paused {
 						port = f.c.Cfg.GetInt("liveReloadPort")
 					}
-					fmt.Fprint(w, injectLiveReloadScript(r, port))
+					b, err := injectLiveReloadScript(r, port)
+					if err != nil {
+						f.c.logger.ERROR.Println(err)
+					}
+					fmt.Fprint(w, b)
 
 					return
 				}
@@ -593,7 +599,9 @@ func memStats() error {
 			return err
 		}
 
-		fileMemStats.WriteString("# Time\tHeapSys\tHeapAlloc\tHeapIdle\tHeapReleased\n")
+		if _, err := fileMemStats.WriteString("# Time\tHeapSys\tHeapAlloc\tHeapIdle\tHeapReleased\n"); err != nil {
+			return err
+		}
 
 		go func() {
 			var stats runtime.MemStats
@@ -603,8 +611,16 @@ func memStats() error {
 			for {
 				runtime.ReadMemStats(&stats)
 				if fileMemStats != nil {
-					fileMemStats.WriteString(fmt.Sprintf("%d\t%d\t%d\t%d\t%d\n",
-						(time.Now().UnixNano()-start)/1000000, stats.HeapSys, stats.HeapAlloc, stats.HeapIdle, stats.HeapReleased))
+					if _, err := fileMemStats.WriteString(
+						fmt.Sprintf("%d\t%d\t%d\t%d\t%d\n",
+							(time.Now().UnixNano()-start)/1000000,
+							stats.HeapSys,
+							stats.HeapAlloc,
+							stats.HeapIdle,
+							stats.HeapReleased)); err != nil {
+						return
+					}
+
 					time.Sleep(interval)
 				} else {
 					break

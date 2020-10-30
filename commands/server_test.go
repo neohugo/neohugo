@@ -66,7 +66,8 @@ func TestServer(t *testing.T) {
 	resp, err := http.Get("http://localhost:1331/")
 	c.Assert(err, qt.IsNil)
 	defer resp.Body.Close()
-	homeContent := helpers.ReaderToString(resp.Body)
+	homeContent, err := helpers.ReaderToString(resp.Body)
+	c.Assert(err, qt.IsNil)
 
 	c.Assert(homeContent, qt.Contains, "List: Hugo Commands")
 	c.Assert(homeContent, qt.Contains, "Environment: development")

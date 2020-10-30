@@ -174,7 +174,7 @@ type collected struct {
 
 	// Ordered list of collected modules, including Go Modules and theme
 	// components stored below /themes.
-	modules Modules
+	modules Modules //nolint
 }
 
 // Collects and creates a module tree.

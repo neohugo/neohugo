@@ -162,35 +162,41 @@ func doWithGoFiles(dir string,
 	if rewrite == nil && transform == nil {
 		return
 	}
-	must(filepath.Walk(filepath.Join(forkRoot, dir), func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
-			return nil
-		}
+	must(
+		filepath.Walk(
+			filepath.Join(forkRoot, dir),
+			func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+				if info.IsDir() {
+					return nil
+				}
 
-		if !strings.HasSuffix(path, ".go") || strings.Contains(path, "hugo_") {
-			return nil
-		}
+				if !strings.HasSuffix(path, ".go") || strings.Contains(path, "hugo_") {
+					return nil
+				}
 
-		fmt.Println("Handle", path)
+				fmt.Println("Handle", path)
 
-		if rewrite != nil {
-			rewrite(path)
-		}
+				if rewrite != nil {
+					rewrite(path)
+				}
 
-		if transform == nil {
-			return nil
-		}
+				if transform == nil {
+					return nil
+				}
 
-		data, err := ioutil.ReadFile(path)
-		must(err)
-		f, err := os.Create(path)
-		must(err)
-		defer f.Close()
-		_, err = f.WriteString(transform(path, string(data)))
-		must(err)
+				data, err := ioutil.ReadFile(path)
+				must(err)
+				f, err := os.Create(path)
+				must(err)
+				defer f.Close()
+				_, err = f.WriteString(transform(path, string(data)))
+				must(err)
 
-		return nil
-	}))
+				return nil
+			}))
 }
 
 func removeAll(expression, content string) string {

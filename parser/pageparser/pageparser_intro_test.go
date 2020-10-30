@@ -99,7 +99,7 @@ func collectWithConfig(input []byte, skipFrontMatter bool, stateStart stateFunc,
 			break
 		}
 	}
-	return
+	return items
 }
 
 func collect(input []byte, skipFrontMatter bool, stateStart stateFunc) (items []Item) {

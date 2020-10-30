@@ -43,7 +43,10 @@ func createTestCfg() *viper.Viper {
 	cfg.Set("archetypeDir", "archetypes")
 	cfg.Set("publishDir", "public")
 
-	langs.LoadLanguageSettings(cfg, nil)
+	_, err := langs.LoadLanguageSettings(cfg, nil)
+	if err != nil {
+		panic(err)
+	}
 	mod, err := modules.CreateProjectModule(cfg)
 	if err != nil {
 		panic(err)

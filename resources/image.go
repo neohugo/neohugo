@@ -387,9 +387,7 @@ func (i *imageResource) relTargetPathFromConfig(conf images.ImageConfig) dirFile
 
 	// Do not change for no good reason.
 	const md5Threshold = 100
-
 	key := conf.GetKey(i.Format)
-
 	// It is useful to have the key in clear text, but when nesting transforms, it
 	// can easily be too long to read, and maybe even too long
 	// for the different OSes to handle.

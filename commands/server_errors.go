@@ -36,7 +36,7 @@ var buildErrorTemplate = `<!doctype html>
 			margin: auto;
 			width: 95%;
 			padding: 1rem;
-		}		
+		}
 		.version {
 			color: #ccc;
 			padding: 1rem 0;
@@ -45,11 +45,11 @@ var buildErrorTemplate = `<!doctype html>
 			margin-top: 4rem;
 		}
 		pre {
-			white-space: pre-wrap;      
-			white-space: -moz-pre-wrap;  
-			white-space: -pre-wrap;     
-			white-space: -o-pre-wrap;    
-			word-wrap: break-word;     
+			white-space: pre-wrap;
+			white-space: -moz-pre-wrap;
+			white-space: -pre-wrap;
+			white-space: -o-pre-wrap;
+			word-wrap: break-word;
 		}
 		.highlight {
 			overflow-x: auto;
@@ -82,10 +82,10 @@ var buildErrorTemplate = `<!doctype html>
 </html>
 `
 
-func injectLiveReloadScript(src io.Reader, port int) string {
+func injectLiveReloadScript(src io.Reader, port int) (string, error) {
 	var b bytes.Buffer
 	chain := transform.Chain{livereloadinject.New(port)}
-	chain.Apply(&b, src)
+	err := chain.Apply(&b, src)
 
-	return b.String()
+	return b.String(), err
 }

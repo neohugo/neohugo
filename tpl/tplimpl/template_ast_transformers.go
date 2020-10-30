@@ -184,7 +184,7 @@ func (c *templateContext) applyTransformations(n parse.Node) (bool, error) {
 		for _, elem := range x.Args {
 			switch an := elem.(type) {
 			case *parse.PipeNode:
-				c.applyTransformations(an)
+				c.applyTransformations(an) //nolint
 			}
 		}
 		return keep, c.err
@@ -195,7 +195,7 @@ func (c *templateContext) applyTransformations(n parse.Node) (bool, error) {
 
 func (c *templateContext) applyTransformationsToNodes(nodes ...parse.Node) {
 	for _, node := range nodes {
-		c.applyTransformations(node)
+		c.applyTransformations(node) //nolint
 	}
 }
 

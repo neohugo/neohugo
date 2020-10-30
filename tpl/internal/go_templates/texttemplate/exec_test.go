@@ -85,7 +85,7 @@ type T struct {
 	// Template to test evaluation of templates.
 	Tmpl *Template
 	// Unexported field; cannot be accessed by template.
-	unexported int
+	unexported int //nolint
 }
 
 type S []string
@@ -1012,6 +1012,7 @@ func TestTree(t *testing.T) {
 	}
 }
 
+//nolint
 func TestExecuteOnNewTemplate(t *testing.T) {
 	// This is issue 3872.
 	New("Name").Templates()
@@ -1043,7 +1044,10 @@ func TestMessageForExecuteEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	tmpl.AddParseTree("secondary", tests.Tree)
+	_, err = tmpl.AddParseTree("secondary", tests.Tree)
+	if err != nil {
+		t.Fatal(err)
+	}
 	err = tmpl.Execute(&b, 0)
 	if err == nil {
 		t.Fatal("expected second error")
@@ -1382,7 +1386,7 @@ func TestBadFuncNames(t *testing.T) {
 func testBadFuncName(name string, t *testing.T) {
 	t.Helper()
 	defer func() {
-		recover()
+		recover() //nolint
 	}()
 	New("X").Funcs(
 		FuncMap{
@@ -1690,6 +1694,9 @@ func TestIssue31810(t *testing.T) {
 	// Works if the function is explicitly called.
 	const textCall = "{{ (call .)  }}"
 	tmpl, err = New("").Parse(textCall)
+	if err != nil {
+		t.Error(err)
+	}
 	b.Reset()
 	err = tmpl.Execute(&b, f)
 	if err != nil {

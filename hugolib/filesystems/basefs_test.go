@@ -95,31 +95,45 @@ func TestNewBaseFs(t *testing.T) {
 			base := filepath.Join(workingDir, "themes", theme, dir)
 			filenameTheme := filepath.Join(base, fmt.Sprintf("theme-file-%s.txt", theme))
 			filenameOverlap := filepath.Join(base, "f3.txt")
-			fs.Source.Mkdir(base, 0755)
+			err := fs.Source.Mkdir(base, 0755)
+			c.Assert(err, qt.IsNil)
 			content := []byte(fmt.Sprintf("content:%s:%s", theme, dir))
-			afero.WriteFile(fs.Source, filenameTheme, content, 0755)
-			afero.WriteFile(fs.Source, filenameOverlap, content, 0755)
+			c.Assert(afero.WriteFile(fs.Source, filenameTheme, content, 0755), qt.IsNil)
+			c.Assert(afero.WriteFile(fs.Source, filenameOverlap, content, 0755), qt.IsNil)
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
-		afero.WriteFile(fs.Source, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0755)
-		afero.WriteFile(fs.Source, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0755)
+		c.Assert(afero.WriteFile(fs.Source, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0755), qt.IsNil)
+		c.Assert(afero.WriteFile(fs.Source, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0755), qt.IsNil)
 	}
 
-	afero.WriteFile(fs.Source, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0755)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0755), qt.IsNil)
 
-	afero.WriteFile(fs.Source, filepath.Join(workingDir, "themes", "btheme", "config.toml"), []byte(`
+	c.Assert(
+		afero.WriteFile(
+			fs.Source,
+			filepath.Join(workingDir, "themes", "btheme", "config.toml"),
+			[]byte(`
 theme = ["atheme"]
-`), 0755)
+`), 0755),
+		qt.IsNil)
 
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "contentDir", "mycontent", 3)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "i18nDir", "myi18n", 4)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "layoutDir", "mylayouts", 5)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "staticDir", "mystatic", 6)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "dataDir", "mydata", 7)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "archetypeDir", "myarchetypes", 8)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "assetDir", "myassets", 9)
-	setConfigAndWriteSomeFilesTo(fs.Source, v, "resourceDir", "myrsesource", 10)
+	err := setConfigAndWriteSomeFilesTo(fs.Source, v, "contentDir", "mycontent", 3)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "i18nDir", "myi18n", 4)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "layoutDir", "mylayouts", 5)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "staticDir", "mystatic", 6)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "dataDir", "mydata", 7)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "archetypeDir", "myarchetypes", 8)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "assetDir", "myassets", 9)
+	c.Assert(err, qt.IsNil)
+	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "resourceDir", "myrsesource", 10)
+	c.Assert(err, qt.IsNil)
 
 	v.Set("publishDir", "public")
 	c.Assert(initConfig(fs.Source, v), qt.IsNil)
@@ -245,18 +259,18 @@ func TestRealDirs(t *testing.T) {
 
 	c.Assert(sfs.MkdirAll(filepath.Join(root, "myassets", "js", "f2"), 0755), qt.IsNil)
 
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf1", "a1.scss")), []byte("content"), 0755)
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf2", "a3.scss")), []byte("content"), 0755)
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "a2.scss")), []byte("content"), 0755)
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2", "a3.scss")), []byte("content"), 0755)
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3", "a4.scss")), []byte("content"), 0755)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf1", "a1.scss")), []byte("content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf2", "a3.scss")), []byte("content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "a2.scss")), []byte("content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2", "a3.scss")), []byte("content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3", "a4.scss")), []byte("content"), 0755), qt.IsNil)
 
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "resources", "t1.txt")), []byte("content"), 0755)
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "resources", "p1.txt")), []byte("content"), 0755)
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "resources", "p2.txt")), []byte("content"), 0755)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "resources", "t1.txt")), []byte("content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "resources", "p1.txt")), []byte("content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "resources", "p2.txt")), []byte("content"), 0755), qt.IsNil)
 
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "js", "f2", "a1.js")), []byte("content"), 0755)
-	afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "js", "a2.js")), []byte("content"), 0755)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "js", "f2", "a1.js")), []byte("content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "js", "a2.js")), []byte("content"), 0755), qt.IsNil)
 
 	c.Assert(initConfig(fs.Source, v), qt.IsNil)
 
@@ -290,10 +304,10 @@ func TestStaticFs(t *testing.T) {
 	themeStaticDir := filepath.Join(workDir, "themes", "t1", "static")
 	themeStaticDir2 := filepath.Join(workDir, "themes", "t2", "static")
 
-	afero.WriteFile(fs.Source, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0755)
-	afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0755)
-	afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0755)
-	afero.WriteFile(fs.Source, filepath.Join(themeStaticDir2, "f2.txt"), []byte("Hugo Themes Rocks in t2!"), 0755)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir2, "f2.txt"), []byte("Hugo Themes Rocks in t2!"), 0755), qt.IsNil)
 
 	c.Assert(initConfig(fs.Source, v), qt.IsNil)
 
@@ -333,11 +347,11 @@ func TestStaticFsMultiHost(t *testing.T) {
 
 	themeStaticDir := filepath.Join(workDir, "themes", "t1", "static")
 
-	afero.WriteFile(fs.Source, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0755)
-	afero.WriteFile(fs.Source, filepath.Join(workDir, "static_no", "f1.txt"), []byte("Hugo Rocks in Norway!"), 0755)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workDir, "static_no", "f1.txt"), []byte("Hugo Rocks in Norway!"), 0755), qt.IsNil)
 
-	afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0755)
-	afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0755)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0755), qt.IsNil)
 
 	c.Assert(initConfig(fs.Source, v), qt.IsNil)
 
@@ -452,12 +466,19 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 	return counter, filenames, nil
 }
 
-func setConfigAndWriteSomeFilesTo(fs afero.Fs, v *viper.Viper, key, val string, num int) {
+func setConfigAndWriteSomeFilesTo(fs afero.Fs, v *viper.Viper, key, val string, num int) error {
 	workingDir := v.GetString("workingDir")
 	v.Set(key, val)
-	fs.Mkdir(val, 0755)
+	if err := fs.Mkdir(val, 0755); err != nil {
+		return err
+	}
 	for i := 0; i < num; i++ {
 		filename := filepath.Join(workingDir, val, fmt.Sprintf("f%d.txt", i+1))
-		afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0755)
+		if err := afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0755); err != nil {
+			return err
+		}
+
 	}
+
+	return nil
 }

@@ -870,6 +870,7 @@ func (x TstX) TstRv2() string {
 	return "r" + x.B
 }
 
+//nolint
 func (x TstX) unexportedMethod() string {
 	return x.unexported
 }
@@ -898,7 +899,7 @@ func (x TstX) String() string {
 
 type TstX struct {
 	A, B       string
-	unexported string
+	unexported string //nolint
 }
 
 type TstParams struct {

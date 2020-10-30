@@ -14,8 +14,6 @@
 package hugofs
 
 import (
-	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -154,7 +152,10 @@ func (fs *FilterFs) LstatIfPossible(name string) (os.FileInfo, bool, error) {
 	}
 
 	parent := filepath.Dir(name)
-	fs.applyFilters(parent, -1, fi)
+	_, err = fs.applyFilters(parent, -1, fi)
+	if err != nil {
+		return nil, false, err
+	}
 
 	return fi, b, nil
 
@@ -316,15 +317,15 @@ func langInfoFrom(languages map[string]int, name string) (string, string, string
 
 }
 
-func printFs(fs afero.Fs, path string, w io.Writer) {
-	if fs == nil {
-		return
-	}
-	afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
-		fmt.Println("p:::", path)
-		return nil
-	})
-}
+//func printFs(fs afero.Fs, path string, w io.Writer) {
+//if fs == nil {
+//return
+//}
+//afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
+//fmt.Println("p:::", path)
+//return nil
+//})
+//}
 
 func sortAndremoveStringDuplicates(s []string) []string {
 	ss := sort.StringSlice(s)

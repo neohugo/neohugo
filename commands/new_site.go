@@ -99,11 +99,17 @@ func (n *newSiteCmd) doNewSite(fs *hugofs.Fs, basepath string, force bool) error
 		}
 	}
 
-	createConfig(fs, basepath, n.configFormat)
+	if err := createConfig(fs, basepath, n.configFormat); err != nil {
+		return _errors.Wrap(err, "Failed to create dir")
+	}
 
 	// Create a default archetype file.
-	helpers.SafeWriteToDisk(filepath.Join(archeTypePath, "default.md"),
-		strings.NewReader(create.ArchetypeTemplateTemplate), fs.Source)
+	if err := helpers.SafeWriteToDisk(
+		filepath.Join(archeTypePath, "default.md"),
+		strings.NewReader(create.ArchetypeTemplateTemplate),
+		fs.Source); err != nil {
+		return _errors.Wrap(err, "Failed to create file")
+	}
 
 	jww.FEEDBACK.Printf("Congratulations! Your new Hugo site is created in %s.\n\n", basepath)
 	jww.FEEDBACK.Println(nextStepsText())
@@ -127,7 +133,7 @@ func (n *newSiteCmd) newSite(cmd *cobra.Command, args []string) error {
 	return n.doNewSite(hugofs.NewDefault(viper.New()), createpath, forceNew)
 }
 
-func createConfig(fs *hugofs.Fs, inpath string, kind string) (err error) {
+func createConfig(fs *hugofs.Fs, inpath string, kind string) error {
 	in := map[string]string{
 		"baseURL":      "http://example.org/",
 		"title":        "My New Hugo Site",
@@ -135,8 +141,8 @@ func createConfig(fs *hugofs.Fs, inpath string, kind string) (err error) {
 	}
 
 	var buf bytes.Buffer
-	err = parser.InterfaceToConfig(in, metadecoders.FormatFromString(kind), &buf)
-	if err != nil {
+
+	if err := parser.InterfaceToConfig(in, metadecoders.FormatFromString(kind), &buf); err != nil {
 		return err
 	}
 

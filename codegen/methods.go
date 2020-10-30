@@ -186,7 +186,7 @@ func (c *Inspector) parseSource() {
 		fileExcludes := regexp.MustCompile("autogen")
 		var filenames []string
 
-		filepath.Walk(c.ProjectRootDir, func(path string, info os.FileInfo, err error) error {
+		err := filepath.Walk(c.ProjectRootDir, func(path string, info os.FileInfo, err error) error {
 			if info.IsDir() {
 				if dirExcludes.MatchString(info.Name()) {
 					return filepath.SkipDir
@@ -202,6 +202,9 @@ func (c *Inspector) parseSource() {
 			return nil
 
 		})
+		if err != nil {
+			panic(err)
+		}
 
 		for _, filename := range filenames {
 

@@ -82,12 +82,12 @@ type pageContext interface {
 }
 
 // wrapErr adds some context to the given error if possible.
-func wrapErr(err error, ctx interface{}) error {
-	if pc, ok := ctx.(pageContext); ok {
-		return pc.wrapError(err)
-	}
-	return err
-}
+//func wrapErr(err error, ctx interface{}) error {
+//if pc, ok := ctx.(pageContext); ok {
+//return pc.wrapError(err)
+//}
+//return err
+//}
 
 type pageSiteAdapter struct {
 	p page.Page
@@ -312,6 +312,8 @@ func (p *pageState) Resources() resource.Resources {
 	p.resourcesInit.Do(func() {
 		p.sortResources()
 		if len(p.m.resourcesMetadata) > 0 {
+			// TODO may check error
+			//nolint
 			resources.AssignMetadata(p.m.resourcesMetadata, p.resources...)
 			p.sortResources()
 		}
@@ -341,6 +343,8 @@ func (p *pageState) String() string {
 // IsTranslated returns whether this content file is translated to
 // other language(s).
 func (p *pageState) IsTranslated() bool {
+	// TODO may check error
+	//nolint
 	p.s.h.init.translations.Do()
 	return len(p.translations) > 0
 }
@@ -367,12 +371,16 @@ func (p *pageState) TranslationKey() string {
 
 // AllTranslations returns all translations, including the current Page.
 func (p *pageState) AllTranslations() page.Pages {
+	// TODO may check error
+	//nolint
 	p.s.h.init.translations.Do()
 	return p.allTranslations
 }
 
 // Translations returns the translations excluding the current Page.
 func (p *pageState) Translations() page.Pages {
+	// TODO may check error
+	//nolint
 	p.s.h.init.translations.Do()
 	return p.translations
 }
@@ -873,7 +881,7 @@ func (p *pageState) errorf(err error, format string, a ...interface{}) error {
 	args := append([]interface{}{p.Language().Lang, p.pathOrTitle()}, a...)
 	format = "[%s] page %q: " + format
 	if err == nil {
-		errors.Errorf(format, args...)
+		//errors.Errorf(format, args...)
 		return fmt.Errorf(format, args...)
 	}
 	return errors.Wrapf(err, format, args...)

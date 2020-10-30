@@ -76,7 +76,7 @@ func newPrefixState() []*prefix {
 }
 
 func (l *absurllexer) emit() {
-	l.w.Write(l.content[l.start:l.pos])
+	l.w.Write(l.content[l.start:l.pos]) //nolint
 	l.start = l.pos
 }
 
@@ -118,7 +118,7 @@ func checkCandidateBase(l *absurllexer) {
 		l.emit()
 	}
 	l.pos += relURLPrefixLen
-	l.w.Write(l.path)
+	l.w.Write(l.path) //nolint
 	l.start = l.pos
 }
 
@@ -174,15 +174,15 @@ func checkCandidateSrcset(l *absurllexer) {
 	fields := bytes.Fields(section)
 	for i, f := range fields {
 		if f[0] == '/' {
-			l.w.Write(l.path)
-			l.w.Write(f[1:])
+			l.w.Write(l.path) //nolint
+			l.w.Write(f[1:])  //nolint
 
 		} else {
-			l.w.Write(f)
+			l.w.Write(f) //nolint
 		}
 
 		if i < len(fields)-1 {
-			l.w.Write([]byte(" "))
+			l.w.Write([]byte(" ")) //nolint
 		}
 	}
 

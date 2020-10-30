@@ -6,11 +6,8 @@ import (
 	"math/rand"
 	"path/filepath"
 	"runtime"
-	"sort"
-	"strconv"
 	"testing"
 	"time"
-	"unicode/utf8"
 
 	"github.com/neohugo/neohugo/htesting"
 
@@ -183,7 +180,10 @@ func (s *sitesBuilder) WithConfigTemplate(data interface{}, format, configTempla
 		s.Fatalf("Template parse failed: %s", err)
 	}
 	var b bytes.Buffer
-	templ.Execute(&b, data)
+
+	if err := templ.Execute(&b, data); err != nil {
+		s.Fatalf("Template Execute failed: %s", err)
+	}
 	return s.WithConfigFile(format, b.String())
 }
 
@@ -283,6 +283,7 @@ func (s *sitesBuilder) WithSimpleConfigFileAndBaseURL(baseURL string) *sitesBuil
 func (s *sitesBuilder) WithSimpleConfigFileAndSettings(settings interface{}) *sitesBuilder {
 	s.T.Helper()
 	var buf bytes.Buffer
+	//nolint
 	parser.InterfaceToConfig(settings, metadecoders.TOML, &buf)
 	config := buf.String() + commonConfigSections
 	return s.WithConfigFile("toml", config)
@@ -875,7 +876,9 @@ func newTestCfg(withConfig ...func(cfg config.Provider) error) (*viper.Viper, *h
 		cfg.Set("defaultContentLanguageInSubdir", true)
 
 		for _, w := range withConfig {
-			w(cfg)
+			if err := w(cfg); err != nil {
+				return err
+			}
 		}
 
 		return nil
@@ -992,54 +995,54 @@ func content(c resource.ContentProvider) string {
 	return ccs
 }
 
-func pagesToString(pages ...page.Page) string {
-	var paths []string
-	for _, p := range pages {
-		paths = append(paths, p.Path())
-	}
-	sort.Strings(paths)
-	return strings.Join(paths, "|")
-}
+//func pagesToString(pages ...page.Page) string {
+//var paths []string
+//for _, p := range pages {
+//paths = append(paths, p.Path())
+//}
+//sort.Strings(paths)
+//return strings.Join(paths, "|")
+//}
 
-func dumpPages(pages ...page.Page) {
-	fmt.Println("---------")
-	for _, p := range pages {
-		var meta interface{}
-		if p.File() != nil && p.File().FileInfo() != nil {
-			meta = p.File().FileInfo().Meta()
-		}
-		fmt.Printf("Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s Lang: %s Meta: %v\n",
-			p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath(), p.Lang(), meta)
-	}
-}
+//func dumpPages(pages ...page.Page) {
+//fmt.Println("---------")
+//for _, p := range pages {
+//var meta interface{}
+//if p.File() != nil && p.File().FileInfo() != nil {
+//meta = p.File().FileInfo().Meta()
+//}
+//fmt.Printf("Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s Lang: %s Meta: %v\n",
+//p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath(), p.Lang(), meta)
+//}
+//}
 
-func dumpSPages(pages ...*pageState) {
-	for i, p := range pages {
-		fmt.Printf("%d: Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s\n",
-			i+1,
-			p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath())
-	}
-}
+//func dumpSPages(pages ...*pageState) {
+//for i, p := range pages {
+//fmt.Printf("%d: Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s\n",
+//i+1,
+//p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath())
+//}
+//}
 
-func printStringIndexes(s string) {
-	lines := strings.Split(s, "\n")
-	i := 0
+//func printStringIndexes(s string) {
+//lines := strings.Split(s, "\n")
+//i := 0
 
-	for _, line := range lines {
+//for _, line := range lines {
 
-		for _, r := range line {
-			fmt.Printf("%-3s", strconv.Itoa(i))
-			i += utf8.RuneLen(r)
-		}
-		i++
-		fmt.Println()
-		for _, r := range line {
-			fmt.Printf("%-3s", string(r))
-		}
-		fmt.Println()
+//for _, r := range line {
+//fmt.Printf("%-3s", strconv.Itoa(i))
+//i += utf8.RuneLen(r)
+//}
+//i++
+//fmt.Println()
+//for _, r := range line {
+//fmt.Printf("%-3s", string(r))
+//}
+//fmt.Println()
 
-	}
-}
+//}
+//}
 
 func isCI() bool {
 	return (os.Getenv("CI") != "" || os.Getenv("CI_LOCAL") != "") && os.Getenv("CIRCLE_BRANCH") == ""
@@ -1047,13 +1050,13 @@ func isCI() bool {
 
 // See https://github.com/golang/go/issues/19280
 // Not in use.
-var parallelEnabled = true
+//var parallelEnabled = true
 
-func parallel(t *testing.T) {
-	if parallelEnabled {
-		t.Parallel()
-	}
-}
+//func parallel(t *testing.T) {
+//if parallelEnabled {
+//t.Parallel()
+//}
+//}
 
 func skipSymlink(t *testing.T) {
 	if runtime.GOOS == "windows" && os.Getenv("CI") == "" {
@@ -1062,20 +1065,20 @@ func skipSymlink(t *testing.T) {
 
 }
 
-func captureStderr(f func() error) (string, error) {
-	old := os.Stderr
-	r, w, _ := os.Pipe()
-	os.Stderr = w
+//func captureStderr(f func() error) (string, error) {
+//old := os.Stderr
+//r, w, _ := os.Pipe()
+//os.Stderr = w
 
-	err := f()
+//err := f()
 
-	w.Close()
-	os.Stderr = old
+//w.Close()
+//os.Stderr = old
 
-	var buf bytes.Buffer
-	io.Copy(&buf, r)
-	return buf.String(), err
-}
+//var buf bytes.Buffer
+//io.Copy(&buf, r)
+//return buf.String(), err
+//}
 
 func captureStdout(f func() error) (string, error) {
 	old := os.Stdout
@@ -1088,6 +1091,7 @@ func captureStdout(f func() error) (string, error) {
 	os.Stdout = old
 
 	var buf bytes.Buffer
+	//nolint
 	io.Copy(&buf, r)
 	return buf.String(), err
 }

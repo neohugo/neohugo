@@ -74,6 +74,7 @@ or just source them in directly:
 	cc.cmd.PersistentFlags().StringVarP(&cc.autocompleteType, "type", "", "bash", "autocompletion type (currently only bash supported)")
 
 	// For bash-completion
+	//nolint
 	cc.cmd.PersistentFlags().SetAnnotation("completionfile", cobra.BashCompFilenameExt, []string{})
 
 	return cc

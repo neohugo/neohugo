@@ -5,18 +5,20 @@
 package template
 
 import (
-	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
 	"reflect"
 	"sync"
+
+	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
 )
 
 // common holds the information shared by related templates.
 type common struct {
 	tmpl   map[string]*Template // Map from name to defined templates.
-	option option
+	option option               //nolint
 	// We use two maps, one for parsing and one for execution.
 	// This separation makes the API cleaner since it doesn't
 	// expose reflection to the client.
+	//nolint
 	muFuncs    sync.RWMutex // protects parseFuncs and execFuncs
 	parseFuncs FuncMap
 	execFuncs  map[string]reflect.Value

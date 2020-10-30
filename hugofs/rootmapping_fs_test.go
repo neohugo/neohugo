@@ -92,6 +92,7 @@ func TestLanguageRootMapping(t *testing.T) {
 	blog, err := rfs.Open(filepath.FromSlash("content/blog"))
 	c.Assert(err, qt.IsNil)
 	fis, err := blog.Readdir(-1)
+	c.Assert(err, qt.IsNil)
 	for _, fi := range fis {
 		f, err := fi.(FileMetaInfo).Meta().Open()
 		c.Assert(err, qt.IsNil)
@@ -472,6 +473,7 @@ func TestRootMappingFsOsBase(t *testing.T) {
 		"static", "mystatic",
 		"static/a/b/c", filepath.Join("d1", "d2", "d3"),
 	)
+	c.Assert(err, qt.IsNil)
 
 	getDirnames := func(dirname string) []string {
 		dirname = filepath.FromSlash(dirname)

@@ -165,7 +165,9 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	go func() {
 		defer stdin.Close()
-		io.Copy(stdin, ctx.From)
+		if _, err := io.Copy(stdin, ctx.From); err != nil {
+			logger.ERROR.Println("babel: ", err)
+		}
 	}()
 
 	err = cmd.Run()

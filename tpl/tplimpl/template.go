@@ -254,7 +254,7 @@ type templateHandler struct {
 	needsBaseof map[string]templateInfo
 	baseof      map[string]templateInfo
 
-	readyInit sync.Once
+	readyInit sync.Once //nolint
 
 	// This is the filesystem to load the templates from. All the templates are
 	// stored in the root of this filesystem.
@@ -293,7 +293,7 @@ type templateHandler struct {
 func (t *templateHandler) AddTemplate(name, tpl string) error {
 	templ, err := t.addTemplateTo(t.newTemplateInfo(name, tpl), t.main)
 	if err == nil {
-		t.applyTemplateTransformers(t.main, templ)
+		_, err = t.applyTemplateTransformers(t.main, templ)
 	}
 	return err
 }
@@ -418,7 +418,9 @@ func (t *templateHandler) findLayout(d output.LayoutDescriptor, f output.Format)
 			ts.Add(identity.NewPathIdentity(files.ComponentFolderLayouts, base.name))
 		}
 
-		t.applyTemplateTransformers(t.main, ts)
+		if _, err := t.applyTemplateTransformers(t.main, ts); err != nil {
+			return nil, false, err
+		}
 
 		if err := t.extractPartials(ts.Template); err != nil {
 			return nil, false, err
@@ -579,9 +581,12 @@ func (t *templateHandler) addTemplateFile(name, path string) error {
 
 	templ, err := t.addTemplateTo(tinfo, t.main)
 	if err != nil {
-		return tinfo.errWithFileContext("parse failed", err)
+		return tinfo.errWithFileContext("parse failed", err) //nolint
 	}
-	t.applyTemplateTransformers(t.main, templ)
+	_, err = t.applyTemplateTransformers(t.main, templ)
+	if err != nil {
+		return err
+	}
 
 	return nil
 
@@ -937,10 +942,11 @@ func isText(templ tpl.Template) bool {
 }
 
 type templateStateMap struct {
-	mu        sync.RWMutex
+	mu        sync.RWMutex //nolint
 	templates map[string]*templateState
 }
 
+//nolint
 type templateWrapperWithLock struct {
 	*sync.RWMutex
 	tpl.Template

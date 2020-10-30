@@ -38,10 +38,15 @@ func TestNewPathSpecFromConfig(t *testing.T) {
 	v.Set("workingDir", "thework")
 	v.Set("staticDir", "thestatic")
 	v.Set("theme", "thetheme")
-	langs.LoadLanguageSettings(v, nil)
+	_, err := langs.LoadLanguageSettings(v, nil)
+	c.Assert(err, qt.IsNil)
 
 	fs := hugofs.NewMem(v)
-	fs.Source.MkdirAll(filepath.FromSlash("thework/thethemes/thetheme"), 0777)
+	c.Assert(
+		fs.Source.MkdirAll(
+			filepath.FromSlash("thework/thethemes/thetheme"),
+			0777),
+		qt.IsNil)
 
 	p, err := NewPathSpec(fs, l, nil)
 

@@ -25,6 +25,7 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
+//nolint
 func _TestReleaseNotesWriter(t *testing.T) {
 	if os.Getenv("CI") != "" {
 		// Travis has an ancient git with no --invert-grep: https://github.com/travis-ci/travis-ci/issues/6328

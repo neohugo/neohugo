@@ -136,7 +136,10 @@ func refreshPathForPort(s string, port int) {
 // ServeJS serves the liverreload.js who's reference is injected into the page.
 func ServeJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
-	w.Write(liveReloadJS())
+
+	if _, err := w.Write(liveReloadJS()); err != nil {
+		panic(err)
+	}
 }
 
 func liveReloadJS() []byte {
@@ -163,11 +166,11 @@ HugoReload.prototype.reload = function(path, options) {
 	if (path.lastIndexOf(prefix, 0) !== 0) {
 		return false
 	}
-	
+
 	path = path.substring(prefix.length);
 
 	var portChanged = options.overrideURL && options.overrideURL != window.location.port
-	
+
 	if (!portChanged && window.location.pathname === path) {
 		window.location.reload();
 	} else {

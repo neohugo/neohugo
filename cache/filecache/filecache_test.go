@@ -165,7 +165,8 @@ dir = ":cacheDir/c"
 		info, w, err := caches.ImageCache().WriteCloser("mykey")
 		c.Assert(err, qt.IsNil)
 		c.Assert(info.Name, qt.Equals, "mykey")
-		io.WriteString(w, "Hugo is great!")
+		_, err = io.WriteString(w, "Hugo is great!")
+		c.Assert(err, qt.IsNil)
 		w.Close()
 		c.Assert(caches.ImageCache().getString("mykey"), qt.Equals, "Hugo is great!")
 
@@ -343,7 +344,8 @@ func newPathsSpec(t *testing.T, fs afero.Fs, configStr string) *helpers.PathSpec
 	c := qt.New(t)
 	cfg, err := config.FromConfigString(configStr, "toml")
 	c.Assert(err, qt.IsNil)
-	initConfig(fs, cfg)
+	err = initConfig(fs, cfg)
+	c.Assert(err, qt.IsNil)
 	p, err := helpers.NewPathSpec(hugofs.NewFrom(fs, cfg), cfg, nil)
 	c.Assert(err, qt.IsNil)
 	return p

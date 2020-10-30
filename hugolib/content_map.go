@@ -661,13 +661,13 @@ func (m *contentMap) deleteSectionByPath(s string) {
 	m.resources.DeletePrefix(s)
 }
 
-func (m *contentMap) deletePageByPath(s string) {
-	m.pages.Walk(func(s string, v interface{}) bool {
-		fmt.Println("S", s)
+//func (m *contentMap) deletePageByPath(s string) {
+//m.pages.Walk(func(s string, v interface{}) bool {
+//fmt.Println("S", s)
 
-		return false
-	})
-}
+//return false
+//})
+//}
 
 func (m *contentMap) deleteTaxonomy(s string) {
 	m.taxonomies.DeletePrefix(s)
@@ -937,19 +937,19 @@ func (c *contentTree) hasBelow(s1 string) bool {
 	return t
 }
 
-func (c *contentTree) printKeys() {
-	c.Walk(func(s string, v interface{}) bool {
-		fmt.Println(s)
-		return false
-	})
-}
+//func (c *contentTree) printKeys() {
+//c.Walk(func(s string, v interface{}) bool {
+//fmt.Println(s)
+//return false
+//})
+//}
 
-func (c *contentTree) printKeysPrefix(prefix string) {
-	c.WalkPrefix(prefix, func(s string, v interface{}) bool {
-		fmt.Println(s)
-		return false
-	})
-}
+//func (c *contentTree) printKeysPrefix(prefix string) {
+//c.WalkPrefix(prefix, func(s string, v interface{}) bool {
+//fmt.Println(s)
+//return false
+//})
+//}
 
 // contentTreeRef points to a node in the given tree.
 type contentTreeRef struct {
@@ -979,7 +979,7 @@ func (c *contentTreeRef) getSection() (string, *contentNode) {
 
 func (c *contentTreeRef) getPages() page.Pages {
 	var pas page.Pages
-	c.m.collectPages(
+	err := c.m.collectPages(
 		pageMapQuery{
 			Prefix: c.key + cmBranchSeparator,
 			Filter: c.n.p.m.getListFilter(true),
@@ -988,6 +988,11 @@ func (c *contentTreeRef) getPages() page.Pages {
 			pas = append(pas, c.p)
 		},
 	)
+
+	if err != nil {
+		return nil
+	}
+
 	page.SortByDefault(pas)
 
 	return pas
@@ -1001,9 +1006,13 @@ func (c *contentTreeRef) getPagesRecursive() page.Pages {
 	}
 
 	query.Prefix = c.key
-	c.m.collectPages(query, func(c *contentNode) {
+	err := c.m.collectPages(query, func(c *contentNode) {
 		pas = append(pas, c.p)
 	})
+
+	if err != nil {
+		return nil
+	}
 
 	page.SortByDefault(pas)
 
@@ -1018,9 +1027,13 @@ func (c *contentTreeRef) getPagesAndSections() page.Pages {
 		Prefix: c.key,
 	}
 
-	c.m.collectPagesAndSections(query, func(c *contentNode) {
+	err := c.m.collectPagesAndSections(query, func(c *contentNode) {
 		pas = append(pas, c.p)
 	})
+
+	if err != nil {
+		return nil
+	}
 
 	page.SortByDefault(pas)
 
@@ -1035,9 +1048,13 @@ func (c *contentTreeRef) getSections() page.Pages {
 		Prefix: c.key,
 	}
 
-	c.m.collectSections(query, func(c *contentNode) {
+	err := c.m.collectSections(query, func(c *contentNode) {
 		pas = append(pas, c.p)
 	})
+
+	if err != nil {
+		return nil
+	}
 
 	page.SortByDefault(pas)
 
@@ -1050,8 +1067,8 @@ type contentTreeReverseIndex struct {
 }
 
 type contentTreeReverseIndexMap struct {
-	m      map[interface{}]*contentNode
-	init   sync.Once
+	m      map[interface{}]*contentNode //nolint
+	init   sync.Once                    //nolint
 	initFn func(*contentTree, map[interface{}]*contentNode)
 }
 

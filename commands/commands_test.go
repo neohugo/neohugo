@@ -261,7 +261,6 @@ func TestFlags(t *testing.T) {
 }
 
 func TestCommandsExecute(t *testing.T) {
-
 	c := qt.New(t)
 
 	dir, clean, err := createSimpleTestSite(t, testSiteConfig{})
@@ -339,6 +338,7 @@ type testSiteConfig struct {
 }
 
 func createSimpleTestSite(t *testing.T, cfg testSiteConfig) (string, func(), error) {
+	c := qt.New(t)
 	d, clean, e := htesting.CreateTempDir(hugofs.Os, "hugo-cli")
 	if e != nil {
 		return "", nil, e
@@ -361,7 +361,7 @@ title = "Hugo Commands"
 		contentDir = cfg.contentDir
 	}
 
-	os.MkdirAll(filepath.Join(d, "public"), 0777)
+	c.Assert(os.MkdirAll(filepath.Join(d, "public"), 0777), qt.IsNil)
 
 	// Just the basic. These are for CLI tests, not site testing.
 	writeFile(t, filepath.Join(d, "config.toml"), cfgStr)

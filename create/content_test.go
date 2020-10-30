@@ -232,17 +232,20 @@ func readFileFromFs(t *testing.T, fs afero.Fs, filename string) string {
 	t.Helper()
 	filename = filepath.FromSlash(filename)
 	b, err := afero.ReadFile(fs, filename)
+
 	if err != nil {
 		// Print some debug info
 		root := strings.Split(filename, helpers.FilePathSeparator)[0]
-		afero.Walk(fs, root, func(path string, info os.FileInfo, err error) error {
+		err = afero.Walk(fs, root, func(path string, info os.FileInfo, err error) error {
 			if info != nil && !info.IsDir() {
 				fmt.Println("    ", path)
 			}
 
 			return nil
 		})
-		t.Fatalf("Failed to read file: %s", err)
+		if err != nil {
+			t.Fatalf("Failed to read file: %s", err)
+		}
 	}
 	return string(b)
 }
@@ -266,9 +269,9 @@ contentDir = "content_nn"
 		mm = afero.NewMemMapFs()
 	}
 
-	mm.MkdirAll(filepath.FromSlash("content_nn"), 0777)
+	c.Assert(mm.MkdirAll(filepath.FromSlash("content_nn"), 0777), qt.IsNil)
 
-	mm.MkdirAll(filepath.FromSlash("themes/mytheme"), 0777)
+	c.Assert(mm.MkdirAll(filepath.FromSlash("themes/mytheme"), 0777), qt.IsNil)
 
 	c.Assert(afero.WriteFile(mm, filepath.Join("i18n", "en.toml"), []byte(`[hugo]
 other = "Hugo Rocks!"`), 0755), qt.IsNil)

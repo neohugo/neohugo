@@ -230,9 +230,19 @@ func (i *importCmd) createSiteFromJekyll(jekyllRoot, targetDir string, jekyllPos
 	mkdir(targetDir, "data")
 	mkdir(targetDir, "themes")
 
-	i.createConfigFromJekyll(fs, targetDir, "yaml", jekyllConfig)
+	if err := i.createConfigFromJekyll(fs,
+		targetDir,
+		"yaml",
+		jekyllConfig); err != nil {
+		return err
+	}
 
-	i.copyJekyllFilesAndFolders(jekyllRoot, filepath.Join(targetDir, "static"), jekyllPostDirs)
+	if err := i.copyJekyllFilesAndFolders(
+		jekyllRoot,
+		filepath.Join(targetDir, "static"),
+		jekyllPostDirs); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -269,7 +279,7 @@ func (i *importCmd) loadJekyllConfig(fs afero.Fs, jekyllRoot string) map[string]
 	return c
 }
 
-func (i *importCmd) createConfigFromJekyll(fs afero.Fs, inpath string, kind metadecoders.Format, jekyllConfig map[string]interface{}) (err error) {
+func (i *importCmd) createConfigFromJekyll(fs afero.Fs, inpath string, kind metadecoders.Format, jekyllConfig map[string]interface{}) error {
 	title := "My New Hugo Site"
 	baseURL := "http://example.org/"
 
@@ -297,8 +307,7 @@ func (i *importCmd) createConfigFromJekyll(fs afero.Fs, inpath string, kind meta
 	}
 
 	var buf bytes.Buffer
-	err = parser.InterfaceToConfig(in, kind, &buf)
-	if err != nil {
+	if err := parser.InterfaceToConfig(in, kind, &buf); err != nil {
 		return err
 	}
 
@@ -391,7 +400,11 @@ func convertJekyllPost(path, relPath, targetDir string, draft bool) error {
 
 	targetFile := filepath.Join(targetDir, relPath)
 	targetParentDir := filepath.Dir(targetFile)
-	os.MkdirAll(targetParentDir, 0777)
+
+	if err := os.MkdirAll(targetParentDir, 0777); err != nil {
+		jww.ERROR.Println("Failed to create folder:", targetParentDir)
+		return err
+	}
 
 	contentBytes, err := ioutil.ReadFile(path)
 	if err != nil {

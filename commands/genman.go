@@ -60,7 +60,9 @@ in the "man" directory under the current directory.`,
 			cmd.Root().DisableAutoGenTag = true
 
 			jww.FEEDBACK.Println("Generating Hugo man pages in", cc.genmandir, "...")
-			doc.GenManTree(cmd.Root(), header, cc.genmandir)
+			if err := doc.GenManTree(cmd.Root(), header, cc.genmandir); err != nil {
+				return err
+			}
 
 			jww.FEEDBACK.Println("Done.")
 
@@ -71,6 +73,7 @@ in the "man" directory under the current directory.`,
 	cc.cmd.PersistentFlags().StringVar(&cc.genmandir, "dir", "man/", "the directory to write the man pages.")
 
 	// For bash-completion
+	//nolint
 	cc.cmd.PersistentFlags().SetAnnotation("dir", cobra.BashCompSubdirsInDir, []string{})
 
 	return cc

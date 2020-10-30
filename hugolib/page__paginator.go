@@ -32,8 +32,8 @@ type pagePaginator struct {
 }
 
 type pagePaginatorInit struct {
-	init    sync.Once
-	current *page.Pager
+	init    sync.Once   //nolint
+	current *page.Pager //nolint
 }
 
 // reset resets the paginator to allow for a rebuild.

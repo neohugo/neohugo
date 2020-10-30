@@ -169,7 +169,7 @@ Run "go help get" for more information. All flags available for "go get" is also
 						return errors.New("must not be run from the file system root")
 					}
 
-					filepath.Walk(dirname, func(path string, info os.FileInfo, err error) error {
+					err = filepath.Walk(dirname, func(path string, info os.FileInfo, err error) error {
 						if info.IsDir() {
 							return nil
 						}
@@ -194,6 +194,9 @@ Run "go help get" for more information. All flags available for "go get" is also
 						return nil
 					})
 
+					if err != nil {
+						return err
+					}
 					return nil
 				}
 

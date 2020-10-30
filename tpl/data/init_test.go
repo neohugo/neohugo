@@ -30,7 +30,8 @@ func TestInit(t *testing.T) {
 
 	v := viper.New()
 	v.Set("contentDir", "content")
-	langs.LoadLanguageSettings(v, nil)
+	_, err := langs.LoadLanguageSettings(v, nil)
+	c.Assert(err, qt.IsNil)
 
 	for _, nsf := range internal.TemplateFuncsNamespaceRegistry {
 		ns = nsf(newDeps(v))

@@ -49,7 +49,7 @@ func TestTransform(t *testing.T) {
 	createTransformer := func(spec *Spec, filename, content string) Transformer {
 		filename = filepath.FromSlash(filename)
 		fs := spec.Fs.Source
-		afero.WriteFile(fs, filename, []byte(content), 0777)
+		c.Assert(afero.WriteFile(fs, filename, []byte(content), 0777), qt.IsNil)
 		r, _ := spec.New(ResourceSourceDescriptor{Fs: fs, SourceFilename: filename})
 		return r.(Transformer)
 	}
@@ -58,7 +58,8 @@ func TestTransform(t *testing.T) {
 		return &testTransformation{
 			name: name,
 			transform: func(ctx *ResourceTransformationCtx) error {
-				in := helpers.ReaderToString(ctx.From)
+				in, err := helpers.ReaderToString(ctx.From)
+				c.Assert(err, qt.IsNil)
 				in = strings.Replace(in, old, new, 1)
 				ctx.AddOutPathIdentifier("." + name)
 				fmt.Fprint(ctx.To, in)
@@ -89,7 +90,8 @@ func TestTransform(t *testing.T) {
 			name: "test",
 			transform: func(ctx *ResourceTransformationCtx) error {
 				// Content
-				in := helpers.ReaderToString(ctx.From)
+				in, err := helpers.ReaderToString(ctx.From)
+				c.Assert(err, qt.IsNil)
 				in = strings.Replace(in, "blue", "green", 1)
 				fmt.Fprint(ctx.To, in)
 
@@ -207,7 +209,8 @@ func TestTransform(t *testing.T) {
 				transformation = &testTransformation{
 					name: "tocss",
 					transform: func(ctx *ResourceTransformationCtx) error {
-						in := helpers.ReaderToString(ctx.From)
+						in, err := helpers.ReaderToString(ctx.From)
+						c.Assert(err, qt.IsNil)
 						in = strings.Replace(in, "blue", "green", 1)
 						ctx.AddOutPathIdentifier("." + "cached")
 						ctx.OutMediaType = media.CSVType
@@ -354,8 +357,9 @@ func TestTransform(t *testing.T) {
 				return nil
 			},
 		}
-
-		r := createTransformer(spec, "gopher.png", helpers.ReaderToString(gopherPNG()))
+		rs, err := helpers.ReaderToString(gopherPNG())
+		c.Assert(err, qt.IsNil)
+		r := createTransformer(spec, "gopher.png", rs)
 
 		tr, err := r.Transform(transformation)
 		c.Assert(err, qt.IsNil)

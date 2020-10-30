@@ -195,7 +195,9 @@ func (c *pagesCollector) Collect() (collectErr error) {
 				isCascading, section := c.isCascadingEdit(dir)
 
 				if isCascading {
-					c.contentMap.deleteSection(section)
+					if err := c.contentMap.deleteSection(section); err != nil {
+						collectErr = err
+					}
 				}
 				collectErr = c.collectDir(dir.dirname, !isCascading, nil)
 			default:

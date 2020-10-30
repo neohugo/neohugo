@@ -55,7 +55,11 @@ func newTestConfig() config.Provider {
 	v.Set("resourceDir", "resources")
 	v.Set("publishDir", "public")
 
-	langs.LoadLanguageSettings(v, nil)
+	_, err := langs.LoadLanguageSettings(v, nil)
+	if err != nil {
+		panic(err)
+	}
+
 	mod, err := modules.CreateProjectModule(v)
 	if err != nil {
 		panic(err)
@@ -95,7 +99,7 @@ func TestTemplateFuncsExamples(t *testing.T) {
 
 	fs := hugofs.NewMem(v)
 
-	afero.WriteFile(fs.Source, filepath.Join(workingDir, "files", "README.txt"), []byte("Hugo Rocks!"), 0755)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workingDir, "files", "README.txt"), []byte("Hugo Rocks!"), 0755), qt.IsNil)
 
 	depsCfg := newDepsConfig(v)
 	depsCfg.Fs = fs

@@ -2,6 +2,7 @@ package hugolib
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"testing"
 
@@ -465,7 +466,7 @@ func TestMultiSitesRebuild(t *testing.T) {
 		// * Change language file
 		{
 			func(t *testing.T) {
-				fs.Source.Remove("content/sect/doc2.en.md")
+				c.Assert(fs.Source.Remove("content/sect/doc2.en.md"), qt.IsNil)
 			},
 			[]fsnotify.Event{{Name: filepath.FromSlash("content/sect/doc2.en.md"), Op: fsnotify.Remove}},
 			func(t *testing.T) {
@@ -1215,14 +1216,13 @@ func readFileFromFs(t testing.TB, fs afero.Fs, filename string) string {
 			end++
 		}
 
-		/*
-			root := filepath.Join(parts[start:end]...)
-			if hadSlash {
-				root = helpers.FilePathSeparator + root
-			}
+		root := filepath.Join(parts[start:end]...)
+		if hadSlash {
+			root = helpers.FilePathSeparator + root
+		}
 
-			helpers.PrintFs(fs, root, os.Stdout)
-		*/
+		//nolint
+		helpers.PrintFs(fs, root, os.Stdout)
 
 		t.Fatalf("Failed to read file: %s", err)
 	}

@@ -39,24 +39,24 @@ func TestJSBuildWithNPM(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("skip NPM test on Windows")
 	}
-
-	wd, _ := os.Getwd()
-	defer func() {
-		os.Chdir(wd)
-	}()
-
 	c := qt.New(t)
+
+	wd, err := os.Getwd()
+	c.Assert(err, qt.IsNil)
+	defer func() {
+		c.Assert(os.Chdir(wd), qt.IsNil)
+	}()
 
 	mainJS := `
 	import "./included";
 	import { toCamelCase } from "to-camel-case";
-	
+
 	console.log("main");
 	console.log("To camel:", toCamelCase("space case"));
 `
 	includedJS := `
 	console.log("included");
-	
+
 	`
 
 	jsxContent := `
@@ -142,23 +142,23 @@ func TestJSBuild(t *testing.T) {
 	if !isCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
+	c := qt.New(t)
 
 	wd, _ := os.Getwd()
 	defer func() {
-		os.Chdir(wd)
+		err := os.Chdir(wd)
+		c.Assert(err, qt.IsNil)
 	}()
-
-	c := qt.New(t)
 
 	mainJS := `
 	import "./included";
-	
+
 	console.log("main");
 
 `
 	includedJS := `
 	console.log("included");
-	
+
 	`
 
 	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js")

@@ -16,11 +16,10 @@
 package page
 
 import (
-	"html/template"
-
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
+	"html/template"
 )
 
 // NewDeprecatedWarningPage adds deprecation warnings to the given implementation.

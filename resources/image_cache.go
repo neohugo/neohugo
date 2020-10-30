@@ -100,7 +100,10 @@ func (c *imageCache) getOrCreate(
 			return err
 		}
 
-		r.Seek(0, 0)
+		_, err := r.Seek(0, 0)
+		if err != nil {
+			return err
+		}
 
 		w, err := img.openDestinationsForWriting()
 		if err != nil {

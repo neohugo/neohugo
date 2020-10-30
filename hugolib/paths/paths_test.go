@@ -40,7 +40,8 @@ func TestNewPaths(t *testing.T) {
 	v.Set("resourceDir", "resources")
 	v.Set("publishDir", "public")
 
-	langs.LoadLanguageSettings(v, nil)
+	_, err := langs.LoadLanguageSettings(v, nil)
+	c.Assert(err, qt.IsNil)
 
 	p, err := New(fs, v)
 	c.Assert(err, qt.IsNil)

@@ -26,26 +26,37 @@ func TestScratchAdd(t *testing.T) {
 	c := qt.New(t)
 
 	scratch := NewScratch()
-	scratch.Add("int1", 10)
-	scratch.Add("int1", 20)
-	scratch.Add("int2", 20)
+
+	_, err := scratch.Add("int1", 10)
+	c.Assert(err, qt.IsNil)
+	_, err = scratch.Add("int1", 20)
+	c.Assert(err, qt.IsNil)
+	_, err = scratch.Add("int2", 20)
+	c.Assert(err, qt.IsNil)
 
 	c.Assert(scratch.Get("int1"), qt.Equals, int64(30))
 	c.Assert(scratch.Get("int2"), qt.Equals, 20)
 
-	scratch.Add("float1", float64(10.5))
-	scratch.Add("float1", float64(20.1))
+	_, err = scratch.Add("float1", float64(10.5))
+	c.Assert(err, qt.IsNil)
+	_, err = scratch.Add("float1", float64(20.1))
+	c.Assert(err, qt.IsNil)
 
 	c.Assert(scratch.Get("float1"), qt.Equals, float64(30.6))
 
-	scratch.Add("string1", "Hello ")
-	scratch.Add("string1", "big ")
-	scratch.Add("string1", "World!")
+	_, err = scratch.Add("string1", "Hello ")
+	c.Assert(err, qt.IsNil)
+	_, err = scratch.Add("string1", "big ")
+	c.Assert(err, qt.IsNil)
+	_, err = scratch.Add("string1", "World!")
+	c.Assert(err, qt.IsNil)
 
 	c.Assert(scratch.Get("string1"), qt.Equals, "Hello big World!")
 
-	scratch.Add("scratch", scratch)
-	_, err := scratch.Add("scratch", scratch)
+	_, err = scratch.Add("scratch", scratch)
+	c.Assert(err, qt.IsNil)
+	_, err = scratch.Add("scratch", scratch)
+	c.Assert(err, qt.Not(qt.IsNil))
 
 	m := scratch.Values()
 	c.Assert(m, qt.HasLen, 5)
@@ -129,7 +140,8 @@ func TestScratchDelete(t *testing.T) {
 	scratch := NewScratch()
 	scratch.Set("key", "val")
 	scratch.Delete("key")
-	scratch.Add("key", "Lucy Parsons")
+	_, err := scratch.Add("key", "Lucy Parsons")
+	c.Assert(err, qt.IsNil)
 	c.Assert(scratch.Get("key"), qt.Equals, "Lucy Parsons")
 }
 
@@ -201,8 +213,10 @@ func TestScratchGetSortedMapValues(t *testing.T) {
 }
 
 func BenchmarkScratchGet(b *testing.B) {
+	c := qt.New(b)
 	scratch := NewScratch()
-	scratch.Add("A", 1)
+	_, err := scratch.Add("A", 1)
+	c.Assert(err, qt.IsNil)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		scratch.Get("A")

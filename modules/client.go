@@ -330,7 +330,7 @@ func (c *Client) Get(args ...string) error {
 
 func (c *Client) get(args ...string) error {
 	if err := c.runGo(context.Background(), c.logger.Out, append([]string{"get"}, args...)...); err != nil {
-		errors.Wrapf(err, "failed to get %q", args)
+		return errors.Wrapf(err, "failed to get %q", args)
 	}
 	return nil
 }
@@ -540,7 +540,7 @@ func (c *Client) runGo(
 	stdout io.Writer,
 	args ...string) error {
 
-	if c.goBinaryStatus != 0 {
+	if c.goBinaryStatus != goBinaryStatusOK {
 		return nil
 	}
 

@@ -222,6 +222,8 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	go func() {
 		defer stdin.Close()
+		// TODO may check error
+		//nolint
 		io.Copy(stdin, src)
 	}()
 
@@ -262,9 +264,8 @@ func (imp *importResolver) contentHash(filename string) ([]byte, string) {
 	if err != nil {
 		return nil, ""
 	}
-	h := sha256.New()
-	h.Write(b)
-	return b, hex.EncodeToString(h.Sum(nil))
+	hash := sha256.Sum256(b)
+	return b, hex.EncodeToString(hash[:])
 }
 
 func (imp *importResolver) importRecursive(
@@ -335,8 +336,6 @@ func (imp *importResolver) importRecursive(
 }
 
 func (imp *importResolver) resolve() (io.Reader, error) {
-	const importIdentifier = "@import"
-
 	content, err := ioutil.ReadAll(imp.r)
 	if err != nil {
 		return nil, err

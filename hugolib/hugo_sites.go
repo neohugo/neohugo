@@ -749,8 +749,8 @@ func (h *HugoSites) renderCrossSitesRobotsTXT() error {
 	return s.renderAndWritePage(&s.PathSpec.ProcessingStats.Pages, "Robots Txt", "robots.txt", p, templ)
 }
 
-func (h *HugoSites) removePageByFilename(filename string) {
-	h.getContentMaps().withMaps(func(m *pageMap) error {
+func (h *HugoSites) removePageByFilename(filename string) error {
+	return h.getContentMaps().withMaps(func(m *pageMap) error {
 		m.deleteBundleMatching(func(b *contentNode) bool {
 			if b.p == nil {
 				return false
@@ -764,7 +764,6 @@ func (h *HugoSites) removePageByFilename(filename string) {
 		})
 		return nil
 	})
-
 }
 
 func (h *HugoSites) createPageCollections() error {
@@ -930,7 +929,10 @@ func (h *HugoSites) readData(f source.File) (interface{}, error) {
 		return nil, errors.Wrap(err, "readData: failed to open data file")
 	}
 	defer file.Close()
-	content := helpers.ReaderToBytes(file)
+	content, err := helpers.ReaderToBytes(file)
+	if err != nil {
+		return nil, errors.Wrap(err, "readData: failed to read data file")
+	}
 
 	format := metadecoders.FormatFromString(f.Extension())
 	return metadecoders.Default.Unmarshal(content, format)

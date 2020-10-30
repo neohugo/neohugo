@@ -46,7 +46,7 @@ func New(interval time.Duration) (*Batcher, error) {
 }
 
 func (b *Batcher) run() {
-	tick := time.Tick(b.interval)
+	tick := time.Tick(b.interval) //nolint
 	evs := make([]fsnotify.Event, 0)
 OuterLoop:
 	for {

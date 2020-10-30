@@ -399,12 +399,14 @@ func TestMultilingualDisableLanguage(t *testing.T) {
 func TestPageBundlerSiteWitSymbolicLinksInContent(t *testing.T) {
 	skipSymlink(t)
 
-	wd, _ := os.Getwd()
+	c := qt.New(t)
+
+	wd, err := os.Getwd()
+	c.Assert(err, qt.IsNil)
 	defer func() {
-		os.Chdir(wd)
+		c.Assert(os.Chdir(wd), qt.IsNil)
 	}()
 
-	c := qt.New(t)
 	// We need to use the OS fs for this.
 	cfg := viper.New()
 	fs := hugofs.NewFrom(hugofs.Os, cfg)
@@ -424,7 +426,8 @@ func TestPageBundlerSiteWitSymbolicLinksInContent(t *testing.T) {
 	c.Assert(os.MkdirAll(filepath.Join(workDir, "symcontent2", "a1"), 0777), qt.IsNil)
 
 	// Symlinked sections inside content.
-	os.Chdir(contentDir)
+	c.Assert(os.Chdir(contentDir), qt.IsNil)
+
 	for i := 1; i <= 3; i++ {
 		c.Assert(os.Symlink(filepath.FromSlash(fmt.Sprintf(("../symcontent%d"), i)), fmt.Sprintf("symbolic%d", i)), qt.IsNil)
 	}
@@ -866,7 +869,8 @@ Content for 은행.
 	_, err = io.Copy(out, src)
 	c.Assert(err, qt.IsNil)
 	out.Close()
-	src.Seek(0, 0)
+	_, err = src.Seek(0, 0)
+	c.Assert(err, qt.IsNil)
 	_, err = io.Copy(out2, src)
 	out2.Close()
 	src.Close()
@@ -1344,7 +1348,7 @@ func TestPageBundlerHome(t *testing.T) {
 	cfg.Set("workingDir", workDir)
 	fs := hugofs.NewFrom(hugofs.Os, cfg)
 
-	os.MkdirAll(filepath.Join(workDir, "content"), 0777)
+	c.Assert(os.MkdirAll(filepath.Join(workDir, "content"), 0777), qt.IsNil)
 
 	defer clean()
 
