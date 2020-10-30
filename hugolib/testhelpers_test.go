@@ -64,7 +64,7 @@ type sitesBuilder struct {
 
 	*qt.C
 
-	logger *loggers.Logger
+	logger loggers.Logger
 	rnd    *rand.Rand
 	dumper litter.Options
 
@@ -151,7 +151,7 @@ func (s *sitesBuilder) WithNothingAdded() *sitesBuilder {
 	return s
 }
 
-func (s *sitesBuilder) WithLogger(logger *loggers.Logger) *sitesBuilder {
+func (s *sitesBuilder) WithLogger(logger loggers.Logger) *sitesBuilder {
 	s.logger = logger
 	return s
 }

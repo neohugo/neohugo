@@ -124,11 +124,11 @@ type ModulesConfig struct {
 	GoModulesFilename string
 }
 
-func (m *ModulesConfig) setActiveMods(logger *loggers.Logger) error {
+func (m *ModulesConfig) setActiveMods(logger loggers.Logger) error {
 	var activeMods Modules
 	for _, mod := range m.AllModules {
 		if !mod.Config().HugoVersion.IsValid() {
-			logger.WARN.Printf(`Module %q is not compatible with this Hugo version; run "nhugo mod graph" for more information.`, mod.Path())
+			logger.Warnf(`Module %q is not compatible with this Hugo version; run "hugo mod graph" for more information.`, mod.Path())
 		}
 		if !mod.Disabled() {
 			activeMods = append(activeMods, mod)
@@ -140,7 +140,7 @@ func (m *ModulesConfig) setActiveMods(logger *loggers.Logger) error {
 	return nil
 }
 
-func (m *ModulesConfig) finalize(logger *loggers.Logger) error {
+func (m *ModulesConfig) finalize(logger loggers.Logger) error {
 	for _, mod := range m.AllModules {
 		m := mod.(*moduleAdapter)
 		m.mounts = filterUnwantedMounts(m.mounts)
@@ -274,10 +274,14 @@ func (c *collector) add(owner *moduleAdapter, moduleImport Import, disabled bool
 				}
 			}
 
-			// Fall back to /themes/<mymodule>
+			// Fall back to project/themes/<mymodule>
 			if moduleDir == "" {
-				moduleDir = filepath.Join(c.ccfg.ThemesDir, modulePath)
-
+				var err error
+				moduleDir, err = c.createThemeDirname(modulePath, owner.projectMod)
+				if err != nil {
+					c.err = err
+					return nil, nil
+				}
 				if found, _ := afero.Exists(c.fs, moduleDir); !found {
 					c.err = c.wrapModuleNotFound(errors.Errorf(`module %q not found; either add it as a Hugo Module or store it in %q.`, modulePath, c.ccfg.ThemesDir))
 					return nil, nil
@@ -422,7 +426,7 @@ func (c *collector) applyThemeConfig(tc *moduleAdapter) error {
 		}
 		themeCfg, err = metadecoders.Default.UnmarshalToMap(data, metadecoders.TOML)
 		if err != nil {
-			c.logger.WARN.Printf("Failed to read module config for %q in %q: %s", tc.Path(), themeTOML, err)
+			c.logger.Warnf("Failed to read module config for %q in %q: %s", tc.Path(), themeTOML, err)
 		} else {
 			maps.ToLower(themeCfg)
 		}
@@ -441,7 +445,7 @@ func (c *collector) applyThemeConfig(tc *moduleAdapter) error {
 		tc.cfg = cfg
 	}
 
-	config, err := DecodeConfig(cfg)
+	config, err := decodeConfig(cfg, c.moduleConfig.replacementsMap)
 	if err != nil {
 		return err
 	}
@@ -480,7 +484,7 @@ func (c *collector) collect() {
 	defer c.logger.PrintTimerIfDelayed(time.Now(), "nhugo: collected modules")
 	d := debounce.New(2 * time.Second)
 	d(func() {
-		c.logger.FEEDBACK.Println("nhugo: downloading modules …")
+		c.logger.Println("hugo: downloading modules …")
 	})
 	defer d(func() {})
 
@@ -605,7 +609,6 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 
 		mnt.Source = filepath.Clean(mnt.Source)
 		mnt.Target = filepath.Clean(mnt.Target)
-
 		var sourceDir string
 
 		if owner.projectMod && filepath.IsAbs(mnt.Source) {

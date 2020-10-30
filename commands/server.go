@@ -184,13 +184,13 @@ func (sc *serverCmd) server(cmd *cobra.Command, args []string) error {
 					if i == 0 && sc.cmd.Flags().Changed("port") {
 						// port set explicitly by user -- he/she probably meant it!
 						err = newSystemErrorF("Server startup failed: %s", err)
-						c.logger.FEEDBACK.Println(err)
+						c.logger.Println(err)
 					}
-					c.logger.FEEDBACK.Println("port", sc.serverPort, "already in use, attempting to use an available port")
+					c.logger.Println("port", sc.serverPort, "already in use, attempting to use an available port")
 					sp, err := helpers.FindAvailablePort()
 					if err != nil {
 						err = newSystemError("Unable to find alternative port to use:", err)
-						c.logger.FEEDBACK.Println(err)
+						c.logger.Println(err)
 					}
 					serverPorts[i] = sp.Port
 				}
@@ -352,7 +352,7 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, string, string, erro
 					w.WriteHeader(500)
 					r, err := f.errorTemplate(err)
 					if err != nil {
-						f.c.logger.ERROR.Println(err)
+						f.c.logger.Errorln(err)
 					}
 
 					port = 1313
@@ -361,7 +361,7 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, string, string, erro
 					}
 					b, err := injectLiveReloadScript(r, port)
 					if err != nil {
-						f.c.logger.ERROR.Println(err)
+						f.c.logger.Errorln(err)
 					}
 					fmt.Fprint(w, b)
 
@@ -514,7 +514,7 @@ func (c *commandeer) serve(s *serverCmd) error {
 		go func() {
 			err = http.ListenAndServe(endpoint, mu)
 			if err != nil {
-				c.logger.ERROR.Printf("Error: %s\n", err.Error())
+				c.logger.Errorf("Error: %s\n", err.Error())
 				os.Exit(1)
 			}
 		}()

@@ -15,14 +15,13 @@ require (
 	github.com/bep/tmc v0.5.1
 	github.com/disintegration/gift v1.2.1
 	github.com/dustin/go-humanize v1.0.0
-	github.com/evanw/esbuild v0.7.15
+	github.com/evanw/esbuild v0.7.18
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/frankban/quicktest v1.11.1
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/getkin/kin-openapi v0.22.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/gobwas/glob v0.2.3
-	github.com/gohugoio/testmodBuilder/mods v0.0.0-20190520184928-c56af20f2e95
 	github.com/google/go-cmp v0.5.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/jdkato/prose v1.2.0
@@ -47,7 +46,7 @@ require (
 	github.com/sanity-io/litter v1.3.0
 	github.com/spf13/afero v1.4.1
 	github.com/spf13/cast v1.3.1
-	github.com/spf13/cobra v0.0.7
+	github.com/spf13/cobra v1.1.1
 	github.com/spf13/fsync v0.9.0
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5

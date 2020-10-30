@@ -647,6 +647,7 @@ package hugolib
 //c.Assert(logger.WarnCounter.Count(), qt.Equals, uint64(3))
 
 //}
+//c.Assert(logger.LogCounters().WarnCounter.Count(), qt.Equals, uint64(3))
 
 //func TestModulesSymlinks(t *testing.T) {
 //skipSymlink(t)

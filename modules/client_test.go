@@ -15,6 +15,9 @@ package modules
 
 //import (
 //"bytes"
+//"fmt"
+//"os"
+//"path/filepath"
 //"testing"
 
 //"github.com/neohugo/neohugo/hugofs/glob"
@@ -41,10 +44,14 @@ package modules
 
 //workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, modName)
 //c.Assert(err, qt.IsNil)
+//themesDir := filepath.Join(workingDir, "themes")
+//err = os.Mkdir(themesDir, 0777)
+//c.Assert(err, qt.IsNil)
 
 //ccfg := ClientConfig{
 //Fs:         hugofs.Os,
 //WorkingDir: workingDir,
+//ThemesDir:  themesDir,
 //}
 
 //withConfig(&ccfg)
@@ -129,6 +136,36 @@ package modules
 //var graphb bytes.Buffer
 //c.Assert(client.Graph(&graphb), qt.IsNil)
 //c.Assert(graphb.String(), qt.Equals, expect)
+//})
+
+// https://github.com/gohugoio/hugo/issues/7908
+//c.Run("createThemeDirname", func(c *qt.C) {
+//mcfg := DefaultModuleConfig
+//client, clean := newClient(
+//c, func(cfg *ClientConfig) {
+//cfg.ModuleConfig = mcfg
+//})
+//defer clean()
+
+//dirname, err := client.createThemeDirname("foo", false)
+//c.Assert(err, qt.IsNil)
+//c.Assert(dirname, qt.Equals, filepath.Join(client.ccfg.ThemesDir, "foo"))
+
+//dirname, err = client.createThemeDirname("../../foo", true)
+//c.Assert(err, qt.IsNil)
+//c.Assert(dirname, qt.Equals, filepath.Join(client.ccfg.ThemesDir, "../../foo"))
+
+//dirname, err = client.createThemeDirname("../../foo", false)
+//c.Assert(err, qt.Not(qt.IsNil))
+
+//absDir := filepath.Join(client.ccfg.WorkingDir, "..", "..")
+//dirname, err = client.createThemeDirname(absDir, true)
+//c.Assert(err, qt.IsNil)
+//c.Assert(dirname, qt.Equals, absDir)
+//dirname, err = client.createThemeDirname(absDir, false)
+//fmt.Println(dirname)
+//c.Assert(err, qt.Not(qt.IsNil))
+
 //})
 
 //}

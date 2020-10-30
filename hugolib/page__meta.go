@@ -342,8 +342,7 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 		if p.bucket != nil {
 			// Check for any cascade define on itself.
 			if cv, found := frontmatter["cascade"]; found {
-				switch v := cv.(type) {
-				case []map[string]interface{}:
+				if v, err := maps.ToSliceStringMap(cv); err == nil {
 					p.bucket.cascade = make(map[page.PageMatcher]maps.Params)
 
 					for _, vv := range v {
@@ -367,12 +366,12 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 						}
 
 					}
-				default:
+				} else {
 					p.bucket.cascade = map[page.PageMatcher]maps.Params{
 						page.PageMatcher{}: maps.ToStringMap(cv),
 					}
-				}
 
+				}
 			}
 		}
 	} else {
@@ -431,7 +430,7 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 	// more easily tested without the Page, but the coupling is strong.
 	err := pm.s.frontmatterHandler.HandleDates(descriptor)
 	if err != nil {
-		p.s.Log.ERROR.Printf("Failed to handle dates for page %q: %s", p.pathOrTitle(), err)
+		p.s.Log.Errorf("Failed to handle dates for page %q: %s", p.pathOrTitle(), err)
 	}
 
 	pm.buildConfig, err = pagemeta.DecodeBuildConfig(frontmatter["_build"])
@@ -486,7 +485,7 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 					// We added support for page relative URLs in Hugo 0.55 and
 					// this may get its language path added twice.
 					// TODO(bep) eventually remove this.
-					p.s.Log.WARN.Printf(`Front matter in %q with the url %q with no leading / has what looks like the language prefix added. In Hugo 0.55 we added support for page relative URLs in front matter, no language prefix needed. Check the URL and consider to either add a leading / or remove the language prefix.`, p.pathOrTitle(), url)
+					p.s.Log.Warnf(`Front matter in %q with the url %q with no leading / has what looks like the language prefix added. In Hugo 0.55 we added support for page relative URLs in front matter, no language prefix needed. Check the URL and consider to either add a leading / or remove the language prefix.`, p.pathOrTitle(), url)
 
 				}
 			}
@@ -515,7 +514,7 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 				outFormats, err := p.s.outputFormatsConfig.GetByNames(o...)
 
 				if err != nil {
-					p.s.Log.ERROR.Printf("Failed to resolve output formats: %s", err)
+					p.s.Log.Errorf("Failed to resolve output formats: %s", err)
 				} else {
 					pm.configuredOutputFormats = outFormats
 					pm.params[loki] = outFormats
@@ -634,7 +633,7 @@ func (pm *pageMeta) setMetadata(parentBucket *pagesMapBucket, p *pageState, fron
 
 	if draft != nil && published != nil {
 		pm.draft = *draft
-		p.m.s.Log.WARN.Printf("page %q has both draft and published settings in its frontmatter. Using draft.", p.File().Filename())
+		p.m.s.Log.Warnf("page %q has both draft and published settings in its frontmatter. Using draft.", p.File().Filename())
 	} else if draft != nil {
 		pm.draft = *draft
 	} else if published != nil {
