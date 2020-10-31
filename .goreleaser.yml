@@ -146,7 +146,7 @@ nfpms:
     maintainer: "Prachya Saechua <blackb1rd@blackb1rd.dev>"
     description: "hugo-fork focused on multilingual and bug fixes/refactor/cleanup."
     license: "Apache 2.0"
-    name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
+    file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
       amd64: 64bit
       386: 32bit
@@ -169,7 +169,7 @@ nfpms:
     maintainer: "Prachya Saechua <blackb1rd@blackb1rd.dev>"
     description: "hugo-fork focused on multilingual and bug fixes/refactor/cleanup."
     license: "Apache 2.0"
-    name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
+    file_name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
       amd64: 64bit
       386: 32bit
