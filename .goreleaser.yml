@@ -83,10 +83,18 @@ builds:
       - linux
     goarch:
       - amd64
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
 checksum:
   name_template: 'checksums.txt'
 release:
   prerelease: auto
+snapshot:
+  name_template: "{{ .Tag }}-next"
 archives:
   -
     id: "neohugo"
