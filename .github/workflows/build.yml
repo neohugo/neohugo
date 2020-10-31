@@ -1,0 +1,59 @@
+name: Build
+on:
+  push:
+    branches:
+      - master
+      - main
+    tags:
+      - '*'
+
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+env:
+  GO111MODULE: "on"
+  GOPROXY: "https://proxy.golang.org"
+  HUGO_BUILD_TAGS: "extended"
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }}, Go ${{ matrix.go }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        go-version: [1.15.x]
+    steps:
+      - name: Setup go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+      - name: Git checkout
+        uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Module
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          go mod download
+          go mod verify
+      - name: Run Mage Tests
+        uses: magefile/mage-action@v1
+        with:
+          version: latest
+          args: '-v test'
+      - name: Run Mage Tests and Linters
+        uses: magefile/mage-action@v1
+        with:
+          version: latest
+          args: '-v check'
+      - name: Run Mage Build
+        uses: magefile/mage-action@v1
+        with:
+          version: latest
+          args: '-v neohugo'
