@@ -37,8 +37,6 @@ jobs:
       - name: Run benchmark
         run: |
           go test -test.run=NONE -bench="." -test.benchmem=true ./... | tee output.txt
-          git diff
-          git reset --hard
       # Download previous benchmark result from cache (if exists)
       - name: Download previous benchmark data
         uses: actions/cache@v2
