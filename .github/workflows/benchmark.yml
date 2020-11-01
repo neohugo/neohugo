@@ -21,15 +21,34 @@ jobs:
           go-version: '1.15.3'
       - name: Git checkout
         uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Module
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: |
+          go mod download
+          go mod verify
       # Run benchmark with `go test -bench` and stores the output to a file
       - name: Run benchmark
-        run: go test -test.run=NONE -bench="." -test.benchmem=true ./... | tee output.txt
+        run: |
+          go test -test.run=NONE -bench="." -test.benchmem=true ./... | tee output.txt
+          git diff
+          git reset --hard
       # Download previous benchmark result from cache (if exists)
       - name: Download previous benchmark data
         uses: actions/cache@v2
         with:
           path: ./cache
           key: ${{ runner.os }}-benchmark
+      - name: check git diff
+        run: |
+          git diff
+          git reset --hard
       # Run `github-action-benchmark` action
       - name: Store benchmark result
         uses: rhysd/github-action-benchmark@v1
