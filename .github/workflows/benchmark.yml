@@ -47,7 +47,7 @@ jobs:
           # Workflow will fail when an alert happens
           fail-on-alert: false
           # GitHub API token to make a commit comment
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          # github-token: ${{ secrets.GITHUB_TOKEN }}
           # Enable alert commit comment
           comment-on-alert: true
           # Mention @blackb1rd in the commit comment
