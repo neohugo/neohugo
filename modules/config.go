@@ -112,10 +112,11 @@ func ApplyProjectConfigDefaults(cfg config.Provider, mod Module) error {
 			source := cfg.GetString(d.key)
 			componentsConfigured[d.component] = true
 
-			return []Mount{Mount{
+			return []Mount{{
 				// No lang set for layouts etc.
 				Source: source,
-				Target: d.component}}
+				Target: d.component,
+			}}
 		}
 
 		return nil
@@ -165,7 +166,6 @@ func ApplyProjectConfigDefaults(cfg config.Provider, mod Module) error {
 	var mounts []Mount
 	for _, dirKey := range dirKeys {
 		if componentsConfigured[dirKey.component] {
-
 			continue
 		}
 
@@ -239,7 +239,6 @@ func decodeConfig(cfg config.Provider, pathReplacements map[string]string) (Conf
 					c.Imports[i] = imp
 				}
 			}
-
 		}
 
 		for i, mnt := range c.Mounts {
@@ -392,11 +391,9 @@ func getStaticDirs(cfg config.Provider) []string {
 }
 
 func getStringOrStringSlice(cfg config.Provider, key string, id int) []string {
-
 	if id >= 0 {
 		key = fmt.Sprintf("%s%d", key, id)
 	}
 
 	return config.GetStringSlicePreserveString(cfg, key)
-
 }

@@ -351,6 +351,6 @@ func hugoFilepath(filename string) string {
 	return filepath.Join(pwd, filename)
 }
 
-func isCI() bool {
-	return os.Getenv("CI") != ""
-}
+//func isCI() bool {
+//return os.Getenv("CI") != ""
+//}

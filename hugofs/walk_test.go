@@ -35,9 +35,9 @@ func TestWalk(t *testing.T) {
 
 	fs := NewBaseFileDecorator(afero.NewMemMapFs())
 
-	c.Assert(afero.WriteFile(fs, "b.txt", []byte("content"), 0777), qt.IsNil)
-	c.Assert(afero.WriteFile(fs, "c.txt", []byte("content"), 0777), qt.IsNil)
-	c.Assert(afero.WriteFile(fs, "a.txt", []byte("content"), 0777), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, "b.txt", []byte("content"), 0o777), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, "c.txt", []byte("content"), 0o777), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, "a.txt", []byte("content"), 0o777), qt.IsNil)
 
 	names, err := collectFilenames(fs, "", "")
 
@@ -51,21 +51,21 @@ func TestWalkRootMappingFs(t *testing.T) {
 
 	testfile := "test.txt"
 
-	c.Assert(afero.WriteFile(fs, filepath.Join("a/b", testfile), []byte("some content"), 0755), qt.IsNil)
-	c.Assert(afero.WriteFile(fs, filepath.Join("c/d", testfile), []byte("some content"), 0755), qt.IsNil)
-	c.Assert(afero.WriteFile(fs, filepath.Join("e/f", testfile), []byte("some content"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, filepath.Join("a/b", testfile), []byte("some content"), 0o755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, filepath.Join("c/d", testfile), []byte("some content"), 0o755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, filepath.Join("e/f", testfile), []byte("some content"), 0o755), qt.IsNil)
 
 	rm := []RootMapping{
-		RootMapping{
+		{
 			From: "static/b",
 			To:   "e/f",
 		},
-		RootMapping{
+		{
 			From: "static/a",
 			To:   "c/d",
 		},
 
-		RootMapping{
+		{
 			From: "static/c",
 			To:   "a/b",
 		},
@@ -79,7 +79,6 @@ func TestWalkRootMappingFs(t *testing.T) {
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(names, qt.DeepEquals, []string{"a/test.txt", "b/test.txt", "c/test.txt"})
-
 }
 
 func skipSymlink() bool {
@@ -105,10 +104,10 @@ func TestWalkSymbolicLink(t *testing.T) {
 	docsDir := filepath.Join(workDir, "docs")
 	blogReal := filepath.Join(blogDir, "real")
 	blogRealSub := filepath.Join(blogReal, "sub")
-	c.Assert(os.MkdirAll(blogRealSub, 0777), qt.IsNil)
-	c.Assert(os.MkdirAll(docsDir, 0777), qt.IsNil)
-	c.Assert(afero.WriteFile(fs, filepath.Join(blogRealSub, "a.txt"), []byte("content"), 0777), qt.IsNil)
-	c.Assert(afero.WriteFile(fs, filepath.Join(docsDir, "b.txt"), []byte("content"), 0777), qt.IsNil)
+	c.Assert(os.MkdirAll(blogRealSub, 0o777), qt.IsNil)
+	c.Assert(os.MkdirAll(docsDir, 0o777), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, filepath.Join(blogRealSub, "a.txt"), []byte("content"), 0o777), qt.IsNil)
+	c.Assert(afero.WriteFile(fs, filepath.Join(docsDir, "b.txt"), []byte("content"), 0o777), qt.IsNil)
 
 	c.Assert(os.Chdir(blogDir), qt.IsNil)
 	c.Assert(os.Symlink("real", "symlinked"), qt.IsNil)
@@ -139,7 +138,6 @@ func TestWalkSymbolicLink(t *testing.T) {
 		// Note: the docsreal folder is considered cyclic when walking from the root, but this works.
 		c.Assert(names, qt.DeepEquals, []string{"b.txt", "docsreal/sub/a.txt"})
 	})
-
 }
 
 func collectFilenames(fs afero.Fs, base, root string) ([]string, error) {
@@ -167,7 +165,6 @@ func collectFilenames(fs afero.Fs, base, root string) ([]string, error) {
 	err := w.Walk()
 
 	return names, err
-
 }
 
 func collectFileinfos(fs afero.Fs, base, root string) ([]FileMetaInfo, error) {
@@ -188,7 +185,6 @@ func collectFileinfos(fs afero.Fs, base, root string) ([]FileMetaInfo, error) {
 	err := w.Walk()
 
 	return fis, err
-
 }
 
 func BenchmarkWalk(b *testing.B) {
@@ -198,7 +194,7 @@ func BenchmarkWalk(b *testing.B) {
 	writeFiles := func(dir string, numfiles int) {
 		for i := 0; i < numfiles; i++ {
 			filename := filepath.Join(dir, fmt.Sprintf("file%d.txt", i))
-			c.Assert(afero.WriteFile(fs, filename, []byte("content"), 0777), qt.IsNil)
+			c.Assert(afero.WriteFile(fs, filename, []byte("content"), 0o777), qt.IsNil)
 		}
 	}
 
@@ -236,5 +232,4 @@ func BenchmarkWalk(b *testing.B) {
 			b.Fatal(err)
 		}
 	}
-
 }

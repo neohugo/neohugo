@@ -67,7 +67,7 @@ func NewResourceTransformerForSpec(spec *resources.Spec, filename, content strin
 	filename = filepath.FromSlash(filename)
 
 	fs := spec.Fs.Source
-	if err := afero.WriteFile(fs, filename, []byte(content), 0777); err != nil {
+	if err := afero.WriteFile(fs, filename, []byte(content), 0o777); err != nil {
 		return nil, err
 	}
 

@@ -6,7 +6,6 @@ on:
       - main
     tags:
       - '*'
-
   pull_request:
     types: [opened, synchronize, reopened]
 
@@ -22,7 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: [1.15.x]
+        go-version: [1.15.3]
     steps:
       - name: Setup go
         uses: actions/setup-go@v2
@@ -30,6 +29,15 @@ jobs:
           go-version: ${{ matrix.go }}
       - name: Git checkout
         uses: actions/checkout@v2
+      - name: setup env
+        shell: bash
+        run: |
+          echo "::set-env name=GOPATH::$(go env GOPATH)"
+          echo "::add-path::$(go env GOPATH)/bin"
+      - name: Install gofumpt and mage
+        run: |
+          go get mvdan.cc/gofumpt
+          go get github.com/magefile/mage
       - uses: actions/cache@v2
         id: cache
         with:
@@ -43,17 +51,11 @@ jobs:
           go mod download
           go mod verify
       - name: Run Mage Tests
-        uses: magefile/mage-action@v1
-        with:
-          version: latest
-          args: '-v test'
-      - name: Run Mage Tests and Linters
-        uses: magefile/mage-action@v1
-        with:
-          version: latest
-          args: '-v check'
-      - name: Run Mage Build
-        uses: magefile/mage-action@v1
-        with:
-          version: latest
-          args: '-v neohugo'
+        run: |
+          mage -v test
+      - name: Run Mage Tests
+        run: |
+          mage -v check
+      - name: Run Mage Tests
+        run: |
+          mage -v neohugo

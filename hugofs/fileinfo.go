@@ -85,6 +85,7 @@ func (f FileMeta) OriginalFilename() string {
 func (f FileMeta) SkipDir() bool {
 	return f.GetBool(metaKeySkipDir)
 }
+
 func (f FileMeta) TranslationBaseName() string {
 	return f.stringV(metaKeyTranslationBaseName)
 }
@@ -235,7 +236,6 @@ func (fi *fileInfoMeta) Meta() FileMeta {
 }
 
 func NewFileMetaInfo(fi os.FileInfo, m FileMeta) FileMetaInfo {
-
 	if fim, ok := fi.(FileMetaInfo); ok {
 		mergeFileMeta(fim.Meta(), m)
 	}
@@ -311,7 +311,6 @@ func decorateFileInfo(
 	fi os.FileInfo,
 	fs afero.Fs, opener func() (afero.File, error),
 	filename, filepath string, inMeta FileMeta) FileMetaInfo {
-
 	var meta FileMeta
 	var fim FileMetaInfo
 
@@ -333,7 +332,6 @@ func decorateFileInfo(
 	mergeFileMeta(inMeta, meta)
 
 	return fim
-
 }
 
 func isSymlink(fi os.FileInfo) bool {
@@ -378,6 +376,5 @@ func sortFileInfos(fis []os.FileInfo) {
 	sort.Slice(fis, func(i, j int) bool {
 		fimi, fimj := fis[i].(FileMetaInfo), fis[j].(FileMetaInfo)
 		return fimi.Meta().Filename() < fimj.Meta().Filename()
-
 	})
 }

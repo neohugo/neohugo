@@ -36,11 +36,11 @@ func prepareSymlinks(t *testing.T) (string, func()) {
 
 	blogDir := filepath.Join(workDir, "blog")
 	blogSubDir := filepath.Join(blogDir, "sub")
-	c.Assert(os.MkdirAll(blogSubDir, 0777), qt.IsNil)
+	c.Assert(os.MkdirAll(blogSubDir, 0o777), qt.IsNil)
 	blogFile1 := filepath.Join(blogDir, "a.txt")
 	blogFile2 := filepath.Join(blogSubDir, "b.txt")
-	c.Assert(afero.WriteFile(Os, filepath.Join(blogFile1), []byte("content1"), 0777), qt.IsNil)
-	c.Assert(afero.WriteFile(Os, filepath.Join(blogFile2), []byte("content2"), 0777), qt.IsNil)
+	c.Assert(afero.WriteFile(Os, filepath.Join(blogFile1), []byte("content1"), 0o777), qt.IsNil)
+	c.Assert(afero.WriteFile(Os, filepath.Join(blogFile2), []byte("content2"), 0o777), qt.IsNil)
 	c.Assert(os.Chdir(workDir), qt.IsNil)
 	c.Assert(os.Symlink("blog", "symlinkdedir"), qt.IsNil)
 	c.Assert(os.Chdir(blogDir), qt.IsNil)
@@ -119,9 +119,9 @@ func TestNoSymlinkFs(t *testing.T) {
 			// Check Open
 			_, err := fs.Open(symlinkedDir)
 			c.Assert(err, qt.Equals, ErrPermissionSymlink)
-			_, err = fs.OpenFile(symlinkedDir, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+			_, err = fs.OpenFile(symlinkedDir, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
 			c.Assert(err, qt.Equals, ErrPermissionSymlink)
-			_, err = fs.OpenFile(symlinkedFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+			_, err = fs.OpenFile(symlinkedFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
 			assertFileErr(err)
 			_, err = fs.Open(symlinkedFile)
 			assertFileErr(err)
@@ -143,5 +143,4 @@ func TestNoSymlinkFs(t *testing.T) {
 
 		}
 	}
-
 }

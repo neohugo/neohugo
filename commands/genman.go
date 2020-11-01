@@ -53,7 +53,7 @@ in the "man" directory under the current directory.`,
 			}
 			if found, _ := helpers.Exists(cc.genmandir, hugofs.Os); !found {
 				jww.FEEDBACK.Println("Directory", cc.genmandir, "does not exist, creating...")
-				if err := hugofs.Os.MkdirAll(cc.genmandir, 0777); err != nil {
+				if err := hugofs.Os.MkdirAll(cc.genmandir, 0o777); err != nil {
 					return err
 				}
 			}

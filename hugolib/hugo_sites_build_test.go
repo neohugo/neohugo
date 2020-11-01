@@ -3,10 +3,9 @@ package hugolib
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
-
-	"path/filepath"
 	"time"
 
 	qt "github.com/frankban/quicktest"
@@ -200,7 +199,6 @@ p1 = "p1en"
 }
 
 func TestMultiSitesBuild(t *testing.T) {
-
 	for _, config := range []struct {
 		content string
 		suffix  string
@@ -209,7 +207,6 @@ func TestMultiSitesBuild(t *testing.T) {
 		{multiSiteYAMLConfigTemplate, "yml"},
 		{multiSiteJSONConfigTemplate, "json"},
 	} {
-
 		t.Run(config.suffix, func(t *testing.T) {
 			t.Parallel()
 			doTestMultiSitesBuild(t, config.content, config.suffix)
@@ -246,7 +243,7 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 
 	c.Assert(enSite.language.Lang, qt.Equals, "en")
 
-	//dumpPages(enSite.RegularPages()...)
+	// dumpPages(enSite.RegularPages()...)
 
 	c.Assert(len(enSite.RegularPages()), qt.Equals, 5)
 	c.Assert(len(enSite.AllPages()), qt.Equals, 32)
@@ -413,7 +410,6 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 	c.Assert(logoEn, qt.Not(qt.IsNil))
 	b.AssertFileContent("public/en/bundles/b1/index.html", "Resources: image/png: /blog/en/bundles/b1/logo.png")
 	b.AssertFileContent("public/en/bundles/b1/logo.png", "PNG Data")
-
 }
 
 func TestMultiSitesRebuild(t *testing.T) {
@@ -471,7 +467,6 @@ func TestMultiSitesRebuild(t *testing.T) {
 			[]fsnotify.Event{{Name: filepath.FromSlash("content/sect/doc2.en.md"), Op: fsnotify.Remove}},
 			func(t *testing.T) {
 				c.Assert(len(enSite.RegularPages()), qt.Equals, 4, qt.Commentf("1 en removed"))
-
 			},
 		},
 		{
@@ -509,7 +504,6 @@ func TestMultiSitesRebuild(t *testing.T) {
 				c.Assert(len(enSite.RegularPages()), qt.Equals, 6)
 				doc1 := readDestination(t, fs, "public/en/sect/doc1-slug/index.html")
 				c.Assert(strings.Contains(doc1, "CHANGED"), qt.Equals, true)
-
 			},
 		},
 		// Rename a file
@@ -528,7 +522,8 @@ func TestMultiSitesRebuild(t *testing.T) {
 				c.Assert(enSite.RegularPages()[1].Title(), qt.Equals, "new_en_1")
 				rendered := readDestination(t, fs, "public/en/new1renamed/index.html")
 				c.Assert(rendered, qt.Contains, "new_en_1")
-			}},
+			},
+		},
 		{
 			// Change a template
 			func(t *testing.T) {
@@ -568,7 +563,6 @@ func TestMultiSitesRebuild(t *testing.T) {
 				c.Assert(homeEn, qt.Not(qt.IsNil))
 				c.Assert(len(homeEn.Translations()), qt.Equals, 3)
 				c.Assert(homeEn.Translations()[0].Language().Lang, qt.Equals, "fr")
-
 			},
 		},
 		// Change a shortcode
@@ -594,14 +588,12 @@ func TestMultiSitesRebuild(t *testing.T) {
 		}
 
 		err := b.H.Build(BuildCfg{}, this.events...)
-
 		if err != nil {
 			t.Fatalf("[%d] Failed to rebuild sites: %s", i, err)
 		}
 
 		this.assertFunc(t)
 	}
-
 }
 
 // https://github.com/neohugo/neohugo/issues/4706
@@ -763,7 +755,6 @@ Title: My categories
 `)
 
 	for _, lang := range []string{"en", "nn"} {
-
 		b.WithContent(lang+"/mysection/page.md", `
 ---
 Title: My Page
@@ -771,7 +762,6 @@ categories: ["mycat"]
 ---
 
 `)
-
 	}
 
 	b.Build(BuildCfg{})
@@ -782,7 +772,6 @@ categories: ["mycat"]
 		"/categories",
 		"/categories/mycat",
 	} {
-
 		t.Run(path, func(t *testing.T) {
 			c := qt.New(t)
 
@@ -803,7 +792,6 @@ categories: ["mycat"]
 			c.Assert(len(m1), qt.Equals, 1)
 			c.Assert(len(m2), qt.Equals, 1)
 		})
-
 	}
 }
 
@@ -1176,7 +1164,7 @@ func writeSource(t testing.TB, fs *hugofs.Fs, filename, content string) {
 
 func writeToFs(t testing.TB, fs afero.Fs, filename, content string) {
 	t.Helper()
-	if err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte(content), 0755); err != nil {
+	if err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte(content), 0o755); err != nil {
 		t.Fatalf("Failed to write file: %s", err)
 	}
 }

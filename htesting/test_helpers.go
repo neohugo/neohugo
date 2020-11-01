@@ -49,7 +49,6 @@ func BailOut(after time.Duration) {
 		runtime.Stack(buf, true)
 		panic(string(buf))
 	})
-
 }
 
 // Rnd is used only for testing.

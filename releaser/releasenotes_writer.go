@@ -175,7 +175,6 @@ func writeReleaseNotes(version string, infosMain, infosDocs gitInfos, to io.Writ
 	}
 
 	return nil
-
 }
 
 func fetchThemeCount() (int, error) {
@@ -236,16 +235,12 @@ func (r *ReleaseHandler) releaseNotesState(version string) (releaseNotesState, e
 	}
 
 	return releaseNotesNone, nil
-
 }
 
 func (r *ReleaseHandler) writeReleaseNotesToTemp(version string, isPatch bool, infosMain, infosDocs gitInfos) (string, error) {
-
 	docsTempPath, name := getReleaseNotesDocsTempDirAndName(version, isPatch)
 
-	var (
-		w io.WriteCloser
-	)
+	var w io.WriteCloser
 
 	if !r.try {
 		if err := os.Mkdir(docsTempPath, os.ModePerm); err != nil {
@@ -272,7 +267,6 @@ func (r *ReleaseHandler) writeReleaseNotesToTemp(version string, isPatch bool, i
 	}
 
 	return name, nil
-
 }
 
 func (r *ReleaseHandler) writeReleaseNotesToDocs(title, description, sourceFilename string) (string, error) {
@@ -327,5 +321,4 @@ categories: ["Releases"]%s
 	}
 
 	return targetFullFilename, nil
-
 }

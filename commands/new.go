@@ -72,7 +72,6 @@ func (n *newCmd) newContent(cmd *cobra.Command, args []string) error {
 	}
 
 	c, err := initializeConfig(true, false, &n.hugoBuilderCommon, n, cfgInit)
-
 	if err != nil {
 		return err
 	}
@@ -97,7 +96,7 @@ func (n *newCmd) newContent(cmd *cobra.Command, args []string) error {
 func mkdir(x ...string) {
 	p := filepath.Join(x...)
 
-	err := os.MkdirAll(p, 0777) // before umask
+	err := os.MkdirAll(p, 0o777) // before umask
 	if err != nil {
 		jww.FATAL.Fatalln(err)
 	}

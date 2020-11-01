@@ -40,9 +40,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	logger = loggers.NewErrorLogger()
-)
+var logger = loggers.NewErrorLogger()
 
 func newTestConfig() config.Provider {
 	v := viper.New()
@@ -99,7 +97,7 @@ func TestTemplateFuncsExamples(t *testing.T) {
 
 	fs := hugofs.NewMem(v)
 
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workingDir, "files", "README.txt"), []byte("Hugo Rocks!"), 0755), qt.IsNil)
+	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workingDir, "files", "README.txt"), []byte("Hugo Rocks!"), 0o755), qt.IsNil)
 
 	depsCfg := newDepsConfig(v)
 	depsCfg.Fs = fs
@@ -192,7 +190,6 @@ func TestPartialCached(t *testing.T) {
 			t.Fatalf("cache mismatch")
 		}
 	}
-
 }
 
 func BenchmarkPartial(b *testing.B) {

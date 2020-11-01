@@ -14,8 +14,11 @@
 package hugolib
 
 import (
+	"fmt"
+	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -29,15 +32,9 @@ import (
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/resources/page"
 
-	"io"
-
 	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/media"
-
-	"path/filepath"
-
-	"fmt"
 
 	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/viper"
@@ -265,12 +262,10 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 							b.AssertFileContent(filepath.FromSlash("/work/public/root/index.html"), "Single Title")
 
 						}
-
 					})
 			}
 		}
 	}
-
 }
 
 func TestPageBundlerSiteMultilingual(t *testing.T) {
@@ -296,7 +291,7 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 
 				c.Assert(len(s.RegularPages()), qt.Equals, 8)
 				c.Assert(len(s.Pages()), qt.Equals, 16)
-				//dumpPages(s.AllPages()...)
+				// dumpPages(s.AllPages()...)
 				c.Assert(len(s.AllPages()), qt.Equals, 31)
 
 				bundleWithSubPath := s.getPage(page.KindPage, "lb/index")
@@ -350,7 +345,6 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 				b.AssertFileContent("public/nn/bc/data1.nn.json", "data1.nn")
 				b.AssertFileContent("public/nn/bc/data2.json", "data2")
 				b.AssertFileContent("public/nn/bc/logo-bc.png", "logo")
-
 			})
 	}
 }
@@ -393,7 +387,6 @@ func TestMultilingualDisableLanguage(t *testing.T) {
 		c.Assert(p.Language().Lang != "nn", qt.Equals, true)
 		return false
 	})
-
 }
 
 func TestPageBundlerSiteWitSymbolicLinksInContent(t *testing.T) {
@@ -417,13 +410,13 @@ func TestPageBundlerSiteWitSymbolicLinksInContent(t *testing.T) {
 	contentDirName := "content"
 
 	contentDir := filepath.Join(workDir, contentDirName)
-	c.Assert(os.MkdirAll(filepath.Join(contentDir, "a"), 0777), qt.IsNil)
+	c.Assert(os.MkdirAll(filepath.Join(contentDir, "a"), 0o777), qt.IsNil)
 
 	for i := 1; i <= 3; i++ {
-		c.Assert(os.MkdirAll(filepath.Join(workDir, fmt.Sprintf("symcontent%d", i)), 0777), qt.IsNil)
+		c.Assert(os.MkdirAll(filepath.Join(workDir, fmt.Sprintf("symcontent%d", i)), 0o777), qt.IsNil)
 	}
 
-	c.Assert(os.MkdirAll(filepath.Join(workDir, "symcontent2", "a1"), 0777), qt.IsNil)
+	c.Assert(os.MkdirAll(filepath.Join(workDir, "symcontent2", "a1"), 0o777), qt.IsNil)
 
 	// Symlinked sections inside content.
 	c.Assert(os.Chdir(contentDir), qt.IsNil)
@@ -502,7 +495,6 @@ TheContent.
 	b.AssertFileContent(filepath.FromSlash(workDir+"/public/a/page/index.html"), "TheContent")
 	b.AssertFileContent(filepath.FromSlash(workDir+"/public/symbolic1/s1/index.html"), "TheContent")
 	b.AssertFileContent(filepath.FromSlash(workDir+"/public/symbolic2/a1/index.html"), "TheContent")
-
 }
 
 func TestPageBundlerHeadless(t *testing.T) {
@@ -586,7 +578,6 @@ HEADLESS {{< myShort >}}
 	c.Assert(s.RegularPages(), qt.HasLen, 1)
 	c.Assert(s.home.RegularPages(), qt.HasLen, 1)
 	c.Assert(s.home.Pages(), qt.HasLen, 1)
-
 }
 
 func TestPageBundlerHeadlessIssue6552(t *testing.T) {
@@ -708,7 +699,6 @@ Single content.
 
 	b.AssertFileContent("public/section-not-bundle/index.html", "Section Page", "Content: <p>Section content.</p>")
 	b.AssertFileContent("public/section-not-bundle/single/index.html", "Section Single", "|<p>Single content.</p>")
-
 }
 
 func newTestBundleSources(t testing.TB) (*hugofs.Fs, *viper.Viper) {
@@ -877,7 +867,6 @@ Content for 은행.
 	c.Assert(err, qt.IsNil)
 
 	return fs, cfg
-
 }
 
 func newTestBundleSourcesMultilingual(t *testing.T) (*hugofs.Fs, *viper.Viper) {
@@ -959,7 +948,7 @@ TheContent.
 	writeSource(t, fs, filepath.Join(workDir, "base", "lb", "c", "one.png"), "content")
 	writeSource(t, fs, filepath.Join(workDir, "base", "lb", "c", "d", "deep.png"), "content")
 
-	//Translated bundle in some sensible sub path.
+	// Translated bundle in some sensible sub path.
 	writeSource(t, fs, filepath.Join(workDir, "base", "bf", "my-bf-bundle", "index.md"), pageContent)
 	writeSource(t, fs, filepath.Join(workDir, "base", "bf", "my-bf-bundle", "index.nn.md"), pageContent)
 	writeSource(t, fs, filepath.Join(workDir, "base", "bf", "my-bf-bundle", "page.md"), pageContent)
@@ -998,7 +987,6 @@ date: 2017-01-15
 	b.Build(BuildCfg{})
 
 	b.AssertFileContent("public/mybundle/data.json", "My changed data")
-
 }
 
 // https://github.com/neohugo/neohugo/issues/4870
@@ -1027,7 +1015,6 @@ slug: %s
 
 	c.Assert(b.CheckExists("public/about/services1/this-is-the-slug/index.html"), qt.Equals, true)
 	c.Assert(b.CheckExists("public/about/services2/this-is-another-slug/index.html"), qt.Equals, true)
-
 }
 
 func TestBundleMisc(t *testing.T) {
@@ -1116,13 +1103,11 @@ slug: leaf
 	b.AssertFileContentFn("public/en/index.html", func(s string) bool {
 		// Check ignored files
 		return !regexp.MustCompile("README|ignore").MatchString(s)
-
 	})
 
 	b.AssertFileContent("public/nn/index.html", filepath.FromSlash("page|sect1/sect2/page.md|CurrentSection: sect1"))
 	b.AssertFileContentFn("public/nn/index.html", func(s string) bool {
 		return !strings.Contains(s, "enonly")
-
 	})
 
 	// Check order of inherited data file
@@ -1140,7 +1125,6 @@ slug: leaf
 	b.AssertFileContent("public/en/b2/index.html",
 		"/en/b2/leaf/",
 		filepath.FromSlash("section|sect1/sect2/_index.md|CurrentSection: sect1/sect2/_index.md"))
-
 }
 
 // Issue 6136
@@ -1218,7 +1202,6 @@ Num Pages: {{ len .Site.Pages }}
 		"page|/en/blog/sect2/b1/|Content: s2.b1|Resources: R: data.json|s2.b1.data|",
 		"page|/en/blog/sect2/b2/|Content: s2.b2|Resources: R: s2.b2.bundlecontent|",
 	)
-
 }
 
 // #6208
@@ -1260,11 +1243,9 @@ title: %q
         page|bundle sub index|
         page|bundle sub p2|
 `)
-
 }
 
 func TestBundleTransformMany(t *testing.T) {
-
 	b := newTestSitesBuilder(t).WithSimpleConfigFile().Running()
 
 	for i := 1; i <= 50; i++ {
@@ -1348,7 +1329,7 @@ func TestPageBundlerHome(t *testing.T) {
 	cfg.Set("workingDir", workDir)
 	fs := hugofs.NewFrom(hugofs.Os, cfg)
 
-	c.Assert(os.MkdirAll(filepath.Join(workDir, "content"), 0777), qt.IsNil)
+	c.Assert(os.MkdirAll(filepath.Join(workDir, "content"), 0o777), qt.IsNil)
 
 	defer clean()
 

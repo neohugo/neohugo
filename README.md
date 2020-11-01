@@ -159,6 +159,7 @@ Hugo stands on the shoulder of many great open source libraries, in lexical orde
  | [github.com/mitchellh/hashstructure](https://github.com/mitchellh/hashstructure) | MIT License |
  | [github.com/mitchellh/mapstructure](https://github.com/mitchellh/mapstructure) | MIT License |
  | [github.com/muesli/smartcrop](https://github.com/muesli/smartcrop) | MIT License |
+ | [github.com/mvdan/gofumpt](https://github.com/mvdan/gofumpt) | BSD 3-Clause "New" or "Revised" License |
  | [github.com/nicksnyder/go-i18n](https://github.com/nicksnyder/go-i18n) | MIT License |
  | [github.com/niklasfasching/go-org](https://github.com/niklasfasching/go-org) | MIT License |
  | [github.com/olekukonko/tablewriter](https://github.com/olekukonko/tablewriter) | MIT License |

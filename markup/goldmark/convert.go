@@ -62,9 +62,7 @@ func (p provide) New(cfg converter.ProviderConfig) (converter.Provider, error) {
 	}), nil
 }
 
-var (
-	_ converter.AnchorNameSanitizer = (*goldmarkConverter)(nil)
-)
+var _ converter.AnchorNameSanitizer = (*goldmarkConverter)(nil)
 
 type goldmarkConverter struct {
 	md  goldmark.Markdown
@@ -156,7 +154,6 @@ func newMarkdown(pcfg converter.ProviderConfig) goldmark.Markdown {
 	)
 
 	return md
-
 }
 
 var _ identity.IdentitiesProvider = (*converterResult)(nil)
@@ -231,7 +228,7 @@ func (c *goldmarkConverter) Convert(ctx converter.RenderContext) (result convert
 			dir := afero.GetTempDir(hugofs.Os, "hugo_bugs")
 			name := fmt.Sprintf("goldmark_%s.txt", c.ctx.DocumentID)
 			filename := filepath.Join(dir, name)
-			if err := afero.WriteFile(hugofs.Os, filename, ctx.Src, 07555); err != nil {
+			if err := afero.WriteFile(hugofs.Os, filename, ctx.Src, 0o7555); err != nil {
 				fmt.Print(err)
 			}
 			fmt.Print(string(debug.Stack()))
@@ -269,7 +266,6 @@ func (c *goldmarkConverter) Convert(ctx converter.RenderContext) (result convert
 		ids:    rcx.ids.GetIdentities(),
 		toc:    pctx.TableOfContents(),
 	}, nil
-
 }
 
 var featureSet = map[identity.Identity]bool{
@@ -332,7 +328,6 @@ func newHighlighting(cfg highlight.Config) goldmark.Extender {
 			}
 
 			w.WriteString("</div>") //nolint
-
 		}),
 	)
 }

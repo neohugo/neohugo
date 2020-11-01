@@ -15,20 +15,19 @@
 package metrics
 
 import (
-	"reflect"
-
-	"github.com/neohugo/neohugo/helpers"
-
-	"github.com/neohugo/neohugo/common/types"
-
 	"fmt"
 	"io"
 	"math"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/neohugo/neohugo/helpers"
+
+	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/neohugo/neohugo/compare"
 )
@@ -55,7 +54,7 @@ type diff struct {
 	simSum   int
 }
 
-//var counter = 0
+// var counter = 0
 
 func (d *diff) add(v interface{}) *diff {
 	if types.IsNil(d.baseline) {
@@ -182,7 +181,6 @@ func (s *Store) WriteMetrics(w io.Writer) {
 			fmt.Fprintf(w, "  %13s  %12s  %12s  %5d  %s\n", v.sum, v.avg, v.max, v.count, v.key)
 		}
 	}
-
 }
 
 // A result represents the calculated results for a given metric.
@@ -243,7 +241,6 @@ func howSimilar(a, b interface{}) int {
 		return 100
 	}
 	return 0
-
 }
 
 // howSimilar is a naive diff implementation that returns

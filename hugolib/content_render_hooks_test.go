@@ -206,7 +206,6 @@ SHORT3|
 
 	// https://github.com/neohugo/neohugo/issues/7349
 	b.AssertFileContent("public/docs/p8/index.html", "Docs Level: 1")
-
 }
 
 func TestRenderHooksDeleteTemplate(t *testing.T) {
@@ -234,7 +233,6 @@ title: P1
 
 	b.Build(BuildCfg{})
 	b.AssertFileContent("public/p1/index.html", `<p><a href="https://www.google.com" title="Google's Homepage">First Link</a></p>`)
-
 }
 
 func TestRenderHookAddTemplate(t *testing.T) {
@@ -260,11 +258,9 @@ title: P1
 	b.Build(BuildCfg{})
 
 	b.AssertFileContent("public/p1/index.html", `<p>html-render-link</p>`)
-
 }
 
 func TestRenderHooksRSS(t *testing.T) {
-
 	b := newTestSitesBuilder(t)
 
 	b.WithTemplates("index.html", `
@@ -315,12 +311,10 @@ P3. [I'm an inline-style link](https://www.example.org)
 P2: <p>P1. xml-link: https://www.bep.is|</p>
 P3: <p>P3. xml-link: https://www.example.org|</p>
 `)
-
 }
 
 // https://github.com/neohugo/neohugo/issues/6629
 func TestRenderLinkWithMarkupInText(t *testing.T) {
-
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", `
 
@@ -363,11 +357,9 @@ Image:
 <p>Some regular <strong>markup</strong>.</p>
 <p>html-image: image.jpg|Text: Hello<br> Goodbye|Plain: Hello GoodbyeEND</p>
 `)
-
 }
 
 func TestRenderString(t *testing.T) {
-
 	b := newTestSitesBuilder(t)
 
 	b.WithTemplates("index.html", `
@@ -396,7 +388,6 @@ RSTART:<p><strong>Bold Block Markdown</strong></p>
 RSTART:<em>italic org mode</em>:REND
 RSTART:Hook Heading: 2:REND
 `)
-
 }
 
 // https://github.com/neohugo/neohugo/issues/6882
@@ -423,5 +414,4 @@ func TestRenderStringOnListPage(t *testing.T) {
 	} {
 		b.AssertFileContent("public/"+filename, `<strong>Hello</strong>`)
 	}
-
 }

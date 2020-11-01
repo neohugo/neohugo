@@ -16,6 +16,7 @@ package commands
 import (
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,19 +35,15 @@ import (
 
 	"github.com/neohugo/neohugo/hugolib"
 
-	"path/filepath"
-
 	"github.com/spf13/cobra"
 )
 
-var (
-	_ cmder = (*convertCmd)(nil)
-)
+var _ cmder = (*convertCmd)(nil)
 
-//type parsedFile struct {
-//frontMatterFormat metadecoders.Format
-//frontMatterSource []byte
-//frontMatter       map[string]interface{}
+// type parsedFile struct {
+// frontMatterFormat metadecoders.Format
+// frontMatterSource []byte
+// frontMatter       map[string]interface{}
 
 //// Everything after Front Matter
 //content []byte

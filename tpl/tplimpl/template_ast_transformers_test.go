@@ -45,7 +45,6 @@ func TestTransformRecursiveTemplate(t *testing.T) {
 	)
 	_, err = ctx.applyTransformations(templ.Tree.Root)
 	c.Assert(err, qt.IsNil)
-
 }
 
 func newTestTemplate(templ tpl.Template) *templateState {
@@ -79,7 +78,6 @@ func newTestTemplateLookup(in *templateState) func(name string) *templateState {
 }
 
 func TestCollectInfo(t *testing.T) {
-
 	configStr := `{ "version": 42 }`
 
 	tests := []struct {
@@ -116,11 +114,9 @@ func TestCollectInfo(t *testing.T) {
 			c.Assert(ctx.t.parseInfo, qt.DeepEquals, test.expected)
 		})
 	}
-
 }
 
 func TestPartialReturn(t *testing.T) {
-
 	tests := []struct {
 		name      string
 		tplString string
@@ -161,8 +157,6 @@ func TestPartialReturn(t *testing.T) {
 			// Just check that it doesn't fail in this test. We have functional tests
 			// in hugoblib.
 			c.Assert(err, qt.IsNil)
-
 		})
 	}
-
 }

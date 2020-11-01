@@ -63,7 +63,7 @@ func CopyDir(fs afero.Fs, from, to string, shouldCopy func(filename string) bool
 		return errors.Errorf("%q is not a directory", from)
 	}
 
-	err = fs.MkdirAll(to, 0777) // before umask
+	err = fs.MkdirAll(to, 0o777) // before umask
 	if err != nil {
 		return err
 	}

@@ -44,7 +44,6 @@ func TestDecodeOptions(t *testing.T) {
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(opts2.NoMap, qt.Equals, true)
-
 }
 
 func TestShouldImport(t *testing.T) {
@@ -71,7 +70,7 @@ func TestImportResolver(t *testing.T) {
 	fs := afero.NewMemMapFs()
 
 	writeFile := func(name, content string) {
-		c.Assert(afero.WriteFile(fs, name, []byte(content), 0777), qt.IsNil)
+		c.Assert(afero.WriteFile(fs, name, []byte(content), 0o777), qt.IsNil)
 	}
 
 	writeFile("a.css", `@import "b.css";
@@ -118,7 +117,6 @@ E_STYLE
 		Offset:   1,
 		Filename: "d.css",
 	})
-
 }
 
 func BenchmarkImportResolver(b *testing.B) {
@@ -126,7 +124,7 @@ func BenchmarkImportResolver(b *testing.B) {
 	fs := afero.NewMemMapFs()
 
 	writeFile := func(name, content string) {
-		c.Assert(afero.WriteFile(fs, name, []byte(content), 0777), qt.IsNil)
+		c.Assert(afero.WriteFile(fs, name, []byte(content), 0o777), qt.IsNil)
 	}
 
 	writeFile("a.css", `@import "b.css";

@@ -103,7 +103,7 @@ func TestNSConfig(t *testing.T) {
 			ns.deps.Fs.Source,
 			filepath.Join(v.GetString("workingDir"), sp),
 			test.input,
-			0755)
+			0o755)
 		c.Assert(err, qt.IsNil)
 
 		result, err := ns.Config(test.path)

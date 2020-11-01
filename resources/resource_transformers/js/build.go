@@ -254,7 +254,7 @@ func toBuildOptions(opts Options) (buildOptions api.BuildOptions, err error) {
 		JSXFactory:  opts.JSXFactory,
 		JSXFragment: opts.JSXFragment,
 
-		//Tsconfig: opts.TSConfig,
+		// Tsconfig: opts.TSConfig,
 
 		Stdin: &api.StdinOptions{
 			Contents:   opts.contents,
@@ -264,5 +264,4 @@ func toBuildOptions(opts Options) (buildOptions api.BuildOptions, err error) {
 		},
 	}
 	return
-
 }

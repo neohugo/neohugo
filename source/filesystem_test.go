@@ -64,7 +64,7 @@ func TestUnicodeNorm(t *testing.T) {
 
 	for i, path := range paths {
 		base := fmt.Sprintf("base%d", i)
-		c.Assert(afero.WriteFile(ss.Fs.Source, filepath.Join(base, path.NFD), []byte("some data"), 0777), qt.IsNil)
+		c.Assert(afero.WriteFile(ss.Fs.Source, filepath.Join(base, path.NFD), []byte("some data"), 0o777), qt.IsNil)
 		src := ss.NewFilesystem(base)
 		_ = src.add(path.NFD, fi)
 		files, err := src.Files()
@@ -74,7 +74,6 @@ func TestUnicodeNorm(t *testing.T) {
 			t.Fatalf("file %q name in NFD form should be normalized (%s)", f.BaseFileName(), path.NFC)
 		}
 	}
-
 }
 
 func newTestConfig() *viper.Viper {

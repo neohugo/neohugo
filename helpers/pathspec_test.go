@@ -45,7 +45,7 @@ func TestNewPathSpecFromConfig(t *testing.T) {
 	c.Assert(
 		fs.Source.MkdirAll(
 			filepath.FromSlash("thework/thethemes/thetheme"),
-			0777),
+			0o777),
 		qt.IsNil)
 
 	p, err := NewPathSpec(fs, l, nil)
@@ -61,5 +61,4 @@ func TestNewPathSpecFromConfig(t *testing.T) {
 	c.Assert(p.BaseURL.String(), qt.Equals, "http://base.com")
 	c.Assert(p.ThemesDir, qt.Equals, "thethemes")
 	c.Assert(p.WorkingDir, qt.Equals, "thework")
-
 }

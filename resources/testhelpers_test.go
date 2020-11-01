@@ -1,15 +1,14 @@
 package resources
 
 import (
-	"path/filepath"
-	"testing"
-
 	"image"
 	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strings"
+	"testing"
 
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/modules"
@@ -54,11 +53,9 @@ func createTestCfg() *viper.Viper {
 	cfg.Set("allModules", modules.Modules{mod})
 
 	return cfg
-
 }
 
 func newTestResourceSpec(desc specDescriptor) *Spec {
-
 	baseURL := desc.baseURL
 	if baseURL == "" {
 		baseURL = "https://example.com/"
@@ -136,7 +133,6 @@ func newTestResourceOsFs(c *qt.C) (*Spec, string) {
 	c.Assert(err, qt.IsNil)
 
 	return spec, workDir
-
 }
 
 func fetchSunset(c *qt.C) resource.Image {
@@ -206,7 +202,7 @@ func writeSource(t testing.TB, fs *hugofs.Fs, filename, content string) {
 }
 
 func writeToFs(t testing.TB, fs afero.Fs, filename, content string) {
-	if err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte(content), 0755); err != nil {
+	if err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte(content), 0o755); err != nil {
 		t.Fatalf("Failed to write file: %s", err)
 	}
 }

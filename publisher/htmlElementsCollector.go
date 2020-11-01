@@ -14,15 +14,14 @@
 package publisher
 
 import (
-	"regexp"
-
-	"github.com/neohugo/neohugo/helpers"
-	"golang.org/x/net/html"
-
 	"bytes"
+	"regexp"
 	"sort"
 	"strings"
 	"sync"
+
+	"github.com/neohugo/neohugo/helpers"
+	"golang.org/x/net/html"
 )
 
 func newHTMLElementsCollector() *htmlElementsCollector {
@@ -52,7 +51,6 @@ func (h *HTMLElements) Merge(other HTMLElements) {
 	h.Tags = helpers.UniqueStringsReuse(h.Tags)
 	h.Classes = helpers.UniqueStringsReuse(h.Classes)
 	h.IDs = helpers.UniqueStringsReuse(h.IDs)
-
 }
 
 func (h *HTMLElements) Sort() {
@@ -151,7 +149,6 @@ func (c *cssClassCollectorWriter) insertStandinHTMLElement(el string) (string, s
 	}
 	newv := strings.Replace(el, tag, "div", 1)
 	return newv, strings.ToLower(tag)
-
 }
 
 func (c *cssClassCollectorWriter) endCollecting(drop bool) {
@@ -194,7 +191,6 @@ type htmlElementsCollector struct {
 }
 
 func (c *htmlElementsCollector) getHTMLElements() HTMLElements {
-
 	var (
 		classes []string
 		ids     []string
