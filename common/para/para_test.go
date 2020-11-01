@@ -16,7 +16,6 @@ package para
 import (
 	"context"
 	"runtime"
-
 	"sort"
 	"sync"
 	"testing"
@@ -58,18 +57,17 @@ func TestPara(t *testing.T) {
 		c.Assert(sort.IntsAreSorted(result), qt.Equals, false, qt.Commentf("Para does not seem to be parallel"))
 		sort.Ints(result)
 		c.Assert(result, qt.DeepEquals, ints)
-
 	})
 
-	//c.Run("Time", func(c *qt.C) {
-	//const n = 100
+	// c.Run("Time", func(c *qt.C) {
+	// const n = 100
 
-	//p := New(5)
-	//r, _ := p.Start(context.Background())
+	// p := New(5)
+	// r, _ := p.Start(context.Background())
 
-	//start := time.Now()
+	// start := time.Now()
 
-	//var counter int64
+	// var counter int64
 
 	//for i := 0; i < n; i++ {
 	//r.Run(func() error {
@@ -79,10 +77,9 @@ func TestPara(t *testing.T) {
 	//})
 	//}
 
-	//c.Assert(r.Wait(), qt.IsNil)
-	//c.Assert(counter, qt.Equals, int64(n))
-	//c.Assert(time.Since(start) < n/2*time.Millisecond, qt.Equals, true)
+	// c.Assert(r.Wait(), qt.IsNil)
+	// c.Assert(counter, qt.Equals, int64(n))
+	// c.Assert(time.Since(start) < n/2*time.Millisecond, qt.Equals, true)
 
 	//})
-
 }

@@ -49,7 +49,7 @@ func TestTransform(t *testing.T) {
 	createTransformer := func(spec *Spec, filename, content string) Transformer {
 		filename = filepath.FromSlash(filename)
 		fs := spec.Fs.Source
-		c.Assert(afero.WriteFile(fs, filename, []byte(content), 0777), qt.IsNil)
+		c.Assert(afero.WriteFile(fs, filename, []byte(content), 0o777), qt.IsNil)
 		r, _ := spec.New(ResourceSourceDescriptor{Fs: fs, SourceFilename: filename})
 		return r.(Transformer)
 	}
@@ -389,11 +389,10 @@ func TestTransform(t *testing.T) {
 		resizedNotPublished, err := img.Resize("50x50")
 		c.Assert(err, qt.IsNil)
 		c.Assert(resizedNotPublished.Height(), qt.Equals, 50)
-		//c.Assert(resized.RelPermalink(), qt.Equals, "/gopher.changed_hu2e827f5a78333ebc04166dd643235dea_1462_50x50_resize_linear_2.png")
+		// c.Assert(resized.RelPermalink(), qt.Equals, "/gopher.changed_hu2e827f5a78333ebc04166dd643235dea_1462_50x50_resize_linear_2.png")
 		assertShouldExist(c, spec, "public/gopher.changed_hu2e827f5a78333ebc04166dd643235dea_1462_50x50_resize_linear_2.png", false)
 
 		assertNoDuplicateWrites(c, spec)
-
 	})
 
 	c.Run("Concurrent", func(c *qt.C) {

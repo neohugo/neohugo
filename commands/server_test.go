@@ -74,7 +74,6 @@ func TestServer(t *testing.T) {
 
 	// Stop the server.
 	stop <- true
-
 }
 
 func TestFixURL(t *testing.T) {
@@ -128,7 +127,6 @@ ERROR 2018/10/07 13:11:12 Rebuild failed: logged 1 error(s)
 	withoutError := removeErrorPrefixFromLog(content)
 
 	c.Assert(strings.Contains(withoutError, "ERROR"), qt.Equals, false)
-
 }
 
 func isWindowsCI() bool {

@@ -58,7 +58,6 @@ Use ` + "`hugo new [contentPath]`" + ` to create new content.`,
 	cc.baseBuilderCmd = b.newBuilderBasicCmd(cmd)
 
 	return cc
-
 }
 
 func (n *newSiteCmd) doNewSite(fs *hugofs.Fs, basepath string, force bool) error {
@@ -94,7 +93,7 @@ func (n *newSiteCmd) doNewSite(fs *hugofs.Fs, basepath string, force bool) error
 	}
 
 	for _, dir := range dirs {
-		if err := fs.Source.MkdirAll(dir, 0777); err != nil {
+		if err := fs.Source.MkdirAll(dir, 0o777); err != nil {
 			return _errors.Wrap(err, "Failed to create dir")
 		}
 	}

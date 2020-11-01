@@ -243,7 +243,6 @@ func (p *pageState) RegularPages() page.Pages {
 		}
 
 		p.regularPages = pages
-
 	})
 
 	return p.regularPages
@@ -362,11 +361,9 @@ func (p *pageState) TranslationKey() string {
 		} else if p.IsNode() {
 			p.translationKey = path.Join(p.Kind(), p.SectionsPath())
 		}
-
 	})
 
 	return p.translationKey
-
 }
 
 // AllTranslations returns all translations, including the current Page.
@@ -477,7 +474,6 @@ func (p *pageState) getLayoutDescriptor() output.LayoutDescriptor {
 	})
 
 	return p.layoutDescriptor
-
 }
 
 func (p *pageState) resolveTemplate(layouts ...string) (tpl.Template, bool, error) {
@@ -508,7 +504,6 @@ func (p *pageState) initOutputFormat(isRenderingSite bool, idx int) error {
 	}
 
 	return nil
-
 }
 
 // Must be run after the site section tree etc. is built and ready.
@@ -554,7 +549,6 @@ func (p *pageState) renderResources() (err error) {
 		for _, i := range toBeDeleted {
 			p.deleteResource(i)
 		}
-
 	})
 
 	return
@@ -689,7 +683,6 @@ func (p *pageState) Render(layout ...string) (template.HTML, error) {
 		return "", p.wrapError(errors.Wrapf(err, "failed to execute template %q v", layout))
 	}
 	return template.HTML(res), nil
-
 }
 
 // wrapError adds some more context to the given error if possible/needed
@@ -722,7 +715,6 @@ func (p *pageState) getContentConverter() converter.Converter {
 			markup = "markdown"
 		}
 		p.m.contentConverter, err = p.m.newContentConverter(p, markup, p.m.renderingConfigOverrides)
-
 	})
 
 	if err != nil {
@@ -732,7 +724,6 @@ func (p *pageState) getContentConverter() converter.Converter {
 }
 
 func (p *pageState) mapContent(bucket *pagesMapBucket, meta *pageMeta) error {
-
 	s := p.shortcodeState
 
 	rn := &pageContentMap{
@@ -881,7 +872,7 @@ func (p *pageState) errorf(err error, format string, a ...interface{}) error {
 	args := append([]interface{}{p.Language().Lang, p.pathOrTitle()}, a...)
 	format = "[%s] page %q: " + format
 	if err == nil {
-		//errors.Errorf(format, args...)
+		// errors.Errorf(format, args...)
 		return fmt.Errorf(format, args...)
 	}
 	return errors.Wrapf(err, format, args...)
@@ -901,7 +892,6 @@ func (p *pageState) parseError(err error, input []byte, offset int) error {
 	}
 	pos := p.posFromInput(input, offset)
 	return herrors.NewFileError("md", -1, pos.LineNumber, pos.ColumnNumber, err)
-
 }
 
 func (p *pageState) pathOrTitle() string {
@@ -963,7 +953,6 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 	if isRenderingSite {
 		cp := p.pageOutput.cp
 		if cp == nil {
-
 			// Look for content to reuse.
 			for i := 0; i < len(p.pageOutputs); i++ {
 				if i == idx {

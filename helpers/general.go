@@ -162,7 +162,6 @@ func ReaderToString(lines io.Reader) (string, error) {
 
 // ReaderContains reports whether subslice is within r.
 func ReaderContains(r io.Reader, subslice []byte) bool {
-
 	if r == nil || len(subslice) == 0 {
 		return false
 	}
@@ -350,7 +349,6 @@ func InitLoggers() {
 func Deprecated(item, alternative string, err bool) {
 	if err {
 		DistinctErrorLog.Printf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
-
 	} else {
 		DistinctWarnLog.Printf("%s is deprecated and will be removed in a future release. %s", item, alternative)
 	}
@@ -462,7 +460,6 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 		fmt.Fprintf(w, "    %q %q\t\t%v\n", path, filename, meta)
 		return nil
 	})
-
 	if err != nil {
 		return err
 	}

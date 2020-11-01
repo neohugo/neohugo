@@ -115,7 +115,7 @@ TS: {{ template "print" $ts }}
 `)
 
 	jsDir := filepath.Join(workDir, "assets", "js")
-	b.Assert(os.MkdirAll(jsDir, 0777), qt.IsNil)
+	b.Assert(os.MkdirAll(jsDir, 0o777), qt.IsNil)
 	b.Assert(os.Chdir(workDir), qt.IsNil)
 	b.WithSourceFile("package.json", packageJSON)
 	b.WithSourceFile("assets/js/main.js", mainJS)
@@ -135,7 +135,6 @@ if (hasSpace.test(string))
 const React = __toModule(require(&#34;react&#34;));
 function greeter(person) {
 `)
-
 }
 
 func TestJSBuild(t *testing.T) {
@@ -185,7 +184,7 @@ JS:  {{ template "print" $js }}
 `)
 
 	jsDir := filepath.Join(workDir, "assets", "js")
-	b.Assert(os.MkdirAll(jsDir, 0777), qt.IsNil)
+	b.Assert(os.MkdirAll(jsDir, 0o777), qt.IsNil)
 	b.Assert(os.Chdir(workDir), qt.IsNil)
 	b.WithSourceFile("assets/js/main.js", mainJS)
 	b.WithSourceFile("assets/js/included.js", includedJS)
@@ -196,5 +195,4 @@ JS:  {{ template "print" $js }}
 console.log(&#34;included&#34;);
 
 `)
-
 }

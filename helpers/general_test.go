@@ -219,7 +219,6 @@ func TestGetTitleFunc(t *testing.T) {
 	c.Assert(GetTitleFunc("ap")(title), qt.Equals, "Somewhere Over the Rainbow")
 	c.Assert(GetTitleFunc("")(title), qt.Equals, "Somewhere Over the Rainbow")
 	c.Assert(GetTitleFunc("unknown")(title), qt.Equals, "Somewhere Over the Rainbow")
-
 }
 
 func BenchmarkReaderContains(b *testing.B) {
@@ -272,19 +271,19 @@ func TestFindAvailablePort(t *testing.T) {
 func TestFastMD5FromFile(t *testing.T) {
 	fs := afero.NewMemMapFs()
 
-	if err := afero.WriteFile(fs, "small.txt", []byte("abc"), 0777); err != nil {
+	if err := afero.WriteFile(fs, "small.txt", []byte("abc"), 0o777); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := afero.WriteFile(fs, "small2.txt", []byte("abd"), 0777); err != nil {
+	if err := afero.WriteFile(fs, "small2.txt", []byte("abd"), 0o777); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := afero.WriteFile(fs, "bigger.txt", []byte(strings.Repeat("a bc d e", 100)), 0777); err != nil {
+	if err := afero.WriteFile(fs, "bigger.txt", []byte(strings.Repeat("a bc d e", 100)), 0o777); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := afero.WriteFile(fs, "bigger2.txt", []byte(strings.Repeat("c d e f g", 100)), 0777); err != nil {
+	if err := afero.WriteFile(fs, "bigger2.txt", []byte(strings.Repeat("c d e f g", 100)), 0o777); err != nil {
 		t.Fatal(err)
 	}
 
@@ -333,7 +332,7 @@ func BenchmarkMD5FromFileFast(b *testing.B) {
 		b.Run(fmt.Sprintf("full=%t", full), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				b.StopTimer()
-				if err := afero.WriteFile(fs, "file.txt", []byte(strings.Repeat("1234567890", 2000)), 0777); err != nil {
+				if err := afero.WriteFile(fs, "file.txt", []byte(strings.Repeat("1234567890", 2000)), 0o777); err != nil {
 					b.Fatal(err)
 				}
 				f, err := fs.Open("file.txt")
@@ -354,7 +353,6 @@ func BenchmarkMD5FromFileFast(b *testing.B) {
 			}
 		})
 	}
-
 }
 
 func BenchmarkUniqueStrings(b *testing.B) {
@@ -406,7 +404,6 @@ func BenchmarkUniqueStrings(b *testing.B) {
 			}
 		}
 	})
-
 }
 
 func TestHashString(t *testing.T) {

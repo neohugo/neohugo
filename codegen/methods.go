@@ -58,7 +58,7 @@ func (c *Inspector) MethodsFromTypes(include []reflect.Type, exclude []reflect.T
 
 	var methods Methods
 
-	var excludes = make(map[string]bool)
+	excludes := make(map[string]bool)
 
 	if len(exclude) > 0 {
 		for _, m := range c.MethodsFromTypes(exclude, nil) {
@@ -99,11 +99,9 @@ func (c *Inspector) MethodsFromTypes(include []reflect.Type, exclude []reflect.T
 		name = pkgPrefix + name
 
 		return name, pkg
-
 	}
 
 	for _, t := range include {
-
 		for i := 0; i < t.NumMethod(); i++ {
 
 			m := t.Method(i)
@@ -153,7 +151,6 @@ func (c *Inspector) MethodsFromTypes(include []reflect.Type, exclude []reflect.T
 
 			methods = append(methods, method)
 		}
-
 	}
 
 	sort.SliceStable(methods, func(i, j int) bool {
@@ -167,16 +164,13 @@ func (c *Inspector) MethodsFromTypes(include []reflect.Type, exclude []reflect.T
 		}
 
 		return wi < wj
-
 	})
 
 	return methods
-
 }
 
 func (c *Inspector) parseSource() {
 	c.init.Do(func() {
-
 		if !strings.Contains(c.ProjectRootDir, "hugo") {
 			panic("dir must be set to the Hugo root")
 		}
@@ -200,7 +194,6 @@ func (c *Inspector) parseSource() {
 			filenames = append(filenames, path)
 
 			return nil
-
 		})
 		if err != nil {
 			panic(err)
@@ -233,7 +226,6 @@ func (c *Inspector) parseSource() {
 							c.methodWeight[iface] = weights
 						}
 					}
-
 				}
 				return true
 			})
@@ -250,7 +242,6 @@ func (c *Inspector) parseSource() {
 				}
 			}
 		}
-
 	})
 }
 
@@ -388,7 +379,7 @@ func (m Methods) ToMarshalJSON(receiver, pkgPath string, excludes ...string) (st
 	fmt.Fprintf(&sb, "func Marshal%sToJSON(%s %s) ([]byte, error) {\n", what, r, receiver)
 
 	var methods Methods
-	var excludeRes = make([]*regexp.Regexp, len(excludes))
+	excludeRes := make([]*regexp.Regexp, len(excludes))
 
 	for i, exclude := range excludes {
 		excludeRes[i] = regexp.MustCompile(exclude)
@@ -453,7 +444,6 @@ func (m Methods) ToMarshalJSON(receiver, pkgPath string, excludes ...string) (st
 	}
 
 	return sb.String(), pkgImports
-
 }
 
 func collectMethodsRecursive(pkg string, f []*ast.Field) []string {
@@ -484,7 +474,6 @@ func collectMethodsRecursive(pkg string, f []*ast.Field) []string {
 	}
 
 	return methodNames
-
 }
 
 func firstToLower(name string) string {
@@ -547,5 +536,4 @@ func varName(name string) string {
 	}
 
 	return name
-
 }

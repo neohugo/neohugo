@@ -50,7 +50,6 @@ import (
 // Build builds all sites. If filesystem events are provided,
 // this is considered to be a potential partial rebuild.
 func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
-
 	if h.running {
 		// Make sure we don't trigger rebuilds in parallel.
 		h.runningMu.Lock()
@@ -76,7 +75,6 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		to <- h.pickOneAndLogTheRest(errors)
 
 		close(to)
-
 	}(errCollector, errs)
 
 	if h.Metrics != nil {
@@ -192,7 +190,6 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 	}
 
 	return nil
-
 }
 
 // Build lifecycle methods below.
@@ -248,11 +245,9 @@ func (h *HugoSites) process(config *BuildCfg, init func(config *BuildCfg) error,
 	}
 
 	return firstSite.process(*config)
-
 }
 
 func (h *HugoSites) assemble(bcfg *BuildCfg) error {
-
 	if len(h.Sites) > 1 {
 		// The first is initialized during process; initialize the rest
 		for _, site := range h.Sites[1:] {
@@ -275,7 +270,6 @@ func (h *HugoSites) assemble(bcfg *BuildCfg) error {
 	}
 
 	return nil
-
 }
 
 func (h *HugoSites) render(config *BuildCfg) error {
@@ -334,7 +328,6 @@ func (h *HugoSites) render(config *BuildCfg) error {
 			}
 
 		}
-
 	}
 
 	if !config.SkipRender {
@@ -371,7 +364,6 @@ func (h *HugoSites) postProcess() error {
 	g, _ := workers.Start(context.Background())
 
 	handleFile := func(filename string) error {
-
 		content, err := afero.ReadFile(h.BaseFs.PublishFs, filename)
 		if err != nil {
 			return err
@@ -410,11 +402,10 @@ func (h *HugoSites) postProcess() error {
 		}
 
 		if changed {
-			return afero.WriteFile(h.BaseFs.PublishFs, filename, content, 0666)
+			return afero.WriteFile(h.BaseFs.PublishFs, filename, content, 0o666)
 		}
 
 		return nil
-
 	}
 
 	_ = afero.Walk(h.BaseFs.PublishFs, "", func(path string, info os.FileInfo, err error) error {
@@ -439,7 +430,6 @@ func (h *HugoSites) postProcess() error {
 	}
 
 	return g.Wait()
-
 }
 
 func (h *HugoSites) writeBuildStats() error {
@@ -467,17 +457,16 @@ func (h *HugoSites) writeBuildStats() error {
 	filename := filepath.Join(h.WorkingDir, "hugo_stats.json")
 
 	// Make sure it's always written to the OS fs.
-	if err := afero.WriteFile(hugofs.Os, filename, js, 0666); err != nil {
+	if err := afero.WriteFile(hugofs.Os, filename, js, 0o666); err != nil {
 		return err
 	}
 
 	// Write to the destination, too, if a mem fs is in play.
 	if h.Fs.Source != hugofs.Os {
-		if err := afero.WriteFile(h.Fs.Destination, filename, js, 0666); err != nil {
+		if err := afero.WriteFile(h.Fs.Destination, filename, js, 0o666); err != nil {
 			return err
 		}
 	}
 
 	return nil
-
 }

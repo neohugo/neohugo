@@ -167,7 +167,6 @@ func newTemplateExec(d *deps.Deps) (*templateExec, error) {
 	if d.WithTemplate != nil {
 		if err := d.WithTemplate(e); err != nil {
 			return nil, err
-
 		}
 	}
 
@@ -246,7 +245,6 @@ func (t *templateExec) MarkReady() error {
 	})
 
 	return err
-
 }
 
 type templateHandler struct {
@@ -345,7 +343,6 @@ func (t *templateHandler) LookupVariant(name string, variants tpl.TemplateVarian
 	more := len(s.variants) > 1
 
 	return sv.ts, true, more
-
 }
 
 // LookupVariants returns all variants of name, nil if none found.
@@ -362,11 +359,9 @@ func (t *templateHandler) LookupVariants(name string) []tpl.Template {
 	}
 
 	return variants
-
 }
 
 func (t *templateHandler) HasTemplate(name string) bool {
-
 	if _, found := t.baseof[name]; found {
 		return true
 	}
@@ -503,7 +498,6 @@ func (t *templateHandler) addFileContext(templ tpl.Template, inerr error) error 
 	err, _ := checkFilename(ts.baseInfo, inerr)
 
 	return err
-
 }
 
 func (t *templateHandler) addShortcodeVariant(ts *templateState) {
@@ -589,7 +583,6 @@ func (t *templateHandler) addTemplateFile(name, path string) error {
 	}
 
 	return nil
-
 }
 
 func (t *templateHandler) addTemplateTo(info templateInfo, to *templateNamespace) (*templateState, error) {
@@ -721,7 +714,6 @@ func (t *templateHandler) loadTemplates() error {
 	}
 
 	return nil
-
 }
 
 func (t *templateHandler) nameIsText(name string) (string, bool) {
@@ -768,7 +760,6 @@ func (t *templateHandler) extractPartials(templ tpl.Template) error {
 	}
 
 	return nil
-
 }
 
 func (t *templateHandler) postTransform() error {
@@ -879,7 +870,6 @@ func (t *templateNamespace) newTemplateLookup(in *templateState) func(name strin
 			return newTemplateState(templ, templateInfo{name: templ.Name()})
 		}
 		return nil
-
 	}
 }
 
@@ -938,7 +928,6 @@ func (t *templateState) isText() bool {
 func isText(templ tpl.Template) bool {
 	_, isText := templ.(*texttemplate.Template)
 	return isText
-
 }
 
 type templateStateMap struct {
@@ -1009,7 +998,6 @@ func removeLeadingBOM(s string) string {
 	}
 
 	return s
-
 }
 
 // resolves _internal/shortcodes/param.html => param.html etc.
@@ -1021,7 +1009,6 @@ func templateBaseName(typ templateType, name string) string {
 	default:
 		panic("not implemented")
 	}
-
 }
 
 func unwrap(templ tpl.Template) tpl.Template {
@@ -1047,5 +1034,4 @@ func templates(in tpl.Template) []tpl.Template {
 	}
 
 	return templs
-
 }

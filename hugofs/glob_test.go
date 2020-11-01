@@ -28,7 +28,7 @@ func TestGlob(t *testing.T) {
 	fs := NewBaseFileDecorator(afero.NewMemMapFs())
 
 	create := func(filename string) {
-		err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte("content "+filename), 0777)
+		err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte("content "+filename), 0o777)
 		c.Assert(err, qt.IsNil)
 	}
 
@@ -57,5 +57,4 @@ func TestGlob(t *testing.T) {
 	c.Assert(collect("*.json"), qt.HasLen, 1)
 	c.Assert(collect("**.xml"), qt.HasLen, 1)
 	c.Assert(collect(filepath.FromSlash("/jsonfiles/*.json")), qt.HasLen, 2)
-
 }

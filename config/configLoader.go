@@ -88,7 +88,6 @@ func readConfig(format metadecoders.Format, data []byte) (map[string]interface{}
 	RenameKeys(m)
 
 	return m, nil
-
 }
 
 func loadConfigFromFile(fs afero.Fs, filename string) (map[string]interface{}, error) {

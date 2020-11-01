@@ -45,7 +45,7 @@ func (b *testdataBuilder) Add(filename, content string) *testdataBuilder {
 
 func (b *testdataBuilder) Build() *testdataBuilder {
 	for _, f := range b.files {
-		if err := afero.WriteFile(b.fs, filepath.Join(b.workingDir, f.name), []byte(f.content), 0666); err != nil {
+		if err := afero.WriteFile(b.fs, filepath.Join(b.workingDir, f.name), []byte(f.content), 0o666); err != nil {
 			b.t.Fatalf("failed to add %q: %s", f.name, err)
 		}
 	}

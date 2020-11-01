@@ -45,7 +45,6 @@ const (
 )
 
 func Pack(fs afero.Fs, fis []hugofs.FileMetaInfo) error {
-
 	var b *packageBuilder
 
 	// Have a package.hugo.json?
@@ -68,7 +67,7 @@ func Pack(fs afero.Fs, fis []hugofs.FileMetaInfo) error {
 				name = rfi.Name()
 			}
 			packageJSONContent := fmt.Sprintf(packageJSONTemplate, name, "0.1.0")
-			if err = afero.WriteFile(fs, files.FilenamePackageHugoJSON, []byte(packageJSONContent), 0666); err != nil {
+			if err = afero.WriteFile(fs, files.FilenamePackageHugoJSON, []byte(packageJSONContent), 0o666); err != nil {
 				return err
 			}
 			fi, err = fs.Stat(files.FilenamePackageHugoJSON)
@@ -135,12 +134,11 @@ func Pack(fs afero.Fs, fis []hugofs.FileMetaInfo) error {
 		return errors.Wrap(err, "npm pack: failed to marshal JSON")
 	}
 
-	if err := afero.WriteFile(fs, packageJSONName, packageJSONData, 0666); err != nil {
+	if err := afero.WriteFile(fs, packageJSONName, packageJSONData, 0o666); err != nil {
 		return errors.Wrap(err, "npm pack: failed to write package.json")
 	}
 
 	return nil
-
 }
 
 func newPackageBuilder(source string, first io.Reader) *packageBuilder {
@@ -220,7 +218,6 @@ func (b *packageBuilder) addm(source string, m map[string]interface{}) {
 			}
 		}
 	}
-
 }
 
 func (b *packageBuilder) unmarshal(r io.Reader) map[string]interface{} {

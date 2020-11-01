@@ -109,5 +109,4 @@ dir = ":resourceDir/_gen"
 		}
 
 	}
-
 }

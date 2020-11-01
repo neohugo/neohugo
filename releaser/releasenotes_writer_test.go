@@ -42,5 +42,4 @@ func _TestReleaseNotesWriter(t *testing.T) {
 	c.Assert(writeReleaseNotes("0.21", infos, infos, &b), qt.IsNil)
 
 	fmt.Println(b.String())
-
 }

@@ -35,7 +35,6 @@ import (
 )
 
 func TestExecute(t *testing.T) {
-
 	c := qt.New(t)
 
 	createSite := func(c *qt.C) (string, func()) {
@@ -124,7 +123,6 @@ func TestExecute(t *testing.T) {
 		c.Assert(config, qt.Contains, "baseURL = \"http://example.org/\"")
 		checkNewSiteInited(c, siteDir)
 	})
-
 }
 
 func checkNewSiteInited(c *qt.C, basepath string) {
@@ -185,7 +183,8 @@ func TestFlags(t *testing.T) {
 		},
 		{
 			name: "Persistent flags",
-			args: []string{"server",
+			args: []string{
+				"server",
 				"--config=myconfig.toml",
 				"--configDir=myconfigdir",
 				"--contentDir=mycontent",
@@ -235,12 +234,12 @@ func TestFlags(t *testing.T) {
 
 				// The flag is named i18n-warnings
 				c.Assert(cfg.GetBool("logI18nWarnings"), qt.Equals, true)
-
-			}}}
+			},
+		},
+	}
 
 	for _, test := range tests {
 		c.Run(test.name, func(c *qt.C) {
-
 			b := newCommandsBuilder()
 			root := b.addAll().build()
 
@@ -257,7 +256,6 @@ func TestFlags(t *testing.T) {
 			test.check(c, b.commands[0].(*serverCmd))
 		})
 	}
-
 }
 
 func TestCommandsExecute(t *testing.T) {
@@ -329,7 +327,6 @@ func TestCommandsExecute(t *testing.T) {
 		}
 
 	}
-
 }
 
 type testSiteConfig struct {
@@ -361,7 +358,7 @@ title = "Hugo Commands"
 		contentDir = cfg.contentDir
 	}
 
-	c.Assert(os.MkdirAll(filepath.Join(d, "public"), 0777), qt.IsNil)
+	c.Assert(os.MkdirAll(filepath.Join(d, "public"), 0o777), qt.IsNil)
 
 	// Just the basic. These are for CLI tests, not site testing.
 	writeFile(t, filepath.Join(d, "config.toml"), cfgStr)
@@ -399,12 +396,11 @@ Environment: {{ hugo.Environment }}
 `)
 
 	return d, clean, nil
-
 }
 
 func writeFile(t *testing.T, filename, content string) {
-	must(t, os.MkdirAll(filepath.Dir(filename), os.FileMode(0755)))
-	must(t, ioutil.WriteFile(filename, []byte(content), os.FileMode(0755)))
+	must(t, os.MkdirAll(filepath.Dir(filename), os.FileMode(0o755)))
+	must(t, ioutil.WriteFile(filename, []byte(content), os.FileMode(0o755)))
 }
 
 func must(t *testing.T, err error) {

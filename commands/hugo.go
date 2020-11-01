@@ -19,10 +19,16 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/signal"
+	"path/filepath"
+	"runtime"
 	"runtime/pprof"
 	"runtime/trace"
+	"strings"
 	"sync/atomic"
+	"syscall"
+	"time"
 
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -34,17 +40,9 @@ import (
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/terminal"
 
-	"syscall"
-
 	"github.com/neohugo/neohugo/hugolib/filesystems"
 
 	"golang.org/x/sync/errgroup"
-
-	"os"
-	"path/filepath"
-	"runtime"
-	"strings"
-	"time"
 
 	"github.com/neohugo/neohugo/config"
 
@@ -82,7 +80,6 @@ func (r Response) IsUserError() bool {
 // Execute adds all child commands to the root command HugoCmd and sets flags appropriately.
 // The args are usually filled with os.Args[1:].
 func Execute(args []string) Response {
-
 	hugoCmd := newCommandsBuilder().addAll().build()
 	cmd := hugoCmd.getCommand()
 	cmd.SetArgs(args)
@@ -120,14 +117,12 @@ func initializeConfig(mustHaveConfigFile, running bool,
 	h *hugoBuilderCommon,
 	f flagsToConfigHandler,
 	cfgInit func(c *commandeer) error) (*commandeer, error) {
-
 	c, err := newCommandeer(mustHaveConfigFile, running, h, f, cfgInit)
 	if err != nil {
 		return nil, err
 	}
 
 	return c, nil
-
 }
 
 func (c *commandeer) createLogger(cfg config.Provider, running bool) (loggers.Logger, error) {
@@ -146,7 +141,7 @@ func (c *commandeer) createLogger(cfg config.Provider, running bool) (loggers.Lo
 	if c.h.verboseLog || c.h.logging || (c.h.logFile != "") {
 		var err error
 		if logFile != "" {
-			logHandle, err = os.OpenFile(logFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0666)
+			logHandle, err = os.OpenFile(logFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
 			if err != nil {
 				return nil, newSystemError("Failed to open log file:", logFile, err)
 			}
@@ -246,7 +241,6 @@ func initializeFlags(cmd *cobra.Command, cfg config.Provider) {
 	setValueFromFlag(cmd.Flags(), "destination", cfg, "publishDir", false)
 	setValueFromFlag(cmd.Flags(), "i18n-warnings", cfg, "logI18nWarnings", false)
 	setValueFromFlag(cmd.Flags(), "path-warnings", cfg, "logPathWarnings", false)
-
 }
 
 func setValueFromFlag(flags *flag.FlagSet, key string, cfg config.Provider, targetKey string, force bool) {
@@ -282,7 +276,6 @@ func isTerminal() bool {
 }
 
 func (c *commandeer) fullBuild() error {
-
 	var (
 		g         errgroup.Group
 		langCount map[string]uint64
@@ -298,7 +291,6 @@ func (c *commandeer) fullBuild() error {
 	}
 
 	copyStaticFunc := func() error {
-
 		cnt, err := c.copyStatic()
 		if err != nil {
 			return errors.Wrap(err, "Error copying static files")
@@ -346,7 +338,6 @@ func (c *commandeer) fullBuild() error {
 	}
 
 	return nil
-
 }
 
 func (c *commandeer) initCPUProfile() (func(), error) {
@@ -420,7 +411,6 @@ func (c *commandeer) initMutexProfile() (func(), error) {
 		pprof.Lookup("mutex").WriteTo(f, 0)
 		f.Close()
 	}, nil
-
 }
 
 func (c *commandeer) initMemTicker() func() {
@@ -430,7 +420,6 @@ func (c *commandeer) initMemTicker() func() {
 		var m runtime.MemStats
 		runtime.ReadMemStats(&m)
 		fmt.Printf("\n\nAlloc = %v\nTotalAlloc = %v\nSys = %v\nNumGC = %v\n\n", formatByteCount(m.Alloc), formatByteCount(m.TotalAlloc), formatByteCount(m.Sys), m.NumGC)
-
 	}
 
 	go func() {
@@ -443,7 +432,6 @@ func (c *commandeer) initMemTicker() func() {
 				printMem()
 				return
 			}
-
 		}
 	}()
 
@@ -453,7 +441,6 @@ func (c *commandeer) initMemTicker() func() {
 }
 
 func (c *commandeer) initProfiling() (func(), error) {
-
 	stopCPUProf, err := c.initCPUProfile()
 	if err != nil {
 		return nil, err
@@ -539,7 +526,7 @@ func (c *commandeer) build() error {
 		checkErr(c.Logger, err)
 		defer watcher.Close()
 
-		var sigs = make(chan os.Signal, 1)
+		sigs := make(chan os.Signal, 1)
 		signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
 		<-sigs
@@ -585,7 +572,6 @@ func (c *commandeer) copyStatic() (map[string]uint64, error) {
 }
 
 func (c *commandeer) doWithPublishDirs(f func(sourceFs *filesystems.SourceFilesystem) (uint64, error)) (map[string]uint64, error) {
-
 	langCount := make(map[string]uint64)
 
 	staticFilesystems := c.hugo().BaseFs.SourceFilesystems.Static
@@ -713,7 +699,6 @@ func (c *commandeer) getDirList() ([]string, error) {
 		}
 
 		return nil
-
 	}
 
 	watchFiles := c.hugo().PathSpec.BaseFs.WatchDirs()
@@ -754,7 +739,6 @@ func (c *commandeer) rebuildSites(events []fsnotify.Event) error {
 	c.buildErr = nil
 	visited := c.visitedURLs.PeekAllSet()
 	if c.fastRenderMode {
-
 		// Make sure we always render the home pages
 		for _, l := range c.languages {
 			langPath := c.hugo().PathSpec.GetLangSubDir(l.Lang)
@@ -764,7 +748,6 @@ func (c *commandeer) rebuildSites(events []fsnotify.Event) error {
 			home := c.hugo().PathSpec.PrependBasePath("/"+langPath, false)
 			visited[home] = true
 		}
-
 	}
 	return c.hugo().Build(hugolib.BuildCfg{RecentlyVisited: visited, ErrRecovery: c.wasError}, events...)
 }
@@ -797,13 +780,11 @@ func (c *commandeer) fullRebuild(changeType string) {
 	}
 
 	go func() {
-
 		defer c.fullRebuildSem.Release(1)
 
 		c.printChangeDetected(changeType)
 
 		defer func() {
-
 			// Allow any file system events to arrive back.
 			// This will block any rebuild on config changes for the
 			// duration of the sleep.
@@ -852,7 +833,6 @@ func (c *commandeer) newWatcher(dirList ...string) (*watcher.Batcher, error) {
 	}
 
 	watcher, err := watcher.New(1 * time.Second)
-
 	if err != nil {
 		return nil, err
 	}
@@ -915,7 +895,6 @@ func (c *commandeer) handleEvents(watcher *watcher.Batcher,
 	staticSyncer *staticSyncer,
 	evs []fsnotify.Event,
 	configSet map[string]bool) {
-
 	defer func() {
 		c.wasError = false
 	}()
@@ -956,7 +935,6 @@ func (c *commandeer) handleEvents(watcher *watcher.Batcher,
 						time.Sleep(100 * time.Millisecond)
 					}
 				}
-
 			}
 
 			// Config file(s) changed. Need full rebuild.
@@ -1198,7 +1176,6 @@ func partitionDynamicEvents(sourceFs *filesystems.SourceFilesystems, events []fs
 		}
 	}
 	return
-
 }
 
 func pickOneWriteOrCreatePath(events []fsnotify.Event) string {

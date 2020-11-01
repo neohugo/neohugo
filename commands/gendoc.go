@@ -62,7 +62,7 @@ for rendering in Hugo.`,
 			}
 			if found, _ := helpers.Exists(cc.gendocdir, hugofs.Os); !found {
 				jww.FEEDBACK.Println("Directory", cc.gendocdir, "does not exist, creating...")
-				if err := hugofs.Os.MkdirAll(cc.gendocdir, 0777); err != nil {
+				if err := hugofs.Os.MkdirAll(cc.gendocdir, 0o777); err != nil {
 					return err
 				}
 			}

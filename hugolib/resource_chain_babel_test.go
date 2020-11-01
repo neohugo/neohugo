@@ -47,7 +47,6 @@ func TestResourceChainBabel(t *testing.T) {
 	wd, err := os.Getwd()
 	c.Assert(err, qt.IsNil)
 	defer func() {
-
 		c.Assert(os.Chdir(wd), qt.IsNil)
 	}()
 
@@ -106,7 +105,7 @@ Transpiled: {{ $transpiled.Content | safeJS }}
 `)
 
 	jsDir := filepath.Join(workDir, "assets", "js")
-	b.Assert(os.MkdirAll(jsDir, 0777), qt.IsNil)
+	b.Assert(os.MkdirAll(jsDir, 0o777), qt.IsNil)
 	b.WithSourceFile("assets/js/main.js", js)
 	b.WithSourceFile("package.json", packageJSON)
 	b.WithSourceFile("babel.config.js", babelConfig)
@@ -128,5 +127,4 @@ var Car = function Car(brand) {
  this.carname = brand;
 };
 `)
-
 }

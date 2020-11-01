@@ -36,9 +36,9 @@ func TestReadFile(t *testing.T) {
 	// f := newTestFuncsterWithViper(v)
 	ns := New(&deps.Deps{Fs: hugofs.NewMem(v)})
 
-	err := afero.WriteFile(ns.deps.Fs.Source, filepath.Join(workingDir, "/f/f1.txt"), []byte("f1-content"), 0755)
+	err := afero.WriteFile(ns.deps.Fs.Source, filepath.Join(workingDir, "/f/f1.txt"), []byte("f1-content"), 0o755)
 	c.Assert(err, qt.IsNil)
-	err = afero.WriteFile(ns.deps.Fs.Source, filepath.Join("/home", "f2.txt"), []byte("f2-content"), 0755)
+	err = afero.WriteFile(ns.deps.Fs.Source, filepath.Join("/home", "f2.txt"), []byte("f2-content"), 0o755)
 	c.Assert(err, qt.IsNil)
 
 	for _, test := range []struct {
@@ -75,9 +75,9 @@ func TestFileExists(t *testing.T) {
 
 	ns := New(&deps.Deps{Fs: hugofs.NewMem(v)})
 
-	err := afero.WriteFile(ns.deps.Fs.Source, filepath.Join(workingDir, "/f/f1.txt"), []byte("f1-content"), 0755)
+	err := afero.WriteFile(ns.deps.Fs.Source, filepath.Join(workingDir, "/f/f1.txt"), []byte("f1-content"), 0o755)
 	c.Assert(err, qt.IsNil)
-	err = afero.WriteFile(ns.deps.Fs.Source, filepath.Join("/home", "f2.txt"), []byte("f2-content"), 0755)
+	err = afero.WriteFile(ns.deps.Fs.Source, filepath.Join("/home", "f2.txt"), []byte("f2-content"), 0o755)
 	c.Assert(err, qt.IsNil)
 
 	for _, test := range []struct {
@@ -112,7 +112,7 @@ func TestStat(t *testing.T) {
 
 	ns := New(&deps.Deps{Fs: hugofs.NewMem(v)})
 
-	err := afero.WriteFile(ns.deps.Fs.Source, filepath.Join(workingDir, "/f/f1.txt"), []byte("f1-content"), 0755)
+	err := afero.WriteFile(ns.deps.Fs.Source, filepath.Join(workingDir, "/f/f1.txt"), []byte("f1-content"), 0o755)
 	c.Assert(err, qt.IsNil)
 
 	for _, test := range []struct {

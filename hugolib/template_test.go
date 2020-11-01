@@ -50,7 +50,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 			func(t *testing.T) {
 				writeSource(t, fs, filepath.Join("layouts", "section", "sect1-baseof.html"), `Base: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "section", "sect1.html"), `{{define "main"}}sect{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base: sect")
@@ -61,7 +60,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 			func(t *testing.T) {
 				writeSource(t, fs, filepath.Join("layouts", "baseof.html"), `Base: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "index.html"), `{{define "main"}}index{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "index.html"), "Base: index")
@@ -72,7 +70,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 			func(t *testing.T) {
 				writeSource(t, fs, filepath.Join("layouts", "_default", "list-baseof.html"), `Base: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "_default", "list.html"), `{{define "main"}}list{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base: list")
@@ -83,7 +80,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 			func(t *testing.T) {
 				writeSource(t, fs, filepath.Join("layouts", "_default", "baseof.html"), `Base: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "_default", "list.html"), `{{define "main"}}list{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base: list")
@@ -96,7 +92,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 				writeSource(t, fs, filepath.Join("layouts", "section", "sect1-baseof.html"), `Base: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "section", "sect-baseof.html"), `Base Theme: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "section", "sect1.html"), `{{define "main"}}sect{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base: sect")
@@ -108,7 +103,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 				cfg.Set("theme", "mytheme")
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "section", "sect1-baseof.html"), `Base Theme: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "section", "sect1.html"), `{{define "main"}}sect{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base Theme: sect")
@@ -122,7 +116,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "_default", "baseof.html"), `Base Theme: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "_default", "list.html"), `{{define "main"}}list{{ end }}`)
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "index.html"), `{{define "main"}}index{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base: list")
@@ -135,7 +128,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 				cfg.Set("theme", "mytheme")
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "_default", "baseof.html"), `Base Theme: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "_default", "list.html"), `{{define "main"}}list{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base Theme: list")
@@ -157,7 +149,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 
 				// sect2 with list template in /section
 				writeSource(t, fs, filepath.Join("themes", "mytheme", "layouts", "section", "sect2.html"), `sect2 list`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "sect list")
@@ -169,7 +160,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 			// Issue #2995
 			"Test section list and single template selection with base template",
 			func(t *testing.T) {
-
 				writeSource(t, fs, filepath.Join("layouts", "_default", "baseof.html"), `Base Default: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "sect1", "baseof.html"), `Base Sect1: {{block "main" .}}block{{end}}`)
 				writeSource(t, fs, filepath.Join("layouts", "section", "sect2-baseof.html"), `Base Sect2: {{block "main" .}}block{{end}}`)
@@ -182,7 +172,6 @@ func TestTemplateLookupOrder(t *testing.T) {
 
 				// sect2 with list template in /section
 				writeSource(t, fs, filepath.Join("layouts", "section", "sect2.html"), `{{define "main"}}sect2 list{{ end }}`)
-
 			},
 			func(t *testing.T) {
 				th.assertFileContent(filepath.Join("public", "sect1", "index.html"), "Base Sect1", "sect1 list")
@@ -213,7 +202,7 @@ Some content
 			this.setup(t)
 
 			buildSingleSite(t, deps.DepsCfg{Fs: fs, Cfg: cfg}, BuildCfg{})
-			//helpers.PrintFs(s.BaseFs.Layouts.Fs, "", os.Stdout)
+			// helpers.PrintFs(s.BaseFs.Layouts.Fs, "", os.Stdout)
 			this.assert(t)
 		})
 
@@ -222,7 +211,6 @@ Some content
 
 // https://github.com/neohugo/neohugo/issues/4895
 func TestTemplateBOM(t *testing.T) {
-
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 	bom := "\ufeff"
 
@@ -241,7 +229,6 @@ Page Content
 	b.CreateSites().Build(BuildCfg{})
 
 	b.AssertFileContent("public/page/index.html", "Base: Hi!?")
-
 }
 
 func TestTemplateManyBaseTemplates(t *testing.T) {
@@ -277,7 +264,6 @@ Base %d: {{ block "main" . }}FOO{{ end }}
 		id := i + 1
 		b.AssertFileContent(fmt.Sprintf("public/page%d/index.html", id), fmt.Sprintf(`Base %d: %d`, id, id))
 	}
-
 }
 
 // https://github.com/neohugo/neohugo/issues/6790
@@ -314,7 +300,6 @@ title: The Page
 
 	b.AssertFileContent("public/blog/p1/index.html", `single`)
 	b.AssertFileContent("public/blog/index.html", `list`)
-
 }
 
 // https://github.com/neohugo/neohugo/issues/6816
@@ -335,7 +320,6 @@ func TestTemplateBaseWithComment(t *testing.T) {
 	b.Build(BuildCfg{})
 	b.AssertFileContent("public/index.html", `Base:
 Bonjour`)
-
 }
 
 func TestTemplateLookupSite(t *testing.T) {
@@ -388,13 +372,10 @@ title: My Page
 		b.AssertFileContent("public/fr/index.html", `Baseof fr: Main Home Fr`)
 		b.AssertFileContent("public/en/mysection/index.html", `Baseof mysection: Main Default List`)
 		b.AssertFileContent("public/en/mysection/p1/index.html", `Baseof mysection: Main Default Single`)
-
 	})
-
 }
 
 func TestTemplateFuncs(t *testing.T) {
-
 	b := newTestSitesBuilder(t).WithDefaultMultiSiteConfig()
 
 	homeTpl := `Site: {{ site.Language.Lang }} / {{ .Site.Language.Lang }} / {{ site.BaseURL }}
@@ -418,11 +399,9 @@ Hugo: {{ hugo.Generator }}
 		"Sites: en",
 		"Hugo: <meta name=\"generator\" content=\"Hugo",
 	)
-
 }
 
 func TestPartialWithReturn(t *testing.T) {
-
 	c := qt.New(t)
 
 	newBuilder := func(t testing.TB) *sitesBuilder {
@@ -449,7 +428,6 @@ func TestPartialWithReturn(t *testing.T) {
 		)
 
 		return b
-
 	}
 
 	c.Run("Return", func(c *qt.C) {
@@ -477,7 +455,6 @@ adder: 70: 70
 complex: 80: 80
 `,
 		)
-
 	})
 
 	c.Run("Zero argument", func(c *qt.C) {
@@ -494,9 +471,7 @@ add42: fail: {{ partial "add42.tpl" 0 }}
 
 		e := b.CreateSites().BuildE(BuildCfg{})
 		b.Assert(e, qt.Not(qt.IsNil))
-
 	})
-
 }
 
 func TestPartialCached(t *testing.T) {
@@ -599,7 +574,6 @@ title: P1
 	idset := make(map[identity.Identity]bool)
 	collectIdentities(idset, templ.(tpl.Info))
 	b.Assert(idset, qt.HasLen, 11)
-
 }
 
 func TestTemplateGoIssues(t *testing.T) {
@@ -635,7 +609,6 @@ func collectIdentities(set map[identity.Identity]bool, provider identity.Provide
 //}
 
 func TestPartialInline(t *testing.T) {
-
 	b := newTestSitesBuilder(t)
 
 	b.WithContent("p1.md", "")
@@ -667,11 +640,9 @@ P2: {{ $p2 }}
 P1: Inline: p1
 P2: 32`,
 	)
-
 }
 
 func TestPartialInlineBase(t *testing.T) {
-
 	b := newTestSitesBuilder(t)
 
 	b.WithContent("p1.md", "")
@@ -711,12 +682,10 @@ P2: 32
 P3: Inline: p3
 `,
 	)
-
 }
 
 // https://github.com/neohugo/neohugo/issues/7478
 func TestBaseWithAndWithoutDefine(t *testing.T) {
-
 	b := newTestSitesBuilder(t)
 
 	b.WithContent("p1.md", "---\ntitle: P\n---\nContent")
@@ -754,5 +723,4 @@ This is home main
 This is single main
 `,
 	)
-
 }

@@ -19,14 +19,14 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
-func TestGitInfos(t *testing.T) {
-	c := qt.New(t)
-	skipIfCI(t)
-	infos, err := getGitInfos("v0.20", "hugo", "", false)
+// func TestGitInfos(t *testing.T) {
+// c := qt.New(t)
+// skipIfCI(t)
+// infos, err := getGitInfos("v0.0.1-rc1", "neohugo", "", false)
 
-	c.Assert(err, qt.IsNil)
-	c.Assert(len(infos) > 0, qt.Equals, true)
-}
+//c.Assert(err, qt.IsNil)
+//c.Assert(len(infos) > 0, qt.Equals, true)
+//}
 
 func TestIssuesRe(t *testing.T) {
 	c := qt.New(t)
@@ -45,34 +45,32 @@ See #456
 	c.Assert(len(issues), qt.Equals, 4)
 	c.Assert(issues[0], qt.Equals, 123)
 	c.Assert(issues[2], qt.Equals, 543)
-
 }
 
-func TestGitVersionTagBefore(t *testing.T) {
-	skipIfCI(t)
-	c := qt.New(t)
-	v1, err := gitVersionTagBefore("v0.18")
-	c.Assert(err, qt.IsNil)
-	c.Assert(v1, qt.Equals, "v0.17")
-}
+//func TestGitVersionTagBefore(t *testing.T) {
+//skipIfCI(t)
+//c := qt.New(t)
+//v1, err := gitVersionTagBefore("v0.18")
+//c.Assert(err, qt.IsNil)
+//c.Assert(v1, qt.Equals, "v0.17")
+//}
 
-func TestTagExists(t *testing.T) {
-	skipIfCI(t)
-	c := qt.New(t)
-	b1, err := tagExists("v0.18")
-	c.Assert(err, qt.IsNil)
-	c.Assert(b1, qt.Equals, true)
+// func TestTagExists(t *testing.T) {
+// skipIfCI(t)
+// c := qt.New(t)
+// b1, err := tagExists("v0.18")
+// c.Assert(err, qt.IsNil)
+// c.Assert(b1, qt.Equals, true)
 
-	b2, err := tagExists("adfagdsfg")
-	c.Assert(err, qt.IsNil)
-	c.Assert(b2, qt.Equals, false)
+//b2, err := tagExists("adfagdsfg")
+//c.Assert(err, qt.IsNil)
+//c.Assert(b2, qt.Equals, false)
+//}
 
-}
-
-func skipIfCI(t *testing.T) {
-	if isCI() {
-		// Travis has an ancient git with no --invert-grep: https://github.com/travis-ci/travis-ci/issues/6328
-		// Also Travis clones very shallowly, making some of the tests above shaky.
-		t.Skip("Skip git test on Linux to make Travis happy.")
-	}
-}
+//func skipIfCI(t *testing.T) {
+//if isCI() {
+//// Travis has an ancient git with no --invert-grep: https://github.com/travis-ci/travis-ci/issues/6328
+//// Also Travis clones very shallowly, making some of the tests above shaky.
+//t.Skip("Skip git test on Linux to make Travis happy.")
+//}
+//}
