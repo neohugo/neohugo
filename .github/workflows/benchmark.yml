@@ -4,10 +4,6 @@ on:
     branches:
       - master
       - main
-    tags:
-      - '*'
-  pull_request:
-    types: [opened, synchronize, reopened]
 
 env:
   GO111MODULE: "on"
