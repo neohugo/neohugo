@@ -18,5 +18,5 @@ package neohugo
 var CurrentVersion = Version{
 	Number:     0.78,
 	PatchLevel: 0,
-	Suffix:     "-DEV",
+	Suffix:     "",
 }
