@@ -374,7 +374,7 @@ defaultContentLanguageInSubDir = false
 	createContentFiles("en")
 
 	b.WithTemplates("index.html", `
-	
+
 {{ range .Site.Pages }}
 {{- .Weight }}|{{ .Kind }}|{{ path.Join .Path }}|{{ .Title }}|{{ .Params.icon }}|{{ .Type }}|{{ range .OutputFormats }}{{ .Name }}-{{ end }}|
 {{ end }}

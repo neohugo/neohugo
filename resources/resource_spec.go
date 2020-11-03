@@ -24,6 +24,7 @@ import (
 	"sync"
 
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/resources/jsconfig"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/identity"
@@ -75,17 +76,20 @@ func NewSpec(
 	}
 
 	rs := &Spec{
-		PathSpec:             s,
-		Logger:               logger,
-		ErrorSender:          errorHandler,
-		imaging:              imaging,
-		incr:                 incr,
-		MediaTypes:           mimeTypes,
-		OutputFormats:        outputFormats,
-		Permalinks:           permalinks,
-		BuildConfig:          config.DecodeBuild(s.Cfg),
-		FileCaches:           fileCaches,
-		PostProcessResources: make(map[string]postpub.PostPublishedResource),
+		PathSpec:      s,
+		Logger:        logger,
+		ErrorSender:   errorHandler,
+		imaging:       imaging,
+		incr:          incr,
+		MediaTypes:    mimeTypes,
+		OutputFormats: outputFormats,
+		Permalinks:    permalinks,
+		BuildConfig:   config.DecodeBuild(s.Cfg),
+		FileCaches:    fileCaches,
+		PostBuildAssets: &PostBuildAssets{
+			PostProcessResources: make(map[string]postpub.PostPublishedResource),
+			JSConfigBuilder:      jsconfig.NewBuilder(),
+		},
 		imageCache: newImageCache(
 			fileCaches.ImageCache(),
 
@@ -120,8 +124,15 @@ type Spec struct {
 	ResourceCache *ResourceCache
 	FileCaches    filecache.Caches
 
-	postProcessMu        sync.RWMutex
+	// Assets used after the build is done.
+	// This is shared between all sites.
+	*PostBuildAssets
+}
+
+type PostBuildAssets struct {
+	postProcessMu        sync.RWMutex //nolint
 	PostProcessResources map[string]postpub.PostPublishedResource
+	JSConfigBuilder      *jsconfig.Builder
 }
 
 func (r *Spec) New(fd ResourceSourceDescriptor) (resource.Resource, error) {

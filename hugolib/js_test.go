@@ -14,6 +14,7 @@
 package hugolib
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -141,58 +142,52 @@ func TestJSBuild(t *testing.T) {
 	if !isCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
-	c := qt.New(t)
 
+	c := qt.New(t)
 	wd, _ := os.Getwd()
 	defer func() {
-		err := os.Chdir(wd)
-		c.Assert(err, qt.IsNil)
+		c.Assert(os.Chdir(wd), qt.IsNil)
 	}()
 
-	mainJS := `
-	import "./included";
-
-	console.log("main");
-
-`
-	includedJS := `
-	console.log("included");
-
-	`
-
-	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js")
+	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js-mod")
 	c.Assert(err, qt.IsNil)
 	defer clean()
 
-	v := viper.New()
-	v.Set("workingDir", workDir)
-	v.Set("disableKinds", []string{"taxonomy", "term", "page"})
-	b := newTestSitesBuilder(t).WithLogger(loggers.NewWarningLogger())
+	config := fmt.Sprintf(`
+baseURL = "https://example.org"
+workingDir = %q
 
-	b.Fs = hugofs.NewDefault(v)
-	b.WithWorkingDir(workDir)
-	b.WithViper(v)
-	b.WithContent("p1.md", "")
+disableKinds = ["page", "section", "term", "taxonomy"]
 
-	b.WithTemplates("index.html", `
-{{ $js := resources.Get "js/main.js" | js.Build }}
-JS:  {{ template "print" $js }}
+[module]
+[[module.imports]]
+path="github.com/gohugoio/hugoTestProjectJSModImports"
 
 
-{{ define "print" }}RelPermalink: {{.RelPermalink}}|MIME: {{ .MediaType }}|Content: {{ .Content | safeJS }}{{ end }}
+
+`, workDir)
+
+	b := newTestSitesBuilder(t)
+	b.Fs = hugofs.NewDefault(viper.New())
+	b.WithWorkingDir(workDir).WithConfigFile("toml", config).WithLogger(loggers.NewInfoLogger())
+	b.WithSourceFile("go.mod", `module github.com/gohugoio/tests/testHugoModules
+
+go 1.15
+
+require github.com/gohugoio/hugoTestProjectJSModImports v0.3.0 // indirect
 
 `)
 
-	jsDir := filepath.Join(workDir, "assets", "js")
-	b.Assert(os.MkdirAll(jsDir, 0o777), qt.IsNil)
-	b.Assert(os.Chdir(workDir), qt.IsNil)
-	b.WithSourceFile("assets/js/main.js", mainJS)
-	b.WithSourceFile("assets/js/included.js", includedJS)
+	b.WithContent("p1.md", "").WithNothingAdded()
 
 	b.Build(BuildCfg{})
 
-	b.AssertFileContent("public/index.html", `
-console.log(&#34;included&#34;);
-
-`)
+	b.AssertFileContent("public/js/main.js", `
+greeting: "greeting configured in mod2"
+Hello1 from mod1: $
+return "Hello2 from mod1";
+var Hugo = "Rocks!";
+return "Hello3 from mod2";
+return "Hello from lib in the main project";
+var myparam = "Hugo Rocks!";`)
 }

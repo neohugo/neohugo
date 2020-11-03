@@ -11,4 +11,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package js
+package jsconfig
+
+import (
+	"path/filepath"
+	"testing"
+
+	qt "github.com/frankban/quicktest"
+)
+
+func TestJsConfigBuilder(t *testing.T) {
+	c := qt.New(t)
+
+	b := NewBuilder()
+	b.AddSourceRoot("/c/assets")
+	b.AddSourceRoot("/d/assets")
+
+	conf := b.Build("/a/b")
+	c.Assert(conf.CompilerOptions.BaseURL, qt.Equals, ".")
+	c.Assert(conf.CompilerOptions.Paths["*"], qt.DeepEquals, []string{filepath.FromSlash("../../c/assets/*"), filepath.FromSlash("../../d/assets/*")})
+
+	c.Assert(NewBuilder().Build("/a/b"), qt.IsNil)
+}
