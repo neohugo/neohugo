@@ -21,7 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go-version: [1.15.3]
+        go-version: [1.15.x]
     steps:
       - name: Setup go
         uses: actions/setup-go@v2
@@ -32,8 +32,8 @@ jobs:
       - name: setup env
         shell: bash
         run: |
-          echo "::set-env name=GOPATH::$(go env GOPATH)"
-          echo "::add-path::$(go env GOPATH)/bin"
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
       - name: Install gofumpt and mage
         run: |
           go get mvdan.cc/gofumpt
@@ -53,9 +53,9 @@ jobs:
       - name: Run Mage Tests
         run: |
           mage -v test
-      - name: Run Mage Tests
+      - name: Run Mage Check
         run: |
           mage -v check
-      - name: Run Mage Tests
+      - name: Run Mage Neohugo
         run: |
           mage -v neohugo
