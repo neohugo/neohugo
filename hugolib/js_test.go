@@ -142,122 +142,6 @@ func TestJSBuild(t *testing.T) {
 	if !isCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
-	c := qt.New(t)
-
-	wd, _ := os.Getwd()
-	defer func() {
-		err := os.Chdir(wd)
-		c.Assert(err, qt.IsNil)
-	}()
-
-	mainJS := `
-	import "./included";
-
-	console.log("main");
-
-`
-	includedJS := `
-	console.log("included");
-
-	`
-
-	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js")
-	c.Assert(err, qt.IsNil)
-	defer clean()
-
-	v := viper.New()
-	v.Set("workingDir", workDir)
-	v.Set("disableKinds", []string{"taxonomy", "term", "page"})
-	b := newTestSitesBuilder(t).WithLogger(loggers.NewWarningLogger())
-
-	b.Fs = hugofs.NewDefault(v)
-	b.WithWorkingDir(workDir)
-	b.WithViper(v)
-	b.WithContent("p1.md", "")
-
-	b.WithTemplates("index.html", `
-{{ $js := resources.Get "js/main.js" | js.Build }}
-JS:  {{ template "print" $js }}
-
-
-{{ define "print" }}RelPermalink: {{.RelPermalink}}|MIME: {{ .MediaType }}|Content: {{ .Content | safeJS }}{{ end }}
-
-`)
-
-	jsDir := filepath.Join(workDir, "assets", "js")
-	b.Assert(os.MkdirAll(jsDir, 0o777), qt.IsNil)
-	b.Assert(os.Chdir(workDir), qt.IsNil)
-	b.WithSourceFile("assets/js/main.js", mainJS)
-	b.WithSourceFile("assets/js/included.js", includedJS)
-
-	b.Build(BuildCfg{})
-
-	b.AssertFileContent("public/index.html", `
-console.log(&#34;included&#34;);
-
-`)
-}
-
-func TestJSBuildGlobals(t *testing.T) {
-	if !isCI() {
-		t.Skip("skip (relative) long running modules test when running locally")
-	}
-	c := qt.New(t)
-
-	wd, _ := os.Getwd()
-	defer func() {
-		c.Assert(os.Chdir(wd), qt.IsNil)
-	}()
-
-	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js")
-	c.Assert(err, qt.IsNil)
-	defer clean()
-
-	v := viper.New()
-	v.Set("workingDir", workDir)
-	v.Set("disableKinds", []string{"taxonomy", "term", "page"})
-	b := newTestSitesBuilder(t).WithLogger(loggers.NewWarningLogger())
-
-	b.Fs = hugofs.NewDefault(v)
-	b.WithWorkingDir(workDir)
-	b.WithViper(v)
-	b.WithContent("p1.md", "")
-
-	jsDir := filepath.Join(workDir, "assets", "js")
-	b.Assert(os.MkdirAll(jsDir, 0o777), qt.IsNil)
-	b.Assert(os.Chdir(workDir), qt.IsNil)
-
-	b.WithTemplates("index.html", `
-{{- $js := resources.Get "js/main-project.js" | js.Build -}}
-{{ template "print" (dict "js" $js "name" "root") }}
-
-{{- define "print" -}}
-{{ printf "rellink-%s-%s" .name .js.RelPermalink | safeHTML }}
-{{ printf "mime-%s-%s" .name .js.MediaType | safeHTML }}
-{{ printf "content-%s-%s" .name .js.Content | safeHTML }}
-{{- end -}}
-`)
-
-	b.WithSourceFile("assets/js/normal.js", `
-const name = "root-normal";
-export default name;
-`)
-	b.WithSourceFile("assets/js/main-project.js", `
-import normal from "@js/normal";
-window.normal = normal; // make sure not to tree-shake
-`)
-
-	b.Build(BuildCfg{})
-
-	b.AssertFileContent("public/index.html", `
-const name = "root-normal";
-`)
-}
-
-func TestJSBuildOverride(t *testing.T) {
-	if !isCI() {
-		t.Skip("skip (relative) long running modules test when running locally")
-	}
 
 	c := qt.New(t)
 	wd, _ := os.Getwd()
@@ -265,7 +149,7 @@ func TestJSBuildOverride(t *testing.T) {
 		c.Assert(os.Chdir(wd), qt.IsNil)
 	}()
 
-	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js2")
+	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js-mod")
 	c.Assert(err, qt.IsNil)
 	defer clean()
 
@@ -287,9 +171,9 @@ path="github.com/gohugoio/hugoTestProjectJSModImports"
 	b.Fs = hugofs.NewDefault(viper.New())
 	b.WithWorkingDir(workDir).WithConfigFile("toml", config).WithLogger(loggers.NewInfoLogger())
 	b.WithSourceFile("go.mod", `module github.com/gohugoio/tests/testHugoModules
-        
+
 go 1.15
-        
+
 require github.com/gohugoio/hugoTestProjectJSModImports v0.3.0 // indirect
 
 `)
