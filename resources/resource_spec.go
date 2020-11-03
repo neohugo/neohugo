@@ -130,7 +130,7 @@ type Spec struct {
 }
 
 type PostBuildAssets struct {
-	postProcessMu        sync.RWMutex
+	postProcessMu        sync.RWMutex //nolint
 	PostProcessResources map[string]postpub.PostPublishedResource
 	JSConfigBuilder      *jsconfig.Builder
 }

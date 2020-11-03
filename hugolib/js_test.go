@@ -202,13 +202,12 @@ func TestJSBuildGlobals(t *testing.T) {
 	if !isCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
+	c := qt.New(t)
 
 	wd, _ := os.Getwd()
 	defer func() {
-		os.Chdir(wd)
+		c.Assert(os.Chdir(wd), qt.IsNil)
 	}()
-
-	c := qt.New(t)
 
 	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js")
 	c.Assert(err, qt.IsNil)
@@ -260,12 +259,11 @@ func TestJSBuildOverride(t *testing.T) {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
 
+	c := qt.New(t)
 	wd, _ := os.Getwd()
 	defer func() {
-		os.Chdir(wd)
+		c.Assert(os.Chdir(wd), qt.IsNil)
 	}()
-
-	c := qt.New(t)
 
 	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-js2")
 	c.Assert(err, qt.IsNil)
