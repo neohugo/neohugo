@@ -202,8 +202,6 @@ greeting: "greeting configured in mod2"
 Hello1 from mod1: $
 return "Hello2 from mod1";
 var Hugo = "Rocks!";
-return "Hello3 from mod2";
-return "Hello from lib in the main project";
 Hello3 from mod2. Date from date-fns: ${today}
 Hello from lib in the main project
 Hello5 from mod2.
