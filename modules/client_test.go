@@ -20,11 +20,11 @@ package modules
 //"path/filepath"
 //"testing"
 
-//"github.com/neohugo/neohugo/hugofs/glob"
+//"github.com/gohugoio/hugo/hugofs/glob"
 
-//"github.com/neohugo/neohugo/htesting"
+//"github.com/gohugoio/hugo/htesting"
 
-//"github.com/neohugo/neohugo/hugofs"
+//"github.com/gohugoio/hugo/hugofs"
 
 //qt "github.com/frankban/quicktest"
 //)
@@ -33,9 +33,9 @@ package modules
 
 //modName := "hugo-modules-basic-test"
 //modPath := "github.com/gohugoio/tests/" + modName
-//expect := `github.com/gohugoio/tests/hugo-modules-basic-test github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0
-//github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0 github.com/neohugo/neohugoTestModules1_darwin/modh2_2_1v@v1.3.0
-//github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0 github.com/neohugo/neohugoTestModules1_darwin/modh2_2_2@v1.3.0
+//expect := `github.com/gohugoio/tests/hugo-modules-basic-test github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0
+//github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0 github.com/gohugoio/hugoTestModules1_darwin/modh2_2_1v@v1.3.0
+//github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0 github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0
 //`
 
 // c := qt.New(t)
@@ -55,7 +55,7 @@ package modules
 //}
 
 // withConfig(&ccfg)
-// ccfg.ModuleConfig.Imports = []Import{Import{Path: "github.com/neohugo/neohugoTestModules1_darwin/modh2_2"}}
+// ccfg.ModuleConfig.Imports = []Import{Import{Path: "github.com/gohugoio/hugoTestModules1_darwin/modh2_2"}}
 // client := NewClient(ccfg)
 
 //return client, clean
@@ -89,9 +89,9 @@ package modules
 //graphb.Reset()
 //c.Assert(client.Graph(&graphb), qt.IsNil)
 
-//expectVendored := `project github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0+vendor
-//project github.com/neohugo/neohugoTestModules1_darwin/modh2_2_1v@v1.3.0+vendor
-//project github.com/neohugo/neohugoTestModules1_darwin/modh2_2_2@v1.3.0+vendor
+//expectVendored := `project github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0+vendor
+//project github.com/gohugoio/hugoTestModules1_darwin/modh2_2_1v@v1.3.0+vendor
+//project github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0+vendor
 //`
 
 // c.Assert(graphb.String(), qt.Equals, expectVendored)
@@ -138,7 +138,7 @@ package modules
 //c.Assert(graphb.String(), qt.Equals, expect)
 //})
 
-// https://github.com/gohugoio/hugo/issues/7908
+//// https://github.com/gohugoio/hugo/issues/7908
 //c.Run("createThemeDirname", func(c *qt.C) {
 //mcfg := DefaultModuleConfig
 //client, clean := newClient(

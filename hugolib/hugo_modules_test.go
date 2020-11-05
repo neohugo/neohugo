@@ -22,18 +22,18 @@ package hugolib
 //"testing"
 //"time"
 
-//"github.com/neohugo/neohugo/modules/npm"
+//"github.com/gohugoio/hugo/modules/npm"
 
-//"github.com/neohugo/neohugo/common/loggers"
+//"github.com/gohugoio/hugo/common/loggers"
 
 //"github.com/spf13/afero"
 
-//"github.com/neohugo/neohugo/hugofs/files"
+//"github.com/gohugoio/hugo/hugofs/files"
 
-//"github.com/neohugo/neohugo/common/neohugo"
+//"github.com/gohugoio/hugo/common/hugo"
 
-//"github.com/neohugo/neohugo/htesting"
-//"github.com/neohugo/neohugo/hugofs"
+//"github.com/gohugoio/hugo/htesting"
+//"github.com/gohugoio/hugo/hugofs"
 
 //qt "github.com/frankban/quicktest"
 //"github.com/gohugoio/testmodBuilder/mods"
@@ -51,7 +51,7 @@ package hugolib
 
 //[module]
 //[[module.imports]]
-//path="github.com/neohugo/neohugoTestModule2"
+//path="github.com/gohugoio/hugoTestModule2"
 //%s
 //`
 
@@ -87,8 +87,8 @@ package hugolib
 //`)
 
 //b.WithSourceFile("go.sum", `
-//github.com/neohugo/neohugoTestModule2 v0.0.0-20200131160637-9657d7697877 h1:WLM2bQCKIWo04T6NsIWsX/Vtirhf0TnpY66xyqGlgVY=
-//github.com/neohugo/neohugoTestModule2 v0.0.0-20200131160637-9657d7697877/go.mod h1:CBFZS3khIAXKxReMwq0le8sEl/D8hcXmixlOHVv+Gd0=
+//github.com/gohugoio/hugoTestModule2 v0.0.0-20200131160637-9657d7697877 h1:WLM2bQCKIWo04T6NsIWsX/Vtirhf0TnpY66xyqGlgVY=
+//github.com/gohugoio/hugoTestModule2 v0.0.0-20200131160637-9657d7697877/go.mod h1:CBFZS3khIAXKxReMwq0le8sEl/D8hcXmixlOHVv+Gd0=
 //`)
 
 // return b, clean
@@ -167,12 +167,12 @@ package hugolib
 //"comments": {
 //"dependencies": {
 //"foo": "project",
-//"react-dom": "github.com/neohugo/neohugoTestModule2"
+//"react-dom": "github.com/gohugoio/hugoTestModule2"
 //},
 //"devDependencies": {
-//"@babel/cli": "github.com/neohugo/neohugoTestModule2",
-//"@babel/core": "github.com/neohugo/neohugoTestModule2",
-//"@babel/preset-env": "github.com/neohugo/neohugoTestModule2",
+//"@babel/cli": "github.com/gohugoio/hugoTestModule2",
+//"@babel/core": "github.com/gohugoio/hugoTestModule2",
+//"@babel/preset-env": "github.com/gohugoio/hugoTestModule2",
 //"postcss-cli": "project",
 //"tailwindcss": "project"
 //}
@@ -219,14 +219,14 @@ package hugolib
 //"comments": {
 //"dependencies": {
 //"moo": "project",
-//"react-dom": "github.com/neohugo/neohugoTestModule2"
+//"react-dom": "github.com/gohugoio/hugoTestModule2"
 //},
 //"devDependencies": {
-//"@babel/cli": "github.com/neohugo/neohugoTestModule2",
-//"@babel/core": "github.com/neohugo/neohugoTestModule2",
-//"@babel/preset-env": "github.com/neohugo/neohugoTestModule2",
-//"postcss-cli": "github.com/neohugo/neohugoTestModule2",
-//"tailwindcss": "github.com/neohugo/neohugoTestModule2"
+//"@babel/cli": "github.com/gohugoio/hugoTestModule2",
+//"@babel/core": "github.com/gohugoio/hugoTestModule2",
+//"@babel/preset-env": "github.com/gohugoio/hugoTestModule2",
+//"postcss-cli": "github.com/gohugoio/hugoTestModule2",
+//"tailwindcss": "github.com/gohugoio/hugoTestModule2"
 //}
 //},
 //"dependencies": {
@@ -246,7 +246,7 @@ package hugolib
 //}`
 //})
 
-//// https://github.com/neohugo/neohugo/issues/7690
+//// https://github.com/gohugoio/hugo/issues/7690
 //b.AssertFileContent("package.hugo.json", origPackageJSON)
 
 //})
@@ -263,14 +263,14 @@ package hugolib
 //return s == `{
 //"comments": {
 //"dependencies": {
-//"react-dom": "github.com/neohugo/neohugoTestModule2"
+//"react-dom": "github.com/gohugoio/hugoTestModule2"
 //},
 //"devDependencies": {
-//"@babel/cli": "github.com/neohugo/neohugoTestModule2",
-//"@babel/core": "github.com/neohugo/neohugoTestModule2",
-//"@babel/preset-env": "github.com/neohugo/neohugoTestModule2",
-//"postcss-cli": "github.com/neohugo/neohugoTestModule2",
-//"tailwindcss": "github.com/neohugo/neohugoTestModule2"
+//"@babel/cli": "github.com/gohugoio/hugoTestModule2",
+//"@babel/core": "github.com/gohugoio/hugoTestModule2",
+//"@babel/preset-env": "github.com/gohugoio/hugoTestModule2",
+//"postcss-cli": "github.com/gohugoio/hugoTestModule2",
+//"tailwindcss": "github.com/gohugoio/hugoTestModule2"
 //}
 //},
 //"dependencies": {
@@ -300,7 +300,7 @@ package hugolib
 //}
 //t.Parallel()
 
-//if !isCI() || neohugo.GoMinorVersion() < 12 {
+//if !isCI() || hugo.GoMinorVersion() < 12 {
 //// https://github.com/golang/go/issues/26794
 //// There were some concurrent issues with Go modules in < Go 12.
 //t.Skip("skip this on local host and for Go <= 1.11 due to a bug in Go's stdlib")
@@ -644,10 +644,9 @@ package hugolib
 
 // c := qt.New(t)
 
-// c.Assert(logger.WarnCounter.Count(), qt.Equals, uint64(3))
+// c.Assert(logger.LogCounters().WarnCounter.Count(), qt.Equals, uint64(3))
 
 //}
-//c.Assert(logger.LogCounters().WarnCounter.Count(), qt.Equals, uint64(3))
 
 // func TestModulesSymlinks(t *testing.T) {
 // skipSymlink(t)
@@ -803,7 +802,7 @@ package hugolib
 //b.AssertFileContent("public/mypage/index.html", "Permalink: https://example.org/mypage/")
 //}
 
-//// https://github.com/neohugo/neohugo/issues/6684
+//// https://github.com/gohugoio/hugo/issues/6684
 //func TestMountsContentFile(t *testing.T) {
 //t.Parallel()
 //c := qt.New(t)
@@ -1043,7 +1042,7 @@ package hugolib
 
 //}
 
-//// https://github.com/neohugo/neohugo/issues/6299
+//// https://github.com/gohugoio/hugo/issues/6299
 //func TestSiteWithGoModButNoModules(t *testing.T) {
 //t.Parallel()
 
@@ -1068,7 +1067,7 @@ package hugolib
 
 //}
 
-//// https://github.com/neohugo/neohugo/issues/6622
+//// https://github.com/gohugoio/hugo/issues/6622
 //func TestModuleAbsMount(t *testing.T) {
 //t.Parallel()
 
