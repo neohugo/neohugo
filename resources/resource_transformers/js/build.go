@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
 
 	"github.com/gohugoio/hugo/hugofs"
@@ -79,10 +77,8 @@ func (t *buildTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		return err
 	}
 
-	sdir, _ := path.Split(ctx.SourcePath)
 	opts.sourcefile = ctx.SourcePath
-	opts.resolveDir = t.c.sfs.RealFilename(sdir)
-	opts.workDir = t.c.rs.WorkingDir
+	opts.resolveDir = t.c.rs.WorkingDir
 	opts.contents = string(src)
 	opts.mediaType = ctx.InMediaType
 
@@ -99,44 +95,59 @@ func (t *buildTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	result := api.Build(buildOptions)
 
 	if len(result.Errors) > 0 {
-		first := result.Errors[0]
-		loc := first.Location
-		path := loc.File
+		createErr := func(msg api.Message) error {
+			loc := msg.Location
+			path := loc.File
 
-		var err error
-		var f afero.File
-		var filename string
+			var (
+				f   afero.File
+				err error
+			)
 
-		if !strings.HasPrefix(path, "..") {
-			// Try first in the assets fs
-			var fi os.FileInfo
-			fi, err = t.c.rs.BaseFs.Assets.Fs.Stat(path)
+			if strings.HasPrefix(path, nsImportHugo) {
+				path = strings.TrimPrefix(path, nsImportHugo+":")
+				f, err = hugofs.Os.Open(path)
+			} else {
+				var fi os.FileInfo
+				fi, err = t.c.sfs.Fs.Stat(path)
+				if err == nil {
+					m := fi.(hugofs.FileMetaInfo).Meta()
+					path = m.Filename()
+					f, err = m.Open()
+				}
+
+			}
+
 			if err == nil {
-				m := fi.(hugofs.FileMetaInfo).Meta()
-				filename = m.Filename()
-				f, err = m.Open()
+				fe := herrors.NewFileError("js", 0, loc.Line, loc.Column, errors.New(msg.Text))
+				err, _ := herrors.WithFileContext(fe, path, f, herrors.SimpleLineMatcher)
+				f.Close()
+				return err
+			}
+
+			return fmt.Errorf("%s", msg.Text)
+		}
+
+		var errors []error
+
+		for _, msg := range result.Errors {
+			errors = append(errors, createErr(msg))
+		}
+
+		// Return 1, log the rest.
+		for i, err := range errors {
+			if i > 0 {
+				t.c.rs.Logger.Errorf("js.Build failed: %s", err)
 			}
 		}
 
-		if f == nil {
-			path = filepath.Join(t.c.rs.WorkingDir, path)
-			filename = path
-			f, err = t.c.rs.Fs.Os.Open(path)
-		}
-
-		if err == nil {
-			fe := herrors.NewFileError("js", 0, loc.Line, loc.Column, errors.New(first.Text))
-			err, _ := herrors.WithFileContext(fe, filename, f, herrors.SimpleLineMatcher)
-			f.Close()
-			return err
-		}
-
-		return fmt.Errorf("%s", result.Errors[0].Text)
+		return errors[0]
 	}
 
-	if _, err = ctx.To.Write(result.OutputFiles[0].Contents); err != nil {
+	if _, err := ctx.To.Write(result.OutputFiles[0].Contents); err != nil {
 		return err
 	}
+
 	return nil
 }
 
