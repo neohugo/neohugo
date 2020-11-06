@@ -20,11 +20,11 @@ import (
 	"os"
 	"strings"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 
 	"github.com/neohugo/neohugo/hugolib/filesystems"
 	"github.com/neohugo/neohugo/media"
