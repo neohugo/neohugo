@@ -25,7 +25,7 @@ import (
 
 var (
 	metaTagsCheck    = regexp.MustCompile(`(?i)<meta\s+name=['|"]?generator['|"]?`)
-	hugoGeneratorTag = fmt.Sprintf(`<meta name="generator" content="Hugo %s" />`, neohugo.CurrentVersion)
+	hugoGeneratorTag = fmt.Sprintf(`<meta name="generator" content="Neohugo %s" />`, neohugo.CurrentVersion)
 )
 
 // HugoGenerator injects a meta generator tag for Hugo if none present.
@@ -33,7 +33,7 @@ func HugoGenerator(ft transform.FromTo) error {
 	b := ft.From().Bytes()
 	if metaTagsCheck.Match(b) {
 		if _, err := ft.To().Write(b); err != nil {
-			helpers.DistinctWarnLog.Println("Failed to inject Hugo generator tag:", err)
+			helpers.DistinctWarnLog.Println("Failed to inject Neohugo generator tag:", err)
 		}
 		return nil
 	}
@@ -49,7 +49,7 @@ func HugoGenerator(ft transform.FromTo) error {
 	}
 
 	if _, err := ft.To().Write(newcontent); err != nil {
-		helpers.DistinctWarnLog.Println("Failed to inject Hugo generator tag:", err)
+		helpers.DistinctWarnLog.Println("Failed to inject Neohugo generator tag:", err)
 	}
 
 	return nil

@@ -1714,7 +1714,7 @@ func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath s
 
 		// For performance reasons we only inject the Hugo generator tag on the home page.
 		if p.IsHome() {
-			pd.AddHugoGeneratorTag = !s.Cfg.GetBool("disableHugoGeneratorInject")
+			pd.AddHugoGeneratorTag = s.Cfg.GetBool("disableHugoGeneratorInject")
 		}
 
 	}
