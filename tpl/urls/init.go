@@ -58,6 +58,14 @@ func init() {
 			[]string{"urlize"},
 			[][2]string{},
 		)
+		ns.AddMethodMapping(ctx.URLEncode,
+			[]string{"urlencode"},
+			[][2]string{},
+		)
+		ns.AddMethodMapping(ctx.URLDecode,
+			[]string{"urldecode"},
+			[][2]string{},
+		)
 
 		ns.AddMethodMapping(ctx.Anchorize,
 			[]string{"anchorize"},

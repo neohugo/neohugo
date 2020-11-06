@@ -186,9 +186,9 @@ func (ns *Namespace) AbsLangURL(a interface{}) (template.HTML, error) {
 	return template.HTML(ns.deps.PathSpec.AbsURL(s, !ns.multihost)), nil
 }
 
-// Encode escapes the string so it can be safely placed
+// URLEncode escapes the string so it can be safely placed
 // inside a URL query.
-func (ns *Namespace) Encode(rawurl interface{}) (template.HTML, error) {
+func (ns *Namespace) URLEncode(rawurl interface{}) (template.HTML, error) {
 	s, err := cast.ToStringE(rawurl)
 	if err != nil {
 		return "", err
@@ -197,13 +197,12 @@ func (ns *Namespace) Encode(rawurl interface{}) (template.HTML, error) {
 	return template.HTML(url.QueryEscape(s)), nil
 }
 
-// Decode does the inverse transformation of QueryEscape,
+// URLDecode does the inverse transformation of QueryEscape,
 // converting each 3-byte encoded substring of the form "%AB" into the
 // hex-decoded byte 0xAB.
-func (ns *Namespace) Decode(rawurl interface{}) (template.HTML, error) {
+func (ns *Namespace) URLDecode(rawurl interface{}) (template.HTML, error) {
 	s, err := cast.ToStringE(rawurl)
 	if err != nil {
-		fmt.Println("=============================>", s)
 		return "", err
 	}
 
