@@ -14,6 +14,7 @@
 package urls
 
 import (
+	"html/template"
 	"net/url"
 	"testing"
 
@@ -21,6 +22,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
+	"github.com/spf13/cast"
 	"github.com/spf13/viper"
 )
 
@@ -65,5 +67,61 @@ func TestParse(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 		c.Assert(result,
 			qt.CmpEquals(hqt.DeepAllowUnexported(&url.URL{}, url.Userinfo{})), test.expect)
+	}
+}
+
+func TestURLEncode(t *testing.T) {
+	t.Parallel()
+	c := qt.New(t)
+
+	for _, test := range []struct {
+		rawurl interface{}
+		expect interface{}
+	}{
+		{
+			"นีโอฮยูโก",
+			"%E0%B8%99%E0%B8%B5%E0%B9%82%E0%B8%AD%E0%B8%AE%E0%B8%A2%E0%B8%B9%E0%B9%82%E0%B8%81",
+		},
+		// errors
+		{tstNoStringer{}, false},
+	} {
+
+		result, err := ns.URLEncode(test.rawurl)
+
+		if b, ok := test.expect.(bool); ok && !b {
+			c.Assert(err, qt.Not(qt.IsNil))
+			continue
+		}
+
+		c.Assert(err, qt.IsNil)
+		c.Assert(result, qt.DeepEquals, template.HTML(cast.ToString((test.expect))))
+	}
+}
+
+func TestURLDecode(t *testing.T) {
+	t.Parallel()
+	c := qt.New(t)
+
+	for _, test := range []struct {
+		rawurl interface{}
+		expect interface{}
+	}{
+		{
+			"http://neohugo.github.io/%E0%B8%99%E0%B8%B5%E0%B9%82%E0%B8%AD%E0%B8%AE%E0%B8%A2%E0%B8%B9%E0%B9%82%E0%B8%81",
+			"http://neohugo.github.io/นีโอฮยูโก",
+		},
+		// errors
+		{tstNoStringer{}, false},
+	} {
+
+		result, err := ns.URLDecode(test.rawurl)
+
+		if b, ok := test.expect.(bool); ok && !b {
+			c.Assert(err, qt.Not(qt.IsNil))
+			continue
+		}
+
+		c.Assert(err, qt.IsNil)
+		c.Assert(result, qt.DeepEquals, template.HTML(cast.ToString((test.expect))))
 	}
 }
