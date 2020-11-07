@@ -1,14 +1,13 @@
-baseURL = "https://gohugo.io/"
+baseURL = "https://neohugo.github.io/"
 paginate =  100
 defaultContentLanguage = "en"
 enableEmoji = true
 # Set the unicode character used for the "return" link in page footnotes.
 footnotereturnlinkcontents = "↩"
 languageCode = "en-us"
-title = "Hugo"
+title = "Neohugo"
 
-
-googleAnalytics = "UA-7131036-4"
+googleAnalytics = "G-NK4B94E99V"
 
 pluralizeListTitles = false
 
@@ -42,7 +41,6 @@ isPlainText = true
 notAlternative = true
 
 [related]
-
 threshold = 80
 includeNewer = true
 toLower = false
@@ -56,7 +54,7 @@ weight = 10
 pattern = "2006"
 
 [social]
-twitter = "GoHugoIO"
+#twitter = "GoHugoIO"
 
 
 [imaging]
