@@ -57,12 +57,12 @@ jobs:
           output-file-path: output.txt
           # Workflow will fail when an alert happens
           fail-on-alert: false
+          # GitHub API token to make a commit comment
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           # Enable alert commit comment
           comment-on-alert: true
           # Mention @blackb1rd in the commit comment
           alert-comment-cc-users: '@blackb1rd'
-          # Personal access token to deploy GitHub Pages branch
-          github-token: ${{ secrets.PERSONAL_GITHUB_TOKEN }}
           # Push and deploy GitHub pages branch automatically
           auto-push: true
-      # Upload the updated cache file for the next job by actions/cache
+          # Upload the updated cache file for the next job by actions/cache
