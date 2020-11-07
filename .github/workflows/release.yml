@@ -4,8 +4,15 @@ on:
   push:
     tags:
       - v*.*.*
+
+env:
+  GO111MODULE: "on"
+  GOPROXY: "https://proxy.golang.org"
+  HUGO_BUILD_TAGS: "extended"
+
 jobs:
   goreleaser:
+    name: Release tag
     runs-on: ubuntu-latest
     container:
       image: troian/golang-cross:v1.15.3
@@ -17,11 +24,71 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15
-      - name: Run GoReleaser
+          go-version: 1.15.x
+      - name: Run Goreleaser
         uses: goreleaser/goreleaser-action@v2
         with:
           version: latest
           args: release --rm-dist --timeout 60m
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  deploy:
+    name: Deploy documentation
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+      - name: Git checkout
+        uses: actions/checkout@v2
+        with:
+          path: neohugo
+      - name: Setup Go environment
+        shell: bash
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+      - name: Install mage
+        working-directory: ./neohugo
+        run: |
+          go get github.com/magefile/mage
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Go module
+        if: steps.cache.outputs.cache-hit != 'true'
+        working-directory: ./neohugo
+        run: |
+          go mod download
+          go mod verify
+      - name: Run mage neohugo
+        working-directory: ./neohugo
+        run: |
+          mage -v neohugo
+      - name: Build docs
+        working-directory: ./neohugo
+        run: |
+          HUGO_IGNOREERRORS=error-remote-getjson ./neohugo -s docs/
+      - name: Checkout docs repository
+        uses: actions/checkout@v2
+        with:
+          repository: neohugo/neohugo.github.io
+          path: docs
+          token: ${{ secrets.NEOHUGO_GITHUB_TOKEN }}
+      - name: Update documentation
+        working-directory: ./docs
+        run: |
+          rsync -hrvz --delete  ../neohugo/docs/public/ .
+          git config --global user.name "blackb1rd"
+          git config --global user.email "${{ secrets.NEOHUGO_EMAIL }}"
+          git add -A
+          git commit -m "Update $RELEASE_VERSION"
+          git log
+          git push 'https://blackb1rd:${{ secrets.NEOHUGO_GITHUB_TOKEN }}@github.com/neohugo/neohugo.github.io.git' main

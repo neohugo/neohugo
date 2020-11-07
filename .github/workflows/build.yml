@@ -2,12 +2,10 @@ name: Build
 on:
   push:
     branches:
-      - master
       - main
     tags:
       - '*'
   pull_request:
-    types: [opened, synchronize, reopened]
 
 env:
   GO111MODULE: "on"
@@ -23,17 +21,19 @@ jobs:
         os: [ubuntu-latest, macos-latest, windows-latest]
         go-version: [1.15.x]
     steps:
-      - name: Setup go
+      - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
       - name: Git checkout
         uses: actions/checkout@v2
-      - name: setup env
+      - name: Setup Go environment
         shell: bash
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
+      - name: Go info
+        run: go env
       - name: Install gofumpt and mage
         run: |
           go get mvdan.cc/gofumpt
@@ -45,17 +45,21 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - name: Install Module
+      - name: Install Go module
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           go mod download
           go mod verify
-      - name: Run Mage Tests
+      - name: Run mage tests
         run: |
           mage -v test
-      - name: Run Mage Check
+      - name: Run mage check
         run: |
           mage -v check
-      - name: Run Mage Neohugo
+      - name: Run mage neohugo
         run: |
           mage -v neohugo
+      - name: Build neohuho docs
+        run: |
+          HUGO_IGNOREERRORS=error-remote-getjson ./neohugo -s docs/
+          HUGO_IGNOREERRORS=error-remote-getjson ./neohugo --renderToMemory -s docs/
