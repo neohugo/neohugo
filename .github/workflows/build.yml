@@ -61,5 +61,6 @@ jobs:
           mage -v neohugo
       - name: Build neohuho docs
         run: |
-          HUGO_IGNOREERRORS=error-remote-getjson ./neohugo -s docs/
-          HUGO_IGNOREERRORS=error-remote-getjson ./neohugo --renderToMemory -s docs/
+          echo "HUGO_IGNOREERRORS=error-remote-getjson" >> $GITHUB_ENV
+          ./neohugo -s docs/
+          ./neohugo --renderToMemory -s docs/
