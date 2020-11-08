@@ -1690,9 +1690,6 @@ func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath s
 		return nil
 	}
 
-	isHTML := of.IsHTML
-	isRSS := of.Name == "RSS"
-
 	pd := publisher.Descriptor{
 		Src:          renderBuffer,
 		TargetPath:   targetPath,
@@ -1700,10 +1697,11 @@ func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath s
 		OutputFormat: p.outputFormat(),
 	}
 
-	if isRSS {
+	if of.Name == "RSS" { // Format RSS
 		// Always canonify URLs in RSS
 		pd.AbsURLPath = s.absURLPath(targetPath)
-	} else if isHTML {
+
+	} else if of.IsHTML { // Format HTML
 		if s.Info.relativeURLs || s.Info.canonifyURLs {
 			pd.AbsURLPath = s.absURLPath(targetPath)
 		}

@@ -315,14 +315,14 @@ func (t *templateHandler) LookupLayout(d output.LayoutDescriptor, f output.Forma
 	t.layoutTemplateCacheMu.RUnlock()
 
 	t.layoutTemplateCacheMu.Lock()
-	defer t.layoutTemplateCacheMu.Unlock()
 
 	templ, found, err := t.findLayout(d, f)
 	if err == nil && found {
 		t.layoutTemplateCache[key] = templ
+		t.layoutTemplateCacheMu.Unlock()
 		return templ, true, nil
 	}
-
+	t.layoutTemplateCacheMu.Unlock()
 	return nil, false, err
 }
 
@@ -629,8 +629,8 @@ func (t *templateHandler) applyBaseTemplate(overlay, base templateInfo) (tpl.Tem
 
 	// The extra lookup is a workaround, see
 	// * https://github.com/golang/go/issues/16101
-	// * https://github.com/neohugo/neohugo/issues/2549
-	templ = templ.Lookup(templ.Name())
+	// * https://github.com/gohugoio/hugo/issues/2549
+	// templ = templ.Lookup(templ.Name())
 
 	return templ, err
 }
