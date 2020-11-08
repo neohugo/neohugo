@@ -6,7 +6,7 @@ GOEXE="${GOEXE-go}"
 # Convenience script to
 # - For a given branch
 # - Run  benchmark tests for a given package
-# - Do the same for master
+# - Do the same for main
 # - then compare the two runs with benchcmp
 
 if (( $# < 1 ));
@@ -20,7 +20,7 @@ if [ $# -eq 1 ]; then
   PACKAGEFILE="all"
 else
   PACKAGE=./"$2"
-  PACKAGEFILE="$2"
+  PACKAGEFILE="$(echo "$2" | sed 's/[\/\.]/-/g')"
 fi
 
 
@@ -30,14 +30,13 @@ else
   benchFilter="."
 fi
 
-
 BRANCH="$1"
-BRANCHFILE="$(echo "$1" | sed 's/\//-/g')"
+BRANCHFILE="$(echo "$1" | sed 's/[\/\.]/-/g')"
 
 git checkout "$BRANCH"
 "${GOEXE}" test -test.run=NONE -bench="$benchFilter" -test.benchmem=true "$PACKAGE" > "/tmp/bench-$PACKAGEFILE-$BRANCHFILE.txt"
 
-git checkout master
-"${GOEXE}" test -test.run=NONE -bench="$benchFilter" -test.benchmem=true "$PACKAGE" > "/tmp/bench-$PACKAGEFILE-$BRANCHFILE-master.txt"
+git checkout main
+"${GOEXE}" test -test.run=NONE -bench="$benchFilter" -test.benchmem=true "$PACKAGE" > "/tmp/bench-$PACKAGEFILE-main.txt"
 
-benchstat -split xxx "/tmp/bench-$PACKAGEFILE-master.txt" "/tmp/bench-$PACKAGEFILE-$BRANCHFILE.txt"
+benchstat -split xxx "/tmp/bench-$PACKAGEFILE-main.txt" "/tmp/bench-$PACKAGEFILE-$BRANCHFILE.txt"
