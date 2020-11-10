@@ -58,7 +58,7 @@ require (
 	github.com/yuin/goldmark-highlighting v0.0.0-20200307114337-60d527fdb691
 	gocloud.dev v0.15.0
 	golang.org/x/image v0.0.0-20191214001246-9130b4cfad52
-	golang.org/x/net v0.0.0-20200625001655-4c5254603344
+	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/text v0.3.3
 	golang.org/x/tools v0.0.0-20200731060945-b5fad4ed8dd6 // indirect
