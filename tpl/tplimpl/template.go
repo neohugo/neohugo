@@ -845,13 +845,13 @@ func (t templateNamespace) Clone() *templateNamespace {
 
 func (t *templateNamespace) Lookup(name string) (tpl.Template, bool) {
 	t.mu.RLock()
-	defer t.mu.RUnlock()
 
 	templ, found := t.templates[name]
 	if !found {
+		t.mu.RUnlock()
 		return nil, false
 	}
-
+	t.mu.RUnlock()
 	return templ, found
 }
 
