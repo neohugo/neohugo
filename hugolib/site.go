@@ -1700,7 +1700,6 @@ func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath s
 	if of.Name == "RSS" { // Format RSS
 		// Always canonify URLs in RSS
 		pd.AbsURLPath = s.absURLPath(targetPath)
-
 	} else if of.IsHTML { // Format HTML
 		if s.Info.relativeURLs || s.Info.canonifyURLs {
 			pd.AbsURLPath = s.absURLPath(targetPath)
