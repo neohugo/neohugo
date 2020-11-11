@@ -100,31 +100,30 @@ func (w *cssClassCollectorWriter) Write(p []byte) (n int, err error) {
 				if w.dropValue {
 					w.buff.Reset()
 				} else {
-					// First check if we have processed this element before.
-					w.collector.mu.RLock()
-
-					// See https://github.com/dominikh/go-tools/issues/723
-					//lint:ignore S1030 This construct avoids memory allocation for the string.
-					seen := w.collector.elementSet[string(w.buff.Bytes())] //nolint
-					w.collector.mu.RUnlock()
-					if seen {
-						w.buff.Reset()
-						continue
-					}
-
-					s := w.buff.String()
-
+					s := string(w.buff.Bytes()) //nolint
 					w.buff.Reset()
 
-					if strings.HasPrefix(s, "</") {
+					if s[0:2] == "</" {
 						continue
 					}
 
-					s, tagName := w.insertStandinHTMLElement(s)
-					el := parseHTMLElement(s)
-					el.Tag = tagName
+					w.collector.mu.RLock()
+					seen := w.collector.elementSet[s]
+					w.collector.mu.RUnlock()
+					if seen {
+						continue
+					}
 
 					w.collector.mu.Lock()
+					if seen := w.collector.elementSet[s]; seen {
+						w.collector.mu.Unlock()
+						continue
+					}
+
+					news, tagName := w.insertStandinHTMLElement(s)
+					el := parseHTMLElement(news)
+					el.Tag = tagName
+
 					w.collector.elementSet[s] = true
 					if el.Tag != "" {
 						w.collector.elements = append(w.collector.elements, el)
