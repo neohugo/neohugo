@@ -1028,10 +1028,10 @@ type contentChangeMap struct {
 }
 
 func (m *contentChangeMap) add(dirname string, tp bundleDirType) {
-	m.mu.Lock()
 	if !strings.HasSuffix(dirname, helpers.FilePathSeparator) {
 		dirname += helpers.FilePathSeparator
 	}
+	m.mu.Lock()
 	switch tp {
 	case bundleBranch:
 		m.branchBundles[dirname] = true

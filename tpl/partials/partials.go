@@ -53,8 +53,8 @@ type partialCache struct {
 
 func (p *partialCache) clear() {
 	p.Lock()
-	defer p.Unlock()
 	p.p = make(map[partialCacheKey]interface{})
+	p.Unlock()
 }
 
 // New returns a new instance of the templates-namespaced template functions.
@@ -226,12 +226,13 @@ func (ns *Namespace) getOrCreate(key partialCacheKey, context interface{}) (resu
 	}
 
 	ns.cachedPartials.Lock()
-	defer ns.cachedPartials.Unlock()
 	// Double-check.
 	if p2, ok := ns.cachedPartials.p[key]; ok {
+		ns.cachedPartials.Unlock()
 		return p2, nil
 	}
 	ns.cachedPartials.p[key] = p
+	ns.cachedPartials.Unlock()
 
 	return p, nil
 }
