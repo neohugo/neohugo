@@ -17,11 +17,11 @@ require (
 	github.com/bep/tmc v0.5.1
 	github.com/disintegration/gift v1.2.1
 	github.com/dustin/go-humanize v1.0.0
-	github.com/evanw/esbuild v0.8.6
+	github.com/evanw/esbuild v0.8.3
 	github.com/fortytw2/leaktest v1.3.0
-	github.com/frankban/quicktest v1.11.2
+	github.com/frankban/quicktest v1.11.1
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/getkin/kin-openapi v0.26.0
+	github.com/getkin/kin-openapi v0.22.1
 	github.com/ghodss/yaml v1.0.0
 	github.com/gobwas/glob v0.2.3
 	github.com/google/go-cmp v0.5.2
@@ -60,7 +60,7 @@ require (
 	golang.org/x/image v0.0.0-20191214001246-9130b4cfad52
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
-	golang.org/x/text v0.3.4
+	golang.org/x/text v0.3.3
 	golang.org/x/tools v0.0.0-20200731060945-b5fad4ed8dd6 // indirect
 	google.golang.org/api v0.13.0
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
