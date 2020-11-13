@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -112,6 +113,11 @@ func decodeOptions(m map[string]interface{}) (Options, error) {
 	return opts, nil
 }
 
+type importCache struct {
+	sync.RWMutex
+	m map[string]api.OnResolveResult
+}
+
 var extensionToLoaderMap = map[string]api.Loader{
 	".js":   api.LoaderJS,
 	".mjs":  api.LoaderJS,
@@ -135,18 +141,15 @@ func loaderFromFilename(filename string) api.Loader {
 func createBuildPlugins(c *Client, opts Options) ([]api.Plugin, error) {
 	fs := c.rs.Assets
 
+	cache := importCache{
+		m: make(map[string]api.OnResolveResult),
+	}
+
 	resolveImport := func(args api.OnResolveArgs) (api.OnResolveResult, error) {
 		isStdin := args.Importer == stdinImporter
 		var relDir string
 		if !isStdin {
-			rel, found := fs.MakePathRelative(args.Importer)
-			if !found {
-				// Not in any of the /assets folders.
-				// This is an import from a node_modules, let
-				// ESBuild resolve this.
-				return api.OnResolveResult{}, nil
-			}
-			relDir = filepath.Dir(rel)
+			relDir = filepath.Dir(fs.MakePathRelative(args.Importer))
 		} else {
 			relDir = filepath.Dir(opts.sourcefile)
 		}
@@ -199,7 +202,8 @@ func createBuildPlugins(c *Client, opts Options) ([]api.Plugin, error) {
 			return api.OnResolveResult{Path: m.Filename(), Namespace: nsImportHugo}, nil
 		}
 
-		// Fall back to ESBuild's resolve.
+		// Not found in /assets. Probably in node_modules. ESBuild will handle that
+		// rather complex logic.
 		return api.OnResolveResult{}, nil
 	}
 
@@ -208,7 +212,26 @@ func createBuildPlugins(c *Client, opts Options) ([]api.Plugin, error) {
 		Setup: func(build api.PluginBuild) {
 			build.OnResolve(api.OnResolveOptions{Filter: `.*`},
 				func(args api.OnResolveArgs) (api.OnResolveResult, error) {
-					return resolveImport(args)
+					// Try cache first.
+					cache.RLock()
+					v, found := cache.m[args.Path]
+					cache.RUnlock()
+
+					if found {
+						return v, nil
+					}
+
+					imp, err := resolveImport(args)
+					if err != nil {
+						return imp, err
+					}
+
+					cache.Lock()
+					defer cache.Unlock()
+
+					cache.m[args.Path] = imp
+
+					return imp, nil
 				})
 			build.OnLoad(api.OnLoadOptions{Filter: `.*`, Namespace: nsImportHugo},
 				func(args api.OnLoadArgs) (api.OnLoadResult, error) {
