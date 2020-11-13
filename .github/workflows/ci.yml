@@ -59,6 +59,53 @@ jobs:
       - name: Run mage neohugo
         run: |
           mage -v neohugo
+  gotip:
+    name: Build ubuntu-latest, GoTip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup gotip
+        if: matrix.go == 'tip'
+        run: |
+          git clone --depth=1 https://go.googlesource.com/go $HOME/gotip
+          cd $HOME/gotip/src
+          ./make.bash
+          echo "GOROOT=$HOME/gotip >> $GITHUB_ENV
+          echo "$HOME/gotip/bin" >> $GITHUB_PATH
+      - name: Git checkout
+        uses: actions/checkout@v2
+      - name: Go info
+        run: go env
+      - name: Install gofumpt and mage
+        continue-on-error: true
+        run: |
+          go get mvdan.cc/gofumpt
+          go get github.com/magefile/mage
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Go module
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          go mod download
+          go mod verify
+      - name: Run mage tests
+        continue-on-error: true
+        run: |
+          mage -v test
+      - name: Run mage check
+        continue-on-error: true
+        run: |
+          mage -v check
+      - name: Run mage neohugo
+        continue-on-error: true
+        run: |
+          mage -v neohugo
+
   docdeploy:
     if: startsWith(github.ref, 'refs/tags/v')
     name: Deploy documentation
