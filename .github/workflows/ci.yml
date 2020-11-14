@@ -64,7 +64,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup gotip
-        if: matrix.go == 'tip'
         run: |
           git clone --depth=1 https://go.googlesource.com/go $HOME/gotip
           cd $HOME/gotip/src
