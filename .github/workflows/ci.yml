@@ -72,6 +72,11 @@ jobs:
           echo "$HOME/gotip/bin" >> $GITHUB_PATH
       - name: Git checkout
         uses: actions/checkout@v2
+      - name: Setup Go environment
+        shell: bash
+        run: |
+          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
+          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
       - name: Go info
         run: go env
       - name: Install gofumpt and mage
