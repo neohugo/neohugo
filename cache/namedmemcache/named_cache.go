@@ -45,10 +45,10 @@ func New() *Cache {
 // Clear clears the cache state.
 func (c *Cache) Clear() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 
 	c.cache = make(map[string]cacheEntry)
 	c.nlocker = locker.NewLocker()
+	c.mu.Unlock()
 }
 
 // GetOrCreate tries to get the value with the given cache key, if not found

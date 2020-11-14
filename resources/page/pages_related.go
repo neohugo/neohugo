@@ -168,16 +168,14 @@ func (s *RelatedDocsHandler) getIndex(p Pages) *related.InvertedIndex {
 func (s *RelatedDocsHandler) getOrCreateIndex(p Pages) (*related.InvertedIndex, error) {
 	s.mu.RLock()
 	cachedIndex := s.getIndex(p)
+	s.mu.RUnlock()
 	if cachedIndex != nil {
-		s.mu.RUnlock()
 		return cachedIndex, nil
 	}
-	s.mu.RUnlock()
 
 	s.mu.Lock()
-	defer s.mu.Unlock()
-
 	if cachedIndex := s.getIndex(p); cachedIndex != nil {
+		s.mu.Unlock()
 		return cachedIndex, nil
 	}
 
@@ -185,11 +183,13 @@ func (s *RelatedDocsHandler) getOrCreateIndex(p Pages) (*related.InvertedIndex, 
 
 	for _, page := range p {
 		if err := searchIndex.Add(page); err != nil {
+			s.mu.Unlock()
 			return nil, err
 		}
 	}
 
 	s.postingLists = append(s.postingLists, &cachedPostingList{p: p, postingList: searchIndex})
+	s.mu.Unlock()
 
 	return searchIndex, nil
 }
