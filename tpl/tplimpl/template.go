@@ -831,7 +831,6 @@ type templateNamespace struct {
 
 func (t templateNamespace) Clone() *templateNamespace {
 	t.mu.Lock()
-	defer t.mu.Unlock()
 
 	t.templateStateMap = &templateStateMap{
 		templates: make(map[string]*templateState),
@@ -840,6 +839,7 @@ func (t templateNamespace) Clone() *templateNamespace {
 	t.prototypeText = texttemplate.Must(t.prototypeText.Clone())
 	t.prototypeHTML = htmltemplate.Must(t.prototypeHTML.Clone())
 
+	t.mu.Unlock()
 	return &t
 }
 

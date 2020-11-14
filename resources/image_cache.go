@@ -37,13 +37,13 @@ type imageCache struct {
 
 func (c *imageCache) deleteIfContains(s string) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	s = c.normalizeKeyBase(s)
 	for k := range c.store {
 		if strings.Contains(k, s) {
 			delete(c.store, k)
 		}
 	}
+	c.mu.Unlock()
 }
 
 // The cache key is a lowecase path with Unix style slashes and it always starts with
@@ -58,8 +58,8 @@ func (c *imageCache) normalizeKeyBase(key string) string {
 
 func (c *imageCache) clear() {
 	c.mu.Lock()
-	defer c.mu.Unlock()
 	c.store = make(map[string]*resourceAdapter)
+	c.mu.Unlock()
 }
 
 func (c *imageCache) getOrCreate(

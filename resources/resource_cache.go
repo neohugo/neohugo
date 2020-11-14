@@ -153,8 +153,8 @@ func (c *ResourceCache) cleanKey(key string) string {
 
 func (c *ResourceCache) get(key string) (interface{}, bool) {
 	c.RLock()
-	defer c.RUnlock()
 	r, found := c.cache[key]
+	c.RUnlock()
 	return r, found
 }
 
@@ -212,22 +212,24 @@ func (c *ResourceCache) getFilenames(key string) (string, string) {
 
 func (c *ResourceCache) getFromFile(key string) (filecache.ItemInfo, io.ReadCloser, transformedResourceMetadata, bool) {
 	c.RLock()
-	defer c.RUnlock()
 
 	var meta transformedResourceMetadata
 	filenameMeta, filenameContent := c.getFilenames(key)
 
 	_, jsonContent, _ := c.fileCache.GetBytes(filenameMeta)
 	if jsonContent == nil {
+		c.RUnlock()
 		return filecache.ItemInfo{}, nil, meta, false
 	}
 
 	if err := json.Unmarshal(jsonContent, &meta); err != nil {
+		c.RUnlock()
 		return filecache.ItemInfo{}, nil, meta, false
 	}
 
 	fi, rc, _ := c.fileCache.Get(filenameContent)
 
+	c.RUnlock()
 	return fi, rc, meta, rc != nil
 }
 
@@ -256,8 +258,8 @@ func (c *ResourceCache) writeMeta(key string, meta transformedResourceMetadata) 
 
 func (c *ResourceCache) set(key string, r interface{}) {
 	c.Lock()
-	defer c.Unlock()
 	c.cache[key] = r
+	c.Unlock()
 }
 
 func (c *ResourceCache) DeletePartitions(partitions ...string) {
@@ -275,7 +277,6 @@ func (c *ResourceCache) DeletePartitions(partitions ...string) {
 	}
 
 	c.Lock()
-	defer c.Unlock()
 
 	for k := range c.cache {
 		clear := false
@@ -291,15 +292,15 @@ func (c *ResourceCache) DeletePartitions(partitions ...string) {
 			delete(c.cache, k)
 		}
 	}
+	c.Unlock()
 }
 
 func (c *ResourceCache) DeleteMatches(re *regexp.Regexp) {
 	c.Lock()
-	defer c.Unlock()
-
 	for k := range c.cache {
 		if re.MatchString(k) {
 			delete(c.cache, k)
 		}
 	}
+	c.Unlock()
 }
