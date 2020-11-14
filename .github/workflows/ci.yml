@@ -59,6 +59,58 @@ jobs:
       - name: Run mage neohugo
         run: |
           mage -v neohugo
+  gotip:
+    name: Build ubuntu-latest, GoTip
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15
+      - name: Setup gotip
+        run: |
+          go get golang.org/dl/gotip
+          gotip download
+      - name: Git checkout
+        uses: actions/checkout@v2
+      - name: Setup Go environment
+        shell: bash
+        run: |
+          echo "GOPATH=$(gotip env GOPATH)" >> $GITHUB_ENV
+          echo "$(gotip env GOPATH)/bin" >> $GITHUB_PATH
+      - name: Go info
+        run: gotip env
+      - name: Install gofumpt and mage
+        continue-on-error: true
+        run: |
+          gotip get mvdan.cc/gofumpt
+          gotip get github.com/magefile/mage
+      - uses: actions/cache@v2
+        id: cache
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+      - name: Install Go module
+        if: steps.cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        run: |
+          gotip mod download
+          gotip mod verify
+      - name: Run mage tests
+        continue-on-error: true
+        run: |
+          GOEXE=gotip mage -v test
+      - name: Run mage check
+        continue-on-error: true
+        run: |
+          GOEXE=gotip mage -v check
+      - name: Run mage neohugo
+        continue-on-error: true
+        run: |
+          GOEXE=gotip mage -v neohugo
+
   docdeploy:
     if: startsWith(github.ref, 'refs/tags/v')
     name: Deploy documentation
