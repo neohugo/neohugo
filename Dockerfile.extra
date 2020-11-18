@@ -25,19 +25,68 @@ RUN mage neohugo && mage install
 
 # ---
 
-FROM alpine:3.12
+FROM node:lts-alpine
+
+ENV NEOHUGO_VERSION="0.4.1" \
+    MOZJPEG_VERSION="4.0.0"
+
 LABEL description="Docker container for building static sites with the neohugo static site generator with extended."
 LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.me>"
 
 COPY --from=build /go/bin/neohugo /usr/bin/neohugo
+COPY --from=build /opt/mozjpeg/ /opt/mozjpeg/
 
 # libc6-compat & libstdc++ are required for extended SASS libraries
 # ca-certificates are required to fetch outside resources (like Twitter oEmbeds)
 RUN apk update && \
     apk add --no-cache \
+      bash \
       ca-certificates \
+      exiftool \
       libc6-compat \
+      libpng-dev \
+      libpng-static \
       libstdc++ \
+      libwebp \
+      libwebp-tools \
+      openssh-client \
+      pngquant \
+      rsync \
+      zlib-dev \
+      zlib-static \
+    && apk add --update --no-cache --virtual .build-deps \
+        autoconf \
+        automake \
+        binutils-gold \
+        build-base \
+        cmake \
+        curl \
+        g++ \
+        gcc \
+        git \
+        gnupg \
+        gzip \
+        libgcc \
+        libstdc++ \
+        libtool \
+        linux-headers \
+        make \
+        nasm \
+        pkgconf \
+        python \
+        tar \
+        xz \
+    && deluser --remove-home node \
+    && addgroup -Sg 1000 neohugo \
+    && adduser -Sg neohugo -u 1000 -h /src neohugo \
+    && curl -L https://github.com/mozilla/mozjpeg/archive/v${MOZJPEG_VERSION}.tar.gz | tar -xz \
+    && cd mozjpeg-${MOZJPEG_VERSION} \
+    && cmake -DCMAKE_BUILD_TYPE=Release . \
+    && make install && cd .. \
+    && rm -rf mozjpeg-${MOZJPEG_VERSION} \
+    && apk del .build-deps \
+    && cjpeg \
+    && cwebp \
     && neohugo
 
 VOLUME /src
