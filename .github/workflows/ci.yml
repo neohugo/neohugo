@@ -112,10 +112,8 @@ jobs:
     name: Build Neohugo Docker Latest
     runs-on: ubuntu-latest
     steps:
-      - name: Prepare
-        id: prep
-        run: |
-          echo ::set-output name=tags::neohugo/neohugo:latest
+      - name: Checkout
+        uses: actions/checkout@v2
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
@@ -125,41 +123,33 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Build and Push to Docker Hub
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+      - name: Build and push
         id: docker_build
         uses: docker/build-push-action@v2
         with:
+          context: .
+          file: ./Dockerfile
           push: true
-          tags: ${{ steps.prep.outputs.tags }}
-      - name: Build and Push to GitHub Packages
-        uses: docker/build-push-action@v2
-        with:
-          push: true
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
-          repository: neohugo/golang-cross/golang-cross
-          tags: ${{ steps.prep.outputs.tags }}
+          tags:
+            neohugo/neohugo:latest
+            ghcr.io/neohugo/neohugo:latest
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
-      - name: Build Extra and Push to Docker Hub
+      - name: Build Extra and push
         id: docker_build_extra
         uses: docker/build-push-action@v2
         with:
           context: .
           file: ./Dockerfile.extra
           push: true
-          tags: ${{ steps.prep.outputs.tags }}
-      - name: Build Extra and Push to GitHub Packages
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile.extra
-          push: true
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
-          repository: neohugo/golang-cross/golang-cross
-          tags: ${{ steps.prep.outputs.tags }}
-      - name: Image digest
+          tags:
+            neohugo/neohugo:latest-extra
+            ghcr.io/neohugo/neohugo:latest-extra
+      - name: Image Extra digest
         run: echo ${{ steps.docker_build_extra.outputs.digest }}
