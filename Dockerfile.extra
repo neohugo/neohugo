@@ -84,9 +84,10 @@ RUN apk update && \
     && make install && cd .. \
     && rm -rf mozjpeg-${MOZJPEG_VERSION} \
     && apk del .build-deps \
-    && /opt/mozjpeg/bin/cjpeg \
     && cwebp \
     && neohugo version
+
+RUN /opt/mozjpeg/bin/cjpeg
 
 VOLUME /src
 WORKDIR /src
