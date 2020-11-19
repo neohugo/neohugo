@@ -34,7 +34,6 @@ LABEL description="Docker container for building static sites with the neohugo s
 LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.me>"
 
 COPY --from=build /go/bin/neohugo /usr/bin/neohugo
-COPY --from=build /opt/mozjpeg/ /opt/mozjpeg/
 
 # libc6-compat & libstdc++ are required for extended SASS libraries
 # ca-certificates are required to fetch outside resources (like Twitter oEmbeds)
