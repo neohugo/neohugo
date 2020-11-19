@@ -87,7 +87,7 @@ RUN apk update && \
     && cwebp \
     && neohugo version
 
-RUN /opt/mozjpeg/bin/cjpeg
+RUN /opt/mozjpeg/bin/cjpeg --help
 
 VOLUME /src
 WORKDIR /src
