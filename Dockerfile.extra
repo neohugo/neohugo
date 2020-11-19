@@ -34,7 +34,6 @@ LABEL description="Docker container for building static sites with the neohugo s
 LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.me>"
 
 COPY --from=build /go/bin/neohugo /usr/bin/neohugo
-COPY --from=build /opt/mozjpeg/ /opt/mozjpeg/
 
 # libc6-compat & libstdc++ are required for extended SASS libraries
 # ca-certificates are required to fetch outside resources (like Twitter oEmbeds)
@@ -44,7 +43,6 @@ RUN apk update && \
       ca-certificates \
       exiftool \
       libc6-compat \
-      libpng-dev \
       libpng-static \
       libstdc++ \
       libwebp \
@@ -52,7 +50,6 @@ RUN apk update && \
       openssh-client \
       pngquant \
       rsync \
-      zlib-dev \
       zlib-static \
     && apk add --update --no-cache --virtual .build-deps \
         autoconf \
@@ -67,6 +64,7 @@ RUN apk update && \
         gnupg \
         gzip \
         libgcc \
+        libpng-dev \
         libstdc++ \
         libtool \
         linux-headers \
@@ -76,6 +74,7 @@ RUN apk update && \
         python \
         tar \
         xz \
+        zlib-dev \
     && deluser --remove-home node \
     && addgroup -Sg 1000 neohugo \
     && adduser -Sg neohugo -u 1000 -h /src neohugo \
@@ -85,9 +84,10 @@ RUN apk update && \
     && make install && cd .. \
     && rm -rf mozjpeg-${MOZJPEG_VERSION} \
     && apk del .build-deps \
-    && cjpeg \
+    && /opt/mozjpeg/bin/cjpeg -version \
     && cwebp \
-    && neohugo
+    && neohugo version
+
 
 VOLUME /src
 WORKDIR /src
