@@ -89,7 +89,6 @@ RUN apk update && \
     && neohugo version
 
 RUN cjpeg
-RUN cwebp
 
 VOLUME /src
 WORKDIR /src
