@@ -107,7 +107,7 @@ jobs:
       - name: Prepare
         id: prep
         run: |
-          echo ::set-output name=tags::neohugo/neohugo:latest,neohugo/neohugo:${GITHUB_REF/refs\/tags\//},ghcr.io/neohugo/neohugo:latest,ghcr.io/neohugo/neohugo:${GITHUB_REF/refs\/tags\//}
+          echo ::set-output name=tags::neohugo/neohugo/neohugo:latest,neohugo/neohugo/neohugo:${GITHUB_REF/refs\/tags\//},ghcr.io/neohugo/neohugo/neohugo:latest,ghcr.io/neohugo/neohugo/neohugo:${GITHUB_REF/refs\/tags\//}
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set up QEMU
@@ -138,7 +138,7 @@ jobs:
       - name: Prepare-Extra
         id: prep-extra
         run: |
-          echo ::set-output name=tags::neohugo/neohugo:latest-extra,neohugo/neohugo:${GITHUB_REF/refs\/tags\//}-extra,ghcr.io/neohugo/neohugo:latest-extra,ghcr.io/neohugo/neohugo:${GITHUB_REF/refs\/tags\//}-extra
+          echo ::set-output name=tags::neohugo/neohugo/neohugo:latest-extra,neohugo/neohugo/neohugo:${GITHUB_REF/refs\/tags\//}-extra,ghcr.io/neohugo/neohugo/neohugo:latest-extra,ghcr.io/neohugo/neohugo/neohugo:${GITHUB_REF/refs\/tags\//}-extra
       - name: Build Extra and push
         id: docker_build_extra
         uses: docker/build-push-action@v2
