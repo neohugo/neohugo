@@ -43,7 +43,6 @@ RUN apk update && \
       ca-certificates \
       exiftool \
       libc6-compat \
-      libpng-dev \
       libpng-static \
       libstdc++ \
       libwebp \
@@ -51,7 +50,6 @@ RUN apk update && \
       openssh-client \
       pngquant \
       rsync \
-      zlib-dev \
       zlib-static \
     && apk add --update --no-cache --virtual .build-deps \
         autoconf \
@@ -66,6 +64,7 @@ RUN apk update && \
         gnupg \
         gzip \
         libgcc \
+        libpng-dev \
         libstdc++ \
         libtool \
         linux-headers \
@@ -75,6 +74,7 @@ RUN apk update && \
         python \
         tar \
         xz \
+        zlib-dev \
     && deluser --remove-home node \
     && addgroup -Sg 1000 neohugo \
     && adduser -Sg neohugo -u 1000 -h /src neohugo \
@@ -87,8 +87,6 @@ RUN apk update && \
     && /opt/mozjpeg/bin/cjpeg \
     && cwebp \
     && neohugo version
-
-RUN cjpeg
 
 VOLUME /src
 WORKDIR /src
