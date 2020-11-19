@@ -38,7 +38,7 @@ RUN apk update && \
       ca-certificates \
       libc6-compat \
       libstdc++ \
-    && neohugo
+    && neohugo version
 
 VOLUME /src
 WORKDIR /src

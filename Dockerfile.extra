@@ -87,7 +87,7 @@ RUN apk update && \
     && apk del .build-deps \
     && cjpeg \
     && cwebp \
-    && neohugo
+    && neohugo version
 
 VOLUME /src
 WORKDIR /src
