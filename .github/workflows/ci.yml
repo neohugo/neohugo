@@ -140,7 +140,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             neohugo/neohugo:latest
-            ghcr.io/neohugo/neohugo/neohugo:latest
+            ghcr.io/${{ github.repository_owner }}/neohugo:latest
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
       - name: Build Extra and push
@@ -152,6 +152,6 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: |
             neohugo/neohugo:latest-extra
-            ghcr.io/neohugo/neohugo/neohugo:latest-extra
+            ghcr.io/${{ github.repository_owner }}/neohugo:latest-extra
       - name: Image Extra digest
         run: echo ${{ steps.docker_build_extra.outputs.digest }}

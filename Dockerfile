@@ -40,8 +40,6 @@ RUN apk update && \
       libstdc++ \
     && neohugo version
 
-VOLUME /src
 WORKDIR /src
-
 # Expose port for live server
 EXPOSE 1313

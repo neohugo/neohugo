@@ -88,9 +88,6 @@ RUN apk update && \
     && cwebp \
     && neohugo version
 
-
-VOLUME /src
 WORKDIR /src
-
 # Expose port for live server
 EXPOSE 1313
