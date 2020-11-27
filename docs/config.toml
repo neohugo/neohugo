@@ -8,6 +8,7 @@ languageCode = "en-us"
 title = "Neohugo"
 
 googleAnalytics = "G-NK4B94E99V"
+ignoreErrors = ["error-remote-getjson"]
 
 pluralizeListTitles = false
 
