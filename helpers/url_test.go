@@ -71,14 +71,14 @@ func doTestAbsURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 		expected string
 	}{
 		{"/test/foo", "http://base/", "http://base/MULTItest/foo"},
-		{"/" + lang + "/test/foo", "http://base/", "http://base/" + lang + "/test/foo"},
+		{"/" + lang + "/test/foo", "http://base/", "http://base/MULTI" + lang + "/test/foo"},
 		{"", "http://base/ace/", "http://base/ace/MULTI"},
 		{"/test/2/foo/", "http://base", "http://base/MULTItest/2/foo/"},
 		{"http://abs", "http://base/", "http://abs"},
 		{"schema://abs", "http://base/", "schema://abs"},
 		{"//schemaless", "http://base/", "//schemaless"},
 		{"test/2/foo/", "http://base/path", "http://base/path/MULTItest/2/foo/"},
-		{lang + "/test/2/foo/", "http://base/path", "http://base/path/" + lang + "/test/2/foo/"},
+		{lang + "/test/2/foo/", "http://base/path", "http://base/path/MULTI" + lang + "/test/2/foo/"},
 		{"/test/2/foo/", "http://base/path", "http://base/MULTItest/2/foo/"},
 		{"http//foo", "http://base/path", "http://base/path/MULTIhttp/foo"},
 	}
@@ -89,7 +89,7 @@ func doTestAbsURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 			baseURL  string
 			expected string
 		}{
-			{lang + "test", "http://base/", "http://base/" + lang + "/" + lang + "test"},
+			{lang + "testnoslash", "http://base/", "http://base/" + lang + "/" + lang + "testnoslash"},
 			{"/" + lang + "test", "http://base/", "http://base/" + lang + "/" + lang + "test"},
 		}
 
@@ -164,8 +164,8 @@ func doTestRelURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 		expected string
 	}{
 		{"/test/foo", "http://base/", false, "MULTI/test/foo"},
-		{"/" + lang + "/test/foo", "http://base/", false, "/" + lang + "/test/foo"},
-		{lang + "/test/foo", "http://base/", false, "/" + lang + "/test/foo"},
+		{"/" + lang + "/test/foo", "http://base/", false, "MULTI/" + lang + "/test/foo"},
+		{lang + "/test/foo", "http://base/", false, "MULTI/" + lang + "/test/foo"},
 		{"test.css", "http://base/sub", false, "/subMULTI/test.css"},
 		{"test.css", "http://base/sub", true, "MULTI/test.css"},
 		{"/test/", "http://base/", false, "MULTI/test/"},
@@ -184,7 +184,7 @@ func doTestRelURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 			canonify bool
 			expected string
 		}{
-			{lang + "test", "http://base/", false, "/" + lang + "/" + lang + "test"},
+			{lang + "testnoslash", "http://base/", false, "/" + lang + "/" + lang + "testnoslash"},
 			{"/" + lang + "test", "http://base/", false, "/" + lang + "/" + lang + "test"},
 		}
 

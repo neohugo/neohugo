@@ -176,25 +176,11 @@ func (p *PathSpec) AbsURL(in string, addLanguage bool) string {
 	if addLanguage {
 		prefix := p.GetLanguagePrefix()
 		if prefix != "" {
-			hasPrefix := false
-			// avoid adding language prefix if already present
-			in2 := in
-			if strings.HasPrefix(in, "/") {
-				in2 = in[1:]
-			}
-			if in2 == prefix {
-				hasPrefix = true
-			} else {
-				hasPrefix = strings.HasPrefix(in2, prefix+"/")
-			}
+			addSlash := in == "" || strings.HasSuffix(in, "/")
+			in = path.Join(prefix, in)
 
-			if !hasPrefix {
-				addSlash := in == "" || strings.HasSuffix(in, "/")
-				in = path.Join(prefix, in)
-
-				if addSlash {
-					in += "/"
-				}
+			if addSlash {
+				in += "/"
 			}
 		}
 	}
@@ -229,26 +215,12 @@ func (p *PathSpec) RelURL(in string, addLanguage bool) string {
 	if addLanguage {
 		prefix := p.GetLanguagePrefix()
 		if prefix != "" {
-			hasPrefix := false
-			// avoid adding language prefix if already present
-			in2 := in
-			if strings.HasPrefix(in, "/") {
-				in2 = in[1:]
-			}
-			if in2 == prefix {
-				hasPrefix = true
-			} else {
-				hasPrefix = strings.HasPrefix(in2, prefix+"/")
-			}
+			hadSlash := strings.HasSuffix(u, "/")
 
-			if !hasPrefix {
-				hadSlash := strings.HasSuffix(u, "/")
+			u = path.Join(prefix, u)
 
-				u = path.Join(prefix, u)
-
-				if hadSlash {
-					u += "/"
-				}
+			if hadSlash {
+				u += "/"
 			}
 		}
 	}
