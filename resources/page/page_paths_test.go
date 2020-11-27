@@ -406,6 +406,15 @@ func TestPageTargetPath(t *testing.T) {
 						},
 					},
 					{
+						"HTML page with URL containing double hyphen", TargetPathDescriptor{
+							Kind:     KindPage,
+							Dir:      "/sect/",
+							BaseName: "mypage",
+							URL:      "/some/other--url/",
+							Type:     output.HTMLFormat,
+						}, TargetPaths{TargetFilename: "/some/other--url/index.html", SubResourceBaseTarget: "/some/other--url", Link: "/some/other--url/"},
+					},
+					{
 						"HTML page with expanded permalink",
 						TargetPathDescriptor{
 							Kind:              KindPage,
