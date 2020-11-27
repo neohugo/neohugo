@@ -3,8 +3,6 @@ on:
   push:
     branches:
       - main
-    tags:
-      - v*.*.*
   pull_request:
 
 env:
@@ -110,88 +108,50 @@ jobs:
         continue-on-error: true
         run: |
           GOEXE=gotip mage -v neohugo
-
-  docdeploy:
-    if: startsWith(github.ref, 'refs/tags/v')
-    name: Deploy documentation
-    needs: build
+  docker:
+    name: Build Neohugo Docker Latest
     runs-on: ubuntu-latest
-    steps:
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.15.x
-      - name: Git checkout
-        uses: actions/checkout@v2
-        with:
-          path: neohugo
-      - name: Setup Go environment
-        shell: bash
-        run: |
-          echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
-          echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
-          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
-      - name: Install mage
-        working-directory: ./neohugo
-        run: |
-          go get github.com/magefile/mage
-      - uses: actions/cache@v2
-        id: cache
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Install Go module
-        if: steps.cache.outputs.cache-hit != 'true'
-        working-directory: ./neohugo
-        run: |
-          go mod download
-          go mod verify
-      - name: Run mage neohugo
-        working-directory: ./neohugo
-        run: |
-          mage -v neohugo
-      - name: Build docs
-        working-directory: ./neohugo
-        run: |
-          HUGO_IGNOREERRORS=error-remote-getjson ./neohugo -s docs/
-      - name: Checkout docs repository
-        uses: actions/checkout@v2
-        with:
-          repository: neohugo/neohugo.github.io
-          path: docs
-          token: ${{ secrets.NEOHUGO_GITHUB_TOKEN }}
-      - name: Update documentation
-        working-directory: ./docs
-        run: |
-          rsync -hrvz --delete --exclude='.git/'  ../neohugo/docs/public/ .
-          git config --global user.name "blackb1rd"
-          git config --global user.email "${{ secrets.NEOHUGO_EMAIL }}"
-          git add -A
-          git commit -m "Update $RELEASE_VERSION"
-          git push
-  goreleaser:
-    if: startsWith(github.ref, 'refs/tags/v')
-    name: Release tag
-    needs: docdeploy
-    runs-on: ubuntu-latest
-    container:
-      image: troian/golang-cross:v1.15.3
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+      - name: Login to DockerHub
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: docker/login-action@v1
         with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v2
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GitHub Container Registry
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: docker/login-action@v1
         with:
-          go-version: 1.15.x
-      - name: Run Goreleaser
-        uses: goreleaser/goreleaser-action@v2
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.CR_PAT }}
+      - name: Build and push
+        id: docker_build
+        uses: docker/build-push-action@v2
         with:
-          version: latest
-          args: release --rm-dist --timeout 60m
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          context: .
+          file: ./Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            neohugo/neohugo:latest
+            ghcr.io/${{ github.repository_owner }}/neohugo:latest
+      - name: Image digest
+        run: echo ${{ steps.docker_build.outputs.digest }}
+      - name: Build Extra and push
+        id: docker_build_extra
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          file: ./Dockerfile.extra
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: |
+            neohugo/neohugo:latest-extra
+            ghcr.io/${{ github.repository_owner }}/neohugo:latest-extra
+      - name: Image Extra digest
+        run: echo ${{ steps.docker_build_extra.outputs.digest }}
