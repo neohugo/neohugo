@@ -132,7 +132,7 @@ disableAliases (false)
 : Will disable generation of alias redirects. Note that even if `disableAliases` is set, the aliases themselves are preserved on the page. The motivation with this is to be able to generate 301 redirects in an `.htaccess`, a Netlify `_redirects` file or similar using a custom output format.
 
 disableHugoGeneratorInject (true)
-: Hugo will, by default, inject a generator meta tag in the HTML head on the _home page only_. You can turn it off, but we would really appreciate if you don't, as this is a good way to watch Hugo's popularity on the rise.
+: By default, Neohugo will not inject a generator meta tag in the HTML head on the _home page only_. But we would really appreciate if you do, as this is a good way to watch Neohugo's popularity on the rise.
 
 disableKinds ([])
 : Enable disabling of all pages of the specified *Kinds*. Allowed values in this list: `"page"`, `"home"`, `"section"`, `"taxonomy"`, `"term"`, `"RSS"`, `"sitemap"`, `"robotsTXT"`, `"404"`.
