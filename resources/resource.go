@@ -260,23 +260,22 @@ func (l *genericResource) Permalink() string {
 
 func (l *genericResource) Publish() error {
 	var err error
-	l.publishInit.Do(func() {
-		var fr hugio.ReadSeekCloser
-		fr, err = l.ReadSeekCloser()
-		if err != nil {
-			return
-		}
-		defer fr.Close()
 
-		var fw io.WriteCloser
-		fw, err = helpers.OpenFilesForWriting(l.spec.BaseFs.PublishFs, l.getTargetFilenames()...)
-		if err != nil {
-			return
-		}
-		defer fw.Close()
+	var fr hugio.ReadSeekCloser
+	fr, err = l.ReadSeekCloser()
+	if err != nil {
+		return err
+	}
+	defer fr.Close()
 
-		_, err = io.Copy(fw, fr)
-	})
+	var fw io.WriteCloser
+	fw, err = helpers.OpenFilesForWriting(l.spec.BaseFs.PublishFs, l.getTargetFilenames()...)
+	if err != nil {
+		return err
+	}
+	defer fw.Close()
+
+	_, err = io.Copy(fw, fr)
 
 	return err
 }
@@ -459,8 +458,8 @@ func (l *genericResource) openDestinationsForWriting() (w io.WriteCloser, err er
 	return
 }
 
-func (r *genericResource) openPublishFileForWriting(relTargetPath string) (io.WriteCloser, error) {
-	return helpers.OpenFilesForWriting(r.spec.BaseFs.PublishFs, r.relTargetPathsFor(relTargetPath)...)
+func (l *genericResource) openPublishFileForWriting(relTargetPath string) (w io.WriteCloser, err error) {
+	return helpers.OpenFilesForWriting(l.spec.BaseFs.PublishFs, l.relTargetPathsFor(relTargetPath)...)
 }
 
 func (l *genericResource) permalinkFor(target string) string {
@@ -490,7 +489,7 @@ func (l *genericResource) relTargetPathForRel(rel string, addBaseTargetPath, isA
 func (l *genericResource) relTargetPathForRelAndBasePath(rel, basePath string, isAbs, isURL bool) string {
 	rel = l.createBasePath(rel, isURL)
 
-	if basePath != "" {
+	if l.spec.Languages.IsMultihost() && basePath != "" {
 		rel = path.Join(basePath, rel)
 	}
 
