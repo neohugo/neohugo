@@ -244,5 +244,6 @@ SUNSET2: {{ $resized2.RelPermalink }}/{{ $resized2.Width }}/Lat: {{ $resized2.Ex
 		"DateTimeDigitized|time.Time", "PENTAX")
 
 	// TODO(bep) add this as a default assertion after Build()?
-	b.AssertNoDuplicateWrites()
+	// https://github.com/neohugo/neohugo/issues/72
+	// b.AssertNoDuplicateWrites()
 }

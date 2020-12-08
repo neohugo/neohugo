@@ -406,13 +406,19 @@ func TestPageTargetPath(t *testing.T) {
 						},
 					},
 					{
-						"HTML page with URL containing double hyphen", TargetPathDescriptor{
+						"HTML page with URL containing double hyphen",
+						TargetPathDescriptor{
 							Kind:     KindPage,
 							Dir:      "/sect/",
 							BaseName: "mypage",
 							URL:      "/some/other--url/",
 							Type:     output.HTMLFormat,
-						}, TargetPaths{TargetFilename: "/some/other--url/index.html", SubResourceBaseTarget: "/some/other--url", Link: "/some/other--url/"},
+						},
+						TargetPaths{
+							TargetFilename:        "/some/other--url/index.html",
+							SubResourceBaseTarget: "/some/other--url",
+							Link:                  "/some/other--url/",
+						},
 					},
 					{
 						"HTML page with expanded permalink",
@@ -532,8 +538,20 @@ func TestPageTargetPathPrefix(t *testing.T) {
 	}{
 		{
 			"URL set, prefix both, no force",
-			TargetPathDescriptor{Kind: KindPage, Type: output.JSONFormat, URL: "/mydir/my.json", ForcePrefix: false, PrefixFilePath: "pf", PrefixLink: "pl"},
-			TargetPaths{TargetFilename: "/mydir/my.json", SubResourceBaseTarget: "/mydir", SubResourceBaseLink: "/mydir", Link: "/mydir/my.json"},
+			TargetPathDescriptor{
+				Kind:           KindPage,
+				Type:           output.JSONFormat,
+				URL:            "/mydir/my.json",
+				ForcePrefix:    false,
+				PrefixFilePath: "pf",
+				PrefixLink:     "pl",
+			},
+			TargetPaths{
+				TargetFilename:        "/mydir/my.json",
+				SubResourceBaseTarget: "/mydir",
+				SubResourceBaseLink:   "/mydir",
+				Link:                  "/mydir/my.json",
+			},
 		},
 		{
 			"URL set, prefix both, force",
