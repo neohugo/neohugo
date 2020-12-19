@@ -18,8 +18,9 @@ package asciidocext
 
 import (
 	"bytes"
-	"os/exec"
 	"path/filepath"
+
+	"github.com/cli/safeexec"
 
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/asciidocext/asciidocext_config"
@@ -193,7 +194,7 @@ func (a *asciidocConverter) appendArg(args []string, option, value, defaultValue
 }
 
 func getAsciidoctorExecPath() string {
-	path, err := exec.LookPath("asciidoctor")
+	path, err := safeexec.LookPath("asciidoctor")
 	if err != nil {
 		return ""
 	}

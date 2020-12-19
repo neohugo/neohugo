@@ -19,12 +19,13 @@ import (
 	"io"
 	"math/rand"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/neohugo/neohugo/common/hexec"
 
 	jww "github.com/spf13/jwalterweatherman"
 
@@ -930,7 +931,9 @@ class-in-b {
 	b.WithSourceFile("postcss.config.js", postcssConfig)
 
 	b.Assert(os.Chdir(workDir), qt.IsNil)
-	_, err = exec.Command("npm", "install").CombinedOutput()
+	cmd, err := hexec.SafeCommand("npm", "install")
+	b.Assert(err, qt.IsNil)
+	_, err = cmd.CombinedOutput()
 	b.Assert(err, qt.IsNil)
 	b.Build(BuildCfg{})
 

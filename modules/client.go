@@ -28,17 +28,15 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neohugo/neohugo/common/hexec"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/gobwas/glob"
 
-	"github.com/neohugo/neohugo/hugofs"
-
-	"github.com/neohugo/neohugo/hugofs/files"
-
 	"github.com/neohugo/neohugo/common/loggers"
-
 	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/rogpeppe/go-internal/module"
 
@@ -537,7 +535,10 @@ func (c *Client) runGo(
 	}
 
 	stderr := new(bytes.Buffer)
-	cmd := exec.CommandContext(ctx, "go", args...)
+	cmd, err := hexec.SafeCommandContext(ctx, "go", args...)
+	if err != nil {
+		return err
+	}
 
 	cmd.Env = c.environ
 	cmd.Dir = c.ccfg.WorkingDir

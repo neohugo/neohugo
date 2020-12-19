@@ -19,13 +19,14 @@ import (
 	"encoding/hex"
 	"io"
 	"io/ioutil"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/cli/safeexec"
+	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/common/loggers"
@@ -146,10 +147,10 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	binary := csiBinPath
 
-	if _, err := exec.LookPath(binary); err != nil {
+	if _, err := safeexec.LookPath(binary); err != nil {
 		// Try PATH
 		binary = binaryName
-		if _, err := exec.LookPath(binary); err != nil {
+		if _, err := safeexec.LookPath(binary); err != nil {
 			// This may be on a CI server etc. Will fall back to pre-built assets.
 			return herrors.ErrFeatureNotAvailable
 		}
@@ -186,7 +187,10 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 		cmdArgs = append(cmdArgs, optArgs...)
 	}
 
-	cmd := exec.Command(binary, cmdArgs...)
+	cmd, err := hexec.SafeCommand(binary, cmdArgs...)
+	if err != nil {
+		return err
+	}
 
 	var errBuf bytes.Buffer
 	infoW := loggers.LoggerToWriterWithPrefix(logger.Info(), "postcss")

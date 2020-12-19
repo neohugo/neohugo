@@ -16,13 +16,12 @@ package rst
 
 import (
 	"bytes"
-	"os/exec"
 	"runtime"
 
+	"github.com/cli/safeexec"
 	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/markup/internal"
-
 	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/internal"
 )
 
 // Provider is the package entry point.
@@ -96,9 +95,9 @@ func (c *rstConverter) getRstContent(src []byte, ctx converter.DocumentContext) 
 }
 
 func getRstExecPath() string {
-	path, err := exec.LookPath("rst2html")
+	path, err := safeexec.LookPath("rst2html")
 	if err != nil {
-		path, err = exec.LookPath("rst2html.py")
+		path, err = safeexec.LookPath("rst2html.py")
 		if err != nil {
 			return ""
 		}
