@@ -20,11 +20,11 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
+	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/pkg/errors"
 )
@@ -266,7 +266,7 @@ func (r *ReleaseHandler) release(releaseNotesFile string) error {
 		args = append(args, "--skip-publish")
 	}
 
-	cmd := exec.Command("goreleaser", args...)
+	cmd, _ := hexec.SafeCommand("goreleaser", args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()

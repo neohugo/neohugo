@@ -22,6 +22,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/cli/safeexec"
 	"github.com/neohugo/neohugo/tpl/internal/go_templates/cfg"
 )
 
@@ -112,7 +113,7 @@ func GoTool() (string, error) {
 	if _, err := os.Stat(path); err == nil {
 		return path, nil
 	}
-	goBin, err := exec.LookPath("go" + exeSuffix)
+	goBin, err := safeexec.LookPath("go" + exeSuffix)
 	if err != nil {
 		return "", errors.New("cannot find go tool: " + err.Error())
 	}
@@ -163,7 +164,7 @@ func MustHaveExecPath(t testing.TB, path string) {
 
 	err, found := execPaths.Load(path)
 	if !found {
-		_, err = exec.LookPath(path)
+		_, err = safeexec.LookPath(path)
 		err, _ = execPaths.LoadOrStore(path, err)
 	}
 	if err != nil {
