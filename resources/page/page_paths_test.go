@@ -300,7 +300,6 @@ func TestPageTargetPath(t *testing.T) {
 							Link:                  "/sect1/index.xml",
 						},
 					},
-
 					{
 						"AMP page",
 						TargetPathDescriptor{

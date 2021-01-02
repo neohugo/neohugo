@@ -83,7 +83,7 @@ func (p *pageDeprecated) BaseFileName() string {
 }
 
 func (p *pageDeprecated) RSSLink() template.URL {
-	helpers.Deprecated("Page.RSSLink", "Use the Output Format's link, e.g. something like: \n    {{ with .OutputFormats.Get \"RSS\" }}{{ .RelPermalink }}{{ end }}", false)
+	helpers.Deprecated("Page.RSSLink", "Use the Output Format's link, e.g. something like:\n    {{ with .OutputFormats.Get \"RSS\" }}{{ .RelPermalink }}{{ end }}", false)
 	return p.p.RSSLink()
 }
 

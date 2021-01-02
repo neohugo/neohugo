@@ -306,6 +306,9 @@ func resolveContentPath(sites *hugolib.HugoSites, fs afero.Fs, targetPath string
 		}
 	}
 
+	//if siteContentDir == "" {
+	//}
+
 	if siteContentDir != "" {
 		pp := filepath.Join(siteContentDir, strings.TrimPrefix(targetPath, siteContentDir))
 		return s.PathSpec.AbsPathify(pp), s

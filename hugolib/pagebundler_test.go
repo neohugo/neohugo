@@ -23,20 +23,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/hugofs/files"
-
-	"github.com/neohugo/neohugo/helpers"
-
-	"github.com/neohugo/neohugo/hugofs"
-
 	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/resources/page"
-
-	"github.com/neohugo/neohugo/htesting"
-
-	"github.com/neohugo/neohugo/media"
-
 	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources/page"
 	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"
@@ -302,7 +296,7 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 				// A bundle in a/b/index.en.md
 				// a/b/index.en.md => OK
 				// a/b/index => OK
-				// index.en.md => ambigous, but OK.
+				// index.en.md => ambiguous, but OK.
 				// With bundles, the file name has little meaning, the folder it lives in does. So this should also work:
 				// a/b
 				// and probably also just b (aka "my-bundle")
@@ -710,7 +704,7 @@ func newTestBundleSources(t testing.TB) (*hugofs.Fs, *viper.Viper) {
 	cfg.Set("contentDir", "base")
 	cfg.Set("baseURL", "https://example.com")
 	cfg.Set("mediaTypes", map[string]interface{}{
-		"text/bepsays": map[string]interface{}{
+		"bepsays/bep": map[string]interface{}{
 			"suffixes": []string{"bep"},
 		},
 	})
@@ -1238,7 +1232,7 @@ title: %q
 	b.Build(BuildCfg{})
 
 	b.AssertFileContent("public/bundle/index.html", `
-        json|sub/data.json|
+        application|sub/data.json|
         page|bundle p1|
         page|bundle sub index|
         page|bundle sub p2|
@@ -1254,7 +1248,7 @@ func TestBundleTransformMany(t *testing.T) {
 title: "Page"
 weight: %d
 ---
-		
+
 `, i))
 		b.WithSourceFile(fmt.Sprintf("content/bundle%d/data.yaml", i), fmt.Sprintf(`data: v%d`, i))
 		b.WithSourceFile(fmt.Sprintf("content/bundle%d/data.json", i), fmt.Sprintf(`{ "data": "v%d" }`, i))

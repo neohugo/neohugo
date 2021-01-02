@@ -22,9 +22,10 @@ import (
 )
 
 // Regexp definitions
-var keyMatchRegex = regexp.MustCompile(`\"(\w+)\":`)
-
-// var wordBarrierRegex = regexp.MustCompile(`(\w)([A-Z])`)
+var (
+	keyMatchRegex = regexp.MustCompile(`\"(\w+)\":`)
+	// wordBarrierRegex = regexp.MustCompile(`(\w)([A-Z])`)
+)
 
 // Code adapted from https://gist.github.com/piersy/b9934790a8892db1a603820c0c23e4a7
 type LowerCaseCamelJSONMarshaller struct {

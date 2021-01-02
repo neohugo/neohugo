@@ -16,10 +16,11 @@ package pandoc
 
 import (
 	"github.com/cli/safeexec"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/markup/internal"
 
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/internal"
 )
 
 // Provider is the package entry point.
@@ -74,5 +75,8 @@ func getPandocExecPath() string {
 
 // Supports returns whether Pandoc is installed on this computer.
 func Supports() bool {
+	if htesting.SupportsAll() {
+		return true
+	}
 	return getPandocExecPath() != ""
 }

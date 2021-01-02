@@ -41,7 +41,7 @@ package hugolib
 //)
 
 //func TestHugoModulesVariants(t *testing.T) {
-//if !isCI() {
+//if !htesting.IsCI() {
 //t.Skip("skip (relative) long running modules test when running locally")
 //}
 
@@ -91,12 +91,10 @@ package hugolib
 //github.com/gohugoio/hugoTestModule2 v0.0.0-20200131160637-9657d7697877/go.mod h1:CBFZS3khIAXKxReMwq0le8sEl/D8hcXmixlOHVv+Gd0=
 //`)
 
-// return b, clean
-
+//return b, clean
 //}
 
 // t.Run("Target in subfolder", func(t *testing.T) {
-
 // b, clean := newTestBuilder(t, "ignoreImports=true")
 // defer clean()
 
@@ -106,7 +104,6 @@ package hugolib
 //})
 
 // t.Run("Ignore config", func(t *testing.T) {
-
 // b, clean := newTestBuilder(t, "ignoreConfig=true")
 // defer clean()
 
@@ -119,7 +116,6 @@ package hugolib
 //})
 
 // t.Run("Ignore imports", func(t *testing.T) {
-
 // b, clean := newTestBuilder(t, "ignoreImports=true")
 // defer clean()
 
@@ -132,7 +128,6 @@ package hugolib
 //})
 
 // t.Run("Create package.json", func(t *testing.T) {
-
 // b, clean := newTestBuilder(t, "")
 // defer clean()
 
@@ -196,7 +191,6 @@ package hugolib
 //})
 
 // t.Run("Create package.json, no default", func(t *testing.T) {
-
 // b, clean := newTestBuilder(t, "")
 // defer clean()
 
@@ -248,11 +242,9 @@ package hugolib
 
 //// https://github.com/gohugoio/hugo/issues/7690
 //b.AssertFileContent("package.hugo.json", origPackageJSON)
-
 //})
 
 // t.Run("Create package.json, no default, no package.json", func(t *testing.T) {
-
 // b, clean := newTestBuilder(t, "")
 // defer clean()
 
@@ -286,21 +278,18 @@ package hugolib
 //"name": "myhugosite",
 //"version": "0.1.0"
 //}`
-
 //})
-
 //})
-
 //}
 
 //// TODO(bep) this fails when testmodBuilder is also building ...
 //func TestHugoModulesMatrix(t *testing.T) {
-//if !isCI() {
+//if !htesting.IsCI() {
 //t.Skip("skip (relative) long running modules test when running locally")
 //}
 //t.Parallel()
 
-//if !isCI() || hugo.GoMinorVersion() < 12 {
+//if !htesting.IsCI() || hugo.GoMinorVersion() < 12 {
 //// https://github.com/golang/go/issues/26794
 //// There were some concurrent issues with Go modules in < Go 12.
 //t.Skip("skip this on local host and for Go <= 1.11 due to a bug in Go's stdlib")
@@ -383,7 +372,7 @@ package hugolib
 //}
 
 //func createChildModMatchers(m *mods.Md, ignoreVendor, vendored bool) []string {
-//// Child depdendencies are one behind.
+//// Child dependencies are one behind.
 //expectMinorVersion := 3
 
 //if !ignoreVendor && vendored {
@@ -528,7 +517,6 @@ package hugolib
 //"i18n theme: Theme C",
 //"i18n theme2: Theme2 D",
 //)
-
 //}
 
 // func TestModulesIgnoreConfig(t *testing.T) {
@@ -556,7 +544,6 @@ package hugolib
 //b.AssertFileContentFn("public/index.html", func(s string) bool {
 //return !strings.Contains(s, "Ignored")
 //})
-
 //}
 
 // func TestModulesDisabled(t *testing.T) {
@@ -591,7 +578,6 @@ package hugolib
 //b.AssertFileContentFn("public/index.html", func(s string) bool {
 //return strings.Contains(s, "A param") && !strings.Contains(s, "B param")
 //})
-
 //}
 
 // func TestModulesIncompatible(t *testing.T) {
@@ -644,8 +630,7 @@ package hugolib
 
 // c := qt.New(t)
 
-// c.Assert(logger.LogCounters().WarnCounter.Count(), qt.Equals, uint64(3))
-
+//c.Assert(logger.LogCounters().WarnCounter.Count(), qt.Equals, uint64(3))
 //}
 
 // func TestModulesSymlinks(t *testing.T) {
@@ -728,13 +713,14 @@ package hugolib
 
 // bfs := b.H.BaseFs
 
-// for i, componentFs := range []afero.Fs{
-// bfs.Static[""].Fs,
-// bfs.Archetypes.Fs,
-// bfs.Content.Fs,
-// bfs.Data.Fs,
-// bfs.Assets.Fs,
-// bfs.I18n.Fs} {
+//for i, componentFs := range []afero.Fs{
+//bfs.Static[""].Fs,
+//bfs.Archetypes.Fs,
+//bfs.Content.Fs,
+//bfs.Data.Fs,
+//bfs.Assets.Fs,
+//bfs.I18n.Fs,
+//} {
 
 //if i != 0 {
 //continue
@@ -750,7 +736,6 @@ package hugolib
 //}
 
 //_, err := fs.Stat(filepath.FromSlash(filename))
-
 //if err != nil {
 //if i > 0 && strings.HasSuffix(filename, "toml") && strings.Contains(err.Error(), "files not supported") {
 //// OK
@@ -797,7 +782,7 @@ package hugolib
 
 // b.Build(BuildCfg{})
 
-////helpers.PrintFs(b.H.Fs.Source, "public", os.Stdout)
+//// helpers.PrintFs(b.H.Fs.Source, "public", os.Stdout)
 
 //b.AssertFileContent("public/mypage/index.html", "Permalink: https://example.org/mypage/")
 //}
@@ -919,7 +904,6 @@ package hugolib
 //b.AssertFileContent("public/index.html", `
 //Readme Edit
 //`)
-
 //}
 
 // func TestMountsPaths(t *testing.T) {
@@ -959,7 +943,6 @@ package hugolib
 //clean:      clean,
 //workingDir: workingDir,
 //}
-
 //}
 
 // c.Run("Default", func(c *qt.C) {
@@ -980,8 +963,7 @@ package hugolib
 // b.Assert(filepath.ToSlash(f.Path()), qt.Equals, "blog/p1.md")
 // b.Assert(filepath.ToSlash(f.PathFile()), qt.Equals, "content/blog/p1.md")
 
-// b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(test.workingDir, "layouts", "_default", "single.html")), qt.Equals, filepath.FromSlash("_default/single.html"))
-
+//b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(test.workingDir, "layouts", "_default", "single.html")), qt.Equals, filepath.FromSlash("_default/single.html"))
 //})
 
 // c.Run("Mounts", func(c *qt.C) {
@@ -1030,16 +1012,14 @@ package hugolib
 // b.Assert(p1_1, qt.Not(qt.IsNil))
 // b.Assert(p1_2, qt.Equals, p1_1)
 
-// f := p1_1.File().FileInfo().Meta()
-// b.Assert(filepath.ToSlash(f.Path()), qt.Equals, "blog/sub/p1.md")
-// b.Assert(filepath.ToSlash(f.PathFile()), qt.Equals, "mycontent/sub/p1.md")
-// b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(myPartialsDir, "mypartial.html")), qt.Equals, filepath.FromSlash("partials/mypartial.html"))
-// b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(absShortcodesDir, "myshort.html")), qt.Equals, filepath.FromSlash("shortcodes/myshort.html"))
-// b.Assert(b.H.BaseFs.Content.Path(filepath.Join(subContentDir, "p1.md")), qt.Equals, filepath.FromSlash("blog/sub/p1.md"))
-// b.Assert(b.H.BaseFs.Content.Path(filepath.Join(test.workingDir, "README.md")), qt.Equals, filepath.FromSlash("_index.md"))
-
+//f := p1_1.File().FileInfo().Meta()
+//b.Assert(filepath.ToSlash(f.Path()), qt.Equals, "blog/sub/p1.md")
+//b.Assert(filepath.ToSlash(f.PathFile()), qt.Equals, "mycontent/sub/p1.md")
+//b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(myPartialsDir, "mypartial.html")), qt.Equals, filepath.FromSlash("partials/mypartial.html"))
+//b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(absShortcodesDir, "myshort.html")), qt.Equals, filepath.FromSlash("shortcodes/myshort.html"))
+//b.Assert(b.H.BaseFs.Content.Path(filepath.Join(subContentDir, "p1.md")), qt.Equals, filepath.FromSlash("blog/sub/p1.md"))
+//b.Assert(b.H.BaseFs.Content.Path(filepath.Join(test.workingDir, "README.md")), qt.Equals, filepath.FromSlash("_index.md"))
 //})
-
 //}
 
 //// https://github.com/gohugoio/hugo/issues/6299
@@ -1062,9 +1042,8 @@ package hugolib
 
 // b.WithWorkingDir(workDir).WithViper(cfg)
 
-// b.WithSourceFile("go.mod", "")
-// b.Build(BuildCfg{})
-
+//b.WithSourceFile("go.mod", "")
+//b.Build(BuildCfg{})
 //}
 
 //// https://github.com/gohugoio/hugo/issues/6622
@@ -1117,6 +1096,5 @@ package hugolib
 
 // b.Build(BuildCfg{})
 
-// b.AssertFileContent("public/index.html", "P1: Abs|/p1/", "Filename: "+contentFilename)
-
+//b.AssertFileContent("public/index.html", "P1: Abs|/p1/", "Filename: "+contentFilename)
 //}

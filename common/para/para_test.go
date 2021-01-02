@@ -18,7 +18,11 @@ import (
 	"runtime"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
+
+	"github.com/neohugo/neohugo/htesting"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -26,6 +30,10 @@ import (
 func TestPara(t *testing.T) {
 	if runtime.NumCPU() < 4 {
 		t.Skipf("skip para test, CPU count is %d", runtime.NumCPU())
+	}
+
+	if !htesting.IsCI() {
+		t.Skip("skip para test when not running on CI")
 	}
 
 	c := qt.New(t)
@@ -59,27 +67,29 @@ func TestPara(t *testing.T) {
 		c.Assert(result, qt.DeepEquals, ints)
 	})
 
-	// c.Run("Time", func(c *qt.C) {
-	// const n = 100
+	c.Run("Time", func(c *qt.C) {
+		const n = 100
 
-	// p := New(5)
-	// r, _ := p.Start(context.Background())
+		p := New(5)
+		r, _ := p.Start(context.Background())
 
-	// start := time.Now()
+		start := time.Now()
 
-	// var counter int64
+		var counter int64
 
-	//for i := 0; i < n; i++ {
-	//r.Run(func() error {
-	//atomic.AddInt64(&counter, 1)
-	//time.Sleep(1 * time.Millisecond)
-	//return nil
-	//})
-	//}
+		for i := 0; i < n; i++ {
+			r.Run(func() error {
+				atomic.AddInt64(&counter, 1)
+				time.Sleep(1 * time.Millisecond)
+				return nil
+			})
+		}
 
-	// c.Assert(r.Wait(), qt.IsNil)
-	// c.Assert(counter, qt.Equals, int64(n))
-	// c.Assert(time.Since(start) < n/2*time.Millisecond, qt.Equals, true)
+		c.Assert(r.Wait(), qt.IsNil)
+		c.Assert(counter, qt.Equals, int64(n))
 
-	//})
+		since := time.Since(start)
+		limit := n / 2 * time.Millisecond
+		c.Assert(since < limit, qt.Equals, true, qt.Commentf("%s >= %s", since, limit))
+	})
 }

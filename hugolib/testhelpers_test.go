@@ -931,13 +931,13 @@ func buildSingleSite(t testing.TB, depsCfg deps.DepsCfg, buildCfg BuildCfg) *Sit
 	return buildSingleSiteExpected(t, false, false, depsCfg, buildCfg)
 }
 
-func buildSingleSiteExpected(t testing.TB, expectSiteInitEror, expectBuildError bool, depsCfg deps.DepsCfg, buildCfg BuildCfg) *Site {
+func buildSingleSiteExpected(t testing.TB, expectSiteInitError, expectBuildError bool, depsCfg deps.DepsCfg, buildCfg BuildCfg) *Site {
 	t.Helper()
 	b := newTestSitesBuilderFromDepsCfg(t, depsCfg).WithNothingAdded()
 
 	err := b.CreateSitesE()
 
-	if expectSiteInitEror {
+	if expectSiteInitError {
 		b.Assert(err, qt.Not(qt.IsNil))
 		return nil
 	} else {
@@ -1034,10 +1034,6 @@ func content(c resource.ContentProvider) string {
 
 //}
 //}
-
-func isCI() bool {
-	return (os.Getenv("CI") != "" || os.Getenv("CI_LOCAL") != "") && os.Getenv("CIRCLE_BRANCH") == ""
-}
 
 // See https://github.com/golang/go/issues/19280
 // Not in use.

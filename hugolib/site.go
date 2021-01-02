@@ -962,7 +962,7 @@ func (s *Site) translateFileEvents(events []fsnotify.Event) []fsnotify.Event {
 	eventMap := make(map[string][]fsnotify.Event)
 
 	// We often get a Remove etc. followed by a Create, a Create followed by a Write.
-	// Remove the superflous events to mage the update logic simpler.
+	// Remove the superfluous events to mage the update logic simpler.
 	for _, ev := range events {
 		eventMap[ev.Name] = append(eventMap[ev.Name], ev)
 	}
@@ -1005,7 +1005,7 @@ var (
 )
 
 // reBuild partially rebuilds a site given the filesystem events.
-// It returns whetever the content source was changed.
+// It returns whatever the content source was changed.
 // TODO(bep) clean up/rewrite this method.
 func (s *Site) processPartial(config *BuildCfg, init func(config *BuildCfg) error, events []fsnotify.Event) error {
 	events = s.filterFileEvents(events)
@@ -1521,7 +1521,7 @@ func (s *Site) assembleMenus() {
 	}
 }
 
-// get any lanaguagecode to prefix the target file path with.
+// get any language code to prefix the target file path with.
 func (s *Site) getLanguageTargetPathLang(alwaysInSubDir bool) string {
 	if s.h.IsMultihost() {
 		return s.Language().Lang
@@ -1706,7 +1706,10 @@ func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath s
 		}
 
 		if s.running() && s.Cfg.GetBool("watch") && !s.Cfg.GetBool("disableLiveReload") {
-			pd.LiveReloadPort = s.Cfg.GetInt("liveReloadPort")
+			pd.LiveReloadBaseURL = s.PathSpec.BaseURL.URL()
+			if s.Cfg.GetInt("liveReloadPort") != -1 {
+				pd.LiveReloadBaseURL.Host = fmt.Sprintf("%s:%d", pd.LiveReloadBaseURL.Hostname(), s.Cfg.GetInt("liveReloadPort"))
+			}
 		}
 
 		// For performance reasons we only inject the Hugo generator tag on the home page.

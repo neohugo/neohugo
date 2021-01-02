@@ -29,8 +29,7 @@ package modules
 //qt "github.com/frankban/quicktest"
 //)
 
-// func TestClient(t *testing.T) {
-
+//func TestClient(t *testing.T) {
 //modName := "hugo-modules-basic-test"
 //modPath := "github.com/gohugoio/tests/" + modName
 //expect := `github.com/gohugoio/tests/hugo-modules-basic-test github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0
@@ -41,7 +40,6 @@ package modules
 // c := qt.New(t)
 
 // newClient := func(c *qt.C, withConfig func(cfg *ClientConfig)) (*Client, func()) {
-
 // workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, modName)
 // c.Assert(err, qt.IsNil)
 // themesDir := filepath.Join(workingDir, "themes")
@@ -55,7 +53,7 @@ package modules
 //}
 
 // withConfig(&ccfg)
-// ccfg.ModuleConfig.Imports = []Import{Import{Path: "github.com/gohugoio/hugoTestModules1_darwin/modh2_2"}}
+// ccfg.ModuleConfig.Imports = []Import{{Path: "github.com/gohugoio/hugoTestModules1_darwin/modh2_2"}}
 // client := NewClient(ccfg)
 
 //return client, clean
@@ -98,7 +96,6 @@ package modules
 
 //// Test Tidy
 //c.Assert(client.Tidy(), qt.IsNil)
-
 //})
 
 //c.Run("IgnoreVendor", func(c *qt.C) {
@@ -158,22 +155,19 @@ package modules
 // dirname, err = client.createThemeDirname("../../foo", false)
 // c.Assert(err, qt.Not(qt.IsNil))
 
-// absDir := filepath.Join(client.ccfg.WorkingDir, "..", "..")
-// dirname, err = client.createThemeDirname(absDir, true)
-// c.Assert(err, qt.IsNil)
-// c.Assert(dirname, qt.Equals, absDir)
-// dirname, err = client.createThemeDirname(absDir, false)
-// fmt.Println(dirname)
-// c.Assert(err, qt.Not(qt.IsNil))
-
+//absDir := filepath.Join(client.ccfg.WorkingDir, "..", "..")
+//dirname, err = client.createThemeDirname(absDir, true)
+//c.Assert(err, qt.IsNil)
+//c.Assert(dirname, qt.Equals, absDir)
+//dirname, err = client.createThemeDirname(absDir, false)
+//fmt.Println(dirname)
+//c.Assert(err, qt.Not(qt.IsNil))
 //})
-
 //}
 
 // var globAll, _ = glob.GetGlob("**")
 
 // func TestGetModlineSplitter(t *testing.T) {
-
 // c := qt.New(t)
 
 // gomodSplitter := getModlineSplitter(true)
@@ -182,7 +176,6 @@ package modules
 // c.Assert(gomodSplitter("\tgithub.com/cpuguy83/go-md2man v1.0.8 // indirect"), qt.DeepEquals, []string{"github.com/cpuguy83/go-md2man", "v1.0.8"})
 // c.Assert(gomodSplitter("require ("), qt.IsNil)
 
-// gosumSplitter := getModlineSplitter(false)
-// c.Assert(gosumSplitter("github.com/BurntSushi/toml v0.3.1"), qt.DeepEquals, []string{"github.com/BurntSushi/toml", "v0.3.1"})
-
+//gosumSplitter := getModlineSplitter(false)
+//c.Assert(gosumSplitter("github.com/BurntSushi/toml v0.3.1"), qt.DeepEquals, []string{"github.com/BurntSushi/toml", "v0.3.1"})
 //}

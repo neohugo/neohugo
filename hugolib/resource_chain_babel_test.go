@@ -20,7 +20,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/hexec"
+	"github.com/neohugo/neohugo/common/hexec"
 
 	jww "github.com/spf13/jwalterweatherman"
 
@@ -36,7 +36,7 @@ import (
 )
 
 func TestResourceChainBabel(t *testing.T) {
-	if !isCI() {
+	if !htesting.IsCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
 
