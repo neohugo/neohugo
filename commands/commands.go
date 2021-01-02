@@ -131,8 +131,7 @@ type hugoCmd struct {
 
 var _ cmder = (*nilCommand)(nil)
 
-type nilCommand struct {
-}
+type nilCommand struct{}
 
 func (c *nilCommand) getCommand() *cobra.Command {
 	return nil

@@ -77,8 +77,7 @@ func TestAfter(t *testing.T) {
 	}
 }
 
-type tstGrouper struct {
-}
+type tstGrouper struct{}
 
 type tstGroupers []*tstGrouper
 
@@ -87,8 +86,7 @@ func (g tstGrouper) Group(key interface{}, items interface{}) (interface{}, erro
 	return fmt.Sprintf("%v(%d)", key, ilen), nil
 }
 
-type tstGrouper2 struct {
-}
+type tstGrouper2 struct{}
 
 func (g *tstGrouper2) Group(key interface{}, items interface{}) (interface{}, error) {
 	ilen := reflect.ValueOf(items).Len()

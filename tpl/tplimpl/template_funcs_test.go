@@ -150,8 +150,7 @@ func TestPartialCached(t *testing.T) {
 	partial := `Now: {{ now.UnixNano }}`
 	name := "testing"
 
-	var data struct {
-	}
+	var data struct{}
 
 	v := newTestConfig()
 

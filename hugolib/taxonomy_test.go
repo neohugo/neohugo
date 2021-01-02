@@ -521,7 +521,7 @@ Funny:|/p1/|
 Funny:|/p2/|`)
 }
 
-//https://github.com/neohugo/neohugo/issues/6590
+// https://github.com/neohugo/neohugo/issues/6590
 func TestTaxonomiesListPages(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithTemplates("_default/list.html", `

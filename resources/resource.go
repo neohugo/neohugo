@@ -155,8 +155,7 @@ type baseResource interface {
 	baseResourceInternal
 }
 
-type commonResource struct {
-}
+type commonResource struct{}
 
 // Slice is not meant to be used externally. It's a bridge function
 // for the template functions. See collections.Slice.

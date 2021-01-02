@@ -392,5 +392,4 @@ type DeprecatedWarningPageMethods1 interface {
 
 // Move here to trigger ERROR instead of WARNING.
 // TODO(bep) create wrappers and put into the Page once it has some methods.
-type DeprecatedErrorPageMethods interface {
-}
+type DeprecatedErrorPageMethods interface{}

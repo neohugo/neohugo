@@ -66,8 +66,7 @@ func (info ParseInfo) IsZero() bool {
 }
 
 // Info holds some info extracted from a parsed template.
-type Info1 struct {
-}
+type Info1 struct{}
 
 type ParseConfig struct {
 	Version int

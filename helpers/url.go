@@ -23,8 +23,7 @@ import (
 	"github.com/PuerkitoBio/purell"
 )
 
-type pathBridge struct {
-}
+type pathBridge struct{}
 
 func (pathBridge) Base(in string) string {
 	return path.Base(in)
