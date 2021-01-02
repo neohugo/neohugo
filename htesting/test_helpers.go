@@ -15,6 +15,7 @@ package htesting
 
 import (
 	"math/rand"
+	"os"
 	"runtime"
 	"strings"
 	"time"
@@ -86,4 +87,20 @@ func DiffStringSlices(slice1 []string, slice2 []string) []string {
 // Useful for tests.
 func DiffStrings(s1, s2 string) []string {
 	return DiffStringSlices(strings.Fields(s1), strings.Fields(s2))
+}
+
+// IsCI reports whether we're running in a CI server.
+func IsCI() bool {
+	return (os.Getenv("CI") != "" || os.Getenv("CI_LOCAL") != "") && os.Getenv("CIRCLE_BRANCH") == ""
+}
+
+// IsGitHubAction reports whether we're running in a GitHub Action.
+func IsGitHubAction() bool {
+	return os.Getenv("GITHUB_ACTION") != ""
+}
+
+// SupportsAll reports whether the running system supports all Hugo features,
+// e.g. Asciidoc, Pandoc etc.
+func SupportsAll() bool {
+	return IsGitHubAction()
 }

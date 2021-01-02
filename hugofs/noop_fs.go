@@ -30,8 +30,7 @@ var (
 	NoOpFs = &noOpFs{}
 )
 
-type noOpFs struct {
-}
+type noOpFs struct{}
 
 func (fs noOpFs) Create(name string) (afero.File, error) {
 	return nil, errNoOp

@@ -55,7 +55,7 @@ func TestAppend(t *testing.T) {
 			[]interface{}{&tstSlicerIn1{"c"}},
 			testSlicerInterfaces{&tstSlicerIn1{"a"}, &tstSlicerIn1{"b"}, &tstSlicerIn1{"c"}},
 		},
-		//https://github.com/neohugo/neohugo/issues/5361
+		// https://github.com/gohugoio/hugo/issues/5361
 		{
 			[]string{"a", "b"},
 			[]interface{}{tstSlicers{&tstSlicer{"a"}, &tstSlicer{"b"}}},

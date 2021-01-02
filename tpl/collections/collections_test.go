@@ -77,8 +77,7 @@ func TestAfter(t *testing.T) {
 	}
 }
 
-type tstGrouper struct {
-}
+type tstGrouper struct{}
 
 type tstGroupers []*tstGrouper
 
@@ -87,8 +86,7 @@ func (g tstGrouper) Group(key interface{}, items interface{}) (interface{}, erro
 	return fmt.Sprintf("%v(%d)", key, ilen), nil
 }
 
-type tstGrouper2 struct {
-}
+type tstGrouper2 struct{}
 
 func (g *tstGrouper2) Group(key interface{}, items interface{}) (interface{}, error) {
 	ilen := reflect.ValueOf(items).Len()
@@ -673,7 +671,7 @@ func TestShuffleRandomising(t *testing.T) {
 
 	// Note that this test can fail with false negative result if the shuffle
 	// of the sequence happens to be the same as the original sequence. However
-	// the propability of the event is 10^-158 which is negligible.
+	// the probability of the event is 10^-158 which is negligible.
 	seqLen := 100
 	rand.Seed(time.Now().UTC().UnixNano())
 
@@ -835,7 +833,7 @@ func TestUniq(t *testing.T) {
 		// Structs
 		{pagesVals{p3v, p2v, p3v, p2v}, pagesVals{p3v, p2v}, false},
 
-		// not Comparable(), use hashstruscture
+		// not Comparable(), use hashstructure
 		{[]map[string]int{
 			{"K1": 1}, {"K2": 2}, {"K1": 1}, {"K2": 1},
 		}, []map[string]int{

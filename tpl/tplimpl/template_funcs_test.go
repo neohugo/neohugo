@@ -102,6 +102,7 @@ func TestTemplateFuncsExamples(t *testing.T) {
 	depsCfg := newDepsConfig(v)
 	depsCfg.Fs = fs
 	d, err := deps.New(depsCfg)
+	defer d.Close() //nolint
 	c.Assert(err, qt.IsNil)
 
 	var data struct {
@@ -149,8 +150,7 @@ func TestPartialCached(t *testing.T) {
 	partial := `Now: {{ now.UnixNano }}`
 	name := "testing"
 
-	var data struct {
-	}
+	var data struct{}
 
 	v := newTestConfig()
 
@@ -167,6 +167,7 @@ func TestPartialCached(t *testing.T) {
 
 	de, err := deps.New(config)
 	c.Assert(err, qt.IsNil)
+	defer de.Close()
 	c.Assert(de.LoadResources(), qt.IsNil)
 
 	ns := partials.New(de)
@@ -220,6 +221,7 @@ func doBenchmarkPartial(b *testing.B, f func(ns *partials.Namespace) error) {
 
 	de, err := deps.New(config)
 	c.Assert(err, qt.IsNil)
+	defer de.Close()
 	c.Assert(de.LoadResources(), qt.IsNil)
 
 	ns := partials.New(de)

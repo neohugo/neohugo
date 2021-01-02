@@ -19,6 +19,8 @@ import (
 	"runtime"
 
 	"github.com/cli/safeexec"
+
+	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/internal"
@@ -27,8 +29,7 @@ import (
 // Provider is the package entry point.
 var Provider converter.ProviderProvider = provider{}
 
-type provider struct {
-}
+type provider struct{}
 
 func (p provider) New(cfg converter.ProviderConfig) (converter.Provider, error) {
 	return converter.NewProvider("rst", func(ctx converter.DocumentContext) (converter.Converter, error) {
@@ -107,5 +108,8 @@ func getRstExecPath() string {
 
 // Supports returns whether rst is installed on this computer.
 func Supports() bool {
+	if htesting.SupportsAll() {
+		return true
+	}
 	return getRstExecPath() != ""
 }

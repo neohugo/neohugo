@@ -38,10 +38,10 @@ func TestGenericResource(t *testing.T) {
 
 	c.Assert(r.Permalink(), qt.Equals, "https://example.com/foo.css")
 	c.Assert(r.RelPermalink(), qt.Equals, "/foo.css")
-	c.Assert(r.ResourceType(), qt.Equals, "css")
+	c.Assert(r.ResourceType(), qt.Equals, "text")
 }
 
-func TestGenericResourceWithLinkFacory(t *testing.T) {
+func TestGenericResourceWithLinkFactory(t *testing.T) {
 	c := qt.New(t)
 	spec := newTestResourceSpec(specDescriptor{c: c})
 
@@ -52,7 +52,7 @@ func TestGenericResourceWithLinkFacory(t *testing.T) {
 	c.Assert(r.Permalink(), qt.Equals, "https://example.com/foo/foo.css")
 	c.Assert(r.RelPermalink(), qt.Equals, "/foo/foo.css")
 	c.Assert(r.Key(), qt.Equals, "/foo/foo.css")
-	c.Assert(r.ResourceType(), qt.Equals, "css")
+	c.Assert(r.ResourceType(), qt.Equals, "text")
 }
 
 func TestNewResourceFromFilename(t *testing.T) {
@@ -76,7 +76,7 @@ func TestNewResourceFromFilename(t *testing.T) {
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(r, qt.Not(qt.IsNil))
-	c.Assert(r.ResourceType(), qt.Equals, "json")
+	c.Assert(r.ResourceType(), qt.Equals, "application")
 }
 
 func TestNewResourceFromFilenameSubPathInBaseURL(t *testing.T) {
@@ -108,7 +108,7 @@ func TestResourcesByType(t *testing.T) {
 		spec.newGenericResource(nil, nil, nil, "/a/foo3.css", "foo3.css", media.CSSType),
 	}
 
-	c.Assert(len(resources.ByType("css")), qt.Equals, 3)
+	c.Assert(len(resources.ByType("text")), qt.Equals, 3)
 	c.Assert(len(resources.ByType("image")), qt.Equals, 1)
 }
 

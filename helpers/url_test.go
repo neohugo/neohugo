@@ -83,6 +83,19 @@ func doTestAbsURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 		{"http//foo", "http://base/path", "http://base/path/MULTIhttp/foo"},
 	}
 
+	if multilingual && addLanguage && defaultInSubDir {
+		newTests := []struct {
+			input    string
+			baseURL  string
+			expected string
+		}{
+			{lang + "test", "http://base/", "http://base/" + lang + "/" + lang + "test"},
+			{"/" + lang + "test", "http://base/", "http://base/" + lang + "/" + lang + "test"},
+		}
+
+		tests = append(tests, newTests...)
+	}
+
 	for _, test := range tests {
 		v.Set("baseURL", test.baseURL)
 		v.Set("contentDir", "content")
@@ -160,6 +173,20 @@ func doTestRelURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 		{"", "http://base/ace", false, "/aceMULTI"},
 		{"http://abs", "http://base/", false, "http://abs"},
 		{"//schemaless", "http://base/", false, "//schemaless"},
+	}
+
+	if multilingual && addLanguage && defaultInSubDir {
+		newTests := []struct {
+			input    string
+			baseURL  string
+			canonify bool
+			expected string
+		}{
+			{lang + "test", "http://base/", false, "/" + lang + "/" + lang + "test"},
+			{"/" + lang + "test", "http://base/", false, "/" + lang + "/" + lang + "test"},
+		}
+
+		tests = append(tests, newTests...)
 	}
 
 	for i, test := range tests {

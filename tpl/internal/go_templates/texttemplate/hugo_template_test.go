@@ -35,8 +35,7 @@ func (t TestStruct) Hello2(arg1, arg2 string) string {
 	return arg1 + " " + arg2
 }
 
-type execHelper struct {
-}
+type execHelper struct{}
 
 func (e *execHelper) GetFunc(tmpl Preparer, name string) (reflect.Value, bool) {
 	if name == "print" {

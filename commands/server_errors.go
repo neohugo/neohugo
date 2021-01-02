@@ -16,6 +16,7 @@ package commands
 import (
 	"bytes"
 	"io"
+	"net/url"
 
 	"github.com/neohugo/neohugo/transform"
 	"github.com/neohugo/neohugo/transform/livereloadinject"
@@ -82,9 +83,9 @@ var buildErrorTemplate = `<!doctype html>
 </html>
 `
 
-func injectLiveReloadScript(src io.Reader, port int) (string, error) {
+func injectLiveReloadScript(src io.Reader, baseURL url.URL) (string, error) {
 	var b bytes.Buffer
-	chain := transform.Chain{livereloadinject.New(port)}
+	chain := transform.Chain{livereloadinject.New(baseURL)}
 	err := chain.Apply(&b, src)
 
 	return b.String(), err

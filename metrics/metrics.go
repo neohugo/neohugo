@@ -25,11 +25,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neohugo/neohugo/helpers"
-
 	"github.com/neohugo/neohugo/common/types"
-
 	"github.com/neohugo/neohugo/compare"
+	"github.com/neohugo/neohugo/helpers"
 )
 
 // The Provider interface defines an interface for measuring metrics.

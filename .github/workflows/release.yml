@@ -12,12 +12,22 @@ env:
 jobs:
   docdeploy:
     name: Deploy documentation
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: 1.15.x
+      - name: Setup Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install asciidoctor
+        uses: reitzig/actions-asciidoctor@v2.0.0
       - name: Git checkout
         uses: actions/checkout@v2
         with:
@@ -35,7 +45,6 @@ jobs:
           go get mvdan.cc/gofumpt
           go get github.com/magefile/mage
       - uses: actions/cache@v2
-        id: cache
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -47,6 +56,21 @@ jobs:
         run: |
           go mod download
           go mod verify
+      - name: Install docutils
+        run: |
+          pip install docutils
+          rst2html.py --version
+      - name: Install pandoc on Linux
+        run: |
+            sudo apt-get update -y
+            sudo apt-get install -y pandoc
+      - run: pandoc -v
+      - name: Install dart-sass-embedded Linux
+        run: |
+          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.5/sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
+          echo "642738beaea4ef1b9168446bc105267a2948a5e939537f5bd5afb48159140a44  sass_embedded-1.0.0-beta.5-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
+          echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - name: Run mage tests
         working-directory: ./neohugo
         run: |
@@ -81,7 +105,7 @@ jobs:
   goreleaser:
     name: Release tag
     needs: docdeploy
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     container:
       image: neohugo/golang-cross:v1.15.5
     steps:
@@ -102,7 +126,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   docker:
     name: Build Neohugo Docker
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Prepare
         id: prep

@@ -16,13 +16,23 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-20.04, macos-latest, windows-latest]
         go: [ '1.15' ]
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
           go-version: ${{ matrix.go }}
+      - name: Setup Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install asciidoctor
+        uses: reitzig/actions-asciidoctor@v2.0.0
       - name: Git checkout
         uses: actions/checkout@v2
       - name: Setup Go environment
@@ -48,6 +58,43 @@ jobs:
         run: |
           go mod download
           go mod verify
+      - name: Install docutils
+        run: |
+          pip install docutils
+          rst2html.py --version
+      - if: matrix.os == 'ubuntu-20.04'
+        name: Install pandoc on Linux
+        run: |
+            sudo apt-get update -y
+            sudo apt-get install -y pandoc
+      - if: matrix.os == 'macos-latest'
+        run: |
+          brew install pandoc
+      - if: matrix.os == 'windows-latest'
+        run: |
+          choco install pandoc
+      - run: pandoc -v
+      - if: matrix.os == 'ubuntu-20.04'
+        name: Install dart-sass-embedded Linux
+        run: |
+          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.5/sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
+          echo "642738beaea4ef1b9168446bc105267a2948a5e939537f5bd5afb48159140a44  sass_embedded-1.0.0-beta.5-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
+          echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
+      - if: matrix.os == 'macos-latest'
+        name: Install dart-sass-embedded MacOS
+        run: |
+          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.5/sass_embedded-1.0.0-beta.5-macos-x64.tar.gz;
+          echo "47b55a39126155f89fdfb8eea7c19ba976b3f6fadbdb6867e5582a18137bd180  sass_embedded-1.0.0-beta.5-macos-x64.tar.gz" | shasum -a 256 -c;
+          tar -xvf sass_embedded-1.0.0-beta.5-macos-x64.tar.gz;
+          echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
+      - if: matrix.os == 'windows-latest'
+        name: Install dart-sass-embedded Windows
+        run: |
+          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.5/sass_embedded-1.0.0-beta.5-windows-x64.zip;
+          echo "5e65c0d8cbe038b6a120a3e7f390ad731708998f37c2de8ba565c51746a4588c  sass_embedded-1.0.0-beta.5-windows-x64.zip" | sha256sum -c;
+          unzip sass_embedded-1.0.0-beta.5-windows-x64.zip;
+          echo  "$env:GITHUB_WORKSPACE/sass_embedded/" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf-8 -Append
       - name: Run mage tests
         run: |
           mage -v test
@@ -58,8 +105,8 @@ jobs:
         run: |
           mage -v neohugo
   gotip:
-    name: Build ubuntu-latest, GoTip
-    runs-on: ubuntu-latest
+    name: Build ubuntu-20.04, GoTip
+    runs-on: ubuntu-20.04
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -69,6 +116,16 @@ jobs:
         run: |
           go get golang.org/dl/gotip
           gotip download
+      - name: Setup Ruby
+        uses: actions/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - name: Install asciidoctor
+        uses: reitzig/actions-asciidoctor@v2.0.0
       - name: Git checkout
         uses: actions/checkout@v2
       - name: Setup Go environment
@@ -96,6 +153,21 @@ jobs:
         run: |
           gotip mod download
           gotip mod verify
+      - name: Install docutils
+        run: |
+          pip install docutils
+          rst2html.py --version
+      - name: Install pandoc on Linux
+        run: |
+            sudo apt-get update -y
+            sudo apt-get install -y pandoc
+      - run: pandoc -v
+      - name: Install dart-sass-embedded Linux
+        run: |
+          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.5/sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
+          echo "642738beaea4ef1b9168446bc105267a2948a5e939537f5bd5afb48159140a44  sass_embedded-1.0.0-beta.5-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
+          echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - name: Run mage tests
         continue-on-error: true
         run: |
@@ -110,7 +182,7 @@ jobs:
           GOEXE=gotip mage -v neohugo
   docker:
     name: Build Neohugo Docker Latest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
