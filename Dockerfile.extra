@@ -27,8 +27,7 @@ RUN mage neohugo && mage install
 
 FROM node:lts-alpine
 
-ENV NEOHUGO_VERSION="0.4.1" \
-    MOZJPEG_VERSION="4.0.0"
+ENV MOZJPEG_VERSION="4.0.2"
 
 LABEL description="Docker container for building static sites with the neohugo static site generator with extended."
 LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.me>"
