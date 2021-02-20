@@ -13,6 +13,7 @@ import (
 
 // common holds the information shared by related templates.
 type common struct {
+	muTmpl sync.RWMutex         // protects tmpl (temporary Hugo-fix)
 	tmpl   map[string]*Template // Map from name to defined templates.
 	option option               //nolint
 	// We use two maps, one for parsing and one for execution.
@@ -90,6 +91,9 @@ func (t *Template) Clone() (*Template, error) {
 	if t.common == nil {
 		return nt, nil
 	}
+	// temporary Hugo-fix
+	t.muTmpl.RLock()
+	defer t.muTmpl.RUnlock()
 	for k, v := range t.tmpl {
 		if k == t.name {
 			nt.tmpl[t.name] = nt
@@ -126,6 +130,9 @@ func (t *Template) copy(c *common) *Template {
 // its definition. If it has been defined and already has that name, the existing
 // definition is replaced; otherwise a new template is created, defined, and returned.
 func (t *Template) AddParseTree(name string, tree *parse.Tree) (*Template, error) {
+	// temporary Hugo-fix
+	t.muTmpl.Lock()
+	defer t.muTmpl.Unlock()
 	t.init()
 	nt := t
 	if name != t.name {
@@ -144,6 +151,9 @@ func (t *Template) Templates() []*Template {
 		return nil
 	}
 	// Return a slice so we don't expose the map.
+	// temporary Hugo-fix
+	t.muTmpl.RLock()
+	defer t.muTmpl.RUnlock()
 	m := make([]*Template, 0, len(t.tmpl))
 	for _, v := range t.tmpl {
 		m = append(m, v)
@@ -184,6 +194,9 @@ func (t *Template) Lookup(name string) *Template {
 	if t.common == nil {
 		return nil
 	}
+	// temporary Hugo-fix
+	t.muTmpl.RLock()
+	defer t.muTmpl.RUnlock()
 	return t.tmpl[name]
 }
 

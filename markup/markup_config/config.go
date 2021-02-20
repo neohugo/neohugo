@@ -15,6 +15,7 @@ package markup_config
 
 import (
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/docshelper"
 	"github.com/neohugo/neohugo/markup/asciidocext/asciidocext_config"
@@ -23,6 +24,7 @@ import (
 	"github.com/neohugo/neohugo/markup/highlight"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
 	"github.com/neohugo/neohugo/parser"
+	"github.com/spf13/cast"
 )
 
 type Config struct {
@@ -48,6 +50,7 @@ func Decode(cfg config.Provider) (conf Config, err error) {
 	if m == nil {
 		return
 	}
+	normalizeConfig(m)
 
 	err = mapstructure.WeakDecode(m, &conf)
 	if err != nil {
@@ -63,6 +66,22 @@ func Decode(cfg config.Provider) (conf Config, err error) {
 	}
 
 	return
+}
+
+func normalizeConfig(m map[string]interface{}) {
+	v, err := maps.GetNestedParam("goldmark.parser", ".", m)
+	if err != nil {
+		return
+	}
+	vm := cast.ToStringMap(v)
+	// Changed from a bool in 0.81.0
+	if vv, found := vm["attribute"]; found {
+		if vvb, ok := vv.(bool); ok {
+			vm["attribute"] = goldmark_config.ParserAttribute{
+				Title: vvb,
+			}
+		}
+	}
 }
 
 func applyLegacyConfig(cfg config.Provider, conf *Config) error {
