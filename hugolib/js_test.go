@@ -36,14 +36,9 @@ func TestJSBuildWithNPM(t *testing.T) {
 	if !htesting.IsCI() {
 		t.Skip("skip (relative) long running modules test when running locally")
 	}
-
-	if runtime.GOOS == "windows" {
-		t.Skip("skip NPM test on Windows")
-	}
 	c := qt.New(t)
 
-	wd, err := os.Getwd()
-	c.Assert(err, qt.IsNil)
+	wd, _ := os.Getwd()
 	defer func() {
 		c.Assert(os.Chdir(wd), qt.IsNil)
 	}()
@@ -108,14 +103,16 @@ document.body.textContent = greeter(user);`
 JS:  {{ template "print" $js }}
 {{ $jsx := resources.Get "js/myjsx.jsx" | js.Build $options }}
 JSX: {{ template "print" $jsx }}
-{{ $ts := resources.Get "js/myts.ts" | js.Build }}
+{{ $ts := resources.Get "js/myts.ts" | js.Build (dict "sourcemap" "inline")}}
 TS: {{ template "print" $ts }}
-
+{{ $ts2 := resources.Get "js/myts.ts" | js.Build (dict "sourcemap" "external" "TargetPath" "js/myts2.js")}}
+TS2: {{ template "print" $ts2 }}
 {{ define "print" }}RelPermalink: {{.RelPermalink}}|MIME: {{ .MediaType }}|Content: {{ .Content | safeJS }}{{ end }}
 
 `)
 
 	jsDir := filepath.Join(workDir, "assets", "js")
+	fmt.Println(workDir)
 	b.Assert(os.MkdirAll(jsDir, 0o777), qt.IsNil)
 	b.Assert(os.Chdir(workDir), qt.IsNil)
 	b.WithSourceFile("package.json", packageJSON)
@@ -132,6 +129,8 @@ TS: {{ template "print" $ts }}
 
 	b.Build(BuildCfg{})
 
+	b.AssertFileContent("public/js/myts.js", `//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJz`)
+	b.AssertFileContent("public/js/myts2.js.map", `"version": 3,`)
 	b.AssertFileContent("public/index.html", `
 console.log(&#34;included&#34;);
 if (hasSpace.test(string))
@@ -180,8 +179,8 @@ path="github.com/gohugoio/hugoTestProjectJSModImports"
 	b.WithSourceFile("go.mod", `module github.com/gohugoio/tests/testHugoModules
 
 go 1.15
-
-require github.com/gohugoio/hugoTestProjectJSModImports v0.5.0 // indirect
+        
+require github.com/gohugoio/hugoTestProjectJSModImports v0.9.0 // indirect
 
 `)
 
@@ -208,5 +207,12 @@ var Hugo = "Rocks!";
 Hello3 from mod2. Date from date-fns: ${today}
 Hello from lib in the main project
 Hello5 from mod2.
-var myparam = "Hugo Rocks!";`)
+var myparam = "Hugo Rocks!";
+shim cwd
+`)
+
+	// React JSX, verify the shimming.
+	b.AssertFileContent("public/js/like.js", `@v0.9.0/assets/js/shims/react.js
+module.exports = window.ReactDOM;
+`)
 }

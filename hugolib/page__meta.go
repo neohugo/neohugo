@@ -22,6 +22,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gobuffalo/flect"
 	"github.com/neohugo/neohugo/markup/converter"
 
 	"github.com/neohugo/neohugo/hugofs/files"
@@ -30,7 +31,6 @@ import (
 
 	"github.com/neohugo/neohugo/related"
 
-	"github.com/markbates/inflect"
 	"github.com/neohugo/neohugo/source"
 	"github.com/pkg/errors"
 
@@ -717,7 +717,7 @@ func (p *pageMeta) applyDefaultValues(n *contentNode) error {
 
 			sectionName = helpers.FirstUpper(sectionName)
 			if p.s.Cfg.GetBool("pluralizeListTitles") {
-				p.title = inflect.Pluralize(sectionName)
+				p.title = flect.Pluralize(sectionName)
 			} else {
 				p.title = sectionName
 			}

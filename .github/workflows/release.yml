@@ -17,7 +17,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15.x
+          go-version: 1.16.x
       - name: Setup Ruby
         uses: actions/setup-ruby@v1
         with:
@@ -67,9 +67,9 @@ jobs:
       - run: pandoc -v
       - name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.5/sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
-          echo "642738beaea4ef1b9168446bc105267a2948a5e939537f5bd5afb48159140a44  sass_embedded-1.0.0-beta.5-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.0.0-beta.5-linux-x64.tar.gz;
+          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
+          echo "04fc1e5e28d29a4585a701941b6dace56771d94bfbe7f9e4db28d24417ceeec3  sass_embedded-1.0.0-beta.6-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - name: Run mage tests
         working-directory: ./neohugo
@@ -107,7 +107,7 @@ jobs:
     needs: docdeploy
     runs-on: ubuntu-20.04
     container:
-      image: neohugo/golang-cross:v1.15.5
+      image: neohugo/golang-cross:v1.16.0
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -116,7 +116,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.15.x
+          go-version: 1.16.x
       - name: Run Goreleaser
         uses: goreleaser/goreleaser-action@v2
         with:
