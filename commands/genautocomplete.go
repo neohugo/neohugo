@@ -40,13 +40,12 @@ func newGenautocompleteCmd() *genautocompleteCmd {
 		Short: "Generate shell autocompletion script for Hugo",
 		Long: `Generates a shell autocompletion script for Hugo.
 
-By default, the file is written directly to /etc/bash_completion.d
-for convenience, and the command may need superuser rights, e.g.:
+The script is written to the console (stdout).
 
-	$ sudo hugo gen autocomplete
+To write to file, add the ` + "`--completionfile=/path/to/file`" + ` flag.
 
-Add ` + "`--completionfile=/path/to/file`" + ` flag to set alternative
-file-path and name.
+Add ` + "`--type={bash, zsh, fish or powershell}`" + ` flag to set alternative
+shell type.
 
 Add ` + "`--type={bash, zsh, fish or powershell}`" + ` flag to set alternative
 shell type.
@@ -63,7 +62,7 @@ or just source them in directly:
 			if cc.autocompleteTarget == "" {
 				target = os.Stdout
 			} else {
-				target, _ = os.OpenFile(cc.autocompleteTarget, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+				target, _ = os.OpenFile(cc.autocompleteTarget, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			}
 
 			switch cc.autocompleteType {

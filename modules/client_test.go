@@ -39,16 +39,16 @@ package modules
 //github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0 github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0
 //`
 
-// c := qt.New(t)
-// var clientID uint64 // we increment this to get each test in its own directory.
+//c := qt.New(t)
+//var clientID uint64 // we increment this to get each test in its own directory.
 
-// newClient := func(c *qt.C, withConfig func(cfg *ClientConfig), imp string) (*Client, func()) {
-// atomic.AddUint64(&clientID, uint64(1))
-// workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, fmt.Sprintf("%s-%d", modName, clientID))
-// c.Assert(err, qt.IsNil)
-// themesDir := filepath.Join(workingDir, "themes")
-// err = os.Mkdir(themesDir, 0777)
-// c.Assert(err, qt.IsNil)
+//newClient := func(c *qt.C, withConfig func(cfg *ClientConfig), imp string) (*Client, func()) {
+//atomic.AddUint64(&clientID, uint64(1))
+//workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, fmt.Sprintf("%s-%d", modName, clientID))
+//c.Assert(err, qt.IsNil)
+//themesDir := filepath.Join(workingDir, "themes")
+//err = os.Mkdir(themesDir, 0777)
+//c.Assert(err, qt.IsNil)
 
 //ccfg := ClientConfig{
 //Fs:         hugofs.Os,
@@ -56,9 +56,9 @@ package modules
 //ThemesDir:  themesDir,
 //}
 
-// withConfig(&ccfg)
-// ccfg.ModuleConfig.Imports = []Import{{Path: "github.com/gohugoio/hugoTestModules1_darwin/" + imp}}
-// client := NewClient(ccfg)
+//withConfig(&ccfg)
+//ccfg.ModuleConfig.Imports = []Import{{Path: "github.com/gohugoio/hugoTestModules1_darwin/" + imp}}
+//client := NewClient(ccfg)
 
 //return client, clean
 //}
@@ -84,7 +84,7 @@ package modules
 //var graphb bytes.Buffer
 //c.Assert(client.Graph(&graphb), qt.IsNil)
 
-// c.Assert(graphb.String(), qt.Equals, expect)
+//c.Assert(graphb.String(), qt.Equals, expect)
 
 //// Test Vendor
 //c.Assert(client.Vendor(), qt.IsNil)
@@ -96,7 +96,7 @@ package modules
 //project github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0+vendor
 //`
 
-// c.Assert(graphb.String(), qt.Equals, expectVendored)
+//c.Assert(graphb.String(), qt.Equals, expectVendored)
 
 //// Test Tidy
 //c.Assert(client.Tidy(), qt.IsNil)
@@ -139,9 +139,9 @@ package modules
 //c.Assert(graphb.String(), qt.Equals, expect)
 //})
 
-// c.Run("VendorClosest", func(c *qt.C) {
-// mcfg := DefaultModuleConfig
-// mcfg.VendorClosest = true
+//c.Run("VendorClosest", func(c *qt.C) {
+//mcfg := DefaultModuleConfig
+//mcfg.VendorClosest = true
 
 //client, clean := newClient(
 //c, func(cfg *ClientConfig) {
@@ -157,8 +157,8 @@ package modules
 //c.Assert(err, qt.IsNil)
 //c.Assert(client.Vendor(), qt.IsNil)
 
-// var graphb bytes.Buffer
-// c.Assert(client.Graph(&graphb), qt.IsNil)
+//var graphb bytes.Buffer
+//c.Assert(client.Graph(&graphb), qt.IsNil)
 
 //c.Assert(graphb.String(), qt.Contains, "github.com/gohugoio/hugoTestModules1_darwin/modh1_1v@v1.3.0 github.com/gohugoio/hugoTestModules1_darwin/modh1_1_1v@v1.1.0+vendor")
 //})
@@ -172,16 +172,16 @@ package modules
 //}, defaultImport)
 //defer clean()
 
-// dirname, err := client.createThemeDirname("foo", false)
-// c.Assert(err, qt.IsNil)
-// c.Assert(dirname, qt.Equals, filepath.Join(client.ccfg.ThemesDir, "foo"))
+//dirname, err := client.createThemeDirname("foo", false)
+//c.Assert(err, qt.IsNil)
+//c.Assert(dirname, qt.Equals, filepath.Join(client.ccfg.ThemesDir, "foo"))
 
-// dirname, err = client.createThemeDirname("../../foo", true)
-// c.Assert(err, qt.IsNil)
-// c.Assert(dirname, qt.Equals, filepath.Join(client.ccfg.ThemesDir, "../../foo"))
+//dirname, err = client.createThemeDirname("../../foo", true)
+//c.Assert(err, qt.IsNil)
+//c.Assert(dirname, qt.Equals, filepath.Join(client.ccfg.ThemesDir, "../../foo"))
 
-// dirname, err = client.createThemeDirname("../../foo", false)
-// c.Assert(err, qt.Not(qt.IsNil))
+//dirname, err = client.createThemeDirname("../../foo", false)
+//c.Assert(err, qt.Not(qt.IsNil))
 
 //absDir := filepath.Join(client.ccfg.WorkingDir, "..", "..")
 //dirname, err = client.createThemeDirname(absDir, true)
@@ -193,16 +193,16 @@ package modules
 //})
 //}
 
-// var globAll, _ = glob.GetGlob("**")
+//var globAll, _ = glob.GetGlob("**")
 
-// func TestGetModlineSplitter(t *testing.T) {
-// c := qt.New(t)
+//func TestGetModlineSplitter(t *testing.T) {
+//c := qt.New(t)
 
-// gomodSplitter := getModlineSplitter(true)
+//gomodSplitter := getModlineSplitter(true)
 
-// c.Assert(gomodSplitter("\tgithub.com/BurntSushi/toml v0.3.1"), qt.DeepEquals, []string{"github.com/BurntSushi/toml", "v0.3.1"})
-// c.Assert(gomodSplitter("\tgithub.com/cpuguy83/go-md2man v1.0.8 // indirect"), qt.DeepEquals, []string{"github.com/cpuguy83/go-md2man", "v1.0.8"})
-// c.Assert(gomodSplitter("require ("), qt.IsNil)
+//c.Assert(gomodSplitter("\tgithub.com/BurntSushi/toml v0.3.1"), qt.DeepEquals, []string{"github.com/BurntSushi/toml", "v0.3.1"})
+//c.Assert(gomodSplitter("\tgithub.com/cpuguy83/go-md2man v1.0.8 // indirect"), qt.DeepEquals, []string{"github.com/cpuguy83/go-md2man", "v1.0.8"})
+//c.Assert(gomodSplitter("require ("), qt.IsNil)
 
 //gosumSplitter := getModlineSplitter(false)
 //c.Assert(gosumSplitter("github.com/BurntSushi/toml v0.3.1"), qt.DeepEquals, []string{"github.com/BurntSushi/toml", "v0.3.1"})

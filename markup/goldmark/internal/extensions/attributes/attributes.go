@@ -56,7 +56,7 @@ func (a *attrParser) Continue(node ast.Node, reader text.Reader, pc parser.Conte
 func (a *attrParser) Open(parent ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {
 	if attrs, ok := parser.ParseAttributes(reader); ok {
 		// add attributes
-		node := &attributesBlock{
+		var node = &attributesBlock{
 			BaseBlock: ast.BaseBlock{},
 		}
 		for _, attr := range attrs {
@@ -95,13 +95,19 @@ func (a *attributesBlock) Kind() ast.NodeKind {
 type transformer struct{}
 
 func (a *transformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
-	attributes := make([]ast.Node, 0, 500)
+	var attributes = make([]ast.Node, 0, 500)
 	//nolint TODO may need to check error
 	ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
-		if entering && node.Kind() == kindAttributesBlock && !node.HasBlankPreviousLines() {
-			attributes = append(attributes, node)
-			return ast.WalkSkipChildren, nil
+		if entering && node.Kind() == kindAttributesBlock {
+			// Attributes for fenced code blocks are handled in their own extension,
+			// but note that we currently only support code block attributes when
+			// CodeFences=true.
+			if node.PreviousSibling().Kind() != ast.KindFencedCodeBlock && !node.HasBlankPreviousLines() {
+				attributes = append(attributes, node)
+				return ast.WalkSkipChildren, nil
+			}
 		}
+
 		return ast.WalkContinue, nil
 	})
 

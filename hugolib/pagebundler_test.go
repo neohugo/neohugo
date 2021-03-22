@@ -29,7 +29,6 @@ import (
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
-	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/spf13/viper"
 
@@ -70,7 +69,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 
 						cfg.Set("outputFormats", map[string]interface{}{
 							"CUSTOMO": map[string]interface{}{
-								"mediaType":     media.HTMLType,
+								"mediaType":     "text/html",
 								"baseName":      "cindex",
 								"path":          "cpath",
 								"permalinkable": true,

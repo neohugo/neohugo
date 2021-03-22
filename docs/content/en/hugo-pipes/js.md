@@ -40,8 +40,36 @@ Note that this is meant for small data sets, e.g. config settings. For larger da
 minify [bool]
 : Let `js.Build` handle the minification.
 
-avoidTDZ {{< new-in "0.78.0" >}}
-: There is/was a bug in WebKit with severe performance issue with the tracking of TDZ checks in JavaScriptCore. Enabling this flag removes the TDZ and `const` assignment checks and may improve performance of larger JS codebases until the WebKit fix is in widespread use. See https://bugs.webkit.org/show_bug.cgi?id=199866
+inject [slice] {{< new-in "0.81.0" >}}
+: This option allows you to automatically replace a global variable with an import from another file. The path names must be relative to `assets`.  See https://esbuild.github.io/api/#inject
+
+shims {{< new-in "0.81.0" >}}
+: This option allows swapping out a component with another. A common use case is to load dependencies like React from a CDN  (with _shims_) when in production, but running with the full bundled `node_modules` dependency during development:
+
+```
+{{ $shims := dict "react" "js/shims/react.js"  "react-dom" "js/shims/react-dom.js" }}
+{{ $js = $js | js.Build dict "shims" $shims }}
+```
+
+The _shim_ files may look like these:
+
+```js
+// js/shims/react.js
+module.exports = window.React;
+```
+
+```js
+// js/shims/react-dom.js
+module.exports = window.ReactDOM;
+```
+
+
+With the above, these imports should work in both scenarios:
+
+```js
+import * as React from 'react'
+import * as ReactDOM from 'react-dom';
+```
 
 inject [slice] {{< new-in "0.81.0" >}}
 : This option allows you to automatically replace a global variable with an import from another file. The path names must be relative to `assets`.  See https://esbuild.github.io/api/#inject

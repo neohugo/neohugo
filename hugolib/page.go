@@ -398,7 +398,7 @@ func (ps *pageState) initCommonProviders(pp pagePaths) error {
 	return nil
 }
 
-func (p *pageState) createRenderHooks(f output.Format) (*hooks.Renderers, error) {
+func (p *pageState) createRenderHooks(f output.Format) (hooks.Renderers, error) {
 	layoutDescriptor := p.getLayoutDescriptor()
 	layoutDescriptor.RenderingHook = true
 	layoutDescriptor.LayoutOverride = false
@@ -409,7 +409,7 @@ func (p *pageState) createRenderHooks(f output.Format) (*hooks.Renderers, error)
 	layoutDescriptor.Kind = "render-link"
 	templ, templFound, err := p.s.Tmpl().LookupLayout(layoutDescriptor, f)
 	if err != nil {
-		return nil, err
+		return renderers, err
 	}
 	if templFound {
 		renderers.LinkRenderer = hookRenderer{
@@ -422,7 +422,7 @@ func (p *pageState) createRenderHooks(f output.Format) (*hooks.Renderers, error)
 	layoutDescriptor.Kind = "render-image"
 	templ, templFound, err = p.s.Tmpl().LookupLayout(layoutDescriptor, f)
 	if err != nil {
-		return nil, err
+		return renderers, err
 	}
 	if templFound {
 		renderers.ImageRenderer = hookRenderer{
@@ -435,7 +435,7 @@ func (p *pageState) createRenderHooks(f output.Format) (*hooks.Renderers, error)
 	layoutDescriptor.Kind = "render-heading"
 	templ, templFound, err = p.s.Tmpl().LookupLayout(layoutDescriptor, f)
 	if err != nil {
-		return nil, err
+		return renderers, err
 	}
 	if templFound {
 		renderers.HeadingRenderer = hookRenderer{
@@ -445,7 +445,7 @@ func (p *pageState) createRenderHooks(f output.Format) (*hooks.Renderers, error)
 		}
 	}
 
-	return &renderers, nil
+	return renderers, nil
 }
 
 func (p *pageState) getLayoutDescriptor() output.LayoutDescriptor {

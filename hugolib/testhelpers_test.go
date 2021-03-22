@@ -249,7 +249,7 @@ const commonConfigSections = `
 [services.disqus]
 shortname = "disqus_shortname"
 [services.googleAnalytics]
-id = "ga_id"
+id = "UA-ga_id"
 
 [privacy]
 [privacy.disqus]
@@ -995,6 +995,18 @@ func content(c resource.ContentProvider) string {
 //return strings.Join(paths, "|")
 //}
 
+//func dumpPagesLinks(pages ...page.Page) {
+//var links []string
+//for _, p := range pages {
+//links = append(links, p.RelPermalink())
+//}
+//sort.Strings(links)
+
+//for _, link := range links {
+//fmt.Println(link)
+//}
+//}
+
 //func dumpPages(pages ...page.Page) {
 //fmt.Println("---------")
 //for _, p := range pages {
@@ -1015,11 +1027,11 @@ func content(c resource.ContentProvider) string {
 //}
 //}
 
-// func printStringIndexes(s string) {
-// lines := strings.Split(s, "\n")
-// i := 0
+//func printStringIndexes(s string) {
+//lines := strings.Split(s, "\n")
+//i := 0
 
-// for _, line := range lines {
+//for _, line := range lines {
 
 //for _, r := range line {
 //fmt.Printf("%-3s", strconv.Itoa(i))
