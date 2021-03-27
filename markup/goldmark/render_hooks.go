@@ -170,7 +170,7 @@ func renderAttributes(w util.BufWriter, skipClass bool, attributes ...ast.Attrib
 		case []byte:
 			_, _ = w.Write(util.EscapeHTML(v))
 		default:
-			w.WriteString(cast.ToString(v))
+			w.WriteString(cast.ToString(v)) //nolint
 		}
 
 		_ = w.WriteByte('"')

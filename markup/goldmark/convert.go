@@ -334,8 +334,8 @@ func newHighlighting(cfg highlight.Config) goldmark.Extender {
 				if attributes != nil {
 					class, found := ctx.Attributes().GetString("class")
 					if found {
-						w.WriteString(" ")
-						w.Write(util.EscapeHTML(class.([]byte)))
+						w.WriteString(" ")                       //nolint
+						w.Write(util.EscapeHTML(class.([]byte))) //nolint
 
 					}
 					_, _ = w.WriteString("\"")
@@ -344,7 +344,7 @@ func newHighlighting(cfg highlight.Config) goldmark.Extender {
 					_, _ = w.WriteString("\"")
 				}
 
-				w.WriteString(">")
+				w.WriteString(">") //nolint
 				return
 			}
 

@@ -20,8 +20,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/types"
 
-	"github.com/gohugoio/hugo/common/maps"
-
 	"github.com/gobwas/glob"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 
