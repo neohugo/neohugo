@@ -102,7 +102,8 @@ func TestGetFirstBySuffix(t *testing.T) {
 	c.Assert(found, qt.Equals, true)
 	c.Assert(f, qt.Equals, SuffixInfo{
 		Suffix:     "xml",
-		FullSuffix: ".xml"})
+		FullSuffix: ".xml",
+	})
 }
 
 func TestFromTypeString(t *testing.T) {
@@ -126,7 +127,6 @@ func TestFromTypeString(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 
 	c.Assert(f, qt.Equals, Type{MainType: "text", SubType: "xml", mimeSuffix: ""})
-
 }
 
 func TestFromStringAndExt(t *testing.T) {
@@ -154,7 +154,6 @@ func TestFromExtensionMultipleSuffixes(t *testing.T) {
 	c.Assert(found, qt.Equals, true)
 	c.Assert(ftp.String(), qt.Equals, "image/svg+xml")
 	c.Assert(found, qt.Equals, true)
-
 }
 
 func TestDecodeTypes(t *testing.T) {
@@ -208,7 +207,6 @@ func TestDecodeTypes(t *testing.T) {
 
 				_, found = tt.GetByType("application/hugo+hg")
 				c.Assert(found, qt.Equals, true)
-
 			},
 		},
 		{

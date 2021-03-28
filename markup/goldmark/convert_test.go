@@ -252,8 +252,10 @@ func TestConvertAttributes(t *testing.T) {
 				conf.Highlight.CodeFences = true
 			},
 			"```bash {linenos=table .myclass id=\"myid\"}\necho 'foo';\n````\n{ .adfadf }",
-			[]string{"div class=\"highlight myclass\" id=\"myid\"><div s",
-				"table style"},
+			[]string{
+				"div class=\"highlight myclass\" id=\"myid\"><div s",
+				"table style",
+			},
 		},
 		{
 			"Paragraph",

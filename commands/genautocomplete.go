@@ -62,7 +62,7 @@ or just source them in directly:
 			if cc.autocompleteTarget == "" {
 				target = os.Stdout
 			} else {
-				target, _ = os.OpenFile(cc.autocompleteTarget, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+				target, _ = os.OpenFile(cc.autocompleteTarget, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
 			}
 
 			switch cc.autocompleteType {

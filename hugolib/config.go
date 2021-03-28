@@ -226,7 +226,6 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 		}
 
 		return nil
-
 	}
 
 	if err := applyOsEnvOverrides(); err != nil {
