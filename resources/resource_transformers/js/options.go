@@ -20,9 +20,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/spf13/afero"
-
+	"github.com/gohugoio/hugo/common/maps"
 	"github.com/pkg/errors"
+	"github.com/spf13/afero"
 
 	"github.com/evanw/esbuild/pkg/api"
 
@@ -30,7 +30,6 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/media"
-	"github.com/spf13/cast"
 )
 
 const (
@@ -144,8 +143,8 @@ func loaderFromFilename(filename string) api.Loader {
 	return api.LoaderJS
 }
 
-func resolveComponentInAssets(fs afero.Fs, impPath string) hugofs.FileMeta {
-	findFirst := func(base string) hugofs.FileMeta {
+func resolveComponentInAssets(fs afero.Fs, impPath string) *hugofs.FileMeta {
+	findFirst := func(base string) *hugofs.FileMeta {
 		// This is the most common sub-set of ESBuild's default extensions.
 		// We assume that imports of JSON, CSS etc. will be using their full
 		// name with extension.
@@ -159,7 +158,7 @@ func resolveComponentInAssets(fs afero.Fs, impPath string) hugofs.FileMeta {
 		return nil
 	}
 
-	var m hugofs.FileMeta
+	var m *hugofs.FileMeta
 
 	// First the path as is.
 	fi, err := fs.Stat(impPath)
@@ -218,8 +217,8 @@ func createBuildPlugins(c *Client, opts Options) ([]api.Plugin, error) {
 			// This should be a small number of elements, and when
 			// in server mode, we may get stale entries on renames etc.,
 			// but that shouldn't matter too much.
-			c.rs.JSConfigBuilder.AddSourceRoot(m.SourceRoot())
-			return api.OnResolveResult{Path: m.Filename(), Namespace: nsImportHugo}, nil
+			c.rs.JSConfigBuilder.AddSourceRoot(m.SourceRoot)
+			return api.OnResolveResult{Path: m.Filename, Namespace: nsImportHugo}, nil
 		}
 
 		// Fall back to ESBuild's resolve.
@@ -348,7 +347,7 @@ func toBuildOptions(opts Options) (buildOptions api.BuildOptions, err error) {
 
 	var defines map[string]string
 	if opts.Defines != nil {
-		defines = cast.ToStringMapString(opts.Defines)
+		defines = maps.ToStringMapString(opts.Defines)
 	}
 
 	// By default we only need to specify outDir and no outFile

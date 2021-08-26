@@ -19,14 +19,15 @@ import (
 	"github.com/neohugo/neohugo/langs"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs"
-	"github.com/spf13/viper"
+	"github.com/neohugo/neohugo/langs"
 )
 
 func TestNewPaths(t *testing.T) {
 	c := qt.New(t)
 
-	v := viper.New()
+	v := config.New()
 	fs := hugofs.NewMem(v)
 
 	v.Set("languages", map[string]interface{}{

@@ -19,6 +19,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/helpers"
@@ -123,6 +124,9 @@ func DecodeConfig(fs afero.Fs, cfg config.Provider) (Configs, error) {
 	_, isOsFs := fs.(*afero.OsFs)
 
 	for k, v := range m {
+		if _, ok := v.(maps.Params); !ok {
+			continue
+		}
 		cc := defaultCacheConfig
 
 		dc := &mapstructure.DecoderConfig{
@@ -137,7 +141,7 @@ func DecodeConfig(fs afero.Fs, cfg config.Provider) (Configs, error) {
 		}
 
 		if err := decoder.Decode(v); err != nil {
-			return nil, err
+			return nil, errors.Wrap(err, "failed to decode filecache config")
 		}
 
 		if cc.Dir == "" {

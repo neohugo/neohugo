@@ -304,13 +304,12 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 			WorkingDir:   dir,
 			Filename:     c.h.cfgFile,
 			AbsConfigDir: c.h.getConfigDir(dir),
-			Environ:      os.Environ(),
 			Environment:  environment,
 		},
 		cfgSetAndInit,
 		doWithConfig)
 
-	if err != nil && mustHaveConfigFile {
+	if err != nil {
 		return err
 	} else if mustHaveConfigFile && len(configFiles) == 0 {
 		return hugolib.ErrNoConfigFile
@@ -410,8 +409,6 @@ func (c *commandeer) loadConfig(mustHaveConfigFile, running bool) error {
 		return err
 	}
 	config.Set("cacheDir", cacheDir)
-
-	cfg.Logger.Infoln("Using config file:", config.ConfigFileUsed())
 
 	return nil
 }

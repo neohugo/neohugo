@@ -118,7 +118,7 @@ func (m *pageMap) newPageFromContentNode(n *contentNode, parentBucket *pagesMapB
 		return nil, err
 	}
 
-	if n.fi.Meta().GetBool(walkIsRootFileMetaKey) {
+	if n.fi.Meta().IsRootFile {
 		// Make sure that the bundle/section we start walking from is always
 		// rendered.
 		// This is only relevant in server fast render mode.
@@ -250,7 +250,7 @@ func (m *pageMap) newResource(fim hugofs.FileMetaInfo, owner *pageState) (resour
 		return meta.Open()
 	}
 
-	target := strings.TrimPrefix(meta.Path(), owner.File().Dir())
+	target := strings.TrimPrefix(meta.Path, owner.File().Dir())
 
 	return owner.s.ResourceSpec.New(
 		resources.ResourceSourceDescriptor{
@@ -395,7 +395,7 @@ func (m *pageMap) assembleResources(s string, p *pageState, parentBucket *pagesM
 	m.resources.WalkPrefix(s, func(s string, v interface{}) bool {
 		n := v.(*contentNode)
 		meta := n.fi.Meta()
-		classifier := meta.Classifier()
+		classifier := meta.Classifier
 		var r resource.Resource
 		switch classifier {
 		case files.ContentClassContent:
@@ -463,10 +463,13 @@ func (m *pageMap) assembleSections() error {
 
 		if parent != nil {
 			parentBucket = parent.p.bucket
+		} else if s == "/" {
+			parentBucket = m.s.siteBucket
 		}
 
 		kind := page.KindSection
 		if s == "/" {
+
 			kind = page.KindHome
 		}
 

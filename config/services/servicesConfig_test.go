@@ -18,7 +18,6 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/config"
-	"github.com/spf13/viper"
 )
 
 func TestDecodeConfigFromTOML(t *testing.T) {
@@ -55,7 +54,7 @@ disableInlineCSS = true
 func TestUseSettingsFromRootIfSet(t *testing.T) {
 	c := qt.New(t)
 
-	cfg := viper.New()
+	cfg := config.New()
 	cfg.Set("disqusShortname", "root_short")
 	cfg.Set("googleAnalytics", "ga_root")
 

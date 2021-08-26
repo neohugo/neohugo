@@ -24,13 +24,13 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/resources/page"
-	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -284,7 +284,8 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 
 				c.Assert(len(s.RegularPages()), qt.Equals, 8)
 				c.Assert(len(s.Pages()), qt.Equals, 16)
-				// dumpPages(s.AllPages()...)
+				//dumpPages(s.AllPages()...)
+
 				c.Assert(len(s.AllPages()), qt.Equals, 31)
 
 				bundleWithSubPath := s.getPage(page.KindPage, "lb/index")
@@ -347,12 +348,11 @@ func TestMultilingualDisableDefaultLanguage(t *testing.T) {
 
 	c := qt.New(t)
 	_, cfg := newTestBundleSourcesMultilingual(t)
-
 	cfg.Set("disableLanguages", []string{"en"})
-
-	err := loadDefaultSettingsFor(cfg)
+	l := configLoader{cfg: cfg}
+	err := l.applyConfigDefaults()
 	c.Assert(err, qt.IsNil)
-	err = loadLanguageSettings(cfg, nil)
+	err = l.loadLanguageSettings(nil)
 	c.Assert(err, qt.Not(qt.IsNil))
 	c.Assert(err.Error(), qt.Contains, "cannot disable default language")
 }
@@ -394,7 +394,7 @@ func TestPageBundlerSiteWitSymbolicLinksInContent(t *testing.T) {
 	}()
 
 	// We need to use the OS fs for this.
-	cfg := viper.New()
+	cfg := config.New()
 	fs := hugofs.NewFrom(hugofs.Os, cfg)
 
 	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugosym")
@@ -694,7 +694,7 @@ Single content.
 	b.AssertFileContent("public/section-not-bundle/single/index.html", "Section Single", "|<p>Single content.</p>")
 }
 
-func newTestBundleSources(t testing.TB) (*hugofs.Fs, *viper.Viper) {
+func newTestBundleSources(t testing.TB) (*hugofs.Fs, config.Provider) {
 	cfg, fs := newTestCfgBasic()
 	c := qt.New(t)
 
@@ -862,7 +862,7 @@ Content for 은행.
 	return fs, cfg
 }
 
-func newTestBundleSourcesMultilingual(t *testing.T) (*hugofs.Fs, *viper.Viper) {
+func newTestBundleSourcesMultilingual(t *testing.T) (*hugofs.Fs, config.Provider) {
 	cfg, fs := newTestCfgBasic()
 
 	workDir := "/work"
@@ -1318,7 +1318,7 @@ func TestPageBundlerHome(t *testing.T) {
 	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-bundler-home")
 	c.Assert(err, qt.IsNil)
 
-	cfg := viper.New()
+	cfg := config.New()
 	cfg.Set("workingDir", workDir)
 	fs := hugofs.NewFrom(hugofs.Os, cfg)
 

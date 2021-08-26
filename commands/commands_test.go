@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/spf13/afero"
@@ -29,7 +30,6 @@ import (
 	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -120,7 +120,7 @@ func TestExecute(t *testing.T) {
 		resp := Execute([]string{"new", "site", siteDir, "-e=staging"})
 		c.Assert(resp.Err, qt.IsNil)
 		config := readFileFrom(c, filepath.Join(siteDir, "config.toml"))
-		c.Assert(config, qt.Contains, "baseURL = \"http://example.org/\"")
+		c.Assert(config, qt.Contains, "baseURL = 'http://example.org/'")
 		checkNewSiteInited(c, siteDir)
 	})
 }
@@ -166,7 +166,7 @@ func TestFlags(t *testing.T) {
 			name: "ignoreVendor as bool",
 			args: []string{"server", "--ignoreVendor"},
 			check: func(c *qt.C, cmd *serverCmd) {
-				cfg := viper.New()
+				cfg := config.New()
 				cmd.flagsToConfig(cfg)
 				c.Assert(cfg.Get("ignoreVendor"), qt.Equals, true)
 			},
@@ -176,7 +176,7 @@ func TestFlags(t *testing.T) {
 			name: "ignoreVendorPaths",
 			args: []string{"server", "--ignoreVendorPaths=github.com/**"},
 			check: func(c *qt.C, cmd *serverCmd) {
-				cfg := viper.New()
+				cfg := config.New()
 				cmd.flagsToConfig(cfg)
 				c.Assert(cfg.Get("ignoreVendorPaths"), qt.Equals, "github.com/**")
 			},
@@ -216,7 +216,7 @@ func TestFlags(t *testing.T) {
 				c.Assert(sc.serverPort, qt.Equals, 1366)
 				c.Assert(sc.environment, qt.Equals, "testing")
 
-				cfg := viper.New()
+				cfg := config.New()
 				sc.flagsToConfig(cfg)
 				c.Assert(cfg.GetString("publishDir"), qt.Equals, "/tmp/mydestination")
 				c.Assert(cfg.GetString("contentDir"), qt.Equals, "mycontent")

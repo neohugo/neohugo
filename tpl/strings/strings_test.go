@@ -17,14 +17,14 @@ import (
 	"html/template"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/spf13/cast"
-	"github.com/spf13/viper"
 )
 
-var ns = New(&deps.Deps{Cfg: viper.New()})
+var ns = New(&deps.Deps{Cfg: config.New()})
 
 type tstNoStringer struct{}
 
@@ -210,6 +210,9 @@ func TestCountWords(t *testing.T) {
 		{"Do Be Do Be Do", 5},
 		{"旁边", 2},
 		{`<div class="test">旁边</div>`, 2},
+		{"Here's to you...", 3},
+		{"Here’s to you...", 3},
+		{"Here’s to you…", 3},
 		// errors
 		{tstNoStringer{}, false},
 	} {

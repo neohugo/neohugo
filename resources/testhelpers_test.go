@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/modules"
 
@@ -22,7 +23,6 @@ import (
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 )
 
 type specDescriptor struct {
@@ -31,8 +31,8 @@ type specDescriptor struct {
 	fs      afero.Fs
 }
 
-func createTestCfg() *viper.Viper {
-	cfg := viper.New()
+func createTestCfg() config.Provider {
+	cfg := config.New()
 	cfg.Set("resourceDir", "resources")
 	cfg.Set("contentDir", "content")
 	cfg.Set("dataDir", "data")

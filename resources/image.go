@@ -29,6 +29,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gohugoio/hugo/common/paths"
+
 	"github.com/disintegration/gift"
 
 	"github.com/neohugo/neohugo/cache/filecache"
@@ -110,8 +112,8 @@ func (i *imageResource) getExif() *exif.Exif {
 
 			x, err := i.getSpec().imaging.DecodeExif(f)
 			if err != nil {
-				i.metaInitErr = err
-				return
+				i.getSpec().Logger.Warnf("Unable to decode Exif metadata from image: %s", i.Key())
+				return nil
 			}
 
 			i.meta = &imageMeta{Exif: x}
@@ -201,13 +203,30 @@ func (i *imageResource) Fill(spec string) (resource.Image, error) {
 		return nil, err
 	}
 
-	return i.doWithImageConfig(conf, func(src image.Image) (image.Image, error) {
+	img, err := i.doWithImageConfig(conf, func(src image.Image) (image.Image, error) {
 		return i.Proc.ApplyFiltersFromConfig(src, conf)
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if conf.Anchor == 0 && img.Width() == 0 || img.Height() == 0 {
+		// See https://github.com/gohugoio/hugo/issues/7955
+		// Smartcrop fails silently in some rare cases.
+		// Fall back to a center fill.
+		conf.Anchor = gift.CenterAnchor
+		conf.AnchorStr = "center"
+		return i.doWithImageConfig(conf, func(src image.Image) (image.Image, error) {
+			return i.Proc.ApplyFiltersFromConfig(src, conf)
+		})
+	}
+
+	return img, err
 }
 
 func (i *imageResource) Filter(filters ...interface{}) (resource.Image, error) {
-	conf := i.Proc.GetDefaultImageConfig("filter")
+	conf := images.GetDefaultImageConfig("filter", i.Proc.Cfg)
 
 	var gfilters []gift.Filter
 
@@ -292,33 +311,16 @@ func (i *imageResource) doWithImageConfig(conf images.ImageConfig, f func(src im
 	})
 	if err != nil {
 		if i.root != nil && i.root.getFileInfo() != nil {
-			return nil, errors.Wrapf(err, "image %q", i.root.getFileInfo().Meta().Filename())
+			return nil, errors.Wrapf(err, "image %q", i.root.getFileInfo().Meta().Filename)
 		}
 	}
 	return img, nil
 }
 
 func (i *imageResource) decodeImageConfig(action, spec string) (images.ImageConfig, error) {
-	conf, err := images.DecodeImageConfig(action, spec, i.Proc.Cfg.Cfg)
+	conf, err := images.DecodeImageConfig(action, spec, i.Proc.Cfg, i.Format)
 	if err != nil {
 		return conf, err
-	}
-
-	// default to the source format
-	if conf.TargetFormat == 0 {
-		conf.TargetFormat = i.Format
-	}
-
-	if conf.Quality <= 0 && conf.TargetFormat.RequiresDefaultQuality() {
-		// We need a quality setting for all JPEGs
-		conf.Quality = i.Proc.Cfg.Cfg.Quality
-	}
-
-	if conf.BgColor == nil && conf.TargetFormat != i.Format {
-		if i.Format.SupportsTransparency() && !conf.TargetFormat.SupportsTransparency() {
-			conf.BgColor = i.Proc.Cfg.BgColor
-			conf.BgColorStr = i.Proc.Cfg.Cfg.BgColor
-		}
 	}
 
 	return conf, nil
@@ -360,19 +362,20 @@ func (i *imageResource) setBasePath(conf images.ImageConfig) {
 func (i *imageResource) getImageMetaCacheTargetPath() string {
 	const imageMetaVersionNumber = 1 // Increment to invalidate the meta cache
 
-	cfg := i.getSpec().imaging.Cfg.Cfg
+	cfgHash := i.getSpec().imaging.Cfg.CfgHash
 	df := i.getResourcePaths().relTargetDirFile
 	if fi := i.getFileInfo(); fi != nil {
-		df.dir = filepath.Dir(fi.Meta().Path())
+		df.dir = filepath.Dir(fi.Meta().Path)
 	}
-	p1, _ := helpers.FileAndExt(df.file)
+	p1, _ := paths.FileAndExt(df.file)
 	h, _ := i.hash()
-	idStr := helpers.HashString(h, i.size(), imageMetaVersionNumber, cfg)
-	return path.Join(df.dir, fmt.Sprintf("%s_%s.json", p1, idStr))
+	idStr := helpers.HashString(h, i.size(), imageMetaVersionNumber, cfgHash)
+	p := path.Join(df.dir, fmt.Sprintf("%s_%s.json", p1, idStr))
+	return p
 }
 
 func (i *imageResource) relTargetPathFromConfig(conf images.ImageConfig) dirFile {
-	p1, p2 := helpers.FileAndExt(i.getResourcePaths().relTargetDirFile.file)
+	p1, p2 := paths.FileAndExt(i.getResourcePaths().relTargetDirFile.file)
 	if conf.TargetFormat != i.Format {
 		p2 = conf.TargetFormat.DefaultExtension()
 	}

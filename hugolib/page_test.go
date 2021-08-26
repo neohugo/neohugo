@@ -32,7 +32,6 @@ import (
 	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
@@ -447,7 +446,7 @@ func TestPageWithDelimiterForMarkdownThatCrossesBorder(t *testing.T) {
 	}
 
 	cnt := content(p)
-	if cnt != "<p>The <a href=\"http://gohugo.io/\">best static site generator</a>.<sup id=\"fnref:1\"><a href=\"#fn:1\" class=\"footnote-ref\" role=\"doc-noteref\">1</a></sup></p>\n<section class=\"footnotes\" role=\"doc-endnotes\">\n<hr>\n<ol>\n<li id=\"fn:1\" role=\"doc-endnote\">\n<p>Many people say so. <a href=\"#fnref:1\" class=\"footnote-backref\" role=\"doc-backlink\">&#x21a9;&#xfe0e;</a></p>\n</li>\n</ol>\n</section>" {
+	if cnt != "<p>The <a href=\"http://gohugo.io/\">best static site generator</a>.<sup id=\"fnref:1\"><a href=\"#fn:1\" class=\"footnote-ref\" role=\"doc-noteref\">1</a></sup></p>\n<section class=\"footnotes\" role=\"doc-endnotes\">\n<hr>\n<ol>\n<li id=\"fn:1\" role=\"doc-endnote\">\n<p>Many people say so.&#160;<a href=\"#fnref:1\" class=\"footnote-backref\" role=\"doc-backlink\">&#x21a9;&#xfe0e;</a></p>\n</li>\n</ol>\n</section>" {
 		t.Fatalf("Got content:\n%q", cnt)
 	}
 }
@@ -675,7 +674,7 @@ func TestPageWithShortCodeInSummary(t *testing.T) {
 	assertFunc := func(t *testing.T, ext string, pages page.Pages) {
 		p := pages[0]
 		checkPageTitle(t, p, "Simple")
-		checkPageContent(t, p, normalizeExpected(ext, "<p>Summary Next Line. <figure> <img src=\"/not/real\"/> </figure> . More text here.</p><p>Some more text</p>"))
+		checkPageContent(t, p, normalizeExpected(ext, "<p>Summary Next Line. <figure><img src=\"/not/real\"/> </figure> . More text here.</p><p>Some more text</p>"))
 		checkPageSummary(t, p, "Summary Next Line.  . More text here. Some more text")
 		checkPageType(t, p, "page")
 	}
@@ -781,7 +780,7 @@ func TestPageWithLastmodFromGitInfo(t *testing.T) {
 	c := qt.New(t)
 
 	// We need to use the OS fs for this.
-	cfg := viper.New()
+	cfg := config.New()
 	fs := hugofs.NewFrom(hugofs.Os, cfg)
 	fs.Destination = &afero.MemMapFs{}
 
@@ -1061,7 +1060,7 @@ func TestChompBOM(t *testing.T) {
 
 func TestPageWithEmoji(t *testing.T) {
 	for _, enableEmoji := range []bool{true, false} {
-		v := viper.New()
+		v := config.New()
 		v.Set("enableEmoji", enableEmoji)
 
 		b := newTestSitesBuilder(t).WithViper(v)
@@ -1730,12 +1729,12 @@ $$$
 
 	// Blackfriday does not support this extended attribute syntax.
 	b.AssertFileContent("public/page1/index.html",
-		`<pre><code class="language-bash {hl_lines=[1]}" data-lang="bash {hl_lines=[1]}">SHORT</code></pre>`,
-		`<pre><code class="language-bash {hl_lines=[1]}" data-lang="bash {hl_lines=[1]}">MARKDOWN`,
+		`<pre tabindex="0"><code class="language-bash {hl_lines=[1]}" data-lang="bash {hl_lines=[1]}">SHORT</code></pre>`,
+		`<pre tabindex="0"><code class="language-bash {hl_lines=[1]}" data-lang="bash {hl_lines=[1]}">MARKDOWN`,
 	)
 
 	b.AssertFileContent("public/page2/index.html",
-		`<pre><code class="language-bash {hl_lines=[1]}" data-lang="bash {hl_lines=[1]}">SHORT`,
+		`<pre tabindex="0"><code class="language-bash {hl_lines=[1]}" data-lang="bash {hl_lines=[1]}">SHORT`,
 	)
 }
 

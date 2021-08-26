@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/paths"
 	"golang.org/x/text/language"
 	yaml "gopkg.in/yaml.v2"
 
@@ -91,7 +92,7 @@ func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 	f.Close()
 
 	name := r.LogicalName()
-	lang := helpers.Filename(name)
+	lang := paths.Filename(name)
 	tag := language.Make(lang)
 	if tag == language.Und {
 		name = artificialLangTagPrefix + name
@@ -127,7 +128,7 @@ func errWithFileContext(inerr error, r source.File) error {
 	}
 
 	meta := fim.Meta()
-	realFilename := meta.Filename()
+	realFilename := meta.Filename
 	f, err := meta.Open()
 	if err != nil {
 		return inerr

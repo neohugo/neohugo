@@ -18,20 +18,19 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/identity"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/tpl"
-
-	"github.com/spf13/viper"
 )
 
 func TestTemplateLookupOrder(t *testing.T) {
 	var (
 		fs  *hugofs.Fs
-		cfg *viper.Viper
+		cfg config.Provider
 		th  testHelper
 	)
 
