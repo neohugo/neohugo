@@ -19,15 +19,12 @@ import (
 	"io"
 	"math/rand"
 	"os"
-
-	"github.com/neohugo/neohugo/config"
-
-	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
-
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
 

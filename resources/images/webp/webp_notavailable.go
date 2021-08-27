@@ -19,7 +19,7 @@ import (
 	"image"
 	"io"
 
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 
 	"github.com/bep/gowebp/libwebp/webpoptions"
 )

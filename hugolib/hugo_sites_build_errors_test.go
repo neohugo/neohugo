@@ -316,7 +316,7 @@ Some content.
 // https://github.com/neohugo/neohugo/issues/5375
 func TestSiteBuildTimeout(t *testing.T) {
 	if !htesting.IsCI() {
-		//defer leaktest.CheckTimeout(t, 10*time.Second)()
+		// defer leaktest.CheckTimeout(t, 10*time.Second)()
 	}
 
 	b := newTestSitesBuilder(t)

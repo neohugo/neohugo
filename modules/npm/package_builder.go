@@ -29,7 +29,7 @@ import (
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/neohugo/neohugo/helpers"
 )
@@ -139,7 +139,7 @@ func Pack(fs afero.Fs, fis []hugofs.FileMetaInfo) error {
 		return errors.Wrap(err, "npm pack: failed to marshal JSON")
 	}
 
-	if err := afero.WriteFile(fs, packageJSONName, packageJSONData.Bytes(), 0666); err != nil {
+	if err := afero.WriteFile(fs, packageJSONName, packageJSONData.Bytes(), 0o666); err != nil {
 		return errors.Wrap(err, "npm pack: failed to write package.json")
 	}
 

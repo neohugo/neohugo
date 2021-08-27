@@ -3,8 +3,8 @@ package lang
 import (
 	"testing"
 
-	translators "github.com/gohugoio/localescompressed"
 	qt "github.com/frankban/quicktest"
+	translators "github.com/gohugoio/localescompressed"
 	"github.com/neohugo/neohugo/deps"
 )
 
@@ -65,7 +65,6 @@ func TestNumFmt(t *testing.T) {
 }
 
 func TestFormatNumbers(t *testing.T) {
-
 	c := qt.New(t)
 
 	nsNn := New(&deps.Deps{}, translators.GetTranslator("nn"))
@@ -103,5 +102,4 @@ func TestFormatNumbers(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 		c.Assert(got, qt.Equals, "$20,000.00")
 	})
-
 }

@@ -16,8 +16,6 @@ package paths
 import (
 	"testing"
 
-	"github.com/neohugo/neohugo/langs"
-
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs"

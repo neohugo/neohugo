@@ -16,8 +16,6 @@ package markup
 import (
 	"testing"
 
-	"github.com/neohugo/neohugo/markup/converter"
-
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/markup/converter"

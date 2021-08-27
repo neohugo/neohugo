@@ -48,7 +48,6 @@ type MenuEntry struct {
 }
 
 func (m *MenuEntry) URL() string {
-
 	// Check page first.
 	// In Hugo 0.86.0 we added `pageRef`,
 	// a way to connect menu items in site config to pages.

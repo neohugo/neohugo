@@ -101,7 +101,6 @@ title="My Page"
 
 My page content.
 `
-
 	}
 
 	var categoryKey string
@@ -241,7 +240,6 @@ canonifyURLs = true
 				return sb
 			},
 			func(s *sitesBuilder) {
-
 			},
 		},
 		{

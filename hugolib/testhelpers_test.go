@@ -18,7 +18,7 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/output"

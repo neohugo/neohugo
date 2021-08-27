@@ -14,14 +14,13 @@
 package config
 
 import (
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/docshelper"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/docshelper"
 )
 
 // This is is just some helpers used to create some JSON used in the Hugo docs.
 func init() {
 	docsProvider := func() docshelper.DocProvider {
-
 		cfg := New()
 		for _, configRoot := range ConfigRootKeys {
 			cfg.Set(configRoot, make(maps.Params))

@@ -16,7 +16,7 @@ package urls
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
@@ -41,5 +41,4 @@ func TestInit(t *testing.T) {
 	ctx, err := ns.Context()
 	c.Assert(err, qt.IsNil)
 	c.Assert(ctx, hqt.IsSameType, &Namespace{})
-
 }

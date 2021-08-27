@@ -168,7 +168,6 @@ func getPluralCount(v interface{}) interface{} {
 	}
 
 	return toPluralCountValue(v)
-
 }
 
 // go-i18n expects floats to be represented by string.

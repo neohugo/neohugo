@@ -76,12 +76,10 @@ name = "foo-a"
 
 		menus := b.H.Sites[0].Menus()
 		c.Assert(menus, qt.HasLen, 1)
-
 	})
 }
 
 func TestLanguageNumberFormatting(t *testing.T) {
-
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", `
 baseURL = "https://example.org"

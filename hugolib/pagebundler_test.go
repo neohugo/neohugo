@@ -284,7 +284,7 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 
 				c.Assert(len(s.RegularPages()), qt.Equals, 8)
 				c.Assert(len(s.Pages()), qt.Equals, 16)
-				//dumpPages(s.AllPages()...)
+				// dumpPages(s.AllPages()...)
 
 				c.Assert(len(s.AllPages()), qt.Equals, 31)
 

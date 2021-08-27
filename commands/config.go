@@ -23,7 +23,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/neohugo/neohugo/parser"
 	"github.com/neohugo/neohugo/parser/metadecoders"
@@ -181,5 +181,4 @@ func (m *modMounts) MarshalJSON() ([]byte, error) {
 		Dir:     m.m.Dir(),
 		Mounts:  mounts,
 	})
-
 }

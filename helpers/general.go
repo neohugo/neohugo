@@ -29,7 +29,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/mitchellh/hashstructure"
 
@@ -324,12 +324,14 @@ func (l *DistinctLogger) Warnf(format string, v ...interface{}) {
 		l.Logger.Warnf(format, v...)
 	})
 }
+
 func (l *DistinctLogger) Warnln(v ...interface{}) {
 	logStatement := fmt.Sprint(v...)
 	l.printIfNotPrinted("warnln", logStatement, func() {
 		l.Logger.Warnln(v...)
 	})
 }
+
 func (l *DistinctLogger) Errorf(format string, v ...interface{}) {
 	logStatement := fmt.Sprint(v...)
 	l.printIfNotPrinted("errorf", logStatement, func() {
@@ -389,7 +391,6 @@ var (
 func InitLoggers() {
 	DistinctErrorLog.Reset()
 	DistinctWarnLog.Reset()
-
 }
 
 // Deprecated informs about a deprecation, but only once for a given set of arguments' values.

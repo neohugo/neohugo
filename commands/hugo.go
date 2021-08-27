@@ -30,6 +30,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -38,7 +39,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/hugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/terminal"
 
@@ -285,7 +285,7 @@ func (c *commandeer) fullBuild() error {
 
 	if !c.h.quiet {
 		fmt.Println("Start building sites … ")
-		fmt.Println(hugo.BuildVersionString())
+		fmt.Println(neohugo.BuildVersionString())
 		if isTerminal() {
 			defer func() {
 				fmt.Print(showCursor + clearLine)
@@ -539,7 +539,6 @@ func (c *commandeer) build() error {
 }
 
 func (c *commandeer) serverBuild() error {
-
 	stopProfiling, err := c.initProfiling()
 	if err != nil {
 		return err
@@ -736,7 +735,6 @@ func (c *commandeer) handleBuildErr(err error, msg string) {
 }
 
 func (c *commandeer) rebuildSites(events []fsnotify.Event) error {
-
 	c.buildErr = nil
 	visited := c.visitedURLs.PeekAllSet()
 	if c.fastRenderMode {

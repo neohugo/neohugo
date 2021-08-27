@@ -383,7 +383,6 @@ func decode(mediaTypes media.Types, input interface{}, output *Format) error {
 	}
 
 	return nil
-
 }
 
 // BaseFilename returns the base filename of f including an extension (ie.

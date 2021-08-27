@@ -29,7 +29,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/disintegration/gift"
 
@@ -206,7 +206,6 @@ func (i *imageResource) Fill(spec string) (resource.Image, error) {
 	img, err := i.doWithImageConfig(conf, func(src image.Image) (image.Image, error) {
 		return i.Proc.ApplyFiltersFromConfig(src, conf)
 	})
-
 	if err != nil {
 		return nil, err
 	}

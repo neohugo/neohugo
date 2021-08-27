@@ -1412,7 +1412,6 @@ func (s *Site) getMenusFromConfig() navigation.Menus {
 					}
 					s.Log.Errorf("unable to process menus in site config\n")
 					s.Log.Errorln(err)
-
 				}
 
 				for _, entry := range m {

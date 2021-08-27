@@ -104,7 +104,6 @@ func DecodeCascade(in interface{}) (map[PageMatcher]maps.Params, error) {
 	}
 
 	return cascade, nil
-
 }
 
 // DecodePageMatcher decodes m into v.

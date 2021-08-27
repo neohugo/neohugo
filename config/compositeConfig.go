@@ -14,7 +14,7 @@
 package config
 
 import (
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 )
 
 // NewCompositeConfig creates a new composite Provider with a read-only base

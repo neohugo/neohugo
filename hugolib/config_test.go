@@ -20,18 +20,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
-
-	"github.com/gohugoio/hugo/media"
 	"github.com/google/go-cmp/cmp"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/media"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/spf13/afero"
 )
 
 func TestLoadConfig(t *testing.T) {
-
 	c := qt.New(t)
 
 	loadConfig := func(c *qt.C, configContent string, fromDir bool) config.Provider {
@@ -255,7 +253,7 @@ name = "menu-theme"
 			},
 		})
 
-		var eq = qt.CmpEquals(
+		eq := qt.CmpEquals(
 			cmp.Comparer(func(m1, m2 media.Type) bool {
 				if m1.SubType != m2.SubType {
 					return false
@@ -410,7 +408,6 @@ name   = "menu-theme"
 	// Issue #8724
 	for _, mergeStrategy := range []string{"none", "shallow"} {
 		c.Run(fmt.Sprintf("Merge with sitemap config in theme, mergestrategy %s", mergeStrategy), func(c *qt.C) {
-
 			smapConfigTempl := `[sitemap]
   changefreq = %q
   filename = "sitemap.xml"
@@ -440,10 +437,8 @@ name   = "menu-theme"
 
 				b.AssertFileContent("public/sitemap.xml", "<changefreq>monthly</changefreq>")
 			}
-
 		})
 	}
-
 }
 
 func TestLoadConfigFromThemeDir(t *testing.T) {
@@ -470,9 +465,9 @@ t2 = "tv2"
 
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", mainConfig).WithThemeConfigFile("toml", themeConfig)
-	b.Assert(b.Fs.Source.MkdirAll(themeConfigDirDefault, 0777), qt.IsNil)
-	b.Assert(b.Fs.Source.MkdirAll(themeConfigDirProduction, 0777), qt.IsNil)
-	b.Assert(b.Fs.Source.MkdirAll(projectConfigDir, 0777), qt.IsNil)
+	b.Assert(b.Fs.Source.MkdirAll(themeConfigDirDefault, 0o777), qt.IsNil)
+	b.Assert(b.Fs.Source.MkdirAll(themeConfigDirProduction, 0o777), qt.IsNil)
+	b.Assert(b.Fs.Source.MkdirAll(projectConfigDir, 0o777), qt.IsNil)
 
 	b.WithSourceFile(filepath.Join(projectConfigDir, "config.toml"), `[params]
 m2 = "mv2"
@@ -496,7 +491,6 @@ t3 = "tv3p"
 		"t1": "tv1",
 		"t2": "tv2d",
 	})
-
 }
 
 func TestPrivacyConfig(t *testing.T) {
@@ -666,7 +660,6 @@ theme_param="themevalue2"
 	}
 
 	c.Run("Variations", func(c *qt.C) {
-
 		b := newB(c)
 
 		b.WithEnviron(
@@ -728,7 +721,6 @@ theme_param="themevalue2"
 
 		c.Assert(ofBase.MediaType, qt.Equals, media.TextType)
 		c.Assert(ofTheme.MediaType, qt.Equals, media.TextType)
-
 	})
 
 	// Issue #8709
@@ -745,7 +737,5 @@ theme_param="themevalue2"
 
 		cfg := b.H.Cfg
 		c.Assert(cfg.Get("imaging.anchor"), qt.Equals, "smart")
-
 	})
-
 }

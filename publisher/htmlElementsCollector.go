@@ -367,7 +367,6 @@ func htmlLexToEndOfComment(w *htmlElementsCollectorWriter) htmlCollectorStateFun
 }
 
 func parseHTMLElement(elStr string) (el htmlElement, err error) {
-
 	tagName := parseStartTag(elStr)
 
 	el.Tag = strings.ToLower(tagName)

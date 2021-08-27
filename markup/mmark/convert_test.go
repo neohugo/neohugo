@@ -16,7 +16,7 @@ package mmark
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/common/loggers"
 

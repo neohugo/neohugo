@@ -75,7 +75,7 @@ func PageMenusFromPage(p Page) (PageMenus, error) {
 		return pm, nil
 	}
 
-	var wrapErr = func(err error) error {
+	wrapErr := func(err error) error {
 		return errors.Wrapf(err, "unable to process menus for page %q", p.Path())
 	}
 

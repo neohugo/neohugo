@@ -1399,7 +1399,7 @@ outputs: ["html", "css", "csv", "json"]
 
 		b.Build(BuildCfg{})
 
-		//helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
+		// helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
 
 		for i := 0; i < numPages; i++ {
 			b.AssertFileContent(fmt.Sprintf("public/page%d/index.html", i), "Short-HTML")

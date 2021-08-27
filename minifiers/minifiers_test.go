@@ -214,7 +214,7 @@ func TestDecodeConfigKeepWhitespace(t *testing.T) {
 			KeepDocumentTags:        true,
 			KeepEndTags:             false,
 			KeepQuotes:              false,
-			KeepWhitespace:          true},
+			KeepWhitespace:          true,
+		},
 	)
-
 }

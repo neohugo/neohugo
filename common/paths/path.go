@@ -36,8 +36,7 @@ type filepathPathBridge interface {
 	Separator() string
 }
 
-type filepathBridge struct {
-}
+type filepathBridge struct{}
 
 func (filepathBridge) Base(in string) string {
 	return filepath.Base(in)
