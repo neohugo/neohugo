@@ -140,12 +140,14 @@ func TestClassCollector(t *testing.T) {
 					}
 					v := config.New()
 					m, _ := minifiers.New(media.DefaultTypes, output.DefaultFormats, v)
-					m.Minify(media.HTMLType, w, strings.NewReader(test.html))
+					err := m.Minify(media.HTMLType, w, strings.NewReader(test.html))
+					c.Assert(err, qt.IsNil)
 
 				} else {
 					var buff bytes.Buffer
 					buff.WriteString(test.html)
-					io.Copy(w, &buff)
+					_, err := io.Copy(w, &buff)
+					c.Assert(err, qt.IsNil)
 				}
 				got := w.collector.getHTMLElements()
 				c.Assert(got, qt.DeepEquals, test.expect)

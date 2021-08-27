@@ -34,9 +34,9 @@ import (
 	"github.com/spf13/afero"
 )
 
-const (
-	walkIsRootFileMetaKey = "walkIsRootFileMetaKey"
-)
+//const (
+//walkIsRootFileMetaKey = "walkIsRootFileMetaKey"
+//)
 
 func newPagesCollector(
 	sp *source.SourceSpec,
