@@ -16,8 +16,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        go: [ '1.17' ]
+        os: [ubuntu-20.04, macos-latest, windows-latest]
+        go: [ '1.16' ]
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -62,7 +62,7 @@ jobs:
         run: |
           pip install docutils
           rst2html.py --version
-      - if: matrix.os == 'ubuntu-latest'
+      - if: matrix.os == 'ubuntu-20.04'
         name: Install pandoc on Linux
         run: |
             sudo apt-get update -y
@@ -74,7 +74,7 @@ jobs:
         run: |
           choco install pandoc
       - run: pandoc -v
-      - if: matrix.os == 'ubuntu-latest'
+      - if: matrix.os == 'ubuntu-20.04'
         name: Install dart-sass-embedded Linux
         run: |
           curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
@@ -105,13 +105,13 @@ jobs:
         run: |
           mage -v neohugo
   gotip:
-    name: Build ubuntu-latest, GoTip
-    runs-on: ubuntu-latest
+    name: Build ubuntu-20.04, GoTip
+    runs-on: ubuntu-20.04
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.17
+          go-version: 1.16
       - name: Setup gotip
         run: |
           go get golang.org/dl/gotip
@@ -182,7 +182,7 @@ jobs:
           GOEXE=gotip mage -v neohugo
   docker:
     name: Build Neohugo Docker Latest
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - name: Checkout
         uses: actions/checkout@v2
