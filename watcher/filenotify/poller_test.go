@@ -24,7 +24,7 @@ const (
 
 var (
 	isMacOs = runtime.GOOS == "darwin"
-	//isWindows = runtime.GOOS == "windows"
+	// isWindows = runtime.GOOS == "windows"
 	isCI = htesting.IsCI()
 )
 
@@ -124,17 +124,17 @@ func TestPollerEvent(t *testing.T) {
 	}
 }
 
-//func TestPollerClose(t *testing.T) {
-//c := qt.New(t)
-//w := NewPollingWatcher(watchWaitTime)
-//f1, err := ioutil.TempFile("", "f1")
-//c.Assert(err, qt.IsNil)
-//f2, err := ioutil.TempFile("", "f2")
-//c.Assert(err, qt.IsNil)
-//filename1 := f1.Name()
-//filename2 := f2.Name()
-//f1.Close()
-//f2.Close()
+// func TestPollerClose(t *testing.T) {
+// c := qt.New(t)
+// w := NewPollingWatcher(watchWaitTime)
+// f1, err := ioutil.TempFile("", "f1")
+// c.Assert(err, qt.IsNil)
+// f2, err := ioutil.TempFile("", "f2")
+// c.Assert(err, qt.IsNil)
+// filename1 := f1.Name()
+// filename2 := f2.Name()
+// f1.Close()
+// f2.Close()
 
 //c.Assert(w.Add(filename1), qt.IsNil)
 //c.Assert(w.Add(filename2), qt.IsNil)
@@ -145,10 +145,10 @@ func TestPollerEvent(t *testing.T) {
 //// No more event as the watchers are closed.
 //assertEvents(c, w)
 
-//f2, err = ioutil.TempFile("", "f2")
-//c.Assert(err, qt.IsNil)
+// f2, err = ioutil.TempFile("", "f2")
+// c.Assert(err, qt.IsNil)
 
-//defer os.Remove(f2.Name())
+// defer os.Remove(f2.Name())
 
 //c.Assert(w.Add(f2.Name()), qt.Not(qt.IsNil))
 //}

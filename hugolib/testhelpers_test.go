@@ -1023,11 +1023,11 @@ func content(c resource.ContentProvider) string {
 //}
 //}
 
-//func printStringIndexes(s string) {
-//lines := strings.Split(s, "\n")
-//i := 0
+// func printStringIndexes(s string) {
+// lines := strings.Split(s, "\n")
+// i := 0
 
-//for _, line := range lines {
+// for _, line := range lines {
 
 //for _, r := range line {
 //fmt.Printf("%-3s", strconv.Itoa(i))
