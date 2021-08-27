@@ -20,7 +20,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/spf13/viper"
+	"github.com/neohugo/neohugo/config"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/htesting"
@@ -29,7 +29,7 @@ import (
 
 func TestLanguageRootMapping(t *testing.T) {
 	c := qt.New(t)
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 
 	fs := NewBaseFileDecorator(afero.NewMemMapFs())
@@ -49,27 +49,27 @@ func TestLanguageRootMapping(t *testing.T) {
 		RootMapping{
 			From: "content/blog",             // Virtual path, first element is one of content, static, layouts etc.
 			To:   "themes/a/mysvblogcontent", // Real path
-			Meta: FileMeta{"lang": "sv"},
+			Meta: &FileMeta{Lang: "sv"},
 		},
 		RootMapping{
 			From: "content/blog",
 			To:   "themes/a/myenblogcontent",
-			Meta: FileMeta{"lang": "en"},
+			Meta: &FileMeta{Lang: "en"},
 		},
 		RootMapping{
 			From: "content/blog",
 			To:   "content/sv",
-			Meta: FileMeta{"lang": "sv"},
+			Meta: &FileMeta{Lang: "sv"},
 		},
 		RootMapping{
 			From: "content/blog",
 			To:   "themes/a/myotherenblogcontent",
-			Meta: FileMeta{"lang": "en"},
+			Meta: &FileMeta{Lang: "en"},
 		},
 		RootMapping{
 			From: "content/docs",
 			To:   "themes/a/mysvdocs",
-			Meta: FileMeta{"lang": "sv"},
+			Meta: &FileMeta{Lang: "sv"},
 		},
 	)
 
@@ -123,13 +123,13 @@ func TestLanguageRootMapping(t *testing.T) {
 	}
 
 	rfsEn := rfs.Filter(func(rm RootMapping) bool {
-		return rm.Meta.Lang() == "en"
+		return rm.Meta.Lang == "en"
 	})
 
 	c.Assert(getDirnames("content/blog", rfsEn), qt.DeepEquals, []string{"d1", "en-f.txt", "en-f2.txt"})
 
 	rfsSv := rfs.Filter(func(rm RootMapping) bool {
-		return rm.Meta.Lang() == "sv"
+		return rm.Meta.Lang == "sv"
 	})
 
 	c.Assert(getDirnames("content/blog", rfsSv), qt.DeepEquals, []string{"d1", "sv-f.txt", "svdir"})
@@ -158,7 +158,7 @@ func TestRootMappingFsDirnames(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	c.Assert(fif.Name(), qt.Equals, "myfile.txt")
 	fifm := fif.(FileMetaInfo).Meta()
-	c.Assert(fifm.Filename(), qt.Equals, filepath.FromSlash("f2t/myfile.txt"))
+	c.Assert(fifm.Filename, qt.Equals, filepath.FromSlash("f2t/myfile.txt"))
 
 	root, err := rfs.Open("static")
 	c.Assert(err, qt.IsNil)
@@ -186,7 +186,7 @@ func TestRootMappingFsFilename(t *testing.T) {
 	fi, err := rfs.Stat(filepath.FromSlash("static/f1/foo/file.txt"))
 	c.Assert(err, qt.IsNil)
 	fim := fi.(FileMetaInfo)
-	c.Assert(fim.Meta().Filename(), qt.Equals, testfilename)
+	c.Assert(fim.Meta().Filename, qt.Equals, testfilename)
 	_, err = rfs.Stat(filepath.FromSlash("static/f1"))
 	c.Assert(err, qt.IsNil)
 }
@@ -210,30 +210,30 @@ func TestRootMappingFsMount(t *testing.T) {
 		{
 			From: "content/blog",
 			To:   "mynoblogcontent",
-			Meta: FileMeta{"lang": "no"},
+			Meta: &FileMeta{Lang: "no"},
 		},
 		{
 			From: "content/blog",
 			To:   "myenblogcontent",
-			Meta: FileMeta{"lang": "en"},
+			Meta: &FileMeta{Lang: "en"},
 		},
 		{
 			From: "content/blog",
 			To:   "mysvblogcontent",
-			Meta: FileMeta{"lang": "sv"},
+			Meta: &FileMeta{Lang: "sv"},
 		},
 		// Files
 		{
 			From:      "content/singles/p1.md",
 			To:        "singlefiles/no.txt",
 			ToBasedir: "singlefiles",
-			Meta:      FileMeta{"lang": "no"},
+			Meta:      &FileMeta{Lang: "no"},
 		},
 		{
 			From:      "content/singles/p1.md",
 			To:        "singlefiles/sv.txt",
 			ToBasedir: "singlefiles",
-			Meta:      FileMeta{"lang": "sv"},
+			Meta:      &FileMeta{Lang: "sv"},
 		},
 	}
 
@@ -244,7 +244,7 @@ func TestRootMappingFsMount(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	c.Assert(blog.IsDir(), qt.Equals, true)
 	blogm := blog.(FileMetaInfo).Meta()
-	c.Assert(blogm.Lang(), qt.Equals, "no") // First match
+	c.Assert(blogm.Lang, qt.Equals, "no") // First match
 
 	f, err := blogm.Open()
 	c.Assert(err, qt.IsNil)
@@ -262,7 +262,7 @@ func TestRootMappingFsMount(t *testing.T) {
 	c.Assert(testfilefi.Name(), qt.Equals, testfile)
 
 	testfilem := testfilefi.(FileMetaInfo).Meta()
-	c.Assert(testfilem.Filename(), qt.Equals, filepath.FromSlash("themes/a/mynoblogcontent/test.txt"))
+	c.Assert(testfilem.Filename, qt.Equals, filepath.FromSlash("themes/a/mynoblogcontent/test.txt"))
 
 	tf, err := testfilem.Open()
 	c.Assert(err, qt.IsNil)
@@ -284,7 +284,7 @@ func TestRootMappingFsMount(t *testing.T) {
 	for i, lang := range []string{"no", "sv"} {
 		fi := singles[i].(FileMetaInfo)
 		c.Assert(fi.Meta().PathFile(), qt.Equals, filepath.FromSlash("themes/a/singlefiles/"+lang+".txt"))
-		c.Assert(fi.Meta().Lang(), qt.Equals, lang)
+		c.Assert(fi.Meta().Lang, qt.Equals, lang)
 		c.Assert(fi.Name(), qt.Equals, "p1.md")
 	}
 }
@@ -432,7 +432,7 @@ func TestRootMappingFsOs(t *testing.T) {
 		}
 		i++
 		meta := fi.(FileMetaInfo).Meta()
-		c.Assert(meta.Filename(), qt.Equals, filepath.Join(d, fmt.Sprintf("/d1/d2/d3/f-%d.txt", i)))
+		c.Assert(meta.Filename, qt.Equals, filepath.Join(d, fmt.Sprintf("/d1/d2/d3/f-%d.txt", i)))
 		c.Assert(meta.PathFile(), qt.Equals, filepath.FromSlash(fmt.Sprintf("d1/d2/d3/f-%d.txt", i)))
 	}
 

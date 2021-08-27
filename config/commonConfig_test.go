@@ -21,14 +21,12 @@ import (
 	"github.com/neohugo/neohugo/common/types"
 
 	qt "github.com/frankban/quicktest"
-
-	"github.com/spf13/viper"
 )
 
 func TestBuild(t *testing.T) {
 	c := qt.New(t)
 
-	v := viper.New()
+	v := New()
 	v.Set("build", map[string]interface{}{
 		"useResourceCacheWhen": "always",
 	})

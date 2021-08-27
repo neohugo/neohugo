@@ -22,6 +22,7 @@ package hugolib
 //"testing"
 //"time"
 
+//"github.com/gohugoio/hugo/config"
 //"github.com/gohugoio/hugo/modules/npm"
 
 //"github.com/gohugoio/hugo/common/loggers"
@@ -37,7 +38,6 @@ package hugolib
 
 //qt "github.com/frankban/quicktest"
 //"github.com/gohugoio/testmodBuilder/mods"
-//"github.com/spf13/viper"
 //)
 
 //func TestHugoModulesVariants(t *testing.T) {
@@ -45,7 +45,7 @@ package hugolib
 //t.Skip("skip (relative) long running modules test when running locally")
 //}
 
-// config := `
+// tomlConfig := `
 // baseURL="https://example.org"
 // workingDir = %q
 
@@ -56,7 +56,7 @@ package hugolib
 //`
 
 //createConfig := func(workingDir, moduleOpts string) string {
-//return fmt.Sprintf(config, workingDir, moduleOpts)
+//return fmt.Sprintf(tomlConfig, workingDir, moduleOpts)
 //}
 
 //newTestBuilder := func(t testing.TB, moduleOpts string) (*sitesBuilder, func()) {
@@ -65,7 +65,7 @@ package hugolib
 //b.Assert(err, qt.IsNil)
 //workingDir := filepath.Join(tempDir, "myhugosite")
 //b.Assert(os.MkdirAll(workingDir, 0777), qt.IsNil)
-//b.Fs = hugofs.NewDefault(viper.New())
+//b.Fs = hugofs.NewDefault(config.New())
 //b.WithWorkingDir(workingDir).WithConfigFile("toml", createConfig(workingDir, moduleOpts))
 //b.WithTemplates(
 //"index.html", `
@@ -134,7 +134,11 @@ package hugolib
 //b.WithSourceFile("package.json", `{
 //"name": "mypack",
 //"version": "1.2.3",
-//"scripts": {},
+//"scripts": {
+//"client": "wait-on http://localhost:1313 && open http://localhost:1313",
+//"start": "run-p client server",
+//"test": "echo 'hoge' > hoge"
+//},
 //"dependencies": {
 //"nonon": "error"
 //}
@@ -143,7 +147,11 @@ package hugolib
 //b.WithSourceFile("package.hugo.json", `{
 //"name": "mypack",
 //"version": "1.2.3",
-//"scripts": {},
+//"scripts": {
+//"client": "wait-on http://localhost:1313 && open http://localhost:1313",
+//"start": "run-p client server",
+//"test": "echo 'hoge' > hoge"
+//},
 //"dependencies": {
 //"foo": "1.2.3"
 //},
@@ -184,9 +192,14 @@ package hugolib
 //"tailwindcss": "1.8.0"
 //},
 //"name": "mypack",
-//"scripts": {},
+//"scripts": {
+//"client": "wait-on http://localhost:1313 && open http://localhost:1313",
+//"start": "run-p client server",
+//"test": "echo 'hoge' > hoge"
+//},
 //"version": "1.2.3"
-//}`
+//}
+//`
 //})
 //})
 
@@ -197,7 +210,11 @@ package hugolib
 //const origPackageJSON = `{
 //"name": "mypack",
 //"version": "1.2.3",
-//"scripts": {},
+//"scripts": {
+//"client": "wait-on http://localhost:1313 && open http://localhost:1313",
+//"start": "run-p client server",
+//"test": "echo 'hoge' > hoge"
+//},
 //"dependencies": {
 //"moo": "1.2.3"
 //}
@@ -235,9 +252,14 @@ package hugolib
 //"tailwindcss": "1.2.0"
 //},
 //"name": "mypack",
-//"scripts": {},
+//"scripts": {
+//"client": "wait-on http://localhost:1313 && open http://localhost:1313",
+//"start": "run-p client server",
+//"test": "echo 'hoge' > hoge"
+//},
 //"version": "1.2.3"
-//}`
+//}
+//`
 //})
 
 //// https://github.com/gohugoio/hugo/issues/7690
@@ -277,7 +299,8 @@ package hugolib
 //},
 //"name": "myhugosite",
 //"version": "0.1.0"
-//}`
+//}
+//`
 //})
 //})
 //}
@@ -309,7 +332,7 @@ package hugolib
 // for _, m := range testmods[:2] {
 // c := qt.New(t)
 
-// v := viper.New()
+// v := config.New()
 
 // workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-modules-test")
 // c.Assert(err, qt.IsNil)
@@ -643,7 +666,7 @@ package hugolib
 
 //c := qt.New(t)
 //// We need to use the OS fs for this.
-//cfg := viper.New()
+//cfg := config.New()
 //fs := hugofs.NewFrom(hugofs.Os, cfg)
 
 // workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mod-sym")
@@ -810,13 +833,13 @@ package hugolib
 
 //`
 
-// config := fmt.Sprintf(configTemplate, workingDir)
+// tomlConfig := fmt.Sprintf(configTemplate, workingDir)
 
 // b := newTestSitesBuilder(t).Running()
 
-// b.Fs = hugofs.NewDefault(viper.New())
+// b.Fs = hugofs.NewDefault(config.New())
 
-//b.WithWorkingDir(workingDir).WithConfigFile("toml", config)
+//b.WithWorkingDir(workingDir).WithConfigFile("toml", tomlConfig)
 //b.WithTemplatesAdded("index.html", `
 //{{ .Title }}
 //{{ .Content }}
@@ -927,16 +950,16 @@ package hugolib
 //%s
 
 //`
-//config := fmt.Sprintf(configTemplate, workingDir, mounts)
-//config = strings.Replace(config, "WORKING_DIR", workingDir, -1)
+//tomlConfig := fmt.Sprintf(configTemplate, workingDir, mounts)
+//tomlConfig = strings.Replace(tomlConfig, "WORKING_DIR", workingDir, -1)
 
 // b := newTestSitesBuilder(c).Running()
 
-// b.Fs = hugofs.NewDefault(viper.New())
+// b.Fs = hugofs.NewDefault(config.New())
 
 // os.MkdirAll(filepath.Join(workingDir, "content", "blog"), 0777)
 
-// b.WithWorkingDir(workingDir).WithConfigFile("toml", config)
+// b.WithWorkingDir(workingDir).WithConfigFile("toml", tomlConfig)
 
 //return test{
 //b:          b,
@@ -960,7 +983,7 @@ package hugolib
 
 // p := b.GetPage("blog/p1.md")
 // f := p.File().FileInfo().Meta()
-// b.Assert(filepath.ToSlash(f.Path()), qt.Equals, "blog/p1.md")
+// b.Assert(filepath.ToSlash(f.Path), qt.Equals, "blog/p1.md")
 // b.Assert(filepath.ToSlash(f.PathFile()), qt.Equals, "content/blog/p1.md")
 
 //b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(test.workingDir, "layouts", "_default", "single.html")), qt.Equals, filepath.FromSlash("_default/single.html"))
@@ -1013,7 +1036,7 @@ package hugolib
 // b.Assert(p1_2, qt.Equals, p1_1)
 
 //f := p1_1.File().FileInfo().Meta()
-//b.Assert(filepath.ToSlash(f.Path()), qt.Equals, "blog/sub/p1.md")
+//b.Assert(filepath.ToSlash(f.Path), qt.Equals, "blog/sub/p1.md")
 //b.Assert(filepath.ToSlash(f.PathFile()), qt.Equals, "mycontent/sub/p1.md")
 //b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(myPartialsDir, "mypartial.html")), qt.Equals, filepath.FromSlash("partials/mypartial.html"))
 //b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(absShortcodesDir, "myshort.html")), qt.Equals, filepath.FromSlash("shortcodes/myshort.html"))
@@ -1031,7 +1054,7 @@ package hugolib
 //workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-no-mod")
 //c.Assert(err, qt.IsNil)
 
-// cfg := viper.New()
+// cfg := config.New()
 // cfg.Set("workingDir", workDir)
 // fs := hugofs.NewFrom(hugofs.Os, cfg)
 
@@ -1057,7 +1080,7 @@ package hugolib
 //absContentDir, clean2, err := htesting.CreateTempDir(hugofs.Os, "hugo-content")
 //c.Assert(err, qt.IsNil)
 
-// cfg := viper.New()
+// cfg := config.New()
 // cfg.Set("workingDir", workDir)
 // fs := hugofs.NewFrom(hugofs.Os, cfg)
 

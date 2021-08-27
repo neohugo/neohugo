@@ -15,6 +15,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/output"
@@ -36,7 +37,6 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/spf13/viper"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
@@ -80,7 +80,7 @@ type sitesBuilder struct {
 	// Default toml
 	configFormat  string
 	configFileSet bool
-	viperSet      bool
+	configSet     bool
 
 	// Default is empty.
 	// TODO(bep) revisit this and consider always setting it to something.
@@ -108,7 +108,7 @@ type filenameContent struct {
 }
 
 func newTestSitesBuilder(t testing.TB) *sitesBuilder {
-	v := viper.New()
+	v := config.New()
 	fs := hugofs.NewMem(v)
 
 	litterOptions := litter.Options{
@@ -137,7 +137,7 @@ func newTestSitesBuilderFromDepsCfg(t testing.TB, d deps.DepsCfg) *sitesBuilder 
 
 	b.WithWorkingDir(workingDir)
 
-	return b.WithViper(d.Cfg.(*viper.Viper))
+	return b.WithViper(d.Cfg.(config.Provider))
 }
 
 func (s *sitesBuilder) Running() *sitesBuilder {
@@ -186,26 +186,26 @@ func (s *sitesBuilder) WithConfigTemplate(data interface{}, format, configTempla
 	return s.WithConfigFile(format, b.String())
 }
 
-func (s *sitesBuilder) WithViper(v *viper.Viper) *sitesBuilder {
+func (s *sitesBuilder) WithViper(v config.Provider) *sitesBuilder {
 	s.T.Helper()
 	if s.configFileSet {
 		s.T.Fatal("WithViper: use Viper or config.toml, not both")
 	}
 	defer func() {
-		s.viperSet = true
+		s.configSet = true
 	}()
 
 	// Write to a config file to make sure the tests follow the same code path.
 	var buff bytes.Buffer
-	m := v.AllSettings()
+	m := v.Get("").(maps.Params)
 	s.Assert(parser.InterfaceToConfig(m, metadecoders.TOML, &buff), qt.IsNil)
 	return s.WithConfigFile("toml", buff.String())
 }
 
 func (s *sitesBuilder) WithConfigFile(format, conf string) *sitesBuilder {
 	s.T.Helper()
-	if s.viperSet {
-		s.T.Fatal("WithConfigFile: use Viper or config.toml, not both")
+	if s.configSet {
+		s.T.Fatal("WithConfigFile: use config.Config or config.toml, not both")
 	}
 	s.configFileSet = true
 	filename := s.absFilename("config." + format)
@@ -846,14 +846,14 @@ func (th testHelper) replaceDefaultContentLanguageValue(value string) string {
 	return value
 }
 
-func loadTestConfig(fs afero.Fs, withConfig ...func(cfg config.Provider) error) (*viper.Viper, error) {
+func loadTestConfig(fs afero.Fs, withConfig ...func(cfg config.Provider) error) (config.Provider, error) {
 	v, _, err := LoadConfig(ConfigSourceDescriptor{Fs: fs}, withConfig...)
 	return v, err
 }
 
-func newTestCfgBasic() (*viper.Viper, *hugofs.Fs) {
+func newTestCfgBasic() (config.Provider, *hugofs.Fs) {
 	mm := afero.NewMemMapFs()
-	v := viper.New()
+	v := config.New()
 	v.Set("defaultContentLanguageInSubdir", true)
 
 	fs := hugofs.NewFrom(hugofs.NewBaseFileDecorator(mm), v)
@@ -861,7 +861,7 @@ func newTestCfgBasic() (*viper.Viper, *hugofs.Fs) {
 	return v, fs
 }
 
-func newTestCfg(withConfig ...func(cfg config.Provider) error) (*viper.Viper, *hugofs.Fs) {
+func newTestCfg(withConfig ...func(cfg config.Provider) error) (config.Provider, *hugofs.Fs) {
 	mm := afero.NewMemMapFs()
 
 	v, err := loadTestConfig(mm, func(cfg config.Provider) error {
@@ -1010,12 +1010,8 @@ func content(c resource.ContentProvider) string {
 //func dumpPages(pages ...page.Page) {
 //fmt.Println("---------")
 //for _, p := range pages {
-//var meta interface{}
-//if p.File() != nil && p.File().FileInfo() != nil {
-//meta = p.File().FileInfo().Meta()
-//}
-//fmt.Printf("Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s Lang: %s Meta: %v\n",
-//p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath(), p.Lang(), meta)
+//fmt.Printf("Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s Lang: %s\n",
+//p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath(), p.Lang())
 //}
 //}
 

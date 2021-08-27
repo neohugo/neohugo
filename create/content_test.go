@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 
 	"github.com/neohugo/neohugo/hugolib"
@@ -30,7 +31,6 @@ import (
 	"github.com/neohugo/neohugo/create"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/afero"
-	"github.com/spf13/viper"
 )
 
 func TestNewContent(t *testing.T) {
@@ -247,7 +247,7 @@ func readFileFromFs(t *testing.T, fs afero.Fs, filename string) string {
 	return string(b)
 }
 
-func newTestCfg(c *qt.C, mm afero.Fs) (*viper.Viper, *hugofs.Fs) {
+func newTestCfg(c *qt.C, mm afero.Fs) (config.Provider, *hugofs.Fs) {
 	cfg := `
 
 theme = "mytheme"

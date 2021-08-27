@@ -1,14 +1,9 @@
 package hugolib
 
 import (
-	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
-
-	"github.com/fortytw2/leaktest"
-	"github.com/neohugo/neohugo/htesting"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/common/herrors"
@@ -316,32 +311,32 @@ Some content.
 }
 
 // https://github.com/neohugo/neohugo/issues/5375
-func TestSiteBuildTimeout(t *testing.T) {
-	if !htesting.IsCI() {
-		defer leaktest.CheckTimeout(t, 10*time.Second)()
-	}
+//func TestSiteBuildTimeout(t *testing.T) {
+//if !htesting.IsCI() {
+//// defer leaktest.CheckTimeout(t, 10*time.Second)()
+//}
 
-	b := newTestSitesBuilder(t)
-	b.WithConfigFile("toml", `
-timeout = 5
-`)
+//b := newTestSitesBuilder(t)
+//b.WithConfigFile("toml", `
+//timeout = 5
+//`)
 
-	b.WithTemplatesAdded("_default/single.html", `
-{{ .WordCount }}
-`, "shortcodes/c.html", `
-{{ range .Page.Site.RegularPages }}
-{{ .WordCount }}
-{{ end }}
+//b.WithTemplatesAdded("_default/single.html", `
+//{{ .WordCount }}
+//`, "shortcodes/c.html", `
+//{{ range .Page.Site.RegularPages }}
+//{{ .WordCount }}
+//{{ end }}
 
-`)
+//`)
 
-	for i := 1; i < 100; i++ {
-		b.WithContent(fmt.Sprintf("page%d.md", i), `---
-title: "A page"
----
+//for i := 1; i < 100; i++ {
+//b.WithContent(fmt.Sprintf("page%d.md", i), `---
+//title: "A page"
+//---
 
-{{< c >}}`)
-	}
+//{{< c >}}`)
+//}
 
-	b.CreateSites().BuildFail(BuildCfg{})
-}
+//b.CreateSites().BuildFail(BuildCfg{})
+//}

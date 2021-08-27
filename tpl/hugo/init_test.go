@@ -16,20 +16,20 @@ package neohugo
 import (
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/tpl/internal"
-	"github.com/spf13/viper"
 )
 
 func TestInit(t *testing.T) {
 	c := qt.New(t)
 	var found bool
 	var ns *internal.TemplateFuncsNamespace
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 	s := page.NewDummyHugoSite(v)
 
@@ -42,5 +42,7 @@ func TestInit(t *testing.T) {
 	}
 
 	c.Assert(found, qt.Equals, true)
-	c.Assert(ns.Context(), hqt.IsSameType, s.Hugo())
+	ctx, err := ns.Context()
+	c.Assert(err, qt.IsNil)
+	c.Assert(ctx, hqt.IsSameType, s.Hugo())
 }

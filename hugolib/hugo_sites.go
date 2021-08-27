@@ -280,7 +280,7 @@ func (h *HugoSites) GetContentPage(filename string) page.Page {
 			return false
 		}
 
-		if b.fi.Meta().Filename() == filename {
+		if b.fi.Meta().Filename == filename {
 			p = b.p
 			return true
 		}
@@ -373,7 +373,8 @@ func newHugoSites(cfg deps.DepsCfg, sites ...*Site) (*HugoSites, error) {
 		s.h = h
 	}
 
-	if err := applyDeps(cfg, sites...); err != nil {
+	var l configLoader
+	if err := l.applyDeps(cfg, sites...); err != nil {
 		return nil, errors.Wrap(err, "add site dependencies")
 	}
 
@@ -406,7 +407,7 @@ func (h *HugoSites) loadGitInfo() error {
 	return nil
 }
 
-func applyDeps(cfg deps.DepsCfg, sites ...*Site) error {
+func (l configLoader) applyDeps(cfg deps.DepsCfg, sites ...*Site) error {
 	if cfg.TemplateProvider == nil {
 		cfg.TemplateProvider = tplimpl.DefaultTemplateProvider
 	}
@@ -445,7 +446,7 @@ func applyDeps(cfg deps.DepsCfg, sites ...*Site) error {
 
 			d.Site = s.Info
 
-			siteConfig, err := loadSiteConfig(s.language)
+			siteConfig, err := l.loadSiteConfig(s.language)
 			if err != nil {
 				return errors.Wrap(err, "load site config")
 			}
@@ -578,7 +579,8 @@ func (h *HugoSites) resetLogs() {
 	h.Log.Reset()
 	loggers.GlobalErrorCounter.Reset()
 	for _, s := range h.Sites {
-		s.Deps.DistinctErrorLog = helpers.NewDistinctLogger(h.Log.Error())
+		s.Deps.Log.Reset()
+		s.Deps.LogDistinct.Reset()
 	}
 }
 
@@ -605,11 +607,12 @@ func (h *HugoSites) withSite(fn func(s *Site) error) error {
 func (h *HugoSites) createSitesFromConfig(cfg config.Provider) error {
 	oldLangs, _ := h.Cfg.Get("languagesSorted").(langs.Languages)
 
-	if err := loadLanguageSettings(h.Cfg, oldLangs); err != nil {
+	l := configLoader{cfg: h.Cfg}
+	if err := l.loadLanguageSettings(oldLangs); err != nil {
 		return err
 	}
 
-	depsCfg := deps.DepsCfg{Fs: h.Fs, Cfg: cfg}
+	depsCfg := deps.DepsCfg{Fs: h.Fs, Cfg: l.cfg}
 
 	sites, err := createSitesFromConfig(depsCfg)
 	if err != nil {
@@ -627,7 +630,8 @@ func (h *HugoSites) createSitesFromConfig(cfg config.Provider) error {
 		s.h = h
 	}
 
-	if err := applyDeps(depsCfg, sites...); err != nil {
+	var cl configLoader
+	if err := cl.applyDeps(depsCfg, sites...); err != nil {
 		return err
 	}
 
@@ -764,7 +768,7 @@ func (h *HugoSites) removePageByFilename(filename string) error {
 				return false
 			}
 
-			return b.fi.Meta().Filename() == filename
+			return b.fi.Meta().Filename == filename
 		})
 		return nil
 	})
@@ -914,7 +918,7 @@ func (h *HugoSites) errWithFileContext(err error, f source.File) error {
 		return err
 	}
 
-	realFilename := fim.Meta().Filename()
+	realFilename := fim.Meta().Filename
 
 	err, _ = herrors.WithFileContextForFile(
 		err,
@@ -1077,12 +1081,12 @@ func (m *contentChangeMap) resolveAndRemove(filename string) (string, bundleDirT
 
 func (m *contentChangeMap) addSymbolicLinkMapping(fim hugofs.FileMetaInfo) {
 	meta := fim.Meta()
-	if !meta.IsSymlink() {
+	if !meta.IsSymlink {
 		return
 	}
 	m.symContentMu.Lock()
 
-	from, to := meta.Filename(), meta.OriginalFilename()
+	from, to := meta.Filename, meta.OriginalFilename
 	if fim.IsDir() {
 		if !strings.HasSuffix(from, helpers.FilePathSeparator) {
 			from += helpers.FilePathSeparator

@@ -165,13 +165,14 @@ var (
 	TSXType        = newMediaType("text", "tsx", []string{"tsx"})
 	JSXType        = newMediaType("text", "jsx", []string{"jsx"})
 
-	JSONType = newMediaType("application", "json", []string{"json"})
-	RSSType  = newMediaTypeWithMimeSuffix("application", "rss", "xml", []string{"xml"})
-	XMLType  = newMediaType("application", "xml", []string{"xml"})
-	SVGType  = newMediaTypeWithMimeSuffix("image", "svg", "xml", []string{"svg"})
-	TextType = newMediaType("text", "plain", []string{"txt"})
-	TOMLType = newMediaType("application", "toml", []string{"toml"})
-	YAMLType = newMediaType("application", "yaml", []string{"yaml", "yml"})
+	JSONType           = newMediaType("application", "json", []string{"json"})
+	WebAppManifestType = newMediaTypeWithMimeSuffix("application", "manifest", "json", []string{"webmanifest"})
+	RSSType            = newMediaTypeWithMimeSuffix("application", "rss", "xml", []string{"xml"})
+	XMLType            = newMediaType("application", "xml", []string{"xml"})
+	SVGType            = newMediaTypeWithMimeSuffix("image", "svg", "xml", []string{"svg"})
+	TextType           = newMediaType("text", "plain", []string{"txt"})
+	TOMLType           = newMediaType("application", "toml", []string{"toml"})
+	YAMLType           = newMediaType("application", "yaml", []string{"yaml", "yml"})
 
 	// Common image types
 	PNGType  = newMediaType("image", "png", []string{"png"})
@@ -179,6 +180,7 @@ var (
 	GIFType  = newMediaType("image", "gif", []string{"gif"})
 	TIFFType = newMediaType("image", "tiff", []string{"tif", "tiff"})
 	BMPType  = newMediaType("image", "bmp", []string{"bmp"})
+	WEBPType = newMediaType("image", "webp", []string{"webp"})
 
 	// Common video types
 	AVIType  = newMediaType("video", "x-msvideo", []string{"avi"})
@@ -204,6 +206,7 @@ var DefaultTypes = Types{
 	TSXType,
 	JSXType,
 	JSONType,
+	WebAppManifestType,
 	RSSType,
 	XMLType,
 	SVGType,
@@ -213,6 +216,7 @@ var DefaultTypes = Types{
 	TOMLType,
 	PNGType,
 	JPEGType,
+	WEBPType,
 	AVIType,
 	MPEGType,
 	MP4Type,
@@ -302,7 +306,7 @@ func (t Types) GetBySuffix(suffix string) (tp Type, si SuffixInfo, found bool) {
 }
 
 func (m Type) hasSuffix(suffix string) bool {
-	return strings.Contains(m.suffixesCSV, suffix)
+	return strings.Contains(","+m.suffixesCSV+",", ","+suffix+",")
 }
 
 // GetByMainSubType gets a media type given a main and a sub type e.g. "text" and "plain".
@@ -382,8 +386,8 @@ func DecodeTypes(mms ...map[string]interface{}) (Types, error) {
 				return m, err
 			}
 
-			vm := v.(map[string]interface{})
-			maps.ToLower(vm)
+			vm := maps.ToStringMap(v)
+			maps.PrepareParams(vm)
 			_, delimiterSet := vm["delimiter"]
 			_, suffixSet := vm["suffix"]
 

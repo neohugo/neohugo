@@ -62,7 +62,6 @@ func (p *pageMenus) menus() navigation.PageMenus {
 func (p *pageMenus) init() {
 	p.pmInit.Do(func() {
 		p.q = navigation.NewMenuQueryProvider(
-			p.p.s.Info.sectionPagesMenu,
 			p,
 			p.p.s,
 			p.p,

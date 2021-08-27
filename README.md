@@ -125,7 +125,7 @@ For a complete guide to contributing code to Hugo, see the [Contribution Guide](
 
 ## Dependencies
 
-Hugo stands on the shoulder of many great open source libraries, in lexical order:
+Neohugo stands on the shoulder of many great open source libraries, in lexical order:
 
  | Dependency  | License |
  | :------------- | :------------- |
@@ -194,3 +194,4 @@ Hugo stands on the shoulder of many great open source libraries, in lexical orde
  | [google.golang.org/genproto](https://google.golang.org/genproto) | Apache License 2.0 |
  | [gopkg.in/ini.v1](https://gopkg.in/ini.v1) | Apache License 2.0 |
  | [gopkg.in/yaml.v2](https://gopkg.in/yaml.v2) | Apache License 2.0 |
+

@@ -16,12 +16,12 @@ package strings
 import (
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/tpl/internal"
-	"github.com/spf13/viper"
 )
 
 func TestInit(t *testing.T) {
@@ -30,7 +30,7 @@ func TestInit(t *testing.T) {
 	var ns *internal.TemplateFuncsNamespace
 
 	for _, nsf := range internal.TemplateFuncsNamespaceRegistry {
-		ns = nsf(&deps.Deps{Cfg: viper.New()})
+		ns = nsf(&deps.Deps{Cfg: config.New()})
 		if ns.Name == name {
 			found = true
 			break
@@ -38,5 +38,7 @@ func TestInit(t *testing.T) {
 	}
 
 	c.Assert(found, qt.Equals, true)
-	c.Assert(ns.Context(), hqt.IsSameType, &Namespace{})
+	ctx, err := ns.Context()
+	c.Assert(err, qt.IsNil)
+	c.Assert(ctx, hqt.IsSameType, &Namespace{})
 }

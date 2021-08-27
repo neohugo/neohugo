@@ -19,6 +19,7 @@ import (
 	"runtime"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/modules"
 
 	"github.com/neohugo/neohugo/langs"
@@ -28,8 +29,6 @@ import (
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
-
-	"github.com/spf13/viper"
 )
 
 func TestEmptySourceFilesystem(t *testing.T) {
@@ -60,7 +59,7 @@ func TestUnicodeNorm(t *testing.T) {
 	}
 
 	ss := newTestSourceSpec()
-	fi := hugofs.NewFileMetaInfo(nil, hugofs.FileMeta{})
+	fi := hugofs.NewFileMetaInfo(nil, hugofs.NewFileMeta())
 
 	for i, path := range paths {
 		base := fmt.Sprintf("base%d", i)
@@ -76,8 +75,8 @@ func TestUnicodeNorm(t *testing.T) {
 	}
 }
 
-func newTestConfig() *viper.Viper {
-	v := viper.New()
+func newTestConfig() config.Provider {
+	v := config.New()
 	v.Set("contentDir", "content")
 	v.Set("dataDir", "data")
 	v.Set("i18nDir", "i18n")

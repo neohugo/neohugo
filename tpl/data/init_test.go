@@ -17,10 +17,10 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/htesting/hqt"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/tpl/internal"
-	"github.com/spf13/viper"
 )
 
 func TestInit(t *testing.T) {
@@ -28,7 +28,7 @@ func TestInit(t *testing.T) {
 	var found bool
 	var ns *internal.TemplateFuncsNamespace
 
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 	_, err := langs.LoadLanguageSettings(v, nil)
 	c.Assert(err, qt.IsNil)
@@ -42,5 +42,7 @@ func TestInit(t *testing.T) {
 	}
 
 	c.Assert(found, qt.Equals, true)
-	c.Assert(ns.Context(), hqt.IsSameType, &Namespace{})
+	ctx, err := ns.Context()
+	c.Assert(err, qt.IsNil)
+	c.Assert(ctx, hqt.IsSameType, &Namespace{})
 }

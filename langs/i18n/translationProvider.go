@@ -18,12 +18,13 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/paths"
 	"golang.org/x/text/language"
 	yaml "gopkg.in/yaml.v2"
 
+	"github.com/gohugoio/go-i18n/v2/i18n"
 	"github.com/neohugo/neohugo/helpers"
-	"github.com/nicksnyder/go-i18n/v2/i18n"
-	toml "github.com/pelletier/go-toml"
+	toml "github.com/pelletier/go-toml/v2"
 
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/hugofs"
@@ -91,7 +92,7 @@ func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 	f.Close()
 
 	name := r.LogicalName()
-	lang := helpers.Filename(name)
+	lang := paths.Filename(name)
 	tag := language.Make(lang)
 	if tag == language.Und {
 		name = artificialLangTagPrefix + name
@@ -127,7 +128,7 @@ func errWithFileContext(inerr error, r source.File) error {
 	}
 
 	meta := fim.Meta()
-	realFilename := meta.Filename()
+	realFilename := meta.Filename
 	f, err := meta.Open()
 	if err != nil {
 		return inerr

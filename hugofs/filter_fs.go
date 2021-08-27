@@ -42,7 +42,7 @@ func NewLanguageFs(langs map[string]int, fs afero.Fs) (afero.Fs, error) {
 			}
 
 			meta := fi.(FileMetaInfo).Meta()
-			lang := meta.Lang()
+			lang := meta.Lang
 
 			fileLang, translationBaseName, translationBaseNameWithExt := langInfoFrom(langs, fi.Name())
 			weight := 0
@@ -56,14 +56,16 @@ func NewLanguageFs(langs map[string]int, fs afero.Fs) (afero.Fs, error) {
 				lang = fileLang
 			}
 
-			fim := NewFileMetaInfo(fi, FileMeta{
-				metaKeyLang:                       lang,
-				metaKeyWeight:                     weight,
-				metaKeyOrdinal:                    langs[lang],
-				metaKeyTranslationBaseName:        translationBaseName,
-				metaKeyTranslationBaseNameWithExt: translationBaseNameWithExt,
-				metaKeyClassifier:                 files.ClassifyContentFile(fi.Name(), meta.GetOpener()),
-			})
+			fim := NewFileMetaInfo(
+				fi,
+				&FileMeta{
+					Lang:                       lang,
+					Weight:                     weight,
+					Ordinal:                    langs[lang],
+					TranslationBaseName:        translationBaseName,
+					TranslationBaseNameWithExt: translationBaseNameWithExt,
+					Classifier:                 files.ClassifyContentFile(fi.Name(), meta.OpenFunc),
+				})
 
 			fis[i] = fim
 		}
@@ -72,9 +74,9 @@ func NewLanguageFs(langs map[string]int, fs afero.Fs) (afero.Fs, error) {
 	all := func(fis []os.FileInfo) {
 		// Maps translation base name to a list of language codes.
 		translations := make(map[string][]string)
-		trackTranslation := func(meta FileMeta) {
-			name := meta.TranslationBaseNameWithExt()
-			translations[name] = append(translations[name], meta.Lang())
+		trackTranslation := func(meta *FileMeta) {
+			name := meta.TranslationBaseNameWithExt
+			translations[name] = append(translations[name], meta.Lang)
 		}
 		for _, fi := range fis {
 			if fi.IsDir() {
@@ -88,9 +90,9 @@ func NewLanguageFs(langs map[string]int, fs afero.Fs) (afero.Fs, error) {
 
 		for _, fi := range fis {
 			fim := fi.(FileMetaInfo)
-			langs := translations[fim.Meta().TranslationBaseNameWithExt()]
+			langs := translations[fim.Meta().TranslationBaseNameWithExt]
 			if len(langs) > 0 {
-				fim.Meta()["translations"] = sortAndremoveStringDuplicates(langs)
+				fim.Meta().Translations = sortAndremoveStringDuplicates(langs)
 			}
 		}
 	}
@@ -106,7 +108,7 @@ func NewFilterFs(fs afero.Fs) (afero.Fs, error) {
 	applyMeta := func(fs *FilterFs, name string, fis []os.FileInfo) {
 		for i, fi := range fis {
 			if fi.IsDir() {
-				fis[i] = decorateFileInfo(fi, fs, fs.getOpener(fi.(FileMetaInfo).Meta().Filename()), "", "", nil)
+				fis[i] = decorateFileInfo(fi, fs, fs.getOpener(fi.(FileMetaInfo).Meta().Filename), "", "", nil)
 			}
 		}
 	}

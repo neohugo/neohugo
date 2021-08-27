@@ -23,9 +23,8 @@ import (
 	"testing"
 
 	"github.com/gobuffalo/flect"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/publisher"
-
-	"github.com/spf13/viper"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
@@ -363,7 +362,7 @@ func TestMainSections(t *testing.T) {
 	c := qt.New(t)
 	for _, paramSet := range []bool{false, true} {
 		c.Run(fmt.Sprintf("param-%t", paramSet), func(c *qt.C) {
-			v := viper.New()
+			v := config.New()
 			if paramSet {
 				v.Set("params", map[string]interface{}{
 					"mainSections": []string{"a1", "a2"},
@@ -1113,7 +1112,7 @@ ABC.
 		els := stats.HTMLElements
 
 		b.Assert(els.Classes, qt.HasLen, 3606) // (4 * 900) + 4 +2
-		b.Assert(els.Tags, qt.HasLen, 9)
+		b.Assert(els.Tags, qt.HasLen, 8)
 		b.Assert(els.IDs, qt.HasLen, 1)
 	}
 }

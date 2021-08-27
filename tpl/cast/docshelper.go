@@ -15,20 +15,23 @@ package cast
 
 import (
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/docshelper"
+	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/tpl/internal"
-	"github.com/spf13/viper"
 )
 
 // This file provides documentation support and is randomly put into this package.
 func init() {
 	docsProvider := func() docshelper.DocProvider {
+		cfg := config.New()
 		d := &deps.Deps{
-			Cfg:                 viper.New(),
+			Cfg:                 cfg,
 			Log:                 loggers.NewErrorLogger(),
 			BuildStartListeners: &deps.Listeners{},
+			Language:            langs.NewDefaultLanguage(cfg),
 			Site:                page.NewDummyHugoSite(newTestConfig()),
 		}
 
@@ -46,8 +49,8 @@ func init() {
 	docshelper.AddDocProviderFunc(docsProvider)
 }
 
-func newTestConfig() *viper.Viper {
-	v := viper.New()
+func newTestConfig() config.Provider {
+	v := config.New()
 	v.Set("contentDir", "content")
 	return v
 }

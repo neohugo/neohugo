@@ -391,7 +391,7 @@ func (imp *importResolver) toFileError(output string) error {
 	if err != nil {
 		return inErr
 	}
-	realFilename := fi.(hugofs.FileMetaInfo).Meta().Filename()
+	realFilename := fi.(hugofs.FileMetaInfo).Meta().Filename
 
 	ferr := herrors.NewFileError("css", -1, file.Offset+1, 1, inErr)
 

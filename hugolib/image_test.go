@@ -21,11 +21,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/htesting"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/hugofs"
-	"github.com/spf13/viper"
 )
 
 // We have many tests for the different resize operations etc. in the resource package,
@@ -38,7 +38,7 @@ func TestImageOps(t *testing.T) {
 	defer clean()
 
 	newBuilder := func(timeout interface{}) *sitesBuilder {
-		v := viper.New()
+		v := config.New()
 		v.Set("workingDir", workDir)
 		v.Set("baseURL", "https://example.org")
 		v.Set("timeout", timeout)
@@ -237,10 +237,10 @@ SUNSET2: {{ $resized2.RelPermalink }}/{{ $resized2.Width }}/Lat: {{ $resized2.Ex
 	// Check the file cache
 	b.AssertImage(200, 200, "resources/_gen/images/bundle/sunset_hu59e56ffff1bc1d8d122b1403d34e039f_90587_200x200_resize_q75_box.jpg")
 
-	b.AssertFileContent("resources/_gen/images/bundle/sunset_7645215769587362592.json",
+	b.AssertFileContent("resources/_gen/images/bundle/sunset_3166614710256882113.json",
 		"DateTimeDigitized|time.Time", "PENTAX")
 	b.AssertImage(123, 234, "resources/_gen/images/sunset_hu59e56ffff1bc1d8d122b1403d34e039f_90587_123x234_resize_q75_box.jpg")
-	b.AssertFileContent("resources/_gen/images/sunset_7645215769587362592.json",
+	b.AssertFileContent("resources/_gen/images/sunset_3166614710256882113.json",
 		"DateTimeDigitized|time.Time", "PENTAX")
 
 	// TODO(bep) add this as a default assertion after Build()?

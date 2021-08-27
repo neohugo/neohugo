@@ -20,10 +20,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/markup/asciidocext"
 	"github.com/neohugo/neohugo/markup/rst"
-
-	"github.com/spf13/viper"
 
 	"github.com/neohugo/neohugo/parser/pageparser"
 	"github.com/neohugo/neohugo/resources/page"
@@ -65,8 +64,9 @@ title: "Title"
 		t.Fatalf("Shortcode rendered error %s.", err)
 	}
 
-	if err == nil && expectError {
-		t.Fatalf("No error from shortcode")
+	if expectError {
+		c.Assert(err, qt.ErrorMatches, expected)
+		return
 	}
 
 	h := b.H
@@ -253,8 +253,8 @@ func TestInnerSCWithMarkdown(t *testing.T) {
 
 func TestEmbeddedSC(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" %}}`, "<figure class=\"bananas orange\">\n    <img src=\"/found/here\"/> \n</figure>", nil)
-	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" caption="This is a caption" %}}`, "<figure class=\"bananas orange\">\n    <img src=\"/found/here\"\n         alt=\"This is a caption\"/> <figcaption>\n            <p>This is a caption</p>\n        </figcaption>\n</figure>", nil)
+	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" %}}`, "<figure class=\"bananas orange\"><img src=\"/found/here\"/>\n</figure>", nil)
+	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" caption="This is a caption" %}}`, "<figure class=\"bananas orange\"><img src=\"/found/here\"\n         alt=\"This is a caption\"/><figcaption>\n            <p>This is a caption</p>\n        </figcaption>\n</figure>", nil)
 }
 
 func TestNestedSC(t *testing.T) {
@@ -302,43 +302,43 @@ func TestParentShortcode(t *testing.T) {
 
 func TestFigureOnlySrc(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{< figure src="/found/here" >}}`, "<figure>\n    <img src=\"/found/here\"/> \n</figure>", nil)
+	CheckShortCodeMatch(t, `{{< figure src="/found/here" >}}`, "<figure><img src=\"/found/here\"/>\n</figure>", nil)
 }
 
 func TestFigureCaptionAttrWithMarkdown(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{< figure src="/found/here" caption="Something **bold** _italic_" >}}`, "<figure>\n    <img src=\"/found/here\"\n         alt=\"Something bold italic\"/> <figcaption>\n            <p>Something <strong>bold</strong> <em>italic</em></p>\n        </figcaption>\n</figure>", nil)
-	CheckShortCodeMatch(t, `{{< figure src="/found/here" attr="Something **bold** _italic_" >}}`, "<figure>\n    <img src=\"/found/here\"/> <figcaption>\n            <p>Something <strong>bold</strong> <em>italic</em></p>\n        </figcaption>\n</figure>", nil)
+	CheckShortCodeMatch(t, `{{< figure src="/found/here" caption="Something **bold** _italic_" >}}`, "<figure><img src=\"/found/here\"\n         alt=\"Something bold italic\"/><figcaption>\n            <p>Something <strong>bold</strong> <em>italic</em></p>\n        </figcaption>\n</figure>", nil)
+	CheckShortCodeMatch(t, `{{< figure src="/found/here" attr="Something **bold** _italic_" >}}`, "<figure><img src=\"/found/here\"/><figcaption>\n            <p>Something <strong>bold</strong> <em>italic</em></p>\n        </figcaption>\n</figure>", nil)
 }
 
 func TestFigureImgWidth(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" alt="apple" width="100px" %}}`, "<figure class=\"bananas orange\">\n    <img src=\"/found/here\"\n         alt=\"apple\" width=\"100px\"/> \n</figure>", nil)
+	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" alt="apple" width="100px" %}}`, "<figure class=\"bananas orange\"><img src=\"/found/here\"\n         alt=\"apple\" width=\"100px\"/>\n</figure>", nil)
 }
 
 func TestFigureImgHeight(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" alt="apple" height="100px" %}}`, "<figure class=\"bananas orange\">\n    <img src=\"/found/here\"\n         alt=\"apple\" height=\"100px\"/> \n</figure>", nil)
+	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" alt="apple" height="100px" %}}`, "<figure class=\"bananas orange\"><img src=\"/found/here\"\n         alt=\"apple\" height=\"100px\"/>\n</figure>", nil)
 }
 
 func TestFigureImgWidthAndHeight(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" alt="apple" width="50" height="100" %}}`, "<figure class=\"bananas orange\">\n    <img src=\"/found/here\"\n         alt=\"apple\" width=\"50\" height=\"100\"/> \n</figure>", nil)
+	CheckShortCodeMatch(t, `{{% figure src="/found/here" class="bananas orange" alt="apple" width="50" height="100" %}}`, "<figure class=\"bananas orange\"><img src=\"/found/here\"\n         alt=\"apple\" width=\"50\" height=\"100\"/>\n</figure>", nil)
 }
 
 func TestFigureLinkNoTarget(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{< figure src="/found/here" link="/jump/here/on/clicking" >}}`, "<figure><a href=\"/jump/here/on/clicking\">\n    <img src=\"/found/here\"/> </a>\n</figure>", nil)
+	CheckShortCodeMatch(t, `{{< figure src="/found/here" link="/jump/here/on/clicking" >}}`, "<figure><a href=\"/jump/here/on/clicking\"><img src=\"/found/here\"/></a>\n</figure>", nil)
 }
 
 func TestFigureLinkWithTarget(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{< figure src="/found/here" link="/jump/here/on/clicking" target="_self" >}}`, "<figure><a href=\"/jump/here/on/clicking\" target=\"_self\">\n    <img src=\"/found/here\"/> </a>\n</figure>", nil)
+	CheckShortCodeMatch(t, `{{< figure src="/found/here" link="/jump/here/on/clicking" target="_self" >}}`, "<figure><a href=\"/jump/here/on/clicking\" target=\"_self\"><img src=\"/found/here\"/></a>\n</figure>", nil)
 }
 
 func TestFigureLinkWithTargetAndRel(t *testing.T) {
 	t.Parallel()
-	CheckShortCodeMatch(t, `{{< figure src="/found/here" link="/jump/here/on/clicking" target="_blank" rel="noopener" >}}`, "<figure><a href=\"/jump/here/on/clicking\" target=\"_blank\" rel=\"noopener\">\n    <img src=\"/found/here\"/> </a>\n</figure>", nil)
+	CheckShortCodeMatch(t, `{{< figure src="/found/here" link="/jump/here/on/clicking" target="_blank" rel="noopener" >}}`, "<figure><a href=\"/jump/here/on/clicking\" target=\"_blank\" rel=\"noopener\"><img src=\"/found/here\"/></a>\n</figure>", nil)
 }
 
 // #1642
@@ -354,6 +354,12 @@ func TestShortcodeWrappedInPIssue(t *testing.T) {
 
 {{< bug >}}
 `, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\n\nxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx", wt)
+}
+
+// #6866
+func TestShortcodeIncomplete(t *testing.T) {
+	t.Parallel()
+	CheckShortCodeMatchAndError(t, `{{<          >}}`, ".*shortcode has no name.*", nil, true)
 }
 
 func TestExtractShortcodes(t *testing.T) {
@@ -1222,7 +1228,7 @@ title: "Hugo Rocks!"
 func TestShortcodeEmoji(t *testing.T) {
 	t.Parallel()
 
-	v := viper.New()
+	v := config.New()
 	v.Set("enableEmoji", true)
 
 	builder := newTestSitesBuilder(t).WithViper(v)
@@ -1287,7 +1293,7 @@ func TestShortcodeRef(t *testing.T) {
 		t.Run(fmt.Sprintf("plainIDAnchors=%t", plainIDAnchors), func(t *testing.T) {
 			t.Parallel()
 
-			v := viper.New()
+			v := config.New()
 			v.Set("baseURL", "https://example.org")
 			v.Set("blackfriday", map[string]interface{}{
 				"plainIDAnchors": plainIDAnchors,
@@ -1361,4 +1367,50 @@ title: "No Inner!"
 
 	err := b.BuildE(BuildCfg{})
 	b.Assert(err.Error(), qt.Contains, `failed to extract shortcode: shortcode "noinner" has no .Inner, yet a closing tag was provided`)
+}
+
+func TestShortcodeStableOutputFormatTemplates(t *testing.T) {
+	t.Parallel()
+
+	for i := 0; i < 5; i++ {
+
+		b := newTestSitesBuilder(t)
+
+		const numPages = 10
+
+		for i := 0; i < numPages; i++ {
+			b.WithContent(fmt.Sprintf("page%d.md", i), `---
+title: "Page"
+outputs: ["html", "css", "csv", "json"]
+---
+{{< myshort >}}
+
+`)
+		}
+
+		b.WithTemplates(
+			"_default/single.html", "{{ .Content }}",
+			"_default/single.css", "{{ .Content }}",
+			"_default/single.csv", "{{ .Content }}",
+			"_default/single.json", "{{ .Content }}",
+			"shortcodes/myshort.html", `Short-HTML`,
+			"shortcodes/myshort.csv", `Short-CSV`,
+		)
+
+		b.Build(BuildCfg{})
+
+		// helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
+
+		for i := 0; i < numPages; i++ {
+			b.AssertFileContent(fmt.Sprintf("public/page%d/index.html", i), "Short-HTML")
+			b.AssertFileContent(fmt.Sprintf("public/page%d/index.csv", i), "Short-CSV")
+			b.AssertFileContent(fmt.Sprintf("public/page%d/index.json", i), "Short-HTML")
+
+		}
+
+		for i := 0; i < numPages; i++ {
+			b.AssertFileContent(fmt.Sprintf("public/page%d/styles.css", i), "Short-HTML")
+		}
+
+	}
 }

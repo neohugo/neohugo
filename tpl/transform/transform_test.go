@@ -26,7 +26,6 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/langs"
-	"github.com/spf13/viper"
 )
 
 type tstNoStringer struct{}
@@ -35,7 +34,7 @@ func TestEmojify(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	v := viper.New()
+	v := config.New()
 	ns := New(newDeps(v))
 
 	for _, test := range []struct {
@@ -64,7 +63,7 @@ func TestHighlight(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 	ns := New(newDeps(v))
 
@@ -96,7 +95,7 @@ func TestHTMLEscape(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 	ns := New(newDeps(v))
 
@@ -126,7 +125,7 @@ func TestHTMLUnescape(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 	ns := New(newDeps(v))
 
@@ -156,7 +155,7 @@ func TestMarkdownify(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 	ns := New(newDeps(v))
 
@@ -185,7 +184,7 @@ func TestMarkdownify(t *testing.T) {
 func TestMarkdownifyBlocksOfText(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	v := viper.New()
+	v := config.New()
 	v.Set("contentDir", "content")
 	ns := New(newDeps(v))
 
@@ -211,7 +210,7 @@ func TestPlainify(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	v := viper.New()
+	v := config.New()
 	ns := New(newDeps(v))
 
 	for _, test := range []struct {

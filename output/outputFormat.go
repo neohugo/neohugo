@@ -33,7 +33,7 @@ type Format struct {
 	// can be overridden by providing a new definition for those types.
 	Name string `json:"name"`
 
-	MediaType media.Type `json:"mediaType"`
+	MediaType media.Type `json:"-"`
 
 	// Must be set to a value when there are two or more conflicting mediatype for the same resource.
 	Path string `json:"path"`
@@ -143,6 +143,15 @@ var (
 		Rel:         "alternate",
 	}
 
+	WebAppManifestFormat = Format{
+		Name:           "WebAppManifest",
+		MediaType:      media.WebAppManifestType,
+		BaseName:       "manifest",
+		IsPlainText:    true,
+		NotAlternative: true,
+		Rel:            "manifest",
+	}
+
 	RobotsTxtFormat = Format{
 		Name:        "ROBOTS",
 		MediaType:   media.TextType,
@@ -176,6 +185,7 @@ var DefaultFormats = Formats{
 	CSVFormat,
 	HTMLFormat,
 	JSONFormat,
+	WebAppManifestFormat,
 	RobotsTxtFormat,
 	RSSFormat,
 	SitemapFormat,
@@ -368,7 +378,11 @@ func decode(mediaTypes media.Types, input interface{}, output *Format) error {
 		return err
 	}
 
-	return decoder.Decode(input)
+	if err = decoder.Decode(input); err != nil {
+		return errors.Wrap(err, "failed to decode output format configuration")
+	}
+
+	return nil
 }
 
 // BaseFilename returns the base filename of f including an extension (ie.
@@ -381,7 +395,7 @@ func (f Format) BaseFilename() string {
 func (f Format) MarshalJSON() ([]byte, error) {
 	type Alias Format
 	return json.Marshal(&struct {
-		MediaType string
+		MediaType string `json:"mediaType"`
 		Alias
 	}{
 		MediaType: f.MediaType.String(),

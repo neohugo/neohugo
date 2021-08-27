@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/spf13/viper"
+	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/markup/converter"
 
@@ -28,7 +28,7 @@ func TestConvert(t *testing.T) {
 	c := qt.New(t)
 	p, err := Provider.New(converter.ProviderConfig{
 		Logger: loggers.NewErrorLogger(),
-		Cfg:    viper.New(),
+		Cfg:    config.New(),
 	})
 	c.Assert(err, qt.IsNil)
 	conv, err := p.New(converter.DocumentContext{})
