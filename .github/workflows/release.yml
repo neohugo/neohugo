@@ -85,8 +85,11 @@ jobs:
           mage -v neohugo
       - name: Build docs
         working-directory: ./neohugo
+        env:
+            HUGO_IGNOREERRORS: error-remote-getjson
+            HUGO_SERVICES_INSTAGRAM_ACCESSTOKEN: dummytoken
         run: |
-          HUGO_IGNOREERRORS=error-remote-getjson ./neohugo -s docs/
+           ./neohugo -s docs/
       - name: Checkout docs repository
         uses: actions/checkout@v2
         with:
