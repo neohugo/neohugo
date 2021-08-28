@@ -1,5 +1,5 @@
 window.BENCHMARK_DATA = {
-  "lastUpdate": 1630087456635,
+  "lastUpdate": 1630163531379,
   "repoUrl": "https://github.com/neohugo/neohugo",
   "entries": {
     "Benchmark": [
@@ -19794,6 +19794,516 @@ window.BENCHMARK_DATA = {
             "value": 3508,
             "unit": "ns/op\t     928 B/op\t       8 allocs/op",
             "extra": "351570 times\n2 procs"
+          }
+        ]
+      },
+      {
+        "commit": {
+          "author": {
+            "email": "blackb1rd.mov@gmail.com",
+            "name": "blackb1rd",
+            "username": "blackb1rd"
+          },
+          "committer": {
+            "email": "blackb1rd.mov@gmail.com",
+            "name": "blackb1rd",
+            "username": "blackb1rd"
+          },
+          "distinct": true,
+          "id": "05d39469b1e013009b72f318d2ddfc1d8a48b2ad",
+          "message": "Fix build release error",
+          "timestamp": "2021-08-28T21:58:58+07:00",
+          "tree_id": "1b8dc252729b6009b001795a7a7e6854a74f5bd4",
+          "url": "https://github.com/neohugo/neohugo/commit/05d39469b1e013009b72f318d2ddfc1d8a48b2ad"
+        },
+        "date": 1630163530147,
+        "tool": "go",
+        "benches": [
+          {
+            "name": "BenchmarkIsTruthFul",
+            "value": 24.59,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "52676919 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkScratchGet",
+            "value": 22.9,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "53220326 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkStripHTML",
+            "value": 3837,
+            "unit": "ns/op\t     728 B/op\t       4 allocs/op",
+            "extra": "335648 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkTestTruncateWordsToWholeSentence",
+            "value": 74.31,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "16143122 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkTestTruncateWordsToWholeSentenceOld",
+            "value": 5875,
+            "unit": "ns/op\t    2496 B/op\t       2 allocs/op",
+            "extra": "201848 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkTotalWords",
+            "value": 8573,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "140200 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkEmojiKyokomiFprint",
+            "value": 47711,
+            "unit": "ns/op\t   31424 B/op\t      71 allocs/op",
+            "extra": "25125 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkEmojiKyokomiSprint",
+            "value": 46986,
+            "unit": "ns/op\t   31344 B/op\t      66 allocs/op",
+            "extra": "26366 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkHugoEmoji",
+            "value": 2257,
+            "unit": "ns/op\t     616 B/op\t      13 allocs/op",
+            "extra": "635577 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkReaderContains",
+            "value": 6639,
+            "unit": "ns/op\t    1258 B/op\t      20 allocs/op",
+            "extra": "193845 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkWalk",
+            "value": 455572,
+            "unit": "ns/op\t  134560 B/op\t    1634 allocs/op",
+            "extra": "2610 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkGetGlob",
+            "value": 19.85,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "53279163 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkGetPage",
+            "value": 294.5,
+            "unit": "ns/op\t      16 B/op\t       2 allocs/op",
+            "extra": "4682432 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkMergeByLanguage",
+            "value": 772.3,
+            "unit": "ns/op\t      52 B/op\t       1 allocs/op",
+            "extra": "1546960 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkResourceChainPostProcess",
+            "value": 90772996,
+            "unit": "ns/op\t32004362 B/op\t  798903 allocs/op",
+            "extra": "15 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkReplaceShortcodeTokens",
+            "value": 278637,
+            "unit": "ns/op\t    3072 B/op\t       1 allocs/op",
+            "extra": "526081 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeAnchorName",
+            "value": 539.4,
+            "unit": "ns/op\t      24 B/op\t       1 allocs/op",
+            "extra": "2312959 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeAnchorNameAsciiOnly",
+            "value": 1135,
+            "unit": "ns/op\t      48 B/op\t       2 allocs/op",
+            "extra": "1000000 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeAnchorNameBlackfriday",
+            "value": 821,
+            "unit": "ns/op\t     176 B/op\t       6 allocs/op",
+            "extra": "1707428 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkSanitizeAnchorNameString",
+            "value": 706.1,
+            "unit": "ns/op\t      56 B/op\t       2 allocs/op",
+            "extra": "1588976 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkTypeOps",
+            "value": 7338,
+            "unit": "ns/op\t     768 B/op\t      10 allocs/op",
+            "extra": "162444 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkHowSimilar",
+            "value": 2824,
+            "unit": "ns/op\t     624 B/op\t      19 allocs/op",
+            "extra": "419344 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkLayout",
+            "value": 120.1,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "9981843 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkLayoutUncached",
+            "value": 10133,
+            "unit": "ns/op\t    6335 B/op\t     112 allocs/op",
+            "extra": "114535 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkStringifyMapKeysStringsOnlyInterfaceMaps",
+            "value": 1948,
+            "unit": "ns/op\t    1008 B/op\t       6 allocs/op",
+            "extra": "593683 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkStringifyMapKeysStringsOnlyStringMaps",
+            "value": 235.4,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "5100678 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkStringifyMapKeysIntegers",
+            "value": 2520,
+            "unit": "ns/op\t    1008 B/op\t       6 allocs/op",
+            "extra": "599473 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkShortcodeLexer",
+            "value": 144716,
+            "unit": "ns/op\t  118453 B/op\t     916 allocs/op",
+            "extra": "10020 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkParse",
+            "value": 14654,
+            "unit": "ns/op\t   16976 B/op\t      34 allocs/op",
+            "extra": "81901 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkParseWithEmoji",
+            "value": 17000,
+            "unit": "ns/op\t   32952 B/op\t      16 allocs/op",
+            "extra": "70899 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkElementsCollectorWriter",
+            "value": 147103,
+            "unit": "ns/op\t  100582 B/op\t     307 allocs/op",
+            "extra": "12391 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkRelatedMatchesIn",
+            "value": 114839,
+            "unit": "ns/op\t   19732 B/op\t     191 allocs/op",
+            "extra": "11232 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkResizeParallel",
+            "value": 5751,
+            "unit": "ns/op\t    2658 B/op\t      54 allocs/op",
+            "extra": "184632 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkResourcesMatch",
+            "value": 3314,
+            "unit": "ns/op\t     504 B/op\t       3 allocs/op",
+            "extra": "358333 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkResourcesMatchA100",
+            "value": 319.1,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "3760554 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkAssignMetadata",
+            "value": 20440,
+            "unit": "ns/op\t     849 B/op\t      80 allocs/op",
+            "extra": "58476 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkDecodeExif",
+            "value": 133170,
+            "unit": "ns/op\t  184224 B/op\t    1206 allocs/op",
+            "extra": "7510 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkPageCache",
+            "value": 215.5,
+            "unit": "ns/op\t      24 B/op\t       1 allocs/op",
+            "extra": "5507077 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkSortByWeightAndReverse",
+            "value": 3543,
+            "unit": "ns/op\t      48 B/op\t       2 allocs/op",
+            "extra": "337339 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkPermalinkExpand",
+            "value": 1440,
+            "unit": "ns/op\t     304 B/op\t      10 allocs/op",
+            "extra": "894721 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkImportResolver",
+            "value": 65654,
+            "unit": "ns/op\t   36250 B/op\t     178 allocs/op",
+            "extra": "21258 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkQuerify",
+            "value": 1064,
+            "unit": "ns/op\t     152 B/op\t       9 allocs/op",
+            "extra": "1000000 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkQuerifySlice",
+            "value": 808.5,
+            "unit": "ns/op\t     176 B/op\t       9 allocs/op",
+            "extra": "1473014 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkCSSEscaper",
+            "value": 960.3,
+            "unit": "ns/op\t     336 B/op\t       2 allocs/op",
+            "extra": "1251714 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkCSSEscaperNoSpecials",
+            "value": 253,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "4748850 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkDecodeCSS",
+            "value": 506.6,
+            "unit": "ns/op\t     160 B/op\t       1 allocs/op",
+            "extra": "2365983 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkDecodeCSSNoSpecials",
+            "value": 7.365,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "164906361 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkCSSValueFilter",
+            "value": 172.2,
+            "unit": "ns/op\t      96 B/op\t       2 allocs/op",
+            "extra": "6949304 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkCSSValueFilterOk",
+            "value": 201.1,
+            "unit": "ns/op\t      48 B/op\t       3 allocs/op",
+            "extra": "5970414 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkEscapedExecute",
+            "value": 2489,
+            "unit": "ns/op\t     544 B/op\t      18 allocs/op",
+            "extra": "459645 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkHTMLNospaceEscaper",
+            "value": 1100,
+            "unit": "ns/op\t     368 B/op\t       3 allocs/op",
+            "extra": "1000000 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkHTMLNospaceEscaperNoSpecials",
+            "value": 320.1,
+            "unit": "ns/op\t      32 B/op\t       1 allocs/op",
+            "extra": "3725194 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkStripTags",
+            "value": 861.9,
+            "unit": "ns/op\t     224 B/op\t       3 allocs/op",
+            "extra": "1399802 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkStripTagsNoSpecials",
+            "value": 102.4,
+            "unit": "ns/op\t     112 B/op\t       2 allocs/op",
+            "extra": "12363866 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSValEscaperWithNum",
+            "value": 527.7,
+            "unit": "ns/op\t      40 B/op\t       3 allocs/op",
+            "extra": "2265003 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSValEscaperWithStr",
+            "value": 1873,
+            "unit": "ns/op\t     384 B/op\t       2 allocs/op",
+            "extra": "652011 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSValEscaperWithStrNoSpecials",
+            "value": 599.5,
+            "unit": "ns/op\t      96 B/op\t       2 allocs/op",
+            "extra": "1984245 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSValEscaperWithObj",
+            "value": 2134,
+            "unit": "ns/op\t     440 B/op\t       3 allocs/op",
+            "extra": "555859 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSValEscaperWithObjNoSpecials",
+            "value": 824.3,
+            "unit": "ns/op\t     152 B/op\t       3 allocs/op",
+            "extra": "1438195 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSStrEscaperNoSpecials",
+            "value": 257.1,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "4644763 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSStrEscaper",
+            "value": 953.6,
+            "unit": "ns/op\t     336 B/op\t       2 allocs/op",
+            "extra": "1304959 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSRegexpEscaperNoSpecials",
+            "value": 231.2,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "4580589 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkJSRegexpEscaper",
+            "value": 982.5,
+            "unit": "ns/op\t     336 B/op\t       2 allocs/op",
+            "extra": "1251428 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkTemplateSpecialTags",
+            "value": 150341,
+            "unit": "ns/op\t   49924 B/op\t     190 allocs/op",
+            "extra": "8286 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkURLEscaper",
+            "value": 2049,
+            "unit": "ns/op\t     336 B/op\t       4 allocs/op",
+            "extra": "636399 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkURLEscaperNoSpecials",
+            "value": 193.5,
+            "unit": "ns/op\t     112 B/op\t       2 allocs/op",
+            "extra": "6027072 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkURLNormalizer",
+            "value": 1507,
+            "unit": "ns/op\t     176 B/op\t       3 allocs/op",
+            "extra": "867007 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkURLNormalizerNoSpecials",
+            "value": 211.9,
+            "unit": "ns/op\t     112 B/op\t       2 allocs/op",
+            "extra": "5649255 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkSrcsetFilter",
+            "value": 673.5,
+            "unit": "ns/op\t     160 B/op\t       3 allocs/op",
+            "extra": "1720840 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkSrcsetFilterNoSpecials",
+            "value": 369.9,
+            "unit": "ns/op\t     160 B/op\t       3 allocs/op",
+            "extra": "3109218 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkParseLarge",
+            "value": 22710511,
+            "unit": "ns/op\t 5458957 B/op\t   80031 allocs/op",
+            "extra": "51 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkVariableString",
+            "value": 130,
+            "unit": "ns/op\t      72 B/op\t       3 allocs/op",
+            "extra": "9862812 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkListString",
+            "value": 3765,
+            "unit": "ns/op\t    1472 B/op\t      31 allocs/op",
+            "extra": "298238 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkPartial",
+            "value": 3762,
+            "unit": "ns/op\t    1064 B/op\t      37 allocs/op",
+            "extra": "290842 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkPartialCached",
+            "value": 92.86,
+            "unit": "ns/op\t       0 B/op\t       0 allocs/op",
+            "extra": "11060200 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkUnmarshalString",
+            "value": 1403,
+            "unit": "ns/op\t     720 B/op\t       4 allocs/op",
+            "extra": "739551 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkUnmarshalResource",
+            "value": 189,
+            "unit": "ns/op\t     144 B/op\t       1 allocs/op",
+            "extra": "6311336 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkAbsURL",
+            "value": 5799,
+            "unit": "ns/op\t    1568 B/op\t      16 allocs/op",
+            "extra": "202683 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkAbsURLSrcset",
+            "value": 4483,
+            "unit": "ns/op\t    1280 B/op\t      23 allocs/op",
+            "extra": "272535 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkXMLAbsURLSrcset",
+            "value": 4431,
+            "unit": "ns/op\t    1358 B/op\t      21 allocs/op",
+            "extra": "272442 times\n2 procs"
+          },
+          {
+            "name": "BenchmarkXMLAbsURL",
+            "value": 3030,
+            "unit": "ns/op\t     928 B/op\t       8 allocs/op",
+            "extra": "498355 times\n2 procs"
           }
         ]
       }
