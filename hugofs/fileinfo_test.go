@@ -47,4 +47,5 @@ func TestFileMeta(t *testing.T) {
 		c.Assert(dst, qt.Not(qt.Equals), src)
 		c.Assert(dst, qt.DeepEquals, src)
 	})
+
 }

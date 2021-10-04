@@ -18,8 +18,9 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/common/htime"
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/paths"
+
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/resource"
 

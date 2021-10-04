@@ -56,6 +56,7 @@ func (ns *Namespace) AsTime(v interface{}, args ...interface{}) (interface{}, er
 	}
 
 	return htime.ToTimeInDefaultLocationE(v, loc)
+
 }
 
 // Format converts the textual representation of the datetime string into

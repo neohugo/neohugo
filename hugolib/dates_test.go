@@ -15,10 +15,11 @@ package hugolib
 
 import (
 	"fmt"
-	"strings"
-	"testing"
 
 	qt "github.com/frankban/quicktest"
+
+	"strings"
+	"testing"
 )
 
 func TestDateFormatMultilingual(t *testing.T) {
@@ -56,6 +57,7 @@ Date: {{ .Date | time.Format ":date_long" }}
 
 	b.AssertFileContent("public/en/index.html", `Date: July 18, 2021`)
 	b.AssertFileContent("public/nn/index.html", `Date: 18. juli 2021`)
+
 }
 
 func TestTimeZones(t *testing.T) {
@@ -185,6 +187,7 @@ ExpiryDate: 2099-07-13 15:28:01 +0000 UTC`
 	b.AssertFileContent("public/nn/short-date-toml-unqouted/index.html", expectShortDateNn)
 	b.AssertFileContent("public/en/short-date-toml-qouted/index.html", expectShortDateEn)
 	b.AssertFileContent("public/nn/short-date-toml-qouted/index.html", expectShortDateNn)
+
 }
 
 // Issue 8832
@@ -209,4 +212,5 @@ func TestTimeOnError(t *testing.T) {
 	b.WithContent("p1.md", "")
 
 	b.Assert(b.BuildE(BuildCfg{}), qt.Not(qt.IsNil))
+
 }

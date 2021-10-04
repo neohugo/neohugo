@@ -298,6 +298,9 @@ func newHugoSites(cfg deps.DepsCfg, sites ...*Site) (*HugoSites, error) {
 		return nil, errors.New("Cannot provide Language in Cfg when sites are provided")
 	}
 
+	// Return error at the end. Make the caller decide if it's fatal or not.
+	var initErr error
+
 	langConfig, err := newMultiLingualFromSites(cfg.Cfg, sites...)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to create language config")
@@ -375,7 +378,7 @@ func newHugoSites(cfg deps.DepsCfg, sites ...*Site) (*HugoSites, error) {
 
 	var l configLoader
 	if err := l.applyDeps(cfg, sites...); err != nil {
-		return nil, errors.Wrap(err, "add site dependencies")
+		initErr = errors.Wrap(err, "add site dependencies")
 	}
 
 	h.Deps = sites[0].Deps
@@ -392,7 +395,7 @@ func newHugoSites(cfg deps.DepsCfg, sites ...*Site) (*HugoSites, error) {
 		h.ContentChanges = contentChangeTracker
 	}
 
-	return h, nil
+	return h, initErr
 }
 
 func (h *HugoSites) loadGitInfo() error {

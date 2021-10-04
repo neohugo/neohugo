@@ -331,7 +331,6 @@ func (l *DistinctLogger) Warnln(v ...interface{}) {
 		l.Logger.Warnln(v...)
 	})
 }
-
 func (l *DistinctLogger) Errorf(format string, v ...interface{}) {
 	logStatement := fmt.Sprint(v...)
 	l.printIfNotPrinted("errorf", logStatement, func() {
@@ -391,6 +390,7 @@ var (
 func InitLoggers() {
 	DistinctErrorLog.Reset()
 	DistinctWarnLog.Reset()
+
 }
 
 // Deprecated informs about a deprecation, but only once for a given set of arguments' values.

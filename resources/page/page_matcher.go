@@ -19,9 +19,10 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/hugofs/glob"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 // A PageMatcher can be used to match a Page with Glob patterns.
@@ -104,6 +105,7 @@ func DecodeCascade(in interface{}) (map[PageMatcher]maps.Params, error) {
 	}
 
 	return cascade, nil
+
 }
 
 // DecodePageMatcher decodes m into v.

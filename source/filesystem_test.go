@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/config"
+
 	"github.com/neohugo/neohugo/modules"
 
 	"github.com/neohugo/neohugo/langs"

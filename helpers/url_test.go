@@ -93,6 +93,7 @@ func doTestAbsURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 		}
 
 		tests = append(tests, newTests...)
+
 	}
 
 	for _, test := range tests {

@@ -18,6 +18,7 @@ import (
 	_fmt "fmt"
 
 	"github.com/neohugo/neohugo/common/loggers"
+
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
 )

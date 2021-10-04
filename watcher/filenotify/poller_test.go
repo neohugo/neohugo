@@ -23,9 +23,9 @@ const (
 )
 
 var (
-	isMacOs = runtime.GOOS == "darwin"
-	// isWindows = runtime.GOOS == "windows"
-	isCI = htesting.IsCI()
+	isMacOs   = runtime.GOOS == "darwin"
+	isWindows = runtime.GOOS == "windows"
+	isCI      = htesting.IsCI()
 )
 
 func TestPollerAddRemove(t *testing.T) {
@@ -42,6 +42,7 @@ func TestPollerAddRemove(t *testing.T) {
 	defer os.RemoveAll(f.Name())
 	c.Assert(w.Add(f.Name()), qt.IsNil)
 	c.Assert(w.Remove(f.Name()), qt.IsNil)
+
 }
 
 func TestPollerEvent(t *testing.T) {
@@ -104,6 +105,7 @@ func TestPollerEvent(t *testing.T) {
 			}
 			expected = append(expected, fsnotify.Event{Name: subdir, Op: fsnotify.Remove})
 			assertEvents(c, w, expected...)
+
 		})
 
 		c.Run(fmt.Sprintf("%s, Add should not trigger event", method), func(c *qt.C) {
@@ -196,6 +198,7 @@ func BenchmarkPoller(b *testing.B) {
 			}
 
 		}
+
 	}
 
 	b.Run("Check for changes in dir", func(b *testing.B) {
@@ -204,6 +207,7 @@ func BenchmarkPoller(b *testing.B) {
 		item, err := newItemToWatch(dir)
 		c.Assert(err, qt.IsNil)
 		runBench(b, item)
+
 	})
 
 	b.Run("Check for changes in file", func(b *testing.B) {
@@ -214,6 +218,7 @@ func BenchmarkPoller(b *testing.B) {
 		c.Assert(err, qt.IsNil)
 		runBench(b, item)
 	})
+
 }
 
 func prepareTestDirWithSomeFiles(c *qt.C, id string) string {

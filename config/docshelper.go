@@ -21,6 +21,7 @@ import (
 // This is is just some helpers used to create some JSON used in the Hugo docs.
 func init() {
 	docsProvider := func() docshelper.DocProvider {
+
 		cfg := New()
 		for _, configRoot := range ConfigRootKeys {
 			cfg.Set(configRoot, make(maps.Params))

@@ -29,9 +29,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neohugo/neohugo/common/constants"
-	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/common/types"
+
+	"github.com/neohugo/neohugo/common/paths"
+
+	"github.com/neohugo/neohugo/common/constants"
 
 	"github.com/neohugo/neohugo/common/loggers"
 
@@ -1412,6 +1414,7 @@ func (s *Site) getMenusFromConfig() navigation.Menus {
 					}
 					s.Log.Errorf("unable to process menus in site config\n")
 					s.Log.Errorln(err)
+
 				}
 
 				for _, entry := range m {

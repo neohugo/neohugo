@@ -55,4 +55,5 @@ If you add the -v flag, you will get a full dependency list.
 			},
 		}),
 	}
+
 }

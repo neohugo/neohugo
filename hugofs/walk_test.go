@@ -81,12 +81,14 @@ func TestWalkRootMappingFs(t *testing.T) {
 	}
 
 	c.Run("Basic", func(c *qt.C) {
+
 		bfs := prepare(c)
 
 		names, err := collectFilenames(bfs, "", "")
 
 		c.Assert(err, qt.IsNil)
 		c.Assert(names, qt.DeepEquals, []string{"a/test.txt", "b/test.txt", "c/test.txt"})
+
 	})
 
 	c.Run("Para", func(c *qt.C) {
@@ -110,10 +112,12 @@ func TestWalkRootMappingFs(t *testing.T) {
 					return errors.New("fail")
 				}
 				return nil
+
 			})
 		}
 
 		c.Assert(r.Wait(), qt.IsNil)
+
 	})
 }
 

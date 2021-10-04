@@ -106,10 +106,13 @@ cascade:
 					"draft":         bool(false),
 					"iscjklanguage": bool(false),
 				})
+
 			}
+
 		})
 
 	}
+
 }
 
 func TestCascade(t *testing.T) {

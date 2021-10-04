@@ -23,10 +23,12 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/neohugo/neohugo/common/maps"
+
+	"github.com/neohugo/neohugo/common/types"
+
 	"github.com/neohugo/neohugo/common/constants"
 	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/spf13/cast"
 

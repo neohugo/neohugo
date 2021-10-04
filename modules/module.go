@@ -165,6 +165,7 @@ func (m *moduleAdapter) Time() time.Time {
 	}
 
 	return *m.gomod.Time
+
 }
 
 func (m *moduleAdapter) Watch() bool {

@@ -19,8 +19,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/config"
+
+	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/neohugo/neohugo/media"

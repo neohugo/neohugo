@@ -634,8 +634,8 @@ title: "Foo"
 	cfg.Set("uglyURLs", false)
 	cfg.Set("verbose", true)
 
-	cfg.Set("pygmentsUseClasses", true)
-	cfg.Set("pygmentsCodefences", true)
+	cfg.Set("markup.highlight.noClasses", false)
+	cfg.Set("markup.highlight.codeFences", true)
 	cfg.Set("markup", map[string]interface{}{
 		"defaultMarkdownHandler": "blackfriday", // TODO(bep)
 	})
@@ -1399,7 +1399,7 @@ outputs: ["html", "css", "csv", "json"]
 
 		b.Build(BuildCfg{})
 
-		// helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
+		//helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
 
 		for i := 0; i < numPages; i++ {
 			b.AssertFileContent(fmt.Sprintf("public/page%d/index.html", i), "Short-HTML")

@@ -25,9 +25,10 @@ import (
 	"sync"
 
 	"github.com/bep/gowebp/libwebp/webpoptions"
+	"github.com/neohugo/neohugo/resources/images/webp"
+
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images/exif"
-	"github.com/neohugo/neohugo/resources/images/webp"
 
 	"github.com/disintegration/gift"
 	"golang.org/x/image/bmp"

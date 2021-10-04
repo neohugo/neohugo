@@ -71,6 +71,7 @@ func TestPermalinkExpansion(t *testing.T) {
 		name := specNameCleaner.ReplaceAllString(item.spec, "")
 
 		c.Run(name, func(c *qt.C) {
+
 			permalinksConfig := map[string]string{
 				"posts": item.spec,
 			}
@@ -174,6 +175,7 @@ func TestPermalinkExpansionSliceSyntax(t *testing.T) {
 		c.Assert(fn(""), qt.DeepEquals, []string{"a", "b", "c", "d"})
 		c.Assert(fn("[last]"), qt.DeepEquals, []string{"d"})
 		c.Assert(fn("[:last]"), qt.DeepEquals, []string{"a", "b", "c"})
+
 	})
 
 	c.Run("Out of bounds", func(c *qt.C) {
@@ -189,7 +191,9 @@ func TestPermalinkExpansionSliceSyntax(t *testing.T) {
 		c.Assert(fn("[]"), qt.IsNil)
 		c.Assert(fn("[1:}"), qt.IsNil)
 		c.Assert(fn("foo"), qt.IsNil)
+
 	})
+
 }
 
 func BenchmarkPermalinkExpand(b *testing.B) {
