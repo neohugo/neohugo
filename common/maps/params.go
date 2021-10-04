@@ -62,12 +62,11 @@ func (p Params) IsZero() bool {
 		return false
 	}
 
-	for k, _ := range p {
+	for k := range p {
 		return k == mergeStrategyKey
 	}
 
 	return false
-
 }
 
 // Merge transfers values from pp to p for new keys.
@@ -87,7 +86,7 @@ func (p Params) MergeRoot(pp Params) {
 func (p Params) merge(ps ParamsMergeStrategy, pp Params) {
 	ns, found := p.GetMergeStrategy()
 
-	var ms = ns
+	ms := ns
 	if !found && ps != "" {
 		ms = ps
 	}

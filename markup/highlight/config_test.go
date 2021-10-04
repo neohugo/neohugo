@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 )
 
 func TestConfig(t *testing.T) {

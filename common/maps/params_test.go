@@ -49,7 +49,7 @@ func TestGetNestedParam(t *testing.T) {
 	c.Assert(must("nested.foo", ".", m), qt.IsNil)
 }
 
-// https://github.com/gohugoio/hugo/issues/7903
+// https://github.com/neohugo/neohugo/issues/7903
 func TestGetNestedParamFnNestedNewKey(t *testing.T) {
 	c := qt.New(t)
 
@@ -154,7 +154,6 @@ func TestParamsSetAndMerge(t *testing.T) {
 		"a": "av",
 		"c": "cv",
 	})
-
 }
 
 func TestParamsIsZero(t *testing.T) {

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/modules"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/cache/filecache"

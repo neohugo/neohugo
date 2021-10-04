@@ -335,7 +335,7 @@ func newHighlighting(cfg highlight.Config) goldmark.Extender {
 }
 
 func writeDivStart(w util.BufWriter, ctx hl.CodeBlockContext) {
-	w.WriteString(`<div class="highlight`)
+	w.WriteString(`<div class="highlight`) //nolint
 
 	var attributes []ast.Attribute
 	if ctx.Attributes() != nil {
@@ -345,19 +345,19 @@ func writeDivStart(w util.BufWriter, ctx hl.CodeBlockContext) {
 	if attributes != nil {
 		class, found := ctx.Attributes().GetString("class")
 		if found {
-			w.WriteString(" ")
-			w.Write(util.EscapeHTML(class.([]byte)))
+			w.WriteString(" ")                       //nolint
+			w.Write(util.EscapeHTML(class.([]byte))) //nolint
 
 		}
-		_, _ = w.WriteString("\"")
+		_, _ = w.WriteString("\"") //nolint
 		renderAttributes(w, true, attributes...)
 	} else {
-		_, _ = w.WriteString("\"")
+		_, _ = w.WriteString("\"") //nolint
 	}
 
-	w.WriteString(">")
+	w.WriteString(">") //nolint
 }
 
 func writeDivEnd(w util.BufWriter) {
-	w.WriteString("</div>")
+	w.WriteString("</div>") //nolint
 }

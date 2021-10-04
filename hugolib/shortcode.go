@@ -33,13 +33,13 @@ import (
 	"github.com/neohugo/neohugo/parser/pageparser"
 	"github.com/neohugo/neohugo/resources/page"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/common/urls"
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/common/urls"
+	"github.com/neohugo/neohugo/output"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/tpl"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 var (

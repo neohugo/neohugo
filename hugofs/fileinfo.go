@@ -28,7 +28,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/common/hreflect"
+	"github.com/neohugo/neohugo/common/hreflect"
 
 	"github.com/spf13/afero"
 )

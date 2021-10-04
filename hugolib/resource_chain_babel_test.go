@@ -19,13 +19,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/common/hexec"
+	"github.com/neohugo/neohugo/common/hexec"
 
 	jww "github.com/spf13/jwalterweatherman"
 
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/htesting"
 
 	qt "github.com/frankban/quicktest"
 

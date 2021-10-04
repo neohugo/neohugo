@@ -12,12 +12,12 @@ env:
 jobs:
   docdeploy:
     name: Deploy documentation
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.x
+          go-version: 1.17.x
       - name: Setup Ruby
         uses: actions/setup-ruby@v1
         with:
@@ -108,9 +108,9 @@ jobs:
   goreleaser:
     name: Release tag
     needs: docdeploy
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     container:
-      image: neohugo/golang-cross:v1.16.0
+      image: neohugo/golang-cross:v1.17.1
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -119,7 +119,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v2
         with:
-          go-version: 1.16.x
+          go-version: 1.17.x
       - name: Run Goreleaser
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -129,7 +129,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   docker:
     name: Build Neohugo Docker
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
       - name: Prepare
         id: prep

@@ -16,8 +16,8 @@ package transform
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/htesting"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/htesting"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -31,7 +31,6 @@ func TestRemarshal(t *testing.T) {
 	c := qt.New(t)
 
 	c.Run("Roundtrip variants", func(c *qt.C) {
-
 		tomlExample := `title = 'Test Metadata'
 		
 [[resources]]
@@ -109,7 +108,6 @@ title: Test Metadata
 
 			}
 		}
-
 	})
 
 	c.Run("Comments", func(c *qt.C) {

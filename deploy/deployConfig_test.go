@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !nodeploy
 // +build !nodeploy
 
 package deploy
@@ -20,8 +21,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config"
-	
+	"github.com/neohugo/neohugo/config"
 )
 
 func TestDecodeConfigFromTOML(t *testing.T) {

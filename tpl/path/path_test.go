@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/deps"
 )
 
 var ns = New(&deps.Deps{Cfg: config.New()})

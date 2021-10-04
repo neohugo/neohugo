@@ -170,7 +170,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	cmdArgs = append(cmdArgs, "--filename="+ctx.SourcePath)
 
 	// Create compile into a real temp file:
-	// 1. separate stdout/stderr messages from babel (https://github.com/gohugoio/hugo/issues/8136)
+	// 1. separate stdout/stderr messages from babel (https://github.com/neohugo/neohugo/issues/8136)
 	// 2. allow generation and retrieval of external source map.
 	compileOutput, err := ioutil.TempFile("", "compileOut-*.js")
 	if err != nil {

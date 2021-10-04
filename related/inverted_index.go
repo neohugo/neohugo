@@ -22,9 +22,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/common/types"
 	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/types"
 )

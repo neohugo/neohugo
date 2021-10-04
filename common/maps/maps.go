@@ -17,7 +17,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/gobwas/glob"
 	"github.com/spf13/cast"
@@ -29,7 +29,7 @@ func ToStringMapE(in interface{}) (map[string]interface{}, error) {
 	case Params:
 		return vv, nil
 	case map[string]string:
-		var m = map[string]interface{}{}
+		m := map[string]interface{}{}
 		for k, v := range vv {
 			m[k] = v
 		}

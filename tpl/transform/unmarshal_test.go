@@ -19,10 +19,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/neohugo/neohugo/media"
 

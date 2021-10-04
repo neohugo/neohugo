@@ -469,7 +469,6 @@ func (m *pageMap) assembleSections() error {
 
 		kind := page.KindSection
 		if s == "/" {
-
 			kind = page.KindHome
 		}
 

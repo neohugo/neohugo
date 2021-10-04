@@ -19,7 +19,7 @@ package modules
 import (
 	"time"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 )
 
 var _ Module = (*moduleAdapter)(nil)
@@ -165,7 +165,6 @@ func (m *moduleAdapter) Time() time.Time {
 	}
 
 	return *m.gomod.Time
-
 }
 
 func (m *moduleAdapter) Watch() bool {

@@ -31,7 +31,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/pkg/errors"
 

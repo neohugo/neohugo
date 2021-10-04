@@ -42,7 +42,7 @@ type imagingResizer struct {
 }
 
 func (r imagingResizer) Resize(img image.Image, width, height uint) image.Image {
-	// See https://github.com/gohugoio/hugo/issues/7955#issuecomment-861710681
+	// See https://github.com/neohugo/neohugo/issues/7955#issuecomment-861710681
 	scaleX, scaleY := calcFactorsNfnt(width, height, float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
 	if width == 0 {
 		width = uint(math.Ceil(float64(img.Bounds().Dx()) / scaleX))

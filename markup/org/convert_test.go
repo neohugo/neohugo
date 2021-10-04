@@ -16,9 +16,9 @@ package org
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/neohugo/neohugo/markup/converter"
 

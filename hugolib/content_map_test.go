@@ -19,7 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/neohugo/neohugo/htesting/hqt"
 

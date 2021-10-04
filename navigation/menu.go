@@ -21,9 +21,9 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/compare"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/compare"
 
 	"github.com/spf13/cast"
 )
@@ -49,7 +49,6 @@ type MenuEntry struct {
 }
 
 func (m *MenuEntry) URL() string {
-
 	// Check page first.
 	// In Hugo 0.86.0 we added `pageRef`,
 	// a way to connect menu items in site config to pages.

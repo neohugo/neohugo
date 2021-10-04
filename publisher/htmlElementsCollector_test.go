@@ -22,11 +22,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/minifiers"
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/minifiers"
+	"github.com/neohugo/neohugo/output"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -68,7 +68,7 @@ func TestClassCollector(t *testing.T) {
 		{"no quote", `<body class=b id=myelement></body>`, f("body", "b", "myelement")},
 		{"short", `<i>`, f("i", "", "")},
 		{"invalid", `< body class="b a"></body><div></div>`, f("div", "", "")},
-		// https://github.com/gohugoio/hugo/issues/7318
+		// https://github.com/neohugo/neohugo/issues/7318
 		{"thead", `<table class="cl1">
     <thead class="cl2"><tr class="cl3"><td class="cl4"></td></tr></thead>
     <tbody class="cl5"><tr class="cl6"><td class="cl7"></td></tr></tbody>
@@ -77,7 +77,7 @@ func TestClassCollector(t *testing.T) {
     <THEAD class="CL2"><TR class="CL3"><TD class="CL4"></TD></TR></THEAD>
     <TBODY class="CL5"><TR class="CL6"><TD class="CL7"></TD></TR></TBODY>
 </TABLE>`, f("table tbody td thead tr", "CL1 CL2 CL3 CL4 CL5 CL6 CL7", "")},
-		// https://github.com/gohugoio/hugo/issues/7161
+		// https://github.com/neohugo/neohugo/issues/7161
 		{"minified a href", `<a class="b a" href=/></a>`, f("a", "a b", "")},
 		{"AlpineJS bind 1", `<body>
     <div x-bind:class="{
@@ -86,7 +86,8 @@ func TestClassCollector(t *testing.T) {
          }">
     </div>
 </body>`, f("body div", "class1 class2 class3", "")},
-		{"AlpineJS bind 2", `<div x-bind:class="{ 'bg-black':  filter.checked }" class="inline-block mr-1 mb-2 rounded  bg-gray-300 px-2 py-2">FOO</div>`,
+		{
+			"AlpineJS bind 2", `<div x-bind:class="{ 'bg-black':  filter.checked }" class="inline-block mr-1 mb-2 rounded  bg-gray-300 px-2 py-2">FOO</div>`,
 			f("div", "bg-black bg-gray-300 inline-block mb-2 mr-1 px-2 py-2 rounded", ""),
 		},
 		{"AlpineJS bind 3", `<div x-bind:class="{ 'text-gray-800':  !checked, 'text-white': checked }"></div>`, f("div", "text-gray-800 text-white", "")},
@@ -125,14 +126,12 @@ func TestClassCollector(t *testing.T) {
 <div id="b" class="foo">d</div>`, f("div form", "foo", "a b")},
 		{"Big input, multibyte runes", strings.Repeat(`神真美好 `, rnd.Intn(500)+1) + "<div id=\"神真美好\" class=\"foo\">" + strings.Repeat(`神真美好 `, rnd.Intn(100)+1) + "   <span>神真美好</span>", f("div span", "foo", "神真美好")},
 	} {
-
 		for _, variant := range []struct {
 			minify bool
 		}{
 			{minify: false},
 			{minify: true},
 		} {
-
 			c.Run(fmt.Sprintf("%s--minify-%t", test.name, variant.minify), func(c *qt.C) {
 				w := newHTMLElementsCollectorWriter(newHTMLElementsCollector())
 				if variant.minify {
@@ -141,19 +140,18 @@ func TestClassCollector(t *testing.T) {
 					}
 					v := config.New()
 					m, _ := minifiers.New(media.DefaultTypes, output.DefaultFormats, v)
-					m.Minify(media.HTMLType, w, strings.NewReader(test.html))
+					m.Minify(media.HTMLType, w, strings.NewReader(test.html)) //nolint
 
 				} else {
 					var buff bytes.Buffer
 					buff.WriteString(test.html)
-					io.Copy(w, &buff)
+					io.Copy(w, &buff) //nolint
 				}
 				got := w.collector.getHTMLElements()
 				c.Assert(got, qt.DeepEquals, test.expect)
 			})
 		}
 	}
-
 }
 
 func BenchmarkElementsCollectorWriter(b *testing.B) {

@@ -19,17 +19,17 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/modules"
+	"github.com/neohugo/neohugo/modules"
 
 	"github.com/neohugo/neohugo/langs"
 
 	"github.com/spf13/afero"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 func TestEmptySourceFilesystem(t *testing.T) {

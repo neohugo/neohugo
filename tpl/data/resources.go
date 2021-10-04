@@ -39,7 +39,9 @@ var (
 func (ns *Namespace) getRemote(cache *filecache.Cache, unmarshal func([]byte) (bool, error), req *http.Request) error {
 	url := req.URL.String()
 	var headers bytes.Buffer
-	req.Header.Write(&headers)
+	if err := req.Header.Write(&headers); err != nil {
+		return err
+	}
 	id := helpers.MD5String(url + headers.String())
 	var handled bool
 	var retry bool

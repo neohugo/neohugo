@@ -16,10 +16,10 @@ package time
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/langs"
 
-	"github.com/gohugoio/hugo/htesting/hqt"
+	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"

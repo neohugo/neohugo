@@ -112,7 +112,8 @@ func TestGetFirstBySuffix(t *testing.T) {
 		c.Assert(found, qt.Equals, true)
 		c.Assert(f, qt.Equals, SuffixInfo{
 			Suffix:     suffix,
-			FullSuffix: "." + suffix})
+			FullSuffix: "." + suffix,
+		})
 		c.Assert(t, qt.Equals, expectedType)
 	}
 
@@ -120,7 +121,6 @@ func TestGetFirstBySuffix(t *testing.T) {
 	check("json", JSONType)
 	check("geojson", geoJSON)
 	check("gjson", geoJSON)
-
 }
 
 func TestFromTypeString(t *testing.T) {

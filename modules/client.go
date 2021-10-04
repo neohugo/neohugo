@@ -233,7 +233,7 @@ func (c *Client) Vendor() error {
 			continue
 		}
 
-		// See https://github.com/gohugoio/hugo/issues/8239
+		// See https://github.com/neohugo/neohugo/issues/8239
 		// This is an error situation. We need something to vendor.
 		if t.Mounts() == nil {
 			return errors.Errorf("cannot vendor module %q, need at least one mount", t.Path())
@@ -622,7 +622,7 @@ func (c *Client) runGo(
 		}
 
 		if strings.Contains(stderr.String(), "invalid version: unknown revision") {
-			// See https://github.com/gohugoio/hugo/issues/6825
+			// See https://github.com/neohugo/neohugo/issues/6825
 			c.logger.Println(`hugo: you need to manually edit go.mod to resolve the unknown revision.`)
 		}
 

@@ -28,9 +28,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/resources/images/webp"
+	"github.com/neohugo/neohugo/resources/images/webp"
 
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/spf13/afero"
 
@@ -179,7 +179,7 @@ func TestImageTransformFormat(t *testing.T) {
 	assertFileCache(c, fileCache, path.Base(imageGif.RelPermalink()), 225, 141)
 }
 
-// https://github.com/gohugoio/hugo/issues/5730
+// https://github.com/neohugo/neohugo/issues/5730
 func TestImagePermalinkPublishOrder(t *testing.T) {
 	for _, checkOriginalFirst := range []bool{true, false} {
 		name := "OriginalFirst"
@@ -242,7 +242,6 @@ func TestImageBugs(t *testing.T) {
 		c.Assert(resized, qt.Not(qt.IsNil))
 		c.Assert(resized.Width(), qt.Equals, 100)
 		c.Assert(resized.RelPermalink(), qt.Equals, "/a/_hu59e56ffff1bc1d8d122b1403d34e039f_90587_c876768085288f41211f768147ba2647.jpg")
-
 	})
 
 	// Issue #6137
@@ -253,7 +252,6 @@ func TestImageBugs(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 		c.Assert(resized, qt.Not(qt.IsNil))
 		c.Assert(resized.Width(), qt.Equals, 200)
-
 	})
 
 	// Issue #7955
@@ -282,9 +280,7 @@ func TestImageBugs(t *testing.T) {
 				c.Assert(resized.Width(), qt.Equals, test.targetWH)
 				c.Assert(resized.Height(), qt.Equals, test.targetWH)
 			})
-
 		}
-
 	})
 }
 
@@ -590,7 +586,6 @@ func TestImageOperationsGoldenWebp(t *testing.T) {
 	dir2 := filepath.FromSlash("testdata/golden_webp")
 
 	assetGoldenDirs(c, dir1, dir2)
-
 }
 
 func TestImageOperationsGolden(t *testing.T) {
@@ -702,11 +697,9 @@ func TestImageOperationsGolden(t *testing.T) {
 	dir2 := filepath.FromSlash("testdata/golden")
 
 	assetGoldenDirs(c, dir1, dir2)
-
 }
 
 func assetGoldenDirs(c *qt.C, dir1, dir2 string) {
-
 	// The two dirs above should now be the same.
 	dirinfos1, err := ioutil.ReadDir(dir1)
 	c.Assert(err, qt.IsNil)

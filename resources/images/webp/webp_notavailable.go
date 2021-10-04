@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build !extended
 // +build !extended
 
 package webp
@@ -19,7 +20,7 @@ import (
 	"image"
 	"io"
 
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 
 	"github.com/bep/gowebp/libwebp/webpoptions"
 )

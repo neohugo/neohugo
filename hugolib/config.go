@@ -20,8 +20,8 @@ import (
 
 	"github.com/neohugo/neohugo/common/types"
 
-	"github.com/gohugoio/hugo/common/maps"
-	cpaths "github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/maps"
+	cpaths "github.com/neohugo/neohugo/common/paths"
 
 	"github.com/gobwas/glob"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
@@ -29,8 +29,6 @@ import (
 	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/neohugo/neohugo/cache/filecache"
-
-	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
@@ -53,12 +51,11 @@ var ErrNoConfigFile = errors.New("Unable to locate config file or config directo
 // LoadConfig loads Hugo configuration into a new Viper and then adds
 // a set of defaults.
 func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provider) error) (config.Provider, []string, error) {
-
 	if d.Environment == "" {
 		d.Environment = neohugo.EnvironmentProduction
 	}
 
-	if len(d.Environ) == 0 && !hugo.IsRunningAsTest() {
+	if len(d.Environ) == 0 && !neohugo.IsRunningAsTest() {
 		d.Environ = os.Environ()
 	}
 
@@ -118,7 +115,6 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 
 	if l.cfg.GetString("markup.defaultMarkdownHandler") == "blackfriday" {
 		helpers.Deprecated("markup.defaultMarkdownHandler=blackfriday", "See https://gohugo.io//content-management/formats/#list-of-content-formats", false)
-
 	}
 
 	// Some settings are used before we're done collecting all settings,
@@ -259,7 +255,7 @@ func (l configLoader) applyConfigDefaults() error {
 		"buildDrafts":                          false,
 		"buildFuture":                          false,
 		"buildExpired":                         false,
-		"environment":                          hugo.EnvironmentProduction,
+		"environment":                          neohugo.EnvironmentProduction,
 		"uglyURLs":                             false,
 		"verbose":                              false,
 		"ignoreCache":                          false,

@@ -17,11 +17,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/evanw/esbuild/pkg/api"
 
@@ -154,13 +154,12 @@ func TestResolveComponentInAssets(t *testing.T) {
 		// Issue #8949
 		{"Check file before directory", []string{"foo.js", "foo/index.js"}, "foo", "foo.js"},
 	} {
-
 		c.Run(test.name, func(c *qt.C) {
 			baseDir := "assets"
 			mfs := afero.NewMemMapFs()
 
 			for _, filename := range test.files {
-				c.Assert(afero.WriteFile(mfs, filepath.Join(baseDir, filename), []byte("let foo='bar';"), 0777), qt.IsNil)
+				c.Assert(afero.WriteFile(mfs, filepath.Join(baseDir, filename), []byte("let foo='bar';"), 0o777), qt.IsNil)
 			}
 
 			bfs := hugofs.DecorateBasePathFs(afero.NewBasePathFs(mfs, baseDir).(*afero.BasePathFs))
@@ -174,6 +173,5 @@ func TestResolveComponentInAssets(t *testing.T) {
 
 			c.Assert(gotPath, qt.Equals, test.expect)
 		})
-
 	}
 }

@@ -66,7 +66,7 @@ func TestTimeLocation(t *testing.T) {
 					return
 				}
 
-				// See https://github.com/gohugoio/hugo/issues/8843#issuecomment-891551447
+				// See https://github.com/neohugo/neohugo/issues/8843#issuecomment-891551447
 				// Drop the location string (last element) when comparing,
 				// as that may change depending on the local locale.
 				timeStr := result.(time.Time).String()

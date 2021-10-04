@@ -29,7 +29,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/disintegration/gift"
 
@@ -206,13 +206,12 @@ func (i *imageResource) Fill(spec string) (resource.Image, error) {
 	img, err := i.doWithImageConfig(conf, func(src image.Image) (image.Image, error) {
 		return i.Proc.ApplyFiltersFromConfig(src, conf)
 	})
-
 	if err != nil {
 		return nil, err
 	}
 
 	if conf.Anchor == 0 && img.Width() == 0 || img.Height() == 0 {
-		// See https://github.com/gohugoio/hugo/issues/7955
+		// See https://github.com/neohugo/neohugo/issues/7955
 		// Smartcrop fails silently in some rare cases.
 		// Fall back to a center fill.
 		conf.Anchor = gift.CenterAnchor

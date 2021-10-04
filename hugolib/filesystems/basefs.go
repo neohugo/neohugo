@@ -662,25 +662,25 @@ func (b *sourceFilesystemsBuilder) createModFs(
 	return nil
 }
 
-func printFs(fs afero.Fs, path string, w io.Writer) {
-	if fs == nil {
-		return
-	}
-	afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if info.IsDir() {
-			return nil
-		}
-		var filename string
-		if fim, ok := info.(hugofs.FileMetaInfo); ok {
-			filename = fim.Meta().Filename
-		}
-		fmt.Fprintf(w, "    %q %q\n", path, filename)
-		return nil
-	})
-}
+//func printFs(fs afero.Fs, path string, w io.Writer) {
+//if fs == nil {
+//return
+//}
+//afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
+//if err != nil {
+//return err
+//}
+//if info.IsDir() {
+//return nil
+//}
+//var filename string
+//if fim, ok := info.(hugofs.FileMetaInfo); ok {
+//filename = fim.Meta().Filename
+//}
+//fmt.Fprintf(w, "    %q %q\n", path, filename)
+//return nil
+//})
+//}
 
 type filesystemsCollector struct {
 	sourceProject afero.Fs // Source for project folders

@@ -22,8 +22,7 @@ import (
 	"github.com/PuerkitoBio/purell"
 )
 
-type pathBridge struct {
-}
+type pathBridge struct{}
 
 func (pathBridge) Base(in string) string {
 	return path.Base(in)
@@ -83,7 +82,6 @@ func sanitizeURLWithFlags(in string, f purell.NormalizationFlags) string {
 	// End temporary kludge
 
 	// return s
-
 }
 
 // SanitizeURL sanitizes the input URL string.

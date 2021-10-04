@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+//go:build extended
 // +build extended
 
 package resources
@@ -18,7 +19,7 @@ package resources
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 
 	qt "github.com/frankban/quicktest"
 )

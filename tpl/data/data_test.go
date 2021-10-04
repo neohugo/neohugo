@@ -22,7 +22,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -71,7 +71,6 @@ func TestGetCSV(t *testing.T) {
 			false,
 		},
 	} {
-
 		c.Run(test.url, func(c *qt.C) {
 			msg := qt.Commentf("Test %d", i)
 
@@ -92,7 +91,8 @@ func TestGetCSV(t *testing.T) {
 
 				w.Header().Add("Content-type", "text/csv")
 
-				w.Write([]byte(test.content))
+				_, err := w.Write([]byte(test.content))
+				c.Assert(err, qt.IsNil)
 			})
 			defer func() { srv.Close() }()
 
@@ -100,7 +100,8 @@ func TestGetCSV(t *testing.T) {
 			if !strings.Contains(test.url, ":") && !strings.HasPrefix(test.url, "fail/") {
 				f, err := ns.deps.Fs.Source.Create(filepath.Join(ns.deps.Cfg.GetString("workingDir"), test.url))
 				c.Assert(err, qt.IsNil, msg)
-				f.WriteString(test.content)
+				_, err = f.WriteString(test.content)
+				c.Assert(err, qt.IsNil)
 				f.Close()
 			}
 
@@ -118,7 +119,6 @@ func TestGetCSV(t *testing.T) {
 			c.Assert(got, qt.Not(qt.IsNil), msg)
 			c.Assert(got, qt.DeepEquals, test.expect, msg)
 		})
-
 	}
 }
 
@@ -163,9 +163,7 @@ func TestGetJSON(t *testing.T) {
 			map[string]interface{}{"gomeetup": []interface{}{"Sydney", "San Francisco", "Stockholm"}},
 		},
 	} {
-
 		c.Run(test.url, func(c *qt.C) {
-
 			msg := qt.Commentf("Test %d", i)
 			ns := newTestNs()
 
@@ -184,7 +182,8 @@ func TestGetJSON(t *testing.T) {
 
 				w.Header().Add("Content-type", "application/json")
 
-				w.Write([]byte(test.content))
+				_, err := w.Write([]byte(test.content))
+				c.Assert(err, qt.IsNil)
 			})
 			defer func() { srv.Close() }()
 
@@ -192,7 +191,8 @@ func TestGetJSON(t *testing.T) {
 			if !strings.Contains(test.url, ":") && !strings.HasPrefix(test.url, "fail/") {
 				f, err := ns.deps.Fs.Source.Create(filepath.Join(ns.deps.Cfg.GetString("workingDir"), test.url))
 				c.Assert(err, qt.IsNil, msg)
-				f.WriteString(test.content)
+				_, err = f.WriteString(test.content)
+				c.Assert(err, qt.IsNil)
 				f.Close()
 			}
 
@@ -207,7 +207,6 @@ func TestGetJSON(t *testing.T) {
 			c.Assert(int(ns.deps.Log.LogCounters().ErrorCounter.Count()), qt.Equals, 0, msg)
 			c.Assert(got, qt.Not(qt.IsNil), msg)
 			c.Assert(got, qt.DeepEquals, test.expect)
-
 		})
 	}
 }
@@ -262,9 +261,7 @@ func TestHeaders(t *testing.T) {
 			},
 		},
 	} {
-
 		c.Run(test.name, func(c *qt.C) {
-
 			ns := newTestNs()
 
 			// Setup HTTP test server
@@ -272,9 +269,10 @@ func TestHeaders(t *testing.T) {
 			var headers bytes.Buffer
 			srv, ns.client = getTestServer(func(w http.ResponseWriter, r *http.Request) {
 				c.Assert(r.URL.String(), qt.Equals, "http://gohugo.io/api?foo")
-				w.Write([]byte("{}"))
-				r.Header.Write(&headers)
-
+				_, err := w.Write([]byte("{}"))
+				c.Assert(err, qt.IsNil)
+				err = r.Header.Write(&headers)
+				c.Assert(err, qt.IsNil)
 			})
 			defer func() { srv.Close() }()
 
@@ -295,9 +293,7 @@ func TestHeaders(t *testing.T) {
 				_, err := ns.GetCSV(",", args...)
 				return err
 			})
-
 		})
-
 	}
 }
 

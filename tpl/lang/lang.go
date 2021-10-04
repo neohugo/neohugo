@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"strings"
 
-	translators "github.com/gohugoio/localescompressed"
 	"github.com/gohugoio/locales"
+	translators "github.com/gohugoio/localescompressed"
 	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/deps"

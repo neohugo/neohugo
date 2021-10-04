@@ -17,8 +17,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/langs"
 )
 
 func TestURLize(t *testing.T) {

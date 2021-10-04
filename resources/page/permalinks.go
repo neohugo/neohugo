@@ -360,5 +360,4 @@ func (l PermalinkExpander) toSliceFunc(cut string) func(s []string) []string {
 		}
 		return s[toN1(s):toN2(s)]
 	}
-
 }

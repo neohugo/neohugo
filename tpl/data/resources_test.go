@@ -34,7 +34,6 @@ import (
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/spf13/afero"
-	
 )
 
 func TestScpGetLocal(t *testing.T) {

@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	issueLinkTemplate                        = "[#%d](https://github.com/neohugo/neohugo/issues/%d)"
+	issueLinkTemplate                        = "[#%d](https://github.com/gohugoio/hugo/issues/%d)"
 	linkTemplate                             = "[%s](%s)"
 	releaseNotesMarkdownTemplatePatchRelease = `
 {{ if eq (len .All) 1 }}
@@ -72,8 +72,8 @@ which has received **{{ len .Docs }} contributions by {{ len $docsContribsPerAut
 Hugo now has:
 
 {{ with .Repo -}}
-* {{ .Stars }}+ [stars](https://github.com/neohugo/neohugo/stargazers)
-* {{ len .Contributors }}+ [contributors](https://github.com/neohugo/neohugo/graphs/contributors)
+* {{ .Stars }}+ [stars](https://github.com/gohugoio/hugo/stargazers)
+* {{ len .Contributors }}+ [contributors](https://github.com/gohugoio/hugo/graphs/contributors)
 {{- end -}}
 {{ with .ThemeCount }}
 * {{ . }}+ [themes](http://themes.gohugo.io/)

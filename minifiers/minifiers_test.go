@@ -20,9 +20,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/output"
 	"github.com/tdewolff/minify/v2/html"
 )
 
@@ -158,7 +158,7 @@ func TestBugs(t *testing.T) {
 	}{
 		// https://github.com/neohugo/neohugo/issues/5506
 		{media.CSSType, " body { color: rgba(000, 000, 000, 0.7); }", "body{color:rgba(0,0,0,.7)}"},
-		// https://github.com/gohugoio/hugo/issues/8332
+		// https://github.com/neohugo/neohugo/issues/8332
 		{media.HTMLType, "<i class='fas fa-tags fa-fw'></i> Tags", `<i class="fas fa-tags fa-fw"></i> Tags`},
 	} {
 		var b bytes.Buffer
@@ -216,32 +216,4 @@ func TestDecodeConfigKeepWhitespace(t *testing.T) {
 			KeepWhitespace:          true,
 		},
 	)
-}
-
-// Issue 8771
-func TestDecodeConfigKeepWhitespace(t *testing.T) {
-	c := qt.New(t)
-	v := config.New()
-	v.Set("minify", map[string]interface{}{
-		"tdewolff": map[string]interface{}{
-			"html": map[string]interface{}{
-				"keepEndTags": false,
-			},
-		},
-	})
-
-	conf, err := decodeConfig(v)
-
-	c.Assert(err, qt.IsNil)
-	c.Assert(conf.Tdewolff.HTML, qt.DeepEquals,
-		html.Minifier{
-			KeepComments:            false,
-			KeepConditionalComments: true,
-			KeepDefaultAttrVals:     true,
-			KeepDocumentTags:        true,
-			KeepEndTags:             false,
-			KeepQuotes:              false,
-			KeepWhitespace:          true},
-	)
-
 }

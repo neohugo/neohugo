@@ -27,17 +27,16 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/resources/page"
 	"github.com/sanity-io/litter"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
@@ -987,62 +986,62 @@ func content(c resource.ContentProvider) string {
 	return ccs
 }
 
-func pagesToString(pages ...page.Page) string {
-	var paths []string
-	for _, p := range pages {
-		paths = append(paths, p.Path())
-	}
-	sort.Strings(paths)
-	return strings.Join(paths, "|")
-}
+//func pagesToString(pages ...page.Page) string {
+//var paths []string
+//for _, p := range pages {
+//paths = append(paths, p.Path())
+//}
+//sort.Strings(paths)
+//return strings.Join(paths, "|")
+//}
 
-func dumpPagesLinks(pages ...page.Page) {
-	var links []string
-	for _, p := range pages {
-		links = append(links, p.RelPermalink())
-	}
-	sort.Strings(links)
+//func dumpPagesLinks(pages ...page.Page) {
+//var links []string
+//for _, p := range pages {
+//links = append(links, p.RelPermalink())
+//}
+//sort.Strings(links)
 
-	for _, link := range links {
-		fmt.Println(link)
-	}
-}
+//for _, link := range links {
+//fmt.Println(link)
+//}
+//}
 
-func dumpPages(pages ...page.Page) {
-	fmt.Println("---------")
-	for _, p := range pages {
-		fmt.Printf("Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s Lang: %s\n",
-			p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath(), p.Lang())
-	}
-}
+//func dumpPages(pages ...page.Page) {
+//fmt.Println("---------")
+//for _, p := range pages {
+//fmt.Printf("Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s Lang: %s\n",
+//p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath(), p.Lang())
+//}
+//}
 
-func dumpSPages(pages ...*pageState) {
-	for i, p := range pages {
-		fmt.Printf("%d: Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s\n",
-			i+1,
-			p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath())
-	}
-}
+//func dumpSPages(pages ...*pageState) {
+//for i, p := range pages {
+//fmt.Printf("%d: Kind: %s Title: %-10s RelPermalink: %-10s Path: %-10s sections: %s\n",
+//i+1,
+//p.Kind(), p.Title(), p.RelPermalink(), p.Path(), p.SectionsPath())
+//}
+//}
 
-func printStringIndexes(s string) {
-	lines := strings.Split(s, "\n")
-	i := 0
+// func printStringIndexes(s string) {
+// lines := strings.Split(s, "\n")
+// i := 0
 
-	for _, line := range lines {
+// for _, line := range lines {
 
-		for _, r := range line {
-			fmt.Printf("%-3s", strconv.Itoa(i))
-			i += utf8.RuneLen(r)
-		}
-		i++
-		fmt.Println()
-		for _, r := range line {
-			fmt.Printf("%-3s", string(r))
-		}
-		fmt.Println()
+//for _, r := range line {
+//fmt.Printf("%-3s", strconv.Itoa(i))
+//i += utf8.RuneLen(r)
+//}
+//i++
+//fmt.Println()
+//for _, r := range line {
+//fmt.Printf("%-3s", string(r))
+//}
+//fmt.Println()
 
-	}
-}
+//}
+//}
 
 // See https://github.com/golang/go/issues/19280
 // Not in use.
