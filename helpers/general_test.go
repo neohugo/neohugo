@@ -19,7 +19,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
+	"github.com/gohugoio/hugo/config"
 
 	"github.com/neohugo/neohugo/common/loggers"
 

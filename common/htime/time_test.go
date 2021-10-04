@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	qt "github.com/frankban/quicktest"
 	translators "github.com/gohugoio/localescompressed"
+	qt "github.com/frankban/quicktest"
 )
 
 func TestTimeFormatter(t *testing.T) {
@@ -47,6 +47,7 @@ func TestTimeFormatter(t *testing.T) {
 		c.Assert(f.Format(june06, ":time_long"), qt.Equals, "02:09:37 UTC")
 		c.Assert(f.Format(june06, ":time_medium"), qt.Equals, "02:09:37")
 		c.Assert(f.Format(june06, ":time_short"), qt.Equals, "02:09")
+
 	})
 
 	c.Run("Custom layouts English", func(c *qt.C) {
@@ -61,6 +62,7 @@ func TestTimeFormatter(t *testing.T) {
 		c.Assert(f.Format(june06, ":time_long"), qt.Equals, "2:09:37 am UTC")
 		c.Assert(f.Format(june06, ":time_medium"), qt.Equals, "2:09:37 am")
 		c.Assert(f.Format(june06, ":time_short"), qt.Equals, "2:09 am")
+
 	})
 
 	c.Run("English", func(c *qt.C) {
@@ -70,6 +72,7 @@ func TestTimeFormatter(t *testing.T) {
 		c.Assert(f.Format(june06, "Mon January 2 2006"), qt.Equals, "Wed June 6 2018")
 		c.Assert(f.Format(june06, "Mon Mon"), qt.Equals, "Wed Wed")
 	})
+
 }
 
 func BenchmarkTimeFormatter(b *testing.B) {

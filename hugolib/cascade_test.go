@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/maps"
+	"github.com/gohugoio/hugo/common/maps"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/parser"
@@ -106,10 +106,13 @@ cascade:
 					"draft":         bool(false),
 					"iscjklanguage": bool(false),
 				})
+
 			}
+
 		})
 
 	}
+
 }
 
 func TestCascade(t *testing.T) {

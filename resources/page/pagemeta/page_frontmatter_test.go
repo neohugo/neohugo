@@ -18,8 +18,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/gohugoio/hugo/config"
+
+	"github.com/gohugoio/hugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"
 )

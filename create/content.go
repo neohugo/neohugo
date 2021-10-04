@@ -21,7 +21,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/paths"
 
 	"github.com/pkg/errors"
 

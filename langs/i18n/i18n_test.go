@@ -18,8 +18,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/modules"
+	"github.com/gohugoio/hugo/common/types"
+
+	"github.com/gohugoio/hugo/modules"
 
 	"github.com/neohugo/neohugo/tpl/tplimpl"
 
@@ -390,12 +391,13 @@ other = "{{ . }} miesiąca"
 			},
 		},
 	} {
+
 		c.Run(test.name, func(c *qt.C) {
 			cfg := getConfig()
 			cfg.Set("enableMissingTranslationPlaceholders", true)
 			fs := hugofs.NewMem(cfg)
 
-			err := afero.WriteFile(fs.Source, filepath.Join("i18n", test.lang+".toml"), []byte(test.templ), 0o755)
+			err := afero.WriteFile(fs.Source, filepath.Join("i18n", test.lang+".toml"), []byte(test.templ), 0755)
 			c.Assert(err, qt.IsNil)
 
 			tp := NewTranslationProvider()
@@ -411,7 +413,9 @@ other = "{{ . }} miesiąca"
 				c.Assert(f(test.id, variant.Key), qt.Equals, variant.Value, qt.Commentf("input: %v", variant.Key))
 				c.Assert(int(depsCfg.Logger.LogCounters().WarnCounter.Count()), qt.Equals, 0)
 			}
+
 		})
+
 	}
 }
 
@@ -429,7 +433,8 @@ type noCountField struct {
 	Counts int
 }
 
-type countMethod struct{}
+type countMethod struct {
+}
 
 func (c countMethod) Count() interface{} {
 	return 32.5

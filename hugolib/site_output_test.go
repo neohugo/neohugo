@@ -19,13 +19,13 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/resources/page"
 
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/output"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/output"
 )
 
 func TestSiteWithPageOutputs(t *testing.T) {

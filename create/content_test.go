@@ -20,8 +20,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deps"
+	"github.com/gohugoio/hugo/config"
+
+	"github.com/gohugoio/hugo/deps"
 
 	"github.com/neohugo/neohugo/hugolib"
 

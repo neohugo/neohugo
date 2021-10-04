@@ -17,8 +17,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/langs"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/langs"
 )
 
 func TestURLize(t *testing.T) {
@@ -93,6 +93,7 @@ func doTestAbsURL(t *testing.T, defaultInSubDir, addLanguage, multilingual bool,
 		}
 
 		tests = append(tests, newTests...)
+
 	}
 
 	for _, test := range tests {

@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/cast"
 
-	"github.com/neohugo/neohugo/common/maps"
+	"github.com/gohugoio/hugo/common/maps"
 )
 
 var (
@@ -275,7 +275,7 @@ func (c *defaultConfigProvider) Merge(k string, v interface{}) {
 				}
 			}
 			// Merge the rest.
-			c.root.Merge(p)
+			c.root.MergeRoot(p)
 			for _, k := range keysToDelete {
 				delete(c.root, k)
 			}
@@ -406,6 +406,7 @@ func (c *defaultConfigProvider) SetDefaultMergeStrategy() {
 		}
 		return false
 	})
+
 }
 
 func (c *defaultConfigProvider) getNestedKeyAndMap(key string, create bool) (string, maps.Params) {

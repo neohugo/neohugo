@@ -21,11 +21,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/htesting"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/hugofs"
 )
 
 // We have many tests for the different resize operations etc. in the resource package,

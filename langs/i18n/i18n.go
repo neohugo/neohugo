@@ -18,11 +18,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hreflect"
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/helpers"
 	"github.com/spf13/cast"
+
+	"github.com/gohugoio/hugo/common/hreflect"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/helpers"
 
 	"github.com/gohugoio/go-i18n/v2/i18n"
 )
@@ -168,6 +169,7 @@ func getPluralCount(v interface{}) interface{} {
 	}
 
 	return toPluralCountValue(v)
+
 }
 
 // go-i18n expects floats to be represented by string.

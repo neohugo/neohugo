@@ -20,8 +20,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting"
+	"github.com/gohugoio/hugo/config"
+
+	"github.com/gohugoio/hugo/htesting"
 
 	"github.com/spf13/afero"
 

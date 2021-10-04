@@ -16,9 +16,10 @@ package lang
 import (
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting/hqt"
-	"github.com/neohugo/neohugo/langs"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/langs"
+
+	"github.com/gohugoio/hugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"

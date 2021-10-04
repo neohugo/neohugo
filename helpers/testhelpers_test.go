@@ -1,8 +1,8 @@
 package helpers
 
 import (
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/config"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/config"
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/hugofs"

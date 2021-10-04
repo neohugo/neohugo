@@ -45,4 +45,5 @@ func TestToDuration(t *testing.T) {
 	c.Assert(ToDuration("200"), qt.Equals, 200*time.Millisecond)
 	c.Assert(ToDuration("4m"), qt.Equals, 4*time.Minute)
 	c.Assert(ToDuration("asdfadf"), qt.Equals, time.Duration(0))
+
 }

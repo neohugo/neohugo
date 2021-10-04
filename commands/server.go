@@ -31,7 +31,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/paths"
 
 	"github.com/pkg/errors"
 
@@ -241,7 +241,7 @@ func (sc *serverCmd) server(cmd *cobra.Command, args []string) error {
 	// silence errors in cobra so we can handle them here
 	cmd.SilenceErrors = true
 
-	c, err := initializeConfig(true, true, &sc.hugoBuilderCommon, sc, cfgInit)
+	c, err := initializeConfig(true, true, true, &sc.hugoBuilderCommon, sc, cfgInit)
 	if err != nil {
 		cmd.PrintErrln("Error:", err.Error())
 		return err

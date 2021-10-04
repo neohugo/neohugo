@@ -16,7 +16,8 @@ package commands
 import (
 	"runtime"
 
-	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/gohugoio/hugo/common/hugo"
+
 	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 )
@@ -45,7 +46,7 @@ If you add the -v flag, you will get a full dependency list.
 				isVerbose, _ := cmd.Flags().GetBool("verbose")
 
 				if isVerbose {
-					deps := neohugo.GetDependencyList()
+					deps := hugo.GetDependencyList()
 					for _, dep := range deps {
 						jww.FEEDBACK.Printf("%s\n", dep)
 					}
@@ -55,4 +56,5 @@ If you add the -v flag, you will get a full dependency list.
 			},
 		}),
 	}
+
 }

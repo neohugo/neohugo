@@ -19,12 +19,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/media"
-	"github.com/tdewolff/minify/v2/html"
-
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/output"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/media"
+	"github.com/gohugoio/hugo/output"
+	"github.com/tdewolff/minify/v2/html"
 )
 
 func TestNew(t *testing.T) {
@@ -217,4 +216,32 @@ func TestDecodeConfigKeepWhitespace(t *testing.T) {
 			KeepWhitespace:          true,
 		},
 	)
+}
+
+// Issue 8771
+func TestDecodeConfigKeepWhitespace(t *testing.T) {
+	c := qt.New(t)
+	v := config.New()
+	v.Set("minify", map[string]interface{}{
+		"tdewolff": map[string]interface{}{
+			"html": map[string]interface{}{
+				"keepEndTags": false,
+			},
+		},
+	})
+
+	conf, err := decodeConfig(v)
+
+	c.Assert(err, qt.IsNil)
+	c.Assert(conf.Tdewolff.HTML, qt.DeepEquals,
+		html.Minifier{
+			KeepComments:            false,
+			KeepConditionalComments: true,
+			KeepDefaultAttrVals:     true,
+			KeepDocumentTags:        true,
+			KeepEndTags:             false,
+			KeepQuotes:              false,
+			KeepWhitespace:          true},
+	)
+
 }

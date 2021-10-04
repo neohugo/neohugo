@@ -14,9 +14,9 @@
 package lang
 
 import (
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/tpl/internal"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/tpl/internal"
 )
 
 const name = "lang"

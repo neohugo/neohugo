@@ -27,8 +27,9 @@ import (
 	"github.com/neohugo/neohugo/modules"
 
 	"github.com/bep/gitmap"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/resources/resource"
+	
 
 	"github.com/neohugo/neohugo/navigation"
 

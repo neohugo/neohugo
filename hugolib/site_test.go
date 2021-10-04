@@ -23,8 +23,8 @@ import (
 	"testing"
 
 	"github.com/gobuffalo/flect"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/publisher"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/publisher"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"

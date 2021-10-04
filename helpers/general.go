@@ -29,7 +29,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/gohugoio/hugo/common/loggers"
 
 	"github.com/mitchellh/hashstructure"
 
@@ -41,7 +41,7 @@ import (
 
 	"github.com/jdkato/prose/transform"
 
-	bp "github.com/neohugo/neohugo/bufferpool"
+	bp "github.com/gohugoio/hugo/bufferpool"
 	"github.com/spf13/pflag"
 )
 
@@ -324,14 +324,12 @@ func (l *DistinctLogger) Warnf(format string, v ...interface{}) {
 		l.Logger.Warnf(format, v...)
 	})
 }
-
 func (l *DistinctLogger) Warnln(v ...interface{}) {
 	logStatement := fmt.Sprint(v...)
 	l.printIfNotPrinted("warnln", logStatement, func() {
 		l.Logger.Warnln(v...)
 	})
 }
-
 func (l *DistinctLogger) Errorf(format string, v ...interface{}) {
 	logStatement := fmt.Sprint(v...)
 	l.printIfNotPrinted("errorf", logStatement, func() {
@@ -391,6 +389,7 @@ var (
 func InitLoggers() {
 	DistinctErrorLog.Reset()
 	DistinctWarnLog.Reset()
+
 }
 
 // Deprecated informs about a deprecation, but only once for a given set of arguments' values.
@@ -400,7 +399,7 @@ func InitLoggers() {
 // plenty of time to fix their templates.
 func Deprecated(item, alternative string, err bool) {
 	if err {
-		DistinctErrorLog.Printf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
+		DistinctErrorLog.Errorf("%s is deprecated and will be removed in Hugo %s. %s", item, hugo.CurrentVersion.Next().ReleaseVersion(), alternative)
 	} else {
 		DistinctWarnLog.Warnf("%s is deprecated and will be removed in a future release. %s", item, alternative)
 	}

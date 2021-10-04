@@ -80,6 +80,7 @@ func ToStringSlicePreserveStringE(v interface{}) ([]string, error) {
 	default:
 		return nil, fmt.Errorf("failed to convert %T to a string slice", v)
 	}
+
 }
 
 // TypeToString converts v to a string if it's a valid string type.

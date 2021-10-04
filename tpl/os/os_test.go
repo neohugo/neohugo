@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
+	"github.com/gohugoio/hugo/config"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"

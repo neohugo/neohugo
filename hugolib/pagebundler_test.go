@@ -23,14 +23,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/htesting"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/hugofs/files"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/config"
+
+	"github.com/gohugoio/hugo/hugofs/files"
+
+	"github.com/gohugoio/hugo/helpers"
+
+	"github.com/gohugoio/hugo/hugofs"
+
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/resources/page"
+
+	"github.com/gohugoio/hugo/htesting"
+
+	"github.com/gohugoio/hugo/deps"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -284,7 +290,7 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 
 				c.Assert(len(s.RegularPages()), qt.Equals, 8)
 				c.Assert(len(s.Pages()), qt.Equals, 16)
-				// dumpPages(s.AllPages()...)
+				//dumpPages(s.AllPages()...)
 
 				c.Assert(len(s.AllPages()), qt.Equals, 31)
 

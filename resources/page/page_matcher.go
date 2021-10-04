@@ -19,6 +19,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/hugofs/glob"
 	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/hugofs/glob"
@@ -104,6 +106,7 @@ func DecodeCascade(in interface{}) (map[PageMatcher]maps.Params, error) {
 	}
 
 	return cascade, nil
+
 }
 
 // DecodePageMatcher decodes m into v.

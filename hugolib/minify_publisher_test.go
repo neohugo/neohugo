@@ -16,7 +16,7 @@ package hugolib
 import (
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
+	"github.com/gohugoio/hugo/config"
 )
 
 func TestMinifyPublisher(t *testing.T) {

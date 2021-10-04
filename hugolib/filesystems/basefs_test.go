@@ -30,9 +30,10 @@ import (
 	"github.com/spf13/afero"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/hugolib/paths"
-	"github.com/neohugo/neohugo/modules"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/hugolib/paths"
+	"github.com/gohugoio/hugo/modules"
+	
 )
 
 func initConfig(fs afero.Fs, cfg config.Provider) error {
@@ -466,7 +467,7 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 	return counter, filenames, nil
 }
 
-func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val string, num int) error {
+func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val string, num int) {
 	workingDir := v.GetString("workingDir")
 	v.Set(key, val)
 	if err := fs.Mkdir(val, 0o755); err != nil {

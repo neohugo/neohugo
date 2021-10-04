@@ -14,13 +14,13 @@
 package cast
 
 import (
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/docshelper"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/tpl/internal"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/docshelper"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/tpl/internal"
 )
 
 // This file provides documentation support and is randomly put into this package.

@@ -23,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gohugoio/hugo/common/maps"
+
 	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/neohugo/neohugo/parser"
@@ -62,7 +64,7 @@ func (b *commandsBuilder) newConfigCmd() *configCmd {
 }
 
 func (c *configCmd) printMounts(cmd *cobra.Command, args []string) error {
-	cfg, err := initializeConfig(true, false, &c.hugoBuilderCommon, c, nil)
+	cfg, err := initializeConfig(true, false, false, &c.hugoBuilderCommon, c, nil)
 	if err != nil {
 		return err
 	}
@@ -78,7 +80,7 @@ func (c *configCmd) printMounts(cmd *cobra.Command, args []string) error {
 }
 
 func (c *configCmd) printConfig(cmd *cobra.Command, args []string) error {
-	cfg, err := initializeConfig(true, false, &c.hugoBuilderCommon, c, nil)
+	cfg, err := initializeConfig(true, false, false, &c.hugoBuilderCommon, c, nil)
 	if err != nil {
 		return err
 	}
@@ -181,4 +183,5 @@ func (m *modMounts) MarshalJSON() ([]byte, error) {
 		Dir:     m.m.Dir(),
 		Mounts:  mounts,
 	})
+
 }

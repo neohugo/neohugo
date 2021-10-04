@@ -19,13 +19,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/config"
-
 	"github.com/pkg/errors"
 
-	"github.com/gohugoio/locales"
 	translators "github.com/gohugoio/localescompressed"
+	"github.com/gohugoio/locales"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/config"
 )
 
 // These are the settings that should only be looked up in the global Viper

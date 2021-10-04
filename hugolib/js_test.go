@@ -20,9 +20,10 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting"
+	"github.com/gohugoio/hugo/common/hexec"
+	"github.com/gohugoio/hugo/config"
+
+	"github.com/gohugoio/hugo/htesting"
 
 	qt "github.com/frankban/quicktest"
 

@@ -19,7 +19,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/gohugoio/hugo/helpers"
 
 	"github.com/pkg/errors"
 

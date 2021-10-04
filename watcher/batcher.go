@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/neohugo/neohugo/watcher/filenotify"
+	"github.com/gohugoio/hugo/watcher/filenotify"
 )
 
 // Batcher batches file watch events in a given interval.

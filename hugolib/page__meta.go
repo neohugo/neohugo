@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neohugo/neohugo/langs"
+	"github.com/gohugoio/hugo/langs"
 
 	"github.com/gobuffalo/flect"
 	"github.com/neohugo/neohugo/markup/converter"

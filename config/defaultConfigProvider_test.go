@@ -23,8 +23,9 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/para"
+	"github.com/gohugoio/hugo/common/para"
+
+	"github.com/gohugoio/hugo/common/maps"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -171,7 +172,6 @@ func TestDefaultConfigProvider(t *testing.T) {
 
 		c.Assert(cfg.Get(""), qt.DeepEquals, maps.Params{
 			"a": "av",
-			"b": "bv2",
 		})
 	})
 
@@ -205,6 +205,7 @@ func TestDefaultConfigProvider(t *testing.T) {
 
 	// Issue #8679
 	c.Run("Merge typed maps", func(c *qt.C) {
+
 		for _, left := range []interface{}{
 			map[string]string{
 				"c": "cv1",
@@ -248,6 +249,7 @@ func TestDefaultConfigProvider(t *testing.T) {
 				"b": "bv1",
 			},
 		} {
+
 			for _, right := range []interface{}{
 				map[string]string{
 					"b": "bv2",
@@ -275,7 +277,9 @@ func TestDefaultConfigProvider(t *testing.T) {
 					},
 				})
 			}
+
 		}
+
 	})
 
 	// Issue #8701

@@ -19,8 +19,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/config"
+	"github.com/gohugoio/hugo/common/maps"
+
+	"github.com/gohugoio/hugo/config"
 
 	"github.com/neohugo/neohugo/helpers"
 

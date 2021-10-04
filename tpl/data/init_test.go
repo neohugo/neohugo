@@ -17,10 +17,10 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting/hqt"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/tpl/internal"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/htesting/hqt"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/tpl/internal"
 )
 
 func TestInit(t *testing.T) {

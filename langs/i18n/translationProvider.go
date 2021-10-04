@@ -17,13 +17,14 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/paths"
+
+	"github.com/gohugoio/hugo/common/herrors"
 	"golang.org/x/text/language"
 	yaml "gopkg.in/yaml.v2"
 
 	"github.com/gohugoio/go-i18n/v2/i18n"
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/gohugoio/hugo/helpers"
 	toml "github.com/pelletier/go-toml/v2"
 
 	"github.com/neohugo/neohugo/deps"

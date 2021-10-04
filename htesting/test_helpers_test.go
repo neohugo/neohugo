@@ -11,25 +11,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// +build !extended
-
-package webp
+package htesting
 
 import (
-	"image"
-	"io"
+	"testing"
 
-	"github.com/gohugoio/hugo/common/herrors"
-
-	"github.com/bep/gowebp/libwebp/webpoptions"
+	qt "github.com/frankban/quicktest"
 )
 
-// Encode is only available in the extended version.
-func Encode(w io.Writer, m image.Image, o webpoptions.EncodingOptions) error {
-	return herrors.ErrFeatureNotAvailable
-}
+func TestExtractMinorVersionFromGoTag(t *testing.T) {
 
-// Supports returns whether webp encoding is supported in this build.
-func Supports() bool {
-	return false
+	c := qt.New(t)
+
+	c.Assert(extractMinorVersionFromGoTag("go1.17"), qt.Equals, 17)
+	c.Assert(extractMinorVersionFromGoTag("go1.16.7"), qt.Equals, 16)
+	c.Assert(extractMinorVersionFromGoTag("go1.17beta1"), qt.Equals, 17)
+	c.Assert(extractMinorVersionFromGoTag("asdfadf"), qt.Equals, -1)
+
 }

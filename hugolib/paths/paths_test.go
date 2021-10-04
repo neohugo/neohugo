@@ -17,9 +17,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/langs"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/langs"
 )
 
 func TestNewPaths(t *testing.T) {

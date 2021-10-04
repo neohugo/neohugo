@@ -192,9 +192,9 @@ Will disable generation of alias redirects. Note that even if `disableAliases` i
 
 ### disableHugoGeneratorInject
 
-**Default value:**  true
+**Default value:**  false
 
-Neohugo will not, by default, inject a generator meta tag in the HTML head on the _home page only_. You can turn it off, but we would really appreciate if you don't, as this is a good way to watch Hugo's popularity on the rise.
+Hugo will, by default, inject a generator meta tag in the HTML head on the _home page only_. You can turn it off, but we would really appreciate if you don't, as this is a good way to watch Hugo's popularity on the rise.
 
 ### disableKinds
 

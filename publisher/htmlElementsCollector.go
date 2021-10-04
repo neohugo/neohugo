@@ -22,8 +22,29 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/neohugo/neohugo/helpers"
 	"golang.org/x/net/html"
+
+	"github.com/gohugoio/hugo/helpers"
+)
+
+const eof = -1
+
+var (
+	htmlJsonFixer = strings.NewReplacer(", ", "\n")
+	jsonAttrRe    = regexp.MustCompile(`'?(.*?)'?:.*`)
+	classAttrRe   = regexp.MustCompile(`(?i)^class$|transition`)
+
+	skipInnerElementRe = regexp.MustCompile(`(?i)^(pre|textarea|script|style)`)
+	skipAllElementRe   = regexp.MustCompile(`(?i)^!DOCTYPE`)
+	endTagRe           = regexp.MustCompile(`(?i)<\/\s*([a-zA-Z]+)\s*>$`)
+
+	exceptionList = map[string]bool{
+		"thead": true,
+		"tbody": true,
+		"tfoot": true,
+		"td":    true,
+		"tr":    true,
+	}
 )
 
 const eof = -1
@@ -367,6 +388,7 @@ func htmlLexToEndOfComment(w *htmlElementsCollectorWriter) htmlCollectorStateFun
 }
 
 func parseHTMLElement(elStr string) (el htmlElement, err error) {
+
 	tagName := parseStartTag(elStr)
 
 	el.Tag = strings.ToLower(tagName)

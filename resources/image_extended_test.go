@@ -18,7 +18,7 @@ package resources
 import (
 	"testing"
 
-	"github.com/neohugo/neohugo/media"
+	"github.com/gohugoio/hugo/media"
 
 	qt "github.com/frankban/quicktest"
 )

@@ -18,12 +18,12 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting/hqt"
+	"github.com/gohugoio/hugo/config"
+
+	"github.com/gohugoio/hugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/spf13/cast"
+	"github.com/gohugoio/hugo/deps"
 )
 
 var ns = New(&deps.Deps{Cfg: config.New()})

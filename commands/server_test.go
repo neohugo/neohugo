@@ -22,8 +22,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/helpers"
 
 	qt "github.com/frankban/quicktest"
 )

@@ -435,6 +435,9 @@ func (r *hookedRenderer) renderHeadingDefault(w util.BufWriter, source []byte, n
 	return ast.WalkContinue, nil
 }
 
+type links struct {
+}
+
 type links struct{}
 
 // Extend implements goldmark.Extender.

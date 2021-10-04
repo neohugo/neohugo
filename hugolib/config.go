@@ -20,7 +20,8 @@ import (
 
 	"github.com/neohugo/neohugo/common/types"
 
-	cpaths "github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/maps"
+	cpaths "github.com/gohugoio/hugo/common/paths"
 
 	"github.com/gobwas/glob"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
@@ -52,11 +53,12 @@ var ErrNoConfigFile = errors.New("Unable to locate config file or config directo
 // LoadConfig loads Hugo configuration into a new Viper and then adds
 // a set of defaults.
 func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provider) error) (config.Provider, []string, error) {
+
 	if d.Environment == "" {
 		d.Environment = neohugo.EnvironmentProduction
 	}
 
-	if len(d.Environ) == 0 && !neohugo.IsRunningAsTest() {
+	if len(d.Environ) == 0 && !hugo.IsRunningAsTest() {
 		d.Environ = os.Environ()
 	}
 
@@ -116,6 +118,7 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 
 	if l.cfg.GetString("markup.defaultMarkdownHandler") == "blackfriday" {
 		helpers.Deprecated("markup.defaultMarkdownHandler=blackfriday", "See https://gohugo.io//content-management/formats/#list-of-content-formats", false)
+
 	}
 
 	// Some settings are used before we're done collecting all settings,
@@ -150,7 +153,7 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 		return nil
 	}
 
-	_, modulesConfigFiles, err := l.collectModules(modulesConfig, l.cfg, collectHook)
+	_, modulesConfigFiles, modulesCollectErr := l.collectModules(modulesConfig, l.cfg, collectHook)
 	if err != nil {
 		return l.cfg, configFiles, err
 	}
@@ -163,6 +166,10 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 
 	if err = l.applyConfigAliases(); err != nil {
 		return l.cfg, configFiles, err
+	}
+
+	if err == nil {
+		err = modulesCollectErr
 	}
 
 	return l.cfg, configFiles, err
@@ -252,7 +259,7 @@ func (l configLoader) applyConfigDefaults() error {
 		"buildDrafts":                          false,
 		"buildFuture":                          false,
 		"buildExpired":                         false,
-		"environment":                          neohugo.EnvironmentProduction,
+		"environment":                          hugo.EnvironmentProduction,
 		"uglyURLs":                             false,
 		"verbose":                              false,
 		"ignoreCache":                          false,
@@ -277,7 +284,6 @@ func (l configLoader) applyConfigDefaults() error {
 		"disablePathToLower":                   false,
 		"hasCJKLanguage":                       false,
 		"enableEmoji":                          false,
-		"pygmentsCodeFencesGuessSyntax":        false,
 		"defaultContentLanguage":               "en",
 		"defaultContentLanguageInSubdir":       false,
 		"enableMissingTranslationPlaceholders": false,

@@ -14,8 +14,8 @@
 package config
 
 import (
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/types"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/types"
 )
 
 // Provider provides the configuration settings for Hugo.

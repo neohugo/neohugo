@@ -30,17 +30,18 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/common/types"
+
+	"github.com/gohugoio/hugo/hugofs"
 
 	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/pkg/errors"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/terminal"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/terminal"
 
 	"github.com/neohugo/neohugo/hugolib/filesystems"
 
@@ -115,11 +116,11 @@ func Execute(args []string) Response {
 }
 
 // InitializeConfig initializes a config file with sensible default configuration flags.
-func initializeConfig(mustHaveConfigFile, running bool,
+func initializeConfig(mustHaveConfigFile, failOnInitErr, running bool,
 	h *hugoBuilderCommon,
 	f flagsToConfigHandler,
 	cfgInit func(c *commandeer) error) (*commandeer, error) {
-	c, err := newCommandeer(mustHaveConfigFile, running, h, f, cfgInit)
+	c, err := newCommandeer(mustHaveConfigFile, failOnInitErr, running, h, f, cfgInit)
 	if err != nil {
 		return nil, err
 	}
@@ -127,7 +128,7 @@ func initializeConfig(mustHaveConfigFile, running bool,
 	return c, nil
 }
 
-func (c *commandeer) createLogger(cfg config.Provider, running bool) (loggers.Logger, error) {
+func (c *commandeer) createLogger(cfg config.Provider) (loggers.Logger, error) {
 	var (
 		logHandle       = ioutil.Discard
 		logThreshold    = jww.LevelWarn
@@ -171,7 +172,7 @@ func (c *commandeer) createLogger(cfg config.Provider, running bool) (loggers.Lo
 	loggers.InitGlobalLogger(stdoutThreshold, logThreshold, outHandle, logHandle)
 	helpers.InitLoggers()
 
-	return loggers.NewLogger(stdoutThreshold, logThreshold, outHandle, logHandle, running), nil
+	return loggers.NewLogger(stdoutThreshold, logThreshold, outHandle, logHandle, c.running), nil
 }
 
 func initializeFlags(cmd *cobra.Command, cfg config.Provider) {
@@ -285,7 +286,7 @@ func (c *commandeer) fullBuild() error {
 
 	if !c.h.quiet {
 		fmt.Println("Start building sites … ")
-		fmt.Println(neohugo.BuildVersionString())
+		fmt.Println(hugo.BuildVersionString())
 		if isTerminal() {
 			defer func() {
 				fmt.Print(showCursor + clearLine)
@@ -539,6 +540,7 @@ func (c *commandeer) build() error {
 }
 
 func (c *commandeer) serverBuild() error {
+
 	stopProfiling, err := c.initProfiling()
 	if err != nil {
 		return err
@@ -735,6 +737,7 @@ func (c *commandeer) handleBuildErr(err error, msg string) {
 }
 
 func (c *commandeer) rebuildSites(events []fsnotify.Event) error {
+
 	c.buildErr = nil
 	visited := c.visitedURLs.PeekAllSet()
 	if c.fastRenderMode {
@@ -793,7 +796,7 @@ func (c *commandeer) fullRebuild(changeType string) {
 		defer c.timeTrack(time.Now(), "Rebuilt")
 
 		c.commandeerHugoState = newCommandeerHugoState()
-		err := c.loadConfig(true, true)
+		err := c.loadConfig()
 		if err != nil {
 			// Set the processing on pause until the state is recovered.
 			c.paused = true

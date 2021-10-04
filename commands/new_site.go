@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/parser/metadecoders"
 
 	_errors "github.com/pkg/errors"
 

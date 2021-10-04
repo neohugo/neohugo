@@ -154,6 +154,7 @@ func TestParamsSetAndMerge(t *testing.T) {
 		"a": "av",
 		"c": "cv",
 	})
+
 }
 
 func TestParamsIsZero(t *testing.T) {

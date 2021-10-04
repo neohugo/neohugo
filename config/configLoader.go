@@ -18,14 +18,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/gohugoio/hugo/common/herrors"
 
 	"github.com/pkg/errors"
 
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/paths"
 
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/parser/metadecoders"
 	"github.com/spf13/afero"
 )
 
@@ -184,6 +184,7 @@ func LoadConfigFromDir(sourceFs afero.Fs, configDir, environment string) (Provid
 	}
 
 	return cfg, dirnames, nil
+
 }
 
 var keyAliases maps.KeyRenamer

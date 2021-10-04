@@ -62,11 +62,12 @@ func (p Params) IsZero() bool {
 		return false
 	}
 
-	for k := range p {
+	for k, _ := range p {
 		return k == mergeStrategyKey
 	}
 
 	return false
+
 }
 
 // Merge transfers values from pp to p for new keys.
@@ -75,10 +76,18 @@ func (p Params) Merge(pp Params) {
 	p.merge("", pp)
 }
 
+// MergeRoot transfers values from pp to p for new keys where p is the
+// root of the tree.
+// This is done recursively.
+func (p Params) MergeRoot(pp Params) {
+	ms, _ := p.GetMergeStrategy()
+	p.merge(ms, pp)
+}
+
 func (p Params) merge(ps ParamsMergeStrategy, pp Params) {
 	ns, found := p.GetMergeStrategy()
 
-	ms := ns
+	var ms = ns
 	if !found && ps != "" {
 		ms = ps
 	}

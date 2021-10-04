@@ -19,10 +19,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
+	"github.com/gohugoio/hugo/config"
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/gohugoio/hugo/common/loggers"
 
 	qt "github.com/frankban/quicktest"
 )

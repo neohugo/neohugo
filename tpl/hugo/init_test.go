@@ -16,13 +16,14 @@ package neohugo
 import (
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting/hqt"
+	"github.com/gohugoio/hugo/config"
+
+	"github.com/gohugoio/hugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/tpl/internal"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/tpl/internal"
 )
 
 func TestInit(t *testing.T) {

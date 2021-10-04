@@ -20,15 +20,15 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/markup/asciidocext"
-	"github.com/neohugo/neohugo/markup/rst"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/markup/asciidocext"
+	"github.com/gohugoio/hugo/markup/rst"
 
-	"github.com/neohugo/neohugo/parser/pageparser"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/parser/pageparser"
+	"github.com/gohugoio/hugo/resources/page"
 
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/tpl"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/tpl"
 	"github.com/spf13/cast"
 
 	qt "github.com/frankban/quicktest"
@@ -634,8 +634,8 @@ title: "Foo"
 	cfg.Set("uglyURLs", false)
 	cfg.Set("verbose", true)
 
-	cfg.Set("pygmentsUseClasses", true)
-	cfg.Set("pygmentsCodefences", true)
+	cfg.Set("markup.highlight.noClasses", false)
+	cfg.Set("markup.highlight.codeFences", true)
 	cfg.Set("markup", map[string]interface{}{
 		"defaultMarkdownHandler": "blackfriday", // TODO(bep)
 	})
@@ -1399,7 +1399,7 @@ outputs: ["html", "css", "csv", "json"]
 
 		b.Build(BuildCfg{})
 
-		// helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
+		//helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
 
 		for i := 0; i < numPages; i++ {
 			b.AssertFileContent(fmt.Sprintf("public/page%d/index.html", i), "Short-HTML")

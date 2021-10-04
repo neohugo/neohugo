@@ -235,7 +235,7 @@ func generateFileIsZeroWrappers(c *codegen.Inspector) error {
 
 	}
 
-	pkgImports := append(methods.Imports(), "github.com/neohugo/neohugo/helpers", "github.com/neohugo/neohugo/source")
+	pkgImports := append(methods.Imports(), "github.com/gohugoio/hugo/common/loggers", "github.com/gohugoio/hugo/source")
 
 	fmt.Fprintf(f, `%s
 

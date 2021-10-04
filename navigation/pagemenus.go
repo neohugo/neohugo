@@ -14,8 +14,8 @@
 package navigation
 
 import (
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/types"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/types"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/cast"
@@ -75,7 +75,7 @@ func PageMenusFromPage(p Page) (PageMenus, error) {
 		return pm, nil
 	}
 
-	wrapErr := func(err error) error {
+	var wrapErr = func(err error) error {
 		return errors.Wrapf(err, "unable to process menus for page %q", p.Path())
 	}
 
