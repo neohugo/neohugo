@@ -19,8 +19,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/config"
+
+	"github.com/neohugo/neohugo/common/hexec"
 
 	jww "github.com/spf13/jwalterweatherman"
 

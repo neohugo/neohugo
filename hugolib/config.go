@@ -20,6 +20,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/types"
 
+	"github.com/neohugo/neohugo/common/maps"
 	cpaths "github.com/neohugo/neohugo/common/paths"
 
 	"github.com/gobwas/glob"
@@ -28,8 +29,6 @@ import (
 	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/neohugo/neohugo/cache/filecache"
-
-	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
@@ -150,7 +149,7 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 		return nil
 	}
 
-	_, modulesConfigFiles, err := l.collectModules(modulesConfig, l.cfg, collectHook)
+	_, modulesConfigFiles, modulesCollectErr := l.collectModules(modulesConfig, l.cfg, collectHook)
 	if err != nil {
 		return l.cfg, configFiles, err
 	}
@@ -163,6 +162,10 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 
 	if err = l.applyConfigAliases(); err != nil {
 		return l.cfg, configFiles, err
+	}
+
+	if err == nil {
+		err = modulesCollectErr
 	}
 
 	return l.cfg, configFiles, err
@@ -277,7 +280,6 @@ func (l configLoader) applyConfigDefaults() error {
 		"disablePathToLower":                   false,
 		"hasCJKLanguage":                       false,
 		"enableEmoji":                          false,
-		"pygmentsCodeFencesGuessSyntax":        false,
 		"defaultContentLanguage":               "en",
 		"defaultContentLanguageInSubdir":       false,
 		"enableMissingTranslationPlaceholders": false,

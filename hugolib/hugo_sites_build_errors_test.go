@@ -338,5 +338,5 @@ Some content.
 //{{< c >}}`)
 //}
 
-//b.CreateSites().BuildFail(BuildCfg{})
+// b.CreateSites().BuildFail(BuildCfg{})
 //}

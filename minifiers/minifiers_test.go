@@ -19,12 +19,11 @@ import (
 	"strings"
 	"testing"
 
+	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/media"
-	"github.com/tdewolff/minify/v2/html"
-
-	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/output"
+	"github.com/tdewolff/minify/v2/html"
 )
 
 func TestNew(t *testing.T) {
@@ -159,7 +158,7 @@ func TestBugs(t *testing.T) {
 	}{
 		// https://github.com/neohugo/neohugo/issues/5506
 		{media.CSSType, " body { color: rgba(000, 000, 000, 0.7); }", "body{color:rgba(0,0,0,.7)}"},
-		// https://github.com/gohugoio/hugo/issues/8332
+		// https://github.com/neohugo/neohugo/issues/8332
 		{media.HTMLType, "<i class='fas fa-tags fa-fw'></i> Tags", `<i class="fas fa-tags fa-fw"></i> Tags`},
 	} {
 		var b bytes.Buffer

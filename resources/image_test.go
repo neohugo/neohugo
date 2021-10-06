@@ -28,8 +28,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/resources/images/webp"
+
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/spf13/afero"
 
@@ -178,7 +179,7 @@ func TestImageTransformFormat(t *testing.T) {
 	assertFileCache(c, fileCache, path.Base(imageGif.RelPermalink()), 225, 141)
 }
 
-// https://github.com/gohugoio/hugo/issues/5730
+// https://github.com/neohugo/neohugo/issues/5730
 func TestImagePermalinkPublishOrder(t *testing.T) {
 	for _, checkOriginalFirst := range []bool{true, false} {
 		name := "OriginalFirst"

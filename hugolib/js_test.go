@@ -22,6 +22,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/config"
+
 	"github.com/neohugo/neohugo/htesting"
 
 	qt "github.com/frankban/quicktest"

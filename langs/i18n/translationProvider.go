@@ -17,8 +17,9 @@ import (
 	"encoding/json"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/paths"
+
+	"github.com/neohugo/neohugo/common/herrors"
 	"golang.org/x/text/language"
 	yaml "gopkg.in/yaml.v2"
 

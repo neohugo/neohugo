@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/types"
+
 	"github.com/neohugo/neohugo/modules"
 
 	"github.com/neohugo/neohugo/tpl/tplimpl"
@@ -289,7 +290,7 @@ other = "a2 count {{ .Count }}"`),
 		expected:     "a2 count 3",
 		expectedFlag: "a2 count 3",
 	},
-	// https://github.com/gohugoio/hugo/issues/7798
+	// https://github.com/neohugo/neohugo/issues/7798
 	{
 		name: "known-language-missing-plural",
 		data: map[string][]byte{

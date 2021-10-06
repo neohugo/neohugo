@@ -21,11 +21,11 @@ package modules
 //"sync/atomic"
 //"testing"
 
-//"github.com/gohugoio/hugo/hugofs/glob"
+//"github.com/neohugo/neohugo/hugofs/glob"
 
-//"github.com/gohugoio/hugo/htesting"
+//"github.com/neohugo/neohugo/htesting"
 
-//"github.com/gohugoio/hugo/hugofs"
+//"github.com/neohugo/neohugo/hugofs"
 
 //qt "github.com/frankban/quicktest"
 //)
@@ -34,9 +34,9 @@ package modules
 //modName := "hugo-modules-basic-test"
 //modPath := "github.com/gohugoio/tests/" + modName
 //defaultImport := "modh2_2"
-//expect := `github.com/gohugoio/tests/hugo-modules-basic-test github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0
-//github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0 github.com/gohugoio/hugoTestModules1_darwin/modh2_2_1v@v1.3.0
-//github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0 github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0
+//expect := `github.com/gohugoio/tests/hugo-modules-basic-test github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0
+//github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0 github.com/neohugo/neohugoTestModules1_darwin/modh2_2_1v@v1.3.0
+//github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0 github.com/neohugo/neohugoTestModules1_darwin/modh2_2_2@v1.3.0
 //`
 
 // c := qt.New(t)
@@ -57,7 +57,7 @@ package modules
 //}
 
 // withConfig(&ccfg)
-// ccfg.ModuleConfig.Imports = []Import{{Path: "github.com/gohugoio/hugoTestModules1_darwin/" + imp}}
+// ccfg.ModuleConfig.Imports = []Import{{Path: "github.com/neohugo/neohugoTestModules1_darwin/" + imp}}
 // client := NewClient(ccfg)
 
 //return client, clean
@@ -91,9 +91,9 @@ package modules
 //graphb.Reset()
 //c.Assert(client.Graph(&graphb), qt.IsNil)
 
-//expectVendored := `project github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0+vendor
-//project github.com/gohugoio/hugoTestModules1_darwin/modh2_2_1v@v1.3.0+vendor
-//project github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0+vendor
+//expectVendored := `project github.com/neohugo/neohugoTestModules1_darwin/modh2_2@v1.4.0+vendor
+//project github.com/neohugo/neohugoTestModules1_darwin/modh2_2_1v@v1.3.0+vendor
+//project github.com/neohugo/neohugoTestModules1_darwin/modh2_2_2@v1.3.0+vendor
 //`
 
 // c.Assert(graphb.String(), qt.Equals, expectVendored)
@@ -146,7 +146,7 @@ package modules
 //client, clean := newClient(
 //c, func(cfg *ClientConfig) {
 //cfg.ModuleConfig = mcfg
-//s := "github.com/gohugoio/hugoTestModules1_darwin/modh1_1v"
+//s := "github.com/neohugo/neohugoTestModules1_darwin/modh1_1v"
 //g, _ := glob.GetGlob(s)
 //cfg.IgnoreVendor = g
 //}, "modh1v")
@@ -160,10 +160,10 @@ package modules
 // var graphb bytes.Buffer
 // c.Assert(client.Graph(&graphb), qt.IsNil)
 
-//c.Assert(graphb.String(), qt.Contains, "github.com/gohugoio/hugoTestModules1_darwin/modh1_1v@v1.3.0 github.com/gohugoio/hugoTestModules1_darwin/modh1_1_1v@v1.1.0+vendor")
+//c.Assert(graphb.String(), qt.Contains, "github.com/neohugo/neohugoTestModules1_darwin/modh1_1v@v1.3.0 github.com/neohugo/neohugoTestModules1_darwin/modh1_1_1v@v1.1.0+vendor")
 //})
 
-//// https://github.com/gohugoio/hugo/issues/7908
+//// https://github.com/neohugo/neohugo/issues/7908
 //c.Run("createThemeDirname", func(c *qt.C) {
 //mcfg := DefaultModuleConfig
 //client, clean := newClient(

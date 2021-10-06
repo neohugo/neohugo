@@ -242,7 +242,7 @@ menu:
 	)
 }
 
-// https://github.com/gohugoio/hugo/issues/5849
+// https://github.com/neohugo/neohugo/issues/5849
 func TestMenusPageMultipleOutputFormats(t *testing.T) {
 	config := `
 baseURL = "https://example.com"
@@ -300,7 +300,7 @@ menu: "main"
 	b.AssertFileContent("public/amp/index.html", "AMP and HTML|/amp/blog/html-amp/|AMP only|/amp/blog/amp/|Home Sweet Home|/amp/|HTML only|/blog/html/|")
 }
 
-// https://github.com/gohugoio/hugo/issues/5989
+// https://github.com/neohugo/neohugo/issues/5989
 func TestMenusPageSortByDate(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 

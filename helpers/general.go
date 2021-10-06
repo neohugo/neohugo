@@ -30,12 +30,11 @@ import (
 	"unicode/utf8"
 
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/mitchellh/hashstructure"
 
 	"github.com/neohugo/neohugo/hugofs"
-
-	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/spf13/afero"
 
@@ -400,7 +399,7 @@ func InitLoggers() {
 // plenty of time to fix their templates.
 func Deprecated(item, alternative string, err bool) {
 	if err {
-		DistinctErrorLog.Printf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
+		DistinctErrorLog.Errorf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
 	} else {
 		DistinctWarnLog.Warnf("%s is deprecated and will be removed in a future release. %s", item, alternative)
 	}

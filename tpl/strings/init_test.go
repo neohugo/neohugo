@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/config"
+
 	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"

@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/config"
+
 	"github.com/neohugo/neohugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"

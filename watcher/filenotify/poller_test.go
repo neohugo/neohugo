@@ -23,9 +23,9 @@ const (
 )
 
 var (
-	isMacOs = runtime.GOOS == "darwin"
-	// isWindows = runtime.GOOS == "windows"
-	isCI = htesting.IsCI()
+	isMacOs   = runtime.GOOS == "darwin"
+	isWindows = runtime.GOOS == "windows" //nolint
+	isCI      = htesting.IsCI()
 )
 
 func TestPollerAddRemove(t *testing.T) {
@@ -109,14 +109,12 @@ func TestPollerEvent(t *testing.T) {
 		c.Run(fmt.Sprintf("%s, Add should not trigger event", method), func(c *qt.C) {
 			dir, w := preparePollTest(c, poll)
 			subdir := filepath.Join(dir, subdir1)
-			err := w.Add(subdir)
-			c.Assert(err, qt.IsNil)
+			w.Add(subdir) //nolint
 			assertEvents(c, w)
 			// Create a new sub directory and add it to the watcher.
 			subdir = filepath.Join(dir, subdir1, subdir2)
 			c.Assert(os.Mkdir(subdir, 0o777), qt.IsNil)
-			err = w.Add(subdir)
-			c.Assert(err, qt.IsNil)
+			w.Add(subdir) //nolint
 			// This should create only one event.
 			assertEvents(c, w, fsnotify.Event{Name: subdir, Op: fsnotify.Create})
 		})
@@ -124,34 +122,34 @@ func TestPollerEvent(t *testing.T) {
 	}
 }
 
-// func TestPollerClose(t *testing.T) {
-// c := qt.New(t)
-// w := NewPollingWatcher(watchWaitTime)
-// f1, err := ioutil.TempFile("", "f1")
-// c.Assert(err, qt.IsNil)
-// f2, err := ioutil.TempFile("", "f2")
-// c.Assert(err, qt.IsNil)
-// filename1 := f1.Name()
-// filename2 := f2.Name()
-// f1.Close()
-// f2.Close()
+func TestPollerClose(t *testing.T) {
+	c := qt.New(t)
+	w := NewPollingWatcher(watchWaitTime)
+	f1, err := ioutil.TempFile("", "f1")
+	c.Assert(err, qt.IsNil)
+	f2, err := ioutil.TempFile("", "f2")
+	c.Assert(err, qt.IsNil)
+	filename1 := f1.Name()
+	filename2 := f2.Name()
+	f1.Close()
+	f2.Close()
 
-//c.Assert(w.Add(filename1), qt.IsNil)
-//c.Assert(w.Add(filename2), qt.IsNil)
-//c.Assert(w.Close(), qt.IsNil)
-//c.Assert(w.Close(), qt.IsNil)
-//c.Assert(ioutil.WriteFile(filename1, []byte("new"), 0o600), qt.IsNil)
-//c.Assert(ioutil.WriteFile(filename2, []byte("new"), 0o600), qt.IsNil)
-//// No more event as the watchers are closed.
-//assertEvents(c, w)
+	c.Assert(w.Add(filename1), qt.IsNil)
+	c.Assert(w.Add(filename2), qt.IsNil)
+	c.Assert(w.Close(), qt.IsNil)
+	c.Assert(w.Close(), qt.IsNil)
+	c.Assert(ioutil.WriteFile(filename1, []byte("new"), 0o600), qt.IsNil)
+	c.Assert(ioutil.WriteFile(filename2, []byte("new"), 0o600), qt.IsNil)
+	// No more event as the watchers are closed.
+	assertEvents(c, w)
 
-// f2, err = ioutil.TempFile("", "f2")
-// c.Assert(err, qt.IsNil)
+	f2, err = ioutil.TempFile("", "f2")
+	c.Assert(err, qt.IsNil)
 
-// defer os.Remove(f2.Name())
+	defer os.Remove(f2.Name())
 
-//c.Assert(w.Add(f2.Name()), qt.Not(qt.IsNil))
-//}
+	c.Assert(w.Add(f2.Name()), qt.Not(qt.IsNil))
+}
 
 func TestCheckChange(t *testing.T) {
 	c := qt.New(t)

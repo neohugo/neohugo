@@ -23,14 +23,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/htesting"
-	"github.com/neohugo/neohugo/hugofs"
+
 	"github.com/neohugo/neohugo/hugofs/files"
+
+	"github.com/neohugo/neohugo/helpers"
+
+	"github.com/neohugo/neohugo/hugofs"
+
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/resources/page"
+
+	"github.com/neohugo/neohugo/htesting"
+
+	"github.com/neohugo/neohugo/deps"
 
 	qt "github.com/frankban/quicktest"
 )

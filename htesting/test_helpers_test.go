@@ -1,4 +1,4 @@
-// Copyright 2015 The Hugo Authors. All rights reserved.
+// Copyright 2021 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,23 +11,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package commands
+package htesting
 
 import (
-	// For time zone lookups on Windows without Go installed.
-	// See #8892
-	_ "time/tzdata"
+	"testing"
 
-	"github.com/spf13/cobra"
+	qt "github.com/frankban/quicktest"
 )
 
-func init() {
-	// This message to show to Windows users if Hugo is opened from explorer.exe
-	cobra.MousetrapHelpText = `
+func TestExtractMinorVersionFromGoTag(t *testing.T) {
+	c := qt.New(t)
 
-  Hugo is a command-line tool for generating static website.
-
-  You need to open cmd.exe and run Hugo from there.
-  
-  Visit https://gohugo.io/ for more information.`
+	c.Assert(extractMinorVersionFromGoTag("go1.17"), qt.Equals, 17)
+	c.Assert(extractMinorVersionFromGoTag("go1.16.7"), qt.Equals, 16)
+	c.Assert(extractMinorVersionFromGoTag("go1.17beta1"), qt.Equals, 17)
+	c.Assert(extractMinorVersionFromGoTag("asdfadf"), qt.Equals, -1)
 }

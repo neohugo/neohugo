@@ -22,8 +22,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/neohugo/neohugo/helpers"
 	"golang.org/x/net/html"
+
+	"github.com/neohugo/neohugo/helpers"
 )
 
 const eof = -1

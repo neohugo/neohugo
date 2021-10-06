@@ -19,10 +19,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/compare"
-	"github.com/pkg/errors"
 
 	"github.com/spf13/cast"
 )

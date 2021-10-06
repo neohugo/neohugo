@@ -29,9 +29,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neohugo/neohugo/common/constants"
-	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/common/types"
+
+	"github.com/neohugo/neohugo/common/paths"
+
+	"github.com/neohugo/neohugo/common/constants"
 
 	"github.com/neohugo/neohugo/common/loggers"
 

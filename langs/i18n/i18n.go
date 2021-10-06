@@ -18,11 +18,12 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/spf13/cast"
+
 	"github.com/neohugo/neohugo/common/hreflect"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/helpers"
-	"github.com/spf13/cast"
 
 	"github.com/gohugoio/go-i18n/v2/i18n"
 )

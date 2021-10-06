@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/config"
+
 	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/spf13/afero"

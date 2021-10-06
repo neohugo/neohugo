@@ -121,7 +121,7 @@ func TestMerge(t *testing.T) {
 			false,
 		},
 		{
-			// https://github.com/gohugoio/hugo/issues/7899
+			// https://github.com/neohugo/neohugo/issues/7899
 			"matching keys with non-map src value",
 			[]interface{}{
 				map[string]interface{}{"k": "v"},

@@ -211,7 +211,7 @@ func (i *imageResource) Fill(spec string) (resource.Image, error) {
 	}
 
 	if conf.Anchor == 0 && img.Width() == 0 || img.Height() == 0 {
-		// See https://github.com/gohugoio/hugo/issues/7955
+		// See https://github.com/neohugo/neohugo/issues/7955
 		// Smartcrop fails silently in some rare cases.
 		// Fall back to a center fill.
 		conf.Anchor = gift.CenterAnchor

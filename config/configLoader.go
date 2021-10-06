@@ -19,13 +19,13 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/common/paths"
 
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 	"github.com/spf13/afero"
 )
 

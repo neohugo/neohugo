@@ -23,8 +23,9 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/para"
+
+	"github.com/neohugo/neohugo/common/maps"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -171,7 +172,6 @@ func TestDefaultConfigProvider(t *testing.T) {
 
 		c.Assert(cfg.Get(""), qt.DeepEquals, maps.Params{
 			"a": "av",
-			"b": "bv2",
 		})
 	})
 

@@ -312,48 +312,52 @@ func newHighlighting(cfg highlight.Config) goldmark.Extender {
 		),
 
 		hl.WithWrapperRenderer(func(w util.BufWriter, ctx hl.CodeBlockContext, entering bool) {
-			l, hasLang := ctx.Language()
 			var language string
-			if hasLang {
+			if l, hasLang := ctx.Language(); hasLang {
 				language = string(l)
 			}
 
-			if entering {
-				if !ctx.Highlighted() {
-					w.WriteString(`<pre>`) //nolint
-					highlight.WriteCodeTag(w, language)
-					return
-				}
-				w.WriteString(`<div class="highlight`) //nolint
-
-				var attributes []ast.Attribute
-				if ctx.Attributes() != nil {
-					attributes = ctx.Attributes().All()
-				}
-
-				if attributes != nil {
-					class, found := ctx.Attributes().GetString("class")
-					if found {
-						w.WriteString(" ")                       //nolint
-						w.Write(util.EscapeHTML(class.([]byte))) //nolint
-
-					}
-					_, _ = w.WriteString("\"")
-					renderAttributes(w, true, attributes...)
+			if ctx.Highlighted() {
+				if entering {
+					writeDivStart(w, ctx)
 				} else {
-					_, _ = w.WriteString("\"")
+					writeDivEnd(w)
 				}
-
-				w.WriteString(">") //nolint
-				return
+			} else {
+				if entering {
+					highlight.WritePreStart(w, language, "")
+				} else {
+					highlight.WritePreEnd(w)
+				}
 			}
-
-			if !ctx.Highlighted() {
-				w.WriteString(`</code></pre>`) //nolint
-				return
-			}
-
-			w.WriteString("</div>") //nolint
 		}),
 	)
+}
+
+func writeDivStart(w util.BufWriter, ctx hl.CodeBlockContext) {
+	w.WriteString(`<div class="highlight`) //nolint
+
+	var attributes []ast.Attribute
+	if ctx.Attributes() != nil {
+		attributes = ctx.Attributes().All()
+	}
+
+	if attributes != nil {
+		class, found := ctx.Attributes().GetString("class")
+		if found {
+			w.WriteString(" ")                       //nolint
+			w.Write(util.EscapeHTML(class.([]byte))) //nolint
+
+		}
+		_, _ = w.WriteString("\"") //nolint
+		renderAttributes(w, true, attributes...)
+	} else {
+		_, _ = w.WriteString("\"") //nolint
+	}
+
+	w.WriteString(">") //nolint
+}
+
+func writeDivEnd(w util.BufWriter) {
+	w.WriteString("</div>") //nolint
 }
