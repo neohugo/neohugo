@@ -928,7 +928,7 @@ Hello2: Bonjour
 //os.Chdir(wd) //nolint
 //}()
 
-//c := qt.New(t)
+// c := qt.New(t)
 
 //packageJSON := `{
 //"scripts": {},
@@ -966,11 +966,11 @@ Hello2: Bonjour
 
 //`
 
-//workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-postcss")
-//c.Assert(err, qt.IsNil)
-//defer clean()
+// workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-postcss")
+// c.Assert(err, qt.IsNil)
+// defer clean()
 
-//var logBuf bytes.Buffer
+// var logBuf bytes.Buffer
 
 //newTestBuilder := func(v config.Provider) *sitesBuilder {
 //v.Set("workingDir", workDir)
@@ -995,10 +995,10 @@ Hello2: Bonjour
 //return b
 //}
 
-//b := newTestBuilder(config.New())
+// b := newTestBuilder(config.New())
 
-//cssDir := filepath.Join(workDir, "assets", "css", "components")
-//b.Assert(os.MkdirAll(cssDir, 0o777), qt.IsNil)
+// cssDir := filepath.Join(workDir, "assets", "css", "components")
+// b.Assert(os.MkdirAll(cssDir, 0o777), qt.IsNil)
 
 //b.WithSourceFile("assets/css/styles.css", tailwindCss)
 //b.WithSourceFile("assets/css/components/all.css", `
@@ -1016,8 +1016,8 @@ Hello2: Bonjour
 //}
 //`)
 
-//b.WithSourceFile("package.json", packageJSON)
-//b.WithSourceFile("postcss.config.js", postcssConfig)
+// b.WithSourceFile("package.json", packageJSON)
+// b.WithSourceFile("postcss.config.js", postcssConfig)
 
 //b.Assert(os.Chdir(workDir), qt.IsNil)
 //cmd, err := hexec.SafeCommand("npm", "install") //nolint
@@ -1035,26 +1035,26 @@ Hello2: Bonjour
 //Styles Content: Len: 770878|
 //`)
 
-//assertCss := func(b *sitesBuilder) {
-//content := b.FileContent("public/css/styles.css")
+// assertCss := func(b *sitesBuilder) {
+// content := b.FileContent("public/css/styles.css")
 
 //b.Assert(strings.Contains(content, "class-in-a"), qt.Equals, true)
 //b.Assert(strings.Contains(content, "class-in-b"), qt.Equals, true)
 //}
 
-//assertCss(b)
+// assertCss(b)
 
-//build := func(s string, shouldFail bool) error {
-//b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
+// build := func(s string, shouldFail bool) error {
+// b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
 
 //v := config.New()
 //v.Set("build", map[string]interface{}{
 //"useResourceCacheWhen": s,
 //})
 
-//b = newTestBuilder(v)
+// b = newTestBuilder(v)
 
-//b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
+// b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
 
 //err := b.BuildE(BuildCfg{})
 //if shouldFail {
@@ -1067,8 +1067,8 @@ Hello2: Bonjour
 //return err
 //}
 
-//build("always", false)   //nolint
-//build("fallback", false) //nolint
+// build("always", false)   //nolint
+// build("fallback", false) //nolint
 
 //// Introduce a syntax error in an import
 //b.WithSourceFile("assets/css/components/b.css", `@import "a.css";
@@ -1078,20 +1078,20 @@ Hello2: Bonjour
 //}
 //`)
 
-//err = build("newer", true)
+// err = build("newer", true)
 
-//err = herrors.UnwrapErrorWithFileContext(err)
-//fe, ok := err.(*herrors.ErrorWithFileContext)
-//b.Assert(ok, qt.Equals, true)
-//b.Assert(fe.Position().LineNumber, qt.Equals, 4)
-//b.Assert(fe.Error(), qt.Contains, filepath.Join(workDir, "assets/css/components/b.css:4:1"))
+// err = herrors.UnwrapErrorWithFileContext(err)
+// fe, ok := err.(*herrors.ErrorWithFileContext)
+// b.Assert(ok, qt.Equals, true)
+// b.Assert(fe.Position().LineNumber, qt.Equals, 4)
+// b.Assert(fe.Error(), qt.Contains, filepath.Join(workDir, "assets/css/components/b.css:4:1"))
 
 //// Remove PostCSS
 //b.Assert(os.RemoveAll(filepath.Join(workDir, "node_modules")), qt.IsNil)
 
-//build("always", false)   //nolint
-//build("fallback", false) //nolint
-//build("never", true)     //nolint
+// build("always", false)   //nolint
+// build("fallback", false) //nolint
+// build("never", true)     //nolint
 
 //// Remove cache
 //b.Assert(os.RemoveAll(filepath.Join(workDir, "resources")), qt.IsNil)
