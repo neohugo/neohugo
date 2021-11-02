@@ -14,6 +14,7 @@
 package hugolib
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math/rand"
@@ -24,6 +25,7 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/config"
+	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
 
@@ -33,6 +35,8 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs"
 
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 )
@@ -918,188 +922,192 @@ Hello2: Bonjour
 `)
 }
 
-//func TestResourceChainPostCSS(t *testing.T) {
-//if !htesting.IsCI() {
-//t.Skip("skip (relative) long running modules test when running locally")
-//}
+func TestResourceChainPostCSS(t *testing.T) {
+	if !htesting.IsCI() {
+		t.Skip("skip (relative) long running modules test when running locally")
+	}
 
-//wd, _ := os.Getwd()
-//defer func() {
-//os.Chdir(wd) //nolint
-//}()
+	c := qt.New(t)
+	wd, _ := os.Getwd()
+	defer func() {
+		c.Assert(os.Chdir(wd), qt.IsNil)
+	}()
 
-// c := qt.New(t)
+	packageJSON := `{
+  "scripts": {},
 
-//packageJSON := `{
-//"scripts": {},
+  "devDependencies": {
+    "postcss-cli": "7.1.0",
+    "tailwindcss": "1.2.0"
+  }
+}
+`
 
-//"devDependencies": {
-//"postcss-cli": "7.1.0",
-//"tailwindcss": "1.2.0"
-//}
-//}
-//`
+	postcssConfig := `
+console.error("Hugo Environment:", process.env.HUGO_ENVIRONMENT );
+// https://github.com/gohugoio/hugo/issues/7656
+console.error("package.json:", process.env.HUGO_FILE_PACKAGE_JSON );
+console.error("PostCSS Config File:", process.env.HUGO_FILE_POSTCSS_CONFIG_JS );
 
-//postcssConfig := `
-//console.error("Hugo Environment:", process.env.HUGO_ENVIRONMENT );
-//// https://github.com/gohugoio/hugo/issues/7656
-//console.error("package.json:", process.env.HUGO_FILE_PACKAGE_JSON );
-//console.error("PostCSS Config File:", process.env.HUGO_FILE_POSTCSS_CONFIG_JS );
 
-//module.exports = {
-//plugins: [
-//require('tailwindcss')
-//]
-//}
-//`
+module.exports = {
+  plugins: [
+    require('tailwindcss')
+  ]
+}
+`
 
-//tailwindCss := `
-//@tailwind base;
-//@tailwind components;
-//@tailwind utilities;
+	tailwindCss := `
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-//@import "components/all.css";
+@import "components/all.css";
 
-//h1 {
-//@apply text-2xl font-bold;
-//}
+h1 {
+    @apply text-2xl font-bold;
+}
+  
+`
 
-//`
+	workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-postcss")
+	c.Assert(err, qt.IsNil)
+	defer clean()
 
-// workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-test-postcss")
-// c.Assert(err, qt.IsNil)
-// defer clean()
+	var logBuf bytes.Buffer
 
-// var logBuf bytes.Buffer
+	newTestBuilder := func(v config.Provider) *sitesBuilder {
+		v.Set("workingDir", workDir)
+		v.Set("disableKinds", []string{"taxonomy", "term", "page"})
+		logger := loggers.NewBasicLoggerForWriter(jww.LevelInfo, &logBuf)
+		b := newTestSitesBuilder(t).WithLogger(logger)
+		// Need to use OS fs for this.
+		b.Fs = hugofs.NewDefault(v)
+		b.WithWorkingDir(workDir)
+		b.WithViper(v)
 
-//newTestBuilder := func(v config.Provider) *sitesBuilder {
-//v.Set("workingDir", workDir)
-//v.Set("disableKinds", []string{"taxonomy", "term", "page"})
-//logger := loggers.NewBasicLoggerForWriter(jww.LevelInfo, &logBuf)
-//b := newTestSitesBuilder(t).WithLogger(logger)
-//// Need to use OS fs for this.
-//b.Fs = hugofs.NewDefault(v)
-//b.WithWorkingDir(workDir)
-//b.WithViper(v)
+		b.WithContent("p1.md", "")
+		b.WithTemplates("index.html", `
+{{ $options := dict "inlineImports" true }}
+{{ $styles := resources.Get "css/styles.css" | resources.PostCSS $options }}
+Styles RelPermalink: {{ $styles.RelPermalink }}
+{{ $cssContent := $styles.Content }}
+Styles Content: Len: {{ len $styles.Content }}|
 
-//b.WithContent("p1.md", "")
-//b.WithTemplates("index.html", `
-//{{ $options := dict "inlineImports" true }}
-//{{ $styles := resources.Get "css/styles.css" | resources.PostCSS $options }}
-//Styles RelPermalink: {{ $styles.RelPermalink }}
-//{{ $cssContent := $styles.Content }}
-//Styles Content: Len: {{ len $styles.Content }}|
+`)
 
-//`)
+		return b
+	}
 
-//return b
-//}
+	b := newTestBuilder(config.New())
 
-// b := newTestBuilder(config.New())
+	cssDir := filepath.Join(workDir, "assets", "css", "components")
+	b.Assert(os.MkdirAll(cssDir, 0o777), qt.IsNil)
 
-// cssDir := filepath.Join(workDir, "assets", "css", "components")
-// b.Assert(os.MkdirAll(cssDir, 0o777), qt.IsNil)
+	b.WithSourceFile("assets/css/styles.css", tailwindCss)
+	b.WithSourceFile("assets/css/components/all.css", `
+@import "a.css";
+@import "b.css";
+`, "assets/css/components/a.css", `
+class-in-a {
+	color: blue;
+}
+`, "assets/css/components/b.css", `
+@import "a.css";
 
-//b.WithSourceFile("assets/css/styles.css", tailwindCss)
-//b.WithSourceFile("assets/css/components/all.css", `
-//@import "a.css";
-//@import "b.css";
-//`, "assets/css/components/a.css", `
-//class-in-a {
-//color: blue;
-//}
-//`, "assets/css/components/b.css", `
-//@import "a.css";
+class-in-b {
+	color: blue;
+}
+`)
 
-//class-in-b {
-//color: blue;
-//}
-//`)
+	b.WithSourceFile("package.json", packageJSON)
+	b.WithSourceFile("postcss.config.js", postcssConfig)
 
-// b.WithSourceFile("package.json", packageJSON)
-// b.WithSourceFile("postcss.config.js", postcssConfig)
+	b.Assert(os.Chdir(workDir), qt.IsNil)
+	cmd, _ := hexec.SafeCommand("npm", "install")
+	_, err = cmd.CombinedOutput()
+	b.Assert(err, qt.IsNil)
+	b.Build(BuildCfg{})
 
-//b.Assert(os.Chdir(workDir), qt.IsNil)
-//cmd, err := hexec.SafeCommand("npm", "install") //nolint
-//_, err = cmd.CombinedOutput()
-//b.Assert(err, qt.IsNil)
-//b.Build(BuildCfg{})
+	// Make sure Node sees this.
+	b.Assert(logBuf.String(), qt.Contains, "Hugo Environment: production")
+	b.Assert(logBuf.String(), qt.Contains, filepath.FromSlash(fmt.Sprintf("PostCSS Config File: %s/postcss.config.js", workDir)))
+	b.Assert(logBuf.String(), qt.Contains, filepath.FromSlash(fmt.Sprintf("package.json: %s/package.json", workDir)))
 
-//// Make sure Node sees this.
-//b.Assert(logBuf.String(), qt.Contains, "Hugo Environment: production")
-//b.Assert(logBuf.String(), qt.Contains, filepath.FromSlash(fmt.Sprintf("PostCSS Config File: %s/postcss.config.js", workDir)))
-//b.Assert(logBuf.String(), qt.Contains, filepath.FromSlash(fmt.Sprintf("package.json: %s/package.json", workDir)))
+	b.AssertFileContent("public/index.html", `
+Styles RelPermalink: /css/styles.css
+Styles Content: Len: 770878|
+`)
 
-//b.AssertFileContent("public/index.html", `
-//Styles RelPermalink: /css/styles.css
-//Styles Content: Len: 770878|
-//`)
+	assertCss := func(b *sitesBuilder) {
+		content := b.FileContent("public/css/styles.css")
 
-// assertCss := func(b *sitesBuilder) {
-// content := b.FileContent("public/css/styles.css")
+		b.Assert(strings.Contains(content, "class-in-a"), qt.Equals, true)
+		b.Assert(strings.Contains(content, "class-in-b"), qt.Equals, true)
+	}
 
-//b.Assert(strings.Contains(content, "class-in-a"), qt.Equals, true)
-//b.Assert(strings.Contains(content, "class-in-b"), qt.Equals, true)
-//}
+	assertCss(b)
 
-// assertCss(b)
+	build := func(s string, shouldFail bool) error {
+		b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
 
-// build := func(s string, shouldFail bool) error {
-// b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
+		v := config.New()
+		v.Set("build", map[string]interface{}{
+			"useResourceCacheWhen": s,
+		})
 
-//v := config.New()
-//v.Set("build", map[string]interface{}{
-//"useResourceCacheWhen": s,
-//})
+		b = newTestBuilder(v)
 
-// b = newTestBuilder(v)
+		b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
 
-// b.Assert(os.RemoveAll(filepath.Join(workDir, "public")), qt.IsNil)
+		err := b.BuildE(BuildCfg{})
+		if shouldFail {
+			b.Assert(err, qt.Not(qt.IsNil))
+		} else {
+			b.Assert(err, qt.IsNil)
+			assertCss(b)
+		}
 
-//err := b.BuildE(BuildCfg{})
-//if shouldFail {
-//b.Assert(err, qt.Not(qt.IsNil))
-//} else {
-//b.Assert(err, qt.IsNil)
-//assertCss(b)
-//}
+		return err
+	}
 
-//return err
-//}
+	build("always", false)   //nolint
+	build("fallback", false) //nolint
 
-// build("always", false)   //nolint
-// build("fallback", false) //nolint
+	// Introduce a syntax error in an import
+	b.WithSourceFile("assets/css/components/b.css", `@import "a.css";
 
-//// Introduce a syntax error in an import
-//b.WithSourceFile("assets/css/components/b.css", `@import "a.css";
+class-in-b {
+	@apply asdf;
+}
+`)
 
-//class-in-b {
-//@apply asdf;
-//}
-//`)
+	err = build("never", true)
 
-// err = build("newer", true)
+	err = herrors.UnwrapErrorWithFileContext(err)
+	_, ok := err.(*herrors.ErrorWithFileContext)
+	b.Assert(ok, qt.Equals, true)
 
-// err = herrors.UnwrapErrorWithFileContext(err)
-// fe, ok := err.(*herrors.ErrorWithFileContext)
-// b.Assert(ok, qt.Equals, true)
-// b.Assert(fe.Position().LineNumber, qt.Equals, 4)
-// b.Assert(fe.Error(), qt.Contains, filepath.Join(workDir, "assets/css/components/b.css:4:1"))
+	// TODO(bep) for some reason, we have starting to get
+	// execute of template failed: template: index.html:5:25
+	// on CI (GitHub action).
+	// b.Assert(fe.Position().LineNumber, qt.Equals, 5)
+	// b.Assert(fe.Error(), qt.Contains, filepath.Join(workDir, "assets/css/components/b.css:4:1"))
 
-//// Remove PostCSS
-//b.Assert(os.RemoveAll(filepath.Join(workDir, "node_modules")), qt.IsNil)
+	// Remove PostCSS
+	b.Assert(os.RemoveAll(filepath.Join(workDir, "node_modules")), qt.IsNil)
 
-// build("always", false)   //nolint
-// build("fallback", false) //nolint
-// build("never", true)     //nolint
+	build("always", false)   //nolint
+	build("fallback", false) //nolint
+	build("never", true)     //nolint
 
-//// Remove cache
-//b.Assert(os.RemoveAll(filepath.Join(workDir, "resources")), qt.IsNil)
+	// Remove cache
+	b.Assert(os.RemoveAll(filepath.Join(workDir, "resources")), qt.IsNil)
 
-//build("always", true)   //nolint
-//build("fallback", true) //nolint
-//build("never", true)    //nolint
-//}
+	build("always", true)   //nolint
+	build("fallback", true) //nolint
+	build("never", true)    //nolint
+}
 
 func TestResourceMinifyDisabled(t *testing.T) {
 	t.Parallel()
@@ -1129,4 +1137,27 @@ XML: {{ $xml.Content | safeHTML }}|{{ $xml.RelPermalink }}
 	b.AssertFileContent("public/index.html", `
 XML: <root>   <foo> asdfasdf </foo> </root>|/xml/data.min.3be4fddd19aaebb18c48dd6645215b822df74701957d6d36e59f203f9c30fd9f.xml
 `)
+}
+
+// Issue 8954
+func TestMinifyWithError(t *testing.T) {
+	b := newTestSitesBuilder(t).WithSimpleConfigFile()
+	b.WithSourceFile(
+		"assets/js/test.js", `
+new Date(2002, 04, 11)
+`,
+	)
+	b.WithTemplates("index.html", `
+{{ $js := resources.Get "js/test.js" | minify | fingerprint }}
+<script>
+{{ $js.Content }}
+</script>
+`)
+	b.WithContent("page.md", "")
+
+	err := b.BuildE(BuildCfg{})
+
+	if err == nil || !strings.Contains(err.Error(), "04") {
+		t.Fatalf("expected a message about a legacy octal number, but got: %v", err)
+	}
 }

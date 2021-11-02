@@ -110,7 +110,7 @@ jobs:
     needs: docdeploy
     runs-on: ubuntu-latest
     container:
-      image: neohugo/golang-cross:v1.17.1
+      image: neohugo/golang-cross:v1.17.2
     steps:
       - name: Checkout
         uses: actions/checkout@v2
