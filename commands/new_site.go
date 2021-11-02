@@ -19,12 +19,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neohugo/neohugo/create"
+
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	_errors "github.com/pkg/errors"
 
-	"github.com/neohugo/neohugo/create"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/parser"
@@ -105,7 +106,7 @@ func (n *newSiteCmd) doNewSite(fs *hugofs.Fs, basepath string, force bool) error
 	// Create a default archetype file.
 	if err := helpers.SafeWriteToDisk(
 		filepath.Join(archeTypePath, "default.md"),
-		strings.NewReader(create.ArchetypeTemplateTemplate),
+		strings.NewReader(create.DefaultArchetypeTemplateTemplate),
 		fs.Source); err != nil {
 		return _errors.Wrap(err, "Failed to create file")
 	}
@@ -132,7 +133,7 @@ func (n *newSiteCmd) newSite(cmd *cobra.Command, args []string) error {
 	return n.doNewSite(hugofs.NewDefault(config.New()), createpath, forceNew)
 }
 
-func createConfig(fs *hugofs.Fs, inpath string, kind string) error {
+func createConfig(fs *hugofs.Fs, inpath string, kind string) (err error) {
 	in := map[string]string{
 		"baseURL":      "http://example.org/",
 		"title":        "My New Hugo Site",
