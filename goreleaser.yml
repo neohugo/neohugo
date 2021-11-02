@@ -1,4 +1,4 @@
-project_name: hugo
+project_name: neohugo
 env:
   - GO111MODULE=on
   - GOPROXY=https://proxy.golang.org
@@ -32,7 +32,7 @@ builds:
   -
       binary: hugo
       id: hugo_unix
-      ldflags: -s -w -X github.com/gohugoio/hugo/common/hugo.buildDate={{.Date}} -X github.com/gohugoio/hugo/common/hugo.commitHash={{ .ShortCommit }} -X github.com/gohugoio/hugo/common/hugo.vendorInfo=gohugoio
+      ldflags: -s -w -X github.com/neohugo/neohugo/common/hugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/hugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/hugo.vendorInfo=gohugoio
       env:
         - CGO_ENABLED=0
       flags:
