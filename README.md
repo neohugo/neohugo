@@ -1,5 +1,10 @@
 A [hugo](https://github.com/gohugoio/hugo)-fork focused on multilingual and Custom format Feature(specific AMP) with other bug fixes/refactor/cleanup.
 
+what is the different between neohugo vs hugo?
+
+[Neohugo vs Hugo](https://github.com/neohugo/neohugo/wiki/Diff-hugo-neohugo)
+
+
 [Website](https://neohugo.github.io) |
 [Forum](https://github.com/neohugo/neohugo/discussions) |
 [Documentation](https://neohugo.github.io/getting-started/) |
