@@ -7,9 +7,9 @@ before:
     - go mod download
 builds:
   -
-    binary: hugo
-    id: hugo
-    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/hugo.vendorInfo=neohugo
+    binary: neohugo
+    id: neohugo
+    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=0
     flags:
@@ -30,9 +30,9 @@ builds:
       - goos: darwin
         goarch: 386
   -
-      binary: hugo
-      id: hugo_unix
-      ldflags: -s -w -X github.com/neohugo/neohugo/common/hugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/hugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/hugo.vendorInfo=gohugoio
+      binary: neohugo
+      id: neohugo_unix
+      ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
       env:
         - CGO_ENABLED=0
       flags:
@@ -46,8 +46,8 @@ builds:
       goarch:
         - amd64
   -
-    binary: hugo
-    id: hugo_extended_windows
+    binary: neohugo
+    id: neohugo_extended_windows
     ldflags:
       - -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
       - "-extldflags '-static'"
@@ -64,8 +64,8 @@ builds:
       - windows
     goarch:
       - amd64
-  - binary: hugo
-    id: hugo_extended_darwin
+  - binary: neohugo
+    id: neohugo_extended_darwin
     ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=1
@@ -81,8 +81,8 @@ builds:
     goarch:
       - amd64
       - arm64
-  - binary: hugo
-    id: hugo_extended_linux
+  - binary: neohugo
+    id: neohugo_extended_linux
     ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=1
@@ -102,8 +102,8 @@ release:
 
 archives:
   -
-    id: "hugo"
-    builds: ['hugo', 'hugo_unix']
+    id: "neohugo"
+    builds: ['neohugo', 'neohugo_unix']
     format: tar.gz
     format_overrides:
       - goos: windows
@@ -125,8 +125,8 @@ archives:
       - README.md
       - LICENSE
   -
-    id: "hugo_extended"
-    builds: ['hugo_extended_windows', 'hugo_extended_linux', 'hugo_extended_darwin']
+    id: "neohugo_extended"
+    builds: ['neohugo_extended_windows', 'neohugo_extended_linux', 'neohugo_extended_darwin']
     format: tar.gz
     format_overrides:
       - goos: windows
@@ -149,23 +149,23 @@ archives:
       - LICENSE
 universal_binaries:
   -
-    id: 'hugo'
-    name_template: 'hugo'
+    id: 'neohugo'
+    name_template: 'neohugo'
     replace: true
   -
-    id: 'hugo_extended_darwin'
-    name_template: 'hugo'
+    id: 'neohugo_extended_darwin'
+    name_template: 'neohugo'
     replace: true
 nfpms:
   -
-    id: "hugo"
-    builds: ['hugo']
+    id: "neohugo"
+    builds: ['neohugo']
     formats:
         - deb
-    vendor: "gohugo.io"
-    homepage: "https://gohugo.io/"
-    maintainer: "Bjørn Erik Pedersen <bjorn.erik.pedersen@gmail.com>"
-    description: "A Fast and Flexible Static Site Generator built with love in GoLang."
+    vendor: "neohugo.github.io"
+    homepage: "https://neohugo.github.io/"
+    maintainer: "Prachya Saechua <blackb1rd.mov@gmail.com>"
+    description: "hugo-fork focused on multilingual and Custom format Feature(specific AMP) with other bug fixes/refactor/cleanup"
     license: "Apache-2.0"
     file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
@@ -181,14 +181,14 @@ nfpms:
       freebsd: FreeBSD
       dragonfly: DragonFlyBSD
   -
-    id: "hugo_extended"
-    builds: ['hugo_extended_linux']
+    id: "neohugo_extended"
+    builds: ['neohugo_extended_linux']
     formats:
         - deb
-    vendor: "gohugo.io"
-    homepage: "https://gohugo.io/"
-    maintainer: "Bjørn Erik Pedersen <bjorn.erik.pedersen@gmail.com>"
-    description: "A Fast and Flexible Static Site Generator built with love in GoLang."
+    vendor: "neohugo.github.io"
+    homepage: "https://neohugo.github.io/"
+    maintainer: "Prachya Saechua <blackb1rd.mov@gmail.com>"
+    description: "hugo-fork focused on multilingual and Custom format Feature(specific AMP) with other bug fixes/refactor/cleanup"
     license: "Apache-2.0"
     file_name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:

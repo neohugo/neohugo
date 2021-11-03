@@ -25,11 +25,11 @@ import (
 
 const (
 	packageName  = "github.com/neohugo/neohugo"
-	noGitLdflags = "-X $PACKAGE/common/hugo.buildDate=$BUILD_DATE"
+	noGitLdflags = "-X $PACKAGE/common/neohugo.buildDate=$BUILD_DATE"
 )
 
 var (
-	ldflags = "-X $PACKAGE/common/hugo.commitHash=$COMMIT_HASH -X $PACKAGE/common/hugo.buildDate=$BUILD_DATE"
+	ldflags = "-X $PACKAGE/common/neohugo.commitHash=$COMMIT_HASH -X $PACKAGE/common/neohugo.buildDate=$BUILD_DATE"
 	env     = map[string]string{
 		"GO111MODULE": "on",
 		"GOPROXY":     "https://proxy.golang.org",

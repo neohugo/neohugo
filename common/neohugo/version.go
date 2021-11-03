@@ -128,7 +128,7 @@ func (v Version) NextPatchLevel(level int) Version {
 // running "hugo version".
 func BuildVersionString() string {
 	// program := "Hugo Static Site Generator"
-	program := "hugo"
+	program := "neohugo"
 
 	version := "v" + CurrentVersion.String()
 	if commitHash != "" {
