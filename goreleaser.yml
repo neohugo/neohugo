@@ -147,15 +147,7 @@ archives:
     files:
       - README.md
       - LICENSE
-universal_binaries:
-  -
-    id: 'neohugo'
-    name_template: 'neohugo'
-    replace: true
-  -
-    id: 'neohugo_extended_darwin'
-    name_template: 'neohugo'
-    replace: true
+
 nfpms:
   -
     id: "neohugo"
