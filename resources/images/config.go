@@ -76,7 +76,6 @@ var hints = map[string]webpoptions.EncodingPreset{
 }
 
 var imageFilters = map[string]gift.Resampling{
-
 	strings.ToLower("NearestNeighbor"):   gift.NearestNeighborResampling,
 	strings.ToLower("Box"):               gift.BoxResampling,
 	strings.ToLower("Linear"):            gift.LinearResampling,

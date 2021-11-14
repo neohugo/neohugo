@@ -33,7 +33,6 @@ type PostPublishedResource interface {
 	resource.ResourceParamsProvider
 	resource.ResourceDataProvider
 	resource.OriginProvider
-
 	MediaType() map[string]interface{}
 }
 
