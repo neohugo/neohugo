@@ -126,23 +126,19 @@ type baseResourceResource interface {
 
 type baseResourceInternal interface {
 	resource.Source
-
 	fileInfo
 	metaAssigner
 	targetPather
-
 	ReadSeekCloser() (hugio.ReadSeekCloser, error)
 
 	// Internal
 	cloneWithUpdates(*transformationUpdate) (baseResource, error)
 	tryTransformedFileCache(key string, u *transformationUpdate) io.ReadCloser
-
 	specProvider
 	getResourcePaths() *resourcePathDescriptor
 	getTargetFilenames() []string
 	openDestinationsForWriting() (io.WriteCloser, error)
 	openPublishFileForWriting(relTargetPath string) (io.WriteCloser, error)
-
 	relTargetPathForRel(rel string, addBaseTargetPath, isAbs, isURL bool) string
 }
 

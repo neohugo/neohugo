@@ -31,7 +31,6 @@ var (
 // A PageGenealogist finds related pages in a page collection. This interface is implemented
 // by Pages and PageGroup, which makes it available as `{{ .RegularRelated . }}` etc.
 type PageGenealogist interface {
-
 	// Template example:
 	// {{ $related := .RegularPages.Related . }}
 	Related(doc related.Document) (Pages, error)

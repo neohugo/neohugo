@@ -71,9 +71,7 @@ type Logger interface {
 	Errorf(format string, v ...interface{})
 	Errorln(v ...interface{})
 	Errors() string
-
 	Out() io.Writer
-
 	Reset()
 
 	// Used in tests.

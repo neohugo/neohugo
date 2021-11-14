@@ -27,7 +27,6 @@ var _ causer = (*fileError)(nil)
 // execute a template etc.
 type FileError interface {
 	error
-
 	text.Positioner
 
 	// A string identifying the type of file, e.g. JSON, TOML, markdown etc.
