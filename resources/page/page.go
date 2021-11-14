@@ -70,7 +70,6 @@ type ChildCareProvider interface {
 	// RegularPagesRecursive returns all regular pages below the current
 	// section.
 	RegularPagesRecursive() Pages
-
 	Resources() resource.Resources
 }
 
@@ -226,7 +225,6 @@ type PageWithoutContent interface {
 
 	// For pages backed by a file.
 	FileProvider
-
 	GitInfoProvider
 
 	// Output formats
@@ -250,10 +248,8 @@ type PageWithoutContent interface {
 	// Page lookups/refs
 	GetPageProvider
 	RefProvider
-
 	resource.TranslationKeyProvider
 	TranslationsProvider
-
 	SitesProvider
 
 	// Helper methods
@@ -268,7 +264,6 @@ type PageWithoutContent interface {
 
 	// Used in change/dependency tracking.
 	identity.Provider
-
 	DeprecatedWarningPageMethods
 }
 
@@ -324,7 +319,6 @@ type TableOfContentsProvider interface {
 
 // TranslationsProvider provides access to any translations.
 type TranslationsProvider interface {
-
 	// IsTranslated returns whether this content file is translated to
 	// other language(s).
 	IsTranslated() bool
@@ -338,7 +332,6 @@ type TranslationsProvider interface {
 
 // TreeProvider provides section tree navigation.
 type TreeProvider interface {
-
 	// IsAncestor returns whether the current page is an ancestor of the given
 	// Note that this method is not relevant for taxonomy lists and taxonomy terms pages.
 	IsAncestor(other interface{}) (bool, error)

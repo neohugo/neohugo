@@ -29,7 +29,6 @@ import (
 )
 
 var DefaultModuleConfig = Config{
-
 	// Default to direct, which means "git clone" and similar. We
 	// will investigate proxy settings in more depth later.
 	// See https://github.com/golang/go/issues/26334

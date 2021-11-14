@@ -584,7 +584,6 @@ type resourceTransformations struct {
 
 type transformableResource interface {
 	baseResourceInternal
-
 	resource.ContentProvider
 	resource.Resource
 	resource.Identifier

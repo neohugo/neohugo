@@ -101,18 +101,17 @@ func TestDataDirTwoFiles(t *testing.T) {
 	equivDataDirs[2].addSource("data/test/foo.toml", "bar = \"foofoo\"")
 	equivDataDirs[2].addSource("data/test.toml", "hello = [\"world\", \"foo\"]")
 
-	expected :=
-		map[string]interface{}{
-			"test": map[string]interface{}{
-				"hello": []interface{}{
-					"world",
-					"foo",
-				},
-				"foo": map[string]interface{}{
-					"bar": "foofoo",
-				},
+	expected := map[string]interface{}{
+		"test": map[string]interface{}{
+			"hello": []interface{}{
+				"world",
+				"foo",
 			},
-		}
+			"foo": map[string]interface{}{
+				"bar": "foofoo",
+			},
+		},
+	}
 
 	doTestEquivalentDataDirs(t, equivDataDirs, expected)
 }
@@ -137,14 +136,13 @@ func TestDataDirOverriddenValue(t *testing.T) {
 	equivDataDirs[2].addSource("data/test/v2.toml", "v2 = [\"2\", \"3\"]")
 	equivDataDirs[2].addSource("data/test.toml", "v1 = \"1\"")
 
-	expected :=
-		map[string]interface{}{
-			"a": map[string]interface{}{"a": "1"},
-			"test": map[string]interface{}{
-				"v1": map[string]interface{}{"v1-2": "2"},
-				"v2": map[string]interface{}{"v2": []interface{}{"2", "3"}},
-			},
-		}
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{"a": "1"},
+		"test": map[string]interface{}{
+			"v1": map[string]interface{}{"v1-2": "2"},
+			"v2": map[string]interface{}{"v2": []interface{}{"2", "3"}},
+		},
+	}
 
 	doTestEquivalentDataDirs(t, equivDataDirs, expected)
 }
@@ -161,14 +159,13 @@ func TestDataDirArrayAtTopLevelOfFile(t *testing.T) {
 - is: lunch?
 `)
 
-	expected :=
-		map[string]interface{}{
-			"test": []interface{}{
-				map[string]interface{}{"hello": "world"},
-				map[string]interface{}{"what": "time"},
-				map[string]interface{}{"is": "lunch?"},
-			},
-		}
+	expected := map[string]interface{}{
+		"test": []interface{}{
+			map[string]interface{}{"hello": "world"},
+			map[string]interface{}{"what": "time"},
+			map[string]interface{}{"is": "lunch?"},
+		},
+	}
 
 	doTestEquivalentDataDirs(t, equivDataDirs, expected)
 }
@@ -182,17 +179,16 @@ func TestDataDirMultipleSources(t *testing.T) {
 	dd.addSource("themes/mytheme/data/test/first.yaml", "bar: 2")
 	dd.addSource("data/test/second.yaml", "tender: 2")
 
-	expected :=
-		map[string]interface{}{
-			"test": map[string]interface{}{
-				"first": map[string]interface{}{
-					"bar": 1,
-				},
-				"second": map[string]interface{}{
-					"tender": 2,
-				},
+	expected := map[string]interface{}{
+		"test": map[string]interface{}{
+			"first": map[string]interface{}{
+				"bar": 1,
 			},
-		}
+			"second": map[string]interface{}{
+				"tender": 2,
+			},
+		},
+	}
 
 	doTestDataDir(t, dd, expected,
 		"theme", "mytheme")
@@ -212,17 +208,16 @@ func TestDataDirMultipleSourcesCommingled(t *testing.T) {
 	// Per handleDataFile() comment:
 	// 1. A theme uses the same key; the main data folder wins
 	// 2. A sub folder uses the same key: the sub folder wins
-	expected :=
-		map[string]interface{}{
-			"a": map[string]interface{}{
-				"b1": map[string]interface{}{
-					"c1": "data/a/b1",
-					"c2": "mytheme/data/a/b1",
-				},
-				"b2": "data/a",
-				"b3": []interface{}{"x", "y", "z"},
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b1": map[string]interface{}{
+				"c1": "data/a/b1",
+				"c2": "mytheme/data/a/b1",
 			},
-		}
+			"b2": "data/a",
+			"b3": []interface{}{"x", "y", "z"},
+		},
+	}
 
 	doTestDataDir(t, dd, expected, "theme", "mytheme")
 }
@@ -238,13 +233,12 @@ func TestDataDirCollidingChildArrays(t *testing.T) {
 	// Per handleDataFile() comment:
 	// 1. A theme uses the same key; the main data folder wins
 	// 2. A sub folder uses the same key: the sub folder wins
-	expected :=
-		map[string]interface{}{
-			"a": map[string]interface{}{
-				"b1": "data/a",
-				"b2": []interface{}{"1", "2", "3"},
-			},
-		}
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b1": "data/a",
+			"b2": []interface{}{"1", "2", "3"},
+		},
+	}
 
 	doTestDataDir(t, dd, expected, "theme", "mytheme")
 }
@@ -256,12 +250,11 @@ func TestDataDirCollidingTopLevelArrays(t *testing.T) {
 	dd.addSource("themes/mytheme/data/a/b1.json", `["x", "y", "z"]`)
 	dd.addSource("data/a/b1.json", `["1", "2", "3"]`)
 
-	expected :=
-		map[string]interface{}{
-			"a": map[string]interface{}{
-				"b1": []interface{}{"1", "2", "3"},
-			},
-		}
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{
+			"b1": []interface{}{"1", "2", "3"},
+		},
+	}
 
 	doTestDataDir(t, dd, expected, "theme", "mytheme")
 }
@@ -276,13 +269,12 @@ func TestDataDirCollidingMapsAndArrays(t *testing.T) {
 	dd.addSource("data/a.json", `{ "music" : "Queen's Rebuke" }`)
 	dd.addSource("data/b.json", `["x", "y", "z"]`)
 
-	expected :=
-		map[string]interface{}{
-			"a": map[string]interface{}{
-				"music": "Queen's Rebuke",
-			},
-			"b": []interface{}{"x", "y", "z"},
-		}
+	expected := map[string]interface{}{
+		"a": map[string]interface{}{
+			"music": "Queen's Rebuke",
+		},
+		"b": []interface{}{"x", "y", "z"},
+	}
 
 	doTestDataDir(t, dd, expected, "theme", "mytheme")
 }
@@ -296,11 +288,10 @@ func TestDataDirNestedDirectories(t *testing.T) {
 	dd.addSource("data/test1/20/06/a.json", `{ "artist" : "Michael Brecker" }`)
 	dd.addSource("data/test1/20/05/b.json", `{ "artist" : "Charlie Parker" }`)
 
-	expected :=
-		map[string]interface{}{
-			"a":     []interface{}{"1", "2", "3"},
-			"test1": map[string]interface{}{"20": map[string]interface{}{"05": map[string]interface{}{"b": map[string]interface{}{"artist": "Charlie Parker"}}, "06": map[string]interface{}{"a": map[string]interface{}{"artist": "Michael Brecker"}}}},
-		}
+	expected := map[string]interface{}{
+		"a":     []interface{}{"1", "2", "3"},
+		"test1": map[string]interface{}{"20": map[string]interface{}{"05": map[string]interface{}{"b": map[string]interface{}{"artist": "Charlie Parker"}}, "06": map[string]interface{}{"a": map[string]interface{}{"artist": "Michael Brecker"}}}},
+	}
 
 	doTestDataDir(t, dd, expected, "theme", "mytheme")
 }
