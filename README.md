@@ -11,7 +11,7 @@ what is the different between neohugo vs hugo?
 [Installation Guide](https://neohugo.github.io/getting-started/installing/) |
 [Contribution Guide](CONTRIBUTING.md)
 
-[![Go Reference](https://pkg.go.dev/badge/neohugo/neohugo.svg)](https://pkg.go.dev/neohugo/neohugo)
+[![Go Reference](https://pkg.go.dev/badge/neohugo/neohugo.svg)](https://pkg.go.dev/github.com/neohugo/neohugo)
 ![Golangci-lint](https://github.com/neohugo/neohugo/workflows/Golangci-lint/badge.svg)
 ![CI](https://github.com/neohugo/neohugo/workflows/CI/badge.svg)
 ![Release](https://github.com/neohugo/neohugo/workflows/Release/badge.svg)
