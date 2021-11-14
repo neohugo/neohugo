@@ -52,7 +52,6 @@ func TestSiteBuildErrors(t *testing.T) {
 		assertCreateError func(a testSiteBuildErrorAsserter, err error)
 		assertBuildError  func(a testSiteBuildErrorAsserter, err error)
 	}{
-
 		{
 			name:     "Base template parse failed",
 			fileType: base,

@@ -30,7 +30,6 @@ type BytesReader interface {
 	// That is, if you want to use this value outside of the current transformer step,
 	// you need to take a copy.
 	Bytes() []byte
-
 	io.Reader
 }
 

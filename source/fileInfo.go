@@ -57,12 +57,10 @@ type fileOverlap interface {
 	// Lang is the language code for this page. It will be the
 	// same as the site's language code.
 	Lang() string
-
 	IsZero() bool
 }
 
 type FileWithoutOverlap interface {
-
 	// Filename gets the full path and filename to the file.
 	Filename() string
 
@@ -93,7 +91,6 @@ type FileWithoutOverlap interface {
 	// UniqueID is the MD5 hash of the file's path and is for most practical applications,
 	// Hugo content files being one of them, considered to be unique.
 	UniqueID() string
-
 	FileInfo() hugofs.FileMetaInfo
 }
 

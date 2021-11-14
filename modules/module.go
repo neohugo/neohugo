@@ -25,7 +25,6 @@ import (
 var _ Module = (*moduleAdapter)(nil)
 
 type Module interface {
-
 	// Optional config read from the configFilename above.
 	Cfg() config.Provider
 
