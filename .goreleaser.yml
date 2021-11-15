@@ -9,7 +9,7 @@ builds:
   -
     binary: neohugo
     id: neohugo
-    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }}
+    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=0
     flags:
@@ -33,12 +33,27 @@ builds:
     ignore:
       - goos: darwin
         goarch: 386
-
+  -
+      binary: neohugo
+      id: neohugo_unix
+      ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
+      env:
+        - CGO_ENABLED=0
+      flags:
+        - -buildmode
+        - exe
+      goos:
+        - freebsd
+        - netbsd
+        - openbsd
+        - dragonfly
+      goarch:
+        - amd64
   -
     binary: neohugo
     id: neohugo_extended_windows
     ldflags:
-      - -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }}
+      - -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
       - "-extldflags '-static'"
     env:
       - CGO_ENABLED=1
@@ -55,7 +70,7 @@ builds:
       - amd64
   - binary: neohugo
     id: neohugo_extended_darwin
-    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }}
+    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=1
       - CC=o64-clang
@@ -69,9 +84,10 @@ builds:
       - darwin
     goarch:
       - amd64
+      - arm64
   - binary: neohugo
     id: neohugo_extended_linux
-    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }}
+    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=1
     flags:
@@ -83,6 +99,8 @@ builds:
       - linux
     goarch:
       - amd64
+    hooks:
+      post: ./goreleaser-hook-post-linux.sh
 changelog:
   sort: asc
   filters:
@@ -98,7 +116,7 @@ snapshot:
 archives:
   -
     id: "neohugo"
-    builds: ['neohugo']
+    builds: ['neohugo', 'neohugo_unix']
     format: tar.gz
     format_overrides:
       - goos: windows
@@ -153,7 +171,7 @@ nfpms:
     homepage: "https://neohugo.github.io/"
     maintainer: "Prachya Saechua <blackb1rd@blackb1rd.dev>"
     description: "hugo-fork focused on multilingual and bug fixes/refactor/cleanup."
-    license: "Apache 2.0"
+    license: "Apache-2.0"
     file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
       amd64: 64bit
@@ -176,7 +194,7 @@ nfpms:
     homepage: "https://neohugo.github.io/"
     maintainer: "Prachya Saechua <blackb1rd@blackb1rd.dev>"
     description: "hugo-fork focused on multilingual and bug fixes/refactor/cleanup."
-    license: "Apache 2.0"
+    license: "Apache-2.0"
     file_name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
       amd64: 64bit
