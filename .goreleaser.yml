@@ -8,49 +8,6 @@ before:
 builds:
   -
     binary: neohugo
-    id: neohugo
-    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
-    env:
-      - CGO_ENABLED=0
-    flags:
-      - -buildmode
-      - exe
-    goos:
-      - darwin
-      - linux
-      - windows
-      - freebsd
-      - netbsd
-      - openbsd
-      - dragonfly
-    goarch:
-      - amd64
-      - 386
-      - arm
-      - arm64
-    goarm:
-      - 7
-    ignore:
-      - goos: darwin
-        goarch: 386
-  -
-      binary: neohugo
-      id: neohugo_unix
-      ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
-      env:
-        - CGO_ENABLED=0
-      flags:
-        - -buildmode
-        - exe
-      goos:
-        - freebsd
-        - netbsd
-        - openbsd
-        - dragonfly
-      goarch:
-        - amd64
-  -
-    binary: neohugo
     id: neohugo_extended_windows
     ldflags:
       - -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
@@ -97,8 +54,17 @@ builds:
       - extended
     goos:
       - linux
+      - freebsd
+      - netbsd
+      - openbsd
+      - dragonfly
     goarch:
       - amd64
+      - 386
+      - arm
+      - arm64
+    goarm:
+      - 7
     hooks:
       post: ./goreleaser-hook-post-linux.sh
 changelog:
