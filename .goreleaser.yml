@@ -92,10 +92,6 @@ archives:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
     files:
       - README.md
       - LICENSE
@@ -115,10 +111,6 @@ archives:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
     files:
       - README.md
       - LICENSE
@@ -143,10 +135,6 @@ nfpms:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
   -
     id: "neohugo_extended"
     builds: ['neohugo_extended_linux']
@@ -166,7 +154,3 @@ nfpms:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
