@@ -43,7 +43,7 @@ builds:
       - amd64
       - arm64
   - binary: neohugo
-    id: neohugo_extended_linux
+    id: neohugo_extended_linux_amd64
     ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=1
@@ -54,17 +54,42 @@ builds:
       - extended
     goos:
       - linux
-      - freebsd
-      - netbsd
-      - openbsd
-      - dragonfly
     goarch:
       - amd64
-      - 386
-      - arm
-      - arm64
     hooks:
       post: ./goreleaser-hook-post-linux.sh
+  - binary: neohugo
+    id: neohugo_extended_linux_386
+    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
+    env:
+      - CGO_ENABLED=1
+    flags:
+      - -buildmode
+      - exe
+      - -tags
+      - extended
+    goos:
+      - linux
+    goarch:
+      - 386
+  - binary: neohugo
+    id: neohugo_extended_linux_arm64
+    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
+    env:
+      - CGO_ENABLED=1
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
+    flags:
+      - -buildmode
+      - exe
+      - -tags
+      - extended
+    goos:
+      - linux
+    goarch:
+      - arm64
+    goarm:
+      - 7
 changelog:
   sort: asc
   filters:
@@ -94,10 +119,6 @@ archives:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
     files:
       - README.md
       - LICENSE
@@ -117,10 +138,6 @@ archives:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
     files:
       - README.md
       - LICENSE
@@ -145,10 +162,6 @@ nfpms:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
   -
     id: "neohugo_extended"
     builds: ['neohugo_extended_linux']
@@ -168,7 +181,3 @@ nfpms:
       darwin: macOS
       linux: Linux
       windows: Windows
-      openbsd: OpenBSD
-      netbsd: NetBSD
-      freebsd: FreeBSD
-      dragonfly: DragonFlyBSD
