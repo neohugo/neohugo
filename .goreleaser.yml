@@ -59,20 +59,6 @@ builds:
     hooks:
       post: ./goreleaser-hook-post-linux.sh
   - binary: neohugo
-    id: neohugo_extended_linux_386
-    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
-    env:
-      - CGO_ENABLED=1
-    flags:
-      - -buildmode
-      - exe
-      - -tags
-      - extended
-    goos:
-      - linux
-    goarch:
-      - 386
-  - binary: neohugo
     id: neohugo_extended_linux_arm64
     ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
