@@ -90,25 +90,6 @@ snapshot:
   name_template: "{{ .Tag }}-next"
 archives:
   -
-    id: "neohugo"
-    builds: ['neohugo', 'neohugo_unix']
-    format: tar.gz
-    format_overrides:
-      - goos: windows
-        format: zip
-    name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
-    replacements:
-      amd64: 64bit
-      386: 32bit
-      arm: ARM
-      arm64: ARM64
-      darwin: macOS
-      linux: Linux
-      windows: Windows
-    files:
-      - README.md
-      - LICENSE
-  -
     id: "neohugo_extended"
     builds: ['neohugo_extended_windows', 'neohugo_extended_linux', 'neohugo_extended_darwin']
     format: tar.gz
@@ -118,8 +99,6 @@ archives:
     name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
       amd64: 64bit
-      386: 32bit
-      arm: ARM
       arm64: ARM64
       darwin: macOS
       linux: Linux
@@ -129,25 +108,6 @@ archives:
       - LICENSE
 
 nfpms:
-  -
-    id: "neohugo"
-    builds: ['neohugo']
-    formats:
-        - deb
-    vendor: "neohugo"
-    homepage: "https://neohugo.github.io/"
-    maintainer: "Prachya Saechua <blackb1rd@blackb1rd.dev>"
-    description: "hugo-fork focused on multilingual and bug fixes/refactor/cleanup."
-    license: "Apache-2.0"
-    file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
-    replacements:
-      amd64: 64bit
-      386: 32bit
-      arm: ARM
-      arm64: ARM64
-      darwin: macOS
-      linux: Linux
-      windows: Windows
   -
     id: "neohugo_extended"
     builds: ['neohugo_extended_linux']
@@ -161,8 +121,6 @@ nfpms:
     file_name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
       amd64: 64bit
-      386: 32bit
-      arm: ARM
       arm64: ARM64
       darwin: macOS
       linux: Linux
