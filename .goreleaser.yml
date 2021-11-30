@@ -54,15 +54,13 @@ builds:
       - extended
     goos:
       - linux
-      - freebsd
-      - netbsd
-      - openbsd
-      - dragonfly
     goarch:
       - amd64
       - 386
       - arm
       - arm64
+    goarm:
+      - 7
     hooks:
       post: ./goreleaser-hook-post-linux.sh
 changelog:
