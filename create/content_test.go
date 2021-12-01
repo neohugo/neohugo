@@ -201,7 +201,6 @@ site RegularPages: {{ len site.RegularPages  }}
 	// Regular files should fall back to the default archetype (we have no regular file archetype).
 	c.Assert(create.NewContent(h, "my-bundle", "mypage.md"), qt.IsNil)
 	cContains(c, readFileFromFs(t, fs.Source, filepath.Join("content", "mypage.md")), `draft: true`)
-
 }
 
 func TestNewContentFromDirNoSite(t *testing.T) {
