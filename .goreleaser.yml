@@ -91,7 +91,7 @@ snapshot:
 archives:
   -
     id: "neohugo_extended"
-    builds: ['neohugo_extended_windows', 'neohugo_extended_linux', 'neohugo_extended_darwin']
+    builds: ['neohugo_extended_windows', 'neohugo_extended_linux_amd64', 'neohugo_extended_linux_arm64', 'neohugo_extended_darwin']
     format: tar.gz
     format_overrides:
       - goos: windows
@@ -110,7 +110,7 @@ archives:
 nfpms:
   -
     id: "neohugo_extended"
-    builds: ['neohugo_extended_linux']
+    builds: ['neohugo_extended_linux_amd64']
     formats:
         - deb
     vendor: "neohugo"
