@@ -137,6 +137,7 @@ func newTestSitesBuilderFromDepsCfg(t testing.TB, d deps.DepsCfg) *sitesBuilder 
 
 	b.WithWorkingDir(workingDir)
 
+	//nolint
 	return b.WithViper(d.Cfg.(config.Provider))
 }
 

@@ -341,6 +341,7 @@ func (s SourceFilesystems) MakeStaticPathRelative(filename string) string {
 // MakePathRelative creates a relative path from the given filename.
 func (d *SourceFilesystem) MakePathRelative(filename string) (string, bool) {
 	for _, dir := range d.Dirs {
+		//nolint
 		meta := dir.(hugofs.FileMetaInfo).Meta()
 		currentPath := meta.Filename
 

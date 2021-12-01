@@ -289,6 +289,7 @@ func (b *contentBuilder) mapArcheTypeDir() error {
 			return nil
 		}
 
+		//nolint
 		fil := fi.(hugofs.FileMetaInfo)
 
 		if files.IsContentFile(path) {

@@ -716,12 +716,14 @@ func (m *contentMap) testDump() string {
 				resourcesPrefix += cmLeafSeparator
 
 				m.pages.WalkPrefix(s+cmBranchSeparator, func(s string, v interface{}) bool {
+					//nolint
 					sb.WriteString("\t - P: " + filepath.ToSlash((v.(*contentNode).fi.(hugofs.FileMetaInfo)).Meta().Filename) + "\n")
 					return false
 				})
 			}
 
 			m.resources.WalkPrefix(resourcesPrefix, func(s string, v interface{}) bool {
+				//nolint
 				sb.WriteString("\t - R: " + filepath.ToSlash((v.(*contentNode).fi.(hugofs.FileMetaInfo)).Meta().Filename) + "\n")
 				return false
 			})

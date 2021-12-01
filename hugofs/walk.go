@@ -247,6 +247,7 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 
 	// First add some metadata to the dir entries
 	for _, fi := range dirEntries {
+		//nolint
 		fim := fi.(FileMetaInfo)
 
 		meta := fim.Meta()
@@ -288,6 +289,7 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 	}
 
 	for _, fi := range dirEntries {
+		//nolint
 		fim := fi.(FileMetaInfo)
 		meta := fim.Meta()
 

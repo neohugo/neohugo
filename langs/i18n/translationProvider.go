@@ -123,6 +123,7 @@ func (tp *TranslationProvider) Clone(d *deps.Deps) error {
 }
 
 func errWithFileContext(inerr error, r source.File) error {
+	//nolint
 	fim, ok := r.FileInfo().(hugofs.FileMetaInfo)
 	if !ok {
 		return inerr

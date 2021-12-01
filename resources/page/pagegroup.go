@@ -231,6 +231,7 @@ func (p Pages) groupByDateField(sorter func(p Pages) Pages, formatter func(p Pag
 		return nil, nil
 	}
 
+	//nolint
 	date := formatter(sp[0].(Page))
 	var r []PageGroup
 	r = append(r, PageGroup{Key: date, Pages: make(Pages, 0)})
@@ -238,6 +239,7 @@ func (p Pages) groupByDateField(sorter func(p Pages) Pages, formatter func(p Pag
 
 	i := 0
 	for _, e := range sp[1:] {
+		//nolint
 		date = formatter(e.(Page))
 		if r[i].Key.(string) != date {
 			r = append(r, PageGroup{Key: date})

@@ -121,6 +121,7 @@ func WithFileContext(e error, realFilename string, r io.Reader, matcher LineMatc
 
 	if le == nil {
 		var ok bool
+		//nolint
 		if le, ok = ToFileError("", e).(FileError); !ok {
 			return e, false
 		}
