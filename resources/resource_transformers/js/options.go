@@ -381,6 +381,13 @@ func toBuildOptions(opts Options) (buildOptions api.BuildOptions, err error) {
 		return
 	}
 
+	var legalComment api.LegalComments
+	if opts.Minify {
+		legalComment = api.LegalCommentsNone
+	} else {
+		legalComment = api.LegalCommentsEndOfFile
+	}
+
 	buildOptions = api.BuildOptions{
 		Outfile: outFile,
 		Bundle:  true,
@@ -400,6 +407,8 @@ func toBuildOptions(opts Options) (buildOptions api.BuildOptions, err error) {
 
 		JSXFactory:  opts.JSXFactory,
 		JSXFragment: opts.JSXFragment,
+
+		LegalComments: legalComment,
 
 		Tsconfig: opts.tsConfig,
 
