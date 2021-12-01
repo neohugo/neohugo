@@ -215,6 +215,7 @@ func TestImagePermalinkPublishOrder(t *testing.T) {
 			resized, err := orignal.Resize("100x50")
 			c.Assert(err, qt.IsNil)
 
+			//nolint
 			check1(resized.(resource.Image))
 
 			if !checkOriginalFirst {

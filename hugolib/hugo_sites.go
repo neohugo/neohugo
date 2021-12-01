@@ -921,6 +921,7 @@ func (h *HugoSites) handleDataFile(r source.File) error {
 }
 
 func (h *HugoSites) errWithFileContext(err error, f source.File) error {
+	//nolint
 	fim, ok := f.FileInfo().(hugofs.FileMetaInfo)
 	if !ok {
 		return err

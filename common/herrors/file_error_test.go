@@ -42,6 +42,7 @@ func TestToLineNumberError(t *testing.T) {
 		got := ToFileError("template", test.in)
 
 		errMsg := qt.Commentf("[%d][%T]", i, got)
+		//nolint
 		le, ok := got.(FileError)
 		c.Assert(ok, qt.Equals, true)
 

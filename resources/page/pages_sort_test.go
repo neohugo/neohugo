@@ -267,7 +267,7 @@ func createSortTestPages(num int) Pages {
 	for i := 0; i < num; i++ {
 		p := newTestPage()
 		p.path = fmt.Sprintf("/x/y/p%d.md", i)
-		p.title = fmt.Sprintf("Title %d", i%(num+1/2))
+		p.title = fmt.Sprintf("Title %d", i%(num))
 		p.params = map[string]interface{}{
 			"arbitrarily": map[string]interface{}{
 				"nested": ("xyz" + fmt.Sprintf("%v", 100-i)),

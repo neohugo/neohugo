@@ -50,9 +50,10 @@ func TestToBuildOptions(t *testing.T) {
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(opts, qt.DeepEquals, api.BuildOptions{
-		Bundle: true,
-		Target: api.ESNext,
-		Format: api.FormatIIFE,
+		Bundle:        true,
+		Target:        api.ESNext,
+		Format:        api.FormatIIFE,
+		LegalComments: api.LegalCommentsEndOfFile,
 		Stdin: &api.StdinOptions{
 			Loader: api.LoaderJS,
 		},
@@ -73,6 +74,7 @@ func TestToBuildOptions(t *testing.T) {
 		MinifyIdentifiers: true,
 		MinifySyntax:      true,
 		MinifyWhitespace:  true,
+		LegalComments:     api.LegalCommentsNone,
 		Stdin: &api.StdinOptions{
 			Loader: api.LoaderJS,
 		},
@@ -90,6 +92,7 @@ func TestToBuildOptions(t *testing.T) {
 		MinifyIdentifiers: true,
 		MinifySyntax:      true,
 		MinifyWhitespace:  true,
+		LegalComments:     api.LegalCommentsNone,
 		Sourcemap:         api.SourceMapInline,
 		Stdin: &api.StdinOptions{
 			Loader: api.LoaderJS,
@@ -108,6 +111,7 @@ func TestToBuildOptions(t *testing.T) {
 		MinifyIdentifiers: true,
 		MinifySyntax:      true,
 		MinifyWhitespace:  true,
+		LegalComments:     api.LegalCommentsNone,
 		Sourcemap:         api.SourceMapInline,
 		Stdin: &api.StdinOptions{
 			Loader: api.LoaderJS,
@@ -126,6 +130,7 @@ func TestToBuildOptions(t *testing.T) {
 		MinifyIdentifiers: true,
 		MinifySyntax:      true,
 		MinifyWhitespace:  true,
+		LegalComments:     api.LegalCommentsNone,
 		Sourcemap:         api.SourceMapExternal,
 		Stdin: &api.StdinOptions{
 			Loader: api.LoaderJS,

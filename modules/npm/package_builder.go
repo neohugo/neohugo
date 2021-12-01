@@ -98,6 +98,7 @@ func Pack(fs afero.Fs, fis []hugofs.FileMetaInfo) error {
 			continue
 		}
 
+		//nolint
 		meta := fi.(hugofs.FileMetaInfo).Meta()
 
 		if meta.Filename == masterFilename {
