@@ -15,6 +15,12 @@
 package images
 
 import (
+	"fmt"
+
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/resources/resource"
+
 	"github.com/disintegration/gift"
 	"github.com/spf13/cast"
 )
@@ -29,6 +35,57 @@ func (*Filters) Overlay(src ImageSource, x, y interface{}) gift.Filter {
 	return filter{
 		Options: newFilterOpts(src.Key(), x, y),
 		Filter:  overlayFilter{src: src, x: cast.ToInt(x), y: cast.ToInt(y)},
+	}
+}
+
+// Text creates a filter that draws text with the given options.
+func (*Filters) Text(text string, options ...interface{}) gift.Filter {
+	tf := textFilter{
+		text:        text,
+		color:       "#ffffff",
+		size:        20,
+		x:           10,
+		y:           10,
+		linespacing: 2,
+	}
+
+	var opt maps.Params
+	if len(options) > 0 {
+		opt = maps.MustToParamsAndPrepare(options[0])
+		for option, v := range opt {
+			switch option {
+			case "color":
+				tf.color = cast.ToString(v)
+			case "size":
+				tf.size = cast.ToFloat64(v)
+			case "x":
+				tf.x = cast.ToInt(v)
+			case "y":
+				tf.y = cast.ToInt(v)
+			case "linespacing":
+				tf.linespacing = cast.ToInt(v)
+			case "font":
+				fontSource, ok1 := v.(hugio.ReadSeekCloserProvider)
+				identifier, ok2 := v.(resource.Identifier)
+
+				if !(ok1 && ok2) {
+					panic(fmt.Sprintf("invalid text font source: %T", v))
+				}
+
+				tf.fontSource = fontSource
+
+				// The input value isn't hashable and will not make a stable key.
+				// Replace it with a string in the map used as basis for the
+				// hash string.
+				opt["font"] = identifier.Key()
+
+			}
+		}
+	}
+
+	return filter{
+		Options: newFilterOpts(text, opt),
+		Filter:  tf,
 	}
 }
 
