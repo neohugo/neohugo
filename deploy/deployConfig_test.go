@@ -169,3 +169,33 @@ func TestDecodeConfigDefault(t *testing.T) {
 	c.Assert(len(dcfg.Targets), qt.Equals, 0)
 	c.Assert(len(dcfg.Matchers), qt.Equals, 0)
 }
+
+func TestEmptyTarget(t *testing.T) {
+	c := qt.New(t)
+
+	tomlConfig := `
+[deployment]
+[[deployment.targets]]
+`
+	cfg, err := config.FromConfigString(tomlConfig, "toml")
+	c.Assert(err, qt.IsNil)
+
+	_, err = decodeConfig(cfg)
+	c.Assert(err, qt.Not(qt.IsNil))
+}
+
+func TestEmptyMatcher(t *testing.T) {
+	c := qt.New(t)
+
+	tomlConfig := `
+[deployment]
+[[deployment.matchers]]
+`
+	cfg, err := config.FromConfigString(tomlConfig, "toml")
+	c.Assert(err, qt.IsNil)
+
+	_, err = decodeConfig(cfg)
+	c.Assert(err, qt.Not(qt.IsNil))
+
+	fmt.Printf("JMM-1: %s", err)
+}

@@ -40,6 +40,41 @@ A shorter version of the above, if you only need to apply the filter once:
 
 The above will overlay `$logo` in the upper left corner of `$img` (at position `x=50, y=50`).
 
+### Text
+
+{{< new-in "0.90.0" >}}
+
+Using the `Text` filter, you can add text to an image.
+
+{{% funcsig %}}
+images.Text TEXT DICT)
+{{% /funcsig %}}
+
+The following example will add the text `Hugo rocks!` to the image with the specified color, size and position.
+
+```go-html-template
+{{ $img := resources.Get "/images/background.png"}}
+{{ $img = $img.Filter (images.Text "Hugo rocks!" (dict
+    "color" "#ffffff"
+    "size" 60
+    "linespacing" 2
+    "x" 10
+    "y" 20
+))}}
+```
+
+You can load a custom font if needed. Load the font as a Hugo `Resource` and set it as an option:
+
+```go-html-template
+
+{{ $font := resources.Get "https://github.com/google/fonts/raw/main/apache/roboto/static/Roboto-Black.ttf" }}
+{{ $img := resources.Get "/images/background.png"}}
+{{ $img = $img.Filter (images.Text "Hugo rocks!" (dict
+    "font" $font
+))}}
+```
+
+
 ### Brightness
 
 {{% funcsig %}}
