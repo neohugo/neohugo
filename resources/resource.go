@@ -69,6 +69,9 @@ type ResourceSourceDescriptor struct {
 
 	Fs afero.Fs
 
+	// Set when its known up front, else it's resolved from the target filename.
+	MediaType media.Type
+
 	// The relative target filename without any language code.
 	RelTargetFilename string
 
@@ -223,6 +226,10 @@ func (l *genericResource) Content() (interface{}, error) {
 	}
 
 	return l.content, nil
+}
+
+func (r *genericResource) Err() error {
+	return nil
 }
 
 func (l *genericResource) Data() interface{} {

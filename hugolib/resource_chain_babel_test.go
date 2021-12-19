@@ -21,8 +21,6 @@ import (
 
 	"github.com/neohugo/neohugo/config"
 
-	"github.com/neohugo/neohugo/common/hexec"
-
 	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/neohugo/neohugo/htesting"
@@ -50,7 +48,7 @@ func TestResourceChainBabel(t *testing.T) {
 
   "devDependencies": {
     "@babel/cli": "7.8.4",
-    "@babel/core": "7.9.0",
+    "@babel/core": "7.9.0",	
     "@babel/preset-env": "7.9.5"
   }
 }
@@ -93,6 +91,12 @@ class Car2 {
 	v := config.New()
 	v.Set("workingDir", workDir)
 	v.Set("disableKinds", []string{"taxonomy", "term", "page"})
+	v.Set("security", map[string]interface{}{
+		"exec": map[string]interface{}{
+			"allow": []string{"^npx$", "^babel$"},
+		},
+	})
+
 	b := newTestSitesBuilder(t).WithLogger(logger)
 
 	// Need to use OS fs for this.
@@ -122,8 +126,8 @@ Transpiled3: {{ $transpiled.Permalink }}
 	b.WithSourceFile("babel.config.js", babelConfig)
 
 	b.Assert(os.Chdir(workDir), qt.IsNil)
-	cmd, _ := hexec.SafeCommand("npm", "install")
-	_, err = cmd.CombinedOutput()
+	cmd := b.NpmInstall()
+	err = cmd.Run()
 	b.Assert(err, qt.IsNil)
 
 	b.Build(BuildCfg{})
@@ -132,27 +136,9 @@ Transpiled3: {{ $transpiled.Permalink }}
 	b.Assert(logBuf.String(), qt.Contains, "babel: Hugo Environment: production")
 	b.Assert(err, qt.IsNil)
 
-	b.AssertFileContent("public/index.html", `
-var Car = function Car(brand) {
- _classCallCheck(this, Car);
-
- this.carname = brand;
-};
-`)
-	b.AssertFileContent("public/index.html", `
-var Car2 = function Car2(brand) {
- _classCallCheck(this, Car2);
-
- this.carname = brand;
-};
-`)
-	b.AssertFileContent("public/js/main2.js", `
-var Car2 = function Car2(brand) {
- _classCallCheck(this, Car2);
-
- this.carname = brand;
-};
-`)
+	b.AssertFileContent("public/index.html", `var Car =`)
+	b.AssertFileContent("public/index.html", `var Car2 =`)
+	b.AssertFileContent("public/js/main2.js", `var Car2 =`)
 	b.AssertFileContent("public/js/main2.js.map", `{"version":3,`)
 	b.AssertFileContent("public/index.html", `
 //# sourceMappingURL=data:application/json;charset=utf-8;base64,eyJ2ZXJzaW9uIjozL`)

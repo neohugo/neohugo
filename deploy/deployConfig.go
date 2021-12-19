@@ -24,6 +24,7 @@ import (
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/mitchellh/mapstructure"
+
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/media"
 	"github.com/pkg/errors"

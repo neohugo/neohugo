@@ -340,15 +340,16 @@ func (b *contentBuilder) openInEditorIfConfigured(filename string) error {
 	}
 
 	b.h.Log.Printf("Editing %q with %q ...\n", filename, editor)
-
-	cmd, err := hexec.SafeCommand(editor, filename)
+	cmd, err := b.h.Deps.ExecHelper.New(
+		editor,
+		filename,
+		hexec.WithStdin(os.Stdin),
+		hexec.WithStderr(os.Stderr),
+		hexec.WithStdout(os.Stdout),
+	)
 	if err != nil {
 		return err
 	}
-
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
 }

@@ -184,14 +184,7 @@ func (c *Cache) GetOrCreate(id string, create func() (io.ReadCloser, error)) (It
 		err error
 	)
 
-	for i := -1; i < c.retries; i++ {
-		r, err = create()
-		if err == nil || c.retries == 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
+	r, err = create()
 	if err != nil {
 		return info, nil, err
 	}
@@ -228,14 +221,7 @@ func (c *Cache) GetOrCreateBytes(id string, create func() ([]byte, error)) (Item
 		err error
 	)
 
-	for i := -1; i < c.retries; i++ {
-		b, err = create()
-		if err == nil || c.retries == 0 {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
+	b, err = create()
 	if err != nil {
 		return info, nil, err
 	}
