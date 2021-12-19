@@ -44,6 +44,7 @@ type Resource interface {
 	ResourceMetaProvider
 	ResourceParamsProvider
 	ResourceDataProvider
+	Err() error
 }
 
 // Image represents an image resource.

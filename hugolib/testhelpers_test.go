@@ -15,7 +15,9 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/output"
@@ -791,6 +793,15 @@ func (s *sitesBuilder) GetPageRel(p page.Page, ref string) page.Page {
 	p, err := s.H.Sites[0].getPageNew(p, ref)
 	s.Assert(err, qt.IsNil)
 	return p
+}
+
+func (s *sitesBuilder) NpmInstall() hexec.Runner {
+	sc := security.DefaultConfig
+	sc.Exec.Allow = security.NewWhitelist("npm")
+	ex := hexec.New(sc)
+	command, err := ex.New("npm", "install")
+	s.Assert(err, qt.IsNil)
+	return command
 }
 
 func newTestHelper(cfg config.Provider, fs *hugofs.Fs, t testing.TB) testHelper {

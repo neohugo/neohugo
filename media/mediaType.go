@@ -17,6 +17,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 
@@ -57,6 +58,42 @@ type Type struct {
 type SuffixInfo struct {
 	Suffix     string `json:"suffix"`
 	FullSuffix string `json:"fullSuffix"`
+}
+
+// FromContent resolve the Type primarily using http.DetectContentType.
+// If http.DetectContentType resolves to application/octet-stream, a zero Type is returned.
+// If http.DetectContentType  resolves to text/plain or application/xml, we try to get more specific using types and ext.
+func FromContent(types Types, ext string, content []byte) Type {
+	ext = strings.TrimPrefix(ext, ".")
+	t := strings.Split(http.DetectContentType(content), ";")[0]
+	var m Type
+	if t == "application/octet-stream" {
+		return m
+	}
+
+	var found bool
+	m, found = types.GetByType(t)
+	if !found {
+		if t == "text/xml" {
+			// This is how it's configured in Hugo by default.
+			m, found = types.GetByType("application/xml")
+		}
+	}
+
+	if !found || ext == "" {
+		return m
+	}
+
+	if m.Type() == "text/plain" || m.Type() == "application/xml" {
+		// http.DetectContentType isn't brilliant when it comes to common text formats, so we need to do better.
+		// For now we say that if it's detected to be a text format and the extension/content type in header reports
+		// it to be a text format, then we use that.
+		mm, _, found := types.GetFirstBySuffix(ext)
+		if found && mm.IsText() {
+			return mm
+		}
+	}
+	return m
 }
 
 // FromStringAndExt creates a Type from a MIME string and a given extension.
@@ -121,6 +158,20 @@ func (m Type) Suffixes() []string {
 	return strings.Split(m.suffixesCSV, ",")
 }
 
+// IsText returns whether this Type is a text format.
+// Note that this may currently return false negatives.
+// TODO(bep) improve
+func (m Type) IsText() bool {
+	if m.MainType == "text" {
+		return true
+	}
+	switch m.SubType {
+	case "javascript", "json", "rss", "xml", "svg", TOMLType.SubType, YAMLType.SubType:
+		return true
+	}
+	return false
+}
+
 func (m *Type) init() {
 	m.FirstSuffix.FullSuffix = ""
 	m.FirstSuffix.Suffix = ""
@@ -176,11 +227,15 @@ var (
 
 	// Common image types
 	PNGType  = newMediaType("image", "png", []string{"png"})
-	JPEGType = newMediaType("image", "jpeg", []string{"jpg", "jpeg"})
+	JPEGType = newMediaType("image", "jpeg", []string{"jpg", "jpeg", "jpe", "jif", "jfif"})
 	GIFType  = newMediaType("image", "gif", []string{"gif"})
 	TIFFType = newMediaType("image", "tiff", []string{"tif", "tiff"})
 	BMPType  = newMediaType("image", "bmp", []string{"bmp"})
 	WEBPType = newMediaType("image", "webp", []string{"webp"})
+
+	// Common font types
+	TrueTypeFontType = newMediaType("font", "ttf", []string{"ttf"})
+	OpenTypeFontType = newMediaType("font", "otf", []string{"otf"})
 
 	// Common video types
 	AVIType  = newMediaType("video", "x-msvideo", []string{"avi"})
@@ -223,6 +278,8 @@ var DefaultTypes = Types{
 	OGGType,
 	WEBMType,
 	GPPType,
+	OpenTypeFontType,
+	TrueTypeFontType,
 }
 
 func init() {

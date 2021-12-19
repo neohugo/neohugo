@@ -455,22 +455,32 @@ complex: 80: 80
 `,
 		)
 	})
+}
 
-	c.Run("Zero argument", func(c *qt.C) {
-		b := newBuilder(c)
+// Issue 7528
+func TestPartialWithZeroedArgs(t *testing.T) {
+	b := newTestSitesBuilder(t)
+	b.WithTemplatesAdded("index.html",
+		` 
+X{{ partial "retval" dict }}X
+X{{ partial "retval" slice }}X
+X{{ partial "retval" "" }}X
+X{{ partial "retval" false }}X
+X{{ partial "retval" 0 }}X
+{{ define "partials/retval" }}
+  {{ return 123 }}
+{{ end }}`)
 
-		b.WithTemplatesAdded(
-			"index.html", `
-Test Partials With Return Values:
-
-add42: fail: {{ partial "add42.tpl" 0 }}
-
-`,
-		)
-
-		e := b.CreateSites().BuildE(BuildCfg{})
-		b.Assert(e, qt.Not(qt.IsNil))
-	})
+	b.WithContentAdded("p.md", ``)
+	b.Build(BuildCfg{})
+	b.AssertFileContent("public/index.html",
+		`
+X123X
+X123X
+X123X
+X123X
+X123X
+`)
 }
 
 func TestPartialCached(t *testing.T) {

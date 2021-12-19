@@ -25,7 +25,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/cli/safeexec"
+	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/neohugo"
 
@@ -140,22 +140,9 @@ func (t *postcssTransformation) Key() internal.ResourceTransformationKey {
 // npm install -g postcss-cli
 // npm install -g autoprefixer
 func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationCtx) error {
-	const localPostCSSPath = "node_modules/.bin/"
 	const binaryName = "postcss"
 
-	// Try first in the project's node_modules.
-	csiBinPath := filepath.Join(t.rs.WorkingDir, localPostCSSPath, binaryName)
-
-	binary := csiBinPath
-
-	if _, err := safeexec.LookPath(binary); err != nil {
-		// Try PATH
-		binary = binaryName
-		if _, err := safeexec.LookPath(binary); err != nil {
-			// This may be on a CI server etc. Will fall back to pre-built assets.
-			return herrors.ErrFeatureNotAvailable
-		}
-	}
+	ex := t.rs.ExecHelper
 
 	var configFile string
 	logger := t.rs.Logger
@@ -177,29 +164,33 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 		}
 	}
 
-	var cmdArgs []string
+	var cmdArgs []interface{}
 
 	if configFile != "" {
 		logger.Infoln("postcss: use config file", configFile)
-		cmdArgs = []string{"--config", configFile}
+		cmdArgs = []interface{}{"--config", configFile}
 	}
 
 	if optArgs := t.options.toArgs(); len(optArgs) > 0 {
-		cmdArgs = append(cmdArgs, optArgs...)
-	}
-
-	cmd, err := hexec.SafeCommand(binary, cmdArgs...)
-	if err != nil {
-		return err
+		cmdArgs = append(cmdArgs, collections.StringSliceToInterfaceSlice(optArgs)...)
 	}
 
 	var errBuf bytes.Buffer
 	infoW := loggers.LoggerToWriterWithPrefix(logger.Info(), "postcss")
 
-	cmd.Stdout = ctx.To
-	cmd.Stderr = io.MultiWriter(infoW, &errBuf)
+	stderr := io.MultiWriter(infoW, &errBuf)
+	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
+	cmdArgs = append(cmdArgs, hexec.WithStdout(ctx.To))
+	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
 
-	cmd.Env = neohugo.GetExecEnviron(t.rs.WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)
+	cmd, err := ex.Npx(binaryName, cmdArgs...)
+	if err != nil {
+		if hexec.IsNotFound(err) {
+			// This may be on a CI server etc. Will fall back to pre-built assets.
+			return herrors.ErrFeatureNotAvailable
+		}
+		return err
+	}
 
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
@@ -231,6 +222,9 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	err = cmd.Run()
 	if err != nil {
+		if hexec.IsNotFound(err) {
+			return herrors.ErrFeatureNotAvailable
+		}
 		return imp.toFileError(errBuf.String())
 	}
 

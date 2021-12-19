@@ -22,12 +22,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting"
-	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/markup/asciidocext"
-	"github.com/neohugo/neohugo/markup/rst"
+
+	"github.com/neohugo/neohugo/config"
+
+	"github.com/neohugo/neohugo/common/loggers"
+
+	"github.com/neohugo/neohugo/hugofs"
+
+	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
 
@@ -364,7 +367,8 @@ func normalizeExpected(ext, str string) string {
 }
 
 func testAllMarkdownEnginesForPages(t *testing.T,
-	assertFunc func(t *testing.T, ext string, pages page.Pages), settings map[string]interface{}, pageSources ...string) {
+	assertFunc func(t *testing.T, ext string, pages page.Pages), settings map[string]interface{}, pageSources ...string,
+) {
 	engines := []struct {
 		ext           string
 		shouldExecute func() bool
@@ -372,7 +376,7 @@ func testAllMarkdownEnginesForPages(t *testing.T,
 		{"md", func() bool { return true }},
 		{"mmark", func() bool { return true }},
 		{"ad", func() bool { return asciidocext.Supports() }},
-		{"rst", func() bool { return rst.Supports() }},
+		{"rst", func() bool { return true }},
 	}
 
 	for _, e := range engines {
@@ -380,47 +384,55 @@ func testAllMarkdownEnginesForPages(t *testing.T,
 			continue
 		}
 
-		cfg, fs := newTestCfg(func(cfg config.Provider) error {
-			for k, v := range settings {
-				cfg.Set(k, v)
+		t.Run(e.ext, func(t *testing.T) {
+			cfg, fs := newTestCfg(func(cfg config.Provider) error {
+				for k, v := range settings {
+					cfg.Set(k, v)
+				}
+				return nil
+			})
+
+			contentDir := "content"
+
+			if s := cfg.GetString("contentDir"); s != "" {
+				contentDir = s
 			}
-			return nil
+
+			cfg.Set("security", map[string]interface{}{
+				"exec": map[string]interface{}{
+					"allow": []string{"^python$", "^rst2html.*", "^asciidoctor$"},
+				},
+			})
+
+			var fileSourcePairs []string
+
+			for i, source := range pageSources {
+				fileSourcePairs = append(fileSourcePairs, fmt.Sprintf("p%d.%s", i, e.ext), source)
+			}
+
+			for i := 0; i < len(fileSourcePairs); i += 2 {
+				writeSource(t, fs, filepath.Join(contentDir, fileSourcePairs[i]), fileSourcePairs[i+1])
+			}
+
+			// Add a content page for the home page
+			homePath := fmt.Sprintf("_index.%s", e.ext)
+			writeSource(t, fs, filepath.Join(contentDir, homePath), homePage)
+
+			b := newTestSitesBuilderFromDepsCfg(t, deps.DepsCfg{Fs: fs, Cfg: cfg}).WithNothingAdded()
+			b.Build(BuildCfg{})
+
+			s := b.H.Sites[0]
+
+			b.Assert(len(s.RegularPages()), qt.Equals, len(pageSources))
+
+			assertFunc(t, e.ext, s.RegularPages())
+
+			home, err := s.Info.Home()
+			b.Assert(err, qt.IsNil)
+			b.Assert(home, qt.Not(qt.IsNil))
+			b.Assert(home.File().Path(), qt.Equals, homePath)
+			b.Assert(content(home), qt.Contains, "Home Page Content")
 		})
-
-		contentDir := "content"
-
-		if s := cfg.GetString("contentDir"); s != "" {
-			contentDir = s
-		}
-
-		var fileSourcePairs []string
-
-		for i, source := range pageSources {
-			fileSourcePairs = append(fileSourcePairs, fmt.Sprintf("p%d.%s", i, e.ext), source)
-		}
-
-		for i := 0; i < len(fileSourcePairs); i += 2 {
-			writeSource(t, fs, filepath.Join(contentDir, fileSourcePairs[i]), fileSourcePairs[i+1])
-		}
-
-		// Add a content page for the home page
-		homePath := fmt.Sprintf("_index.%s", e.ext)
-		writeSource(t, fs, filepath.Join(contentDir, homePath), homePage)
-
-		b := newTestSitesBuilderFromDepsCfg(t, deps.DepsCfg{Fs: fs, Cfg: cfg}).WithNothingAdded()
-		b.Build(BuildCfg{SkipRender: true})
-
-		s := b.H.Sites[0]
-
-		b.Assert(len(s.RegularPages()), qt.Equals, len(pageSources))
-
-		assertFunc(t, e.ext, s.RegularPages())
-
-		home, err := s.Info.Home()
-		b.Assert(err, qt.IsNil)
-		b.Assert(home, qt.Not(qt.IsNil))
-		b.Assert(home.File().Path(), qt.Equals, homePath)
-		b.Assert(content(home), qt.Contains, "Home Page Content")
 
 	}
 }

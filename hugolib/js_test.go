@@ -20,7 +20,6 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/htesting"
@@ -122,10 +121,9 @@ TS2: {{ template "print" $ts2 }}
 
 	b.WithSourceFile("assets/js/included.js", includedJS)
 
-	cmd, err := hexec.SafeCommand("npm", "install")
+	cmd := b.NpmInstall()
+	err = cmd.Run()
 	b.Assert(err, qt.IsNil)
-	out, err := cmd.CombinedOutput()
-	b.Assert(err, qt.IsNil, qt.Commentf(string(out)))
 
 	b.Build(BuildCfg{})
 
@@ -134,7 +132,7 @@ TS2: {{ template "print" $ts2 }}
 	b.AssertFileContent("public/index.html", `
 console.log(&#34;included&#34;);
 if (hasSpace.test(string))
-var React = __toModule(__require(&#34;react&#34;));
+var React = __toESM(__require(&#34;react&#34;));
 function greeter(person) {
 `)
 }
@@ -193,8 +191,8 @@ require github.com/gohugoio/hugoTestProjectJSModImports v0.9.0 // indirect
 }`)
 
 	b.Assert(os.Chdir(workDir), qt.IsNil)
-	cmd, _ := hexec.SafeCommand("npm", "install")
-	_, err = cmd.CombinedOutput()
+	cmd := b.NpmInstall()
+	err = cmd.Run()
 	b.Assert(err, qt.IsNil)
 
 	b.Build(BuildCfg{})
