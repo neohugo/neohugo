@@ -129,6 +129,10 @@ type pageState struct {
 	*pageCommon
 }
 
+func (p *pageState) Err() error {
+	return nil
+}
+
 // Eq returns whether the current page equals the given page.
 // This is what's invoked when doing `{{ if eq $page $otherPage }}`
 func (p *pageState) Eq(other interface{}) bool {
@@ -141,7 +145,7 @@ func (p *pageState) Eq(other interface{}) bool {
 }
 
 func (p *pageState) GetIdentity() identity.Identity {
-	return identity.NewPathIdentity(files.ComponentFolderContent, filepath.FromSlash(p.Path()))
+	return identity.NewPathIdentity(files.ComponentFolderContent, filepath.FromSlash(p.Pathc()))
 }
 
 func (p *pageState) GitInfo() *gitmap.GitInfo {
@@ -897,8 +901,8 @@ func (p *pageState) pathOrTitle() string {
 		return p.File().Filename()
 	}
 
-	if p.Path() != "" {
-		return p.Path()
+	if p.Pathc() != "" {
+		return p.Pathc()
 	}
 
 	return p.Title()
@@ -973,7 +977,24 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 			}
 		}
 		p.pageOutput.initContentProvider(cp)
-		p.pageOutput.cp = cp
+	} else {
+		// We attempt to assign pageContentOutputs while preparing each site
+		// for rendering and before rendering each site. This lets us share
+		// content between page outputs to conserve resources. But if a template
+		// unexpectedly calls a method of a ContentProvider that is not yet
+		// initialized, we assign a LazyContentProvider that performs the
+		// initialization just in time.
+		if lcp, ok := (p.pageOutput.ContentProvider.(*page.LazyContentProvider)); ok {
+			lcp.Reset()
+		} else {
+			p.pageOutput.ContentProvider = page.NewLazyContentProvider(func() (page.ContentProvider, error) {
+				cp, err := newPageContentOutput(p, p.pageOutput)
+				if err != nil {
+					return nil, err
+				}
+				return cp, nil
+			})
+		}
 	}
 
 	return nil

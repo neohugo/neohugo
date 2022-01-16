@@ -995,8 +995,17 @@ package hugolib
 // myPartialsDir := filepath.Join(test.workingDir, "subdir", "mypartials")
 // os.MkdirAll(myPartialsDir, 0777)
 
-// absShortcodesDir := filepath.Join(absDir, "abs", "myshortcodes")
-// os.MkdirAll(absShortcodesDir, 0777)
+//createSymlinks := func(baseDir, id string) {
+//for _, dir := range files.ComponentFolders {
+//// Issue #9119: private use language tags cannot exceed 8 characters.
+//if dir != "i18n" {
+//c.Assert(os.Chdir(filepath.Join(baseDir, dir)), qt.IsNil)
+//c.Assert(os.Symlink("real", fmt.Sprintf("realsym%s", id)), qt.IsNil)
+//c.Assert(os.Chdir(filepath.Join(baseDir, dir, "real")), qt.IsNil)
+//c.Assert(os.Symlink("data.toml", fmt.Sprintf(filepath.FromSlash("datasym%s.toml"), id)), qt.IsNil)
+//}
+//}
+//}
 
 // b.WithSourceFile("README.md", "---\ntitle: Readme\n---")
 // b.WithSourceFile("mycontent/sub/p1.md", "---\ntitle: P1\n---")

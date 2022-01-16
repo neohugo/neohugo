@@ -24,12 +24,16 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/modules"
+	"golang.org/x/text/unicode/norm"
 
 	"github.com/neohugo/neohugo/common/paths"
 
@@ -55,7 +59,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/text"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/publisher"
 	_errors "github.com/pkg/errors"
 
@@ -119,8 +122,6 @@ type Site struct {
 	siteCfg siteConfigHolder
 
 	disabledKinds map[string]bool
-
-	enableInlineShortcodes bool
 
 	// Output formats defined in site config per Page Kind, or some defaults
 	// if not set.
@@ -384,25 +385,24 @@ func (s *Site) isEnabled(kind string) bool {
 // reset returns a new Site prepared for rebuild.
 func (s *Site) reset() *Site {
 	return &Site{
-		Deps:                   s.Deps,
-		disabledKinds:          s.disabledKinds,
-		titleFunc:              s.titleFunc,
-		relatedDocsHandler:     s.relatedDocsHandler.Clone(),
-		siteRefLinker:          s.siteRefLinker,
-		outputFormats:          s.outputFormats,
-		rc:                     s.rc,
-		outputFormatsConfig:    s.outputFormatsConfig,
-		frontmatterHandler:     s.frontmatterHandler,
-		mediaTypesConfig:       s.mediaTypesConfig,
-		language:               s.language,
-		siteBucket:             s.siteBucket,
-		h:                      s.h,
-		publisher:              s.publisher,
-		siteConfigConfig:       s.siteConfigConfig,
-		enableInlineShortcodes: s.enableInlineShortcodes,
-		init:                   s.init,
-		PageCollections:        s.PageCollections,
-		siteCfg:                s.siteCfg,
+		Deps:                s.Deps,
+		disabledKinds:       s.disabledKinds,
+		titleFunc:           s.titleFunc,
+		relatedDocsHandler:  s.relatedDocsHandler.Clone(),
+		siteRefLinker:       s.siteRefLinker,
+		outputFormats:       s.outputFormats,
+		rc:                  s.rc,
+		outputFormatsConfig: s.outputFormatsConfig,
+		frontmatterHandler:  s.frontmatterHandler,
+		mediaTypesConfig:    s.mediaTypesConfig,
+		language:            s.language,
+		siteBucket:          s.siteBucket,
+		h:                   s.h,
+		publisher:           s.publisher,
+		siteConfigConfig:    s.siteConfigConfig,
+		init:                s.init,
+		PageCollections:     s.PageCollections,
+		siteCfg:             s.siteCfg,
 	}
 }
 
@@ -570,8 +570,7 @@ But this also means that your site configuration may not do what you expect. If 
 		outputFormatsConfig: siteOutputFormatsConfig,
 		mediaTypesConfig:    siteMediaTypesConfig,
 
-		enableInlineShortcodes: cfg.Language.GetBool("enableInlineShortcodes"),
-		siteCfg:                siteConfig,
+		siteCfg: siteConfig,
 
 		titleFunc: titleFunc,
 
@@ -697,12 +696,6 @@ func (s *SiteInfo) AllPages() page.Pages {
 
 func (s *SiteInfo) AllRegularPages() page.Pages {
 	return s.s.AllRegularPages()
-}
-
-func (s *SiteInfo) Permalinks() map[string]string {
-	// Remove in 0.61
-	helpers.Deprecated(".Site.Permalinks", "", true)
-	return s.permalinks
 }
 
 func (s *SiteInfo) LastChange() time.Time {
@@ -835,7 +828,7 @@ func (s siteRefLinker) logNotFound(ref, what string, p page.Page, position text.
 	} else if p == nil {
 		s.errorLogger.Printf("[%s] REF_NOT_FOUND: Ref %q: %s", s.s.Lang(), ref, what)
 	} else {
-		s.errorLogger.Printf("[%s] REF_NOT_FOUND: Ref %q from page %q: %s", s.s.Lang(), ref, p.Path(), what)
+		s.errorLogger.Printf("[%s] REF_NOT_FOUND: Ref %q from page %q: %s", s.s.Lang(), ref, p.Pathc(), what)
 	}
 }
 
@@ -964,6 +957,10 @@ func (s *Site) filterFileEvents(events []fsnotify.Event) []fsnotify.Event {
 		}
 		if !isRegular {
 			continue
+		}
+
+		if runtime.GOOS == "darwin" { // When a file system is HFS+, its filepath is in NFD form.
+			ev.Name = norm.NFC.String(ev.Name)
 		}
 
 		filtered = append(filtered, ev)
@@ -1345,6 +1342,32 @@ func (s *Site) initializeSiteInfo() error {
 		}
 	}
 
+	// Assemble dependencies to be used in hugo.Deps.
+	// TODO(bep) another reminder: We need to clean up this Site vs HugoSites construct.
+	var deps []*neohugo.Dependency
+	var depFromMod func(m modules.Module) *neohugo.Dependency
+	depFromMod = func(m modules.Module) *neohugo.Dependency {
+		dep := &neohugo.Dependency{
+			Path:    m.Path(),
+			Version: m.Version(),
+			Time:    m.Time(),
+			Vendor:  m.Vendor(),
+		}
+
+		// These are pointers, but this all came from JSON so there's no recursive navigation,
+		// so just create new values.
+		if m.Replace() != nil {
+			dep.Replace = depFromMod(m.Replace())
+		}
+		if m.Owner() != nil {
+			dep.Owner = depFromMod(m.Owner())
+		}
+		return dep
+	}
+	for _, m := range s.Paths.AllModules {
+		deps = append(deps, depFromMod(m))
+	}
+
 	s.Info = &SiteInfo{
 		title:                          lang.GetString("title"),
 		Author:                         lang.GetStringMap("author"),
@@ -1363,7 +1386,7 @@ func (s *Site) initializeSiteInfo() error {
 		permalinks:                     permalinks,
 		owner:                          s.h,
 		s:                              s,
-		hugoInfo:                       neohugo.NewInfo(s.Cfg.GetString("environment")),
+		hugoInfo:                       neohugo.NewInfo(s.Cfg.GetString("environment"), deps),
 	}
 
 	rssOutputFormat, found := s.outputFormats[page.KindHome].GetByName(output.RSSFormat.Name)

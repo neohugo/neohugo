@@ -120,7 +120,7 @@ func (t testSite) Data() map[string]interface{} {
 // NewDummyHugoSite creates a new minimal test site.
 func NewDummyHugoSite(cfg config.Provider) Site {
 	return testSite{
-		h: neohugo.NewInfo(neohugo.EnvironmentProduction),
+		h: neohugo.NewInfo(neohugo.EnvironmentProduction, nil),
 		l: langs.NewLanguage("en", cfg),
 	}
 }

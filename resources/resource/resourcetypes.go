@@ -36,6 +36,11 @@ type OriginProvider interface {
 	GetFieldString(pattern string) (string, bool)
 }
 
+// ErrProvider provides an Err.
+type ErrProvider interface {
+	Err() error
+}
+
 // Resource represents a linkable resource, i.e. a content page, image etc.
 type Resource interface {
 	ResourceTypeProvider
@@ -44,6 +49,7 @@ type Resource interface {
 	ResourceMetaProvider
 	ResourceParamsProvider
 	ResourceDataProvider
+	ErrProvider
 }
 
 // Image represents an image resource.

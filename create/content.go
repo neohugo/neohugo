@@ -24,11 +24,11 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs/glob"
 
+	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/pkg/errors"
 
-	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/neohugo/neohugo/hugofs"
@@ -339,16 +339,27 @@ func (b *contentBuilder) openInEditorIfConfigured(filename string) error {
 		return nil
 	}
 
-	b.h.Log.Printf("Editing %q with %q ...\n", filename, editor)
+	editorExec := strings.Fields(editor)[0]
+	editorFlags := strings.Fields(editor)[1:]
 
-	cmd, err := hexec.SafeCommand(editor, filename)
+	var args []interface{}
+	for _, editorFlag := range editorFlags {
+		args = append(args, editorFlag)
+	}
+	args = append(
+		args,
+		filename,
+		hexec.WithStdin(os.Stdin),
+		hexec.WithStderr(os.Stderr),
+		hexec.WithStdout(os.Stdout),
+	)
+
+	b.h.Log.Printf("Editing %q with %q ...\n", filename, editorExec)
+
+	cmd, err := b.h.Deps.ExecHelper.New(editorExec, args...)
 	if err != nil {
 		return err
 	}
-
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 
 	return cmd.Run()
 }

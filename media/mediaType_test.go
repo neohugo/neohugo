@@ -15,10 +15,14 @@ package media
 
 import (
 	"encoding/json"
+	"io/ioutil"
+	"path/filepath"
 	"sort"
+	"strings"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/common/paths"
 )
 
 func TestDefaultTypes(t *testing.T) {
@@ -47,6 +51,9 @@ func TestDefaultTypes(t *testing.T) {
 		{XMLType, "application", "xml", "xml", "application/xml", "application/xml"},
 		{TOMLType, "application", "toml", "toml", "application/toml", "application/toml"},
 		{YAMLType, "application", "yaml", "yaml", "application/yaml", "application/yaml"},
+		{PDFType, "application", "pdf", "pdf", "application/pdf", "application/pdf"},
+		{TrueTypeFontType, "font", "ttf", "ttf", "font/ttf", "font/ttf"},
+		{OpenTypeFontType, "font", "otf", "otf", "font/otf", "font/otf"},
 	} {
 		c.Assert(test.tp.MainType, qt.Equals, test.expectedMainType)
 		c.Assert(test.tp.SubType, qt.Equals, test.expectedSubType)
@@ -56,7 +63,7 @@ func TestDefaultTypes(t *testing.T) {
 
 	}
 
-	c.Assert(len(DefaultTypes), qt.Equals, 28)
+	c.Assert(len(DefaultTypes), qt.Equals, 33)
 }
 
 func TestGetByType(t *testing.T) {
@@ -171,6 +178,52 @@ func TestFromExtensionMultipleSuffixes(t *testing.T) {
 	c.Assert(found, qt.Equals, true)
 	c.Assert(ftp.String(), qt.Equals, "image/svg+xml")
 	c.Assert(found, qt.Equals, true)
+}
+
+func TestFromContent(t *testing.T) {
+	c := qt.New(t)
+
+	files, err := filepath.Glob("./testdata/resource.*")
+	c.Assert(err, qt.IsNil)
+	mtypes := DefaultTypes
+
+	for _, filename := range files {
+		name := filepath.Base(filename)
+		c.Run(name, func(c *qt.C) {
+			content, err := ioutil.ReadFile(filename)
+			c.Assert(err, qt.IsNil)
+			ext := strings.TrimPrefix(paths.Ext(filename), ".")
+			var exts []string
+			if ext == "jpg" {
+				exts = append(exts, "foo", "bar", "jpg")
+			} else {
+				exts = []string{ext}
+			}
+			expected, _, found := mtypes.GetFirstBySuffix(ext)
+			c.Assert(found, qt.IsTrue)
+			got := FromContent(mtypes, exts, content)
+			c.Assert(got, qt.Equals, expected)
+		})
+	}
+}
+
+func TestFromContentFakes(t *testing.T) {
+	c := qt.New(t)
+
+	files, err := filepath.Glob("./testdata/fake.*")
+	c.Assert(err, qt.IsNil)
+	mtypes := DefaultTypes
+
+	for _, filename := range files {
+		name := filepath.Base(filename)
+		c.Run(name, func(c *qt.C) {
+			content, err := ioutil.ReadFile(filename)
+			c.Assert(err, qt.IsNil)
+			ext := strings.TrimPrefix(paths.Ext(filename), ".")
+			got := FromContent(mtypes, []string{ext}, content)
+			c.Assert(got, qt.Equals, zero)
+		})
+	}
 }
 
 func TestDecodeTypes(t *testing.T) {

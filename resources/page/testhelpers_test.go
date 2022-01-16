@@ -123,6 +123,10 @@ type testPage struct {
 	sectionEntries []string
 }
 
+func (p *testPage) Err() error {
+	return nil
+}
+
 func (p *testPage) Aliases() []string {
 	panic("not implemented")
 }
@@ -410,6 +414,10 @@ func (p *testPage) Parent() Page {
 }
 
 func (p *testPage) Path() string {
+	return p.path
+}
+
+func (p *testPage) Pathc() string {
 	return p.path
 }
 

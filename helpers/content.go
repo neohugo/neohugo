@@ -24,6 +24,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/spf13/afero"
@@ -64,7 +65,7 @@ type ContentSpec struct {
 
 // NewContentSpec returns a ContentSpec initialized
 // with the appropriate fields from the given config.Provider.
-func NewContentSpec(cfg config.Provider, logger loggers.Logger, contentFs afero.Fs) (*ContentSpec, error) {
+func NewContentSpec(cfg config.Provider, logger loggers.Logger, contentFs afero.Fs, ex *hexec.Exec) (*ContentSpec, error) {
 	spec := &ContentSpec{
 		summaryLength: cfg.GetInt("summaryLength"),
 		BuildFuture:   cfg.GetBool("buildFuture"),
@@ -78,6 +79,7 @@ func NewContentSpec(cfg config.Provider, logger loggers.Logger, contentFs afero.
 		Cfg:       cfg,
 		ContentFs: contentFs,
 		Logger:    logger,
+		Exec:      ex,
 	})
 	if err != nil {
 		return nil, err
@@ -213,9 +215,6 @@ func (c *ContentSpec) ResolveMarkup(in string) string {
 	case "html", "htm":
 		return "html"
 	default:
-		if in == "mmark" {
-			Deprecated("Markup type mmark", "See https://gohugo.io//content-management/formats/#list-of-content-formats", true)
-		}
 		if conv := c.Converters.Get(in); conv != nil {
 			return conv.Name()
 		}

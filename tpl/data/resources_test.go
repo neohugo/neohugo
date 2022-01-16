@@ -22,12 +22,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/modules"
 
 	"github.com/neohugo/neohugo/helpers"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
@@ -198,8 +200,10 @@ func newDeps(cfg config.Provider) *deps.Deps {
 	}
 	cfg.Set("allModules", modules.Modules{mod})
 
+	ex := hexec.New(security.DefaultConfig)
+
 	logger := loggers.NewIgnorableLogger(loggers.NewErrorLogger(), "none")
-	cs, err := helpers.NewContentSpec(cfg, logger, afero.NewMemMapFs())
+	cs, err := helpers.NewContentSpec(cfg, logger, afero.NewMemMapFs(), ex)
 	if err != nil {
 		panic(err)
 	}
@@ -220,6 +224,7 @@ func newDeps(cfg config.Provider) *deps.Deps {
 		Cfg:         cfg,
 		Fs:          fs,
 		FileCaches:  fileCaches,
+		ExecHelper:  ex,
 		ContentSpec: cs,
 		Log:         logger,
 		LogDistinct: helpers.NewDistinctLogger(logger),

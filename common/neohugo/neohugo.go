@@ -21,6 +21,7 @@ import (
 	"runtime/debug"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/neohugo/neohugo/hugofs/files"
 
@@ -57,6 +58,8 @@ type Info struct {
 	// This can also be set by the user.
 	// It can be any string, but it will be all lower case.
 	Environment string
+
+	deps []*Dependency
 }
 
 // Version returns the current version as a comparable version string.
@@ -77,8 +80,13 @@ func (i Info) IsExtended() bool {
 	return IsExtended
 }
 
+// Deps gets a list of dependencies for this Hugo build.
+func (i Info) Deps() []*Dependency {
+	return i.deps
+}
+
 // NewInfo creates a new Hugo Info object.
-func NewInfo(environment string) Info {
+func NewInfo(environment string, deps []*Dependency) Info {
 	if environment == "" {
 		environment = EnvironmentProduction
 	}
@@ -86,11 +94,14 @@ func NewInfo(environment string) Info {
 		CommitHash:  commitHash,
 		BuildDate:   buildDate,
 		Environment: environment,
+		deps:        deps,
 	}
 }
 
+// GetExecEnviron creates and gets the common os/exec environment used in the
+// external programs we interact with via os/exec, e.g. postcss.
 func GetExecEnviron(workDir string, cfg config.Provider, fs afero.Fs) []string {
-	env := os.Environ()
+	var env []string
 	nodepath := filepath.Join(workDir, "node_modules")
 	if np := os.Getenv("NODE_PATH"); np != "" {
 		nodepath = workDir + string(os.PathListSeparator) + np
@@ -98,12 +109,15 @@ func GetExecEnviron(workDir string, cfg config.Provider, fs afero.Fs) []string {
 	config.SetEnvVars(&env, "NODE_PATH", nodepath)
 	config.SetEnvVars(&env, "PWD", workDir)
 	config.SetEnvVars(&env, "HUGO_ENVIRONMENT", cfg.GetString("environment"))
-	fis, err := afero.ReadDir(fs, files.FolderJSConfig)
-	if err == nil {
-		for _, fi := range fis {
-			key := fmt.Sprintf("HUGO_FILE_%s", strings.ReplaceAll(strings.ToUpper(fi.Name()), ".", "_"))
-			value := fi.(hugofs.FileMetaInfo).Meta().Filename
-			config.SetEnvVars(&env, key, value)
+
+	if fs != nil {
+		fis, err := afero.ReadDir(fs, files.FolderJSConfig)
+		if err == nil {
+			for _, fi := range fis {
+				key := fmt.Sprintf("HUGO_FILE_%s", strings.ReplaceAll(strings.ToUpper(fi.Name()), ".", "_"))
+				value := fi.(hugofs.FileMetaInfo).Meta().Filename
+				config.SetEnvVars(&env, key, value)
+			}
 		}
 	}
 
@@ -150,4 +164,28 @@ func IsRunningAsTest() bool {
 		}
 	}
 	return false
+}
+
+// Dependency is a single dependency, which can be either a Hugo Module or a local theme.
+type Dependency struct {
+	// Returns the path to this module.
+	// This will either be the module path, e.g. "github.com/gohugoio/myshortcodes",
+	// or the path below your /theme folder, e.g. "mytheme".
+	Path string
+
+	// The module version.
+	Version string
+
+	// Whether this dependency is vendored.
+	Vendor bool
+
+	// Time version was created.
+	Time time.Time
+
+	// In the dependency tree, this is the first module that defines this module
+	// as a dependency.
+	Owner *Dependency
+
+	// Replaced by this dependency.
+	Replace *Dependency
 }

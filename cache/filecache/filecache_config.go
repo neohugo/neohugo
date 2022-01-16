@@ -73,9 +73,8 @@ var defaultCacheConfigs = Configs{
 		Dir:    resourcesGenDir,
 	},
 	cacheKeyGetResource: Config{
-		MaxAge:  -1, // Never expire
-		Dir:     cacheDirProject,
-		retries: 3, // Retries on error getting the remote resource.
+		MaxAge: -1, // Never expire
+		Dir:    cacheDirProject,
 	},
 }
 

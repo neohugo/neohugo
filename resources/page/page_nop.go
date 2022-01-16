@@ -48,6 +48,10 @@ var (
 // PageNop implements Page, but does nothing.
 type nopPage int
 
+func (p *nopPage) Err() error {
+	return nil
+}
+
 func (p *nopPage) Aliases() []string {
 	return nil
 }
@@ -331,6 +335,10 @@ func (p *nopPage) Parent() Page {
 }
 
 func (p *nopPage) Path() string {
+	return ""
+}
+
+func (p *nopPage) Pathc() string {
 	return ""
 }
 
