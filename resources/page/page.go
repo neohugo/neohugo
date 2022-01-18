@@ -179,6 +179,9 @@ type PageMetaProvider interface {
 	// to the source of this Page. It will be relative to any content root.
 	Path() string
 
+	// This is just a temporary bridge method. Use Path in templates.
+	Pathc() string
+
 	// The slug, typically defined in front matter.
 	Slug() string
 

@@ -87,6 +87,8 @@ func NewClient(cfg ClientConfig) *Client {
 		"GOPRIVATE", mcfg.Private,
 		"GONOPROXY", mcfg.NoProxy,
 		"GOPATH", cfg.CacheDir,
+		// GOCACHE was introduced in Go 1.15. This matches the location derived from GOPATH above.
+		"GOCACHE", filepath.Join(cfg.CacheDir, "pkg", "mod"),
 	)
 
 	logger := cfg.Logger
@@ -186,7 +188,7 @@ func (c *Client) Tidy() error {
 //
 // We, by default, use the /_vendor folder first, if found. To disable,
 // run with
-//    hugo --ignoreVendor
+//    hugo --ignoreVendorPaths=".*"
 //
 // Given a module tree, Hugo will pick the first module for a given path,
 // meaning that if the top-level module is vendored, that will be the full

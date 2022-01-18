@@ -25,7 +25,6 @@ import (
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/media"
-
 	"github.com/neohugo/neohugo/resources"
 
 	"github.com/neohugo/neohugo/resources/internal"

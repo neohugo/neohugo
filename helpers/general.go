@@ -413,7 +413,11 @@ func Deprecated(item, alternative string, err bool) {
 	if err {
 		DistinctErrorLog.Errorf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
 	} else {
-		DistinctWarnLog.Warnf("%s is deprecated and will be removed in a future release. %s", item, alternative)
+		var warnPanicMessage string
+		if !loggers.PanicOnWarning {
+			warnPanicMessage = "\n\nRe-run Hugo with the flag --panicOnWarning to get a better error message."
+		}
+		DistinctWarnLog.Warnf("%s is deprecated and will be removed in a future release. %s%s", item, alternative, warnPanicMessage)
 	}
 }
 

@@ -27,7 +27,6 @@ import (
 	"github.com/neohugo/neohugo/markup/asciidocext"
 	"github.com/neohugo/neohugo/markup/blackfriday"
 	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/neohugo/neohugo/markup/mmark"
 	"github.com/neohugo/neohugo/markup/pandoc"
 	"github.com/neohugo/neohugo/markup/rst"
 )
@@ -71,9 +70,6 @@ func NewConverterProvider(cfg converter.ProviderConfig) (ConverterProvider, erro
 		return nil, err
 	}
 	if err := add(blackfriday.Provider); err != nil {
-		return nil, err
-	}
-	if err := add(mmark.Provider); err != nil {
 		return nil, err
 	}
 	if err := add(asciidocext.Provider, "ad", "adoc"); err != nil {

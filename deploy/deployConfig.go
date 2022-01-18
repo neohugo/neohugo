@@ -21,12 +21,11 @@ import (
 	"regexp"
 
 	"github.com/gobwas/glob"
+	"github.com/neohugo/neohugo/config"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/mitchellh/mapstructure"
-
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/media"
 	"github.com/pkg/errors"
 )
 

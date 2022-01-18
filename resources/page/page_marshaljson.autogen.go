@@ -69,7 +69,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	linkTitle := p.LinkTitle()
 	isNode := p.IsNode()
 	isPage := p.IsPage()
-	path := p.Path()
+	path := p.Pathc()
 	slug := p.Slug()
 	lang := p.Lang()
 	isSection := p.IsSection()

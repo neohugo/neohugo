@@ -163,17 +163,7 @@ func TestFlags(t *testing.T) {
 		check func(c *qt.C, cmd *serverCmd)
 	}{
 		{
-			// https://github.com/neohugo/neohugo/issues/7642
-			name: "ignoreVendor as bool",
-			args: []string{"server", "--ignoreVendor"},
-			check: func(c *qt.C, cmd *serverCmd) {
-				cfg := config.New()
-				cmd.flagsToConfig(cfg)
-				c.Assert(cfg.Get("ignoreVendor"), qt.Equals, true)
-			},
-		},
-		{
-			// https://github.com/neohugo/neohugo/issues/7642
+			// https://github.com/gohugoio/hugo/issues/7642
 			name: "ignoreVendorPaths",
 			args: []string{"server", "--ignoreVendorPaths=github.com/**"},
 			check: func(c *qt.C, cmd *serverCmd) {

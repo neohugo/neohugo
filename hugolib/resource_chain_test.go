@@ -28,9 +28,10 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/config"
-	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
+
+	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/htesting"
@@ -614,6 +615,7 @@ func TestResourceChains(t *testing.T) {
 			return
 
 		case "/authenticated/":
+			w.Header().Set("Content-Type", "text/plain")
 			if r.Header.Get("Authorization") == "Bearer abcd" {
 				//nolint
 				w.Write([]byte(`Welcome`))
@@ -623,6 +625,7 @@ func TestResourceChains(t *testing.T) {
 			return
 
 		case "/post":
+			w.Header().Set("Content-Type", "text/plain")
 			if r.Method == http.MethodPost {
 				body, err := ioutil.ReadAll(r.Body)
 				if err != nil {

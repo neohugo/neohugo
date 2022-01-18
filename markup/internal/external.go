@@ -7,7 +7,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/hexec"
-
 	"github.com/neohugo/neohugo/markup/converter"
 )
 
