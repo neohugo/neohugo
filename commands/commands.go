@@ -281,7 +281,6 @@ func (cc *hugoBuilderCommon) handleCommonBuilderFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().SetAnnotation("source", cobra.BashCompSubdirsInDir, []string{})
 	cmd.PersistentFlags().StringVarP(&cc.environment, "environment", "e", "", "build environment")
 	cmd.PersistentFlags().StringP("themesDir", "", "", "filesystem path to themes directory")
-	cmd.PersistentFlags().BoolP("ignoreVendor", "", false, "ignores any _vendor directory")
 	cmd.PersistentFlags().StringP("ignoreVendorPaths", "", "", "ignores any _vendor for module paths matching the given Glob pattern")
 }
 
@@ -301,7 +300,7 @@ func (cc *hugoBuilderCommon) handleFlags(cmd *cobra.Command) {
 	cmd.Flags().Bool("enableGitInfo", false, "add Git revision, date and author info to the pages")
 	cmd.Flags().BoolVar(&cc.gc, "gc", false, "enable to run some cleanup tasks (remove unused cache files) after the build")
 	cmd.Flags().StringVar(&cc.poll, "poll", "", "set this to a poll interval, e.g --poll 700ms, to use a poll based approach to watch for file system changes")
-
+	cmd.Flags().BoolVar(&loggers.PanicOnWarning, "panicOnWarning", false, "panic on first WARNING log")
 	cmd.Flags().Bool("templateMetrics", false, "display metrics about template executions")
 	cmd.Flags().Bool("templateMetricsHints", false, "calculate some improvement hints when combined with --templateMetrics")
 	cmd.Flags().BoolP("forceSyncStatic", "", false, "copy all files when static is changed.")

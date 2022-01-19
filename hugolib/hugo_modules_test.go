@@ -13,6 +13,33 @@
 
 package hugolib
 
+//import (
+//"fmt"
+//"math/rand"
+//"os"
+//"path/filepath"
+//"strings"
+//"testing"
+//"time"
+
+//"github.com/gohugoio/hugo/config"
+//"github.com/gohugoio/hugo/modules/npm"
+
+//"github.com/gohugoio/hugo/common/loggers"
+
+//"github.com/spf13/afero"
+
+//"github.com/gohugoio/hugo/hugofs/files"
+
+//"github.com/gohugoio/hugo/common/hugo"
+
+//"github.com/gohugoio/hugo/htesting"
+//"github.com/gohugoio/hugo/hugofs"
+
+//qt "github.com/frankban/quicktest"
+//"github.com/gohugoio/testmodBuilder/mods"
+//)
+
 //func TestHugoModulesVariants(t *testing.T) {
 //if !htesting.IsCI() {
 //t.Skip("skip (relative) long running modules test when running locally")
@@ -995,17 +1022,8 @@ package hugolib
 // myPartialsDir := filepath.Join(test.workingDir, "subdir", "mypartials")
 // os.MkdirAll(myPartialsDir, 0777)
 
-//createSymlinks := func(baseDir, id string) {
-//for _, dir := range files.ComponentFolders {
-//// Issue #9119: private use language tags cannot exceed 8 characters.
-//if dir != "i18n" {
-//c.Assert(os.Chdir(filepath.Join(baseDir, dir)), qt.IsNil)
-//c.Assert(os.Symlink("real", fmt.Sprintf("realsym%s", id)), qt.IsNil)
-//c.Assert(os.Chdir(filepath.Join(baseDir, dir, "real")), qt.IsNil)
-//c.Assert(os.Symlink("data.toml", fmt.Sprintf(filepath.FromSlash("datasym%s.toml"), id)), qt.IsNil)
-//}
-//}
-//}
+// absShortcodesDir := filepath.Join(absDir, "abs", "myshortcodes")
+// os.MkdirAll(absShortcodesDir, 0777)
 
 // b.WithSourceFile("README.md", "---\ntitle: Readme\n---")
 // b.WithSourceFile("mycontent/sub/p1.md", "---\ntitle: P1\n---")

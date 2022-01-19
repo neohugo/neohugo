@@ -19,8 +19,8 @@ import (
 	"runtime"
 
 	"github.com/neohugo/neohugo/common/hexec"
-
 	"github.com/neohugo/neohugo/htesting"
+
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/internal"

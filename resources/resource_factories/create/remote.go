@@ -110,21 +110,30 @@ func (c *Client) FromRemote(uri string, optionsm map[string]interface{}) (resour
 		}
 	}
 
-	var extensionHint string
+	var extensionHints []string
 
-	if arr, _ := mime.ExtensionsByType(res.Header.Get("Content-Type")); len(arr) == 1 {
-		extensionHint = arr[0]
+	contentType := res.Header.Get("Content-Type")
+
+	// mime.ExtensionsByType gives a long list of extensions for text/plain,
+	// just use ".txt".
+	if strings.HasPrefix(contentType, "text/plain") {
+		extensionHints = []string{".txt"}
+	} else {
+		exts, _ := mime.ExtensionsByType(contentType)
+		if exts != nil {
+			extensionHints = exts
+		}
 	}
 
-	// Look for a file extention
-	if extensionHint == "" {
+	// Look for a file extention. If it's .txt, look for a more specific.
+	if extensionHints == nil || extensionHints[0] == ".txt" {
 		if ext := path.Ext(filename); ext != "" {
-			extensionHint = ext
+			extensionHints = []string{ext}
 		}
 	}
 
 	// Now resolve the media type primarily using the content.
-	mediaType := media.FromContent(c.rs.MediaTypes, extensionHint, body)
+	mediaType := media.FromContent(c.rs.MediaTypes, extensionHints, body)
 	if mediaType.IsZero() {
 		return nil, errors.Errorf("failed to resolve media type for remote resource %q", uri)
 	}

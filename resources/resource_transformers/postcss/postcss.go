@@ -27,9 +27,8 @@ import (
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/neohugo"
-
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/spf13/afero"

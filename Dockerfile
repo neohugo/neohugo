@@ -27,7 +27,7 @@ RUN mage neohugo && mage install
 
 FROM alpine:latest
 LABEL description="Docker container for building static sites with the neohugo static site generator with extended."
-LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.me>"
+LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.dev>"
 
 COPY --from=build /go/bin/neohugo /usr/bin/neohugo
 
