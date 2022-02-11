@@ -16,7 +16,6 @@ package commands
 import (
 	"syscall"
 
-	"github.com/spf13/cobra"
 	jww "github.com/spf13/jwalterweatherman"
 )
 
@@ -26,43 +25,43 @@ type limitCmd struct {
 	*baseCmd
 }
 
-func newLimitCmd() *limitCmd {
-	ccmd := &cobra.Command{
-		Use:   "ulimit",
-		Short: "Check system ulimit settings",
-		Long: `Hugo will inspect the current ulimit settings on the system.
-This is primarily to ensure that Hugo can watch enough files on some OSs`,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			var rLimit syscall.Rlimit
-			err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-			if err != nil {
-				return newSystemError("Error Getting rlimit ", err)
-			}
+//func newLimitCmd() *limitCmd {
+//ccmd := &cobra.Command{
+//Use:   "ulimit",
+//Short: "Check system ulimit settings",
+//Long: `Hugo will inspect the current ulimit settings on the system.
+//This is primarily to ensure that Hugo can watch enough files on some OSs`,
+//RunE: func(cmd *cobra.Command, args []string) error {
+//var rLimit syscall.Rlimit
+//err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+//if err != nil {
+//return newSystemError("Error Getting rlimit ", err)
+//}
 
-			jww.FEEDBACK.Println("Current rLimit:", rLimit)
+//jww.FEEDBACK.Println("Current rLimit:", rLimit)
 
-			if rLimit.Cur >= newRlimit {
-				return nil
-			}
+//if rLimit.Cur >= newRlimit {
+//return nil
+//}
 
-			jww.FEEDBACK.Println("Attempting to increase limit")
-			rLimit.Cur = newRlimit
-			err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-			if err != nil {
-				return newSystemError("Error Setting rLimit ", err)
-			}
-			err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-			if err != nil {
-				return newSystemError("Error Getting rLimit ", err)
-			}
-			jww.FEEDBACK.Println("rLimit after change:", rLimit)
+//jww.FEEDBACK.Println("Attempting to increase limit")
+//rLimit.Cur = newRlimit
+//err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+//if err != nil {
+//return newSystemError("Error Setting rLimit ", err)
+//}
+//err = syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
+//if err != nil {
+//return newSystemError("Error Getting rLimit ", err)
+//}
+//jww.FEEDBACK.Println("rLimit after change:", rLimit)
 
-			return nil
-		},
-	}
+//return nil
+//},
+//}
 
-	return &limitCmd{baseCmd: newBaseCmd(ccmd)}
-}
+//return &limitCmd{baseCmd: newBaseCmd(ccmd)}
+//}
 
 const newRlimit = 10240
 

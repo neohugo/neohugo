@@ -67,9 +67,9 @@ jobs:
       - run: pandoc -v
       - name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
-          echo "04fc1e5e28d29a4585a701941b6dace56771d94bfbe7f9e4db28d24417ceeec3  sass_embedded-1.0.0-beta.6-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
+          curl -LJO  https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-linux-x64.tar.gz;
+          echo "0bdfa8066f335f4fb1ad239101ae1dcaab51b2c0c4b8c60699f476f6b59586a7  sass_embedded-1.49.7-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf sass_embedded-1.49.7-linux-x64.tar.gz;
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - name: Run mage tests
         working-directory: ./neohugo

@@ -77,16 +77,16 @@ jobs:
       - if: matrix.os == 'ubuntu-latest'
         name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
-          echo "04fc1e5e28d29a4585a701941b6dace56771d94bfbe7f9e4db28d24417ceeec3  sass_embedded-1.0.0-beta.6-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
+          curl -LJO  https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-linux-x64.tar.gz;
+          echo "0bdfa8066f335f4fb1ad239101ae1dcaab51b2c0c4b8c60699f476f6b59586a7  sass_embedded-1.49.7-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf sass_embedded-1.49.7-linux-x64.tar.gz;
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - if: matrix.os == 'macos-latest'
         name: Install dart-sass-embedded MacOS
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-macos-x64.tar.gz;
-          echo "b3b984675a9b04aa22f6f2302dda4191b507ac2ca124467db2dfe7e58e72fbad  sass_embedded-1.0.0-beta.6-macos-x64.tar.gz" | shasum -a 256 -c;
-          tar -xvf sass_embedded-1.0.0-beta.6-macos-x64.tar.gz;
+          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-macos-x64.tar.gz;
+          echo "75ffb0875d9081f7f73f744fde1c7007713872a967d43f7332cf5040e73d40da  sass_embedded-1.49.7-macos-x64.tar.gz" | shasum -a 256 -c;
+          tar -xvf sass_embedded-1.49.7-macos-x64.tar.gz;
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - if: matrix.os == 'windows-latest'
         name: Install dart-sass-embedded Windows
@@ -164,9 +164,9 @@ jobs:
       - run: pandoc -v
       - name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
-          echo "04fc1e5e28d29a4585a701941b6dace56771d94bfbe7f9e4db28d24417ceeec3  sass_embedded-1.0.0-beta.6-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.0.0-beta.6-linux-x64.tar.gz;
+          curl -LJO  https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-linux-x64.tar.gz;
+          echo "0bdfa8066f335f4fb1ad239101ae1dcaab51b2c0c4b8c60699f476f6b59586a7  sass_embedded-1.49.7-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf sass_embedded-1.49.7-linux-x64.tar.gz;
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - name: Run mage tests
         continue-on-error: true
