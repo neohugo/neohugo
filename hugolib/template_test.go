@@ -754,3 +754,20 @@ This is single main
 `,
 	)
 }
+
+// Issue 9393.
+func TestApplyWithNamespace(t *testing.T) {
+	b := newTestSitesBuilder(t)
+
+	b.WithTemplates(
+		"index.html", `
+{{ $b := slice " a " "     b "   "       c" }}		
+{{ $a := apply $b "strings.Trim" "." " " }}
+a: {{ $a }}
+`,
+	).WithContent("p1.md", "")
+
+	b.Build(BuildCfg{})
+
+	b.AssertFileContent("public/index.html", `a: [a b c]`)
+}

@@ -27,9 +27,9 @@ GoBuilds
 dist
 
 hugolib/hugo_stats.json
-.hugo_build.lock
 resources/sunset.jpg
 
 vendor
+.hugo_build.lock
 
 tags*

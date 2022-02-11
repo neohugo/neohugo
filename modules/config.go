@@ -363,7 +363,7 @@ func (v HugoVersion) IsValid() bool {
 type Import struct {
 	Path                string // Module path
 	pathProjectReplaced bool   // Set when Path is replaced in project config.
-	IgnoreConfig        bool   // Ignore any config in config.toml (will still folow imports).
+	IgnoreConfig        bool   // Ignore any config in config.toml (will still follow imports).
 	IgnoreImports       bool   // Do not follow any configured imports.
 	NoMounts            bool   // Do not mount any folder in this import.
 	NoVendor            bool   // Never vendor this import (only allowed in main project).

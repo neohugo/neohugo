@@ -125,16 +125,6 @@ func MakePermalink(host, plink string) *url.URL {
 	return base
 }
 
-// IsAbsURL determines whether the given path points to an absolute URL.
-func IsAbsURL(path string) bool {
-	url, err := url.Parse(path)
-	if err != nil {
-		return false
-	}
-
-	return url.IsAbs() || strings.HasPrefix(path, "//")
-}
-
 // AddContextRoot adds the context root to an URL if it's not already set.
 // For relative URL entries on sites with a base url with a context root set (i.e. http://example.com/mysite),
 // relative URLs must not include the context root if canonifyURLs is enabled. But if it's disabled, it must be set.

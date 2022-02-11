@@ -241,7 +241,7 @@ func (p *pageMeta) Path() string {
 	{{ $path = .Path }}
   {{ end }}
 `
-		helpers.Deprecated(".Path when the page is backed by a file", "We plan to use Path for a canonical source path and you probably want to check the source is a file. To get the current behaviour, you can use a construct simlar to the below:\n"+example, false)
+		helpers.Deprecated(".Path when the page is backed by a file", "We plan to use Path for a canonical source path and you probably want to check the source is a file. To get the current behaviour, you can use a construct similar to the one below:\n"+example, false)
 
 	}
 
@@ -768,16 +768,20 @@ func (p *pageMeta) newContentConverter(ps *pageState, markup string, renderingCo
 
 	var id string
 	var filename string
+	var path string
 	if !p.f.IsZero() {
 		id = p.f.UniqueID()
 		filename = p.f.Filename()
+		path = p.f.Path()
+	} else {
+		path = p.Pathc()
 	}
 
 	cpp, err := cp.New(
 		converter.DocumentContext{
 			Document:        newPageForRenderHook(ps),
 			DocumentID:      id,
-			DocumentName:    p.File().Path(),
+			DocumentName:    path,
 			Filename:        filename,
 			ConfigOverrides: renderingConfigOverrides,
 		},

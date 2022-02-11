@@ -45,9 +45,9 @@ package hugolib
 //t.Skip("skip (relative) long running modules test when running locally")
 //}
 
-// tomlConfig := `
-// baseURL="https://example.org"
-// workingDir = %q
+//tomlConfig := `
+//baseURL="https://example.org"
+//workingDir = %q
 
 //[module]
 //[[module.imports]]
@@ -94,20 +94,20 @@ package hugolib
 //return b, clean
 //}
 
-// t.Run("Target in subfolder", func(t *testing.T) {
-// b, clean := newTestBuilder(t, "ignoreImports=true")
-// defer clean()
+//t.Run("Target in subfolder", func(t *testing.T) {
+//b, clean := newTestBuilder(t, "ignoreImports=true")
+//defer clean()
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContent("public/p1/index.html", `<p>Page|https://bep.is|Title: |Text: A link|END</p>`)
 //})
 
-// t.Run("Ignore config", func(t *testing.T) {
-// b, clean := newTestBuilder(t, "ignoreConfig=true")
-// defer clean()
+//t.Run("Ignore config", func(t *testing.T) {
+//b, clean := newTestBuilder(t, "ignoreConfig=true")
+//defer clean()
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContent("public/index.html", `
 //Param from module: |
@@ -115,11 +115,11 @@ package hugolib
 //`)
 //})
 
-// t.Run("Ignore imports", func(t *testing.T) {
-// b, clean := newTestBuilder(t, "ignoreImports=true")
-// defer clean()
+//t.Run("Ignore imports", func(t *testing.T) {
+//b, clean := newTestBuilder(t, "ignoreImports=true")
+//defer clean()
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContent("public/index.html", `
 //Param from module: Rocks|
@@ -127,9 +127,9 @@ package hugolib
 //`)
 //})
 
-// t.Run("Create package.json", func(t *testing.T) {
-// b, clean := newTestBuilder(t, "")
-// defer clean()
+//t.Run("Create package.json", func(t *testing.T) {
+//b, clean := newTestBuilder(t, "")
+//defer clean()
 
 //b.WithSourceFile("package.json", `{
 //"name": "mypack",
@@ -162,8 +162,8 @@ package hugolib
 //}
 //}`)
 
-// b.Build(BuildCfg{})
-// b.Assert(npm.Pack(b.H.BaseFs.SourceFs, b.H.BaseFs.Assets.Dirs), qt.IsNil)
+//b.Build(BuildCfg{})
+//b.Assert(npm.Pack(b.H.BaseFs.SourceFs, b.H.BaseFs.Assets.Dirs), qt.IsNil)
 
 //b.AssertFileContentFn("package.json", func(s string) bool {
 //return s == `{
@@ -203,9 +203,9 @@ package hugolib
 //})
 //})
 
-// t.Run("Create package.json, no default", func(t *testing.T) {
-// b, clean := newTestBuilder(t, "")
-// defer clean()
+//t.Run("Create package.json, no default", func(t *testing.T) {
+//b, clean := newTestBuilder(t, "")
+//defer clean()
 
 //const origPackageJSON = `{
 //"name": "mypack",
@@ -220,10 +220,10 @@ package hugolib
 //}
 //}`
 
-// b.WithSourceFile("package.json", origPackageJSON)
+//b.WithSourceFile("package.json", origPackageJSON)
 
-// b.Build(BuildCfg{})
-// b.Assert(npm.Pack(b.H.BaseFs.SourceFs, b.H.BaseFs.Assets.Dirs), qt.IsNil)
+//b.Build(BuildCfg{})
+//b.Assert(npm.Pack(b.H.BaseFs.SourceFs, b.H.BaseFs.Assets.Dirs), qt.IsNil)
 
 //b.AssertFileContentFn("package.json", func(s string) bool {
 //return s == `{
@@ -266,12 +266,12 @@ package hugolib
 //b.AssertFileContent("package.hugo.json", origPackageJSON)
 //})
 
-// t.Run("Create package.json, no default, no package.json", func(t *testing.T) {
-// b, clean := newTestBuilder(t, "")
-// defer clean()
+//t.Run("Create package.json, no default, no package.json", func(t *testing.T) {
+//b, clean := newTestBuilder(t, "")
+//defer clean()
 
-// b.Build(BuildCfg{})
-// b.Assert(npm.Pack(b.H.BaseFs.SourceFs, b.H.BaseFs.Assets.Dirs), qt.IsNil)
+//b.Build(BuildCfg{})
+//b.Assert(npm.Pack(b.H.BaseFs.SourceFs, b.H.BaseFs.Assets.Dirs), qt.IsNil)
 
 //b.AssertFileContentFn("package.json", func(s string) bool {
 //return s == `{
@@ -322,28 +322,28 @@ package hugolib
 //t.Skip()
 //}
 
-// rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
-// gooss := []string{"linux", "darwin", "windows"}
-// goos := gooss[rnd.Intn(len(gooss))]
-// ignoreVendor := rnd.Intn(2) == 0
-// testmods := mods.CreateModules(goos).Collect()
-// rnd.Shuffle(len(testmods), func(i, j int) { testmods[i], testmods[j] = testmods[j], testmods[i] })
+//rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
+//gooss := []string{"linux", "darwin", "windows"}
+//goos := gooss[rnd.Intn(len(gooss))]
+//ignoreVendor := rnd.Intn(2) == 0
+//testmods := mods.CreateModules(goos).Collect()
+//rnd.Shuffle(len(testmods), func(i, j int) { testmods[i], testmods[j] = testmods[j], testmods[i] })
 
-// for _, m := range testmods[:2] {
-// c := qt.New(t)
+//for _, m := range testmods[:2] {
+//c := qt.New(t)
 
-// v := config.New()
+//v := config.New()
 
-// workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-modules-test")
-// c.Assert(err, qt.IsNil)
-// defer clean()
+//workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-modules-test")
+//c.Assert(err, qt.IsNil)
+//defer clean()
 
-// configTemplate := `
-// baseURL = "https://example.com"
-// title = "My Modular Site"
-// workingDir = %q
-// theme = %q
-// ignoreVendorPaths = %q
+//configTemplate := `
+//baseURL = "https://example.com"
+//title = "My Modular Site"
+//workingDir = %q
+//theme = %q
+//ignoreVendorPaths = %q
 
 //`
 
@@ -353,7 +353,7 @@ package hugolib
 //}
 //config := fmt.Sprintf(configTemplate, workingDir, m.Path(), ignoreVendorPaths)
 
-// b := newTestSitesBuilder(t)
+//b := newTestSitesBuilder(t)
 
 //// Need to use OS fs for this.
 //b.Fs = hugofs.NewDefault(v)
@@ -380,7 +380,7 @@ package hugolib
 
 //`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //// Verify that go.mod is autopopulated with all the modules in config.toml.
 //b.AssertFileContent("go.mod", m.Path())
@@ -389,7 +389,7 @@ package hugolib
 //"Mod Name: "+m.Name(),
 //"Mod Version: v1.4.0")
 
-// b.AssertFileContent("public/index.html", createChildModMatchers(m, ignoreVendor, m.Vendor)...)
+//b.AssertFileContent("public/index.html", createChildModMatchers(m, ignoreVendor, m.Vendor)...)
 
 //}
 //}
@@ -403,9 +403,9 @@ package hugolib
 //expectMinorVersion = 1
 //}
 
-// expectVersion := fmt.Sprintf("v1.%d.0", expectMinorVersion)
+//expectVersion := fmt.Sprintf("v1.%d.0", expectMinorVersion)
 
-// var matchers []string
+//var matchers []string
 
 //for _, mm := range m.Children {
 //matchers = append(
@@ -416,15 +416,15 @@ package hugolib
 //return matchers
 //}
 
-// func TestModulesWithContent(t *testing.T) {
-// t.Parallel()
+//func TestModulesWithContent(t *testing.T) {
+//t.Parallel()
 
-// b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
-// baseURL="https://example.org"
+//b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
+//baseURL="https://example.org"
 
-// workingDir="/site"
+//workingDir="/site"
 
-// defaultContentLanguage = "en"
+//defaultContentLanguage = "en"
 
 //[module]
 //[[module.imports]]
@@ -522,10 +522,10 @@ package hugolib
 //// Static files
 //b.WithSourceFile("themes/c/static/hello.txt", `Hugo Rocks!"`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
-// b.AssertFileContent("public/index.html", "|Title theme-a-en|/blog/page/|Content theme-a-en")
-// b.AssertFileContent("public/nn/index.html", "|Title theme-b-nn|/nn/blog/page/|Content theme-b-nn")
+//b.AssertFileContent("public/index.html", "|Title theme-a-en|/blog/page/|Content theme-a-en")
+//b.AssertFileContent("public/nn/index.html", "|Title theme-b-nn|/nn/blog/page/|Content theme-b-nn")
 
 //// Data
 //b.AssertFileContent("public/index.html",
@@ -542,11 +542,11 @@ package hugolib
 //)
 //}
 
-// func TestModulesIgnoreConfig(t *testing.T) {
-// b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
-// baseURL="https://example.org"
+//func TestModulesIgnoreConfig(t *testing.T) {
+//b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
+//baseURL="https://example.org"
 
-// workingDir="/site"
+//workingDir="/site"
 
 //[module]
 //[[module.imports]]
@@ -560,20 +560,20 @@ package hugolib
 //a = "Should Be Ignored!"
 //`)
 
-// b.WithTemplatesAdded("index.html", `Params: {{ .Site.Params }}`)
+//b.WithTemplatesAdded("index.html", `Params: {{ .Site.Params }}`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContentFn("public/index.html", func(s string) bool {
 //return !strings.Contains(s, "Ignored")
 //})
 //}
 
-// func TestModulesDisabled(t *testing.T) {
-// b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
-// baseURL="https://example.org"
+//func TestModulesDisabled(t *testing.T) {
+//b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
+//baseURL="https://example.org"
 
-// workingDir="/site"
+//workingDir="/site"
 
 //[module]
 //[[module.imports]]
@@ -594,22 +594,22 @@ package hugolib
 //b = "B param"
 //`)
 
-// b.WithTemplatesAdded("index.html", `Params: {{ .Site.Params }}`)
+//b.WithTemplatesAdded("index.html", `Params: {{ .Site.Params }}`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContentFn("public/index.html", func(s string) bool {
 //return strings.Contains(s, "A param") && !strings.Contains(s, "B param")
 //})
 //}
 
-// func TestModulesIncompatible(t *testing.T) {
-// t.Parallel()
+//func TestModulesIncompatible(t *testing.T) {
+//t.Parallel()
 
-// b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
-// baseURL="https://example.org"
+//b := newTestSitesBuilder(t).WithWorkingDir("/site").WithConfigFile("toml", `
+//baseURL="https://example.org"
 
-// workingDir="/site"
+//workingDir="/site"
 
 //[module]
 //[[module.imports]]
@@ -623,9 +623,9 @@ package hugolib
 
 //`)
 
-// b.WithSourceFile("themes/ok/data/ok.toml", `title = "OK"`)
+//b.WithSourceFile("themes/ok/data/ok.toml", `title = "OK"`)
 
-// b.WithSourceFile("themes/incompat1/config.toml", `
+//b.WithSourceFile("themes/incompat1/config.toml", `
 
 //[module]
 //[module.hugoVersion]
@@ -646,18 +646,18 @@ package hugolib
 
 //`)
 
-// logger := loggers.NewWarningLogger()
-// b.WithLogger(logger)
+//logger := loggers.NewWarningLogger()
+//b.WithLogger(logger)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
-// c := qt.New(t)
+//c := qt.New(t)
 
 //c.Assert(logger.LogCounters().WarnCounter.Count(), qt.Equals, uint64(3))
 //}
 
-// func TestModulesSymlinks(t *testing.T) {
-// skipSymlink(t)
+//func TestModulesSymlinks(t *testing.T) {
+//skipSymlink(t)
 
 //wd, _ := os.Getwd()
 //defer func() {
@@ -669,10 +669,10 @@ package hugolib
 //cfg := config.New()
 //fs := hugofs.NewFrom(hugofs.Os, cfg)
 
-// workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mod-sym")
-// c.Assert(err, qt.IsNil)
+//workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mod-sym")
+//c.Assert(err, qt.IsNil)
 
-// defer clean()
+//defer clean()
 
 //const homeTemplate = `
 //Data: {{ .Site.Data }}
@@ -706,14 +706,14 @@ package hugolib
 //}
 //}
 
-// createSymlinks(workDir, "project")
-// createSymlinks(themeDir, "mod")
+//createSymlinks(workDir, "project")
+//createSymlinks(themeDir, "mod")
 
-// config := `
-// baseURL = "https://example.com"
-// theme="mymod"
-// defaultContentLanguage="nn"
-// defaultContentLanguageInSubDir=true
+//config := `
+//baseURL = "https://example.com"
+//theme="mymod"
+//defaultContentLanguage="nn"
+//defaultContentLanguageInSubDir=true
 
 //[languages]
 //[languages.nn]
@@ -723,21 +723,21 @@ package hugolib
 
 //`
 
-// b := newTestSitesBuilder(t).WithNothingAdded().WithWorkingDir(workDir)
-// b.WithLogger(loggers.NewErrorLogger())
-// b.Fs = fs
+//b := newTestSitesBuilder(t).WithNothingAdded().WithWorkingDir(workDir)
+//b.WithLogger(loggers.NewErrorLogger())
+//b.Fs = fs
 
-// b.WithConfigFile("toml", config)
-// c.Assert(os.Chdir(workDir), qt.IsNil)
+//b.WithConfigFile("toml", config)
+//c.Assert(os.Chdir(workDir), qt.IsNil)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContentFn(filepath.Join("public", "en", "index.html"), func(s string) bool {
 //// Symbolic links only followed in project. There should be WARNING logs.
 //return !strings.Contains(s, "symmod") && strings.Contains(s, "symproject")
 //})
 
-// bfs := b.H.BaseFs
+//bfs := b.H.BaseFs
 
 //for i, componentFs := range []afero.Fs{
 //bfs.Static[""].Fs,
@@ -752,7 +752,7 @@ package hugolib
 //continue
 //}
 
-// for j, id := range []string{"mod", "project"} {
+//for j, id := range []string{"mod", "project"} {
 
 //statCheck := func(fs afero.Fs, filename string, isDir bool) {
 //shouldFail := j == 0
@@ -777,19 +777,19 @@ package hugolib
 //}
 //}
 
-// statCheck(componentFs, fmt.Sprintf("realsym%s", id), true)
-// statCheck(componentFs, fmt.Sprintf("real/datasym%s.toml", id), false)
+//statCheck(componentFs, fmt.Sprintf("realsym%s", id), true)
+//statCheck(componentFs, fmt.Sprintf("real/datasym%s.toml", id), false)
 
 //}
 //}
 //}
 
-// func TestMountsProject(t *testing.T) {
-// t.Parallel()
+//func TestMountsProject(t *testing.T) {
+//t.Parallel()
 
-// config := `
+//config := `
 
-// baseURL="https://example.org"
+//baseURL="https://example.org"
 
 //[module]
 //[[module.mounts]]
@@ -806,7 +806,7 @@ package hugolib
 
 //`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //// helpers.PrintFs(b.H.Fs.Source, "public", os.Stdout)
 
@@ -821,10 +821,10 @@ package hugolib
 //c.Assert(err, qt.IsNil)
 //defer clean()
 
-// configTemplate := `
-// baseURL = "https://example.com"
-// title = "My Modular Site"
-// workingDir = %q
+//configTemplate := `
+//baseURL = "https://example.com"
+//title = "My Modular Site"
+//workingDir = %q
 
 //[module]
 //[[module.mounts]]
@@ -836,11 +836,11 @@ package hugolib
 
 //`
 
-// tomlConfig := fmt.Sprintf(configTemplate, workingDir)
+//tomlConfig := fmt.Sprintf(configTemplate, workingDir)
 
-// b := newTestSitesBuilder(t).Running()
+//b := newTestSitesBuilder(t).Running()
 
-// b.Fs = hugofs.NewDefault(config.New())
+//b.Fs = hugofs.NewDefault(config.New())
 
 //b.WithWorkingDir(workingDir).WithConfigFile("toml", tomlConfig)
 //b.WithTemplatesAdded("index.html", `
@@ -866,8 +866,8 @@ package hugolib
 //<a href="{{ $link | safeURL }}"{{ with .Title}} title="{{ . }}"{{ end }}{{ if $isRemote }} target="_blank"{{ end }}>{{ .Text | safeHTML }}</a>
 //`)
 
-// os.Mkdir(filepath.Join(workingDir, "mycontent"), 0777)
-// os.Mkdir(filepath.Join(workingDir, "mycontent", "mybundle"), 0777)
+//os.Mkdir(filepath.Join(workingDir, "mycontent"), 0777)
+//os.Mkdir(filepath.Join(workingDir, "mycontent", "mybundle"), 0777)
 
 //b.WithSourceFile("README.md", `---
 //title: "Readme Title"
@@ -897,7 +897,7 @@ package hugolib
 
 //`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContent("public/index.html", `
 //README: Readme Title
@@ -925,15 +925,15 @@ package hugolib
 //---
 //`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContent("public/index.html", `
 //Readme Edit
 //`)
 //}
 
-// func TestMountsPaths(t *testing.T) {
-// c := qt.New(t)
+//func TestMountsPaths(t *testing.T) {
+//c := qt.New(t)
 
 //type test struct {
 //b          *sitesBuilder
@@ -941,14 +941,14 @@ package hugolib
 //workingDir string
 //}
 
-// prepare := func(c *qt.C, mounts string) test {
-// workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mounts-paths")
-// c.Assert(err, qt.IsNil)
+//prepare := func(c *qt.C, mounts string) test {
+//workingDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mounts-paths")
+//c.Assert(err, qt.IsNil)
 
-// configTemplate := `
-// baseURL = "https://example.com"
-// title = "My Modular Site"
-// workingDir = %q
+//configTemplate := `
+//baseURL = "https://example.com"
+//title = "My Modular Site"
+//workingDir = %q
 
 //%s
 
@@ -956,13 +956,13 @@ package hugolib
 //tomlConfig := fmt.Sprintf(configTemplate, workingDir, mounts)
 //tomlConfig = strings.Replace(tomlConfig, "WORKING_DIR", workingDir, -1)
 
-// b := newTestSitesBuilder(c).Running()
+//b := newTestSitesBuilder(c).Running()
 
-// b.Fs = hugofs.NewDefault(config.New())
+//b.Fs = hugofs.NewDefault(config.New())
 
-// os.MkdirAll(filepath.Join(workingDir, "content", "blog"), 0777)
+//os.MkdirAll(filepath.Join(workingDir, "content", "blog"), 0777)
 
-// b.WithWorkingDir(workingDir).WithConfigFile("toml", tomlConfig)
+//b.WithWorkingDir(workingDir).WithConfigFile("toml", tomlConfig)
 
 //return test{
 //b:          b,
@@ -971,31 +971,31 @@ package hugolib
 //}
 //}
 
-// c.Run("Default", func(c *qt.C) {
-// mounts := ``
+//c.Run("Default", func(c *qt.C) {
+//mounts := ``
 
-// test := prepare(c, mounts)
-// b := test.b
-// defer test.clean()
+//test := prepare(c, mounts)
+//b := test.b
+//defer test.clean()
 
 //b.WithContent("blog/p1.md", `---
 //title: P1
 //---`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
-// p := b.GetPage("blog/p1.md")
-// f := p.File().FileInfo().Meta()
-// b.Assert(filepath.ToSlash(f.Path), qt.Equals, "blog/p1.md")
-// b.Assert(filepath.ToSlash(f.PathFile()), qt.Equals, "content/blog/p1.md")
+//p := b.GetPage("blog/p1.md")
+//f := p.File().FileInfo().Meta()
+//b.Assert(filepath.ToSlash(f.Path), qt.Equals, "blog/p1.md")
+//b.Assert(filepath.ToSlash(f.PathFile()), qt.Equals, "content/blog/p1.md")
 
 //b.Assert(b.H.BaseFs.Layouts.Path(filepath.Join(test.workingDir, "layouts", "_default", "single.html")), qt.Equals, filepath.FromSlash("_default/single.html"))
 //})
 
-// c.Run("Mounts", func(c *qt.C) {
-// absDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mounts-paths-abs")
-// c.Assert(err, qt.IsNil)
-// defer clean()
+//c.Run("Mounts", func(c *qt.C) {
+//absDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-mounts-paths-abs")
+//c.Assert(err, qt.IsNil)
+//defer clean()
 
 //mounts := `[module]
 //[[module.mounts]]
@@ -1013,30 +1013,30 @@ package hugolib
 //`
 //mounts = fmt.Sprintf(mounts, filepath.Join(absDir, "/abs/myshortcodes"))
 
-// test := prepare(c, mounts)
-// b := test.b
-// defer test.clean()
+//test := prepare(c, mounts)
+//b := test.b
+//defer test.clean()
 
-// subContentDir := filepath.Join(test.workingDir, "mycontent", "sub")
-// os.MkdirAll(subContentDir, 0777)
-// myPartialsDir := filepath.Join(test.workingDir, "subdir", "mypartials")
-// os.MkdirAll(myPartialsDir, 0777)
+//subContentDir := filepath.Join(test.workingDir, "mycontent", "sub")
+//os.MkdirAll(subContentDir, 0777)
+//myPartialsDir := filepath.Join(test.workingDir, "subdir", "mypartials")
+//os.MkdirAll(myPartialsDir, 0777)
 
-// absShortcodesDir := filepath.Join(absDir, "abs", "myshortcodes")
-// os.MkdirAll(absShortcodesDir, 0777)
+//absShortcodesDir := filepath.Join(absDir, "abs", "myshortcodes")
+//os.MkdirAll(absShortcodesDir, 0777)
 
-// b.WithSourceFile("README.md", "---\ntitle: Readme\n---")
-// b.WithSourceFile("mycontent/sub/p1.md", "---\ntitle: P1\n---")
+//b.WithSourceFile("README.md", "---\ntitle: Readme\n---")
+//b.WithSourceFile("mycontent/sub/p1.md", "---\ntitle: P1\n---")
 
-// b.WithSourceFile(filepath.Join(absShortcodesDir, "myshort.html"), "MYSHORT")
-// b.WithSourceFile(filepath.Join(myPartialsDir, "mypartial.html"), "MYPARTIAL")
+//b.WithSourceFile(filepath.Join(absShortcodesDir, "myshort.html"), "MYSHORT")
+//b.WithSourceFile(filepath.Join(myPartialsDir, "mypartial.html"), "MYPARTIAL")
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
-// p1_1 := b.GetPage("/blog/sub/p1.md")
-// p1_2 := b.GetPage("/mycontent/sub/p1.md")
-// b.Assert(p1_1, qt.Not(qt.IsNil))
-// b.Assert(p1_2, qt.Equals, p1_1)
+//p1_1 := b.GetPage("/blog/sub/p1.md")
+//p1_2 := b.GetPage("/mycontent/sub/p1.md")
+//b.Assert(p1_1, qt.Not(qt.IsNil))
+//b.Assert(p1_2, qt.Equals, p1_1)
 
 //f := p1_1.File().FileInfo().Meta()
 //b.Assert(filepath.ToSlash(f.Path), qt.Equals, "blog/sub/p1.md")
@@ -1057,16 +1057,16 @@ package hugolib
 //workDir, clean, err := htesting.CreateTempDir(hugofs.Os, "hugo-no-mod")
 //c.Assert(err, qt.IsNil)
 
-// cfg := config.New()
-// cfg.Set("workingDir", workDir)
-// fs := hugofs.NewFrom(hugofs.Os, cfg)
+//cfg := config.New()
+//cfg.Set("workingDir", workDir)
+//fs := hugofs.NewFrom(hugofs.Os, cfg)
 
-// defer clean()
+//defer clean()
 
-// b := newTestSitesBuilder(t)
-// b.Fs = fs
+//b := newTestSitesBuilder(t)
+//b.Fs = fs
 
-// b.WithWorkingDir(workDir).WithViper(cfg)
+//b.WithWorkingDir(workDir).WithViper(cfg)
 
 //b.WithSourceFile("go.mod", "")
 //b.Build(BuildCfg{})
@@ -1083,12 +1083,12 @@ package hugolib
 //absContentDir, clean2, err := htesting.CreateTempDir(hugofs.Os, "hugo-content")
 //c.Assert(err, qt.IsNil)
 
-// cfg := config.New()
-// cfg.Set("workingDir", workDir)
-// fs := hugofs.NewFrom(hugofs.Os, cfg)
+//cfg := config.New()
+//cfg.Set("workingDir", workDir)
+//fs := hugofs.NewFrom(hugofs.Os, cfg)
 
-// config := fmt.Sprintf(`
-// workingDir=%q
+//config := fmt.Sprintf(`
+//workingDir=%q
 
 //[module]
 //[[module.mounts]]
@@ -1097,11 +1097,11 @@ package hugolib
 
 //`, workDir, absContentDir)
 
-// defer clean1()
-// defer clean2()
+//defer clean1()
+//defer clean2()
 
-// b := newTestSitesBuilder(t)
-// b.Fs = fs
+//b := newTestSitesBuilder(t)
+//b.Fs = fs
 
 //contentFilename := filepath.Join(absContentDir, "p1.md")
 //afero.WriteFile(hugofs.Os, contentFilename, []byte(`
@@ -1112,15 +1112,51 @@ package hugolib
 //Content.
 //`), 0777)
 
-// b.WithWorkingDir(workDir).WithConfigFile("toml", config)
-// b.WithContent("dummy.md", "")
+//b.WithWorkingDir(workDir).WithConfigFile("toml", config)
+//b.WithContent("dummy.md", "")
 
 //b.WithTemplatesAdded("index.html", `
 //{{ $p1 := site.GetPage "p1" }}
 //P1: {{ $p1.Title }}|{{ $p1.RelPermalink }}|Filename: {{ $p1.File.Filename }}
 //`)
 
-// b.Build(BuildCfg{})
+//b.Build(BuildCfg{})
 
 //b.AssertFileContent("public/index.html", "P1: Abs|/p1/", "Filename: "+contentFilename)
+//}
+
+//// Issue 9426
+//func TestMountSameSource(t *testing.T) {
+//config := `baseURL = 'https://example.org/'
+//languageCode = 'en-us'
+//title = 'Hugo GitHub Issue #9426'
+
+//disableKinds = ['RSS','sitemap','taxonomy','term']
+
+//[[module.mounts]]
+//source = "content"
+//target = "content"
+
+//[[module.mounts]]
+//source = "extra-content"
+//target = "content/resources-a"
+
+//[[module.mounts]]
+//source = "extra-content"
+//target = "content/resources-b"
+//`
+//b := newTestSitesBuilder(t).WithConfigFile("toml", config)
+
+//b.WithContent("p1.md", "")
+
+//b.WithSourceFile(
+//"extra-content/_index.md", "",
+//"extra-content/subdir/_index.md", "",
+//"extra-content/subdir/about.md", "",
+//)
+
+//b.Build(BuildCfg{})
+
+//b.AssertFileContent("public/resources-a/subdir/about/index.html", "Single")
+//b.AssertFileContent("public/resources-b/subdir/about/index.html", "Single")
 //}
