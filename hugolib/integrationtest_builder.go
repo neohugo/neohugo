@@ -266,8 +266,8 @@ func (s *IntegrationTestBuilder) initBuilder() {
 
 		for _, f := range s.data.Files {
 			filename := filepath.Join(s.Cfg.WorkingDir, f.Name)
-			s.Assert(afs.MkdirAll(filepath.Dir(filename), 0777), qt.IsNil)
-			s.Assert(afero.WriteFile(afs, filename, bytes.TrimSuffix(f.Data, []byte("\n")), 0666), qt.IsNil)
+			s.Assert(afs.MkdirAll(filepath.Dir(filename), 0o777), qt.IsNil)
+			s.Assert(afero.WriteFile(afs, filename, bytes.TrimSuffix(f.Data, []byte("\n")), 0o666), qt.IsNil)
 		}
 
 		cfg, _, err := LoadConfig(
@@ -420,7 +420,7 @@ func (s *IntegrationTestBuilder) writeSource(filename, content string) {
 
 func (s *IntegrationTestBuilder) writeToFs(fs afero.Fs, filename, content string) {
 	s.Helper()
-	if err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte(content), 0755); err != nil {
+	if err := afero.WriteFile(fs, filepath.FromSlash(filename), []byte(content), 0o755); err != nil {
 		s.Fatalf("Failed to write file: %s", err)
 	}
 }

@@ -367,7 +367,6 @@ func (l *DistinctLogger) printIfNotPrinted(level, logStatement string, print fun
 	defer l.Unlock()
 	l.m[key] = true // Placing this after print() can cause duplicate warning entries to be logged when --panicOnWarning is true.
 	print()
-
 }
 
 // NewDistinctErrorLogger creates a new DistinctLogger that logs ERRORs

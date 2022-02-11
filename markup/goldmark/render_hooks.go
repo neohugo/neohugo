@@ -144,16 +144,13 @@ func (r *hookedRenderer) renderAttributesForNode(w util.BufWriter, node ast.Node
 	renderAttributes(w, false, node.Attributes()...)
 }
 
-var (
-
-	// Attributes with special meaning that does not make sense to render in HTML.
-	attributeExcludes = map[string]bool{
-		"hl_lines":    true,
-		"hl_style":    true,
-		"linenos":     true,
-		"linenostart": true,
-	}
-)
+// Attributes with special meaning that does not make sense to render in HTML.
+var attributeExcludes = map[string]bool{
+	"hl_lines":    true,
+	"hl_style":    true,
+	"linenos":     true,
+	"linenostart": true,
+}
 
 func renderAttributes(w util.BufWriter, skipClass bool, attributes ...ast.Attribute) {
 	for _, attr := range attributes {
