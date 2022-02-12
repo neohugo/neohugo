@@ -62,6 +62,8 @@ type commandeer struct {
 	logger       loggers.Logger
 	serverConfig *config.Server
 
+	buildLock func() (unlock func(), err error)
+
 	// Loading state
 	mustHaveConfigFile bool
 	failOnInitErr      bool
@@ -420,6 +422,10 @@ func (c *commandeer) loadConfig() error {
 			err = createErr
 		}
 		c.hugoSites = h
+		// TODO(bep) improve.
+		if c.buildLock == nil {
+			c.buildLock = h.LockBuild
+		}
 		close(c.created)
 	})
 

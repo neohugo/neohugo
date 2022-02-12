@@ -114,8 +114,16 @@ func DecodePageMatcher(m interface{}, v *PageMatcher) error {
 
 	v.Kind = strings.ToLower(v.Kind)
 	if v.Kind != "" {
-		if _, found := kindMap[v.Kind]; !found {
-			return errors.Errorf("%q is not a valid Page Kind", v.Kind)
+		g, _ := glob.GetGlob(v.Kind)
+		found := false
+		for _, k := range kindMap {
+			if g.Match(k) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return errors.Errorf("%q did not match a valid Page Kind", v.Kind)
 		}
 	}
 

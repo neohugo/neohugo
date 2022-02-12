@@ -262,12 +262,6 @@ func compareStringSlices(a, b []string) bool {
 	return true
 }
 
-// LogPrinter is the common interface of the JWWs loggers.
-type LogPrinter interface {
-	// Println is the only common method that works in all of JWWs loggers.
-	Println(a ...interface{})
-}
-
 // DistinctLogger ignores duplicate log statements.
 type DistinctLogger struct {
 	loggers.Logger
@@ -370,9 +364,9 @@ func (l *DistinctLogger) printIfNotPrinted(level, logStatement string, print fun
 		return
 	}
 	l.Lock()
+	defer l.Unlock()
+	l.m[key] = true // Placing this after print() can cause duplicate warning entries to be logged when --panicOnWarning is true.
 	print()
-	l.m[key] = true
-	l.Unlock()
 }
 
 // NewDistinctErrorLogger creates a new DistinctLogger that logs ERRORs

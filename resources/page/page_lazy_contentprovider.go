@@ -19,6 +19,16 @@ import (
 	"github.com/neohugo/neohugo/lazy"
 )
 
+// OutputFormatContentProvider represents the method set that is "outputFormat aware" and that we
+// provide lazy initialization for in case they get invoked outside of their normal rendering context, e.g. via .Translations.
+// Note that this set is currently not complete, but should cover the most common use cases.
+// For the others, the implementation will be from the page.NoopPage.
+type OutputFormatContentProvider interface {
+	ContentProvider
+	TableOfContentsProvider
+	PageRenderProvider
+}
+
 // LazyContentProvider initializes itself when read. Each method of the
 // ContentProvider interface initializes a content provider and shares it
 // with other methods.
@@ -27,13 +37,13 @@ import (
 // will be needed. Must create via NewLazyContentProvider.
 type LazyContentProvider struct {
 	init *lazy.Init
-	cp   ContentProvider
+	cp   OutputFormatContentProvider
 }
 
 // NewLazyContentProvider returns a LazyContentProvider initialized with
 // function f. The resulting LazyContentProvider calls f in order to
 // retrieve a ContentProvider
-func NewLazyContentProvider(f func() (ContentProvider, error)) *LazyContentProvider {
+func NewLazyContentProvider(f func() (OutputFormatContentProvider, error)) *LazyContentProvider {
 	lcp := LazyContentProvider{
 		init: lazy.New(),
 		cp:   NopPage,
@@ -105,4 +115,22 @@ func (lcp *LazyContentProvider) Len() int {
 	//nolint
 	lcp.init.Do()
 	return lcp.cp.Len()
+}
+
+func (lcp *LazyContentProvider) Render(layout ...string) (template.HTML, error) {
+	//nolint
+	lcp.init.Do()
+	return lcp.cp.Render(layout...)
+}
+
+func (lcp *LazyContentProvider) RenderString(args ...interface{}) (template.HTML, error) {
+	//nolint
+	lcp.init.Do()
+	return lcp.cp.RenderString(args...)
+}
+
+func (lcp *LazyContentProvider) TableOfContents() template.HTML {
+	//nolint
+	lcp.init.Do()
+	return lcp.cp.TableOfContents()
 }
