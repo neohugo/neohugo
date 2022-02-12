@@ -69,7 +69,8 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	linkTitle := p.LinkTitle()
 	isNode := p.IsNode()
 	isPage := p.IsPage()
-	path := p.Pathc()
+	path := p.Path()
+	pathc := p.Pathc()
 	slug := p.Slug()
 	lang := p.Lang()
 	isSection := p.IsSection()
@@ -127,6 +128,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		IsNode                   bool
 		IsPage                   bool
 		Path                     string
+		Pathc                    string
 		Slug                     string
 		Lang                     string
 		IsSection                bool
@@ -183,6 +185,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		IsNode:                   isNode,
 		IsPage:                   isPage,
 		Path:                     path,
+		Pathc:                    pathc,
 		Slug:                     slug,
 		Lang:                     lang,
 		IsSection:                isSection,

@@ -90,7 +90,7 @@ func Download() error {
 		return err
 	}
 
-	if err := sh.RunWith(env, mg.GoCmd(), "get", "mvdan.cc/gofumpt"); err != nil {
+	if err := sh.RunWith(env, mg.GoCmd(), "install", "mvdan.cc/gofumpt"); err != nil {
 		return err
 	}
 	fmt.Println("Go mod download done")
@@ -214,6 +214,9 @@ func TestRace() error {
 
 // Fmt, run gofumpt linter
 func Fmt() error {
+	s, _ := sh.Output("gofumpt", "-version")
+	fmt.Printf("gofumpt version: %v\n", s)
+
 	pkgs, err := hugoPackages()
 	if err != nil {
 		return err
