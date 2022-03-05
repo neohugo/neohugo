@@ -25,7 +25,8 @@ import (
 func newPagePaths(
 	s *Site,
 	p page.Page,
-	pm *pageMeta) (pagePaths, error) {
+	pm *pageMeta,
+) (pagePaths, error) {
 	targetPathDescriptor, err := createTargetPathDescriptor(s, p, pm)
 	if err != nil {
 		return pagePaths{}, err

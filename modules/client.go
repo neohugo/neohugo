@@ -87,6 +87,7 @@ func NewClient(cfg ClientConfig) *Client {
 		"GOPRIVATE", mcfg.Private,
 		"GONOPROXY", mcfg.NoProxy,
 		"GOPATH", cfg.CacheDir,
+		"GOWORK", mcfg.Workspace, // Requires Go 1.18, see https://tip.golang.org/doc/go1.18
 		// GOCACHE was introduced in Go 1.15. This matches the location derived from GOPATH above.
 		"GOCACHE", filepath.Join(cfg.CacheDir, "pkg", "mod"),
 	)
@@ -600,7 +601,8 @@ func (c *Client) rmVendorDir(vendorDir string) error {
 func (c *Client) runGo(
 	ctx context.Context,
 	stdout io.Writer,
-	args ...string) error {
+	args ...string,
+) error {
 	if c.goBinaryStatus != goBinaryStatusOK {
 		return nil
 	}

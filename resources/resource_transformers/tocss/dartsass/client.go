@@ -84,7 +84,6 @@ func (c *Client) toCSS(args godartsass.Args, src io.Reader) (godartsass.Result, 
 }
 
 type Options struct {
-
 	// Hugo, will by default, just replace the extension of the source
 	// to .css, e.g. "scss/main.scss" becomes "scss/main.css". You can
 	// control this by setting this, e.g. "styles/main.css" will create

@@ -277,7 +277,8 @@ func renderShortcode(
 	tplVariants tpl.TemplateVariants,
 	sc *shortcode,
 	parent *ShortcodeWithPage,
-	p *pageState) (string, bool, error) {
+	p *pageState,
+) (string, bool, error) {
 	var tmpl tpl.Template
 
 	// Tracks whether this shortcode or any of its children has template variations
@@ -398,6 +399,7 @@ func renderShortcode(
 	return result, hasVariants, err
 }
 
+//nolint
 func (s *shortcodeHandler) hasShortcodes() bool {
 	return s != nil && len(s.shortcodes) > 0
 }

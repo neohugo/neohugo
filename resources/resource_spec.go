@@ -53,7 +53,8 @@ func NewSpec(
 	errorHandler herrors.ErrorSender,
 	execHelper *hexec.Exec,
 	outputFormats output.Formats,
-	mimeTypes media.Types) (*Spec, error) {
+	mimeTypes media.Types,
+) (*Spec, error) {
 	imgConfig, err := images.DecodeConfig(s.Cfg.GetStringMap("imaging"))
 	if err != nil {
 		return nil, err
@@ -181,7 +182,8 @@ func (r *Spec) newGenericResource(sourceFs afero.Fs,
 	osFileInfo os.FileInfo,
 	sourceFilename,
 	baseFilename string,
-	mediaType media.Type) *genericResource {
+	mediaType media.Type,
+) *genericResource {
 	return r.newGenericResourceWithBase(
 		sourceFs,
 		nil,
@@ -202,7 +204,8 @@ func (r *Spec) newGenericResourceWithBase(
 	osFileInfo os.FileInfo,
 	sourceFilename,
 	baseFilename string,
-	mediaType media.Type) *genericResource {
+	mediaType media.Type,
+) *genericResource {
 	if osFileInfo != nil && osFileInfo.IsDir() {
 		panic(fmt.Sprintf("dirs not supported resource types: %v", osFileInfo))
 	}

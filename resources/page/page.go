@@ -25,7 +25,6 @@ import (
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/compare"
 	"github.com/neohugo/neohugo/hugofs/files"
 
@@ -107,6 +106,7 @@ type GetPageProvider interface {
 // GitInfoProvider provides Git info.
 type GitInfoProvider interface {
 	GitInfo() *gitmap.GitInfo
+	CodeOwners() []string
 }
 
 // InSectionPositioner provides section navigation.
@@ -258,7 +258,15 @@ type PageWithoutContent interface {
 	// Helper methods
 	ShortcodeInfoProvider
 	compare.Eqer
+
+	// Scratch returns a Scratch that can be used to store temporary state.
+	// Note that this Scratch gets reset on server rebuilds. See Store() for a variant that survives.
 	maps.Scratcher
+
+	// Store returns a Scratch that can be used to store temporary state.
+	// In contrast to Scratch(), this Scratch is not reset on server rebuilds.
+	Store() *maps.Scratch
+
 	RelatedKeywordsProvider
 
 	// GetTerms gets the terms of a given taxonomy,
@@ -372,18 +380,7 @@ type TreeProvider interface {
 // DeprecatedWarningPageMethods lists deprecated Page methods that will trigger
 // a WARNING if invoked.
 // This was added in Hugo 0.55.
-type DeprecatedWarningPageMethods interface {
-	source.FileWithoutOverlap
-	DeprecatedWarningPageMethods1
-}
-
-type DeprecatedWarningPageMethods1 interface {
-	IsDraft() bool
-	Hugo() neohugo.Info
-	LanguagePrefix() string
-	GetParam(key string) interface{}
-	RSSLink() template.URL
-	URL() string
+type DeprecatedWarningPageMethods interface { // This was emptied in Hugo 0.93.0.
 }
 
 // Move here to trigger ERROR instead of WARNING.

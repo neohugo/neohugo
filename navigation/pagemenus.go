@@ -106,7 +106,8 @@ func PageMenusFromPage(p Page) (PageMenus, error) {
 func NewMenuQueryProvider(
 	pagem PageMenusGetter,
 	sitem MenusGetter,
-	p Page) MenuQueryProvider {
+	p Page,
+) MenuQueryProvider {
 	return &pageMenus{
 		p:     p,
 		pagem: pagem,

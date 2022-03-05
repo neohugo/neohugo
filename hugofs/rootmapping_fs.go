@@ -124,7 +124,6 @@ type RootMapping struct {
 
 	fi   FileMetaInfo
 	path string // The virtual mount point, e.g. "blog".
-
 }
 
 type keyRootMappings struct {

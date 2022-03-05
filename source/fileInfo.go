@@ -96,7 +96,6 @@ type FileWithoutOverlap interface {
 
 // FileInfo describes a source file.
 type FileInfo struct {
-
 	// Absolute filename to the file on disk.
 	filename string
 

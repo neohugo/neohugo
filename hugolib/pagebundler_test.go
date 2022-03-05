@@ -150,7 +150,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 						c.Assert(leafBundle1.Section(), qt.Equals, "b")
 						sectionB := s.getPage(page.KindSection, "b")
 						c.Assert(sectionB, qt.Not(qt.IsNil))
-						home, _ := s.Info.Home()
+						home := s.Info.Home()
 						c.Assert(home.BundleType(), qt.Equals, files.ContentClassBranch)
 
 						// This is a root bundle and should live in the "home section"

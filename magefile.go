@@ -101,7 +101,7 @@ func Download() error {
 // Generate autogen packages
 func Generate() error {
 	generatorPackages := []string{
-		"tpl/tplimpl/embedded/generate",
+		//"tpl/tplimpl/embedded/generate",
 		//"resources/page/generate",
 	}
 

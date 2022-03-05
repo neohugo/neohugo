@@ -163,7 +163,8 @@ func copyGoPackage(dst, src string) {
 
 func doWithGoFiles(dir string,
 	rewrite func(name string),
-	transform func(name, in string) string) {
+	transform func(name, in string) string,
+) {
 	if rewrite == nil && transform == nil {
 		return
 	}

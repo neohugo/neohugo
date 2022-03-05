@@ -31,7 +31,6 @@ import (
 // There will be normally only one instance of deps in play
 // at a given time, i.e. one per Site built.
 type Deps struct {
-
 	// The logger to use.
 	Log loggers.Logger `json:"-"`
 
@@ -366,7 +365,6 @@ func (d Deps) ForLanguage(cfg DepsCfg, onCreated func(d *Deps) error) (*Deps, er
 // on a global level, i.e. logging etc.
 // Nil values will be given default values.
 type DepsCfg struct {
-
 	// The Logger to use.
 	Logger loggers.Logger
 

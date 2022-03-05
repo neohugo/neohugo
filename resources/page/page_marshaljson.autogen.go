@@ -83,6 +83,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	language := p.Language()
 	file := p.File()
 	gitInfo := p.GitInfo()
+	codeOwners := p.CodeOwners()
 	outputFormats := p.OutputFormats()
 	alternativeOutputFormats := p.AlternativeOutputFormats()
 	menus := p.Menus()
@@ -90,6 +91,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	isTranslated := p.IsTranslated()
 	allTranslations := p.AllTranslations()
 	translations := p.Translations()
+	store := p.Store()
 	getIdentity := p.GetIdentity()
 
 	s := struct {
@@ -141,6 +143,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Language                 *langs.Language
 		File                     source.File
 		GitInfo                  *gitmap.GitInfo
+		CodeOwners               []string
 		OutputFormats            OutputFormats
 		AlternativeOutputFormats OutputFormats
 		Menus                    navigation.PageMenus
@@ -148,6 +151,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		IsTranslated             bool
 		AllTranslations          Pages
 		Translations             Pages
+		Store                    *maps.Scratch
 		GetIdentity              identity.Identity
 	}{
 		Content:                  content,
@@ -198,6 +202,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Language:                 language,
 		File:                     file,
 		GitInfo:                  gitInfo,
+		CodeOwners:               codeOwners,
 		OutputFormats:            outputFormats,
 		AlternativeOutputFormats: alternativeOutputFormats,
 		Menus:                    menus,
@@ -205,6 +210,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		IsTranslated:             isTranslated,
 		AllTranslations:          allTranslations,
 		Translations:             translations,
+		Store:                    store,
 		GetIdentity:              getIdentity,
 	}
 

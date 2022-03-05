@@ -33,6 +33,7 @@ import (
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -120,7 +121,8 @@ func Execute(args []string) Response {
 func initializeConfig(mustHaveConfigFile, failOnInitErr, running bool,
 	h *hugoBuilderCommon,
 	f flagsToConfigHandler,
-	cfgInit func(c *commandeer) error) (*commandeer, error) {
+	cfgInit func(c *commandeer) error,
+) (*commandeer, error) {
 	c, err := newCommandeer(mustHaveConfigFile, failOnInitErr, running, h, f, cfgInit)
 	if err != nil {
 		return nil, err
@@ -215,7 +217,8 @@ func initializeFlags(cmd *cobra.Command, cfg config.Provider) {
 		"dryRun",
 		"force",
 		"gc",
-		"i18n-warnings",
+		"printI18nWarnings",
+		"printUnusedTemplates",
 		"invalidateCDN",
 		"layoutDir",
 		"logFile",
@@ -242,8 +245,8 @@ func initializeFlags(cmd *cobra.Command, cfg config.Provider) {
 
 	// Set some "config aliases"
 	setValueFromFlag(cmd.Flags(), "destination", cfg, "publishDir", false)
-	setValueFromFlag(cmd.Flags(), "i18n-warnings", cfg, "logI18nWarnings", false)
-	setValueFromFlag(cmd.Flags(), "path-warnings", cfg, "logPathWarnings", false)
+	setValueFromFlag(cmd.Flags(), "printI18nWarnings", cfg, "logI18nWarnings", false)
+	setValueFromFlag(cmd.Flags(), "printPathWarnings", cfg, "logPathWarnings", false)
 }
 
 func setValueFromFlag(flags *flag.FlagSet, key string, cfg config.Provider, targetKey string, force bool) {
@@ -501,7 +504,6 @@ func (c *commandeer) build() error {
 		return err
 	}
 
-	// TODO(bep) Feedback?
 	if !c.h.quiet {
 		fmt.Println()
 		c.hugo().PrintProcessingStats(os.Stdout)
@@ -512,6 +514,11 @@ func (c *commandeer) build() error {
 			if dupes != "" {
 				c.logger.Warnln("Duplicate target paths:", dupes)
 			}
+		}
+
+		unusedTemplates := c.hugo().Tmpl().(tpl.UnusedTemplatesProvider).UnusedTemplates()
+		for _, unusedTemplate := range unusedTemplates {
+			c.logger.Warnf("Template %s is unused, source file %s", unusedTemplate.Name(), unusedTemplate.Filename())
 		}
 	}
 
@@ -916,7 +923,8 @@ const (
 func (c *commandeer) handleEvents(watcher *watcher.Batcher,
 	staticSyncer *staticSyncer,
 	evs []fsnotify.Event,
-	configSet map[string]bool) {
+	configSet map[string]bool,
+) {
 	defer func() {
 		c.wasError = false
 	}()

@@ -11,13 +11,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package transform
+package transform_test
 
 import (
 	"html/template"
+	"strings"
 	"testing"
 
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/tpl/transform"
 	"github.com/spf13/afero"
 
 	qt "github.com/frankban/quicktest"
@@ -32,10 +35,11 @@ type tstNoStringer struct{}
 
 func TestEmojify(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t},
+	).Build()
 
-	v := config.New()
-	ns := New(newDeps(v))
+	ns := transform.New(b.H.Deps)
 
 	for _, test := range []struct {
 		s      interface{}
@@ -49,23 +53,23 @@ func TestEmojify(t *testing.T) {
 
 		result, err := ns.Emojify(test.s)
 
-		if b, ok := test.expect.(bool); ok && !b {
-			c.Assert(err, qt.Not(qt.IsNil))
+		if bb, ok := test.expect.(bool); ok && !bb {
+			b.Assert(err, qt.Not(qt.IsNil))
 			continue
 		}
 
-		c.Assert(err, qt.IsNil)
-		c.Assert(result, qt.Equals, test.expect)
+		b.Assert(err, qt.IsNil)
+		b.Assert(result, qt.Equals, test.expect)
 	}
 }
 
 func TestHighlight(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t},
+	).Build()
 
-	v := config.New()
-	v.Set("contentDir", "content")
-	ns := New(newDeps(v))
+	ns := transform.New(b.H.Deps)
 
 	for _, test := range []struct {
 		s      interface{}
@@ -78,27 +82,39 @@ func TestHighlight(t *testing.T) {
 		// Issue #4179
 		{`<Foo attr=" &lt; "></Foo>`, "xml", "", `&amp;lt;`},
 		{tstNoStringer{}, "go", "", false},
+		// Issue #9591
+		{strings.Repeat("AAA	\n", 10), "bash", template.HTML("linenos=true,noClasses=false"), "line"},
 	} {
 
 		result, err := ns.Highlight(test.s, test.lang, test.opts)
 
-		if b, ok := test.expect.(bool); ok && !b {
-			c.Assert(err, qt.Not(qt.IsNil))
+		if bb, ok := test.expect.(bool); ok && !bb {
+			b.Assert(err, qt.Not(qt.IsNil))
 			continue
 		}
 
-		c.Assert(err, qt.IsNil)
-		c.Assert(string(result), qt.Contains, test.expect.(string))
+		b.Assert(err, qt.IsNil)
+		b.Assert(string(result), qt.Contains, test.expect.(string))
 	}
+}
+
+func TestCanHighlight(t *testing.T) {
+	t.Parallel()
+
+	c := qt.New(t)
+	ns := &transform.Namespace{}
+
+	c.Assert(ns.CanHighlight("go"), qt.Equals, true)
+	c.Assert(ns.CanHighlight("foo"), qt.Equals, false)
 }
 
 func TestHTMLEscape(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t},
+	).Build()
 
-	v := config.New()
-	v.Set("contentDir", "content")
-	ns := New(newDeps(v))
+	ns := transform.New(b.H.Deps)
 
 	for _, test := range []struct {
 		s      interface{}
@@ -112,23 +128,23 @@ func TestHTMLEscape(t *testing.T) {
 
 		result, err := ns.HTMLEscape(test.s)
 
-		if b, ok := test.expect.(bool); ok && !b {
-			c.Assert(err, qt.Not(qt.IsNil))
+		if bb, ok := test.expect.(bool); ok && !bb {
+			b.Assert(err, qt.Not(qt.IsNil))
 			continue
 		}
 
-		c.Assert(err, qt.IsNil)
-		c.Assert(result, qt.Equals, test.expect)
+		b.Assert(err, qt.IsNil)
+		b.Assert(result, qt.Equals, test.expect)
 	}
 }
 
 func TestHTMLUnescape(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t},
+	).Build()
 
-	v := config.New()
-	v.Set("contentDir", "content")
-	ns := New(newDeps(v))
+	ns := transform.New(b.H.Deps)
 
 	for _, test := range []struct {
 		s      interface{}
@@ -142,23 +158,23 @@ func TestHTMLUnescape(t *testing.T) {
 
 		result, err := ns.HTMLUnescape(test.s)
 
-		if b, ok := test.expect.(bool); ok && !b {
-			c.Assert(err, qt.Not(qt.IsNil))
+		if bb, ok := test.expect.(bool); ok && !bb {
+			b.Assert(err, qt.Not(qt.IsNil))
 			continue
 		}
 
-		c.Assert(err, qt.IsNil)
-		c.Assert(result, qt.Equals, test.expect)
+		b.Assert(err, qt.IsNil)
+		b.Assert(result, qt.Equals, test.expect)
 	}
 }
 
 func TestMarkdownify(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t},
+	).Build()
 
-	v := config.New()
-	v.Set("contentDir", "content")
-	ns := New(newDeps(v))
+	ns := transform.New(b.H.Deps)
 
 	for _, test := range []struct {
 		s      interface{}
@@ -171,23 +187,24 @@ func TestMarkdownify(t *testing.T) {
 
 		result, err := ns.Markdownify(test.s)
 
-		if b, ok := test.expect.(bool); ok && !b {
-			c.Assert(err, qt.Not(qt.IsNil))
+		if bb, ok := test.expect.(bool); ok && !bb {
+			b.Assert(err, qt.Not(qt.IsNil))
 			continue
 		}
 
-		c.Assert(err, qt.IsNil)
-		c.Assert(result, qt.Equals, test.expect)
+		b.Assert(err, qt.IsNil)
+		b.Assert(result, qt.Equals, test.expect)
 	}
 }
 
 // Issue #3040
 func TestMarkdownifyBlocksOfText(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
-	v := config.New()
-	v.Set("contentDir", "content")
-	ns := New(newDeps(v))
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t},
+	).Build()
+
+	ns := transform.New(b.H.Deps)
 
 	text := `
 #First 
@@ -202,17 +219,18 @@ And then some.
 `
 
 	result, err := ns.Markdownify(text)
-	c.Assert(err, qt.IsNil)
-	c.Assert(result, qt.Equals, template.HTML(
+	b.Assert(err, qt.IsNil)
+	b.Assert(result, qt.Equals, template.HTML(
 		"<p>#First</p>\n<p>This is some <em>bold</em> text.</p>\n<h2 id=\"second\">Second</h2>\n<p>This is some more text.</p>\n<p>And then some.</p>\n"))
 }
 
 func TestPlainify(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t},
+	).Build()
 
-	v := config.New()
-	ns := New(newDeps(v))
+	ns := transform.New(b.H.Deps)
 
 	for _, test := range []struct {
 		s      interface{}
@@ -225,16 +243,17 @@ func TestPlainify(t *testing.T) {
 
 		result, err := ns.Plainify(test.s)
 
-		if b, ok := test.expect.(bool); ok && !b {
-			c.Assert(err, qt.Not(qt.IsNil))
+		if bb, ok := test.expect.(bool); ok && !bb {
+			b.Assert(err, qt.Not(qt.IsNil))
 			continue
 		}
 
-		c.Assert(err, qt.IsNil)
-		c.Assert(result, qt.Equals, test.expect)
+		b.Assert(err, qt.IsNil)
+		b.Assert(result, qt.Equals, test.expect)
 	}
 }
 
+//nolint
 func newDeps(cfg config.Provider) *deps.Deps {
 	cfg.Set("contentDir", "content")
 	cfg.Set("i18nDir", "i18n")

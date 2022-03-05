@@ -255,6 +255,10 @@ func (p *testPage) GitInfo() *gitmap.GitInfo {
 	return nil
 }
 
+func (p *testPage) CodeOwners() []string {
+	return nil
+}
+
 func (p *testPage) HasMenuCurrent(menuID string, me *navigation.MenuEntry) bool {
 	panic("not implemented")
 }
@@ -498,6 +502,10 @@ func (p *testPage) Resources() resource.Resources {
 }
 
 func (p *testPage) Scratch() *maps.Scratch {
+	panic("not implemented")
+}
+
+func (p *testPage) Store() *maps.Scratch {
 	panic("not implemented")
 }
 
