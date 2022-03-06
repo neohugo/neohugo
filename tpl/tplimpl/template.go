@@ -14,7 +14,11 @@
 package tplimpl
 
 import (
+	"bytes"
+	"context"
+	"embed"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -40,8 +44,6 @@ import (
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/pkg/errors"
 
-	"github.com/neohugo/neohugo/tpl/tplimpl/embedded"
-
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 
@@ -66,10 +68,11 @@ var embeddedTemplatesAliases = map[string][]string{
 }
 
 var (
-	_ tpl.TemplateManager    = (*templateExec)(nil)
-	_ tpl.TemplateHandler    = (*templateExec)(nil)
-	_ tpl.TemplateFuncGetter = (*templateExec)(nil)
-	_ tpl.TemplateFinder     = (*templateExec)(nil)
+	_ tpl.TemplateManager         = (*templateExec)(nil)
+	_ tpl.TemplateHandler         = (*templateExec)(nil)
+	_ tpl.TemplateFuncGetter      = (*templateExec)(nil)
+	_ tpl.TemplateFinder          = (*templateExec)(nil)
+	_ tpl.UnusedTemplatesProvider = (*templateExec)(nil)
 
 	_ tpl.Template = (*templateState)(nil)
 	_ tpl.Info     = (*templateState)(nil)
@@ -129,6 +132,11 @@ func newTemplateExec(d *deps.Deps) (*templateExec, error) {
 		funcMap[k] = v.Interface()
 	}
 
+	var templateUsageTracker map[string]templateInfo
+	if d.Cfg.GetBool("printUnusedTemplates") {
+		templateUsageTracker = make(map[string]templateInfo)
+	}
+
 	h := &templateHandler{
 		nameBaseTemplateName: make(map[string]string),
 		transformNotFound:    make(map[string]*templateState),
@@ -145,6 +153,8 @@ func newTemplateExec(d *deps.Deps) (*templateExec, error) {
 		layoutHandler:       output.NewLayoutHandler(),
 		layoutsFs:           d.BaseFs.Layouts.Fs,
 		layoutTemplateCache: make(map[layoutCacheKey]tpl.Template),
+
+		templateUsageTracker: templateUsageTracker,
 	}
 
 	if err := h.loadEmbedded(); err != nil {
@@ -216,6 +226,10 @@ func (t templateExec) Clone(d *deps.Deps) *templateExec {
 }
 
 func (t *templateExec) Execute(templ tpl.Template, wr io.Writer, data interface{}) error {
+	return t.ExecuteWithContext(context.Background(), templ, wr, data)
+}
+
+func (t *templateExec) ExecuteWithContext(ctx context.Context, templ tpl.Template, wr io.Writer, data interface{}) error {
 	if rlocker, ok := templ.(types.RLocker); ok {
 		rlocker.RLock()
 		defer rlocker.RUnlock()
@@ -224,11 +238,63 @@ func (t *templateExec) Execute(templ tpl.Template, wr io.Writer, data interface{
 		defer t.Metrics.MeasureSince(templ.Name(), time.Now())
 	}
 
-	execErr := t.executor.Execute(templ, wr, data)
+	if t.templateUsageTracker != nil {
+		if ts, ok := templ.(*templateState); ok {
+			t.templateUsageTrackerMu.Lock()
+			if _, found := t.templateUsageTracker[ts.Name()]; !found {
+				t.templateUsageTracker[ts.Name()] = ts.info
+			}
+
+			if !ts.baseInfo.IsZero() {
+				if _, found := t.templateUsageTracker[ts.baseInfo.name]; !found {
+					t.templateUsageTracker[ts.baseInfo.name] = ts.baseInfo
+				}
+			}
+			t.templateUsageTrackerMu.Unlock()
+		}
+	}
+
+	execErr := t.executor.ExecuteWithContext(ctx, templ, wr, data)
 	if execErr != nil {
 		execErr = t.addFileContext(templ, execErr)
 	}
 	return execErr
+}
+
+func (t *templateExec) UnusedTemplates() []tpl.FileInfo {
+	if t.templateUsageTracker == nil {
+		return nil
+	}
+	var unused []tpl.FileInfo
+
+	for _, ti := range t.needsBaseof {
+		if _, found := t.templateUsageTracker[ti.name]; !found {
+			unused = append(unused, ti)
+		}
+	}
+
+	for _, ti := range t.baseof {
+		if _, found := t.templateUsageTracker[ti.name]; !found {
+			unused = append(unused, ti)
+		}
+	}
+
+	for _, ts := range t.main.templates {
+		ti := ts.info
+		if strings.HasPrefix(ti.name, "_internal/") || ti.realFilename == "" {
+			continue
+		}
+
+		if _, found := t.templateUsageTracker[ti.name]; !found {
+			unused = append(unused, ti)
+		}
+	}
+
+	sort.Slice(unused, func(i, j int) bool {
+		return unused[i].Name() < unused[j].Name()
+	})
+
+	return unused
 }
 
 func (t *templateExec) GetFunc(name string) (reflect.Value, bool) {
@@ -284,6 +350,10 @@ type templateHandler struct {
 	// Note that for shortcodes that same information is embedded in the
 	// shortcodeTemplates type.
 	templateInfo map[string]tpl.Info
+
+	// May be nil.
+	templateUsageTracker   map[string]templateInfo
+	templateUsageTrackerMu sync.Mutex //nolint
 }
 
 // AddTemplate parses and adds a template to the collection.
@@ -673,12 +743,42 @@ func (t *templateHandler) extractIdentifiers(line string) []string {
 	return identifiers
 }
 
+//go:embed embedded/templates/*
+//go:embed embedded/templates/_default/*
+var embededTemplatesFs embed.FS
+
 func (t *templateHandler) loadEmbedded() error {
-	for _, kv := range embedded.EmbeddedTemplates {
-		name, templ := kv[0], kv[1]
-		if err := t.AddTemplate(internalPathPrefix+name, templ); err != nil {
+	//nolint
+	return fs.WalkDir(embededTemplatesFs, ".", func(path string, d fs.DirEntry, err error) error {
+		if d == nil || d.IsDir() {
+			return nil
+		}
+
+		//nolint
+		templb, err := embededTemplatesFs.ReadFile(path)
+		if err != nil {
 			return err
 		}
+
+		// Get the newlines on Windows in line with how we had it back when we used Go Generate
+		// to write the templates to Go files.
+		templ := string(bytes.ReplaceAll(templb, []byte("\r\n"), []byte("\n")))
+		name := strings.TrimPrefix(filepath.ToSlash(path), "embedded/templates/")
+		templateName := name
+
+		// For the render hooks it does not make sense to preseve the
+		// double _indternal double book-keeping,
+		// just add it if its now provided by the user.
+		if !strings.Contains(path, "_default/_markup") {
+			templateName = internalPathPrefix + name
+		}
+
+		if _, found := t.Lookup(templateName); !found {
+			if err := t.AddTemplate(templateName, templ); err != nil {
+				return err
+			}
+		}
+
 		if aliases, found := embeddedTemplatesAliases[name]; found {
 			// TODO(bep) avoid reparsing these aliases
 			for _, alias := range aliases {
@@ -688,8 +788,9 @@ func (t *templateHandler) loadEmbedded() error {
 				}
 			}
 		}
-	}
-	return nil
+
+		return nil
+	})
 }
 
 func (t *templateHandler) loadTemplates() error {

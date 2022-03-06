@@ -212,7 +212,8 @@ func newDirNameOnlyFileInfo(name string, meta *FileMeta, fileOpener func() (afer
 func decorateFileInfo(
 	fi os.FileInfo,
 	fs afero.Fs, opener func() (afero.File, error),
-	filename, filepath string, inMeta *FileMeta) FileMetaInfo {
+	filename, filepath string, inMeta *FileMeta,
+) FileMetaInfo {
 	var meta *FileMeta
 	var fim FileMetaInfo
 

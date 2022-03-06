@@ -72,7 +72,8 @@ func (c templateContext) getIfNotVisited(name string) *templateState {
 
 func newTemplateContext(
 	t *templateState,
-	lookupFn func(name string) *templateState) *templateContext {
+	lookupFn func(name string) *templateState,
+) *templateContext {
 	return &templateContext{
 		t:                t,
 		lookupFn:         lookupFn,
@@ -84,7 +85,8 @@ func newTemplateContext(
 
 func applyTemplateTransformers(
 	t *templateState,
-	lookupFn func(name string) *templateState) (*templateContext, error) {
+	lookupFn func(name string) *templateState,
+) (*templateContext, error) {
 	if t == nil {
 		return nil, errors.New("expected template, but none provided")
 	}

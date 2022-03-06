@@ -73,7 +73,6 @@ type TargetPathDescriptor struct {
 
 // TODO(bep) move this type.
 type TargetPaths struct {
-
 	// Where to store the file on disk relative to the publish dir. OS slashes.
 	TargetFilename string
 

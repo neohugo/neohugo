@@ -55,7 +55,6 @@ var filePathSeparator = string(filepath.Separator)
 // to underline that even if they can be composites, they all have a base path set to a specific
 // resource folder, e.g "/my-project/content". So, no absolute filenames needed.
 type BaseFs struct {
-
 	// SourceFilesystems contains the different source file systems.
 	*SourceFilesystems
 
@@ -65,6 +64,9 @@ type BaseFs struct {
 	// The filesystem used to publish the rendered site.
 	// This usually maps to /my-project/public.
 	PublishFs afero.Fs
+
+	// A read-only filesystem from the project workDir (no theme here).
+	WorkDir afero.Fs
 
 	theBigFs *filesystemsCollector
 
@@ -200,7 +202,7 @@ type SourceFilesystems struct {
 	// with any sub module's resource fs layered below.
 	ResourcesCache afero.Fs
 
-	// The project folder.
+	// The work folder (may be a composite of project and theme components).
 	Work afero.Fs
 
 	// When in multihost we have one static filesystem per language. The sync
@@ -434,9 +436,11 @@ func NewBase(p *paths.Paths, logger loggers.Logger, options ...func(*BaseFs) err
 
 	publishFs := hugofs.NewBaseFileDecorator(afero.NewBasePathFs(fs.Destination, p.AbsPublishDir))
 	sourceFs := hugofs.NewBaseFileDecorator(afero.NewBasePathFs(fs.Source, p.WorkingDir))
+	workDir := hugofs.NewBaseFileDecorator(afero.NewBasePathFs(afero.NewReadOnlyFs(fs.Source), p.WorkingDir))
 
 	b := &BaseFs{
 		SourceFs:  sourceFs,
+		WorkDir:   workDir,
 		PublishFs: publishFs,
 		buildMu:   lockedfile.MutexAt(filepath.Join(p.WorkingDir, lockFileBuild)),
 	}
@@ -613,7 +617,8 @@ func (b *sourceFilesystemsBuilder) isStaticMount(mnt modules.Mount) bool {
 
 func (b *sourceFilesystemsBuilder) createModFs(
 	collector *filesystemsCollector,
-	md mountsDescriptor) error {
+	md mountsDescriptor,
+) error {
 	var (
 		fromTo        []hugofs.RootMapping
 		fromToContent []hugofs.RootMapping

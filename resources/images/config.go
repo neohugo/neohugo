@@ -363,7 +363,7 @@ func (i ImageConfig) GetKey(format Format) string {
 
 	k += "_" + i.FilterStr
 
-	if strings.EqualFold(i.Action, "fill") {
+	if strings.EqualFold(i.Action, "fill") || strings.EqualFold(i.Action, "crop") {
 		k += "_" + anchor
 	}
 
@@ -429,7 +429,6 @@ func (cfg *Imaging) init() error {
 }
 
 type ExifConfig struct {
-
 	// Regexp matching the Exif fields you want from the (massive) set of Exif info
 	// available. As we cache this info to disk, this is for performance and
 	// disk space reasons more than anything.

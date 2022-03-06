@@ -21,6 +21,7 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/markup/highlight"
 	"github.com/neohugo/neohugo/markup/markup_config"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
 	"github.com/spf13/afero"
@@ -34,7 +35,7 @@ type ProviderConfig struct {
 	ContentFs afero.Fs
 	Logger    loggers.Logger
 	Exec      *hexec.Exec
-	Highlight func(code, lang, optsStr string) (string, error)
+	highlight.Highlighter
 }
 
 // ProviderProvider creates converter providers.
@@ -127,9 +128,14 @@ type DocumentContext struct {
 
 // RenderContext holds contextual information about the content to render.
 type RenderContext struct {
-	Src         []byte
-	RenderTOC   bool
-	RenderHooks hooks.Renderers
+	// Src is the content to render.
+	Src []byte
+
+	// Whether to render TableOfContents.
+	RenderTOC bool
+
+	// GerRenderer provides hook renderers on demand.
+	GetRenderer hooks.GetRendererFunc
 }
 
 var FeatureRenderHooks = identity.NewPathIdentity("markup", "renderingHooks")

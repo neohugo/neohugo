@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	_os "os"
+	"path/filepath"
 
 	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/afero"
@@ -27,17 +28,18 @@ import (
 
 // New returns a new instance of the os-namespaced template functions.
 func New(d *deps.Deps) *Namespace {
-	var rfs afero.Fs
-	if d.Fs != nil {
-		rfs = d.Fs.WorkingDir
-		if d.PathSpec != nil && d.PathSpec.BaseFs != nil {
-			rfs = afero.NewReadOnlyFs(afero.NewCopyOnWriteFs(d.PathSpec.BaseFs.Content.Fs, d.Fs.WorkingDir))
-		}
+	var readFileFs, workFs afero.Fs
 
+	// The docshelper script does not have or need all the dependencies set up.
+	if d.PathSpec != nil {
+		readFileFs = afero.NewReadOnlyFs(afero.NewCopyOnWriteFs(d.PathSpec.BaseFs.Content.Fs, d.PathSpec.BaseFs.Work))
+		// See #9599
+		workFs = d.PathSpec.BaseFs.WorkDir
 	}
 
 	return &Namespace{
-		readFileFs: rfs,
+		readFileFs: readFileFs,
+		workFs:     workFs,
 		deps:       d,
 	}
 }
@@ -45,6 +47,7 @@ func New(d *deps.Deps) *Namespace {
 // Namespace provides template functions for the "os" namespace.
 type Namespace struct {
 	readFileFs afero.Fs
+	workFs     afero.Fs
 	deps       *deps.Deps
 }
 
@@ -66,8 +69,9 @@ func (ns *Namespace) Getenv(key interface{}) (string, error) {
 // readFile reads the file named by filename in the given filesystem
 // and returns the contents as a string.
 func readFile(fs afero.Fs, filename string) (string, error) {
-	if filename == "" {
-		return "", errors.New("readFile needs a filename")
+	filename = filepath.Clean(filename)
+	if filename == "" || filename == "." || filename == string(_os.PathSeparator) {
+		return "", errors.New("invalid filename")
 	}
 
 	b, err := afero.ReadFile(fs, filename)
@@ -101,7 +105,7 @@ func (ns *Namespace) ReadDir(i interface{}) ([]_os.FileInfo, error) {
 		return nil, err
 	}
 
-	list, err := afero.ReadDir(ns.deps.Fs.WorkingDir, path)
+	list, err := afero.ReadDir(ns.workFs, path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read directory %q: %s", path, err)
 	}

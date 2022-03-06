@@ -103,7 +103,6 @@ type pageContentReplacement struct {
 }
 
 type pageContentMap struct {
-
 	// If not, we can skip any pre-rendering of shortcodes.
 	hasMarkdownShortcode bool
 

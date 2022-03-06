@@ -60,6 +60,9 @@ type pageCommon struct {
 	// Lazily initialized dependencies.
 	init *lazy.Init
 
+	// Store holds state that survives server rebuilds.
+	store *maps.Scratch
+
 	// All of these represents the common parts of a page.Page
 	maps.Scratcher
 	navigation.PageMenusProvider
@@ -78,7 +81,6 @@ type pageCommon struct {
 	page.RefProvider
 	page.ShortcodeInfoProvider
 	page.SitesProvider
-	page.DeprecatedWarningPageMethods
 	page.TranslationsProvider
 	page.TreeProvider
 	resource.LanguageProvider
@@ -100,7 +102,8 @@ type pageCommon struct {
 	pageContent
 
 	// Set if feature enabled and this is in a Git repo.
-	gitInfo *gitmap.GitInfo //nolint
+	gitInfo    *gitmap.GitInfo //nolint
+	codeowners []string        //nolint
 
 	// Positional navigation
 	posNextPrev        *nextPrev
@@ -132,6 +135,10 @@ type pageCommon struct {
 
 	// Set in fast render mode to force render a given page.
 	forceRender bool //nolint
+}
+
+func (p *pageCommon) Store() *maps.Scratch {
+	return p.store
 }
 
 type pagePages struct {

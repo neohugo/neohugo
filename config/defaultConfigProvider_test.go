@@ -21,8 +21,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/spf13/viper"
-
 	"github.com/neohugo/neohugo/common/para"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -392,13 +390,6 @@ func BenchmarkDefaultConfigProvider(b *testing.B) {
 			b.Fatal("Get failed")
 		}
 	}
-
-	b.Run("Viper", func(b *testing.B) {
-		v := viper.New()
-		for i := 0; i < b.N; i++ {
-			runMethods(b, v)
-		}
-	})
 
 	b.Run("Custom", func(b *testing.B) {
 		cfg := New()

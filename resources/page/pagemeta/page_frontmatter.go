@@ -47,7 +47,6 @@ type FrontMatterHandler struct {
 // FrontMatterDescriptor describes how to handle front matter for a given Page.
 // It has pointers to values in the receiving page which gets updated.
 type FrontMatterDescriptor struct {
-
 	// This the Page's front matter.
 	Frontmatter map[string]interface{}
 

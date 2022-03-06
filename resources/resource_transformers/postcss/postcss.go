@@ -83,7 +83,6 @@ func (c *Client) Process(res resources.ResourceTransformer, options Options) (re
 
 // Some of the options from https://github.com/postcss/postcss-cli
 type Options struct {
-
 	// Set a custom path to look for a config file.
 	Config string
 
@@ -266,7 +265,8 @@ func (imp *importResolver) contentHash(filename string) ([]byte, string) {
 func (imp *importResolver) importRecursive(
 	lineNum int,
 	content string,
-	inPath string) (int, string, error) {
+	inPath string,
+) (int, string, error) {
 	basePath := path.Dir(inPath)
 
 	var replacements []string

@@ -190,13 +190,14 @@ func TestFlags(t *testing.T) {
 				"--navigateToChanged",
 				"--disableLiveReload",
 				"--noHTTPCache",
-				"--i18n-warnings",
+				"--printI18nWarnings",
 				"--destination=/tmp/mydestination",
 				"-b=https://example.com/b/",
 				"--port=1366",
 				"--renderToDisk",
 				"--source=mysource",
-				"--path-warnings",
+				"--printPathWarnings",
+				"--printUnusedTemplates",
 			},
 			check: func(c *qt.C, sc *serverCmd) {
 				c.Assert(sc, qt.Not(qt.IsNil))
@@ -220,10 +221,10 @@ func TestFlags(t *testing.T) {
 
 				c.Assert(cfg.GetBool("gc"), qt.Equals, true)
 
-				// The flag is named path-warnings
+				// The flag is named printPathWarnings
 				c.Assert(cfg.GetBool("logPathWarnings"), qt.Equals, true)
 
-				// The flag is named i18n-warnings
+				// The flag is named printI18nWarnings
 				c.Assert(cfg.GetBool("logI18nWarnings"), qt.Equals, true)
 			},
 		},
@@ -328,8 +329,7 @@ type testSiteConfig struct {
 	contentDir string
 }
 
-func createSimpleTestSite(t *testing.T, cfg testSiteConfig) (string, func(), error) {
-	c := qt.New(t)
+func createSimpleTestSite(t testing.TB, cfg testSiteConfig) (string, func(), error) {
 	d, clean, e := htesting.CreateTempDir(hugofs.Os, "hugo-cli")
 	if e != nil {
 		return "", nil, e
@@ -352,7 +352,8 @@ title = "Hugo Commands"
 		contentDir = cfg.contentDir
 	}
 
-	c.Assert(os.MkdirAll(filepath.Join(d, "public"), 0o777), qt.IsNil)
+	// nolint
+	os.MkdirAll(filepath.Join(d, "public"), 0o777)
 
 	// Just the basic. These are for CLI tests, not site testing.
 	writeFile(t, filepath.Join(d, "config.toml"), cfgStr)
@@ -392,12 +393,12 @@ Environment: {{ hugo.Environment }}
 	return d, clean, nil
 }
 
-func writeFile(t *testing.T, filename, content string) {
+func writeFile(t testing.TB, filename, content string) {
 	must(t, os.MkdirAll(filepath.Dir(filename), os.FileMode(0o755)))
 	must(t, ioutil.WriteFile(filename, []byte(content), os.FileMode(0o755)))
 }
 
-func must(t *testing.T, err error) {
+func must(t testing.TB, err error) {
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -134,7 +134,8 @@ func (c *Cache) WriteCloser(id string) (ItemInfo, io.WriteCloser, error) {
 // it when done.
 func (c *Cache) ReadOrCreate(id string,
 	read func(info ItemInfo, r io.ReadSeeker) error,
-	create func(info ItemInfo, w io.WriteCloser) error) (info ItemInfo, err error) {
+	create func(info ItemInfo, w io.WriteCloser) error,
+) (info ItemInfo, err error) {
 	id = cleanID(id)
 
 	c.nlocker.Lock(id)

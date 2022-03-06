@@ -48,7 +48,6 @@ var _ text.Positioner = ErrorContext{}
 // ErrorContext contains contextual information about an error. This will
 // typically be the lines surrounding some problem in a file.
 type ErrorContext struct {
-
 	// If a match will contain the matched line and up to 2 lines before and after.
 	// Will be empty if no match.
 	Lines []string

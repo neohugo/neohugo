@@ -43,7 +43,8 @@ func newPagesCollector(
 	contentMap *pageMaps,
 	logger loggers.Logger,
 	contentTracker *contentChangeMap,
-	proc pagesCollectorProcessorProvider, filenames ...string) *pagesCollector {
+	proc pagesCollectorProcessorProvider, filenames ...string,
+) *pagesCollector {
 	return &pagesCollector{
 		fs:         sp.SourceFs,
 		contentMap: contentMap,
@@ -331,7 +332,8 @@ func (c *pagesCollector) collectDir(dirname string, partial bool, inFilter func(
 		btype bundleDirType,
 		dir hugofs.FileMetaInfo,
 		path string,
-		readdir []hugofs.FileMetaInfo) error {
+		readdir []hugofs.FileMetaInfo,
+	) error {
 		if btype > bundleNot && c.tracker != nil {
 			c.tracker.add(path, btype)
 		}

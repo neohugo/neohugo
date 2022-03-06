@@ -37,7 +37,6 @@ func New(fs *filesystems.SourceFilesystem, rs *resources.Spec) (*Client, error) 
 }
 
 type Options struct {
-
 	// Hugo, will by default, just replace the extension of the source
 	// to .css, e.g. "scss/main.scss" becomes "scss/main.css". You can
 	// control this by setting this, e.g. "styles/main.css" will create

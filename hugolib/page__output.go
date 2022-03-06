@@ -23,7 +23,8 @@ func newPageOutput(
 	ps *pageState,
 	pp pagePaths,
 	f output.Format,
-	render bool) *pageOutput {
+	render bool,
+) *pageOutput {
 	var targetPathsProvider targetPathsHolder
 	var linksProvider resource.ResourceLinksProvider
 

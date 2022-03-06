@@ -194,6 +194,10 @@ func (p *nopPage) GitInfo() *gitmap.GitInfo {
 	return nil
 }
 
+func (p *nopPage) CodeOwners() []string {
+	return nil
+}
+
 func (p *nopPage) HasMenuCurrent(menuID string, me *navigation.MenuEntry) bool {
 	return false
 }
@@ -415,6 +419,10 @@ func (p *nopPage) Resources() resource.Resources {
 }
 
 func (p *nopPage) Scratch() *maps.Scratch {
+	return nil
+}
+
+func (p *nopPage) Store() *maps.Scratch {
 	return nil
 }
 

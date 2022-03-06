@@ -30,6 +30,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/modules"
 	"golang.org/x/text/unicode/norm"
@@ -104,7 +105,6 @@ import (
 //
 // 5. The entire collection of files is written to disk.
 type Site struct {
-
 	// The owning container. When multiple languages, there will be multiple
 	// sites .
 	h *HugoSites
@@ -1428,14 +1428,14 @@ func (s *Site) getMenusFromConfig() navigation.Menus {
 		for name, menu := range menus {
 			m, err := cast.ToSliceE(menu)
 			if err != nil {
-				s.Log.Errorf("unable to process menus in site config\n")
+				s.Log.Errorf("menus in site config contain errors\n")
 				s.Log.Errorln(err)
 			} else {
 				handleErr := func(err error) {
 					if err == nil {
 						return
 					}
-					s.Log.Errorf("unable to process menus in site config\n")
+					s.Log.Errorf("menus in site config contain errors\n")
 					s.Log.Errorln(err)
 				}
 
@@ -1778,20 +1778,33 @@ var infoOnMissingLayout = map[string]bool{
 	"404": true,
 }
 
-// hookRenderer is the canonical implementation of all hooks.ITEMRenderer,
+// hookRendererTemplate is the canonical implementation of all hooks.ITEMRenderer,
 // where ITEM is the thing being hooked.
-type hookRenderer struct {
+type hookRendererTemplate struct {
 	templateHandler tpl.TemplateHandler
 	identity.SearchProvider
-	templ tpl.Template
+	templ           tpl.Template
+	resolvePosition func(ctx interface{}) text.Position
 }
 
-func (hr hookRenderer) RenderLink(w io.Writer, ctx hooks.LinkContext) error {
+func (hr hookRendererTemplate) RenderLink(w io.Writer, ctx hooks.LinkContext) error {
 	return hr.templateHandler.Execute(hr.templ, w, ctx)
 }
 
-func (hr hookRenderer) RenderHeading(w io.Writer, ctx hooks.HeadingContext) error {
+func (hr hookRendererTemplate) RenderHeading(w io.Writer, ctx hooks.HeadingContext) error {
 	return hr.templateHandler.Execute(hr.templ, w, ctx)
+}
+
+func (hr hookRendererTemplate) RenderCodeblock(w hugio.FlexiWriter, ctx hooks.CodeblockContext) error {
+	return hr.templateHandler.Execute(hr.templ, w, ctx)
+}
+
+func (hr hookRendererTemplate) ResolvePosition(ctx interface{}) text.Position {
+	return hr.resolvePosition(ctx)
+}
+
+func (hr hookRendererTemplate) IsDefaultCodeBlockRenderer() bool {
+	return false
 }
 
 func (s *Site) renderForTemplate(name, outputFormat string, d interface{}, w io.Writer, templ tpl.Template) (err error) {
@@ -1862,7 +1875,8 @@ func (s *Site) newPage(
 	n *contentNode,
 	parentbBucket *pagesMapBucket,
 	kind, title string,
-	sections ...string) *pageState {
+	sections ...string,
+) *pageState {
 	m := map[string]interface{}{}
 	if title != "" {
 		m["title"] = title
@@ -1890,7 +1904,8 @@ func (s *Site) shouldBuild(p page.Page) bool {
 }
 
 func shouldBuild(buildFuture bool, buildExpired bool, buildDrafts bool, Draft bool,
-	publishDate time.Time, expiryDate time.Time) bool {
+	publishDate time.Time, expiryDate time.Time,
+) bool {
 	if !(buildDrafts || !Draft) {
 		return false
 	}

@@ -17,10 +17,11 @@ import (
 	"html/template"
 	"strings"
 
+	"go.uber.org/atomic"
+
 	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/source"
 
 	"github.com/neohugo/neohugo/output"
 
@@ -37,11 +38,13 @@ func newPageBase(metaProvider *pageMeta) (*pageState, error) {
 	s := metaProvider.s
 
 	ps := &pageState{
-		pageOutput: nopPageOutput,
+		pageOutput:                        nopPageOutput,
+		pageOutputTemplateVariationsState: atomic.NewUint32(0),
 		pageCommon: &pageCommon{
 			FileProvider:            metaProvider,
 			AuthorProvider:          metaProvider,
 			Scratcher:               maps.NewScratcher(),
+			store:                   maps.NewScratch(),
 			Positioner:              page.NopPage,
 			InSectionPositioner:     page.NopPage,
 			ResourceMetaProvider:    metaProvider,
@@ -65,15 +68,6 @@ func newPageBase(metaProvider *pageMeta) (*pageState, error) {
 
 	siteAdapter := pageSiteAdapter{s: s, p: ps}
 
-	deprecatedWarningPage := struct {
-		source.FileWithoutOverlap
-		page.DeprecatedWarningPageMethods1
-	}{
-		FileWithoutOverlap:            metaProvider.File(),
-		DeprecatedWarningPageMethods1: &pageDeprecatedWarning{p: ps},
-	}
-
-	ps.DeprecatedWarningPageMethods = page.NewDeprecatedWarningPage(deprecatedWarningPage)
 	ps.pageMenus = &pageMenus{p: ps}
 	ps.PageMenusProvider = ps.pageMenus
 	ps.GetPageProvider = siteAdapter
@@ -99,7 +93,8 @@ func newPageFromMeta(
 	n *contentNode,
 	parentBucket *pagesMapBucket,
 	meta map[string]interface{},
-	metaProvider *pageMeta) (*pageState, error) {
+	metaProvider *pageMeta,
+) (*pageState, error) {
 	if metaProvider.f == nil {
 		metaProvider.f = page.NewZeroFile(metaProvider.s.LogDistinct)
 	}
@@ -188,17 +183,26 @@ func newPageStandalone(m *pageMeta, f output.Format) (*pageState, error) {
 	return p, nil
 }
 
+//nolint
 type pageDeprecatedWarning struct {
 	p *pageState
 }
 
-func (p *pageDeprecatedWarning) IsDraft() bool          { return p.p.m.draft }
-func (p *pageDeprecatedWarning) Hugo() neohugo.Info     { return p.p.s.Info.Hugo() }
+//nolint
+func (p *pageDeprecatedWarning) IsDraft() bool { return p.p.m.draft }
+
+//nolint
+func (p *pageDeprecatedWarning) Hugo() neohugo.Info { return p.p.s.Info.Hugo() }
+
+//nolint
 func (p *pageDeprecatedWarning) LanguagePrefix() string { return p.p.s.Info.LanguagePrefix }
+
+//nolint
 func (p *pageDeprecatedWarning) GetParam(key string) interface{} {
 	return p.p.m.params[strings.ToLower(key)]
 }
 
+//nolint
 func (p *pageDeprecatedWarning) RSSLink() template.URL {
 	f := p.p.OutputFormats().Get("RSS")
 	if f == nil {
@@ -207,6 +211,7 @@ func (p *pageDeprecatedWarning) RSSLink() template.URL {
 	return template.URL(f.Permalink())
 }
 
+//nolint
 func (p *pageDeprecatedWarning) URL() string {
 	if p.p.IsPage() && p.p.m.urlPaths.URL != "" {
 		// This is the url set in front matter

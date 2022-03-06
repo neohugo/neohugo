@@ -22,7 +22,6 @@ type lexerShortcodeState struct {
 	elementStepNum     int             //nolint // step number in element
 	paramElements      int             //nolint // number of elements (name + value = 2) found first
 	openShortcodes     map[string]bool //nolint // set of shortcodes in open state
-
 }
 
 // Shortcode syntax

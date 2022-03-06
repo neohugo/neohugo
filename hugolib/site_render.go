@@ -105,7 +105,8 @@ func pageRenderer(
 	s *Site,
 	pages <-chan *pageState,
 	results chan<- error,
-	wg *sync.WaitGroup) {
+	wg *sync.WaitGroup,
+) {
 	defer wg.Done()
 
 	for p := range pages {

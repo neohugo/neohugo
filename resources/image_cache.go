@@ -64,7 +64,8 @@ func (c *imageCache) clear() {
 
 func (c *imageCache) getOrCreate(
 	parent *imageResource, conf images.ImageConfig,
-	createImage func() (*imageResource, image.Image, error)) (*resourceAdapter, error) {
+	createImage func() (*imageResource, image.Image, error),
+) (*resourceAdapter, error) {
 	relTarget := parent.relTargetPathFromConfig(conf)
 	memKey := parent.relTargetPathForRel(relTarget.path(), false, false, false)
 	memKey = c.normalizeKey(memKey)
