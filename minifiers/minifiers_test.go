@@ -190,7 +190,7 @@ func TestDecodeConfigDecimalIsNowPrecision(t *testing.T) {
 	c.Assert(conf.Tdewolff.CSS.Precision, qt.Equals, 3)
 }
 
-// Issue 8771
+// Issue 9456
 func TestDecodeConfigKeepWhitespace(t *testing.T) {
 	c := qt.New(t)
 	v := config.New()
@@ -213,7 +213,7 @@ func TestDecodeConfigKeepWhitespace(t *testing.T) {
 			KeepDocumentTags:        true,
 			KeepEndTags:             false,
 			KeepQuotes:              false,
-			KeepWhitespace:          true,
+			KeepWhitespace:          false,
 		},
 	)
 }
