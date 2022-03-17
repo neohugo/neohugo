@@ -48,7 +48,7 @@ parts:
       export PATH=$GOPATH/bin:$PATH
 
       echo ' * Running "go get -v github.com/magefile/mage"...'
-      go get -v github.com/magefile/mage
+      go install -v github.com/magefile/mage
 
       #echo ' * Running "mage -v test"...'
       #mage -v test
