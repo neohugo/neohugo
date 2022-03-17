@@ -19,7 +19,7 @@ COPY . /go/src/github.com/neohugo/neohugo/
 # gcc/g++ are required to build SASS libraries for extended version
 RUN apk update && \
     apk add --no-cache gcc g++ musl-dev git && \
-    go install github.com/magefile/mage
+    go install github.com/magefile/mage@latest
 
 RUN mage neohugo && mage install
 

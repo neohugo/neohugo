@@ -43,7 +43,7 @@ jobs:
         working-directory: ./neohugo
         run: |
           go install mvdan.cc/gofumpt@latest
-          go install github.com/magefile/mage
+          go install github.com/magefile/mage@latest
       - uses: actions/cache@v2
         with:
           path: ~/go/pkg/mod
