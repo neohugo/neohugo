@@ -529,3 +529,43 @@ Link https procol: https://www.example.org
 
 	}
 }
+
+func TestGoldmarkBugs(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- config.toml --
+[markup.goldmark.renderer]
+unsafe = true
+-- content/p1.md --
+---
+title: "p1"
+---
+
+## Issue 9650
+
+a <!-- b --> c
+
+## Issue 9658
+
+- This is a list item <!-- Comment: an innocent-looking comment -->
+
+
+-- layouts/_default/single.html --
+{{ .Content }}
+`
+
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+
+	b.AssertFileContentExact("public/p1/index.html",
+		// Issue 9650
+		"<p>a <!-- b --> c</p>",
+		// Issue 9658 (crash)
+		"<li>This is a list item <!-- Comment: an innocent-looking comment --></li>",
+	)
+}
