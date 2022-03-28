@@ -120,7 +120,7 @@ func TestTransform(t *testing.T) {
 		c.Assert(tr.RelPermalink(), qt.Equals, "/f1.csv")
 		assertShouldExist(c, spec, "public/f1.csv", true)
 
-		data := tr.Data().(map[string]interface{})
+		data := tr.Data().(map[string]any)
 		c.Assert(data["mydata"], qt.Equals, "Hugo Rocks!")
 
 		assertNoDuplicateWrites(c, spec)
@@ -214,7 +214,7 @@ func TestTransform(t *testing.T) {
 						in = strings.Replace(in, "blue", "green", 1)
 						ctx.AddOutPathIdentifier("." + "cached")
 						ctx.OutMediaType = media.CSVType
-						ctx.Data = map[string]interface{}{
+						ctx.Data = map[string]any{
 							"Hugo": "Rocks!",
 						}
 						fmt.Fprint(ctx.To, in)
@@ -239,7 +239,7 @@ func TestTransform(t *testing.T) {
 			c.Assert(err, qt.IsNil)
 			c.Assert(content, qt.Equals, "color is green", msg)
 			c.Assert(tr.MediaType(), eq, media.CSVType)
-			c.Assert(tr.Data(), qt.DeepEquals, map[string]interface{}{
+			c.Assert(tr.Data(), qt.DeepEquals, map[string]any{
 				"Hugo": "Rocks!",
 			})
 

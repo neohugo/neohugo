@@ -116,7 +116,7 @@ func (m *matcher) Matches(path string) bool {
 // decode creates a config from a given Hugo configuration.
 func decodeConfig(cfg config.Provider) (deployConfig, error) {
 	var (
-		mediaTypesConfig []map[string]interface{}
+		mediaTypesConfig []map[string]any
 		dcfg             deployConfig
 	)
 

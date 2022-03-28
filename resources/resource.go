@@ -102,7 +102,7 @@ type Transformer interface {
 	Transform(...ResourceTransformation) (ResourceTransformer, error)
 }
 
-func NewFeatureNotAvailableTransformer(key string, elements ...interface{}) ResourceTransformation {
+func NewFeatureNotAvailableTransformer(key string, elements ...any) ResourceTransformation {
 	return transformerNotAvailable{
 		key: internal.NewResourceTransformationKey(key, elements...),
 	}
@@ -158,11 +158,11 @@ type commonResource struct{}
 
 // Slice is not meant to be used externally. It's a bridge function
 // for the template functions. See collections.Slice.
-func (commonResource) Slice(in interface{}) (interface{}, error) {
+func (commonResource) Slice(in any) (any, error) {
 	switch items := in.(type) {
 	case resource.Resources:
 		return items, nil
-	case []interface{}:
+	case []any:
 		groups := make(resource.Resources, len(items))
 		for i, v := range items {
 			g, ok := v.(resource.Resource)
@@ -209,8 +209,8 @@ type genericResource struct {
 
 	title  string
 	name   string
-	params map[string]interface{}
-	data   map[string]interface{}
+	params map[string]any
+	data   map[string]any
 
 	resourceType string
 	mediaType    media.Type
@@ -220,7 +220,7 @@ func (l *genericResource) Clone() resource.Resource {
 	return l.clone()
 }
 
-func (l *genericResource) Content() (interface{}, error) {
+func (l *genericResource) Content() (any, error) {
 	if err := l.initContent(); err != nil {
 		return nil, err
 	}
@@ -228,11 +228,11 @@ func (l *genericResource) Content() (interface{}, error) {
 	return l.content, nil
 }
 
-func (r *genericResource) Err() error {
+func (r *genericResource) Err() resource.ResourceError {
 	return nil
 }
 
-func (l *genericResource) Data() interface{} {
+func (l *genericResource) Data() any {
 	return l.data
 }
 
@@ -376,12 +376,12 @@ func (r *genericResource) tryTransformedFileCache(key string, u *transformationU
 	return f
 }
 
-func (r *genericResource) mergeData(in map[string]interface{}) {
+func (r *genericResource) mergeData(in map[string]any) {
 	if len(in) == 0 {
 		return
 	}
 	if r.data == nil {
-		r.data = make(map[string]interface{})
+		r.data = make(map[string]any)
 	}
 	for k, v := range in {
 		if _, found := r.data[k]; !found {
@@ -533,7 +533,7 @@ func (l *genericResource) relTargetPathsForRel(rel string) []string {
 	return targetPaths
 }
 
-func (l *genericResource) updateParams(params map[string]interface{}) {
+func (l *genericResource) updateParams(params map[string]any) {
 	if l.params == nil {
 		l.params = params
 		return

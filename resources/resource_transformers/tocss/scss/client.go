@@ -61,7 +61,7 @@ type Options struct {
 	EnableSourceMap bool
 }
 
-func DecodeOptions(m map[string]interface{}) (opts Options, err error) {
+func DecodeOptions(m map[string]any) (opts Options, err error) {
 	if m == nil {
 		return
 	}

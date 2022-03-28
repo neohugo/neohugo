@@ -95,7 +95,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	getIdentity := p.GetIdentity()
 
 	s := struct {
-		Content                  interface{}
+		Content                  any
 		Plain                    string
 		PlainWords               []string
 		Summary                  template.HTML
@@ -113,7 +113,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Name                     string
 		Title                    string
 		Params                   maps.Params
-		Data                     interface{}
+		Data                     any
 		Date                     time.Time
 		Lastmod                  time.Time
 		PublishDate              time.Time

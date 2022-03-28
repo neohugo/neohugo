@@ -249,12 +249,12 @@ name = "menu-theme"
 
 		b.Assert(got["mediatypes"], qt.DeepEquals, maps.Params{
 			"text/m2": maps.Params{
-				"suffixes": []interface{}{
+				"suffixes": []any{
 					"m2theme",
 				},
 			},
 			"text/m1": maps.Params{
-				"suffixes": []interface{}{
+				"suffixes": []any{
 					"m1main",
 				},
 			},
@@ -292,13 +292,13 @@ name = "menu-theme"
 					"pl1": "p1-en-main",
 				},
 				"menus": maps.Params{
-					"main": []interface{}{
-						map[string]interface{}{
+					"main": []any{
+						map[string]any{
 							"name": "menu-lang-en-main",
 						},
 					},
-					"theme": []interface{}{
-						map[string]interface{}{
+					"theme": []any{
+						map[string]any{
 							"name": "menu-lang-en-theme",
 						},
 					},
@@ -312,18 +312,18 @@ name = "menu-theme"
 					"pl2": "p2-nb-theme",
 				},
 				"menus": maps.Params{
-					"main": []interface{}{
-						map[string]interface{}{
+					"main": []any{
+						map[string]any{
 							"name": "menu-lang-nb-main",
 						},
 					},
-					"theme": []interface{}{
-						map[string]interface{}{
+					"theme": []any{
+						map[string]any{
 							"name": "menu-lang-nb-theme",
 						},
 					},
-					"top": []interface{}{
-						map[string]interface{}{
+					"top": []any{
+						map[string]any{
 							"name": "menu-lang-nb-top",
 						},
 					},
@@ -398,8 +398,8 @@ name   = "menu-theme"
 				"en": maps.Params{
 					"languagename": "English",
 					"menus": maps.Params{
-						"main": []interface{}{
-							map[string]interface{}{
+						"main": []any{
+							map[string]any{
 								"name": "menu-theme",
 							},
 						},
@@ -704,9 +704,9 @@ theme_param="themevalue2"
 		c.Assert(cfg.Get("imaging.anchor"), qt.Equals, "top")
 		c.Assert(cfg.Get("imaging.quality"), qt.Equals, int64(75))
 		c.Assert(cfg.Get("imaging.resamplefilter"), qt.Equals, "CatmullRom")
-		c.Assert(cfg.Get("stringSlice"), qt.DeepEquals, []interface{}{"c", "d"})
-		c.Assert(cfg.Get("floatSlice"), qt.DeepEquals, []interface{}{5.32})
-		c.Assert(cfg.Get("intSlice"), qt.DeepEquals, []interface{}{5, 8, 9})
+		c.Assert(cfg.Get("stringSlice"), qt.DeepEquals, []any{"c", "d"})
+		c.Assert(cfg.Get("floatSlice"), qt.DeepEquals, []any{5.32})
+		c.Assert(cfg.Get("intSlice"), qt.DeepEquals, []any{5, 8, 9})
 		c.Assert(cfg.Get("params.api_config.api_key"), qt.Equals, "new_key")
 		c.Assert(cfg.Get("params.api_config.another_key"), qt.Equals, "default another_key")
 		c.Assert(cfg.Get("params.mytheme_section.theme_param"), qt.Equals, "themevalue_changed")

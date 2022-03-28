@@ -89,7 +89,7 @@ func TestCollectInfo(t *testing.T) {
 		{"Basic config map", "{{ $_hugo_config := `" + configStr + "`  }}", tpl.ParseInfo{Config: tpl.ParseConfig{Version: 42}}},
 	}
 
-	echo := func(in interface{}) interface{} {
+	echo := func(in any) any {
 		return in
 	}
 
@@ -131,7 +131,7 @@ func TestPartialReturn(t *testing.T) {
 `, true},
 	}
 
-	echo := func(in interface{}) interface{} {
+	echo := func(in any) any {
 		return in
 	}
 

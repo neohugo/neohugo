@@ -198,3 +198,12 @@ func (cc *convertCmd) convertAndSavePage(p page.Page, site *hugolib.Site, target
 
 	return nil
 }
+
+type parsedFile struct {
+	frontMatterFormat metadecoders.Format
+	frontMatterSource []byte
+	frontMatter       map[string]any
+
+	// Everything after Front Matter
+	content []byte
+}

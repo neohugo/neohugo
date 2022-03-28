@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"errors"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -89,7 +90,8 @@ type commandeer struct {
 	// Used in cases where we get flooded with events in server mode.
 	debounce func(f func())
 
-	serverPorts         []int
+	serverPorts []serverPortListener
+
 	languagesConfigured bool
 	languages           langs.Languages
 	doLiveReload        bool
@@ -104,6 +106,11 @@ type commandeer struct {
 
 	// Any error from the last build.
 	buildErr error
+}
+
+type serverPortListener struct {
+	p  int
+	ln net.Listener
 }
 
 func newCommandeerHugoState() *commandeerHugoState {
@@ -121,14 +128,14 @@ func (c *commandeer) errCount() int {
 	return int(c.logger.LogCounters().ErrorCounter.Count())
 }
 
-func (c *commandeer) getErrorWithContext() interface{} {
+func (c *commandeer) getErrorWithContext() any {
 	errCount := c.errCount()
 
 	if errCount == 0 {
 		return nil
 	}
 
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 
 	m["Error"] = errors.New(removeErrorPrefixFromLog(c.logger.Errors()))
 	m["Version"] = neohugo.BuildVersionString()
@@ -147,7 +154,7 @@ func (c *commandeer) getErrorWithContext() interface{} {
 	return m
 }
 
-func (c *commandeer) Set(key string, value interface{}) {
+func (c *commandeer) Set(key string, value any) {
 	if c.configured {
 		panic("commandeer cannot be changed")
 	}
@@ -421,6 +428,7 @@ func (c *commandeer) loadConfig() error {
 		if h == nil || c.failOnInitErr {
 			err = createErr
 		}
+
 		c.hugoSites = h
 		// TODO(bep) improve.
 		if c.buildLock == nil && h != nil {

@@ -48,7 +48,7 @@ type FrontMatterHandler struct {
 // It has pointers to values in the receiving page which gets updated.
 type FrontMatterDescriptor struct {
 	// This the Page's front matter.
-	Frontmatter map[string]interface{}
+	Frontmatter map[string]any
 
 	// This is the Page's base filename (BaseFilename), e.g. page.md., or
 	// if page is a leaf bundle, the bundle folder name (ContentBaseName).
@@ -63,7 +63,7 @@ type FrontMatterDescriptor struct {
 	// The below are pointers to values on Page and will be modified.
 
 	// This is the Page's params.
-	Params map[string]interface{}
+	Params map[string]any
 
 	// This is the Page's dates.
 	Dates *resource.Dates
@@ -252,7 +252,7 @@ func expandDefaultValues(values []string, defaults []string) []string {
 	return out
 }
 
-func toLowerSlice(in interface{}) []string {
+func toLowerSlice(in any) []string {
 	out := cast.ToStringSlice(in)
 	for i := 0; i < len(out); i++ {
 		out[i] = strings.ToLower(out[i])
@@ -334,7 +334,7 @@ func (f *FrontMatterHandler) createHandlers() error {
 	return nil
 }
 
-func setParamIfNotSet(key string, value interface{}, d *FrontMatterDescriptor) {
+func setParamIfNotSet(key string, value any, d *FrontMatterDescriptor) {
 	if _, found := d.Params[key]; found {
 		return
 	}
