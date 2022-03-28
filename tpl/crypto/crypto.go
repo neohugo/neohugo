@@ -105,7 +105,7 @@ func (ns *Namespace) HMAC(h any, k any, m any, e ...any) (string, error) {
 		return "", err
 	}
 
-	var encoding = "hex"
+	encoding := "hex"
 	if len(e) > 0 && e[0] != nil {
 		encoding, err = cast.ToStringE(e[0])
 		if err != nil {
@@ -121,5 +121,4 @@ func (ns *Namespace) HMAC(h any, k any, m any, e ...any) (string, error) {
 	default:
 		return "", fmt.Errorf("%q is not a supported encoding method", encoding)
 	}
-
 }

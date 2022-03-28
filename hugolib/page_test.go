@@ -366,8 +366,8 @@ func normalizeExpected(ext, str string) string {
 }
 
 func testAllMarkdownEnginesForPages(t *testing.T,
-	assertFunc func(t *testing.T, ext string, pages page.Pages), settings map[string]any, pageSources ...string) {
-
+	assertFunc func(t *testing.T, ext string, pages page.Pages), settings map[string]any, pageSources ...string,
+) {
 	engines := []struct {
 		ext           string
 		shouldExecute func() bool

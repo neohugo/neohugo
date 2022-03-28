@@ -194,5 +194,4 @@ T1: {{ $r.Content }}
 
 	b.AssertLogMatches(`WARN.*Dart Sass: foo`)
 	b.AssertLogMatches(`INFO.*Dart Sass: .*assets.*main.scss:1:0: bar`)
-
 }

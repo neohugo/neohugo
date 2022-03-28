@@ -155,7 +155,6 @@ func (ns *Namespace) GetRemote(args ...any) resource.Resource {
 		default:
 			return resources.NewErrorResource(resource.NewResourceError(errors.Wrap(err, "error calling resources.GetRemote"), make(map[string]any)))
 		}
-
 	}
 	return r
 }

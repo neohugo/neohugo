@@ -118,7 +118,6 @@ func (ns *Namespace) HTMLUnescape(s any) (string, error) {
 
 // Markdownify renders a given input from Markdown to HTML.
 func (ns *Namespace) Markdownify(s any) (template.HTML, error) {
-
 	home := ns.deps.Site.Home()
 	if home == nil {
 		panic("home must not be nil")

@@ -37,10 +37,8 @@ const (
 	EnvironmentProduction  = "production"
 )
 
-var (
-	// vendorInfo contains vendor notes about the current build.
-	vendorInfo string
-)
+// vendorInfo contains vendor notes about the current build.
+var vendorInfo string
 
 // Info contains information about the current Hugo environment
 type Info struct {
@@ -142,8 +140,10 @@ type buildInfo struct {
 	*debug.BuildInfo
 }
 
-var bInfo *buildInfo
-var bInfoInit sync.Once
+var (
+	bInfo     *buildInfo
+	bInfoInit sync.Once
+)
 
 func getBuildInfo() *buildInfo {
 	bInfoInit.Do(func() {
@@ -170,7 +170,6 @@ func getBuildInfo() *buildInfo {
 				bInfo.GoArch = s.Value
 			}
 		}
-
 	})
 
 	return bInfo

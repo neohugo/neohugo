@@ -42,7 +42,6 @@ func TestResourceChainBasic(t *testing.T) {
 				return
 			}
 			h.ServeHTTP(w, r)
-
 		})
 	}
 	ts := httptest.NewServer(

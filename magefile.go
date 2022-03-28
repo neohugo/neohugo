@@ -77,21 +77,6 @@ func flagEnv() map[string]string {
 	}
 }
 
-// Download Run go mod download
-func Download() error {
-	fmt.Println("Go mod download...")
-	if err := sh.RunWith(env, mg.GoCmd(), "mod", "download"); err != nil {
-		return err
-	}
-
-	if err := sh.RunWith(env, mg.GoCmd(), "install", "mvdan.cc/gofumpt"); err != nil {
-		return err
-	}
-	fmt.Println("Go mod download done")
-
-	return nil
-}
-
 // Generate autogen packages
 func Generate() error {
 	generatorPackages := []string{

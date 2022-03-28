@@ -73,7 +73,6 @@ func TCPListen() (net.Listener, *net.TCPAddr, error) {
 	}
 	l.Close()
 	return nil, nil, fmt.Errorf("unable to obtain a valid tcp port: %v", addr)
-
 }
 
 // InStringArray checks if a string is an element of a slice of strings

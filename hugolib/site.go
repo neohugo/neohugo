@@ -1875,7 +1875,8 @@ func (s *Site) newPage(
 	n *contentNode,
 	parentbBucket *pagesMapBucket,
 	kind, title string,
-	sections ...string) *pageState {
+	sections ...string,
+) *pageState {
 	m := map[string]any{}
 	if title != "" {
 		m["title"] = title

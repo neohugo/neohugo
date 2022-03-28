@@ -193,8 +193,8 @@ func stringSliceToWhitelistHook() mapstructure.DecodeHookFuncType {
 	return func(
 		f reflect.Type,
 		t reflect.Type,
-		data any) (any, error) {
-
+		data any,
+	) (any, error) {
 		if t != reflect.TypeOf(Whitelist{}) {
 			return data, nil
 		}

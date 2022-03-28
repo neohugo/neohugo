@@ -124,7 +124,7 @@ func runServerTest(c *qt.C, getHome bool, config string, args ...string) (result
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	wg, ctx := errgroup.WithContext(ctx)
+	wg, _ := errgroup.WithContext(ctx)
 
 	wg.Go(func() error {
 		_, err := cmd.ExecuteC()
@@ -139,7 +139,7 @@ func runServerTest(c *qt.C, getHome bool, config string, args ...string) (result
 		c.Check(err, qt.IsNil)
 		if err == nil {
 			defer resp.Body.Close()
-			result.homeContent = helpers.ReaderToString(resp.Body)
+			result.homeContent, _ = helpers.ReaderToString(resp.Body)
 		}
 	}
 

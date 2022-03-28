@@ -93,7 +93,8 @@ func newPageFromMeta(
 	n *contentNode,
 	parentBucket *pagesMapBucket,
 	meta map[string]any,
-	metaProvider *pageMeta) (*pageState, error) {
+	metaProvider *pageMeta,
+) (*pageState, error) {
 	if metaProvider.f == nil {
 		metaProvider.f = page.NewZeroFile(metaProvider.s.LogDistinct)
 	}

@@ -224,7 +224,6 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 				// to the closest one.
 				fiw, fjw := fim.Weight, fjm.Weight
 				if fiw != fjw {
-
 					return fiw > fjw
 				}
 
