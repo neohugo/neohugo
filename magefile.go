@@ -25,16 +25,10 @@ import (
 
 const (
 	packageName  = "github.com/neohugo/neohugo"
-	noGitLdflags = "-X $PACKAGE/common/neohugo.buildDate=$BUILD_DATE"
+	noGitLdflags = "-X github.com/neohugo/neohugo/common/neohugo.vendorInfo=mage"
 )
 
-var (
-	ldflags = "-X $PACKAGE/common/neohugo.commitHash=$COMMIT_HASH -X $PACKAGE/common/neohugo.buildDate=$BUILD_DATE"
-	env     = map[string]string{
-		"GO111MODULE": "on",
-		"GOPROXY":     "https://proxy.golang.org",
-	}
-)
+var ldflags = noGitLdflags
 
 // allow user to override go executable by running as GOEXE=xxx make ... on unix-like systems
 var goexe = "go"
@@ -49,7 +43,7 @@ func init() {
 	os.Setenv("GO111MODULE", "on")
 }
 
-func runWith(env map[string]string, cmd string, inArgs ...interface{}) error {
+func runWith(env map[string]string, cmd string, inArgs ...any) error {
 	s := argsToStrings(inArgs...)
 	return sh.RunWith(env, cmd, s...)
 }
@@ -81,21 +75,6 @@ func flagEnv() map[string]string {
 		"COMMIT_HASH": hash,
 		"BUILD_DATE":  time.Now().Format("2006-01-02T15:04:05Z0700"),
 	}
-}
-
-// Download Run go mod download
-func Download() error {
-	fmt.Println("Go mod download...")
-	if err := sh.RunWith(env, mg.GoCmd(), "mod", "download"); err != nil {
-		return err
-	}
-
-	if err := sh.RunWith(env, mg.GoCmd(), "install", "mvdan.cc/gofumpt"); err != nil {
-		return err
-	}
-	fmt.Println("Go mod download done")
-
-	return nil
 }
 
 // Generate autogen packages
@@ -190,7 +169,7 @@ func testGoFlags() string {
 		return ""
 	}
 
-	return "-test.short"
+	return "-timeout=1m"
 }
 
 // Run tests in 32-bit mode
@@ -346,7 +325,7 @@ func TestCoverHTML() error {
 	return sh.Run(goexe, "tool", "cover", "-html="+coverAll)
 }
 
-func runCmd(env map[string]string, cmd string, args ...interface{}) error {
+func runCmd(env map[string]string, cmd string, args ...any) error {
 	if mg.Verbose() {
 		return runWith(env, cmd, args...)
 	}
@@ -379,7 +358,7 @@ func buildTags() string {
 	return "none"
 }
 
-func argsToStrings(v ...interface{}) []string {
+func argsToStrings(v ...any) []string {
 	var args []string
 	for _, arg := range v {
 		switch v := arg.(type) {

@@ -245,7 +245,7 @@ func (i *importCmd) createSiteFromJekyll(jekyllRoot, targetDir string, jekyllPos
 	return nil
 }
 
-func (i *importCmd) loadJekyllConfig(fs afero.Fs, jekyllRoot string) map[string]interface{} {
+func (i *importCmd) loadJekyllConfig(fs afero.Fs, jekyllRoot string) map[string]any {
 	path := filepath.Join(jekyllRoot, "_config.yml")
 
 	exists, err := helpers.Exists(path, fs)
@@ -275,7 +275,7 @@ func (i *importCmd) loadJekyllConfig(fs afero.Fs, jekyllRoot string) map[string]
 	return c
 }
 
-func (i *importCmd) createConfigFromJekyll(fs afero.Fs, inpath string, kind metadecoders.Format, jekyllConfig map[string]interface{}) error {
+func (i *importCmd) createConfigFromJekyll(fs afero.Fs, inpath string, kind metadecoders.Format, jekyllConfig map[string]any) (err error) {
 	title := "My New Hugo Site"
 	baseURL := "http://example.org/"
 
@@ -295,7 +295,7 @@ func (i *importCmd) createConfigFromJekyll(fs afero.Fs, inpath string, kind meta
 		}
 	}
 
-	in := map[string]interface{}{
+	in := map[string]any{
 		"baseURL":            baseURL,
 		"title":              title,
 		"languageCode":       "en-us",
@@ -436,7 +436,7 @@ func convertJekyllPost(path, relPath, targetDir string, draft bool) error {
 	return nil
 }
 
-func convertJekyllMetaData(m interface{}, postName string, postDate time.Time, draft bool) (interface{}, error) {
+func convertJekyllMetaData(m any, postName string, postDate time.Time, draft bool) (any, error) {
 	metadata, err := maps.ToStringMapE(m)
 	if err != nil {
 		return nil, err
@@ -488,7 +488,7 @@ func convertJekyllMetaData(m interface{}, postName string, postDate time.Time, d
 	return metadata, nil
 }
 
-func convertJekyllContent(m interface{}, content string) (string, error) {
+func convertJekyllContent(m any, content string) (string, error) {
 	metadata, _ := maps.ToStringMapE(m)
 
 	lines := strings.Split(content, "\n")

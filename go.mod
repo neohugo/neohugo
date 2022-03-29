@@ -21,7 +21,7 @@ require (
 	github.com/fortytw2/leaktest v1.3.0
 	github.com/frankban/quicktest v1.14.2
 	github.com/fsnotify/fsnotify v1.5.1
-	github.com/getkin/kin-openapi v0.92.0
+	github.com/getkin/kin-openapi v0.93.0
 	github.com/ghodss/yaml v1.0.0
 	github.com/gobuffalo/flect v0.2.4
 	github.com/gobwas/glob v0.2.3
@@ -54,7 +54,7 @@ require (
 	github.com/spf13/jwalterweatherman v1.1.0
 	github.com/spf13/pflag v1.0.5
 	github.com/tdewolff/minify/v2 v2.10.0
-	github.com/yuin/goldmark v1.4.10
+	github.com/yuin/goldmark v1.4.11
 	go.uber.org/atomic v1.9.0
 	gocloud.dev v0.24.0
 	golang.org/x/image v0.0.0-20220302094943-723b81ca9867

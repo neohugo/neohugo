@@ -92,7 +92,7 @@ func newPageBucket(p *pageState) *pagesMapBucket {
 func newPageFromMeta(
 	n *contentNode,
 	parentBucket *pagesMapBucket,
-	meta map[string]interface{},
+	meta map[string]any,
 	metaProvider *pageMeta,
 ) (*pageState, error) {
 	if metaProvider.f == nil {
@@ -120,7 +120,7 @@ func newPageFromMeta(
 		return nil, err
 	}
 
-	ps.init.Add(func() (interface{}, error) {
+	ps.init.Add(func() (any, error) {
 		pp, err := newPagePaths(metaProvider.s, ps, metaProvider)
 		if err != nil {
 			return nil, err
@@ -198,7 +198,7 @@ func (p *pageDeprecatedWarning) Hugo() neohugo.Info { return p.p.s.Info.Hugo() }
 func (p *pageDeprecatedWarning) LanguagePrefix() string { return p.p.s.Info.LanguagePrefix }
 
 //nolint
-func (p *pageDeprecatedWarning) GetParam(key string) interface{} {
+func (p *pageDeprecatedWarning) GetParam(key string) any {
 	return p.p.m.params[strings.ToLower(key)]
 }
 

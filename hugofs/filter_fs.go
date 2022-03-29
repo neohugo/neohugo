@@ -45,10 +45,9 @@ func NewLanguageFs(langs map[string]int, fs afero.Fs) (afero.Fs, error) {
 			lang := meta.Lang
 
 			fileLang, translationBaseName, translationBaseNameWithExt := langInfoFrom(langs, fi.Name())
-			weight := 0
+			weight := meta.Weight
 
 			if fileLang != "" {
-				weight = 1
 				if fileLang == lang {
 					// Give priority to myfile.sv.txt inside the sv filesystem.
 					weight++
@@ -61,7 +60,6 @@ func NewLanguageFs(langs map[string]int, fs afero.Fs) (afero.Fs, error) {
 				&FileMeta{
 					Lang:                       lang,
 					Weight:                     weight,
-					Ordinal:                    langs[lang],
 					TranslationBaseName:        translationBaseName,
 					TranslationBaseNameWithExt: translationBaseNameWithExt,
 					Classifier:                 files.ClassifyContentFile(fi.Name(), meta.OpenFunc),

@@ -60,7 +60,6 @@ type FileMeta struct {
 	Module     string
 
 	Weight     int
-	Ordinal    int
 	IsOrdered  bool
 	IsSymlink  bool
 	IsRootFile bool
@@ -188,7 +187,7 @@ func (fi *dirNameOnlyFileInfo) IsDir() bool {
 	return true
 }
 
-func (fi *dirNameOnlyFileInfo) Sys() interface{} {
+func (fi *dirNameOnlyFileInfo) Sys() any {
 	return nil
 }
 

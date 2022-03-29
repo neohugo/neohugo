@@ -130,9 +130,9 @@ var defaultImaging = Imaging{
 	Quality:        defaultJPEGQuality,
 }
 
-func DecodeConfig(m map[string]interface{}) (ImagingConfig, error) {
+func DecodeConfig(m map[string]any) (ImagingConfig, error) {
 	if m == nil {
-		m = make(map[string]interface{})
+		m = make(map[string]any)
 	}
 
 	i := ImagingConfig{
@@ -252,8 +252,17 @@ func DecodeImageConfig(action, config string, defaults ImagingConfig, sourceForm
 		}
 	}
 
-	if c.Width == 0 && c.Height == 0 {
-		return c, errors.New("must provide Width or Height")
+	switch c.Action {
+	case "crop", "fill", "fit":
+		if c.Width == 0 || c.Height == 0 {
+			return c, errors.New("must provide Width and Height")
+		}
+	case "resize":
+		if c.Width == 0 && c.Height == 0 {
+			return c, errors.New("must provide Width or Height")
+		}
+	default:
+		return c, errors.Errorf("BUG: unknown action %q encountered while decoding image configuration", c.Action)
 	}
 
 	if c.FilterStr == "" {
