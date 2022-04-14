@@ -19,10 +19,14 @@ import (
 	"sync"
 	"time"
 
+	"golang.org/x/text/collate"
+	"golang.org/x/text/language"
+
 	"github.com/pkg/errors"
 
 	"github.com/gohugoio/locales"
 	translators "github.com/gohugoio/localescompressed"
+	"github.com/neohugo/neohugo/common/htime"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 )
@@ -77,9 +81,11 @@ type Language struct {
 	// Used for date formatting etc. We don't want these exported to the
 	// templates.
 	// TODO(bep) do the same for some of the others.
-	translator locales.Translator
-
-	location *time.Location
+	translator    locales.Translator
+	timeFormatter htime.TimeFormatter
+	tag           language.Tag
+	collator      *Collator
+	location      *time.Location
 
 	// Error during initialization. Will fail the buld.
 	initErr error
@@ -109,13 +115,28 @@ func NewLanguage(lang string, cfg config.Provider) *Language {
 		}
 	}
 
+	var coll *Collator
+	tag, err := language.Parse(lang)
+	if err == nil {
+		coll = &Collator{
+			c: collate.New(tag),
+		}
+	} else {
+		coll = &Collator{
+			c: collate.New(language.English),
+		}
+	}
+
 	l := &Language{
 		Lang:       lang,
 		ContentDir: cfg.GetString("contentDir"),
 		Cfg:        cfg, LocalCfg: localCfg,
-		Provider:   compositeConfig,
-		params:     params,
-		translator: translator,
+		Provider:      compositeConfig,
+		params:        params,
+		translator:    translator,
+		timeFormatter: htime.NewTimeFormatter(translator),
+		tag:           tag,
+		collator:      coll,
 	}
 
 	if err := l.loadLocation(cfg.GetString("timeZone")); err != nil {
@@ -260,12 +281,20 @@ func (l *Language) IsSet(key string) bool {
 // Internal access to unexported Language fields.
 // This construct is to prevent them from leaking to the templates.
 
+func GetTimeFormatter(l *Language) htime.TimeFormatter {
+	return l.timeFormatter
+}
+
 func GetTranslator(l *Language) locales.Translator {
 	return l.translator
 }
 
 func GetLocation(l *Language) *time.Location {
 	return l.location
+}
+
+func GetCollator(l *Language) *Collator {
+	return l.collator
 }
 
 func (l *Language) loadLocation(tzStr string) error {
@@ -276,4 +305,17 @@ func (l *Language) loadLocation(tzStr string) error {
 	l.location = location
 
 	return nil
+}
+
+type Collator struct {
+	sync.Mutex
+	c *collate.Collator
+}
+
+// CompareStrings compares a and b.
+// It returns -1 if a < b, 1 if a > b and 0 if a == b.
+// Note that the Collator is not thread safe, so you may want
+// to aquire a lock on it before calling this method.
+func (c *Collator) CompareStrings(a, b string) int {
+	return c.c.CompareString(a, b)
 }

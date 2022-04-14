@@ -344,6 +344,7 @@ func newPathsSpec(t *testing.T, fs afero.Fs, configStr string) *helpers.PathSpec
 	c.Assert(err, qt.IsNil)
 	err = initConfig(fs, cfg)
 	c.Assert(err, qt.IsNil)
+	config.SetBaseTestDefaults(cfg)
 	p, err := helpers.NewPathSpec(hugofs.NewFrom(fs, cfg), cfg, nil)
 	c.Assert(err, qt.IsNil)
 	return p

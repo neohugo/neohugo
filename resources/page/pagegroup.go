@@ -26,6 +26,7 @@ import (
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/hreflect"
 	"github.com/neohugo/neohugo/compare"
+	"github.com/neohugo/neohugo/langs"
 
 	"github.com/neohugo/neohugo/resources/resource"
 )
@@ -52,13 +53,16 @@ type mapKeyByInt struct{ mapKeyValues }
 
 func (s mapKeyByInt) Less(i, j int) bool { return s.mapKeyValues[i].Int() < s.mapKeyValues[j].Int() }
 
-type mapKeyByStr struct{ mapKeyValues }
-
-func (s mapKeyByStr) Less(i, j int) bool {
-	return compare.LessStrings(s.mapKeyValues[i].String(), s.mapKeyValues[j].String())
+type mapKeyByStr struct {
+	less func(a, b string) bool
+	mapKeyValues
 }
 
-func sortKeys(v []reflect.Value, order string) []reflect.Value {
+func (s mapKeyByStr) Less(i, j int) bool {
+	return s.less(s.mapKeyValues[i].String(), s.mapKeyValues[j].String())
+}
+
+func sortKeys(examplePage Page, v []reflect.Value, order string) []reflect.Value {
 	if len(v) <= 1 {
 		return v
 	}
@@ -71,10 +75,12 @@ func sortKeys(v []reflect.Value, order string) []reflect.Value {
 			sort.Sort(mapKeyByInt{v})
 		}
 	case reflect.String:
+		stringLess, close := collatorStringLess(examplePage)
+		defer close()
 		if order == "desc" {
-			sort.Sort(sort.Reverse(mapKeyByStr{v}))
+			sort.Sort(sort.Reverse(mapKeyByStr{stringLess, v}))
 		} else {
-			sort.Sort(mapKeyByStr{v})
+			sort.Sort(mapKeyByStr{stringLess, v})
 		}
 	}
 	return v
@@ -160,7 +166,7 @@ func (p Pages) GroupBy(key string, order ...string) (PagesGroup, error) {
 		tmp.SetMapIndex(fv, reflect.Append(tmp.MapIndex(fv), ppv))
 	}
 
-	sortedKeys := sortKeys(tmp.MapKeys(), direction)
+	sortedKeys := sortKeys(p[0], tmp.MapKeys(), direction)
 	r := make([]PageGroup, len(sortedKeys))
 	for i, k := range sortedKeys {
 		r[i] = PageGroup{Key: k.Interface(), Pages: tmp.MapIndex(k).Interface().(Pages)}
@@ -212,14 +218,14 @@ func (p Pages) GroupByParam(key string, order ...string) (PagesGroup, error) {
 	}
 
 	var r []PageGroup
-	for _, k := range sortKeys(tmp.MapKeys(), direction) {
+	for _, k := range sortKeys(p[0], tmp.MapKeys(), direction) {
 		r = append(r, PageGroup{Key: k.Interface(), Pages: tmp.MapIndex(k).Interface().(Pages)})
 	}
 
 	return r, nil
 }
 
-func (p Pages) groupByDateField(sorter func(p Pages) Pages, formatter func(p Page) string, order ...string) (PagesGroup, error) {
+func (p Pages) groupByDateField(format string, sorter func(p Pages) Pages, getDate func(p Page) time.Time, order ...string) (PagesGroup, error) {
 	if len(p) < 1 {
 		return nil, nil
 	}
@@ -234,18 +240,24 @@ func (p Pages) groupByDateField(sorter func(p Pages) Pages, formatter func(p Pag
 		return nil, nil
 	}
 
-	//nolint
-	date := formatter(sp[0].(Page))
+	firstPage := sp[0].(Page)
+	date := getDate(firstPage)
+
+	// Pages may be a mix of multiple languages, so we need to use the language
+	// for the currently rendered Site.
+	currentSite := firstPage.Site().Current()
+	formatter := langs.GetTimeFormatter(currentSite.Language())
+	formatted := formatter.Format(date, format)
 	var r []PageGroup
-	r = append(r, PageGroup{Key: date, Pages: make(Pages, 0)})
+	r = append(r, PageGroup{Key: formatted, Pages: make(Pages, 0)})
 	r[0].Pages = append(r[0].Pages, sp[0])
 
 	i := 0
 	for _, e := range sp[1:] {
-		//nolint
-		date = formatter(e.(Page))
-		if r[i].Key.(string) != date {
-			r = append(r, PageGroup{Key: date})
+		date = getDate(e.(Page))
+		formatted := formatter.Format(date, format)
+		if r[i].Key.(string) != formatted {
+			r = append(r, PageGroup{Key: formatted})
 			i++
 		}
 		r[i].Pages = append(r[i].Pages, e)
@@ -261,10 +273,10 @@ func (p Pages) GroupByDate(format string, order ...string) (PagesGroup, error) {
 	sorter := func(p Pages) Pages {
 		return p.ByDate()
 	}
-	formatter := func(p Page) string {
-		return p.Date().Format(format)
+	getDate := func(p Page) time.Time {
+		return p.Date()
 	}
-	return p.groupByDateField(sorter, formatter, order...)
+	return p.groupByDateField(format, sorter, getDate, order...)
 }
 
 // GroupByPublishDate groups by the given page's PublishDate value in
@@ -275,10 +287,10 @@ func (p Pages) GroupByPublishDate(format string, order ...string) (PagesGroup, e
 	sorter := func(p Pages) Pages {
 		return p.ByPublishDate()
 	}
-	formatter := func(p Page) string {
-		return p.PublishDate().Format(format)
+	getDate := func(p Page) time.Time {
+		return p.PublishDate()
 	}
-	return p.groupByDateField(sorter, formatter, order...)
+	return p.groupByDateField(format, sorter, getDate, order...)
 }
 
 // GroupByExpiryDate groups by the given page's ExpireDate value in
@@ -289,10 +301,10 @@ func (p Pages) GroupByExpiryDate(format string, order ...string) (PagesGroup, er
 	sorter := func(p Pages) Pages {
 		return p.ByExpiryDate()
 	}
-	formatter := func(p Page) string {
-		return p.ExpiryDate().Format(format)
+	getDate := func(p Page) time.Time {
+		return p.ExpiryDate()
 	}
-	return p.groupByDateField(sorter, formatter, order...)
+	return p.groupByDateField(format, sorter, getDate, order...)
 }
 
 // GroupByLastmod groups by the given page's Lastmod value in
@@ -303,10 +315,10 @@ func (p Pages) GroupByLastmod(format string, order ...string) (PagesGroup, error
 	sorter := func(p Pages) Pages {
 		return p.ByLastmod()
 	}
-	formatter := func(p Page) string {
-		return p.Lastmod().Format(format)
+	getDate := func(p Page) time.Time {
+		return p.Lastmod()
 	}
-	return p.groupByDateField(sorter, formatter, order...)
+	return p.groupByDateField(format, sorter, getDate, order...)
 }
 
 // GroupByParamDate groups by a date set as a param on the page in
@@ -342,10 +354,10 @@ func (p Pages) GroupByParamDate(key string, format string, order ...string) (Pag
 		pageBy(pdate).Sort(r)
 		return r
 	}
-	formatter := func(p Page) string {
-		return dates[p].Format(format)
+	getDate := func(p Page) time.Time {
+		return dates[p]
 	}
-	return p.groupByDateField(sorter, formatter, order...)
+	return p.groupByDateField(format, sorter, getDate, order...)
 }
 
 // ProbablyEq wraps compare.ProbablyEqer

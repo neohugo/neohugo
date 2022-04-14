@@ -19,10 +19,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -102,7 +102,7 @@ func TestBytesToHTML(t *testing.T) {
 }
 
 func TestNewContentSpec(t *testing.T) {
-	cfg := config.New()
+	cfg := config.NewWithTestDefaults()
 	c := qt.New(t)
 
 	cfg.Set("summaryLength", 32)
