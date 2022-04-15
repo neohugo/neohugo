@@ -82,7 +82,7 @@ func newTestResourceSpec(desc specDescriptor) *Spec {
 	cfg.Set("imaging", imagingCfg)
 
 	fs := hugofs.NewFrom(afs, cfg)
-	fs.Destination = hugofs.NewCreateCountingFs(fs.Destination)
+	fs.PublishDir = hugofs.NewCreateCountingFs(fs.PublishDir)
 
 	s, err := helpers.NewPathSpec(fs, cfg, nil)
 	c.Assert(err, qt.IsNil)
@@ -121,7 +121,6 @@ func newTestResourceOsFs(c *qt.C) (*Spec, string) {
 	cfg.Set("workingDir", workDir)
 
 	fs := hugofs.NewFrom(hugofs.NewBaseFileDecorator(hugofs.Os), cfg)
-	fs.Destination = &afero.MemMapFs{}
 
 	s, err := helpers.NewPathSpec(fs, cfg, nil)
 	c.Assert(err, qt.IsNil)

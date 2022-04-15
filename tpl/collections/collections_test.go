@@ -131,7 +131,9 @@ func TestDelimit(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{
+		Language: langs.NewDefaultLanguage(config.New()),
+	})
 
 	for i, test := range []struct {
 		seq       any
@@ -984,7 +986,5 @@ func newDeps(cfg config.Provider) *deps.Deps {
 }
 
 func newTestNs() *Namespace {
-	v := config.New()
-	v.Set("contentDir", "content")
-	return New(newDeps(v))
+	return New(newDeps(config.NewWithTestDefaults()))
 }

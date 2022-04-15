@@ -294,6 +294,7 @@ func (h *HugoSites) render(config *BuildCfg) error {
 
 	i := 0
 	for _, s := range h.Sites {
+		h.currentSite = s
 		for siteOutIdx, renderFormat := range s.renderFormats {
 			siteRenderContext.outIdx = siteOutIdx
 			siteRenderContext.sitesOutIdx = i
@@ -500,9 +501,9 @@ func (h *HugoSites) writeBuildStats() error {
 		return err
 	}
 
-	// Write to the destination, too, if a mem fs is in play.
-	if h.Fs.Source != hugofs.Os {
-		if err := afero.WriteFile(h.Fs.Destination, filename, js, 0o666); err != nil {
+	// Write to the destination as well if it's a in-memory fs.
+	if !hugofs.IsOsFs(h.Fs.Source) {
+		if err := afero.WriteFile(h.Fs.WorkingDirWritable, filename, js, 0o666); err != nil {
 			return err
 		}
 	}

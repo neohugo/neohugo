@@ -35,7 +35,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/hugolib/paths"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/modules"
 	"github.com/pkg/errors"
@@ -359,7 +358,7 @@ func (l configLoader) collectModules(modConfig modules.Config, v1 config.Provide
 		workingDir = v1.GetString("workingDir")
 	}
 
-	themesDir := paths.AbsPathify(l.WorkingDir, v1.GetString("themesDir"))
+	themesDir := cpaths.AbsPathify(l.WorkingDir, v1.GetString("themesDir"))
 
 	var ignoreVendor glob.Glob
 	if s := v1.GetString("ignoreVendorPaths"); s != "" {

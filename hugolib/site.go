@@ -744,6 +744,16 @@ func (s *SiteInfo) Sites() page.Sites {
 	return s.s.h.siteInfos()
 }
 
+// Current returns the currently rendered Site.
+// If that isn't set yet, which is the situation before we start rendering,
+// if will return the Site itself.
+func (s *SiteInfo) Current() page.Site {
+	if s.s.h.currentSite == nil {
+		return s
+	}
+	return s.s.h.currentSite.Info
+}
+
 func (s *SiteInfo) String() string {
 	return fmt.Sprintf("Site(%q)", s.title)
 }
@@ -1829,10 +1839,10 @@ func (s *Site) lookupTemplate(layouts ...string) (tpl.Template, bool) {
 	return nil, false
 }
 
-func (s *Site) publish(statCounter *uint64, path string, r io.Reader) (err error) {
+func (s *Site) publish(statCounter *uint64, path string, r io.Reader, fs afero.Fs) (err error) {
 	s.PathSpec.ProcessingStats.Incr(statCounter)
 
-	return helpers.WriteToDisk(filepath.Clean(path), r, s.BaseFs.PublishFs)
+	return helpers.WriteToDisk(filepath.Clean(path), r, fs)
 }
 
 func (s *Site) kindFromFileInfoOrSections(fi *fileInfo, sections []string) string {

@@ -11,20 +11,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package hstring
+package hugofs
 
 import (
-	"html/template"
-	"testing"
-
-	qt "github.com/frankban/quicktest"
-	"github.com/spf13/cast"
+	"os"
 )
 
-func TestRenderedString(t *testing.T) {
-	c := qt.New(t)
+// LanguageDirsMerger implements the overlayfs.DirsMerger func, which is used
+// to merge two directories.
+var LanguageDirsMerger = func(lofi, bofi []os.FileInfo) []os.FileInfo {
+	for _, fi1 := range bofi {
+		fim1 := fi1.(FileMetaInfo)
+		var found bool
+		for _, fi2 := range lofi {
+			fim2 := fi2.(FileMetaInfo)
+			if fi1.Name() == fi2.Name() && fim1.Meta().Lang == fim2.Meta().Lang {
+				found = true
+				break
+			}
+		}
+		if !found {
+			lofi = append(lofi, fi1)
+		}
+	}
 
-	// Validate that it will behave like a string in Hugo settings.
-	c.Assert(cast.ToString(RenderedString("Hugo")), qt.Equals, "Hugo")
-	c.Assert(template.HTML(RenderedString("Hugo")), qt.Equals, template.HTML("Hugo"))
+	return lofi
 }

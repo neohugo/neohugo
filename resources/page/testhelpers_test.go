@@ -64,6 +64,7 @@ func newTestPageWithFile(filename string) *testPage {
 		currentSection: &testPage{
 			sectionEntries: []string{"a", "b", "c"},
 		},
+		site: testSite{l: langs.NewDefaultLanguage(config.New())},
 	}
 }
 
@@ -97,6 +98,7 @@ type testPage struct {
 	linkTitle   string
 	lang        string
 	section     string
+	site        testSite
 
 	content string
 
@@ -535,7 +537,7 @@ func (p *testPage) SectionsPath() string {
 }
 
 func (p *testPage) Site() Site {
-	panic("not implemented")
+	return p.site
 }
 
 func (p *testPage) Sites() Sites {

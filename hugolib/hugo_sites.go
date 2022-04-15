@@ -72,6 +72,9 @@ type HugoSites struct {
 	// Render output formats for all sites.
 	renderFormats output.Formats
 
+	// The currently rendered Site.
+	currentSite *Site
+
 	*deps.Deps
 
 	gitInfo       *gitInfo
@@ -593,7 +596,7 @@ func (h *HugoSites) reset(config *BuildCfg) {
 	if config.ResetState {
 		for i, s := range h.Sites {
 			h.Sites[i] = s.reset()
-			if r, ok := s.Fs.Destination.(hugofs.Reseter); ok {
+			if r, ok := s.Fs.PublishDir.(hugofs.Reseter); ok {
 				r.Reset()
 			}
 		}

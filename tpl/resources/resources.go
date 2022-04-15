@@ -16,11 +16,12 @@ package resources
 
 import (
 	"fmt"
-	"path/filepath"
 	"sync"
 
-	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
+
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/tpl/internal/resourcehelpers"
@@ -72,6 +73,8 @@ func New(deps *deps.Deps) (*Namespace, error) {
 	}, nil
 }
 
+var _ resource.ResourceFinder = (*Namespace)(nil)
+
 // Namespace provides template functions for the "resources" namespace.
 type Namespace struct {
 	deps *deps.Deps
@@ -106,15 +109,19 @@ func (ns *Namespace) getscssClientDartSass() (*dartsass.Client, error) {
 	return ns.scssClientDartSass, err
 }
 
-// Get locates the filename given in Hugo's assets filesystem and
-// creates a Resource object that can be used for
-// further transformations.
-func (ns *Namespace) Get(filename any) (resource.Resource, error) {
+// Get locates the filename given in Hugo's assets filesystem
+// and creates a Resource object that can be used for further transformations.
+func (ns *Namespace) Get(filename any) resource.Resource {
 	filenamestr, err := cast.ToStringE(filename)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return ns.createClient.Get(filepath.Clean(filenamestr))
+	r, err := ns.createClient.Get(filenamestr)
+	if err != nil {
+		panic(err)
+	}
+
+	return r
 }
 
 // GetRemote gets the URL (via HTTP(s)) in the first argument in args and creates Resource object that can be used for
@@ -164,13 +171,23 @@ func (ns *Namespace) GetRemote(args ...any) resource.Resource {
 // It looks for files in the assets file system.
 //
 // See Match for a more complete explanation about the rules used.
-func (ns *Namespace) GetMatch(pattern any) (resource.Resource, error) {
+func (ns *Namespace) GetMatch(pattern any) resource.Resource {
 	patternStr, err := cast.ToStringE(pattern)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return ns.createClient.GetMatch(patternStr)
+	r, err := ns.createClient.GetMatch(patternStr)
+	if err != nil {
+		panic(err)
+	}
+
+	return r
+}
+
+// ByType returns resources of a given resource type (e.g. "image").
+func (ns *Namespace) ByType(typ any) resource.Resources {
+	return ns.createClient.ByType(cast.ToString(typ))
 }
 
 // Match gets all resources matching the given base path prefix, e.g
@@ -189,13 +206,19 @@ func (ns *Namespace) GetMatch(pattern any) (resource.Resource, error) {
 // It looks for files in the assets file system.
 //
 // See Match for a more complete explanation about the rules used.
-func (ns *Namespace) Match(pattern any) (resource.Resources, error) {
+func (ns *Namespace) Match(pattern any) resource.Resources {
+	defer herrors.Recover()
 	patternStr, err := cast.ToStringE(pattern)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return ns.createClient.Match(patternStr)
+	r, err := ns.createClient.Match(patternStr)
+	if err != nil {
+		panic(err)
+	}
+
+	return r
 }
 
 // Concat concatenates a slice of Resource objects. These resources must
