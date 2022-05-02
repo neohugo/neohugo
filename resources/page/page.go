@@ -52,7 +52,9 @@ type AlternativeOutputFormatsProvider interface {
 
 // AuthorProvider provides author information.
 type AuthorProvider interface {
+	// Deprecated.
 	Author() Author
+	// Deprecated.
 	Authors() AuthorList
 }
 
@@ -75,13 +77,30 @@ type ChildCareProvider interface {
 // ContentProvider provides the content related values for a Page.
 type ContentProvider interface {
 	Content() (any, error)
+
+	// Plain returns the Page Content stripped of HTML markup.
 	Plain() string
+
+	// PlainWords returns a string slice from splitting Plain using https://pkg.go.dev/strings#Fields.
 	PlainWords() []string
+
+	// Summary returns a generated summary of the content.
+	// The breakpoint can be set manually by inserting a summary separator in the source file.
 	Summary() template.HTML
+
+	// Truncated returns whether the Summary  is truncated or not.
 	Truncated() bool
+
+	// FuzzyWordCount returns the approximate number of words in the content.
 	FuzzyWordCount() int
+
+	// WordCount returns the number of words in the content.
 	WordCount() int
+
+	// ReadingTime returns the reading time based on the length of plain text.
 	ReadingTime() int
+
+	// Len returns the length of the content.
 	Len() int
 }
 
@@ -117,6 +136,7 @@ type InSectionPositioner interface {
 
 // InternalDependencies is considered an internal interface.
 type InternalDependencies interface {
+	// GetRelatedDocsHandler is for internal use only.
 	GetRelatedDocsHandler() *RelatedDocsHandler
 }
 
@@ -140,8 +160,7 @@ type PageMetaProvider interface {
 	// Aliases forms the base for redirects generation.
 	Aliases() []string
 
-	// BundleType returns the bundle type: "leaf", "branch" or an empty string if it is none.
-	// See https://gohugo.io/content-management/page-bundles/
+	// BundleType returns the bundle type: `leaf`, `branch` or an empty string.
 	BundleType() files.ContentClass
 
 	// A configured description.
@@ -180,6 +199,7 @@ type PageMetaProvider interface {
 	Path() string
 
 	// This is just a temporary bridge method. Use Path in templates.
+	// Pathc is for internal usage only.
 	Pathc() string
 
 	// The slug, typically defined in front matter.
@@ -298,14 +318,20 @@ type RawContentProvider interface {
 // RefProvider provides the methods needed to create reflinks to pages.
 type RefProvider interface {
 	Ref(argsm map[string]any) (string, error)
+
+	// RefFrom is for internal use only.
 	RefFrom(argsm map[string]any, source any) (string, error)
+
 	RelRef(argsm map[string]any) (string, error)
+
+	// RefFrom is for internal use only.
 	RelRefFrom(argsm map[string]any, source any) (string, error)
 }
 
 // RelatedKeywordsProvider allows a Page to be indexed.
 type RelatedKeywordsProvider interface {
 	// Make it indexable as a related.Document
+	// RelatedKeywords is meant for internal usage only.
 	RelatedKeywords(cfg related.IndexConfig) ([]related.Keyword, error)
 }
 

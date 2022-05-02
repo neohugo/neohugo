@@ -21,7 +21,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/resources/images"
-	"github.com/neohugo/neohugo/resources/resource"
 
 	// Importing image codecs for image.DecodeConfig
 	_ "image/gif"
@@ -92,12 +91,12 @@ func (ns *Namespace) Config(path any) (image.Config, error) {
 	return config, nil
 }
 
-func (ns *Namespace) Filter(args ...any) (resource.Image, error) {
+func (ns *Namespace) Filter(args ...any) (images.ImageResource, error) {
 	if len(args) < 2 {
 		return nil, errors.New("must provide an image and one or more filters")
 	}
 
-	img := args[len(args)-1].(resource.Image)
+	img := args[len(args)-1].(images.ImageResource)
 	filtersv := args[:len(args)-1]
 
 	return img.Filter(filtersv...)

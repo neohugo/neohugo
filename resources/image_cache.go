@@ -96,6 +96,7 @@ func (c *imageCache) getOrCreate(
 		rp := img.getResourcePaths()
 		rp.relTargetDirFile.file = relTarget.file
 		img.setSourceFilename(info.Name)
+		img.setMediaType(conf.TargetFormat.MediaType())
 
 		if err := img.InitConfig(r); err != nil {
 			return err
