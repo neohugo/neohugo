@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"context"
 	"embed"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
@@ -42,7 +43,6 @@ import (
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
-	"github.com/pkg/errors"
 
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
@@ -61,6 +61,7 @@ const (
 
 // The identifiers may be truncated in the log, e.g.
 // "executing "main" at <$scaled.SRelPermalin...>: can't evaluate field SRelPermalink in type *resource.Image"
+// We need this to identify position in templates with base templates applied.
 var identifiersRe = regexp.MustCompile(`at \<(.*?)(\.{3})?\>:`)
 
 var embeddedTemplatesAliases = map[string][]string{
@@ -530,25 +531,27 @@ func (t *templateHandler) addFileContext(templ tpl.Template, inerr error) error 
 		return inerr
 	}
 
+	identifiers := t.extractIdentifiers(inerr.Error())
+
 	//lint:ignore ST1008 the error is the main result
 	checkFilename := func(info templateInfo, inErr error) (error, bool) {
 		if info.filename == "" {
 			return inErr, false
 		}
 
-		lineMatcher := func(m herrors.LineMatcher) bool {
+		lineMatcher := func(m herrors.LineMatcher) int {
 			if m.Position.LineNumber != m.LineNumber {
-				return false
+				return -1
 			}
-
-			identifiers := t.extractIdentifiers(m.Error.Error())
 
 			for _, id := range identifiers {
 				if strings.Contains(m.Line, id) {
-					return true
+					// We found the line, but return a 0 to signal to
+					// use the column from the error message.
+					return 0
 				}
 			}
-			return false
+			return -1
 		}
 
 		f, err := t.layoutsFs.Open(info.filename)
@@ -557,14 +560,16 @@ func (t *templateHandler) addFileContext(templ tpl.Template, inerr error) error 
 		}
 		defer f.Close()
 
-		fe, ok := herrors.WithFileContext(inErr, info.realFilename, f, lineMatcher)
-		if ok {
-			return fe, true
+		fe := herrors.NewFileErrorFromName(inErr, info.realFilename)
+		fe.UpdateContent(f, lineMatcher)
+
+		if !fe.ErrorContext().Position.IsValid() {
+			return inErr, false
 		}
-		return inErr, false
+		return fe, true
 	}
 
-	inerr = errors.Wrap(inerr, "execute of template failed")
+	inerr = fmt.Errorf("execute of template failed: %w", inerr)
 
 	if err, ok := checkFilename(ts.info, inerr); ok {
 		return err
@@ -573,6 +578,15 @@ func (t *templateHandler) addFileContext(templ tpl.Template, inerr error) error 
 	err, _ := checkFilename(ts.baseInfo, inerr)
 
 	return err
+}
+
+func (t *templateHandler) extractIdentifiers(line string) []string {
+	m := identifiersRe.FindAllStringSubmatch(line, -1)
+	identifiers := make([]string, len(m))
+	for i := 0; i < len(m); i++ {
+		identifiers[i] = m[i][1]
+	}
+	return identifiers
 }
 
 func (t *templateHandler) addShortcodeVariant(ts *templateState) {
@@ -734,17 +748,9 @@ func (t *templateHandler) applyTemplateTransformers(ns *templateNamespace, ts *t
 	return c, err
 }
 
-func (t *templateHandler) extractIdentifiers(line string) []string {
-	m := identifiersRe.FindAllStringSubmatch(line, -1)
-	identifiers := make([]string, len(m))
-	for i := 0; i < len(m); i++ {
-		identifiers[i] = m[i][1]
-	}
-	return identifiers
-}
-
 //go:embed embedded/templates/*
 //go:embed embedded/templates/_default/*
+//go:embed embedded/templates/_server/*
 var embededTemplatesFs embed.FS
 
 func (t *templateHandler) loadEmbedded() error {
@@ -766,10 +772,10 @@ func (t *templateHandler) loadEmbedded() error {
 		name := strings.TrimPrefix(filepath.ToSlash(path), "embedded/templates/")
 		templateName := name
 
-		// For the render hooks it does not make sense to preseve the
+		// For the render hooks and the server templates it does not make sense to preseve the
 		// double _indternal double book-keeping,
 		// just add it if its now provided by the user.
-		if !strings.Contains(path, "_default/_markup") {
+		if !strings.Contains(path, "_default/_markup") && !strings.HasPrefix(name, "_server/") {
 			templateName = internalPathPrefix + name
 		}
 

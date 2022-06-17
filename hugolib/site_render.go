@@ -14,6 +14,7 @@
 package hugolib
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -24,7 +25,6 @@ import (
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/output"
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
@@ -95,7 +95,7 @@ func (s *Site) renderPages(ctx *siteRenderContext) error {
 
 	err := <-errs
 	if err != nil {
-		return errors.Wrap(err, "failed to render pages")
+		return fmt.Errorf("failed to render pages: %w", err)
 	}
 	return nil
 }

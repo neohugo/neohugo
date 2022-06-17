@@ -16,13 +16,12 @@ package dartsass
 import (
 	"fmt"
 	"io"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources"
@@ -37,9 +36,6 @@ import (
 )
 
 const (
-	// See https://github.com/sass/dart-sass-embedded/issues/24
-	// Note: This prefix must be all lower case.
-	stdinPrefix                = "hugostdin:"
 	dartSassEmbeddedBinaryName = "dart-sass-embedded"
 )
 
@@ -75,7 +71,7 @@ func (t *transform) Transform(ctx *resources.ResourceTransformationCtx) error {
 	}
 
 	baseDir := path.Dir(ctx.SourcePath)
-	filename := stdinPrefix
+	filename := dartSassStdinPrefix
 
 	if ctx.SourcePath != "" {
 		filename += t.c.sfs.RealFilename(ctx.SourcePath)
@@ -107,31 +103,6 @@ func (t *transform) Transform(ctx *resources.ResourceTransformationCtx) error {
 
 	res, err := t.c.toCSS(args, ctx.From)
 	if err != nil {
-		if sassErr, ok := err.(godartsass.SassError); ok {
-			start := sassErr.Span.Start
-			context := strings.TrimSpace(sassErr.Span.Context)
-			filename, _ := urlToFilename(sassErr.Span.Url)
-			if strings.HasPrefix(filename, stdinPrefix) {
-				filename = filename[len(stdinPrefix):]
-			}
-
-			offsetMatcher := func(m herrors.LineMatcher) bool {
-				return m.Offset+len(m.Line) >= start.Offset && strings.Contains(m.Line, context)
-			}
-
-			ferr, ok := herrors.WithFileContextForFile(
-				herrors.NewFileError("scss", -1, -1, start.Column, sassErr),
-				filename,
-				filename,
-				hugofs.Os,
-				offsetMatcher)
-
-			if !ok {
-				return sassErr
-			}
-
-			return ferr
-		}
 		return err
 	}
 
@@ -158,7 +129,7 @@ type importResolver struct {
 }
 
 func (t importResolver) CanonicalizeURL(url string) (string, error) {
-	filePath, isURL := urlToFilename(url)
+	filePath, isURL := paths.UrlToFilename(url)
 	var prevDir string
 	var pathDir string
 	if isURL {
@@ -204,23 +175,7 @@ func (t importResolver) CanonicalizeURL(url string) (string, error) {
 }
 
 func (t importResolver) Load(url string) (string, error) {
-	filename, _ := urlToFilename(url)
+	filename, _ := paths.UrlToFilename(url)
 	b, err := afero.ReadFile(hugofs.Os, filename)
 	return string(b), err
-}
-
-// TODO(bep) add tests
-func urlToFilename(urls string) (string, bool) {
-	u, err := url.ParseRequestURI(urls)
-	if err != nil {
-		return filepath.FromSlash(urls), false
-	}
-	p := filepath.FromSlash(u.Path)
-
-	if u.Host != "" {
-		// C:\data\file.txt
-		p = strings.ToUpper(u.Host) + ":" + p
-	}
-
-	return p, true
 }

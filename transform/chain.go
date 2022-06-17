@@ -16,8 +16,11 @@ package transform
 import (
 	"bytes"
 	"io"
+	"io/ioutil"
 
 	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 // Transformer is the func that needs to be implemented by a transformation step.
@@ -102,7 +105,17 @@ func (c *Chain) Apply(to io.Writer, from io.Reader) error {
 		}
 
 		if err := tr(fb); err != nil {
-			return err
+			// Write output to a temp file so it can be read by the user for trouble shooting.
+			filename := "output.html"
+			tempfile, ferr := ioutil.TempFile("", "hugo-transform-error")
+			if ferr == nil {
+				filename = tempfile.Name()
+				defer tempfile.Close()
+				_, _ = io.Copy(tempfile, fb.from)
+				return herrors.NewFileErrorFromFile(err, filename, hugofs.Os, nil)
+			}
+			return herrors.NewFileErrorFromName(err, filename).UpdateContent(fb.from, nil)
+
 		}
 	}
 

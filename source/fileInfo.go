@@ -14,6 +14,7 @@
 package source
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -21,8 +22,6 @@ import (
 	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/neohugo/neohugo/hugofs/files"
-
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/common/hugio"
 
@@ -240,11 +239,11 @@ func (sp *SourceSpec) NewFileInfo(fi hugofs.FileMetaInfo) (*FileInfo, error) {
 	relPath := m.Path
 
 	if relPath == "" {
-		return nil, errors.Errorf("no Path provided by %v (%T)", m, m.Fs)
+		return nil, fmt.Errorf("no Path provided by %v (%T)", m, m.Fs)
 	}
 
 	if filename == "" {
-		return nil, errors.Errorf("no Filename provided by %v (%T)", m, m.Fs)
+		return nil, fmt.Errorf("no Filename provided by %v (%T)", m, m.Fs)
 	}
 
 	relDir := filepath.Dir(relPath)

@@ -14,11 +14,11 @@
 package hugofs
 
 import (
+	"errors"
+	"fmt"
 	"os"
 	"syscall"
 	"time"
-
-	"github.com/pkg/errors"
 
 	"github.com/spf13/afero"
 )
@@ -83,7 +83,7 @@ func (fs *SliceFs) LstatIfPossible(name string) (os.FileInfo, bool, error) {
 		return decorateFileInfo(fi, fs, fs.getOpener(name), "", "", nil), false, nil
 	}
 
-	return nil, false, errors.Errorf("lstat: files not supported: %q", name)
+	return nil, false, fmt.Errorf("lstat: files not supported: %q", name)
 }
 
 func (fs *SliceFs) Mkdir(n string, p os.FileMode) error {

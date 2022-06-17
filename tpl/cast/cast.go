@@ -28,18 +28,18 @@ func New() *Namespace {
 // Namespace provides template functions for the "cast" namespace.
 type Namespace struct{}
 
-// ToInt converts the given value to an int.
+// ToInt converts v to an int.
 func (ns *Namespace) ToInt(v any) (int, error) {
 	v = convertTemplateToString(v)
 	return _cast.ToIntE(v)
 }
 
-// ToString converts the given value to a string.
+// ToString converts v to a string.
 func (ns *Namespace) ToString(v any) (string, error) {
 	return _cast.ToStringE(v)
 }
 
-// ToFloat converts the given value to a float.
+// ToFloat converts v to a float.
 func (ns *Namespace) ToFloat(v any) (float64, error) {
 	v = convertTemplateToString(v)
 	return _cast.ToFloat64E(v)

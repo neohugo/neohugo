@@ -22,6 +22,8 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/langs"
 
 	"github.com/neohugo/neohugo/deps"
 )
@@ -29,7 +31,7 @@ import (
 func TestWhere(t *testing.T) {
 	t.Parallel()
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	type Mid struct {
 		Tst TstX
@@ -683,7 +685,7 @@ func TestWhere(t *testing.T) {
 func TestCheckCondition(t *testing.T) {
 	t.Parallel()
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	type expect struct {
 		result  bool

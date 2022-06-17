@@ -16,8 +16,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/htesting"
 
@@ -27,10 +25,10 @@ import (
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/neohugo/neohugo/parser"
-	"github.com/pkg/errors"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/resources/page"
@@ -304,9 +302,6 @@ defaultContentLanguageInSubdir = true
 [permalinks]
 other = "/somewhere/else/:filename"
 
-[blackfriday]
-angledQuotes = true
-
 [Taxonomies]
 tag = "tags"
 
@@ -315,8 +310,6 @@ tag = "tags"
 weight = 10
 title = "In English"
 languageName = "English"
-[Languages.en.blackfriday]
-angledQuotes = false
 [[Languages.en.menu.main]]
 url    = "/"
 name   = "Home"
@@ -473,7 +466,6 @@ func (s *sitesBuilder) writeFilePairs(folder string, files []filenameContent) *s
 
 func (s *sitesBuilder) CreateSites() *sitesBuilder {
 	if err := s.CreateSitesE(); err != nil {
-		herrors.PrintStackTraceFromErr(err)
 		s.Fatalf("Failed to create sites: %s", err)
 	}
 
@@ -519,7 +511,7 @@ func (s *sitesBuilder) CreateSitesE() error {
 				"i18n",
 			} {
 				if err := os.MkdirAll(filepath.Join(s.workingDir, dir), 0o777); err != nil {
-					return errors.Wrapf(err, "failed to create %q", dir)
+					return fmt.Errorf("failed to create %q: %w", dir, err)
 				}
 			}
 		}
@@ -538,7 +530,7 @@ func (s *sitesBuilder) CreateSitesE() error {
 	}
 
 	if err := s.LoadConfig(); err != nil {
-		return errors.Wrap(err, "failed to load config")
+		return fmt.Errorf("failed to load config: %w", err)
 	}
 
 	s.Fs.PublishDir = hugofs.NewCreateCountingFs(s.Fs.PublishDir)
@@ -551,7 +543,7 @@ func (s *sitesBuilder) CreateSitesE() error {
 
 	sites, err := NewHugoSites(depsCfg)
 	if err != nil {
-		return errors.Wrap(err, "failed to create sites")
+		return fmt.Errorf("failed to create sites: %w", err)
 	}
 	s.H = sites
 
@@ -614,7 +606,6 @@ func (s *sitesBuilder) build(cfg BuildCfg, shouldFail bool) *sitesBuilder {
 		}
 	}
 	if err != nil && !shouldFail {
-		herrors.PrintStackTraceFromErr(err)
 		s.Fatalf("Build failed: %s", err)
 	} else if err == nil && shouldFail {
 		s.Fatalf("Expected error")
@@ -866,7 +857,7 @@ func (th testHelper) assertFileContentRegexp(filename string, matches ...string)
 		r := regexp.MustCompile(match)
 		matches := r.MatchString(content)
 		if !matches {
-			fmt.Println(match+":\n", content)
+			fmt.Println("Expected to match regexp:\n"+match+"\nGot:\n", content)
 		}
 		th.Assert(matches, qt.Equals, true)
 	}

@@ -14,6 +14,8 @@
 package transform
 
 import (
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"strings"
 
@@ -25,7 +27,6 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/parser/metadecoders"
-	"github.com/pkg/errors"
 
 	"github.com/spf13/cast"
 )
@@ -54,7 +55,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 		data = args[1]
 		decoder, err = decodeDecoder(m)
 		if err != nil {
-			return nil, errors.WithMessage(err, "failed to decode options")
+			return nil, fmt.Errorf("failed to decode options: %w", err)
 		}
 	}
 
@@ -72,7 +73,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 		return ns.cache.GetOrCreate(key, func() (any, error) {
 			f := metadecoders.FormatFromMediaType(r.MediaType())
 			if f == "" {
-				return nil, errors.Errorf("MIME %q not supported", r.MediaType())
+				return nil, fmt.Errorf("MIME %q not supported", r.MediaType())
 			}
 
 			reader, err := r.ReadSeekCloser()
@@ -92,7 +93,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 
 	dataStr, err := types.ToStringE(data)
 	if err != nil {
-		return nil, errors.Errorf("type %T not supported", data)
+		return nil, fmt.Errorf("type %T not supported", data)
 	}
 
 	if dataStr == "" {
@@ -160,7 +161,7 @@ func stringToRune(v any) (rune, error) {
 		if i == 0 {
 			r = rr
 		} else {
-			return 0, errors.Errorf("invalid character: %q", v)
+			return 0, fmt.Errorf("invalid character: %q", v)
 		}
 	}
 

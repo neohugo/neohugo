@@ -16,6 +16,7 @@
 package releaser
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -25,8 +26,8 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hexec"
+
 	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/pkg/errors"
 )
 
 const commitPrefix = "releaser:"
@@ -216,7 +217,7 @@ func (r *ReleaseHandler) release(releaseNotesFile string) error {
 	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
-		return errors.Wrap(err, "goreleaser failed")
+		return fmt.Errorf("goreleaser failed: %w", err)
 	}
 	return nil
 }
@@ -229,9 +230,9 @@ func (r *ReleaseHandler) bumpVersions(ver neohugo.Version) error {
 	}
 
 	if err := r.replaceInFile("common/hugo/version_current.go",
-		`Number:(\s{4,})(.*),`, fmt.Sprintf(`Number:${1}%.2f,`, ver.Number),
-		`PatchLevel:(\s*)(.*),`, fmt.Sprintf(`PatchLevel:${1}%d,`, ver.PatchLevel),
-		`Suffix:(\s{4,})".*",`, fmt.Sprintf(`Suffix:${1}"%s",`, toDev)); err != nil {
+		`Minor:(\s*)(\d*),`, fmt.Sprintf(`Minor:${1}%d,`, ver.Minor),
+		`PatchLevel:(\s*)(\d*),`, fmt.Sprintf(`PatchLevel:${1}%d,`, ver.PatchLevel),
+		`Suffix:(\s*)".*",`, fmt.Sprintf(`Suffix:${1}"%s",`, toDev)); err != nil {
 		return err
 	}
 

@@ -40,7 +40,7 @@ func TestAfter(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		index  any
@@ -95,7 +95,7 @@ func (g *tstGrouper2) Group(key any, items any) (any, error) {
 func TestGroup(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		key    any
@@ -185,7 +185,7 @@ func TestDelimit(t *testing.T) {
 func TestDictionary(t *testing.T) {
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		values []any
@@ -224,7 +224,7 @@ func TestDictionary(t *testing.T) {
 func TestReverse(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	s := []string{"a", "b", "c"}
 	reversed, err := ns.Reverse(s)
@@ -243,7 +243,7 @@ func TestEchoParam(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		a      any
@@ -275,7 +275,7 @@ func TestFirst(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		limit  any
@@ -313,7 +313,7 @@ func TestIn(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		l1     any
@@ -389,7 +389,7 @@ func TestIntersect(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		l1, l2 any
@@ -516,7 +516,7 @@ func TestLast(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		limit  any
@@ -555,7 +555,7 @@ func TestLast(t *testing.T) {
 func TestQuerify(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		params []any
@@ -589,7 +589,7 @@ func TestQuerify(t *testing.T) {
 }
 
 func BenchmarkQuerify(b *testing.B) {
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 	params := []any{"a", "b", "c", "d", "f", " &"}
 
 	b.ResetTimer()
@@ -602,7 +602,7 @@ func BenchmarkQuerify(b *testing.B) {
 }
 
 func BenchmarkQuerifySlice(b *testing.B) {
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 	params := []string{"a", "b", "c", "d", "f", " &"}
 
 	b.ResetTimer()
@@ -617,7 +617,7 @@ func BenchmarkQuerifySlice(b *testing.B) {
 func TestSeq(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		args   []any
@@ -661,7 +661,7 @@ func TestSeq(t *testing.T) {
 func TestShuffle(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		seq     any
@@ -701,7 +701,7 @@ func TestShuffle(t *testing.T) {
 func TestShuffleRandomising(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	// Note that this test can fail with false negative result if the shuffle
 	// of the sequence happens to be the same as the original sequence. However
@@ -732,7 +732,7 @@ func TestShuffleRandomising(t *testing.T) {
 func TestSlice(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		args     []any
@@ -756,7 +756,7 @@ func TestUnion(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	for i, test := range []struct {
 		l1     any
@@ -845,7 +845,7 @@ func TestUnion(t *testing.T) {
 func TestUniq(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 	for i, test := range []struct {
 		l      any
 		expect any
@@ -978,6 +978,7 @@ func newDeps(cfg config.Provider) *deps.Deps {
 		panic(err)
 	}
 	return &deps.Deps{
+		Language:    l,
 		Cfg:         cfg,
 		Fs:          hugofs.NewMem(l),
 		ContentSpec: cs,

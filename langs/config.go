@@ -14,6 +14,7 @@
 package langs
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -22,8 +23,6 @@ import (
 	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/spf13/cast"
-
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/config"
 )
@@ -72,7 +71,7 @@ func LoadLanguageSettings(cfg config.Provider, oldLangs Languages) (c LanguagesC
 	} else {
 		languages2, err = toSortedLanguages(cfg, languages)
 		if err != nil {
-			return c, errors.Wrap(err, "Failed to parse multilingual config")
+			return c, fmt.Errorf("Failed to parse multilingual config: %w", err)
 		}
 	}
 

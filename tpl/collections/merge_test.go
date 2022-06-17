@@ -19,7 +19,9 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/parser"
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
@@ -27,7 +29,7 @@ import (
 )
 
 func TestMerge(t *testing.T) {
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	simpleMap := map[string]any{"a": 1, "b": 2}
 
@@ -161,7 +163,7 @@ func TestMerge(t *testing.T) {
 
 func TestMergeDataFormats(t *testing.T) {
 	c := qt.New(t)
-	ns := New(&deps.Deps{})
+	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
 
 	toml1 := `
 V1 = "v1_1"

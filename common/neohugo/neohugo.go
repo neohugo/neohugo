@@ -51,6 +51,9 @@ type Info struct {
 	// It can be any string, but it will be all lower case.
 	Environment string
 
+	// version of go that the Hugo binary was built with
+	GoVersion string
+
 	deps []*Dependency
 }
 
@@ -85,12 +88,14 @@ func NewInfo(environment string, deps []*Dependency) Info {
 	var (
 		commitHash string
 		buildDate  string
+		goVersion  string
 	)
 
 	bi := getBuildInfo()
 	if bi != nil {
 		commitHash = bi.Revision
 		buildDate = bi.RevisionTime
+		goVersion = bi.GoVersion
 	}
 
 	return Info{
@@ -98,6 +103,7 @@ func NewInfo(environment string, deps []*Dependency) Info {
 		BuildDate:   buildDate,
 		Environment: environment,
 		deps:        deps,
+		GoVersion:   goVersion,
 	}
 }
 

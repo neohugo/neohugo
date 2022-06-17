@@ -14,6 +14,7 @@
 package hugofs
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -21,8 +22,6 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/loggers"
-
-	"github.com/pkg/errors"
 
 	"github.com/spf13/afero"
 )
@@ -125,7 +124,7 @@ func (w *Walkway) Walk() error {
 			if w.checkErr(w.root, err) {
 				return nil
 			}
-			return w.walkFn(w.root, nil, errors.Wrapf(err, "walk: %q", w.root))
+			return w.walkFn(w.root, nil, fmt.Errorf("walk: %q: %w", w.root, err))
 		}
 		fi = info.(FileMetaInfo)
 	}
@@ -192,7 +191,7 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 			if w.checkErr(path, err) {
 				return nil
 			}
-			return walkFn(path, info, errors.Wrapf(err, "walk: open %q (%q)", path, w.root))
+			return walkFn(path, info, fmt.Errorf("walk: open %q (%q): %w", path, w.root, err))
 		}
 
 		fis, err := f.Readdir(-1)
@@ -201,7 +200,7 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 			if w.checkErr(filename, err) {
 				return nil
 			}
-			return walkFn(path, info, errors.Wrap(err, "walk: Readdir"))
+			return walkFn(path, info, fmt.Errorf("walk: Readdir: %w", err))
 		}
 
 		dirEntries = fileInfosToFileMetaInfos(fis)

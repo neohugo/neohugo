@@ -15,9 +15,11 @@ package i18n
 
 import (
 	"encoding/json"
+	"fmt"
 	"strings"
 
 	"github.com/neohugo/neohugo/common/paths"
+	_errors "github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"golang.org/x/text/language"
@@ -30,7 +32,6 @@ import (
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/source"
-	_errors "github.com/pkg/errors"
 )
 
 // TranslationProvider provides translation handling, i.e. loading
@@ -83,7 +84,7 @@ const artificialLangTagPrefix = "art-x-"
 func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 	f, err := r.FileInfo().Meta().Open()
 	if err != nil {
-		return _errors.Wrapf(err, "failed to open translations file %q:", r.LogicalName())
+		return fmt.Errorf("failed to open translations file %q:: %w", r.LogicalName(), err)
 	}
 
 	b, err := helpers.ReaderToBytes(f)
@@ -99,7 +100,7 @@ func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 		try := artificialLangTagPrefix + lang
 		_, err = language.Parse(try)
 		if err != nil {
-			return _errors.Errorf("%q %s.", try, err)
+			return fmt.Errorf("%q: %s", try, err)
 		}
 		name = artificialLangTagPrefix + name
 	}
@@ -114,7 +115,7 @@ func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 				return nil
 			}
 		}
-		return errWithFileContext(_errors.Wrapf(err, "failed to load translations"), r)
+		return errWithFileContext(fmt.Errorf("failed to load translations: %w", err), r)
 	}
 
 	return nil
@@ -142,11 +143,5 @@ func errWithFileContext(inerr error, r source.File) error {
 	}
 	defer f.Close()
 
-	err, _ = herrors.WithFileContext(
-		inerr,
-		realFilename,
-		f,
-		herrors.SimpleLineMatcher)
-
-	return err
+	return herrors.NewFileErrorFromName(inerr, realFilename).UpdateContent(f, nil)
 }

@@ -14,6 +14,8 @@
 package tplimpl
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 	"strings"
 
@@ -25,7 +27,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/pkg/errors"
 )
 
 type templateType int
@@ -241,14 +242,14 @@ func (c *templateContext) collectConfig(n *parse.PipeNode) {
 	}
 
 	if s, ok := cmd.Args[0].(*parse.StringNode); ok {
-		errMsg := "failed to decode $_hugo_config in template"
+		errMsg := "failed to decode $_hugo_config in template: %w"
 		m, err := maps.ToStringMapE(s.Text)
 		if err != nil {
-			c.err = errors.Wrap(err, errMsg)
+			c.err = fmt.Errorf(errMsg, err)
 			return
 		}
 		if err := mapstructure.WeakDecode(m, &c.t.parseInfo.Config); err != nil {
-			c.err = errors.Wrap(err, errMsg)
+			c.err = fmt.Errorf(errMsg, err)
 		}
 	}
 }
@@ -272,7 +273,7 @@ func (c *templateContext) collectInner(n *parse.CommandNode) {
 			idents = nt.Ident
 		}
 
-		if c.hasIdent(idents, "Inner") {
+		if c.hasIdent(idents, "Inner") || c.hasIdent(idents, "InnerDeindent") {
 			c.t.parseInfo.IsInner = true
 			break
 		}

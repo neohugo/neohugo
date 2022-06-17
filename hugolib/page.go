@@ -15,6 +15,7 @@ package hugolib
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -40,7 +41,6 @@ import (
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/neohugo/neohugo/parser/pageparser"
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/output"
 
@@ -337,7 +337,7 @@ func (p *pageState) HasShortcode(name string) bool {
 		return false
 	}
 
-	return p.shortcodeState.nameSet[name]
+	return p.shortcodeState.hasName(name)
 }
 
 func (p *pageState) Site() page.Site {
@@ -489,7 +489,7 @@ func (p *pageState) renderResources() (err error) {
 
 		src, ok := r.(resource.Source)
 		if !ok {
-			err = errors.Errorf("Resource %T does not support resource.Source", src)
+			err = fmt.Errorf("Resource %T does not support resource.Source", src)
 			return
 		}
 
@@ -566,23 +566,34 @@ func (p *pageState) addDependency(dep identity.Provider) {
 
 // wrapError adds some more context to the given error if possible/needed
 func (p *pageState) wrapError(err error) error {
-	if _, ok := err.(*herrors.ErrorWithFileContext); ok {
-		// Preserve the first file context.
-		return err
-	}
-	var filename string
-	if !p.File().IsZero() {
-		filename = p.File().Filename()
+	if err == nil {
+		panic("wrapError with nil")
 	}
 
-	err, _ = herrors.WithFileContextForFile(
-		err,
-		filename,
-		filename,
-		p.s.SourceSpec.Fs.Source,
-		herrors.SimpleLineMatcher)
+	if p.File().IsZero() {
+		// No more details to add.
+		return fmt.Errorf("%q: %w", p.Pathc(), err)
+	}
 
-	return err
+	filename := p.File().Filename()
+
+	// Check if it's already added.
+	for _, ferr := range herrors.UnwrapFileErrors(err) {
+		errfilename := ferr.Position().Filename
+		if errfilename == filename {
+			if ferr.ErrorContext() == nil {
+				f, ioerr := p.s.SourceSpec.Fs.Source.Open(filename)
+				if ioerr != nil {
+					return err
+				}
+				defer f.Close()
+				ferr.UpdateContent(f, nil)
+			}
+			return err
+		}
+	}
+
+	return herrors.NewFileErrorFromFile(err, filename, p.s.SourceSpec.Fs.Source, herrors.NopLineMatcher)
 }
 
 func (p *pageState) getContentConverter() converter.Converter {
@@ -593,7 +604,7 @@ func (p *pageState) getContentConverter() converter.Converter {
 			// Only used for shortcode inner content.
 			markup = "markdown"
 		}
-		p.m.contentConverter, err = p.m.newContentConverter(p, markup, p.m.renderingConfigOverrides)
+		p.m.contentConverter, err = p.m.newContentConverter(p, markup)
 	})
 
 	if err != nil {
@@ -603,15 +614,34 @@ func (p *pageState) getContentConverter() converter.Converter {
 }
 
 func (p *pageState) mapContent(bucket *pagesMapBucket, meta *pageMeta) error {
-	s := p.shortcodeState
-
-	rn := &pageContentMap{
+	p.cmap = &pageContentMap{
 		items: make([]any, 0, 20),
 	}
 
-	iter := p.source.parsed.Iterator()
+	return p.mapContentForResult(
+		p.source.parsed,
+		p.shortcodeState,
+		p.cmap,
+		meta.markup,
+		func(m map[string]interface{}) error {
+			return meta.setMetadata(bucket, p, m)
+		},
+	)
+}
+
+func (p *pageState) mapContentForResult(
+	result pageparser.Result,
+	s *shortcodeHandler,
+	rn *pageContentMap,
+	markup string,
+	withFrontMatter func(map[string]any) error,
+) error {
+	iter := result.Iterator()
 
 	fail := func(err error, i pageparser.Item) error {
+		if fe, ok := err.(herrors.FileError); ok {
+			return fe
+		}
 		return p.parseError(err, iter.Input(), i.Pos)
 	}
 
@@ -632,14 +662,28 @@ Loop:
 			m, err := metadecoders.Default.UnmarshalToMap(it.Val, f)
 			if err != nil {
 				if fe, ok := err.(herrors.FileError); ok {
-					return herrors.ToFileErrorWithOffset(fe, iter.LineNumber()-1)
+					pos := fe.Position()
+					// Apply the error to the content file.
+					pos.Filename = p.File().Filename()
+					// Offset the starting position of front matter.
+					offset := iter.LineNumber() - 1
+					if f == metadecoders.YAML {
+						offset -= 1
+					}
+					pos.LineNumber += offset
+
+					fe.UpdatePosition(pos)
+
+					return fe
 				} else {
 					return err
 				}
 			}
 
-			if err := meta.setMetadata(bucket, p, m); err != nil {
-				return err
+			if withFrontMatter != nil {
+				if err := withFrontMatter(m); err != nil {
+					return err
+				}
 			}
 
 			frontMatterSet = true
@@ -675,8 +719,8 @@ Loop:
 			p.source.posBodyStart = posBody
 			p.source.hasSummaryDivider = true
 
-			if meta.markup != "html" {
-				// The content will be rendered by Blackfriday or similar,
+			if markup != "html" {
+				// The content will be rendered by Goldmark or similar,
 				// and we need to track the summary.
 				rn.AddReplacement(internalSummaryDividerPre, it)
 			}
@@ -688,7 +732,7 @@ Loop:
 
 			currShortcode, err := s.extractShortcode(ordinal, 0, iter)
 			if err != nil {
-				return fail(errors.Wrap(err, "failed to extract shortcode"), it)
+				return fail(err, it)
 			}
 
 			currShortcode.pos = it.Pos
@@ -698,7 +742,7 @@ Loop:
 			}
 
 			if currShortcode.name != "" {
-				s.nameSet[currShortcode.name] = true
+				s.addName(currShortcode.name)
 			}
 
 			if currShortcode.params == nil {
@@ -721,7 +765,7 @@ Loop:
 		case it.IsEOF():
 			break Loop
 		case it.IsError():
-			err := fail(errors.WithStack(errors.New(it.ValStr())), it)
+			err := fail(errors.New(it.ValStr()), it)
 			currShortcode.err = err
 			return err
 
@@ -730,31 +774,29 @@ Loop:
 		}
 	}
 
-	if !frontMatterSet {
+	if !frontMatterSet && withFrontMatter != nil {
 		// Page content without front matter. Assign default front matter from
 		// cascades etc.
-		if err := meta.setMetadata(bucket, p, nil); err != nil {
+		if err := withFrontMatter(nil); err != nil {
 			return err
 		}
 	}
-
-	p.cmap = rn
 
 	return nil
 }
 
 func (p *pageState) errorf(err error, format string, a ...any) error {
-	if herrors.UnwrapErrorWithFileContext(err) != nil {
+	if herrors.UnwrapFileError(err) != nil {
 		// More isn't always better.
 		return err
 	}
 	args := append([]any{p.Language().Lang, p.pathOrTitle()}, a...)
-	format = "[%s] page %q: " + format
+	args = append(args, err)
+	format = "[%s] page %q: " + format + ": %w"
 	if err == nil {
-		// errors.Errorf(format, args...)
 		return fmt.Errorf(format, args...)
 	}
-	return errors.Wrapf(err, format, args...)
+	return fmt.Errorf(format, args...)
 }
 
 func (p *pageState) outputFormat() (f output.Format) {
@@ -765,12 +807,8 @@ func (p *pageState) outputFormat() (f output.Format) {
 }
 
 func (p *pageState) parseError(err error, input []byte, offset int) error {
-	if herrors.UnwrapFileError(err) != nil {
-		// Use the most specific location.
-		return err
-	}
 	pos := p.posFromInput(input, offset)
-	return herrors.NewFileError("md", -1, pos.LineNumber, pos.ColumnNumber, err)
+	return herrors.NewFileErrorFromName(err, p.File().Filename()).UpdatePosition(pos)
 }
 
 func (p *pageState) pathOrTitle() string {

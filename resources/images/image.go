@@ -14,6 +14,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -35,7 +36,6 @@ import (
 	"golang.org/x/image/tiff"
 
 	"github.com/neohugo/neohugo/common/hugio"
-	"github.com/pkg/errors"
 )
 
 func NewImage(f Format, proc *ImageProcessor, img image.Image, s Spec) *Image {
@@ -85,6 +85,10 @@ func (i *Image) EncodeTo(conf ImageConfig, img image.Image, w io.Writer) error {
 		return encoder.Encode(w, img)
 
 	case GIF:
+		if giphy, ok := img.(Giphy); ok {
+			g := giphy.GIF()
+			return gif.EncodeAll(w, g)
+		}
 		return gif.Encode(w, img, &gif.Options{
 			NumColors: 256,
 		})
@@ -165,7 +169,7 @@ func (i *Image) initConfig() error {
 	})
 
 	if err != nil {
-		return errors.Wrap(err, "failed to load image config")
+		return fmt.Errorf("failed to load image config: %w", err)
 	}
 
 	return nil
@@ -241,7 +245,7 @@ func (p *ImageProcessor) ApplyFiltersFromConfig(src image.Image, conf ImageConfi
 	case "fit":
 		filters = append(filters, gift.ResizeToFit(conf.Width, conf.Height, conf.Filter))
 	default:
-		return nil, errors.Errorf("unsupported action: %q", conf.Action)
+		return nil, fmt.Errorf("unsupported action: %q", conf.Action)
 	}
 
 	img, err := p.Filter(src, filters...)
@@ -253,8 +257,28 @@ func (p *ImageProcessor) ApplyFiltersFromConfig(src image.Image, conf ImageConfi
 }
 
 func (p *ImageProcessor) Filter(src image.Image, filters ...gift.Filter) (image.Image, error) {
-	g := gift.New(filters...)
-	bounds := g.Bounds(src.Bounds())
+	filter := gift.New(filters...)
+
+	if giph, ok := src.(Giphy); ok && len(giph.GIF().Image) > 1 {
+		g := giph.GIF()
+		var bounds image.Rectangle
+		firstFrame := g.Image[0]
+		tmp := image.NewNRGBA(firstFrame.Bounds())
+		for i := range g.Image {
+			gift.New().DrawAt(tmp, g.Image[i], g.Image[i].Bounds().Min, gift.OverOperator)
+			bounds = filter.Bounds(tmp.Bounds())
+			dst := image.NewPaletted(bounds, g.Image[i].Palette)
+			filter.Draw(dst, tmp)
+			g.Image[i] = dst
+		}
+		g.Config.Width = bounds.Dx()
+		g.Config.Height = bounds.Dy()
+
+		return giph, nil
+	}
+
+	bounds := filter.Bounds(src.Bounds())
+
 	var dst draw.Image
 	switch src.(type) {
 	case *image.RGBA:
@@ -266,7 +290,8 @@ func (p *ImageProcessor) Filter(src image.Image, filters ...gift.Filter) (image.
 	default:
 		dst = image.NewNRGBA(bounds)
 	}
-	g.Draw(dst, src)
+	filter.Draw(dst, src)
+
 	return dst, nil
 }
 
@@ -376,4 +401,10 @@ func IsOpaque(img image.Image) bool {
 type ImageSource interface {
 	DecodeImage() (image.Image, error)
 	Key() string
+}
+
+// Giphy represents a GIF Image that may be animated.
+type Giphy interface {
+	image.Image    // The first frame.
+	GIF() *gif.GIF // All frames.
 }
