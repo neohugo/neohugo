@@ -509,6 +509,7 @@ func (l configLoader) wrapFileError(err error, filename string) error {
 	if fe != nil {
 		pos := fe.Position()
 		pos.Filename = filename
+		//nolint
 		fe.UpdatePosition(pos)
 		return err
 	}

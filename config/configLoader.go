@@ -63,6 +63,7 @@ func FromFile(fs afero.Fs, filename string) (Provider, error) {
 		if fe != nil {
 			pos := fe.Position()
 			pos.Filename = filename
+			//nolint
 			fe.UpdatePosition(pos)
 			return nil, err
 		}

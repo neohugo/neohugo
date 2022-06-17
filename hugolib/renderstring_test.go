@@ -85,6 +85,7 @@ func TestRenderStringOnPageNotBackedByAFile(t *testing.T) {
 disableKinds = ["page", "section", "taxonomy", "term"]	
 `)
 	b.WithTemplates("index.html", `{{ .RenderString "**Hello**" }}`).WithContent("p1.md", "")
+	//nolint
 	b.BuildE(BuildCfg{})
 	b.Assert(int(logger.LogCounters().WarnCounter.Count()), qt.Equals, 0)
 }

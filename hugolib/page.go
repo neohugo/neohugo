@@ -587,6 +587,7 @@ func (p *pageState) wrapError(err error) error {
 					return err
 				}
 				defer f.Close()
+				//nolint
 				ferr.UpdateContent(f, nil)
 			}
 			return err
@@ -672,6 +673,7 @@ Loop:
 					}
 					pos.LineNumber += offset
 
+					//nolint
 					fe.UpdatePosition(pos)
 
 					return fe

@@ -733,6 +733,7 @@ func memStats() error {
 			for {
 				runtime.ReadMemStats(&stats)
 				if fileMemStats != nil {
+					//nolint
 					fileMemStats.WriteString(fmt.Sprintf("%d\t%d\t%d\t%d\t%d\n",
 						(htime.Now().UnixNano()-start)/1000000, stats.HeapSys, stats.HeapAlloc, stats.HeapIdle, stats.HeapReleased))
 					time.Sleep(interval)

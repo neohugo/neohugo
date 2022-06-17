@@ -173,7 +173,8 @@ const hugoNewLinePlaceholder = "___hugonl_"
 
 var (
 	stripHTMLReplacerPre = strings.NewReplacer("\n", " ", "</p>", hugoNewLinePlaceholder, "<br>", hugoNewLinePlaceholder, "<br />", hugoNewLinePlaceholder)
-	whitespaceRe         = regexp.MustCompile(`\s+`)
+	//nolint
+	whitespaceRe = regexp.MustCompile(`\s+`)
 )
 
 // StripHTML strips out all HTML tags in s.

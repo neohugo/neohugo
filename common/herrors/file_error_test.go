@@ -37,9 +37,12 @@ func TestNewFileError(t *testing.T) {
 		lines += fmt.Sprintf("line %d\n", i)
 	}
 
+	//nolint
 	fe.UpdatePosition(text.Position{LineNumber: 32, ColumnNumber: 2})
 	c.Assert(fe.Error(), qt.Equals, `"foo.html:32:2": bar`)
+	//nolint
 	fe.UpdatePosition(text.Position{LineNumber: 0, ColumnNumber: 0, Offset: 212})
+	//nolint
 	fe.UpdateContent(strings.NewReader(lines), nil)
 	c.Assert(fe.Error(), qt.Equals, `"foo.html:32:0": bar`)
 	errorContext := fe.ErrorContext()

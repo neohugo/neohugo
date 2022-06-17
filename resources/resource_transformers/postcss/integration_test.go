@@ -154,6 +154,7 @@ func TestTransformPostCSSError(t *testing.T) {
 			TxtarString:     strings.ReplaceAll(postCSSIntegrationTestFiles, "color: blue;", "@apply foo;"), // Syntax error
 		}).BuildE()
 
+	//nolint
 	s.AssertIsFileError(err)
 	c.Assert(err.Error(), qt.Contains, "a.css:4:2")
 }
@@ -175,6 +176,7 @@ func TestTransformPostCSSImportError(t *testing.T) {
 			TxtarString:     strings.ReplaceAll(postCSSIntegrationTestFiles, `@import "components/all.css";`, `@import "components/doesnotexist.css";`),
 		}).BuildE()
 
+	//nolint
 	s.AssertIsFileError(err)
 	c.Assert(err.Error(), qt.Contains, "styles.css:4:3")
 	c.Assert(err.Error(), qt.Contains, filepath.FromSlash(`failed to resolve CSS @import "css/components/doesnotexist.css"`))
