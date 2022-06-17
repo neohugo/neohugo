@@ -23,8 +23,6 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	_errors "github.com/pkg/errors"
-
 	"github.com/neohugo/neohugo/create"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
@@ -100,7 +98,7 @@ func (n *newSiteCmd) doNewSite(fs *hugofs.Fs, basepath string, force bool) error
 	}
 
 	if err := createConfig(fs, basepath, n.configFormat); err != nil {
-		return _errors.Wrap(err, "Failed to create dir")
+		return fmt.Errorf("Failed to create dir: %w", err)
 	}
 
 	// Create a default archetype file.
@@ -108,7 +106,7 @@ func (n *newSiteCmd) doNewSite(fs *hugofs.Fs, basepath string, force bool) error
 		filepath.Join(archeTypePath, "default.md"),
 		strings.NewReader(create.DefaultArchetypeTemplateTemplate),
 		fs.Source); err != nil {
-		return _errors.Wrap(err, "Failed to create file")
+		return fmt.Errorf("Failed to create file: %w", err)
 	}
 
 	jww.FEEDBACK.Printf("Congratulations! Your new Hugo site is created in %s.\n\n", basepath)

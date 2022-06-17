@@ -19,7 +19,6 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/paths"
-	_errors "github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"golang.org/x/text/language"
@@ -89,7 +88,7 @@ func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
 
 	b, err := helpers.ReaderToBytes(f)
 	if err != nil {
-		return _errors.Wrapf(err, "failed to read translations file %q:", r.LogicalName())
+		return fmt.Errorf("failed to read translations file %q:: %w", r.LogicalName(), err)
 	}
 	f.Close()
 
