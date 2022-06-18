@@ -14,11 +14,13 @@
 package hugolib
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -34,10 +36,8 @@ import (
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/modules"
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/privacy"
@@ -74,7 +74,7 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 		if err == nil {
 			configFiles = append(configFiles, filename)
 		} else if err != ErrNoConfigFile {
-			return nil, nil, err
+			return nil, nil, l.wrapFileError(err, filename)
 		}
 	}
 
@@ -105,11 +105,6 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 		if err := d(l.cfg); err != nil {
 			return l.cfg, configFiles, err
 		}
-	}
-
-	// Config deprecations.
-	if l.cfg.GetString("markup.defaultMarkdownHandler") == "blackfriday" {
-		helpers.Deprecated("markup.defaultMarkdownHandler=blackfriday", "See https://gohugo.io//content-management/formats/#list-of-content-formats", false)
 	}
 
 	// Some settings are used before we're done collecting all settings,
@@ -462,7 +457,7 @@ func (l configLoader) loadConfig(configName string) (string, error) {
 
 	m, err := config.FromFileToMap(l.Fs, filename)
 	if err != nil {
-		return "", l.wrapFileError(err, filename)
+		return filename, err
 	}
 
 	// Set overwrites keys of the same name, recursively.
@@ -510,5 +505,13 @@ func (configLoader) loadSiteConfig(cfg config.Provider) (scfg SiteConfig, err er
 }
 
 func (l configLoader) wrapFileError(err error, filename string) error {
-	return herrors.WithFileContextForFileDefault(err, filename, l.Fs)
+	fe := herrors.UnwrapFileError(err)
+	if fe != nil {
+		pos := fe.Position()
+		pos.Filename = filename
+		//nolint
+		fe.UpdatePosition(pos)
+		return err
+	}
+	return herrors.NewFileErrorFromFile(err, filename, l.Fs, nil)
 }

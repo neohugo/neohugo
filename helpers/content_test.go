@@ -27,6 +27,7 @@ import (
 	qt "github.com/frankban/quicktest"
 )
 
+//nolint
 const tstHTMLContent = "<!DOCTYPE html><html><head><script src=\"http://two/foobar.js\"></script></head><body><nav><ul><li hugo-nav=\"section_0\"></li><li hugo-nav=\"section_1\"></li></ul></nav><article>content <a href=\"http://two/foobar\">foobar</a>. Follow up</article><p>This is some text.<br>And some more.</p></body></html>"
 
 func TestTrimShortHTML(t *testing.T) {
@@ -49,44 +50,6 @@ func TestTrimShortHTML(t *testing.T) {
 		if !bytes.Equal(test.output, output) {
 			t.Errorf("Test %d failed. Expected %q got %q", i, test.output, output)
 		}
-	}
-}
-
-func TestStripHTML(t *testing.T) {
-	type test struct {
-		input, expected string
-	}
-	data := []test{
-		{"<h1>strip h1 tag <h1>", "strip h1 tag "},
-		{"<p> strip p tag </p>", " strip p tag "},
-		{"</br> strip br<br>", " strip br\n"},
-		{"</br> strip br2<br />", " strip br2\n"},
-		{"This <strong>is</strong> a\nnewline", "This is a newline"},
-		{"No Tags", "No Tags"},
-		{`<p>Summary Next Line.
-<figure >
-
-        <img src="/not/real" />
-
-
-</figure>
-.
-More text here.</p>
-
-<p>Some more text</p>`, "Summary Next Line.  . More text here.\nSome more text\n"},
-	}
-	for i, d := range data {
-		output := StripHTML(d.input)
-		if d.expected != output {
-			t.Errorf("Test %d failed. Expected %q got %q", i, d.expected, output)
-		}
-	}
-}
-
-func BenchmarkStripHTML(b *testing.B) {
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		StripHTML(tstHTMLContent)
 	}
 }
 

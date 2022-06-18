@@ -18,7 +18,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/alecthomas/chroma/lexers"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/neohugo/neohugo/common/herrors"
 	htext "github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
 	"github.com/neohugo/neohugo/markup/goldmark/internal/render"
@@ -114,8 +115,8 @@ func (r *htmlRenderer) renderCodeBlock(w util.BufWriter, src []byte, node ast.No
 		}
 		return htext.Position{
 			Filename:     ctx.DocumentContext().Filename,
-			LineNumber:   0,
-			ColumnNumber: 0,
+			LineNumber:   1,
+			ColumnNumber: 1,
 		}
 	}
 
@@ -128,7 +129,11 @@ func (r *htmlRenderer) renderCodeBlock(w util.BufWriter, src []byte, node ast.No
 
 	ctx.AddIdentity(cr)
 
-	return ast.WalkContinue, err
+	if err != nil {
+		return ast.WalkContinue, herrors.NewFileErrorFromPos(err, cbctx.createPos())
+	}
+
+	return ast.WalkContinue, nil
 }
 
 type codeBlockContext struct {

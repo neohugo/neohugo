@@ -34,8 +34,6 @@ import (
 
 	"github.com/mitchellh/hashstructure"
 
-	"github.com/neohugo/neohugo/hugofs"
-
 	"github.com/spf13/afero"
 
 	"github.com/jdkato/prose/transform"
@@ -527,13 +525,7 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 	}
 
 	err := afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
-		var filename string
-		var meta any
-		if fim, ok := info.(hugofs.FileMetaInfo); ok {
-			filename = fim.Meta().Filename
-			meta = fim.Meta()
-		}
-		fmt.Fprintf(w, "    %q %q\t\t%v\n", path, filename, meta)
+		fmt.Println(path)
 		return nil
 	})
 	if err != nil {

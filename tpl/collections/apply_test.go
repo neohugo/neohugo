@@ -21,7 +21,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/tpl"
 )
@@ -67,7 +69,7 @@ func (templateFinder) GetFunc(name string) (reflect.Value, bool) {
 func TestApply(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	d := &deps.Deps{}
+	d := &deps.Deps{Language: langs.NewDefaultLanguage(config.New())}
 	d.SetTmpl(new(templateFinder))
 	ns := New(d)
 

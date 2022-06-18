@@ -18,10 +18,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/pkg/errors"
-
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/langs"
@@ -224,7 +222,7 @@ func decodeConfig(cfg config.Provider, pathReplacements map[string]string) (Conf
 			for _, repl := range c.Replacements {
 				parts := strings.Split(repl, "->")
 				if len(parts) != 2 {
-					return c, errors.Errorf(`invalid module.replacements: %q; configure replacement pairs on the form "oldpath->newpath" `, repl)
+					return c, fmt.Errorf(`invalid module.replacements: %q; configure replacement pairs on the form "oldpath->newpath" `, repl)
 				}
 
 				c.replacementsMap[strings.TrimSpace(parts[0])] = strings.TrimSpace(parts[1])

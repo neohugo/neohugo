@@ -15,12 +15,13 @@
 package templates
 
 import (
+	"fmt"
+
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/pkg/errors"
 )
 
 // Client contains methods to perform template processing of Resource objects.
@@ -54,11 +55,11 @@ func (t *executeAsTemplateTransform) Key() internal.ResourceTransformationKey {
 func (t *executeAsTemplateTransform) Transform(ctx *resources.ResourceTransformationCtx) error {
 	tplStr, err := helpers.ReaderToString(ctx.From)
 	if err != nil {
-		return errors.Wrapf(err, "failed to read to string %q as Template:", ctx.InPath)
+		return fmt.Errorf("failed to read to string %q as Template:: %w", ctx.InPath, err)
 	}
 	templ, err := t.t.TextTmpl().Parse(ctx.InPath, tplStr)
 	if err != nil {
-		return errors.Wrapf(err, "failed to parse Resource %q as Template:", ctx.InPath)
+		return fmt.Errorf("failed to parse Resource %q as Template:: %w", ctx.InPath, err)
 	}
 
 	ctx.OutPath = t.targetPath

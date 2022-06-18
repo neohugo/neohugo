@@ -14,11 +14,10 @@
 package hugolib
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/neohugo/neohugo/hugofs/files"
-
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -41,7 +40,7 @@ type fileInfo struct {
 func (fi *fileInfo) Open() (afero.File, error) {
 	f, err := fi.FileInfo().Meta().Open()
 	if err != nil {
-		err = errors.Wrap(err, "fileInfo")
+		err = fmt.Errorf("fileInfo: %w", err)
 	}
 
 	return f, err

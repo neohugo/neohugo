@@ -14,13 +14,13 @@
 package collections
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hreflect"
 	"github.com/neohugo/neohugo/common/maps"
-
-	"github.com/pkg/errors"
 )
 
 // Merge creates a copy of the final parameter and merges the preceding
@@ -49,7 +49,7 @@ func (ns *Namespace) merge(src, dst any) (any, error) {
 	vdst, vsrc := reflect.ValueOf(dst), reflect.ValueOf(src)
 
 	if vdst.Kind() != reflect.Map {
-		return nil, errors.Errorf("destination must be a map, got %T", dst)
+		return nil, fmt.Errorf("destination must be a map, got %T", dst)
 	}
 
 	if !hreflect.IsTruthfulValue(vsrc) {
@@ -57,11 +57,11 @@ func (ns *Namespace) merge(src, dst any) (any, error) {
 	}
 
 	if vsrc.Kind() != reflect.Map {
-		return nil, errors.Errorf("source must be a map, got %T", src)
+		return nil, fmt.Errorf("source must be a map, got %T", src)
 	}
 
 	if vsrc.Type().Key() != vdst.Type().Key() {
-		return nil, errors.Errorf("incompatible map types, got %T to %T", src, dst)
+		return nil, fmt.Errorf("incompatible map types, got %T to %T", src, dst)
 	}
 
 	return mergeMap(vdst, vsrc).Interface(), nil

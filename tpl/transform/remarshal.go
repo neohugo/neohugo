@@ -2,9 +2,8 @@ package transform
 
 import (
 	"bytes"
+	"errors"
 	"strings"
-
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/parser"
 	"github.com/neohugo/neohugo/parser/metadecoders"

@@ -15,12 +15,11 @@ package page_generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
-
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/common/maps"
 
@@ -55,15 +54,15 @@ var (
 
 func Generate(c *codegen.Inspector) error {
 	if err := generateMarshalJSON(c); err != nil {
-		return errors.Wrap(err, "failed to generate JSON marshaler")
+		return fmt.Errorf("failed to generate JSON marshaler: %w", err)
 	}
 
 	if err := generateDeprecatedWrappers(c); err != nil {
-		return errors.Wrap(err, "failed to generate deprecate wrappers")
+		return fmt.Errorf("failed to generate deprecate wrappers: %w", err)
 	}
 
 	if err := generateFileIsZeroWrappers(c); err != nil {
-		return errors.Wrap(err, "failed to generate file wrappers")
+		return fmt.Errorf("failed to generate file wrappers: %w", err)
 	}
 
 	return nil

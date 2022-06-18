@@ -16,7 +16,8 @@ package neohugo
 // CurrentVersion represents the current build version.
 // This should be the only one.
 var CurrentVersion = Version{
-	Number:     0.22,
+	Major:      0,
+	Minor:      23,
 	PatchLevel: 0,
 	Suffix:     "-DEV",
 }

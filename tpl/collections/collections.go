@@ -16,6 +16,7 @@
 package collections
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"math/rand"
@@ -29,24 +30,36 @@ import (
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
-	"github.com/pkg/errors"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/tpl/compare"
 	"github.com/spf13/cast"
 )
 
 func init() {
+	// htime.Now cannot be used here
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
 // New returns a new instance of the collections-namespaced template functions.
 func New(deps *deps.Deps) *Namespace {
+	if deps.Language == nil {
+		panic("language must be set")
+	}
+
+	loc := langs.GetLocation(deps.Language)
+
 	return &Namespace{
-		deps: deps,
+		loc:      loc,
+		sortComp: compare.New(loc, true),
+		deps:     deps,
 	}
 }
 
 // Namespace provides template functions for the "collections" namespace.
 type Namespace struct {
-	deps *deps.Deps
+	loc      *time.Location
+	sortComp *compare.Namespace
+	deps     *deps.Deps
 }
 
 // After returns all the items after the first N in a rangeable list.
@@ -736,7 +749,7 @@ func (ns *Namespace) Uniq(seq any) (any, error) {
 	case reflect.Array:
 		slice = reflect.MakeSlice(reflect.SliceOf(v.Type().Elem()), 0, 0)
 	default:
-		return nil, errors.Errorf("type %T not supported", seq)
+		return nil, fmt.Errorf("type %T not supported", seq)
 	}
 
 	seen := make(map[any]bool)

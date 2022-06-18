@@ -15,10 +15,9 @@
 package images
 
 import (
+	"errors"
 	"image"
 	"sync"
-
-	"github.com/pkg/errors"
 
 	"github.com/neohugo/neohugo/resources/images"
 

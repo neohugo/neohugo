@@ -24,11 +24,12 @@ import (
 	"strings"
 
 	"github.com/bep/golibsass/libsass"
+	"github.com/bep/golibsass/libsass/libsasserrors"
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources"
-	"github.com/pkg/errors"
 )
 
 // Used in tests. This feature requires Hugo to be built with the extended tag.
@@ -137,7 +138,14 @@ func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	res, err := t.c.toCSS(options.to, ctx.To, ctx.From)
 	if err != nil {
-		return err
+		if sasserr, ok := err.(libsasserrors.Error); ok {
+			if sasserr.File == "stdin" && ctx.SourcePath != "" {
+				sasserr.File = t.c.sfs.RealFilename(ctx.SourcePath)
+				err = sasserr
+			}
+		}
+		return herrors.NewFileErrorFromFileInErr(err, hugofs.Os, nil)
+
 	}
 
 	if options.from.EnableSourceMap && res.SourceMapContent != "" {
@@ -174,8 +182,8 @@ func (c *Client) toCSS(options libsass.Options, dst io.Writer, src io.Reader) (l
 		return res, err
 	}
 
-	// See https://github.com/neohugo/neohugo/issues/7059
-	// We need to preserver the regular CSS imports. This is by far
+	// See https://github.com/gohugoio/hugo/issues/7059
+	// We need to preserve the regular CSS imports. This is by far
 	// a perfect solution, and only works for the main entry file, but
 	// that should cover many use cases, e.g. using SCSS as a preprocessor
 	// for Tailwind.
@@ -184,7 +192,7 @@ func (c *Client) toCSS(options libsass.Options, dst io.Writer, src io.Reader) (l
 
 	res, err = transpiler.Execute(in)
 	if err != nil {
-		return res, errors.Wrap(err, "SCSS processing failed")
+		return res, err
 	}
 
 	out := res.CSS

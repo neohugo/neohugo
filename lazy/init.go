@@ -15,11 +15,10 @@ package lazy
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/pkg/errors"
 )
 
 // New creates a new empty Init.
