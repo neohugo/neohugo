@@ -15,12 +15,11 @@ package page_generate
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/maps"
 
