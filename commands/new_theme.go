@@ -147,7 +147,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 func (n *newThemeCmd) createThemeMD(fs *hugofs.Fs, inpath string) (err error) {
 	//nolint SA1019: strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead
 	by := []byte(`# theme.toml template for a Hugo theme
-# See https://github.com/neohugo/neohugoThemes#themetoml for an example
+# See https://github.com/gohugoio/hugoThemes#themetoml for an example
 
 name = "` + strings.Title(helpers.MakeTitle(filepath.Base(inpath))) + `"
 license = "MIT"

@@ -14,7 +14,6 @@
 package images
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -34,6 +33,8 @@ import (
 	"github.com/disintegration/gift"
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
+
+	"errors"
 
 	"github.com/neohugo/neohugo/common/hugio"
 )

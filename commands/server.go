@@ -388,11 +388,7 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, net.Listener, string
 					}
 					lr := *u
 					lr.Host = fmt.Sprintf("%s:%d", lr.Hostname(), port)
-					b := injectLiveReloadScript(r, lr)
-					if err != nil {
-						f.c.logger.Errorln(err)
-					}
-					fmt.Fprint(w, b)
+					fmt.Fprint(w, injectLiveReloadScript(r, lr))
 
 					return
 				}
