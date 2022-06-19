@@ -91,10 +91,6 @@ type Config struct {
 	// Will resources/_gen will get its own composite filesystem that
 	// also checks any theme.
 	isResourceDir bool
-
-	// Number of retries when errors occurs when creating the element,
-	// only used for remote resources.
-	retries int
 }
 
 // GetJSONCache gets the file cache for getJSON.

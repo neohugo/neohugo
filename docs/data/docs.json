@@ -3027,7 +3027,7 @@
           ],
           "Examples": [
             [
-              "{{ if ge hugo.Version \"0.80\" }}Reasonable new Hugo version!{{ end }}",
+              "{{ if ge hugo.Version \"0.14\" }}Reasonable new Hugo version!{{ end }}",
               "Reasonable new Hugo version!"
             ]
           ]
@@ -4535,7 +4535,7 @@
         "Get": {
           "Description": "Get locates the filename given in Hugo's assets filesystem\nand creates a Resource object that can be used for further transformations.",
           "Args": [
-            "args"
+            "filename"
           ],
           "Aliases": null,
           "Examples": []
@@ -5524,6 +5524,26 @@
           ],
           "Aliases": [
             "relURL"
+          ],
+          "Examples": []
+        },
+        "URLDecode": {
+          "Description": "URLDecode does the inverse transformation of QueryEscape,\nconverting each 3-byte encoded substring of the form \"%AB\" into the\nhex-decoded byte 0xAB.",
+          "Args": [
+            "rawurl"
+          ],
+          "Aliases": [
+            "urldecode"
+          ],
+          "Examples": []
+        },
+        "URLEncode": {
+          "Description": "URLEncode escapes the string so it can be safely placed\ninside a URL query.",
+          "Args": [
+            "rawurl"
+          ],
+          "Aliases": [
+            "urlencode"
           ],
           "Examples": []
         },

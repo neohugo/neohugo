@@ -87,12 +87,11 @@ type ItemInfo struct {
 }
 
 // NewCache creates a new file cache with the given filesystem and max age.
-func NewCache(fs afero.Fs, maxAge time.Duration, retries int, pruneAllRootDir string) *Cache {
+func NewCache(fs afero.Fs, maxAge time.Duration, pruneAllRootDir string) *Cache {
 	return &Cache{
 		Fs:              fs,
 		nlocker:         &lockTracker{Locker: locker.NewLocker(), seen: make(map[string]struct{})},
 		maxAge:          maxAge,
-		retries:         retries,
 		pruneAllRootDir: pruneAllRootDir,
 	}
 }
@@ -383,7 +382,7 @@ func NewCaches(p *helpers.PathSpec) (Caches, error) {
 			pruneAllRootDir = "pkg"
 		}
 
-		m[k] = NewCache(bfs, v.MaxAge, v.retries, pruneAllRootDir)
+		m[k] = NewCache(bfs, v.MaxAge, pruneAllRootDir)
 	}
 
 	return m, nil
