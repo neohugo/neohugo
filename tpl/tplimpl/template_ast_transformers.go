@@ -14,7 +14,6 @@
 package tplimpl
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -23,6 +22,8 @@ import (
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 
 	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
+
+	"errors"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"
@@ -214,7 +215,8 @@ func (c *templateContext) hasIdent(idents []string, ident string) bool {
 // collectConfig collects and parses any leading template config variable declaration.
 // This will be the first PipeNode in the template, and will be a variable declaration
 // on the form:
-//    {{ $_hugo_config:= `{ "version": 1 }` }}
+//
+//	{{ $_hugo_config:= `{ "version": 1 }` }}
 func (c *templateContext) collectConfig(n *parse.PipeNode) {
 	if c.t.typ != templateShortcode {
 		return

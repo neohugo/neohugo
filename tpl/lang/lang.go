@@ -21,6 +21,8 @@ import (
 	"strconv"
 	"strings"
 
+	"errors"
+
 	"github.com/gohugoio/locales"
 	translators "github.com/gohugoio/localescompressed"
 

@@ -147,10 +147,10 @@ func New(fs *hugofs.Fs, cfg config.Provider) (*Paths, error) {
 		}
 	}
 
-	baseURLString := baseURL.String()
-	baseURLNoPath := baseURL.URL()
+	var baseURLString = baseURL.String()
+	var baseURLNoPath = baseURL.URL()
 	baseURLNoPath.Path = ""
-	baseURLNoPathString := baseURLNoPath.String()
+	var baseURLNoPathString = baseURLNoPath.String()
 
 	p := &Paths{
 		Fs:                  fs,

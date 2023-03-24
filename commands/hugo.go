@@ -33,9 +33,9 @@ import (
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/htime"
-	"github.com/neohugo/neohugo/common/types"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/htime"
+	"github.com/gohugoio/hugo/common/types"
 
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -513,12 +513,15 @@ func (c *commandeer) build() error {
 		c.hugo().PrintProcessingStats(os.Stdout)
 		fmt.Println()
 
-		if createCounter, ok := c.publishDirFs.(hugofs.DuplicatesReporter); ok {
-			dupes := createCounter.ReportDuplicates()
-			if dupes != "" {
-				c.logger.Warnln("Duplicate target paths:", dupes)
+		hugofs.WalkFilesystems(c.publishDirFs, func(fs afero.Fs) bool {
+			if dfs, ok := fs.(hugofs.DuplicatesReporter); ok {
+				dupes := dfs.ReportDuplicates()
+				if dupes != "" {
+					c.logger.Warnln("Duplicate target paths:", dupes)
+				}
 			}
-		}
+			return false
+		})
 
 		unusedTemplates := c.hugo().Tmpl().(tpl.UnusedTemplatesProvider).UnusedTemplates()
 		for _, unusedTemplate := range unusedTemplates {
@@ -578,7 +581,7 @@ func (c *commandeer) serverBuild() error {
 
 func (c *commandeer) copyStatic() (map[string]uint64, error) {
 	m, err := c.doWithPublishDirs(c.copyStaticTo)
-	if err == nil || os.IsNotExist(err) {
+	if err == nil || herrors.IsNotExist(err) {
 		return m, nil
 	}
 	return m, err
@@ -652,10 +655,7 @@ func (c *commandeer) copyStaticTo(sourceFs *filesystems.SourceFilesystem) (uint6
 	syncer.NoChmod = c.Cfg.GetBool("noChmod")
 	syncer.ChmodFilter = chmodFilter
 	syncer.SrcFs = fs
-	syncer.DestFs = c.Fs.PublishDir
-	if c.renderStaticToDisk {
-		syncer.DestFs = c.Fs.PublishDirStatic
-	}
+	syncer.DestFs = c.Fs.PublishDirStatic
 	// Now that we are using a unionFs for the static directories
 	// We can effectively clean the publishDir on initial sync
 	syncer.Delete = c.Cfg.GetBool("cleanDestinationDir")
@@ -906,7 +906,7 @@ func (c *commandeer) newWatcher(pollIntervalStr string, dirList ...string) (*wat
 				}
 				unlock()
 			case err := <-watcher.Errors():
-				if err != nil && !os.IsNotExist(err) {
+				if err != nil && !herrors.IsNotExist(err) {
 					c.logger.Errorln("Error while watching:", err)
 				}
 			}
@@ -931,6 +931,7 @@ func (c *commandeer) printChangeDetected(typ string) {
 const (
 	configChangeConfig = "config file"
 	configChangeGoMod  = "go.mod file"
+	configChangeGoWork = "go work file"
 )
 
 func (c *commandeer) handleEvents(watcher *watcher.Batcher,
@@ -950,6 +951,9 @@ func (c *commandeer) handleEvents(watcher *watcher.Batcher,
 		if isConfig {
 			if strings.Contains(ev.Name, "go.mod") {
 				configChangeType = configChangeGoMod
+			}
+			if strings.Contains(ev.Name, ".work") {
+				configChangeType = configChangeGoWork
 			}
 		}
 		if !isConfig {

@@ -15,7 +15,6 @@ package hugolib
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -34,12 +33,13 @@ import (
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
+	"errors"
+
 	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/source"
 
-	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/publisher"
@@ -200,13 +200,13 @@ func (h *HugoSites) Data() map[string]any {
 	return h.data
 }
 
-func (h *HugoSites) gitInfoForPage(p page.Page) (*gitmap.GitInfo, error) {
+func (h *HugoSites) gitInfoForPage(p page.Page) (source.GitInfo, error) {
 	if _, err := h.init.gitInfo.Do(); err != nil {
-		return nil, err
+		return source.GitInfo{}, err
 	}
 
 	if h.gitInfo == nil {
-		return nil, nil
+		return source.GitInfo{}, nil
 	}
 
 	return h.gitInfo.forPage(p), nil

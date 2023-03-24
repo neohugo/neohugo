@@ -4,7 +4,6 @@ linkTitle: Hugo Pipes
 description: Hugo Pipes is Hugo's asset processing set of functions.
 date: 2018-07-14
 publishdate: 2018-07-14
-lastmod: 2018-07-14
 categories: [asset management]
 keywords: []
 menu:
@@ -31,9 +30,7 @@ Note that you can mount any directory into Hugo's virtual `assets` folder using 
 | `resources.GetMatch`  | `GetMatch` finds the first Resource matching the given pattern, or nil if none found. See Match for a more complete explanation about the rules used. |
 | `resources.Match`  | `Match` gets all resources matching the given base path prefix, e.g "*.png" will match all png files. The "*" does not match path delimiters (/), so if you organize your resources in sub-folders, you need to be explicit about it, e.g.: "images/*.png". To match any PNG image anywhere in the bundle you can do "\*\*.png", and to match all PNG images below the images folder, use "images/\*\*.jpg". The matching is case insensitive. Match matches by using the files name with path relative to the file system root with Unix style slashes (/) and no leading slash, e.g. "images/logo.png". See https://github.com/gobwas/glob for the full rules set.|
 
-
 See the [GoDoc Page](https://pkg.go.dev/github.com/gohugoio/hugo@v0.93.1/tpl/resources) for the `resources` package for an up to date overview of all template functions in this namespace.
-
 
 ## Get Resource with resources.Get and resources.GetRemote
 
@@ -53,6 +50,20 @@ With `resources.GetRemote`, the first argument is a remote URL:
 
 `resources.Get` and `resources.GetRemote` return `nil` if the resource is not found.
 
+{{< new-in "0.110.0" >}} You can get information about the HTTP Response using `.Data` in the returned `Resource`. This is especially useful for HEAD request without any body. The Data object contains:
+
+StatusCode
+: The HTTP status code, e.g. 200
+Status
+: The HTTP status text, e.g. "200 OK"
+TransferEncoding
+: The transfer encoding, e.g. "chunked"
+ContentLength
+: The content length, e.g. 1234
+ContentType
+: The content type, e.g. "text/html"
+
+
 ## Copy a Resource
 
 {{< new-in "0.100.0" >}}
@@ -68,7 +79,6 @@ With `resources.GetRemote`, the first argument is a remote URL:
 
 By default, Hugo calculates a cache key based on the `URL` and the `options` (e.g. headers) given.
 
-
 {{< new-in "0.97.0" >}} You can override this by setting a `key` in the options map. This can be used to get more fine grained control over how often a remote resource is fetched, e.g.:
 
 
@@ -78,8 +88,6 @@ By default, Hugo calculates a cache key based on the `URL` and the `options` (e.
 ```
 
 ### Error Handling
-
-{{< new-in "0.91.0" >}}
 
 The return value from `resources.GetRemote` includes an `.Err` method that will return an error if the call failed. If you want to just log any error as a `WARNING` you can use a construct similar to the one below.
 
@@ -125,13 +133,25 @@ You can also change the request method and set the request body:
 
 Remote resources fetched with `resources.GetRemote` will be cached on disk. See [Configure File Caches](/getting-started/configuration/#configure-file-caches) for details.
 
+
+## Copy a Resource
+
+{{< new-in "0.100.0" >}}
+
+`resources.Copy` allows you to copy almost any Hugo `Resource` (the one exception is the `Page`), possibly most useful for renaming things:
+
+```go-html-template
+{{ $resized := $image.Resize "400x400" |  resources.Copy "images/mynewname.jpg" }}
+<img src="{{ $resized.RelPermalink }}">
+```
+
 ## Asset directory
 
 Asset files must be stored in the asset directory. This is `/assets` by default, but can be configured via the configuration file's `assetDir` key.
 
 ### Asset Publishing
 
-Hugo publishes assets to the to the `publishDir` (typically `public`) when you invoke `.Permalink`, `.RelPermalink`, or `.Publish`. You can use `.Content` to inline the asset.
+Hugo publishes assets to the `publishDir` (typically `public`) when you invoke `.Permalink`, `.RelPermalink`, or `.Publish`. You can use `.Content` to inline the asset.
 
 ## Go Pipes
 
@@ -156,7 +176,7 @@ The example above can therefore also be written as follows:
 
 ## Caching
 
-Hugo Pipes invocations are cached based on the entire _pipe chain_.
+Hugo Pipes invocations are cached based on the entire *pipe chain*.
 
 An example of a pipe chain is:
 

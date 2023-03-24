@@ -20,7 +20,15 @@ import (
 	"html/template"
 	"time"
 
-	"github.com/bep/gitmap"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/source"
+
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs/files"
@@ -95,7 +103,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	getIdentity := p.GetIdentity()
 
 	s := struct {
-		Content                  any
+		Content                  interface{}
 		Plain                    string
 		PlainWords               []string
 		Summary                  template.HTML
@@ -113,7 +121,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Name                     string
 		Title                    string
 		Params                   maps.Params
-		Data                     any
+		Data                     interface{}
 		Date                     time.Time
 		Lastmod                  time.Time
 		PublishDate              time.Time
@@ -142,7 +150,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Weight                   int
 		Language                 *langs.Language
 		File                     source.File
-		GitInfo                  *gitmap.GitInfo
+		GitInfo                  source.GitInfo
 		CodeOwners               []string
 		OutputFormats            OutputFormats
 		AlternativeOutputFormats OutputFormats

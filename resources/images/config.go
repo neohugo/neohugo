@@ -14,7 +14,6 @@
 package images
 
 import (
-	"errors"
 	"fmt"
 	"image/color"
 	"strconv"
@@ -22,6 +21,8 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/media"
+
+	"errors"
 
 	"github.com/bep/gowebp/libwebp/webpoptions"
 
@@ -59,6 +60,7 @@ var (
 	imageFormatsVersions = map[Format]int{
 		PNG:  3, // Fix transparency issue with 32 bit images.
 		WEBP: 2, // Fix transparency issue with 32 bit images.
+		GIF:  1, // Fix resize issue with animated GIFs when target != GIF.
 	}
 
 	// Increment to mark all processed images as stale. Only use when absolutely needed.

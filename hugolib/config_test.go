@@ -772,3 +772,81 @@ defaultMarkdownHandler = 'blackfriday'
 	b.Assert(err, qt.IsNotNil)
 	b.Assert(err.Error(), qt.Contains, "Configured defaultMarkdownHandler \"blackfriday\" not found. Did you mean to use goldmark? Blackfriday was removed in Hugo v0.100.0.")
 }
+
+func TestInvalidDefaultMarkdownHandler(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- config.toml --
+[markup]
+defaultMarkdownHandler = 'blackfriday'
+-- content/_index.md --
+## Foo
+-- layouts/index.html --
+{{ .Content }}
+
+`
+
+	b, err := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).BuildE()
+
+	b.Assert(err, qt.IsNotNil)
+	b.Assert(err.Error(), qt.Contains, "Configured defaultMarkdownHandler \"blackfriday\" not found. Did you mean to use goldmark? Blackfriday was removed in Hugo v0.100.0.")
+
+}
+
+// Issue 8979
+func TestHugoConfig(t *testing.T) {
+	filesTemplate := `
+-- hugo.toml --
+theme = "mytheme"
+[params]
+rootparam = "rootvalue"
+-- config/_default/hugo.toml --
+[params]
+rootconfigparam = "rootconfigvalue"
+-- themes/mytheme/config/_default/hugo.toml --
+[params]
+themeconfigdirparam = "themeconfigdirvalue"
+-- themes/mytheme/hugo.toml --
+[params]
+themeparam = "themevalue"
+-- layouts/index.html --
+rootparam: {{ site.Params.rootparam }}
+rootconfigparam: {{ site.Params.rootconfigparam }}
+themeparam: {{ site.Params.themeparam }}
+themeconfigdirparam: {{ site.Params.themeconfigdirparam }}
+
+
+`
+
+	for _, configName := range []string{"hugo.toml", "config.toml"} {
+		configName := configName
+		t.Run(configName, func(t *testing.T) {
+			t.Parallel()
+
+			files := strings.ReplaceAll(filesTemplate, "hugo.toml", configName)
+
+			b, err := NewIntegrationTestBuilder(
+				IntegrationTestConfig{
+					T:           t,
+					TxtarString: files,
+				},
+			).BuildE()
+
+			b.Assert(err, qt.IsNil)
+			b.AssertFileContent("public/index.html",
+				"rootparam: rootvalue",
+				"rootconfigparam: rootconfigvalue",
+				"themeparam: themevalue",
+				"themeconfigdirparam: themeconfigdirvalue",
+			)
+
+		})
+	}
+
+}

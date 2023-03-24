@@ -24,6 +24,8 @@ import (
 
 	"github.com/neohugo/neohugo/config"
 
+	"errors"
+
 	"github.com/neohugo/neohugo/output"
 
 	"github.com/neohugo/neohugo/resources/page"

@@ -40,8 +40,8 @@ func TestDefaultTypes(t *testing.T) {
 		{SCSSType, "text", "x-scss", "scss", "text/x-scss", "text/x-scss"},
 		{CSVType, "text", "csv", "csv", "text/csv", "text/csv"},
 		{HTMLType, "text", "html", "html", "text/html", "text/html"},
-		{JavascriptType, "application", "javascript", "js", "application/javascript", "application/javascript"},
-		{TypeScriptType, "application", "typescript", "ts", "application/typescript", "application/typescript"},
+		{JavascriptType, "text", "javascript", "js", "text/javascript", "text/javascript"},
+		{TypeScriptType, "text", "typescript", "ts", "text/typescript", "text/typescript"},
 		{TSXType, "text", "tsx", "tsx", "text/tsx", "text/tsx"},
 		{JSXType, "text", "jsx", "jsx", "text/jsx", "text/jsx"},
 		{JSONType, "application", "json", "json", "application/json", "application/json"},
@@ -132,22 +132,22 @@ func TestGetFirstBySuffix(t *testing.T) {
 
 func TestFromTypeString(t *testing.T) {
 	c := qt.New(t)
-	f, err := fromString("text/html")
+	f, err := FromString("text/html")
 	c.Assert(err, qt.IsNil)
 	c.Assert(f.Type(), qt.Equals, HTMLType.Type())
 
-	f, err = fromString("application/custom")
+	f, err = FromString("application/custom")
 	c.Assert(err, qt.IsNil)
 	c.Assert(f, qt.Equals, Type{MainType: "application", SubType: "custom", mimeSuffix: ""})
 
-	f, err = fromString("application/custom+sfx")
+	f, err = FromString("application/custom+sfx")
 	c.Assert(err, qt.IsNil)
 	c.Assert(f, qt.Equals, Type{MainType: "application", SubType: "custom", mimeSuffix: "sfx"})
 
-	_, err = fromString("noslash")
+	_, err = FromString("noslash")
 	c.Assert(err, qt.Not(qt.IsNil))
 
-	f, err = fromString("text/xml; charset=utf-8")
+	f, err = FromString("text/xml; charset=utf-8")
 	c.Assert(err, qt.IsNil)
 
 	c.Assert(f, qt.Equals, Type{MainType: "text", SubType: "xml", mimeSuffix: ""})

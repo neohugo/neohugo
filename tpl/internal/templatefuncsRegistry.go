@@ -66,6 +66,11 @@ func (t *TemplateFuncsNamespace) AddMethodMapping(m any, aliases []string, examp
 
 	name := methodToName(m)
 
+	// Rewrite §§ to ` in example commands.
+	for i, e := range examples {
+		examples[i][0] = strings.ReplaceAll(e[0], "§§", "`")
+	}
+
 	// sanity check
 	for _, e := range examples {
 		if e[0] == "" {
@@ -139,6 +144,22 @@ func (t goDocFunc) toJSON() ([]byte, error) {
 `, t.Name, t.Description, args, aliases, examples))
 
 	return buf.Bytes(), nil
+}
+
+// ToMap returns a limited map representation of the namespaces.
+func (namespaces TemplateFuncsNamespaces) ToMap() map[string]any {
+	m := make(map[string]any)
+	for _, ns := range namespaces {
+		mm := make(map[string]any)
+		for name, mapping := range ns.MethodMappings {
+			mm[name] = map[string]any{
+				"Examples": mapping.Examples,
+				"Aliases":  mapping.Aliases,
+			}
+		}
+		m[ns.Name] = mm
+	}
+	return m
 }
 
 // MarshalJSON returns the JSON encoding of namespaces.

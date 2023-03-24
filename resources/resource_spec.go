@@ -193,6 +193,7 @@ func (r *Spec) newGenericResource(sourceFs afero.Fs,
 		sourceFilename,
 		baseFilename,
 		mediaType,
+		nil,
 	)
 }
 
@@ -205,6 +206,7 @@ func (r *Spec) newGenericResourceWithBase(
 	sourceFilename,
 	baseFilename string,
 	mediaType media.Type,
+	data map[string]any,
 ) *genericResource {
 	if osFileInfo != nil && osFileInfo.IsDir() {
 		panic(fmt.Sprintf("dirs not supported resource types: %v", osFileInfo))
@@ -246,6 +248,7 @@ func (r *Spec) newGenericResourceWithBase(
 		name:                   baseFilename,
 		title:                  baseFilename,
 		resourceContent:        &resourceContent{},
+		data:                   data,
 	}
 
 	return g
@@ -260,7 +263,7 @@ func (r *Spec) newResource(sourceFs afero.Fs, fd ResourceSourceDescriptor) (reso
 		var err error
 		fi, err = sourceFs.Stat(fd.SourceFilename)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if herrors.IsNotExist(err) {
 				return nil, nil
 			}
 			return nil, err
@@ -307,7 +310,8 @@ func (r *Spec) newResource(sourceFs afero.Fs, fd ResourceSourceDescriptor) (reso
 		fi,
 		sourceFilename,
 		fd.RelTargetFilename,
-		mimeType)
+		mimeType,
+		fd.Data)
 
 	if mimeType.MainType == "image" {
 		imgFormat, ok := images.ImageFormatFromMediaSubType(mimeType.SubType)

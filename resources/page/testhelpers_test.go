@@ -26,7 +26,6 @@ import (
 
 	"github.com/neohugo/neohugo/modules"
 
-	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/resource"
 
@@ -253,8 +252,8 @@ func (p *testPage) GetRelatedDocsHandler() *RelatedDocsHandler {
 	return relatedDocsHandler
 }
 
-func (p *testPage) GitInfo() *gitmap.GitInfo {
-	return nil
+func (p *testPage) GitInfo() source.GitInfo {
+	return source.GitInfo{}
 }
 
 func (p *testPage) CodeOwners() []string {
@@ -416,6 +415,10 @@ func (p *testPage) Page() Page {
 }
 
 func (p *testPage) Parent() Page {
+	panic("not implemented")
+}
+
+func (p *testPage) Ancestors() Pages {
 	panic("not implemented")
 }
 

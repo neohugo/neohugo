@@ -130,6 +130,41 @@ Page: {{ .Title }}|
 	s.AssertStdout("")
 }
 
+// Issue #8787
+func TestHugoListCommandsWithClockFlag(t *testing.T) {
+	t.Cleanup(func() { htime.Clock = clock.System() })
+
+	c := qt.New(t)
+
+	files := `
+-- config.toml --
+baseURL = "https://example.org"
+title = "Hugo Commands"
+timeZone = "UTC"
+-- content/past.md --
+---
+title: "Past"
+date: 2000-11-06
+---
+-- content/future.md --
+---
+title: "Future"
+date: 2200-11-06
+---
+-- layouts/_default/single.html --
+Page: {{ .Title }}|
+
+`
+	s := newTestHugoCmdBuilder(c, files, []string{"list", "future"})
+	s.captureOut = true
+	s.Build()
+	p := filepath.Join("content", "future.md")
+	s.AssertStdout(p + ",2200-11-06T00:00:00Z")
+
+	s = newTestHugoCmdBuilder(c, files, []string{"list", "future", "--clock", "2300-11-06"}).Build()
+	s.AssertStdout("")
+}
+
 type testHugoCmdBuilder struct {
 	*qt.C
 

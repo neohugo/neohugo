@@ -23,6 +23,8 @@ import (
 	"strings"
 	"testing"
 
+	"errors"
+
 	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/htesting"
 

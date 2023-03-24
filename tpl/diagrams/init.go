@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package diagrams provides template functions for generating diagrams.
 package diagrams
 
 import (
@@ -22,7 +23,7 @@ const name = "diagrams"
 
 func init() {
 	f := func(d *deps.Deps) *internal.TemplateFuncsNamespace {
-		ctx := &Diagrams{
+		ctx := &Namespace{
 			d: d,
 		}
 

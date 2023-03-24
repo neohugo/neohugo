@@ -35,6 +35,8 @@ import (
 	"strings"
 	"sync"
 
+	"errors"
+
 	"github.com/dustin/go-humanize"
 	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/config"

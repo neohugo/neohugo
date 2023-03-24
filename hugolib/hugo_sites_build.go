@@ -19,7 +19,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 	"path/filepath"
 	"runtime/trace"
 	"strings"
@@ -35,6 +34,8 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/output"
+
+	"errors"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/neohugo/neohugo/helpers"
@@ -442,23 +443,16 @@ func (h *HugoSites) postProcess() error {
 		return nil
 	}
 
-	_ = afero.Walk(h.BaseFs.PublishFs, "", func(path string, info os.FileInfo, err error) error {
-		if info == nil || info.IsDir() {
-			return nil
-		}
-
-		if !strings.HasSuffix(path, "html") {
-			return nil
-		}
-
+	filenames := helpers.UniqueStrings(h.Deps.FilenameHasPostProcessPrefix)
+	for _, filename := range filenames {
+		filename := filename
 		g.Run(func() error {
-			return handleFile(path)
+			return handleFile(filename)
 		})
-
-		return nil
-	})
+	}
 
 	// Prepare for a new build.
+	h.Deps.FilenameHasPostProcessPrefix = nil
 	for _, s := range h.Sites {
 		s.ResourceSpec.PostProcessResources = make(map[string]postpub.PostPublishedResource)
 	}

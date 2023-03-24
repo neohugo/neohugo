@@ -64,6 +64,9 @@ type ResourceError interface {
 
 // ErrProvider provides an Err.
 type ErrProvider interface {
+
+	// Err returns an error if this resource is in an error state.
+	// This will currently only be set for resources obtained from resources.GetRemote.
 	Err() ResourceError
 }
 
@@ -123,7 +126,7 @@ type ResourceParamsProvider interface {
 
 type ResourceDataProvider interface {
 	// Resource specific data set by Hugo.
-	// One example would be.Data.Digest for fingerprinted resources.
+	// One example would be .Data.Integrity for fingerprinted resources.
 	Data() any
 }
 

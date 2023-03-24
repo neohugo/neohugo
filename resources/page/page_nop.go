@@ -16,17 +16,18 @@
 package page
 
 import (
+	"bytes"
 	"html/template"
 	"time"
 
 	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/markup/converter"
 
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/navigation"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -41,7 +42,15 @@ import (
 )
 
 var (
-	NopPage Page = new(nopPage)
+	NopPage                 Page            = new(nopPage)
+	NopContentRenderer      ContentRenderer = new(nopContentRenderer)
+	NopCPageContentRenderer                 = struct {
+		OutputFormatPageContentProvider
+		ContentRenderer
+	}{
+		NopPage,
+		NopContentRenderer,
+	}
 	NilPage *nopPage
 )
 
@@ -190,8 +199,8 @@ func (p *nopPage) GetTerms(taxonomy string) Pages {
 	return nil
 }
 
-func (p *nopPage) GitInfo() *gitmap.GitInfo {
-	return nil
+func (p *nopPage) GitInfo() source.GitInfo {
+	return source.GitInfo{}
 }
 
 func (p *nopPage) CodeOwners() []string {
@@ -335,6 +344,10 @@ func (p *nopPage) Page() Page {
 }
 
 func (p *nopPage) Parent() Page {
+	return nil
+}
+
+func (p *nopPage) Ancestors() Pages {
 	return nil
 }
 
@@ -512,4 +525,11 @@ func (p *nopPage) WordCount() int {
 
 func (p *nopPage) GetIdentity() identity.Identity {
 	return identity.NewPathIdentity("content", "foo/bar.md")
+}
+
+type nopContentRenderer int
+
+func (r *nopContentRenderer) RenderContent(content []byte, renderTOC bool) (converter.Result, error) {
+	b := &bytes.Buffer{}
+	return b, nil
 }

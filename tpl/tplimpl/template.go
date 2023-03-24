@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
-	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -91,9 +90,15 @@ func needsBaseTemplate(templ string) bool {
 		if !inComment && strings.HasPrefix(templ[i:], "{{/*") {
 			inComment = true
 			i += 4
+		} else if !inComment && strings.HasPrefix(templ[i:], "{{- /*") {
+			inComment = true
+			i += 6
 		} else if inComment && strings.HasPrefix(templ[i:], "*/}}") {
 			inComment = false
 			i += 4
+		} else if inComment && strings.HasPrefix(templ[i:], "*/ -}}") {
+			inComment = false
+			i += 6
 		} else {
 			r, size := utf8.DecodeRuneInString(templ[i:])
 			if !inComment {
@@ -153,7 +158,7 @@ func newTemplateExec(d *deps.Deps) (*templateExec, error) {
 		Deps:                d,
 		layoutHandler:       output.NewLayoutHandler(),
 		layoutsFs:           d.BaseFs.Layouts.Fs,
-		layoutTemplateCache: make(map[layoutCacheKey]tpl.Template),
+		layoutTemplateCache: make(map[layoutCacheKey]layoutCacheEntry),
 
 		templateUsageTracker: templateUsageTracker,
 	}
@@ -328,7 +333,7 @@ type templateHandler struct {
 
 	layoutHandler *output.LayoutHandler
 
-	layoutTemplateCache   map[layoutCacheKey]tpl.Template
+	layoutTemplateCache   map[layoutCacheKey]layoutCacheEntry
 	layoutTemplateCacheMu sync.RWMutex
 
 	*deps.Deps
@@ -357,6 +362,12 @@ type templateHandler struct {
 	templateUsageTrackerMu sync.Mutex //nolint
 }
 
+type layoutCacheEntry struct {
+	found bool
+	templ tpl.Template
+	err   error
+}
+
 // AddTemplate parses and adds a template to the collection.
 // Templates with name prefixed with "_text" will be handled as plain
 // text templates.
@@ -382,7 +393,7 @@ func (t *templateHandler) LookupLayout(d output.LayoutDescriptor, f output.Forma
 	t.layoutTemplateCacheMu.RLock()
 	if cacheVal, found := t.layoutTemplateCache[key]; found {
 		t.layoutTemplateCacheMu.RUnlock()
-		return cacheVal, true, nil
+		return cacheVal.templ, cacheVal.found, cacheVal.err
 	}
 	t.layoutTemplateCacheMu.RUnlock()
 
@@ -393,13 +404,10 @@ func (t *templateHandler) LookupLayout(d output.LayoutDescriptor, f output.Forma
 	}
 
 	templ, found, err := t.findLayout(d, f)
-	if err == nil && found {
-		t.layoutTemplateCache[key] = templ
-		t.layoutTemplateCacheMu.Unlock()
-		return templ, true, nil
-	}
-	t.layoutTemplateCacheMu.Unlock()
-	return nil, false, err
+	cacheVal := layoutCacheEntry{found: found, templ: templ, err: err}
+	t.layoutTemplateCache[key] = cacheVal
+	return cacheVal.templ, cacheVal.found, cacheVal.err
+
 }
 
 // This currently only applies to shortcodes and what we get here is the
@@ -826,7 +834,7 @@ func (t *templateHandler) loadTemplates() error {
 	}
 
 	if err := helpers.SymbolicWalk(t.Layouts.Fs, "", walker); err != nil {
-		if !os.IsNotExist(err) {
+		if !herrors.IsNotExist(err) {
 			return err
 		}
 		return nil
@@ -1072,7 +1080,7 @@ type templateStateMap struct {
 	templates map[string]*templateState
 }
 
-//nolint
+// nolint
 type templateWrapperWithLock struct {
 	*sync.RWMutex
 	tpl.Template

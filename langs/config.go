@@ -24,6 +24,8 @@ import (
 
 	"github.com/spf13/cast"
 
+	"errors"
+
 	"github.com/neohugo/neohugo/config"
 )
 

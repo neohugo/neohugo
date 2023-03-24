@@ -207,6 +207,7 @@ func TestMultiSitesBuild(t *testing.T) {
 		{multiSiteYAMLConfigTemplate, "yml"},
 		{multiSiteJSONConfigTemplate, "json"},
 	} {
+		config := config
 		t.Run(config.suffix, func(t *testing.T) {
 			t.Parallel()
 			doTestMultiSitesBuild(t, config.content, config.suffix)
@@ -792,7 +793,7 @@ categories: ["mycat"]
 	}
 }
 
-//nolint
+// nolint
 var tocShortcode = `
 TOC1: {{ .Page.TableOfContents }}
 
@@ -822,7 +823,7 @@ Empty:{{< mycontent >}}:
 	b.AssertFileContent("public/en/post/simple/index.html", "Empty:[]00:")
 }
 
-//nolint
+// nolint
 var tocPageSimple = `---
 title: tocTest
 publishdate: "2000-01-01"
@@ -838,7 +839,7 @@ Even more text.
 Lorem ipsum...
 `
 
-//nolint
+// nolint
 var tocPageVariants1 = `---
 title: tocTest
 publishdate: "2000-01-01"
@@ -854,7 +855,7 @@ Variant 3:
 
 `
 
-//nolint
+// nolint
 var tocPageVariants2 = `---
 title: tocTest
 publishdate: "2000-01-01"
@@ -875,7 +876,7 @@ Variant 3:
 
 `
 
-//nolint
+// nolint
 var tocPageSimpleExpected = `<nav id="TableOfContents">
 <ul>
 <li><a href="#1">Heading 1</a>
@@ -889,7 +890,7 @@ var tocPageSimpleExpected = `<nav id="TableOfContents">
 </ul>
 </nav>`
 
-//nolint
+// nolint
 var tocPageWithShortcodesInHeadings = `---
 title: tocTest
 publishdate: "2000-01-01"
@@ -914,7 +915,7 @@ Even more text.
 Lorem ipsum...
 `
 
-//nolint
+// nolint
 var tocPageWithShortcodesInHeadingsExpected = `<nav id="TableOfContents">
 <ul>
 <li><a href="#1">Heading 1</a>

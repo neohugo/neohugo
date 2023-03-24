@@ -14,7 +14,6 @@
 package js
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -22,6 +21,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	"errors"
 
 	"github.com/spf13/afero"
 

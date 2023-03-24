@@ -17,7 +17,6 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -39,6 +38,8 @@ import (
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
+
+	"errors"
 
 	"github.com/mitchellh/mapstructure"
 
@@ -381,10 +382,13 @@ func (imp *importResolver) resolve() (io.Reader, error) {
 // See https://www.w3schools.com/cssref/pr_import_rule.asp
 // We currently only support simple file imports, no urls, no media queries.
 // So this is OK:
-//     @import "navigation.css";
+//
+//	@import "navigation.css";
+//
 // This is not:
-//     @import url("navigation.css");
-//     @import "mobstyle.css" screen and (max-width: 768px);
+//
+//	@import url("navigation.css");
+//	@import "mobstyle.css" screen and (max-width: 768px);
 func (imp *importResolver) shouldImport(s string) bool {
 	if !strings.HasPrefix(s, importIdentifier) {
 		return false
@@ -433,5 +437,6 @@ func (imp *importResolver) toFileError(output string) error {
 	pos.LineNumber = file.Offset + 1
 	return ferr.UpdatePosition(pos).UpdateContent(f, nil)
 
-	// return herrors.NewFileErrorFromFile(inErr, file.Filename, realFilename, hugofs.Os, herrors.SimpleLineMatcher)
+	//return herrors.NewFileErrorFromFile(inErr, file.Filename, realFilename, hugofs.Os, herrors.SimpleLineMatcher)
+
 }

@@ -28,6 +28,7 @@ import (
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
 	"github.com/neohugo/neohugo/markup/internal/attributes"
 )
 
@@ -156,10 +157,12 @@ type HightlightResult struct {
 	highlighted template.HTML
 }
 
+// Wrapped returns the highlighted code wrapped in a <div>, <pre> and <code> tag.
 func (h HightlightResult) Wrapped() template.HTML {
 	return h.highlighted
 }
 
+// Inner returns the highlighted code without the wrapping <div>, <pre> and <code> tag, suitable for inline use.
 func (h HightlightResult) Inner() template.HTML {
 	return h.highlighted[h.innerLow:h.innerHigh]
 }
@@ -167,7 +170,7 @@ func (h HightlightResult) Inner() template.HTML {
 func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.Attribute, cfg Config) (int, int, error) {
 	var lexer chroma.Lexer
 	if lang != "" {
-		lexer = lexers.Get(lang)
+		lexer = chromalexers.Get(lang)
 	}
 
 	if lexer == nil && (cfg.GuessSyntax && !cfg.NoHl) {

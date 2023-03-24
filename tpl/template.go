@@ -11,6 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package tpl contains template functions and related types.
 package tpl
 
 import (
@@ -21,9 +22,8 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/gohugoio/hugo/output"
 	bp "github.com/neohugo/neohugo/bufferpool"
-
-	"github.com/neohugo/neohugo/output"
 
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"

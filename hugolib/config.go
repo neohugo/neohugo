@@ -35,6 +35,8 @@ import (
 
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
+	"errors"
+
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/modules"
@@ -68,18 +70,35 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 	// use a partial configuration to do its job.
 	defer l.deleteMergeStrategies()
 
-	for _, name := range d.configFilenames() {
-		var filename string
-		filename, err := l.loadConfig(name)
-		if err == nil {
-			configFiles = append(configFiles, filename)
-		} else if err != ErrNoConfigFile {
-			return nil, nil, l.wrapFileError(err, filename)
+	names := d.configFilenames()
+
+	if names != nil {
+		for _, name := range names {
+			var filename string
+			filename, err := l.loadConfig(name)
+			if err == nil {
+				configFiles = append(configFiles, filename)
+			} else if err != ErrNoConfigFile {
+				return nil, nil, l.wrapFileError(err, filename)
+			}
+		}
+	} else {
+		for _, name := range config.DefaultConfigNames {
+			var filename string
+			filename, err := l.loadConfig(name)
+			if err == nil {
+				configFiles = append(configFiles, filename)
+				break
+			} else if err != ErrNoConfigFile {
+				return nil, nil, l.wrapFileError(err, filename)
+			}
 		}
 	}
 
 	if d.AbsConfigDir != "" {
+
 		dcfg, dirnames, err := config.LoadConfigFromDir(l.Fs, d.AbsConfigDir, l.Environment)
+
 		if err == nil {
 			if len(dirnames) > 0 {
 				l.cfg.Set("", dcfg.Get(""))
@@ -161,9 +180,9 @@ func LoadConfig(d ConfigSourceDescriptor, doWithConfig ...func(cfg config.Provid
 	return l.cfg, configFiles, err
 }
 
-// LoadConfigDefault is a convenience method to load the default "config.toml" config.
+// LoadConfigDefault is a convenience method to load the default "hugo.toml" config.
 func LoadConfigDefault(fs afero.Fs) (config.Provider, error) {
-	v, _, err := LoadConfig(ConfigSourceDescriptor{Fs: fs, Filename: "config.toml"})
+	v, _, err := LoadConfig(ConfigSourceDescriptor{Fs: fs})
 	return v, err
 }
 
@@ -201,7 +220,7 @@ func (d ConfigSourceDescriptor) configFileDir() string {
 
 func (d ConfigSourceDescriptor) configFilenames() []string {
 	if d.Filename == "" {
-		return []string{"config"}
+		return nil
 	}
 	return strings.Split(d.Filename, ",")
 }
@@ -241,6 +260,7 @@ func (l configLoader) applyConfigDefaults() error {
 		"watch":                                false,
 		"resourceDir":                          "resources",
 		"publishDir":                           "public",
+		"publishDirOrig":                       "public",
 		"themesDir":                            "themes",
 		"buildDrafts":                          false,
 		"buildFuture":                          false,
@@ -416,10 +436,16 @@ func (l configLoader) collectModules(modConfig modules.Config, v1 config.Provide
 	// Avoid recreating these later.
 	v1.Set("allModules", moduleConfig.ActiveModules)
 
+	// We want to watch these for changes and trigger rebuild on version
+	// changes etc.
 	if moduleConfig.GoModulesFilename != "" {
-		// We want to watch this for changes and trigger rebuild on version
-		// changes etc.
+
 		configFilenames = append(configFilenames, moduleConfig.GoModulesFilename)
+	}
+
+	if moduleConfig.GoWorkspaceFilename != "" {
+		configFilenames = append(configFilenames, moduleConfig.GoWorkspaceFilename)
+
 	}
 
 	return moduleConfig.ActiveModules, configFilenames, err

@@ -32,10 +32,9 @@ func newPagesProcessor(h *HugoSites, sp *source.SourceSpec) *pagesProcessor {
 	procs := make(map[string]pagesCollectorProcessorProvider)
 	for _, s := range h.Sites {
 		procs[s.Lang()] = &sitePagesProcessor{
-			m:                  s.pageMap,
-			errorSender:        s.h,
-			itemChan:           make(chan interface{}, config.GetNumWorkerMultiplier()*2),
-			renderStaticToDisk: h.Cfg.GetBool("renderStaticToDisk"),
+			m:           s.pageMap,
+			errorSender: s.h,
+			itemChan:    make(chan interface{}, config.GetNumWorkerMultiplier()*2),
 		}
 	}
 	return &pagesProcessor{
@@ -122,8 +121,6 @@ type sitePagesProcessor struct {
 	ctx       context.Context
 	itemChan  chan any
 	itemGroup *errgroup.Group
-
-	renderStaticToDisk bool
 }
 
 func (p *sitePagesProcessor) Process(item any) error {
@@ -168,10 +165,7 @@ func (p *sitePagesProcessor) copyFile(fim hugofs.FileMetaInfo) error {
 
 	defer f.Close()
 
-	fs := s.PublishFs
-	if p.renderStaticToDisk {
-		fs = s.PublishFsStatic
-	}
+	fs := s.PublishFsStatic
 
 	return s.publish(&s.PathSpec.ProcessingStats.Files, target, f, fs)
 }

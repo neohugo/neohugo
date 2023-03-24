@@ -54,6 +54,7 @@ func (f ContentFactory) ApplyArchetypeFilename(w io.Writer, p page.Page, archety
 	templateSource, err := afero.ReadFile(f.h.SourceFilesystems.Archetypes.Fs, archetypeFilename)
 	if err != nil {
 		return fmt.Errorf("failed to read archetype file %q: %s: %w", archetypeFilename, err, err)
+
 	}
 
 	return f.ApplyArchetypeTemplate(w, p, archetypeKind, string(templateSource))
@@ -106,7 +107,7 @@ func (f ContentFactory) SectionFromFilename(filename string) (string, error) {
 
 // CreateContentPlaceHolder creates a content placeholder file inside the
 // best matching content directory.
-func (f ContentFactory) CreateContentPlaceHolder(filename string) (string, error) {
+func (f ContentFactory) CreateContentPlaceHolder(filename string, force bool) (string, error) {
 	filename = filepath.Clean(filename)
 	_, abs, err := f.h.AbsProjectContentDir(filename)
 	if err != nil {
@@ -125,6 +126,9 @@ _build:
 
 `
 
+	if force {
+		return abs, afero.WriteReader(f.h.Fs.Source, abs, strings.NewReader(placeholder))
+	}
 	return abs, afero.SafeWriteReader(f.h.Fs.Source, abs, strings.NewReader(placeholder))
 }
 

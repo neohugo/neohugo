@@ -21,6 +21,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"errors"
+
 	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/config"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
