@@ -92,7 +92,7 @@ func (c *Client) Close() error {
 func (c *Client) toCSS(args godartsass.Args, src io.Reader) (godartsass.Result, error) {
 	var res godartsass.Result
 
-	in, _ := helpers.ReaderToString(src)
+	in := helpers.ReaderToString(src)
 	args.Source = in
 
 	res, err := c.transpiler.Execute(args)

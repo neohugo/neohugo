@@ -22,8 +22,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/gohugoio/hugo/output"
 	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/output"
 
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"

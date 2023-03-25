@@ -773,32 +773,6 @@ defaultMarkdownHandler = 'blackfriday'
 	b.Assert(err.Error(), qt.Contains, "Configured defaultMarkdownHandler \"blackfriday\" not found. Did you mean to use goldmark? Blackfriday was removed in Hugo v0.100.0.")
 }
 
-func TestInvalidDefaultMarkdownHandler(t *testing.T) {
-	t.Parallel()
-
-	files := `
--- config.toml --
-[markup]
-defaultMarkdownHandler = 'blackfriday'
--- content/_index.md --
-## Foo
--- layouts/index.html --
-{{ .Content }}
-
-`
-
-	b, err := NewIntegrationTestBuilder(
-		IntegrationTestConfig{
-			T:           t,
-			TxtarString: files,
-		},
-	).BuildE()
-
-	b.Assert(err, qt.IsNotNil)
-	b.Assert(err.Error(), qt.Contains, "Configured defaultMarkdownHandler \"blackfriday\" not found. Did you mean to use goldmark? Blackfriday was removed in Hugo v0.100.0.")
-
-}
-
 // Issue 8979
 func TestHugoConfig(t *testing.T) {
 	filesTemplate := `

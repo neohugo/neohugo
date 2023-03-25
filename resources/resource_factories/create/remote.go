@@ -27,12 +27,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/media"
 	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/resource"
 )

@@ -59,8 +59,7 @@ func TestTransform(t *testing.T) {
 		return &testTransformation{
 			name: name,
 			transform: func(ctx *ResourceTransformationCtx) error {
-				in, err := helpers.ReaderToString(ctx.From)
-				c.Assert(err, qt.IsNil)
+				in := helpers.ReaderToString(ctx.From)
 				in = strings.Replace(in, old, new, 1)
 				ctx.AddOutPathIdentifier("." + name)
 				fmt.Fprint(ctx.To, in)
@@ -95,8 +94,7 @@ func TestTransform(t *testing.T) {
 			name: "test",
 			transform: func(ctx *ResourceTransformationCtx) error {
 				// Content
-				in, err := helpers.ReaderToString(ctx.From)
-				c.Assert(err, qt.IsNil)
+				in := helpers.ReaderToString(ctx.From)
 				in = strings.Replace(in, "blue", "green", 1)
 				fmt.Fprint(ctx.To, in)
 
@@ -214,8 +212,7 @@ func TestTransform(t *testing.T) {
 				transformation = &testTransformation{
 					name: "tocss",
 					transform: func(ctx *ResourceTransformationCtx) error {
-						in, err := helpers.ReaderToString(ctx.From)
-						c.Assert(err, qt.IsNil)
+						in := helpers.ReaderToString(ctx.From)
 						in = strings.Replace(in, "blue", "green", 1)
 						ctx.AddOutPathIdentifier("." + "cached")
 						ctx.OutMediaType = media.CSVType
@@ -362,8 +359,7 @@ func TestTransform(t *testing.T) {
 				return nil
 			},
 		}
-		rs, err := helpers.ReaderToString(gopherPNG())
-		c.Assert(err, qt.IsNil)
+		rs := helpers.ReaderToString(gopherPNG())
 		r := createTransformer(spec, "gopher.png", rs)
 
 		tr, err := r.Transform(transformation)

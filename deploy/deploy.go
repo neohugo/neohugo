@@ -22,7 +22,6 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"

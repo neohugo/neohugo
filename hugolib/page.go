@@ -15,7 +15,6 @@ package hugolib
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -487,21 +486,18 @@ func (p *pageState) renderResources() (err error) {
 			continue
 		}
 
-			src, ok := r.(resource.Source)
-			if !ok {
-				err = fmt.Errorf("Resource %T does not support resource.Source", src)
-				return
-			}
+		src, ok := r.(resource.Source)
+		if !ok {
+			err = fmt.Errorf("Resource %T does not support resource.Source", src)
+			return
+		}
 
-			if err := src.Publish(); err != nil {
-				if herrors.IsNotExist(err) {
-					// The resource has been deleted from the file system.
-					// This should be extremely rare, but can happen on live reload in server
-					// mode when the same resource is member of different page bundles.
-					toBeDeleted = append(toBeDeleted, i)
-				} else {
-					p.s.Log.Errorf("Failed to publish Resource for page %q: %s", p.pathOrTitle(), err)
-				}
+		if err := src.Publish(); err != nil {
+			if herrors.IsNotExist(err) {
+				// The resource has been deleted from the file system.
+				// This should be extremely rare, but can happen on live reload in server
+				// mode when the same resource is member of different page bundles.
+				toBeDeleted = append(toBeDeleted, i)
 			} else {
 				p.s.Log.Errorf("Failed to publish Resource for page %q: %s", p.pathOrTitle(), err)
 			}

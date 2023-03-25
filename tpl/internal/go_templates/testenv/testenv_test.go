@@ -10,7 +10,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/gohugoio/hugo/tpl/internal/go_templates/testenv"
+	"github.com/neohugo/neohugo/tpl/internal/go_templates/testenv"
 )
 
 func _TestGoToolLocation(t *testing.T) {

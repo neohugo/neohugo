@@ -16,7 +16,7 @@ package create_test
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestGetResourceHead(t *testing.T) {

@@ -15,7 +15,6 @@
 package images
 
 import (
-	"errors"
 	"image"
 	"sync"
 

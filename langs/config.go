@@ -14,7 +14,6 @@
 package langs
 
 import (
-	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"

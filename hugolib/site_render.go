@@ -14,7 +14,6 @@
 package hugolib
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"strings"

@@ -33,9 +33,9 @@ import (
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/htime"
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/htime"
+	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/neohugo/neohugo/hugofs"
 

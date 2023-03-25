@@ -17,7 +17,6 @@
 package deploy
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 

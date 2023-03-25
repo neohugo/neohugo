@@ -28,15 +28,6 @@ import (
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/navigation"
 	"github.com/neohugo/neohugo/source"
-
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/hugofs/files"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/media"
-	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/source"
 )
 
 func MarshalPageToJSON(p Page) ([]byte, error) {

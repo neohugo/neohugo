@@ -45,8 +45,8 @@ import (
 
 	_ "embed"
 
-	"github.com/gohugoio/hugo/media"
 	"github.com/gorilla/websocket"
+	"github.com/neohugo/neohugo/media"
 )
 
 // Prefix to signal to LiveReload that we need to navigate to another path.

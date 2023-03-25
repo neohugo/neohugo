@@ -398,10 +398,7 @@ func (t *templateHandler) LookupLayout(d output.LayoutDescriptor, f output.Forma
 	t.layoutTemplateCacheMu.RUnlock()
 
 	t.layoutTemplateCacheMu.Lock()
-	if cacheVal, found := t.layoutTemplateCache[key]; found {
-		t.layoutTemplateCacheMu.Unlock()
-		return cacheVal, true, nil
-	}
+	defer t.layoutTemplateCacheMu.Unlock()
 
 	templ, found, err := t.findLayout(d, f)
 	cacheVal := layoutCacheEntry{found: found, templ: templ, err: err}

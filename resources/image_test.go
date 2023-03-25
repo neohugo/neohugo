@@ -737,6 +737,7 @@ func TestImageOperationsGolden(t *testing.T) {
 	dir2 := filepath.FromSlash("testdata/golden")
 
 	assetGoldenDirs(c, dir1, dir2)
+
 }
 
 func assetGoldenDirs(c *qt.C, dir1, dir2 string) {

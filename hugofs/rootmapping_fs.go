@@ -19,8 +19,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/neohugo/common/herrors"
-	"github.com/gohugoio/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	radix "github.com/armon/go-radix"
 	"github.com/spf13/afero"

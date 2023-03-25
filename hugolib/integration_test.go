@@ -16,7 +16,7 @@ package hugolib_test
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 // Issue 9073

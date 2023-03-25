@@ -15,7 +15,6 @@
 package lang
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strconv"

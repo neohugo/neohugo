@@ -185,10 +185,7 @@ func (c *Client) toCSS(options libsass.Options, dst io.Writer, src io.Reader) (l
 		return res, err
 	}
 
-	in, err := helpers.ReaderToString(src)
-	if err != nil {
-		return res, err
-	}
+	in := helpers.ReaderToString(src)
 
 	// See https://github.com/gohugoio/hugo/issues/7059
 	// We need to preserve the regular CSS imports. This is by far

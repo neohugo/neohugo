@@ -15,7 +15,6 @@ package modules
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -40,7 +39,7 @@ import (
 
 	"errors"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/afero"
 )
 

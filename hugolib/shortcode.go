@@ -15,7 +15,6 @@ package hugolib
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"html/template"
 	"path"

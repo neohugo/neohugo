@@ -14,7 +14,6 @@
 package hugofs
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"

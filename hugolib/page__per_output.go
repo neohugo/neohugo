@@ -16,7 +16,6 @@ package hugolib
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"html/template"
 	"runtime/debug"

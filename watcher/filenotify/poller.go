@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/neohugo/neohugo/common/herrors"
 )
 
 var (

@@ -16,7 +16,7 @@ package hugofs
 import (
 	"os"
 
-	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/spf13/afero"
 )
 

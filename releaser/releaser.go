@@ -24,7 +24,7 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 )
 
 const commitPrefix = "releaser:"
@@ -133,14 +133,14 @@ func (r *ReleaseHandler) Run() error {
 	return nil
 }
 
-func (r *ReleaseHandler) bumpVersions(ver hugo.Version) error {
+func (r *ReleaseHandler) bumpVersions(ver neohugo.Version) error {
 	toDev := ""
 
 	if ver.Suffix != "" {
 		toDev = ver.Suffix
 	}
 
-	if err := r.replaceInFile("common/hugo/version_current.go",
+	if err := r.replaceInFile("common/neohugo/version_current.go",
 		`Minor:(\s*)(\d*),`, fmt.Sprintf(`Minor:${1}%d,`, ver.Minor),
 		`PatchLevel:(\s*)(\d*),`, fmt.Sprintf(`PatchLevel:${1}%d,`, ver.PatchLevel),
 		`Suffix:(\s*)".*",`, fmt.Sprintf(`Suffix:${1}"%s",`, toDev)); err != nil {
@@ -164,8 +164,8 @@ func (r *ReleaseHandler) bumpVersions(ver hugo.Version) error {
 	return nil
 }
 
-func (r ReleaseHandler) calculateVersions() (hugo.Version, hugo.Version) {
-	newVersion := hugo.MustParseVersion(r.branchVersion)
+func (r ReleaseHandler) calculateVersions() (neohugo.Version, neohugo.Version) {
+	newVersion := neohugo.MustParseVersion(r.branchVersion)
 	finalVersion := newVersion.Next()
 	finalVersion.PatchLevel = 0
 

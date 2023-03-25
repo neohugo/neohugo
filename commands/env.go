@@ -52,7 +52,7 @@ If you add the -v flag, you will get a full dependency list.
 				} else {
 					// These are also included in the GetDependencyList above;
 					// always print these as these are most likely the most useful to know about.
-					deps := hugo.GetDependencyListNonGo()
+					deps := neohugo.GetDependencyListNonGo()
 					for _, dep := range deps {
 						jww.FEEDBACK.Printf("%s\n", dep)
 					}
