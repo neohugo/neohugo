@@ -139,7 +139,6 @@ Styles Content: Len: 770917|
 			b.AssertLogContains("Hugo PublishDir: " + filepath.Join(tempDir, "public"))
 		}
 	}
-
 }
 
 // 9880
@@ -161,7 +160,6 @@ func TestTransformPostCSSError(t *testing.T) {
 	//nolint
 	s.AssertIsFileError(err)
 	c.Assert(err.Error(), qt.Contains, "a.css:4:2")
-
 }
 
 // #9895
@@ -185,7 +183,6 @@ func TestTransformPostCSSImportError(t *testing.T) {
 	s.AssertIsFileError(err)
 	c.Assert(err.Error(), qt.Contains, "styles.css:4:3")
 	c.Assert(err.Error(), qt.Contains, filepath.FromSlash(`failed to resolve CSS @import "css/components/doesnotexist.css"`))
-
 }
 
 func TestTransformPostCSSImporSkipInlineImportsNotFound(t *testing.T) {

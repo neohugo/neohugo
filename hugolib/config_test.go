@@ -819,8 +819,6 @@ themeconfigdirparam: {{ site.Params.themeconfigdirparam }}
 				"themeparam: themevalue",
 				"themeconfigdirparam: themeconfigdirvalue",
 			)
-
 		})
 	}
-
 }

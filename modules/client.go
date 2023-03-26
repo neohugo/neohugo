@@ -18,6 +18,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -44,8 +45,6 @@ import (
 	"github.com/rogpeppe/go-internal/module"
 
 	"github.com/neohugo/neohugo/common/hugio"
-
-	"errors"
 
 	"github.com/spf13/afero"
 )

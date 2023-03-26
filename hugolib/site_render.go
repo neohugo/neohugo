@@ -14,6 +14,7 @@
 package hugolib
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -22,8 +23,6 @@ import (
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/config"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/output"
 

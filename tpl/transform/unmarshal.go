@@ -14,6 +14,7 @@
 package transform
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -23,8 +24,6 @@ import (
 	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/mitchellh/mapstructure"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/parser/metadecoders"

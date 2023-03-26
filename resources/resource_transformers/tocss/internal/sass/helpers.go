@@ -44,5 +44,4 @@ func CreateVarsStyleSheet(vars map[string]string) string {
 	varsStylesheet = strings.Join(varsSlice, "\n")
 
 	return varsStylesheet
-
 }

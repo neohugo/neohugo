@@ -64,7 +64,6 @@ func responseToData(res *http.Response, readBody bool) map[string]any {
 	}
 
 	return m
-
 }
 
 func toHTTPError(err error, res *http.Response, readBody bool) *HTTPError {
@@ -128,7 +127,6 @@ func (c *Client) FromRemote(uri string, optionsm map[string]any) (resource.Resou
 		if res.StatusCode != http.StatusNotFound {
 			if res.StatusCode < 200 || res.StatusCode > 299 {
 				return nil, toHTTPError(fmt.Errorf("failed to fetch remote resource: %s", http.StatusText(res.StatusCode)), res, !isHeadMethod)
-
 			}
 		}
 
@@ -258,9 +256,9 @@ func addUserProvidedHeaders(headers map[string]any, req *http.Request) {
 	}
 }
 
-//func hasHeaderValue(m http.Header, key, value string) bool {
-//var s []string
-//var ok bool
+// func hasHeaderValue(m http.Header, key, value string) bool {
+// var s []string
+// var ok bool
 
 //if s, ok = m[key]; !ok {
 //return false

@@ -14,6 +14,7 @@
 package langs
 
 import (
+	"errors"
 	"fmt"
 	"path/filepath"
 	"sort"
@@ -22,8 +23,6 @@ import (
 	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/spf13/cast"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/config"
 )

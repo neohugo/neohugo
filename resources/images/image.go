@@ -14,6 +14,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -33,8 +34,6 @@ import (
 	"github.com/disintegration/gift"
 	"golang.org/x/image/bmp"
 	"golang.org/x/image/tiff"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/hugio"
 )
@@ -262,7 +261,6 @@ func (p *ImageProcessor) Filter(src image.Image, filters ...gift.Filter) (image.
 }
 
 func (p *ImageProcessor) doFilter(src image.Image, targetFormat Format, filters ...gift.Filter) (image.Image, error) {
-
 	filter := gift.New(filters...)
 
 	if giph, ok := src.(Giphy); ok {

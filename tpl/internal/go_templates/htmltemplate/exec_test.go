@@ -875,7 +875,7 @@ func TestDelims(t *testing.T) {
 		if err != nil {
 			t.Fatalf("delim %q text %q parse err %s", left, text, err)
 		}
-		var b = new(strings.Builder)
+		b := new(strings.Builder)
 		err = tmpl.Execute(b, value)
 		if err != nil {
 			t.Fatalf("delim %q exec err %s", left, err)
@@ -1227,7 +1227,7 @@ var cmpTests = []cmpTest{
 
 func TestComparison(t *testing.T) {
 	b := new(strings.Builder)
-	var cmpStruct = struct {
+	cmpStruct := struct {
 		Uthree, Ufour  uint
 		NegOne, Three  int
 		Ptr, NilPtr    *int

@@ -185,26 +185,26 @@ func newPageStandalone(m *pageMeta, f output.Format) (*pageState, error) {
 	return p, nil
 }
 
-//nolint
+// nolint
 type pageDeprecatedWarning struct {
 	p *pageState
 }
 
-//nolint
+// nolint
 func (p *pageDeprecatedWarning) IsDraft() bool { return p.p.m.draft }
 
-//nolint
+// nolint
 func (p *pageDeprecatedWarning) Hugo() neohugo.Info { return p.p.s.Info.Hugo() }
 
-//nolint
+// nolint
 func (p *pageDeprecatedWarning) LanguagePrefix() string { return p.p.s.Info.LanguagePrefix }
 
-//nolint
+// nolint
 func (p *pageDeprecatedWarning) GetParam(key string) any {
 	return p.p.m.params[strings.ToLower(key)]
 }
 
-//nolint
+// nolint
 func (p *pageDeprecatedWarning) RSSLink() template.URL {
 	f := p.p.OutputFormats().Get("RSS")
 	if f == nil {
@@ -213,7 +213,7 @@ func (p *pageDeprecatedWarning) RSSLink() template.URL {
 	return template.URL(f.Permalink())
 }
 
-//nolint
+// nolint
 func (p *pageDeprecatedWarning) URL() string {
 	if p.p.IsPage() && p.p.m.urlPaths.URL != "" {
 		// This is the url set in front matter

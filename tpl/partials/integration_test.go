@@ -225,7 +225,7 @@ D1
 	b.Assert(got, hqt.IsSameString, expect)
 }
 
-//  gobench --package ./tpl/partials
+// gobench --package ./tpl/partials
 func BenchmarkIncludeCached(b *testing.B) {
 	files := `
 -- config.toml --

@@ -397,7 +397,6 @@ FENCE
 
 		runBenchmark(files, b)
 	})
-
 }
 
 // Iisse #8959

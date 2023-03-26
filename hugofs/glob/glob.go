@@ -69,7 +69,8 @@ func (gc *globCache) GetGlob(pattern string) (glob.Glob, error) {
 	eg = globErr{
 		globDecorator{
 			g:         g,
-			isWindows: gc.isWindows},
+			isWindows: gc.isWindows,
+		},
 		err,
 	}
 

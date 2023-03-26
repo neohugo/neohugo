@@ -14,6 +14,7 @@
 package hugolib
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -33,8 +34,6 @@ import (
 	"github.com/neohugo/neohugo/cache/filecache"
 
 	"github.com/neohugo/neohugo/parser/metadecoders"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/langs"
@@ -438,13 +437,11 @@ func (l configLoader) collectModules(modConfig modules.Config, v1 config.Provide
 	// We want to watch these for changes and trigger rebuild on version
 	// changes etc.
 	if moduleConfig.GoModulesFilename != "" {
-
 		configFilenames = append(configFilenames, moduleConfig.GoModulesFilename)
 	}
 
 	if moduleConfig.GoWorkspaceFilename != "" {
 		configFilenames = append(configFilenames, moduleConfig.GoWorkspaceFilename)
-
 	}
 
 	return moduleConfig.ActiveModules, configFilenames, err

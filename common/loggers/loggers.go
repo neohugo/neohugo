@@ -201,7 +201,7 @@ func (l *logger) Reset() {
 	}
 }
 
-//  NewLogger creates a new Logger for the given thresholds
+// NewLogger creates a new Logger for the given thresholds
 func NewLogger(stdoutThreshold, logThreshold jww.Threshold, outHandle, logHandle io.Writer, saveErrors bool) Logger {
 	return newLogger(stdoutThreshold, logThreshold, outHandle, logHandle, saveErrors)
 }
@@ -299,7 +299,7 @@ func getLogWriters(outHandle, logHandle io.Writer) (io.Writer, io.Writer) {
 	return outHandle, logHandle
 }
 
-//nolint
+// nolint
 type fatalLogWriter int
 
 // func (s fatalLogWriter) Write(p []byte) (n int, err error) {

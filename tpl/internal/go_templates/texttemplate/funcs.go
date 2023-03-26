@@ -668,7 +668,7 @@ var (
 )
 
 // JSEscape writes to w the escaped JavaScript equivalent of the plain text data b.
-//nolint
+// nolint
 func JSEscape(w io.Writer, b []byte) {
 	last := 0
 	for i := 0; i < len(b); i++ {

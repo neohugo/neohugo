@@ -67,7 +67,6 @@ func (fs *hasBytesFs) wrapFile(f afero.File) afero.File {
 		},
 		hasBytesCallback: fs.hasBytesCallback,
 	}
-
 }
 
 func (fs *hasBytesFs) Name() string {

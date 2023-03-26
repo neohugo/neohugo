@@ -16,6 +16,7 @@
 package collections
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"math/rand"
@@ -23,8 +24,6 @@ import (
 	"reflect"
 	"strings"
 	"time"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/maps"

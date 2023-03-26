@@ -14,6 +14,7 @@
 package resources
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -31,8 +32,6 @@ import (
 
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/source"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/common/maps"

@@ -15,6 +15,7 @@ package hugolib
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"path"
@@ -26,8 +27,6 @@ import (
 	"sync"
 
 	"github.com/neohugo/neohugo/helpers"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/herrors"
 

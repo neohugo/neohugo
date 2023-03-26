@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"runtime/trace"
@@ -33,8 +34,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/output"
-
-	"errors"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/neohugo/neohugo/helpers"

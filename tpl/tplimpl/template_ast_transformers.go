@@ -14,6 +14,7 @@
 package tplimpl
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -22,8 +23,6 @@ import (
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 
 	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
-
-	"errors"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"

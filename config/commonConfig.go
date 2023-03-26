@@ -228,7 +228,6 @@ func DecodeServer(cfg Provider) (*Server, error) {
 				Status: 404,
 			},
 		}
-
 	}
 
 	return s, nil

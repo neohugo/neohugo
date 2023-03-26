@@ -171,5 +171,4 @@ RelPermalink: {{ .RelPermalink }}
 		}).Build()
 
 	b.AssertFileContent("public/a/c/d/index.html", "RelPermalink: /a/c/d/")
-
 }

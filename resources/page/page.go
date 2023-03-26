@@ -401,7 +401,6 @@ type TranslationsProvider interface {
 
 // TreeProvider provides section tree navigation.
 type TreeProvider interface {
-
 	// IsAncestor returns whether the current page is an ancestor of other.
 	// Note that this method is not relevant for taxonomy lists and taxonomy terms pages.
 	IsAncestor(other any) (bool, error)

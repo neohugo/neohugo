@@ -138,11 +138,9 @@ HasShortcode: mark2:true:true
 HasShortcode: foo:false:false
 Page Type: *hugolib.pageForShortcode`,
 		)
-
 	})
 
 	t.Run("Edit shortcode", func(t *testing.T) {
-
 		b := NewIntegrationTestBuilder(
 			IntegrationTestConfig{
 				T:           t,

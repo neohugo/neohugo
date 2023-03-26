@@ -307,7 +307,6 @@ Some content.
 			}
 		})
 	}
-
 }
 
 // Issue 9852
@@ -339,7 +338,6 @@ minify = true
 	b.Assert(fe.Error(), qt.Contains, "unexpected = in expression on line 2 and column 9")
 	b.Assert(filepath.ToSlash(fe.Position().Filename), qt.Contains, "hugo-transform-error")
 	b.Assert(os.Remove(fe.Position().Filename), qt.IsNil)
-
 }
 
 func TestErrorNestedRender(t *testing.T) {
@@ -388,7 +386,6 @@ line 4
 	b.Assert(errors[3].Position().LineNumber, qt.Equals, 3)
 	b.Assert(errors[3].Position().ColumnNumber, qt.Equals, 6)
 	b.Assert(errors[3].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
-
 }
 
 func TestErrorNestedShortocde(t *testing.T) {
@@ -440,7 +437,6 @@ line 4
 	b.Assert(errors[0].ErrorContext().Lines, qt.DeepEquals, []string{"", "## Hello", "{{< hello >}}", ""})
 	b.Assert(errors[1].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "12{{ partial \"foo.html\" . }}", "line 4", "line 5"})
 	b.Assert(errors[2].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
-
 }
 
 func TestErrorRenderHookHeading(t *testing.T) {
@@ -479,7 +475,6 @@ line 5
 
 	b.Assert(errors, qt.HasLen, 2)
 	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:1:1": "/layouts/_default/_markup/render-heading.html:2:5": execute of template failed`))
-
 }
 
 func TestErrorRenderHookCodeblock(t *testing.T) {
@@ -524,7 +519,6 @@ line 5
 	b.Assert(errors, qt.HasLen, 2)
 	first := errors[0]
 	b.Assert(first.Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:7:1": "/layouts/_default/_markup/render-codeblock-foo.html:2:5": execute of template failed`))
-
 }
 
 func TestErrorInBaseTemplate(t *testing.T) {
@@ -574,7 +568,6 @@ toc line 4
 
 		b.Assert(err, qt.IsNotNil)
 		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/baseof.html:4:6"`))
-
 	})
 
 	t.Run("index template", func(t *testing.T) {
@@ -589,7 +582,6 @@ toc line 4
 
 		b.Assert(err, qt.IsNotNil)
 		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/index.html:3:7"`))
-
 	})
 
 	t.Run("partial from define", func(t *testing.T) {
@@ -605,9 +597,7 @@ toc line 4
 		b.Assert(err, qt.IsNotNil)
 		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/index.html:7:8": execute of template failed`))
 		b.Assert(err.Error(), qt.Contains, `execute of template failed: template: partials/toc.html:2:8: executing "partials/toc.html"`)
-
 	})
-
 }
 
 // https://github.com/gohugoio/hugo/issues/5375

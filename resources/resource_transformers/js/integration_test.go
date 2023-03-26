@@ -257,7 +257,6 @@ JS Content:{{ $js.Content }}:End:
 		b.Assert(err, qt.IsNotNil)
 		b.Assert(err.Error(), qt.Contains, `util1.js:4:17": No matching export in`)
 	})
-
 }
 
 // See issue 10527.
@@ -301,7 +300,6 @@ IMPORT_SRC_DIR:imp3/foo.ts
 			b.AssertFileContent("public/js/main.js", expected)
 		})
 	}
-
 }
 
 // See https://github.com/evanw/esbuild/issues/2745
@@ -342,5 +340,4 @@ License util2
 Main license
 	
 	`)
-
 }

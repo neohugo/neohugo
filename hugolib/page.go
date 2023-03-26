@@ -594,7 +594,6 @@ func (p *pageState) wrapError(err error) error {
 	}
 
 	return herrors.NewFileErrorFromFile(err, filename, p.s.SourceSpec.Fs.Source, herrors.NopLineMatcher)
-
 }
 
 func (p *pageState) getContentConverter() converter.Converter {

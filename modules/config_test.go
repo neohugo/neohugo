@@ -65,11 +65,11 @@ import (
 //lang="en"
 //`
 
-//hugoWorkFilename := filepath.Join(tempDir, "hugo.work")
-//f, _ := os.Create(hugoWorkFilename)
-//f.Close()
-//cfg, err := config.FromConfigString(fmt.Sprintf(tomlConfig, tempDir), "toml")
-//c.Assert(err, qt.IsNil)
+// hugoWorkFilename := filepath.Join(tempDir, "hugo.work")
+// f, _ := os.Create(hugoWorkFilename)
+// f.Close()
+// cfg, err := config.FromConfigString(fmt.Sprintf(tomlConfig, tempDir), "toml")
+// c.Assert(err, qt.IsNil)
 
 // mcfg, err := DecodeConfig(cfg)
 // c.Assert(err, qt.IsNil)
@@ -86,15 +86,15 @@ import (
 //c.Assert(hv.IsValid(), qt.Equals, true)
 //}
 
-//c.Assert(mcfg.Workspace, qt.Equals, hugoWorkFilename)
+// c.Assert(mcfg.Workspace, qt.Equals, hugoWorkFilename)
 
-//c.Assert(len(mcfg.Mounts), qt.Equals, 1)
-//c.Assert(len(mcfg.Imports), qt.Equals, 1)
-//imp := mcfg.Imports[0]
-//imp.Path = "github.com/bep/mycomponent"
-//c.Assert(imp.Mounts[1].Source, qt.Equals, "src/markdown/blog")
-//c.Assert(imp.Mounts[1].Target, qt.Equals, "content/blog")
-//c.Assert(imp.Mounts[1].Lang, qt.Equals, "en")
+// c.Assert(len(mcfg.Mounts), qt.Equals, 1)
+// c.Assert(len(mcfg.Imports), qt.Equals, 1)
+// imp := mcfg.Imports[0]
+// imp.Path = "github.com/bep/mycomponent"
+// c.Assert(imp.Mounts[1].Source, qt.Equals, "src/markdown/blog")
+// c.Assert(imp.Mounts[1].Target, qt.Equals, "content/blog")
+// c.Assert(imp.Mounts[1].Lang, qt.Equals, "en")
 
 //})
 

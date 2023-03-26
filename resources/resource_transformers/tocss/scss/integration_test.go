@@ -244,9 +244,7 @@ T1: {{ $r.Content }}
 		b.Assert(fe.ErrorContext(), qt.IsNotNil)
 		b.Assert(fe.ErrorContext().Lines, qt.DeepEquals, []string{"/* comment line 1 */", "$foocolor #ccc;", "", "foo {"})
 		b.Assert(fe.ErrorContext().ChromaLexer, qt.Equals, "scss")
-
 	})
-
 }
 
 func TestOptionVars(t *testing.T) {

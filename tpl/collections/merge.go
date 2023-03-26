@@ -14,14 +14,13 @@
 package collections
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hreflect"
 	"github.com/neohugo/neohugo/common/maps"
-
-	"errors"
 )
 
 // Merge creates a copy of the final parameter in params and merges the preceding

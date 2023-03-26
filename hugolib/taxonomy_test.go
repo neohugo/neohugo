@@ -695,7 +695,6 @@ abcdefgs: {{ template "print-page" $abcdefgs }}|IsAncestor: {{ $abcdefgs.IsAnces
 }
 
 func TestTaxonomiesWeightSort(t *testing.T) {
-
 	files := `
 -- layouts/index.html --
 {{ $a := site.GetPage "tags/a"}}

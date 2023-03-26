@@ -20,7 +20,6 @@ import (
 )
 
 func TestGetResourceHead(t *testing.T) {
-
 	files := `
 -- config.toml --
 [security]
@@ -55,5 +54,4 @@ func TestGetResourceHead(t *testing.T) {
 		"Head Content: .",
 		"Head Data: map[ContentLength:18210 ContentType:image/png Status:200 OK StatusCode:200 TransferEncoding:[]]",
 	)
-
 }

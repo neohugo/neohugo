@@ -14,6 +14,7 @@
 package hugofs
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -22,8 +23,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/loggers"
-
-	"errors"
 
 	"github.com/spf13/afero"
 )

@@ -54,7 +54,6 @@ func (f ContentFactory) ApplyArchetypeFilename(w io.Writer, p page.Page, archety
 	templateSource, err := afero.ReadFile(f.h.SourceFilesystems.Archetypes.Fs, archetypeFilename)
 	if err != nil {
 		return fmt.Errorf("failed to read archetype file %q: %s: %w", archetypeFilename, err, err)
-
 	}
 
 	return f.ApplyArchetypeTemplate(w, p, archetypeKind, string(templateSource))
