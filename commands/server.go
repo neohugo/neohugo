@@ -439,6 +439,7 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, net.Listener, string
 						file, err := fs.Open(strings.TrimPrefix(redirect.To, u.Path))
 						if err == nil {
 							defer file.Close()
+							// nolint
 							io.Copy(w, file)
 						} else {
 							fmt.Fprintln(w, "<h1>Page Not Found</h1>")
@@ -446,6 +447,7 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, net.Listener, string
 						return
 					case 200:
 						if r2 := f.rewriteRequest(r, strings.TrimPrefix(redirect.To, u.Path)); r2 != nil {
+							// nolint
 							requestURI = redirect.To
 							r = r2
 						}

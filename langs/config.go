@@ -122,6 +122,7 @@ func LoadLanguageSettings(cfg config.Provider, oldLangs Languages) (c LanguagesC
 	c.DefaultContentLanguageInSubdir = c.Multihost
 
 	sortedDefaultFirst := make(Languages, len(c.Languages))
+	// nolint
 	for i, v := range c.Languages {
 		sortedDefaultFirst[i] = v
 	}

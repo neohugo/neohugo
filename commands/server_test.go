@@ -255,9 +255,9 @@ baseURL="https://example.org"
 }
 
 type serverTestResult struct {
-	err            error
-	homesContent   []string
-	content404     string
+	err          error
+	homesContent []string
+	//	content404     string
 	publicDirnames map[string]bool
 	pathsResults   map[string]pathResult
 }

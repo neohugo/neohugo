@@ -96,14 +96,14 @@ func (g globDecorator) Match(s string) bool {
 	return g.g.Match(s)
 }
 
-type globDecoratorDouble struct {
-	lowerCase    glob.Glob
-	originalCase glob.Glob
-}
+//type globDecoratorDouble struct {
+//lowerCase    glob.Glob
+//originalCase glob.Glob
+//}
 
-func (g globDecoratorDouble) Match(s string) bool {
-	return g.lowerCase.Match(s) || g.originalCase.Match(s)
-}
+//func (g globDecoratorDouble) Match(s string) bool {
+//return g.lowerCase.Match(s) || g.originalCase.Match(s)
+//}
 
 func GetGlob(pattern string) (glob.Glob, error) {
 	return defaultGlobCache.GetGlob(pattern)

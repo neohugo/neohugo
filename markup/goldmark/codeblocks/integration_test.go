@@ -372,7 +372,8 @@ Common
 			t.Parallel()
 			b := hugolib.NewIntegrationTestBuilder(
 				hugolib.IntegrationTestConfig{
-					T:           t,
+					T: t,
+					// nolint
 					TxtarString: strings.ReplaceAll(files, "BLOCK", test.markdown),
 				},
 			).Build()

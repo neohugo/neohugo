@@ -66,6 +66,7 @@ func ToPages(seq any) (Pages, error) {
 		return v.Pages, nil
 	case []Page:
 		pages := make(Pages, len(v))
+		// nolint
 		for i, vv := range v {
 			pages[i] = vv
 		}

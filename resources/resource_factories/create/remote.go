@@ -258,21 +258,21 @@ func addUserProvidedHeaders(headers map[string]any, req *http.Request) {
 	}
 }
 
-func hasHeaderValue(m http.Header, key, value string) bool {
-	var s []string
-	var ok bool
+//func hasHeaderValue(m http.Header, key, value string) bool {
+//var s []string
+//var ok bool
 
-	if s, ok = m[key]; !ok {
-		return false
-	}
+//if s, ok = m[key]; !ok {
+//return false
+//}
 
-	for _, v := range s {
-		if v == value {
-			return true
-		}
-	}
-	return false
-}
+//for _, v := range s {
+//if v == value {
+//return true
+//}
+//}
+//return false
+//}
 
 func hasHeaderKey(m http.Header, key string) bool {
 	_, ok := m[key]

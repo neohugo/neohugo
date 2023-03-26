@@ -812,7 +812,7 @@ type filesystemsCollector struct {
 	// Set if in multihost mode
 	staticPerLanguage map[string]*overlayfs.OverlayFs
 
-	finalizerInit sync.Once
+	// finalizerInit sync.Once
 }
 
 func (c *filesystemsCollector) addDirs(rfs *hugofs.RootMappingFs) {
@@ -829,12 +829,12 @@ func (c *filesystemsCollector) addDir(rfs *hugofs.RootMappingFs, componentFolder
 	}
 }
 
-func (c *filesystemsCollector) reverseFis(fis []hugofs.FileMetaInfo) {
-	for i := len(fis)/2 - 1; i >= 0; i-- {
-		opp := len(fis) - 1 - i
-		fis[i], fis[opp] = fis[opp], fis[i]
-	}
-}
+//func (c *filesystemsCollector) reverseFis(fis []hugofs.FileMetaInfo) {
+//for i := len(fis)/2 - 1; i >= 0; i-- {
+//opp := len(fis) - 1 - i
+//fis[i], fis[opp] = fis[opp], fis[i]
+//}
+//}
 
 type mountsDescriptor struct {
 	modules.Module

@@ -48,9 +48,6 @@ type Cache struct {
 	// 0 is effectively turning this cache off.
 	maxAge time.Duration
 
-	// Number of retries on create error.
-	retries int
-
 	// When set, we just remove this entire root directory on expiration.
 	pruneAllRootDir string
 

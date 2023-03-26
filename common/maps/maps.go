@@ -175,6 +175,7 @@ func (KeyRenamer) keyPath(k1, k2 string) string {
 func (r KeyRenamer) renamePath(parentKeyPath string, m map[string]any) {
 	for key, val := range m {
 		keyPath := r.keyPath(parentKeyPath, key)
+		// nolint
 		switch val.(type) {
 		case map[any]any:
 			val = cast.ToStringMap(val)

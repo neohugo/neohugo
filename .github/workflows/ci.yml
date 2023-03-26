@@ -9,6 +9,10 @@ env:
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
+  DART_SASS_VERSION: 1.56.2
+  DART_SASS_SHA_LINUX: 9e4f455f7b8619959d7878af2862383be58392eb963a14ff87cc512c03701e2a
+  DART_SASS_SHA_MACOS: 5992e979e2c30ec363f8e338822bb2b4443c74232b3340501a76180f5652cb09
+  DART_SASS_SHA_WINDOWS: 8d3d9117c54840e3e6a4919e43acf75ea52f28a64fc87a8e29d80ec72ee36cfb
 
 jobs:
   build:
@@ -17,7 +21,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: [ '1.18' ]
+        go: [ '1.21' ]
     steps:
       - name: Setup Go
         uses: actions/setup-go@v2
@@ -77,23 +81,25 @@ jobs:
       - if: matrix.os == 'ubuntu-latest'
         name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO  https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-linux-x64.tar.gz;
-          echo "0bdfa8066f335f4fb1ad239101ae1dcaab51b2c0c4b8c60699f476f6b59586a7  sass_embedded-1.49.7-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.49.7-linux-x64.tar.gz;
+          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${DART_SASS_VERSION}/sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX}  sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - if: matrix.os == 'macos-latest'
         name: Install dart-sass-embedded MacOS
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-macos-x64.tar.gz;
-          echo "75ffb0875d9081f7f73f744fde1c7007713872a967d43f7332cf5040e73d40da  sass_embedded-1.49.7-macos-x64.tar.gz" | shasum -a 256 -c;
-          tar -xvf sass_embedded-1.49.7-macos-x64.tar.gz;
+          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${DART_SASS_VERSION}/sass_embedded-${DART_SASS_VERSION}-macos-x64.tar.gz";
+          echo "${DART_SASS_SHA_MACOS}  sass_embedded-${DART_SASS_VERSION}-macos-x64.tar.gz" | shasum -a 256 -c;
+          tar -xvf "sass_embedded-${DART_SASS_VERSION}-macos-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - if: matrix.os == 'windows-latest'
         name: Install dart-sass-embedded Windows
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-windows-x64.zip;
-          echo "6ae442129dbb3334bc21ef851261da6c0c1b560da790ca2e1350871d00ab816d  sass_embedded-1.0.0-beta.6-windows-x64.zip" | sha256sum -c;
-          unzip sass_embedded-1.0.0-beta.6-windows-x64.zip;
+          echo "Install Dart Sass version ${env:DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${env:DART_SASS_VERSION}/sass_embedded-${env:DART_SASS_VERSION}-windows-x64.zip";
+          Expand-Archive -Path "sass_embedded-${env:DART_SASS_VERSION}-windows-x64.zip" -DestinationPath .;
           echo  "$env:GITHUB_WORKSPACE/sass_embedded/" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf-8 -Append
       - name: Run mage tests
         run: |
