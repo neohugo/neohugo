@@ -21,10 +21,10 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: [ '1.20' ]
+        go: [ '1.21' ]
     steps:
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
       - name: Setup Ruby
@@ -32,13 +32,13 @@ jobs:
         with:
           ruby-version: '2.7'
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
       - name: Install asciidoctor
         uses: reitzig/actions-asciidoctor@v2.0.0
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Go environment
         shell: bash
         run: |
@@ -50,7 +50,7 @@ jobs:
         run: |
           go install mvdan.cc/gofumpt@latest
           go install github.com/magefile/mage@latest
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: cache
         with:
           path: ~/go/pkg/mod
@@ -115,9 +115,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.18
+          go-version: 1.21
       - name: Setup gotip
         run: |
           go install golang.org/dl/gotip@latest
@@ -127,13 +127,13 @@ jobs:
         with:
           ruby-version: '2.7'
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
           python-version: '3.x'
       - name: Install asciidoctor
         uses: reitzig/actions-asciidoctor@v2.0.0
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Go environment
         shell: bash
         run: |
@@ -146,7 +146,7 @@ jobs:
         run: |
           go install mvdan.cc/gofumpt@latest
           go install github.com/magefile/mage@latest
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: cache
         with:
           path: ~/go/pkg/mod
@@ -191,7 +191,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx
