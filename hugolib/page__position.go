@@ -14,6 +14,8 @@
 package hugolib
 
 import (
+	"context"
+
 	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/resources/page"
 )
@@ -33,16 +35,14 @@ type nextPrev struct {
 }
 
 func (n *nextPrev) next() page.Page {
-	// TODO may check error
 	//nolint
-	n.init.Do()
+	n.init.Do(context.Background())
 	return n.nextPage
 }
 
 func (n *nextPrev) prev() page.Page {
-	// TODO may check error
 	//nolint
-	n.init.Do()
+	n.init.Do(context.Background())
 	return n.prevPage
 }
 

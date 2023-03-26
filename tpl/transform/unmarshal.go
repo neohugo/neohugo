@@ -16,7 +16,7 @@ package transform
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	"github.com/neohugo/neohugo/resources/resource"
@@ -82,7 +82,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 			}
 			defer reader.Close()
 
-			b, err := ioutil.ReadAll(reader)
+			b, err := io.ReadAll(reader)
 			if err != nil {
 				return nil, err
 			}

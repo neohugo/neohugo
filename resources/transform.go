@@ -15,6 +15,7 @@ package resources
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"image"
 	"io"
@@ -68,6 +69,7 @@ func newResourceAdapter(spec *Spec, lazyPublish bool, target transformableResour
 	return &resourceAdapter{
 		resourceTransformations: &resourceTransformations{},
 		resourceAdapterInner: &resourceAdapterInner{
+			ctx:         context.TODO(),
 			spec:        spec,
 			publishOnce: po,
 			target:      target,
@@ -83,6 +85,9 @@ type ResourceTransformation interface {
 }
 
 type ResourceTransformationCtx struct {
+	// The context that started the transformation.
+	Ctx context.Context
+
 	// The content to transform.
 	From io.Reader
 
@@ -159,12 +164,12 @@ type resourceAdapter struct {
 	*resourceAdapterInner
 }
 
-func (r *resourceAdapter) Content() (any, error) {
+func (r *resourceAdapter) Content(ctx context.Context) (any, error) {
 	r.init(false, true)
 	if r.transformationsErr != nil {
 		return nil, r.transformationsErr
 	}
-	return r.target.Content()
+	return r.target.Content(ctx)
 }
 
 func (r *resourceAdapter) Err() resource.ResourceError {
@@ -179,6 +184,7 @@ func (r *resourceAdapter) Data() any {
 func (r resourceAdapter) cloneTo(targetPath string) resource.Resource {
 	newtTarget := r.target.cloneTo(targetPath)
 	newInner := &resourceAdapterInner{
+		ctx:    r.ctx,
 		spec:   r.spec,
 		target: newtTarget.(transformableResource),
 	}
@@ -277,11 +283,16 @@ func (r *resourceAdapter) Title() string {
 }
 
 func (r resourceAdapter) Transform(t ...ResourceTransformation) (ResourceTransformer, error) {
+	return r.TransformWithContext(context.Background(), t...)
+}
+
+func (r resourceAdapter) TransformWithContext(ctx context.Context, t ...ResourceTransformation) (ResourceTransformer, error) {
 	r.resourceTransformations = &resourceTransformations{
 		transformations: append(r.transformations, t...),
 	}
 
 	r.resourceAdapterInner = &resourceAdapterInner{
+		ctx:         ctx,
 		spec:        r.spec,
 		publishOnce: &publishOnce{},
 		target:      r.target,
@@ -376,6 +387,7 @@ func (r *resourceAdapter) transform(publish, setContent bool) error {
 	defer bp.PutBuffer(b2)
 
 	tctx := &ResourceTransformationCtx{
+		Ctx:                   r.ctx,
 		Data:                  make(map[string]any),
 		OpenResourcePublisher: r.target.openPublishFileForWriting,
 	}
@@ -597,6 +609,9 @@ func (r *resourceAdapter) initTransform(publish, setContent bool) {
 }
 
 type resourceAdapterInner struct {
+	// The context that started this transformation.
+	ctx context.Context
+
 	target transformableResource
 
 	spec *Spec

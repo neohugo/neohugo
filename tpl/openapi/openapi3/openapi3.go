@@ -17,7 +17,7 @@ package openapi3
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	gyaml "github.com/ghodss/yaml"
 
@@ -73,7 +73,7 @@ func (ns *Namespace) Unmarshal(r resource.UnmarshableResource) (*OpenAPIDocument
 		}
 		defer reader.Close()
 
-		b, err := ioutil.ReadAll(reader)
+		b, err := io.ReadAll(reader)
 		if err != nil {
 			return nil, err
 		}

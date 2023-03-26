@@ -23,16 +23,14 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/neohugo"
 
-	"github.com/mitchellh/hashstructure"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/spf13/afero"
 
@@ -533,21 +531,4 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 	}
 
 	return nil
-}
-
-// HashString returns a hash from the given elements.
-// It will panic if the hash cannot be calculated.
-func HashString(elements ...any) string {
-	var o any
-	if len(elements) == 1 {
-		o = elements[0]
-	} else {
-		o = elements
-	}
-
-	hash, err := hashstructure.Hash(o, nil)
-	if err != nil {
-		panic(err)
-	}
-	return strconv.FormatUint(hash, 10)
 }

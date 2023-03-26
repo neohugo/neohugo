@@ -14,6 +14,7 @@
 package commands
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -26,7 +27,6 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/htesting"
-	"golang.org/x/net/context"
 	"golang.org/x/sync/errgroup"
 
 	qt "github.com/frankban/quicktest"
@@ -206,7 +206,7 @@ func TestServerBugs(t *testing.T) {
 			c.Assert(r.err, qt.IsNil)
 			c.Assert(r.homesContent[0], qt.Contains, "PostProcess: /foo.min.css")
 		}},
-		// Isue 9901
+		// Issue 9901
 		{"Multihost", `
 defaultContentLanguage = 'en'
 [languages]

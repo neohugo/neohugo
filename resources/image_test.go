@@ -14,10 +14,11 @@
 package resources
 
 import (
+	"context"
 	"fmt"
 	"image"
 	"image/gif"
-	"io/ioutil"
+	"io/fs"
 	"math/big"
 	"math/rand"
 	"os"
@@ -54,6 +55,14 @@ var eq = qt.CmpEquals(
 		return p1.resourceAdapterInner == p2.resourceAdapterInner
 	}),
 	cmp.Comparer(func(p1, p2 os.FileInfo) bool {
+		return p1.Name() == p2.Name() && p1.Size() == p2.Size() && p1.IsDir() == p2.IsDir()
+	}),
+	cmp.Comparer(func(d1, d2 fs.DirEntry) bool {
+		p1, err1 := d1.Info()
+		p2, err2 := d2.Info()
+		if err1 != nil || err2 != nil {
+			return false
+		}
 		return p1.Name() == p2.Name() && p1.Size() == p2.Size() && p1.IsDir() == p2.IsDir()
 	}),
 	cmp.Comparer(func(p1, p2 *genericResource) bool { return p1 == p2 }),
@@ -432,7 +441,7 @@ func TestSVGImageContent(t *testing.T) {
 	svg := fetchResourceForSpec(spec, c, "circle.svg")
 	c.Assert(svg, qt.Not(qt.IsNil))
 
-	content, err := svg.Content()
+	content, err := svg.Content(context.Background())
 	c.Assert(err, qt.IsNil)
 	c.Assert(content, hqt.IsSameType, "")
 	c.Assert(content.(string), qt.Contains, `<svg height="100" width="100">`)
@@ -742,9 +751,9 @@ func TestImageOperationsGolden(t *testing.T) {
 
 func assetGoldenDirs(c *qt.C, dir1, dir2 string) {
 	// The two dirs above should now be the same.
-	dirinfos1, err := ioutil.ReadDir(dir1)
+	dirinfos1, err := os.ReadDir(dir1)
 	c.Assert(err, qt.IsNil)
-	dirinfos2, err := ioutil.ReadDir(dir2)
+	dirinfos2, err := os.ReadDir(dir2)
 	c.Assert(err, qt.IsNil)
 	c.Assert(len(dirinfos1), qt.Equals, len(dirinfos2))
 

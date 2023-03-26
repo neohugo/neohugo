@@ -15,6 +15,8 @@
 package neohugo
 
 import (
+	"context"
+
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/tpl/internal"
 )
@@ -27,7 +29,7 @@ func init() {
 
 		ns := &internal.TemplateFuncsNamespace{
 			Name:    name,
-			Context: func(args ...any) (any, error) { return h, nil },
+			Context: func(cctx context.Context, args ...any) (any, error) { return h, nil },
 		}
 
 		// We just add the Hugo struct as the namespace here. No method mappings.

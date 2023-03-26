@@ -1,6 +1,7 @@
 package deps
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/helpers"
@@ -69,7 +71,7 @@ type Deps struct {
 	FileCaches filecache.Caches
 
 	// The translation func to use
-	Translate func(translationID string, templateData any) string `json:"-"`
+	Translate func(ctx context.Context, translationID string, templateData any) string `json:"-"`
 
 	// The language in use. TODO(bep) consolidate with site
 	Language *langs.Language
@@ -297,11 +299,14 @@ func New(cfg DepsCfg) (*Deps, error) {
 
 	sp := source.NewSourceSpec(ps, nil, fs.Source)
 
-	timeoutms := cfg.Language.GetInt("timeout")
-	if timeoutms <= 0 {
-		timeoutms = 3000
+	timeout := 30 * time.Second
+	if cfg.Cfg.IsSet("timeout") {
+		v := cfg.Cfg.Get("timeout")
+		d, err := types.ToDurationE(v)
+		if err == nil {
+			timeout = d
+		}
 	}
-
 	ignoreErrors := cast.ToStringSlice(cfg.Cfg.Get("ignoreErrors"))
 	ignorableLogger := loggers.NewIgnorableLogger(logger, ignoreErrors...)
 
@@ -328,7 +333,7 @@ func New(cfg DepsCfg) (*Deps, error) {
 		BuildClosers:            &Closers{},
 		BuildState:              buildState,
 		Running:                 cfg.Running,
-		Timeout:                 time.Duration(timeoutms) * time.Millisecond,
+		Timeout:                 timeout,
 		globalErrHandler:        errorHandler,
 	}
 

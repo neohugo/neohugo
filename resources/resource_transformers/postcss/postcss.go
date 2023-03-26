@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -363,7 +362,9 @@ func (imp *importResolver) importRecursive(
 }
 
 func (imp *importResolver) resolve() (io.Reader, error) {
-	content, err := ioutil.ReadAll(imp.r)
+	const importIdentifier = "@import"
+
+	content, err := io.ReadAll(imp.r)
 	if err != nil {
 		return nil, err
 	}
@@ -437,5 +438,4 @@ func (imp *importResolver) toFileError(output string) error {
 	return ferr.UpdatePosition(pos).UpdateContent(f, nil)
 
 	// return herrors.NewFileErrorFromFile(inErr, file.Filename, realFilename, hugofs.Os, herrors.SimpleLineMatcher)
-
 }

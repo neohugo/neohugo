@@ -14,6 +14,7 @@
 package hugolib
 
 import (
+	"context"
 	"html/template"
 	"strings"
 
@@ -122,7 +123,7 @@ func newPageFromMeta(
 		return nil, err
 	}
 
-	ps.init.Add(func() (any, error) {
+	ps.init.Add(func(context.Context) (any, error) {
 		pp, err := newPagePaths(metaProvider.s, ps, metaProvider)
 		if err != nil {
 			return nil, err

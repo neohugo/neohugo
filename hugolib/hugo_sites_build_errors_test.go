@@ -388,7 +388,7 @@ line 4
 	b.Assert(errors[3].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
 }
 
-func TestErrorNestedShortocde(t *testing.T) {
+func TestErrorNestedShortcode(t *testing.T) {
 	t.Parallel()
 
 	files := `

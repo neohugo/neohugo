@@ -15,6 +15,7 @@ package hugolib
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -24,8 +25,10 @@ import (
 	"go.uber.org/atomic"
 
 	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/related"
 
 	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/tpl"
 
@@ -59,9 +62,8 @@ var (
 var (
 	pageTypesProvider = resource.NewResourceTypesProvider(media.OctetType, pageResourceType)
 	nopPageOutput     = &pageOutput{
-		pagePerOutputProviders:  nopPagePerOutput,
-		ContentProvider:         page.NopPage,
-		TableOfContentsProvider: page.NopPage,
+		pagePerOutputProviders: nopPagePerOutput,
+		ContentProvider:        page.NopPage,
 	}
 )
 
@@ -146,6 +148,35 @@ func (p *pageState) Eq(other any) bool {
 
 func (p *pageState) GetIdentity() identity.Identity {
 	return identity.NewPathIdentity(files.ComponentFolderContent, filepath.FromSlash(p.Pathc()))
+}
+
+func (p *pageState) HeadingsFiltered(context.Context) tableofcontents.Headings {
+	return nil
+}
+
+type pageHeadingsFiltered struct {
+	*pageState
+	headings tableofcontents.Headings
+}
+
+func (p *pageHeadingsFiltered) HeadingsFiltered(context.Context) tableofcontents.Headings {
+	return p.headings
+}
+
+func (p *pageHeadingsFiltered) page() page.Page {
+	return p.pageState
+}
+
+// For internal use by the related content feature.
+func (p *pageState) ApplyFilterToHeadings(ctx context.Context, fn func(*tableofcontents.Heading) bool) related.Document {
+	if p.pageOutput.cp.tableOfContents == nil {
+		return p
+	}
+	headings := p.pageOutput.cp.tableOfContents.Headings.FilterBy(fn)
+	return &pageHeadingsFiltered{
+		pageState: p,
+		headings:  headings,
+	}
 }
 
 func (p *pageState) GitInfo() source.GitInfo {
@@ -353,9 +384,8 @@ func (p *pageState) String() string {
 // IsTranslated returns whether this content file is translated to
 // other language(s).
 func (p *pageState) IsTranslated() bool {
-	// TODO may check error
 	//nolint
-	p.s.h.init.translations.Do()
+	p.s.h.init.translations.Do(context.Background())
 	return len(p.translations) > 0
 }
 
@@ -379,17 +409,15 @@ func (p *pageState) TranslationKey() string {
 
 // AllTranslations returns all translations, including the current Page.
 func (p *pageState) AllTranslations() page.Pages {
-	// TODO may check error
 	//nolint
-	p.s.h.init.translations.Do()
+	p.s.h.init.translations.Do(context.Background())
 	return p.allTranslations
 }
 
 // Translations returns the translations excluding the current Page.
 func (p *pageState) Translations() page.Pages {
-	// TODO may check error
 	//nolint
-	p.s.h.init.translations.Do()
+	p.s.h.init.translations.Do(context.Background())
 	return p.translations
 }
 
@@ -469,7 +497,7 @@ func (p *pageState) initOutputFormat(isRenderingSite bool, idx int) error {
 
 // Must be run after the site section tree etc. is built and ready.
 func (p *pageState) initPage() error {
-	if _, err := p.init.Do(); err != nil {
+	if _, err := p.init.Do(context.Background()); err != nil {
 		return err
 	}
 	return nil
@@ -917,8 +945,8 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 			})
 			p.pageOutput.contentRenderer = lcp
 			p.pageOutput.ContentProvider = lcp
-			p.pageOutput.TableOfContentsProvider = lcp
 			p.pageOutput.PageRenderProvider = lcp
+			p.pageOutput.TableOfContentsProvider = lcp
 		}
 	}
 

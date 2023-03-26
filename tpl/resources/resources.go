@@ -15,12 +15,10 @@
 package resources
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
-
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
 
 	"github.com/neohugo/neohugo/common/maps"
 
@@ -28,10 +26,11 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/postpub"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/resources"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
 
 	"github.com/neohugo/neohugo/resources/resource_factories/bundler"
 	"github.com/neohugo/neohugo/resources/resource_factories/create"
@@ -221,7 +220,6 @@ func (ns *Namespace) ByType(typ any) resource.Resources {
 //
 // See Match for a more complete explanation about the rules used.
 func (ns *Namespace) Match(pattern any) resource.Resources {
-	defer herrors.Recover()
 	patternStr, err := cast.ToStringE(pattern)
 	if err != nil {
 		panic(err)
@@ -277,7 +275,7 @@ func (ns *Namespace) FromString(targetPathIn, contentIn any) (resource.Resource,
 
 // ExecuteAsTemplate creates a Resource from a Go template, parsed and executed with
 // the given data, and published to the relative target path.
-func (ns *Namespace) ExecuteAsTemplate(args ...any) (resource.Resource, error) {
+func (ns *Namespace) ExecuteAsTemplate(ctx context.Context, args ...any) (resource.Resource, error) {
 	if len(args) != 3 {
 		return nil, fmt.Errorf("must provide targetPath, the template data context and a Resource object")
 	}
@@ -292,7 +290,7 @@ func (ns *Namespace) ExecuteAsTemplate(args ...any) (resource.Resource, error) {
 		return nil, fmt.Errorf("type %T not supported in Resource transformations", args[2])
 	}
 
-	return ns.templatesClient.ExecuteAsTemplate(r, targetPath, data)
+	return ns.templatesClient.ExecuteAsTemplate(ctx, r, targetPath, data)
 }
 
 // Fingerprint transforms the given Resource with a MD5 hash of the content in

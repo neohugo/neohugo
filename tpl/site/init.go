@@ -15,6 +15,8 @@
 package site
 
 import (
+	"context"
+
 	"github.com/neohugo/neohugo/deps"
 
 	"github.com/neohugo/neohugo/tpl/internal"
@@ -27,7 +29,7 @@ func init() {
 		s := d.Site
 		ns := &internal.TemplateFuncsNamespace{
 			Name:    name,
-			Context: func(args ...any) (any, error) { return s, nil },
+			Context: func(cctx context.Context, args ...any) (any, error) { return s, nil },
 		}
 
 		if s == nil {

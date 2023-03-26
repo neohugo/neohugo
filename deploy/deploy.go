@@ -25,7 +25,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"os"
 	"path/filepath"
@@ -65,6 +64,7 @@ type Deployer struct {
 	force         bool             // true forces upload of all files
 	invalidateCDN bool             // true enables invalidate CDN cache (if possible)
 	maxDeletes    int              // caps the # of files to delete; -1 to disable
+	workers       int              // The number of workers to transfer files
 
 	// For tests...
 	summary deploySummary // summary of latest Deploy results
@@ -118,6 +118,7 @@ func New(cfg config.Provider, localFs afero.Fs) (*Deployer, error) {
 		force:         cfg.GetBool("force"),
 		invalidateCDN: cfg.GetBool("invalidateCDN"),
 		maxDeletes:    cfg.GetInt("maxDeletes"),
+		workers:       cfg.GetInt("workers"),
 	}, nil
 }
 
@@ -189,7 +190,10 @@ func (d *Deployer) Deploy(ctx context.Context) error {
 	// Apply the changes in parallel, using an inverted worker
 	// pool (https://www.youtube.com/watch?v=5zXAHh5tJqQ&t=26m58s).
 	// sem prevents more than nParallel concurrent goroutines.
-	const nParallel = 10
+	if d.workers <= 0 {
+		d.workers = 10
+	}
+	nParallel := d.workers
 	var errs []error
 	var errMu sync.Mutex // protects errs
 
@@ -402,7 +406,7 @@ func (lf *localFile) Reader() (io.ReadCloser, error) {
 		// We've got the gzipped contents cached in gzipped.
 		// Note: we can't use lf.gzipped directly as a Reader, since we it discards
 		// data after it is read, and we may read it more than once.
-		return ioutil.NopCloser(bytes.NewReader(lf.gzipped.Bytes())), nil
+		return io.NopCloser(bytes.NewReader(lf.gzipped.Bytes())), nil
 	}
 	// Not expected to fail since we did it successfully earlier in newLocalFile,
 	// but could happen due to changes in the underlying filesystem.
