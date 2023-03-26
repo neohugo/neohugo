@@ -27,10 +27,11 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
-      - name: Setup Ruby
-        uses: actions/setup-ruby@v1
+      - name: Install Ruby
+        uses: ruby/setup-ruby@ee2113536afb7f793eed4ce60e8d3b26db912da4
         with:
-          ruby-version: '2.7'
+          ruby-version: '2.7' 
+          bundler-cache: true #
       - name: Setup Python
         uses: actions/setup-python@v4
         with:
