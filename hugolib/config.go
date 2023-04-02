@@ -14,13 +14,11 @@
 package hugolib
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -35,7 +33,10 @@ import (
 
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
+	"errors"
+
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/modules"
 
@@ -241,6 +242,7 @@ func (l configLoader) applyConfigDefaults() error {
 		"watch":                                false,
 		"resourceDir":                          "resources",
 		"publishDir":                           "public",
+		"publishDirOrig":                       "public",
 		"themesDir":                            "themes",
 		"buildDrafts":                          false,
 		"buildFuture":                          false,
@@ -416,10 +418,16 @@ func (l configLoader) collectModules(modConfig modules.Config, v1 config.Provide
 	// Avoid recreating these later.
 	v1.Set("allModules", moduleConfig.ActiveModules)
 
+	// We want to watch these for changes and trigger rebuild on version
+	// changes etc.
 	if moduleConfig.GoModulesFilename != "" {
-		// We want to watch this for changes and trigger rebuild on version
-		// changes etc.
+
 		configFilenames = append(configFilenames, moduleConfig.GoModulesFilename)
+	}
+
+	if moduleConfig.GoWorkspaceFilename != "" {
+		configFilenames = append(configFilenames, moduleConfig.GoWorkspaceFilename)
+
 	}
 
 	return moduleConfig.ActiveModules, configFilenames, err

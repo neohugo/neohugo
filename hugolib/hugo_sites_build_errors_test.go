@@ -1,6 +1,7 @@
 package hugolib
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/htesting"
 )
 
 type testSiteBuildErrorAsserter struct {
@@ -44,7 +46,7 @@ func TestSiteBuildErrors(t *testing.T) {
 		single      = "single"
 	)
 
-	// TODO(bep) add content tests after https://github.com/neohugo/neohugo/issues/5324
+	// TODO(bep) add content tests after https://github.com/gohugoio/hugo/issues/5324
 	// is implemented.
 
 	tests := []struct {
@@ -54,6 +56,7 @@ func TestSiteBuildErrors(t *testing.T) {
 		assertCreateError func(a testSiteBuildErrorAsserter, err error)
 		assertBuildError  func(a testSiteBuildErrorAsserter, err error)
 	}{
+
 		{
 			name:     "Base template parse failed",
 			fileType: base,
@@ -135,6 +138,7 @@ func TestSiteBuildErrors(t *testing.T) {
 				// Make sure that it contains both the content file and template
 				a.assertErrorMessage(`"content/myyaml.md:7:10": failed to render shortcode "sc": failed to process shortcode: "layouts/shortcodes/sc.html:4:22": execute of template failed: template: shortcodes/sc.html:4:22: executing "shortcodes/sc.html" at <.Page.Titles>: can't evaluate field Titles in type page.Page`, fe.Error())
 				a.c.Assert(fe.Position().LineNumber, qt.Equals, 7)
+
 			},
 		},
 		{
@@ -187,7 +191,7 @@ foo bar
 			},
 		},
 		{
-			// See https://github.com/neohugo/neohugo/issues/5327
+			// See https://github.com/gohugoio/hugo/issues/5327
 			name:     "Panic in template Execute",
 			fileType: single,
 			fileFixer: func(content string) string {
@@ -307,6 +311,7 @@ Some content.
 			}
 		})
 	}
+
 }
 
 // Issue 9852
@@ -338,6 +343,7 @@ minify = true
 	b.Assert(fe.Error(), qt.Contains, "unexpected = in expression on line 2 and column 9")
 	b.Assert(filepath.ToSlash(fe.Position().Filename), qt.Contains, "hugo-transform-error")
 	b.Assert(os.Remove(fe.Position().Filename), qt.IsNil)
+
 }
 
 func TestErrorNestedRender(t *testing.T) {
@@ -386,9 +392,10 @@ line 4
 	b.Assert(errors[3].Position().LineNumber, qt.Equals, 3)
 	b.Assert(errors[3].Position().ColumnNumber, qt.Equals, 6)
 	b.Assert(errors[3].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
+
 }
 
-func TestErrorNestedShortocde(t *testing.T) {
+func TestErrorNestedShortcode(t *testing.T) {
 	t.Parallel()
 
 	files := `
@@ -437,6 +444,7 @@ line 4
 	b.Assert(errors[0].ErrorContext().Lines, qt.DeepEquals, []string{"", "## Hello", "{{< hello >}}", ""})
 	b.Assert(errors[1].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "12{{ partial \"foo.html\" . }}", "line 4", "line 5"})
 	b.Assert(errors[2].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
+
 }
 
 func TestErrorRenderHookHeading(t *testing.T) {
@@ -475,6 +483,7 @@ line 5
 
 	b.Assert(errors, qt.HasLen, 2)
 	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:1:1": "/layouts/_default/_markup/render-heading.html:2:5": execute of template failed`))
+
 }
 
 func TestErrorRenderHookCodeblock(t *testing.T) {
@@ -519,6 +528,7 @@ line 5
 	b.Assert(errors, qt.HasLen, 2)
 	first := errors[0]
 	b.Assert(first.Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:7:1": "/layouts/_default/_markup/render-codeblock-foo.html:2:5": execute of template failed`))
+
 }
 
 func TestErrorInBaseTemplate(t *testing.T) {
@@ -568,6 +578,7 @@ toc line 4
 
 		b.Assert(err, qt.IsNotNil)
 		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/baseof.html:4:6"`))
+
 	})
 
 	t.Run("index template", func(t *testing.T) {
@@ -582,6 +593,7 @@ toc line 4
 
 		b.Assert(err, qt.IsNotNil)
 		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/index.html:3:7"`))
+
 	})
 
 	t.Run("partial from define", func(t *testing.T) {
@@ -597,36 +609,38 @@ toc line 4
 		b.Assert(err, qt.IsNotNil)
 		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/index.html:7:8": execute of template failed`))
 		b.Assert(err.Error(), qt.Contains, `execute of template failed: template: partials/toc.html:2:8: executing "partials/toc.html"`)
+
 	})
+
 }
 
-// https://github.com/neohugo/neohugo/issues/5375
-//func TestSiteBuildTimeout(t *testing.T) {
-//if !htesting.IsCI() {
-//// defer leaktest.CheckTimeout(t, 10*time.Second)()
-//}
+// https://github.com/gohugoio/hugo/issues/5375
+func TestSiteBuildTimeout(t *testing.T) {
+	if !htesting.IsCI() {
+		//defer leaktest.CheckTimeout(t, 10*time.Second)()
+	}
 
-//b := newTestSitesBuilder(t)
-//b.WithConfigFile("toml", `
-//timeout = 5
-//`)
+	b := newTestSitesBuilder(t)
+	b.WithConfigFile("toml", `
+timeout = 5
+`)
 
-//b.WithTemplatesAdded("_default/single.html", `
-//{{ .WordCount }}
-//`, "shortcodes/c.html", `
-//{{ range .Page.Site.RegularPages }}
-//{{ .WordCount }}
-//{{ end }}
+	b.WithTemplatesAdded("_default/single.html", `
+{{ .WordCount }}
+`, "shortcodes/c.html", `
+{{ range .Page.Site.RegularPages }}
+{{ .WordCount }}
+{{ end }}
 
-//`)
+`)
 
-//for i := 1; i < 100; i++ {
-//b.WithContent(fmt.Sprintf("page%d.md", i), `---
-//title: "A page"
-//---
+	for i := 1; i < 100; i++ {
+		b.WithContent(fmt.Sprintf("page%d.md", i), `---
+title: "A page"
+---
 
-//{{< c >}}`)
-//}
+{{< c >}}`)
+	}
 
-// b.CreateSites().BuildFail(BuildCfg{})
-//}
+	b.CreateSites().BuildFail(BuildCfg{})
+}

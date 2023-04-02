@@ -22,7 +22,6 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -34,6 +33,8 @@ import (
 	"sort"
 	"strings"
 	"sync"
+
+	"errors"
 
 	"github.com/dustin/go-humanize"
 	"github.com/gobwas/glob"

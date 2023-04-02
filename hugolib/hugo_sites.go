@@ -15,7 +15,6 @@ package hugolib
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -33,6 +32,8 @@ import (
 
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/parser/metadecoders"
+
+	"errors"
 
 	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/hugofs"

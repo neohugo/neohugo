@@ -16,13 +16,14 @@ package codeblocks
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/neohugo/neohugo/common/herrors"
 	htext "github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
 	"github.com/neohugo/neohugo/markup/goldmark/internal/render"
+	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
 	"github.com/neohugo/neohugo/markup/internal/attributes"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -69,7 +70,7 @@ func (r *htmlRenderer) renderCodeBlock(w util.BufWriter, src []byte, node ast.No
 	}
 
 	n := node.(*codeBlock)
-	lang := string(n.b.Language(src))
+	lang := getLang(n.b, src)
 	renderer := ctx.RenderContext().GetRenderer(hooks.CodeBlockRendererType, lang)
 	if renderer == nil {
 		return ast.WalkStop, fmt.Errorf("no code renderer found for %q", lang)
@@ -93,7 +94,7 @@ func (r *htmlRenderer) renderCodeBlock(w util.BufWriter, src []byte, node ast.No
 	}
 
 	attrtp := attributes.AttributesOwnerCodeBlockCustom
-	if isd, ok := renderer.(hooks.IsDefaultCodeBlockRendererProvider); (ok && isd.IsDefaultCodeBlockRenderer()) || lexers.Get(lang) != nil {
+	if isd, ok := renderer.(hooks.IsDefaultCodeBlockRendererProvider); (ok && isd.IsDefaultCodeBlockRenderer()) || chromalexers.Get(lang) != nil {
 		// We say that this is a Chroma code block if it's the default code block renderer
 		// or if the language is supported by Chroma.
 		attrtp = attributes.AttributesOwnerCodeBlockChroma
@@ -174,6 +175,12 @@ func (c *codeBlockContext) Position() htext.Position {
 	return c.pos
 }
 
+func getLang(node *ast.FencedCodeBlock, src []byte) string {
+	langWithAttributes := string(node.Language(src))
+	lang, _, _ := strings.Cut(langWithAttributes, "{")
+	return lang
+}
+
 func getAttributes(node *ast.FencedCodeBlock, infostr []byte) []ast.Attribute {
 	if node.Attributes() != nil {
 		return node.Attributes()
@@ -188,7 +195,7 @@ func getAttributes(node *ast.FencedCodeBlock, infostr []byte) []ast.Attribute {
 			}
 		}
 
-		if attrStartIdx > 0 {
+		if attrStartIdx != -1 {
 			n := ast.NewTextBlock() // dummy node for storing attributes
 			attrStr := infostr[attrStartIdx:]
 			if attrs, hasAttr := parser.ParseAttributes(text.NewReader(attrStr)); hasAttr {

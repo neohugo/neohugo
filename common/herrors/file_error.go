@@ -15,7 +15,6 @@ package herrors
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"path/filepath"
@@ -27,6 +26,8 @@ import (
 	"github.com/pelletier/go-toml/v2"
 	"github.com/spf13/afero"
 	"github.com/tdewolff/parse/v2"
+
+	"errors"
 )
 
 // FileError represents an error when handling a file: Parsing a config file,

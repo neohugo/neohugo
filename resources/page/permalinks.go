@@ -14,7 +14,6 @@
 package page
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -23,6 +22,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"errors"
 
 	"github.com/neohugo/neohugo/helpers"
 )

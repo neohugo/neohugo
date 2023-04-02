@@ -23,11 +23,12 @@ import (
 	"golang.org/x/text/collate"
 	"golang.org/x/text/language"
 
-	"github.com/gohugoio/locales"
-	translators "github.com/gohugoio/localescompressed"
 	"github.com/neohugo/neohugo/common/htime"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
+
+	"github.com/gohugoio/locales"
+	translators "github.com/gohugoio/localescompressed"
 )
 
 // These are the settings that should only be looked up in the global Viper

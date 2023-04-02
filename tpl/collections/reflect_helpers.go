@@ -14,9 +14,10 @@
 package collections
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
+
+	"errors"
 
 	"github.com/mitchellh/hashstructure"
 )

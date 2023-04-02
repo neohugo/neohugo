@@ -15,11 +15,12 @@
 package lang
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
 	"strings"
+
+	"errors"
 
 	"github.com/gohugoio/locales"
 	translators "github.com/gohugoio/localescompressed"

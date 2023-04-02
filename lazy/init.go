@@ -15,10 +15,11 @@ package lazy
 
 import (
 	"context"
-	"errors"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"errors"
 )
 
 // New creates a new empty Init.

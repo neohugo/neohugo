@@ -18,7 +18,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -30,6 +29,7 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/common/collections"
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
 
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
@@ -44,6 +44,8 @@ import (
 	"github.com/rogpeppe/go-internal/module"
 
 	"github.com/neohugo/neohugo/common/hugio"
+
+	"errors"
 
 	"github.com/spf13/afero"
 )
@@ -189,7 +191,8 @@ func (c *Client) Tidy() error {
 //
 // We, by default, use the /_vendor folder first, if found. To disable,
 // run with
-//    hugo --ignoreVendorPaths=".*"
+//
+//	hugo --ignoreVendorPaths=".*"
 //
 // Given a module tree, Hugo will pick the first module for a given path,
 // meaning that if the top-level module is vendored, that will be the full
@@ -293,7 +296,7 @@ func (c *Client) Vendor() error {
 		configFiles = append(configFiles, filepath.Join(dir, "theme.toml"))
 		for _, configFile := range configFiles {
 			if err := hugio.CopyFile(c.fs, configFile, filepath.Join(vendorDir, t.Path(), filepath.Base(configFile))); err != nil {
-				if !os.IsNotExist(err) {
+				if !herrors.IsNotExist(err) {
 					return err
 				}
 			}
@@ -556,7 +559,7 @@ func (c *Client) rewriteGoModRewrite(name string, isGoMod map[string]bool) ([]by
 	b := &bytes.Buffer{}
 	f, err := c.fs.Open(filepath.Join(c.ccfg.WorkingDir, name))
 	if err != nil {
-		if os.IsNotExist(err) {
+		if herrors.IsNotExist(err) {
 			// It's been deleted.
 			return nil, nil
 		}

@@ -30,9 +30,10 @@ import (
 	"unicode/utf8"
 
 	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/mitchellh/hashstructure"
+
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/spf13/afero"
 
@@ -171,17 +172,17 @@ func ReaderToBytes(lines io.Reader) ([]byte, error) {
 }
 
 // ReaderToString is the same as ReaderToBytes, but returns a string.
-func ReaderToString(lines io.Reader) (string, error) {
+func ReaderToString(lines io.Reader) string {
 	if lines == nil {
-		return "", nil
+		return ""
 	}
 	b := bp.GetBuffer()
 	defer bp.PutBuffer(b)
 	if _, err := b.ReadFrom(lines); err != nil {
-		return "", err
+		return err.Error()
 	}
 
-	return b.String(), nil
+	return b.String()
 }
 
 // ReaderContains reports whether subslice is within r.
@@ -222,7 +223,7 @@ func ReaderContains(r io.Reader, subslice []byte) bool {
 // GetTitleFunc returns a func that can be used to transform a string to
 // title case.
 //
-// The supported styles are
+// # The supported styles are
 //
 // - "Go" (strings.Title)
 // - "AP" (see https://www.apstylebook.com/)
@@ -524,13 +525,11 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 		return nil
 	}
 
-	err := afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
+	// nolint
+	afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
 		fmt.Println(path)
 		return nil
 	})
-	if err != nil {
-		return err
-	}
 
 	return nil
 }

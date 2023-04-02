@@ -28,6 +28,7 @@ import (
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
 	"github.com/neohugo/neohugo/markup/internal/attributes"
 )
 
@@ -167,7 +168,7 @@ func (h HightlightResult) Inner() template.HTML {
 func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.Attribute, cfg Config) (int, int, error) {
 	var lexer chroma.Lexer
 	if lang != "" {
-		lexer = lexers.Get(lang)
+		lexer = chromalexers.Get(lang)
 	}
 
 	if lexer == nil && (cfg.GuessSyntax && !cfg.NoHl) {

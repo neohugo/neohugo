@@ -92,7 +92,8 @@ func (c *Client) Close() error {
 func (c *Client) toCSS(args godartsass.Args, src io.Reader) (godartsass.Result, error) {
 	var res godartsass.Result
 
-	in, _ := helpers.ReaderToString(src)
+	in := helpers.ReaderToString(src)
+
 	args.Source = in
 
 	res, err := c.transpiler.Execute(args)
@@ -126,6 +127,14 @@ type Options struct {
 
 	// When enabled, Hugo will generate a source map.
 	EnableSourceMap bool
+
+	// If enabled, sources will be embedded in the generated source map.
+	SourceMapIncludeSources bool
+
+	// Vars will be available in 'hugo:vars', e.g:
+	//     @use "hugo:vars";
+	//     $color: vars.$color;
+	Vars map[string]string
 }
 
 func decodeOptions(m map[string]any) (opts Options, err error) {

@@ -15,12 +15,13 @@
 package resources
 
 import (
-	"errors"
 	"fmt"
 	"sync"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
+
+	"errors"
 
 	"github.com/neohugo/neohugo/common/maps"
 
@@ -121,10 +122,16 @@ func (ns *Namespace) Copy(s any, r resource.Resource) (resource.Resource, error)
 // Get locates the filename given in Hugo's assets filesystem
 // and creates a Resource object that can be used for further transformations.
 func (ns *Namespace) Get(filename any) resource.Resource {
+
 	filenamestr, err := cast.ToStringE(filename)
 	if err != nil {
 		panic(err)
 	}
+
+	if filenamestr == "" {
+		return nil
+	}
+
 	r, err := ns.createClient.Get(filenamestr)
 	if err != nil {
 		panic(err)
@@ -353,8 +360,7 @@ func (ns *Namespace) ToCSS(args ...any) (resource.Resource, error) {
 	}
 
 	if m != nil {
-		maps.PrepareParams(m)
-		if t, found := m["transpiler"]; found {
+		if t, found := maps.LookupEqualFold(m, "transpiler"); found {
 			switch t {
 			case transpilerDart, transpilerLibSass:
 				transpiler = cast.ToString(t)
