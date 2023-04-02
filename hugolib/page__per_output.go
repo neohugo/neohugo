@@ -32,10 +32,10 @@ import (
 	"github.com/spf13/cast"
 
 	"github.com/neohugo/neohugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
 
 	"github.com/neohugo/neohugo/markup/converter"
 
-	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/neohugo/neohugo/lazy"
 
 	bp "github.com/neohugo/neohugo/bufferpool"
@@ -122,7 +122,7 @@ func newPageContentOutput(p *pageState, po *pageOutput) (*pageContentOutput, err
 		isHTML := cp.p.m.markup == "html"
 
 		if !isHTML {
-			r, err := cp.renderContent(cp.workContent, true)
+			r, err := po.contentRenderer.RenderContent(cp.workContent, true)
 			if err != nil {
 				return err
 			}
@@ -182,7 +182,7 @@ func newPageContentOutput(p *pageState, po *pageOutput) (*pageContentOutput, err
 				}
 			}
 		} else if cp.p.m.summary != "" {
-			b, err := cp.renderContent([]byte(cp.p.m.summary), false)
+			b, err := po.contentRenderer.RenderContent([]byte(cp.p.m.summary), false)
 			if err != nil {
 				return err
 			}
@@ -544,7 +544,7 @@ func (p *pageContentOutput) initRenderHooks() error {
 				layoutDescriptor.Kind = "render-codeblock"
 				if id != nil {
 					lang := id.(string)
-					lexer := lexers.Get(lang)
+					lexer := chromalexers.Get(lang)
 					if lexer != nil {
 						layoutDescriptor.KindVariants = strings.Join(lexer.Config().Aliases, ",")
 					} else {
@@ -628,7 +628,7 @@ func (p *pageContentOutput) setAutoSummary() error {
 	return nil
 }
 
-func (cp *pageContentOutput) renderContent(content []byte, renderTOC bool) (converter.Result, error) {
+func (cp *pageContentOutput) RenderContent(content []byte, renderTOC bool) (converter.Result, error) {
 	if err := cp.initRenderHooks(); err != nil {
 		return nil, err
 	}

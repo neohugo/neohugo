@@ -27,6 +27,7 @@ import (
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugofs/glob"
 
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/neohugo/neohugo/common/loggers"
@@ -65,7 +66,7 @@ type BaseFs struct {
 	// This usually maps to /my-project/public.
 	PublishFs afero.Fs
 
-	// The filesystem used for renderStaticToDisk.
+	// The filesystem used for static files.
 	PublishFsStatic afero.Fs
 
 	// A read-only filesystem starting from the project workDir.
@@ -291,15 +292,15 @@ func (s SourceFilesystems) StaticFs(lang string) afero.Fs {
 
 // StatResource looks for a resource in these filesystems in order: static, assets and finally content.
 // If found in any of them, it returns FileInfo and the relevant filesystem.
-// Any non os.IsNotExist error will be returned.
-// An os.IsNotExist error wil be returned only if all filesystems return such an error.
+// Any non herrors.IsNotExist error will be returned.
+// An herrors.IsNotExist error wil be returned only if all filesystems return such an error.
 // Note that if we only wanted to find the file, we could create a composite Afero fs,
 // but we also need to know which filesystem root it lives in.
 func (s SourceFilesystems) StatResource(lang, filename string) (fi os.FileInfo, fs afero.Fs, err error) {
 	for _, fsToCheck := range []afero.Fs{s.StaticFs(lang), s.Assets.Fs, s.Content.Fs} {
 		fs = fsToCheck
 		fi, err = fs.Stat(filename)
-		if err == nil || !os.IsNotExist(err) {
+		if err == nil || !herrors.IsNotExist(err) {
 			return
 		}
 	}
@@ -810,8 +811,6 @@ type filesystemsCollector struct {
 
 	// Set if in multihost mode
 	staticPerLanguage map[string]*overlayfs.OverlayFs
-
-	finalizerInit sync.Once
 }
 
 func (c *filesystemsCollector) addDirs(rfs *hugofs.RootMappingFs) {
@@ -825,13 +824,6 @@ func (c *filesystemsCollector) addDir(rfs *hugofs.RootMappingFs, componentFolder
 
 	if err == nil {
 		c.overlayDirs[componentFolder] = append(c.overlayDirs[componentFolder], dirs...)
-	}
-}
-
-func (c *filesystemsCollector) reverseFis(fis []hugofs.FileMetaInfo) {
-	for i := len(fis)/2 - 1; i >= 0; i-- {
-		opp := len(fis) - 1 - i
-		fis[i], fis[opp] = fis[opp], fis[i]
 	}
 }
 

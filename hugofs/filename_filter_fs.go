@@ -91,7 +91,7 @@ func (fs *filenameFilterFs) Stat(name string) (os.FileInfo, error) {
 	return fi, err
 }
 
-//nolint
+// nolint
 func (fs *filenameFilterFs) getOpener(name string) func() (afero.File, error) {
 	return func() (afero.File, error) {
 		return fs.Open(name)

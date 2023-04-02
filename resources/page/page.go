@@ -19,6 +19,7 @@ import (
 	"html/template"
 
 	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/markup/converter"
 
 	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/config"
@@ -102,6 +103,11 @@ type ContentProvider interface {
 
 	// Len returns the length of the content.
 	Len() int
+}
+
+// ContentRenderer provides the content rendering methods for some content.
+type ContentRenderer interface {
+	RenderContent(content []byte, renderTOC bool) (converter.Result, error)
 }
 
 // FileProvider provides the source file.
@@ -393,6 +399,9 @@ type TreeProvider interface {
 	// Parent returns a section's parent section or a page's section.
 	// To get a section's subsections, see Page's Sections method.
 	Parent() Page
+
+	// Ancestors returns the ancestors of each page
+	Ancestors() Pages
 
 	// Sections returns this section's subsections, if any.
 	// Note that for non-sections, this method will always return an empty list.

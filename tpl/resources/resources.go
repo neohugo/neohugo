@@ -125,6 +125,11 @@ func (ns *Namespace) Get(filename any) resource.Resource {
 	if err != nil {
 		panic(err)
 	}
+
+	if filenamestr == "" {
+		return nil
+	}
+
 	r, err := ns.createClient.Get(filenamestr)
 	if err != nil {
 		panic(err)
@@ -353,8 +358,7 @@ func (ns *Namespace) ToCSS(args ...any) (resource.Resource, error) {
 	}
 
 	if m != nil {
-		maps.PrepareParams(m)
-		if t, found := m["transpiler"]; found {
+		if t, found := maps.LookupEqualFold(m, "transpiler"); found {
 			switch t {
 			case transpilerDart, transpilerLibSass:
 				transpiler = cast.ToString(t)

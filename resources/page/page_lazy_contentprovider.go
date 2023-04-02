@@ -17,6 +17,7 @@ import (
 	"html/template"
 
 	"github.com/neohugo/neohugo/lazy"
+	"github.com/neohugo/neohugo/markup/converter"
 )
 
 // OutputFormatContentProvider represents the method set that is "outputFormat aware" and that we
@@ -24,6 +25,14 @@ import (
 // Note that this set is currently not complete, but should cover the most common use cases.
 // For the others, the implementation will be from the page.NoopPage.
 type OutputFormatContentProvider interface {
+	OutputFormatPageContentProvider
+
+	// for internal use.
+	ContentRenderer
+}
+
+// OutputFormatPageContentProvider holds the exported methods from Page that are "outputFormat aware".
+type OutputFormatPageContentProvider interface {
 	ContentProvider
 	TableOfContentsProvider
 	PageRenderProvider
@@ -46,7 +55,7 @@ type LazyContentProvider struct {
 func NewLazyContentProvider(f func() (OutputFormatContentProvider, error)) *LazyContentProvider {
 	lcp := LazyContentProvider{
 		init: lazy.New(),
-		cp:   NopPage,
+		cp:   NopCPageContentRenderer,
 	}
 	lcp.init.Add(func() (any, error) {
 		cp, err := f()
@@ -63,7 +72,7 @@ func (lcp *LazyContentProvider) Reset() {
 	lcp.init.Reset()
 }
 
-//nolint
+// nolint
 func (lcp *LazyContentProvider) Content() (any, error) {
 	lcp.init.Do()
 	return lcp.cp.Content()
@@ -123,7 +132,7 @@ func (lcp *LazyContentProvider) Render(layout ...string) (template.HTML, error) 
 	return lcp.cp.Render(layout...)
 }
 
-//nolint
+// nolint
 func (lcp *LazyContentProvider) RenderString(args ...any) (template.HTML, error) {
 	lcp.init.Do()
 	return lcp.cp.RenderString(args...)
@@ -133,4 +142,10 @@ func (lcp *LazyContentProvider) TableOfContents() template.HTML {
 	//nolint
 	lcp.init.Do()
 	return lcp.cp.TableOfContents()
+}
+
+func (lcp *LazyContentProvider) RenderContent(content []byte, renderTOC bool) (converter.Result, error) {
+	// nolint
+	lcp.init.Do()
+	return lcp.cp.RenderContent(content, renderTOC)
 }

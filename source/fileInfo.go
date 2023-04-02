@@ -20,12 +20,11 @@ import (
 	"sync"
 
 	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/neohugo/neohugo/common/hugio"
-
-	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/helpers"
 )

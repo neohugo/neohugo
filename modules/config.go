@@ -15,15 +15,20 @@ package modules
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
-	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/neohugo"
+
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/langs"
+
+	"github.com/mitchellh/mapstructure"
 )
+
+const WorkspaceDisabled = "off"
 
 var DefaultModuleConfig = Config{
 	// Default to direct, which means "git clone" and similar. We
@@ -38,6 +43,9 @@ var DefaultModuleConfig = Config{
 	// Comma separated glob list matching paths that should be
 	// treated as private.
 	Private: "*.*",
+
+	// Default is no workspace resolution.
+	Workspace: WorkspaceDisabled,
 
 	// A list of replacement directives mapping a module path to a directory
 	// or a theme component in the themes folder.
@@ -245,6 +253,19 @@ func decodeConfig(cfg config.Provider, pathReplacements map[string]string) (Conf
 			c.Mounts[i] = mnt
 		}
 
+		if c.Workspace == "" {
+			c.Workspace = WorkspaceDisabled
+		}
+		if c.Workspace != WorkspaceDisabled {
+			c.Workspace = filepath.Clean(c.Workspace)
+			if !filepath.IsAbs(c.Workspace) {
+				workingDir := cfg.GetString("workingDir")
+				c.Workspace = filepath.Join(workingDir, c.Workspace)
+			}
+			if _, err := os.Stat(c.Workspace); err != nil {
+				return c, fmt.Errorf("module workspace %q does not exist. Check your module.workspace setting (or HUGO_MODULE_WORKSPACE env var).", c.Workspace)
+			}
+		}
 	}
 
 	if themeSet {
@@ -292,8 +313,9 @@ type Config struct {
 	// Configures GOPRIVATE.
 	Private string
 
-	// Set the workspace file to use, e.g. hugo.work.
-	// Enables Go "Workspace" mode.
+	// Defaults to "off".
+	// Set to a work file, e.g. hugo.work, to enable Go "Workspace" mode.
+	// Can be relative to the working directory or absolute.
 	// Requires Go 1.18+
 	// See https://tip.golang.org/doc/go1.18
 	Workspace string

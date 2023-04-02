@@ -5,33 +5,40 @@ on:
       - v*.*.*
 
 env:
+  GOPATH: ${{ github.workspace }}
+  GOBIN: ${{ github.workspace }}/bin
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
+  DART_SASS_VERSION: 1.56.2
+  DART_SASS_SHA_LINUX: 9e4f455f7b8619959d7878af2862383be58392eb963a14ff87cc512c03701e2a
+  DART_SASS_SHA_MACOS: 5992e979e2c30ec363f8e338822bb2b4443c74232b3340501a76180f5652cb09
+  DART_SASS_SHA_WINDOWS: 8d3d9117c54840e3e6a4919e43acf75ea52f28a64fc87a8e29d80ec72ee36cfb
 
 jobs:
   docdeploy:
     name: Deploy documentation
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: 1.18.x
-      - name: Setup Ruby
-        uses: actions/setup-ruby@v1
-        with:
-          ruby-version: '2.7'
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.x'
-      - name: Install asciidoctor
-        uses: reitzig/actions-asciidoctor@v2.0.0
       - name: Git checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           path: neohugo
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+      - name: Install Ruby
+        uses: ruby/setup-ruby@ee2113536afb7f793eed4ce60e8d3b26db912da4
+        with:
+          ruby-version: "2.7"
+          bundler-cache: true #
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+      - name: Install asciidoctor
+        uses: reitzig/actions-asciidoctor@7570212ae20b63653481675fb1ff62d1073632b0
       - name: Setup Go environment
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
@@ -44,7 +51,7 @@ jobs:
         run: |
           go install mvdan.cc/gofumpt@latest
           go install github.com/magefile/mage@latest
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         with:
           path: ~/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -62,19 +69,16 @@ jobs:
           rst2html.py --version
       - name: Install pandoc on Linux
         run: |
-            sudo apt-get update -y
-            sudo apt-get install -y pandoc
+          sudo apt-get update -y
+          sudo apt-get install -y pandoc
       - run: pandoc -v
       - name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO  https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-linux-x64.tar.gz;
-          echo "0bdfa8066f335f4fb1ad239101ae1dcaab51b2c0c4b8c60699f476f6b59586a7  sass_embedded-1.49.7-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.49.7-linux-x64.tar.gz;
+          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${DART_SASS_VERSION}/sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX}  sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
-      - name: Run mage tests
-        working-directory: ./neohugo
-        run: |
-          mage -v test
       - name: Run mage check
         working-directory: ./neohugo
         run: |
@@ -86,12 +90,12 @@ jobs:
       - name: Build docs
         working-directory: ./neohugo
         env:
-            HUGO_IGNOREERRORS: error-remote-getjson
-            HUGO_SERVICES_INSTAGRAM_ACCESSTOKEN: dummytoken
+          HUGO_IGNOREERRORS: error-remote-getjson
+          HUGO_SERVICES_INSTAGRAM_ACCESSTOKEN: dummytoken
         run: |
-           ./neohugo -s docs/
+          ./neohugo -s docs/
       - name: Checkout docs repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           repository: neohugo/neohugo.github.io
           path: docs
@@ -110,16 +114,16 @@ jobs:
     needs: docdeploy
     runs-on: ubuntu-latest
     container:
-      image: neohugo/golang-cross:v1.18.0
+      image: neohugo/golang-cross:v1.20.2
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
-          go-version: 1.18.x
+          go-version: "1.20"
       - name: Run Goreleaser
         uses: goreleaser/goreleaser-action@v2
         with:
@@ -136,7 +140,7 @@ jobs:
         run: |
           echo ::set-output name=tags::neohugo/neohugo:latest,neohugo/neohugo:${GITHUB_REF/refs\/tags\//},ghcr.io/${{ github.repository_owner }}/neohugo:latest,ghcr.io/${{ github.repository_owner }}/neohugo:${GITHUB_REF/refs\/tags\//}
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx

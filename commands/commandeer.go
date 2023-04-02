@@ -80,8 +80,8 @@ type commandeer struct {
 	changeDetector *fileChangeDetector
 
 	// We need to reuse these on server rebuilds.
-	// These 2 will be different if --renderStaticToDisk is set.
 	publishDirFs       afero.Fs
+	publishDirStaticFs afero.Fs
 	publishDirServerFs afero.Fs
 
 	h    *hugoBuilderCommon
@@ -171,6 +171,7 @@ func (c *commandeer) Set(key string, value any) {
 
 func (c *commandeer) initFs(fs *hugofs.Fs) error {
 	c.publishDirFs = fs.PublishDir
+	c.publishDirStaticFs = fs.PublishDirStatic
 	c.publishDirServerFs = fs.PublishDirServer
 	c.DepsCfg.Fs = fs
 
@@ -383,7 +384,7 @@ func (c *commandeer) loadConfig() error {
 
 	// Set some commonly used flags
 	c.doLiveReload = c.running && !c.Cfg.GetBool("disableLiveReload")
-	c.fastRenderMode = c.doLiveReload && !c.Cfg.GetBool("disableFastRender")
+	c.fastRenderMode = c.running && !c.Cfg.GetBool("disableFastRender")
 	c.showErrorInBrowser = c.doLiveReload && !c.Cfg.GetBool("disableBrowserError")
 
 	// This is potentially double work, but we need to do this one more time now
@@ -408,6 +409,9 @@ func (c *commandeer) loadConfig() error {
 
 	createMemFs := config.GetBool("renderToMemory")
 	c.renderStaticToDisk = config.GetBool("renderStaticToDisk")
+	// TODO(bep) we/I really need to look at the config set up, but to prevent changing too much
+	// we store away the original.
+	config.Set("publishDirOrig", config.GetString("publishDir"))
 
 	if createMemFs {
 		// Rendering to memoryFS, publish to Root regardless of publishDir.
@@ -427,6 +431,7 @@ func (c *commandeer) loadConfig() error {
 		if c.publishDirFs != nil {
 			// Need to reuse the destination on server rebuilds.
 			fs.PublishDir = c.publishDirFs
+			fs.PublishDirStatic = c.publishDirStaticFs
 			fs.PublishDirServer = c.publishDirServerFs
 		} else {
 			if c.renderStaticToDisk {

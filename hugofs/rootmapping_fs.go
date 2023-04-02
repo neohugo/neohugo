@@ -19,6 +19,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/hugofs/files"
 
 	radix "github.com/armon/go-radix"
@@ -45,7 +46,7 @@ func NewRootMappingFs(fs afero.Fs, rms ...RootMapping) (*RootMappingFs, error) {
 
 		fi, err := fs.Stat(rm.To)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if herrors.IsNotExist(err) {
 				continue
 			}
 			return nil, err

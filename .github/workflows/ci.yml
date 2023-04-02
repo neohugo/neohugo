@@ -6,9 +6,15 @@ on:
   pull_request:
 
 env:
+  GOPATH: ${{ github.workspace }}
+  GOBIN: ${{ github.workspace }}/bin
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
+  DART_SASS_VERSION: 1.56.2
+  DART_SASS_SHA_LINUX: 9e4f455f7b8619959d7878af2862383be58392eb963a14ff87cc512c03701e2a
+  DART_SASS_SHA_MACOS: 5992e979e2c30ec363f8e338822bb2b4443c74232b3340501a76180f5652cb09
+  DART_SASS_SHA_WINDOWS: 8d3d9117c54840e3e6a4919e43acf75ea52f28a64fc87a8e29d80ec72ee36cfb
 
 jobs:
   build:
@@ -17,24 +23,27 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        go: [ '1.18' ]
+        go: ["1.20"]
     steps:
+      - name: Git checkout
+        uses: actions/checkout@v3
+        with:
+          path: neohugo
       - name: Setup Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v4
         with:
           go-version: ${{ matrix.go }}
-      - name: Setup Ruby
-        uses: actions/setup-ruby@v1
+      - name: Install Ruby
+        uses: ruby/setup-ruby@ee2113536afb7f793eed4ce60e8d3b26db912da4
         with:
-          ruby-version: '2.7'
+          ruby-version: "2.7"
+          bundler-cache: true #
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - name: Install asciidoctor
-        uses: reitzig/actions-asciidoctor@v2.0.0
-      - name: Git checkout
-        uses: actions/checkout@v2
+        uses: reitzig/actions-asciidoctor@7570212ae20b63653481675fb1ff62d1073632b0
       - name: Setup Go environment
         shell: bash
         run: |
@@ -46,7 +55,7 @@ jobs:
         run: |
           go install mvdan.cc/gofumpt@latest
           go install github.com/magefile/mage@latest
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: cache
         with:
           path: ~/go/pkg/mod
@@ -54,6 +63,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Install Go module
+        working-directory: ./neohugo
         if: steps.cache.outputs.cache-hit != 'true'
         run: |
           go mod download
@@ -65,8 +75,8 @@ jobs:
       - if: matrix.os == 'ubuntu-latest'
         name: Install pandoc on Linux
         run: |
-            sudo apt-get update -y
-            sudo apt-get install -y pandoc
+          sudo apt-get update -y
+          sudo apt-get install -y pandoc
       - if: matrix.os == 'macos-latest'
         run: |
           brew install pandoc
@@ -77,57 +87,61 @@ jobs:
       - if: matrix.os == 'ubuntu-latest'
         name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO  https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-linux-x64.tar.gz;
-          echo "0bdfa8066f335f4fb1ad239101ae1dcaab51b2c0c4b8c60699f476f6b59586a7  sass_embedded-1.49.7-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.49.7-linux-x64.tar.gz;
+          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${DART_SASS_VERSION}/sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX}  sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - if: matrix.os == 'macos-latest'
         name: Install dart-sass-embedded MacOS
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-macos-x64.tar.gz;
-          echo "75ffb0875d9081f7f73f744fde1c7007713872a967d43f7332cf5040e73d40da  sass_embedded-1.49.7-macos-x64.tar.gz" | shasum -a 256 -c;
-          tar -xvf sass_embedded-1.49.7-macos-x64.tar.gz;
+          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${DART_SASS_VERSION}/sass_embedded-${DART_SASS_VERSION}-macos-x64.tar.gz";
+          echo "${DART_SASS_SHA_MACOS}  sass_embedded-${DART_SASS_VERSION}-macos-x64.tar.gz" | shasum -a 256 -c;
+          tar -xvf "sass_embedded-${DART_SASS_VERSION}-macos-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - if: matrix.os == 'windows-latest'
         name: Install dart-sass-embedded Windows
         run: |
-          curl -LJO https://github.com/sass/dart-sass-embedded/releases/download/1.0.0-beta.6/sass_embedded-1.0.0-beta.6-windows-x64.zip;
-          echo "6ae442129dbb3334bc21ef851261da6c0c1b560da790ca2e1350871d00ab816d  sass_embedded-1.0.0-beta.6-windows-x64.zip" | sha256sum -c;
-          unzip sass_embedded-1.0.0-beta.6-windows-x64.zip;
+          echo "Install Dart Sass version ${env:DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${env:DART_SASS_VERSION}/sass_embedded-${env:DART_SASS_VERSION}-windows-x64.zip";
+          Expand-Archive -Path "sass_embedded-${env:DART_SASS_VERSION}-windows-x64.zip" -DestinationPath .;
           echo  "$env:GITHUB_WORKSPACE/sass_embedded/" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf-8 -Append
-      - name: Run mage tests
-        run: |
-          mage -v test
       - name: Run mage check
+        working-directory: ./neohugo
         run: |
           mage -v check
       - name: Run mage neohugo
+        working-directory: ./neohugo
         run: |
           mage -v neohugo
   gotip:
     name: Build ubuntu-latest, GoTip
     runs-on: ubuntu-latest
     steps:
-      - name: Setup Go
-        uses: actions/setup-go@v2
+      - name: Git checkout
+        uses: actions/checkout@v3
         with:
-          go-version: 1.18
+          path: neohugo
+      - name: Setup Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
       - name: Setup gotip
         run: |
           go install golang.org/dl/gotip@latest
           gotip download
-      - name: Setup Ruby
-        uses: actions/setup-ruby@v1
+      - name: Install Ruby
+        uses: ruby/setup-ruby@ee2113536afb7f793eed4ce60e8d3b26db912da4
         with:
-          ruby-version: '2.7'
+          ruby-version: "2.7"
+          bundler-cache: true #
       - name: Setup Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: "3.x"
       - name: Install asciidoctor
-        uses: reitzig/actions-asciidoctor@v2.0.0
-      - name: Git checkout
-        uses: actions/checkout@v2
+        uses: reitzig/actions-asciidoctor@7570212ae20b63653481675fb1ff62d1073632b0
       - name: Setup Go environment
         shell: bash
         run: |
@@ -140,7 +154,7 @@ jobs:
         run: |
           go install mvdan.cc/gofumpt@latest
           go install github.com/magefile/mage@latest
-      - uses: actions/cache@v2
+      - uses: actions/cache@v3
         id: cache
         with:
           path: ~/go/pkg/mod
@@ -148,6 +162,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
       - name: Install Go module
+        working-directory: ./neohugo
         if: steps.cache.outputs.cache-hit != 'true'
         continue-on-error: true
         run: |
@@ -159,24 +174,28 @@ jobs:
           rst2html.py --version
       - name: Install pandoc on Linux
         run: |
-            sudo apt-get update -y
-            sudo apt-get install -y pandoc
+          sudo apt-get update -y
+          sudo apt-get install -y pandoc
       - run: pandoc -v
       - name: Install dart-sass-embedded Linux
         run: |
-          curl -LJO  https://github.com/sass/dart-sass-embedded/releases/download/1.49.7/sass_embedded-1.49.7-linux-x64.tar.gz;
-          echo "0bdfa8066f335f4fb1ad239101ae1dcaab51b2c0c4b8c60699f476f6b59586a7  sass_embedded-1.49.7-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf sass_embedded-1.49.7-linux-x64.tar.gz;
+          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass-embedded/releases/download/${DART_SASS_VERSION}/sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX}  sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
       - name: Run mage tests
+        working-directory: ./neohugo
         continue-on-error: true
         run: |
           GOEXE=gotip mage -v test
       - name: Run mage check
+        working-directory: ./neohugo
         continue-on-error: true
         run: |
           GOEXE=gotip mage -v check
       - name: Run mage neohugo
+        working-directory: ./neohugo
         continue-on-error: true
         run: |
           GOEXE=gotip mage -v neohugo
@@ -185,7 +204,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
       - name: Set up Docker Buildx

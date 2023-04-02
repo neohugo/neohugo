@@ -14,7 +14,6 @@
 package markup_config
 
 import (
-	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/docshelper"
@@ -23,6 +22,8 @@ import (
 	"github.com/neohugo/neohugo/markup/highlight"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
 	"github.com/neohugo/neohugo/parser"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 type Config struct {

@@ -258,3 +258,46 @@ JS Content:{{ $js.Content }}:End:
 		b.Assert(err.Error(), qt.Contains, `util1.js:4:17": No matching export in`)
 	})
 }
+
+// See issue 10527.
+func TestImportHugoVsESBuild(t *testing.T) {
+	c := qt.New(t)
+
+	for _, importSrcDir := range []string{"node_modules", "assets"} {
+		c.Run(importSrcDir, func(c *qt.C) {
+			files := `
+-- IMPORT_SRC_DIR/imp1/index.js --
+console.log("IMPORT_SRC_DIR:imp1/index.js");
+-- IMPORT_SRC_DIR/imp2/index.ts --
+console.log("IMPORT_SRC_DIR:imp2/index.ts");
+-- IMPORT_SRC_DIR/imp3/foo.ts --
+console.log("IMPORT_SRC_DIR:imp3/foo.ts");
+-- assets/js/main.js --
+import 'imp1/index.js';
+import 'imp2/index.js';
+import 'imp3/foo.js';
+-- layouts/index.html --
+{{ $js := resources.Get "js/main.js" | js.Build }}
+{{ $js.RelPermalink }}
+			`
+
+			files = strings.ReplaceAll(files, "IMPORT_SRC_DIR", importSrcDir)
+
+			b := hugolib.NewIntegrationTestBuilder(
+				hugolib.IntegrationTestConfig{
+					T:           c,
+					NeedsOsFS:   true,
+					TxtarString: files,
+				}).Build()
+
+			expected := `
+IMPORT_SRC_DIR:imp1/index.js	
+IMPORT_SRC_DIR:imp2/index.ts
+IMPORT_SRC_DIR:imp3/foo.ts		
+`
+			expected = strings.ReplaceAll(expected, "IMPORT_SRC_DIR", importSrcDir)
+
+			b.AssertFileContent("public/js/main.js", expected)
+		})
+	}
+}

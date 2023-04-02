@@ -37,7 +37,7 @@ type Decoder struct {
 	// Delimiter is the field delimiter used in the CSV decoder. It defaults to ','.
 	Delimiter rune
 
-	// Comment, if not 0, is the comment character ued in the CSV decoder. Lines beginning with the
+	// Comment, if not 0, is the comment character used in the CSV decoder. Lines beginning with the
 	// Comment character without preceding whitespace are ignored.
 	Comment rune
 }
@@ -112,7 +112,7 @@ func (d Decoder) UnmarshalStringTo(data string, typ any) (any, error) {
 // Unmarshal will unmarshall data in format f into an interface{}.
 // This is what's needed for Hugo's /data handling.
 func (d Decoder) Unmarshal(data []byte, f Format) (any, error) {
-	if data == nil {
+	if len(data) == 0 {
 		switch f {
 		case CSV:
 			return make([][]string, 0), nil
@@ -167,10 +167,13 @@ func (d Decoder) UnmarshalTo(data []byte, f Format, v any) error {
 		// and change all maps to map[string]interface{} like we would've
 		// gotten from `json`.
 		var ptr any
+		// nolint
 		switch v.(type) {
 		case *map[string]any:
+			// nolint
 			ptr = *v.(*map[string]any)
 		case *any:
+			// nolint
 			ptr = *v.(*any)
 		default:
 			// Not a map.
@@ -178,10 +181,13 @@ func (d Decoder) UnmarshalTo(data []byte, f Format, v any) error {
 
 		if ptr != nil {
 			if mm, changed := stringifyMapKeys(ptr); changed {
+				// nolint
 				switch v.(type) {
 				case *map[string]any:
+					// nolint
 					*v.(*map[string]any) = mm.(map[string]any)
 				case *any:
+					// nolint
 					*v.(*any) = mm
 				}
 			}
@@ -210,6 +216,7 @@ func (d Decoder) unmarshalCSV(data []byte, v any) error {
 		return err
 	}
 
+	// nolint
 	switch v.(type) {
 	case *any:
 		*v.(*any) = records
@@ -250,10 +257,13 @@ func (d Decoder) unmarshalORG(data []byte, v any) error {
 			frontMatter[k] = v
 		}
 	}
+	// nolint
 	switch v.(type) {
 	case *map[string]any:
+		// nolint
 		*v.(*map[string]any) = frontMatter
 	default:
+		// nolint
 		*v.(*any) = frontMatter
 	}
 	return nil

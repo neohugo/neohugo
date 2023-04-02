@@ -100,8 +100,7 @@ LOCAL_STYLE
 
 	r, err := imp.resolve()
 	c.Assert(err, qt.IsNil)
-	rs, err := helpers.ReaderToString(r)
-	c.Assert(err, qt.IsNil)
+	rs := helpers.ReaderToString(r)
 	result := regexp.MustCompile(`\n+`).ReplaceAllString(rs, "\n")
 
 	c.Assert(result, hqt.IsSameString, `B_STYLE

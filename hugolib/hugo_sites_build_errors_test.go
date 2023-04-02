@@ -1,6 +1,7 @@
 package hugolib
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -8,6 +9,7 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/htesting"
 )
 
 type testSiteBuildErrorAsserter struct {
@@ -44,7 +46,7 @@ func TestSiteBuildErrors(t *testing.T) {
 		single      = "single"
 	)
 
-	// TODO(bep) add content tests after https://github.com/neohugo/neohugo/issues/5324
+	// TODO(bep) add content tests after https://github.com/gohugoio/hugo/issues/5324
 	// is implemented.
 
 	tests := []struct {
@@ -187,7 +189,7 @@ foo bar
 			},
 		},
 		{
-			// See https://github.com/neohugo/neohugo/issues/5327
+			// See https://github.com/gohugoio/hugo/issues/5327
 			name:     "Panic in template Execute",
 			fileType: single,
 			fileFixer: func(content string) string {
@@ -388,7 +390,7 @@ line 4
 	b.Assert(errors[3].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
 }
 
-func TestErrorNestedShortocde(t *testing.T) {
+func TestErrorNestedShortcode(t *testing.T) {
 	t.Parallel()
 
 	files := `
@@ -600,33 +602,34 @@ toc line 4
 	})
 }
 
-// https://github.com/neohugo/neohugo/issues/5375
-//func TestSiteBuildTimeout(t *testing.T) {
-//if !htesting.IsCI() {
-//// defer leaktest.CheckTimeout(t, 10*time.Second)()
-//}
+// https://github.com/gohugoio/hugo/issues/5375
+func TestSiteBuildTimeout(t *testing.T) {
+	// nolint
+	if !htesting.IsCI() {
+		// defer leaktest.CheckTimeout(t, 10*time.Second)()
+	}
 
-//b := newTestSitesBuilder(t)
-//b.WithConfigFile("toml", `
-//timeout = 5
-//`)
+	b := newTestSitesBuilder(t)
+	b.WithConfigFile("toml", `
+timeout = 5
+`)
 
-//b.WithTemplatesAdded("_default/single.html", `
-//{{ .WordCount }}
-//`, "shortcodes/c.html", `
-//{{ range .Page.Site.RegularPages }}
-//{{ .WordCount }}
-//{{ end }}
+	b.WithTemplatesAdded("_default/single.html", `
+{{ .WordCount }}
+`, "shortcodes/c.html", `
+{{ range .Page.Site.RegularPages }}
+{{ .WordCount }}
+{{ end }}
 
-//`)
+`)
 
-//for i := 1; i < 100; i++ {
-//b.WithContent(fmt.Sprintf("page%d.md", i), `---
-//title: "A page"
-//---
+	for i := 1; i < 100; i++ {
+		b.WithContent(fmt.Sprintf("page%d.md", i), `---
+title: "A page"
+---
 
-//{{< c >}}`)
-//}
+{{< c >}}`)
+	}
 
-// b.CreateSites().BuildFail(BuildCfg{})
-//}
+	b.CreateSites().BuildFail(BuildCfg{})
+}

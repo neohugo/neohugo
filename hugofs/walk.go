@@ -21,6 +21,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/spf13/afero"
@@ -117,7 +118,7 @@ func (w *Walkway) Walk() error {
 	} else {
 		info, _, err := lstatIfPossible(w.fs, w.root)
 		if err != nil {
-			if os.IsNotExist(err) {
+			if herrors.IsNotExist(err) {
 				return nil
 			}
 
@@ -153,7 +154,7 @@ func (w *Walkway) checkErr(filename string, err error) bool {
 		return true
 	}
 
-	if os.IsNotExist(err) {
+	if herrors.IsNotExist(err) {
 		// The file may be removed in process.
 		// This may be a ERROR situation, but it is not possible
 		// to determine as a general case.
