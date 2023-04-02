@@ -6,8 +6,6 @@ on:
       - main
 
 env:
-  GOPATH: ${{ github.workspace }}
-  GOBIN: ${{ github.workspace }}/bin
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"

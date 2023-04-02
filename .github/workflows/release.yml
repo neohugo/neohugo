@@ -5,8 +5,6 @@ on:
       - v*.*.*
 
 env:
-  GOPATH: ${{ github.workspace }}
-  GOBIN: ${{ github.workspace }}/bin
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
@@ -47,7 +45,6 @@ jobs:
       - name: Go info
         run: go env
       - name: Install gofumpt and mage
-        working-directory: ./neohugo
         run: |
           go install mvdan.cc/gofumpt@latest
           go install github.com/magefile/mage@latest
@@ -111,6 +108,9 @@ jobs:
           git push
   goreleaser:
     name: Release tag
+    env:
+      GOPATH: ${{ github.workspace }}
+      GOBIN: ${{ github.workspace }}/bin
     needs: docdeploy
     runs-on: ubuntu-latest
     container:
@@ -120,15 +120,18 @@ jobs:
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
+          path: neohugo
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
           go-version: "1.20"
       - name: Run Goreleaser
-        uses: goreleaser/goreleaser-action@v2
+        uses: goreleaser/goreleaser-action@v4
         with:
+          distribution: goreleaser
           version: latest
-          args: release --rm-dist --timeout 60m
+          args: release -f .goreleaser.yml --clean --timeout 60m
+          workdir: ./neohugo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   docker:

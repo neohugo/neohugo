@@ -6,8 +6,7 @@ before:
   hooks:
     - go mod download
 builds:
-  -
-    binary: neohugo
+  - binary: neohugo
     id: neohugo_extended_windows
     ldflags:
       - -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
@@ -57,7 +56,7 @@ builds:
     goarch:
       - amd64
     hooks:
-      post: ./goreleaser-hook-post-linux.sh
+      post: ./release-hook-post-linux.sh
   - binary: neohugo
     id: neohugo_extended_linux_arm64
     ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
@@ -80,16 +79,21 @@ changelog:
   sort: asc
   filters:
     exclude:
-      - '^docs:'
-      - '^test:'
+      - "^docs:"
+      - "^test:"
 release:
   prerelease: auto
 snapshot:
   name_template: "{{ .Tag }}-next"
 archives:
-  -
-    id: "neohugo_extended"
-    builds: ['neohugo_extended_windows', 'neohugo_extended_linux_amd64', 'neohugo_extended_linux_arm64', 'neohugo_extended_darwin']
+  - id: "neohugo_extended"
+    builds:
+      [
+        "neohugo_extended_windows",
+        "neohugo_extended_linux_amd64",
+        "neohugo_extended_linux_arm64",
+        "neohugo_extended_darwin",
+      ]
     format: tar.gz
     format_overrides:
       - goos: windows
@@ -106,11 +110,10 @@ archives:
       - LICENSE
 
 nfpms:
-  -
-    id: "neohugo_extended"
-    builds: ['neohugo_extended_linux_amd64']
+  - id: "neohugo_extended"
+    builds: ["neohugo_extended_linux_amd64"]
     formats:
-        - deb
+      - deb
     vendor: "neohugo"
     homepage: "https://neohugo.github.io/"
     maintainer: "Prachya Saechua <blackb1rd@blackb1rd.dev>"
