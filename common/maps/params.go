@@ -54,6 +54,7 @@ func (p Params) Set(pp Params) {
 
 // IsZero returns true if p is considered empty.
 func (p Params) IsZero() bool {
+	// nolint
 	if p == nil || len(p) == 0 {
 		return true
 	}

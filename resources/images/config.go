@@ -14,6 +14,7 @@
 package images
 
 import (
+	"errors"
 	"fmt"
 	"image/color"
 	"strconv"
@@ -21,8 +22,6 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/media"
-
-	"errors"
 
 	"github.com/bep/gowebp/libwebp/webpoptions"
 

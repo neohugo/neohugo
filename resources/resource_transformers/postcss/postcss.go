@@ -17,6 +17,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -38,8 +39,6 @@ import (
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
-
-	"errors"
 
 	"github.com/mitchellh/mapstructure"
 
@@ -437,6 +436,5 @@ func (imp *importResolver) toFileError(output string) error {
 	pos.LineNumber = file.Offset + 1
 	return ferr.UpdatePosition(pos).UpdateContent(f, nil)
 
-	//return herrors.NewFileErrorFromFile(inErr, file.Filename, realFilename, hugofs.Os, herrors.SimpleLineMatcher)
-
+	// return herrors.NewFileErrorFromFile(inErr, file.Filename, realFilename, hugofs.Os, herrors.SimpleLineMatcher)
 }

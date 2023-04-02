@@ -171,6 +171,7 @@ type Languages []*Language
 // NOTE: function is currently unused.
 func NewLanguages(l ...*Language) Languages {
 	languages := make(Languages, len(l))
+	// nolint
 	for i := 0; i < len(l); i++ {
 		languages[i] = l[i]
 	}

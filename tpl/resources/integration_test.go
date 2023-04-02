@@ -95,7 +95,6 @@ func TestCopyPageShouldFail(t *testing.T) {
 		}).BuildE()
 
 	b.Assert(err, qt.IsNotNil)
-
 }
 
 func TestGet(t *testing.T) {
@@ -124,5 +123,4 @@ Image OK
 Empty string not found
 
 		`)
-
 }

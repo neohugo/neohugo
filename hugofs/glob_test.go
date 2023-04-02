@@ -63,5 +63,4 @@ func TestGlob(t *testing.T) {
 
 	c.Assert(collect("root/UPPER/sub/style.css"), qt.HasLen, 1)
 	c.Assert(collect("UPPER/sub/style.css"), qt.HasLen, 1)
-
 }

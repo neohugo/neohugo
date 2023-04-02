@@ -254,7 +254,7 @@ func TestPlainify(t *testing.T) {
 	}
 }
 
-//nolint
+// nolint
 func newDeps(cfg config.Provider) *deps.Deps {
 	cfg.Set("contentDir", "content")
 	cfg.Set("i18nDir", "i18n")

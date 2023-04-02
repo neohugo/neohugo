@@ -404,7 +404,6 @@ func (t *templateHandler) LookupLayout(d output.LayoutDescriptor, f output.Forma
 	cacheVal := layoutCacheEntry{found: found, templ: templ, err: err}
 	t.layoutTemplateCache[key] = cacheVal
 	return cacheVal.templ, cacheVal.found, cacheVal.err
-
 }
 
 // This currently only applies to shortcodes and what we get here is the

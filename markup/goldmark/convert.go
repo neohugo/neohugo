@@ -176,6 +176,7 @@ var converterIdentity = identity.KeyValueIdentity{Key: "goldmark", Value: "conve
 
 func (c *goldmarkConverter) Convert(ctx converter.RenderContext) (result converter.Result, err error) {
 	buf := &render.BufWriter{Buffer: &bytes.Buffer{}}
+	// nolint
 	result = buf
 	pctx := c.newParserContext(ctx)
 	reader := text.NewReader(ctx.Src)

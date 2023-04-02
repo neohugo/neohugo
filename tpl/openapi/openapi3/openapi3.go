@@ -14,12 +14,11 @@
 package openapi3
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 
 	gyaml "github.com/ghodss/yaml"
-
-	"errors"
 
 	kopenapi3 "github.com/getkin/kin-openapi/openapi3"
 	"github.com/neohugo/neohugo/cache/namedmemcache"

@@ -16,14 +16,13 @@ package hugolib
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"html/template"
 	"runtime/debug"
 	"strings"
 	"sync"
 	"unicode/utf8"
-
-	"errors"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/text"

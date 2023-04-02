@@ -585,8 +585,10 @@ var errorTests = []parseTest{
 	{
 		"rparen",
 		"{{.X 1 2 3 ) }}",
-		hasError, "unexpected right paren"},
-	{"rparen2",
+		hasError, "unexpected right paren",
+	},
+	{
+		"rparen2",
 		"{{(.X 1 2 3",
 		hasError, `unclosed action`,
 	},

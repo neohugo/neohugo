@@ -153,7 +153,7 @@ func (c *commandeer) getErrorWithContext() any {
 
 	m := make(map[string]any)
 
-	//xwm["Error"] = errors.New(cleanErrorLog(removeErrorPrefixFromLog(c.logger.Errors())))
+	// xwm["Error"] = errors.New(cleanErrorLog(removeErrorPrefixFromLog(c.logger.Errors())))
 	m["Error"] = errors.New(cleanErrorLog(removeErrorPrefixFromLog(c.logger.Errors())))
 	m["Version"] = neohugo.BuildVersionString()
 	ferrors := herrors.UnwrapFileErrorsWithErrorContext(c.buildErr)

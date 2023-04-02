@@ -14,6 +14,7 @@
 package filecache
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -25,8 +26,6 @@ import (
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/helpers"
-
-	"errors"
 
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"

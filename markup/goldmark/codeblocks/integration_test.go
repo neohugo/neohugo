@@ -368,11 +368,13 @@ Common
 	}{
 		{"issue-9819", "asdf\n: {#myid}"},
 	} {
+		test := test
 		t.Run(test.name, func(t *testing.T) {
 			t.Parallel()
 			b := hugolib.NewIntegrationTestBuilder(
 				hugolib.IntegrationTestConfig{
-					T:           t,
+					T: t,
+					// nolint
 					TxtarString: strings.ReplaceAll(files, "BLOCK", test.markdown),
 				},
 			).Build()

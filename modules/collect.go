@@ -15,6 +15,7 @@ package modules
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -36,8 +37,6 @@ import (
 	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/rogpeppe/go-internal/module"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/afero"

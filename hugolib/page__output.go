@@ -101,7 +101,6 @@ func (p *pageOutput) initContentProvider(cp *pageContentOutput) {
 	p.TableOfContentsProvider = cp
 	p.PageRenderProvider = cp
 	p.cp = cp
-
 }
 
 func (p *pageOutput) enablePlaceholders() {

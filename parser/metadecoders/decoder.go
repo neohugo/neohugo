@@ -167,10 +167,13 @@ func (d Decoder) UnmarshalTo(data []byte, f Format, v any) error {
 		// and change all maps to map[string]interface{} like we would've
 		// gotten from `json`.
 		var ptr any
+		// nolint
 		switch v.(type) {
 		case *map[string]any:
+			// nolint
 			ptr = *v.(*map[string]any)
 		case *any:
+			// nolint
 			ptr = *v.(*any)
 		default:
 			// Not a map.
@@ -178,10 +181,13 @@ func (d Decoder) UnmarshalTo(data []byte, f Format, v any) error {
 
 		if ptr != nil {
 			if mm, changed := stringifyMapKeys(ptr); changed {
+				// nolint
 				switch v.(type) {
 				case *map[string]any:
+					// nolint
 					*v.(*map[string]any) = mm.(map[string]any)
 				case *any:
+					// nolint
 					*v.(*any) = mm
 				}
 			}
@@ -210,6 +216,7 @@ func (d Decoder) unmarshalCSV(data []byte, v any) error {
 		return err
 	}
 
+	// nolint
 	switch v.(type) {
 	case *any:
 		*v.(*any) = records
@@ -250,10 +257,13 @@ func (d Decoder) unmarshalORG(data []byte, v any) error {
 			frontMatter[k] = v
 		}
 	}
+	// nolint
 	switch v.(type) {
 	case *map[string]any:
+		// nolint
 		*v.(*map[string]any) = frontMatter
 	default:
+		// nolint
 		*v.(*any) = frontMatter
 	}
 	return nil

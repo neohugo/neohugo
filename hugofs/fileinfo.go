@@ -15,6 +15,7 @@
 package hugofs
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -27,8 +28,6 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs/files"
 	"golang.org/x/text/unicode/norm"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/hreflect"
 	"github.com/neohugo/neohugo/common/htime"

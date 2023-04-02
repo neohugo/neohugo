@@ -109,5 +109,4 @@ This is an inline image: ![Inline Image](/inline.jpg). Some more text.
 
 		b.AssertFileContent("public/p1/index.html", "<p class=\"b\"><img src=\"/block.jpg\" alt=\"Block Image\"></p>")
 	})
-
 }

@@ -145,6 +145,7 @@ func (lcp *LazyContentProvider) TableOfContents() template.HTML {
 }
 
 func (lcp *LazyContentProvider) RenderContent(content []byte, renderTOC bool) (converter.Result, error) {
+	// nolint
 	lcp.init.Do()
 	return lcp.cp.RenderContent(content, renderTOC)
 }

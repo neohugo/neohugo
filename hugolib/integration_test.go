@@ -85,5 +85,4 @@ tags: ['T1']
 	b.AssertFileContent("public/en/tags/t1/index.html",
 		"<ul><li>T1-en</li></ul>",
 	)
-
 }

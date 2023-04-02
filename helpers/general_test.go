@@ -416,6 +416,7 @@ func BenchmarkUniqueStrings(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			result := UniqueStrings(input)
 			if len(result) != 6 {
+				// nolint
 				b.Fatal(fmt.Sprintf("invalid count: %d", len(result)))
 			}
 		}
@@ -435,6 +436,7 @@ func BenchmarkUniqueStrings(b *testing.B) {
 
 			result := UniqueStringsReuse(inputc)
 			if len(result) != 6 {
+				// nolint
 				b.Fatal(fmt.Sprintf("invalid count: %d", len(result)))
 			}
 		}
@@ -454,6 +456,7 @@ func BenchmarkUniqueStrings(b *testing.B) {
 
 			result := UniqueStringsSorted(inputc)
 			if len(result) != 6 {
+				// nolint
 				b.Fatal(fmt.Sprintf("invalid count: %d", len(result)))
 			}
 		}

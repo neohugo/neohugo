@@ -6,6 +6,8 @@ on:
       - main
 
 env:
+  GOPATH: ${{ github.workspace }}
+  GOBIN: ${{ github.workspace }}/bin
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
@@ -13,15 +15,15 @@ env:
 jobs:
   benchmark:
     name: Performance regression check
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - name: Setup go
-        uses: actions/setup-go@v2
-        with:
-          go-version: '1.18'
       - name: Git checkout
-        uses: actions/checkout@v2
-      - uses: actions/cache@v2
+        uses: actions/checkout@v3
+      - name: Setup go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
+      - uses: actions/cache@v3
         id: cache
         with:
           path: ~/go/pkg/mod
@@ -39,7 +41,7 @@ jobs:
           go test -test.run=NONE -bench="." -test.benchmem=true ./... | tee output.txt
       # Download previous benchmark result from cache (if exists)
       - name: Download previous benchmark data
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ./cache
           key: ${{ runner.os }}-benchmark
@@ -49,10 +51,10 @@ jobs:
           git reset --hard
       # Run `github-action-benchmark` action
       - name: Store benchmark result
-        uses: rhysd/github-action-benchmark@v1
+        uses: benchmark-action/github-action-benchmark@v1
         with:
           # What benchmark tool the output.txt came from
-          tool: 'go'
+          tool: "go"
           # Where the output from the benchmark tool is stored
           output-file-path: output.txt
           # Workflow will fail when an alert happens
@@ -62,7 +64,7 @@ jobs:
           # Enable alert commit comment
           comment-on-alert: true
           # Mention @blackb1rd in the commit comment
-          alert-comment-cc-users: '@blackb1rd'
+          alert-comment-cc-users: "@blackb1rd"
           # Push and deploy GitHub pages branch automatically
           auto-push: true
           # Upload the updated cache file for the next job by actions/cache

@@ -16,6 +16,7 @@ package create
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -27,8 +28,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/paths"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/hugofs"
 

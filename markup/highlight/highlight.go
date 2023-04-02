@@ -183,6 +183,7 @@ func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.
 
 	if lexer == nil {
 		if cfg.Hl_inline {
+			// nolint
 			fmt.Fprint(w, fmt.Sprintf("<code%s>%s</code>", inlineCodeAttrs(lang), gohtml.EscapeString(code)))
 		} else {
 			preWrapper := getPreWrapper(lang, w)
@@ -273,6 +274,7 @@ func (p *preWrapper) Start(code bool, styleAttr string) string {
 }
 
 func inlineCodeAttrs(lang string) string {
+	// nolint
 	if lang == "" {
 	}
 	return fmt.Sprintf(` class="code-inline language-%s"`, lang)

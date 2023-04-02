@@ -130,10 +130,9 @@ status = 404
 		c.Assert(pr2.statusCode, qt.Equals, http.StatusNotFound)
 		c.Assert(pr1.body, qt.Contains, "404: 404 Page not found|Not Found.")
 		c.Assert(pr2.body, qt.Contains, "404: 404 Page not found|Not Found.")
-
 	})
-
 }
+
 func TestServerFlags(t *testing.T) {
 	c := qt.New(t)
 
@@ -255,8 +254,9 @@ baseURL="https://example.org"
 }
 
 type serverTestResult struct {
-	err            error
-	homesContent   []string
+	err          error
+	homesContent []string
+	// nolint
 	content404     string
 	publicDirnames map[string]bool
 	pathsResults   map[string]pathResult
@@ -361,7 +361,6 @@ func runServerTest(c *qt.C, opts serverTestOptions) serverTestResult {
 	result.err = wg.Wait()
 
 	return result
-
 }
 
 func TestFixURL(t *testing.T) {

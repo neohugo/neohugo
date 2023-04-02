@@ -14,12 +14,11 @@
 package hugofs
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
 	"time"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/spf13/afero"

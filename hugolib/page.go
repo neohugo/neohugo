@@ -588,6 +588,7 @@ func (p *pageState) wrapError(err error) error {
 					return err
 				}
 				defer f.Close()
+				// nolint
 				ferr.UpdateContent(f, nil)
 			}
 			return err
@@ -595,7 +596,6 @@ func (p *pageState) wrapError(err error) error {
 	}
 
 	return herrors.NewFileErrorFromFile(err, filename, p.s.SourceSpec.Fs.Source, herrors.NopLineMatcher)
-
 }
 
 func (p *pageState) getContentConverter() converter.Converter {
@@ -824,10 +824,6 @@ func (p *pageState) pathOrTitle() string {
 	}
 
 	return p.Title()
-}
-
-func (p *pageState) posFromPage(offset int) text.Position {
-	return p.posFromInput(p.source.parsed.Input(), offset)
 }
 
 func (p *pageState) posFromInput(input []byte, offset int) text.Position {

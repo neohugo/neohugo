@@ -335,7 +335,6 @@ func TestBenchmarkBaseline(t *testing.T) {
 	b.Assert(len(b.H.Sites[0].Pages()), qt.Equals, 197)
 	b.Assert(len(b.H.Sites[2].RegularPages()), qt.Equals, 158)
 	b.Assert(len(b.H.Sites[2].Pages()), qt.Equals, 194)
-
 }
 
 func BenchmarkBaseline(b *testing.B) {
@@ -356,7 +355,6 @@ func BenchmarkBaseline(b *testing.B) {
 }
 
 func benchmarkBaselineFiles() string {
-
 	rnd := rand.New(rand.NewSource(32))
 
 	files := `

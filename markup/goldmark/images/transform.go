@@ -40,6 +40,7 @@ type Transformer struct {
 // Transform transforms the provided Markdown AST.
 func (t *Transformer) Transform(doc *ast.Document, reader text.Reader, pctx parser.Context) {
 	var ordinal int
+	// nolint
 	ast.Walk(doc, func(node ast.Node, enter bool) (ast.WalkStatus, error) {
 		if !enter {
 			return ast.WalkContinue, nil
@@ -71,7 +72,5 @@ func (t *Transformer) Transform(doc *ast.Document, reader text.Reader, pctx pars
 		}
 
 		return ast.WalkContinue, nil
-
 	})
-
 }

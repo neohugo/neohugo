@@ -1049,7 +1049,6 @@ title: "p1"
 </code></pre>
 
 	`)
-
 }
 
 // Issue 10236.
@@ -1081,7 +1080,6 @@ Title: {{ .Get "title" | safeHTML }}
 	).Build()
 
 	b.AssertFileContent("public/p1/index.html", `Title: Steve "Francia".`)
-
 }
 
 // Issue 10391.
@@ -1174,5 +1172,4 @@ C'est un test
 	).Build()
 
 	b.AssertFileContent("public/fr/p2/index.html", `plus-dinformations`)
-
 }

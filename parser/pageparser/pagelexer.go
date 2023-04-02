@@ -168,7 +168,6 @@ func (l *pageLexer) emit(t ItemType) {
 	}
 
 	l.append(Item{Type: t, low: l.start, high: l.pos})
-
 }
 
 // sends a string item back to the client.
@@ -214,7 +213,6 @@ func (l *pageLexer) ignoreEscapesAndEmit(t ItemType, isString bool) {
 	}
 
 	l.start = l.pos
-
 }
 
 // gets the current value (for debugging and error handling)

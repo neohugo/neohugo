@@ -15,14 +15,13 @@ package hugofs
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
-
-	"errors"
 
 	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/htesting"

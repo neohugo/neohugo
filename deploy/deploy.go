@@ -22,6 +22,7 @@ import (
 	"context"
 	"crypto/md5"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -33,8 +34,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-
-	"errors"
 
 	"github.com/dustin/go-humanize"
 	"github.com/gobwas/glob"
@@ -682,7 +681,7 @@ func findDiffs(localFiles map[string]*localFile, remoteFiles map[string]*blob.Li
 			} else if !bytes.Equal(lf.MD5(), remoteFile.MD5) {
 				upload = true
 				reason = reasonMD5Differs
-			} else {
+			} else { // nolint
 				// Nope! Leave uploaded = false.
 			}
 			found[path] = true

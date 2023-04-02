@@ -17,10 +17,9 @@
 package deploy
 
 import (
+	"errors"
 	"fmt"
 	"regexp"
-
-	"errors"
 
 	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/config"

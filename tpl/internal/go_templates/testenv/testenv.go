@@ -14,9 +14,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-
-	"github.com/neohugo/neohugo/tpl/internal/go_templates/cfg"
-
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -25,6 +22,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/neohugo/neohugo/tpl/internal/go_templates/cfg"
 )
 
 // Builder reports the name of the builder running this test
