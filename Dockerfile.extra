@@ -27,7 +27,7 @@ RUN mage neohugo && mage install
 
 FROM node:lts-alpine
 
-ENV MOZJPEG_VERSION="4.0.3"
+ENV MOZJPEG_VERSION="4.1.1"
 
 LABEL description="Docker container for building static sites with the neohugo static site generator with extended."
 LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.dev>"
@@ -85,6 +85,8 @@ RUN apk update && \
     && /opt/mozjpeg/bin/cjpeg -version \
     && cwebp \
     && neohugo version
+
+ENV PATH="${PATH}:/opt/mozjpeg/bin"
 
 WORKDIR /src
 # Expose port for live server
