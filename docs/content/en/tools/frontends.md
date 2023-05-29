@@ -2,20 +2,13 @@
 title: Frontend Interfaces with Hugo
 linktitle: Frontends
 description: Do you prefer a graphical user interface over a text editor? Give these frontends a try.
-date: 2017-02-01
-publishdate: 2017-02-01
-lastmod: 2017-02-01
 categories: [developer tools]
 keywords: [frontend, gui]
 menu:
   docs:
-    parent: "tools"
+    parent: tools
     weight: 40
 weight: 40
-sections_weight: 40
-draft: false
-aliases: []
-toc: false
 ---
 
 - [enwrite](https://github.com/zzamboni/enwrite). Enwrite enables evernote-powered, statically generated blogs and websites. Now posting to your blog or updating your website is as easy as writing a new note in Evernote!
@@ -26,5 +19,4 @@ toc: false
 ## Commercial Services
 
 - [DATOCMS](https://www.datocms.com) DatoCMS is a fully customizable administrative area for your static websites. Use your favorite website generator, let your clients publish new content independently, and the host the site anywhere you like.
-- [Forestry.io](https://forestry.io/). Forestry is a git-backed CMS for Hugo, Gatsby, Jekyll and VuePress websites with support for GitHub, GitLab, Bitbucket and Azure Devops. Forestry provides a nice user interface to edit and model content for non technical editors. It supports S3, Cloudinary and Netlify Large Media integrations for storing media. Every time an update is made via the CMS, Forestry will commit changes back to your repo and vice-versa.
 - [CloudCannon](https://cloudcannon.com/hugo-cms/). The intuitive Git-based CMS for your Hugo website. CloudCannon syncs changes from your Git repository and pushes content changes back, so your development and content teams are always in sync. Edit all of your content on the page with visual editing, build entire pages with reusable custom components and then publish confidently.

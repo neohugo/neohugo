@@ -14,11 +14,10 @@
 package cast
 
 import (
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/testconfig"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/docshelper"
-	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/tpl/internal"
 )
@@ -26,14 +25,12 @@ import (
 // This file provides documentation support and is randomly put into this package.
 func init() {
 	docsProvider := func() docshelper.DocProvider {
-		cfg := config.New()
-		d := &deps.Deps{
-			Cfg:                 cfg,
-			Log:                 loggers.NewErrorLogger(),
-			BuildStartListeners: &deps.Listeners{},
-			Language:            langs.NewDefaultLanguage(cfg),
-			Site:                page.NewDummyHugoSite(newTestConfig()),
+		d := &deps.Deps{Conf: testconfig.GetTestConfig(nil, nil)}
+		if err := d.Init(); err != nil {
+			panic(err)
 		}
+		conf := testconfig.GetTestConfig(nil, newTestConfig())
+		d.Site = page.NewDummyHugoSite(conf)
 
 		var namespaces internal.TemplateFuncsNamespaces
 

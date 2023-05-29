@@ -1,4 +1,4 @@
-// Copyright 2019 The Hugo Authors. All rights reserved.
+// Copyright 2023 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package filesystems
+package filesystems_test
 
 import (
 	"errors"
@@ -21,63 +21,20 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gobwas/glob"
-
 	"github.com/neohugo/neohugo/config"
-
-	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/config/testconfig"
 
 	"github.com/spf13/afero"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib/filesystems"
 	"github.com/neohugo/neohugo/hugolib/paths"
-	"github.com/neohugo/neohugo/modules"
 )
-
-func initConfig(fs afero.Fs, cfg config.Provider) error {
-	if _, err := langs.LoadLanguageSettings(cfg, nil); err != nil {
-		return err
-	}
-
-	modConfig, err := modules.DecodeConfig(cfg)
-	if err != nil {
-		return err
-	}
-
-	workingDir := cfg.GetString("workingDir")
-	themesDir := cfg.GetString("themesDir")
-	if !filepath.IsAbs(themesDir) {
-		themesDir = filepath.Join(workingDir, themesDir)
-	}
-	globAll := glob.MustCompile("**", '/')
-	modulesClient := modules.NewClient(modules.ClientConfig{
-		Fs:           fs,
-		WorkingDir:   workingDir,
-		ThemesDir:    themesDir,
-		ModuleConfig: modConfig,
-		IgnoreVendor: globAll,
-	})
-
-	moduleConfig, err := modulesClient.Collect()
-	if err != nil {
-		return err
-	}
-
-	if err := modules.ApplyProjectConfigDefaults(cfg, moduleConfig.ActiveModules[0]); err != nil {
-		return err
-	}
-
-	cfg.Set("allModules", moduleConfig.ActiveModules)
-
-	return nil
-}
 
 func TestNewBaseFs(t *testing.T) {
 	c := qt.New(t)
-	v := config.NewWithTestDefaults()
-
-	fs := hugofs.NewMem(v)
+	v := config.New()
 
 	themes := []string{"btheme", "atheme"}
 
@@ -87,6 +44,9 @@ func TestNewBaseFs(t *testing.T) {
 	v.Set("themesDir", "themes")
 	v.Set("defaultContentLanguage", "en")
 	v.Set("theme", themes[:1])
+	v.Set("publishDir", "public")
+
+	afs := afero.NewMemMapFs()
 
 	// Write some data to the themes
 	for _, theme := range themes {
@@ -94,53 +54,39 @@ func TestNewBaseFs(t *testing.T) {
 			base := filepath.Join(workingDir, "themes", theme, dir)
 			filenameTheme := filepath.Join(base, fmt.Sprintf("theme-file-%s.txt", theme))
 			filenameOverlap := filepath.Join(base, "f3.txt")
-			err := fs.Source.Mkdir(base, 0o755)
-			c.Assert(err, qt.IsNil)
+			afs.Mkdir(base, 0o755) // nolint
 			content := []byte(fmt.Sprintf("content:%s:%s", theme, dir))
-			c.Assert(afero.WriteFile(fs.Source, filenameTheme, content, 0o755), qt.IsNil)
-			c.Assert(afero.WriteFile(fs.Source, filenameOverlap, content, 0o755), qt.IsNil)
+			afero.WriteFile(afs, filenameTheme, content, 0o755)   // nolint
+			afero.WriteFile(afs, filenameOverlap, content, 0o755) // nolint
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
-		c.Assert(afero.WriteFile(fs.Source, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0o755), qt.IsNil)
-		c.Assert(afero.WriteFile(fs.Source, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0o755), qt.IsNil)
+		afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0o755) // nolint
+		afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0o755)                   // nolint
 	}
 
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0o755), qt.IsNil)
-
-	c.Assert(
-		afero.WriteFile(
-			fs.Source,
-			filepath.Join(workingDir, "themes", "btheme", "config.toml"),
-			[]byte(`
+	afero.WriteFile(afs, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0o755) // nolint
+	// nolint
+	afero.WriteFile(afs, filepath.Join(workingDir, "themes", "btheme", "config.toml"), []byte(`
 theme = ["atheme"]
-`), 0o755),
-		qt.IsNil)
+`), 0o755)
 
-	err := setConfigAndWriteSomeFilesTo(fs.Source, v, "contentDir", "mycontent", 3)
-	c.Assert(err, qt.IsNil)
-	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "i18nDir", "myi18n", 4)
-	c.Assert(err, qt.IsNil)
-	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "layoutDir", "mylayouts", 5)
-	c.Assert(err, qt.IsNil)
-	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "staticDir", "mystatic", 6)
-	c.Assert(err, qt.IsNil)
-	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "dataDir", "mydata", 7)
-	c.Assert(err, qt.IsNil)
-	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "archetypeDir", "myarchetypes", 8)
-	c.Assert(err, qt.IsNil)
-	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "assetDir", "myassets", 9)
-	c.Assert(err, qt.IsNil)
-	err = setConfigAndWriteSomeFilesTo(fs.Source, v, "resourceDir", "myrsesource", 10)
+	setConfigAndWriteSomeFilesTo(afs, v, "contentDir", "mycontent", 3)      // nolint
+	setConfigAndWriteSomeFilesTo(afs, v, "i18nDir", "myi18n", 4)            // nolint
+	setConfigAndWriteSomeFilesTo(afs, v, "layoutDir", "mylayouts", 5)       // nolint
+	setConfigAndWriteSomeFilesTo(afs, v, "staticDir", "mystatic", 6)        // nolint
+	setConfigAndWriteSomeFilesTo(afs, v, "dataDir", "mydata", 7)            // nolint
+	setConfigAndWriteSomeFilesTo(afs, v, "archetypeDir", "myarchetypes", 8) // nolint
+	setConfigAndWriteSomeFilesTo(afs, v, "assetDir", "myassets", 9)         // nolint
+	setConfigAndWriteSomeFilesTo(afs, v, "resourceDir", "myrsesource", 10)  // nolint
+
+	conf := testconfig.GetTestConfig(afs, v)
+	fs := hugofs.NewFrom(afs, conf.BaseConfig())
+
+	p, err := paths.New(fs, conf)
 	c.Assert(err, qt.IsNil)
 
-	v.Set("publishDir", "public")
-	c.Assert(initConfig(fs.Source, v), qt.IsNil)
-
-	p, err := paths.New(fs, v)
-	c.Assert(err, qt.IsNil)
-
-	bfs, err := NewBase(p, nil)
+	bfs, err := filesystems.NewBase(p, nil)
 	c.Assert(err, qt.IsNil)
 	c.Assert(bfs, qt.Not(qt.IsNil))
 
@@ -194,31 +140,14 @@ theme = ["atheme"]
 	}
 }
 
-func createConfig() config.Provider {
-	v := config.NewWithTestDefaults()
-	v.Set("contentDir", "mycontent")
-	v.Set("i18nDir", "myi18n")
-	v.Set("staticDir", "mystatic")
-	v.Set("dataDir", "mydata")
-	v.Set("layoutDir", "mylayouts")
-	v.Set("archetypeDir", "myarchetypes")
-	v.Set("assetDir", "myassets")
-	v.Set("resourceDir", "resources")
-	v.Set("publishDir", "public")
-	v.Set("defaultContentLanguage", "en")
-
-	return v
-}
-
 func TestNewBaseFsEmpty(t *testing.T) {
 	c := qt.New(t)
-	v := createConfig()
-	fs := hugofs.NewMem(v)
-	c.Assert(initConfig(fs.Source, v), qt.IsNil)
-
-	p, err := paths.New(fs, v)
+	afs := afero.NewMemMapFs()
+	conf := testconfig.GetTestConfig(afs, nil)
+	fs := hugofs.NewFrom(afs, conf.BaseConfig())
+	p, err := paths.New(fs, conf)
 	c.Assert(err, qt.IsNil)
-	bfs, err := NewBase(p, nil)
+	bfs, err := filesystems.NewBase(p, nil)
 	c.Assert(err, qt.IsNil)
 	c.Assert(bfs, qt.Not(qt.IsNil))
 	c.Assert(bfs.Archetypes.Fs, qt.Not(qt.IsNil))
@@ -232,47 +161,47 @@ func TestNewBaseFsEmpty(t *testing.T) {
 
 func TestRealDirs(t *testing.T) {
 	c := qt.New(t)
-	v := createConfig()
+	v := config.New()
 	root, themesDir := t.TempDir(), t.TempDir()
 	v.Set("workingDir", root)
 	v.Set("themesDir", themesDir)
+	v.Set("assetDir", "myassets")
 	v.Set("theme", "mytheme")
 
-	fs := hugofs.NewDefault(v)
-	sfs := fs.Source
+	afs := hugofs.Os
 
 	defer func() {
 		os.RemoveAll(root)
 		os.RemoveAll(themesDir)
 	}()
 
-	c.Assert(sfs.MkdirAll(filepath.Join(root, "myassets", "scss", "sf1"), 0o755), qt.IsNil)
-	c.Assert(sfs.MkdirAll(filepath.Join(root, "myassets", "scss", "sf2"), 0o755), qt.IsNil)
-	c.Assert(sfs.MkdirAll(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2"), 0o755), qt.IsNil)
-	c.Assert(sfs.MkdirAll(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3"), 0o755), qt.IsNil)
-	c.Assert(sfs.MkdirAll(filepath.Join(root, "resources"), 0o755), qt.IsNil)
-	c.Assert(sfs.MkdirAll(filepath.Join(themesDir, "mytheme", "resources"), 0o755), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(root, "myassets", "scss", "sf1"), 0o755), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(root, "myassets", "scss", "sf2"), 0o755), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2"), 0o755), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3"), 0o755), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(root, "resources"), 0o755), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(themesDir, "mytheme", "resources"), 0o755), qt.IsNil)
 
-	c.Assert(sfs.MkdirAll(filepath.Join(root, "myassets", "js", "f2"), 0o755), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(root, "myassets", "js", "f2"), 0o755), qt.IsNil)
 
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf1", "a1.scss")), []byte("content"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "scss", "a2.scss")), []byte("content"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3", "a4.scss")), []byte("content"), 0o755), qt.IsNil)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf1", "a1.scss")), []byte("content"), 0o755)               // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755)               // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "a2.scss")), []byte("content"), 0o755)                      // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755) // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3", "a4.scss")), []byte("content"), 0o755) // nolint
 
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(themesDir, "mytheme", "resources", "t1.txt")), []byte("content"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "resources", "p1.txt")), []byte("content"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "resources", "p2.txt")), []byte("content"), 0o755), qt.IsNil)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "resources", "t1.txt")), []byte("content"), 0o755) // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "resources", "p1.txt")), []byte("content"), 0o755)                 // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "resources", "p2.txt")), []byte("content"), 0o755)                 // nolint
 
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "js", "f2", "a1.js")), []byte("content"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(sfs, filepath.Join(filepath.Join(root, "myassets", "js", "a2.js")), []byte("content"), 0o755), qt.IsNil)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "js", "f2", "a1.js")), []byte("content"), 0o755) // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "js", "a2.js")), []byte("content"), 0o755)       // nolint
 
-	c.Assert(initConfig(fs.Source, v), qt.IsNil)
-
-	p, err := paths.New(fs, v)
+	conf := testconfig.GetTestConfig(afs, v)
+	fs := hugofs.NewFrom(afs, conf.BaseConfig())
+	p, err := paths.New(fs, conf)
 	c.Assert(err, qt.IsNil)
-	bfs, err := NewBase(p, nil)
+	bfs, err := filesystems.NewBase(p, nil)
 	c.Assert(err, qt.IsNil)
 	c.Assert(bfs, qt.Not(qt.IsNil))
 
@@ -282,46 +211,48 @@ func TestRealDirs(t *testing.T) {
 	c.Assert(len(realDirs), qt.Equals, 2)
 	c.Assert(realDirs[0], qt.Equals, filepath.Join(root, "myassets/scss"))
 	c.Assert(realDirs[len(realDirs)-1], qt.Equals, filepath.Join(themesDir, "mytheme/assets/scss"))
-
-	c.Assert(bfs.theBigFs, qt.Not(qt.IsNil))
 }
 
 func TestStaticFs(t *testing.T) {
 	c := qt.New(t)
-	v := createConfig()
+	v := config.New()
 	workDir := "mywork"
 	v.Set("workingDir", workDir)
 	v.Set("themesDir", "themes")
+	v.Set("staticDir", "mystatic")
 	v.Set("theme", []string{"t1", "t2"})
 
-	fs := hugofs.NewMem(v)
+	afs := afero.NewMemMapFs()
 
 	themeStaticDir := filepath.Join(workDir, "themes", "t1", "static")
 	themeStaticDir2 := filepath.Join(workDir, "themes", "t2", "static")
 
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir2, "f2.txt"), []byte("Hugo Themes Rocks in t2!"), 0o755), qt.IsNil)
+	afero.WriteFile(afs, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755)          // nolint
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755)        // nolint
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755)  // nolint
+	afero.WriteFile(afs, filepath.Join(themeStaticDir2, "f2.txt"), []byte("Hugo Themes Rocks in t2!"), 0o755) // nolint
 
-	c.Assert(initConfig(fs.Source, v), qt.IsNil)
+	conf := testconfig.GetTestConfig(afs, v)
+	fs := hugofs.NewFrom(afs, conf.BaseConfig())
+	p, err := paths.New(fs, conf)
 
-	p, err := paths.New(fs, v)
 	c.Assert(err, qt.IsNil)
-	bfs, err := NewBase(p, nil)
+	bfs, err := filesystems.NewBase(p, nil)
 	c.Assert(err, qt.IsNil)
 
 	sfs := bfs.StaticFs("en")
+
 	checkFileContent(sfs, "f1.txt", c, "Hugo Rocks!")
 	checkFileContent(sfs, "f2.txt", c, "Hugo Themes Still Rocks!")
 }
 
 func TestStaticFsMultiHost(t *testing.T) {
 	c := qt.New(t)
-	v := createConfig()
+	v := config.New()
 	workDir := "mywork"
 	v.Set("workingDir", workDir)
 	v.Set("themesDir", "themes")
+	v.Set("staticDir", "mystatic")
 	v.Set("theme", "t1")
 	v.Set("defaultContentLanguage", "en")
 
@@ -337,21 +268,24 @@ func TestStaticFsMultiHost(t *testing.T) {
 
 	v.Set("languages", langConfig)
 
-	fs := hugofs.NewMem(v)
+	afs := afero.NewMemMapFs()
 
 	themeStaticDir := filepath.Join(workDir, "themes", "t1", "static")
 
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(workDir, "static_no", "f1.txt"), []byte("Hugo Rocks in Norway!"), 0o755), qt.IsNil)
+	afero.WriteFile(afs, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755)            // nolint
+	afero.WriteFile(afs, filepath.Join(workDir, "static_no", "f1.txt"), []byte("Hugo Rocks in Norway!"), 0o755) // nolint
 
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755), qt.IsNil)
-	c.Assert(afero.WriteFile(fs.Source, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755), qt.IsNil)
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755)       // nolint
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755) // nolint
 
-	c.Assert(initConfig(fs.Source, v), qt.IsNil)
+	conf := testconfig.GetTestConfig(afs, v)
+	fs := hugofs.NewFrom(afs, conf.BaseConfig())
 
-	p, err := paths.New(fs, v)
+	fmt.Println("IS", conf.IsMultihost())
+
+	p, err := paths.New(fs, conf)
 	c.Assert(err, qt.IsNil)
-	bfs, err := NewBase(p, nil)
+	bfs, err := filesystems.NewBase(p, nil)
 	c.Assert(err, qt.IsNil)
 	enFs := bfs.StaticFs("en")
 	checkFileContent(enFs, "f1.txt", c, "Hugo Rocks!")
@@ -364,14 +298,14 @@ func TestStaticFsMultiHost(t *testing.T) {
 
 func TestMakePathRelative(t *testing.T) {
 	c := qt.New(t)
-	v := createConfig()
-	fs := hugofs.NewMem(v)
+	v := config.New()
+	afs := afero.NewMemMapFs()
 	workDir := "mywork"
 	v.Set("workingDir", workDir)
 
-	c.Assert(fs.Source.MkdirAll(filepath.Join(workDir, "dist", "d1"), 0o777), qt.IsNil)
-	c.Assert(fs.Source.MkdirAll(filepath.Join(workDir, "static", "d2"), 0o777), qt.IsNil)
-	c.Assert(fs.Source.MkdirAll(filepath.Join(workDir, "dust", "d2"), 0o777), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(workDir, "dist", "d1"), 0o777), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(workDir, "static", "d2"), 0o777), qt.IsNil)
+	c.Assert(afs.MkdirAll(filepath.Join(workDir, "dust", "d2"), 0o777), qt.IsNil)
 
 	moduleCfg := map[string]any{
 		"mounts": []any{
@@ -392,11 +326,12 @@ func TestMakePathRelative(t *testing.T) {
 
 	v.Set("module", moduleCfg)
 
-	c.Assert(initConfig(fs.Source, v), qt.IsNil)
+	conf := testconfig.GetTestConfig(afs, v)
+	fs := hugofs.NewFrom(afs, conf.BaseConfig())
 
-	p, err := paths.New(fs, v)
+	p, err := paths.New(fs, conf)
 	c.Assert(err, qt.IsNil)
-	bfs, err := NewBase(p, nil)
+	bfs, err := filesystems.NewBase(p, nil)
 	c.Assert(err, qt.IsNil)
 
 	sfs := bfs.Static[""]
@@ -413,6 +348,7 @@ func TestMakePathRelative(t *testing.T) {
 }
 
 func checkFileCount(fs afero.Fs, dirname string, c *qt.C, expected int) {
+	c.Helper()
 	count, _, err := countFilesAndGetFilenames(fs, dirname)
 	c.Assert(err, qt.IsNil)
 	c.Assert(count, qt.Equals, expected)
@@ -471,7 +407,7 @@ func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val strin
 	}
 	for i := 0; i < num; i++ {
 		filename := filepath.Join(workingDir, val, fmt.Sprintf("f%d.txt", i+1))
-		if err := afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0o755); err != nil {
+		if err := afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0o755); err != nil { // nolint
 			return err
 		}
 

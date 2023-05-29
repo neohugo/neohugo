@@ -36,7 +36,7 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/rogpeppe/go-internal/module"
+	"github.com/rogpeppe/go-internal/module" // nolint
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/afero"
@@ -49,20 +49,6 @@ const vendorModulesFilename = "modules.txt"
 // IsNotExist returns whether an error means that a module could not be found.
 func IsNotExist(err error) bool {
 	return errors.Is(err, os.ErrNotExist)
-}
-
-// CreateProjectModule creates modules from the given config.
-// This is used in tests only.
-func CreateProjectModule(cfg config.Provider) (Module, error) {
-	workingDir := cfg.GetString("workingDir")
-	var modConfig Config
-
-	mod := createProjectModule(nil, workingDir, modConfig)
-	if err := ApplyProjectConfigDefaults(cfg, mod); err != nil {
-		return nil, err
-	}
-
-	return mod, nil
 }
 
 func (h *Client) Collect() (ModulesConfig, error) {
@@ -89,6 +75,9 @@ func (h *Client) Collect() (ModulesConfig, error) {
 }
 
 func (h *Client) collect(tidy bool) (ModulesConfig, *collector) {
+	if h == nil {
+		panic("nil client")
+	}
 	c := &collector{
 		Client: h,
 	}
@@ -130,6 +119,15 @@ type ModulesConfig struct {
 
 	// Set if a Go workspace file is configured.
 	GoWorkspaceFilename string
+}
+
+func (m ModulesConfig) HasConfigFile() bool {
+	for _, mod := range m.ActiveModules {
+		if len(mod.ConfigFilenames()) > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (m *ModulesConfig) setActiveMods(logger loggers.Logger) error {
@@ -298,7 +296,7 @@ func (c *collector) add(owner *moduleAdapter, moduleImport Import, disabled bool
 					return nil, nil
 				}
 				if found, _ := afero.Exists(c.fs, moduleDir); !found {
-					c.err = c.wrapModuleNotFound(fmt.Errorf(`module %q not found; either add it as a Hugo Module or store it in %q.`, modulePath, c.ccfg.ThemesDir))
+					c.err = c.wrapModuleNotFound(fmt.Errorf(`module %q not found in %q; either add it as a Hugo Module or store it in %q.`, modulePath, moduleDir, c.ccfg.ThemesDir))
 					return nil, nil
 				}
 			}
@@ -346,7 +344,7 @@ func (c *collector) addAndRecurse(owner *moduleAdapter, disabled bool) error {
 	moduleConfig := owner.Config()
 	if owner.projectMod {
 		if err := c.applyMounts(Import{}, owner); err != nil {
-			return err
+			return fmt.Errorf("failed to apply mounts for project: %w", err)
 		}
 	}
 
@@ -422,12 +420,14 @@ func (c *collector) applyThemeConfig(tc *moduleAdapter) error {
 		err            error
 	)
 
-	// Viper supports more, but this is the sub-set supported by Hugo.
-	for _, configFormats := range config.ValidConfigFileExtensions {
-		configFilename = filepath.Join(tc.Dir(), "config."+configFormats)
-		hasConfigFile, _ = afero.Exists(c.fs, configFilename)
-		if hasConfigFile {
-			break
+LOOP:
+	for _, configBaseName := range config.DefaultConfigNames {
+		for _, configFormats := range config.ValidConfigFileExtensions {
+			configFilename = filepath.Join(tc.Dir(), configBaseName+"."+configFormats)
+			hasConfigFile, _ = afero.Exists(c.fs, configFilename)
+			if hasConfigFile {
+				break LOOP
+			}
 		}
 	}
 
@@ -615,7 +615,7 @@ func (c *collector) mountCommonJSConfig(owner *moduleAdapter, mounts []Mount) ([
 	// Mount the common JS config files.
 	fis, err := afero.ReadDir(c.fs, owner.Dir())
 	if err != nil {
-		return mounts, err
+		return mounts, fmt.Errorf("failed to read dir %q: %q", owner.Dir(), err)
 	}
 
 	for _, fi := range fis {

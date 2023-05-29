@@ -11,7 +11,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package godartsass integrates with the Dass Sass Embedded protocol to transpile
+// Package dartsass integrates with the Dass Sass Embedded protocol to transpile
 // SCSS/SASS.
 package dartsass
 
@@ -134,7 +134,7 @@ type Options struct {
 	// Vars will be available in 'hugo:vars', e.g:
 	//     @use "hugo:vars";
 	//     $color: vars.$color;
-	Vars map[string]string
+	Vars map[string]any
 }
 
 func decodeOptions(m map[string]any) (opts Options, err error) {

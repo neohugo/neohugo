@@ -16,10 +16,10 @@ package loggers
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
+	"sync/atomic"
 	"time"
 
 	"github.com/neohugo/neohugo/common/terminal"
@@ -30,7 +30,7 @@ import (
 var (
 	// Counts ERROR logs to the global jww logger.
 	GlobalErrorCounter *jww.Counter
-	PanicOnWarning     bool
+	PanicOnWarning     atomic.Bool
 )
 
 func init() {
@@ -88,7 +88,7 @@ type logger struct {
 	*jww.Notepad
 
 	// The writer that represents stdout.
-	// Will be ioutil.Discard when in quiet mode.
+	// Will be io.Discard when in quiet mode.
 	out io.Writer
 
 	logCounters *LogCounters
@@ -133,14 +133,14 @@ const panicOnWarningMessage = "Warning trapped. Remove the --panicOnWarning flag
 
 func (l *logger) Warnf(format string, v ...any) {
 	l.WARN.Printf(format, v...)
-	if PanicOnWarning {
+	if PanicOnWarning.Load() {
 		panic(panicOnWarningMessage)
 	}
 }
 
 func (l *logger) Warnln(v ...any) {
 	l.WARN.Println(v...)
-	if PanicOnWarning {
+	if PanicOnWarning.Load() {
 		panic(panicOnWarningMessage)
 	}
 }
@@ -228,12 +228,12 @@ func NewErrorLogger() Logger {
 
 // NewBasicLogger creates a new basic logger writing to Stdout.
 func NewBasicLogger(t jww.Threshold) Logger {
-	return newLogger(t, jww.LevelError, os.Stdout, ioutil.Discard, false)
+	return newLogger(t, jww.LevelError, os.Stdout, io.Discard, false)
 }
 
 // NewBasicLoggerForWriter creates a new basic logger writing to w.
 func NewBasicLoggerForWriter(t jww.Threshold, w io.Writer) Logger {
-	return newLogger(t, jww.LevelError, w, ioutil.Discard, false)
+	return newLogger(t, jww.LevelError, w, io.Discard, false)
 }
 
 // RemoveANSIColours removes all ANSI colours from the given string.
@@ -287,7 +287,7 @@ func InitGlobalLogger(stdoutThreshold, logThreshold jww.Threshold, outHandle, lo
 
 func getLogWriters(outHandle, logHandle io.Writer) (io.Writer, io.Writer) {
 	isTerm := terminal.PrintANSIColors(os.Stdout)
-	if logHandle != ioutil.Discard && isTerm {
+	if logHandle != io.Discard && isTerm {
 		// Remove any Ansi coloring from log output
 		logHandle = ansiCleaner{w: logHandle}
 	}

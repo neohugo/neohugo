@@ -18,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/neohugo/neohugo/common/urls"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/output"
 )
@@ -30,6 +31,7 @@ const slash = "/"
 //
 // The big motivating behind this is to have only one source of truth for URLs,
 // and by that also get rid of most of the fragile string parsing/encoding etc.
+
 type TargetPathDescriptor struct {
 	PathSpec *helpers.PathSpec
 
@@ -89,18 +91,18 @@ func (p TargetPaths) RelPermalink(s *helpers.PathSpec) string {
 }
 
 func (p TargetPaths) PermalinkForOutputFormat(s *helpers.PathSpec, f output.Format) string {
-	var baseURL string
+	var baseURL urls.BaseURL
 	var err error
 	if f.Protocol != "" {
-		baseURL, err = s.BaseURL.WithProtocol(f.Protocol)
+		baseURL, err = s.Cfg.BaseURL().WithProtocol(f.Protocol)
 		if err != nil {
 			return ""
 		}
 	} else {
-		baseURL = s.BaseURL.String()
+		baseURL = s.Cfg.BaseURL()
 	}
-
-	return s.PermalinkForBaseURL(p.Link, baseURL)
+	baseURLstr := baseURL.String()
+	return s.PermalinkForBaseURL(p.Link, baseURLstr)
 }
 
 func isHtmlIndex(s string) bool {

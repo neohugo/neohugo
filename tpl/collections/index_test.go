@@ -18,17 +18,14 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/langs"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/deps"
 )
 
 func TestIndex(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
+	ns := newNs()
 
 	var (
 		emptyInterface any

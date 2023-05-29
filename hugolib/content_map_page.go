@@ -148,7 +148,7 @@ func (m *pageMap) newPageFromContentNode(n *contentNode, parentBucket *pagesMapB
 
 	parseResult, err := pageparser.Parse(
 		r,
-		pageparser.Config{EnableEmoji: s.siteCfg.enableEmoji},
+		pageparser.Config{EnableEmoji: s.conf.EnableEmoji},
 	)
 	if err != nil {
 		return nil, err
@@ -171,7 +171,7 @@ func (m *pageMap) newPageFromContentNode(n *contentNode, parentBucket *pagesMapB
 		return nil, err
 	}
 
-	ps.init.Add(func() (any, error) {
+	ps.init.Add(func(context.Context) (any, error) {
 		pp, err := newPagePaths(s, ps, metaProvider)
 		if err != nil {
 			return nil, err
@@ -266,7 +266,7 @@ func (m *pageMap) newResource(fim hugofs.FileMetaInfo, owner *pageState) (resour
 }
 
 func (m *pageMap) createSiteTaxonomies() error {
-	m.s.taxonomies = make(TaxonomyList)
+	m.s.taxonomies = make(page.TaxonomyList)
 	var walkErr error
 	m.taxonomies.Walk(func(s string, v any) bool {
 		n := v.(*contentNode)
@@ -275,7 +275,7 @@ func (m *pageMap) createSiteTaxonomies() error {
 		viewName := t.name
 
 		if t.termKey == "" {
-			m.s.taxonomies[viewName.plural] = make(Taxonomy)
+			m.s.taxonomies[viewName.plural] = make(page.Taxonomy)
 		} else {
 			taxonomy := m.s.taxonomies[viewName.plural]
 			if taxonomy == nil {
@@ -285,7 +285,7 @@ func (m *pageMap) createSiteTaxonomies() error {
 			m.taxonomyEntries.WalkPrefix(s, func(ss string, v any) bool {
 				b2 := v.(*contentNode)
 				info := b2.viewInfo
-				taxonomy.add(info.termKey, page.NewWeightedPage(info.weight, info.ref.p, n.p))
+				taxonomy[info.termKey] = append(taxonomy[info.termKey], page.NewWeightedPage(info.weight, info.ref.p, n.p))
 
 				return false
 			})
@@ -742,13 +742,14 @@ func (m *pageMaps) AssemblePages() error {
 
 		sw := &sectionWalker{m: pm.contentMap}
 		a := sw.applyAggregates()
-		_, mainSectionsSet := pm.s.s.Info.Params()["mainsections"]
-		if !mainSectionsSet && a.mainSection != "" {
-			mainSections := []string{strings.TrimRight(a.mainSection, "/")}
-			pm.s.s.Info.Params()["mainSections"] = mainSections
-			pm.s.s.Info.Params()["mainsections"] = mainSections
-		}
 
+		if a.mainSection != "" {
+			// Note, sites that have no custom config share a common config struct pointer.
+			// This means that we currently do not support setting different values per language.
+			// The end user can, however, configure this per language if needed.
+			mainSections := []string{strings.TrimRight(a.mainSection, "/")}
+			pm.s.s.conf.C.SetMainSectionsIfNotSet(mainSections)
+		}
 		pm.s.lastmod = a.datesAll.Lastmod()
 		if resource.IsZeroDates(pm.s.home) {
 			pm.s.home.m.Dates = a.datesAll

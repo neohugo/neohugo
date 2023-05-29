@@ -1,17 +1,13 @@
 ---
 title: Use Hugo Modules
-linktitle: Use Hugo Modules
 description: How to use Hugo Modules to build and manage your site.
-date: 2019-07-24
 categories: [hugo modules]
 keywords: [install, themes, source, organization, directories,usage,modules]
 menu:
   docs:
-    parent: "modules"
+    parent: modules
     weight: 20
 weight: 20
-sections_weight: 20
-draft: false
 aliases: [/themes/usage/,/themes/installing/,/installing-and-using-themes/]
 toc: true
 ---
@@ -37,7 +33,7 @@ The easiest way to use a Module for a theme is to import it in the config.
 1. Initialize the hugo module system: `hugo mod init github.com/<your_user>/<your_project>`
 2. Import the theme:
 
-{{< code-toggle file="config" >}}
+{{< code-toggle file="hugo" >}}
 [module]
   [[module.imports]]
     path = "github.com/spf13/hyde"
@@ -135,3 +131,32 @@ Run `hugo mod clean` to delete the entire modules cache.
 Note that you can also configure the `modules` cache with a `maxAge`, see [File Caches](/getting-started/configuration/#configure-file-caches).
 
 Also see the [CLI Doc](/commands/hugo_mod_clean/).
+
+## Module Workspaces
+
+{{< new-in "0.109.0" >}}
+
+Workspace support was added in [Go 1.18](https://go.dev/blog/get-familiar-with-workspaces) and Hugo got solid support for it in the `v0.109.0` version.
+
+A common use case for a workspace is to simplify local development of a site with its theme modules.
+
+A workspace can be configured in a `*.work` file and activated with the [module.workspace](/hugo-modules/configuration/) setting, which for this use is commonly controlled via the `HUGO_MODULE_WORKSPACE` OS environment variable.
+
+See the [hugo.work](https://github.com/gohugoio/hugo/blob/master/hugo.work) file in the Hugo Docs repo for an example:
+
+```
+go 1.19
+
+use .
+use ../gohugoioTheme
+```
+
+Using the `use` directive, list all the modules you want to work on, pointing to its relative location. As in the example above, it's recommended to always include the main project (the ".") in the list.
+
+With that you can start the Hugo server with that workspace enabled:
+
+```
+HUGO_MODULE_WORKSPACE=hugo.work hugo server --ignoreVendorPaths "**"
+```
+
+The `--ignoreVendorPaths` flag is added above to ignore any of the vendored dependencies inside `_vendor`. If you don't use vendoring, you don't need that flag. But now the server is set up watching the files and directories in the workspace and you can see your local edits reloaded.

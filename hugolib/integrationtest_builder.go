@@ -3,6 +3,7 @@ package hugolib
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -19,7 +20,9 @@ import (
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
@@ -32,6 +35,8 @@ import (
 func NewIntegrationTestBuilder(conf IntegrationTestConfig) *IntegrationTestBuilder {
 	// Code fences.
 	conf.TxtarString = strings.ReplaceAll(conf.TxtarString, "§§§", "```")
+	// Multiline strings.
+	conf.TxtarString = strings.ReplaceAll(conf.TxtarString, "§§", "`")
 
 	data := txtar.Parse([]byte(conf.TxtarString))
 
@@ -82,6 +87,7 @@ type IntegrationTestBuilder struct {
 	renamedFiles []string
 
 	buildCount int
+	GCCount    int
 	counters   *testCounters
 	logBuff    lockingBuffer
 
@@ -192,6 +198,10 @@ func (s *IntegrationTestBuilder) Build() *IntegrationTestBuilder {
 		fmt.Println(s.logBuff.String())
 	}
 	s.Assert(err, qt.IsNil)
+	if s.Cfg.RunGC {
+		s.GCCount, err = s.H.GC() // nolint
+	}
+
 	return s
 }
 
@@ -201,7 +211,7 @@ func (s *IntegrationTestBuilder) BuildE() (*IntegrationTestBuilder, error) {
 		return s, err
 	}
 
-	err := s.build(BuildCfg{})
+	err := s.build(s.Cfg.BuildCfg)
 	return s, err
 }
 
@@ -261,6 +271,7 @@ func (s *IntegrationTestBuilder) RenameFile(old, new string) *IntegrationTestBui
 	absNewFilename := s.absFilename(new)
 	s.renamedFiles = append(s.renamedFiles, absOldFilename)
 	s.createdFiles = append(s.createdFiles, absNewFilename)
+	s.Assert(s.fs.Source.MkdirAll(filepath.Dir(absNewFilename), 0o777), qt.IsNil)
 	s.Assert(s.fs.Source.Rename(absOldFilename, absNewFilename), qt.IsNil)
 	return s
 }
@@ -301,31 +312,55 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 			s.Assert(afero.WriteFile(afs, filename, data, 0o666), qt.IsNil)
 		}
 
-		cfg, _, err := LoadConfig(
-			ConfigSourceDescriptor{
-				WorkingDir: s.Cfg.WorkingDir,
-				Fs:         afs,
-				Logger:     logger,
-				Environ:    []string{},
-				Filename:   "config.toml",
-			},
-			func(cfg config.Provider) error {
-				return nil
+		configDir := "config"
+		if _, err := afs.Stat(filepath.Join(s.Cfg.WorkingDir, "config")); err != nil {
+			configDir = ""
+		}
+
+		var flags config.Provider
+		if s.Cfg.BaseCfg != nil {
+			flags = s.Cfg.BaseCfg
+		} else {
+			flags = config.New()
+		}
+
+		if s.Cfg.Running {
+			flags.Set("internal", maps.Params{
+				"running": s.Cfg.Running,
+				"watch":   s.Cfg.Running,
+			})
+		}
+
+		if s.Cfg.WorkingDir != "" {
+			flags.Set("workingDir", s.Cfg.WorkingDir)
+		}
+
+		res, err := allconfig.LoadConfig(
+			allconfig.ConfigSourceDescriptor{
+				Flags:     flags,
+				ConfigDir: configDir,
+				Fs:        afs,
+				Logger:    logger,
+				Environ:   s.Cfg.Environ,
 			},
 		)
+		if err != nil {
+			initErr = err
+			return
+		}
+
+		fs := hugofs.NewFrom(afs, res.LoadingInfo.BaseConfig)
 
 		s.Assert(err, qt.IsNil)
 
-		cfg.Set("workingDir", s.Cfg.WorkingDir)
-
-		fs := hugofs.NewFrom(afs, cfg)
-
-		s.Assert(err, qt.IsNil)
-
-		depsCfg := deps.DepsCfg{Cfg: cfg, Fs: fs, Running: s.Cfg.Running, Logger: logger}
+		depsCfg := deps.DepsCfg{Configs: res, Fs: fs, Logger: logger}
 		sites, err := NewHugoSites(depsCfg)
 		if err != nil {
 			initErr = err
+			return
+		}
+		if sites == nil {
+			initErr = errors.New("no sites")
 			return
 		}
 
@@ -472,6 +507,12 @@ type IntegrationTestConfig struct {
 	// https://pkg.go.dev/golang.org/x/exp/cmd/txtar
 	TxtarString string
 
+	// COnfig to use as the base. We will also read the config from the txtar.
+	BaseCfg config.Provider
+
+	// Environment variables passed to the config loader.
+	Environ []string
+
 	// Whether to simulate server mode.
 	Running bool
 
@@ -483,6 +524,9 @@ type IntegrationTestConfig struct {
 	// Whether it needs the real file system (e.g. for js.Build tests).
 	NeedsOsFS bool
 
+	// Whether to run GC after each build.
+	RunGC bool
+
 	// Do not remove the temp dir after the test.
 	PrintAndKeepTempDir bool
 
@@ -490,4 +534,6 @@ type IntegrationTestConfig struct {
 	NeedsNpmInstall bool
 
 	WorkingDir string
+
+	BuildCfg BuildCfg
 }

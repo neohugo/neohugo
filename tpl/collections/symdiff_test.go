@@ -17,10 +17,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/langs"
-
 	qt "github.com/frankban/quicktest"
 )
 
@@ -29,7 +25,7 @@ func TestSymDiff(t *testing.T) {
 
 	c := qt.New(t)
 
-	ns := New(&deps.Deps{Language: langs.NewDefaultLanguage(config.New())})
+	ns := newNs()
 
 	s1 := []TstX{{A: "a"}, {A: "b"}}
 	s2 := []TstX{{A: "a"}, {A: "e"}}

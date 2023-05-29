@@ -16,7 +16,7 @@ package transform
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
+	"os"
 
 	bp "github.com/neohugo/neohugo/bufferpool"
 	"github.com/neohugo/neohugo/common/herrors"
@@ -107,7 +107,7 @@ func (c *Chain) Apply(to io.Writer, from io.Reader) error {
 		if err := tr(fb); err != nil {
 			// Write output to a temp file so it can be read by the user for trouble shooting.
 			filename := "output.html"
-			tempfile, ferr := ioutil.TempFile("", "hugo-transform-error")
+			tempfile, ferr := os.CreateTemp("", "hugo-transform-error")
 			if ferr == nil {
 				filename = tempfile.Name()
 				defer tempfile.Close()

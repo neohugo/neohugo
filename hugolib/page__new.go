@@ -14,14 +14,14 @@
 package hugolib
 
 import (
+	"context"
 	"html/template"
 	"strings"
 
 	"go.uber.org/atomic"
 
-	"github.com/neohugo/neohugo/common/neohugo"
-
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/output"
 
@@ -63,6 +63,7 @@ func newPageBase(metaProvider *pageMeta) (*pageState, error) {
 			init:                 lazy.New(),
 			m:                    metaProvider,
 			s:                    s,
+			sWrapped:             page.WrapSite(s),
 		},
 	}
 
@@ -122,7 +123,7 @@ func newPageFromMeta(
 		return nil, err
 	}
 
-	ps.init.Add(func() (any, error) {
+	ps.init.Add(func(context.Context) (any, error) {
 		pp, err := newPagePaths(metaProvider.s, ps, metaProvider)
 		if err != nil {
 			return nil, err
@@ -190,17 +191,10 @@ type pageDeprecatedWarning struct {
 	p *pageState
 }
 
-// nolint
-func (p *pageDeprecatedWarning) IsDraft() bool { return p.p.m.draft }
-
-// nolint
-func (p *pageDeprecatedWarning) Hugo() neohugo.Info { return p.p.s.Info.Hugo() }
-
-// nolint
-func (p *pageDeprecatedWarning) LanguagePrefix() string { return p.p.s.Info.LanguagePrefix }
-
-// nolint
-func (p *pageDeprecatedWarning) GetParam(key string) any {
+func (p *pageDeprecatedWarning) IsDraft() bool          { return p.p.m.draft }               // nolint
+func (p *pageDeprecatedWarning) Hugo() neohugo.HugoInfo { return p.p.s.Hugo() }              // nolint
+func (p *pageDeprecatedWarning) LanguagePrefix() string { return p.p.s.GetLanguagePrefix() } // nolint
+func (p *pageDeprecatedWarning) GetParam(key string) any { // nolint
 	return p.p.m.params[strings.ToLower(key)]
 }
 

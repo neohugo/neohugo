@@ -17,10 +17,8 @@ package page
 
 import (
 	"encoding/json"
-	"html/template"
 	"time"
 
-	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs/files"
@@ -32,19 +30,6 @@ import (
 )
 
 func MarshalPageToJSON(p Page) ([]byte, error) {
-	content, err := p.Content()
-	if err != nil {
-		return nil, err
-	}
-	plain := p.Plain()
-	plainWords := p.PlainWords()
-	summary := p.Summary()
-	truncated := p.Truncated()
-	fuzzyWordCount := p.FuzzyWordCount()
-	wordCount := p.WordCount()
-	readingTime := p.ReadingTime()
-	length := p.Len()
-	tableOfContents := p.TableOfContents()
 	rawContent := p.RawContent()
 	resourceType := p.ResourceType()
 	mediaType := p.MediaType()
@@ -95,16 +80,6 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	getIdentity := p.GetIdentity()
 
 	s := struct {
-		Content                  any
-		Plain                    string
-		PlainWords               []string
-		Summary                  template.HTML
-		Truncated                bool
-		FuzzyWordCount           int
-		WordCount                int
-		ReadingTime              int
-		Len                      int
-		TableOfContents          template.HTML
 		RawContent               string
 		ResourceType             string
 		MediaType                media.Type
@@ -113,7 +88,7 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Name                     string
 		Title                    string
 		Params                   maps.Params
-		Data                     any
+		Data                     interface{}
 		Date                     time.Time
 		Lastmod                  time.Time
 		PublishDate              time.Time
@@ -137,12 +112,12 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Section                  string
 		SectionsEntries          []string
 		SectionsPath             string
-		Sitemap                  config.Sitemap
+		Sitemap                  config.SitemapConfig
 		Type                     string
 		Weight                   int
 		Language                 *langs.Language
 		File                     source.File
-		GitInfo                  *gitmap.GitInfo
+		GitInfo                  source.GitInfo
 		CodeOwners               []string
 		OutputFormats            OutputFormats
 		AlternativeOutputFormats OutputFormats
@@ -154,16 +129,6 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		Store                    *maps.Scratch
 		GetIdentity              identity.Identity
 	}{
-		Content:                  content,
-		Plain:                    plain,
-		PlainWords:               plainWords,
-		Summary:                  summary,
-		Truncated:                truncated,
-		FuzzyWordCount:           fuzzyWordCount,
-		WordCount:                wordCount,
-		ReadingTime:              readingTime,
-		Len:                      length,
-		TableOfContents:          tableOfContents,
 		RawContent:               rawContent,
 		ResourceType:             resourceType,
 		MediaType:                mediaType,

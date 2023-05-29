@@ -19,24 +19,21 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/source"
-
-	"github.com/neohugo/neohugo/common/loggers"
-
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/source"
 	"github.com/spf13/afero"
 )
 
 func TestPagesCapture(t *testing.T) {
-	cfg, hfs := newTestCfg()
-	fs := hfs.Source
-
 	c := qt.New(t)
 
+	afs := afero.NewMemMapFs()
+
 	writeFile := func(filename string) {
-		c.Assert(afero.WriteFile(fs, filepath.FromSlash(filename), []byte(fmt.Sprintf("content-%s", filename)), 0o755), qt.IsNil)
+		c.Assert(afero.WriteFile(afs, filepath.Join("content", filepath.FromSlash(filename)), []byte(fmt.Sprintf("content-%s", filename)), 0o755), qt.IsNil)
 	}
 
 	writeFile("_index.md")
@@ -47,18 +44,18 @@ func TestPagesCapture(t *testing.T) {
 	writeFile("blog/images/sunset.png")
 	writeFile("pages/page1.md")
 	writeFile("pages/page2.md")
-	writeFile("pages/page.png")
 
-	ps, err := helpers.NewPathSpec(hugofs.NewFrom(fs, cfg), cfg, loggers.NewErrorLogger())
-	c.Assert(err, qt.IsNil)
-	sourceSpec := source.NewSourceSpec(ps, nil, fs)
+	cfg := config.New()
+	d := testconfig.GetTestDeps(afs, cfg)
+	sourceSpec := source.NewSourceSpec(d.PathSpec, nil, d.BaseFs.Content.Fs)
 
 	t.Run("Collect", func(t *testing.T) {
 		c := qt.New(t)
 		proc := &testPagesCollectorProcessor{}
 		coll := newPagesCollector(sourceSpec, nil, loggers.NewErrorLogger(), nil, proc)
 		c.Assert(coll.Collect(), qt.IsNil)
-		c.Assert(len(proc.items), qt.Equals, 4)
+		// 2 bundles, 3 pages.
+		c.Assert(len(proc.items), qt.Equals, 5)
 	})
 }
 

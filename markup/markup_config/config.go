@@ -29,14 +29,18 @@ import (
 type Config struct {
 	// Default markdown handler for md/markdown extensions.
 	// Default is "goldmark".
-	// Before Hugo 0.60 this was "blackfriday".
 	DefaultMarkdownHandler string
 
-	Highlight       highlight.Config
+	// The configuration used by code highlighters.
+	Highlight highlight.Config
+
+	// Table of contents configuration
 	TableOfContents tableofcontents.Config
 
-	// Content renderers
-	Goldmark    goldmark_config.Config
+	// Configuration for the Goldmark markdown engine.
+	Goldmark goldmark_config.Config
+
+	// Configuration for the Asciidoc external markdown engine.
 	AsciidocExt asciidocext_config.Config
 }
 
@@ -47,6 +51,8 @@ func Decode(cfg config.Provider) (conf Config, err error) {
 	if m == nil {
 		return
 	}
+	m = maps.CleanConfigStringMap(m)
+
 	normalizeConfig(m)
 
 	err = mapstructure.WeakDecode(m, &conf)
@@ -63,15 +69,32 @@ func Decode(cfg config.Provider) (conf Config, err error) {
 
 func normalizeConfig(m map[string]any) {
 	v, err := maps.GetNestedParam("goldmark.parser", ".", m)
-	if err != nil {
-		return
+	if err == nil {
+		vm := maps.ToStringMap(v)
+		// Changed from a bool in 0.81.0
+		if vv, found := vm["attribute"]; found {
+			if vvb, ok := vv.(bool); ok {
+				vm["attribute"] = goldmark_config.ParserAttribute{
+					Title: vvb,
+				}
+			}
+		}
 	}
-	vm := maps.ToStringMap(v)
-	// Changed from a bool in 0.81.0
-	if vv, found := vm["attribute"]; found {
-		if vvb, ok := vv.(bool); ok {
-			vm["attribute"] = goldmark_config.ParserAttribute{
-				Title: vvb,
+
+	// Changed from a bool in 0.112.0.
+	v, err = maps.GetNestedParam("goldmark.extensions", ".", m)
+	if err == nil {
+		vm := maps.ToStringMap(v)
+		const typographerKey = "typographer"
+		if vv, found := vm[typographerKey]; found {
+			if vvb, ok := vv.(bool); ok {
+				if !vvb {
+					vm[typographerKey] = goldmark_config.Typographer{
+						Disable: true,
+					}
+				} else {
+					delete(vm, typographerKey)
+				}
 			}
 		}
 	}

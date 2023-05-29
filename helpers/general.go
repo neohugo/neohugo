@@ -23,15 +23,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"unicode"
 	"unicode/utf8"
 
 	"github.com/neohugo/neohugo/common/loggers"
-
-	"github.com/mitchellh/hashstructure"
 
 	"github.com/neohugo/neohugo/common/neohugo"
 
@@ -45,20 +42,6 @@ import (
 
 // FilePathSeparator as defined by os.Separator.
 const FilePathSeparator = string(filepath.Separator)
-
-// FindAvailablePort returns an available and valid TCP port.
-func FindAvailablePort() (*net.TCPAddr, error) {
-	l, err := net.Listen("tcp", ":0")
-	if err == nil {
-		defer l.Close()
-		addr := l.Addr()
-		if a, ok := addr.(*net.TCPAddr); ok {
-			return a, nil
-		}
-		return nil, fmt.Errorf("unable to obtain a valid tcp port: %v", addr)
-	}
-	return nil, err
-}
 
 // TCPListen starts listening on a valid TCP port.
 func TCPListen() (net.Listener, *net.TCPAddr, error) {
@@ -133,7 +116,7 @@ func UniqueStringsReuse(s []string) []string {
 	return result
 }
 
-// UniqueStringsReuse returns a sorted slice with any duplicates removed.
+// UniqueStringsSorted returns a sorted slice with any duplicates removed.
 // It will modify the input slice.
 func UniqueStringsSorted(s []string) []string {
 	if len(s) == 0 {
@@ -422,7 +405,7 @@ func Deprecated(item, alternative string, err bool) {
 		DistinctErrorLog.Errorf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
 	} else {
 		var warnPanicMessage string
-		if !loggers.PanicOnWarning {
+		if !loggers.PanicOnWarning.Load() {
 			warnPanicMessage = "\n\nRe-run Hugo with the flag --panicOnWarning to get a better error message."
 		}
 		DistinctWarnLog.Warnf("%s is deprecated and will be removed in a future release. %s%s", item, alternative, warnPanicMessage)
@@ -532,21 +515,4 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 	})
 
 	return nil
-}
-
-// HashString returns a hash from the given elements.
-// It will panic if the hash cannot be calculated.
-func HashString(elements ...any) string {
-	var o any
-	if len(elements) == 1 {
-		o = elements[0]
-	} else {
-		o = elements
-	}
-
-	hash, err := hashstructure.Hash(o, nil)
-	if err != nil {
-		panic(err)
-	}
-	return strconv.FormatUint(hash, 10)
 }

@@ -18,10 +18,9 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/spf13/afero"
-
-	"github.com/neohugo/neohugo/media"
 
 	"github.com/evanw/esbuild/pkg/api"
 
@@ -46,7 +45,7 @@ func TestOptionKey(t *testing.T) {
 func TestToBuildOptions(t *testing.T) {
 	c := qt.New(t)
 
-	opts, err := toBuildOptions(Options{mediaType: media.JavascriptType})
+	opts, err := toBuildOptions(Options{mediaType: media.Builtin.JavascriptType})
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(opts, qt.DeepEquals, api.BuildOptions{
@@ -63,7 +62,7 @@ func TestToBuildOptions(t *testing.T) {
 		Target:    "es2018",
 		Format:    "cjs",
 		Minify:    true,
-		mediaType: media.JavascriptType,
+		mediaType: media.Builtin.JavascriptType,
 		AvoidTDZ:  true,
 	})
 	c.Assert(err, qt.IsNil)
@@ -81,7 +80,7 @@ func TestToBuildOptions(t *testing.T) {
 	})
 
 	opts, err = toBuildOptions(Options{
-		Target: "es2018", Format: "cjs", Minify: true, mediaType: media.JavascriptType,
+		Target: "es2018", Format: "cjs", Minify: true, mediaType: media.Builtin.JavascriptType,
 		SourceMap: "inline",
 	})
 	c.Assert(err, qt.IsNil)
@@ -100,7 +99,7 @@ func TestToBuildOptions(t *testing.T) {
 	})
 
 	opts, err = toBuildOptions(Options{
-		Target: "es2018", Format: "cjs", Minify: true, mediaType: media.JavascriptType,
+		Target: "es2018", Format: "cjs", Minify: true, mediaType: media.Builtin.JavascriptType,
 		SourceMap: "inline",
 	})
 	c.Assert(err, qt.IsNil)
@@ -119,7 +118,7 @@ func TestToBuildOptions(t *testing.T) {
 	})
 
 	opts, err = toBuildOptions(Options{
-		Target: "es2018", Format: "cjs", Minify: true, mediaType: media.JavascriptType,
+		Target: "es2018", Format: "cjs", Minify: true, mediaType: media.Builtin.JavascriptType,
 		SourceMap: "external",
 	})
 	c.Assert(err, qt.IsNil)

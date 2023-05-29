@@ -21,7 +21,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -42,7 +41,7 @@ import (
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/rogpeppe/go-internal/module"
+	"github.com/rogpeppe/go-internal/module" // nolint
 
 	"github.com/neohugo/neohugo/common/hugio"
 
@@ -430,16 +429,16 @@ func (c *Client) Clean(pattern string) error {
 		if g != nil && !g.Match(m.Path) {
 			continue
 		}
-		_, err = hugofs.MakeReadableAndRemoveAllModulePkgDir(c.fs, m.Dir)
+		dirCount, err := hugofs.MakeReadableAndRemoveAllModulePkgDir(c.fs, m.Dir)
 		if err == nil {
-			c.logger.Printf("hugo: cleaned module cache for %q", m.Path)
+			c.logger.Printf("hugo: removed %d dirs in module cache for %q", dirCount, m.Path)
 		}
 	}
 	return err
 }
 
 func (c *Client) runVerify() error {
-	return c.runGo(context.Background(), ioutil.Discard, "mod", "verify")
+	return c.runGo(context.Background(), io.Discard, "mod", "verify")
 }
 
 func isProbablyModule(path string) bool {
@@ -454,7 +453,7 @@ func (c *Client) listGoMods() (goModules, error) {
 	downloadModules := func(modules ...string) error {
 		args := []string{"mod", "download"}
 		args = append(args, modules...)
-		out := ioutil.Discard
+		out := io.Discard
 		err := c.runGo(context.Background(), out, args...)
 		if err != nil {
 			return fmt.Errorf("failed to download modules: %w", err)

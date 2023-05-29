@@ -16,7 +16,7 @@ package js
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path"
 	"path/filepath"
@@ -26,12 +26,12 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/text"
 
 	"github.com/neohugo/neohugo/hugolib/filesystems"
-	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/internal"
 
 	"github.com/evanw/esbuild/pkg/api"
@@ -63,7 +63,7 @@ func (t *buildTransformation) Key() internal.ResourceTransformationKey {
 }
 
 func (t *buildTransformation) Transform(ctx *resources.ResourceTransformationCtx) error {
-	ctx.OutMediaType = media.JavascriptType
+	ctx.OutMediaType = media.Builtin.JavascriptType
 
 	opts, err := decodeOptions(t.optsm)
 	if err != nil {
@@ -76,13 +76,13 @@ func (t *buildTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		ctx.ReplaceOutPathExtension(".js")
 	}
 
-	src, err := ioutil.ReadAll(ctx.From)
+	src, err := io.ReadAll(ctx.From)
 	if err != nil {
 		return err
 	}
 
 	opts.sourceDir = filepath.FromSlash(path.Dir(ctx.SourcePath))
-	opts.resolveDir = t.c.rs.WorkingDir // where node_modules gets resolved
+	opts.resolveDir = t.c.rs.Cfg.BaseConfig().WorkingDir // where node_modules gets resolved
 	opts.contents = string(src)
 	opts.mediaType = ctx.InMediaType
 
@@ -97,7 +97,7 @@ func (t *buildTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	}
 
 	if buildOptions.Sourcemap == api.SourceMapExternal && buildOptions.Outdir == "" {
-		buildOptions.Outdir, err = ioutil.TempDir(os.TempDir(), "compileOutput")
+		buildOptions.Outdir, err = os.MkdirTemp(os.TempDir(), "compileOutput")
 		if err != nil {
 			return err
 		}
