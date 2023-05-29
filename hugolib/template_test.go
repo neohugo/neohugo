@@ -19,6 +19,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/identity"
 
 	qt "github.com/frankban/quicktest"
@@ -29,9 +30,10 @@ import (
 
 func TestTemplateLookupOrder(t *testing.T) {
 	var (
-		fs  *hugofs.Fs
-		cfg config.Provider
-		th  testHelper
+		fs      *hugofs.Fs
+		cfg     config.Provider
+		th      testHelper
+		configs *allconfig.Configs
 	)
 
 	// Variants base templates:
@@ -188,7 +190,8 @@ func TestTemplateLookupOrder(t *testing.T) {
 		t.Run(this.name, func(t *testing.T) {
 			// TODO(bep) there are some function vars need to pull down here to enable => t.Parallel()
 			cfg, fs = newTestCfg()
-			th = newTestHelper(cfg, fs, t)
+			this.setup(t)
+			th, configs = newTestHelperFromProvider(cfg, fs, t)
 
 			for i := 1; i <= 3; i++ {
 				writeSource(t, fs, filepath.Join("content", fmt.Sprintf("sect%d", i), fmt.Sprintf("page%d.md", i)), `---
@@ -198,9 +201,7 @@ Some content
 `)
 			}
 
-			this.setup(t)
-
-			buildSingleSite(t, deps.DepsCfg{Fs: fs, Cfg: cfg}, BuildCfg{})
+			buildSingleSite(t, deps.DepsCfg{Fs: fs, Configs: configs}, BuildCfg{})
 			// helpers.PrintFs(s.BaseFs.Layouts.Fs, "", os.Stdout)
 			this.assert(t)
 		})

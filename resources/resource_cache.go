@@ -24,7 +24,7 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/neohugo/neohugo/hugofs/glob"
+	hglob "github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
@@ -39,8 +39,6 @@ const (
 )
 
 type ResourceCache struct {
-	rs *Spec
-
 	sync.RWMutex
 
 	// Either resource.Resource or resource.Resources.
@@ -85,7 +83,7 @@ var extAliasKeywords = map[string][]string{
 // e.g. "scss" will also return "sass".
 func ResourceKeyPartitions(filename string) []string {
 	var partitions []string
-	filename = glob.NormalizePath(filename)
+	filename = hglob.NormalizePath(filename)
 	dir, name := path.Split(filename)
 	ext := strings.TrimPrefix(path.Ext(filepath.ToSlash(name)), ".")
 
@@ -122,15 +120,6 @@ func ResourceKeyContainsAny(key string, partitions []string) bool {
 		}
 	}
 	return false
-}
-
-func newResourceCache(rs *Spec) *ResourceCache {
-	return &ResourceCache{
-		rs:        rs,
-		fileCache: rs.FileCaches.AssetsCache(),
-		cache:     make(map[string]any),
-		nlocker:   locker.NewLocker(),
-	}
 }
 
 func (c *ResourceCache) clear() {
@@ -295,7 +284,7 @@ func (c *ResourceCache) DeletePartitions(partitions ...string) {
 	c.Unlock()
 }
 
-func (c *ResourceCache) DeleteMatches(re *regexp.Regexp) {
+func (c *ResourceCache) DeleteMatchesRe(re *regexp.Regexp) {
 	c.Lock()
 	for k := range c.cache {
 		if re.MatchString(k) {
@@ -303,4 +292,15 @@ func (c *ResourceCache) DeleteMatches(re *regexp.Regexp) {
 		}
 	}
 	c.Unlock()
+}
+
+func (c *ResourceCache) DeleteMatches(match func(string) bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	for k := range c.cache {
+		if match(k) {
+			delete(c.cache, k)
+		}
+	}
 }

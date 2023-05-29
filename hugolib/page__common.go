@@ -16,14 +16,14 @@ package hugolib
 import (
 	"sync"
 
-	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/compare"
 	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/output/layouts"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/source"
 )
 
 type treeRefProvider interface {
@@ -54,7 +54,9 @@ type pageCommon struct {
 	s *Site
 	m *pageMeta
 
-	bucket  *pagesMapBucket //nolint
+	sWrapped page.Site
+
+	bucket  *pagesMapBucket
 	treeRef *contentTreeRef
 
 	// Lazily initialized dependencies.
@@ -95,8 +97,9 @@ type pageCommon struct {
 	// Describes how paths and URLs for this page and its descendants
 	// should look like.
 	targetPathDescriptor page.TargetPathDescriptor //nolint
-	layoutDescriptor     output.LayoutDescriptor   //nolint
-	layoutDescriptorInit sync.Once                 //nolint
+
+	layoutDescriptor     layouts.LayoutDescriptor //nolint
+	layoutDescriptorInit sync.Once                //nolint
 
 	// The parsed page content.
 	pageContent
@@ -105,8 +108,8 @@ type pageCommon struct {
 	shortcodeState *shortcodeHandler
 
 	// Set if feature enabled and this is in a Git repo.
-	gitInfo    *gitmap.GitInfo //nolint
-	codeowners []string        //nolint
+	gitInfo    source.GitInfo //nolint
+	codeowners []string       //nolint
 
 	// Positional navigation
 	posNextPrev        *nextPrev

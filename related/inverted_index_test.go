@@ -14,6 +14,7 @@
 package related
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"testing"
@@ -85,11 +86,45 @@ func (d *testDoc) PublishDate() time.Time {
 	return d.date
 }
 
+func TestCardinalityThreshold(t *testing.T) {
+	c := qt.New(t)
+	config := Config{
+		Threshold:    90,
+		IncludeNewer: false,
+		Indices: IndicesConfig{
+			IndexConfig{Name: "tags", Weight: 50, CardinalityThreshold: 79},
+			IndexConfig{Name: "keywords", Weight: 65, CardinalityThreshold: 90},
+		},
+	}
+
+	idx := NewInvertedIndex(config)
+	hasKeyword := func(index, keyword string) bool {
+		_, found := idx.index[index][StringKeyword(keyword)]
+		return found
+	}
+
+	docs := []Document{
+		newTestDoc("tags", "a", "b", "c", "d"),
+		newTestDoc("tags", "b", "d", "g"),
+		newTestDoc("tags", "b", "d", "g"),
+		newTestDoc("tags", "b", "h").addKeywords("keywords", "a"),
+		newTestDoc("tags", "g", "h").addKeywords("keywords", "a", "b", "z"),
+	}
+
+	idx.Add(context.Background(), docs...) // nolint
+	c.Assert(idx.Finalize(context.Background()), qt.IsNil)
+	// Only tags=b should be removed.
+	c.Assert(hasKeyword("tags", "a"), qt.Equals, true)
+	c.Assert(hasKeyword("tags", "b"), qt.Equals, false)
+	c.Assert(hasKeyword("tags", "d"), qt.Equals, true)
+	c.Assert(hasKeyword("keywords", "b"), qt.Equals, true)
+}
+
 func TestSearch(t *testing.T) {
 	config := Config{
 		Threshold:    90,
 		IncludeNewer: false,
-		Indices: IndexConfigs{
+		Indices: IndicesConfig{
 			IndexConfig{Name: "tags", Weight: 50},
 			IndexConfig{Name: "keywords", Weight: 65},
 		},
@@ -105,9 +140,7 @@ func TestSearch(t *testing.T) {
 		newTestDoc("tags", "g", "h").addKeywords("keywords", "a", "b"),
 	}
 
-	c := qt.New(t)
-	err := idx.Add(docs...)
-	c.Assert(err, qt.IsNil)
+	idx.Add(context.Background(), docs...) // nolint
 
 	t.Run("count", func(t *testing.T) {
 		c := qt.New(t)
@@ -124,7 +157,8 @@ func TestSearch(t *testing.T) {
 
 	t.Run("search-tags", func(t *testing.T) {
 		c := qt.New(t)
-		m, err := idx.search(newQueryElement("tags", StringsToKeywords("a", "b", "d", "z")...))
+		var cfg IndexConfig
+		m, err := idx.search(context.Background(), newQueryElement("tags", cfg.StringsToKeywords("a", "b", "d", "z")...))
 		c.Assert(err, qt.IsNil)
 		c.Assert(len(m), qt.Equals, 2)
 		c.Assert(m[0], qt.Equals, docs[0])
@@ -133,9 +167,10 @@ func TestSearch(t *testing.T) {
 
 	t.Run("search-tags-and-keywords", func(t *testing.T) {
 		c := qt.New(t)
-		m, err := idx.search(
-			newQueryElement("tags", StringsToKeywords("a", "b", "z")...),
-			newQueryElement("keywords", StringsToKeywords("a", "b")...))
+		var cfg IndexConfig
+		m, err := idx.search(context.Background(),
+			newQueryElement("tags", cfg.StringsToKeywords("a", "b", "z")...),
+			newQueryElement("keywords", cfg.StringsToKeywords("a", "b")...))
 		c.Assert(err, qt.IsNil)
 		c.Assert(len(m), qt.Equals, 3)
 		c.Assert(m[0], qt.Equals, docs[3])
@@ -146,7 +181,7 @@ func TestSearch(t *testing.T) {
 	t.Run("searchdoc-all", func(t *testing.T) {
 		c := qt.New(t)
 		doc := newTestDoc("tags", "a").addKeywords("keywords", "a")
-		m, err := idx.SearchDoc(doc)
+		m, err := idx.Search(context.Background(), SearchOpts{Document: doc})
 		c.Assert(err, qt.IsNil)
 		c.Assert(len(m), qt.Equals, 2)
 		c.Assert(m[0], qt.Equals, docs[3])
@@ -156,7 +191,7 @@ func TestSearch(t *testing.T) {
 	t.Run("searchdoc-tags", func(t *testing.T) {
 		c := qt.New(t)
 		doc := newTestDoc("tags", "a", "b", "d", "z").addKeywords("keywords", "a", "b")
-		m, err := idx.SearchDoc(doc, "tags")
+		m, err := idx.Search(context.Background(), SearchOpts{Document: doc, Indices: []string{"tags"}})
 		c.Assert(err, qt.IsNil)
 		c.Assert(len(m), qt.Equals, 2)
 		c.Assert(m[0], qt.Equals, docs[0])
@@ -168,10 +203,9 @@ func TestSearch(t *testing.T) {
 		doc := newTestDoc("tags", "a", "b", "d", "z").addKeywords("keywords", "a", "b")
 		// This will get a date newer than the others.
 		newDoc := newTestDoc("keywords", "a", "b")
-		err := idx.Add(newDoc)
-		c.Assert(err, qt.IsNil)
+		idx.Add(context.Background(), newDoc) // nolint
 
-		m, err := idx.SearchDoc(doc, "keywords")
+		m, err := idx.Search(context.Background(), SearchOpts{Document: doc, Indices: []string{"keywords"}})
 		c.Assert(err, qt.IsNil)
 		c.Assert(len(m), qt.Equals, 2)
 		c.Assert(m[0], qt.Equals, docs[3])
@@ -189,11 +223,10 @@ func TestSearch(t *testing.T) {
 		for i := 0; i < 10; i++ {
 			docc := *doc
 			docc.name = fmt.Sprintf("doc%d", i)
-			err := idx.Add(&docc)
-			c.Assert(err, qt.IsNil)
+			idx.Add(context.Background(), &docc) // nolint
 		}
 
-		m, err := idx.SearchDoc(doc, "keywords")
+		m, err := idx.Search(context.Background(), SearchOpts{Document: doc, Indices: []string{"keywords"}})
 		c.Assert(err, qt.IsNil)
 		c.Assert(len(m), qt.Equals, 10)
 		for i := 0; i < 10; i++ {
@@ -213,6 +246,19 @@ func TestToKeywordsToLower(t *testing.T) {
 		StringKeyword("a"),
 		StringKeyword("b"),
 		StringKeyword("c"),
+	})
+}
+
+func TestToKeywordsAnySlice(t *testing.T) {
+	c := qt.New(t)
+	var config IndexConfig
+	slice := []any{"A", 32, "C"}
+	keywords, err := config.ToKeywords(slice)
+	c.Assert(err, qt.IsNil)
+	c.Assert(keywords, qt.DeepEquals, []Keyword{
+		StringKeyword("A"),
+		StringKeyword("32"),
+		StringKeyword("C"),
 	})
 }
 
@@ -246,42 +292,37 @@ func BenchmarkRelatedNewIndex(b *testing.B) {
 
 	cfg := Config{
 		Threshold: 50,
-		Indices: IndexConfigs{
+		Indices: IndicesConfig{
 			IndexConfig{Name: "tags", Weight: 100},
 			IndexConfig{Name: "keywords", Weight: 200},
 		},
 	}
 
 	b.Run("singles", func(b *testing.B) {
-		c := qt.New(b)
 		for i := 0; i < b.N; i++ {
 			idx := NewInvertedIndex(cfg)
 			for _, doc := range pages {
-				err := idx.Add(doc)
-				c.Assert(err, qt.IsNil)
+				idx.Add(context.Background(), doc) // nolint
 			}
 		}
 	})
 
 	b.Run("all", func(b *testing.B) {
-		c := qt.New(b)
 		for i := 0; i < b.N; i++ {
 			idx := NewInvertedIndex(cfg)
 			docs := make([]Document, len(pages))
 			for i := 0; i < len(pages); i++ {
 				docs[i] = pages[i]
 			}
-			err := idx.Add(docs...)
-			c.Assert(err, qt.IsNil)
+			idx.Add(context.Background(), docs...) // nolint
 		}
 	})
 }
 
 func BenchmarkRelatedMatchesIn(b *testing.B) {
-	c := qt.New(b)
-
-	q1 := newQueryElement("tags", StringsToKeywords("keyword2", "keyword5", "keyword32", "asdf")...)
-	q2 := newQueryElement("keywords", StringsToKeywords("keyword3", "keyword4")...)
+	var icfg IndexConfig
+	q1 := newQueryElement("tags", icfg.StringsToKeywords("keyword2", "keyword5", "keyword32", "asdf")...)
+	q2 := newQueryElement("keywords", icfg.StringsToKeywords("keyword3", "keyword4")...)
 
 	docs := make([]*testDoc, 1000)
 	numkeywords := 20
@@ -292,7 +333,7 @@ func BenchmarkRelatedMatchesIn(b *testing.B) {
 
 	cfg := Config{
 		Threshold: 20,
-		Indices: IndexConfigs{
+		Indices: IndicesConfig{
 			IndexConfig{Name: "tags", Weight: 100},
 			IndexConfig{Name: "keywords", Weight: 200},
 		},
@@ -312,18 +353,16 @@ func BenchmarkRelatedMatchesIn(b *testing.B) {
 			index = "keywords"
 		}
 
-		err := idx.Add(newTestDoc(index, allKeywords[start:end]...))
-		c.Assert(err, qt.IsNil)
+		idx.Add(context.Background(), newTestDoc(index, allKeywords[start:end]...)) // nolint
 	}
 
 	b.ResetTimer()
+	ctx := context.Background()
 	for i := 0; i < b.N; i++ {
 		if i%10 == 0 {
-			_, err := idx.search(q2)
-			c.Assert(err, qt.IsNil)
+			idx.search(ctx, q2) // nolint
 		} else {
-			_, err := idx.search(q1)
-			c.Assert(err, qt.IsNil)
+			idx.search(ctx, q1) // nolint
 		}
 	}
 }

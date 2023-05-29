@@ -16,7 +16,7 @@ package transform
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	"github.com/neohugo/neohugo/resources/resource"
@@ -71,7 +71,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 		}
 
 		return ns.cache.GetOrCreate(key, func() (any, error) {
-			f := metadecoders.FormatFromMediaType(r.MediaType())
+			f := metadecoders.FormatFromStrings(r.MediaType().Suffixes()...)
 			if f == "" {
 				return nil, fmt.Errorf("MIME %q not supported", r.MediaType())
 			}
@@ -82,7 +82,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 			}
 			defer reader.Close()
 
-			b, err := ioutil.ReadAll(reader)
+			b, err := io.ReadAll(reader)
 			if err != nil {
 				return nil, err
 			}

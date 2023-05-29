@@ -11,12 +11,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package openapi3 provides functions for generating OpenAPI v3 (Swagger) documentation.
 package openapi3
 
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 
 	gyaml "github.com/ghodss/yaml"
 
@@ -53,6 +54,7 @@ type OpenAPIDocument struct {
 	*kopenapi3.T
 }
 
+// Unmarshal unmarshals the given resource into an OpenAPI 3 document.
 func (ns *Namespace) Unmarshal(r resource.UnmarshableResource) (*OpenAPIDocument, error) {
 	key := r.Key()
 	if key == "" {
@@ -60,7 +62,7 @@ func (ns *Namespace) Unmarshal(r resource.UnmarshableResource) (*OpenAPIDocument
 	}
 
 	v, err := ns.cache.GetOrCreate(key, func() (any, error) {
-		f := metadecoders.FormatFromMediaType(r.MediaType())
+		f := metadecoders.FormatFromStrings(r.MediaType().Suffixes()...)
 		if f == "" {
 			return nil, fmt.Errorf("MIME %q not supported", r.MediaType())
 		}
@@ -71,7 +73,7 @@ func (ns *Namespace) Unmarshal(r resource.UnmarshableResource) (*OpenAPIDocument
 		}
 		defer reader.Close()
 
-		b, err := ioutil.ReadAll(reader)
+		b, err := io.ReadAll(reader)
 		if err != nil {
 			return nil, err
 		}

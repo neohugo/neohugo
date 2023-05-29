@@ -33,3 +33,6 @@ vendor
 .hugo_build.lock
 
 tags*
+
+*.test
+imports.*

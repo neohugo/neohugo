@@ -14,10 +14,12 @@
 package page
 
 import (
+	"context"
 	"html/template"
 
 	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 )
 
 // OutputFormatContentProvider represents the method set that is "outputFormat aware" and that we
@@ -57,7 +59,7 @@ func NewLazyContentProvider(f func() (OutputFormatContentProvider, error)) *Lazy
 		init: lazy.New(),
 		cp:   NopCPageContentRenderer,
 	}
-	lcp.init.Add(func() (any, error) {
+	lcp.init.Add(func(context.Context) (any, error) {
 		cp, err := f()
 		if err != nil {
 			return nil, err
@@ -72,80 +74,98 @@ func (lcp *LazyContentProvider) Reset() {
 	lcp.init.Reset()
 }
 
-// nolint
-func (lcp *LazyContentProvider) Content() (any, error) {
-	lcp.init.Do()
-	return lcp.cp.Content()
-}
-
-func (lcp *LazyContentProvider) Plain() string {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.Plain()
-}
-
-func (lcp *LazyContentProvider) PlainWords() []string {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.PlainWords()
-}
-
-func (lcp *LazyContentProvider) Summary() template.HTML {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.Summary()
-}
-
-func (lcp *LazyContentProvider) Truncated() bool {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.Truncated()
-}
-
-func (lcp *LazyContentProvider) FuzzyWordCount() int {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.FuzzyWordCount()
-}
-
-func (lcp *LazyContentProvider) WordCount() int {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.WordCount()
-}
-
-func (lcp *LazyContentProvider) ReadingTime() int {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.ReadingTime()
-}
-
-func (lcp *LazyContentProvider) Len() int {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.Len()
-}
-
-func (lcp *LazyContentProvider) Render(layout ...string) (template.HTML, error) {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.Render(layout...)
-}
-
-// nolint
-func (lcp *LazyContentProvider) RenderString(args ...any) (template.HTML, error) {
-	lcp.init.Do()
-	return lcp.cp.RenderString(args...)
-}
-
-func (lcp *LazyContentProvider) TableOfContents() template.HTML {
-	//nolint
-	lcp.init.Do()
-	return lcp.cp.TableOfContents()
-}
-
-func (lcp *LazyContentProvider) RenderContent(content []byte, renderTOC bool) (converter.Result, error) {
+func (lcp *LazyContentProvider) TableOfContents(ctx context.Context) template.HTML {
 	// nolint
-	lcp.init.Do()
-	return lcp.cp.RenderContent(content, renderTOC)
+	lcp.init.Do(ctx)
+	return lcp.cp.TableOfContents(ctx)
+}
+
+func (lcp *LazyContentProvider) Fragments(ctx context.Context) *tableofcontents.Fragments {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.Fragments(ctx)
+}
+
+func (lcp *LazyContentProvider) Content(ctx context.Context) (any, error) {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.Content(ctx)
+}
+
+func (lcp *LazyContentProvider) Plain(ctx context.Context) string {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.Plain(ctx)
+}
+
+func (lcp *LazyContentProvider) PlainWords(ctx context.Context) []string {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.PlainWords(ctx)
+}
+
+func (lcp *LazyContentProvider) Summary(ctx context.Context) template.HTML {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.Summary(ctx)
+}
+
+func (lcp *LazyContentProvider) Truncated(ctx context.Context) bool {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.Truncated(ctx)
+}
+
+func (lcp *LazyContentProvider) FuzzyWordCount(ctx context.Context) int {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.FuzzyWordCount(ctx)
+}
+
+func (lcp *LazyContentProvider) WordCount(ctx context.Context) int {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.WordCount(ctx)
+}
+
+func (lcp *LazyContentProvider) ReadingTime(ctx context.Context) int {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.ReadingTime(ctx)
+}
+
+func (lcp *LazyContentProvider) Len(ctx context.Context) int {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.Len(ctx)
+}
+
+func (lcp *LazyContentProvider) Render(ctx context.Context, layout ...string) (template.HTML, error) {
+	// nolint
+	lcp.init.Do(context.TODO())
+	return lcp.cp.Render(ctx, layout...)
+}
+
+func (lcp *LazyContentProvider) RenderString(ctx context.Context, args ...any) (template.HTML, error) {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.RenderString(ctx, args...)
+}
+
+func (lcp *LazyContentProvider) ParseAndRenderContent(ctx context.Context, content []byte, renderTOC bool) (converter.ResultRender, error) {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.ParseAndRenderContent(ctx, content, renderTOC)
+}
+
+func (lcp *LazyContentProvider) ParseContent(ctx context.Context, content []byte) (converter.ResultParse, bool, error) {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.ParseContent(ctx, content)
+}
+
+func (lcp *LazyContentProvider) RenderContent(ctx context.Context, content []byte, doc any) (converter.ResultRender, bool, error) {
+	// nolint
+	lcp.init.Do(ctx)
+	return lcp.cp.RenderContent(ctx, content, doc)
 }

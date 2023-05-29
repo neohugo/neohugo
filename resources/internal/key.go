@@ -13,7 +13,7 @@
 
 package internal
 
-import "github.com/neohugo/neohugo/helpers"
+import "github.com/neohugo/neohugo/identity"
 
 // ResourceTransformationKey are provided by the different transformation implementations.
 // It identifies the transformation (name) and its configuration (elements).
@@ -38,5 +38,5 @@ func (k ResourceTransformationKey) Value() string {
 		return k.Name
 	}
 
-	return k.Name + "_" + helpers.HashString(k.elements...)
+	return k.Name + "_" + identity.HashString(k.elements...)
 }

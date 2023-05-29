@@ -58,7 +58,7 @@ func (t *transform) Key() internal.ResourceTransformationKey {
 }
 
 func (t *transform) Transform(ctx *resources.ResourceTransformationCtx) error {
-	ctx.OutMediaType = media.CSSType
+	ctx.OutMediaType = media.Builtin.CSSType
 
 	opts, err := decodeOptions(t.optsm)
 	if err != nil {
@@ -101,7 +101,7 @@ func (t *transform) Transform(ctx *resources.ResourceTransformationCtx) error {
 		}
 	}
 
-	if ctx.InMediaType.SubType == media.SASSType.SubType {
+	if ctx.InMediaType.SubType == media.Builtin.SASSType.SubType {
 		args.SourceSyntax = godartsass.SourceSyntaxSASS
 	}
 
@@ -162,9 +162,9 @@ func (t importResolver) CanonicalizeURL(url string) (string, error) {
 	if strings.Contains(name, ".") {
 		namePatterns = []string{"_%s", "%s"}
 	} else if strings.HasPrefix(name, "_") {
-		namePatterns = []string{"_%s.scss", "_%s.sass"}
+		namePatterns = []string{"_%s.scss", "_%s.sass", "_%s.css"}
 	} else {
-		namePatterns = []string{"_%s.scss", "%s.scss", "_%s.sass", "%s.sass"}
+		namePatterns = []string{"_%s.scss", "%s.scss", "_%s.sass", "%s.sass", "_%s.css", "%s.css"}
 	}
 
 	name = strings.TrimPrefix(name, "_")

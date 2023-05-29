@@ -21,10 +21,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/config/testconfig"
 	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/output/layouts"
 	"github.com/neohugo/neohugo/tpl"
 )
 
@@ -46,7 +45,7 @@ func (templateFinder) LookupVariants(name string) []tpl.Template {
 	return nil
 }
 
-func (templateFinder) LookupLayout(d output.LayoutDescriptor, f output.Format) (tpl.Template, bool, error) {
+func (templateFinder) LookupLayout(d layouts.LayoutDescriptor, f output.Format) (tpl.Template, bool, error) {
 	return nil, false, nil
 }
 
@@ -69,8 +68,10 @@ func (templateFinder) GetFunc(name string) (reflect.Value, bool) {
 func TestApply(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
-	d := &deps.Deps{Language: langs.NewDefaultLanguage(config.New())}
-	d.SetTmpl(new(templateFinder))
+	d := testconfig.GetTestDeps(nil, nil)
+	d.SetTempl(&tpl.TemplateHandlers{
+		Tmpl: new(templateFinder),
+	})
 	ns := New(d)
 
 	strings := []any{"a\n", "b\n"}

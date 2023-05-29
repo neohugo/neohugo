@@ -42,11 +42,11 @@ func init() {
 
 // New returns a new instance of the collections-namespaced template functions.
 func New(deps *deps.Deps) *Namespace {
-	if deps.Language == nil {
+	language := deps.Conf.Language()
+	if language == nil {
 		panic("language must be set")
 	}
-
-	loc := langs.GetLocation(deps.Language)
+	loc := langs.GetLocation(language)
 
 	return &Namespace{
 		loc:      loc,
@@ -732,8 +732,7 @@ func (ns *Namespace) Union(l1, l2 any) (any, error) {
 	}
 }
 
-// Uniq takes returns a new list with all duplicate elements in the list l removed.
-// duplicate elements removed.
+// Uniq returns a new list with duplicate elements in the list l removed.
 func (ns *Namespace) Uniq(l any) (any, error) {
 	if l == nil {
 		return make([]any, 0), nil

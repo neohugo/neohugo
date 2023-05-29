@@ -1,17 +1,18 @@
 ---
-title: JavaScript Building
-description: Hugo Pipes can process JavaScript files with [ESBuild](https://github.com/evanw/esbuild).
-date: 2020-07-20
-publishdate: 2020-07-20
+title: js.Build
+linkTitle: JavaScript Building
+description: Process a JavaScript file with [ESBuild](https://github.com/evanw/esbuild).
 categories: [asset management]
 keywords: []
 menu:
   docs:
-    parent: "pipes"
+    parent: pipes
     weight: 45
 weight: 45
-sections_weight: 45
+signature: ["js.Build RESOURCE [OPTIONS]"]
 ---
+
+## Usage
 
 Any JavaScript resource file can be transpiled and "tree shaken" using `js.Build` which takes for argument either a string for the filepath or a dict of options listed below.
 
@@ -41,7 +42,7 @@ minify [bool]
 inject [slice]
 : This option allows you to automatically replace a global variable with an import from another file. The path names must be relative to `assets`.  See https://esbuild.github.io/api/#inject
 
-shims
+shims [map]
 : This option allows swapping out a component with another. A common use case is to load dependencies like React from a CDN  (with _shims_) when in production, but running with the full bundled `node_modules` dependency during development:
 
 ```go-html-template
@@ -115,13 +116,13 @@ defines [map]
 {{ $defines := dict "process.env.NODE_ENV" `"development"` }}
 ```
 
-format [string] 
+format [string]
 : The output format.
   One of: `iife`, `cjs`, `esm`.
   Default is `iife`, a self-executing function, suitable for inclusion as a <script> tag.
 
-sourceMap
-: Whether to generate `inline` or `external` sourcemap from esbuild. External sourcemaps will be written to the target with the output filename + ".map". Input sourcemaps can be read from js.Build and node modules and combined into the output sourcemaps.
+sourceMap [string]
+: Whether to generate `inline` or `external` source maps from esbuild. External source maps will be written to the target with the output filename + ".map". Input source maps can be read from js.Build and node modules and combined into the output source maps. By default, source maps are not created.
 
 ### Import JS code from /assets
 

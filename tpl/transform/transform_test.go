@@ -14,21 +14,15 @@
 package transform_test
 
 import (
+	"context"
 	"html/template"
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/hugolib"
 	"github.com/neohugo/neohugo/tpl/transform"
-	"github.com/spf13/afero"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/langs"
 )
 
 type tstNoStringer struct{}
@@ -185,7 +179,7 @@ func TestMarkdownify(t *testing.T) {
 		{tstNoStringer{}, false},
 	} {
 
-		result, err := ns.Markdownify(test.s)
+		result, err := ns.Markdownify(context.Background(), test.s)
 
 		if bb, ok := test.expect.(bool); ok && !bb {
 			b.Assert(err, qt.Not(qt.IsNil))
@@ -218,7 +212,7 @@ This is some more text.
 And then some.
 `
 
-	result, err := ns.Markdownify(text)
+	result, err := ns.Markdownify(context.Background(), text)
 	b.Assert(err, qt.IsNil)
 	b.Assert(result, qt.Equals, template.HTML(
 		"<p>#First</p>\n<p>This is some <em>bold</em> text.</p>\n<h2 id=\"second\">Second</h2>\n<p>This is some more text.</p>\n<p>And then some.</p>\n"))
@@ -251,24 +245,5 @@ func TestPlainify(t *testing.T) {
 
 		b.Assert(err, qt.IsNil)
 		b.Assert(result, qt.Equals, test.expect)
-	}
-}
-
-// nolint
-func newDeps(cfg config.Provider) *deps.Deps {
-	cfg.Set("contentDir", "content")
-	cfg.Set("i18nDir", "i18n")
-
-	l := langs.NewLanguage("en", cfg)
-
-	cs, err := helpers.NewContentSpec(l, loggers.NewErrorLogger(), afero.NewMemMapFs(), nil)
-	if err != nil {
-		panic(err)
-	}
-
-	return &deps.Deps{
-		Cfg:         cfg,
-		Fs:          hugofs.NewMem(l),
-		ContentSpec: cs,
 	}
 }

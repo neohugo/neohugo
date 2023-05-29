@@ -19,6 +19,8 @@ import (
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/types"
 
+	"github.com/mitchellh/mapstructure"
+
 	"github.com/spf13/cast"
 )
 
@@ -54,7 +56,8 @@ func PageMenusFromPage(p Page) (PageMenus, error) {
 		return nil, nil
 	}
 
-	me := MenuEntry{Page: p, Name: p.LinkTitle(), Weight: p.Weight()}
+	me := MenuEntry{}
+	SetPageValues(&me, p)
 
 	// Could be the name of the menu to attach it to
 	mname, err := cast.ToStringE(ms)
@@ -87,17 +90,17 @@ func PageMenusFromPage(p Page) (PageMenus, error) {
 	}
 
 	for name, menu := range menus {
-		menuEntry := MenuEntry{Page: p, Name: p.LinkTitle(), Weight: p.Weight(), Menu: name}
+		menuEntry := MenuEntry{Menu: name}
 		if menu != nil {
 			ime, err := maps.ToStringMapE(menu)
 			if err != nil {
 				return pm, wrapErr(err)
 			}
-
-			if err = menuEntry.MarshallMap(ime); err != nil {
-				return pm, wrapErr(err)
+			if err := mapstructure.WeakDecode(ime, &menuEntry.MenuConfig); err != nil {
+				return pm, err
 			}
 		}
+		SetPageValues(&menuEntry, p)
 		pm[name] = &menuEntry
 	}
 

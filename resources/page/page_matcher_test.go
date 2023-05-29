@@ -17,14 +17,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
+
+	qt "github.com/frankban/quicktest"
 )
 
 func TestPageMatcher(t *testing.T) {
 	c := qt.New(t)
-	developmentTestSite := testSite{h: neohugo.NewInfo("development", nil)}
-	productionTestSite := testSite{h: neohugo.NewInfo("production", nil)}
+	developmentTestSite := testSite{h: neohugo.NewInfo(testConfig{environment: "development"}, nil)}
+	productionTestSite := testSite{h: neohugo.NewInfo(testConfig{environment: "production"}, nil)}
 
 	p1, p2, p3 := &testPage{path: "/p1", kind: "section", lang: "en", site: developmentTestSite},
 		&testPage{path: "p2", kind: "page", lang: "no", site: productionTestSite},
@@ -69,13 +71,99 @@ func TestPageMatcher(t *testing.T) {
 
 	c.Run("Decode", func(c *qt.C) {
 		var v PageMatcher
-		c.Assert(DecodePageMatcher(map[string]any{"kind": "foo"}, &v), qt.Not(qt.IsNil))
-		c.Assert(DecodePageMatcher(map[string]any{"kind": "{foo,bar}"}, &v), qt.Not(qt.IsNil))
-		c.Assert(DecodePageMatcher(map[string]any{"kind": "taxonomy"}, &v), qt.IsNil)
-		c.Assert(DecodePageMatcher(map[string]any{"kind": "{taxonomy,foo}"}, &v), qt.IsNil)
-		c.Assert(DecodePageMatcher(map[string]any{"kind": "{taxonomy,term}"}, &v), qt.IsNil)
-		c.Assert(DecodePageMatcher(map[string]any{"kind": "*"}, &v), qt.IsNil)
-		c.Assert(DecodePageMatcher(map[string]any{"kind": "home", "path": filepath.FromSlash("/a/b/**")}, &v), qt.IsNil)
+		c.Assert(decodePageMatcher(map[string]any{"kind": "foo"}, &v), qt.Not(qt.IsNil))
+		c.Assert(decodePageMatcher(map[string]any{"kind": "{foo,bar}"}, &v), qt.Not(qt.IsNil))
+		c.Assert(decodePageMatcher(map[string]any{"kind": "taxonomy"}, &v), qt.IsNil)
+		c.Assert(decodePageMatcher(map[string]any{"kind": "{taxonomy,foo}"}, &v), qt.IsNil)
+		c.Assert(decodePageMatcher(map[string]any{"kind": "{taxonomy,term}"}, &v), qt.IsNil)
+		c.Assert(decodePageMatcher(map[string]any{"kind": "*"}, &v), qt.IsNil)
+		c.Assert(decodePageMatcher(map[string]any{"kind": "home", "path": filepath.FromSlash("/a/b/**")}, &v), qt.IsNil)
 		c.Assert(v, qt.Equals, PageMatcher{Kind: "home", Path: "/a/b/**"})
 	})
+
+	c.Run("mapToPageMatcherParamsConfig", func(c *qt.C) {
+		fn := func(m map[string]any) PageMatcherParamsConfig {
+			v, err := mapToPageMatcherParamsConfig(m)
+			c.Assert(err, qt.IsNil)
+			return v
+		}
+		// Legacy.
+		c.Assert(fn(map[string]any{"_target": map[string]any{"kind": "page"}, "foo": "bar"}), qt.DeepEquals, PageMatcherParamsConfig{
+			Params: maps.Params{
+				"foo": "bar",
+			},
+			Target: PageMatcher{Path: "", Kind: "page", Lang: "", Environment: ""},
+		})
+
+		// Current format.
+		c.Assert(fn(map[string]any{"target": map[string]any{"kind": "page"}, "params": map[string]any{"foo": "bar"}}), qt.DeepEquals, PageMatcherParamsConfig{
+			Params: maps.Params{
+				"foo": "bar",
+			},
+			Target: PageMatcher{Path: "", Kind: "page", Lang: "", Environment: ""},
+		})
+	})
+}
+
+func TestDecodeCascadeConfig(t *testing.T) {
+	c := qt.New(t)
+
+	in := []map[string]any{
+		{
+			"params": map[string]any{
+				"a": "av",
+			},
+			"target": map[string]any{
+				"kind":        "page",
+				"Environment": "production",
+			},
+		},
+		{
+			"params": map[string]any{
+				"b": "bv",
+			},
+			"target": map[string]any{
+				"kind": "page",
+			},
+		},
+	}
+
+	got, err := DecodeCascadeConfig(in)
+
+	c.Assert(err, qt.IsNil)
+	c.Assert(got, qt.IsNotNil)
+	c.Assert(got.Config, qt.DeepEquals,
+		map[PageMatcher]maps.Params{
+			{Path: "", Kind: "page", Lang: "", Environment: ""}: {
+				"b": "bv",
+			},
+			{Path: "", Kind: "page", Lang: "", Environment: "production"}: {
+				"a": "av",
+			},
+		},
+	)
+	c.Assert(got.SourceStructure, qt.DeepEquals, []PageMatcherParamsConfig{
+		{
+			Params: maps.Params{"a": string("av")},
+			Target: PageMatcher{Kind: "page", Environment: "production"},
+		},
+		{Params: maps.Params{"b": string("bv")}, Target: PageMatcher{Kind: "page"}},
+	})
+
+	got, err = DecodeCascadeConfig(nil)
+	c.Assert(err, qt.IsNil)
+	c.Assert(got, qt.IsNotNil)
+}
+
+type testConfig struct {
+	environment string
+	workingDir  string
+}
+
+func (c testConfig) Environment() string {
+	return c.environment
+}
+
+func (c testConfig) WorkingDir() string {
+	return c.workingDir
 }

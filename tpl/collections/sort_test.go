@@ -19,10 +19,6 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/langs"
-
-	"github.com/neohugo/neohugo/deps"
 )
 
 type stringsSlice []string
@@ -30,9 +26,7 @@ type stringsSlice []string
 func TestSort(t *testing.T) {
 	t.Parallel()
 
-	ns := New(&deps.Deps{
-		Language: langs.NewDefaultLanguage(config.New()),
-	})
+	ns := newNs()
 
 	type ts struct {
 		MyInt    int

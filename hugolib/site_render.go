@@ -14,15 +14,17 @@
 package hugolib
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"path"
 	"strings"
 	"sync"
 
-	"github.com/neohugo/neohugo/tpl"
+	"github.com/neohugo/neohugo/output/layouts"
 
 	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/output"
 
@@ -183,7 +185,7 @@ func (s *Site) logMissingLayout(name, layout, kind, outputFormat string) {
 
 // renderPaginator must be run after the owning Page has been rendered.
 func (s *Site) renderPaginator(p *pageState, templ tpl.Template) error {
-	paginatePath := s.Cfg.GetString("paginatePath")
+	paginatePath := s.conf.PaginatePath
 
 	d := p.targetPathDescriptor
 	f := p.s.rc.Format
@@ -198,7 +200,7 @@ func (s *Site) renderPaginator(p *pageState, templ tpl.Template) error {
 		d.Addends = fmt.Sprintf("/%s/%d", paginatePath, 1)
 		targetPaths := page.CreateTargetPaths(d)
 
-		if err := s.writeDestAlias(targetPaths.TargetFilename, p.Permalink(), f, nil); err != nil {
+		if err := s.writeDestAlias(targetPaths.TargetFilename, p.Permalink(), f, p); err != nil {
 			return err
 		}
 	}
@@ -240,7 +242,7 @@ func (s *Site) render404() error {
 		return nil
 	}
 
-	var d output.LayoutDescriptor
+	var d layouts.LayoutDescriptor
 	d.Kind = kind404
 
 	templ, found, err := s.Tmpl().LookupLayout(d, output.HTMLFormat)
@@ -265,7 +267,7 @@ func (s *Site) renderSitemap() error {
 		s:    s,
 		kind: kindSitemap,
 		urlPaths: pagemeta.URLPath{
-			URL: s.siteCfg.sitemap.Filename,
+			URL: s.conf.Sitemap.Filename,
 		},
 	},
 		output.HTMLFormat,
@@ -279,6 +281,7 @@ func (s *Site) renderSitemap() error {
 	}
 
 	targetPath := p.targetPaths().TargetFilename
+	ctx := tpl.SetPageInContext(context.Background(), p)
 
 	if targetPath == "" {
 		return errors.New("failed to create targetPath for sitemap")
@@ -286,11 +289,11 @@ func (s *Site) renderSitemap() error {
 
 	templ := s.lookupLayouts("sitemap.xml", "_default/sitemap.xml", "_internal/_default/sitemap.xml")
 
-	return s.renderAndWriteXML(&s.PathSpec.ProcessingStats.Sitemaps, "sitemap", targetPath, p, templ)
+	return s.renderAndWriteXML(ctx, &s.PathSpec.ProcessingStats.Sitemaps, "sitemap", targetPath, p, templ)
 }
 
 func (s *Site) renderRobotsTXT() error {
-	if !s.Cfg.GetBool("enableRobotsTXT") {
+	if !s.conf.EnableRobotsTXT && s.isEnabled(kindRobotsTXT) {
 		return nil
 	}
 
@@ -354,13 +357,13 @@ func (s *Site) renderAliases() error {
 					a = path.Join(f.Path, a)
 				}
 
-				if s.UglyURLs && !strings.HasSuffix(a, ".html") {
+				if s.conf.C.IsUglyURLSection(p.Section()) && !strings.HasSuffix(a, ".html") {
 					a += ".html"
 				}
 
 				lang := p.Language().Lang
 
-				if s.h.multihost && !strings.HasPrefix(a, "/"+lang) {
+				if s.h.Configs.IsMultihost && !strings.HasPrefix(a, "/"+lang) {
 					// These need to be in its language root.
 					a = path.Join(lang, a)
 				}
@@ -380,16 +383,16 @@ func (s *Site) renderAliases() error {
 // renderMainLanguageRedirect creates a redirect to the main language home,
 // depending on if it lives in sub folder (e.g. /en) or not.
 func (s *Site) renderMainLanguageRedirect() error {
-	if !s.h.multilingual.enabled() || s.h.IsMultihost() {
+	if !s.h.isMultiLingual() || s.h.Conf.IsMultihost() {
 		// No need for a redirect
 		return nil
 	}
 
-	html, found := s.outputFormatsConfig.GetByName("HTML")
+	html, found := s.conf.OutputFormats.Config.GetByName("html")
 	if found {
-		mainLang := s.h.multilingual.DefaultLang
-		if s.Info.defaultContentLanguageInSubdir {
-			mainLangURL := s.PathSpec.AbsURL(mainLang.Lang+"/", false)
+		mainLang := s.conf.DefaultContentLanguage
+		if s.conf.DefaultContentLanguageInSubdir {
+			mainLangURL := s.PathSpec.AbsURL(mainLang+"/", false)
 			s.Log.Debugf("Write redirect to main language %s: %s", mainLang, mainLangURL)
 			if err := s.publishDestAlias(true, "/", mainLangURL, html, nil); err != nil {
 				return err
@@ -397,7 +400,7 @@ func (s *Site) renderMainLanguageRedirect() error {
 		} else {
 			mainLangURL := s.PathSpec.AbsURL("", false)
 			s.Log.Debugf("Write redirect to main language %s: %s", mainLang, mainLangURL)
-			if err := s.publishDestAlias(true, mainLang.Lang, mainLangURL, html, nil); err != nil {
+			if err := s.publishDestAlias(true, mainLang, mainLangURL, html, nil); err != nil {
 				return err
 			}
 		}
