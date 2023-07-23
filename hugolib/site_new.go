@@ -18,10 +18,12 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"os"
 	"sort"
 	"time"
 
 	radix "github.com/armon/go-radix"
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
@@ -29,6 +31,7 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/langs/i18n"
@@ -97,19 +100,41 @@ func (s *Site) Debug() {
 func NewHugoSites(cfg deps.DepsCfg) (*HugoSites, error) {
 	conf := cfg.Configs.GetFirstLanguageConfig()
 
-	logger := cfg.Logger
-	if logger == nil {
-		logger = loggers.NewErrorLogger()
+	var logger loggers.Logger
+	if cfg.TestLogger != nil {
+		logger = cfg.TestLogger
+	} else {
+		var logHookLast func(e *logg.Entry) error
+		if cfg.Configs.Base.PanicOnWarning {
+			logHookLast = loggers.PanicOnWarningHook
+		}
+		if cfg.LogOut == nil {
+			cfg.LogOut = os.Stdout
+		}
+		if cfg.LogLevel == 0 {
+			cfg.LogLevel = logg.LevelWarn
+		}
+
+		logOpts := loggers.Options{
+			Level:               cfg.LogLevel,
+			Distinct:            true, // This will drop duplicate log warning and errors.
+			HandlerPost:         logHookLast,
+			Stdout:              cfg.LogOut,
+			Stderr:              cfg.LogOut,
+			StoreErrors:         conf.Running(),
+			SuppresssStatements: conf.IgnoredErrors(),
+		}
+		logger = loggers.New(logOpts)
 	}
-	ignorableLogger := loggers.NewIgnorableLogger(logger, conf.IgnoredErrors())
 
 	firstSiteDeps := &deps.Deps{
 		Fs:                  cfg.Fs,
-		Log:                 ignorableLogger,
+		Log:                 logger,
 		Conf:                conf,
 		TemplateProvider:    tplimpl.DefaultTemplateProvider,
 		TranslationProvider: i18n.NewTranslationProvider(),
 	}
+
 	if err := firstSiteDeps.Init(); err != nil {
 		return nil, err
 	}
@@ -125,7 +150,7 @@ func NewHugoSites(cfg deps.DepsCfg) (*HugoSites, error) {
 		k := language.Lang
 		conf := confm.LanguageConfigMap[k]
 
-		frontmatterHandler, err := pagemeta.NewFrontmatterHandler(cfg.Logger, conf.Frontmatter)
+		frontmatterHandler, err := pagemeta.NewFrontmatterHandler(firstSiteDeps.Log, conf.Frontmatter)
 		if err != nil {
 			return nil, err
 		}
@@ -343,12 +368,10 @@ func (s *Site) Copyright() string {
 	return s.conf.Copyright
 }
 
-func (s *Site) RSSLink() string {
-	rssOutputFormat, found := s.conf.C.KindOutputFormats[page.KindHome].GetByName("rss")
-	if !found {
-		return ""
-	}
-	return s.permalink(rssOutputFormat.BaseFilename())
+func (s *Site) RSSLink() template.URL {
+	helpers.Deprecated("Site.RSSLink", "Use the Output Format's Permalink method instead, e.g. .OutputFormats.Get \"RSS\".Permalink", false)
+	rssOutputFormat := s.home.OutputFormats().Get("rss")
+	return template.URL(rssOutputFormat.Permalink())
 }
 
 func (s *Site) Config() page.SiteConfig {
@@ -444,16 +467,11 @@ func (s *Site) IsMultiLingual() bool {
 }
 
 func (s *Site) LanguagePrefix() string {
-	conf := s.s.Conf
-	if !conf.IsMultiLingual() {
+	prefix := s.GetLanguagePrefix()
+	if prefix == "" {
 		return ""
 	}
-
-	if !conf.DefaultContentLanguageInSubdir() && s.language.Lang == conf.DefaultContentLanguage() {
-		return ""
-	}
-
-	return "/" + s.language.Lang
+	return "/" + prefix
 }
 
 // Returns the identity of this site.

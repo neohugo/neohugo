@@ -17,13 +17,12 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/bep/clock"
+	"github.com/bep/clocks"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/asciidocext"
@@ -34,8 +33,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/htime"
 	"github.com/neohugo/neohugo/common/loggers"
-
-	"github.com/spf13/jwalterweatherman"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
@@ -738,7 +735,7 @@ Here is the last report for commits in the year 2016. It covers hrev50718-hrev50
 func TestRenderStringForRegularPageTranslations(t *testing.T) {
 	c := qt.New(t)
 	b := newTestSitesBuilder(t)
-	b.WithLogger(loggers.NewBasicLoggerForWriter(jwalterweatherman.LevelError, os.Stderr))
+	b.WithLogger(loggers.NewDefault())
 
 	b.WithConfigFile("toml",
 		`baseurl = "https://example.org/"
@@ -799,7 +796,7 @@ home = ["HTML", "JSON"]`)
 // Issue 8919
 func TestContentProviderWithCustomOutputFormat(t *testing.T) {
 	b := newTestSitesBuilder(t)
-	b.WithLogger(loggers.NewBasicLoggerForWriter(jwalterweatherman.LevelDebug, os.Stderr))
+	b.WithLogger(loggers.NewDefault())
 	b.WithConfigFile("toml", `baseURL = 'http://example.org/'
 title = 'My New Hugo Site'
 
@@ -1436,7 +1433,7 @@ Content:{{ .Content }}
 
 // https://github.com/neohugo/neohugo/issues/5781
 func TestPageWithZeroFile(t *testing.T) {
-	newTestSitesBuilder(t).WithLogger(loggers.NewWarningLogger()).WithSimpleConfigFile().
+	newTestSitesBuilder(t).WithLogger(loggers.NewDefault()).WithSimpleConfigFile().
 		WithTemplatesAdded("index.html", "{{ .File.Filename }}{{ with .File }}{{ .Dir }}{{ end }}").Build(BuildCfg{})
 }
 
@@ -1503,8 +1500,8 @@ func TestShouldBuild(t *testing.T) {
 }
 
 func TestShouldBuildWithClock(t *testing.T) {
-	htime.Clock = clock.Start(time.Date(2021, 11, 17, 20, 34, 58, 651387237, time.UTC))
-	t.Cleanup(func() { htime.Clock = clock.System() })
+	htime.Clock = clocks.Start(time.Date(2021, 11, 17, 20, 34, 58, 651387237, time.UTC))
+	t.Cleanup(func() { htime.Clock = clocks.System() })
 	past := time.Date(2009, 11, 17, 20, 34, 58, 651387237, time.UTC)
 	future := time.Date(2037, 11, 17, 20, 34, 58, 651387237, time.UTC)
 	zero := time.Time{}
@@ -1986,4 +1983,25 @@ title: "p2"
 
 	b.Assert(identity.HashString(p1), qt.Not(qt.Equals), identity.HashString(p2))
 	b.Assert(identity.HashString(sites[0]), qt.Not(qt.Equals), identity.HashString(sites[1]))
+}
+
+// Issue #11243
+func TestRenderWithoutArgument(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+-- layouts/index.html --
+{{ .Render }}
+`
+
+	b, err := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+			Running:     true,
+		},
+	).BuildE()
+
+	b.Assert(err, qt.IsNotNil)
 }

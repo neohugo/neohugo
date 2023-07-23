@@ -80,22 +80,19 @@ func flagsToCfgWithAdditionalConfigBase(cd *simplecobra.Commandeer, cfg config.P
 
 	// Flags with a different name in the config.
 	keyMap := map[string]string{
-		"minify":            "minifyOutput",
-		"destination":       "publishDir",
-		"printI18nWarnings": "logI18nWarnings",
-		"printPathWarnings": "logPathWarnings",
-		"editor":            "newContentEditor",
+		"minify":      "minifyOutput",
+		"destination": "publishDir",
+		"editor":      "newContentEditor",
 	}
 
 	// Flags that we for some reason don't want to expose in the site config.
 	internalKeySet := map[string]bool{
-		"quiet":             true,
-		"verbose":           true,
-		"watch":             true,
-		"disableLiveReload": true,
-		"liveReloadPort":    true,
-		"renderToMemory":    true,
-		"clock":             true,
+		"quiet":          true,
+		"verbose":        true,
+		"watch":          true,
+		"liveReloadPort": true,
+		"renderToMemory": true,
+		"clock":          true,
 	}
 
 	cmd := cd.CobraCommand

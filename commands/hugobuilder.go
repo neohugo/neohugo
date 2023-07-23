@@ -26,10 +26,12 @@ import (
 	"sync"
 	"time"
 
+	"github.com/bep/logg"
 	"github.com/bep/simplecobra"
 	"github.com/fsnotify/fsnotify"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/htime"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/terminal"
@@ -41,9 +43,7 @@ import (
 	"github.com/neohugo/neohugo/hugolib/filesystems"
 	"github.com/neohugo/neohugo/livereload"
 	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/tpl"
 	"github.com/neohugo/neohugo/watcher"
-	"github.com/spf13/afero"
 	"github.com/spf13/fsync"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
@@ -68,7 +68,6 @@ type hugoBuilder struct {
 	onConfigLoaded func(reloaded bool) error
 
 	fastRenderMode     bool
-	buildWatch         bool // nolint
 	showErrorInBrowser bool
 
 	errState hugoBuilderErrState
@@ -130,7 +129,7 @@ func (e *hugoBuilderErrState) wasErr() bool {
 }
 
 func (c *hugoBuilder) errCount() int {
-	return int(c.r.logger.LogCounters().ErrorCounter.Count())
+	return c.r.logger.LoggCount(logg.LevelError) + loggers.Log().LoggCount(logg.LevelError)
 }
 
 // getDirList provides NewWatcher() with a list of directories to watch for changes.
@@ -362,7 +361,7 @@ func (c *hugoBuilder) newWatcher(pollIntervalStr string, dirList ...string) (*wa
 		configFiles = conf.configs.LoadingInfo.ConfigFiles
 	})
 
-	c.r.logger.Println("Watching for config changes in", strings.Join(configFiles, ", "))
+	c.r.Println("Watching for config changes in", strings.Join(configFiles, ", "))
 	for _, configFile := range configFiles {
 		watcher.Add(configFile) // nolint
 		configSet[configFile] = true
@@ -417,25 +416,6 @@ func (c *hugoBuilder) build() error {
 			return err
 		}
 
-		if c.r.printPathWarnings {
-			hugofs.WalkFilesystems(h.Fs.PublishDir, func(fs afero.Fs) bool {
-				if dfs, ok := fs.(hugofs.DuplicatesReporter); ok {
-					dupes := dfs.ReportDuplicates()
-					if dupes != "" {
-						c.r.logger.Warnln("Duplicate target paths:", dupes)
-					}
-				}
-				return false
-			})
-		}
-
-		if c.r.printUnusedTemplates {
-			unusedTemplates := h.Tmpl().(tpl.UnusedTemplatesProvider).UnusedTemplates()
-			for _, unusedTemplate := range unusedTemplates {
-				c.r.logger.Warnf("Template %s is unused, source file %s", unusedTemplate.Name(), unusedTemplate.Filename())
-			}
-		}
-
 		h.PrintProcessingStats(os.Stdout)
 		c.r.Println()
 	}
@@ -460,6 +440,7 @@ func (c *hugoBuilder) copyStatic() (map[string]uint64, error) {
 }
 
 func (c *hugoBuilder) copyStaticTo(sourceFs *filesystems.SourceFilesystem) (uint64, error) {
+	infol := c.r.logger.InfoCommand("copy static")
 	publishDir := helpers.FilePathSeparator
 
 	if sourceFs.PublishFolder != "" {
@@ -483,13 +464,13 @@ func (c *hugoBuilder) copyStaticTo(sourceFs *filesystems.SourceFilesystem) (uint
 	syncer.SrcFs = fs
 
 	if syncer.Delete {
-		c.r.logger.Infoln("removing all files from destination that don't exist in static dirs")
+		infol.Logf("removing all files from destination that don't exist in static dirs")
 
 		syncer.DeleteFilter = func(f os.FileInfo) bool {
 			return f.IsDir() && strings.HasPrefix(f.Name(), ".")
 		}
 	}
-	c.r.logger.Infoln("syncing static files to", publishDir)
+	infol.Logf("syncing static files to %s", publishDir)
 
 	// because we are using a baseFs (to get the union right).
 	// set sync src to root
@@ -544,14 +525,13 @@ func (c *hugoBuilder) fullBuild(noBuildLock bool) error {
 		langCount map[string]uint64
 	)
 
-	if !c.r.quiet {
-		fmt.Println("Start building sites … ")
-		fmt.Println(neohugo.BuildVersionString())
-		if terminal.IsTerminal(os.Stdout) {
-			defer func() {
-				fmt.Print(showCursor + clearLine)
-			}()
-		}
+	c.r.logger.Println("Start building sites … ")
+	c.r.logger.Println(neohugo.BuildVersionString())
+	c.r.logger.Println()
+	if terminal.IsTerminal(os.Stdout) {
+		defer func() {
+			fmt.Print(showCursor + clearLine)
+		}()
 	}
 
 	copyStaticFunc := func() error {
@@ -1010,7 +990,7 @@ func (c *hugoBuilder) loadConfig(cd *simplecobra.Commandeer, running bool) error
 	cfg.Set("internal", maps.Params{
 		"running": running,
 		"watch":   watch,
-		"verbose": c.r.verbose,
+		"verbose": c.r.isVerbose(),
 	})
 
 	conf, err := c.r.ConfigFromProvider(c.r.configVersionID.Load(), flagsToCfg(cd, cfg))
@@ -1060,8 +1040,8 @@ func (c *hugoBuilder) rebuildSites(events []fsnotify.Event) error {
 	if c.fastRenderMode {
 		c.withConf(func(conf *commonConfig) {
 			// Make sure we always render the home pages
-			for _, l := range conf.configs.Languages {
-				langPath := h.GetLangSubDir(l.Lang)
+			for _, l := range conf.configs.ConfigLangs() {
+				langPath := l.LanguagePrefix()
 				if langPath != "" {
 					langPath = langPath + "/"
 				}

@@ -1401,7 +1401,7 @@ other = %q
 }
 
 func TestRebuildOnAssetChange(t *testing.T) {
-	b := newTestSitesBuilder(t).Running().WithLogger(loggers.NewInfoLogger())
+	b := newTestSitesBuilder(t).Running().WithLogger(loggers.NewDefault())
 	b.WithTemplatesAdded("index.html", `
 {{ (resources.Get "data.json").Content }}
 `)

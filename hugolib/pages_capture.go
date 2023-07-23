@@ -21,6 +21,7 @@ import (
 	"reflect"
 
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/neohugo/neohugo/parser/pageparser"
@@ -29,7 +30,6 @@ import (
 
 	"github.com/neohugo/neohugo/source"
 
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/spf13/afero"
 )

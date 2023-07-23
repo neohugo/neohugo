@@ -69,6 +69,7 @@ func TestPermalinkExpansion(t *testing.T) {
 	page.date = d
 	page.section = "blue"
 	page.slug = "The Slug"
+	page.kind = "page"
 
 	for _, item := range testdataPermalinks {
 		if !item.valid {
@@ -79,8 +80,10 @@ func TestPermalinkExpansion(t *testing.T) {
 		name := specNameCleaner.ReplaceAllString(item.spec, "")
 
 		c.Run(name, func(c *qt.C) {
-			patterns := map[string]string{
-				"posts": item.spec,
+			patterns := map[string]map[string]string{
+				"page": {
+					"posts": item.spec,
+				},
 			}
 			expander, err := NewPermalinkExpander(urlize, patterns)
 			c.Assert(err, qt.IsNil)
@@ -103,14 +106,18 @@ func TestPermalinkExpansionMultiSection(t *testing.T) {
 	page.date = d
 	page.section = "blue"
 	page.slug = "The Slug"
+	page.kind = "page"
 
 	page_slug_fallback := newTestPageWithFile("/page-filename/index.md")
 	page_slug_fallback.title = "Page Title"
+	page_slug_fallback.kind = "page"
 
-	permalinksConfig := map[string]string{
-		"posts":   "/:slug",
-		"blog":    "/:section/:year",
-		"recipes": "/:slugorfilename",
+	permalinksConfig := map[string]map[string]string{
+		"page": {
+			"posts":   "/:slug",
+			"blog":    "/:section/:year",
+			"recipes": "/:slugorfilename",
+		},
 	}
 	expander, err := NewPermalinkExpander(urlize, permalinksConfig)
 	c.Assert(err, qt.IsNil)
@@ -137,8 +144,10 @@ func TestPermalinkExpansionConcurrent(t *testing.T) {
 
 	c := qt.New(t)
 
-	permalinksConfig := map[string]string{
-		"posts": "/:slug/",
+	permalinksConfig := map[string]map[string]string{
+		"page": {
+			"posts": "/:slug/",
+		},
 	}
 
 	expander, err := NewPermalinkExpander(urlize, permalinksConfig)
@@ -151,6 +160,7 @@ func TestPermalinkExpansionConcurrent(t *testing.T) {
 		go func(i int) {
 			defer wg.Done()
 			page := newTestPage()
+			page.kind = "page"
 			for j := 1; j < 20; j++ {
 				page.slug = fmt.Sprintf("slug%d", i+j)
 				expanded, err := expander.Expand("posts", page)
@@ -169,35 +179,44 @@ func TestPermalinkExpansionSliceSyntax(t *testing.T) {
 	c := qt.New(t)
 	exp, err := NewPermalinkExpander(urlize, nil)
 	c.Assert(err, qt.IsNil)
-	slice := []string{"a", "b", "c", "d"}
-	fn := func(s string) []string {
-		return exp.toSliceFunc(s)(slice)
+	slice4 := []string{"a", "b", "c", "d"}
+	fn4 := func(s string) []string {
+		return exp.toSliceFunc(s)(slice4)
+	}
+
+	slice1 := []string{"a"}
+	fn1 := func(s string) []string {
+		return exp.toSliceFunc(s)(slice1)
 	}
 
 	c.Run("Basic", func(c *qt.C) {
-		c.Assert(fn("[1:3]"), qt.DeepEquals, []string{"b", "c"})
-		c.Assert(fn("[1:]"), qt.DeepEquals, []string{"b", "c", "d"})
-		c.Assert(fn("[:2]"), qt.DeepEquals, []string{"a", "b"})
-		c.Assert(fn("[0:2]"), qt.DeepEquals, []string{"a", "b"})
-		c.Assert(fn("[:]"), qt.DeepEquals, []string{"a", "b", "c", "d"})
-		c.Assert(fn(""), qt.DeepEquals, []string{"a", "b", "c", "d"})
-		c.Assert(fn("[last]"), qt.DeepEquals, []string{"d"})
-		c.Assert(fn("[:last]"), qt.DeepEquals, []string{"a", "b", "c"})
+		c.Assert(fn4("[1:3]"), qt.DeepEquals, []string{"b", "c"})
+		c.Assert(fn4("[1:]"), qt.DeepEquals, []string{"b", "c", "d"})
+		c.Assert(fn4("[:2]"), qt.DeepEquals, []string{"a", "b"})
+		c.Assert(fn4("[0:2]"), qt.DeepEquals, []string{"a", "b"})
+		c.Assert(fn4("[:]"), qt.DeepEquals, []string{"a", "b", "c", "d"})
+		c.Assert(fn4(""), qt.DeepEquals, []string{"a", "b", "c", "d"})
+		c.Assert(fn4("[last]"), qt.DeepEquals, []string{"d"})
+		c.Assert(fn4("[:last]"), qt.DeepEquals, []string{"a", "b", "c"})
+		c.Assert(fn1("[last]"), qt.DeepEquals, []string{"a"})
+		c.Assert(fn1("[:last]"), qt.DeepEquals, []string{})
+		c.Assert(fn1("[1:last]"), qt.DeepEquals, []string{})
+		c.Assert(fn1("[1]"), qt.DeepEquals, []string{})
 	})
 
 	c.Run("Out of bounds", func(c *qt.C) {
-		c.Assert(fn("[1:5]"), qt.DeepEquals, []string{"b", "c", "d"})
-		c.Assert(fn("[-1:5]"), qt.DeepEquals, []string{"a", "b", "c", "d"})
-		c.Assert(fn("[5:]"), qt.DeepEquals, []string{})
-		c.Assert(fn("[5:]"), qt.DeepEquals, []string{})
-		c.Assert(fn("[5:32]"), qt.DeepEquals, []string{})
+		c.Assert(fn4("[1:5]"), qt.DeepEquals, []string{"b", "c", "d"})
+		c.Assert(fn4("[-1:5]"), qt.DeepEquals, []string{"a", "b", "c", "d"})
+		c.Assert(fn4("[5:]"), qt.DeepEquals, []string{})
+		c.Assert(fn4("[5:]"), qt.DeepEquals, []string{})
+		c.Assert(fn4("[5:32]"), qt.DeepEquals, []string{})
 		c.Assert(exp.toSliceFunc("[:1]")(nil), qt.DeepEquals, []string(nil))
 		c.Assert(exp.toSliceFunc("[:1]")([]string{}), qt.DeepEquals, []string(nil))
 
 		// These all return nil
-		c.Assert(fn("[]"), qt.IsNil)
-		c.Assert(fn("[1:}"), qt.IsNil)
-		c.Assert(fn("foo"), qt.IsNil)
+		c.Assert(fn4("[]"), qt.IsNil)
+		c.Assert(fn4("[1:}"), qt.IsNil)
+		c.Assert(fn4("foo"), qt.IsNil)
 	})
 }
 
@@ -206,9 +225,12 @@ func BenchmarkPermalinkExpand(b *testing.B) {
 	page.title = "Hugo Rocks"
 	d, _ := time.Parse("2006-01-02", "2019-02-28")
 	page.date = d
+	page.kind = "page"
 
-	permalinksConfig := map[string]string{
-		"posts": "/:year-:month-:title",
+	permalinksConfig := map[string]map[string]string{
+		"page": {
+			"posts": "/:year-:month-:title",
+		},
 	}
 	expander, err := NewPermalinkExpander(urlize, permalinksConfig)
 	if err != nil {

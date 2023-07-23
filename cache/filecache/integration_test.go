@@ -18,8 +18,7 @@ import (
 	"testing"
 	"time"
 
-	jww "github.com/spf13/jwalterweatherman"
-
+	"github.com/bep/logg"
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugolib"
@@ -78,7 +77,7 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAA
 `
 
 	b := hugolib.NewIntegrationTestBuilder(
-		hugolib.IntegrationTestConfig{T: t, TxtarString: files, Running: true, RunGC: true, NeedsOsFS: true, LogLevel: jww.LevelInfo},
+		hugolib.IntegrationTestConfig{T: t, TxtarString: files, Running: true, RunGC: true, NeedsOsFS: true, LogLevel: logg.LevelInfo},
 	).Build()
 
 	b.Assert(b.GCCount, qt.Equals, 0)

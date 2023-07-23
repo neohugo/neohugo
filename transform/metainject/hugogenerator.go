@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/transform"
 )
 
@@ -33,7 +33,7 @@ func HugoGenerator(ft transform.FromTo) error {
 	b := ft.From().Bytes()
 	if metaTagsCheck.Match(b) {
 		if _, err := ft.To().Write(b); err != nil {
-			helpers.DistinctWarnLog.Println("Failed to inject Neohugo generator tag:", err)
+			loggers.Log().Warnf("Failed to inject Hugo generator tag: %s", err)
 		}
 		return nil
 	}
@@ -49,7 +49,7 @@ func HugoGenerator(ft transform.FromTo) error {
 	}
 
 	if _, err := ft.To().Write(newcontent); err != nil {
-		helpers.DistinctWarnLog.Println("Failed to inject Neohugo generator tag:", err)
+		loggers.Log().Warnf("Failed to inject Hugo generator tag: %s", err)
 	}
 
 	return nil

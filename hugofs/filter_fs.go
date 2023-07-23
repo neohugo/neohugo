@@ -90,7 +90,7 @@ func NewLanguageFs(langs map[string]int, fs afero.Fs) (afero.Fs, error) {
 			fim := fi.(FileMetaInfo)
 			langs := translations[fim.Meta().TranslationBaseNameWithExt]
 			if len(langs) > 0 {
-				fim.Meta().Translations = sortAndremoveStringDuplicates(langs)
+				fim.Meta().Translations = sortAndRemoveStringDuplicates(langs)
 			}
 		}
 	}
@@ -327,7 +327,7 @@ func langInfoFrom(languages map[string]int, name string) (string, string, string
 //})
 //}
 
-func sortAndremoveStringDuplicates(s []string) []string {
+func sortAndRemoveStringDuplicates(s []string) []string {
 	ss := sort.StringSlice(s)
 	ss.Sort()
 	i := 0

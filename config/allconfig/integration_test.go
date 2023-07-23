@@ -59,11 +59,28 @@ Title: {{ .Title }}
 
 	b.Assert(enConcp.BaseURL().String(), qt.Equals, "https://example.com")
 	modConf := enConf.Module
-	b.Assert(modConf.Mounts, qt.HasLen, 2)
+	b.Assert(modConf.Mounts, qt.HasLen, 8)
 	b.Assert(modConf.Mounts[0].Source, qt.Equals, filepath.FromSlash("content/en"))
 	b.Assert(modConf.Mounts[0].Target, qt.Equals, "content")
 	b.Assert(modConf.Mounts[0].Lang, qt.Equals, "en")
 	b.Assert(modConf.Mounts[1].Source, qt.Equals, filepath.FromSlash("content/sv"))
 	b.Assert(modConf.Mounts[1].Target, qt.Equals, "content")
 	b.Assert(modConf.Mounts[1].Lang, qt.Equals, "sv")
+}
+
+func TestConfigAliases(t *testing.T) {
+	files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+logI18nWarnings = true
+logPathWarnings = true
+`
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{T: t, TxtarString: files},
+	).Build()
+
+	conf := b.H.Configs.Base
+
+	b.Assert(conf.PrintI18nWarnings, qt.Equals, true)
+	b.Assert(conf.PrintPathWarnings, qt.Equals, true)
 }

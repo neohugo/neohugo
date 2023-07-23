@@ -18,9 +18,8 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/loggers"
-
 	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/common/loggers"
 )
 
 const pageWithAlias = `---
@@ -117,7 +116,7 @@ func TestAliasTemplate(t *testing.T) {
 }
 
 func TestTargetPathHTMLRedirectAlias(t *testing.T) {
-	h := newAliasHandler(nil, loggers.NewErrorLogger(), false)
+	h := newAliasHandler(nil, loggers.NewDefault(), false)
 
 	errIsNilForThisOS := runtime.GOOS != "windows"
 

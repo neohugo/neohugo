@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/neohugo/neohugo/resources/page"
 )
@@ -109,15 +110,17 @@ func createTargetPathDescriptor(s *Site, p page.Page, pm *pageMeta) (page.Target
 	)
 
 	d := s.Deps
+	var classifier files.ContentClass
 
 	if !p.File().IsZero() {
 		dir = p.File().Dir()
 		baseName = p.File().TranslationBaseName()
 		contentBaseName = p.File().ContentBaseName()
+		classifier = p.File().FileInfo().Meta().Classifier
 	}
 
-	if baseName != contentBaseName {
-		// See https://github.com/neohugo/neohugo/issues/4870
+	if classifier == files.ContentClassLeaf {
+		// See https://github.com/gohugoio/hugo/issues/4870
 		// A leaf bundle
 		dir = strings.TrimSuffix(dir, contentBaseName+helpers.FilePathSeparator)
 		baseName = contentBaseName
@@ -144,22 +147,26 @@ func createTargetPathDescriptor(s *Site, p page.Page, pm *pageMeta) (page.Target
 	desc.PrefixFilePath = s.getLanguageTargetPathLang(alwaysInSubDir)
 	desc.PrefixLink = s.getLanguagePermalinkLang(alwaysInSubDir)
 
-	// Expand only page.KindPage and page.KindTaxonomy; don't expand other Kinds of Pages
-	// like page.KindSection or page.KindTaxonomyTerm because they are "shallower" and
-	// the permalink configuration values are likely to be redundant, e.g.
-	// naively expanding /category/:slug/ would give /category/categories/ for
-	// the "categories" page.KindTaxonomyTerm.
-	if p.Kind() == page.KindPage || p.Kind() == page.KindTerm {
-		opath, err := d.ResourceSpec.Permalinks.Expand(p.Section(), p)
-		if err != nil {
-			return desc, err
+	opath, err := d.ResourceSpec.Permalinks.Expand(p.Section(), p)
+	if err != nil {
+		return desc, err
+	}
+
+	if opath != "" {
+		opath, _ = url.QueryUnescape(opath)
+		if strings.HasSuffix(opath, "//") {
+			// When rewriting the _index of the section the permalink config is applied to,
+			// we get douple slashes at the end sometimes; clear them up here
+			opath = strings.TrimSuffix(opath, "/")
 		}
 
-		if opath != "" {
-			opath, _ = url.QueryUnescape(opath)
-			desc.ExpandedPermalink = opath
-		}
+		desc.ExpandedPermalink = opath
 
+		if !p.File().IsZero() {
+			s.Log.Debugf("Set expanded permalink path for %s %s to %#v", p.Kind(), p.File().Path(), opath)
+		} else {
+			s.Log.Debugf("Set expanded permalink path for %s in %v to %#v", p.Kind(), desc.Sections, opath)
+		}
 	}
 
 	return desc, nil

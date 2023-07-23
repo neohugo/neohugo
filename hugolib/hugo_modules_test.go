@@ -22,21 +22,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/modules/npm"
-
-	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/hugofs/files"
+
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugofs"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/gohugoio/testmodBuilder/mods"
-	"github.com/neohugo/neohugo/common/neohugo"
 )
 
 func TestHugoModulesVariants(t *testing.T) {
@@ -645,14 +646,14 @@ min_version = 0.55.0
 
 `)
 
-	logger := loggers.NewWarningLogger()
+	logger := loggers.NewDefault()
 	b.WithLogger(logger)
 
 	b.Build(BuildCfg{})
 
 	c := qt.New(t)
 
-	c.Assert(logger.LogCounters().WarnCounter.Count(), qt.Equals, uint64(3))
+	c.Assert(logger.LoggCount(logg.LevelWarn), qt.Equals, 3)
 }
 
 func TestModulesSymlinks(t *testing.T) {
@@ -726,7 +727,7 @@ weight = 2
 `
 
 	b := newTestSitesBuilder(t).WithNothingAdded().WithWorkingDir(workingDir)
-	b.WithLogger(loggers.NewErrorLogger())
+	b.WithLogger(loggers.NewDefault())
 	b.Fs = fs
 
 	b.WithConfigFile("toml", config)
@@ -1177,4 +1178,33 @@ target = "content/resources-b"
 
 	b.AssertFileContent("public/resources-a/subdir/about/index.html", "Single")
 	b.AssertFileContent("public/resources-b/subdir/about/index.html", "Single")
+}
+
+func TestMountData(t *testing.T) {
+	files := `
+-- hugo.toml --
+baseURL = 'https://example.org/'
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
+
+[[module.mounts]]
+source = "data"
+target = "data"
+
+[[module.mounts]]
+source = "extra-data"
+target = "data/extra"
+-- extra-data/test.yaml --
+message: Hugo Rocks
+-- layouts/index.html --
+{{ site.Data.extra.test.message }}
+`
+
+	b := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+
+	b.AssertFileContent("public/index.html", "Hugo Rocks")
 }

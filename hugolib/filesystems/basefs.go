@@ -28,9 +28,9 @@ import (
 	"github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/types"
 
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/rogpeppe/go-internal/lockedfile"
 
 	"github.com/neohugo/neohugo/hugofs/files"
@@ -468,7 +468,7 @@ var counter int // nolint
 func NewBase(p *paths.Paths, logger loggers.Logger, options ...func(*BaseFs) error) (*BaseFs, error) {
 	fs := p.Fs
 	if logger == nil {
-		logger = loggers.NewWarningLogger()
+		logger = loggers.NewDefault()
 	}
 
 	publishFs := hugofs.NewBaseFileDecorator(fs.PublishDir)

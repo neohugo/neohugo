@@ -18,20 +18,21 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"syscall"
 	"time"
 
-	jww "github.com/spf13/jwalterweatherman"
-
 	"go.uber.org/automaxprocs/maxprocs"
 
-	"github.com/bep/clock"
+	"github.com/bep/clocks"
 	"github.com/bep/lazycache"
+	"github.com/bep/logg"
 	"github.com/bep/overlayfs"
 	"github.com/bep/simplecobra"
 
@@ -107,13 +108,10 @@ type rootCommand struct {
 	environment string
 
 	// Common build flags.
-	baseURL              string
-	gc                   bool
-	poll                 string
-	panicOnWarning       bool
-	forceSyncStatic      bool
-	printPathWarnings    bool
-	printUnusedTemplates bool
+	baseURL         string
+	gc              bool
+	poll            string
+	forceSyncStatic bool
 
 	// Profile flags (for debugging of performance problems)
 	cpuprofile   string
@@ -122,17 +120,20 @@ type rootCommand struct {
 	traceprofile string
 	printm       bool
 
-	// TODO(bep) var vs string
-	logging        bool
-	verbose        bool
-	verboseLog     bool
-	debug          bool
-	quiet          bool
+	logLevel string
+
+	verbose bool
+	debug   bool
+	quiet   bool
+
 	renderToMemory bool
 
 	cfgFile string
 	cfgDir  string
-	logFile string
+}
+
+func (r *rootCommand) isVerbose() bool {
+	return r.logger.Level() <= logg.LevelInfo
 }
 
 func (r *rootCommand) Build(cd *simplecobra.Commandeer, bcfg hugolib.BuildCfg, cfg config.Provider) (*hugolib.HugoSites, error) {
@@ -170,7 +171,7 @@ func (r *rootCommand) ConfigFromConfig(key int32, oldConf *commonConfig) (*commo
 
 		if !configs.Base.C.Clock.IsZero() {
 			// TODO(bep) find a better place for this.
-			htime.Clock = clock.Start(configs.Base.C.Clock)
+			htime.Clock = clocks.Start(configs.Base.C.Clock)
 		}
 
 		return &commonConfig{
@@ -235,11 +236,11 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 		renderStaticToDisk := cfg.GetBool("renderStaticToDisk")
 
 		sourceFs := hugofs.Os
-		var desinationFs afero.Fs
+		var destinationFs afero.Fs
 		if cfg.GetBool("renderToDisk") {
-			desinationFs = hugofs.Os
+			destinationFs = hugofs.Os
 		} else {
-			desinationFs = afero.NewMemMapFs()
+			destinationFs = afero.NewMemMapFs()
 			if renderStaticToDisk {
 				// Hybrid, render dynamic content to Root.
 				cfg.Set("publishDirDynamic", "/")
@@ -250,7 +251,7 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 			}
 		}
 
-		fs := hugofs.NewFromSourceAndDestination(sourceFs, desinationFs, cfg)
+		fs := hugofs.NewFromSourceAndDestination(sourceFs, destinationFs, cfg)
 
 		if renderStaticToDisk {
 			dynamicFs := fs.PublishDir
@@ -278,10 +279,10 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 
 		if !base.C.Clock.IsZero() {
 			// TODO(bep) find a better place for this.
-			htime.Clock = clock.Start(configs.Base.C.Clock)
+			htime.Clock = clocks.Start(configs.Base.C.Clock)
 		}
 
-		if base.LogPathWarnings {
+		if base.PrintPathWarnings {
 			// Note that we only care about the "dynamic creates" here,
 			// so skip the static fs.
 			fs.PublishDir = hugofs.NewCreateCountingFs(fs.PublishDir)
@@ -302,7 +303,7 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 
 func (r *rootCommand) HugFromConfig(conf *commonConfig) (*hugolib.HugoSites, error) {
 	h, _, err := r.hugoSites.GetOrCreate(r.configVersionID.Load(), func(key int32) (*hugolib.HugoSites, error) {
-		depsCfg := deps.DepsCfg{Configs: conf.configs, Fs: conf.fs, Logger: r.logger}
+		depsCfg := deps.DepsCfg{Configs: conf.configs, Fs: conf.fs, LogOut: r.logger.Out(), LogLevel: r.logger.Level()}
 		return hugolib.NewHugoSites(depsCfg)
 	})
 	return h, err
@@ -314,7 +315,7 @@ func (r *rootCommand) Hugo(cfg config.Provider) (*hugolib.HugoSites, error) {
 		if err != nil {
 			return nil, err
 		}
-		depsCfg := deps.DepsCfg{Configs: conf.configs, Fs: conf.fs, Logger: r.logger}
+		depsCfg := deps.DepsCfg{Configs: conf.configs, Fs: conf.fs, LogOut: r.logger.Out(), LogLevel: r.logger.Level()}
 		return hugolib.NewHugoSites(depsCfg)
 	})
 	return h, err
@@ -383,6 +384,9 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 	if r.quiet {
 		r.Out = io.Discard
 	}
+	// Used by mkcert (server).
+	log.SetOutput(r.Out)
+
 	r.Printf = func(format string, v ...interface{}) {
 		if !r.quiet {
 			fmt.Fprintf(r.Out, format, v...)
@@ -400,7 +404,6 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 		return err
 	}
 
-	loggers.PanicOnWarning.Store(r.panicOnWarning)
 	r.commonConfigs = lazycache.New[int32, *commonConfig](lazycache.Options{MaxEntries: 5})
 	r.hugoSites = lazycache.New[int32, *hugolib.HugoSites](lazycache.Options{MaxEntries: 5})
 
@@ -408,48 +411,47 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 }
 
 func (r *rootCommand) createLogger(running bool) (loggers.Logger, error) {
-	var (
-		logHandle       = io.Discard
-		logThreshold    = jww.LevelWarn
-		outHandle       = r.Out
-		stdoutThreshold = jww.LevelWarn
-	)
+	level := logg.LevelWarn
 
-	if r.verboseLog || r.logging || (r.logFile != "") {
-		var err error
-		if r.logFile != "" {
-			logHandle, err = os.OpenFile(r.logFile, os.O_RDWR|os.O_APPEND|os.O_CREATE, 0o666)
-			if err != nil {
-				return nil, fmt.Errorf("Failed to open log file %q: %s", r.logFile, err)
-			}
-		} else {
-			logHandle, err = os.CreateTemp("", "hugo")
-			if err != nil {
-				return nil, err
-			}
+	if r.logLevel != "" {
+		switch strings.ToLower(r.logLevel) {
+		case "debug":
+			level = logg.LevelDebug
+		case "info":
+			level = logg.LevelInfo
+		case "warn", "warning":
+			level = logg.LevelWarn
+		case "error":
+			level = logg.LevelError
+		default:
+			return nil, fmt.Errorf("invalid log level: %q, must be one of debug, warn, info or error", r.logLevel)
 		}
-	} else if r.verbose {
-		stdoutThreshold = jww.LevelInfo
-	}
+	} else {
+		if r.verbose {
+			helpers.Deprecated("--verbose", "use --logLevel info", false)
+			level = logg.LevelInfo
+		}
 
-	if r.debug {
-		stdoutThreshold = jww.LevelDebug
-	}
-
-	if r.verboseLog {
-		logThreshold = jww.LevelInfo
 		if r.debug {
-			logThreshold = jww.LevelDebug
+			helpers.Deprecated("--debug", "use --logLevel debug", false)
+			level = logg.LevelDebug
 		}
 	}
 
-	loggers.InitGlobalLogger(stdoutThreshold, logThreshold, outHandle, logHandle)
-	helpers.InitLoggers()
-	return loggers.NewLogger(stdoutThreshold, logThreshold, outHandle, logHandle, running), nil
+	optsLogger := loggers.Options{
+		Distinct:    true,
+		Level:       level,
+		Stdout:      r.Out,
+		Stderr:      r.Out,
+		StoreErrors: running,
+	}
+
+	return loggers.New(optsLogger), nil
 }
 
 func (r *rootCommand) Reset() {
 	r.logger.Reset()
+	loggers.Log().Reset()
 }
 
 // IsTestRun reports whether the command is running as a test.
@@ -488,14 +490,9 @@ Complete documentation is available at https://gohugo.io/.`
 
 	cmd.PersistentFlags().BoolVarP(&r.verbose, "verbose", "v", false, "verbose output")
 	cmd.PersistentFlags().BoolVarP(&r.debug, "debug", "", false, "debug output")
-	cmd.PersistentFlags().BoolVar(&r.logging, "log", false, "enable Logging")
-	cmd.PersistentFlags().StringVar(&r.logFile, "logFile", "", "log File path (if set, logging enabled automatically)")
-	cmd.PersistentFlags().BoolVar(&r.verboseLog, "verboseLog", false, "verbose logging")
+	cmd.PersistentFlags().StringVar(&r.logLevel, "logLevel", "", "log level (debug|info|warn|error)")
 	cmd.Flags().BoolVarP(&r.buildWatch, "watch", "w", false, "watch filesystem for changes and recreate as needed")
 	cmd.Flags().BoolVar(&r.renderToMemory, "renderToMemory", false, "render to memory (only useful for benchmark testing)")
-
-	// Set bash-completion
-	_ = cmd.PersistentFlags().SetAnnotation("logFile", cobra.BashCompFilenameExt, []string{}) // nolint
 
 	// Configure local flags
 	applyLocalFlagsBuild(cmd, r)
@@ -511,7 +508,7 @@ Complete documentation is available at https://gohugo.io/.`
 func applyLocalFlagsBuildConfig(cmd *cobra.Command, r *rootCommand) {
 	cmd.Flags().StringSliceP("theme", "t", []string{}, "themes to use (located in /themes/THEMENAME/)")
 	cmd.Flags().StringVarP(&r.baseURL, "baseURL", "b", "", "hostname (and path) to the root, e.g. https://spf13.com/")
-	cmd.Flags().StringP("cacheDir", "", "", "filesystem path to cache directory. Defaults: $TMPDIR/hugo_cache/")
+	cmd.Flags().StringP("cacheDir", "", "", "filesystem path to cache directory. Defaults: $TMPDIR/hugo_cache_$USER/")
 	_ = cmd.Flags().SetAnnotation("cacheDir", cobra.BashCompSubdirsInDir, []string{}) // nolint
 	cmd.Flags().StringP("contentDir", "c", "", "filesystem path to content directory")
 	_ = cmd.Flags().SetAnnotation("theme", cobra.BashCompSubdirsInDir, []string{"themes"}) // nolint
@@ -529,7 +526,7 @@ func applyLocalFlagsBuild(cmd *cobra.Command, r *rootCommand) {
 	cmd.Flags().StringP("layoutDir", "l", "", "filesystem path to layout directory")
 	cmd.Flags().BoolVar(&r.gc, "gc", false, "enable to run some cleanup tasks (remove unused cache files) after the build")
 	cmd.Flags().StringVar(&r.poll, "poll", "", "set this to a poll interval, e.g --poll 700ms, to use a poll based approach to watch for file system changes")
-	cmd.Flags().BoolVar(&r.panicOnWarning, "panicOnWarning", false, "panic on first WARNING log")
+	cmd.Flags().Bool("panicOnWarning", false, "panic on first WARNING log")
 	cmd.Flags().Bool("templateMetrics", false, "display metrics about template executions")
 	cmd.Flags().Bool("templateMetricsHints", false, "calculate some improvement hints when combined with --templateMetrics")
 	cmd.Flags().BoolVar(&r.forceSyncStatic, "forceSyncStatic", false, "copy all files when static is changed.")
@@ -537,8 +534,8 @@ func applyLocalFlagsBuild(cmd *cobra.Command, r *rootCommand) {
 	cmd.Flags().BoolP("noChmod", "", false, "don't sync permission mode of files")
 	cmd.Flags().BoolP("noBuildLock", "", false, "don't create .hugo_build.lock file")
 	cmd.Flags().BoolP("printI18nWarnings", "", false, "print missing translations")
-	cmd.Flags().BoolVarP(&r.printPathWarnings, "printPathWarnings", "", false, "print warnings on duplicate target paths etc.")
-	cmd.Flags().BoolVarP(&r.printUnusedTemplates, "printUnusedTemplates", "", false, "print warnings on unused templates.")
+	cmd.Flags().BoolP("printPathWarnings", "", false, "print warnings on duplicate target paths etc.")
+	cmd.Flags().BoolP("printUnusedTemplates", "", false, "print warnings on unused templates.")
 	cmd.Flags().StringVarP(&r.cpuprofile, "profile-cpu", "", "", "write cpu profile to `file`")
 	cmd.Flags().StringVarP(&r.memprofile, "profile-mem", "", "", "write memory profile to `file`")
 	cmd.Flags().BoolVarP(&r.printm, "printMemoryUsage", "", false, "print memory usage to screen at intervals")

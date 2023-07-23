@@ -61,7 +61,14 @@ var allDecoderSetups = map[string]decodeWeight{
 		key:    "",
 		weight: -100, // Always first.
 		decode: func(d decodeWeight, p decodeConfig) error {
-			return mapstructure.WeakDecode(p.p.Get(""), &p.c.RootConfig)
+			if err := mapstructure.WeakDecode(p.p.Get(""), &p.c.RootConfig); err != nil {
+				return err
+			}
+
+			// This need to match with Lang which is always lower case.
+			p.c.RootConfig.DefaultContentLanguage = strings.ToLower(p.c.RootConfig.DefaultContentLanguage)
+
+			return nil
 		},
 	},
 	"imaging": {
@@ -132,8 +139,8 @@ var allDecoderSetups = map[string]decodeWeight{
 			return err
 		},
 	},
-	"mediaTypes": {
-		key: "mediaTypes",
+	"mediatypes": {
+		key: "mediatypes",
 		decode: func(d decodeWeight, p decodeConfig) error {
 			var err error
 			p.c.MediaTypes, err = media.DecodeTypes(p.p.GetStringMap(d.key))
@@ -144,7 +151,7 @@ var allDecoderSetups = map[string]decodeWeight{
 		key: "outputs",
 		decode: func(d decodeWeight, p decodeConfig) error {
 			defaults := createDefaultOutputFormats(p.c.OutputFormats.Config)
-			m := p.p.GetStringMap("outputs")
+			m := maps.CleanConfigStringMap(p.p.GetStringMap("outputs"))
 			p.c.Outputs = make(map[string][]string)
 			for k, v := range m {
 				s := types.ToStringSlicePreserveString(v)
@@ -162,8 +169,8 @@ var allDecoderSetups = map[string]decodeWeight{
 			return nil
 		},
 	},
-	"outputFormats": {
-		key: "outputFormats",
+	"outputformats": {
+		key: "outputformats",
 		decode: func(d decodeWeight, p decodeConfig) error {
 			var err error
 			p.c.OutputFormats, err = output.DecodeConfig(p.c.MediaTypes.Config, p.p.Get(d.key))
@@ -200,8 +207,9 @@ var allDecoderSetups = map[string]decodeWeight{
 	"permalinks": {
 		key: "permalinks",
 		decode: func(d decodeWeight, p decodeConfig) error {
-			p.c.Permalinks = maps.CleanConfigStringMapString(p.p.GetStringMapString(d.key))
-			return nil
+			var err error
+			p.c.Permalinks, err = page.DecodePermalinksConfig(p.p.GetStringMap(d.key))
+			return err
 		},
 	},
 	"sitemap": {
@@ -242,8 +250,41 @@ var allDecoderSetups = map[string]decodeWeight{
 		key: "languages",
 		decode: func(d decodeWeight, p decodeConfig) error {
 			var err error
-			p.c.Languages, err = langs.DecodeConfig(p.p.GetStringMap(d.key))
-			return err
+			m := p.p.GetStringMap(d.key)
+			if len(m) == 1 {
+				// In v0.112.4 we moved this to the language config, but it's very commmon for mono language sites to have this at the top level.
+				var first maps.Params
+				var ok bool
+				for _, v := range m {
+					first, ok = v.(maps.Params)
+					if ok {
+						break
+					}
+				}
+				if first != nil {
+					if _, found := first["languagecode"]; !found {
+						first["languagecode"] = p.p.GetString("languagecode")
+					}
+				}
+			}
+			p.c.Languages, err = langs.DecodeConfig(m)
+			if err != nil {
+				return err
+			}
+
+			// Validate defaultContentLanguage.
+			var found bool
+			for lang := range p.c.Languages {
+				if lang == p.c.DefaultContentLanguage {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("config value %q for defaultContentLanguage does not match any language definition", p.c.DefaultContentLanguage)
+			}
+
+			return nil
 		},
 	},
 	"cascade": {
@@ -297,14 +338,14 @@ var allDecoderSetups = map[string]decodeWeight{
 	"author": {
 		key: "author",
 		decode: func(d decodeWeight, p decodeConfig) error {
-			p.c.Author = p.p.GetStringMap(d.key)
+			p.c.Author = maps.CleanConfigStringMap(p.p.GetStringMap(d.key))
 			return nil
 		},
 	},
 	"social": {
 		key: "social",
 		decode: func(d decodeWeight, p decodeConfig) error {
-			p.c.Social = p.p.GetStringMapString(d.key)
+			p.c.Social = maps.CleanConfigStringMapString(p.p.GetStringMapString(d.key))
 			return nil
 		},
 	},
@@ -329,4 +370,20 @@ var allDecoderSetups = map[string]decodeWeight{
 			return mapstructure.WeakDecode(p.p.GetStringMap(d.key), &p.c.Internal)
 		},
 	},
+}
+
+func init() {
+	for k, v := range allDecoderSetups {
+		// Verify that k and v.key is all lower case.
+		if k != strings.ToLower(k) {
+			panic(fmt.Sprintf("key %q is not lower case", k))
+		}
+		if v.key != strings.ToLower(v.key) {
+			panic(fmt.Sprintf("key %q is not lower case", v.key))
+		}
+
+		if k != v.key {
+			panic(fmt.Sprintf("key %q is not the same as the map key %q", k, v.key))
+		}
+	}
 }

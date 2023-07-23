@@ -24,21 +24,21 @@ import (
 	"sync"
 
 	"github.com/BurntSushi/locker"
-	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/resources/jsconfig"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/resources/postpub"
 
 	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images"
 	"github.com/neohugo/neohugo/resources/page"
@@ -74,7 +74,7 @@ func NewSpec(
 	}
 
 	if logger == nil {
-		logger = loggers.NewErrorLogger()
+		logger = loggers.NewDefault()
 	}
 
 	permalinks, err := page.NewPermalinkExpander(s.URLize, conf.Permalinks)

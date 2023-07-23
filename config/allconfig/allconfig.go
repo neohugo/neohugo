@@ -57,12 +57,11 @@ type InternalConfig struct {
 	// Server mode?
 	Running bool
 
-	Quiet             bool
-	Verbose           bool
-	Clock             string
-	Watch             bool
-	DisableLiveReload bool
-	LiveReloadPort    int
+	Quiet          bool
+	Verbose        bool
+	Clock          string
+	Watch          bool
+	LiveReloadPort int
 }
 
 // All non-params config keys for language.
@@ -150,7 +149,7 @@ type Config struct {
 	Minify minifiers.MinifyConfig `mapstructure:"-"`
 
 	// Permalink configuration.
-	Permalinks map[string]string `mapstructure:"-"`
+	Permalinks map[string]map[string]string `mapstructure:"-"`
 
 	// Taxonomy configuration.
 	Taxonomies map[string]string `mapstructure:"-"`
@@ -191,6 +190,22 @@ type configCompiler interface {
 func (c Config) cloneForLang() *Config {
 	x := c
 	x.C = nil
+	copyStringSlice := func(in []string) []string {
+		if in == nil {
+			return nil
+		}
+		out := make([]string, len(in))
+		copy(out, in)
+		return out
+	}
+
+	// Copy all the slices to avoid sharing.
+	x.DisableKinds = copyStringSlice(x.DisableKinds)
+	x.DisableLanguages = copyStringSlice(x.DisableLanguages)
+	x.MainSections = copyStringSlice(x.MainSections)
+	x.IgnoreErrors = copyStringSlice(x.IgnoreErrors)
+	x.IgnoreFiles = copyStringSlice(x.IgnoreFiles)
+	x.Theme = copyStringSlice(x.Theme)
 
 	// Collapse all static dirs to one.
 	x.StaticDir = x.staticDirs()
@@ -226,7 +241,7 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		kind = strings.ToLower(kind)
 		if kind == "taxonomyterm" {
 			// Legacy config.
-			kind = "term"
+			kind = "taxonomy"
 		}
 		disabledKinds[kind] = true
 	}
@@ -257,6 +272,14 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 			return fmt.Errorf("cannot disable default content language %q", lang)
 		}
 		disabledLangs[lang] = true
+	}
+	for lang, language := range c.Languages {
+		if language.Disabled {
+			disabledLangs[lang] = true
+			if lang == c.DefaultContentLanguage {
+				return fmt.Errorf("cannot disable default content language %q", lang)
+			}
+		}
 	}
 
 	ignoredErrors := make(map[string]bool)
@@ -407,10 +430,10 @@ type RootConfig struct {
 	// Copyright information.
 	Copyright string
 
-	// The language to apply to content without any Clolanguage indicator.
+	// The language to apply to content without any language indicator.
 	DefaultContentLanguage string
 
-	// By defefault, we put the default content language in the root and the others below their language ID, e.g. /no/.
+	// By default, we put the default content language in the root and the others below their language ID, e.g. /no/.
 	// Set this to true to put all languages below their language ID.
 	DefaultContentLanguageInSubdir bool
 
@@ -428,6 +451,9 @@ type RootConfig struct {
 
 	// Disable the injection of the Hugo generator tag on the home page.
 	DisableHugoGeneratorInject bool
+
+	// Disable live reloading in server mode.
+	DisableLiveReload bool
 
 	// Enable replacement in Pages' Content of Emoji shortcodes with their equivalent Unicode characters.
 	// <docsmeta>{"identifiers": ["Content", "Unicode"] }</docsmeta>
@@ -467,11 +493,8 @@ type RootConfig struct {
 	// Enable to print greppable placeholders (on the form "[i18n] TRANSLATIONID") for missing translation strings.
 	EnableMissingTranslationPlaceholders bool
 
-	// Enable to print warnings for missing translation strings.
-	LogI18nWarnings bool
-
-	// ENable to print warnings for multiple files published to the same destination.
-	LogPathWarnings bool
+	// Enable to panic on warning log entries. This may make it easier to detect the source.
+	PanicOnWarning bool
 
 	// The configured environment. Default is "development" for server and "production" for build.
 	Environment string
@@ -505,6 +528,12 @@ type RootConfig struct {
 	// Whether to track and print unused templates during the build.
 	PrintUnusedTemplates bool
 
+	// Enable to print warnings for missing translation strings.
+	PrintI18nWarnings bool
+
+	// ENable to print warnings for multiple files published to the same destination.
+	PrintPathWarnings bool
+
 	// URL to be used as a placeholder when a page reference cannot be found in ref or relref. Is used as-is.
 	RefLinksNotFoundURL string
 
@@ -525,7 +554,7 @@ type RootConfig struct {
 	// See Modules for more a more flexible way to load themes.
 	Theme []string
 
-	// Timeout for generating page contents, specified as a duration or in milliseconds.
+	// Timeout for generating page contents, specified as a duration or in seconds.
 	Timeout string
 
 	// The time zone (or location), e.g. Europe/Oslo, used to parse front matter dates without such information and in the time function.
@@ -648,6 +677,26 @@ func (c *Configs) Init() error {
 		return err
 	}
 
+	// We should consolidate this, but to get a full view of the mounts in e.g. "hugo config" we need to
+	// transfer any default mounts added above to the config used to print the config.
+	for _, m := range c.Modules[0].Mounts() {
+		var found bool
+		for _, cm := range c.Base.Module.Mounts {
+			if cm.Source == m.Source && cm.Target == m.Target && cm.Lang == m.Lang {
+				found = true
+				break
+			}
+		}
+		if !found {
+			c.Base.Module.Mounts = append(c.Base.Module.Mounts, m)
+		}
+	}
+
+	// Transfer the changed mounts to the language versions (all share the same mount set, but can be displayed in different languages).
+	for _, l := range c.LanguageConfigSlice {
+		l.Module.Mounts = c.Base.Module.Mounts
+	}
+
 	return nil
 }
 
@@ -728,8 +777,8 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 					isMultiHost = true
 				}
 				mergedConfig.Set(kk, vv)
-				if cfg.IsSet(kk) {
-					rootv := cfg.Get(kk)
+				rootv := cfg.Get(kk)
+				if rootv != nil && cfg.IsSet(kk) {
 					// This overrides a root key and potentially needs a merge.
 					if !reflect.DeepEqual(rootv, vv) {
 						switch vvv := vv.(type) {
@@ -766,12 +815,14 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 
 			// Create a copy of the complete config and replace the root keys with the language specific ones.
 			clone := all.cloneForLang()
+
 			if err := decodeConfigFromParams(fs, bcfg, mergedConfig, clone, differentRootKeys); err != nil {
 				return nil, fmt.Errorf("failed to decode config for language %q: %w", k, err)
 			}
 			if err := clone.CompileConfig(logger); err != nil {
 				return nil, err
 			}
+
 			langConfigMap[k] = clone
 		case maps.ParamsMergeStrategy:
 		default:

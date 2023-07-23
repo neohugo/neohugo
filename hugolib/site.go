@@ -17,7 +17,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"net/url"
 	"path"
@@ -27,6 +26,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/htime"
 	"github.com/neohugo/neohugo/common/hugio"
@@ -290,7 +290,7 @@ func (s *Site) isEnabled(kind string) bool {
 type siteRefLinker struct {
 	s *Site
 
-	errorLogger *log.Logger
+	errorLogger logg.LevelLogger
 	notFoundURL string
 }
 
@@ -307,11 +307,11 @@ func newSiteRefLinker(s *Site) (siteRefLinker, error) {
 
 func (s siteRefLinker) logNotFound(ref, what string, p page.Page, position text.Position) {
 	if position.IsValid() {
-		s.errorLogger.Printf("[%s] REF_NOT_FOUND: Ref %q: %s: %s", s.s.Lang(), ref, position.String(), what)
+		s.errorLogger.Logf("[%s] REF_NOT_FOUND: Ref %q: %s: %s", s.s.Lang(), ref, position.String(), what)
 	} else if p == nil {
-		s.errorLogger.Printf("[%s] REF_NOT_FOUND: Ref %q: %s", s.s.Lang(), ref, what)
+		s.errorLogger.Logf("[%s] REF_NOT_FOUND: Ref %q: %s", s.s.Lang(), ref, what)
 	} else {
-		s.errorLogger.Printf("[%s] REF_NOT_FOUND: Ref %q from page %q: %s", s.s.Lang(), ref, p.Pathc(), what)
+		s.errorLogger.Logf("[%s] REF_NOT_FOUND: Ref %q from page %q: %s", s.s.Lang(), ref, p.Pathc(), what)
 	}
 }
 
@@ -512,9 +512,6 @@ func (s *Site) processPartial(config *BuildCfg, init func(config *BuildCfg) erro
 		i18nChanged bool
 
 		sourceFilesChanged = make(map[string]bool)
-
-		// prevent spamming the log on changes
-		logger = helpers.NewDistinctErrorLogger()
 	)
 
 	var cacheBusters []func(string) bool
@@ -536,7 +533,7 @@ func (s *Site) processPartial(config *BuildCfg, init func(config *BuildCfg) erro
 
 			switch id.Type {
 			case files.ComponentFolderContent:
-				logger.Println("Source changed", ev)
+				s.Log.Println("Source changed", ev)
 				sourceChanged = append(sourceChanged, ev)
 			case files.ComponentFolderLayouts:
 				tmplChanged = true
@@ -544,16 +541,16 @@ func (s *Site) processPartial(config *BuildCfg, init func(config *BuildCfg) erro
 					tmplAdded = true
 				}
 				if tmplAdded {
-					logger.Println("Template added", ev)
+					s.Log.Println("Template added", ev)
 				} else {
-					logger.Println("Template changed", ev)
+					s.Log.Println("Template changed", ev)
 				}
 
 			case files.ComponentFolderData:
-				logger.Println("Data changed", ev)
+				s.Log.Println("Data changed", ev)
 				dataChanged = true
 			case files.ComponentFolderI18n:
-				logger.Println("i18n changed", ev)
+				s.Log.Println("i18n changed", ev)
 				i18nChanged = true
 
 			}
@@ -796,7 +793,10 @@ func (s *Site) assembleMenus() {
 						navigation.SetPageValues(me, p)
 					}
 				}
-			} else {
+			}
+
+			// If page is still nill, we must make sure that we have a URL that considers baseURL etc.
+			if types.IsNil(me.Page) {
 				me.ConfiguredURL = s.createNodeMenuEntryURL(me.MenuConfig.URL)
 			}
 
@@ -892,23 +892,17 @@ func (s *Site) getLanguageTargetPathLang(alwaysInSubDir bool) string {
 	return s.getLanguagePermalinkLang(alwaysInSubDir)
 }
 
-// get any lanaguagecode to prefix the relative permalink with.
+// get any language code to prefix the relative permalink with.
 func (s *Site) getLanguagePermalinkLang(alwaysInSubDir bool) string {
-	if !s.h.isMultiLingual() || s.h.Conf.IsMultihost() {
+	if s.h.Conf.IsMultihost() {
 		return ""
 	}
 
-	if alwaysInSubDir {
+	if s.h.Conf.IsMultiLingual() && alwaysInSubDir {
 		return s.Language().Lang
 	}
 
-	isDefault := s.Language().Lang == s.conf.DefaultContentLanguage
-
-	if !isDefault || s.conf.DefaultContentLanguageInSubdir {
-		return s.Language().Lang
-	}
-
-	return ""
+	return s.GetLanguagePrefix()
 }
 
 func (s *Site) getTaxonomyKey(key string) string {
@@ -986,7 +980,7 @@ func (s *Site) GetPageWithTemplateInfo(info tpl.Info, ref ...string) (page.Page,
 	return p, err
 }
 
-func (s *Site) permalink(link string) string {
+func (s *Site) permalink(link string) string { // nolint
 	return s.PathSpec.PermalinkForBaseURL(link, s.PathSpec.Cfg.BaseURL().String())
 }
 
@@ -1070,7 +1064,7 @@ func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath s
 			pd.AbsURLPath = s.absURLPath(targetPath)
 		}
 
-		if s.watching() && s.conf.Internal.Watch && !s.conf.Internal.DisableLiveReload {
+		if s.watching() && s.conf.Internal.Running && !s.conf.DisableLiveReload {
 			pd.LiveReloadBaseURL = s.Conf.BaseURLLiveReload().URL()
 		}
 

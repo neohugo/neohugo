@@ -16,8 +16,7 @@ package babel_test
 import (
 	"testing"
 
-	jww "github.com/spf13/jwalterweatherman"
-
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugolib"
 )
@@ -82,7 +81,7 @@ Transpiled3: {{ $transpiled.Permalink }}
 			TxtarString:     files,
 			NeedsOsFS:       true,
 			NeedsNpmInstall: true,
-			LogLevel:        jww.LevelInfo,
+			LogLevel:        logg.LevelInfo,
 		}).Build()
 
 	b.AssertLogContains("babel: Hugo Environment: production")

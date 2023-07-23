@@ -594,7 +594,7 @@ XML: {{ $xml.body }}
 			}
 			t.Parallel()
 
-			b := newTestSitesBuilder(t).WithLogger(loggers.NewErrorLogger())
+			b := newTestSitesBuilder(t).WithLogger(loggers.NewDefault())
 			b.WithContent("_index.md", `
 ---
 title: Home
