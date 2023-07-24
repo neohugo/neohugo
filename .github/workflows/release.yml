@@ -72,10 +72,10 @@ jobs:
       - name: Install dart-sass-embedded Linux
         run: |
           echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
-          echo "${DART_SASS_SHA_LINUX}  sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf "sass_embedded-${DART_SASS_VERSION}-linux-x64.tar.gz";
-          echo "$GITHUB_WORKSPACE/sass_embedded/" >> $GITHUB_PATH
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX} dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
       - name: Run mage check
         working-directory: ./neohugo
         run: |
