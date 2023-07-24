@@ -107,10 +107,18 @@ jobs:
           curl -LJO "https://github.com/sass/dart-sass/releases/download/${env:DART_SASS_VERSION}/dart-sass-${env:DART_SASS_VERSION}-windows-x64.zip";
           Expand-Archive -Path "dart-sass-${env:DART_SASS_VERSION}-windows-x64.zip" -DestinationPath .;
           echo  "$env:GITHUB_WORKSPACE/dart-sass/" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf-8 -Append
-      - name: Run mage check
+      - if: matrix.os != 'windows-latest'
+        name: Run mage check
         working-directory: ./neohugo
         run: |
-          mage -v check
+          mage -v check;
+
+      - if: matrix.os == 'windows-latest'
+        # See issue #11052. We limit the build to regular test (no -race flag) on Windows for now.
+        name: Run mage test
+        working-directory: ./neohugo
+        run: |
+          mage -v test;
       - name: Run mage neohugo
         working-directory: ./neohugo
         run: |
