@@ -99,12 +99,6 @@ archives:
       - goos: windows
         format: zip
     name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
-    replacements:
-      amd64: 64bit
-      arm64: ARM64
-      darwin: macOS
-      linux: Linux
-      windows: Windows
     files:
       - README.md
       - LICENSE
@@ -120,9 +114,3 @@ nfpms:
     description: "hugo-fork focused on multilingual and bug fixes/refactor/cleanup."
     license: "Apache-2.0"
     file_name_template: "{{.ProjectName}}_extended_{{.Version}}_{{.Os}}-{{.Arch}}"
-    replacements:
-      amd64: 64bit
-      arm64: ARM64
-      darwin: macOS
-      linux: Linux
-      windows: Windows
