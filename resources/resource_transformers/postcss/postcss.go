@@ -28,12 +28,11 @@ import (
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/common/neohugo"
-
-	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/spf13/afero"
@@ -149,10 +148,12 @@ func (t *postcssTransformation) Key() internal.ResourceTransformationKey {
 func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationCtx) error {
 	const binaryName = "postcss"
 
+	infol := t.rs.Logger.InfoCommand(binaryName)
+	infoW := loggers.LevelLoggerToWriter(infol)
+
 	ex := t.rs.ExecHelper
 
 	var configFile string
-	logger := t.rs.Logger
 
 	var options Options
 	if t.optionsm != nil {
@@ -183,7 +184,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	var cmdArgs []any
 
 	if configFile != "" {
-		logger.Infoln("postcss: use config file", configFile)
+		infol.Logf("use config file %q", configFile)
 		cmdArgs = []any{"--config", configFile}
 	}
 
@@ -192,7 +193,6 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	}
 
 	var errBuf bytes.Buffer
-	infoW := loggers.LoggerToWriterWithPrefix(logger.Info(), "postcss")
 
 	stderr := io.MultiWriter(infoW, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
@@ -203,7 +203,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	if err != nil {
 		if hexec.IsNotFound(err) {
 			// This may be on a CI server etc. Will fall back to pre-built assets.
-			return herrors.ErrFeatureNotAvailable
+			return &herrors.FeatureNotAvailableError{Cause: err}
 		}
 		return err
 	}
@@ -240,7 +240,9 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	err = cmd.Run()
 	if err != nil {
 		if hexec.IsNotFound(err) {
-			return herrors.ErrFeatureNotAvailable
+			return &herrors.FeatureNotAvailableError{
+				Cause: err,
+			}
 		}
 		return imp.toFileError(errBuf.String())
 	}
@@ -401,7 +403,6 @@ func (imp *importResolver) shouldImport(s string) bool {
 }
 
 func (imp *importResolver) toFileError(output string) error {
-	output = strings.TrimSpace(loggers.RemoveANSIColours(output))
 	inErr := errors.New(output)
 
 	match := cssSyntaxErrorRe.FindStringSubmatch(output)

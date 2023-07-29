@@ -30,6 +30,7 @@ import (
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
@@ -44,7 +45,6 @@ import (
 	"github.com/neohugo/neohugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/hugofs"
 )
 
@@ -554,7 +554,7 @@ func (s *sitesBuilder) CreateSitesE() error {
 	if depsCfg.Configs.IsZero() {
 		depsCfg.Configs = s.Configs
 	}
-	depsCfg.Logger = s.logger
+	depsCfg.TestLogger = s.logger
 
 	sites, err := NewHugoSites(depsCfg)
 	if err != nil {
@@ -837,7 +837,9 @@ func (s *sitesBuilder) GetPageRel(p page.Page, ref string) page.Page {
 
 func (s *sitesBuilder) NpmInstall() hexec.Runner {
 	sc := security.DefaultConfig
-	sc.Exec.Allow = security.NewWhitelist("npm")
+	var err error
+	sc.Exec.Allow, err = security.NewWhitelist("npm")
+	s.Assert(err, qt.IsNil)
 	ex := hexec.New(sc)
 	command, err := ex.New("npm", "install")
 	s.Assert(err, qt.IsNil)
@@ -940,8 +942,7 @@ func newTestCfgBasic() (config.Provider, *hugofs.Fs) {
 func newTestCfg(withConfig ...func(cfg config.Provider) error) (config.Provider, *hugofs.Fs) {
 	mm := afero.NewMemMapFs()
 	cfg := config.New()
-	// Default is false, but true is easier to use as default in tests
-	cfg.Set("defaultContentLanguageInSubdir", true)
+	cfg.Set("defaultContentLanguageInSubdir", false)
 	cfg.Set("publishDir", "public")
 
 	fs := hugofs.NewFromOld(hugofs.NewBaseFileDecorator(mm), cfg)

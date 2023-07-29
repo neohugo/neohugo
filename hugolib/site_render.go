@@ -180,7 +180,7 @@ func (s *Site) logMissingLayout(name, layout, kind, outputFormat string) {
 
 	msg += ": " + errMsg
 
-	log.Printf(msg, args...)
+	log.Logf(msg, args...)
 }
 
 // renderPaginator must be run after the owning Page has been rendered.
@@ -383,7 +383,7 @@ func (s *Site) renderAliases() error {
 // renderMainLanguageRedirect creates a redirect to the main language home,
 // depending on if it lives in sub folder (e.g. /en) or not.
 func (s *Site) renderMainLanguageRedirect() error {
-	if !s.h.isMultiLingual() || s.h.Conf.IsMultihost() {
+	if s.h.Conf.IsMultihost() || !(s.h.Conf.DefaultContentLanguageInSubdir() || s.h.Conf.IsMultiLingual()) {
 		// No need for a redirect
 		return nil
 	}

@@ -16,6 +16,7 @@
 package collections
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"html/template"
@@ -29,7 +30,6 @@ import (
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/tpl/compare"
 	"github.com/spf13/cast"
@@ -99,7 +99,7 @@ func (ns *Namespace) After(n any, l any) (any, error) {
 
 // Delimit takes a given list l and returns a string delimited by sep.
 // If last is passed to the function, it will be used as the final delimiter.
-func (ns *Namespace) Delimit(l, sep any, last ...any) (template.HTML, error) {
+func (ns *Namespace) Delimit(ctx context.Context, l, sep any, last ...any) (template.HTML, error) {
 	d, err := cast.ToStringE(sep)
 	if err != nil {
 		return "", err
@@ -125,7 +125,7 @@ func (ns *Namespace) Delimit(l, sep any, last ...any) (template.HTML, error) {
 	var str string
 	switch lv.Kind() {
 	case reflect.Map:
-		sortSeq, err := ns.Sort(l)
+		sortSeq, err := ns.Sort(ctx, l)
 		if err != nil {
 			return "", err
 		}
@@ -392,7 +392,7 @@ func (ns *Namespace) IsSet(c any, key any) (bool, error) {
 			return av.MapIndex(kv).IsValid(), nil
 		}
 	default:
-		helpers.DistinctErrorLog.Printf("WARNING: calling IsSet with unsupported type %q (%T) will always return false.\n", av.Kind(), c)
+		ns.deps.Log.Warnf("calling IsSet with unsupported type %q (%T) will always return false.\n", av.Kind(), c)
 	}
 
 	return false, nil

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
 
@@ -34,7 +35,7 @@ func TestLoadConfigLanguageParamsOverrideIssue10620(t *testing.T) {
 	files := `
 -- hugo.toml --
 baseURL = "https://example.com"
-disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "setion"]
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
 title = "Base Title"
 staticDir = "mystatic"
 [params]
@@ -76,7 +77,7 @@ func TestLoadConfig(t *testing.T) {
 		files := `
 -- hugo.toml --
 baseURL = "https://example.com"
-disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "setion"]
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
 title = "Base Title"
 staticDir = "mystatic"
 [params]
@@ -127,7 +128,7 @@ myparam = "svParamValue"
 		files := `
 -- hugo.toml --
 baseURL = "https://example.com"
-disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "setion"]
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
 title = "Base Title"
 defaultContentLanguage = "sv"
 disableLanguages = ["sv"]
@@ -172,7 +173,7 @@ running = true
 		files := `
 -- hugo.toml --
 baseURL = "https://example.com"
-disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "setion"]
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
 title = "Base Title"
 [params]
 p1 = "p1base"
@@ -681,6 +682,10 @@ func TestHugoConfig(t *testing.T) {
 	filesTemplate := `
 -- hugo.toml --
 theme = "mytheme"
+[social]
+twitter = "bepsays"
+[author]
+name = "bep"
 [params]
 rootparam = "rootvalue"
 -- config/_default/hugo.toml --
@@ -697,6 +702,8 @@ rootparam: {{ site.Params.rootparam }}
 rootconfigparam: {{ site.Params.rootconfigparam }}
 themeparam: {{ site.Params.themeparam }}
 themeconfigdirparam: {{ site.Params.themeconfigdirparam }}
+social: {{ site.Social }}
+author: {{ site.Author }}
 
 
 `
@@ -721,9 +728,77 @@ themeconfigdirparam: {{ site.Params.themeconfigdirparam }}
 				"rootconfigparam: rootconfigvalue",
 				"themeparam: themevalue",
 				"themeconfigdirparam: themeconfigdirvalue",
+				"social: map[twitter:bepsays]",
+				"author: map[name:bep]",
 			)
 		})
 	}
+}
+
+// Issue #11089
+func TestHugoConfigSliceOverrides(t *testing.T) {
+	t.Parallel()
+
+	filesTemplate := `
+-- hugo.toml --
+disableKinds = ["section"]
+[languages]
+[languages.en]
+disableKinds = []
+title = "English"
+weigHt = WEIGHT_EN
+[languages.sv]
+title = "Swedish"
+wEight =  WEIGHT_SV
+disableKinds = ["page"]
+-- layouts/index.html --
+Home: {{ .Lang}}|{{ len site.RegularPages }}|
+-- layouts/_default/single.html --
+Single.
+-- content/p1.en.md --
+-- content/p2.en.md --
+-- content/p1.sv.md --
+-- content/p2.sv.md --
+
+`
+
+	t.Run("En first", func(t *testing.T) {
+		files := strings.ReplaceAll(filesTemplate, "WEIGHT_EN", "1")
+		files = strings.ReplaceAll(files, "WEIGHT_SV", "2")
+
+		cfg := config.New()
+		b, err := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+				BaseCfg:     cfg,
+			},
+		).BuildE()
+
+		b.Assert(err, qt.IsNil)
+		b.AssertFileContent("public/index.html", "Home: en|2|")
+		b.AssertFileContent("public/sv/index.html", "Home: sv|0|")
+	})
+
+	t.Run("Sv first", func(t *testing.T) {
+		files := strings.ReplaceAll(filesTemplate, "WEIGHT_EN", "2")
+		files = strings.ReplaceAll(files, "WEIGHT_SV", "1")
+
+		for i := 0; i < 20; i++ {
+			cfg := config.New()
+			b, err := NewIntegrationTestBuilder(
+				IntegrationTestConfig{
+					T:           t,
+					TxtarString: files,
+					BaseCfg:     cfg,
+				},
+			).BuildE()
+
+			b.Assert(err, qt.IsNil)
+			b.AssertFileContent("public/index.html", "Home: en|2|")
+			b.AssertFileContent("public/sv/index.html", "Home: sv|0|")
+		}
+	})
 }
 
 func TestConfigOutputFormatDefinedInTheme(t *testing.T) {
@@ -840,7 +915,7 @@ LanguageCode: {{ eq site.LanguageCode site.Language.LanguageCode }}|{{ site.Lang
 	).Build()
 
 	{
-		b.Assert(b.H.Log.LogCounters().WarnCounter.Count(), qt.Equals, uint64(2))
+		b.Assert(b.H.Log.LoggCount(logg.LevelWarn), qt.Equals, 1)
 	}
 	b.AssertFileContent("public/index.html", `
 AllPages: 4|
@@ -962,7 +1037,7 @@ func TestConfigLegacyValues(t *testing.T) {
 
 	files := `
 -- hugo.toml --
-# taxonomyTerm was renamed to term in Hugo 0.60.0.
+# taxonomyTerm was renamed to taxonomy in Hugo 0.60.0.
 disableKinds = ["taxonomyTerm"]
 
 -- layouts/index.html --
@@ -983,7 +1058,7 @@ Home
 `)
 
 	conf := b.H.Configs.Base
-	b.Assert(conf.IsKindEnabled("term"), qt.Equals, false)
+	b.Assert(conf.IsKindEnabled("taxonomy"), qt.Equals, false)
 }
 
 // Issue #11000
@@ -1021,4 +1096,434 @@ HTACCESS.
 	).Build()
 
 	b.AssertFileContent("public/.htaccess", "HTACCESS")
+}
+
+func TestConfigLanguageCodeTopLevel(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+languageCode = "en-US"
+-- layouts/index.html --
+LanguageCode: {{ .Site.LanguageCode }}|{{ site.Language.LanguageCode }}|
+
+	
+`
+	b := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+
+	b.AssertFileContent("public/index.html", "LanguageCode: en-US|en-US|")
+}
+
+// See #11159
+func TestConfigOutputFormatsPerLanguage(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+[languages]
+[languages.en]
+title = "English Title"
+[languages.sv]
+title = "Swedish Title"
+[languages.sv.outputFormats.html]
+path = "foo"
+[languages.sv.mediatypes."text/html"]
+suffixes = ["bar"]
+
+-- layouts/index.html --
+Home.
+
+	
+`
+	b := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+
+	b.AssertFileContent("public/index.html", "Home.")
+
+	enConfig := b.H.Sites[0].conf
+	m, _ := enConfig.MediaTypes.Config.GetByType("text/html")
+	b.Assert(m.Suffixes(), qt.DeepEquals, []string{"html"})
+
+	svConfig := b.H.Sites[1].conf
+	f, _ := svConfig.OutputFormats.Config.GetByName("html")
+	b.Assert(f.Path, qt.Equals, "foo")
+	m, _ = svConfig.MediaTypes.Config.GetByType("text/html")
+	b.Assert(m.Suffixes(), qt.DeepEquals, []string{"bar"})
+}
+
+func TestConfigMiscPanics(t *testing.T) {
+	t.Parallel()
+
+	// Issue 11047,
+	t.Run("empty params", func(t *testing.T) {
+		files := `
+-- hugo.yaml --
+params:
+-- layouts/index.html --
+Foo: {{ site.Params.foo }}|
+	
+		
+	`
+		b := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+			},
+		).Build()
+
+		b.AssertFileContent("public/index.html", "Foo: |")
+	})
+
+	// Issue 11046
+	t.Run("invalid language setup", func(t *testing.T) {
+		files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+languageCode = "en-us"
+title = "Blog of me"
+defaultContentLanguage = "en"
+
+[languages]
+	[en]
+	lang = "en"
+	languageName = "English"
+	weight = 1
+-- layouts/index.html --
+Foo: {{ site.Params.foo }}|
+	
+		
+	`
+		b, err := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+			},
+		).BuildE()
+
+		b.Assert(err, qt.IsNotNil)
+		b.Assert(err.Error(), qt.Contains, "no languages")
+	})
+
+	// Issue 11044
+	t.Run("invalid defaultContentLanguage", func(t *testing.T) {
+		files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+defaultContentLanguage = "sv"
+
+[languages]
+[languages.en]
+languageCode = "en"
+languageName = "English"
+weight = 1
+
+	
+		
+	`
+		b, err := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+			},
+		).BuildE()
+
+		b.Assert(err, qt.IsNotNil)
+		b.Assert(err.Error(), qt.Contains, "defaultContentLanguage does not match any language definition")
+	})
+}
+
+// Issue #11040
+func TestConfigModuleDefaultMountsInConfig(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+contentDir = "mycontent"
+-- layouts/index.html --
+Home.
+
+	
+`
+	b := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+
+	b.Assert(b.H.Configs.Base.Module.Mounts, qt.HasLen, 7)
+	b.Assert(b.H.Configs.LanguageConfigSlice[0].Module.Mounts, qt.HasLen, 7)
+}
+
+func TestDefaultContentLanguageInSubdirOnlyOneLanguage(t *testing.T) {
+	t.Run("One language, default in sub dir", func(t *testing.T) {
+		t.Parallel()
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = true
+disableKinds = ["taxonomy", "term", "page", "section"]
+-- content/foo/bar.txt --
+Foo.
+-- layouts/index.html --
+Home.
+`
+		b := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+			},
+		).Build()
+
+		b.AssertFileContent("public/en/index.html", "Home.")
+		b.AssertFileContent("public/en/foo/bar.txt", "Foo.")
+		b.AssertFileContent("public/index.html", "refresh")
+		b.AssertFileContent("public/sitemap.xml", "sitemapindex")
+		b.AssertFileContent("public/en/sitemap.xml", "urlset")
+	})
+
+	t.Run("Two languages, default in sub dir", func(t *testing.T) {
+		t.Parallel()
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = true
+disableKinds = ["taxonomy", "term", "page", "section"]
+[languages]
+[languages.en]
+title = "English Title"
+[languages.sv]
+title = "Swedish Title"
+-- content/foo/bar.txt --
+Foo.
+-- layouts/index.html --
+Home.
+`
+		b := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+			},
+		).Build()
+
+		b.AssertFileContent("public/en/index.html", "Home.")
+		b.AssertFileContent("public/en/foo/bar.txt", "Foo.")
+		b.AssertFileContent("public/index.html", "refresh")
+		b.AssertFileContent("public/sitemap.xml", "sitemapindex")
+		b.AssertFileContent("public/en/sitemap.xml", "urlset")
+	})
+
+	t.Run("Two languages, default in root", func(t *testing.T) {
+		t.Parallel()
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+defaultContentLanguage = "en"
+defaultContentLanguageInSubdir = false
+disableKinds = ["taxonomy", "term", "page", "section"]
+[languages]
+[languages.en]
+title = "English Title"
+[languages.sv]
+title = "Swedish Title"
+-- content/foo/bar.txt --
+Foo.
+-- layouts/index.html --
+Home.
+`
+		b := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+			},
+		).Build()
+
+		b.AssertFileContent("public/index.html", "Home.")
+		b.AssertFileContent("public/foo/bar.txt", "Foo.")
+		b.AssertFileContent("public/sitemap.xml", "sitemapindex")
+		b.AssertFileContent("public/en/sitemap.xml", "urlset")
+	})
+}
+
+func TestLanguagesDisabled(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+[languages]
+[languages.en]
+title = "English Title"
+[languages.sv]
+title = "Swedish Title"
+disabled = true
+-- layouts/index.html --
+Home.
+
+	
+`
+	b := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+
+	b.Assert(len(b.H.Sites), qt.Equals, 1)
+}
+
+func TestLoadConfigYamlEnvVar(t *testing.T) {
+	defaultEnv := []string{`HUGO_OUTPUTS=home: ['json']`}
+
+	runVariant := func(t testing.TB, files string, env []string) *IntegrationTestBuilder {
+		if env == nil {
+			env = defaultEnv
+		}
+
+		b := NewIntegrationTestBuilder(
+			IntegrationTestConfig{
+				T:           t,
+				TxtarString: files,
+				Environ:     env,
+				BuildCfg:    BuildCfg{SkipRender: true},
+			},
+		).Build()
+
+		outputs := b.H.Configs.Base.Outputs
+		if env == nil {
+			home := outputs["home"]
+			b.Assert(home, qt.Not(qt.IsNil))
+			b.Assert(home, qt.DeepEquals, []string{"json"})
+		}
+
+		return b
+	}
+
+	t.Run("with empty slice", func(t *testing.T) {
+		t.Parallel()
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
+[outputs]
+home = ["html"]
+
+		`
+		b := runVariant(t, files, []string{`HUGO_OUTPUTS=section: []`})
+		outputs := b.H.Configs.Base.Outputs
+		b.Assert(outputs, qt.DeepEquals, map[string][]string{
+			"home":     {"html"},
+			"page":     {"html"},
+			"rss":      {"rss"},
+			"section":  nil,
+			"taxonomy": {"html", "rss"},
+			"term":     {"html", "rss"},
+		})
+	})
+
+	t.Run("with existing outputs", func(t *testing.T) {
+		t.Parallel()
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
+[outputs]
+home = ["html"]
+
+		`
+
+		runVariant(t, files, nil)
+	})
+
+	{
+		t.Run("with existing outputs direct", func(t *testing.T) {
+			t.Parallel()
+
+			files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
+[outputs]
+home = ["html"]
+
+		`
+			runVariant(t, files, []string{"HUGO_OUTPUTS_HOME=json"})
+		})
+	}
+
+	t.Run("without existing outputs", func(t *testing.T) {
+		t.Parallel()
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
+		
+		`
+
+		runVariant(t, files, nil)
+	})
+
+	t.Run("without existing outputs direct", func(t *testing.T) {
+		t.Parallel()
+
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
+		`
+
+		runVariant(t, files, []string{"HUGO_OUTPUTS_HOME=json"})
+	})
+}
+
+// Issue #11257
+func TestDisableKindsTaxonomyTerm(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableKinds = ['taxonomyTerm']
+[taxonomies]
+category = 'categories'
+-- content/p1.md --
+---
+title: "P1"
+categories: ["c1"]
+---
+-- layouts/index.html --
+Home.
+-- layouts/_default/list.html --
+List.
+
+
+
+`
+	b := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+
+	b.AssertDestinationExists("index.html", true)
+	b.AssertDestinationExists("categories/c1/index.html", true)
+	b.AssertDestinationExists("categories/index.html", false)
 }

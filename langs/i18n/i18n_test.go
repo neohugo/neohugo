@@ -19,12 +19,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/bep/logg"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/config/testconfig"
 
 	"github.com/neohugo/neohugo/tpl/tplimpl"
 
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/spf13/afero"
 
@@ -34,7 +35,7 @@ import (
 	"github.com/neohugo/neohugo/config"
 )
 
-var logger = loggers.NewErrorLogger() // nolint
+var logger = loggers.NewDefault() // nolint
 
 type i18nTest struct {
 	name                             string
@@ -405,7 +406,7 @@ other = "{{ . }} miesiąca"
 
 			for _, variant := range test.variants {
 				c.Assert(f(ctx, test.id, variant.Key), qt.Equals, variant.Value, qt.Commentf("input: %v", variant.Key))
-				c.Assert(int(d.Log.LogCounters().WarnCounter.Count()), qt.Equals, 0)
+				c.Assert(d.Log.LoggCount(logg.LevelWarn), qt.Equals, 0)
 			}
 		})
 	}

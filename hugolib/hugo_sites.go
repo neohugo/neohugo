@@ -23,6 +23,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/hugofs/glob"
 
@@ -41,7 +42,6 @@ import (
 	"github.com/neohugo/neohugo/source"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/lazy"
@@ -75,6 +75,8 @@ type HugoSites struct {
 
 	contentInit sync.Once
 	content     *pageMaps
+
+	postRenderInit sync.Once
 
 	// Keeps track of bundle directories and symlinks to enable partial rebuilding.
 	ContentChanges *contentChangeMap
@@ -264,7 +266,7 @@ func (h *HugoSites) NumLogErrors() int {
 	if h == nil {
 		return 0
 	}
-	return int(h.Log.LogCounters().ErrorCounter.Count())
+	return h.Log.LoggCount(logg.LevelError)
 }
 
 func (h *HugoSites) PrintProcessingStats(w io.Writer) {
@@ -352,10 +354,8 @@ func (h *HugoSites) reset(config *BuildCfg) {
 // resetLogs resets the log counters etc. Used to do a new build on the same sites.
 func (h *HugoSites) resetLogs() {
 	h.Log.Reset()
-	loggers.GlobalErrorCounter.Reset()
 	for _, s := range h.Sites {
 		s.Deps.Log.Reset()
-		s.Deps.LogDistinct.Reset()
 	}
 }
 
@@ -437,7 +437,7 @@ func (cfg *BuildCfg) shouldRender(p *pageState) bool {
 }
 
 func (h *HugoSites) renderCrossSitesSitemap() error {
-	if !h.isMultiLingual() || h.Conf.IsMultihost() {
+	if h.Conf.IsMultihost() || !(h.Conf.DefaultContentLanguageInSubdir() || h.Conf.IsMultiLingual()) {
 		return nil
 	}
 
@@ -555,13 +555,14 @@ func (h *HugoSites) loadData(fis []hugofs.FileMetaInfo) (err error) {
 
 	h.data = make(map[string]any)
 	for _, fi := range fis {
+		basePath := fi.Meta().Path
 		fileSystem := spec.NewFilesystemFromFileMetaInfo(fi)
 		files, err := fileSystem.Files()
 		if err != nil {
 			return err
 		}
 		for _, r := range files {
-			if err := h.handleDataFile(r); err != nil {
+			if err := h.handleDataFile(basePath, r); err != nil {
 				return err
 			}
 		}
@@ -570,7 +571,7 @@ func (h *HugoSites) loadData(fis []hugofs.FileMetaInfo) (err error) {
 	return
 }
 
-func (h *HugoSites) handleDataFile(r source.File) error {
+func (h *HugoSites) handleDataFile(basePath string, r source.File) error {
 	var current map[string]any
 
 	f, err := r.FileInfo().Meta().Open()
@@ -581,7 +582,8 @@ func (h *HugoSites) handleDataFile(r source.File) error {
 
 	// Crawl in data tree to insert data
 	current = h.data
-	keyParts := strings.Split(r.Dir(), helpers.FilePathSeparator)
+	dataPath := filepath.Join(basePath, r.Dir())
+	keyParts := strings.Split(dataPath, helpers.FilePathSeparator)
 
 	for _, key := range keyParts {
 		if key != "" {

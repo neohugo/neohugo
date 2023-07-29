@@ -23,13 +23,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neohugo/neohugo/common/loggers"
+
 	"github.com/neohugo/neohugo/config/testconfig"
 
 	"github.com/neohugo/neohugo/helpers"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/hugofs"
@@ -184,7 +185,7 @@ func TestScpGetRemoteParallel(t *testing.T) {
 
 func newDeps(cfg config.Provider) *deps.Deps {
 	conf := testconfig.GetTestConfig(nil, cfg)
-	logger := loggers.NewIgnorableLogger(loggers.NewErrorLogger(), nil)
+	logger := loggers.NewDefault()
 	fs := hugofs.NewFrom(afero.NewMemMapFs(), conf.BaseConfig())
 
 	d := &deps.Deps{

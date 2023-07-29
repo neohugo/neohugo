@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/bep/logg"
 	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/types"
@@ -82,7 +83,7 @@ type LoadConfigResult struct {
 
 var defaultBuild = BuildConfig{
 	UseResourceCacheWhen: "fallback",
-	WriteStats:           false,
+	BuildStats:           BuildStats{},
 
 	CacheBusters: []CacheBuster{
 		{
@@ -97,7 +98,7 @@ var defaultBuild = BuildConfig{
 			Source: `(postcss|tailwind)\.config\.js`,
 			Target: cssTargetCachebusterRe,
 		},
-		// This is deliberatly coarse grained; it will cache bust resources with "json" in the cache key when js files changes, which is good.
+		// This is deliberately coarse grained; it will cache bust resources with "json" in the cache key when js files changes, which is good.
 		{
 			Source: `assets/.*\.(.*)$`,
 			Target: `$1`,
@@ -111,14 +112,30 @@ type BuildConfig struct {
 
 	// When enabled, will collect and write a hugo_stats.json with some build
 	// related aggregated data (e.g. CSS class names).
-	WriteStats bool
+	// Note that this was a bool <= v0.115.0.
+	BuildStats BuildStats
 
-	// Can be used to toggle off writing of the intellinsense /assets/jsconfig.js
+	// Can be used to toggle off writing of the IntelliSense /assets/jsconfig.js
 	// file.
 	NoJSConfigInAssets bool
 
 	// Can used to control how the resource cache gets evicted on rebuilds.
 	CacheBusters []CacheBuster
+}
+
+// BuildStats configures if and what to write to the hugo_stats.json file.
+type BuildStats struct {
+	Enable         bool
+	DisableTags    bool
+	DisableClasses bool
+	DisableIDs     bool
+}
+
+func (w BuildStats) Enabled() bool {
+	if !w.Enable {
+		return false
+	}
+	return !w.DisableTags || !w.DisableClasses || !w.DisableIDs
 }
 
 func (b BuildConfig) clone() BuildConfig {
@@ -132,7 +149,7 @@ func (b BuildConfig) UseResourceCache(err error) bool {
 	}
 
 	if b.UseResourceCacheWhen == "fallback" {
-		return err == herrors.ErrFeatureNotAvailable
+		return herrors.IsFeatureNotAvailableError(err)
 	}
 
 	return true
@@ -171,14 +188,22 @@ func (b *BuildConfig) CompileConfig(logger loggers.Logger) error {
 
 func DecodeBuildConfig(cfg Provider) BuildConfig {
 	m := cfg.GetStringMap("build")
+
 	b := defaultBuild.clone()
 	if m == nil {
 		return b
 	}
 
+	// writeStats was a bool <= v0.115.0.
+	if writeStats, ok := m["writestats"]; ok {
+		if bb, ok := writeStats.(bool); ok {
+			m["buildstats"] = BuildStats{Enable: bb}
+		}
+	}
+
 	err := mapstructure.WeakDecode(m, &b)
 	if err != nil {
-		return defaultBuild
+		return b
 	}
 
 	b.UseResourceCacheWhen = strings.ToLower(b.UseResourceCacheWhen)
@@ -307,13 +332,16 @@ func (c *CacheBuster) CompileConfig(logger loggers.Logger) error {
 	if c.compiledSource != nil {
 		return nil
 	}
+
 	source := c.Source
-	target := c.Target
 	sourceRe, err := regexp.Compile(source)
 	if err != nil {
 		return fmt.Errorf("failed to compile cache buster source %q: %w", c.Source, err)
 	}
+	target := c.Target
 	var compileErr error
+	debugl := logger.Logger().WithLevel(logg.LevelDebug).WithField(loggers.FieldNameCmd, "cachebuster")
+
 	c.compiledSource = func(s string) func(string) bool {
 		m := sourceRe.FindStringSubmatch(s)
 		matchString := "no match"
@@ -321,28 +349,28 @@ func (c *CacheBuster) CompileConfig(logger loggers.Logger) error {
 		if match {
 			matchString = "match!"
 		}
-		logger.Debugf("cachebuster: Matching %q with source %q: %s\n", s, source, matchString)
+		debugl.Logf("Matching %q with source %q: %s", s, source, matchString)
 		if !match {
 			return nil
 		}
 		groups := m[1:]
+		currentTarget := target
 		// Replace $1, $2 etc. in target.
-
 		for i, g := range groups {
-			target = strings.ReplaceAll(target, fmt.Sprintf("$%d", i+1), g)
+			currentTarget = strings.ReplaceAll(target, fmt.Sprintf("$%d", i+1), g)
 		}
-		targetRe, err := regexp.Compile(target)
+		targetRe, err := regexp.Compile(currentTarget)
 		if err != nil {
-			compileErr = fmt.Errorf("failed to compile cache buster target %q: %w", target, err)
+			compileErr = fmt.Errorf("failed to compile cache buster target %q: %w", currentTarget, err)
 			return nil
 		}
-		return func(s string) bool {
-			match = targetRe.MatchString(s)
+		return func(ss string) bool {
+			match = targetRe.MatchString(ss)
 			matchString := "no match"
 			if match {
 				matchString = "match!"
 			}
-			logger.Debugf("cachebuster: Matching %q with target %q: %s\n", s, target, matchString)
+			logger.Debugf("Matching %q with target %q: %s", ss, currentTarget, matchString)
 
 			return match
 		}

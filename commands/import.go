@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -26,8 +27,6 @@ import (
 	"strings"
 	"time"
 	"unicode"
-
-	jww "github.com/spf13/jwalterweatherman"
 
 	"github.com/bep/simplecobra"
 	"github.com/neohugo/neohugo/common/htime"
@@ -95,6 +94,7 @@ func (c *importCommand) Init(cd *simplecobra.Commandeer) error {
 
 Import requires a subcommand, e.g. ` + "`hugo import jekyll jekyll_root_path target_path`."
 
+	cmd.RunE = nil
 	return nil
 }
 
@@ -296,7 +296,7 @@ func (c *importCommand) convertJekyllMetaData(m any, postName string, postDate t
 }
 
 func (c *importCommand) convertJekyllPost(path, relPath, targetDir string, draft bool) error {
-	jww.TRACE.Println("Converting", path)
+	log.Println("Converting", path)
 
 	filename := filepath.Base(path)
 	postDate, postName, err := c.parseJekyllFilename(filename)
@@ -305,7 +305,7 @@ func (c *importCommand) convertJekyllPost(path, relPath, targetDir string, draft
 		return nil
 	}
 
-	jww.TRACE.Println(filename, postDate, postName)
+	log.Println(filename, postDate, postName)
 
 	targetFile := filepath.Join(targetDir, relPath)
 	targetParentDir := filepath.Dir(targetFile)
@@ -364,7 +364,7 @@ func (c *importCommand) copyJekyllFilesAndFolders(jekyllRoot, dest string, jekyl
 				if _, ok := jekyllPostDirs[entry.Name()]; !ok {
 					err = hugio.CopyDir(fs, sfp, dfp, nil)
 					if err != nil {
-						jww.ERROR.Println(err)
+						c.r.logger.Errorln(err)
 					}
 				}
 			}
@@ -385,7 +385,7 @@ func (c *importCommand) copyJekyllFilesAndFolders(jekyllRoot, dest string, jekyl
 			if !isExcept && entry.Name()[0] != '.' && entry.Name()[0] != '_' {
 				err = hugio.CopyFile(fs, sfp, dfp)
 				if err != nil {
-					jww.ERROR.Println(err)
+					c.r.logger.Errorln(err)
 				}
 			}
 		}
@@ -465,9 +465,12 @@ func (c *importCommand) importFromJekyll(args []string) error {
 	}
 
 	c.r.Println("Congratulations!", fileCount, "post(s) imported!")
-	c.r.Println("Now, start Hugo by yourself:\n" +
-		"$ git clone https://github.com/spf13/herring-cove.git " + args[1] + "/themes/herring-cove")
-	c.r.Println("$ cd " + args[1] + "\n$ hugo server --theme=herring-cove")
+	c.r.Println("Now, start Hugo by yourself:\n")
+	c.r.Println("cd " + args[1])
+	c.r.Println("git init")
+	c.r.Println("git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke themes/ananke")
+	c.r.Println("echo \"theme = 'ananke'\" > hugo.toml")
+	c.r.Println("hugo server")
 
 	return nil
 }

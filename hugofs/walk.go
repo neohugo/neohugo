@@ -85,7 +85,7 @@ func NewWalkway(cfg WalkwayConfig) *Walkway {
 
 	logger := cfg.Logger
 	if logger == nil {
-		logger = loggers.NewWarningLogger()
+		logger = loggers.NewDefault()
 	}
 
 	return &Walkway{

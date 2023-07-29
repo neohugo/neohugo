@@ -92,7 +92,7 @@ status = 301
 
 	s, err := DecodeServer(cfg)
 	c.Assert(err, qt.IsNil)
-	c.Assert(s.CompileConfig(loggers.NewErrorLogger()), qt.IsNil)
+	c.Assert(s.CompileConfig(loggers.NewDefault()), qt.IsNil)
 
 	c.Assert(s.MatchHeaders("/foo.jpg"), qt.DeepEquals, []types.KeyValueStr{
 		{Key: "X-Content-Type-Options", Value: "nosniff"},
@@ -145,7 +145,7 @@ func TestBuildConfigCacheBusters(t *testing.T) {
 	c := qt.New(t)
 	cfg := New()
 	conf := DecodeBuildConfig(cfg)
-	l := loggers.NewInfoLogger()
+	l := loggers.NewDefault()
 	c.Assert(conf.CompileConfig(l), qt.IsNil)
 
 	m, err := conf.MatchCacheBuster(l, "assets/foo/main.js")
@@ -162,4 +162,37 @@ func TestBuildConfigCacheBusters(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	c.Assert(m, qt.IsNotNil)
 	c.Assert(m("json"), qt.IsTrue)
+}
+
+func TestBuildConfigCacheBusterstTailwindSetup(t *testing.T) {
+	c := qt.New(t)
+	cfg := New()
+	cfg.Set("build", map[string]interface{}{
+		"cacheBusters": []map[string]string{
+			{
+				"source": "assets/watching/hugo_stats\\.json",
+				"target": "css",
+			},
+			{
+				"source": "(postcss|tailwind)\\.config\\.js",
+				"target": "css",
+			},
+			{
+				"source": "assets/.*\\.(js|ts|jsx|tsx)",
+				"target": "js",
+			},
+			{
+				"source": "assets/.*\\.(.*)$",
+				"target": "$1",
+			},
+		},
+	})
+
+	conf := DecodeBuildConfig(cfg)
+	l := loggers.NewDefault()
+	c.Assert(conf.CompileConfig(l), qt.IsNil)
+
+	m, err := conf.MatchCacheBuster(l, "assets/watching/hugo_stats.json")
+	c.Assert(err, qt.IsNil)
+	c.Assert(m("css"), qt.IsTrue)
 }

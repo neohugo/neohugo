@@ -3,12 +3,14 @@ package deps
 import (
 	"context"
 	"fmt"
+	"io"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
 
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
@@ -25,7 +27,6 @@ import (
 	"github.com/neohugo/neohugo/source"
 	"github.com/neohugo/neohugo/tpl"
 	"github.com/spf13/afero"
-	jww "github.com/spf13/jwalterweatherman"
 )
 
 // Deps holds dependencies used by many.
@@ -34,9 +35,6 @@ import (
 type Deps struct {
 	// The logger to use.
 	Log loggers.Logger `json:"-"`
-
-	// Used to log errors that may repeat itself many times.
-	LogDistinct loggers.Logger
 
 	ExecHelper *hexec.Exec
 
@@ -115,15 +113,13 @@ func (d *Deps) Init() error {
 	}
 
 	if d.Log == nil {
-		d.Log = loggers.NewErrorLogger()
-	}
-
-	if d.LogDistinct == nil {
-		d.LogDistinct = helpers.NewDistinctLogger(d.Log)
+		d.Log = loggers.NewDefault()
 	}
 
 	if d.globalErrHandler == nil {
-		d.globalErrHandler = &globalErrHandler{}
+		d.globalErrHandler = &globalErrHandler{
+			logger: d.Log,
+		}
 	}
 
 	if d.BuildState == nil {
@@ -226,6 +222,8 @@ func (d *Deps) Compile(prototype *Deps) error {
 }
 
 type globalErrHandler struct {
+	logger loggers.Logger
+
 	// Channel for some "hard to get to" build errors
 	buildErrors chan error
 	// Used to signal that the build is done.
@@ -244,8 +242,7 @@ func (e *globalErrHandler) SendError(err error) {
 		}
 		return
 	}
-
-	jww.ERROR.Println(err)
+	e.logger.Errorln(err)
 }
 
 func (e *globalErrHandler) StartErrorCollector() chan error {
@@ -310,8 +307,16 @@ func (d *Deps) Close() error {
 // on a global level, i.e. logging etc.
 // Nil values will be given default values.
 type DepsCfg struct {
-	// The Logger to use.
-	Logger loggers.Logger
+	// The logger to use. Only set in some tests.
+	// TODO(bep) get rid of this.
+	TestLogger loggers.Logger
+
+	// The logging level to use.
+	LogLevel logg.Level
+
+	// Where to write the logs.
+	// Currently we typically write everything to stdout.
+	LogOut io.Writer
 
 	// The file systems to use
 	Fs *hugofs.Fs

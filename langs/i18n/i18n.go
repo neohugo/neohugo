@@ -24,15 +24,12 @@ import (
 	"github.com/neohugo/neohugo/common/hreflect"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/gohugoio/go-i18n/v2/i18n"
 )
 
 type translateFunc func(ctx context.Context, translationID string, templateData any) string
-
-var i18nWarningLogger = helpers.NewDistinctErrorLogger()
 
 // Translator handles i18n translations.
 type Translator struct {
@@ -122,8 +119,8 @@ func (t Translator) initFuncs(bndl *i18n.Bundle) {
 				t.logger.Warnf("Failed to get translated string for language %q and ID %q: %s", currentLangStr, translationID, err)
 			}
 
-			if t.cfg.LogI18nWarnings() {
-				i18nWarningLogger.Printf("i18n|MISSING_TRANSLATION|%s|%s", currentLangStr, translationID)
+			if t.cfg.PrintI18nWarnings() {
+				t.logger.Warnf("i18n|MISSING_TRANSLATION|%s|%s", currentLangStr, translationID)
 			}
 
 			if enableMissingTranslationPlaceholders {

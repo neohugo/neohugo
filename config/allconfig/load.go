@@ -34,6 +34,7 @@ import (
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/neohugo/neohugo/modules"
 	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/spf13/afero"
 )
 
@@ -45,7 +46,7 @@ func LoadConfig(d ConfigSourceDescriptor) (*Configs, error) {
 	}
 
 	if d.Logger == nil {
-		d.Logger = loggers.NewErrorLogger()
+		d.Logger = loggers.NewDefault()
 	}
 
 	l := &configLoader{ConfigSourceDescriptor: d, cfg: config.New()}
@@ -88,6 +89,10 @@ func LoadConfig(d ConfigSourceDescriptor) (*Configs, error) {
 	if err := configs.Init(); err != nil {
 		return nil, fmt.Errorf("failed to init config: %w", err)
 	}
+
+	// This is unfortunate, but these are global settings.
+	tpl.SetSecurityAllowActionJSTmpl(configs.Base.Security.GoTemplates.AllowActionJSTmpl)
+	loggers.InitGlobalLogger(configs.Base.PanicOnWarning)
 
 	return configs, nil
 }
@@ -133,7 +138,11 @@ type configLoader struct {
 
 // Handle some legacy values.
 func (l configLoader) applyConfigAliases() error {
-	aliases := []types.KeyValueStr{{Key: "taxonomies", Value: "indexes"}}
+	aliases := []types.KeyValueStr{
+		{Key: "indexes", Value: "taxonomies"},
+		{Key: "logI18nWarnings", Value: "printI18nWarnings"},
+		{Key: "logPathWarnings", Value: "printPathWarnings"},
+	}
 
 	for _, alias := range aliases {
 		if l.cfg.IsSet(alias.Key) {
@@ -283,11 +292,19 @@ func (l configLoader) applyOsEnvOverrides(environ []string) error {
 			} else {
 				l.cfg.Set(env.Key, val)
 			}
-		} else if nestedKey != "" {
-			owner[nestedKey] = env.Value
 		} else {
-			// The container does not exist yet.
-			l.cfg.Set(strings.ReplaceAll(env.Key, delim, "."), env.Value)
+			if nestedKey != "" {
+				owner[nestedKey] = env.Value
+			} else {
+				var val any = env.Value
+				if _, ok := allDecoderSetups[env.Key]; ok {
+					// A map.
+					val, err = metadecoders.Default.UnmarshalStringTo(env.Value, map[string]interface{}{})
+				}
+				if err == nil {
+					l.cfg.Set(strings.ReplaceAll(env.Key, delim, "."), val)
+				}
+			}
 		}
 	}
 

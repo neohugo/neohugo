@@ -23,6 +23,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neohugo/neohugo/common/loggers"
+
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/hugofs/files"
@@ -31,7 +33,6 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/neohugo/neohugo/htesting"
@@ -65,6 +66,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 						fs, cfg := newTestBundleSources(c)
 						cfg.Set("baseURL", baseURL)
 						cfg.Set("canonifyURLs", canonify)
+						cfg.Set("defaultContentLanguageInSubdir", false)
 
 						cfg.Set("permalinks", map[string]string{
 							"a": ":sections/:filename",
@@ -93,7 +95,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 
 						c.Assert(err, qt.IsNil)
 
-						b := newTestSitesBuilderFromDepsCfg(c, deps.DepsCfg{Logger: loggers.NewErrorLogger(), Fs: fs, Configs: configs}).WithNothingAdded()
+						b := newTestSitesBuilderFromDepsCfg(c, deps.DepsCfg{Fs: fs, Configs: configs}).WithNothingAdded()
 
 						b.Build(BuildCfg{})
 
@@ -1047,7 +1049,7 @@ title: %q
 	}
 
 	b := newTestSitesBuilder(t).WithConfigFile("toml", config)
-	b.WithLogger(loggers.NewWarningLogger())
+	b.WithLogger(loggers.NewDefault())
 
 	b.WithTemplates("_default/list.html", `{{ range .Site.Pages }}
 {{ .Kind }}|{{ .Path }}|{{ with .CurrentSection }}CurrentSection: {{ .Path }}{{ end }}|{{ .RelPermalink }}{{ end }}
@@ -1218,7 +1220,7 @@ title: %q
 	}
 
 	b := newTestSitesBuilder(t).WithConfigFile("toml", config)
-	b.WithLogger(loggers.NewWarningLogger())
+	b.WithLogger(loggers.NewDefault())
 
 	b.WithTemplates("_default/single.html", `{{ range .Resources }}
 {{ .ResourceType }}|{{ .Title }}|

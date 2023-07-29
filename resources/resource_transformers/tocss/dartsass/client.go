@@ -20,7 +20,11 @@ import (
 	"io"
 	"strings"
 
+	godartsassv1 "github.com/bep/godartsass"
+	"github.com/bep/godartsass/v2"
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugolib/filesystems"
@@ -28,7 +32,6 @@ import (
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/afero"
 
-	"github.com/bep/godartsass"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -44,27 +47,58 @@ func New(fs *filesystems.SourceFilesystem, rs *resources.Spec) (*Client, error) 
 		return &Client{dartSassNotAvailable: true}, nil
 	}
 
-	if err := rs.ExecHelper.Sec().CheckAllowedExec(dartSassEmbeddedBinaryName); err != nil {
+	if neohugo.DartSassBinaryName == "" {
+		return nil, fmt.Errorf("no Dart Sass binary found in $PATH")
+	}
+
+	if err := rs.ExecHelper.Sec().CheckAllowedExec(neohugo.DartSassBinaryName); err != nil {
 		return nil, err
 	}
 
-	transpiler, err := godartsass.Start(godartsass.Options{
-		LogEventHandler: func(event godartsass.LogEvent) {
-			message := strings.ReplaceAll(event.Message, dartSassStdinPrefix, "")
-			switch event.Type {
-			case godartsass.LogEventTypeDebug:
-				// Log as Info for now, we may adjust this if it gets too chatty.
-				rs.Logger.Infof("Dart Sass: %s", message)
-			default:
-				// The rest are either deprecations or @warn statements.
-				rs.Logger.Warnf("Dart Sass: %s", message)
-			}
-		},
-	})
+	var (
+		transpiler   *godartsass.Transpiler
+		transpilerv1 *godartsassv1.Transpiler
+		err          error
+		infol        = rs.Logger.InfoCommand("Dart Sass")
+		warnl        = rs.Logger.WarnCommand("Dart Sass")
+	)
+
+	if neohugo.IsDartSassV2() {
+		transpiler, err = godartsass.Start(godartsass.Options{
+			DartSassEmbeddedFilename: neohugo.DartSassBinaryName,
+			LogEventHandler: func(event godartsass.LogEvent) {
+				message := strings.ReplaceAll(event.Message, dartSassStdinPrefix, "")
+				switch event.Type {
+				case godartsass.LogEventTypeDebug:
+					// Log as Info for now, we may adjust this if it gets too chatty.
+					infol.Log(logg.String(message))
+				default:
+					// The rest are either deprecations or @warn statements.
+					warnl.Log(logg.String(message))
+				}
+			},
+		})
+	} else {
+		transpilerv1, err = godartsassv1.Start(godartsassv1.Options{
+			DartSassEmbeddedFilename: neohugo.DartSassBinaryName,
+			LogEventHandler: func(event godartsassv1.LogEvent) {
+				message := strings.ReplaceAll(event.Message, dartSassStdinPrefix, "")
+				switch event.Type {
+				case godartsassv1.LogEventTypeDebug:
+					// Log as Info for now, we may adjust this if it gets too chatty.
+					infol.Log(logg.String(message))
+				default:
+					// The rest are either deprecations or @warn statements.
+					warnl.Log(logg.String(message))
+				}
+			},
+		})
+	}
+
 	if err != nil {
 		return nil, err
 	}
-	return &Client{sfs: fs, workFs: rs.BaseFs.Work, rs: rs, transpiler: transpiler}, nil
+	return &Client{sfs: fs, workFs: rs.BaseFs.Work, rs: rs, transpiler: transpiler, transpilerV1: transpilerv1}, nil
 }
 
 type Client struct {
@@ -72,7 +106,10 @@ type Client struct {
 	rs                   *resources.Spec
 	sfs                  *filesystems.SourceFilesystem
 	workFs               afero.Fs
-	transpiler           *godartsass.Transpiler
+
+	// One of these are non-nil.
+	transpiler   *godartsass.Transpiler
+	transpilerV1 *godartsassv1.Transpiler
 }
 
 func (c *Client) ToCSS(res resources.ResourceTransformer, args map[string]any) (resource.Resource, error) {
@@ -83,23 +120,43 @@ func (c *Client) ToCSS(res resources.ResourceTransformer, args map[string]any) (
 }
 
 func (c *Client) Close() error {
-	if c.transpiler == nil {
-		return nil
+	if c.transpilerV1 != nil {
+		return c.transpilerV1.Close()
 	}
-	return c.transpiler.Close()
+	if c.transpiler != nil {
+		return c.transpiler.Close()
+	}
+	return nil
 }
 
 func (c *Client) toCSS(args godartsass.Args, src io.Reader) (godartsass.Result, error) {
-	var res godartsass.Result
-
 	in := helpers.ReaderToString(src)
 
 	args.Source = in
 
-	res, err := c.transpiler.Execute(args)
+	var (
+		err error
+		res godartsass.Result
+	)
+
+	if c.transpilerV1 != nil {
+		var resv1 godartsassv1.Result
+		var argsv1 godartsassv1.Args
+		mapstructure.Decode(args, &argsv1) // nolint
+		if args.ImportResolver != nil {
+			argsv1.ImportResolver = importResolverV1{args.ImportResolver}
+		}
+		resv1, err = c.transpilerV1.Execute(argsv1)
+		if err == nil {
+			mapstructure.Decode(resv1, &res) // nolint
+		}
+	} else {
+		res, err = c.transpiler.Execute(args)
+	}
+
 	if err != nil {
 		if err.Error() == "unexpected EOF" {
-			return res, fmt.Errorf("got unexpected EOF when executing %q. The user running hugo must have read and execute permissions on this program. With execute permissions only, this error is thrown.", dartSassEmbeddedBinaryName)
+			return res, fmt.Errorf("got unexpected EOF when executing %q. The user running hugo must have read and execute permissions on this program. With execute permissions only, this error is thrown.", neohugo.DartSassBinaryName)
 		}
 		return res, herrors.NewFileErrorFromFileInErr(err, hugofs.Os, herrors.OffsetMatcher)
 	}

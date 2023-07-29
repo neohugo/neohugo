@@ -17,11 +17,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config/testconfig"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
 	"github.com/neohugo/neohugo/markup/goldmark"
-
-	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/neohugo/neohugo/markup/converter"
 
@@ -56,7 +55,7 @@ And then some.
 	p, err := goldmark.Provider.New(
 		converter.ProviderConfig{
 			Conf:   testconfig.GetTestConfig(nil, nil),
-			Logger: loggers.NewErrorLogger(),
+			Logger: loggers.NewDefault(),
 		})
 	c.Assert(err, qt.IsNil)
 	conv, err := p.New(converter.DocumentContext{})
@@ -86,12 +85,12 @@ func TestEscapeToc(t *testing.T) {
 	safeP, _ := goldmark.Provider.New(
 		converter.ProviderConfig{
 			Conf:   safeConf(),
-			Logger: loggers.NewErrorLogger(),
+			Logger: loggers.NewDefault(),
 		})
 	unsafeP, _ := goldmark.Provider.New(
 		converter.ProviderConfig{
 			Conf:   unsafeConf(),
-			Logger: loggers.NewErrorLogger(),
+			Logger: loggers.NewDefault(),
 		})
 	safeConv, _ := safeP.New(converter.DocumentContext{})
 	unsafeConv, _ := unsafeP.New(converter.DocumentContext{})

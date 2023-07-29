@@ -122,10 +122,10 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	}
 
 	var configFile string
-	logger := t.rs.Logger
+	infol := t.rs.Logger.InfoCommand(binaryName)
+	infoW := loggers.LevelLoggerToWriter(infol)
 
 	var errBuf bytes.Buffer
-	infoW := loggers.LoggerToWriterWithPrefix(logger.Info(), "babel")
 
 	if t.options.Config != "" {
 		configFile = t.options.Config
@@ -149,7 +149,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	var cmdArgs []any
 
 	if configFile != "" {
-		logger.Infoln("babel: use config file", configFile)
+		infol.Logf("use config file %q", configFile)
 		cmdArgs = []any{"--config-file", configFile}
 	}
 
@@ -180,7 +180,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	if err != nil {
 		if hexec.IsNotFound(err) {
 			// This may be on a CI server etc. Will fall back to pre-built assets.
-			return herrors.ErrFeatureNotAvailable
+			return &herrors.FeatureNotAvailableError{Cause: err}
 		}
 		return err
 	}
@@ -192,15 +192,13 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	go func() {
 		defer stdin.Close()
-		if _, err := io.Copy(stdin, ctx.From); err != nil {
-			logger.Errorln("babel: ", err)
-		}
+		io.Copy(stdin, ctx.From) // nolint
 	}()
 
 	err = cmd.Run()
 	if err != nil {
 		if hexec.IsNotFound(err) {
-			return herrors.ErrFeatureNotAvailable
+			return &herrors.FeatureNotAvailableError{Cause: err}
 		}
 		return fmt.Errorf(errBuf.String()+": %w", err)
 	}

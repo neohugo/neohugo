@@ -41,6 +41,16 @@ func (c ConfigLanguage) LanguagesDefaultFirst() langs.Languages {
 	return c.m.LanguagesDefaultFirst
 }
 
+func (c ConfigLanguage) LanguagePrefix() string {
+	if c.DefaultContentLanguageInSubdir() && c.DefaultContentLanguage() == c.Language().Lang {
+		return c.Language().Lang
+	}
+	if !c.IsMultiLingual() || c.DefaultContentLanguage() == c.Language().Lang {
+		return ""
+	}
+	return c.Language().Lang
+}
+
 func (c ConfigLanguage) BaseURL() urls.BaseURL {
 	return c.config.C.BaseURL
 }
@@ -199,8 +209,8 @@ func (c ConfigLanguage) EnableMissingTranslationPlaceholders() bool {
 	return c.config.EnableMissingTranslationPlaceholders
 }
 
-func (c ConfigLanguage) LogI18nWarnings() bool {
-	return c.config.LogI18nWarnings
+func (c ConfigLanguage) PrintI18nWarnings() bool {
+	return c.config.PrintI18nWarnings
 }
 
 func (c ConfigLanguage) CreateTitle(s string) string {
