@@ -76,6 +76,9 @@ type Deps struct {
 	// BuildStartListeners will be notified before a build starts.
 	BuildStartListeners *Listeners
 
+	// BuildEndListeners will be notified after a build finishes.
+	BuildEndListeners *Listeners
+
 	// Resources that gets closed when the build is done or the server shuts down.
 	BuildClosers *Closers
 
@@ -128,6 +131,10 @@ func (d *Deps) Init() error {
 
 	if d.BuildStartListeners == nil {
 		d.BuildStartListeners = &Listeners{}
+	}
+
+	if d.BuildEndListeners == nil {
+		d.BuildEndListeners = &Listeners{}
 	}
 
 	if d.BuildClosers == nil {

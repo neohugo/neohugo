@@ -140,7 +140,7 @@ func (c ConfigLanguage) GetConfigSection(s string) any {
 		return c.config.Permalinks
 	case "minify":
 		return c.config.Minify
-	case "activeModules":
+	case "allModules":
 		return c.m.Modules
 	case "deployment":
 		return c.config.Deployment
@@ -227,4 +227,8 @@ func (c ConfigLanguage) PaginatePath() string {
 
 func (c ConfigLanguage) StaticDirs() []string {
 	return c.config.staticDirs()
+}
+
+func (c ConfigLanguage) EnableEmoji() bool {
+	return c.config.EnableEmoji
 }

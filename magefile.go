@@ -329,6 +329,10 @@ func runCmd(env map[string]string, cmd string, args ...any) error {
 	return err
 }
 
+func isGoLatest() bool {
+	return strings.Contains(runtime.Version(), "1.21")
+}
+
 func isCI() bool {
 	return os.Getenv("CI") != ""
 }

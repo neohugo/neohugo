@@ -1,13 +1,13 @@
 ---
-title: Internal Templates
+title: Internal templates
 description: Hugo ships with a group of boilerplate templates that cover the most common use cases for static websites.
 categories: [templates]
 keywords: [internal, analytics,]
 menu:
   docs:
     parent: templates
-    weight: 168
-weight: 168
+    weight: 190
+weight: 190
 toc: true
 ---
 <!-- reference: https://discourse.gohugo.io/t/lookup-order-for-partials/5705/6
@@ -19,12 +19,12 @@ While the following internal templates are called similar to partials, they do *
 
 ## Google Analytics
 
-Hugo ships with internal templates supporting Google Analytics, both [Google Analytics 4][GA4] (GA4) and Universal Analytics.
+Hugo ships with an internal template supporting [Google Analytics 4][GA4] (GA4).
 
-**Note:** Universal Analytics are deprecated. For details, see [Universal Analytics will be going away].
+**Note:** Universal Analytics are [deprecated].
 
 [GA4]: https://support.google.com/analytics/answer/10089681
-[Universal Analytics will be going away]: https://support.google.com/analytics/answer/11583528
+[deprecated]: https://support.google.com/analytics/answer/11583528
 
 ### Configure Google Analytics
 
@@ -32,59 +32,54 @@ Provide your tracking ID in your configuration file:
 
 **Google Analytics 4 (gtag.js)**
 {{< code-toggle file="hugo" >}}
-googleAnalytics = "G-MEASUREMENT_ID"
+[services.googleAnalytics]
+ID = "G-MEASUREMENT_ID"
 {{</ code-toggle >}}
 
-**Google Universal Analytics (analytics.js)**
-{{< code-toggle file="hugo" >}}
-googleAnalytics = "UA-PROPERTY_ID"
-{{</ code-toggle >}}
+### Use the Google Analytics template
 
-### Use the Google Analytics Template
-
-You can then include the Google Analytics internal template:
-
-```go-html-template
-{{ template "_internal/google_analytics_async.html" . }}
-```
-
-**Note:** The async template is _not_ suitable for Google Analytics 4.
+Include the Google Analytics internal template in your templates where you want the code to appear:
 
 ```go-html-template
 {{ template "_internal/google_analytics.html" . }}
 ```
 
-If you want to create your own template, you can access the configured ID with `{{ site.Config.Services.GoogleAnalytics.ID }}`.
+To create your own template, access the configured ID with `{{ site.Config.Services.GoogleAnalytics.ID }}`.
 
 ## Disqus
 
-Hugo also ships with an internal template for [Disqus comments][disqus], a popular commenting system for both static and dynamic websites. In order to effectively use Disqus, you will need to secure a Disqus "shortname" by [signing up for the free service][disqussignup].
+Hugo also ships with an internal template for [Disqus comments][disqus], a popular commenting system for both static and dynamic websites. To effectively use Disqus, secure a Disqus "shortname" by [signing up for the free service][disqussignup].
 
 ### Configure Disqus
 
-To use Hugo's Disqus template, you first need to set a single configuration value:
+To use Hugo's Disqus template, first set up a single configuration value:
 
 {{< code-toggle file="hugo" >}}
-disqusShortname = "your-disqus-shortname"
+[services.disqus]
+shortname = 'your-disqus-shortname'
 {{</ code-toggle >}}
 
-You also have the option to set the following in the front matter for a given piece of content:
+Hugo's Disqus template accesses this value with:
+
+```go-html-template
+{{ .Site.Config.Services.Disqus.Shortname }}
+```
+
+You can also set the following in the front matter for a given piece of content:
 
 * `disqus_identifier`
 * `disqus_title`
 * `disqus_url`
 
-### Use the Disqus Template
+### Use the Disqus template
 
-To add Disqus, include the following line in templates where you want your comments to appear:
+To add Disqus, include the following line in the templates where you want your comments to appear:
 
 ```go-html-template
 {{ template "_internal/disqus.html" . }}
 ```
 
-A `.Site.DisqusShortname` variable is also exposed from the config.
-
-### Conditional Loading of Disqus Comments
+### Conditional loading of Disqus comments
 
 Users have noticed that enabling Disqus comments when running the Hugo web server on `localhost` (i.e. via `hugo server`) causes the creation of unwanted discussions on the associated Disqus account.
 
@@ -101,7 +96,7 @@ You can create the following `layouts/partials/disqus.html`:
         return;
 
     var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-    var disqus_shortname = '{{ .Site.DisqusShortname }}';
+    var disqus_shortname = '{{ .Site.Config.Services.Disqus.Shortname }}';
     dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
     (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
 })();
@@ -149,7 +144,7 @@ tags = []
 
 Hugo uses the page title and description for the title and description metadata.
 The first 6 URLs from the `images` array are used for image metadata.
-If [page bundles](/content-management/page-bundles/) are used and the `images` array is empty or undefined, images with filenames matching `*feature*` or `*cover*,*thumbnail*` are used for image metadata.
+If [page bundles](/content-management/page-bundles/) are used and the `images` array is empty or undefined, images with file names matching `*feature*` or `*cover*,*thumbnail*` are used for image metadata.
 
 Various optional metadata can also be set:
 
@@ -160,7 +155,7 @@ Various optional metadata can also be set:
 
 If using YouTube this will produce a og:video tag like `<meta property="og:video" content="url">`. Use the `https://youtu.be/<id>` format with YouTube videos (example: `https://youtu.be/qtIqKaDlqXo`).
 
-### Use the Open Graph Template
+### Use the Open Graph template
 
 To add Open Graph metadata, include the following line between the `<head>` tags in your templates:
 
@@ -170,7 +165,7 @@ To add Open Graph metadata, include the following line between the `<head>` tags
 
 ## Twitter Cards
 
-An internal template for [Twitter Cards](https://developer.twitter.com/en/docs/tweets/optimize-with-cards/overview/abouts-cards),
+An internal template for [Twitter Cards](https://developer.twitter.com/en/docs/twitter-for-websites/cards/overview/abouts-cards),
 metadata used to attach rich media to Tweets linking to your site.
 
 ### Configure Twitter Cards
@@ -195,11 +190,11 @@ If no images are found at all, then an image-less Twitter `summary` card is used
 
 Hugo uses the page title and description for the card's title and description fields. The page summary is used if no description is given.
 
-The `.Site.Social.twitter` variable is exposed from the config as the value for `twitter:site`.
+Set the value of `twitter:site` in your site configuration:
 
-{{< code-toggle file="hugo" >}}
-[social]
-  twitter = "GoHugoIO"
+{{< code-toggle file="hugo" copy=false >}}
+[params.social]
+twitter = "GoHugoIO"
 {{</ code-toggle >}}
 
 NOTE: The `@` will be added for you
@@ -208,7 +203,7 @@ NOTE: The `@` will be added for you
 <meta name="twitter:site" content="@GoHugoIO"/>
 ```
 
-### Use the Twitter Cards Template
+### Use the Twitter Cards template
 
 To add Twitter card metadata, include the following line immediately after the `<head>` element in your templates:
 
@@ -216,13 +211,12 @@ To add Twitter card metadata, include the following line immediately after the `
 {{ template "_internal/twitter_cards.html" . }}
 ```
 
-## The Internal Templates
+## The internal templates
 
 The code for these templates is located [here](https://github.com/gohugoio/hugo/tree/master/tpl/tplimpl/embedded/templates).
 
 * `_internal/disqus.html`
 * `_internal/google_analytics.html`
-* `_internal/google_analytics_async.html`
 * `_internal/opengraph.html`
 * `_internal/pagination.html`
 * `_internal/schema.html`

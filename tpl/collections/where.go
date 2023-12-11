@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hreflect"
+	"github.com/neohugo/neohugo/common/hstrings"
 	"github.com/neohugo/neohugo/common/maps"
 )
 
@@ -272,6 +273,17 @@ func (ns *Namespace) checkCondition(v, mv reflect.Value, op string) (bool, error
 			return false, nil
 		}
 		return false, errors.New("invalid intersect values")
+	case "like":
+		if svp != nil && smvp != nil {
+			re, err := hstrings.GetOrCompileRegexp(*smvp)
+			if err != nil {
+				return false, err
+			}
+			if re.MatchString(*svp) {
+				return true, nil
+			}
+			return false, nil
+		}
 	default:
 		return false, errors.New("no such operator")
 	}

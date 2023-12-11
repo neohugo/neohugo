@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/bep/simplecobra"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/modules"
 	"github.com/neohugo/neohugo/parser"
@@ -91,6 +92,7 @@ func (c *configCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, arg
 		if err := json.Unmarshal(buf.Bytes(), &m); err != nil {
 			return err
 		}
+		maps.ConvertFloat64WithNoDecimalsToInt(m)
 		switch format {
 		case "yaml":
 			return parser.InterfaceToConfig(m, metadecoders.YAML, os.Stdout)

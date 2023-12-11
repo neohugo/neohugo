@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/bep/gitmap"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -139,7 +140,7 @@ func (fi *FileInfo) Dir() string { return fi.relDir }
 
 // Extension is an alias to Ext().
 func (fi *FileInfo) Extension() string {
-	helpers.Deprecated(".File.Extension", "Use .File.Ext instead. ", false)
+	neohugo.Deprecate(".File.Extension", "Use .File.Ext instead.", "v0.96.0")
 	return fi.Ext()
 }
 

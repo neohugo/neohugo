@@ -160,6 +160,6 @@ func TestURLDecode(t *testing.T) {
 		}
 
 		c.Assert(err, qt.IsNil)
-		c.Assert(result, qt.DeepEquals, template.HTML(cast.ToString((test.expect))))
+		c.Assert(result, qt.DeepEquals, test.expect)
 	}
 }

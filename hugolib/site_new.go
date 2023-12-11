@@ -31,7 +31,6 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/langs/i18n"
@@ -40,6 +39,7 @@ import (
 	"github.com/neohugo/neohugo/navigation"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/publisher"
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
 	"github.com/neohugo/neohugo/resources/resource"
@@ -116,13 +116,13 @@ func NewHugoSites(cfg deps.DepsCfg) (*HugoSites, error) {
 		}
 
 		logOpts := loggers.Options{
-			Level:               cfg.LogLevel,
-			Distinct:            true, // This will drop duplicate log warning and errors.
-			HandlerPost:         logHookLast,
-			Stdout:              cfg.LogOut,
-			Stderr:              cfg.LogOut,
-			StoreErrors:         conf.Running(),
-			SuppresssStatements: conf.IgnoredErrors(),
+			Level:              cfg.LogLevel,
+			DistinctLevel:      logg.LevelWarn, // This will drop duplicate log warning and errors.
+			HandlerPost:        logHookLast,
+			Stdout:             cfg.LogOut,
+			Stderr:             cfg.LogOut,
+			StoreErrors:        conf.Running(),
+			SuppressStatements: conf.IgnoredErrors(),
 		}
 		logger = loggers.New(logOpts)
 	}
@@ -183,16 +183,19 @@ func NewHugoSites(cfg deps.DepsCfg) (*HugoSites, error) {
 			contentMap: newContentMap(contentMapConfig{
 				lang:                 k,
 				taxonomyConfig:       taxonomiesConfig.Values(),
-				taxonomyDisabled:     !conf.IsKindEnabled(page.KindTerm),
-				taxonomyTermDisabled: !conf.IsKindEnabled(page.KindTaxonomy),
-				pageDisabled:         !conf.IsKindEnabled(page.KindPage),
+				taxonomyDisabled:     !conf.IsKindEnabled(kinds.KindTerm),
+				taxonomyTermDisabled: !conf.IsKindEnabled(kinds.KindTaxonomy),
+				pageDisabled:         !conf.IsKindEnabled(kinds.KindPage),
 			}),
 			s: s,
 		}
 
 		s.PageCollections = newPageCollections(pm)
-		s.siteRefLinker, err = newSiteRefLinker(s) // nolint
-
+		// nolint
+		s.siteRefLinker, err = newSiteRefLinker(s)
+		if err != nil {
+			return nil, err
+		}
 		// Set up the main publishing chain.
 		pub, err := publisher.NewDestinationPublisher(
 			firstSiteDeps.ResourceSpec,
@@ -350,7 +353,9 @@ func newHugoSitesNew(cfg deps.DepsCfg, d *deps.Deps, sites []*Site) (*HugoSites,
 }
 
 // Returns true if we're running in a server.
+// Deprecated: use hugo.IsServer instead
 func (s *Site) IsServer() bool {
+	neohugo.Deprecate(".Site.IsServer", "Use hugo.IsServer instead.", "v0.120.0")
 	return s.conf.Internal.Running
 }
 
@@ -369,7 +374,7 @@ func (s *Site) Copyright() string {
 }
 
 func (s *Site) RSSLink() template.URL {
-	helpers.Deprecated("Site.RSSLink", "Use the Output Format's Permalink method instead, e.g. .OutputFormats.Get \"RSS\".Permalink", false)
+	neohugo.Deprecate("Site.RSSLink", "Use the Output Format's Permalink method instead, e.g. .OutputFormats.Get \"RSS\".Permalink", "v0.114.0")
 	rssOutputFormat := s.home.OutputFormats().Get("rss")
 	return template.URL(rssOutputFormat.Permalink())
 }
@@ -413,8 +418,8 @@ func (s *Site) Hugo() neohugo.HugoInfo {
 }
 
 // Returns the BaseURL for this Site.
-func (s *Site) BaseURL() template.URL {
-	return template.URL(s.conf.C.BaseURL.WithPath)
+func (s *Site) BaseURL() string {
+	return s.conf.C.BaseURL.WithPath
 }
 
 // Returns the last modification date of the content.
@@ -439,13 +444,15 @@ func (s *Site) Social() map[string]string {
 	return s.conf.Social
 }
 
-// TODO(bep): deprecate.
+// Deprecated: Use .Site.Config.Services.Disqus.Shortname instead
 func (s *Site) DisqusShortname() string {
+	neohugo.Deprecate(".Site.DisqusShortname", "Use .Site.Config.Services.Disqus.Shortname instead.", "v0.120.0")
 	return s.Config().Services.Disqus.Shortname
 }
 
-// TODO(bep): deprecate.
+// Deprecated: Use .Site.Config.Services.GoogleAnalytics.ID instead
 func (s *Site) GoogleAnalytics() string {
+	neohugo.Deprecate(".Site.GoogleAnalytics", "Use .Site.Config.Services.GoogleAnalytics.ID instead.", "v0.120.0")
 	return s.Config().Services.GoogleAnalytics.ID
 }
 

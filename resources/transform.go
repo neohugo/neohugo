@@ -195,6 +195,10 @@ func (r resourceAdapter) cloneTo(targetPath string) resource.Resource {
 	return &r
 }
 
+func (r *resourceAdapter) Process(spec string) (images.ImageResource, error) {
+	return r.getImageOps().Process(spec)
+}
+
 func (r *resourceAdapter) Crop(spec string) (images.ImageResource, error) {
 	return r.getImageOps().Crop(spec)
 }

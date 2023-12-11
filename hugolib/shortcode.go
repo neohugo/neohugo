@@ -27,10 +27,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/neohugo/neohugo/helpers"
-
 	"github.com/neohugo/neohugo/common/herrors"
-
 	"github.com/neohugo/neohugo/parser/pageparser"
 	"github.com/neohugo/neohugo/resources/page"
 
@@ -184,8 +181,8 @@ func (scp *ShortcodeWithPage) page() page.Page {
 // Note - this value must not contain any markup syntax
 const shortcodePlaceholderPrefix = "HAHAHUGOSHORTCODE"
 
-func createShortcodePlaceholder(id string, ordinal int) string {
-	return shortcodePlaceholderPrefix + id + strconv.Itoa(ordinal) + "HBHB"
+func createShortcodePlaceholder(sid string, id, ordinal int) string {
+	return shortcodePlaceholderPrefix + strconv.Itoa(id) + sid + strconv.Itoa(ordinal) + "HBHB"
 }
 
 type shortcode struct {
@@ -630,15 +627,6 @@ Loop:
 			return sc, nil
 		case currItem.IsText():
 			sc.inner = append(sc.inner, currItem.ValStr(source))
-		case currItem.Type == pageparser.TypeEmoji:
-			// TODO(bep) avoid the duplication of these "text cases", to prevent
-			// more of #6504 in the future.
-			val := currItem.ValStr(source)
-			if emoji := helpers.Emoji(val); emoji != nil {
-				sc.inner = append(sc.inner, string(emoji))
-			} else {
-				sc.inner = append(sc.inner, val)
-			}
 		case currItem.IsShortcodeName():
 
 			sc.name = currItem.ValStr(source)

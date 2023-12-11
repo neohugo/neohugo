@@ -6,10 +6,10 @@ categories: [asset management]
 keywords: []
 menu:
   docs:
-    parent: pipes
-    weight: 50
-weight: 50
-signature: ["resources.Minify RESOURCE", "minify RESOURCE"]
+    parent: hugo-pipes
+    weight: 80
+weight: 80
+signatures: ["resources.Minify RESOURCE", "minify RESOURCE"]
 ---
 
 ## Usage

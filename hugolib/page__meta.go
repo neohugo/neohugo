@@ -22,14 +22,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/langs"
 
 	"github.com/gobuffalo/flect"
 	"github.com/neohugo/neohugo/markup/converter"
 
 	"github.com/neohugo/neohugo/hugofs/files"
-
-	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/related"
 
@@ -40,6 +39,7 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 
 	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
 	"github.com/neohugo/neohugo/resources/resource"
@@ -129,7 +129,7 @@ func (p *pageMeta) Aliases() []string {
 }
 
 func (p *pageMeta) Author() page.Author {
-	helpers.Deprecated(".Author", "Use taxonomies.", false)
+	neohugo.Deprecate(".Author", "Use taxonomies.", "v0.98.0")
 	authors := p.Authors()
 
 	for _, author := range authors {
@@ -139,7 +139,7 @@ func (p *pageMeta) Author() page.Author {
 }
 
 func (p *pageMeta) Authors() page.AuthorList {
-	helpers.Deprecated(".Authors", "Use taxonomies.", true)
+	neohugo.Deprecate(".Author", "Use taxonomies.", "v0.112.0")
 	return nil
 }
 
@@ -164,7 +164,7 @@ func (p *pageMeta) File() source.File {
 }
 
 func (p *pageMeta) IsHome() bool {
-	return p.Kind() == page.KindHome
+	return p.Kind() == kinds.KindHome
 }
 
 func (p *pageMeta) Keywords() []string {
@@ -199,7 +199,7 @@ func (p *pageMeta) IsNode() bool {
 }
 
 func (p *pageMeta) IsPage() bool {
-	return p.Kind() == page.KindPage
+	return p.Kind() == kinds.KindPage
 }
 
 // Param is a convenience method to do lookups in Page's and Site's Params map,
@@ -225,7 +225,7 @@ func (p *pageMeta) Path() string {
 	{{ $path = .Path }}
   {{ end }}
 `
-		helpers.Deprecated(".Path when the page is backed by a file", "We plan to use Path for a canonical source path and you probably want to check the source is a file. To get the current behaviour, you can use a construct similar to the one below:\n"+example, false)
+		p.s.Log.Warnln(".Path when the page is backed by a file is deprecated. We plan to use Path for a canonical source path and you probably want to check the source is a file. To get the current behaviour, you can use a construct similar to the one below:\n" + example)
 
 	}
 
@@ -251,7 +251,7 @@ func (p *pageMeta) RelatedKeywords(cfg related.IndexConfig) ([]related.Keyword, 
 }
 
 func (p *pageMeta) IsSection() bool {
-	return p.Kind() == page.KindSection
+	return p.Kind() == kinds.KindSection
 }
 
 func (p *pageMeta) Section() string {
@@ -680,9 +680,9 @@ func (p *pageMeta) applyDefaultValues(n *contentNode) error {
 
 	if p.title == "" && p.f.IsZero() {
 		switch p.Kind() {
-		case page.KindHome:
+		case kinds.KindHome:
 			p.title = p.s.Title()
-		case page.KindSection:
+		case kinds.KindSection:
 			var sectionName string
 			if n != nil {
 				sectionName = n.rootSection()
@@ -696,13 +696,13 @@ func (p *pageMeta) applyDefaultValues(n *contentNode) error {
 			} else {
 				p.title = sectionName
 			}
-		case page.KindTerm:
+		case kinds.KindTerm:
 			// TODO(bep) improve
 			key := p.sections[len(p.sections)-1]
 			p.title = strings.Replace(p.s.conf.C.CreateTitle(key), "-", " ", -1)
-		case page.KindTaxonomy:
+		case kinds.KindTaxonomy:
 			p.title = p.s.conf.C.CreateTitle(p.sections[0])
-		case kind404:
+		case kinds.Kind404:
 			p.title = "404 Page not found"
 
 		}
@@ -730,7 +730,7 @@ func (p *pageMeta) newContentConverter(ps *pageState, markup string) (converter.
 	}
 	cp := p.s.ContentSpec.Converters.Get(markup)
 	if cp == nil {
-		return converter.NopConverter, fmt.Errorf("no content renderer found for markup %q", p.markup)
+		return converter.NopConverter, fmt.Errorf("no content renderer found for markup %q", markup)
 	}
 
 	var id string

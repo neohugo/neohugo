@@ -32,6 +32,16 @@ import (
 	"golang.org/x/tools/txtar"
 )
 
+// Test is a convenience method to create a new IntegrationTestBuilder from some files and run a build.
+func Test(t testing.TB, files string) *IntegrationTestBuilder {
+	return NewIntegrationTestBuilder(IntegrationTestConfig{T: t, TxtarString: files}).Build()
+}
+
+// TestRunning is a convenience method to create a new IntegrationTestBuilder from some files with Running set to true and run a build.
+func TestRunning(t testing.TB, files string) *IntegrationTestBuilder {
+	return NewIntegrationTestBuilder(IntegrationTestConfig{T: t, TxtarString: files, Running: true}).Build()
+}
+
 func NewIntegrationTestBuilder(conf IntegrationTestConfig) *IntegrationTestBuilder {
 	// Code fences.
 	conf.TxtarString = strings.ReplaceAll(conf.TxtarString, "§§§", "```")
@@ -137,6 +147,24 @@ func (s *IntegrationTestBuilder) AssertBuildCountTranslations(count int) {
 	s.Assert(s.H.init.translations.InitCount(), qt.Equals, count)
 }
 
+func (s *IntegrationTestBuilder) AssertFileCount(dirname string, expected int) {
+	s.Helper()
+	fs := s.fs.WorkingDirReadOnly
+	count := 0
+	// nolint
+	afero.Walk(fs, dirname, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		count++
+		return nil
+	})
+	s.Assert(count, qt.Equals, expected)
+}
+
 func (s *IntegrationTestBuilder) AssertFileContent(filename string, matches ...string) {
 	s.Helper()
 	content := strings.TrimSpace(s.FileContent(filename))
@@ -169,6 +197,20 @@ func (s *IntegrationTestBuilder) AssertFileContentExact(filename string, matches
 	}
 }
 
+func (s *IntegrationTestBuilder) AssertFileExists(filename string, b bool) {
+	checker := qt.IsNil
+	if !b {
+		checker = qt.IsNotNil
+	}
+	_, err := s.fs.WorkingDirReadOnly.Stat(filename)
+	if !herrors.IsNotExist(err) {
+		s.Assert(err, qt.IsNil)
+	}
+	s.Assert(err, checker)
+}
+
+// Deprecated: Use AssertFileExists instead but remember to prefix with "public/".
+// I have had some surprises with this one, hence the deprecation.
 func (s *IntegrationTestBuilder) AssertDestinationExists(filename string, b bool) {
 	checker := qt.IsTrue
 	if !b {
@@ -226,6 +268,13 @@ func (s *IntegrationTestBuilder) BuildE() (*IntegrationTestBuilder, error) {
 
 	err := s.build(s.Cfg.BuildCfg)
 	return s, err
+}
+
+func (s *IntegrationTestBuilder) Init() *IntegrationTestBuilder {
+	if err := s.initBuilder(); err != nil {
+		s.Fatalf("Failed to init builder: %s", err)
+	}
+	return s
 }
 
 type IntegrationTestDebugConfig struct {
@@ -356,12 +405,23 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 			flags.Set("workingDir", s.Cfg.WorkingDir)
 		}
 
+		w := &s.logBuff
+
+		logger := loggers.New(
+			loggers.Options{
+				Stdout:        w,
+				Stderr:        w,
+				Level:         s.Cfg.LogLevel,
+				DistinctLevel: logg.LevelWarn,
+			},
+		)
+
 		res, err := allconfig.LoadConfig(
 			allconfig.ConfigSourceDescriptor{
 				Flags:     flags,
 				ConfigDir: configDir,
 				Fs:        afs,
-				Logger:    loggers.NewDefault(),
+				Logger:    logger,
 				Environ:   s.Cfg.Environ,
 			},
 		)
@@ -374,7 +434,7 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 
 		s.Assert(err, qt.IsNil)
 
-		depsCfg := deps.DepsCfg{Configs: res, Fs: fs, LogLevel: s.Cfg.LogLevel, LogOut: &s.logBuff}
+		depsCfg := deps.DepsCfg{Configs: res, Fs: fs, LogLevel: logger.Level(), LogOut: logger.Out()}
 		sites, err := NewHugoSites(depsCfg)
 		if err != nil {
 			initErr = err

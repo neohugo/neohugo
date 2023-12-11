@@ -191,3 +191,72 @@ title: "p3"
 Home: p1|p3|
 `)
 }
+
+// Issue #11279
+func TestWhereLikeOperator(t *testing.T) {
+	t.Parallel()
+	files := `
+-- content/p1.md --
+---
+title: P1
+foo: ab
+---
+-- content/p2.md --
+---
+title: P2
+foo: abc
+---
+-- content/p3.md --
+---
+title: P3
+foo: bc
+---
+-- layouts/index.html --
+<ul>
+  {{- range where site.RegularPages "Params.foo" "like" "^ab" -}}
+    <li>{{ .Title }}</li>
+  {{- end -}}
+</ul>
+  `
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+	b.AssertFileContent("public/index.html", "<ul><li>P1</li><li>P2</li></ul>")
+}
+
+// Issue #11498
+func TestEchoParams(t *testing.T) {
+	t.Parallel()
+	files := `
+-- hugo.toml --
+[params.footer]
+string = 'foo'
+int = 42
+float = 3.1415
+boolt = true
+boolf = false
+-- layouts/index.html --
+{{ echoParam .Site.Params.footer "string" }}
+{{ echoParam .Site.Params.footer "int" }}
+{{ echoParam .Site.Params.footer "float" }}
+{{ echoParam .Site.Params.footer "boolt" }}
+{{ echoParam .Site.Params.footer "boolf" }}
+	`
+
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
+	b.AssertFileContent("public/index.html",
+		"foo",
+		"42",
+		"3.1415",
+		"true",
+		"false",
+	)
+}

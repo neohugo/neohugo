@@ -5,8 +5,8 @@ layout: single
 menu:
   docs:
     parent: about
-    weight: 10
-weight: 10
+    weight: 20
+weight: 20
 aliases: [/overview/introduction/,/about/why-i-built-hugo/]
 toc: true
 ---
@@ -17,15 +17,15 @@ Websites built with Hugo are extremely fast and secure. Hugo sites can be hosted
 
 We think of Hugo as the ideal website creation tool with nearly instant build times, able to rebuild whenever a change is made.
 
-## How Fast is Hugo?
+## How fast is Hugo?
 
 {{< youtube "CdiDYZ51a2o" >}}
 
-## What Does Hugo Do?
+## What does Hugo do?
 
 In technical terms, Hugo takes a source directory of files and templates and uses these as input to create a complete website.
 
-## Who Should Use Hugo?
+## Who should use Hugo?
 
 Hugo is for people that prefer writing in a text editor over a browser.
 
@@ -36,13 +36,13 @@ Hugo is for people building a blog, a company site, a portfolio site, documentat
 [@spf13]: https://twitter.com/spf13
 [Amazon S3]: https://aws.amazon.com/s3/
 [Azure]: https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blob-static-website
-[CloudFront]: https://aws.amazon.com/cloudfront/ "Amazon CloudFront"
+[CloudFront]: https://aws.amazon.com/cloudfront/
 [DreamHost]: https://www.dreamhost.com/
-[Firebase]: https://firebase.google.com/docs/hosting/ "Firebase static hosting"
+[Firebase]: https://firebase.google.com/docs/hosting/
 [GitHub Pages]: https://pages.github.com/
 [GitLab Pages]: https://about.gitlab.com/features/pages/
 [Go language]: https://go.dev/
-[GoDaddy]: https://www.godaddy.com/ "GoDaddy.com Hosting"
+[GoDaddy]: https://www.godaddy.com/
 [Google Cloud Storage]: https://cloud.google.com/storage/
 [Heroku]: https://www.heroku.com/
 [Jekyll]: https://jekyllrb.com/

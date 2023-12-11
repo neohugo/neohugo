@@ -14,7 +14,6 @@
 package commands
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -24,8 +23,6 @@ import (
 
 	"github.com/bep/simplecobra"
 	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/spf13/afero"
 	"github.com/spf13/pflag"
 )
 
@@ -119,14 +116,6 @@ func flagsToCfgWithAdditionalConfigBase(cd *simplecobra.Commandeer, cfg config.P
 func mkdir(x ...string) {
 	p := filepath.Join(x...)
 	err := os.MkdirAll(p, 0o777) // before umask
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func touchFile(fs afero.Fs, filename string) {
-	mkdir(filepath.Dir(filename))
-	err := helpers.WriteToDisk(filename, bytes.NewReader([]byte{}), fs)
 	if err != nil {
 		log.Fatal(err)
 	}

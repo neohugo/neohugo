@@ -157,11 +157,16 @@ func TestDecodeCascadeConfig(t *testing.T) {
 
 type testConfig struct {
 	environment string
+	running     bool
 	workingDir  string
 }
 
 func (c testConfig) Environment() string {
 	return c.environment
+}
+
+func (c testConfig) Running() bool {
+	return c.running
 }
 
 func (c testConfig) WorkingDir() string {

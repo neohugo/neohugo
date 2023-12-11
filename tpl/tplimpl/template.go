@@ -763,6 +763,9 @@ var embeddedTemplatesFs embed.FS
 func (t *templateHandler) loadEmbedded() error {
 	//nolint
 	return fs.WalkDir(embeddedTemplatesFs, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d == nil || d.IsDir() {
 			return nil
 		}

@@ -55,13 +55,13 @@ func ColorToHexString(c color.Color) string {
 func hexStringToColor(s string) (color.Color, error) {
 	s = strings.TrimPrefix(s, "#")
 
-	if len(s) != 3 && len(s) != 6 {
+	if len(s) != 3 && len(s) != 4 && len(s) != 6 && len(s) != 8 {
 		return nil, fmt.Errorf("invalid color code: %q", s)
 	}
 
 	s = strings.ToLower(s)
 
-	if len(s) == 3 {
+	if len(s) == 3 || len(s) == 4 {
 		var v string
 		for _, r := range s {
 			v += string(r) + string(r)
@@ -79,7 +79,9 @@ func hexStringToColor(s string) (color.Color, error) {
 	}
 
 	// Set Alfa to white.
-	s += "ff"
+	if len(s) == 6 {
+		s += "ff"
+	}
 
 	b, err := hex.DecodeString(s)
 	if err != nil {

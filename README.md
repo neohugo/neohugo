@@ -17,7 +17,7 @@ what is the different between neohugo vs hugo?
 ![Release](https://github.com/neohugo/neohugo/workflows/Release/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/neohugo/neohugo)](https://goreportcard.com/report/github.com/neohugo/neohugo)
 
-[Website] | [Installation] | [Documentation] | [Support] | [Contributing] | [Twitter]
+[Website] | [Installation] | [Documentation] | [Support] | [Contributing] | <a rel="me" href="https://fosstodon.org/@gohugoio">Mastodon</a>
 
 ## Overview
 

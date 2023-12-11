@@ -21,6 +21,7 @@ import (
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/resources/kinds"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -172,7 +173,7 @@ func decodePageMatcher(m any, v *PageMatcher) error {
 	if v.Kind != "" {
 		g, _ := glob.GetGlob(v.Kind)
 		found := false
-		for _, k := range kindMap {
+		for _, k := range kinds.AllKindsInPages {
 			if g.Match(k) {
 				found = true
 				break

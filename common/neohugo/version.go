@@ -67,8 +67,11 @@ func (h VersionString) String() string {
 
 // Compare implements the compare.Comparer interface.
 func (h VersionString) Compare(other any) int {
-	v := MustParseVersion(h.String())
-	return compareVersions(v, other)
+	return compareVersions(h.Version(), other)
+}
+
+func (h VersionString) Version() Version {
+	return MustParseVersion(h.String())
 }
 
 // Eq implements the compare.Eqer interface.

@@ -1,14 +1,13 @@
 ---
-title: Homepage Template
-linktitle: Homepage Template
+title: Homepage template
 description: The homepage of a website is often formatted differently than the other pages. For this reason, Hugo makes it easy for you to define your new site's homepage as a unique template.
 categories: [templates]
 keywords: [homepage]
 menu:
   docs:
     parent: templates
-    weight: 30
-weight: 30
+    weight: 70
+weight: 70
 aliases: [/layout/homepage/,/templates/homepage-template/]
 toc: true
 ---
@@ -21,17 +20,17 @@ The homepage template is the *only* required template for building a site and th
 
 {{< youtube ut1xtRZ1QOA >}}
 
-## Homepage Template Lookup Order
+## Homepage template lookup order
 
 See [Template Lookup](/templates/lookup-order/).
 
-## Add Content and Front Matter to the Homepage
+## Add content and front matter to the homepage
 
 The homepage, similar to other [list pages in Hugo][lists], accepts content and front matter from an `_index.md` file. This file should live at the root of your `content` folder (i.e., `content/_index.md`). You can then add body copy and metadata to your homepage the way you would any other content file.
 
 See the homepage template below or [Content Organization][contentorg] for more information on the role of `_index.md` in adding content and front matter to list pages.
 
-## Example Homepage Template
+## Example homepage template
 
 The following is an example of a homepage template that uses [partial][partials], [base] templates, and a content file at `content/_index.md` to populate the `{{ .Title }}` and `{{ .Content }}` [page variables][pagevars].
 
@@ -41,7 +40,7 @@ The following is an example of a homepage template that uses [partial][partials]
     <header class="homepage-header">
       <h1>{{ .Title }}</h1>
       {{ with .Params.subtitle }}
-      <span class="subtitle">{{ . }}</span>
+        <span class="subtitle">{{ . }}</span>
       {{ end }}
     </header>
     <div class="homepage-content">
@@ -50,7 +49,7 @@ The following is an example of a homepage template that uses [partial][partials]
     </div>
     <div>
       {{ range first 10 .Site.RegularPages }}
-          {{ .Render "summary" }}
+        {{ .Render "summary" }}
       {{ end }}
     </div>
   </main>
