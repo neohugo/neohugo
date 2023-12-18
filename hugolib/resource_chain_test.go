@@ -324,6 +324,7 @@ func TestResourceChains(t *testing.T) {
 		}
 
 		http.Error(w, "Not found", http.StatusNotFound)
+		return //nolint
 	}))
 	t.Cleanup(func() {
 		ts.Close()

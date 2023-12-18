@@ -514,7 +514,7 @@ func (l *genericResource) relTargetPathForRel(rel string, addBaseTargetPath, isA
 func (l *genericResource) relTargetPathForRelAndBasePath(rel, basePath string, isAbs, isURL bool) string {
 	rel = l.createBasePath(rel, isURL)
 
-	if l.spec.Cfg.IsMultihost() && basePath != "" {
+	if basePath != "" {
 		rel = path.Join(basePath, rel)
 	}
 

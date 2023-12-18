@@ -15,7 +15,7 @@ package hugolib
 
 import (
 	"context"
-
+	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -26,7 +26,6 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/tpl"
 
-	"errors"
 	"github.com/neohugo/neohugo/output"
 
 	"github.com/neohugo/neohugo/resources/kinds"

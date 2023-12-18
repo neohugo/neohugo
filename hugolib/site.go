@@ -1053,7 +1053,7 @@ func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath s
 		OutputFormat: p.outputFormat(),
 	}
 
-	if isRSS { // Format RSS
+	if isRSS {
 		// Always canonify URLs in RSS
 		pd.AbsURLPath = s.absURLPath(targetPath)
 	} else if isHTML {

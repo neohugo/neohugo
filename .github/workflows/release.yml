@@ -27,7 +27,7 @@ jobs:
         with:
           go-version: "1.21"
       - name: Install Ruby
-        uses: ruby/setup-ruby@ee2113536afb7f793eed4ce60e8d3b26db912da4
+        uses: ruby/setup-ruby@v1
         with:
           ruby-version: "2.7"
           bundler-cache: true #

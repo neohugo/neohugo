@@ -26,6 +26,7 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/asciidocext"
+	"github.com/neohugo/neohugo/markup/rst"
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/resources/page"
@@ -362,7 +363,7 @@ func testAllMarkdownEnginesForPages(t *testing.T,
 	}{
 		{"md", func() bool { return true }},
 		{"ad", func() bool { return asciidocext.Supports() }},
-		{"rst", func() bool { return true }},
+		{"rst", func() bool { return rst.Supports() }},
 	}
 
 	for _, e := range engines {
@@ -494,7 +495,7 @@ title: No Date
 ---
 
 `,
-		// https://github.com/neohugo/neohugo/issues/5854
+		// https://github.com/gohugoio/hugo/issues/5854
 		"with-index-date/_index.md", `---
 title: Date
 date: 2018-01-15
@@ -605,7 +606,7 @@ func TestPageWithSummaryParameter(t *testing.T) {
 }
 
 // Issue #3854
-// Also see https://github.com/neohugo/neohugo/issues/3977
+// Also see https://github.com/gohugoio/hugo/issues/3977
 func TestPageWithDateFields(t *testing.T) {
 	c := qt.New(t)
 	pageWithDate := `---
@@ -1257,7 +1258,7 @@ title: "HTML Content"
 		"Permalink: http://example.com/nomarkdownforyou/|**Hugo!**|",
 	)
 
-	// https://github.com/neohugo/neohugo/issues/5723
+	// https://github.com/gohugoio/hugo/issues/5723
 	b.AssertFileContent(
 		"public/manualsummary/index.html",
 		"Single: HTML Content|Hello|en|RelPermalink: /manualsummary/|",
@@ -1266,7 +1267,7 @@ title: "HTML Content"
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/5381
+// https://github.com/gohugoio/hugo/issues/5381
 func TestPageManualSummary(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1279,7 +1280,7 @@ This is a {{< sc >}}.
 Content.
 `)
 
-	// https://github.com/neohugo/neohugo/issues/5464
+	// https://github.com/gohugoio/hugo/issues/5464
 	b.WithContent("page-md-only-shortcode.md", `---
 title: "Hugo"
 ---
@@ -1355,7 +1356,7 @@ CONTENT:{{ .Content }}
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/5478
+// https://github.com/gohugoio/hugo/issues/5478
 func TestPageWithCommentedOutFrontMatter(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1381,7 +1382,7 @@ Content:{{ .Content }}
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/5781
+// https://github.com/gohugoio/hugo/issues/5781
 func TestPageWithZeroFile(t *testing.T) {
 	newTestSitesBuilder(t).WithLogger(loggers.NewDefault()).WithSimpleConfigFile().
 		WithTemplatesAdded("index.html", "{{ .File.Filename }}{{ with .File }}{{ .Dir }}{{ end }}").Build(BuildCfg{})
@@ -1533,17 +1534,15 @@ tags:
 *some content*`, i))
 				}
 
-				writeSource(
-					t,
-					fs,
-					filepath.Join("content", "Blog", "Blog1.md"),
-					`---
+				writeSource(t, fs, filepath.Join("content", "Blog", "Blog1.md"),
+					// nolint
+					fmt.Sprintf(`---
 title: "testBlog"
 tags:
 - "Blog"
 ---
 # doc1
-*some blog content*`)
+*some blog content*`))
 
 				s := buildSingleSite(t, deps.DepsCfg{Fs: fs, Configs: configs}, BuildCfg{})
 
@@ -1589,7 +1588,7 @@ tags:
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/4675
+// https://github.com/gohugoio/hugo/issues/4675
 func TestWordCountAndSimilarVsSummary(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)

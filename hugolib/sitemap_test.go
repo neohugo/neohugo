@@ -99,7 +99,7 @@ func TestParseSitemap(t *testing.T) {
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/5910
+// https://github.com/gohugoio/hugo/issues/5910
 func TestSitemapOutputFormats(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 

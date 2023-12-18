@@ -43,7 +43,7 @@ import (
 
 // Tests in development can be put in "testscripts/unfinished".
 // Also see the watch_testscripts.sh script.
-//func TestUnfinished(t *testing.T) {
+// func TestUnfinished(t *testing.T) {
 //	if os.Getenv("CI") != "" {
 //		t.Skip("skip unfinished tests on CI")
 //	}
@@ -74,6 +74,7 @@ func TestMain(m *testing.M) {
 	)
 }
 
+// nolint
 var commonTestScriptsParam = testscript.Params{
 	Setup: func(env *testscript.Env) error {
 		return testSetupFunc()(env)
@@ -366,6 +367,7 @@ var commonTestScriptsParam = testscript.Params{
 	},
 }
 
+// nolint
 func testSetupFunc() func(env *testscript.Env) error {
 	sourceDir, _ := os.Getwd()
 	return func(env *testscript.Env) error {
