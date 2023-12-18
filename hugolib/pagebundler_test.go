@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/loggers"
+
 	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/config"
@@ -185,7 +186,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 						// Verify shortcode in bundled page
 						c.Assert(content(secondPage), qt.Contains, filepath.FromSlash("MyShort in b/my-bundle/2.md"))
 
-						// https://github.com/neohugo/neohugo/issues/4582
+						// https://github.com/gohugoio/hugo/issues/4582
 						c.Assert(firstPage.Parent(), qt.Equals, leafBundle1)
 						c.Assert(secondPage.Parent(), qt.Equals, leafBundle1)
 
@@ -250,7 +251,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 								"0: Page Title: Bundle Galore",
 							)
 
-							// https://github.com/neohugo/neohugo/issues/5882
+							// https://github.com/gohugoio/hugo/issues/5882
 							b.AssertFileContent(
 								filepath.FromSlash("public/2017/pageslug.html"), "0: Page RelPermalink: |")
 
@@ -304,7 +305,7 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 				bundleWithSubPath := s.getPage(kinds.KindPage, "lb/index")
 				c.Assert(bundleWithSubPath, qt.Not(qt.IsNil))
 
-				// See https://github.com/neohugo/neohugo/issues/4312
+				// See https://github.com/gohugoio/hugo/issues/4312
 				// Before that issue:
 				// A bundle in a/b/index.en.md
 				// a/b/index.en.md => OK
@@ -332,7 +333,7 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 				c.Assert(nnSite.getPage(kinds.KindPage, "bf/my-bf-bundle"), qt.Equals, bfBundleNN)
 				c.Assert(nnSite.getPage(kinds.KindPage, "my-bf-bundle"), qt.Equals, bfBundleNN)
 
-				// See https://github.com/neohugo/neohugo/issues/4295
+				// See https://github.com/gohugoio/hugo/issues/4295
 				// Every resource should have its Name prefixed with its base folder.
 				cBundleResources := bundleWithSubPath.Resources().Match("c/**")
 				c.Assert(len(cBundleResources), qt.Equals, 4)
@@ -574,7 +575,7 @@ HEADLESS {{< myShort >}}
 	th.assertFileContent(filepath.FromSlash("public/s2/l1.png"), "PNG")
 
 	// No headless bundles here, please.
-	// https://github.com/neohugo/neohugo/issues/6492
+	// https://github.com/gohugoio/hugo/issues/6492
 	c.Assert(s.RegularPages(), qt.HasLen, 1)
 	c.Assert(s.home.RegularPages(), qt.HasLen, 1)
 	c.Assert(s.home.Pages(), qt.HasLen, 1)
@@ -829,7 +830,7 @@ Short Thumb Width: {{ $thumb.Width }}
 	writeSource(t, fs, filepath.Join(workDir, "base", "b", "my-bundle", "c", "logo.png"), "content")
 
 	// Bundle with 은행 slug
-	// See https://github.com/neohugo/neohugo/issues/4241
+	// See https://github.com/gohugoio/hugo/issues/4241
 	writeSource(t, fs, filepath.Join(workDir, "base", "c", "bundle", "index.md"), `---
 title: "은행 은행"
 slug: 은행
@@ -850,7 +851,7 @@ Content for 은행.
 	src, err := os.Open("testdata/sunset.jpg")
 	c.Assert(err, qt.IsNil)
 
-	// We need 2 to test https://github.com/neohugo/neohugo/issues/4202
+	// We need 2 to test https://github.com/gohugoio/hugo/issues/4202
 	out, err := fs.Source.Create(filepath.Join(workDir, "base", "b", "my-bundle", "sunset1.jpg"))
 	c.Assert(err, qt.IsNil)
 	out2, err := fs.Source.Create(filepath.Join(workDir, "base", "b", "my-bundle", "sunset2.jpg"))
@@ -956,7 +957,7 @@ TheContent.
 	return fs, cfg
 }
 
-// https://github.com/neohugo/neohugo/issues/5858
+// https://github.com/gohugoio/hugo/issues/5858
 func TestBundledResourcesWhenMultipleOutputFormats(t *testing.T) {
 	t.Parallel()
 
@@ -989,7 +990,7 @@ date: 2017-01-15
 	b.AssertFileContent("public/mybundle/data.json", "My changed data")
 }
 
-// https://github.com/neohugo/neohugo/issues/4870
+// https://github.com/gohugoio/hugo/issues/4870
 func TestBundleSlug(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
