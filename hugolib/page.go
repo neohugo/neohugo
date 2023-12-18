@@ -360,7 +360,6 @@ func (p *pageState) Resources() resource.Resources {
 	p.resourcesInit.Do(func() {
 		p.sortResources()
 		if len(p.m.resourcesMetadata) > 0 {
-			// TODO may check error
 			//nolint
 			resources.AssignMetadata(p.m.resourcesMetadata, p.resources...)
 			p.sortResources()
@@ -391,7 +390,6 @@ func (p *pageState) String() string {
 // IsTranslated returns whether this content file is translated to
 // other language(s).
 func (p *pageState) IsTranslated() bool {
-	// TODO may check error
 	//nolint
 	p.s.h.init.translations.Do(context.Background())
 	return len(p.translations) > 0
@@ -417,7 +415,6 @@ func (p *pageState) TranslationKey() string {
 
 // AllTranslations returns all translations, including the current Page.
 func (p *pageState) AllTranslations() page.Pages {
-	// TODO may check error
 	//nolint
 	p.s.h.init.translations.Do(context.Background())
 	return p.allTranslations
@@ -425,7 +422,6 @@ func (p *pageState) AllTranslations() page.Pages {
 
 // Translations returns the translations excluding the current Page.
 func (p *pageState) Translations() page.Pages {
-	// TODO may check error
 	//nolint
 	p.s.h.init.translations.Do(context.Background())
 	return p.translations
@@ -514,39 +510,41 @@ func (p *pageState) initPage() error {
 }
 
 func (p *pageState) renderResources() (err error) {
-	var toBeDeleted []int
+	p.resourcesPublishInit.Do(func() {
+		var toBeDeleted []int
 
-	for i, r := range p.Resources() {
+		for i, r := range p.Resources() {
 
-		if _, ok := r.(page.Page); ok {
-			// Pages gets rendered with the owning page but we count them here.
-			p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Pages)
-			continue
-		}
-
-		src, ok := r.(resource.Source)
-		if !ok {
-			err = fmt.Errorf("Resource %T does not support resource.Source", src)
-			return
-		}
-
-		if err := src.Publish(); err != nil {
-			if herrors.IsNotExist(err) {
-				// The resource has been deleted from the file system.
-				// This should be extremely rare, but can happen on live reload in server
-				// mode when the same resource is member of different page bundles.
-				toBeDeleted = append(toBeDeleted, i)
-			} else {
-				p.s.Log.Errorf("Failed to publish Resource for page %q: %s", p.pathOrTitle(), err)
+			if _, ok := r.(page.Page); ok {
+				// Pages gets rendered with the owning page but we count them here.
+				p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Pages)
+				continue
 			}
-		} else {
-			p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Files)
-		}
-	}
 
-	for _, i := range toBeDeleted {
-		p.deleteResource(i)
-	}
+			src, ok := r.(resource.Source)
+			if !ok {
+				err = fmt.Errorf("Resource %T does not support resource.Source", src)
+				return
+			}
+
+			if err := src.Publish(); err != nil {
+				if herrors.IsNotExist(err) {
+					// The resource has been deleted from the file system.
+					// This should be extremely rare, but can happen on live reload in server
+					// mode when the same resource is member of different page bundles.
+					toBeDeleted = append(toBeDeleted, i)
+				} else {
+					p.s.Log.Errorf("Failed to publish Resource for page %q: %s", p.pathOrTitle(), err)
+				}
+			} else {
+				p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Files)
+			}
+		}
+
+		for _, i := range toBeDeleted {
+			p.deleteResource(i)
+		}
+	})
 
 	return
 }
@@ -857,6 +855,11 @@ func (p *pageState) pathOrTitle() string {
 	}
 
 	return p.Title()
+}
+
+// nolint
+func (p *pageState) posFromPage(offset int) text.Position {
+	return p.posFromInput(p.source.parsed.Input(), offset)
 }
 
 func (p *pageState) posFromInput(input []byte, offset int) text.Position {

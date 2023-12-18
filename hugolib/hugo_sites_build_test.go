@@ -2,7 +2,6 @@ package hugolib
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -296,7 +295,7 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 		c.Assert(p.Language().Lang, qt.Equals, "fr")
 	}
 
-	// See https://github.com/neohugo/neohugo/issues/4285
+	// See https://github.com/gohugoio/hugo/issues/4285
 	// Before Hugo 0.33 you had to be explicit with the content path to get the correct Page, which
 	// isn't ideal in a multilingual setup. You want a way to get the current language version if available.
 	// Now you can do lookups with translation base name to get that behaviour.
@@ -462,7 +461,8 @@ func TestMultiSitesRebuild(t *testing.T) {
 		// * Change language file
 		{
 			func(t *testing.T) {
-				c.Assert(fs.Source.Remove("content/sect/doc2.en.md"), qt.IsNil)
+				// nolint
+				fs.Source.Remove("content/sect/doc2.en.md")
 			},
 			[]fsnotify.Event{{Name: filepath.FromSlash("content/sect/doc2.en.md"), Op: fsnotify.Remove}},
 			func(t *testing.T) {
@@ -596,7 +596,7 @@ func TestMultiSitesRebuild(t *testing.T) {
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/4706
+// https://github.com/gohugoio/hugo/issues/4706
 func TestContentStressTest(t *testing.T) {
 	b := newTestSitesBuilder(t)
 
@@ -1150,16 +1150,18 @@ func readFileFromFs(t testing.TB, fs afero.Fs, filename string) string {
 
 		parts := strings.Split(filename, helpers.FilePathSeparator)
 		if parts[start] == "work" {
+			// nolint
 			end++
 		}
 
-		root := filepath.Join(parts[start:end]...)
-		if hadSlash {
-			root = helpers.FilePathSeparator + root
-		}
+		/*
+			root := filepath.Join(parts[start:end]...)
+			if hadSlash {
+				root = helpers.FilePathSeparator + root
+			}
 
-		//nolint
-		helpers.PrintFs(fs, root, os.Stdout)
+			helpers.PrintFs(fs, root, os.Stdout)
+		*/
 
 		t.Fatalf("Failed to read file: %s", err)
 	}

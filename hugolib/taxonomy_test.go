@@ -115,7 +115,7 @@ permalinkeds:
 		"p4.md", fmt.Sprintf(pageTemplate, "Hello World", "", "", "- \"Hello Hugo world\"", "- Pl1"),
 		"categories/_index.md", newTestPage("Category Terms", "2017-01-01", 10),
 		"tags/Tag1/_index.md", newTestPage("Tag1 List", "2017-01-01", 10),
-		// https://github.com/neohugo/neohugo/issues/5847
+		// https://github.com/gohugoio/hugo/issues/5847
 		"/tags/not-used/_index.md", newTestPage("Unused Tag List", "2018-01-01", 10),
 	)
 
@@ -205,8 +205,8 @@ permalinkeds:
 	b.AssertFileContent(pathFunc("public/empties/index.html"), "Taxonomy Term Page", "Empties")
 }
 
-// https://github.com/neohugo/neohugo/issues/5513
-// https://github.com/neohugo/neohugo/issues/5571
+// https://github.com/gohugoio/hugo/issues/5513
+// https://github.com/gohugoio/hugo/issues/5571
 func TestTaxonomiesPathSeparation(t *testing.T) {
 	t.Parallel()
 
@@ -287,7 +287,7 @@ title: "This is S3s"
 	b.AssertFileContent("public/s1/s2/s3s/index.html", "Taxonomy Term Page 1|This is S3s|Hello|https://example.com/s1/s2/s3s/|")
 }
 
-// https://github.com/neohugo/neohugo/issues/5719
+// https://github.com/gohugoio/hugo/issues/5719
 func TestTaxonomiesNextGenLoops(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 
@@ -397,7 +397,7 @@ Content.
 	})
 }
 
-// https://github.com/neohugo/neohugo/issues/6927
+// https://github.com/gohugoio/hugo/issues/6927
 func TestTaxonomiesHomeDraft(t *testing.T) {
 	t.Parallel()
 
@@ -440,7 +440,7 @@ NO HOME FOR YOU
 	b.Assert(b.CheckExists("public/posts/index.html"), qt.Equals, false)
 }
 
-// https://github.com/neohugo/neohugo/issues/6173
+// https://github.com/gohugoio/hugo/issues/6173
 func TestTaxonomiesWithBundledResources(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithTemplates("_default/list.html", `

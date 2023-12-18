@@ -453,7 +453,7 @@ func TestCreateSiteOutputFormatsCustomFormats(t *testing.T) {
 	c.Assert(outputs[kinds.KindHome], deepEqualsOutputFormats, output.Formats{customHTML, customRSS})
 }
 
-// https://github.com/neohugo/neohugo/issues/5849
+// https://github.com/gohugoio/hugo/issues/5849
 func TestOutputFormatPermalinkable(t *testing.T) {
 	config := `
 baseURL = "https://example.com"

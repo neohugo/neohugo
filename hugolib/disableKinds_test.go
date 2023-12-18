@@ -322,7 +322,7 @@ title: Headless Local Lists Sub
 		sect := getPage(b, "/sect")
 		b.Assert(getPageInPagePages(sect, ref), qt.Not(qt.IsNil))
 
-		// https://github.com/neohugo/neohugo/issues/7832
+		// https://github.com/gohugoio/hugo/issues/7832
 		// It should still render any aliases.
 		b.AssertFileContent("public/link-alias/index.html", "refresh")
 	})
@@ -341,7 +341,7 @@ title: Headless Local Lists Sub
 	})
 }
 
-// https://github.com/neohugo/neohugo/issues/6897#issuecomment-587947078
+// https://github.com/gohugoio/hugo/issues/6897#issuecomment-587947078
 func TestDisableRSSWithRSSInCustomOutputs(t *testing.T) {
 	b := newTestSitesBuilder(t).WithConfigFile("toml", `
 disableKinds = ["term", "taxonomy", "RSS"]

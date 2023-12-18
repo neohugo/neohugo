@@ -322,7 +322,7 @@ func TestGetPage(t *testing.T) {
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/6034
+// https://github.com/gohugoio/hugo/issues/6034
 func TestGetPageRelative(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	for i, section := range []string{"what", "where", "who"} {
@@ -348,7 +348,7 @@ NOT FOUND
 	b.AssertFileContent("public/who/index.html", `NOT FOUND`)
 }
 
-// https://github.com/neohugo/neohugo/issues/7016
+// https://github.com/gohugoio/hugo/issues/7016
 func TestGetPageMultilingual(t *testing.T) {
 	b := newTestSitesBuilder(t)
 

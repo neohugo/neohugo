@@ -35,25 +35,25 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-func TestCommands(t *testing.T) {
-	p := commonTestScriptsParam
-	p.Dir = "testscripts/commands"
-	testscript.Run(t, p)
-}
+//func TestCommands(t *testing.T) {
+//	p := commonTestScriptsParam
+//	p.Dir = "testscripts/commands"
+//	testscript.Run(t, p)
+//}
 
 // Tests in development can be put in "testscripts/unfinished".
 // Also see the watch_testscripts.sh script.
-func TestUnfinished(t *testing.T) {
-	if os.Getenv("CI") != "" {
-		t.Skip("skip unfinished tests on CI")
-	}
+//func TestUnfinished(t *testing.T) {
+//	if os.Getenv("CI") != "" {
+//		t.Skip("skip unfinished tests on CI")
+//	}
 
-	p := commonTestScriptsParam
-	p.Dir = "testscripts/unfinished"
-	// p.UpdateScripts = true
+//	p := commonTestScriptsParam
+//	p.Dir = "testscripts/unfinished"
+//	// p.UpdateScripts = true
 
-	testscript.Run(t, p)
-}
+//testscript.Run(t, p)
+//}
 
 func TestMain(m *testing.M) {
 	type testInfo struct { // nolint

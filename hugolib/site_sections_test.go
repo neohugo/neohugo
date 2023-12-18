@@ -109,7 +109,7 @@ Content
 {{ range .Paginator.Pages }}
 PAG|{{ .Title }}|{{ $sect.InSection . }}
 {{ end }}
-{{/* https://github.com/neohugo/neohugo/issues/4989 */}}
+{{/* https://github.com/gohugoio/hugo/issues/4989 */}}
 {{ $sections := (.Site.GetPage "section" .Section).Sections.ByWeight }}
 </html>`)
 
@@ -323,7 +323,7 @@ PAG|{{ .Title }}|{{ $sect.InSection . }}
 	rootPage := s.getPage(kinds.KindPage, "mypage.md")
 	c.Assert(rootPage, qt.Not(qt.IsNil))
 	c.Assert(rootPage.Parent().IsHome(), qt.Equals, true)
-	// https://github.com/neohugo/neohugo/issues/6365
+	// https://github.com/gohugoio/hugo/issues/6365
 	c.Assert(rootPage.Sections(), qt.HasLen, 0)
 
 	// Add a odd test for this as this looks a little bit off, but I'm not in the mood

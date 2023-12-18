@@ -6,16 +6,7 @@ about: Create a report to help us improve
 ---
 
 <!--
-<<<<<<< HEAD
 If you are reporting a new issue, make sure that we do not have any duplicates already open. You can ensure this by searching the issue list for this repository. If there is a duplicate, please add a comment to the existing issue instead.
-=======
-Please do not use the issue queue for questions or troubleshooting. Unless you are certain that your issue is a software defect, use the forum:
-
-https://discourse.gohugo.io
--->
-
-<!-- Please answer these questions before submitting your issue. Thanks! -->
->>>>>>> hugo/release-0.120.4
 
 Please include as much of the information requested below as possible.
 

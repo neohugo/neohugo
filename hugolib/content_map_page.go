@@ -845,7 +845,6 @@ func (b *pagesMapBucket) getTaxonomies() page.Pages {
 	b.sectionsInit.Do(func() {
 		var pas page.Pages
 		ref := b.owner.treeRef
-		// TODO may check error
 		//nolint
 		ref.m.collectTaxonomies(ref.key, func(c *contentNode) {
 			pas = append(pas, c.p)
@@ -855,6 +854,21 @@ func (b *pagesMapBucket) getTaxonomies() page.Pages {
 	})
 
 	return b.sections
+}
+
+// nolint
+func (b *pagesMapBucket) getTaxonomyEntries() page.Pages {
+	var pas page.Pages
+	ref := b.owner.treeRef
+	viewInfo := ref.n.viewInfo
+	prefix := strings.ToLower("/" + viewInfo.name.plural + "/" + viewInfo.termKey + "/")
+	ref.m.taxonomyEntries.WalkPrefix(prefix, func(s string, v any) bool {
+		n := v.(*contentNode)
+		pas = append(pas, n.viewInfo.ref.p)
+		return false
+	})
+	page.SortByDefault(pas)
+	return pas
 }
 
 type sectionAggregate struct {
