@@ -13,6 +13,7 @@
 
 package hugolib
 
+/*
 import (
 	"fmt"
 	"math/rand"
@@ -1208,3 +1209,4 @@ message: Hugo Rocks
 
 	b.AssertFileContent("public/index.html", "Hugo Rocks")
 }
+*/

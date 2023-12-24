@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 
 	qt "github.com/frankban/quicktest"
@@ -114,7 +115,7 @@ permalinkeds:
 		"p4.md", fmt.Sprintf(pageTemplate, "Hello World", "", "", "- \"Hello Hugo world\"", "- Pl1"),
 		"categories/_index.md", newTestPage("Category Terms", "2017-01-01", 10),
 		"tags/Tag1/_index.md", newTestPage("Tag1 List", "2017-01-01", 10),
-		// https://github.com/neohugo/neohugo/issues/5847
+		// https://github.com/gohugoio/hugo/issues/5847
 		"/tags/not-used/_index.md", newTestPage("Unused Tag List", "2018-01-01", 10),
 	)
 
@@ -155,8 +156,8 @@ permalinkeds:
 
 	s := b.H.Sites[0]
 
-	// Make sure that each page.KindTaxonomyTerm page has an appropriate number
-	// of page.KindTaxonomy pages in its Pages slice.
+	// Make sure that each kinds.KindTaxonomyTerm page has an appropriate number
+	// of kinds.KindTaxonomy pages in its Pages slice.
 	taxonomyTermPageCounts := map[string]int{
 		"tags":         3,
 		"categories":   2,
@@ -167,16 +168,16 @@ permalinkeds:
 
 	for taxonomy, count := range taxonomyTermPageCounts {
 		msg := qt.Commentf(taxonomy)
-		term := s.getPage(page.KindTaxonomy, taxonomy)
+		term := s.getPage(kinds.KindTaxonomy, taxonomy)
 		b.Assert(term, qt.Not(qt.IsNil), msg)
 		b.Assert(len(term.Pages()), qt.Equals, count, msg)
 
 		for _, p := range term.Pages() {
-			b.Assert(p.Kind(), qt.Equals, page.KindTerm)
+			b.Assert(p.Kind(), qt.Equals, kinds.KindTerm)
 		}
 	}
 
-	cat1 := s.getPage(page.KindTerm, "categories", "cat1")
+	cat1 := s.getPage(kinds.KindTerm, "categories", "cat1")
 	b.Assert(cat1, qt.Not(qt.IsNil))
 	if uglyURLs {
 		b.Assert(cat1.RelPermalink(), qt.Equals, "/blog/categories/cat1.html")
@@ -184,8 +185,8 @@ permalinkeds:
 		b.Assert(cat1.RelPermalink(), qt.Equals, "/blog/categories/cat1/")
 	}
 
-	pl1 := s.getPage(page.KindTerm, "permalinkeds", "pl1")
-	permalinkeds := s.getPage(page.KindTaxonomy, "permalinkeds")
+	pl1 := s.getPage(kinds.KindTerm, "permalinkeds", "pl1")
+	permalinkeds := s.getPage(kinds.KindTaxonomy, "permalinkeds")
 	b.Assert(pl1, qt.Not(qt.IsNil))
 	b.Assert(permalinkeds, qt.Not(qt.IsNil))
 	if uglyURLs {
@@ -196,7 +197,7 @@ permalinkeds:
 		b.Assert(permalinkeds.RelPermalink(), qt.Equals, "/blog/permalinkeds/")
 	}
 
-	helloWorld := s.getPage(page.KindTerm, "others", "hello-hugo-world")
+	helloWorld := s.getPage(kinds.KindTerm, "others", "hello-hugo-world")
 	b.Assert(helloWorld, qt.Not(qt.IsNil))
 	b.Assert(helloWorld.Title(), qt.Equals, "Hello Hugo world")
 
@@ -204,8 +205,8 @@ permalinkeds:
 	b.AssertFileContent(pathFunc("public/empties/index.html"), "Taxonomy Term Page", "Empties")
 }
 
-// https://github.com/neohugo/neohugo/issues/5513
-// https://github.com/neohugo/neohugo/issues/5571
+// https://github.com/gohugoio/hugo/issues/5513
+// https://github.com/gohugoio/hugo/issues/5571
 func TestTaxonomiesPathSeparation(t *testing.T) {
 	t.Parallel()
 
@@ -268,8 +269,8 @@ title: "This is S3s"
 		return pages
 	}
 
-	ta := filterbyKind(page.KindTerm)
-	te := filterbyKind(page.KindTaxonomy)
+	ta := filterbyKind(kinds.KindTerm)
+	te := filterbyKind(kinds.KindTaxonomy)
 
 	b.Assert(len(te), qt.Equals, 4)
 	b.Assert(len(ta), qt.Equals, 7)
@@ -286,7 +287,7 @@ title: "This is S3s"
 	b.AssertFileContent("public/s1/s2/s3s/index.html", "Taxonomy Term Page 1|This is S3s|Hello|https://example.com/s1/s2/s3s/|")
 }
 
-// https://github.com/neohugo/neohugo/issues/5719
+// https://github.com/gohugoio/hugo/issues/5719
 func TestTaxonomiesNextGenLoops(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 
@@ -396,7 +397,7 @@ Content.
 	})
 }
 
-// https://github.com/neohugo/neohugo/issues/6927
+// https://github.com/gohugoio/hugo/issues/6927
 func TestTaxonomiesHomeDraft(t *testing.T) {
 	t.Parallel()
 
@@ -439,7 +440,7 @@ NO HOME FOR YOU
 	b.Assert(b.CheckExists("public/posts/index.html"), qt.Equals, false)
 }
 
-// https://github.com/neohugo/neohugo/issues/6173
+// https://github.com/gohugoio/hugo/issues/6173
 func TestTaxonomiesWithBundledResources(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithTemplates("_default/list.html", `

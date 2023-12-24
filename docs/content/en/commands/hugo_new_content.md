@@ -10,13 +10,13 @@ Create new content for your site
 ### Synopsis
 
 Create a new content file and automatically set the date and title.
-		It will guess which kind of file to create based on the path provided.
-		
-		You can also specify the kind with `-k KIND`.
-		
-		If archetypes are provided in your theme or site, they will be used.
-		
-		Ensure you run this within the root directory of your site.
+It will guess which kind of file to create based on the path provided.
+
+You can also specify the kind with `-k KIND`.
+
+If archetypes are provided in your theme or site, they will be used.
+
+Ensure you run this within the root directory of your site.
 
 ```
 hugo new content [path] [flags]
@@ -26,11 +26,10 @@ hugo new content [path] [flags]
 
 ```
   -b, --baseURL string      hostname (and path) to the root, e.g. https://spf13.com/
-      --cacheDir string     filesystem path to cache directory. Defaults: $TMPDIR/hugo_cache_$USER/
+      --cacheDir string     filesystem path to cache directory
   -c, --contentDir string   filesystem path to content directory
       --editor string       edit new content with this editor, if provided
   -f, --force               overwrite file if it already exists
-      --format string       preferred file format (toml, yaml or json) (default "toml")
   -h, --help                help for content
   -k, --kind string         content type to create
   -t, --theme strings       themes to use (located in /themes/THEMENAME/)

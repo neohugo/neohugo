@@ -277,6 +277,7 @@ type PageRenderProvider interface {
 // PageWithoutContent is the Page without any of the content methods.
 type PageWithoutContent interface {
 	RawContentProvider
+	RenderShortcodesProvider
 	resource.Resource
 	PageMetaProvider
 	resource.LanguageProvider
@@ -335,8 +336,6 @@ type PageWithoutContent interface {
 	// This is currently only triggered with the Related content feature
 	// and the "fragments" type of index.
 	HeadingsFiltered(context.Context) tableofcontents.Headings
-
-	DeprecatedWarningPageMethods
 }
 
 // Positioner provides next/prev navigation.
@@ -357,6 +356,11 @@ type Positioner interface {
 type RawContentProvider interface {
 	// RawContent returns the raw, unprocessed content of the page excluding any front matter.
 	RawContent() string
+}
+
+type RenderShortcodesProvider interface {
+	// RenderShortcodes returns RawContent with any shortcodes rendered.
+	RenderShortcodes(context.Context) (template.HTML, error)
 }
 
 // RefProvider provides the methods needed to create reflinks to pages.
@@ -457,15 +461,6 @@ type TreeProvider interface {
 	// for legacy reasons.
 	Page() Page
 }
-
-// DeprecatedWarningPageMethods lists deprecated Page methods that will trigger
-// a WARNING if invoked.
-// This was added in Hugo 0.55.
-type DeprecatedWarningPageMethods any // This was emptied in Hugo 0.93.0.
-
-// Move here to trigger ERROR instead of WARNING.
-// TODO(bep) create wrappers and put into the Page once it has some methods.
-type DeprecatedErrorPageMethods any
 
 // PageWithContext is a Page with a context.Context.
 type PageWithContext struct {

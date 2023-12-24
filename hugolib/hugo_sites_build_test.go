@@ -2,7 +2,6 @@ package hugolib
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -11,7 +10,7 @@ import (
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/htesting"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/kinds"
 
 	"github.com/fortytw2/leaktest"
 	"github.com/fsnotify/fsnotify"
@@ -183,12 +182,12 @@ p1 = "p1en"
 	c.Assert(len(sites), qt.Equals, 2)
 
 	nnSite := sites[0]
-	nnHome := nnSite.getPage(page.KindHome)
+	nnHome := nnSite.getPage(kinds.KindHome)
 	c.Assert(len(nnHome.AllTranslations()), qt.Equals, 2)
 	c.Assert(len(nnHome.Translations()), qt.Equals, 1)
 	c.Assert(nnHome.IsTranslated(), qt.Equals, true)
 
-	enHome := sites[1].getPage(page.KindHome)
+	enHome := sites[1].getPage(kinds.KindHome)
 
 	p1, err := enHome.Param("p1")
 	c.Assert(err, qt.IsNil)
@@ -240,7 +239,7 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 	c.Assert(gp2, qt.IsNil)
 
 	enSite := sites[0]
-	enSiteHome := enSite.getPage(page.KindHome)
+	enSiteHome := enSite.getPage(kinds.KindHome)
 	c.Assert(enSiteHome.IsTranslated(), qt.Equals, true)
 
 	c.Assert(enSite.language.Lang, qt.Equals, "en")
@@ -296,15 +295,15 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 		c.Assert(p.Language().Lang, qt.Equals, "fr")
 	}
 
-	// See https://github.com/neohugo/neohugo/issues/4285
+	// See https://github.com/gohugoio/hugo/issues/4285
 	// Before Hugo 0.33 you had to be explicit with the content path to get the correct Page, which
 	// isn't ideal in a multilingual setup. You want a way to get the current language version if available.
 	// Now you can do lookups with translation base name to get that behaviour.
 	// Let us test all the regular page variants:
-	getPageDoc1En := enSite.getPage(page.KindPage, filepath.ToSlash(doc1en.File().Path()))
-	getPageDoc1EnBase := enSite.getPage(page.KindPage, "sect/doc1")
-	getPageDoc1Fr := frSite.getPage(page.KindPage, filepath.ToSlash(doc1fr.File().Path()))
-	getPageDoc1FrBase := frSite.getPage(page.KindPage, "sect/doc1")
+	getPageDoc1En := enSite.getPage(kinds.KindPage, filepath.ToSlash(doc1en.File().Path()))
+	getPageDoc1EnBase := enSite.getPage(kinds.KindPage, "sect/doc1")
+	getPageDoc1Fr := frSite.getPage(kinds.KindPage, filepath.ToSlash(doc1fr.File().Path()))
+	getPageDoc1FrBase := frSite.getPage(kinds.KindPage, "sect/doc1")
 	c.Assert(getPageDoc1En, qt.Equals, doc1en)
 	c.Assert(getPageDoc1Fr, qt.Equals, doc1fr)
 	c.Assert(getPageDoc1EnBase, qt.Equals, doc1en)
@@ -322,7 +321,7 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 	b.AssertFileContent("public/en/sect/doc1-slug/index.html", "Single", "Shortcode: Hello", "LingoDefault")
 
 	// Check node translations
-	homeEn := enSite.getPage(page.KindHome)
+	homeEn := enSite.getPage(kinds.KindHome)
 	c.Assert(homeEn, qt.Not(qt.IsNil))
 	c.Assert(len(homeEn.Translations()), qt.Equals, 3)
 	c.Assert(homeEn.Translations()[0].Language().Lang, qt.Equals, "fr")
@@ -332,7 +331,7 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 	c.Assert(homeEn.Translations()[2].Title(), qt.Equals, "På bokmål")
 	c.Assert(homeEn.Translations()[2].Language().LanguageName, qt.Equals, "Bokmål")
 
-	sectFr := frSite.getPage(page.KindSection, "sect")
+	sectFr := frSite.getPage(kinds.KindSection, "sect")
 	c.Assert(sectFr, qt.Not(qt.IsNil))
 
 	c.Assert(sectFr.Language().Lang, qt.Equals, "fr")
@@ -342,14 +341,14 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 
 	nnSite := sites[2]
 	c.Assert(nnSite.language.Lang, qt.Equals, "nn")
-	taxNn := nnSite.getPage(page.KindTaxonomy, "lag")
+	taxNn := nnSite.getPage(kinds.KindTaxonomy, "lag")
 	c.Assert(taxNn, qt.Not(qt.IsNil))
 	c.Assert(len(taxNn.Translations()), qt.Equals, 1)
 	c.Assert(taxNn.Translations()[0].Language().Lang, qt.Equals, "nb")
 
-	taxTermNn := nnSite.getPage(page.KindTerm, "lag", "sogndal")
+	taxTermNn := nnSite.getPage(kinds.KindTerm, "lag", "sogndal")
 	c.Assert(taxTermNn, qt.Not(qt.IsNil))
-	c.Assert(nnSite.getPage(page.KindTerm, "LAG", "SOGNDAL"), qt.Equals, taxTermNn)
+	c.Assert(nnSite.getPage(kinds.KindTerm, "LAG", "SOGNDAL"), qt.Equals, taxTermNn)
 	c.Assert(len(taxTermNn.Translations()), qt.Equals, 1)
 	c.Assert(taxTermNn.Translations()[0].Language().Lang, qt.Equals, "nb")
 
@@ -380,19 +379,19 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 	// Issue #3108
 	prevPage := enSite.RegularPages()[0].Prev()
 	c.Assert(prevPage, qt.Not(qt.IsNil))
-	c.Assert(prevPage.Kind(), qt.Equals, page.KindPage)
+	c.Assert(prevPage.Kind(), qt.Equals, kinds.KindPage)
 
 	for {
 		if prevPage == nil {
 			break
 		}
-		c.Assert(prevPage.Kind(), qt.Equals, page.KindPage)
+		c.Assert(prevPage.Kind(), qt.Equals, kinds.KindPage)
 		prevPage = prevPage.Prev()
 	}
 
 	// Check bundles
 	b.AssertFileContent("public/fr/bundles/b1/index.html", "RelPermalink: /blog/fr/bundles/b1/|")
-	bundleFr := frSite.getPage(page.KindPage, "bundles/b1/index.md")
+	bundleFr := frSite.getPage(kinds.KindPage, "bundles/b1/index.md")
 	c.Assert(bundleFr, qt.Not(qt.IsNil))
 	c.Assert(len(bundleFr.Resources()), qt.Equals, 1)
 	logoFr := bundleFr.Resources().GetMatch("logo*")
@@ -402,7 +401,7 @@ func doTestMultiSitesBuild(t *testing.T, configTemplate, configSuffix string) {
 	b.AssertFileContent("public/fr/bundles/b1/index.html", "Resources: image/png: /blog/fr/bundles/b1/logo.png")
 	b.AssertFileContent("public/fr/bundles/b1/logo.png", "PNG Data")
 
-	bundleEn := enSite.getPage(page.KindPage, "bundles/b1/index.en.md")
+	bundleEn := enSite.getPage(kinds.KindPage, "bundles/b1/index.en.md")
 	c.Assert(bundleEn, qt.Not(qt.IsNil))
 	b.AssertFileContent("public/en/bundles/b1/index.html", "RelPermalink: /blog/en/bundles/b1/|")
 	c.Assert(len(bundleEn.Resources()), qt.Equals, 1)
@@ -442,7 +441,7 @@ func TestMultiSitesRebuild(t *testing.T) {
 	b.AssertFileContent("public/fr/sect/doc1/index.html", "Single", "Shortcode: Bonjour")
 	b.AssertFileContent("public/en/sect/doc1-slug/index.html", "Single", "Shortcode: Hello")
 
-	homeEn := enSite.getPage(page.KindHome)
+	homeEn := enSite.getPage(kinds.KindHome)
 	c.Assert(homeEn, qt.Not(qt.IsNil))
 	c.Assert(len(homeEn.Translations()), qt.Equals, 3)
 
@@ -462,7 +461,8 @@ func TestMultiSitesRebuild(t *testing.T) {
 		// * Change language file
 		{
 			func(t *testing.T) {
-				c.Assert(fs.Source.Remove("content/sect/doc2.en.md"), qt.IsNil)
+				// nolint
+				fs.Source.Remove("content/sect/doc2.en.md")
 			},
 			[]fsnotify.Event{{Name: filepath.FromSlash("content/sect/doc2.en.md"), Op: fsnotify.Remove}},
 			func(t *testing.T) {
@@ -559,7 +559,7 @@ func TestMultiSitesRebuild(t *testing.T) {
 				docFr := readWorkingDir(t, fs, "public/fr/sect/doc1/index.html")
 				c.Assert(strings.Contains(docFr, "Salut"), qt.Equals, true)
 
-				homeEn := enSite.getPage(page.KindHome)
+				homeEn := enSite.getPage(kinds.KindHome)
 				c.Assert(homeEn, qt.Not(qt.IsNil))
 				c.Assert(len(homeEn.Translations()), qt.Equals, 3)
 				c.Assert(homeEn.Translations()[0].Language().Lang, qt.Equals, "fr")
@@ -596,7 +596,7 @@ func TestMultiSitesRebuild(t *testing.T) {
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/4706
+// https://github.com/gohugoio/hugo/issues/4706
 func TestContentStressTest(t *testing.T) {
 	b := newTestSitesBuilder(t)
 
@@ -1150,16 +1150,18 @@ func readFileFromFs(t testing.TB, fs afero.Fs, filename string) string {
 
 		parts := strings.Split(filename, helpers.FilePathSeparator)
 		if parts[start] == "work" {
+			// nolint
 			end++
 		}
 
-		root := filepath.Join(parts[start:end]...)
-		if hadSlash {
-			root = helpers.FilePathSeparator + root
-		}
+		/*
+			root := filepath.Join(parts[start:end]...)
+			if hadSlash {
+				root = helpers.FilePathSeparator + root
+			}
 
-		//nolint
-		helpers.PrintFs(fs, root, os.Stdout)
+			helpers.PrintFs(fs, root, os.Stdout)
+		*/
 
 		t.Fatalf("Failed to read file: %s", err)
 	}

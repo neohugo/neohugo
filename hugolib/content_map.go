@@ -22,6 +22,7 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/neohugo/neohugo/hugofs/files"
@@ -275,13 +276,13 @@ type contentBundleViewInfo struct {
 
 func (c *contentBundleViewInfo) kind() string {
 	if c.termKey != "" {
-		return page.KindTerm
+		return kinds.KindTerm
 	}
-	return page.KindTaxonomy
+	return kinds.KindTaxonomy
 }
 
 func (c *contentBundleViewInfo) sections() []string {
-	if c.kind() == page.KindTaxonomy {
+	if c.kind() == kinds.KindTaxonomy {
 		return []string{c.name.plural}
 	}
 
@@ -656,13 +657,14 @@ func (m *contentMap) deleteSectionByPath(s string) {
 	m.resources.DeletePrefix(s)
 }
 
-// func (m *contentMap) deletePageByPath(s string) {
-// m.pages.Walk(func(s string, v interface{}) bool {
-// fmt.Println("S", s)
+// nolint
+func (m *contentMap) deletePageByPath(s string) {
+	m.pages.Walk(func(s string, v any) bool {
+		fmt.Println("S", s)
 
-//return false
-//})
-//}
+		return false
+	})
+}
 
 func (m *contentMap) deleteTaxonomy(s string) {
 	m.taxonomies.DeletePrefix(s)
@@ -935,19 +937,21 @@ func (c *contentTree) hasBelow(s1 string) bool {
 	return t
 }
 
-//func (c *contentTree) printKeys() {
-//c.Walk(func(s string, v interface{}) bool {
-//fmt.Println(s)
-//return false
-//})
-//}
+// nolint
+func (c *contentTree) printKeys() {
+	c.Walk(func(s string, v any) bool {
+		fmt.Println(s)
+		return false
+	})
+}
 
-//func (c *contentTree) printKeysPrefix(prefix string) {
-//c.WalkPrefix(prefix, func(s string, v interface{}) bool {
-//fmt.Println(s)
-//return false
-//})
-//}
+// nolint
+func (c *contentTree) printKeysPrefix(prefix string) {
+	c.WalkPrefix(prefix, func(s string, v any) bool {
+		fmt.Println(s)
+		return false
+	})
+}
 
 // contentTreeRef points to a node in the given tree.
 type contentTreeRef struct {

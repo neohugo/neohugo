@@ -5,11 +5,11 @@ categories: [asset management]
 keywords: []
 menu:
   docs:
-    parent: pipes
+    parent: hugo-pipes
     weight: 40
 toc: true
 weight: 40
-signature: ["resources.PostCSS RESOURCE [OPTIONS]", "postCSS RESOURCE [OPTIONS]"]
+signatures: ["resources.PostCSS RESOURCE [OPTIONS]", "postCSS RESOURCE [OPTIONS]"]
 ---
 
 ## Setup
@@ -114,7 +114,7 @@ syntax
 
 ## Check Hugo environment
 
-The current Hugo environment name (set by `--environment` or in config or OS environment) is available in the Node context, which allows constructs like this:
+The current Hugo environment name (set by `--environment` or in configuration or OS environment) is available in the Node context, which allows constructs like this:
 
 {{< code file="postcss.config.js" >}}
 module.exports = {

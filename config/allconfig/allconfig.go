@@ -29,6 +29,7 @@ import (
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/urls"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/privacy"
@@ -45,6 +46,7 @@ import (
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/related"
 	"github.com/neohugo/neohugo/resources/images"
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
 	"github.com/spf13/afero"
@@ -239,9 +241,14 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 	disabledKinds := make(map[string]bool)
 	for _, kind := range c.DisableKinds {
 		kind = strings.ToLower(kind)
-		if kind == "taxonomyterm" {
+		if newKind := kinds.IsDeprecatedAndReplacedWith(kind); newKind != "" {
+			logger.Deprecatef(false, "Kind %q used in disableKinds is deprecated, use %q instead.", kind, newKind)
 			// Legacy config.
-			kind = "taxonomy"
+			kind = newKind
+		}
+		if kinds.GetKindAny(kind) == "" {
+			logger.Warnf("Unknown kind %q in disableKinds configuration.", kind)
+			continue
 		}
 		disabledKinds[kind] = true
 	}
@@ -249,7 +256,15 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 	isRssDisabled := disabledKinds["rss"]
 	outputFormats := c.OutputFormats.Config
 	for kind, formats := range c.Outputs {
+		if newKind := kinds.IsDeprecatedAndReplacedWith(kind); newKind != "" {
+			logger.Deprecatef(false, "Kind %q used in outputs configuration is deprecated, use %q instead.", kind, newKind)
+			kind = newKind
+		}
 		if disabledKinds[kind] {
+			continue
+		}
+		if kinds.GetKindAny(kind) == "" {
+			logger.Warnf("Unknown kind %q in outputs configuration.", kind)
 			continue
 		}
 		for _, format := range formats {
@@ -728,7 +743,8 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 	cfg := res.Cfg
 
 	all := &Config{}
-	err := decodeConfigFromParams(fs, bcfg, cfg, all, nil)
+
+	err := decodeConfigFromParams(fs, logger, bcfg, cfg, all, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -768,7 +784,7 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 					// We accidentally allowed it in the past, so we need to support it a little longer,
 					// But log a warning.
 					if _, found := params[kk]; !found {
-						helpers.Deprecated(fmt.Sprintf("config: languages.%s.%s: custom params on the language top level", k, kk), fmt.Sprintf("Put the value below [languages.%s.params]. See https://gohugo.io/content-management/multilingual/#changes-in-hugo-01120", k), false)
+						neohugo.Deprecate(fmt.Sprintf("config: languages.%s.%s: custom params on the language top level", k, kk), fmt.Sprintf("Put the value below [languages.%s.params]. See https://gohugo.io/content-management/multilingual/#changes-in-hugo-01120", k), "v0.112.0")
 						params[kk] = vv
 					}
 				}
@@ -816,7 +832,7 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 			// Create a copy of the complete config and replace the root keys with the language specific ones.
 			clone := all.cloneForLang()
 
-			if err := decodeConfigFromParams(fs, bcfg, mergedConfig, clone, differentRootKeys); err != nil {
+			if err := decodeConfigFromParams(fs, logger, bcfg, mergedConfig, clone, differentRootKeys); err != nil {
 				return nil, fmt.Errorf("failed to decode config for language %q: %w", k, err)
 			}
 			if err := clone.CompileConfig(logger); err != nil {
@@ -870,6 +886,10 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 
 	bcfg.PublishDir = all.PublishDir
 	res.BaseConfig = bcfg
+	all.CommonDirs.CacheDir = bcfg.CacheDir
+	for _, l := range langConfigs {
+		l.CommonDirs.CacheDir = bcfg.CacheDir
+	}
 
 	cm := &Configs{
 		Base:                  all,
@@ -884,7 +904,7 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 	return cm, nil
 }
 
-func decodeConfigFromParams(fs afero.Fs, bcfg config.BaseConfig, p config.Provider, target *Config, keys []string) error {
+func decodeConfigFromParams(fs afero.Fs, logger loggers.Logger, bcfg config.BaseConfig, p config.Provider, target *Config, keys []string) error {
 	var decoderSetups []decodeWeight
 
 	if len(keys) == 0 {
@@ -896,7 +916,7 @@ func decodeConfigFromParams(fs afero.Fs, bcfg config.BaseConfig, p config.Provid
 			if v, found := allDecoderSetups[key]; found {
 				decoderSetups = append(decoderSetups, v)
 			} else {
-				return fmt.Errorf("unknown config key %q", key)
+				logger.Warnf("Skip unknown config key %q", key)
 			}
 		}
 	}
@@ -933,11 +953,11 @@ func createDefaultOutputFormats(allFormats output.Formats) map[string][]string {
 	}
 
 	m := map[string][]string{
-		page.KindPage:     {htmlOut.Name},
-		page.KindHome:     defaultListTypes,
-		page.KindSection:  defaultListTypes,
-		page.KindTerm:     defaultListTypes,
-		page.KindTaxonomy: defaultListTypes,
+		kinds.KindPage:     {htmlOut.Name},
+		kinds.KindHome:     defaultListTypes,
+		kinds.KindSection:  defaultListTypes,
+		kinds.KindTerm:     defaultListTypes,
+		kinds.KindTaxonomy: defaultListTypes,
 	}
 
 	// May be disabled

@@ -87,6 +87,7 @@ type pageOutput struct {
 	page.ContentProvider
 	page.PageRenderProvider
 	page.TableOfContentsProvider
+	page.RenderShortcodesProvider
 
 	// May be nil.
 	cp *pageContentOutput
@@ -100,6 +101,7 @@ func (p *pageOutput) initContentProvider(cp *pageContentOutput) {
 	p.ContentProvider = cp
 	p.PageRenderProvider = cp
 	p.TableOfContentsProvider = cp
+	p.RenderShortcodesProvider = cp
 	p.cp = cp
 }
 

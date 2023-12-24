@@ -26,6 +26,7 @@ import (
 	translators "github.com/gohugoio/localescompressed"
 
 	"github.com/neohugo/neohugo/common/hreflect"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/cast"
 )
@@ -239,10 +240,9 @@ func (ns *Namespace) FormatNumberCustom(precision, number any, options ...any) (
 	return string(b), nil
 }
 
-// NumFmt is deprecated, use FormatNumberCustom.
-// We renamed this in Hugo 0.87.
-// Deprecated: Use FormatNumberCustom
+// Deprecated: Use lang.FormatNumberCustom instead.
 func (ns *Namespace) NumFmt(precision, number any, options ...any) (string, error) {
+	neohugo.Deprecate("lang.NumFmt", "Use lang.FormatNumberCustom instead.", "v0.120.0")
 	return ns.FormatNumberCustom(precision, number, options...)
 }
 

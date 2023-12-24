@@ -1,13 +1,11 @@
 ---
-title: Host on GitHub
-description: Deploy Hugo as a GitHub Pages project or personal/organizational site and automate the whole process with Github Actions
+title: Host on GitHub Pages
+description: Deploy Hugo as a GitHub Pages project or personal/organizational site and automate the whole process with GitHub Actions
 categories: [hosting and deployment]
 keywords: [github,git,deployment,hosting]
 menu:
   docs:
     parent: hosting-and-deployment
-    weight: 30
-weight: 30
 toc: true
 aliases: [/tutorials/github-pages-blog/]
 ---
@@ -102,14 +100,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      HUGO_VERSION: 0.111.3
+      HUGO_VERSION: 0.115.4
     steps:
       - name: Install Hugo CLI
         run: |
           wget -O ${{ runner.temp }}/hugo.deb https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_extended_${HUGO_VERSION}_linux-amd64.deb \
           && sudo dpkg -i ${{ runner.temp }}/hugo.deb
-      - name: Install Dart Sass Embedded
-        run: sudo snap install dart-sass-embedded
+      - name: Install Dart Sass
+        run: sudo snap install dart-sass
       - name: Checkout
         uses: actions/checkout@v3
         with:
@@ -172,6 +170,19 @@ Step 10
 Under the deploy step, you will see a link to your live site.
 
 In the future, whenever you push a change from your local repository, GitHub will rebuild your site and deploy the changes.
+
+## Customize the workflow
+
+The example workflow above includes this step, which typically takes 10&#8209;15 seconds:
+
+```yaml
+- name: Install Dart Sass
+  run: sudo snap install dart-sass
+```
+
+You may remove this step if your site, themes, and modules do not transpile Sass to CSS using the [Dart Sass] transpiler.
+
+[Dart Sass]: /hugo-pipes/transpile-sass-to-css/#dart-sass
 
 ## Additional resources
 

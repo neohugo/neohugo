@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"html/template"
 	"math/rand"
 	"net/url"
 	"reflect"
@@ -28,6 +27,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/langs"
@@ -99,7 +99,7 @@ func (ns *Namespace) After(n any, l any) (any, error) {
 
 // Delimit takes a given list l and returns a string delimited by sep.
 // If last is passed to the function, it will be used as the final delimiter.
-func (ns *Namespace) Delimit(ctx context.Context, l, sep any, last ...any) (template.HTML, error) {
+func (ns *Namespace) Delimit(ctx context.Context, l, sep any, last ...any) (string, error) {
 	d, err := cast.ToStringE(sep)
 	if err != nil {
 		return "", err
@@ -152,7 +152,7 @@ func (ns *Namespace) Delimit(ctx context.Context, l, sep any, last ...any) (temp
 		return "", fmt.Errorf("can't iterate over %v", l)
 	}
 
-	return template.HTML(str), nil
+	return str, nil
 }
 
 // Dictionary creates a new map from the given parameters by
@@ -194,9 +194,11 @@ func (ns *Namespace) Dictionary(values ...any) (map[string]any, error) {
 	return root, nil
 }
 
-// EchoParam returns a the value in the collection c with key k if is set; otherwise, it returns an
+// EchoParam returns the value in the collection c with key k if is set; otherwise, it returns an
 // empty string.
+// Deprecated: Use the index function instead.
 func (ns *Namespace) EchoParam(c, k any) any {
+	neohugo.Deprecate("collections.EchoParam", "Use the index function instead.", "v0.120.0")
 	av, isNil := indirect(reflect.ValueOf(c))
 	if isNil {
 		return ""
@@ -232,6 +234,8 @@ func (ns *Namespace) EchoParam(c, k any) any {
 			return avv.Float()
 		case reflect.String:
 			return avv.String()
+		case reflect.Bool:
+			return avv.Bool()
 		}
 	}
 

@@ -25,14 +25,15 @@ import (
 
 	"github.com/neohugo/neohugo/common/loggers"
 
+	"github.com/neohugo/neohugo/hugofs"
+
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/neohugo/neohugo/hugofs"
-
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/neohugo/neohugo/htesting"
@@ -103,7 +104,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 
 						c.Assert(len(s.RegularPages()), qt.Equals, 8)
 
-						singlePage := s.getPage(page.KindPage, "a/1.md")
+						singlePage := s.getPage(kinds.KindPage, "a/1.md")
 						c.Assert(singlePage.BundleType(), qt.Equals, files.ContentClass(""))
 
 						c.Assert(singlePage, qt.Not(qt.IsNil))
@@ -149,18 +150,18 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 						// This should be just copied to destination.
 						b.AssertFileContent(filepath.FromSlash("public/assets/pic1.png"), "content")
 
-						leafBundle1 := s.getPage(page.KindPage, "b/my-bundle/index.md")
+						leafBundle1 := s.getPage(kinds.KindPage, "b/my-bundle/index.md")
 						c.Assert(leafBundle1, qt.Not(qt.IsNil))
 						c.Assert(leafBundle1.BundleType(), qt.Equals, files.ContentClassLeaf)
 						c.Assert(leafBundle1.Section(), qt.Equals, "b")
-						sectionB := s.getPage(page.KindSection, "b")
+						sectionB := s.getPage(kinds.KindSection, "b")
 						c.Assert(sectionB, qt.Not(qt.IsNil))
 						home := s.Home()
 						c.Assert(home.BundleType(), qt.Equals, files.ContentClassBranch)
 
 						// This is a root bundle and should live in the "home section"
-						// See https://github.com/neohugo/neohugo/issues/4332
-						rootBundle := s.getPage(page.KindPage, "root")
+						// See https://github.com/gohugoio/hugo/issues/4332
+						rootBundle := s.getPage(kinds.KindPage, "root")
 						c.Assert(rootBundle, qt.Not(qt.IsNil))
 						c.Assert(rootBundle.Parent().IsHome(), qt.Equals, true)
 						if !ugly {
@@ -168,9 +169,9 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 							b.AssertFileContent(filepath.FromSlash("public/cpath/root/cindex.html"), "Single RelPermalink: "+relURLBase+"/cpath/root/")
 						}
 
-						leafBundle2 := s.getPage(page.KindPage, "a/b/index.md")
+						leafBundle2 := s.getPage(kinds.KindPage, "a/b/index.md")
 						c.Assert(leafBundle2, qt.Not(qt.IsNil))
-						unicodeBundle := s.getPage(page.KindPage, "c/bundle/index.md")
+						unicodeBundle := s.getPage(kinds.KindPage, "c/bundle/index.md")
 						c.Assert(unicodeBundle, qt.Not(qt.IsNil))
 
 						pageResources := leafBundle1.Resources().ByType(pageResourceType)
@@ -185,7 +186,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 						// Verify shortcode in bundled page
 						c.Assert(content(secondPage), qt.Contains, filepath.FromSlash("MyShort in b/my-bundle/2.md"))
 
-						// https://github.com/neohugo/neohugo/issues/4582
+						// https://github.com/gohugoio/hugo/issues/4582
 						c.Assert(firstPage.Parent(), qt.Equals, leafBundle1)
 						c.Assert(secondPage.Parent(), qt.Equals, leafBundle1)
 
@@ -250,7 +251,7 @@ func TestPageBundlerSiteRegular(t *testing.T) {
 								"0: Page Title: Bundle Galore",
 							)
 
-							// https://github.com/neohugo/neohugo/issues/5882
+							// https://github.com/gohugoio/hugo/issues/5882
 							b.AssertFileContent(
 								filepath.FromSlash("public/2017/pageslug.html"), "0: Page RelPermalink: |")
 
@@ -301,10 +302,10 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 
 				c.Assert(len(s.AllPages()), qt.Equals, 31)
 
-				bundleWithSubPath := s.getPage(page.KindPage, "lb/index")
+				bundleWithSubPath := s.getPage(kinds.KindPage, "lb/index")
 				c.Assert(bundleWithSubPath, qt.Not(qt.IsNil))
 
-				// See https://github.com/neohugo/neohugo/issues/4312
+				// See https://github.com/gohugoio/hugo/issues/4312
 				// Before that issue:
 				// A bundle in a/b/index.en.md
 				// a/b/index.en.md => OK
@@ -315,24 +316,24 @@ func TestPageBundlerSiteMultilingual(t *testing.T) {
 				// and probably also just b (aka "my-bundle")
 				// These may also be translated, so we also need to test that.
 				//  "bf", "my-bf-bundle", "index.md + nn
-				bfBundle := s.getPage(page.KindPage, "bf/my-bf-bundle/index")
+				bfBundle := s.getPage(kinds.KindPage, "bf/my-bf-bundle/index")
 				c.Assert(bfBundle, qt.Not(qt.IsNil))
 				c.Assert(bfBundle.Language().Lang, qt.Equals, "en")
-				c.Assert(s.getPage(page.KindPage, "bf/my-bf-bundle/index.md"), qt.Equals, bfBundle)
-				c.Assert(s.getPage(page.KindPage, "bf/my-bf-bundle"), qt.Equals, bfBundle)
-				c.Assert(s.getPage(page.KindPage, "my-bf-bundle"), qt.Equals, bfBundle)
+				c.Assert(s.getPage(kinds.KindPage, "bf/my-bf-bundle/index.md"), qt.Equals, bfBundle)
+				c.Assert(s.getPage(kinds.KindPage, "bf/my-bf-bundle"), qt.Equals, bfBundle)
+				c.Assert(s.getPage(kinds.KindPage, "my-bf-bundle"), qt.Equals, bfBundle)
 
 				nnSite := sites.Sites[1]
 				c.Assert(len(nnSite.RegularPages()), qt.Equals, 7)
 
-				bfBundleNN := nnSite.getPage(page.KindPage, "bf/my-bf-bundle/index")
+				bfBundleNN := nnSite.getPage(kinds.KindPage, "bf/my-bf-bundle/index")
 				c.Assert(bfBundleNN, qt.Not(qt.IsNil))
 				c.Assert(bfBundleNN.Language().Lang, qt.Equals, "nn")
-				c.Assert(nnSite.getPage(page.KindPage, "bf/my-bf-bundle/index.nn.md"), qt.Equals, bfBundleNN)
-				c.Assert(nnSite.getPage(page.KindPage, "bf/my-bf-bundle"), qt.Equals, bfBundleNN)
-				c.Assert(nnSite.getPage(page.KindPage, "my-bf-bundle"), qt.Equals, bfBundleNN)
+				c.Assert(nnSite.getPage(kinds.KindPage, "bf/my-bf-bundle/index.nn.md"), qt.Equals, bfBundleNN)
+				c.Assert(nnSite.getPage(kinds.KindPage, "bf/my-bf-bundle"), qt.Equals, bfBundleNN)
+				c.Assert(nnSite.getPage(kinds.KindPage, "my-bf-bundle"), qt.Equals, bfBundleNN)
 
-				// See https://github.com/neohugo/neohugo/issues/4295
+				// See https://github.com/gohugoio/hugo/issues/4295
 				// Every resource should have its Name prefixed with its base folder.
 				cBundleResources := bundleWithSubPath.Resources().Match("c/**")
 				c.Assert(len(cBundleResources), qt.Equals, 4)
@@ -484,7 +485,7 @@ TheContent.
 	s := b.H.Sites[0]
 
 	c.Assert(len(s.RegularPages()), qt.Equals, 7)
-	a1Bundle := s.getPage(page.KindPage, "symbolic2/a1/index.md")
+	a1Bundle := s.getPage(kinds.KindPage, "symbolic2/a1/index.md")
 	c.Assert(a1Bundle, qt.Not(qt.IsNil))
 	c.Assert(len(a1Bundle.Resources()), qt.Equals, 2)
 	c.Assert(len(a1Bundle.Resources().ByType(pageResourceType)), qt.Equals, 1)
@@ -544,10 +545,10 @@ HEADLESS {{< myShort >}}
 
 	c.Assert(len(s.RegularPages()), qt.Equals, 1)
 
-	regular := s.getPage(page.KindPage, "a/index")
+	regular := s.getPage(kinds.KindPage, "a/index")
 	c.Assert(regular.RelPermalink(), qt.Equals, "/s1/")
 
-	headless := s.getPage(page.KindPage, "b/index")
+	headless := s.getPage(kinds.KindPage, "b/index")
 	c.Assert(headless, qt.Not(qt.IsNil))
 	c.Assert(headless.Title(), qt.Equals, "Headless Bundle in Topless Bar")
 	c.Assert(headless.RelPermalink(), qt.Equals, "")
@@ -574,7 +575,7 @@ HEADLESS {{< myShort >}}
 	th.assertFileContent(filepath.FromSlash("public/s2/l1.png"), "PNG")
 
 	// No headless bundles here, please.
-	// https://github.com/neohugo/neohugo/issues/6492
+	// https://github.com/gohugoio/hugo/issues/6492
 	c.Assert(s.RegularPages(), qt.HasLen, 1)
 	c.Assert(s.home.RegularPages(), qt.HasLen, 1)
 	c.Assert(s.home.Pages(), qt.HasLen, 1)
@@ -829,7 +830,7 @@ Short Thumb Width: {{ $thumb.Width }}
 	writeSource(t, fs, filepath.Join(workDir, "base", "b", "my-bundle", "c", "logo.png"), "content")
 
 	// Bundle with 은행 slug
-	// See https://github.com/neohugo/neohugo/issues/4241
+	// See https://github.com/gohugoio/hugo/issues/4241
 	writeSource(t, fs, filepath.Join(workDir, "base", "c", "bundle", "index.md"), `---
 title: "은행 은행"
 slug: 은행
@@ -850,7 +851,7 @@ Content for 은행.
 	src, err := os.Open("testdata/sunset.jpg")
 	c.Assert(err, qt.IsNil)
 
-	// We need 2 to test https://github.com/neohugo/neohugo/issues/4202
+	// We need 2 to test https://github.com/gohugoio/hugo/issues/4202
 	out, err := fs.Source.Create(filepath.Join(workDir, "base", "b", "my-bundle", "sunset1.jpg"))
 	c.Assert(err, qt.IsNil)
 	out2, err := fs.Source.Create(filepath.Join(workDir, "base", "b", "my-bundle", "sunset2.jpg"))
@@ -956,7 +957,7 @@ TheContent.
 	return fs, cfg
 }
 
-// https://github.com/neohugo/neohugo/issues/5858
+// https://github.com/gohugoio/hugo/issues/5858
 func TestBundledResourcesWhenMultipleOutputFormats(t *testing.T) {
 	t.Parallel()
 
@@ -989,7 +990,7 @@ date: 2017-01-15
 	b.AssertFileContent("public/mybundle/data.json", "My changed data")
 }
 
-// https://github.com/neohugo/neohugo/issues/4870
+// https://github.com/gohugoio/hugo/issues/4870
 func TestBundleSlug(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)

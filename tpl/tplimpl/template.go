@@ -707,7 +707,7 @@ func (t *templateHandler) applyBaseTemplate(overlay, base templateInfo) (tpl.Tem
 		// The extra lookup is a workaround, see
 		// * https://github.com/golang/go/issues/16101
 		// * https://github.com/gohugoio/hugo/issues/2549
-		// templ = templ.Lookup(templ.Name())
+		templ = templ.Lookup(templ.Name())
 
 		return templ, nil
 	}
@@ -763,6 +763,9 @@ var embeddedTemplatesFs embed.FS
 func (t *templateHandler) loadEmbedded() error {
 	//nolint
 	return fs.WalkDir(embeddedTemplatesFs, ".", func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d == nil || d.IsDir() {
 			return nil
 		}

@@ -28,6 +28,7 @@ import (
 
 	"github.com/neohugo/neohugo/output"
 
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
 )
@@ -227,7 +228,7 @@ func (s *Site) renderPaginator(p *pageState, templ tpl.Template) error {
 func (s *Site) render404() error {
 	p, err := newPageStandalone(&pageMeta{
 		s:    s,
-		kind: kind404,
+		kind: kinds.Kind404,
 		urlPaths: pagemeta.URLPath{
 			URL: "404.html",
 		},
@@ -243,7 +244,7 @@ func (s *Site) render404() error {
 	}
 
 	var d layouts.LayoutDescriptor
-	d.Kind = kind404
+	d.Kind = kinds.Kind404
 
 	templ, found, err := s.Tmpl().LookupLayout(d, output.HTMLFormat)
 	if err != nil {
@@ -265,7 +266,7 @@ func (s *Site) render404() error {
 func (s *Site) renderSitemap() error {
 	p, err := newPageStandalone(&pageMeta{
 		s:    s,
-		kind: kindSitemap,
+		kind: kinds.KindSitemap,
 		urlPaths: pagemeta.URLPath{
 			URL: s.conf.Sitemap.Filename,
 		},
@@ -293,13 +294,13 @@ func (s *Site) renderSitemap() error {
 }
 
 func (s *Site) renderRobotsTXT() error {
-	if !s.conf.EnableRobotsTXT && s.isEnabled(kindRobotsTXT) {
+	if !s.conf.EnableRobotsTXT && s.isEnabled(kinds.KindRobotsTXT) {
 		return nil
 	}
 
 	p, err := newPageStandalone(&pageMeta{
 		s:    s,
-		kind: kindRobotsTXT,
+		kind: kinds.KindRobotsTXT,
 		urlPaths: pagemeta.URLPath{
 			URL: "robots.txt",
 		},

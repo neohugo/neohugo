@@ -174,12 +174,6 @@ func resolveComponentInAssets(fs afero.Fs, impPath string) *hugofs.FileMeta {
 	if m != nil {
 		return m
 	}
-	if filepath.Base(impPath) == "index" {
-		m = findFirst(impPath + ".esm")
-		if m != nil {
-			return m
-		}
-	}
 
 	base := filepath.Base(impPath)
 	if base == "index" {

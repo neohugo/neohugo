@@ -27,9 +27,6 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/neohugo"
-
 	"github.com/spf13/afero"
 
 	"github.com/jdkato/prose/transform"
@@ -53,17 +50,6 @@ func TCPListen() (net.Listener, *net.TCPAddr, error) {
 	}
 	l.Close()
 	return nil, nil, fmt.Errorf("unable to obtain a valid tcp port: %v", addr)
-}
-
-// InStringArray checks if a string is an element of a slice of strings
-// and returns a boolean value.
-func InStringArray(arr []string, el string) bool {
-	for _, v := range arr {
-		if v == el {
-			return true
-		}
-	}
-	return false
 }
 
 // FirstUpper returns a string with the first character as upper case.
@@ -261,19 +247,6 @@ func compareStringSlices(a, b []string) bool {
 	}
 
 	return true
-}
-
-// Deprecated informs about a deprecation, but only once for a given set of arguments' values.
-// If the err flag is enabled, it logs as an ERROR (will exit with -1) and the text will
-// point at the next Hugo release.
-// The idea is two remove an item in two Hugo releases to give users and theme authors
-// plenty of time to fix their templates.
-func Deprecated(item, alternative string, err bool) {
-	if err {
-		loggers.Log().Errorf("%s is deprecated and will be removed in Hugo %s. %s", item, neohugo.CurrentVersion.Next().ReleaseVersion(), alternative)
-	} else {
-		loggers.Log().Warnf("%s is deprecated and will be removed in a future release. %s", item, alternative)
-	}
 }
 
 // SliceToLower goes through the source slice and lowers all values.

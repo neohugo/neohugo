@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	// The current is built with de4748c47c67392a57f250714509f590f68ad395 HEAD, tag: go1.20.
+	// The current is built with 2c1e5b05fe39fc5e6c730dd60e82946b8e67c6ba, tag: go1.21.1.
 	fmt.Println("Forking ...")
 	defer fmt.Println("Done ...")
 

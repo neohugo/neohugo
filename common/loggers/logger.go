@@ -37,13 +37,13 @@ var (
 
 // Options defines options for the logger.
 type Options struct {
-	Level               logg.Level
-	Stdout              io.Writer
-	Stderr              io.Writer
-	Distinct            bool
-	StoreErrors         bool
-	HandlerPost         func(e *logg.Entry) error
-	SuppresssStatements map[string]bool
+	Level              logg.Level
+	Stdout             io.Writer
+	Stderr             io.Writer
+	DistinctLevel      logg.Level
+	StoreErrors        bool
+	HandlerPost        func(e *logg.Entry) error
+	SuppressStatements map[string]bool
 }
 
 // New creates a new logger with the given options.
@@ -92,13 +92,13 @@ func New(opts Options) Logger {
 	logHandler = multi.New(handlers...)
 
 	var logOnce *logOnceHandler
-	if opts.Distinct {
-		logOnce = newLogOnceHandler(logg.LevelWarn)
+	if opts.DistinctLevel != 0 {
+		logOnce = newLogOnceHandler(opts.DistinctLevel)
 		logHandler = newStopHandler(logOnce, logHandler)
 	}
 
-	if opts.SuppresssStatements != nil && len(opts.SuppresssStatements) > 0 {
-		logHandler = newStopHandler(newSuppressStatementsHandler(opts.SuppresssStatements), logHandler)
+	if opts.SuppressStatements != nil && len(opts.SuppressStatements) > 0 {
+		logHandler = newStopHandler(newSuppressStatementsHandler(opts.SuppressStatements), logHandler)
 	}
 
 	logger := logg.New(
@@ -137,10 +137,10 @@ func New(opts Options) Logger {
 // NewDefault creates a new logger with the default options.
 func NewDefault() Logger {
 	opts := Options{
-		Distinct: true,
-		Level:    logg.LevelWarn,
-		Stdout:   os.Stdout,
-		Stderr:   os.Stdout,
+		DistinctLevel: logg.LevelWarn,
+		Level:         logg.LevelWarn,
+		Stdout:        os.Stdout,
+		Stderr:        os.Stdout,
 	}
 	return New(opts)
 }
@@ -173,6 +173,7 @@ type Logger interface {
 	WarnCommand(command string) logg.LevelLogger
 	Warnf(format string, v ...any)
 	Warnln(v ...any)
+	Deprecatef(fail bool, format string, v ...any)
 }
 
 type logAdapter struct {
@@ -295,6 +296,15 @@ func (l *logAdapter) Errorsf(id, format string, v ...any) {
 
 func (l *logAdapter) sprint(v ...any) string {
 	return strings.TrimRight(fmt.Sprintln(v...), "\n")
+}
+
+func (l *logAdapter) Deprecatef(fail bool, format string, v ...any) {
+	format = "DEPRECATED: " + format
+	if fail {
+		l.errorl.Logf(format, v...)
+	} else {
+		l.warnl.Logf(format, v...)
+	}
 }
 
 type logWriter struct {

@@ -20,6 +20,7 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs/files"
 
+	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 )
 
@@ -126,7 +127,7 @@ func createTargetPathDescriptor(s *Site, p page.Page, pm *pageMeta) (page.Target
 		baseName = contentBaseName
 	}
 
-	alwaysInSubDir := p.Kind() == kindSitemap
+	alwaysInSubDir := p.Kind() == kinds.KindSitemap
 
 	desc := page.TargetPathDescriptor{
 		PathSpec:    d.PathSpec,

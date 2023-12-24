@@ -1,5 +1,5 @@
 ---
-title: External Learning Resources
+title: External learning resources
 description: A list of tutorials and books on Hugo.
 keywords: [books, tutorials, learning, usage]
 menu:

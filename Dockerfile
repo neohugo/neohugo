@@ -1,7 +1,7 @@
 # GitHub:       https://github.com/neohugo/neohugo
 # Website:      https://neohugo.github.io/
 
-FROM golang:alpine AS build
+FROM golang:1.21-alpine AS build
 
 # Optionally set HUGO_BUILD_TAGS to "extended" or "nodeploy" when building like so:
 #   docker build --build-arg HUGO_BUILD_TAGS=extended .
@@ -25,9 +25,7 @@ RUN mage neohugo && mage install
 
 # ---
 
-FROM alpine:latest
-LABEL description="Docker container for building static sites with the neohugo static site generator with extended."
-LABEL maintainer="Prachya Saechua<blackb1rd@blackb1rd.dev>"
+FROM alpine:3.18
 
 COPY --from=build /go/bin/neohugo /usr/bin/neohugo
 

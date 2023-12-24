@@ -25,12 +25,12 @@ import (
 
 	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/hugofs/files"
-	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/publisher"
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/hugofs"
 
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/resources/postpub"
@@ -40,13 +40,7 @@ import (
 	"github.com/neohugo/neohugo/output"
 
 	"github.com/fsnotify/fsnotify"
-	"github.com/neohugo/neohugo/helpers"
 )
-
-func init() {
-	// To avoid circular dependencies, we set this here.
-	langs.DeprecationFunc = helpers.Deprecated
-}
 
 // Build builds all sites. If filesystem events are provided,
 // this is considered to be a potential partial rebuild.
@@ -66,6 +60,12 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		}
 		defer unlock()
 	}
+
+	defer func() {
+		for _, s := range h.Sites {
+			s.Deps.BuildEndListeners.Notify()
+		}
+	}()
 
 	infol := h.Log.InfoCommand("build")
 
@@ -173,7 +173,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		return err
 	}
 
-	errorCount := h.Log.LoggCount(logg.LevelError)
+	errorCount := h.Log.LoggCount(logg.LevelError) + loggers.Log().LoggCount(logg.LevelError)
 	if errorCount > 0 {
 		return fmt.Errorf("logged %d error(s)", errorCount)
 	}
@@ -491,10 +491,15 @@ func (h *HugoSites) writeBuildStats() error {
 		HTMLElements: *htmlElements,
 	}
 
-	js, err := json.MarshalIndent(stats, "", "  ")
+	var buf bytes.Buffer
+	enc := json.NewEncoder(&buf)
+	enc.SetEscapeHTML(false)
+	enc.SetIndent("", "  ")
+	err := enc.Encode(stats)
 	if err != nil {
 		return err
 	}
+	js := buf.Bytes()
 
 	filename := filepath.Join(h.Configs.LoadingInfo.BaseConfig.WorkingDir, files.FilenameHugoStatsJSON)
 

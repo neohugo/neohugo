@@ -26,6 +26,7 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/asciidocext"
+	"github.com/neohugo/neohugo/markup/rst"
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/resources/page"
@@ -362,7 +363,7 @@ func testAllMarkdownEnginesForPages(t *testing.T,
 	}{
 		{"md", func() bool { return true }},
 		{"ad", func() bool { return asciidocext.Supports() }},
-		{"rst", func() bool { return true }},
+		{"rst", func() bool { return rst.Supports() }},
 	}
 
 	for _, e := range engines {
@@ -494,7 +495,7 @@ title: No Date
 ---
 
 `,
-		// https://github.com/neohugo/neohugo/issues/5854
+		// https://github.com/gohugoio/hugo/issues/5854
 		"with-index-date/_index.md", `---
 title: Date
 date: 2018-01-15
@@ -605,7 +606,7 @@ func TestPageWithSummaryParameter(t *testing.T) {
 }
 
 // Issue #3854
-// Also see https://github.com/neohugo/neohugo/issues/3977
+// Also see https://github.com/gohugoio/hugo/issues/3977
 func TestPageWithDateFields(t *testing.T) {
 	c := qt.New(t)
 	pageWithDate := `---
@@ -640,27 +641,31 @@ Simple Page With Some Date`
 	testAllMarkdownEnginesForPages(t, assertFunc, nil, pageContents...)
 }
 
-// Issue #2601
 func TestPageRawContent(t *testing.T) {
-	t.Parallel()
-	c := qt.New(t)
-	cfg, fs := newTestCfg()
-	configs, err := loadTestConfigFromProvider(cfg)
-	c.Assert(err, qt.IsNil)
-
-	writeSource(t, fs, filepath.Join("content", "raw.md"), `---
-title: Raw
+	files := `
+-- hugo.toml --
+-- content/basic.md --
 ---
-**Raw**`)
+title: "basic"
+---
+**basic**
+-- content/empty.md --
+---
+title: "empty"
+---
+-- layouts/_default/single.html --
+|{{ .RawContent }}|
+`
 
-	writeSource(t, fs, filepath.Join("layouts", "_default", "single.html"), `{{ .RawContent }}`)
+	b := NewIntegrationTestBuilder(
+		IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+		},
+	).Build()
 
-	s := buildSingleSite(t, deps.DepsCfg{Fs: fs, Configs: configs}, BuildCfg{SkipRender: true})
-
-	c.Assert(len(s.RegularPages()), qt.Equals, 1)
-	p := s.RegularPages()[0]
-
-	c.Assert("**Raw**", qt.Equals, p.RawContent())
+	b.AssertFileContent("public/basic/index.html", "|**basic**|")
+	b.AssertFileContent("public/empty/index.html", "! title")
 }
 
 func TestPageWithShortCodeInSummary(t *testing.T) {
@@ -886,13 +891,13 @@ summary: Summary (zh)
 	b.Build(BuildCfg{})
 
 	b.AssertFileContent("public/index.html", `<html>
-	
+
 <body>
-	
+
 <h2>Translations</h2>
 <ul>
 
-	
+
 <li>Title: Title (zh), Summary (zh)</li>
 <li>Content: <p>这是一些内容</p>
 </li>
@@ -903,7 +908,7 @@ summary: Summary (zh)
 <li>Truncated: false</li>
 <li>FuzzyWordCount: 100</li>
 <li>ReadingTime: 1</li>
-<li>Len: 26</li>	
+<li>Len: 26</li>
 
 </ul>
 
@@ -913,7 +918,7 @@ summary: Summary (zh)
 	b.AssertFileContent("public/metadata.html", `<h2>Translations metadata</h2>
 <ul>
 
-	
+
 <li>Title: Title (zh), Summary (zh)</li>
 <li>Content: <p>这是一些内容</p>
 </li>
@@ -924,13 +929,13 @@ summary: Summary (zh)
 <li>Truncated: false</li>
 <li>FuzzyWordCount: 100</li>
 <li>ReadingTime: 1</li>
-<li>Len: 26</li>	
+<li>Len: 26</li>
 
 </ul>`)
 	b.AssertFileContent("public/zh_cn/index.html", `<html>
 
 <body>
-	
+
 <h2>Translations</h2>
 <ul>
 
@@ -945,7 +950,7 @@ summary: Summary (zh)
 <li>Truncated: false</li>
 <li>FuzzyWordCount: 100</li>
 <li>ReadingTime: 1</li>
-<li>Len: 29</li>	
+<li>Len: 29</li>
 
 </ul>
 
@@ -955,7 +960,7 @@ summary: Summary (zh)
 	b.AssertFileContent("public/zh_cn/metadata.html", `<h2>Translations metadata</h2>
 <ul>
 
-	
+
 <li>Title: Title (en), Summary (en)</li>
 <li>Content: <p>Here is some content.</p>
 </li>
@@ -966,7 +971,7 @@ summary: Summary (zh)
 <li>Truncated: false</li>
 <li>FuzzyWordCount: 100</li>
 <li>ReadingTime: 1</li>
-<li>Len: 29</li>	
+<li>Len: 29</li>
 
 </ul>`)
 }
@@ -1226,60 +1231,6 @@ func TestChompBOM(t *testing.T) {
 	checkPageTitle(t, p, "Simple")
 }
 
-func TestPageWithEmoji(t *testing.T) {
-	for _, enableEmoji := range []bool{true, false} {
-		v := config.New()
-		v.Set("enableEmoji", enableEmoji)
-
-		b := newTestSitesBuilder(t).WithViper(v)
-
-		b.WithContent("page-emoji.md", `---
-title: "Hugo Smile"
----
-This is a :smile:.
-<!--more--> 
-
-Another :smile: This is :not: :an: :emoji:.
-
-O :christmas_tree:
-
-Write me an :e-mail: or :email:?
-
-Too many colons: :: ::: :::: :?: :!: :.:
-
-If you dislike this video, you can hit that :-1: button :stuck_out_tongue_winking_eye:,
-but if you like it, hit :+1: and get subscribed!
-`)
-
-		b.CreateSites().Build(BuildCfg{})
-
-		if enableEmoji {
-			b.AssertFileContent("public/page-emoji/index.html",
-				"This is a 😄",
-				"Another 😄",
-				"This is :not: :an: :emoji:.",
-				"O 🎄",
-				"Write me an 📧 or ✉️?",
-				"Too many colons: :: ::: :::: :?: :!: :.:",
-				"you can hit that 👎 button 😜,",
-				"hit 👍 and get subscribed!",
-			)
-		} else {
-			b.AssertFileContent("public/page-emoji/index.html",
-				"This is a :smile:",
-				"Another :smile:",
-				"This is :not: :an: :emoji:.",
-				"O :christmas_tree:",
-				"Write me an :e-mail: or :email:?",
-				"Too many colons: :: ::: :::: :?: :!: :.:",
-				"you can hit that :-1: button :stuck_out_tongue_winking_eye:,",
-				"hit :+1: and get subscribed!",
-			)
-		}
-
-	}
-}
-
 func TestPageHTMLContent(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1307,7 +1258,7 @@ title: "HTML Content"
 		"Permalink: http://example.com/nomarkdownforyou/|**Hugo!**|",
 	)
 
-	// https://github.com/neohugo/neohugo/issues/5723
+	// https://github.com/gohugoio/hugo/issues/5723
 	b.AssertFileContent(
 		"public/manualsummary/index.html",
 		"Single: HTML Content|Hello|en|RelPermalink: /manualsummary/|",
@@ -1316,7 +1267,7 @@ title: "HTML Content"
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/5381
+// https://github.com/gohugoio/hugo/issues/5381
 func TestPageManualSummary(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1325,16 +1276,16 @@ func TestPageManualSummary(t *testing.T) {
 title: "Hugo"
 ---
 This is a {{< sc >}}.
-<!--more--> 
+<!--more-->
 Content.
 `)
 
-	// https://github.com/neohugo/neohugo/issues/5464
+	// https://github.com/gohugoio/hugo/issues/5464
 	b.WithContent("page-md-only-shortcode.md", `---
 title: "Hugo"
 ---
 {{< sc >}}
-<!--more--> 
+<!--more-->
 {{< sc >}}
 `)
 
@@ -1355,7 +1306,7 @@ Summary<!--more-->{{< sc >}}
 #+DESCRIPTION: D1
 This is a {{< sc >}}.
 # more
-Content.	
+Content.
 `)
 
 	b.WithContent("page-org-variant1.org", `#+TITLE: T1
@@ -1363,7 +1314,7 @@ Summary.
 
 # more
 
-Content.	
+Content.
 `)
 
 	b.WithTemplatesAdded("layouts/shortcodes/sc.html", "a shortcode")
@@ -1405,7 +1356,7 @@ CONTENT:{{ .Content }}
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/5478
+// https://github.com/gohugoio/hugo/issues/5478
 func TestPageWithCommentedOutFrontMatter(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1431,7 +1382,7 @@ Content:{{ .Content }}
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/5781
+// https://github.com/gohugoio/hugo/issues/5781
 func TestPageWithZeroFile(t *testing.T) {
 	newTestSitesBuilder(t).WithLogger(loggers.NewDefault()).WithSimpleConfigFile().
 		WithTemplatesAdded("index.html", "{{ .File.Filename }}{{ with .File }}{{ .Dir }}{{ end }}").Build(BuildCfg{})
@@ -1583,17 +1534,15 @@ tags:
 *some content*`, i))
 				}
 
-				writeSource(
-					t,
-					fs,
-					filepath.Join("content", "Blog", "Blog1.md"),
-					`---
+				writeSource(t, fs, filepath.Join("content", "Blog", "Blog1.md"),
+					// nolint
+					fmt.Sprintf(`---
 title: "testBlog"
 tags:
 - "Blog"
 ---
 # doc1
-*some blog content*`)
+*some blog content*`))
 
 				s := buildSingleSite(t, deps.DepsCfg{Fs: fs, Configs: configs}, BuildCfg{})
 
@@ -1639,7 +1588,7 @@ tags:
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/4675
+// https://github.com/gohugoio/hugo/issues/4675
 func TestWordCountAndSimilarVsSummary(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
@@ -1660,7 +1609,7 @@ SUMMARY:{{ .Summary }}:{{ len .Summary }}:END
 
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile().WithTemplatesAdded(single...).WithContent("p1.md", fmt.Sprintf(`---
-title: p1	
+title: p1
 ---
 
 %s
@@ -1999,7 +1948,6 @@ func TestRenderWithoutArgument(t *testing.T) {
 		IntegrationTestConfig{
 			T:           t,
 			TxtarString: files,
-			Running:     true,
 		},
 	).BuildE()
 

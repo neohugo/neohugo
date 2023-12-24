@@ -150,10 +150,6 @@ func (c *Client) Graph(w io.Writer) error {
 			continue
 		}
 
-		prefix := ""
-		if module.Disabled() {
-			prefix = "DISABLED "
-		}
 		dep := pathVersion(module.Owner()) + " " + pathVersion(module)
 		if replace := module.Replace(); replace != nil {
 			if replace.Version() != "" {
@@ -163,7 +159,7 @@ func (c *Client) Graph(w io.Writer) error {
 				dep += " => " + replace.Dir()
 			}
 		}
-		fmt.Fprintln(w, prefix+dep)
+		fmt.Fprintln(w, dep)
 	}
 
 	return nil
@@ -319,14 +315,33 @@ func (c *Client) Get(args ...string) error {
 		patch := update && (args[0] == "-u=patch") //
 
 		// We need to be explicit about the modules to get.
-		for _, m := range c.moduleConfig.Imports {
-			if !isProbablyModule(m.Path) {
-				// Skip themes/components stored below /themes etc.
-				// There may be false positives in the above, but those
-				// should be rare, and they will fail below with an
-				// "cannot find module providing ..." message.
-				continue
+		var modules []string
+		// Update all active modules if the -u flag presents.
+		if update {
+			mc, coll := c.collect(true)
+			if coll.err != nil {
+				return coll.err
 			}
+			for _, m := range mc.AllModules {
+				if m.Owner() == nil {
+					continue
+				}
+				modules = append(modules, m.Path())
+			}
+		} else {
+			for _, m := range c.moduleConfig.Imports {
+				if !isProbablyModule(m.Path) {
+					// Skip themes/components stored below /themes etc.
+					// There may be false positives in the above, but those
+					// should be rare, and they will fail below with an
+					// "cannot find module providing ..." message.
+					continue
+				}
+				modules = append(modules, m.Path)
+			}
+		}
+
+		for _, m := range modules {
 			var args []string
 
 			if update && !patch {
@@ -334,7 +349,7 @@ func (c *Client) Get(args ...string) error {
 			} else if update && patch {
 				args = append(args, "-u=patch")
 			}
-			args = append(args, m.Path)
+			args = append(args, m)
 
 			if err := c.get(args...); err != nil {
 				return err
@@ -453,7 +468,7 @@ func (c *Client) listGoMods() (goModules, error) {
 	}
 
 	downloadModules := func(modules ...string) error {
-		args := []string{"mod", "download"}
+		args := []string{"mod", "download", "-modcacherw"}
 		args = append(args, modules...)
 		out := io.Discard
 		err := c.runGo(context.Background(), out, args...)

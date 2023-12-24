@@ -93,7 +93,7 @@ title: My Site
 }
 
 // Just some simple test of the embedded templates to avoid
-// https://github.com/neohugo/neohugo/issues/4757 and similar.
+// https://github.com/gohugoio/hugo/issues/4757 and similar.
 func TestEmbeddedTemplates(t *testing.T) {
 	t.Parallel()
 

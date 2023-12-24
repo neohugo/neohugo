@@ -1,13 +1,13 @@
 ---
-title: Data Templates
+title: Data templates
 description: In addition to Hugo's built-in variables, you can specify your own custom data in templates or shortcodes that pull from both local and dynamic sources.
 categories: [templates]
 keywords: [data,dynamic,csv,json,toml,yaml,xml]
 menu:
   docs:
     parent: templates
-    weight: 80
-weight: 80
+    weight: 150
+weight: 150
 aliases: [/extras/datafiles/,/extras/datadrivencontent/,/doc/datafiles/]
 toc: true
 ---
@@ -18,9 +18,9 @@ Hugo supports loading data from YAML, JSON, XML, and TOML files located in the `
 
 {{< youtube FyPgSuwIMWQ >}}
 
-## The Data Folder
+## The data folder
 
-The `data` folder should store additional data for Hugo to use when generating your site. 
+The `data` folder should store additional data for Hugo to use when generating your site.
 
 Data files are not for generating standalone pages. They should supplement content files by:
 
@@ -31,13 +31,13 @@ In both cases, it's a good idea to outsource the data in their (own) files.
 
 These files must be YAML, JSON, XML, or TOML files (using the `.yml`, `.yaml`, `.json`, `.xml`, or `.toml` extension). The data will be accessible as a `map` in the `.Site.Data` variable.
 
-To access the data using the `site.Data.filename` notation, the filename must begin with an underscore or a Unicode letter, followed by zero or more underscores, Unicode letters, or Unicode digits. For example:
+To access the data using the `site.Data.filename` notation, the file name must begin with an underscore or a Unicode letter, followed by zero or more underscores, Unicode letters, or Unicode digits. For example:
 
 - `123.json` - Invalid
 - `x123.json` - Valid
 - `_123.json` - Valid
 
-To access the data using the [`index`](/functions/index-function/) function, the filename is irrelevant. For example:
+To access the data using the [`index`](/functions/collections/indexfunction) function, the file name is irrelevant. For example:
 
 Data file|Template code
 :--|:--
@@ -46,7 +46,7 @@ Data file|Template code
 `_123.json`|`{{ index .Site.Data "_123" }}`
 `x-123.json`|`{{ index .Site.Data "x-123" }}`
 
-## Data Files in Themes
+## Data files in themes
 
 Data Files can also be used in themes.
 
@@ -89,7 +89,7 @@ discography = [
 ]
 {{< /code-toggle >}}
 
-The list of bass players can be accessed via `.Site.Data.jazz.bass`, a single bass player by adding the filename without the suffix, e.g. `.Site.Data.jazz.bass.jacopastorius`.
+The list of bass players can be accessed via `.Site.Data.jazz.bass`, a single bass player by adding the file name without the suffix, e.g. `.Site.Data.jazz.bass.jacopastorius`.
 
 You can now render the list of recordings for all the bass players in a template:
 
@@ -111,7 +111,7 @@ And then in the `partials/artist.html`:
 
 Discover a new favorite bass player? Just add another `.toml` file in the same directory.
 
-## Example: Accessing Named Values in a Data File
+## Example: accessing named values in a data file
 
 Assume you have the following data structure in your `User0123.[yml|toml|xml|json]` data file located directly in `data/`:
 
@@ -130,10 +130,9 @@ You can use the following code to render the `Short Description` in your layout:
 <div>Short Description of {{ .Site.Data.User0123.Name }}: <p>{{ index .Site.Data.User0123 "Short Description" | markdownify }}</p></div>
 ```
 
-Note the use of the [`markdownify` template function][markdownify]. This will send the description through the Markdown rendering engine.
+Note the use of the [`markdownify`] function. This will send the description through the Markdown rendering engine.
 
-
-## Get Remote Data
+## Get remote data
 
 Use `getJSON` or `getCSV` to get remote data:
 
@@ -217,11 +216,11 @@ You can also set `cacheDir` in the [main configuration file][config].
 
 If you don't like caching at all, you can fully disable caching with the command-line flag `--ignoreCache`.
 
-### Authentication When Using REST URLs
+### Authentication when using REST URLs
 
 Currently, you can only use those authentication methods that can be put into an URL. [OAuth] and other authentication methods are not implemented.
 
-## Load Local files
+## Load local files
 
 To load local files with `getJSON` and `getCSV`, the source files must reside within Hugo's working directory. The file extension does not matter, but the content does.
 
@@ -231,7 +230,7 @@ It applies the same output logic as above in [Get Remote Data](#get-remote-data)
 The local CSV files to be loaded using `getCSV` must be located **outside** the `data` directory.
 {{% /note %}}
 
-## LiveReload with Data Files
+## LiveReload with data files
 
 There is no chance to trigger a [LiveReload] when the content of a URL changes. However, when a *local* file changes (i.e., `data/*` and `themes/<THEME>/data/*`), a LiveReload will be triggered. Symlinks are not supported. Note too that because downloading data takes a while, Hugo stops processing your Markdown files until the data download has been completed.
 
@@ -239,12 +238,12 @@ There is no chance to trigger a [LiveReload] when the content of a URL changes. 
 If you change any local file and the LiveReload is triggered, Hugo will read the data-driven (URL) content from the cache. If you have disabled the cache (i.e., by running the server with `hugo server --ignoreCache`), Hugo will re-download the content every time LiveReload triggers. This can create *huge* traffic. You may reach API limits quickly.
 {{% /note %}}
 
-## Examples of Data-driven Content
+## Examples of data-driven content
 
 - Photo gallery JSON powered: [https://github.com/pcdummy/hugo-lightslider-example](https://github.com/pcdummy/hugo-lightslider-example)
 - GitHub Starred Repositories [in a post](https://github.com/SchumacherFM/blog-cs/blob/master/content%2Fposts%2Fgithub-starred.md) using data-driven content in a [custom short code](https://github.com/SchumacherFM/blog-cs/blob/master/layouts%2Fshortcodes%2FghStarred.html).
 
-## Specs for Data Formats
+## Specs for data formats
 
 * [TOML Spec][toml]
 * [YAML Spec][yaml]
@@ -255,13 +254,13 @@ If you change any local file and the LiveReload is triggered, Hugo will read the
 [config]: /getting-started/configuration/
 [csv]: https://tools.ietf.org/html/rfc4180
 [customize]: /hugo-modules/theme-components/
-[json]: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf "Specification for JSON, JavaScript Object Notation"
+[json]: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
 [LiveReload]: /getting-started/usage/#livereload
 [lookup]: /templates/lookup-order/
-[markdownify]: /functions/markdownify/
+[`markdownify`]: /functions/transform/markdownify
 [OAuth]: https://en.wikipedia.org/wiki/OAuth
 [partials]: /templates/partials/
-[toml]: https://github.com/toml-lang/toml
+[toml]: https://toml.io/en/latest
 [variadic]: https://en.wikipedia.org/wiki/Variadic_function
 [vars]: /variables/
 [yaml]: https://yaml.org/spec/

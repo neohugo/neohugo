@@ -39,6 +39,7 @@ import (
 	"github.com/neohugo/neohugo/common/hstrings"
 	"github.com/neohugo/neohugo/common/htime"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
@@ -428,22 +429,23 @@ func (r *rootCommand) createLogger(running bool) (loggers.Logger, error) {
 		}
 	} else {
 		if r.verbose {
-			helpers.Deprecated("--verbose", "use --logLevel info", false)
+			neohugo.Deprecate("--verbose", "use --logLevel info", "v0.114.0")
+			neohugo.Deprecate("--verbose", "use --logLevel info", "v0.114.0")
 			level = logg.LevelInfo
 		}
 
 		if r.debug {
-			helpers.Deprecated("--debug", "use --logLevel debug", false)
+			neohugo.Deprecate("--debug", "use --logLevel debug", "v0.114.0")
 			level = logg.LevelDebug
 		}
 	}
 
 	optsLogger := loggers.Options{
-		Distinct:    true,
-		Level:       level,
-		Stdout:      r.Out,
-		Stderr:      r.Out,
-		StoreErrors: running,
+		DistinctLevel: logg.LevelWarn,
+		Level:         level,
+		Stdout:        r.Out,
+		Stderr:        r.Out,
+		StoreErrors:   running,
 	}
 
 	return loggers.New(optsLogger), nil
@@ -508,10 +510,10 @@ Complete documentation is available at https://gohugo.io/.`
 func applyLocalFlagsBuildConfig(cmd *cobra.Command, r *rootCommand) {
 	cmd.Flags().StringSliceP("theme", "t", []string{}, "themes to use (located in /themes/THEMENAME/)")
 	cmd.Flags().StringVarP(&r.baseURL, "baseURL", "b", "", "hostname (and path) to the root, e.g. https://spf13.com/")
-	cmd.Flags().StringP("cacheDir", "", "", "filesystem path to cache directory. Defaults: $TMPDIR/hugo_cache_$USER/")
-	_ = cmd.Flags().SetAnnotation("cacheDir", cobra.BashCompSubdirsInDir, []string{}) // nolint
+	cmd.Flags().StringP("cacheDir", "", "", "filesystem path to cache directory")
+	_ = cmd.Flags().SetAnnotation("cacheDir", cobra.BashCompSubdirsInDir, []string{})
 	cmd.Flags().StringP("contentDir", "c", "", "filesystem path to content directory")
-	_ = cmd.Flags().SetAnnotation("theme", cobra.BashCompSubdirsInDir, []string{"themes"}) // nolint
+	_ = cmd.Flags().SetAnnotation("theme", cobra.BashCompSubdirsInDir, []string{"themes"})
 }
 
 // Flags needed to do a build (used by hugo and hugo server commands)
@@ -549,7 +551,8 @@ func applyLocalFlagsBuild(cmd *cobra.Command, r *rootCommand) {
 
 	cmd.Flags().StringSlice("disableKinds", []string{}, "disable different kind of pages (home, RSS etc.)")
 	cmd.Flags().Bool("minify", false, "minify any supported output format (HTML, XML etc.)")
-	_ = cmd.Flags().SetAnnotation("destination", cobra.BashCompSubdirsInDir, []string{}) // nolint
+	// nolint
+	_ = cmd.Flags().SetAnnotation("destination", cobra.BashCompSubdirsInDir, []string{})
 }
 
 func (r *rootCommand) timeTrack(start time.Time, name string) {

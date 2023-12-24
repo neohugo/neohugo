@@ -14,6 +14,7 @@
 package commands
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -30,8 +31,11 @@ import (
 	"github.com/neohugo/neohugo/docshelper"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/parser"
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
+	"gopkg.in/yaml.v2"
 )
 
 func newGenCommand() *genCommand {
@@ -72,7 +76,7 @@ See https://xyproto.github.io/splash/docs/all.html for a preview of the availabl
 			},
 			withc: func(cmd *cobra.Command, r *rootCommand) {
 				cmd.PersistentFlags().StringVar(&style, "style", "friendly", "highlighter style (see https://xyproto.github.io/splash/docs/)")
-				cmd.PersistentFlags().StringVar(&highlightStyle, "highlightStyle", "bg:#ffffcc", "style used for highlighting lines (see https://github.com/alecthomas/chroma)")
+				cmd.PersistentFlags().StringVar(&highlightStyle, "highlightStyle", "", "style used for highlighting lines (see https://github.com/alecthomas/chroma)")
 				cmd.PersistentFlags().StringVar(&linesStyle, "linesStyle", "", "style used for line numbers (see https://github.com/alecthomas/chroma)")
 			},
 		}
@@ -132,7 +136,7 @@ url: %s
 			long: `Generate Markdown documentation for the Hugo CLI.
 			This command is, mostly, used to create up-to-date documentation
 	of Hugo's command-line interface for https://gohugo.io/.
-	
+
 	It creates one Markdown file per command with front matter suitable
 	for rendering in Hugo.`,
 			run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
@@ -185,18 +189,36 @@ url: %s
 			run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
 				r.Println("Generate docs data to", docsHelperTarget)
 
-				targetFile := filepath.Join(docsHelperTarget, "docs.json")
+				var buf bytes.Buffer
+				jsonEnc := json.NewEncoder(&buf)
+
+				configProvider := func() docshelper.DocProvider {
+					conf := hugolib.DefaultConfig()
+					conf.CacheDir = "" // The default value does not make sense in the docs.
+					defaultConfig := parser.LowerCaseCamelJSONMarshaller{Value: conf}
+					return docshelper.DocProvider{"config": defaultConfig}
+				}
+
+				docshelper.AddDocProviderFunc(configProvider)
+				if err := jsonEnc.Encode(docshelper.GetDocProvider()); err != nil {
+					return err
+				}
+
+				// Decode the JSON to a map[string]interface{} and then unmarshal it again to the correct format.
+				var m map[string]interface{}
+				if err := json.Unmarshal(buf.Bytes(), &m); err != nil {
+					return err
+				}
+
+				targetFile := filepath.Join(docsHelperTarget, "docs.yaml")
 
 				f, err := os.Create(targetFile)
 				if err != nil {
 					return err
 				}
 				defer f.Close()
-
-				enc := json.NewEncoder(f)
-				enc.SetIndent("", "  ")
-
-				if err := enc.Encode(docshelper.GetDocProvider()); err != nil {
+				yamlEnc := yaml.NewEncoder(f)
+				if err := yamlEnc.Encode(m); err != nil {
 					return err
 				}
 

@@ -1,14 +1,14 @@
 ---
-title: Menu Templates
+title: Menu templates
 description: Use menu variables and methods in your templates to render a menu.
 categories: [templates]
 keywords: [lists,sections,menus]
 menu:
   docs:
     parent: templates
-    weight: 130
+    weight: 140
 toc: true
-weight: 130
+weight: 140
 aliases: [/templates/menus/]
 ---
 
@@ -49,6 +49,12 @@ This partial template recursively "walks" a menu structure, rendering a localize
     {{- else if $page.HasMenuCurrent .Menu .}}
       {{- $attrs = merge $attrs (dict "class" "ancestor" "aria-current" "true") }}
     {{- end }}
+    {{- $name := .Name }}
+    {{- with .Identifier }}
+      {{- with T . }}
+        {{- $name = . }}
+      {{- end }}
+    {{- end }}
     <li>
       <a
         {{- range $k, $v := $attrs }}
@@ -56,7 +62,7 @@ This partial template recursively "walks" a menu structure, rendering a localize
             {{- printf " %s=%q" $k $v | safeHTMLAttr }}
           {{- end }}
         {{- end -}}
-      >{{ or (T .Identifier) .Name | safeHTML }}</a>
+      >{{ $name }}</a>
       {{- with .Children }}
         <ul>
           {{- partial "inline/menu/walk.html" (dict "page" $page "menuEntries" .) }}

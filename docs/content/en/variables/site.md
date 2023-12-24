@@ -1,7 +1,7 @@
 ---
-title: Site Variables
+title: Site variables
 description: Many, but not all, site-wide variables are defined in your site's configuration. However, Hugo provides a number of built-in variables for convenient access to global values in your templates.
-categories: [variables and params]
+categories: [variables and parameters]
 keywords: [global,site]
 menu:
   docs:
@@ -14,11 +14,11 @@ toc: true
 
 The following is a list of site-level (aka "global") variables. Many of these variables are defined in your site's [configuration file][config], whereas others are built into Hugo's core for convenient usage in your templates.
 
-## Get the Site object from a partial
+## Get the site object from a partial
 
 All the methods below, e.g. `.Site.RegularPages` can also be reached via the global [`site`](/functions/site/) function, e.g. `site.RegularPages`, which can be handy in partials where the `Page` object isn't easily available.
 
-## Site Variables List
+## Site variables
 
 .Site.AllPages
 : array of all pages, regardless of their translation.
@@ -35,20 +35,11 @@ All the methods below, e.g. `.Site.RegularPages` can also be reached via the glo
 .Site.Data
 : custom data, see [Data Templates](/templates/data-templates/).
 
-.Site.DisqusShortname
-: a string representing the shortname of the Disqus shortcode as defined in the site configuration.
-
-.Site.GoogleAnalytics
-: a string representing your tracking code for Google Analytics as defined in the site configuration.
-
 .Site.Home
-: reference to the homepage's [page object](https://gohugo.io/variables/page/)
+: reference to the homepage's [page object](/variables/page/)
 
 .Site.IsMultiLingual
 : whether there are more than one language in this site. See [Multilingual](/content-management/multilingual/) for more information.
-
-.Site.IsServer
-: a boolean to indicate if the site is being served with Hugo's built-in server. See [`hugo server`](/commands/hugo_server/) for more information.
 
 .Site.Language.Lang
 : the language code of the current locale (e.g., `en`).
@@ -66,22 +57,22 @@ All the methods below, e.g. `.Site.RegularPages` can also be reached via the glo
 : a string representing the language tag as defined in the site configuration.
 
 .Site.LanguagePrefix
-: this can be used to prefix URLs to point to the correct language. It will even work when only one defined language. See also the functions [absLangURL](/functions/abslangurl/) and [relLangURL](/functions/rellangurl).
+: this can be used to prefix URLs to point to the correct language. It will even work when there is only one defined language. See also the functions [absLangURL](/functions/urls/abslangurl) and [relLangURL](/functions/urls/rellangurl).
 
 .Site.Languages
 : an ordered list (ordered by defined weight) of languages.
 
 .Site.LastChange
-: a string representing the date/time of the most recent change to your site. This string is based on the [`date` variable in the front matter](/content-management/front-matter) of your content pages.
+: a [time.Time](https://godoc.org/time#Time) value representing the date/time of the most recent change to your site.
 
 .Site.Menus
 : all the menus in the site.
 
 .Site.Pages
-: array of all content ordered by Date with the newest first. This array contains only the pages in the current language. See [`.Site.Pages`](#site-pages).
+: array of all content ordered by Date with the newest first. This array contains only the pages in the current language.
 
 .Site.RegularPages
-: a shortcut to the *regular* page collection. `.Site.RegularPages` is equivalent to `where .Site.Pages "Kind" "page"`. See [`.Site.Pages`](#site-pages).
+: a shortcut to the *regular* page collection. `.Site.RegularPages` is equivalent to `where .Site.Pages "Kind" "page"`.
 
 .Site.Sections
 : top-level directories of the site.
@@ -92,13 +83,13 @@ All the methods below, e.g. `.Site.RegularPages` can also be reached via the glo
 .Site.Title
 : a string representing the title of the site.
 
-## The `.Site.Params` Variable
+## Site parameters
 
 `.Site.Params` is a container holding the values from the `params` section of your site configuration.
 
 ### Example: `.Site.Params`
 
-The following `config.[yaml|toml|json]` defines a site-wide param for `description`:
+The following `config.[yaml|toml|json]` defines a site-wide parameter for `description`:
 
 {{< code-toggle file="hugo" >}}
 baseURL = "https://yoursite.example.com/"
@@ -113,11 +104,5 @@ You can use `.Site.Params` in a [partial template](/templates/partials/) to call
 {{< code file="layouts/partials/head.html" >}}
 <meta name="description" content="{{ if .IsHome }}{{ $.Site.Params.description }}{{ else }}{{ .Description }}{{ end }}" />
 {{< /code >}}
-
-## The `.Site.Pages` Variable {#site-pages}
-
-### `.Site.Pages` compared to `.Pages`
-
-{{< getcontent path="readfiles/pages-vs-site-pages.md" >}}
 
 [config]: /getting-started/configuration/

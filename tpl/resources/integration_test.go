@@ -72,8 +72,10 @@ Copy3: /blog/js/copies/moo.a677329fc6c4ad947e0c7116d91f37a2.min.js|text/javascri
 
 		`)
 
+	// nolint
 	b.AssertDestinationExists("images/copy2.png", true)
 	// No permalink used.
+	// nolint
 	b.AssertDestinationExists("images/copy3.png", false)
 }
 

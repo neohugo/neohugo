@@ -17,7 +17,7 @@ package neohugo
 // This should be the only one.
 var CurrentVersion = Version{
 	Major:      0,
-	Minor:      116,
+	Minor:      121,
 	PatchLevel: 0,
 	Suffix:     "-DEV",
 }

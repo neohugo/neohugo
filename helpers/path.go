@@ -27,6 +27,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -394,6 +395,7 @@ func OpenFileForWriting(fs afero.Fs, filename string) (afero.File, error) {
 // The dir will be created if it does not exist.
 func GetCacheDir(fs afero.Fs, cacheDir string) (string, error) {
 	cacheDir = cacheDirDefault(cacheDir)
+
 	if cacheDir != "" {
 		exists, err := DirExists(cacheDir, fs)
 		if err != nil {
@@ -408,12 +410,25 @@ func GetCacheDir(fs afero.Fs, cacheDir string) (string, error) {
 		return cacheDir, nil
 	}
 
+	const hugoCacheBase = "hugo_cache"
+
+	// Avoid filling up the home dir with Hugo cache dirs from development.
+	if !htesting.IsTest {
+		userCacheDir, err := os.UserCacheDir()
+		if err == nil {
+			cacheDir := filepath.Join(userCacheDir, hugoCacheBase)
+			if err := fs.Mkdir(cacheDir, 0o777); err == nil || os.IsExist(err) {
+				return cacheDir, nil
+			}
+		}
+	}
+
 	// Fall back to a cache in /tmp.
 	userName := os.Getenv("USER")
 	if userName != "" {
-		return GetTempDir("hugo_cache_"+userName, fs), nil
+		return GetTempDir(hugoCacheBase+"_"+userName, fs), nil
 	} else {
-		return GetTempDir("hugo_cache", fs), nil
+		return GetTempDir(hugoCacheBase, fs), nil
 	}
 }
 
@@ -433,7 +448,7 @@ func cacheDirDefault(cacheDir string) string {
 		return "/opt/build/cache/hugo_cache/"
 	}
 
-	// This will fall back to an hugo_cache folder in the tmp dir, which should work fine for most CI
+	// This will fall back to an hugo_cache folder in either os.UserCacheDir or the tmp dir, which should work fine for most CI
 	// providers. See this for a working CircleCI setup:
 	// https://github.com/bep/hugo-sass-test/blob/6c3960a8f4b90e8938228688bc49bdcdd6b2d99e/.circleci/config.yml
 	// If not, they can set the HUGO_CACHEDIR environment variable or cacheDir config key.

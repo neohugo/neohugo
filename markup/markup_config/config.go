@@ -16,12 +16,10 @@ package markup_config
 import (
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/docshelper"
 	"github.com/neohugo/neohugo/markup/asciidocext/asciidocext_config"
 	"github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
 	"github.com/neohugo/neohugo/markup/highlight"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
-	"github.com/neohugo/neohugo/parser"
 
 	"github.com/mitchellh/mapstructure"
 )
@@ -108,11 +106,4 @@ var Default = Config{
 
 	Goldmark:    goldmark_config.Default,
 	AsciidocExt: asciidocext_config.Default,
-}
-
-func init() {
-	docsProvider := func() docshelper.DocProvider {
-		return docshelper.DocProvider{"config": map[string]any{"markup": parser.LowerCaseCamelJSONMarshaller{Value: Default}}}
-	}
-	docshelper.AddDocProviderFunc(docsProvider)
 }

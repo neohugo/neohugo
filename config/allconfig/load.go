@@ -79,11 +79,12 @@ func LoadConfig(d ConfigSourceDescriptor) (*Configs, error) {
 		if err := configs.transientErr(); err != nil {
 			return nil, fmt.Errorf("failed to create config from modules config: %w", err)
 		}
+		configs.LoadingInfo.ConfigFiles = append(configs.LoadingInfo.ConfigFiles, l.ModulesConfigFiles...)
 	} else if err := configs.transientErr(); err != nil {
 		return nil, fmt.Errorf("failed to create config: %w", err)
 	}
 
-	configs.Modules = moduleConfig.ActiveModules
+	configs.Modules = moduleConfig.AllModules
 	configs.ModulesClient = modulesClient
 
 	if err := configs.Init(); err != nil {
@@ -92,7 +93,8 @@ func LoadConfig(d ConfigSourceDescriptor) (*Configs, error) {
 
 	// This is unfortunate, but these are global settings.
 	tpl.SetSecurityAllowActionJSTmpl(configs.Base.Security.GoTemplates.AllowActionJSTmpl)
-	loggers.InitGlobalLogger(configs.Base.PanicOnWarning)
+
+	loggers.InitGlobalLogger(d.Logger.Level(), configs.Base.PanicOnWarning)
 
 	return configs, nil
 }
@@ -296,19 +298,38 @@ func (l configLoader) applyOsEnvOverrides(environ []string) error {
 			if nestedKey != "" {
 				owner[nestedKey] = env.Value
 			} else {
-				var val any = env.Value
-				if _, ok := allDecoderSetups[env.Key]; ok {
+				var val any
+				key := strings.ReplaceAll(env.Key, delim, ".")
+				_, ok := allDecoderSetups[key]
+				if ok {
 					// A map.
-					val, err = metadecoders.Default.UnmarshalStringTo(env.Value, map[string]interface{}{})
+					if v, err := metadecoders.Default.UnmarshalStringTo(env.Value, map[string]interface{}{}); err == nil {
+						val = v
+					}
 				}
-				if err == nil {
-					l.cfg.Set(strings.ReplaceAll(env.Key, delim, "."), val)
+				if val == nil {
+					// A string.
+					val = l.envStringToVal(key, env.Value)
 				}
+				l.cfg.Set(key, val)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (l *configLoader) envStringToVal(k, v string) any {
+	switch k {
+	case "disablekinds", "disablelanguages":
+		if strings.Contains(v, ",") {
+			return strings.Split(v, ",")
+		} else {
+			return strings.Fields(v)
+		}
+	default:
+		return v
+	}
 }
 
 func (l *configLoader) loadConfigMain(d ConfigSourceDescriptor) (config.LoadConfigResult, modules.ModulesConfig, error) {
@@ -449,7 +470,7 @@ func (l *configLoader) loadModules(configs *Configs) (modules.ModulesConfig, *mo
 	ex := hexec.New(conf.Security)
 
 	hook := func(m *modules.ModulesConfig) error {
-		for _, tc := range m.ActiveModules {
+		for _, tc := range m.AllModules {
 			if len(tc.ConfigFilenames()) > 0 {
 				if tc.Watch() {
 					l.ModulesConfigFiles = append(l.ModulesConfigFiles, tc.ConfigFilenames()...)
