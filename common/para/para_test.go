@@ -36,7 +36,7 @@ package para
 //t.Skip("skip para test when not running on CI")
 //}
 
-//c := qt.New(t)
+// c := qt.New(t)
 
 //c.Run("Order", func(c *qt.C) {
 //n := 500
@@ -45,8 +45,8 @@ package para
 //ints[i] = i
 //}
 
-//p := New(4)
-//r, _ := p.Start(context.Background())
+// p := New(4)
+// r, _ := p.Start(context.Background())
 
 //var result []int
 //var mu sync.Mutex
@@ -67,15 +67,15 @@ package para
 //c.Assert(result, qt.DeepEquals, ints)
 //})
 
-//c.Run("Time", func(c *qt.C) {
-//const n = 100
+// c.Run("Time", func(c *qt.C) {
+// const n = 100
 
-//p := New(5)
-//r, _ := p.Start(context.Background())
+// p := New(5)
+// r, _ := p.Start(context.Background())
 
-//start := time.Now()
+// start := time.Now()
 
-//var counter int64
+// var counter int64
 
 //for i := 0; i < n; i++ {
 //r.Run(func() error {
@@ -85,8 +85,8 @@ package para
 //})
 //}
 
-//c.Assert(r.Wait(), qt.IsNil)
-//c.Assert(counter, qt.Equals, int64(n))
+// c.Assert(r.Wait(), qt.IsNil)
+// c.Assert(counter, qt.Equals, int64(n))
 
 //since := time.Since(start)
 //limit := n / 2 * time.Millisecond
