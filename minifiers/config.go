@@ -104,7 +104,6 @@ func DecodeConfig(v any) (conf MinifyConfig, err error) {
 	}
 
 	err = mapstructure.WeakDecode(m, &conf)
-
 	if err != nil {
 		return
 	}

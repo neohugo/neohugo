@@ -409,7 +409,6 @@ func (ns *Namespace) checkWhereArray(ctxv, seqv, kv, mv reflect.Value, path []st
 				for i, elemName := range path {
 					var err error
 					vvv, err = evaluateSubElem(ctxv, vvv, elemName)
-
 					if err != nil {
 						continue
 					}

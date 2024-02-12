@@ -1003,7 +1003,6 @@ func (c *serverCommand) serve() error {
 			}
 		}
 	}()
-
 	if err != nil {
 		c.r.Println("Error:", err)
 	}

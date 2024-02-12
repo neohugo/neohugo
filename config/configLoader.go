@@ -219,7 +219,6 @@ func init() {
 		// Before 0.53 we used singular for "menu".
 		"{menu,languages/*/menu}", "menus",
 	)
-
 	if err != nil {
 		panic(err)
 	}

@@ -323,7 +323,6 @@ func (s *siteRefLinker) refLink(ref string, source any, relative bool, outputFor
 	ref = filepath.ToSlash(ref)
 
 	refURL, err = url.Parse(ref)
-
 	if err != nil {
 		return s.notFoundURL, err
 	}

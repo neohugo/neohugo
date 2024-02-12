@@ -224,7 +224,6 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	}
 
 	_, err = ctx.To.Write(content)
-
 	if err != nil {
 		return err
 	}

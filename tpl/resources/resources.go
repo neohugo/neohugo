@@ -439,7 +439,6 @@ func (ns *Namespace) Babel(args ...any) (resource.Resource, error) {
 	var options babel.Options
 	if m != nil {
 		options, err = babel.DecodeOptions(m)
-
 		if err != nil {
 			return nil, err
 		}
