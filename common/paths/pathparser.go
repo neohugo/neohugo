@@ -108,7 +108,6 @@ func (pp *PathParser) parse(component, s string) (*Path, error) {
 		var err error
 		// Preserve the original case for titles etc.
 		p.unnormalized, err = pp.doParse(component, s, pp.newPath(component))
-
 		if err != nil {
 			return nil, err
 		}

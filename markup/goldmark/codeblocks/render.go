@@ -132,7 +132,6 @@ func (r *htmlRenderer) renderCodeBlock(w util.BufWriter, src []byte, node ast.No
 		w,
 		cbctx,
 	)
-
 	if err != nil {
 		return ast.WalkContinue, herrors.NewFileErrorFromPos(err, cbctx.createPos())
 	}
