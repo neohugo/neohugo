@@ -9,7 +9,6 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/htesting"
 )
 
 type testSiteBuildErrorAsserter struct {
@@ -431,15 +430,15 @@ line 4
 	b.Assert(err, qt.IsNotNil)
 	errors := herrors.UnwrapFileErrorsWithErrorContext(err)
 
-	b.Assert(errors, qt.HasLen, 3)
+	b.Assert(errors, qt.HasLen, 4)
 
-	b.Assert(errors[0].Position().LineNumber, qt.Equals, 6)
-	b.Assert(errors[0].Position().ColumnNumber, qt.Equals, 1)
-	b.Assert(errors[0].ErrorContext().ChromaLexer, qt.Equals, "md")
-	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:6:1": failed to render shortcode "hello": failed to process shortcode: "/layouts/shortcodes/hello.html:2:5":`))
-	b.Assert(errors[0].ErrorContext().Lines, qt.DeepEquals, []string{"", "## Hello", "{{< hello >}}", ""})
-	b.Assert(errors[1].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "12{{ partial \"foo.html\" . }}", "line 4", "line 5"})
-	b.Assert(errors[2].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
+	b.Assert(errors[1].Position().LineNumber, qt.Equals, 6)
+	b.Assert(errors[1].Position().ColumnNumber, qt.Equals, 1)
+	b.Assert(errors[1].ErrorContext().ChromaLexer, qt.Equals, "md")
+	b.Assert(errors[1].Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:6:1": failed to render shortcode "hello": failed to process shortcode: "/layouts/shortcodes/hello.html:2:5":`))
+	b.Assert(errors[1].ErrorContext().Lines, qt.DeepEquals, []string{"", "## Hello", "{{< hello >}}", ""})
+	b.Assert(errors[2].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "12{{ partial \"foo.html\" . }}", "line 4", "line 5"})
+	b.Assert(errors[3].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
 }
 
 func TestErrorRenderHookHeading(t *testing.T) {
@@ -476,7 +475,7 @@ line 5
 	b.Assert(err, qt.IsNotNil)
 	errors := herrors.UnwrapFileErrorsWithErrorContext(err)
 
-	b.Assert(errors, qt.HasLen, 2)
+	b.Assert(errors, qt.HasLen, 3)
 	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:1:1": "/layouts/_default/_markup/render-heading.html:2:5": execute of template failed`))
 }
 
@@ -519,7 +518,7 @@ line 5
 	b.Assert(err, qt.IsNotNil)
 	errors := herrors.UnwrapFileErrorsWithErrorContext(err)
 
-	b.Assert(errors, qt.HasLen, 2)
+	b.Assert(errors, qt.HasLen, 3)
 	first := errors[0]
 	b.Assert(first.Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:7:1": "/layouts/_default/_markup/render-codeblock-foo.html:2:5": execute of template failed`))
 }
@@ -605,11 +604,6 @@ toc line 4
 
 // https://github.com/gohugoio/hugo/issues/5375
 func TestSiteBuildTimeout(t *testing.T) {
-	// nolint
-	if !htesting.IsCI() {
-		// defer leaktest.CheckTimeout(t, 10*time.Second)()
-	}
-
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", `
 timeout = 5

@@ -23,6 +23,8 @@ import (
 	"unicode"
 
 	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/common/hcontext"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/output/layouts"
 
@@ -68,6 +70,7 @@ type TemplateHandler interface {
 	ExecuteWithContext(ctx context.Context, t Template, wr io.Writer, data any) error
 	LookupLayout(d layouts.LayoutDescriptor, f output.Format) (Template, bool, error)
 	HasTemplate(name string) bool
+	GetIdentity(name string) (identity.Identity, bool)
 }
 
 type TemplateLookup interface {
@@ -94,6 +97,27 @@ type Template interface {
 	Prepare() (*texttemplate.Template, error)
 }
 
+// AddIdentity checks if t is an identity.Identity and returns it if so.
+// Else it wraps it in a templateIdentity using its name as the base.
+func AddIdentity(t Template) Template {
+	if _, ok := t.(identity.IdentityProvider); ok {
+		return t
+	}
+	return templateIdentityProvider{
+		Template: t,
+		id:       identity.StringIdentity(t.Name()),
+	}
+}
+
+type templateIdentityProvider struct {
+	Template
+	id identity.Identity
+}
+
+func (t templateIdentityProvider) GetIdentity() identity.Identity {
+	return t.id
+}
+
 // TemplateParser is used to parse ad-hoc templates, e.g. in the Resource chain.
 type TemplateParser interface {
 	Parse(name, tpl string) (Template, error)
@@ -110,37 +134,10 @@ type TemplateDebugger interface {
 	Debug()
 }
 
-// templateInfo wraps a Template with some additional information.
-type templateInfo struct {
-	Template
-	Info
-}
-
-// templateInfo wraps a Template with some additional information.
-type templateInfoManager struct {
-	Template
-	InfoManager
-}
-
 // TemplatesProvider as implemented by deps.Deps.
 type TemplatesProvider interface {
 	Tmpl() TemplateHandler
 	TextTmpl() TemplateParseFinder
-}
-
-// WithInfo wraps the info in a template.
-func WithInfo(templ Template, info Info) Template {
-	if manager, ok := info.(InfoManager); ok {
-		return &templateInfoManager{
-			Template:    templ,
-			InfoManager: manager,
-		}
-	}
-
-	return &templateInfo{
-		Template: templ,
-		Info:     info,
-	}
 }
 
 var baseOfRe = regexp.MustCompile("template: (.*?):")
@@ -158,53 +155,38 @@ type TemplateFuncGetter interface {
 	GetFunc(name string) (reflect.Value, bool)
 }
 
-// GetPageFromContext returns the top level Page.
-func GetPageFromContext(ctx context.Context) any {
-	return ctx.Value(texttemplate.PageContextKey)
+type contextKey string
+
+// Context manages values passed in the context to templates.
+var Context = struct {
+	DependencyManagerScopedProvider    hcontext.ContextDispatcher[identity.DependencyManagerScopedProvider]
+	GetDependencyManagerInCurrentScope func(context.Context) identity.Manager
+	SetDependencyManagerInCurrentScope func(context.Context, identity.Manager) context.Context
+	DependencyScope                    hcontext.ContextDispatcher[int]
+	Page                               hcontext.ContextDispatcher[page]
+}{
+	DependencyManagerScopedProvider: hcontext.NewContextDispatcher[identity.DependencyManagerScopedProvider](contextKey("DependencyManagerScopedProvider")),
+	DependencyScope:                 hcontext.NewContextDispatcher[int](contextKey("DependencyScope")),
+	Page:                            hcontext.NewContextDispatcher[page](contextKey("Page")),
 }
 
-// SetPageInContext sets the top level Page.
-func SetPageInContext(ctx context.Context, p page) context.Context {
-	return context.WithValue(ctx, texttemplate.PageContextKey, p)
-}
-
-// SetSecurityAllowActionJSTmpl sets the global setting for allowing tempalte actions in JS template literals.
-// This was added in Hugo 0.114.0.
-// See https://github.com/golang/go/issues/59234
-func SetSecurityAllowActionJSTmpl(b bool) {
-	htmltemplate.SecurityAllowActionJSTmpl.Store(b)
+func init() {
+	Context.GetDependencyManagerInCurrentScope = func(ctx context.Context) identity.Manager {
+		idmsp := Context.DependencyManagerScopedProvider.Get(ctx)
+		if idmsp != nil {
+			return idmsp.GetDependencyManagerForScope(Context.DependencyScope.Get(ctx))
+		}
+		return nil
+	}
 }
 
 type page interface {
 	IsNode() bool
 }
 
-func GetHasLockFromContext(ctx context.Context) bool {
-	if v := ctx.Value(texttemplate.HasLockContextKey); v != nil {
-		return v.(bool)
-	}
-	return false
-}
-
-func SetHasLockInContext(ctx context.Context, hasLock bool) context.Context {
-	return context.WithValue(ctx, texttemplate.HasLockContextKey, hasLock)
-}
-
-func GetCallbackFunctionFromContext(ctx context.Context) any {
-	return ctx.Value(texttemplate.CallbackContextKey)
-}
-
-func SetCallbackFunctionInContext(ctx context.Context, fn any) context.Context {
-	return context.WithValue(ctx, texttemplate.CallbackContextKey, fn)
-}
-
 const hugoNewLinePlaceholder = "___hugonl_"
 
-var (
-	stripHTMLReplacerPre = strings.NewReplacer("\n", " ", "</p>", hugoNewLinePlaceholder, "<br>", hugoNewLinePlaceholder, "<br />", hugoNewLinePlaceholder)
-	//nolint
-	whitespaceRe = regexp.MustCompile(`\s+`)
-)
+var stripHTMLReplacerPre = strings.NewReplacer("\n", " ", "</p>", hugoNewLinePlaceholder, "<br>", hugoNewLinePlaceholder, "<br />", hugoNewLinePlaceholder)
 
 // StripHTML strips out all HTML tags in s.
 func StripHTML(s string) string {

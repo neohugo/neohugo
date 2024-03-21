@@ -35,11 +35,6 @@ import (
 	"github.com/spf13/cast"
 )
 
-func init() {
-	// htime.Now cannot be used here
-	rand.Seed(time.Now().UTC().UnixNano())
-}
-
 // New returns a new instance of the collections-namespaced template functions.
 func New(deps *deps.Deps) *Namespace {
 	language := deps.Conf.Language()
@@ -149,7 +144,7 @@ func (ns *Namespace) Delimit(ctx context.Context, l, sep any, last ...any) (stri
 		}
 
 	default:
-		return "", fmt.Errorf("can't iterate over %v", l)
+		return "", fmt.Errorf("can't iterate over %T", l)
 	}
 
 	return str, nil
@@ -577,7 +572,7 @@ func (ns *Namespace) Seq(args ...any) ([]int, error) {
 	return seq, nil
 }
 
-// Shuffle returns list l in a randomised order.
+// Shuffle returns list l in a randomized order.
 func (ns *Namespace) Shuffle(l any) (any, error) {
 	if l == nil {
 		return nil, errors.New("both count and seq must be provided")

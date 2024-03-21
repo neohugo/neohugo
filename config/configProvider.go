@@ -17,8 +17,10 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/common/urls"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/langs"
 )
 
@@ -30,6 +32,7 @@ type AllProvider interface {
 	LanguagePrefix() string
 	BaseURL() urls.BaseURL
 	BaseURLLiveReload() urls.BaseURL
+	PathParser() *paths.PathParser
 	Environment() string
 	IsMultihost() bool
 	IsMultiLingual() bool
@@ -54,6 +57,9 @@ type AllProvider interface {
 	BuildFuture() bool
 	BuildDrafts() bool
 	Running() bool
+	Watching() bool
+	NewIdentityManager(name string) identity.Manager
+	FastRenderMode() bool
 	PrintUnusedTemplates() bool
 	EnableMissingTranslationPlaceholders() bool
 	TemplateMetrics() bool
@@ -64,7 +70,7 @@ type AllProvider interface {
 	NewContentEditor() string
 	Timeout() time.Duration
 	StaticDirs() []string
-	IgnoredErrors() map[string]bool
+	IgnoredLogs() map[string]bool
 	WorkingDir() string
 	EnableEmoji() bool
 }
@@ -94,11 +100,4 @@ type Provider interface {
 func GetStringSlicePreserveString(cfg Provider, key string) []string {
 	sd := cfg.Get(key)
 	return types.ToStringSlicePreserveString(sd)
-}
-
-// nolint
-func setIfNotSet(cfg Provider, key string, value any) {
-	if !cfg.IsSet(key) {
-		cfg.Set(key, value)
-	}
 }

@@ -140,7 +140,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		configFile = t.rs.BaseFs.ResolveJSConfigFile(configFile)
 		if configFile == "" && t.options.Config != "" {
 			// Only fail if the user specified config file is not found.
-			return fmt.Errorf("babel config %q not found:", configFile)
+			return fmt.Errorf("babel config %q not found", configFile)
 		}
 	}
 

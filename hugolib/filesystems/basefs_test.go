@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/hugolib"
 
 	"github.com/spf13/afero"
 
@@ -61,11 +63,13 @@ func TestNewBaseFs(t *testing.T) {
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
-		afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0o755) // nolint
-		afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0o755)                   // nolint
+		// nolint
+		afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0o755)
+		// nolint
+		afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0o755)
 	}
-
-	afero.WriteFile(afs, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0o755) // nolint
+	// nolint
+	afero.WriteFile(afs, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0o755)
 	// nolint
 	afero.WriteFile(afs, filepath.Join(workingDir, "themes", "btheme", "config.toml"), []byte(`
 theme = ["atheme"]
@@ -113,17 +117,10 @@ theme = ["atheme"]
 	checkFileCount(bfs.Assets.Fs, "", c, 9)
 	checkFileCount(bfs.Work, "", c, 90)
 
-	c.Assert(bfs.IsData(filepath.Join(workingDir, "mydata", "file1.txt")), qt.Equals, true)
-	c.Assert(bfs.IsI18n(filepath.Join(workingDir, "myi18n", "file1.txt")), qt.Equals, true)
-	c.Assert(bfs.IsLayout(filepath.Join(workingDir, "mylayouts", "file1.txt")), qt.Equals, true)
 	c.Assert(bfs.IsStatic(filepath.Join(workingDir, "mystatic", "file1.txt")), qt.Equals, true)
-	c.Assert(bfs.IsAsset(filepath.Join(workingDir, "myassets", "file1.txt")), qt.Equals, true)
 
 	contentFilename := filepath.Join(workingDir, "mycontent", "file1.txt")
 	c.Assert(bfs.IsContent(contentFilename), qt.Equals, true)
-	rel := bfs.RelContentDir(contentFilename)
-	c.Assert(rel, qt.Equals, "file1.txt")
-
 	// Check Work fs vs theme
 	checkFileContent(bfs.Work, "file-root.txt", c, "content-project")
 	checkFileContent(bfs.Work, "theme-root-atheme.txt", c, "content:atheme")
@@ -168,12 +165,7 @@ func TestRealDirs(t *testing.T) {
 	v.Set("assetDir", "myassets")
 	v.Set("theme", "mytheme")
 
-	afs := hugofs.Os
-
-	defer func() {
-		os.RemoveAll(root)
-		os.RemoveAll(themesDir)
-	}()
+	afs := &hugofs.OpenFilesFs{Fs: hugofs.Os}
 
 	c.Assert(afs.MkdirAll(filepath.Join(root, "myassets", "scss", "sf1"), 0o755), qt.IsNil)
 	c.Assert(afs.MkdirAll(filepath.Join(root, "myassets", "scss", "sf2"), 0o755), qt.IsNil)
@@ -211,6 +203,85 @@ func TestRealDirs(t *testing.T) {
 	c.Assert(len(realDirs), qt.Equals, 2)
 	c.Assert(realDirs[0], qt.Equals, filepath.Join(root, "myassets/scss"))
 	c.Assert(realDirs[len(realDirs)-1], qt.Equals, filepath.Join(themesDir, "mytheme/assets/scss"))
+
+	realDirs = bfs.Assets.RealDirs("foo")
+	c.Assert(len(realDirs), qt.Equals, 0)
+
+	c.Assert(afs.OpenFiles(), qt.HasLen, 0)
+}
+
+func TestWatchFilenames(t *testing.T) {
+	t.Parallel()
+	files := `
+-- hugo.toml --
+theme = "t1"
+[[module.mounts]]
+source = 'content'
+target = 'content'
+[[module.mounts]]
+source = 'content2'
+target = 'content/c2'
+[[module.mounts]]
+source = "hugo_stats.json"
+target = "assets/watching/hugo_stats.json"
+-- hugo_stats.json --
+Some stats.
+-- content/foo.md --
+foo
+-- content2/bar.md --
+-- themes/t1/layouts/_default/single.html --
+{{ .Content }}
+-- themes/t1/static/f1.txt --
+`
+	b := hugolib.Test(t, files)
+	bfs := b.H.BaseFs
+	watchFilenames := bfs.WatchFilenames()
+	//   []string{"/hugo_stats.json", "/content", "/content2", "/themes/t1/layouts", "/themes/t1/layouts/_default", "/themes/t1/static"}
+	b.Assert(watchFilenames, qt.HasLen, 6)
+}
+
+func TestNoSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skip on Windows")
+	}
+	files := `
+-- hugo.toml --
+theme = "t1"
+-- content/a/foo.md --
+foo
+-- static/a/f1.txt --
+F1 text
+-- themes/t1/layouts/_default/single.html --
+{{ .Content }}
+-- themes/t1/static/a/f1.txt --
+`
+	tmpDir := t.TempDir()
+
+	wd, _ := os.Getwd()
+
+	for _, component := range []string{"content", "static"} {
+		aDir := filepath.Join(tmpDir, component, "a")
+		bDir := filepath.Join(tmpDir, component, "b")
+		os.MkdirAll(aDir, 0o755) // nolint
+		os.MkdirAll(bDir, 0o755) // nolint
+		os.Chdir(bDir)           // nolint
+		os.Symlink("../a", "c")  // nolint
+	}
+
+	os.Chdir(wd) // nolint
+
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+			NeedsOsFS:   true,
+			WorkingDir:  tmpDir,
+		},
+	).Build()
+
+	bfs := b.H.BaseFs
+	watchFilenames := bfs.WatchFilenames()
+	b.Assert(watchFilenames, qt.HasLen, 10)
 }
 
 func TestStaticFs(t *testing.T) {
@@ -281,8 +352,6 @@ func TestStaticFsMultiHost(t *testing.T) {
 	conf := testconfig.GetTestConfig(afs, v)
 	fs := hugofs.NewFrom(afs, conf.BaseConfig())
 
-	fmt.Println("IS", conf.IsMultihost())
-
 	p, err := paths.New(fs, conf)
 	c.Assert(err, qt.IsNil)
 	bfs, err := filesystems.NewBase(p, nil)
@@ -297,61 +366,250 @@ func TestStaticFsMultiHost(t *testing.T) {
 }
 
 func TestMakePathRelative(t *testing.T) {
-	c := qt.New(t)
-	v := config.New()
-	afs := afero.NewMemMapFs()
-	workDir := "mywork"
-	v.Set("workingDir", workDir)
+	files := `
+-- hugo.toml --
+[[module.mounts]]
+source = "bar.txt"
+target = "assets/foo/baz.txt"
+[[module.imports]]
+path = "t1"
+[[module.imports.mounts]]
+source = "src"
+target = "assets/foo/bar"
+-- bar.txt --
+Bar.
+-- themes/t1/src/main.js --
+Main.
+`
+	b := hugolib.Test(t, files)
 
-	c.Assert(afs.MkdirAll(filepath.Join(workDir, "dist", "d1"), 0o777), qt.IsNil)
-	c.Assert(afs.MkdirAll(filepath.Join(workDir, "static", "d2"), 0o777), qt.IsNil)
-	c.Assert(afs.MkdirAll(filepath.Join(workDir, "dust", "d2"), 0o777), qt.IsNil)
+	rel, found := b.H.BaseFs.Assets.MakePathRelative(filepath.FromSlash("/themes/t1/src/main.js"), true)
+	b.Assert(found, qt.Equals, true)
+	b.Assert(rel, qt.Equals, filepath.FromSlash("foo/bar/main.js"))
 
-	moduleCfg := map[string]any{
-		"mounts": []any{
-			map[string]any{
-				"source": "dist",
-				"target": "static/mydist",
-			},
-			map[string]any{
-				"source": "dust",
-				"target": "static/foo/bar",
-			},
-			map[string]any{
-				"source": "static",
-				"target": "static",
-			},
+	rel, found = b.H.BaseFs.Assets.MakePathRelative(filepath.FromSlash("/bar.txt"), true)
+	b.Assert(found, qt.Equals, true)
+	b.Assert(rel, qt.Equals, filepath.FromSlash("foo/baz.txt"))
+}
+
+func TestAbsProjectContentDir(t *testing.T) {
+	tempDir := t.TempDir()
+
+	files := `
+-- hugo.toml --
+[[module.mounts]]
+source = "content"
+target = "content"
+-- content/foo.md --
+---
+title: "Foo"
+---
+`
+
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{
+			T:           t,
+			WorkingDir:  tempDir,
+			TxtarString: files,
 		},
+	).Build()
+
+	abs1 := filepath.Join(tempDir, "content", "foo.md")
+	rel, abs2, err := b.H.BaseFs.AbsProjectContentDir("foo.md")
+	b.Assert(err, qt.IsNil)
+	b.Assert(abs2, qt.Equals, abs1)
+	b.Assert(rel, qt.Equals, filepath.FromSlash("foo.md"))
+	rel2, abs3, err := b.H.BaseFs.AbsProjectContentDir(abs1)
+	b.Assert(err, qt.IsNil)
+	b.Assert(abs3, qt.Equals, abs1)
+	b.Assert(rel2, qt.Equals, rel)
+}
+
+func TestContentReverseLookup(t *testing.T) {
+	files := `
+-- README.md --
+---
+title: README
+---
+-- blog/b1.md --
+---
+title: b1
+---
+-- docs/d1.md --
+---
+title: d1
+---
+-- hugo.toml --
+baseURL = "https://example.com/"
+[module]
+[[module.mounts]]
+source = "layouts"
+target = "layouts"
+[[module.mounts]]
+source = "README.md"
+target = "content/_index.md"
+[[module.mounts]]
+source = "blog"
+target = "content/posts"
+[[module.mounts]]
+source = "docs"
+target = "content/mydocs"
+-- layouts/index.html --
+Home.
+
+`
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/index.html", "Home.")
+
+	stat := func(path string) hugofs.FileMetaInfo {
+		ps, err := b.H.BaseFs.Content.ReverseLookup(filepath.FromSlash(path), true)
+		b.Assert(err, qt.IsNil)
+		b.Assert(ps, qt.HasLen, 1)
+		first := ps[0]
+		fi, err := b.H.BaseFs.Content.Fs.Stat(filepath.FromSlash(first.Path))
+		b.Assert(err, qt.IsNil)
+		b.Assert(fi, qt.Not(qt.IsNil))
+		return fi.(hugofs.FileMetaInfo)
 	}
 
-	v.Set("module", moduleCfg)
+	sfs := b.H.Fs.Source
 
-	conf := testconfig.GetTestConfig(afs, v)
-	fs := hugofs.NewFrom(afs, conf.BaseConfig())
+	_, err := sfs.Stat("blog/b1.md")
+	b.Assert(err, qt.Not(qt.IsNil))
 
-	p, err := paths.New(fs, conf)
-	c.Assert(err, qt.IsNil)
-	bfs, err := filesystems.NewBase(p, nil)
-	c.Assert(err, qt.IsNil)
+	_ = stat("blog/b1.md")
+}
 
-	sfs := bfs.Static[""]
-	c.Assert(sfs, qt.Not(qt.IsNil))
+func TestReverseLookupShouldOnlyConsiderFilesInCurrentComponent(t *testing.T) {
+	files := `
+-- hugo.toml --
+baseURL = "https://example.com/"
+[module]
+[[module.mounts]]
+source = "files/layouts"
+target = "layouts"
+[[module.mounts]]
+source = "files/layouts/assets"
+target = "assets"
+-- files/layouts/l1.txt --
+l1
+-- files/layouts/assets/l2.txt --
+l2
+`
+	b := hugolib.Test(t, files)
 
-	makeRel := func(s string) string {
-		r, _ := sfs.MakePathRelative(s)
-		return r
+	assetsFs := b.H.Assets
+
+	for _, checkExists := range []bool{false, true} {
+		cps, err := assetsFs.ReverseLookup(filepath.FromSlash("files/layouts/assets/l2.txt"), checkExists)
+		b.Assert(err, qt.IsNil)
+		b.Assert(cps, qt.HasLen, 1)
+		cps, err = assetsFs.ReverseLookup(filepath.FromSlash("files/layouts/l2.txt"), checkExists)
+		b.Assert(err, qt.IsNil)
+		b.Assert(cps, qt.HasLen, 0)
 	}
+}
 
-	c.Assert(makeRel(filepath.Join(workDir, "dist", "d1", "foo.txt")), qt.Equals, filepath.FromSlash("mydist/d1/foo.txt"))
-	c.Assert(makeRel(filepath.Join(workDir, "static", "d2", "foo.txt")), qt.Equals, filepath.FromSlash("d2/foo.txt"))
-	c.Assert(makeRel(filepath.Join(workDir, "dust", "d3", "foo.txt")), qt.Equals, filepath.FromSlash("foo/bar/d3/foo.txt"))
+func TestAssetsIssue12175(t *testing.T) {
+	files := `
+-- hugo.toml --
+baseURL = "https://example.com/"
+[module]
+[[module.mounts]]
+source = "node_modules/@foo/core/assets"
+target = "assets"
+[[module.mounts]]
+source = "assets"
+target = "assets"
+-- node_modules/@foo/core/assets/js/app.js --
+JS.
+-- node_modules/@foo/core/assets/scss/app.scss --
+body { color: red; }
+-- assets/scss/app.scss --
+body { color: blue; }
+-- layouts/index.html --
+Home.
+SCSS: {{ with resources.Get "scss/app.scss" }}{{ .RelPermalink }}|{{ .Content }}{{ end }}|
+# Note that the pattern below will match 2 resources, which doesn't make much sense,
+# but is how the current (and also < v0.123.0) merge logic works, and for most practical purposes, it doesn't matter.
+SCSS Match: {{ with resources.Match "**.scss" }}{{ . | len }}|{{ range .}}{{ .RelPermalink }}|{{ end }}{{ end }}|
+
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/index.html", `
+SCSS: /scss/app.scss|body { color: blue; }|
+SCSS Match: 2|
+`)
+}
+
+func TestStaticComposite(t *testing.T) {
+	files := `
+-- hugo.toml --
+disableKinds = ["taxonomy", "term"]
+[module]
+[[module.mounts]]
+source = "myfiles/f1.txt"
+target = "static/files/f1.txt"
+[[module.mounts]]
+source = "f3.txt"
+target = "static/f3.txt"
+[[module.mounts]]
+source = "static"
+target = "static"
+-- static/files/f2.txt --
+f2
+-- myfiles/f1.txt --
+f1
+-- f3.txt --
+f3
+-- layouts/home.html --
+Home.
+
+`
+	b := hugolib.Test(t, files)
+
+	b.AssertFs(b.H.BaseFs.StaticFs(""), `
+. true
+f3.txt false
+files true
+files/f1.txt false
+files/f2.txt false
+`)
+}
+
+func TestMountIssue12141(t *testing.T) {
+	files := `
+-- hugo.toml --
+disableKinds = ["taxonomy", "term"]
+[module]
+[[module.mounts]]
+source = "myfiles"
+target = "static"
+[[module.mounts]]
+source = "myfiles/f1.txt"
+target = "static/f2.txt"
+-- myfiles/f1.txt --
+f1
+`
+	b := hugolib.Test(t, files)
+	fs := b.H.BaseFs.StaticFs("")
+
+	b.AssertFs(fs, `
+. true
+f1.txt false
+f2.txt false
+`)
 }
 
 func checkFileCount(fs afero.Fs, dirname string, c *qt.C, expected int) {
 	c.Helper()
-	count, _, err := countFilesAndGetFilenames(fs, dirname)
-	c.Assert(err, qt.IsNil)
-	c.Assert(count, qt.Equals, expected)
+	count, names, err := countFilesAndGetFilenames(fs, dirname)
+	namesComment := qt.Commentf("filenames: %v", names)
+	c.Assert(err, qt.IsNil, namesComment)
+	c.Assert(count, qt.Equals, expected, namesComment)
 }
 
 func checkFileContent(fs afero.Fs, filename string, c *qt.C, expected ...string) {
@@ -373,10 +631,7 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 	counter := 0
 	var filenames []string
 
-	wf := func(path string, info hugofs.FileMetaInfo, err error) error {
-		if err != nil {
-			return err
-		}
+	wf := func(path string, info hugofs.FileMetaInfo) error {
 		if !info.IsDir() {
 			counter++
 		}
@@ -402,15 +657,10 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val string, num int) error {
 	workingDir := v.GetString("workingDir")
 	v.Set(key, val)
-	if err := fs.Mkdir(val, 0o755); err != nil {
-		return err
-	}
+	fs.Mkdir(val, 0o755) // nolint
 	for i := 0; i < num; i++ {
 		filename := filepath.Join(workingDir, val, fmt.Sprintf("f%d.txt", i+1))
-		if err := afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0o755); err != nil { // nolint
-			return err
-		}
-
+		afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0o755) // nolint
 	}
 
 	return nil

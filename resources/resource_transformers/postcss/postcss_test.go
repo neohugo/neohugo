@@ -20,6 +20,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/htesting/hqt"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/neohugo/neohugo/helpers"
 
@@ -96,6 +97,7 @@ LOCAL_STYLE
 		"styles.css",
 		Options{},
 		fs, loggers.NewDefault(),
+		identity.NopManager,
 	)
 
 	r, err := imp.resolve()
@@ -153,6 +155,7 @@ LOCAL_STYLE
 			"styles.css",
 			Options{},
 			fs, logger,
+			identity.NopManager,
 		)
 
 		b.StartTimer()

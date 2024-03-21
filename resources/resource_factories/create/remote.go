@@ -24,7 +24,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -254,15 +253,16 @@ func (c *Client) FromRemote(uri string, optionsm map[string]any) (resource.Resou
 	resourceID = filename[:len(filename)-len(path.Ext(filename))] + "_" + resourceID + mediaType.FirstSuffix.FullSuffix
 	data := responseToData(res, false)
 
-	return c.rs.New(
+	return c.rs.NewResource(
 		resources.ResourceSourceDescriptor{
-			MediaType:   mediaType,
-			Data:        data,
-			LazyPublish: true,
+			MediaType:     mediaType,
+			Data:          data,
+			GroupIdentity: identity.StringIdentity(resourceID),
+			LazyPublish:   true,
 			OpenReadSeekCloser: func() (hugio.ReadSeekCloser, error) {
 				return hugio.NewReadSeekerNoOpCloser(bytes.NewReader(body)), nil
 			},
-			RelTargetFilename: filepath.Clean(resourceID),
+			TargetPath: resourceID,
 		})
 }
 
@@ -301,23 +301,6 @@ func addUserProvidedHeaders(headers map[string]any, req *http.Request) {
 			req.Header.Add(key, s)
 		}
 	}
-}
-
-// nolint
-func hasHeaderValue(m http.Header, key, value string) bool {
-	var s []string
-	var ok bool
-
-	if s, ok = m[key]; !ok {
-		return false
-	}
-
-	for _, v := range s {
-		if v == value {
-			return true
-		}
-	}
-	return false
 }
 
 func hasHeaderKey(m http.Header, key string) bool {

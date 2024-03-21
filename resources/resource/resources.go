@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -54,16 +54,33 @@ func (r Resources) ByType(typ any) Resources {
 // Get locates the name given in Resources.
 // The search is case insensitive.
 func (r Resources) Get(name any) Resource {
+	if r == nil {
+		return nil
+	}
 	namestr, err := cast.ToStringE(name)
 	if err != nil {
 		panic(err)
 	}
 	namestr = strings.ToLower(namestr)
+
+	// First check the Name.
+	// Note that this can be modified by the user in the front matter,
+	// also, it does not contain any language code.
 	for _, resource := range r {
 		if strings.EqualFold(namestr, resource.Name()) {
 			return resource
 		}
 	}
+
+	// Finally, check the normalized name.
+	for _, resource := range r {
+		if nop, ok := resource.(NameNormalizedProvider); ok {
+			if strings.EqualFold(namestr, nop.NameNormalized()) {
+				return resource
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -81,8 +98,17 @@ func (r Resources) GetMatch(pattern any) Resource {
 	}
 
 	for _, resource := range r {
-		if g.Match(strings.ToLower(resource.Name())) {
+		if g.Match(resource.Name()) {
 			return resource
+		}
+	}
+
+	// Finally, check the original name.
+	for _, resource := range r {
+		if nop, ok := resource.(NameNormalizedProvider); ok {
+			if g.Match(nop.NameNormalized()) {
+				return resource
+			}
 		}
 	}
 
@@ -111,8 +137,18 @@ func (r Resources) Match(pattern any) Resources {
 
 	var matches Resources
 	for _, resource := range r {
-		if g.Match(strings.ToLower(resource.Name())) {
+		if g.Match(resource.Name()) {
 			matches = append(matches, resource)
+		}
+	}
+	if len(matches) == 0 {
+		// 	Fall back to the normalized name.
+		for _, resource := range r {
+			if nop, ok := resource.(NameNormalizedProvider); ok {
+				if g.Match(nop.NameNormalized()) {
+					matches = append(matches, resource)
+				}
+			}
 		}
 	}
 	return matches

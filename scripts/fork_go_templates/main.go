@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	// The current is built with 2c1e5b05fe39fc5e6c730dd60e82946b8e67c6ba, tag: go1.21.1.
+	// The current is built with 446a5dcf5a3230ce9832682d8f521071d8a34a2b (go 1.22 dev. Thu Oct 5 12:20:11 2023 -0700)
 	fmt.Println("Forking ...")
 	defer fmt.Println("Done ...")
 
@@ -166,41 +166,38 @@ func doWithGoFiles(dir string,
 	if rewrite == nil && transform == nil {
 		return
 	}
-	must(
-		filepath.Walk(
-			filepath.Join(forkRoot, dir),
-			func(path string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-				if info.IsDir() {
-					return nil
-				}
+	must(filepath.Walk(filepath.Join(forkRoot, dir), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
 
-				if !strings.HasSuffix(path, ".go") || strings.Contains(path, "hugo_") {
-					return nil
-				}
+		if !strings.HasSuffix(path, ".go") || strings.Contains(path, "hugo_") {
+			return nil
+		}
 
-				fmt.Println("Handle", path)
+		fmt.Println("Handle", path)
 
-				if rewrite != nil {
-					rewrite(path)
-				}
+		if rewrite != nil {
+			rewrite(path)
+		}
 
-				if transform == nil {
-					return nil
-				}
+		if transform == nil {
+			return nil
+		}
 
-				data, err := os.ReadFile(path)
-				must(err)
-				f, err := os.Create(path)
-				must(err)
-				defer f.Close()
-				_, err = f.WriteString(transform(path, string(data)))
-				must(err)
+		data, err := os.ReadFile(path)
+		must(err)
+		f, err := os.Create(path)
+		must(err)
+		defer f.Close()
+		_, err = f.WriteString(transform(path, string(data)))
+		must(err)
 
-				return nil
-			}))
+		return nil
+	}))
 }
 
 func removeAll(expression, content string) string {

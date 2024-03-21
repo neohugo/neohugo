@@ -875,7 +875,6 @@ func TestDelims(t *testing.T) {
 		if err != nil {
 			t.Fatalf("delim %q text %q parse err %s", left, text, err)
 		}
-		// nolint
 		b := new(strings.Builder)
 		err = tmpl.Execute(b, value)
 		if err != nil {

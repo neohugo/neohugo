@@ -43,13 +43,14 @@ type pageLexer struct {
 	summaryDivider []byte
 	// Set when we have parsed any summary divider
 	summaryDividerChecked bool
-	// Whether we're in a HTML comment.
-	isInHTMLComment bool
 
 	lexerShortcodeState
 
 	// items delivered to client
 	items Items
+
+	// error delivered to the client
+	err error
 }
 
 // Implement the Result interface
@@ -99,8 +100,6 @@ var (
 	delimTOML         = []byte("+++")
 	delimYAML         = []byte("---")
 	delimOrg          = []byte("#+")
-	htmlCommentStart  = []byte("<!--")
-	htmlCommentEnd    = []byte("-->")
 )
 
 func (l *pageLexer) next() rune {
@@ -225,7 +224,7 @@ var lf = []byte("\n")
 
 // nil terminates the parser
 func (l *pageLexer) errorf(format string, args ...any) stateFunc {
-	l.append(Item{Type: tError, Err: fmt.Errorf(format, args...)})
+	l.append(Item{Type: tError, Err: fmt.Errorf(format, args...), low: l.start, high: l.pos})
 	return nil
 }
 
@@ -239,15 +238,6 @@ func (l *pageLexer) consumeCRLF() bool {
 		}
 	}
 	return consumed
-}
-
-func (l *pageLexer) consumeToNextLine() {
-	for {
-		r := l.next()
-		if r == eof || isEndOfLine(r) {
-			return
-		}
-	}
 }
 
 func (l *pageLexer) consumeToSpace() {
@@ -431,10 +421,6 @@ func lexMainSection(l *pageLexer) stateFunc {
 		return lexDone
 	}
 
-	if l.isInHTMLComment {
-		return lexEndFrontMatterHTMLComment
-	}
-
 	// Fast forward as far as possible.
 	skip := l.sectionHandlers.skip()
 
@@ -463,19 +449,15 @@ func lexDone(l *pageLexer) stateFunc {
 	return nil
 }
 
-//func (l *pageLexer) printCurrentInput() {
-//fmt.Printf("input[%d:]: %q", l.pos, string(l.input[l.pos:]))
-//}
+//lint:ignore U1000 useful for debugging
+func (l *pageLexer) printCurrentInput() {
+	fmt.Printf("input[%d:]: %q", l.pos, string(l.input[l.pos:]))
+}
 
 // state helpers
 
 func (l *pageLexer) index(sep []byte) int {
 	return bytes.Index(l.input[l.pos:], sep)
-}
-
-// nolint
-func (l *pageLexer) indexByte(sep byte) int {
-	return bytes.IndexByte(l.input[l.pos:], sep)
 }
 
 func (l *pageLexer) hasPrefix(prefix []byte) bool {

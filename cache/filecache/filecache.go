@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/helpers"
 
@@ -386,7 +387,7 @@ func NewCaches(p *helpers.PathSpec) (Caches, error) {
 
 		baseDir := v.DirCompiled
 
-		bfs := afero.NewBasePathFs(cfs, baseDir)
+		bfs := hugofs.NewBasePathFs(cfs, baseDir)
 
 		var pruneAllRootDir string
 		if k == CacheKeyModules {

@@ -71,6 +71,8 @@ func MakePermalink(host, plink string) *url.URL {
 	}
 
 	base.Path = path.Join(base.Path, p.Path)
+	base.Fragment = p.Fragment
+	base.RawQuery = p.RawQuery
 
 	// path.Join will strip off the last /, so put it back if it was there.
 	hadTrailingSlash := (plink == "" && strings.HasSuffix(host, "/")) || strings.HasSuffix(p.Path, "/")
@@ -180,4 +182,14 @@ func UrlToFilename(s string) (string, bool) {
 	}
 
 	return p, true
+}
+
+// URLEscape escapes unicode letters.
+func URLEscape(uri string) string {
+	// escape unicode letters
+	u, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return u.String()
 }

@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -425,11 +425,7 @@ func (c *importCommand) importFromJekyll(args []string) error {
 	c.r.Println("Importing...")
 
 	fileCount := 0
-	callback := func(path string, fi hugofs.FileMetaInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
+	callback := func(path string, fi hugofs.FileMetaInfo) error {
 		if fi.IsDir() {
 			return nil
 		}
@@ -458,7 +454,7 @@ func (c *importCommand) importFromJekyll(args []string) error {
 
 	for jekyllPostDir, hasAnyPostInDir := range jekyllPostDirs {
 		if hasAnyPostInDir {
-			if err = helpers.SymbolicWalk(hugofs.Os, filepath.Join(jekyllRoot, jekyllPostDir), callback); err != nil {
+			if err = helpers.Walk(hugofs.Os, filepath.Join(jekyllRoot, jekyllPostDir), callback); err != nil {
 				return err
 			}
 		}

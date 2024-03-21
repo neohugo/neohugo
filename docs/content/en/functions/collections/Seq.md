@@ -1,26 +1,16 @@
 ---
 title: collections.Seq
-linkTitle: seq
 description: Returns a slice of integers.
-categories: [functions]
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: functions
-function:
+action:
   aliases: [seq]
+  related: []
   returnType: '[]int'
   signatures:
     - collections.Seq LAST
     - collections.Seq FIRST LAST
     - collections.Seq FIRST INCREMENT LAST
-relatedFunctions:
-  - collections.Apply
-  - collections.Delimit
-  - collections.In
-  - collections.Reverse
-  - collections.Seq
-  - collections.Slice
 aliases: [/functions/seq]
 ---
 
@@ -31,7 +21,7 @@ aliases: [/functions/seq]
 {{ seq -2 2 2 }} → [-2 0 2]
 ```
 
-Iterate over a sequence of integers:
+A contrived example of iterating over a sequence of integers:
 
 ```go-html-template
 {{ $product := 1 }}
@@ -40,3 +30,7 @@ Iterate over a sequence of integers:
 {{ end }}
 {{ $product }} → 24
 ```
+
+{{% note %}}
+The slice created by the `seq` function is limited to 2000 elements.
+{{% /note %}}

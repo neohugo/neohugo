@@ -19,6 +19,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/neohugo/neohugo/common/types"
@@ -70,7 +71,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 			key += decoder.OptionsKey()
 		}
 
-		return ns.cache.GetOrCreate(key, func() (any, error) {
+		v, err := ns.cache.GetOrCreate(key, func(string) (*resources.StaleValue[any], error) {
 			f := metadecoders.FormatFromStrings(r.MediaType().Suffixes()...)
 			if f == "" {
 				return nil, fmt.Errorf("MIME %q not supported", r.MediaType())
@@ -87,8 +88,24 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 				return nil, err
 			}
 
-			return decoder.Unmarshal(b, f)
+			v, err := decoder.Unmarshal(b, f)
+			if err != nil {
+				return nil, err
+			}
+
+			return &resources.StaleValue[any]{
+				Value: v,
+				IsStaleFunc: func() bool {
+					return resource.IsStaleAny(r)
+				},
+			}, nil
 		})
+		if err != nil {
+			return nil, err
+		}
+
+		return v.Value, nil
+
 	}
 
 	dataStr, err := types.ToStringE(data)
@@ -102,14 +119,29 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 
 	key := helpers.MD5String(dataStr)
 
-	return ns.cache.GetOrCreate(key, func() (any, error) {
+	v, err := ns.cache.GetOrCreate(key, func(string) (*resources.StaleValue[any], error) {
 		f := decoder.FormatFromContentString(dataStr)
 		if f == "" {
 			return nil, errors.New("unknown format")
 		}
 
-		return decoder.Unmarshal([]byte(dataStr), f)
+		v, err := decoder.Unmarshal([]byte(dataStr), f)
+		if err != nil {
+			return nil, err
+		}
+
+		return &resources.StaleValue[any]{
+			Value: v,
+			IsStaleFunc: func() bool {
+				return false
+			},
+		}, nil
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	return v.Value, nil
 }
 
 func decodeDecoder(m map[string]any) (metadecoders.Decoder, error) {

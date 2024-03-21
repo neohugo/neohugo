@@ -20,7 +20,6 @@ import (
 	"testing"
 
 	"github.com/bep/logg"
-	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/config/testconfig"
 
@@ -34,8 +33,6 @@ import (
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/config"
 )
-
-var logger = loggers.NewDefault() // nolint
 
 type i18nTest struct {
 	name                             string

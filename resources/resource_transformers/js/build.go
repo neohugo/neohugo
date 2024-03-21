@@ -92,7 +92,7 @@ func (t *buildTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		return err
 	}
 
-	buildOptions.Plugins, err = createBuildPlugins(t.c, opts)
+	buildOptions.Plugins, err = createBuildPlugins(ctx.DependencyManager, t.c, opts)
 	if err != nil {
 		return err
 	}

@@ -21,12 +21,9 @@ import (
 	"html/template"
 	"time"
 
-	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
-
-	"github.com/neohugo/neohugo/hugofs/files"
-	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -34,6 +31,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/source"
 
 	"github.com/neohugo/neohugo/config"
@@ -58,6 +56,8 @@ var (
 
 // PageNop implements Page, but does nothing.
 type nopPage int
+
+var noOpPathInfo = paths.Parse(files.ComponentFolderContent, "no-op.md")
 
 func (p *nopPage) Err() resource.ResourceError {
 	return nil
@@ -103,7 +103,7 @@ func (p *nopPage) BaseFileName() string {
 	return ""
 }
 
-func (p *nopPage) BundleType() files.ContentClass {
+func (p *nopPage) BundleType() string {
 	return ""
 }
 
@@ -163,10 +163,8 @@ func (p *nopPage) Extension() string {
 	return ""
 }
 
-var nilFile *source.FileInfo
-
-func (p *nopPage) File() source.File {
-	return nilFile
+func (p *nopPage) File() *source.File {
+	return nil
 }
 
 func (p *nopPage) FileInfo() hugofs.FileMetaInfo {
@@ -186,10 +184,6 @@ func (p *nopPage) FuzzyWordCount(context.Context) int {
 }
 
 func (p *nopPage) GetPage(ref string) (Page, error) {
-	return nil, nil
-}
-
-func (p *nopPage) GetPageWithTemplateInfo(info tpl.Info, ref string) (Page, error) {
 	return nil, nil
 }
 
@@ -221,16 +215,16 @@ func (p *nopPage) Hugo() (h neohugo.HugoInfo) {
 	return
 }
 
-func (p *nopPage) InSection(other any) (bool, error) {
-	return false, nil
+func (p *nopPage) InSection(other any) bool {
+	return false
 }
 
-func (p *nopPage) IsAncestor(other any) (bool, error) {
-	return false, nil
+func (p *nopPage) IsAncestor(other any) bool {
+	return false
 }
 
-func (p *nopPage) IsDescendant(other any) (bool, error) {
-	return false, nil
+func (p *nopPage) IsDescendant(other any) bool {
+	return false
 }
 
 func (p *nopPage) IsDraft() bool {
@@ -357,8 +351,8 @@ func (p *nopPage) Path() string {
 	return ""
 }
 
-func (p *nopPage) Pathc() string {
-	return ""
+func (p *nopPage) PathInfo() *paths.Path {
+	return noOpPathInfo
 }
 
 func (p *nopPage) Permalink() string {
@@ -527,10 +521,6 @@ func (p *nopPage) Weight() int {
 
 func (p *nopPage) WordCount(context.Context) int {
 	return 0
-}
-
-func (p *nopPage) GetIdentity() identity.Identity {
-	return identity.NewPathIdentity("content", "foo/bar.md")
 }
 
 func (p *nopPage) Fragments(context.Context) *tableofcontents.Fragments {

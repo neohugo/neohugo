@@ -192,23 +192,22 @@ func (KeyRenamer) keyPath(k1, k2 string) string {
 }
 
 func (r KeyRenamer) renamePath(parentKeyPath string, m map[string]any) {
-	for key, val := range m {
-		keyPath := r.keyPath(parentKeyPath, key)
+	for k, v := range m {
+		keyPath := r.keyPath(parentKeyPath, k)
 		// nolint
-		switch val.(type) {
+		switch vv := v.(type) {
 		case map[any]any:
-			val = cast.ToStringMap(val)
-			r.renamePath(keyPath, val.(map[string]any))
+			r.renamePath(keyPath, cast.ToStringMap(vv))
 		case map[string]any:
 			// nolint
-			r.renamePath(keyPath, val.(map[string]any))
+			r.renamePath(keyPath, vv)
 		}
 
 		newKey := r.getNewKey(keyPath)
 
 		if newKey != "" {
-			delete(m, key)
-			m[newKey] = val
+			delete(m, k)
+			m[newKey] = v
 		}
 	}
 }

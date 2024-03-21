@@ -15,10 +15,11 @@ package hugofs
 
 import (
 	"fmt"
-	"io"
 	"path/filepath"
 	"sort"
 	"testing"
+
+	iofs "io/fs"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs/glob"
@@ -76,12 +77,12 @@ func TestLanguageRootMapping(t *testing.T) {
 
 	c.Assert(err, qt.IsNil)
 
-	collected, err := collectFilenames(rfs, "content", "content")
+	collected, err := collectPaths(rfs, "content")
 	c.Assert(err, qt.IsNil)
 	c.Assert(collected, qt.DeepEquals,
-		[]string{"blog/d1/en-d1-f.txt", "blog/d1/sv-d1-f.txt", "blog/en-f.txt", "blog/en-f2.txt", "blog/sv-f.txt", "blog/svdir/main.txt", "docs/sv-docs.txt"}, qt.Commentf("%#v", collected))
+		[]string{"/blog/d1/en-d1-f.txt", "/blog/d1/sv-d1-f.txt", "/blog/en-f.txt", "/blog/en-f2.txt", "/blog/sv-f.txt", "/blog/svdir/main.txt", "/docs/sv-docs.txt"}, qt.Commentf("%#v", collected))
 
-	dirs, err := rfs.Dirs(filepath.FromSlash("content/blog"))
+	dirs, err := rfs.Mounts(filepath.FromSlash("content/blog"))
 	c.Assert(err, qt.IsNil)
 	c.Assert(len(dirs), qt.Equals, 4)
 	for _, dir := range dirs {
@@ -92,7 +93,7 @@ func TestLanguageRootMapping(t *testing.T) {
 
 	blog, err := rfs.Open(filepath.FromSlash("content/blog"))
 	c.Assert(err, qt.IsNil)
-	fis, err := blog.Readdir(-1)
+	fis, err := blog.(iofs.ReadDirFile).ReadDir(-1)
 	c.Assert(err, qt.IsNil)
 	for _, fi := range fis {
 		f, err := fi.(FileMetaInfo).Meta().Open()
@@ -205,7 +206,7 @@ func TestRootMappingFsMount(t *testing.T) {
 	c.Assert(afero.WriteFile(fs, filepath.Join("themes/a/singlefiles", "no.txt"), []byte("no text"), 0o755), qt.IsNil)
 	c.Assert(afero.WriteFile(fs, filepath.Join("themes/a/singlefiles", "sv.txt"), []byte("sv text"), 0o755), qt.IsNil)
 
-	bfs := afero.NewBasePathFs(fs, "themes/a").(*afero.BasePathFs)
+	bfs := NewBasePathFs(fs, "themes/a")
 	rm := []RootMapping{
 		// Directories
 		{
@@ -225,16 +226,16 @@ func TestRootMappingFsMount(t *testing.T) {
 		},
 		// Files
 		{
-			From:      "content/singles/p1.md",
-			To:        "singlefiles/no.txt",
-			ToBasedir: "singlefiles",
-			Meta:      &FileMeta{Lang: "no"},
+			From:   "content/singles/p1.md",
+			To:     "singlefiles/no.txt",
+			ToBase: "singlefiles",
+			Meta:   &FileMeta{Lang: "no"},
 		},
 		{
-			From:      "content/singles/p1.md",
-			To:        "singlefiles/sv.txt",
-			ToBasedir: "singlefiles",
-			Meta:      &FileMeta{Lang: "sv"},
+			From:   "content/singles/p1.md",
+			To:     "singlefiles/sv.txt",
+			ToBase: "singlefiles",
+			Meta:   &FileMeta{Lang: "sv"},
 		},
 	}
 
@@ -255,39 +256,44 @@ func TestRootMappingFsMount(t *testing.T) {
 	// Union with duplicate dir names filtered.
 	c.Assert(dirs1, qt.DeepEquals, []string{"test.txt", "test.txt", "other.txt", "test.txt"})
 
-	files, err := afero.ReadDir(rfs, filepath.FromSlash("content/blog"))
+	d, err := rfs.Open(filepath.FromSlash("content/blog"))
+	c.Assert(err, qt.IsNil)
+	files, err := d.(iofs.ReadDirFile).ReadDir(-1)
 	c.Assert(err, qt.IsNil)
 	c.Assert(len(files), qt.Equals, 4)
-
-	testfilefi := files[1]
-	c.Assert(testfilefi.Name(), qt.Equals, testfile)
-
-	testfilem := testfilefi.(FileMetaInfo).Meta()
-	c.Assert(testfilem.Filename, qt.Equals, filepath.FromSlash("themes/a/mynoblogcontent/test.txt"))
-
-	tf, err := testfilem.Open()
-	c.Assert(err, qt.IsNil)
-	defer tf.Close()
-	b, err := io.ReadAll(tf)
-	c.Assert(err, qt.IsNil)
-	c.Assert(string(b), qt.Equals, "some no content")
-
-	// Ambiguous
-	_, err = rfs.Stat(filepath.FromSlash("content/singles/p1.md"))
-	c.Assert(err, qt.Not(qt.IsNil))
 
 	singlesDir, err := rfs.Open(filepath.FromSlash("content/singles"))
 	c.Assert(err, qt.IsNil)
 	defer singlesDir.Close()
-	singles, err := singlesDir.Readdir(-1)
+	singles, err := singlesDir.(iofs.ReadDirFile).ReadDir(-1)
 	c.Assert(err, qt.IsNil)
 	c.Assert(singles, qt.HasLen, 2)
 	for i, lang := range []string{"no", "sv"} {
 		fi := singles[i].(FileMetaInfo)
-		c.Assert(fi.Meta().PathFile(), qt.Equals, filepath.FromSlash("themes/a/singlefiles/"+lang+".txt"))
 		c.Assert(fi.Meta().Lang, qt.Equals, lang)
 		c.Assert(fi.Name(), qt.Equals, "p1.md")
 	}
+
+	// Test ReverseLookup.
+	// Single file mounts.
+	cps, err := rfs.ReverseLookup(filepath.FromSlash("singlefiles/no.txt"))
+	c.Assert(err, qt.IsNil)
+	c.Assert(cps, qt.DeepEquals, []ComponentPath{
+		{Component: "content", Path: "singles/p1.md", Lang: "no"},
+	})
+
+	cps, err = rfs.ReverseLookup(filepath.FromSlash("singlefiles/sv.txt"))
+	c.Assert(err, qt.IsNil)
+	c.Assert(cps, qt.DeepEquals, []ComponentPath{
+		{Component: "content", Path: "singles/p1.md", Lang: "sv"},
+	})
+
+	// File inside directory mount.
+	cps, err = rfs.ReverseLookup(filepath.FromSlash("mynoblogcontent/test.txt"))
+	c.Assert(err, qt.IsNil)
+	c.Assert(cps, qt.DeepEquals, []ComponentPath{
+		{Component: "content", Path: "blog/test.txt", Lang: "no"},
+	})
 }
 
 func TestRootMappingFsMountOverlap(t *testing.T) {
@@ -408,33 +414,30 @@ func TestRootMappingFsOs(t *testing.T) {
 	c.Assert(getDirnames("static/a/b/c"), qt.DeepEquals, []string{"d4", "f-1.txt", "f-2.txt", "f-3.txt", "ms-1.txt"})
 	c.Assert(getDirnames("static/a/b/c/d4"), qt.DeepEquals, []string{"d4-1", "d4-2", "d4-3", "d5"})
 
-	all, err := collectFilenames(rfs, "static", "static")
+	all, err := collectPaths(rfs, "static")
 	c.Assert(err, qt.IsNil)
 
-	c.Assert(all, qt.DeepEquals, []string{"a/b/c/f-1.txt", "a/b/c/f-2.txt", "a/b/c/f-3.txt", "a/b/c/ms-1.txt", "cf2/myfile.txt"})
+	c.Assert(all, qt.DeepEquals, []string{"/a/b/c/f-1.txt", "/a/b/c/f-2.txt", "/a/b/c/f-3.txt", "/a/b/c/ms-1.txt", "/cf2/myfile.txt"})
 
-	fis, err := collectFileinfos(rfs, "static", "static")
+	fis, err := collectFileinfos(rfs, "static")
 	c.Assert(err, qt.IsNil)
-
-	c.Assert(fis[9].Meta().PathFile(), qt.Equals, filepath.FromSlash("d1/d2/d3/f-1.txt"))
 
 	dirc := fis[3].Meta()
 
 	f, err := dirc.Open()
 	c.Assert(err, qt.IsNil)
 	defer f.Close()
-	fileInfos, err := f.Readdir(-1)
+	dirEntries, err := f.(iofs.ReadDirFile).ReadDir(-1)
 	c.Assert(err, qt.IsNil)
-	sortFileInfos(fileInfos)
+	sortDirEntries(dirEntries)
 	i := 0
-	for _, fi := range fileInfos {
+	for _, fi := range dirEntries {
 		if fi.IsDir() || fi.Name() == "ms-1.txt" {
 			continue
 		}
 		i++
 		meta := fi.(FileMetaInfo).Meta()
 		c.Assert(meta.Filename, qt.Equals, filepath.Join(d, fmt.Sprintf("/d1/d2/d3/f-%d.txt", i)))
-		c.Assert(meta.PathFile(), qt.Equals, filepath.FromSlash(fmt.Sprintf("d1/d2/d3/f-%d.txt", i)))
 	}
 
 	_, err = rfs.Stat(filepath.FromSlash("layouts/d2/d3/f-1.txt"))
@@ -463,7 +466,7 @@ func TestRootMappingFsOsBase(t *testing.T) {
 	c.Assert(fs.MkdirAll(mystaticDir, 0o755), qt.IsNil)
 	c.Assert(afero.WriteFile(fs, filepath.Join(mystaticDir, "ms-1.txt"), []byte("some content"), 0o755), qt.IsNil)
 
-	bfs := afero.NewBasePathFs(fs, d)
+	bfs := NewBasePathFs(fs, d)
 
 	rfs, err := newRootMappingFsFromFromTo(
 		"",
@@ -547,7 +550,10 @@ func TestRootMappingFileFilter(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	c.Assert(len(dirEntriesSub), qt.Equals, 3)
 
-	dirEntries, err := afero.ReadDir(rfs, "content")
+	f, err := rfs.Open("content")
+	c.Assert(err, qt.IsNil)
+	defer f.Close()
+	dirEntries, err := f.(iofs.ReadDirFile).ReadDir(-1)
 
 	c.Assert(err, qt.IsNil)
 	c.Assert(len(dirEntries), qt.Equals, 4)

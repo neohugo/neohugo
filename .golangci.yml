@@ -1,6 +1,16 @@
 # This file contains all available configuration options
 # with their default values.
 
+# which dirs to skip: issues from them won't be reported;
+# can use regexp here: generated.*, regexp is applied on full path;
+# default value is empty list, but default dirs are skipped independently
+# from this option's value (see skip-dirs-use-default).
+# "/" will be replaced by current OS file path separator to properly work
+# on Windows.
+issues:
+  exclude-dirs:
+  - tpl/internal/go_templates
+
 # options for analysis running
 run:
   # timeout for analysis, e.g. 30s, 5m, default is 1m
@@ -12,15 +22,6 @@ run:
   # include test files or not, default is true
   tests: true
 
-  # which dirs to skip: issues from them won't be reported;
-  # can use regexp here: generated.*, regexp is applied on full path;
-  # default value is empty list, but default dirs are skipped independently
-  # from this option's value (see skip-dirs-use-default).
-  # "/" will be replaced by current OS file path separator to properly work
-  # on Windows.
-  skip-dirs:
-    - tpl/internal/go_templates
-
   # default is true. Enables skipping of directories:
   #   vendor$, third_party$, testdata$, examples$, Godeps$, builtin$
   skip-dirs-use-default: true
@@ -28,7 +29,7 @@ run:
 # output configuration options
 output:
   # colored-line-number|line-number|json|tab|checkstyle|code-climate, default is "colored-line-number"
-  format: colored-line-number
+  formats: colored-line-number
 
   # print lines of code with issue, default is true
   print-issued-lines: true

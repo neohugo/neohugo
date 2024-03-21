@@ -28,6 +28,7 @@ import (
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/internal/sass"
@@ -85,7 +86,7 @@ func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		if prev == "stdin" {
 			prevDir = baseDir
 		} else {
-			prevDir, _ = t.c.sfs.MakePathRelative(filepath.Dir(prev))
+			prevDir, _ = t.c.sfs.MakePathRelative(filepath.Dir(prev), true)
 
 			if prevDir == "" {
 				// Not a member of this filesystem. Let LibSASS handle it.
@@ -114,6 +115,7 @@ func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx
 			fi, err := t.c.sfs.Fs.Stat(filenameToCheck)
 			if err == nil {
 				if fim, ok := fi.(hugofs.FileMetaInfo); ok {
+					ctx.DependencyManager.AddIdentity(identity.CleanStringIdentity(filenameToCheck))
 					return fim.Meta().Filename, "", true
 				}
 			}

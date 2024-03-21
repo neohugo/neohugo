@@ -114,7 +114,7 @@ func TestSecurityPolicies(t *testing.T) {
 			b.WithContent("page.pdc", "foo")
 		}
 
-		testVariant(c, cb, `"(?s).*pandoc" is not whitelisted in policy "security\.exec\.allow".*`)
+		testVariant(c, cb, `(?s).*pandoc" is not whitelisted in policy "security\.exec\.allow".*`)
 	})
 
 	c.Run("Dart SASS, OK", func(c *qt.C) {

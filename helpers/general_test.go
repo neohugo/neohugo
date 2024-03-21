@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -292,19 +292,19 @@ func TestFastMD5FromFile(t *testing.T) {
 	defer bf1.Close()
 	defer bf2.Close()
 
-	m1, err := helpers.MD5FromFileFast(sf1)
+	m1, _, err := helpers.MD5FromReaderFast(sf1)
 	c.Assert(err, qt.IsNil)
 	c.Assert(m1, qt.Equals, "e9c8989b64b71a88b4efb66ad05eea96")
 
-	m2, err := helpers.MD5FromFileFast(sf2)
+	m2, _, err := helpers.MD5FromReaderFast(sf2)
 	c.Assert(err, qt.IsNil)
 	c.Assert(m2, qt.Not(qt.Equals), m1)
 
-	m3, err := helpers.MD5FromFileFast(bf1)
+	m3, _, err := helpers.MD5FromReaderFast(bf1)
 	c.Assert(err, qt.IsNil)
 	c.Assert(m3, qt.Not(qt.Equals), m2)
 
-	m4, err := helpers.MD5FromFileFast(bf2)
+	m4, _, err := helpers.MD5FromReaderFast(bf2)
 	c.Assert(err, qt.IsNil)
 	c.Assert(m4, qt.Not(qt.Equals), m3)
 
@@ -333,7 +333,7 @@ func BenchmarkMD5FromFileFast(b *testing.B) {
 						b.Fatal(err)
 					}
 				} else {
-					if _, err := helpers.MD5FromFileFast(f); err != nil {
+					if _, _, err := helpers.MD5FromReaderFast(f); err != nil {
 						b.Fatal(err)
 					}
 				}
@@ -350,8 +350,7 @@ func BenchmarkUniqueStrings(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			result := helpers.UniqueStrings(input)
 			if len(result) != 6 {
-				// nolint
-				b.Fatal(fmt.Sprintf("invalid count: %d", len(result)))
+				b.Fatalf("invalid count: %d", len(result))
 			}
 		}
 	})
@@ -370,8 +369,7 @@ func BenchmarkUniqueStrings(b *testing.B) {
 
 			result := helpers.UniqueStringsReuse(inputc)
 			if len(result) != 6 {
-				// nolint
-				b.Fatal(fmt.Sprintf("invalid count: %d", len(result)))
+				b.Fatalf("invalid count: %d", len(result))
 			}
 		}
 	})
@@ -390,8 +388,7 @@ func BenchmarkUniqueStrings(b *testing.B) {
 
 			result := helpers.UniqueStringsSorted(inputc)
 			if len(result) != 6 {
-				// nolint
-				b.Fatal(fmt.Sprintf("invalid count: %d", len(result)))
+				b.Fatalf("invalid count: %d", len(result))
 			}
 		}
 	})

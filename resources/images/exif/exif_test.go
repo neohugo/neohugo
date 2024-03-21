@@ -59,6 +59,7 @@ func TestExif(t *testing.T) {
 	x2 := &ExifInfo{}
 	err = json.Unmarshal(data, x2)
 	c.Assert(err, qt.IsNil)
+
 	c.Assert(x2, eq, x)
 }
 
@@ -152,7 +153,8 @@ func TestIssue10738(t *testing.T) {
 		data, err := json.Marshal(x)
 		c.Assert(err, qt.IsNil)
 		x2 := &ExifInfo{}
-		err = json.Unmarshal(data, x2) // nolint
+		err = json.Unmarshal(data, x2)
+		c.Assert(err, qt.IsNil)
 
 		c.Assert(x2, eq, x)
 
@@ -300,15 +302,13 @@ func TestIssue10738(t *testing.T) {
 	for _, tt := range tests {
 		c.Run(tt.name, func(c *qt.C) {
 			got := testFunc(tt.args.path, tt.args.include)
-			switch got.(type) { // nolint
+			switch v := got.(type) {
 			case float64:
-				eTime, ok := got.(float64) // nolint
-				c.Assert(ok, qt.Equals, true)
-				c.Assert(eTime, qt.Equals, float64(tt.want.vN))
+				c.Assert(v, qt.Equals, float64(tt.want.vN))
 			case *big.Rat:
-				eTime, ok := got.(*big.Rat) // nolint
-				c.Assert(ok, qt.Equals, true)
-				c.Assert(eTime, eq, big.NewRat(tt.want.vN, tt.want.vD))
+				c.Assert(v, eq, big.NewRat(tt.want.vN, tt.want.vD))
+			default:
+				c.Fatalf("unexpected type: %T", got)
 			}
 		})
 	}

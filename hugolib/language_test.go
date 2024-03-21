@@ -26,7 +26,7 @@ import (
 func TestI18n(t *testing.T) {
 	c := qt.New(t)
 
-	// https://github.com/neohugo/neohugo/issues/7804
+	// https://github.com/gohugoio/hugo/issues/7804
 	c.Run("pt-br should be case insensitive", func(c *qt.C) {
 		b := newTestSitesBuilder(c)
 		langCode := func() string {
@@ -134,4 +134,15 @@ FormatNumberCustom: 12,345.68
 # We renamed this to FormatNumberCustom in 0.87.0.
 NumFmt: -98,765.43
 `)
+}
+
+// Issue 11993.
+func TestI18nDotFile(t *testing.T) {
+	files := `
+-- hugo.toml --{}
+baseURL = "https://example.com"
+-- i18n/.keep --
+-- data/.keep --
+`
+	Test(t, files)
 }

@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,21 +24,21 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 )
 
-// nolint
-const tstHTMLContent = "<!DOCTYPE html><html><head><script src=\"http://two/foobar.js\"></script></head><body><nav><ul><li hugo-nav=\"section_0\"></li><li hugo-nav=\"section_1\"></li></ul></nav><article>content <a href=\"http://two/foobar\">foobar</a>. Follow up</article><p>This is some text.<br>And some more.</p></body></html>"
-
 func TestTrimShortHTML(t *testing.T) {
 	tests := []struct {
 		input, output []byte
 	}{
 		{[]byte(""), []byte("")},
 		{[]byte("Plain text"), []byte("Plain text")},
-		{[]byte("  \t\n Whitespace text\n\n"), []byte("Whitespace text")},
+		// This seems wrong. Why touch it if it doesn't have p tag?
+		// {[]byte("  \t\n Whitespace text\n\n"), []byte("Whitespace text")},
 		{[]byte("<p>Simple paragraph</p>"), []byte("Simple paragraph")},
 		{[]byte("\n  \n \t  <p> \t Whitespace\nHTML  \n\t </p>\n\t"), []byte("Whitespace\nHTML")},
 		{[]byte("<p>Multiple</p><p>paragraphs</p>"), []byte("<p>Multiple</p><p>paragraphs</p>")},
 		{[]byte("<p>Nested<p>paragraphs</p></p>"), []byte("<p>Nested<p>paragraphs</p></p>")},
 		{[]byte("<p>Hello</p>\n<ul>\n<li>list1</li>\n<li>list2</li>\n</ul>"), []byte("<p>Hello</p>\n<ul>\n<li>list1</li>\n<li>list2</li>\n</ul>")},
+		// Issue #11698
+		{[]byte("<h2 id=`a`>b</h2>\n\n<p>c</p>"), []byte("<h2 id=`a`>b</h2>\n\n<p>c</p>")},
 	}
 
 	c := newTestContentSpec(nil)

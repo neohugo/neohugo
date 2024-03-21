@@ -25,7 +25,6 @@ func TestFileMeta(t *testing.T) {
 	c.Run("Merge", func(c *qt.C) {
 		src := &FileMeta{
 			Filename: "fs1",
-			Path:     "ps1",
 		}
 		dst := &FileMeta{
 			Filename: "fd1",
@@ -33,14 +32,12 @@ func TestFileMeta(t *testing.T) {
 
 		dst.Merge(src)
 
-		c.Assert(dst.Path, qt.Equals, "ps1")
 		c.Assert(dst.Filename, qt.Equals, "fd1")
 	})
 
 	c.Run("Copy", func(c *qt.C) {
 		src := &FileMeta{
 			Filename: "fs1",
-			Path:     "ps1",
 		}
 		dst := src.Copy()
 

@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,7 +24,7 @@ import (
 	"github.com/neohugo/neohugo/config/privacy"
 	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/config/services"
-	"github.com/neohugo/neohugo/deploy"
+	"github.com/neohugo/neohugo/deploy/deployconfig"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/markup/markup_config"
 	"github.com/neohugo/neohugo/media"
@@ -292,7 +292,7 @@ var allDecoderSetups = map[string]decodeWeight{
 		key: "cascade",
 		decode: func(d decodeWeight, p decodeConfig) error {
 			var err error
-			p.c.Cascade, err = page.DecodeCascadeConfig(p.p.Get(d.key))
+			p.c.Cascade, err = page.DecodeCascadeConfig(nil, p.p.Get(d.key))
 			return err
 		},
 	},
@@ -332,7 +332,7 @@ var allDecoderSetups = map[string]decodeWeight{
 		key: "deployment",
 		decode: func(d decodeWeight, p decodeConfig) error {
 			var err error
-			p.c.Deployment, err = deploy.DecodeConfig(p.p)
+			p.c.Deployment, err = deployconfig.DecodeConfig(p.p)
 			return err
 		},
 	},

@@ -96,7 +96,7 @@ type transformer struct{}
 
 func (a *transformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	attributes := make([]ast.Node, 0, 500)
-	//nolint TODO may need to check error
+	// nolint
 	ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering && node.Kind() == kindAttributesBlock {
 			// Attributes for fenced code blocks are handled in their own extension,

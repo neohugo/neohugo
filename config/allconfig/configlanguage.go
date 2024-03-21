@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,10 @@ package allconfig
 import (
 	"time"
 
+	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/common/urls"
 	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/langs"
 )
 
@@ -41,10 +43,15 @@ func (c ConfigLanguage) LanguagesDefaultFirst() langs.Languages {
 	return c.m.LanguagesDefaultFirst
 }
 
+func (c ConfigLanguage) PathParser() *paths.PathParser {
+	return c.m.ContentPathParser
+}
+
 func (c ConfigLanguage) LanguagePrefix() string {
 	if c.DefaultContentLanguageInSubdir() && c.DefaultContentLanguage() == c.Language().Lang {
 		return c.Language().Lang
 	}
+
 	if !c.IsMultiLingual() || c.DefaultContentLanguage() == c.Language().Lang {
 		return ""
 	}
@@ -67,6 +74,10 @@ func (c ConfigLanguage) IsMultihost() bool {
 	return c.m.IsMultihost
 }
 
+func (c ConfigLanguage) FastRenderMode() bool {
+	return c.config.Internal.FastRenderMode
+}
+
 func (c ConfigLanguage) IsMultiLingual() bool {
 	return len(c.m.Languages) > 1
 }
@@ -83,8 +94,8 @@ func (c ConfigLanguage) IsLangDisabled(lang string) bool {
 	return c.config.C.DisabledLanguages[lang]
 }
 
-func (c ConfigLanguage) IgnoredErrors() map[string]bool {
-	return c.config.C.IgnoredErrors
+func (c ConfigLanguage) IgnoredLogs() map[string]bool {
+	return c.config.C.IgnoredLogs
 }
 
 func (c ConfigLanguage) NoBuildLock() bool {
@@ -117,6 +128,17 @@ func (c ConfigLanguage) WorkingDir() string {
 
 func (c ConfigLanguage) Quiet() bool {
 	return c.m.Base.Internal.Quiet
+}
+
+func (c ConfigLanguage) Watching() bool {
+	return c.m.Base.Internal.Watch
+}
+
+func (c ConfigLanguage) NewIdentityManager(name string) identity.Manager {
+	if !c.Watching() {
+		return identity.NopManager
+	}
+	return identity.NewManager(name)
 }
 
 // GetConfigSection is mostly used in tests. The switch statement isn't complete, but what's in use.

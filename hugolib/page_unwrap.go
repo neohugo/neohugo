@@ -16,6 +16,7 @@ package hugolib
 import (
 	"fmt"
 
+	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/resources/page"
 )
 
@@ -31,6 +32,8 @@ func unwrapPage(in any) (page.Page, error) {
 		return v, nil
 	case pageWrapper:
 		return v.page(), nil
+	case types.Unwrapper:
+		return unwrapPage(v.Unwrapv())
 	case page.Page:
 		return v, nil
 	case nil:

@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/internal"
@@ -68,7 +69,7 @@ func (t *executeAsTemplateTransform) Transform(ctx *resources.ResourceTransforma
 func (c *Client) ExecuteAsTemplate(ctx context.Context, res resources.ResourceTransformer, targetPath string, data any) (resource.Resource, error) {
 	return res.TransformWithContext(ctx, &executeAsTemplateTransform{
 		rs:         c.rs,
-		targetPath: helpers.ToSlashTrimLeading(targetPath),
+		targetPath: paths.ToSlashTrimLeading(targetPath),
 		t:          c.t,
 		data:       data,
 	})

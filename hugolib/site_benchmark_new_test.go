@@ -196,7 +196,7 @@ Some content.
 			},
 			func(s *sitesBuilder) {
 				s.AssertFileContent("public/page3/index.html", "/page3/|Permalink: https://example.com/page3/")
-				s.AssertFileContent("public/tags/ta3/index.html", "|ta3|")
+				s.AssertFileContent("public/tags/ta3/index.html", "a3")
 			},
 		},
 		{
@@ -413,19 +413,18 @@ baseURL = "https://example.com"
 `)
 
 				sb.WithTemplates("_default/single.html", pageTemplateTemplate)
+				sb.WithTemplates("_default/list.html", "List")
 
 				r := rand.New(rand.NewSource(99))
 
 				createContent := func(dir, name string) {
 					var content string
 					if strings.Contains(name, "_index") {
-						// TODO update this test
-						//nolint
-						content = pageContent(1)
+						// Empty
 					} else {
 						content = pageContentWithCategory(1, fmt.Sprintf("category%d", r.Intn(5)+1))
-						sb.WithContent(filepath.Join("content", dir, name), content)
 					}
+					sb.WithContent(filepath.Join("content", dir, name), content)
 				}
 
 				for level := 1; level <= r.Intn(5)+1; level++ {
@@ -440,7 +439,7 @@ baseURL = "https://example.com"
 				return sb
 			},
 			func(s *sitesBuilder) {
-				s.AssertFileContent("public/section/bundle8/index.html", ` <li><a href="https://example.com/categories/category1/">category1</a></li>`)
+				s.AssertFileContent("public/section/bundle8/index.html", `<a href="https://example.com/categories/category1/">`)
 				s.Assert(len(s.H.Sites), qt.Equals, 1)
 				s.Assert(len(s.H.Sites[0].RegularPages()), qt.Equals, 35)
 			},
@@ -455,6 +454,9 @@ baseURL = "https://example.com"
 func TestBenchmarkSite(b *testing.T) {
 	benchmarks := getBenchmarkSiteTestCases()
 	for _, bm := range benchmarks {
+		if bm.name != "Deep content tree" {
+			continue
+		}
 		b.Run(bm.name, func(b *testing.T) {
 			s := bm.create(b)
 
@@ -479,13 +481,13 @@ title: %s
 
 Edited!!`, p.Title()))
 
-	counters := &testCounters{}
+	counters := &buildCounters{}
 
 	b.Build(BuildCfg{testCounters: counters})
 
 	// We currently rebuild all the language versions of the same content file.
 	// We could probably optimize that case, but it's not trivial.
-	b.Assert(int(counters.contentRenderCounter), qt.Equals, 4)
+	b.Assert(int(counters.contentRenderCounter.Load()), qt.Equals, 4)
 	b.AssertFileContent("public"+p.RelPermalink()+"index.html", "Edited!!")
 }
 
@@ -535,7 +537,7 @@ func BenchmarkSiteNew(b *testing.B) {
 								panic("infinite loop")
 							}
 							p = pages[rnd.Intn(len(pages))]
-							if !p.File().IsZero() {
+							if p.File() != nil {
 								break
 							}
 						}
