@@ -256,8 +256,8 @@ func (c *contentParseInfo) parseFrontMatter(it pageparser.Item, iter *pageparser
 			}
 			pos.LineNumber += offset
 
-			fe.UpdatePosition(pos)
-			fe.SetFilename("") // It will be set later.
+			fe.UpdatePosition(pos) // nolint
+			fe.SetFilename("")     // nolint It will be set later.
 
 			return fe
 		} else {

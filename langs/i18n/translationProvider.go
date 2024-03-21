@@ -88,10 +88,7 @@ func addTranslationFile(bundle *i18n.Bundle, r *source.File) error {
 		return fmt.Errorf("failed to open translations file %q:: %w", r.LogicalName(), err)
 	}
 
-	b, err := helpers.ReaderToBytes(f)
-	if err != nil {
-		return fmt.Errorf("failed to read translations file %q:: %w", r.LogicalName(), err)
-	}
+	b := helpers.ReaderToBytes(f)
 	f.Close()
 
 	name := r.LogicalName()
@@ -109,7 +106,7 @@ func addTranslationFile(bundle *i18n.Bundle, r *source.File) error {
 	_, err = bundle.ParseMessageFileBytes(b, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "no plural rule") {
-			// https://github.com/neohugo/neohugo/issues/7798
+			// https://github.com/gohugoio/hugo/issues/7798
 			name = artificialLangTagPrefix + name
 			_, err = bundle.ParseMessageFileBytes(b, name)
 			if err == nil {

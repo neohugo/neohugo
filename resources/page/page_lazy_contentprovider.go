@@ -141,7 +141,7 @@ func (lcp *LazyContentProvider) Len(ctx context.Context) int {
 }
 
 func (lcp *LazyContentProvider) Render(ctx context.Context, layout ...string) (template.HTML, error) {
-	lcp.init.Do(ctx)
+	lcp.init.Do(ctx) // nolint
 	return lcp.cp.Render(ctx, layout...)
 }
 

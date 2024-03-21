@@ -26,17 +26,17 @@ import (
 	"time"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/cache/dynacache"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/common/predicate"
-	"github.com/gohugoio/hugo/common/rungroup"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/hugolib/doctree"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/predicate"
+	"github.com/neohugo/neohugo/common/rungroup"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources"
 	"github.com/spf13/cast"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -499,6 +499,7 @@ func (m *pageMap) forEachResourceInPage(
 
 func (m *pageMap) getResourcesForPage(ps *pageState) (resource.Resources, error) {
 	var res resource.Resources
+	// nolint
 	m.forEachResourceInPage(ps, doctree.LockTypeNone, false, func(resourceKey string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
 		rs := n.(*resourceSource)
 		if rs.r != nil {
@@ -971,6 +972,7 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 		fmt.Fprintln(w, info)
 		switch p.Kind() {
 		case kinds.KindTerm:
+			// nolint
 			m.treeTaxonomyEntries.WalkPrefix(
 				doctree.LockTypeNone,
 				keyPage+"/",
@@ -1222,7 +1224,7 @@ func (h *HugoSites) resolveAndResetDependententPageOutputs(ctx context.Context, 
 			}
 		}
 		if needToCheck {
-			g.Enqueue(p)
+			g.Enqueue(p) // nolint
 		}
 		return false
 	})
@@ -1588,7 +1590,7 @@ func (sa *sitePagesAssembler) assembleResources() error {
 			ps := n.(*pageState)
 
 			// Prepare resources for this page.
-			ps.shiftToOutputFormat(true, 0)
+			ps.shiftToOutputFormat(true, 0) // nolint
 			targetPaths := ps.targetPaths()
 			baseTarget := targetPaths.SubResourceBaseTarget
 			duplicateResourceFiles := true
@@ -1597,7 +1599,7 @@ func (sa *sitePagesAssembler) assembleResources() error {
 			}
 
 			duplicateResourceFiles = duplicateResourceFiles || ps.s.Conf.IsMultihost()
-
+			// nolint
 			sa.pageMap.forEachResourceInPage(
 				ps, lockType,
 				!duplicateResourceFiles,

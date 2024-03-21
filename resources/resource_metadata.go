@@ -102,7 +102,7 @@ func CloneWithMetadataIfNeeded(m []map[string]any, r resource.Resource) resource
 		params: r.Params(),
 	}
 
-	assignMetadata(m, wrapped)
+	assignMetadata(m, wrapped) // nolint
 	if !wrapped.changed {
 		return r
 	}

@@ -24,7 +24,6 @@ import (
 	"github.com/bep/godartsass/v2"
 	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/hugo"
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/helpers"
@@ -159,7 +158,7 @@ func (c *Client) toCSS(args godartsass.Args, src io.Reader) (godartsass.Result, 
 	if err != nil {
 		if err.Error() == "unexpected EOF" {
 			//lint:ignore ST1005 end user message.
-			return res, fmt.Errorf("got unexpected EOF when executing %q. The user running hugo must have read and execute permissions on this program. With execute permissions only, this error is thrown.", hugo.DartSassBinaryName)
+			return res, fmt.Errorf("got unexpected EOF when executing %q. The user running hugo must have read and execute permissions on this program. With execute permissions only, this error is thrown.", neohugo.DartSassBinaryName)
 		}
 		return res, herrors.NewFileErrorFromFileInErr(err, hugofs.Os, herrors.OffsetMatcher)
 	}

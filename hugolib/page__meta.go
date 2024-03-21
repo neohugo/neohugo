@@ -30,14 +30,10 @@ import (
 
 	"github.com/neohugo/neohugo/source"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/helpers"
-
 	"github.com/neohugo/neohugo/common/constants"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/helpers"

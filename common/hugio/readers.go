@@ -84,7 +84,7 @@ func NewReadSeekerNoOpCloserFromBytes(content []byte) readSeekerNopCloser {
 // The ReadSeeker will be seeked to the beginning before returned.
 func NewOpenReadSeekCloser(r ReadSeekCloser) OpenReadSeekCloser {
 	return func() (ReadSeekCloser, error) {
-		r.Seek(0, io.SeekStart)
+		r.Seek(0, io.SeekStart) // nolint
 		return r, nil
 	}
 }

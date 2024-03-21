@@ -25,15 +25,15 @@ import (
 
 	"github.com/bep/lazycache"
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/common/collections"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/common/rungroup"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/collections"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/rungroup"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 const minMaxSize = 10
@@ -150,10 +150,10 @@ func (c *Cache) ClearMatching(predicate func(k, v any) bool) {
 	})
 
 	for _, p := range c.partitions {
-		g.Enqueue(p)
+		g.Enqueue(p) // nolint
 	}
 
-	g.Wait()
+	g.Wait() // nolint
 }
 
 // ClearOnRebuild prepares the cache for a new rebuild taking the given changeset into account.
@@ -167,10 +167,10 @@ func (c *Cache) ClearOnRebuild(changeset ...identity.Identity) {
 	})
 
 	for _, p := range c.partitions {
-		g.Enqueue(p)
+		g.Enqueue(p) // nolint
 	}
 
-	g.Wait()
+	g.Wait() // nolint
 
 	// Clear any entries marked as stale above.
 	g = rungroup.Run[PartitionManager](context.Background(), rungroup.Config[PartitionManager]{
@@ -182,10 +182,10 @@ func (c *Cache) ClearOnRebuild(changeset ...identity.Identity) {
 	})
 
 	for _, p := range c.partitions {
-		g.Enqueue(p)
+		g.Enqueue(p) // nolint
 	}
 
-	g.Wait()
+	g.Wait() // nolint
 }
 
 type keysProvider interface {

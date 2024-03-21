@@ -16,7 +16,7 @@ package hugolib
 import (
 	"context"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/resources/page"
 )
@@ -59,7 +59,7 @@ func (p pagePosition) Next() page.Page {
 
 // Deprecated: Use Next instead.
 func (p pagePosition) NextPage() page.Page {
-	hugo.Deprecate(".Page.NextPage", "Use .Page.Next instead.", "v0.123.0")
+	neohugo.Deprecate(".Page.NextPage", "Use .Page.Next instead.", "v0.123.0")
 	return p.Next()
 }
 
@@ -69,7 +69,7 @@ func (p pagePosition) Prev() page.Page {
 
 // Deprecated: Use Prev instead.
 func (p pagePosition) PrevPage() page.Page {
-	hugo.Deprecate(".Page.PrevPage", "Use .Page.Prev instead.", "v0.123.0")
+	neohugo.Deprecate(".Page.PrevPage", "Use .Page.Prev instead.", "v0.123.0")
 	return p.Prev()
 }
 

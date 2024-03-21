@@ -1,5 +1,5 @@
 package identitytesting
 
-import "github.com/gohugoio/hugo/identity"
+import "github.com/neohugo/neohugo/identity"
 
 const TestIdentity = identity.StringIdentity("__testIdentity")

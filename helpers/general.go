@@ -31,7 +31,7 @@ import (
 
 	"github.com/jdkato/prose/transform"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
+	bp "github.com/neohugo/neohugo/bufferpool"
 )
 
 // FilePathSeparator as defined by os.Separator.
@@ -121,20 +121,18 @@ func UniqueStringsSorted(s []string) []string {
 
 // ReaderToBytes takes an io.Reader argument, reads from it
 // and returns bytes.
-func ReaderToBytes(lines io.Reader) ([]byte, error) {
+func ReaderToBytes(lines io.Reader) []byte {
 	if lines == nil {
-		return []byte{}, nil
+		return []byte{}
 	}
 	b := bp.GetBuffer()
 	defer bp.PutBuffer(b)
 
-	if _, err := b.ReadFrom(lines); err != nil {
-		return nil, err
-	}
+	b.ReadFrom(lines) // nolint
 
 	bc := make([]byte, b.Len())
 	copy(bc, b.Bytes())
-	return bc, nil
+	return bc
 }
 
 // ReaderToString is the same as ReaderToBytes, but returns a string.
@@ -144,10 +142,7 @@ func ReaderToString(lines io.Reader) string {
 	}
 	b := bp.GetBuffer()
 	defer bp.PutBuffer(b)
-	if _, err := b.ReadFrom(lines); err != nil {
-		return err.Error()
-	}
-
+	b.ReadFrom(lines) // nolint
 	return b.String()
 }
 
@@ -202,7 +197,7 @@ func GetTitleFunc(style string) func(s string) string {
 	switch strings.ToLower(style) {
 	case "go":
 		//lint:ignore SA1019 keep for now.
-		return strings.Title
+		return strings.Title // nolint
 	case "chicago":
 		tc := transform.NewTitleConverter(transform.ChicagoStyle)
 		return tc.Title
@@ -264,8 +259,9 @@ func SliceToLower(s []string) []string {
 
 // MD5String takes a string and returns its MD5 hash.
 func MD5String(f string) string {
-	hash := md5.Sum([]byte(f))
-	return hex.EncodeToString(hash[:])
+	h := md5.New()
+	h.Write([]byte(f))
+	return hex.EncodeToString(h.Sum([]byte{}))
 }
 
 // MD5FromReaderFast creates a MD5 hash from the given file. It only reads parts of
@@ -297,16 +293,12 @@ func MD5FromReaderFast(r io.ReadSeeker) (string, int64, error) {
 		_, err := io.ReadAtLeast(r, buff, peekSize)
 		if err != nil {
 			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				if _, err = h.Write(buff); err != nil {
-					return "", err
-				}
+				h.Write(buff)
 				break
 			}
 			return "", 0, err
 		}
-		if _, err = h.Write(buff); err != nil {
-			return "", err
-		}
+		h.Write(buff)
 	}
 
 	size, _ := r.Seek(0, io.SeekEnd)
@@ -330,9 +322,9 @@ func IsWhitespace(r rune) bool {
 
 // PrintFs prints the given filesystem to the given writer starting from the given path.
 // This is useful for debugging.
-func PrintFs(fs afero.Fs, path string, w io.Writer) error {
+func PrintFs(fs afero.Fs, path string, w io.Writer) {
 	if fs == nil {
-		return nil
+		return
 	}
 
 	// nolint
@@ -347,8 +339,6 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 		fmt.Fprintln(w, path, info.IsDir())
 		return nil
 	})
-
-	return nil
 }
 
 // FormatByteCount pretty formats b.

@@ -19,7 +19,7 @@ import (
 	"time"
 
 	"github.com/bep/gitmap"
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -52,7 +52,7 @@ func (fi *File) Dir() string {
 // Extension is an alias to Ext().
 // Deprecated: Use Ext() instead.
 func (fi *File) Extension() string {
-	hugo.Deprecate(".File.Extension", "Use .File.Ext instead.", "v0.96.0")
+	neohugo.Deprecate(".File.Extension", "Use .File.Ext instead.", "v0.96.0")
 	return fi.Ext()
 }
 
@@ -62,7 +62,7 @@ func (fi *File) Ext() string { return fi.p().Ext() }
 // Lang returns a file's language (e.g. "sv").
 // Deprecated: use .Page.Language.Lang instead.
 func (fi *File) Lang() string {
-	hugo.Deprecate(".Page.File.Lang", "Use .Page.Language.Lang instead.", "v0.123.0")
+	neohugo.Deprecate(".Page.File.Lang", "Use .Page.Language.Lang instead.", "v0.123.0")
 	return fi.fim.Meta().Lang
 }
 

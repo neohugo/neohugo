@@ -35,8 +35,8 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 )
 
 const (

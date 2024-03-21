@@ -98,19 +98,19 @@ func ApplyProjectConfigDefaults(mod Module, cfgs ...config.AllProvider) error {
 				dropLang = dir == dirsBase.ContentDir
 			case files.ComponentFolderData:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.DataDir
+				dir = dirs.DataDir // nolint
 			case files.ComponentFolderLayouts:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.LayoutDir
+				dir = dirs.LayoutDir // nolint
 			case files.ComponentFolderI18n:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.I18nDir
+				dir = dirs.I18nDir // nolint
 			case files.ComponentFolderArchetypes:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.ArcheTypeDir
+				dir = dirs.ArcheTypeDir // nolint
 			case files.ComponentFolderAssets:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.AssetDir
+				dir = dirs.AssetDir // nolint
 			case files.ComponentFolderStatic:
 				// For static dirs, we only care about the language in multihost setups.
 				dropLang = !isMultiHost

@@ -23,8 +23,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/compare"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/compare"
 )
 
 const (

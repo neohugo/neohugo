@@ -22,9 +22,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/para"
-	"github.com/gohugoio/hugo/hugolib/doctree"
 	"github.com/google/go-cmp/cmp"
+	"github.com/neohugo/neohugo/common/para"
+	"github.com/neohugo/neohugo/hugolib/doctree"
 )
 
 var eq = qt.CmpEquals(
@@ -98,7 +98,7 @@ func TestTreeData(t *testing.T) {
 		},
 	}
 
-	w.Walk(context.Background())
+	w.Walk(context.Background()) // nolint
 
 	c.Assert(strings.Join(values, "|"), qt.Equals, "/a::map[id:HOME]|/a/b:/a:map[id:/a]|/b::map[id:HOME]|/b/c:/b:map[id:/b]|/b/c/d:/b/c:map[id:/b/c]")
 }

@@ -14,7 +14,7 @@
 package siteidentities
 
 import (
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 )
 
 const (

@@ -32,9 +32,6 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/postpub"
 
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/resources/postpub"
-
 	"github.com/neohugo/neohugo/cache/dynacache"
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/media"

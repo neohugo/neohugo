@@ -16,13 +16,13 @@ package resources_test
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestTransformCached(t *testing.T) {
 	files := `
 -- hugo.toml --
-disableKinds = ["taxonomy", "term"]	
+disableKinds = ["taxonomy", "term"]
 -- assets/css/main.css --
 body {
 	  background: #fff;

@@ -18,9 +18,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 var (
@@ -103,22 +103,26 @@ func newTestCache(t *testing.T) *Cache {
 	p1 := GetOrCreatePartition[string, testItem](cache, "/aaaa/bbbb", OptionsPartition{Weight: 30, ClearWhen: ClearOnRebuild})
 	p2 := GetOrCreatePartition[string, testItem](cache, "/aaaa/cccc", OptionsPartition{Weight: 30, ClearWhen: ClearOnChange})
 
+	// nolint
 	p1.GetOrCreate("clearOnRebuild", func(string) (testItem, error) {
 		return testItem{}, nil
 	})
 
+	// nolint
 	p2.GetOrCreate("clearBecauseStale", func(string) (testItem, error) {
 		return testItem{
 			isStale: true,
 		}, nil
 	})
 
+	// nolint
 	p2.GetOrCreate("clearBecauseIdentityChanged", func(string) (testItem, error) {
 		return testItem{
 			name: "changed",
 		}, nil
 	})
 
+	// nolint
 	p2.GetOrCreate("clearNever", func(string) (testItem, error) {
 		return testItem{
 			isStale: false,

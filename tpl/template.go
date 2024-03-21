@@ -22,10 +22,10 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/gohugoio/hugo/output"
 	bp "github.com/neohugo/neohugo/bufferpool"
 	"github.com/neohugo/neohugo/common/hcontext"
 	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/output/layouts"
 
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"

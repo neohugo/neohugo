@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/config"
 
@@ -79,7 +79,7 @@ lang="en"
 		mcfg, err := DecodeConfig(cfg)
 		c.Assert(err, qt.IsNil)
 
-		v056 := hugo.VersionString("0.56.0")
+		v056 := neohugo.VersionString("0.56.0")
 
 		hv := mcfg.HugoVersion
 
@@ -87,7 +87,7 @@ lang="en"
 		c.Assert(v056.Compare(hv.Max), qt.Equals, 1)
 		c.Assert(hv.Extended, qt.Equals, true)
 
-		if hugo.IsExtended {
+		if neohugo.IsExtended {
 			c.Assert(hv.IsValid(), qt.Equals, true)
 		}
 

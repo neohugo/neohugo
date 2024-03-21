@@ -151,6 +151,7 @@ func TestToBuildOptions(t *testing.T) {
 		Stdin: &api.StdinOptions{
 			Loader: api.LoaderJS,
 		},
+		LegalComments:   api.LegalCommentsEndOfFile,
 		JSX:             api.JSXAutomatic,
 		JSXImportSource: "preact",
 	})

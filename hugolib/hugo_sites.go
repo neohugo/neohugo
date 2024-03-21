@@ -371,6 +371,7 @@ func (h *HugoSites) withSite(fn func(s *Site) error) error {
 }
 
 func (h *HugoSites) withPage(fn func(s string, p *pageState) bool) {
+	// nolint
 	h.withSite(func(s *Site) error {
 		w := &doctree.NodeShiftTreeWalker[contentNodeI]{
 			Tree:     s.pageMap.treePages,
@@ -583,10 +584,7 @@ func (h *HugoSites) readData(f *source.File) (any, error) {
 		return nil, fmt.Errorf("readData: failed to open data file: %w", err)
 	}
 	defer file.Close()
-	content, err := helpers.ReaderToBytes(file)
-	if err != nil {
-		return nil, fmt.Errorf("readData: failed to read data file: %w", err)
-	}
+	content := helpers.ReaderToBytes(file)
 
 	format := metadecoders.FormatFromString(f.Ext())
 	return metadecoders.Default.Unmarshal(content, format)

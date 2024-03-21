@@ -41,14 +41,6 @@ import (
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 
-	"github.com/neohugo/neohugo/resources/resource_factories/bundler"
-	"github.com/neohugo/neohugo/resources/resource_factories/create"
-	"github.com/neohugo/neohugo/resources/resource_transformers/babel"
-	"github.com/neohugo/neohugo/resources/resource_transformers/integrity"
-	"github.com/neohugo/neohugo/resources/resource_transformers/minifier"
-	"github.com/neohugo/neohugo/resources/resource_transformers/postcss"
-	"github.com/neohugo/neohugo/resources/resource_transformers/templates"
-	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 	"github.com/spf13/cast"
 )
 

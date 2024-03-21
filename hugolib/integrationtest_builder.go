@@ -334,7 +334,7 @@ func (s *IntegrationTestBuilder) printAndCheckFs(fs afero.Fs, path string, w io.
 			defer f.Close()
 			// This will panic if the file is a directory.
 			var buf [1]byte
-			io.ReadFull(f, buf[:])
+			io.ReadFull(f, buf[:]) // nolint
 		}
 		fmt.Fprintln(w, path, info.IsDir())
 		return nil
@@ -494,6 +494,7 @@ func (s *IntegrationTestBuilder) RenameDir(old, new string) *IntegrationTestBuil
 	absNewFilename := s.absFilename(new)
 	s.renamedDirs = append(s.renamedDirs, absOldFilename)
 	s.changedFiles = append(s.changedFiles, absNewFilename)
+	// nolint
 	afero.Walk(s.fs.Source, absOldFilename, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

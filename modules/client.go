@@ -31,6 +31,8 @@ import (
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/spf13/afero"
 
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 
@@ -42,14 +44,6 @@ import (
 	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/rogpeppe/go-internal/module" // nolint
-
-	"github.com/neohugo/neohugo/config"
-
-	"golang.org/x/mod/module"
-
-	"github.com/neohugo/neohugo/common/hugio"
-
-	"github.com/spf13/afero"
 )
 
 var fileSeparator = string(os.PathSeparator)

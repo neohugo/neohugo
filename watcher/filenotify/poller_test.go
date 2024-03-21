@@ -114,7 +114,7 @@ func TestPollerEvent(t *testing.T) {
 			// Create a new sub directory and add it to the watcher.
 			subdir = filepath.Join(dir, subdir1, subdir2)
 			c.Assert(os.Mkdir(subdir, 0o777), qt.IsNil)
-			w.Add(subdir)
+			w.Add(subdir) // nolint
 			// This should create only one event.
 			assertEvents(c, w, fsnotify.Event{Name: subdir, Op: fsnotify.Create})
 		})

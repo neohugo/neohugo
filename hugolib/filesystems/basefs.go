@@ -140,7 +140,7 @@ func (b *BaseFs) WatchFilenames() []string {
 					},
 				})
 
-				w.Walk()
+				w.Walk() // nolint
 			}
 
 		}
@@ -806,6 +806,7 @@ func printFs(fs afero.Fs, path string, w io.Writer) {
 	if fs == nil {
 		return
 	}
+	// nolint
 	afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

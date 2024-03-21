@@ -87,7 +87,7 @@ func newTestResourceOsFs(c *qt.C) (*resources.Spec, string) {
 
 	cfg.Set("workingDir", workDir)
 
-	os.MkdirAll(filepath.Join(workDir, "assets"), 0o755)
+	os.MkdirAll(filepath.Join(workDir, "assets"), 0o755) // nolint
 
 	d := testconfig.GetTestDeps(hugofs.Os, cfg)
 

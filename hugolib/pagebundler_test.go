@@ -26,8 +26,6 @@ import (
 
 	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/neohugo/neohugo/helpers"
-
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 
@@ -738,7 +736,7 @@ func TestPageBundlerHome(t *testing.T) {
 	cfg.Set("publishDir", "public")
 	fs := hugofs.NewFromOld(hugofs.Os, cfg)
 
-	os.MkdirAll(filepath.Join(workDir, "content"), 0o777)
+	os.MkdirAll(filepath.Join(workDir, "content"), 0o777) // nolint
 
 	defer clean()
 

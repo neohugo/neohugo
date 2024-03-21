@@ -28,8 +28,8 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/common/hugo"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugofs"
@@ -686,7 +686,7 @@ disableLiveReload = true
 [module]
 [[module.mounts]]
 source = "README.md"
-target = "content/_index.md"	
+target = "content/_index.md"
 -- README.md --
 # Hello World
 -- layouts/index.html --

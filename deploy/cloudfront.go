@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
-	"github.com/gohugoio/hugo/deploy/deployconfig"
+	"github.com/neohugo/neohugo/deploy/deployconfig"
 	gcaws "gocloud.dev/aws"
 )
 

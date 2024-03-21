@@ -17,7 +17,6 @@ import (
 	"html/template"
 	"time"
 
-	"github.com/gohugoio/hugo/common/hugo"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config/privacy"
@@ -264,7 +263,7 @@ func (s *siteWrapper) Taxonomies() TaxonomyList {
 }
 
 func (s *siteWrapper) LastChange() time.Time {
-	hugo.Deprecate(".Site.LastChange", "Use .Site.Lastmod instead.", "v0.123.0")
+	neohugo.Deprecate(".Site.LastChange", "Use .Site.Lastmod instead.", "v0.123.0")
 	return s.s.Lastmod()
 }
 

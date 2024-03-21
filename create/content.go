@@ -23,7 +23,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/neohugo/neohugo/common/hexec"

@@ -19,10 +19,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
-
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/htesting"

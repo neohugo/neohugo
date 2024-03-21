@@ -236,12 +236,8 @@ func (b *packageBuilder) addm(source string, m map[string]any) {
 
 func (b *packageBuilder) unmarshal(r io.Reader) map[string]any {
 	m := make(map[string]any)
-	byteData, err := helpers.ReaderToBytes(r)
-	if err != nil {
-		b.err = err
-		return nil
-	}
-	err = json.Unmarshal(byteData, &m)
+	byteData := helpers.ReaderToBytes(r)
+	err := json.Unmarshal(byteData, &m)
 	if err != nil {
 		b.err = err
 	}
