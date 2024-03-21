@@ -21,15 +21,25 @@ import (
 	"sync"
 
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
+	"github.com/neohugo/neohugo/common/paths"
+
 	"github.com/neohugo/neohugo/tpl/internal/resourcehelpers"
 
-	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/postpub"
 
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/resource"
+
+	"github.com/neohugo/neohugo/resources/resource_factories/bundler"
+	"github.com/neohugo/neohugo/resources/resource_factories/create"
+	"github.com/neohugo/neohugo/resources/resource_transformers/babel"
+	"github.com/neohugo/neohugo/resources/resource_transformers/integrity"
+	"github.com/neohugo/neohugo/resources/resource_transformers/minifier"
+	"github.com/neohugo/neohugo/resources/resource_transformers/postcss"
+	"github.com/neohugo/neohugo/resources/resource_transformers/templates"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 
 	"github.com/neohugo/neohugo/resources/resource_factories/bundler"
 	"github.com/neohugo/neohugo/resources/resource_factories/create"
@@ -381,7 +391,7 @@ func (ns *Namespace) ToCSS(args ...any) (resource.Resource, error) {
 	if transpiler == transpilerLibSass {
 		var options scss.Options
 		if targetPath != "" {
-			options.TargetPath = helpers.ToSlashTrimLeading(targetPath)
+			options.TargetPath = paths.ToSlashTrimLeading(targetPath)
 		} else if m != nil {
 			options, err = scss.DecodeOptions(m)
 			if err != nil {

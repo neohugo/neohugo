@@ -185,43 +185,15 @@ func TestRace() error {
 
 // Fmt, run gofumpt linter
 func Fmt() error {
-	s, _ := sh.Output("gofumpt", "-version")
-	fmt.Printf("gofumpt version: %v\n", s)
-
-	pkgs, err := hugoPackages()
+	if !isGoLatest() && !isUnix() {
+		return nil
+	}
+	s, err := sh.Output("./check_gofmt.sh")
 	if err != nil {
-		return err
+		fmt.Println(s)
+		return fmt.Errorf("gofmt needs to be run: %s", err)
 	}
-	failed := false
-	first := true
 
-	for _, pkg := range pkgs {
-		files, err := filepath.Glob(filepath.Join(pkg, "*.go"))
-		if err != nil {
-			return nil
-		}
-		for _, f := range files {
-			// gofumpt doesn't exit with non-zero when it finds unformatted code
-			// so we have to explicitly look for output, and if we find any, we
-			// should fail this target.
-			s, err := sh.Output("gofumpt", "-l", f)
-			if err != nil {
-				fmt.Printf("ERROR: running gofumpt on %q: %v\n", f, err)
-				failed = true
-			}
-			if s != "" {
-				if first {
-					fmt.Println("The following files are not gofumpt'ed:")
-					first = false
-				}
-				failed = true
-				fmt.Println(s)
-			}
-		}
-	}
-	if failed {
-		return errors.New("improperly formatted go files")
-	}
 	return nil
 }
 
@@ -331,6 +303,10 @@ func runCmd(env map[string]string, cmd string, args ...any) error {
 
 func isGoLatest() bool {
 	return strings.Contains(runtime.Version(), "1.21")
+}
+
+func isUnix() bool {
+	return runtime.GOOS != "windows"
 }
 
 func isCI() bool {

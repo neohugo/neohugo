@@ -20,7 +20,6 @@ import (
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/common/types/hstring"
-	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup/internal/attributes"
 )
 
@@ -89,12 +88,10 @@ type AttributesOptionsSliceProvider interface {
 
 type LinkRenderer interface {
 	RenderLink(cctx context.Context, w io.Writer, ctx LinkContext) error
-	identity.Provider
 }
 
 type CodeBlockRenderer interface {
 	RenderCodeblock(cctx context.Context, w hugio.FlexiWriter, ctx CodeblockContext) error
-	identity.Provider
 }
 
 type IsDefaultCodeBlockRendererProvider interface {
@@ -123,7 +120,6 @@ type HeadingContext interface {
 type HeadingRenderer interface {
 	// RenderHeading writes the rendered content to w using the data in w.
 	RenderHeading(cctx context.Context, w io.Writer, ctx HeadingContext) error
-	identity.Provider
 }
 
 // ElementPositionResolver provides a way to resolve the start Position

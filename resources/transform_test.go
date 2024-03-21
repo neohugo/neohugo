@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,10 +25,12 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources"
 
 	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/resources/images"
@@ -48,10 +50,12 @@ func gopherPNG() io.Reader { return base64.NewDecoder(base64.StdEncoding, string
 
 func TestTransform(t *testing.T) {
 	createTransformer := func(c *qt.C, spec *resources.Spec, filename, content string) resources.Transformer {
-		filename = filepath.FromSlash(filename)
-		err := afero.WriteFile(spec.Fs.Source, filepath.Join("assets", filename), []byte(content), 0o777)
-		c.Assert(err, qt.IsNil)
-		r, err := spec.New(resources.ResourceSourceDescriptor{Fs: spec.BaseFs.Assets.Fs, SourceFilename: filename})
+		targetPath := identity.CleanString(filename)
+		r, err := spec.NewResource(resources.ResourceSourceDescriptor{
+			TargetPath:         targetPath,
+			OpenReadSeekCloser: hugio.NewOpenReadSeekCloser(hugio.NewReadSeekerNoOpCloserFromString(content)),
+			GroupIdentity:      identity.StringIdentity(targetPath),
+		})
 		c.Assert(err, qt.IsNil)
 		c.Assert(r, qt.Not(qt.IsNil), qt.Commentf(filename))
 		return r.(resources.Transformer)
@@ -181,7 +185,7 @@ func TestTransform(t *testing.T) {
 
 		spec := newTestResourceSpec(specDescriptor{c: c})
 
-		// Two transformations with same id, different behaviour.
+		// Two transformations with same id, different behavior.
 		t1 := createContentReplacer("t1", "blue", "green")
 		t2 := createContentReplacer("t1", "color", "car")
 
@@ -309,8 +313,10 @@ func TestTransform(t *testing.T) {
 
 		r := createTransformer(c, spec, "f1.txt", "color is blue")
 
-		tr1, _ := r.Transform(t1)
-		tr2, _ := tr1.Transform(t2)
+		tr1, err := r.Transform(t1)
+		c.Assert(err, qt.IsNil)
+		tr2, err := tr1.Transform(t2)
+		c.Assert(err, qt.IsNil)
 
 		content1, err := tr1.(resource.ContentProvider).Content(context.Background())
 		c.Assert(err, qt.IsNil)

@@ -41,7 +41,7 @@ func TestFilenameFilterFs(t *testing.T) {
 		}
 	}
 
-	fs = afero.NewBasePathFs(fs, base)
+	fs = NewBasePathFs(fs, base)
 
 	filter, err := glob.NewFilenameFilter(nil, []string{"/b/**.txt"})
 	c.Assert(err, qt.IsNil)

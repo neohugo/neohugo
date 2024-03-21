@@ -1,4 +1,4 @@
-// Copyright 2018 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ import (
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/neohugo/neohugo/common/neohugo"
 
@@ -149,7 +150,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	const binaryName = "postcss"
 
 	infol := t.rs.Logger.InfoCommand(binaryName)
-	infoW := loggers.LevelLoggerToWriter(infol)
+	infow := loggers.LevelLoggerToWriter(infol)
 
 	ex := t.rs.ExecHelper
 
@@ -177,7 +178,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 		configFile = t.rs.BaseFs.ResolveJSConfigFile(configFile)
 		if configFile == "" && options.Config != "" {
 			// Only fail if the user specified config file is not found.
-			return fmt.Errorf("postcss config %q not found:", options.Config)
+			return fmt.Errorf("postcss config %q not found", options.Config)
 		}
 	}
 
@@ -194,7 +195,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	var errBuf bytes.Buffer
 
-	stderr := io.MultiWriter(infoW, &errBuf)
+	stderr := io.MultiWriter(infow, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
 	cmdArgs = append(cmdArgs, hexec.WithStdout(ctx.To))
 	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
@@ -219,7 +220,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 		ctx.From,
 		ctx.InPath,
 		options,
-		t.rs.Assets.Fs, t.rs.Logger,
+		t.rs.Assets.Fs, t.rs.Logger, ctx.DependencyManager,
 	)
 
 	if options.InlineImports {
@@ -260,17 +261,19 @@ type importResolver struct {
 	inPath string
 	opts   Options
 
-	contentSeen map[string]bool
-	linemap     map[int]fileOffset
-	fs          afero.Fs
-	logger      loggers.Logger
+	contentSeen       map[string]bool
+	dependencyManager identity.Manager
+	linemap           map[int]fileOffset
+	fs                afero.Fs
+	logger            loggers.Logger
 }
 
-func newImportResolver(r io.Reader, inPath string, opts Options, fs afero.Fs, logger loggers.Logger) *importResolver {
+func newImportResolver(r io.Reader, inPath string, opts Options, fs afero.Fs, logger loggers.Logger, dependencyManager identity.Manager) *importResolver {
 	return &importResolver{
-		r:      r,
-		inPath: inPath,
-		fs:     fs, logger: logger,
+		r:                 r,
+		dependencyManager: dependencyManager,
+		inPath:            inPath,
+		fs:                fs, logger: logger,
 		linemap: make(map[int]fileOffset), contentSeen: make(map[string]bool),
 		opts: opts,
 	}
@@ -312,6 +315,7 @@ func (imp *importResolver) importRecursive(
 		} else {
 			path := strings.Trim(strings.TrimPrefix(line, importIdentifier), " \"';")
 			filename := filepath.Join(basePath, path)
+			imp.dependencyManager.AddIdentity(identity.CleanStringIdentity(filename))
 			importContent, hash := imp.contentHash(filename)
 
 			if importContent == nil {
@@ -364,8 +368,6 @@ func (imp *importResolver) importRecursive(
 }
 
 func (imp *importResolver) resolve() (io.Reader, error) {
-	const importIdentifier = "@import" // nolint
-
 	content, err := io.ReadAll(imp.r)
 	if err != nil {
 		return nil, err

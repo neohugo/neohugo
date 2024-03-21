@@ -43,6 +43,10 @@ import (
 
 	"github.com/rogpeppe/go-internal/module" // nolint
 
+	"github.com/neohugo/neohugo/config"
+
+	"golang.org/x/mod/module"
+
 	"github.com/neohugo/neohugo/common/hugio"
 
 	"github.com/spf13/afero"
@@ -139,7 +143,7 @@ type Client struct {
 	goBinaryStatus goBinaryStatus
 }
 
-// Graph writes a module dependenchy graph to the given writer.
+// Graph writes a module dependency graph to the given writer.
 func (c *Client) Graph(w io.Writer) error {
 	mc, coll := c.collect(true)
 	if coll.err != nil {
@@ -323,7 +327,7 @@ func (c *Client) Get(args ...string) error {
 				return coll.err
 			}
 			for _, m := range mc.AllModules {
-				if m.Owner() == nil {
+				if m.Owner() == nil || !isProbablyModule(m.Path()) {
 					continue
 				}
 				modules = append(modules, m.Path())
@@ -635,7 +639,7 @@ func (c *Client) runGo(
 	stdout io.Writer,
 	args ...string,
 ) error {
-	if c.goBinaryStatus != goBinaryStatusOK {
+	if c.goBinaryStatus != 0 {
 		return nil
 	}
 

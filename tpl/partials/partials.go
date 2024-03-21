@@ -40,9 +40,10 @@ type partialCacheKey struct {
 	Variants []any
 }
 type includeResult struct {
-	name   string
-	result any
-	err    error
+	name     string
+	result   any
+	mangager identity.Manager
+	err      error
 }
 
 func (k partialCacheKey) Key() string {
@@ -65,7 +66,7 @@ type partialCache struct {
 }
 
 func (p *partialCache) clear() {
-	p.cache.DeleteFunc(func(string, includeResult) bool {
+	p.cache.DeleteFunc(func(s string, r includeResult) bool {
 		return true
 	})
 }
@@ -75,7 +76,7 @@ func New(deps *deps.Deps) *Namespace {
 	// This lazycache was introduced in Hugo 0.111.0.
 	// We're going to expand and consolidate all memory caches in Hugo using this,
 	// so just set a high limit for now.
-	lru := lazycache.New[string, includeResult](lazycache.Options{MaxEntries: 1000})
+	lru := lazycache.New(lazycache.Options[string, includeResult]{MaxEntries: 1000})
 
 	cache := &partialCache{cache: lru}
 	deps.BuildStartListeners.Add(
@@ -142,6 +143,7 @@ func (ns *Namespace) includWithTimeout(ctx context.Context, name string, dataLis
 	case <-timeoutCtx.Done():
 		err := timeoutCtx.Err()
 		if err == context.DeadlineExceeded {
+			//lint:ignore ST1005 end user message.
 			err = fmt.Errorf("partial %q timed out after %s. This is most likely due to infinite recursion. If this is just a slow template, you can try to increase the 'timeout' config setting.", name, ns.deps.Conf.Timeout())
 		}
 		return includeResult{err: err}
@@ -224,9 +226,20 @@ func (ns *Namespace) IncludeCached(ctx context.Context, name string, context any
 		Name:     name,
 		Variants: variants,
 	}
+	depsManagerIn := tpl.Context.GetDependencyManagerInCurrentScope(ctx)
 
 	r, found, err := ns.cachedPartials.cache.GetOrCreate(key.Key(), func(string) (includeResult, error) {
+		var depsManagerShared identity.Manager
+		if ns.deps.Conf.Watching() {
+			// We need to create a shared dependency manager to pass downwards
+			// and add those same dependencies to any cached invocation of this partial.
+			depsManagerShared = identity.NewManager("partials")
+			ctx = tpl.Context.DependencyManagerScopedProvider.Set(ctx, depsManagerShared.(identity.DependencyManagerScopedProvider))
+		}
 		r := ns.includWithTimeout(ctx, key.Name, context)
+		if ns.deps.Conf.Watching() {
+			r.mangager = depsManagerShared
+		}
 		return r, r.err
 	})
 	if err != nil {
@@ -241,6 +254,10 @@ func (ns *Namespace) IncludeCached(ctx context.Context, name string, context any
 			ns.deps.Metrics.MeasureSince(key.templateName(), start)
 		}
 		ns.deps.Metrics.TrackValue(key.templateName(), r.result, found)
+	}
+
+	if r.mangager != nil && depsManagerIn != nil {
+		depsManagerIn.AddIdentity(r.mangager)
 	}
 
 	return r.result, nil

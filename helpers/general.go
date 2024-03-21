@@ -31,8 +31,7 @@ import (
 
 	"github.com/jdkato/prose/transform"
 
-	bp "github.com/neohugo/neohugo/bufferpool"
-	"github.com/spf13/pflag"
+	bp "github.com/gohugoio/hugo/bufferpool"
 )
 
 // FilePathSeparator as defined by os.Separator.
@@ -194,7 +193,7 @@ func ReaderContains(r io.Reader, subslice []byte) bool {
 //
 // - "Go" (strings.Title)
 // - "AP" (see https://www.apstylebook.com/)
-// - "Chicago" (see http://www.chicagomanualofstyle.org/home.html)
+// - "Chicago" (see https://www.chicagomanualofstyle.org/home.html)
 // - "FirstUpper" (only the first character is upper case)
 // - "None" (no transformation)
 //
@@ -202,7 +201,7 @@ func ReaderContains(r io.Reader, subslice []byte) bool {
 func GetTitleFunc(style string) func(s string) string {
 	switch strings.ToLower(style) {
 	case "go":
-		//nolint SA1019: strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead
+		//lint:ignore SA1019 keep for now.
 		return strings.Title
 	case "chicago":
 		tc := transform.NewTitleConverter(transform.ChicagoStyle)
@@ -269,10 +268,11 @@ func MD5String(f string) string {
 	return hex.EncodeToString(hash[:])
 }
 
-// MD5FromFileFast creates a MD5 hash from the given file. It only reads parts of
+// MD5FromReaderFast creates a MD5 hash from the given file. It only reads parts of
 // the file for speed, so don't use it if the files are very subtly different.
 // It will not close the file.
-func MD5FromFileFast(r io.ReadSeeker) (string, error) {
+// It will return the MD5 hash and the size of r in bytes.
+func MD5FromReaderFast(r io.ReadSeeker) (string, int64, error) {
 	const (
 		// Do not change once set in stone!
 		maxChunks = 8
@@ -290,7 +290,7 @@ func MD5FromFileFast(r io.ReadSeeker) (string, error) {
 				if err == io.EOF {
 					break
 				}
-				return "", err
+				return "", 0, err
 			}
 		}
 
@@ -302,14 +302,16 @@ func MD5FromFileFast(r io.ReadSeeker) (string, error) {
 				}
 				break
 			}
-			return "", err
+			return "", 0, err
 		}
 		if _, err = h.Write(buff); err != nil {
 			return "", err
 		}
 	}
 
-	return hex.EncodeToString(h.Sum(nil)), nil
+	size, _ := r.Seek(0, io.SeekEnd)
+
+	return hex.EncodeToString(h.Sum(nil)), size, nil
 }
 
 // MD5FromReader creates a MD5 hash from the given reader.
@@ -326,18 +328,6 @@ func IsWhitespace(r rune) bool {
 	return r == ' ' || r == '\t' || r == '\n' || r == '\r'
 }
 
-// NormalizeHugoFlags facilitates transitions of Hugo command-line flags,
-// e.g. --baseUrl to --baseURL, --uglyUrls to --uglyURLs
-func NormalizeHugoFlags(f *pflag.FlagSet, name string) pflag.NormalizedName {
-	switch name {
-	case "baseUrl":
-		name = "baseURL"
-	case "uglyUrls":
-		name = "uglyURLs"
-	}
-	return pflag.NormalizedName(name)
-}
-
 // PrintFs prints the given filesystem to the given writer starting from the given path.
 // This is useful for debugging.
 func PrintFs(fs afero.Fs, path string, w io.Writer) error {
@@ -347,9 +337,34 @@ func PrintFs(fs afero.Fs, path string, w io.Writer) error {
 
 	// nolint
 	afero.Walk(fs, path, func(path string, info os.FileInfo, err error) error {
-		fmt.Println(path)
+		if err != nil {
+			panic(fmt.Sprintf("error: path %q: %s", path, err))
+		}
+		path = filepath.ToSlash(path)
+		if path == "" {
+			path = "."
+		}
+		fmt.Fprintln(w, path, info.IsDir())
 		return nil
 	})
 
 	return nil
+}
+
+// FormatByteCount pretty formats b.
+func FormatByteCount(bc uint64) string {
+	const (
+		Gigabyte = 1 << 30
+		Megabyte = 1 << 20
+		Kilobyte = 1 << 10
+	)
+	switch {
+	case bc > Gigabyte || -bc > Gigabyte:
+		return fmt.Sprintf("%.2f GB", float64(bc)/Gigabyte)
+	case bc > Megabyte || -bc > Megabyte:
+		return fmt.Sprintf("%.2f MB", float64(bc)/Megabyte)
+	case bc > Kilobyte || -bc > Kilobyte:
+		return fmt.Sprintf("%.2f KB", float64(bc)/Kilobyte)
+	}
+	return fmt.Sprintf("%d B", bc)
 }

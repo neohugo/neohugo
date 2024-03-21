@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,6 +22,7 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -202,9 +203,6 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 			cfg = config.New()
 		}
 
-		if !cfg.IsSet("renderToDisk") {
-			cfg.Set("renderToDisk", true)
-		}
 		if !cfg.IsSet("workingDir") {
 			cfg.Set("workingDir", dir)
 		} else {
@@ -238,9 +236,7 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 
 		sourceFs := hugofs.Os
 		var destinationFs afero.Fs
-		if cfg.GetBool("renderToDisk") {
-			destinationFs = hugofs.Os
-		} else {
+		if cfg.GetBool("renderToMemory") {
 			destinationFs = afero.NewMemMapFs()
 			if renderStaticToDisk {
 				// Hybrid, render dynamic content to Root.
@@ -250,6 +246,8 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 				cfg.Set("publishDirDynamic", "/")
 				cfg.Set("publishDirStatic", "/")
 			}
+		} else {
+			destinationFs = hugofs.Os
 		}
 
 		fs := hugofs.NewFromSourceAndDestination(sourceFs, destinationFs, cfg)
@@ -259,7 +257,7 @@ func (r *rootCommand) ConfigFromProvider(key int32, cfg config.Provider) (*commo
 			publishDirStatic := cfg.GetString("publishDirStatic")
 			workingDir := cfg.GetString("workingDir")
 			absPublishDirStatic := paths.AbsPathify(workingDir, publishDirStatic)
-			staticFs := afero.NewBasePathFs(afero.NewOsFs(), absPublishDirStatic)
+			staticFs := hugofs.NewBasePathFs(afero.NewOsFs(), absPublishDirStatic)
 
 			// Serve from both the static and dynamic fs,
 			// the first will take priority.
@@ -342,7 +340,10 @@ func (r *rootCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args 
 			defer r.timeTrack(time.Now(), "Built")
 		}
 		err := b.build()
-		return err
+		if err != nil {
+			return err
+		}
+		return nil
 	}()
 	if err != nil {
 		return err
@@ -405,8 +406,15 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 		return err
 	}
 
-	r.commonConfigs = lazycache.New[int32, *commonConfig](lazycache.Options{MaxEntries: 5})
-	r.hugoSites = lazycache.New[int32, *hugolib.HugoSites](lazycache.Options{MaxEntries: 5})
+	r.commonConfigs = lazycache.New(lazycache.Options[int32, *commonConfig]{MaxEntries: 5})
+	// We don't want to keep stale HugoSites in memory longer than needed.
+	r.hugoSites = lazycache.New(lazycache.Options[int32, *hugolib.HugoSites]{
+		MaxEntries: 1,
+		OnEvict: func(key int32, value *hugolib.HugoSites) {
+			value.Close()
+			runtime.GC()
+		},
+	})
 
 	return nil
 }
@@ -486,6 +494,7 @@ Complete documentation is available at https://gohugo.io/.`
 	cmd.PersistentFlags().StringVar(&r.cfgFile, "config", "", "config file (default is hugo.yaml|json|toml)")
 	cmd.PersistentFlags().StringVar(&r.cfgDir, "configDir", "config", "config dir")
 	cmd.PersistentFlags().BoolVar(&r.quiet, "quiet", false, "build in quiet mode")
+	cmd.PersistentFlags().BoolVar(&r.renderToMemory, "renderToMemory", false, "render to memory (mostly useful when running the server)")
 
 	// Set bash-completion
 	_ = cmd.PersistentFlags().SetAnnotation("config", cobra.BashCompFilenameExt, config.ValidConfigFileExtensions) // nolint
@@ -494,7 +503,6 @@ Complete documentation is available at https://gohugo.io/.`
 	cmd.PersistentFlags().BoolVarP(&r.debug, "debug", "", false, "debug output")
 	cmd.PersistentFlags().StringVar(&r.logLevel, "logLevel", "", "log level (debug|info|warn|error)")
 	cmd.Flags().BoolVarP(&r.buildWatch, "watch", "w", false, "watch filesystem for changes and recreate as needed")
-	cmd.Flags().BoolVar(&r.renderToMemory, "renderToMemory", false, "render to memory (only useful for benchmark testing)")
 
 	// Configure local flags
 	applyLocalFlagsBuild(cmd, r)

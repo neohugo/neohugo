@@ -1,4 +1,4 @@
-// Copyright 2022 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,6 +46,9 @@ type FileError interface {
 
 	// UpdateContent updates the error with a new ErrorContext from the content of the file.
 	UpdateContent(r io.Reader, linematcher LineMatcherFn) FileError
+
+	// SetFilename sets the filename of the error.
+	SetFilename(filename string) FileError
 }
 
 // Unwrapper can unwrap errors created with fmt.Errorf.
@@ -57,6 +60,11 @@ var (
 	_ FileError = (*fileError)(nil)
 	_ Unwrapper = (*fileError)(nil)
 )
+
+func (fe *fileError) SetFilename(filename string) FileError {
+	fe.position.Filename = filename
+	return fe
+}
 
 func (fe *fileError) UpdatePosition(pos text.Position) FileError {
 	oldFilename := fe.Position().Filename

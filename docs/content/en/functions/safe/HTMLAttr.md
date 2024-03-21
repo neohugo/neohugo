@@ -1,30 +1,25 @@
 ---
 title: safe.HTMLAttr
-linkTitle: safeHTMLAttr
-description: Declares the provided string as a safe HTML attribute.
-categories: [functions]
+description: Declares the given key/value pair as a safe HTML attribute.
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: functions
-function:
+action:
   aliases: [safeHTMLAttr]
+  related:
+    - functions/safe/CSS
+    - functions/safe/HTML
+    - functions/safe/JS
+    - functions/safe/JSStr
+    - functions/safe/URL
   returnType: template.HTMLAttr
   signatures: [safe.HTMLAttr INPUT]
-relatedFunctions:
-  - safe.CSS
-  - safe.HTML
-  - safe.HTMLAttr
-  - safe.JS
-  - safe.JSStr
-  - safe.URL
 aliases: [/functions/safehtmlattr]
 ---
 
 Given a site configuration that contains this menu entry:
 
-{{< code-toggle file="hugo" >}}
-[[menu.main]]
+{{< code-toggle file=hugo >}}
+[[menus.main]]
   name = "IRC"
   url = "irc://irc.freenode.net/#golang"
 {{< /code-toggle >}}
@@ -35,7 +30,7 @@ Attempting to use the `url` value directly in an attribute:
 {{ range site.Menus.main }}
   <a href="{{ .URL }}">{{ .Name }}</a>
 {{ end }}
-``` 
+```
 
 Will produce:
 

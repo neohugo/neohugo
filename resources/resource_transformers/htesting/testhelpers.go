@@ -16,44 +16,11 @@ package htesting
 import (
 	"path/filepath"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/config/testconfig"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/spf13/afero"
 )
-
-func NewTestResourceSpec() (*resources.Spec, error) {
-	cfg := config.New()
-
-	imagingCfg := map[string]any{
-		"resampleFilter": "linear",
-		"quality":        68,
-		"anchor":         "left",
-	}
-
-	cfg.Set("imaging", imagingCfg)
-	afs := afero.NewMemMapFs()
-
-	conf := testconfig.GetTestConfig(afs, cfg)
-	fs := hugofs.NewFrom(hugofs.NewBaseFileDecorator(afs), conf.BaseConfig())
-	s, err := helpers.NewPathSpec(fs, conf, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	spec, err := resources.NewSpec(s, nil, nil, nil, nil, nil, nil)
-	return spec, err
-}
-
-func NewResourceTransformer(filename, content string) (resources.ResourceTransformer, error) {
-	spec, err := NewTestResourceSpec()
-	if err != nil {
-		return nil, err
-	}
-	return NewResourceTransformerForSpec(spec, filename, content)
-}
 
 func NewResourceTransformerForSpec(spec *resources.Spec, filename, content string) (resources.ResourceTransformer, error) {
 	filename = filepath.FromSlash(filename)
@@ -63,7 +30,11 @@ func NewResourceTransformerForSpec(spec *resources.Spec, filename, content strin
 		return nil, err
 	}
 
-	r, err := spec.New(resources.ResourceSourceDescriptor{Fs: fs, SourceFilename: filename})
+	var open hugio.OpenReadSeekCloser = func() (hugio.ReadSeekCloser, error) {
+		return fs.Open(filename)
+	}
+
+	r, err := spec.NewResource(resources.ResourceSourceDescriptor{TargetPath: filepath.FromSlash(filename), OpenReadSeekCloser: open, GroupIdentity: identity.Anonymous})
 	if err != nil {
 		return nil, err
 	}

@@ -97,15 +97,20 @@ func ApplyProjectConfigDefaults(mod Module, cfgs ...config.AllProvider) error {
 				dir = dirs.ContentDir
 				dropLang = dir == dirsBase.ContentDir
 			case files.ComponentFolderData:
-				dir = dirs.DataDir // nolint
+				//lint:ignore SA1019 Keep as adapter for now.
+				dir = dirs.DataDir
 			case files.ComponentFolderLayouts:
-				dir = dirs.LayoutDir // nolint
+				//lint:ignore SA1019 Keep as adapter for now.
+				dir = dirs.LayoutDir
 			case files.ComponentFolderI18n:
-				dir = dirs.I18nDir // nolint
+				//lint:ignore SA1019 Keep as adapter for now.
+				dir = dirs.I18nDir
 			case files.ComponentFolderArchetypes:
-				dir = dirs.ArcheTypeDir // nolint
+				//lint:ignore SA1019 Keep as adapter for now.
+				dir = dirs.ArcheTypeDir
 			case files.ComponentFolderAssets:
-				dir = dirs.AssetDir // nolint
+				//lint:ignore SA1019 Keep as adapter for now.
+				dir = dirs.AssetDir
 			case files.ComponentFolderStatic:
 				// For static dirs, we only care about the language in multihost setups.
 				dropLang = !isMultiHost
@@ -228,6 +233,7 @@ func decodeConfig(cfg config.Provider, pathReplacements map[string]string) (Conf
 				c.Workspace = filepath.Join(workingDir, c.Workspace)
 			}
 			if _, err := os.Stat(c.Workspace); err != nil {
+				//lint:ignore ST1005 end user message.
 				return c, fmt.Errorf("module workspace %q does not exist. Check your module.workspace setting (or HUGO_MODULE_WORKSPACE env var).", c.Workspace)
 			}
 		}

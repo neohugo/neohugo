@@ -35,6 +35,8 @@ import (
 
 	"github.com/spf13/afero"
 
+	iofs "io/fs"
+
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs"
 )
@@ -109,11 +111,17 @@ func (i HugoInfo) Deps() []*Dependency {
 	return i.deps
 }
 
+// IsMultiHost reports whether each configured language has a unique baseURL.
+func (i HugoInfo) IsMultiHost() bool {
+	return i.conf.IsMultihost()
+}
+
 // ConfigProvider represents the config options that are relevant for HugoInfo.
 type ConfigProvider interface {
 	Environment() string
 	Running() bool
 	WorkingDir() string
+	IsMultihost() bool
 }
 
 // NewInfo creates a new Hugo Info object.
@@ -159,7 +167,12 @@ func GetExecEnviron(workDir string, cfg config.AllProvider, fs afero.Fs) []strin
 	config.SetEnvVars(&env, "HUGO_PUBLISHDIR", filepath.Join(workDir, cfg.BaseConfig().PublishDir))
 
 	if fs != nil {
-		fis, err := afero.ReadDir(fs, files.FolderJSConfig)
+		var fis []iofs.DirEntry
+		d, err := fs.Open(files.FolderJSConfig)
+		if err == nil {
+			fis, err = d.(iofs.ReadDirFile).ReadDir(-1)
+		}
+
 		if err == nil {
 			for _, fi := range fis {
 				key := fmt.Sprintf("HUGO_FILE_%s", strings.ReplaceAll(strings.ToUpper(fi.Name()), ".", "_"))
@@ -252,7 +265,7 @@ func GetDependencyListNonGo() []string {
 		deps = append(
 			deps,
 			formatDep("github.com/sass/libsass", "3.6.5"),
-			formatDep("github.com/webmproject/libwebp", "v1.2.4"),
+			formatDep("github.com/webmproject/libwebp", "v1.3.2"),
 		)
 	}
 

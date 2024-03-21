@@ -46,8 +46,6 @@ func NewTranslationProvider() *TranslationProvider {
 
 // Update updates the i18n func in the provided Deps.
 func (tp *TranslationProvider) NewResource(dst *deps.Deps) error {
-	spec := source.NewSourceSpec(dst.PathSpec, nil, nil)
-
 	defaultLangTag, err := language.Parse(dst.Conf.DefaultContentLanguage())
 	if err != nil {
 		defaultLangTag = language.English
@@ -59,21 +57,20 @@ func (tp *TranslationProvider) NewResource(dst *deps.Deps) error {
 	bundle.RegisterUnmarshalFunc("yml", yaml.Unmarshal)
 	bundle.RegisterUnmarshalFunc("json", json.Unmarshal)
 
-	// The source dirs are ordered so the most important comes first. Since this is a
-	// last key win situation, we have to reverse the iteration order.
-	dirs := dst.BaseFs.I18n.Dirs
-	for i := len(dirs) - 1; i >= 0; i-- {
-		dir := dirs[i]
-		src := spec.NewFilesystemFromFileMetaInfo(dir)
-		files, err := src.Files()
-		if err != nil {
-			return err
-		}
-		for _, file := range files {
-			if err := addTranslationFile(bundle, file); err != nil {
-				return err
-			}
-		}
+	w := hugofs.NewWalkway(
+		hugofs.WalkwayConfig{
+			Fs:         dst.BaseFs.I18n.Fs,
+			IgnoreFile: dst.SourceSpec.IgnoreFile,
+			WalkFn: func(path string, info hugofs.FileMetaInfo) error {
+				if info.IsDir() {
+					return nil
+				}
+				return addTranslationFile(bundle, source.NewFileInfo(info))
+			},
+		})
+
+	if err := w.Walk(); err != nil {
+		return err
 	}
 
 	tp.t = NewTranslator(bundle, dst.Conf, dst.Log)
@@ -85,7 +82,7 @@ func (tp *TranslationProvider) NewResource(dst *deps.Deps) error {
 
 const artificialLangTagPrefix = "art-x-"
 
-func addTranslationFile(bundle *i18n.Bundle, r source.File) error {
+func addTranslationFile(bundle *i18n.Bundle, r *source.File) error {
 	f, err := r.FileInfo().Meta().Open()
 	if err != nil {
 		return fmt.Errorf("failed to open translations file %q:: %w", r.LogicalName(), err)
@@ -131,14 +128,8 @@ func (tp *TranslationProvider) CloneResource(dst, src *deps.Deps) error {
 	return nil
 }
 
-func errWithFileContext(inerr error, r source.File) error {
-	//nolint
-	fim, ok := r.FileInfo().(hugofs.FileMetaInfo)
-	if !ok {
-		return inerr
-	}
-
-	meta := fim.Meta()
+func errWithFileContext(inerr error, r *source.File) error {
+	meta := r.FileInfo().Meta()
 	realFilename := meta.Filename
 	f, err := meta.Open()
 	if err != nil {

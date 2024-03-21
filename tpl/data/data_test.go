@@ -270,10 +270,8 @@ func TestHeaders(t *testing.T) {
 			var headers bytes.Buffer
 			srv, ns.client = getTestServer(func(w http.ResponseWriter, r *http.Request) {
 				c.Assert(r.URL.String(), qt.Equals, "http://gohugo.io/api?foo")
-				_, err := w.Write([]byte("{}"))
-				c.Assert(err, qt.IsNil)
-				err = r.Header.Write(&headers)
-				c.Assert(err, qt.IsNil)
+				w.Write([]byte("{}"))
+				r.Header.Write(&headers)
 			})
 			defer func() { srv.Close() }()
 

@@ -17,6 +17,7 @@ import (
 	"context"
 
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/media"
 
@@ -76,7 +77,7 @@ type Resource interface {
 	ResourceTypeProvider
 	MediaTypeProvider
 	ResourceLinksProvider
-	ResourceMetaProvider
+	ResourceNameTitleProvider
 	ResourceParamsProvider
 	ResourceDataProvider
 	ErrProvider
@@ -107,7 +108,19 @@ type ResourceLinksProvider interface {
 	RelPermalink() string
 }
 
+// ResourceMetaProvider provides metadata about a resource.
 type ResourceMetaProvider interface {
+	ResourceNameTitleProvider
+	ResourceParamsProvider
+}
+
+type WithResourceMetaProvider interface {
+	// WithResourceMeta creates a new Resource with the given metadata.
+	// For internal use.
+	WithResourceMeta(ResourceMetaProvider) Resource
+}
+
+type ResourceNameTitleProvider interface {
 	// Name is the logical name of this resource. This can be set in the front matter
 	// metadata for this resource. If not set, Hugo will assign a value.
 	// This will in most cases be the base filename.
@@ -118,6 +131,12 @@ type ResourceMetaProvider interface {
 
 	// Title returns the title if set in front matter. For content pages, this will be the expected value.
 	Title() string
+}
+
+type NameNormalizedProvider interface {
+	// NameNormalized is the normalized name of this resource.
+	// For internal use (for now).
+	NameNormalized() string
 }
 
 type ResourceParamsProvider interface {
@@ -143,7 +162,20 @@ type ResourcesLanguageMerger interface {
 
 // Identifier identifies a resource.
 type Identifier interface {
+	// Key is is mostly for internal use and should be considered opaque.
+	// This value may change between Hugo versions.
 	Key() string
+}
+
+// WeightProvider provides a weight.
+type WeightProvider interface {
+	Weight() int
+}
+
+// Weight0Provider provides a weight that's considered before the WeightProvider in sorting.
+// This allows the weight set on a given term to win.
+type Weight0Provider interface {
+	Weight0() int
 }
 
 // ContentResource represents a Resource that provides a way to get to its content.
@@ -165,10 +197,6 @@ type ContentProvider interface {
 	// * Etc.
 	Content(context.Context) (any, error)
 }
-
-// OpenReadSeekCloser allows setting some other way (than reading from a filesystem)
-// to open or create a ReadSeekCloser.
-type OpenReadSeekCloser func() (hugio.ReadSeekCloser, error)
 
 // ReadSeekCloserResource is a Resource that supports loading its content.
 type ReadSeekCloserResource interface {
@@ -192,6 +220,44 @@ type TranslationKeyProvider interface {
 	TranslationKey() string
 }
 
+// Staler controls stale state of a Resource. A stale resource should be discarded.
+type Staler interface {
+	StaleMarker
+	StaleInfo
+}
+
+// StaleMarker marks a Resource as stale.
+type StaleMarker interface {
+	MarkStale()
+}
+
+// StaleInfo tells if a resource is marked as stale.
+type StaleInfo interface {
+	IsStale() bool
+}
+
+// IsStaleAny reports whether any of the os is marked as stale.
+func IsStaleAny(os ...any) bool {
+	for _, o := range os {
+		if s, ok := o.(StaleInfo); ok && s.IsStale() {
+			return true
+		}
+	}
+	return false
+}
+
+// MarkStale will mark any of the oses as stale, if possible.
+func MarkStale(os ...any) {
+	for _, o := range os {
+		if types.IsNil(o) {
+			continue
+		}
+		if s, ok := o.(StaleMarker); ok {
+			s.MarkStale()
+		}
+	}
+}
+
 // UnmarshableResource represents a Resource that can be unmarshaled to some other format.
 type UnmarshableResource interface {
 	ReadSeekCloserResource
@@ -213,16 +279,4 @@ func (r resourceTypesHolder) ResourceType() string {
 
 func NewResourceTypesProvider(mediaType media.Type, resourceType string) ResourceTypesProvider {
 	return resourceTypesHolder{mediaType: mediaType, resourceType: resourceType}
-}
-
-type languageHolder struct {
-	lang *langs.Language
-}
-
-func (l languageHolder) Language() *langs.Language {
-	return l.lang
-}
-
-func NewLanguageProvider(lang *langs.Language) LanguageProvider {
-	return languageHolder{lang: lang}
 }

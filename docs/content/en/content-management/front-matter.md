@@ -2,13 +2,13 @@
 title: Front matter
 description: Hugo allows you to add front matter in yaml, toml, or json to your content files.
 categories: [content management]
-keywords: ["front matter", "yaml", "toml", "json", "metadata", "archetypes"]
+keywords: [front matter,yaml,toml,json,metadata,archetypes]
 menu:
   docs:
     parent: content-management
     weight: 60
-toc: true
 weight: 60
+toc: true
 aliases: [/content/front-matter/]
 ---
 
@@ -31,7 +31,7 @@ JSON
 
 ORG
 : a group of Org mode keywords in the format '`#+KEY: VALUE`'. Any line that does not start with `#+` ends the front matter section.
-  Keyword values can be either strings (`#+KEY: VALUE`) or a whitespace separated list of strings (`#+KEY[]: VALUE_1 VALUE_2`).
+  Array values can either be separated into multiple lines (`#+KEY: VALUE_1` and `#+KEY: VALUE_2`) or a whitespace separated list of strings (`#+KEY[]: VALUE_1 VALUE_2`).
 
 ### Example
 
@@ -93,7 +93,7 @@ lastmod
 : The datetime at which the content was last modified.
 
 linkTitle
-: Used for creating links to content; if set, Hugo defaults to using the `linkTitle` before the `title`. Hugo can also [order lists of content by `linkTitle`][bylinktitle].
+: Used for creating links to content; if set, Hugo defaults to using the `linkTitle` before the `title`.
 
 markup
 : **experimental**; specify `"rst"` for reStructuredText (requires`rst2html`) or `"md"` (default) for Markdown.
@@ -131,9 +131,6 @@ videos
 weight
 : used for [ordering your content in lists][ordering]. Lower weight gets higher precedence. So content with lower weight will come first. If set, weights should be non-zero, as 0 is interpreted as an *unset* weight.
 
-\<taxonomies\>
-: Field name of the *plural* form of the index. See `tags` and `categories` in the above front matter examples. *Note that the plural form of user-defined taxonomies cannot be the same as any of the predefined front matter variables.*
-
 {{% note %}}
 If neither `slug` nor `url` is present and [permalinks are not configured otherwise in your site configuration file](/content-management/urls/#permalinks), Hugo will use the file name of your content to create the output URL. See [Content Organization](/content-management/organization) for an explanation of paths in Hugo and [URL Management](/content-management/urls/) for ways to customize Hugo's default behaviors.
 {{% /note %}}
@@ -144,7 +141,7 @@ You can add fields to your front matter arbitrarily to meet your needs. These us
 
 The following fields can be accessed via `.Params.include_toc` and `.Params.show_comments`, respectively. The [Variables] section provides more information on using Hugo's page- and site-level variables in your templates.
 
-{{< code-toggle copy=false >}}
+{{< code-toggle >}}
 include_toc: true
 show_comments: false
 {{</ code-toggle >}}
@@ -157,7 +154,7 @@ Any node or section can pass down to descendants a set of front matter values as
 
 The `cascade` block can be a slice with a optional `_target` keyword, allowing for multiple `cascade` values targeting different page sets.
 
-{{< code-toggle copy=false >}}
+{{< code-toggle >}}
 title ="Blog"
 [[cascade]]
 background = "yosemite.jpg"
@@ -187,11 +184,17 @@ environment
 
 Any of the above can be omitted.
 
+{{% note %}}
+When making a site that supports multiple languages, defining a `[[cascade]]` is recommended to be done in [Site Config](../../getting-started/configuration/#cascade) to prevent duplication.
+
+If you instead define a `[[cascade]]` in front matter for multiple languages, an `content/XX/foo/_index.md` file needs to be made on a per-language basis, with `XX` the glob pattern matching the Page's language. In this case, the **lang** keyword is ignored. 
+{{% /note %}}
+
 ### Example
 
 In `content/blog/_index.md`
 
-{{< code-toggle copy=false >}}
+{{< code-toggle >}}
 title: Blog
 cascade:
   banner: images/typewriter.jpg
@@ -219,13 +222,12 @@ It's possible to set some options for Markdown rendering in a content's front ma
 [variables]: /variables/
 [aliases]: /content-management/urls/#aliases
 [archetype]: /content-management/archetypes/
-[bylinktitle]: /templates/lists/#by-link-title
 [config]: /getting-started/configuration/
 [content type]: /content-management/types/
 [contentorg]: /content-management/organization/
 [headless-bundle]: /content-management/page-bundles/#headless-bundle
 [json]: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf
-[lists]: /templates/lists/#order-content
+[lists]: /templates/lists/#sort-content
 [lookup]: /templates/lookup-order/
 [ordering]: /templates/lists/
 [outputs]: /templates/output-formats/
