@@ -1,30 +1,33 @@
 ---
 title: fmt.Warnf
-linkTitle: warnf
 description: Log a WARNING from a template.
-categories: [functions]
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: functions
-function:
+action:
   aliases: [warnf]
+  related:
+    - functions/fmt/Errorf
+    - functions/fmt/Erroridf
   returnType: string
   signatures: ['fmt.Warnf FORMAT [INPUT]']
-relatedFunctions:
-  - fmt.Errorf
-  - fmt.Erroridf
-  - fmt.Warnf
 aliases: [/functions/warnf]
 ---
 
-The documentation for [Go's fmt package] describes the structure and content of the format string.
+{{% include "functions/fmt/_common/fmt-layout.md" %}}
 
-Like the  [`printf`] function, the `warnf` function evaluates the format string. It then prints the result to the WARNING log. Hugo prints each unique message once to avoid flooding the log with duplicate warnings.
+The `warnf` function evaluates the format string, then prints the result to the WARNING log. Hugo prints each unique message once to avoid flooding the log with duplicate warnings.
 
 ```go-html-template
-{{ warnf "Copyright notice missing from site configuration" }}
+{{ warnf "The %q shortcode was unable to find %s. See %s" .Name $file .Position }}
 ```
 
-[`printf`]: /functions/fmt/printf
-[Go's fmt package]: https://pkg.go.dev/fmt
+To prevent suppression of duplicate messages when using `warnf` for debugging, make each message unique with the [`math.Counter`] function. For example:
+
+
+```go-html-template
+{{ range site.RegularPages }}
+  {{ .Section | warnf "%#[2]v [%[1]d]" math.Counter }}
+{{ end }}
+```
+
+[`math.Counter`]: /functions/math/counter

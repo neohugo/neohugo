@@ -1,4 +1,4 @@
-// Copyright 2022 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,15 @@
 package herrors
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"regexp"
 	"runtime"
 	"runtime/debug"
-	"strconv"
+	"strings"
+	"time"
 )
 
 // PrintStackTrace prints the current stacktrace to w.
@@ -49,14 +50,22 @@ func Recover(args ...any) {
 	}
 }
 
-// GetGID the current goroutine id. Used only for debugging.
-func GetGID() uint64 {
-	b := make([]byte, 64)
-	b = b[:runtime.Stack(b, false)]
-	b = bytes.TrimPrefix(b, []byte("goroutine "))
-	b = b[:bytes.IndexByte(b, ' ')]
-	n, _ := strconv.ParseUint(string(b), 10, 64)
-	return n
+// IsTimeoutError returns true if the given error is or contains a TimeoutError.
+func IsTimeoutError(err error) bool {
+	return errors.Is(err, &TimeoutError{})
+}
+
+type TimeoutError struct {
+	Duration time.Duration
+}
+
+func (e *TimeoutError) Error() string {
+	return fmt.Sprintf("timeout after %s", e.Duration)
+}
+
+func (e *TimeoutError) Is(target error) bool {
+	_, ok := target.(*TimeoutError)
+	return ok
 }
 
 // IsFeatureNotAvailableError returns true if the given error is or contains a FeatureNotAvailableError.
@@ -108,4 +117,23 @@ func IsNotExist(err error) bool {
 	}
 
 	return false
+}
+
+var nilPointerErrRe = regexp.MustCompile(`at <(.*)>: error calling (.*?): runtime error: invalid memory address or nil pointer dereference`)
+
+func ImproveIfNilPointer(inErr error) (outErr error) {
+	outErr = inErr
+
+	m := nilPointerErrRe.FindStringSubmatch(inErr.Error())
+	if len(m) == 0 {
+		return
+	}
+	call := m[1]
+	field := m[2]
+	parts := strings.Split(call, ".")
+	receiverName := parts[len(parts)-2]
+	receiver := strings.Join(parts[:len(parts)-1], ".")
+	s := fmt.Sprintf("– %s is nil; wrap it in if or with: {{ with %s }}{{ .%s }}{{ end }}", receiverName, receiver, field)
+	outErr = errors.New(nilPointerErrRe.ReplaceAllString(inErr.Error(), s))
+	return
 }

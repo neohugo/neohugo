@@ -17,22 +17,23 @@ import (
 	"fmt"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/spf13/afero"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/identity"
 )
 
+var _ identity.Identity = (*templateInfo)(nil)
+
 type templateInfo struct {
-	name     string
-	template string
-	isText   bool // HTML or plain text template.
+	name       string
+	template   string
+	isText     bool // HTML or plain text template.
+	isEmbedded bool
 
-	// Used to create some error context in error situations
-	fs afero.Fs
+	meta *hugofs.FileMeta
+}
 
-	// The filename relative to the fs above.
-	filename string
-
-	// The real filename (if possible). Used for logging.
-	realFilename string
+func (t templateInfo) IdentifierBase() string {
+	return t.name
 }
 
 func (t templateInfo) Name() string {
@@ -40,7 +41,7 @@ func (t templateInfo) Name() string {
 }
 
 func (t templateInfo) Filename() string {
-	return t.realFilename
+	return t.meta.Filename
 }
 
 func (t templateInfo) IsZero() bool {
@@ -53,8 +54,8 @@ func (t templateInfo) resolveType() templateType {
 
 func (info templateInfo) errWithFileContext(what string, err error) error {
 	err = fmt.Errorf(what+": %w", err)
-	fe := herrors.NewFileErrorFromName(err, info.realFilename)
-	f, err := info.fs.Open(info.filename)
+	fe := herrors.NewFileErrorFromName(err, info.meta.Filename)
+	f, err := info.meta.Open()
 	if err != nil {
 		return err
 	}

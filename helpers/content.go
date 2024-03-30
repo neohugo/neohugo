@@ -30,7 +30,6 @@ import (
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/neohugo/neohugo/markup/converter/hooks"
 
 	"github.com/neohugo/neohugo/markup"
 
@@ -38,19 +37,15 @@ import (
 )
 
 var (
-	openingPTag        = []byte("<p>")
-	closingPTag        = []byte("</p>")
-	paragraphIndicator = []byte("<p")
-	closingIndicator   = []byte("</")
+	openingPTag = []byte("<p>")
+	closingPTag = []byte("</p>")
 )
 
 // ContentSpec provides functionality to render markdown content.
 type ContentSpec struct {
 	Converters          markup.ConverterProvider
 	anchorNameSanitizer converter.AnchorNameSanitizer
-	getRenderer         func(t hooks.RendererType, id any) any //nolint
-
-	Cfg config.AllProvider
+	Cfg                 config.AllProvider
 }
 
 // NewContentSpec returns a ContentSpec initialized
@@ -251,42 +246,18 @@ func (c *ContentSpec) TruncateWordsToWholeSentence(s string) (string, bool) {
 // where said tags are the only <p> tags in the input and enclose the content
 // of the input (whitespace excluded).
 func (c *ContentSpec) TrimShortHTML(input []byte) []byte {
-	firstOpeningP := bytes.Index(input, paragraphIndicator)
-	lastOpeningP := bytes.LastIndex(input, paragraphIndicator)
-
-	lastClosingP := bytes.LastIndex(input, closingPTag)
-	lastClosing := bytes.LastIndex(input, closingIndicator)
-
-	if firstOpeningP == lastOpeningP && lastClosingP == lastClosing {
+	if bytes.Count(input, openingPTag) == 1 {
 		input = bytes.TrimSpace(input)
-		input = bytes.TrimPrefix(input, openingPTag)
-		input = bytes.TrimSuffix(input, closingPTag)
-		input = bytes.TrimSpace(input)
+		if bytes.HasPrefix(input, openingPTag) && bytes.HasSuffix(input, closingPTag) {
+			input = bytes.TrimPrefix(input, openingPTag)
+			input = bytes.TrimSuffix(input, closingPTag)
+			input = bytes.TrimSpace(input)
+		}
 	}
+
 	return input
 }
 
 func isEndOfSentence(r rune) bool {
 	return r == '.' || r == '?' || r == '!' || r == '"' || r == '\n'
-}
-
-// Kept only for benchmark.
-func (c *ContentSpec) truncateWordsToWholeSentenceOld(content string) (string, bool) { // nolint
-	words := strings.Fields(content)
-
-	if c.Cfg.SummaryLength() >= len(words) {
-		return strings.Join(words, " "), false
-	}
-
-	for counter, word := range words[c.Cfg.SummaryLength():] {
-		if strings.HasSuffix(word, ".") ||
-			strings.HasSuffix(word, "?") ||
-			strings.HasSuffix(word, ".\"") ||
-			strings.HasSuffix(word, "!") {
-			upper := c.Cfg.SummaryLength() + counter + 1
-			return strings.Join(words[:upper], " "), (upper < len(words))
-		}
-	}
-
-	return strings.Join(words[:c.Cfg.SummaryLength()], " "), true
 }

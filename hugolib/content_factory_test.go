@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 func TestContentFactory(t *testing.T) {
@@ -28,7 +29,7 @@ lang  = 'en'
 [[module.mounts]]
 source = 'archetypes'
 target = 'archetypes'
-	
+
 `)
 
 		b.WithSourceFile(filepath.Join("mcontent/en/bundle", "index.md"), "")
@@ -52,7 +53,9 @@ Hello World.
 		b.Assert(p, qt.Not(qt.IsNil))
 
 		var buf bytes.Buffer
-		b.Assert(cf.ApplyArchetypeFilename(&buf, p, "", "post.md"), qt.IsNil)
+		fi, err := b.H.BaseFs.Archetypes.Fs.Stat("post.md")
+		b.Assert(err, qt.IsNil)
+		b.Assert(cf.ApplyArchetypeFi(&buf, p, "", fi.(hugofs.FileMetaInfo)), qt.IsNil)
 
 		b.Assert(buf.String(), qt.Contains, `title: "Mypage"`)
 	})
@@ -61,7 +64,7 @@ Hello World.
 	c.Run("Content in both project and theme", func(c *qt.C) {
 		b := newTestSitesBuilder(c)
 		b.WithConfigFile("toml", `
-theme = 'ipsum'		
+theme = 'ipsum'
 `)
 
 		themeDir := filepath.Join("themes", "ipsum")

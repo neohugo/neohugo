@@ -17,6 +17,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -36,7 +37,7 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/rogpeppe/go-internal/module" // nolint
+	"golang.org/x/mod/module"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/afero"
@@ -45,11 +46,6 @@ import (
 var ErrNotExist = errors.New("module does not exist")
 
 const vendorModulesFilename = "modules.txt"
-
-// IsNotExist returns whether an error means that a module could not be found.
-func IsNotExist(err error) bool {
-	return errors.Is(err, os.ErrNotExist)
-}
 
 func (h *Client) Collect() (ModulesConfig, error) {
 	mc, coll := h.collect(true)
@@ -130,7 +126,7 @@ func (m ModulesConfig) HasConfigFile() bool {
 func (m *ModulesConfig) setActiveMods(logger loggers.Logger) error {
 	for _, mod := range m.AllModules {
 		if !mod.Config().HugoVersion.IsValid() {
-			logger.Warnf(`Module %q is not compatible with this Hugo version; run "hugo mod graph" for more information.`, mod.Path())
+			logger.Warnf(`Module %q is not compatible with this Hugo version: %s; run "hugo mod graph" for more information.`, mod.Path(), mod.Config().HugoVersion)
 		}
 	}
 
@@ -287,6 +283,7 @@ func (c *collector) add(owner *moduleAdapter, moduleImport Import) (*moduleAdapt
 					return nil, nil
 				}
 				if found, _ := afero.Exists(c.fs, moduleDir); !found {
+					//lint:ignore ST1005 end user message.
 					c.err = c.wrapModuleNotFound(fmt.Errorf(`module %q not found in %q; either add it as a Hugo Module or store it in %q.`, modulePath, moduleDir, c.ccfg.ThemesDir))
 					return nil, nil
 				}
@@ -604,7 +601,12 @@ func (c *collector) mountCommonJSConfig(owner *moduleAdapter, mounts []Mount) ([
 	}
 
 	// Mount the common JS config files.
-	fis, err := afero.ReadDir(c.fs, owner.Dir())
+	d, err := c.fs.Open(owner.Dir())
+	if err != nil {
+		return mounts, fmt.Errorf("failed to open dir %q: %q", owner.Dir(), err)
+	}
+	defer d.Close()
+	fis, err := d.(fs.ReadDirFile).ReadDir(-1)
 	if err != nil {
 		return mounts, fmt.Errorf("failed to read dir %q: %q", owner.Dir(), err)
 	}

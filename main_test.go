@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,30 +35,27 @@ import (
 	"github.com/rogpeppe/go-internal/testscript"
 )
 
-//func TestCommands(t *testing.T) {
-//	p := commonTestScriptsParam
-//	p.Dir = "testscripts/commands"
-//	testscript.Run(t, p)
-//}
+func TestCommands(t *testing.T) {
+	p := commonTestScriptsParam
+	p.Dir = "testscripts/commands"
+	testscript.Run(t, p)
+}
 
 // Tests in development can be put in "testscripts/unfinished".
 // Also see the watch_testscripts.sh script.
-// func TestUnfinished(t *testing.T) {
-//	if os.Getenv("CI") != "" {
-//		t.Skip("skip unfinished tests on CI")
-//	}
+func TestUnfinished(t *testing.T) {
+	if os.Getenv("CI") != "" {
+		t.Skip("skip unfinished tests on CI")
+	}
 
-//	p := commonTestScriptsParam
-//	p.Dir = "testscripts/unfinished"
-//	// p.UpdateScripts = true
+	p := commonTestScriptsParam
+	p.Dir = "testscripts/unfinished"
+	// p.UpdateScripts = true
 
-//testscript.Run(t, p)
-//}
+	testscript.Run(t, p)
+}
 
 func TestMain(m *testing.M) {
-	type testInfo struct { // nolint
-		BaseURLs []string
-	}
 	os.Exit(
 		testscript.RunMain(m, map[string]func() int{
 			// The main program.
@@ -119,11 +116,7 @@ var commonTestScriptsParam = testscript.Params{
 		},
 		// ls lists a directory to stdout.
 		"ls": func(ts *testscript.TestScript, neg bool, args []string) {
-			var dirname string
-			if len(args) > 0 {
-				dirname = args[0] // nolint
-			}
-			dirname = ts.MkAbs(args[0])
+			dirname := ts.MkAbs(args[0])
 
 			dir, err := os.Open(dirname)
 			if err != nil {
@@ -334,12 +327,14 @@ var commonTestScriptsParam = testscript.Params{
 				var info testInfo
 				// Read the .ready file's JSON into info.
 				f, err := os.Open(readyFilename)
-				if err == nil {
-					err = json.NewDecoder(f).Decode(&info) // nolint
-					f.Close()
-				} else {
+				if err != nil {
 					ts.Fatalf("failed to open .ready file: %v", err)
 				}
+				err = json.NewDecoder(f).Decode(&info)
+				if err != nil {
+					ts.Fatalf("error decoding json: %v", err)
+				}
+				f.Close()
 
 				for i, s := range info.BaseURLs {
 					ts.Setenv(fmt.Sprintf("HUGOTEST_BASEURL_%d", i), s)

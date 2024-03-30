@@ -16,7 +16,7 @@ package scss
 import (
 	"regexp"
 
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/hugolib/filesystems"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/spf13/afero"
@@ -72,7 +72,7 @@ func DecodeOptions(m map[string]any) (opts Options, err error) {
 	err = mapstructure.WeakDecode(m, &opts)
 
 	if opts.TargetPath != "" {
-		opts.TargetPath = helpers.ToSlashTrimLeading(opts.TargetPath)
+		opts.TargetPath = paths.ToSlashTrimLeading(opts.TargetPath)
 	}
 
 	return

@@ -16,6 +16,10 @@ package goldmark
 import (
 	"bytes"
 
+	strikethroughAst "github.com/yuin/goldmark/extension/ast"
+
+	emojiAst "github.com/yuin/goldmark-emoji/ast"
+
 	"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/yuin/goldmark"
@@ -82,12 +86,15 @@ func (t *tocTransformer) Transform(n *ast.Document, reader text.Reader, pc parse
 			id, found := heading.AttributeString("id")
 			if found {
 				tocHeading.ID = string(id.([]byte))
+				tocHeading.Level = level
 			}
 		case
 			ast.KindCodeSpan,
 			ast.KindLink,
 			ast.KindImage,
-			ast.KindEmphasis:
+			ast.KindEmphasis,
+			strikethroughAst.KindStrikethrough,
+			emojiAst.KindEmoji:
 			err := t.r.Render(&headingText, reader.Source(), n)
 			if err != nil {
 				return s, err

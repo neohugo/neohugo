@@ -109,9 +109,9 @@ Resources: {{ resources.Match "**.js" }}
 	b.AssertFileContent(filepath.Join("public", "index.html"), `
 Data: map[mydata:map[b:map[b1:bval]]]:END	
 Template: false
-Resource1: js/include.js:END
+Resource1: /js/include.js:END
 Resource2: :END
 Resource3: :END
-Resources: [js/include.js]
+Resources: [include.js]
 `)
 }

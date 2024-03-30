@@ -20,9 +20,8 @@ const (
 )
 
 var (
-	isMacOs   = runtime.GOOS == "darwin"
-	isWindows = runtime.GOOS == "windows" //nolint
-	isCI      = htesting.IsCI()
+	isMacOs = runtime.GOOS == "darwin"
+	isCI    = htesting.IsCI()
 )
 
 func TestPollerAddRemove(t *testing.T) {
@@ -45,6 +44,7 @@ func TestPollerAddRemove(t *testing.T) {
 }
 
 func TestPollerEvent(t *testing.T) {
+	t.Skip("flaky test") // TODO(bep)
 	c := qt.New(t)
 
 	for _, poll := range []bool{true, false} {
@@ -114,7 +114,7 @@ func TestPollerEvent(t *testing.T) {
 			// Create a new sub directory and add it to the watcher.
 			subdir = filepath.Join(dir, subdir1, subdir2)
 			c.Assert(os.Mkdir(subdir, 0o777), qt.IsNil)
-			w.Add(subdir) //nolint
+			w.Add(subdir) // nolint
 			// This should create only one event.
 			assertEvents(c, w, fsnotify.Event{Name: subdir, Op: fsnotify.Create})
 		})

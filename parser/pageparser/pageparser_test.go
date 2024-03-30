@@ -68,7 +68,8 @@ func TestIsProbablyItemsSource(t *testing.T) {
 	c := qt.New(t)
 
 	input := ` {{< foo >}} `
-	items := collectStringMain(input)
+	items, err := collectStringMain(input)
+	c.Assert(err, qt.IsNil)
 
 	c.Assert(IsProbablySourceOfItems([]byte(input), items), qt.IsTrue)
 	c.Assert(IsProbablySourceOfItems(bytes.Repeat([]byte(" "), len(input)), items), qt.IsFalse)

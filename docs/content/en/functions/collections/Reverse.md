@@ -1,25 +1,18 @@
 ---
 title: collections.Reverse
 description: Reverses the order of a collection.
-categories: [functions]
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: functions
-function:
+action:
   aliases: []
+  related:
+    - functions/collections/Sort
+    - functions/collections/Shuffle
+    - functions/collections/Uniq
   returnType: any
   signatures: [collections.Reverse COLLECTION]
-relatedFunctions:
-  - collections.Apply
-  - collections.Delimit
-  - collections.In
-  - collections.Reverse
-  - collections.Seq
-  - collections.Slice
 aliases: [/functions/collections.reverse]
 ---
-
 
 ```go-html-template
 {{ slice 2 1 3 | collections.Reverse }} → [3 1 2]

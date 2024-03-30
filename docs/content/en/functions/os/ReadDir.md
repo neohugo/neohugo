@@ -1,22 +1,17 @@
 ---
 title: os.ReadDir
-linkTitle: readDir
 description: Returns an array of FileInfo structures sorted by file name, one element for each directory entry.
-categories: [functions]
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: functions
-function:
+action:
   aliases: [readDir]
-  returnType: FileInfo
+  related:
+    - functions/os/FileExists
+    - functions/os/Getenv
+    - functions/os/ReadFile
+    - functions/os/Stat
+  returnType: os.FileInfo
   signatures: [os.ReadDir PATH]
-relatedFunctions:
-  - os.FileExists
-  - os.Getenv
-  - os.ReadDir
-  - os.ReadFile
-  - os.Stat
 aliases: [/functions/readdir]
 ---
 
@@ -36,7 +31,7 @@ content/
 This template code:
 
 ```go-html-template
-{{ range os.ReadDir "content" }}
+{{ range readDir "content" }}
   {{ .Name }} → {{ .IsDir }}
 {{ end }}
 ```
@@ -52,5 +47,3 @@ news → true
 Note that `os.ReadDir` is not recursive.
 
 Details of the `FileInfo` structure are available in the [Go documentation](https://pkg.go.dev/io/fs#FileInfo).
-
-For more information on using `readDir` and `readFile` in your templates, see [Local File Templates](/templates/files).

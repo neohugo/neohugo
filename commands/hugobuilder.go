@@ -1,4 +1,4 @@
-// Copyright 2023 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 	"runtime/trace"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/bep/logg"
@@ -34,6 +35,7 @@ import (
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/common/terminal"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/config"
@@ -134,46 +136,12 @@ func (c *hugoBuilder) errCount() int {
 
 // getDirList provides NewWatcher() with a list of directories to watch for changes.
 func (c *hugoBuilder) getDirList() ([]string, error) {
-	var filenames []string
-
-	walkFn := func(path string, fi hugofs.FileMetaInfo, err error) error {
-		if err != nil {
-			c.r.logger.Errorln("walker: ", err)
-			return nil
-		}
-
-		if fi.IsDir() {
-			if fi.Name() == ".git" ||
-				fi.Name() == "node_modules" || fi.Name() == "bower_components" {
-				return filepath.SkipDir
-			}
-
-			filenames = append(filenames, fi.Meta().Filename)
-		}
-
-		return nil
-	}
-
 	h, err := c.hugo()
 	if err != nil {
 		return nil, err
 	}
-	watchFiles := h.PathSpec.BaseFs.WatchDirs()
-	for _, fi := range watchFiles {
-		if !fi.IsDir() {
-			filenames = append(filenames, fi.Meta().Filename)
-			continue
-		}
 
-		w := hugofs.NewWalkway(hugofs.WalkwayConfig{Logger: c.r.logger, Info: fi, WalkFn: walkFn})
-		if err := w.Walk(); err != nil {
-			c.r.logger.Errorln("walker: ", err)
-		}
-	}
-
-	filenames = helpers.UniqueStringsSorted(filenames)
-
-	return filenames, nil
+	return helpers.UniqueStringsSorted(h.PathSpec.BaseFs.WatchFilenames()), nil
 }
 
 func (c *hugoBuilder) initCPUProfile() (func(), error) {
@@ -440,7 +408,7 @@ func (c *hugoBuilder) copyStatic() (map[string]uint64, error) {
 }
 
 func (c *hugoBuilder) copyStaticTo(sourceFs *filesystems.SourceFilesystem) (uint64, error) {
-	infol := c.r.logger.InfoCommand("copy static")
+	infol := c.r.logger.InfoCommand("static")
 	publishDir := helpers.FilePathSeparator
 
 	if sourceFs.PublishFolder != "" {
@@ -466,11 +434,11 @@ func (c *hugoBuilder) copyStaticTo(sourceFs *filesystems.SourceFilesystem) (uint
 	if syncer.Delete {
 		infol.Logf("removing all files from destination that don't exist in static dirs")
 
-		syncer.DeleteFilter = func(f os.FileInfo) bool {
+		syncer.DeleteFilter = func(f fsync.FileInfo) bool {
 			return f.IsDir() && strings.HasPrefix(f.Name(), ".")
 		}
 	}
-	infol.Logf("syncing static files to %s", publishDir)
+	start := time.Now()
 
 	// because we are using a baseFs (to get the union right).
 	// set sync src to root
@@ -478,9 +446,10 @@ func (c *hugoBuilder) copyStaticTo(sourceFs *filesystems.SourceFilesystem) (uint
 	if err != nil {
 		return 0, err
 	}
+	loggers.TimeTrackf(infol, start, nil, "syncing static files to %s", publishDir)
 
-	// Sync runs Stat 3 times for every source file (which sounds much)
-	numFiles := fs.statCounter / 3
+	// Sync runs Stat 2 times for every source file.
+	numFiles := fs.statCounter / 2
 
 	return numFiles, err
 }
@@ -659,6 +628,23 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 
 	var isHandled bool
 
+	// Filter out ghost events (from deleted, renamed directories).
+	// This seems to be a bug in fsnotify, or possibly MacOS.
+	var n int
+	for _, ev := range evs {
+		keep := true
+		if ev.Has(fsnotify.Create) || ev.Has(fsnotify.Write) {
+			if _, err := os.Stat(ev.Name); err != nil {
+				keep = false
+			}
+		}
+		if keep {
+			evs[n] = ev
+			n++
+		}
+	}
+	evs = evs[:n]
+
 	for _, ev := range evs {
 		isConfig := configSet[ev.Name]
 		configChangeType := configChangeConfig
@@ -726,48 +712,25 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 		return
 	}
 
-	c.r.logger.Infoln("Received System Events:", evs)
+	c.r.logger.Debugln("Received System Events:", evs)
 
 	staticEvents := []fsnotify.Event{}
 	dynamicEvents := []fsnotify.Event{}
 
-	filtered := []fsnotify.Event{}
 	h, err := c.hugo()
 	if err != nil {
 		c.r.logger.Errorln("Error getting the Hugo object:", err)
 		return
 	}
+	n = 0
 	for _, ev := range evs {
 		if h.ShouldSkipFileChangeEvent(ev) {
 			continue
 		}
-		// Check the most specific first, i.e. files.
-		contentMapped := h.ContentChanges.GetSymbolicLinkMappings(ev.Name)
-		if len(contentMapped) > 0 {
-			for _, mapped := range contentMapped {
-				filtered = append(filtered, fsnotify.Event{Name: mapped, Op: ev.Op})
-			}
-			continue
-		}
-
-		// Check for any symbolic directory mapping.
-
-		dir, name := filepath.Split(ev.Name)
-
-		contentMapped = h.ContentChanges.GetSymbolicLinkMappings(dir)
-
-		if len(contentMapped) == 0 {
-			filtered = append(filtered, ev)
-			continue
-		}
-
-		for _, mapped := range contentMapped {
-			mappedFilename := filepath.Join(mapped, name)
-			filtered = append(filtered, fsnotify.Event{Name: mappedFilename, Op: ev.Op})
-		}
+		evs[n] = ev
+		n++
 	}
-
-	evs = filtered
+	evs = evs[:n]
 
 	for _, ev := range evs {
 		ext := filepath.Ext(ev.Name)
@@ -788,6 +751,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 		if istemp {
 			continue
 		}
+
 		if h.Deps.SourceSpec.IgnoreFile(ev.Name) {
 			continue
 		}
@@ -811,7 +775,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 			continue
 		}
 
-		walkAdder := func(path string, f hugofs.FileMetaInfo, err error) error {
+		walkAdder := func(path string, f hugofs.FileMetaInfo) error {
 			if f.IsDir() {
 				c.r.logger.Println("adding created directory to watchlist", path)
 				if err := watcher.Add(path); err != nil {
@@ -827,11 +791,10 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 		}
 
 		// recursively add new directories to watch list
-		// When mkdir -p is used, only the top directory triggers an event (at least on OSX)
-		if ev.Op&fsnotify.Create == fsnotify.Create {
+		if ev.Has(fsnotify.Create) || ev.Has(fsnotify.Rename) {
 			c.withConf(func(conf *commonConfig) {
 				if s, err := conf.fs.Source.Stat(ev.Name); err == nil && s.Mode().IsDir() {
-					_ = helpers.SymbolicWalk(conf.fs.Source, ev.Name, walkAdder)
+					_ = helpers.Walk(conf.fs.Source, ev.Name, walkAdder)
 				}
 			})
 		}
@@ -872,7 +835,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 					return
 				}
 				path := h.BaseFs.SourceFilesystems.MakeStaticPathRelative(ev.Name)
-				path = h.RelURL(helpers.ToSlashTrimLeading(path), false)
+				path = h.RelURL(paths.ToSlashTrimLeading(path), false)
 
 				livereload.RefreshPath(path)
 			} else {
@@ -909,7 +872,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 					// Nothing has changed.
 					return
 				} else if len(changed) == 1 {
-					pathToRefresh := h.PathSpec.RelURL(helpers.ToSlashTrimLeading(changed[0]), false)
+					pathToRefresh := h.PathSpec.RelURL(paths.ToSlashTrimLeading(changed[0]), false)
 					livereload.RefreshPath(pathToRefresh)
 				} else {
 					livereload.ForceRefresh()
@@ -967,7 +930,7 @@ func (c *hugoBuilder) hugoTry() *hugolib.HugoSites {
 
 func (c *hugoBuilder) loadConfig(cd *simplecobra.Commandeer, running bool) error {
 	cfg := config.New()
-	cfg.Set("renderToDisk", (c.s == nil && !c.r.renderToMemory) || (c.s != nil && c.s.renderToDisk))
+	cfg.Set("renderToMemory", c.r.renderToMemory)
 	watch := c.r.buildWatch || (c.s != nil && c.s.serverWatch)
 	if c.r.environment == "" {
 		// We need to set the environment as early as possible because we need it to load the correct config.
@@ -988,9 +951,10 @@ func (c *hugoBuilder) loadConfig(cd *simplecobra.Commandeer, running bool) error
 	cfg.Set("environment", c.r.environment)
 
 	cfg.Set("internal", maps.Params{
-		"running": running,
-		"watch":   watch,
-		"verbose": c.r.isVerbose(),
+		"running":        running,
+		"watch":          watch,
+		"verbose":        c.r.isVerbose(),
+		"fastRenderMode": c.fastRenderMode,
 	})
 
 	conf, err := c.r.ConfigFromProvider(c.r.configVersionID.Load(), flagsToCfg(cd, cfg))
@@ -999,6 +963,7 @@ func (c *hugoBuilder) loadConfig(cd *simplecobra.Commandeer, running bool) error
 	}
 
 	if len(conf.configs.LoadingInfo.ConfigFiles) == 0 {
+		//lint:ignore ST1005 end user message.
 		return errors.New("Unable to locate config file or config directory. Perhaps you need to create a new site.\nRun `hugo help new` for details.")
 	}
 
@@ -1012,12 +977,14 @@ func (c *hugoBuilder) loadConfig(cd *simplecobra.Commandeer, running bool) error
 	return nil
 }
 
+var rebuildCounter atomic.Uint64
+
 func (c *hugoBuilder) printChangeDetected(typ string) {
 	msg := "\nChange"
 	if typ != "" {
 		msg += " of " + typ
 	}
-	msg += " detected, rebuilding site."
+	msg += fmt.Sprintf(" detected, rebuilding site (#%d).", rebuildCounter.Add(1))
 
 	c.r.logger.Println(msg)
 	const layout = "2006-01-02 15:04:05.000 -0700"
@@ -1032,25 +999,12 @@ func (c *hugoBuilder) rebuildSites(events []fsnotify.Event) error {
 		}
 	}
 	c.errState.setBuildErr(nil)
-	visited := c.visitedURLs.PeekAllSet()
 	h, err := c.hugo()
 	if err != nil {
 		return err
 	}
-	if c.fastRenderMode {
-		c.withConf(func(conf *commonConfig) {
-			// Make sure we always render the home pages
-			for _, l := range conf.configs.ConfigLangs() {
-				langPath := l.LanguagePrefix()
-				if langPath != "" {
-					langPath = langPath + "/"
-				}
-				home := h.PrependBasePath("/"+langPath, false)
-				visited[home] = true
-			}
-		})
-	}
-	return h.Build(hugolib.BuildCfg{NoBuildLock: true, RecentlyVisited: visited, ErrRecovery: c.errState.wasErr()}, events...)
+
+	return h.Build(hugolib.BuildCfg{NoBuildLock: true, RecentlyVisited: c.visitedURLs, ErrRecovery: c.errState.wasErr()}, events...)
 }
 
 func (c *hugoBuilder) reloadConfig() error {

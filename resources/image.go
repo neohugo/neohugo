@@ -20,25 +20,23 @@ import (
 	"image/color"
 	"image/draw"
 	"image/gif"
-	_ "image/gif"
 	_ "image/png"
 	"io"
 	"os"
-	"path"
-	"path/filepath"
 	"strings"
 	"sync"
 
 	color_extractor "github.com/marekm4/color-extractor"
 
+	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/common/hstrings"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/identity"
 
 	"github.com/disintegration/gift"
 
-	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/resources/images/exif"
+	"github.com/neohugo/neohugo/resources/internal"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
@@ -50,9 +48,10 @@ import (
 )
 
 var (
-	_ images.ImageResource = (*imageResource)(nil)
-	_ resource.Source      = (*imageResource)(nil)
-	_ resource.Cloner      = (*imageResource)(nil)
+	_ images.ImageResource            = (*imageResource)(nil)
+	_ resource.Source                 = (*imageResource)(nil)
+	_ resource.Cloner                 = (*imageResource)(nil)
+	_ resource.NameNormalizedProvider = (*imageResource)(nil)
 )
 
 // imageResource represents an image resource.
@@ -107,6 +106,7 @@ func (i *imageResource) getExif() *exif.ExifInfo {
 		}
 
 		create := func(info filecache.ItemInfo, w io.WriteCloser) (err error) {
+			defer w.Close()
 			f, err := i.root.ReadSeekCloser()
 			if err != nil {
 				i.metaInitErr = err
@@ -127,7 +127,7 @@ func (i *imageResource) getExif() *exif.ExifInfo {
 			return enc.Encode(i.meta)
 		}
 
-		_, i.metaInitErr = i.getSpec().ImageCache.fileCache.ReadOrCreate(key, read, create)
+		_, i.metaInitErr = i.getSpec().ImageCache.fcache.ReadOrCreate(key, read, create)
 	})
 
 	if i.metaInitErr != nil {
@@ -279,8 +279,8 @@ func (i *imageResource) Filter(filters ...any) (images.ImageResource, error) {
 	}
 
 	return i.doWithImageConfig(conf, func(src image.Image) (image.Image, error) {
-		filters := gfilters
-		for j, f := range gfilters {
+		var filters []gift.Filter
+		for _, f := range gfilters {
 			f = images.UnwrapFilter(f)
 			if specProvider, ok := f.(images.ImageProcessSpecProvider); ok {
 				processSpec := specProvider.ImageProcessSpec()
@@ -293,10 +293,14 @@ func (i *imageResource) Filter(filters ...any) (images.ImageResource, error) {
 				if err != nil {
 					return nil, err
 				}
-				// Replace the filter with the new filters.
-				// This slice will be empty if this is just a format conversion.
-				filters = append(filters[:j], append(pFilters, filters[j+1:]...)...)
-
+				filters = append(filters, pFilters...)
+			} else if orientationProvider, ok := f.(images.ImageFilterFromOrientationProvider); ok {
+				tf := orientationProvider.AutoOrient(i.Exif())
+				if tf != nil {
+					filters = append(filters, tf)
+				}
+			} else {
+				filters = append(filters, f)
 			}
 		}
 		return i.Proc.Filter(src, filters...)
@@ -365,17 +369,14 @@ func (i *imageResource) doWithImageConfig(conf images.ImageConfig, f func(src im
 			<-imageProcSem
 		}()
 
-		errOp := conf.Action
-		errPath := i.getSourceFilename()
-
 		src, err := i.DecodeImage()
 		if err != nil {
-			return nil, nil, &os.PathError{Op: errOp, Path: errPath, Err: err}
+			return nil, nil, &os.PathError{Op: conf.Action, Path: i.TargetPath(), Err: err}
 		}
 
 		converted, err := f(src)
 		if err != nil {
-			return nil, nil, &os.PathError{Op: errOp, Path: errPath, Err: err}
+			return nil, nil, &os.PathError{Op: conf.Action, Path: i.TargetPath(), Err: err}
 		}
 
 		hasAlpha := !images.IsOpaque(converted)
@@ -410,29 +411,17 @@ func (i *imageResource) doWithImageConfig(conf images.ImageConfig, f func(src im
 		}
 
 		ci := i.clone(converted)
-		ci.setBasePath(conf)
+		targetPath := i.relTargetPathFromConfig(conf)
+		ci.setTargetPath(targetPath)
 		ci.Format = conf.TargetFormat
 		ci.setMediaType(conf.TargetFormat.MediaType())
 
 		return ci, converted, nil
 	})
 	if err != nil {
-		if i.root != nil && i.root.getFileInfo() != nil {
-			return nil, fmt.Errorf("image %q: %w", i.root.getFileInfo().Meta().Filename, err)
-		}
+		return nil, err
 	}
 	return img, nil
-}
-
-// nolint
-func (i *imageResource) decodeImageConfig(action, spec string) (images.ImageConfig, error) {
-	options := strings.Fields(spec)
-	conf, err := images.DecodeImageConfig(action, options, i.Proc.Cfg, i.Format)
-	if err != nil {
-		return conf, err
-	}
-
-	return conf, nil
 }
 
 type giphy struct {
@@ -481,32 +470,25 @@ func (i *imageResource) clone(img image.Image) *imageResource {
 	}
 }
 
-func (i *imageResource) setBasePath(conf images.ImageConfig) {
-	i.getResourcePaths().relTargetDirFile = i.relTargetPathFromConfig(conf)
-}
-
 func (i *imageResource) getImageMetaCacheTargetPath() string {
 	const imageMetaVersionNumber = 1 // Increment to invalidate the meta cache
 
 	cfgHash := i.getSpec().imaging.Cfg.SourceHash
-	df := i.getResourcePaths().relTargetDirFile
-	if fi := i.getFileInfo(); fi != nil {
-		df.dir = filepath.Dir(fi.Meta().Path)
-	}
-	p1, _ := paths.FileAndExt(df.file)
-	h, _ := i.hash()
+	df := i.getResourcePaths()
+	p1, _ := paths.FileAndExt(df.File)
+	h := i.hash()
 	idStr := identity.HashString(h, i.size(), imageMetaVersionNumber, cfgHash)
-	p := path.Join(df.dir, fmt.Sprintf("%s_%s.json", p1, idStr))
-	return p
+	df.File = fmt.Sprintf("%s_%s.json", p1, idStr)
+	return df.TargetPath()
 }
 
-func (i *imageResource) relTargetPathFromConfig(conf images.ImageConfig) dirFile {
-	p1, p2 := paths.FileAndExt(i.getResourcePaths().relTargetDirFile.file)
+func (i *imageResource) relTargetPathFromConfig(conf images.ImageConfig) internal.ResourcePaths {
+	p1, p2 := paths.FileAndExt(i.getResourcePaths().File)
 	if conf.TargetFormat != i.Format {
 		p2 = conf.TargetFormat.DefaultExtension()
 	}
 
-	h, _ := i.hash()
+	h := i.hash()
 	idStr := fmt.Sprintf("_hu%s_%d", h, i.size())
 
 	// Do not change for no good reason.
@@ -531,8 +513,8 @@ func (i *imageResource) relTargetPathFromConfig(conf images.ImageConfig) dirFile
 		idStr = ""
 	}
 
-	return dirFile{
-		dir:  i.getResourcePaths().relTargetDirFile.dir,
-		file: fmt.Sprintf("%s%s_%s%s", p1, idStr, key, p2),
-	}
+	rp := i.getResourcePaths()
+	rp.File = fmt.Sprintf("%s%s_%s%s", p1, idStr, key, p2)
+
+	return rp
 }

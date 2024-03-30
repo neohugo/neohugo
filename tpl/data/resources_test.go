@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/common/loggers"
 
 	"github.com/neohugo/neohugo/config/testconfig"
@@ -30,7 +31,6 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/hugofs"

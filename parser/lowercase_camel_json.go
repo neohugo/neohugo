@@ -25,9 +25,21 @@ import (
 
 // Regexp definitions
 var (
-	keyMatchRegex = regexp.MustCompile(`\"(\w+)\":`)
-	// wordBarrierRegex = regexp.MustCompile(`(\w)([A-Z])`)
+	keyMatchRegex       = regexp.MustCompile(`\"(\w+)\":`)
+	nullEnableBoolRegex = regexp.MustCompile(`\"(enable\w+)\":null`)
 )
+
+type NullBoolJSONMarshaller struct {
+	Wrapped json.Marshaler
+}
+
+func (c NullBoolJSONMarshaller) MarshalJSON() ([]byte, error) {
+	b, err := c.Wrapped.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	return nullEnableBoolRegex.ReplaceAll(b, []byte(`"$1": false`)), nil
+}
 
 // Code adapted from https://gist.github.com/piersy/b9934790a8892db1a603820c0c23e4a7
 type LowerCaseCamelJSONMarshaller struct {
@@ -92,12 +104,12 @@ func (c ReplacingJSONMarshaller) MarshalJSON() ([]byte, error) {
 				if !hreflect.IsTruthful(v) {
 					delete(m, k)
 				} else {
-					switch v.(type) { // nolint
+					switch vv := v.(type) {
 					case map[string]interface{}:
-						removeZeroVAlues(v.(map[string]any)) // nolint
+						removeZeroVAlues(vv)
 					case []interface{}:
-						for _, vv := range v.([]interface{}) {
-							if m, ok := vv.(map[string]any); ok {
+						for _, vvv := range vv {
+							if m, ok := vvv.(map[string]any); ok {
 								removeZeroVAlues(m)
 							}
 						}

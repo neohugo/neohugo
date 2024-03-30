@@ -16,6 +16,7 @@ package hugio
 import (
 	"fmt"
 	"io"
+	iofs "io/fs"
 	"path/filepath"
 
 	"github.com/spf13/afero"
@@ -64,7 +65,11 @@ func CopyDir(fs afero.Fs, from, to string, shouldCopy func(filename string) bool
 		return err
 	}
 
-	entries, _ := afero.ReadDir(fs, from)
+	d, err := fs.Open(from)
+	if err != nil {
+		return err
+	}
+	entries, _ := d.(iofs.ReadDirFile).ReadDir(-1)
 	for _, entry := range entries {
 		fromFilename := filepath.Join(from, entry.Name())
 		toFilename := filepath.Join(to, entry.Name())
