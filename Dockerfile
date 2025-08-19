@@ -1,7 +1,7 @@
 # GitHub:       https://github.com/neohugo/neohugo
 # Website:      https://neohugo.github.io/
 
-FROM golang:1.21-alpine AS build
+FROM golang:1.25 AS build
 
 # Optionally set HUGO_BUILD_TAGS to "extended" or "nodeploy" when building like so:
 #   docker build --build-arg HUGO_BUILD_TAGS=extended .
@@ -17,25 +17,25 @@ WORKDIR /go/src/github.com/neohugo/neohugo
 COPY . /go/src/github.com/neohugo/neohugo/
 
 # gcc/g++ are required to build SASS libraries for extended version
-RUN apk update && \
-    apk add --no-cache gcc g++ musl-dev git && \
+RUN apt-get update && \
+    apt-get install -y gcc g++ libc6-dev git && \
     go install github.com/magefile/mage@latest
 
 RUN mage neohugo && mage install
 
 # ---
 
-FROM alpine:3.18
+FROM debian:slim
 
 COPY --from=build /go/bin/neohugo /usr/bin/neohugo
 
 # libc6-compat & libstdc++ are required for extended SASS libraries
 # ca-certificates are required to fetch outside resources (like Twitter oEmbeds)
-RUN apk update && \
-    apk add --no-cache \
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
       ca-certificates \
-      libc6-compat \
-      libstdc++ \
+      libstdc++6 \
+    && rm -rf /var/lib/apt/lists/* \
     && neohugo version
 
 WORKDIR /src
