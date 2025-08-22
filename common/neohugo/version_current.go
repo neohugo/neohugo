@@ -18,6 +18,6 @@ package neohugo
 var CurrentVersion = Version{
 	Major:      0,
 	Minor:      124,
-	PatchLevel: 0,
-	Suffix:     "-DEV",
+	PatchLevel: 1,
+	Suffix:     "",
 }

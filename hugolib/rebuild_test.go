@@ -1472,3 +1472,27 @@ all: {{ $ab.RelPermalink }}
 	b.AddFiles("assets/common/c3.css", "c3").Build()
 	b.AssertFileContent("public/ab.css", "abc1c2 editedc3")
 }
+
+func TestRebuildEditMixedCaseTemplateFileIssue12165(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableLiveReload = true
+-- layouts/partials/MyTemplate.html --
+MyTemplate
+-- layouts/index.html --
+MyTemplate: {{ partial "MyTemplate.html" . }}|
+
+
+`
+
+	b := TestRunning(t, files)
+
+	b.AssertFileContent("public/index.html", "MyTemplate: MyTemplate")
+
+	b.EditFileReplaceAll("layouts/partials/MyTemplate.html", "MyTemplate", "MyTemplate Edited").Build()
+
+	b.AssertFileContent("public/index.html", "MyTemplate: MyTemplate Edited")
+}
