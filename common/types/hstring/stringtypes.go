@@ -16,7 +16,7 @@ package hstring
 import (
 	"html/template"
 
-	"github.com/gohugoio/hugo/common/types"
+	 "github.com/neohugo/neohugo/common/types"
 )
 
 var _ types.PrintableValueProvider = HTML("")

@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/para"
+	"github.com/neohugo/neohugo/common/para"
 
 	"github.com/spf13/afero"
 

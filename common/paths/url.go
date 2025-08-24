@@ -160,15 +160,7 @@ func Uglify(in string) string {
 	return path.Clean(in)
 }
 
-// URLEscape escapes unicode letters.
-func URLEscape(uri string) string {
-	// escape unicode letters
-	u, err := url.Parse(uri)
-	if err != nil {
-		panic(err)
-	}
-	return u.String()
-}
+// Removed duplicate URLEscape.
 
 // TrimExt trims the extension from a path..
 func TrimExt(in string) string {

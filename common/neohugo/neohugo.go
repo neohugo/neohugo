@@ -28,18 +28,18 @@ import (
 	"github.com/bep/logg"
 
 	"github.com/bep/godartsass/v2"
-	"github.com/gohugoio/hugo/common/hcontext"
-	"github.com/gohugoio/hugo/common/hexec"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/hugofs/files"
+	 "github.com/neohugo/neohugo/common/hcontext"
+	 "github.com/neohugo/neohugo/common/hexec"
+	 "github.com/neohugo/neohugo/common/loggers"
+	 "github.com/neohugo/neohugo/common/maps"
+	 "github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/spf13/afero"
 
 	iofs "io/fs"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/hugofs"
+	 "github.com/neohugo/neohugo/config"
+	 "github.com/neohugo/neohugo/hugofs"
 )
 
 const (

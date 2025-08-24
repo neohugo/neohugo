@@ -19,10 +19,10 @@ import (
 	"path"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hreflect"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/hugofs/glob"
+	 "github.com/neohugo/neohugo/common/hreflect"
+	 "github.com/neohugo/neohugo/common/maps"
+	 "github.com/neohugo/neohugo/common/paths"
+	 "github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/spf13/cast"
 )
 

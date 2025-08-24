@@ -1,6 +1,5 @@
 // Copyright 2024 The Hugo Authors. All rights reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
+
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 // http://www.apache.org/licenses/LICENSE-2.0
@@ -19,16 +18,13 @@ import (
 	"strings"
 	"sync"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
-
-	htext "github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/tpl"
-
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/converter/hooks"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	htext "github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/tpl"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter/hooks"
 	"github.com/yuin/goldmark/ast"
 )
-
 type BufWriter struct {
 	*bytes.Buffer
 }

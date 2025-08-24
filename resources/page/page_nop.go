@@ -21,27 +21,20 @@ import (
 	"html/template"
 	"time"
 
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
-
-	"github.com/gohugoio/hugo/hugofs"
-
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/navigation"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/source"
-
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/source"
-
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/related"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/related"
+	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/common/neohugo"
 )
 
 var (

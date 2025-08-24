@@ -31,10 +31,10 @@ import (
 
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hreflect"
-	"github.com/gohugoio/hugo/common/htime"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hreflect"
+	"github.com/neohugo/neohugo/common/htime"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/spf13/afero"
 )

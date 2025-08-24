@@ -167,15 +167,7 @@ func NewTrace() Logger {
 	return New(opts)
 }
 
-func NewTrace() Logger {
-	opts := Options{
-		DistinctLevel: logg.LevelWarn,
-		Level:         logg.LevelTrace,
-		Stdout:        os.Stdout,
-		Stderr:        os.Stdout,
-	}
-	return New(opts)
-}
+// Removed duplicate NewTrace and fixed field names.
 
 func LevelLoggerToWriter(l logg.LevelLogger) io.Writer {
 	return logWriter{l: l}

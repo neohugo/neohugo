@@ -23,7 +23,7 @@ import (
 
 	"github.com/cespare/xxhash/v2"
 	"github.com/gohugoio/hashstructure"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 )
 
 // XXHashFromReader calculates the xxHash for the given reader.

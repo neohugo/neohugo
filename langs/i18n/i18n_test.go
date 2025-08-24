@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/config/testconfig"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/config/testconfig"
 
 	"github.com/neohugo/neohugo/tpl/tplimpl"
 

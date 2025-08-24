@@ -21,7 +21,7 @@ import (
 	"sync"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/common/hashing"
+	 "github.com/neohugo/neohugo/common/hashing"
 )
 
 // PanicOnWarningHook panics on warnings.

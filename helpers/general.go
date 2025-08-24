@@ -25,7 +25,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
+	bp "github.com/neohugo/neohugo/bufferpool"
 
 	"github.com/spf13/afero"
 

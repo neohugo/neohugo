@@ -23,13 +23,13 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/gohugoio/hugo/common/hexec"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/converter"
 
 	"github.com/neohugo/neohugo/markup"
 

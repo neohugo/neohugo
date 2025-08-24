@@ -17,10 +17,10 @@ import (
 	"context"
 	"io"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/common/types/hstring"
-	"github.com/gohugoio/hugo/markup/internal/attributes"
+	 "github.com/neohugo/neohugo/common/hugio"
+	 "github.com/neohugo/neohugo/common/text"
+	 "github.com/neohugo/neohugo/common/types/hstring"
+	 "github.com/neohugo/neohugo/markup/internal/attributes"
 )
 
 var _ AttributesOptionsSliceProvider = (*attributes.AttributesHolder)(nil)

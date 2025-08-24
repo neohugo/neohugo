@@ -14,8 +14,8 @@
 package template
 
 import (
-	"github.com/gohugoio/hugo/common/types"
-	template "github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate"
+	 "github.com/neohugo/neohugo/common/types"
+	template "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 )
 
 /*

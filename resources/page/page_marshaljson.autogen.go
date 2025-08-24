@@ -17,7 +17,6 @@ package page
 
 import (
 	"encoding/json"
-	"github.com/gohugoio/hugo/config"
 	"time"
 
 	"github.com/neohugo/neohugo/config"

@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gohugoio/hugo/common/htime"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/types"
+	 "github.com/neohugo/neohugo/common/htime"
+	 "github.com/neohugo/neohugo/common/maps"
+	 "github.com/neohugo/neohugo/common/types"
 )
 
 // TODO(bep) replace the private versions in /tpl with these.

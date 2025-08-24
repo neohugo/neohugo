@@ -31,9 +31,9 @@ import (
 
 	"github.com/neohugo/neohugo/markup/markup_config"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
 
 	"github.com/neohugo/neohugo/markup/converter"
 

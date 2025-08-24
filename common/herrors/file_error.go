@@ -20,8 +20,6 @@ import (
 	"io"
 	"path/filepath"
 
-	godartsassv1 "github.com/bep/godartsass"
-
 	"github.com/bep/godartsass/v2"
 	"github.com/bep/golibsass/libsass/libsasserrors"
 	"github.com/neohugo/neohugo/common/paths"

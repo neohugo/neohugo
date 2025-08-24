@@ -25,9 +25,9 @@ import (
 	"time"
 
 	"github.com/bep/debounce"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/spf13/cast"
 
@@ -40,7 +40,7 @@ import (
 
 	"golang.org/x/mod/module"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 	"github.com/spf13/afero"
 )
 

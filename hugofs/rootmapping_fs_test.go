@@ -21,8 +21,8 @@ import (
 
 	iofs "io/fs"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/hugofs/glob"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs/glob"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/htesting"

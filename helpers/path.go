@@ -28,8 +28,8 @@ import (
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/htesting"
 
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/spf13/afero"

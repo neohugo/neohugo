@@ -33,25 +33,13 @@ import (
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/spf13/afero"
-
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
-
 	"github.com/gobwas/glob"
-
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
-
-	"github.com/gohugoio/hugo/hugofs/files"
-
-	"github.com/gohugoio/hugo/config"
-
 	"golang.org/x/mod/module"
-
-	"github.com/gohugoio/hugo/common/hugio"
-
-	"github.com/spf13/afero"
 )
 
 var fileSeparator = string(os.PathSeparator)
@@ -177,26 +165,8 @@ func (c *Client) Tidy() error {
 	if coll.err != nil {
 		return coll.err
 	}
-
-	if coll.skipTidy {
-		return nil
-	}
-
 	return c.tidy(tc.AllModules, false)
 }
-
-// Vendor writes all the module dependencies to a _vendor folder.
-//
-// Unlike Go, we support it for any level.
-//
-// We, by default, use the /_vendor folder first, if found. To disable,
-// run with
-//
-//	hugo --ignoreVendorPaths=".*"
-//
-// Given a module tree, Hugo will pick the first module for a given path,
-// meaning that if the top-level module is vendored, that will be the full
-// set of dependencies.
 func (c *Client) Vendor() error {
 	vendorDir := filepath.Join(c.ccfg.WorkingDir, vendord)
 	if err := c.rmVendorDir(vendorDir); err != nil {

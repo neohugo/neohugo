@@ -16,12 +16,12 @@ package config
 import (
 	"time"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/common/urls"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/langs"
+	 "github.com/neohugo/neohugo/common/maps"
+	 "github.com/neohugo/neohugo/common/paths"
+	 "github.com/neohugo/neohugo/common/types"
+	 "github.com/neohugo/neohugo/common/urls"
+	 "github.com/neohugo/neohugo/identity"
+	 "github.com/neohugo/neohugo/langs"
 )
 
 // AllProvider is a sub set of all config settings.

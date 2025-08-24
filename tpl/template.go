@@ -23,11 +23,12 @@ import (
 	"sync"
 	"unicode"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/common/hcontext"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/output/layouts"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/common/hcontext"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/output/layouts"
 
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"

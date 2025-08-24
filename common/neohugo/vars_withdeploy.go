@@ -14,6 +14,6 @@
 //go:build withdeploy
 // +build withdeploy
 
-package hugo
+package neohugo
 
 var IsWithdeploy = true

@@ -18,15 +18,15 @@ import (
 	"bytes"
 
 	"github.com/gohugoio/hugo-goldmark-extensions/extras"
-	"github.com/gohugoio/hugo/markup/goldmark/blockquotes"
-	"github.com/gohugoio/hugo/markup/goldmark/codeblocks"
-	"github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
-	"github.com/gohugoio/hugo/markup/goldmark/hugocontext"
-	"github.com/gohugoio/hugo/markup/goldmark/images"
-	"github.com/gohugoio/hugo/markup/goldmark/internal/extensions/attributes"
-	"github.com/gohugoio/hugo/markup/goldmark/internal/render"
-	"github.com/gohugoio/hugo/markup/goldmark/passthrough"
-	"github.com/gohugoio/hugo/markup/goldmark/tables"
+	 "github.com/neohugo/neohugo/markup/goldmark/blockquotes"
+	 "github.com/neohugo/neohugo/markup/goldmark/codeblocks"
+	 "github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
+	 "github.com/neohugo/neohugo/markup/goldmark/hugocontext"
+	 "github.com/neohugo/neohugo/markup/goldmark/images"
+	 "github.com/neohugo/neohugo/markup/goldmark/internal/extensions/attributes"
+	 "github.com/neohugo/neohugo/markup/goldmark/internal/render"
+	 "github.com/neohugo/neohugo/markup/goldmark/passthrough"
+	 "github.com/neohugo/neohugo/markup/goldmark/tables"
 	"github.com/yuin/goldmark/util"
 
 	"github.com/yuin/goldmark"
@@ -38,8 +38,8 @@ import (
 	"github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
+	 "github.com/neohugo/neohugo/markup/converter"
+	 "github.com/neohugo/neohugo/markup/tableofcontents"
 )
 
 const (

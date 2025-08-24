@@ -14,11 +14,11 @@
 package tables
 
 import (
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/types/hstring"
-	"github.com/gohugoio/hugo/markup/converter/hooks"
-	"github.com/gohugoio/hugo/markup/goldmark/internal/render"
-	"github.com/gohugoio/hugo/markup/internal/attributes"
+	 "github.com/neohugo/neohugo/common/herrors"
+	 "github.com/neohugo/neohugo/common/types/hstring"
+	 "github.com/neohugo/neohugo/markup/converter/hooks"
+	 "github.com/neohugo/neohugo/markup/goldmark/internal/render"
+	 "github.com/neohugo/neohugo/markup/internal/attributes"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	gast "github.com/yuin/goldmark/extension/ast"

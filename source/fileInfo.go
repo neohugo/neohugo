@@ -19,14 +19,13 @@ import (
 	"time"
 
 	"github.com/bep/gitmap"
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/media"
+	 "github.com/neohugo/neohugo/common/hashing"
+	 "github.com/neohugo/neohugo/common/paths"
+	 "github.com/neohugo/neohugo/media"
 
-	"github.com/gohugoio/hugo/common/hugio"
+	 "github.com/neohugo/neohugo/common/hugio"
 
-	"github.com/gohugoio/hugo/hugofs"
+	 "github.com/neohugo/neohugo/hugofs"
 )
 
 // File describes a source file.
@@ -62,7 +61,6 @@ func (fi *File) Ext() string { return fi.p().Ext() }
 // Lang returns a file's language (e.g. "sv").
 // Deprecated: Use .Page.Language.Lang instead.
 func (fi *File) Lang() string {
-	hugo.Deprecate(".Page.File.Lang", "Use .Page.Language.Lang instead.", "v0.123.0")
 	return fi.fim.Meta().Lang
 }
 

@@ -16,15 +16,14 @@ package page
 import (
 	"time"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/config/privacy"
-	"github.com/gohugoio/hugo/config/services"
-	"github.com/gohugoio/hugo/identity"
-
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config/privacy"
+	"github.com/neohugo/neohugo/config/services"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/config"
-
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/common/neohugo"
 )
 
 // Site represents a site. There can be multiple sites in a multilingual setup.
@@ -115,7 +114,7 @@ type Site interface {
 	// BuildDrafts is deprecated and will be removed in a future release.
 	BuildDrafts() bool
 
-	// Deprecated: Use hugo.IsMultilingual instead.
+	// Deprecated: Use neohugo.IsMultilingual instead.
 	IsMultiLingual() bool
 
 	// LanguagePrefix returns the language prefix for this site.
@@ -135,7 +134,7 @@ type Sites []Site
 
 // Deprecated: Use .Sites.Default instead.
 func (s Sites) First() Site {
-	hugo.Deprecate(".Sites.First", "Use .Sites.Default instead.", "v0.127.0")
+	neohugo.Deprecate(".Sites.First", "Use .Sites.Default instead.", "v0.127.0")
 	return s.Default()
 }
 
@@ -259,9 +258,6 @@ func (s *siteWrapper) LastChange() time.Time {
 	return s.s.Lastmod()
 }
 
-func (s *siteWrapper) Lastmod() time.Time {
-	return s.s.Lastmod()
-}
 
 func (s *siteWrapper) Lastmod() time.Time {
 	return s.s.Lastmod()
@@ -305,9 +301,6 @@ func (s *siteWrapper) Store() *maps.Scratch {
 }
 
 // For internal use only.
-func (s *siteWrapper) ForEeachIdentityByName(name string, f func(identity.Identity) bool) {
-	s.s.(identity.ForEeachIdentityByNameProvider).ForEeachIdentityByName(name, f)
-}
 
 // For internal use only.
 func (s *siteWrapper) CheckReady() {
