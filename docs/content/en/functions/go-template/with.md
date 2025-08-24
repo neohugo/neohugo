@@ -36,6 +36,20 @@ Use with the [`else`] statement:
 {{ end }}
 ```
 
+Use `else with` to check multiple conditions:
+
+```go-html-template
+{{ $v1 := 0 }}
+{{ $v2 := 42 }}
+{{ with $v1 }}
+  {{ . }}
+{{ else with $v2 }}
+  {{ . }} → 42
+{{ else }}
+  {{ print "v1 and v2 are falsy" }}
+{{ end }}
+```
+
 Initialize a variable, scoped to the current block:
 
 ```go-html-template
@@ -84,4 +98,4 @@ Gaining a thorough understanding of context is critical for anyone writing templ
 
 {{% include "functions/go-template/_common/text-template.md" %}}
 
-[`else`]: /functions/go-template/else
+[`else`]: /functions/go-template/else/

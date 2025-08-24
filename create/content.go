@@ -25,15 +25,14 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs/glob"
 
-	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/hstrings"
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/hexec"
+	"github.com/gohugoio/hugo/common/hstrings"
+	"github.com/gohugoio/hugo/common/paths"
 
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/gohugoio/hugo/hugofs"
 
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/hugolib"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/hugolib"
 	"github.com/spf13/afero"
 )
 
@@ -97,7 +96,7 @@ func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error
 			return "", fmt.Errorf("failed to resolve %q to an archetype template", targetPath)
 		}
 
-		if !files.IsContentFile(b.targetPath) {
+		if !h.Conf.ContentTypes().IsContentFile(b.targetPath) {
 			return "", fmt.Errorf("target path %q is not a known content format", b.targetPath)
 		}
 

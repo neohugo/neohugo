@@ -7,17 +7,17 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hugio"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/config/testconfig"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/resources"
+	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/config/testconfig"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/identity"
+	"github.com/gohugoio/hugo/resources"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/resources/images"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/resources/images"
+	"github.com/gohugoio/hugo/resources/resource"
 	"github.com/spf13/afero"
 )
 
@@ -87,7 +87,7 @@ func newTestResourceOsFs(c *qt.C) (*resources.Spec, string) {
 
 	cfg.Set("workingDir", workDir)
 
-	os.MkdirAll(filepath.Join(workDir, "assets"), 0o755) // nolint
+	os.MkdirAll(filepath.Join(workDir, "assets"), 0o755)
 
 	d := testconfig.GetTestDeps(hugofs.Os, cfg)
 

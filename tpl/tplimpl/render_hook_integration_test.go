@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/hugolib"
+	"github.com/gohugoio/hugo/hugolib"
 )
 
 func TestEmbeddedLinkRenderHook(t *testing.T) {
@@ -51,7 +51,8 @@ title: s1/p1
 title: s1/p2
 ---
 [500](a.txt) // global resource
-[600](b.txt) // page resource
+[510](b.txt) // page resource
+[520](./b.txt) // page resource
 -- content/s1/p2/b.txt --
 irrelevant
 -- content/s1/p3.md --
@@ -90,6 +91,9 @@ title: s1/p3
 [430](p2/)
 [440](/s1/p2/)
 [450](../s1/p2/)
+
+// empty
+[]()
 `
 
 	b := hugolib.Test(t, files)
@@ -121,39 +125,68 @@ title: s1/p3
 		`<a href="/s1/p2/">430</a>`,
 		`<a href="/s1/p2/">440</a>`,
 		`<a href="/s1/p2/">450</a>`,
+
+		`<a href=""></a>`,
 	)
 
 	b.AssertFileContent("public/s1/p2/index.html",
 		`<a href="/a.txt">500</a>`,
-		`<a href="/s1/p2/b.txt">600</a>`,
+		`<a href="/s1/p2/b.txt">510</a>`,
+		`<a href="/s1/p2/b.txt">520</a>`,
 	)
 }
 
 // Issue 12203
-func TestEmbeddedImageRenderHookMarkdownAttributes(t *testing.T) {
+// Issue 12468
+// Issue 12514
+func TestEmbeddedImageRenderHook(t *testing.T) {
 	t.Parallel()
 
 	files := `
 -- config.toml --
-disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+baseURL = 'https://example.org/dir/'
+disableKinds = ['home','rss','section','sitemap','taxonomy','term']
 [markup.goldmark.parser]
 wrapStandAloneImageWithinParagraph = false
 [markup.goldmark.parser.attribute]
 block = false
 [markup.goldmark.renderHooks.image]
 enableDefault = true
--- content/_index.md --
-![alt](a.jpg)
+-- content/p1/index.md --
+![]()
+
+![alt1](./pixel.png)
+
+![alt2-&<>'](pixel.png "&<>'")
+
+![alt3](pixel.png?a=b&c=d#fragment)
 {.foo #bar}
--- layouts/index.html --
+
+![alt4](pixel.png)
+{id="\"><script>alert()</script>"}
+-- content/p1/pixel.png --
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
+-- layouts/_default/single.html --
 {{ .Content }}
 `
 
 	b := hugolib.Test(t, files)
-	b.AssertFileContent("public/index.html", `<img alt="alt" src="a.jpg">`)
+	b.AssertFileContent("public/p1/index.html",
+		`<img src="" alt="">`,
+		`<img src="/dir/p1/pixel.png" alt="alt1">`,
+		`<img src="/dir/p1/pixel.png" alt="alt2-&amp;&lt;&gt;&rsquo;" title="&amp;&lt;&gt;&#39;">`,
+		`<img src="/dir/p1/pixel.png?a=b&amp;c=d#fragment" alt="alt3">`,
+		`<img src="/dir/p1/pixel.png" alt="alt4">`,
+	)
 
 	files = strings.Replace(files, "block = false", "block = true", -1)
 
 	b = hugolib.Test(t, files)
-	b.AssertFileContent("public/index.html", `<img alt="alt" class="foo" id="bar" src="a.jpg">`)
+	b.AssertFileContent("public/p1/index.html",
+		`<img src="" alt="">`,
+		`<img src="/dir/p1/pixel.png" alt="alt1">`,
+		`<img src="/dir/p1/pixel.png" alt="alt2-&amp;&lt;&gt;&rsquo;" title="&amp;&lt;&gt;&#39;">`,
+		`<img src="/dir/p1/pixel.png?a=b&amp;c=d#fragment" alt="alt3" class="foo" id="bar">`,
+		`<img src="/dir/p1/pixel.png" alt="alt4" id="&#34;&gt;&lt;script&gt;alert()&lt;/script&gt;">`,
+	)
 }

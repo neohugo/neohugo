@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/para"
+	"github.com/gohugoio/hugo/common/para"
 
 	"github.com/spf13/afero"
 
@@ -33,9 +33,9 @@ func TestWalk(t *testing.T) {
 
 	fs := NewBaseFileDecorator(afero.NewMemMapFs())
 
-	afero.WriteFile(fs, "b.txt", []byte("content"), 0o777) // nolint
-	afero.WriteFile(fs, "c.txt", []byte("content"), 0o777) // nolint
-	afero.WriteFile(fs, "a.txt", []byte("content"), 0o777) // nolint
+	afero.WriteFile(fs, "b.txt", []byte("content"), 0o777)
+	afero.WriteFile(fs, "c.txt", []byte("content"), 0o777)
+	afero.WriteFile(fs, "a.txt", []byte("content"), 0o777)
 
 	names, err := collectPaths(fs, "")
 

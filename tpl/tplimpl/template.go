@@ -30,8 +30,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/output/layouts"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/output/layouts"
 
 	"github.com/neohugo/neohugo/helpers"
 
@@ -40,8 +41,9 @@ import (
 	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate/parse"
 
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
@@ -167,6 +169,10 @@ func newTemplateHandlers(d *deps.Deps) (*tpl.TemplateHandlers, error) {
 		return nil, err
 	}
 
+	if err := h.main.createPrototypes(); err != nil {
+		return nil, err
+	}
+
 	e := &templateExec{
 		d:               d,
 		executor:        exec,
@@ -186,19 +192,22 @@ func newTemplateHandlers(d *deps.Deps) (*tpl.TemplateHandlers, error) {
 
 func newTemplateNamespace(funcs map[string]any) *templateNamespace {
 	return &templateNamespace{
-		prototypeHTML: htmltemplate.New("").Funcs(funcs),
-		prototypeText: texttemplate.New("").Funcs(funcs),
+		prototypeHTML:           htmltemplate.New("").Funcs(funcs),
+		prototypeText:           texttemplate.New("").Funcs(funcs),
+		prototypeHTMLCloneCache: maps.NewCache[prototypeCloneID, *htmltemplate.Template](),
+		prototypeTextCloneCache: maps.NewCache[prototypeCloneID, *texttemplate.Template](),
 		templateStateMap: &templateStateMap{
 			templates: make(map[string]*templateState),
 		},
 	}
 }
 
-func newTemplateState(templ tpl.Template, info templateInfo, id identity.Identity) *templateState {
+func newTemplateState(owner *templateState, templ tpl.Template, info templateInfo, id identity.Identity) *templateState {
 	if id == nil {
 		id = info
 	}
 	return &templateState{
+		owner:     owner,
 		info:      info,
 		typ:       info.resolveType(),
 		Template:  templ,
@@ -260,7 +269,11 @@ func (t *templateExec) ExecuteWithContext(ctx context.Context, templ tpl.Templat
 
 	execErr := t.executor.ExecuteWithContext(ctx, templ, wr, data)
 	if execErr != nil {
-		execErr = t.addFileContext(templ, execErr)
+		owner := templ
+		if ts, ok := templ.(*templateState); ok && ts.owner != nil {
+			owner = ts.owner
+		}
+		execErr = t.addFileContext(owner, execErr)
 	}
 	return execErr
 }
@@ -306,24 +319,10 @@ func (t *templateExec) GetFunc(name string) (reflect.Value, bool) {
 	return v, found
 }
 
-func (t *templateExec) MarkReady() error {
-	var err error
-	t.readyInit.Do(func() {
-		// We only need the clones if base templates are in use.
-		if len(t.needsBaseof) > 0 {
-			err = t.main.createPrototypes()
-		}
-	})
-
-	return err
-}
-
 type templateHandler struct {
 	main        *templateNamespace
 	needsBaseof map[string]templateInfo
 	baseof      map[string]templateInfo
-
-	readyInit sync.Once //nolint
 
 	// This is the filesystem to load the templates from. All the templates are
 	// stored in the root of this filesystem.
@@ -390,6 +389,7 @@ func (t *templateHandler) LookupLayout(d layouts.LayoutDescriptor, f output.Form
 		t.layoutTemplateCacheMu.RUnlock()
 		return cacheVal.templ, cacheVal.found, cacheVal.err
 	}
+
 	t.layoutTemplateCacheMu.RUnlock()
 
 	t.layoutTemplateCacheMu.Lock()
@@ -497,7 +497,7 @@ func (t *templateHandler) findLayout(d layouts.LayoutDescriptor, f output.Format
 			return nil, false, err
 		}
 
-		ts := newTemplateState(templ, overlay, identity.Or(base, overlay))
+		ts := newTemplateState(nil, templ, overlay, identity.Or(base, overlay))
 
 		if found {
 			ts.baseInfo = base
@@ -575,7 +575,7 @@ func (t *templateHandler) addFileContext(templ tpl.Template, inerr error) error 
 		defer f.Close()
 
 		fe := herrors.NewFileErrorFromName(inErr, info.meta.Filename)
-		fe.UpdateContent(f, lineMatcher) // nolint
+		fe.UpdateContent(f, lineMatcher)
 
 		if !fe.ErrorContext().Position.IsValid() {
 			return inErr, false
@@ -681,6 +681,10 @@ func (t *templateHandler) addTemplateFile(name string, fim hugofs.FileMetaInfo) 
 		return err
 	}
 
+	if _, err = t.applyTemplateTransformers(t.main, templ); err != nil {
+		return tinfo.errWithFileContext("transform failed", err)
+	}
+
 	return nil
 }
 
@@ -691,20 +695,20 @@ func (t *templateHandler) addTemplateTo(info templateInfo, to *templateNamespace
 func (t *templateHandler) applyBaseTemplate(overlay, base templateInfo) (tpl.Template, error) {
 	if overlay.isText {
 		var (
-			templ = t.main.prototypeTextClone.New(overlay.name)
+			templ = t.main.getPrototypeText(prototypeCloneIDBaseof).New(overlay.name)
 			err   error
 		)
 
 		if !base.IsZero() {
 			templ, err = templ.Parse(base.template)
 			if err != nil {
-				return nil, base.errWithFileContext("parse failed", err)
+				return nil, base.errWithFileContext("text: base: parse failed", err)
 			}
 		}
 
 		templ, err = texttemplate.Must(templ.Clone()).Parse(overlay.template)
 		if err != nil {
-			return nil, overlay.errWithFileContext("parse failed", err)
+			return nil, overlay.errWithFileContext("text: overlay: parse failed", err)
 		}
 
 		// The extra lookup is a workaround, see
@@ -716,20 +720,20 @@ func (t *templateHandler) applyBaseTemplate(overlay, base templateInfo) (tpl.Tem
 	}
 
 	var (
-		templ = t.main.prototypeHTMLClone.New(overlay.name)
+		templ = t.main.getPrototypeHTML(prototypeCloneIDBaseof).New(overlay.name)
 		err   error
 	)
 
 	if !base.IsZero() {
 		templ, err = templ.Parse(base.template)
 		if err != nil {
-			return nil, base.errWithFileContext("parse failed", err)
+			return nil, base.errWithFileContext("html: base: parse failed", err)
 		}
 	}
 
 	templ, err = htmltemplate.Must(templ.Clone()).Parse(overlay.template)
 	if err != nil {
-		return nil, overlay.errWithFileContext("parse failed", err)
+		return nil, overlay.errWithFileContext("html: overlay: parse failed", err)
 	}
 
 	// The extra lookup is a workaround, see
@@ -748,6 +752,12 @@ func (t *templateHandler) applyTemplateTransformers(ns *templateNamespace, ts *t
 
 	for k := range c.templateNotFound {
 		t.transformNotFound[k] = ts
+	}
+
+	for k, v := range c.deferNodes {
+		if err = t.main.addDeferredTemplate(ts, k, v); err != nil {
+			return nil, err
+		}
 	}
 
 	return c, err
@@ -865,7 +875,7 @@ func (t *templateHandler) extractPartials(templ tpl.Template) error {
 			continue
 		}
 
-		ts := newTemplateState(templ, templateInfo{name: templ.Name()}, nil)
+		ts := newTemplateState(nil, templ, templateInfo{name: templ.Name()}, nil)
 		ts.typ = templatePartial
 
 		t.main.mu.RLock()
@@ -952,27 +962,37 @@ func (t *templateHandler) postTransform() error {
 	return nil
 }
 
+type prototypeCloneID uint16
+
+const (
+	prototypeCloneIDBaseof prototypeCloneID = iota + 1
+	prototypeCloneIDDefer
+)
+
 type templateNamespace struct {
-	prototypeText      *texttemplate.Template
-	prototypeHTML      *htmltemplate.Template
-	prototypeTextClone *texttemplate.Template
-	prototypeHTMLClone *htmltemplate.Template
+	prototypeText *texttemplate.Template
+	prototypeHTML *htmltemplate.Template
+
+	prototypeHTMLCloneCache *maps.Cache[prototypeCloneID, *htmltemplate.Template]
+	prototypeTextCloneCache *maps.Cache[prototypeCloneID, *texttemplate.Template]
 
 	*templateStateMap
 }
 
-func (t templateNamespace) Clone() *templateNamespace {
-	t.mu.Lock()
-
-	t.templateStateMap = &templateStateMap{
-		templates: make(map[string]*templateState),
+func (t *templateNamespace) getPrototypeText(id prototypeCloneID) *texttemplate.Template {
+	v, ok := t.prototypeTextCloneCache.Get(id)
+	if !ok {
+		return t.prototypeText
 	}
+	return v
+}
 
-	t.prototypeText = texttemplate.Must(t.prototypeText.Clone())
-	t.prototypeHTML = htmltemplate.Must(t.prototypeHTML.Clone())
-
-	t.mu.Unlock()
-	return &t
+func (t *templateNamespace) getPrototypeHTML(id prototypeCloneID) *htmltemplate.Template {
+	v, ok := t.prototypeHTMLCloneCache.Get(id)
+	if !ok {
+		return t.prototypeHTML
+	}
+	return v
 }
 
 func (t *templateNamespace) Lookup(name string) (tpl.Template, bool) {
@@ -988,9 +1008,10 @@ func (t *templateNamespace) Lookup(name string) (tpl.Template, bool) {
 }
 
 func (t *templateNamespace) createPrototypes() error {
-	t.prototypeTextClone = texttemplate.Must(t.prototypeText.Clone())
-	t.prototypeHTMLClone = htmltemplate.Must(t.prototypeHTML.Clone())
-
+	for _, id := range []prototypeCloneID{prototypeCloneIDBaseof, prototypeCloneIDDefer} {
+		t.prototypeHTMLCloneCache.Set(id, htmltemplate.Must(t.prototypeHTML.Clone()))
+		t.prototypeTextCloneCache.Set(id, texttemplate.Must(t.prototypeText.Clone()))
+	}
 	return nil
 }
 
@@ -1003,10 +1024,44 @@ func (t *templateNamespace) newTemplateLookup(in *templateState) func(name strin
 			return templ
 		}
 		if templ, found := findTemplateIn(name, in); found {
-			return newTemplateState(templ, templateInfo{name: templ.Name()}, nil)
+			return newTemplateState(nil, templ, templateInfo{name: templ.Name()}, nil)
 		}
 		return nil
 	}
+}
+
+func (t *templateNamespace) addDeferredTemplate(owner *templateState, name string, n *parse.ListNode) error {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+
+	if _, found := t.templates[name]; found {
+		return nil
+	}
+
+	var templ tpl.Template
+
+	if owner.isText() {
+		prototype := t.getPrototypeText(prototypeCloneIDDefer)
+		tt, err := prototype.New(name).Parse("")
+		if err != nil {
+			return fmt.Errorf("failed to parse empty text template %q: %w", name, err)
+		}
+		tt.Tree.Root = n
+		templ = tt
+	} else {
+		prototype := t.getPrototypeHTML(prototypeCloneIDDefer)
+		tt, err := prototype.New(name).Parse("")
+		if err != nil {
+			return fmt.Errorf("failed to parse empty HTML template %q: %w", name, err)
+		}
+		tt.Tree.Root = n
+		templ = tt
+	}
+
+	dts := newTemplateState(owner, templ, templateInfo{name: name}, nil)
+	t.templates[name] = dts
+
+	return nil
 }
 
 func (t *templateNamespace) parse(info templateInfo) (*templateState, error) {
@@ -1021,7 +1076,7 @@ func (t *templateNamespace) parse(info templateInfo) (*templateState, error) {
 			return nil, err
 		}
 
-		ts := newTemplateState(templ, info, nil)
+		ts := newTemplateState(nil, templ, info, nil)
 
 		t.templates[info.name] = ts
 
@@ -1035,7 +1090,7 @@ func (t *templateNamespace) parse(info templateInfo) (*templateState, error) {
 		return nil, err
 	}
 
-	ts := newTemplateState(templ, info, nil)
+	ts := newTemplateState(nil, templ, info, nil)
 
 	t.templates[info.name] = ts
 
@@ -1046,6 +1101,9 @@ var _ tpl.IsInternalTemplateProvider = (*templateState)(nil)
 
 type templateState struct {
 	tpl.Template
+
+	// Set for deferred templates.
+	owner *templateState
 
 	typ       templateType
 	parseInfo tpl.ParseInfo

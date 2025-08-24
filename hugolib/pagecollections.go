@@ -19,13 +19,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/hugofs/files"
 
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/paths"
 
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/gohugoio/hugo/resources/page"
 )
 
 // pageFinder provides ways to find a Page in a Site.
@@ -108,11 +108,6 @@ func (c *pageFinder) getPageForRefs(ref ...string) (page.Page, error) {
 		}
 	} else {
 		key = refs[1]
-	}
-
-	key = filepath.ToSlash(key)
-	if !strings.HasPrefix(key, "/") {
-		key = "/" + key
 	}
 
 	return c.getPage(nil, key)
@@ -211,9 +206,7 @@ func (c *pageFinder) getContentNodeForRef(context page.Page, isReflink, hadExten
 	var doSimpleLookup bool
 	if isReflink || context == nil {
 		slashCount := strings.Count(inRef, "/")
-		if slashCount <= 1 {
-			doSimpleLookup = slashCount == 0 || ref[0] == '/'
-		}
+		doSimpleLookup = slashCount == 0
 	}
 
 	if !doSimpleLookup {

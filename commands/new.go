@@ -40,7 +40,7 @@ func newNewCommand() *newCommand {
 			&simpleCommand{
 				name:  "content",
 				use:   "content [path]",
-				short: "Create new content for your site",
+				short: "Create new content",
 				long: `Create a new content file and automatically set the date and title.
 It will guess which kind of file to create based on the path provided.
 
@@ -60,8 +60,15 @@ Ensure you run this within the root directory of your site.`,
 					return create.NewContent(h, contentType, args[0], force)
 				},
 				withc: func(cmd *cobra.Command, r *rootCommand) {
+					cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+						if len(args) != 0 {
+							return []string{}, cobra.ShellCompDirectiveNoFileComp
+						}
+						return []string{}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveFilterDirs
+					}
 					cmd.Flags().StringVarP(&contentType, "kind", "k", "", "content type to create")
 					cmd.Flags().String("editor", "", "edit new content with this editor, if provided")
+					_ = cmd.RegisterFlagCompletionFunc("editor", cobra.NoFileCompletions)
 					cmd.Flags().BoolVarP(&force, "force", "f", false, "overwrite file if it already exists")
 					applyLocalFlagsBuildConfig(cmd, r)
 				},
@@ -86,7 +93,7 @@ Use ` + "`hugo new [contentPath]`" + ` to create new content.`,
 					cfg.Set("workingDir", createpath)
 					cfg.Set("publishDir", "public")
 
-					conf, err := r.ConfigFromProvider(r.configVersionID.Load(), flagsToCfg(cd, cfg))
+					conf, err := r.ConfigFromProvider(configKey{counter: r.configVersionID.Load()}, flagsToCfg(cd, cfg))
 					if err != nil {
 						return err
 					}
@@ -103,8 +110,15 @@ Use ` + "`hugo new [contentPath]`" + ` to create new content.`,
 					return nil
 				},
 				withc: func(cmd *cobra.Command, r *rootCommand) {
+					cmd.ValidArgsFunction = func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+						if len(args) != 0 {
+							return []string{}, cobra.ShellCompDirectiveNoFileComp
+						}
+						return []string{}, cobra.ShellCompDirectiveNoFileComp | cobra.ShellCompDirectiveFilterDirs
+					}
 					cmd.Flags().BoolVarP(&force, "force", "f", false, "init inside non-empty directory")
 					cmd.Flags().StringVar(&format, "format", "toml", "preferred file format (toml, yaml or json)")
+					_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions([]string{"toml", "yaml", "json"}, cobra.ShellCompDirectiveNoFileComp))
 				},
 			},
 			&simpleCommand{
@@ -122,7 +136,7 @@ according to your needs.`,
 					cfg := config.New()
 					cfg.Set("publishDir", "public")
 
-					conf, err := r.ConfigFromProvider(r.configVersionID.Load(), flagsToCfg(cd, cfg))
+					conf, err := r.ConfigFromProvider(configKey{counter: r.configVersionID.Load()}, flagsToCfg(cd, cfg))
 					if err != nil {
 						return err
 					}
@@ -136,6 +150,9 @@ according to your needs.`,
 					}
 
 					return nil
+				},
+				withc: func(cmd *cobra.Command, r *rootCommand) {
+					cmd.ValidArgsFunction = cobra.NoFileCompletions
 				},
 			},
 		},
@@ -164,7 +181,7 @@ func (c *newCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args [
 
 func (c *newCommand) Init(cd *simplecobra.Commandeer) error {
 	cmd := cd.CobraCommand
-	cmd.Short = "Create new content for your site"
+	cmd.Short = "Create new content"
 	cmd.Long = `Create a new content file and automatically set the date and title.
 It will guess which kind of file to create based on the path provided.
 
@@ -192,7 +209,7 @@ func (c *newCommand) newSiteNextStepsText(path string, format string) string {
 1. Change the current directory to ` + path + `.
 2. Create or install a theme:
    - Create a new theme with the command "hugo new theme <THEMENAME>"
-   - Install a theme from https://themes.gohugo.io/
+   - Or, install a theme from https://themes.gohugo.io/
 3. Edit hugo.` + format + `, setting the "theme" property to the theme name.
 4. Create new content with the command "hugo new content `)
 

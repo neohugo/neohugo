@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build go1.13 && !windows
-// +build go1.13,!windows
+//go:build !windows
+// +build !windows
 
 package template
 
@@ -15,7 +15,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
+	"github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate/parse"
 )
 
 const (

@@ -26,8 +26,10 @@ import (
 	"sync"
 
 	"github.com/bep/gowebp/libwebp/webpoptions"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/resources/images/webp"
+	"github.com/bep/imagemeta"
+	"github.com/bep/logg"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/resources/images/webp"
 
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images/exif"
@@ -176,13 +178,14 @@ func (i *Image) initConfig() error {
 	return nil
 }
 
-func NewImageProcessor(cfg *config.ConfigNamespace[ImagingConfig, ImagingConfigInternal]) (*ImageProcessor, error) {
+func NewImageProcessor(warnl logg.LevelLogger, cfg *config.ConfigNamespace[ImagingConfig, ImagingConfigInternal]) (*ImageProcessor, error) {
 	e := cfg.Config.Imaging.Exif
 	exifDecoder, err := exif.NewDecoder(
 		exif.WithDateDisabled(e.DisableDate),
 		exif.WithLatLongDisabled(e.DisableLatLong),
 		exif.ExcludeFields(e.ExcludeFields),
 		exif.IncludeFields(e.IncludeFields),
+		exif.WithWarnLogger(warnl),
 	)
 	if err != nil {
 		return nil, err
@@ -199,8 +202,9 @@ type ImageProcessor struct {
 	exifDecoder *exif.Decoder
 }
 
-func (p *ImageProcessor) DecodeExif(r io.Reader) (*exif.ExifInfo, error) {
-	return p.exifDecoder.Decode(r)
+// Filename is only used for logging.
+func (p *ImageProcessor) DecodeExif(filename string, format imagemeta.ImageFormat, r io.Reader) (*exif.ExifInfo, error) {
+	return p.exifDecoder.Decode(filename, format, r)
 }
 
 func (p *ImageProcessor) FiltersFromConfig(src image.Image, conf ImageConfig) ([]gift.Filter, error) {
@@ -353,6 +357,21 @@ const (
 	BMP
 	WEBP
 )
+
+func (f Format) ToImageMetaImageFormatFormat() imagemeta.ImageFormat {
+	switch f {
+	case JPEG:
+		return imagemeta.JPEG
+	case PNG:
+		return imagemeta.PNG
+	case TIFF:
+		return imagemeta.TIFF
+	case WEBP:
+		return imagemeta.WebP
+	default:
+		return -1
+	}
+}
 
 // RequiresDefaultQuality returns if the default quality needs to be applied to
 // images of this format.

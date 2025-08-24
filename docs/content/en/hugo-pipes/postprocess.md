@@ -27,7 +27,7 @@ There are currently two limitations to this:
 
     ```go-html-template
     {{ $css := resources.Get "css/main.css" }}
-    {{ $css = $css | resources.PostCSS | minify | fingerprint | resources.PostProcess }}
+    {{ $css = $css | css.PostCSS | minify | fingerprint | resources.PostProcess }}
     {{ $css.RelPermalink | upper }}
     ```
 
@@ -70,7 +70,7 @@ Note that in the example above, the "CSS purge step" will only be applied to the
 
 ```go-html-template
 {{ $css := resources.Get "css/main.css" }}
-{{ $css = $css | resources.PostCSS }}
+{{ $css = $css | css.PostCSS }}
 {{ if hugo.IsProduction }}
 {{ $css = $css | minify | fingerprint | resources.PostProcess }}
 {{ end }}
@@ -88,7 +88,7 @@ HUGO_ENVIRONMENT
 : The value e.g. set with `hugo -e production` (defaults to `production` for `hugo` and `development` for `hugo server`).
 
 HUGO_PUBLISHDIR
-: {{< new-in 0.109.0 >}} The absolute path to the publish directory (the `public` directory). Note that the value will always point to a directory on disk even when running `hugo server` in memory mode. If you write to this folder from PostCSS when running the server, you could run the server with one of these flags:
+: The absolute path to the publish directory (the `public` directory). Note that the value will always point to a directory on disk even when running `hugo server` in memory mode. If you write to this folder from PostCSS when running the server, you could run the server with one of these flags:
 
 ```sh
 hugo server --renderToDisk

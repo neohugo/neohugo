@@ -14,8 +14,6 @@
 package pageparser
 
 func lexIntroSection(l *pageLexer) stateFunc {
-	l.summaryDivider = summaryDivider
-
 LOOP:
 	for {
 		r := l.next()
@@ -93,13 +91,13 @@ func lexFrontMatterOrgMode(l *pageLexer) stateFunc {
 		#+DESCRIPTION: Just another golang parser for org content!
 	*/
 
-	l.summaryDivider = summaryDividerOrg
-
 	l.backup()
 
 	if !l.hasPrefix(delimOrg) {
 		return lexMainSection
 	}
+
+	l.summaryDivider = summaryDividerOrg
 
 	// Read lines until we no longer see a #+ prefix
 LOOP:

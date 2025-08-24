@@ -16,15 +16,15 @@ package hugolib
 import (
 	"sync"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/compare"
-	"github.com/neohugo/neohugo/lazy"
-	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/output/layouts"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/neohugo/neohugo/source"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/compare"
+	"github.com/gohugoio/hugo/lazy"
+	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/gohugoio/hugo/navigation"
+	"github.com/gohugoio/hugo/output/layouts"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/gohugoio/hugo/source"
 )
 
 type nextPrevProvider interface {
@@ -56,9 +56,7 @@ type pageCommon struct {
 	store *maps.Scratch
 
 	// All of these represents the common parts of a page.Page
-	maps.Scratcher
 	navigation.PageMenusProvider
-	page.AuthorProvider
 	page.AlternativeOutputFormatsProvider
 	page.ChildCareProvider
 	page.FileProvider
@@ -67,6 +65,7 @@ type pageCommon struct {
 	page.InSectionPositioner
 	page.OutputFormatsProvider
 	page.PageMetaProvider
+	page.PageMetaInternalProvider
 	page.Positioner
 	page.RawContentProvider
 	page.RelatedKeywordsProvider
@@ -88,8 +87,8 @@ type pageCommon struct {
 	// should look like.
 	targetPathDescriptor page.TargetPathDescriptor //nolint
 
-	layoutDescriptor     layouts.LayoutDescriptor //nolint
-	layoutDescriptorInit sync.Once                //nolint
+	layoutDescriptor     layouts.LayoutDescriptor
+	layoutDescriptorInit sync.Once
 
 	// Set if feature enabled and this is in a Git repo.
 	gitInfo    source.GitInfo //nolint
@@ -111,4 +110,9 @@ type pageCommon struct {
 
 func (p *pageCommon) Store() *maps.Scratch {
 	return p.store
+}
+
+// See issue 13016.
+func (p *pageCommon) Scratch() *maps.Scratch {
+	return p.Store()
 }

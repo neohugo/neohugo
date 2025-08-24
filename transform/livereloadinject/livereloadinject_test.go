@@ -38,7 +38,7 @@ func TestLiveReloadInject(t *testing.T) {
 		in := strings.NewReader(s)
 
 		tr := transform.New(New(lrurl))
-		tr.Apply(out, in) // nolint
+		tr.Apply(out, in)
 
 		return out.String()
 	}

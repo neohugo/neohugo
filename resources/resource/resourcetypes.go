@@ -16,10 +16,10 @@ package resource
 import (
 	"context"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/media"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/media"
 
 	"github.com/neohugo/neohugo/common/hugio"
 )
@@ -74,13 +74,21 @@ type ErrProvider interface {
 
 // Resource represents a linkable resource, i.e. a content page, image etc.
 type Resource interface {
+	ResourceWithoutMeta
+	ResourceMetaProvider
+}
+
+type ResourceWithoutMeta interface {
 	ResourceTypeProvider
 	MediaTypeProvider
 	ResourceLinksProvider
-	ResourceNameTitleProvider
-	ResourceParamsProvider
 	ResourceDataProvider
 	ErrProvider
+}
+
+type ResourceWrapper interface {
+	UnwrappedResource() Resource
+	WrapResource(Resource) ResourceWrapper
 }
 
 type ResourceTypeProvider interface {
@@ -162,9 +170,17 @@ type ResourcesLanguageMerger interface {
 
 // Identifier identifies a resource.
 type Identifier interface {
-	// Key is is mostly for internal use and should be considered opaque.
+	// Key is mostly for internal use and should be considered opaque.
 	// This value may change between Hugo versions.
 	Key() string
+}
+
+// TransientIdentifier identifies a transient resource.
+type TransientIdentifier interface {
+	// TransientKey is mostly for internal use and should be considered opaque.
+	// This value is implemented by transient resources where pointers may be short lived and
+	// not suitable for use as a map keys.
+	TransientKey() string
 }
 
 // WeightProvider provides a weight.
@@ -233,17 +249,27 @@ type StaleMarker interface {
 
 // StaleInfo tells if a resource is marked as stale.
 type StaleInfo interface {
-	IsStale() bool
+	StaleVersion() uint32
 }
 
-// IsStaleAny reports whether any of the os is marked as stale.
-func IsStaleAny(os ...any) bool {
-	for _, o := range os {
-		if s, ok := o.(StaleInfo); ok && s.IsStale() {
-			return true
+// StaleVersion returns the StaleVersion for the given os,
+// or 0 if not set.
+func StaleVersion(os any) uint32 {
+	if s, ok := os.(StaleInfo); ok {
+		return s.StaleVersion()
+	}
+	return 0
+}
+
+// StaleVersionSum calculates the sum of the StaleVersionSum for the given oss.
+func StaleVersionSum(oss ...any) uint32 {
+	var version uint32
+	for _, o := range oss {
+		if s, ok := o.(StaleInfo); ok && s.StaleVersion() > 0 {
+			version += s.StaleVersion()
 		}
 	}
-	return false
+	return version
 }
 
 // MarkStale will mark any of the oses as stale, if possible.
@@ -279,4 +305,12 @@ func (r resourceTypesHolder) ResourceType() string {
 
 func NewResourceTypesProvider(mediaType media.Type, resourceType string) ResourceTypesProvider {
 	return resourceTypesHolder{mediaType: mediaType, resourceType: resourceType}
+}
+
+// NameNormalizedOrName returns the normalized name if available, otherwise the name.
+func NameNormalizedOrName(r Resource) string {
+	if nn, ok := r.(NameNormalizedProvider); ok {
+		return nn.NameNormalized()
+	}
+	return r.Name()
 }

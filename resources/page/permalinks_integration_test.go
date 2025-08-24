@@ -18,7 +18,8 @@ import (
 
 	"github.com/bep/logg"
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/hugolib"
+	"github.com/gohugoio/hugo/htesting"
+	"github.com/gohugoio/hugo/hugolib"
 )
 
 func TestPermalinks(t *testing.T) {
@@ -192,4 +193,87 @@ List.
 	b.AssertFileContent("public/libros/index.html", "List.")
 	b.AssertFileContent("public/libros/fiction/index.html", "List.")
 	b.AssertFileContent("public/libros/fiction/2023/book1/index.html", "Single.")
+}
+
+func TestPermalinksUrlCascade(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- layouts/_default/list.html --
+List|{{ .Kind }}|{{ .RelPermalink }}|
+-- layouts/_default/single.html --
+Single|{{ .Kind }}|{{ .RelPermalink }}|
+-- hugo.toml --
+-- content/cooking/delicious-recipes/_index.md --
+---
+url: /delicious-recipe/
+cascade:
+  url: /delicious-recipe/:slug/
+---
+-- content/cooking/delicious-recipes/example1.md --
+---
+title: Recipe 1
+---
+-- content/cooking/delicious-recipes/example2.md --
+---
+title: Recipe 2
+slug: custom-recipe-2
+---
+`
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+			LogLevel:    logg.LevelWarn,
+		}).Build()
+
+	t.Log(b.LogString())
+	b.Assert(b.H.Log.LoggCount(logg.LevelWarn), qt.Equals, 0)
+	b.AssertFileContent("public/delicious-recipe/index.html", "List|section|/delicious-recipe/")
+	b.AssertFileContent("public/delicious-recipe/recipe-1/index.html", "Single|page|/delicious-recipe/recipe-1/")
+	b.AssertFileContent("public/delicious-recipe/custom-recipe-2/index.html", "Single|page|/delicious-recipe/custom-recipe-2/")
+}
+
+// Issue 12948.
+// Issue 12954.
+func TestPermalinksWithEscapedColons(t *testing.T) {
+	t.Parallel()
+
+	if htesting.IsWindows() {
+		t.Skip("Windows does not support colons in paths")
+	}
+
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','sitemap','taxonomy','term']
+[permalinks.page]
+s2 = "/c\\:d/:slug/"
+-- content/s1/_index.md --
+---
+title: s1
+url: "/a\\:b/:slug/"
+---
+-- content/s1/p1.md --
+---
+title: p1
+url: "/a\\:b/:slug/"
+---
+-- content/s2/p2.md --
+---
+title: p2
+---
+-- layouts/_default/single.html --
+{{ .Title }}
+-- layouts/_default/list.html --
+{{ .Title }}
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileExists("public/a:b/p1/index.html", true)
+	b.AssertFileExists("public/a:b/s1/index.html", true)
+
+	// The above URLs come from the URL front matter field where everything is allowed.
+	// We strip colons from paths constructed by Hugo (they are not supported on Windows).
+	b.AssertFileExists("public/cd/p2/index.html", true)
 }

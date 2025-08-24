@@ -20,7 +20,7 @@ import (
 
 	emojiAst "github.com/yuin/goldmark-emoji/ast"
 
-	"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/gohugoio/hugo/markup/tableofcontents"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"

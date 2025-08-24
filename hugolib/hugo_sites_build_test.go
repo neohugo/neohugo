@@ -11,8 +11,8 @@ import (
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/resources/kinds"
 
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/hugofs"
 	"github.com/spf13/afero"
 )
 

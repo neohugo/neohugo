@@ -59,7 +59,7 @@ A remote resource is a file on a remote server, accessible via HTTP or HTTPS. To
 
 ## Image rendering
 
-Once you have accessed an image as either a page resource or a global resource, render it in your templates using the `Permalink`, `RelPermalink`, `Width`, and `Height` properties.
+Once you have accessed an image as a resource, render it in your templates using the `Permalink`, `RelPermalink`, `Width`, and `Height` properties.
 
 Example 1: Throws an error if the resource is not found.
 
@@ -105,7 +105,7 @@ Example 4: Skips rendering if there's problem accessing a remote resource.
 The `image` resource implements the  [`Process`],  [`Resize`], [`Fit`], [`Fill`], [`Crop`], [`Filter`], [`Colors`] and [`Exif`] methods.
 
 {{% note %}}
-Metadata (EXIF, IPTC, XMP, etc.) is not preserved during image transformation. Use the `Exif` method with the _original_ image to extract EXIF metadata from JPEG or TIFF images.
+Metadata (EXIF, IPTC, XMP, etc.) is not preserved during image transformation. Use the `Exif` method with the _original_ image to extract EXIF metadata from JPEG, PNG, TIFF, and WebP images.
 {{% /note %}}
 
 ### Process
@@ -205,8 +205,6 @@ Sometimes it can be useful to create the filter chain once and then reuse it.
 
 ### Colors
 
-{{< new-in 0.104.0 >}}
-
 `.Colors` returns a slice of hex strings with the dominant colors in the image using a simple histogram method.
 
 ```go-html-template
@@ -219,7 +217,7 @@ This method is fast, but if you also scale down your images, it would be good fo
 
 Provides an [EXIF] object containing image metadata.
 
-You may access EXIF data in JPEG and TIFF images. To prevent errors when processing images without EXIF data, wrap the access in a [`with`] statement.
+You may access EXIF data in JPEG, PNG, TIFF, and WebP images. To prevent errors when processing images without EXIF data, wrap the access in a [`with`] statement.
 
 ```go-html-template
 {{ with $image.Exif }}
@@ -249,19 +247,21 @@ You may also access EXIF fields individually, using the [`lang.FormatNumber`] fu
 {{ end }}
 ```
 
-#### EXIF variables
+#### EXIF methods
 
-.Date
-: Image creation date/time. Format with the [time.Format] function.
+Date
+: (`time.Time`) Returns the image creation date/time. Format with the [`time.Format`]function.
 
-.Lat
-: GPS latitude in degrees.
+[time.Format]: /functions/time/format/
 
-.Long
-: GPS longitude in degrees.
+Lat
+: (`float64`) Returns the GPS latitude in degrees.
 
-.Tags
-: A collection of the available EXIF tags for this image. You may include or exclude specific tags from this collection in the [site configuration](#exif-data).
+Long
+: (`float64`) Returns the GPS longitude in degrees.
+
+Tags
+: (`exif.Tags`) Returns a collection of the available EXIF tags for this image. You may include or exclude specific tags from this collection in the [site configuration].
 
 ## Image processing options
 
@@ -500,11 +500,11 @@ If you change image processing methods or options, or if you rename or remove im
 hugo --gc
 ```
 
-[time.Format]: /functions/time/format
+
 [`anchor`]: /content-management/image-processing#anchor
 [mounted]: /hugo-modules/configuration#module-configuration-mounts
-[page bundle]: /content-management/page-bundles
-[`lang.FormatNumber`]: /functions/lang/formatnumber
+[page bundle]: /content-management/page-bundles/
+[`lang.FormatNumber`]: /functions/lang/formatnumber/
 [filters]: /functions/images/filter/#image-filters
 [github.com/disintegration/imaging]: <https://github.com/disintegration/imaging#image-resizing>
 [Smartcrop]: <https://github.com/muesli/smartcrop#smartcrop>

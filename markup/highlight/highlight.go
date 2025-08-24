@@ -25,11 +25,11 @@ import (
 	"github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
-	"github.com/neohugo/neohugo/common/hugio"
-	"github.com/neohugo/neohugo/common/text"
-	"github.com/neohugo/neohugo/markup/converter/hooks"
-	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
-	"github.com/neohugo/neohugo/markup/internal/attributes"
+	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/gohugoio/hugo/common/text"
+	"github.com/gohugoio/hugo/markup/converter/hooks"
+	"github.com/gohugoio/hugo/markup/highlight/chromalexers"
+	"github.com/gohugoio/hugo/markup/internal/attributes"
 )
 
 // Markdown attributes used by the Chroma highlighter.
@@ -202,7 +202,7 @@ func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.
 	}
 
 	if !cfg.Hl_inline {
-		writeDivStart(w, attributes)
+		writeDivStart(w, attributes, cfg.WrapperClass)
 	}
 
 	options := cfg.toHTMLOptions()
@@ -303,9 +303,9 @@ func (s startEnd) End(code bool) string {
 	return s.end(code)
 }
 
-func writeDivStart(w hugio.FlexiWriter, attrs []attributes.Attribute) {
-	//nolint
-	w.WriteString(`<div class="highlight`)
+func writeDivStart(w hugio.FlexiWriter, attrs []attributes.Attribute, wrapperClass string) {
+	w.WriteString(`<div class="`)
+	w.WriteString(wrapperClass)
 	if attrs != nil {
 		for _, attr := range attrs {
 			if attr.Name == "class" {

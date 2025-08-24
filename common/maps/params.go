@@ -61,7 +61,6 @@ func SetParams(dst, src Params) {
 
 // IsZero returns true if p is considered empty.
 func (p Params) IsZero() bool {
-	// nolint
 	if len(p) == 0 {
 		return true
 	}

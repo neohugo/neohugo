@@ -31,9 +31,22 @@ Use these `Site` methods when rendering lists on any page.
 
 Use the [`where`] function to filter page collections.
 
-[`where`]: /functions/collections/where
+[`where`]: /functions/collections/where/
 
 ## Sort
+
+By default, Hugo sorts page collections by:
+
+1. [Weight]
+2. [Date] in descending order
+3. [LinkTitle] falling back to [Title]
+4. [Filename] if the page is backed by a file
+
+[Date]: /methods/page/date/
+[Weight]: /methods/page/weight/
+[LinkTitle]: /methods/page/linktitle/
+[Title]: /methods/page/title/
+[Filename]: /methods/page/file/#filename
 
 Use these methods to sort page collections.
 

@@ -17,9 +17,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/maps"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -157,10 +157,11 @@ func TestDecodeCascadeConfig(t *testing.T) {
 }
 
 type testConfig struct {
-	environment string
-	running     bool
-	workingDir  string
-	multihost   bool
+	environment  string
+	running      bool
+	workingDir   string
+	multihost    bool
+	multilingual bool
 }
 
 func (c testConfig) Environment() string {
@@ -177,6 +178,10 @@ func (c testConfig) WorkingDir() string {
 
 func (c testConfig) IsMultihost() bool {
 	return c.multihost
+}
+
+func (c testConfig) IsMultilingual() bool {
+	return c.multilingual
 }
 
 func TestIsGlobWithExtension(t *testing.T) {

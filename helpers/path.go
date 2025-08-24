@@ -28,8 +28,8 @@ import (
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/htesting"
 
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/hugofs"
 
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/spf13/afero"
@@ -374,7 +374,7 @@ func cacheDirDefault(cacheDir string) string {
 	// Turns out that Cloudflare also sets NETLIFY=true in its build environment,
 	// but all of these 3 should not give any false positives.
 	if os.Getenv("NETLIFY") == "true" && os.Getenv("PULL_REQUEST") != "" && os.Getenv("DEPLOY_PRIME_URL") != "" {
-		// Netlify's cache behaviour is not documented, the currently best example
+		// Netlify's cache behavior is not documented, the currently best example
 		// is this project:
 		// https://github.com/philhawksworth/content-shards/blob/master/gulpfile.js
 		return "/opt/build/cache/hugo_cache/"

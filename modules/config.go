@@ -86,7 +86,7 @@ func ApplyProjectConfigDefaults(mod Module, cfgs ...config.AllProvider) error {
 
 		first := cfgs[0]
 		dirsBase := first.DirsBase()
-		isMultiHost := first.IsMultihost()
+		isMultihost := first.IsMultihost()
 
 		for i, cfg := range cfgs {
 			dirs := cfg.Dirs()
@@ -98,22 +98,22 @@ func ApplyProjectConfigDefaults(mod Module, cfgs ...config.AllProvider) error {
 				dropLang = dir == dirsBase.ContentDir
 			case files.ComponentFolderData:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.DataDir // nolint
+				dir = dirs.DataDir
 			case files.ComponentFolderLayouts:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.LayoutDir // nolint
+				dir = dirs.LayoutDir
 			case files.ComponentFolderI18n:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.I18nDir // nolint
+				dir = dirs.I18nDir
 			case files.ComponentFolderArchetypes:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.ArcheTypeDir // nolint
+				dir = dirs.ArcheTypeDir
 			case files.ComponentFolderAssets:
 				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.AssetDir // nolint
+				dir = dirs.AssetDir
 			case files.ComponentFolderStatic:
 				// For static dirs, we only care about the language in multihost setups.
-				dropLang = !isMultiHost
+				dropLang = !isMultihost
 			}
 
 			var perLang bool
@@ -270,7 +270,7 @@ type Config struct {
 
 	// When enabled, we will pick the vendored module closest to the module
 	// using it.
-	// The default behaviour is to pick the first.
+	// The default behavior is to pick the first.
 	// Note that there can still be only one dependency of a given module path,
 	// so once it is in use it cannot be redefined.
 	VendorClosest bool
@@ -402,6 +402,9 @@ type Mount struct {
 
 	// Exclude all files matching the given Glob patterns (string or slice).
 	ExcludeFiles any
+
+	// Disable watching in watch mode for this mount.
+	DisableWatch bool
 }
 
 // Used as key to remove duplicates.

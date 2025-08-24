@@ -16,12 +16,12 @@ package config
 import (
 	"time"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/common/urls"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/langs"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/common/urls"
+	"github.com/gohugoio/hugo/identity"
+	"github.com/gohugoio/hugo/langs"
 )
 
 // AllProvider is a sub set of all config settings.
@@ -35,12 +35,13 @@ type AllProvider interface {
 	PathParser() *paths.PathParser
 	Environment() string
 	IsMultihost() bool
-	IsMultiLingual() bool
+	IsMultilingual() bool
 	NoBuildLock() bool
 	BaseConfig() BaseConfig
 	Dirs() CommonDirs
 	Quiet() bool
 	DirsBase() CommonDirs
+	ContentTypes() ContentTypesProvider
 	GetConfigSection(string) any
 	GetConfig() any
 	CanonifyURLs() bool
@@ -51,14 +52,13 @@ type AllProvider interface {
 	DefaultContentLanguageInSubdir() bool
 	IsLangDisabled(string) bool
 	SummaryLength() int
-	Paginate() int
-	PaginatePath() string
+	Pagination() Pagination
 	BuildExpired() bool
 	BuildFuture() bool
 	BuildDrafts() bool
 	Running() bool
 	Watching() bool
-	NewIdentityManager(name string) identity.Manager
+	NewIdentityManager(name string, opts ...identity.ManagerOption) identity.Manager
 	FastRenderMode() bool
 	PrintUnusedTemplates() bool
 	EnableMissingTranslationPlaceholders() bool
@@ -73,6 +73,15 @@ type AllProvider interface {
 	IgnoredLogs() map[string]bool
 	WorkingDir() string
 	EnableEmoji() bool
+}
+
+// We cannot import the media package as that would create a circular dependency.
+// This interface defineds a sub set of what media.ContentTypes provides.
+type ContentTypesProvider interface {
+	IsContentSuffix(suffix string) bool
+	IsContentFile(filename string) bool
+	IsIndexContentFile(filename string) bool
+	IsHTMLSuffix(suffix string) bool
 }
 
 // Provider provides the configuration settings for Hugo.

@@ -554,8 +554,6 @@ toc line 3
 toc line 4
 
 
-
-
 `
 
 	t.Run("base template", func(t *testing.T) {
@@ -569,7 +567,7 @@ toc line 4
 		).BuildE()
 
 		b.Assert(err, qt.IsNotNil)
-		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/baseof.html:4:6"`))
+		b.Assert(err.Error(), qt.Contains, `baseof.html:4:6`)
 	})
 
 	t.Run("index template", func(t *testing.T) {
@@ -583,7 +581,7 @@ toc line 4
 		).BuildE()
 
 		b.Assert(err, qt.IsNotNil)
-		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/index.html:3:7"`))
+		b.Assert(err.Error(), qt.Contains, `index.html:3:7"`)
 	})
 
 	t.Run("partial from define", func(t *testing.T) {
@@ -597,8 +595,7 @@ toc line 4
 		).BuildE()
 
 		b.Assert(err, qt.IsNotNil)
-		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`render of "home" failed: "/layouts/index.html:7:8": execute of template failed`))
-		b.Assert(err.Error(), qt.Contains, `execute of template failed: template: partials/toc.html:2:8: executing "partials/toc.html"`)
+		b.Assert(err.Error(), qt.Contains, `toc.html:2:8"`)
 	})
 }
 
@@ -627,4 +624,21 @@ title: "A page"
 	}
 
 	b.CreateSites().BuildFail(BuildCfg{})
+}
+
+func TestErrorTemplateRuntime(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+-- layouts/index.html --
+Home.
+{{ .ThisDoesNotExist }}
+ `
+
+	b, err := TestE(t, files)
+
+	b.Assert(err, qt.Not(qt.IsNil))
+	b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`/layouts/index.html:2:3`))
+	b.Assert(err.Error(), qt.Contains, `can't evaluate field ThisDoesNotExist`)
 }

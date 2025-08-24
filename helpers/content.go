@@ -22,23 +22,18 @@ import (
 	"html/template"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 
-	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/gohugoio/hugo/common/hexec"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/media"
 
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/gohugoio/hugo/markup/converter"
 
 	"github.com/neohugo/neohugo/markup"
 
 	"github.com/neohugo/neohugo/config"
-)
-
-var (
-	openingPTag = []byte("<p>")
-	closingPTag = []byte("</p>")
 )
 
 // ContentSpec provides functionality to render markdown content.
@@ -140,20 +135,16 @@ func (c *ContentSpec) SanitizeAnchorName(s string) string {
 }
 
 func (c *ContentSpec) ResolveMarkup(in string) string {
-	if c == nil {
-		panic("nil ContentSpec")
-	}
 	in = strings.ToLower(in)
-	switch in {
-	case "md", "markdown", "mdown":
-		return "markdown"
-	case "html", "htm":
-		return "html"
-	default:
-		if conv := c.Converters.Get(in); conv != nil {
-			return conv.Name()
-		}
+
+	if mediaType, found := c.Cfg.ContentTypes().(media.ContentTypes).Types().GetBestMatch(markup.ResolveMarkup(in)); found {
+		return mediaType.SubType
 	}
+
+	if conv := c.Converters.Get(in); conv != nil {
+		return markup.ResolveMarkup(conv.Name())
+	}
+
 	return ""
 }
 
@@ -173,91 +164,26 @@ func TotalWords(s string) int {
 	return n
 }
 
-// TruncateWordsByRune truncates words by runes.
-func (c *ContentSpec) TruncateWordsByRune(in []string) (string, bool) {
-	words := make([]string, len(in))
-	copy(words, in)
+// TrimShortHTML removes the outer tags from HTML input where (a) the opening
+// tag is present only once with the input, and (b) the opening and closing
+// tags wrap the input after white space removal.
+func (c *ContentSpec) TrimShortHTML(input []byte, markup string) []byte {
+	openingTag := []byte("<p>")
+	closingTag := []byte("</p>")
 
-	count := 0
-	for index, word := range words {
-		if count >= c.Cfg.SummaryLength() {
-			return strings.Join(words[:index], " "), true
-		}
-		runeCount := utf8.RuneCountInString(word)
-		if len(word) == runeCount {
-			count++
-		} else if count+runeCount < c.Cfg.SummaryLength() {
-			count += runeCount
-		} else {
-			for ri := range word {
-				if count >= c.Cfg.SummaryLength() {
-					truncatedWords := append(words[:index], word[:ri])
-					return strings.Join(truncatedWords, " "), true
-				}
-				count++
-			}
-		}
+	if markup == media.DefaultContentTypes.AsciiDoc.SubType {
+		openingTag = []byte("<div class=\"paragraph\">\n<p>")
+		closingTag = []byte("</p>\n</div>")
 	}
 
-	return strings.Join(words, " "), false
-}
-
-// TruncateWordsToWholeSentence takes content and truncates to whole sentence
-// limited by max number of words. It also returns whether it is truncated.
-func (c *ContentSpec) TruncateWordsToWholeSentence(s string) (string, bool) {
-	var (
-		wordCount     = 0
-		lastWordIndex = -1
-	)
-
-	for i, r := range s {
-		if unicode.IsSpace(r) {
-			wordCount++
-			lastWordIndex = i
-
-			if wordCount >= c.Cfg.SummaryLength() {
-				break
-			}
-
-		}
-	}
-
-	if lastWordIndex == -1 {
-		return s, false
-	}
-
-	endIndex := -1
-
-	for j, r := range s[lastWordIndex:] {
-		if isEndOfSentence(r) {
-			endIndex = j + lastWordIndex + utf8.RuneLen(r)
-			break
-		}
-	}
-
-	if endIndex == -1 {
-		return s, false
-	}
-
-	return strings.TrimSpace(s[:endIndex]), endIndex < len(s)
-}
-
-// TrimShortHTML removes the <p>/</p> tags from HTML input in the situation
-// where said tags are the only <p> tags in the input and enclose the content
-// of the input (whitespace excluded).
-func (c *ContentSpec) TrimShortHTML(input []byte) []byte {
-	if bytes.Count(input, openingPTag) == 1 {
+	if bytes.Count(input, openingTag) == 1 {
 		input = bytes.TrimSpace(input)
-		if bytes.HasPrefix(input, openingPTag) && bytes.HasSuffix(input, closingPTag) {
-			input = bytes.TrimPrefix(input, openingPTag)
-			input = bytes.TrimSuffix(input, closingPTag)
+		if bytes.HasPrefix(input, openingTag) && bytes.HasSuffix(input, closingTag) {
+			input = bytes.TrimPrefix(input, openingTag)
+			input = bytes.TrimSuffix(input, closingTag)
 			input = bytes.TrimSpace(input)
 		}
 	}
 
 	return input
-}
-
-func isEndOfSentence(r rune) bool {
-	return r == '.' || r == '?' || r == '!' || r == '"' || r == '\n'
 }

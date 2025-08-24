@@ -276,11 +276,13 @@ func TestLoadMultiConfig(t *testing.T) {
 	// Add a random config variable for testing.
 	// side = page in Norwegian.
 	configContentBase := `
-	Paginate = 32
-	PaginatePath = "side"
+	[pagination]
+	pagerSize = 32
+	path = "side"
 	`
 	configContentSub := `
-	PaginatePath = "top"
+	[pagination]
+	path = "top"
 	`
 	mm := afero.NewMemMapFs()
 
@@ -292,8 +294,8 @@ func TestLoadMultiConfig(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	cfg := all.Base
 
-	c.Assert(cfg.PaginatePath, qt.Equals, "top")
-	c.Assert(cfg.Paginate, qt.Equals, 32)
+	c.Assert(cfg.Pagination.Path, qt.Equals, "top")
+	c.Assert(cfg.Pagination.PagerSize, qt.Equals, 32)
 }
 
 func TestLoadConfigFromThemes(t *testing.T) {
@@ -490,11 +492,10 @@ name = "menu-theme"
 			got := b.Configs.Base
 
 			if mergeStrategy == "none" {
-				b.Assert(got.Sitemap, qt.DeepEquals, config.SitemapConfig{ChangeFreq: "", Priority: -1, Filename: "sitemap.xml"})
-
+				b.Assert(got.Sitemap, qt.DeepEquals, config.SitemapConfig{ChangeFreq: "", Disable: false, Priority: -1, Filename: "sitemap.xml"})
 				b.AssertFileContent("public/sitemap.xml", "schemas/sitemap")
 			} else {
-				b.Assert(got.Sitemap, qt.DeepEquals, config.SitemapConfig{ChangeFreq: "monthly", Priority: -1, Filename: "sitemap.xml"})
+				b.Assert(got.Sitemap, qt.DeepEquals, config.SitemapConfig{ChangeFreq: "monthly", Disable: false, Priority: -1, Filename: "sitemap.xml"})
 				b.AssertFileContent("public/sitemap.xml", "<changefreq>monthly</changefreq>")
 			}
 		})
@@ -508,12 +509,12 @@ func TestLoadConfigFromThemeDir(t *testing.T) {
 theme = "test-theme"
 
 [params]
-m1 = "mv1"	
+m1 = "mv1"
 `
 
 	themeConfig := `
 [params]
-t1 = "tv1"	
+t1 = "tv1"
 t2 = "tv2"
 `
 
@@ -699,10 +700,6 @@ func TestHugoConfig(t *testing.T) {
 	filesTemplate := `
 -- hugo.toml --
 theme = "mytheme"
-[social]
-twitter = "bepsays"
-[author]
-name = "bep"
 [params]
 rootparam = "rootvalue"
 -- config/_default/hugo.toml --
@@ -719,9 +716,6 @@ rootparam: {{ site.Params.rootparam }}
 rootconfigparam: {{ site.Params.rootconfigparam }}
 themeparam: {{ site.Params.themeparam }}
 themeconfigdirparam: {{ site.Params.themeconfigdirparam }}
-social: {{ site.Social }}
-author: {{ site.Author }}
-
 
 `
 
@@ -745,8 +739,6 @@ author: {{ site.Author }}
 				"rootconfigparam: rootconfigvalue",
 				"themeparam: themevalue",
 				"themeconfigdirparam: themeconfigdirvalue",
-				"social: map[twitter:bepsays]",
-				"author: map[name:bep]",
 			)
 		})
 	}
@@ -885,9 +877,9 @@ ThisIsAParam: {{ site.Params.thisIsAParam }}
 	).BuildE()
 
 	b.Assert(err, qt.IsNil)
-	b.AssertFileContent("public/index.html", `		
+	b.AssertFileContent("public/index.html", `
 MyParam: enParamValue
-ThisIsAParam: thisIsAParamValue	
+ThisIsAParam: thisIsAParamValue
 `)
 }
 
@@ -919,10 +911,8 @@ title: "My Swedish Section"
 -- layouts/index.html --
 LanguageCode: {{ eq site.LanguageCode site.Language.LanguageCode }}|{{ site.Language.LanguageCode }}|
 {{ range $i, $e := (slice site .Site) }}
-{{ $i }}|AllPages: {{ len .AllPages }}|Sections: {{ if .Sections }}true{{ end }}| Author: {{ .Authors }}|BuildDrafts: {{ .BuildDrafts }}|IsMultiLingual: {{ .IsMultiLingual }}|Param: {{ .Language.Params.myparam }}|Language string: {{ .Language }}|Languages: {{ .Languages }}
+{{ $i }}|AllPages: {{ len .AllPages }}|Sections: {{ if .Sections }}true{{ end }}|BuildDrafts: {{ .BuildDrafts }}|Param: {{ .Language.Params.myparam }}|Language string: {{ .Language }}|Languages: {{ .Languages }}
 {{ end }}
-
-
 
 `
 	b := NewIntegrationTestBuilder(
@@ -939,9 +929,8 @@ LanguageCode: {{ eq site.LanguageCode site.Language.LanguageCode }}|{{ site.Lang
 	b.AssertFileContent("public/index.html", `
 AllPages: 4|
 Sections: true|
-Param: enParamValue	
-Param: enParamValue	
-IsMultiLingual: true
+Param: enParamValue
+Param: enParamValue
 LanguageCode: true|en-US|
 `)
 
@@ -1062,7 +1051,7 @@ Home
 	).BuildE()
 
 	b.Assert(err, qt.IsNil)
-	b.AssertFileContent("public/index.html", `		
+	b.AssertFileContent("public/index.html", `
 Home
 `)
 
@@ -1095,7 +1084,7 @@ HTML.
 HTACCESS.
 
 
-	
+
 `
 	b := Test(t, files)
 
@@ -1111,7 +1100,7 @@ languageCode = "en-US"
 -- layouts/index.html --
 LanguageCode: {{ .Site.LanguageCode }}|{{ site.Language.LanguageCode }}|
 
-	
+
 `
 	b := Test(t, files)
 
@@ -1137,7 +1126,7 @@ suffixes = ["bar"]
 -- layouts/index.html --
 Home.
 
-	
+
 `
 	b := Test(t, files)
 
@@ -1145,7 +1134,7 @@ Home.
 
 	enConfig := b.H.Sites[0].conf
 	m, _ := enConfig.MediaTypes.Config.GetByType("text/html")
-	b.Assert(m.Suffixes(), qt.DeepEquals, []string{"html"})
+	b.Assert(m.Suffixes(), qt.DeepEquals, []string{"html", "htm"})
 
 	svConfig := b.H.Sites[1].conf
 	f, _ := svConfig.OutputFormats.Config.GetByName("html")
@@ -1164,8 +1153,8 @@ func TestConfigMiscPanics(t *testing.T) {
 params:
 -- layouts/index.html --
 Foo: {{ site.Params.foo }}|
-	
-		
+
+
 	`
 		b := Test(t, files)
 
@@ -1188,8 +1177,8 @@ defaultContentLanguage = "en"
 	weight = 1
 -- layouts/index.html --
 Foo: {{ site.Params.foo }}|
-	
-		
+
+
 	`
 		b, err := NewIntegrationTestBuilder(
 			IntegrationTestConfig{
@@ -1215,8 +1204,8 @@ languageCode = "en"
 languageName = "English"
 weight = 1
 
-	
-		
+
+
 	`
 		b, err := NewIntegrationTestBuilder(
 			IntegrationTestConfig{
@@ -1241,7 +1230,7 @@ contentDir = "mycontent"
 -- layouts/index.html --
 Home.
 
-	
+
 `
 	b := Test(t, files)
 
@@ -1343,11 +1332,34 @@ disabled = true
 -- layouts/index.html --
 Home.
 
-	
+
 `
 	b := Test(t, files)
 
 	b.Assert(len(b.H.Sites), qt.Equals, 1)
+}
+
+func TestDisableDefaultLanguageRedirect(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+defaultContentLanguageInSubdir = true
+disableDefaultLanguageRedirect = true
+[languages]
+[languages.en]
+title = "English Title"
+[languages.sv]
+title = "Swedish Title"
+-- layouts/index.html --
+Home.
+
+
+`
+	b := Test(t, files)
+
+	b.Assert(len(b.H.Sites), qt.Equals, 2)
+	b.AssertFileExists("public/index.html", false)
 }
 
 func TestLoadConfigYamlEnvVar(t *testing.T) {
@@ -1438,7 +1450,7 @@ home = ["html"]
 -- hugo.toml --
 baseURL = "https://example.com"
 disableKinds = ["taxonomy", "term", "RSS", "sitemap", "robotsTXT", "page", "section"]
-		
+
 		`
 
 		runVariant(t, files, nil)

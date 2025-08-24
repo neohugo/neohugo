@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/common/predicate"
+	"github.com/gohugoio/hugo/common/predicate"
 )
 
 func TestAdd(t *testing.T) {

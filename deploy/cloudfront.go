@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !nodeploy
-// +build !nodeploy
+//go:build withdeploy
+// +build withdeploy
 
 package deploy
 
@@ -24,7 +24,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
-	"github.com/neohugo/neohugo/deploy/deployconfig"
+	"github.com/gohugoio/hugo/deploy/deployconfig"
 	gcaws "gocloud.dev/aws"
 )
 

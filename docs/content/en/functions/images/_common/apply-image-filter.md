@@ -1,10 +1,10 @@
 ---
-# Do not remove front matter.
+_comment: Do not remove front matter.
 ---
 
 Apply the filter using the [`images.Filter`] function:
 
-[`images.Filter`]: /functions/images/filter
+[`images.Filter`]: /functions/images/filter/
 
 ```go-html-template
 {{ with resources.Get "images/original.jpg" }}
@@ -16,7 +16,7 @@ Apply the filter using the [`images.Filter`] function:
 
 You can also apply the filter using the [`Filter`] method on a `Resource` object:
 
-[`Filter`]: methods/resource/filter
+[`Filter`]: /methods/resource/filter/
 
 ```go-html-template
 {{ with resources.Get "images/original.jpg" }}

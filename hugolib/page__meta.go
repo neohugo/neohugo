@@ -22,27 +22,27 @@ import (
 	"time"
 
 	"github.com/gobuffalo/flect"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/neohugo/neohugo/related"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/markup/converter"
 	xmaps "golang.org/x/exp/maps"
 
-	"github.com/neohugo/neohugo/source"
+	"github.com/gohugoio/hugo/related"
 
-	"github.com/neohugo/neohugo/common/constants"
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/gohugoio/hugo/source"
 
-	"github.com/neohugo/neohugo/output"
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/resources/page/pagemeta"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/gohugoio/hugo/common/constants"
+	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/helpers"
+
+	"github.com/gohugoio/hugo/output"
+	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/resources/page/pagemeta"
+	"github.com/gohugoio/hugo/resources/resource"
 	"github.com/spf13/cast"
 )
 
@@ -53,7 +53,7 @@ type pageMeta struct {
 	singular string // Set for kind == KindTerm and kind == KindTaxonomy.
 
 	resource.Staler
-	pageMetaParams
+	*pageMetaParams
 	pageMetaFrontMatter
 
 	// Set for standalone pages, e.g. robotsTXT.
@@ -73,7 +73,9 @@ type pageMeta struct {
 // Prepare for a rebuild of the data passed in from front matter.
 func (m *pageMeta) setMetaPostPrepareRebuild() {
 	params := xmaps.Clone[map[string]any](m.paramsOriginal)
-	m.pageMetaParams.pageConfig.Params = params
+	m.pageMetaParams.pageConfig = &pagemeta.PageConfig{
+		Params: params,
+	}
 	m.pageMetaFrontMatter = pageMetaFrontMatter{}
 }
 
@@ -97,29 +99,12 @@ type pageMetaFrontMatter struct {
 func (m *pageMetaParams) init(preserveOringal bool) {
 	if preserveOringal {
 		m.paramsOriginal = xmaps.Clone[maps.Params](m.pageConfig.Params)
-		m.cascadeOriginal = xmaps.Clone[map[page.PageMatcher]maps.Params](m.pageConfig.Cascade)
+		m.cascadeOriginal = xmaps.Clone[map[page.PageMatcher]maps.Params](m.pageConfig.CascadeCompiled)
 	}
 }
 
 func (p *pageMeta) Aliases() []string {
 	return p.pageConfig.Aliases
-}
-
-// Deprecated: use taxonomies.
-func (p *pageMeta) Author() page.Author {
-	neohugo.Deprecate(".Author", "Use taxonomies.", "v0.98.0")
-	authors := p.Authors()
-
-	for _, author := range authors {
-		return author
-	}
-	return page.Author{}
-}
-
-// Deprecated: use taxonomies.
-func (p *pageMeta) Authors() page.AuthorList {
-	neohugo.Deprecate(".Author", "Use taxonomies.", "v0.112.0")
-	return nil
 }
 
 func (p *pageMeta) BundleType() string {
@@ -134,19 +119,19 @@ func (p *pageMeta) BundleType() string {
 }
 
 func (p *pageMeta) Date() time.Time {
-	return p.pageConfig.Date
+	return p.pageConfig.Dates.Date
 }
 
 func (p *pageMeta) PublishDate() time.Time {
-	return p.pageConfig.PublishDate
+	return p.pageConfig.Dates.PublishDate
 }
 
 func (p *pageMeta) Lastmod() time.Time {
-	return p.pageConfig.Lastmod
+	return p.pageConfig.Dates.Lastmod
 }
 
 func (p *pageMeta) ExpiryDate() time.Time {
-	return p.pageConfig.ExpiryDate
+	return p.pageConfig.Dates.ExpiryDate
 }
 
 func (p *pageMeta) Description() string {
@@ -274,11 +259,9 @@ func (p *pageMeta) Weight() int {
 
 func (p *pageMeta) setMetaPre(pi *contentParseInfo, logger loggers.Logger, conf config.AllProvider) error {
 	frontmatter := pi.frontMatter
+
 	if frontmatter != nil {
 		pcfg := p.pageConfig
-		if pcfg == nil {
-			panic("pageConfig not set")
-		}
 		// Needed for case insensitive fetching of params values
 		maps.PrepareParams(frontmatter)
 		pcfg.Params = frontmatter
@@ -289,7 +272,7 @@ func (p *pageMeta) setMetaPre(pi *contentParseInfo, logger loggers.Logger, conf 
 			if err != nil {
 				return err
 			}
-			pcfg.Cascade = cascade
+			pcfg.CascadeCompiled = cascade
 		}
 
 		// Look for path, lang and kind, all of which values we need early on.
@@ -327,18 +310,18 @@ func (ps *pageState) setMetaPost(cascade map[page.PageMatcher]maps.Params) error
 	ps.m.setMetaPostCount++
 	var cascadeHashPre uint64
 	if ps.m.setMetaPostCount > 1 {
-		cascadeHashPre = identity.HashUint64(ps.m.pageConfig.Cascade)
-		ps.m.pageConfig.Cascade = xmaps.Clone[map[page.PageMatcher]maps.Params](ps.m.cascadeOriginal)
+		cascadeHashPre = hashing.HashUint64(ps.m.pageConfig.CascadeCompiled)
+		ps.m.pageConfig.CascadeCompiled = xmaps.Clone[map[page.PageMatcher]maps.Params](ps.m.cascadeOriginal)
 
 	}
 
 	// Apply cascades first so they can be overridden later.
 	if cascade != nil {
-		if ps.m.pageConfig.Cascade != nil {
+		if ps.m.pageConfig.CascadeCompiled != nil {
 			for k, v := range cascade {
-				vv, found := ps.m.pageConfig.Cascade[k]
+				vv, found := ps.m.pageConfig.CascadeCompiled[k]
 				if !found {
-					ps.m.pageConfig.Cascade[k] = v
+					ps.m.pageConfig.CascadeCompiled[k] = v
 				} else {
 					// Merge
 					for ck, cv := range v {
@@ -348,19 +331,20 @@ func (ps *pageState) setMetaPost(cascade map[page.PageMatcher]maps.Params) error
 					}
 				}
 			}
-			cascade = ps.m.pageConfig.Cascade
+			cascade = ps.m.pageConfig.CascadeCompiled
 		} else {
-			ps.m.pageConfig.Cascade = cascade
+			ps.m.pageConfig.CascadeCompiled = cascade
 		}
 	}
 
 	if cascade == nil {
-		cascade = ps.m.pageConfig.Cascade
+		cascade = ps.m.pageConfig.CascadeCompiled
 	}
 
 	if ps.m.setMetaPostCount > 1 {
-		ps.m.setMetaPostCascadeChanged = cascadeHashPre != identity.HashUint64(ps.m.pageConfig.Cascade)
+		ps.m.setMetaPostCascadeChanged = cascadeHashPre != hashing.HashUint64(ps.m.pageConfig.CascadeCompiled)
 		if !ps.m.setMetaPostCascadeChanged {
+
 			// No changes, restore any value that may be changed by aggregation.
 			ps.m.pageConfig.Dates = ps.m.datesOriginal
 			return nil
@@ -399,10 +383,16 @@ func (p *pageState) setMetaPostParams() error {
 	pm := p.m
 	var mtime time.Time
 	var contentBaseName string
+	var ext string
+	var isContentAdapter bool
 	if p.File() != nil {
+		isContentAdapter = p.File().IsContentAdapter()
 		contentBaseName = p.File().ContentBaseName()
 		if p.File().FileInfo() != nil {
 			mtime = p.File().FileInfo().ModTime()
+		}
+		if !isContentAdapter {
+			ext = p.File().Ext()
 		}
 	}
 
@@ -417,6 +407,7 @@ func (p *pageState) setMetaPostParams() error {
 		ModTime:       mtime,
 		GitAuthorDate: gitAuthorDate,
 		Location:      langs.GetLocation(pm.s.Language()),
+		PathOrTitle:   p.pathOrTitle(),
 	}
 
 	// Handle the date separately
@@ -425,6 +416,11 @@ func (p *pageState) setMetaPostParams() error {
 	err := pm.s.frontmatterHandler.HandleDates(descriptor)
 	if err != nil {
 		p.s.Log.Errorf("Failed to handle dates for page %q: %s", p.pathOrTitle(), err)
+	}
+
+	if isContentAdapter {
+		// Done.
+		return nil
 	}
 
 	var buildConfig any
@@ -455,8 +451,10 @@ params:
 	var sitemapSet bool
 
 	pcfg := pm.pageConfig
-
 	params := pcfg.Params
+	if params == nil {
+		panic("params not set for " + p.Title())
+	}
 
 	var draft, published, isCJKLanguage *bool
 	var userParams map[string]any
@@ -549,8 +547,8 @@ params:
 			pcfg.Layout = cast.ToString(v)
 			params[loki] = pcfg.Layout
 		case "markup":
-			pcfg.Markup = cast.ToString(v)
-			params[loki] = pcfg.Markup
+			pcfg.Content.Markup = cast.ToString(v)
+			params[loki] = pcfg.Content.Markup
 		case "weight":
 			pcfg.Weight = cast.ToInt(v)
 			params[loki] = pcfg.Weight
@@ -600,7 +598,7 @@ params:
 			}
 
 			if handled {
-				pcfg.Resources = resources
+				pcfg.ResourcesMeta = resources
 				break
 			}
 			fallthrough
@@ -647,8 +645,6 @@ params:
 		pcfg.Sitemap = p.s.conf.Sitemap
 	}
 
-	pcfg.Markup = p.s.ContentSpec.ResolveMarkup(pcfg.Markup)
-
 	if draft != nil && published != nil {
 		pcfg.Draft = *draft
 		p.m.s.Log.Warnf("page %q has both draft and published settings in its frontmatter. Using draft.", p.File().Filename())
@@ -671,11 +667,19 @@ params:
 
 	params["iscjklanguage"] = pcfg.IsCJKLanguage
 
+	if err := pcfg.Validate(false); err != nil {
+		return err
+	}
+
+	if err := pcfg.Compile("", false, ext, p.s.Log, p.s.conf.MediaTypes.Config); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 // shouldList returns whether this page should be included in the list of pages.
-// glogal indicates site.Pages etc.
+// global indicates site.Pages etc.
 func (p *pageMeta) shouldList(global bool) bool {
 	if p.isStandalone() {
 		// Never list 404, sitemap and similar.
@@ -726,13 +730,13 @@ func (p *pageMeta) applyDefaultValues() error {
 		(&p.pageConfig.Build).Disable()
 	}
 
-	if p.pageConfig.Markup == "" {
+	if p.pageConfig.Content.Markup == "" {
 		if p.File() != nil {
 			// Fall back to file extension
-			p.pageConfig.Markup = p.s.ContentSpec.ResolveMarkup(p.File().Ext())
+			p.pageConfig.Content.Markup = p.s.ContentSpec.ResolveMarkup(p.File().Ext())
 		}
-		if p.pageConfig.Markup == "" {
-			p.pageConfig.Markup = "markdown"
+		if p.pageConfig.Content.Markup == "" {
+			p.pageConfig.Content.Markup = "markdown"
 		}
 	}
 
@@ -793,12 +797,26 @@ func (p *pageMeta) newContentConverter(ps *pageState, markup string) (converter.
 		path = p.Path()
 	}
 
+	doc := newPageForRenderHook(ps)
+
+	documentLookup := func(id uint64) any {
+		if id == ps.pid {
+			// This prevents infinite recursion in some cases.
+			return doc
+		}
+		if v, ok := ps.pageOutput.pco.otherOutputs.Get(id); ok {
+			return v.po.p
+		}
+		return nil
+	}
+
 	cpp, err := cp.New(
 		converter.DocumentContext{
-			Document:     newPageForRenderHook(ps),
-			DocumentID:   id,
-			DocumentName: path,
-			Filename:     filename,
+			Document:       doc,
+			DocumentLookup: documentLookup,
+			DocumentID:     id,
+			DocumentName:   path,
+			Filename:       filename,
 		},
 	)
 	if err != nil {

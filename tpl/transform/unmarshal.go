@@ -19,15 +19,15 @@ import (
 	"io"
 	"strings"
 
-	"github.com/neohugo/neohugo/resources"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/gohugoio/hugo/resources"
+	"github.com/gohugoio/hugo/resources/resource"
 
-	"github.com/neohugo/neohugo/common/types"
+	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/gohugoio/hugo/common/types"
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/gohugoio/hugo/parser/metadecoders"
 
 	"github.com/spf13/cast"
 )
@@ -71,7 +71,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 			key += decoder.OptionsKey()
 		}
 
-		v, err := ns.cache.GetOrCreate(key, func(string) (*resources.StaleValue[any], error) {
+		v, err := ns.cacheUnmarshal.GetOrCreate(key, func(string) (*resources.StaleValue[any], error) {
 			f := metadecoders.FormatFromStrings(r.MediaType().Suffixes()...)
 			if f == "" {
 				return nil, fmt.Errorf("MIME %q not supported", r.MediaType())
@@ -95,8 +95,8 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 
 			return &resources.StaleValue[any]{
 				Value: v,
-				IsStaleFunc: func() bool {
-					return resource.IsStaleAny(r)
+				StaleVersionFunc: func() uint32 {
+					return resource.StaleVersion(r)
 				},
 			}, nil
 		})
@@ -113,13 +113,13 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 		return nil, fmt.Errorf("type %T not supported", data)
 	}
 
-	if dataStr == "" {
-		return nil, errors.New("no data to transform")
+	if strings.TrimSpace(dataStr) == "" {
+		return nil, nil
 	}
 
-	key := helpers.MD5String(dataStr)
+	key := hashing.MD5FromStringHexEncoded(dataStr)
 
-	v, err := ns.cache.GetOrCreate(key, func(string) (*resources.StaleValue[any], error) {
+	v, err := ns.cacheUnmarshal.GetOrCreate(key, func(string) (*resources.StaleValue[any], error) {
 		f := decoder.FormatFromContentString(dataStr)
 		if f == "" {
 			return nil, errors.New("unknown format")
@@ -132,8 +132,8 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 
 		return &resources.StaleValue[any]{
 			Value: v,
-			IsStaleFunc: func() bool {
-				return false
+			StaleVersionFunc: func() uint32 {
+				return 0
 			},
 		}, nil
 	})

@@ -76,7 +76,7 @@ title: "p1"
   {{- range $k, $v := .Attributes -}}
     {{- printf " %s=%q" $k $v | safeHTMLAttr -}}
   {{- end -}}
->{{ .Text | safeHTML }}</h{{ .Level }}>
+>{{ .Text }}</h{{ .Level }}>
 `
 
 	b := hugolib.Test(t, files)
@@ -146,11 +146,11 @@ title: "p1"
 {{ .Content }}
 -- layouts/_default/_markup/render-heading.html --
 <h{{ .Level }} id="{{ .Anchor | safeURL }}">
-  {{ .Text | safeHTML }}
+  {{ .Text }}
   <a class="anchor" href="#{{ .Anchor | safeURL }}">#</a>
 </h{{ .Level }}>
 -- layouts/_default/_markup/render-link.html --
-<a href="{{ .Destination | safeURL }}"{{ with .Title}} title="{{ . }}"{{ end }}>{{ .Text | safeHTML }}</a>
+<a href="{{ .Destination | safeURL }}"{{ with .Title}} title="{{ . }}"{{ end }}>{{ .Text }}</a>
 
 `
 
@@ -236,11 +236,11 @@ func BenchmarkRenderHooks(b *testing.B) {
 -- config.toml --
 -- layouts/_default/_markup/render-heading.html --
 <h{{ .Level }} id="{{ .Anchor | safeURL }}">
-	{{ .Text | safeHTML }}
+	{{ .Text }}
 	<a class="anchor" href="#{{ .Anchor | safeURL }}">#</a>
 </h{{ .Level }}>
 -- layouts/_default/_markup/render-link.html --
-<a href="{{ .Destination | safeURL }}"{{ with .Title}} title="{{ . }}"{{ end }}>{{ .Text | safeHTML }}</a>
+<a href="{{ .Destination | safeURL }}"{{ with .Title}} title="{{ . }}"{{ end }}>{{ .Text }}</a>
 -- layouts/_default/single.html --
 {{ .Content }}
 `
@@ -452,7 +452,7 @@ Link https procol: https://www.example.org
 
 		if withHook {
 			files += `-- layouts/_default/_markup/render-link.html --
-<a href="{{ .Destination | safeURL }}">{{ .Text | safeHTML }}</a>`
+<a href="{{ .Destination | safeURL }}">{{ .Text }}</a>`
 		}
 
 		return hugolib.NewIntegrationTestBuilder(
@@ -743,4 +743,111 @@ a^*=x-b^*
 a^*=x-b^*
 %!%
 	`)
+}
+
+func TestExtrasExtension(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+[markup.goldmark.extensions]
+strikethrough = false
+[markup.goldmark.extensions.extras.delete]
+enable = false
+[markup.goldmark.extensions.extras.insert]
+enable = false
+[markup.goldmark.extensions.extras.mark]
+enable = false
+[markup.goldmark.extensions.extras.subscript]
+enable = false
+[markup.goldmark.extensions.extras.superscript]
+enable = false
+-- layouts/index.html --
+{{ .Content }}
+-- content/_index.md --
+---
+title: home
+---
+~~delete~~
+
+++insert++
+
+==mark==
+
+H~2~0
+
+1^st^
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/index.html",
+		"<p>~~delete~~</p>",
+		"<p>++insert++</p>",
+		"<p>==mark==</p>",
+		"<p>H~2~0</p>",
+		"<p>1^st^</p>",
+	)
+
+	files = strings.ReplaceAll(files, "enable = false", "enable = true")
+
+	b = hugolib.Test(t, files)
+
+	b.AssertFileContent("public/index.html",
+		"<p><del>delete</del></p>",
+		"<p><ins>insert</ins></p>",
+		"<p><mark>mark</mark></p>",
+		"<p>H<sub>2</sub>0</p>",
+		"<p>1<sup>st</sup></p>",
+	)
+}
+
+// Issue 12997.
+func TestGoldmarkRawHTMLWarningBlocks(t *testing.T) {
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','section','sitemap','taxonomy','term']
+markup.goldmark.renderer.unsafe = false
+-- content/p1.md --
+---
+title: "p1"
+---
+<div>Some raw HTML</div>
+-- layouts/_default/single.html --
+{{ .Content }}
+`
+
+	b := hugolib.Test(t, files, hugolib.TestOptWarn())
+
+	b.AssertFileContent("public/p1/index.html", "<!-- raw HTML omitted -->")
+	b.AssertLogContains("WARN  Raw HTML omitted while rendering \"/content/p1.md\"; see https://gohugo.io/getting-started/configuration-markup/#rendererunsafe\nYou can suppress this warning by adding the following to your site configuration:\nignoreLogs = ['warning-goldmark-raw-html']")
+
+	b = hugolib.Test(t, strings.ReplaceAll(files, "markup.goldmark.renderer.unsafe = false", "markup.goldmark.renderer.unsafe = true"), hugolib.TestOptWarn())
+	b.AssertFileContent("public/p1/index.html", "! <!-- raw HTML omitted -->")
+	b.AssertLogContains("! WARN")
+}
+
+func TestGoldmarkRawHTMLWarningInline(t *testing.T) {
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','section','sitemap','taxonomy','term']
+markup.goldmark.renderer.unsafe = false
+-- content/p1.md --
+---
+title: "p1"
+---
+<em>raw HTML</em>
+-- layouts/_default/single.html --
+{{ .Content }}
+`
+
+	b := hugolib.Test(t, files, hugolib.TestOptWarn())
+
+	b.AssertFileContent("public/p1/index.html", "<!-- raw HTML omitted -->")
+	b.AssertLogContains("WARN  Raw HTML omitted while rendering \"/content/p1.md\"; see https://gohugo.io/getting-started/configuration-markup/#rendererunsafe\nYou can suppress this warning by adding the following to your site configuration:\nignoreLogs = ['warning-goldmark-raw-html']")
+
+	b = hugolib.Test(t, strings.ReplaceAll(files, "markup.goldmark.renderer.unsafe = false", "markup.goldmark.renderer.unsafe = true"), hugolib.TestOptWarn())
+	b.AssertFileContent("public/p1/index.html", "! <!-- raw HTML omitted -->")
+	b.AssertLogContains("! WARN")
 }

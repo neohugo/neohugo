@@ -15,42 +15,47 @@ package hugolib
 
 import (
 	"fmt"
-	"path/filepath"
+	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/neohugo/neohugo/hugofs/files"
-	"github.com/neohugo/neohugo/resources"
+	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/gohugoio/hugo/resources"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/paths"
 
-	"github.com/neohugo/neohugo/lazy"
+	"github.com/gohugoio/hugo/lazy"
 
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/resources/page/pagemeta"
 )
 
 var pageIDCounter atomic.Uint64
 
 func (h *HugoSites) newPage(m *pageMeta) (*pageState, *paths.Path, error) {
+	p, pth, err := h.doNewPage(m)
+	if err != nil {
+		// Make sure that any partially created page part is marked as stale.
+		m.MarkStale()
+	}
+	return p, pth, err
+}
+
+func (h *HugoSites) doNewPage(m *pageMeta) (*pageState, *paths.Path, error) {
 	m.Staler = &resources.AtomicStaler{}
-	if m.pageConfig == nil {
-		m.pageMetaParams = pageMetaParams{
-			pageConfig: &pagemeta.PageConfig{
-				Params: maps.Params{},
-			},
+	if m.pageMetaParams == nil {
+		m.pageMetaParams = &pageMetaParams{
+			pageConfig: &pagemeta.PageConfig{},
 		}
 	}
-
-	var sourceKey string
-	if m.f != nil {
-		sourceKey = filepath.ToSlash(m.f.Filename())
+	if m.pageConfig.Params == nil {
+		m.pageConfig.Params = maps.Params{}
 	}
 
 	pid := pageIDCounter.Add(1)
-	pi, err := m.parseFrontMatter(h, pid, sourceKey)
+	pi, err := m.parseFrontMatter(h, pid)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -67,30 +72,43 @@ func (h *HugoSites) newPage(m *pageMeta) (*pageState, *paths.Path, error) {
 
 	if pcfg.Path != "" {
 		s := m.pageConfig.Path
-		if !paths.HasExt(s) {
+		// Paths from content adapters should never have any extension.
+		if pcfg.IsFromContentAdapter || !paths.HasExt(s) {
 			var (
-				isBranch bool
-				ext      string = "md"
+				isBranch    bool
+				isBranchSet bool
+				ext         string = m.pageConfig.ContentMediaType.FirstSuffix.Suffix
 			)
 			if pcfg.Kind != "" {
 				isBranch = kinds.IsBranch(pcfg.Kind)
-			} else if m.pathInfo != nil {
-				isBranch = m.pathInfo.IsBranchBundle()
-				if m.pathInfo.Ext() != "" {
-					ext = m.pathInfo.Ext()
-				}
-			} else if m.f != nil {
-				pi := m.f.FileInfo().Meta().PathInfo
-				isBranch = pi.IsBranchBundle()
-				if pi.Ext() != "" {
-					ext = pi.Ext()
+				isBranchSet = true
+			}
+
+			if !pcfg.IsFromContentAdapter {
+				if m.pathInfo != nil {
+					if !isBranchSet {
+						isBranch = m.pathInfo.IsBranchBundle()
+					}
+					if m.pathInfo.Ext() != "" {
+						ext = m.pathInfo.Ext()
+					}
+				} else if m.f != nil {
+					pi := m.f.FileInfo().Meta().PathInfo
+					if !isBranchSet {
+						isBranch = pi.IsBranchBundle()
+					}
+					if pi.Ext() != "" {
+						ext = pi.Ext()
+					}
 				}
 			}
+
 			if isBranch {
 				s += "/_index." + ext
 			} else {
 				s += "/index." + ext
 			}
+
 		}
 		m.pathInfo = h.Conf.PathParser().Parse(files.ComponentFolderContent, s)
 	} else if m.pathInfo == nil {
@@ -112,27 +130,18 @@ func (h *HugoSites) newPage(m *pageMeta) (*pageState, *paths.Path, error) {
 			} else if m.f != nil {
 				meta := m.f.FileInfo().Meta()
 				lang = meta.Lang
-				m.s = h.Sites[meta.LangIndex]
 			} else {
 				lang = m.pathInfo.Lang()
 			}
-			if lang == "" {
-				lang = h.Conf.DefaultContentLanguage()
-			}
-			var found bool
-			for _, ss := range h.Sites {
-				if ss.Lang() == lang {
-					m.s = ss
-					found = true
-					break
-				}
-			}
 
-			if !found {
+			m.s = h.resolveSite(lang)
+
+			if m.s == nil {
 				return nil, fmt.Errorf("no site found for language %q", lang)
 			}
 		}
 
+		var tc viewName
 		// Identify Page Kind.
 		if m.pageConfig.Kind == "" {
 			m.pageConfig.Kind = kinds.KindSection
@@ -140,20 +149,30 @@ func (h *HugoSites) newPage(m *pageMeta) (*pageState, *paths.Path, error) {
 				m.pageConfig.Kind = kinds.KindHome
 			} else if m.pathInfo.IsBranchBundle() {
 				// A section, taxonomy or term.
-				tc := m.s.pageMap.cfg.getTaxonomyConfig(m.Path())
+				tc = m.s.pageMap.cfg.getTaxonomyConfig(m.Path())
 				if !tc.IsZero() {
 					// Either a taxonomy or a term.
 					if tc.pluralTreeKey == m.Path() {
 						m.pageConfig.Kind = kinds.KindTaxonomy
-						m.singular = tc.singular
 					} else {
 						m.pageConfig.Kind = kinds.KindTerm
-						m.term = m.pathInfo.Unnormalized().BaseNameNoIdentifier()
-						m.singular = tc.singular
 					}
 				}
 			} else if m.f != nil {
 				m.pageConfig.Kind = kinds.KindPage
+			}
+		}
+
+		if m.pageConfig.Kind == kinds.KindTerm || m.pageConfig.Kind == kinds.KindTaxonomy {
+			if tc.IsZero() {
+				tc = m.s.pageMap.cfg.getTaxonomyConfig(m.Path())
+			}
+			if tc.IsZero() {
+				return nil, fmt.Errorf("no taxonomy configuration found for %q", m.Path())
+			}
+			m.singular = tc.singular
+			if m.pageConfig.Kind == kinds.KindTerm {
+				m.term = paths.TrimLeading(strings.TrimPrefix(m.pathInfo.Unnormalized().Base(), tc.pluralTreeKey))
 			}
 		}
 
@@ -176,14 +195,13 @@ func (h *HugoSites) newPage(m *pageMeta) (*pageState, *paths.Path, error) {
 			dependencyManager:                 m.s.Conf.NewIdentityManager(m.Path()),
 			pageCommon: &pageCommon{
 				FileProvider:              m,
-				AuthorProvider:            m,
-				Scratcher:                 maps.NewScratcher(),
 				store:                     maps.NewScratch(),
 				Positioner:                page.NopPage,
 				InSectionPositioner:       page.NopPage,
 				ResourceNameTitleProvider: m,
 				ResourceParamsProvider:    m,
 				PageMetaProvider:          m,
+				PageMetaInternalProvider:  m,
 				RelatedKeywordsProvider:   m,
 				OutputFormatsProvider:     page.NopPage,
 				ResourceTypeProvider:      pageTypesProvider,
@@ -232,10 +250,6 @@ func (h *HugoSites) newPage(m *pageMeta) (*pageState, *paths.Path, error) {
 		}
 		return ps, nil
 	}()
-	// Make sure to evict any cached and now stale data.
-	if err != nil {
-		m.MarkStale()
-	}
 
 	if ps == nil {
 		return nil, nil, err

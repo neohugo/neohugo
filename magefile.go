@@ -79,8 +79,7 @@ func flagEnv() map[string]string {
 // Generate autogen packages
 func Generate() error {
 	generatorPackages := []string{
-		//"tpl/tplimpl/embedded/generate",
-		//"resources/page/generate",
+		"livereload/gen",
 	}
 
 	for _, pkg := range generatorPackages {
@@ -149,7 +148,11 @@ func Check() {
 		fmt.Printf("Skip Test386 on %s and/or %s\n", runtime.GOARCH, runtime.GOOS)
 	}
 
-	mg.Deps(Fmt, Vet)
+	if isCi() && isDarwin() {
+		// Skip on macOS in CI (disk space issues)
+	} else {
+		mg.Deps(Fmt, Vet)
+	}
 
 	// don't run two tests in parallel, they saturate the CPUs anyway, and running two
 	// causes memory issues in CI.
@@ -168,19 +171,19 @@ func testGoFlags() string {
 // Note that we don't run with the extended tag. Currently not supported in 32 bit.
 func Test386() error {
 	env := map[string]string{"GOARCH": "386", "GOFLAGS": testGoFlags()}
-	return runCmd(env, goexe, "test", "./...")
+	return runCmd(env, goexe, "test", "-p", "2", "./...")
 }
 
 // Run tests
 func Test() error {
 	env := map[string]string{"GOFLAGS": testGoFlags()}
-	return runCmd(env, goexe, "test", "./...", "-tags", buildTags())
+	return runCmd(env, goexe, "test", "-p", "2", "./...", "-tags", buildTags())
 }
 
 // Run tests with race detector
 func TestRace() error {
 	env := map[string]string{"GOFLAGS": testGoFlags()}
-	return runCmd(env, goexe, "test", "-race", "./...", "-tags", buildTags())
+	return runCmd(env, goexe, "test", "-p", "2", "-race", "./...", "-tags", buildTags())
 }
 
 // Fmt, run gofumpt linter
@@ -238,6 +241,14 @@ func Lint() error {
 		return errors.New("errors running golint")
 	}
 	return nil
+}
+
+func isCi() bool {
+	return os.Getenv("CI") != ""
+}
+
+func isDarwin() bool {
+	return runtime.GOOS == "darwin"
 }
 
 // Run go vet linter
@@ -323,7 +334,7 @@ func buildFlags() []string {
 func buildTags() string {
 	// To build the extended Hugo SCSS/SASS enabled version, build with
 	// HUGO_BUILD_TAGS=extended mage install etc.
-	// To build without `hugo deploy` for smaller binary, use HUGO_BUILD_TAGS=nodeploy
+	// To build with `hugo deploy`, use HUGO_BUILD_TAGS=withdeploy
 	if envtags := os.Getenv("HUGO_BUILD_TAGS"); envtags != "" {
 		return envtags
 	}

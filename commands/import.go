@@ -58,6 +58,7 @@ Import from Jekyll requires two paths, e.g. ` + "`hugo import jekyll jekyll_root
 					return c.importFromJekyll(args)
 				},
 				withc: func(cmd *cobra.Command, r *rootCommand) {
+					cmd.ValidArgsFunction = cobra.NoFileCompletions
 					cmd.Flags().BoolVar(&c.force, "force", false, "allow import into non-empty target directory")
 				},
 			},
@@ -89,8 +90,8 @@ func (c *importCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, arg
 
 func (c *importCommand) Init(cd *simplecobra.Commandeer) error {
 	cmd := cd.CobraCommand
-	cmd.Short = "Import your site from others."
-	cmd.Long = `Import your site from other web site generators like Jekyll.
+	cmd.Short = "Import a site from another system"
+	cmd.Long = `Import a site from another system.
 
 Import requires a subcommand, e.g. ` + "`hugo import jekyll jekyll_root_path target_path`."
 
@@ -309,7 +310,7 @@ func (c *importCommand) convertJekyllPost(path, relPath, targetDir string, draft
 
 	targetFile := filepath.Join(targetDir, relPath)
 	targetParentDir := filepath.Dir(targetFile)
-	os.MkdirAll(targetParentDir, 0o777) // nolint
+	os.MkdirAll(targetParentDir, 0o777)
 
 	contentBytes, err := os.ReadFile(path)
 	if err != nil {

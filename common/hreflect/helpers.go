@@ -22,9 +22,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neohugo/neohugo/common/htime"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/types"
+	"github.com/gohugoio/hugo/common/htime"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/types"
 )
 
 // TODO(bep) replace the private versions in /tpl with these.
@@ -223,6 +223,27 @@ func AsTime(v reflect.Value, loc *time.Location) (time.Time, bool) {
 	return time.Time{}, false
 }
 
+// ToSliceAny converts the given value to a slice of any if possible.
+func ToSliceAny(v any) ([]any, bool) {
+	if v == nil {
+		return nil, false
+	}
+	switch vv := v.(type) {
+	case []any:
+		return vv, true
+	default:
+		vvv := reflect.ValueOf(v)
+		if vvv.Kind() == reflect.Slice {
+			out := make([]any, vvv.Len())
+			for i := 0; i < vvv.Len(); i++ {
+				out[i] = vvv.Index(i).Interface()
+			}
+			return out, true
+		}
+	}
+	return nil, false
+}
+
 func CallMethodByName(cxt context.Context, name string, v reflect.Value) []reflect.Value {
 	fn := v.MethodByName(name)
 	var args []reflect.Value
@@ -268,7 +289,8 @@ func IsContextType(tp reflect.Type) bool {
 		return true
 	}
 
-	return isContextCache.GetOrCreate(tp, func() bool {
-		return tp.Implements(contextInterface)
+	isContext, _ := isContextCache.GetOrCreate(tp, func() (bool, error) {
+		return tp.Implements(contextInterface), nil
 	})
+	return isContext
 }

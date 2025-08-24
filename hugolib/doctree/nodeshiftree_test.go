@@ -22,9 +22,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
+	"github.com/gohugoio/hugo/common/para"
+	"github.com/gohugoio/hugo/hugolib/doctree"
 	"github.com/google/go-cmp/cmp"
-	"github.com/neohugo/neohugo/common/para"
-	"github.com/neohugo/neohugo/hugolib/doctree"
 )
 
 var eq = qt.CmpEquals(
@@ -98,7 +98,7 @@ func TestTreeData(t *testing.T) {
 		},
 	}
 
-	w.Walk(context.Background()) // nolint
+	w.Walk(context.Background())
 
 	c.Assert(strings.Join(values, "|"), qt.Equals, "/a::map[id:HOME]|/a/b:/a:map[id:/a]|/b::map[id:HOME]|/b/c:/b:map[id:/b]|/b/c/d:/b/c:map[id:/b/c]")
 }
@@ -173,7 +173,7 @@ func TestTreeInsert(t *testing.T) {
 	c.Assert(tree.Get("/notfound"), qt.IsNil)
 
 	ab2 := &testValue{ID: "/a/b", Lang: 0}
-	v, ok := tree.InsertIntoValuesDimension("/a/b", ab2)
+	v, _, ok := tree.InsertIntoValuesDimension("/a/b", ab2)
 	c.Assert(ok, qt.IsTrue)
 	c.Assert(v, qt.DeepEquals, ab2)
 
@@ -239,16 +239,16 @@ func (s *testShifter) ForEeachInDimension(n *testValue, d int, f func(n *testVal
 	f(n)
 }
 
-func (s *testShifter) Insert(old, new *testValue) *testValue {
-	return new
+func (s *testShifter) Insert(old, new *testValue) (*testValue, *testValue, bool) {
+	return new, old, true
 }
 
-func (s *testShifter) InsertInto(old, new *testValue, dimension doctree.Dimension) *testValue {
-	return new
+func (s *testShifter) InsertInto(old, new *testValue, dimension doctree.Dimension) (*testValue, *testValue, bool) {
+	return new, old, true
 }
 
-func (s *testShifter) Delete(n *testValue, dimension doctree.Dimension) (bool, bool) {
-	return true, true
+func (s *testShifter) Delete(n *testValue, dimension doctree.Dimension) (*testValue, bool, bool) {
+	return nil, true, true
 }
 
 func (s *testShifter) Shift(n *testValue, dimension doctree.Dimension, exact bool) (*testValue, bool, doctree.DimensionFlag) {

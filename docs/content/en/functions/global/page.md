@@ -35,7 +35,7 @@ Do not use the global `page` function in shortcodes, partials called by shortcod
 
 ## Explanation
 
-Hugo almost always passes a `Page` as the data context into the top level template (e.g., `single.html`). The one exception is the multihost sitemap template. This means that you can access the current page with the `.` variable in the template.
+Hugo almost always passes a `Page` as the data context into the top level template (e.g., `single.html`). The one exception is the multihost sitemap template. This means that you can access the current page with the `.` in the template.
 
 But when you are deeply nested inside of a [content view], [partial], or [render hook], it is not always practical or possible to access the `Page` object.
 
@@ -58,7 +58,7 @@ content/
 └── _index.md      <-- title is "My Home Page"
 ```
 
-And this code in the home page template:
+And this code in the home template:
 
 ```go-html-template
 {{ range site.Sections }}
@@ -76,7 +76,7 @@ My Home Page
 My Home Page
 ```
 
-In the example above, the global `page` function accesses the `Page` object passed into the home page template; it does not access the `Page` object of the iterated pages.
+In the example above, the global `page` function accesses the `Page` object passed into the home template; it does not access the `Page` object of the iterated pages.
 
 ### Be aware of caching
 
@@ -101,8 +101,8 @@ When you call the [`Summary`] method, Hugo renders the page content including sh
 
 If Hugo renders the section page before a content page, the cached rendered shortcode will be incorrect. You cannot control the rendering sequence due to concurrency.
 
-[`Summary`]: /methods/page/summary
-[`partialCached`]: /functions/partials/includecached
+[`Summary`]: /methods/page/summary/
+[`partialCached`]: /functions/partials/includecached/
 [content view]: /getting-started/glossary/#content-view
 [partial]: /getting-started/glossary/#partial
 [render hook]: /getting-started/glossary/#render-hook

@@ -13,7 +13,7 @@ action:
   signatures: ['template NAME [CONTEXT]']
 ---
 
-Use the `template` function to execute [internal templates]. For example:
+Use the `template` function to execute [embedded templates]. For example:
 
 ```go-html-template
 {{ range (.Paginate .Pages).Pages }}
@@ -45,5 +45,5 @@ The example above can be rewritten using an [inline partial] template:
 {{% include "functions/go-template/_common/text-template.md" %}}
 
 [`partial`]: /functions/partials/include/
-[inline partial]: /templates/partials/#inline-partials
-[internal templates]: /templates/internal
+[inline partial]: /templates/partial/#inline-partials
+[embedded templates]: /templates/embedded/

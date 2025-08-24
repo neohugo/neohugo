@@ -25,7 +25,8 @@ import (
 
 	"github.com/bep/lazycache"
 
-	"github.com/neohugo/neohugo/identity"
+	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/gohugoio/hugo/identity"
 
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 
@@ -50,7 +51,7 @@ func (k partialCacheKey) Key() string {
 	if k.Variants == nil {
 		return k.Name
 	}
-	return identity.HashString(append([]any{k.Name}, k.Variants...)...)
+	return hashing.HashString(append([]any{k.Name}, k.Variants...)...)
 }
 
 func (k partialCacheKey) templateName() string {
@@ -80,8 +81,9 @@ func New(deps *deps.Deps) *Namespace {
 
 	cache := &partialCache{cache: lru}
 	deps.BuildStartListeners.Add(
-		func() {
+		func(...any) bool {
 			cache.clear()
+			return false
 		})
 
 	return &Namespace{

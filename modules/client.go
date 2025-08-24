@@ -43,7 +43,15 @@ import (
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/rogpeppe/go-internal/module" // nolint
+	"github.com/gohugoio/hugo/hugofs/files"
+
+	"github.com/gohugoio/hugo/config"
+
+	"golang.org/x/mod/module"
+
+	"github.com/gohugoio/hugo/common/hugio"
+
+	"github.com/spf13/afero"
 )
 
 var fileSeparator = string(os.PathSeparator)
@@ -361,19 +369,7 @@ func (c *Client) Get(args ...string) error {
 }
 
 func (c *Client) get(args ...string) error {
-	var hasD bool
-	for _, arg := range args {
-		if arg == "-d" {
-			hasD = true
-			break
-		}
-	}
-	if !hasD {
-		// go get without the -d flag does not make sense to us, as
-		// it will try to build and install go packages.
-		args = append([]string{"-d"}, args...)
-	}
-	if err := c.runGo(context.Background(), c.logger.Out(), append([]string{"get"}, args...)...); err != nil {
+	if err := c.runGo(context.Background(), c.logger.StdOut(), append([]string{"get"}, args...)...); err != nil {
 		return fmt.Errorf("failed to get %q: %w", args, err)
 	}
 	return nil
@@ -383,7 +379,7 @@ func (c *Client) get(args ...string) error {
 // If path is empty, Go will try to guess.
 // If this succeeds, this project will be marked as Go Module.
 func (c *Client) Init(path string) error {
-	err := c.runGo(context.Background(), c.logger.Out(), "mod", "init", path)
+	err := c.runGo(context.Background(), c.logger.StdOut(), "mod", "init", path)
 	if err != nil {
 		return fmt.Errorf("failed to init modules: %w", err)
 	}
@@ -641,7 +637,7 @@ func (c *Client) runGo(
 
 	argsv := collections.StringSliceToInterfaceSlice(args)
 	argsv = append(argsv, hexec.WithEnviron(c.environ))
-	argsv = append(argsv, hexec.WithStderr(io.MultiWriter(stderr, os.Stderr)))
+	argsv = append(argsv, hexec.WithStderr(goOutputReplacerWriter{w: io.MultiWriter(stderr, os.Stderr)}))
 	argsv = append(argsv, hexec.WithStdout(stdout))
 	argsv = append(argsv, hexec.WithDir(c.ccfg.WorkingDir))
 	argsv = append(argsv, hexec.WithContext(ctx))
@@ -685,6 +681,24 @@ If you then run 'hugo mod graph' it should resolve itself to the most recent ver
 	}
 
 	return nil
+}
+
+var goOutputReplacer = strings.NewReplacer(
+	"go: to add module requirements and sums:", "hugo: to add module requirements and sums:",
+	"go mod tidy", "hugo mod tidy",
+)
+
+type goOutputReplacerWriter struct {
+	w io.Writer
+}
+
+func (w goOutputReplacerWriter) Write(p []byte) (n int, err error) {
+	s := goOutputReplacer.Replace(string(p))
+	_, err = w.w.Write([]byte(s))
+	if err != nil {
+		return 0, err
+	}
+	return len(p), nil
 }
 
 func (c *Client) tidy(mods Modules, goModOnly bool) error {
@@ -750,11 +764,17 @@ type ClientConfig struct {
 	// This can be nil.
 	IgnoreVendor glob.Glob
 
+	// Ignore any module not found errors.
+	IgnoreModuleDoesNotExist bool
+
 	// Absolute path to the project dir.
 	WorkingDir string
 
 	// Absolute path to the project's themes dir.
 	ThemesDir string
+
+	// The publish dir.
+	PublishDir string
 
 	// Eg. "production"
 	Environment string

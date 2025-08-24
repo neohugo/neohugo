@@ -20,8 +20,8 @@ import (
 	"path/filepath"
 	"reflect"
 
-	"github.com/neohugo/neohugo/codegen"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/codegen"
+	"github.com/gohugoio/hugo/resources/page"
 )
 
 const header = `// Copyright 2019 The Hugo Authors. All rights reserved.

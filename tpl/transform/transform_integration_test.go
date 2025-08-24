@@ -14,10 +14,12 @@
 package transform_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/hugolib"
+	"github.com/gohugoio/hugo/hugolib"
 )
 
 // Issue #11698
@@ -132,4 +134,148 @@ Scar,"a "dead cat",11
 	b.AssertFileContent("public/index.html", `
 [[name description age] [Spot a nice dog 3] [Rover a big dog 5] [Felix a "malicious" cat 7] [Bella an "evil" cat 9] [Scar a "dead cat 11]]
 	`)
+}
+
+func TestToMath(t *testing.T) {
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/index.html --
+{{ transform.ToMath "c = \\pm\\sqrt{a^2 + b^2}" }}
+  `
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/index.html", `
+<span class="katex"><math
+	`)
+}
+
+func TestToMathError(t *testing.T) {
+	t.Run("Default", func(t *testing.T) {
+		files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/index.html --
+{{  transform.ToMath "c = \\foo{a^2 + b^2}" }}
+  `
+		b, err := hugolib.TestE(t, files, hugolib.TestOptWarn())
+
+		b.Assert(err, qt.IsNotNil)
+		b.Assert(err.Error(), qt.Contains, "KaTeX parse error: Undefined control sequence: \\foo")
+	})
+
+	t.Run("Disable ThrowOnError", func(t *testing.T) {
+		files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/index.html --
+{{ $opts := dict "throwOnError" false }}
+{{  transform.ToMath "c = \\foo{a^2 + b^2}" $opts }}
+  `
+		b, err := hugolib.TestE(t, files, hugolib.TestOptWarn())
+
+		b.Assert(err, qt.IsNil)
+		b.AssertFileContent("public/index.html", `#cc0000`) // Error color
+	})
+
+	t.Run("Handle in template", func(t *testing.T) {
+		files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/index.html --
+{{ with transform.ToMath "c = \\foo{a^2 + b^2}" }}
+	{{ with .Err }}
+	 	{{ warnf "error: %s" . }}
+	{{ else }}
+		{{ . }}
+	{{ end }}
+{{ end }}
+  `
+		b, err := hugolib.TestE(t, files, hugolib.TestOptWarn())
+
+		b.Assert(err, qt.IsNil)
+		b.AssertLogContains("WARN  error: KaTeX parse error: Undefined control sequence: \\foo")
+	})
+}
+
+func TestToMathBigAndManyExpressions(t *testing.T) {
+	filesTemplate := `
+-- hugo.toml --
+disableKinds = ['rss','section','sitemap','taxonomy','term']
+[markup.goldmark.extensions.passthrough]
+enable = true
+[markup.goldmark.extensions.passthrough.delimiters]
+block  = [['\[', '\]'], ['$$', '$$']]
+inline = [['\(', '\)'], ['$', '$']]
+-- content/p1.md --
+P1_CONTENT
+-- layouts/index.html --
+Home.
+-- layouts/_default/single.html --
+Content: {{ .Content }}|
+-- layouts/_default/_markup/render-passthrough.html --
+{{ $opts := dict "throwOnError" false "displayMode" true }}
+{{ transform.ToMath .Inner $opts }}
+  `
+
+	t.Run("Very large file with many complex KaTeX expressions", func(t *testing.T) {
+		files := strings.ReplaceAll(filesTemplate, "P1_CONTENT", "sourcefilename: testdata/large-katex.md")
+		b := hugolib.Test(t, files)
+		b.AssertFileContent("public/p1/index.html", `
+		<span class="katex"><math
+			`)
+	})
+
+	t.Run("Large and complex expression", func(t *testing.T) {
+		// This is pulled from the file above, which times out for some reason.
+		largeAndComplexeExpressions := `\begin{align*} \frac{\pi^2}{6}&=\frac{4}{3}\frac{(\arcsin 1)^2}{2}\\ &=\frac{4}{3}\int_0^1\frac{\arcsin x}{\sqrt{1-x^2}}\,dx\\ &=\frac{4}{3}\int_0^1\frac{x+\sum_{n=1}^{\infty}\frac{(2n-1)!!}{(2n)!!}\frac{x^{2n+1}}{2n+1}}{\sqrt{1-x^2}}\,dx\\ &=\frac{4}{3}\int_0^1\frac{x}{\sqrt{1-x^2}}\,dx +\frac{4}{3}\sum_{n=1}^{\infty}\frac{(2n-1)!!}{(2n)!!(2n+1)}\int_0^1x^{2n}\frac{x}{\sqrt{1-x^2}}\,dx\\ &=\frac{4}{3}+\frac{4}{3}\sum_{n=1}^{\infty}\frac{(2n-1)!!}{(2n)!!(2n+1)}\left[\frac{(2n)!!}{(2n+1)!!}\right]\\ &=\frac{4}{3}\sum_{n=0}^{\infty}\frac{1}{(2n+1)^2}\\ &=\frac{4}{3}\left(\sum_{n=1}^{\infty}\frac{1}{n^2}-\frac{1}{4}\sum_{n=1}^{\infty}\frac{1}{n^2}\right)\\ &=\sum_{n=1}^{\infty}\frac{1}{n^2} \end{align*}`
+		files := strings.ReplaceAll(filesTemplate, "P1_CONTENT", fmt.Sprintf(`---
+title: p1
+---
+
+$$%s$$
+	`, largeAndComplexeExpressions))
+
+		b := hugolib.Test(t, files)
+		b.AssertFileContent("public/p1/index.html", `
+		<span class="katex"><math
+			`)
+	})
+}
+
+func TestToMathMacros(t *testing.T) {
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/index.html --
+{{ $macros := dict
+    "\\addBar" "\\bar{#1}"
+	"\\bold" "\\mathbf{#1}"
+}}
+{{ $opts := dict "macros" $macros }}
+{{ transform.ToMath "\\addBar{y} + \\bold{H}" $opts }}
+  `
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/index.html", `
+<mi>y</mi>
+	`)
+}
+
+// Issue #12977
+func TestUnmarshalWithIndentedYAML(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/index.html --
+{{ $yaml := "\n  a:\n    b: 1\n  c:\n    d: 2\n" }}
+{{ $yaml | transform.Unmarshal | encoding.Jsonify }}
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileExists("public/index.html", true)
+	b.AssertFileContent("public/index.html", `{"a":{"b":1},"c":{"d":2}}`)
 }

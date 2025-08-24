@@ -27,10 +27,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/parser/pageparser"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/types"
 
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/text"
@@ -42,9 +40,10 @@ import (
 )
 
 var (
-	_ urls.RefLinker  = (*ShortcodeWithPage)(nil)
-	_ types.Unwrapper = (*ShortcodeWithPage)(nil)
-	_ text.Positioner = (*ShortcodeWithPage)(nil)
+	_ urls.RefLinker     = (*ShortcodeWithPage)(nil)
+	_ types.Unwrapper    = (*ShortcodeWithPage)(nil)
+	_ text.Positioner    = (*ShortcodeWithPage)(nil)
+	_ maps.StoreProvider = (*ShortcodeWithPage)(nil)
 )
 
 // ShortcodeWithPage is the "." context in a shortcode template.
@@ -71,7 +70,7 @@ type ShortcodeWithPage struct {
 	posOffset int
 	pos       text.Position
 
-	scratch *maps.Scratch
+	store *maps.Scratch
 }
 
 // InnerDeindent returns the (potentially de-indented) inner content of the shortcode.
@@ -123,13 +122,19 @@ func (scp *ShortcodeWithPage) RelRef(args map[string]any) (string, error) {
 	return scp.Page.RelRefFrom(args, scp)
 }
 
+// Store returns this shortcode's Store.
+func (scp *ShortcodeWithPage) Store() *maps.Scratch {
+	if scp.store == nil {
+		scp.store = maps.NewScratch()
+	}
+	return scp.store
+}
+
 // Scratch returns a scratch-pad scoped for this shortcode. This can be used
 // as a temporary storage for variables, counters etc.
+// Deprecated: Use Store instead. Note that from the templates this should be considered a "soft deprecation".
 func (scp *ShortcodeWithPage) Scratch() *maps.Scratch {
-	if scp.scratch == nil {
-		scp.scratch = maps.NewScratch()
-	}
-	return scp.scratch
+	return scp.Store()
 }
 
 // Get is a convenience method to look up shortcode parameters by its key.
@@ -320,10 +325,16 @@ func prepareShortcode(
 
 	// Allow the caller to delay the rendering of the shortcode if needed.
 	var fn shortcodeRenderFunc = func(ctx context.Context) ([]byte, bool, error) {
+		if p.m.pageConfig.ContentMediaType.IsMarkdown() && sc.doMarkup {
+			// Signal downwards that the content rendered will be
+			// parsed and rendered by Goldmark.
+			ctx = tpl.Context.IsInGoldmark.Set(ctx, true)
+		}
 		r, err := doRenderShortcode(ctx, level, s, tplVariants, sc, parent, p, isRenderString)
 		if err != nil {
 			return nil, false, toParseErr(err)
 		}
+
 		b, hasVariants, err := r.renderShortcode(ctx)
 		if err != nil {
 			return nil, false, toParseErr(err)
@@ -392,7 +403,16 @@ func doRenderShortcode(
 		hasVariants = hasVariants || more
 	}
 
-	data := &ShortcodeWithPage{Ordinal: sc.ordinal, posOffset: sc.pos, indentation: sc.indentation, Params: sc.params, Page: newPageForShortcode(p), Parent: parent, Name: sc.name}
+	data := &ShortcodeWithPage{
+		Ordinal:     sc.ordinal,
+		posOffset:   sc.pos,
+		indentation: sc.indentation,
+		Params:      sc.params,
+		Page:        newPageForShortcode(p),
+		Parent:      parent,
+		Name:        sc.name,
+	}
+
 	if sc.params != nil {
 		data.IsNamedParams = reflect.TypeOf(sc.params).Kind() == reflect.Map
 	}
@@ -442,7 +462,7 @@ func doRenderShortcode(
 			//     unchanged.
 			// 2   If inner does not have a newline, strip the wrapping <p> block and
 			//     the newline.
-			switch p.m.pageConfig.Markup {
+			switch p.m.pageConfig.Content.Markup {
 			case "", "markdown":
 				if match, _ := regexp.MatchString(innerNewlineRegexp, inner); !match {
 					cleaner, err := regexp.Compile(innerCleanupRegexp)

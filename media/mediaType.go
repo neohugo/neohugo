@@ -117,13 +117,16 @@ func FromContent(types Types, extensionHints []string, content []byte) Type {
 	return m
 }
 
-// FromStringAndExt creates a Type from a MIME string and a given extension.
-func FromStringAndExt(t, ext string) (Type, error) {
+// FromStringAndExt creates a Type from a MIME string and a given extensions
+func FromStringAndExt(t string, ext ...string) (Type, error) {
 	tp, err := FromString(t)
 	if err != nil {
 		return tp, err
 	}
-	tp.SuffixesCSV = strings.TrimPrefix(ext, ".")
+	for i, e := range ext {
+		ext[i] = strings.TrimPrefix(e, ".")
+	}
+	tp.SuffixesCSV = strings.Join(ext, ",")
 	tp.Delimiter = DefaultDelimiter
 	tp.init()
 	return tp, nil
@@ -187,6 +190,16 @@ func (m Type) IsText() bool {
 	return false
 }
 
+// For internal use.
+func (m Type) IsHTML() bool {
+	return m.SubType == Builtin.HTMLType.SubType
+}
+
+// For internal use.
+func (m Type) IsMarkdown() bool {
+	return m.SubType == Builtin.MarkdownType.SubType
+}
+
 func InitMediaType(m *Type) {
 	m.init()
 }
@@ -221,6 +234,26 @@ func (t Types) Len() int           { return len(t) }
 func (t Types) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
 func (t Types) Less(i, j int) bool { return t[i].Type < t[j].Type }
 
+// GetBestMatch returns the best match for the given media type string.
+func (t Types) GetBestMatch(s string) (Type, bool) {
+	// First try an exact match.
+	if mt, found := t.GetByType(s); found {
+		return mt, true
+	}
+
+	// Try main type.
+	if mt, found := t.GetBySubType(s); found {
+		return mt, true
+	}
+
+	// Try extension.
+	if mt, _, found := t.GetFirstBySuffix(s); found {
+		return mt, true
+	}
+
+	return Type{}, false
+}
+
 // GetByType returns a media type for tp.
 func (t Types) GetByType(tp string) (Type, bool) {
 	for _, tt := range t {
@@ -240,9 +273,13 @@ func (t Types) GetByType(tp string) (Type, bool) {
 	return Type{}, false
 }
 
+func (t Types) normalizeSuffix(s string) string {
+	return strings.ToLower(strings.TrimPrefix(s, "."))
+}
+
 // BySuffix will return all media types matching a suffix.
 func (t Types) BySuffix(suffix string) []Type {
-	suffix = strings.ToLower(suffix)
+	suffix = t.normalizeSuffix(suffix)
 	var types []Type
 	for _, tt := range t {
 		if tt.hasSuffix(suffix) {
@@ -254,7 +291,7 @@ func (t Types) BySuffix(suffix string) []Type {
 
 // GetFirstBySuffix will return the first type matching the given suffix.
 func (t Types) GetFirstBySuffix(suffix string) (Type, SuffixInfo, bool) {
-	suffix = strings.ToLower(suffix)
+	suffix = t.normalizeSuffix(suffix)
 	for _, tt := range t {
 		if tt.hasSuffix(suffix) {
 			return tt, SuffixInfo{
@@ -271,7 +308,7 @@ func (t Types) GetFirstBySuffix(suffix string) (Type, SuffixInfo, bool) {
 // is ambiguous.
 // The lookup is case insensitive.
 func (t Types) GetBySuffix(suffix string) (tp Type, si SuffixInfo, found bool) {
-	suffix = strings.ToLower(suffix)
+	suffix = t.normalizeSuffix(suffix)
 	for _, tt := range t {
 		if tt.hasSuffix(suffix) {
 			if found {
@@ -291,7 +328,7 @@ func (t Types) GetBySuffix(suffix string) (tp Type, si SuffixInfo, found bool) {
 }
 
 func (t Types) IsTextSuffix(suffix string) bool {
-	suffix = strings.ToLower(suffix)
+	suffix = t.normalizeSuffix(suffix)
 	for _, tt := range t {
 		if tt.hasSuffix(suffix) {
 			return tt.IsText()
@@ -317,6 +354,22 @@ func (t Types) GetByMainSubType(mainType, subType string) (tp Type, found bool) 
 				return
 			}
 
+			tp = tt
+			found = true
+		}
+	}
+	return
+}
+
+// GetBySubType gets a media type given a sub type e.g. "plain".
+func (t Types) GetBySubType(subType string) (tp Type, found bool) {
+	for _, tt := range t {
+		if strings.EqualFold(subType, tt.SubType) {
+			if found {
+				// ambiguous
+				found = false
+				return
+			}
 			tp = tt
 			found = true
 		}

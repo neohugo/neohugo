@@ -21,20 +21,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/gohugoio/hugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/neohugo/neohugo/navigation"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/media"
-	"github.com/neohugo/neohugo/related"
+	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/media"
+	"github.com/gohugoio/hugo/related"
 
 	"github.com/neohugo/neohugo/source"
 )
@@ -127,14 +127,6 @@ func (p *testPage) AlternativeOutputFormats() OutputFormats {
 	panic("testpage: not implemented")
 }
 
-func (p *testPage) Author() Author {
-	return Author{}
-}
-
-func (p *testPage) Authors() AuthorList {
-	return nil
-}
-
 func (p *testPage) BaseFileName() string {
 	panic("testpage: not implemented")
 }
@@ -144,6 +136,10 @@ func (p *testPage) BundleType() string {
 }
 
 func (p *testPage) Content(context.Context) (any, error) {
+	panic("testpage: not implemented")
+}
+
+func (p *testPage) Markup(...any) Markup {
 	panic("testpage: not implemented")
 }
 
@@ -175,6 +171,10 @@ func (p *testPage) Description() string {
 	return ""
 }
 
+func (p *testPage) ContentWithoutSummary(ctx context.Context) (template.HTML, error) {
+	return "", nil
+}
+
 func (p *testPage) Dir() string {
 	panic("testpage: not implemented")
 }
@@ -189,14 +189,6 @@ func (p *testPage) Eq(other any) bool {
 
 func (p *testPage) ExpiryDate() time.Time {
 	return p.expiryDate
-}
-
-func (p *testPage) Ext() string {
-	panic("testpage: not implemented")
-}
-
-func (p *testPage) Extension() string {
-	panic("testpage: not implemented")
 }
 
 func (p *testPage) File() *source.File {
@@ -447,10 +439,6 @@ func (p *testPage) PrevPage() Page {
 
 func (p *testPage) PublishDate() time.Time {
 	return p.pubDate
-}
-
-func (p *testPage) RSSLink() template.URL {
-	return ""
 }
 
 func (p *testPage) RawContent() string {

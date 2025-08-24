@@ -18,11 +18,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/hugolib/doctree"
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/hugolib/doctree"
+	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/gohugoio/hugo/resources/page"
 )
 
 // pageTree holds the treen navigational method for a Page.
@@ -124,11 +124,16 @@ func (pt pageTree) Parent() page.Page {
 		return pt.p.s.home
 	}
 
-	_, n := pt.p.s.pageMap.treePages.LongestPrefix(dir, true, nil)
-	if n != nil {
-		return n.(page.Page)
+	for {
+		_, n := pt.p.s.pageMap.treePages.LongestPrefix(dir, true, nil)
+		if n == nil {
+			return pt.p.s.home
+		}
+		if pt.p.m.bundled || n.isContentNodeBranch() {
+			return n.(page.Page)
+		}
+		dir = paths.Dir(dir)
 	}
-	return nil
 }
 
 func (pt pageTree) Ancestors() page.Pages {

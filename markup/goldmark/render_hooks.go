@@ -49,9 +49,10 @@ func newLinks(cfg goldmark_config.Config) goldmark.Extender {
 
 type linkContext struct {
 	page        any
+	pageInner   any
 	destination string
 	title       string
-	text        hstring.RenderedString
+	text        hstring.HTML
 	plainText   string
 	*attributes.AttributesHolder
 }
@@ -64,7 +65,11 @@ func (ctx linkContext) Page() any {
 	return ctx.page
 }
 
-func (ctx linkContext) Text() hstring.RenderedString {
+func (ctx linkContext) PageInner() any {
+	return ctx.pageInner
+}
+
+func (ctx linkContext) Text() hstring.HTML {
 	return ctx.text
 }
 
@@ -92,15 +97,20 @@ func (ctx imageLinkContext) Ordinal() int {
 
 type headingContext struct {
 	page      any
+	pageInner any
 	level     int
 	anchor    string
-	text      hstring.RenderedString
+	text      hstring.HTML
 	plainText string
 	*attributes.AttributesHolder
 }
 
 func (ctx headingContext) Page() any {
 	return ctx.page
+}
+
+func (ctx headingContext) PageInner() any {
+	return ctx.pageInner
 }
 
 func (ctx headingContext) Level() int {
@@ -111,7 +121,7 @@ func (ctx headingContext) Anchor() string {
 	return ctx.anchor
 }
 
-func (ctx headingContext) Text() hstring.RenderedString {
+func (ctx headingContext) Text() hstring.HTML {
 	return ctx.text
 }
 
@@ -159,9 +169,7 @@ func (r *hookedRenderer) renderImage(w util.BufWriter, source []byte, node ast.N
 		return ast.WalkContinue, nil
 	}
 
-	pos := ctx.PopPos()
-	text := ctx.Buffer.Bytes()[pos:]
-	ctx.Buffer.Truncate(pos)
+	text := ctx.PopRenderedString()
 
 	var (
 		isBlock bool
@@ -180,16 +188,19 @@ func (r *hookedRenderer) renderImage(w util.BufWriter, source []byte, node ast.N
 	// internal attributes before rendering.
 	attrs := r.filterInternalAttributes(n.Attributes())
 
+	page, pageInner := render.GetPageAndPageInner(ctx)
+
 	err := lr.RenderLink(
 		ctx.RenderContext().Ctx,
 		w,
 		imageLinkContext{
 			linkContext: linkContext{
-				page:             ctx.DocumentContext().Document,
+				page:             page,
+				pageInner:        pageInner,
 				destination:      string(n.Destination),
 				title:            string(n.Title),
-				text:             hstring.RenderedString(text),
-				plainText:        string(n.Text(source)),
+				text:             hstring.HTML(text),
+				plainText:        render.TextPlain(n, source),
 				AttributesHolder: attributes.New(attrs, attributes.AttributesOwnerGeneral),
 			},
 			ordinal: ordinal,
@@ -212,7 +223,7 @@ func (r *hookedRenderer) filterInternalAttributes(attrs []ast.Attribute) []ast.A
 }
 
 // Fall back to the default Goldmark render funcs. Method below borrowed from:
-// https://github.com/yuin/goldmark/blob/b611cd333a492416b56aa8d94b04a67bf0096ab2/renderer/html/html.go#L404
+// https://github.com/yuin/goldmark
 func (r *hookedRenderer) renderImageDefault(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
 	if !entering {
 		return ast.WalkContinue, nil
@@ -223,7 +234,7 @@ func (r *hookedRenderer) renderImageDefault(w util.BufWriter, source []byte, nod
 		_, _ = w.Write(util.EscapeHTML(util.URLEscape(n.Destination, true)))
 	}
 	_, _ = w.WriteString(`" alt="`)
-	_, _ = w.Write(nodeToHTMLText(n, source))
+	r.renderTexts(w, source, n)
 	_ = w.WriteByte('"')
 	if n.Title != nil {
 		_, _ = w.WriteString(` title="`)
@@ -231,8 +242,7 @@ func (r *hookedRenderer) renderImageDefault(w util.BufWriter, source []byte, nod
 		_ = w.WriteByte('"')
 	}
 	if n.Attributes() != nil {
-		attrs := r.filterInternalAttributes(n.Attributes())
-		attributes.RenderASTAttributes(w, attrs...)
+		html.RenderAttributes(w, n, html.ImageAttributeFilter)
 	}
 	if r.XHTML {
 		_, _ = w.WriteString(" />")
@@ -265,24 +275,98 @@ func (r *hookedRenderer) renderLink(w util.BufWriter, source []byte, node ast.No
 		return ast.WalkContinue, nil
 	}
 
-	pos := ctx.PopPos()
-	text := ctx.Buffer.Bytes()[pos:]
-	ctx.Buffer.Truncate(pos)
+	text := ctx.PopRenderedString()
+
+	page, pageInner := render.GetPageAndPageInner(ctx)
 
 	err := lr.RenderLink(
 		ctx.RenderContext().Ctx,
 		w,
 		linkContext{
-			page:             ctx.DocumentContext().Document,
+			page:             page,
+			pageInner:        pageInner,
 			destination:      string(n.Destination),
 			title:            string(n.Title),
-			text:             hstring.RenderedString(text),
-			plainText:        string(n.Text(source)),
+			text:             hstring.HTML(text),
+			plainText:        render.TextPlain(n, source),
 			AttributesHolder: attributes.Empty,
 		},
 	)
 
 	return ast.WalkContinue, err
+}
+
+// Borrowed from Goldmark's HTML renderer.
+func (r *hookedRenderer) renderTexts(w util.BufWriter, source []byte, n ast.Node) {
+	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+		if s, ok := c.(*ast.String); ok {
+			_, _ = r.renderString(w, source, s, true)
+		} else if t, ok := c.(*ast.Text); ok {
+			_, _ = r.renderText(w, source, t, true)
+		} else {
+			r.renderTexts(w, source, c)
+		}
+	}
+}
+
+// Borrowed from Goldmark's HTML renderer.
+func (r *hookedRenderer) renderString(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.String)
+	if n.IsCode() {
+		_, _ = w.Write(n.Value)
+	} else {
+		if n.IsRaw() {
+			r.Writer.RawWrite(w, n.Value)
+		} else {
+			r.Writer.Write(w, n.Value)
+		}
+	}
+	return ast.WalkContinue, nil
+}
+
+// Borrowed from Goldmark's HTML renderer.
+func (r *hookedRenderer) renderText(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	if !entering {
+		return ast.WalkContinue, nil
+	}
+	n := node.(*ast.Text)
+	segment := n.Segment
+	if n.IsRaw() {
+		r.Writer.RawWrite(w, segment.Value(source))
+	} else {
+		value := segment.Value(source)
+		r.Writer.Write(w, value)
+		if n.HardLineBreak() || (n.SoftLineBreak() && r.HardWraps) {
+			if r.XHTML {
+				_, _ = w.WriteString("<br />\n")
+			} else {
+				_, _ = w.WriteString("<br>\n")
+			}
+		} else if n.SoftLineBreak() {
+			// TODO(bep) we use these methods a fallback to default rendering when no image/link hooks are defined.
+			// I don't think the below is relevant in these situations, but if so, we need to create a PR
+			// upstream to export softLineBreak.
+			/*if r.EastAsianLineBreaks != html.EastAsianLineBreaksNone && len(value) != 0 {
+				sibling := node.NextSibling()
+				if sibling != nil && sibling.Kind() == ast.KindText {
+					if siblingText := sibling.(*ast.Text).Value(source); len(siblingText) != 0 {
+						thisLastRune := util.ToRune(value, len(value)-1)
+						siblingFirstRune, _ := utf8.DecodeRune(siblingText)
+						if r.EastAsianLineBreaks.softLineBreak(thisLastRune, siblingFirstRune) {
+							_ = w.WriteByte('\n')
+						}
+					}
+				}
+			} else {
+				_ = w.WriteByte('\n')
+			}*/
+			_ = w.WriteByte('\n')
+		}
+	}
+	return ast.WalkContinue, nil
 }
 
 // Fall back to the default Goldmark render funcs. Method below borrowed from:
@@ -334,13 +418,16 @@ func (r *hookedRenderer) renderAutoLink(w util.BufWriter, source []byte, node as
 		url = "mailto:" + url
 	}
 
+	page, pageInner := render.GetPageAndPageInner(ctx)
+
 	err := lr.RenderLink(
 		ctx.RenderContext().Ctx,
 		w,
 		linkContext{
-			page:             ctx.DocumentContext().Document,
+			page:             page,
+			pageInner:        pageInner,
 			destination:      url,
-			text:             hstring.RenderedString(label),
+			text:             hstring.HTML(label),
 			plainText:        label,
 			AttributesHolder: attributes.Empty,
 		},
@@ -410,23 +497,25 @@ func (r *hookedRenderer) renderHeading(w util.BufWriter, source []byte, node ast
 		return ast.WalkContinue, nil
 	}
 
-	pos := ctx.PopPos()
-	text := ctx.Buffer.Bytes()[pos:]
-	ctx.Buffer.Truncate(pos)
+	text := ctx.PopRenderedString()
+
 	// All ast.Heading nodes are guaranteed to have an attribute called "id"
 	// that is an array of bytes that encode a valid string.
 	anchori, _ := n.AttributeString("id")
 	anchor := anchori.([]byte)
 
+	page, pageInner := render.GetPageAndPageInner(ctx)
+
 	err := hr.RenderHeading(
 		ctx.RenderContext().Ctx,
 		w,
 		headingContext{
-			page:             ctx.DocumentContext().Document,
+			page:             page,
+			pageInner:        pageInner,
 			level:            n.Level,
 			anchor:           string(anchor),
-			text:             hstring.RenderedString(text),
-			plainText:        string(n.Text(source)),
+			text:             hstring.HTML(text),
+			plainText:        render.TextPlain(n, source),
 			AttributesHolder: attributes.New(n.Attributes(), attributes.AttributesOwnerGeneral),
 		},
 	)
@@ -460,22 +549,4 @@ func (e *links) Extend(m goldmark.Markdown) {
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
 		util.Prioritized(newLinkRenderer(e.cfg), 100),
 	))
-}
-
-// Borrowed from Goldmark.
-func nodeToHTMLText(n ast.Node, source []byte) []byte {
-	var buf bytes.Buffer
-	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
-		if s, ok := c.(*ast.String); ok && s.IsCode() {
-			buf.Write(s.Text(source))
-		} else if !c.HasChildren() {
-			buf.Write(util.EscapeHTML(c.Text(source)))
-			if t, ok := c.(*ast.Text); ok && t.SoftLineBreak() {
-				buf.WriteByte('\n')
-			}
-		} else {
-			buf.Write(nodeToHTMLText(c, source))
-		}
-	}
-	return buf.Bytes()
 }

@@ -14,6 +14,7 @@
 package neohugo
 
 import (
+	"context"
 	"fmt"
 	"testing"
 
@@ -62,13 +63,31 @@ func TestDeprecationLogLevelFromVersion(t *testing.T) {
 	c.Assert(deprecationLogLevelFromVersion(ver.String()), qt.Equals, logg.LevelWarn)
 	ver.Minor -= 6
 	c.Assert(deprecationLogLevelFromVersion(ver.String()), qt.Equals, logg.LevelError)
+
+	// Added just to find the threshold for where we can remove deprecated items.
+	// Subtract 5 from the minor version of the first ERRORed version => 0.122.0.
+	c.Assert(deprecationLogLevelFromVersion("0.127.0"), qt.Equals, logg.LevelError)
+}
+
+func TestMarkupScope(t *testing.T) {
+	c := qt.New(t)
+
+	conf := testConfig{environment: "production", workingDir: "/mywork", running: false}
+	info := NewInfo(conf, nil)
+
+	ctx := context.Background()
+
+	ctx = SetMarkupScope(ctx, "foo")
+
+	c.Assert(info.Context.MarkupScope(ctx), qt.Equals, "foo")
 }
 
 type testConfig struct {
-	environment string
-	running     bool
-	workingDir  string
-	multihost   bool
+	environment  string
+	running      bool
+	workingDir   string
+	multihost    bool
+	multilingual bool
 }
 
 func (c testConfig) Environment() string {
@@ -85,4 +104,8 @@ func (c testConfig) WorkingDir() string {
 
 func (c testConfig) IsMultihost() bool {
 	return c.multihost
+}
+
+func (c testConfig) IsMultilingual() bool {
+	return c.multilingual
 }

@@ -18,16 +18,24 @@ import (
 	"bytes"
 	"context"
 	"encoding/xml"
+	"errors"
 	"html"
 	"html/template"
+	"io"
 	"strings"
+	"sync/atomic"
 
-	"github.com/neohugo/neohugo/cache/dynacache"
-	"github.com/neohugo/neohugo/markup/converter/hooks"
-	"github.com/neohugo/neohugo/markup/highlight"
-	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
-	"github.com/neohugo/neohugo/resources"
-	"github.com/neohugo/neohugo/tpl"
+	"github.com/gohugoio/hugo/cache/dynacache"
+	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/internal/warpc"
+	"github.com/gohugoio/hugo/markup/converter/hooks"
+	"github.com/gohugoio/hugo/markup/highlight"
+	"github.com/gohugoio/hugo/markup/highlight/chromalexers"
+	"github.com/gohugoio/hugo/resources"
+	"github.com/gohugoio/hugo/tpl"
+	"github.com/mitchellh/mapstructure"
 
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
@@ -42,18 +50,26 @@ func New(deps *deps.Deps) *Namespace {
 
 	return &Namespace{
 		deps: deps,
-		cache: dynacache.GetOrCreatePartition[string, *resources.StaleValue[any]](
+		cacheUnmarshal: dynacache.GetOrCreatePartition[string, *resources.StaleValue[any]](
 			deps.MemCache,
-			"/tmpl/transform",
+			"/tmpl/transform/unmarshal",
 			dynacache.OptionsPartition{Weight: 30, ClearWhen: dynacache.ClearOnChange},
+		),
+		cacheMath: dynacache.GetOrCreatePartition[string, template.HTML](
+			deps.MemCache,
+			"/tmpl/transform/math",
+			dynacache.OptionsPartition{Weight: 30, ClearWhen: dynacache.ClearNever},
 		),
 	}
 }
 
 // Namespace provides template functions for the "transform" namespace.
 type Namespace struct {
-	cache *dynacache.Partition[string, *resources.StaleValue[any]]
-	deps  *deps.Deps
+	cacheUnmarshal *dynacache.Partition[string, *resources.StaleValue[any]]
+	cacheMath      *dynacache.Partition[string, template.HTML]
+
+	id   atomic.Uint32
+	deps *deps.Deps
 }
 
 // Emojify returns a copy of s with all emoji codes replaced with actual emojis.
@@ -167,22 +183,92 @@ func (ns *Namespace) Markdownify(ctx context.Context, s any) (template.HTML, err
 	}
 
 	// Strip if this is a short inline type of text.
-	bb := ns.deps.ContentSpec.TrimShortHTML([]byte(ss))
+	bb := ns.deps.ContentSpec.TrimShortHTML([]byte(ss), "markdown")
 
 	return helpers.BytesToHTML(bb), err
 }
 
 // Plainify returns a copy of s with all HTML tags removed.
-func (ns *Namespace) Plainify(s any) (string, error) {
+func (ns *Namespace) Plainify(s any) (template.HTML, error) {
 	ss, err := cast.ToStringE(s)
 	if err != nil {
 		return "", err
 	}
 
-	return tpl.StripHTML(ss), nil
+	return template.HTML(tpl.StripHTML(ss)), nil
+}
+
+// ToMath converts a LaTeX string to math in the given format, default MathML.
+// This uses KaTeX to render the math, see https://katex.org/.
+func (ns *Namespace) ToMath(ctx context.Context, args ...any) (types.Result[template.HTML], error) {
+	var res types.Result[template.HTML]
+
+	if len(args) < 1 {
+		return res, errors.New("must provide at least one argument")
+	}
+	expression, err := cast.ToStringE(args[0])
+	if err != nil {
+		return res, err
+	}
+
+	katexInput := warpc.KatexInput{
+		Expression: expression,
+		Options: warpc.KatexOptions{
+			Output:           "mathml",
+			MinRuleThickness: 0.04,
+			ErrorColor:       "#cc0000",
+			ThrowOnError:     true,
+		},
+	}
+
+	if len(args) > 1 {
+		if err := mapstructure.WeakDecode(args[1], &katexInput.Options); err != nil {
+			return res, err
+		}
+	}
+
+	s := hashing.HashString(args...)
+	key := "tomath/" + s[:2] + "/" + s[2:]
+	fileCache := ns.deps.ResourceSpec.FileCaches.MiscCache()
+
+	v, err := ns.cacheMath.GetOrCreate(key, func(string) (template.HTML, error) {
+		_, r, err := fileCache.GetOrCreate(key, func() (io.ReadCloser, error) {
+			message := warpc.Message[warpc.KatexInput]{
+				Header: warpc.Header{
+					Version: 1,
+					ID:      ns.id.Add(1),
+				},
+				Data: katexInput,
+			}
+
+			k, err := ns.deps.WasmDispatchers.Katex()
+			if err != nil {
+				return nil, err
+			}
+			result, err := k.Execute(ctx, message)
+			if err != nil {
+				return nil, err
+			}
+			return hugio.NewReadSeekerNoOpCloserFromString(result.Data.Output), nil
+		})
+		if err != nil {
+			return "", err
+		}
+
+		s, err := hugio.ReadString(r)
+
+		return template.HTML(s), err
+	})
+
+	res = types.Result[template.HTML]{
+		Value: v,
+		Err:   err,
+	}
+
+	return res, nil
 }
 
 // For internal use.
 func (ns *Namespace) Reset() {
-	ns.cache.Clear()
+	ns.cacheUnmarshal.Clear()
 }

@@ -25,13 +25,13 @@ import (
 
 	"github.com/bep/golibsass/libsass"
 	"github.com/bep/golibsass/libsass/libsasserrors"
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/media"
-	"github.com/neohugo/neohugo/resources"
-	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/internal/sass"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/identity"
+	"github.com/gohugoio/hugo/media"
+	"github.com/gohugoio/hugo/resources"
+	"github.com/gohugoio/hugo/resources/resource_transformers/tocss/sass"
 )
 
 // Used in tests. This feature requires Hugo to be built with the extended tag.
@@ -64,7 +64,7 @@ func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		}
 	}
 
-	varsStylesheet := sass.CreateVarsStyleSheet(options.from.Vars)
+	varsStylesheet := sass.CreateVarsStyleSheet(sass.TranspilerLibSass, options.from.Vars)
 
 	// To allow for overrides of SCSS files anywhere in the project/theme hierarchy, we need
 	// to help libsass revolve the filename by looking in the composite filesystem first.
@@ -105,7 +105,12 @@ func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		} else if strings.HasPrefix(name, "_") {
 			namePatterns = []string{"_%s.scss", "_%s.sass"}
 		} else {
-			namePatterns = []string{"_%s.scss", "%s.scss", "_%s.sass", "%s.sass"}
+			namePatterns = []string{
+				"_%s.scss", "%s.scss",
+				"_%s.sass", "%s.sass",
+				"%s/_index.scss", "%s/_index.sass",
+				"%s/index.scss", "%s/index.sass",
+			}
 		}
 
 		name = strings.TrimPrefix(name, "_")

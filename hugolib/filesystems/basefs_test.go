@@ -22,9 +22,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/config/testconfig"
-	"github.com/neohugo/neohugo/hugolib"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/config/testconfig"
+	"github.com/gohugoio/hugo/hugolib"
 
 	"github.com/spf13/afero"
 
@@ -56,21 +56,19 @@ func TestNewBaseFs(t *testing.T) {
 			base := filepath.Join(workingDir, "themes", theme, dir)
 			filenameTheme := filepath.Join(base, fmt.Sprintf("theme-file-%s.txt", theme))
 			filenameOverlap := filepath.Join(base, "f3.txt")
-			afs.Mkdir(base, 0o755) // nolint
+			afs.Mkdir(base, 0o755)
 			content := []byte(fmt.Sprintf("content:%s:%s", theme, dir))
-			afero.WriteFile(afs, filenameTheme, content, 0o755)   // nolint
-			afero.WriteFile(afs, filenameOverlap, content, 0o755) // nolint
+			afero.WriteFile(afs, filenameTheme, content, 0o755)
+			afero.WriteFile(afs, filenameOverlap, content, 0o755)
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
-		// nolint
 		afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0o755)
-		// nolint
 		afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0o755)
 	}
-	// nolint
+
 	afero.WriteFile(afs, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0o755)
-	// nolint
+
 	afero.WriteFile(afs, filepath.Join(workingDir, "themes", "btheme", "config.toml"), []byte(`
 theme = ["atheme"]
 `), 0o755)
@@ -176,18 +174,18 @@ func TestRealDirs(t *testing.T) {
 
 	c.Assert(afs.MkdirAll(filepath.Join(root, "myassets", "js", "f2"), 0o755), qt.IsNil)
 
-	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf1", "a1.scss")), []byte("content"), 0o755)               // nolint
-	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755)               // nolint
-	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "a2.scss")), []byte("content"), 0o755)                      // nolint
-	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755) // nolint
-	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3", "a4.scss")), []byte("content"), 0o755) // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf1", "a1.scss")), []byte("content"), 0o755)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "scss", "a2.scss")), []byte("content"), 0o755)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf2", "a3.scss")), []byte("content"), 0o755)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "assets", "scss", "sf3", "a4.scss")), []byte("content"), 0o755)
 
-	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "resources", "t1.txt")), []byte("content"), 0o755) // nolint
-	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "resources", "p1.txt")), []byte("content"), 0o755)                 // nolint
-	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "resources", "p2.txt")), []byte("content"), 0o755)                 // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(themesDir, "mytheme", "resources", "t1.txt")), []byte("content"), 0o755)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "resources", "p1.txt")), []byte("content"), 0o755)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "resources", "p2.txt")), []byte("content"), 0o755)
 
-	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "js", "f2", "a1.js")), []byte("content"), 0o755) // nolint
-	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "js", "a2.js")), []byte("content"), 0o755)       // nolint
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "js", "f2", "a1.js")), []byte("content"), 0o755)
+	afero.WriteFile(afs, filepath.Join(filepath.Join(root, "myassets", "js", "a2.js")), []byte("content"), 0o755)
 
 	conf := testconfig.GetTestConfig(afs, v)
 	fs := hugofs.NewFrom(afs, conf.BaseConfig())
@@ -222,6 +220,18 @@ target = 'content'
 source = 'content2'
 target = 'content/c2'
 [[module.mounts]]
+source = 'content3'
+target = 'content/watchdisabled'
+disableWatch = true
+[[module.mounts]]
+source = 'content4'
+target = 'content/excludedsome'
+excludeFiles = 'p1.md'
+[[module.mounts]]
+source = 'content5'
+target = 'content/excludedall'
+excludeFiles = '/**'
+[[module.mounts]]
 source = "hugo_stats.json"
 target = "assets/watching/hugo_stats.json"
 -- hugo_stats.json --
@@ -232,12 +242,27 @@ foo
 -- themes/t1/layouts/_default/single.html --
 {{ .Content }}
 -- themes/t1/static/f1.txt --
+-- content3/p1.md --
+-- content4/p1.md --
+-- content4/p2.md --
+-- content5/p3.md --
+-- content5/p4.md --
 `
 	b := hugolib.Test(t, files)
 	bfs := b.H.BaseFs
-	watchFilenames := bfs.WatchFilenames()
-	//   []string{"/hugo_stats.json", "/content", "/content2", "/themes/t1/layouts", "/themes/t1/layouts/_default", "/themes/t1/static"}
-	b.Assert(watchFilenames, qt.HasLen, 6)
+	watchFilenames := toSlashes(bfs.WatchFilenames())
+
+	// content3 has disableWatch = true
+	// content5 has excludeFiles = '/**'
+	b.Assert(watchFilenames, qt.DeepEquals, []string{"/hugo_stats.json", "/content", "/content2", "/content4", "/themes/t1/layouts", "/themes/t1/layouts/_default", "/themes/t1/static"})
+}
+
+func toSlashes(in []string) []string {
+	out := make([]string, len(in))
+	for i, s := range in {
+		out[i] = filepath.ToSlash(s)
+	}
+	return out
 }
 
 func TestNoSymlinks(t *testing.T) {
@@ -262,13 +287,13 @@ F1 text
 	for _, component := range []string{"content", "static"} {
 		aDir := filepath.Join(tmpDir, component, "a")
 		bDir := filepath.Join(tmpDir, component, "b")
-		os.MkdirAll(aDir, 0o755) // nolint
-		os.MkdirAll(bDir, 0o755) // nolint
-		os.Chdir(bDir)           // nolint
-		os.Symlink("../a", "c")  // nolint
+		os.MkdirAll(aDir, 0o755)
+		os.MkdirAll(bDir, 0o755)
+		os.Chdir(bDir)
+		os.Symlink("../a", "c")
 	}
 
-	os.Chdir(wd) // nolint
+	os.Chdir(wd)
 
 	b := hugolib.NewIntegrationTestBuilder(
 		hugolib.IntegrationTestConfig{
@@ -298,10 +323,10 @@ func TestStaticFs(t *testing.T) {
 	themeStaticDir := filepath.Join(workDir, "themes", "t1", "static")
 	themeStaticDir2 := filepath.Join(workDir, "themes", "t2", "static")
 
-	afero.WriteFile(afs, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755)          // nolint
-	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755)        // nolint
-	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755)  // nolint
-	afero.WriteFile(afs, filepath.Join(themeStaticDir2, "f2.txt"), []byte("Hugo Themes Rocks in t2!"), 0o755) // nolint
+	afero.WriteFile(afs, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755)
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755)
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755)
+	afero.WriteFile(afs, filepath.Join(themeStaticDir2, "f2.txt"), []byte("Hugo Themes Rocks in t2!"), 0o755)
 
 	conf := testconfig.GetTestConfig(afs, v)
 	fs := hugofs.NewFrom(afs, conf.BaseConfig())
@@ -317,7 +342,7 @@ func TestStaticFs(t *testing.T) {
 	checkFileContent(sfs, "f2.txt", c, "Hugo Themes Still Rocks!")
 }
 
-func TestStaticFsMultiHost(t *testing.T) {
+func TestStaticFsMultihost(t *testing.T) {
 	c := qt.New(t)
 	v := config.New()
 	workDir := "mywork"
@@ -343,11 +368,11 @@ func TestStaticFsMultiHost(t *testing.T) {
 
 	themeStaticDir := filepath.Join(workDir, "themes", "t1", "static")
 
-	afero.WriteFile(afs, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755)            // nolint
-	afero.WriteFile(afs, filepath.Join(workDir, "static_no", "f1.txt"), []byte("Hugo Rocks in Norway!"), 0o755) // nolint
+	afero.WriteFile(afs, filepath.Join(workDir, "mystatic", "f1.txt"), []byte("Hugo Rocks!"), 0o755)
+	afero.WriteFile(afs, filepath.Join(workDir, "static_no", "f1.txt"), []byte("Hugo Rocks in Norway!"), 0o755)
 
-	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755)       // nolint
-	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755) // nolint
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f1.txt"), []byte("Hugo Themes Rocks!"), 0o755)
+	afero.WriteFile(afs, filepath.Join(themeStaticDir, "f2.txt"), []byte("Hugo Themes Still Rocks!"), 0o755)
 
 	conf := testconfig.GetTestConfig(afs, v)
 	fs := hugofs.NewFrom(afs, conf.BaseConfig())
@@ -657,10 +682,10 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val string, num int) error {
 	workingDir := v.GetString("workingDir")
 	v.Set(key, val)
-	fs.Mkdir(val, 0o755) // nolint
+	fs.Mkdir(val, 0o755)
 	for i := 0; i < num; i++ {
 		filename := filepath.Join(workingDir, val, fmt.Sprintf("f%d.txt", i+1))
-		afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0o755) // nolint
+		afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0o755)
 	}
 
 	return nil

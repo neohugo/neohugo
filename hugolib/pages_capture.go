@@ -24,15 +24,15 @@ import (
 	"time"
 
 	"github.com/bep/logg"
-	"github.com/neohugo/neohugo/common/hstrings"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/common/rungroup"
+	"github.com/gohugoio/hugo/common/hstrings"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/common/rungroup"
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/source"
+	"github.com/gohugoio/hugo/source"
 
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/hugofs"
 )
 
 func newPagesCollector(
@@ -42,18 +42,20 @@ func newPagesCollector(
 	logger loggers.Logger,
 	infoLogger logg.LevelLogger,
 	m *pageMap,
+	buildConfig *BuildCfg,
 	ids []pathChange,
 ) *pagesCollector {
 	return &pagesCollector{
-		ctx:        ctx,
-		h:          h,
-		fs:         sp.BaseFs.Content.Fs,
-		m:          m,
-		sp:         sp,
-		logger:     logger,
-		infoLogger: infoLogger,
-		ids:        ids,
-		seenDirs:   make(map[string]bool),
+		ctx:         ctx,
+		h:           h,
+		fs:          sp.BaseFs.Content.Fs,
+		m:           m,
+		sp:          sp,
+		logger:      logger,
+		infoLogger:  infoLogger,
+		buildConfig: buildConfig,
+		ids:         ids,
+		seenDirs:    make(map[string]bool),
 	}
 }
 
@@ -67,6 +69,8 @@ type pagesCollector struct {
 	m *pageMap
 
 	fs afero.Fs
+
+	buildConfig *BuildCfg
 
 	// List of paths that have changed. Used in partial builds.
 	ids      []pathChange
@@ -82,6 +86,8 @@ func (c *pagesCollector) Collect() (collectErr error) {
 	var (
 		numWorkers             = c.h.numWorkers
 		numFilesProcessedTotal atomic.Uint64
+		numPagesProcessedTotal atomic.Uint64
+		numResourcesProcessed  atomic.Uint64
 		numFilesProcessedLast  uint64
 		fileBatchTimer         = time.Now()
 		fileBatchTimerMu       sync.Mutex
@@ -98,6 +104,8 @@ func (c *pagesCollector) Collect() (collectErr error) {
 				logg.Fields{
 					logg.Field{Name: "files", Value: numFilesProcessedBatch},
 					logg.Field{Name: "files_total", Value: numFilesProcessedTotal.Load()},
+					logg.Field{Name: "pages_total", Value: numPagesProcessedTotal.Load()},
+					logg.Field{Name: "resources_total", Value: numResourcesProcessed.Load()},
 				},
 				"",
 			)
@@ -113,10 +121,13 @@ func (c *pagesCollector) Collect() (collectErr error) {
 	c.g = rungroup.Run[hugofs.FileMetaInfo](c.ctx, rungroup.Config[hugofs.FileMetaInfo]{
 		NumWorkers: numWorkers,
 		Handle: func(ctx context.Context, fi hugofs.FileMetaInfo) error {
-			if err := c.m.AddFi(fi); err != nil {
+			numPages, numResources, err := c.m.AddFi(fi, c.buildConfig)
+			if err != nil {
 				return hugofs.AddFileInfoToError(err, fi, c.fs)
 			}
 			numFilesProcessedTotal.Add(1)
+			numPagesProcessedTotal.Add(numPages)
+			numResourcesProcessed.Add(numResources)
 			if numFilesProcessedTotal.Load()%1000 == 0 {
 				logFilesProcessed(false)
 			}
@@ -132,13 +143,29 @@ func (c *pagesCollector) Collect() (collectErr error) {
 			s.pageMap.cfg.isRebuild = true
 		}
 
+		var hasStructuralChange bool
+		for _, id := range c.ids {
+			if id.isStructuralChange() {
+				hasStructuralChange = true
+				break
+			}
+		}
+
 		for _, id := range c.ids {
 			if id.p.IsLeafBundle() {
 				collectErr = c.collectDir(
 					id.p,
 					false,
 					func(fim hugofs.FileMetaInfo) bool {
-						return true
+						if hasStructuralChange {
+							return true
+						}
+						fimp := fim.Meta().PathInfo
+						if fimp == nil {
+							return true
+						}
+
+						return fimp.Path() == id.p.Path()
 					},
 				)
 			} else if id.p.IsBranchBundle() {
@@ -147,7 +174,7 @@ func (c *pagesCollector) Collect() (collectErr error) {
 					false,
 					func(fim hugofs.FileMetaInfo) bool {
 						if fim.IsDir() {
-							return true
+							return id.isStructuralChange()
 						}
 						fimp := fim.Meta().PathInfo
 						if fimp == nil {
@@ -160,8 +187,8 @@ func (c *pagesCollector) Collect() (collectErr error) {
 			} else {
 				// We always start from a directory.
 				collectErr = c.collectDir(id.p, id.isDir, func(fim hugofs.FileMetaInfo) bool {
-					if id.delete || id.isDir {
-						if id.isDir {
+					if id.isStructuralChange() {
+						if id.isDir && fim.Meta().PathInfo.IsLeafBundle() {
 							return strings.HasPrefix(fim.Meta().PathInfo.Path(), paths.AddTrailingSlash(id.p.Path()))
 						}
 
@@ -243,6 +270,21 @@ func (c *pagesCollector) collectDirDir(path string, root hugofs.FileMetaInfo, in
 			return nil, nil
 		}
 
+		n := 0
+		for _, fi := range readdir {
+			if fi.Meta().PathInfo.IsContentData() {
+				// _content.json
+				// These are not part of any bundle, so just add them directly and remove them from the readdir slice.
+				if err := c.g.Enqueue(fi); err != nil {
+					return nil, err
+				}
+			} else {
+				readdir[n] = fi
+				n++
+			}
+		}
+		readdir = readdir[:n]
+
 		// Pick the first regular file.
 		var first hugofs.FileMetaInfo
 		for _, fi := range readdir {
@@ -260,6 +302,7 @@ func (c *pagesCollector) collectDirDir(path string, root hugofs.FileMetaInfo, in
 
 		// Any bundle file will always be first.
 		firstPi := first.Meta().PathInfo
+
 		if firstPi == nil {
 			panic(fmt.Sprintf("collectDirDir: no path info for %q", first.Meta().Filename))
 		}
@@ -320,6 +363,7 @@ func (c *pagesCollector) collectDirDir(path string, root hugofs.FileMetaInfo, in
 			Info:       root,
 			Fs:         c.fs,
 			IgnoreFile: c.h.SourceSpec.IgnoreFile,
+			PathParser: c.h.Conf.PathParser(),
 			HookPre:    preHook,
 			HookPost:   postHook,
 			WalkFn:     wfn,
@@ -370,6 +414,7 @@ func (c *pagesCollector) handleBundleLeaf(dir, bundle hugofs.FileMetaInfo, inPat
 			Info:       dir,
 			DirEntries: readdir,
 			IgnoreFile: c.h.SourceSpec.IgnoreFile,
+			PathParser: c.h.Conf.PathParser(),
 			WalkFn:     walk,
 		})
 

@@ -31,10 +31,10 @@ import (
 
 	"golang.org/x/text/unicode/norm"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/hreflect"
-	"github.com/neohugo/neohugo/common/htime"
-	"github.com/neohugo/neohugo/common/paths"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/hreflect"
+	"github.com/gohugoio/hugo/common/htime"
+	"github.com/gohugoio/hugo/common/paths"
 
 	"github.com/spf13/afero"
 )
@@ -364,7 +364,7 @@ func AddFileInfoToError(err error, fi FileMetaInfo, fs afero.Fs) error {
 		errfilename := pos.Filename
 		if errfilename == "" {
 			pos.Filename = filename
-			ferr.UpdatePosition(pos) // nolint
+			ferr.UpdatePosition(pos)
 		}
 
 		if errfilename == "" || errfilename == filename {
@@ -374,7 +374,7 @@ func AddFileInfoToError(err error, fi FileMetaInfo, fs afero.Fs) error {
 					return err
 				}
 				defer f.Close()
-				ferr.UpdateContent(f, nil) // nolint
+				ferr.UpdateContent(f, nil)
 			}
 			return err
 		}

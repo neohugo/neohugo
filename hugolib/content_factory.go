@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/neohugo/neohugo/common/htime"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/common/htime"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/hugofs"
 
 	"github.com/neohugo/neohugo/source"
 

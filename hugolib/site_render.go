@@ -20,14 +20,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/hugolib/doctree"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/gohugoio/hugo/resources/page"
 )
 
 type siteRenderContext struct {
@@ -111,7 +111,7 @@ func (s *Site) renderPages(ctx *siteRenderContext) error {
 
 	err := <-errs
 	if err != nil {
-		return fmt.Errorf("failed to render pages: %w", herrors.ImproveIfNilPointer(err))
+		return fmt.Errorf("failed to render pages: %w", herrors.ImproveRenderErr(err))
 	}
 	return nil
 }
@@ -223,17 +223,17 @@ func (s *Site) logMissingLayout(name, layout, kind, outputFormat string) {
 
 // renderPaginator must be run after the owning Page has been rendered.
 func (s *Site) renderPaginator(p *pageState, templ tpl.Template) error {
-	paginatePath := s.conf.PaginatePath
+	paginatePath := s.Conf.Pagination().Path
 
 	d := p.targetPathDescriptor
-	f := p.s.rc.Format
+	f := p.outputFormat()
 	d.Type = f
 
 	if p.paginator.current == nil || p.paginator.current != p.paginator.current.First() {
 		panic(fmt.Sprintf("invalid paginator state for %q", p.pathOrTitle()))
 	}
 
-	if f.IsHTML {
+	if f.IsHTML && !s.Conf.Pagination().DisableAliases {
 		// Write alias for page 1
 		d.Addends = fmt.Sprintf("/%s/%d", paginatePath, 1)
 		targetPaths := page.CreateTargetPaths(d)
@@ -271,7 +271,7 @@ func (s *Site) renderAliases() error {
 			p := n.(*pageState)
 
 			// We cannot alias a page that's not rendered.
-			if p.m.noLink() {
+			if p.m.noLink() || p.skipRender() {
 				return false, nil
 			}
 
@@ -334,7 +334,10 @@ func (s *Site) renderAliases() error {
 // renderMainLanguageRedirect creates a redirect to the main language home,
 // depending on if it lives in sub folder (e.g. /en) or not.
 func (s *Site) renderMainLanguageRedirect() error {
-	if s.h.Conf.IsMultihost() || !(s.h.Conf.DefaultContentLanguageInSubdir() || s.h.Conf.IsMultiLingual()) {
+	if s.conf.DisableDefaultLanguageRedirect {
+		return nil
+	}
+	if s.h.Conf.IsMultihost() || !(s.h.Conf.DefaultContentLanguageInSubdir() || s.h.Conf.IsMultilingual()) {
 		// No need for a redirect
 		return nil
 	}

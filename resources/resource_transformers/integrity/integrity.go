@@ -23,8 +23,8 @@ import (
 	"hash"
 	"io"
 
-	"github.com/neohugo/neohugo/common/constants"
-	"github.com/neohugo/neohugo/resources/internal"
+	"github.com/gohugoio/hugo/common/constants"
+	"github.com/gohugoio/hugo/resources/internal"
 
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/resource"

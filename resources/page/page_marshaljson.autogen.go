@@ -17,6 +17,7 @@ package page
 
 import (
 	"encoding/json"
+	"github.com/gohugoio/hugo/config"
 	"time"
 
 	"github.com/neohugo/neohugo/config"
@@ -39,7 +40,6 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 	isNode := p.IsNode()
 	isPage := p.IsPage()
 	path := p.Path()
-	pathc := p.Path()
 	slug := p.Slug()
 	lang := p.Lang()
 	isSection := p.IsSection()
@@ -65,7 +65,6 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		IsNode      bool
 		IsPage      bool
 		Path        string
-		Pathc       string
 		Slug        string
 		Lang        string
 		IsSection   bool
@@ -90,7 +89,6 @@ func MarshalPageToJSON(p Page) ([]byte, error) {
 		IsNode:      isNode,
 		IsPage:      isPage,
 		Path:        path,
-		Pathc:       pathc,
 		Slug:        slug,
 		Lang:        lang,
 		IsSection:   isSection,

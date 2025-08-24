@@ -18,14 +18,15 @@ import (
 	"runtime"
 
 	"github.com/bep/simplecobra"
-	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/spf13/cobra"
 )
 
 func newEnvCommand() simplecobra.Commander {
 	return &simpleCommand{
 		name:  "env",
-		short: "Print Hugo version and environment info",
-		long:  "Print Hugo version and environment info. This is useful in Hugo bug reports",
+		short: "Display version and environment info",
+		long:  "Display version and environment info. This is useful in Hugo bug reports",
 		run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
 			r.Printf("%s\n", neohugo.BuildVersionString())
 			r.Printf("GOOS=%q\n", runtime.GOOS)
@@ -47,6 +48,9 @@ func newEnvCommand() simplecobra.Commander {
 			}
 			return nil
 		},
+		withc: func(cmd *cobra.Command, r *rootCommand) {
+			cmd.ValidArgsFunction = cobra.NoFileCompletions
+		},
 	}
 }
 
@@ -57,7 +61,10 @@ func newVersionCmd() simplecobra.Commander {
 			r.Println(neohugo.BuildVersionString())
 			return nil
 		},
-		short: "Print Hugo version and environment info",
-		long:  "Print Hugo version and environment info. This is useful in Hugo bug reports.",
+		short: "Display version",
+		long:  "Display version and environment info. This is useful in Hugo bug reports.",
+		withc: func(cmd *cobra.Command, r *rootCommand) {
+			cmd.ValidArgsFunction = cobra.NoFileCompletions
+		},
 	}
 }

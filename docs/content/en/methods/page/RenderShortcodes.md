@@ -5,11 +5,13 @@ categories: []
 keywords: []
 action:
   related:
-    - methods/page/RenderString
     - methods/page/Content
+    - methods/page/Summary
+    - methods/page/ContentWithoutSummary
     - methods/page/RawContent
     - methods/page/Plain
     - methods/page/PlainWords
+    - methods/page/RenderString
   returnType: template.HTML
   signatures: [PAGE.RenderShortcodes]
 toc: true
@@ -22,26 +24,27 @@ Use this method in shortcode templates to compose a page from multiple content f
 For example:
 
 {{< code file=layouts/shortcodes/include.html >}}
-{{ $p := site.GetPage (.Get 0) }}
-{{ $p.RenderShortcodes }}
+{{ with site.GetPage (.Get 0) }}
+  {{ .RenderShortcodes }}
+{{ end }}
 {{< /code >}}
 
-Then in your markdown:
+Then call the shortcode in your Markdown:
 
 {{< code file=content/about.md lang=md >}}
-{{%/* include "/snippets/services.md" */%}}
-{{%/* include "/snippets/values.md" */%}}
-{{%/* include "/snippets/leadership.md" */%}}
+{{%/* include "/snippets/services" */%}}
+{{%/* include "/snippets/values" */%}}
+{{%/* include "/snippets/leadership" */%}}
 {{< /code >}}
 
-Each of the included markdown files can contain calls to other shortcodes.
+Each of the included Markdown files can contain calls to other shortcodes.
 
 ## Shortcode notation
 
 In the example above it's important to understand the difference between the two delimiters used when calling a shortcode:
 
 - `{{</* myshortcode */>}}` tells Hugo that the rendered shortcode does not need further processing. For example, the shortcode content is HTML.
-- `{{%/* myshortcode */%}}` tells Hugo that the rendered shortcode needs further processing. For example, the shortcode content is markdown.
+- `{{%/* myshortcode */%}}` tells Hugo that the rendered shortcode needs further processing. For example, the shortcode content is Markdown.
 
 Use the latter for the "include" shortcode described above.
 
@@ -75,4 +78,15 @@ https://example.org/privacy/
 An *emphasized* word.
 ```
 
-Note that the shortcode within the content file was rendered, but the surrounding markdown was preserved.
+Note that the shortcode within the content file was rendered, but the surrounding Markdown was preserved.
+
+
+## Limitations
+
+The primary use case for `.RenderShortcodes` is inclusion of Markdown content. If you try to use `.RenderShortcodes` inside `HTML` blocks when inside Markdown, you will get a warning similar to this:
+
+```
+WARN .RenderShortcodes detected inside HTML block in "/content/mypost.md"; this may not be what you intended ...
+```
+
+The above warning can be turned off is this is what you really want.

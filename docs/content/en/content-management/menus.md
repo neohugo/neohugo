@@ -34,7 +34,7 @@ Although you can use these methods in combination when defining a menu, the menu
 
 ## Define automatically
 
-To automatically define menu entries for each top-level section of your site, enable the section pages menu in your site configuration.
+To automatically define a menu entry for each top-level [section] of your site, enable the section pages menu in your site configuration.
 
 {{< code-toggle file=hugo >}}
 sectionPagesMenu = "main"
@@ -100,7 +100,7 @@ This front matter menu entry demonstrates some of the available properties:
 
 {{< code-toggle file=content/products/software.md fm=true >}}
 title = 'Software'
-[[menus.main]]
+[menus.main]
 parent = 'Products'
 weight = 20
 pre = '<i class="fa-solid fa-code"></i>'
@@ -167,7 +167,7 @@ Each menu entry defined in site configuration requires two or more properties:
 - Specify `name` and `url` for external links
 
 pageRef
-: (`string`) The file path of the target page, relative to the `content` directory. Omit language code and file extension. Required for *internal* links.
+: (`string`) The logical path of the target page, relative to the `content` directory. Omit language code and file extension. Required for *internal* links.
 
 Kind|pageRef
 :--|:--
@@ -227,6 +227,7 @@ Hugo provides two methods to localize your menu entries. See [multilingual].
 See [menu templates].
 
 [localize]: /content-management/multilingual/#menus
-[menu templates]: /templates/menu-templates/
+[menu templates]: /templates/menu/
 [multilingual]: /content-management/multilingual/#menus
-[template]: /templates/menu-templates/
+[section]: /getting-started/glossary/#section
+[template]: /templates/menu/

@@ -25,18 +25,23 @@ import (
 
 	"github.com/bep/lazycache"
 	"github.com/bep/logg"
-	"github.com/neohugo/neohugo/common/collections"
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/common/rungroup"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/gohugoio/hugo/common/collections"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/common/rungroup"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/identity"
+	"github.com/gohugoio/hugo/resources/resource"
 )
 
 const minMaxSize = 10
+
+type KeyIdentity struct {
+	Key      any
+	Identity identity.Identity
+}
 
 // New creates a new cache.
 func New(opts Options) *Cache {
@@ -64,14 +69,14 @@ func New(opts Options) *Cache {
 
 	infol := opts.Log.InfoCommand("dynacache")
 
-	evictedIdentities := collections.NewStack[identity.Identity]()
+	evictedIdentities := collections.NewStack[KeyIdentity]()
 
 	onEvict := func(k, v any) {
-		if !opts.Running {
+		if !opts.Watching {
 			return
 		}
 		identity.WalkIdentitiesShallow(v, func(level int, id identity.Identity) bool {
-			evictedIdentities.Push(id)
+			evictedIdentities.Push(KeyIdentity{Key: k, Identity: id})
 			return false
 		})
 		resource.MarkStale(v)
@@ -97,7 +102,7 @@ type Options struct {
 	CheckInterval time.Duration
 	MaxSize       int
 	MinMaxSize    int
-	Running       bool
+	Watching      bool
 }
 
 // Options for a partition.
@@ -124,7 +129,7 @@ type Cache struct {
 	partitions map[string]PartitionManager
 
 	onEvict           func(k, v any)
-	evictedIdentities *collections.Stack[identity.Identity]
+	evictedIdentities *collections.Stack[KeyIdentity]
 
 	opts  Options
 	infol logg.LevelLogger
@@ -135,25 +140,39 @@ type Cache struct {
 }
 
 // DrainEvictedIdentities drains the evicted identities from the cache.
-func (c *Cache) DrainEvictedIdentities() []identity.Identity {
+func (c *Cache) DrainEvictedIdentities() []KeyIdentity {
 	return c.evictedIdentities.Drain()
 }
 
+// DrainEvictedIdentitiesMatching drains the evicted identities from the cache that match the given predicate.
+func (c *Cache) DrainEvictedIdentitiesMatching(predicate func(KeyIdentity) bool) []KeyIdentity {
+	return c.evictedIdentities.DrainMatching(predicate)
+}
+
 // ClearMatching clears all partition for which the predicate returns true.
-func (c *Cache) ClearMatching(predicate func(k, v any) bool) {
+func (c *Cache) ClearMatching(predicatePartition func(k string, p PartitionManager) bool, predicateValue func(k, v any) bool) {
+	if predicatePartition == nil {
+		predicatePartition = func(k string, p PartitionManager) bool { return true }
+	}
+	if predicateValue == nil {
+		panic("nil predicateValue")
+	}
 	g := rungroup.Run[PartitionManager](context.Background(), rungroup.Config[PartitionManager]{
 		NumWorkers: len(c.partitions),
 		Handle: func(ctx context.Context, partition PartitionManager) error {
-			partition.clearMatching(predicate)
+			partition.clearMatching(predicateValue)
 			return nil
 		},
 	})
 
-	for _, p := range c.partitions {
-		g.Enqueue(p) // nolint
+	for k, p := range c.partitions {
+		if !predicatePartition(k, p) {
+			continue
+		}
+		g.Enqueue(p)
 	}
 
-	g.Wait() // nolint
+	g.Wait()
 }
 
 // ClearOnRebuild prepares the cache for a new rebuild taking the given changeset into account.
@@ -167,10 +186,10 @@ func (c *Cache) ClearOnRebuild(changeset ...identity.Identity) {
 	})
 
 	for _, p := range c.partitions {
-		g.Enqueue(p) // nolint
+		g.Enqueue(p)
 	}
 
-	g.Wait() // nolint
+	g.Wait()
 
 	// Clear any entries marked as stale above.
 	g = rungroup.Run[PartitionManager](context.Background(), rungroup.Config[PartitionManager]{
@@ -182,10 +201,10 @@ func (c *Cache) ClearOnRebuild(changeset ...identity.Identity) {
 	})
 
 	for _, p := range c.partitions {
-		g.Enqueue(p) // nolint
+		g.Enqueue(p)
 	}
 
-	g.Wait() // nolint
+	g.Wait()
 }
 
 type keysProvider interface {
@@ -340,7 +359,7 @@ func GetOrCreatePartition[K comparable, V any](c *Cache, name string, opts Optio
 		return p.(*Partition[K, V])
 	}
 
-	// At this point, we don't know the the number of partitions or their configuration, but
+	// At this point, we don't know the number of partitions or their configuration, but
 	// this will be re-adjusted later.
 	const numberOfPartitionsEstimate = 10
 	maxSize := opts.CalculateMaxSize(c.opts.MaxSize / numberOfPartitionsEstimate)
@@ -356,6 +375,7 @@ func GetOrCreatePartition[K comparable, V any](c *Cache, name string, opts Optio
 		trace:   c.opts.Log.Logger().WithLevel(logg.LevelTrace).WithField("partition", name),
 		opts:    opts,
 	}
+
 	c.partitions[name] = partition
 
 	return partition
@@ -375,23 +395,60 @@ type Partition[K comparable, V any] struct {
 
 // GetOrCreate gets or creates a value for the given key.
 func (p *Partition[K, V]) GetOrCreate(key K, create func(key K) (V, error)) (V, error) {
+	v, err := p.doGetOrCreate(key, create)
+	if err != nil {
+		return p.zero, err
+	}
+	if resource.StaleVersion(v) > 0 {
+		p.c.Delete(key)
+		return p.doGetOrCreate(key, create)
+	}
+	return v, err
+}
+
+func (p *Partition[K, V]) doGetOrCreate(key K, create func(key K) (V, error)) (V, error) {
 	v, _, err := p.c.GetOrCreate(key, create)
+	return v, err
+}
+
+func (p *Partition[K, V]) GetOrCreateWitTimeout(key K, duration time.Duration, create func(key K) (V, error)) (V, error) {
+	v, err := p.doGetOrCreateWitTimeout(key, duration, create)
+	if err != nil {
+		return p.zero, err
+	}
+	if resource.StaleVersion(v) > 0 {
+		p.c.Delete(key)
+		return p.doGetOrCreateWitTimeout(key, duration, create)
+	}
 	return v, err
 }
 
 // GetOrCreateWitTimeout gets or creates a value for the given key and times out if the create function
 // takes too long.
-func (p *Partition[K, V]) GetOrCreateWitTimeout(key K, duration time.Duration, create func(key K) (V, error)) (V, error) {
+func (p *Partition[K, V]) doGetOrCreateWitTimeout(key K, duration time.Duration, create func(key K) (V, error)) (V, error) {
 	resultch := make(chan V, 1)
 	errch := make(chan error, 1)
 
 	go func() {
-		v, _, err := p.c.GetOrCreate(key, create)
-		if err != nil {
-			errch <- err
-			return
-		}
-		resultch <- v
+		var (
+			v   V
+			err error
+		)
+		defer func() {
+			if r := recover(); r != nil {
+				if rerr, ok := r.(error); ok {
+					err = rerr
+				} else {
+					err = fmt.Errorf("panic: %v", r)
+				}
+			}
+			if err != nil {
+				errch <- err
+			} else {
+				resultch <- v
+			}
+		}()
+		v, _, err = p.c.GetOrCreate(key, create)
 	}()
 
 	select {
@@ -438,7 +495,7 @@ func (p *Partition[K, V]) clearOnRebuild(changeset ...identity.Identity) {
 
 	shouldDelete := func(key K, v V) bool {
 		// We always clear elements marked as stale.
-		if resource.IsStaleAny(v) {
+		if resource.StaleVersion(v) > 0 {
 			return true
 		}
 
@@ -493,8 +550,8 @@ func (p *Partition[K, V]) Keys() []K {
 
 func (p *Partition[K, V]) clearStale() {
 	p.c.DeleteFunc(func(key K, v V) bool {
-		isStale := resource.IsStaleAny(v)
-		if isStale {
+		staleVersion := resource.StaleVersion(v)
+		if staleVersion > 0 {
 			p.trace.Log(
 				logg.StringFunc(
 					func() string {
@@ -504,7 +561,7 @@ func (p *Partition[K, V]) clearStale() {
 			)
 		}
 
-		return isStale
+		return staleVersion > 0
 	})
 }
 

@@ -11,8 +11,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build !nodeploy
-// +build !nodeploy
+//go:build withdeploy
+// +build withdeploy
 
 package deploy
 
@@ -36,10 +36,10 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/gobwas/glob"
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/deploy/deployconfig"
-	"github.com/neohugo/neohugo/media"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/deploy/deployconfig"
+	"github.com/gohugoio/hugo/media"
 	"github.com/spf13/afero"
 	"golang.org/x/text/unicode/norm"
 
@@ -133,10 +133,14 @@ func (d *Deployer) Deploy(ctx context.Context) error {
 
 	// Load local files from the source directory.
 	var include, exclude glob.Glob
+	var mappath func(string) string
 	if d.target != nil {
 		include, exclude = d.target.IncludeGlob, d.target.ExcludeGlob
+		if d.target.StripIndexHTML {
+			mappath = stripIndexHTML
+		}
 	}
-	local, err := d.walkLocal(d.localFs, d.cfg.Matchers, include, exclude, d.mediaTypes)
+	local, err := d.walkLocal(d.localFs, d.cfg.Matchers, include, exclude, d.mediaTypes, mappath)
 	if err != nil {
 		return err
 	}
@@ -483,7 +487,7 @@ func knownHiddenDirectory(name string) bool {
 
 // walkLocal walks the source directory and returns a flat list of files,
 // using localFile.SlashPath as the map keys.
-func (d *Deployer) walkLocal(fs afero.Fs, matchers []*deployconfig.Matcher, include, exclude glob.Glob, mediaTypes media.Types) (map[string]*localFile, error) {
+func (d *Deployer) walkLocal(fs afero.Fs, matchers []*deployconfig.Matcher, include, exclude glob.Glob, mediaTypes media.Types, mappath func(string) string) (map[string]*localFile, error) {
 	retval := map[string]*localFile{}
 	err := afero.Walk(fs, "", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -529,6 +533,11 @@ func (d *Deployer) walkLocal(fs afero.Fs, matchers []*deployconfig.Matcher, incl
 				break
 			}
 		}
+		// Apply any additional modifications to the local path, to map it to
+		// the remote path.
+		if mappath != nil {
+			slashpath = mappath(slashpath)
+		}
 		lf, err := newLocalFile(fs, path, slashpath, m, mediaTypes)
 		if err != nil {
 			return err
@@ -540,6 +549,15 @@ func (d *Deployer) walkLocal(fs afero.Fs, matchers []*deployconfig.Matcher, incl
 		return nil, err
 	}
 	return retval, nil
+}
+
+// stripIndexHTML remaps keys matching "<dir>/index.html" to "<dir>/".
+func stripIndexHTML(slashpath string) string {
+	const suffix = "/index.html"
+	if strings.HasSuffix(slashpath, suffix) {
+		return slashpath[:len(slashpath)-len(suffix)+1]
+	}
+	return slashpath
 }
 
 // walkRemote walks the target bucket and returns a flat list.

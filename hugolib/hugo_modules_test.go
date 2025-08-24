@@ -28,11 +28,11 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/gohugoio/hugo/common/loggers"
 
-	"github.com/neohugo/neohugo/htesting"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/htesting"
+	"github.com/gohugoio/hugo/hugofs"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/gohugoio/testmodBuilder/mods"
@@ -686,7 +686,7 @@ disableLiveReload = true
 [module]
 [[module.mounts]]
 source = "README.md"
-target = "content/_index.md"
+target = "content/_index.md"	
 -- README.md --
 # Hello World
 -- layouts/index.html --

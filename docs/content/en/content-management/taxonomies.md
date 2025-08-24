@@ -95,7 +95,7 @@ disableKinds = ["taxonomy","term"]
 
 When taxonomies are used---and [taxonomy templates] are provided---Hugo will automatically create both a page listing all the taxonomy's terms and individual pages with lists of content associated with each term. For example, a `categories` taxonomy declared in your configuration and used in your content front matter will create the following pages:
 
-* A single page at `example.com/categories/` that lists all the [terms within the taxonomy]
+* A single page at `example.com/categories/` that lists all the terms within the taxonomy
 * [Individual taxonomy list pages][taxonomy templates] (e.g., `/categories/development/`) for each of the terms that shows a listing of all pages marked as part of that taxonomy within any content file's [front matter]
 
 ## Configure taxonomies
@@ -130,30 +130,19 @@ If you want to disable all taxonomies altogether, see the use of `disableKinds` 
 You can add content and front matter to your taxonomy list and taxonomy terms pages. See [Content Organization](/content-management/organization/) for more information on how to add an `_index.md` for this purpose.
 {{% /note %}}
 
-## Add taxonomies to content
+## Assign terms to content
 
-Once a taxonomy is defined at the site level, any piece of content can be assigned to it, regardless of [content type] or [content section].
-
-Assigning content to a taxonomy is done in the [front matter]. Simply create a variable with the *plural* name of the taxonomy and assign all terms you want to apply to the instance of the content type.
-
-{{% note %}}
-If you would like the ability to quickly generate content files with preconfigured taxonomies or terms, read the docs on [Hugo archetypes](/content-management/archetypes/).
-{{% /note %}}
-
-### Example: front matter with taxonomies
+To assign one or more terms to a page, create a front matter field using the plural name of the taxonomy, then add terms to the corresponding array. For example:
 
 {{< code-toggle file=content/example.md fm=true >}}
-title = "Hugo: A fast and flexible static site generator"
-tags = [ "Development", "Go", "fast", "Blogging" ]
-categories = [ "Development" ]
-series = [ "Go Web Dev" ]
-slug = "hugo"
-project_url = "https://github.com/gohugoio/hugo"
-{{</ code-toggle >}}
+title = 'Example'
+tags = ['Tag A','Tag B']
+categories = ['Category A','Category B']
+{{< /code-toggle >}}
 
 ## Order taxonomies
 
-A content file can assign weight for each of its associate taxonomies. Taxonomic weight can be used for sorting or ordering content in [taxonomy list templates] and is declared in a content file's [front matter]. The convention for declaring taxonomic weight is `taxonomyname_weight`.
+A content file can assign weight for each of its associate taxonomies. Taxonomic weight can be used for sorting or ordering content in [taxonomy templates] and is declared in a content file's [front matter]. The convention for declaring taxonomic weight is `taxonomyname_weight`.
 
 The following show a piece of content that has a weight of 22, which can be used for ordering purposes when rendering the pages assigned to the "a", "b" and "c" values of the `tags` taxonomy. It has also been assigned the weight of 44 when rendering the "d" category page.
 
@@ -182,7 +171,5 @@ wikipedia: "https://en.wikipedia.org/wiki/Bruce_Willis"
 [content type]: /content-management/types/
 [documentation on archetypes]: /content-management/archetypes/
 [front matter]: /content-management/front-matter/
-[taxonomy list templates]: /templates/taxonomy-templates/#taxonomy-list-templates
-[taxonomy templates]: /templates/taxonomy-templates/
-[terms within the taxonomy]: /templates/taxonomy-templates/#taxonomy-terms-templates
+[taxonomy templates]: /templates/types/#taxonomy
 [site configuration]: /getting-started/configuration/

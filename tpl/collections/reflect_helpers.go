@@ -18,12 +18,14 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/mitchellh/hashstructure"
+	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/resources/resource"
 )
 
 var (
 	zero      reflect.Value
-	errorType = reflect.TypeOf((*error)(nil)).Elem()
+	errorType = reflect.TypeFor[error]()
 )
 
 func numberToFloat(v reflect.Value) (float64, error) {
@@ -46,21 +48,22 @@ func numberToFloat(v reflect.Value) (float64, error) {
 // to make them comparable
 func normalize(v reflect.Value) any {
 	k := v.Kind()
-
 	switch {
 	case !v.Type().Comparable():
-		h, err := hashstructure.Hash(v.Interface(), nil)
-		if err != nil {
-			panic(err)
-		}
-		return h
+		return hashing.HashUint64(v.Interface())
 	case isNumber(k):
 		f, err := numberToFloat(v)
 		if err == nil {
 			return f
 		}
 	}
-	return v.Interface()
+
+	vv := types.Unwrapv(v.Interface())
+	if ip, ok := vv.(resource.TransientIdentifier); ok {
+		return ip.TransientKey()
+	}
+
+	return vv
 }
 
 // collects identities from the slices in seqs into a set. Numeric values are normalized,
@@ -155,7 +158,6 @@ func convertNumber(v reflect.Value, to reflect.Kind) (reflect.Value, error) {
 		case reflect.Uint64:
 			n = reflect.ValueOf(uint64(i))
 		}
-
 	}
 
 	if !n.IsValid() {

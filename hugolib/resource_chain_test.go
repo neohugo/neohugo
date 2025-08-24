@@ -27,9 +27,9 @@ import (
 
 	qt "github.com/frankban/quicktest"
 
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
+	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/resources/resource_transformers/tocss/scss"
 )
 
 func TestResourceChainBasic(t *testing.T) {
@@ -106,20 +106,20 @@ FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg.Err }}|{{ . }}|{{ with .
 		b.AssertFileContent("public/index.html",
 			fmt.Sprintf(`
 SUNSET: /images/sunset.jpg|/images/sunset.a9bf1d944e19c0f382e0d8f51de690f7d0bc8fa97390c4242a86c3e5c0737e71.jpg|900|90587
-FIT: /images/sunset.jpg|/images/sunset_hu59e56ffff1bc1d8d122b1403d34e039f_90587_200x200_fit_q75_box.jpg|200
+FIT: /images/sunset.jpg|/images/sunset_hu15210517121918042184.jpg|200
 CSS integrity Data first: sha256-od9YaHw8nMOL8mUy97Sy8sKwMV3N4hI3aVmZXATxH&#43;8= /styles.min.a1df58687c3c9cc38bf26532f7b4b2f2c2b0315dcde212376959995c04f11fef.css
 CSS integrity Data last:  /styles2.min.1cfc52986836405d37f9998a63fd6dd8608e8c410e5e3db1daaa30f78bc273ba.css sha256-HPxSmGg2QF03&#43;ZmKY/1t2GCOjEEOXj2x2qow94vCc7o=
 
 SUNSET REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s.a9bf1d944e19c0f382e0d8f51de690f7d0bc8fa97390c4242a86c3e5c0737e71.jpg|900|90587
-FIT REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s_hu59e56ffff1bc1d8d122b1403d34e039f_90587_200x200_fit_q75_box.jpg|200
+FIT REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s_hu15210517121918042184.jpg|200
 REMOTE NOT FOUND: OK
 LOCAL NOT FOUND: OK
 PRINT PROTOCOL ERROR DETAILS: Err: error calling resources.GetRemote: Get "gopher://example.org": unsupported protocol scheme "gopher"||
-FAILED REMOTE ERROR DETAILS CONTENT: |failed to fetch remote resource: Not Implemented|Body: { msg: failed }
+FAILED REMOTE ERROR DETAILS CONTENT: |failed to fetch remote resource from &#39;%[2]s/fail.jpg&#39;: Not Implemented|Body: { msg: failed }
 |StatusCode: 501|ContentLength: 16|ContentType: text/plain; charset=utf-8|
 
 
-`, identity.HashString(ts.URL+"/sunset.jpg", map[string]any{})))
+`, hashing.HashString(ts.URL+"/sunset.jpg", map[string]any{}), ts.URL))
 
 		b.AssertFileContent("public/styles.min.a1df58687c3c9cc38bf26532f7b4b2f2c2b0315dcde212376959995c04f11fef.css", "body{background-color:#add8e6}")
 		b.AssertFileContent("public//styles2.min.1cfc52986836405d37f9998a63fd6dd8608e8c410e5e3db1daaa30f78bc273ba.css", "body{background-color:orange}")

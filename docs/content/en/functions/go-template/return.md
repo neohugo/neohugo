@@ -75,12 +75,12 @@ Hugo renders:
 
 See additional examples in the [partial templates] section.
 
-[partial templates]: /templates/partials/#returning-a-value-from-a-partial
+[partial templates]: /templates/partial/#returning-a-value-from-a-partial
 
 ## Usage
 
 {{% note %}}
-Unlike `return` statements in other languages, Hugo executes the first occurrence of the `return` statement regardless of its position within logical blocks
+Unlike `return` statements in other languages, Hugo executes the first occurrence of the `return` statement regardless of its position within logical blocks.
 {{% /note %}}
 
 A partial that returns a value must contain only one `return` statement, placed at the end of the template.

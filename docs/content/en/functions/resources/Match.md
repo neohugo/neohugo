@@ -24,9 +24,9 @@ action:
 {{% note %}}
 This function operates on global resources. A global resource is a file within the assets directory, or within any directory mounted to the assets directory.
 
-For page resources, use the [`Resources.Match`] method on the Page object.
+For page resources, use the [`Resources.Match`] method on a `Page` object.
 
-[`Resources.Match`]: /methods/page/resources
+[`Resources.Match`]: /methods/page/resources/
 {{% /note %}}
 
 Hugo determines a match using a case-insensitive [glob pattern].

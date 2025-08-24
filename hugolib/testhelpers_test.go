@@ -38,7 +38,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/gohugoio/hugo/helpers"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
@@ -262,7 +262,6 @@ id = "UA-ga_id"
 disable = false
 [privacy.googleAnalytics]
 respectDoNotTrack = true
-anonymizeIP = true
 [privacy.instagram]
 simple = true
 [privacy.twitter]
@@ -298,10 +297,12 @@ func (s *sitesBuilder) WithDefaultMultiSiteConfig() *sitesBuilder {
 	defaultMultiSiteConfig := `
 baseURL = "http://example.com/blog"
 
-paginate = 1
 disablePathToLower = true
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = true
+
+[pagination]
+pagerSize = 1
 
 [permalinks]
 other = "/somewhere/else/:filename"
@@ -330,7 +331,8 @@ plaque = "plaques"
 weight = 30
 title = "På nynorsk"
 languageName = "Nynorsk"
-paginatePath = "side"
+[Languages.nn.pagination]
+path = "side"
 [Languages.nn.Taxonomies]
 lag = "lag"
 [[Languages.nn.menu.main]]
@@ -342,7 +344,8 @@ weight = 1
 weight = 40
 title = "På bokmål"
 languageName = "Bokmål"
-paginatePath = "side"
+[Languages.nb.pagination]
+path = "side"
 [Languages.nb.Taxonomies]
 lag = "lag"
 ` + commonConfigSections
@@ -842,7 +845,7 @@ func (s *sitesBuilder) NpmInstall() hexec.Runner {
 	var err error
 	sc.Exec.Allow, err = security.NewWhitelist("npm")
 	s.Assert(err, qt.IsNil)
-	ex := hexec.New(sc)
+	ex := hexec.New(sc, s.workingDir)
 	command, err := ex.New("npm", "install")
 	s.Assert(err, qt.IsNil)
 	return command
@@ -903,7 +906,7 @@ func loadTestConfigFromProvider(cfg config.Provider) (*allconfig.Configs, error)
 	workingDir := cfg.GetString("workingDir")
 	fs := afero.NewMemMapFs()
 	if workingDir != "" {
-		fs.MkdirAll(workingDir, 0o755) // nolint
+		fs.MkdirAll(workingDir, 0o755)
 	}
 	res, err := allconfig.LoadConfig(allconfig.ConfigSourceDescriptor{Flags: cfg, Fs: fs})
 	return res, err

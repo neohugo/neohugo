@@ -16,34 +16,37 @@ package hugolib
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"sync/atomic"
 
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/hugolib/doctree"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/media"
-	"github.com/neohugo/neohugo/output"
-	"github.com/neohugo/neohugo/output/layouts"
-	"github.com/neohugo/neohugo/related"
+	"github.com/gohugoio/hugo/hugofs"
+	"github.com/gohugoio/hugo/hugolib/doctree"
+	"github.com/gohugoio/hugo/hugolib/segments"
+	"github.com/gohugoio/hugo/identity"
+	"github.com/gohugoio/hugo/media"
+	"github.com/gohugoio/hugo/output"
+	"github.com/gohugoio/hugo/output/layouts"
+	"github.com/gohugoio/hugo/related"
 	"github.com/spf13/afero"
-
-	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/neohugo/neohugo/source"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/types"
 
-	"github.com/neohugo/neohugo/common/collections"
-	"github.com/neohugo/neohugo/common/text"
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/gohugoio/hugo/source"
+
+	"github.com/gohugoio/hugo/common/collections"
+	"github.com/gohugoio/hugo/common/text"
+	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/resources/resource"
 )
 
 var (
@@ -59,6 +62,7 @@ var (
 	pageTypesProvider = resource.NewResourceTypesProvider(media.Builtin.OctetType, pageResourceType)
 	nopPageOutput     = &pageOutput{
 		pagePerOutputProviders: nopPagePerOutput,
+		MarkupProvider:         page.NopPage,
 		ContentProvider:        page.NopPage,
 	}
 )
@@ -139,16 +143,33 @@ func (p *pageState) GetDependencyManagerForScope(scope int) identity.Manager {
 	}
 }
 
+func (p *pageState) GetDependencyManagerForScopesAll() []identity.Manager {
+	return []identity.Manager{p.dependencyManager, p.dependencyManagerOutput}
+}
+
 func (p *pageState) Key() string {
 	return "page-" + strconv.FormatUint(p.pid, 10)
 }
 
 func (p *pageState) resetBuildState() {
-	p.Scratcher = maps.NewScratcher()
+	// Nothing to do for now.
 }
 
 func (p *pageState) reusePageOutputContent() bool {
 	return p.pageOutputTemplateVariationsState.Load() == 1
+}
+
+func (p *pageState) skipRender() bool {
+	b := p.s.conf.C.SegmentFilter.ShouldExcludeFine(
+		segments.SegmentMatcherFields{
+			Path:   p.Path(),
+			Kind:   p.Kind(),
+			Lang:   p.Lang(),
+			Output: p.pageOutput.f.Name,
+		},
+	)
+
+	return b
 }
 
 func (po *pageState) isRenderedAny() bool {
@@ -198,11 +219,8 @@ func (p *pageHeadingsFiltered) page() page.Page {
 
 // For internal use by the related content feature.
 func (p *pageState) ApplyFilterToHeadings(ctx context.Context, fn func(*tableofcontents.Heading) bool) related.Document {
-	r, err := p.m.content.contentToC(ctx, p.pageOutput.pco)
-	if err != nil {
-		panic(err)
-	}
-	headings := r.tableOfContents.Headings.FilterBy(fn)
+	fragments := p.pageOutput.pco.c().Fragments(ctx)
+	headings := fragments.Headings.FilterBy(fn)
 	return &pageHeadingsFiltered{
 		pageState: p,
 		headings:  headings,
@@ -345,7 +363,22 @@ func (p *pageState) Site() page.Site {
 }
 
 func (p *pageState) String() string {
-	return fmt.Sprintf("Page(%s)", p.Path())
+	var sb strings.Builder
+	if p.File() != nil {
+		// The forward slashes even on Windows is motivated by
+		// getting stable tests.
+		// This information is meant for getting positional information in logs,
+		// so the direction of the slashes should not matter.
+		sb.WriteString(filepath.ToSlash(p.File().Filename()))
+		if p.File().IsContentAdapter() {
+			// Also include the path.
+			sb.WriteString(":")
+			sb.WriteString(p.Path())
+		}
+	} else {
+		sb.WriteString(p.Path())
+	}
+	return sb.String()
 }
 
 // IsTranslated returns whether this content file is translated to
@@ -365,7 +398,9 @@ func (p *pageState) TranslationKey() string {
 // AllTranslations returns all translations, including the current Page.
 func (p *pageState) AllTranslations() page.Pages {
 	key := p.Path() + "/" + "translations-all"
-	pages, err := p.s.pageMap.getOrCreatePagesFromCache(key, func(string) (page.Pages, error) {
+	// This is called from Translations, so we need to use a different partition, cachePages2,
+	// to avoid potential deadlocks.
+	pages, err := p.s.pageMap.getOrCreatePagesFromCache(p.s.pageMap.cachePages2, key, func(string) (page.Pages, error) {
 		if p.m.pageConfig.TranslationKey != "" {
 			// translationKey set by user.
 			pas, _ := p.s.h.translationKeyPages.Get(p.m.pageConfig.TranslationKey)
@@ -398,7 +433,7 @@ func (p *pageState) AllTranslations() page.Pages {
 // Translations returns the translations excluding the current Page.
 func (p *pageState) Translations() page.Pages {
 	key := p.Path() + "/" + "translations"
-	pages, err := p.s.pageMap.getOrCreatePagesFromCache(key, func(string) (page.Pages, error) {
+	pages, err := p.s.pageMap.getOrCreatePagesFromCache(nil, key, func(string) (page.Pages, error) {
 		var pas page.Pages
 		for _, pp := range p.AllTranslations() {
 			if !pp.Eq(p) {
@@ -493,9 +528,15 @@ func (p *pageState) renderResources() error {
 				continue
 			}
 
+			if _, isWrapper := r.(resource.ResourceWrapper); isWrapper {
+				// Skip resources that are wrapped.
+				// These gets published on its own.
+				continue
+			}
+
 			src, ok := r.(resource.Source)
 			if !ok {
-				initErr = fmt.Errorf("resource %T does not support resource.Source", src)
+				initErr = fmt.Errorf("resource %T does not support resource.Source", r)
 				return
 			}
 
@@ -564,7 +605,11 @@ func (p *pageState) getPageInfoForError() string {
 func (p *pageState) getContentConverter() converter.Converter {
 	var err error
 	p.contentConverterInit.Do(func() {
-		markup := p.m.pageConfig.Markup
+		if p.m.pageConfig.ContentMediaType.IsZero() {
+			panic("ContentMediaType not set")
+		}
+		markup := p.m.pageConfig.ContentMediaType.SubType
+
 		if markup == "html" {
 			// Only used for shortcode inner content.
 			markup = "markdown"
@@ -692,6 +737,7 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 			})
 			p.pageOutput.contentRenderer = lcp
 			p.pageOutput.ContentProvider = lcp
+			p.pageOutput.MarkupProvider = lcp
 			p.pageOutput.PageRenderProvider = lcp
 			p.pageOutput.TableOfContentsProvider = lcp
 		}
@@ -729,5 +775,11 @@ func (p pageWithWeight0) Weight0() int {
 }
 
 func (p pageWithWeight0) page() page.Page {
+	return p.pageState
+}
+
+var _ types.Unwrapper = (*pageWithWeight0)(nil)
+
+func (p pageWithWeight0) Unwrapv() any {
 	return p.pageState
 }

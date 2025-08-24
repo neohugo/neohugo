@@ -25,8 +25,9 @@ import (
 	"time"
 
 	"github.com/bep/debounce"
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/paths"
 
 	"github.com/spf13/cast"
 
@@ -39,7 +40,7 @@ import (
 
 	"golang.org/x/mod/module"
 
-	"github.com/neohugo/neohugo/config"
+	"github.com/gohugoio/hugo/config"
 	"github.com/spf13/afero"
 )
 
@@ -261,7 +262,10 @@ func (c *collector) add(owner *moduleAdapter, moduleImport Import) (*moduleAdapt
 					// This will select the latest release-version (not beta etc.).
 					versionQuery = "upgrade"
 				}
-				if err := c.Get(fmt.Sprintf("%s@%s", modulePath, versionQuery)); err != nil {
+
+				// Note that we cannot use c.Get for this, as that may
+				// trigger a new module collection and potentially create a infinite loop.
+				if err := c.get(fmt.Sprintf("%s@%s", modulePath, versionQuery)); err != nil {
 					return nil, err
 				}
 				if err := c.loadModules(); err != nil {
@@ -552,6 +556,9 @@ func (c *collector) collectModulesTXT(owner Module) error {
 		line := scanner.Text()
 		line = strings.Trim(line, "# ")
 		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 		parts := strings.Fields(line)
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid modules list: %q", filename)
@@ -654,7 +661,13 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 		// Verify that Source exists
 		_, err := c.fs.Stat(sourceDir)
 		if err != nil {
-			if strings.HasSuffix(sourceDir, files.FilenameHugoStatsJSON) {
+			if paths.IsSameFilePath(sourceDir, c.ccfg.PublishDir) {
+				// This is a little exotic, but there are use cases for mounting the public folder.
+				// This will typically also be in .gitingore, so create it.
+				if err := c.fs.MkdirAll(sourceDir, 0o755); err != nil {
+					return nil, fmt.Errorf("%s: %q", errMsg, err)
+				}
+			} else if strings.HasSuffix(sourceDir, files.FilenameHugoStatsJSON) {
 				// A common pattern for Tailwind 3 is to mount that file to get it on the server watch list.
 
 				// A common pattern is also to add hugo_stats.json to .gitignore.
@@ -666,6 +679,8 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 				}
 				f.Close()
 			} else {
+				// TODO(bep) commenting out for now, as this will create to much noise.
+				// c.logger.Warnf("module %q: mount source %q does not exist", owner.Path(), sourceDir)
 				continue
 			}
 		}
@@ -687,6 +702,9 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 }
 
 func (c *collector) wrapModuleNotFound(err error) error {
+	if c.Client.ccfg.IgnoreModuleDoesNotExist {
+		return nil
+	}
 	err = fmt.Errorf(err.Error()+": %w", ErrNotExist)
 	if c.GoModulesFilename == "" {
 		return err

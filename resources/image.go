@@ -28,20 +28,19 @@ import (
 
 	color_extractor "github.com/marekm4/color-extractor"
 
-	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/common/hstrings"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/identity"
+	"github.com/gohugoio/hugo/cache/filecache"
+	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/gohugoio/hugo/common/hstrings"
+	"github.com/gohugoio/hugo/common/paths"
 
 	"github.com/disintegration/gift"
 
-	"github.com/neohugo/neohugo/resources/images/exif"
-	"github.com/neohugo/neohugo/resources/internal"
+	"github.com/gohugoio/hugo/resources/images/exif"
+	"github.com/gohugoio/hugo/resources/internal"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/resources/images"
+	"github.com/gohugoio/hugo/resources/images"
 
 	// Blind import for image.Decode
 	_ "golang.org/x/image/webp"
@@ -52,6 +51,7 @@ var (
 	_ resource.Source                 = (*imageResource)(nil)
 	_ resource.Cloner                 = (*imageResource)(nil)
 	_ resource.NameNormalizedProvider = (*imageResource)(nil)
+	_ targetPathProvider              = (*imageResource)(nil)
 )
 
 // imageResource represents an image resource.
@@ -67,7 +67,7 @@ type imageResource struct {
 	meta        *imageMeta
 
 	dominantColorInit sync.Once
-	dominantColors    []string
+	dominantColors    []images.Color
 
 	baseResource
 }
@@ -82,8 +82,9 @@ func (i *imageResource) Exif() *exif.ExifInfo {
 
 func (i *imageResource) getExif() *exif.ExifInfo {
 	i.metaInit.Do(func() {
-		supportsExif := i.Format == images.JPEG || i.Format == images.TIFF
-		if !supportsExif {
+		mf := i.Format.ToImageMetaImageFormatFormat()
+		if mf == -1 {
+			// No Exif support for this format.
 			return
 		}
 
@@ -114,7 +115,8 @@ func (i *imageResource) getExif() *exif.ExifInfo {
 			}
 			defer f.Close()
 
-			x, err := i.getSpec().imaging.DecodeExif(f)
+			filename := i.getResourcePaths().Path()
+			x, err := i.getSpec().imaging.DecodeExif(filename, mf, f)
 			if err != nil {
 				i.getSpec().Logger.Warnf("Unable to decode Exif metadata from image: %s", i.Key())
 				return nil
@@ -143,7 +145,7 @@ func (i *imageResource) getExif() *exif.ExifInfo {
 
 // Colors returns a slice of the most dominant colors in an image
 // using a simple histogram method.
-func (i *imageResource) Colors() ([]string, error) {
+func (i *imageResource) Colors() ([]images.Color, error) {
 	var err error
 	i.dominantColorInit.Do(func() {
 		var img image.Image
@@ -153,10 +155,14 @@ func (i *imageResource) Colors() ([]string, error) {
 		}
 		colors := color_extractor.ExtractColors(img)
 		for _, c := range colors {
-			i.dominantColors = append(i.dominantColors, images.ColorToHexString(c))
+			i.dominantColors = append(i.dominantColors, images.ColorGoToColor(c))
 		}
 	})
 	return i.dominantColors, nil
+}
+
+func (i *imageResource) targetPath() string {
+	return i.TargetPath()
 }
 
 // Clone is for internal use.
@@ -272,7 +278,7 @@ func (i *imageResource) Filter(filters ...any) (images.ImageResource, error) {
 	}
 
 	conf.Action = "filter"
-	conf.Key = identity.HashString(gfilters)
+	conf.Key = hashing.HashString(gfilters)
 	conf.TargetFormat = targetFormat
 	if conf.TargetFormat == 0 {
 		conf.TargetFormat = i.Format
@@ -471,13 +477,15 @@ func (i *imageResource) clone(img image.Image) *imageResource {
 }
 
 func (i *imageResource) getImageMetaCacheTargetPath() string {
-	const imageMetaVersionNumber = 1 // Increment to invalidate the meta cache
+	// Increment to invalidate the meta cache
+	// Last increment: v0.130.0 when change to the new imagemeta library for Exif.
+	const imageMetaVersionNumber = 2
 
 	cfgHash := i.getSpec().imaging.Cfg.SourceHash
 	df := i.getResourcePaths()
 	p1, _ := paths.FileAndExt(df.File)
 	h := i.hash()
-	idStr := identity.HashString(h, i.size(), imageMetaVersionNumber, cfgHash)
+	idStr := hashing.HashString(h, i.size(), imageMetaVersionNumber, cfgHash)
 	df.File = fmt.Sprintf("%s_%s.json", p1, idStr)
 	return df.TargetPath()
 }
@@ -487,34 +495,16 @@ func (i *imageResource) relTargetPathFromConfig(conf images.ImageConfig) interna
 	if conf.TargetFormat != i.Format {
 		p2 = conf.TargetFormat.DefaultExtension()
 	}
-
-	h := i.hash()
-	idStr := fmt.Sprintf("_hu%s_%d", h, i.size())
-
-	// Do not change for no good reason.
-	const md5Threshold = 100
-	key := conf.GetKey(i.Format)
-	// It is useful to have the key in clear text, but when nesting transforms, it
-	// can easily be too long to read, and maybe even too long
-	// for the different OSes to handle.
-	if len(p1)+len(idStr)+len(p2) > md5Threshold {
-		key = helpers.MD5String(p1 + key + p2)
-		huIdx := strings.Index(p1, "_hu")
-		if huIdx != -1 {
-			p1 = p1[:huIdx]
-		} else {
-			// This started out as a very long file name. Making it even longer
-			// could melt ice in the Arctic.
-			p1 = ""
-		}
-	} else if strings.Contains(p1, idStr) {
-		// On scaling an already scaled image, we get the file info from the original.
-		// Repeating the same info in the filename makes it stuttery for no good reason.
-		idStr = ""
+	const prefix = "_hu"
+	huIdx := strings.LastIndex(p1, prefix)
+	incomingID := "i"
+	if huIdx > -1 {
+		incomingID = p1[huIdx+len(prefix):]
+		p1 = p1[:huIdx]
 	}
-
+	hash := hashing.HashUint64(incomingID, i.hash(), conf.GetKey(i.Format))
 	rp := i.getResourcePaths()
-	rp.File = fmt.Sprintf("%s%s_%s%s", p1, idStr, key, p2)
+	rp.File = fmt.Sprintf("%s%s%d%s", p1, prefix, hash, p2)
 
 	return rp
 }

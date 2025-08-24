@@ -24,9 +24,9 @@ import (
 	"sync"
 
 	"github.com/bep/overlayfs"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/htesting"
-	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/htesting"
+	"github.com/gohugoio/hugo/hugofs/glob"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/loggers"
@@ -140,7 +140,7 @@ func (b *BaseFs) WatchFilenames() []string {
 					},
 				})
 
-				w.Walk() // nolint
+				w.Walk()
 			}
 
 		}
@@ -720,7 +720,7 @@ func (b *sourceFilesystemsBuilder) createOverlayFs(
 				ModuleOrdinal: md.ordinal,
 				IsProject:     md.isMainProject,
 				Meta: &hugofs.FileMeta{
-					Watch:           md.Watch(),
+					Watch:           !mount.DisableWatch && md.Watch(),
 					Weight:          mountWeight,
 					InclusionFilter: inclusionFilter,
 				},

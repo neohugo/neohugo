@@ -20,10 +20,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hreflect"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/tpl"
+	"github.com/gohugoio/hugo/common/hreflect"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/identity"
+	"github.com/gohugoio/hugo/tpl"
 
 	template "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
@@ -33,36 +33,37 @@ import (
 	"github.com/neohugo/neohugo/tpl/internal"
 
 	// Init the namespaces
-	_ "github.com/neohugo/neohugo/tpl/cast"
-	_ "github.com/neohugo/neohugo/tpl/collections"
-	_ "github.com/neohugo/neohugo/tpl/compare"
-	_ "github.com/neohugo/neohugo/tpl/crypto"
-	_ "github.com/neohugo/neohugo/tpl/css"
-	_ "github.com/neohugo/neohugo/tpl/data"
-	_ "github.com/neohugo/neohugo/tpl/debug"
-	_ "github.com/neohugo/neohugo/tpl/diagrams"
-	_ "github.com/neohugo/neohugo/tpl/encoding"
-	_ "github.com/neohugo/neohugo/tpl/fmt"
-	_ "github.com/neohugo/neohugo/tpl/hugo"
-	_ "github.com/neohugo/neohugo/tpl/images"
-	_ "github.com/neohugo/neohugo/tpl/inflect"
-	_ "github.com/neohugo/neohugo/tpl/js"
-	_ "github.com/neohugo/neohugo/tpl/lang"
-	_ "github.com/neohugo/neohugo/tpl/math"
-	_ "github.com/neohugo/neohugo/tpl/openapi/openapi3"
-	_ "github.com/neohugo/neohugo/tpl/os"
-	_ "github.com/neohugo/neohugo/tpl/page"
-	_ "github.com/neohugo/neohugo/tpl/partials"
-	_ "github.com/neohugo/neohugo/tpl/path"
-	_ "github.com/neohugo/neohugo/tpl/reflect"
-	_ "github.com/neohugo/neohugo/tpl/resources"
-	_ "github.com/neohugo/neohugo/tpl/safe"
-	_ "github.com/neohugo/neohugo/tpl/site"
-	_ "github.com/neohugo/neohugo/tpl/strings"
-	_ "github.com/neohugo/neohugo/tpl/templates"
-	_ "github.com/neohugo/neohugo/tpl/time"
-	_ "github.com/neohugo/neohugo/tpl/transform"
-	_ "github.com/neohugo/neohugo/tpl/urls"
+	_ "github.com/gohugoio/hugo/tpl/cast"
+	_ "github.com/gohugoio/hugo/tpl/collections"
+	_ "github.com/gohugoio/hugo/tpl/compare"
+	_ "github.com/gohugoio/hugo/tpl/crypto"
+	_ "github.com/gohugoio/hugo/tpl/css"
+	_ "github.com/gohugoio/hugo/tpl/data"
+	_ "github.com/gohugoio/hugo/tpl/debug"
+	_ "github.com/gohugoio/hugo/tpl/diagrams"
+	_ "github.com/gohugoio/hugo/tpl/encoding"
+	_ "github.com/gohugoio/hugo/tpl/fmt"
+	_ "github.com/gohugoio/hugo/tpl/hash"
+	_ "github.com/gohugoio/hugo/tpl/hugo"
+	_ "github.com/gohugoio/hugo/tpl/images"
+	_ "github.com/gohugoio/hugo/tpl/inflect"
+	_ "github.com/gohugoio/hugo/tpl/js"
+	_ "github.com/gohugoio/hugo/tpl/lang"
+	_ "github.com/gohugoio/hugo/tpl/math"
+	_ "github.com/gohugoio/hugo/tpl/openapi/openapi3"
+	_ "github.com/gohugoio/hugo/tpl/os"
+	_ "github.com/gohugoio/hugo/tpl/page"
+	_ "github.com/gohugoio/hugo/tpl/partials"
+	_ "github.com/gohugoio/hugo/tpl/path"
+	_ "github.com/gohugoio/hugo/tpl/reflect"
+	_ "github.com/gohugoio/hugo/tpl/resources"
+	_ "github.com/gohugoio/hugo/tpl/safe"
+	_ "github.com/gohugoio/hugo/tpl/site"
+	_ "github.com/gohugoio/hugo/tpl/strings"
+	_ "github.com/gohugoio/hugo/tpl/templates"
+	_ "github.com/gohugoio/hugo/tpl/time"
+	_ "github.com/gohugoio/hugo/tpl/transform"
+	_ "github.com/gohugoio/hugo/tpl/urls"
 )
 
 var (
@@ -71,7 +72,7 @@ var (
 )
 
 type templateExecHelper struct {
-	running    bool // whether we're in server mode.
+	watching   bool // whether we're in server/watch mode.
 	site       reflect.Value
 	siteParams reflect.Value
 	funcs      map[string]reflect.Value
@@ -95,7 +96,7 @@ func (t *templateExecHelper) GetFunc(ctx context.Context, tmpl texttemplate.Prep
 }
 
 func (t *templateExecHelper) Init(ctx context.Context, tmpl texttemplate.Preparer) {
-	if t.running {
+	if t.watching {
 		_, ok := tmpl.(identity.IdentityProvider)
 		if ok {
 			t.trackDependencies(ctx, tmpl, "", reflect.Value{})
@@ -129,7 +130,7 @@ func (t *templateExecHelper) GetMethod(ctx context.Context, tmpl texttemplate.Pr
 		name = "MainSections"
 	}
 
-	if t.running {
+	if t.watching {
 		ctx = t.trackDependencies(ctx, tmpl, name, receiver)
 	}
 
@@ -151,7 +152,7 @@ func (t *templateExecHelper) GetMethod(ctx context.Context, tmpl texttemplate.Pr
 }
 
 func (t *templateExecHelper) OnCalled(ctx context.Context, tmpl texttemplate.Preparer, name string, args []reflect.Value, result reflect.Value) {
-	if !t.running {
+	if !t.watching {
 		return
 	}
 
@@ -238,7 +239,7 @@ func newTemplateExecuter(d *deps.Deps) (texttemplate.Executer, map[string]reflec
 	}
 
 	exeHelper := &templateExecHelper{
-		running:    d.Conf.Running(),
+		watching:   d.Conf.Watching(),
 		funcs:      funcsv,
 		site:       reflect.ValueOf(d.Site),
 		siteParams: reflect.ValueOf(d.Site.Params()),
@@ -250,7 +251,13 @@ func newTemplateExecuter(d *deps.Deps) (texttemplate.Executer, map[string]reflec
 }
 
 func createFuncMap(d *deps.Deps) map[string]any {
+	if d.TmplFuncMap != nil {
+		return d.TmplFuncMap
+	}
 	funcMap := template.FuncMap{}
+
+	nsMap := make(map[string]any)
+	var onCreated []func(namespaces map[string]any)
 
 	// Merge the namespace funcs
 	for _, nsf := range internal.TemplateFuncsNamespaceRegistry {
@@ -259,6 +266,11 @@ func createFuncMap(d *deps.Deps) map[string]any {
 			panic(ns.Name + " is a duplicate template func")
 		}
 		funcMap[ns.Name] = ns.Context
+		contextV, err := ns.Context(context.Background())
+		if err != nil {
+			panic(err)
+		}
+		nsMap[ns.Name] = contextV
 		for _, mm := range ns.MethodMappings {
 			for _, alias := range mm.Aliases {
 				if _, exists := funcMap[alias]; exists {
@@ -267,6 +279,14 @@ func createFuncMap(d *deps.Deps) map[string]any {
 				funcMap[alias] = mm.Method
 			}
 		}
+
+		if ns.OnCreated != nil {
+			onCreated = append(onCreated, ns.OnCreated)
+		}
+	}
+
+	for _, f := range onCreated {
+		f(nsMap)
 	}
 
 	if d.OverloadedTemplateFuncs != nil {
@@ -275,5 +295,7 @@ func createFuncMap(d *deps.Deps) map[string]any {
 		}
 	}
 
-	return funcMap
+	d.TmplFuncMap = funcMap
+
+	return d.TmplFuncMap
 }

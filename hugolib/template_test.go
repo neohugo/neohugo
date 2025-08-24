@@ -18,12 +18,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/config/allconfig"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/config/allconfig"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/hugofs"
 )
 
 func TestTemplateLookupOrder(t *testing.T) {
@@ -377,7 +377,7 @@ func TestTemplateFuncs(t *testing.T) {
 	b := newTestSitesBuilder(t).WithDefaultMultiSiteConfig()
 
 	homeTpl := `Site: {{ site.Language.Lang }} / {{ .Site.Language.Lang }} / {{ site.BaseURL }}
-Sites: {{ site.Sites.First.Home.Language.Lang }}
+Sites: {{ site.Sites.Default.Home.Language.Lang }}
 Hugo: {{ hugo.Generator }}
 `
 
@@ -460,7 +460,7 @@ complex: 80: 80
 func TestPartialWithZeroedArgs(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithTemplatesAdded("index.html",
-		` 
+		`
 X{{ partial "retval" dict }}X
 X{{ partial "retval" slice }}X
 X{{ partial "retval" "" }}X
@@ -696,7 +696,7 @@ func TestApplyWithNamespace(t *testing.T) {
 
 	b.WithTemplates(
 		"index.html", `
-{{ $b := slice " a " "     b "   "       c" }}		
+{{ $b := slice " a " "     b "   "       c" }}
 {{ $a := apply $b "strings.Trim" "." " " }}
 a: {{ $a }}
 `,
@@ -705,4 +705,18 @@ a: {{ $a }}
 	b.Build(BuildCfg{})
 
 	b.AssertFileContent("public/index.html", `a: [a b c]`)
+}
+
+func TestOverrideInternalTemplate(t *testing.T) {
+	files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+-- layouts/index.html --
+{{ template "_internal/google_analytics_async.html" . }}
+-- layouts/_internal/google_analytics_async.html --
+Overridden.
+`
+	b := Test(t, files)
+
+	b.AssertFileContent("public/index.html", "Overridden.")
 }

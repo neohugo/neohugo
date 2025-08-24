@@ -23,11 +23,12 @@ import (
 	"time"
 
 	"github.com/bep/simplecobra"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/config/allconfig"
-	"github.com/neohugo/neohugo/modules"
-	"github.com/neohugo/neohugo/parser"
-	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/config/allconfig"
+	"github.com/gohugoio/hugo/modules"
+	"github.com/gohugoio/hugo/parser"
+	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/spf13/cobra"
 )
 
 // newConfigCommand creates a new config command and its subcommands.
@@ -57,7 +58,7 @@ func (c *configCommand) Name() string {
 }
 
 func (c *configCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
-	conf, err := c.r.ConfigFromProvider(c.r.configVersionID.Load(), flagsToCfg(cd, nil))
+	conf, err := c.r.ConfigFromProvider(configKey{counter: c.r.configVersionID.Load()}, flagsToCfg(cd, nil))
 	if err != nil {
 		return err
 	}
@@ -109,10 +110,12 @@ func (c *configCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, arg
 func (c *configCommand) Init(cd *simplecobra.Commandeer) error {
 	c.r = cd.Root.Command.(*rootCommand)
 	cmd := cd.CobraCommand
-	cmd.Short = "Print the site configuration"
-	cmd.Long = `Print the site configuration, both default and custom settings.`
+	cmd.Short = "Display site configuration"
+	cmd.Long = `Display site configuration, both default and custom settings.`
 	cmd.Flags().StringVar(&c.format, "format", "toml", "preferred file format (toml, yaml or json)")
+	_ = cmd.RegisterFlagCompletionFunc("format", cobra.FixedCompletions([]string{"toml", "yaml", "json"}, cobra.ShellCompDirectiveNoFileComp))
 	cmd.Flags().StringVar(&c.lang, "lang", "", "the language to display config for. Defaults to the first language defined.")
+	_ = cmd.RegisterFlagCompletionFunc("lang", cobra.NoFileCompletions)
 	applyLocalFlagsBuildConfig(cmd, c.r)
 
 	return nil
@@ -206,7 +209,7 @@ func (c *configMountsCommand) Name() string {
 
 func (c *configMountsCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
 	r := c.configCmd.r
-	conf, err := r.ConfigFromProvider(r.configVersionID.Load(), flagsToCfg(cd, nil))
+	conf, err := r.ConfigFromProvider(configKey{counter: c.r.configVersionID.Load()}, flagsToCfg(cd, nil))
 	if err != nil {
 		return err
 	}
@@ -223,6 +226,7 @@ func (c *configMountsCommand) Init(cd *simplecobra.Commandeer) error {
 	c.r = cd.Root.Command.(*rootCommand)
 	cmd := cd.CobraCommand
 	cmd.Short = "Print the configured file mounts"
+	cmd.ValidArgsFunction = cobra.NoFileCompletions
 	applyLocalFlagsBuildConfig(cmd, c.r)
 	return nil
 }

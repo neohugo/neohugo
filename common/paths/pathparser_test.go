@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/gohugoio/hugo/hugofs/files"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -26,6 +26,9 @@ var testParser = &PathParser{
 	LanguageIndex: map[string]int{
 		"no": 0,
 		"en": 1,
+	},
+	IsContentExt: func(ext string) bool {
+		return ext == "md"
 	},
 }
 
@@ -331,6 +334,22 @@ func TestParse(t *testing.T) {
 				c.Assert(p.Ext(), qt.Equals, "txt")
 				c.Assert(p.Name(), qt.Equals, "c.txt")
 				c.Assert(p.Path(), qt.Equals, "/a/b/c.txt")
+			},
+		},
+		{
+			"Content data file gotmpl",
+			"/a/b/_content.gotmpl",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Path(), qt.Equals, "/a/b/_content.gotmpl")
+				c.Assert(p.Ext(), qt.Equals, "gotmpl")
+				c.Assert(p.IsContentData(), qt.IsTrue)
+			},
+		},
+		{
+			"Content data file yaml",
+			"/a/b/_content.yaml",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.IsContentData(), qt.IsFalse)
 			},
 		},
 	}

@@ -17,26 +17,29 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/config/privacy"
-	"github.com/neohugo/neohugo/config/security"
-	"github.com/neohugo/neohugo/config/services"
-	"github.com/neohugo/neohugo/deploy/deployconfig"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/markup/markup_config"
-	"github.com/neohugo/neohugo/media"
-	"github.com/neohugo/neohugo/minifiers"
-	"github.com/neohugo/neohugo/modules"
-	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/output"
-	"github.com/neohugo/neohugo/related"
-	"github.com/neohugo/neohugo/resources/images"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/gohugoio/hugo/cache/filecache"
 
+	"github.com/gohugoio/hugo/cache/httpcache"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/config/privacy"
+	"github.com/gohugoio/hugo/config/security"
+	"github.com/gohugoio/hugo/config/services"
+	"github.com/gohugoio/hugo/deploy/deployconfig"
+	"github.com/gohugoio/hugo/hugolib/segments"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/markup/markup_config"
+	"github.com/gohugoio/hugo/media"
+	"github.com/gohugoio/hugo/minifiers"
+	"github.com/gohugoio/hugo/modules"
+
+	"github.com/gohugoio/hugo/navigation"
+	"github.com/gohugoio/hugo/output"
+	"github.com/gohugoio/hugo/related"
+	"github.com/gohugoio/hugo/resources/images"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/resources/page/pagemeta"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
@@ -95,6 +98,18 @@ var allDecoderSetups = map[string]decodeWeight{
 			return err
 		},
 	},
+	"httpcache": {
+		key: "httpcache",
+		decode: func(d decodeWeight, p decodeConfig) error {
+			var err error
+			p.c.HTTPCache, err = httpcache.DecodeConfig(p.bcfg, p.p.GetStringMap(d.key))
+			if p.c.IgnoreCache {
+				p.c.HTTPCache.Cache.For.Excludes = []string{"**"}
+				p.c.HTTPCache.Cache.For.Includes = []string{}
+			}
+			return err
+		},
+	},
 	"build": {
 		key: "build",
 		decode: func(d decodeWeight, p decodeConfig) error {
@@ -118,6 +133,14 @@ var allDecoderSetups = map[string]decodeWeight{
 		decode: func(d decodeWeight, p decodeConfig) error {
 			var err error
 			p.c.Markup, err = markup_config.Decode(p.p)
+			return err
+		},
+	},
+	"segments": {
+		key: "segments",
+		decode: func(d decodeWeight, p decodeConfig) error {
+			var err error
+			p.c.Segments, err = segments.DecodeSegments(p.p.GetStringMap(d.key))
 			return err
 		},
 	},
@@ -304,6 +327,41 @@ var allDecoderSetups = map[string]decodeWeight{
 			return err
 		},
 	},
+	"page": {
+		key: "page",
+		decode: func(d decodeWeight, p decodeConfig) error {
+			p.c.Page = config.PageConfig{
+				NextPrevSortOrder:          "desc",
+				NextPrevInSectionSortOrder: "desc",
+			}
+			if p.p.IsSet(d.key) {
+				if err := mapstructure.WeakDecode(p.p.Get(d.key), &p.c.Page); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
+		getCompiler: func(c *Config) configCompiler {
+			return &c.Page
+		},
+	},
+	"pagination": {
+		key: "pagination",
+		decode: func(d decodeWeight, p decodeConfig) error {
+			p.c.Pagination = config.Pagination{
+				PagerSize: 10,
+				Path:      "page",
+			}
+			if p.p.IsSet(d.key) {
+				if err := mapstructure.WeakDecode(p.p.Get(d.key), &p.c.Pagination); err != nil {
+					return err
+				}
+			}
+
+			return nil
+		},
+	},
 	"privacy": {
 		key: "privacy",
 		decode: func(d decodeWeight, p decodeConfig) error {
@@ -361,6 +419,8 @@ var allDecoderSetups = map[string]decodeWeight{
 				p.c.UglyURLs = vv
 			case string:
 				p.c.UglyURLs = vv == "true"
+			case maps.Params:
+				p.c.UglyURLs = cast.ToStringMapBool(maps.CleanConfigStringMap(vv))
 			default:
 				p.c.UglyURLs = cast.ToStringMapBool(v)
 			}

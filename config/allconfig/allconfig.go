@@ -26,31 +26,33 @@ import (
 	"sync"
 	"time"
 
-	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/common/urls"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/config/privacy"
-	"github.com/neohugo/neohugo/config/security"
-	"github.com/neohugo/neohugo/config/services"
-	"github.com/neohugo/neohugo/deploy/deployconfig"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/langs"
-	"github.com/neohugo/neohugo/markup/markup_config"
-	"github.com/neohugo/neohugo/media"
-	"github.com/neohugo/neohugo/minifiers"
-	"github.com/neohugo/neohugo/modules"
-	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/output"
-	"github.com/neohugo/neohugo/related"
-	"github.com/neohugo/neohugo/resources/images"
-	"github.com/neohugo/neohugo/resources/kinds"
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/gohugoio/hugo/cache/filecache"
+	"github.com/gohugoio/hugo/cache/httpcache"
+	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/paths"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/common/urls"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/config/privacy"
+	"github.com/gohugoio/hugo/config/security"
+	"github.com/gohugoio/hugo/config/services"
+	"github.com/gohugoio/hugo/deploy/deployconfig"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/hugolib/segments"
+	"github.com/gohugoio/hugo/langs"
+	"github.com/gohugoio/hugo/markup/markup_config"
+	"github.com/gohugoio/hugo/media"
+	"github.com/gohugoio/hugo/minifiers"
+	"github.com/gohugoio/hugo/modules"
+	"github.com/gohugoio/hugo/navigation"
+	"github.com/gohugoio/hugo/output"
+	"github.com/gohugoio/hugo/related"
+	"github.com/gohugoio/hugo/resources/images"
+	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/gohugoio/hugo/resources/page"
+	"github.com/gohugoio/hugo/resources/page/pagemeta"
 	"github.com/spf13/afero"
 
 	xmaps "golang.org/x/exp/maps"
@@ -103,9 +105,11 @@ type Config struct {
 	RootConfig
 
 	// Author information.
+	// Deprecated: Use taxonomies instead.
 	Author map[string]any
 
 	// Social links.
+	// Deprecated: Use .Site.Params instead.
 	Social map[string]string
 
 	// The build configuration section contains build-related configuration options.
@@ -115,6 +119,10 @@ type Config struct {
 	// The caches configuration section contains cache-related configuration options.
 	// <docsmeta>{"identifiers": ["caches"] }</docsmeta>
 	Caches filecache.Configs `mapstructure:"-"`
+
+	// The httpcache configuration section contains HTTP-cache-related configuration options.
+	// <docsmeta>{"identifiers": ["httpcache"] }</docsmeta>
+	HTTPCache httpcache.Config `mapstructure:"-"`
 
 	// The markup configuration section contains markup-related configuration options.
 	// <docsmeta>{"identifiers": ["markup"] }</docsmeta>
@@ -136,6 +144,9 @@ type Config struct {
 	// The cascade configuration section contains the top level front matter cascade configuration options,
 	// a slice of page matcher and params to apply to those pages.
 	Cascade *config.ConfigNamespace[[]page.PageMatcherParamsConfig, map[page.PageMatcher]maps.Params] `mapstructure:"-"`
+
+	// The segments defines segments for the site. Used for partial/segmented builds.
+	Segments *config.ConfigNamespace[map[string]segments.SegmentConfig, segments.Segments] `mapstructure:"-"`
 
 	// Menu configuration.
 	// <docsmeta>{"refs": ["config:languages:menus"] }</docsmeta>
@@ -167,6 +178,12 @@ type Config struct {
 
 	// Server configuration.
 	Server config.Server `mapstructure:"-"`
+
+	// Pagination configuration.
+	Pagination config.Pagination `mapstructure:"-"`
+
+	// Page configuration.
+	Page config.PageConfig `mapstructure:"-"`
 
 	// Privacy configuration.
 	Privacy privacy.Config `mapstructure:"-"`
@@ -301,9 +318,13 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		}
 	}
 
+	for i, s := range c.IgnoreLogs {
+		c.IgnoreLogs[i] = strings.ToLower(s)
+	}
+
 	ignoredLogIDs := make(map[string]bool)
 	for _, err := range c.IgnoreLogs {
-		ignoredLogIDs[strings.ToLower(err)] = true
+		ignoredLogIDs[err] = true
 	}
 
 	baseURL, err := urls.NewBaseURLFromString(c.BaseURL)
@@ -353,6 +374,22 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		}
 	}
 
+	httpCache, err := c.HTTPCache.Compile()
+	if err != nil {
+		return err
+	}
+
+	// Legacy paginate values.
+	if c.Paginate != 0 {
+		hugo.Deprecate("site config key paginate", "Use pagination.pagerSize instead.", "v0.128.0")
+		c.Pagination.PagerSize = c.Paginate
+	}
+
+	if c.PaginatePath != "" {
+		hugo.Deprecate("site config key paginatePath", "Use pagination.path instead.", "v0.128.0")
+		c.Pagination.Path = c.PaginatePath
+	}
+
 	c.C = &ConfigCompiled{
 		Timeout:           timeout,
 		BaseURL:           baseURL,
@@ -361,11 +398,14 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		DisabledLanguages: disabledLangs,
 		IgnoredLogs:       ignoredLogIDs,
 		KindOutputFormats: kindOutputFormats,
+		ContentTypes:      media.DefaultContentTypes.FromTypes(c.MediaTypes.Config),
 		CreateTitle:       helpers.GetTitleFunc(c.TitleCaseStyle),
 		IsUglyURLSection:  isUglyURL,
 		IgnoreFile:        ignoreFile,
+		SegmentFilter:     c.Segments.Config.Get(func(s string) { logger.Warnf("Render segment %q not found in configuration", s) }, c.RootConfig.RenderSegments...),
 		MainSections:      c.MainSections,
 		Clock:             clock,
+		HTTPCache:         httpCache,
 		transientErr:      transientErr,
 	}
 
@@ -393,15 +433,19 @@ type ConfigCompiled struct {
 	Timeout           time.Duration
 	BaseURL           urls.BaseURL
 	BaseURLLiveReload urls.BaseURL
+	ServerInterface   string
 	KindOutputFormats map[string]output.Formats
+	ContentTypes      media.ContentTypes
 	DisabledKinds     map[string]bool
 	DisabledLanguages map[string]bool
 	IgnoredLogs       map[string]bool
 	CreateTitle       func(s string) string
 	IsUglyURLSection  func(section string) bool
 	IgnoreFile        func(filename string) bool
+	SegmentFilter     segments.SegmentFilter
 	MainSections      []string
 	Clock             time.Time
+	HTTPCache         httpcache.ConfigCompiled
 
 	// This is set to the last transient error found during config compilation.
 	// With themes/modules we compute the configuration in multiple passes, and
@@ -426,9 +470,10 @@ func (c *ConfigCompiled) IsMainSectionsSet() bool {
 }
 
 // This is set after the config is compiled by the server command.
-func (c *ConfigCompiled) SetBaseURL(baseURL, baseURLLiveReload urls.BaseURL) {
+func (c *ConfigCompiled) SetServerInfo(baseURL, baseURLLiveReload urls.BaseURL, serverInterface string) {
 	c.BaseURL = baseURL
 	c.BaseURLLiveReload = baseURLLiveReload
+	c.ServerInterface = serverInterface
 }
 
 // RootConfig holds all the top-level configuration options in Hugo
@@ -460,6 +505,9 @@ type RootConfig struct {
 	// Set this to true to put all languages below their language ID.
 	DefaultContentLanguageInSubdir bool
 
+	// Disable generation of redirect to the default language when DefaultContentLanguageInSubdir is enabled.
+	DisableDefaultLanguageRedirect bool
+
 	// Disable creation of alias redirect pages.
 	DisableAliases bool
 
@@ -471,6 +519,10 @@ type RootConfig struct {
 
 	// A list of languages to disable.
 	DisableLanguages []string
+
+	// The named segments to render.
+	// This needs to match the name of the segment in the segments configuration.
+	RenderSegments []string
 
 	// Disable the injection of the Hugo generator tag on the home page.
 	DisableHugoGeneratorInject bool
@@ -529,9 +581,11 @@ type RootConfig struct {
 	HasCJKLanguage bool
 
 	// The default number of pages per page when paginating.
+	// Deprecated: Use the Pagination struct.
 	Paginate int
 
 	// The path to use when creating pagination URLs, e.g. "page" in /page/2/.
+	// Deprecated: Use the Pagination struct.
 	PaginatePath string
 
 	// Whether to pluralize default list titles.
@@ -680,7 +734,7 @@ func (c *Configs) Validate(logger loggers.Logger) error {
 
 // transientErr returns the last transient error found during config compilation.
 func (c *Configs) transientErr() error {
-	for _, l := range c.LanguageConfigSlice {
+	for _, l := range c.LanguageConfigMap {
 		if l.C.transientErr != nil {
 			return l.C.transientErr
 		}
@@ -697,7 +751,6 @@ func (c *Configs) Init() error {
 	var languages langs.Languages
 	defaultContentLanguage := c.Base.DefaultContentLanguage
 	for k, v := range c.LanguageConfigMap {
-		c.LanguageConfigSlice = append(c.LanguageConfigSlice, v)
 		languageConf := v.Languages[k]
 		language, err := langs.NewLanguage(k, defaultContentLanguage, v.TimeZone, languageConf)
 		if err != nil {
@@ -745,7 +798,7 @@ func (c *Configs) Init() error {
 	c.Languages = languages
 	c.LanguagesDefaultFirst = languagesDefaultFirst
 
-	c.ContentPathParser = &paths.PathParser{LanguageIndex: languagesDefaultFirst.AsIndexSet(), IsLangDisabled: c.Base.IsLangDisabled}
+	c.ContentPathParser = &paths.PathParser{LanguageIndex: languagesDefaultFirst.AsIndexSet(), IsLangDisabled: c.Base.IsLangDisabled, IsContentExt: c.Base.C.ContentTypes.IsContentSuffix}
 
 	c.configLangs = make([]config.AllProvider, len(c.Languages))
 	for i, l := range c.LanguagesDefaultFirst {
@@ -758,7 +811,7 @@ func (c *Configs) Init() error {
 	}
 
 	if len(c.Modules) == 0 {
-		return errors.New("no modules loaded (ned at least the main module)")
+		return errors.New("no modules loaded (need at least the main module)")
 	}
 
 	// Apply default project mounts.
@@ -826,7 +879,7 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 	langConfigMap := make(map[string]*Config)
 
 	languagesConfig := cfg.GetStringMap("languages")
-	var isMultiHost bool
+	var isMultihost bool
 
 	if err := all.CompileConfig(logger); err != nil {
 		return nil, err
@@ -837,33 +890,20 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 		var differentRootKeys []string
 		switch x := v.(type) {
 		case maps.Params:
-			var params maps.Params
-			pv, found := x["params"]
-			if found {
-				params = pv.(maps.Params)
-			} else {
-				params = maps.Params{
+			_, found := x["params"]
+			if !found {
+				x["params"] = maps.Params{
 					maps.MergeStrategyKey: maps.ParamsMergeStrategyDeep,
 				}
-				x["params"] = params
 			}
 
 			for kk, vv := range x {
 				if kk == "_merge" {
 					continue
 				}
-				if kk != maps.MergeStrategyKey && !configLanguageKeys[kk] {
-					// This should have been placed below params.
-					// We accidentally allowed it in the past, so we need to support it a little longer,
-					// But log a warning.
-					if _, found := params[kk]; !found {
-						neohugo.Deprecate(fmt.Sprintf("config: languages.%s.%s: custom params on the language top level", k, kk), fmt.Sprintf("Put the value below [languages.%s.params]. See https://gohugo.io/content-management/multilingual/#changes-in-hugo-01120", k), "v0.112.0")
-						params[kk] = vv
-					}
-				}
 				if kk == "baseurl" {
 					// baseURL configure don the language level is a multihost setup.
-					isMultiHost = true
+					isMultihost = true
 				}
 				mergedConfig.Set(kk, vv)
 				rootv := cfg.Get(kk)
@@ -913,7 +953,7 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 			}
 
 			// Adjust Goldmark config defaults for multilingual, single-host sites.
-			if len(languagesConfig) > 1 && !isMultiHost && !clone.Markup.Goldmark.DuplicateResourceFiles {
+			if len(languagesConfig) > 1 && !isMultihost && !clone.Markup.Goldmark.DuplicateResourceFiles {
 				if !clone.Markup.Goldmark.DuplicateResourceFiles {
 					if clone.Markup.Goldmark.RenderHooks.Link.EnableDefault == nil {
 						clone.Markup.Goldmark.RenderHooks.Link.EnableDefault = types.NewBool(true)
@@ -943,7 +983,7 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 		Base:              all,
 		LanguageConfigMap: langConfigMap,
 		LoadingInfo:       res,
-		IsMultihost:       isMultiHost,
+		IsMultihost:       isMultihost,
 	}
 
 	return cm, nil

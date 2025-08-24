@@ -2,6 +2,7 @@ package hugolib
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -19,27 +21,37 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/fsnotify/fsnotify"
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/config/allconfig"
-	"github.com/neohugo/neohugo/config/security"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/htesting"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/common/hexec"
+	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/config"
+	"github.com/gohugoio/hugo/config/allconfig"
+	"github.com/gohugoio/hugo/config/security"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/htesting"
+	"github.com/gohugoio/hugo/hugofs"
 	"github.com/spf13/afero"
+	"github.com/spf13/cast"
 	"golang.org/x/text/unicode/norm"
 	"golang.org/x/tools/txtar"
 )
 
 type TestOpt func(*IntegrationTestConfig)
 
+// TestOptRunning will enable running in integration tests.
 func TestOptRunning() TestOpt {
 	return func(c *IntegrationTestConfig) {
 		c.Running = true
+	}
+}
+
+// TestOptWatching will enable watching in integration tests.
+func TestOptWatching() TestOpt {
+	return func(c *IntegrationTestConfig) {
+		c.Watching = true
 	}
 }
 
@@ -58,6 +70,13 @@ func TestOptDebug() TestOpt {
 	}
 }
 
+// TestOptInfo will enable info logging in integration tests.
+func TestOptInfo() TestOpt {
+	return func(c *IntegrationTestConfig) {
+		c.LogLevel = logg.LevelInfo
+	}
+}
+
 // TestOptWarn will enable warn logging in integration tests.
 func TestOptWarn() TestOpt {
 	return func(c *IntegrationTestConfig) {
@@ -65,10 +84,24 @@ func TestOptWarn() TestOpt {
 	}
 }
 
+// TestOptOsFs will enable the real file system in integration tests.
+func TestOptOsFs() TestOpt {
+	return func(c *IntegrationTestConfig) {
+		c.NeedsOsFS = true
+	}
+}
+
 // TestOptWithNFDOnDarwin will normalize the Unicode filenames to NFD on Darwin.
 func TestOptWithNFDOnDarwin() TestOpt {
 	return func(c *IntegrationTestConfig) {
 		c.NFDFormOnDarwin = true
+	}
+}
+
+// TestOptWithOSFs enables the real file system.
+func TestOptWithOSFs() TestOpt {
+	return func(c *IntegrationTestConfig) {
+		c.NeedsOsFS = true
 	}
 }
 
@@ -197,24 +230,34 @@ func (b *lockingBuffer) Write(p []byte) (n int, err error) {
 	return
 }
 
+// AssertLogContains asserts that the last build log contains the given strings.
+// Each string can be negated with a "! " prefix.
 func (s *IntegrationTestBuilder) AssertLogContains(els ...string) {
 	s.Helper()
 	for _, el := range els {
-		s.Assert(s.lastBuildLog, qt.Contains, el)
+		var negate bool
+		el, negate = s.negate(el)
+		check := qt.Contains
+		if negate {
+			check = qt.Not(qt.Contains)
+		}
+		s.Assert(s.lastBuildLog, check, el)
 	}
 }
 
-func (s *IntegrationTestBuilder) AssertLogNotContains(els ...string) {
-	s.Helper()
-	for _, el := range els {
-		s.Assert(s.lastBuildLog, qt.Not(qt.Contains), el)
-	}
-}
-
+// AssertLogNotContains asserts that the last build log does matches the given regular expressions.
+// The regular expressions can be negated with a "! " prefix.
 func (s *IntegrationTestBuilder) AssertLogMatches(expression string) {
 	s.Helper()
+	var negate bool
+	expression, negate = s.negate(expression)
 	re := regexp.MustCompile(expression)
-	s.Assert(re.MatchString(s.lastBuildLog), qt.IsTrue, qt.Commentf(s.lastBuildLog))
+	checker := qt.IsTrue
+	if negate {
+		checker = qt.IsFalse
+	}
+
+	s.Assert(re.MatchString(s.lastBuildLog), checker, qt.Commentf(s.lastBuildLog))
 }
 
 func (s *IntegrationTestBuilder) AssertBuildCountData(count int) {
@@ -225,11 +268,6 @@ func (s *IntegrationTestBuilder) AssertBuildCountData(count int) {
 func (s *IntegrationTestBuilder) AssertBuildCountGitInfo(count int) {
 	s.Helper()
 	s.Assert(s.H.init.gitInfo.InitCount(), qt.Equals, count)
-}
-
-func (s *IntegrationTestBuilder) AssertBuildCountLayouts(count int) {
-	s.Helper()
-	s.Assert(s.H.init.layouts.InitCount(), qt.Equals, count)
 }
 
 func (s *IntegrationTestBuilder) AssertFileCount(dirname string, expected int) {
@@ -250,11 +288,21 @@ func (s *IntegrationTestBuilder) AssertFileCount(dirname string, expected int) {
 	s.Assert(count, qt.Equals, expected)
 }
 
+func (s *IntegrationTestBuilder) negate(match string) (string, bool) {
+	var negate bool
+	if strings.HasPrefix(match, "! ") {
+		negate = true
+		match = strings.TrimPrefix(match, "! ")
+	}
+	return match, negate
+}
+
 func (s *IntegrationTestBuilder) AssertFileContent(filename string, matches ...string) {
 	s.Helper()
 	content := strings.TrimSpace(s.FileContent(filename))
+
 	for _, m := range matches {
-		cm := qt.Commentf("File: %s Match %s", filename, m)
+		cm := qt.Commentf("File: %s Match %s\nContent:\n%s", filename, m, content)
 		lines := strings.Split(m, "\n")
 		for _, match := range lines {
 			match = strings.TrimSpace(match)
@@ -262,10 +310,7 @@ func (s *IntegrationTestBuilder) AssertFileContent(filename string, matches ...s
 				continue
 			}
 			var negate bool
-			if strings.HasPrefix(match, "! ") {
-				negate = true
-				match = strings.TrimPrefix(match, "! ")
-			}
+			match, negate = s.negate(match)
 			if negate {
 				s.Assert(content, qt.Not(qt.Contains), match, cm)
 				continue
@@ -275,11 +320,28 @@ func (s *IntegrationTestBuilder) AssertFileContent(filename string, matches ...s
 	}
 }
 
+func (s *IntegrationTestBuilder) AssertFileContentEquals(filename string, match string) {
+	s.Helper()
+	content := s.FileContent(filename)
+	s.Assert(content, qt.Equals, match, qt.Commentf(match))
+}
+
 func (s *IntegrationTestBuilder) AssertFileContentExact(filename string, matches ...string) {
 	s.Helper()
 	content := s.FileContent(filename)
 	for _, m := range matches {
-		s.Assert(content, qt.Contains, m, qt.Commentf(m))
+		cm := qt.Commentf("File: %s Match %s\nContent:\n%s", filename, m, content)
+		s.Assert(content, qt.Contains, m, cm)
+	}
+}
+
+func (s *IntegrationTestBuilder) AssertNoRenderShortcodesArtifacts() {
+	s.Helper()
+	for _, p := range s.H.Pages() {
+		content, err := p.Content(context.Background())
+		s.Assert(err, qt.IsNil)
+		comment := qt.Commentf("Page: %s\n%s", p.Path(), content)
+		s.Assert(strings.Contains(cast.ToString(content), "__hugo_ctx"), qt.IsFalse, comment)
 	}
 }
 
@@ -334,7 +396,7 @@ func (s *IntegrationTestBuilder) printAndCheckFs(fs afero.Fs, path string, w io.
 			defer f.Close()
 			// This will panic if the file is a directory.
 			var buf [1]byte
-			io.ReadFull(f, buf[:]) // nolint
+			io.ReadFull(f, buf[:])
 		}
 		fmt.Fprintln(w, path, info.IsDir())
 		return nil
@@ -397,7 +459,40 @@ func (s *IntegrationTestBuilder) Build() *IntegrationTestBuilder {
 		s.Assert(err, qt.IsNil)
 	}
 
+	s.Cleanup(func() {
+		if h := s.H; h != nil {
+			s.Assert(h.Close(), qt.IsNil)
+		}
+	})
+
 	return s
+}
+
+func (s *IntegrationTestBuilder) BuildPartial(urls ...string) *IntegrationTestBuilder {
+	if _, err := s.BuildPartialE(urls...); err != nil {
+		s.Fatal(err)
+	}
+	return s
+}
+
+func (s *IntegrationTestBuilder) BuildPartialE(urls ...string) (*IntegrationTestBuilder, error) {
+	if s.buildCount == 0 {
+		panic("BuildPartial can only be used after a full build")
+	}
+	if !s.Cfg.Running {
+		panic("BuildPartial can only be used in server mode")
+	}
+	visited := types.NewEvictingStringQueue(len(urls))
+	for _, url := range urls {
+		visited.Add(url)
+	}
+	buildCfg := BuildCfg{RecentlyVisited: visited, PartialReRender: true}
+	return s, s.build(buildCfg)
+}
+
+func (s *IntegrationTestBuilder) Close() {
+	s.Helper()
+	s.Assert(s.H.Close(), qt.IsNil)
 }
 
 func (s *IntegrationTestBuilder) LogString() string {
@@ -494,7 +589,6 @@ func (s *IntegrationTestBuilder) RenameDir(old, new string) *IntegrationTestBuil
 	absNewFilename := s.absFilename(new)
 	s.renamedDirs = append(s.renamedDirs, absOldFilename)
 	s.changedFiles = append(s.changedFiles, absNewFilename)
-	// nolint
 	afero.Walk(s.fs.Source, absOldFilename, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -571,6 +665,10 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 				"running": s.Cfg.Running,
 				"watch":   s.Cfg.Running,
 			})
+		} else if s.Cfg.Watching {
+			flags.Set("internal", maps.Params{
+				"watch": s.Cfg.Watching,
+			})
 		}
 
 		if s.Cfg.WorkingDir != "" {
@@ -586,8 +684,8 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 
 		logger := loggers.New(
 			loggers.Options{
-				Stdout:        w,
-				Stderr:        w,
+				StdOut:        w,
+				StdErr:        w,
 				Level:         s.Cfg.LogLevel,
 				DistinctLevel: logg.LevelWarn,
 			},
@@ -611,7 +709,7 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 
 		s.Assert(err, qt.IsNil)
 
-		depsCfg := deps.DepsCfg{Configs: res, Fs: fs, LogLevel: logger.Level(), LogOut: logger.Out()}
+		depsCfg := deps.DepsCfg{Configs: res, Fs: fs, LogLevel: logger.Level(), StdErr: logger.StdErr()}
 		sites, err := NewHugoSites(depsCfg)
 		if err != nil {
 			initErr = err
@@ -633,7 +731,7 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 			sc := security.DefaultConfig
 			sc.Exec.Allow, err = security.NewWhitelist("npm")
 			s.Assert(err, qt.IsNil)
-			ex := hexec.New(sc)
+			ex := hexec.New(sc, s.Cfg.WorkingDir)
 			command, err := ex.New("npm", "install")
 			s.Assert(err, qt.IsNil)
 			s.Assert(command.Run(), qt.IsNil)
@@ -674,10 +772,6 @@ func (s *IntegrationTestBuilder) build(cfg BuildCfg) error {
 	s.counters = &buildCounters{}
 	cfg.testCounters = s.counters
 
-	if s.buildCount > 0 && (len(changeEvents) == 0) {
-		return nil
-	}
-
 	s.buildCount++
 
 	err := s.H.Build(cfg, changeEvents...)
@@ -688,8 +782,17 @@ func (s *IntegrationTestBuilder) build(cfg BuildCfg) error {
 	return nil
 }
 
+// We simulate the fsnotify events.
+// See the test output in https://github.com/bep/fsnotifyeventlister for what events gets produced
+// by the different OSes.
 func (s *IntegrationTestBuilder) changeEvents() []fsnotify.Event {
-	var events []fsnotify.Event
+	var (
+		events    []fsnotify.Event
+		isLinux   = runtime.GOOS == "linux"
+		isMacOs   = runtime.GOOS == "darwin"
+		isWindows = runtime.GOOS == "windows"
+	)
+
 	for _, v := range s.removedFiles {
 		events = append(events, fsnotify.Event{
 			Name: v,
@@ -716,12 +819,38 @@ func (s *IntegrationTestBuilder) changeEvents() []fsnotify.Event {
 			Name: v,
 			Op:   fsnotify.Write,
 		})
+		if isLinux || isWindows {
+			// Duplicate write events, for some reason.
+			events = append(events, fsnotify.Event{
+				Name: v,
+				Op:   fsnotify.Write,
+			})
+		}
+		if isMacOs {
+			events = append(events, fsnotify.Event{
+				Name: v,
+				Op:   fsnotify.Chmod,
+			})
+		}
 	}
 	for _, v := range s.createdFiles {
 		events = append(events, fsnotify.Event{
 			Name: v,
 			Op:   fsnotify.Create,
 		})
+		if isLinux || isWindows {
+			events = append(events, fsnotify.Event{
+				Name: v,
+				Op:   fsnotify.Write,
+			})
+		}
+
+	}
+
+	// Shuffle events.
+	for i := range events {
+		j := rand.Intn(i + 1)
+		events[i], events[j] = events[j], events[i]
 	}
 
 	// Shuffle events.
@@ -780,6 +909,11 @@ type IntegrationTestConfig struct {
 
 	// The files to use on txtar format, see
 	// https://pkg.go.dev/golang.org/x/exp/cmd/txtar
+	// There are some conentions used in this test setup.
+	// - §§§ can be used to wrap code fences.
+	// - §§ can be used to wrap multiline strings.
+	// - filenames prefixed with sourcefilename: will be read from the file system relative to the current dir.
+	// - filenames with a .png or .jpg extension will be treated as binary and base64 decoded.
 	TxtarString string
 
 	// COnfig to use as the base. We will also read the config from the txtar.
@@ -790,6 +924,11 @@ type IntegrationTestConfig struct {
 
 	// Whether to simulate server mode.
 	Running bool
+
+	// Watch for changes.
+	// This is (currently) always set to true when Running is set.
+	// Note that the CLI for the server does allow for --watch=false, but that is not used in these test.
+	Watching bool
 
 	// Will print the log buffer after the build
 	Verbose bool

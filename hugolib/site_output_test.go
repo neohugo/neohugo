@@ -15,7 +15,6 @@ package hugolib
 
 import (
 	"fmt"
-	"html/template"
 	"strings"
 	"testing"
 
@@ -45,10 +44,12 @@ func doTestSiteWithPageOutputs(t *testing.T, outputs []string) {
 	siteConfig := `
 baseURL = "http://example.com/blog"
 
-paginate = 1
 defaultContentLanguage = "en"
 
 disableKinds = ["section", "term", "taxonomy", "RSS", "sitemap", "robotsTXT", "404"]
+
+[pagination]
+pagerSize = 1
 
 [Taxonomies]
 tag = "tags"
@@ -221,10 +222,12 @@ func TestRedefineRSSOutputFormat(t *testing.T) {
 	siteConfig := `
 baseURL = "http://example.com/blog"
 
-paginate = 1
 defaultContentLanguage = "en"
 
 disableKinds = ["page", "section", "term", "taxonomy", "sitemap", "robotsTXT", "404"]
+
+[pagination]
+pagerSize = 1
 
 [outputFormats]
 [outputFormats.RSS]
@@ -249,7 +252,7 @@ baseName = "feed"
 	s := h.Sites[0]
 
 	// Issue #3450
-	c.Assert(s.RSSLink(), qt.Equals, template.URL("http://example.com/blog/feed.xml"))
+	c.Assert(s.Home().OutputFormats().Get("rss").Permalink(), qt.Equals, "http://example.com/blog/feed.xml")
 }
 
 // Issue #3614
@@ -257,10 +260,12 @@ func TestDotLessOutputFormat(t *testing.T) {
 	siteConfig := `
 baseURL = "http://example.com/blog"
 
-paginate = 1
 defaultContentLanguage = "en"
 
 disableKinds = ["page", "section", "term", "taxonomy", "sitemap", "robotsTXT", "404"]
+
+[pagination]
+pagerSize = 1
 
 [mediaTypes]
 [mediaTypes."text/nodot"]
@@ -645,4 +650,41 @@ WordCount: {{ .WordCount }}
 
 	b.AssertFileContent("public/outputs-empty/index.html", "HTML:", "Word1. Word2.")
 	b.AssertFileContent("public/outputs-string/index.html", "O1:", "Word1. Word2.")
+}
+
+func TestOuputFormatFrontMatterTermIssue12275(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['home','page','rss','section','sitemap','taxonomy']
+-- content/p1.md --
+---
+title: p1
+tags:
+  - tag-a
+  - tag-b
+---
+-- content/tags/tag-a/_index.md --
+---
+title: tag-a
+outputs:
+  - html
+  - json
+---
+-- content/tags/tag-b/_index.md --
+---
+title: tag-b
+---
+-- layouts/_default/term.html --
+{{ .Title }}
+-- layouts/_default/term.json --
+{{ jsonify (dict "title" .Title) }}
+`
+
+	b := Test(t, files)
+
+	b.AssertFileContent("public/tags/tag-a/index.html", "tag-a")
+	b.AssertFileContent("public/tags/tag-b/index.html", "tag-b")
+	b.AssertFileContent("public/tags/tag-a/index.json", `{"title":"tag-a"}`) // failing test
 }

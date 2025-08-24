@@ -113,6 +113,16 @@ This is configurable. See&nbsp;[details].
 {{ end }}
 ```
 
+###### Body
+
+(`string`) The commit message body.
+
+```go-html-template
+{{ with .GitInfo }}
+  {{ .Body }} → - Two new pages added.
+{{ end }}
+```
+
 ## Last modified date
 
 By default, when `enableGitInfo` is `true`, the `Lastmod` method on a `Page` object returns the Git AuthorDate of the last commit that included the file.
@@ -131,6 +141,7 @@ Some providers perform deep clones by default, others allow you to configure the
 
 Hosting service | Default clone depth | Configurable
 :-- | :-- | :--
+AWS Amplify | Deep | N/A
 Cloudflare Pages | Shallow | Yes [^CFP]
 DigitalOcean App Platform | Deep | N/A
 GitHub Pages | Shallow | Yes [^GHP]

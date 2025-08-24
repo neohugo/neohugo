@@ -22,31 +22,31 @@ import (
 	"sync/atomic"
 
 	"github.com/bep/logg"
-	"github.com/neohugo/neohugo/cache/dynacache"
-	"github.com/neohugo/neohugo/config/allconfig"
-	"github.com/neohugo/neohugo/hugofs/glob"
-	"github.com/neohugo/neohugo/hugolib/doctree"
-	"github.com/neohugo/neohugo/resources"
+	"github.com/gohugoio/hugo/cache/dynacache"
+	"github.com/gohugoio/hugo/config/allconfig"
+	"github.com/gohugoio/hugo/hugofs/glob"
+	"github.com/gohugoio/hugo/hugolib/doctree"
+	"github.com/gohugoio/hugo/resources"
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/neohugo/neohugo/output"
-	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/gohugoio/hugo/output"
+	"github.com/gohugoio/hugo/parser/metadecoders"
 
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
-	"github.com/neohugo/neohugo/common/para"
-	"github.com/neohugo/neohugo/common/types"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/gohugoio/hugo/common/maps"
+	"github.com/gohugoio/hugo/common/para"
+	"github.com/gohugoio/hugo/common/types"
+	"github.com/gohugoio/hugo/hugofs"
 
-	"github.com/neohugo/neohugo/source"
+	"github.com/gohugoio/hugo/source"
 
-	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/deps"
-	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/lazy"
+	"github.com/gohugoio/hugo/common/herrors"
+	"github.com/gohugoio/hugo/deps"
+	"github.com/gohugoio/hugo/helpers"
+	"github.com/gohugoio/hugo/lazy"
 
-	"github.com/neohugo/neohugo/resources/page"
+	"github.com/gohugoio/hugo/resources/page"
 )
 
 // HugoSites represents the sites to build. Each site represents a language.
@@ -111,6 +111,28 @@ func (h *HugoSites) ShouldSkipFileChangeEvent(ev fsnotify.Event) bool {
 	return h.skipRebuildForFilenames[ev.Name]
 }
 
+func (h *HugoSites) Close() error {
+	return h.Deps.Close()
+}
+
+func (h *HugoSites) isRebuild() bool {
+	return h.buildCounter.Load() > 0
+}
+
+func (h *HugoSites) resolveSite(lang string) *Site {
+	if lang == "" {
+		lang = h.Conf.DefaultContentLanguage()
+	}
+
+	for _, s := range h.Sites {
+		if s.Lang() == lang {
+			return s
+		}
+	}
+
+	return nil
+}
+
 // Only used in tests.
 type buildCounters struct {
 	contentRenderCounter atomic.Uint64
@@ -160,9 +182,6 @@ func (f *fatalErrorHandler) Done() <-chan bool {
 type hugoSitesInit struct {
 	// Loads the data from all of the /data folders.
 	data *lazy.Init
-
-	// Performs late initialization (before render) of the templates.
-	layouts *lazy.Init
 
 	// Loads the Git info and CODEOWNERS for all the pages if enabled.
 	gitInfo *lazy.Init
@@ -269,7 +288,7 @@ func (h *HugoSites) pickOneAndLogTheRest(errors []error) error {
 	return errors[i]
 }
 
-func (h *HugoSites) isMultiLingual() bool {
+func (h *HugoSites) isMultilingual() bool {
 	return len(h.Sites) > 1
 }
 
@@ -328,7 +347,7 @@ func (h *HugoSites) GetContentPage(filename string) page.Page {
 
 func (h *HugoSites) loadGitInfo() error {
 	if h.Configs.Base.EnableGitInfo {
-		gi, err := newGitInfo(h.Conf)
+		gi, err := newGitInfo(h.Deps)
 		if err != nil {
 			h.Log.Errorln("Failed to read Git log:", err)
 		} else {
@@ -371,7 +390,6 @@ func (h *HugoSites) withSite(fn func(s *Site) error) error {
 }
 
 func (h *HugoSites) withPage(fn func(s string, p *pageState) bool) {
-	// nolint
 	h.withSite(func(s *Site) error {
 		w := &doctree.NodeShiftTreeWalker[contentNodeI]{
 			Tree:     s.pageMap.treePages,
@@ -388,8 +406,9 @@ func (h *HugoSites) withPage(fn func(s string, p *pageState) bool) {
 type BuildCfg struct {
 	// Skip rendering. Useful for testing.
 	SkipRender bool
+
 	// Use this to indicate what changed (for rebuilds).
-	whatChanged *whatChanged
+	WhatChanged *WhatChanged
 
 	// This is a partial re-render of some selected pages.
 	PartialReRender bool
@@ -411,6 +430,10 @@ type BuildCfg struct {
 
 // shouldRender returns whether this output format should be rendered or not.
 func (cfg *BuildCfg) shouldRender(p *pageState) bool {
+	if p.skipRender() {
+		return false
+	}
+
 	if !p.renderOnce {
 		return true
 	}
@@ -476,6 +499,7 @@ func (h *HugoSites) loadData() error {
 		hugofs.WalkwayConfig{
 			Fs:         h.PathSpec.BaseFs.Data.Fs,
 			IgnoreFile: h.SourceSpec.IgnoreFile,
+			PathParser: h.Conf.PathParser(),
 			WalkFn: func(path string, fi hugofs.FileMetaInfo) error {
 				if fi.IsDir() {
 					return nil

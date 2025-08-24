@@ -153,8 +153,6 @@ func (e *fileError) causeString() string {
 	// Avoid repeating the file info in the error message.
 	case godartsass.SassError:
 		return v.Message
-	case godartsassv1.SassError:
-		return v.Message
 	case libsasserrors.Error:
 		return v.Message
 	default:
@@ -388,14 +386,7 @@ func extractPosition(e error) (pos text.Position) {
 	case godartsass.SassError:
 		span := v.Span
 		start := span.Start
-		filename, _ := paths.UrlToFilename(span.Url)
-		pos.Filename = filename
-		pos.Offset = start.Offset
-		pos.ColumnNumber = start.Column
-	case godartsassv1.SassError:
-		span := v.Span
-		start := span.Start
-		filename, _ := paths.UrlToFilename(span.Url)
+		filename, _ := paths.UrlStringToFilename(span.Url)
 		pos.Filename = filename
 		pos.Offset = start.Offset
 		pos.ColumnNumber = start.Column

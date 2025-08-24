@@ -13,14 +13,14 @@ weight: 30
 action:
   aliases: [toCSS]
   returnType: resource.Resource
-  signatures: ['resources.ToCSS [OPTIONS] RESOURCE']
+  signatures: ['css.Sass [OPTIONS] RESOURCE']
 toc: true
 aliases: [/hugo-pipes/transform-to-css/]
 ---
 
 ## Usage
 
-Transpile Sass to CSS using the LibSass transpiler included in Hugo's extended edition, or [install Dart Sass](#dart-sass) to use the latest features of the Sass language.
+Transpile Sass to CSS using the LibSass transpiler included in Hugo's extended and extended/deploy editions, or [install Dart Sass](#dart-sass) to use the latest features of the Sass language.
 
 ```go-html-template
 {{ $opts := dict "transpiler" "libsass" "targetPath" "css/style.css" }}
@@ -37,13 +37,13 @@ Sass has two forms of syntax: [SCSS] and [indented]. Hugo supports both.
 ## Options
 
 transpiler
-: (`string`) The transpiler to use, either `libsass` (default) or `dartsass`. Hugo's extended edition includes the LibSass transpiler. To use the Dart Sass transpiler, see the [installation instructions](#dart-sass) below.
+: (`string`) The transpiler to use, either `libsass` (default) or `dartsass`. Hugo's extended and extended/deploy editions include the LibSass transpiler. To use the Dart Sass transpiler, see the [installation instructions](#dart-sass) below.
 
 targetPath
 : (`string`) If not set, the transformed resource's target path will be the original path of the asset file with its extension replaced by `.css`.
 
-vars {{< new-in 0.109.0 >}}
-: (`map`) A map of key/value pairs that will be available in the `hugo:vars` namespace. Useful for [initializing Sass variables from Hugo templates](https://discourse.gohugo.io/t/42053/).
+vars
+: (`map`) A map of key-value pairs that will be available in the `hugo:vars` namespace. Useful for [initializing Sass variables from Hugo templates](https://discourse.gohugo.io/t/42053/).
 
 ```scss
 // LibSass
@@ -62,7 +62,7 @@ precision
 enableSourceMap
 : (`bool`) If `true`, generates a source map.
 
-sourceMapIncludeSources {{< new-in 0.108.0 >}}
+sourceMapIncludeSources
 : (`bool`) If `true`, embeds sources in the generated source map. Not applicable to LibSass.
 
 includePaths
@@ -73,7 +73,7 @@ includePaths
   "transpiler" "dartsass"
   "targetPath" "css/style.css"
   "vars" site.Params.styles
-  "enableSourceMap" (not hugo.IsProduction) 
+  "enableSourceMap" (not hugo.IsProduction)
   "includePaths" (slice "node_modules/bootstrap/scss")
 }}
 {{ with resources.Get "sass/main.scss" | toCSS $opts | minify | fingerprint }}
@@ -136,8 +136,8 @@ To install Dart Sass for your builds on GitLab Pages, the `.gitlab-ci.yml` file 
 
 ```yaml
 variables:
-  HUGO_VERSION: 0.122.0
-  DART_SASS_VERSION: 1.70.0
+  HUGO_VERSION: 0.137.1
+  DART_SASS_VERSION: 1.80.6
   GIT_DEPTH: 0
   GIT_STRATEGY: clone
   GIT_SUBMODULE_STRATEGY: recursive
@@ -170,8 +170,8 @@ To install Dart Sass for your builds on Netlify, the `netlify.toml` file should 
 
 ```toml
 [build.environment]
-HUGO_VERSION = "0.122.2"
-DART_SASS_VERSION = "1.70.0"
+HUGO_VERSION = "0.137.1"
+DART_SASS_VERSION = "1.80.6"
 TZ = "America/Los_Angeles"
 
 [build]
@@ -187,7 +187,7 @@ command = """\
 
 ### Example
 
-To transpile with Dart Sass, set `transpiler` to `dartsass` in the options map passed to `resources.ToCSS`. For example:
+To transpile with Dart Sass, set `transpiler` to `dartsass` in the options map passed to `css.Sass`. For example:
 
 ```go-html-template
 {{ $opts := dict "transpiler" "dartsass" "targetPath" "css/style.css" }}

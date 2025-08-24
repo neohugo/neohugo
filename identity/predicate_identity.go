@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"sync/atomic"
 
-	hglob "github.com/neohugo/neohugo/hugofs/glob"
+	hglob "github.com/gohugoio/hugo/hugofs/glob"
 )
 
 // NewGlobIdentity creates a new Identity that
