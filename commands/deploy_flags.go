@@ -14,7 +14,7 @@
 package commands
 
 import (
-	"github.com/gohugoio/hugo/deploy/deployconfig"
+	"github.com/neohugo/neohugo/deploy/deployconfig"
 	"github.com/spf13/cobra"
 )
 

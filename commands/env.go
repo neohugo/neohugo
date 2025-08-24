@@ -18,7 +18,7 @@ import (
 	"runtime"
 
 	"github.com/bep/simplecobra"
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/hugo"
 	"github.com/spf13/cobra"
 )
 

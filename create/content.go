@@ -25,14 +25,14 @@ import (
 
 	"github.com/neohugo/neohugo/hugofs/glob"
 
-	"github.com/gohugoio/hugo/common/hexec"
-	"github.com/gohugoio/hugo/common/hstrings"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/hstrings"
+	"github.com/neohugo/neohugo/common/paths"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugolib"
 	"github.com/spf13/afero"
 )
 

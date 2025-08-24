@@ -24,8 +24,8 @@ import (
 	"time"
 
 	"github.com/gohugoio/httpcache"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/helpers"
 

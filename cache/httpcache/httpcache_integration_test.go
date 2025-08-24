@@ -18,7 +18,7 @@ import (
 	"time"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestConfigCustom(t *testing.T) {
@@ -32,8 +32,8 @@ low = "5s"
 high = "32s"
 [httpcache.polls.for]
 includes = ["**gohugo.io**"]
-		
-	
+
+
 `
 
 	b := hugolib.Test(t, files)

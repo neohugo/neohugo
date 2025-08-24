@@ -23,11 +23,11 @@ import (
 	"time"
 
 	"github.com/bep/simplecobra"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/config/allconfig"
-	"github.com/gohugoio/hugo/modules"
-	"github.com/gohugoio/hugo/parser"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config/allconfig"
+	"github.com/neohugo/neohugo/modules"
+	"github.com/neohugo/neohugo/parser"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 	"github.com/spf13/cobra"
 )
 

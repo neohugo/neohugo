@@ -36,10 +36,10 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/gobwas/glob"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/deploy/deployconfig"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/deploy/deployconfig"
+	"github.com/neohugo/neohugo/media"
 	"github.com/spf13/afero"
 	"golang.org/x/text/unicode/norm"
 

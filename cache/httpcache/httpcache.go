@@ -18,9 +18,9 @@ import (
 	"time"
 
 	"github.com/gobwas/glob"
-	"github.com/gohugoio/hugo/common/predicate"
-	"github.com/gohugoio/hugo/config"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/common/predicate"
+	"github.com/neohugo/neohugo/config"
 )
 
 // DefaultConfig holds the default configuration for the HTTP cache.

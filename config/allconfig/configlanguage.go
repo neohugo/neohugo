@@ -16,11 +16,11 @@ package allconfig
 import (
 	"time"
 
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/common/urls"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/langs"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/urls"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/langs"
 )
 
 type ConfigLanguage struct {
