@@ -15,7 +15,7 @@ env:
   DART_SASS_SHA_LINUX: "de6cbea03b18c921c5829030c777321d6c38144035ebccd2ee4deaff9c333ded"
   DART_SASS_SHA_MACOS: "de5760085e02210e24ecf87b26a95c70dbd35683e8f47d0eb817cc02bd0cd41b"
   DART_SASS_SHA_WINDOWS: "28f97e84f56fe08e02e52065397bf35c72a08405fa637fa04fd9502098f796ba"
-pemissions:
+permissions:
   contents: read
 jobs:
   build:

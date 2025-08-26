@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/bep/clocks"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/markup/asciidocext"
 	"github.com/neohugo/neohugo/markup/rst"
 	"github.com/neohugo/neohugo/tpl"
@@ -33,9 +34,6 @@ import (
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/htime"
 	"github.com/neohugo/neohugo/common/loggers"
-
-	"github.com/neohugo/neohugo/resources/page"
-	"github.com/neohugo/neohugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"

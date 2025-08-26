@@ -21,12 +21,14 @@ import (
 
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
 
 	"github.com/neohugo/neohugo/deps"
 

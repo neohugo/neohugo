@@ -28,8 +28,6 @@ import (
 
 	"github.com/neohugo/neohugo/config/testconfig"
 
-	"github.com/neohugo/neohugo/config/testconfig"
-
 	"github.com/neohugo/neohugo/helpers"
 
 	qt "github.com/frankban/quicktest"

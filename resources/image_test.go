@@ -40,8 +40,6 @@ import (
 
 	"github.com/disintegration/gift"
 
-	"github.com/neohugo/neohugo/media"
-	"github.com/neohugo/neohugo/resources/images"
 	"github.com/google/go-cmp/cmp"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images"
