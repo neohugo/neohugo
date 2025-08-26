@@ -15,22 +15,23 @@ env:
   DART_SASS_SHA_LINUX: "de6cbea03b18c921c5829030c777321d6c38144035ebccd2ee4deaff9c333ded"
   DART_SASS_SHA_MACOS: "de5760085e02210e24ecf87b26a95c70dbd35683e8f47d0eb817cc02bd0cd41b"
   DART_SASS_SHA_WINDOWS: "28f97e84f56fe08e02e52065397bf35c72a08405fa637fa04fd9502098f796ba"
-
+pemissions:
+  contents: read
 jobs:
   build:
     name: Build (${{ matrix.os }}, Go ${{ matrix.go }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ["1.22"]
+        os: [ubuntu-latest, windows-latest]
+        go: ["1.24"]
     steps:
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: neohugo
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v5
         with:
           go-version: ${{ matrix.go }}
       - name: Install Ruby
@@ -39,11 +40,15 @@ jobs:
           ruby-version: "2.7"
           bundler-cache: true #
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Install asciidoctor
-        uses: reitzig/actions-asciidoctor@7570212ae20b63653481675fb1ff62d1073632b0
+        uses: reitzig/actions-asciidoctor@v2.0.2
+      - name: Install docutils
+        run: |
+          pip install docutils
+          rst2html.py --version
       - name: Setup Go environment
         shell: bash
         run: |
@@ -68,10 +73,6 @@ jobs:
         run: |
           go mod download
           go mod verify
-      - name: Install docutils
-        run: |
-          pip install docutils
-          rst2html.py --version
       - if: matrix.os == 'ubuntu-latest'
         name: Install pandoc on Linux
         run: |
