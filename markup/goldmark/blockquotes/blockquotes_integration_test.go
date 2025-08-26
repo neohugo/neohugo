@@ -17,7 +17,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestBlockquoteHook(t *testing.T) {

@@ -28,8 +28,8 @@ import (
 	"github.com/bep/gowebp/libwebp/webpoptions"
 	"github.com/bep/imagemeta"
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/resources/images/webp"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/resources/images/webp"
 
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images/exif"

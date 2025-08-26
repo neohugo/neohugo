@@ -18,8 +18,8 @@ import (
 	"fmt"
 	"strings"
 
-	 "github.com/neohugo/neohugo/markup/highlight"
-	 "github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/markup/highlight"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/neohugo/neohugo/markup/markup_config"
 

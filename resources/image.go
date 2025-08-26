@@ -28,19 +28,19 @@ import (
 
 	color_extractor "github.com/marekm4/color-extractor"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/hstrings"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/hstrings"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/disintegration/gift"
 
-	"github.com/gohugoio/hugo/resources/images/exif"
-	"github.com/gohugoio/hugo/resources/internal"
+	"github.com/neohugo/neohugo/resources/images/exif"
+	"github.com/neohugo/neohugo/resources/internal"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/resources/images"
+	"github.com/neohugo/neohugo/resources/images"
 
 	// Blind import for image.Decode
 	_ "golang.org/x/image/webp"
@@ -345,7 +345,7 @@ func (i *imageResource) processActionOptions(action string, options []string) (i
 
 	if action == images.ActionFill {
 		if conf.Anchor == 0 && img.Width() == 0 || img.Height() == 0 {
-			// See https://github.com/gohugoio/hugo/issues/7955
+			// See https://github.com/neohugo/neohugo/issues/7955
 			// Smartcrop fails silently in some rare cases.
 			// Fall back to a center fill.
 			conf.Anchor = gift.CenterAnchor

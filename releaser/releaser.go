@@ -142,7 +142,7 @@ func (r *ReleaseHandler) bumpVersions(ver neohugo.Version) error {
 		toDev = ver.Suffix
 	}
 
-	if err := r.replaceInFile("common/hugo/version_current.go",
+	if err := r.replaceInFile("common/neohugo/version_current.go",
 		`Minor:(\s*)(\d*),`, fmt.Sprintf(`Minor:${1}%d,`, ver.Minor),
 		`PatchLevel:(\s*)(\d*),`, fmt.Sprintf(`PatchLevel:${1}%d,`, ver.PatchLevel),
 		`Suffix:(\s*)".*",`, fmt.Sprintf(`Suffix:${1}"%s",`, toDev)); err != nil {

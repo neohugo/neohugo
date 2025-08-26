@@ -24,7 +24,7 @@ import (
 	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/paths"

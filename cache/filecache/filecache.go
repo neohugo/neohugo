@@ -336,7 +336,7 @@ func (c *Cache) getOrRemove(id string) (hugio.ReadSeekCloser, error) {
 	}
 
 	if removed, err := c.removeIfExpired(id); err != nil || removed {
-		return nil
+		return nil, err
 	}
 
 	f, err := c.Fs.Open(id)

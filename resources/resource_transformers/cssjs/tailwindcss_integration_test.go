@@ -17,8 +17,8 @@ import (
 	"testing"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestTailwindV4Basic(t *testing.T) {

@@ -21,11 +21,11 @@ import (
 	"strings"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/afero"
 )
 

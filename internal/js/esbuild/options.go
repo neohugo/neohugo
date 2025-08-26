@@ -19,14 +19,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/evanw/esbuild/pkg/api"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 	"github.com/mitchellh/mapstructure"
 )
 

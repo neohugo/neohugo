@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config/testconfig"
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/cast"
 )
 

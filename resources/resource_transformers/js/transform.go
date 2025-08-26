@@ -18,10 +18,10 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/gohugoio/hugo/internal/js/esbuild"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/internal"
+	"github.com/neohugo/neohugo/internal/js/esbuild"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/internal"
 )
 
 type buildTransformation struct {

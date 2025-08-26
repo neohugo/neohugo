@@ -21,11 +21,11 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config/testconfig"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/output/layouts"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/output/layouts"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 type templateFinder int

@@ -18,8 +18,8 @@ import (
 
 	"github.com/bep/logg"
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestPermalinks(t *testing.T) {

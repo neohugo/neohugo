@@ -18,8 +18,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/media"
 )
 
 func TestExtractSummaryFromHTML(t *testing.T) {

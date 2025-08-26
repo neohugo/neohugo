@@ -45,7 +45,7 @@ func TestSiteBuildErrors(t *testing.T) {
 		single      = "single"
 	)
 
-	// TODO(bep) add content tests after https://github.com/gohugoio/hugo/issues/5324
+	// TODO(bep) add content tests after https://github.com/neohugo/neohugo/issues/5324
 	// is implemented.
 
 	tests := []struct {
@@ -188,7 +188,7 @@ foo bar
 			},
 		},
 		{
-			// See https://github.com/gohugoio/hugo/issues/5327
+			// See https://github.com/neohugo/neohugo/issues/5327
 			name:     "Panic in template Execute",
 			fileType: single,
 			fileFixer: func(content string) string {
@@ -599,7 +599,7 @@ toc line 4
 	})
 }
 
-// https://github.com/gohugoio/hugo/issues/5375
+// https://github.com/neohugo/neohugo/issues/5375
 func TestSiteBuildTimeout(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", `

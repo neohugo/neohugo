@@ -28,11 +28,11 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugofs"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/gohugoio/testmodBuilder/mods"
@@ -255,7 +255,7 @@ JS imported in module: |
 `
 		})
 
-		// https://github.com/gohugoio/hugo/issues/7690
+		// https://github.com/neohugo/neohugo/issues/7690
 		b.AssertFileContent("package.hugo.json", origPackageJSON)
 	})
 
@@ -677,7 +677,7 @@ title: "My Page"
 	b.AssertFileContent("public/mypage/index.html", "Permalink: https://example.org/mypage/|")
 }
 
-// https://github.com/gohugoio/hugo/issues/6684
+// https://github.com/neohugo/neohugo/issues/6684
 func TestMountsContentFile(t *testing.T) {
 	files := `
 -- hugo.toml --
@@ -696,7 +696,7 @@ Home: {{ .Title }}|{{ .Content }}|
 	b.AssertFileContent("public/index.html", "Home: |<h1 id=\"hello-world\">Hello World</h1>\n|")
 }
 
-// https://github.com/gohugoio/hugo/issues/6299
+// https://github.com/neohugo/neohugo/issues/6299
 func TestSiteWithGoModButNoModules(t *testing.T) {
 	t.Parallel()
 
@@ -716,7 +716,7 @@ baseURL = "https://example.org"
 	b.Build()
 }
 
-// https://github.com/gohugoio/hugo/issues/6622
+// https://github.com/neohugo/neohugo/issues/6622
 func TestModuleAbsMount(t *testing.T) {
 	t.Parallel()
 

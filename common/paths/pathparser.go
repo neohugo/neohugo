@@ -20,9 +20,9 @@ import (
 	"strings"
 	"sync"
 
-	 "github.com/neohugo/neohugo/common/types"
-	 "github.com/neohugo/neohugo/hugofs/files"
-	 "github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/identity"
 )
 
 // PathParser parses a path into a Path.

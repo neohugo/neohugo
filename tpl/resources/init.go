@@ -16,10 +16,10 @@ package resources
 import (
 	"context"
 
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/tpl/css"
-	"github.com/gohugoio/hugo/tpl/internal"
-	"github.com/gohugoio/hugo/tpl/js"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/tpl/css"
+	"github.com/neohugo/neohugo/tpl/internal"
+	"github.com/neohugo/neohugo/tpl/js"
 )
 
 const name = "resources"

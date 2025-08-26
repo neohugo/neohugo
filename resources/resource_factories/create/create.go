@@ -25,20 +25,20 @@ import (
 
 	"github.com/bep/logg"
 	"github.com/gohugoio/httpcache"
-	hhttpcache "github.com/gohugoio/hugo/cache/httpcache"
-	"github.com/gohugoio/hugo/hugofs/glob"
-	"github.com/gohugoio/hugo/identity"
+	hhttpcache "github.com/neohugo/neohugo/cache/httpcache"
+	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/cache/dynacache"
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/hcontext"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/tasks"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/hcontext"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/tasks"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 // Client contains methods to create Resource objects.

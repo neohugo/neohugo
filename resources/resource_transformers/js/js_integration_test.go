@@ -20,10 +20,10 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/internal/js/esbuild"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/internal/js/esbuild"
 )
 
 func TestBuildVariants(t *testing.T) {

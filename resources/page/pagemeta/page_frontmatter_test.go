@@ -18,12 +18,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/config/testconfig"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/media"
 
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
 
 	qt "github.com/frankban/quicktest"
 )

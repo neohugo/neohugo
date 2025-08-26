@@ -31,7 +31,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/htime"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/paths"

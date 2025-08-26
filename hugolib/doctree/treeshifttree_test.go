@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/hugolib/doctree"
 )
 
 func TestTreeShiftTree(t *testing.T) {

@@ -18,7 +18,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 )
 
 func TestSitemapBasic(t *testing.T) {
@@ -84,7 +84,7 @@ Doc2
 	b.AssertFileContent("public/nn/sitemap.xml", " <loc>https://example.com/nn/sect/doc2/</loc>")
 }
 
-// https://github.com/gohugoio/hugo/issues/5910
+// https://github.com/neohugo/neohugo/issues/5910
 func TestSitemapOutputFormats(t *testing.T) {
 	t.Parallel()
 

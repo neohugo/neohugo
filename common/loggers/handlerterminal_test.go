@@ -21,7 +21,7 @@ import (
 
 	"github.com/bep/logg"
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/terminal"
+	"github.com/neohugo/neohugo/common/terminal"
 )
 
 func TestNoAnsiEscapeHandler(t *testing.T) {

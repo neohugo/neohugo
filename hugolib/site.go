@@ -29,25 +29,25 @@ import (
 	"time"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/cache/dynacache"
-	"github.com/gohugoio/hugo/common/htime"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/para"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/config/allconfig"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/hugolib/doctree"
-	"github.com/gohugoio/hugo/hugolib/pagesfromdata"
-	"github.com/gohugoio/hugo/internal/js/esbuild"
-	"github.com/gohugoio/hugo/internal/warpc"
-	"github.com/gohugoio/hugo/langs/i18n"
-	"github.com/gohugoio/hugo/modules"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/tpl/tplimpl"
+	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/common/htime"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/para"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/allconfig"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/hugolib/pagesfromdata"
+	"github.com/neohugo/neohugo/internal/js/esbuild"
+	"github.com/neohugo/neohugo/internal/warpc"
+	"github.com/neohugo/neohugo/langs/i18n"
+	"github.com/neohugo/neohugo/modules"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 	"golang.org/x/text/unicode/norm"
 
 	"github.com/neohugo/neohugo/common/paths"
@@ -58,27 +58,25 @@ import (
 
 	"github.com/neohugo/neohugo/markup/converter"
 
-	"github.com/gohugoio/hugo/common/text"
+	"github.com/neohugo/neohugo/common/text"
+
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/publisher"
 
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/resources/page/siteidentities"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/langs"
-
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
-	"github.com/gohugoio/hugo/resources/page/siteidentities"
-	"github.com/gohugoio/hugo/resources/resource"
-
-	"github.com/gohugoio/hugo/lazy"
+	"github.com/neohugo/neohugo/lazy"
 
 	"github.com/fsnotify/fsnotify"
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/navigation"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/tpl"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 var _ page.Site = (*Site)(nil)
@@ -359,11 +357,11 @@ func newHugoSites(cfg deps.DepsCfg, d *deps.Deps, pageTrees *pageTrees, sites []
 		},
 	}
 
-	// Assemble dependencies to be used in hugo.Deps.
-	var dependencies []*hugo.Dependency
-	var depFromMod func(m modules.Module) *hugo.Dependency
-	depFromMod = func(m modules.Module) *hugo.Dependency {
-		dep := &hugo.Dependency{
+	// Assemble dependencies to be used in neohugo.Deps.
+	var dependencies []*neohugo.Dependency
+	var depFromMod func(m modules.Module) *neohugo.Dependency
+	depFromMod = func(m modules.Module) *neohugo.Dependency {
+		dep := &neohugo.Dependency{
 			Path:    m.Path(),
 			Version: m.Version(),
 			Time:    m.Time(),
@@ -384,7 +382,7 @@ func newHugoSites(cfg deps.DepsCfg, d *deps.Deps, pageTrees *pageTrees, sites []
 		dependencies = append(dependencies, depFromMod(m))
 	}
 
-	h.hugoInfo = hugo.NewInfo(h.Configs.GetFirstLanguageConfig(), dependencies)
+	h.hugoInfo = neohugo.NewInfo(h.Configs.GetFirstLanguageConfig(), dependencies)
 
 	var prototype *deps.Deps
 	for i, s := range sites {
@@ -467,7 +465,7 @@ func (s *Site) MainSections() []string {
 }
 
 // Returns a struct with some information about the build.
-func (s *Site) Hugo() hugo.HugoInfo {
+func (s *Site) Hugo() neohugo.HugoInfo {
 	if s.h == nil || s.h.hugoInfo.Environment == "" {
 		panic("site: hugo: hugoInfo not initialized")
 	}
@@ -482,7 +480,7 @@ func (s *Site) BaseURL() string {
 // Deprecated: Use .Site.Lastmod instead.
 func (s *Site) LastChange() time.Time {
 	s.CheckReady()
-	hugo.Deprecate(".Site.LastChange", "Use .Site.Lastmod instead.", "v0.123.0")
+	neohugo.Deprecate(".Site.LastChange", "Use .Site.Lastmod instead.", "v0.123.0")
 	return s.lastmod
 }
 
@@ -499,20 +497,20 @@ func (s *Site) Params() maps.Params {
 // Deprecated: Use taxonomies instead.
 func (s *Site) Author() map[string]any {
 	if len(s.conf.Author) != 0 {
-		hugo.Deprecate(".Site.Author", "Implement taxonomy 'author' or use .Site.Params.Author instead.", "v0.124.0")
+		neohugo.Deprecate(".Site.Author", "Implement taxonomy 'author' or use .Site.Params.Author instead.", "v0.124.0")
 	}
 	return s.conf.Author
 }
 
 // Deprecated: Use taxonomies instead.
 func (s *Site) Authors() page.AuthorList {
-	hugo.Deprecate(".Site.Authors", "Implement taxonomy 'authors' or use .Site.Params.Author instead.", "v0.124.0")
+	neohugo.Deprecate(".Site.Authors", "Implement taxonomy 'authors' or use .Site.Params.Author instead.", "v0.124.0")
 	return page.AuthorList{}
 }
 
 // Deprecated: Use .Site.Params instead.
 func (s *Site) Social() map[string]string {
-	hugo.Deprecate(".Site.Social", "Implement taxonomy 'social' or use .Site.Params.Social instead.", "v0.124.0")
+	neohugo.Deprecate(".Site.Social", "Implement taxonomy 'social' or use .Site.Params.Social instead.", "v0.124.0")
 	return s.conf.Social
 }
 
@@ -529,9 +527,9 @@ func (s *Site) BuildDrafts() bool {
 	return s.conf.BuildDrafts
 }
 
-// Deprecated: Use hugo.IsMultilingual instead.
+// Deprecated: Use neohugo.IsMultilingual instead.
 func (s *Site) IsMultiLingual() bool {
-	hugo.Deprecate(".Site.IsMultiLingual", "Use hugo.IsMultilingual instead.", "v0.124.0")
+	neohugo.Deprecate(".Site.IsMultiLingual", "Use neohugo.IsMultilingual instead.", "v0.124.0")
 	return s.h.isMultilingual()
 }
 

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 func TestContentFactory(t *testing.T) {

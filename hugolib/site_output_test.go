@@ -457,7 +457,7 @@ func TestCreateSiteOutputFormatsCustomFormats(t *testing.T) {
 	c.Assert(outputs[kinds.KindHome], deepEqualsOutputFormats, output.Formats{customHTML, customRSS})
 }
 
-// https://github.com/gohugoio/hugo/issues/5849
+// https://github.com/neohugo/neohugo/issues/5849
 func TestOutputFormatPermalinkable(t *testing.T) {
 	config := `
 baseURL = "https://example.com"
@@ -584,7 +584,7 @@ Output Formats: {{ len .OutputFormats }};{{ range .OutputFormats }}{{ .Name }};{
 		"This RelPermalink: /ramp/blog/html-ramp/",
 		"Output Formats: 2;html;/blog/html-ramp/|ramp;/ramp/blog/html-ramp/|")
 
-	// https://github.com/gohugoio/hugo/issues/5877
+	// https://github.com/neohugo/neohugo/issues/5877
 	outputFormats := "Output Formats: 3;html;/blog/html-base-nobase/|base;/blog/html-base-nobase/that.html|nobase;/blog/html-base-nobase/index.json|"
 
 	b.AssertFileContent("public/blog/html-base-nobase/index.json",

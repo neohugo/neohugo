@@ -47,7 +47,7 @@ import (
 	"github.com/bep/simplecobra"
 	"github.com/fsnotify/fsnotify"
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/common/urls"
@@ -664,7 +664,7 @@ func (c *serverCommand) getErrorWithContext() any {
 
 	m["Error"] = cleanErrorLog(c.r.logger.Errors())
 
-	m["Version"] = hugo.BuildVersionString()
+	m["Version"] = neohugo.BuildVersionString()
 	ferrors := herrors.UnwrapFileErrorsWithErrorContext(buildErr)
 	m["Files"] = ferrors
 

@@ -27,9 +27,9 @@ import (
 	"github.com/neohugo/neohugo/publisher"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 func TestDraftAndFutureRender(t *testing.T) {

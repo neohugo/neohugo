@@ -11,8 +11,8 @@ import (
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/resources/kinds"
 
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/spf13/afero"
 )
 
@@ -92,7 +92,7 @@ p1 = "p1en"
 	c.Assert(p1, qt.Equals, "p1nn")
 }
 
-// https://github.com/gohugoio/hugo/issues/4706
+// https://github.com/neohugo/neohugo/issues/4706
 func TestContentStressTest(t *testing.T) {
 	b := newTestSitesBuilder(t)
 

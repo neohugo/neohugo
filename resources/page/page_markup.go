@@ -21,10 +21,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	 "github.com/neohugo/neohugo/common/types"
-	 "github.com/neohugo/neohugo/markup/tableofcontents"
-	 "github.com/neohugo/neohugo/media"
-	 "github.com/neohugo/neohugo/tpl"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/tpl"
 )
 
 type Content interface {

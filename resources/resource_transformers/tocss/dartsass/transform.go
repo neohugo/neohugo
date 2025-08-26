@@ -20,16 +20,16 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/media"
 
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/resources"
 
-	"github.com/gohugoio/hugo/resources/internal"
-	"github.com/gohugoio/hugo/resources/resource_transformers/tocss/sass"
+	"github.com/neohugo/neohugo/resources/internal"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/sass"
 
 	"github.com/spf13/afero"
 

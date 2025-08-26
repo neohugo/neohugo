@@ -17,13 +17,13 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/privacy"
 	"github.com/neohugo/neohugo/config/services"
 	"github.com/neohugo/neohugo/identity"
-	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/common/neohugo"
 )
 
 // Site represents a site. There can be multiple sites in a multilingual setup.
@@ -257,7 +257,6 @@ func (s *siteWrapper) LastChange() time.Time {
 	neohugo.Deprecate(".Site.LastChange", "Use .Site.Lastmod instead.", "v0.123.0")
 	return s.s.Lastmod()
 }
-
 
 func (s *siteWrapper) Lastmod() time.Time {
 	return s.s.Lastmod()

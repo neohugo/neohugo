@@ -20,10 +20,10 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 func TestNestedSections(t *testing.T) {
@@ -111,7 +111,7 @@ Content
 {{ range .Paginator.Pages }}
 PAG|{{ .Title }}|{{ $sect.InSection . }}
 {{ end }}
-{{/* https://github.com/gohugoio/hugo/issues/4989 */}}
+{{/* https://github.com/neohugo/neohugo/issues/4989 */}}
 {{ $sections := (.Site.GetPage "section" .Section).Sections.ByWeight }}
 </html>`)
 
@@ -310,7 +310,7 @@ PAG|{{ .Title }}|{{ $sect.InSection . }}
 	rootPage := s.getPageOldVersion(kinds.KindPage, "mypage.md")
 	c.Assert(rootPage, qt.Not(qt.IsNil))
 	c.Assert(rootPage.Parent().IsHome(), qt.Equals, true)
-	// https://github.com/gohugoio/hugo/issues/6365
+	// https://github.com/neohugo/neohugo/issues/6365
 	c.Assert(rootPage.Sections(), qt.HasLen, 0)
 
 	sectionWithSpace := s.getPageOldVersion(kinds.KindSection, "Spaces in Section")

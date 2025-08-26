@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/identity"
 )
 
 func TestContentMapSite(t *testing.T) {

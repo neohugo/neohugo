@@ -22,18 +22,18 @@ import (
 	"unicode"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/hugolib/pagesfromdata"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugolib/pagesfromdata"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 // Used to mark ambiguous keys in reverse index lookups.

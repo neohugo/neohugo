@@ -19,17 +19,17 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/resources"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/paths"
 
-	"github.com/gohugoio/hugo/lazy"
+	"github.com/neohugo/neohugo/lazy"
 
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
 )
 
 var pageIDCounter atomic.Uint64

@@ -16,9 +16,9 @@ package page_test
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/markup/asciidocext"
-	"github.com/gohugoio/hugo/markup/rst"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/markup/asciidocext"
+	"github.com/neohugo/neohugo/markup/rst"
 )
 
 func TestPageMarkupMethods(t *testing.T) {

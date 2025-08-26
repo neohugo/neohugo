@@ -19,23 +19,23 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/maps"
 
-	"github.com/gohugoio/hugo/tpl/css"
-	"github.com/gohugoio/hugo/tpl/js"
+	"github.com/neohugo/neohugo/tpl/css"
+	"github.com/neohugo/neohugo/tpl/js"
 
-	"github.com/gohugoio/hugo/resources/postpub"
+	"github.com/neohugo/neohugo/resources/postpub"
 
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/resources/resource_factories/bundler"
-	"github.com/gohugoio/hugo/resources/resource_factories/create"
-	"github.com/gohugoio/hugo/resources/resource_transformers/integrity"
-	"github.com/gohugoio/hugo/resources/resource_transformers/minifier"
-	"github.com/gohugoio/hugo/resources/resource_transformers/templates"
+	"github.com/neohugo/neohugo/resources/resource_factories/bundler"
+	"github.com/neohugo/neohugo/resources/resource_factories/create"
+	"github.com/neohugo/neohugo/resources/resource_transformers/integrity"
+	"github.com/neohugo/neohugo/resources/resource_transformers/minifier"
+	"github.com/neohugo/neohugo/resources/resource_transformers/templates"
 
 	"github.com/spf13/cast"
 )
@@ -310,14 +310,14 @@ func (ns *Namespace) Minify(r resources.ResourceTransformer) (resource.Resource,
 // for the converted CSS resource.
 // Deprecated: Moved to the css namespace in Hugo 0.128.0.
 func (ns *Namespace) ToCSS(args ...any) (resource.Resource, error) {
-	hugo.Deprecate("resources.ToCSS", "Use css.Sass instead.", "v0.128.0")
+	neohugo.Deprecate("resources.ToCSS", "Use css.Sass instead.", "v0.128.0")
 	return ns.cssNs.Sass(args...)
 }
 
 // PostCSS processes the given Resource with PostCSS.
 // Deprecated: Moved to the css namespace in Hugo 0.128.0.
 func (ns *Namespace) PostCSS(args ...any) (resource.Resource, error) {
-	hugo.Deprecate("resources.PostCSS", "Use css.PostCSS instead.", "v0.128.0")
+	neohugo.Deprecate("resources.PostCSS", "Use css.PostCSS instead.", "v0.128.0")
 	return ns.cssNs.PostCSS(args...)
 }
 
@@ -329,6 +329,6 @@ func (ns *Namespace) PostProcess(r resource.Resource) (postpub.PostPublishedReso
 // Babel processes the given Resource with Babel.
 // Deprecated: Moved to the js namespace in Hugo 0.128.0.
 func (ns *Namespace) Babel(args ...any) (resource.Resource, error) {
-	hugo.Deprecate("resources.Babel", "Use js.Babel.", "v0.128.0")
+	neohugo.Deprecate("resources.Babel", "Use js.Babel.", "v0.128.0")
 	return ns.jsNs.Babel(args...)
 }

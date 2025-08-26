@@ -26,7 +26,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gohugoio/hugo/common/hugio"
+	"github.com/neohugo/neohugo/common/hugio"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/tetratelabs/wazero"

@@ -16,7 +16,7 @@ package passthrough_test
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestPassthroughRenderHook(t *testing.T) {

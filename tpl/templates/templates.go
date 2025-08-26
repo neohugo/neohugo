@@ -20,9 +20,9 @@ import (
 	"strconv"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/mitchellh/mapstructure"
 )
 

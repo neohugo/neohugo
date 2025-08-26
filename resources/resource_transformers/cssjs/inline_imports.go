@@ -25,11 +25,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/spf13/afero"
 )
 

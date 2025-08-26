@@ -22,31 +22,30 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugolib/doctree"
-	"github.com/gohugoio/hugo/hugolib/segments"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/output/layouts"
-	"github.com/gohugoio/hugo/related"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/hugolib/segments"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/output/layouts"
+	"github.com/neohugo/neohugo/related"
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/common/herrors"
-	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/source"
-
-	"github.com/gohugoio/hugo/common/collections"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/collections"
+	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 var (

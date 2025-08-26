@@ -19,11 +19,11 @@ import (
 	"strings"
 	"sync"
 
-	 "github.com/neohugo/neohugo/common/paths"
-	 "github.com/neohugo/neohugo/common/urls"
-	 "github.com/neohugo/neohugo/helpers"
-	 "github.com/neohugo/neohugo/output"
-	 "github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/urls"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/kinds"
 )
 
 const slash = "/"

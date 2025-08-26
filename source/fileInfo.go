@@ -19,13 +19,13 @@ import (
 	"time"
 
 	"github.com/bep/gitmap"
-	 "github.com/neohugo/neohugo/common/hashing"
-	 "github.com/neohugo/neohugo/common/paths"
-	 "github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/media"
 
-	 "github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/hugio"
 
-	 "github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 )
 
 // File describes a source file.

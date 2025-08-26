@@ -30,9 +30,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/output/layouts"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/output/layouts"
 
 	"github.com/neohugo/neohugo/helpers"
 
@@ -41,9 +41,9 @@ import (
 	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/afero"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate/parse"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
 
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
@@ -713,7 +713,7 @@ func (t *templateHandler) applyBaseTemplate(overlay, base templateInfo) (tpl.Tem
 
 		// The extra lookup is a workaround, see
 		// * https://github.com/golang/go/issues/16101
-		// * https://github.com/gohugoio/hugo/issues/2549
+		// * https://github.com/neohugo/neohugo/issues/2549
 		templ = templ.Lookup(templ.Name())
 
 		return templ, nil

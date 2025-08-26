@@ -18,11 +18,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/hugolib/doctree"
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 // pageTree holds the treen navigational method for a Page.

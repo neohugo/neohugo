@@ -23,19 +23,19 @@ import (
 	"time"
 
 	"github.com/bep/clocks"
-	"github.com/gohugoio/hugo/markup/asciidocext"
-	"github.com/gohugoio/hugo/markup/rst"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/markup/asciidocext"
+	"github.com/neohugo/neohugo/markup/rst"
+	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/htime"
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/htime"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/deps"
@@ -541,7 +541,7 @@ title: No Date
 ---
 
 `,
-		// https://github.com/gohugoio/hugo/issues/5854
+		// https://github.com/neohugo/neohugo/issues/5854
 		"with-index-date/_index.md", `---
 title: Date
 date: 2018-01-15
@@ -632,7 +632,7 @@ func TestPageWithSummaryParameter(t *testing.T) {
 }
 
 // Issue #3854
-// Also see https://github.com/gohugoio/hugo/issues/3977
+// Also see https://github.com/neohugo/neohugo/issues/3977
 func TestPageWithDateFields(t *testing.T) {
 	c := qt.New(t)
 	pageWithDate := `---
@@ -1422,7 +1422,7 @@ func TestChompBOM(t *testing.T) {
 	checkPageTitle(t, p, "Simple")
 }
 
-// https://github.com/gohugoio/hugo/issues/5381
+// https://github.com/neohugo/neohugo/issues/5381
 func TestPageManualSummary(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1435,7 +1435,7 @@ This is a {{< sc >}}.
 Content.
 `)
 
-	// https://github.com/gohugoio/hugo/issues/5464
+	// https://github.com/neohugo/neohugo/issues/5464
 	b.WithContent("page-md-only-shortcode.md", `---
 title: "Hugo"
 ---
@@ -1621,7 +1621,7 @@ func TestShouldBuildWithClock(t *testing.T) {
 	}
 }
 
-// See https://github.com/gohugoio/hugo/issues/9171
+// See https://github.com/neohugo/neohugo/issues/9171
 // We redefined disablePathToLower in v0.121.0.
 func TestPagePathDisablePathToLower(t *testing.T) {
 	files := `

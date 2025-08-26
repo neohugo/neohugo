@@ -24,10 +24,10 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/config/security"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config/security"
 
 	"github.com/neohugo/neohugo/common/types"
 
@@ -35,7 +35,7 @@ import (
 
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/deps"
+	"github.com/neohugo/neohugo/deps"
 )
 
 // New returns a new instance of the data-namespaced template functions.
@@ -64,7 +64,7 @@ type Namespace struct {
 // If you provide multiple parts for the URL they will be joined together to the final URL.
 // GetCSV returns nil or a slice slice to use in a short code.
 func (ns *Namespace) GetCSV(sep string, args ...any) (d [][]string, err error) {
-	hugo.Deprecate("data.GetCSV", "use resources.Get or resources.GetRemote with transform.Unmarshal.", "v0.123.0")
+	neohugo.Deprecate("data.GetCSV", "use resources.Get or resources.GetRemote with transform.Unmarshal.", "v0.123.0")
 
 	url, headers := toURLAndHeaders(args)
 	cache := ns.cacheGetCSV
@@ -105,7 +105,7 @@ func (ns *Namespace) GetCSV(sep string, args ...any) (d [][]string, err error) {
 // If you provide multiple parts they will be joined together to the final URL.
 // GetJSON returns nil or parsed JSON to use in a short code.
 func (ns *Namespace) GetJSON(args ...any) (any, error) {
-	hugo.Deprecate("data.GetJSON", "use resources.Get or resources.GetRemote with transform.Unmarshal.", "v0.123.0")
+	neohugo.Deprecate("data.GetJSON", "use resources.Get or resources.GetRemote with transform.Unmarshal.", "v0.123.0")
 
 	var v any
 	url, headers := toURLAndHeaders(args)

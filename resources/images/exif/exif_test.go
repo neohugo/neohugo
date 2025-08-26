@@ -22,7 +22,6 @@ import (
 
 	"github.com/bep/imagemeta"
 	"github.com/google/go-cmp/cmp"
-	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
 )

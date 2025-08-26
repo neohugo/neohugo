@@ -17,8 +17,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/gohugoio/hugo/config/testconfig"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/resources/resource_transformers/htesting"

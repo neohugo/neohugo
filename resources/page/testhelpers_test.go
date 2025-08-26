@@ -21,20 +21,20 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gohugoio/hugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/neohugo/neohugo/navigation"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/related"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/related"
 
 	"github.com/neohugo/neohugo/source"
 )

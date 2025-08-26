@@ -16,8 +16,8 @@ package hugolib
 import (
 	"fmt"
 
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 // Wraps a Page.

@@ -20,8 +20,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/htesting/hqt"
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/htesting/hqt"
+	"github.com/neohugo/neohugo/media"
 )
 
 func TestImageResizeWebP(t *testing.T) {

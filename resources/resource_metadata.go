@@ -19,15 +19,15 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/gohugoio/hugo/hugofs/glob"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/paths"
 )
 
 var (

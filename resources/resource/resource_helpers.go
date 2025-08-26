@@ -17,9 +17,9 @@ import (
 	"strings"
 	"time"
 
-	 "github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/maps"
 
-	 "github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 	"github.com/pelletier/go-toml/v2"
 
 	"github.com/spf13/cast"

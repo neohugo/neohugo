@@ -22,27 +22,27 @@ import (
 	"time"
 
 	"github.com/gobuffalo/flect"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/markup/converter"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/markup/converter"
 	xmaps "golang.org/x/exp/maps"
 
-	"github.com/gohugoio/hugo/related"
+	"github.com/neohugo/neohugo/related"
 
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/common/constants"
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/common/constants"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/helpers"
 
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/cast"
 )
 

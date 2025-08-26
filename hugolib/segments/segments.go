@@ -17,10 +17,10 @@ import (
 	"fmt"
 
 	"github.com/gobwas/glob"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/predicate"
-	"github.com/gohugoio/hugo/config"
-	hglob "github.com/gohugoio/hugo/hugofs/glob"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/predicate"
+	"github.com/neohugo/neohugo/config"
+	hglob "github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/mitchellh/mapstructure"
 )
 

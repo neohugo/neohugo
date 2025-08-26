@@ -21,7 +21,7 @@ import (
 	"math"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/hstrings"
+	"github.com/neohugo/neohugo/common/hstrings"
 )
 
 type colorGoProvider interface {

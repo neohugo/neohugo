@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config/allconfig"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/config/allconfig"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestDirsMount(t *testing.T) {

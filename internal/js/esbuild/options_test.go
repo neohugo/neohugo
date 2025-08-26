@@ -16,7 +16,7 @@ package esbuild
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/evanw/esbuild/pkg/api"
 

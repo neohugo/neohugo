@@ -22,13 +22,13 @@ import (
 	"strings"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugolib/filesystems"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib/filesystems"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/resources"
 )
 
 // NewBuildClient creates a new BuildClient.

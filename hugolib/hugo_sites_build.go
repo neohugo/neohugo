@@ -26,29 +26,30 @@ import (
 	"time"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugofs/files"
-	"github.com/gohugoio/hugo/hugofs/glob"
-	"github.com/gohugoio/hugo/hugolib/doctree"
-	"github.com/gohugoio/hugo/hugolib/pagesfromdata"
-	"github.com/gohugoio/hugo/hugolib/segments"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/publisher"
-	"github.com/gohugoio/hugo/source"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/hugolib/pagesfromdata"
+	"github.com/neohugo/neohugo/hugolib/segments"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/publisher"
+	"github.com/neohugo/neohugo/source"
+	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/para"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/common/rungroup"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/siteidentities"
-	"github.com/gohugoio/hugo/resources/postpub"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/para"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/rungroup"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/siteidentities"
+	"github.com/neohugo/neohugo/resources/postpub"
 
 	"github.com/spf13/afero"
 
@@ -1190,17 +1191,6 @@ func (s *HugoSites) processFiles(ctx context.Context, l logg.LevelLogger, buildC
 	return nil
 }
 
-type pathChange struct {
-	// The path to the changed file.
-	p *paths.Path
-
-	// If true, this is a delete operation (a delete or a rename).
-	delete bool
-
-	// If true, this is a directory.
-	isDir bool
-}
-
 // processPartial prepares the Sites' sources for a partial rebuild.
 func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, config *BuildCfg, init func(config *BuildCfg) error, events []fsnotify.Event) error {
 	h.Log.Trace(logg.StringFunc(func() string {
@@ -1214,15 +1204,14 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 	}))
 
 	events = h.fileEventsFilter(events)
-	events = h.fileEventsTranslate(events)
+	events = h.fileEventsTrim(events)
 
 	logger := h.Log
 
 	var (
-		tmplAdded      bool
-		tmplChanged    bool
-		i18nChanged    bool
-		contentChanged bool
+		tmplAdded   bool
+		tmplChanged bool
+		i18nChanged bool
 	)
 
 	changedPaths := struct {
@@ -1324,8 +1313,6 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 				changes = append(changes, ids...)
 			}
 
-			contentChanged = true
-
 			if config.RecentlyVisited != nil {
 				// Fast render mode. Adding them to the visited queue
 				// avoids rerendering them on navigation.
@@ -1353,7 +1340,7 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 				}
 			}
 
-			addedOrChangedContent = append(addedOrChangedContent, pathChange{p: pathInfo, delete: delete, isDir: isDir})
+			addedOrChangedContent = append(addedOrChangedContent, pathChange{p: pathInfo, structural: delete, isDir: isDir})
 
 		case files.ComponentFolderLayouts:
 			tmplChanged = true
@@ -1484,13 +1471,12 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 
 	resourceFiles := h.fileEventsContentPaths(addedOrChangedContent)
 
-	changed := &whatChanged{
-		contentChanged: contentChanged,
-		identitySet:    make(identity.Identities),
+	changed := &WhatChanged{
+		identitySet: make(identity.Identities),
 	}
 	changed.Add(changes...)
 
-	config.whatChanged = changed
+	config.WhatChanged = changed
 
 	if err := init(config); err != nil {
 		return err
@@ -1517,7 +1503,7 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 
 	if tmplChanged || i18nChanged {
 		// TODO(bep) we should split this, but currently the loading of i18n and layout files are tied together. See #12048.
-		h.init.layouts.Reset()
+		// h.init.layouts.Reset()
 
 		if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
 			// TODO(bep) this could probably be optimized to somehow
@@ -1539,36 +1525,9 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 	}
 
 	if resourceFiles != nil {
-		if err := h.processFiles(ctx, l, *config, resourceFiles...); err != nil {
+		if err := h.processFiles(ctx, l, config, resourceFiles...); err != nil {
 			return err
 		}
-	}
-
-	return nil
-}
-
-func (h *HugoSites) processFull(ctx context.Context, l logg.LevelLogger, config BuildCfg) (err error) {
-	if err = h.processFiles(ctx, l, config); err != nil {
-		err = fmt.Errorf("readAndProcessContent: %w", err)
-		return
-	}
-	return err
-}
-
-func (s *HugoSites) processFiles(ctx context.Context, l logg.LevelLogger, buildConfig BuildCfg, filenames ...pathChange) error {
-	if s.Deps == nil {
-		panic("nil deps on site")
-	}
-
-	sourceSpec := source.NewSourceSpec(s.PathSpec, buildConfig.ContentInclusionFilter, s.BaseFs.Content.Fs)
-
-	// For inserts, we can pick an arbitrary pageMap.
-	pageMap := s.Sites[0].pageMap
-
-	c := newPagesCollector(ctx, s.h, sourceSpec, s.Log, l, pageMap, filenames)
-
-	if err := c.Collect(); err != nil {
-		return err
 	}
 
 	return nil

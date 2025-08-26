@@ -17,15 +17,15 @@ package js
 import (
 	"errors"
 
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/internal/js"
-	"github.com/gohugoio/hugo/internal/js/esbuild"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
-	"github.com/gohugoio/hugo/resources/resource_factories/create"
-	"github.com/gohugoio/hugo/resources/resource_transformers/babel"
-	jstransform "github.com/gohugoio/hugo/resources/resource_transformers/js"
-	"github.com/gohugoio/hugo/tpl/internal/resourcehelpers"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/internal/js"
+	"github.com/neohugo/neohugo/internal/js/esbuild"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource_factories/create"
+	"github.com/neohugo/neohugo/resources/resource_transformers/babel"
+	jstransform "github.com/neohugo/neohugo/resources/resource_transformers/js"
+	"github.com/neohugo/neohugo/tpl/internal/resourcehelpers"
 )
 
 // New returns a new instance of the js-namespaced template functions.

@@ -22,8 +22,8 @@ import (
 	"time"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/htesting/hqt"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/htesting/hqt"
 	"github.com/spf13/cast"
 )
 

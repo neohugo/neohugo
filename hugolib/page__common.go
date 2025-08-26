@@ -16,15 +16,15 @@ package hugolib
 import (
 	"sync"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/compare"
-	"github.com/gohugoio/hugo/lazy"
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/navigation"
-	"github.com/gohugoio/hugo/output/layouts"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/compare"
+	"github.com/neohugo/neohugo/lazy"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/output/layouts"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/source"
 )
 
 type nextPrevProvider interface {

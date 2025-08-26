@@ -18,11 +18,11 @@ import (
 	"regexp"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/gohugoio/hugo/hugolib/filesystems"
-	"github.com/gohugoio/hugo/internal/js/esbuild"
+	"github.com/neohugo/neohugo/hugolib/filesystems"
+	"github.com/neohugo/neohugo/internal/js/esbuild"
 
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 // Client context for ESBuild.

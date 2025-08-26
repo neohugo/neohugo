@@ -23,10 +23,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/constants"
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/common/constants"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/neohugo/neohugo/resources/images"
 	"github.com/neohugo/neohugo/resources/images/exif"
@@ -34,11 +34,11 @@ import (
 
 	bp "github.com/neohugo/neohugo/bufferpool"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/resources/internal"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/resources/internal"
+	"github.com/neohugo/neohugo/resources/resource"
 
 	"github.com/neohugo/neohugo/media"
 )

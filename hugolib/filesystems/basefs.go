@@ -24,9 +24,9 @@ import (
 	"sync"
 
 	"github.com/bep/overlayfs"
-	 "github.com/neohugo/neohugo/config"
-	 "github.com/neohugo/neohugo/htesting"
-	 "github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugofs/glob"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/loggers"

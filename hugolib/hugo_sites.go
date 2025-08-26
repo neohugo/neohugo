@@ -22,31 +22,31 @@ import (
 	"sync/atomic"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/cache/dynacache"
-	"github.com/gohugoio/hugo/config/allconfig"
-	"github.com/gohugoio/hugo/hugofs/glob"
-	"github.com/gohugoio/hugo/hugolib/doctree"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/config/allconfig"
+	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/resources"
 
 	"github.com/fsnotify/fsnotify"
 
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/para"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/para"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/hugofs"
 
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/source"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/lazy"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/lazy"
 
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 // HugoSites represents the sites to build. Each site represents a language.

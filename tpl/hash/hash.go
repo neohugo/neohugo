@@ -18,9 +18,9 @@ import (
 	"context"
 	"hash/fnv"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/tpl/internal"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/tpl/internal"
 	"github.com/spf13/cast"
 )
 

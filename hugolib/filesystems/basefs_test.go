@@ -22,9 +22,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/config/testconfig"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/hugolib"
 
 	"github.com/spf13/afero"
 

@@ -19,7 +19,7 @@ import (
 	"math"
 	"reflect"
 
-	 "github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config"
 
 	"github.com/spf13/cast"
 )

@@ -20,14 +20,14 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/hugolib/doctree"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 type siteRenderContext struct {

@@ -20,11 +20,12 @@ import (
 
 	bp "github.com/neohugo/neohugo/bufferpool"
 	htext "github.com/neohugo/neohugo/common/text"
-	"github.com/neohugo/neohugo/tpl"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/yuin/goldmark/ast"
 )
+
 type BufWriter struct {
 	*bytes.Buffer
 }

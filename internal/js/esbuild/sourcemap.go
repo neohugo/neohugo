@@ -18,7 +18,7 @@ import (
 	"strings"
 
 	"github.com/evanw/esbuild/pkg/api"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/paths"
 )
 
 type sourceMap struct {

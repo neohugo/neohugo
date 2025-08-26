@@ -17,9 +17,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/resources"
 )
 
 func TestNewResource(t *testing.T) {

@@ -22,14 +22,14 @@ import (
 
 	"github.com/bep/godartsass/v2"
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugolib/filesystems"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib/filesystems"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/spf13/afero"
 
 	"github.com/mitchellh/mapstructure"
@@ -51,11 +51,11 @@ func New(fs *filesystems.SourceFilesystem, rs *resources.Spec) (*Client, error) 
 		return nil, fmt.Errorf("no Dart Sass binary found in $PATH")
 	}
 
-	if !hugo.IsDartSassGeV2() {
+	if !neohugo.IsDartSassGeV2() {
 		return nil, fmt.Errorf("unsupported Dart Sass version detected, please upgrade to Dart Sass 1.63.0 or later, see https://gohugo.io/functions/css/sass/#dart-sass")
 	}
 
-	if err := rs.ExecHelper.Sec().CheckAllowedExec(hugo.DartSassBinaryName); err != nil {
+	if err := rs.ExecHelper.Sec().CheckAllowedExec(neohugo.DartSassBinaryName); err != nil {
 		return nil, err
 	}
 
@@ -67,7 +67,7 @@ func New(fs *filesystems.SourceFilesystem, rs *resources.Spec) (*Client, error) 
 	)
 
 	transpiler, err = godartsass.Start(godartsass.Options{
-		DartSassEmbeddedFilename: hugo.DartSassBinaryName,
+		DartSassEmbeddedFilename: neohugo.DartSassBinaryName,
 		LogEventHandler: func(event godartsass.LogEvent) {
 			message := strings.ReplaceAll(event.Message, dartSassStdinPrefix, "")
 			switch event.Type {
@@ -120,7 +120,7 @@ func (c *Client) toCSS(args godartsass.Args, src io.Reader) (godartsass.Result, 
 	if err != nil {
 		if err.Error() == "unexpected EOF" {
 			//lint:ignore ST1005 end user message.
-			return res, fmt.Errorf("got unexpected EOF when executing %q. The user running hugo must have read and execute permissions on this program. With execute permissions only, this error is thrown.", hugo.DartSassBinaryName)
+			return res, fmt.Errorf("got unexpected EOF when executing %q. The user running hugo must have read and execute permissions on this program. With execute permissions only, this error is thrown.", neohugo.DartSassBinaryName)
 		}
 		return res, herrors.NewFileErrorFromFileInErr(err, hugofs.Os, herrors.OffsetMatcher)
 	}

@@ -19,12 +19,12 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/config"
+	"github.com/neohugo/neohugo/config"
 
-	"github.com/gohugoio/hugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/htesting"
 
@@ -304,7 +304,7 @@ HEADLESS {{< myShort >}}
 	th.assertFileContent(filepath.FromSlash("public/s2/l1.png"), "PNG")
 
 	// No headless bundles here, please.
-	// https://github.com/gohugoio/hugo/issues/6492
+	// https://github.com/neohugo/neohugo/issues/6492
 	c.Assert(s.RegularPages(), qt.HasLen, 1)
 	c.Assert(s.Pages(), qt.HasLen, 4)
 	c.Assert(s.home.RegularPages(), qt.HasLen, 1)
@@ -502,7 +502,7 @@ Resource: f2.txt|/enpages/my-bundle/f2.txt|F2 en.|
 	b.AssertFileContent("public/nn/nnpages/my-bundle-nn/f1.txt", "F1 en.")
 }
 
-// https://github.com/gohugoio/hugo/issues/5858
+// https://github.com/neohugo/neohugo/issues/5858
 func TestBundledResourcesWhenMultipleOutputFormats(t *testing.T) {
 	t.Parallel()
 
@@ -536,9 +536,9 @@ MyData
 	b.AssertFileContent("public/mybundle/data.json", "My changed data")
 }
 
-// https://github.com/gohugoio/hugo/issues/5858
+// https://github.com/neohugo/neohugo/issues/5858
 
-// https://github.com/gohugoio/hugo/issues/4870
+// https://github.com/neohugo/neohugo/issues/4870
 func TestBundleSlug(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)

@@ -16,7 +16,7 @@ package config
 import (
 	"encoding/json"
 
-	 "github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/hashing"
 )
 
 func DecodeNamespace[S, C any](configSource any, buildConfig func(any) (C, any, error)) (*ConfigNamespace[S, C], error) {

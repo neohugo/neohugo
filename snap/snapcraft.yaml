@@ -145,7 +145,7 @@ parts:
 
       HUGO_BUILD_TAGS="extended"
       echo " * Building hugo (HUGO_BUILD_TAGS=\"$HUGO_BUILD_TAGS\")..."
-      go build -v -ldflags "-X github.com/gohugoio/hugo/common/hugo.vendorInfo=snap:$(git describe --tags --always --match 'v[0-9]*' | sed 's/^v//; s/-/+git/; s/-g/./')" -tags "$HUGO_BUILD_TAGS"
+      go build -v -ldflags "-X github.com/neohugo/neohugo/common/hugo.vendorInfo=snap:$(git describe --tags --always --match 'v[0-9]*' | sed 's/^v//; s/-/+git/; s/-g/./')" -tags "$HUGO_BUILD_TAGS"
       ./hugo version
       ldd hugo || :
 

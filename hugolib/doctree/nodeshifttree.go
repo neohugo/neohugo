@@ -21,7 +21,7 @@ import (
 	"sync"
 
 	radix "github.com/armon/go-radix"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 type (

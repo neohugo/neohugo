@@ -38,7 +38,7 @@ import (
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 
 	"github.com/neohugo/neohugo/resources/resource"
 

@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/gohugoio/hugo/tpl/internal/go_templates/testenv"
+	"github.com/neohugo/neohugo/tpl/internal/go_templates/testenv"
 )
 
 // Issue 36021: verify that text/template doesn't prevent the linker from removing

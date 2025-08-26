@@ -79,7 +79,7 @@ xml-heading: Heading in p2|
 `)
 }
 
-// https://github.com/gohugoio/hugo/issues/6629
+// https://github.com/neohugo/neohugo/issues/6629
 func TestRenderLinkWithMarkupInText(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", `

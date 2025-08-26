@@ -14,7 +14,7 @@
 package template
 
 import (
-	 "github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/common/types"
 	template "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 )
 

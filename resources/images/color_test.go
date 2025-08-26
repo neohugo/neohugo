@@ -18,7 +18,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/htesting/hqt"
+	"github.com/neohugo/neohugo/htesting/hqt"
 )
 
 func TestHexStringToColor(t *testing.T) {

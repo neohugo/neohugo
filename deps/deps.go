@@ -196,7 +196,7 @@ func (d *Deps) Init() error {
 	}
 
 	if d.MemCache == nil {
-		d.MemCache = dynacache.New(dynacache.Options{Running: d.Conf.Running(), Log: d.Log})
+		d.MemCache = dynacache.New(dynacache.Options{Watching: d.Conf.Running(), Log: d.Log})
 	}
 
 	if d.PathSpec == nil {

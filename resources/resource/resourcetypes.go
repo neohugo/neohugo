@@ -16,10 +16,10 @@ package resource
 import (
 	"context"
 
-	 "github.com/neohugo/neohugo/common/maps"
-	 "github.com/neohugo/neohugo/common/types"
-	 "github.com/neohugo/neohugo/langs"
-	 "github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/neohugo/neohugo/common/hugio"
 )

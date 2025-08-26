@@ -28,17 +28,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/hugio"
-	"github.com/spf13/afero"
-	hglob "github.com/neohugo/neohugo/hugofs/glob"
-	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
+	hglob "github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/spf13/afero"
 	"golang.org/x/mod/module"
 )
 
@@ -624,7 +624,7 @@ func (c *Client) runGo(
 		}
 
 		if strings.Contains(stderr.String(), "invalid version: unknown revision") {
-			// See https://github.com/gohugoio/hugo/issues/6825
+			// See https://github.com/neohugo/neohugo/issues/6825
 			c.logger.Println(`An unknown revision most likely means that someone has deleted the remote ref (e.g. with a force push to GitHub).
 To resolve this, you need to manually edit your go.mod file and replace the version for the module in question with a valid ref.
 

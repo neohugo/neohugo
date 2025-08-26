@@ -100,7 +100,7 @@ var DeprecationFunc = func(item, alternative string, err bool) {}
 // Deprecated: Use the site.Params instead.
 func (l *Language) Params() maps.Params {
 	// TODO(bep) Remove this for now as it created a little too much noise. Need to think about this.
-	// See https://github.com/gohugoio/hugo/issues/11025
+	// See https://github.com/neohugo/neohugo/issues/11025
 	// DeprecationFunc(".Language.Params", paramsDeprecationWarning, false)
 	return l.params
 }

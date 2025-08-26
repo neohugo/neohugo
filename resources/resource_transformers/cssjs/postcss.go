@@ -21,20 +21,20 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/collections"
-	"github.com/gohugoio/hugo/common/hexec"
-	"github.com/gohugoio/hugo/common/loggers"
+	"github.com/neohugo/neohugo/common/collections"
+	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/loggers"
 
-	"github.com/gohugoio/hugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 
-	"github.com/gohugoio/hugo/resources/internal"
+	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/spf13/cast"
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 // NewPostCSSClient creates a new PostCSSClient with the given specification.
@@ -183,7 +183,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	stderr := io.MultiWriter(infow, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
 	cmdArgs = append(cmdArgs, hexec.WithStdout(ctx.To))
-	cmdArgs = append(cmdArgs, hexec.WithEnviron(hugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
+	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
 
 	cmd, err := ex.Npx(binaryName, cmdArgs...)
 	if err != nil {

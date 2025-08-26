@@ -107,7 +107,7 @@ func addTranslationFile(bundle *i18n.Bundle, r *source.File) error {
 	_, err = bundle.ParseMessageFileBytes(b, name)
 	if err != nil {
 		if strings.Contains(err.Error(), "no plural rule") {
-			// https://github.com/gohugoio/hugo/issues/7798
+			// https://github.com/neohugo/neohugo/issues/7798
 			name = artificialLangTagPrefix + name
 			_, err = bundle.ParseMessageFileBytes(b, name)
 			if err == nil {

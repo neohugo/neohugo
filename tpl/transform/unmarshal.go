@@ -19,15 +19,15 @@ import (
 	"io"
 	"strings"
 
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/types"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/types"
 
 	"github.com/mitchellh/mapstructure"
 
-	"github.com/gohugoio/hugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/parser/metadecoders"
 
 	"github.com/spf13/cast"
 )

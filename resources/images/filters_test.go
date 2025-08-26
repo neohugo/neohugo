@@ -17,7 +17,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/neohugo/neohugo/common/hashing"
 )
 
 func TestFilterHash(t *testing.T) {

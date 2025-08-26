@@ -22,8 +22,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/spf13/afero"
 )
 

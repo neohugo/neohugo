@@ -19,10 +19,10 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/markup/asciidocext"
-	"github.com/gohugoio/hugo/markup/pandoc"
-	"github.com/gohugoio/hugo/markup/rst"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/markup/asciidocext"
+	"github.com/neohugo/neohugo/markup/pandoc"
+	"github.com/neohugo/neohugo/markup/rst"
 )
 
 const filesPagesFromDataTempleBasic = `

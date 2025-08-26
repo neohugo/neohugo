@@ -23,20 +23,20 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/resources/internal"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/resources/internal"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/paths"
 
-	"github.com/gohugoio/hugo/media"
+	"github.com/neohugo/neohugo/media"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/helpers"
+	"github.com/neohugo/neohugo/helpers"
 )
 
 var (

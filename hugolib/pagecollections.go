@@ -19,13 +19,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugofs/files"
 
-	"github.com/gohugoio/hugo/common/paths"
+	"github.com/neohugo/neohugo/common/paths"
 
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
 )
 
 // pageFinder provides ways to find a Page in a Site.
@@ -101,7 +101,7 @@ func (c *pageFinder) getPageForRefs(ref ...string) (page.Page, error) {
 		if len(ref) == 2 && refs[0] == kinds.KindSection {
 			// This is an old style reference to the "Home Page section".
 			// Typically fetched via {{ .Site.GetPage "section" .Section }}
-			// See https://github.com/gohugoio/hugo/issues/4989
+			// See https://github.com/neohugo/neohugo/issues/4989
 			key = "/"
 		} else {
 			key = refs[0]

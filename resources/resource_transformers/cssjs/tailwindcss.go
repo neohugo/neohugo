@@ -19,13 +19,13 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hexec"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/internal"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/internal"
+	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -104,7 +104,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 	stderr := io.MultiWriter(infow, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
 	cmdArgs = append(cmdArgs, hexec.WithStdout(ctx.To))
-	cmdArgs = append(cmdArgs, hexec.WithEnviron(hugo.GetExecEnviron(workingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
+	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(workingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
 
 	cmd, err := ex.Npx(binaryName, cmdArgs...)
 	if err != nil {

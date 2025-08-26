@@ -17,7 +17,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 // Issue #10776

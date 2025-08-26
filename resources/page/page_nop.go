@@ -21,20 +21,20 @@ import (
 	"html/template"
 	"time"
 
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
-	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/source"
-	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/navigation"
 	"github.com/neohugo/neohugo/related"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/source"
 )
 
 var (

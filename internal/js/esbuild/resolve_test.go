@@ -19,11 +19,11 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/config/testconfig"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugolib/filesystems"
-	"github.com/gohugoio/hugo/hugolib/paths"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/testconfig"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib/filesystems"
+	"github.com/neohugo/neohugo/hugolib/paths"
 	"github.com/spf13/afero"
 )
 

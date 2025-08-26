@@ -48,7 +48,7 @@ build_settings:
     - exe
   env:
     - CGO_ENABLED=0
-  ldflags: -s -w -X github.com/gohugoio/hugo/common/hugo.vendorInfo=gohugoio
+  ldflags: -s -w -X github.com/neohugo/neohugo/common/hugo.vendorInfo=gohugoio
 archive_settings:
   name_template: "{{ .Project }}_{{ .Tag | trimPrefix `v` }}_{{ .Goos }}-{{ .Goarch }}"
   extra_files:
@@ -199,7 +199,7 @@ builds:
         - -tags
         - extended
       env: *env_extended_windows
-      ldflags: -s -w -X github.com/gohugoio/hugo/common/hugo.vendorInfo=gohugoio -extldflags '-static'
+      ldflags: -s -w -X github.com/neohugo/neohugo/common/hugo.vendorInfo=gohugoio -extldflags '-static'
     os:
       - goos: windows
         build_settings:
@@ -214,7 +214,7 @@ builds:
         - -tags
         - extended,withdeploy
       env: *env_extended_windows
-      ldflags: -s -w -X github.com/gohugoio/hugo/common/hugo.vendorInfo=gohugoio -extldflags '-static'
+      ldflags: -s -w -X github.com/neohugo/neohugo/common/hugo.vendorInfo=gohugoio -extldflags '-static'
     os:
       - goos: windows
         build_settings:

@@ -22,11 +22,11 @@ import (
 	gyaml "github.com/ghodss/yaml"
 
 	kopenapi3 "github.com/getkin/kin-openapi/openapi3"
-	"github.com/gohugoio/hugo/cache/dynacache"
-	"github.com/gohugoio/hugo/deps"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/parser/metadecoders"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 // New returns a new instance of the openapi3-namespaced template functions.

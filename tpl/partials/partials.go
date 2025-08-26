@@ -25,8 +25,8 @@ import (
 
 	"github.com/bep/lazycache"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/identity"
 
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 

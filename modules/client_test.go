@@ -171,7 +171,7 @@ project github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0+vendor
 		c.Assert(graphb.String(), qt.Contains, "github.com/gohugoio/hugoTestModules1_darwin/modh1_1v@v1.3.0 github.com/gohugoio/hugoTestModules1_darwin/modh1_1_1v@v1.1.0+vendor")
 	})
 
-	// https://github.com/gohugoio/hugo/issues/7908
+	// https://github.com/neohugo/neohugo/issues/7908
 	c.Run("createThemeDirname", func(c *qt.C) {
 		mcfg := DefaultModuleConfig
 		client, clean := newClient(

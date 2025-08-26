@@ -16,9 +16,9 @@ package htesting
 import (
 	"path/filepath"
 
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/resources"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/resources"
 	"github.com/spf13/afero"
 )
 

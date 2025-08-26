@@ -23,9 +23,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/text"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/identity"
 	"github.com/spf13/cast"
 
 	"github.com/neohugo/neohugo/markup/converter/hooks"
@@ -34,12 +34,12 @@ import (
 
 	"github.com/neohugo/neohugo/markup/converter"
 
-	bp "github.com/gohugoio/hugo/bufferpool"
-	"github.com/gohugoio/hugo/tpl"
+	bp "github.com/neohugo/neohugo/bufferpool"
+	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 var (

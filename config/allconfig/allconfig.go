@@ -26,33 +26,33 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gohugoio/hugo/cache/filecache"
-	"github.com/gohugoio/hugo/cache/httpcache"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/common/types"
-	"github.com/gohugoio/hugo/common/urls"
-	"github.com/gohugoio/hugo/config"
-	"github.com/gohugoio/hugo/config/privacy"
-	"github.com/gohugoio/hugo/config/security"
-	"github.com/gohugoio/hugo/config/services"
-	"github.com/gohugoio/hugo/deploy/deployconfig"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/hugolib/segments"
-	"github.com/gohugoio/hugo/langs"
-	"github.com/gohugoio/hugo/markup/markup_config"
-	"github.com/gohugoio/hugo/media"
-	"github.com/gohugoio/hugo/minifiers"
-	"github.com/gohugoio/hugo/modules"
-	"github.com/gohugoio/hugo/navigation"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/related"
-	"github.com/gohugoio/hugo/resources/images"
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/page/pagemeta"
+	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/cache/httpcache"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/types"
+	"github.com/neohugo/neohugo/common/urls"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/config/privacy"
+	"github.com/neohugo/neohugo/config/security"
+	"github.com/neohugo/neohugo/config/services"
+	"github.com/neohugo/neohugo/deploy/deployconfig"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugolib/segments"
+	"github.com/neohugo/neohugo/langs"
+	"github.com/neohugo/neohugo/markup/markup_config"
+	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/minifiers"
+	"github.com/neohugo/neohugo/modules"
+	"github.com/neohugo/neohugo/navigation"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/related"
+	"github.com/neohugo/neohugo/resources/images"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
 	"github.com/spf13/afero"
 
 	xmaps "golang.org/x/exp/maps"
@@ -381,12 +381,12 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 
 	// Legacy paginate values.
 	if c.Paginate != 0 {
-		hugo.Deprecate("site config key paginate", "Use pagination.pagerSize instead.", "v0.128.0")
+		neohugo.Deprecate("site config key paginate", "Use pagination.pagerSize instead.", "v0.128.0")
 		c.Pagination.PagerSize = c.Paginate
 	}
 
 	if c.PaginatePath != "" {
-		hugo.Deprecate("site config key paginatePath", "Use pagination.path instead.", "v0.128.0")
+		neohugo.Deprecate("site config key paginatePath", "Use pagination.path instead.", "v0.128.0")
 		c.Pagination.Path = c.PaginatePath
 	}
 

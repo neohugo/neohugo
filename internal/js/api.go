@@ -16,8 +16,8 @@ package js
 import (
 	"context"
 
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/resources/resource"
 )
 
 // BatcherClient is used to do JS batch operations.

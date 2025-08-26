@@ -18,9 +18,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gohugoio/hugo/common/loggers"
-	"github.com/gohugoio/hugo/htesting/hqt"
-	"github.com/gohugoio/hugo/identity"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/htesting/hqt"
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/neohugo/neohugo/helpers"
 

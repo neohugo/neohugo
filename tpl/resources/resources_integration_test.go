@@ -17,9 +17,9 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/resources/resource_transformers/tocss/dartsass"
-	"github.com/gohugoio/hugo/resources/resource_transformers/tocss/scss"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 )
 
 func TestCopy(t *testing.T) {

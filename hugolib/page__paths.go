@@ -17,7 +17,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/gohugoio/hugo/output"
+	"github.com/neohugo/neohugo/output"
 
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"

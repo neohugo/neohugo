@@ -14,7 +14,6 @@
 package hugolib
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -26,24 +25,24 @@ import (
 	"unicode/utf8"
 
 	"github.com/bep/logg"
-	"github.com/gohugoio/hugo/common/hcontext"
-	"github.com/gohugoio/hugo/common/herrors"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/common/hugo"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/common/types/hstring"
-	"github.com/gohugoio/hugo/helpers"
-	"github.com/gohugoio/hugo/identity"
-	"github.com/gohugoio/hugo/markup"
-	"github.com/gohugoio/hugo/markup/converter"
-	"github.com/gohugoio/hugo/markup/goldmark/hugocontext"
-	"github.com/gohugoio/hugo/markup/tableofcontents"
-	"github.com/gohugoio/hugo/parser/metadecoders"
-	"github.com/gohugoio/hugo/parser/pageparser"
-	"github.com/gohugoio/hugo/resources"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/resources/resource"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/common/hcontext"
+	"github.com/neohugo/neohugo/common/herrors"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/common/neohugo"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types/hstring"
+	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/markup"
+	"github.com/neohugo/neohugo/markup/converter"
+	"github.com/neohugo/neohugo/markup/goldmark/hugocontext"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/parser/metadecoders"
+	"github.com/neohugo/neohugo/parser/pageparser"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cast"
 )
@@ -520,7 +519,7 @@ type contentPlainPlainWords struct {
 }
 
 func (c *cachedContentScope) keyScope(ctx context.Context) string {
-	return hugo.GetMarkupScope(ctx) + c.pco.po.f.Name
+	return neohugo.GetMarkupScope(ctx) + c.pco.po.f.Name
 }
 
 func (c *cachedContentScope) contentRendered(ctx context.Context) (contentSummary, error) {
@@ -868,10 +867,10 @@ func (c *cachedContentScope) prepareContext(ctx context.Context) context.Context
 	ctx = tpl.Context.DependencyManagerScopedProvider.Set(ctx, c.pco.po.p)
 
 	// The markup scope is recursive, so if already set to a non zero value, preserve that value.
-	if s := hugo.GetMarkupScope(ctx); s != "" || s == c.scope {
+	if s := neohugo.GetMarkupScope(ctx); s != "" || s == c.scope {
 		return ctx
 	}
-	return hugo.SetMarkupScope(ctx, c.scope)
+	return neohugo.SetMarkupScope(ctx, c.scope)
 }
 
 func (c *cachedContentScope) Render(ctx context.Context) (page.Content, error) {

@@ -18,12 +18,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	 "github.com/neohugo/neohugo/common/loggers"
-	 "github.com/neohugo/neohugo/common/maps"
-	 "github.com/neohugo/neohugo/config"
-	 "github.com/neohugo/neohugo/hugofs/glob"
-	 "github.com/neohugo/neohugo/resources/kinds"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/config"
+	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/resources/kinds"
 )
 
 // A PageMatcher can be used to match a Page with Glob patterns.

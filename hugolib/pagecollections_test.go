@@ -296,7 +296,7 @@ func TestGetPage(t *testing.T) {
 		{"Bundle regular", kinds.KindPage, nil, []string{"sect3/b1", "sect3/b1/index.md", "sect3/b1/index.en.md"}, "b1 bundle"},
 		{"Bundle index name", kinds.KindPage, nil, []string{"sect3/index/index.md", "sect3/index"}, "index bundle"},
 
-		// https://github.com/gohugoio/hugo/issues/7301
+		// https://github.com/neohugo/neohugo/issues/7301
 		{"Section and bundle overlap", kinds.KindPage, nil, []string{"section_bundle_overlap_bundle"}, "index overlap bundle"},
 	}
 
@@ -343,7 +343,7 @@ GetPage 2: {{ with site.GetPage "mysect/index" }}{{ .Title }}|{{ .RelPermalink }
 	)
 }
 
-// https://github.com/gohugoio/hugo/issues/6034
+// https://github.com/neohugo/neohugo/issues/6034
 func TestGetPageRelative(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	for i, section := range []string{"what", "where", "who"} {
@@ -599,7 +599,7 @@ Single.
 	b.AssertFileContent("public/posts/b2/index.html", `.Page.GetPage(../../docs/d1.md).Title: d1|`)
 }
 
-// https://github.com/gohugoio/hugo/issues/7016
+// https://github.com/neohugo/neohugo/issues/7016
 func TestGetPageMultilingual(t *testing.T) {
 	b := newTestSitesBuilder(t)
 

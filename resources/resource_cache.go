@@ -22,10 +22,10 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/gohugoio/hugo/resources/resource"
+	"github.com/neohugo/neohugo/resources/resource"
 
-	"github.com/gohugoio/hugo/cache/dynacache"
-	"github.com/gohugoio/hugo/cache/filecache"
+	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/cache/filecache"
 )
 
 func newResourceCache(rs *Spec, memCache *dynacache.Cache) *ResourceCache {
