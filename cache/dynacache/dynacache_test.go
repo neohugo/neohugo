@@ -106,23 +106,23 @@ func newTestCache(t *testing.T) *Cache {
 	p1 := GetOrCreatePartition[string, testItem](cache, "/aaaa/bbbb", OptionsPartition{Weight: 30, ClearWhen: ClearOnRebuild})
 	p2 := GetOrCreatePartition[string, testItem](cache, "/aaaa/cccc", OptionsPartition{Weight: 30, ClearWhen: ClearOnChange})
 
-	p1.GetOrCreate("clearOnRebuild", func(string) (testItem, error) {
+	_, _ = p1.GetOrCreate("clearOnRebuild", func(string) (testItem, error) {
 		return testItem{}, nil
 	})
 
-	p2.GetOrCreate("clearBecauseStale", func(string) (testItem, error) {
+	_, _ = p2.GetOrCreate("clearBecauseStale", func(string) (testItem, error) {
 		return testItem{
 			staleVersion: 32,
 		}, nil
 	})
 
-	p2.GetOrCreate("clearBecauseIdentityChanged", func(string) (testItem, error) {
+	_, _ = p2.GetOrCreate("clearBecauseIdentityChanged", func(string) (testItem, error) {
 		return testItem{
 			name: "changed",
 		}, nil
 	})
 
-	p2.GetOrCreate("clearNever", func(string) (testItem, error) {
+	_, _ = p2.GetOrCreate("clearNever", func(string) (testItem, error) {
 		return testItem{
 			staleVersion: 0,
 		}, nil
@@ -177,7 +177,7 @@ func TestPanicInCreate(t *testing.T) {
 
 	willPanic := func(i int) func() {
 		return func() {
-			p1.GetOrCreate(fmt.Sprintf("panic-%d", i), func(key string) (testItem, error) {
+			_, _ = p1.GetOrCreate(fmt.Sprintf("panic-%d", i), func(key string) (testItem, error) {
 				panic(errors.New(key))
 			})
 		}

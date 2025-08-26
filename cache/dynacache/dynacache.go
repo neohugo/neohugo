@@ -169,10 +169,10 @@ func (c *Cache) ClearMatching(predicatePartition func(k string, p PartitionManag
 		if !predicatePartition(k, p) {
 			continue
 		}
-		g.Enqueue(p)
+		_ = g.Enqueue(p)
 	}
 
-	g.Wait()
+	_ = g.Wait()
 }
 
 // ClearOnRebuild prepares the cache for a new rebuild taking the given changeset into account.
@@ -186,10 +186,10 @@ func (c *Cache) ClearOnRebuild(changeset ...identity.Identity) {
 	})
 
 	for _, p := range c.partitions {
-		g.Enqueue(p)
+		_ = g.Enqueue(p)
 	}
 
-	g.Wait()
+	_ = g.Wait()
 
 	// Clear any entries marked as stale above.
 	g = rungroup.Run[PartitionManager](context.Background(), rungroup.Config[PartitionManager]{
@@ -201,10 +201,10 @@ func (c *Cache) ClearOnRebuild(changeset ...identity.Identity) {
 	})
 
 	for _, p := range c.partitions {
-		g.Enqueue(p)
+		_ = g.Enqueue(p)
 	}
 
-	g.Wait()
+	_ = g.Wait()
 }
 
 type keysProvider interface {

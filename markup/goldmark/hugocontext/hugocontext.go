@@ -247,7 +247,7 @@ type hugoContextTransformer struct{}
 var _ parser.ASTTransformer = (*hugoContextTransformer)(nil)
 
 func (a *hugoContextTransformer) Transform(n *ast.Document, reader text.Reader, pc parser.Context) {
-	ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		s := ast.WalkContinue
 		if !entering || n.Kind() != kindHugoContext {
 			return s, nil

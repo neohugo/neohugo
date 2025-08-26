@@ -130,7 +130,7 @@ func (c *Client) configurePollingIfEnabled(uri, optionsKey string, getRes func()
 					return pollingConfig.Config.High, err
 				}
 				// The caching is delayed until the body is read.
-				io.Copy(io.Discard, res.Body)
+				_, _ = io.Copy(io.Discard, res.Body)
 				res.Body.Close()
 				x1, x2 := res.Header.Get(httpcache.XETag1), res.Header.Get(httpcache.XETag2)
 				if x1 != x2 {

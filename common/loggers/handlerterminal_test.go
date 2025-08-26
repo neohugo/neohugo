@@ -34,7 +34,7 @@ func TestNoAnsiEscapeHandler(t *testing.T) {
 
 	var buf bytes.Buffer
 	h := newNoAnsiEscapeHandler(&buf, &buf, false, nil)
-	h.HandleLog(&logg.Entry{Message: terminal.Notice(`error in "file.md:1:2"`), Level: logg.LevelInfo})
+	_ = h.HandleLog(&logg.Entry{Message: terminal.Notice(`error in "file.md:1:2"`), Level: logg.LevelInfo})
 
 	c.Assert(buf.String(), qt.Equals, "INFO  error in \"file.md:1:2\"\n")
 }

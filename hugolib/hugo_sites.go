@@ -390,7 +390,7 @@ func (h *HugoSites) withSite(fn func(s *Site) error) error {
 }
 
 func (h *HugoSites) withPage(fn func(s string, p *pageState) bool) {
-	h.withSite(func(s *Site) error {
+	_ = h.withSite(func(s *Site) error {
 		w := &doctree.NodeShiftTreeWalker[contentNodeI]{
 			Tree:     s.pageMap.treePages,
 			LockType: doctree.LockTypeRead,

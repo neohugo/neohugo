@@ -735,7 +735,7 @@ func TestPageBundlerHome(t *testing.T) {
 	cfg.Set("publishDir", "public")
 	fs := hugofs.NewFromOld(hugofs.Os, cfg)
 
-	os.MkdirAll(filepath.Join(workDir, "content"), 0o777)
+	_ = os.MkdirAll(filepath.Join(workDir, "content"), 0o777)
 
 	defer clean()
 

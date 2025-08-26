@@ -131,7 +131,7 @@ func CloneWithMetadataFromMapIfNeeded(m []map[string]any, r resource.Resource) r
 		params: r.Params(),
 	}
 
-	assignMetadata(m, wrapped)
+	_ = assignMetadata(m, wrapped)
 	if !wrapped.changed {
 		return r
 	}

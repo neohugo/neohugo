@@ -60,7 +60,7 @@ func TestGlob(t *testing.T) {
 	create("/UPPER/sub/style.css")
 	create("/root/UPPER/sub/style.css")
 
-	afero.Walk(fs, "/", func(path string, info os.FileInfo, err error) error {
+	_ = afero.Walk(fs, "/", func(path string, info os.FileInfo, err error) error {
 		c.Assert(err, qt.IsNil)
 		return nil
 	})

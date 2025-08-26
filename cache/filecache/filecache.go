@@ -383,7 +383,7 @@ func (c *Cache) removeIfExpired(id string) (bool, error) {
 	}
 
 	if c.isExpired(fi.ModTime()) {
-		c.Fs.Remove(id)
+		_ = c.Fs.Remove(id)
 		return true, nil
 	}
 
@@ -495,5 +495,5 @@ func (h *httpCache) Set(id string, resp []byte) {
 }
 
 func (h *httpCache) Delete(key string) {
-	h.c.Fs.Remove(key)
+	_ = h.c.Fs.Remove(key)
 }

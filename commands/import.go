@@ -310,7 +310,7 @@ func (c *importCommand) convertJekyllPost(path, relPath, targetDir string, draft
 
 	targetFile := filepath.Join(targetDir, relPath)
 	targetParentDir := filepath.Dir(targetFile)
-	os.MkdirAll(targetParentDir, 0o777)
+	_ = os.MkdirAll(targetParentDir, 0o777)
 
 	contentBytes, err := os.ReadFile(path)
 	if err != nil {

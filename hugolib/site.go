@@ -610,7 +610,7 @@ func (s *Site) CheckReady() {
 
 func (s *Site) Taxonomies() page.TaxonomyList {
 	s.CheckReady()
-	s.init.taxonomies.Do(context.Background())
+	_, _ = s.init.taxonomies.Do(context.Background())
 	return s.taxonomies
 }
 
@@ -756,7 +756,7 @@ func (s *Site) prepareInits() {
 
 func (s *Site) Menus() navigation.Menus {
 	s.CheckReady()
-	s.init.menus.Do(context.Background())
+	_, _ = s.init.menus.Do(context.Background())
 	return s.menus
 }
 

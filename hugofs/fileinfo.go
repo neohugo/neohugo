@@ -364,7 +364,7 @@ func AddFileInfoToError(err error, fi FileMetaInfo, fs afero.Fs) error {
 		errfilename := pos.Filename
 		if errfilename == "" {
 			pos.Filename = filename
-			ferr.UpdatePosition(pos)
+			_ = ferr.UpdatePosition(pos)
 		}
 
 		if errfilename == "" || errfilename == filename {
@@ -374,7 +374,7 @@ func AddFileInfoToError(err error, fi FileMetaInfo, fs afero.Fs) error {
 					return err
 				}
 				defer f.Close()
-				ferr.UpdateContent(f, nil)
+				_ = ferr.UpdateContent(f, nil)
 			}
 			return err
 		}

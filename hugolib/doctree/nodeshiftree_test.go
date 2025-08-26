@@ -98,7 +98,7 @@ func TestTreeData(t *testing.T) {
 		},
 	}
 
-	w.Walk(context.Background())
+	_ = w.Walk(context.Background())
 
 	c.Assert(strings.Join(values, "|"), qt.Equals, "/a::map[id:HOME]|/a/b:/a:map[id:/a]|/b::map[id:HOME]|/b/c:/b:map[id:/b]|/b/c/d:/b/c:map[id:/b/c]")
 }

@@ -554,7 +554,7 @@ Complete documentation is available at https://gohugo.io/.`
 	_ = cmd.RegisterFlagCompletionFunc("logLevel", cobra.FixedCompletions([]string{"debug", "info", "warn", "error"}, cobra.ShellCompDirectiveNoFileComp))
 	cmd.Flags().BoolVarP(&r.buildWatch, "watch", "w", false, "watch filesystem for changes and recreate as needed")
 
-	cmd.PersistentFlags().MarkHidden("devMode")
+	_ = cmd.PersistentFlags().MarkHidden("devMode")
 
 	// Configure local flags
 	applyLocalFlagsBuild(cmd, r)

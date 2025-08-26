@@ -575,7 +575,7 @@ func (t *templateHandler) addFileContext(templ tpl.Template, inerr error) error 
 		defer f.Close()
 
 		fe := herrors.NewFileErrorFromName(inErr, info.meta.Filename)
-		fe.UpdateContent(f, lineMatcher)
+		_ = fe.UpdateContent(f, lineMatcher)
 
 		if !fe.ErrorContext().Position.IsValid() {
 			return inErr, false

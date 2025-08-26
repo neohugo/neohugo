@@ -181,7 +181,7 @@ func TestTransformPostCSSNotInstalledError(t *testing.T) {
 			TxtarString: postCSSIntegrationTestFiles,
 		}).BuildE()
 
-	s.AssertIsFileError(err)
+	_ = s.AssertIsFileError(err)
 	c.Assert(err.Error(), qt.Contains, `binary with name "postcss" not found using npx`)
 }
 

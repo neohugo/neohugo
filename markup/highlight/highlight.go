@@ -304,8 +304,8 @@ func (s startEnd) End(code bool) string {
 }
 
 func writeDivStart(w hugio.FlexiWriter, attrs []attributes.Attribute, wrapperClass string) {
-	w.WriteString(`<div class="`)
-	w.WriteString(wrapperClass)
+	_, _ = w.WriteString(`<div class="`)
+	_, _ = w.WriteString(wrapperClass)
 	if attrs != nil {
 		for _, attr := range attrs {
 			if attr.Name == "class" {

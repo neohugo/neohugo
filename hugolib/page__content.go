@@ -293,8 +293,8 @@ func (c *contentParseInfo) parseFrontMatter(it pageparser.Item, iter *pageparser
 			}
 			pos.LineNumber += offset
 
-			fe.UpdatePosition(pos)
-			fe.SetFilename("") // It will be set later.
+			_ = fe.UpdatePosition(pos)
+			_ = fe.SetFilename("") // It will be set later.
 
 			return fe
 		} else {
@@ -749,7 +749,7 @@ func (c *cachedContentScope) contentToC(ctx context.Context) (contentTableOfCont
 			if ok {
 				// This is Goldmark.
 				// Store away the parse result for later use.
-				createAndSetToC(parseResult)
+				_ = createAndSetToC(parseResult)
 
 				ct.astDoc = parseResult.Doc()
 
@@ -764,7 +764,7 @@ func (c *cachedContentScope) contentToC(ctx context.Context) (contentTableOfCont
 				ct.contentToRender = r.Bytes()
 
 				if tocProvider, ok := r.(converter.TableOfContentsProvider); ok {
-					createAndSetToC(tocProvider)
+					_ = createAndSetToC(tocProvider)
 				} else {
 					tmpContent, tmpTableOfContents := helpers.ExtractTOC(ct.contentToRender)
 					ct.tableOfContentsHTML = helpers.BytesToHTML(tmpTableOfContents)

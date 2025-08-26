@@ -140,7 +140,7 @@ func (b *BaseFs) WatchFilenames() []string {
 					},
 				})
 
-				w.Walk()
+				_ = w.Walk()
 			}
 
 		}

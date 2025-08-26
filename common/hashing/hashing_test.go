@@ -77,8 +77,8 @@ func BenchmarkXXHashFromReader(b *testing.B) {
 	r := strings.NewReader("Hello World")
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		XXHashFromReader(r)
-		r.Seek(0, 0)
+		_, _, _ = XXHashFromReader(r)
+		_, _ = r.Seek(0, 0)
 	}
 }
 
@@ -86,7 +86,7 @@ func BenchmarkXXHashFromString(b *testing.B) {
 	s := "Hello World"
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		XXHashFromString(s)
+		_, _ = XXHashFromString(s)
 	}
 }
 

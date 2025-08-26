@@ -475,7 +475,7 @@ func (c *serverCommand) Name() string {
 func (c *serverCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
 	if c.pprof {
 		go func() {
-			http.ListenAndServe("localhost:8080", nil)
+			_ = http.ListenAndServe("localhost:8080", nil)
 		}()
 	}
 	// Watch runs its own server as part of the routine

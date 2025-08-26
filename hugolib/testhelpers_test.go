@@ -906,7 +906,7 @@ func loadTestConfigFromProvider(cfg config.Provider) (*allconfig.Configs, error)
 	workingDir := cfg.GetString("workingDir")
 	fs := afero.NewMemMapFs()
 	if workingDir != "" {
-		fs.MkdirAll(workingDir, 0o755)
+		_ = fs.MkdirAll(workingDir, 0o755)
 	}
 	res, err := allconfig.LoadConfig(allconfig.ConfigSourceDescriptor{Flags: cfg, Fs: fs})
 	return res, err

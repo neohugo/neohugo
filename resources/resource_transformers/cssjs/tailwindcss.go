@@ -134,7 +134,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 
 	go func() {
 		defer stdin.Close()
-		io.Copy(stdin, src)
+		_, _ = io.Copy(stdin, src)
 	}()
 
 	err = cmd.Run()

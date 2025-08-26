@@ -521,7 +521,7 @@ func (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error {
 	})
 
 	de.FilenamesWithPostPrefix.ForEeach(func(filename string, _ bool) bool {
-		g.Enqueue(filename)
+		_ = g.Enqueue(filename)
 		return true
 	})
 
@@ -1161,9 +1161,9 @@ func (h *HugoSites) processContentAdaptersOnRebuild(ctx context.Context, buildCo
 		},
 	})
 
-	h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "", func(key string, p *pagesfromdata.PagesFromTemplate) (bool, error) {
+	_ = h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "", func(key string, p *pagesfromdata.PagesFromTemplate) (bool, error) {
 		if p.StaleVersion() > 0 {
-			g.Enqueue(p)
+			_ = g.Enqueue(p)
 		}
 		return false, nil
 	})

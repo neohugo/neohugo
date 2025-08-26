@@ -525,7 +525,7 @@ func (m *pageMap) forEachResourceInPage(
 
 func (m *pageMap) getResourcesForPage(ps *pageState) (resource.Resources, error) {
 	var res resource.Resources
-	m.forEachResourceInPage(ps, doctree.LockTypeNone, false, func(resourceKey string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
+	_ = m.forEachResourceInPage(ps, doctree.LockTypeNone, false, func(resourceKey string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
 		rs := n.(*resourceSource)
 		if rs.r != nil {
 			res = append(res, rs.r)
@@ -1012,7 +1012,7 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 		fmt.Fprintln(w, info)
 		switch p.Kind() {
 		case kinds.KindTerm:
-			m.treeTaxonomyEntries.WalkPrefix(
+			_ = m.treeTaxonomyEntries.WalkPrefix(
 				doctree.LockTypeNone,
 				keyPage+"/",
 				func(s string, n *weightedContentNode) (bool, error) {
@@ -1191,7 +1191,7 @@ func (h *HugoSites) resolveAndClearStateForIdentities(
 			matchCount := 0
 			depsFinder := identity.NewFinder(identity.FinderConfig{})
 
-			h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "",
+			_ = h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "",
 				func(s string, n *pagesfromdata.PagesFromTemplate) (bool, error) {
 					for _, id := range changes {
 						checkedCount++
@@ -1331,7 +1331,7 @@ func (h *HugoSites) resolveAndResetDependententPageOutputs(ctx context.Context, 
 			}
 		}
 		if needToCheck {
-			g.Enqueue(p)
+			_ = g.Enqueue(p)
 		}
 		return false
 	})
@@ -1701,7 +1701,7 @@ func (sa *sitePagesAssembler) assembleResources() error {
 			}
 
 			// Prepare resources for this page.
-			ps.shiftToOutputFormat(true, 0)
+			_ = ps.shiftToOutputFormat(true, 0)
 			targetPaths := ps.targetPaths()
 			baseTarget := targetPaths.SubResourceBaseTarget
 			duplicateResourceFiles := true

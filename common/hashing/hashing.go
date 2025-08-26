@@ -41,7 +41,7 @@ func XXHashFromReader(r io.Reader) (uint64, int64, error) {
 // XXHashFromString calculates the xxHash for the given string.
 func XXHashFromString(s string) (uint64, error) {
 	h := xxhash.New()
-	h.WriteString(s)
+	_, _ = h.WriteString(s)
 	return h.Sum64(), nil
 }
 
@@ -49,7 +49,7 @@ func XXHashFromString(s string) (uint64, error) {
 // and returns the hash as a hex encoded string.
 func XxHashFromStringHexEncoded(f string) string {
 	h := xxhash.New()
-	h.WriteString(f)
+	_, _ = h.WriteString(f)
 	hash := h.Sum(nil)
 	return hex.EncodeToString(hash)
 }
@@ -139,7 +139,7 @@ func (x *xxhashReadFrom) ReadFrom(r io.Reader) (int64, error) {
 	for {
 		n, err := r.Read(x.buff)
 		if n > 0 {
-			x.Digest.Write(x.buff[:n])
+			_, _ = x.Digest.Write(x.buff[:n])
 		}
 		if err != nil {
 			if err == io.EOF {

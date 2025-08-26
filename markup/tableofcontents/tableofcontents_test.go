@@ -220,7 +220,7 @@ func BenchmarkToc(b *testing.B) {
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
 			toc := tocs[i]
-			toc.ToHTML(1, -1, false)
+			_, _ = toc.ToHTML(1, -1, false)
 		}
 	})
 }

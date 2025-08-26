@@ -37,8 +37,8 @@ func TestNew(t *testing.T) {
 	)
 
 	c.Assert(g, qt.IsNotNil)
-	g.Enqueue(32)
-	g.Enqueue(33)
+	_ = g.Enqueue(32)
+	_ = g.Enqueue(33)
 	c.Assert(g.Wait(), qt.IsNil)
 	c.Assert(result, qt.Equals, 65)
 }

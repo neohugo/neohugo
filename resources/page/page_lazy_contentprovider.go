@@ -76,7 +76,7 @@ func (lcp *LazyContentProvider) Reset() {
 }
 
 func (lcp *LazyContentProvider) Markup(opts ...any) Markup {
-	lcp.init.Do(context.Background())
+	_, _ = lcp.init.Do(context.Background())
 	return lcp.cp.Markup(opts...)
 }
 
@@ -99,7 +99,7 @@ func (lcp *LazyContentProvider) Content(ctx context.Context) (any, error) {
 }
 
 func (lcp *LazyContentProvider) ContentWithoutSummary(ctx context.Context) (template.HTML, error) {
-	lcp.init.Do(ctx)
+	_, _ = lcp.init.Do(ctx)
 	return lcp.cp.ContentWithoutSummary(ctx)
 }
 
@@ -152,7 +152,7 @@ func (lcp *LazyContentProvider) Len(ctx context.Context) int {
 }
 
 func (lcp *LazyContentProvider) Render(ctx context.Context, layout ...string) (template.HTML, error) {
-	lcp.init.Do(ctx)
+	_, _ = lcp.init.Do(ctx)
 	return lcp.cp.Render(ctx, layout...)
 }
 
