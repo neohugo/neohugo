@@ -25,8 +25,8 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config/security"
 
 	"github.com/neohugo/neohugo/common/types"

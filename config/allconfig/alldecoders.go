@@ -34,13 +34,13 @@ import (
 	"github.com/neohugo/neohugo/minifiers"
 	"github.com/neohugo/neohugo/modules"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/navigation"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/related"
 	"github.com/neohugo/neohugo/resources/images"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/afero"
 	"github.com/spf13/cast"
 )

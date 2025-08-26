@@ -25,11 +25,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/bep/logg"
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hcontext"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hugio"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types/hstring"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/identity"
@@ -43,7 +44,6 @@ import (
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cast"
 )
 

@@ -28,9 +28,9 @@ import (
 
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/cache/httpcache"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/common/urls"

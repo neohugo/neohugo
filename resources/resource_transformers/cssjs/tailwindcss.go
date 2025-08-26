@@ -19,14 +19,14 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/mitchellh/mapstructure"
 )
 
 var (
