@@ -120,8 +120,6 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 		return err
 	}
 
-	src := ctx.From
-
 	imp := newImportResolver(
 		ctx.From,
 		ctx.InPath,
@@ -129,7 +127,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 		t.rs.Assets.Fs, t.rs.Logger, ctx.DependencyManager,
 	)
 
-	src, err = imp.resolve()
+	src, err := imp.resolve()
 	if err != nil {
 		return err
 	}

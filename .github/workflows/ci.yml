@@ -48,6 +48,7 @@ jobs:
       - name: Install docutils
         run: |
           pip install docutils
+          pip show docutils
           rst2html.py --version
       - name: Setup Go environment
         shell: bash
