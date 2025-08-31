@@ -69,6 +69,14 @@ func (c *Cache[K, T]) GetOrCreate(key K, create func() (T, error)) (T, error) {
 	return v, nil
 }
 
+// Contains returns whether the given key exists in the cache.
+func (c *Cache[K, T]) Contains(key K) bool {
+	c.RLock()
+	_, found := c.m[key]
+	c.RUnlock()
+	return found
+}
+
 // InitAndGet initializes the cache if not already done and returns the value for the given key.
 // The init state will be reset on Reset or Drain.
 func (c *Cache[K, T]) InitAndGet(key K, init func(get func(key K) (T, bool), set func(key K, value T)) error) (T, error) {
@@ -108,6 +116,17 @@ func (c *Cache[K, T]) Set(key K, value T) {
 	c.Unlock()
 }
 
+// SetIfAbsent sets the given key to the given value if the key does not already exist in the cache.
+func (c *Cache[K, T]) SetIfAbsent(key K, value T) {
+	c.RLock()
+	if _, found := c.get(key); !found {
+		c.RUnlock()
+		c.Set(key, value)
+	} else {
+		c.RUnlock()
+	}
+}
+
 func (c *Cache[K, T]) set(key K, value T) {
 	c.m[key] = value
 }
@@ -141,7 +160,7 @@ func (c *Cache[K, T]) Len() int {
 
 func (c *Cache[K, T]) Reset() {
 	c.Lock()
-	c.m = make(map[K]T)
+	clear(c.m)
 	c.hasBeenInitialized = false
 	c.Unlock()
 }

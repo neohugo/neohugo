@@ -103,7 +103,7 @@ type Site interface {
 	Config() SiteConfig
 
 	// Deprecated: Use taxonomies instead.
-	Author() map[string]interface{}
+	Author() map[string]any
 
 	// Deprecated: Use taxonomies instead.
 	Authors() AuthorList
@@ -171,7 +171,7 @@ func (s *siteWrapper) Social() map[string]string {
 }
 
 // Deprecated: Use taxonomies instead.
-func (s *siteWrapper) Author() map[string]interface{} {
+func (s *siteWrapper) Author() map[string]any {
 	return s.s.Author()
 }
 
@@ -254,8 +254,7 @@ func (s *siteWrapper) Taxonomies() TaxonomyList {
 
 // Deprecated: Use .Site.Lastmod instead.
 func (s *siteWrapper) LastChange() time.Time {
-	neohugo.Deprecate(".Site.LastChange", "Use .Site.Lastmod instead.", "v0.123.0")
-	return s.s.Lastmod()
+	return s.s.LastChange()
 }
 
 func (s *siteWrapper) Lastmod() time.Time {
@@ -300,15 +299,13 @@ func (s *siteWrapper) Store() *maps.Scratch {
 }
 
 // For internal use only.
+func (s *siteWrapper) ForEeachIdentityByName(name string, f func(identity.Identity) bool) {
+	s.s.(identity.ForEeachIdentityByNameProvider).ForEeachIdentityByName(name, f)
+}
 
 // For internal use only.
 func (s *siteWrapper) CheckReady() {
 	s.s.CheckReady()
-}
-
-// For internal use only.
-func (s *siteWrapper) ForEeachIdentityByName(name string, f func(identity.Identity) bool) {
-	s.s.(identity.ForEeachIdentityByNameProvider).ForEeachIdentityByName(name, f)
 }
 
 type testSite struct {
@@ -317,7 +314,7 @@ type testSite struct {
 }
 
 // Deprecated: Use taxonomies instead.
-func (s testSite) Author() map[string]interface{} {
+func (s testSite) Author() map[string]any {
 	return nil
 }
 

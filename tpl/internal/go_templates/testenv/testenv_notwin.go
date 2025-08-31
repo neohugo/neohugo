@@ -11,9 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sync"
 )
 
-func hasSymlink() (ok bool, reason string) {
+var hasSymlink = sync.OnceValues(func() (ok bool, reason string) {
 	switch runtime.GOOS {
 	case "plan9":
 		return false, ""
@@ -31,7 +32,7 @@ func hasSymlink() (ok bool, reason string) {
 			_ = os.RemoveAll(dir)
 		}()
 		fpath := filepath.Join(dir, "testfile.txt")
-		if err := os.WriteFile(fpath, nil, 0o644); err != nil {
+		if err := os.WriteFile(fpath, nil, 0644); err != nil {
 			return false, ""
 		}
 		if err := os.Symlink(fpath, filepath.Join(dir, "testlink")); err != nil {
@@ -43,4 +44,4 @@ func hasSymlink() (ok bool, reason string) {
 	}
 
 	return true, ""
-}
+})

@@ -96,6 +96,32 @@ func normalizeString(s string) string {
 	return strings.Join(lines, "\n")
 }
 
+// IsAllElementsEqual asserts that all elements in the slice are equal.
+var IsAllElementsEqual qt.Checker = &sliceAllElementsEqualChecker{
+	argNames: []string{"got"},
+}
+
+type sliceAllElementsEqualChecker struct {
+	argNames
+}
+
+func (c *sliceAllElementsEqualChecker) Check(got any, args []any, note func(key string, value any)) (err error) {
+	gotSlice := reflect.ValueOf(got)
+	numElements := gotSlice.Len()
+	if numElements < 2 {
+		return nil
+	}
+	first := gotSlice.Index(0).Interface()
+	// Check that the others are equal to the first.
+	for i := 1; i < numElements; i++ {
+		if diff := cmp.Diff(first, gotSlice.Index(i).Interface()); diff != "" {
+			return fmt.Errorf("element %d is not equal to the first element:\n%s", i, diff)
+		}
+	}
+
+	return nil
+}
+
 // DeepAllowUnexported creates an option to allow compare of unexported types
 // in the given list of types.
 // see https://github.com/google/go-cmp/issues/40#issuecomment-328615283
@@ -125,7 +151,7 @@ func structTypes(v reflect.Value, m map[reflect.Type]struct{}) {
 			structTypes(v.Elem(), m)
 		}
 	case reflect.Slice, reflect.Array:
-		for i := 0; i < v.Len(); i++ {
+		for i := range v.Len() {
 			structTypes(v.Index(i), m)
 		}
 	case reflect.Map:
@@ -134,7 +160,7 @@ func structTypes(v reflect.Value, m map[reflect.Type]struct{}) {
 		}
 	case reflect.Struct:
 		m[v.Type()] = struct{}{}
-		for i := 0; i < v.NumField(); i++ {
+		for i := range v.NumField() {
 			structTypes(v.Field(i), m)
 		}
 	}

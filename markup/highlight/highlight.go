@@ -168,7 +168,7 @@ func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.
 		lexer = chromalexers.Get(lang)
 	}
 
-	if lexer == nil && (cfg.GuessSyntax && !cfg.NoHl) {
+	if lexer == nil && cfg.GuessSyntax {
 		lexer = lexers.Analyse(code)
 		if lexer == nil {
 			lexer = lexers.Fallback
@@ -304,8 +304,8 @@ func (s startEnd) End(code bool) string {
 }
 
 func writeDivStart(w hugio.FlexiWriter, attrs []attributes.Attribute, wrapperClass string) {
-	_, _ = w.WriteString(`<div class="`)
-	_, _ = w.WriteString(wrapperClass)
+	w.WriteString(`<div class="`)
+	w.WriteString(wrapperClass)
 	if attrs != nil {
 		for _, attr := range attrs {
 			if attr.Name == "class" {

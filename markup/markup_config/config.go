@@ -42,6 +42,10 @@ type Config struct {
 	AsciidocExt asciidocext_config.Config
 }
 
+func (c *Config) Init() error {
+	return c.Goldmark.Init()
+}
+
 func Decode(cfg config.Provider) (conf Config, err error) {
 	conf = Default
 
@@ -55,6 +59,10 @@ func Decode(cfg config.Provider) (conf Config, err error) {
 
 	err = mapstructure.WeakDecode(m, &conf)
 	if err != nil {
+		return
+	}
+
+	if err = conf.Init(); err != nil {
 		return
 	}
 

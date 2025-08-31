@@ -24,7 +24,7 @@ const name = "math"
 
 func init() {
 	f := func(d *deps.Deps) *internal.TemplateFuncsNamespace {
-		ctx := New()
+		ctx := New(d)
 
 		ns := &internal.TemplateFuncsNamespace{
 			Name:    name,
@@ -112,6 +112,13 @@ func init() {
 			nil,
 			[][2]string{
 				{"{{ math.Max 1 2 }}", "2"},
+			},
+		)
+
+		ns.AddMethodMapping(ctx.MaxInt64,
+			nil,
+			[][2]string{
+				{"{{ math.MaxInt64 }}", "9223372036854775807"},
 			},
 		)
 

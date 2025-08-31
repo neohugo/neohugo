@@ -127,7 +127,7 @@ func BenchmarkLiveReloadInject(b *testing.B) {
 </head>
 <body>
 </body>
-</html>
+</html>	
 `
 	in := strings.NewReader(s)
 	lrurl, err := url.Parse("http://localhost:1234/subpath")

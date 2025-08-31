@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !windows
-// +build !windows
+//go:build go1.13 && !windows
+// +build go1.13,!windows
 
 package template
 
@@ -457,6 +457,6 @@ func TestEscapingNilNonemptyInterfaces(t *testing.T) {
 	tmpl.Execute(want, data) //nolint TODO may check error
 
 	if !bytes.Equal(want.Bytes(), got.Bytes()) {
-		t.Errorf("expected %q got %q", want.String(), got.String())
+		t.Errorf("expected %q got %q", string(want.Bytes()), string(got.Bytes()))
 	}
 }

@@ -44,14 +44,14 @@ tags: ["mytag"]
 `, "sect/no-list.md", `
 ---
 title: No List
-_build:
+build:
   list: false
 ---
 
 `, "sect/no-render.md", `
 ---
 title: No List
-_build:
+build:
   render: false
 ---
 `,
@@ -59,14 +59,14 @@ _build:
 ---
 title: No Render Link
 aliases: ["/link-alias"]
-_build:
+build:
   render: link
 ---
 `,
 			"sect/no-publishresources/index.md", `
 ---
 title: No Publish Resources
-_build:
+build:
   publishResources: false
 ---
 
@@ -81,7 +81,7 @@ headless: true
 ---
 title: Headless Local Lists
 cascade:
-    _build:
+    build:
         render: false
         list: local
         publishResources: false
@@ -322,7 +322,7 @@ title: Headless Local Lists Sub
 		sect := getPage(b, "/sect")
 		b.Assert(getPageInPagePages(sect, ref), qt.Not(qt.IsNil))
 
-		// https://github.com/neohugo/neohugo/issues/7832
+		// https://github.com/gohugoio/hugo/issues/7832
 		// It should still render any aliases.
 		b.AssertFileContent("public/link-alias/index.html", "refresh")
 	})
@@ -341,7 +341,7 @@ title: Headless Local Lists Sub
 	})
 }
 
-// https://github.com/neohugo/neohugo/issues/6897#issuecomment-587947078
+// https://github.com/gohugoio/hugo/issues/6897#issuecomment-587947078
 func TestDisableRSSWithRSSInCustomOutputs(t *testing.T) {
 	b := newTestSitesBuilder(t).WithConfigFile("toml", `
 disableKinds = ["term", "taxonomy", "RSS"]
@@ -365,7 +365,7 @@ Data1: {{ $data1.RelPermalink }}
 `)
 
 	b.WithContent("section/bundle-false/index.md", `---\ntitle: BundleFalse
-_build:
+build:
   publishResources: false
 ---`,
 		"section/bundle-false/data1.json", "Some data1",
@@ -388,7 +388,7 @@ func TestNoRenderAndNoPublishResources(t *testing.T) {
 	noRenderPage := `
 ---
 title: %s
-_build:
+build:
     render: false
     publishResources: false
 ---

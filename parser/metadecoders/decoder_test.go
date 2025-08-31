@@ -99,6 +99,7 @@ func TestUnmarshalToMap(t *testing.T) {
 		// errors
 		{`a = b`, TOML, false},
 		{`a,b,c`, CSV, false}, // Use Unmarshal for CSV
+		{`<root>just a string</root>`, XML, false},
 	} {
 		msg := qt.Commentf("%d: %s", i, test.format)
 		m, err := d.UnmarshalToMap([]byte(test.data), test.format)
@@ -131,6 +132,8 @@ func TestUnmarshalToInterface(t *testing.T) {
 		{[]byte("#+a: foo bar\n#+a: baz"), ORG, map[string]any{"a": []string{string("foo bar"), string("baz")}}},
 		{[]byte(`#+DATE: <2020-06-26 Fri>`), ORG, map[string]any{"date": "2020-06-26"}},
 		{[]byte(`#+LASTMOD: <2020-06-26 Fri>`), ORG, map[string]any{"lastmod": "2020-06-26"}},
+		{[]byte(`#+FILETAGS: :work:`), ORG, map[string]any{"filetags": []string{"work"}}},
+		{[]byte(`#+FILETAGS: :work:fun:`), ORG, map[string]any{"filetags": []string{"work", "fun"}}},
 		{[]byte(`#+PUBLISHDATE: <2020-06-26 Fri>`), ORG, map[string]any{"publishdate": "2020-06-26"}},
 		{[]byte(`#+EXPIRYDATE: <2020-06-26 Fri>`), ORG, map[string]any{"expirydate": "2020-06-26"}},
 		{[]byte(`a = "b"`), TOML, expect},

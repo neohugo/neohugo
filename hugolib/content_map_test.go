@@ -242,8 +242,13 @@ Data en
 }
 
 func TestBundleMultipleContentPageWithSamePath(t *testing.T) {
+	t.Parallel()
+
 	files := `
 -- hugo.toml --
+printPathWarnings = true
+-- layouts/all.html --
+All.
 -- content/bundle/index.md --
 ---
 title: "Bundle md"
@@ -273,14 +278,18 @@ Bundle: {{ $bundle.Title }}|{{ $bundle.Params.foo }}|{{ $bundle.File.Filename }}
 P1: {{ $p1.Title }}|{{ $p1.Params.foo }}|{{ $p1.File.Filename }}|
 `
 
-	b := Test(t, files)
+	for range 3 {
+		b := Test(t, files, TestOptWarn())
 
-	// There's multiple content files sharing the same logical path and language.
-	// This is a little arbitrary, but we have to pick one and prefer the Markdown version.
-	b.AssertFileContent("public/index.html",
-		filepath.FromSlash("Bundle: Bundle md|md|/content/bundle/index.md|"),
-		filepath.FromSlash("P1: P1 md|md|/content/p1.md|"),
-	)
+		b.AssertLogContains("WARN  Duplicate content path: \"/p1\"")
+
+		// There's multiple content files sharing the same logical path and language.
+		// This is a little arbitrary, but we have to pick one and prefer the Markdown version.
+		b.AssertFileContent("public/index.html",
+			filepath.FromSlash("Bundle: Bundle md|md|/content/bundle/index.md|"),
+			filepath.FromSlash("P1: P1 md|md|/content/p1.md|"),
+		)
+	}
 }
 
 // Issue #11944
@@ -323,7 +332,7 @@ R: {{ with $r }}{{ .Content }}{{ end }}|Len: {{ len $bundle.Resources }}|$
 
 `
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		b := Test(t, files)
 		b.AssertFileContent("public/index.html", "R: Data 1.txt|", "Len: 1|")
 	}
@@ -359,6 +368,35 @@ p1-foo.txt
 	b.AssertFileExists("public/s1/p1.txt", true)     // failing test
 	b.AssertFileExists("public/s1/p1-foo.txt", true) // failing test
 	b.AssertFileExists("public/s1/p1/index.html", true)
+}
+
+// Issue 13228.
+func TestBranchResourceOverlap(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- content/_index.md --
+---
+title: home
+---
+-- content/s1/_index.md --
+---
+title: s1
+---
+-- content/s1x/a.txt --
+a.txt
+-- layouts/index.html --
+Home.
+{{ range .Resources.Match "**" }}
+  {{ .Name }}|
+{{ end }}
+`
+
+	b := Test(t, files)
+
+	b.AssertFileContent("public/index.html", "s1x/a.txt|")
 }
 
 func TestSitemapOverrideFilename(t *testing.T) {
@@ -406,14 +444,14 @@ func TestContentTreeReverseIndex(t *testing.T) {
 
 	pageReverseIndex := newContentTreeTreverseIndex(
 		func(get func(key any) (contentNodeI, bool), set func(key any, val contentNodeI)) {
-			for i := 0; i < 10; i++ {
+			for i := range 10 {
 				key := fmt.Sprint(i)
 				set(key, &testContentNode{key: key})
 			}
 		},
 	)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		key := fmt.Sprint(i)
 		v := pageReverseIndex.Get(key)
 		c.Assert(v, qt.Not(qt.IsNil))
@@ -427,17 +465,17 @@ func TestContentTreeReverseIndexPara(t *testing.T) {
 
 	var wg sync.WaitGroup
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		pageReverseIndex := newContentTreeTreverseIndex(
 			func(get func(key any) (contentNodeI, bool), set func(key any, val contentNodeI)) {
-				for i := 0; i < 10; i++ {
+				for i := range 10 {
 					key := fmt.Sprint(i)
 					set(key, &testContentNode{key: key})
 				}
 			},
 		)
 
-		for j := 0; j < 10; j++ {
+		for j := range 10 {
 			wg.Add(1)
 			go func(i int) {
 				defer wg.Done()
@@ -471,4 +509,53 @@ func (n *testContentNode) resetBuildState() {
 }
 
 func (n *testContentNode) MarkStale() {
+}
+
+// Issue 12274.
+func TestHTMLNotContent(t *testing.T) {
+	filesTemplate := `
+-- hugo.toml.temp --
+[contentTypes]
+[contentTypes."text/markdown"]
+# Empty for now.
+-- hugo.yaml.temp --
+contentTypes:
+  text/markdown: {}
+-- hugo.json.temp --
+{
+  "contentTypes": {
+    "text/markdown": {}
+  }
+}
+-- content/p1/index.md --
+---
+title: p1
+---
+-- content/p1/a.html --
+<p>a</p>
+-- content/p1/b.html --
+<p>b</p>
+-- content/p1/c.html --
+<p>c</p>
+-- layouts/_default/single.html --
+Path: {{ .Path }}|{{.Kind }}
+|{{ (.Resources.Get "a.html").RelPermalink -}}
+|{{ (.Resources.Get "b.html").RelPermalink -}}
+|{{ (.Resources.Get "c.html").Publish }}
+`
+
+	for _, format := range []string{"toml", "yaml", "json"} {
+		format := format
+		t.Run(format, func(t *testing.T) {
+			t.Parallel()
+
+			files := strings.Replace(filesTemplate, format+".temp", format, 1)
+			b := Test(t, files)
+
+			b.AssertFileContent("public/p1/index.html", "|/p1/a.html|/p1/b.html|")
+			b.AssertFileContent("public/p1/a.html", "<p>a</p>")
+			b.AssertFileContent("public/p1/b.html", "<p>b</p>")
+			b.AssertFileContent("public/p1/c.html", "<p>c</p>")
+		})
+	}
 }

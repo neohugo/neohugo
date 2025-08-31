@@ -761,6 +761,7 @@ func TestCheckCondition(t *testing.T) {
 			expect{true, false},
 		},
 		{reflect.ValueOf(123), reflect.ValueOf([]int{45, 678}), "not in", expect{true, false}},
+		{reflect.ValueOf(123), reflect.ValueOf([]int{}), "not in", expect{true, false}},
 		{reflect.ValueOf("foo"), reflect.ValueOf([]string{"bar", "baz"}), "not in", expect{true, false}},
 		{
 			reflect.ValueOf(time.Date(2015, time.May, 26, 19, 18, 56, 12345, time.UTC)),
@@ -865,10 +866,10 @@ func BenchmarkWhereOps(b *testing.B) {
 	ns := newNs()
 	var seq []map[string]string
 	ctx := context.Background()
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		seq = append(seq, map[string]string{"foo": "bar"})
 	}
-	for i := 0; i < 500; i++ {
+	for range 500 {
 		seq = append(seq, map[string]string{"foo": "baz"})
 	}
 	// Shuffle the sequence.
@@ -901,4 +902,20 @@ func BenchmarkWhereOps(b *testing.B) {
 			runOps(b, "like", "^bar")
 		}
 	})
+}
+
+func BenchmarkWhereMap(b *testing.B) {
+	ns := newNs()
+	seq := map[string]string{}
+
+	for i := range 1000 {
+		seq[fmt.Sprintf("key%d", i)] = "value"
+	}
+
+	for i := 0; i < b.N; i++ {
+		_, err := ns.Where(context.Background(), seq, "key", "eq", "value")
+		if err != nil {
+			b.Fatal(err)
+		}
+	}
 }

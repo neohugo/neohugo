@@ -61,6 +61,7 @@ var (
 	_ identity.DependencyManagerProvider = (*resourceAdapter)(nil)
 	_ identity.IdentityGroupProvider     = (*resourceAdapter)(nil)
 	_ resource.NameNormalizedProvider    = (*resourceAdapter)(nil)
+	_ isPublishedProvider                = (*resourceAdapter)(nil)
 )
 
 // These are transformations that need special support in Hugo that may not
@@ -190,10 +191,6 @@ func (r *resourceAdapter) Content(ctx context.Context) (any, error) {
 		return nil, r.transformationsErr
 	}
 	return r.target.Content(ctx)
-}
-
-func (r *resourceAdapter) Err() resource.ResourceError {
-	return nil
 }
 
 func (r *resourceAdapter) GetIdentity() identity.Identity {
@@ -329,6 +326,11 @@ func (r *resourceAdapter) Publish() error {
 	return r.target.Publish()
 }
 
+func (r *resourceAdapter) isPublished() bool {
+	r.init(false, false)
+	return r.target.isPublished()
+}
+
 func (r *resourceAdapter) ReadSeekCloser() (hugio.ReadSeekCloser, error) {
 	r.init(false, false)
 	return r.target.ReadSeekCloser()
@@ -392,7 +394,6 @@ func (r *resourceAdapter) getImageOps() images.ImageResourceOps {
 		if r.MediaType().SubType == "svg" {
 			panic("this method is only available for raster images. To determine if an image is SVG, you can do {{ if eq .MediaType.SubType \"svg\" }}{{ end }}")
 		}
-		fmt.Println(r.MediaType().SubType)
 		panic("this method is only available for image resources")
 	}
 	r.init(false, false)
@@ -711,6 +712,7 @@ func (r *resourceTransformations) hasTransformationPermalinkHash() bool {
 
 type transformableResource interface {
 	baseResourceInternal
+
 	resource.ContentProvider
 	resource.Resource
 	resource.Identifier

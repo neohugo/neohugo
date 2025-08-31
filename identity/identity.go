@@ -33,6 +33,9 @@ const (
 
 	// GenghisKhan is an Identity everyone relates to.
 	GenghisKhan = StringIdentity("__genghiskhan")
+
+	StructuralChangeAdd    = StringIdentity("__structural_change_add")
+	StructuralChangeRemove = StringIdentity("__structural_change_remove")
 )
 
 var NopManager = new(nopManager)
@@ -503,6 +506,10 @@ func probablyEq(a, b Identity) bool {
 	}
 
 	if a.IdentifierBase() == b.IdentifierBase() {
+		return true
+	}
+
+	if a2, ok := a.(compare.ProbablyEqer); ok && a2.ProbablyEq(b) {
 		return true
 	}
 

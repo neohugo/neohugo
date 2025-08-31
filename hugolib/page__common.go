@@ -68,7 +68,6 @@ type pageCommon struct {
 	page.PageMetaInternalProvider
 	page.Positioner
 	page.RawContentProvider
-	page.RelatedKeywordsProvider
 	page.RefProvider
 	page.ShortcodeInfoProvider
 	page.SitesProvider
@@ -85,14 +84,11 @@ type pageCommon struct {
 
 	// Describes how paths and URLs for this page and its descendants
 	// should look like.
-	targetPathDescriptor page.TargetPathDescriptor //nolint
-
-	layoutDescriptor     layouts.LayoutDescriptor
-	layoutDescriptorInit sync.Once
+	targetPathDescriptor page.TargetPathDescriptor
 
 	// Set if feature enabled and this is in a Git repo.
-	gitInfo    source.GitInfo //nolint
-	codeowners []string       //nolint
+	gitInfo    *source.GitInfo
+	codeowners []string
 
 	// Positional navigation
 	posNextPrev        *nextPrev
@@ -102,7 +98,7 @@ type pageCommon struct {
 	pageMenus *pageMenus //nolint
 
 	// Internal use
-	page.InternalDependencies
+	page.RelatedDocsHandlerProvider
 
 	contentConverterInit sync.Once
 	contentConverter     converter.Converter

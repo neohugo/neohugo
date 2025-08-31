@@ -16,12 +16,12 @@ package source
 import (
 	"path/filepath"
 	"sync"
-	"time"
 
 	"github.com/bep/gitmap"
 	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/neohugo/neohugo/common/hugio"
 
@@ -61,6 +61,7 @@ func (fi *File) Ext() string { return fi.p().Ext() }
 // Lang returns a file's language (e.g. "sv").
 // Deprecated: Use .Page.Language.Lang instead.
 func (fi *File) Lang() string {
+	neohugo.Deprecate(".Page.File.Lang", "Use .Page.Language.Lang instead.", "v0.123.0")
 	return fi.fim.Meta().Lang
 }
 
@@ -130,10 +131,17 @@ func (fi *File) p() *paths.Path {
 	return fi.fim.Meta().PathInfo.Unnormalized()
 }
 
-func NewFileInfoFrom(path, filename string) *File {
+var contentPathParser = &paths.PathParser{
+	IsContentExt: func(ext string) bool {
+		return true
+	},
+}
+
+// Used in tests.
+func NewContentFileInfoFrom(path, filename string) *File {
 	meta := &hugofs.FileMeta{
 		Filename: filename,
-		PathInfo: media.DefaultPathParser.Parse("", filepath.ToSlash(path)),
+		PathInfo: contentPathParser.Parse(files.ComponentFolderContent, filepath.ToSlash(path)),
 	}
 
 	return NewFileInfo(hugofs.NewFileMetaInfo(nil, meta))
@@ -145,32 +153,5 @@ func NewFileInfo(fi hugofs.FileMetaInfo) *File {
 	}
 }
 
-func NewGitInfo(info gitmap.GitInfo) GitInfo {
-	return GitInfo(info)
-}
-
 // GitInfo provides information about a version controlled source file.
-type GitInfo struct {
-	// Commit hash.
-	Hash string `json:"hash"`
-	// Abbreviated commit hash.
-	AbbreviatedHash string `json:"abbreviatedHash"`
-	// The commit message's subject/title line.
-	Subject string `json:"subject"`
-	// The author name, respecting .mailmap.
-	AuthorName string `json:"authorName"`
-	// The author email address, respecting .mailmap.
-	AuthorEmail string `json:"authorEmail"`
-	// The author date.
-	AuthorDate time.Time `json:"authorDate"`
-	// The commit date.
-	CommitDate time.Time `json:"commitDate"`
-	// The commit message's body.
-	Body string `json:"body"`
-}
-
-// IsZero returns true if the GitInfo is empty,
-// meaning it will also be falsy in the Go templates.
-func (g GitInfo) IsZero() bool {
-	return g.Hash == ""
-}
+type GitInfo = gitmap.GitInfo

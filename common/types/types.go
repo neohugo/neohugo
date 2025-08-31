@@ -28,6 +28,16 @@ type RLocker interface {
 	RUnlock()
 }
 
+type Locker interface {
+	Lock()
+	Unlock()
+}
+
+type RWLocker interface {
+	RLocker
+	Locker
+}
+
 // KeyValue is a interface{} tuple.
 type KeyValue struct {
 	Key   any
@@ -59,7 +69,7 @@ func (k KeyValues) String() string {
 // KeyValues struct.
 func NewKeyValuesStrings(key string, values ...string) KeyValues {
 	iv := make([]any, len(values))
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		iv[i] = values[i]
 	}
 	return KeyValues{Key: key, Values: iv}
@@ -132,23 +142,4 @@ func NewBool(b bool) *bool {
 // PrintableValueProvider is implemented by types that can provide a printable value.
 type PrintableValueProvider interface {
 	PrintableValue() any
-}
-
-var _ PrintableValueProvider = Result[any]{}
-
-// Result is a generic result type.
-type Result[T any] struct {
-	// The result value.
-	Value T
-
-	// The error value.
-	Err error
-}
-
-// PrintableValue returns the value or panics if there is an error.
-func (r Result[T]) PrintableValue() any {
-	if r.Err != nil {
-		panic(r.Err)
-	}
-	return r.Value
 }

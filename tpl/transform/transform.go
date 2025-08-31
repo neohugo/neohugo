@@ -17,18 +17,23 @@ package transform
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"encoding/xml"
 	"errors"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
 	"strings"
 	"sync/atomic"
 
+	bp "github.com/neohugo/neohugo/bufferpool"
+
+	"github.com/bep/goportabletext"
+
 	"github.com/neohugo/neohugo/cache/dynacache"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/hugio"
-	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/internal/warpc"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
 	"github.com/neohugo/neohugo/markup/highlight"
@@ -185,7 +190,7 @@ func (ns *Namespace) Markdownify(ctx context.Context, s any) (template.HTML, err
 	// Strip if this is a short inline type of text.
 	bb := ns.deps.ContentSpec.TrimShortHTML([]byte(ss), "markdown")
 
-	return helpers.BytesToHTML(bb), err
+	return helpers.BytesToHTML(bb), nil
 }
 
 // Plainify returns a copy of s with all HTML tags removed.
@@ -198,17 +203,30 @@ func (ns *Namespace) Plainify(s any) (template.HTML, error) {
 	return template.HTML(tpl.StripHTML(ss)), nil
 }
 
+// PortableText converts the portable text in v to Markdown.
+// We may add more options in the future.
+func (ns *Namespace) PortableText(v any) (string, error) {
+	buf := bp.GetBuffer()
+	defer bp.PutBuffer(buf)
+	opts := goportabletext.ToMarkdownOptions{
+		Dst: buf,
+		Src: v,
+	}
+	if err := goportabletext.ToMarkdown(opts); err != nil {
+		return "", err
+	}
+	return buf.String(), nil
+}
+
 // ToMath converts a LaTeX string to math in the given format, default MathML.
 // This uses KaTeX to render the math, see https://katex.org/.
-func (ns *Namespace) ToMath(ctx context.Context, args ...any) (types.Result[template.HTML], error) {
-	var res types.Result[template.HTML]
-
+func (ns *Namespace) ToMath(ctx context.Context, args ...any) (template.HTML, error) {
 	if len(args) < 1 {
-		return res, errors.New("must provide at least one argument")
+		return "", errors.New("must provide at least one argument")
 	}
 	expression, err := cast.ToStringE(args[0])
 	if err != nil {
-		return res, err
+		return "", err
 	}
 
 	katexInput := warpc.KatexInput{
@@ -218,17 +236,33 @@ func (ns *Namespace) ToMath(ctx context.Context, args ...any) (types.Result[temp
 			MinRuleThickness: 0.04,
 			ErrorColor:       "#cc0000",
 			ThrowOnError:     true,
+			Strict:           "error",
 		},
 	}
 
 	if len(args) > 1 {
 		if err := mapstructure.WeakDecode(args[1], &katexInput.Options); err != nil {
-			return res, err
+			return "", err
 		}
 	}
 
+	switch katexInput.Options.Strict {
+	case "error", "ignore", "warn":
+		// Valid strict mode, continue
+	default:
+		return "", fmt.Errorf("invalid strict mode; expected one of error, ignore, or warn; received %s", katexInput.Options.Strict)
+	}
+
+	type fileCacheEntry struct {
+		Version  string   `json:"version"`
+		Output   string   `json:"output"`
+		Warnings []string `json:"warnings,omitempty"`
+	}
+
+	const fileCacheEntryVersion = "v1" // Increment on incompatible changes.
+
 	s := hashing.HashString(args...)
-	key := "tomath/" + s[:2] + "/" + s[2:]
+	key := "tomath/" + fileCacheEntryVersion + "/" + s[:2] + "/" + s[2:]
 	fileCache := ns.deps.ResourceSpec.FileCaches.MiscCache()
 
 	v, err := ns.cacheMath.GetOrCreate(key, func(string) (template.HTML, error) {
@@ -249,23 +283,41 @@ func (ns *Namespace) ToMath(ctx context.Context, args ...any) (types.Result[temp
 			if err != nil {
 				return nil, err
 			}
-			return hugio.NewReadSeekerNoOpCloserFromString(result.Data.Output), nil
+
+			e := fileCacheEntry{
+				Version:  fileCacheEntryVersion,
+				Output:   result.Data.Output,
+				Warnings: result.Header.Warnings,
+			}
+
+			buf := &bytes.Buffer{}
+			enc := json.NewEncoder(buf)
+			enc.SetEscapeHTML(false)
+			if err := enc.Encode(e); err != nil {
+				return nil, fmt.Errorf("failed to encode file cache entry: %w", err)
+			}
+			return hugio.NewReadSeekerNoOpCloserFromBytes(buf.Bytes()), nil
 		})
 		if err != nil {
 			return "", err
 		}
 
-		s, err := hugio.ReadString(r)
+		var e fileCacheEntry
+		if err := json.NewDecoder(r).Decode(&e); err != nil {
+			return "", fmt.Errorf("failed to decode file cache entry: %w", err)
+		}
 
-		return template.HTML(s), err
+		for _, warning := range e.Warnings {
+			ns.deps.Log.Warnf("transform.ToMath: %s", warning)
+		}
+
+		return template.HTML(e.Output), err
 	})
-
-	res = types.Result[template.HTML]{
-		Value: v,
-		Err:   err,
+	if err != nil {
+		return "", err
 	}
 
-	return res, nil
+	return v, nil
 }
 
 // For internal use.

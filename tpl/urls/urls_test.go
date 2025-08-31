@@ -14,13 +14,11 @@
 package urls
 
 import (
-	"html/template"
 	"net/url"
 	"testing"
 
 	"github.com/neohugo/neohugo/config/testconfig"
 	"github.com/neohugo/neohugo/htesting/hqt"
-	"github.com/spf13/cast"
 
 	qt "github.com/frankban/quicktest"
 )

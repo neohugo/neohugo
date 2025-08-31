@@ -22,6 +22,7 @@ import (
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/testconfig"
 	"github.com/neohugo/neohugo/media"
+	"github.com/neohugo/neohugo/output"
 
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
 
@@ -31,7 +32,7 @@ import (
 func newTestFd() *pagemeta.FrontMatterDescriptor {
 	return &pagemeta.FrontMatterDescriptor{
 		PageConfig: &pagemeta.PageConfig{
-			Params: make(map[string]interface{}),
+			Params: make(map[string]any),
 		},
 		Location: time.UTC,
 	}
@@ -175,7 +176,7 @@ func TestContentMediaTypeFromMarkup(t *testing.T) {
 	} {
 		var pc pagemeta.PageConfig
 		pc.Content.Markup = test.in
-		c.Assert(pc.Compile("", true, "", logger, media.DefaultTypes), qt.IsNil)
+		c.Assert(pc.Compile("", logger, output.DefaultFormats, media.DefaultTypes), qt.IsNil)
 		c.Assert(pc.ContentMediaType.Type, qt.Equals, test.expected)
 	}
 }

@@ -135,7 +135,7 @@ type GetPageProvider interface {
 // GitInfoProvider provides Git info.
 type GitInfoProvider interface {
 	// GitInfo returns the Git info for this object.
-	GitInfo() source.GitInfo
+	GitInfo() *source.GitInfo
 	// CodeOwners returns the code owners for this object.
 	CodeOwners() []string
 }
@@ -148,10 +148,10 @@ type InSectionPositioner interface {
 	PrevInSection() Page
 }
 
-// InternalDependencies is considered an internal interface.
-type InternalDependencies interface {
-	// GetRelatedDocsHandler is for internal use only.
-	GetRelatedDocsHandler() *RelatedDocsHandler
+// RelatedDocsHandlerProvider is considered an internal interface.
+type RelatedDocsHandlerProvider interface {
+	// GetInternalRelatedDocsHandler is for internal use only.
+	GetInternalRelatedDocsHandler() *RelatedDocsHandler
 }
 
 // OutputFormatsProvider provides the OutputFormats of a Page.
@@ -178,6 +178,11 @@ type Page interface {
 type PageFragment interface {
 	resource.ResourceLinksProvider
 	resource.ResourceNameTitleProvider
+}
+
+type PageMetaResource interface {
+	PageMetaProvider
+	resource.Resource
 }
 
 // PageMetaProvider provides page metadata, typically provided via front matter.
@@ -251,6 +256,68 @@ type PageMetaProvider interface {
 	Weight() int
 }
 
+// NamedPageMetaValue returns a named metadata value from a PageMetaResource.
+// This is currently only used to generate keywords for related content.
+// If nameLower is not one of the metadata interface methods, we
+// look in Params.
+func NamedPageMetaValue(p PageMetaResource, nameLower string) (any, bool, error) {
+	var (
+		v   any
+		err error
+	)
+
+	switch nameLower {
+	case "kind":
+		v = p.Kind()
+	case "bundletype":
+		v = p.BundleType()
+	case "mediatype":
+		v = p.MediaType()
+	case "section":
+		v = p.Section()
+	case "lang":
+		v = p.Lang()
+	case "aliases":
+		v = p.Aliases()
+	case "name":
+		v = p.Name()
+	case "keywords":
+		v = p.Keywords()
+	case "description":
+		v = p.Description()
+	case "title":
+		v = p.Title()
+	case "linktitle":
+		v = p.LinkTitle()
+	case "slug":
+		v = p.Slug()
+	case "date":
+		v = p.Date()
+	case "publishdate":
+		v = p.PublishDate()
+	case "expirydate":
+		v = p.ExpiryDate()
+	case "lastmod":
+		v = p.Lastmod()
+	case "draft":
+		v = p.Draft()
+	case "type":
+		v = p.Type()
+	case "layout":
+		v = p.Layout()
+	case "weight":
+		v = p.Weight()
+	default:
+		// Try params.
+		v, err = resource.Param(p, nil, nameLower)
+		if v == nil {
+			return nil, false, nil
+		}
+	}
+
+	return v, err == nil, err
+}
+
 // PageMetaInternalProvider provides internal page metadata.
 type PageMetaInternalProvider interface {
 	// This is for internal use only.
@@ -282,6 +349,7 @@ type PageWithoutContent interface {
 
 	// For pages backed by a file.
 	FileProvider
+
 	GitInfoProvider
 
 	// Output formats
@@ -302,8 +370,10 @@ type PageWithoutContent interface {
 	// Page lookups/refs
 	GetPageProvider
 	RefProvider
+
 	resource.TranslationKeyProvider
 	TranslationsProvider
+
 	SitesProvider
 
 	// Helper methods

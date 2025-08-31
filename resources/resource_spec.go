@@ -20,6 +20,7 @@ import (
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
+	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/neohugo/neohugo/resources/jsconfig"
@@ -31,17 +32,17 @@ import (
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/common/types"
 
+	"github.com/neohugo/neohugo/identity"
+
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/postpub"
 
 	"github.com/neohugo/neohugo/cache/dynacache"
 	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/neohugo/neohugo/tpl"
 )
 
 func NewSpec(
@@ -122,8 +123,6 @@ type Spec struct {
 	BuildClosers types.CloseAdder
 	Rebuilder    identity.SignalRebuilder
 
-	TextTemplates tpl.TemplateParseFinder
-
 	Permalinks page.PermalinkExpander
 
 	ImageCache *ImageCache
@@ -182,29 +181,33 @@ func (r *Spec) NewResource(rd ResourceSourceDescriptor) (resource.Resource, erro
 		TargetBasePaths: rd.TargetBasePaths,
 	}
 
-	gr := &genericResource{
-		Staler:      &AtomicStaler{},
-		h:           &resourceHash{},
-		publishInit: &sync.Once{},
-		keyInit:     &sync.Once{},
-		paths:       rp,
-		spec:        r,
-		sd:          rd,
-		params:      rd.Params,
-		name:        rd.NameOriginal,
-		title:       rd.Title,
+	isImage := rd.MediaType.MainType == "image"
+	var imgFormat images.Format
+	if isImage {
+		imgFormat, isImage = images.ImageFormatFromMediaSubType(rd.MediaType.SubType)
 	}
 
-	if rd.MediaType.MainType == "image" {
-		imgFormat, ok := images.ImageFormatFromMediaSubType(rd.MediaType.SubType)
-		if ok {
-			ir := &imageResource{
-				Image:        images.NewImage(imgFormat, r.imaging, nil, gr),
-				baseResource: gr,
-			}
-			ir.root = ir
-			return newResourceAdapter(gr.spec, rd.LazyPublish, ir), nil
+	gr := &genericResource{
+		Staler:           &AtomicStaler{},
+		h:                &resourceHash{},
+		publishInit:      &lazy.OnceMore{},
+		keyInit:          &sync.Once{},
+		includeHashInKey: isImage,
+		paths:            rp,
+		spec:             r,
+		sd:               rd,
+		params:           rd.Params,
+		name:             rd.NameOriginal,
+		title:            rd.Title,
+	}
+
+	if isImage {
+		ir := &imageResource{
+			Image:        images.NewImage(imgFormat, r.imaging, nil, gr),
+			baseResource: gr,
 		}
+		ir.root = ir
+		return newResourceAdapter(gr.spec, rd.LazyPublish, ir), nil
 
 	}
 

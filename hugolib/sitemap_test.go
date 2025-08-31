@@ -84,7 +84,7 @@ Doc2
 	b.AssertFileContent("public/nn/sitemap.xml", " <loc>https://example.com/nn/sect/doc2/</loc>")
 }
 
-// https://github.com/neohugo/neohugo/issues/5910
+// https://github.com/gohugoio/hugo/issues/5910
 func TestSitemapOutputFormats(t *testing.T) {
 	t.Parallel()
 
@@ -139,7 +139,7 @@ weight = 1
 languageName = "English"
 [languages.nn]
 weight = 2
--- layouts/_default/list.xml --
+-- layouts/list.xml --
 Site: {{ .Site.Title }}|
 -- layouts/home --
 Home.

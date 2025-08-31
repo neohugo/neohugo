@@ -26,9 +26,17 @@ var testParser = &PathParser{
 	LanguageIndex: map[string]int{
 		"no": 0,
 		"en": 1,
+		"fr": 2,
 	},
 	IsContentExt: func(ext string) bool {
 		return ext == "md"
+	},
+	IsOutputFormat: func(name, ext string) bool {
+		switch name {
+		case "html", "amp", "csv", "rss":
+			return true
+		}
+		return false
 	},
 }
 
@@ -105,17 +113,19 @@ func TestParse(t *testing.T) {
 			"Basic Markdown file",
 			"/a/b/c.md",
 			func(c *qt.C, p *Path) {
+				c.Assert(p.Ext(), qt.Equals, "md")
+				c.Assert(p.Type(), qt.Equals, TypeContentSingle)
 				c.Assert(p.IsContent(), qt.IsTrue)
 				c.Assert(p.IsLeafBundle(), qt.IsFalse)
 				c.Assert(p.Name(), qt.Equals, "c.md")
 				c.Assert(p.Base(), qt.Equals, "/a/b/c")
+				c.Assert(p.BaseReTyped("foo"), qt.Equals, "/foo/b/c")
 				c.Assert(p.Section(), qt.Equals, "a")
 				c.Assert(p.BaseNameNoIdentifier(), qt.Equals, "c")
 				c.Assert(p.Path(), qt.Equals, "/a/b/c.md")
 				c.Assert(p.Dir(), qt.Equals, "/a/b")
 				c.Assert(p.Container(), qt.Equals, "b")
 				c.Assert(p.ContainerDir(), qt.Equals, "/a/b")
-				c.Assert(p.Ext(), qt.Equals, "md")
 			},
 		},
 		{
@@ -130,7 +140,7 @@ func TestParse(t *testing.T) {
 
 				// Reclassify it as a content resource.
 				ModifyPathBundleTypeResource(p)
-				c.Assert(p.BundleType(), qt.Equals, PathTypeContentResource)
+				c.Assert(p.Type(), qt.Equals, TypeContentResource)
 				c.Assert(p.IsContent(), qt.IsTrue)
 				c.Assert(p.Name(), qt.Equals, "b.md")
 				c.Assert(p.Base(), qt.Equals, "/a/b.md")
@@ -163,8 +173,10 @@ func TestParse(t *testing.T) {
 				c.Assert(p.NameNoIdentifier(), qt.Equals, "b.a.b")
 				c.Assert(p.NameNoLang(), qt.Equals, "b.a.b.txt")
 				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"txt", "no"})
+				c.Assert(p.IdentifiersUnknown(), qt.DeepEquals, []string{"b", "a", "b"})
 				c.Assert(p.Base(), qt.Equals, "/a/b.a.b.txt")
 				c.Assert(p.BaseNoLeadingSlash(), qt.Equals, "a/b.a.b.txt")
+				c.Assert(p.Path(), qt.Equals, "/a/b.a.b.no.txt")
 				c.Assert(p.PathNoLang(), qt.Equals, "/a/b.a.b.txt")
 				c.Assert(p.Ext(), qt.Equals, "txt")
 				c.Assert(p.PathNoIdentifier(), qt.Equals, "/a/b.a.b")
@@ -174,7 +186,11 @@ func TestParse(t *testing.T) {
 			"Home branch cundle",
 			"/_index.md",
 			func(c *qt.C, p *Path) {
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"md"})
+				c.Assert(p.IsBranchBundle(), qt.IsTrue)
+				c.Assert(p.IsBundle(), qt.IsTrue)
 				c.Assert(p.Base(), qt.Equals, "/")
+				c.Assert(p.BaseReTyped("foo"), qt.Equals, "/foo")
 				c.Assert(p.Path(), qt.Equals, "/_index.md")
 				c.Assert(p.Container(), qt.Equals, "")
 				c.Assert(p.ContainerDir(), qt.Equals, "/")
@@ -185,12 +201,14 @@ func TestParse(t *testing.T) {
 			"/a/index.md",
 			func(c *qt.C, p *Path) {
 				c.Assert(p.Base(), qt.Equals, "/a")
+				c.Assert(p.BaseReTyped("foo"), qt.Equals, "/foo/a")
 				c.Assert(p.BaseNameNoIdentifier(), qt.Equals, "a")
 				c.Assert(p.Container(), qt.Equals, "a")
 				c.Assert(p.Container(), qt.Equals, "a")
 				c.Assert(p.ContainerDir(), qt.Equals, "")
 				c.Assert(p.Dir(), qt.Equals, "/a")
 				c.Assert(p.Ext(), qt.Equals, "md")
+				c.Assert(p.IdentifiersUnknown(), qt.DeepEquals, []string{"index"})
 				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"md"})
 				c.Assert(p.IsBranchBundle(), qt.IsFalse)
 				c.Assert(p.IsBundle(), qt.IsTrue)
@@ -208,6 +226,7 @@ func TestParse(t *testing.T) {
 			func(c *qt.C, p *Path) {
 				c.Assert(p.Base(), qt.Equals, "/a/b")
 				c.Assert(p.BaseNameNoIdentifier(), qt.Equals, "b")
+				c.Assert(p.BaseReTyped("foo"), qt.Equals, "/foo/b")
 				c.Assert(p.Container(), qt.Equals, "b")
 				c.Assert(p.ContainerDir(), qt.Equals, "/a")
 				c.Assert(p.Dir(), qt.Equals, "/a/b")
@@ -220,6 +239,7 @@ func TestParse(t *testing.T) {
 				c.Assert(p.NameNoExt(), qt.Equals, "index.no")
 				c.Assert(p.NameNoIdentifier(), qt.Equals, "index")
 				c.Assert(p.NameNoLang(), qt.Equals, "index.md")
+				c.Assert(p.Path(), qt.Equals, "/a/b/index.no.md")
 				c.Assert(p.PathNoLang(), qt.Equals, "/a/b/index.md")
 				c.Assert(p.Section(), qt.Equals, "a")
 			},
@@ -355,7 +375,221 @@ func TestParse(t *testing.T) {
 	}
 	for _, test := range tests {
 		c.Run(test.name, func(c *qt.C) {
+			if test.name != "Home branch cundle" {
+				// return
+			}
 			test.assert(c, testParser.Parse(files.ComponentFolderContent, test.path))
+		})
+	}
+}
+
+func TestParseLayouts(t *testing.T) {
+	c := qt.New(t)
+
+	tests := []struct {
+		name   string
+		path   string
+		assert func(c *qt.C, p *Path)
+	}{
+		{
+			"Basic",
+			"/list.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Base(), qt.Equals, "/list.html")
+				c.Assert(p.OutputFormat(), qt.Equals, "html")
+			},
+		},
+		{
+			"Lang",
+			"/list.no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "no", "list"})
+				c.Assert(p.IdentifiersUnknown(), qt.DeepEquals, []string{})
+				c.Assert(p.Base(), qt.Equals, "/list.html")
+				c.Assert(p.Lang(), qt.Equals, "no")
+			},
+		},
+		{
+			"Kind",
+			"/section.no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Kind(), qt.Equals, kinds.KindSection)
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "no", "section"})
+				c.Assert(p.IdentifiersUnknown(), qt.DeepEquals, []string{})
+				c.Assert(p.Base(), qt.Equals, "/section.html")
+				c.Assert(p.Lang(), qt.Equals, "no")
+			},
+		},
+		{
+			"Layout",
+			"/list.section.no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Layout(), qt.Equals, "list")
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "no", "section", "list"})
+				c.Assert(p.IdentifiersUnknown(), qt.DeepEquals, []string{})
+				c.Assert(p.Base(), qt.Equals, "/list.html")
+				c.Assert(p.Lang(), qt.Equals, "no")
+			},
+		},
+		{
+			"Layout multiple",
+			"/mylayout.list.section.no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Layout(), qt.Equals, "mylayout")
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "no", "section", "list", "mylayout"})
+				c.Assert(p.IdentifiersUnknown(), qt.DeepEquals, []string{})
+				c.Assert(p.Base(), qt.Equals, "/mylayout.html")
+				c.Assert(p.Lang(), qt.Equals, "no")
+			},
+		},
+		{
+			"Layout shortcode",
+			"/_shortcodes/myshort.list.no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Layout(), qt.Equals, "list")
+			},
+		},
+		{
+			"Layout baseof",
+			"/baseof.list.no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Layout(), qt.Equals, "list")
+			},
+		},
+		{
+			"Lang and output format",
+			"/list.no.amp.not.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "not", "amp", "no", "list"})
+				c.Assert(p.OutputFormat(), qt.Equals, "amp")
+				c.Assert(p.Ext(), qt.Equals, "html")
+				c.Assert(p.Lang(), qt.Equals, "no")
+				c.Assert(p.Base(), qt.Equals, "/list.html")
+			},
+		},
+		{
+			"Term",
+			"/term.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Base(), qt.Equals, "/term.html")
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "term"})
+				c.Assert(p.PathNoIdentifier(), qt.Equals, "/term")
+				c.Assert(p.PathBeforeLangAndOutputFormatAndExt(), qt.Equals, "/term")
+				c.Assert(p.Lang(), qt.Equals, "")
+				c.Assert(p.Kind(), qt.Equals, "term")
+				c.Assert(p.OutputFormat(), qt.Equals, "html")
+			},
+		},
+		{
+			"Shortcode with layout",
+			"/_shortcodes/myshortcode.list.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Base(), qt.Equals, "/_shortcodes/myshortcode.html")
+				c.Assert(p.Type(), qt.Equals, TypeShortcode)
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "list"})
+				c.Assert(p.Layout(), qt.Equals, "list")
+				c.Assert(p.PathNoIdentifier(), qt.Equals, "/_shortcodes/myshortcode")
+				c.Assert(p.PathBeforeLangAndOutputFormatAndExt(), qt.Equals, "/_shortcodes/myshortcode.list")
+				c.Assert(p.Lang(), qt.Equals, "")
+				c.Assert(p.Kind(), qt.Equals, "")
+				c.Assert(p.OutputFormat(), qt.Equals, "html")
+			},
+		},
+		{
+			"Sub dir",
+			"/pages/home.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "home"})
+				c.Assert(p.Lang(), qt.Equals, "")
+				c.Assert(p.Kind(), qt.Equals, "home")
+				c.Assert(p.OutputFormat(), qt.Equals, "html")
+				c.Assert(p.Dir(), qt.Equals, "/pages")
+			},
+		},
+		{
+			"Baseof",
+			"/pages/baseof.list.section.fr.amp.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Identifiers(), qt.DeepEquals, []string{"html", "amp", "fr", "section", "list", "baseof"})
+				c.Assert(p.IdentifiersUnknown(), qt.DeepEquals, []string{})
+				c.Assert(p.Kind(), qt.Equals, kinds.KindSection)
+				c.Assert(p.Lang(), qt.Equals, "fr")
+				c.Assert(p.OutputFormat(), qt.Equals, "amp")
+				c.Assert(p.Dir(), qt.Equals, "/pages")
+				c.Assert(p.NameNoIdentifier(), qt.Equals, "baseof")
+				c.Assert(p.Type(), qt.Equals, TypeBaseof)
+				c.Assert(p.IdentifierBase(), qt.Equals, "/pages/baseof.list.section.fr.amp.html")
+			},
+		},
+		{
+			"Markup",
+			"/_markup/render-link.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypeMarkup)
+			},
+		},
+		{
+			"Markup nested",
+			"/foo/_markup/render-link.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypeMarkup)
+			},
+		},
+		{
+			"Shortcode",
+			"/_shortcodes/myshortcode.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypeShortcode)
+			},
+		},
+		{
+			"Shortcode nested",
+			"/foo/_shortcodes/myshortcode.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypeShortcode)
+			},
+		},
+		{
+			"Shortcode nested sub",
+			"/foo/_shortcodes/foo/myshortcode.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypeShortcode)
+			},
+		},
+		{
+			"Partials",
+			"/_partials/foo.bar",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypePartial)
+			},
+		},
+		{
+			"Shortcode lang in root",
+			"/_shortcodes/no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypeShortcode)
+				c.Assert(p.Lang(), qt.Equals, "")
+				c.Assert(p.NameNoIdentifier(), qt.Equals, "no")
+			},
+		},
+		{
+			"Shortcode lang layout",
+			"/_shortcodes/myshortcode.no.html",
+			func(c *qt.C, p *Path) {
+				c.Assert(p.Type(), qt.Equals, TypeShortcode)
+				c.Assert(p.Lang(), qt.Equals, "no")
+				c.Assert(p.Layout(), qt.Equals, "")
+				c.Assert(p.NameNoIdentifier(), qt.Equals, "myshortcode")
+			},
+		},
+	}
+
+	for _, test := range tests {
+		c.Run(test.name, func(c *qt.C) {
+			if test.name != "Shortcode lang layout" {
+				// return
+			}
+			test.assert(c, testParser.Parse(files.ComponentFolderLayouts, test.path))
 		})
 	}
 }

@@ -92,7 +92,7 @@ p1 = "p1en"
 	c.Assert(p1, qt.Equals, "p1nn")
 }
 
-// https://github.com/neohugo/neohugo/issues/4706
+// https://github.com/gohugoio/hugo/issues/4706
 func TestContentStressTest(t *testing.T) {
 	b := newTestSitesBuilder(t)
 

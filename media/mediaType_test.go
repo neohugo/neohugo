@@ -124,7 +124,7 @@ func TestFromStringAndExt(t *testing.T) {
 }
 
 // Add a test for the SVG case
-// https://github.com/neohugo/neohugo/issues/4920
+// https://github.com/gohugoio/hugo/issues/4920
 func TestFromExtensionMultipleSuffixes(t *testing.T) {
 	c := qt.New(t)
 	tp, si, found := DefaultTypes.GetBySuffix("svg")
@@ -213,12 +213,4 @@ func BenchmarkTypeOps(b *testing.B) {
 		_, _, _ = mts.GetFirstBySuffix("xml")
 
 	}
-}
-
-func TestIsContentFile(t *testing.T) {
-	c := qt.New(t)
-
-	c.Assert(DefaultContentTypes.IsContentFile(filepath.FromSlash("my/file.md")), qt.Equals, true)
-	c.Assert(DefaultContentTypes.IsContentFile(filepath.FromSlash("my/file.ad")), qt.Equals, true)
-	c.Assert(DefaultContentTypes.IsContentFile(filepath.FromSlash("textfile.txt")), qt.Equals, false)
 }

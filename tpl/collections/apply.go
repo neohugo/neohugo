@@ -21,7 +21,6 @@ import (
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hreflect"
-	"github.com/neohugo/neohugo/tpl"
 )
 
 // Apply takes an array or slice c and returns a new slice with the function fname applied over it.
@@ -48,7 +47,7 @@ func (ns *Namespace) Apply(ctx context.Context, c any, fname string, args ...any
 	switch seqv.Kind() {
 	case reflect.Array, reflect.Slice:
 		r := make([]any, seqv.Len())
-		for i := 0; i < seqv.Len(); i++ {
+		for i := range seqv.Len() {
 			vv := seqv.Index(i)
 
 			vvv, err := applyFnToThis(ctx, fnv, vv, args...)
@@ -91,7 +90,7 @@ func applyFnToThis(ctx context.Context, fn, this reflect.Value, args ...any) (re
 		return reflect.ValueOf(nil), errors.New("Too many arguments")
 	}*/
 
-	for i := 0; i < num; i++ {
+	for i := range num {
 		// AssignableTo reports whether xt is assignable to type targ.
 		if xt, targ := n[i].Type(), fn.Type().In(i); !xt.AssignableTo(targ) {
 			return reflect.ValueOf(nil), errors.New("called apply using " + xt.String() + " as type " + targ.String())
@@ -109,8 +108,7 @@ func applyFnToThis(ctx context.Context, fn, this reflect.Value, args ...any) (re
 func (ns *Namespace) lookupFunc(ctx context.Context, fname string) (reflect.Value, bool) {
 	namespace, methodName, ok := strings.Cut(fname, ".")
 	if !ok {
-		templ := ns.deps.Tmpl().(tpl.TemplateFuncGetter)
-		return templ.GetFunc(fname)
+		return ns.deps.GetTemplateStore().GetFunc(fname)
 	}
 
 	// Namespace

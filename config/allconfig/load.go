@@ -159,63 +159,9 @@ func (l configLoader) applyConfigAliases() error {
 
 func (l configLoader) applyDefaultConfig() error {
 	defaultSettings := maps.Params{
-		"baseURL":                              "",
-		"cleanDestinationDir":                  false,
-		"watch":                                false,
-		"contentDir":                           "content",
-		"resourceDir":                          "resources",
-		"publishDir":                           "public",
-		"publishDirOrig":                       "public",
-		"themesDir":                            "themes",
-		"assetDir":                             "assets",
-		"layoutDir":                            "layouts",
-		"i18nDir":                              "i18n",
-		"dataDir":                              "data",
-		"archetypeDir":                         "archetypes",
-		"configDir":                            "config",
-		"staticDir":                            "static",
-		"buildDrafts":                          false,
-		"buildFuture":                          false,
-		"buildExpired":                         false,
-		"params":                               maps.Params{},
-		"environment":                          neohugo.EnvironmentProduction,
-		"uglyURLs":                             false,
-		"verbose":                              false,
-		"ignoreCache":                          false,
-		"canonifyURLs":                         false,
-		"relativeURLs":                         false,
-		"removePathAccents":                    false,
-		"titleCaseStyle":                       "AP",
-		"taxonomies":                           maps.Params{"tag": "tags", "category": "categories"},
-		"permalinks":                           maps.Params{},
-		"sitemap":                              maps.Params{"priority": -1, "filename": "sitemap.xml"},
-		"menus":                                maps.Params{},
-		"disableLiveReload":                    false,
-		"pluralizeListTitles":                  true,
-		"capitalizeListTitles":                 true,
-		"forceSyncStatic":                      false,
-		"footnoteAnchorPrefix":                 "",
-		"footnoteReturnLinkContents":           "",
-		"newContentEditor":                     "",
-		"paginate":                             0,  // Moved into the paginator struct in Hugo v0.128.0.
-		"paginatePath":                         "", // Moved into the paginator struct in Hugo v0.128.0.
-		"summaryLength":                        70,
-		"rssLimit":                             -1,
-		"sectionPagesMenu":                     "",
-		"disablePathToLower":                   false,
-		"hasCJKLanguage":                       false,
-		"enableEmoji":                          false,
-		"defaultContentLanguage":               "en",
-		"defaultContentLanguageInSubdir":       false,
-		"enableMissingTranslationPlaceholders": false,
-		"enableGitInfo":                        false,
-		"ignoreFiles":                          make([]string, 0),
-		"disableAliases":                       false,
-		"debug":                                false,
-		"disableFastRender":                    false,
-		"timeout":                              "30s",
-		"timeZone":                             "",
-		"enableInlineShortcodes":               false,
+		// These dirs are used early/before we build the config struct.
+		"themesDir": "themes",
+		"configDir": "config",
 	}
 
 	l.cfg.SetDefaults(defaultSettings)
@@ -287,38 +233,49 @@ func (l configLoader) applyOsEnvOverrides(environ []string) error {
 
 		if existing != nil {
 			val, err := metadecoders.Default.UnmarshalStringTo(env.Value, existing)
-			if err != nil {
+			if err == nil {
+				val = l.envValToVal(env.Key, val)
+				if owner != nil {
+					owner[nestedKey] = val
+				} else {
+					l.cfg.Set(env.Key, val)
+				}
 				continue
 			}
-
-			if owner != nil {
-				owner[nestedKey] = val
-			} else {
-				l.cfg.Set(env.Key, val)
-			}
-		} else {
-			if nestedKey != "" {
-				owner[nestedKey] = env.Value
-			} else {
-				var val any
-				key := strings.ReplaceAll(env.Key, delim, ".")
-				_, ok := allDecoderSetups[key]
-				if ok {
-					// A map.
-					if v, err := metadecoders.Default.UnmarshalStringTo(env.Value, map[string]interface{}{}); err == nil {
-						val = v
-					}
-				}
-				if val == nil {
-					// A string.
-					val = l.envStringToVal(key, env.Value)
-				}
-				l.cfg.Set(key, val)
-			}
 		}
+
+		if owner != nil && nestedKey != "" {
+			owner[nestedKey] = env.Value
+		} else {
+			var val any
+			key := strings.ReplaceAll(env.Key, delim, ".")
+			_, ok := allDecoderSetups[key]
+			if ok {
+				// A map.
+				if v, err := metadecoders.Default.UnmarshalStringTo(env.Value, map[string]any{}); err == nil {
+					val = v
+				}
+			}
+
+			if val == nil {
+				// A string.
+				val = l.envStringToVal(key, env.Value)
+			}
+			l.cfg.Set(key, val)
+		}
+
 	}
 
 	return nil
+}
+
+func (l *configLoader) envValToVal(k string, v any) any {
+	switch v := v.(type) {
+	case string:
+		return l.envStringToVal(k, v)
+	default:
+		return v
+	}
 }
 
 func (l *configLoader) envStringToVal(k, v string) any {
@@ -470,7 +427,7 @@ func (l *configLoader) loadModules(configs *Configs, ignoreModuleDoesNotExist bo
 		ignoreVendor, _ = hglob.GetGlob(hglob.NormalizePath(s))
 	}
 
-	ex := hexec.New(conf.Security, workingDir)
+	ex := hexec.New(conf.Security, workingDir, l.Logger)
 
 	hook := func(m *modules.ModulesConfig) error {
 		for _, tc := range m.AllModules {

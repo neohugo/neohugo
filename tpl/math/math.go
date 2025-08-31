@@ -20,9 +20,9 @@ import (
 	"math"
 	"math/rand"
 	"reflect"
-	"sync/atomic"
 
 	_math "github.com/neohugo/neohugo/common/math"
+	"github.com/neohugo/neohugo/deps"
 	"github.com/spf13/cast"
 )
 
@@ -32,12 +32,16 @@ var (
 )
 
 // New returns a new instance of the math-namespaced template functions.
-func New() *Namespace {
-	return &Namespace{}
+func New(d *deps.Deps) *Namespace {
+	return &Namespace{
+		d: d,
+	}
 }
 
 // Namespace provides template functions for the "math" namespace.
-type Namespace struct{}
+type Namespace struct {
+	d *deps.Deps
+}
 
 // Abs returns the absolute value of n.
 func (ns *Namespace) Abs(n any) (float64, error) {
@@ -141,6 +145,11 @@ func (ns *Namespace) Log(n any) (float64, error) {
 // Max returns the greater of all numbers in inputs. Any slices in inputs are flattened.
 func (ns *Namespace) Max(inputs ...any) (maximum float64, err error) {
 	return ns.applyOpToScalarsOrSlices("Max", math.Max, inputs...)
+}
+
+// MaxInt64 returns the maximum value for a signed 64-bit integer.
+func (ns *Namespace) MaxInt64() int64 {
+	return math.MaxInt64
 }
 
 // Min returns the smaller of all numbers in inputs. Any slices in inputs are flattened.
@@ -314,7 +323,7 @@ func (ns *Namespace) toFloatsE(v any) ([]float64, bool, error) {
 	switch vv.Kind() {
 	case reflect.Slice, reflect.Array:
 		var floats []float64
-		for i := 0; i < vv.Len(); i++ {
+		for i := range vv.Len() {
 			f, err := cast.ToFloat64E(vv.Index(i).Interface())
 			if err != nil {
 				return nil, true, err
@@ -345,8 +354,6 @@ func (ns *Namespace) doArithmetic(inputs []any, operation rune) (value any, err 
 	return
 }
 
-var counter uint64
-
 // Counter increments and returns a global counter.
 // This was originally added to be used in tests where now.UnixNano did not
 // have the needed precision (especially on Windows).
@@ -354,5 +361,5 @@ var counter uint64
 // and the counter will reset on new builds.
 // <docsmeta>{"identifiers": ["now.UnixNano"] }</docsmeta>
 func (ns *Namespace) Counter() uint64 {
-	return atomic.AddUint64(&counter, uint64(1))
+	return ns.d.Counters.MathCounter.Add(1)
 }

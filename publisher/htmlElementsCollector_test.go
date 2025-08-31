@@ -68,7 +68,7 @@ func TestClassCollector(t *testing.T) {
 		{"no quote", `<body class=b id=myelement></body>`, f("body", "b", "myelement")},
 		{"short", `<i>`, f("i", "", "")},
 		{"invalid", `< body class="b a"></body><div></div>`, f("div", "", "")},
-		// https://github.com/neohugo/neohugo/issues/7318
+		// https://github.com/gohugoio/hugo/issues/7318
 		{"thead", `<table class="cl1">
     <thead class="cl2"><tr class="cl3"><td class="cl4"></td></tr></thead>
     <tbody class="cl5"><tr class="cl6"><td class="cl7"></td></tr></tbody>
@@ -77,7 +77,7 @@ func TestClassCollector(t *testing.T) {
     <THEAD class="CL2"><TR class="CL3"><TD class="CL4"></TD></TR></THEAD>
     <TBODY class="CL5"><TR class="CL6"><TD class="CL7"></TD></TR></TBODY>
 </TABLE>`, f("table tbody td thead tr", "CL1 CL2 CL3 CL4 CL5 CL6 CL7", "")},
-		// https://github.com/neohugo/neohugo/issues/7161
+		// https://github.com/gohugoio/hugo/issues/7161
 		{"minified a href", `<a class="b a" href=/></a>`, f("a", "a b", "")},
 		{"AlpineJS bind 1", `<body>
     <div x-bind:class="{

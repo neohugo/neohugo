@@ -160,7 +160,15 @@ func Uglify(in string) string {
 	return path.Clean(in)
 }
 
-// Removed duplicate URLEscape.
+// URLEscape escapes unicode letters.
+func URLEscape(uri string) string {
+	// escape unicode letters
+	u, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return u.String()
+}
 
 // TrimExt trims the extension from a path..
 func TrimExt(in string) string {
@@ -220,7 +228,7 @@ func UrlFromFilename(filename string) (*url.URL, error) {
 	}, nil
 }
 
-// UrlToFilename converts the URL s to a filename.
+// UrlStringToFilename converts the URL s to a filename.
 // If ParseRequestURI fails, the input is just converted to OS specific slashes and returned.
 func UrlStringToFilename(s string) (string, bool) {
 	u, err := url.ParseRequestURI(s)
@@ -262,14 +270,4 @@ func UrlStringToFilename(s string) (string, bool) {
 	}
 
 	return p[1:], true
-}
-
-// URLEscape escapes unicode letters.
-func URLEscape(uri string) string {
-	// escape unicode letters
-	u, err := url.Parse(uri)
-	if err != nil {
-		panic(err)
-	}
-	return u.String()
 }

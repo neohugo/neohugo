@@ -15,7 +15,6 @@ package hugolib
 
 import (
 	"fmt"
-	"path/filepath"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
@@ -40,7 +39,7 @@ contentDir = "content/nn"
 `
 	b := newTestSitesBuilder(t).WithConfigFile("toml", configFile)
 	var content []string
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		for _, contentDir := range []string{"content/en", "content/nn"} {
 			content = append(content, fmt.Sprintf(contentDir+"/blog/page%d.md", i), fmt.Sprintf(`---
 title: Page %d
@@ -102,13 +101,21 @@ URL: {{ $pag.URL }}
 
 // Issue 6023
 func TestPaginateWithSort(t *testing.T) {
-	b := newTestSitesBuilder(t).WithSimpleConfigFile()
-	b.WithTemplatesAdded("index.html", `{{ range (.Paginate (sort .Site.RegularPages ".File.Filename" "desc")).Pages }}|{{ .File.Filename }}{{ end }}`)
-	b.Build(BuildCfg{}).AssertFileContent("public/index.html",
-		filepath.FromSlash("|content/sect/doc1.nn.md|content/sect/doc1.nb.md|content/sect/doc1.fr.md|content/sect/doc1.en.md"))
+	files := `
+-- hugo.toml --
+-- content/a/a.md --
+-- content/z/b.md --
+-- content/x/b.md --
+-- content/x/a.md --
+-- layouts/home.html --
+Paginate: {{ range (.Paginate (sort .Site.RegularPages ".File.Filename" "desc")).Pages }}|{{ .Path }}{{ end }}
+`
+	b := Test(t, files)
+
+	b.AssertFileContent("public/index.html", "Paginate: |/z/b|/x/b|/x/a|/a/a")
 }
 
-// https://github.com/neohugo/neohugo/issues/6797
+// https://github.com/gohugoio/hugo/issues/6797
 func TestPaginateOutputFormat(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 	b.WithContent("_index.md", `---
@@ -118,7 +125,7 @@ cascade:
     - JSON
 ---`)
 
-	for i := 0; i < 22; i++ {
+	for i := range 22 {
 		b.WithContent(fmt.Sprintf("p%d.md", i+1), fmt.Sprintf(`---
 title: "Page"
 weight: %d
@@ -176,12 +183,12 @@ Paginator: {{ .Paginator }}
 
 func TestNilPointerErrorMessage(t *testing.T) {
 	files := `
--- hugo.toml --
+-- hugo.toml --	
 -- content/p1.md --
 -- layouts/_default/single.html --
 Home Filename: {{ site.Home.File.Filename }}
 `
 	b, err := TestE(t, files)
 	b.Assert(err, qt.IsNotNil)
-	b.Assert(err.Error(), qt.Contains, `_default/single.html:1:22: executing "_default/single.html" – File is nil; wrap it in if or with: {{ with site.Home.File }}{{ .Filename }}{{ end }}`)
+	b.Assert(err.Error(), qt.Contains, `single.html:1:22: executing "single.html" – File is nil; wrap it in if or with: {{ with site.Home.File }}{{ .Filename }}{{ end }}`)
 }

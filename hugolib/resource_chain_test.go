@@ -67,11 +67,11 @@ FIT: {{ $fit.Name }}|{{ $fit.RelPermalink }}|{{ $fit.Width }}
 CSS integrity Data first: {{ $cssFingerprinted1.Data.Integrity }} {{ $cssFingerprinted1.RelPermalink }}
 CSS integrity Data last:  {{ $cssFingerprinted2.RelPermalink }} {{ $cssFingerprinted2.Data.Integrity }}
 
-{{ $failedImg := resources.GetRemote "%[1]s/fail.jpg" }}
+{{ $failedImg := try (resources.GetRemote "%[1]s/fail.jpg") }}
 {{ $rimg := resources.GetRemote "%[1]s/sunset.jpg" }}
 {{ $remotenotfound := resources.GetRemote "%[1]s/notfound.jpg" }}
 {{ $localnotfound := resources.Get "images/notfound.jpg" }}
-{{ $gopherprotocol := resources.GetRemote "gopher://example.org" }}
+{{ $gopherprotocol := try (resources.GetRemote "gopher://example.org") }}
 {{ $rfit := $rimg.Fit "200x200" }}
 {{ $rfit2 := $rfit.Fit "100x200" }}
 {{ $rimg = $rimg | fingerprint }}
@@ -79,10 +79,10 @@ SUNSET REMOTE: {{ $rimg.Name }}|{{ $rimg.RelPermalink }}|{{ $rimg.Width }}|{{ le
 FIT REMOTE: {{ $rfit.Name }}|{{ $rfit.RelPermalink }}|{{ $rfit.Width }}
 REMOTE NOT FOUND: {{ if $remotenotfound }}FAILED{{ else}}OK{{ end }}
 LOCAL NOT FOUND: {{ if $localnotfound }}FAILED{{ else}}OK{{ end }}
-PRINT PROTOCOL ERROR1: {{ with $gopherprotocol }}{{ . | safeHTML }}{{ end }}
+PRINT PROTOCOL ERROR1: {{ with $gopherprotocol }}{{ .Value | safeHTML }}{{ end }}
 PRINT PROTOCOL ERROR2: {{ with $gopherprotocol }}{{ .Err | safeHTML }}{{ end }}
-PRINT PROTOCOL ERROR DETAILS: {{ with $gopherprotocol }}Err: {{ .Err | safeHTML }}{{ with .Err }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}{{ end }}|{{ end }}{{ end }}
-FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg.Err }}|{{ . }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}|ContentLength: {{ .ContentLength }}|ContentType: {{ .ContentType }}{{ end }}{{ end }}|
+PRINT PROTOCOL ERROR DETAILS: {{ with $gopherprotocol }}{{ with .Err }}Err: {{ . | safeHTML }}{{ with .Cause }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}{{ end }}|{{ end }}{{ end }}{{ end }}
+FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg }}{{ with .Err }}{{ with .Cause }}{{ . }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}|ContentLength: {{ .ContentLength }}|ContentType: {{ .ContentType }}{{ end }}{{ end }}{{ end }}{{ end }}|
 `, ts.URL))
 
 	fs := b.Fs.Source
@@ -99,23 +99,23 @@ FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg.Err }}|{{ . }}|{{ with .
 
 	b.Running()
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		b.Logf("Test run %d", i)
 		b.Build(BuildCfg{})
 
 		b.AssertFileContent("public/index.html",
 			fmt.Sprintf(`
 SUNSET: /images/sunset.jpg|/images/sunset.a9bf1d944e19c0f382e0d8f51de690f7d0bc8fa97390c4242a86c3e5c0737e71.jpg|900|90587
-FIT: /images/sunset.jpg|/images/sunset_hu15210517121918042184.jpg|200
+FIT: /images/sunset.jpg|/images/sunset_hu_f2aae87288f3c13b.jpg|200
 CSS integrity Data first: sha256-od9YaHw8nMOL8mUy97Sy8sKwMV3N4hI3aVmZXATxH&#43;8= /styles.min.a1df58687c3c9cc38bf26532f7b4b2f2c2b0315dcde212376959995c04f11fef.css
 CSS integrity Data last:  /styles2.min.1cfc52986836405d37f9998a63fd6dd8608e8c410e5e3db1daaa30f78bc273ba.css sha256-HPxSmGg2QF03&#43;ZmKY/1t2GCOjEEOXj2x2qow94vCc7o=
 
 SUNSET REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s.a9bf1d944e19c0f382e0d8f51de690f7d0bc8fa97390c4242a86c3e5c0737e71.jpg|900|90587
-FIT REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s_hu15210517121918042184.jpg|200
+FIT REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s_hu_f2aae87288f3c13b.jpg|200
 REMOTE NOT FOUND: OK
 LOCAL NOT FOUND: OK
-PRINT PROTOCOL ERROR DETAILS: Err: error calling resources.GetRemote: Get "gopher://example.org": unsupported protocol scheme "gopher"||
-FAILED REMOTE ERROR DETAILS CONTENT: |failed to fetch remote resource from &#39;%[2]s/fail.jpg&#39;: Not Implemented|Body: { msg: failed }
+PRINT PROTOCOL ERROR DETAILS: Err: template: index.html:22:36: executing "index.html" at <resources.GetRemote>: error calling GetRemote: Get "gopher://example.org": unsupported protocol scheme "gopher"|
+FAILED REMOTE ERROR DETAILS CONTENT: failed to fetch remote resource from &#39;%[2]s/fail.jpg&#39;: Not Implemented|Body: { msg: failed }
 |StatusCode: 501|ContentLength: 16|ContentType: text/plain; charset=utf-8|
 
 
@@ -200,7 +200,7 @@ func BenchmarkResourceChainPostProcess(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		s := newTestSitesBuilder(b)
-		for i := 0; i < 300; i++ {
+		for i := range 300 {
 			s.WithContent(fmt.Sprintf("page%d.md", i+1), "---\ntitle: Page\n---")
 		}
 		s.WithTemplates("_default/single.html", `Start.
@@ -430,11 +430,11 @@ T1: Content: {{ $combined.Content }}|RelPermalink: {{ $combined.RelPermalink }}|
 {{ $combinedText := . | resources.Concat "bundle/concattxt.txt" }}
 T2: Content: {{ $combinedText.Content }}|{{ $combinedText.RelPermalink }}
 {{ end }}
-{{/* https://github.com/neohugo/neohugo/issues/5269 */}}
+{{/* https://github.com/gohugoio/hugo/issues/5269 */}}
 {{ $css := "body { color: blue; }" | resources.FromString "styles.css" }}
 {{ $minified := resources.Get "css/styles1.css" | minify }}
 {{ slice $css $minified | resources.Concat "bundle/mixed.css" }} 
-{{/* https://github.com/neohugo/neohugo/issues/5403 */}}
+{{/* https://github.com/gohugoio/hugo/issues/5403 */}}
 {{ $d := "function D {} // A comment" | resources.FromString "d.js"}}
 {{ $e := "(function E {})" | resources.FromString "e.js"}}
 {{ $f := "(function F {})()" | resources.FromString "f.js"}}
@@ -509,7 +509,7 @@ T1: {{ $result.Content }}|{{ $result.RelPermalink}}|{{$result.MediaType.Type }}|
 T2: {{ $result512.Content }}|{{ $result512.RelPermalink}}|{{$result512.MediaType.Type }}|{{ $result512.Data.Integrity }}|
 T3: {{ $resultMD5.Content }}|{{ $resultMD5.RelPermalink}}|{{$resultMD5.MediaType.Type }}|{{ $resultMD5.Data.Integrity }}|
 {{ $r2 := "bc" | resources.FromString "rocks/hugo2.txt" | fingerprint }}
-{{/* https://github.com/neohugo/neohugo/issues/5296 */}}
+{{/* https://github.com/gohugoio/hugo/issues/5296 */}}
 T4: {{ $r2.Data.Integrity }}|
 
 
@@ -520,7 +520,7 @@ T4: {{ $r2.Data.Integrity }}|
 			b.AssertFileContent("public/index.html", `T3: ab|/rocks/hugo.187ef4436122d1cc2f40dc2b92f0eba0.txt|text/plain|md5-GH70Q2Ei0cwvQNwrkvDroA==|`)
 			b.AssertFileContent("public/index.html", `T4: sha256-Hgu9bGhroFC46wP/7txk/cnYCUf86CGrvl1tyNJSxaw=|`)
 		}},
-		// https://github.com/neohugo/neohugo/issues/5226
+		// https://github.com/gohugoio/hugo/issues/5226
 		{"baseurl-path", func() bool { return true }, func(b *sitesBuilder) {
 			b.WithSimpleConfigFileAndBaseURL("https://example.com/hugo/")
 			b.WithTemplates("home.html", `
@@ -531,7 +531,7 @@ T1: {{ $r1.Permalink }}|{{ $r1.RelPermalink }}
 			b.AssertFileContent("public/index.html", `T1: https://example.com/hugo/rocks/hugo.txt|/hugo/rocks/hugo.txt`)
 		}},
 
-		// https://github.com/neohugo/neohugo/issues/4944
+		// https://github.com/gohugoio/hugo/issues/4944
 		{"Prevent resource publish on .Content only", func() bool { return true }, func(b *sitesBuilder) {
 			b.WithTemplates("home.html", `
 {{ $cssInline := "body { color: green; }" | resources.FromString "inline.css" | minify }}

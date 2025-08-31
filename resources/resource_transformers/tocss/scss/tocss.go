@@ -12,7 +12,6 @@
 // limitations under the License.
 
 //go:build extended
-// +build extended
 
 package scss
 
@@ -170,7 +169,7 @@ func (t *toCSSTransformation) Transform(ctx *resources.ResourceTransformationCtx
 		}
 
 		// This needs to be Unix-style slashes, even on Windows.
-		// See https://github.com/neohugo/neohugo/issues/4968
+		// See https://github.com/gohugoio/hugo/issues/4968
 		sourcePath = filepath.ToSlash(sourcePath)
 
 		// This is a workaround for what looks like a bug in Libsass. But
@@ -193,7 +192,7 @@ func (c *Client) toCSS(options libsass.Options, dst io.Writer, src io.Reader) (l
 
 	in := helpers.ReaderToString(src)
 
-	// See https://github.com/neohugo/neohugo/issues/7059
+	// See https://github.com/gohugoio/hugo/issues/7059
 	// We need to preserve the regular CSS imports. This is by far
 	// a perfect solution, and only works for the main entry file, but
 	// that should cover many use cases, e.g. using SCSS as a preprocessor

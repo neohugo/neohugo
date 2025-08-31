@@ -32,3 +32,13 @@ func TestIsValidConfigFileName(t *testing.T) {
 	c.Assert(IsValidConfigFilename(""), qt.Equals, false)
 	c.Assert(IsValidConfigFilename("config.toml.swp"), qt.Equals, false)
 }
+
+func TestFromTOMLConfigString(t *testing.T) {
+	c := qt.New(t)
+
+	c.Assert(
+		func() { FromTOMLConfigString("cfg") },
+		qt.PanicMatches,
+		regexp.MustCompile("_stream.toml:.*"),
+	)
+}

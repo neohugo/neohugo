@@ -215,7 +215,7 @@ func WalkFilesystems(fs afero.Fs, fn WalkFn) bool {
 			}
 		}
 	} else if cfs, ok := fs.(overlayfs.FilesystemIterator); ok {
-		for i := 0; i < cfs.NumFilesystems(); i++ {
+		for i := range cfs.NumFilesystems() {
 			if WalkFilesystems(cfs.Filesystem(i), fn) {
 				return true
 			}

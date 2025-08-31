@@ -842,3 +842,151 @@ title: p1
 	b.AssertFileExists("public/s1/index.html", false)
 	b.AssertFileExists("public/s1/p1/index.html", false)
 }
+
+// Issue 12594.
+func TestCascadeOrder(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['rss','sitemap','taxonomy','term', 'home']
+-- content/_index.md --
+---
+title: Home
+cascade:
+- _target:
+    path: "**"
+  params:
+    background: yosemite.jpg
+- _target:
+  params:
+    background: goldenbridge.jpg
+---
+-- content/p1.md --
+---
+title: p1
+---
+-- layouts/_default/single.html --
+Background: {{ .Params.background }}|
+-- layouts/_default/list.html --
+{{ .Title }}|
+  `
+
+	for range 10 {
+		b := Test(t, files)
+		b.AssertFileContent("public/p1/index.html", "Background: yosemite.jpg")
+	}
+}
+
+// Issue #12465.
+func TestCascadeOverlap(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','sitemap','taxonomy','term']
+-- layouts/_default/list.html --
+{{ .Title }}
+-- layouts/_default/single.html --
+{{ .Title }}
+-- content/s/_index.md --
+---
+title: s
+cascade:
+  build:
+    render: never
+---
+-- content/s/p1.md --
+---
+title: p1
+---
+-- content/sx/_index.md --
+---
+title: sx
+---
+-- content/sx/p2.md --
+---
+title: p2
+---
+`
+
+	b := Test(t, files)
+
+	b.AssertFileExists("public/s/index.html", false)
+	b.AssertFileExists("public/s/p1/index.html", false)
+
+	b.AssertFileExists("public/sx/index.html", true)    // failing
+	b.AssertFileExists("public/sx/p2/index.html", true) // failing
+}
+
+func TestCascadeGotmplIssue13743(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','section','sitemap','taxonomy','term']
+[cascade.params]
+foo = 'bar'
+[cascade.target]
+path = '/p1'
+-- content/_content.gotmpl --
+{{ .AddPage (dict "title" "p1" "path" "p1") }}
+-- layouts/all.html --
+{{ .Title }}|{{ .Params.foo }}
+`
+
+	b := Test(t, files)
+
+	b.AssertFileContent("public/p1/index.html", "p1|bar") // actual content is "p1|"
+}
+
+func TestCascadeWarnOverrideIssue13806(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','section','sitemap','taxonomy','term']
+[[cascade]]
+[cascade.params]
+searchable = true
+[cascade.target]
+kind = 'page'
+-- content/something.md --
+---
+title: Something
+params:
+  searchable: false
+---
+-- layouts/all.html --
+All.
+
+`
+
+	b := Test(t, files, TestOptWarn())
+
+	b.AssertLogContains("! WARN")
+}
+
+func TestCascadeNilMapIssue13853(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+-- content/test/_index.md --
+---
+title: Test
+cascade:
+- build:
+    list: local
+  target:
+    path: '{/test/**}'
+- params:
+    title: 'Test page'
+  target:
+    path: '{/test/**}'
+---
+`
+
+	// Just verify that it does not panic.
+	_ = Test(t, files)
+}

@@ -84,7 +84,7 @@ func (h *Client) collect(tidy bool) (ModulesConfig, *collector) {
 		return ModulesConfig{}, c
 	}
 
-	// https://github.com/neohugo/neohugo/issues/6115
+	// https://github.com/gohugoio/hugo/issues/6115
 	/*if !c.skipTidy && tidy {
 		if err := h.tidy(c.modules, true); err != nil {
 			c.err = err
@@ -506,7 +506,7 @@ LOOP:
 }
 
 func (c *collector) collect() {
-	defer c.logger.PrintTimerIfDelayed(time.Now(), "nhugo: collected modules")
+	defer c.logger.PrintTimerIfDelayed(time.Now(), "neohugo: collected modules")
 	d := debounce.New(2 * time.Second)
 	d(func() {
 		c.logger.Println("hugo: downloading modules …")

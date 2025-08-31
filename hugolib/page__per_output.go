@@ -19,17 +19,17 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"strings"
 	"sync"
 	"sync/atomic"
 
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 	"github.com/spf13/cast"
 
 	"github.com/neohugo/neohugo/markup/converter/hooks"
-	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
+	gc "github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/markup/converter"
@@ -120,7 +120,7 @@ func (pco *pageContentOutput) Render(ctx context.Context, layout ...string) (tem
 	}
 
 	// Make sure to send the *pageState and not the *pageContentOutput to the template.
-	res, err := executeToString(ctx, pco.po.p.s.Tmpl(), templ, pco.po.p)
+	res, err := executeToString(ctx, pco.po.p.s.GetTemplateStore(), templ, pco.po.p)
 	if err != nil {
 		return "", pco.po.p.wrapError(fmt.Errorf("failed to execute template %s: %w", templ.Name(), err))
 	}
@@ -274,99 +274,107 @@ func (pco *pageContentOutput) initRenderHooks() error {
 				return r
 			}
 
-			layoutDescriptor := pco.po.p.getLayoutDescriptor()
-			layoutDescriptor.RenderingHook = true
-			layoutDescriptor.LayoutOverride = false
-			layoutDescriptor.Layout = ""
+			// Inherit the descriptor from the page/current output format.
+			// This allows for fine-grained control of the template used for
+			// rendering of e.g. links.
+			base, layoutDescriptor := pco.po.p.GetInternalTemplateBasePathAndDescriptor()
 
 			switch tp {
 			case hooks.LinkRendererType:
-				layoutDescriptor.Kind = "render-link"
+				layoutDescriptor.Variant1 = "link"
 			case hooks.ImageRendererType:
-				layoutDescriptor.Kind = "render-image"
+				layoutDescriptor.Variant1 = "image"
 			case hooks.HeadingRendererType:
-				layoutDescriptor.Kind = "render-heading"
+				layoutDescriptor.Variant1 = "heading"
 			case hooks.PassthroughRendererType:
-				layoutDescriptor.Kind = "render-passthrough"
+				layoutDescriptor.Variant1 = "passthrough"
 				if id != nil {
-					layoutDescriptor.KindVariants = id.(string)
+					layoutDescriptor.Variant2 = id.(string)
 				}
 			case hooks.BlockquoteRendererType:
-				layoutDescriptor.Kind = "render-blockquote"
+				layoutDescriptor.Variant1 = "blockquote"
 				if id != nil {
-					layoutDescriptor.KindVariants = id.(string)
+					layoutDescriptor.Variant2 = id.(string)
 				}
 			case hooks.TableRendererType:
-				layoutDescriptor.Kind = "render-table"
+				layoutDescriptor.Variant1 = "table"
 			case hooks.CodeBlockRendererType:
-				layoutDescriptor.Kind = "render-codeblock"
+				layoutDescriptor.Variant1 = "codeblock"
 				if id != nil {
-					lang := id.(string)
-					lexer := chromalexers.Get(lang)
-					if lexer != nil {
-						layoutDescriptor.KindVariants = strings.Join(lexer.Config().Aliases, ",")
-					} else {
-						layoutDescriptor.KindVariants = lang
-					}
+					layoutDescriptor.Variant2 = id.(string)
 				}
 			}
 
-			getHookTemplate := func(f output.Format) (tpl.Template, bool) {
-				templ, found, err := pco.po.p.s.Tmpl().LookupLayout(layoutDescriptor, f)
-				if err != nil {
-					panic(err)
-				}
-				if found {
-					if isitp, ok := templ.(tpl.IsInternalTemplateProvider); ok && isitp.IsInternalTemplate() {
-						renderHookConfig := pco.po.p.s.conf.Markup.Goldmark.RenderHooks
-						switch templ.Name() {
-						case "_default/_markup/render-link.html":
-							if !renderHookConfig.Link.IsEnableDefault() {
-								return nil, false
-							}
-						case "_default/_markup/render-image.html":
-							if !renderHookConfig.Image.IsEnableDefault() {
-								return nil, false
-							}
-						}
-					}
-				}
-				return templ, found
+			renderHookConfig := pco.po.p.s.conf.Markup.Goldmark.RenderHooks
+			var ignoreEmbedded bool
+
+			// For multilingual single-host sites, "auto" becomes "fallback"
+			// earlier in the process.
+			switch layoutDescriptor.Variant1 {
+			case "link":
+				ignoreEmbedded = renderHookConfig.Link.UseEmbedded == gc.RenderHookUseEmbeddedNever ||
+					renderHookConfig.Link.UseEmbedded == gc.RenderHookUseEmbeddedAuto
+			case "image":
+				ignoreEmbedded = renderHookConfig.Image.UseEmbedded == gc.RenderHookUseEmbeddedNever ||
+					renderHookConfig.Image.UseEmbedded == gc.RenderHookUseEmbeddedAuto
 			}
 
-			templ, found1 := getHookTemplate(pco.po.f)
-
-			if !found1 || pco.po.p.reusePageOutputContent() {
-				// Some hooks may only be available in HTML, and if
-				// this site is configured to not have HTML output, we need to
-				// make sure we have a fallback. This should be very rare.
-				candidates := pco.po.p.s.renderFormats
-				if pco.po.f.MediaType.FirstSuffix.Suffix != "html" {
-					if _, found := candidates.GetBySuffix("html"); !found {
-						candidates = append(candidates, output.HTMLFormat)
-					}
+			candidates := pco.po.p.s.renderFormats
+			var numCandidatesFound int
+			consider := func(candidate *tplimpl.TemplInfo) bool {
+				if layoutDescriptor.Variant1 != candidate.D.Variant1 {
+					return false
 				}
-				// Check if some of the other output formats would give a different template.
-				for _, f := range candidates {
-					if f.Name == pco.po.f.Name {
-						continue
-					}
-					templ2, found2 := getHookTemplate(f)
 
-					if found2 {
-						if !found1 {
-							templ = templ2
-							found1 = true
-							break
-						}
-
-						if templ != templ2 {
-							pco.po.p.pageOutputTemplateVariationsState.Add(1)
-							break
-						}
-					}
+				if layoutDescriptor.Variant2 != "" && candidate.D.Variant2 != "" && layoutDescriptor.Variant2 != candidate.D.Variant2 {
+					return false
 				}
+
+				if ignoreEmbedded && candidate.SubCategory() == tplimpl.SubCategoryEmbedded {
+					// Don't consider the embedded hook templates.
+					return false
+				}
+
+				if pco.po.p.pageOutputTemplateVariationsState.Load() > 1 {
+					return true
+				}
+
+				if candidate.D.OutputFormat == "" {
+					numCandidatesFound++
+				} else if _, found := candidates.GetByName(candidate.D.OutputFormat); found {
+					numCandidatesFound++
+				}
+
+				return true
 			}
+
+			getHookTemplate := func() (*tplimpl.TemplInfo, bool) {
+				q := tplimpl.TemplateQuery{
+					Path:     base,
+					Category: tplimpl.CategoryMarkup,
+					Desc:     layoutDescriptor,
+					Consider: consider,
+				}
+
+				v := pco.po.p.s.TemplateStore.LookupPagesLayout(q)
+				return v, v != nil
+			}
+
+			templ, found1 := getHookTemplate()
+			if found1 && templ == nil {
+				panic("found1 is true, but templ is nil")
+			}
+
+			if !found1 && layoutDescriptor.OutputFormat == pco.po.p.s.conf.DefaultOutputFormat {
+				numCandidatesFound++
+			}
+
+			if numCandidatesFound > 1 {
+				// More than one output format candidate found for this hook temoplate,
+				// so we cannot reuse the same rendered content.
+				pco.po.p.incrPageOutputTemplateVariation()
+			}
+
 			if !found1 {
 				if tp == hooks.CodeBlockRendererType {
 					// No user provided template for code blocks, so we use the native Go version -- which is also faster.
@@ -378,7 +386,7 @@ func (pco *pageContentOutput) initRenderHooks() error {
 			}
 
 			r := hookRendererTemplate{
-				templateHandler: pco.po.p.s.Tmpl(),
+				templateHandler: pco.po.p.s.GetTemplateStore(),
 				templ:           templ,
 				resolvePosition: resolvePosition,
 			}
@@ -463,18 +471,26 @@ type pagePerOutputProviders interface {
 
 type targetPather interface {
 	targetPaths() page.TargetPaths
+	getRelURL() string
 }
 
 type targetPathsHolder struct {
-	paths page.TargetPaths
+	// relURL is usually the same as OutputFormat.RelPermalink, but can be different
+	// for non-permalinkable output formats. These shares RelPermalink with the main (first) output format.
+	relURL string
+	paths  page.TargetPaths
 	page.OutputFormat
+}
+
+func (t targetPathsHolder) getRelURL() string {
+	return t.relURL
 }
 
 func (t targetPathsHolder) targetPaths() page.TargetPaths {
 	return t.paths
 }
 
-func executeToString(ctx context.Context, h tpl.TemplateHandler, templ tpl.Template, data any) (string, error) {
+func executeToString(ctx context.Context, h *tplimpl.TemplateStore, templ *tplimpl.TemplInfo, data any) (string, error) {
 	b := bp.GetBuffer()
 	defer bp.PutBuffer(b)
 	if err := h.ExecuteWithContext(ctx, templ, b, data); err != nil {

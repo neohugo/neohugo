@@ -62,7 +62,7 @@ type hugoBuilder struct {
 
 	// Currently only set when in "fast render mode".
 	changeDetector *fileChangeDetector
-	visitedURLs    *types.EvictingStringQueue
+	visitedURLs    *types.EvictingQueue[string]
 
 	fullRebuildSem *semaphore.Weighted
 	debounce       func(f func())
@@ -663,7 +663,20 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 	var n int
 	for _, ev := range evs {
 		keep := true
-		if ev.Has(fsnotify.Create) || ev.Has(fsnotify.Write) {
+		// Write and rename operations are often followed by CHMOD.
+		// There may be valid use cases for rebuilding the site on CHMOD,
+		// but that will require more complex logic than this simple conditional.
+		// On OS X this seems to be related to Spotlight, see:
+		// https://github.com/go-fsnotify/fsnotify/issues/15
+		// A workaround is to put your site(s) on the Spotlight exception list,
+		// but that may be a little mysterious for most end users.
+		// So, for now, we skip reload on CHMOD.
+		// We do have to check for WRITE though. On slower laptops a Chmod
+		// could be aggregated with other important events, and we still want
+		// to rebuild on those
+		if ev.Op == fsnotify.Chmod {
+			keep = false
+		} else if ev.Has(fsnotify.Create) || ev.Has(fsnotify.Write) {
 			if _, err := os.Stat(ev.Name); err != nil {
 				keep = false
 			}
@@ -802,21 +815,6 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 		}
 		// Sometimes during rm -rf operations a '"": REMOVE' is triggered. Just ignore these
 		if ev.Name == "" {
-			continue
-		}
-
-		// Write and rename operations are often followed by CHMOD.
-		// There may be valid use cases for rebuilding the site on CHMOD,
-		// but that will require more complex logic than this simple conditional.
-		// On OS X this seems to be related to Spotlight, see:
-		// https://github.com/go-fsnotify/fsnotify/issues/15
-		// A workaround is to put your site(s) on the Spotlight exception list,
-		// but that may be a little mysterious for most end users.
-		// So, for now, we skip reload on CHMOD.
-		// We do have to check for WRITE though. On slower laptops a Chmod
-		// could be aggregated with other important events, and we still want
-		// to rebuild on those
-		if ev.Op&(fsnotify.Chmod|fsnotify.Write|fsnotify.Create) == fsnotify.Chmod {
 			continue
 		}
 
@@ -964,7 +962,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 					lrl.Logf("no page to navigate to, force refresh")
 					livereload.ForceRefresh()
 				}
-			} else if len(otherChanges) > 0 {
+			} else if len(otherChanges) > 0 || len(cssChanges) > 0 {
 				if len(otherChanges) == 1 {
 					// Allow single changes to be refreshed without a full page reload.
 					pathToRefresh := h.PathSpec.RelURL(paths.ToSlashTrimLeading(otherChanges[0]), false)
@@ -974,6 +972,9 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 					lrl.Logf("force refresh")
 					livereload.ForceRefresh()
 				}
+			} else {
+				lrl.Logf("force refresh")
+				livereload.ForceRefresh()
 			}
 
 			if len(cssChanges) > 0 {
@@ -1103,7 +1104,7 @@ func (c *hugoBuilder) rebuildSites(events []fsnotify.Event) (err error) {
 	if err != nil {
 		return
 	}
-	err = h.Build(hugolib.BuildCfg{NoBuildLock: true, RecentlyVisited: c.visitedURLs, ErrRecovery: c.errState.wasErr()}, events...)
+	err = h.Build(hugolib.BuildCfg{NoBuildLock: true, RecentlyTouched: c.visitedURLs, ErrRecovery: c.errState.wasErr()}, events...)
 	return
 }
 
@@ -1119,7 +1120,7 @@ func (c *hugoBuilder) rebuildSitesForChanges(ids []identity.Identity) (err error
 	}
 	whatChanged := &hugolib.WhatChanged{}
 	whatChanged.Add(ids...)
-	err = h.Build(hugolib.BuildCfg{NoBuildLock: true, WhatChanged: whatChanged, RecentlyVisited: c.visitedURLs, ErrRecovery: c.errState.wasErr()})
+	err = h.Build(hugolib.BuildCfg{NoBuildLock: true, WhatChanged: whatChanged, RecentlyTouched: c.visitedURLs, ErrRecovery: c.errState.wasErr()})
 
 	return
 }

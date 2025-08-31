@@ -38,6 +38,19 @@ func XXHashFromReader(r io.Reader) (uint64, int64, error) {
 	return h.Sum64(), size, nil
 }
 
+// XxHashFromReaderHexEncoded calculates the xxHash for the given reader
+// and returns the hash as a hex encoded string.
+func XxHashFromReaderHexEncoded(r io.Reader) (string, error) {
+	h := getXxHashReadFrom()
+	defer putXxHashReadFrom(h)
+	_, err := io.Copy(h, r)
+	if err != nil {
+		return "", err
+	}
+	hash := h.Sum(nil)
+	return hex.EncodeToString(hash), nil
+}
+
 // XXHashFromString calculates the xxHash for the given string.
 func XXHashFromString(s string) (uint64, error) {
 	h := xxhash.New()
@@ -68,6 +81,13 @@ func MD5FromStringHexEncoded(f string) string {
 func HashString(vs ...any) string {
 	hash := HashUint64(vs...)
 	return strconv.FormatUint(hash, 10)
+}
+
+// HashStringHex returns a hash from the given elements as a hex encoded string.
+// See HashString for more information.
+func HashStringHex(vs ...any) string {
+	hash := HashUint64(vs...)
+	return strconv.FormatUint(hash, 16)
 }
 
 var hashOptsPool = sync.Pool{
@@ -103,14 +123,22 @@ func HashUint64(vs ...any) uint64 {
 		o = elements
 	}
 
-	hashOpts := getHashOpts()
-	defer putHashOpts(hashOpts)
-
-	hash, err := hashstructure.Hash(o, hashOpts)
+	hash, err := Hash(o)
 	if err != nil {
 		panic(err)
 	}
 	return hash
+}
+
+// Hash returns a hash from vs.
+func Hash(vs ...any) (uint64, error) {
+	hashOpts := getHashOpts()
+	defer putHashOpts(hashOpts)
+	var v any = vs
+	if len(vs) == 1 {
+		v = vs[0]
+	}
+	return hashstructure.Hash(v, hashOpts)
 }
 
 type keyer interface {

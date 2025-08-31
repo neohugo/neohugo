@@ -86,7 +86,7 @@ Styles Content: Len: {{ len $styles.Content }}|
 -- postcss.config.js --
 console.error("Hugo Environment:", process.env.HUGO_ENVIRONMENT );
 console.error("Hugo PublishDir:", process.env.HUGO_PUBLISHDIR );
-// https://github.com/neohugo/neohugo/issues/7656
+// https://github.com/gohugoio/hugo/issues/7656
 console.error("package.json:", process.env.HUGO_FILE_PACKAGE_JSON );
 console.error("PostCSS Config File:", process.env.HUGO_FILE_POSTCSS_CONFIG_JS );
 
@@ -241,7 +241,7 @@ func TestTransformPostCSSResourceCacheWithPathInBaseURL(t *testing.T) {
 	c.Assert(err, qt.IsNil)
 	c.Cleanup(clean)
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		files := postCSSIntegrationTestFiles
 
 		if i == 1 {

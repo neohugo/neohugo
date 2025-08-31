@@ -19,6 +19,7 @@ import (
 	"math"
 	"reflect"
 
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/spf13/cast"
@@ -196,6 +197,7 @@ func (p *Paginator) Pagers() pagers {
 // PageSize returns the size of each paginator page.
 // Deprecated: Use PagerSize instead.
 func (p *Paginator) PageSize() int {
+	neohugo.Deprecate("PageSize", "Use PagerSize instead.", "v0.128.0")
 	return p.size
 }
 

@@ -295,6 +295,12 @@ type Config struct {
 	// Configures GOPRIVATE when running the Go command for module operations.
 	Private string
 
+	// Configures GOAUTH when running the Go command for module operations.
+	// This is a semicolon-separated list of authentication commands for go-import and HTTPS module mirror interactions.
+	// This is useful for private repositories.
+	// See `go help goauth` for more information.
+	Auth string
+
 	// Defaults to "off".
 	// Set to a work file, e.g. hugo.work, to enable Go "Workspace" mode.
 	// Can be relative to the working directory or absolute.
@@ -319,7 +325,7 @@ type HugoVersion struct {
 	// The minimum Hugo version that this module works with.
 	Min neohugo.VersionString
 
-	// The maxium Hugo version that this module works with.
+	// The maximum Hugo version that this module works with.
 	Max neohugo.VersionString
 
 	// Set if the extended version is needed.

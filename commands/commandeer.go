@@ -101,8 +101,8 @@ type configKey struct {
 
 // This is the root command.
 type rootCommand struct {
-	Printf  func(format string, v ...interface{})
-	Println func(a ...interface{})
+	Printf  func(format string, v ...any)
+	Println func(a ...any)
 	StdOut  io.Writer
 	StdErr  io.Writer
 
@@ -431,12 +431,12 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 	// Used by mkcert (server).
 	log.SetOutput(r.StdOut)
 
-	r.Printf = func(format string, v ...interface{}) {
+	r.Printf = func(format string, v ...any) {
 		if !r.quiet {
 			fmt.Fprintf(r.StdOut, format, v...)
 		}
 	}
-	r.Println = func(a ...interface{}) {
+	r.Println = func(a ...any) {
 		if !r.quiet {
 			fmt.Fprintln(r.StdOut, a...)
 		}
@@ -447,6 +447,8 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 	if err != nil {
 		return err
 	}
+	// Set up the global logger early to allow info deprecations during config load.
+	loggers.SetGlobalLogger(r.logger)
 
 	r.changesFromBuild = make(chan []identity.Identity, 10)
 
@@ -538,6 +540,7 @@ Complete documentation is available at https://gohugo.io/.`
 	cmd.PersistentFlags().StringP("themesDir", "", "", "filesystem path to themes directory")
 	_ = cmd.MarkFlagDirname("themesDir")
 	cmd.PersistentFlags().StringP("ignoreVendorPaths", "", "", "ignores any _vendor for module paths matching the given Glob pattern")
+	cmd.PersistentFlags().BoolP("noBuildLock", "", false, "don't create .hugo_build.lock file")
 	_ = cmd.RegisterFlagCompletionFunc("ignoreVendorPaths", cobra.NoFileCompletions)
 	cmd.PersistentFlags().String("clock", "", "set the clock used by Hugo, e.g. --clock 2021-11-06T22:30:00.00+09:00")
 	_ = cmd.RegisterFlagCompletionFunc("clock", cobra.NoFileCompletions)
@@ -593,7 +596,6 @@ func applyLocalFlagsBuild(cmd *cobra.Command, r *rootCommand) {
 	cmd.Flags().BoolVar(&r.forceSyncStatic, "forceSyncStatic", false, "copy all files when static is changed.")
 	cmd.Flags().BoolP("noTimes", "", false, "don't sync modification time of files")
 	cmd.Flags().BoolP("noChmod", "", false, "don't sync permission mode of files")
-	cmd.Flags().BoolP("noBuildLock", "", false, "don't create .hugo_build.lock file")
 	cmd.Flags().BoolP("printI18nWarnings", "", false, "print missing translations")
 	cmd.Flags().BoolP("printPathWarnings", "", false, "print warnings on duplicate target paths etc.")
 	cmd.Flags().BoolP("printUnusedTemplates", "", false, "print warnings on unused templates.")

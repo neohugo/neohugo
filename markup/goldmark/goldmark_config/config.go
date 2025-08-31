@@ -15,9 +15,13 @@
 package goldmark_config
 
 const (
-	AutoHeadingIDTypeGitHub      = "github"
-	AutoHeadingIDTypeGitHubAscii = "github-ascii"
-	AutoHeadingIDTypeBlackfriday = "blackfriday"
+	AutoIDTypeBlackfriday         = "blackfriday"
+	AutoIDTypeGitHub              = "github"
+	AutoIDTypeGitHubAscii         = "github-ascii"
+	RenderHookUseEmbeddedAlways   = "always"
+	RenderHookUseEmbeddedAuto     = "auto"
+	RenderHookUseEmbeddedFallback = "fallback"
+	RenderHookUseEmbeddedNever    = "never"
 )
 
 // Default holds the default Goldmark configuration.
@@ -79,11 +83,20 @@ var Default = Config{
 	},
 	Parser: Parser{
 		AutoHeadingID:                      true,
-		AutoHeadingIDType:                  AutoHeadingIDTypeGitHub,
+		AutoDefinitionTermID:               false,
+		AutoIDType:                         AutoIDTypeGitHub,
 		WrapStandAloneImageWithinParagraph: true,
 		Attribute: ParserAttribute{
 			Title: true,
 			Block: false,
+		},
+	},
+	RenderHooks: RenderHooks{
+		Image: ImageRenderHook{
+			UseEmbedded: RenderHookUseEmbeddedAuto,
+		},
+		Link: LinkRenderHook{
+			UseEmbedded: RenderHookUseEmbeddedAuto,
 		},
 	},
 }
@@ -97,6 +110,16 @@ type Config struct {
 	RenderHooks            RenderHooks
 }
 
+func (c *Config) Init() error {
+	if err := c.Parser.Init(); err != nil {
+		return err
+	}
+	if c.Parser.AutoDefinitionTermID && !c.Extensions.DefinitionList {
+		c.Parser.AutoDefinitionTermID = false
+	}
+	return nil
+}
+
 // RenderHooks contains configuration for Goldmark render hooks.
 type RenderHooks struct {
 	Image ImageRenderHook
@@ -107,22 +130,24 @@ type RenderHooks struct {
 type ImageRenderHook struct {
 	// Enable the default image render hook.
 	// We need to know if it is set or not, hence the pointer.
+	// Deprecated: Use UseEmbedded instead.
 	EnableDefault *bool
-}
 
-func (h ImageRenderHook) IsEnableDefault() bool {
-	return h.EnableDefault != nil && *h.EnableDefault
+	// When to use the embedded image render hook.
+	// One of auto, never, always, or fallback. Default is auto.
+	UseEmbedded string
 }
 
 // LinkRenderHook contains configuration for the link render hook.
 type LinkRenderHook struct {
 	// Disable the default image render hook.
 	// We need to know if it is set or not, hence the pointer.
+	// Deprecated: Use UseEmbedded instead.
 	EnableDefault *bool
-}
 
-func (h LinkRenderHook) IsEnableDefault() bool {
-	return h.EnableDefault != nil && *h.EnableDefault
+	// When to use the embedded link render hook.
+	// One of auto, never, always, or fallback. Default is auto.
+	UseEmbedded string
 }
 
 type Extensions struct {
@@ -250,16 +275,30 @@ type Parser struct {
 	// auto generated heading ids.
 	AutoHeadingID bool
 
-	// The strategy to use when generating heading IDs.
-	// Available options are "github", "github-ascii".
+	// Enables auto definition term ids.
+	AutoDefinitionTermID bool
+
+	// The strategy to use when generating IDs.
+	// Available options are "github", "github-ascii", and "blackfriday".
 	// Default is "github", which will create GitHub-compatible anchor names.
-	AutoHeadingIDType string
+	AutoIDType string
 
 	// Enables custom attributes.
 	Attribute ParserAttribute
 
 	// Whether to wrap stand-alone images within a paragraph or not.
 	WrapStandAloneImageWithinParagraph bool
+
+	// Renamed to AutoIDType in 0.144.0.
+	AutoHeadingIDType string `json:"-"`
+}
+
+func (p *Parser) Init() error {
+	// Renamed from AutoHeadingIDType to AutoIDType in 0.144.0.
+	if p.AutoHeadingIDType != "" {
+		p.AutoIDType = p.AutoHeadingIDType
+	}
+	return nil
 }
 
 type ParserAttribute struct {

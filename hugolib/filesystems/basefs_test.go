@@ -57,14 +57,14 @@ func TestNewBaseFs(t *testing.T) {
 			filenameTheme := filepath.Join(base, fmt.Sprintf("theme-file-%s.txt", theme))
 			filenameOverlap := filepath.Join(base, "f3.txt")
 			_ = afs.Mkdir(base, 0o755)
-			content := []byte(fmt.Sprintf("content:%s:%s", theme, dir))
+			content := fmt.Appendf(nil, "content:%s:%s", theme, dir)
 			_ = afero.WriteFile(afs, filenameTheme, content, 0o755)
 			_ = afero.WriteFile(afs, filenameOverlap, content, 0o755)
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
-		_ = afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), []byte(fmt.Sprintf("content:%s", theme)), 0o755)
-		_ = afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), []byte(fmt.Sprintf("content:%s", theme)), 0o755)
+		afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), fmt.Appendf(nil, "content:%s", theme), 0o755)
+		afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), fmt.Appendf(nil, "content:%s", theme), 0o755)
 	}
 
 	_ = afero.WriteFile(afs, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0o755)
@@ -123,7 +123,7 @@ theme = ["atheme"]
 	checkFileContent(bfs.Work, "file-root.txt", c, "content-project")
 	checkFileContent(bfs.Work, "theme-root-atheme.txt", c, "content:atheme")
 
-	// https://github.com/neohugo/neohugo/issues/5318
+	// https://github.com/gohugoio/hugo/issues/5318
 	// Check both project and theme.
 	for _, fs := range []afero.Fs{bfs.Archetypes.Fs, bfs.Layouts.Fs} {
 		for _, filename := range []string{"/f1.txt", "/theme-file-atheme.txt"} {
@@ -679,14 +679,12 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 	return counter, filenames, nil
 }
 
-func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val string, num int) error {
+func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val string, num int) {
 	workingDir := v.GetString("workingDir")
 	v.Set(key, val)
-	_ = fs.Mkdir(val, 0o755)
-	for i := 0; i < num; i++ {
+	fs.Mkdir(val, 0o755)
+	for i := range num {
 		filename := filepath.Join(workingDir, val, fmt.Sprintf("f%d.txt", i+1))
-		_ = afero.WriteFile(fs, filename, []byte(fmt.Sprintf("content:%s:%d", key, i+1)), 0o755)
+		afero.WriteFile(fs, filename, fmt.Appendf(nil, "content:%s:%d", key, i+1), 0o755)
 	}
-
-	return nil
 }

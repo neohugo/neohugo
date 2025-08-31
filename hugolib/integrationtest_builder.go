@@ -105,6 +105,12 @@ func TestOptWithOSFs() TestOpt {
 	}
 }
 
+func TestOptWithPrintAndKeepTempDir(b bool) TestOpt {
+	return func(c *IntegrationTestConfig) {
+		c.PrintAndKeepTempDir = b
+	}
+}
+
 // TestOptWithWorkingDir allows setting any config optiona as a function al option.
 func TestOptWithConfig(fn func(c *IntegrationTestConfig)) TestOpt {
 	return func(c *IntegrationTestConfig) {
@@ -213,19 +219,31 @@ type IntegrationTestBuilder struct {
 
 type lockingBuffer struct {
 	sync.Mutex
-	bytes.Buffer
+	buf bytes.Buffer
+}
+
+func (b *lockingBuffer) String() string {
+	b.Lock()
+	defer b.Unlock()
+	return b.buf.String()
+}
+
+func (b *lockingBuffer) Reset() {
+	b.Lock()
+	defer b.Unlock()
+	b.buf.Reset()
 }
 
 func (b *lockingBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	b.Lock()
-	n, err = b.Buffer.ReadFrom(r)
+	n, err = b.buf.ReadFrom(r)
 	b.Unlock()
 	return
 }
 
 func (b *lockingBuffer) Write(p []byte) (n int, err error) {
 	b.Lock()
-	n, err = b.Buffer.Write(p)
+	n, err = b.buf.Write(p)
 	b.Unlock()
 	return
 }
@@ -245,7 +263,7 @@ func (s *IntegrationTestBuilder) AssertLogContains(els ...string) {
 	}
 }
 
-// AssertLogNotContains asserts that the last build log does matches the given regular expressions.
+// AssertLogMatches asserts that the last build log matches the given regular expressions.
 // The regular expressions can be negated with a "! " prefix.
 func (s *IntegrationTestBuilder) AssertLogMatches(expression string) {
 	s.Helper()
@@ -482,11 +500,11 @@ func (s *IntegrationTestBuilder) BuildPartialE(urls ...string) (*IntegrationTest
 	if !s.Cfg.Running {
 		panic("BuildPartial can only be used in server mode")
 	}
-	visited := types.NewEvictingStringQueue(len(urls))
+	visited := types.NewEvictingQueue[string](len(urls))
 	for _, url := range urls {
 		visited.Add(url)
 	}
-	buildCfg := BuildCfg{RecentlyVisited: visited, PartialReRender: true}
+	buildCfg := BuildCfg{RecentlyTouched: visited, PartialReRender: true}
 	return s, s.build(buildCfg)
 }
 
@@ -731,7 +749,7 @@ func (s *IntegrationTestBuilder) initBuilder() error {
 			sc := security.DefaultConfig
 			sc.Exec.Allow, err = security.NewWhitelist("npm")
 			s.Assert(err, qt.IsNil)
-			ex := hexec.New(sc, s.Cfg.WorkingDir)
+			ex := hexec.New(sc, s.Cfg.WorkingDir, loggers.NewDefault())
 			command, err := ex.New("npm", "install")
 			s.Assert(err, qt.IsNil)
 			s.Assert(command.Run(), qt.IsNil)
@@ -853,12 +871,6 @@ func (s *IntegrationTestBuilder) changeEvents() []fsnotify.Event {
 		events[i], events[j] = events[j], events[i]
 	}
 
-	// Shuffle events.
-	for i := range events {
-		j := rand.Intn(i + 1)
-		events[i], events[j] = events[j], events[i]
-	}
-
 	return events
 }
 
@@ -909,7 +921,7 @@ type IntegrationTestConfig struct {
 
 	// The files to use on txtar format, see
 	// https://pkg.go.dev/golang.org/x/exp/cmd/txtar
-	// There are some conentions used in this test setup.
+	// There are some contentions used in this test setup.
 	// - §§§ can be used to wrap code fences.
 	// - §§ can be used to wrap multiline strings.
 	// - filenames prefixed with sourcefilename: will be read from the file system relative to the current dir.

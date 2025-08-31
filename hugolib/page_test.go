@@ -539,7 +539,7 @@ title: No Date
 ---
 
 `,
-		// https://github.com/neohugo/neohugo/issues/5854
+		// https://github.com/gohugoio/hugo/issues/5854
 		"with-index-date/_index.md", `---
 title: Date
 date: 2018-01-15
@@ -630,7 +630,7 @@ func TestPageWithSummaryParameter(t *testing.T) {
 }
 
 // Issue #3854
-// Also see https://github.com/neohugo/neohugo/issues/3977
+// Also see https://github.com/gohugoio/hugo/issues/3977
 func TestPageWithDateFields(t *testing.T) {
 	c := qt.New(t)
 	pageWithDate := `---
@@ -1420,7 +1420,7 @@ func TestChompBOM(t *testing.T) {
 	checkPageTitle(t, p, "Simple")
 }
 
-// https://github.com/neohugo/neohugo/issues/5381
+// https://github.com/gohugoio/hugo/issues/5381
 func TestPageManualSummary(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithSimpleConfigFile()
@@ -1433,7 +1433,7 @@ This is a {{< sc >}}.
 Content.
 `)
 
-	// https://github.com/neohugo/neohugo/issues/5464
+	// https://github.com/gohugoio/hugo/issues/5464
 	b.WithContent("page-md-only-shortcode.md", `---
 title: "Hugo"
 ---
@@ -1619,7 +1619,7 @@ func TestShouldBuildWithClock(t *testing.T) {
 	}
 }
 
-// See https://github.com/neohugo/neohugo/issues/9171
+// See https://github.com/gohugoio/hugo/issues/9171
 // We redefined disablePathToLower in v0.121.0.
 func TestPagePathDisablePathToLower(t *testing.T) {
 	files := `
@@ -1940,4 +1940,62 @@ Site: s-Home|
 Hugo: h-Home|
 `,
 	)
+}
+
+// See #12484
+func TestPageFrontMatterDeprecatePathKindLang(t *testing.T) {
+	// This cannot be parallel as it depends on output from the global logger.
+
+	files := `
+-- hugo.toml --
+disableKinds = ["taxonomy", "term", "home", "section"]
+-- content/p1.md --
+---
+title: "p1"
+kind: "page"
+lang: "en"
+path: "mypath"
+---
+-- layouts/_default/single.html --
+Title: {{ .Title }}
+`
+	b := Test(t, files, TestOptWarn())
+	b.AssertFileContent("public/mypath/index.html", "p1")
+	b.AssertLogContains(
+		"deprecated: kind in front matter was deprecated",
+		"deprecated: lang in front matter was deprecated",
+		"deprecated: path in front matter was deprecated",
+	)
+}
+
+// Issue 13538
+func TestHomePageIsLeafBundle(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+defaultContentLanguage = 'de'
+defaultContentLanguageInSubdir = true
+[languages.de]
+weight = 1
+[languages.en]
+weight = 2
+-- layouts/all.html --
+{{ .Title }}
+-- content/index.de.md --
+---
+title: home de
+---
+-- content/index.en.org --
+---
+title: home en
+---
+`
+
+	b := Test(t, files, TestOptWarn())
+
+	b.AssertFileContent("public/de/index.html", "home de")
+	b.AssertFileContent("public/en/index.html", "home en")
+	b.AssertLogContains("Using index.de.md in your content's root directory is usually incorrect for your home page. You should use _index.de.md instead.")
+	b.AssertLogContains("Using index.en.org in your content's root directory is usually incorrect for your home page. You should use _index.en.org instead.")
 }

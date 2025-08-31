@@ -378,7 +378,7 @@ func TestGroupByParamDateNested(t *testing.T) {
 	c.Assert(groups, comparePageGroup, expect)
 }
 
-// https://github.com/neohugo/neohugo/issues/3983
+// https://github.com/gohugoio/hugo/issues/3983
 func TestGroupByParamDateWithStringParams(t *testing.T) {
 	c := qt.New(t)
 

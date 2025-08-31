@@ -372,14 +372,14 @@ func TestMainSections(t *testing.T) {
 
 			b := newTestSitesBuilder(c).WithViper(v)
 
-			for i := 0; i < 20; i++ {
+			for i := range 20 {
 				b.WithContent(fmt.Sprintf("page%d.md", i), `---
 title: "Page"
 ---
 `)
 			}
 
-			for i := 0; i < 5; i++ {
+			for i := range 5 {
 				b.WithContent(fmt.Sprintf("blog/page%d.md", i), `---
 title: "Page"
 tags: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
@@ -387,7 +387,7 @@ tags: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
 `)
 			}
 
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				b.WithContent(fmt.Sprintf("docs/page%d.md", i), `---
 title: "Page"
 ---
@@ -511,12 +511,13 @@ func TestSectionNaming(t *testing.T) {
 func doTestSectionNaming(t *testing.T, canonify, uglify, pluralize bool) {
 	c := qt.New(t)
 
-	var expectedPathSuffix string
-
-	if uglify {
-		expectedPathSuffix = ".html"
-	} else {
-		expectedPathSuffix = "/index.html"
+	expectedPathSuffix := func(kind string) string {
+		isUgly := uglify && (kind == kinds.KindPage || kind == kinds.KindTerm)
+		if isUgly {
+			return ".html"
+		} else {
+			return "/index.html"
+		}
 	}
 
 	sources := [][2]string{
@@ -554,12 +555,12 @@ func doTestSectionNaming(t *testing.T, canonify, uglify, pluralize bool) {
 		pluralAware bool
 		expected    string
 	}{
-		{filepath.FromSlash(fmt.Sprintf("sect/doc1%s", expectedPathSuffix)), false, "doc1"},
-		{filepath.FromSlash(fmt.Sprintf("sect%s", expectedPathSuffix)), true, "Sect"},
-		{filepath.FromSlash(fmt.Sprintf("fish-and-chips/doc2%s", expectedPathSuffix)), false, "doc2"},
-		{filepath.FromSlash(fmt.Sprintf("fish-and-chips%s", expectedPathSuffix)), true, "Fish and Chips"},
-		{filepath.FromSlash(fmt.Sprintf("ラーメン/doc3%s", expectedPathSuffix)), false, "doc3"},
-		{filepath.FromSlash(fmt.Sprintf("ラーメン%s", expectedPathSuffix)), true, "ラーメン"},
+		{filepath.FromSlash(fmt.Sprintf("sect/doc1%s", expectedPathSuffix(kinds.KindPage))), false, "doc1"},
+		{filepath.FromSlash(fmt.Sprintf("sect%s", expectedPathSuffix(kinds.KindSection))), true, "Sect"},
+		{filepath.FromSlash(fmt.Sprintf("fish-and-chips/doc2%s", expectedPathSuffix(kinds.KindPage))), false, "doc2"},
+		{filepath.FromSlash(fmt.Sprintf("fish-and-chips%s", expectedPathSuffix(kinds.KindSection))), true, "Fish and Chips"},
+		{filepath.FromSlash(fmt.Sprintf("ラーメン/doc3%s", expectedPathSuffix(kinds.KindPage))), false, "doc3"},
+		{filepath.FromSlash(fmt.Sprintf("ラーメン%s", expectedPathSuffix(kinds.KindSection))), true, "ラーメン"},
 	}
 
 	for _, test := range tests {
@@ -615,7 +616,7 @@ var weightedPage5 = `+++
 weight = "5"
 title = "Five"
 
-[_build]
+[build]
 render = "never"
 +++
 Front Matter with Ordered Pages 5`
@@ -978,7 +979,6 @@ func TestRefLinking(t *testing.T) {
 		{".", "", true, "/level2/level3/"},
 		{"./", "", true, "/level2/level3/"},
 
-		// try to confuse parsing
 		{"embedded.dot.md", "", true, "/level2/level3/embedded.dot/"},
 
 		// test empty link, as well as fragment only link
@@ -1024,7 +1024,7 @@ func checkLinkCase(site *Site, link string, currentPage page.Page, relative bool
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/6952
+// https://github.com/gohugoio/hugo/issues/6952
 func TestRefIssues(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithContent(

@@ -55,12 +55,6 @@ var (
 // PageNop implements Page, but does nothing.
 type nopPage int
 
-var noOpPathInfo = media.DefaultPathParser.Parse(files.ComponentFolderContent, "no-op.md")
-
-func (p *nopPage) Err() resource.ResourceError {
-	return nil
-}
-
 func (p *nopPage) Aliases() []string {
 	return nil
 }
@@ -181,8 +175,8 @@ func (p *nopPage) GetTerms(taxonomy string) Pages {
 	return nil
 }
 
-func (p *nopPage) GitInfo() source.GitInfo {
-	return source.GitInfo{}
+func (p *nopPage) GitInfo() *source.GitInfo {
+	return nil
 }
 
 func (p *nopPage) CodeOwners() []string {
@@ -338,7 +332,7 @@ func (p *nopPage) Path() string {
 }
 
 func (p *nopPage) PathInfo() *paths.Path {
-	return noOpPathInfo
+	return nil
 }
 
 func (p *nopPage) Permalink() string {

@@ -29,11 +29,10 @@ import (
 )
 
 const (
-	lineanchorsKey = "lineanchors" //nolint
+	lineanchorsKey = "lineanchors"
 	lineNosKey     = "linenos"
 	hlLinesKey     = "hl_lines"
 	linosStartKey  = "linenostart"
-	noHlKey        = "nohl"
 )
 
 var DefaultConfig = Config{
@@ -59,9 +58,6 @@ type Config struct {
 
 	// Use inline CSS styles.
 	NoClasses bool
-
-	// No highlighting.
-	NoHl bool
 
 	// When set, line numbers will be printed.
 	LineNos            bool
@@ -234,8 +230,6 @@ func normalizeHighlightOptions(m map[string]any) {
 
 	for k, v := range m {
 		switch k {
-		case noHlKey:
-			m[noHlKey] = cast.ToBool(v)
 		case lineNosKey:
 			if v == "table" || v == "inline" {
 				m["lineNumbersInTable"] = v == "table"

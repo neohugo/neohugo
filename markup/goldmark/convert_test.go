@@ -87,7 +87,7 @@ func TestConvert(t *testing.T) {
 	content := `
 ## Links
 
-https://github.com/neohugo/neohugo/issues/6528
+https://github.com/gohugoio/hugo/issues/6528
 [Live Demo here!](https://docuapi.netlify.com/)
 
 [I'm an inline-style link with title](https://www.google.com "Google's Homepage")
@@ -415,7 +415,7 @@ func TestConvertAttributes(t *testing.T) {
 func TestConvertIssues(t *testing.T) {
 	c := qt.New(t)
 
-	// https://github.com/neohugo/neohugo/issues/7619
+	// https://github.com/gohugoio/hugo/issues/7619
 	c.Run("Hyphen in HTML attributes", func(c *qt.C) {
 		mconf := markup_config.Default
 		mconf.Goldmark.Renderer.Unsafe = true

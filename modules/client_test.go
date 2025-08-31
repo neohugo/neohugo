@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/hugofs/glob"
 
@@ -61,7 +62,7 @@ github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0 github.com/gohugoio/h
 			WorkingDir: workingDir,
 			ThemesDir:  themesDir,
 			PublishDir: publishDir,
-			Exec:       hexec.New(security.DefaultConfig, ""),
+			Exec:       hexec.New(security.DefaultConfig, "", loggers.NewDefault()),
 		}
 
 		withConfig(&ccfg)
@@ -171,7 +172,7 @@ project github.com/gohugoio/hugoTestModules1_darwin/modh2_2_2@v1.3.0+vendor
 		c.Assert(graphb.String(), qt.Contains, "github.com/gohugoio/hugoTestModules1_darwin/modh1_1v@v1.3.0 github.com/gohugoio/hugoTestModules1_darwin/modh1_1_1v@v1.1.0+vendor")
 	})
 
-	// https://github.com/neohugo/neohugo/issues/7908
+	// https://github.com/gohugoio/hugo/issues/7908
 	c.Run("createThemeDirname", func(c *qt.C) {
 		mcfg := DefaultModuleConfig
 		client, clean := newClient(
@@ -214,4 +215,43 @@ func TestGetModlineSplitter(t *testing.T) {
 
 	gosumSplitter := getModlineSplitter(false)
 	c.Assert(gosumSplitter("github.com/BurntSushi/toml v0.3.1"), qt.DeepEquals, []string{"github.com/BurntSushi/toml", "v0.3.1"})
+}
+
+func TestClientConfigToEnv(t *testing.T) {
+	c := qt.New(t)
+
+	ccfg := ClientConfig{
+		WorkingDir: "/mywork",
+		CacheDir:   "/mycache",
+	}
+
+	env := ccfg.toEnv()
+
+	c.Assert(env, qt.DeepEquals, []string{"PWD=/mywork", "GO111MODULE=on", "GOPATH=/mycache", "GOWORK=", filepath.FromSlash("GOCACHE=/mycache/pkg/mod")})
+
+	ccfg = ClientConfig{
+		WorkingDir: "/mywork",
+		CacheDir:   "/mycache",
+		ModuleConfig: Config{
+			Proxy:     "https://proxy.example.org",
+			Private:   "myprivate",
+			NoProxy:   "mynoproxy",
+			Workspace: "myworkspace",
+			Auth:      "myauth",
+		},
+	}
+
+	env = ccfg.toEnv()
+
+	c.Assert(env, qt.DeepEquals, []string{
+		"PWD=/mywork",
+		"GO111MODULE=on",
+		"GOPATH=/mycache",
+		"GOWORK=myworkspace",
+		filepath.FromSlash("GOCACHE=/mycache/pkg/mod"),
+		"GOPROXY=https://proxy.example.org",
+		"GOPRIVATE=myprivate",
+		"GONOPROXY=mynoproxy",
+		"GOAUTH=myauth",
+	})
 }

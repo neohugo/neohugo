@@ -24,6 +24,7 @@ import (
 	"sync/atomic"
 
 	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/resources/internal"
 
 	"github.com/neohugo/neohugo/common/hashing"
@@ -54,6 +55,7 @@ var (
 	_ identity.DependencyManagerProvider = (*genericResource)(nil)
 	_ identity.Identity                  = (*genericResource)(nil)
 	_ fileInfo                           = (*genericResource)(nil)
+	_ isPublishedProvider                = (*genericResource)(nil)
 )
 
 type ResourceSourceDescriptor struct {
@@ -224,9 +226,6 @@ type resourceCopier interface {
 
 // Copy copies r to the targetPath given.
 func Copy(r resource.Resource, targetPath string) resource.Resource {
-	if r.Err() != nil {
-		panic(fmt.Sprintf("Resource has an .Err: %s", r.Err()))
-	}
 	return r.(resourceCopier).cloneTo(targetPath)
 }
 
@@ -245,6 +244,8 @@ type baseResourceInternal interface {
 	fileInfo
 	mediaTypeAssigner
 	targetPather
+	isPublishedProvider
+
 	ReadSeekCloser() (hugio.ReadSeekCloser, error)
 
 	identity.IdentityGroupProvider
@@ -357,7 +358,7 @@ func GetTestInfoForResource(r resource.Resource) GenericResourceTestInfo {
 
 // genericResource represents a generic linkable resource.
 type genericResource struct {
-	publishInit *sync.Once
+	publishInit *lazy.OnceMore
 
 	key     string
 	keyInit *sync.Once
@@ -365,6 +366,7 @@ type genericResource struct {
 	sd    ResourceSourceDescriptor
 	paths internal.ResourcePaths
 
+	includeHashInKey     bool
 	sourceFilenameIsHash bool
 
 	h *resourceHash // A hash of the source content. Is only calculated in caching situations.
@@ -438,10 +440,6 @@ func (l *genericResource) Content(context.Context) (any, error) {
 	return hugio.ReadString(r)
 }
 
-func (r *genericResource) Err() resource.ResourceError {
-	return nil
-}
-
 func (l *genericResource) Data() any {
 	return l.sd.Data
 }
@@ -457,6 +455,10 @@ func (l *genericResource) Key() string {
 
 		if l.spec.Cfg.IsMultihost() {
 			l.key = l.spec.Lang() + l.key
+		}
+
+		if l.includeHashInKey && !l.sourceFilenameIsHash {
+			l.key += fmt.Sprintf("_%d", l.hash())
 		}
 	})
 
@@ -535,6 +537,10 @@ func (l *genericResource) Publish() error {
 	})
 
 	return err
+}
+
+func (l *genericResource) isPublished() bool {
+	return l.publishInit.Done()
 }
 
 func (l *genericResource) RelPermalink() string {
@@ -630,7 +636,7 @@ func (rc *genericResource) cloneWithUpdates(u *transformationUpdate) (baseResour
 }
 
 func (l genericResource) clone() *genericResource {
-	l.publishInit = &sync.Once{}
+	l.publishInit = &lazy.OnceMore{}
 	l.keyInit = &sync.Once{}
 	return &l
 }
@@ -642,6 +648,10 @@ func (r *genericResource) openPublishFileForWriting(relTargetPath string) (io.Wr
 
 type targetPather interface {
 	TargetPath() string
+}
+
+type isPublishedProvider interface {
+	isPublished() bool
 }
 
 type resourceHash struct {
@@ -701,6 +711,11 @@ func InternalResourceSourcePathBestEffort(r resource.Resource) string {
 		return s
 	}
 	return InternalResourceTargetPath(r)
+}
+
+// isPublished returns true if the resource is published.
+func IsPublished(r resource.Resource) bool {
+	return r.(isPublishedProvider).isPublished()
 }
 
 type targetPathProvider interface {

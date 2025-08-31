@@ -397,7 +397,7 @@ func (d *SourceFilesystem) mounts() []hugofs.FileMetaInfo {
 	})
 
 	// Filter out any mounts not belonging to this filesystem.
-	// TODO(bep) I think this is superflous.
+	// TODO(bep) I think this is superfluous.
 	n := 0
 	for _, mm := range m {
 		if mm.Meta().Component == d.Name {
@@ -634,7 +634,7 @@ func (b *sourceFilesystemsBuilder) createMainOverlayFs(p *paths.Paths) (*filesys
 
 	mounts := make([]mountsDescriptor, len(mods))
 
-	for i := 0; i < len(mods); i++ {
+	for i := range mods {
 		mod := mods[i]
 		dir := mod.Dir()
 

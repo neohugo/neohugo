@@ -52,7 +52,7 @@ RSTART:Hook Heading: 2:REND
 `)
 }
 
-// https://github.com/neohugo/neohugo/issues/6882
+// https://github.com/gohugoio/hugo/issues/6882
 func TestRenderStringOnListPage(t *testing.T) {
 	renderStringTempl := `
 {{ .RenderString "**Hello**" }}

@@ -244,7 +244,7 @@ func doTestCompare(t *testing.T, tp tstCompareType, funcUnderTest func(a, b any)
 		{"0.37-DEV", neohugo.MustParseVersion("0.37").Version(), -1},
 		{"0.36", neohugo.MustParseVersion("0.37-DEV").Version(), -1},
 		{"0.37-DEV", neohugo.MustParseVersion("0.37-DEV").Version(), 0},
-		// https://github.com/neohugo/neohugo/issues/5905
+		// https://github.com/gohugoio/hugo/issues/5905
 		{nil, nil, 0},
 		{testT.NonEmptyInterfaceNil, nil, 0},
 		{testT.NonEmptyInterfaceTypedNil, nil, 0},

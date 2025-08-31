@@ -74,6 +74,16 @@ func IsTruthful(in any) bool {
 	}
 }
 
+// IsMap reports whether v is a map.
+func IsMap(v any) bool {
+	return reflect.ValueOf(v).Kind() == reflect.Map
+}
+
+// IsSlice reports whether v is a slice.
+func IsSlice(v any) bool {
+	return reflect.ValueOf(v).Kind() == reflect.Slice
+}
+
 var zeroType = reflect.TypeOf((*types.Zeroer)(nil)).Elem()
 
 // IsTruthfulValue returns whether the given value has a meaningful truth value.
@@ -124,12 +134,7 @@ type methodKey struct {
 	name string
 }
 
-type methods struct {
-	sync.RWMutex
-	cache map[methodKey]int
-}
-
-var methodCache = &methods{cache: make(map[methodKey]int)}
+var methodCache sync.Map
 
 // GetMethodByName is the same as reflect.Value.MethodByName, but it caches the
 // type lookup.
@@ -147,22 +152,16 @@ func GetMethodByName(v reflect.Value, name string) reflect.Value {
 // -1 if no such method exists.
 func GetMethodIndexByName(tp reflect.Type, name string) int {
 	k := methodKey{tp, name}
-	methodCache.RLock()
-	index, found := methodCache.cache[k]
-	methodCache.RUnlock()
+	v, found := methodCache.Load(k)
 	if found {
-		return index
+		return v.(int)
 	}
-
-	methodCache.Lock()
-	defer methodCache.Unlock()
-
 	m, ok := tp.MethodByName(name)
-	index = m.Index
+	index := m.Index
 	if !ok {
 		index = -1
 	}
-	methodCache.cache[k] = index
+	methodCache.Store(k, index)
 
 	if !ok {
 		return -1
@@ -235,7 +234,7 @@ func ToSliceAny(v any) ([]any, bool) {
 		vvv := reflect.ValueOf(v)
 		if vvv.Kind() == reflect.Slice {
 			out := make([]any, vvv.Len())
-			for i := 0; i < vvv.Len(); i++ {
+			for i := range vvv.Len() {
 				out[i] = vvv.Index(i).Interface()
 			}
 			return out, true

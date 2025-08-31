@@ -167,8 +167,6 @@ func NewTrace() Logger {
 	return New(opts)
 }
 
-// Removed duplicate NewTrace and fixed field names.
-
 func LevelLoggerToWriter(l logg.LevelLogger) io.Writer {
 	return logWriter{l: l}
 }

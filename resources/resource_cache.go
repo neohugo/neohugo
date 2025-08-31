@@ -106,24 +106,22 @@ func (c *ResourceCache) getFilenames(key string) (string, string) {
 
 func (c *ResourceCache) getFromFile(key string) (filecache.ItemInfo, io.ReadCloser, transformedResourceMetadata, bool) {
 	c.RLock()
+	defer c.RUnlock()
 
 	var meta transformedResourceMetadata
 	filenameMeta, filenameContent := c.getFilenames(key)
 
 	_, jsonContent, _ := c.fileCache.GetBytes(filenameMeta)
 	if jsonContent == nil {
-		c.RUnlock()
 		return filecache.ItemInfo{}, nil, meta, false
 	}
 
 	if err := json.Unmarshal(jsonContent, &meta); err != nil {
-		c.RUnlock()
 		return filecache.ItemInfo{}, nil, meta, false
 	}
 
 	fi, rc, _ := c.fileCache.Get(filenameContent)
 
-	c.RUnlock()
 	return fi, rc, meta, rc != nil
 }
 

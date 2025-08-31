@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-//go:build !windows
-// +build !windows
+//go:build go1.13 && !windows
+// +build go1.13,!windows
 
 package template
 
@@ -32,32 +32,22 @@ type multiParseTest struct {
 }
 
 var multiParseTests = []multiParseTest{
-	{
-		"empty", "", noError,
+	{"empty", "", noError,
 		nil,
-		nil,
-	},
-	{
-		"one", `{{define "foo"}} FOO {{end}}`, noError,
+		nil},
+	{"one", `{{define "foo"}} FOO {{end}}`, noError,
 		[]string{"foo"},
-		[]string{" FOO "},
-	},
-	{
-		"two", `{{define "foo"}} FOO {{end}}{{define "bar"}} BAR {{end}}`, noError,
+		[]string{" FOO "}},
+	{"two", `{{define "foo"}} FOO {{end}}{{define "bar"}} BAR {{end}}`, noError,
 		[]string{"foo", "bar"},
-		[]string{" FOO ", " BAR "},
-	},
+		[]string{" FOO ", " BAR "}},
 	// errors
-	{
-		"missing end", `{{define "foo"}} FOO `, hasError,
+	{"missing end", `{{define "foo"}} FOO `, hasError,
 		nil,
+		nil},
+	{"malformed name", `{{define "foo}} FOO `, hasError,
 		nil,
-	},
-	{
-		"malformed name", `{{define "foo}} FOO `, hasError,
-		nil,
-		nil,
-	},
+		nil},
 }
 
 func TestMultiParse(t *testing.T) {
@@ -314,10 +304,7 @@ func TestAddParseTreeToUnparsedTemplate(t *testing.T) {
 		t.Fatalf("unexpected parse err: %v", err)
 	}
 	masterTree := tree["master"]
-	_, err = tmpl.AddParseTree("master", masterTree) // used to panic
-	if err != nil {
-		t.Fatalf("unexpected add parse err: %v", err)
-	}
+	tmpl.AddParseTree("master", masterTree) // used to panic
 }
 
 func TestRedefinition(t *testing.T) {
@@ -351,10 +338,7 @@ func TestTemplateLookUp(t *testing.T) {
 	if t1.Lookup("bar") != nil {
 		t.Error("Lookup returned non-nil value for undefined template bar")
 	}
-	_, err := t1.Parse(`{{define "foo"}}test{{end}}`)
-	if err != nil {
-		t.Fatalf("unexpected parse err: %v", err)
-	}
+	t1.Parse(`{{define "foo"}}test{{end}}`)
 	if t1.Lookup("foo") == nil {
 		t.Error("Lookup returned nil value for defined template")
 	}

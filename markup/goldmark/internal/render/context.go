@@ -1,5 +1,6 @@
-// Copyright 2024 The Hugo Authors. All rights reserved.
-
+// Copyright 2025 The Hugo Authors. All rights reserved.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 // http://www.apache.org/licenses/LICENSE-2.0
@@ -18,12 +19,17 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/gohugoio/hugo-goldmark-extensions/passthrough"
 	bp "github.com/neohugo/neohugo/bufferpool"
+	east "github.com/yuin/goldmark-emoji/ast"
+
 	htext "github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/tpl"
+
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/converter/hooks"
-	"github.com/neohugo/neohugo/tpl"
 	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/util"
 )
 
 type BufWriter struct {
@@ -158,21 +164,44 @@ func (ctx *RenderContextDataHolder) DocumentContext() converter.DocumentContext 
 // Note that this is not a copy of the source, but a slice of it,
 // so it assumes that the source is not mutated.
 func extractSourceSample(n ast.Node, src []byte) []byte {
+	if n.Type() == ast.TypeInline {
+		switch n := n.(type) {
+		case *passthrough.PassthroughInline:
+			return n.Segment.Value(src)
+		}
+
+		return nil
+	}
+
 	var sample []byte
 
-	// Extract a source sample to use for position information.
-	if nn := n.FirstChild(); nn != nil {
+	getStartStop := func(n ast.Node) (int, int) {
+		if n == nil {
+			return 0, 0
+		}
+
 		var start, stop int
-		for i := 0; i < nn.Lines().Len() && i < 2; i++ {
-			line := nn.Lines().At(i)
+		for i := 0; i < n.Lines().Len() && i < 2; i++ {
+			line := n.Lines().At(i)
 			if i == 0 {
 				start = line.Start
 			}
 			stop = line.Stop
 		}
+		return start, stop
+	}
+
+	start, stop := getStartStop(n)
+	if stop == 0 {
+		// Try first child.
+		start, stop = getStartStop(n.FirstChild())
+	}
+
+	if stop > 0 {
 		// We do not mutate the source, so this is safe.
 		sample = src[start:stop]
 	}
+
 	return sample
 }
 
@@ -261,6 +290,8 @@ func (c *hookBase) PositionerSourceTarget() []byte {
 }
 
 // TextPlain returns a plain text representation of the given node.
+// This will resolve any leftover HTML entities. This will typically be
+// entities inserted by e.g. the typographer extension.
 // Goldmark's Node.Text was deprecated in 1.7.8.
 func TextPlain(n ast.Node, source []byte) string {
 	buf := bp.GetBuffer()
@@ -269,19 +300,27 @@ func TextPlain(n ast.Node, source []byte) string {
 	for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 		textPlainTo(c, source, buf)
 	}
-	return buf.String()
+	return string(util.ResolveEntityNames(buf.Bytes()))
 }
 
 func textPlainTo(c ast.Node, source []byte, buf *bytes.Buffer) {
 	if c == nil {
 		return
 	}
+
 	switch c := c.(type) {
 	case *ast.RawHTML:
 		s := strings.TrimSpace(tpl.StripHTML(string(c.Segments.Value(source))))
 		buf.WriteString(s)
+	case *ast.String:
+		buf.Write(c.Value)
 	case *ast.Text:
 		buf.Write(c.Segment.Value(source))
+		if c.HardLineBreak() || c.SoftLineBreak() {
+			buf.WriteByte('\n')
+		}
+	case *east.Emoji:
+		buf.WriteString(string(c.ShortName))
 	default:
 		textPlainTo(c.FirstChild(), source, buf)
 	}

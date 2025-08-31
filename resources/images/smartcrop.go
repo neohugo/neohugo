@@ -25,10 +25,10 @@ import (
 const (
 	// Do not change.
 	smartCropIdentifier = "smart"
-
-	// This is just a increment, starting on 1. If Smart Crop improves its cropping, we
+	SmartCropAnchor     = 1000
+	// This is just a increment, starting on 0. If Smart Crop improves its cropping, we
 	// need a way to trigger a re-generation of the crops in the wild, so increment this.
-	smartCropVersionNumber = 1
+	smartCropVersionNumber = 0
 )
 
 func (p *ImageProcessor) newSmartCropAnalyzer(filter gift.Resampling) smartcrop.Analyzer {
@@ -42,7 +42,7 @@ type imagingResizer struct {
 }
 
 func (r imagingResizer) Resize(img image.Image, width, height uint) image.Image {
-	// See https://github.com/neohugo/neohugo/issues/7955#issuecomment-861710681
+	// See https://github.com/gohugoio/hugo/issues/7955#issuecomment-861710681
 	scaleX, scaleY := calcFactorsNfnt(width, height, float64(img.Bounds().Dx()), float64(img.Bounds().Dy()))
 	if width == 0 {
 		width = uint(math.Ceil(float64(img.Bounds().Dx()) / scaleX))

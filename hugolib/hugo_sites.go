@@ -85,7 +85,8 @@ type HugoSites struct {
 
 	pageTrees *pageTrees
 
-	postRenderInit sync.Once
+	printUnusedTemplatesInit sync.Once
+	printPathWarningsInit    sync.Once
 
 	// File change events with filename stored in this map will be skipped.
 	skipRebuildForFilenamesMu sync.Mutex
@@ -133,7 +134,6 @@ func (h *HugoSites) resolveSite(lang string) *Site {
 	return nil
 }
 
-// Only used in tests.
 type buildCounters struct {
 	contentRenderCounter atomic.Uint64
 	pageRenderCounter    atomic.Uint64
@@ -230,13 +230,13 @@ func (h *HugoSites) RegularPages() page.Pages {
 	return v
 }
 
-func (h *HugoSites) gitInfoForPage(p page.Page) (source.GitInfo, error) {
+func (h *HugoSites) gitInfoForPage(p page.Page) (*source.GitInfo, error) {
 	if _, err := h.init.gitInfo.Do(context.Background()); err != nil {
-		return source.GitInfo{}, err
+		return nil, err
 	}
 
 	if h.gitInfo == nil {
-		return source.GitInfo{}, nil
+		return nil, nil
 	}
 
 	return h.gitInfo.forPage(p), nil
@@ -310,7 +310,7 @@ func (h *HugoSites) NumLogErrors() int {
 
 func (h *HugoSites) PrintProcessingStats(w io.Writer) {
 	stats := make([]*helpers.ProcessingStats, len(h.Sites))
-	for i := 0; i < len(h.Sites); i++ {
+	for i := range h.Sites {
 		stats[i] = h.Sites[i].PathSpec.ProcessingStats
 	}
 	helpers.ProcessingStatsTable(w, stats...)
@@ -416,8 +416,8 @@ type BuildCfg struct {
 	// Set in server mode when the last build failed for some reason.
 	ErrRecovery bool
 
-	// Recently visited URLs. This is used for partial re-rendering.
-	RecentlyVisited *types.EvictingStringQueue
+	// Recently visited or touched URLs. This is used for partial re-rendering.
+	RecentlyTouched *types.EvictingQueue[string]
 
 	// Can be set to build only with a sub set of the content source.
 	ContentInclusionFilter *glob.FilenameFilter
@@ -429,7 +429,7 @@ type BuildCfg struct {
 }
 
 // shouldRender returns whether this output format should be rendered or not.
-func (cfg *BuildCfg) shouldRender(p *pageState) bool {
+func (cfg *BuildCfg) shouldRender(infol logg.LevelLogger, p *pageState) bool {
 	if p.skipRender() {
 		return false
 	}
@@ -457,18 +457,20 @@ func (cfg *BuildCfg) shouldRender(p *pageState) bool {
 		return false
 	}
 
-	if p.outputFormat().IsHTML {
-		// This is fast render mode and the output format is HTML,
-		// rerender if this page is one of the recently visited.
-		return cfg.RecentlyVisited.Contains(p.RelPermalink())
+	if relURL := p.getRelURL(); relURL != "" {
+		if cfg.RecentlyTouched.Contains(relURL) {
+			infol.Logf("render recently touched URL %q (%s)", relURL, p.outputFormat().Name)
+			return true
+		}
 	}
 
 	// In fast render mode, we want to avoid re-rendering the sitemaps etc. and
 	// other big listings whenever we e.g. change a content file,
-	// but we want partial renders of the recently visited pages to also include
+	// but we want partial renders of the recently touched pages to also include
 	// alternative formats of the same HTML page (e.g. RSS, JSON).
 	for _, po := range p.pageOutputs {
-		if po.render && po.f.IsHTML && cfg.RecentlyVisited.Contains(po.RelPermalink()) {
+		if po.render && po.f.IsHTML && cfg.RecentlyTouched.Contains(po.getRelURL()) {
+			infol.Logf("render recently touched URL %q, %s version of %s", po.getRelURL(), po.f.Name, p.outputFormat().Name)
 			return true
 		}
 	}
@@ -554,7 +556,6 @@ func (h *HugoSites) handleDataFile(r *source.File) error {
 	higherPrecedentData := current[r.BaseFileName()]
 
 	switch data.(type) {
-	case nil:
 	case map[string]any:
 
 		switch higherPrecedentData.(type) {

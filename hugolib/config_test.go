@@ -475,7 +475,7 @@ name = "menu-theme"
 		})
 	})
 
-	// Issue #8724
+	// Issue #8724 ##13643
 	for _, mergeStrategy := range []string{"none", "shallow"} {
 		c.Run(fmt.Sprintf("Merge with sitemap config in theme, mergestrategy %s", mergeStrategy), func(c *qt.C) {
 			smapConfigTempl := `[sitemap]
@@ -495,7 +495,7 @@ name = "menu-theme"
 				b.Assert(got.Sitemap, qt.DeepEquals, config.SitemapConfig{ChangeFreq: "", Disable: false, Priority: -1, Filename: "sitemap.xml"})
 				b.AssertFileContent("public/sitemap.xml", "schemas/sitemap")
 			} else {
-				b.Assert(got.Sitemap, qt.DeepEquals, config.SitemapConfig{ChangeFreq: "monthly", Disable: false, Priority: -1, Filename: "sitemap.xml"})
+				b.Assert(got.Sitemap, qt.DeepEquals, config.SitemapConfig{ChangeFreq: "monthly", Disable: false, Priority: 0.5, Filename: "sitemap.xml"})
 				b.AssertFileContent("public/sitemap.xml", "<changefreq>monthly</changefreq>")
 			}
 		})
@@ -580,7 +580,7 @@ func TestLoadConfigModules(t *testing.T) {
 
 	c := qt.New(t)
 
-	// https://github.com/neohugo/neohugoThemes#themetoml
+	// https://github.com/gohugoio/hugoThemes#themetoml
 
 	const (
 		// Before Hugo 0.56 each theme/component could have its own theme.toml
@@ -793,7 +793,7 @@ Single.
 		files := strings.ReplaceAll(filesTemplate, "WEIGHT_EN", "2")
 		files = strings.ReplaceAll(files, "WEIGHT_SV", "1")
 
-		for i := 0; i < 20; i++ {
+		for range 20 {
 			cfg := config.New()
 			b, err := NewIntegrationTestBuilder(
 				IntegrationTestConfig{
@@ -1406,7 +1406,7 @@ home = ["html"]
 			"home":     {"html"},
 			"page":     {"html"},
 			"rss":      {"rss"},
-			"section":  nil,
+			"section":  {},
 			"taxonomy": {"html", "rss"},
 			"term":     {"html", "rss"},
 		})

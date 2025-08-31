@@ -64,7 +64,7 @@ func TestRSSOutput(t *testing.T) {
 // For the page kinds that can have multiple output formats, the Kind should be one of the
 // standard home, page etc.
 // This test has this single purpose: Check that the Kind is that of the source page.
-// See https://github.com/neohugo/neohugo/issues/5138
+// See https://github.com/gohugoio/hugo/issues/5138
 func TestRSSKind(t *testing.T) {
 	t.Parallel()
 
@@ -95,4 +95,52 @@ Figure:
 	b.Build(BuildCfg{})
 
 	b.AssertFileContent("public/index.xml", "img src=&#34;http://example.com/images/sunset.jpg")
+}
+
+// Issue 13332.
+func TestRSSCanonifyURLsSubDir(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+baseURL = 'https://example.org/subdir'
+disableKinds = ['section','sitemap','taxonomy','term']
+[markup.goldmark.renderHooks.image]
+enableDefault = true
+[markup.goldmark.renderHooks.link]
+enableDefault = true
+-- layouts/_default/_markup/render-image.html --
+{{- $u := urls.Parse .Destination -}}
+{{- $src := $u.String | relURL -}}
+<img srcset="{{ $src }}" src="{{ $src }} 2x">
+<img src="{{ $src }}">
+{{- /**/ -}}
+-- layouts/_default/home.html --
+{{ .Content }}|
+-- layouts/_default/single.html --
+{{ .Content }}|
+-- layouts/_default/rss.xml --
+{{ with site.GetPage "/s1/p2" }}
+  {{ .Content | transform.XMLEscape | safeHTML }}
+{{ end }}
+-- content/s1/p1.md --
+---
+title: p1
+---
+-- content/s1/p2/index.md --
+---
+title: p2
+---
+![alt](a.jpg)
+
+[p1](/s1/p1)
+-- content/s1/p2/a.jpg --
+`
+
+	b := Test(t, files)
+
+	b.AssertFileContent("public/index.xml", "https://example.org/subdir/s1/p1/")
+	b.AssertFileContent("public/index.xml",
+		"img src=&#34;https://example.org/subdir/a.jpg",
+		"img srcset=&#34;https://example.org/subdir/a.jpg&#34; src=&#34;https://example.org/subdir/a.jpg 2x")
 }

@@ -293,7 +293,7 @@ func (r *rank) addWeight(w int) {
 }
 
 var rankPool = sync.Pool{
-	New: func() interface{} {
+	New: func() any {
 		return &rank{}
 	},
 }
@@ -434,7 +434,7 @@ func (cfg IndexConfig) ToKeywords(v any) ([]Keyword, error) {
 		keywords = append(keywords, cfg.stringToKeyword(vv))
 	case []string:
 		vvv := make([]Keyword, len(vv))
-		for i := 0; i < len(vvv); i++ {
+		for i := range vvv {
 			vvv[i] = cfg.stringToKeyword(vv[i])
 		}
 		keywords = append(keywords, vvv...)
@@ -583,6 +583,9 @@ func DecodeConfig(m maps.Params) (Config, error) {
 		}
 	}
 	for i := range c.Indices {
+		// Lower case name.
+		c.Indices[i].Name = strings.ToLower(c.Indices[i].Name)
+
 		icfg := c.Indices[i]
 		if icfg.Type == "" {
 			c.Indices[i].Type = TypeBasic
@@ -621,7 +624,7 @@ type Keyword interface {
 func (cfg IndexConfig) StringsToKeywords(s ...string) []Keyword {
 	kw := make([]Keyword, len(s))
 
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		kw[i] = cfg.stringToKeyword(s[i])
 	}
 

@@ -169,15 +169,20 @@ func (r *hugoContextRenderer) getPage(w util.BufWriter) any {
 	return p
 }
 
+func (r *hugoContextRenderer) isHTMLComment(b []byte) bool {
+	return len(b) > 4 && b[0] == '<' && b[1] == '!' && b[2] == '-' && b[3] == '-'
+}
+
 // HTML rendering based on Goldmark implementation.
 func (r *hugoContextRenderer) renderHTMLBlock(
 	w util.BufWriter, source []byte, node ast.Node, entering bool,
 ) (ast.WalkStatus, error) {
 	n := node.(*ast.HTMLBlock)
+
 	if entering {
 		if r.Unsafe {
 			l := n.Lines().Len()
-			for i := 0; i < l; i++ {
+			for i := range l {
 				line := n.Lines().At(i)
 				linev := line.Value(source)
 				var stripped bool
@@ -188,8 +193,12 @@ func (r *hugoContextRenderer) renderHTMLBlock(
 				r.Writer.SecureWrite(w, linev)
 			}
 		} else {
-			r.logRawHTMLEmittedWarn(w)
-			_, _ = w.WriteString("<!-- raw HTML omitted -->\n")
+			l := n.Lines().At(0)
+			v := l.Value(source)
+			if !r.isHTMLComment(v) {
+				r.logRawHTMLEmittedWarn(w)
+				_, _ = w.WriteString("<!-- raw HTML omitted -->\n")
+			}
 		}
 	} else {
 		if n.HasClosure() {
@@ -197,7 +206,11 @@ func (r *hugoContextRenderer) renderHTMLBlock(
 				closure := n.ClosureLine
 				r.Writer.SecureWrite(w, closure.Value(source))
 			} else {
-				_, _ = w.WriteString("<!-- raw HTML omitted -->\n")
+				l := n.Lines().At(0)
+				v := l.Value(source)
+				if !r.isHTMLComment(v) {
+					_, _ = w.WriteString("<!-- raw HTML omitted -->\n")
+				}
 			}
 		}
 	}
@@ -210,17 +223,21 @@ func (r *hugoContextRenderer) renderRawHTML(
 	if !entering {
 		return ast.WalkSkipChildren, nil
 	}
+	n := node.(*ast.RawHTML)
+	l := n.Segments.Len()
 	if r.Unsafe {
-		n := node.(*ast.RawHTML)
-		l := n.Segments.Len()
-		for i := 0; i < l; i++ {
+		for i := range l {
 			segment := n.Segments.At(i)
 			_, _ = w.Write(segment.Value(source))
 		}
 		return ast.WalkSkipChildren, nil
 	}
-	r.logRawHTMLEmittedWarn(w)
-	_, _ = w.WriteString("<!-- raw HTML omitted -->")
+	segment := n.Segments.At(0)
+	v := segment.Value(source)
+	if !r.isHTMLComment(v) {
+		r.logRawHTMLEmittedWarn(w)
+		_, _ = w.WriteString("<!-- raw HTML omitted -->")
+	}
 	return ast.WalkSkipChildren, nil
 }
 

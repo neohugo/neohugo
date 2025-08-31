@@ -20,6 +20,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/bep/logg"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/hugolib/doctree"
 
@@ -32,6 +33,8 @@ import (
 
 type siteRenderContext struct {
 	cfg *BuildCfg
+
+	infol logg.LevelLogger
 
 	// languageIdx is the zero based index of the site.
 	languageIdx int
@@ -54,7 +57,7 @@ func (s siteRenderContext) shouldRenderStandalonePage(kind string) bool {
 		return s.outIdx == 0
 	}
 
-	if kind == kinds.KindStatus404 {
+	if kind == kinds.KindTemporary || kind == kinds.KindStatus404 {
 		// 1 for all output formats
 		return s.outIdx == 0
 	}
@@ -75,7 +78,7 @@ func (s *Site) renderPages(ctx *siteRenderContext) error {
 
 	wg := &sync.WaitGroup{}
 
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		wg.Add(1)
 		go pageRenderer(ctx, s, pages, results, wg)
 	}
@@ -86,7 +89,7 @@ func (s *Site) renderPages(ctx *siteRenderContext) error {
 		Tree: s.pageMap.treePages,
 		Handle: func(key string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
 			if p, ok := n.(*pageState); ok {
-				if cfg.shouldRender(p) {
+				if cfg.shouldRender(ctx.infol, p) {
 					select {
 					case <-s.h.Done():
 						return true, nil
@@ -222,7 +225,7 @@ func (s *Site) logMissingLayout(name, layout, kind, outputFormat string) {
 }
 
 // renderPaginator must be run after the owning Page has been rendered.
-func (s *Site) renderPaginator(p *pageState, templ tpl.Template) error {
+func (s *Site) renderPaginator(p *pageState, templ *tplimpl.TemplInfo) error {
 	paginatePath := s.Conf.Pagination().Path
 
 	d := p.targetPathDescriptor

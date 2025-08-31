@@ -16,7 +16,6 @@ package hugolib
 import (
 	"bytes"
 	"fmt"
-	"io"
 	"testing"
 
 	"github.com/neohugo/neohugo/helpers"
@@ -69,15 +68,15 @@ aliases: [/Ali%d]
 		"_default/terms.html", "Terms List|{{ .Title }}|{{ .Content }}",
 	)
 
-	for i := 0; i < 2; i++ {
-		for j := 0; j < 2; j++ {
+	for i := range 2 {
+		for j := range 2 {
 			pageID := i + j + 1
 			b.WithContent(fmt.Sprintf("content/sect/p%d.md", pageID),
 				fmt.Sprintf(pageTemplate, pageID, fmt.Sprintf("- tag%d", j), fmt.Sprintf("- category%d", j), pageID))
 		}
 	}
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		b.WithContent(fmt.Sprintf("assets/image%d.png", i+1), "image")
 	}
 
@@ -89,14 +88,11 @@ aliases: [/Ali%d]
 		h.Sites[1].PathSpec.ProcessingStats,
 	}
 
-	stats[0].Table(io.Discard)
-	stats[1].Table(io.Discard)
-
 	var buff bytes.Buffer
 
 	helpers.ProcessingStatsTable(&buff, stats...)
 
-	c.Assert(buff.String(), qt.Contains, "Pages            | 21 |  7")
+	c.Assert(buff.String(), qt.Contains, "Pages            │ 21 │  7")
 }
 
 func TestSiteLastmod(t *testing.T) {

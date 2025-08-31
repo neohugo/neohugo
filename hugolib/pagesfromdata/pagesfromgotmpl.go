@@ -29,6 +29,7 @@ import (
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/neohugo/neohugo/tpl"
+"github.com/neohugo/neohugo/tpl/tplimpl"
 	"github.com/mitchellh/mapstructure"
 	"github.com/spf13/cast"
 )
@@ -67,12 +68,9 @@ func (p *pagesFromDataTemplateContext) toPathMap(v any) (string, map[string]any,
 	if err != nil {
 		return "", nil, err
 	}
-	pathv, ok := m["path"]
-	if !ok {
-		return "", nil, fmt.Errorf("path not set")
-	}
-	path, err := cast.ToStringE(pathv)
-	if err != nil || path == "" {
+
+	path, err := cast.ToStringE(m["path"])
+	if err != nil {
 		return "", nil, fmt.Errorf("invalid path %q", path)
 	}
 	return path, m, nil
@@ -90,16 +88,19 @@ func (p *pagesFromDataTemplateContext) AddPage(v any) (string, error) {
 
 	pd := pagemeta.DefaultPageConfig
 	pd.IsFromContentAdapter = true
+	pd.ContentAdapterData = m
 
-	if err := mapstructure.WeakDecode(m, &pd); err != nil {
-		return "", fmt.Errorf("failed to decode page map: %w", err)
+	// The rest will be handled after the cascade is calculated and applied.
+	if err := mapstructure.WeakDecode(pd.ContentAdapterData, &pd.PageConfigEarly); err != nil {
+		err = fmt.Errorf("failed to decode page map: %w", err)
+		return "", err
+	}
+
+	if err := pd.Init(true); err != nil {
+		return "", err
 	}
 
 	p.p.buildState.NumPagesAdded++
-
-	if err := pd.Validate(true); err != nil {
-		return "", err
-	}
 
 	return "", p.p.HandlePage(p.p, &pd)
 }
@@ -167,8 +168,7 @@ type PagesFromTemplateOptions struct {
 }
 
 type PagesFromTemplateDeps struct {
-	TmplFinder tpl.TemplateParseFinder
-	TmplExec   tpl.TemplateExecutor
+	TemplateStore *tplimpl.TemplateStore
 }
 
 var _ resource.Staler = (*PagesFromTemplate)(nil)
@@ -270,7 +270,7 @@ type sourceInfo struct {
 }
 
 func (p PagesFromTemplate) CloneForSite(s page.Site) *PagesFromTemplate {
-	// We deliberately make them share the same DepenencyManager and Store.
+	// We deliberately make them share the same DependencyManager and Store.
 	p.PagesFromTemplateOptions.Site = s
 	p.PagesFromTemplateDeps = p.PagesFromTemplateOptions.DepsFromSite(s)
 	p.buildState = &BuildState{
@@ -303,7 +303,7 @@ func (p *PagesFromTemplate) Execute(ctx context.Context) (BuildInfo, error) {
 	}
 	defer f.Close()
 
-	tmpl, err := p.TmplFinder.Parse(filepath.ToSlash(p.GoTmplFi.Meta().Filename), helpers.ReaderToString(f))
+	tmpl, err := p.TemplateStore.TextParse(filepath.ToSlash(p.GoTmplFi.Meta().Filename), helpers.ReaderToString(f))
 	if err != nil {
 		return BuildInfo{}, err
 	}
@@ -314,7 +314,7 @@ func (p *PagesFromTemplate) Execute(ctx context.Context) (BuildInfo, error) {
 
 	ctx = tpl.Context.DependencyManagerScopedProvider.Set(ctx, p)
 
-	if err := p.TmplExec.ExecuteWithContext(ctx, tmpl, io.Discard, data); err != nil {
+	if err := p.TemplateStore.ExecuteWithContext(ctx, tmpl, io.Discard, data); err != nil {
 		return BuildInfo{}, err
 	}
 
@@ -333,5 +333,3 @@ func (p *PagesFromTemplate) Execute(ctx context.Context) (BuildInfo, error) {
 
 	return bi, nil
 }
-
-//////////////

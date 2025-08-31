@@ -63,7 +63,7 @@ func UniqueStrings(s []string) []string {
 	unique := make([]string, 0, len(s))
 	for i, val := range s {
 		var seen bool
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if s[j] == val {
 				seen = true
 				break
@@ -83,7 +83,7 @@ func UniqueStringsReuse(s []string) []string {
 	for i, val := range s {
 		var seen bool
 
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if s[j] == val {
 				seen = true
 				break
@@ -253,6 +253,27 @@ func SliceToLower(s []string) []string {
 	}
 
 	return l
+}
+
+// StringSliceToList formats a string slice into a human-readable list.
+// It joins the elements of the slice s with commas, using an Oxford comma,
+// and precedes the final element with the conjunction c.
+func StringSliceToList(s []string, c string) string {
+	const defaultConjunction = "and"
+
+	if c == "" {
+		c = defaultConjunction
+	}
+	if len(s) == 0 {
+		return ""
+	}
+	if len(s) == 1 {
+		return s[0]
+	}
+	if len(s) == 2 {
+		return fmt.Sprintf("%s %s %s", s[0], c, s[1])
+	}
+	return fmt.Sprintf("%s, %s %s", strings.Join(s[:len(s)-1], ", "), c, s[len(s)-1])
 }
 
 // IsWhitespace determines if the given rune is whitespace.

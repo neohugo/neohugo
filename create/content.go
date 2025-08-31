@@ -82,11 +82,13 @@ func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error
 	b.setArcheTypeFilenameToUse(ext)
 
 	withBuildLock := func() (string, error) {
-		unlock, err := h.BaseFs.LockBuild()
-		if err != nil {
-			return "", fmt.Errorf("failed to acquire a build lock: %s", err)
+		if !h.Configs.Base.NoBuildLock {
+			unlock, err := h.BaseFs.LockBuild()
+			if err != nil {
+				return "", fmt.Errorf("failed to acquire a build lock: %s", err)
+			}
+			defer unlock()
 		}
-		defer unlock()
 
 		if b.isDir {
 			return "", b.buildDir()
@@ -289,7 +291,7 @@ func (b *contentBuilder) applyArcheType(contentFilename string, archetypeFi hugo
 func (b *contentBuilder) mapArcheTypeDir() error {
 	var m archetypeMap
 
-	seen := map[hstrings.Tuple]bool{}
+	seen := map[hstrings.Strings2]bool{}
 
 	walkFn := func(path string, fim hugofs.FileMetaInfo) error {
 		if fim.IsDir() {
@@ -299,7 +301,7 @@ func (b *contentBuilder) mapArcheTypeDir() error {
 		pi := fim.Meta().PathInfo
 
 		if pi.IsContent() {
-			pathLang := hstrings.Tuple{First: pi.PathNoIdentifier(), Second: fim.Meta().Lang}
+			pathLang := hstrings.Strings2{pi.PathBeforeLangAndOutputFormatAndExt(), fim.Meta().Lang}
 			if seen[pathLang] {
 				// Duplicate content file, e.g. page.md and page.html.
 				// In the regular build, we will filter out the duplicates, but

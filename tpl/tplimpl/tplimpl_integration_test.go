@@ -1,65 +1,27 @@
+// Copyright 2025 The Hugo Authors. All rights reserved.
+//
+// Portions Copyright The Go Authors.
+
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package tplimpl_test
 
 import (
-	"path/filepath"
 	"strings"
 	"testing"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/hugolib"
-	"github.com/neohugo/neohugo/tpl"
 )
-
-func TestPrintUnusedTemplates(t *testing.T) {
-	t.Parallel()
-
-	files := `
--- config.toml --
-baseURL = 'http://example.com/'
-printUnusedTemplates=true
--- content/p1.md --
----
-title: "P1"
----
-{{< usedshortcode >}}
--- layouts/baseof.html --
-{{ block "main" . }}{{ end }}
--- layouts/baseof.json --
-{{ block "main" . }}{{ end }}
--- layouts/index.html --
-{{ define "main" }}FOO{{ end }}
--- layouts/_default/single.json --
--- layouts/_default/single.html --
-{{ define "main" }}MAIN{{ end }}
--- layouts/post/single.html --
-{{ define "main" }}MAIN{{ end }}
--- layouts/partials/usedpartial.html --
--- layouts/partials/unusedpartial.html --
--- layouts/shortcodes/usedshortcode.html --
-{{ partial "usedpartial.html" }}
--- layouts/shortcodes/unusedshortcode.html --
-
-	`
-
-	b := hugolib.NewIntegrationTestBuilder(
-		hugolib.IntegrationTestConfig{
-			T:           t,
-			TxtarString: files,
-			NeedsOsFS:   true,
-		},
-	)
-	b.Build()
-
-	unused := b.H.Tmpl().(tpl.UnusedTemplatesProvider).UnusedTemplates()
-
-	var names []string
-	for _, tmpl := range unused {
-		names = append(names, tmpl.Name())
-	}
-
-	b.Assert(names, qt.DeepEquals, []string{"_default/single.json", "baseof.json", "partials/unusedpartial.html", "post/single.html", "shortcodes/unusedshortcode.html"})
-	b.Assert(unused[0].Filename(), qt.Equals, filepath.Join(b.Cfg.WorkingDir, "layouts/_default/single.json"))
-}
 
 // Verify that the new keywords in Go 1.18 is available.
 func TestGo18Constructs(t *testing.T) {
@@ -585,71 +547,6 @@ title: p5
 	)
 }
 
-func TestCommentShortcode(t *testing.T) {
-	t.Parallel()
-
-	files := `
--- hugo.toml --
-disableKinds = ['page','rss','section','sitemap','taxonomy','term']
--- layouts/index.html --
-{{ .Content }}
--- content/_index.md --
-a{{< comment >}}b{{< /comment >}}c
-`
-
-	b := hugolib.Test(t, files)
-	b.AssertFileContent("public/index.html", "<p>ac</p>")
-}
-
-func TestDetailsShortcode(t *testing.T) {
-	t.Parallel()
-
-	files := `
--- hugo.toml --
-disableKinds = ['page','rss','section','sitemap','taxonomy','term']
--- layouts/index.html --
-{{ .Content }}
--- content/_index.md --
----
-title: home
----
-{{< details >}}
-A: An _emphasized_ word.
-{{< /details >}}
-
-{{< details
-  class="my-class"
-  name="my-name"
-  open=true
-  summary="A **bold** word"
-  title="my-title"
->}}
-B: An _emphasized_ word.
-{{< /details >}}
-
-{{< details open=false >}}
-C: An _emphasized_ word.
-{{< /details >}}
-
-{{< details open="false" >}}
-D: An _emphasized_ word.
-{{< /details >}}
-
-{{< details open=0 >}}
-E: An _emphasized_ word.
-{{< /details >}}
-`
-	b := hugolib.Test(t, files)
-
-	b.AssertFileContent("public/index.html",
-		"<details>\n  <summary>Details</summary>\n  <p>A: An <em>emphasized</em> word.</p>\n</details>",
-		"<details class=\"my-class\" name=\"my-name\" open title=\"my-title\">\n  <summary>A <strong>bold</strong> word</summary>\n  <p>B: An <em>emphasized</em> word.</p>\n</details>",
-		"<details>\n  <summary>Details</summary>\n  <p>C: An <em>emphasized</em> word.</p>\n</details>",
-		"<details>\n  <summary>Details</summary>\n  <p>D: An <em>emphasized</em> word.</p>\n</details>",
-		"<details>\n  <summary>Details</summary>\n  <p>D: An <em>emphasized</em> word.</p>\n</details>",
-	)
-}
-
 // Issue 12963
 func TestEditBaseofParseAfterExecute(t *testing.T) {
 	files := `
@@ -692,9 +589,9 @@ Home!
 
 	b := hugolib.TestRunning(t, files)
 	b.AssertFileContent("public/index.html", "Home!")
-	b.EditFileReplaceAll("layouts/_default/baseof.html", "Baseof", "Baseof!").Build()
+	b.EditFileReplaceAll("layouts/_default/baseof.html", "baseof", "Baseof!").Build()
 	b.BuildPartial("/")
-	b.AssertFileContent("public/index.html", "Baseof!!")
+	b.AssertFileContent("public/index.html", "Baseof!")
 	b.BuildPartial("/mybundle1/")
-	b.AssertFileContent("public/mybundle1/index.html", "Baseof!!")
+	b.AssertFileContent("public/mybundle1/index.html", "Baseof!")
 }

@@ -116,6 +116,7 @@ func (p DestinationPublisher) Publish(d Descriptor) error {
 	if err != nil {
 		return err
 	}
+	defer f.Close()
 
 	var w io.Writer = f
 
@@ -123,16 +124,12 @@ func (p DestinationPublisher) Publish(d Descriptor) error {
 		w = io.MultiWriter(w, newHTMLElementsCollectorWriter(p.htmlElementsCollector))
 	}
 
-	if _, err = io.Copy(w, src); err != nil {
-		f.Close()
-		return err
-	}
-
-	if d.StatCounter != nil {
+	_, err = io.Copy(w, src)
+	if err == nil && d.StatCounter != nil {
 		atomic.AddUint64(d.StatCounter, uint64(1))
 	}
 
-	return f.Close()
+	return err
 }
 
 func (p DestinationPublisher) PublishStats() PublishStats {

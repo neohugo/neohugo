@@ -28,18 +28,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config"
+
+	"github.com/gobwas/glob"
+	
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
+	"golang.org/x/mod/module"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/spf13/afero"
-	"golang.org/x/mod/module"
 )
 
 var fileSeparator = string(os.PathSeparator)
@@ -71,21 +73,6 @@ func NewClient(cfg ClientConfig) *Client {
 		goModFilename = n
 	}
 
-	var env []string
-	mcfg := cfg.ModuleConfig
-
-	config.SetEnvVars(&env,
-		"PWD", cfg.WorkingDir,
-		"GO111MODULE", "on",
-		"GOPROXY", mcfg.Proxy,
-		"GOPRIVATE", mcfg.Private,
-		"GONOPROXY", mcfg.NoProxy,
-		"GOPATH", cfg.CacheDir,
-		"GOWORK", mcfg.Workspace, // Requires Go 1.18, see https://tip.golang.org/doc/go1.18
-		// GOCACHE was introduced in Go 1.15. This matches the location derived from GOPATH above.
-		"GOCACHE", filepath.Join(cfg.CacheDir, "pkg", "mod"),
-	)
-
 	logger := cfg.Logger
 	if logger == nil {
 		logger = loggers.NewDefault()
@@ -101,8 +88,8 @@ func NewClient(cfg ClientConfig) *Client {
 		ccfg:              cfg,
 		logger:            logger,
 		noVendor:          noVendor,
-		moduleConfig:      mcfg,
-		environ:           env,
+		moduleConfig:      cfg.ModuleConfig,
+		environ:           cfg.toEnv(),
 		GoModulesFilename: goModFilename,
 	}
 }
@@ -165,8 +152,26 @@ func (c *Client) Tidy() error {
 	if coll.err != nil {
 		return coll.err
 	}
+
+	if coll.skipTidy {
+		return nil
+	}
+
 	return c.tidy(tc.AllModules, false)
 }
+
+// Vendor writes all the module dependencies to a _vendor folder.
+//
+// Unlike Go, we support it for any level.
+//
+// We, by default, use the /_vendor folder first, if found. To disable,
+// run with
+//
+//	hugo --ignoreVendorPaths=".*"
+//
+// Given a module tree, Hugo will pick the first module for a given path,
+// meaning that if the top-level module is vendored, that will be the full
+// set of dependencies.
 func (c *Client) Vendor() error {
 	vendorDir := filepath.Join(c.ccfg.WorkingDir, vendord)
 	if err := c.rmVendorDir(vendorDir); err != nil {
@@ -204,11 +209,11 @@ func (c *Client) Vendor() error {
 
 		if !t.IsGoMod() && !t.Vendor() {
 			// We currently do not vendor components living in the
-			// theme directory, see https://github.com/neohugo/neohugo/issues/5993
+			// theme directory, see https://github.com/gohugoio/hugo/issues/5993
 			continue
 		}
 
-		// See https://github.com/neohugo/neohugo/issues/8239
+		// See https://github.com/gohugoio/hugo/issues/8239
 		// This is an error situation. We need something to vendor.
 		if t.Mounts() == nil {
 			return fmt.Errorf("cannot vendor module %q, need at least one mount", t.Path())
@@ -370,14 +375,12 @@ func (c *Client) Verify(clean bool) error {
 	if err != nil {
 		if clean {
 			m := verifyErrorDirRe.FindAllStringSubmatch(err.Error(), -1)
-			if m != nil {
-				for i := 0; i < len(m); i++ {
-					c, err := hugofs.MakeReadableAndRemoveAllModulePkgDir(c.fs, m[i][1])
-					if err != nil {
-						return err
-					}
-					fmt.Println("Cleaned", c)
+			for i := range m {
+				c, err := hugofs.MakeReadableAndRemoveAllModulePkgDir(c.fs, m[i][1])
+				if err != nil {
+					return err
 				}
+				fmt.Println("Cleaned", c)
 			}
 			// Try to verify it again.
 			err = c.runVerify()
@@ -624,7 +627,7 @@ func (c *Client) runGo(
 		}
 
 		if strings.Contains(stderr.String(), "invalid version: unknown revision") {
-			// See https://github.com/neohugo/neohugo/issues/6825
+			// See https://github.com/gohugoio/hugo/issues/6825
 			c.logger.Println(`An unknown revision most likely means that someone has deleted the remote ref (e.g. with a force push to GitHub).
 To resolve this, you need to manually edit your go.mod file and replace the version for the module in question with a valid ref.
 
@@ -757,6 +760,37 @@ type ClientConfig struct {
 
 func (c ClientConfig) shouldIgnoreVendor(path string) bool {
 	return c.IgnoreVendor != nil && c.IgnoreVendor.Match(path)
+}
+
+func (cfg ClientConfig) toEnv() []string {
+	mcfg := cfg.ModuleConfig
+	var env []string
+	keyVals := []string{
+		"PWD", cfg.WorkingDir,
+		"GO111MODULE", "on",
+		"GOPATH", cfg.CacheDir,
+		"GOWORK", mcfg.Workspace, // Requires Go 1.18, see https://tip.golang.org/doc/go1.18
+		// GOCACHE was introduced in Go 1.15. This matches the location derived from GOPATH above.
+		"GOCACHE", filepath.Join(cfg.CacheDir, "pkg", "mod"),
+	}
+
+	if mcfg.Proxy != "" {
+		keyVals = append(keyVals, "GOPROXY", mcfg.Proxy)
+	}
+	if mcfg.Private != "" {
+		keyVals = append(keyVals, "GOPRIVATE", mcfg.Private)
+	}
+	if mcfg.NoProxy != "" {
+		keyVals = append(keyVals, "GONOPROXY", mcfg.NoProxy)
+	}
+	if mcfg.Auth != "" {
+		// GOAUTH was introduced in Go 1.24, see https://tip.golang.org/doc/go1.24.
+		keyVals = append(keyVals, "GOAUTH", mcfg.Auth)
+	}
+
+	config.SetEnvVars(&env, keyVals...)
+
+	return env
 }
 
 type goBinaryStatus int

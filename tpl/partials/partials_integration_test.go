@@ -170,7 +170,7 @@ D1
 	got := buf.String()
 
 	// Get rid of all the durations, they are never the same.
-	durationRe := regexp.MustCompile(`\b[\.\d]*(ms|µs|s)\b`)
+	durationRe := regexp.MustCompile(`\b[\.\d]*(ms|ns|µs|s)\b`)
 
 	normalize := func(s string) string {
 		s = durationRe.ReplaceAllString(s, "")
@@ -193,10 +193,10 @@ D1
 
 	expect := `
 	0        0       0      1  index.html
-	100        0       0      1  partials/static2.html
-	100       50       1      2  partials/static1.html
-	25       50       2      4  partials/dynamic1.html
-	66       33       1      3  partials/halfdynamic1.html
+	100        0       0      1  _partials/static2.html
+	100       50       1      2  _partials/static1.html
+	25       50       2      4  _partials/dynamic1.html
+	66       33       1      3  _partials/halfdynamic1.html
 	`
 
 	b.Assert(got, hqt.IsSameString, expect)
@@ -256,7 +256,6 @@ func TestIncludeTimeout(t *testing.T) {
 	files := `
 -- config.toml --
 baseURL = 'http://example.com/'
-timeout = '200ms'
 -- layouts/index.html --
 {{ partials.Include "foo.html" . }}
 -- layouts/partials/foo.html --
@@ -271,7 +270,7 @@ timeout = '200ms'
 	).BuildE()
 
 	b.Assert(err, qt.Not(qt.IsNil))
-	b.Assert(err.Error(), qt.Contains, "timed out")
+	b.Assert(err.Error(), qt.Contains, "maximum template call stack size exceeded")
 }
 
 func TestIncludeCachedTimeout(t *testing.T) {
@@ -284,6 +283,8 @@ timeout = '200ms'
 -- layouts/index.html --
 {{ partials.IncludeCached "foo.html" . }}
 -- layouts/partials/foo.html --
+{{ partialCached "bar.html" . }}
+-- layouts/partials/bar.html --
 {{ partialCached "foo.html" . }}
   `
 
@@ -295,7 +296,7 @@ timeout = '200ms'
 	).BuildE()
 
 	b.Assert(err, qt.Not(qt.IsNil))
-	b.Assert(err.Error(), qt.Contains, "timed out")
+	b.Assert(err.Error(), qt.Contains, `error calling partialCached: circular call stack detected in partial`)
 }
 
 // See Issue #10789

@@ -46,12 +46,6 @@ type Deps struct {
 
 	ExecHelper *hexec.Exec
 
-	// The templates to use. This will usually implement the full tpl.TemplateManager.
-	tmplHandlers *tpl.TemplateHandlers
-
-	// The template funcs.
-	TmplFuncMap map[string]any
-
 	// The file systems to use.
 	Fs *hugofs.Fs `json:"-"`
 
@@ -79,7 +73,8 @@ type Deps struct {
 	// The site building.
 	Site page.Site
 
-	TemplateProvider ResourceProvider
+	TemplateStore *tplimpl.TemplateStore
+
 	// Used in tests
 	OverloadedTemplateFuncs map[string]any
 
@@ -102,15 +97,15 @@ type Deps struct {
 	// This is common/global for all sites.
 	BuildState *BuildState
 
+	// Misc counters.
+	Counters *Counters
+
 	// Holds RPC dispatchers for Katex etc.
 	// TODO(bep) rethink this re. a plugin setup, but this will have to do for now.
 	WasmDispatchers *warpc.Dispatchers
 
 	// The JS batcher client.
 	JSBatcherClient js.BatcherClient
-
-	// The JS batcher client.
-	// JSBatcherClient *esbuild.BatcherClient
 
 	isClosed bool
 
@@ -130,8 +125,8 @@ func (d Deps) Clone(s page.Site, conf config.AllProvider) (*Deps, error) {
 	return &d, nil
 }
 
-func (d *Deps) SetTempl(t *tpl.TemplateHandlers) {
-	d.tmplHandlers = t
+func (d *Deps) GetTemplateStore() *tplimpl.TemplateStore {
+	return d.TemplateStore
 }
 
 func (d *Deps) Init() error {
@@ -153,9 +148,11 @@ func (d *Deps) Init() error {
 			logger: d.Log,
 		}
 	}
-
 	if d.BuildState == nil {
 		d.BuildState = &BuildState{}
+	}
+	if d.Counters == nil {
+		d.Counters = &Counters{}
 	}
 	if d.BuildState.DeferredExecutions == nil {
 		if d.BuildState.DeferredExecutionsGroupedByRenderingContext == nil {
@@ -188,15 +185,11 @@ func (d *Deps) Init() error {
 	}
 
 	if d.ExecHelper == nil {
-		d.ExecHelper = hexec.New(d.Conf.GetConfigSection("security").(security.Config), d.Conf.WorkingDir())
+		d.ExecHelper = hexec.New(d.Conf.GetConfigSection("security").(security.Config), d.Conf.WorkingDir(), d.Log)
 	}
 
 	if d.MemCache == nil {
 		d.MemCache = dynacache.New(dynacache.Options{Watching: d.Conf.Watching(), Log: d.Log})
-	}
-
-	if d.MemCache == nil {
-		d.MemCache = dynacache.New(dynacache.Options{Watching: d.Conf.Running(), Log: d.Log})
 	}
 
 	if d.PathSpec == nil {
@@ -267,20 +260,15 @@ func (d *Deps) Init() error {
 	return nil
 }
 
+// TODO(bep) rework this to get it in line with how we manage templates.
 func (d *Deps) Compile(prototype *Deps) error {
 	var err error
 	if prototype == nil {
-		if err = d.TemplateProvider.NewResource(d); err != nil {
-			return err
-		}
+
 		if err = d.TranslationProvider.NewResource(d); err != nil {
 			return err
 		}
 		return nil
-	}
-
-	if err = d.TemplateProvider.CloneResource(d, prototype); err != nil {
-		return err
 	}
 
 	if err = d.TranslationProvider.CloneResource(d, prototype); err != nil {
@@ -382,14 +370,6 @@ type ResourceProvider interface {
 	CloneResource(dst, src *Deps) error
 }
 
-func (d *Deps) Tmpl() tpl.TemplateHandler {
-	return d.tmplHandlers.Tmpl
-}
-
-func (d *Deps) TextTmpl() tpl.TemplateParseFinder {
-	return d.tmplHandlers.TxtTmpl
-}
-
 func (d *Deps) Close() error {
 	if d.isClosed {
 		return nil
@@ -456,6 +436,12 @@ type BuildState struct {
 
 	// Deferred executions grouped by rendering context.
 	DeferredExecutionsGroupedByRenderingContext map[tpl.RenderingContext]*DeferredExecutions
+}
+
+// Misc counters.
+type Counters struct {
+	// Counter for the math.Counter function.
+	MathCounter atomic.Uint64
 }
 
 type DeferredExecutions struct {

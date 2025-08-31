@@ -19,7 +19,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 
 	"github.com/neohugo/neohugo/hugofs"
@@ -30,9 +29,11 @@ import (
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/output/layouts"
 	"github.com/neohugo/neohugo/related"
+"github.com/neohugo/neohugo/tpl/tplimpl"
 	"github.com/spf13/afero"
 
 	"github.com/neohugo/neohugo/tpl"
+"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/types"
@@ -41,8 +42,7 @@ import (
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/text"
-	"github.com/neohugo/neohugo/markup/converter"
-	"github.com/neohugo/neohugo/markup/tableofcontents"
+
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
@@ -111,8 +111,15 @@ type pageState struct {
 	*pageCommon
 
 	resource.Staler
-	dependencyManager    identity.Manager
-	resourcesPublishInit *sync.Once
+	dependencyManager identity.Manager
+}
+
+func (p *pageState) incrPageOutputTemplateVariation() {
+	p.pageOutputTemplateVariationsState.Add(1)
+}
+
+func (p *pageState) canReusePageOutputContent() bool {
+	return p.pageOutputTemplateVariationsState.Load() == 1
 }
 
 func (p *pageState) IdentifierBase() string {
@@ -150,12 +157,22 @@ func (p *pageState) Key() string {
 	return "page-" + strconv.FormatUint(p.pid, 10)
 }
 
-func (p *pageState) resetBuildState() {
-	// Nothing to do for now.
+// RelatedKeywords implements the related.Document interface needed for fast page searches.
+func (p *pageState) RelatedKeywords(cfg related.IndexConfig) ([]related.Keyword, error) {
+	v, found, err := page.NamedPageMetaValue(p, cfg.Name)
+	if err != nil {
+		return nil, err
+	}
+
+	if !found {
+		return nil, nil
+	}
+
+	return cfg.ToKeywords(v)
 }
 
-func (p *pageState) reusePageOutputContent() bool {
-	return p.pageOutputTemplateVariationsState.Load() == 1
+func (p *pageState) resetBuildState() {
+	// Nothing to do for now.
 }
 
 func (p *pageState) skipRender() bool {
@@ -182,10 +199,6 @@ func (po *pageState) isRenderedAny() bool {
 
 func (p *pageState) isContentNodeBranch() bool {
 	return p.IsNode()
-}
-
-func (p *pageState) Err() resource.ResourceError {
-	return nil
 }
 
 // Eq returns whether the current page equals the given page.
@@ -226,7 +239,7 @@ func (p *pageState) ApplyFilterToHeadings(ctx context.Context, fn func(*tableofc
 	}
 }
 
-func (p *pageState) GitInfo() source.GitInfo {
+func (p *pageState) GitInfo() *source.GitInfo {
 	return p.gitInfo
 }
 
@@ -463,49 +476,41 @@ func (ps *pageState) initCommonProviders(pp pagePaths) error {
 	return nil
 }
 
-func (p *pageState) getLayoutDescriptor() layouts.LayoutDescriptor {
-	p.layoutDescriptorInit.Do(func() {
-		var section string
-		sections := p.SectionsEntries()
-
-		switch p.Kind() {
-		case kinds.KindSection:
-			if len(sections) > 0 {
-				section = sections[0]
-			}
-		case kinds.KindTaxonomy, kinds.KindTerm:
-
-			if p.m.singular != "" {
-				section = p.m.singular
-			} else if len(sections) > 0 {
-				section = sections[0]
-			}
-		default:
-		}
-
-		p.layoutDescriptor = layouts.LayoutDescriptor{
-			Kind:    p.Kind(),
-			Type:    p.Type(),
-			Lang:    p.Language().Lang,
-			Layout:  p.Layout(),
-			Section: section,
-		}
-	})
-
-	return p.layoutDescriptor
+// Exported so it can be used in integration tests.
+func (po *pageOutput) GetInternalTemplateBasePathAndDescriptor() (string, tplimpl.TemplateDescriptor) {
+	p := po.p
+	f := po.f
+	base := p.PathInfo().BaseReTyped(p.m.pageConfig.Type)
+	return base, tplimpl.TemplateDescriptor{
+		Kind:           p.Kind(),
+		Lang:           p.Language().Lang,
+		LayoutFromUser: p.Layout(),
+		OutputFormat:   f.Name,
+		MediaType:      f.MediaType.Type,
+		IsPlainText:    f.IsPlainText,
+	}
 }
 
-func (p *pageState) resolveTemplate(layouts ...string) (tpl.Template, bool, error) {
-	f := p.outputFormat()
-
-	d := p.getLayoutDescriptor()
+func (p *pageState) resolveTemplate(layouts ...string) (*tplimpl.TemplInfo, bool, error) {
+	dir, d := p.GetInternalTemplateBasePathAndDescriptor()
 
 	if len(layouts) > 0 {
-		d.Layout = layouts[0]
-		d.LayoutOverride = true
+		d.LayoutFromUser = layouts[0]
+		d.LayoutFromUserMustMatch = true
 	}
 
-	return p.s.Tmpl().LookupLayout(d, f)
+	q := tplimpl.TemplateQuery{
+		Path:     dir,
+		Category: tplimpl.CategoryLayout,
+		Desc:     d,
+	}
+
+	tinfo := p.s.TemplateStore.LookupPagesLayout(q)
+	if tinfo == nil {
+		return nil, false, nil
+	}
+
+	return tinfo, true, nil
 }
 
 // Must be run after the site section tree etc. is built and ready.
@@ -517,39 +522,35 @@ func (p *pageState) initPage() error {
 }
 
 func (p *pageState) renderResources() error {
-	var initErr error
+	for _, r := range p.Resources() {
 
-	p.resourcesPublishInit.Do(func() {
-		for _, r := range p.Resources() {
-			if _, ok := r.(page.Page); ok {
+		if _, ok := r.(page.Page); ok {
+			if p.s.h.buildCounter.Load() == 0 {
 				// Pages gets rendered with the owning page but we count them here.
 				p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Pages)
-				continue
 			}
-
-			if _, isWrapper := r.(resource.ResourceWrapper); isWrapper {
-				// Skip resources that are wrapped.
-				// These gets published on its own.
-				continue
-			}
-
-			src, ok := r.(resource.Source)
-			if !ok {
-				initErr = fmt.Errorf("resource %T does not support resource.Source", r)
-				return
-			}
-
-			if err := src.Publish(); err != nil {
-				if !herrors.IsNotExist(err) {
-					p.s.Log.Errorf("Failed to publish Resource for page %q: %s", p.pathOrTitle(), err)
-				}
-			} else {
-				p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Files)
-			}
+			continue
 		}
-	})
 
-	return initErr
+		if resources.IsPublished(r) {
+			continue
+		}
+
+		src, ok := r.(resource.Source)
+		if !ok {
+			return fmt.Errorf("resource %T does not support resource.Source", r)
+		}
+
+		if err := src.Publish(); err != nil {
+			if !herrors.IsNotExist(err) {
+				p.s.Log.Errorf("Failed to publish Resource for page %q: %s", p.pathOrTitle(), err)
+			}
+		} else {
+			p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Files)
+		}
+	}
+
+	return nil
 }
 
 func (p *pageState) AlternativeOutputFormats() page.OutputFormats {
@@ -694,9 +695,9 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 
 	if isRenderingSite {
 		cp := p.pageOutput.pco
-		if cp == nil && p.reusePageOutputContent() {
+		if cp == nil && p.canReusePageOutputContent() {
 			// Look for content to reuse.
-			for i := 0; i < len(p.pageOutputs); i++ {
+			for i := range p.pageOutputs {
 				if i == idx {
 					continue
 				}
