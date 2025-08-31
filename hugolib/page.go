@@ -27,13 +27,11 @@ import (
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/output"
-	"github.com/neohugo/neohugo/output/layouts"
 	"github.com/neohugo/neohugo/related"
-"github.com/neohugo/neohugo/tpl/tplimpl"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/tpl"
-"github.com/neohugo/neohugo/markup/tableofcontents"
+	"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/types"
@@ -42,7 +40,9 @@ import (
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/text"
+	"github.com/neohugo/neohugo/markup/converter"
 
+	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"

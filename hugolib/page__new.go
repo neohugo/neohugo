@@ -16,12 +16,12 @@ package hugolib
 import (
 	"fmt"
 	"strings"
-	"sync"
 	"sync/atomic"
 
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/resources"
 
+	"github.com/neohugo/neohugo/common/constants"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/paths"
 

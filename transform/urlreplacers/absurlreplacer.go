@@ -186,7 +186,7 @@ func checkCandidateSrcset(l *absurllexer) {
 			if len(l.root) > 0 && bytes.HasPrefix(f[n:], l.root) {
 				n += len(l.root)
 			}
-			l.w.Write(f[n:]) /nolint
+			l.w.Write(f[n:]) //nolint
 
 		} else {
 			l.w.Write(f) //nolint

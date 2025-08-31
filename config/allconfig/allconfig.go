@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	gc "github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/cache/httpcache"
 	"github.com/neohugo/neohugo/common/loggers"
@@ -53,7 +54,6 @@ import (
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
-	gc "github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
 	"github.com/spf13/afero"
 
 	xmaps "golang.org/x/exp/maps"

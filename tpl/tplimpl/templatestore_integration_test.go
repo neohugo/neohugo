@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/hugolib"
-	"github.com/gohugoio/hugo/resources/kinds"
-	"github.com/gohugoio/hugo/resources/page"
-	"github.com/gohugoio/hugo/tpl/tplimpl"
+	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 )
 
 // Old as in before Hugo v0.146.0.

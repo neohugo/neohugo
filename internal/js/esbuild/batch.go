@@ -30,6 +30,7 @@ import (
 	"sync/atomic"
 
 	"github.com/evanw/esbuild/pkg/api"
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/cache/dynacache"
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/common/maps"
@@ -43,8 +44,7 @@ import (
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/neohugo/neohugo/resources/resource_factories/create"
-	"github.com/neohugo/neohugo/tpl"
-	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 	"github.com/spf13/cast"
 )
 

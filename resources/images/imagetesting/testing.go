@@ -27,11 +27,11 @@ import (
 	"github.com/google/go-cmp/cmp"
 
 	"github.com/disintegration/gift"
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/hugio"
-	"github.com/gohugoio/hugo/htesting"
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/hugio"
+	"github.com/neohugo/neohugo/htesting"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 var eq = qt.CmpEquals(

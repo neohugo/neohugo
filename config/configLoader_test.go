@@ -14,6 +14,7 @@
 package config
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 

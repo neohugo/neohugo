@@ -35,7 +35,6 @@ import (
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types/hstring"
 	"github.com/neohugo/neohugo/helpers"
-	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/markup"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/goldmark/hugocontext"

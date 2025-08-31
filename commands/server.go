@@ -58,7 +58,7 @@ import (
 	"github.com/neohugo/neohugo/hugolib"
 	"github.com/neohugo/neohugo/hugolib/filesystems"
 	"github.com/neohugo/neohugo/livereload"
-	"github.com/neohugo/neohugo/tpl"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 	"github.com/neohugo/neohugo/transform"
 	"github.com/neohugo/neohugo/transform/livereloadinject"
 	"github.com/spf13/afero"

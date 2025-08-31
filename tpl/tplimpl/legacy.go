@@ -14,8 +14,8 @@
 package tplimpl
 
 import (
-	"github.com/gohugoio/hugo/hugofs"
-	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/resources/kinds"
 )
 
 type layoutLegacyMapping struct {

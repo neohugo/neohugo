@@ -26,7 +26,6 @@ import (
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/markup/tableofcontents"

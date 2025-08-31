@@ -3,7 +3,7 @@ package attributes_test
 import (
 	"testing"
 
-	"github.com/gohugoio/hugo/hugolib"
+	"github.com/neohugo/neohugo/hugolib"
 )
 
 func TestDescriptionListAutoID(t *testing.T) {

@@ -6,14 +6,14 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate/parse"
+	"github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate/parse"
 
-	htmltemplate "github.com/gohugoio/hugo/tpl/internal/go_templates/htmltemplate"
-	texttemplate "github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate"
+	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
+	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 
-	"github.com/gohugoio/hugo/common/hashing"
-	"github.com/gohugoio/hugo/common/maps"
-	"github.com/gohugoio/hugo/tpl"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/tpl"
 	"github.com/mitchellh/mapstructure"
 )
 

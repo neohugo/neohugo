@@ -33,8 +33,8 @@ import (
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/parser/metadecoders"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/hugofs"

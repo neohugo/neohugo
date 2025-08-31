@@ -26,7 +26,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/cli/safeexec"
+	"github.com/bep/logg"
+	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/security"
 )
@@ -211,7 +213,7 @@ func (e *Exec) Npx(name string, arg ...any) (Runner, error) {
 
 		locations := []binaryLocation{binaryLocationNodeModules, binaryLocationNpx, binaryLocationPath}
 		if name == "tailwindcss" {
-			// See https://github.com/gohugoio/hugo/issues/13221#issuecomment-2574801253
+			// See https://github.com/neohugo/neohugo/issues/13221#issuecomment-2574801253
 			locations = []binaryLocation{binaryLocationNodeModules, binaryLocationPath, binaryLocationNpx}
 		}
 		for _, loc := range locations {

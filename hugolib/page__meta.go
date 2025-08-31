@@ -29,7 +29,6 @@ import (
 
 	"github.com/gohugoio/hugo/source"
 
-	"github.com/neohugo/neohugo/common/constants"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"

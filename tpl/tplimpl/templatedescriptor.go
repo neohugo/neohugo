@@ -14,7 +14,7 @@
 package tplimpl
 
 import (
-	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/neohugo/neohugo/resources/kinds"
 )
 
 const baseNameBaseof = "baseof"

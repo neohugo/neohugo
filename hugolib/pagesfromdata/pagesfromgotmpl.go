@@ -19,6 +19,7 @@ import (
 	"io"
 	"path/filepath"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/paths"
@@ -29,8 +30,7 @@ import (
 	"github.com/neohugo/neohugo/resources/page/pagemeta"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/neohugo/neohugo/tpl"
-"github.com/neohugo/neohugo/tpl/tplimpl"
-	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 	"github.com/spf13/cast"
 )
 

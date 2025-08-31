@@ -29,6 +29,7 @@ import (
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/postpub"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 
 	"github.com/neohugo/neohugo/metrics"
 	"github.com/neohugo/neohugo/resources"

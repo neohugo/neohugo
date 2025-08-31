@@ -17,11 +17,11 @@ import (
 	"fmt"
 
 	"github.com/gobwas/glob"
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/predicate"
 	"github.com/neohugo/neohugo/config"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
-	"github.com/mitchellh/mapstructure"
 )
 
 // Segments is a collection of named segments.

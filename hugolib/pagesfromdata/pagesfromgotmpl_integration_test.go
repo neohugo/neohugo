@@ -23,7 +23,7 @@ import (
 	"github.com/neohugo/neohugo/markup/asciidocext"
 	"github.com/neohugo/neohugo/markup/pandoc"
 	"github.com/neohugo/neohugo/markup/rst"
-"github.com/neohugo/neohugo/related"
+	"github.com/neohugo/neohugo/related"
 )
 
 const filesPagesFromDataTempleBasic = `

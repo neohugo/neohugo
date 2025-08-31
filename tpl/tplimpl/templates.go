@@ -10,10 +10,10 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/gohugoio/hugo/common/paths"
-	"github.com/gohugoio/hugo/tpl"
-	htmltemplate "github.com/gohugoio/hugo/tpl/internal/go_templates/htmltemplate"
-	texttemplate "github.com/gohugoio/hugo/tpl/internal/go_templates/texttemplate"
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/tpl"
+	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
+	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 )
 
 func (t *templateNamespace) readTemplateInto(templ *TemplInfo) error {

@@ -25,7 +25,7 @@ import (
 	"github.com/neohugo/neohugo/hugolib/doctree"
 
 	"github.com/neohugo/neohugo/config"
-	"github.com/neohugo/neohugo/tpl"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"

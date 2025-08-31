@@ -21,7 +21,6 @@ import (
 	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/output/layouts"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/neohugo/neohugo/source"

@@ -16,7 +16,7 @@ package maps
 import (
 	"slices"
 
-	"github.com/gohugoio/hugo/common/hashing"
+	"github.com/neohugo/neohugo/common/hashing"
 )
 
 // Ordered is a map that can be iterated in the order of insertion.

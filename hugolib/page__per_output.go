@@ -29,13 +29,12 @@ import (
 	"github.com/spf13/cast"
 
 	"github.com/neohugo/neohugo/markup/converter/hooks"
-	gc "github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
+	gc "github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
 	"github.com/neohugo/neohugo/markup/tableofcontents"
 
 	"github.com/neohugo/neohugo/markup/converter"
 
 	bp "github.com/neohugo/neohugo/bufferpool"
-	"github.com/neohugo/neohugo/tpl"
 
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/resources/page"

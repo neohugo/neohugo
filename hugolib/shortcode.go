@@ -33,12 +33,12 @@ import (
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/text"
 	"github.com/neohugo/neohugo/common/urls"
-	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/parser/pageparser"
 	"github.com/neohugo/neohugo/resources/page"
 
 	bp "github.com/neohugo/neohugo/bufferpool"
 	"github.com/neohugo/neohugo/tpl"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 )
 
 var (

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/gohugoio/hugo/output"
-	"github.com/gohugoio/hugo/resources/kinds"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources/kinds"
 )
 
 func TestTemplateDescriptorCompare(t *testing.T) {
