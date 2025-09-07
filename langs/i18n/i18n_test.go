@@ -23,8 +23,6 @@ import (
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/config/testconfig"
 
-	"github.com/neohugo/neohugo/tpl/tplimpl"
-
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/spf13/afero"
 

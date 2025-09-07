@@ -27,9 +27,9 @@ import (
 	"sync"
 	"time"
 
-	gc "github.com/gohugoio/hugo/markup/goldmark/goldmark_config"
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/cache/httpcache"
+	"github.com/neohugo/neohugo/common/hugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
@@ -43,6 +43,7 @@ import (
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugolib/segments"
 	"github.com/neohugo/neohugo/langs"
+	gc "github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
 	"github.com/neohugo/neohugo/markup/markup_config"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/minifiers"

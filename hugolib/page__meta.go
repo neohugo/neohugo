@@ -23,11 +23,12 @@ import (
 
 	"github.com/bep/logg"
 	"github.com/gobuffalo/flect"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/langs"
 	"github.com/neohugo/neohugo/markup/converter"
 	xmaps "golang.org/x/exp/maps"
 
-	"github.com/gohugoio/hugo/source"
+	"github.com/neohugo/neohugo/source"
 
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/loggers"
@@ -500,7 +501,7 @@ params:
 
 		if loki == "path" || loki == "kind" || loki == "lang" {
 			// See issue 12484.
-			neohugo.DeprecateLevelMin(loki+" in front matter", "", "v0.144.0", logg.LevelWarn)
+			neohugo.DeprecateLevel(loki+" in front matter", "", "v0.144.0", logg.LevelWarn)
 		}
 
 		switch loki {

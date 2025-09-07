@@ -18,6 +18,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/resources/kinds"
 
 	qt "github.com/frankban/quicktest"
 )
