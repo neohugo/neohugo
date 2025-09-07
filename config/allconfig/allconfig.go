@@ -29,7 +29,6 @@ import (
 
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/cache/httpcache"
-	"github.com/neohugo/neohugo/common/hugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
@@ -444,7 +443,7 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 	)
 	if c.Markup.Goldmark.RenderHooks.Image.EnableDefault != nil {
 		alternative := "Use markup.goldmark.renderHooks.image.useEmbedded instead." + " " + alternativeDetails
-		hugo.DeprecateWithLogger("site config key markup.goldmark.renderHooks.image.enableDefault", alternative, "0.148.0", logger.Logger())
+		neohugo.DeprecateWithLogger("site config key markup.goldmark.renderHooks.image.enableDefault", alternative, "0.148.0", logger.Logger())
 		if *c.Markup.Goldmark.RenderHooks.Image.EnableDefault {
 			c.Markup.Goldmark.RenderHooks.Image.UseEmbedded = gc.RenderHookUseEmbeddedFallback
 		} else {
@@ -453,7 +452,7 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 	}
 	if c.Markup.Goldmark.RenderHooks.Link.EnableDefault != nil {
 		alternative := "Use markup.goldmark.renderHooks.link.useEmbedded instead." + " " + alternativeDetails
-		hugo.DeprecateWithLogger("site config key markup.goldmark.renderHooks.link.enableDefault", alternative, "0.148.0", logger.Logger())
+		neohugo.DeprecateWithLogger("site config key markup.goldmark.renderHooks.link.enableDefault", alternative, "0.148.0", logger.Logger())
 		if *c.Markup.Goldmark.RenderHooks.Link.EnableDefault {
 			c.Markup.Goldmark.RenderHooks.Link.UseEmbedded = gc.RenderHookUseEmbeddedFallback
 		} else {
@@ -999,7 +998,7 @@ func newDefaultConfig() *Config {
 		Taxonomies: map[string]string{"tag": "tags", "category": "categories"},
 		Sitemap:    config.SitemapConfig{Priority: -1, Filename: "sitemap.xml"},
 		RootConfig: RootConfig{
-			Environment:          hugo.EnvironmentProduction,
+			Environment:          neohugo.EnvironmentProduction,
 			TitleCaseStyle:       "AP",
 			PluralizeListTitles:  true,
 			CapitalizeListTitles: true,

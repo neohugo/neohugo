@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	qt "github.com/frankban/quicktest"
-	"github.com/neohugo/neohugo/common/hugo"
+	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/hugolib"
 	gc "github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
@@ -267,7 +267,7 @@ GA ID: {{ site.Config.Services.GoogleAnalytics.ID }}.
 	conf := b.H.Configs
 	base := conf.Base
 
-	b.Assert(base.Environment, qt.Equals, hugo.EnvironmentProduction)
+	b.Assert(base.Environment, qt.Equals, neohugo.EnvironmentProduction)
 	b.Assert(base.BaseURL, qt.Equals, "https://example.com")
 	b.Assert(base.Sitemap.Filename, qt.Equals, "mysitemap.xml")
 	b.Assert(base.Taxonomies, qt.DeepEquals, map[string]string{"bar": "baz", "foo": "bars"})
