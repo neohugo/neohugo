@@ -56,7 +56,7 @@ Due to its flexible framework, multilingual support, and powerful taxonomy syste
 
 Use Hugo's embedded web server during development to instantly see changes to content, structure, behavior, and presentation. Then deploy the site to your host, or push changes to your Git provider for automated builds and deployment.
 
-Hugo's fast asset pipelines include:
+NeoHugo's fast asset pipelines include:
 
 - Image processing &ndash; Convert, resize, crop, rotate, adjust colors, apply filters, overlay text and images, and extract EXIF data
 - JavaScript bundling &ndash; Transpile TypeScript and JSX to JavaScript, bundle, tree shake, minify, create source maps, and perform SRI hashing.
