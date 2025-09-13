@@ -1,7 +1,7 @@
 # Test the hugo server command when adding an error to a config file
 # and then fixing it.
 
-hugo server &
+neohugo server &
 
 waitServer
 

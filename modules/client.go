@@ -415,7 +415,7 @@ func (c *Client) Clean(pattern string) error {
 		}
 		dirCount, err := hugofs.MakeReadableAndRemoveAllModulePkgDir(c.fs, m.Dir)
 		if err == nil {
-			c.logger.Printf("hugo: removed %d dirs in module cache for %q", dirCount, m.Path)
+			c.logger.Printf("neohugo: removed %d dirs in module cache for %q", dirCount, m.Path)
 		}
 	}
 	return err

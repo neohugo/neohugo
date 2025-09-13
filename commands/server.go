@@ -263,7 +263,7 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, net.Listener, string
 
 	fs := filesOnlyFs{httpFs.Dir(path.Join("/", root))}
 	if i == 0 && f.c.fastRenderMode {
-		r.Println("Running in Fast Render Mode. For full rebuilds on change: hugo server --disableFastRender")
+		r.Println("Running in Fast Render Mode. For full rebuilds on change: neohugo server --disableFastRender")
 	}
 
 	decorate := func(h http.Handler) http.Handler {
@@ -518,13 +518,13 @@ func (c *serverCommand) Init(cd *simplecobra.Commandeer) error {
 	cmd := cd.CobraCommand
 	cmd.Short = "Start the embedded web server"
 	cmd.Long = `Hugo provides its own webserver which builds and serves the site.
-While hugo server is high performance, it is a webserver with limited options.
+While neohugo server is high performance, it is a webserver with limited options.
 
-The ` + "`" + `hugo server` + "`" + ` command will by default write and serve files from disk, but
+The ` + "`" + `neohugo server` + "`" + ` command will by default write and serve files from disk, but
 you can render to memory by using the ` + "`" + `--renderToMemory` + "`" + ` flag. This can be
 faster in some cases, but it will consume more memory.
 
-By default hugo will also watch your files for any changes you make and
+By default neohugo will also watch your files for any changes you make and
 automatically rebuild the site. It will then live reload any open browser pages
 and push the latest content to them. As most Hugo sites are built in a fraction
 of a second, you will be able to save and see your changes nearly instantly.`

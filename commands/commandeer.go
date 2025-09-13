@@ -167,7 +167,7 @@ func (r *rootCommand) Close() error {
 }
 
 func (r *rootCommand) Build(cd *simplecobra.Commandeer, bcfg hugolib.BuildCfg, cfg config.Provider) (*hugolib.HugoSites, error) {
-	h, err := r.Hugo(cfg)
+	h, err := r.Neohugo(cfg)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +339,7 @@ func (r *rootCommand) HugFromConfig(conf *commonConfig) (*hugolib.HugoSites, err
 	return h, err
 }
 
-func (r *rootCommand) Hugo(cfg config.Provider) (*hugolib.HugoSites, error) {
+func (r *rootCommand) Neohugo(cfg config.Provider) (*hugolib.HugoSites, error) {
 	return r.getOrCreateHugo(cfg, false)
 }
 
@@ -361,7 +361,7 @@ func (r *rootCommand) newDepsConfig(conf *commonConfig) deps.DepsCfg {
 }
 
 func (r *rootCommand) Name() string {
-	return "hugo"
+	return "neohugo"
 }
 
 func (r *rootCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, args []string) error {
@@ -514,7 +514,7 @@ func (r *rootCommand) Init(cd *simplecobra.Commandeer) error {
 
 func (r *rootCommand) initRootCommand(subCommandName string, cd *simplecobra.Commandeer) error {
 	cmd := cd.CobraCommand
-	commandName := "hugo"
+	commandName := "neohugo"
 	if subCommandName != "" {
 		commandName = subCommandName
 	}

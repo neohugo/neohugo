@@ -1,5 +1,5 @@
-hugo mod get -u
-hugo mod graph
+neohugo mod get -u
+neohugo mod graph
 stdout 'commonmod@v1.0.1.*commonmod2@v1.0.2'
 
 -- hugo.toml --

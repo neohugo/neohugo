@@ -53,7 +53,7 @@ Ensure you run this within the root directory of your site.`,
 					if len(args) < 1 {
 						return newUserError("path needs to be provided")
 					}
-					h, err := r.Hugo(flagsToCfg(cd, nil))
+					h, err := r.Neohugo(flagsToCfg(cd, nil))
 					if err != nil {
 						return err
 					}
@@ -219,7 +219,7 @@ func (c *newCommand) newSiteNextStepsText(path string, format string) string {
 	nextStepsText.WriteString(filepath.Join("<SECTIONNAME>", "<FILENAME>.<FORMAT>"))
 
 	nextStepsText.WriteString(`".
-5. Start the embedded web server with the command "hugo server --buildDrafts".
+5. Start the embedded web server with the command "neohugo server --buildDrafts".
 
 See documentation at https://gohugo.io/.`)
 

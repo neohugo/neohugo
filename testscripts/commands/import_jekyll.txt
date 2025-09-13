@@ -1,12 +1,12 @@
 # Test the import + import jekyll command.
 
-hugo import -h 
+neohugo import -h
 stdout 'Import a site from another system'
 
-hugo import jekyll -h
-stdout 'hugo import from Jekyll\.'
+neohugo import jekyll -h
+stdout 'neohugo import from Jekyll\.'
 
-hugo import jekyll myjekyllsite myhugosite
+neohugo import jekyll myjekyllsite myhugosite
 checkfilecount 1 myhugosite/content/post
 grep 'example\.org' myhugosite/hugo.yaml
 

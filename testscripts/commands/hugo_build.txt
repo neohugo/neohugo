@@ -1,6 +1,6 @@
 # Test the hugo build command (alias for hugo)
 
-hugo build
+neohugo build
 stdout 'Pages.*|1'
 stdout 'Total in'
 checkfile public/index.html

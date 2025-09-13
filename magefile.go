@@ -120,18 +120,18 @@ func HugoNoGitInfo() error {
 func Docker() error {
 	docker := sh.RunCmd("docker")
 
-	if err := docker("build", "-t", "hugo", "."); err != nil {
+	if err := docker("build", "-t", "neohugo", "."); err != nil {
 		return err
 	}
 	// yes ignore errors here
-	docker("rm", "-f", "hugo-build")
-	if err := docker("run", "--name", "hugo-build", "hugo ls /go/bin"); err != nil {
+	docker("rm", "-f", "neohugo-build")
+	if err := docker("run", "--name", "neohugo-build", "neohugo ls /go/bin"); err != nil {
 		return err
 	}
-	if err := docker("cp", "hugo-build:/go/bin/hugo", "."); err != nil {
+	if err := docker("cp", "neohugo-build:/go/bin/neohugo", "."); err != nil {
 		return err
 	}
-	return docker("rm", "hugo-build")
+	return docker("rm", "neohugo-build")
 }
 
 // Run tests and linters
@@ -196,7 +196,7 @@ func Fmt() error {
 
 const pkgPrefixLen = len("github.com/neohugo/neohugo")
 
-var hugoPackages = sync.OnceValues(func() ([]string, error) {
+var neohugoPackages = sync.OnceValues(func() ([]string, error) {
 	s, err := sh.Output(goexe, "list", "./...")
 	if err != nil {
 		return nil, err
@@ -230,7 +230,7 @@ func TestCoverHTML() error {
 	if _, err := f.WriteString("mode: count"); err != nil {
 		return err
 	}
-	pkgs, err := hugoPackages()
+	pkgs, err := neohugoPackages()
 	if err != nil {
 		return err
 	}

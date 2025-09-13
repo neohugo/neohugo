@@ -1,4 +1,4 @@
-hugo mod graph
+neohugo mod graph
 stdout 'withhugotoml.*commonmod'
 
 -- hugo.toml --

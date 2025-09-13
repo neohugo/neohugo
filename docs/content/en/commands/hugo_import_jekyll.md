@@ -5,12 +5,12 @@ url: /commands/hugo_import_jekyll/
 ---
 ## hugo import jekyll
 
-hugo import from Jekyll
+neohugo import from Jekyll
 
 ### Synopsis
 
-hugo import from Jekyll.
-		
+neohugo import from Jekyll.
+
 Import from Jekyll requires two paths, e.g. `hugo import jekyll jekyll_root_path target_path`.
 
 ```

@@ -1,6 +1,6 @@
 # Test the hugo command.
 
-hugo
+neohugo
 stdout 'Pages.*|1'
 stdout 'Total in'
 checkfile public/index.html

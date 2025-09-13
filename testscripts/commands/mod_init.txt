@@ -1,7 +1,7 @@
-# Test the hugo init command.
+# Test the neohugo init command.
 dostounix golden/go.mod.testsubmod
 
-hugo mod init testsubmod
+neohugo mod init testsubmod
 cmpenv go.mod $WORK/golden/go.mod.testsubmod
 
 -- hugo.toml --

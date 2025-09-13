@@ -1,4 +1,4 @@
-# Test the hugo command.
+# Test the neohugo command.
 
 # See https://github.com/rogpeppe/go-internal/issues/228
 [windows] skip

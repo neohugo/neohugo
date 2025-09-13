@@ -47,9 +47,9 @@ func newImportCommand() *importCommand {
 		commands: []simplecobra.Commander{
 			&simpleCommand{
 				name:  "jekyll",
-				short: "hugo import from Jekyll",
-				long: `hugo import from Jekyll.
-		
+				short: "neohugo import from Jekyll",
+				long: `neohugo import from Jekyll.
+
 Import from Jekyll requires two paths, e.g. ` + "`hugo import jekyll jekyll_root_path target_path`.",
 				run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
 					if len(args) < 2 {
@@ -467,7 +467,7 @@ func (c *importCommand) importFromJekyll(args []string) error {
 	c.r.Println("git init")
 	c.r.Println("git submodule add https://github.com/theNewDynamic/gohugo-theme-ananke themes/ananke")
 	c.r.Println("echo \"theme = 'ananke'\" > hugo.toml")
-	c.r.Println("hugo server")
+	c.r.Println("neohugo server")
 
 	return nil
 }

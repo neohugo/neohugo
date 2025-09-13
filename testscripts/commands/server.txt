@@ -1,4 +1,4 @@
-# Test the hugo server command.
+# Test the neohugo server command.
 
 # We run these tests in parallel so let Hugo decide which port to use.
 neohugo server --renderToMemory --gc &

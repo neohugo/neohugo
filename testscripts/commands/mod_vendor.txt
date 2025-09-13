@@ -1,6 +1,6 @@
 dostounix golden/vendor.txt
 
-hugo mod vendor
+neohugo mod vendor
 cmp _vendor/modules.txt golden/vendor.txt
 ls _vendor/github.com/gohugoio/hugo-mod-integrationtests/withconfigtoml
 stdout 'config.toml'
@@ -22,7 +22,7 @@ go 1.19
 module github.com/gohugoio/testmod
 
 require (
-    github.com/gohugoio/hugo-mod-integrationtests/withconfigtoml v1.0.0 
+    github.com/gohugoio/hugo-mod-integrationtests/withconfigtoml v1.0.0
     github.com/gohugoio/hugo-mod-integrationtests/withhugotoml v1.0.0
 )
 

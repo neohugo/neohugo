@@ -3,7 +3,7 @@
 dostounix golden/package.json
 
 
-hugo mod npm pack
+neohugo mod npm pack
 cmp package.json golden/package.json
 
 -- hugo.toml --

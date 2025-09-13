@@ -58,7 +58,7 @@ func TestUnfinished(t *testing.T) {
 func TestMain(m *testing.M) {
 	testscript.Main(m, map[string]func(){
 		// The main program.
-		"hugo": func() {
+		"neohugo": func() {
 			err := commands.Execute(os.Args[1:])
 			if err != nil {
 				fmt.Fprintln(os.Stderr, err)

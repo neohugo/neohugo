@@ -1,18 +1,18 @@
 # Test the config command.
 
-hugo config -h
+neohugo config -h
 stdout 'Display site configuration'
 
 
-hugo config
+neohugo config
 stdout 'baseurl = .https://example.com/'
-hugo config --format json
+neohugo config --format json
 stdout '\"baseurl\": \"https://example.com/\",'
 
-hugo config mounts -h
+neohugo config mounts -h
 stdout 'Print the configured file mounts'
 
-hugo config mounts
+neohugo config mounts
 stdout '\"source\": \"content\",'
 
 # Test files

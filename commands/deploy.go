@@ -35,7 +35,7 @@ See https://gohugo.io/hosting-and-deployment/hugo-deploy/ for detailed
 documentation.
 `,
 		run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
-			h, err := r.Hugo(flagsToCfgWithAdditionalConfigBase(cd, nil, "deployment"))
+			h, err := r.Neohugo(flagsToCfgWithAdditionalConfigBase(cd, nil, "deployment"))
 			if err != nil {
 				return err
 			}

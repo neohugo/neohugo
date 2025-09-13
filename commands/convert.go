@@ -122,7 +122,7 @@ func (c *convertCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 	c.r = cd.Root.Command.(*rootCommand)
 	cfg := config.New()
 	cfg.Set("buildDrafts", true)
-	h, err := c.r.Hugo(flagsToCfg(cd, cfg))
+	h, err := c.r.Neohugo(flagsToCfg(cd, cfg))
 	if err != nil {
 		return err
 	}

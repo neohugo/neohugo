@@ -1,4 +1,4 @@
-hugo  --printUnusedTemplates
+neohugo  --printUnusedTemplates
 
 stderr 'Template /list.html is unused'
 

@@ -1,6 +1,6 @@
 # Issue #13074
 
-hugo
+neohugo
 stderr 'warning'
 ! stdout 'warning'
 

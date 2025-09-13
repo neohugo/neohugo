@@ -66,7 +66,7 @@ so this may/will change in future versions of Hugo.
 					applyLocalFlagsBuildConfig(cmd, r)
 				},
 				run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
-					h, err := r.Hugo(flagsToCfg(cd, nil))
+					h, err := r.Neohugo(flagsToCfg(cd, nil))
 					if err != nil {
 						return err
 					}
@@ -159,7 +159,7 @@ Note that for vendored modules, that is the version listed and not the one from 
 					cmd.Flags().BoolVarP(&all, "all", "", false, "clean entire module cache")
 				},
 				run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
-					h, err := r.Hugo(flagsToCfg(cd, nil))
+					h, err := r.Neohugo(flagsToCfg(cd, nil))
 					if err != nil {
 						return err
 					}
@@ -181,7 +181,7 @@ Note that for vendored modules, that is the version listed and not the one from 
 					applyLocalFlagsBuildConfig(cmd, r)
 				},
 				run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
-					h, err := r.Hugo(flagsToCfg(cd, nil))
+					h, err := r.Neohugo(flagsToCfg(cd, nil))
 					if err != nil {
 						return err
 					}
@@ -199,7 +199,7 @@ Note that for vendored modules, that is the version listed and not the one from 
 					applyLocalFlagsBuildConfig(cmd, r)
 				},
 				run: func(ctx context.Context, cd *simplecobra.Commandeer, r *rootCommand, args []string) error {
-					h, err := r.Hugo(flagsToCfg(cd, nil))
+					h, err := r.Neohugo(flagsToCfg(cd, nil))
 					if err != nil {
 						return err
 					}

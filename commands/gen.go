@@ -89,7 +89,7 @@ See https://xyproto.github.io/splash/docs/all.html for a preview of the availabl
 				}
 
 				w := os.Stdout
-				fmt.Fprintf(w, "/* Generated using: hugo %s */\n\n", strings.Join(os.Args[1:], " "))
+				fmt.Fprintf(w, "/* Generated using: neohugo %s */\n\n", strings.Join(os.Args[1:], " "))
 				formatter.WriteCSS(w, style)
 				return nil
 			},

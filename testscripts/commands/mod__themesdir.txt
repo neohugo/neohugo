@@ -1,4 +1,4 @@
-hugo --theme mytheme mod graph
+neohugo --theme mytheme mod graph
 stdout 'project mytheme'
 
 -- hugo.toml --

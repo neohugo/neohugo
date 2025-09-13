@@ -1,7 +1,7 @@
 # Test the hugo server command when adding a front matter error to a content file
 # and then fixing it.
 
-hugo server &
+neohugo server &
 
 waitServer
 

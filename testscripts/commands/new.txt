@@ -1,10 +1,10 @@
 # Test the new command.
 
-hugo new site -h
+neohugo new site -h
 stdout 'Create a new site at the specified path.'
-hugo new site my-yaml-site --format yml
+neohugo new site my-yaml-site --format yml
 checkfile my-yaml-site/hugo.yml
-hugo new site mysite -f
+neohugo new site mysite -f
 stdout 'Congratulations! Your new Hugo site was created in'
 cd mysite
 checkfile archetypes/default.md
@@ -18,9 +18,9 @@ exists static
 exists themes
 ! exists resources
 
-hugo new theme -h
+neohugo new theme -h
 stdout 'Create a new theme with the specified name in the ./themes directory.'
-hugo new theme mytheme --format yml
+neohugo new theme mytheme --format yml
 stdout 'Creating new theme'
 ! exists resources
 cd themes
@@ -54,14 +54,14 @@ exists i18n
 
 cd $WORK/mysite
 
-hugo new -h
+neohugo new -h
 stdout 'Create a new content file.'
-hugo new posts/my-first-post.md
+neohugo new posts/my-first-post.md
 checkfile content/posts/my-first-post.md
 
 cd ..
 cd myexistingsite
-hugo new post/foo.md -t mytheme
+neohugo new post/foo.md -t mytheme
 grep 'Dummy content' content/post/foo.md
 
 cd $WORK
@@ -69,13 +69,13 @@ cd $WORK
 # In the three archetype format tests below, skip Windows testing to avoid
 # newline differences when comparing to golden.
 
-hugo new site json-site --format json
+neohugo new site json-site --format json
 [!windows] cmp json-site/archetypes/default.md archetype-golden-json.md
 
-hugo new site toml-site --format toml
+neohugo new site toml-site --format toml
 [!windows] cmp toml-site/archetypes/default.md archetype-golden-toml.md
 
-hugo new site yaml-site --format yaml
+neohugo new site yaml-site --format yaml
 [!windows] cmp yaml-site/archetypes/default.md archetype-golden-yaml.md
 
 -- myexistingsite/hugo.toml --

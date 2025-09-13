@@ -1,6 +1,6 @@
 # Test the hugo command.
 
-hugo
+neohugo
 grep 'myparam: §'  public/index.html
 
 -- hugo.toml --

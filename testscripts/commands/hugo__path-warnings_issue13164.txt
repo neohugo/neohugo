@@ -1,4 +1,4 @@
-hugo --printPathWarnings
+neohugo --printPathWarnings
 
 ! stderr 'Duplicate target paths'
 
