@@ -3,7 +3,7 @@
 # See https://github.com/rogpeppe/go-internal/issues/228
 [windows] skip
 
-hugo -w &
+neohugo -w &
 
 sleep 3
 grep 'P1start' public/p1/index.html

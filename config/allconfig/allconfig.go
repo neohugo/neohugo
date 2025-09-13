@@ -397,12 +397,12 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 
 	// Legacy paginate values.
 	if c.Paginate != 0 {
-		neohugo.DeprecateWithLogger("site config key paginate", "Use pagination.pagerSize instead.", "v0.128.0")
+		neohugo.DeprecateWithLogger("site config key paginate", "Use pagination.pagerSize instead.", "v0.128.0", logger.Logger())
 		c.Pagination.PagerSize = c.Paginate
 	}
 
 	if c.PaginatePath != "" {
-		neohugo.DeprecateWithLogger("site config key paginatePath", "Use pagination.path instead.", "v0.128.0")
+		neohugo.DeprecateWithLogger("site config key paginatePath", "Use pagination.path instead.", "v0.128.0", logger.Logger())
 		c.Pagination.Path = c.PaginatePath
 	}
 

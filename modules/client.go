@@ -36,12 +36,12 @@ import (
 	"github.com/neohugo/neohugo/config"
 
 	"github.com/gobwas/glob"
-	
+
 	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
-	"golang.org/x/mod/module"
 	hglob "github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/spf13/afero"
+	"golang.org/x/mod/module"
 )
 
 var fileSeparator = string(os.PathSeparator)
@@ -658,7 +658,7 @@ If you then run 'hugo mod graph' it should resolve itself to the most recent ver
 
 var goOutputReplacer = strings.NewReplacer(
 	"go: to add module requirements and sums:", "hugo: to add module requirements and sums:",
-	"go mod tidy", "hugo mod tidy",
+	"go mod tidy", "neohugo mod tidy",
 )
 
 type goOutputReplacerWriter struct {

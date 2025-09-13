@@ -415,7 +415,7 @@ func IsDartSassGeV2() bool {
 // 2. Their theme to work for at least the last few Hugo versions.
 func Deprecate(item, alternative string, version string) {
 	level := deprecationLogLevelFromVersion(version)
-	DeprecateLevel(item, alternative, version, level)
+	deprecateLevel(item, alternative, version, level)
 }
 
 // See Deprecate for details.

@@ -501,7 +501,7 @@ params:
 
 		if loki == "path" || loki == "kind" || loki == "lang" {
 			// See issue 12484.
-			neohugo.DeprecateLevel(loki+" in front matter", "", "v0.144.0", logg.LevelWarn)
+			neohugo.DeprecateLevelMin(loki+" in front matter", "", "v0.144.0", logg.LevelWarn)
 		}
 
 		switch loki {
