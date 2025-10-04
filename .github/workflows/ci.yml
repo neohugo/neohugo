@@ -88,25 +88,26 @@ jobs:
       - if: matrix.os == 'ubuntu-latest'
         name: Install dart-sass Linux
         run: |
-          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
-          echo "${DART_SASS_SHA_LINUX}  dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf "dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "Install Dart Sass version ${SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${SASS_VERSION}/dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX}  dart-sass-${SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
+          echo "$GOBIN"
           echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
       - if: matrix.os == 'macos-latest'
         name: Install dart-sass MacOS
         run: |
-          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-macos-x64.tar.gz";
-          echo "${DART_SASS_SHA_MACOS}  dart-sass-${DART_SASS_VERSION}-macos-x64.tar.gz" | shasum -a 256 -c;
-          tar -xvf "dart-sass-${DART_SASS_VERSION}-macos-x64.tar.gz";
+          echo "Install Dart Sass version ${SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${SASS_VERSION}/dart-sass-${SASS_VERSION}-macos-x64.tar.gz";
+          echo "${DART_SASS_SHA_MACOS}  dart-sass-${SASS_VERSION}-macos-x64.tar.gz" | shasum -a 256 -c;
+          tar -xvf "dart-sass-${SASS_VERSION}-macos-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
       - if: matrix.os == 'windows-latest'
         name: Install dart-sass Windows
         run: |
-          echo "Install Dart Sass version ${env:DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${env:DART_SASS_VERSION}/dart-sass-${env:DART_SASS_VERSION}-windows-x64.zip";
-          Expand-Archive -Path "dart-sass-${env:DART_SASS_VERSION}-windows-x64.zip" -DestinationPath .;
+          echo "Install Dart Sass version ${env:SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${env:SASS_VERSION}/dart-sass-${env:SASS_VERSION}-windows-x64.zip";
+          Expand-Archive -Path "dart-sass-${env:SASS_VERSION}-windows-x64.zip" -DestinationPath .;
           echo  "$env:GITHUB_WORKSPACE/dart-sass/" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf-8 -Append
       - if: matrix.os != 'windows-latest'
         name: Run mage check
