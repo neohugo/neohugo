@@ -81,7 +81,7 @@ func (ns *Namespace) Unmarshal(args ...any) (any, error) {
 			if err != nil {
 				return nil, err
 			}
-			defer reader.Close()
+			defer func() { _ = reader.Close() }()
 
 			b, err := io.ReadAll(reader)
 			if err != nil {

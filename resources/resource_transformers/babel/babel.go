@@ -137,7 +137,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	// We need an absolute filename to the config file.
 	if !filepath.IsAbs(configFile) {
-		configFile = t.rs.BaseFs.ResolveJSConfigFile(configFile)
+		configFile = t.rs.ResolveJSConfigFile(configFile)
 		if configFile == "" && t.options.Config != "" {
 			// Only fail if the user specified config file is not found.
 			return fmt.Errorf("babel config %q not found", configFile)
@@ -170,11 +170,11 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	stderr := io.MultiWriter(infoW, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
 	cmdArgs = append(cmdArgs, hexec.WithStdout(stderr))
-	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
+	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.Assets.Fs)))
 
 	defer func() {
-		compileOutput.Close()
-		os.Remove(compileOutput.Name())
+		_ = compileOutput.Close()
+		_ = os.Remove(compileOutput.Name())
 	}()
 
 	// ARGA [--no-install babel --config-file /private/var/folders/_g/j3j21hts4fn7__h04w2x8gb40000gn/T/hugo-test-babel812882892/babel.config.js --source-maps --filename=js/main2.js --out-file=/var/folders/_g/j3j21hts4fn7__h04w2x8gb40000gn/T/compileOut-2237820197.js]
@@ -194,7 +194,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	}
 
 	go func() {
-		defer stdin.Close()
+		defer func() { _ = stdin.Close() }()
 		io.Copy(stdin, ctx.From) // nolint
 	}()
 
@@ -213,7 +213,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	mapFile := compileOutput.Name() + ".map"
 	if _, err := os.Stat(mapFile); err == nil {
-		defer os.Remove(mapFile)
+		defer func() { _ = os.Remove(mapFile) }()
 		sourceMap, err := os.ReadFile(mapFile)
 		if err != nil {
 			return err

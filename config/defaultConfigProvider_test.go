@@ -463,7 +463,7 @@ func BenchmarkDefaultConfigProvider(b *testing.B) {
 		m := newMap()
 		cfg.Set("mymap", m)
 		cfg.Set("num", 32)
-		if !(cfg.IsSet("mymap") && cfg.IsSet("mymap.a") && cfg.IsSet("mymap.a.b") && cfg.IsSet("mymap.a.b.c")) {
+		if !cfg.IsSet("mymap") || !cfg.IsSet("mymap.a") || !cfg.IsSet("mymap.a.b") || !cfg.IsSet("mymap.a.b.c") {
 			b.Fatal("IsSet failed")
 		}
 

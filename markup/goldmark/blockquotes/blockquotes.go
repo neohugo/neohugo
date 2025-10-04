@@ -65,7 +65,7 @@ func (r *htmlRenderer) renderBlockquote(w util.BufWriter, src []byte, node ast.N
 
 	if entering {
 		// Store the current pos so we can capture the rendered text.
-		ctx.PushPos(ctx.Buffer.Len())
+		ctx.PushPos(ctx.Len())
 		return ast.WalkContinue, nil
 	}
 

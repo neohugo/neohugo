@@ -31,6 +31,7 @@ import (
 
 	"github.com/bep/goportabletext"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/cache/dynacache"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/hugio"
@@ -40,7 +41,6 @@ import (
 	"github.com/neohugo/neohugo/markup/highlight/chromalexers"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
@@ -102,7 +102,7 @@ func (ns *Namespace) Highlight(s any, lang string, opts ...any) (template.HTML, 
 		optsv = opts[0]
 	}
 
-	hl := ns.deps.ContentSpec.Converters.GetHighlighter()
+	hl := ns.deps.Converters.GetHighlighter()
 	highlighted, err := hl.Highlight(ss, lang, optsv)
 	if err != nil {
 		return "", err
@@ -117,7 +117,7 @@ func (ns *Namespace) HighlightCodeBlock(ctx hooks.CodeblockContext, opts ...any)
 		optsv = opts[0]
 	}
 
-	hl := ns.deps.ContentSpec.Converters.GetHighlighter()
+	hl := ns.deps.Converters.GetHighlighter()
 
 	return hl.HighlightCodeBlock(ctx, optsv)
 }
@@ -188,7 +188,7 @@ func (ns *Namespace) Markdownify(ctx context.Context, s any) (template.HTML, err
 	}
 
 	// Strip if this is a short inline type of text.
-	bb := ns.deps.ContentSpec.TrimShortHTML([]byte(ss), "markdown")
+	bb := ns.deps.TrimShortHTML([]byte(ss), "markdown")
 
 	return helpers.BytesToHTML(bb), nil
 }

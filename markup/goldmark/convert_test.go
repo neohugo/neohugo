@@ -160,7 +160,7 @@ description
 `
 
 	// Code fences
-	content = strings.Replace(content, "§§§", "```", -1)
+	content = strings.ReplaceAll(content, "§§§", "```")
 
 	cfg := config.FromTOMLConfigString(`
 [markup]
@@ -750,6 +750,6 @@ type tableRenderer int
 
 func (hr tableRenderer) RenderTable(cctx context.Context, w hugio.FlexiWriter, ctx hooks.TableContext) error {
 	// This is set up with a render hook in the hugolib package, make it simple here.
-	fmt.Fprintln(w, "Table")
+	_, _ = fmt.Fprintln(w, "Table")
 	return nil
 }

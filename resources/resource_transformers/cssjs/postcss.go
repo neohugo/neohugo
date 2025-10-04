@@ -164,7 +164,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 
 	// We need an absolute filename to the config file.
 	if !filepath.IsAbs(configFile) {
-		configFile = t.rs.BaseFs.ResolveJSConfigFile(configFile)
+		configFile = t.rs.ResolveJSConfigFile(configFile)
 		if configFile == "" && options.Config != "" {
 			// Only fail if the user specified config file is not found.
 			return fmt.Errorf("postcss config %q not found", options.Config)
@@ -187,7 +187,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	stderr := io.MultiWriter(infow, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
 	cmdArgs = append(cmdArgs, hexec.WithStdout(ctx.To))
-	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
+	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.Assets.Fs)))
 
 	cmd, err := ex.Npx(binaryName, cmdArgs...)
 	if err != nil {
@@ -221,7 +221,7 @@ func (t *postcssTransformation) Transform(ctx *resources.ResourceTransformationC
 	}
 
 	go func() {
-		defer stdin.Close()
+		defer func() { _ = stdin.Close() }()
 		_, _ = io.Copy(stdin, src)
 	}()
 

@@ -89,8 +89,8 @@ See https://xyproto.github.io/splash/docs/all.html for a preview of the availabl
 				}
 
 				w := os.Stdout
-				fmt.Fprintf(w, "/* Generated using: neohugo %s */\n\n", strings.Join(os.Args[1:], " "))
-				formatter.WriteCSS(w, style)
+				_, _ = fmt.Fprintf(w, "/* Generated using: neohugo %s */\n\n", strings.Join(os.Args[1:], " "))
+				_ = formatter.WriteCSS(w, style)
 				return nil
 			},
 			withc: func(cmd *cobra.Command, r *rootCommand) {
@@ -185,7 +185,7 @@ url: %s
 					name := filepath.Base(filename)
 					base := strings.TrimSuffix(name, path.Ext(name))
 					url := "/docs/reference/commands/" + strings.ToLower(base) + "/"
-					return fmt.Sprintf(gendocFrontmatterTemplate, strings.Replace(base, "_", " ", -1), base, url)
+					return fmt.Sprintf(gendocFrontmatterTemplate, strings.ReplaceAll(base, "_", " "), base, url)
 				}
 
 				linkHandler := func(name string) string {
@@ -243,7 +243,7 @@ url: %s
 				if err != nil {
 					return err
 				}
-				defer f.Close()
+				defer func() { _ = f.Close() }()
 				yamlEnc := yaml.NewEncoder(f)
 				if err := yamlEnc.Encode(m); err != nil {
 					return err

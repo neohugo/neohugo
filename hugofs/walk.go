@@ -156,7 +156,7 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 		}
 		fis, err := f.(fs.ReadDirFile).ReadDir(-1)
 
-		f.Close()
+		_ = f.Close()
 		if err != nil {
 			if w.checkErr(path, err) {
 				return nil

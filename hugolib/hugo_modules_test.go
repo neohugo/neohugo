@@ -28,8 +28,8 @@ import (
 
 	"github.com/spf13/afero"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugofs"
@@ -157,7 +157,7 @@ JS imported in module: |
 }`)
 
 		b.Build(BuildCfg{})
-		b.Assert(npm.Pack(b.H.BaseFs.ProjectSourceFs, b.H.BaseFs.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
+		b.Assert(npm.Pack(b.H.ProjectSourceFs, b.H.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
 
 		b.AssertFileContentFn("package.json", func(s string) bool {
 			return s == `{
@@ -216,7 +216,7 @@ JS imported in module: |
 		b.WithSourceFile("package.json", origPackageJSON)
 
 		b.Build(BuildCfg{})
-		b.Assert(npm.Pack(b.H.BaseFs.ProjectSourceFs, b.H.BaseFs.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
+		b.Assert(npm.Pack(b.H.ProjectSourceFs, b.H.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
 
 		b.AssertFileContentFn("package.json", func(s string) bool {
 			return s == `{
@@ -263,7 +263,7 @@ JS imported in module: |
 		b := newTestBuilder(t, "")
 
 		b.Build(BuildCfg{})
-		b.Assert(npm.Pack(b.H.BaseFs.ProjectSourceFs, b.H.BaseFs.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
+		b.Assert(npm.Pack(b.H.ProjectSourceFs, b.H.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
 
 		b.AssertFileContentFn("package.json", func(s string) bool {
 			return s == `{

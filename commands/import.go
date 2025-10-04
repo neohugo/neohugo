@@ -202,7 +202,7 @@ func (c *importCommand) convertJekyllContent(m any, content string) (string, err
 	excerptSep := "<!--more-->"
 	if value, ok := metadata["excerpt_separator"]; ok {
 		if str, strOk := value.(string); strOk {
-			content = strings.Replace(content, strings.TrimSpace(str), excerptSep, -1)
+			content = strings.ReplaceAll(content, strings.TrimSpace(str), excerptSep)
 		}
 	}
 
@@ -441,9 +441,9 @@ func (c *importCommand) importFromJekyll(args []string) error {
 
 		switch {
 		case strings.Contains(relPath, "_posts/"):
-			relPath = filepath.Join("content/post", strings.Replace(relPath, "_posts/", "", -1))
+			relPath = filepath.Join("content/post", strings.ReplaceAll(relPath, "_posts/", ""))
 		case strings.Contains(relPath, "_drafts/"):
-			relPath = filepath.Join("content/draft", strings.Replace(relPath, "_drafts/", "", -1))
+			relPath = filepath.Join("content/draft", strings.ReplaceAll(relPath, "_drafts/", ""))
 			draft = true
 		default:
 			return nil
@@ -487,7 +487,7 @@ func (c *importCommand) loadJekyllConfig(fs afero.Fs, jekyllRoot string) map[str
 		return nil
 	}
 
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	b, err := io.ReadAll(f)
 	if err != nil {
@@ -544,7 +544,7 @@ func (c *importCommand) replaceHighlightTag(match string) string {
 	result.WriteString(items[0]) // language
 	options := items[1:]
 	for i, opt := range options {
-		opt = strings.Replace(opt, "\"", "", -1)
+		opt = strings.ReplaceAll(opt, "\"", "")
 		if opt == "linenos" {
 			opt = "linenos=table"
 		}
@@ -577,11 +577,12 @@ func (c *importCommand) replaceImageTag(match string) string {
 	if len(part) > 0 {
 		splits := strings.Split(part, "'")
 		lenSplits := len(splits)
-		if lenSplits == 1 {
+		switch lenSplits {
+		case 1:
 			c.replaceOptionalPart(result, "title", splits[0])
-		} else if lenSplits == 3 {
+		case 3:
 			c.replaceOptionalPart(result, "title", splits[1])
-		} else if lenSplits == 5 {
+		case 5:
 			c.replaceOptionalPart(result, "title", splits[1])
 			c.replaceOptionalPart(result, "alt", splits[3])
 		}

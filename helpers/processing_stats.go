@@ -110,7 +110,7 @@ func ProcessingStatsTable(w io.Writer, stats ...*ProcessingStats) {
 			}),
 	)
 
-	table.Bulk(data)
+	_ = table.Bulk(data)
 	table.Header(names)
-	table.Render()
+	_ = table.Render()
 }

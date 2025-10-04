@@ -37,7 +37,7 @@ func TestPollerAddRemove(t *testing.T) {
 	}
 	c.Cleanup(func() {
 		c.Assert(w.Close(), qt.IsNil)
-		os.Remove(f.Name())
+		_ = os.Remove(f.Name())
 	})
 	c.Assert(w.Add(f.Name()), qt.IsNil)
 	c.Assert(w.Remove(f.Name()), qt.IsNil)
@@ -48,7 +48,7 @@ func TestPollerEvent(t *testing.T) {
 	c := qt.New(t)
 
 	for _, poll := range []bool{true, false} {
-		if !(poll || isMacOs) || isCI {
+		if (!poll && !isMacOs) || isCI {
 			// Only run the fsnotify tests on MacOS locally.
 			continue
 		}
@@ -127,13 +127,13 @@ func TestPollerClose(t *testing.T) {
 	w := NewPollingWatcher(watchWaitTime)
 	f1, err := os.CreateTemp("", "f1")
 	c.Assert(err, qt.IsNil)
-	defer os.Remove(f1.Name())
+	defer func() { _ = os.Remove(f1.Name()) }()
 	f2, err := os.CreateTemp("", "f2")
 	c.Assert(err, qt.IsNil)
 	filename1 := f1.Name()
 	filename2 := f2.Name()
-	f1.Close()
-	f2.Close()
+	_ = f1.Close()
+	_ = f2.Close()
 
 	c.Assert(w.Add(filename1), qt.IsNil)
 	c.Assert(w.Add(filename2), qt.IsNil)
@@ -147,7 +147,7 @@ func TestPollerClose(t *testing.T) {
 	f2, err = os.CreateTemp("", "f2")
 	c.Assert(err, qt.IsNil)
 
-	defer os.Remove(f2.Name())
+	defer func() { _ = os.Remove(f2.Name()) }()
 
 	c.Assert(w.Add(f2.Name()), qt.Not(qt.IsNil))
 }
@@ -216,7 +216,7 @@ func BenchmarkPoller(b *testing.B) {
 }
 
 func prepareTestDirWithSomeFiles(c *qt.C, id string) string {
-	dir := c.TB.TempDir()
+	dir := c.TempDir()
 	c.Assert(os.MkdirAll(filepath.Join(dir, subdir1), 0o777), qt.IsNil)
 	c.Assert(os.MkdirAll(filepath.Join(dir, subdir2), 0o777), qt.IsNil)
 
@@ -229,7 +229,7 @@ func prepareTestDirWithSomeFiles(c *qt.C, id string) string {
 	}
 
 	c.Cleanup(func() {
-		os.RemoveAll(dir)
+		_ = os.RemoveAll(dir)
 	})
 
 	return dir
@@ -248,7 +248,7 @@ func preparePollTest(c *qt.C, poll bool) (string, FileWatcher) {
 	dir := prepareTestDirWithSomeFiles(c, fmt.Sprint(poll))
 
 	c.Cleanup(func() {
-		w.Close()
+		_ = w.Close()
 	})
 	return dir, w
 }

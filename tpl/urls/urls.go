@@ -46,7 +46,7 @@ func (ns *Namespace) AbsURL(s any) (string, error) {
 		return "", err
 	}
 
-	return ns.deps.PathSpec.AbsURL(ss, false), nil
+	return ns.deps.AbsURL(ss, false), nil
 }
 
 // Parse parses rawurl into a URL structure. The rawurl may be relative or
@@ -68,7 +68,7 @@ func (ns *Namespace) RelURL(s any) (string, error) {
 		return "", err
 	}
 
-	return ns.deps.PathSpec.RelURL(ss, false), nil
+	return ns.deps.RelURL(ss, false), nil
 }
 
 // URLize returns the strings s formatted as an URL.
@@ -77,7 +77,7 @@ func (ns *Namespace) URLize(s any) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return ns.deps.PathSpec.URLize(ss), nil
+	return ns.deps.URLize(ss), nil
 }
 
 // Anchorize creates sanitized anchor name version of the string s that is compatible
@@ -87,7 +87,7 @@ func (ns *Namespace) Anchorize(s any) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return ns.deps.ContentSpec.SanitizeAnchorName(ss), nil
+	return ns.deps.SanitizeAnchorName(ss), nil
 }
 
 // Ref returns the absolute URL path to a given content item from Page p.
@@ -171,7 +171,7 @@ func (ns *Namespace) RelLangURL(s any) (string, error) {
 		return "", err
 	}
 
-	return ns.deps.PathSpec.RelURL(ss, !ns.multihost), nil
+	return ns.deps.RelURL(ss, !ns.multihost), nil
 }
 
 // AbsLangURL the string s and converts it to an absolute URL according
@@ -183,7 +183,7 @@ func (ns *Namespace) AbsLangURL(s any) (string, error) {
 		return "", err
 	}
 
-	return ns.deps.PathSpec.AbsURL(ss, !ns.multihost), nil
+	return ns.deps.AbsURL(ss, !ns.multihost), nil
 }
 
 // JoinPath joins the provided elements into a URL string and cleans the result

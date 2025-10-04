@@ -145,7 +145,7 @@ func (ns *Namespace) Sass(args ...any) (resource.Resource, error) {
 
 func init() {
 	f := func(d *deps.Deps) *internal.TemplateFuncsNamespace {
-		scssClient, err := scss.New(d.BaseFs.Assets, d.ResourceSpec)
+		scssClient, err := scss.New(d.Assets, d.ResourceSpec)
 		if err != nil {
 			panic(err)
 		}
@@ -181,7 +181,7 @@ func init() {
 func (ns *Namespace) getscssClientDartSass() (*dartsass.Client, error) {
 	var err error
 	ns.scssClientDartSassInit.Do(func() {
-		ns.scssClientDartSass, err = dartsass.New(ns.d.BaseFs.Assets, ns.d.ResourceSpec)
+		ns.scssClientDartSass, err = dartsass.New(ns.d.Assets, ns.d.ResourceSpec)
 		if err != nil {
 			return
 		}

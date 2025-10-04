@@ -142,7 +142,7 @@ func (c *hugoBuilder) getDirList() ([]string, error) {
 		return nil, err
 	}
 
-	return helpers.UniqueStringsSorted(h.PathSpec.BaseFs.WatchFilenames()), nil
+	return helpers.UniqueStringsSorted(h.WatchFilenames()), nil
 }
 
 func (c *hugoBuilder) initCPUProfile() (func(), error) {
@@ -159,7 +159,7 @@ func (c *hugoBuilder) initCPUProfile() (func(), error) {
 	}
 	return func() {
 		pprof.StopCPUProfile()
-		f.Close()
+		_ = f.Close()
 	}, nil
 }
 
@@ -172,7 +172,7 @@ func (c *hugoBuilder) initMemProfile() {
 	if err != nil {
 		c.r.logger.Errorf("could not create memory profile: ", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	runtime.GC() // get up-to-date statistics
 	if err := pprof.WriteHeapProfile(f); err != nil {
 		c.r.logger.Errorf("could not write memory profile: ", err)
@@ -220,7 +220,7 @@ func (c *hugoBuilder) initMutexProfile() (func(), error) {
 
 	return func() {
 		pprof.Lookup("mutex").WriteTo(f, 0) // nolint
-		f.Close()
+		_ = f.Close()
 	}, nil
 }
 
@@ -281,7 +281,7 @@ func (c *hugoBuilder) initTraceProfile() (func(), error) {
 
 	return func() {
 		trace.Stop()
-		f.Close()
+		defer func() { _ = f.Close() }()
 	}, nil
 }
 
@@ -312,7 +312,7 @@ func (c *hugoBuilder) newWatcher(pollIntervalStr string, dirList ...string) (*wa
 	if err != nil {
 		return nil, err
 	}
-	spec := h.Deps.SourceSpec
+	spec := h.SourceSpec
 
 	for _, d := range dirList {
 		if d != "" {
@@ -488,7 +488,7 @@ func (c *hugoBuilder) doWithPublishDirs(f func(sourceFs *filesystems.SourceFiles
 	if err != nil {
 		return nil, err
 	}
-	staticFilesystems := h.BaseFs.SourceFilesystems.Static
+	staticFilesystems := h.Static
 
 	if len(staticFilesystems) == 0 {
 		c.r.logger.Infoln("No static directories found to sync")
@@ -810,7 +810,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 			continue
 		}
 
-		if h.Deps.SourceSpec.IgnoreFile(ev.Name) {
+		if h.SourceSpec.IgnoreFile(ev.Name) {
 			continue
 		}
 		// Sometimes during rm -rf operations a '"": REMOVE' is triggered. Just ignore these
@@ -881,7 +881,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 					return
 				}
 
-				path := h.BaseFs.SourceFilesystems.MakeStaticPathRelative(staticEvents[0].Name)
+				path := h.MakeStaticPathRelative(staticEvents[0].Name)
 				path = h.RelURL(paths.ToSlashTrimLeading(path), false)
 
 				lrl.Logf("refreshing static file %q", path)
@@ -895,7 +895,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 
 	if len(dynamicEvents) > 0 {
 		partitionedEvents := partitionDynamicEvents(
-			h.BaseFs.SourceFilesystems,
+			h.SourceFilesystems,
 			dynamicEvents)
 
 		onePageName := pickOneWriteOrCreatePath(h.Conf.ContentTypes(), partitionedEvents.ContentEvents)
@@ -965,7 +965,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 			} else if len(otherChanges) > 0 || len(cssChanges) > 0 {
 				if len(otherChanges) == 1 {
 					// Allow single changes to be refreshed without a full page reload.
-					pathToRefresh := h.PathSpec.RelURL(paths.ToSlashTrimLeading(otherChanges[0]), false)
+					pathToRefresh := h.RelURL(paths.ToSlashTrimLeading(otherChanges[0]), false)
 					lrl.Logf("refreshing %q", pathToRefresh)
 					livereload.RefreshPath(pathToRefresh)
 				} else if len(cssChanges) == 0 || len(otherChanges) > 1 {
@@ -983,7 +983,7 @@ func (c *hugoBuilder) handleEvents(watcher *watcher.Batcher,
 					time.Sleep(200 * time.Millisecond)
 				}
 				for _, ev := range cssChanges {
-					pathToRefresh := h.PathSpec.RelURL(paths.ToSlashTrimLeading(ev), false)
+					pathToRefresh := h.RelURL(paths.ToSlashTrimLeading(ev), false)
 					lrl.Logf("refreshing CSS %q", pathToRefresh)
 					livereload.RefreshPath(pathToRefresh)
 				}
@@ -1061,7 +1061,7 @@ func (c *hugoBuilder) loadConfig(cd *simplecobra.Commandeer, running bool) error
 	}
 
 	if len(conf.configs.LoadingInfo.ConfigFiles) == 0 {
-		//lint:ignore ST1005 end user message.
+		//nolint:staticcheck // end user message
 		return errors.New("Unable to locate config file or config directory. Perhaps you need to create a new site.\nRun `hugo help new` for details.")
 	}
 

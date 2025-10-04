@@ -219,9 +219,9 @@ Home.
 
 	imagetesting.RunGolden(opts)
 
-	files = strings.Replace(files, "#33ff44", "#a83269", -1)
-	files = strings.Replace(files, "green", "pink", -1)
-	files = strings.Replace(files, "mask.png", "mask2.png", -1)
+	files = strings.ReplaceAll(files, "#33ff44", "#a83269")
+	files = strings.ReplaceAll(files, "green", "pink")
+	files = strings.ReplaceAll(files, "mask.png", "mask2.png")
 	opts.Files = files
 	opts.SkipAssertions = false
 	opts.Rebuild = true

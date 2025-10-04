@@ -118,10 +118,10 @@ func TestSortByN(t *testing.T) {
 		{(Pages).ByWeight, func(p Pages) bool { return p[0].Weight() == 1 }},
 		{(Pages).ByTitle, func(p Pages) bool { return p[0].Title() == "ab" }},
 		{(Pages).ByLinkTitle, func(p Pages) bool { return p[0].LinkTitle() == "abl" }},
-		{(Pages).ByDate, func(p Pages) bool { return p[0].Date() == d4 }},
-		{(Pages).ByPublishDate, func(p Pages) bool { return p[0].PublishDate() == d4 }},
-		{(Pages).ByExpiryDate, func(p Pages) bool { return p[0].ExpiryDate() == d4 }},
-		{(Pages).ByLastmod, func(p Pages) bool { return p[1].Lastmod() == d3 }},
+		{(Pages).ByDate, func(p Pages) bool { return p[0].Date().Equal(d4) }},
+		{(Pages).ByPublishDate, func(p Pages) bool { return p[0].PublishDate().Equal(d4) }},
+		{(Pages).ByExpiryDate, func(p Pages) bool { return p[0].ExpiryDate().Equal(d4) }},
+		{(Pages).ByLastmod, func(p Pages) bool { return p[1].Lastmod().Equal(d3) }},
 		{byLen, func(p Pages) bool { return p[0].(resource.LengthProvider).Len(ctx) == len(p[0].(*testPage).content) }},
 	} {
 		setSortVals([4]time.Time{d1, d2, d3, d4}, [4]string{"b", "ab", "cde", "fg"}, [4]int{0, 3, 2, 1}, p)

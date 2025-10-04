@@ -180,12 +180,12 @@ func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.
 
 	if lexer == nil {
 		if cfg.Hl_inline {
-			fmt.Fprintf(w, "<code%s>%s</code>", inlineCodeAttrs(lang), gohtml.EscapeString(code))
+			_, _ = fmt.Fprintf(w, "<code%s>%s</code>", inlineCodeAttrs(lang), gohtml.EscapeString(code))
 		} else {
 			preWrapper := getPreWrapper(lang, w)
-			fmt.Fprint(w, preWrapper.Start(true, ""))
-			fmt.Fprint(w, gohtml.EscapeString(code))
-			fmt.Fprint(w, preWrapper.End(true))
+			_, _ = fmt.Fprint(w, preWrapper.Start(true, ""))
+			_, _ = fmt.Fprint(w, gohtml.EscapeString(code))
+			_, _ = fmt.Fprint(w, preWrapper.End(true))
 		}
 		return 0, 0, nil
 	}
@@ -274,13 +274,13 @@ func inlineCodeAttrs(lang string) string {
 }
 
 func WritePreStart(w io.Writer, language, styleAttr string) {
-	fmt.Fprintf(w, `<pre tabindex="0"%s>`, styleAttr)
-	fmt.Fprint(w, "<code")
+	_, _ = fmt.Fprintf(w, `<pre tabindex="0"%s>`, styleAttr)
+	_, _ = fmt.Fprint(w, "<code")
 	if language != "" {
-		fmt.Fprint(w, ` class="language-`+language+`"`)
-		fmt.Fprint(w, ` data-lang="`+language+`"`)
+		_, _ = fmt.Fprint(w, ` class="language-`+language+`"`)
+		_, _ = fmt.Fprint(w, ` data-lang="`+language+`"`)
 	}
-	fmt.Fprint(w, ">")
+	_, _ = fmt.Fprint(w, ">")
 }
 
 const preEnd = "</code></pre>"
@@ -304,8 +304,8 @@ func (s startEnd) End(code bool) string {
 }
 
 func writeDivStart(w hugio.FlexiWriter, attrs []attributes.Attribute, wrapperClass string) {
-	w.WriteString(`<div class="`)
-	w.WriteString(wrapperClass)
+	_, _ = w.WriteString(`<div class="`)
+	_, _ = w.WriteString(wrapperClass)
 	if attrs != nil {
 		for _, attr := range attrs {
 			if attr.Name == "class" {

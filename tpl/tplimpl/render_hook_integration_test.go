@@ -181,7 +181,7 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAA
 		`<img src="/dir/p1/pixel.png" alt="alt4">`,
 	)
 
-	files = strings.Replace(files, "block = false", "block = true", -1)
+	files = strings.ReplaceAll(files, "block = false", "block = true")
 
 	b = hugolib.Test(t, files)
 	b.AssertFileContent("public/p1/index.html",

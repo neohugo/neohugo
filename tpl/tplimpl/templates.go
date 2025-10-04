@@ -23,7 +23,7 @@ func (t *templateNamespace) readTemplateInto(templ *TemplInfo) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		b, err := io.ReadAll(f)
 		if err != nil {
 			return err

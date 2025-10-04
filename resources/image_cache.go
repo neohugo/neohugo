@@ -76,7 +76,7 @@ func (c *ImageCache) getOrCreate(
 
 		// create creates the image and encodes it to the cache (w).
 		create := func(info filecache.ItemInfo, w io.WriteCloser) (err error) {
-			defer w.Close()
+			defer func() { _ = w.Close() }()
 
 			var conv image.Image
 			img, conv, err = createImage()

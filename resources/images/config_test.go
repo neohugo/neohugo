@@ -128,7 +128,7 @@ func TestDecodeImageConfig(t *testing.T) {
 }
 
 func newImageConfig(action string, width, height, quality, rotate int, filter, anchor, bgColor string) ImageConfig {
-	var c ImageConfig = GetDefaultImageConfig(nil)
+	var c = GetDefaultImageConfig(nil)
 	c.Action = action
 	c.TargetFormat = PNG
 	c.Hint = 2

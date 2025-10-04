@@ -275,7 +275,7 @@ func (l *logAdapter) PrintTimerIfDelayed(start time.Time, name string) {
 	if milli < 500 {
 		return
 	}
-	fmt.Fprintf(l.stdErr, "%s in %v ms", name, milli)
+	_, _ = fmt.Fprintf(l.stdErr, "%s in %v ms", name, milli)
 }
 
 func (l *logAdapter) Printf(format string, v ...any) {
@@ -283,11 +283,11 @@ func (l *logAdapter) Printf(format string, v ...any) {
 	if !strings.HasSuffix(format, "\n") {
 		format += "\n"
 	}
-	fmt.Fprintf(l.stdOut, format, v...)
+	_, _ = fmt.Fprintf(l.stdOut, format, v...)
 }
 
 func (l *logAdapter) Println(v ...any) {
-	fmt.Fprintln(l.stdOut, v...)
+	_, _ = fmt.Fprintln(l.stdOut, v...)
 }
 
 func (l *logAdapter) Reset() {

@@ -45,7 +45,7 @@ func (cs *Closers) Close() error {
 	cs.mu.Lock()
 	defer cs.mu.Unlock()
 	for _, c := range cs.cs {
-		c.Close()
+		_ = c.Close()
 	}
 
 	cs.cs = cs.cs[:0]

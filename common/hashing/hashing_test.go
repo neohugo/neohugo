@@ -104,7 +104,7 @@ func TestHashString(t *testing.T) {
 	c.Assert(HashString("a", "b"), qt.Equals, "3176555414984061461")
 	c.Assert(HashString("ab"), qt.Equals, "7347350983217793633")
 
-	var vals []any = []any{"a", "b", tstKeyer{"c"}}
+	var vals = []any{"a", "b", tstKeyer{"c"}}
 
 	c.Assert(HashString(vals...), qt.Equals, "4438730547989914315")
 	c.Assert(vals[2], qt.Equals, tstKeyer{"c"})

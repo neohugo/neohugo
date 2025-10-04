@@ -68,7 +68,7 @@ func TestTransform(t *testing.T) {
 				in := helpers.ReaderToString(ctx.From)
 				in = strings.Replace(in, old, new, 1)
 				ctx.AddOutPathIdentifier("." + name)
-				fmt.Fprint(ctx.To, in)
+				_, _ = fmt.Fprint(ctx.To, in)
 				return nil
 			},
 		}
@@ -104,7 +104,7 @@ func TestTransform(t *testing.T) {
 				// Content
 				in := helpers.ReaderToString(ctx.From)
 				in = strings.Replace(in, "blue", "green", 1)
-				fmt.Fprint(ctx.To, in)
+				_, _ = fmt.Fprint(ctx.To, in)
 
 				// Media type
 				ctx.OutMediaType = media.Builtin.CSVType
@@ -227,7 +227,7 @@ func TestTransform(t *testing.T) {
 						ctx.Data = map[string]any{
 							"Hugo": "Rocks!",
 						}
-						fmt.Fprint(ctx.To, in)
+						_, _ = fmt.Fprint(ctx.To, in)
 						return nil
 					},
 				}

@@ -70,7 +70,7 @@ var allDecoderSetups = map[string]decodeWeight{
 			}
 
 			// This need to match with Lang which is always lower case.
-			p.c.RootConfig.DefaultContentLanguage = strings.ToLower(p.c.RootConfig.DefaultContentLanguage)
+			p.c.DefaultContentLanguage = strings.ToLower(p.c.DefaultContentLanguage)
 
 			return nil
 		},

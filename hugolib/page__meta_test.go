@@ -47,7 +47,7 @@ tags: 'tag-a'
 	b.AssertFileContent("public/tags/index.html", "Tags")
 	b.AssertFileContent("public/tags/tag-a/index.html", "Tag-A")
 
-	files = strings.Replace(files, "true", "false", -1)
+	files = strings.ReplaceAll(files, "true", "false")
 
 	b = Test(t, files)
 

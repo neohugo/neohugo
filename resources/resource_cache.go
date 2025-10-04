@@ -137,7 +137,7 @@ func (c *ResourceCache) writeMeta(key string, meta transformedResourceMetadata) 
 	if err != nil {
 		return filecache.ItemInfo{}, nil, err
 	}
-	defer fm.Close()
+	defer func() { _ = fm.Close() }()
 
 	if _, err := fm.Write(raw); err != nil {
 		return filecache.ItemInfo{}, nil, err

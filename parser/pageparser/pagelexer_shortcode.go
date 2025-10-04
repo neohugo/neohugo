@@ -149,8 +149,8 @@ func lexShortCodeParamRawStringVal(l *pageLexer, typ ItemType) stateFunc {
 
 Loop:
 	for {
-		switch r := l.next(); {
-		case r == '`':
+		switch r := l.next(); r {
+		case '`':
 			if openBacktickFound {
 				l.backup()
 				break Loop
@@ -158,7 +158,7 @@ Loop:
 				openBacktickFound = true
 				l.ignore()
 			}
-		case r == eof:
+		case eof:
 			return l.errorf("unterminated raw string in shortcode parameter-argument: '%s'", l.current())
 		}
 	}
@@ -177,8 +177,8 @@ func lexShortcodeQuotedParamVal(l *pageLexer, escapedQuotedValuesAllowed bool, t
 
 Loop:
 	for {
-		switch r := l.next(); {
-		case r == '\\':
+		switch r := l.next(); r {
+		case '\\':
 			if l.peek() == '"' {
 				if openQuoteFound && !escapedQuotedValuesAllowed {
 					l.backup()
@@ -191,9 +191,9 @@ Loop:
 			} else if l.peek() == '`' {
 				return l.errorf("unrecognized escape character")
 			}
-		case r == eof, r == '\n':
+		case eof, '\n':
 			return l.errorf("unterminated quoted string in shortcode parameter-argument: '%s'", l.current())
-		case r == '"':
+		case '"':
 			if escapedQuoteState == 0 {
 				if openQuoteFound {
 					l.backup()
@@ -217,17 +217,18 @@ Loop:
 
 	r := l.next()
 
-	if r == '\\' {
+	switch r {
+	case '\\':
 		if l.peek() == '"' {
 			// ignore the escaped closing quote
 			l.ignore()
 			l.next()
 			l.ignore()
 		}
-	} else if r == '"' {
+	case '"':
 		// ignore closing quote
 		l.ignore()
-	} else {
+	default:
 		// handled by next state
 		l.backup()
 	}
@@ -310,9 +311,10 @@ func lexInsideShortcode(l *pageLexer) stateFunc {
 		l.consumeSpace()
 		l.ignore()
 		peek := l.peek()
-		if peek == '"' || peek == '\\' {
+		switch peek {
+		case '"', '\\':
 			return lexShortcodeQuotedParamVal(l, peek != '\\', tScParamVal)
-		} else if peek == '`' {
+		case '`':
 			return lexShortCodeParamRawStringVal(l, tScParamVal)
 		}
 		return lexShortcodeParamVal

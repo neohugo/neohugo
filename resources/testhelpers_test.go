@@ -131,7 +131,7 @@ func assertImageFile(c *qt.C, fs afero.Fs, filename string, width, height int) {
 	filename = filepath.Clean(filename)
 	f, err := fs.Open(filename)
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	config, _, err := image.DecodeConfig(f)
 	c.Assert(err, qt.IsNil)

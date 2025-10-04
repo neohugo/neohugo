@@ -83,7 +83,7 @@ func NewContentSpec(cfg config.AllProvider, logger loggers.Logger, contentFs afe
 
 // stripEmptyNav strips out empty <nav> tags from content.
 func stripEmptyNav(in []byte) []byte {
-	return bytes.Replace(in, []byte("<nav>\n</nav>\n\n"), []byte(``), -1)
+	return bytes.ReplaceAll(in, []byte("<nav>\n</nav>\n\n"), []byte(``))
 }
 
 // BytesToHTML converts bytes to type template.HTML.

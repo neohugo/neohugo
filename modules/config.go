@@ -233,7 +233,7 @@ func decodeConfig(cfg config.Provider, pathReplacements map[string]string) (Conf
 				c.Workspace = filepath.Join(workingDir, c.Workspace)
 			}
 			if _, err := os.Stat(c.Workspace); err != nil {
-				//lint:ignore ST1005 end user message.
+				//nolint:staticcheck // end user message
 				return c, fmt.Errorf("module workspace %q does not exist. Check your module.workspace setting (or HUGO_MODULE_WORKSPACE env var).", c.Workspace)
 			}
 		}
@@ -361,11 +361,7 @@ func (v HugoVersion) IsValid() bool {
 		return false
 	}
 
-	isValid := true
-
-	if v.Min != "" && current.Compare(v.Min) > 0 {
-		isValid = false
-	}
+	isValid := v.Min == "" || current.Compare(v.Min) <= 0
 
 	if v.Max != "" && current.Compare(v.Max) < 0 {
 		isValid = false

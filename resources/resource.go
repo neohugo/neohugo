@@ -435,7 +435,7 @@ func (l *genericResource) Content(context.Context) (any, error) {
 	if err != nil {
 		return "", err
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	return hugio.ReadString(r)
 }
@@ -509,7 +509,7 @@ func (l *genericResource) Publish() error {
 			// This is a processed image. We want to avoid copying it if it hasn't changed.
 			var changedFilenames []string
 			for _, targetFilename := range targetFilenames {
-				if _, err := l.getSpec().BaseFs.PublishFs.Stat(targetFilename); err == nil {
+				if _, err := l.getSpec().PublishFs.Stat(targetFilename); err == nil {
 					continue
 				}
 				changedFilenames = append(changedFilenames, targetFilename)
@@ -524,14 +524,14 @@ func (l *genericResource) Publish() error {
 		if err != nil {
 			return
 		}
-		defer fr.Close()
+		defer func() { _ = fr.Close() }()
 
 		var fw io.WriteCloser
-		fw, err = helpers.OpenFilesForWriting(l.spec.BaseFs.PublishFs, targetFilenames...)
+		fw, err = helpers.OpenFilesForWriting(l.spec.PublishFs, targetFilenames...)
 		if err != nil {
 			return
 		}
-		defer fw.Close()
+		defer func() { _ = fw.Close() }()
 
 		_, err = io.Copy(fw, fr)
 	})
@@ -544,7 +544,7 @@ func (l *genericResource) isPublished() bool {
 }
 
 func (l *genericResource) RelPermalink() string {
-	return l.spec.PathSpec.GetBasePath(false) + paths.PathEscape(l.paths.TargetLink())
+	return l.spec.GetBasePath(false) + paths.PathEscape(l.paths.TargetLink())
 }
 
 func (l *genericResource) Permalink() string {
@@ -643,7 +643,7 @@ func (l genericResource) clone() *genericResource {
 
 func (r *genericResource) openPublishFileForWriting(relTargetPath string) (io.WriteCloser, error) {
 	filenames := r.paths.FromTargetPath(relTargetPath).TargetFilenames()
-	return helpers.OpenFilesForWriting(r.spec.BaseFs.PublishFs, filenames...)
+	return helpers.OpenFilesForWriting(r.spec.PublishFs, filenames...)
 }
 
 type targetPather interface {
@@ -670,7 +670,7 @@ func (r *resourceHash) init(l hugio.ReadSeekCloserProvider) error {
 			initErr = fmt.Errorf("failed to open source: %w", err)
 			return
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		hash, size, err = hashImage(f)
 		if err != nil {
 			initErr = fmt.Errorf("failed to calculate hash: %w", err)

@@ -30,7 +30,7 @@ func TestExif(t *testing.T) {
 	c := qt.New(t)
 	f, err := os.Open(filepath.FromSlash("../../testdata/sunset.jpg"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder(IncludeFields("Lens|Date"))
 	c.Assert(err, qt.IsNil)
@@ -68,7 +68,7 @@ func TestExifPNG(t *testing.T) {
 
 	f, err := os.Open(filepath.FromSlash("../../testdata/gohugoio.png"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder()
 	c.Assert(err, qt.IsNil)
@@ -81,7 +81,7 @@ func TestIssue8079(t *testing.T) {
 
 	f, err := os.Open(filepath.FromSlash("../../testdata/iss8079.jpg"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder()
 	c.Assert(err, qt.IsNil)
@@ -94,7 +94,7 @@ func BenchmarkDecodeExif(b *testing.B) {
 	c := qt.New(b)
 	f, err := os.Open(filepath.FromSlash("../../testdata/sunset.jpg"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder()
 	c.Assert(err, qt.IsNil)
@@ -131,7 +131,7 @@ func TestIssue10738(t *testing.T) {
 		c.Helper()
 		f, err := os.Open(filepath.FromSlash(path))
 		c.Assert(err, qt.IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		d, err := NewDecoder(IncludeFields(include))
 		c.Assert(err, qt.IsNil)

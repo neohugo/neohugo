@@ -795,7 +795,7 @@ func TestCheckCondition(t *testing.T) {
 		{reflect.ValueOf([]int{1}), reflect.ValueOf([]any{1, 2}), "intersect", expect{true, false}},
 	} {
 		result, err := ns.checkCondition(test.value, test.match, test.op)
-		if test.expect.isError {
+		if test.isError {
 			if err == nil {
 				t.Errorf("[%d] checkCondition didn't return an expected error", i)
 			}
@@ -804,8 +804,8 @@ func TestCheckCondition(t *testing.T) {
 				t.Errorf("[%d] failed: %s", i, err)
 				continue
 			}
-			if result != test.expect.result {
-				t.Errorf("[%d] check condition %v %s %v, got %v but expected %v", i, test.value, test.op, test.match, result, test.expect.result)
+			if result != test.result {
+				t.Errorf("[%d] check condition %v %s %v, got %v but expected %v", i, test.value, test.op, test.match, result, test.result)
 			}
 		}
 	}

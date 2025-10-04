@@ -236,7 +236,7 @@ func (p Pages) groupByDateField(format string, sorter func(p Pages) Pages, getDa
 
 	sp := sorter(p)
 
-	if !(len(order) > 0 && (strings.ToLower(order[0]) == "asc" || strings.ToLower(order[0]) == "rev" || strings.ToLower(order[0]) == "reverse")) {
+	if len(order) == 0 || (strings.ToLower(order[0]) != "asc" && strings.ToLower(order[0]) != "rev" && strings.ToLower(order[0]) != "reverse") {
 		sp = sp.Reverse()
 	}
 

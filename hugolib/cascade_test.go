@@ -199,7 +199,7 @@ func TestCascade(t *testing.T) {
 		// Check output formats set in cascade
 		b.AssertFileContent("public/sect4/index.xml", `<link>https://example.org/sect4/index.xml</link>`)
 		b.AssertFileContent("public/sect4/p1/index.xml", `<link>https://example.org/sect4/p1/index.xml</link>`)
-		b.C.Assert(b.CheckExists("public/sect2/index.xml"), qt.Equals, false)
+		b.Assert(b.CheckExists("public/sect2/index.xml"), qt.Equals, false)
 
 		// Check cascade into bundled page
 		b.AssertFileContent("public/bundle1/index.html", `Resources: bp1.md|home.png|`)

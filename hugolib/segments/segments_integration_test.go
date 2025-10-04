@@ -65,7 +65,7 @@ tags: ["tag1", "tag2"]
 `
 
 	b := hugolib.Test(t, files)
-	b.Assert(b.H.Configs.Base.RootConfig.RenderSegments, qt.DeepEquals, []string{"docs"})
+	b.Assert(b.H.Configs.Base.RenderSegments, qt.DeepEquals, []string{"docs"})
 
 	b.AssertFileContent("public/docs/section1/page1/index.html", "Docs Page 1")
 	b.AssertFileExists("public/blog/section1/page1/index.html", false)

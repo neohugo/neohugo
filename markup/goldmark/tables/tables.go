@@ -110,7 +110,7 @@ func (r *htmlRenderer) renderCell(w util.BufWriter, source []byte, node ast.Node
 
 	if entering {
 		// Store the current pos so we can capture the rendered text.
-		ctx.PushPos(ctx.Buffer.Len())
+		ctx.PushPos(ctx.Len())
 		return ast.WalkContinue, nil
 	}
 

@@ -106,13 +106,13 @@ func (i *imageResource) getExif() *exif.ExifInfo {
 		}
 
 		create := func(info filecache.ItemInfo, w io.WriteCloser) (err error) {
-			defer w.Close()
+			defer func() { _ = w.Close() }()
 			f, err := i.root.ReadSeekCloser()
 			if err != nil {
 				i.metaInitErr = err
 				return
 			}
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 
 			filename := i.getResourcePaths().Path()
 			x, err := i.getSpec().imaging.DecodeExif(filename, mf, f)
@@ -412,7 +412,7 @@ func (i *imageResource) DecodeImage() (image.Image, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to open image for decode: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if i.Format == images.GIF {
 		g, err := gif.DecodeAll(f)

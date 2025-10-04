@@ -382,7 +382,7 @@ func newHugoSites(cfg deps.DepsCfg, d *deps.Deps, pageTrees *pageTrees, sites []
 		}
 		return dep
 	}
-	for _, m := range d.Paths.AllModules() {
+	for _, m := range d.AllModules() {
 		dependencies = append(dependencies, depFromMod(m))
 	}
 
@@ -395,7 +395,7 @@ func newHugoSites(cfg deps.DepsCfg, d *deps.Deps, pageTrees *pageTrees, sites []
 		if i == 0 {
 			templateStore, err := tplimpl.NewStore(
 				tplimpl.StoreOptions{
-					Fs:                     s.BaseFs.Layouts.Fs,
+					Fs:                     s.Layouts.Fs,
 					Log:                    s.Log,
 					DefaultContentLanguage: s.Conf.DefaultContentLanguage(),
 					Watching:               s.Conf.Watching(),
@@ -413,15 +413,15 @@ func newHugoSites(cfg deps.DepsCfg, d *deps.Deps, pageTrees *pageTrees, sites []
 			if err != nil {
 				return nil, err
 			}
-			s.Deps.TemplateStore = templateStore
+			s.TemplateStore = templateStore
 		} else {
-			s.Deps.TemplateStore = prototype.TemplateStore.WithSiteOpts(
+			s.TemplateStore = prototype.TemplateStore.WithSiteOpts(
 				tplimpl.SiteOptions{
 					Site:          s,
 					TemplateFuncs: tplimplinit.CreateFuncMap(s.Deps),
 				})
 		}
-		if err := s.Deps.Compile(prototype); err != nil {
+		if err := s.Compile(prototype); err != nil {
 			return nil, err
 		}
 		if i == 0 {
@@ -1238,7 +1238,7 @@ func (s *Site) createNodeMenuEntryURL(in string) string {
 	}
 	// make it match the nodes
 	menuEntryURL := in
-	menuEntryURL = s.s.PathSpec.URLize(menuEntryURL)
+	menuEntryURL = s.s.URLize(menuEntryURL)
 	if !s.conf.CanonifyURLs {
 		menuEntryURL = paths.AddContextRoot(s.s.PathSpec.Cfg.BaseURL().String(), menuEntryURL)
 	}
@@ -1438,7 +1438,7 @@ const (
 )
 
 func (s *Site) renderAndWritePage(statCounter *uint64, name string, targetPath string, p *pageState, d any, templ *tplimpl.TemplInfo) error {
-	s.h.buildCounters.pageRenderCounter.Add(1)
+	s.h.pageRenderCounter.Add(1)
 	renderBuffer := bp.GetBuffer()
 	defer bp.PutBuffer(renderBuffer)
 
@@ -1564,7 +1564,7 @@ func (s *Site) shouldBuild(p page.Page) bool {
 func shouldBuild(buildFuture bool, buildExpired bool, buildDrafts bool, Draft bool,
 	publishDate time.Time, expiryDate time.Time,
 ) bool {
-	if !(buildDrafts || !Draft) {
+	if !buildDrafts && Draft {
 		return false
 	}
 	hnow := htime.Now()

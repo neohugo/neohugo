@@ -11,10 +11,10 @@ import (
 	htmltemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/htmltemplate"
 	texttemplate "github.com/neohugo/neohugo/tpl/internal/go_templates/texttemplate"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/mitchellh/mapstructure"
 )
 
 type templateTransformContext struct {
@@ -117,13 +117,13 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	partialReturnWrapper = templ.Tree.Root
+	partialReturnWrapper = templ.Root
 
 	templ, err = texttemplate.New("").Funcs(texttemplate.FuncMap{"doDefer": func(string, string) string { return "" }}).Parse(doDeferTempl)
 	if err != nil {
 		panic(err)
 	}
-	doDefer = templ.Tree.Root
+	doDefer = templ.Root
 }
 
 // wrapInPartialReturnWrapper copies and modifies the parsed nodes of a
@@ -184,7 +184,7 @@ func (c *templateTransformContext) applyTransformations(n parse.Node) (bool, err
 		for _, elem := range x.Args {
 			switch an := elem.(type) {
 			case *parse.PipeNode:
-				c.applyTransformations(an)
+				_, _ = c.applyTransformations(an)
 			}
 		}
 		return keep, c.err
@@ -252,7 +252,7 @@ func (c *templateTransformContext) handleDefer(withNode *parse.WithNode) {
 
 func (c *templateTransformContext) applyTransformationsToNodes(nodes ...parse.Node) {
 	for _, node := range nodes {
-		c.applyTransformations(node)
+		_, _ = c.applyTransformations(node)
 	}
 }
 

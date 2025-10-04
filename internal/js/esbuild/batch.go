@@ -72,7 +72,7 @@ var (
 func NewBatcherClient(deps *deps.Deps) (js.BatcherClient, error) {
 	c := &BatcherClient{
 		d:            deps,
-		buildClient:  NewBuildClient(deps.BaseFs.Assets, deps.ResourceSpec),
+		buildClient:  NewBuildClient(deps.Assets, deps.ResourceSpec),
 		createClient: create.New(deps.ResourceSpec),
 		batcherStore: maps.NewCache[string, js.Batcher](),
 		bundlesStore: maps.NewCache[string, js.BatchPackage](),
@@ -701,14 +701,14 @@ func (b *batcher) doBuild(ctx context.Context) (*Package, error) {
 				targetFilenames = append(targetFilenames, targetFilename)
 			}
 
-			fs := b.client.d.BaseFs.PublishFs
+			fs := b.client.d.PublishFs
 
 			if err := func() error {
 				fw, err := helpers.OpenFilesForWriting(fs, targetFilenames...)
 				if err != nil {
 					return err
 				}
-				defer fw.Close()
+				defer func() { _ = fw.Close() }()
 
 				fr := bytes.NewReader(o.Contents)
 

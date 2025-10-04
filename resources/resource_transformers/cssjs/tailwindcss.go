@@ -92,7 +92,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 
 	workingDir := t.rs.Cfg.BaseConfig().WorkingDir
 
-	var cmdArgs []any = []any{
+	var cmdArgs = []any{
 		"--input=-", // Read from stdin.
 		"--cwd", workingDir,
 	}
@@ -104,7 +104,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 	stderr := io.MultiWriter(infow, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
 	cmdArgs = append(cmdArgs, hexec.WithStdout(ctx.To))
-	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(workingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
+	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(workingDir, t.rs.Cfg, t.rs.Assets.Fs)))
 
 	cmd, err := ex.Npx(binaryName, cmdArgs...)
 	if err != nil {
@@ -129,7 +129,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 		t.rs.Assets.Fs, t.rs.Logger, ctx.DependencyManager,
 	)
 
-	if !options.InlineImports.DisableInlineImports {
+	if !options.DisableInlineImports {
 		src, err = imp.resolve()
 		if err != nil {
 			return err
@@ -137,7 +137,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 	}
 
 	go func() {
-		defer stdin.Close()
+		defer func() { _ = stdin.Close() }()
 		_, _ = io.Copy(stdin, src)
 	}()
 
@@ -149,7 +149,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 			}
 		}
 		s := errBuf.String()
-		if options.InlineImports.DisableInlineImports && strings.Contains(s, "Can't resolve") {
+		if options.DisableInlineImports && strings.Contains(s, "Can't resolve") {
 			s += "You may want to set the 'disableInlineImports' option to false to inline imports, see https://gohugo.io/functions/css/tailwindcss/#disableinlineimports"
 		}
 		return imp.toFileError(s)

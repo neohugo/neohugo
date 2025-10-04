@@ -311,7 +311,7 @@ func (h *HugoSites) NumLogErrors() int {
 func (h *HugoSites) PrintProcessingStats(w io.Writer) {
 	stats := make([]*helpers.ProcessingStats, len(h.Sites))
 	for i := range h.Sites {
-		stats[i] = h.Sites[i].PathSpec.ProcessingStats
+		stats[i] = h.Sites[i].ProcessingStats
 	}
 	helpers.ProcessingStatsTable(w, stats...)
 }
@@ -376,7 +376,7 @@ func (h *HugoSites) reset(config *BuildCfg) {
 func (h *HugoSites) resetLogs() {
 	h.Log.Reset()
 	for _, s := range h.Sites {
-		s.Deps.Log.Reset()
+		s.Log.Reset()
 	}
 }
 
@@ -499,7 +499,7 @@ func (h *HugoSites) loadData() error {
 	h.data = make(map[string]any)
 	w := hugofs.NewWalkway(
 		hugofs.WalkwayConfig{
-			Fs:         h.PathSpec.BaseFs.Data.Fs,
+			Fs:         h.BaseFs.Data.Fs,
 			IgnoreFile: h.SourceSpec.IgnoreFile,
 			PathParser: h.Conf.PathParser(),
 			WalkFn: func(path string, fi hugofs.FileMetaInfo) error {
@@ -527,7 +527,7 @@ func (h *HugoSites) handleDataFile(r *source.File) error {
 	if err != nil {
 		return fmt.Errorf("data: failed to open %q: %w", r.LogicalName(), err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Crawl in data tree to insert data
 	current = h.data
@@ -608,7 +608,7 @@ func (h *HugoSites) readData(f *source.File) (any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("readData: failed to open data file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	content := helpers.ReaderToBytes(file)
 
 	format := metadecoders.FormatFromString(f.Ext())

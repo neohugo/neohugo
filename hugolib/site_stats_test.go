@@ -84,8 +84,8 @@ aliases: [/Ali%d]
 	h := b.H
 
 	stats := []*helpers.ProcessingStats{
-		h.Sites[0].PathSpec.ProcessingStats,
-		h.Sites[1].PathSpec.ProcessingStats,
+		h.Sites[0].ProcessingStats,
+		h.Sites[1].ProcessingStats,
 	}
 
 	var buff bytes.Buffer

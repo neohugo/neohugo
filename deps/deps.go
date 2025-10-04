@@ -224,7 +224,7 @@ func (d *Deps) Init() error {
 		d.PathSpec = pathSpec
 	} else {
 		var err error
-		d.PathSpec, err = helpers.NewPathSpecWithBaseBaseFsProvided(d.Fs, d.Conf, d.Log, d.PathSpec.BaseFs)
+		d.PathSpec, err = helpers.NewPathSpecWithBaseBaseFsProvided(d.Fs, d.Conf, d.Log, d.BaseFs)
 		if err != nil {
 			return err
 		}
@@ -381,7 +381,7 @@ func (d *Deps) Close() error {
 		d.MemCache.Stop()
 	}
 	if d.WasmDispatchers != nil {
-		d.WasmDispatchers.Close()
+		_ = d.WasmDispatchers.Close()
 	}
 	return d.BuildClosers.Close()
 }

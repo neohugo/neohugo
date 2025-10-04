@@ -88,7 +88,7 @@ func TestLanguageRootMapping(t *testing.T) {
 	for _, dir := range dirs {
 		f, err := dir.Meta().Open()
 		c.Assert(err, qt.IsNil)
-		f.Close()
+		_ = f.Close()
 	}
 
 	blog, err := rfs.Open(filepath.FromSlash("content/blog"))
@@ -98,9 +98,9 @@ func TestLanguageRootMapping(t *testing.T) {
 	for _, fi := range fis {
 		f, err := fi.(FileMetaInfo).Meta().Open()
 		c.Assert(err, qt.IsNil)
-		f.Close()
+		_ = f.Close()
 	}
-	blog.Close()
+	_ = blog.Close()
 
 	getDirnames := func(name string, rfs *RootMappingFs) []string {
 		c.Helper()
@@ -109,7 +109,7 @@ func TestLanguageRootMapping(t *testing.T) {
 		c.Assert(err, qt.IsNil)
 		names, err := f.Readdirnames(-1)
 
-		f.Close()
+		_ = f.Close()
 		c.Assert(err, qt.IsNil)
 
 		info, err := rfs.Stat(filename)
@@ -119,7 +119,7 @@ func TestLanguageRootMapping(t *testing.T) {
 		names2, err := f2.Readdirnames(-1)
 		c.Assert(err, qt.IsNil)
 		c.Assert(names2, qt.DeepEquals, names)
-		f2.Close()
+		_ = f2.Close()
 
 		return names
 	}
@@ -250,7 +250,7 @@ func TestRootMappingFsMount(t *testing.T) {
 
 	f, err := blogm.Open()
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	dirs1, err := f.Readdirnames(-1)
 	c.Assert(err, qt.IsNil)
 	// Union with duplicate dir names filtered.
@@ -264,7 +264,7 @@ func TestRootMappingFsMount(t *testing.T) {
 
 	singlesDir, err := rfs.Open(filepath.FromSlash("content/singles"))
 	c.Assert(err, qt.IsNil)
-	defer singlesDir.Close()
+	defer func() { _ = singlesDir.Close() }()
 	singles, err := singlesDir.(iofs.ReadDirFile).ReadDir(-1)
 	c.Assert(err, qt.IsNil)
 	c.Assert(singles, qt.HasLen, 2)
@@ -332,7 +332,7 @@ func TestRootMappingFsMountOverlap(t *testing.T) {
 		name = filepath.FromSlash(name)
 		f, err := rfs.Open(name)
 		c.Assert(err, qt.IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		names, err := f.Readdirnames(-1)
 		c.Assert(err, qt.IsNil)
 		c.Assert(names, qt.DeepEquals, expect, qt.Commentf(fmt.Sprintf("%#v", names)))
@@ -403,7 +403,7 @@ func TestRootMappingFsOs(t *testing.T) {
 		dirname = filepath.FromSlash(dirname)
 		f, err := rfs.Open(dirname)
 		c.Assert(err, qt.IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		dirnames, err := f.Readdirnames(-1)
 		c.Assert(err, qt.IsNil)
 		sort.Strings(dirnames)
@@ -426,7 +426,7 @@ func TestRootMappingFsOs(t *testing.T) {
 
 	f, err := dirc.Open()
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	dirEntries, err := f.(iofs.ReadDirFile).ReadDir(-1)
 	c.Assert(err, qt.IsNil)
 	sortDirEntries(dirEntries)
@@ -480,7 +480,7 @@ func TestRootMappingFsOsBase(t *testing.T) {
 		dirname = filepath.FromSlash(dirname)
 		f, err := rfs.Open(dirname)
 		c.Assert(err, qt.IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		dirnames, err := f.Readdirnames(-1)
 		c.Assert(err, qt.IsNil)
 		sort.Strings(dirnames)
@@ -552,7 +552,7 @@ func TestRootMappingFileFilter(t *testing.T) {
 
 	f, err := rfs.Open("content")
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	dirEntries, err := f.(iofs.ReadDirFile).ReadDir(-1)
 
 	c.Assert(err, qt.IsNil)

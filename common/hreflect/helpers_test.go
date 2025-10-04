@@ -81,7 +81,7 @@ func BenchmarkIsContextType(b *testing.B) {
 	})
 
 	b.Run("background", func(b *testing.B) {
-		var ctxt reflect.Type = reflect.TypeOf(context.Background())
+		var ctxt = reflect.TypeOf(context.Background())
 		for i := 0; i < b.N; i++ {
 			if !IsContextType(ctxt) {
 				b.Fatal("not context")

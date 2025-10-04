@@ -43,7 +43,7 @@ func TestKatex(t *testing.T) {
 	d, err := Start[KatexInput, KatexOutput](opts)
 	c.Assert(err, qt.IsNil)
 
-	defer d.Close()
+	defer func() { _ = d.Close() }()
 
 	runExpression := func(c *qt.C, id uint32, expression string) (Message[KatexOutput], error) {
 		c.Helper()
@@ -257,7 +257,7 @@ func BenchmarkExecuteKatex(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer d.Close()
+	defer func() { _ = d.Close() }()
 
 	ctx := context.Background()
 
@@ -333,7 +333,7 @@ func BenchmarkExecuteKatexPara(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		defer d.Close()
+		defer func() { _ = d.Close() }()
 
 		ctx := context.Background()
 
@@ -381,7 +381,7 @@ func BenchmarkExecuteGreet(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer d.Close()
+	defer func() { _ = d.Close() }()
 
 	ctx := context.Background()
 
@@ -421,7 +421,7 @@ func BenchmarkExecuteGreetPara(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer d.Close()
+	defer func() { _ = d.Close() }()
 
 	ctx := context.Background()
 

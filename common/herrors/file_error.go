@@ -207,7 +207,7 @@ func NewFileErrorFromFileInErr(err error, fs afero.Fs, linematcher LineMatcherFn
 	}
 
 	pos.Filename = realFilename
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return fe.UpdateContent(f, linematcher)
 }
 
@@ -220,7 +220,7 @@ func NewFileErrorFromFileInPos(err error, pos text.Position, fs afero.Fs, linema
 		return NewFileErrorFromPos(err, pos)
 	}
 	pos.Filename = realFilename
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return NewFileErrorFromPos(err, pos).UpdateContent(f, linematcher)
 }
 
@@ -233,7 +233,7 @@ func NewFileErrorFromFile(err error, filename string, fs afero.Fs, linematcher L
 	if err2 != nil {
 		return NewFileErrorFromName(err, realFilename)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return NewFileErrorFromName(err, realFilename).UpdateContent(f, linematcher)
 }
 

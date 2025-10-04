@@ -70,7 +70,7 @@ so this may/will change in future versions of Hugo.
 					if err != nil {
 						return err
 					}
-					return npm.Pack(h.BaseFs.ProjectSourceFs, h.BaseFs.AssetsWithDuplicatesPreserved.Fs)
+					return npm.Pack(h.ProjectSourceFs, h.AssetsWithDuplicatesPreserved.Fs)
 				},
 			},
 		},

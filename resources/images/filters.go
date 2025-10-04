@@ -19,11 +19,11 @@ import (
 	"image/color"
 	"strings"
 
+	"github.com/makeworld-the-better-one/dither/v2"
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/makeworld-the-better-one/dither/v2"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/disintegration/gift"
 	"github.com/spf13/cast"
@@ -118,7 +118,7 @@ func (*Filters) Text(text string, options ...any) gift.Filter {
 				fontSource, ok1 := v.(hugio.ReadSeekCloserProvider)
 				identifier, ok2 := v.(resource.Identifier)
 
-				if !(ok1 && ok2) {
+				if !ok1 || !ok2 {
 					panic(fmt.Sprintf("invalid text font source: %T", v))
 				}
 

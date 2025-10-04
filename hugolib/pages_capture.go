@@ -48,7 +48,7 @@ func newPagesCollector(
 	return &pagesCollector{
 		ctx:         ctx,
 		h:           h,
-		fs:          sp.BaseFs.Content.Fs,
+		fs:          sp.Content.Fs,
 		m:           m,
 		sp:          sp,
 		logger:      logger,

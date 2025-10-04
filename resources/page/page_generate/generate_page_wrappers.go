@@ -60,7 +60,7 @@ func generateMarshalJSON(c *codegen.Inspector) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	includes := []reflect.Type{pageInterface}
 
@@ -81,7 +81,7 @@ func generateMarshalJSON(c *codegen.Inspector) error {
 		`\bPage\b`,
 	)
 
-	fmt.Fprintf(f, `%s
+	_, _ = fmt.Fprintf(f, `%s
 
 package page
 

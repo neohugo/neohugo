@@ -106,11 +106,12 @@ func (ns *Namespace) Sort(ctx context.Context, l any, args ...any) (any, error) 
 			key := iter.Key()
 			value := iter.Value()
 			p.Pairs[i].Value = value
-			if sortByField == "" {
+			switch sortByField {
+			case "":
 				p.Pairs[i].Key = key
-			} else if sortByField == "value" {
+			case "value":
 				p.Pairs[i].Key = p.Pairs[i].Value
-			} else {
+			default:
 				v := p.Pairs[i].Value
 				var err error
 				for j, elemName := range path {

@@ -120,7 +120,7 @@ func StripHTML(s string) string {
 	defer bp.PutBuffer(b)
 	for _, r := range s {
 		isSpace := unicode.IsSpace(r)
-		if !(isSpace && wasSpace) {
+		if !isSpace || !wasSpace {
 			b.WriteRune(r)
 		}
 		wasSpace = isSpace

@@ -248,7 +248,7 @@ func BenchmarkElementsCollectorWriter(b *testing.B) {
 		w := newHTMLElementsCollectorWriter(newHTMLElementsCollector(
 			config.BuildStats{Enable: true},
 		))
-		fmt.Fprint(w, benchHTML)
+		_, _ = fmt.Fprint(w, benchHTML)
 
 	}
 }
@@ -273,6 +273,6 @@ func BenchmarkElementsCollectorWriterPre(b *testing.B) {
 		config.BuildStats{Enable: true},
 	))
 	for i := 0; i < b.N; i++ {
-		fmt.Fprint(w, benchHTML)
+		_, _ = fmt.Fprint(w, benchHTML)
 	}
 }

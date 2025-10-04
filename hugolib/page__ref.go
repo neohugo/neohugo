@@ -65,7 +65,7 @@ func (p pageRef) decodeRefArgs(args map[string]any) (refArgs, *Site, error) {
 		}
 
 		if !found {
-			p.p.s.siteRefLinker.logNotFound(ra.Path, fmt.Sprintf("no site found with lang %q", ra.Lang), nil, text.Position{})
+			p.p.s.logNotFound(ra.Path, fmt.Sprintf("no site found with lang %q", ra.Lang), nil, text.Position{})
 			return ra, nil, nil
 		}
 	}
@@ -80,7 +80,7 @@ func (p pageRef) ref(argsm map[string]any, source any) (string, error) {
 	}
 
 	if s == nil {
-		return p.p.s.siteRefLinker.notFoundURL, nil
+		return p.p.s.notFoundURL, nil
 	}
 
 	if args.Path == "" {
@@ -97,7 +97,7 @@ func (p pageRef) relRef(argsm map[string]any, source any) (string, error) {
 	}
 
 	if s == nil {
-		return p.p.s.siteRefLinker.notFoundURL, nil
+		return p.p.s.notFoundURL, nil
 	}
 
 	if args.Path == "" {

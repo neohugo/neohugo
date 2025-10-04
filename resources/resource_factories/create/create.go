@@ -138,7 +138,7 @@ func (c *Client) Get(pathname string) (resource.Resource, error) {
 		// The resource file will not be read before it gets used (e.g. in .Content),
 		// so we need to check that the file exists here.
 		filename := filepath.FromSlash(pathname)
-		fi, err := c.rs.BaseFs.Assets.Fs.Stat(filename)
+		fi, err := c.rs.Assets.Fs.Stat(filename)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil, nil
@@ -214,7 +214,7 @@ func (c *Client) match(name, pattern string, matchFunc func(r resource.Resource)
 			return firstOnly, nil
 		}
 
-		if err := hugofs.Glob(c.rs.BaseFs.Assets.Fs, pattern, handle); err != nil {
+		if err := hugofs.Glob(c.rs.Assets.Fs, pattern, handle); err != nil {
 			return nil, err
 		}
 
@@ -256,7 +256,7 @@ func (c *Client) FromOpts(opts Options) (resource.Resource, error) {
 			if err != nil {
 				return err
 			}
-			defer r.Close()
+			defer func() { _ = r.Close() }()
 
 			hash, err = hashing.XxHashFromReaderHexEncoded(r)
 			if err != nil {

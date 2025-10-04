@@ -119,7 +119,7 @@ posts = '/posts/:year/:month/:title/'
 category = 'categories'
 series = 'series'
 tag = 'tags'
-  
+
 [module]
 [module.hugoVersion]
 min = '0.80.0'
@@ -163,7 +163,7 @@ module github.com/bep/mymod
 	cfg.Set("cacheDir", cacheDir)
 	cfg.Set("workingDir", tempDir)
 	defer func() {
-		os.RemoveAll(tempDir)
+		_ = os.RemoveAll(tempDir)
 	}()
 
 	fs := afero.NewOsFs()

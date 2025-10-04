@@ -121,7 +121,7 @@ func (a *transformer) Transform(node *ast.Document, reader text.Reader, pc parse
 	if a.cfg.Attribute.Block {
 		attributes = make([]ast.Node, 0, 100)
 	}
-	ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(node, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}

@@ -109,5 +109,5 @@ func (c PipeReadWriteCloser) Close() (err error) {
 }
 
 func (c PipeReadWriteCloser) WriteString(s string) (int, error) {
-	return c.PipeWriter.Write([]byte(s))
+	return c.Write([]byte(s))
 }

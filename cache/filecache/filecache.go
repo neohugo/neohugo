@@ -163,7 +163,7 @@ func (c *Cache) ReadOrCreate(id string,
 	// TODO: checking error
 	if r, _ := c.getOrRemove(id); r != nil {
 		err = read(info, r)
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		if err == nil || err == ErrFatal {
 			// See https://github.com/neohugo/neohugo/issues/6401
 			// To recover from file corruption we handle read errors
@@ -240,7 +240,7 @@ func (c *Cache) writeReader(id string, r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	_, _ = io.Copy(f, r)
 
@@ -261,7 +261,7 @@ func (c *Cache) GetOrCreateBytes(id string, create func() ([]byte, error)) (Item
 	// TODO: checking error
 	r, _ := c.getOrRemove(id)
 	if r != nil {
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		b, err := io.ReadAll(r)
 		return info, b, err
 	}
@@ -301,7 +301,7 @@ func (c *Cache) GetBytes(id string) (ItemInfo, []byte, error) {
 	// TODO: checking error
 	r, _ := c.getOrRemove(id)
 	if r != nil {
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		b, err := io.ReadAll(r)
 		return info, b, err
 	}
@@ -357,7 +357,7 @@ func (c *Cache) getBytesAndRemoveIfExpired(id string) ([]byte, bool) {
 	if err != nil {
 		return nil, false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	b, err := io.ReadAll(f)
 	if err != nil {
@@ -411,7 +411,7 @@ func (c *Cache) GetString(id string) string {
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	b, _ := io.ReadAll(f)
 	return string(b)
@@ -436,7 +436,7 @@ func NewCaches(p *helpers.PathSpec) (Caches, error) {
 		var cfs afero.Fs
 
 		if v.IsResourceDir {
-			cfs = p.BaseFs.ResourcesCache
+			cfs = p.ResourcesCache
 		} else {
 			cfs = fs
 		}

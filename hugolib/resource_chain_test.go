@@ -95,7 +95,7 @@ FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg }}{{ with .Err }}{{ with
 	b.Assert(err, qt.IsNil)
 	_, err = io.Copy(out, src)
 	b.Assert(err, qt.IsNil)
-	out.Close()
+	_ = out.Close()
 
 	b.Running()
 

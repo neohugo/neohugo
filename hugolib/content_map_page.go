@@ -1021,17 +1021,17 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 		p := n.(*pageState)
 		s := strings.TrimPrefix(keyPage, paths.CommonDirPath(prevKey, keyPage))
 		lenIndent := len(keyPage) - len(s)
-		fmt.Fprint(w, strings.Repeat(indentStr, lenIndent))
+		_, _ = fmt.Fprint(w, strings.Repeat(indentStr, lenIndent))
 		info := fmt.Sprintf("%s lm: %s (%s)", s, p.Lastmod().Format("2006-01-02"), p.Kind())
-		fmt.Fprintln(w, info)
+		_, _ = fmt.Fprintln(w, info)
 		switch p.Kind() {
 		case kinds.KindTerm:
 			_ = m.treeTaxonomyEntries.WalkPrefix(
 				doctree.LockTypeNone,
 				keyPage+"/",
 				func(s string, n *weightedContentNode) (bool, error) {
-					fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+4))
-					fmt.Fprintln(w, s)
+					_, _ = fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+4))
+					_, _ = fmt.Fprintln(w, s)
 					return false, nil
 				},
 			)
@@ -1050,8 +1050,8 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 					return false, nil
 				}
 			}
-			fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+8))
-			fmt.Fprintln(w, ss+" (resource)")
+			_, _ = fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+8))
+			_, _ = fmt.Fprintln(w, ss+" (resource)")
 			return false, nil
 		}
 
@@ -1065,7 +1065,7 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 }
 
 func (h *HugoSites) dynacacheGCFilenameIfNotWatchedAndDrainMatching(filename string) {
-	cpss := h.BaseFs.ResolvePaths(filename)
+	cpss := h.ResolvePaths(filename)
 	if len(cpss) == 0 {
 		return
 	}
@@ -1123,7 +1123,7 @@ func (h *HugoSites) resolveAndClearStateForIdentities(
 	cachebuster func(s string) bool, changes []identity.Identity,
 ) error {
 	// Drain the cache eviction stack to start fresh.
-	evictedStart := h.Deps.MemCache.DrainEvictedIdentities()
+	evictedStart := h.MemCache.DrainEvictedIdentities()
 
 	h.Log.Debug().Log(logg.StringFunc(
 		func() string {
@@ -1194,7 +1194,7 @@ func (h *HugoSites) resolveAndClearStateForIdentities(
 	}
 
 	// Drain the cache eviction stack.
-	evicted := h.Deps.MemCache.DrainEvictedIdentities()
+	evicted := h.MemCache.DrainEvictedIdentities()
 	if len(evicted) < 200 {
 		for _, c := range evicted {
 			changes = append(changes, c.Identity)
@@ -1756,7 +1756,7 @@ func (sa *sitePagesAssembler) assembleResources() error {
 			baseTarget := targetPaths.SubResourceBaseTarget
 			duplicateResourceFiles := true
 			if ps.m.pageConfig.ContentMediaType.IsMarkdown() {
-				duplicateResourceFiles = ps.s.ContentSpec.Converters.GetMarkupConfig().Goldmark.DuplicateResourceFiles
+				duplicateResourceFiles = ps.s.Converters.GetMarkupConfig().Goldmark.DuplicateResourceFiles
 			}
 
 			duplicateResourceFiles = duplicateResourceFiles || ps.s.Conf.IsMultihost()
@@ -1946,7 +1946,7 @@ func (sa *sitePagesAssembler) addStandalonePages() error {
 			}
 		}
 
-		if !sa.Site.conf.IsKindEnabled(kind) || tree.Has(key) {
+		if !sa.conf.IsKindEnabled(kind) || tree.Has(key) {
 			return
 		}
 
@@ -1991,7 +1991,7 @@ func (sa *sitePagesAssembler) addStandalonePages() error {
 		}
 		addStandalone("/_sitemap", kinds.KindSitemap, of)
 
-		skipSitemapIndex := s.Conf.IsMultihost() || !(s.Conf.DefaultContentLanguageInSubdir() || s.Conf.IsMultilingual())
+		skipSitemapIndex := s.Conf.IsMultihost() || (!s.Conf.DefaultContentLanguageInSubdir() && !s.Conf.IsMultilingual())
 		if !skipSitemapIndex {
 			of = output.SitemapIndexFormat
 			if s.conf.Sitemap.Filename != "" {

@@ -168,7 +168,7 @@ func pageRenderer(
 
 		s.Log.Trace(
 			func() string {
-				return fmt.Sprintf("rendering outputFormat %q kind %q using layout %q to %q", p.pageOutput.f.Name, p.Kind(), templ.Name(), targetPath)
+				return fmt.Sprintf("rendering outputFormat %q kind %q using layout %q to %q", p.f.Name, p.Kind(), templ.Name(), targetPath)
 			},
 		)
 
@@ -178,7 +178,7 @@ func pageRenderer(
 			d = s.h.Sites
 		}
 
-		if err := s.renderAndWritePage(&s.PathSpec.ProcessingStats.Pages, "page "+p.Title(), targetPath, p, d, templ); err != nil {
+		if err := s.renderAndWritePage(&s.ProcessingStats.Pages, "page "+p.Title(), targetPath, p, d, templ); err != nil {
 			results <- err
 		}
 
@@ -255,7 +255,7 @@ func (s *Site) renderPaginator(p *pageState, templ *tplimpl.TemplInfo) error {
 		targetPaths := page.CreateTargetPaths(d)
 
 		if err := s.renderAndWritePage(
-			&s.PathSpec.ProcessingStats.PaginatorPages,
+			&s.ProcessingStats.PaginatorPages,
 			p.Title(),
 			targetPaths.TargetFilename, p, p, templ); err != nil {
 			return err
@@ -340,7 +340,7 @@ func (s *Site) renderMainLanguageRedirect() error {
 	if s.conf.DisableDefaultLanguageRedirect {
 		return nil
 	}
-	if s.h.Conf.IsMultihost() || !(s.h.Conf.DefaultContentLanguageInSubdir() || s.h.Conf.IsMultilingual()) {
+	if s.h.Conf.IsMultihost() || (!s.h.Conf.DefaultContentLanguageInSubdir() && !s.h.Conf.IsMultilingual()) {
 		// No need for a redirect
 		return nil
 	}
@@ -349,13 +349,13 @@ func (s *Site) renderMainLanguageRedirect() error {
 	if found {
 		mainLang := s.conf.DefaultContentLanguage
 		if s.conf.DefaultContentLanguageInSubdir {
-			mainLangURL := s.PathSpec.AbsURL(mainLang+"/", false)
+			mainLangURL := s.AbsURL(mainLang+"/", false)
 			s.Log.Debugf("Write redirect to main language %s: %s", mainLang, mainLangURL)
 			if err := s.publishDestAlias(true, "/", mainLangURL, html, nil); err != nil {
 				return err
 			}
 		} else {
-			mainLangURL := s.PathSpec.AbsURL("", false)
+			mainLangURL := s.AbsURL("", false)
 			s.Log.Debugf("Write redirect to main language %s: %s", mainLang, mainLangURL)
 			if err := s.publishDestAlias(true, mainLang, mainLangURL, html, nil); err != nil {
 				return err

@@ -163,7 +163,7 @@ func BenchmarkMerge(b *testing.B) {
 	ns := newNs()
 
 	for i := 0; i < b.N; i++ {
-		ns.Merge(
+		_, _ = ns.Merge(
 			map[string]any{"a": 42, "c": 3, "e": 11},
 			map[string]any{"a": 1, "b": 2},
 			map[string]any{"a": 9, "c": 4, "d": 7},

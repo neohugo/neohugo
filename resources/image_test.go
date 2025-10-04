@@ -30,9 +30,9 @@ import (
 
 	"github.com/spf13/afero"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/images"
-	"github.com/google/go-cmp/cmp"
 
 	"github.com/neohugo/neohugo/htesting/hqt"
 
@@ -243,7 +243,7 @@ func TestImagePermalinkPublishOrder(t *testing.T) {
 			c := qt.New(t)
 			spec, workDir := newTestResourceOsFs(c)
 			defer func() {
-				os.Remove(workDir)
+				_ = os.Remove(workDir)
 			}()
 
 			check1 := func(img images.ImageResource) {
@@ -343,7 +343,7 @@ func TestImageTransformConcurrent(t *testing.T) {
 
 	spec, workDir := newTestResourceOsFs(c)
 	defer func() {
-		os.Remove(workDir)
+		_ = os.Remove(workDir)
 	}()
 
 	image := fetchImageForSpec(spec, c, "sunset.jpg")

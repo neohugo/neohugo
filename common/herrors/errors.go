@@ -30,7 +30,7 @@ import (
 func PrintStackTrace(w io.Writer) {
 	buf := make([]byte, 1<<16)
 	runtime.Stack(buf, true)
-	fmt.Fprintf(w, "%s", buf)
+	_, _ = fmt.Fprintf(w, "%s", buf)
 }
 
 // ErrorSender is a, typically, non-blocking error handler.

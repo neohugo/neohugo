@@ -87,7 +87,7 @@ func (s descriptorHandler) compareDescriptors(category Category, isEmbedded bool
 	return w
 }
 
-//lint:ignore ST1006 this vs other makes it easier to reason about.
+//nolint:staticcheck // this vs other makes it easier to reason about
 func (this TemplateDescriptor) doCompare(category Category, defaultContentLanguage string, other TemplateDescriptor) weight {
 	w := weightNoMatch
 
@@ -226,7 +226,7 @@ func (d TemplateDescriptor) IsZero() bool {
 	return d == TemplateDescriptor{}
 }
 
-//lint:ignore ST1006 this vs other makes it easier to reason about.
+//nolint:staticcheck // this vs other makes it easier to reason about
 func (this TemplateDescriptor) isKindInLayout(layout string) bool {
 	if this.Kind == "" {
 		return true

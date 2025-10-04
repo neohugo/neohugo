@@ -70,7 +70,7 @@ func (ns *Namespace) Unmarshal(r resource.UnmarshableResource) (*OpenAPIDocument
 		if err != nil {
 			return nil, err
 		}
-		defer reader.Close()
+		defer func() { _ = reader.Close() }()
 
 		b, err := io.ReadAll(reader)
 		if err != nil {

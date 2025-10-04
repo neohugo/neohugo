@@ -193,7 +193,7 @@ func doWithGoFiles(dir string,
 		must(err)
 		f, err := os.Create(path)
 		must(err)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		_, err = f.WriteString(transform(path, string(data)))
 		must(err)
 

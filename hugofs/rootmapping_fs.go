@@ -547,12 +547,11 @@ func (rfs *RootMappingFs) collectDirEntries(prefix string) ([]iofs.DirEntry, err
 		}
 		direntries, err := f.(iofs.ReadDirFile).ReadDir(-1)
 		if err != nil {
-			f.Close()
+			_ = f.Close()
 			return err
 		}
 
 		for _, fi := range direntries {
-
 			meta := fi.(FileMetaInfo).Meta()
 			meta.Merge(rm.Meta)
 
@@ -580,7 +579,7 @@ func (rfs *RootMappingFs) collectDirEntries(prefix string) ([]iofs.DirEntry, err
 			fis = append(fis, fi)
 		}
 
-		f.Close()
+		_ = f.Close()
 
 		return nil
 	}

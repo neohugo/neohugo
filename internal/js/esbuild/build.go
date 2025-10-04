@@ -151,7 +151,7 @@ func (c *BuildClient) Build(opts Options) (api.BuildResult, error) {
 			}
 
 			if contentr != nil {
-				defer contentr.Close()
+				defer func() { _ = contentr.Close() }()
 			}
 
 			if err == nil {

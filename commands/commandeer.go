@@ -68,7 +68,7 @@ func Execute(args []string) error {
 	cd, err := x.Execute(context.Background(), args)
 	if cd != nil {
 		if closer, ok := cd.Root.Command.(types.Closer); ok {
-			closer.Close()
+			_ = closer.Close()
 		}
 	}
 
@@ -158,7 +158,7 @@ func (r *rootCommand) Close() error {
 	if r.hugoSites != nil {
 		r.hugoSites.DeleteFunc(func(key configKey, value *hugolib.HugoSites) bool {
 			if value != nil {
-				value.Close()
+				_ = value.Close()
 			}
 			return false
 		})
@@ -433,12 +433,12 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 
 	r.Printf = func(format string, v ...any) {
 		if !r.quiet {
-			fmt.Fprintf(r.StdOut, format, v...)
+			_, _ = fmt.Fprintf(r.StdOut, format, v...)
 		}
 	}
 	r.Println = func(a ...any) {
 		if !r.quiet {
-			fmt.Fprintln(r.StdOut, a...)
+			_, _ = fmt.Fprintln(r.StdOut, a...)
 		}
 	}
 	_, running := runner.Command.(*serverCommand)
@@ -457,7 +457,7 @@ func (r *rootCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 	r.hugoSites = lazycache.New(lazycache.Options[configKey, *hugolib.HugoSites]{
 		MaxEntries: 1,
 		OnEvict: func(key configKey, value *hugolib.HugoSites) {
-			value.Close()
+			_ = value.Close()
 			runtime.GC()
 		},
 	})

@@ -121,11 +121,12 @@ func (ids *idFactory) StringValues() []string {
 func (ids *idFactory) Generate(value []byte, kind ast.NodeKind) []byte {
 	return sanitizeAnchorNameWithHook(value, ids.idType, func(buf *bytes.Buffer) {
 		if buf.Len() == 0 {
-			if kind == ast.KindHeading {
+			switch kind {
+			case ast.KindHeading:
 				buf.WriteString("heading")
-			} else if kind == east.KindDefinitionTerm {
+			case east.KindDefinitionTerm:
 				buf.WriteString("term")
-			} else {
+			default:
 				buf.WriteString("id")
 			}
 		}

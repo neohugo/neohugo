@@ -69,7 +69,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 	}
 
 	if !config.NoBuildLock {
-		unlock, err := h.BaseFs.LockBuild()
+		unlock, err := h.LockBuild()
 		if err != nil {
 			return fmt.Errorf("failed to acquire a build lock: %w", err)
 		}
@@ -78,7 +78,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 
 	defer func() {
 		for _, s := range h.Sites {
-			s.Deps.BuildEndListeners.Notify()
+			s.BuildEndListeners.Notify()
 		}
 	}()
 
@@ -126,7 +126,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		prepare := func() error {
 			init := func(conf *BuildCfg) error {
 				for _, s := range h.Sites {
-					s.Deps.BuildStartListeners.Notify()
+					s.BuildStartListeners.Notify()
 				}
 
 				if len(events) > 0 || len(conf.WhatChanged.Changes()) > 0 {
@@ -210,7 +210,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		return err
 	}
 
-	if err := h.fatalErrorHandler.getErr(); err != nil {
+	if err := h.getErr(); err != nil {
 		return err
 	}
 
@@ -352,7 +352,7 @@ func (h *HugoSites) render(l logg.LevelLogger, config *BuildCfg) error {
 	l = l.WithField("step", "render")
 	start := time.Now()
 	defer func() {
-		loggers.TimeTrackf(l, start, h.buildCounters.loggFields(), "")
+		loggers.TimeTrackf(l, start, h.loggFields(), "")
 	}()
 
 	siteRenderContext := &siteRenderContext{cfg: config, infol: l, multihost: h.Configs.IsMultihost}
@@ -443,7 +443,7 @@ func (h *HugoSites) renderDeferred(l logg.LevelLogger) error {
 
 	var deferredCount int
 
-	for rc, de := range h.Deps.BuildState.DeferredExecutionsGroupedByRenderingContext {
+	for rc, de := range h.BuildState.DeferredExecutionsGroupedByRenderingContext {
 		if de.FilenamesWithPostPrefix.Len() == 0 {
 			continue
 		}
@@ -470,7 +470,7 @@ func (h *HugoSites) renderDeferred(l logg.LevelLogger) error {
 
 func (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error {
 	handleFile := func(filename string) error {
-		content, err := afero.ReadFile(s.BaseFs.PublishFs, filename)
+		content, err := afero.ReadFile(s.PublishFs, filename)
 		if err != nil {
 			return err
 		}
@@ -478,10 +478,8 @@ func (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error {
 		k := 0
 		changed := false
 
-		for {
-			if k >= len(content) {
-				break
-			}
+		for k < len(content) {
+
 			l := bytes.Index(content[k:], []byte(tpl.HugoDeferredTemplatePrefix))
 			if l == -1 {
 				break
@@ -502,7 +500,7 @@ func (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error {
 				defer deferred.Mu.Unlock()
 
 				if !deferred.Executed {
-					tmpl := s.Deps.GetTemplateStore()
+					tmpl := s.GetTemplateStore()
 					ti := s.TemplateStore.LookupByPath(deferred.TemplatePath)
 					if ti == nil {
 						panic(fmt.Sprintf("template %q not found", deferred.TemplatePath))
@@ -538,7 +536,7 @@ func (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error {
 		}
 
 		if changed {
-			return afero.WriteFile(s.BaseFs.PublishFs, filename, content, 0o666)
+			return afero.WriteFile(s.PublishFs, filename, content, 0o666)
 		}
 
 		return nil
@@ -634,7 +632,7 @@ func (h *HugoSites) postProcess(l logg.LevelLogger) error {
 			}
 		}
 
-		fi, err := h.BaseFs.Assets.Fs.Stat("")
+		fi, err := h.Assets.Fs.Stat("")
 		if err != nil {
 			if !herrors.IsNotExist(err) {
 				h.Log.Warnf("Failed to resolve jsconfig.json dir: %s", err)
@@ -658,7 +656,7 @@ func (h *HugoSites) postProcess(l logg.LevelLogger) error {
 	g, _ := workers.Start(context.Background())
 
 	handleFile := func(filename string) error {
-		content, err := afero.ReadFile(h.BaseFs.PublishFs, filename)
+		content, err := afero.ReadFile(h.PublishFs, filename)
 		if err != nil {
 			return err
 		}
@@ -696,13 +694,13 @@ func (h *HugoSites) postProcess(l logg.LevelLogger) error {
 		}
 
 		if changed {
-			return afero.WriteFile(h.BaseFs.PublishFs, filename, content, 0o666)
+			return afero.WriteFile(h.PublishFs, filename, content, 0o666)
 		}
 
 		return nil
 	}
 
-	filenames := h.Deps.BuildState.GetFilenamesWithPostPrefix()
+	filenames := h.BuildState.GetFilenamesWithPostPrefix()
 	for _, filename := range filenames {
 		filename := filename
 		g.Run(func() error {
@@ -858,7 +856,7 @@ func (h *HugoSites) processPartialFileEvents(ctx context.Context, l logg.LevelLo
 	)
 
 	for _, ev := range eventInfos {
-		cpss := h.BaseFs.ResolvePaths(ev.Name)
+		cpss := h.ResolvePaths(ev.Name)
 		pss := make([]*paths.Path, len(cpss))
 		for i, cps := range cpss {
 			p := cps.Path
@@ -919,7 +917,7 @@ func (h *HugoSites) processPartialFileEvents(ctx context.Context, l logg.LevelLo
 						// Try to open the file to see if has been deleted.
 						f, err := n.GoTmplFi.Meta().Open()
 						if err == nil {
-							f.Close()
+							_ = f.Close()
 						}
 						if err != nil {
 							// Remove all pages and resources below.
@@ -1119,7 +1117,7 @@ func (h *HugoSites) processPartialFileEvents(ctx context.Context, l logg.LevelLo
 	}
 
 	changes2 := changed.Changes()
-	h.Deps.OnChangeListeners.Notify(changes2...)
+	h.OnChangeListeners.Notify(changes2...)
 
 	if err := h.resolveAndClearStateForIdentities(ctx, l, cacheBusterOr, changed.Drain()); err != nil {
 		return err
@@ -1130,7 +1128,7 @@ func (h *HugoSites) processPartialFileEvents(ctx context.Context, l logg.LevelLo
 			depsFinder := identity.NewFinder(identity.FinderConfig{})
 			ll := l.WithField("substep", "rebuild templates")
 			s := h.Sites[0]
-			if err := s.Deps.TemplateStore.RefreshFiles(func(fi hugofs.FileMetaInfo) bool {
+			if err := s.TemplateStore.RefreshFiles(func(fi hugofs.FileMetaInfo) bool {
 				pi := fi.Meta().PathInfo
 				for _, id := range changes2 {
 					if depsFinder.Contains(pi, id, -1) > 0 {
@@ -1153,7 +1151,7 @@ func (h *HugoSites) processPartialFileEvents(ctx context.Context, l logg.LevelLo
 			ll := l.WithField("substep", "rebuild i18n")
 			var prototype *deps.Deps
 			for i, s := range h.Sites {
-				if err := s.Deps.Compile(prototype); err != nil {
+				if err := s.Compile(prototype); err != nil {
 					return ll, err
 				}
 				if i == 0 {
@@ -1232,9 +1230,9 @@ func (h *HugoSites) processContentAdaptersOnRebuild(ctx context.Context, buildCo
 		},
 	})
 
-	h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "", func(key string, p *pagesfromdata.PagesFromTemplate) (bool, error) {
+	_ = h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "", func(key string, p *pagesfromdata.PagesFromTemplate) (bool, error) {
 		if p.StaleVersion() > 0 {
-			g.Enqueue(p)
+			_ = g.Enqueue(p)
 		}
 		return false, nil
 	})
@@ -1247,7 +1245,7 @@ func (s *HugoSites) processFiles(ctx context.Context, l logg.LevelLogger, buildC
 		panic("nil deps on site")
 	}
 
-	sourceSpec := source.NewSourceSpec(s.PathSpec, buildConfig.ContentInclusionFilter, s.BaseFs.Content.Fs)
+	sourceSpec := source.NewSourceSpec(s.PathSpec, buildConfig.ContentInclusionFilter, s.Content.Fs)
 
 	// For inserts, we can pick an arbitrary pageMap.
 	pageMap := s.Sites[0].pageMap

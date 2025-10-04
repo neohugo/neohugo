@@ -148,11 +148,11 @@ func RunGolden(opts GoldenImageTestOpts) *hugolib.IntegrationTestBuilder {
 
 			f1, err := os.Open(filepath.Join(outputDir, e1.Name()))
 			c.Assert(err, qt.IsNil)
-			defer f1.Close()
+			defer func() { _ = f1.Close() }()
 
 			f2, err := os.Open(filepath.Join(goldenDir, e2.Name()))
 			c.Assert(err, qt.IsNil)
-			defer f2.Close()
+			defer func() { _ = f2.Close() }()
 
 			imgs2 := decodeAll(f2)
 			imgs1 := decodeAll(f1)

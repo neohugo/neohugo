@@ -57,7 +57,7 @@ func (t *tocTransformer) Transform(n *ast.Document, reader text.Reader, pc parse
 		toc.SetIdentifiers(ids)
 	}
 
-	ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	_ = ast.Walk(n, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		s := ast.WalkStatus(ast.WalkContinue)
 		if n.Kind() == ast.KindHeading {
 			if inHeading && !entering {
@@ -72,7 +72,7 @@ func (t *tocTransformer) Transform(n *ast.Document, reader text.Reader, pc parse
 			inHeading = true
 		}
 
-		if !(inHeading && entering) {
+		if !inHeading || !entering {
 			return s, nil
 		}
 

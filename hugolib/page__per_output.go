@@ -377,7 +377,7 @@ func (pco *pageContentOutput) initRenderHooks() error {
 			if !found1 {
 				if tp == hooks.CodeBlockRendererType {
 					// No user provided template for code blocks, so we use the native Go version -- which is also faster.
-					r := pco.po.p.s.ContentSpec.Converters.GetHighlighter()
+					r := pco.po.p.s.Converters.GetHighlighter()
 					renderCache[key] = r
 					return r
 				}

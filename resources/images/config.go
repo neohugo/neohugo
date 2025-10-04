@@ -20,8 +20,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/media"
@@ -212,7 +212,7 @@ func DecodeConfig(in map[string]any) (*config.ConfigNamespace[ImagingConfig, Ima
 
 func DecodeImageConfig(options []string, defaults *config.ConfigNamespace[ImagingConfig, ImagingConfigInternal], sourceFormat Format) (ImageConfig, error) {
 	var (
-		c   ImageConfig = GetDefaultImageConfig(defaults)
+		c   = GetDefaultImageConfig(defaults)
 		err error
 	)
 

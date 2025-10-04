@@ -411,12 +411,12 @@ func (s *IntegrationTestBuilder) printAndCheckFs(fs afero.Fs, path string, w io.
 			if err != nil {
 				return fmt.Errorf("error: path %q: %s", path, err)
 			}
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 			// This will panic if the file is a directory.
 			var buf [1]byte
 			_, _ = io.ReadFull(f, buf[:])
 		}
-		fmt.Fprintln(w, path, info.IsDir())
+		_, _ = fmt.Fprintln(w, path, info.IsDir())
 		return nil
 	})
 }

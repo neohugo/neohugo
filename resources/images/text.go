@@ -50,7 +50,7 @@ func (f textFilter) Draw(dst draw.Image, src image.Image, options *gift.Options)
 		if err != nil {
 			panic(err)
 		}
-		defer rs.Close()
+		defer func() { _ = rs.Close() }()
 		ttf, err = io.ReadAll(rs)
 		if err != nil {
 			panic(err)

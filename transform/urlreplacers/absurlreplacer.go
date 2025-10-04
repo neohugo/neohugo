@@ -207,10 +207,7 @@ func (l *absurllexer) replace() {
 
 	prefixes := newPrefixState()
 
-	for {
-		if l.pos >= contentLength {
-			break
-		}
+	for l.pos < contentLength {
 
 		var match *prefix
 

@@ -151,18 +151,18 @@ func (c *convertCommand) convertAndSavePage(p page.Page, site *hugolib.Site, tar
 	file, err := f.FileInfo().Meta().Open()
 	if err != nil {
 		site.Log.Errorln(errMsg)
-		file.Close()
+		_ = file.Close()
 		return nil
 	}
 
 	pf, err := pageparser.ParseFrontMatterAndContent(file)
 	if err != nil {
 		site.Log.Errorln(errMsg)
-		file.Close()
+		_ = file.Close()
 		return err
 	}
 
-	file.Close()
+	_ = file.Close()
 
 	// better handling of dates in formats that don't have support for them
 	if pf.FrontMatterFormat == metadecoders.JSON || pf.FrontMatterFormat == metadecoders.YAML || pf.FrontMatterFormat == metadecoders.TOML {

@@ -287,7 +287,7 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, net.Listener, string
 					})
 					lr := baseURL.URL()
 					lr.Host = fmt.Sprintf("%s:%d", lr.Hostname(), port)
-					fmt.Fprint(w, injectLiveReloadScript(r, lr))
+					_, _ = fmt.Fprint(w, injectLiveReloadScript(r, lr))
 
 					return
 				}
@@ -346,10 +346,10 @@ func (f *fileServer) createEndpoint(i int) (*http.ServeMux, net.Listener, string
 							w.WriteHeader(404)
 							file, err := fs.Open(strings.TrimPrefix(redirect.To, baseURL.Path()))
 							if err == nil {
-								defer file.Close()
-								io.Copy(w, file)
+								defer func() { _ = file.Close() }()
+								_, _ = io.Copy(w, file)
 							} else {
-								fmt.Fprintln(w, "<h1>Page Not Found</h1>")
+								_, _ = fmt.Fprintln(w, "<h1>Page Not Found</h1>")
 							}
 							return
 						case 200:
@@ -1058,7 +1058,7 @@ type staticSyncer struct {
 }
 
 func (s *staticSyncer) isStatic(h *hugolib.HugoSites, filename string) bool {
-	return h.BaseFs.SourceFilesystems.IsStatic(filename)
+	return h.IsStatic(filename)
 }
 
 func (s *staticSyncer) syncsStaticEvents(staticEvents []fsnotify.Event) error {

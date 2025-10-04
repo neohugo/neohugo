@@ -140,7 +140,7 @@ func (ini *Init) inProgress() bool {
 }
 
 func (ini *Init) shouldInitialize() bool {
-	return !(ini == nil || ini.init.Done() || ini.init.InProgress())
+	return ini != nil && !ini.init.Done() && !ini.init.InProgress()
 }
 
 // Reset resets the current and all its dependencies.
@@ -196,7 +196,7 @@ func (ini *Init) withTimeout(ctx context.Context, timeout time.Duration, f func(
 
 	select {
 	case <-waitCtx.Done():
-		//lint:ignore ST1005 end user message.
+		//nolint:staticcheck // end user message
 		return nil, errors.New("timed out initializing value. You may have a circular loop in a shortcode, or your site may have resources that take longer to build than the `timeout` limit in your Hugo config file.")
 	case ve := <-c:
 		return ve.v, ve.err

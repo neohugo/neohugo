@@ -36,7 +36,7 @@ func New(d *deps.Deps) (*Namespace, error) {
 
 	return &Namespace{
 		d:                 d,
-		jsTransformClient: jstransform.New(d.BaseFs.Assets, d.ResourceSpec),
+		jsTransformClient: jstransform.New(d.Assets, d.ResourceSpec),
 		createClient:      create.New(d.ResourceSpec),
 		babelClient:       babel.New(d.ResourceSpec),
 	}, nil

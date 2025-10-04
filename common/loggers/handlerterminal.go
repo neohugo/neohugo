@@ -75,19 +75,19 @@ func (h *noAnsiEscapeHandler) HandleLog(e *logg.Entry) error {
 	msg := stripANSI(e.Message)
 
 	if h.noLevelPrefix {
-		fmt.Fprintf(w, "%s%s", prefix, msg)
+		_, _ = fmt.Fprintf(w, "%s%s", prefix, msg)
 	} else {
-		fmt.Fprintf(w, "%s %s%s", levelString[e.Level], prefix, msg)
+		_, _ = fmt.Fprintf(w, "%s %s%s", levelString[e.Level], prefix, msg)
 	}
 
 	for _, field := range e.Fields {
 		if strings.HasPrefix(field.Name, reservedFieldNamePrefix) {
 			continue
 		}
-		fmt.Fprintf(w, " %s %v", field.Name, field.Value)
+		_, _ = fmt.Fprintf(w, " %s %v", field.Name, field.Value)
 
 	}
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 
 	return nil
 }

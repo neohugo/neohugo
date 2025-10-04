@@ -271,8 +271,8 @@ type sourceInfo struct {
 
 func (p PagesFromTemplate) CloneForSite(s page.Site) *PagesFromTemplate {
 	// We deliberately make them share the same DependencyManager and Store.
-	p.PagesFromTemplateOptions.Site = s
-	p.PagesFromTemplateDeps = p.PagesFromTemplateOptions.DepsFromSite(s)
+	p.Site = s
+	p.PagesFromTemplateDeps = p.DepsFromSite(s)
 	p.buildState = &BuildState{
 		sourceInfosCurrent: maps.NewCache[string, *sourceInfo](),
 	}
@@ -280,7 +280,7 @@ func (p PagesFromTemplate) CloneForSite(s page.Site) *PagesFromTemplate {
 }
 
 func (p PagesFromTemplate) CloneForGoTmpl(fi hugofs.FileMetaInfo) *PagesFromTemplate {
-	p.PagesFromTemplateOptions.GoTmplFi = fi
+	p.GoTmplFi = fi
 	return &p
 }
 
@@ -301,7 +301,7 @@ func (p *PagesFromTemplate) Execute(ctx context.Context) (BuildInfo, error) {
 	if err != nil {
 		return BuildInfo{}, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	tmpl, err := p.TemplateStore.TextParse(filepath.ToSlash(p.GoTmplFi.Meta().Filename), helpers.ReaderToString(f))
 	if err != nil {

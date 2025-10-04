@@ -71,7 +71,7 @@ type pageMeta struct {
 // Prepare for a rebuild of the data passed in from front matter.
 func (m *pageMeta) setMetaPostPrepareRebuild() {
 	params := xmaps.Clone(m.paramsOriginal)
-	m.pageMetaParams.pageConfig = pagemeta.ClonePageConfigForRebuild(m.pageMetaParams.pageConfig, params)
+	m.pageConfig = pagemeta.ClonePageConfigForRebuild(m.pageConfig, params)
 }
 
 type pageMetaParams struct {
@@ -281,11 +281,11 @@ func (p *pageMeta) setMetaPre(pi *contentParseInfo, logger loggers.Logger, conf 
 				pcfg.Params["kind"] = pcfg.Kind
 			}
 		}
-	} else if p.pageMetaParams.pageConfig.Params == nil {
+	} else if p.pageConfig.Params == nil {
 		p.pageConfig.Params = make(maps.Params)
 	}
 
-	p.pageMetaParams.init(conf.Watching())
+	p.init(conf.Watching())
 
 	return nil
 }
@@ -741,7 +741,7 @@ func (p *pageMeta) applyDefaultValues() error {
 	if p.pageConfig.Content.Markup == "" {
 		if p.File() != nil {
 			// Fall back to file extension
-			p.pageConfig.Content.Markup = p.s.ContentSpec.ResolveMarkup(p.File().Ext())
+			p.pageConfig.Content.Markup = p.s.ResolveMarkup(p.File().Ext())
 		}
 		if p.pageConfig.Content.Markup == "" {
 			p.pageConfig.Content.Markup = "markdown"
@@ -773,9 +773,9 @@ func (p *pageMeta) applyDefaultValues() error {
 			}
 		case kinds.KindTaxonomy:
 			if p.s.conf.CapitalizeListTitles {
-				p.pageConfig.Title = strings.Replace(p.s.conf.C.CreateTitle(p.pathInfo.Unnormalized().BaseNameNoIdentifier()), "-", " ", -1)
+				p.pageConfig.Title = strings.ReplaceAll(p.s.conf.C.CreateTitle(p.pathInfo.Unnormalized().BaseNameNoIdentifier()), "-", " ")
 			} else {
-				p.pageConfig.Title = strings.Replace(p.pathInfo.Unnormalized().BaseNameNoIdentifier(), "-", " ", -1)
+				p.pageConfig.Title = strings.ReplaceAll(p.pathInfo.Unnormalized().BaseNameNoIdentifier(), "-", " ")
 			}
 		case kinds.KindStatus404:
 			p.pageConfig.Title = "404 Page not found"
@@ -789,7 +789,7 @@ func (p *pageMeta) newContentConverter(ps *pageState, markup string) (converter.
 	if ps == nil {
 		panic("no Page provided")
 	}
-	cp := p.s.ContentSpec.Converters.Get(markup)
+	cp := p.s.Converters.Get(markup)
 	if cp == nil {
 		return converter.NopConverter, fmt.Errorf("no content renderer found for markup %q, page: %s", markup, ps.getPageInfoForError())
 	}
@@ -812,7 +812,7 @@ func (p *pageMeta) newContentConverter(ps *pageState, markup string) (converter.
 			// This prevents infinite recursion in some cases.
 			return doc
 		}
-		if v, ok := ps.pageOutput.pco.otherOutputs.Get(id); ok {
+		if v, ok := ps.pco.otherOutputs.Get(id); ok {
 			return v.po.p
 		}
 		return nil

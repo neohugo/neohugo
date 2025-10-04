@@ -36,7 +36,7 @@ func TestMenuCache(t *testing.T) {
 	c1 := newMenuCache()
 
 	changeFirst := func(m Menu) {
-		m[0].MenuConfig.Title = "changed"
+		m[0].Title = "changed"
 	}
 
 	var o1 uint64

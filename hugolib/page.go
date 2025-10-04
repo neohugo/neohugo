@@ -181,7 +181,7 @@ func (p *pageState) skipRender() bool {
 			Path:   p.Path(),
 			Kind:   p.Kind(),
 			Lang:   p.Lang(),
-			Output: p.pageOutput.f.Name,
+			Output: p.f.Name,
 		},
 	)
 
@@ -527,7 +527,7 @@ func (p *pageState) renderResources() error {
 		if _, ok := r.(page.Page); ok {
 			if p.s.h.buildCounter.Load() == 0 {
 				// Pages gets rendered with the owning page but we count them here.
-				p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Pages)
+				p.s.ProcessingStats.Incr(&p.s.ProcessingStats.Pages)
 			}
 			continue
 		}
@@ -546,7 +546,7 @@ func (p *pageState) renderResources() error {
 				p.s.Log.Errorf("Failed to publish Resource for page %q: %s", p.pathOrTitle(), err)
 			}
 		} else {
-			p.s.PathSpec.ProcessingStats.Incr(&p.s.PathSpec.ProcessingStats.Files)
+			p.s.ProcessingStats.Incr(&p.s.ProcessingStats.Files)
 		}
 	}
 
@@ -641,7 +641,7 @@ func (p *pageState) outputFormat() (f output.Format) {
 	if p.pageOutput == nil {
 		panic("no pageOutput")
 	}
-	return p.pageOutput.f
+	return p.f
 }
 
 func (p *pageState) parseError(err error, input []byte, offset int) error {
@@ -689,12 +689,12 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 
 	// Reset any built paginator. This will trigger when re-rendering pages in
 	// server mode.
-	if isRenderingSite && p.pageOutput.paginator != nil && p.pageOutput.paginator.current != nil {
-		p.pageOutput.paginator.reset()
+	if isRenderingSite && p.paginator != nil && p.paginator.current != nil {
+		p.paginator.reset()
 	}
 
 	if isRenderingSite {
-		cp := p.pageOutput.pco
+		cp := p.pco
 		if cp == nil && p.canReusePageOutputContent() {
 			// Look for content to reuse.
 			for i := range p.pageOutputs {
@@ -717,7 +717,7 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 				return err
 			}
 		}
-		p.pageOutput.setContentProvider(cp)
+		p.setContentProvider(cp)
 	} else {
 		// We attempt to assign pageContentOutputs while preparing each site
 		// for rendering and before rendering each site. This lets us share
@@ -725,7 +725,7 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 		// unexpectedly calls a method of a ContentProvider that is not yet
 		// initialized, we assign a LazyContentProvider that performs the
 		// initialization just in time.
-		if lcp, ok := (p.pageOutput.ContentProvider.(*page.LazyContentProvider)); ok {
+		if lcp, ok := (p.ContentProvider.(*page.LazyContentProvider)); ok {
 			lcp.Reset()
 		} else {
 			lcp = page.NewLazyContentProvider(func() (page.OutputFormatContentProvider, error) {
@@ -735,11 +735,11 @@ func (p *pageState) shiftToOutputFormat(isRenderingSite bool, idx int) error {
 				}
 				return cp, nil
 			})
-			p.pageOutput.contentRenderer = lcp
-			p.pageOutput.ContentProvider = lcp
-			p.pageOutput.MarkupProvider = lcp
-			p.pageOutput.PageRenderProvider = lcp
-			p.pageOutput.TableOfContentsProvider = lcp
+			p.contentRenderer = lcp
+			p.ContentProvider = lcp
+			p.MarkupProvider = lcp
+			p.PageRenderProvider = lcp
+			p.TableOfContentsProvider = lcp
 		}
 	}
 

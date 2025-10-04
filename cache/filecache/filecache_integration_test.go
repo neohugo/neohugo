@@ -43,7 +43,7 @@ title: "Home"
 		hugolib.IntegrationTestConfig{T: t, TxtarString: files, RunGC: true, NeedsOsFS: true},
 	).Build()
 
-	_, err := b.H.BaseFs.ResourcesCache.Stat(filepath.Join("_gen", "images"))
+	_, err := b.H.ResourcesCache.Stat(filepath.Join("_gen", "images"))
 
 	b.Assert(err, qt.IsNil)
 }
@@ -85,7 +85,7 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAA
 	b.Assert(b.H, qt.IsNotNil)
 
 	imagesCacheDir := filepath.Join("_gen", "images")
-	_, err := b.H.BaseFs.ResourcesCache.Stat(imagesCacheDir)
+	_, err := b.H.ResourcesCache.Stat(imagesCacheDir)
 
 	b.Assert(err, qt.IsNil)
 
@@ -99,8 +99,8 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAA
 	// Build it again to GC the empty a dir.
 	b.Build()
 
-	_, err = b.H.BaseFs.ResourcesCache.Stat(filepath.Join(imagesCacheDir, "a"))
+	_, err = b.H.ResourcesCache.Stat(filepath.Join(imagesCacheDir, "a"))
 	b.Assert(err, qt.Not(qt.IsNil))
-	_, err = b.H.BaseFs.ResourcesCache.Stat(imagesCacheDir)
+	_, err = b.H.ResourcesCache.Stat(imagesCacheDir)
 	b.Assert(err, qt.IsNil)
 }

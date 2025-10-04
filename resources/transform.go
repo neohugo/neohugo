@@ -152,7 +152,7 @@ func (ctx *ResourceTransformationCtx) PublishSourceMap(content string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	_, err = f.Write([]byte(content))
 	return err
 }
@@ -203,7 +203,7 @@ func (r *resourceAdapter) Data() any {
 }
 
 func (r *resourceAdapter) ForEeachIdentityByName(name string, f func(identity.Identity) bool) {
-	if constants.IsFieldRelOrPermalink(name) && !r.resourceTransformations.hasTransformationPermalinkHash() {
+	if constants.IsFieldRelOrPermalink(name) && !r.hasTransformationPermalinkHash() {
 		// Special case for links without any content hash in the URL.
 		// We don't need to rebuild all pages that use this resource,
 		// but we want to make sure that the resource is accessed at least once.
@@ -230,7 +230,7 @@ func (r resourceAdapter) cloneTo(targetPath string) resource.Resource {
 		Staler: r.Staler,
 		target: newtTarget.(transformableResource),
 	}
-	if r.resourceAdapterInner.publishOnce != nil {
+	if r.publishOnce != nil {
 		newInner.publishOnce = &publishOnce{}
 	}
 	r.resourceAdapterInner = newInner
@@ -463,7 +463,7 @@ func (r *resourceAdapter) transform(key string, publish, setContent bool) (*reso
 		return nil, err
 	}
 
-	defer contentrc.Close()
+	defer func() { _ = contentrc.Close() }()
 
 	tctx.From = contentrc
 	tctx.To = b1
@@ -558,7 +558,7 @@ func (r *resourceAdapter) transform(key string, publish, setContent bool) (*reso
 			}
 			transformedContentr = f
 			updates.sourceFs = cache.fileCache.Fs
-			defer f.Close()
+			defer func() { _ = f.Close() }()
 
 			// The reader above is all we need.
 			break
@@ -622,7 +622,7 @@ func (r *resourceAdapter) transform(key string, publish, setContent bool) (*reso
 	if err != nil {
 		return nil, err
 	}
-	publishw.Close()
+	defer func() { _ = publishw.Close() }()
 
 	if setContent {
 		s := contentmemw.String()

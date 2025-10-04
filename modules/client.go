@@ -140,7 +140,7 @@ func (c *Client) Graph(w io.Writer) error {
 				dep += " => " + replace.Dir()
 			}
 		}
-		fmt.Fprintln(w, dep)
+		_, _ = fmt.Fprintln(w, dep)
 	}
 
 	return nil
@@ -547,7 +547,7 @@ func (c *Client) rewriteGoModRewrite(name string, isGoMod map[string]bool) ([]by
 		}
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 	var dirty bool

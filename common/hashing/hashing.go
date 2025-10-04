@@ -167,7 +167,7 @@ func (x *xxhashReadFrom) ReadFrom(r io.Reader) (int64, error) {
 	for {
 		n, err := r.Read(x.buff)
 		if n > 0 {
-			_, _ = x.Digest.Write(x.buff[:n])
+			_, _ = x.Write(x.buff[:n])
 		}
 		if err != nil {
 			if err == io.EOF {

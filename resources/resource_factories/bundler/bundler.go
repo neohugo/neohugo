@@ -74,7 +74,7 @@ func (r *multiReadSeekCloser) Seek(offset int64, whence int) (newOffset int64, e
 
 func (r *multiReadSeekCloser) Close() error {
 	for _, s := range r.sources {
-		s.Close()
+		_ = s.Close()
 	}
 	return nil
 }
@@ -128,7 +128,7 @@ func (c *Client) Concat(targetPath string, r resource.Resources) (resource.Resou
 				if err != nil {
 					// Close the already opened.
 					for _, rcs := range rcsources {
-						rcs.Close()
+						_ = rcs.Close()
 					}
 					return nil, err
 				}

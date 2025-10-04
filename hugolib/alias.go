@@ -49,7 +49,7 @@ type aliasPage struct {
 
 func (a aliasHandler) renderAlias(permalink string, p page.Page) (io.Reader, error) {
 	var templateDesc tplimpl.TemplateDescriptor
-	var base string = ""
+	var base = ""
 	if ps, ok := p.(*pageState); ok {
 		base, templateDesc = ps.GetInternalTemplateBasePathAndDescriptor()
 	}
@@ -104,7 +104,7 @@ func (s *Site) publishDestAlias(allowRoot bool, path, permalink string, outputFo
 	pd := publisher.Descriptor{
 		Src:          aliasContent,
 		TargetPath:   targetPath,
-		StatCounter:  &s.PathSpec.ProcessingStats.Aliases,
+		StatCounter:  &s.ProcessingStats.Aliases,
 		OutputFormat: outputFormat,
 	}
 

@@ -53,7 +53,7 @@ Hello World.
 		b.Assert(p, qt.Not(qt.IsNil))
 
 		var buf bytes.Buffer
-		fi, err := b.H.BaseFs.Archetypes.Fs.Stat("post.md")
+		fi, err := b.H.Archetypes.Fs.Stat("post.md")
 		b.Assert(err, qt.IsNil)
 		b.Assert(cf.ApplyArchetypeFi(&buf, p, "", fi.(hugofs.FileMetaInfo)), qt.IsNil)
 

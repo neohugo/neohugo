@@ -48,20 +48,20 @@ func TestHasBytesWriter(t *testing.T) {
 
 	for range 22 {
 		h, w := neww()
-		fmt.Fprint(w, rndStr()+"abc __foobar"+rndStr())
+		_, _ = fmt.Fprint(w, rndStr()+"abc __foobar"+rndStr())
 		c.Assert(h.Patterns[0].Match, qt.Equals, true)
 
 		h, w = neww()
-		fmt.Fprint(w, rndStr()+"abc __f")
-		fmt.Fprint(w, "oo bar"+rndStr())
+		_, _ = fmt.Fprint(w, rndStr()+"abc __f")
+		_, _ = fmt.Fprint(w, "oo bar"+rndStr())
 		c.Assert(h.Patterns[0].Match, qt.Equals, true)
 
 		h, w = neww()
-		fmt.Fprint(w, rndStr()+"abc __moo bar")
+		_, _ = fmt.Fprint(w, rndStr()+"abc __moo bar")
 		c.Assert(h.Patterns[0].Match, qt.Equals, false)
 	}
 
 	h, w := neww()
-	fmt.Fprintf(w, "__foo")
+	_, _ = fmt.Fprintf(w, "__foo")
 	c.Assert(h.Patterns[0].Match, qt.Equals, true)
 }

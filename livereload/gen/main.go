@@ -25,7 +25,7 @@ func main() {
 	func() {
 		resp, err := http.Get(liveReloadSourceURL)
 		must(err)
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		b, err := io.ReadAll(resp.Body)
 		must(err)

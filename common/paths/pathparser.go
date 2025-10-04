@@ -148,7 +148,6 @@ func (pp *PathParser) parseIdentifier(component, s string, p *Path, i, lastDot, 
 	if len(p.identifiersKnown) == 0 {
 		// The first is always the extension.
 		p.identifiersKnown = append(p.identifiersKnown, id)
-		found = true
 
 		// May also be the output format.
 		if mayHaveOutputFormat && pp.IsOutputFormat(sid, "") {

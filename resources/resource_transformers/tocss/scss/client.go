@@ -33,7 +33,7 @@ type Client struct {
 }
 
 func New(fs *filesystems.SourceFilesystem, rs *resources.Spec) (*Client, error) {
-	return &Client{sfs: fs, workFs: rs.BaseFs.Work, rs: rs}, nil
+	return &Client{sfs: fs, workFs: rs.Work, rs: rs}, nil
 }
 
 type Options struct {

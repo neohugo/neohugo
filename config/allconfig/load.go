@@ -37,7 +37,7 @@ import (
 	"github.com/spf13/afero"
 )
 
-//lint:ignore ST1005 end user message.
+//nolint:staticcheck // end user message
 var ErrNoConfigFile = errors.New("Unable to locate config file or config directory. Perhaps you need to create a new site.\n       Run `hugo help new` for details.\n")
 
 func LoadConfig(d ConfigSourceDescriptor) (*Configs, error) {

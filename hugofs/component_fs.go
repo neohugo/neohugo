@@ -253,7 +253,7 @@ func (fs *componentFs) Open(name string) (afero.File, error) {
 	fi, err := f.Stat()
 	if err != nil {
 		if err != errIsDir {
-			f.Close()
+			_ = f.Close()
 			return nil, err
 		}
 	} else if !fi.IsDir() {

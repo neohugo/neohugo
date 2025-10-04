@@ -120,7 +120,7 @@ func (f *FileMeta) ReadAll() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return io.ReadAll(file)
 }
 
@@ -189,7 +189,7 @@ func (fi *dirEntryMeta) Filename() string {
 func (fi *dirEntryMeta) fileInfo() fs.FileInfo {
 	var err error
 	fi.fiInit.Do(func() {
-		fi.fi, err = fi.DirEntry.Info()
+		fi.fi, err = fi.Info()
 	})
 	if err != nil {
 		panic(err)
@@ -373,7 +373,7 @@ func AddFileInfoToError(err error, fi FileMetaInfo, fs afero.Fs) error {
 				if ioerr != nil {
 					return err
 				}
-				defer f.Close()
+				defer func() { _ = f.Close() }()
 				_ = ferr.UpdateContent(f, nil)
 			}
 			return err

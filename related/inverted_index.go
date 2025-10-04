@@ -314,7 +314,7 @@ func (r ranks) Len() int      { return len(r) }
 func (r ranks) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
 func (r ranks) Less(i, j int) bool {
 	if r[i].Weight == r[j].Weight {
-		if r[i].Doc.PublishDate() == r[j].Doc.PublishDate() {
+		if r[i].Doc.PublishDate().Equal(r[j].Doc.PublishDate()) {
 			return r[i].Doc.Name() < r[j].Doc.Name()
 		}
 		return r[i].Doc.PublishDate().After(r[j].Doc.PublishDate())

@@ -85,7 +85,7 @@ func New(fs *filesystems.SourceFilesystem, rs *resources.Spec) (*Client, error) 
 	if err != nil {
 		return nil, err
 	}
-	return &Client{sfs: fs, workFs: rs.BaseFs.Work, rs: rs, transpiler: transpiler}, nil
+	return &Client{sfs: fs, workFs: rs.Work, rs: rs, transpiler: transpiler}, nil
 }
 
 type Client struct {
@@ -119,7 +119,7 @@ func (c *Client) toCSS(args godartsass.Args, src io.Reader) (godartsass.Result, 
 	res, err := c.transpiler.Execute(args)
 	if err != nil {
 		if err.Error() == "unexpected EOF" {
-			//lint:ignore ST1005 end user message.
+			//nolint:staticcheck // end user message
 			return res, fmt.Errorf("got unexpected EOF when executing %q. The user running hugo must have read and execute permissions on this program. With execute permissions only, this error is thrown.", neohugo.DartSassBinaryName)
 		}
 		return res, herrors.NewFileErrorFromFileInErr(err, hugofs.Os, herrors.OffsetMatcher)

@@ -51,7 +51,7 @@ draft: true
 // NewContent creates a new content file in h (or a full bundle if the archetype is a directory)
 // in targetPath.
 func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error {
-	if _, err := h.BaseFs.Content.Fs.Stat(""); err != nil {
+	if _, err := h.Content.Fs.Stat(""); err != nil {
 		return errors.New("no existing content directory configured for this project")
 	}
 
@@ -66,7 +66,7 @@ func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error
 	}
 
 	b := &contentBuilder{
-		archeTypeFs: h.PathSpec.BaseFs.Archetypes.Fs,
+		archeTypeFs: h.Archetypes.Fs,
 		sourceFs:    h.PathSpec.Fs.Source,
 		ps:          h.PathSpec,
 		h:           h,
@@ -83,7 +83,7 @@ func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error
 
 	withBuildLock := func() (string, error) {
 		if !h.Configs.Base.NoBuildLock {
-			unlock, err := h.BaseFs.LockBuild()
+			unlock, err := h.LockBuild()
 			if err != nil {
 				return "", fmt.Errorf("failed to acquire a build lock: %s", err)
 			}
@@ -208,8 +208,8 @@ func (b *contentBuilder) buildDir() error {
 			return err
 		}
 
-		in.Close()
-		out.Close()
+		_ = in.Close()
+		_ = out.Close()
 	}
 
 	b.h.Log.Printf("Content dir %q created", filepath.Join(baseDir, b.targetPath))
@@ -279,7 +279,7 @@ func (b *contentBuilder) applyArcheType(contentFilename string, archetypeFi hugo
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if archetypeFi == nil {
 		return b.cf.ApplyArchetypeTemplate(f, p, b.kind, DefaultArchetypeTemplateTemplate)
@@ -366,7 +366,7 @@ func (b *contentBuilder) openInEditorIfConfigured(filename string) error {
 
 	b.h.Log.Printf("Editing %q with %q ...\n", filename, editorExec)
 
-	cmd, err := b.h.Deps.ExecHelper.New(editorExec, args...)
+	cmd, err := b.h.ExecHelper.New(editorExec, args...)
 	if err != nil {
 		return err
 	}
@@ -382,7 +382,7 @@ func (b *contentBuilder) usesSiteVar(fi hugofs.FileMetaInfo) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	bb, err := io.ReadAll(f)
 	if err != nil {
 		return false, fmt.Errorf("failed to read archetype file: %w", err)

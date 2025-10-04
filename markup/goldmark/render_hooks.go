@@ -165,7 +165,7 @@ func (r *hookedRenderer) renderImage(w util.BufWriter, source []byte, node ast.N
 
 	if entering {
 		// Store the current pos so we can capture the rendered text.
-		ctx.PushPos(ctx.Buffer.Len())
+		ctx.PushPos(ctx.Len())
 		return ast.WalkContinue, nil
 	}
 
@@ -271,7 +271,7 @@ func (r *hookedRenderer) renderLink(w util.BufWriter, source []byte, node ast.No
 
 	if entering {
 		// Store the current pos so we can capture the rendered text.
-		ctx.PushPos(ctx.Buffer.Len())
+		ctx.PushPos(ctx.Len())
 		return ast.WalkContinue, nil
 	}
 
@@ -493,7 +493,7 @@ func (r *hookedRenderer) renderHeading(w util.BufWriter, source []byte, node ast
 
 	if entering {
 		// Store the current pos so we can capture the rendered text.
-		ctx.PushPos(ctx.Buffer.Len())
+		ctx.PushPos(ctx.Len())
 		return ast.WalkContinue, nil
 	}
 

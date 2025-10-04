@@ -878,16 +878,16 @@ func TestWeightedTaxonomies(t *testing.T) {
 	writeSourcesToSource(t, "content", fs, sources...)
 	s := buildSingleSite(t, deps.DepsCfg{Fs: fs, Configs: configs}, BuildCfg{})
 
-	if s.Taxonomies()["tags"]["a"][0].Page.Title() != "foo" {
-		t.Errorf("Pages in unexpected order, 'foo' expected first, got '%v'", s.Taxonomies()["tags"]["a"][0].Page.Title())
+	if s.Taxonomies()["tags"]["a"][0].Title() != "foo" {
+		t.Errorf("Pages in unexpected order, 'foo' expected first, got '%v'", s.Taxonomies()["tags"]["a"][0].Title())
 	}
 
-	if s.Taxonomies()["categories"]["d"][0].Page.Title() != "bar" {
-		t.Errorf("Pages in unexpected order, 'bar' expected first, got '%v'", s.Taxonomies()["categories"]["d"][0].Page.Title())
+	if s.Taxonomies()["categories"]["d"][0].Title() != "bar" {
+		t.Errorf("Pages in unexpected order, 'bar' expected first, got '%v'", s.Taxonomies()["categories"]["d"][0].Title())
 	}
 
-	if s.Taxonomies()["categories"]["e"][0].Page.Title() != "bza" {
-		t.Errorf("Pages in unexpected order, 'bza' expected first, got '%v'", s.Taxonomies()["categories"]["e"][0].Page.Title())
+	if s.Taxonomies()["categories"]["e"][0].Title() != "bza" {
+		t.Errorf("Pages in unexpected order, 'bza' expected first, got '%v'", s.Taxonomies()["categories"]["e"][0].Title())
 	}
 }
 
@@ -1046,7 +1046,7 @@ func TestClassCollector(t *testing.T) {
 	for _, minify := range []bool{false, true} {
 		t.Run(fmt.Sprintf("minify-%t", minify), func(t *testing.T) {
 			statsFilename := "hugo_stats.json"
-			defer os.Remove(statsFilename)
+			defer func() { _ = os.Remove(statsFilename) }()
 
 			b := newTestSitesBuilder(t)
 			b.WithConfigFile("toml", fmt.Sprintf(`
@@ -1199,7 +1199,7 @@ enable = false
 
 func TestClassCollectorStress(t *testing.T) {
 	statsFilename := "hugo_stats.json"
-	defer os.Remove(statsFilename)
+	defer func() { _ = os.Remove(statsFilename) }()
 
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", `

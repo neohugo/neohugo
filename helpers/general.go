@@ -45,7 +45,7 @@ func TCPListen() (net.Listener, *net.TCPAddr, error) {
 	if a, ok := addr.(*net.TCPAddr); ok {
 		return l, a, nil
 	}
-	l.Close()
+	_ = l.Close()
 	return nil, nil, fmt.Errorf("unable to obtain a valid tcp port: %v", addr)
 }
 

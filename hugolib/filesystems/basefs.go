@@ -193,7 +193,7 @@ func (b *BaseFs) AbsProjectContentDir(filename string) (string, string, error) {
 		// A filename on the form "posts/mypage.md", put it inside
 		// the first content folder, usually <workDir>/content.
 		// Pick the first project dir (which is probably the most important one).
-		for _, dir := range b.SourceFilesystems.Content.mounts() {
+		for _, dir := range b.Content.mounts() {
 			if !dir.IsDir() {
 				continue
 			}
@@ -716,7 +716,7 @@ func (b *sourceFilesystemsBuilder) createOverlayFs(
 				From:          mount.Target,
 				To:            filename,
 				ToBase:        base,
-				Module:        md.Module.Path(),
+				Module:        md.Path(),
 				ModuleOrdinal: md.ordinal,
 				IsProject:     md.isMainProject,
 				Meta: &hugofs.FileMeta{

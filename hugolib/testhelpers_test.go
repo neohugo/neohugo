@@ -185,7 +185,7 @@ func (s *sitesBuilder) WithConfigTemplate(data any, format, configTemplate strin
 		s.Fatalf("Template parse failed: %s", err)
 	}
 	var b bytes.Buffer
-	templ.Execute(&b, data)
+	_ = templ.Execute(&b, data)
 	return s.WithConfigFile(format, b.String())
 }
 
@@ -361,8 +361,8 @@ func (s *sitesBuilder) WithSunset(in string) {
 	_, err = io.Copy(out, src)
 	s.Assert(err, qt.IsNil)
 
-	out.Close()
-	src.Close()
+	_ = out.Close()
+	_ = src.Close()
 }
 
 func (s *sitesBuilder) createFilenameContent(pairs []string) []filenameContent {
@@ -776,7 +776,7 @@ func (s *sitesBuilder) AssertFileDoesNotExist(filename string) {
 func (s *sitesBuilder) AssertImage(width, height int, filename string) {
 	f, err := s.Fs.WorkingDirReadOnly.Open(filename)
 	s.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	cfg, err := jpeg.DecodeConfig(f)
 	s.Assert(err, qt.IsNil)
 	s.Assert(cfg.Width, qt.Equals, width)

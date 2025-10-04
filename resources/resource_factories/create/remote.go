@@ -142,7 +142,7 @@ func (c *Client) configurePollingIfEnabled(uri, optionsKey string, getRes func()
 				}
 				// The caching is delayed until the body is read.
 				_, _ = io.Copy(io.Discard, res.Body)
-				res.Body.Close()
+				defer func() { _ = res.Body.Close() }()
 				x1, x2 := res.Header.Get(httpcache.XETag1), res.Header.Get(httpcache.XETag2)
 				if x1 != x2 {
 					lastChange = time.Now()
@@ -214,7 +214,7 @@ func (c *Client) FromRemote(uri string, optionsm map[string]any) (resource.Resou
 		if err != nil {
 			return nil, err
 		}
-		defer res.Body.Close()
+		defer func() { _ = res.Body.Close() }()
 
 		c.configurePollingIfEnabled(uri, optionsKey, getRes)
 

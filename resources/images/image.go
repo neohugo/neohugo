@@ -166,7 +166,7 @@ func (i *Image) initConfig() error {
 		if err != nil {
 			return
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		i.config, _, err = image.DecodeConfig(f)
 	})

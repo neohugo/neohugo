@@ -285,14 +285,15 @@ func (ns *Namespace) SliceString(a any, startEnd ...any) (string, error) {
 		return "", errors.New("slice bounds out of range")
 	}
 
-	if argNum == 2 {
+	switch argNum {
+	case 2:
 		if argEnd < 0 || argEnd > len(asRunes) {
 			return "", errors.New("slice bounds out of range")
 		}
 		return string(asRunes[argStart:argEnd]), nil
-	} else if argNum == 1 {
+	case 1:
 		return string(asRunes[argStart:]), nil
-	} else {
+	default:
 		return string(asRunes[:]), nil
 	}
 }

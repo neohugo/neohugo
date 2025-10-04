@@ -231,7 +231,7 @@ func (c *pageFinder) getContentNodeFromRefReverseLookup(ref string, fi hugofs.Fi
 
 	realFilename := filepath.Join(dir, ref)
 
-	pcs, err := s.BaseFs.Content.ReverseLookup(realFilename, true)
+	pcs, err := s.Content.ReverseLookup(realFilename, true)
 	if err != nil {
 		return nil, err
 	}

@@ -458,7 +458,7 @@ func doRenderShortcode(
 		// shortcode.
 		if sc.doMarkup && (level > 0 || sc.configVersion() == 1) {
 			var err error
-			b, err := p.pageOutput.contentRenderer.ParseAndRenderContent(ctx, []byte(inner), false)
+			b, err := p.contentRenderer.ParseAndRenderContent(ctx, []byte(inner), false)
 			if err != nil {
 				return zeroShortcode, err
 			}

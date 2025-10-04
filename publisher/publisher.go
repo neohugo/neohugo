@@ -78,7 +78,7 @@ type DestinationPublisher struct {
 
 // NewDestinationPublisher creates a new DestinationPublisher.
 func NewDestinationPublisher(rs *resources.Spec, outputFormats output.Formats, mediaTypes media.Types) (pub DestinationPublisher, err error) {
-	fs := rs.BaseFs.PublishFs
+	fs := rs.PublishFs
 	cfg := rs.Cfg
 	var classCollector *htmlElementsCollector
 	if rs.BuildConfig().BuildStats.Enabled() {
@@ -116,7 +116,7 @@ func (p DestinationPublisher) Publish(d Descriptor) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var w io.Writer = f
 

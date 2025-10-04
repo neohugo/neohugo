@@ -236,7 +236,7 @@ func (imp *importResolver) toFileError(output string) error {
 	if err != nil {
 		return inErr
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	ferr := herrors.NewFileErrorFromName(inErr, realFilename)
 	pos := ferr.Position()

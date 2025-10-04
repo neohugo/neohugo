@@ -220,5 +220,5 @@ func assignMetadata(metadata []map[string]any, ma *metaResource) error {
 }
 
 func replaceResourcePlaceholders(in string, counter int) string {
-	return strings.Replace(in, counterPlaceHolder, strconv.Itoa(counter), -1)
+	return strings.ReplaceAll(in, counterPlaceHolder, strconv.Itoa(counter))
 }

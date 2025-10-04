@@ -85,7 +85,7 @@ func Pack(sourceFs, assetsWithDuplicatesPreservedFs afero.Fs) error {
 		return fmt.Errorf("npm pack: failed to open package file: %w", err)
 	}
 	b = newPackageBuilder(meta.Module, f)
-	f.Close()
+	_ = f.Close()
 
 	d, err := assetsWithDuplicatesPreservedFs.Open(files.FolderJSConfig)
 	if err != nil {
@@ -118,7 +118,7 @@ func Pack(sourceFs, assetsWithDuplicatesPreservedFs afero.Fs) error {
 			return fmt.Errorf("npm pack: failed to open package file: %w", err)
 		}
 		b.Add(meta.Module, f)
-		f.Close()
+		_ = f.Close()
 	}
 
 	if b.Err() != nil {

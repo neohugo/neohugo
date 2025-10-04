@@ -484,7 +484,7 @@ func (c *contentParseInfo) readSourceAll() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer r.Close()
+	defer func() { _ = r.Close() }()
 
 	return io.ReadAll(r)
 }
@@ -642,7 +642,7 @@ func (c *cachedContentScope) contentRendered(ctx context.Context) (contentSummar
 			if err != nil {
 				return nil, err
 			}
-			html := cp.po.p.s.ContentSpec.TrimShortHTML(b.Bytes(), cp.po.p.m.pageConfig.Content.Markup)
+			html := cp.po.p.s.TrimShortHTML(b.Bytes(), cp.po.p.m.pageConfig.Content.Markup)
 			rs.Value.summary = page.Summary{
 				Text: helpers.BytesToHTML(html),
 				Type: page.SummaryTypeFrontMatter,
@@ -733,7 +733,7 @@ func (c *cachedContentScope) contentToC(ctx context.Context) (contentTableOfCont
 
 		if !isHTML {
 			createAndSetToC := func(tocProvider converter.TableOfContentsProvider) error {
-				cfg := p.s.ContentSpec.Converters.GetMarkupConfig()
+				cfg := p.s.Converters.GetMarkupConfig()
 				ct.tableOfContents = tocProvider.TableOfContents()
 				ct.tableOfContentsHTML, err = ct.tableOfContents.ToHTML(
 					cfg.TableOfContents.StartLevel,
@@ -1050,9 +1050,9 @@ func (c *cachedContentScope) RenderString(ctx context.Context, args ...any) (tem
 	if opts.Display == "inline" {
 		markup := pco.po.p.m.pageConfig.Content.Markup
 		if opts.Markup != "" {
-			markup = pco.po.p.s.ContentSpec.ResolveMarkup(opts.Markup)
+			markup = pco.po.p.s.ResolveMarkup(opts.Markup)
 		}
-		rendered = pco.po.p.s.ContentSpec.TrimShortHTML(rendered, markup)
+		rendered = pco.po.p.s.TrimShortHTML(rendered, markup)
 	}
 
 	return template.HTML(string(rendered)), nil

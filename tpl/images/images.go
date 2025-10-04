@@ -22,11 +22,11 @@ import (
 	"sync"
 
 	"github.com/bep/overlayfs"
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/resources/images"
 	"github.com/neohugo/neohugo/resources/resource_factories/create"
-	"github.com/mitchellh/mapstructure"
 	"rsc.io/qr"
 
 	// Importing image codecs for image.DecodeConfig
@@ -50,8 +50,8 @@ func New(d *deps.Deps) *Namespace {
 	if d.PathSpec != nil {
 		readFileFs = overlayfs.New(overlayfs.Options{
 			Fss: []afero.Fs{
-				d.PathSpec.BaseFs.Work,
-				d.PathSpec.BaseFs.Content.Fs,
+				d.Work,
+				d.Content.Fs,
 			},
 		})
 	}
@@ -100,7 +100,7 @@ func (ns *Namespace) Config(path any) (image.Config, error) {
 	if err != nil {
 		return image.Config{}, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	config, _, err = image.DecodeConfig(f)
 	if err != nil {

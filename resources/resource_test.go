@@ -41,7 +41,7 @@ func BenchmarkHashImage(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -49,6 +49,6 @@ func BenchmarkHashImage(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		f.Seek(0, 0)
+		_, _ = f.Seek(0, 0)
 	}
 }

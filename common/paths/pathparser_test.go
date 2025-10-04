@@ -376,9 +376,10 @@ func TestParse(t *testing.T) {
 	}
 	for _, test := range tests {
 		c.Run(test.name, func(c *qt.C) {
-			if test.name != "Home branch cundle" {
-				// return
-			}
+			// Uncomment to debug specific test
+			// if test.name != "Home branch cundle" {
+			// 	return
+			// }
 			test.assert(c, testParser.Parse(files.ComponentFolderContent, test.path))
 		})
 	}
@@ -587,9 +588,10 @@ func TestParseLayouts(t *testing.T) {
 
 	for _, test := range tests {
 		c.Run(test.name, func(c *qt.C) {
-			if test.name != "Shortcode lang layout" {
-				// return
-			}
+			// Uncomment to debug specific test
+			// if test.name != "Shortcode lang layout" {
+			// 	return
+			// }
 			test.assert(c, testParser.Parse(files.ComponentFolderLayouts, test.path))
 		})
 	}

@@ -69,7 +69,7 @@ func (h *HugoSites) doNewPage(m *pageMeta) (*pageState, *paths.Path, error) {
 	}
 
 	if err := m.setMetaPre(pi, h.Log, h.Conf); err != nil {
-		return nil, nil, m.wrapError(err, h.BaseFs.SourceFs)
+		return nil, nil, m.wrapError(err, h.SourceFs)
 	}
 	pcfg := m.pageConfig
 	if pcfg.Lang != "" {
@@ -85,7 +85,7 @@ func (h *HugoSites) doNewPage(m *pageMeta) (*pageState, *paths.Path, error) {
 			var (
 				isBranch    bool
 				isBranchSet bool
-				ext         string = m.pageConfig.ContentMediaType.FirstSuffix.Suffix
+				ext         = m.pageConfig.ContentMediaType.FirstSuffix.Suffix
 			)
 			if pcfg.Kind != "" {
 				isBranch = kinds.IsBranch(pcfg.Kind)

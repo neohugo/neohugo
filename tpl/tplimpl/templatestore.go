@@ -268,7 +268,7 @@ func (ti *TemplInfo) SubCategory() SubCategory {
 
 func (ti *TemplInfo) BaseVariantsSeq() iter.Seq[*TemplWithBaseApplied] {
 	return func(yield func(*TemplWithBaseApplied) bool) {
-		ti.baseVariants.Walk(func(key string, v map[TemplateDescriptor]*TemplWithBaseApplied) (bool, error) {
+		_ = ti.baseVariants.Walk(func(key string, v map[TemplateDescriptor]*TemplWithBaseApplied) (bool, error) {
 			for _, vv := range v {
 				if !yield(vv) {
 					return true, nil
@@ -328,7 +328,7 @@ func (ti *TemplInfo) findBestMatchBaseof(s *TemplateStore, d1 TemplateDescriptor
 		return
 	}
 
-	ti.baseVariants.WalkPath(k1, func(k2 string, v map[TemplateDescriptor]*TemplWithBaseApplied) (bool, error) {
+	_ = ti.baseVariants.WalkPath(k1, func(k2 string, v map[TemplateDescriptor]*TemplWithBaseApplied) (bool, error) {
 		if !s.inPath(k1, k2) {
 			return false, nil
 		}
@@ -468,7 +468,7 @@ func (s *TemplateStore) NewFromOpts() (*TemplateStore, error) {
 func (s *TemplateStore) FindAllBaseTemplateCandidates(overlayKey string, desc TemplateDescriptor) []keyTemplateInfo {
 	var result []keyTemplateInfo
 	descBaseof := desc
-	s.treeMain.Walk(func(k string, v map[nodeKey]*TemplInfo) (bool, error) {
+	_ = s.treeMain.Walk(func(k string, v map[nodeKey]*TemplInfo) (bool, error) {
 		for _, vv := range v {
 			if vv.category != CategoryBaseof {
 				continue
@@ -624,7 +624,7 @@ func (s *TemplateStore) LookupShortcode(q TemplateQuery) (*TemplInfo, error) {
 	best := s.getBest()
 	defer s.putBest(best)
 
-	s.treeShortcodes.WalkPath(k1, func(k2 string, m map[string]map[TemplateDescriptor]*TemplInfo) (bool, error) {
+	_ = s.treeShortcodes.WalkPath(k1, func(k2 string, m map[string]map[TemplateDescriptor]*TemplInfo) (bool, error) {
 		if !s.inPath(k1, k2) {
 			return false, nil
 		}
@@ -683,15 +683,15 @@ func (s *TemplateStore) PrintDebug(prefix string, category Category, w io.Writer
 		}
 		s := strings.ReplaceAll(strings.TrimSpace(vv.content), "\n", " ")
 		ts := fmt.Sprintf("kind: %q layout: %q lang: %q content: %.30s", vv.D.Kind, vv.D.LayoutFromTemplate, vv.D.Lang, s)
-		fmt.Fprintf(w, "%s%s %s\n", strings.Repeat(" ", level), key, ts)
+		_, _ = fmt.Fprintf(w, "%s%s %s\n", strings.Repeat(" ", level), key, ts)
 	}
-	s.treeMain.WalkPrefix(prefix, func(key string, v map[nodeKey]*TemplInfo) (bool, error) {
+	_ = s.treeMain.WalkPrefix(prefix, func(key string, v map[nodeKey]*TemplInfo) (bool, error) {
 		for _, vv := range v {
 			printOne(key, vv)
 		}
 		return false, nil
 	})
-	s.treeShortcodes.WalkPrefix(prefix, func(key string, v map[string]map[TemplateDescriptor]*TemplInfo) (bool, error) {
+	_ = s.treeShortcodes.WalkPrefix(prefix, func(key string, v map[string]map[TemplateDescriptor]*TemplInfo) (bool, error) {
 		for _, vv := range v {
 			for _, vv2 := range vv {
 				printOne(key, vv2)
@@ -821,7 +821,7 @@ func (s *TemplateStore) inPath(k1, k2 string) bool {
 }
 
 func (s *TemplateStore) findBestMatchWalkPath(q TemplateQuery, k1 string, slashCountK1 int, best *bestMatch) {
-	s.treeMain.WalkPath(k1, func(k2 string, v map[nodeKey]*TemplInfo) (bool, error) {
+	_ = s.treeMain.WalkPath(k1, func(k2 string, v map[nodeKey]*TemplInfo) (bool, error) {
 		if !s.inPath(k1, k2) {
 			return false, nil
 		}
@@ -864,7 +864,7 @@ func (t *TemplateStore) addDeferredTemplate(owner *TemplInfo, name string, n *pa
 		if err != nil {
 			return fmt.Errorf("failed to parse empty text template %q: %w", name, err)
 		}
-		tt.Tree.Root = n
+		tt.Root = n
 		templ = tt
 	} else {
 		prototype := t.tns.parseHTML
@@ -913,10 +913,10 @@ func (s *TemplateStore) addFileContext(ti *TemplInfo, what string, inerr error) 
 		if err != nil {
 			return inErr, false
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		fe := herrors.NewFileErrorFromName(inErr, fi.Meta().Filename)
-		fe.UpdateContent(f, lineMatcher)
+		_ = fe.UpdateContent(f, lineMatcher)
 
 		return fe, fe.ErrorContext().Position.IsValid()
 	}
@@ -1499,7 +1499,7 @@ func (s *TemplateStore) insertTemplates(include func(fi hugofs.FileMetaInfo) boo
 	if resetBaseVariants {
 		s.tns.baseofHtmlClones = nil
 		s.tns.baseofTextClones = nil
-		s.treeMain.Walk(func(key string, v map[nodeKey]*TemplInfo) (bool, error) {
+		_ = s.treeMain.Walk(func(key string, v map[nodeKey]*TemplInfo) (bool, error) {
 			for _, vv := range v {
 				if !vv.noBaseOf {
 					vv.state = processingStateInitial
@@ -1836,8 +1836,8 @@ func (s *TemplateStore) init() error {
 	const plural = "PLURAL"
 
 	replaceTokens := func(s, singularv, pluralv string) string {
-		s = strings.Replace(s, singular, singularv, -1)
-		s = strings.Replace(s, plural, pluralv, -1)
+		s = strings.ReplaceAll(s, singular, singularv)
+		s = strings.ReplaceAll(s, plural, pluralv)
 		return s
 	}
 

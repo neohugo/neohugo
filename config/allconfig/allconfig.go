@@ -486,7 +486,7 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		CreateTitle:         helpers.GetTitleFunc(c.TitleCaseStyle),
 		IsUglyURLSection:    isUglyURL,
 		IgnoreFile:          ignoreFile,
-		SegmentFilter:       c.Segments.Config.Get(func(s string) { logger.Warnf("Render segment %q not found in configuration", s) }, c.RootConfig.RenderSegments...),
+		SegmentFilter:       c.Segments.Config.Get(func(s string) { logger.Warnf("Render segment %q not found in configuration", s) }, c.RenderSegments...),
 		MainSections:        c.MainSections,
 		Clock:               clock,
 		HTTPCache:           httpCache,
@@ -1137,9 +1137,9 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 
 	bcfg.PublishDir = all.PublishDir
 	res.BaseConfig = bcfg
-	all.CommonDirs.CacheDir = bcfg.CacheDir
+	all.CacheDir = bcfg.CacheDir
 	for _, l := range langConfigMap {
-		l.CommonDirs.CacheDir = bcfg.CacheDir
+		l.CacheDir = bcfg.CacheDir
 	}
 
 	cm := &Configs{

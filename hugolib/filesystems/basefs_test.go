@@ -63,8 +63,8 @@ func TestNewBaseFs(t *testing.T) {
 		}
 		// Write some files to the root of the theme
 		base := filepath.Join(workingDir, "themes", theme)
-		afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), fmt.Appendf(nil, "content:%s", theme), 0o755)
-		afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), fmt.Appendf(nil, "content:%s", theme), 0o755)
+		_ = afero.WriteFile(afs, filepath.Join(base, fmt.Sprintf("theme-root-%s.txt", theme)), fmt.Appendf(nil, "content:%s", theme), 0o755)
+		_ = afero.WriteFile(afs, filepath.Join(base, "file-theme-root.txt"), fmt.Appendf(nil, "content:%s", theme), 0o755)
 	}
 
 	_ = afero.WriteFile(afs, filepath.Join(workingDir, "file-root.txt"), []byte("content-project"), 0o755)
@@ -130,7 +130,7 @@ theme = ["atheme"]
 			filename = filepath.FromSlash(filename)
 			f, err := fs.Open(filename)
 			c.Assert(err, qt.IsNil)
-			f.Close()
+			_ = f.Close()
 		}
 	}
 }
@@ -408,11 +408,11 @@ Main.
 `
 	b := hugolib.Test(t, files)
 
-	rel, found := b.H.BaseFs.Assets.MakePathRelative(filepath.FromSlash("/themes/t1/src/main.js"), true)
+	rel, found := b.H.Assets.MakePathRelative(filepath.FromSlash("/themes/t1/src/main.js"), true)
 	b.Assert(found, qt.Equals, true)
 	b.Assert(rel, qt.Equals, filepath.FromSlash("foo/bar/main.js"))
 
-	rel, found = b.H.BaseFs.Assets.MakePathRelative(filepath.FromSlash("/bar.txt"), true)
+	rel, found = b.H.Assets.MakePathRelative(filepath.FromSlash("/bar.txt"), true)
 	b.Assert(found, qt.Equals, true)
 	b.Assert(rel, qt.Equals, filepath.FromSlash("foo/baz.txt"))
 }
@@ -440,11 +440,11 @@ title: "Foo"
 	).Build()
 
 	abs1 := filepath.Join(tempDir, "content", "foo.md")
-	rel, abs2, err := b.H.BaseFs.AbsProjectContentDir("foo.md")
+	rel, abs2, err := b.H.AbsProjectContentDir("foo.md")
 	b.Assert(err, qt.IsNil)
 	b.Assert(abs2, qt.Equals, abs1)
 	b.Assert(rel, qt.Equals, filepath.FromSlash("foo.md"))
-	rel2, abs3, err := b.H.BaseFs.AbsProjectContentDir(abs1)
+	rel2, abs3, err := b.H.AbsProjectContentDir(abs1)
 	b.Assert(err, qt.IsNil)
 	b.Assert(abs3, qt.Equals, abs1)
 	b.Assert(rel2, qt.Equals, rel)
@@ -488,11 +488,11 @@ Home.
 	b.AssertFileContent("public/index.html", "Home.")
 
 	stat := func(path string) hugofs.FileMetaInfo {
-		ps, err := b.H.BaseFs.Content.ReverseLookup(filepath.FromSlash(path), true)
+		ps, err := b.H.Content.ReverseLookup(filepath.FromSlash(path), true)
 		b.Assert(err, qt.IsNil)
 		b.Assert(ps, qt.HasLen, 1)
 		first := ps[0]
-		fi, err := b.H.BaseFs.Content.Fs.Stat(filepath.FromSlash(first.Path))
+		fi, err := b.H.Content.Fs.Stat(filepath.FromSlash(first.Path))
 		b.Assert(err, qt.IsNil)
 		b.Assert(fi, qt.Not(qt.IsNil))
 		return fi.(hugofs.FileMetaInfo)
@@ -596,7 +596,7 @@ Home.
 `
 	b := hugolib.Test(t, files)
 
-	b.AssertFs(b.H.BaseFs.StaticFs(""), `
+	b.AssertFs(b.H.StaticFs(""), `
 . true
 f3.txt false
 files true
@@ -620,7 +620,7 @@ target = "static/f2.txt"
 f1
 `
 	b := hugolib.Test(t, files)
-	fs := b.H.BaseFs.StaticFs("")
+	fs := b.H.StaticFs("")
 
 	b.AssertFs(fs, `
 . true
@@ -682,9 +682,9 @@ func countFilesAndGetFilenames(fs afero.Fs, dirname string) (int, []string, erro
 func setConfigAndWriteSomeFilesTo(fs afero.Fs, v config.Provider, key, val string, num int) {
 	workingDir := v.GetString("workingDir")
 	v.Set(key, val)
-	fs.Mkdir(val, 0o755)
+	_ = fs.Mkdir(val, 0o755)
 	for i := range num {
 		filename := filepath.Join(workingDir, val, fmt.Sprintf("f%d.txt", i+1))
-		afero.WriteFile(fs, filename, fmt.Appendf(nil, "content:%s:%d", key, i+1), 0o755)
+		_ = afero.WriteFile(fs, filename, fmt.Appendf(nil, "content:%s:%d", key, i+1), 0o755)
 	}
 }

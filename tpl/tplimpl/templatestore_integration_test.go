@@ -793,9 +793,10 @@ L3
 	}
 
 	for i, test := range tests {
-		if i != 8 {
-			// continue
-		}
+		// Uncomment to debug specific test
+		// if i != 8 {
+		// 	continue
+		// }
 		files := strings.ReplaceAll(filesTemplate, "L1", test.L1)
 		files = strings.ReplaceAll(files, "L2", test.L2)
 		files = strings.ReplaceAll(files, "L3", test.L3)

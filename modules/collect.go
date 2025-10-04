@@ -287,7 +287,7 @@ func (c *collector) add(owner *moduleAdapter, moduleImport Import) (*moduleAdapt
 					return nil, nil
 				}
 				if found, _ := afero.Exists(c.fs, moduleDir); !found {
-					//lint:ignore ST1005 end user message.
+					//nolint:staticcheck // end user message
 					c.err = c.wrapModuleNotFound(fmt.Errorf(`module %q not found in %q; either add it as a Hugo Module or store it in %q.`, modulePath, moduleDir, c.ccfg.ThemesDir))
 					return nil, nil
 				}
@@ -547,7 +547,7 @@ func (c *collector) collectModulesTXT(owner Module) error {
 		return err
 	}
 
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 
@@ -565,7 +565,7 @@ func (c *collector) collectModulesTXT(owner Module) error {
 		}
 		path := parts[0]
 
-		shouldAdd := c.Client.moduleConfig.VendorClosest
+		shouldAdd := c.moduleConfig.VendorClosest
 
 		if !shouldAdd {
 			if _, found := c.vendored[path]; !found {
@@ -612,7 +612,7 @@ func (c *collector) mountCommonJSConfig(owner *moduleAdapter, mounts []Mount) ([
 	if err != nil {
 		return mounts, fmt.Errorf("failed to open dir %q: %q", owner.Dir(), err)
 	}
-	defer d.Close()
+	defer func() { _ = d.Close() }()
 	fis, err := d.(fs.ReadDirFile).ReadDir(-1)
 	if err != nil {
 		return mounts, fmt.Errorf("failed to read dir %q: %q", owner.Dir(), err)
@@ -677,7 +677,7 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 				if err != nil {
 					return nil, fmt.Errorf("%s: %q", errMsg, err)
 				}
-				f.Close()
+				defer func() { _ = f.Close() }()
 			} else {
 				// TODO(bep) commenting out for now, as this will create to much noise.
 				// c.logger.Warnf("module %q: mount source %q does not exist", owner.Path(), sourceDir)
@@ -702,7 +702,7 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 }
 
 func (c *collector) wrapModuleNotFound(err error) error {
-	if c.Client.ccfg.IgnoreModuleDoesNotExist {
+	if c.ccfg.IgnoreModuleDoesNotExist {
 		return nil
 	}
 	err = fmt.Errorf(err.Error()+": %w", ErrNotExist)
