@@ -8,42 +8,61 @@ permissions:
   packages: write
 
 env:
-  REGISTRY_IMAGE: ghcr.io/gohugoio/hugo
+  REGISTRY_IMAGE: ghcr.io/neohugo/neohugo
 
 jobs:
-  build:
+  docker:
+    name: Build Neohugo Docker ${{ matrix.variant }}
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        variant: [latest, latest-extra]
+        include:
+          - variant: latest
+            dockerfile: Dockerfile
+            tags: |
+              neohugo/neohugo:latest
+              ghcr.io/${{ github.repository_owner }}/neohugo:latest
+          - variant: latest-extra
+            dockerfile: Dockerfile.extra
+            tags: |
+              neohugo/neohugo:latest-extra
+              ghcr.io/${{ github.repository_owner }}/neohugo:latest-extra
     steps:
       - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
+        uses: actions/checkout@v4
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81 # v5.5.1
+        uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY_IMAGE }}
-
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@988b5a0280414f521da01fcc63a27aeeb4b104db # v3.6.1
-
-      - name: Login to GHCR
-        # Login is only needed when the image is pushed
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567 # v3.3.0
+        uses: docker/setup-buildx-action@v3
+      - name: Login to DockerHub
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Login to GitHub Container Registry
+        if: ${{ github.event_name != 'pull_request' }}
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
+          password: ${{ secrets.CR_PAT }}
       - name: Build and push
-        id: build
-        uses: docker/build-push-action@16ebe778df0e7752d2cfcbd924afdbbd89c1a755 # v6.6.1
+        id: docker_build
+        uses: docker/build-push-action@v6
         with:
           context: .
           provenance: mode=max
           sbom: true
+          file: ./${{ matrix.dockerfile }}
           push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ matrix.tags }}
           platforms: linux/amd64,linux/arm64
-          tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: HUGO_BUILD_TAGS=extended,withdeploy
