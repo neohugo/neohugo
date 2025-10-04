@@ -8,10 +8,10 @@ env:
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
-  DART_SASS_VERSION: "1.63.6"
-  DART_SASS_SHA_LINUX: "de6cbea03b18c921c5829030c777321d6c38144035ebccd2ee4deaff9c333ded"
-  DART_SASS_SHA_MACOS: "de5760085e02210e24ecf87b26a95c70dbd35683e8f47d0eb817cc02bd0cd41b"
-  DART_SASS_SHA_WINDOWS: "28f97e84f56fe08e02e52065397bf35c72a08405fa637fa04fd9502098f796ba"
+  SASS_VERSION: 1.80.3
+  DART_SASS_SHA_LINUX: 7c933edbad0a7d389192c5b79393485c088bd2c4398e32f5754c32af006a9ffd
+  DART_SASS_SHA_MACOS: 79e060b0e131c3bb3c16926bafc371dc33feab122bfa8c01aa337a072097967b
+  DART_SASS_SHA_WINDOWS: 0bc4708b37cd1bac4740e83ac5e3176e66b774f77fd5dd364da5b5cfc9bfb469
 
 jobs:
   docdeploy:
@@ -19,24 +19,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: neohugo
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.22"
+          go-version: "1.25"
       - name: Install Ruby
         uses: ruby/setup-ruby@v1
         with:
           ruby-version: "2.7"
           bundler-cache: true #
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Install asciidoctor
-        uses: reitzig/actions-asciidoctor@7570212ae20b63653481675fb1ff62d1073632b0
+        uses: reitzig/actions-asciidoctor@v2.0.2
       - name: Setup Go environment
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
@@ -63,7 +63,7 @@ jobs:
       - name: Install docutils
         run: |
           pip install docutils
-          rst2html.py --version
+          rst2html --version
       - name: Install pandoc on Linux
         run: |
           sudo apt-get update -y
@@ -71,10 +71,10 @@ jobs:
       - run: pandoc -v
       - name: Install dart-sass-embedded Linux
         run: |
-          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
-          echo "${DART_SASS_SHA_LINUX} dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf "dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "Install Dart Sass version ${SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${SASS_VERSION}/dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX}  dart-sass-${SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
       - name: Run mage check
         working-directory: ./neohugo
@@ -92,7 +92,7 @@ jobs:
         run: |
           ./neohugo -s docs/
       - name: Checkout docs repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: neohugo/neohugo.github.io
           path: docs
@@ -117,14 +117,14 @@ jobs:
       image: neohugo/golang-cross:v1.22.1
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           path: neohugo
       - name: Set up Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
-          go-version: "1.22"
+          go-version: "1.25"
       - name: Run Goreleaser
         uses: goreleaser/goreleaser-action@v4
         with:
@@ -135,51 +135,53 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   docker:
-    name: Build Neohugo Docker
+    name: Build Neohugo Docker ${{ matrix.variant }}
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant: [release, release-extra]
+        include:
+          - variant: release
+            dockerfile: Dockerfile
+            tag-suffix: ""
+          - variant: release-extra
+            dockerfile: Dockerfile.extra
+            tag-suffix: "-extra"
     steps:
       - name: Prepare
         id: prep
         run: |
-          echo ::set-output name=tags::neohugo/neohugo:latest,neohugo/neohugo:${GITHUB_REF/refs\/tags\//},ghcr.io/${{ github.repository_owner }}/neohugo:latest,ghcr.io/${{ github.repository_owner }}/neohugo:${GITHUB_REF/refs\/tags\//}
+          VERSION=${GITHUB_REF/refs\/tags\//}
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "tags=neohugo/neohugo:latest${{ matrix.tag-suffix }},neohugo/neohugo:${VERSION}${{ matrix.tag-suffix }},ghcr.io/${{ github.repository_owner }}/neohugo:latest${{ matrix.tag-suffix }},ghcr.io/${{ github.repository_owner }}/neohugo:${VERSION}${{ matrix.tag-suffix }}" >> $GITHUB_OUTPUT
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
           password: ${{ secrets.CR_PAT }}
-      - name: Build and Push to Docker Hub
+      - name: Build and Push
         id: docker_build
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile
+          provenance: mode=max
+          sbom: true
+          file: ./${{ matrix.dockerfile }}
           push: true
           tags: ${{ steps.prep.outputs.tags }}
+          platforms: linux/amd64,linux/arm64
+          build-args: HUGO_BUILD_TAGS=extended,withdeploy
       - name: Image digest
         run: echo ${{ steps.docker_build.outputs.digest }}
-      - name: Prepare-Extra
-        id: prep-extra
-        run: |
-          echo ::set-output name=tags::neohugo/neohugo:latest-extra,neohugo/neohugo:${GITHUB_REF/refs\/tags\//}-extra,ghcr.io/${{ github.repository_owner }}/neohugo:latest-extra,ghcr.io/${{ github.repository_owner }}/neohugo:${GITHUB_REF/refs\/tags\//}-extra
-      - name: Build Extra and push
-        id: docker_build_extra
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile.extra
-          push: true
-          tags: ${{ steps.prep-extra.outputs.tags }}
-      - name: Image Extra digest
-        run: echo ${{ steps.docker_build_extra.outputs.digest }}
