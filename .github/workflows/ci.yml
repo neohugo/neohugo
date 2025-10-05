@@ -26,6 +26,19 @@ jobs:
         os: [ubuntu-latest, windows-latest]
         go: ["1.25"]
     steps:
+      - if: matrix.os == 'ubuntu-latest'
+        name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
       - name: Git checkout
         uses: actions/checkout@v4
         with:
