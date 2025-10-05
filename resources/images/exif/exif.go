@@ -222,7 +222,7 @@ func (d *Decoder) Decode(filename string, format imagemeta.ImageFormat, r io.Rea
 
 	ex = &ExifInfo{Lat: lat, Long: long, Date: tm, Tags: tags}
 
-	return
+	return ex, err
 }
 
 var tcodec *tmc.Codec

@@ -51,7 +51,7 @@ func Decode(cfg config.Provider) (conf Config, err error) {
 
 	m := cfg.GetStringMap("markup")
 	if m == nil {
-		return
+		return conf, err
 	}
 	m = maps.CleanConfigStringMap(m)
 
@@ -59,18 +59,18 @@ func Decode(cfg config.Provider) (conf Config, err error) {
 
 	err = mapstructure.WeakDecode(m, &conf)
 	if err != nil {
-		return
+		return conf, err
 	}
 
 	if err = conf.Init(); err != nil {
-		return
+		return conf, err
 	}
 
 	if err = highlight.ApplyLegacyConfig(cfg, &conf.Highlight); err != nil {
-		return
+		return conf, err
 	}
 
-	return
+	return conf, err
 }
 
 func normalizeConfig(m map[string]any) {

@@ -44,7 +44,7 @@ func NewPostCSSClient(rs *resources.Spec) *PostCSSClient {
 
 func decodePostCSSOptions(m map[string]any) (opts PostCSSOptions, err error) {
 	if m == nil {
-		return
+		return opts, err
 	}
 	err = mapstructure.WeakDecode(m, &opts)
 
@@ -55,7 +55,7 @@ func decodePostCSSOptions(m map[string]any) (opts PostCSSOptions, err error) {
 		opts.NoMap = cast.ToBool(m["no-map"])
 	}
 
-	return
+	return opts, err
 }
 
 // PostCSSClient is the client used to do PostCSS transformations.

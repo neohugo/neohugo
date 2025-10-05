@@ -78,7 +78,7 @@ func (rc *regexpCache) get(key string) (re *regexp.Regexp, ok bool) {
 	rc.mu.RLock()
 	re, ok = rc.re[key]
 	rc.mu.RUnlock()
-	return
+	return re, ok
 }
 
 func (rc *regexpCache) set(key string, re *regexp.Regexp) {

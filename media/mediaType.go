@@ -314,7 +314,7 @@ func (t Types) GetBySuffix(suffix string) (tp Type, si SuffixInfo, found bool) {
 			if found {
 				// ambiguous
 				found = false
-				return
+				return tp, si, found
 			}
 			tp = tt
 			si = SuffixInfo{
@@ -324,7 +324,7 @@ func (t Types) GetBySuffix(suffix string) (tp Type, si SuffixInfo, found bool) {
 			found = true
 		}
 	}
-	return
+	return tp, si, found
 }
 
 func (t Types) IsTextSuffix(suffix string) bool {
@@ -351,14 +351,14 @@ func (t Types) GetByMainSubType(mainType, subType string) (tp Type, found bool) 
 			if found {
 				// ambiguous
 				found = false
-				return
+				return tp, found
 			}
 
 			tp = tt
 			found = true
 		}
 	}
-	return
+	return tp, found
 }
 
 // GetBySubType gets a media type given a sub type e.g. "plain".
@@ -368,13 +368,13 @@ func (t Types) GetBySubType(subType string) (tp Type, found bool) {
 			if found {
 				// ambiguous
 				found = false
-				return
+				return tp, found
 			}
 			tp = tt
 			found = true
 		}
 	}
-	return
+	return tp, found
 }
 
 // IsZero reports whether this Type represents a zero value.

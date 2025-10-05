@@ -155,7 +155,7 @@ func FileAndExtNoDelimiter(in string) (string, string) {
 // and returns the name of the file.
 func Filename(in string) (name string) {
 	name, _ = fileAndExt(in, fpb)
-	return
+	return name
 }
 
 // FileAndExt returns the filename and any extension of a file path as
@@ -198,7 +198,7 @@ func extractFilename(in, ext, base, pathSeparator string) (name string) {
 		// be the filename
 		name = base
 	}
-	return
+	return name
 }
 
 // GetRelativePath returns the relative path of a given path.

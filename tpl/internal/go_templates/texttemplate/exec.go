@@ -223,7 +223,7 @@ func (t *Template) execute(wr io.Writer, data any) (err error) {
 		state.errorf("%q is an incomplete or empty template", t.Name())
 	}
 	state.walk(value, t.Root)
-	return
+	return err
 }
 
 // DefinedTemplates returns a string listing the defined templates,
@@ -345,7 +345,7 @@ func isTrueOld(val reflect.Value) (truth, ok bool) {
 	case reflect.Struct:
 		truth = true // Struct values are always true.
 	default:
-		return
+		return truth, ok
 	}
 	return truth, true
 }
@@ -525,7 +525,7 @@ func (s *state) walkTemplate(dot reflect.Value, t *parse.TemplateNode) {
 // executing commands depending on the pipeline value.
 func (s *state) evalPipeline(dot reflect.Value, pipe *parse.PipeNode) (value reflect.Value) {
 	if pipe == nil {
-		return
+		return value
 	}
 	s.at(pipe)
 	value = missingVal

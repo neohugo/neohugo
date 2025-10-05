@@ -273,14 +273,14 @@ func (formats Formats) GetBySuffix(suffix string) (f Format, found bool) {
 				if found {
 					// ambiguous
 					found = false
-					return
+					return f, found
 				}
 				f = ff
 				found = true
 			}
 		}
 	}
-	return
+	return f, found
 }
 
 // GetByName gets a format by its identifier name.
@@ -289,10 +289,10 @@ func (formats Formats) GetByName(name string) (f Format, found bool) {
 		if strings.EqualFold(name, ff.Name) {
 			f = ff
 			found = true
-			return
+			return f, found
 		}
 	}
-	return
+	return f, found
 }
 
 // GetByNames gets a list of formats given a list of identifiers.
@@ -336,7 +336,7 @@ func (formats Formats) FromFilename(filename string) (f Format, found bool) {
 			f, found = formats.GetByName(ext)
 		}
 	}
-	return
+	return f, found
 }
 
 // BaseFilename returns the base filename of f including an extension (ie.

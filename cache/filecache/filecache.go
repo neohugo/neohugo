@@ -169,18 +169,18 @@ func (c *Cache) ReadOrCreate(id string,
 			// To recover from file corruption we handle read errors
 			// as the cache item was not found.
 			// Any file permission issue will also fail in the next step.
-			return
+			return info, err
 		}
 	}
 
 	f, err := helpers.OpenFileForWriting(c.Fs, id)
 	if err != nil {
-		return
+		return info, err
 	}
 
 	err = create(info, f)
 
-	return
+	return info, err
 }
 
 // NamedLock locks the given id. The lock is released when the returned function is called.

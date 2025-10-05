@@ -559,7 +559,7 @@ func (p *Path) Dir() (d string) {
 		d = "/"
 	}
 	d = p.norm(d)
-	return
+	return d
 }
 
 // Path returns the full path.
@@ -647,7 +647,7 @@ func (p *Path) BaseReTyped(typ string) (d string) {
 		d += base[p.posSectionHigh:]
 	}
 	d = p.norm(d)
-	return
+	return d
 }
 
 // BaseNoLeadingSlash returns the base path without the leading slash.

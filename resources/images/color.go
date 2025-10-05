@@ -19,10 +19,10 @@ import (
 	"hash/fnv"
 	"image/color"
 	"math"
+	"slices"
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hstrings"
-	"slices"
 )
 
 type colorGoProvider interface {

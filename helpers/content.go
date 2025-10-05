@@ -124,7 +124,7 @@ func ExtractTOC(content []byte) (newcontent []byte, toc []byte) {
 
 	newcontent = append(content[:startOfTOC], content[endOfTOC:]...)
 	toc = append(replacement, origContent[startOfTOC+len(first):endOfTOC]...)
-	return
+	return newcontent, toc
 }
 
 func (c *ContentSpec) SanitizeAnchorName(s string) string {

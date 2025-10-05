@@ -409,7 +409,7 @@ func collect(t *lexTest, left, right string) (items []item) {
 			break
 		}
 	}
-	return
+	return items
 }
 
 func equal(i1, i2 []item, checkPos bool) bool {

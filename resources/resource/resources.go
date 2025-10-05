@@ -17,6 +17,7 @@ package resource
 import (
 	"fmt"
 	"path"
+	"slices"
 	"strings"
 
 	"github.com/neohugo/neohugo/common/hreflect"
@@ -24,7 +25,6 @@ import (
 	"github.com/neohugo/neohugo/common/paths"
 	"github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/spf13/cast"
-	"slices"
 )
 
 var _ ResourceFinder = (*Resources)(nil)

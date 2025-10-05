@@ -17,9 +17,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	qt "github.com/frankban/quicktest"
 )

@@ -519,13 +519,13 @@ func parseFS(t *Template, fsys fs.FS, patterns []string) (*Template, error) {
 func readFileOS(file string) (name string, b []byte, err error) {
 	name = filepath.Base(file)
 	b, err = os.ReadFile(file)
-	return
+	return name, b, err
 }
 
 func readFileFS(fsys fs.FS) func(string) (string, []byte, error) {
 	return func(file string) (name string, b []byte, err error) {
 		name = path.Base(file)
 		b, err = fs.ReadFile(fsys, file)
-		return
+		return name, b, err
 	}
 }

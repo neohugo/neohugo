@@ -63,13 +63,13 @@ func (r *multiReadSeekCloser) Seek(offset int64, whence int) (newOffset int64, e
 	for _, s := range r.sources {
 		newOffset, err = s.Seek(offset, whence)
 		if err != nil {
-			return
+			return newOffset, err
 		}
 	}
 
 	r.mr = io.MultiReader(toReaders(r.sources)...)
 
-	return
+	return newOffset, err
 }
 
 func (r *multiReadSeekCloser) Close() error {

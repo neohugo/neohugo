@@ -1550,7 +1550,7 @@ func (s *Site) renderForTemplate(ctx context.Context, name, outputFormat string,
 		}
 		return fmt.Errorf("render of %q failed: %w", filename, err)
 	}
-	return
+	return err
 }
 
 func (s *Site) shouldBuild(p page.Page) bool {
@@ -1592,22 +1592,22 @@ func (s *Site) render(ctx *siteRenderContext) (err error) {
 			// to itself or another real page. These will be overwritten in the next
 			// step.
 			if err = s.renderAliases(); err != nil {
-				return
+				return err
 			}
 		}
 	}
 
 	if err = s.renderPages(ctx); err != nil {
-		return
+		return err
 	}
 
 	if !ctx.shouldRenderStandalonePage("") {
-		return
+		return err
 	}
 
 	if err = s.renderMainLanguageRedirect(); err != nil {
-		return
+		return err
 	}
 
-	return
+	return err
 }

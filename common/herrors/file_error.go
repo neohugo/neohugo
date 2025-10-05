@@ -412,7 +412,7 @@ func extractPosition(e error) (pos text.Position) {
 		pos.LineNumber = v.Line
 		pos.ColumnNumber = v.Column
 	}
-	return
+	return pos
 }
 
 // TextSegmentError is an error with a text segment attached.

@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/neohugo/neohugo/cache/filecache"
@@ -36,7 +37,6 @@ import (
 	"github.com/spf13/cast"
 
 	"github.com/neohugo/neohugo/deps"
-	"slices"
 )
 
 // New returns a new instance of the data-namespaced template functions.
@@ -99,7 +99,7 @@ func (ns *Namespace) GetCSV(sep string, args ...any) (d [][]string, err error) {
 		return nil, nil
 	}
 
-	return
+	return d, err
 }
 
 // GetJSON expects one or n-parts of a URL in args to a resource which can either be a local or a remote one.

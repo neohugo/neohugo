@@ -358,7 +358,7 @@ func (t *Tree) itemList() (list *ListNode, next Node) {
 		list.append(n)
 	}
 	t.errorf("unexpected EOF")
-	return
+	return list, next
 }
 
 // textOrAction:
@@ -495,7 +495,7 @@ decls:
 		case end:
 			// At this point, the pipeline is complete
 			t.checkPipeline(pipe, context)
-			return
+			return pipe
 		case itemBool, itemCharConstant, itemComplex, itemDot, itemField, itemIdentifier,
 			itemNumber, itemNil, itemRawString, itemString, itemVariable, itemLeftParen:
 			t.backup()
@@ -680,7 +680,7 @@ func (t *Tree) parseTemplateName(token item, context string) (name string) {
 	default:
 		t.unexpected(token, context)
 	}
-	return
+	return name
 }
 
 // command:

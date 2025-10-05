@@ -298,7 +298,7 @@ func (ns *Namespace) applyOpToScalarsOrSlices(opName string, op func(x, y float6
 		values, isSlice, err = ns.toFloatsE(input)
 		if err != nil {
 			err = fmt.Errorf("%s operator can't be used with non-float values", opName)
-			return
+			return result, err
 		}
 		hasValue = hasValue || len(values) > 0 || isSlice
 		for _, value := range values {
@@ -313,9 +313,9 @@ func (ns *Namespace) applyOpToScalarsOrSlices(opName string, op func(x, y float6
 
 	if !hasValue {
 		err = errMustOneNumberError
-		return
+		return result, err
 	}
-	return
+	return result, err
 }
 
 func (ns *Namespace) toFloatsE(v any) ([]float64, bool, error) {
@@ -348,10 +348,10 @@ func (ns *Namespace) doArithmetic(inputs []any, operation rune) (value any, err 
 	for i := 1; i < len(inputs); i++ {
 		value, err = _math.DoArithmetic(value, inputs[i], operation)
 		if err != nil {
-			return
+			return value, err
 		}
 	}
-	return
+	return value, err
 }
 
 // Counter increments and returns a global counter.

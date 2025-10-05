@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hreflect"
 	"github.com/neohugo/neohugo/common/htime"
 	"github.com/neohugo/neohugo/common/hugio"
@@ -33,7 +34,6 @@ import (
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/mitchellh/mapstructure"
 
 	"github.com/neohugo/neohugo/helpers"
 

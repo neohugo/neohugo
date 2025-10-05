@@ -92,7 +92,7 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 
 	workingDir := t.rs.Cfg.BaseConfig().WorkingDir
 
-	var cmdArgs = []any{
+	cmdArgs := []any{
 		"--input=-", // Read from stdin.
 		"--cwd", workingDir,
 	}
@@ -160,8 +160,8 @@ func (t *tailwindcssTransformation) Transform(ctx *resources.ResourceTransformat
 
 func decodeTailwindCSSOptions(m map[string]any) (opts TailwindCSSOptions, err error) {
 	if m == nil {
-		return
+		return opts, err
 	}
 	err = mapstructure.WeakDecode(m, &opts)
-	return
+	return opts, err
 }

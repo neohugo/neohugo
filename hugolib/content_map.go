@@ -161,7 +161,7 @@ func (cfg contentMapConfig) getTaxonomyConfig(s string) (v viewName) {
 			return n
 		}
 	}
-	return
+	return v
 }
 
 func (m *pageMap) insertPageWithLock(s string, p *pageState) (contentNodeI, contentNodeI, bool) {
@@ -215,7 +215,7 @@ func (m *pageMap) handleDuplicateResourcePath(s string, updated, existing conten
 
 func (m *pageMap) AddFi(fi hugofs.FileMetaInfo, buildConfig *BuildCfg) (pageCount uint64, resourceCount uint64, addErr error) {
 	if fi.IsDir() {
-		return
+		return pageCount, resourceCount, addErr
 	}
 
 	insertResource := func(fim hugofs.FileMetaInfo) error {
@@ -273,7 +273,7 @@ func (m *pageMap) AddFi(fi hugofs.FileMetaInfo, buildConfig *BuildCfg) (pageCoun
 		))
 		if err := insertResource(fi); err != nil {
 			addErr = err
-			return
+			return pageCount, resourceCount, addErr
 		}
 	case paths.TypeContentData:
 		pc, rc, err := m.addPagesFromGoTmplFi(fi, buildConfig)
@@ -281,7 +281,7 @@ func (m *pageMap) AddFi(fi hugofs.FileMetaInfo, buildConfig *BuildCfg) (pageCoun
 		resourceCount += rc
 		if err != nil {
 			addErr = err
-			return
+			return pageCount, resourceCount, addErr
 		}
 
 	default:
@@ -303,17 +303,17 @@ func (m *pageMap) AddFi(fi hugofs.FileMetaInfo, buildConfig *BuildCfg) (pageCoun
 		)
 		if err != nil {
 			addErr = err
-			return
+			return pageCount, resourceCount, addErr
 		}
 		if p == nil {
 			// Disabled page.
-			return
+			return pageCount, resourceCount, addErr
 		}
 
 		m.insertPageWithLock(pi.Base(), p)
 
 	}
-	return
+	return pageCount, resourceCount, addErr
 }
 
 func (m *pageMap) addPagesFromGoTmplFi(fi hugofs.FileMetaInfo, buildConfig *BuildCfg) (pageCount uint64, resourceCount uint64, addErr error) {
@@ -328,7 +328,7 @@ func (m *pageMap) addPagesFromGoTmplFi(fi hugofs.FileMetaInfo, buildConfig *Buil
 
 	if !files.IsGoTmplExt(pi.Ext()) {
 		addErr = fmt.Errorf("unsupported data file extension %q", pi.Ext())
-		return
+		return pageCount, resourceCount, addErr
 	}
 
 	s := m.s.h.resolveSite(fi.Meta().Lang)
@@ -440,7 +440,7 @@ func (m *pageMap) addPagesFromGoTmplFi(fi hugofs.FileMetaInfo, buildConfig *Buil
 	bi, err := contentAdapter.Execute(context.Background())
 	if err != nil {
 		addErr = err
-		return
+		return pageCount, resourceCount, addErr
 	}
 	handleBuildInfo(s, bi)
 
@@ -457,7 +457,7 @@ func (m *pageMap) addPagesFromGoTmplFi(fi hugofs.FileMetaInfo, buildConfig *Buil
 			bi, err := clone.Execute(context.Background())
 			if err != nil {
 				addErr = err
-				return
+				return pageCount, resourceCount, addErr
 			}
 			handleBuildInfo(ss, bi)
 
@@ -467,7 +467,7 @@ func (m *pageMap) addPagesFromGoTmplFi(fi hugofs.FileMetaInfo, buildConfig *Buil
 		}
 	}
 
-	return
+	return pageCount, resourceCount, addErr
 }
 
 // The home page is represented with the zero string.

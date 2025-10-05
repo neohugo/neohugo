@@ -111,7 +111,7 @@ func (p *nopPage) Data() any {
 }
 
 func (p *nopPage) Date() (t time.Time) {
-	return
+	return t
 }
 
 func (p *nopPage) Description() string {
@@ -139,7 +139,7 @@ func (p *nopPage) Eq(other any) bool {
 }
 
 func (p *nopPage) ExpiryDate() (t time.Time) {
-	return
+	return t
 }
 
 func (p *nopPage) File() *source.File {
@@ -191,7 +191,7 @@ func (p *nopPage) HasShortcode(name string) bool {
 }
 
 func (p *nopPage) Hugo() (h neohugo.HugoInfo) {
-	return
+	return h
 }
 
 func (p *nopPage) InSection(other any) bool {
@@ -251,7 +251,7 @@ func (p *nopPage) Language() *langs.Language {
 }
 
 func (p *nopPage) Lastmod() (t time.Time) {
-	return
+	return t
 }
 
 func (p *nopPage) Len(context.Context) int {
@@ -267,11 +267,11 @@ func (p *nopPage) LogicalName() string {
 }
 
 func (p *nopPage) MediaType() (m media.Type) {
-	return
+	return m
 }
 
 func (p *nopPage) Menus() (m navigation.PageMenus) {
-	return
+	return m
 }
 
 func (p *nopPage) Name() string {
@@ -351,7 +351,7 @@ func (p *nopPage) Prev() Page {
 }
 
 func (p *nopPage) PublishDate() (t time.Time) {
-	return
+	return t
 }
 
 func (p *nopPage) PrevInSection() Page {

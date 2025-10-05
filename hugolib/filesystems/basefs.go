@@ -299,11 +299,11 @@ func (s SourceFilesystems) StatResource(lang, filename string) (fi os.FileInfo, 
 		fs = fsToCheck
 		fi, err = fs.Stat(filename)
 		if err == nil || !herrors.IsNotExist(err) {
-			return
+			return fi, fs, err
 		}
 	}
 	// Not found.
-	return
+	return fi, fs, err
 }
 
 // IsStatic returns true if the given filename is a member of one of the static

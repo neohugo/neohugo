@@ -88,7 +88,7 @@ func (f *openFilesFsFile) Close() (err error) {
 	err = f.File.Close()
 
 	if f.fs.openFiles == nil {
-		return
+		return err
 	}
 
 	name := f.Name()
@@ -99,7 +99,7 @@ func (f *openFilesFsFile) Close() (err error) {
 		delete(f.fs.openFiles, name)
 	}
 
-	return
+	return err
 }
 
 func (fs *OpenFilesFs) OpenFiles() map[string]int {

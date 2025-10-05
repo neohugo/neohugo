@@ -385,14 +385,14 @@ func parseWhereArgs(args ...any) (mv reflect.Value, op string, err error) {
 		var ok bool
 		if op, ok = args[0].(string); !ok {
 			err = errors.New("operator argument must be string type")
-			return
+			return mv, op, err
 		}
 		op = strings.TrimSpace(strings.ToLower(op))
 		mv = reflect.ValueOf(args[1])
 	default:
 		err = errors.New("can't evaluate the array by no match argument or more than or equal to two arguments")
 	}
-	return
+	return mv, op, err
 }
 
 // checkWhereArray handles the where-matching logic when the seqv value is an

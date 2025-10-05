@@ -238,14 +238,14 @@ func (b *lockingBuffer) ReadFrom(r io.Reader) (n int64, err error) {
 	b.Lock()
 	n, err = b.buf.ReadFrom(r)
 	b.Unlock()
-	return
+	return n, err
 }
 
 func (b *lockingBuffer) Write(p []byte) (n int, err error) {
 	b.Lock()
 	n, err = b.buf.Write(p)
 	b.Unlock()
-	return
+	return n, err
 }
 
 // AssertLogContains asserts that the last build log contains the given strings.

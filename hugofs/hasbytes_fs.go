@@ -87,7 +87,7 @@ type hasBytesFile struct {
 func (h *hasBytesFile) Write(p []byte) (n int, err error) {
 	n, err = h.File.Write(p)
 	if err != nil {
-		return
+		return n, err
 	}
 	return h.hbw.Write(p)
 }

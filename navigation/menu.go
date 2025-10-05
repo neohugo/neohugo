@@ -16,6 +16,7 @@ package navigation
 
 import (
 	"html/template"
+	"slices"
 	"sort"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -26,7 +27,6 @@ import (
 	"github.com/mitchellh/mapstructure"
 
 	"github.com/spf13/cast"
-	"slices"
 )
 
 var smc = newMenuCache()

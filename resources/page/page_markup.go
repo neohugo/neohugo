@@ -238,7 +238,7 @@ func ExtractSummaryFromHTML(mt media.Type, input string, numWords int, isCJK boo
 				Low:  result.WrapperStart.High,
 				High: j + closingIndex + len(ptag.tagName) + 3,
 			}
-			return
+			return result
 		}
 
 		j += closingIndex + len(ptag.tagName) + 2
@@ -250,7 +250,7 @@ func ExtractSummaryFromHTML(mt media.Type, input string, numWords int, isCJK boo
 		High: high,
 	}
 
-	return
+	return result
 }
 
 // ExtractSummaryFromHTMLWithDivider extracts a summary from the given HTML content with
@@ -262,7 +262,7 @@ func ExtractSummaryFromHTMLWithDivider(mt media.Type, input, divider string) (re
 
 	if result.Divider.Low == -1 {
 		// No summary.
-		return
+		return result
 	}
 
 	ptag := result.resolveParagraphTagAndSetWrapper(mt)
@@ -276,7 +276,7 @@ func ExtractSummaryFromHTMLWithDivider(mt media.Type, input, divider string) (re
 		High: result.Divider.Low,
 	}
 
-	return
+	return result
 }
 
 var (

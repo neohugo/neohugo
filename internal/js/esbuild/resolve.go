@@ -72,12 +72,12 @@ func ResolveComponent[T any](impPath string, resolve func(string) (v T, found, i
 				continue
 			}
 			if v, found, isDir = resolve(base + ext); found {
-				return
+				return v, found, isDir
 			}
 		}
 
 		// Not found.
-		return
+		return v, found, isDir
 	}
 
 	// We need to check if this is a regular file imported without an extension.
@@ -115,7 +115,7 @@ func ResolveComponent[T any](impPath string, resolve func(string) (v T, found, i
 		v, found, _ = findFirst(strings.TrimSuffix(impPath, ".js"))
 	}
 
-	return
+	return v, found
 }
 
 // ResolveResource resolves a resource using the given resourceGetter.

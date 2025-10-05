@@ -405,7 +405,7 @@ func (r *NodeShiftTreeWalker[T]) toT(tree *NodeShiftTree[T], v any) (t T, ok boo
 	} else {
 		t, ok, exact = tree.shift(v.(T), r.Exact)
 	}
-	return
+	return t, ok, exact
 }
 
 func (r *NodeShiftTree[T]) Has(s string) bool {

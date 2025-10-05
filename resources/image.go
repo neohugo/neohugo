@@ -110,7 +110,7 @@ func (i *imageResource) getExif() *exif.ExifInfo {
 			f, err := i.root.ReadSeekCloser()
 			if err != nil {
 				i.metaInitErr = err
-				return
+				return err
 			}
 			defer func() { _ = f.Close() }()
 

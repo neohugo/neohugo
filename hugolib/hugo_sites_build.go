@@ -1193,7 +1193,7 @@ func (h *HugoSites) LogServerAddresses() {
 func (h *HugoSites) processFull(ctx context.Context, l logg.LevelLogger, config *BuildCfg) (err error) {
 	if err = h.processFiles(ctx, l, config); err != nil {
 		err = fmt.Errorf("readAndProcessContent: %w", err)
-		return
+		return err
 	}
 	return err
 }

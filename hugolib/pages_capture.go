@@ -215,7 +215,7 @@ func (c *pagesCollector) Collect() (collectErr error) {
 		collectErr = werr
 	}
 
-	return
+	return collectErr
 }
 
 func (c *pagesCollector) collectDir(dirPath *paths.Path, isDir bool, inFilter func(fim hugofs.FileMetaInfo) bool) error {

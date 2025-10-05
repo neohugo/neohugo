@@ -20,10 +20,10 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/tpl"
-	"github.com/mitchellh/mapstructure"
 )
 
 // New returns a new instance of the templates-namespaced template functions.

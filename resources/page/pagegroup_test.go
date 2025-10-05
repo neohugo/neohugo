@@ -15,9 +15,10 @@ package page
 
 import (
 	"context"
-	"github.com/google/go-cmp/cmp"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/spf13/cast"

@@ -388,7 +388,7 @@ func (w *htmlElementsCollectorWriter) parseHTMLElement(elStr string) (el htmlEle
 
 	n, err := html.Parse(strings.NewReader(elStr))
 	if err != nil {
-		return
+		return el, err
 	}
 
 	var walk func(*html.Node)
@@ -443,7 +443,7 @@ func (w *htmlElementsCollectorWriter) parseHTMLElement(elStr string) (el htmlEle
 
 	walk(n)
 
-	return
+	return el, err
 }
 
 // Variants of s

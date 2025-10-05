@@ -170,7 +170,7 @@ type Options struct {
 
 func decodeOptions(m map[string]any) (opts Options, err error) {
 	if m == nil {
-		return
+		return opts, err
 	}
 	err = mapstructure.WeakDecode(m, &opts)
 
@@ -178,5 +178,5 @@ func decodeOptions(m map[string]any) (opts Options, err error) {
 		opts.TargetPath = paths.ToSlashTrimLeading(opts.TargetPath)
 	}
 
-	return
+	return opts, err
 }

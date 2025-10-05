@@ -106,5 +106,5 @@ func DecodeConfig(cfg config.Provider) (c Config, err error) {
 		}
 	}
 
-	return
+	return c, err
 }

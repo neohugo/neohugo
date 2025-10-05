@@ -100,5 +100,5 @@ func calcFactorsNfnt(width, height uint, oldWidth, oldHeight float64) (scaleX, s
 			scaleY = oldHeight / float64(height)
 		}
 	}
-	return
+	return scaleX, scaleY
 }

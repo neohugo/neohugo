@@ -338,11 +338,11 @@ func (t testSite) ServerPort() int {
 
 // Deprecated: Use .Site.Lastmod instead.
 func (testSite) LastChange() (t time.Time) {
-	return
+	return t
 }
 
 func (testSite) Lastmod() (t time.Time) {
-	return
+	return t
 }
 
 func (t testSite) Title() string {

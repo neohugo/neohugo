@@ -98,7 +98,7 @@ func IsTruthfulValue(val reflect.Value) (truth bool) {
 
 	if !val.IsValid() {
 		// Something like var x interface{}, never set. It's a form of nil.
-		return
+		return truth
 	}
 
 	if val.Type().Implements(zeroType) {
@@ -123,10 +123,10 @@ func IsTruthfulValue(val reflect.Value) (truth bool) {
 	case reflect.Struct:
 		truth = true // Struct values are always true.
 	default:
-		return
+		return truth
 	}
 
-	return
+	return truth
 }
 
 type methodKey struct {

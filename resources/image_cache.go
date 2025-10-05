@@ -81,7 +81,7 @@ func (c *ImageCache) getOrCreate(
 			var conv image.Image
 			img, conv, err = createImage()
 			if err != nil {
-				return
+				return err
 			}
 			targetPath := img.getResourcePaths()
 			targetPath.File = relTarget.File

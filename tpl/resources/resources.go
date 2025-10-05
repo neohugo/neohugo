@@ -19,8 +19,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/neohugo"
 
 	"github.com/neohugo/neohugo/tpl/css"
 	"github.com/neohugo/neohugo/tpl/js"

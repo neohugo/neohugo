@@ -86,7 +86,7 @@ func NewDestinationPublisher(rs *resources.Spec, outputFormats output.Formats, m
 	}
 	pub = DestinationPublisher{fs: fs, htmlElementsCollector: classCollector}
 	pub.min, err = minifiers.New(mediaTypes, outputFormats, cfg)
-	return
+	return pub, err
 }
 
 // Publish applies any relevant transformations and writes the file

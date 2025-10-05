@@ -51,10 +51,10 @@ type Options struct {
 // DecodeOptions decodes options to and generates command flags
 func DecodeOptions(m map[string]any) (opts Options, err error) {
 	if m == nil {
-		return
+		return opts, err
 	}
 	err = mapstructure.WeakDecode(m, &opts)
-	return
+	return opts, err
 }
 
 func (opts Options) toArgs() []any {

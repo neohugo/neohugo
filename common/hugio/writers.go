@@ -102,10 +102,10 @@ func NewPipeReadWriteCloser() PipeReadWriteCloser {
 
 func (c PipeReadWriteCloser) Close() (err error) {
 	if err = c.PipeReader.Close(); err != nil {
-		return
+		return err
 	}
 	err = c.PipeWriter.Close()
-	return
+	return err
 }
 
 func (c PipeReadWriteCloser) WriteString(s string) (int, error) {

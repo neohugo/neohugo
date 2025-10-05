@@ -166,7 +166,7 @@ func ImproveRenderErr(inErr error) (outErr error) {
 		msg := deferredStringToRemove.ReplaceAllString(inErr.Error(), "executing ")
 		outErr = &errMessage{msg: msg, err: outErr}
 	}
-	return
+	return outErr
 }
 
 func improveIfNilPointerMsg(inErr error) string {

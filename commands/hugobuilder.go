@@ -420,10 +420,10 @@ func (c *hugoBuilder) buildSites(noBuildLock bool) (err error) {
 	var h *hugolib.HugoSites
 	h, err = c.hugo()
 	if err != nil {
-		return
+		return err
 	}
 	err = h.Build(hugolib.BuildCfg{NoBuildLock: noBuildLock})
-	return
+	return err
 }
 
 func (c *hugoBuilder) copyStatic() (map[string]uint64, error) {
@@ -1102,10 +1102,10 @@ func (c *hugoBuilder) rebuildSites(events []fsnotify.Event) (err error) {
 	var h *hugolib.HugoSites
 	h, err = c.hugo()
 	if err != nil {
-		return
+		return err
 	}
 	err = h.Build(hugolib.BuildCfg{NoBuildLock: true, RecentlyTouched: c.visitedURLs, ErrRecovery: c.errState.wasErr()}, events...)
-	return
+	return err
 }
 
 func (c *hugoBuilder) rebuildSitesForChanges(ids []identity.Identity) (err error) {
@@ -1116,13 +1116,13 @@ func (c *hugoBuilder) rebuildSitesForChanges(ids []identity.Identity) (err error
 	var h *hugolib.HugoSites
 	h, err = c.hugo()
 	if err != nil {
-		return
+		return err
 	}
 	whatChanged := &hugolib.WhatChanged{}
 	whatChanged.Add(ids...)
 	err = h.Build(hugolib.BuildCfg{NoBuildLock: true, WhatChanged: whatChanged, RecentlyTouched: c.visitedURLs, ErrRecovery: c.errState.wasErr()})
 
-	return
+	return err
 }
 
 func (c *hugoBuilder) reloadConfig() error {

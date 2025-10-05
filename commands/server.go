@@ -851,13 +851,13 @@ func (c *serverCommand) partialReRender(urls ...string) (err error) {
 	var h *hugolib.HugoSites
 	h, err = c.hugo()
 	if err != nil {
-		return
+		return err
 	}
 
 	// Note: We do not set NoBuildLock as the file lock is not acquired at this stage.
 	err = h.Build(hugolib.BuildCfg{NoBuildLock: false, RecentlyTouched: visited, PartialReRender: true, ErrRecovery: c.errState.wasErr()})
 
-	return
+	return err
 }
 
 func (c *serverCommand) serve() error {
@@ -1200,7 +1200,7 @@ func partitionDynamicEvents(sourceFs *filesystems.SourceFilesystems, events []fs
 			de.ContentEvents = append(de.ContentEvents, e)
 		}
 	}
-	return
+	return de
 }
 
 func pickOneWriteOrCreatePath(contentTypes config.ContentTypesProvider, events []fsnotify.Event) string {

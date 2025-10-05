@@ -104,7 +104,7 @@ func (t *Template) executeWithState(state *state, value reflect.Value) (err erro
 		state.errorf("%q is an incomplete or empty template", t.Name())
 	}
 	state.walk(value, t.Root)
-	return
+	return err
 }
 
 // Below are modified structs etc. The changes are marked with "Added for Hugo."

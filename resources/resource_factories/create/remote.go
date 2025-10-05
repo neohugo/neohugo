@@ -29,6 +29,7 @@ import (
 	gmaps "maps"
 
 	"github.com/gohugoio/httpcache"
+	"github.com/mitchellh/mapstructure"
 	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/hstrings"
 	"github.com/neohugo/neohugo/common/hugio"
@@ -41,7 +42,6 @@ import (
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/mitchellh/mapstructure"
 )
 
 type HTTPError struct {
@@ -454,7 +454,7 @@ func (t *transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 			continue
 		}
 
-		return
+		return resp, err
 	}
 }
 

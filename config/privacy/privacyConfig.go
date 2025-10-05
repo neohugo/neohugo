@@ -113,12 +113,12 @@ type X struct {
 // DecodeConfig creates a privacy Config from a given Hugo configuration.
 func DecodeConfig(cfg config.Provider) (pc Config, err error) {
 	if !cfg.IsSet(privacyConfigKey) {
-		return
+		return pc, err
 	}
 
 	m := cfg.GetStringMap(privacyConfigKey)
 
 	err = mapstructure.WeakDecode(m, &pc)
 
-	return
+	return pc, err
 }

@@ -26,8 +26,8 @@ import (
 
 	"github.com/evanw/esbuild/pkg/api"
 
-	"github.com/neohugo/neohugo/media"
 	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/media"
 )
 
 var (
@@ -221,7 +221,7 @@ func (opts *Options) compile() (err error) {
 	target, found := nameTarget[opts.Target]
 	if !found {
 		err = fmt.Errorf("invalid target: %q", opts.Target)
-		return
+		return err
 	}
 
 	var loaders map[string]api.Loader
@@ -231,7 +231,7 @@ func (opts *Options) compile() (err error) {
 			loader, found := nameLoader[v]
 			if !found {
 				err = fmt.Errorf("invalid loader: %q", v)
-				return
+				return err
 			}
 			loaders[k] = loader
 		}
@@ -254,7 +254,7 @@ func (opts *Options) compile() (err error) {
 		loader = api.LoaderJSX
 	default:
 		err = fmt.Errorf("unsupported Media Type: %q", opts.MediaType)
-		return
+		return err
 	}
 
 	var format api.Format
@@ -268,7 +268,7 @@ func (opts *Options) compile() (err error) {
 		format = api.FormatCommonJS
 	default:
 		err = fmt.Errorf("unsupported script output format: %q", opts.Format)
-		return
+		return err
 	}
 
 	var jsx api.JSX
@@ -281,7 +281,7 @@ func (opts *Options) compile() (err error) {
 		jsx = api.JSXAutomatic
 	default:
 		err = fmt.Errorf("unsupported jsx type: %q", opts.JSX)
-		return
+		return err
 	}
 
 	var platform api.Platform
@@ -294,7 +294,7 @@ func (opts *Options) compile() (err error) {
 		platform = api.PlatformNeutral
 	default:
 		err = fmt.Errorf("unsupported platform type: %q", opts.Platform)
-		return
+		return err
 	}
 
 	var defines map[string]string
@@ -328,7 +328,7 @@ func (opts *Options) compile() (err error) {
 		sourceMap = api.SourceMapNone
 	default:
 		err = fmt.Errorf("unsupported sourcemap type: %q", opts.SourceMap)
-		return
+		return err
 	}
 
 	sourcesContent := api.SourcesContentInclude
@@ -380,7 +380,7 @@ func (opts *Options) compile() (err error) {
 			Loader:     loader,
 		}
 	}
-	return
+	return err
 }
 
 func (o Options) loaderFromFilename(filename string) api.Loader {

@@ -289,7 +289,7 @@ func CreateTargetPaths(d TargetPathDescriptor) (tp TargetPaths) {
 		tp.Link = "/"
 	}
 
-	return
+	return tp
 }
 
 // When adding state here, remember to update putPagePathBuilder.
