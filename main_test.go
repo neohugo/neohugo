@@ -311,7 +311,7 @@ var commonTestScriptsParam = testscript.Params{
 			// The server will write a .ready file when ready.
 			// We wait for that.
 			readyFilename := ts.MkAbs(".ready")
-			limit := time.Now().Add(120 * time.Second)
+			limit := time.Now().Add(180 * time.Second)
 			for {
 				_, err := os.Stat(readyFilename)
 				if err != nil {

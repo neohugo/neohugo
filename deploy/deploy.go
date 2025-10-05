@@ -36,6 +36,7 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/gobwas/glob"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/deploy/deployconfig"
 	"github.com/neohugo/neohugo/media"
