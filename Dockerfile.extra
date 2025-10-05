@@ -85,12 +85,10 @@ RUN export DEBIAN_FRONTEND=noninteractive \
   gcc \
   git \
   gnupg \
-  gzip \
   libtool \
   make \
   nasm \
   pkg-config \
-  tar \
   xz-utils \
   && apt-get autoremove -y \
   && apt-get clean \
