@@ -5,7 +5,7 @@ FROM golang:1.25 AS build
 
 # Optionally set HUGO_BUILD_TAGS to "extended" or "nodeploy" when building like so:
 #   docker build --build-arg HUGO_BUILD_TAGS=extended .
-ENV HUGO_BUILD_TAGS=extended
+ENV HUGO_BUILD_TAGS=extended,withdeploy
 
 ARG CGO=1
 ENV CGO_ENABLED=${CGO}
