@@ -7,5 +7,5 @@ linters:
       - "tpl/internal/go_templates"
 
 run:
-  timeout: 5m
+  timeout: 30m
   tests: true

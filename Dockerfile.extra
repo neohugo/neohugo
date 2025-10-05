@@ -36,8 +36,7 @@ COPY --from=build /go/bin/neohugo /usr/bin/neohugo
 
 # libc6-compat & libstdc++ are required for extended SASS libraries
 # ca-certificates are required to fetch outside resources (like Twitter oEmbeds)
-RUN DEBIAN_FRONTEND=noninteractive \
-  && BUILD_PACKAGES="autoconf automake binutils build-essential cmake curl g++ gcc git gnupg gzip libtool make nasm pkg-config tar xz-utils" \
+RUN export DEBIAN_FRONTEND=noninteractive \
   && apt-get update \
   && apt-get install -y --no-install-recommends \
   bash \
@@ -51,7 +50,23 @@ RUN DEBIAN_FRONTEND=noninteractive \
   pngquant \
   rsync \
   zlib1g-dev \
-  $BUILD_PACKAGES \
+  autoconf \
+  automake \
+  binutils \
+  build-essential \
+  cmake \
+  curl \
+  g++ \
+  gcc \
+  git \
+  gnupg \
+  gzip \
+  libtool \
+  make \
+  nasm \
+  pkg-config \
+  tar \
+  xz-utils \
   && deluser --remove-home node \
   && addgroup --system --gid 1000 neohugo \
   && adduser --system --uid 1000 --ingroup neohugo --home /src neohugo \
@@ -60,10 +75,28 @@ RUN DEBIAN_FRONTEND=noninteractive \
   && cmake -DCMAKE_BUILD_TYPE=Release . \
   && make install && cd .. \
   && rm -rf mozjpeg-${MOZJPEG_VERSION} \
-  && apt-get purge -y --auto-remove $BUILD_PACKAGES \
+  && apt-get purge -y --auto-remove \
+  autoconf \
+  automake \
+  binutils \
+  build-essential \
+  cmake \
+  g++ \
+  gcc \
+  git \
+  gnupg \
+  gzip \
+  libtool \
+  make \
+  nasm \
+  pkg-config \
+  tar \
+  xz-utils \
+  && apt-get autoremove -y \
+  && apt-get clean \
   && rm -rf /var/lib/apt/lists/* \
   && /opt/mozjpeg/bin/cjpeg -version \
-  && cwebp \
+  && cwebp -version \
   && neohugo version
 
 ENV PATH="${PATH}:/opt/mozjpeg/bin"

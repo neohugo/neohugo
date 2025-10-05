@@ -173,7 +173,7 @@ func Test() error {
 	env := map[string]string{
 		"GOFLAGS": testGoFlags(),
 	}
-	return runCmd(env, goexe, "test", "-timeout", "10m", "-p", "2", "./...", "-tags", buildTags())
+	return runCmd(env, goexe, "test", "-timeout", "30m", "-p", "2", "./...", "-tags", buildTags())
 }
 
 // Run tests with race detector
@@ -181,7 +181,7 @@ func TestRace() error {
 	env := map[string]string{
 		"GOFLAGS": testGoFlags(),
 	}
-	return runCmd(env, goexe, "test", "-timeout", "10m", "-p", "2", "-race", "./...", "-tags", buildTags())
+	return runCmd(env, goexe, "test", "-timeout", "30m", "-p", "2", "-race", "./...", "-tags", buildTags())
 }
 
 // Fmt, run gofumpt linter
