@@ -5,6 +5,8 @@ on:
       - v*.*.*
 
 env:
+  GOPATH: ${{ github.workspace }}
+  GOBIN: ${{ github.workspace }}/bin
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
@@ -12,7 +14,8 @@ env:
   DART_SASS_SHA_LINUX: 7c933edbad0a7d389192c5b79393485c088bd2c4398e32f5754c32af006a9ffd
   DART_SASS_SHA_MACOS: 79e060b0e131c3bb3c16926bafc371dc33feab122bfa8c01aa337a072097967b
   DART_SASS_SHA_WINDOWS: 0bc4708b37cd1bac4740e83ac5e3176e66b774f77fd5dd364da5b5cfc9bfb469
-
+permissions:
+  contents: read
 jobs:
   docdeploy:
     name: Deploy documentation
@@ -49,7 +52,12 @@ jobs:
           python-version: "3.x"
       - name: Install asciidoctor
         uses: reitzig/actions-asciidoctor@v2.0.2
+      - name: Install docutils
+        run: |
+          pip install docutils
+          rst2html --version
       - name: Setup Go environment
+        shell: bash
         run: |
           echo "GOPATH=$(go env GOPATH)" >> $GITHUB_ENV
           echo "$(go env GOPATH)/bin" >> $GITHUB_PATH
@@ -73,21 +81,18 @@ jobs:
         run: |
           go mod download
           go mod verify
-      - name: Install docutils
-        run: |
-          pip install docutils
-          rst2html --version
       - name: Install pandoc on Linux
         run: |
           sudo apt-get update -y
           sudo apt-get install -y pandoc
       - run: pandoc -v
-      - name: Install dart-sass-embedded Linux
+      - name: Install dart-sass Linux
         run: |
           echo "Install Dart Sass version ${SASS_VERSION} ..."
           curl -LJO "https://github.com/sass/dart-sass/releases/download/${SASS_VERSION}/dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
           echo "${DART_SASS_SHA_LINUX}  dart-sass-${SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
           tar -xvf "dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
+          echo "$GOBIN"
           echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
       - name: Run mage check
         working-directory: ./neohugo
