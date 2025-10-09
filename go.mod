@@ -47,6 +47,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/hairyhenderson/go-codeowners v0.7.0
 	github.com/jdkato/prose v1.2.1
+	github.com/kylelemons/godebug v1.1.0
 	github.com/kyokomi/emoji/v2 v2.2.13
 	github.com/magefile/mage v1.15.0
 	github.com/makeworld-the-better-one/dither/v2 v2.4.0
@@ -67,7 +68,7 @@ require (
 	github.com/spf13/fsync v0.10.1
 	github.com/spf13/pflag v1.0.6
 	github.com/tdewolff/minify/v2 v2.23.8
-	github.com/tdewolff/parse/v2 v2.8.1
+	github.com/tdewolff/parse/v2 v2.8.3
 	github.com/tetratelabs/wazero v1.9.0
 	github.com/yuin/goldmark v1.7.12
 	github.com/yuin/goldmark-emoji v1.0.6
@@ -123,7 +124,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.3 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
-	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
@@ -148,7 +148,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
