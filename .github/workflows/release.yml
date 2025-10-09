@@ -15,7 +15,7 @@ env:
   DART_SASS_SHA_MACOS: 79e060b0e131c3bb3c16926bafc371dc33feab122bfa8c01aa337a072097967b
   DART_SASS_SHA_WINDOWS: 0bc4708b37cd1bac4740e83ac5e3176e66b774f77fd5dd364da5b5cfc9bfb469
 permissions:
-  contents: read
+  contents: write
 jobs:
   docdeploy:
     name: Deploy documentation
