@@ -16,11 +16,18 @@ package images
 
 import (
 	"errors"
+	"fmt"
 	"image"
+	"path"
 	"sync"
 
 	"github.com/bep/overlayfs"
+	"github.com/mitchellh/mapstructure"
+	"github.com/neohugo/neohugo/common/hashing"
+	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/resources/images"
+	"github.com/neohugo/neohugo/resources/resource_factories/create"
+	"rsc.io/qr"
 
 	// Importing image codecs for image.DecodeConfig
 	_ "image/gif"
@@ -43,28 +50,29 @@ func New(d *deps.Deps) *Namespace {
 	if d.PathSpec != nil {
 		readFileFs = overlayfs.New(overlayfs.Options{
 			Fss: []afero.Fs{
-				d.PathSpec.BaseFs.Work,
-				d.PathSpec.BaseFs.Content.Fs,
+				d.Work,
+				d.Content.Fs,
 			},
 		})
 	}
 
 	return &Namespace{
-		readFileFs: readFileFs,
-		Filters:    &images.Filters{},
-		cache:      map[string]image.Config{},
-		deps:       d,
+		readFileFs:   readFileFs,
+		Filters:      &images.Filters{},
+		cache:        map[string]image.Config{},
+		deps:         d,
+		createClient: create.New(d.ResourceSpec),
 	}
 }
 
 // Namespace provides template functions for the "images" namespace.
 type Namespace struct {
 	*images.Filters
-	readFileFs afero.Fs
-	cacheMu    sync.RWMutex
-	cache      map[string]image.Config
-
-	deps *deps.Deps
+	readFileFs   afero.Fs
+	cacheMu      sync.RWMutex
+	cache        map[string]image.Config
+	deps         *deps.Deps
+	createClient *create.Client
 }
 
 // Config returns the image.Config for the specified path relative to the
@@ -92,7 +100,7 @@ func (ns *Namespace) Config(path any) (image.Config, error) {
 	if err != nil {
 		return image.Config{}, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	config, _, err = image.DecodeConfig(f)
 	if err != nil {
@@ -116,4 +124,88 @@ func (ns *Namespace) Filter(args ...any) (images.ImageResource, error) {
 	filtersv := args[:len(args)-1]
 
 	return img.Filter(filtersv...)
+}
+
+var qrErrorCorrectionLevels = map[string]qr.Level{
+	"low":      qr.L,
+	"medium":   qr.M,
+	"quartile": qr.Q,
+	"high":     qr.H,
+}
+
+// QR encodes the given text into a QR code using the specified options,
+// returning an image resource.
+func (ns *Namespace) QR(args ...any) (images.ImageResource, error) {
+	const (
+		qrDefaultErrorCorrectionLevel = "medium"
+		qrDefaultScale                = 4
+	)
+
+	opts := struct {
+		Level     string // error correction level; one of low, medium, quartile, or high
+		Scale     int    // number of image pixels per QR code module
+		TargetDir string // target directory relative to publishDir
+	}{
+		Level: qrDefaultErrorCorrectionLevel,
+		Scale: qrDefaultScale,
+	}
+
+	if len(args) == 0 || len(args) > 2 {
+		return nil, errors.New("requires 1 or 2 arguments")
+	}
+
+	text, err := cast.ToStringE(args[0])
+	if err != nil {
+		return nil, err
+	}
+
+	if text == "" {
+		return nil, errors.New("cannot encode an empty string")
+	}
+
+	if len(args) == 2 {
+		err := mapstructure.WeakDecode(args[1], &opts)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	level, ok := qrErrorCorrectionLevels[opts.Level]
+	if !ok {
+		return nil, errors.New("error correction level must be one of low, medium, quartile, or high")
+	}
+
+	if opts.Scale < 2 {
+		return nil, errors.New("scale must be an integer greater than or equal to 2")
+	}
+
+	targetPath := path.Join(opts.TargetDir, fmt.Sprintf("qr_%s.png", hashing.HashStringHex(text, opts)))
+
+	r, err := ns.createClient.FromOpts(
+		create.Options{
+			TargetPath:        targetPath,
+			TargetPathHasHash: true,
+			CreateContent: func() (func() (hugio.ReadSeekCloser, error), error) {
+				code, err := qr.Encode(text, level)
+				if err != nil {
+					return nil, err
+				}
+				code.Scale = opts.Scale
+				png := code.PNG()
+				return func() (hugio.ReadSeekCloser, error) {
+					return hugio.NewReadSeekerNoOpCloserFromBytes(png), nil
+				}, nil
+			},
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ir, ok := r.(images.ImageResource)
+	if !ok {
+		panic("bug: resource is not an image resource")
+	}
+
+	return ir, nil
 }

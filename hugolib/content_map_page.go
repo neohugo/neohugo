@@ -21,7 +21,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -33,8 +32,11 @@ import (
 	"github.com/neohugo/neohugo/common/rungroup"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/hugofs/files"
+	"github.com/neohugo/neohugo/hugofs/glob"
 	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/hugolib/pagesfromdata"
 	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/resources"
 	"github.com/spf13/cast"
@@ -93,13 +95,22 @@ type pageMap struct {
 	// Used for simple page lookups by name, e.g. "mypage.md" or "mypage".
 	pageReverseIndex *contentTreeReverseIndex
 
-	cachePages             *dynacache.Partition[string, page.Pages]
+	cachePages1            *dynacache.Partition[string, page.Pages]
+	cachePages2            *dynacache.Partition[string, page.Pages]
 	cacheResources         *dynacache.Partition[string, resource.Resources]
+	cacheGetTerms          *dynacache.Partition[string, map[string]page.Pages]
 	cacheContentRendered   *dynacache.Partition[string, *resources.StaleValue[contentSummary]]
 	cacheContentPlain      *dynacache.Partition[string, *resources.StaleValue[contentPlainPlainWords]]
 	contentTableOfContents *dynacache.Partition[string, *resources.StaleValue[contentTableOfContents]]
 
+	contentDataFileSeenItems *maps.Cache[string, map[uint64]bool]
+
 	cfg contentMapConfig
+}
+
+// Invoked on rebuilds.
+func (m *pageMap) Reset() {
+	m.pageReverseIndex.Reset()
 }
 
 // pageTrees holds pages and resources in a tree structure for all sites/languages.
@@ -121,6 +132,10 @@ type pageTrees struct {
 	// This tree contains all taxonomy entries, e.g "/tags/blue/page1"
 	treeTaxonomyEntries *doctree.TreeShiftTree[*weightedContentNode]
 
+	// Stores the state for _content.gotmpl files.
+	// Mostly releveant for rebuilds.
+	treePagesFromTemplateAdapters *doctree.TreeShiftTree[*pagesfromdata.PagesFromTemplate]
+
 	// A slice of the resource trees.
 	resourceTrees doctree.MutableTrees
 }
@@ -132,7 +147,7 @@ type pageTrees struct {
 func (t *pageTrees) collectAndMarkStaleIdentities(p *paths.Path) []identity.Identity {
 	key := p.Base()
 	var ids []identity.Identity
-	// We need only one identity sample per dimensio.
+	// We need only one identity sample per dimension.
 	nCount := 0
 	cb := func(n contentNodeI) bool {
 		if n == nil {
@@ -164,7 +179,7 @@ func (t *pageTrees) collectAndMarkStaleIdentities(p *paths.Path) []identity.Iden
 
 	if p.Component() == files.ComponentFolderContent {
 		// It may also be a bundled content resource.
-		key := p.ForBundleType(paths.PathTypeContentResource).Base()
+		key := p.ForType(paths.TypeContentResource).Base()
 		tree = t.treeResources
 		nCount = 0
 		tree.ForEeachInDimension(key, doctree.DimensionLanguage.Index(),
@@ -221,6 +236,7 @@ func (t pageTrees) Shape(d, v int) *pageTrees {
 	t.treePages = t.treePages.Shape(d, v)
 	t.treeResources = t.treeResources.Shape(d, v)
 	t.treeTaxonomyEntries = t.treeTaxonomyEntries.Shape(d, v)
+	t.treePagesFromTemplateAdapters = t.treePagesFromTemplateAdapters.Shape(d, v)
 	t.createMutableTrees()
 
 	return &t
@@ -324,15 +340,19 @@ func (m *pageMap) forEeachPageIncludingBundledPages(include predicate.P[*pageSta
 }
 
 func (m *pageMap) getOrCreatePagesFromCache(
+	cache *dynacache.Partition[string, page.Pages],
 	key string, create func(string) (page.Pages, error),
 ) (page.Pages, error) {
-	return m.cachePages.GetOrCreate(key, create)
+	if cache == nil {
+		cache = m.cachePages1
+	}
+	return cache.GetOrCreate(key, create)
 }
 
 func (m *pageMap) getPagesInSection(q pageMapQueryPagesInSection) page.Pages {
 	cacheKey := q.Key()
 
-	pages, err := m.getOrCreatePagesFromCache(cacheKey, func(string) (page.Pages, error) {
+	pages, err := m.getOrCreatePagesFromCache(nil, cacheKey, func(string) (page.Pages, error) {
 		prefix := paths.AddTrailingSlash(q.Path)
 
 		var (
@@ -397,7 +417,7 @@ func (m *pageMap) getPagesInSection(q pageMapQueryPagesInSection) page.Pages {
 func (m *pageMap) getPagesWithTerm(q pageMapQueryPagesBelowPath) page.Pages {
 	key := q.Key()
 
-	v, err := m.cachePages.GetOrCreate(key, func(string) (page.Pages, error) {
+	v, err := m.cachePages1.GetOrCreate(key, func(string) (page.Pages, error) {
 		var pas page.Pages
 		include := q.Include
 		if include == nil {
@@ -434,16 +454,13 @@ func (m *pageMap) getPagesWithTerm(q pageMapQueryPagesBelowPath) page.Pages {
 func (m *pageMap) getTermsForPageInTaxonomy(path, taxonomy string) page.Pages {
 	prefix := paths.AddLeadingSlash(taxonomy)
 
-	v, err := m.cachePages.GetOrCreate(prefix+path, func(string) (page.Pages, error) {
-		var pas page.Pages
-
+	termPages, err := m.cacheGetTerms.GetOrCreate(prefix, func(string) (map[string]page.Pages, error) {
+		mm := make(map[string]page.Pages)
 		err := m.treeTaxonomyEntries.WalkPrefix(
 			doctree.LockTypeNone,
 			paths.AddTrailingSlash(prefix),
 			func(s string, n *weightedContentNode) (bool, error) {
-				if strings.HasSuffix(s, path) {
-					pas = append(pas, n.term)
-				}
+				mm[n.n.Path()] = append(mm[n.n.Path()], n.term)
 				return false, nil
 			},
 		)
@@ -451,15 +468,18 @@ func (m *pageMap) getTermsForPageInTaxonomy(path, taxonomy string) page.Pages {
 			return nil, err
 		}
 
-		page.SortByDefault(pas)
+		// Sort the terms.
+		for _, v := range mm {
+			page.SortByDefault(v)
+		}
 
-		return pas, nil
+		return mm, nil
 	})
 	if err != nil {
 		panic(err)
 	}
 
-	return v
+	return termPages[path]
 }
 
 func (m *pageMap) forEachResourceInPage(
@@ -484,12 +504,32 @@ func (m *pageMap) forEachResourceInPage(
 
 	rw.Handle = func(resourceKey string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
 		if isBranch {
-			ownerKey, _ := m.treePages.LongestPrefixAll(resourceKey)
-			if ownerKey != keyPage && path.Dir(ownerKey) != path.Dir(resourceKey) {
+			// A resourceKey always represents a filename with extension.
+			// A page key points to the logical path of a page, which when sourced from the filesystem
+			// may represent a directory (bundles) or a single content file (e.g. p1.md).
+			// So, to avoid any overlapping ambiguity, we start looking from the owning directory.
+			s := resourceKey
+
+			for {
+				s = path.Dir(s)
+				ownerKey, found := m.treePages.LongestPrefixAll(s)
+				if !found {
+					return true, nil
+				}
+				if ownerKey == keyPage {
+					break
+				}
+
+				if s != ownerKey && strings.HasPrefix(s, ownerKey) {
+					// Keep looking
+					continue
+				}
+
 				// Stop walking downwards, someone else owns this resource.
 				rw.SkipPrefix(ownerKey + "/")
 				return false, nil
 			}
+
 		}
 		return handle(resourceKey, n, match)
 	}
@@ -499,8 +539,7 @@ func (m *pageMap) forEachResourceInPage(
 
 func (m *pageMap) getResourcesForPage(ps *pageState) (resource.Resources, error) {
 	var res resource.Resources
-	// nolint
-	m.forEachResourceInPage(ps, doctree.LockTypeNone, false, func(resourceKey string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
+	_ = m.forEachResourceInPage(ps, doctree.LockTypeNone, false, func(resourceKey string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
 		rs := n.(*resourceSource)
 		if rs.r != nil {
 			res = append(res, rs.r)
@@ -540,7 +579,7 @@ func (m *pageMap) getOrCreateResourcesForPage(ps *pageState) resource.Resources 
 				for _, r := range res2 {
 					var found bool
 					for _, r2 := range res {
-						if r2.(resource.NameNormalizedProvider).NameNormalized() == r.(resource.NameNormalizedProvider).NameNormalized() {
+						if resource.NameNormalizedOrName(r2) == resource.NameNormalizedOrName(r) {
 							found = true
 							break
 						}
@@ -578,9 +617,9 @@ func (m *pageMap) getOrCreateResourcesForPage(ps *pageState) resource.Resources 
 
 		sort.SliceStable(res, lessFunc)
 
-		if len(ps.m.pageConfig.Resources) > 0 {
+		if len(ps.m.pageConfig.ResourcesMeta) > 0 {
 			for i, r := range res {
-				res[i] = resources.CloneWithMetadataIfNeeded(ps.m.pageConfig.Resources, r)
+				res[i] = resources.CloneWithMetadataFromMapIfNeeded(ps.m.pageConfig.ResourcesMeta, r)
 			}
 			sort.SliceStable(res, lessFunc)
 		}
@@ -658,12 +697,13 @@ type contentNodeShifter struct {
 	numLanguages int
 }
 
-func (s *contentNodeShifter) Delete(n contentNodeI, dimension doctree.Dimension) (bool, bool) {
+func (s *contentNodeShifter) Delete(n contentNodeI, dimension doctree.Dimension) (contentNodeI, bool, bool) {
 	lidx := dimension[0]
 	switch v := n.(type) {
 	case contentNodeIs:
-		resource.MarkStale(v[lidx])
-		wasDeleted := v[lidx] != nil
+		deleted := v[lidx]
+		resource.MarkStale(deleted)
+		wasDeleted := deleted != nil
 		v[lidx] = nil
 		isEmpty := true
 		for _, vv := range v {
@@ -672,10 +712,11 @@ func (s *contentNodeShifter) Delete(n contentNodeI, dimension doctree.Dimension)
 				break
 			}
 		}
-		return wasDeleted, isEmpty
+		return deleted, wasDeleted, isEmpty
 	case resourceSources:
-		resource.MarkStale(v[lidx])
-		wasDeleted := v[lidx] != nil
+		deleted := v[lidx]
+		resource.MarkStale(deleted)
+		wasDeleted := deleted != nil
 		v[lidx] = nil
 		isEmpty := true
 		for _, vv := range v {
@@ -684,19 +725,19 @@ func (s *contentNodeShifter) Delete(n contentNodeI, dimension doctree.Dimension)
 				break
 			}
 		}
-		return wasDeleted, isEmpty
+		return deleted, wasDeleted, isEmpty
 	case *resourceSource:
 		if lidx != v.LangIndex() {
-			return false, false
+			return nil, false, false
 		}
 		resource.MarkStale(v)
-		return true, true
+		return v, true, true
 	case *pageState:
 		if lidx != v.s.languagei {
-			return false, false
+			return nil, false, false
 		}
 		resource.MarkStale(v)
-		return true, true
+		return v, true, true
 	default:
 		panic(fmt.Sprintf("unknown type %T", n))
 	}
@@ -769,7 +810,7 @@ func (s *contentNodeShifter) ForEeachInDimension(n contentNodeI, d int, f func(c
 	}
 }
 
-func (s *contentNodeShifter) InsertInto(old, new contentNodeI, dimension doctree.Dimension) contentNodeI {
+func (s *contentNodeShifter) InsertInto(old, new contentNodeI, dimension doctree.Dimension) (contentNodeI, contentNodeI, bool) {
 	langi := dimension[doctree.DimensionLanguage.Index()]
 	switch vv := old.(type) {
 	case *pageState:
@@ -778,37 +819,39 @@ func (s *contentNodeShifter) InsertInto(old, new contentNodeI, dimension doctree
 			panic(fmt.Sprintf("unknown type %T", new))
 		}
 		if vv.s.languagei == newp.s.languagei && newp.s.languagei == langi {
-			return new
+			return new, vv, true
 		}
 		is := make(contentNodeIs, s.numLanguages)
 		is[vv.s.languagei] = old
 		is[langi] = new
-		return is
+		return is, old, false
 	case contentNodeIs:
+		oldv := vv[langi]
 		vv[langi] = new
-		return vv
+		return vv, oldv, oldv != nil
 	case resourceSources:
+		oldv := vv[langi]
 		vv[langi] = new.(*resourceSource)
-		return vv
+		return vv, oldv, oldv != nil
 	case *resourceSource:
 		newp, ok := new.(*resourceSource)
 		if !ok {
 			panic(fmt.Sprintf("unknown type %T", new))
 		}
 		if vv.LangIndex() == newp.LangIndex() && newp.LangIndex() == langi {
-			return new
+			return new, vv, true
 		}
 		rs := make(resourceSources, s.numLanguages)
 		rs[vv.LangIndex()] = vv
 		rs[langi] = newp
-		return rs
+		return rs, vv, false
 
 	default:
 		panic(fmt.Sprintf("unknown type %T", old))
 	}
 }
 
-func (s *contentNodeShifter) Insert(old, new contentNodeI) contentNodeI {
+func (s *contentNodeShifter) Insert(old, new contentNodeI) (contentNodeI, contentNodeI, bool) {
 	switch vv := old.(type) {
 	case *pageState:
 		newp, ok := new.(*pageState)
@@ -816,40 +859,52 @@ func (s *contentNodeShifter) Insert(old, new contentNodeI) contentNodeI {
 			panic(fmt.Sprintf("unknown type %T", new))
 		}
 		if vv.s.languagei == newp.s.languagei {
-			return new
+			if newp != old {
+				resource.MarkStale(old)
+			}
+			return new, vv, true
 		}
 		is := make(contentNodeIs, s.numLanguages)
 		is[newp.s.languagei] = new
 		is[vv.s.languagei] = old
-		return is
+		return is, old, false
 	case contentNodeIs:
 		newp, ok := new.(*pageState)
 		if !ok {
 			panic(fmt.Sprintf("unknown type %T", new))
 		}
-		resource.MarkStale(vv[newp.s.languagei])
+		oldp := vv[newp.s.languagei]
+		if oldp != newp {
+			resource.MarkStale(oldp)
+		}
 		vv[newp.s.languagei] = new
-		return vv
+		return vv, oldp, oldp != nil
 	case *resourceSource:
 		newp, ok := new.(*resourceSource)
 		if !ok {
 			panic(fmt.Sprintf("unknown type %T", new))
 		}
 		if vv.LangIndex() == newp.LangIndex() {
-			return new
+			if vv != newp {
+				resource.MarkStale(vv)
+			}
+			return new, vv, true
 		}
 		rs := make(resourceSources, s.numLanguages)
 		rs[newp.LangIndex()] = newp
 		rs[vv.LangIndex()] = vv
-		return rs
+		return rs, vv, false
 	case resourceSources:
 		newp, ok := new.(*resourceSource)
 		if !ok {
 			panic(fmt.Sprintf("unknown type %T", new))
 		}
-		resource.MarkStale(vv[newp.LangIndex()])
+		oldp := vv[newp.LangIndex()]
+		if oldp != newp {
+			resource.MarkStale(oldp)
+		}
 		vv[newp.LangIndex()] = newp
-		return vv
+		return vv, oldp, oldp != nil
 	default:
 		panic(fmt.Sprintf("unknown type %T", old))
 	}
@@ -862,11 +917,15 @@ func newPageMap(i int, s *Site, mcache *dynacache.Cache, pageTrees *pageTrees) *
 
 	m = &pageMap{
 		pageTrees:              pageTrees.Shape(0, i),
-		cachePages:             dynacache.GetOrCreatePartition[string, page.Pages](mcache, fmt.Sprintf("/pags/%d", i), dynacache.OptionsPartition{Weight: 10, ClearWhen: dynacache.ClearOnRebuild}),
+		cachePages1:            dynacache.GetOrCreatePartition[string, page.Pages](mcache, fmt.Sprintf("/pag1/%d", i), dynacache.OptionsPartition{Weight: 10, ClearWhen: dynacache.ClearOnRebuild}),
+		cachePages2:            dynacache.GetOrCreatePartition[string, page.Pages](mcache, fmt.Sprintf("/pag2/%d", i), dynacache.OptionsPartition{Weight: 10, ClearWhen: dynacache.ClearOnRebuild}),
+		cacheGetTerms:          dynacache.GetOrCreatePartition[string, map[string]page.Pages](mcache, fmt.Sprintf("/gett/%d", i), dynacache.OptionsPartition{Weight: 5, ClearWhen: dynacache.ClearOnRebuild}),
 		cacheResources:         dynacache.GetOrCreatePartition[string, resource.Resources](mcache, fmt.Sprintf("/ress/%d", i), dynacache.OptionsPartition{Weight: 60, ClearWhen: dynacache.ClearOnRebuild}),
 		cacheContentRendered:   dynacache.GetOrCreatePartition[string, *resources.StaleValue[contentSummary]](mcache, fmt.Sprintf("/cont/ren/%d", i), dynacache.OptionsPartition{Weight: 70, ClearWhen: dynacache.ClearOnChange}),
 		cacheContentPlain:      dynacache.GetOrCreatePartition[string, *resources.StaleValue[contentPlainPlainWords]](mcache, fmt.Sprintf("/cont/pla/%d", i), dynacache.OptionsPartition{Weight: 70, ClearWhen: dynacache.ClearOnChange}),
 		contentTableOfContents: dynacache.GetOrCreatePartition[string, *resources.StaleValue[contentTableOfContents]](mcache, fmt.Sprintf("/cont/toc/%d", i), dynacache.OptionsPartition{Weight: 70, ClearWhen: dynacache.ClearOnChange}),
+
+		contentDataFileSeenItems: maps.NewCache[string, map[uint64]bool](),
 
 		cfg: contentMapConfig{
 			lang:                 s.Lang(),
@@ -879,68 +938,63 @@ func newPageMap(i int, s *Site, mcache *dynacache.Cache, pageTrees *pageTrees) *
 		s: s,
 	}
 
-	m.pageReverseIndex = &contentTreeReverseIndex{
-		initFn: func(rm map[any]contentNodeI) {
-			add := func(k string, n contentNodeI) {
-				existing, found := rm[k]
-				if found && existing != ambiguousContentNode {
-					rm[k] = ambiguousContentNode
-				} else if !found {
-					rm[k] = n
+	m.pageReverseIndex = newContentTreeTreverseIndex(func(get func(key any) (contentNodeI, bool), set func(key any, val contentNodeI)) {
+		add := func(k string, n contentNodeI) {
+			existing, found := get(k)
+			if found && existing != ambiguousContentNode {
+				set(k, ambiguousContentNode)
+			} else if !found {
+				set(k, n)
+			}
+		}
+
+		w := &doctree.NodeShiftTreeWalker[contentNodeI]{
+			Tree:     m.treePages,
+			LockType: doctree.LockTypeRead,
+			Handle: func(s string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
+				p := n.(*pageState)
+				if p.PathInfo() != nil {
+					add(p.PathInfo().BaseNameNoIdentifier(), p)
 				}
-			}
+				return false, nil
+			},
+		}
 
-			w := &doctree.NodeShiftTreeWalker[contentNodeI]{
-				Tree:     m.treePages,
-				LockType: doctree.LockTypeRead,
-				Handle: func(s string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
-					p := n.(*pageState)
-					if p.File() != nil {
-						add(p.File().FileInfo().Meta().PathInfo.BaseNameNoIdentifier(), p)
-					}
-					return false, nil
-				},
-			}
-
-			if err := w.Walk(context.Background()); err != nil {
-				panic(err)
-			}
-		},
-		contentTreeReverseIndexMap: &contentTreeReverseIndexMap{},
-	}
+		if err := w.Walk(context.Background()); err != nil {
+			panic(err)
+		}
+	})
 
 	return m
 }
 
-type contentTreeReverseIndex struct {
-	initFn func(rm map[any]contentNodeI)
-	*contentTreeReverseIndexMap
-}
-
-func (c *contentTreeReverseIndex) Reset() {
-	c.contentTreeReverseIndexMap = &contentTreeReverseIndexMap{
-		m: make(map[any]contentNodeI),
+func newContentTreeTreverseIndex(init func(get func(key any) (contentNodeI, bool), set func(key any, val contentNodeI))) *contentTreeReverseIndex {
+	return &contentTreeReverseIndex{
+		initFn: init,
+		mm:     maps.NewCache[any, contentNodeI](),
 	}
 }
 
-func (c *contentTreeReverseIndex) Get(key any) contentNodeI {
-	c.init.Do(func() {
-		c.m = make(map[any]contentNodeI)
-		c.initFn(c.contentTreeReverseIndexMap.m)
-	})
-	return c.m[key]
+type contentTreeReverseIndex struct {
+	initFn func(get func(key any) (contentNodeI, bool), set func(key any, val contentNodeI))
+	mm     *maps.Cache[any, contentNodeI]
 }
 
-type contentTreeReverseIndexMap struct {
-	init sync.Once
-	m    map[any]contentNodeI
+func (c *contentTreeReverseIndex) Reset() {
+	c.mm.Reset()
+}
+
+func (c *contentTreeReverseIndex) Get(key any) contentNodeI {
+	v, _ := c.mm.InitAndGet(key, func(get func(key any) (contentNodeI, bool), set func(key any, val contentNodeI)) error {
+		c.initFn(get, set)
+		return nil
+	})
+	return v
 }
 
 type sitePagesAssembler struct {
 	*Site
-	watching        bool
-	incomingChanges *whatChanged
-	assembleChanges *whatChanged
+	assembleChanges *WhatChanged
 	ctx             context.Context
 }
 
@@ -965,20 +1019,19 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 		}
 		const indentStr = " "
 		p := n.(*pageState)
-		s := strings.TrimPrefix(keyPage, paths.CommonDir(prevKey, keyPage))
+		s := strings.TrimPrefix(keyPage, paths.CommonDirPath(prevKey, keyPage))
 		lenIndent := len(keyPage) - len(s)
-		fmt.Fprint(w, strings.Repeat(indentStr, lenIndent))
+		_, _ = fmt.Fprint(w, strings.Repeat(indentStr, lenIndent))
 		info := fmt.Sprintf("%s lm: %s (%s)", s, p.Lastmod().Format("2006-01-02"), p.Kind())
-		fmt.Fprintln(w, info)
+		_, _ = fmt.Fprintln(w, info)
 		switch p.Kind() {
 		case kinds.KindTerm:
-			// nolint
-			m.treeTaxonomyEntries.WalkPrefix(
+			_ = m.treeTaxonomyEntries.WalkPrefix(
 				doctree.LockTypeNone,
 				keyPage+"/",
 				func(s string, n *weightedContentNode) (bool, error) {
-					fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+4))
-					fmt.Fprintln(w, s)
+					_, _ = fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+4))
+					_, _ = fmt.Fprintln(w, s)
 					return false, nil
 				},
 			)
@@ -997,8 +1050,8 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 					return false, nil
 				}
 			}
-			fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+8))
-			fmt.Fprintln(w, ss+" (resource)")
+			_, _ = fmt.Fprint(w, strings.Repeat(indentStr, lenIndent+8))
+			_, _ = fmt.Fprintln(w, ss+" (resource)")
 			return false, nil
 		}
 
@@ -1011,11 +1064,67 @@ func (m *pageMap) debugPrint(prefix string, maxLevel int, w io.Writer) {
 	}
 }
 
+func (h *HugoSites) dynacacheGCFilenameIfNotWatchedAndDrainMatching(filename string) {
+	cpss := h.ResolvePaths(filename)
+	if len(cpss) == 0 {
+		return
+	}
+	// Compile cache busters.
+	var cacheBusters []func(string) bool
+	for _, cps := range cpss {
+		if cps.Watch {
+			continue
+		}
+		np := glob.NormalizePath(path.Join(cps.Component, cps.Path))
+		g, err := h.ResourceSpec.BuildConfig().MatchCacheBuster(h.Log, np)
+		if err == nil && g != nil {
+			cacheBusters = append(cacheBusters, g)
+		}
+	}
+	if len(cacheBusters) == 0 {
+		return
+	}
+	cacheBusterOr := func(s string) bool {
+		for _, cb := range cacheBusters {
+			if cb(s) {
+				return true
+			}
+		}
+		return false
+	}
+
+	h.dynacacheGCCacheBuster(cacheBusterOr)
+
+	// We want to avoid that evicted items in the above is considered in the next step server change.
+	_ = h.MemCache.DrainEvictedIdentitiesMatching(func(ki dynacache.KeyIdentity) bool {
+		return cacheBusterOr(ki.Key.(string))
+	})
+}
+
+func (h *HugoSites) dynacacheGCCacheBuster(cachebuster func(s string) bool) {
+	if cachebuster == nil {
+		return
+	}
+	shouldDelete := func(k, v any) bool {
+		var b bool
+		if s, ok := k.(string); ok {
+			b = cachebuster(s)
+		}
+
+		return b
+	}
+
+	h.MemCache.ClearMatching(nil, shouldDelete)
+}
+
 func (h *HugoSites) resolveAndClearStateForIdentities(
 	ctx context.Context,
 	l logg.LevelLogger,
 	cachebuster func(s string) bool, changes []identity.Identity,
 ) error {
+	// Drain the cache eviction stack to start fresh.
+	evictedStart := h.MemCache.DrainEvictedIdentities()
+
 	h.Log.Debug().Log(logg.StringFunc(
 		func() string {
 			var sb strings.Builder
@@ -1045,7 +1154,7 @@ func (h *HugoSites) resolveAndClearStateForIdentities(
 	)
 
 	for _, id := range changes {
-		if staler, ok := id.(resource.Staler); ok && !staler.IsStale() {
+		if staler, ok := id.(resource.Staler); ok {
 			var msgDetail string
 			if p, ok := id.(*pageState); ok && p.File() != nil {
 				msgDetail = fmt.Sprintf(" (%s)", p.File().Filename())
@@ -1056,37 +1165,61 @@ func (h *HugoSites) resolveAndClearStateForIdentities(
 	}
 
 	// The order matters here:
-	// 1. Handle the cache busters first, as those may produce identities for the page reset step.
+	// 1. Then GC the cache, which may produce changes.
 	// 2. Then reset the page outputs, which may mark some resources as stale.
-	// 3. Then GC the cache.
-	if cachebuster != nil {
-		if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
-			ll := l.WithField("substep", "gc dynacache cachebuster")
+	if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
+		ll := l.WithField("substep", "gc dynacache")
 
-			shouldDelete := func(k, v any) bool {
-				if cachebuster == nil {
-					return false
-				}
-				var b bool
+		predicate := func(k any, v any) bool {
+			if cachebuster != nil {
 				if s, ok := k.(string); ok {
-					b = cachebuster(s)
+					return cachebuster(s)
 				}
-
-				return b
 			}
-
-			h.MemCache.ClearMatching(shouldDelete)
-
-			return ll, nil
-		}); err != nil {
-			return err
+			return false
 		}
+
+		h.MemCache.ClearOnRebuild(predicate, changes...)
+		h.Log.Trace(logg.StringFunc(func() string {
+			var sb strings.Builder
+			sb.WriteString("dynacache keys:\n")
+			for _, key := range h.MemCache.Keys(nil) {
+				sb.WriteString(fmt.Sprintf("   %s\n", key))
+			}
+			return sb.String()
+		}))
+		return ll, nil
+	}); err != nil {
+		return err
 	}
 
-	// Drain the the cache eviction stack.
-	evicted := h.Deps.MemCache.DrainEvictedIdentities()
+	// Drain the cache eviction stack.
+	evicted := h.MemCache.DrainEvictedIdentities()
 	if len(evicted) < 200 {
-		changes = append(changes, evicted...)
+		for _, c := range evicted {
+			changes = append(changes, c.Identity)
+		}
+
+		if len(evictedStart) > 0 {
+			// In low memory situations and/or very big sites, there can be a lot of unrelated evicted items,
+			// but there's a chance that some of them are related to the changes we are about to process,
+			// so check.
+			depsFinder := identity.NewFinder(identity.FinderConfig{})
+			var addends []identity.Identity
+			for _, ev := range evictedStart {
+				for _, id := range changes {
+					if cachebuster != nil && cachebuster(ev.Key.(string)) {
+						addends = append(addends, ev.Identity)
+						break
+					}
+					if r := depsFinder.Contains(id, ev.Identity, -1); r > 0 {
+						addends = append(addends, ev.Identity)
+						break
+					}
+				}
+			}
+			changes = append(changes, addends...)
+		}
 	} else {
 		// Mass eviction, we might as well invalidate everything.
 		changes = []identity.Identity{identity.GenghisKhan}
@@ -1104,6 +1237,33 @@ func (h *HugoSites) resolveAndClearStateForIdentities(
 	}
 	changes = changes[:n]
 
+	if h.pageTrees.treePagesFromTemplateAdapters.LenRaw() > 0 {
+		if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
+			ll := l.WithField("substep", "resolve content adapter change set").WithField("changes", len(changes))
+			checkedCount := 0
+			matchCount := 0
+			depsFinder := identity.NewFinder(identity.FinderConfig{})
+
+			_ = h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "",
+				func(s string, n *pagesfromdata.PagesFromTemplate) (bool, error) {
+					for _, id := range changes {
+						checkedCount++
+						if r := depsFinder.Contains(id, n.DependencyManager, 2); r > identity.FinderNotFound {
+							n.MarkStale()
+							matchCount++
+							break
+						}
+					}
+					return false, nil
+				})
+
+			ll = ll.WithField("checked", checkedCount).WithField("matches", matchCount)
+			return ll, nil
+		}); err != nil {
+			return err
+		}
+	}
+
 	if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
 		// changesLeft: The IDs that the pages is dependent on.
 		// changesRight: The IDs that the pages depend on.
@@ -1112,23 +1272,6 @@ func (h *HugoSites) resolveAndClearStateForIdentities(
 		checkedCount, matchCount, err := h.resolveAndResetDependententPageOutputs(ctx, changes)
 		ll = ll.WithField("checked", checkedCount).WithField("matches", matchCount)
 		return ll, err
-	}); err != nil {
-		return err
-	}
-
-	if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
-		ll := l.WithField("substep", "gc dynacache")
-
-		h.MemCache.ClearOnRebuild(changes...)
-		h.Log.Trace(logg.StringFunc(func() string {
-			var sb strings.Builder
-			sb.WriteString("dynacache keys:\n")
-			for _, key := range h.MemCache.Keys(nil) {
-				sb.WriteString(fmt.Sprintf("   %s\n", key))
-			}
-			return sb.String()
-		}))
-		return ll, nil
 	}); err != nil {
 		return err
 	}
@@ -1160,14 +1303,13 @@ func (h *HugoSites) resolveAndResetDependententPageOutputs(ctx context.Context, 
 		checkedCounter atomic.Int64
 	)
 
-	resetPo := func(po *pageOutput, r identity.FinderResult) {
-		if po.pco != nil {
+	resetPo := func(po *pageOutput, rebuildContent bool, r identity.FinderResult) {
+		if rebuildContent && po.pco != nil {
 			po.pco.Reset() // Will invalidate content cache.
 		}
 
 		po.renderState = 0
-		po.p.resourcesPublishInit = &sync.Once{}
-		if r == identity.FinderFoundOneOfMany {
+		if r == identity.FinderFoundOneOfMany || po.f.Name == output.HTTPStatus404HTMLFormat.Name {
 			// Will force a re-render even in fast render mode.
 			po.renderOnce = false
 		}
@@ -1179,7 +1321,7 @@ func (h *HugoSites) resolveAndResetDependententPageOutputs(ctx context.Context, 
 	}
 
 	// This can be a relativeley expensive operations, so we do it in parallel.
-	g := rungroup.Run[*pageState](ctx, rungroup.Config[*pageState]{
+	g := rungroup.Run(ctx, rungroup.Config[*pageState]{
 		NumWorkers: h.numWorkers,
 		Handle: func(ctx context.Context, p *pageState) error {
 			if !p.isRenderedAny() {
@@ -1191,7 +1333,8 @@ func (h *HugoSites) resolveAndResetDependententPageOutputs(ctx context.Context, 
 				checkedCounter.Add(1)
 				if r := depsFinder.Contains(id, p.dependencyManager, 2); r > identity.FinderFoundOneOfManyRepetition {
 					for _, po := range p.pageOutputs {
-						resetPo(po, r)
+						// Note that p.dependencyManager is used when rendering content, so reset that.
+						resetPo(po, true, r)
 					}
 					// Done.
 					return nil
@@ -1203,10 +1346,12 @@ func (h *HugoSites) resolveAndResetDependententPageOutputs(ctx context.Context, 
 				if !po.isRendered() {
 					continue
 				}
+
 				for _, id := range changes {
 					checkedCounter.Add(1)
 					if r := depsFinder.Contains(id, po.dependencyManagerOutput, 50); r > identity.FinderFoundOneOfManyRepetition {
-						resetPo(po, r)
+						// Note that dependencyManagerOutput is not used when rendering content, so don't reset that.
+						resetPo(po, false, r)
 						continue OUTPUTS
 					}
 				}
@@ -1224,7 +1369,7 @@ func (h *HugoSites) resolveAndResetDependententPageOutputs(ctx context.Context, 
 			}
 		}
 		if needToCheck {
-			g.Enqueue(p) // nolint
+			_ = g.Enqueue(p)
 		}
 		return false
 	})
@@ -1248,6 +1393,7 @@ func (sa *sitePagesAssembler) applyAggregates() error {
 	rw := pw.Extend()
 	rw.Tree = sa.pageMap.treeResources
 	sa.lastmod = time.Time{}
+	rebuild := sa.s.h.isRebuild()
 
 	pw.Handle = func(keyPage string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
 		pageBundle := n.(*pageState)
@@ -1263,34 +1409,36 @@ func (sa *sitePagesAssembler) applyAggregates() error {
 		}
 
 		// Handle cascades first to get any default dates set.
-		var cascade map[page.PageMatcher]maps.Params
+		var cascade *maps.Ordered[page.PageMatcher, page.PageMatcherParamsConfig]
 		if keyPage == "" {
 			// Home page gets it's cascade from the site config.
 			cascade = sa.conf.Cascade.Config
 
-			if pageBundle.m.pageConfig.Cascade == nil {
+			if pageBundle.m.pageConfig.CascadeCompiled == nil {
 				// Pass the site cascade downwards.
 				pw.WalkContext.Data().Insert(keyPage, cascade)
 			}
 		} else {
-			_, data := pw.WalkContext.Data().LongestPrefix(keyPage)
+			_, data := pw.WalkContext.Data().LongestPrefix(paths.Dir(keyPage))
 			if data != nil {
-				cascade = data.(map[page.PageMatcher]maps.Params)
+				cascade = data.(*maps.Ordered[page.PageMatcher, page.PageMatcherParamsConfig])
 			}
 		}
 
-		if (pageBundle.IsHome() || pageBundle.IsSection()) && pageBundle.m.setMetaPostCount > 0 {
-			oldDates := pageBundle.m.pageConfig.Dates
+		if rebuild {
+			if (pageBundle.IsHome() || pageBundle.IsSection()) && pageBundle.m.setMetaPostCount > 0 {
+				oldDates := pageBundle.m.pageConfig.Dates
 
-			// We need to wait until after the walk to determine if any of the dates have changed.
-			pw.WalkContext.AddPostHook(
-				func() error {
-					if oldDates != pageBundle.m.pageConfig.Dates {
-						sa.assembleChanges.Add(pageBundle)
-					}
-					return nil
-				},
-			)
+				// We need to wait until after the walk to determine if any of the dates have changed.
+				pw.WalkContext.AddPostHook(
+					func() error {
+						if oldDates != pageBundle.m.pageConfig.Dates {
+							sa.assembleChanges.Add(pageBundle)
+						}
+						return nil
+					},
+				)
+			}
 		}
 
 		// Combine the cascade map with front matter.
@@ -1300,15 +1448,15 @@ func (sa *sitePagesAssembler) applyAggregates() error {
 
 		// We receive cascade values from above. If this leads to a change compared
 		// to the previous value, we need to mark the page and its dependencies as changed.
-		if pageBundle.m.setMetaPostCascadeChanged {
+		if rebuild && pageBundle.m.setMetaPostCascadeChanged {
 			sa.assembleChanges.Add(pageBundle)
 		}
 
 		const eventName = "dates"
 		if n.isContentNodeBranch() {
-			if pageBundle.m.pageConfig.Cascade != nil {
+			if pageBundle.m.pageConfig.CascadeCompiled != nil {
 				// Pass it down.
-				pw.WalkContext.Data().Insert(keyPage, pageBundle.m.pageConfig.Cascade)
+				pw.WalkContext.Data().Insert(keyPage, pageBundle.m.pageConfig.CascadeCompiled)
 			}
 
 			wasZeroDates := pageBundle.m.pageConfig.Dates.IsAllDatesZero()
@@ -1320,7 +1468,7 @@ func (sa *sitePagesAssembler) applyAggregates() error {
 					}
 
 					if wasZeroDates {
-						pageBundle.m.pageConfig.Dates.UpdateDateAndLastmodIfAfter(sp.m.pageConfig.Dates)
+						pageBundle.m.pageConfig.Dates.UpdateDateAndLastmodAndPublishDateIfAfter(sp.m.pageConfig.Dates)
 					}
 
 					if pageBundle.IsHome() {
@@ -1355,11 +1503,11 @@ func (sa *sitePagesAssembler) applyAggregates() error {
 				pageResource := rs.r.(*pageState)
 				relPath := pageResource.m.pathInfo.BaseRel(pageBundle.m.pathInfo)
 				pageResource.m.resourcePath = relPath
-				var cascade map[page.PageMatcher]maps.Params
+				var cascade *maps.Ordered[page.PageMatcher, page.PageMatcherParamsConfig]
 				// Apply cascade (if set) to the page.
 				_, data := pw.WalkContext.Data().LongestPrefix(resourceKey)
 				if data != nil {
-					cascade = data.(map[page.PageMatcher]maps.Params)
+					cascade = data.(*maps.Ordered[page.PageMatcher, page.PageMatcherParamsConfig])
 				}
 				if err := pageResource.setMetaPost(cascade); err != nil {
 					return false, err
@@ -1409,9 +1557,9 @@ func (sa *sitePagesAssembler) applyAggregatesToTaxonomiesAndTerms() error {
 				p := n.(*pageState)
 				if p.Kind() != kinds.KindTerm {
 					// The other kinds were handled in applyAggregates.
-					if p.m.pageConfig.Cascade != nil {
+					if p.m.pageConfig.CascadeCompiled != nil {
 						// Pass it down.
-						pw.WalkContext.Data().Insert(s, p.m.pageConfig.Cascade)
+						pw.WalkContext.Data().Insert(s, p.m.pageConfig.CascadeCompiled)
 					}
 				}
 
@@ -1423,10 +1571,10 @@ func (sa *sitePagesAssembler) applyAggregatesToTaxonomiesAndTerms() error {
 				const eventName = "dates"
 
 				if p.Kind() == kinds.KindTerm {
-					var cascade map[page.PageMatcher]maps.Params
+					var cascade *maps.Ordered[page.PageMatcher, page.PageMatcherParamsConfig]
 					_, data := pw.WalkContext.Data().LongestPrefix(s)
 					if data != nil {
-						cascade = data.(map[page.PageMatcher]maps.Params)
+						cascade = data.(*maps.Ordered[page.PageMatcher, page.PageMatcherParamsConfig])
 					}
 					if err := p.setMetaPost(cascade); err != nil {
 						return false, err
@@ -1457,7 +1605,7 @@ func (sa *sitePagesAssembler) applyAggregatesToTaxonomiesAndTerms() error {
 							return
 						}
 
-						p.m.pageConfig.Dates.UpdateDateAndLastmodIfAfter(sp.m.pageConfig.Dates)
+						p.m.pageConfig.Dates.UpdateDateAndLastmodAndPublishDateIfAfter(sp.m.pageConfig.Dates)
 					})
 				}
 
@@ -1485,11 +1633,17 @@ func (sa *sitePagesAssembler) applyAggregatesToTaxonomiesAndTerms() error {
 }
 
 func (sa *sitePagesAssembler) assembleTermsAndTranslations() error {
+	if sa.pageMap.cfg.taxonomyTermDisabled {
+		return nil
+	}
+
 	var (
 		pages   = sa.pageMap.treePages
 		entries = sa.pageMap.treeTaxonomyEntries
 		views   = sa.pageMap.cfg.taxonomyConfig.views
 	)
+
+	rebuild := sa.s.h.isRebuild()
 
 	lockType := doctree.LockTypeWrite
 	w := &doctree.NodeShiftTreeWalker[contentNodeI]{
@@ -1499,17 +1653,6 @@ func (sa *sitePagesAssembler) assembleTermsAndTranslations() error {
 			ps := n.(*pageState)
 
 			if ps.m.noLink() {
-				return false, nil
-			}
-
-			// This is a little out of place, but is conveniently put here.
-			// Check if translationKey is set by user.
-			// This is to support the manual way of setting the translationKey in front matter.
-			if ps.m.pageConfig.TranslationKey != "" {
-				sa.s.h.translationKeyPages.Append(ps.m.pageConfig.TranslationKey, ps)
-			}
-
-			if sa.pageMap.cfg.taxonomyTermDisabled {
 				return false, nil
 			}
 
@@ -1534,14 +1677,24 @@ func (sa *sitePagesAssembler) assembleTermsAndTranslations() error {
 					pi := sa.Site.Conf.PathParser().Parse(files.ComponentFolderContent, viewTermKey+"/_index.md")
 					term := pages.Get(pi.Base())
 					if term == nil {
+						if rebuild {
+							// A new tag was added in server mode.
+							taxonomy := pages.Get(viewName.pluralTreeKey)
+							if taxonomy != nil {
+								sa.assembleChanges.Add(taxonomy.GetIdentity())
+							}
+						}
+
 						m := &pageMeta{
 							term:     v,
 							singular: viewName.singular,
 							s:        sa.Site,
 							pathInfo: pi,
-							pageMetaParams: pageMetaParams{
+							pageMetaParams: &pageMetaParams{
 								pageConfig: &pagemeta.PageConfig{
-									Kind: kinds.KindTerm,
+									PageConfigEarly: pagemeta.PageConfigEarly{
+										Kind: kinds.KindTerm,
+									},
 								},
 							},
 						}
@@ -1571,6 +1724,7 @@ func (sa *sitePagesAssembler) assembleTermsAndTranslations() error {
 					})
 				}
 			}
+
 			return false, nil
 		},
 	}
@@ -1589,18 +1743,25 @@ func (sa *sitePagesAssembler) assembleResources() error {
 		Handle: func(s string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
 			ps := n.(*pageState)
 
+			// This is a little out of place, but is conveniently put here.
+			// Check if translationKey is set by user.
+			// This is to support the manual way of setting the translationKey in front matter.
+			if ps.m.pageConfig.TranslationKey != "" {
+				sa.s.h.translationKeyPages.Append(ps.m.pageConfig.TranslationKey, ps)
+			}
+
 			// Prepare resources for this page.
-			ps.shiftToOutputFormat(true, 0) // nolint
+			_ = ps.shiftToOutputFormat(true, 0)
 			targetPaths := ps.targetPaths()
 			baseTarget := targetPaths.SubResourceBaseTarget
 			duplicateResourceFiles := true
-			if ps.s.ContentSpec.Converters.IsGoldmark(ps.m.pageConfig.Markup) {
-				duplicateResourceFiles = ps.s.ContentSpec.Converters.GetMarkupConfig().Goldmark.DuplicateResourceFiles
+			if ps.m.pageConfig.ContentMediaType.IsMarkdown() {
+				duplicateResourceFiles = ps.s.Converters.GetMarkupConfig().Goldmark.DuplicateResourceFiles
 			}
 
 			duplicateResourceFiles = duplicateResourceFiles || ps.s.Conf.IsMultihost()
-			// nolint
-			sa.pageMap.forEachResourceInPage(
+
+			err := sa.pageMap.forEachResourceInPage(
 				ps, lockType,
 				!duplicateResourceFiles,
 				func(resourceKey string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
@@ -1626,6 +1787,28 @@ func (sa *sitePagesAssembler) assembleResources() error {
 
 					}
 
+					if rs.rc != nil && rs.rc.Content.IsResourceValue() {
+						if rs.rc.Name == "" {
+							rs.rc.Name = relPathOriginal
+						}
+						r, err := ps.m.s.ResourceSpec.NewResourceWrapperFromResourceConfig(rs.rc)
+						if err != nil {
+							return false, err
+						}
+						rs.r = r
+						return false, nil
+					}
+
+					var mt media.Type
+					if rs.rc != nil {
+						mt = rs.rc.ContentMediaType
+					}
+
+					var filename string
+					if rs.fi != nil {
+						filename = rs.fi.Meta().Filename
+					}
+
 					rd := resources.ResourceSourceDescriptor{
 						OpenReadSeekCloser:   rs.opener,
 						Path:                 rs.path,
@@ -1634,10 +1817,26 @@ func (sa *sitePagesAssembler) assembleResources() error {
 						TargetBasePaths:      targetBasePaths,
 						BasePathRelPermalink: targetPaths.SubResourceBaseLink,
 						BasePathTargetPath:   baseTarget,
+						SourceFilenameOrPath: filename,
 						NameNormalized:       relPath,
 						NameOriginal:         relPathOriginal,
+						MediaType:            mt,
 						LazyPublish:          !ps.m.pageConfig.Build.PublishResources,
 					}
+
+					if rs.rc != nil {
+						rc := rs.rc
+						rd.OpenReadSeekCloser = rc.Content.ValueAsOpenReadSeekCloser()
+						if rc.Name != "" {
+							rd.NameNormalized = rc.Name
+							rd.NameOriginal = rc.Name
+						}
+						if rc.Title != "" {
+							rd.Title = rc.Title
+						}
+						rd.Params = rc.Params
+					}
+
 					r, err := ps.m.s.ResourceSpec.NewResource(rd)
 					if err != nil {
 						return false, err
@@ -1647,7 +1846,7 @@ func (sa *sitePagesAssembler) assembleResources() error {
 				},
 			)
 
-			return false, nil
+			return false, err
 		},
 	}
 
@@ -1680,6 +1879,11 @@ func (sa *sitePagesAssembler) assemblePagesStep2() error {
 	if err := sa.applyAggregatesToTaxonomiesAndTerms(); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (sa *sitePagesAssembler) assemblePagesStepFinal() error {
 	if err := sa.assembleResources(); err != nil {
 		return err
 	}
@@ -1742,16 +1946,18 @@ func (sa *sitePagesAssembler) addStandalonePages() error {
 			}
 		}
 
-		if !sa.Site.conf.IsKindEnabled(kind) || tree.Has(key) {
+		if !sa.conf.IsKindEnabled(kind) || tree.Has(key) {
 			return
 		}
 
 		m := &pageMeta{
 			s:        s,
 			pathInfo: s.Conf.PathParser().Parse(files.ComponentFolderContent, key+f.MediaType.FirstSuffix.FullSuffix),
-			pageMetaParams: pageMetaParams{
+			pageMetaParams: &pageMetaParams{
 				pageConfig: &pagemeta.PageConfig{
-					Kind: kind,
+					PageConfigEarly: pagemeta.PageConfigEarly{
+						Kind: kind,
+					},
 				},
 			},
 			standaloneOutputFormat: f,
@@ -1762,7 +1968,7 @@ func (sa *sitePagesAssembler) addStandalonePages() error {
 		tree.InsertIntoValuesDimension(key, p)
 	}
 
-	addStandalone("/404", kinds.KindStatus404, output.HTTPStatusHTMLFormat)
+	addStandalone("/404", kinds.KindStatus404, output.HTTPStatus404HTMLFormat)
 
 	if s.conf.EnableRobotsTXT {
 		if m.i == 0 || s.Conf.IsMultihost() {
@@ -1779,11 +1985,19 @@ func (sa *sitePagesAssembler) addStandalonePages() error {
 	}
 
 	if sitemapEnabled {
-		addStandalone("/_sitemap", kinds.KindSitemap, output.SitemapFormat)
-		skipSitemapIndex := s.Conf.IsMultihost() || !(s.Conf.DefaultContentLanguageInSubdir() || s.Conf.IsMultiLingual())
+		of := output.SitemapFormat
+		if s.conf.Sitemap.Filename != "" {
+			of.BaseName = paths.Filename(s.conf.Sitemap.Filename)
+		}
+		addStandalone("/_sitemap", kinds.KindSitemap, of)
 
+		skipSitemapIndex := s.Conf.IsMultihost() || (!s.Conf.DefaultContentLanguageInSubdir() && !s.Conf.IsMultilingual())
 		if !skipSitemapIndex {
-			addStandalone("/_sitemapindex", kinds.KindSitemapIndex, output.SitemapIndexFormat)
+			of = output.SitemapIndexFormat
+			if s.conf.Sitemap.Filename != "" {
+				of.BaseName = paths.Filename(s.conf.Sitemap.Filename)
+			}
+			addStandalone("/_sitemapindex", kinds.KindSitemapIndex, of)
 		}
 	}
 
@@ -1867,9 +2081,11 @@ func (sa *sitePagesAssembler) addMissingRootSections() error {
 		m := &pageMeta{
 			s:        sa.Site,
 			pathInfo: p,
-			pageMetaParams: pageMetaParams{
+			pageMetaParams: &pageMetaParams{
 				pageConfig: &pagemeta.PageConfig{
-					Kind: kinds.KindHome,
+					PageConfigEarly: pagemeta.PageConfigEarly{
+						Kind: kinds.KindHome,
+					},
 				},
 			},
 		}
@@ -1877,7 +2093,7 @@ func (sa *sitePagesAssembler) addMissingRootSections() error {
 		if err != nil {
 			return err
 		}
-		w.Tree.InsertWithLock(p.Base(), n)
+		w.Tree.InsertIntoValuesDimensionWithLock(p.Base(), n)
 		sa.home = n
 	}
 
@@ -1900,9 +2116,11 @@ func (sa *sitePagesAssembler) addMissingTaxonomies() error {
 			m := &pageMeta{
 				s:        sa.Site,
 				pathInfo: sa.Conf.PathParser().Parse(files.ComponentFolderContent, key+"/_index.md"),
-				pageMetaParams: pageMetaParams{
+				pageMetaParams: &pageMetaParams{
 					pageConfig: &pagemeta.PageConfig{
-						Kind: kinds.KindTaxonomy,
+						PageConfigEarly: pagemeta.PageConfigEarly{
+							Kind: kinds.KindTaxonomy,
+						},
 					},
 				},
 				singular: viewName.singular,

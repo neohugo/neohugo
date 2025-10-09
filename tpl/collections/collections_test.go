@@ -232,38 +232,6 @@ func TestReverse(t *testing.T) {
 	c.Assert(err, qt.Not(qt.IsNil))
 }
 
-func TestEchoParam(t *testing.T) {
-	t.Parallel()
-	c := qt.New(t)
-
-	ns := newNs()
-
-	for i, test := range []struct {
-		a      any
-		key    any
-		expect any
-	}{
-		{[]int{1, 2, 3}, 1, int64(2)},
-		{[]uint{1, 2, 3}, 1, uint64(2)},
-		{[]float64{1.1, 2.2, 3.3}, 1, float64(2.2)},
-		{[]string{"foo", "bar", "baz"}, 1, "bar"},
-		{[]TstX{{A: "a", B: "b"}, {A: "c", B: "d"}, {A: "e", B: "f"}}, 1, ""},
-		{map[string]int{"foo": 1, "bar": 2, "baz": 3}, "bar", int64(2)},
-		{map[string]uint{"foo": 1, "bar": 2, "baz": 3}, "bar", uint64(2)},
-		{map[string]float64{"foo": 1.1, "bar": 2.2, "baz": 3.3}, "bar", float64(2.2)},
-		{map[string]string{"foo": "FOO", "bar": "BAR", "baz": "BAZ"}, "bar", "BAR"},
-		{map[string]TstX{"foo": {A: "a", B: "b"}, "bar": {A: "c", B: "d"}, "baz": {A: "e", B: "f"}}, "bar", ""},
-		{map[string]any{"foo": nil}, "foo", ""},
-		{(*[]string)(nil), "bar", ""},
-	} {
-		errMsg := qt.Commentf("[%d] %v", i, test)
-
-		result := ns.EchoParam(test.a, test.key)
-
-		c.Assert(result, qt.Equals, test.expect, errMsg)
-	}
-}
-
 func TestFirst(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
@@ -541,68 +509,6 @@ func TestLast(t *testing.T) {
 
 		c.Assert(err, qt.IsNil, errMsg)
 		c.Assert(result, qt.DeepEquals, test.expect, errMsg)
-	}
-}
-
-func TestQuerify(t *testing.T) {
-	t.Parallel()
-	c := qt.New(t)
-	ns := newNs()
-
-	for i, test := range []struct {
-		params []any
-		expect any
-	}{
-		{[]any{"a", "b"}, "a=b"},
-		{[]any{"a", "b", "c", "d", "f", " &"}, `a=b&c=d&f=+%26`},
-		{[]any{[]string{"a", "b"}}, "a=b"},
-		{[]any{[]string{"a", "b", "c", "d", "f", " &"}}, `a=b&c=d&f=+%26`},
-		{[]any{[]any{"x", "y"}}, `x=y`},
-		{[]any{[]any{"x", 5}}, `x=5`},
-		// errors
-		{[]any{5, "b"}, false},
-		{[]any{"a", "b", "c"}, false},
-		{[]any{[]string{"a", "b", "c"}}, false},
-		{[]any{[]string{"a", "b"}, "c"}, false},
-		{[]any{[]any{"c", "d", "e"}}, false},
-	} {
-		errMsg := qt.Commentf("[%d] %v", i, test.params)
-
-		result, err := ns.Querify(test.params...)
-
-		if b, ok := test.expect.(bool); ok && !b {
-			c.Assert(err, qt.Not(qt.IsNil), errMsg)
-			continue
-		}
-
-		c.Assert(err, qt.IsNil, errMsg)
-		c.Assert(result, qt.Equals, test.expect, errMsg)
-	}
-}
-
-func BenchmarkQuerify(b *testing.B) {
-	ns := newNs()
-	params := []any{"a", "b", "c", "d", "f", " &"}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := ns.Querify(params...)
-		if err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
-func BenchmarkQuerifySlice(b *testing.B) {
-	ns := newNs()
-	params := []string{"a", "b", "c", "d", "f", " &"}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_, err := ns.Querify(params)
-		if err != nil {
-			b.Fatal(err)
-		}
 	}
 }
 
@@ -950,7 +856,7 @@ func ToTstXIs(slice any) []TstXI {
 	}
 	tis := make([]TstXI, s.Len())
 
-	for i := 0; i < s.Len(); i++ {
+	for i := range s.Len() {
 		tsti, ok := s.Index(i).Interface().(TstXI)
 		if !ok {
 			return nil

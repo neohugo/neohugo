@@ -91,13 +91,13 @@ Do not go gentle into that good night.
 `
 
 	cfg, fs := newTestCfg()
-	cfg.Set("paginate", 1)
+	cfg.Set("pagination.pagerSize", 1)
 	th, configs := newTestHelperFromProvider(cfg, fs, t)
 
 	writeSource(t, fs, filepath.Join("content", "sect1", "_index.md"), fmt.Sprintf(st, "/ss1/"))
 	writeSource(t, fs, filepath.Join("content", "sect2", "_index.md"), fmt.Sprintf(st, "/ss2/"))
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		writeSource(t, fs, filepath.Join("content", "sect1", fmt.Sprintf("p%d.md", i+1)), pt)
 		writeSource(t, fs, filepath.Join("content", "sect2", fmt.Sprintf("p%d.md", i+1)), pt)
 	}

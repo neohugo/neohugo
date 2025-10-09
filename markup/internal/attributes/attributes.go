@@ -36,7 +36,6 @@ var chromaHighlightProcessingAttributes = map[string]bool{
 	"lineNoStart":        true,
 	"lineNumbersInTable": true,
 	"noClasses":          true,
-	"nohl":               true,
 	"style":              true,
 	"tabWidth":           true,
 }
@@ -95,7 +94,7 @@ func New(astAttributes []ast.Attribute, ownerType AttributesOwnerType) *Attribut
 		case []byte:
 			// Note that we don't do any HTML escaping here.
 			// We used to do that, but that changed in #9558.
-			// Noww it's up to the templates to decide.
+			// Now it's up to the templates to decide.
 			vv = string(vvv)
 		default:
 			panic(fmt.Sprintf("not implemented: %T", vvv))
@@ -136,7 +135,7 @@ type AttributesHolder struct {
 	// Attributes considered to be an option (code blocks)
 	options []Attribute
 
-	// What we send to the the render hooks.
+	// What we send to the render hooks.
 	attributesMapInit sync.Once
 	attributesMap     map[string]any
 	optionsMapInit    sync.Once
@@ -175,7 +174,7 @@ func (a *AttributesHolder) OptionsSlice() []Attribute {
 
 // RenderASTAttributes writes the AST attributes to the given as attributes to an HTML element.
 // This is used by the default HTML renderers, e.g. for headings etc. where no hook template could be found.
-// This performs HTML esacaping of string attributes.
+// This performs HTML escaping of string attributes.
 func RenderASTAttributes(w hugio.FlexiWriter, attributes ...ast.Attribute) {
 	for _, attr := range attributes {
 

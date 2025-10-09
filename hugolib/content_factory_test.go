@@ -29,7 +29,7 @@ lang  = 'en'
 [[module.mounts]]
 source = 'archetypes'
 target = 'archetypes'
-
+	
 `)
 
 		b.WithSourceFile(filepath.Join("mcontent/en/bundle", "index.md"), "")
@@ -53,7 +53,7 @@ Hello World.
 		b.Assert(p, qt.Not(qt.IsNil))
 
 		var buf bytes.Buffer
-		fi, err := b.H.BaseFs.Archetypes.Fs.Stat("post.md")
+		fi, err := b.H.Archetypes.Fs.Stat("post.md")
 		b.Assert(err, qt.IsNil)
 		b.Assert(cf.ApplyArchetypeFi(&buf, p, "", fi.(hugofs.FileMetaInfo)), qt.IsNil)
 
@@ -64,7 +64,7 @@ Hello World.
 	c.Run("Content in both project and theme", func(c *qt.C) {
 		b := newTestSitesBuilder(c)
 		b.WithConfigFile("toml", `
-theme = 'ipsum'
+theme = 'ipsum'		
 `)
 
 		themeDir := filepath.Join("themes", "ipsum")

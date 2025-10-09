@@ -27,6 +27,7 @@ import (
 	"github.com/bep/debounce"
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/spf13/cast"
 
@@ -83,7 +84,7 @@ func (h *Client) collect(tidy bool) (ModulesConfig, *collector) {
 		return ModulesConfig{}, c
 	}
 
-	// https://github.com/neohugo/neohugo/issues/6115
+	// https://github.com/gohugoio/hugo/issues/6115
 	/*if !c.skipTidy && tidy {
 		if err := h.tidy(c.modules, true); err != nil {
 			c.err = err
@@ -261,7 +262,10 @@ func (c *collector) add(owner *moduleAdapter, moduleImport Import) (*moduleAdapt
 					// This will select the latest release-version (not beta etc.).
 					versionQuery = "upgrade"
 				}
-				if err := c.Get(fmt.Sprintf("%s@%s", modulePath, versionQuery)); err != nil {
+
+				// Note that we cannot use c.Get for this, as that may
+				// trigger a new module collection and potentially create a infinite loop.
+				if err := c.get(fmt.Sprintf("%s@%s", modulePath, versionQuery)); err != nil {
 					return nil, err
 				}
 				if err := c.loadModules(); err != nil {
@@ -283,7 +287,7 @@ func (c *collector) add(owner *moduleAdapter, moduleImport Import) (*moduleAdapt
 					return nil, nil
 				}
 				if found, _ := afero.Exists(c.fs, moduleDir); !found {
-					//lint:ignore ST1005 end user message.
+					//nolint:staticcheck // end user message
 					c.err = c.wrapModuleNotFound(fmt.Errorf(`module %q not found in %q; either add it as a Hugo Module or store it in %q.`, modulePath, moduleDir, c.ccfg.ThemesDir))
 					return nil, nil
 				}
@@ -502,7 +506,7 @@ LOOP:
 }
 
 func (c *collector) collect() {
-	defer c.logger.PrintTimerIfDelayed(time.Now(), "nhugo: collected modules")
+	defer c.logger.PrintTimerIfDelayed(time.Now(), "neohugo: collected modules")
 	d := debounce.New(2 * time.Second)
 	d(func() {
 		c.logger.Println("hugo: downloading modules …")
@@ -543,7 +547,7 @@ func (c *collector) collectModulesTXT(owner Module) error {
 		return err
 	}
 
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	scanner := bufio.NewScanner(f)
 
@@ -552,13 +556,16 @@ func (c *collector) collectModulesTXT(owner Module) error {
 		line := scanner.Text()
 		line = strings.Trim(line, "# ")
 		line = strings.TrimSpace(line)
+		if line == "" {
+			continue
+		}
 		parts := strings.Fields(line)
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid modules list: %q", filename)
 		}
 		path := parts[0]
 
-		shouldAdd := c.Client.moduleConfig.VendorClosest
+		shouldAdd := c.moduleConfig.VendorClosest
 
 		if !shouldAdd {
 			if _, found := c.vendored[path]; !found {
@@ -605,7 +612,7 @@ func (c *collector) mountCommonJSConfig(owner *moduleAdapter, mounts []Mount) ([
 	if err != nil {
 		return mounts, fmt.Errorf("failed to open dir %q: %q", owner.Dir(), err)
 	}
-	defer d.Close()
+	defer func() { _ = d.Close() }()
 	fis, err := d.(fs.ReadDirFile).ReadDir(-1)
 	if err != nil {
 		return mounts, fmt.Errorf("failed to read dir %q: %q", owner.Dir(), err)
@@ -654,7 +661,13 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 		// Verify that Source exists
 		_, err := c.fs.Stat(sourceDir)
 		if err != nil {
-			if strings.HasSuffix(sourceDir, files.FilenameHugoStatsJSON) {
+			if paths.IsSameFilePath(sourceDir, c.ccfg.PublishDir) {
+				// This is a little exotic, but there are use cases for mounting the public folder.
+				// This will typically also be in .gitingore, so create it.
+				if err := c.fs.MkdirAll(sourceDir, 0o755); err != nil {
+					return nil, fmt.Errorf("%s: %q", errMsg, err)
+				}
+			} else if strings.HasSuffix(sourceDir, files.FilenameHugoStatsJSON) {
 				// A common pattern for Tailwind 3 is to mount that file to get it on the server watch list.
 
 				// A common pattern is also to add hugo_stats.json to .gitignore.
@@ -664,8 +677,10 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 				if err != nil {
 					return nil, fmt.Errorf("%s: %q", errMsg, err)
 				}
-				f.Close()
+				defer func() { _ = f.Close() }()
 			} else {
+				// TODO(bep) commenting out for now, as this will create to much noise.
+				// c.logger.Warnf("module %q: mount source %q does not exist", owner.Path(), sourceDir)
 				continue
 			}
 		}
@@ -687,6 +702,9 @@ func (c *collector) normalizeMounts(owner *moduleAdapter, mounts []Mount) ([]Mou
 }
 
 func (c *collector) wrapModuleNotFound(err error) error {
+	if c.ccfg.IgnoreModuleDoesNotExist {
+		return nil
+	}
 	err = fmt.Errorf(err.Error()+": %w", ErrNotExist)
 	if c.GoModulesFilename == "" {
 		return err

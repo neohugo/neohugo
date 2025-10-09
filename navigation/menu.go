@@ -16,6 +16,7 @@ package navigation
 
 import (
 	"html/template"
+	"slices"
 	"sort"
 
 	"github.com/neohugo/neohugo/common/maps"
@@ -67,14 +68,14 @@ func (m *MenuEntry) URL() string {
 // SetPageValues sets the Page and URL values for this menu entry.
 func SetPageValues(m *MenuEntry, p Page) {
 	m.Page = p
-	if m.MenuConfig.Name == "" {
-		m.MenuConfig.Name = p.LinkTitle()
+	if m.Name == "" {
+		m.Name = p.LinkTitle()
 	}
-	if m.MenuConfig.Title == "" {
-		m.MenuConfig.Title = p.Title()
+	if m.Title == "" {
+		m.Title = p.Title()
 	}
-	if m.MenuConfig.Weight == 0 {
-		m.MenuConfig.Weight = p.Weight()
+	if m.Weight == 0 {
+		m.Weight = p.Weight()
 	}
 }
 
@@ -268,7 +269,7 @@ func (m Menu) Reverse() Menu {
 // Clone clones the menu entries.
 // This is for internal use only.
 func (m Menu) Clone() Menu {
-	return append(Menu(nil), m...)
+	return slices.Clone(m)
 }
 
 func DecodeConfig(in any) (*config.ConfigNamespace[map[string]MenuConfig, Menus], error) {

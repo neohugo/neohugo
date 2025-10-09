@@ -42,7 +42,7 @@ func TestMergeLanguages(t *testing.T) {
 	c.Assert(len(frSite.RegularPages()), qt.Equals, 6)
 	c.Assert(len(nnSite.RegularPages()), qt.Equals, 12)
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		mergedNN := nnSite.RegularPages().MergeByLanguage(enSite.RegularPages())
 		c.Assert(len(mergedNN), qt.Equals, 31)
 		for i := 1; i <= 31; i++ {
@@ -68,7 +68,7 @@ func TestMergeLanguages(t *testing.T) {
 
 	firstNN := nnSite.RegularPages()[0]
 	c.Assert(len(firstNN.Sites()), qt.Equals, 4)
-	c.Assert(firstNN.Sites().First().Language().Lang, qt.Equals, "en")
+	c.Assert(firstNN.Sites().Default().Language().Lang, qt.Equals, "en")
 
 	nnBundle := nnSite.getPageOldVersion("page", "bundle")
 	enBundle := enSite.getPageOldVersion("page", "bundle")
@@ -159,11 +159,11 @@ date: "2018-02-28"
 		}
 	}
 
-	// See https://github.com/neohugo/neohugo/issues/4644
+	// See https://github.com/gohugoio/hugo/issues/4644
 	// Add a bundles
 	j := 100
 	contentPairs = append(contentPairs, []string{"bundle/index.md", fmt.Sprintf(contentTemplate, j, j)}...)
-	for i := 0; i < 6; i++ {
+	for i := range 6 {
 		contentPairs = append(contentPairs, []string{fmt.Sprintf("bundle/pb%d.md", i), fmt.Sprintf(contentTemplate, i+j, i+j)}...)
 	}
 	contentPairs = append(contentPairs, []string{"bundle/index.nn.md", fmt.Sprintf(contentTemplate, j, j)}...)

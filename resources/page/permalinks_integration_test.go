@@ -14,10 +14,12 @@
 package page_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/bep/logg"
 	qt "github.com/frankban/quicktest"
+	"github.com/neohugo/neohugo/htesting"
 	"github.com/neohugo/neohugo/hugolib"
 )
 
@@ -192,4 +194,179 @@ List.
 	b.AssertFileContent("public/libros/index.html", "List.")
 	b.AssertFileContent("public/libros/fiction/index.html", "List.")
 	b.AssertFileContent("public/libros/fiction/2023/book1/index.html", "Single.")
+}
+
+func TestPermalinksUrlCascade(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- layouts/_default/list.html --
+List|{{ .Kind }}|{{ .RelPermalink }}|
+-- layouts/_default/single.html --
+Single|{{ .Kind }}|{{ .RelPermalink }}|
+-- hugo.toml --
+-- content/cooking/delicious-recipes/_index.md --
+---
+url: /delicious-recipe/
+cascade:
+  url: /delicious-recipe/:slug/
+---
+-- content/cooking/delicious-recipes/example1.md --
+---
+title: Recipe 1
+---
+-- content/cooking/delicious-recipes/example2.md --
+---
+title: Recipe 2
+slug: custom-recipe-2
+---
+`
+	b := hugolib.NewIntegrationTestBuilder(
+		hugolib.IntegrationTestConfig{
+			T:           t,
+			TxtarString: files,
+			LogLevel:    logg.LevelWarn,
+		}).Build()
+
+	t.Log(b.LogString())
+	b.Assert(b.H.Log.LoggCount(logg.LevelWarn), qt.Equals, 0)
+	b.AssertFileContent("public/delicious-recipe/index.html", "List|section|/delicious-recipe/")
+	b.AssertFileContent("public/delicious-recipe/recipe-1/index.html", "Single|page|/delicious-recipe/recipe-1/")
+	b.AssertFileContent("public/delicious-recipe/custom-recipe-2/index.html", "Single|page|/delicious-recipe/custom-recipe-2/")
+}
+
+// Issue 12948.
+// Issue 12954.
+func TestPermalinksWithEscapedColons(t *testing.T) {
+	t.Parallel()
+
+	if htesting.IsWindows() {
+		t.Skip("Windows does not support colons in paths")
+	}
+
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','sitemap','taxonomy','term']
+[permalinks.page]
+s2 = "/c\\:d/:slug/"
+-- content/s1/_index.md --
+---
+title: s1
+url: "/a\\:b/:slug/"
+---
+-- content/s1/p1.md --
+---
+title: p1
+url: "/a\\:b/:slug/"
+---
+-- content/s2/p2.md --
+---
+title: p2
+---
+-- layouts/_default/single.html --
+{{ .Title }}
+-- layouts/_default/list.html --
+{{ .Title }}
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileExists("public/a:b/p1/index.html", true)
+	b.AssertFileExists("public/a:b/s1/index.html", true)
+
+	// The above URLs come from the URL front matter field where everything is allowed.
+	// We strip colons from paths constructed by Hugo (they are not supported on Windows).
+	b.AssertFileExists("public/cd/p2/index.html", true)
+}
+
+func TestPermalinksContentbasenameContentAdapter(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+[permalinks]
+[permalinks.page]
+a = "/:slugorcontentbasename/"
+b = "/:sections/:contentbasename/"
+-- content/_content.gotmpl --
+{{ $.AddPage  (dict "kind" "page" "path" "a/b/contentbasename1" "title" "My A Page No Slug")  }}
+{{ $.AddPage (dict "kind" "page" "path" "a/b/contentbasename2" "slug" "myslug"  "title" "My A Page With Slug")  }}
+ {{ $.AddPage  (dict "kind" "section" "path" "b/c" "title" "My B Section")  }}
+{{ $.AddPage  (dict "kind" "page" "path" "b/c/contentbasename3" "title" "My B Page No Slug")  }}
+-- layouts/_default/single.html --
+{{ .Title }}|{{ .RelPermalink }}|{{ .Kind }}|
+`
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/contentbasename1/index.html", "My A Page No Slug|/contentbasename1/|page|")
+	b.AssertFileContent("public/myslug/index.html", "My A Page With Slug|/myslug/|page|")
+}
+
+func TestPermalinksContentbasenameWithAndWithoutFile(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+[permalinks.section]
+a = "/mya/:contentbasename/"
+[permalinks.page]
+a = "/myapage/:contentbasename/"
+[permalinks.term]
+categories = "/myc/:slugorcontentbasename/"
+-- content/b/c/_index.md --
+---
+title: "C section"
+---
+-- content/a/b/index.md --
+---
+title: "My Title"
+categories: ["c1", "c2"]
+---
+-- content/categories/c2/_index.md --
+---
+title: "C2"
+slug: "c2slug"
+---
+-- layouts/_default/single.html --
+{{ .Title }}|{{ .RelPermalink }}|{{ .Kind }}|
+-- layouts/_default/list.html --
+{{ .Title }}|{{ .RelPermalink }}|{{ .Kind }}|
+`
+	b := hugolib.Test(t, files)
+
+	// Sections.
+	b.AssertFileContent("public/mya/a/index.html", "As|/mya/a/|section|")
+
+	// Pages.
+	b.AssertFileContent("public/myapage/b/index.html", "My Title|/myapage/b/|page|")
+
+	// Taxonomies.
+	b.AssertFileContent("public/myc/c1/index.html", "C1|/myc/c1/|term|")
+	b.AssertFileContent("public/myc/c2slug/index.html", "C2|/myc/c2slug/|term|")
+}
+
+func TestIssue13755(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['home','rss','section','sitemap','taxonomy','term']
+disablePathToLower = false
+[permalinks.page]
+s1 = "/:contentbasename"
+-- content/s1/aBc.md --
+---
+title: aBc
+---
+-- layouts/all.html --
+{{ .Title }}
+`
+
+	b := hugolib.Test(t, files)
+	b.AssertFileExists("public/abc/index.html", true)
+
+	files = strings.ReplaceAll(files, "disablePathToLower = false", "disablePathToLower = true")
+
+	b = hugolib.Test(t, files)
+	b.AssertFileExists("public/aBc/index.html", true)
 }

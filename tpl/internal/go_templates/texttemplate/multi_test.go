@@ -314,10 +314,7 @@ func TestAddParseTreeToUnparsedTemplate(t *testing.T) {
 		t.Fatalf("unexpected parse err: %v", err)
 	}
 	masterTree := tree["master"]
-	_, err = tmpl.AddParseTree("master", masterTree) // used to panic
-	if err != nil {
-		t.Fatalf("unexpected add parse err: %v", err)
-	}
+	tmpl.AddParseTree("master", masterTree) // used to panic
 }
 
 func TestRedefinition(t *testing.T) {
@@ -351,10 +348,7 @@ func TestTemplateLookUp(t *testing.T) {
 	if t1.Lookup("bar") != nil {
 		t.Error("Lookup returned non-nil value for undefined template bar")
 	}
-	_, err := t1.Parse(`{{define "foo"}}test{{end}}`)
-	if err != nil {
-		t.Fatalf("unexpected parse err: %v", err)
-	}
+	t1.Parse(`{{define "foo"}}test{{end}}`)
 	if t1.Lookup("foo") == nil {
 		t.Error("Lookup returned nil value for defined template")
 	}

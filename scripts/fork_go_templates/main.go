@@ -4,18 +4,19 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/hugio"
 
 	"github.com/spf13/afero"
 )
 
 func main() {
-	// The current is built with 446a5dcf5a3230ce9832682d8f521071d8a34a2b (go 1.22 dev. Thu Oct 5 12:20:11 2023 -0700)
+	// The current is built with 3901409b5d [release-branch.go1.24] go1.24.0
+	// TODO(bep) preserve the staticcheck.conf file.
 	fmt.Println("Forking ...")
 	defer fmt.Println("Done ...")
 
@@ -192,7 +193,7 @@ func doWithGoFiles(dir string,
 		must(err)
 		f, err := os.Create(path)
 		must(err)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		_, err = f.WriteString(transform(path, string(data)))
 		must(err)
 
@@ -206,7 +207,7 @@ func removeAll(expression, content string) string {
 }
 
 func rewrite(filename, rule string) {
-	cmf, _ := hexec.SafeCommand("gofmt", "-w", "-r", rule, filename)
+	cmf := exec.Command("gofmt", "-w", "-r", rule, filename)
 	out, err := cmf.CombinedOutput()
 	if err != nil {
 		log.Fatal("gofmt failed:", string(out))
@@ -214,7 +215,8 @@ func rewrite(filename, rule string) {
 }
 
 func goimports(dir string) {
-	cmf, _ := hexec.SafeCommand("goimports", "-w", dir)
+	// Needs go install golang.org/x/tools/cmd/goimports@latest
+	cmf := exec.Command("goimports", "-w", dir)
 	out, err := cmf.CombinedOutput()
 	if err != nil {
 		log.Fatal("goimports failed:", string(out))
@@ -222,7 +224,7 @@ func goimports(dir string) {
 }
 
 func gofmt(dir string) {
-	cmf, _ := hexec.SafeCommand("gofmt", "-w", dir)
+	cmf := exec.Command("gofmt", "-w", dir)
 	out, err := cmf.CombinedOutput()
 	if err != nil {
 		log.Fatal("gofmt failed:", string(out))

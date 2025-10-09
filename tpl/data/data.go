@@ -22,6 +22,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"strings"
 
 	"github.com/neohugo/neohugo/cache/filecache"
@@ -98,7 +99,7 @@ func (ns *Namespace) GetCSV(sep string, args ...any) (d [][]string, err error) {
 		return nil, nil
 	}
 
-	return
+	return d, err
 }
 
 // GetJSON expects one or n-parts of a URL in args to a resource which can either be a local or a remote one.
@@ -170,12 +171,7 @@ func hasHeaderValue(m http.Header, key, value string) bool {
 		return false
 	}
 
-	for _, v := range s {
-		if v == value {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(s, value)
 }
 
 func hasHeaderKey(m http.Header, key string) bool {

@@ -65,148 +65,6 @@ YAML frontmatter with tags and categories taxonomy.`
 	}
 }
 
-func TestTaxonomiesWithAndWithoutContentFile(t *testing.T) {
-	for _, uglyURLs := range []bool{false, true} {
-		uglyURLs := uglyURLs
-		t.Run(fmt.Sprintf("uglyURLs=%t", uglyURLs), func(t *testing.T) {
-			t.Parallel()
-			doTestTaxonomiesWithAndWithoutContentFile(t, uglyURLs)
-		})
-	}
-}
-
-func doTestTaxonomiesWithAndWithoutContentFile(t *testing.T, uglyURLs bool) {
-	siteConfig := `
-baseURL = "http://example.com/blog"
-titleCaseStyle = "firstupper"
-uglyURLs = %t
-paginate = 1
-defaultContentLanguage = "en"
-[Taxonomies]
-tag = "tags"
-category = "categories"
-other = "others"
-empty = "empties"
-permalinked = "permalinkeds"
-[permalinks]
-permalinkeds = "/perma/:slug/"
-`
-
-	pageTemplate := `---
-title: "%s"
-tags:
-%s
-categories:
-%s
-others:
-%s
-permalinkeds:
-%s
----
-# Doc
-`
-
-	siteConfig = fmt.Sprintf(siteConfig, uglyURLs)
-
-	b := newTestSitesBuilder(t).WithConfigFile("toml", siteConfig)
-
-	b.WithContent(
-		"p1.md", fmt.Sprintf(pageTemplate, "t1/c1", "- Tag1", "- cAt1", "- o1", "- Pl1"),
-		"p2.md", fmt.Sprintf(pageTemplate, "t2/c1", "- tag2", "- cAt1", "- o1", "- Pl1"),
-		"p3.md", fmt.Sprintf(pageTemplate, "t2/c12", "- tag2", "- cat2", "- o1", "- Pl1"),
-		"p4.md", fmt.Sprintf(pageTemplate, "Hello World", "", "", "- \"Hello Hugo world\"", "- Pl1"),
-		"categories/_index.md", newTestPage("Category Terms", "2017-01-01", 10),
-		"tags/Tag1/_index.md", newTestPage("Tag1 List", "2017-01-01", 10),
-		// https://github.com/gohugoio/hugo/issues/5847
-		"/tags/not-used/_index.md", newTestPage("Unused Tag List", "2018-01-01", 10),
-	)
-
-	b.Build(BuildCfg{})
-
-	// So what we have now is:
-	// 1. categories with terms content page, but no content page for the only c1 category
-	// 2. tags with no terms content page, but content page for one of 2 tags (tag1)
-	// 3. the "others" taxonomy with no content pages.
-	// 4. the "permalinkeds" taxonomy with permalinks configuration.
-
-	pathFunc := func(s string) string {
-		if uglyURLs {
-			return strings.Replace(s, "/index.html", ".html", 1)
-		}
-		return s
-	}
-
-	// 1.
-	b.AssertFileContent(pathFunc("public/categories/cat1/index.html"), "List", "CAt1")
-	b.AssertFileContent(pathFunc("public/categories/index.html"), "Taxonomy Term Page", "Category Terms")
-
-	// 2.
-	b.AssertFileContent(pathFunc("public/tags/tag2/index.html"), "List", "tag2")
-	b.AssertFileContent(pathFunc("public/tags/tag1/index.html"), "List", "Tag1")
-	b.AssertFileContent(pathFunc("public/tags/index.html"), "Taxonomy Term Page", "Tags")
-
-	// 3.
-	b.AssertFileContent(pathFunc("public/others/o1/index.html"), "List", "o1")
-	b.AssertFileContent(pathFunc("public/others/index.html"), "Taxonomy Term Page", "Others")
-
-	// 4.
-	b.AssertFileContent(pathFunc("public/perma/pl1/index.html"), "List", "Pl1")
-
-	// This looks kind of funky, but the taxonomy terms do not have a permalinks definition,
-	// for good reasons.
-	b.AssertFileContent(pathFunc("public/permalinkeds/index.html"), "Taxonomy Term Page", "Permalinkeds")
-
-	s := b.H.Sites[0]
-
-	// Make sure that each kinds.KindTaxonomyTerm page has an appropriate number
-	// of kinds.KindTaxonomy pages in its Pages slice.
-	taxonomyTermPageCounts := map[string]int{
-		"tags":         3,
-		"categories":   2,
-		"others":       2,
-		"empties":      0,
-		"permalinkeds": 1,
-	}
-
-	for taxonomy, count := range taxonomyTermPageCounts {
-		msg := qt.Commentf(taxonomy)
-		term := s.getPageOldVersion(kinds.KindTaxonomy, taxonomy)
-		b.Assert(term, qt.Not(qt.IsNil), msg)
-		b.Assert(len(term.Pages()), qt.Equals, count, msg)
-
-		for _, p := range term.Pages() {
-			b.Assert(p.Kind(), qt.Equals, kinds.KindTerm)
-		}
-	}
-
-	cat1 := s.getPageOldVersion(kinds.KindTerm, "categories", "cat1")
-	b.Assert(cat1, qt.Not(qt.IsNil))
-	if uglyURLs {
-		b.Assert(cat1.RelPermalink(), qt.Equals, "/blog/categories/cat1.html")
-	} else {
-		b.Assert(cat1.RelPermalink(), qt.Equals, "/blog/categories/cat1/")
-	}
-
-	pl1 := s.getPageOldVersion(kinds.KindTerm, "permalinkeds", "pl1")
-	permalinkeds := s.getPageOldVersion(kinds.KindTaxonomy, "permalinkeds")
-	b.Assert(pl1, qt.Not(qt.IsNil))
-	b.Assert(permalinkeds, qt.Not(qt.IsNil))
-	if uglyURLs {
-		b.Assert(pl1.RelPermalink(), qt.Equals, "/blog/perma/pl1.html")
-		b.Assert(permalinkeds.RelPermalink(), qt.Equals, "/blog/permalinkeds.html")
-	} else {
-		b.Assert(pl1.RelPermalink(), qt.Equals, "/blog/perma/pl1/")
-		b.Assert(permalinkeds.RelPermalink(), qt.Equals, "/blog/permalinkeds/")
-	}
-
-	helloWorld := s.getPageOldVersion(kinds.KindTerm, "others", "hello-hugo-world")
-	b.Assert(helloWorld, qt.Not(qt.IsNil))
-	b.Assert(helloWorld.Title(), qt.Equals, "Hello Hugo world")
-
-	// Issue #2977
-	b.AssertFileContent(pathFunc("public/empties/index.html"), "Taxonomy Term Page", "Empties")
-}
-
 // https://github.com/gohugoio/hugo/issues/5513
 // https://github.com/gohugoio/hugo/issues/5571
 func TestTaxonomiesPathSeparation(t *testing.T) {
@@ -313,7 +171,7 @@ func TestTaxonomiesNextGenLoops(t *testing.T) {
 </ul>
 `)
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		b.WithContent(fmt.Sprintf("page%d.md", i+1), `
 ---
 Title: "Taxonomy!"
@@ -969,4 +827,59 @@ title: p1
 
 	b.AssertFileExists("public/ja/s1/index.html", false) // failing test
 	b.AssertFileExists("public/ja/s1/category/index.html", true)
+}
+
+func BenchmarkTaxonomiesGetTerms(b *testing.B) {
+	createBuilders := func(b *testing.B, numPages int) []*IntegrationTestBuilder {
+		files := `
+-- hugo.toml --
+baseURL = "https://example.com"
+disableKinds = ["RSS", "sitemap", "section"]
+[taxononomies]
+tag = "tags"
+-- layouts/_default/list.html --
+List.
+-- layouts/_default/single.html --
+GetTerms.tags: {{ range .GetTerms "tags" }}{{ .Title }}|{{ end }}
+-- content/_index.md --
+`
+
+		tagsVariants := []string{
+			"tags: ['a']",
+			"tags: ['a', 'b']",
+			"tags: ['a', 'b', 'c']",
+			"tags: ['a', 'b', 'c', 'd']",
+			"tags: ['a', 'b',  'd', 'e']",
+			"tags: ['a', 'b', 'c', 'd', 'e']",
+			"tags: ['a', 'd']",
+			"tags: ['a',  'f']",
+		}
+
+		for i := 1; i < numPages; i++ {
+			tags := tagsVariants[i%len(tagsVariants)]
+			files += fmt.Sprintf("\n-- content/posts/p%d.md --\n---\n%s\n---", i+1, tags)
+		}
+		cfg := IntegrationTestConfig{
+			T:           b,
+			TxtarString: files,
+		}
+		builders := make([]*IntegrationTestBuilder, b.N)
+
+		for i := range builders {
+			builders[i] = NewIntegrationTestBuilder(cfg)
+		}
+
+		b.ResetTimer()
+
+		return builders
+	}
+
+	for _, numPages := range []int{100, 1000, 10000, 20000} {
+		b.Run(fmt.Sprintf("pages_%d", numPages), func(b *testing.B) {
+			builders := createBuilders(b, numPages)
+			for i := 0; i < b.N; i++ {
+				builders[i].Build()
+			}
+		})
+	}
 }

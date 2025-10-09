@@ -85,7 +85,8 @@ type HugoSites struct {
 
 	pageTrees *pageTrees
 
-	postRenderInit sync.Once
+	printUnusedTemplatesInit sync.Once
+	printPathWarningsInit    sync.Once
 
 	// File change events with filename stored in this map will be skipped.
 	skipRebuildForFilenamesMu sync.Mutex
@@ -111,7 +112,28 @@ func (h *HugoSites) ShouldSkipFileChangeEvent(ev fsnotify.Event) bool {
 	return h.skipRebuildForFilenames[ev.Name]
 }
 
-// Only used in tests.
+func (h *HugoSites) Close() error {
+	return h.Deps.Close()
+}
+
+func (h *HugoSites) isRebuild() bool {
+	return h.buildCounter.Load() > 0
+}
+
+func (h *HugoSites) resolveSite(lang string) *Site {
+	if lang == "" {
+		lang = h.Conf.DefaultContentLanguage()
+	}
+
+	for _, s := range h.Sites {
+		if s.Lang() == lang {
+			return s
+		}
+	}
+
+	return nil
+}
+
 type buildCounters struct {
 	contentRenderCounter atomic.Uint64
 	pageRenderCounter    atomic.Uint64
@@ -161,9 +183,6 @@ type hugoSitesInit struct {
 	// Loads the data from all of the /data folders.
 	data *lazy.Init
 
-	// Performs late initialization (before render) of the templates.
-	layouts *lazy.Init
-
 	// Loads the Git info and CODEOWNERS for all the pages if enabled.
 	gitInfo *lazy.Init
 }
@@ -211,13 +230,13 @@ func (h *HugoSites) RegularPages() page.Pages {
 	return v
 }
 
-func (h *HugoSites) gitInfoForPage(p page.Page) (source.GitInfo, error) {
+func (h *HugoSites) gitInfoForPage(p page.Page) (*source.GitInfo, error) {
 	if _, err := h.init.gitInfo.Do(context.Background()); err != nil {
-		return source.GitInfo{}, err
+		return nil, err
 	}
 
 	if h.gitInfo == nil {
-		return source.GitInfo{}, nil
+		return nil, nil
 	}
 
 	return h.gitInfo.forPage(p), nil
@@ -269,7 +288,7 @@ func (h *HugoSites) pickOneAndLogTheRest(errors []error) error {
 	return errors[i]
 }
 
-func (h *HugoSites) isMultiLingual() bool {
+func (h *HugoSites) isMultilingual() bool {
 	return len(h.Sites) > 1
 }
 
@@ -291,8 +310,8 @@ func (h *HugoSites) NumLogErrors() int {
 
 func (h *HugoSites) PrintProcessingStats(w io.Writer) {
 	stats := make([]*helpers.ProcessingStats, len(h.Sites))
-	for i := 0; i < len(h.Sites); i++ {
-		stats[i] = h.Sites[i].PathSpec.ProcessingStats
+	for i := range h.Sites {
+		stats[i] = h.Sites[i].ProcessingStats
 	}
 	helpers.ProcessingStatsTable(w, stats...)
 }
@@ -328,7 +347,7 @@ func (h *HugoSites) GetContentPage(filename string) page.Page {
 
 func (h *HugoSites) loadGitInfo() error {
 	if h.Configs.Base.EnableGitInfo {
-		gi, err := newGitInfo(h.Conf)
+		gi, err := newGitInfo(h.Deps)
 		if err != nil {
 			h.Log.Errorln("Failed to read Git log:", err)
 		} else {
@@ -357,7 +376,7 @@ func (h *HugoSites) reset(config *BuildCfg) {
 func (h *HugoSites) resetLogs() {
 	h.Log.Reset()
 	for _, s := range h.Sites {
-		s.Deps.Log.Reset()
+		s.Log.Reset()
 	}
 }
 
@@ -371,8 +390,7 @@ func (h *HugoSites) withSite(fn func(s *Site) error) error {
 }
 
 func (h *HugoSites) withPage(fn func(s string, p *pageState) bool) {
-	// nolint
-	h.withSite(func(s *Site) error {
+	_ = h.withSite(func(s *Site) error {
 		w := &doctree.NodeShiftTreeWalker[contentNodeI]{
 			Tree:     s.pageMap.treePages,
 			LockType: doctree.LockTypeRead,
@@ -388,8 +406,9 @@ func (h *HugoSites) withPage(fn func(s string, p *pageState) bool) {
 type BuildCfg struct {
 	// Skip rendering. Useful for testing.
 	SkipRender bool
+
 	// Use this to indicate what changed (for rebuilds).
-	whatChanged *whatChanged
+	WhatChanged *WhatChanged
 
 	// This is a partial re-render of some selected pages.
 	PartialReRender bool
@@ -397,8 +416,8 @@ type BuildCfg struct {
 	// Set in server mode when the last build failed for some reason.
 	ErrRecovery bool
 
-	// Recently visited URLs. This is used for partial re-rendering.
-	RecentlyVisited *types.EvictingStringQueue
+	// Recently visited or touched URLs. This is used for partial re-rendering.
+	RecentlyTouched *types.EvictingQueue[string]
 
 	// Can be set to build only with a sub set of the content source.
 	ContentInclusionFilter *glob.FilenameFilter
@@ -410,7 +429,11 @@ type BuildCfg struct {
 }
 
 // shouldRender returns whether this output format should be rendered or not.
-func (cfg *BuildCfg) shouldRender(p *pageState) bool {
+func (cfg *BuildCfg) shouldRender(infol logg.LevelLogger, p *pageState) bool {
+	if p.skipRender() {
+		return false
+	}
+
 	if !p.renderOnce {
 		return true
 	}
@@ -434,18 +457,20 @@ func (cfg *BuildCfg) shouldRender(p *pageState) bool {
 		return false
 	}
 
-	if p.outputFormat().IsHTML {
-		// This is fast render mode and the output format is HTML,
-		// rerender if this page is one of the recently visited.
-		return cfg.RecentlyVisited.Contains(p.RelPermalink())
+	if relURL := p.getRelURL(); relURL != "" {
+		if cfg.RecentlyTouched.Contains(relURL) {
+			infol.Logf("render recently touched URL %q (%s)", relURL, p.outputFormat().Name)
+			return true
+		}
 	}
 
 	// In fast render mode, we want to avoid re-rendering the sitemaps etc. and
 	// other big listings whenever we e.g. change a content file,
-	// but we want partial renders of the recently visited pages to also include
+	// but we want partial renders of the recently touched pages to also include
 	// alternative formats of the same HTML page (e.g. RSS, JSON).
 	for _, po := range p.pageOutputs {
-		if po.render && po.f.IsHTML && cfg.RecentlyVisited.Contains(po.RelPermalink()) {
+		if po.render && po.f.IsHTML && cfg.RecentlyTouched.Contains(po.getRelURL()) {
+			infol.Logf("render recently touched URL %q, %s version of %s", po.getRelURL(), po.f.Name, p.outputFormat().Name)
 			return true
 		}
 	}
@@ -474,8 +499,9 @@ func (h *HugoSites) loadData() error {
 	h.data = make(map[string]any)
 	w := hugofs.NewWalkway(
 		hugofs.WalkwayConfig{
-			Fs:         h.PathSpec.BaseFs.Data.Fs,
+			Fs:         h.BaseFs.Data.Fs,
 			IgnoreFile: h.SourceSpec.IgnoreFile,
+			PathParser: h.Conf.PathParser(),
 			WalkFn: func(path string, fi hugofs.FileMetaInfo) error {
 				if fi.IsDir() {
 					return nil
@@ -501,7 +527,7 @@ func (h *HugoSites) handleDataFile(r *source.File) error {
 	if err != nil {
 		return fmt.Errorf("data: failed to open %q: %w", r.LogicalName(), err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	// Crawl in data tree to insert data
 	current = h.data
@@ -530,7 +556,6 @@ func (h *HugoSites) handleDataFile(r *source.File) error {
 	higherPrecedentData := current[r.BaseFileName()]
 
 	switch data.(type) {
-	case nil:
 	case map[string]any:
 
 		switch higherPrecedentData.(type) {
@@ -583,7 +608,7 @@ func (h *HugoSites) readData(f *source.File) (any, error) {
 	if err != nil {
 		return nil, fmt.Errorf("readData: failed to open data file: %w", err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	content := helpers.ReaderToBytes(file)
 
 	format := metadecoders.FormatFromString(f.Ext())

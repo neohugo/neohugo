@@ -14,8 +14,6 @@
 package pageparser
 
 func lexIntroSection(l *pageLexer) stateFunc {
-	l.summaryDivider = summaryDivider
-
 LOOP:
 	for {
 		r := l.next()
@@ -56,20 +54,20 @@ func lexFrontMatterJSON(l *pageLexer) stateFunc {
 
 		r := l.next()
 
-		switch {
-		case r == eof:
+		switch r {
+		case eof:
 			return l.errorf("unexpected EOF parsing JSON front matter")
-		case r == '{':
+		case '{':
 			if !inQuote {
 				level++
 			}
-		case r == '}':
+		case '}':
 			if !inQuote {
 				level--
 			}
-		case r == '"':
+		case '"':
 			inQuote = !inQuote
-		case r == '\\':
+		case '\\':
 			// This may be an escaped quote. Make sure it's not marked as a
 			// real one.
 			l.next()
@@ -93,13 +91,13 @@ func lexFrontMatterOrgMode(l *pageLexer) stateFunc {
 		#+DESCRIPTION: Just another golang parser for org content!
 	*/
 
-	l.summaryDivider = summaryDividerOrg
-
 	l.backup()
 
 	if !l.hasPrefix(delimOrg) {
 		return lexMainSection
 	}
+
+	l.summaryDivider = summaryDividerOrg
 
 	// Read lines until we no longer see a #+ prefix
 LOOP:
@@ -107,12 +105,12 @@ LOOP:
 
 		r := l.next()
 
-		switch {
-		case r == '\n':
+		switch r {
+		case '\n':
 			if !l.hasPrefix(delimOrg) {
 				break LOOP
 			}
-		case r == eof:
+		case eof:
 			break LOOP
 
 		}
@@ -125,7 +123,7 @@ LOOP:
 
 // Handle YAML or TOML front matter.
 func (l *pageLexer) lexFrontMatterSection(tp ItemType, delimr rune, name string, delim []byte) stateFunc {
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		if r := l.next(); r != delimr {
 			return l.errorf("invalid %s delimiter", name)
 		}

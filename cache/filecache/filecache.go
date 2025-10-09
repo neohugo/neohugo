@@ -1,4 +1,4 @@
-// Copyright 2018 The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gohugoio/httpcache"
 	"github.com/neohugo/neohugo/common/hugio"
 	"github.com/neohugo/neohugo/hugofs"
 
@@ -162,24 +163,33 @@ func (c *Cache) ReadOrCreate(id string,
 	// TODO: checking error
 	if r, _ := c.getOrRemove(id); r != nil {
 		err = read(info, r)
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		if err == nil || err == ErrFatal {
 			// See https://github.com/neohugo/neohugo/issues/6401
 			// To recover from file corruption we handle read errors
 			// as the cache item was not found.
 			// Any file permission issue will also fail in the next step.
-			return
+			return info, err
 		}
 	}
 
 	f, err := helpers.OpenFileForWriting(c.Fs, id)
 	if err != nil {
-		return
+		return info, err
 	}
 
 	err = create(info, f)
 
-	return
+	return info, err
+}
+
+// NamedLock locks the given id. The lock is released when the returned function is called.
+func (c *Cache) NamedLock(id string) func() {
+	id = cleanID(id)
+	c.nlocker.Lock(id)
+	return func() {
+		c.nlocker.Unlock(id)
+	}
 }
 
 // GetOrCreate tries to get the file with the given id from cache. If not found or expired, create will
@@ -218,7 +228,23 @@ func (c *Cache) GetOrCreate(id string, create func() (io.ReadCloser, error)) (It
 	var buff bytes.Buffer
 	return info,
 		hugio.ToReadCloser(&buff),
-		afero.WriteReader(c.Fs, id, io.TeeReader(r, &buff))
+		c.writeReader(id, io.TeeReader(r, &buff))
+}
+
+func (c *Cache) writeReader(id string, r io.Reader) error {
+	dir := filepath.Dir(id)
+	if dir != "" {
+		_ = c.Fs.MkdirAll(dir, 0o777)
+	}
+	f, err := c.Fs.Create(id)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = f.Close() }()
+
+	_, _ = io.Copy(f, r)
+
+	return nil
 }
 
 // GetOrCreateBytes is the same as GetOrCreate, but produces a byte slice.
@@ -235,7 +261,7 @@ func (c *Cache) GetOrCreateBytes(id string, create func() ([]byte, error)) (Item
 	// TODO: checking error
 	r, _ := c.getOrRemove(id)
 	if r != nil {
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		b, err := io.ReadAll(r)
 		return info, b, err
 	}
@@ -254,9 +280,10 @@ func (c *Cache) GetOrCreateBytes(id string, create func() ([]byte, error)) (Item
 		return info, b, nil
 	}
 
-	if err := afero.WriteReader(c.Fs, id, bytes.NewReader(b)); err != nil {
+	if err := c.writeReader(id, bytes.NewReader(b)); err != nil {
 		return info, nil, err
 	}
+
 	return info, b, nil
 }
 
@@ -274,7 +301,7 @@ func (c *Cache) GetBytes(id string) (ItemInfo, []byte, error) {
 	// TODO: checking error
 	r, _ := c.getOrRemove(id)
 	if r != nil {
-		defer r.Close()
+		defer func() { _ = r.Close() }()
 		b, err := io.ReadAll(r)
 		return info, b, err
 	}
@@ -308,18 +335,8 @@ func (c *Cache) getOrRemove(id string) (hugio.ReadSeekCloser, error) {
 		return nil, nil
 	}
 
-	if c.maxAge > 0 {
-		fi, err := c.Fs.Stat(id)
-		if err != nil {
-			return nil, err
-		}
-
-		if c.isExpired(fi.ModTime()) {
-			if err := c.Fs.Remove(id); err != nil {
-				return nil, err
-			}
-			return nil, nil
-		}
+	if removed, err := c.removeIfExpired(id); err != nil || removed {
+		return nil, err
 	}
 
 	f, err := c.Fs.Open(id)
@@ -328,6 +345,49 @@ func (c *Cache) getOrRemove(id string) (hugio.ReadSeekCloser, error) {
 	}
 
 	return f, nil
+}
+
+func (c *Cache) getBytesAndRemoveIfExpired(id string) ([]byte, bool) {
+	if c.maxAge == 0 {
+		// No caching.
+		return nil, false
+	}
+
+	f, err := c.Fs.Open(id)
+	if err != nil {
+		return nil, false
+	}
+	defer func() { _ = f.Close() }()
+
+	b, err := io.ReadAll(f)
+	if err != nil {
+		return nil, false
+	}
+
+	removed, err := c.removeIfExpired(id)
+	if err != nil {
+		return nil, false
+	}
+
+	return b, removed
+}
+
+func (c *Cache) removeIfExpired(id string) (bool, error) {
+	if c.maxAge <= 0 {
+		return false, nil
+	}
+
+	fi, err := c.Fs.Stat(id)
+	if err != nil {
+		return false, err
+	}
+
+	if c.isExpired(fi.ModTime()) {
+		_ = c.Fs.Remove(id)
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func (c *Cache) isExpired(modTime time.Time) bool {
@@ -351,7 +411,7 @@ func (c *Cache) GetString(id string) string {
 	if err != nil {
 		return ""
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	b, _ := io.ReadAll(f)
 	return string(b)
@@ -376,7 +436,7 @@ func NewCaches(p *helpers.PathSpec) (Caches, error) {
 		var cfs afero.Fs
 
 		if v.IsResourceDir {
-			cfs = p.BaseFs.ResourcesCache
+			cfs = p.ResourcesCache
 		} else {
 			cfs = fs
 		}
@@ -402,4 +462,38 @@ func NewCaches(p *helpers.PathSpec) (Caches, error) {
 
 func cleanID(name string) string {
 	return strings.TrimPrefix(filepath.Clean(name), helpers.FilePathSeparator)
+}
+
+// AsHTTPCache returns an httpcache.Cache implementation for this file cache.
+// Note that none of the methods are protected by named locks, so you need to make sure
+// to do that in your own code.
+func (c *Cache) AsHTTPCache() httpcache.Cache {
+	return &httpCache{c: c}
+}
+
+type httpCache struct {
+	c *Cache
+}
+
+func (h *httpCache) Get(id string) (resp []byte, ok bool) {
+	id = cleanID(id)
+	b, removed := h.c.getBytesAndRemoveIfExpired(id)
+
+	return b, !removed
+}
+
+func (h *httpCache) Set(id string, resp []byte) {
+	if h.c.maxAge == 0 {
+		return
+	}
+
+	id = cleanID(id)
+
+	if err := h.c.writeReader(id, bytes.NewReader(resp)); err != nil {
+		panic(err)
+	}
+}
+
+func (h *httpCache) Delete(key string) {
+	_ = h.c.Fs.Remove(key)
 }

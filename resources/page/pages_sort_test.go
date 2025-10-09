@@ -66,7 +66,7 @@ func TestDefaultSort(t *testing.T) {
 	c.Assert(p[2].LinkTitle(), qt.Equals, "cl")
 }
 
-// https://github.com/neohugo/neohugo/issues/4953
+// https://github.com/gohugoio/hugo/issues/4953
 func TestSortByLinkTitle(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
@@ -118,10 +118,10 @@ func TestSortByN(t *testing.T) {
 		{(Pages).ByWeight, func(p Pages) bool { return p[0].Weight() == 1 }},
 		{(Pages).ByTitle, func(p Pages) bool { return p[0].Title() == "ab" }},
 		{(Pages).ByLinkTitle, func(p Pages) bool { return p[0].LinkTitle() == "abl" }},
-		{(Pages).ByDate, func(p Pages) bool { return p[0].Date() == d4 }},
-		{(Pages).ByPublishDate, func(p Pages) bool { return p[0].PublishDate() == d4 }},
-		{(Pages).ByExpiryDate, func(p Pages) bool { return p[0].ExpiryDate() == d4 }},
-		{(Pages).ByLastmod, func(p Pages) bool { return p[1].Lastmod() == d3 }},
+		{(Pages).ByDate, func(p Pages) bool { return p[0].Date().Equal(d4) }},
+		{(Pages).ByPublishDate, func(p Pages) bool { return p[0].PublishDate().Equal(d4) }},
+		{(Pages).ByExpiryDate, func(p Pages) bool { return p[0].ExpiryDate().Equal(d4) }},
+		{(Pages).ByLastmod, func(p Pages) bool { return p[1].Lastmod().Equal(d3) }},
 		{byLen, func(p Pages) bool { return p[0].(resource.LengthProvider).Len(ctx) == len(p[0].(*testPage).content) }},
 	} {
 		setSortVals([4]time.Time{d1, d2, d3, d4}, [4]string{"b", "ab", "cde", "fg"}, [4]int{0, 3, 2, 1}, p)
@@ -139,7 +139,7 @@ func TestLimit(t *testing.T) {
 	p := createSortTestPages(10)
 	firstFive := p.Limit(5)
 	c.Assert(len(firstFive), qt.Equals, 5)
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		c.Assert(firstFive[i], qt.Equals, p[i])
 	}
 	c.Assert(p.Limit(10), eq, p)
@@ -197,7 +197,7 @@ func TestPageSortByParamNumeric(t *testing.T) {
 
 	n := 10
 	unsorted := createSortTestPages(n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		v := 100 - i
 		if i%2 == 0 {
 			v = 100.0 - i
@@ -269,7 +269,7 @@ func setSortVals(dates [4]time.Time, titles [4]string, weights [4]int, pages Pag
 func createSortTestPages(num int) Pages {
 	pages := make(Pages, num)
 
-	for i := 0; i < num; i++ {
+	for i := range num {
 		p := newTestPage()
 		p.path = fmt.Sprintf("/x/y/p%d.md", i)
 		p.title = fmt.Sprintf("Title %d", i%((num+1)/2))

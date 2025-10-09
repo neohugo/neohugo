@@ -27,6 +27,7 @@ func TestImageCache(t *testing.T) {
 
 	files := `
 -- config.toml --
+disableLiveReload = true
 baseURL = "https://example.org"
 -- content/mybundle/index.md --
 ---
@@ -61,9 +62,9 @@ anigif: {{ $anigif.RelPermalink }}|{{ $anigif.Width }}|{{ $anigif.Height }}|{{ $
 
 	assertImages := func() {
 		b.AssertFileContent("public/index.html", `
-		gif: /mybundle/pixel_hu8aa3346827e49d756ff4e630147c42b5_70_1x2_resize_box_3.gif|}|1|2|image/gif|
-		bmp: /mybundle/pixel_hu8aa3346827e49d756ff4e630147c42b5_70_2x3_resize_box_3.bmp|}|2|3|image/bmp|
-		anigif: /mybundle/giphy_hu3eafc418e52414ace6236bf1d31f82e1_52213_4x5_resize_box_1.gif|4|5|image/gif|
+ gif: /mybundle/pixel_hu_93429543fc146fce.gif|}|1|2|image/gif|
+bmp: /mybundle/pixel_hu_f9bf2acd6578e2c6.bmp|}|2|3|image/bmp|
+anigif: /mybundle/giphy_hu_652d28653068b48f.gif|4|5|image/gif|
 		`)
 	}
 
@@ -121,7 +122,7 @@ iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAA
 
 `
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 
 		b := hugolib.NewIntegrationTestBuilder(
 			hugolib.IntegrationTestConfig{
@@ -159,9 +160,9 @@ resize 2|RelPermalink: {{ $image.RelPermalink }}|MediaType: {{ $image.MediaType 
 	b := hugolib.Test(t, files)
 
 	b.AssertFileContent("public/index.html",
-		"jpg|RelPermalink: /images/pixel_hu8aa3346827e49d756ff4e630147c42b5_70_filter_17010532266664966692.jpg|MediaType: image/jpeg|Width: 1|Height: 1|",
-		"resize 1|RelPermalink: /images/pixel_hu8aa3346827e49d756ff4e630147c42b5_70_filter_6707036659822075562.jpg|MediaType: image/jpeg|Width: 20|Height: 30|",
-		"resize 2|RelPermalink: /images/pixel_hu8aa3346827e49d756ff4e630147c42b5_70_filter_6707036659822075562.jpg|MediaType: image/jpeg|Width: 20|Height: 30|",
+		"jpg|RelPermalink: /images/pixel_hu_38c3f257174fc757.jpg|MediaType: image/jpeg|Width: 1|Height: 1|",
+		"resize 1|RelPermalink: /images/pixel_hu_b5c2a3d88991f65a.jpg|MediaType: image/jpeg|Width: 20|Height: 30|",
+		"resize 2|RelPermalink: /images/pixel_hu_b5c2a3d88991f65a.jpg|MediaType: image/jpeg|Width: 20|Height: 30|",
 	)
 }
 
@@ -226,4 +227,51 @@ eventDate: 2023-11-01T07:00:00-08:00
 	b := hugolib.Test(t, files)
 
 	b.AssertFileContent("public/index.html", "2023-11|p9|p8|p7|2023-10|p6|p5|p4|2023-09|p3|p2|p1|")
+}
+
+// Issue 10412
+func TestImageTransformThenCopy(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- assets/pixel.png --
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==
+-- layouts/index.html --
+{{- with resources.Get "pixel.png" }}
+  {{- with .Resize "200x" | resources.Copy "pixel.png" }}
+    <img src="{{ .RelPermalink }}" width="{{ .Width }}" height="{{ .Height }}">|{{ .Key }}
+  {{- end }}
+{{- end }}
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileExists("public/pixel.png", true)
+	b.AssertFileContent("public/index.html",
+		`<img src="/pixel.png" width="200" height="200">|/pixel.png`,
+	)
+}
+
+// Issue 12310
+func TestUseDifferentCacheKeyForResourceCopy(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','section','rss','sitemap','taxonomy','term']
+-- assets/a.txt --
+This was assets/a.txt
+-- layouts/index.html --
+{{ $nilResource := resources.Get "/p1/b.txt" }}
+{{ $r := resources.Get "a.txt" }}
+{{ $r = resources.Copy "/p1/b.txt" $r }}
+{{ $r.RelPermalink }}
+`
+
+	b, err := hugolib.TestE(t, files)
+
+	b.Assert(err, qt.IsNil)
+	b.AssertFileContent("public/p1/b.txt", "This was assets/a.txt")
 }

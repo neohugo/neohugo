@@ -28,12 +28,12 @@ func CopyFile(fs afero.Fs, from, to string) error {
 	if err != nil {
 		return err
 	}
-	defer sf.Close()
+	defer func() { _ = sf.Close() }()
 	df, err := fs.Create(to)
 	if err != nil {
 		return err
 	}
-	defer df.Close()
+	defer func() { _ = df.Close() }()
 	_, err = io.Copy(df, sf)
 	if err != nil {
 		return err

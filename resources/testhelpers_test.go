@@ -87,7 +87,7 @@ func newTestResourceOsFs(c *qt.C) (*resources.Spec, string) {
 
 	cfg.Set("workingDir", workDir)
 
-	os.MkdirAll(filepath.Join(workDir, "assets"), 0o755) // nolint
+	_ = os.MkdirAll(filepath.Join(workDir, "assets"), 0o755)
 
 	d := testconfig.GetTestDeps(hugofs.Os, cfg)
 
@@ -131,7 +131,7 @@ func assertImageFile(c *qt.C, fs afero.Fs, filename string, width, height int) {
 	filename = filepath.Clean(filename)
 	f, err := fs.Open(filename)
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	config, _, err := image.DecodeConfig(f)
 	c.Assert(err, qt.IsNil)

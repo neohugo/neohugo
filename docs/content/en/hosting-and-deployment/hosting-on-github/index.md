@@ -1,8 +1,8 @@
 ---
 title: Host on GitHub Pages
-description: Deploy Hugo as a GitHub Pages project or personal/organizational site and automate the whole process with GitHub Actions
+description: Host your site on GitHub Pages with continuous deployment using project, user, or organization pages.
 categories: [hosting and deployment]
-keywords: [hosting,github]
+keywords: [hosting]
 menu:
   docs:
     parent: hosting-and-deployment
@@ -10,9 +10,9 @@ toc: true
 aliases: [/tutorials/github-pages-blog/]
 ---
 
-GitHub provides free and fast static hosting over SSL for personal, organization, or project pages directly from a GitHub repository via its GitHub Pages service and automating development workflows and build with GitHub Actions.
-
 ## Prerequisites
+
+Please complete the following tasks before continuing:
 
 1. [Create a GitHub account]
 2. [Install Git]
@@ -55,10 +55,11 @@ Step 4
 {style="max-width: 280px"}
 
 Step 5
-: Create an empty file in your local repository.
+: Create a file named `hugo.yaml` in a directory named `.github/workflows`.
 
 ```text
-.github/workflows/hugo.yaml
+mkdir -p .github/workflows
+touch hugo.yaml
 ```
 
 Step 6
@@ -99,7 +100,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      HUGO_VERSION: 0.122.0
+      HUGO_VERSION: 0.137.1
     steps:
       - name: Install Hugo CLI
         run: |
@@ -114,21 +115,21 @@ jobs:
           fetch-depth: 0
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
       - name: Install Node.js dependencies
         run: "[[ -f package-lock.json || -f npm-shrinkwrap.json ]] && npm ci || true"
       - name: Build with Hugo
         env:
-          # For maximum backward compatibility with Hugo modules
+          HUGO_CACHEDIR: ${{ runner.temp }}/hugo_cache
           HUGO_ENVIRONMENT: production
-          HUGO_ENV: production
+          TZ: America/Los_Angeles
         run: |
           hugo \
             --gc \
             --minify \
             --baseURL "${{ steps.pages.outputs.base_url }}/"
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: ./public
 
@@ -142,11 +143,17 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v3
+        uses: actions/deploy-pages@v4
 {{< /code >}}
 
 Step 7
-: Commit the change to your local repository with a commit message of something like "Add workflow", and push to GitHub.
+: Commit and push the change to your GitHub repository.
+
+```sh
+git add -A
+git commit -m "Create hugo.yaml"
+git push
+```
 
 Step 8
 : From GitHub's main menu, choose **Actions**. You will see something like this:
@@ -183,7 +190,7 @@ You may remove this step if your site, themes, and modules do not transpile Sass
 
 [Dart Sass]: /hugo-pipes/transpile-sass-to-css/#dart-sass
 
-## Additional resources
+## Other resources
 
 - [Learn more about GitHub Actions](https://docs.github.com/en/actions)
 - [Caching dependencies to speed up workflows](https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows)

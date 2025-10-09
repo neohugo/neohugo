@@ -6,7 +6,6 @@ neohugo.exe
 
 docs/public*
 /.idea
-.vscode/*
 hugo.exe
 *.test
 *.prof
@@ -36,3 +35,6 @@ tags*
 
 *.test
 imports.*
+dist/
+public/
+.DS_Store

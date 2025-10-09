@@ -1,6 +1,6 @@
-# Test the hugo command.
+# Test the neohugo command.
 
-hugo --baseURL http://example.com/ --minify --destination ${WORK}/newpublic --clock 2021-11-06T22:30:00.00+09:00 -e staging --config ${WORK}/myconfig --configDir ${WORK}/myconfigdir -s mysource
+neohugo --baseURL http://example.com/ --minify --destination ${WORK}/newpublic --clock 2021-11-06T22:30:00.00+09:00 -e staging --config ${WORK}/myconfig --configDir ${WORK}/myconfigdir -s mysource
 stdout 'Pages.*|1'
 stdout 'Total in'
 grep 'Home: http://example.com/, Time: 2021-11-06' newpublic/index.html
@@ -8,7 +8,7 @@ grep 'Environment: staging, foo: bar, bar: baz' newpublic/index.html
 # Verify that it's minified.
 grep '<body>Home' newpublic/index.html
 
-hugo --quiet
+neohugo --quiet
 ! stdout .
 
 -- hugo.toml --

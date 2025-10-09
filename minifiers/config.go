@@ -82,7 +82,7 @@ func DecodeConfig(v any) (conf MinifyConfig, err error) {
 	conf = defaultConfig
 
 	if v == nil {
-		return
+		return conf, err
 	}
 
 	m := maps.ToStringMap(v)
@@ -127,8 +127,8 @@ func DecodeConfig(v any) (conf MinifyConfig, err error) {
 
 	err = mapstructure.WeakDecode(m, &conf)
 	if err != nil {
-		return
+		return conf, err
 	}
 
-	return
+	return conf, err
 }

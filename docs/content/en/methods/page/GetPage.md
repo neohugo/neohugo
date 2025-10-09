@@ -13,7 +13,7 @@ aliases: [/functions/getpage]
 
 The `GetPage` method is also available on a `Site` object. See&nbsp;[details].
 
-[details]: /methods/site/getpage
+[details]: /methods/site/getpage/
 
 When using the `GetPage` method on the `Page` object, specify a path relative to the current directory or relative to the content directory.
 
@@ -36,9 +36,9 @@ content/
 └── _index.md
 ```
 
-The examples below depict the result of rendering works/paintings/the-mona-list.md with a single page template:
+The examples below depict the result of rendering works/paintings/the-mona-lisa.md:
 
-```go-html-template
+{{< code file=layouts/works/single.html >}}
 {{ with .GetPage "starry-night" }}
   {{ .Title }} → Starry Night
 {{ end }}
@@ -62,4 +62,4 @@ The examples below depict the result of rendering works/paintings/the-mona-list.
 {{ with .GetPage "/works/sculptures/david" }}
   {{ .Title }} → David
 {{ end }}
-```
+{{< /code >}}

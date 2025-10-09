@@ -17,7 +17,6 @@ package terminal
 import (
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 
 	isatty "github.com/mattn/go-isatty"
@@ -41,10 +40,6 @@ func PrintANSIColors(f *os.File) bool {
 // IsTerminal return true if the file descriptor is terminal and the TERM
 // environment variable isn't a dumb one.
 func IsTerminal(f *os.File) bool {
-	if runtime.GOOS == "windows" {
-		return false
-	}
-
 	fd := f.Fd()
 	return os.Getenv("TERM") != "dumb" && (isatty.IsTerminal(fd) || isatty.IsCygwinTerminal(fd))
 }
@@ -71,9 +66,9 @@ func colorize(s, color string) string {
 }
 
 func doublePercent(str string) string {
-	return strings.Replace(str, "%", "%%", -1)
+	return strings.ReplaceAll(str, "%", "%%")
 }
 
 func singlePercent(str string) string {
-	return strings.Replace(str, "%%", "%", -1)
+	return strings.ReplaceAll(str, "%%", "%")
 }

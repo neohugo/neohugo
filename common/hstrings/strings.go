@@ -16,6 +16,7 @@ package hstrings
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"sync"
 
@@ -50,12 +51,7 @@ func (s StringEqualFold) Eq(s2 any) bool {
 
 // EqualAny returns whether a string is equal to any of the given strings.
 func EqualAny(a string, b ...string) bool {
-	for _, s := range b {
-		if a == s {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(b, a)
 }
 
 // regexpCache represents a cache of regexp objects protected by a mutex.
@@ -82,7 +78,7 @@ func (rc *regexpCache) get(key string) (re *regexp.Regexp, ok bool) {
 	rc.mu.RLock()
 	re, ok = rc.re[key]
 	rc.mu.RUnlock()
-	return
+	return re, ok
 }
 
 func (rc *regexpCache) set(key string, re *regexp.Regexp) {
@@ -103,12 +99,7 @@ func GetOrCompileRegexp(pattern string) (re *regexp.Regexp, err error) {
 // InSlice checks if a string is an element of a slice of strings
 // and returns a boolean value.
 func InSlice(arr []string, el string) bool {
-	for _, v := range arr {
-		if v == el {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(arr, el)
 }
 
 // InSlicEqualFold checks if a string is an element of a slice of strings
@@ -123,7 +114,21 @@ func InSlicEqualFold(arr []string, el string) bool {
 	return false
 }
 
-type Tuple struct {
-	First  string
-	Second string
+// ToString converts the given value to a string.
+// Note that this is a more strict version compared to cast.ToString,
+// as it will not try to convert numeric values to strings,
+// but only accept strings or fmt.Stringer.
+func ToString(v any) (string, bool) {
+	switch vv := v.(type) {
+	case string:
+		return vv, true
+	case fmt.Stringer:
+		return vv.String(), true
+	}
+	return "", false
 }
+
+type (
+	Strings2 [2]string
+	Strings3 [3]string
+)

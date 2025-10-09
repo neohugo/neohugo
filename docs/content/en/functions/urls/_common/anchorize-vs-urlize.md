@@ -1,11 +1,11 @@
 ---
-# Do not remove front matter.
+_comment: Do not remove front matter.
 ---
 
 The [`anchorize`] and [`urlize`] functions are similar: 
 
-[`anchorize`]: /functions/urls/anchorize
-[`urlize`]: /functions/urls/urlize
+[`anchorize`]: /functions/urls/anchorize/
+[`urlize`]: /functions/urls/urlize/
 
 - Use the `anchorize` function to generate an HTML `id` attribute value
 - Use the `urlize` function to sanitize a string for usage in a URL

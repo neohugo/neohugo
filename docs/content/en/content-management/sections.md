@@ -77,7 +77,10 @@ With the file structure from the [example above](#overview):
 
 1. The articles/2022 and articles/2023 directories do not have list pages; they are not sections.
 
-1. The list page for the products section, by default, includes product-1 and product-2, but not their descendant pages. To include descendant pages, use the `.RegularPagesRecursive` collection instead of the `.Pages` collection in the list template. See&nbsp;[details](/variables/page/#page-collections).
+1. The list page for the products section, by default, includes product-1 and product-2, but not their descendant pages. To include descendant pages, use the `RegularPagesRecursive` method instead of the `Pages` method in the list template.
+
+[`Pages`]: /methods/page/pages/
+[`RegularPagesRecursive`]: /methods/page/regularpagesrecursive/
 
 1. All directories in the products section have list pages; each directory is a section.
 
@@ -87,13 +90,13 @@ Hugo has a defined [lookup order] to determine which template to use when render
 
 With the file structure from the [example above](#overview):
 
-Content directory|List page template
+Content directory|Section template
 :--|:--
 content/products|layouts/products/list.html
 content/products/product-1|layouts/products/list.html
 content/products/product-1/benefits|layouts/products/list.html
 
-Content directory|Single page template
+Content directory|Single template
 :--|:--
 content/products|layouts/products/single.html
 content/products/product-1|layouts/products/single.html
@@ -156,6 +159,6 @@ Home » Products » Product 1 » Benefits » Benefit 1
 [archetype]: /content-management/archetypes/
 [content type]: /content-management/types/
 [directory structure]: /getting-started/directory-structure/
-[section templates]: /templates/section-templates/
+[section templates]: /templates/types/#section
 [leaf bundles]: /content-management/page-bundles/#leaf-bundles
 [branch bundles]: /content-management/page-bundles/#branch-bundles

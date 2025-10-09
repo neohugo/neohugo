@@ -15,8 +15,6 @@ package helpers
 
 import (
 	"bytes"
-	"crypto/md5"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -27,11 +25,11 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	bp "github.com/neohugo/neohugo/bufferpool"
+
 	"github.com/spf13/afero"
 
 	"github.com/jdkato/prose/transform"
-
-	bp "github.com/neohugo/neohugo/bufferpool"
 )
 
 // FilePathSeparator as defined by os.Separator.
@@ -47,7 +45,7 @@ func TCPListen() (net.Listener, *net.TCPAddr, error) {
 	if a, ok := addr.(*net.TCPAddr); ok {
 		return l, a, nil
 	}
-	l.Close()
+	_ = l.Close()
 	return nil, nil, fmt.Errorf("unable to obtain a valid tcp port: %v", addr)
 }
 
@@ -65,7 +63,7 @@ func UniqueStrings(s []string) []string {
 	unique := make([]string, 0, len(s))
 	for i, val := range s {
 		var seen bool
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if s[j] == val {
 				seen = true
 				break
@@ -85,7 +83,7 @@ func UniqueStringsReuse(s []string) []string {
 	for i, val := range s {
 		var seen bool
 
-		for j := 0; j < i; j++ {
+		for j := range i {
 			if s[j] == val {
 				seen = true
 				break
@@ -196,8 +194,8 @@ func ReaderContains(r io.Reader, subslice []byte) bool {
 func GetTitleFunc(style string) func(s string) string {
 	switch strings.ToLower(style) {
 	case "go":
-		//lint:ignore SA1019 keep for now.
-		return strings.Title // nolint
+		//nolint:staticcheck // SA1019: keep for now.
+		return strings.Title
 	case "chicago":
 		tc := transform.NewTitleConverter(transform.ChicagoStyle)
 		return tc.Title
@@ -257,62 +255,25 @@ func SliceToLower(s []string) []string {
 	return l
 }
 
-// MD5String takes a string and returns its MD5 hash.
-func MD5String(f string) string {
-	h := md5.New()
-	h.Write([]byte(f))
-	return hex.EncodeToString(h.Sum([]byte{}))
-}
+// StringSliceToList formats a string slice into a human-readable list.
+// It joins the elements of the slice s with commas, using an Oxford comma,
+// and precedes the final element with the conjunction c.
+func StringSliceToList(s []string, c string) string {
+	const defaultConjunction = "and"
 
-// MD5FromReaderFast creates a MD5 hash from the given file. It only reads parts of
-// the file for speed, so don't use it if the files are very subtly different.
-// It will not close the file.
-// It will return the MD5 hash and the size of r in bytes.
-func MD5FromReaderFast(r io.ReadSeeker) (string, int64, error) {
-	const (
-		// Do not change once set in stone!
-		maxChunks = 8
-		peekSize  = 64
-		seek      = 2048
-	)
-
-	h := md5.New()
-	buff := make([]byte, peekSize)
-
-	for i := 0; i < maxChunks; i++ {
-		if i > 0 {
-			_, err := r.Seek(seek, 0)
-			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				return "", 0, err
-			}
-		}
-
-		_, err := io.ReadAtLeast(r, buff, peekSize)
-		if err != nil {
-			if err == io.EOF || err == io.ErrUnexpectedEOF {
-				h.Write(buff)
-				break
-			}
-			return "", 0, err
-		}
-		h.Write(buff)
+	if c == "" {
+		c = defaultConjunction
 	}
-
-	size, _ := r.Seek(0, io.SeekEnd)
-
-	return hex.EncodeToString(h.Sum(nil)), size, nil
-}
-
-// MD5FromReader creates a MD5 hash from the given reader.
-func MD5FromReader(r io.Reader) (string, error) {
-	h := md5.New()
-	if _, err := io.Copy(h, r); err != nil {
-		return "", nil
+	if len(s) == 0 {
+		return ""
 	}
-	return hex.EncodeToString(h.Sum(nil)), nil
+	if len(s) == 1 {
+		return s[0]
+	}
+	if len(s) == 2 {
+		return fmt.Sprintf("%s %s %s", s[0], c, s[1])
+	}
+	return fmt.Sprintf("%s, %s %s", strings.Join(s[:len(s)-1], ", "), c, s[len(s)-1])
 }
 
 // IsWhitespace determines if the given rune is whitespace.

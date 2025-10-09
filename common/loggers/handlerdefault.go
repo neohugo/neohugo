@@ -91,16 +91,16 @@ func (h *defaultHandler) HandleLog(e *logg.Entry) error {
 		prefix = prefix + ": "
 	}
 
-	color.Fprintf(w, "%s %s%s", fmt.Sprintf("%*s", h.Padding+1, level), color.Sprint(prefix), e.Message)
+	_, _ = color.Fprintf(w, "%s %s%s", fmt.Sprintf("%*s", h.Padding+1, level), color.Sprint(prefix), e.Message)
 
 	for _, field := range e.Fields {
 		if strings.HasPrefix(field.Name, reservedFieldNamePrefix) {
 			continue
 		}
-		fmt.Fprintf(w, " %s %v", color.Sprint(field.Name), field.Value)
+		_, _ = fmt.Fprintf(w, " %s %v", color.Sprint(field.Name), field.Value)
 	}
 
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 
 	return nil
 }

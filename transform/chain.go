@@ -110,7 +110,7 @@ func (c *Chain) Apply(to io.Writer, from io.Reader) error {
 			tempfile, ferr := os.CreateTemp("", "hugo-transform-error")
 			if ferr == nil {
 				filename = tempfile.Name()
-				defer tempfile.Close()
+				defer func() { _ = tempfile.Close() }()
 				_, _ = io.Copy(tempfile, fb.from)
 				return herrors.NewFileErrorFromFile(err, filename, hugofs.Os, nil)
 			}

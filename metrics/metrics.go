@@ -25,9 +25,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/compare"
-	"github.com/neohugo/neohugo/identity"
 )
 
 // The Provider interface defines an interface for measuring metrics.
@@ -168,22 +168,21 @@ func (s *Store) WriteMetrics(w io.Writer) {
 	s.mu.Unlock()
 
 	if s.calculateHints {
-		fmt.Fprintf(w, "  %13s  %12s  %12s  %9s  %7s  %6s  %5s  %s\n", "cumulative", "average", "maximum", "cache", "percent", "cached", "total", "")
-		fmt.Fprintf(w, "  %13s  %12s  %12s  %9s  %7s  %6s  %5s  %s\n", "duration", "duration", "duration", "potential", "cached", "count", "count", "template")
-		fmt.Fprintf(w, "  %13s  %12s  %12s  %9s  %7s  %6s  %5s  %s\n", "----------", "--------", "--------", "---------", "-------", "------", "-----", "--------")
+		_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %9s  %7s  %6s  %5s  %s\n", "cumulative", "average", "maximum", "cache", "percent", "cached", "total", "")
+		_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %9s  %7s  %6s  %5s  %s\n", "duration", "duration", "duration", "potential", "cached", "count", "count", "template")
+		_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %9s  %7s  %6s  %5s  %s\n", "----------", "--------", "--------", "---------", "-------", "------", "-----", "--------")
 	} else {
-		fmt.Fprintf(w, "  %13s  %12s  %12s  %5s  %s\n", "cumulative", "average", "maximum", "", "")
-		fmt.Fprintf(w, "  %13s  %12s  %12s  %5s  %s\n", "duration", "duration", "duration", "count", "template")
-		fmt.Fprintf(w, "  %13s  %12s  %12s  %5s  %s\n", "----------", "--------", "--------", "-----", "--------")
-
+		_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %5s  %s\n", "cumulative", "average", "maximum", "", "")
+		_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %5s  %s\n", "duration", "duration", "duration", "count", "template")
+		_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %5s  %s\n", "----------", "--------", "--------", "-----", "--------")
 	}
 
 	sort.Sort(bySum(results))
 	for _, v := range results {
 		if s.calculateHints {
-			fmt.Fprintf(w, "  %13s  %12s  %12s  %9d  %7.f  %6d  %5d  %s\n", v.sum, v.avg, v.max, v.cacheFactor, float64(v.cacheCount)/float64(v.count)*100, v.cacheCount, v.count, v.key)
+			_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %9d  %7.f  %6d  %5d  %s\n", v.sum, v.avg, v.max, v.cacheFactor, float64(v.cacheCount)/float64(v.count)*100, v.cacheCount, v.count, v.key)
 		} else {
-			fmt.Fprintf(w, "  %13s  %12s  %12s  %5d  %s\n", v.sum, v.avg, v.max, v.count, v.key)
+			_, _ = fmt.Fprintf(w, "  %15s  %12s  %12s  %5d  %s\n", v.sum, v.avg, v.max, v.count, v.key)
 		}
 	}
 }
@@ -242,7 +241,7 @@ func howSimilar(a, b any) int {
 		return 90
 	}
 
-	h1, h2 := identity.HashString(a), identity.HashString(b)
+	h1, h2 := hashing.HashString(a), hashing.HashString(b)
 	if h1 == h2 {
 		return 100
 	}

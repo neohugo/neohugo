@@ -21,7 +21,6 @@ import (
 	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/markup/converter"
 	"github.com/neohugo/neohugo/navigation"
-	"github.com/neohugo/neohugo/output/layouts"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
 	"github.com/neohugo/neohugo/source"
@@ -56,9 +55,7 @@ type pageCommon struct {
 	store *maps.Scratch
 
 	// All of these represents the common parts of a page.Page
-	maps.Scratcher
 	navigation.PageMenusProvider
-	page.AuthorProvider
 	page.AlternativeOutputFormatsProvider
 	page.ChildCareProvider
 	page.FileProvider
@@ -67,9 +64,9 @@ type pageCommon struct {
 	page.InSectionPositioner
 	page.OutputFormatsProvider
 	page.PageMetaProvider
+	page.PageMetaInternalProvider
 	page.Positioner
 	page.RawContentProvider
-	page.RelatedKeywordsProvider
 	page.RefProvider
 	page.ShortcodeInfoProvider
 	page.SitesProvider
@@ -86,14 +83,11 @@ type pageCommon struct {
 
 	// Describes how paths and URLs for this page and its descendants
 	// should look like.
-	targetPathDescriptor page.TargetPathDescriptor //nolint
-
-	layoutDescriptor     layouts.LayoutDescriptor //nolint
-	layoutDescriptorInit sync.Once                //nolint
+	targetPathDescriptor page.TargetPathDescriptor
 
 	// Set if feature enabled and this is in a Git repo.
-	gitInfo    source.GitInfo //nolint
-	codeowners []string       //nolint
+	gitInfo    *source.GitInfo
+	codeowners []string
 
 	// Positional navigation
 	posNextPrev        *nextPrev
@@ -103,7 +97,7 @@ type pageCommon struct {
 	pageMenus *pageMenus //nolint
 
 	// Internal use
-	page.InternalDependencies
+	page.RelatedDocsHandlerProvider
 
 	contentConverterInit sync.Once
 	contentConverter     converter.Converter
@@ -111,4 +105,9 @@ type pageCommon struct {
 
 func (p *pageCommon) Store() *maps.Scratch {
 	return p.store
+}
+
+// See issue 13016.
+func (p *pageCommon) Scratch() *maps.Scratch {
+	return p.Store()
 }

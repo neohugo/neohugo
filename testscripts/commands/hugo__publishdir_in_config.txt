@@ -1,6 +1,6 @@
 # Test the hugo command.
 
-hugo
+neohugo
 
 grep 'Home' newpublic/index.html
 

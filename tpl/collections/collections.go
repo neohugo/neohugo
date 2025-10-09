@@ -20,14 +20,12 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
-	"net/url"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/neohugo/neohugo/common/collections"
 	"github.com/neohugo/neohugo/common/maps"
-	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/langs"
@@ -127,7 +125,7 @@ func (ns *Namespace) Delimit(ctx context.Context, l, sep any, last ...any) (stri
 		lv = reflect.ValueOf(sortSeq)
 		fallthrough
 	case reflect.Array, reflect.Slice, reflect.String:
-		for i := 0; i < lv.Len(); i++ {
+		for i := range lv.Len() {
 			val := lv.Index(i).Interface()
 			valStr, err := cast.ToStringE(val)
 			if err != nil {
@@ -167,7 +165,7 @@ func (ns *Namespace) Dictionary(values ...any) (map[string]any, error) {
 		case string:
 			key = v
 		case []string:
-			for i := 0; i < len(v)-1; i++ {
+			for i := range len(v) - 1 {
 				key = v[i]
 				var m map[string]any
 				v, found := dict[key]
@@ -187,54 +185,6 @@ func (ns *Namespace) Dictionary(values ...any) (map[string]any, error) {
 	}
 
 	return root, nil
-}
-
-// EchoParam returns the value in the collection c with key k if is set; otherwise, it returns an
-// empty string.
-// Deprecated: Use the index function instead.
-func (ns *Namespace) EchoParam(c, k any) any {
-	neohugo.Deprecate("collections.EchoParam", "Use the index function instead.", "v0.120.0")
-	av, isNil := indirect(reflect.ValueOf(c))
-	if isNil {
-		return ""
-	}
-
-	var avv reflect.Value
-	switch av.Kind() {
-	case reflect.Array, reflect.Slice:
-		index, ok := k.(int)
-		if ok && av.Len() > index {
-			avv = av.Index(index)
-		}
-	case reflect.Map:
-		kv := reflect.ValueOf(k)
-		if kv.Type().AssignableTo(av.Type().Key()) {
-			avv = av.MapIndex(kv)
-		}
-	}
-
-	avv, isNil = indirect(avv)
-
-	if isNil {
-		return ""
-	}
-
-	if avv.IsValid() {
-		switch avv.Kind() {
-		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-			return avv.Int()
-		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-			return avv.Uint()
-		case reflect.Float32, reflect.Float64:
-			return avv.Float()
-		case reflect.String:
-			return avv.String()
-		case reflect.Bool:
-			return avv.Bool()
-		}
-	}
-
-	return ""
 }
 
 // First returns the first limit items in list l.
@@ -285,7 +235,7 @@ func (ns *Namespace) In(l any, v any) (bool, error) {
 
 	switch lv.Kind() {
 	case reflect.Array, reflect.Slice:
-		for i := 0; i < lv.Len(); i++ {
+		for i := range lv.Len() {
 			lvv, isNil := indirectInterface(lv.Index(i))
 			if isNil {
 				continue
@@ -327,13 +277,13 @@ func (ns *Namespace) Intersect(l1, l2 any) (any, error) {
 		ins = &intersector{r: reflect.MakeSlice(l1v.Type(), 0, 0), seen: make(map[any]bool)}
 		switch l2v.Kind() {
 		case reflect.Array, reflect.Slice:
-			for i := 0; i < l1v.Len(); i++ {
+			for i := range l1v.Len() {
 				l1vv := l1v.Index(i)
 				if !l1vv.Type().Comparable() {
 					return make([]any, 0), errors.New("intersect does not support slices or arrays of uncomparable types")
 				}
 
-				for j := 0; j < l2v.Len(); j++ {
+				for j := range l2v.Len() {
 					l2vv := l2v.Index(j)
 					if !l2vv.Type().Comparable() {
 						return make([]any, 0), errors.New("intersect does not support slices or arrays of uncomparable types")
@@ -430,47 +380,6 @@ func (ns *Namespace) Last(limit any, l any) (any, error) {
 	}
 
 	return seqv.Slice(seqv.Len()-limitv, seqv.Len()).Interface(), nil
-}
-
-// Querify encodes the given params in URL-encoded form ("bar=baz&foo=quux") sorted by key.
-func (ns *Namespace) Querify(params ...any) (string, error) {
-	qs := url.Values{}
-
-	if len(params) == 1 {
-		switch v := params[0].(type) {
-		case []string:
-			if len(v)%2 != 0 {
-				return "", errors.New("invalid query")
-			}
-
-			for i := 0; i < len(v); i += 2 {
-				qs.Add(v[i], v[i+1])
-			}
-
-			return qs.Encode(), nil
-
-		case []any:
-			params = v
-
-		default:
-			return "", errors.New("query keys must be strings")
-		}
-	}
-
-	if len(params)%2 != 0 {
-		return "", errors.New("invalid query")
-	}
-
-	for i := 0; i < len(params); i += 2 {
-		switch v := params[i].(type) {
-		case string:
-			qs.Add(v, fmt.Sprintf("%v", params[i+1]))
-		default:
-			return "", errors.New("query keys must be strings")
-		}
-	}
-
-	return qs.Encode(), nil
 }
 
 // Reverse creates a copy of the list l and reverses it.
@@ -617,10 +526,10 @@ type intersector struct {
 }
 
 func (i *intersector) appendIfNotSeen(v reflect.Value) {
-	vi := v.Interface()
-	if !i.seen[vi] {
+	k := normalize(v)
+	if !i.seen[k] {
 		i.r = reflect.Append(i.r, v)
-		i.seen[vi] = true
+		i.seen[k] = true
 	}
 }
 
@@ -638,7 +547,7 @@ func (i *intersector) handleValuePair(l1vv, l2vv reflect.Value) {
 			i.appendIfNotSeen(l1vv)
 		}
 	case kind == reflect.Ptr, kind == reflect.Struct:
-		if l1vv.Interface() == l2vv.Interface() {
+		if types.Unwrapv(l1vv.Interface()) == types.Unwrapv(l2vv.Interface()) {
 			i.appendIfNotSeen(l1vv)
 		}
 	case kind == reflect.Interface:
@@ -681,7 +590,7 @@ func (ns *Namespace) Union(l1, l2 any) (any, error) {
 				isNil bool
 			)
 
-			for i := 0; i < l1v.Len(); i++ {
+			for i := range l1v.Len() {
 				l1vv, isNil = indirectInterface(l1v.Index(i))
 
 				if !l1vv.Type().Comparable() {
@@ -701,7 +610,7 @@ func (ns *Namespace) Union(l1, l2 any) (any, error) {
 				}
 			}
 
-			for j := 0; j < l2v.Len(); j++ {
+			for j := range l2v.Len() {
 				l2vv := l2v.Index(j)
 
 				switch kind := l1vv.Kind(); {
@@ -752,7 +661,7 @@ func (ns *Namespace) Uniq(l any) (any, error) {
 
 	seen := make(map[any]bool)
 
-	for i := 0; i < v.Len(); i++ {
+	for i := range v.Len() {
 		ev, _ := indirectInterface(v.Index(i))
 
 		key := normalize(ev)

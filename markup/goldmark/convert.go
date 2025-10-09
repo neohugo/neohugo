@@ -17,14 +17,17 @@ package goldmark
 import (
 	"bytes"
 
-	"github.com/gohugoio/hugo-goldmark-extensions/passthrough"
-	"github.com/yuin/goldmark/util"
-
+	"github.com/gohugoio/hugo-goldmark-extensions/extras"
+	"github.com/neohugo/neohugo/markup/goldmark/blockquotes"
 	"github.com/neohugo/neohugo/markup/goldmark/codeblocks"
 	"github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
+	"github.com/neohugo/neohugo/markup/goldmark/hugocontext"
 	"github.com/neohugo/neohugo/markup/goldmark/images"
 	"github.com/neohugo/neohugo/markup/goldmark/internal/extensions/attributes"
 	"github.com/neohugo/neohugo/markup/goldmark/internal/render"
+	"github.com/neohugo/neohugo/markup/goldmark/passthrough"
+	"github.com/neohugo/neohugo/markup/goldmark/tables"
+	"github.com/yuin/goldmark/util"
 
 	"github.com/yuin/goldmark"
 	emoji "github.com/yuin/goldmark-emoji"
@@ -40,6 +43,7 @@ import (
 )
 
 const (
+	// Don't change this. This pattern is lso used in the image render hooks.
 	internalAttrPrefix = "_h__"
 )
 
@@ -57,7 +61,7 @@ func (p provide) New(cfg converter.ProviderConfig) (converter.Provider, error) {
 			cfg: cfg,
 			md:  md,
 			sanitizeAnchorName: func(s string) string {
-				return sanitizeAnchorNameString(s, cfg.MarkupConfig().Goldmark.Parser.AutoHeadingIDType)
+				return sanitizeAnchorNameString(s, cfg.MarkupConfig().Goldmark.Parser.AutoIDType)
 			},
 		}, nil
 	}), nil
@@ -103,13 +107,25 @@ func newMarkdown(pcfg converter.ProviderConfig) goldmark.Markdown {
 		renderer.WithNodeRenderers(util.Prioritized(emoji.NewHTMLRenderer(), 200)))
 	var (
 		extensions = []goldmark.Extender{
+			hugocontext.New(pcfg.Logger),
 			newLinks(cfg),
 			newTocExtension(tocRendererOptions),
+			blockquotes.New(),
 		}
 		parserOptions []parser.Option
 	)
 
 	extensions = append(extensions, images.New(cfg.Parser.WrapStandAloneImageWithinParagraph))
+
+	extensions = append(extensions, extras.New(
+		extras.Config{
+			Delete:      extras.DeleteConfig{Enable: cfg.Extensions.Extras.Delete.Enable},
+			Insert:      extras.InsertConfig{Enable: cfg.Extensions.Extras.Insert.Enable},
+			Mark:        extras.MarkConfig{Enable: cfg.Extensions.Extras.Mark.Enable},
+			Subscript:   extras.SubscriptConfig{Enable: cfg.Extensions.Extras.Subscript.Enable},
+			Superscript: extras.SuperscriptConfig{Enable: cfg.Extensions.Extras.Superscript.Enable},
+		},
+	))
 
 	if mcfg.Highlight.CodeFences {
 		extensions = append(extensions, codeblocks.New())
@@ -117,6 +133,7 @@ func newMarkdown(pcfg converter.ProviderConfig) goldmark.Markdown {
 
 	if cfg.Extensions.Table {
 		extensions = append(extensions, extension.Table)
+		extensions = append(extensions, tables.New())
 	}
 
 	if cfg.Extensions.Strikethrough {
@@ -164,46 +181,19 @@ func newMarkdown(pcfg converter.ProviderConfig) goldmark.Markdown {
 	}
 
 	if cfg.Extensions.Passthrough.Enable {
-		configuredInlines := cfg.Extensions.Passthrough.Delimiters.Inline
-		configuredBlocks := cfg.Extensions.Passthrough.Delimiters.Block
-
-		inlineDelimiters := make([]passthrough.Delimiters, len(configuredInlines))
-		blockDelimiters := make([]passthrough.Delimiters, len(configuredBlocks))
-
-		for i, d := range configuredInlines {
-			inlineDelimiters[i] = passthrough.Delimiters{
-				Open:  d[0],
-				Close: d[1],
-			}
-		}
-
-		for i, d := range configuredBlocks {
-			blockDelimiters[i] = passthrough.Delimiters{
-				Open:  d[0],
-				Close: d[1],
-			}
-		}
-
-		extensions = append(extensions, passthrough.NewPassthroughWithDelimiters(
-			inlineDelimiters,
-			blockDelimiters,
-		))
+		extensions = append(extensions, passthrough.New(cfg.Extensions.Passthrough))
 	}
 
 	if pcfg.Conf.EnableEmoji() {
 		extensions = append(extensions, emoji.Emoji)
 	}
 
-	if cfg.Parser.AutoHeadingID {
-		parserOptions = append(parserOptions, parser.WithAutoHeadingID())
-	}
-
 	if cfg.Parser.Attribute.Title {
 		parserOptions = append(parserOptions, parser.WithAttribute())
 	}
 
-	if cfg.Parser.Attribute.Block {
-		extensions = append(extensions, attributes.New())
+	if cfg.Parser.Attribute.Block || cfg.Parser.AutoHeadingID || cfg.Parser.AutoDefinitionTermID {
+		extensions = append(extensions, attributes.New(cfg.Parser))
 	}
 
 	md := goldmark.New(
@@ -301,7 +291,7 @@ func (c *goldmarkConverter) Convert(ctx converter.RenderContext) (converter.Resu
 }
 
 func (c *goldmarkConverter) newParserContext(rctx converter.RenderContext) *parserContext {
-	ctx := parser.NewContext(parser.WithIDs(newIDFactory(c.cfg.MarkupConfig().Goldmark.Parser.AutoHeadingIDType)))
+	ctx := parser.NewContext(parser.WithIDs(newIDFactory(c.cfg.MarkupConfig().Goldmark.Parser.AutoIDType)))
 	ctx.Set(tocEnableKey, rctx.RenderTOC)
 	return &parserContext{
 		Context: ctx,

@@ -50,6 +50,19 @@ func TestIsContextType(t *testing.T) {
 	c.Assert(IsContextType(reflect.TypeOf(valueCtx)), qt.IsTrue)
 }
 
+func TestToSliceAny(t *testing.T) {
+	c := qt.New(t)
+
+	checkOK := func(in any, expected []any) {
+		out, ok := ToSliceAny(in)
+		c.Assert(ok, qt.Equals, true)
+		c.Assert(out, qt.DeepEquals, expected)
+	}
+
+	checkOK([]any{1, 2, 3}, []any{1, 2, 3})
+	checkOK([]int{1, 2, 3}, []any{1, 2, 3})
+}
+
 func BenchmarkIsContextType(b *testing.B) {
 	type k string
 	b.Run("value", func(b *testing.B) {
@@ -68,7 +81,7 @@ func BenchmarkIsContextType(b *testing.B) {
 	})
 
 	b.Run("background", func(b *testing.B) {
-		var ctxt reflect.Type = reflect.TypeOf(context.Background())
+		ctxt := reflect.TypeOf(context.Background())
 		for i := 0; i < b.N; i++ {
 			if !IsContextType(ctxt) {
 				b.Fatal("not context")
@@ -120,4 +133,18 @@ func BenchmarkGetMethodByName(b *testing.B) {
 			_ = GetMethodByName(v, method)
 		}
 	}
+}
+
+func BenchmarkGetMethodByNamePara(b *testing.B) {
+	v := reflect.ValueOf(&testStruct{})
+	methods := []string{"Method1", "Method2", "Method3", "Method4", "Method5"}
+
+	b.ResetTimer()
+	b.RunParallel(func(pb *testing.PB) {
+		for pb.Next() {
+			for _, method := range methods {
+				_ = GetMethodByName(v, method)
+			}
+		}
+	})
 }

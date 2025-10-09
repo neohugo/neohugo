@@ -27,8 +27,8 @@ import (
 
 	qt "github.com/frankban/quicktest"
 
+	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 )
 
@@ -67,11 +67,11 @@ FIT: {{ $fit.Name }}|{{ $fit.RelPermalink }}|{{ $fit.Width }}
 CSS integrity Data first: {{ $cssFingerprinted1.Data.Integrity }} {{ $cssFingerprinted1.RelPermalink }}
 CSS integrity Data last:  {{ $cssFingerprinted2.RelPermalink }} {{ $cssFingerprinted2.Data.Integrity }}
 
-{{ $failedImg := resources.GetRemote "%[1]s/fail.jpg" }}
+{{ $failedImg := try (resources.GetRemote "%[1]s/fail.jpg") }}
 {{ $rimg := resources.GetRemote "%[1]s/sunset.jpg" }}
 {{ $remotenotfound := resources.GetRemote "%[1]s/notfound.jpg" }}
 {{ $localnotfound := resources.Get "images/notfound.jpg" }}
-{{ $gopherprotocol := resources.GetRemote "gopher://example.org" }}
+{{ $gopherprotocol := try (resources.GetRemote "gopher://example.org") }}
 {{ $rfit := $rimg.Fit "200x200" }}
 {{ $rfit2 := $rfit.Fit "100x200" }}
 {{ $rimg = $rimg | fingerprint }}
@@ -79,10 +79,10 @@ SUNSET REMOTE: {{ $rimg.Name }}|{{ $rimg.RelPermalink }}|{{ $rimg.Width }}|{{ le
 FIT REMOTE: {{ $rfit.Name }}|{{ $rfit.RelPermalink }}|{{ $rfit.Width }}
 REMOTE NOT FOUND: {{ if $remotenotfound }}FAILED{{ else}}OK{{ end }}
 LOCAL NOT FOUND: {{ if $localnotfound }}FAILED{{ else}}OK{{ end }}
-PRINT PROTOCOL ERROR1: {{ with $gopherprotocol }}{{ . | safeHTML }}{{ end }}
+PRINT PROTOCOL ERROR1: {{ with $gopherprotocol }}{{ .Value | safeHTML }}{{ end }}
 PRINT PROTOCOL ERROR2: {{ with $gopherprotocol }}{{ .Err | safeHTML }}{{ end }}
-PRINT PROTOCOL ERROR DETAILS: {{ with $gopherprotocol }}Err: {{ .Err | safeHTML }}{{ with .Err }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}{{ end }}|{{ end }}{{ end }}
-FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg.Err }}|{{ . }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}|ContentLength: {{ .ContentLength }}|ContentType: {{ .ContentType }}{{ end }}{{ end }}|
+PRINT PROTOCOL ERROR DETAILS: {{ with $gopherprotocol }}{{ with .Err }}Err: {{ . | safeHTML }}{{ with .Cause }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}{{ end }}|{{ end }}{{ end }}{{ end }}
+FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg }}{{ with .Err }}{{ with .Cause }}{{ . }}|{{ with .Data }}Body: {{ .Body }}|StatusCode: {{ .StatusCode }}|ContentLength: {{ .ContentLength }}|ContentType: {{ .ContentType }}{{ end }}{{ end }}{{ end }}{{ end }}|
 `, ts.URL))
 
 	fs := b.Fs.Source
@@ -95,31 +95,31 @@ FAILED REMOTE ERROR DETAILS CONTENT: {{ with $failedImg.Err }}|{{ . }}|{{ with .
 	b.Assert(err, qt.IsNil)
 	_, err = io.Copy(out, src)
 	b.Assert(err, qt.IsNil)
-	out.Close()
+	_ = out.Close()
 
 	b.Running()
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		b.Logf("Test run %d", i)
 		b.Build(BuildCfg{})
 
 		b.AssertFileContent("public/index.html",
 			fmt.Sprintf(`
 SUNSET: /images/sunset.jpg|/images/sunset.a9bf1d944e19c0f382e0d8f51de690f7d0bc8fa97390c4242a86c3e5c0737e71.jpg|900|90587
-FIT: /images/sunset.jpg|/images/sunset_hu59e56ffff1bc1d8d122b1403d34e039f_90587_200x200_fit_q75_box.jpg|200
+FIT: /images/sunset.jpg|/images/sunset_hu_f2aae87288f3c13b.jpg|200
 CSS integrity Data first: sha256-od9YaHw8nMOL8mUy97Sy8sKwMV3N4hI3aVmZXATxH&#43;8= /styles.min.a1df58687c3c9cc38bf26532f7b4b2f2c2b0315dcde212376959995c04f11fef.css
 CSS integrity Data last:  /styles2.min.1cfc52986836405d37f9998a63fd6dd8608e8c410e5e3db1daaa30f78bc273ba.css sha256-HPxSmGg2QF03&#43;ZmKY/1t2GCOjEEOXj2x2qow94vCc7o=
 
 SUNSET REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s.a9bf1d944e19c0f382e0d8f51de690f7d0bc8fa97390c4242a86c3e5c0737e71.jpg|900|90587
-FIT REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s_hu59e56ffff1bc1d8d122b1403d34e039f_90587_200x200_fit_q75_box.jpg|200
+FIT REMOTE: /sunset_%[1]s.jpg|/sunset_%[1]s_hu_f2aae87288f3c13b.jpg|200
 REMOTE NOT FOUND: OK
 LOCAL NOT FOUND: OK
-PRINT PROTOCOL ERROR DETAILS: Err: error calling resources.GetRemote: Get "gopher://example.org": unsupported protocol scheme "gopher"||
-FAILED REMOTE ERROR DETAILS CONTENT: |failed to fetch remote resource: Not Implemented|Body: { msg: failed }
+PRINT PROTOCOL ERROR DETAILS: Err: template: index.html:22:36: executing "index.html" at <resources.GetRemote>: error calling GetRemote: Get "gopher://example.org": unsupported protocol scheme "gopher"|
+FAILED REMOTE ERROR DETAILS CONTENT: failed to fetch remote resource from &#39;%[2]s/fail.jpg&#39;: Not Implemented|Body: { msg: failed }
 |StatusCode: 501|ContentLength: 16|ContentType: text/plain; charset=utf-8|
 
 
-`, identity.HashString(ts.URL+"/sunset.jpg", map[string]any{})))
+`, hashing.HashString(ts.URL+"/sunset.jpg", map[string]any{}), ts.URL))
 
 		b.AssertFileContent("public/styles.min.a1df58687c3c9cc38bf26532f7b4b2f2c2b0315dcde212376959995c04f11fef.css", "body{background-color:#add8e6}")
 		b.AssertFileContent("public//styles2.min.1cfc52986836405d37f9998a63fd6dd8608e8c410e5e3db1daaa30f78bc273ba.css", "body{background-color:orange}")
@@ -200,7 +200,7 @@ func BenchmarkResourceChainPostProcess(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		s := newTestSitesBuilder(b)
-		for i := 0; i < 300; i++ {
+		for i := range 300 {
 			s.WithContent(fmt.Sprintf("page%d.md", i+1), "---\ntitle: Page\n---")
 		}
 		s.WithTemplates("_default/single.html", `Start.

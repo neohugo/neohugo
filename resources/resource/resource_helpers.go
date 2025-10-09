@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/neohugo/neohugo/common/maps"
+
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/pelletier/go-toml/v2"
 
@@ -36,9 +38,9 @@ func GetParamToLower(r Resource, key string) any {
 }
 
 func getParam(r Resource, key string, stringToLower bool) any {
-	v := r.Params()[strings.ToLower(key)]
+	v, err := maps.GetNestedParam(key, ".", r.Params())
 
-	if v == nil {
+	if v == nil || err != nil {
 		return nil
 	}
 

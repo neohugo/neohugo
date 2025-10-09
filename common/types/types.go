@@ -28,6 +28,16 @@ type RLocker interface {
 	RUnlock()
 }
 
+type Locker interface {
+	Lock()
+	Unlock()
+}
+
+type RWLocker interface {
+	RLocker
+	Locker
+}
+
 // KeyValue is a interface{} tuple.
 type KeyValue struct {
 	Key   any
@@ -59,7 +69,7 @@ func (k KeyValues) String() string {
 // KeyValues struct.
 func NewKeyValuesStrings(key string, values ...string) KeyValues {
 	iv := make([]any, len(values))
-	for i := 0; i < len(values); i++ {
+	for i := range values {
 		iv[i] = values[i]
 	}
 	return KeyValues{Key: key, Values: iv}
@@ -99,10 +109,26 @@ type Unwrapper interface {
 	Unwrapv() any
 }
 
-// LowHigh is typically used to represent a slice boundary.
-type LowHigh struct {
+// Unwrap returns the underlying value of v if it implements Unwrapper, otherwise v is returned.
+func Unwrapv(v any) any {
+	if u, ok := v.(Unwrapper); ok {
+		return u.Unwrapv()
+	}
+	return v
+}
+
+// LowHigh represents a byte or slice boundary.
+type LowHigh[S ~[]byte | string] struct {
 	Low  int
 	High int
+}
+
+func (l LowHigh[S]) IsZero() bool {
+	return l.Low < 0 || (l.Low == 0 && l.High == 0)
+}
+
+func (l LowHigh[S]) Value(source S) S {
+	return source[l.Low:l.High]
 }
 
 // This is only used for debugging purposes.
@@ -111,4 +137,9 @@ var InvocationCounter atomic.Int64
 // NewTrue returns a pointer to b.
 func NewBool(b bool) *bool {
 	return &b
+}
+
+// PrintableValueProvider is implemented by types that can provide a printable value.
+type PrintableValueProvider interface {
+	PrintableValue() any
 }

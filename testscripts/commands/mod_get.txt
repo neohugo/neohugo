@@ -1,4 +1,4 @@
-hugo mod get
+neohugo mod get
 stderr 'withhugotoml.*v1.1.0'
 
 -- hugo.toml --

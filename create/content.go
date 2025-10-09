@@ -30,7 +30,6 @@ import (
 	"github.com/neohugo/neohugo/common/paths"
 
 	"github.com/neohugo/neohugo/hugofs"
-	"github.com/neohugo/neohugo/hugofs/files"
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugolib"
@@ -52,7 +51,7 @@ draft: true
 // NewContent creates a new content file in h (or a full bundle if the archetype is a directory)
 // in targetPath.
 func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error {
-	if _, err := h.BaseFs.Content.Fs.Stat(""); err != nil {
+	if _, err := h.Content.Fs.Stat(""); err != nil {
 		return errors.New("no existing content directory configured for this project")
 	}
 
@@ -67,7 +66,7 @@ func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error
 	}
 
 	b := &contentBuilder{
-		archeTypeFs: h.PathSpec.BaseFs.Archetypes.Fs,
+		archeTypeFs: h.Archetypes.Fs,
 		sourceFs:    h.PathSpec.Fs.Source,
 		ps:          h.PathSpec,
 		h:           h,
@@ -83,11 +82,13 @@ func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error
 	b.setArcheTypeFilenameToUse(ext)
 
 	withBuildLock := func() (string, error) {
-		unlock, err := h.BaseFs.LockBuild()
-		if err != nil {
-			return "", fmt.Errorf("failed to acquire a build lock: %s", err)
+		if !h.Configs.Base.NoBuildLock {
+			unlock, err := h.LockBuild()
+			if err != nil {
+				return "", fmt.Errorf("failed to acquire a build lock: %s", err)
+			}
+			defer unlock()
 		}
-		defer unlock()
 
 		if b.isDir {
 			return "", b.buildDir()
@@ -97,7 +98,7 @@ func NewContent(h *hugolib.HugoSites, kind, targetPath string, force bool) error
 			return "", fmt.Errorf("failed to resolve %q to an archetype template", targetPath)
 		}
 
-		if !files.IsContentFile(b.targetPath) {
+		if !h.Conf.ContentTypes().IsContentFile(b.targetPath) {
 			return "", fmt.Errorf("target path %q is not a known content format", b.targetPath)
 		}
 
@@ -207,8 +208,8 @@ func (b *contentBuilder) buildDir() error {
 			return err
 		}
 
-		in.Close()
-		out.Close()
+		_ = in.Close()
+		_ = out.Close()
 	}
 
 	b.h.Log.Printf("Content dir %q created", filepath.Join(baseDir, b.targetPath))
@@ -278,7 +279,7 @@ func (b *contentBuilder) applyArcheType(contentFilename string, archetypeFi hugo
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	if archetypeFi == nil {
 		return b.cf.ApplyArchetypeTemplate(f, p, b.kind, DefaultArchetypeTemplateTemplate)
@@ -290,7 +291,7 @@ func (b *contentBuilder) applyArcheType(contentFilename string, archetypeFi hugo
 func (b *contentBuilder) mapArcheTypeDir() error {
 	var m archetypeMap
 
-	seen := map[hstrings.Tuple]bool{}
+	seen := map[hstrings.Strings2]bool{}
 
 	walkFn := func(path string, fim hugofs.FileMetaInfo) error {
 		if fim.IsDir() {
@@ -300,7 +301,7 @@ func (b *contentBuilder) mapArcheTypeDir() error {
 		pi := fim.Meta().PathInfo
 
 		if pi.IsContent() {
-			pathLang := hstrings.Tuple{First: pi.PathNoIdentifier(), Second: fim.Meta().Lang}
+			pathLang := hstrings.Strings2{pi.PathBeforeLangAndOutputFormatAndExt(), fim.Meta().Lang}
 			if seen[pathLang] {
 				// Duplicate content file, e.g. page.md and page.html.
 				// In the regular build, we will filter out the duplicates, but
@@ -365,7 +366,7 @@ func (b *contentBuilder) openInEditorIfConfigured(filename string) error {
 
 	b.h.Log.Printf("Editing %q with %q ...\n", filename, editorExec)
 
-	cmd, err := b.h.Deps.ExecHelper.New(editorExec, args...)
+	cmd, err := b.h.ExecHelper.New(editorExec, args...)
 	if err != nil {
 		return err
 	}
@@ -381,7 +382,7 @@ func (b *contentBuilder) usesSiteVar(fi hugofs.FileMetaInfo) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	bb, err := io.ReadAll(f)
 	if err != nil {
 		return false, fmt.Errorf("failed to read archetype file: %w", err)

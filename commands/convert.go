@@ -46,6 +46,7 @@ to use JSON for the front matter.`,
 					return c.convertContents(metadecoders.JSON)
 				},
 				withc: func(cmd *cobra.Command, r *rootCommand) {
+					cmd.ValidArgsFunction = cobra.NoFileCompletions
 				},
 			},
 			&simpleCommand{
@@ -57,6 +58,7 @@ to use TOML for the front matter.`,
 					return c.convertContents(metadecoders.TOML)
 				},
 				withc: func(cmd *cobra.Command, r *rootCommand) {
+					cmd.ValidArgsFunction = cobra.NoFileCompletions
 				},
 			},
 			&simpleCommand{
@@ -68,6 +70,7 @@ to use YAML for the front matter.`,
 					return c.convertContents(metadecoders.YAML)
 				},
 				withc: func(cmd *cobra.Command, r *rootCommand) {
+					cmd.ValidArgsFunction = cobra.NoFileCompletions
 				},
 			},
 		},
@@ -102,12 +105,13 @@ func (c *convertCommand) Run(ctx context.Context, cd *simplecobra.Commandeer, ar
 
 func (c *convertCommand) Init(cd *simplecobra.Commandeer) error {
 	cmd := cd.CobraCommand
-	cmd.Short = "Convert your content to different formats"
-	cmd.Long = `Convert your content (e.g. front matter) to different formats.
+	cmd.Short = "Convert front matter to another format"
+	cmd.Long = `Convert front matter to another format.
 
 See convert's subcommands toJSON, toTOML and toYAML for more information.`
 
 	cmd.PersistentFlags().StringVarP(&c.outputDir, "output", "o", "", "filesystem path to write files to")
+	_ = cmd.MarkFlagDirname("output")
 	cmd.PersistentFlags().BoolVar(&c.unsafe, "unsafe", false, "enable less safe operations, please backup first")
 
 	cmd.RunE = nil
@@ -118,7 +122,7 @@ func (c *convertCommand) PreRun(cd, runner *simplecobra.Commandeer) error {
 	c.r = cd.Root.Command.(*rootCommand)
 	cfg := config.New()
 	cfg.Set("buildDrafts", true)
-	h, err := c.r.Hugo(flagsToCfg(cd, cfg))
+	h, err := c.r.Neohugo(flagsToCfg(cd, cfg))
 	if err != nil {
 		return err
 	}
@@ -147,18 +151,18 @@ func (c *convertCommand) convertAndSavePage(p page.Page, site *hugolib.Site, tar
 	file, err := f.FileInfo().Meta().Open()
 	if err != nil {
 		site.Log.Errorln(errMsg)
-		file.Close()
+		_ = file.Close()
 		return nil
 	}
 
 	pf, err := pageparser.ParseFrontMatterAndContent(file)
 	if err != nil {
 		site.Log.Errorln(errMsg)
-		file.Close()
+		_ = file.Close()
 		return err
 	}
 
-	file.Close()
+	_ = file.Close()
 
 	// better handling of dates in formats that don't have support for them
 	if pf.FrontMatterFormat == metadecoders.JSON || pf.FrontMatterFormat == metadecoders.YAML || pf.FrontMatterFormat == metadecoders.TOML {

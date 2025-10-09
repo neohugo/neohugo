@@ -1,13 +1,13 @@
 
 # Test deprecation logging.
-hugo -e info --logLevel info
-stdout 'INFO  deprecated: item was deprecated in Hugo'
+neohugo -e info --logLevel info
+stderr 'INFO  deprecated: item was deprecated in Hugo'
 
-hugo -e warn --logLevel warn
-stdout 'WARN  deprecated: item was deprecated in Hugo'
+neohugo -e warn --logLevel warn
+stderr 'WARN  deprecated: item was deprecated in Hugo'
 
-! hugo -e error --logLevel warn
-stdout 'ERROR deprecated: item was deprecated in Hugo'
+! neohugo -e error --logLevel warn
+stderr 'ERROR deprecated: item was deprecated in Hugo'
 
 -- hugo.toml --
 baseURL = "https://example.com/"

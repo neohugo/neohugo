@@ -1,10 +1,10 @@
-# Test the hugo command.
+# Test the neohugo command.
 env HUGO_ENVIRONMENT=development
 
-hugo
+neohugo
 grep 'myparam: dev§'  public/index.html
 
-hugo -e production
+neohugo -e production
 grep 'myparam: §'  public/index.html
 
 -- hugo.toml --

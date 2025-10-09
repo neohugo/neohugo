@@ -125,12 +125,12 @@ func (p Pages) withInvertedIndex(ctx context.Context, search func(idx *related.I
 		return nil, nil
 	}
 
-	d, ok := p[0].(InternalDependencies)
+	d, ok := p[0].(RelatedDocsHandlerProvider)
 	if !ok {
 		return nil, fmt.Errorf("invalid type %T in related search", p[0])
 	}
 
-	cache := d.GetRelatedDocsHandler()
+	cache := d.GetInternalRelatedDocsHandler()
 
 	searchIndex, err := cache.getOrCreateIndex(ctx, p)
 	if err != nil {
@@ -189,10 +189,11 @@ func (s *RelatedDocsHandler) getIndex(p Pages) *related.InvertedIndex {
 func (s *RelatedDocsHandler) getOrCreateIndex(ctx context.Context, p Pages) (*related.InvertedIndex, error) {
 	s.mu.RLock()
 	cachedIndex := s.getIndex(p)
-	s.mu.RUnlock()
 	if cachedIndex != nil {
+		s.mu.RUnlock()
 		return cachedIndex, nil
 	}
+	s.mu.RUnlock()
 
 	s.mu.Lock()
 	defer s.mu.Unlock()

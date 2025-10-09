@@ -27,6 +27,7 @@ import (
 	"github.com/neohugo/neohugo/deps"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/tpl"
+	"github.com/rogpeppe/go-internal/diff"
 
 	"github.com/spf13/cast"
 )
@@ -161,15 +162,32 @@ func (ns *Namespace) ContainsAny(s, chars any) (bool, error) {
 // ContainsNonSpace reports whether s contains any non-space characters as defined
 // by Unicode's White Space property,
 // <docsmeta>{"newIn": "0.111.0" }</docsmeta>
-func (ns *Namespace) ContainsNonSpace(s any) bool {
-	ss := cast.ToString(s)
+func (ns *Namespace) ContainsNonSpace(s any) (bool, error) {
+	ss, err := cast.ToStringE(s)
+	if err != nil {
+		return false, err
+	}
 
 	for _, r := range ss {
 		if !unicode.IsSpace(r) {
-			return true
+			return true, nil
 		}
 	}
-	return false
+	return false, nil
+}
+
+// Diff returns an anchored diff of the two texts old and new in the “unified
+// diff” format. If old and new are identical, Diff returns an empty string.
+func (ns *Namespace) Diff(oldname string, old any, newname string, new any) (string, error) {
+	olds, err := cast.ToStringE(old)
+	if err != nil {
+		return "", err
+	}
+	news, err := cast.ToStringE(new)
+	if err != nil {
+		return "", err
+	}
+	return string(diff.Diff(oldname, []byte(olds), newname, []byte(news))), nil
 }
 
 // HasPrefix tests whether the input s begins with prefix.
@@ -267,14 +285,15 @@ func (ns *Namespace) SliceString(a any, startEnd ...any) (string, error) {
 		return "", errors.New("slice bounds out of range")
 	}
 
-	if argNum == 2 {
+	switch argNum {
+	case 2:
 		if argEnd < 0 || argEnd > len(asRunes) {
 			return "", errors.New("slice bounds out of range")
 		}
 		return string(asRunes[argStart:argEnd]), nil
-	} else if argNum == 1 {
+	case 1:
 		return string(asRunes[argStart:]), nil
-	} else {
+	default:
 		return string(asRunes[:]), nil
 	}
 }
@@ -430,6 +449,17 @@ func (ns *Namespace) Trim(s, cutset any) (string, error) {
 	}
 
 	return strings.Trim(ss, sc), nil
+}
+
+// TrimSpace returns the given string, removing leading and trailing whitespace
+// as defined by Unicode.
+func (ns *Namespace) TrimSpace(s any) (string, error) {
+	ss, err := cast.ToStringE(s)
+	if err != nil {
+		return "", err
+	}
+
+	return strings.TrimSpace(ss), nil
 }
 
 // TrimLeft returns a slice of the string s with all leading characters

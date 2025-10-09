@@ -74,7 +74,7 @@ dir = ":cacheDir/c"
 		replacer := strings.NewReplacer("CACHEDIR", test.cacheDir, "WORKING_DIR", test.workingDir)
 
 		configStr = replacer.Replace(configStr)
-		configStr = strings.Replace(configStr, "\\", winPathSep, -1)
+		configStr = strings.ReplaceAll(configStr, "\\", winPathSep)
 
 		p := newPathsSpec(t, osfs, configStr)
 
@@ -110,7 +110,7 @@ dir = ":cacheDir/c"
 				c.Assert(r, qt.Not(qt.IsNil))
 				c.Assert(info.Name, qt.Equals, "a")
 				b, _ := io.ReadAll(r)
-				r.Close()
+				_ = r.Close()
 				c.Assert(string(b), qt.Equals, "abc")
 
 				info, b, err = ca.GetOrCreateBytes("b", bf)
@@ -126,7 +126,7 @@ dir = ":cacheDir/c"
 				_, r, err = ca.GetOrCreate("a", rf("bcd"))
 				c.Assert(err, qt.IsNil)
 				b, _ = io.ReadAll(r)
-				r.Close()
+				_ = r.Close()
 				c.Assert(string(b), qt.Equals, "abc")
 			}
 		}
@@ -138,7 +138,7 @@ dir = ":cacheDir/c"
 		c.Assert(info.Name, qt.Equals, "mykey")
 		_, err = io.WriteString(w, "Hugo is great!")
 		c.Assert(err, qt.IsNil)
-		w.Close()
+		_ = w.Close()
 		c.Assert(caches.ImageCache().GetString("mykey"), qt.Equals, "Hugo is great!")
 
 		info, r, err := caches.ImageCache().Get("mykey")
@@ -146,7 +146,7 @@ dir = ":cacheDir/c"
 		c.Assert(r, qt.Not(qt.IsNil))
 		c.Assert(info.Name, qt.Equals, "mykey")
 		b, _ := io.ReadAll(r)
-		r.Close()
+		_ = r.Close()
 		c.Assert(string(b), qt.Equals, "Hugo is great!")
 
 		info, b, err = caches.ImageCache().GetBytes("mykey")
@@ -206,7 +206,7 @@ dir = "/cache/c"
 				})
 				c.Assert(err, qt.IsNil)
 				b, _ := io.ReadAll(r)
-				r.Close()
+				_ = r.Close()
 				c.Assert(string(b), qt.Equals, data)
 				// Trigger some expiration.
 				time.Sleep(50 * time.Millisecond)
@@ -241,7 +241,7 @@ func TestFileCacheReadOrCreateErrorInRead(t *testing.T) {
 
 	bf := func(s string) func(info filecache.ItemInfo, w io.WriteCloser) error {
 		return func(info filecache.ItemInfo, w io.WriteCloser) error {
-			defer w.Close()
+			defer func() { _ = w.Close() }()
 			result = s
 			_, err := w.Write([]byte(s))
 			return err

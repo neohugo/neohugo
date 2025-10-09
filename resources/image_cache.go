@@ -37,7 +37,7 @@ func (c *ImageCache) getOrCreate(
 	parent *imageResource, conf images.ImageConfig,
 	createImage func() (*imageResource, image.Image, error),
 ) (*resourceAdapter, error) {
-	relTarget := parent.relTargetPathFromConfig(conf)
+	relTarget := parent.relTargetPathFromConfig(conf, parent.getSpec().imaging.Cfg.SourceHash)
 	relTargetPath := relTarget.TargetPath()
 	memKey := relTargetPath
 
@@ -76,12 +76,12 @@ func (c *ImageCache) getOrCreate(
 
 		// create creates the image and encodes it to the cache (w).
 		create := func(info filecache.ItemInfo, w io.WriteCloser) (err error) {
-			defer w.Close()
+			defer func() { _ = w.Close() }()
 
 			var conv image.Image
 			img, conv, err = createImage()
 			if err != nil {
-				return
+				return err
 			}
 			targetPath := img.getResourcePaths()
 			targetPath.File = relTarget.File

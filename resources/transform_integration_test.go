@@ -22,7 +22,7 @@ import (
 func TestTransformCached(t *testing.T) {
 	files := `
 -- hugo.toml --
-disableKinds = ["taxonomy", "term"]
+disableKinds = ["taxonomy", "term"]	
 -- assets/css/main.css --
 body {
 	  background: #fff;

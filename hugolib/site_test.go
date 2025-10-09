@@ -147,8 +147,8 @@ func TestLastChange(t *testing.T) {
 
 	s := buildSingleSite(t, deps.DepsCfg{Fs: fs, Configs: configs}, BuildCfg{SkipRender: true})
 
-	c.Assert(s.LastChange().IsZero(), qt.Equals, false)
-	c.Assert(s.LastChange().Year(), qt.Equals, 2017)
+	c.Assert(s.Lastmod().IsZero(), qt.Equals, false)
+	c.Assert(s.Lastmod().Year(), qt.Equals, 2017)
 }
 
 // Issue #_index
@@ -372,14 +372,14 @@ func TestMainSections(t *testing.T) {
 
 			b := newTestSitesBuilder(c).WithViper(v)
 
-			for i := 0; i < 20; i++ {
+			for i := range 20 {
 				b.WithContent(fmt.Sprintf("page%d.md", i), `---
 title: "Page"
 ---
 `)
 			}
 
-			for i := 0; i < 5; i++ {
+			for i := range 5 {
 				b.WithContent(fmt.Sprintf("blog/page%d.md", i), `---
 title: "Page"
 tags: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
@@ -387,7 +387,7 @@ tags: ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]
 `)
 			}
 
-			for i := 0; i < 3; i++ {
+			for i := range 3 {
 				b.WithContent(fmt.Sprintf("docs/page%d.md", i), `---
 title: "Page"
 ---
@@ -427,8 +427,8 @@ mainSections=["a", "b"]
 {{/* Behaviour before Hugo 0.112.0. */}}
 MainSections Params: {{ site.Params.mainSections }}|
 MainSections Site method: {{ site.MainSections }}|
-	
-	
+
+
 	`
 
 		b := Test(t, files)
@@ -478,8 +478,8 @@ disableKinds = ['RSS','sitemap','taxonomy','term']
 -- layouts/index.html --
 MainSections Params: {{ site.Params.mainSections }}|
 MainSections Site method: {{ site.MainSections }}|
-	
-	
+
+
 	`
 
 		b := Test(t, files)
@@ -511,12 +511,13 @@ func TestSectionNaming(t *testing.T) {
 func doTestSectionNaming(t *testing.T, canonify, uglify, pluralize bool) {
 	c := qt.New(t)
 
-	var expectedPathSuffix string
-
-	if uglify {
-		expectedPathSuffix = ".html"
-	} else {
-		expectedPathSuffix = "/index.html"
+	expectedPathSuffix := func(kind string) string {
+		isUgly := uglify && (kind == kinds.KindPage || kind == kinds.KindTerm)
+		if isUgly {
+			return ".html"
+		} else {
+			return "/index.html"
+		}
 	}
 
 	sources := [][2]string{
@@ -554,12 +555,12 @@ func doTestSectionNaming(t *testing.T, canonify, uglify, pluralize bool) {
 		pluralAware bool
 		expected    string
 	}{
-		{filepath.FromSlash(fmt.Sprintf("sect/doc1%s", expectedPathSuffix)), false, "doc1"},
-		{filepath.FromSlash(fmt.Sprintf("sect%s", expectedPathSuffix)), true, "Sect"},
-		{filepath.FromSlash(fmt.Sprintf("fish-and-chips/doc2%s", expectedPathSuffix)), false, "doc2"},
-		{filepath.FromSlash(fmt.Sprintf("fish-and-chips%s", expectedPathSuffix)), true, "Fish and Chips"},
-		{filepath.FromSlash(fmt.Sprintf("ラーメン/doc3%s", expectedPathSuffix)), false, "doc3"},
-		{filepath.FromSlash(fmt.Sprintf("ラーメン%s", expectedPathSuffix)), true, "ラーメン"},
+		{filepath.FromSlash(fmt.Sprintf("sect/doc1%s", expectedPathSuffix(kinds.KindPage))), false, "doc1"},
+		{filepath.FromSlash(fmt.Sprintf("sect%s", expectedPathSuffix(kinds.KindSection))), true, "Sect"},
+		{filepath.FromSlash(fmt.Sprintf("fish-and-chips/doc2%s", expectedPathSuffix(kinds.KindPage))), false, "doc2"},
+		{filepath.FromSlash(fmt.Sprintf("fish-and-chips%s", expectedPathSuffix(kinds.KindSection))), true, "Fish and Chips"},
+		{filepath.FromSlash(fmt.Sprintf("ラーメン/doc3%s", expectedPathSuffix(kinds.KindPage))), false, "doc3"},
+		{filepath.FromSlash(fmt.Sprintf("ラーメン%s", expectedPathSuffix(kinds.KindSection))), true, "ラーメン"},
 	}
 
 	for _, test := range tests {
@@ -615,7 +616,7 @@ var weightedPage5 = `+++
 weight = "5"
 title = "Five"
 
-[_build]
+[build]
 render = "never"
 +++
 Front Matter with Ordered Pages 5`
@@ -787,9 +788,12 @@ func TestGroupedPages(t *testing.T) {
 		t.Errorf("PageGroup has unexpected number of pages. First group should have '%d' pages, got '%d' pages", 2, len(byparam[0].Pages))
 	}
 
-	_, err = s.RegularPages().GroupByParam("not_exist")
-	if err == nil {
-		t.Errorf("GroupByParam didn't return an expected error")
+	byNonExistentParam, err := s.RegularPages().GroupByParam("not_exist")
+	if err != nil {
+		t.Errorf("GroupByParam returned an error when it shouldn't")
+	}
+	if len(byNonExistentParam) != 0 {
+		t.Errorf("PageGroup array has unexpected elements. Group length should be '%d', got '%d'", 0, len(byNonExistentParam))
 	}
 
 	byOnlyOneParam, err := s.RegularPages().GroupByParam("only_one")
@@ -874,16 +878,16 @@ func TestWeightedTaxonomies(t *testing.T) {
 	writeSourcesToSource(t, "content", fs, sources...)
 	s := buildSingleSite(t, deps.DepsCfg{Fs: fs, Configs: configs}, BuildCfg{})
 
-	if s.Taxonomies()["tags"]["a"][0].Page.Title() != "foo" {
-		t.Errorf("Pages in unexpected order, 'foo' expected first, got '%v'", s.Taxonomies()["tags"]["a"][0].Page.Title())
+	if s.Taxonomies()["tags"]["a"][0].Title() != "foo" {
+		t.Errorf("Pages in unexpected order, 'foo' expected first, got '%v'", s.Taxonomies()["tags"]["a"][0].Title())
 	}
 
-	if s.Taxonomies()["categories"]["d"][0].Page.Title() != "bar" {
-		t.Errorf("Pages in unexpected order, 'bar' expected first, got '%v'", s.Taxonomies()["categories"]["d"][0].Page.Title())
+	if s.Taxonomies()["categories"]["d"][0].Title() != "bar" {
+		t.Errorf("Pages in unexpected order, 'bar' expected first, got '%v'", s.Taxonomies()["categories"]["d"][0].Title())
 	}
 
-	if s.Taxonomies()["categories"]["e"][0].Page.Title() != "bza" {
-		t.Errorf("Pages in unexpected order, 'bza' expected first, got '%v'", s.Taxonomies()["categories"]["e"][0].Page.Title())
+	if s.Taxonomies()["categories"]["e"][0].Title() != "bza" {
+		t.Errorf("Pages in unexpected order, 'bza' expected first, got '%v'", s.Taxonomies()["categories"]["e"][0].Title())
 	}
 }
 
@@ -975,7 +979,6 @@ func TestRefLinking(t *testing.T) {
 		{".", "", true, "/level2/level3/"},
 		{"./", "", true, "/level2/level3/"},
 
-		// try to confuse parsing
 		{"embedded.dot.md", "", true, "/level2/level3/embedded.dot/"},
 
 		// test empty link, as well as fragment only link
@@ -1021,7 +1024,7 @@ func checkLinkCase(site *Site, link string, currentPage page.Page, relative bool
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/6952
+// https://github.com/gohugoio/hugo/issues/6952
 func TestRefIssues(t *testing.T) {
 	b := newTestSitesBuilder(t)
 	b.WithContent(
@@ -1043,7 +1046,7 @@ func TestClassCollector(t *testing.T) {
 	for _, minify := range []bool{false, true} {
 		t.Run(fmt.Sprintf("minify-%t", minify), func(t *testing.T) {
 			statsFilename := "hugo_stats.json"
-			defer os.Remove(statsFilename)
+			defer func() { _ = os.Remove(statsFilename) }()
 
 			b := newTestSitesBuilder(t)
 			b.WithConfigFile("toml", fmt.Sprintf(`
@@ -1196,7 +1199,7 @@ enable = false
 
 func TestClassCollectorStress(t *testing.T) {
 	statsFilename := "hugo_stats.json"
-	defer os.Remove(statsFilename)
+	defer func() { _ = os.Remove(statsFilename) }()
 
 	b := newTestSitesBuilder(t)
 	b.WithConfigFile("toml", `

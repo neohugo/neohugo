@@ -18,6 +18,8 @@ import (
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/hugolib"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/dartsass"
+	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/scss"
 )
 
 func TestCopy(t *testing.T) {
@@ -58,7 +60,7 @@ Copy3: {{ $copy3.RelPermalink}}|{{ $copy3.MediaType }}|{{ $copy3.Content | safeJ
 
 	b.AssertFileContent("public/index.html", `
 Image Orig:  /blog/images/pixel.png|image/png|1|1|
-Image Copy1:  /blog/images/copy_hu8aa3346827e49d756ff4e630147c42b5_70_3x4_resize_box_3.png|image/png|3|4|
+Image Copy1:  /blog/images/copy_hu_1d9addfff177f388.png|image/png|3|4|
 Image Copy2:  /blog/images/copy2.png|image/png|3|4
 Image Copy3:  image/png|3|4|
 Orig: /blog/js/foo.js|text/javascript|let foo;|
@@ -170,4 +172,113 @@ Home.
 
 	b.AssertFileExists("public/a.txt", true) // failing test
 	b.AssertFileExists("public/b.txt", true) // failing test
+}
+
+func TestGlobalResourcesNotPublishedRegressionIssue12214(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- assets/files/a.txt --
+I am a.txt
+-- assets/files/b.txt --
+I am b.txt
+-- assets/files/c.txt --
+I am c.txt
+-- assets/files/C.txt --
+I am C.txt
+-- layouts/index.html --
+Home.
+{{ with resources.ByType "text" }}
+  {{ with .Get "files/a.txt" }}
+    {{ .Publish }}
+	files/a.txt: {{ .Name }}
+  {{ end }}
+  {{ with .Get "/files/a.txt" }}
+	/files/a.txt: {{ .Name }}
+  {{ end }}
+  {{ with .GetMatch "files/*b*" }}
+    {{ .Publish }}
+	files/*b*: {{ .Name }}
+  {{ end }}
+  {{ with .GetMatch "files/C*" }}
+    {{ .Publish }}
+    files/C*: {{ .Name }}
+  {{ end }}
+  {{ with .GetMatch "files/c*" }}
+	{{ .Publish }}
+	files/c*: {{ .Name }}
+  {{ end }}
+  {{ with .GetMatch "/files/c*" }}
+    /files/c*: {{ .Name }}
+  {{ end }}
+  {{ with .Match "files/C*" }}
+	match files/C*: {{ len . }}|
+  {{ end }}
+  {{ with .Match "/files/C*" }}
+  match /files/C*: {{ len . }}|
+{{ end }}
+{{ end }}
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/index.html", `
+files/a.txt: /files/a.txt
+# There are both C.txt and c.txt in the assets, but the Glob matching is case insensitive, so GetMatch returns the first.
+files/C*: /files/C.txt
+files/c*: /files/C.txt
+files/*b*: /files/b.txt
+/files/c*: /files/C.txt
+/files/a.txt: /files/a.txt
+match files/C*: 2|
+match /files/C*: 2|
+	`)
+
+	b.AssertFileContent("public/files/a.txt", "I am a.txt")
+	b.AssertFileContent("public/files/b.txt", "I am b.txt")
+	b.AssertFileContent("public/files/C.txt", "I am C.txt")
+}
+
+// Issue #12961
+func TestDartSassVars(t *testing.T) {
+	t.Parallel()
+
+	if !scss.Supports() || !dartsass.Supports() {
+		t.Skip()
+	}
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','section','rss','sitemap','taxonomy','term']
+-- layouts/index.html --
+{{ $opts := dict "transpiler" "dartsass" "outputStyle" "compressed" "vars" (dict "color" "red") }}
+{{ with resources.Get "dartsass.scss" | css.Sass $opts }}
+  {{ .Content }}
+{{ end }}
+
+{{ $opts := dict "transpiler" "libsass" "outputStyle" "compressed" "vars" (dict "color" "blue") }}
+{{ with resources.Get "libsass.scss" | css.Sass $opts }}
+  {{ .Content }}
+{{ end }}
+-- assets/dartsass.scss --
+@use "hugo:vars" as v;
+.dartsass {
+  color: v.$color;
+}
+-- assets/libsass.scss --
+@import "hugo:vars";
+.libsass {
+  color: $color;
+}
+`
+
+	b := hugolib.Test(t, files, hugolib.TestOptWarn())
+
+	b.AssertFileContent("public/index.html",
+		".dartsass{color:red}",
+		".libsass{color:blue}",
+	)
+	b.AssertLogContains("! WARN  Dart Sass: hugo:vars")
 }

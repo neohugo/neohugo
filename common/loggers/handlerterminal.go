@@ -18,18 +18,19 @@ package loggers
 import (
 	"fmt"
 	"io"
+	"regexp"
 	"strings"
 	"sync"
 
 	"github.com/bep/logg"
 )
 
-// newNoColoursHandler creates a new NoColoursHandler
-func newNoColoursHandler(outWriter, errWriter io.Writer, noLevelPrefix bool, predicate func(*logg.Entry) bool) *noColoursHandler {
+// newNoAnsiEscapeHandler creates a new noAnsiEscapeHandler
+func newNoAnsiEscapeHandler(outWriter, errWriter io.Writer, noLevelPrefix bool, predicate func(*logg.Entry) bool) *noAnsiEscapeHandler {
 	if predicate == nil {
 		predicate = func(e *logg.Entry) bool { return true }
 	}
-	return &noColoursHandler{
+	return &noAnsiEscapeHandler{
 		noLevelPrefix: noLevelPrefix,
 		outWriter:     outWriter,
 		errWriter:     errWriter,
@@ -37,15 +38,15 @@ func newNoColoursHandler(outWriter, errWriter io.Writer, noLevelPrefix bool, pre
 	}
 }
 
-type noColoursHandler struct {
+type noAnsiEscapeHandler struct {
 	mu            sync.Mutex
-	outWriter     io.Writer // Defaults to os.Stdout.
-	errWriter     io.Writer // Defaults to os.Stderr.
+	outWriter     io.Writer
+	errWriter     io.Writer
 	predicate     func(*logg.Entry) bool
 	noLevelPrefix bool
 }
 
-func (h *noColoursHandler) HandleLog(e *logg.Entry) error {
+func (h *noAnsiEscapeHandler) HandleLog(e *logg.Entry) error {
 	if !h.predicate(e) {
 		return nil
 	}
@@ -71,20 +72,29 @@ func (h *noColoursHandler) HandleLog(e *logg.Entry) error {
 		prefix = prefix + ": "
 	}
 
+	msg := stripANSI(e.Message)
+
 	if h.noLevelPrefix {
-		fmt.Fprintf(w, "%s%s", prefix, e.Message)
+		_, _ = fmt.Fprintf(w, "%s%s", prefix, msg)
 	} else {
-		fmt.Fprintf(w, "%s %s%s", levelString[e.Level], prefix, e.Message)
+		_, _ = fmt.Fprintf(w, "%s %s%s", levelString[e.Level], prefix, msg)
 	}
 
 	for _, field := range e.Fields {
 		if strings.HasPrefix(field.Name, reservedFieldNamePrefix) {
 			continue
 		}
-		fmt.Fprintf(w, " %s %v", field.Name, field.Value)
+		_, _ = fmt.Fprintf(w, " %s %v", field.Name, field.Value)
 
 	}
-	fmt.Fprintln(w)
+	_, _ = fmt.Fprintln(w)
 
 	return nil
+}
+
+var ansiRe = regexp.MustCompile(`\x1b\[[0-9;]*m`)
+
+// stripANSI removes ANSI escape codes from s.
+func stripANSI(s string) string {
+	return ansiRe.ReplaceAllString(s, "")
 }

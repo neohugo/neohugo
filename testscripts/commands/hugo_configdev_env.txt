@@ -1,7 +1,7 @@
 # Test the hugo command.
 env HUGO_ENV=development
 
-hugo
+neohugo
 grep 'myparam: dev§'  public/index.html
 
 -- hugo.toml --

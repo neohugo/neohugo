@@ -29,8 +29,9 @@ func TestThatPageIsAvailableEverywhere(t *testing.T) {
 baseURL = 'http://example.com/'
 disableKinds = ["taxonomy", "term"]
 enableInlineShortcodes = true
-paginate = 1
 enableRobotsTXT = true
+[pagination]
+pagerSize = 1
 LANG_CONFIG
 -- content/_index.md --
 ---
@@ -191,7 +192,7 @@ title: "P1"
 
 # Heading 1
 -- layouts/shortcodes/toc.html --
-{{ page.TableOfContents }} 
+{{ page.TableOfContents }}
 -- layouts/_default/single.html --
 {{ .Content }}
 `
@@ -218,4 +219,24 @@ disableLiveReload = true
 	b := hugolib.TestRunning(t, files)
 
 	b.AssertFileContent("public/index.html", "1\n2\n3")
+}
+
+func TestThatPageGitInfoShouldBeNil(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ["taxonomy", "term"]
+-- content/p1.md --
+---
+title: "P1"
+---
+-- layouts/all.html --
+GitInfo: {{ with .GitInfo }}FAIL{{ end }}
+
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileContent("public/p1/index.html", "! FAIL")
 }

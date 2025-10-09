@@ -1,7 +1,7 @@
 
 mkdir mysite
 cd mysite
-! hugo
+! neohugo
 
 stderr 'Unable to locate config file or config directory'
 ls .

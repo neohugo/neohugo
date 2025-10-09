@@ -26,22 +26,25 @@ import (
 	"time"
 
 	"github.com/bep/logg"
-	"github.com/neohugo/neohugo/cache/dynacache"
+	"github.com/neohugo/neohugo/bufferpool"
 	"github.com/neohugo/neohugo/deps"
+	"github.com/neohugo/neohugo/hugofs"
 	"github.com/neohugo/neohugo/hugofs/files"
 	"github.com/neohugo/neohugo/hugofs/glob"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/hugolib/pagesfromdata"
+	"github.com/neohugo/neohugo/hugolib/segments"
 	"github.com/neohugo/neohugo/identity"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/publisher"
 	"github.com/neohugo/neohugo/source"
 	"github.com/neohugo/neohugo/tpl"
 
-	"github.com/neohugo/neohugo/hugofs"
-
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/para"
 	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/rungroup"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/page/siteidentities"
@@ -66,7 +69,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 	}
 
 	if !config.NoBuildLock {
-		unlock, err := h.BaseFs.LockBuild()
+		unlock, err := h.LockBuild()
 		if err != nil {
 			return fmt.Errorf("failed to acquire a build lock: %w", err)
 		}
@@ -75,7 +78,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 
 	defer func() {
 		for _, s := range h.Sites {
-			s.Deps.BuildEndListeners.Notify()
+			s.BuildEndListeners.Notify()
 		}
 	}()
 
@@ -97,6 +100,10 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		close(to)
 	}(errCollector, errs)
 
+	for _, s := range h.Sites {
+		s.state = siteStateInit
+	}
+
 	if h.Metrics != nil {
 		h.Metrics.Reset()
 	}
@@ -108,9 +115,9 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 
 	// Need a pointer as this may be modified.
 	conf := &config
-	if conf.whatChanged == nil {
+	if conf.WhatChanged == nil {
 		// Assume everything has changed
-		conf.whatChanged = &whatChanged{contentChanged: true}
+		conf.WhatChanged = &WhatChanged{needsPagesAssembly: true}
 	}
 
 	var prepareErr error
@@ -119,10 +126,10 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		prepare := func() error {
 			init := func(conf *BuildCfg) error {
 				for _, s := range h.Sites {
-					s.Deps.BuildStartListeners.Notify()
+					s.BuildStartListeners.Notify()
 				}
 
-				if len(events) > 0 {
+				if len(events) > 0 || len(conf.WhatChanged.Changes()) > 0 {
 					// Rebuild
 					if err := h.initRebuild(conf); err != nil {
 						return fmt.Errorf("initRebuild: %w", err)
@@ -154,13 +161,33 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		}
 	}
 
+	for _, s := range h.Sites {
+		s.state = siteStateReady
+	}
+
 	if prepareErr == nil {
 		if err := h.render(infol, conf); err != nil {
 			h.SendError(fmt.Errorf("render: %w", err))
 		}
 
-		if err := h.postRenderOnce(); err != nil {
-			h.SendError(fmt.Errorf("postRenderOnce: %w", err))
+		// Make sure to write any build stats to disk first so it's available
+		// to the post processors.
+		if err := h.writeBuildStats(); err != nil {
+			return err
+		}
+
+		// We need to do this before render deferred.
+		if err := h.printPathWarningsOnce(); err != nil {
+			h.SendError(fmt.Errorf("printPathWarnings: %w", err))
+		}
+
+		if err := h.renderDeferred(infol); err != nil {
+			h.SendError(fmt.Errorf("renderDeferred: %w", err))
+		}
+
+		// This needs to be done after the deferred rendering to get complete template usage coverage.
+		if err := h.printUnusedTemplatesOnce(); err != nil {
+			h.SendError(fmt.Errorf("printPathWarnings: %w", err))
 		}
 
 		if err := h.postProcess(infol); err != nil {
@@ -183,7 +210,7 @@ func (h *HugoSites) Build(config BuildCfg, events ...fsnotify.Event) error {
 		return err
 	}
 
-	if err := h.fatalErrorHandler.getErr(); err != nil {
+	if err := h.getErr(); err != nil {
 		return err
 	}
 
@@ -214,7 +241,7 @@ func (h *HugoSites) initRebuild(config *BuildCfg) error {
 	})
 
 	for _, s := range h.Sites {
-		s.resetBuildState(config.whatChanged.contentChanged)
+		s.resetBuildState(config.WhatChanged.needsPagesAssembly)
 	}
 
 	h.reset(config)
@@ -230,10 +257,16 @@ func (h *HugoSites) process(ctx context.Context, l logg.LevelLogger, config *Bui
 	defer loggers.TimeTrackf(l, time.Now(), nil, "")
 
 	if len(events) > 0 {
-		// This is a rebuild
-		return h.processPartial(ctx, l, config, init, events)
+		// This is a rebuild triggered from file events.
+		return h.processPartialFileEvents(ctx, l, config, init, events)
+	} else if len(config.WhatChanged.Changes()) > 0 {
+		// Rebuild triggered from remote events.
+		if err := init(config); err != nil {
+			return err
+		}
+		return h.processPartialRebuildChanges(ctx, l, config)
 	}
-	return h.processFull(ctx, l, *config)
+	return h.processFull(ctx, l, config)
 }
 
 // assemble creates missing sections, applies aggregate values (e.g. dates, cascading params),
@@ -242,22 +275,24 @@ func (h *HugoSites) assemble(ctx context.Context, l logg.LevelLogger, bcfg *Buil
 	l = l.WithField("step", "assemble")
 	defer loggers.TimeTrackf(l, time.Now(), nil, "")
 
-	if !bcfg.whatChanged.contentChanged {
+	if !bcfg.WhatChanged.needsPagesAssembly {
+		changes := bcfg.WhatChanged.Drain()
+		if len(changes) > 0 {
+			if err := h.resolveAndClearStateForIdentities(ctx, l, nil, changes); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
 
 	h.translationKeyPages.Reset()
 	assemblers := make([]*sitePagesAssembler, len(h.Sites))
 	// Changes detected during assembly (e.g. aggregate date changes)
-	assembleChanges := &whatChanged{
-		identitySet: make(map[identity.Identity]bool),
-	}
+
 	for i, s := range h.Sites {
 		assemblers[i] = &sitePagesAssembler{
 			Site:            s,
-			watching:        s.watching(),
-			incomingChanges: bcfg.whatChanged,
-			assembleChanges: assembleChanges,
+			assembleChanges: bcfg.WhatChanged,
 			ctx:             ctx,
 		}
 	}
@@ -273,19 +308,14 @@ func (h *HugoSites) assemble(ctx context.Context, l logg.LevelLogger, bcfg *Buil
 		return err
 	}
 
-	changes := assembleChanges.Changes()
+	changes := bcfg.WhatChanged.Drain()
 
-	// Changes from the assemble step (e.g. lastMod, cascase) needs a re-calculation
+	// Changes from the assemble step (e.g. lastMod, cascade) needs a re-calculation
 	// of what needs to be re-built.
 	if len(changes) > 0 {
 		if err := h.resolveAndClearStateForIdentities(ctx, l, nil, changes); err != nil {
 			return err
 		}
-	}
-	h.renderFormats = output.Formats{}
-	for _, s := range h.Sites {
-		s.s.initRenderFormats()
-		h.renderFormats = append(h.renderFormats, s.renderFormats...)
 	}
 
 	for _, s := range assemblers {
@@ -294,9 +324,24 @@ func (h *HugoSites) assemble(ctx context.Context, l logg.LevelLogger, bcfg *Buil
 		}
 	}
 
+	// Handle new terms from assemblePagesStep2.
+	changes = bcfg.WhatChanged.Drain()
+	if len(changes) > 0 {
+		if err := h.resolveAndClearStateForIdentities(ctx, l, nil, changes); err != nil {
+			return err
+		}
+	}
+
 	h.renderFormats = output.Formats{}
 	for _, s := range h.Sites {
+		s.s.initRenderFormats()
 		h.renderFormats = append(h.renderFormats, s.renderFormats...)
+	}
+
+	for _, s := range assemblers {
+		if err := s.assemblePagesStepFinal(); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -307,66 +352,214 @@ func (h *HugoSites) render(l logg.LevelLogger, config *BuildCfg) error {
 	l = l.WithField("step", "render")
 	start := time.Now()
 	defer func() {
-		loggers.TimeTrackf(l, start, h.buildCounters.loggFields(), "")
+		loggers.TimeTrackf(l, start, h.loggFields(), "")
 	}()
 
-	if _, err := h.init.layouts.Do(context.Background()); err != nil {
+	siteRenderContext := &siteRenderContext{cfg: config, infol: l, multihost: h.Configs.IsMultihost}
+
+	renderErr := func(err error) error {
+		if err == nil {
+			return nil
+		}
+		// In Hugo 0.141.0 we replaced the special error handling for resources.GetRemote
+		// with the more general try.
+		if strings.Contains(err.Error(), "can't evaluate field Err in type") {
+			if strings.Contains(err.Error(), "resource.Resource") {
+				return fmt.Errorf("%s: Resource.Err was removed in Hugo v0.141.0 and replaced with a new try keyword, see https://gohugo.io/functions/go-template/try/", err)
+			} else if strings.Contains(err.Error(), "template.HTML") {
+				return fmt.Errorf("%s: the return type of transform.ToMath was changed in Hugo v0.141.0 and the error handling replaced with a new try keyword, see https://gohugo.io/functions/go-template/try/", err)
+			}
+		}
 		return err
 	}
 
-	siteRenderContext := &siteRenderContext{cfg: config, multihost: h.Configs.IsMultihost}
-
 	i := 0
 	for _, s := range h.Sites {
+		segmentFilter := s.conf.C.SegmentFilter
+		if segmentFilter.ShouldExcludeCoarse(segments.SegmentMatcherFields{Lang: s.language.Lang}) {
+			l.Logf("skip language %q not matching segments set in --renderSegments", s.language.Lang)
+			continue
+		}
+
 		siteRenderContext.languageIdx = s.languagei
 		h.currentSite = s
 		for siteOutIdx, renderFormat := range s.renderFormats {
-			siteRenderContext.outIdx = siteOutIdx
-			siteRenderContext.sitesOutIdx = i
-			i++
-
-			select {
-			case <-h.Done():
-				return nil
-			default:
-				for _, s2 := range h.Sites {
-					// We render site by site, but since the content is lazily rendered
-					// and a site can "borrow" content from other sites, every site
-					// needs this set.
-					s2.rc = &siteRenderingContext{Format: renderFormat}
-
-					if err := s2.preparePagesForRender(s == s2, siteRenderContext.sitesOutIdx); err != nil {
-						return err
-					}
-				}
-				if !config.SkipRender {
-					ll := l.WithField("substep", "pages").
-						WithField("site", s.language.Lang).
-						WithField("outputFormat", renderFormat.Name)
-
-					start := time.Now()
-
-					if config.PartialReRender {
-						if err := s.renderPages(siteRenderContext); err != nil {
-							return err
-						}
-					} else {
-						if err := s.render(siteRenderContext); err != nil {
-							return err
-						}
-					}
-					loggers.TimeTrackf(ll, start, nil, "")
-				}
+			if segmentFilter.ShouldExcludeCoarse(segments.SegmentMatcherFields{Output: renderFormat.Name, Lang: s.language.Lang}) {
+				l.Logf("skip output format %q for language %q not matching segments set in --renderSegments", renderFormat.Name, s.language.Lang)
+				continue
 			}
+
+			if err := func() error {
+				rc := tpl.RenderingContext{Site: s, SiteOutIdx: siteOutIdx}
+				h.BuildState.StartStageRender(rc)
+				defer h.BuildState.StopStageRender(rc)
+
+				siteRenderContext.outIdx = siteOutIdx
+				siteRenderContext.sitesOutIdx = i
+				i++
+
+				select {
+				case <-h.Done():
+					return nil
+				default:
+					for _, s2 := range h.Sites {
+						if err := s2.preparePagesForRender(s == s2, siteRenderContext.sitesOutIdx); err != nil {
+							return err
+						}
+					}
+					if !config.SkipRender {
+						ll := l.WithField("substep", "pages").
+							WithField("site", s.language.Lang).
+							WithField("outputFormat", renderFormat.Name)
+
+						start := time.Now()
+
+						if config.PartialReRender {
+							if err := s.renderPages(siteRenderContext); err != nil {
+								return err
+							}
+						} else {
+							if err := s.render(siteRenderContext); err != nil {
+								return renderErr(err)
+							}
+						}
+						loggers.TimeTrackf(ll, start, nil, "")
+					}
+				}
+				return nil
+			}(); err != nil {
+				return err
+			}
+
 		}
 	}
 
 	return nil
 }
 
-// / postRenderOnce runs some post processing that only needs to be done once, e.g. printing of unused templates.
-func (h *HugoSites) postRenderOnce() error {
-	h.postRenderInit.Do(func() {
+func (h *HugoSites) renderDeferred(l logg.LevelLogger) error {
+	l = l.WithField("step", "render deferred")
+	start := time.Now()
+
+	var deferredCount int
+
+	for rc, de := range h.BuildState.DeferredExecutionsGroupedByRenderingContext {
+		if de.FilenamesWithPostPrefix.Len() == 0 {
+			continue
+		}
+
+		deferredCount += de.FilenamesWithPostPrefix.Len()
+
+		s := rc.Site.(*Site)
+		for _, s2 := range h.Sites {
+			if err := s2.preparePagesForRender(s == s2, rc.SiteOutIdx); err != nil {
+				return err
+			}
+		}
+		if err := s.executeDeferredTemplates(de); err != nil {
+			return herrors.ImproveRenderErr(err)
+		}
+	}
+
+	loggers.TimeTrackf(l, start, logg.Fields{
+		logg.Field{Name: "count", Value: deferredCount},
+	}, "")
+
+	return nil
+}
+
+func (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error {
+	handleFile := func(filename string) error {
+		content, err := afero.ReadFile(s.PublishFs, filename)
+		if err != nil {
+			return err
+		}
+
+		k := 0
+		changed := false
+
+		for k < len(content) {
+
+			l := bytes.Index(content[k:], []byte(tpl.HugoDeferredTemplatePrefix))
+			if l == -1 {
+				break
+			}
+			m := bytes.Index(content[k+l:], []byte(tpl.HugoDeferredTemplateSuffix)) + len(tpl.HugoDeferredTemplateSuffix)
+
+			low, high := k+l, k+l+m
+
+			forward := l + m
+			id := string(content[low:high])
+
+			if err := func() error {
+				deferred, found := de.Executions.Get(id)
+				if !found {
+					panic(fmt.Sprintf("deferred execution with id %q not found", id))
+				}
+				deferred.Mu.Lock()
+				defer deferred.Mu.Unlock()
+
+				if !deferred.Executed {
+					tmpl := s.GetTemplateStore()
+					ti := s.TemplateStore.LookupByPath(deferred.TemplatePath)
+					if ti == nil {
+						panic(fmt.Sprintf("template %q not found", deferred.TemplatePath))
+					}
+
+					if err := func() error {
+						buf := bufferpool.GetBuffer()
+						defer bufferpool.PutBuffer(buf)
+
+						err = tmpl.ExecuteWithContext(deferred.Ctx, ti, buf, deferred.Data)
+						if err != nil {
+							return err
+						}
+						deferred.Result = buf.String()
+						deferred.Executed = true
+
+						return nil
+					}(); err != nil {
+						return err
+					}
+				}
+
+				content = append(content[:low], append([]byte(deferred.Result), content[high:]...)...)
+				forward = len(deferred.Result)
+				changed = true
+
+				return nil
+			}(); err != nil {
+				return err
+			}
+
+			k += forward
+		}
+
+		if changed {
+			return afero.WriteFile(s.PublishFs, filename, content, 0o666)
+		}
+
+		return nil
+	}
+
+	g := rungroup.Run[string](context.Background(), rungroup.Config[string]{
+		NumWorkers: s.h.numWorkers,
+		Handle: func(ctx context.Context, filename string) error {
+			return handleFile(filename)
+		},
+	})
+
+	de.FilenamesWithPostPrefix.ForEeach(func(filename string, _ bool) bool {
+		_ = g.Enqueue(filename)
+		return true
+	})
+
+	return g.Wait()
+}
+
+// printPathWarningsOnce prints path warnings if enabled.
+func (h *HugoSites) printPathWarningsOnce() error {
+	h.printPathWarningsInit.Do(func() {
 		conf := h.Configs.Base
 		if conf.PrintPathWarnings {
 			// We need to do this before any post processing, as that may write to the same files twice
@@ -381,11 +574,22 @@ func (h *HugoSites) postRenderOnce() error {
 				return false
 			})
 		}
+	})
+	return nil
+}
 
+// / printUnusedTemplatesOnce prints unused templates if enabled.
+func (h *HugoSites) printUnusedTemplatesOnce() error {
+	h.printUnusedTemplatesInit.Do(func() {
+		conf := h.Configs.Base
 		if conf.PrintUnusedTemplates {
-			unusedTemplates := h.Tmpl().(tpl.UnusedTemplatesProvider).UnusedTemplates()
+			unusedTemplates := h.GetTemplateStore().UnusedTemplates()
 			for _, unusedTemplate := range unusedTemplates {
-				h.Log.Warnf("Template %s is unused, source file %s", unusedTemplate.Name(), unusedTemplate.Filename())
+				if unusedTemplate.Fi != nil {
+					h.Log.Warnf("Template %s is unused, source %q", unusedTemplate.PathInfo.Path(), unusedTemplate.Fi.Meta().Filename)
+				} else {
+					h.Log.Warnf("Template %s is unused", unusedTemplate.PathInfo.Path())
+				}
 			}
 		}
 	})
@@ -396,12 +600,6 @@ func (h *HugoSites) postRenderOnce() error {
 func (h *HugoSites) postProcess(l logg.LevelLogger) error {
 	l = l.WithField("step", "postProcess")
 	defer loggers.TimeTrackf(l, time.Now(), nil, "")
-
-	// Make sure to write any build stats to disk first so it's available
-	// to the post processors.
-	if err := h.writeBuildStats(); err != nil {
-		return err
-	}
 
 	// This will only be set when js.Build have been triggered with
 	// imports that resolves to the project or a module.
@@ -434,7 +632,7 @@ func (h *HugoSites) postProcess(l logg.LevelLogger) error {
 			}
 		}
 
-		fi, err := h.BaseFs.Assets.Fs.Stat("")
+		fi, err := h.Assets.Fs.Stat("")
 		if err != nil {
 			if !herrors.IsNotExist(err) {
 				h.Log.Warnf("Failed to resolve jsconfig.json dir: %s", err)
@@ -458,7 +656,7 @@ func (h *HugoSites) postProcess(l logg.LevelLogger) error {
 	g, _ := workers.Start(context.Background())
 
 	handleFile := func(filename string) error {
-		content, err := afero.ReadFile(h.BaseFs.PublishFs, filename)
+		content, err := afero.ReadFile(h.PublishFs, filename)
 		if err != nil {
 			return err
 		}
@@ -496,13 +694,13 @@ func (h *HugoSites) postProcess(l logg.LevelLogger) error {
 		}
 
 		if changed {
-			return afero.WriteFile(h.BaseFs.PublishFs, filename, content, 0o666)
+			return afero.WriteFile(h.PublishFs, filename, content, 0o666)
 		}
 
 		return nil
 	}
 
-	filenames := h.Deps.BuildState.GetFilenamesWithPostPrefix()
+	filenames := h.BuildState.GetFilenamesWithPostPrefix()
 	for _, filename := range filenames {
 		filename := filename
 		g.Run(func() error {
@@ -569,6 +767,10 @@ func (h *HugoSites) writeBuildStats() error {
 		}
 	}
 
+	// This step may be followed by a post process step that may
+	// rebuild e.g. CSS, so clear any cache that's defined for the hugo_stats.json.
+	h.dynacacheGCFilenameIfNotWatchedAndDrainMatching(filename)
+
 	return nil
 }
 
@@ -576,15 +778,30 @@ type pathChange struct {
 	// The path to the changed file.
 	p *paths.Path
 
-	// If true, this is a delete operation (a delete or a rename).
-	delete bool
+	// If true, this is a structural change (e.g. a delete or a rename).
+	structural bool
 
 	// If true, this is a directory.
 	isDir bool
 }
 
-// processPartial prepares the Sites' sources for a partial rebuild.
-func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, config *BuildCfg, init func(config *BuildCfg) error, events []fsnotify.Event) error {
+func (p pathChange) isStructuralChange() bool {
+	return p.structural || p.isDir
+}
+
+func (h *HugoSites) processPartialRebuildChanges(ctx context.Context, l logg.LevelLogger, config *BuildCfg) error {
+	if err := h.resolveAndClearStateForIdentities(ctx, l, nil, config.WhatChanged.Drain()); err != nil {
+		return err
+	}
+
+	if err := h.processContentAdaptersOnRebuild(ctx, config); err != nil {
+		return err
+	}
+	return nil
+}
+
+// processPartialFileEvents prepares the Sites' sources for a partial rebuild.
+func (h *HugoSites) processPartialFileEvents(ctx context.Context, l logg.LevelLogger, config *BuildCfg, init func(config *BuildCfg) error, events []fsnotify.Event) error {
 	h.Log.Trace(logg.StringFunc(func() string {
 		var sb strings.Builder
 		sb.WriteString("File events:\n")
@@ -595,16 +812,18 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 		return sb.String()
 	}))
 
+	// For a list of events for the different OSes, see the test output in https://github.com/bep/fsnotifyeventlister/.
 	events = h.fileEventsFilter(events)
-	events = h.fileEventsTranslate(events)
+	events = h.fileEventsTrim(events)
+	eventInfos := h.fileEventsApplyInfo(events)
 
 	logger := h.Log
 
 	var (
-		tmplAdded      bool
-		tmplChanged    bool
-		i18nChanged    bool
-		contentChanged bool
+		tmplAdded          bool
+		tmplChanged        bool
+		i18nChanged        bool
+		needsPagesAssemble bool
 	)
 
 	changedPaths := struct {
@@ -631,36 +850,17 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 		addedContentPaths []*paths.Path
 	)
 
-	for _, ev := range events {
-		removed := false
-		added := false
+	var (
+		addedOrChangedContent []pathChange
+		changes               []identity.Identity
+	)
 
-		if ev.Op&fsnotify.Remove == fsnotify.Remove {
-			removed = true
-		}
-
-		fi, statErr := h.Fs.Source.Stat(ev.Name)
-
-		// Some editors (Vim) sometimes issue only a Rename operation when writing an existing file
-		// Sometimes a rename operation means that file has been renamed other times it means
-		// it's been updated.
-		if ev.Op.Has(fsnotify.Rename) {
-			// If the file is still on disk, it's only been updated, if it's not, it's been moved
-			if statErr != nil {
-				removed = true
-			}
-		}
-		if ev.Op.Has(fsnotify.Create) {
-			added = true
-		}
-
-		isChangedDir := statErr == nil && fi.IsDir()
-
-		cpss := h.BaseFs.ResolvePaths(ev.Name)
+	for _, ev := range eventInfos {
+		cpss := h.ResolvePaths(ev.Name)
 		pss := make([]*paths.Path, len(cpss))
 		for i, cps := range cpss {
 			p := cps.Path
-			if removed && !paths.HasExt(p) {
+			if ev.removed && !paths.HasExt(p) {
 				// Assume this is a renamed/removed directory.
 				// For deletes, we walk up the tree to find the container (e.g. branch bundle),
 				// so we will catch this even if it is a file without extension.
@@ -671,7 +871,7 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 			}
 
 			pss[i] = h.Configs.ContentPathParser.Parse(cps.Component, p)
-			if added && !isChangedDir && cps.Component == files.ComponentFolderContent {
+			if ev.added && !ev.isChangedDir && cps.Component == files.ComponentFolderContent {
 				addedContentPaths = append(addedContentPaths, pss[i])
 			}
 
@@ -681,46 +881,70 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 			if err == nil && g != nil {
 				cacheBusters = append(cacheBusters, g)
 			}
+
+			if ev.added {
+				changes = append(changes, identity.StructuralChangeAdd)
+			}
+			if ev.removed {
+				changes = append(changes, identity.StructuralChangeRemove)
+			}
 		}
 
-		if removed {
+		if ev.removed {
 			changedPaths.deleted = append(changedPaths.deleted, pss...)
-		} else if isChangedDir {
+		} else if ev.isChangedDir {
 			changedPaths.changedDirs = append(changedPaths.changedDirs, pss...)
 		} else {
 			changedPaths.changedFiles = append(changedPaths.changedFiles, pss...)
 		}
 	}
 
-	var (
-		addedOrChangedContent []pathChange
-		changes               []identity.Identity
-	)
-
 	// Find the most specific identity possible.
 	handleChange := func(pathInfo *paths.Path, delete, isDir bool) {
 		switch pathInfo.Component() {
 		case files.ComponentFolderContent:
 			logger.Println("Source changed", pathInfo.Path())
-			if ids := h.pageTrees.collectAndMarkStaleIdentities(pathInfo); len(ids) > 0 {
-				changes = append(changes, ids...)
+			isContentDataFile := pathInfo.IsContentData()
+			if !isContentDataFile {
+				if ids := h.pageTrees.collectAndMarkStaleIdentities(pathInfo); len(ids) > 0 {
+					changes = append(changes, ids...)
+				}
+			} else {
+				h.pageTrees.treePagesFromTemplateAdapters.DeleteAllFunc(pathInfo.Base(),
+					func(s string, n *pagesfromdata.PagesFromTemplate) bool {
+						changes = append(changes, n.DependencyManager)
+
+						// Try to open the file to see if has been deleted.
+						f, err := n.GoTmplFi.Meta().Open()
+						if err == nil {
+							_ = f.Close()
+						}
+						if err != nil {
+							// Remove all pages and resources below.
+							prefix := pathInfo.Base() + "/"
+							h.pageTrees.treePages.DeletePrefixAll(prefix)
+							h.pageTrees.resourceTrees.DeletePrefixAll(prefix)
+							changes = append(changes, identity.NewGlobIdentity(prefix+"*"))
+						}
+						return err != nil
+					})
 			}
 
-			contentChanged = true
+			needsPagesAssemble = true
 
-			if config.RecentlyVisited != nil {
+			if config.RecentlyTouched != nil {
 				// Fast render mode. Adding them to the visited queue
 				// avoids rerendering them on navigation.
 				for _, id := range changes {
 					if p, ok := id.(page.Page); ok {
-						config.RecentlyVisited.Add(p.RelPermalink())
+						config.RecentlyTouched.Add(p.RelPermalink())
 					}
 				}
 			}
 
 			h.pageTrees.treeTaxonomyEntries.DeletePrefix("")
 
-			if delete {
+			if delete && !isContentDataFile {
 				_, ok := h.pageTrees.treePages.LongestPrefixAll(pathInfo.Base())
 				if ok {
 					h.pageTrees.treePages.DeleteAll(pathInfo.Base())
@@ -735,12 +959,12 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 				}
 			}
 
-			addedOrChangedContent = append(addedOrChangedContent, pathChange{p: pathInfo, delete: delete, isDir: isDir})
+			addedOrChangedContent = append(addedOrChangedContent, pathChange{p: pathInfo, structural: delete, isDir: isDir})
 
 		case files.ComponentFolderLayouts:
 			tmplChanged = true
-			templatePath := pathInfo.TrimLeadingSlash().PathNoLang()
-			if !h.Tmpl().HasTemplate(templatePath) {
+			templatePath := pathInfo.Unnormalized().TrimLeadingSlash().PathNoLang()
+			if !h.GetTemplateStore().HasTemplate(templatePath) {
 				tmplAdded = true
 			}
 
@@ -760,25 +984,16 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 				}
 			} else {
 				logger.Println("Template changed", pathInfo.Path())
-				if templ, found := h.Tmpl().GetIdentity(templatePath); found {
-					changes = append(changes, templ)
+				id := h.GetTemplateStore().GetIdentity(pathInfo.Path())
+				if id != nil {
+					changes = append(changes, id)
 				} else {
 					changes = append(changes, pathInfo)
 				}
 			}
 		case files.ComponentFolderAssets:
 			logger.Println("Asset changed", pathInfo.Path())
-
-			var hasID bool
-			r, _ := h.ResourceSpec.ResourceCache.Get(context.Background(), dynacache.CleanKey(pathInfo.Base()))
-			identity.WalkIdentitiesShallow(r, func(level int, rid identity.Identity) bool {
-				hasID = true
-				changes = append(changes, rid)
-				return false
-			})
-			if !hasID {
-				changes = append(changes, pathInfo)
-			}
+			changes = append(changes, pathInfo)
 		case files.ComponentFolderData:
 			logger.Println("Data changed", pathInfo.Path())
 
@@ -792,6 +1007,8 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 			// It's hard to determine the exact change set of this,
 			// so be very coarse grained for now.
 			changes = append(changes, identity.GenghisKhan)
+		case files.ComponentFolderArchetypes:
+			// Ignore for now.
 		default:
 			panic(fmt.Sprintf("unknown component: %q", pathInfo.Component()))
 		}
@@ -864,15 +1081,24 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 		handleChange(id, false, true)
 	}
 
+	for _, id := range changes {
+		if id == identity.GenghisKhan {
+			for i, cp := range addedOrChangedContent {
+				cp.structural = true
+				addedOrChangedContent[i] = cp
+			}
+			break
+		}
+	}
+
 	resourceFiles := h.fileEventsContentPaths(addedOrChangedContent)
 
-	changed := &whatChanged{
-		contentChanged: contentChanged,
-		identitySet:    make(identity.Identities),
+	changed := &WhatChanged{
+		needsPagesAssembly: needsPagesAssemble,
 	}
 	changed.Add(changes...)
 
-	config.whatChanged = changed
+	config.WhatChanged = changed
 
 	if err := init(config); err != nil {
 		return err
@@ -890,24 +1116,42 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 		}
 	}
 
-	// Removes duplicates.
-	changes = changed.identitySet.AsSlice()
+	changes2 := changed.Changes()
+	h.OnChangeListeners.Notify(changes2...)
 
-	if err := h.resolveAndClearStateForIdentities(ctx, l, cacheBusterOr, changes); err != nil {
+	if err := h.resolveAndClearStateForIdentities(ctx, l, cacheBusterOr, changed.Drain()); err != nil {
 		return err
 	}
 
-	if tmplChanged || i18nChanged {
-		// TODO(bep) we should split this, but currently the loading of i18n and layout files are tied together. See #12048.
-		h.init.layouts.Reset()
-
+	if tmplChanged {
 		if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
-			// TODO(bep) this could probably be optimized to somehow
-			// only load the changed templates and its dependencies, but that is non-trivial.
+			depsFinder := identity.NewFinder(identity.FinderConfig{})
 			ll := l.WithField("substep", "rebuild templates")
+			s := h.Sites[0]
+			if err := s.TemplateStore.RefreshFiles(func(fi hugofs.FileMetaInfo) bool {
+				pi := fi.Meta().PathInfo
+				for _, id := range changes2 {
+					if depsFinder.Contains(pi, id, -1) > 0 {
+						return true
+					}
+				}
+				return false
+			}); err != nil {
+				return ll, err
+			}
+
+			return ll, nil
+		}); err != nil {
+			return err
+		}
+	}
+
+	if i18nChanged {
+		if err := loggers.TimeTrackfn(func() (logg.LevelLogger, error) {
+			ll := l.WithField("substep", "rebuild i18n")
 			var prototype *deps.Deps
 			for i, s := range h.Sites {
-				if err := s.Deps.Compile(prototype); err != nil {
+				if err := s.Compile(prototype); err != nil {
 					return ll, err
 				}
 				if i == 0 {
@@ -921,7 +1165,13 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 	}
 
 	if resourceFiles != nil {
-		if err := h.processFiles(ctx, l, *config, resourceFiles...); err != nil {
+		if err := h.processFiles(ctx, l, config, resourceFiles...); err != nil {
+			return err
+		}
+	}
+
+	if h.isRebuild() {
+		if err := h.processContentAdaptersOnRebuild(ctx, config); err != nil {
 			return err
 		}
 	}
@@ -929,25 +1179,78 @@ func (h *HugoSites) processPartial(ctx context.Context, l logg.LevelLogger, conf
 	return nil
 }
 
-func (h *HugoSites) processFull(ctx context.Context, l logg.LevelLogger, config BuildCfg) (err error) {
+func (h *HugoSites) LogServerAddresses() {
+	if h.hugoInfo.IsMultihost() {
+		for _, s := range h.Sites {
+			h.Log.Printf("Web Server is available at %s (bind address %s) %s\n", s.conf.C.BaseURL, s.conf.C.ServerInterface, s.Language().Lang)
+		}
+	} else {
+		s := h.Sites[0]
+		h.Log.Printf("Web Server is available at %s (bind address %s)\n", s.conf.C.BaseURL, s.conf.C.ServerInterface)
+	}
+}
+
+func (h *HugoSites) processFull(ctx context.Context, l logg.LevelLogger, config *BuildCfg) (err error) {
 	if err = h.processFiles(ctx, l, config); err != nil {
 		err = fmt.Errorf("readAndProcessContent: %w", err)
-		return
+		return err
 	}
 	return err
 }
 
-func (s *HugoSites) processFiles(ctx context.Context, l logg.LevelLogger, buildConfig BuildCfg, filenames ...pathChange) error {
+func (s *Site) handleContentAdapterChanges(bi pagesfromdata.BuildInfo, buildConfig *BuildCfg) {
+	if !s.h.isRebuild() {
+		return
+	}
+
+	if len(bi.ChangedIdentities) > 0 {
+		buildConfig.WhatChanged.Add(bi.ChangedIdentities...)
+		buildConfig.WhatChanged.needsPagesAssembly = true
+	}
+
+	for _, p := range bi.DeletedPaths {
+		pp := path.Join(bi.Path.Base(), p)
+		if v, ok := s.pageMap.treePages.Delete(pp); ok {
+			buildConfig.WhatChanged.Add(v.GetIdentity())
+		}
+	}
+}
+
+func (h *HugoSites) processContentAdaptersOnRebuild(ctx context.Context, buildConfig *BuildCfg) error {
+	g := rungroup.Run[*pagesfromdata.PagesFromTemplate](ctx, rungroup.Config[*pagesfromdata.PagesFromTemplate]{
+		NumWorkers: h.numWorkers,
+		Handle: func(ctx context.Context, p *pagesfromdata.PagesFromTemplate) error {
+			bi, err := p.Execute(ctx)
+			if err != nil {
+				return err
+			}
+			s := p.Site.(*Site)
+			s.handleContentAdapterChanges(bi, buildConfig)
+			return nil
+		},
+	})
+
+	_ = h.pageTrees.treePagesFromTemplateAdapters.WalkPrefixRaw(doctree.LockTypeRead, "", func(key string, p *pagesfromdata.PagesFromTemplate) (bool, error) {
+		if p.StaleVersion() > 0 {
+			_ = g.Enqueue(p)
+		}
+		return false, nil
+	})
+
+	return g.Wait()
+}
+
+func (s *HugoSites) processFiles(ctx context.Context, l logg.LevelLogger, buildConfig *BuildCfg, filenames ...pathChange) error {
 	if s.Deps == nil {
 		panic("nil deps on site")
 	}
 
-	sourceSpec := source.NewSourceSpec(s.PathSpec, buildConfig.ContentInclusionFilter, s.BaseFs.Content.Fs)
+	sourceSpec := source.NewSourceSpec(s.PathSpec, buildConfig.ContentInclusionFilter, s.Content.Fs)
 
 	// For inserts, we can pick an arbitrary pageMap.
 	pageMap := s.Sites[0].pageMap
 
-	c := newPagesCollector(ctx, s.h, sourceSpec, s.Log, l, pageMap, filenames)
+	c := newPagesCollector(ctx, s.h, sourceSpec, s.Log, l, pageMap, buildConfig, filenames)
 
 	if err := c.Collect(); err != nil {
 		return err

@@ -152,7 +152,7 @@ func TestScratchInParallel(t *testing.T) {
 	for i := 1; i <= 10; i++ {
 		wg.Add(1)
 		go func(j int) {
-			for k := 0; k < 10; k++ {
+			for k := range 10 {
 				newVal := int64(k + j)
 
 				_, err := scratch.Add(key, newVal)
@@ -197,7 +197,7 @@ func TestScratchSetInMap(t *testing.T) {
 	scratch.SetInMap("key", "zyx", "Zyx")
 	scratch.SetInMap("key", "abc", "Abc (updated)")
 	scratch.SetInMap("key", "def", "Def")
-	c.Assert(scratch.GetSortedMapValues("key"), qt.DeepEquals, []any{0: "Abc (updated)", 1: "Def", 2: "Lux", 3: "Zyx"})
+	c.Assert(scratch.GetSortedMapValues("key"), qt.DeepEquals, any([]any{"Abc (updated)", "Def", "Lux", "Zyx"}))
 }
 
 func TestScratchDeleteInMap(t *testing.T) {
@@ -211,7 +211,7 @@ func TestScratchDeleteInMap(t *testing.T) {
 	scratch.DeleteInMap("key", "abc")
 	scratch.SetInMap("key", "def", "Def")
 	scratch.DeleteInMap("key", "lmn") // Do nothing
-	c.Assert(scratch.GetSortedMapValues("key"), qt.DeepEquals, []any{0: "Def", 1: "Lux", 2: "Zyx"})
+	c.Assert(scratch.GetSortedMapValues("key"), qt.DeepEquals, any([]any{"Def", "Lux", "Zyx"}))
 }
 
 func TestScratchGetSortedMapValues(t *testing.T) {

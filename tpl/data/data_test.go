@@ -103,7 +103,7 @@ func TestGetCSV(t *testing.T) {
 				c.Assert(err, qt.IsNil, msg)
 				_, err = f.WriteString(test.content)
 				c.Assert(err, qt.IsNil)
-				f.Close()
+				_ = f.Close()
 			}
 
 			// Get on with it
@@ -194,7 +194,7 @@ func TestGetJSON(t *testing.T) {
 				c.Assert(err, qt.IsNil, msg)
 				_, err = f.WriteString(test.content)
 				c.Assert(err, qt.IsNil)
-				f.Close()
+				_ = f.Close()
 			}
 
 			// Get on with it
@@ -270,8 +270,8 @@ func TestHeaders(t *testing.T) {
 			var headers bytes.Buffer
 			srv, ns.client = getTestServer(func(w http.ResponseWriter, r *http.Request) {
 				c.Assert(r.URL.String(), qt.Equals, "http://gohugo.io/api?foo")
-				w.Write([]byte("{}"))    // nolint
-				r.Header.Write(&headers) // nolint
+				_, _ = w.Write([]byte("{}"))
+				_ = r.Header.Write(&headers)
 			})
 			defer func() { srv.Close() }()
 

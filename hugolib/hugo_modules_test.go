@@ -157,7 +157,7 @@ JS imported in module: |
 }`)
 
 		b.Build(BuildCfg{})
-		b.Assert(npm.Pack(b.H.BaseFs.ProjectSourceFs, b.H.BaseFs.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
+		b.Assert(npm.Pack(b.H.ProjectSourceFs, b.H.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
 
 		b.AssertFileContentFn("package.json", func(s string) bool {
 			return s == `{
@@ -216,7 +216,7 @@ JS imported in module: |
 		b.WithSourceFile("package.json", origPackageJSON)
 
 		b.Build(BuildCfg{})
-		b.Assert(npm.Pack(b.H.BaseFs.ProjectSourceFs, b.H.BaseFs.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
+		b.Assert(npm.Pack(b.H.ProjectSourceFs, b.H.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
 
 		b.AssertFileContentFn("package.json", func(s string) bool {
 			return s == `{
@@ -263,7 +263,7 @@ JS imported in module: |
 		b := newTestBuilder(t, "")
 
 		b.Build(BuildCfg{})
-		b.Assert(npm.Pack(b.H.BaseFs.ProjectSourceFs, b.H.BaseFs.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
+		b.Assert(npm.Pack(b.H.ProjectSourceFs, b.H.AssetsWithDuplicatesPreserved.Fs), qt.IsNil)
 
 		b.AssertFileContentFn("package.json", func(s string) bool {
 			return s == `{
@@ -686,7 +686,7 @@ disableLiveReload = true
 [module]
 [[module.mounts]]
 source = "README.md"
-target = "content/_index.md"
+target = "content/_index.md"	
 -- README.md --
 # Hello World
 -- layouts/index.html --

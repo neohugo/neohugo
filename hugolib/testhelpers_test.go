@@ -185,10 +185,7 @@ func (s *sitesBuilder) WithConfigTemplate(data any, format, configTemplate strin
 		s.Fatalf("Template parse failed: %s", err)
 	}
 	var b bytes.Buffer
-
-	if err := templ.Execute(&b, data); err != nil {
-		s.Fatalf("Template Execute failed: %s", err)
-	}
+	_ = templ.Execute(&b, data)
 	return s.WithConfigFile(format, b.String())
 }
 
@@ -262,10 +259,9 @@ id = "UA-ga_id"
 disable = false
 [privacy.googleAnalytics]
 respectDoNotTrack = true
-anonymizeIP = true
 [privacy.instagram]
 simple = true
-[privacy.twitter]
+[privacy.x]
 enableDNT = true
 [privacy.vimeo]
 disable = false
@@ -298,10 +294,12 @@ func (s *sitesBuilder) WithDefaultMultiSiteConfig() *sitesBuilder {
 	defaultMultiSiteConfig := `
 baseURL = "http://example.com/blog"
 
-paginate = 1
 disablePathToLower = true
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = true
+
+[pagination]
+pagerSize = 1
 
 [permalinks]
 other = "/somewhere/else/:filename"
@@ -330,7 +328,8 @@ plaque = "plaques"
 weight = 30
 title = "På nynorsk"
 languageName = "Nynorsk"
-paginatePath = "side"
+[Languages.nn.pagination]
+path = "side"
 [Languages.nn.Taxonomies]
 lag = "lag"
 [[Languages.nn.menu.main]]
@@ -342,7 +341,8 @@ weight = 1
 weight = 40
 title = "På bokmål"
 languageName = "Bokmål"
-paginatePath = "side"
+[Languages.nb.pagination]
+path = "side"
 [Languages.nb.Taxonomies]
 lag = "lag"
 ` + commonConfigSections
@@ -361,8 +361,8 @@ func (s *sitesBuilder) WithSunset(in string) {
 	_, err = io.Copy(out, src)
 	s.Assert(err, qt.IsNil)
 
-	out.Close()
-	src.Close()
+	_ = out.Close()
+	_ = src.Close()
 }
 
 func (s *sitesBuilder) createFilenameContent(pairs []string) []filenameContent {
@@ -776,7 +776,7 @@ func (s *sitesBuilder) AssertFileDoesNotExist(filename string) {
 func (s *sitesBuilder) AssertImage(width, height int, filename string) {
 	f, err := s.Fs.WorkingDirReadOnly.Open(filename)
 	s.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	cfg, err := jpeg.DecodeConfig(f)
 	s.Assert(err, qt.IsNil)
 	s.Assert(cfg.Width, qt.Equals, width)
@@ -842,7 +842,7 @@ func (s *sitesBuilder) NpmInstall() hexec.Runner {
 	var err error
 	sc.Exec.Allow, err = security.NewWhitelist("npm")
 	s.Assert(err, qt.IsNil)
-	ex := hexec.New(sc)
+	ex := hexec.New(sc, s.workingDir, loggers.NewDefault())
 	command, err := ex.New("npm", "install")
 	s.Assert(err, qt.IsNil)
 	return command
@@ -903,7 +903,7 @@ func loadTestConfigFromProvider(cfg config.Provider) (*allconfig.Configs, error)
 	workingDir := cfg.GetString("workingDir")
 	fs := afero.NewMemMapFs()
 	if workingDir != "" {
-		fs.MkdirAll(workingDir, 0o755) // nolint
+		_ = fs.MkdirAll(workingDir, 0o755)
 	}
 	res, err := allconfig.LoadConfig(allconfig.ConfigSourceDescriptor{Flags: cfg, Fs: fs})
 	return res, err

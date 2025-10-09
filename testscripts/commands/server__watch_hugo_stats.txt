@@ -1,4 +1,4 @@
-hugo server  --renderToMemory &
+neohugo server  --renderToMemory &
 
 waitServer
 stopServer

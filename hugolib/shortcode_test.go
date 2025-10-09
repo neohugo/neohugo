@@ -33,14 +33,14 @@ func TestExtractShortcodes(t *testing.T) {
 	b := newTestSitesBuilder(t).WithSimpleConfigFile()
 
 	b.WithTemplates(
-		"default/single.html", `EMPTY`,
-		"_internal/shortcodes/tag.html", `tag`,
-		"_internal/shortcodes/legacytag.html", `{{ $_hugo_config := "{ \"version\": 1 }" }}tag`,
-		"_internal/shortcodes/sc1.html", `sc1`,
-		"_internal/shortcodes/sc2.html", `sc2`,
-		"_internal/shortcodes/inner.html", `{{with .Inner }}{{ . }}{{ end }}`,
-		"_internal/shortcodes/inner2.html", `{{.Inner}}`,
-		"_internal/shortcodes/inner3.html", `{{.Inner}}`,
+		"pages/single.html", `EMPTY`,
+		"shortcodes/tag.html", `tag`,
+		"shortcodes/legacytag.html", `{{ $_hugo_config := "{ \"version\": 1 }" }}tag`,
+		"shortcodes/sc1.html", `sc1`,
+		"shortcodes/sc2.html", `sc2`,
+		"shortcodes/inner.html", `{{with .Inner }}{{ . }}{{ end }}`,
+		"shortcodes/inner2.html", `{{.Inner}}`,
+		"shortcodes/inner3.html", `{{.Inner}}`,
 	).WithContent("page.md", `---
 title: "Shortcodes Galore!"
 ---
@@ -57,10 +57,9 @@ title: "Shortcodes Galore!"
 		if s == nil {
 			return "<nil>"
 		}
-
 		var version int
-		if s.info != nil {
-			version = s.info.ParseInfo().Config.Version
+		if s.templ != nil {
+			version = s.templ.ParseInfo.Config.Version
 		}
 		return strReplacer.Replace(fmt.Sprintf("%s;inline:%t;closing:%t;inner:%v;params:%v;ordinal:%d;markup:%t;version:%d;pos:%d",
 			s.name, s.isInline, s.isClosing, s.inner, s.params, s.ordinal, s.doMarkup, version, s.pos))
@@ -69,7 +68,7 @@ title: "Shortcodes Galore!"
 	regexpCheck := func(re string) func(c *qt.C, shortcode *shortcode, err error) {
 		return func(c *qt.C, shortcode *shortcode, err error) {
 			c.Assert(err, qt.IsNil)
-			c.Assert(str(shortcode), qt.Matches, ".*"+re+".*")
+			c.Assert(str(shortcode), qt.Matches, ".*"+re+".*", qt.Commentf("%s", shortcode.name))
 		}
 	}
 
@@ -126,9 +125,10 @@ func TestShortcodeMultipleOutputFormats(t *testing.T) {
 	siteConfig := `
 baseURL = "http://example.com/blog"
 
-paginate = 1
-
 disableKinds = ["section", "term", "taxonomy", "RSS", "sitemap", "robotsTXT", "404"]
+
+[pagination]
+pagerSize = 1
 
 [outputs]
 home = [ "HTML", "AMP", "Calendar" ]
@@ -490,7 +490,7 @@ C-%s`
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/5833
+// https://github.com/gohugoio/hugo/issues/5833
 func TestShortcodeParentResourcesOnRebuild(t *testing.T) {
 	t.Parallel()
 
@@ -583,7 +583,7 @@ weight: %d
 
 	for i := 1; i <= 5; i++ {
 		sc := fmt.Sprintf(shortcodeTemplate, i)
-		sc = strings.Replace(sc, "%%", "%", -1)
+		sc = strings.ReplaceAll(sc, "%%", "%")
 		shortcodes = append(shortcodes, []string{fmt.Sprintf("shortcodes/s%d.html", i), sc}...)
 	}
 
@@ -725,7 +725,7 @@ TOC: {{ .TableOfContents }}
 	}
 }
 
-// https://github.com/neohugo/neohugo/issues/5863
+// https://github.com/gohugoio/hugo/issues/5863
 func TestShortcodeNamespaced(t *testing.T) {
 	t.Parallel()
 	c := qt.New(t)
@@ -756,12 +756,15 @@ title: "Hugo Rocks!"
 
 func TestShortcodeParams(t *testing.T) {
 	t.Parallel()
-	c := qt.New(t)
 
-	builder := newTestSitesBuilder(t).WithSimpleConfigFile()
-
-	builder.WithContent("page.md", `---
+	files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+-- layouts/shortcodes/hello.html --
+{{ range $i, $v := .Params }}{{ printf "- %v: %v (%T) " $i $v $v -}}{{ end }}
+-- content/page.md --
 title: "Hugo Rocks!"
+summary: "Foo"
 ---
 
 # doc
@@ -770,23 +773,15 @@ types positional: {{< hello true false 33 3.14 >}}
 types named: {{< hello b1=true b2=false i1=33 f1=3.14 >}}
 types string: {{< hello "true" trues "33" "3.14" >}}
 escaped quoute: {{< hello "hello \"world\"." >}}
+-- layouts/_default/single.html --
+Content: {{ .Content }}|
+`
 
+	b := Test(t, files)
 
-`).WithTemplatesAdded(
-		"layouts/shortcodes/hello.html",
-		`{{ range $i, $v := .Params }}
--  {{ printf "%v: %v (%T)" $i $v $v }}
-{{ end }}
-{{ $b1 := .Get "b1" }}
-Get: {{ printf "%v (%T)" $b1 $b1 | safeHTML }}
-`).Build(BuildCfg{})
-
-	s := builder.H.Sites[0]
-	c.Assert(len(s.RegularPages()), qt.Equals, 1)
-
-	builder.AssertFileContent("public/page/index.html",
+	b.AssertFileContent("public/page/index.html",
 		"types positional: - 0: true (bool) - 1: false (bool) - 2: 33 (int) - 3: 3.14 (float64)",
-		"types named: - b1: true (bool) - b2: false (bool) - f1: 3.14 (float64) - i1: 33 (int) Get: true (bool) ",
+		"types named: - b1: true (bool) - b2: false (bool) - f1: 3.14 (float64) - i1: 33 (int)",
 		"types string: - 0: true (string) - 1: trues (string) - 2: 33 (string) - 3: 3.14 (string) ",
 		"hello &#34;world&#34;. (string)",
 	)
@@ -831,35 +826,51 @@ title: "Hugo Rocks!"
 	)
 }
 
-// https://github.com/neohugo/neohugo/issues/6857
+// https://github.com/gohugoio/hugo/issues/6857
 func TestShortcodeNoInner(t *testing.T) {
 	t.Parallel()
 
-	b := newTestSitesBuilder(t)
-
-	b.WithContent("mypage.md", `---
+	files := `
+-- hugo.toml --
+baseURL = "https://example.org"
+disableKinds = ["term", "taxonomy", "home", "section"]
+-- content/mypage.md --
+---
 title: "No Inner!"
 ---
+
 {{< noinner >}}{{< /noinner >}}
 
+-- layouts/shortcodes/noinner.html --
+No inner here.
+-- layouts/_default/single.html --
+Content: {{ .Content }}|
 
-`).WithTemplatesAdded(
-		"layouts/shortcodes/noinner.html", `No inner here.`)
+`
 
-	err := b.BuildE(BuildCfg{})
-	b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`"content/mypage.md:4:16": failed to extract shortcode: shortcode "noinner" does not evaluate .Inner or .InnerDeindent, yet a closing tag was provided`))
+	b, err := TestE(t, files)
+
+	assert := func() {
+		b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`failed to extract shortcode: shortcode "noinner" does not evaluate .Inner or .InnerDeindent, yet a closing tag was provided`))
+	}
+
+	assert()
+
+	b, err = TestE(t, strings.Replace(files, `{{< noinner >}}{{< /noinner >}}`, `{{< noinner />}}`, 1))
+
+	assert()
 }
 
 func TestShortcodeStableOutputFormatTemplates(t *testing.T) {
 	t.Parallel()
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 
 		b := newTestSitesBuilder(t)
 
 		const numPages = 10
 
-		for i := 0; i < numPages; i++ {
+		for i := range numPages {
 			b.WithContent(fmt.Sprintf("page%d.md", i), `---
 title: "Page"
 outputs: ["html", "css", "csv", "json"]
@@ -876,21 +887,22 @@ outputs: ["html", "css", "csv", "json"]
 			"_default/single.json", "{{ .Content }}",
 			"shortcodes/myshort.html", `Short-HTML`,
 			"shortcodes/myshort.csv", `Short-CSV`,
+			"shortcodes/myshort.txt", `Short-TXT`,
 		)
 
 		b.Build(BuildCfg{})
 
 		// helpers.PrintFs(b.Fs.Destination, "public", os.Stdout)
 
-		for i := 0; i < numPages; i++ {
+		for i := range numPages {
 			b.AssertFileContent(fmt.Sprintf("public/page%d/index.html", i), "Short-HTML")
 			b.AssertFileContent(fmt.Sprintf("public/page%d/index.csv", i), "Short-CSV")
-			b.AssertFileContent(fmt.Sprintf("public/page%d/index.json", i), "Short-HTML")
+			b.AssertFileContent(fmt.Sprintf("public/page%d/index.json", i), "Short-CSV")
 
 		}
 
-		for i := 0; i < numPages; i++ {
-			b.AssertFileContent(fmt.Sprintf("public/page%d/styles.css", i), "Short-HTML")
+		for i := range numPages {
+			b.AssertFileContent(fmt.Sprintf("public/page%d/styles.css", i), "Short-CSV")
 		}
 
 	}
@@ -906,7 +918,7 @@ func TestShortcodeMarkdownOutputFormat(t *testing.T) {
 ---
 title: "p1"
 ---
-{{< foo >}}
+{{% foo %}}
 # The below would have failed using the HTML template parser.
 -- layouts/shortcodes/foo.md --
 §§§
@@ -918,9 +930,7 @@ title: "p1"
 
 	b := Test(t, files)
 
-	b.AssertFileContent("public/p1/index.html", `
-<x
-	`)
+	b.AssertFileContent("public/p1/index.html", "<code>&lt;x")
 }
 
 func TestShortcodePreserveIndentation(t *testing.T) {

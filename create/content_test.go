@@ -129,7 +129,7 @@ site RegularPages: {{ len site.RegularPages  }}
 
 `
 
-	c.Assert(afero.WriteFile(mm, filepath.Join(archetypeDir, "index.md"), []byte(fmt.Sprintf(contentFile, "index.md")), 0o755), qt.IsNil)
+	c.Assert(afero.WriteFile(mm, filepath.Join(archetypeDir, "index.md"), fmt.Appendf(nil, contentFile, "index.md"), 0o755), qt.IsNil)
 	c.Assert(afero.WriteFile(mm, filepath.Join(defaultArchetypeDir, "index.md"), []byte("default archetype index.md"), 0o755), qt.IsNil)
 
 	c.Assert(initFs(mm), qt.IsNil)
@@ -262,7 +262,7 @@ Some text.
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		_, err = f.Write([]byte(v.content))
 		if err != nil {

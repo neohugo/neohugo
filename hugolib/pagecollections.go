@@ -110,11 +110,6 @@ func (c *pageFinder) getPageForRefs(ref ...string) (page.Page, error) {
 		key = refs[1]
 	}
 
-	key = filepath.ToSlash(key)
-	if !strings.HasPrefix(key, "/") {
-		key = "/" + key
-	}
-
 	return c.getPage(nil, key)
 }
 
@@ -211,9 +206,7 @@ func (c *pageFinder) getContentNodeForRef(context page.Page, isReflink, hadExten
 	var doSimpleLookup bool
 	if isReflink || context == nil {
 		slashCount := strings.Count(inRef, "/")
-		if slashCount <= 1 {
-			doSimpleLookup = slashCount == 0 || ref[0] == '/'
-		}
+		doSimpleLookup = slashCount == 0
 	}
 
 	if !doSimpleLookup {
@@ -238,7 +231,7 @@ func (c *pageFinder) getContentNodeFromRefReverseLookup(ref string, fi hugofs.Fi
 
 	realFilename := filepath.Join(dir, ref)
 
-	pcs, err := s.BaseFs.Content.ReverseLookup(realFilename, true)
+	pcs, err := s.Content.ReverseLookup(realFilename, true)
 	if err != nil {
 		return nil, err
 	}

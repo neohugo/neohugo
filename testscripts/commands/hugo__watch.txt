@@ -1,11 +1,11 @@
-# Test the hugo command.
+# Test the neohugo command.
 
 # See https://github.com/rogpeppe/go-internal/issues/228
 [windows] skip
 
-hugo -w &
+neohugo -w &
 
-sleep 3
+sleep 10
 grep 'P1start' public/p1/index.html
 
 replace content/p1.md 'P1start' 'P1end'

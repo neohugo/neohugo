@@ -14,20 +14,25 @@
 package resources
 
 import (
+	"fmt"
 	"path"
 	"sync"
 
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
-	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/lazy"
 	"github.com/neohugo/neohugo/output"
 	"github.com/neohugo/neohugo/resources/internal"
 	"github.com/neohugo/neohugo/resources/jsconfig"
+	"github.com/neohugo/neohugo/resources/page/pagemeta"
 
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/common/types"
+
+	"github.com/neohugo/neohugo/identity"
 
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/resources/postpub"
@@ -38,7 +43,6 @@ import (
 	"github.com/neohugo/neohugo/resources/images"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/resource"
-	"github.com/neohugo/neohugo/tpl"
 )
 
 func NewSpec(
@@ -50,11 +54,15 @@ func NewSpec(
 	logger loggers.Logger,
 	errorHandler herrors.ErrorSender,
 	execHelper *hexec.Exec,
+	buildClosers types.CloseAdder,
+	rebuilder identity.SignalRebuilder,
 ) (*Spec, error) {
 	conf := s.Cfg.GetConfig().(*allconfig.Config)
 	imgConfig := conf.Imaging
 
-	imaging, err := images.NewImageProcessor(imgConfig)
+	imagesWarnl := logger.WarnCommand("images")
+
+	imaging, err := images.NewImageProcessor(imagesWarnl, imgConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +92,12 @@ func NewSpec(
 	}
 
 	rs := &Spec{
-		PathSpec:    s,
-		Logger:      logger,
-		ErrorSender: errorHandler,
-		imaging:     imaging,
+		PathSpec:     s,
+		Logger:       logger,
+		ErrorSender:  errorHandler,
+		BuildClosers: buildClosers,
+		Rebuilder:    rebuilder,
+		imaging:      imaging,
 		ImageCache: newImageCache(
 			fileCaches.ImageCache(),
 			memCache,
@@ -108,10 +118,10 @@ func NewSpec(
 type Spec struct {
 	*helpers.PathSpec
 
-	Logger      loggers.Logger
-	ErrorSender herrors.ErrorSender
-
-	TextTemplates tpl.TemplateParseFinder
+	Logger       loggers.Logger
+	ErrorSender  herrors.ErrorSender
+	BuildClosers types.CloseAdder
+	Rebuilder    identity.SignalRebuilder
 
 	Permalinks page.PermalinkExpander
 
@@ -142,6 +152,16 @@ type PostBuildAssets struct {
 	JSConfigBuilder      *jsconfig.Builder
 }
 
+func (r *Spec) NewResourceWrapperFromResourceConfig(rc *pagemeta.ResourceConfig) (resource.Resource, error) {
+	content := rc.Content
+	switch r := content.Value.(type) {
+	case resource.Resource:
+		return cloneWithMetadataFromResourceConfigIfNeeded(rc, r), nil
+	default:
+		return nil, fmt.Errorf("failed to create resource for path %q, expected a resource.Resource, got %T", rc.PathInfo.Path(), content.Value)
+	}
+}
+
 // NewResource creates a new Resource from the given ResourceSourceDescriptor.
 func (r *Spec) NewResource(rd ResourceSourceDescriptor) (resource.Resource, error) {
 	if err := rd.init(r); err != nil {
@@ -161,28 +181,33 @@ func (r *Spec) NewResource(rd ResourceSourceDescriptor) (resource.Resource, erro
 		TargetBasePaths: rd.TargetBasePaths,
 	}
 
-	gr := &genericResource{
-		Staler:      &AtomicStaler{},
-		h:           &resourceHash{},
-		publishInit: &sync.Once{},
-		paths:       rp,
-		spec:        r,
-		sd:          rd,
-		params:      make(map[string]any),
-		name:        rd.NameOriginal,
-		title:       rd.NameOriginal,
+	isImage := rd.MediaType.MainType == "image"
+	var imgFormat images.Format
+	if isImage {
+		imgFormat, isImage = images.ImageFormatFromMediaSubType(rd.MediaType.SubType)
 	}
 
-	if rd.MediaType.MainType == "image" {
-		imgFormat, ok := images.ImageFormatFromMediaSubType(rd.MediaType.SubType)
-		if ok {
-			ir := &imageResource{
-				Image:        images.NewImage(imgFormat, r.imaging, nil, gr),
-				baseResource: gr,
-			}
-			ir.root = ir
-			return newResourceAdapter(gr.spec, rd.LazyPublish, ir), nil
+	gr := &genericResource{
+		Staler:           &AtomicStaler{},
+		h:                &resourceHash{},
+		publishInit:      &lazy.OnceMore{},
+		keyInit:          &sync.Once{},
+		includeHashInKey: isImage,
+		paths:            rp,
+		spec:             r,
+		sd:               rd,
+		params:           rd.Params,
+		name:             rd.NameOriginal,
+		title:            rd.Title,
+	}
+
+	if isImage {
+		ir := &imageResource{
+			Image:        images.NewImage(imgFormat, r.imaging, nil, gr),
+			baseResource: gr,
 		}
+		ir.root = ir
+		return newResourceAdapter(gr.spec, rd.LazyPublish, ir), nil
 
 	}
 

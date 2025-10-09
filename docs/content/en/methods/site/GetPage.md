@@ -13,7 +13,7 @@ toc: true
 
 The `GetPage` method is also available on `Page` objects, allowing you to specify a path relative to the current page. See&nbsp;[details].
 
-[details]: /methods/page/getpage
+[details]: /methods/page/getpage/
 
 When using the `GetPage` method on a `Site` object, specify a path relative to the content directory.
 
@@ -36,7 +36,7 @@ content/
 └── _index.md
 ```
 
-This home page template:
+This home template:
 
 ```go-html-template
 {{ with .Site.GetPage "/works/paintings" }}
@@ -96,7 +96,7 @@ content/
 └── _index.md
 ```
 
-In the home page template, use the `GetPage` method on a `Site` object to render all the images in the headless [page bundle]:
+In the home template, use the `GetPage` method on a `Site` object to render all the images in the headless [page bundle]:
 
 ```go-html-template
 {{ with .Site.GetPage "/headless" }}

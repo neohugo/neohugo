@@ -1,4 +1,4 @@
-// Copyright 2017-present The Hugo Authors. All rights reserved.
+// Copyright 2024 The Hugo Authors. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,17 +19,17 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"regexp"
 	"strings"
 
-	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/neohugo"
 )
 
 const commitPrefix = "releaser:"
 
-// New initialises a ReleaseHandler.
+// New initializes a ReleaseHandler.
 func New(skipPush, try bool, step int) (*ReleaseHandler, error) {
 	if step < 1 || step > 2 {
 		return nil, fmt.Errorf("step must be 1 or 2")
@@ -92,6 +92,8 @@ func (r *ReleaseHandler) Run() error {
 	mainVersion := newVersion
 	mainVersion.PatchLevel = 0
 
+	r.gitPull()
+
 	defer r.gitPush()
 
 	if r.step == 1 {
@@ -140,7 +142,7 @@ func (r *ReleaseHandler) bumpVersions(ver neohugo.Version) error {
 		toDev = ver.Suffix
 	}
 
-	if err := r.replaceInFile("common/hugo/version_current.go",
+	if err := r.replaceInFile("common/neohugo/version_current.go",
 		`Minor:(\s*)(\d*),`, fmt.Sprintf(`Minor:${1}%d,`, ver.Minor),
 		`PatchLevel:(\s*)(\d*),`, fmt.Sprintf(`PatchLevel:${1}%d,`, ver.PatchLevel),
 		`Suffix:(\s*)".*",`, fmt.Sprintf(`Suffix:${1}"%s",`, toDev)); err != nil {
@@ -176,6 +178,12 @@ func (r ReleaseHandler) calculateVersions() (neohugo.Version, neohugo.Version) {
 	finalVersion.Suffix = "-DEV"
 
 	return newVersion, finalVersion
+}
+
+func (r *ReleaseHandler) gitPull() {
+	if _, err := r.git("pull", "origin", "HEAD"); err != nil {
+		log.Fatal("pull failed:", err)
+	}
 }
 
 func (r *ReleaseHandler) gitPush() {
@@ -214,7 +222,7 @@ func (r *ReleaseHandler) replaceInFile(filename string, oldNew ...string) error 
 }
 
 func git(args ...string) (string, error) {
-	cmd, _ := hexec.SafeCommand("git", args...)
+	cmd := exec.Command("git", args...)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		return "", fmt.Errorf("git failed: %q: %q (%q)", err, out, args)
@@ -222,10 +230,10 @@ func git(args ...string) (string, error) {
 	return string(out), nil
 }
 
-func logf(format string, args ...interface{}) {
+func logf(format string, args ...any) {
 	fmt.Fprintf(os.Stderr, format, args...)
 }
 
-func logln(args ...interface{}) {
+func logln(args ...any) {
 	fmt.Fprintln(os.Stderr, args...)
 }

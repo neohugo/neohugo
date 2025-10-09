@@ -138,6 +138,9 @@ func (ns *Namespace) checkCondition(v, mv reflect.Value, op string) (bool, error
 		}
 
 		if mv.Len() == 0 {
+			if op == "not in" {
+				return true, nil
+			}
 			return false, nil
 		}
 
@@ -148,7 +151,7 @@ func (ns *Namespace) checkCondition(v, mv reflect.Value, op string) (bool, error
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			iv := v.Int()
 			ivp = &iv
-			for i := 0; i < mv.Len(); i++ {
+			for i := range mv.Len() {
 				if anInt, err := toInt(mv.Index(i)); err == nil {
 					ima = append(ima, anInt)
 				}
@@ -156,7 +159,7 @@ func (ns *Namespace) checkCondition(v, mv reflect.Value, op string) (bool, error
 		case reflect.String:
 			sv := v.String()
 			svp = &sv
-			for i := 0; i < mv.Len(); i++ {
+			for i := range mv.Len() {
 				if aString, err := toString(mv.Index(i)); err == nil {
 					sma = append(sma, aString)
 				}
@@ -164,7 +167,7 @@ func (ns *Namespace) checkCondition(v, mv reflect.Value, op string) (bool, error
 		case reflect.Float64:
 			fv := v.Float()
 			fvp = &fv
-			for i := 0; i < mv.Len(); i++ {
+			for i := range mv.Len() {
 				if aFloat, err := toFloat(mv.Index(i)); err == nil {
 					fma = append(fma, aFloat)
 				}
@@ -173,7 +176,7 @@ func (ns *Namespace) checkCondition(v, mv reflect.Value, op string) (bool, error
 			if hreflect.IsTime(v.Type()) {
 				iv := ns.toTimeUnix(v)
 				ivp = &iv
-				for i := 0; i < mv.Len(); i++ {
+				for i := range mv.Len() {
 					ima = append(ima, ns.toTimeUnix(mv.Index(i)))
 				}
 			}
@@ -382,14 +385,14 @@ func parseWhereArgs(args ...any) (mv reflect.Value, op string, err error) {
 		var ok bool
 		if op, ok = args[0].(string); !ok {
 			err = errors.New("operator argument must be string type")
-			return
+			return mv, op, err
 		}
 		op = strings.TrimSpace(strings.ToLower(op))
 		mv = reflect.ValueOf(args[1])
 	default:
 		err = errors.New("can't evaluate the array by no match argument or more than or equal to two arguments")
 	}
-	return
+	return mv, op, err
 }
 
 // checkWhereArray handles the where-matching logic when the seqv value is an
@@ -397,7 +400,7 @@ func parseWhereArgs(args ...any) (mv reflect.Value, op string, err error) {
 func (ns *Namespace) checkWhereArray(ctxv, seqv, kv, mv reflect.Value, path []string, op string) (any, error) {
 	rv := reflect.MakeSlice(seqv.Type(), 0, 0)
 
-	for i := 0; i < seqv.Len(); i++ {
+	for i := range seqv.Len() {
 		var vvv reflect.Value
 		rvv := seqv.Index(i)
 
@@ -441,9 +444,12 @@ func (ns *Namespace) checkWhereArray(ctxv, seqv, kv, mv reflect.Value, path []st
 // checkWhereMap handles the where-matching logic when the seqv value is a Map.
 func (ns *Namespace) checkWhereMap(ctxv, seqv, kv, mv reflect.Value, path []string, op string) (any, error) {
 	rv := reflect.MakeMap(seqv.Type())
-	keys := seqv.MapKeys()
-	for _, k := range keys {
-		elemv := seqv.MapIndex(k)
+	k := reflect.New(seqv.Type().Key()).Elem()
+	elemv := reflect.New(seqv.Type().Elem()).Elem()
+	iter := seqv.MapRange()
+	for iter.Next() {
+		k.SetIterKey(iter)
+		elemv.SetIterValue(iter)
 		switch elemv.Kind() {
 		case reflect.Array, reflect.Slice:
 			r, err := ns.checkWhereArray(ctxv, elemv, kv, mv, path, op)

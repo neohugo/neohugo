@@ -147,7 +147,8 @@ func isWrite(flag int) bool {
 // TODO(bep) move this to a more suitable place.
 func MakeReadableAndRemoveAllModulePkgDir(fs afero.Fs, dir string) (int, error) {
 	// Safe guard
-	if !strings.Contains(dir, "pkg") {
+	// Note that the base directory changed from pkg to gomod_cache in Go 1.23.
+	if !strings.Contains(dir, "pkg") && !strings.Contains(dir, "gomod") {
 		panic(fmt.Sprint("invalid dir:", dir))
 	}
 
@@ -214,7 +215,7 @@ func WalkFilesystems(fs afero.Fs, fn WalkFn) bool {
 			}
 		}
 	} else if cfs, ok := fs.(overlayfs.FilesystemIterator); ok {
-		for i := 0; i < cfs.NumFilesystems(); i++ {
+		for i := range cfs.NumFilesystems() {
 			if WalkFilesystems(cfs.Filesystem(i), fn) {
 				return true
 			}

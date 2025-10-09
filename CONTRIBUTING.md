@@ -1,4 +1,4 @@
->**Note:** We would apprecitate if you hold on with any big refactorings (like renaming deprecated Go packages), mainly because of potential for extra merge work for future coming in in the near future.
+>**Note:** We would appreciate if you hold on with any big refactoring (like renaming deprecated Go packages), mainly because of potential for extra merge work for future coming in in the near future.
 
 # Contributing to Hugo
 
@@ -93,6 +93,7 @@ Most title/subjects should have a lower-cased prefix with a colon and one whites
 * If this commit touches many packages without a common functional topic, prefix with `all:` (e.g. `all: Reformat Go code`)
 * If this is a documentation update, prefix with `docs:`.
 * If nothing of the above applies, just leave the prefix out.
+* Note that the above excludes nouns seen in other repositories, e.g. "chore:".
 
 Also, if your commit references one or more GitHub issues, always end your commit message body with *See #1234* or *Fixes #1234*.
 Replace *1234* with the GitHub issue ID. The last example will close the issue when the commit is merged into *master*.

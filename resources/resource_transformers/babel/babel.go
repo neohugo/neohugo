@@ -51,10 +51,10 @@ type Options struct {
 // DecodeOptions decodes options to and generates command flags
 func DecodeOptions(m map[string]any) (opts Options, err error) {
 	if m == nil {
-		return
+		return opts, err
 	}
 	err = mapstructure.WeakDecode(m, &opts)
-	return
+	return opts, err
 }
 
 func (opts Options) toArgs() []any {
@@ -137,7 +137,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	// We need an absolute filename to the config file.
 	if !filepath.IsAbs(configFile) {
-		configFile = t.rs.BaseFs.ResolveJSConfigFile(configFile)
+		configFile = t.rs.ResolveJSConfigFile(configFile)
 		if configFile == "" && t.options.Config != "" {
 			// Only fail if the user specified config file is not found.
 			return fmt.Errorf("babel config %q not found", configFile)
@@ -159,7 +159,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	cmdArgs = append(cmdArgs, "--filename="+ctx.SourcePath)
 
 	// Create compile into a real temp file:
-	// 1. separate stdout/stderr messages from babel (https://github.com/neohugo/neohugo/issues/8136)
+	// 1. separate stdout/stderr messages from babel (https://github.com/gohugoio/hugo/issues/8136)
 	// 2. allow generation and retrieval of external source map.
 	compileOutput, err := os.CreateTemp("", "compileOut-*.js")
 	if err != nil {
@@ -170,9 +170,12 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	stderr := io.MultiWriter(infoW, &errBuf)
 	cmdArgs = append(cmdArgs, hexec.WithStderr(stderr))
 	cmdArgs = append(cmdArgs, hexec.WithStdout(stderr))
-	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.BaseFs.Assets.Fs)))
+	cmdArgs = append(cmdArgs, hexec.WithEnviron(neohugo.GetExecEnviron(t.rs.Cfg.BaseConfig().WorkingDir, t.rs.Cfg, t.rs.Assets.Fs)))
 
-	defer os.Remove(compileOutput.Name())
+	defer func() {
+		_ = compileOutput.Close()
+		_ = os.Remove(compileOutput.Name())
+	}()
 
 	// ARGA [--no-install babel --config-file /private/var/folders/_g/j3j21hts4fn7__h04w2x8gb40000gn/T/hugo-test-babel812882892/babel.config.js --source-maps --filename=js/main2.js --out-file=/var/folders/_g/j3j21hts4fn7__h04w2x8gb40000gn/T/compileOut-2237820197.js]
 	//      [--no-install babel --config-file /private/var/folders/_g/j3j21hts4fn7__h04w2x8gb40000gn/T/hugo-test-babel332846848/babel.config.js --filename=js/main.js --out-file=/var/folders/_g/j3j21hts4fn7__h04w2x8gb40000gn/T/compileOut-1451390834.js 0x10304ee60 0x10304ed60 0x10304f060]
@@ -191,7 +194,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 	}
 
 	go func() {
-		defer stdin.Close()
+		defer func() { _ = stdin.Close() }()
 		io.Copy(stdin, ctx.From) // nolint
 	}()
 
@@ -210,7 +213,7 @@ func (t *babelTransformation) Transform(ctx *resources.ResourceTransformationCtx
 
 	mapFile := compileOutput.Name() + ".map"
 	if _, err := os.Stat(mapFile); err == nil {
-		defer os.Remove(mapFile)
+		defer func() { _ = os.Remove(mapFile) }()
 		sourceMap, err := os.ReadFile(mapFile)
 		if err != nil {
 			return err

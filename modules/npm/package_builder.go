@@ -85,7 +85,7 @@ func Pack(sourceFs, assetsWithDuplicatesPreservedFs afero.Fs) error {
 		return fmt.Errorf("npm pack: failed to open package file: %w", err)
 	}
 	b = newPackageBuilder(meta.Module, f)
-	f.Close()
+	_ = f.Close()
 
 	d, err := assetsWithDuplicatesPreservedFs.Open(files.FolderJSConfig)
 	if err != nil {
@@ -118,7 +118,7 @@ func Pack(sourceFs, assetsWithDuplicatesPreservedFs afero.Fs) error {
 			return fmt.Errorf("npm pack: failed to open package file: %w", err)
 		}
 		b.Add(meta.Module, f)
-		f.Close()
+		_ = f.Close()
 	}
 
 	if b.Err() != nil {
@@ -236,8 +236,7 @@ func (b *packageBuilder) addm(source string, m map[string]any) {
 
 func (b *packageBuilder) unmarshal(r io.Reader) map[string]any {
 	m := make(map[string]any)
-	byteData := helpers.ReaderToBytes(r)
-	err := json.Unmarshal(byteData, &m)
+	err := json.Unmarshal(helpers.ReaderToBytes(r), &m)
 	if err != nil {
 		b.err = err
 	}

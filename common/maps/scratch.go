@@ -22,29 +22,16 @@ import (
 	"github.com/neohugo/neohugo/common/math"
 )
 
-// Scratch is a writable context used for stateful operations in Page/Node rendering.
+type StoreProvider interface {
+	// Store returns a Scratch that can be used to store temporary state.
+	// Store is not reset on server rebuilds.
+	Store() *Scratch
+}
+
+// Scratch is a writable context used for stateful build operations
 type Scratch struct {
 	values map[string]any
 	mu     sync.RWMutex
-}
-
-// Scratcher provides a scratching service.
-type Scratcher interface {
-	// Scratch returns a "scratch pad" that can be used to store state.
-	Scratch() *Scratch
-}
-
-type scratcher struct {
-	s *Scratch
-}
-
-func (s scratcher) Scratch() *Scratch {
-	return s.s
-}
-
-// NewScratcher creates a new Scratcher.
-func NewScratcher() Scratcher {
-	return scratcher{s: NewScratch()}
 }
 
 // Add will, for single values, add (using the + operator) the addend to the existing addend (if found).

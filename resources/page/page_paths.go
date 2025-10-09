@@ -140,12 +140,18 @@ func CreateTargetPaths(d TargetPathDescriptor) (tp TargetPaths) {
 
 	pb.isUgly = (d.UglyURLs || d.Type.Ugly) && !d.Type.NoUgly
 	pb.baseNameSameAsType = !d.Path.IsBundle() && d.BaseName != "" && d.BaseName == d.Type.BaseName
+	indexIsUglyKind := d.Kind == kinds.KindHome || d.Kind == kinds.KindSection || d.Kind == kinds.KindTaxonomy
+	indexIsUglyKind = indexIsUglyKind && pb.isUgly
 
 	if d.ExpandedPermalink == "" && pb.baseNameSameAsType {
 		pb.isUgly = true
 	}
 
-	if d.Type == output.HTTPStatusHTMLFormat || d.Type == output.SitemapFormat || d.Type == output.RobotsTxtFormat {
+	if d.Type.Path != "" {
+		pb.Add(d.Type.Path)
+	}
+
+	if d.Type == output.HTTPStatus404HTMLFormat || d.Type == output.SitemapFormat || d.Type == output.RobotsTxtFormat {
 		pb.noSubResources = true
 	} else if d.Kind != kinds.KindPage && d.URL == "" && d.Section.Base() != "/" {
 		if d.ExpandedPermalink != "" {
@@ -154,10 +160,6 @@ func CreateTargetPaths(d TargetPathDescriptor) (tp TargetPaths) {
 			pb.Add(d.Section.Base())
 		}
 		needsBase = false
-	}
-
-	if d.Type.Path != "" {
-		pb.Add(d.Type.Path)
 	}
 
 	if d.Kind != kinds.KindHome && d.URL != "" {
@@ -233,13 +235,13 @@ func CreateTargetPaths(d TargetPathDescriptor) (tp TargetPaths) {
 
 		needsBase = needsBase && d.Addends == ""
 
-		if needsBase || !pb.isUgly {
+		if needsBase || (!pb.isUgly || indexIsUglyKind) {
 			pb.Add(d.Type.BaseName + pb.fullSuffix)
 		} else {
 			pb.ConcatLast(pb.fullSuffix)
 		}
 
-		if pb.IsHtmlIndex() {
+		if !indexIsUglyKind && pb.IsHtmlIndex() {
 			pb.linkUpperOffset = 1
 		}
 
@@ -254,13 +256,14 @@ func CreateTargetPaths(d TargetPathDescriptor) (tp TargetPaths) {
 
 	// if page URL is explicitly set in frontmatter,
 	// preserve its value without sanitization
-	if d.Kind != kinds.KindPage || d.URL == "" {
+	if d.URL == "" {
 		// Note: MakePathSanitized will lower case the path if
 		// disablePathToLower isn't set.
 		pb.Sanitize()
 	}
 
 	link := pb.Link()
+
 	pagePath := pb.PathFile()
 
 	tp.TargetFilename = filepath.FromSlash(pagePath)
@@ -268,6 +271,13 @@ func CreateTargetPaths(d TargetPathDescriptor) (tp TargetPaths) {
 		tp.SubResourceBaseTarget = pb.PathDir()
 		tp.SubResourceBaseLink = pb.LinkDir()
 	}
+
+	// paths.{URL,Path}Escape rely on url.Parse which
+	// will consider # a fragment identifier, so it and
+	// and everything after it will be stripped from
+	// `link`, so we need to escape it first.
+	link = strings.ReplaceAll(link, "#", "%23")
+
 	if d.URL != "" {
 		tp.Link = paths.URLEscape(link)
 	} else {
@@ -279,7 +289,7 @@ func CreateTargetPaths(d TargetPathDescriptor) (tp TargetPaths) {
 		tp.Link = "/"
 	}
 
-	return
+	return tp
 }
 
 // When adding state here, remember to update putPagePathBuilder.

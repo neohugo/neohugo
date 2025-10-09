@@ -23,6 +23,7 @@ import (
 	"github.com/neohugo/neohugo/common/herrors"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/media"
 
 	"github.com/spf13/afero"
 )
@@ -50,7 +51,8 @@ type WalkwayConfig struct {
 	Root string
 
 	// The logger to use.
-	Logger loggers.Logger
+	Logger     loggers.Logger
+	PathParser *paths.PathParser
 
 	// One or both of these may be pre-set.
 	Info       FileMetaInfo               // The start info.
@@ -70,6 +72,10 @@ type WalkwayConfig struct {
 func NewWalkway(cfg WalkwayConfig) *Walkway {
 	if cfg.Fs == nil {
 		panic("fs must be set")
+	}
+
+	if cfg.PathParser == nil {
+		cfg.PathParser = media.DefaultPathParser
 	}
 
 	logger := cfg.Logger
@@ -150,7 +156,7 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 		}
 		fis, err := f.(fs.ReadDirFile).ReadDir(-1)
 
-		f.Close()
+		_ = f.Close()
 		if err != nil {
 			if w.checkErr(path, err) {
 				return nil
@@ -161,7 +167,7 @@ func (w *Walkway) walk(path string, info FileMetaInfo, dirEntries []FileMetaInfo
 		dirEntries = DirEntriesToFileMetaInfos(fis)
 		for _, fi := range dirEntries {
 			if fi.Meta().PathInfo == nil {
-				fi.Meta().PathInfo = paths.Parse("", filepath.Join(pathRel, fi.Name()))
+				fi.Meta().PathInfo = w.cfg.PathParser.Parse("", filepath.Join(pathRel, fi.Name()))
 			}
 		}
 

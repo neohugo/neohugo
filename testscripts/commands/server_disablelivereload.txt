@@ -1,4 +1,4 @@
-hugo server --disableLiveReload &
+neohugo server --disableLiveReload &
 
 waitServer
 

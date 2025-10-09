@@ -14,7 +14,7 @@ Similar to the [`Inner`] method, `InnerDeindent` returns the content between ope
 
 This allows us to effectively bypass the rules governing [indentation] as provided in the [CommonMark] specification.
 
-Consider this markdown, an unordered list with a small gallery of thumbnail images within each list item:
+Consider this Markdown, an unordered list with a small gallery of thumbnail images within each list item:
 
 {{< code file=content/about.md lang=md >}}
 - Gallery one
@@ -38,11 +38,11 @@ With this shortcode, calling `Inner` instead of `InnerDeindent`:
 
 {{< code file=layouts/shortcodes/gallery.html  >}}
 <div class="gallery">
-  {{ trim .Inner "\r\n" | .Page.RenderString }}
+  {{ .Inner | strings.TrimSpace | .Page.RenderString }}
 </div>
 {{< /code >}}
 
-Hugo renders the markdown to:
+Hugo renders the Markdown to:
 
 ```html
 <ul>
@@ -69,11 +69,11 @@ Although technically correct per the CommonMark specification, this is not what 
 
 {{< code file=layouts/shortcodes/gallery.html  >}}
 <div class="gallery">
-  {{ trim .InnerDeindent "\r\n" | .Page.RenderString }}
+  {{ .InnerDeindent | strings.TrimSpace | .Page.RenderString }}
 </div>
 {{< /code >}}
 
-Hugo renders the markdown to:
+Hugo renders the Markdown to:
 
 ```html
 <ul>
@@ -96,4 +96,4 @@ Hugo renders the markdown to:
 
 [commonmark]: https://commonmark.org/
 [indentation]: https://spec.commonmark.org/0.30/#indented-code-blocks
-[`Inner`]: /methods/shortcode/inner
+[`Inner`]: /methods/shortcode/inner/

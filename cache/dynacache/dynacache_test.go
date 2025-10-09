@@ -14,8 +14,11 @@
 package dynacache
 
 import (
+	"errors"
+	"fmt"
 	"path/filepath"
 	"testing"
+	"time"
 
 	qt "github.com/frankban/quicktest"
 	"github.com/neohugo/neohugo/common/loggers"
@@ -29,12 +32,12 @@ var (
 )
 
 type testItem struct {
-	name    string
-	isStale bool
+	name         string
+	staleVersion uint32
 }
 
-func (t testItem) IsStale() bool {
-	return t.isStale
+func (t testItem) StaleVersion() uint32 {
+	return t.staleVersion
 }
 
 func (t testItem) IdentifierBase() string {
@@ -103,29 +106,25 @@ func newTestCache(t *testing.T) *Cache {
 	p1 := GetOrCreatePartition[string, testItem](cache, "/aaaa/bbbb", OptionsPartition{Weight: 30, ClearWhen: ClearOnRebuild})
 	p2 := GetOrCreatePartition[string, testItem](cache, "/aaaa/cccc", OptionsPartition{Weight: 30, ClearWhen: ClearOnChange})
 
-	// nolint
-	p1.GetOrCreate("clearOnRebuild", func(string) (testItem, error) {
+	_, _ = p1.GetOrCreate("clearOnRebuild", func(string) (testItem, error) {
 		return testItem{}, nil
 	})
 
-	// nolint
-	p2.GetOrCreate("clearBecauseStale", func(string) (testItem, error) {
+	_, _ = p2.GetOrCreate("clearBecauseStale", func(string) (testItem, error) {
 		return testItem{
-			isStale: true,
+			staleVersion: 32,
 		}, nil
 	})
 
-	// nolint
-	p2.GetOrCreate("clearBecauseIdentityChanged", func(string) (testItem, error) {
+	_, _ = p2.GetOrCreate("clearBecauseIdentityChanged", func(string) (testItem, error) {
 		return testItem{
 			name: "changed",
 		}, nil
 	})
 
-	// nolint
-	p2.GetOrCreate("clearNever", func(string) (testItem, error) {
+	_, _ = p2.GetOrCreate("clearNever", func(string) (testItem, error) {
 		return testItem{
-			isStale: false,
+			staleVersion: 0,
 		}, nil
 	})
 
@@ -148,25 +147,77 @@ func TestClear(t *testing.T) {
 
 	c.Assert(cache.Keys(predicateAll), qt.HasLen, 4)
 
-	cache.ClearOnRebuild()
+	cache.ClearOnRebuild(nil)
 
 	// Stale items are always cleared.
 	c.Assert(cache.Keys(predicateAll), qt.HasLen, 2)
 
 	cache = newTestCache(t)
-	cache.ClearOnRebuild(identity.StringIdentity("changed"))
+	cache.ClearOnRebuild(nil, identity.StringIdentity("changed"))
 
 	c.Assert(cache.Keys(nil), qt.HasLen, 1)
 
 	cache = newTestCache(t)
 
-	cache.ClearMatching(func(k, v any) bool {
+	cache.ClearMatching(nil, func(k, v any) bool {
 		return k.(string) == "clearOnRebuild"
 	})
 
 	c.Assert(cache.Keys(predicateAll), qt.HasLen, 3)
 
 	cache.adjustCurrentMaxSize()
+}
+
+func TestPanicInCreate(t *testing.T) {
+	t.Parallel()
+	c := qt.New(t)
+	cache := newTestCache(t)
+
+	p1 := GetOrCreatePartition[string, testItem](cache, "/aaaa/bbbb", OptionsPartition{Weight: 30, ClearWhen: ClearOnRebuild})
+
+	willPanic := func(i int) func() {
+		return func() {
+			_, _ = p1.GetOrCreate(fmt.Sprintf("panic-%d", i), func(key string) (testItem, error) {
+				panic(errors.New(key))
+			})
+		}
+	}
+
+	// GetOrCreateWitTimeout needs to recover from panics in the create func.
+	willErr := func(i int) error {
+		_, err := p1.GetOrCreateWitTimeout(fmt.Sprintf("error-%d", i), 10*time.Second, func(key string) (testItem, error) {
+			return testItem{}, errors.New(key)
+		})
+		return err
+	}
+
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			c.Assert(willPanic(i), qt.PanicMatches, fmt.Sprintf("panic-%d", i))
+			c.Assert(willErr(i), qt.ErrorMatches, fmt.Sprintf("error-%d", i))
+		}
+	}
+
+	// Test the same keys again without the panic.
+	for i := 0; i < 3; i++ {
+		for j := 0; j < 3; j++ {
+			v, err := p1.GetOrCreate(fmt.Sprintf("panic-%d", i), func(key string) (testItem, error) {
+				return testItem{
+					name: key,
+				}, nil
+			})
+			c.Assert(err, qt.IsNil)
+			c.Assert(v.name, qt.Equals, fmt.Sprintf("panic-%d", i))
+
+			v, err = p1.GetOrCreateWitTimeout(fmt.Sprintf("error-%d", i), 10*time.Second, func(key string) (testItem, error) {
+				return testItem{
+					name: key,
+				}, nil
+			})
+			c.Assert(err, qt.IsNil)
+			c.Assert(v.name, qt.Equals, fmt.Sprintf("error-%d", i))
+		}
+	}
 }
 
 func TestAdjustCurrentMaxSize(t *testing.T) {

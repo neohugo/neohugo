@@ -80,6 +80,6 @@ OuterLoop:
 // Close stops the watching of the files.
 func (b *Batcher) Close() {
 	b.done <- struct{}{}
-	b.FileWatcher.Close()
+	defer func() { _ = b.FileWatcher.Close() }()
 	b.ticker.Stop()
 }

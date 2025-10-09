@@ -1,31 +1,32 @@
-# Test the hugo mod commands.
+# Test the neohugo mod commands.
 
 dostounix golden/vendor.txt
 dostounix golden/go.mod.testsubmod
 
-hugo mod graph
+neohugo mod graph
 stdout 'empty-hugo'
-hugo mod verify
+neohugo mod verify
 ! stderr .
-hugo mod get -u
+neohugo mod get -u
 ! stderr .
-hugo mod get -u ./...
+neohugo mod get -u ./...
 ! stderr .
-hugo mod vendor
+neohugo mod vendor
 ! stderr .
 cmp _vendor/modules.txt golden/vendor.txt
-hugo mod clean
+neohugo mod clean
 ! stderr .
-stdout 'hugo: removed 1 dirs in module cache for \"github.com/bep/empty-hugo-module\"'
-hugo mod clean --all
-stdout 'Deleted 2\d{2} files from module cache\.'
+stdout 'neohugo: removed 1 dirs in module cache for \"github.com/bep/empty-hugo-module\"'
+neohugo mod clean --all
+# Currently this is 299 on MacOS and 301 on Linux.
+stdout 'Deleted (2|3)\d{2} files from module cache\.'
 cd submod
-hugo mod init testsubmod
+neohugo mod init testsubmod
 cmpenv go.mod $WORK/golden/go.mod.testsubmod
-hugo mod get -h
-stdout 'hugo mod get \[flags\] \[args\]'
-hugo mod get --help
-stdout 'hugo mod get \[flags\] \[args\]'
+neohugo mod get -h
+stdout 'neohugo mod get \[flags\] \[args\]'
+neohugo mod get --help
+stdout 'neohugo mod get \[flags\] \[args\]'
 -- hugo.toml --
 title = "Hugo Modules Test"
 [module]

@@ -142,7 +142,7 @@ func collectWithConfig(input []byte, skipFrontMatter bool, stateStart stateFunc,
 			break
 		}
 	}
-	return
+	return items, err
 }
 
 func collect(input []byte, skipFrontMatter bool, stateStart stateFunc) (items []Item, err error) {

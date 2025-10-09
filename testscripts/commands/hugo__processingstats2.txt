@@ -1,7 +1,7 @@
 cp $SOURCE/resources/testdata/pix.gif content/posts/post-1/p1.gif
 cp $SOURCE/resources/testdata/pix.gif content/posts/post-1/p2.gif
 
-hugo
+neohugo
 
 stdout 'Pages.*/| 10\s'
 stdout 'Non-page files.*/| 2\s'

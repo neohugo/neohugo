@@ -15,7 +15,6 @@ package config
 
 import (
 	"fmt"
-	"sort"
 	"strings"
 	"sync"
 
@@ -25,42 +24,6 @@ import (
 
 	"github.com/neohugo/neohugo/common/maps"
 )
-
-var (
-
-	// ConfigRootKeysSet contains all of the config map root keys.
-	ConfigRootKeysSet = map[string]bool{
-		"build":         true,
-		"caches":        true,
-		"cascade":       true,
-		"frontmatter":   true,
-		"languages":     true,
-		"imaging":       true,
-		"markup":        true,
-		"mediatypes":    true,
-		"menus":         true,
-		"minify":        true,
-		"module":        true,
-		"outputformats": true,
-		"params":        true,
-		"permalinks":    true,
-		"related":       true,
-		"sitemap":       true,
-		"privacy":       true,
-		"security":      true,
-		"taxonomies":    true,
-	}
-
-	// ConfigRootKeys is a sorted version of ConfigRootKeysSet.
-	ConfigRootKeys []string
-)
-
-func init() {
-	for k := range ConfigRootKeysSet {
-		ConfigRootKeys = append(ConfigRootKeys, k)
-	}
-	sort.Strings(ConfigRootKeys)
-}
 
 // New creates a Provider backed by an empty maps.Params.
 func New() Provider {
@@ -382,7 +345,7 @@ func (c *defaultConfigProvider) getNestedKeyAndMap(key string, create bool) (str
 		c.keyCache.Store(key, parts)
 	}
 	current := c.root
-	for i := 0; i < len(parts)-1; i++ {
+	for i := range len(parts) - 1 {
 		next, found := current[parts[i]]
 		if !found {
 			if create {

@@ -86,7 +86,7 @@ func ApplyProjectConfigDefaults(mod Module, cfgs ...config.AllProvider) error {
 
 		first := cfgs[0]
 		dirsBase := first.DirsBase()
-		isMultiHost := first.IsMultihost()
+		isMultihost := first.IsMultihost()
 
 		for i, cfg := range cfgs {
 			dirs := cfg.Dirs()
@@ -97,23 +97,23 @@ func ApplyProjectConfigDefaults(mod Module, cfgs ...config.AllProvider) error {
 				dir = dirs.ContentDir
 				dropLang = dir == dirsBase.ContentDir
 			case files.ComponentFolderData:
-				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.DataDir // nolint
+				//nolint:staticcheck // SA1019: Keep as adapter for now.
+				dir = dirs.DataDir
 			case files.ComponentFolderLayouts:
-				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.LayoutDir // nolint
+				//nolint:staticcheck // SA1019: Keep as adapter for now.
+				dir = dirs.LayoutDir
 			case files.ComponentFolderI18n:
-				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.I18nDir // nolint
+				//nolint:staticcheck // SA1019: Keep as adapter for now.
+				dir = dirs.I18nDir
 			case files.ComponentFolderArchetypes:
-				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.ArcheTypeDir // nolint
+				//nolint:staticcheck // SA1019: Keep as adapter for now.
+				dir = dirs.ArcheTypeDir
 			case files.ComponentFolderAssets:
-				//lint:ignore SA1019 Keep as adapter for now.
-				dir = dirs.AssetDir // nolint
+				//nolint:staticcheck // SA1019: Keep as adapter for now.
+				dir = dirs.AssetDir
 			case files.ComponentFolderStatic:
 				// For static dirs, we only care about the language in multihost setups.
-				dropLang = !isMultiHost
+				dropLang = !isMultihost
 			}
 
 			var perLang bool
@@ -233,7 +233,7 @@ func decodeConfig(cfg config.Provider, pathReplacements map[string]string) (Conf
 				c.Workspace = filepath.Join(workingDir, c.Workspace)
 			}
 			if _, err := os.Stat(c.Workspace); err != nil {
-				//lint:ignore ST1005 end user message.
+				//nolint:staticcheck // end user message
 				return c, fmt.Errorf("module workspace %q does not exist. Check your module.workspace setting (or HUGO_MODULE_WORKSPACE env var).", c.Workspace)
 			}
 		}
@@ -270,7 +270,7 @@ type Config struct {
 
 	// When enabled, we will pick the vendored module closest to the module
 	// using it.
-	// The default behaviour is to pick the first.
+	// The default behavior is to pick the first.
 	// Note that there can still be only one dependency of a given module path,
 	// so once it is in use it cannot be redefined.
 	VendorClosest bool
@@ -294,6 +294,12 @@ type Config struct {
 	// Comma separated glob list matching paths that should be treated as private.
 	// Configures GOPRIVATE when running the Go command for module operations.
 	Private string
+
+	// Configures GOAUTH when running the Go command for module operations.
+	// This is a semicolon-separated list of authentication commands for go-import and HTTPS module mirror interactions.
+	// This is useful for private repositories.
+	// See `go help goauth` for more information.
+	Auth string
 
 	// Defaults to "off".
 	// Set to a work file, e.g. hugo.work, to enable Go "Workspace" mode.
@@ -319,7 +325,7 @@ type HugoVersion struct {
 	// The minimum Hugo version that this module works with.
 	Min neohugo.VersionString
 
-	// The maxium Hugo version that this module works with.
+	// The maximum Hugo version that this module works with.
 	Max neohugo.VersionString
 
 	// Set if the extended version is needed.
@@ -355,11 +361,7 @@ func (v HugoVersion) IsValid() bool {
 		return false
 	}
 
-	isValid := true
-
-	if v.Min != "" && current.Compare(v.Min) > 0 {
-		isValid = false
-	}
+	isValid := v.Min == "" || current.Compare(v.Min) <= 0
 
 	if v.Max != "" && current.Compare(v.Max) < 0 {
 		isValid = false
@@ -402,6 +404,9 @@ type Mount struct {
 
 	// Exclude all files matching the given Glob patterns (string or slice).
 	ExcludeFiles any
+
+	// Disable watching in watch mode for this mount.
+	DisableWatch bool
 }
 
 // Used as key to remove duplicates.

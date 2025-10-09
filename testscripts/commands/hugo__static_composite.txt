@@ -1,4 +1,4 @@
-hugo
+neohugo
 ls public/files
 checkfile public/files/f1.txt
 checkfile public/files/f2.txt

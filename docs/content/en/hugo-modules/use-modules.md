@@ -21,7 +21,7 @@ toc: true
 Use `hugo mod init` to initialize a new Hugo Module. If it fails to guess the module path, you must provide it as an argument, e.g.:
 
 ```sh
-hugo mod init github.com/gohugoio/myShortcodes
+hugo mod init github.com/<your_user>/<your_project>
 ```
 
 Also see the [CLI Doc](/commands/hugo_mod_init/).
@@ -132,8 +132,6 @@ Note that you can also configure the `modules` cache with a `maxAge`, see [File 
 Also see the [CLI Doc](/commands/hugo_mod_clean/).
 
 ## Module workspaces
-
-{{< new-in 0.109.0 >}}
 
 Workspace support was added in [Go 1.18](https://go.dev/blog/get-familiar-with-workspaces) and Hugo got solid support for it in the `v0.109.0` version.
 

@@ -56,19 +56,16 @@ func TestUnfinished(t *testing.T) {
 }
 
 func TestMain(m *testing.M) {
-	os.Exit(
-		testscript.RunMain(m, map[string]func() int{
-			// The main program.
-			"hugo": func() int {
-				err := commands.Execute(os.Args[1:])
-				if err != nil {
-					fmt.Fprintln(os.Stderr, err)
-					return 1
-				}
-				return 0
-			},
-		}),
-	)
+	testscript.Main(m, map[string]func(){
+		// The main program.
+		"neohugo": func() {
+			err := commands.Execute(os.Args[1:])
+			if err != nil {
+				fmt.Fprintln(os.Stderr, err)
+				os.Exit(1)
+			}
+		},
+	})
 }
 
 // nolint
@@ -135,7 +132,7 @@ var commonTestScriptsParam = testscript.Params{
 				fmt.Fprintf(ts.Stdout(), "%s %04o %s %s\n", fi.Mode(), fi.Mode().Perm(), fi.ModTime().Format(time.RFC3339Nano), fi.Name())
 			}
 		},
-		// append appends to a file with a leaading newline.
+		// append appends to a file with a leading newline.
 		"append": func(ts *testscript.TestScript, neg bool, args []string) {
 			if len(args) < 2 {
 				ts.Fatalf("usage: append FILE TEXT")
@@ -314,7 +311,7 @@ var commonTestScriptsParam = testscript.Params{
 			// The server will write a .ready file when ready.
 			// We wait for that.
 			readyFilename := ts.MkAbs(".ready")
-			limit := time.Now().Add(5 * time.Second)
+			limit := time.Now().Add(180 * time.Second)
 			for {
 				_, err := os.Stat(readyFilename)
 				if err != nil {

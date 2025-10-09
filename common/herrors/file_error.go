@@ -20,8 +20,6 @@ import (
 	"io"
 	"path/filepath"
 
-	godartsassv1 "github.com/bep/godartsass"
-
 	"github.com/bep/godartsass/v2"
 	"github.com/bep/golibsass/libsass/libsasserrors"
 	"github.com/neohugo/neohugo/common/paths"
@@ -153,8 +151,6 @@ func (e *fileError) causeString() string {
 	// Avoid repeating the file info in the error message.
 	case godartsass.SassError:
 		return v.Message
-	case godartsassv1.SassError:
-		return v.Message
 	case libsasserrors.Error:
 		return v.Message
 	default:
@@ -211,7 +207,7 @@ func NewFileErrorFromFileInErr(err error, fs afero.Fs, linematcher LineMatcherFn
 	}
 
 	pos.Filename = realFilename
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return fe.UpdateContent(f, linematcher)
 }
 
@@ -224,7 +220,7 @@ func NewFileErrorFromFileInPos(err error, pos text.Position, fs afero.Fs, linema
 		return NewFileErrorFromPos(err, pos)
 	}
 	pos.Filename = realFilename
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return NewFileErrorFromPos(err, pos).UpdateContent(f, linematcher)
 }
 
@@ -237,7 +233,7 @@ func NewFileErrorFromFile(err error, filename string, fs afero.Fs, linematcher L
 	if err2 != nil {
 		return NewFileErrorFromName(err, realFilename)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return NewFileErrorFromName(err, realFilename).UpdateContent(f, linematcher)
 }
 
@@ -262,8 +258,27 @@ func openFile(filename string, fs afero.Fs) (afero.File, string, error) {
 	return f, realFilename, nil
 }
 
-// Cause returns the underlying error or itself if it does not implement Unwrap.
+// Cause returns the underlying error, that is,
+// it unwraps errors until it finds one that does not implement
+// the Unwrap method.
+// For a shallow variant, see Unwrap.
 func Cause(err error) error {
+	type unwrapper interface {
+		Unwrap() error
+	}
+
+	for err != nil {
+		cause, ok := err.(unwrapper)
+		if !ok {
+			break
+		}
+		err = cause.Unwrap()
+	}
+	return err
+}
+
+// Unwrap returns the underlying error or itself if it does not implement Unwrap.
+func Unwrap(err error) error {
 	if u := errors.Unwrap(err); u != nil {
 		return u
 	}
@@ -271,7 +286,7 @@ func Cause(err error) error {
 }
 
 func extractFileTypePos(err error) (string, text.Position) {
-	err = Cause(err)
+	err = Unwrap(err)
 
 	var fileType string
 
@@ -388,14 +403,7 @@ func extractPosition(e error) (pos text.Position) {
 	case godartsass.SassError:
 		span := v.Span
 		start := span.Start
-		filename, _ := paths.UrlToFilename(span.Url)
-		pos.Filename = filename
-		pos.Offset = start.Offset
-		pos.ColumnNumber = start.Column
-	case godartsassv1.SassError:
-		span := v.Span
-		start := span.Start
-		filename, _ := paths.UrlToFilename(span.Url)
+		filename, _ := paths.UrlStringToFilename(span.Url)
 		pos.Filename = filename
 		pos.Offset = start.Offset
 		pos.ColumnNumber = start.Column
@@ -404,7 +412,7 @@ func extractPosition(e error) (pos text.Position) {
 		pos.LineNumber = v.Line
 		pos.ColumnNumber = v.Column
 	}
-	return
+	return pos
 }
 
 // TextSegmentError is an error with a text segment attached.

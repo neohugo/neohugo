@@ -1,11 +1,9 @@
 //go:build mage
-// +build mage
 
 package main
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -36,10 +34,6 @@ func init() {
 	if exe := os.Getenv("GOEXE"); exe != "" {
 		goexe = exe
 	}
-
-	// We want to use Go 1.11 modules even if the source lives inside GOPATH.
-	// The default is "auto".
-	os.Setenv("GO111MODULE", "on")
 }
 
 func runWith(env map[string]string, cmd string, inArgs ...any) error {
@@ -79,8 +73,7 @@ func flagEnv() map[string]string {
 // Generate autogen packages
 func Generate() error {
 	generatorPackages := []string{
-		//"tpl/tplimpl/embedded/generate",
-		//"resources/page/generate",
+		"livereload/gen",
 	}
 
 	for _, pkg := range generatorPackages {
@@ -123,22 +116,22 @@ func HugoNoGitInfo() error {
 	return NeoHugo()
 }
 
-var docker = sh.RunCmd("docker")
-
 // Build hugo Docker container
 func Docker() error {
-	if err := docker("build", "-t", "hugo", "."); err != nil {
+	docker := sh.RunCmd("docker")
+
+	if err := docker("build", "-t", "neohugo", "."); err != nil {
 		return err
 	}
 	// yes ignore errors here
-	docker("rm", "-f", "hugo-build")
-	if err := docker("run", "--name", "hugo-build", "hugo ls /go/bin"); err != nil {
+	docker("rm", "-f", "neohugo-build")
+	if err := docker("run", "--name", "neohugo-build", "neohugo ls /go/bin"); err != nil {
 		return err
 	}
-	if err := docker("cp", "hugo-build:/go/bin/hugo", "."); err != nil {
+	if err := docker("cp", "neohugo-build:/go/bin/neohugo", "."); err != nil {
 		return err
 	}
-	return docker("rm", "hugo-build")
+	return docker("rm", "neohugo-build")
 }
 
 // Run tests and linters
@@ -149,7 +142,11 @@ func Check() {
 		fmt.Printf("Skip Test386 on %s and/or %s\n", runtime.GOARCH, runtime.GOOS)
 	}
 
-	mg.Deps(Fmt, Vet)
+	if isCI() && isDarwin() {
+		// Skip on macOS in CI (disk space issues)
+	} else {
+		mg.Deps(Fmt, Vet)
+	}
 
 	// don't run two tests in parallel, they saturate the CPUs anyway, and running two
 	// causes memory issues in CI.
@@ -168,19 +165,23 @@ func testGoFlags() string {
 // Note that we don't run with the extended tag. Currently not supported in 32 bit.
 func Test386() error {
 	env := map[string]string{"GOARCH": "386", "GOFLAGS": testGoFlags()}
-	return runCmd(env, goexe, "test", "./...")
+	return runCmd(env, goexe, "test", "-p", "2", "./...")
 }
 
 // Run tests
 func Test() error {
-	env := map[string]string{"GOFLAGS": testGoFlags()}
-	return runCmd(env, goexe, "test", "./...", "-tags", buildTags())
+	env := map[string]string{
+		"GOFLAGS": testGoFlags(),
+	}
+	return runCmd(env, goexe, "test", "-timeout", "30m", "-p", "2", "./...", "-tags", buildTags())
 }
 
 // Run tests with race detector
 func TestRace() error {
-	env := map[string]string{"GOFLAGS": testGoFlags()}
-	return runCmd(env, goexe, "test", "-race", "./...", "-tags", buildTags())
+	env := map[string]string{
+		"GOFLAGS": testGoFlags(),
+	}
+	return runCmd(env, goexe, "test", "-timeout", "30m", "-p", "2", "-race", "./...", "-tags", buildTags())
 }
 
 // Fmt, run gofumpt linter
@@ -197,48 +198,19 @@ func Fmt() error {
 	return nil
 }
 
-var (
-	pkgPrefixLen = len("github.com/neohugo/neohugo")
-	pkgs         []string
-	pkgsInit     sync.Once
-)
+const pkgPrefixLen = len("github.com/neohugo/neohugo")
 
-func hugoPackages() ([]string, error) {
-	var err error
-	pkgsInit.Do(func() {
-		var s string
-		s, err = sh.Output(goexe, "list", "./...")
-		if err != nil {
-			return
-		}
-		pkgs = strings.Split(s, "\n")
-		for i := range pkgs {
-			pkgs[i] = "." + pkgs[i][pkgPrefixLen:]
-		}
-	})
-	return pkgs, err
-}
-
-// List, run golint linter
-func Lint() error {
-	pkgs, err := hugoPackages()
+var neohugoPackages = sync.OnceValues(func() ([]string, error) {
+	s, err := sh.Output(goexe, "list", "./...")
 	if err != nil {
-		return err
+		return nil, err
 	}
-	failed := false
-	for _, pkg := range pkgs {
-		// We don't actually want to fail this target if we find golint errors,
-		// so we don't pass -set_exit_status, but we still print out any failures.
-		if _, err := sh.Exec(nil, os.Stderr, nil, "golint", pkg); err != nil {
-			fmt.Printf("ERROR: running go lint on %q: %v\n", pkg, err)
-			failed = true
-		}
+	pkgs := strings.Split(s, "\n")
+	for i := range pkgs {
+		pkgs[i] = "." + pkgs[i][pkgPrefixLen:]
 	}
-	if failed {
-		return errors.New("errors running golint")
-	}
-	return nil
-}
+	return pkgs, nil
+})
 
 // Run go vet linter
 func Vet() error {
@@ -259,10 +231,10 @@ func TestCoverHTML() error {
 		return err
 	}
 	defer f.Close()
-	if _, err := f.Write([]byte("mode: count")); err != nil {
+	if _, err := f.WriteString("mode: count"); err != nil {
 		return err
 	}
-	pkgs, err := hugoPackages()
+	pkgs, err := neohugoPackages()
 	if err != nil {
 		return err
 	}
@@ -309,6 +281,10 @@ func isUnix() bool {
 	return runtime.GOOS != "windows"
 }
 
+func isDarwin() bool {
+	return runtime.GOOS == "darwin"
+}
+
 func isCI() bool {
 	return os.Getenv("CI") != ""
 }
@@ -323,7 +299,7 @@ func buildFlags() []string {
 func buildTags() string {
 	// To build the extended Hugo SCSS/SASS enabled version, build with
 	// HUGO_BUILD_TAGS=extended mage install etc.
-	// To build without `hugo deploy` for smaller binary, use HUGO_BUILD_TAGS=nodeploy
+	// To build with `hugo deploy`, use HUGO_BUILD_TAGS=withdeploy
 	if envtags := os.Getenv("HUGO_BUILD_TAGS"); envtags != "" {
 		return envtags
 	}

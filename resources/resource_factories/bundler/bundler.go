@@ -63,18 +63,18 @@ func (r *multiReadSeekCloser) Seek(offset int64, whence int) (newOffset int64, e
 	for _, s := range r.sources {
 		newOffset, err = s.Seek(offset, whence)
 		if err != nil {
-			return
+			return newOffset, err
 		}
 	}
 
 	r.mr = io.MultiReader(toReaders(r.sources)...)
 
-	return
+	return newOffset, err
 }
 
 func (r *multiReadSeekCloser) Close() error {
 	for _, s := range r.sources {
-		s.Close()
+		_ = s.Close()
 	}
 	return nil
 }
@@ -95,6 +95,10 @@ func (c *Client) Concat(targetPath string, r resource.Resources) (resource.Resou
 		}
 
 		idm := c.rs.Cfg.NewIdentityManager("concat")
+
+		// Re-create on structural changes.
+		idm.AddIdentity(identity.StructuralChangeAdd, identity.StructuralChangeRemove)
+
 		// Add the concatenated resources as dependencies to the composite resource
 		// so that we can track changes to the individual resources.
 		idm.AddIdentityForEach(identity.ForEeachIdentityProviderFunc(
@@ -124,7 +128,7 @@ func (c *Client) Concat(targetPath string, r resource.Resources) (resource.Resou
 				if err != nil {
 					// Close the already opened.
 					for _, rcs := range rcsources {
-						rcs.Close()
+						_ = rcs.Close()
 					}
 					return nil, err
 				}
@@ -137,7 +141,7 @@ func (c *Client) Concat(targetPath string, r resource.Resources) (resource.Resou
 			if resolvedm.MainType == media.Builtin.JavascriptType.MainType && resolvedm.SubType == media.Builtin.JavascriptType.SubType {
 				readers := make([]hugio.ReadSeekCloser, 2*len(rcsources)-1)
 				j := 0
-				for i := 0; i < len(rcsources); i++ {
+				for i := range rcsources {
 					if i > 0 {
 						readers[j] = hugio.NewReadSeekerNoOpCloserFromString("\n;\n")
 						j++

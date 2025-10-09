@@ -74,7 +74,7 @@ func TestMerge(t *testing.T) {
 			false,
 		},
 		{
-			// https://github.com/neohugo/neohugo/issues/6633
+			// https://github.com/gohugoio/hugo/issues/6633
 			"params dst",
 			[]any{
 				map[string]any{"a": 42, "c": 3},
@@ -120,7 +120,7 @@ func TestMerge(t *testing.T) {
 			false,
 		},
 		{
-			// https://github.com/neohugo/neohugo/issues/7899
+			// https://github.com/gohugoio/hugo/issues/7899
 			"matching keys with non-map src value",
 			[]any{
 				map[string]any{"k": "v"},
@@ -156,6 +156,18 @@ func TestMerge(t *testing.T) {
 			c.Assert(err, qt.IsNil)
 			c.Assert(result, qt.DeepEquals, test.expect, errMsg)
 		})
+	}
+}
+
+func BenchmarkMerge(b *testing.B) {
+	ns := newNs()
+
+	for i := 0; i < b.N; i++ {
+		_, _ = ns.Merge(
+			map[string]any{"a": 42, "c": 3, "e": 11},
+			map[string]any{"a": 1, "b": 2},
+			map[string]any{"a": 9, "c": 4, "d": 7},
+		)
 	}
 }
 

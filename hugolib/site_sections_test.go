@@ -115,7 +115,7 @@ PAG|{{ .Title }}|{{ $sect.InSection . }}
 {{ $sections := (.Site.GetPage "section" .Section).Sections.ByWeight }}
 </html>`)
 
-	cfg.Set("paginate", 2)
+	cfg.Set("pagination.pagerSize", 2)
 
 	th, configs := newTestHelperFromProvider(cfg, fs, t)
 
@@ -397,4 +397,27 @@ Kind: {{ .Kind }}|RelPermalink: {{ .RelPermalink }}|SectionsPath: {{ .SectionsPa
 	b.AssertFileContent("public/a/b/c/index.html", "RelPermalink: /a/b/c/|SectionsPath: /a/b/c|SectionsEntries: [a b c]|Len: 3")
 	b.AssertFileContent("public/a/b/c/mybundle/index.html", "Kind: page|RelPermalink: /a/b/c/mybundle/|SectionsPath: /a/b/c|SectionsEntries: [a b c]|Len: 3")
 	b.AssertFileContent("public/index.html", "Kind: home|RelPermalink: /|SectionsPath: /|SectionsEntries: []|Len: 0")
+}
+
+func TestParentWithPageOverlap(t *testing.T) {
+	files := `
+-- hugo.toml --
+baseURL = "https://example.com/"
+-- content/docs/_index.md --
+-- content/docs/logs/_index.md --
+-- content/docs/logs/sdk.md --
+-- content/docs/logs/sdk_exporters/stdout.md --
+-- layouts/_default/list.html --
+{{ .RelPermalink }}|{{ with .Parent}}{{ .RelPermalink }}{{ end }}|
+-- layouts/_default/single.html --
+{{ .RelPermalink }}|{{ with .Parent}}{{ .RelPermalink }}{{ end }}|
+
+`
+	b := Test(t, files)
+
+	b.AssertFileContent("public/index.html", "/||")
+	b.AssertFileContent("public/docs/index.html", "/docs/|/|")
+	b.AssertFileContent("public/docs/logs/index.html", "/docs/logs/|/docs/|")
+	b.AssertFileContent("public/docs/logs/sdk/index.html", "/docs/logs/sdk/|/docs/logs/|")
+	b.AssertFileContent("public/docs/logs/sdk_exporters/stdout/index.html", "/docs/logs/sdk_exporters/stdout/|/docs/logs/|")
 }

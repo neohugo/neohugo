@@ -73,7 +73,7 @@ func (c *Cache) Prune(force bool) (int, error) {
 				return nil
 			}
 			_, err = f.Readdirnames(1)
-			f.Close()
+			_ = f.Close()
 			if err == io.EOF {
 				// Empty dir.
 				if name == "." {

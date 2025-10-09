@@ -72,7 +72,7 @@ lang="en"
 
 		hugoWorkFilename := filepath.Join(tempDir, "hugo.work")
 		f, _ := os.Create(hugoWorkFilename)
-		f.Close()
+		_ = f.Close()
 		cfg, err := config.FromConfigString(fmt.Sprintf(tomlConfig, tempDir), "toml")
 		c.Assert(err, qt.IsNil)
 

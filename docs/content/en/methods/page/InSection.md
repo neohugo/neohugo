@@ -17,7 +17,7 @@ action:
 toc: true
 ---
 
-The `InSection` method on a page object reports whether the given page is in the given section. Note that the method returns `true` when comparing a page to a sibling.
+The `InSection` method on a `Page` object reports whether the given page is in the given section. Note that the method returns `true` when comparing a page to a sibling.
 
 {{% include "methods/page/_common/definition-of-section.md" %}}
 
@@ -98,5 +98,5 @@ Gaining a thorough understanding of context is critical for anyone writing templ
 {{% /note %}}
 
 [context]: /getting-started/glossary/#context
-[`with`]: /functions/go-template/with
-[`else`]: /functions/go-template/else
+[`with`]: /functions/go-template/with/
+[`else`]: /functions/go-template/else/

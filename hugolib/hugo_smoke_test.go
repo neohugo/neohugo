@@ -41,7 +41,7 @@ Home: {{ .Title }}
 		IntegrationTestConfig{
 			T:           t,
 			TxtarString: files,
-			LogLevel:    logg.LevelTrace,
+			// LogLevel:    logg.LevelTrace,
 		},
 	).Build()
 
@@ -76,12 +76,13 @@ Single: {{ .Title }}|{{ .RelPermalink}}|{{ range .OutputFormats }}{{ .Name }}: {
 
 `
 
-	b := Test(t, files)
-
-	b.AssertFileContent("public/index.html", `List: |/|html: /|rss: /index.xml|$`)
-	b.AssertFileContent("public/index.xml", `List xml: |/|html: /|rss: /index.xml|$`)
-	b.AssertFileContent("public/p1/index.html", `Single: Page|/p1/|html: /p1/|$`)
-	b.AssertFileExists("public/p1/index.xml", false)
+	for i := 0; i < 2; i++ {
+		b := Test(t, files)
+		b.AssertFileContent("public/index.html", `List: |/|html: /|rss: /index.xml|$`)
+		b.AssertFileContent("public/index.xml", `List xml: |/|html: /|rss: /index.xml|$`)
+		b.AssertFileContent("public/p1/index.html", `Single: Page|/p1/|html: /p1/|$`)
+		b.AssertFileExists("public/p1/index.xml", false)
+	}
 }
 
 func TestSmoke(t *testing.T) {
@@ -107,10 +108,13 @@ func TestSmoke(t *testing.T) {
 baseURL = "https://example.com"
 title = "Smoke Site"
 rssLimit = 3
-paginate = 1
 defaultContentLanguage = "en"
 defaultContentLanguageInSubdir = true
 enableRobotsTXT = true
+
+[pagination]
+pagerSize = 1
+
 [taxonomies]
 category = 'categories'
 tag = 'tags'
@@ -434,10 +438,10 @@ func TestDataRace(t *testing.T) {
 ---
 title: "The Page"
 outputs: ["HTML", "JSON"]
----	
+---
 
 The content.
-	
+
 
 	`
 
@@ -450,10 +454,10 @@ The content.
 ---
 title: "The Home"
 outputs: ["HTML", "JSON", "CSV", "RSS"]
----	
+---
 
 The content.
-	
+
 
 `)
 

@@ -140,7 +140,7 @@ func (b *BaseFs) WatchFilenames() []string {
 					},
 				})
 
-				w.Walk() // nolint
+				_ = w.Walk()
 			}
 
 		}
@@ -193,7 +193,7 @@ func (b *BaseFs) AbsProjectContentDir(filename string) (string, string, error) {
 		// A filename on the form "posts/mypage.md", put it inside
 		// the first content folder, usually <workDir>/content.
 		// Pick the first project dir (which is probably the most important one).
-		for _, dir := range b.SourceFilesystems.Content.mounts() {
+		for _, dir := range b.Content.mounts() {
 			if !dir.IsDir() {
 				continue
 			}
@@ -299,11 +299,11 @@ func (s SourceFilesystems) StatResource(lang, filename string) (fi os.FileInfo, 
 		fs = fsToCheck
 		fi, err = fs.Stat(filename)
 		if err == nil || !herrors.IsNotExist(err) {
-			return
+			return fi, fs, err
 		}
 	}
 	// Not found.
-	return
+	return fi, fs, err
 }
 
 // IsStatic returns true if the given filename is a member of one of the static
@@ -397,7 +397,7 @@ func (d *SourceFilesystem) mounts() []hugofs.FileMetaInfo {
 	})
 
 	// Filter out any mounts not belonging to this filesystem.
-	// TODO(bep) I think this is superflous.
+	// TODO(bep) I think this is superfluous.
 	n := 0
 	for _, mm := range m {
 		if mm.Meta().Component == d.Name {
@@ -634,7 +634,7 @@ func (b *sourceFilesystemsBuilder) createMainOverlayFs(p *paths.Paths) (*filesys
 
 	mounts := make([]mountsDescriptor, len(mods))
 
-	for i := 0; i < len(mods); i++ {
+	for i := range mods {
 		mod := mods[i]
 		dir := mod.Dir()
 
@@ -716,11 +716,11 @@ func (b *sourceFilesystemsBuilder) createOverlayFs(
 				From:          mount.Target,
 				To:            filename,
 				ToBase:        base,
-				Module:        md.Module.Path(),
+				Module:        md.Path(),
 				ModuleOrdinal: md.ordinal,
 				IsProject:     md.isMainProject,
 				Meta: &hugofs.FileMeta{
-					Watch:           md.Watch(),
+					Watch:           !mount.DisableWatch && md.Watch(),
 					Weight:          mountWeight,
 					InclusionFilter: inclusionFilter,
 				},

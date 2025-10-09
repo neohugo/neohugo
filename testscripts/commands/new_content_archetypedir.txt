@@ -1,5 +1,5 @@
 mkdir content
-hugo new content --kind mybundle post/first-post
+neohugo new content --kind mybundle post/first-post
 grep 'First Post' content/post/first-post/index.md
 grep 'Site Lang: en' content/post/first-post/index.md
 grep 'Site Lang: no' content/post/first-post/index.no.md
@@ -22,7 +22,7 @@ date: {{ .Date }}
 draft: true
 ---
 
-Site Lang: {{ site.Language.Lang  }}.	
+Site Lang: {{ site.Language.Lang  }}.
 -- archetypes/mybundle/index.no.md --
 ---
 title: "{{ replace .Name "-" " " | title }}"
@@ -30,7 +30,7 @@ date: {{ .Date }}
 draft: true
 ---
 
-Site Lang: {{ site.Language.Lang  }}.	
+Site Lang: {{ site.Language.Lang  }}.
 
 -- archetypes/mybundle/file.txt --
 A text file.

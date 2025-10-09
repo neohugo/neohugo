@@ -8,7 +8,7 @@ cp $SOURCE/resources/testdata/pix.gif static/images/p3.gif
 cp $SOURCE/resources/testdata/pix.gif static/images/p4.gif
 
 
-hugo
+neohugo
 
 stdout 'Pages.*3.*2'
 stdout 'Processed images.*2.*1'

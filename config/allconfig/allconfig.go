@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -27,11 +28,11 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/cache/filecache"
+	"github.com/neohugo/neohugo/cache/httpcache"
 	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/common/maps"
 	"github.com/neohugo/neohugo/common/neohugo"
 	"github.com/neohugo/neohugo/common/paths"
-	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/common/urls"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/privacy"
@@ -39,7 +40,9 @@ import (
 	"github.com/neohugo/neohugo/config/services"
 	"github.com/neohugo/neohugo/deploy/deployconfig"
 	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugolib/segments"
 	"github.com/neohugo/neohugo/langs"
+	gc "github.com/neohugo/neohugo/markup/goldmark/goldmark_config"
 	"github.com/neohugo/neohugo/markup/markup_config"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/minifiers"
@@ -80,7 +83,7 @@ func init() {
 	}
 	configLanguageKeys = make(map[string]bool)
 	addKeys := func(v reflect.Value) {
-		for i := 0; i < v.NumField(); i++ {
+		for i := range v.NumField() {
 			name := strings.ToLower(v.Type().Field(i).Name)
 			if skip[name] {
 				continue
@@ -103,9 +106,11 @@ type Config struct {
 	RootConfig
 
 	// Author information.
+	// Deprecated: Use taxonomies instead.
 	Author map[string]any
 
 	// Social links.
+	// Deprecated: Use .Site.Params instead.
 	Social map[string]string
 
 	// The build configuration section contains build-related configuration options.
@@ -116,9 +121,16 @@ type Config struct {
 	// <docsmeta>{"identifiers": ["caches"] }</docsmeta>
 	Caches filecache.Configs `mapstructure:"-"`
 
+	// The httpcache configuration section contains HTTP-cache-related configuration options.
+	// <docsmeta>{"identifiers": ["httpcache"] }</docsmeta>
+	HTTPCache httpcache.Config `mapstructure:"-"`
+
 	// The markup configuration section contains markup-related configuration options.
 	// <docsmeta>{"identifiers": ["markup"] }</docsmeta>
 	Markup markup_config.Config `mapstructure:"-"`
+
+	// ContentTypes are the media types that's considered content in Hugo.
+	ContentTypes *config.ConfigNamespace[map[string]media.ContentTypeConfig, media.ContentTypes] `mapstructure:"-"`
 
 	// The mediatypes configuration section maps the MIME type (a string) to a configuration object for that type.
 	// <docsmeta>{"identifiers": ["mediatypes"], "refs": ["types:media:type"] }</docsmeta>
@@ -135,7 +147,10 @@ type Config struct {
 
 	// The cascade configuration section contains the top level front matter cascade configuration options,
 	// a slice of page matcher and params to apply to those pages.
-	Cascade *config.ConfigNamespace[[]page.PageMatcherParamsConfig, map[page.PageMatcher]maps.Params] `mapstructure:"-"`
+	Cascade *config.ConfigNamespace[[]page.PageMatcherParamsConfig, *maps.Ordered[page.PageMatcher, page.PageMatcherParamsConfig]] `mapstructure:"-"`
+
+	// The segments defines segments for the site. Used for partial/segmented builds.
+	Segments *config.ConfigNamespace[map[string]segments.SegmentConfig, segments.Segments] `mapstructure:"-"`
 
 	// Menu configuration.
 	// <docsmeta>{"refs": ["config:languages:menus"] }</docsmeta>
@@ -167,6 +182,12 @@ type Config struct {
 
 	// Server configuration.
 	Server config.Server `mapstructure:"-"`
+
+	// Pagination configuration.
+	Pagination config.Pagination `mapstructure:"-"`
+
+	// Page configuration.
+	Page config.PageConfig `mapstructure:"-"`
 
 	// Privacy configuration.
 	Privacy privacy.Config `mapstructure:"-"`
@@ -284,6 +305,18 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		}
 	}
 
+	defaultOutputFormat := outputFormats[0]
+	c.DefaultOutputFormat = strings.ToLower(c.DefaultOutputFormat)
+	if c.DefaultOutputFormat != "" {
+		f, found := outputFormats.GetByName(c.DefaultOutputFormat)
+		if !found {
+			return fmt.Errorf("unknown default output format %q", c.DefaultOutputFormat)
+		}
+		defaultOutputFormat = f
+	} else {
+		c.DefaultOutputFormat = defaultOutputFormat.Name
+	}
+
 	disabledLangs := make(map[string]bool)
 	for _, lang := range c.DisableLanguages {
 		disabledLangs[lang] = true
@@ -301,9 +334,13 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		}
 	}
 
+	for i, s := range c.IgnoreLogs {
+		c.IgnoreLogs[i] = strings.ToLower(s)
+	}
+
 	ignoredLogIDs := make(map[string]bool)
 	for _, err := range c.IgnoreLogs {
-		ignoredLogIDs[strings.ToLower(err)] = true
+		ignoredLogIDs[err] = true
 	}
 
 	baseURL, err := urls.NewBaseURLFromString(c.BaseURL)
@@ -353,20 +390,107 @@ func (c *Config) CompileConfig(logger loggers.Logger) error {
 		}
 	}
 
+	httpCache, err := c.HTTPCache.Compile()
+	if err != nil {
+		return err
+	}
+
+	// Legacy paginate values.
+	if c.Paginate != 0 {
+		neohugo.DeprecateWithLogger("site config key paginate", "Use pagination.pagerSize instead.", "v0.128.0", logger.Logger())
+		c.Pagination.PagerSize = c.Paginate
+	}
+
+	if c.PaginatePath != "" {
+		neohugo.DeprecateWithLogger("site config key paginatePath", "Use pagination.path instead.", "v0.128.0", logger.Logger())
+		c.Pagination.Path = c.PaginatePath
+	}
+
+	// Legacy privacy values.
+	if c.Privacy.Twitter.Disable {
+		neohugo.DeprecateWithLogger("site config key privacy.twitter.disable", "Use privacy.x.disable instead.", "v0.141.0", logger.Logger())
+		c.Privacy.X.Disable = c.Privacy.Twitter.Disable
+	}
+	if c.Privacy.Twitter.EnableDNT {
+		neohugo.DeprecateWithLogger("site config key privacy.twitter.enableDNT", "Use privacy.x.enableDNT instead.", "v0.141.0", logger.Logger())
+		c.Privacy.X.EnableDNT = c.Privacy.Twitter.EnableDNT
+	}
+	if c.Privacy.Twitter.Simple {
+		neohugo.DeprecateWithLogger("site config key privacy.twitter.simple", "Use privacy.x.simple instead.", "v0.141.0", logger.Logger())
+		c.Privacy.X.Simple = c.Privacy.Twitter.Simple
+	}
+
+	// Legacy services values.
+	if c.Services.Twitter.DisableInlineCSS {
+		neohugo.DeprecateWithLogger("site config key services.twitter.disableInlineCSS", "Use services.x.disableInlineCSS instead.", "v0.141.0", logger.Logger())
+		c.Services.X.DisableInlineCSS = c.Services.Twitter.DisableInlineCSS
+	}
+
+	// Legacy permalink tokens
+	vs := fmt.Sprintf("%v", c.Permalinks)
+	if strings.Contains(vs, ":filename") {
+		neohugo.DeprecateWithLogger("the \":filename\" permalink token", "Use \":contentbasename\" instead.", "0.144.0", logger.Logger())
+	}
+	if strings.Contains(vs, ":slugorfilename") {
+		neohugo.DeprecateWithLogger("the \":slugorfilename\" permalink token", "Use \":slugorcontentbasename\" instead.", "0.144.0", logger.Logger())
+	}
+
+	// Legacy render hook values.
+	alternativeDetails := fmt.Sprintf(
+		"Set to %q if previous value was false, or set to %q if previous value was true.",
+		gc.RenderHookUseEmbeddedNever,
+		gc.RenderHookUseEmbeddedFallback,
+	)
+	if c.Markup.Goldmark.RenderHooks.Image.EnableDefault != nil {
+		alternative := "Use markup.goldmark.renderHooks.image.useEmbedded instead." + " " + alternativeDetails
+		neohugo.DeprecateWithLogger("site config key markup.goldmark.renderHooks.image.enableDefault", alternative, "0.148.0", logger.Logger())
+		if *c.Markup.Goldmark.RenderHooks.Image.EnableDefault {
+			c.Markup.Goldmark.RenderHooks.Image.UseEmbedded = gc.RenderHookUseEmbeddedFallback
+		} else {
+			c.Markup.Goldmark.RenderHooks.Image.UseEmbedded = gc.RenderHookUseEmbeddedNever
+		}
+	}
+	if c.Markup.Goldmark.RenderHooks.Link.EnableDefault != nil {
+		alternative := "Use markup.goldmark.renderHooks.link.useEmbedded instead." + " " + alternativeDetails
+		neohugo.DeprecateWithLogger("site config key markup.goldmark.renderHooks.link.enableDefault", alternative, "0.148.0", logger.Logger())
+		if *c.Markup.Goldmark.RenderHooks.Link.EnableDefault {
+			c.Markup.Goldmark.RenderHooks.Link.UseEmbedded = gc.RenderHookUseEmbeddedFallback
+		} else {
+			c.Markup.Goldmark.RenderHooks.Link.UseEmbedded = gc.RenderHookUseEmbeddedNever
+		}
+	}
+
+	// Validate render hook configuration.
+	renderHookUseEmbeddedModes := []string{
+		gc.RenderHookUseEmbeddedAlways,
+		gc.RenderHookUseEmbeddedAuto,
+		gc.RenderHookUseEmbeddedFallback,
+		gc.RenderHookUseEmbeddedNever,
+	}
+	if !slices.Contains(renderHookUseEmbeddedModes, c.Markup.Goldmark.RenderHooks.Image.UseEmbedded) {
+		return fmt.Errorf("site config markup.goldmark.renderHooks.image must be one of %s", helpers.StringSliceToList(renderHookUseEmbeddedModes, "or"))
+	}
+	if !slices.Contains(renderHookUseEmbeddedModes, c.Markup.Goldmark.RenderHooks.Link.UseEmbedded) {
+		return fmt.Errorf("site config markup.goldmark.renderHooks.link must be one of %s", helpers.StringSliceToList(renderHookUseEmbeddedModes, "or"))
+	}
+
 	c.C = &ConfigCompiled{
-		Timeout:           timeout,
-		BaseURL:           baseURL,
-		BaseURLLiveReload: baseURL,
-		DisabledKinds:     disabledKinds,
-		DisabledLanguages: disabledLangs,
-		IgnoredLogs:       ignoredLogIDs,
-		KindOutputFormats: kindOutputFormats,
-		CreateTitle:       helpers.GetTitleFunc(c.TitleCaseStyle),
-		IsUglyURLSection:  isUglyURL,
-		IgnoreFile:        ignoreFile,
-		MainSections:      c.MainSections,
-		Clock:             clock,
-		transientErr:      transientErr,
+		Timeout:             timeout,
+		BaseURL:             baseURL,
+		BaseURLLiveReload:   baseURL,
+		DisabledKinds:       disabledKinds,
+		DisabledLanguages:   disabledLangs,
+		IgnoredLogs:         ignoredLogIDs,
+		KindOutputFormats:   kindOutputFormats,
+		DefaultOutputFormat: defaultOutputFormat,
+		CreateTitle:         helpers.GetTitleFunc(c.TitleCaseStyle),
+		IsUglyURLSection:    isUglyURL,
+		IgnoreFile:          ignoreFile,
+		SegmentFilter:       c.Segments.Config.Get(func(s string) { logger.Warnf("Render segment %q not found in configuration", s) }, c.RenderSegments...),
+		MainSections:        c.MainSections,
+		Clock:               clock,
+		HTTPCache:           httpCache,
+		transientErr:        transientErr,
 	}
 
 	for _, s := range allDecoderSetups {
@@ -390,18 +514,22 @@ func (c *Config) IsLangDisabled(lang string) bool {
 
 // ConfigCompiled holds values and functions that are derived from the config.
 type ConfigCompiled struct {
-	Timeout           time.Duration
-	BaseURL           urls.BaseURL
-	BaseURLLiveReload urls.BaseURL
-	KindOutputFormats map[string]output.Formats
-	DisabledKinds     map[string]bool
-	DisabledLanguages map[string]bool
-	IgnoredLogs       map[string]bool
-	CreateTitle       func(s string) string
-	IsUglyURLSection  func(section string) bool
-	IgnoreFile        func(filename string) bool
-	MainSections      []string
-	Clock             time.Time
+	Timeout             time.Duration
+	BaseURL             urls.BaseURL
+	BaseURLLiveReload   urls.BaseURL
+	ServerInterface     string
+	KindOutputFormats   map[string]output.Formats
+	DefaultOutputFormat output.Format
+	DisabledKinds       map[string]bool
+	DisabledLanguages   map[string]bool
+	IgnoredLogs         map[string]bool
+	CreateTitle         func(s string) string
+	IsUglyURLSection    func(section string) bool
+	IgnoreFile          func(filename string) bool
+	SegmentFilter       segments.SegmentFilter
+	MainSections        []string
+	Clock               time.Time
+	HTTPCache           httpcache.ConfigCompiled
 
 	// This is set to the last transient error found during config compilation.
 	// With themes/modules we compute the configuration in multiple passes, and
@@ -426,9 +554,10 @@ func (c *ConfigCompiled) IsMainSectionsSet() bool {
 }
 
 // This is set after the config is compiled by the server command.
-func (c *ConfigCompiled) SetBaseURL(baseURL, baseURLLiveReload urls.BaseURL) {
+func (c *ConfigCompiled) SetServerInfo(baseURL, baseURLLiveReload urls.BaseURL, serverInterface string) {
 	c.BaseURL = baseURL
 	c.BaseURLLiveReload = baseURLLiveReload
+	c.ServerInterface = serverInterface
 }
 
 // RootConfig holds all the top-level configuration options in Hugo
@@ -460,6 +589,13 @@ type RootConfig struct {
 	// Set this to true to put all languages below their language ID.
 	DefaultContentLanguageInSubdir bool
 
+	// The default output format to use for the site.
+	// If not set, we will use the first output format.
+	DefaultOutputFormat string
+
+	// Disable generation of redirect to the default language when DefaultContentLanguageInSubdir is enabled.
+	DisableDefaultLanguageRedirect bool
+
 	// Disable creation of alias redirect pages.
 	DisableAliases bool
 
@@ -471,6 +607,10 @@ type RootConfig struct {
 
 	// A list of languages to disable.
 	DisableLanguages []string
+
+	// The named segments to render.
+	// This needs to match the name of the segment in the segments configuration.
+	RenderSegments []string
 
 	// Disable the injection of the Hugo generator tag on the home page.
 	DisableHugoGeneratorInject bool
@@ -529,9 +669,11 @@ type RootConfig struct {
 	HasCJKLanguage bool
 
 	// The default number of pages per page when paginating.
+	// Deprecated: Use the Pagination struct.
 	Paginate int
 
 	// The path to use when creating pagination URLs, e.g. "page" in /page/2/.
+	// Deprecated: Use the Pagination struct.
 	PaginatePath string
 
 	// Whether to pluralize default list titles.
@@ -672,15 +814,16 @@ type Configs struct {
 }
 
 func (c *Configs) Validate(logger loggers.Logger) error {
-	for p := range c.Base.Cascade.Config {
+	c.Base.Cascade.Config.Range(func(p page.PageMatcher, cfg page.PageMatcherParamsConfig) bool {
 		page.CheckCascadePattern(logger, p)
-	}
+		return true
+	})
 	return nil
 }
 
 // transientErr returns the last transient error found during config compilation.
 func (c *Configs) transientErr() error {
-	for _, l := range c.LanguageConfigSlice {
+	for _, l := range c.LanguageConfigMap {
 		if l.C.transientErr != nil {
 			return l.C.transientErr
 		}
@@ -695,29 +838,56 @@ func (c *Configs) IsZero() bool {
 
 func (c *Configs) Init() error {
 	var languages langs.Languages
-	defaultContentLanguage := c.Base.DefaultContentLanguage
-	for k, v := range c.LanguageConfigMap {
+
+	var langKeys []string
+	var hasEn bool
+
+	const en = "en"
+
+	for k := range c.LanguageConfigMap {
+		langKeys = append(langKeys, k)
+		if k == en {
+			hasEn = true
+		}
+	}
+
+	// Sort the LanguageConfigSlice by language weight (if set) or lang.
+	sort.Slice(langKeys, func(i, j int) bool {
+		ki := langKeys[i]
+		kj := langKeys[j]
+		lki := c.LanguageConfigMap[ki]
+		lkj := c.LanguageConfigMap[kj]
+		li := lki.Languages[ki]
+		lj := lkj.Languages[kj]
+		if li.Weight != lj.Weight {
+			return li.Weight < lj.Weight
+		}
+		return ki < kj
+	})
+
+	// See issue #13646.
+	defaultConfigLanguageFallback := en
+	if !hasEn {
+		// Pick the first one.
+		defaultConfigLanguageFallback = langKeys[0]
+	}
+
+	if c.Base.DefaultContentLanguage == "" {
+		c.Base.DefaultContentLanguage = defaultConfigLanguageFallback
+	}
+
+	for _, k := range langKeys {
+		v := c.LanguageConfigMap[k]
+		if v.DefaultContentLanguage == "" {
+			v.DefaultContentLanguage = defaultConfigLanguageFallback
+		}
 		c.LanguageConfigSlice = append(c.LanguageConfigSlice, v)
 		languageConf := v.Languages[k]
-		language, err := langs.NewLanguage(k, defaultContentLanguage, v.TimeZone, languageConf)
+		language, err := langs.NewLanguage(k, c.Base.DefaultContentLanguage, v.TimeZone, languageConf)
 		if err != nil {
 			return err
 		}
 		languages = append(languages, language)
-	}
-
-	// Sort the sites by language weight (if set) or lang.
-	sort.Slice(languages, func(i, j int) bool {
-		li := languages[i]
-		lj := languages[j]
-		if li.Weight != lj.Weight {
-			return li.Weight < lj.Weight
-		}
-		return li.Lang < lj.Lang
-	})
-
-	for _, l := range languages {
-		c.LanguageConfigSlice = append(c.LanguageConfigSlice, c.LanguageConfigMap[l.Lang])
 	}
 
 	// Filter out disabled languages.
@@ -732,12 +902,12 @@ func (c *Configs) Init() error {
 
 	var languagesDefaultFirst langs.Languages
 	for _, l := range languages {
-		if l.Lang == defaultContentLanguage {
+		if l.Lang == c.Base.DefaultContentLanguage {
 			languagesDefaultFirst = append(languagesDefaultFirst, l)
 		}
 	}
 	for _, l := range languages {
-		if l.Lang != defaultContentLanguage {
+		if l.Lang != c.Base.DefaultContentLanguage {
 			languagesDefaultFirst = append(languagesDefaultFirst, l)
 		}
 	}
@@ -745,7 +915,24 @@ func (c *Configs) Init() error {
 	c.Languages = languages
 	c.LanguagesDefaultFirst = languagesDefaultFirst
 
-	c.ContentPathParser = &paths.PathParser{LanguageIndex: languagesDefaultFirst.AsIndexSet(), IsLangDisabled: c.Base.IsLangDisabled}
+	c.ContentPathParser = &paths.PathParser{
+		LanguageIndex:  languagesDefaultFirst.AsIndexSet(),
+		IsLangDisabled: c.Base.IsLangDisabled,
+		IsContentExt:   c.Base.ContentTypes.Config.IsContentSuffix,
+		IsOutputFormat: func(name, ext string) bool {
+			if name == "" {
+				return false
+			}
+
+			if of, ok := c.Base.OutputFormats.Config.GetByName(name); ok {
+				if ext != "" && !of.MediaType.HasSuffix(ext) {
+					return false
+				}
+				return true
+			}
+			return false
+		},
+	}
 
 	c.configLangs = make([]config.AllProvider, len(c.Languages))
 	for i, l := range c.LanguagesDefaultFirst {
@@ -758,7 +945,7 @@ func (c *Configs) Init() error {
 	}
 
 	if len(c.Modules) == 0 {
-		return errors.New("no modules loaded (ned at least the main module)")
+		return errors.New("no modules loaded (need at least the main module)")
 	}
 
 	// Apply default project mounts.
@@ -806,17 +993,48 @@ func (c Configs) GetByLang(lang string) config.AllProvider {
 	return nil
 }
 
+func newDefaultConfig() *Config {
+	return &Config{
+		Taxonomies: map[string]string{"tag": "tags", "category": "categories"},
+		Sitemap:    config.SitemapConfig{Priority: -1, Filename: "sitemap.xml"},
+		RootConfig: RootConfig{
+			Environment:          neohugo.EnvironmentProduction,
+			TitleCaseStyle:       "AP",
+			PluralizeListTitles:  true,
+			CapitalizeListTitles: true,
+			StaticDir:            []string{"static"},
+			SummaryLength:        70,
+			Timeout:              "60s",
+
+			CommonDirs: config.CommonDirs{
+				ArcheTypeDir: "archetypes",
+				ContentDir:   "content",
+				ResourceDir:  "resources",
+				PublishDir:   "public",
+				ThemesDir:    "themes",
+				AssetDir:     "assets",
+				LayoutDir:    "layouts",
+				I18nDir:      "i18n",
+				DataDir:      "data",
+			},
+		},
+	}
+}
+
 // fromLoadConfigResult creates a new Config from res.
 func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadConfigResult) (*Configs, error) {
 	if !res.Cfg.IsSet("languages") {
 		// We need at least one
 		lang := res.Cfg.GetString("defaultContentLanguage")
+		if lang == "" {
+			lang = "en"
+		}
 		res.Cfg.Set("languages", maps.Params{lang: maps.Params{}})
 	}
 	bcfg := res.BaseConfig
 	cfg := res.Cfg
 
-	all := &Config{}
+	all := newDefaultConfig()
 
 	err := decodeConfigFromParams(fs, logger, bcfg, cfg, all, nil)
 	if err != nil {
@@ -826,7 +1044,7 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 	langConfigMap := make(map[string]*Config)
 
 	languagesConfig := cfg.GetStringMap("languages")
-	var isMultiHost bool
+	var isMultihost bool
 
 	if err := all.CompileConfig(logger); err != nil {
 		return nil, err
@@ -837,33 +1055,20 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 		var differentRootKeys []string
 		switch x := v.(type) {
 		case maps.Params:
-			var params maps.Params
-			pv, found := x["params"]
-			if found {
-				params = pv.(maps.Params)
-			} else {
-				params = maps.Params{
+			_, found := x["params"]
+			if !found {
+				x["params"] = maps.Params{
 					maps.MergeStrategyKey: maps.ParamsMergeStrategyDeep,
 				}
-				x["params"] = params
 			}
 
 			for kk, vv := range x {
 				if kk == "_merge" {
 					continue
 				}
-				if kk != maps.MergeStrategyKey && !configLanguageKeys[kk] {
-					// This should have been placed below params.
-					// We accidentally allowed it in the past, so we need to support it a little longer,
-					// But log a warning.
-					if _, found := params[kk]; !found {
-						neohugo.Deprecate(fmt.Sprintf("config: languages.%s.%s: custom params on the language top level", k, kk), fmt.Sprintf("Put the value below [languages.%s.params]. See https://gohugo.io/content-management/multilingual/#changes-in-hugo-01120", k), "v0.112.0")
-						params[kk] = vv
-					}
-				}
 				if kk == "baseurl" {
 					// baseURL configure don the language level is a multihost setup.
-					isMultiHost = true
+					isMultihost = true
 				}
 				mergedConfig.Set(kk, vv)
 				rootv := cfg.Get(kk)
@@ -913,14 +1118,12 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 			}
 
 			// Adjust Goldmark config defaults for multilingual, single-host sites.
-			if len(languagesConfig) > 1 && !isMultiHost && !clone.Markup.Goldmark.DuplicateResourceFiles {
-				if !clone.Markup.Goldmark.DuplicateResourceFiles {
-					if clone.Markup.Goldmark.RenderHooks.Link.EnableDefault == nil {
-						clone.Markup.Goldmark.RenderHooks.Link.EnableDefault = types.NewBool(true)
-					}
-					if clone.Markup.Goldmark.RenderHooks.Image.EnableDefault == nil {
-						clone.Markup.Goldmark.RenderHooks.Image.EnableDefault = types.NewBool(true)
-					}
+			if len(languagesConfig) > 1 && !isMultihost && !clone.Markup.Goldmark.DuplicateResourceFiles {
+				if clone.Markup.Goldmark.RenderHooks.Image.UseEmbedded == gc.RenderHookUseEmbeddedAuto {
+					clone.Markup.Goldmark.RenderHooks.Image.UseEmbedded = gc.RenderHookUseEmbeddedFallback
+				}
+				if clone.Markup.Goldmark.RenderHooks.Link.UseEmbedded == gc.RenderHookUseEmbeddedAuto {
+					clone.Markup.Goldmark.RenderHooks.Link.UseEmbedded = gc.RenderHookUseEmbeddedFallback
 				}
 			}
 
@@ -934,16 +1137,16 @@ func fromLoadConfigResult(fs afero.Fs, logger loggers.Logger, res config.LoadCon
 
 	bcfg.PublishDir = all.PublishDir
 	res.BaseConfig = bcfg
-	all.CommonDirs.CacheDir = bcfg.CacheDir
+	all.CacheDir = bcfg.CacheDir
 	for _, l := range langConfigMap {
-		l.CommonDirs.CacheDir = bcfg.CacheDir
+		l.CacheDir = bcfg.CacheDir
 	}
 
 	cm := &Configs{
 		Base:              all,
 		LanguageConfigMap: langConfigMap,
 		LoadingInfo:       res,
-		IsMultihost:       isMultiHost,
+		IsMultihost:       isMultihost,
 	}
 
 	return cm, nil

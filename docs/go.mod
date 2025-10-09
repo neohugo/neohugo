@@ -1,5 +1,5 @@
 module github.com/gohugoio/hugoDocs
 
-go 1.16
+go 1.22.0
 
-require github.com/gohugoio/gohugoioTheme v0.0.0-20240201183016-8e648a3b5342 // indirect
+require github.com/gohugoio/gohugoioTheme v0.0.0-20241119115653-b92d27ede3e1 // indirect

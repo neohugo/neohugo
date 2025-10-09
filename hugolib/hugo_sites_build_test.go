@@ -113,13 +113,13 @@ CONTENT
 The End.
 `
 
-	contentTempl = strings.Replace(contentTempl, "CONTENT", strings.Repeat(`
+	contentTempl = strings.ReplaceAll(contentTempl, "CONTENT", strings.Repeat(`
 	
 ## Another header
 
 Some text. Some more text.
 
-`, 100), -1)
+`, 100))
 
 	var content []string
 	defaultOutputs := `outputs: ["html", "json", "rss" ]`

@@ -168,7 +168,7 @@ func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.
 		lexer = chromalexers.Get(lang)
 	}
 
-	if lexer == nil && (cfg.GuessSyntax && !cfg.NoHl) {
+	if lexer == nil && cfg.GuessSyntax {
 		lexer = lexers.Analyse(code)
 		if lexer == nil {
 			lexer = lexers.Fallback
@@ -180,12 +180,12 @@ func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.
 
 	if lexer == nil {
 		if cfg.Hl_inline {
-			fmt.Fprintf(w, "<code%s>%s</code>", inlineCodeAttrs(lang), gohtml.EscapeString(code))
+			_, _ = fmt.Fprintf(w, "<code%s>%s</code>", inlineCodeAttrs(lang), gohtml.EscapeString(code))
 		} else {
 			preWrapper := getPreWrapper(lang, w)
-			fmt.Fprint(w, preWrapper.Start(true, ""))
-			fmt.Fprint(w, gohtml.EscapeString(code))
-			fmt.Fprint(w, preWrapper.End(true))
+			_, _ = fmt.Fprint(w, preWrapper.Start(true, ""))
+			_, _ = fmt.Fprint(w, gohtml.EscapeString(code))
+			_, _ = fmt.Fprint(w, preWrapper.End(true))
 		}
 		return 0, 0, nil
 	}
@@ -202,7 +202,7 @@ func highlight(fw hugio.FlexiWriter, code, lang string, attributes []attributes.
 	}
 
 	if !cfg.Hl_inline {
-		writeDivStart(w, attributes)
+		writeDivStart(w, attributes, cfg.WrapperClass)
 	}
 
 	options := cfg.toHTMLOptions()
@@ -274,13 +274,13 @@ func inlineCodeAttrs(lang string) string {
 }
 
 func WritePreStart(w io.Writer, language, styleAttr string) {
-	fmt.Fprintf(w, `<pre tabindex="0"%s>`, styleAttr)
-	fmt.Fprint(w, "<code")
+	_, _ = fmt.Fprintf(w, `<pre tabindex="0"%s>`, styleAttr)
+	_, _ = fmt.Fprint(w, "<code")
 	if language != "" {
-		fmt.Fprint(w, ` class="language-`+language+`"`)
-		fmt.Fprint(w, ` data-lang="`+language+`"`)
+		_, _ = fmt.Fprint(w, ` class="language-`+language+`"`)
+		_, _ = fmt.Fprint(w, ` data-lang="`+language+`"`)
 	}
-	fmt.Fprint(w, ">")
+	_, _ = fmt.Fprint(w, ">")
 }
 
 const preEnd = "</code></pre>"
@@ -303,9 +303,9 @@ func (s startEnd) End(code bool) string {
 	return s.end(code)
 }
 
-func writeDivStart(w hugio.FlexiWriter, attrs []attributes.Attribute) {
-	//nolint
-	w.WriteString(`<div class="highlight`)
+func writeDivStart(w hugio.FlexiWriter, attrs []attributes.Attribute, wrapperClass string) {
+	_, _ = w.WriteString(`<div class="`)
+	_, _ = w.WriteString(wrapperClass)
 	if attrs != nil {
 		for _, attr := range attrs {
 			if attr.Name == "class" {

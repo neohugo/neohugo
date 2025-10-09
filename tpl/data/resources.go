@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/neohugo/neohugo/cache/filecache"
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/spf13/afero"
 )
 
@@ -41,11 +41,10 @@ func (ns *Namespace) getRemote(cache *filecache.Cache, unmarshal func([]byte) (b
 	if err := ns.deps.ExecHelper.Sec().CheckAllowedHTTPMethod("GET"); err != nil {
 		return err
 	}
+
 	var headers bytes.Buffer
-	if err := req.Header.Write(&headers); err != nil {
-		return err
-	}
-	id := helpers.MD5String(url + headers.String())
+	_ = req.Header.Write(&headers)
+	id := hashing.MD5FromStringHexEncoded(url + headers.String())
 	var handled bool
 	var retry bool
 
@@ -65,7 +64,7 @@ func (ns *Namespace) getRemote(cache *filecache.Cache, unmarshal func([]byte) (b
 			if err != nil {
 				return nil, err
 			}
-			res.Body.Close()
+			defer func() { _ = res.Body.Close() }()
 
 			if isHTTPError(res) {
 				return nil, fmt.Errorf("failed to retrieve remote file: %s, body: %q", http.StatusText(res.StatusCode), b)

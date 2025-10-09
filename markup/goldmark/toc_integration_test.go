@@ -239,12 +239,12 @@ title: p7 (emoji)
 
 	// image
 	b.AssertFileContent("public/p3/index.html", `
-<li><a href="#an-image-kittenajpg">An image <img src="a.jpg" alt="kitten" /></a></li>
+<li><a href="#an-image-kitten">An image <img src="a.jpg" alt="kitten" /></a></li>
 `)
 
 	// raw html
 	b.AssertFileContent("public/p4/index.html", `
-<li><a href="#some-spanrawspan-html">Some <span>raw</span> HTML</a></li>
+<li><a href="#some-raw-html">Some <span>raw</span> HTML</a></li>
 `)
 
 	// typographer
@@ -258,7 +258,29 @@ title: p7 (emoji)
 `)
 
 	// emoji
+
 	b.AssertFileContent("public/p7/index.html", `
 <li><a href="#a-snake-emoji">A &#x1f40d; emoji</a></li>
 `)
+}
+
+func TestIssue13416(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/index.html --
+Content:{{ .Content }}|
+-- layouts/_default/_markup/render-heading.html --
+-- content/_index.md --
+---
+title: home
+---
+#
+`
+
+	b := hugolib.Test(t, files)
+
+	b.AssertFileExists("public/index.html", true)
 }

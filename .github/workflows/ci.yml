@@ -11,26 +11,40 @@ env:
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
   HUGO_BUILD_TAGS: "extended"
-  DART_SASS_VERSION: "1.63.6"
-  DART_SASS_SHA_LINUX: "de6cbea03b18c921c5829030c777321d6c38144035ebccd2ee4deaff9c333ded"
-  DART_SASS_SHA_MACOS: "de5760085e02210e24ecf87b26a95c70dbd35683e8f47d0eb817cc02bd0cd41b"
-  DART_SASS_SHA_WINDOWS: "28f97e84f56fe08e02e52065397bf35c72a08405fa637fa04fd9502098f796ba"
-
+  SASS_VERSION: 1.80.3
+  DART_SASS_SHA_LINUX: 7c933edbad0a7d389192c5b79393485c088bd2c4398e32f5754c32af006a9ffd
+  DART_SASS_SHA_MACOS: 79e060b0e131c3bb3c16926bafc371dc33feab122bfa8c01aa337a072097967b
+  DART_SASS_SHA_WINDOWS: 0bc4708b37cd1bac4740e83ac5e3176e66b774f77fd5dd364da5b5cfc9bfb469
+permissions:
+  contents: read
 jobs:
   build:
     name: Build (${{ matrix.os }}, Go ${{ matrix.go }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-        go: ["1.22"]
+        os: [ubuntu-latest, windows-latest]
+        go: ["1.25"]
     steps:
+      - if: matrix.os == 'ubuntu-latest'
+        name: Free Disk Space (Ubuntu)
+        uses: jlumbroso/free-disk-space@v1.3.1
+        with:
+          # this might remove tools that are actually needed,
+          # if set to "true" but frees about 6 GB
+          tool-cache: false
+          android: true
+          dotnet: true
+          haskell: true
+          large-packages: true
+          docker-images: true
+          swap-storage: true
       - name: Git checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           path: neohugo
       - name: Setup Go
-        uses: actions/setup-go@v4
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ matrix.go }}
       - name: Install Ruby
@@ -39,11 +53,15 @@ jobs:
           ruby-version: "2.7"
           bundler-cache: true #
       - name: Setup Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: "3.x"
       - name: Install asciidoctor
-        uses: reitzig/actions-asciidoctor@7570212ae20b63653481675fb1ff62d1073632b0
+        uses: reitzig/actions-asciidoctor@v2.0.2
+      - name: Install docutils
+        run: |
+          pip install docutils
+          rst2html --version
       - name: Setup Go environment
         shell: bash
         run: |
@@ -68,10 +86,6 @@ jobs:
         run: |
           go mod download
           go mod verify
-      - name: Install docutils
-        run: |
-          pip install docutils
-          rst2html.py --version
       - if: matrix.os == 'ubuntu-latest'
         name: Install pandoc on Linux
         run: |
@@ -87,25 +101,26 @@ jobs:
       - if: matrix.os == 'ubuntu-latest'
         name: Install dart-sass Linux
         run: |
-          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
-          echo "${DART_SASS_SHA_LINUX}  dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf "dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
+          echo "Install Dart Sass version ${SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${SASS_VERSION}/dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
+          echo "${DART_SASS_SHA_LINUX}  dart-sass-${SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
+          tar -xvf "dart-sass-${SASS_VERSION}-linux-x64.tar.gz";
+          echo "$GOBIN"
           echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
       - if: matrix.os == 'macos-latest'
         name: Install dart-sass MacOS
         run: |
-          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-macos-x64.tar.gz";
-          echo "${DART_SASS_SHA_MACOS}  dart-sass-${DART_SASS_VERSION}-macos-x64.tar.gz" | shasum -a 256 -c;
-          tar -xvf "dart-sass-${DART_SASS_VERSION}-macos-x64.tar.gz";
+          echo "Install Dart Sass version ${SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${SASS_VERSION}/dart-sass-${SASS_VERSION}-macos-x64.tar.gz";
+          echo "${DART_SASS_SHA_MACOS}  dart-sass-${SASS_VERSION}-macos-x64.tar.gz" | shasum -a 256 -c;
+          tar -xvf "dart-sass-${SASS_VERSION}-macos-x64.tar.gz";
           echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
       - if: matrix.os == 'windows-latest'
         name: Install dart-sass Windows
         run: |
-          echo "Install Dart Sass version ${env:DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${env:DART_SASS_VERSION}/dart-sass-${env:DART_SASS_VERSION}-windows-x64.zip";
-          Expand-Archive -Path "dart-sass-${env:DART_SASS_VERSION}-windows-x64.zip" -DestinationPath .;
+          echo "Install Dart Sass version ${env:SASS_VERSION} ..."
+          curl -LJO "https://github.com/sass/dart-sass/releases/download/${env:SASS_VERSION}/dart-sass-${env:SASS_VERSION}-windows-x64.zip";
+          Expand-Archive -Path "dart-sass-${env:SASS_VERSION}-windows-x64.zip" -DestinationPath .;
           echo  "$env:GITHUB_WORKSPACE/dart-sass/" | Out-File -FilePath $Env:GITHUB_PATH -Encoding utf-8 -Append
       - if: matrix.os != 'windows-latest'
         name: Run mage check
@@ -123,134 +138,3 @@ jobs:
         working-directory: ./neohugo
         run: |
           mage -v neohugo
-  gotip:
-    name: Build ubuntu-latest, GoTip
-    runs-on: ubuntu-latest
-    steps:
-      - name: Git checkout
-        uses: actions/checkout@v3
-        with:
-          path: neohugo
-      - name: Setup Go
-        uses: actions/setup-go@v4
-        with:
-          go-version: "1.22"
-      - name: Setup gotip
-        run: |
-          go install golang.org/dl/gotip@latest
-          gotip download
-      - name: Install Ruby
-        uses: ruby/setup-ruby@v1
-        with:
-          ruby-version: "2.7"
-          bundler-cache: true #
-      - name: Setup Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.x"
-      - name: Install asciidoctor
-        uses: reitzig/actions-asciidoctor@7570212ae20b63653481675fb1ff62d1073632b0
-      - name: Setup Go environment
-        shell: bash
-        run: |
-          echo "GOPATH=$(gotip env GOPATH)" >> $GITHUB_ENV
-          echo "$(gotip env GOPATH)/bin" >> $GITHUB_PATH
-      - name: Go info
-        run: gotip env
-      - name: Install gofumpt and mage
-        continue-on-error: true
-        run: |
-          go install mvdan.cc/gofumpt@latest
-          go install github.com/magefile/mage@latest
-      - uses: actions/cache@v3
-        id: cache
-        with:
-          path: ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Install Go module
-        working-directory: ./neohugo
-        if: steps.cache.outputs.cache-hit != 'true'
-        continue-on-error: true
-        run: |
-          gotip mod download
-          gotip mod verify
-      - name: Install docutils
-        run: |
-          pip install docutils
-          rst2html.py --version
-      - name: Install pandoc on Linux
-        run: |
-          sudo apt-get update -y
-          sudo apt-get install -y pandoc
-      - run: pandoc -v
-      - name: Install dart-sass Linux
-        run: |
-          echo "Install Dart Sass version ${DART_SASS_VERSION} ..."
-          curl -LJO "https://github.com/sass/dart-sass/releases/download/${DART_SASS_VERSION}/dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
-          echo "${DART_SASS_SHA_LINUX}  dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz" | sha256sum -c;
-          tar -xvf "dart-sass-${DART_SASS_VERSION}-linux-x64.tar.gz";
-          echo "$GITHUB_WORKSPACE/dart-sass/" >> $GITHUB_PATH
-      - name: Run mage tests
-        working-directory: ./neohugo
-        continue-on-error: true
-        run: |
-          GOEXE=gotip mage -v test
-      - name: Run mage check
-        working-directory: ./neohugo
-        continue-on-error: true
-        run: |
-          GOEXE=gotip mage -v check
-      - name: Run mage neohugo
-        working-directory: ./neohugo
-        continue-on-error: true
-        run: |
-          GOEXE=gotip mage -v neohugo
-  docker:
-    name: Build Neohugo Docker Latest
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
-      - name: Login to DockerHub
-        if: ${{ github.event_name != 'pull_request' }}
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-      - name: Login to GitHub Container Registry
-        if: ${{ github.event_name != 'pull_request' }}
-        uses: docker/login-action@v1
-        with:
-          registry: ghcr.io
-          username: ${{ github.repository_owner }}
-          password: ${{ secrets.CR_PAT }}
-      - name: Build and push
-        id: docker_build
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            neohugo/neohugo:latest
-            ghcr.io/${{ github.repository_owner }}/neohugo:latest
-      - name: Image digest
-        run: echo ${{ steps.docker_build.outputs.digest }}
-      - name: Build Extra and push
-        id: docker_build_extra
-        uses: docker/build-push-action@v2
-        with:
-          context: .
-          file: ./Dockerfile.extra
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: |
-            neohugo/neohugo:latest-extra
-            ghcr.io/${{ github.repository_owner }}/neohugo:latest-extra
-      - name: Image Extra digest
-        run: echo ${{ steps.docker_build_extra.outputs.digest }}

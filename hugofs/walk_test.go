@@ -33,9 +33,9 @@ func TestWalk(t *testing.T) {
 
 	fs := NewBaseFileDecorator(afero.NewMemMapFs())
 
-	afero.WriteFile(fs, "b.txt", []byte("content"), 0o777) // nolint
-	afero.WriteFile(fs, "c.txt", []byte("content"), 0o777) // nolint
-	afero.WriteFile(fs, "a.txt", []byte("content"), 0o777) // nolint
+	_ = afero.WriteFile(fs, "b.txt", []byte("content"), 0o777)
+	_ = afero.WriteFile(fs, "c.txt", []byte("content"), 0o777)
+	_ = afero.WriteFile(fs, "a.txt", []byte("content"), 0o777)
 
 	names, err := collectPaths(fs, "")
 
@@ -91,7 +91,7 @@ func TestWalkRootMappingFs(t *testing.T) {
 		p := para.New(4)
 		r, _ := p.Start(context.Background())
 
-		for i := 0; i < 8; i++ {
+		for range 8 {
 			r.Run(func() error {
 				_, err := collectPaths(bfs, "")
 				if err != nil {
@@ -153,7 +153,7 @@ func BenchmarkWalk(b *testing.B) {
 	fs := NewBaseFileDecorator(afero.NewMemMapFs())
 
 	writeFiles := func(dir string, numfiles int) {
-		for i := 0; i < numfiles; i++ {
+		for i := range numfiles {
 			filename := filepath.Join(dir, fmt.Sprintf("file%d.txt", i))
 			c.Assert(afero.WriteFile(fs, filename, []byte("content"), 0o777), qt.IsNil)
 		}

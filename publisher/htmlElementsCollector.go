@@ -215,9 +215,10 @@ func (w *htmlElementsCollectorWriter) lexElementInside(resolve htmlCollectorStat
 
 		// Skip any text inside a quote.
 		if w.r == '\'' || w.r == '"' {
-			if w.inQuote == w.r {
+			switch w.inQuote {
+			case w.r:
 				w.inQuote = 0
-			} else if w.inQuote == 0 {
+			case 0:
 				w.inQuote = w.r
 			}
 		}
@@ -387,7 +388,7 @@ func (w *htmlElementsCollectorWriter) parseHTMLElement(elStr string) (el htmlEle
 
 	n, err := html.Parse(strings.NewReader(elStr))
 	if err != nil {
-		return
+		return el, err
 	}
 
 	var walk func(*html.Node)
@@ -442,7 +443,7 @@ func (w *htmlElementsCollectorWriter) parseHTMLElement(elStr string) (el htmlEle
 
 	walk(n)
 
-	return
+	return el, err
 }
 
 // Variants of s
@@ -538,8 +539,8 @@ func extractSingleQuotedStrings(s string) []string {
 	var words []string
 
 	for i, r := range s {
-		switch {
-		case r == '\'':
+		switch r {
+		case '\'':
 			if !inQuote {
 				inQuote = true
 				lo = i + 1

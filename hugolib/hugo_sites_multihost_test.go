@@ -11,11 +11,13 @@ func TestMultihost(t *testing.T) {
 
 	files := `
 -- hugo.toml --
-paginate = 1
 defaultContentLanguage = "fr"
 defaultContentLanguageInSubdir = false
 staticDir = ["s1", "s2"]
 enableRobotsTXT = true
+
+[pagination]
+pagerSize = 1
 
 [permalinks]
 other = "/somewhere/else/:filename"
@@ -66,12 +68,12 @@ robots|{{ site.Language.Lang }}
 404|{{ site.Language.Lang }}
 
 
-	
+
 `
 
 	b := Test(t, files)
 
-	b.Assert(b.H.Conf.IsMultiLingual(), qt.Equals, true)
+	b.Assert(b.H.Conf.IsMultilingual(), qt.Equals, true)
 	b.Assert(b.H.Conf.IsMultihost(), qt.Equals, true)
 
 	// helpers.PrintFs(b.H.Fs.PublishDir, "", os.Stdout)
@@ -203,9 +205,9 @@ title: mybundle-en
 	b.AssertFileExists("public/de/mybundle/pixel.png", true)
 	b.AssertFileExists("public/en/mybundle/pixel.png", true)
 
-	b.AssertFileExists("public/de/mybundle/pixel_hu8aa3346827e49d756ff4e630147c42b5_70_2x2_resize_box_3.png", true)
+	b.AssertFileExists("public/de/mybundle/pixel_hu_58204cbc58507d74.png", true)
 	// failing test below
-	b.AssertFileExists("public/en/mybundle/pixel_hu8aa3346827e49d756ff4e630147c42b5_70_2x2_resize_box_3.png", true)
+	b.AssertFileExists("public/en/mybundle/pixel_hu_58204cbc58507d74.png", true)
 }
 
 func TestMultihostResourceOneBaseURLWithSuPath(t *testing.T) {
@@ -251,4 +253,32 @@ Files: {{ range $files }}{{ .Permalink }}|{{ end }}$
 	b.AssertFileContent("public/fr/section/mybundle/file1.txt", "File 1 fr.")
 	b.AssertFileContent("public/en/enpages/mybundle-en/file2.txt", "File 2 en.")
 	b.AssertFileContent("public/fr/section/mybundle/file2.txt", "File 2 en.")
+}
+
+func TestMultihostAllButOneLanguageDisabledIssue12288(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+defaultContentLanguage = "en"
+disableLanguages = ["fr"]
+#baseURL = "https://example.com"
+[languages]
+[languages.en]
+baseURL = "https://example.en"
+weight = 1
+[languages.fr]
+baseURL = "https://example.fr"
+weight = 2
+--  assets/css/main.css --
+body { color: red; }
+-- layouts/index.html --
+{{ $css := resources.Get "css/main.css" | minify }}
+CSS: {{ $css.Permalink }}|{{ $css.RelPermalink }}|
+`
+
+	b := Test(t, files)
+
+	b.AssertFileContent("public/css/main.min.css", "body{color:red}")
+	b.AssertFileContent("public/index.html", "CSS: https://example.en/css/main.min.css|/css/main.min.css|")
 }

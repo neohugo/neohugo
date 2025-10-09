@@ -59,8 +59,9 @@ func (tp *TranslationProvider) NewResource(dst *deps.Deps) error {
 
 	w := hugofs.NewWalkway(
 		hugofs.WalkwayConfig{
-			Fs:         dst.BaseFs.I18n.Fs,
+			Fs:         dst.I18n.Fs,
 			IgnoreFile: dst.SourceSpec.IgnoreFile,
+			PathParser: dst.SourceSpec.Cfg.PathParser(),
 			WalkFn: func(path string, info hugofs.FileMetaInfo) error {
 				if info.IsDir() {
 					return nil
@@ -89,7 +90,7 @@ func addTranslationFile(bundle *i18n.Bundle, r *source.File) error {
 	}
 
 	b := helpers.ReaderToBytes(f)
-	f.Close()
+	_ = f.Close()
 
 	name := r.LogicalName()
 	lang := paths.Filename(name)
@@ -132,7 +133,7 @@ func errWithFileContext(inerr error, r *source.File) error {
 	if err != nil {
 		return inerr
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	return herrors.NewFileErrorFromName(inerr, realFilename).UpdateContent(f, nil)
 }

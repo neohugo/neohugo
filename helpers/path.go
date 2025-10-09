@@ -66,7 +66,7 @@ func (p *PathSpec) MakePathSanitized(s string) string {
 // MakeTitle converts the path given to a suitable title, trimming whitespace
 // and replacing hyphens with whitespace.
 func MakeTitle(inpath string) string {
-	return strings.Replace(strings.TrimSpace(inpath), "-", " ", -1)
+	return strings.ReplaceAll(strings.TrimSpace(inpath), "-", " ")
 }
 
 // MakeTitleInPath converts the path given to a suitable title, trimming whitespace
@@ -293,7 +293,7 @@ func OpenFilesForWriting(fs afero.Fs, filenames ...string) (io.WriteCloser, erro
 		f, err := OpenFileForWriting(fs, filename)
 		if err != nil {
 			for _, wc := range writeClosers {
-				wc.Close()
+				_ = wc.Close()
 			}
 			return nil, err
 		}
@@ -374,7 +374,7 @@ func cacheDirDefault(cacheDir string) string {
 	// Turns out that Cloudflare also sets NETLIFY=true in its build environment,
 	// but all of these 3 should not give any false positives.
 	if os.Getenv("NETLIFY") == "true" && os.Getenv("PULL_REQUEST") != "" && os.Getenv("DEPLOY_PRIME_URL") != "" {
-		// Netlify's cache behaviour is not documented, the currently best example
+		// Netlify's cache behavior is not documented, the currently best example
 		// is this project:
 		// https://github.com/philhawksworth/content-shards/blob/master/gulpfile.js
 		return "/opt/build/cache/hugo_cache/"

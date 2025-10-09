@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -15,14 +16,20 @@ import (
 	"github.com/neohugo/neohugo/cache/filecache"
 	"github.com/neohugo/neohugo/common/hexec"
 	"github.com/neohugo/neohugo/common/loggers"
+	"github.com/neohugo/neohugo/common/maps"
+	"github.com/neohugo/neohugo/common/types"
 	"github.com/neohugo/neohugo/config"
 	"github.com/neohugo/neohugo/config/allconfig"
 	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/helpers"
 	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/internal/js"
+	"github.com/neohugo/neohugo/internal/warpc"
 	"github.com/neohugo/neohugo/media"
 	"github.com/neohugo/neohugo/resources/page"
 	"github.com/neohugo/neohugo/resources/postpub"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
 
 	"github.com/neohugo/neohugo/metrics"
 	"github.com/neohugo/neohugo/resources"
@@ -39,9 +46,6 @@ type Deps struct {
 	Log loggers.Logger `json:"-"`
 
 	ExecHelper *hexec.Exec
-
-	// The templates to use. This will usually implement the full tpl.TemplateManager.
-	tmplHandlers *tpl.TemplateHandlers
 
 	// The file systems to use.
 	Fs *hugofs.Fs `json:"-"`
@@ -70,7 +74,8 @@ type Deps struct {
 	// The site building.
 	Site page.Site
 
-	TemplateProvider ResourceProvider
+	TemplateStore *tplimpl.TemplateStore
+
 	// Used in tests
 	OverloadedTemplateFuncs map[string]any
 
@@ -79,16 +84,31 @@ type Deps struct {
 	Metrics metrics.Provider
 
 	// BuildStartListeners will be notified before a build starts.
-	BuildStartListeners *Listeners
+	BuildStartListeners *Listeners[any]
 
 	// BuildEndListeners will be notified after a build finishes.
-	BuildEndListeners *Listeners
+	BuildEndListeners *Listeners[any]
+
+	// OnChangeListeners will be notified when something changes.
+	OnChangeListeners *Listeners[identity.Identity]
 
 	// Resources that gets closed when the build is done or the server shuts down.
-	BuildClosers *Closers
+	BuildClosers *types.Closers
 
 	// This is common/global for all sites.
 	BuildState *BuildState
+
+	// Misc counters.
+	Counters *Counters
+
+	// Holds RPC dispatchers for Katex etc.
+	// TODO(bep) rethink this re. a plugin setup, but this will have to do for now.
+	WasmDispatchers *warpc.Dispatchers
+
+	// The JS batcher client.
+	JSBatcherClient js.BatcherClient
+
+	isClosed bool
 
 	*globalErrHandler
 }
@@ -106,8 +126,8 @@ func (d Deps) Clone(s page.Site, conf config.AllProvider) (*Deps, error) {
 	return &d, nil
 }
 
-func (d *Deps) SetTempl(t *tpl.TemplateHandlers) {
-	d.tmplHandlers = t
+func (d *Deps) GetTemplateStore() *tplimpl.TemplateStore {
+	return d.TemplateStore
 }
 
 func (d *Deps) Init() error {
@@ -129,21 +149,36 @@ func (d *Deps) Init() error {
 			logger: d.Log,
 		}
 	}
-
 	if d.BuildState == nil {
 		d.BuildState = &BuildState{}
 	}
+	if d.Counters == nil {
+		d.Counters = &Counters{}
+	}
+	if d.BuildState.DeferredExecutions == nil {
+		if d.BuildState.DeferredExecutionsGroupedByRenderingContext == nil {
+			d.BuildState.DeferredExecutionsGroupedByRenderingContext = make(map[tpl.RenderingContext]*DeferredExecutions)
+		}
+		d.BuildState.DeferredExecutions = &DeferredExecutions{
+			Executions:              maps.NewCache[string, *tpl.DeferredExecution](),
+			FilenamesWithPostPrefix: maps.NewCache[string, bool](),
+		}
+	}
 
 	if d.BuildStartListeners == nil {
-		d.BuildStartListeners = &Listeners{}
+		d.BuildStartListeners = &Listeners[any]{}
 	}
 
 	if d.BuildEndListeners == nil {
-		d.BuildEndListeners = &Listeners{}
+		d.BuildEndListeners = &Listeners[any]{}
 	}
 
 	if d.BuildClosers == nil {
-		d.BuildClosers = &Closers{}
+		d.BuildClosers = &types.Closers{}
+	}
+
+	if d.OnChangeListeners == nil {
+		d.OnChangeListeners = &Listeners[identity.Identity]{}
 	}
 
 	if d.Metrics == nil && d.Conf.TemplateMetrics() {
@@ -151,28 +186,37 @@ func (d *Deps) Init() error {
 	}
 
 	if d.ExecHelper == nil {
-		d.ExecHelper = hexec.New(d.Conf.GetConfigSection("security").(security.Config))
+		d.ExecHelper = hexec.New(d.Conf.GetConfigSection("security").(security.Config), d.Conf.WorkingDir(), d.Log)
 	}
 
 	if d.MemCache == nil {
-		d.MemCache = dynacache.New(dynacache.Options{Running: d.Conf.Running(), Log: d.Log})
+		d.MemCache = dynacache.New(dynacache.Options{Watching: d.Conf.Watching(), Log: d.Log})
 	}
 
 	if d.PathSpec == nil {
-		hashBytesReceiverFunc := func(name string, match bool) {
-			if !match {
-				return
+		hashBytesReceiverFunc := func(name string, match []byte) {
+			s := string(match)
+			switch s {
+			case postpub.PostProcessPrefix:
+				d.BuildState.AddFilenameWithPostPrefix(name)
+			case tpl.HugoDeferredTemplatePrefix:
+				d.BuildState.DeferredExecutions.FilenamesWithPostPrefix.Set(name, true)
 			}
-			d.BuildState.AddFilenameWithPostPrefix(name)
 		}
 
 		// Skip binary files.
 		mediaTypes := d.Conf.GetConfigSection("mediaTypes").(media.Types)
-		hashBytesSHouldCheck := func(name string) bool {
+		hashBytesShouldCheck := func(name string) bool {
 			ext := strings.TrimPrefix(filepath.Ext(name), ".")
 			return mediaTypes.IsTextSuffix(ext)
 		}
-		d.Fs.PublishDir = hugofs.NewHasBytesReceiver(d.Fs.PublishDir, hashBytesSHouldCheck, hashBytesReceiverFunc, []byte(postpub.PostProcessPrefix))
+		d.Fs.PublishDir = hugofs.NewHasBytesReceiver(
+			d.Fs.PublishDir,
+			hashBytesShouldCheck,
+			hashBytesReceiverFunc,
+			[]byte(tpl.HugoDeferredTemplatePrefix),
+			[]byte(postpub.PostProcessPrefix))
+
 		pathSpec, err := helpers.NewPathSpec(d.Fs, d.Conf, d.Log)
 		if err != nil {
 			return err
@@ -180,7 +224,7 @@ func (d *Deps) Init() error {
 		d.PathSpec = pathSpec
 	} else {
 		var err error
-		d.PathSpec, err = helpers.NewPathSpecWithBaseBaseFsProvided(d.Fs, d.Conf, d.Log, d.PathSpec.BaseFs)
+		d.PathSpec, err = helpers.NewPathSpecWithBaseBaseFsProvided(d.Fs, d.Conf, d.Log, d.BaseFs)
 		if err != nil {
 			return err
 		}
@@ -208,7 +252,7 @@ func (d *Deps) Init() error {
 		return fmt.Errorf("failed to create file caches from configuration: %w", err)
 	}
 
-	resourceSpec, err := resources.NewSpec(d.PathSpec, common, fileCaches, d.MemCache, d.BuildState, d.Log, d, d.ExecHelper)
+	resourceSpec, err := resources.NewSpec(d.PathSpec, common, fileCaches, d.MemCache, d.BuildState, d.Log, d, d.ExecHelper, d.BuildClosers, d.BuildState)
 	if err != nil {
 		return fmt.Errorf("failed to create resource spec: %w", err)
 	}
@@ -217,20 +261,15 @@ func (d *Deps) Init() error {
 	return nil
 }
 
+// TODO(bep) rework this to get it in line with how we manage templates.
 func (d *Deps) Compile(prototype *Deps) error {
 	var err error
 	if prototype == nil {
-		if err = d.TemplateProvider.NewResource(d); err != nil {
-			return err
-		}
+
 		if err = d.TranslationProvider.NewResource(d); err != nil {
 			return err
 		}
 		return nil
-	}
-
-	if err = d.TemplateProvider.CloneResource(d, prototype); err != nil {
-		return err
 	}
 
 	if err = d.TranslationProvider.CloneResource(d, prototype); err != nil {
@@ -238,6 +277,23 @@ func (d *Deps) Compile(prototype *Deps) error {
 	}
 
 	return nil
+}
+
+// MkdirTemp returns a temporary directory path that will be cleaned up on exit.
+func (d Deps) MkdirTemp(pattern string) (string, error) {
+	filename, err := os.MkdirTemp("", pattern)
+	if err != nil {
+		return "", err
+	}
+	d.BuildClosers.Add(
+		types.CloserFunc(
+			func() error {
+				return os.RemoveAll(filename)
+			},
+		),
+	)
+
+	return filename, nil
 }
 
 type globalErrHandler struct {
@@ -278,15 +334,16 @@ func (e *globalErrHandler) StopErrorCollector() {
 }
 
 // Listeners represents an event listener.
-type Listeners struct {
+type Listeners[T any] struct {
 	sync.Mutex
 
 	// A list of funcs to be notified about an event.
-	listeners []func()
+	// If the return value is true, the listener will be removed.
+	listeners []func(...T) bool
 }
 
 // Add adds a function to a Listeners instance.
-func (b *Listeners) Add(f func()) {
+func (b *Listeners[T]) Add(f func(...T) bool) {
 	if b == nil {
 		return
 	}
@@ -296,12 +353,16 @@ func (b *Listeners) Add(f func()) {
 }
 
 // Notify executes all listener functions.
-func (b *Listeners) Notify() {
+func (b *Listeners[T]) Notify(vs ...T) {
 	b.Lock()
 	defer b.Unlock()
+	temp := b.listeners[:0]
 	for _, notify := range b.listeners {
-		notify()
+		if !notify(vs...) {
+			temp = append(temp, notify)
+		}
 	}
+	b.listeners = temp
 }
 
 // ResourceProvider is used to create and refresh, and clone resources needed.
@@ -310,17 +371,17 @@ type ResourceProvider interface {
 	CloneResource(dst, src *Deps) error
 }
 
-func (d *Deps) Tmpl() tpl.TemplateHandler {
-	return d.tmplHandlers.Tmpl
-}
-
-func (d *Deps) TextTmpl() tpl.TemplateParseFinder {
-	return d.tmplHandlers.TxtTmpl
-}
-
 func (d *Deps) Close() error {
+	if d.isClosed {
+		return nil
+	}
+	d.isClosed = true
+
 	if d.MemCache != nil {
 		d.MemCache.Stop()
+	}
+	if d.WasmDispatchers != nil {
+		_ = d.WasmDispatchers.Close()
 	}
 	return d.BuildClosers.Close()
 }
@@ -336,9 +397,11 @@ type DepsCfg struct {
 	// The logging level to use.
 	LogLevel logg.Level
 
-	// Where to write the logs.
-	// Currently we typically write everything to stdout.
-	LogOut io.Writer
+	// Logging output.
+	StdErr io.Writer
+
+	// The console output.
+	StdOut io.Writer
 
 	// The file systems to use
 	Fs *hugofs.Fs
@@ -353,6 +416,9 @@ type DepsCfg struct {
 
 	// i18n handling.
 	TranslationProvider ResourceProvider
+
+	// ChangesFromBuild for changes passed back to the server/watch process.
+	ChangesFromBuild chan []identity.Identity
 }
 
 // BuildState are state used during a build.
@@ -361,9 +427,50 @@ type BuildState struct {
 
 	mu sync.Mutex // protects state below.
 
-	// A set of ilenames in /public that
+	OnSignalRebuild func(ids ...identity.Identity)
+
+	// A set of filenames in /public that
 	// contains a post-processing prefix.
 	filenamesWithPostPrefix map[string]bool
+
+	DeferredExecutions *DeferredExecutions
+
+	// Deferred executions grouped by rendering context.
+	DeferredExecutionsGroupedByRenderingContext map[tpl.RenderingContext]*DeferredExecutions
+}
+
+// Misc counters.
+type Counters struct {
+	// Counter for the math.Counter function.
+	MathCounter atomic.Uint64
+}
+
+type DeferredExecutions struct {
+	// A set of filenames in /public that
+	// contains a post-processing prefix.
+	FilenamesWithPostPrefix *maps.Cache[string, bool]
+
+	// Maps a placeholder to a deferred execution.
+	Executions *maps.Cache[string, *tpl.DeferredExecution]
+}
+
+var _ identity.SignalRebuilder = (*BuildState)(nil)
+
+// StartStageRender will be called before a stage is rendered.
+func (b *BuildState) StartStageRender(stage tpl.RenderingContext) {
+}
+
+// StopStageRender will be called after a stage is rendered.
+func (b *BuildState) StopStageRender(stage tpl.RenderingContext) {
+	b.DeferredExecutionsGroupedByRenderingContext[stage] = b.DeferredExecutions
+	b.DeferredExecutions = &DeferredExecutions{
+		Executions:              maps.NewCache[string, *tpl.DeferredExecution](),
+		FilenamesWithPostPrefix: maps.NewCache[string, bool](),
+	}
+}
+
+func (b *BuildState) SignalRebuild(ids ...identity.Identity) {
+	b.OnSignalRebuild(ids...)
 }
 
 func (b *BuildState) AddFilenameWithPostPrefix(filename string) {
@@ -388,31 +495,4 @@ func (b *BuildState) GetFilenamesWithPostPrefix() []string {
 
 func (b *BuildState) Incr() int {
 	return int(atomic.AddUint64(&b.counter, uint64(1)))
-}
-
-type Closer interface {
-	Close() error
-}
-
-type Closers struct {
-	mu sync.Mutex
-	cs []Closer
-}
-
-func (cs *Closers) Add(c Closer) {
-	cs.mu.Lock()
-	defer cs.mu.Unlock()
-	cs.cs = append(cs.cs, c)
-}
-
-func (cs *Closers) Close() error {
-	cs.mu.Lock()
-	defer cs.mu.Unlock()
-	for _, c := range cs.cs {
-		c.Close()
-	}
-
-	cs.cs = cs.cs[:0]
-
-	return nil
 }

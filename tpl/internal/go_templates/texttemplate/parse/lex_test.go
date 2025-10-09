@@ -409,7 +409,7 @@ func collect(t *lexTest, left, right string) (items []item) {
 			break
 		}
 	}
-	return
+	return items
 }
 
 func equal(i1, i2 []item, checkPos bool) bool {
@@ -547,6 +547,16 @@ var lexPosTests = []lexTest{
 		{itemIdentifier, 10, "y", 2},
 		{itemRightDelim, 11, "}}", 2},
 		{itemEOF, 13, "", 2},
+	}},
+	{"longcomment", "{{/*\n*/}}\n{{undefinedFunction \"test\"}}", []item{
+		{itemComment, 2, "/*\n*/", 1},
+		{itemText, 9, "\n", 2},
+		{itemLeftDelim, 10, "{{", 3},
+		{itemIdentifier, 12, "undefinedFunction", 3},
+		{itemSpace, 29, " ", 3},
+		{itemString, 30, "\"test\"", 3},
+		{itemRightDelim, 36, "}}", 3},
+		{itemEOF, 38, "", 3},
 	}},
 }
 

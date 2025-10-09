@@ -19,17 +19,16 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/neohugo/neohugo/common/hashing"
 	"github.com/neohugo/neohugo/common/loggers"
-	"github.com/neohugo/neohugo/hugofs"
+	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/config"
 
-	"github.com/neohugo/neohugo/helpers"
+	"github.com/neohugo/neohugo/hugofs"
 
 	"github.com/neohugo/neohugo/resources/kinds"
 	"github.com/neohugo/neohugo/resources/page"
-
-	"github.com/neohugo/neohugo/htesting"
 
 	"github.com/neohugo/neohugo/deps"
 
@@ -690,7 +689,7 @@ bundle min min key: {{ $jsonMinMin.Key }}
 
 `)
 
-	for i := 0; i < 3; i++ {
+	for range 3 {
 
 		b.Build(BuildCfg{})
 
@@ -700,13 +699,13 @@ bundle min min key: {{ $jsonMinMin.Key }}
 			b.AssertFileContent(index, fmt.Sprintf("data content unmarshaled: v%d", i))
 			b.AssertFileContent(index, fmt.Sprintf("data assets content unmarshaled: v%d", i))
 
-			md5Asset := helpers.MD5String(fmt.Sprintf(`vdata: v%d`, i))
+			md5Asset := hashing.MD5FromStringHexEncoded(fmt.Sprintf(`vdata: v%d`, i))
 			b.AssertFileContent(index, fmt.Sprintf("assets fingerprinted: /data%d/data.%s.yaml", i, md5Asset))
 
 			// The original is not used, make sure it's not published.
 			b.Assert(b.CheckExists(fmt.Sprintf("public/data%d/data.yaml", i)), qt.Equals, false)
 
-			md5Bundle := helpers.MD5String(fmt.Sprintf(`data: v%d`, i))
+			md5Bundle := hashing.MD5FromStringHexEncoded(fmt.Sprintf(`data: v%d`, i))
 			b.AssertFileContent(index, fmt.Sprintf("bundle fingerprinted: /bundle%d/data.%s.yaml", i, md5Bundle))
 
 			b.AssertFileContent(index,
@@ -736,7 +735,7 @@ func TestPageBundlerHome(t *testing.T) {
 	cfg.Set("publishDir", "public")
 	fs := hugofs.NewFromOld(hugofs.Os, cfg)
 
-	os.MkdirAll(filepath.Join(workDir, "content"), 0o777) // nolint
+	_ = os.MkdirAll(filepath.Join(workDir, "content"), 0o777)
 
 	defer clean()
 
@@ -917,4 +916,43 @@ GetMatch: {{ with .Resources.GetMatch "f1.*" }}{{ .Name }}: {{ .Content }}|{{ en
 	b := Test(t, files)
 
 	b.AssertFileContent("public/mybundle/index.html", "GetMatch: f1.en.txt: F1.|")
+}
+
+func TestBundleBranchIssue12320(t *testing.T) {
+	t.Parallel()
+
+	files := `
+-- hugo.toml --
+disableKinds = ['rss','sitemap','taxonomy','term']
+defaultContentLanguage = 'en'
+defaultContentLanguageInSubdir = true
+[languages.en]
+baseURL = "https://en.example.org/"
+contentDir = "content/en"
+[languages.fr]
+baseURL = "https://fr.example.org/"
+contentDir = "content/fr"
+-- content/en/s1/p1.md --
+---
+title: p1
+---
+-- content/en/s1/p1.txt --
+---
+p1.txt
+---
+-- layouts/_default/single.html --
+{{ .Title }}|
+-- layouts/_default/list.html --
+{{ .Title }}|
+`
+
+	b := Test(t, files)
+
+	b.AssertFileExists("public/en/s1/index.html", true)
+	b.AssertFileExists("public/en/s1/p1/index.html", true)
+	b.AssertFileExists("public/en/s1/p1.txt", true)
+
+	b.AssertFileExists("public/fr/s1/index.html", false)
+	b.AssertFileExists("public/fr/s1/p1/index.html", false)
+	b.AssertFileExists("public/fr/s1/p1.txt", false) // failing test
 }

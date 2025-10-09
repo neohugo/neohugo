@@ -1,12 +1,12 @@
 # Testing various error situations.
 
-! hugo mods
-stderr 'unknown command "mods" for "hugo"'
+! neohugo mods
+stderr 'unknown command "mods" for "neohugo"'
 stderr 'Did you mean this\?'
 
-! hugo mod clea
+! neohugo mod clea
 stderr 'Did you mean this\?'
 stderr 'clean'
 
-! hugo mod foo
-stderr 'unknown command "foo" for "hugo mod"'
+! neohugo mod foo
+stderr 'unknown command "foo" for "neohugo mod"'

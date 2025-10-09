@@ -79,7 +79,7 @@ func TestInit(t *testing.T) {
 
 	// Add some concurrency and randomness to verify thread safety and
 	// init order.
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()
@@ -168,7 +168,7 @@ func (t *T) Add2(v string) {
 	t.Unlock()
 }
 
-// https://github.com/neohugo/neohugo/issues/5901
+// https://github.com/gohugoio/hugo/issues/5901
 func TestInitBranchOrder(t *testing.T) {
 	c := qt.New(t)
 

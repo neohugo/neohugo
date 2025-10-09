@@ -457,6 +457,6 @@ func TestEscapingNilNonemptyInterfaces(t *testing.T) {
 	tmpl.Execute(want, data) //nolint TODO may check error
 
 	if !bytes.Equal(want.Bytes(), got.Bytes()) {
-		t.Errorf("expected %q got %q", want.String(), got.String())
+		t.Errorf("expected %q got %q", string(want.Bytes()), string(got.Bytes()))
 	}
 }

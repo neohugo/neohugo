@@ -93,7 +93,7 @@ func (m *FileMeta) Merge(from *FileMeta) {
 	dstv := reflect.Indirect(reflect.ValueOf(m))
 	srcv := reflect.Indirect(reflect.ValueOf(from))
 
-	for i := 0; i < dstv.NumField(); i++ {
+	for i := range dstv.NumField() {
 		v := dstv.Field(i)
 		if !v.CanSet() {
 			continue
@@ -120,7 +120,7 @@ func (f *FileMeta) ReadAll() ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return io.ReadAll(file)
 }
 
@@ -189,7 +189,7 @@ func (fi *dirEntryMeta) Filename() string {
 func (fi *dirEntryMeta) fileInfo() fs.FileInfo {
 	var err error
 	fi.fiInit.Do(func() {
-		fi.fi, err = fi.DirEntry.Info()
+		fi.fi, err = fi.Info()
 	})
 	if err != nil {
 		panic(err)
@@ -364,7 +364,7 @@ func AddFileInfoToError(err error, fi FileMetaInfo, fs afero.Fs) error {
 		errfilename := pos.Filename
 		if errfilename == "" {
 			pos.Filename = filename
-			ferr.UpdatePosition(pos) // nolint
+			_ = ferr.UpdatePosition(pos)
 		}
 
 		if errfilename == "" || errfilename == filename {
@@ -373,8 +373,8 @@ func AddFileInfoToError(err error, fi FileMetaInfo, fs afero.Fs) error {
 				if ioerr != nil {
 					return err
 				}
-				defer f.Close()
-				ferr.UpdateContent(f, nil) // nolint
+				defer func() { _ = f.Close() }()
+				_ = ferr.UpdateContent(f, nil)
 			}
 			return err
 		}

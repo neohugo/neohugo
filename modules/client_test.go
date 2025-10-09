@@ -22,6 +22,7 @@ import (
 	"testing"
 
 	"github.com/neohugo/neohugo/common/hexec"
+	"github.com/neohugo/neohugo/common/loggers"
 	"github.com/neohugo/neohugo/config/security"
 	"github.com/neohugo/neohugo/hugofs/glob"
 
@@ -51,13 +52,17 @@ github.com/gohugoio/hugoTestModules1_darwin/modh2_2@v1.4.0 github.com/gohugoio/h
 		themesDir := filepath.Join(workingDir, "themes")
 		err = os.Mkdir(themesDir, 0o777)
 		c.Assert(err, qt.IsNil)
+		publishDir := filepath.Join(workingDir, "public")
+		err = os.Mkdir(publishDir, 0o777)
+		c.Assert(err, qt.IsNil)
 
 		ccfg := ClientConfig{
 			Fs:         hugofs.Os,
-			WorkingDir: workingDir,
 			CacheDir:   filepath.Join(workingDir, "modcache"),
+			WorkingDir: workingDir,
 			ThemesDir:  themesDir,
-			Exec:       hexec.New(security.DefaultConfig),
+			PublishDir: publishDir,
+			Exec:       hexec.New(security.DefaultConfig, "", loggers.NewDefault()),
 		}
 
 		withConfig(&ccfg)
@@ -210,4 +215,43 @@ func TestGetModlineSplitter(t *testing.T) {
 
 	gosumSplitter := getModlineSplitter(false)
 	c.Assert(gosumSplitter("github.com/BurntSushi/toml v0.3.1"), qt.DeepEquals, []string{"github.com/BurntSushi/toml", "v0.3.1"})
+}
+
+func TestClientConfigToEnv(t *testing.T) {
+	c := qt.New(t)
+
+	ccfg := ClientConfig{
+		WorkingDir: "/mywork",
+		CacheDir:   "/mycache",
+	}
+
+	env := ccfg.toEnv()
+
+	c.Assert(env, qt.DeepEquals, []string{"PWD=/mywork", "GO111MODULE=on", "GOPATH=/mycache", "GOWORK=", filepath.FromSlash("GOCACHE=/mycache/pkg/mod")})
+
+	ccfg = ClientConfig{
+		WorkingDir: "/mywork",
+		CacheDir:   "/mycache",
+		ModuleConfig: Config{
+			Proxy:     "https://proxy.example.org",
+			Private:   "myprivate",
+			NoProxy:   "mynoproxy",
+			Workspace: "myworkspace",
+			Auth:      "myauth",
+		},
+	}
+
+	env = ccfg.toEnv()
+
+	c.Assert(env, qt.DeepEquals, []string{
+		"PWD=/mywork",
+		"GO111MODULE=on",
+		"GOPATH=/mycache",
+		"GOWORK=myworkspace",
+		filepath.FromSlash("GOCACHE=/mycache/pkg/mod"),
+		"GOPROXY=https://proxy.example.org",
+		"GOPRIVATE=myprivate",
+		"GONOPROXY=mynoproxy",
+		"GOAUTH=myauth",
+	})
 }

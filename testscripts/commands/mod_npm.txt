@@ -2,7 +2,8 @@
 
 dostounix golden/package.json
 
-hugo mod npm pack
+
+neohugo mod npm pack
 cmp package.json golden/package.json
 
 -- hugo.toml --
@@ -41,3 +42,4 @@ path="github.com/gohugoio/hugoTestModule2"
 }
 -- go.mod --
 module github.com/gohugoio/hugoTestModule
+go 1.20

@@ -16,13 +16,13 @@ package config
 import (
 	"encoding/json"
 
-	"github.com/neohugo/neohugo/identity"
+	"github.com/neohugo/neohugo/common/hashing"
 )
 
 func DecodeNamespace[S, C any](configSource any, buildConfig func(any) (C, any, error)) (*ConfigNamespace[S, C], error) {
 	// Calculate the hash of the input (not including any defaults applied later).
 	// This allows us to introduce new config options without breaking the hash.
-	h := identity.HashString(configSource)
+	h := hashing.HashStringHex(configSource)
 
 	// Build the config
 	c, ext, err := buildConfig(configSource)

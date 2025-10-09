@@ -60,7 +60,7 @@ func NewWeightedPage(weight int, p Page, owner Page) WeightedPage {
 }
 
 func (w WeightedPage) String() string {
-	return fmt.Sprintf("WeightedPage(%d,%q)", w.Weight, w.Page.Title())
+	return fmt.Sprintf("WeightedPage(%d,%q)", w.Weight, w.Title())
 }
 
 // Slice is for internal use.
@@ -97,7 +97,7 @@ func (wp WeightedPages) Pages() Pages {
 // this weighted page set.
 func (wp WeightedPages) Next(cur Page) Page {
 	for x, c := range wp {
-		if c.Page.Eq(cur) {
+		if c.Eq(cur) {
 			if x == 0 {
 				return nil
 			}
@@ -111,7 +111,7 @@ func (wp WeightedPages) Next(cur Page) Page {
 // this weighted page set.
 func (wp WeightedPages) Prev(cur Page) Page {
 	for x, c := range wp {
-		if c.Page.Eq(cur) {
+		if c.Eq(cur) {
 			if x < len(wp)-1 {
 				return wp[x+1].Page
 			}

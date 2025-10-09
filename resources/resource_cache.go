@@ -36,6 +36,16 @@ func newResourceCache(rs *Spec, memCache *dynacache.Cache) *ResourceCache {
 			"/res1",
 			dynacache.OptionsPartition{ClearWhen: dynacache.ClearOnChange, Weight: 40},
 		),
+		cacheResourceFile: dynacache.GetOrCreatePartition[string, resource.Resource](
+			memCache,
+			"/res2",
+			dynacache.OptionsPartition{ClearWhen: dynacache.ClearOnChange, Weight: 40},
+		),
+		CacheResourceRemote: dynacache.GetOrCreatePartition[string, resource.Resource](
+			memCache,
+			"/resr",
+			dynacache.OptionsPartition{ClearWhen: dynacache.ClearOnChange, Weight: 40},
+		),
 		cacheResources: dynacache.GetOrCreatePartition[string, resource.Resources](
 			memCache,
 			"/ress",
@@ -53,6 +63,8 @@ type ResourceCache struct {
 	sync.RWMutex
 
 	cacheResource               *dynacache.Partition[string, resource.Resource]
+	cacheResourceFile           *dynacache.Partition[string, resource.Resource]
+	CacheResourceRemote         *dynacache.Partition[string, resource.Resource]
 	cacheResources              *dynacache.Partition[string, resource.Resources]
 	cacheResourceTransformation *dynacache.Partition[string, *resourceAdapterInner]
 
@@ -73,6 +85,12 @@ func (c *ResourceCache) GetOrCreate(key string, f func() (resource.Resource, err
 	})
 }
 
+func (c *ResourceCache) GetOrCreateFile(key string, f func() (resource.Resource, error)) (resource.Resource, error) {
+	return c.cacheResourceFile.GetOrCreate(key, func(key string) (resource.Resource, error) {
+		return f()
+	})
+}
+
 func (c *ResourceCache) GetOrCreateResources(key string, f func() (resource.Resources, error)) (resource.Resources, error) {
 	return c.cacheResources.GetOrCreate(key, func(key string) (resource.Resources, error) {
 		return f()
@@ -88,24 +106,22 @@ func (c *ResourceCache) getFilenames(key string) (string, string) {
 
 func (c *ResourceCache) getFromFile(key string) (filecache.ItemInfo, io.ReadCloser, transformedResourceMetadata, bool) {
 	c.RLock()
+	defer c.RUnlock()
 
 	var meta transformedResourceMetadata
 	filenameMeta, filenameContent := c.getFilenames(key)
 
 	_, jsonContent, _ := c.fileCache.GetBytes(filenameMeta)
 	if jsonContent == nil {
-		c.RUnlock()
 		return filecache.ItemInfo{}, nil, meta, false
 	}
 
 	if err := json.Unmarshal(jsonContent, &meta); err != nil {
-		c.RUnlock()
 		return filecache.ItemInfo{}, nil, meta, false
 	}
 
 	fi, rc, _ := c.fileCache.Get(filenameContent)
 
-	c.RUnlock()
 	return fi, rc, meta, rc != nil
 }
 
@@ -121,7 +137,7 @@ func (c *ResourceCache) writeMeta(key string, meta transformedResourceMetadata) 
 	if err != nil {
 		return filecache.ItemInfo{}, nil, err
 	}
-	defer fm.Close()
+	defer func() { _ = fm.Close() }()
 
 	if _, err := fm.Write(raw); err != nil {
 		return filecache.ItemInfo{}, nil, err

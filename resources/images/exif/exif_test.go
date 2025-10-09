@@ -15,14 +15,13 @@ package exif
 
 import (
 	"encoding/json"
-	"math/big"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/bep/imagemeta"
 	"github.com/google/go-cmp/cmp"
-	"github.com/neohugo/neohugo/htesting/hqt"
 
 	qt "github.com/frankban/quicktest"
 )
@@ -31,15 +30,16 @@ func TestExif(t *testing.T) {
 	c := qt.New(t)
 	f, err := os.Open(filepath.FromSlash("../../testdata/sunset.jpg"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder(IncludeFields("Lens|Date"))
 	c.Assert(err, qt.IsNil)
-	x, err := d.Decode(f)
+	x, err := d.Decode("", imagemeta.JPEG, f)
 	c.Assert(err, qt.IsNil)
 	c.Assert(x.Date.Format("2006-01-02"), qt.Equals, "2017-10-27")
 
 	// Malaga: https://goo.gl/taazZy
+
 	c.Assert(x.Lat, qt.Equals, float64(36.59744166666667))
 	c.Assert(x.Long, qt.Equals, float64(-4.50846))
 
@@ -49,9 +49,9 @@ func TestExif(t *testing.T) {
 	c.Assert(ok, qt.Equals, true)
 	c.Assert(lensModel, qt.Equals, "smc PENTAX-DA* 16-50mm F2.8 ED AL [IF] SDM")
 
-	v, found = x.Tags["DateTime"]
+	v, found = x.Tags["ModifyDate"]
 	c.Assert(found, qt.Equals, true)
-	c.Assert(v, hqt.IsSameType, time.Time{})
+	c.Assert(v, qt.Equals, "2017:11:23 09:56:54")
 
 	// Verify that it survives a round-trip to JSON and back.
 	data, err := json.Marshal(x)
@@ -68,12 +68,12 @@ func TestExifPNG(t *testing.T) {
 
 	f, err := os.Open(filepath.FromSlash("../../testdata/gohugoio.png"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder()
 	c.Assert(err, qt.IsNil)
-	_, err = d.Decode(f)
-	c.Assert(err, qt.Not(qt.IsNil))
+	_, err = d.Decode("", imagemeta.PNG, f)
+	c.Assert(err, qt.IsNil)
 }
 
 func TestIssue8079(t *testing.T) {
@@ -81,44 +81,27 @@ func TestIssue8079(t *testing.T) {
 
 	f, err := os.Open(filepath.FromSlash("../../testdata/iss8079.jpg"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder()
 	c.Assert(err, qt.IsNil)
-	x, err := d.Decode(f)
+	x, err := d.Decode("", imagemeta.JPEG, f)
 	c.Assert(err, qt.IsNil)
 	c.Assert(x.Tags["ImageDescription"], qt.Equals, "Città del Vaticano #nanoblock #vatican #vaticancity")
-}
-
-func TestNullString(t *testing.T) {
-	c := qt.New(t)
-
-	for _, test := range []struct {
-		in     string
-		expect string
-	}{
-		{"foo", "foo"},
-		{"\x20", "\x20"},
-		{"\xc4\x81", "\xc4\x81"}, // \u0101
-		{"\u0160", "\u0160"},     // non-breaking space
-	} {
-		res := nullString([]byte(test.in))
-		c.Assert(res, qt.Equals, test.expect)
-	}
 }
 
 func BenchmarkDecodeExif(b *testing.B) {
 	c := qt.New(b)
 	f, err := os.Open(filepath.FromSlash("../../testdata/sunset.jpg"))
 	c.Assert(err, qt.IsNil)
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	d, err := NewDecoder()
 	c.Assert(err, qt.IsNil)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, err = d.Decode(f)
+		_, err = d.Decode("", imagemeta.JPEG, f)
 		c.Assert(err, qt.IsNil)
 		_, err = f.Seek(0, 0)
 		c.Assert(err, qt.IsNil)
@@ -127,8 +110,13 @@ func BenchmarkDecodeExif(b *testing.B) {
 
 var eq = qt.CmpEquals(
 	cmp.Comparer(
-		func(v1, v2 *big.Rat) bool {
-			return v1.RatString() == v2.RatString()
+		func(v1, v2 imagemeta.Rat[uint32]) bool {
+			return v1.String() == v2.String()
+		},
+	),
+	cmp.Comparer(
+		func(v1, v2 imagemeta.Rat[int32]) bool {
+			return v1.String() == v2.String()
 		},
 	),
 	cmp.Comparer(func(v1, v2 time.Time) bool {
@@ -139,14 +127,15 @@ var eq = qt.CmpEquals(
 func TestIssue10738(t *testing.T) {
 	c := qt.New(t)
 
-	testFunc := func(path, include string) any {
+	testFunc := func(c *qt.C, path, include string) any {
+		c.Helper()
 		f, err := os.Open(filepath.FromSlash(path))
 		c.Assert(err, qt.IsNil)
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		d, err := NewDecoder(IncludeFields(include))
 		c.Assert(err, qt.IsNil)
-		x, err := d.Decode(f)
+		x, err := d.Decode("", imagemeta.JPEG, f)
 		c.Assert(err, qt.IsNil)
 
 		// Verify that it survives a round-trip to JSON and back.
@@ -195,7 +184,7 @@ func TestIssue10738(t *testing.T) {
 				include: "Lens|Date|ExposureTime",
 			}, want{
 				10,
-				0,
+				1,
 			},
 		},
 		{
@@ -222,7 +211,7 @@ func TestIssue10738(t *testing.T) {
 				include: "Lens|Date|ExposureTime",
 			}, want{
 				1,
-				0,
+				1,
 			},
 		},
 		{
@@ -267,7 +256,7 @@ func TestIssue10738(t *testing.T) {
 				include: "Lens|Date|ExposureTime",
 			}, want{
 				30,
-				0,
+				1,
 			},
 		},
 		{
@@ -294,19 +283,21 @@ func TestIssue10738(t *testing.T) {
 				include: "Lens|Date|ExposureTime",
 			}, want{
 				4,
-				0,
+				1,
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		c.Run(tt.name, func(c *qt.C) {
-			got := testFunc(tt.args.path, tt.args.include)
+			got := testFunc(c, tt.args.path, tt.args.include)
 			switch v := got.(type) {
 			case float64:
 				c.Assert(v, qt.Equals, float64(tt.want.vN))
-			case *big.Rat:
-				c.Assert(v, eq, big.NewRat(tt.want.vN, tt.want.vD))
+			case imagemeta.Rat[uint32]:
+				r, err := imagemeta.NewRat[uint32](uint32(tt.want.vN), uint32(tt.want.vD))
+				c.Assert(err, qt.IsNil)
+				c.Assert(v, eq, r)
 			default:
 				c.Fatalf("unexpected type: %T", got)
 			}

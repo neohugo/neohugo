@@ -52,7 +52,7 @@ func (c *connection) reader() {
 			}`)
 		}
 	}
-	c.ws.Close()
+	_ = c.ws.Close()
 }
 
 func (c *connection) writer() {
@@ -62,5 +62,5 @@ func (c *connection) writer() {
 			break
 		}
 	}
-	c.ws.Close()
+	_ = c.ws.Close()
 }

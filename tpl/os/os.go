@@ -36,12 +36,12 @@ func New(d *deps.Deps) *Namespace {
 	if d.PathSpec != nil {
 		readFileFs = overlayfs.New(overlayfs.Options{
 			Fss: []afero.Fs{
-				d.PathSpec.BaseFs.Work,
-				d.PathSpec.BaseFs.Content.Fs,
+				d.Work,
+				d.Content.Fs,
 			},
 		})
 		// See #9599
-		workFs = d.PathSpec.BaseFs.WorkDir
+		workFs = d.WorkDir
 	}
 
 	return &Namespace{
@@ -99,7 +99,7 @@ func (ns *Namespace) ReadFile(i any) (string, error) {
 	}
 
 	if ns.deps.PathSpec != nil {
-		s = ns.deps.PathSpec.RelPathify(s)
+		s = ns.deps.RelPathify(s)
 	}
 
 	s, err = readFile(ns.readFileFs, s)

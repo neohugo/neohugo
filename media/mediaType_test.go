@@ -115,16 +115,16 @@ func TestFromTypeString(t *testing.T) {
 
 func TestFromStringAndExt(t *testing.T) {
 	c := qt.New(t)
-	f, err := FromStringAndExt("text/html", "html")
+	f, err := FromStringAndExt("text/html", "html", "htm")
 	c.Assert(err, qt.IsNil)
 	c.Assert(f, qt.Equals, Builtin.HTMLType)
-	f, err = FromStringAndExt("text/html", ".html")
+	f, err = FromStringAndExt("text/html", ".html", ".htm")
 	c.Assert(err, qt.IsNil)
 	c.Assert(f, qt.Equals, Builtin.HTMLType)
 }
 
 // Add a test for the SVG case
-// https://github.com/neohugo/neohugo/issues/4920
+// https://github.com/gohugoio/hugo/issues/4920
 func TestFromExtensionMultipleSuffixes(t *testing.T) {
 	c := qt.New(t)
 	tp, si, found := DefaultTypes.GetBySuffix("svg")
