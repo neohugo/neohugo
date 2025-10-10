@@ -8,7 +8,6 @@ on:
 env:
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
-  HUGO_BUILD_TAGS: "extended"
 
 jobs:
   benchmark:

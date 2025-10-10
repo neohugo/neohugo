@@ -149,12 +149,6 @@ func BuildVersionString() string {
 	if bi.Revision != "" {
 		version += "-" + bi.Revision
 	}
-	if IsExtended {
-		version += "+extended"
-	}
-	if IsWithdeploy {
-		version += "+withdeploy"
-	}
 
 	osArch := bi.GoOS + "/" + bi.GoArch
 

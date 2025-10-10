@@ -1,6 +1,6 @@
 ---
 title: Windows
-description: Install Hugo on Windows.
+description: Install Neohugo on Windows.
 categories: []
 keywords: []
 weight: 30
@@ -13,8 +13,6 @@ weight: 30
 
 {{% include "/_common/installation/01-editions.md" %}}
 
-Unless your specific deployment needs require the extended/deploy edition, we recommend the extended edition.
-
 {{% include "/_common/installation/02-prerequisites.md" %}}
 
 {{% include "/_common/installation/03-prebuilt-binaries.md" %}}
@@ -23,32 +21,32 @@ Unless your specific deployment needs require the extended/deploy edition, we re
 
 ### Chocolatey
 
-[Chocolatey] is a free and open-source package manager for Windows. To install the extended edition of Hugo:
+[Chocolatey] is a free and open-source package manager for Windows. To install the Neohugo:
 
 ```sh
-choco install hugo-extended
+choco install hugo
 ```
 
 ### Scoop
 
-[Scoop] is a free and open-source package manager for Windows. To install the extended edition of Hugo:
+[Scoop] is a free and open-source package manager for Windows. To install the neohugo:
 
 ```sh
-scoop install hugo-extended
+scoop install neohugo
 ```
 
 ### Winget
 
-[Winget] is Microsoft's official free and open-source package manager for Windows. To install the extended edition of Hugo:
+[Winget] is Microsoft's official free and open-source package manager for Windows. To install the Neohugo:
 
 ```sh
-winget install Hugo.Hugo.Extended
+winget install Neohugo.Neohugo
 ```
 
-To uninstall the extended edition of Hugo:
+To uninstall the Neohugo:
 
 ```sh
-winget uninstall --name "Hugo (Extended)"
+winget uninstall --name "Neohugo"
 ```
 
 {{% include "/_common/installation/04-build-from-source.md" %}}

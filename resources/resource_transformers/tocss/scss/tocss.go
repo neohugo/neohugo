@@ -11,8 +11,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build extended
-
 package scss
 
 import (
@@ -33,7 +31,7 @@ import (
 	"github.com/neohugo/neohugo/resources/resource_transformers/tocss/sass"
 )
 
-// Used in tests. This feature requires Hugo to be built with the extended tag.
+// Used in tests.
 func Supports() bool {
 	return true
 }

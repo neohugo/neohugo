@@ -66,8 +66,7 @@ func CreateTheme(createpath string, sourceFs afero.Fs, format string) error {
 		},
 		"module": map[string]any{
 			"hugoVersion": map[string]any{
-				"extended": false,
-				"min":      "0.146.0",
+				"min": "0.146.0",
 			},
 		},
 	}

@@ -136,12 +136,6 @@ func Docker() error {
 
 // Run tests and linters
 func Check() {
-	if runtime.GOARCH == "amd64" && runtime.GOOS != "darwin" {
-		mg.Deps(Test386)
-	} else {
-		fmt.Printf("Skip Test386 on %s and/or %s\n", runtime.GOARCH, runtime.GOOS)
-	}
-
 	if isCI() && isDarwin() {
 		// Skip on macOS in CI (disk space issues)
 	} else {
@@ -159,13 +153,6 @@ func testGoFlags() string {
 	}
 
 	return "-timeout=1m"
-}
-
-// Run tests in 32-bit mode
-// Note that we don't run with the extended tag. Currently not supported in 32 bit.
-func Test386() error {
-	env := map[string]string{"GOARCH": "386", "GOFLAGS": testGoFlags()}
-	return runCmd(env, goexe, "test", "-p", "2", "./...")
 }
 
 // Run tests
@@ -297,9 +284,7 @@ func buildFlags() []string {
 }
 
 func buildTags() string {
-	// To build the extended Hugo SCSS/SASS enabled version, build with
-	// HUGO_BUILD_TAGS=extended mage install etc.
-	// To build with `hugo deploy`, use HUGO_BUILD_TAGS=withdeploy
+	// Build tags can be set via HUGO_BUILD_TAGS environment variable if needed
 	if envtags := os.Getenv("HUGO_BUILD_TAGS"); envtags != "" {
 		return envtags
 	}

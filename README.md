@@ -87,26 +87,21 @@ Install Hugo from a [prebuilt binary], package manager, or package repository. P
 
 ## Build from source
 
-Hugo is available in two editions: standard and extended. With the extended edition you can:
-
-- Encode to the WebP format when processing images. You can decode WebP images with either edition.
-- Transpile Sass to CSS using the embedded LibSass transpiler. The extended edition is not required to use the Dart Sass transpiler.
-
 Prerequisites to build Hugo from source:
 
-- Standard edition: Go 1.20 or later
-- Extended edition: Go 1.20 or later, and GCC
+- Go 1.20 or later
+- GCC or another C compiler (for SCSS, WebP, and deploy features)
 
-Build the standard edition:
+Build Hugo:
+
+```text
+CGO_ENABLED=1 go install github.com/gohugoio/hugo@latest
+```
+
+To build without CGO (lightweight version without SCSS, WebP, and deploy support):
 
 ```text
 go install github.com/gohugoio/hugo@latest
-```
-
-Build the extended edition:
-
-```text
-CGO_ENABLED=1 go install -tags extended github.com/gohugoio/hugo@latest
 ```
 ## Star History
 

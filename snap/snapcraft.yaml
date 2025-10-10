@@ -137,9 +137,8 @@ parts:
       export GOPATH=$(realpath ../go)
       export PATH=$GOPATH/bin:$PATH
 
-      HUGO_BUILD_TAGS="extended"
-      echo " * Building hugo (HUGO_BUILD_TAGS=\"$HUGO_BUILD_TAGS\")..."
-      go build -v -ldflags "-s -w -X github.com/neohugo/neohugo/common/hugo.vendorInfo=snap:$(git describe --tags --always --match 'v[0-9]*' | sed 's/^v//; s/-/+git/; s/-g/./')" -tags "$HUGO_BUILD_TAGS"
+      echo " * Building hugo..."
+      go build -v -ldflags "-s -w -X github.com/neohugo/neohugo/common/hugo.vendorInfo=snap:$(git describe --tags --always --match 'v[0-9]*' | sed 's/^v//; s/-/+git/; s/-g/./')"
       ./hugo version
       ldd hugo || :
 

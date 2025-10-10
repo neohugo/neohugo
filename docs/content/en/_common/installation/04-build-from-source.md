@@ -4,7 +4,7 @@ _comment: Do not remove front matter.
 
 ## Build from source
 
-To build the extended or extended/deploy edition from source you must:
+To build Hugo from source you must:
 
 1. Install [Git]
 1. Install [Go] version 1.23.0 or later
@@ -13,22 +13,10 @@ To build the extended or extended/deploy edition from source you must:
 
 > The install directory is controlled by the `GOPATH` and `GOBIN` environment variables. If `GOBIN` is set, binaries are installed to that directory. If `GOPATH` is set, binaries are installed to the bin subdirectory of the first directory in the `GOPATH` list. Otherwise, binaries are installed to the bin subdirectory of the default `GOPATH` (`$HOME/go` or `%USERPROFILE%\go`).
 
-To build the standard edition:
+To build Hugo:
 
 ```sh
-go install github.com/gohugoio/hugo@latest
-```
-
-To build the extended edition:
-
-```sh
-CGO_ENABLED=1 go install -tags extended github.com/gohugoio/hugo@latest
-```
-
-To build the extended/deploy edition:
-
-```sh
-CGO_ENABLED=1 go install -tags extended,withdeploy github.com/gohugoio/hugo@latest
+CGO_ENABLED=1 go install github.com/gohugoio/hugo@latest
 ```
 
 [Clang]: https://clang.llvm.org/

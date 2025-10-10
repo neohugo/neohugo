@@ -10,8 +10,6 @@ weight: 10
 
 {{% include "/_common/installation/01-editions.md" %}}
 
-Unless your specific deployment needs require the extended/deploy edition, we recommend the extended edition.
-
 {{% include "/_common/installation/02-prerequisites.md" %}}
 
 {{% include "/_common/installation/03-prebuilt-binaries.md" %}}
@@ -22,7 +20,7 @@ Unless your specific deployment needs require the extended/deploy edition, we re
 
 ### MacPorts
 
-[MacPorts] is a free and open-source package manager for macOS. To install the extended edition of Hugo:
+[MacPorts] is a free and open-source package manager for macOS. To install the Neohugo:
 
 ```sh
 sudo port install hugo

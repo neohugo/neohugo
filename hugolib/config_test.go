@@ -605,7 +605,6 @@ description = "Component n1 description"
 [module.hugoVersion]
 min = "0.40.0"
 max = "0.50.0"
-extended = true
 [[module.imports]]
 path="o1"
 [[module.imports]]

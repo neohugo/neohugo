@@ -327,39 +327,27 @@ type HugoVersion struct {
 
 	// The maximum Hugo version that this module works with.
 	Max neohugo.VersionString
-
-	// Set if the extended version is needed.
-	Extended bool
 }
 
 func (v HugoVersion) String() string {
-	extended := ""
-	if v.Extended {
-		extended = " extended"
-	}
-
 	if v.Min != "" && v.Max != "" {
-		return fmt.Sprintf("%s/%s%s", v.Min, v.Max, extended)
+		return fmt.Sprintf("%s/%s", v.Min, v.Max)
 	}
 
 	if v.Min != "" {
-		return fmt.Sprintf("Min %s%s", v.Min, extended)
+		return fmt.Sprintf("Min %s", v.Min)
 	}
 
 	if v.Max != "" {
-		return fmt.Sprintf("Max %s%s", v.Max, extended)
+		return fmt.Sprintf("Max %s", v.Max)
 	}
-
-	return extended
+	return ""
 }
 
 // IsValid reports whether this version is valid compared to the running
 // Hugo binary.
 func (v HugoVersion) IsValid() bool {
 	current := neohugo.CurrentVersion.Version()
-	if v.Extended && !neohugo.IsExtended {
-		return false
-	}
 
 	isValid := v.Min == "" || current.Compare(v.Min) <= 0
 
