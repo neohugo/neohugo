@@ -2,7 +2,9 @@ name: Benchmark
 on:
   push:
     branches:
-      - master
+      - main
+  pull_request:
+    branches:
       - main
 
 env:
@@ -62,6 +64,6 @@ jobs:
           comment-on-alert: true
           # Mention @blackb1rd in the commit comment
           alert-comment-cc-users: "@blackb1rd"
-          # Push and deploy GitHub pages branch automatically
-          auto-push: true
+          # Push and deploy GitHub pages branch automatically (only on push, not on pull requests)
+          auto-push: ${{ github.event_name == 'push' }}
           # Upload the updated cache file for the next job by actions/cache
