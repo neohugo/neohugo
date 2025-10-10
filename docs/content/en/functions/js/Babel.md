@@ -1,31 +1,29 @@
 ---
 title: js.Babel
-description: Compiles the given JavaScript resource with Babel.
+description: Compile the given JavaScript resource with Babel.
 categories: []
 keywords: []
-action:
-  aliases: [babel]
-  related:
-    - functions/js/Build
-    - functions/resources/Fingerprint
-    - functions/resources/Minify
-  returnType: resource.Resource
-  signatures: ['js.Babel [OPTIONS] RESOURCE']
-toc: true
+params:
+  functions_and_methods:
+    aliases: [babel]
+    returnType: resource.Resource
+    signatures: ['js.Babel [OPTIONS] RESOURCE']
 ---
-
-{{< new-in 0.128.0 >}}
 
 ```go-html-template
 {{ with resources.Get "js/main.js" }}
-  {{ if hugo.IsDevelopment }}
-    {{ with . | babel }}
+  {{ $opts := dict
+    "minified" hugo.IsProduction
+    "noComments" hugo.IsProduction
+    "sourceMap" (cond hugo.IsProduction "none" "external")
+  }}
+  {{ with . | js.Babel $opts }}
+    {{ if hugo.IsProduction }}
+      {{ with . | fingerprint }}
+        <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
+      {{ end }}
+    {{ else }}
       <script src="{{ .RelPermalink }}"></script>
-    {{ end }}
-  {{ else }}
-    {{ $opts := dict "minified" true }}
-    {{ with . | babel $opts | fingerprint }}
-      <script src="{{ .RelPermalink }}" integrity="{{ .Data.Integrity }}" crossorigin="anonymous"></script>
     {{ end }}
   {{ end }}
 {{ end }}
@@ -33,18 +31,21 @@ toc: true
 
 ## Setup
 
-Step 1
-: Install [Node.js](https://nodejs.org/en/download)
+### Step 1
 
-Step 2
-: Install the required Node.js packages in the root of your project.
+Install [Node.js](https://nodejs.org/en/download)
+
+### Step 2
+
+Install the required Node.js packages in the root of your project.
 
 ```sh
 npm install --save-dev @babel/core @babel/cli
 ```
 
-Step 3
-: Add the babel executable to Hugo's `security.exec.allow` list in your site configuration:
+### Step 3
+
+Add the babel executable to Hugo's `security.exec.allow` list in your site configuration:
 
 {{< code-toggle file=hugo >}}
 [security.exec]
@@ -71,20 +72,28 @@ module.exports = {
 
 ## Options
 
+compact
+: (`bool`) Whether to remove optional newlines and whitespace. Enabled when `minified` is `true`. Default is `false`
+
 config
-: (`string`) Path to the Babel configuration file. Hugo will, by default, look for a `babel.config.js` in your project. More information on these configuration files can be found here: [babel configuration](https://babeljs.io/docs/en/configuration).
+: (`string`) Path to the Babel configuration file. Hugo will, by default, look for a `babel.config.js` file in the root of your project. See&nbsp;[details](https://babeljs.io/docs/en/configuration).
 
 minified
-: (`bool`) Save as many bytes as possible when printing
+: (`bool`) Whether to minify the compiled code. Enables the `compact` option. Default is `false`.
+
+noBabelrc
+: (`string`) Whether to ignore `.babelrc` and `.babelignore` files. Default is `false`.
 
 noComments
-: (`bool`) Write comments to generated output (true by default)
-
-compact
-: (`bool`) Do not include superfluous whitespace characters and line terminators. Defaults to `auto` if not set.
-
-verbose
-: (`bool`) Log everything
+: (`bool`) Whether to remove comments. Default is `false`.
 
 sourceMap
-: (`string`) Output `inline` or `external` sourcemap from the babel compile. External sourcemaps will be written to the target with the output file name + ".map". Input sourcemaps can be read from js.Build and node modules and combined into the output sourcemaps.
+: (`string`) Whether to generate source maps, one of `external`, `inline`, or `none`. Default is `none`.
+
+verbose
+: (`bool`) Whether to enable verbose logging. Default is `false`
+
+<!--
+In the above, technically "none" is not one of the enumerated sourceMap
+values but it has the same effect and is easier to document than an empty string.
+-->

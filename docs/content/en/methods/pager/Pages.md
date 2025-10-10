@@ -3,11 +3,10 @@ title: Pages
 description: Returns the pages in the current pager.
 categories: []
 keywords: []
-action:
-  related:
-    - methods/page/Paginate
-  returnType: page.Pages
-  signatures: [PAGER.Pages]
+params:
+  functions_and_methods:
+    returnType: page.Pages
+    signatures: [PAGER.Pages]
 ---
 
 ```go-html-template
@@ -18,5 +17,5 @@ action:
   <h2><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></h2>
 {{ end }}
 
-{{ template "_internal/pagination.html" . }}
+{{ partial "pagination.html" . }}
 ```

@@ -3,71 +3,83 @@ title: css.TailwindCSS
 description: Processes the given resource with the Tailwind CSS CLI.
 categories: []
 keywords: []
-action:
-  aliases: []
-  related:
-    - functions/resources/Fingerprint
-    - functions/resources/Minify
-    - functions/css/PostCSS
-  returnType: resource.Resource
-  signatures: ['css.TailwindCSS [OPTIONS] RESOURCE']
-toc: true
+params:
+  functions_and_methods:
+    aliases: []
+    returnType: resource.Resource
+    signatures: ['css.TailwindCSS [OPTIONS] RESOURCE']
 ---
 
-{{< new-in 0.128.0 >}}
+{{< new-in 0.128.0 />}}
 
-{{% todo %}}remove this admonition when feature is stable.{{% /todo %}}
+Use the `css.TailwindCSS` function to process your Tailwind CSS files. This function uses the Tailwind CSS CLI to:
 
-{{% note %}}
-This is an experimental feature pending the release of TailwindCSS v4.0.
+1. Scan your templates for Tailwind CSS utility class usage.
+1. Compile those utility classes into standard CSS.
+1. Generate an optimized CSS output file.
 
-The functionality, configuration requirements, and documentation are subject to change at any time and may be not compatible with prior releases.
-{{% /note %}}
+> [!note]
+> Use this function with Tailwind CSS v4.0 and later, which require a relatively [modern browser] to render correctly.
 
-## Prerequisites
+[modern browser]: https://tailwindcss.com/docs/compatibility#browser-support
 
-To use this function you must install the Tailwind CSS CLI v4.0 or later. You may install the CLI as an npm package or as a standalone executable. See the [Tailwind CSS documentation] for details.
+## Setup
 
-[Tailwind CSS documentation]: https://tailwindcss.com/docs/installation
+### Step 1
 
-{{% note %}}
-Prior to the release of Tailwind CSS v4.0 you must install [v4.0.0-alpha.26](https://github.com/tailwindlabs/tailwindcss/releases/tag/v4.0.0-alpha.26) or later.
+Install the Tailwind CSS CLI v4.0 or later:
 
-`npm install --save-dev tailwindcss@next @tailwindcss/cli@next`
+```sh {copy=true}
+npm install --save-dev tailwindcss @tailwindcss/cli
+```
 
-{{% /note %}}
+The Tailwind CSS CLI is also available as a [standalone executable]. You must install it outside of your project directory and ensure its path is included in your system's `PATH` environment variable.
 
-## Options
 
-minify
-: (`bool`) Whether to optimize and minify the output. Default is `false`.
+[standalone executable]: https://github.com/tailwindlabs/tailwindcss/releases/latest
 
-optimize
-: (`bool`) Whether to optimize the output without minifying. Default is `false`.
+### Step 2
 
-inlineImports
-: (`bool`) Whether to enable inlining of `@import` statements. Inlining is performed recursively, but currently once only per file. It is not possible to import the same file in different scopes (root, media query, etc.). Note that this import routine does not care about the CSS specification, so you can have `@import` statements anywhere in the file. Default is `false`.
+Add this to your site configuration:
 
-skipInlineImportsNotFound
-: (`bool`) When `inlineImports` is enabled, we fail the build if an import cannot be resolved. Enable this option to allow the build to continue and leave the import statement in place. Note that the inline importer does not process URL location or imports with media queries, so those will be left as-is even without enabling this option. Default is `false`.
-
-## Example
-
-Define a [cache buster] in your site configuration:
-
-[cache buster]: /getting-started/configuration-build/#configure-cache-busters
-
-{{< code-toggle file=hugo >}}
-[[build.cachebusters]]
-source = 'layouts/.*'
-target = 'css'
+{{< code-toggle file=hugo copy=true >}}
+[build]
+  [build.buildStats]
+    enable = true
+  [[build.cachebusters]]
+    source = 'assets/notwatching/hugo_stats\.json'
+    target = 'css'
+  [[build.cachebusters]]
+    source = '(postcss|tailwind)\.config\.js'
+    target = 'css'
+[module]
+  [[module.mounts]]
+    source = 'assets'
+    target = 'assets'
+  [[module.mounts]]
+    disableWatch = true
+    source = 'hugo_stats.json'
+    target = 'assets/notwatching/hugo_stats.json'
 {{< /code-toggle >}}
 
-Process the resource:
+### Step 3
 
-```go-html-template
+Create a CSS entry file:
+
+```css {file="assets/css/main.css" copy=true}
+@import "tailwindcss";
+@source "hugo_stats.json";
+```
+
+Tailwind CSS respects `.gitignore` files. This means that if `hugo_stats.json` is listed in your `.gitignore` file, Tailwind CSS will ignore it. To make `hugo_stats.json` available to Tailwind CSS you must explicitly source it as shown in the example above.
+
+### Step 4
+
+Create a partial template to process the CSS with the Tailwind CSS CLI:
+
+```go-html-template {file="layouts/_partials/css.html" copy=true}
 {{ with resources.Get "css/main.css" }}
-  {{ $opts := dict "minify" true }}
+  {{ $opts := dict "minify" (not hugo.IsDevelopment) }}
   {{ with . | css.TailwindCSS $opts }}
     {{ if hugo.IsDevelopment }}
       <link rel="stylesheet" href="{{ .RelPermalink }}">
@@ -80,8 +92,31 @@ Process the resource:
 {{ end }}
 ```
 
-The example above publishes the minified CSS file to public/css/main.css.
+### Step 5
 
-See [this repository] for more information about the integration with Tailwind CSS v4.0.
+Call the partial template from your base template, deferring template execution until after all sites and output formats have been rendered:
 
-[this repository]: https://github.com/bep/hugo-testing-tailwindcss-v4
+```go-html-template {file="layouts/baseof.html" copy=true}
+<head>
+  ...
+  {{ with (templates.Defer (dict "key" "global")) }}
+    {{ partial "css.html" . }}
+  {{ end }}
+  ...
+</head>
+```
+
+## Options
+
+minify
+: (`bool`) Whether to optimize and minify the output. Default is `false`.
+
+optimize
+: (`bool`) Whether to optimize the output without minifying. Default is `false`.
+
+disableInlineImports
+: {{< new-in 0.147.4 />}}
+: (`bool`) Whether to disable inlining of `@import` statements. Inlining is performed recursively, but currently once only per file. It is not possible to import the same file in different scopes (root, media query, etc.). Note that this import routine does not care about the CSS specification, so you can have `@import` statements anywhere in the file. Default is `false`.
+
+skipInlineImportsNotFound
+: (`bool`) Whether to allow the build process to continue despite unresolved import statements, preserving the original import declarations. It is important to note that the inline importer does not process URL-based imports or those with media queries, and these will remain unaltered even when this option is disabled. Default is `false`.

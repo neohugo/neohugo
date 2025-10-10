@@ -1,14 +1,8 @@
 ---
 title: Performance
 description: Tools and suggestions for evaluating and improving performance.
-categories: [troubleshooting]
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: troubleshooting
-    weight: 60
-weight: 60
-toc: true
 aliases: [/troubleshooting/build-performance/]
 ---
 
@@ -24,9 +18,8 @@ For example, with Microsoft Defender Antivirus:
 
 Then type `hugo.exe` add press the **Add** button.
 
-{{% note %}}
-Virus scanning exclusions are common, but use caution when changing these settings. See the [Microsoft Defender Antivirus documentation](https://support.microsoft.com/en-us/topic/how-to-add-a-file-type-or-process-exclusion-to-windows-security-e524cbc2-3975-63c2-f9d1-7c2eb5331e53) for details.
-{{% /note %}}
+> [!note]
+> Virus scanning exclusions are common, but use caution when changing these settings. See the [Microsoft Defender Antivirus documentation] for details.
 
 Other virus scanners have similar exclusion mechanisms. See their respective documentation.
 
@@ -46,24 +39,22 @@ Template Metrics:
      cumulative       average       maximum      cache  percent  cached  total  
        duration      duration      duration  potential   cached   count  count  template
      ----------      --------      --------  ---------  -------  ------  -----  --------
-  36.037476822s  135.990478ms  225.765245ms         11        0       0    265  partials/head.html
-  35.920040902s  164.018451ms  233.475072ms          0        0       0    219  articles/single.html
-  34.163268129s  128.917992ms  224.816751ms         23        0       0    265  partials/head/meta/opengraph.html
-   1.041227437s     3.92916ms  186.303376ms         47        0       0    265  partials/head/meta/schema.html
-   805.628827ms   27.780304ms  114.678523ms          0        0       0     29  _default/list.html
-    624.08354ms   15.221549ms  108.420729ms          8        0       0     41  partials/utilities/render-page-collection.html
-   545.968801ms     775.523µs  105.045775ms          0        0       0    704  _default/summary.html
-   334.680981ms    1.262947ms  127.412027ms        100        0       0    265  partials/head/js.html
-   272.763205ms    2.050851ms   24.371757ms          0        0       0    133  _default/_markup/render-codeblock.html
-   230.490038ms    8.865001ms    177.4615ms          0        0       0     26  shortcodes/template.html
-   176.921913ms  176.921913ms  176.921913ms          0        0       0      1  examples.tmpl
-   163.951469ms   14.904679ms   70.267953ms          0        0       0     11  articles/list.html
-    153.07021ms     577.623µs   73.593597ms        100        0       0    265  partials/head/init.html
-   150.910984ms  150.910984ms  150.910984ms          0        0       0      1  _default/single.html
-   146.785804ms  146.785804ms  146.785804ms          0        0       0      1  _default/contact.html
+  36.037476822s  135.990478ms  225.765245ms         11        0       0    265  _partials/head.html
+  35.920040902s  164.018451ms  233.475072ms          0        0       0    219  articles/page.html
+  34.163268129s  128.917992ms  224.816751ms         23        0       0    265  _partials/head/meta/opengraph.html
+   1.041227437s     3.92916ms  186.303376ms         47        0       0    265  _partials/head/meta/schema.html
+   805.628827ms   27.780304ms  114.678523ms          0        0       0     29  section.html
+    624.08354ms   15.221549ms  108.420729ms          8        0       0     41  _partials/utilities/render-page-collection.html
+   545.968801ms     775.523µs  105.045775ms          0        0       0    704  summary.html
+   334.680981ms    1.262947ms  127.412027ms        100        0       0    265  _partials/head/js.html
+   272.763205ms    2.050851ms   24.371757ms          0        0       0    133  _markup/render-codeblock.html
+   163.951469ms   14.904679ms   70.267953ms          0        0       0     11  articles/section.html
+    153.07021ms     577.623µs   73.593597ms        100        0       0    265  _partials/head/init.html
+   150.910984ms  150.910984ms  150.910984ms          0        0       0      1  page.html
+   146.785804ms  146.785804ms  146.785804ms          0        0       0      1  contact.html
    115.364617ms  115.364617ms  115.364617ms          0        0       0      1  authors/term.html
-    87.392071ms     329.781µs   10.687132ms        100        0       0    265  partials/head/css.html
-    86.803122ms   86.803122ms   86.803122ms          0        0       0      1  _default/home.html
+    87.392071ms     329.781µs   10.687132ms        100        0       0    265  _partials/head/css.html
+    86.803122ms   86.803122ms   86.803122ms          0        0       0      1  home.html
 ```
 
 From left to right, the columns represent:
@@ -90,23 +81,22 @@ total count
 : The number of times the template was executed.
 
 template
-: The path to the template, relative to the layouts directory.
+: The path to the template, relative to the `layouts` directory.
 
-[`partial`]: /functions/partials/include/
-[`partialCached`]: /functions/partials/includecached/
-
-{{% note %}}
-Hugo builds pages in parallel where multiple pages are generated simultaneously. Because of this parallelism, the sum of "cumulative duration" values is usually greater than the actual time it takes to build a site.
-{{% /note %}}
+> [!note]
+> Hugo builds pages in parallel where multiple pages are generated simultaneously. Because of this parallelism, the sum of "cumulative duration" values is usually greater than the actual time it takes to build a site.
 
 ## Caching
 
 Some partial templates such as sidebars or menus are executed many times during a site build. Depending on the content within the partial template and the desired output, the template may benefit from caching to reduce the number of executions. The [`partialCached`] template function provides caching capabilities for partial templates.
 
-{{% note %}}
-Note that you can create cached variants of each partial by passing additional arguments to `partialCached` beyond the initial context. See the `partialCached` documentation for more details.
-{{% /note %}}
+> [!note]
+> Note that you can create cached variants of each partial by passing additional arguments to `partialCached` beyond the initial context. See the `partialCached` documentation for more details.
 
 ## Timers
 
-Use the `debug.Timer` function to determine execution time for a block of code, useful for finding performance bottle necks in templates. See&nbsp;[details](/functions/debug/timer/).
+Use the `debug.Timer` function to determine execution time for a block of code, useful for finding performance bottlenecks in templates. See&nbsp;[details](/functions/debug/timer/).
+
+[`partial`]: /functions/partials/include/
+[`partialCached`]: /functions/partials/includecached/
+[Microsoft Defender Antivirus documentation]: https://support.microsoft.com/en-us/topic/how-to-add-a-file-type-or-process-exclusion-to-windows-security-e524cbc2-3975-63c2-f9d1-7c2eb5331e53

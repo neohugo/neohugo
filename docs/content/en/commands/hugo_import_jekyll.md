@@ -5,12 +5,12 @@ url: /commands/hugo_import_jekyll/
 ---
 ## hugo import jekyll
 
-neohugo import from Jekyll
+hugo import from Jekyll
 
 ### Synopsis
 
-neohugo import from Jekyll.
-
+hugo import from Jekyll.
+		
 Import from Jekyll requires two paths, e.g. `hugo import jekyll jekyll_root_path target_path`.
 
 ```
@@ -34,6 +34,7 @@ hugo import jekyll [flags] [args]
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from

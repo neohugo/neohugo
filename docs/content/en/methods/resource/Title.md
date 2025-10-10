@@ -3,19 +3,17 @@ title: Title
 description: Returns the title of the given resource as optionally defined in front matter, falling back to a relative path or hashed file name depending on resource type.
 categories: []
 keywords: []
-action:
-  related:
-    - methods/resource/Name
-  returnType: string
-  signatures: [RESOURCE.Title]
-toc: true
+params:
+  functions_and_methods:
+    returnType: string
+    signatures: [RESOURCE.Title]
 ---
 
 The value returned by the `Title` method on a `Resource` object depends on the resource type.
 
 ## Global resource
 
-With a [global resource], the `Title` method returns the path to the resource, relative to the assets directory.
+With a [global resource](g), the `Title` method returns the path to the resource, relative to the `assets` directory.
 
 ```text
 assets/
@@ -31,7 +29,7 @@ assets/
 
 ## Page resource
 
-With a [page resource], if you create an element in the `resources` array in front matter, the `Title` method returns the value of the `title` parameter.
+With a [page resource](g), if you create an element in the `resources` array in front matter, the `Title` method returns the value of the `title` parameter.
 
 ```text
 content/
@@ -74,14 +72,10 @@ content/
 
 ## Remote resource
 
-With a [remote resource], the `Title` method returns a hashed file name.
+With a [remote resource](g), the `Title` method returns a hashed file name.
 
 ```go-html-template
 {{ with resources.GetRemote "https://example.org/images/a.jpg" }}
   {{ .Title }} → /a_18432433023265451104.jpg
 {{ end }}
 ```
-
-[global resource]: /getting-started/glossary/#global-resource
-[page resource]: /getting-started/glossary/#page-resource
-[remote resource]: /getting-started/glossary/#remote-resource

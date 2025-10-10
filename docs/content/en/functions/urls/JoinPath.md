@@ -3,16 +3,13 @@ title: urls.JoinPath
 description: Joins the provided elements into a URL string and cleans the result of any ./ or ../ elements. If the argument list is empty, JoinPath returns an empty string.
 categories: []
 keywords: []
-action:
-  aliases: []
-  related:
-    - functions/path/Join
-  returnType: string
-  signatures: [urls.JoinPath ELEMENT...]
+params:
+  functions_and_methods:
+    aliases: []
+    returnType: string
+    signatures: [urls.JoinPath ELEMENT...]
 aliases: [/functions/urls.joinpath]
 ---
-
-{{< new-in 0.112.0 >}}
 
 ```go-html-template
 {{ urls.JoinPath }} → "" (empty string)

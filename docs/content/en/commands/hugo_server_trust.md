@@ -5,7 +5,7 @@ url: /commands/hugo_server_trust/
 ---
 ## hugo server trust
 
-Install the local CA in the system trust store.
+Install the local CA in the system trust store
 
 ```
 hugo server trust [flags] [args]
@@ -28,6 +28,7 @@ hugo server trust [flags] [args]
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from

@@ -5,7 +5,7 @@ url: /commands/hugo_mod_tidy/
 ---
 ## hugo mod tidy
 
-Remove unused entries in go.mod and go.sum.
+Remove unused entries in go.mod and go.sum
 
 ```
 hugo mod tidy [flags] [args]
@@ -32,6 +32,7 @@ hugo mod tidy [flags] [args]
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from

@@ -5,7 +5,7 @@ url: /commands/hugo_mod_npm/
 ---
 ## hugo mod npm
 
-Various npm helpers.
+Various npm helpers
 
 ### Synopsis
 
@@ -31,6 +31,7 @@ hugo mod npm [command] [flags]
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from
@@ -40,5 +41,5 @@ hugo mod npm [command] [flags]
 ### SEE ALSO
 
 * [hugo mod](/commands/hugo_mod/)	 - Manage modules
-* [hugo mod npm pack](/commands/hugo_mod_npm_pack/)	 - Experimental: Prepares and writes a composite package.json file for your project.
+* [hugo mod npm pack](/commands/hugo_mod_npm_pack/)	 - Experimental: Prepares and writes a composite package.json file for your project
 

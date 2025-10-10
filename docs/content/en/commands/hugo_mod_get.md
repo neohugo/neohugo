@@ -5,19 +5,19 @@ url: /commands/hugo_mod_get/
 ---
 ## hugo mod get
 
-Resolves dependencies in your current Hugo Project.
+Resolves dependencies in your current Hugo project
 
 ### Synopsis
 
 
-Resolves dependencies in your current Hugo Project.
+Resolves dependencies in your current Hugo project.
 
 Some examples:
 
 Install the latest version possible for a given module:
 
     hugo mod get github.com/gohugoio/testshortcodes
-    
+
 Install a specific version:
 
     hugo mod get github.com/gohugoio/testshortcodes@v0.3.0
@@ -62,6 +62,7 @@ hugo mod get [flags] [args]
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from

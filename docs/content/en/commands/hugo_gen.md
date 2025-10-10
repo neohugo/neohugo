@@ -27,6 +27,7 @@ Generate documentation for your project using Hugo's documentation engine, inclu
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from
@@ -37,6 +38,6 @@ Generate documentation for your project using Hugo's documentation engine, inclu
 
 * [hugo](/commands/hugo/)	 - Build your site
 * [hugo gen chromastyles](/commands/hugo_gen_chromastyles/)	 - Generate CSS stylesheet for the Chroma code highlighter
-* [hugo gen doc](/commands/hugo_gen_doc/)	 - Generate Markdown documentation for the Hugo CLI.
+* [hugo gen doc](/commands/hugo_gen_doc/)	 - Generate Markdown documentation for the Hugo CLI
 * [hugo gen man](/commands/hugo_gen_man/)	 - Generate man pages for the Hugo CLI
 
