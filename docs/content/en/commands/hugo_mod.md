@@ -38,6 +38,7 @@ See https://gohugo.io/hugo-modules/ for more information.
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from
@@ -47,12 +48,12 @@ See https://gohugo.io/hugo-modules/ for more information.
 ### SEE ALSO
 
 * [hugo](/commands/hugo/)	 - Build your site
-* [hugo mod clean](/commands/hugo_mod_clean/)	 - Delete the Hugo Module cache for the current project.
-* [hugo mod get](/commands/hugo_mod_get/)	 - Resolves dependencies in your current Hugo Project.
-* [hugo mod graph](/commands/hugo_mod_graph/)	 - Print a module dependency graph.
-* [hugo mod init](/commands/hugo_mod_init/)	 - Initialize this project as a Hugo Module.
-* [hugo mod npm](/commands/hugo_mod_npm/)	 - Various npm helpers.
-* [hugo mod tidy](/commands/hugo_mod_tidy/)	 - Remove unused entries in go.mod and go.sum.
-* [hugo mod vendor](/commands/hugo_mod_vendor/)	 - Vendor all module dependencies into the _vendor directory.
-* [hugo mod verify](/commands/hugo_mod_verify/)	 - Verify dependencies.
+* [hugo mod clean](/commands/hugo_mod_clean/)	 - Delete the Hugo Module cache for the current project
+* [hugo mod get](/commands/hugo_mod_get/)	 - Resolves dependencies in your current Hugo project
+* [hugo mod graph](/commands/hugo_mod_graph/)	 - Print a module dependency graph
+* [hugo mod init](/commands/hugo_mod_init/)	 - Initialize this project as a Hugo Module
+* [hugo mod npm](/commands/hugo_mod_npm/)	 - Various npm helpers
+* [hugo mod tidy](/commands/hugo_mod_tidy/)	 - Remove unused entries in go.mod and go.sum
+* [hugo mod vendor](/commands/hugo_mod_vendor/)	 - Vendor all module dependencies into the _vendor directory
+* [hugo mod verify](/commands/hugo_mod_verify/)	 - Verify dependencies
 

@@ -3,16 +3,11 @@ title: define
 description: Defines a template.
 categories: []
 keywords: []
-action:
-  aliases: []
-  related:
-    - functions/go-template/block
-    - functions/go-template/end
-    - functions/go-template/template
-    - functions/partials/Include
-    - functions/partials/IncludeCached
-  returnType:
-  signatures: [define NAME]
+params:
+  functions_and_methods:
+    aliases: []
+    returnType:
+    signatures: [define NAME]
 ---
 
 Use with the [`block`] statement:
@@ -33,7 +28,7 @@ Use with the [`partial`] function:
 ```go-html-template
 {{ partial "inline/foo.html" (dict "answer" 42) }}
 
-{{ define "partials/inline/foo.html" }}
+{{ define "_partials/inline/foo.html" }}
   {{ printf "The answer is %v." .answer }}
 {{ end }}
 ```
@@ -48,8 +43,21 @@ Use with the [`template`] function:
 {{ end }}
 ```
 
+> [!warning]
+> Only [template comments] are allowed outside of the `define` and `end` statements. Avoid placing any other text, including HTML comments, outside of these boundaries. Doing so will cause rendering issues, potentially resulting in a blank page. See the example below.
+
+```go-html-template {file="layouts/do-not-do-this.html"}
+<div>This div element broke your template.</div>
+{{ define "main" }}
+  <h2>{{ .Title }}</h2>
+  {{ .Content }}
+{{ end }}
+<!-- An HTML comment will break your template too. -->
+```
+
+{{% include "/_common/functions/go-template/text-template.md" %}}
+
 [`block`]: /functions/go-template/block/
 [`template`]: /functions/go-template/block/
 [`partial`]: /functions/partials/include/
-
-{{% include "functions/go-template/_common/text-template.md" %}}
+[template comments]: /templates/introduction/#comments

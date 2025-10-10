@@ -1,29 +1,24 @@
 ---
 title: Store
-description: Returns a "Store pad" scoped to the shortcode to store and manipulate data. 
+description: Returns a "scratch pad" to store and manipulate data, scoped to the current shortcode.
 categories: []
 keywords: []
-action:
-  related:
-    - functions/collections/NewScratch
-    - methods/page/Store
-    - methods/site/Store
-    - functions/hugo/Store
-  returnType: maps.Store
-  signatures: [SHORTCODE.Store]
+params:
+  functions_and_methods:
+    returnType: maps.Scratch
+    signatures: [SHORTCODE.Store]
 ---
 
-{{< new-in 0.139.0 >}}
+{{< new-in 0.139.0 />}}
 
-The `Store` method within a shortcode creates a [scratch pad] to store and manipulate data. The scratch pad is scoped to the shortcode.
+Use the `Store` method to create a [scratch pad](g) to store and manipulate data, scoped to the current shortcode. To create a scratch pad with a different [scope](g), refer to the [scope](#scope) section below.
 
-{{% note %}}
-With the introduction of the [`newScratch`] function, and the ability to [assign values to template variables] after initialization, the `Store` method within a shortcode is mostly obsolete.
+> [!note]
+> With the introduction of the [`newScratch`] function, and the ability to [assign values to template variables] after initialization, the `Store` method within a shortcode is mostly obsolete.
 
-[assign values to template variables]: https://go.dev/doc/go1.11#text/template
+{{% include "_common/store-methods.md" %}}
+
+{{% include "_common/scratch-pad-scope.md" %}}
+
 [`newScratch`]: /functions/collections/newScratch/
-{{% /note %}}
-
-[Store pad]: /getting-started/glossary/#scratch-pad
-
-{{% include "methods/page/_common/scratch-methods.md" %}}
+[assign values to template variables]: https://go.dev/doc/go1.11#texttemplatepkgtexttemplate

@@ -3,11 +3,10 @@ title: PageGroups
 description: Returns the page groups in the current pager.
 categories: []
 keywords: []
-action:
-  related:
-    - methods/page/Paginate
-  returnType: page.PagesGroup
-  signatures: [PAGER.PageGroups]
+params:
+  functions_and_methods:
+    returnType: page.PagesGroup
+    signatures: [PAGER.PageGroups]
 ---
 
 Use the `PageGroups` method with any of the [grouping methods].
@@ -25,5 +24,5 @@ Use the `PageGroups` method with any of the [grouping methods].
   {{ end }}
 {{ end }}
 
-{{ template "_internal/pagination.html" . }}
+{{ partial "pagination.html" . }}
 ```

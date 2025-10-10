@@ -1,36 +1,23 @@
 ---
 title: Data sources
 description: Use local and remote data sources to augment or create content.
-categories: [content management]
-keywords: [data,json,toml,yaml,xml]
-menu:
-  docs:
-    parent: content-management
-    weight: 280
-weight: 280
-toc: true
+categories: []
+keywords: []
 aliases: [/extras/datafiles/,/extras/datadrivencontent/,/doc/datafiles/,/templates/data-templates/]
 ---
 
-Hugo can access and [unmarshal] local and remote data sources including CSV, JSON, TOML, YAML, and XML. Use this data to augment existing content or to create new content.
+Hugo can access and [unmarshal](g) local and remote data sources including CSV, JSON, TOML, YAML, and XML. Use this data to augment existing content or to create new content.
 
-[unmarshal]: /getting-started/glossary/#unmarshal
-
-A data source might be a file in the data directory, a [global resource], a [page resource], or a [remote resource].
-
-[global resource]: /getting-started/glossary/#global-resource
-[page resource]: /getting-started/glossary/#page-resource
-[remote resource]: /getting-started/glossary/#remote-resource
+A data source might be a file in the `data` directory, a [global resource](g), a [page resource](g), or a [remote resource](g).
 
 ## Data directory
 
-The data directory in the root of your project may contain one or more data files, in either a flat or nested tree. Hugo merges the data files to create a single data structure, accessible with the `Data` method on a `Site` object.
+The `data` directory in the root of your project may contain one or more data files, in either a flat or nested tree. Hugo merges the data files to create a single data structure, accessible with the `Data` method on a `Site` object.
 
-Hugo also merges data directories from themes and modules into this single data structure, where the data directory in the root of your project takes precedence.
+Hugo also merges data directories from themes and modules into this single data structure, where the `data` directory in the root of your project takes precedence.
 
-{{% note %}}
-Hugo reads the combined data structure into memory and keeps it there for the entire build. For data that is infrequently accessed, use global or page resources instead.
-{{% /note %}}
+> [!note]
+> Hugo reads the combined data structure into memory and keeps it there for the entire build. For data that is infrequently accessed, use global or page resources instead.
 
 Theme and module authors may wish to namespace their data files to prevent collisions. For example:
 
@@ -41,13 +28,10 @@ project/
         └── foo.json
 ```
 
-{{% note %}}
-Do not place CSV files in the data directory. Access CSV files as page, global, or remote resources.
-{{% /note %}}
+> [!note]
+> Do not place CSV files in the `data` directory. Access CSV files as page, global, or remote resources.
 
 See the documentation for the [`Data`] method on a `Site` object for details and examples.
-
-[`Data`]: /methods/site/data/
 
 ## Global resources
 
@@ -71,17 +55,17 @@ See the [`transform.Unmarshal`](/functions/transform/unmarshal/#remote-resource)
 
 Use data sources to augment existing content. For example, create a shortcode to render an HTML table from a global CSV resource.
 
-{{< code file=assets/pets.csv >}}
+```csv {file="assets/pets.csv"}
 "name","type","breed","age"
 "Spot","dog","Collie","3"
 "Felix","cat","Malicious","7"
-{{< /code >}}
+```
 
-{{< code file=content/example.md lang=text >}}
+```text {file="content/example.md"}
 {{</* csv-to-table "pets.csv" */>}}
-{{< /code >}}
+```
 
-{{< code file=layouts/shortcodes/csv-to-table.html >}}
+```go-html-template {file="layouts/_shortcodes/csv-to-table.html"}
 {{ with $file := .Get 0 }}
   {{ with resources.Get $file }}
     {{ with . | transform.Unmarshal }}
@@ -110,7 +94,7 @@ Use data sources to augment existing content. For example, create a shortcode to
 {{ else }}
   {{ errorf "The %q shortcode requires one positional argument, the path to the CSV file relative to the assets directory. See %s" .Name .Position }}
 {{ end }}
-{{< /code >}}
+```
 
 Hugo renders this to:
 
@@ -123,4 +107,5 @@ Felix|cat|Malicious|7
 
 Use [content adapters] to create new content.
 
+[`Data`]: /methods/site/data/
 [content adapters]: /content-management/content-adapters/

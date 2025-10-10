@@ -1,110 +1,88 @@
 ---
 title: Shortcodes
-description: Shortcodes are simple snippets inside your content files calling built-in or custom templates.
-categories: [content management]
-keywords: [markdown,content,shortcodes]
-menu:
-  docs:
-    parent: content-management
-    weight: 100
-weight: 100
-toc: true
+description: Use embedded, custom, or inline shortcodes to insert elements such as videos, images, and social media embeds into your content.
+categories: []
+keywords: []
 aliases: [/extras/shortcodes/]
-testparam: "Hugo Rocks!"
 ---
 
-## What a shortcode is
+## Introduction
 
-Hugo loves Markdown because of its simple content format, but there are times when Markdown falls short. Often, content authors are forced to add raw HTML (e.g., video `<iframe>`'s) to Markdown content. We think this contradicts the beautiful simplicity of Markdown's syntax.
+{{% glossary-term shortcode %}}
 
-Hugo created **shortcodes** to circumvent these limitations.
+There are three types of shortcodes: embedded, custom, and inline.
 
-A shortcode is a simple snippet inside a content file that Hugo will render using a predefined template. Note that shortcodes will not work in template files. If you need the type of drop-in functionality that shortcodes provide but in a template, you most likely want a [partial template][partials] instead.
+## Embedded
 
-In addition to cleaner Markdown, shortcodes can be updated any time to reflect new classes, techniques, or standards. At the point of site generation, Hugo shortcodes will easily merge in your changes. You avoid a possibly complicated search and replace operation.
+Hugo's embedded shortcodes are pre-defined templates within the application. Refer to each shortcode's documentation for specific usage instructions and available arguments.
 
-## Use shortcodes
+{{% list-pages-in-section path=/shortcodes %}}
 
-{{< youtube 2xkNJL4gJ9E >}}
+## Custom
 
-In your content files, a shortcode can be called by calling `{{%/* shortcodename arguments */%}}`. Shortcode arguments are space delimited, and arguments with internal spaces must be quoted.
+Create custom shortcodes to simplify and standardize content creation. For example, the following shortcode template generates an audio player using a [global resource](g):
 
-The first word in the shortcode declaration is always the name of the shortcode. Arguments follow the name. Depending upon how the shortcode is defined, the arguments may be named, positional, or both, although you can't mix argument types in a single call. The format for named arguments models that of HTML with the format `name="value"`.
-
-Some shortcodes use or require closing shortcodes. Again like HTML, the opening and closing shortcodes match (name only) with the closing declaration, which is prepended with a slash.
-
-Here are two examples of paired shortcodes:
-
-```go-html-template
-{{%/* mdshortcode */%}}Stuff to `process` in the *center*.{{%/* /mdshortcode */%}}
+```go-html-template {file="layouts/_shortcodes/audio.html"}
+{{ with resources.Get (.Get "src") }}
+  <audio controls preload="auto" src="{{ .RelPermalink }}"></audio>
+{{ end }}
 ```
 
-```go-html-template
-{{</* highlight go */>}} A bunch of code here {{</* /highlight */>}}
+Then call the shortcode from within markup:
+
+```text {file="content/example.md"}
+{{</* audio src=/audio/test.mp3 */>}}
 ```
 
-The examples above use two different delimiters, the difference being the `%` character in the first and the `<>` characters in the second.
+Learn more about creating shortcodes in the [shortcode templates] section.
 
-### Shortcodes with raw string arguments
+## Inline
 
-You can pass multiple lines as arguments to a shortcode by using raw string literals:
+An inline shortcode is a shortcode template defined within content.
 
-```go-html-template
-{{</*  myshortcode `This is some <b>HTML</b>,
-and a new line with a "quoted string".` */>}}
+Hugo's security model is based on the premise that template and configuration authors are trusted, but content authors are not. This model enables generation of HTML output safe against code injection.
+
+To conform with this security model, creating shortcode templates within content is disabled by default. If you trust your content authors, you can enable this functionality in your site's configuration:
+
+{{< code-toggle file=hugo >}}
+[security]
+enableInlineShortcodes = true
+{{< /code-toggle >}}
+
+For more information see [configure security](/configuration/security).
+
+The following example demonstrates an inline shortcode, `date.inline`, that accepts a single positional argument: a date/time [layout string].
+
+```text {file="content/example.md"}
+Today is
+{{</* date.inline ":date_medium" */>}}
+  {{- now | time.Format (.Get 0) -}}
+{{</* /date.inline */>}}.
+
+Today is {{</* date.inline ":date_full" /*/>}}.
 ```
 
-### Shortcodes with Markdown
+In the example above, the inline shortcode is executed twice: once upon definition and again when subsequently called. Hugo renders this to:
 
-Shortcodes using the `%` as the outer-most delimiter will be fully rendered when sent to the content renderer. This means that the rendered output from a shortcode can be part of the page's table of contents, footnotes, etc.
-
-### Shortcodes without Markdown
-
-The `<` character indicates that the shortcode's inner content does *not* need further rendering. Often shortcodes without Markdown include internal HTML:
-
-```go-html-template
-{{</* myshortcode */>}}<p>Hello <strong>World!</strong></p>{{</* /myshortcode */>}}
+```html
+<p>Today is Jan 30, 2025.</p>
+<p>Today is Thursday, January 30, 2025</p>
 ```
 
-### Nested shortcodes
+Inline shortcodes process their inner content within the same context as regular shortcode templates, allowing you to use any available [shortcode method].
 
-You can call shortcodes within other shortcodes by creating your own templates that leverage the `.Parent` method. `.Parent` allows you to check the context in which the shortcode is being called. See [Shortcode templates][sctemps].
+> [!note]
+> You cannot [nest](#nesting) inline shortcodes.
 
-## Embedded shortcodes
+Learn more about creating shortcodes in the [shortcode templates] section.
 
-Use these embedded shortcodes as needed.
+## Calling
 
-### comment
+Shortcode calls involve three syntactical elements: tags, arguments, and notation.
 
-{{< new-in "0.137.1" >}}
+### Tags
 
-{{% note %}}
-To override Hugo's embedded `comment` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl comment %}}
-{{% /note %}}
-
-Use the `comment` shortcode to include comments in your Markdown. Hugo excludes the encapsulated text when rendering your site.
-
-Example usage:
-
-```text
-{{%/* comment */%}} TODO: rewrite the paragraph below. {{%/* /comment */%}}
-```
-
-Although you can call this shortcode using the `{{</* */>}}` notation, computationally it is more efficient to call it using the `{{%/* */%}}` notation as shown above.
-
-### details
-
-{{< new-in 0.140.0 >}}
-
-{{% note %}}
-To override Hugo's embedded `details` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl details %}}
-{{% /note %}}
-
-Use the `details` shortcode to create a `details` HTML element. For example:
+Some shortcodes expect content between opening and closing tags. For example, the embedded [`details`] shortcode requires an opening and closing tag:
 
 ```text
 {{</* details summary="See the details" */>}}
@@ -112,430 +90,141 @@ This is a **bold** word.
 {{</* /details */>}}
 ```
 
-Hugo renders this to:
-
-```html
-<details>
-  <summary>See the details</summary>
-  <p>This is a <strong>bold</strong> word.</p>
-</details>
-```
-
-The details shortcode accepts these named arguments:
-
-summary
-: (`string`) The content of the child `summary` element rendered from Markdown to HTML. Default is `Details`.
-
-open
-: (`bool`) Whether to initially display the content of the `details` element. Default is `false`.
-
-class
-: (`string`) The value of the element's `class` attribute.
-
-name
-: (`string`) The value of the element's `name` attribute.
-
-title
-: (`string`) The value of the element's `title` attribute.
-
-### figure
-
-{{% note %}}
-To override Hugo's embedded `figure` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl figure %}}
-{{% /note %}}
-
-The `figure` shortcode can use the following named arguments:
-
-src
-: URL of the image to be displayed.
-
-link
-: If the image needs to be hyperlinked, URL of the destination.
-
-target
-: Optional `target` attribute for the URL if `link` argument is set.
-
-rel
-: Optional `rel` attribute for the URL if `link` argument is set.
-
-alt
-: Alternate text for the image if the image cannot be displayed.
-
-title
-: Image title.
-
-caption
-: Image caption. Markdown within the value of `caption` will be rendered.
-
-class
-: `class` attribute of the HTML `figure` tag.
-
-height
-: `height` attribute of the image.
-
-width
-: `width` attribute of the image.
-
-loading
-: `loading` attribute of the image.
-
-attr
-: Image attribution text. Markdown within the value of `attr` will be rendered.
-
-attrlink
-: If the attribution text needs to be hyperlinked, URL of the destination.
-
-Example usage:
-
-```text
-{{</* figure src="elephant.jpg" title="An elephant at sunset" */>}}
-```
-
-Rendered:
-
-```html
-<figure>
-  <img src="elephant.jpg">
-  <figcaption><h4>An elephant at sunset</h4></figcaption>
-</figure>
-```
-
-### gist
-
-{{% note %}}
-To override Hugo's embedded `gist` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl gist %}}
-{{% /note %}}
-
-To display a GitHub [gist] with this URL:
-
-[gist]: https://docs.github.com/en/get-started/writing-on-github/editing-and-sharing-content-with-gists
-
-```text
-https://gist.github.com/user/50a7482715eac222e230d1e64dd9a89b
-```
-
-Include this in your Markdown:
-
-```text
-{{</* gist user 50a7482715eac222e230d1e64dd9a89b */>}}
-```
-
-This will display all files in the gist alphabetically by file name.
-
-{{< gist jmooring 23932424365401ffa5e9d9810102a477 >}}
-
-To display a specific file within the gist:
-
-```text
-{{</* gist user 23932424365401ffa5e9d9810102a477 list.html */>}}
-```
-
-Rendered:
-
-{{< gist jmooring 23932424365401ffa5e9d9810102a477 list.html >}}
-
-### highlight
-
-{{% note %}}
-To override Hugo's embedded `highlight` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl highlight %}}
-{{% /note %}}
-
-To display a highlighted code sample:
-
-```text
-{{</* highlight go-html-template */>}}
-{{ range .Pages }}
-  <h2><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></h2>
-{{ end }}
-{{</* /highlight */>}}
-```
-
-Rendered:
-
-{{< highlight go-html-template >}}
-{{ range .Pages }}
-  <h2><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></h2>
-{{ end }}
-{{< /highlight >}}
-
-To specify one or more [highlighting options], include a quotation-encapsulated, comma-separated list:
-
-[highlighting options]: /functions/transform/highlight/
-
-```text
-{{</* highlight go-html-template "lineNos=inline, lineNoStart=42" */>}}
-{{ range .Pages }}
-  <h2><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></h2>
-{{ end }}
-{{</* /highlight */>}}
-```
-
-Rendered:
-
-{{< highlight go-html-template "lineNos=inline, lineNoStart=42" >}}
-{{ range .Pages }}
-  <h2><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a></h2>
-{{ end }}
-{{< /highlight >}}
-
-### instagram
-
-{{% note %}}
-To override Hugo's embedded `instagram` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl instagram %}}
-{{% /note %}}
-
-To display an Instagram post with this URL:
-
-```text
-https://www.instagram.com/p/CxOWiQNP2MO/
-```
-
-Include this in your Markdown:
+Some shortcodes do not accept content. For example, the embedded [`instagram`] shortcode requires a single _positional_ argument:
 
 ```text
 {{</* instagram CxOWiQNP2MO */>}}
 ```
 
-Rendered:
-
-{{< instagram CxOWiQNP2MO >}}
-
-### param
-
-{{% note %}}
-To override Hugo's embedded `param` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl param %}}
-{{% /note %}}
-
-The `param` shortcode renders a parameter from the page's front matter, falling back to a site parameter of the same name. The shortcode throws an error if the parameter does not exist.
-
-Example usage:
+Some shortcodes optionally accept content. For example, you can call the embedded [`qr`] shortcode with content:
 
 ```text
-{{</* param testparam */>}}
+{{</* qr */>}}
+https://gohugo.io
+{{</* /qr */>}}
 ```
 
-Access nested values by [chaining] the [identifiers]:
-
-[chaining]: /getting-started/glossary/#chain
-[identifiers]: /getting-started/glossary/#identifier
+Or use the self-closing syntax with a trailing slash to pass the text as an argument:
 
 ```text
-{{</* param my.nested.param */>}}
+{{</* qr text=https://gohugo.io /*/>}}
 ```
 
-### ref
+Refer to each shortcode's documentation for specific usage instructions and available arguments.
 
-{{% note %}}
-To override Hugo's embedded `ref` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
+### Arguments
 
-Always use the `{{%/* */%}}` notation when calling this shortcode.
+Shortcode arguments can be either _named_ or _positional_.
 
-[source code]: {{% eturl ref %}}
-{{% /note %}}
-
-The `ref` shortcode returns the permalink of the given page reference.
-
-Example usage:
+Named arguments are passed as case-sensitive key-value pairs, as seen in this example with the embedded [`figure`] shortcode. The `src` argument, for instance, is required.
 
 ```text
-[Post 1]({{%/* ref "/posts/post-1" */%}})
-[Post 1]({{%/* ref "/posts/post-1.md" */%}})
-[Post 1]({{%/* ref "/posts/post-1#foo" */%}})
-[Post 1]({{%/* ref "/posts/post-1.md#foo" */%}})
+{{</* figure src=/images/kitten.jpg */>}}
 ```
 
-Rendered:
+Positional arguments, on the other hand, are determined by their position. The embedded `instagram` shortcode, for example, expects the first argument to be the Instagram post ID.
+
+```text
+{{</* instagram CxOWiQNP2MO */>}}
+```
+
+Shortcode arguments are space-delimited, and arguments with internal spaces must be quoted.
+
+```text
+{{</* figure src=/images/kitten.jpg alt="A white kitten" */>}}
+```
+
+Shortcodes accept [scalar](g) arguments, one of [string](g), [integer](g), [floating point](g), or [boolean](g).
+
+```text
+{{</* my-shortcode name="John Smith" age=24 married=false */>}}
+```
+
+You can optionally use multiple lines when providing several arguments to a shortcode for better readability:
+
+```text
+{{</* figure
+  src=/images/kitten.jpg
+  alt="A white kitten"
+  caption="This is a white kitten"
+  loading=lazy
+*/>}}
+```
+
+Use a [raw string literal](g) if you need to pass a multiline string:
+
+```text
+{{</* myshortcode `This is some <b>HTML</b>,
+and a new line with a "quoted string".` */>}}
+```
+
+Shortcodes can accept named arguments, positional arguments, or both, but you must use either named or positional arguments exclusively within a single shortcode call; mixing them is not allowed.
+
+Refer to each shortcode's documentation for specific usage instructions and available arguments.
+
+### Notation
+
+Shortcodes can be called using two different notations, distinguished by their tag delimiters.
+
+Notation|Example
+:--|:--
+Markdown|`{{%/* foo */%}} ## Section 1 {{%/* /foo */%}}`
+Standard|`{{</* foo */>}} ## Section 2 {{</* /foo */>}}`
+
+#### Markdown notation
+
+Hugo processes the shortcode before the page content is rendered by the Markdown renderer. This means, for instance, that Markdown headings inside a Markdown-notation shortcode will be included when invoking the [`TableOfContents`] method on the `Page` object.
+
+#### Standard notation
+
+With standard notation, Hugo processes the shortcode separately, merging the output into the page content after Markdown rendering. This means, for instance, that Markdown headings inside a standard-notation shortcode will be excluded when invoking the `TableOfContents` method on the `Page` object.
+
+By way of example, with this shortcode template:
+
+```go-html-template {file="layouts/_shortcodes/foo.html"}
+{{ .Inner }}
+```
+
+And this markdown:
+
+```text {file="content/example.md"}
+{{%/* foo */%}} ## Section 1 {{%/* /foo */%}}
+
+{{</* foo */>}} ## Section 2 {{</* /foo */>}}
+```
+
+Hugo renders this HTML:
 
 ```html
-<a href="http://example.org/posts/post-1/">Post 1</a>
-<a href="http://example.org/posts/post-1/">Post 1</a>
-<a href="http://example.org/posts/post-1/#foo">Post 1</a>
-<a href="http://example.org/posts/post-1/#foo">Post 1</a>
+<h2 id="heading">Section 1</h2>
+
+## Section 2
 ```
 
-### relref
+In the above, "Section 1" will be included when invoking the `TableOfContents` method, while "Section 2" will not.
 
-{{% note %}}
-To override Hugo's embedded `relref` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
+The shortcode author determines which notation to use. Consult each shortcode's documentation for specific usage instructions and available arguments.
 
-Always use the `{{%/* */%}}` notation when calling this shortcode.
+## Nesting
 
-[source code]: {{% eturl relref %}}
-{{% /note %}}
+Shortcodes (excluding [inline](#inline) shortcodes) can be nested, creating parent-child relationships. For example, a gallery shortcode might contain several image shortcodes:
 
-The `relref` shortcode returns the permalink of the given page reference.
-
-Example usage:
-
-```text
-[Post 1]({{%/* relref "/posts/post-1" */%}})
-[Post 1]({{%/* relref "/posts/post-1.md" */%}})
-[Post 1]({{%/* relref "/posts/post-1#foo" */%}})
-[Post 1]({{%/* relref "/posts/post-1.md#foo" */%}})
+```text {file="content/example.md"}
+{{</* gallery class="content-gallery" */>}}
+  {{</* image src="/images/a.jpg" */>}}
+  {{</* image src="/images/b.jpg" */>}}
+  {{</* image src="/images/c.jpg" */>}}
+{{</* /gallery */>}}
 ```
 
-Rendered:
+The [shortcode templates][nesting] section provides a detailed explanation and examples.
 
-```html
-<a href="/posts/post-1/">Post 1</a>
-<a href="/posts/post-1/">Post 1</a>
-<a href="/posts/post-1/#foo">Post 1</a>
-<a href="/posts/post-1/#foo">Post 1</a>
-```
-
-### twitter
-
-{{% note %}}
-To override Hugo's embedded `twitter` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-You may call the `twitter` shortcode by using its `tweet` alias.
-
-[source code]: {{% eturl twitter %}}
-{{% /note %}}
-
-To display a Twitter post with this URL:
-
-```txt
-https://x.com/SanDiegoZoo/status/1453110110599868418
-```
-
-Include this in your Markdown:
-
-```text
-{{</* twitter user="SanDiegoZoo" id="1453110110599868418" */>}}
-```
-
-Rendered:
-
-{{< twitter user="SanDiegoZoo" id="1453110110599868418" >}}
-
-### vimeo
-
-{{% note %}}
-To override Hugo's embedded `vimeo` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl vimeo %}}
-{{% /note %}}
-
-To display a Vimeo video with this URL:
-
-```text
-https://vimeo.com/channels/staffpicks/55073825
-```
-
-Include this in your Markdown:
-
-```text
-{{</* vimeo 55073825 */>}}
-```
-
-Rendered:
-
-{{< vimeo 55073825 >}}
-
-{{% note %}}
-If you want to further customize the visual styling, add a `class` argument when calling the shortcode. The new `class` will be added to the `<div>` that wraps the `<iframe>` *and* will remove the inline styles. Note that you will need to call the `id` as a named argument as well. You can also give the vimeo video a descriptive title with `title`.
-
-```go
-{{</* vimeo id="146022717" class="my-vimeo-wrapper-class" title="My vimeo video" */>}}
-```
-{{% /note %}}
-
-### youtube
-
-{{% note %}}
-To override Hugo's embedded `youtube` shortcode, copy the [source code] to a file with the same name in the layouts/shortcodes directory.
-
-[source code]: {{% eturl youtube %}}
-{{% /note %}}
-
-To display a YouTube video with this URL:
-
-```text
-https://www.youtube.com/watch?v=0RKpf3rK57I
-```
-
-Include this in your Markdown:
-
-```text
-{{</* youtube 0RKpf3rK57I */>}}
-```
-
-Rendered:
-
-{{< youtube 0RKpf3rK57I >}}
-
-The youtube shortcode accepts these named arguments:
-
-id
-: (`string`) The video `id`. Optional if the `id` is provided as a positional argument as shown in the example above.
-
-allowFullScreen
-{{< new-in 0.125.0 >}}
-: (`bool`) Whether the `iframe` element can activate full screen mode. Default is `true`.
-
-autoplay
- {{< new-in 0.125.0 >}}
-: (`bool`) Whether to automatically play the video. Forces `mute` to `true`. Default is `false`.
-
-class
-: (`string`) The `class` attribute of the wrapping `div` element. When specified, removes the `style` attributes from the `iframe` element and its wrapping `div` element.
-
-controls
-{{< new-in 0.125.0 >}}
-: (`bool`) Whether to display the video controls. Default is `true`.
-
-end
-{{< new-in 0.125.0 >}}
-: (`int`) The time, measured in seconds from the start of the video, when the player should stop playing the video.
-
-loading
-{{< new-in 0.125.0 >}}
-: (`string`) The loading attribute of the `iframe` element, either `eager` or `lazy`. Default is `eager`.
-
-loop
-{{< new-in 0.125.0 >}}
-: (`bool`) Whether to indefinitely repeat the video. Ignores the `start` and `end` arguments after the first play.  Default is `false`.
-
-mute
-{{< new-in 0.125.0 >}}
-: (`bool`) Whether to mute the video. Always `true` when `autoplay` is `true`. Default is `false`.
-
-start
-{{< new-in 0.125.0 >}}
-: (`int`) The time, measured in seconds from the start of the video, when the player should start playing the video.
-
-title
-: (`string`) The `title` attribute of the `iframe` element. Defaults to "YouTube video".
-
-Example using some of the above:
-
-```text
-{{</* youtube id=0RKpf3rK57I start=30 end=60 loading=lazy */>}}
-```
-
-## Privacy configuration
-
-To learn how to configure your Hugo site to meet the new EU privacy regulation, see [privacy protections].
-
-## Create custom shortcodes
-
-To learn more about creating custom shortcodes, see the [shortcode template documentation].
-
-[privacy protections]: /about/privacy/
-[partials]: /templates/partial/
-[quickstart]: /getting-started/quick-start/
-[sctemps]: /templates/shortcode/
-[shortcode template documentation]: /templates/shortcode/
-[Vimeo]: https://vimeo.com/
-[YouTube Videos]: https://www.youtube.com/
+[`details`]: /shortcodes/details
+[`figure`]: /shortcodes/figure
+[`instagram`]: /shortcodes/instagram
+[`qr`]: /shortcodes/qr
+[`TableOfContents`]: /methods/page/tableofcontents/
+[layout string]: /functions/time/format/#layout-string
+[nesting]: /templates/shortcode/#nesting
+[shortcode method]: /templates/shortcode/#methods
+[shortcode templates]: /templates/shortcode/

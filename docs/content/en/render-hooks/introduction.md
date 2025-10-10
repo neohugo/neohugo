@@ -1,14 +1,9 @@
 ---
 title: Introduction
 description: An introduction to Hugo's render hooks.
-categories: [render hooks]
+categories: []
 keywords: []
-menu:
-  docs:
-    identifier: render-hooks-introduction
-    parent: render-hooks
-    weight: 20
-weight: 20
+weight: 10
 ---
 
 When rendering Markdown to HTML, render hooks override the conversion. Each render hook is a template, with one template for each supported element type:
@@ -21,13 +16,10 @@ When rendering Markdown to HTML, render hooks override the conversion. Each rend
 - [Passthrough elements](/render-hooks/passthrough)
 - [Tables](/render-hooks/tables)
 
-{{% note %}}
-Hugo supports multiple [content formats] including Markdown, HTML, AsciiDoc, Emacs Org Mode, Pandoc, and reStructuredText.
-
-The render hook capability is limited to Markdown. You cannot create render hooks for the other content formats.
-
-[content formats]: /content-management/formats/
-{{% /note %}}
+> [!note]
+> Hugo supports multiple [content formats] including Markdown, HTML, AsciiDoc, Emacs Org Mode, Pandoc, and reStructuredText.
+>
+> The render hook capability is limited to Markdown. You cannot create render hooks for the other content formats.
 
 For example, consider this Markdown:
 
@@ -37,7 +29,7 @@ For example, consider this Markdown:
 ![kitten](kitten.jpg)
 ```
 
-Without link or image render hooks, this example above is rendered to:
+Without link or image render hooks, the example above is rendered to:
 
 ```html
 <p><a href="https://gohugo.io">Hugo</a></p>
@@ -55,25 +47,23 @@ Each render hook is a template, with one template for each supported element typ
 
 ```text
 layouts/
-└── _default/
-    └── _markup/
-        ├── render-blockquote.html
-        ├── render-codeblock.html
-        ├── render-heading.html
-        ├── render-image.html
-        ├── render-link.html
-        ├── render-passthrough.html
-        └── render-table.html
+  └── _markup/
+      ├── render-blockquote.html
+      ├── render-codeblock.html
+      ├── render-heading.html
+      ├── render-image.html
+      ├── render-link.html
+      ├── render-passthrough.html
+      └── render-table.html
 ```
 
-The template lookup order allows you to create different render hooks for each page [type], [kind], language, and [output format]. For example:
+The template lookup order allows you to create different render hooks for each page [type](g), [kind](g), language, and [output format](g). For example:
 
 ```text
 layouts/
-├── _default/
-│   └── _markup/
-│       ├── render-link.html
-│       └── render-link.rss.xml
+├── _markup/
+│   ├── render-link.html
+│   └── render-link.rss.xml
 ├── books/
 │   └── _markup/
 │       ├── render-link.html
@@ -84,8 +74,6 @@ layouts/
         └── render-link.rss.xml
 ```
 
-[kind]: /getting-started/glossary/#page-kind
-[output format]: /getting-started/glossary/#output-format
-[type]: /getting-started/glossary/#content-type
-
 The remaining pages in this section describe each type of render hook, including examples and the context received by each template.
+
+[content formats]: /content-management/formats/

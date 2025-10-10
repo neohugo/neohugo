@@ -1,14 +1,9 @@
 ---
 title: Features
 description: Hugo's rich and powerful feature set provides the framework and tools to create static sites that build in seconds, often less.
-categories: [about]
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: about
-    weight: 30
-weight: 30
-toc: true
+weight: 20
 ---
 
 ## Framework
@@ -32,7 +27,7 @@ toc: true
 : Reduce development time and cost by creating or importing packaged combinations of archetypes, assets, content, data, templates, translation tables, static files, or configuration settings. A module may serve as the basis for a new site, or to augment an existing site.
 
 [Privacy]
-: Configure the behavior of Hugo's embedded templates and shortcodes to facilitate compliance with regional privacy regulations, including the [GDPR] and [CCPA].
+: Configure your site to help comply with regional privacy regulations.
 
 [Security]
 : Hugo's security model is based on the premise that template and configuration authors are trusted, but content authors are not. This model enables generation of HTML output safe against code injection. Other protections prevent "shelling out" to arbitrary applications, limit access to specific environment variables, prevent connections to arbitrary remote data sources, and more.
@@ -55,13 +50,13 @@ toc: true
 : Use fenced code blocks and Markdown render hooks to include diagrams in your content.
 
 [Mathematics]
-: Include mathematical equations and expressions in Markdown using LaTeX or TeX typesetting syntax.
+: Include mathematical equations and expressions in Markdown using LaTeX markup.
 
 [Syntax highlighting]
 : Syntactically highlight code examples using Hugo's embedded syntax highlighter, enabled by default for fenced code blocks in Markdown. The syntax highlighter supports hundreds of code languages and dozens of styles.
 
 [Shortcodes]
-: Use Hugo's embedded shortcodes, or create your own, to insert complex content. For example, use shortcodes to include `audio` and `video` elements, render tables from local or remote data sources, insert snippets from other  pages, and more.
+: Use Hugo's embedded shortcodes, or create your own, to insert complex content. For example, use shortcodes to include `audio` and `video` elements, render tables from local or remote data sources, insert snippets from other pages, and more.
 
 ## Content management
 
@@ -83,7 +78,7 @@ toc: true
 ## Asset pipelines
 
 [Image processing]
-: Convert, resize, crop, rotate,  adjust colors, apply filters, overlay text and images, and extract EXIF data.
+: Convert, resize, crop, rotate, adjust colors, apply filters, overlay text and images, and extract EXIF data.
 
 [JavaScript bundling]
 : Transpile TypeScript and JSX to JavaScript, bundle, tree shake, minify, create source maps, and perform SRI hashing.
@@ -105,35 +100,37 @@ toc: true
 [Minification]
 : Minify HTML, CSS, and JavaScript to reduce file size, bandwidth consumption, and loading times.
 
-[CCPA]: https://en.wikipedia.org/wiki/California_Consumer_Privacy_Act
-[Sass processing]: /functions/css/Sass/
-[Caching]: /functions/partials/includecached/
-[CommonMark]: https://spec.commonmark.org/current/
-[Content adapters]: /content-management/content-adapters/
-[Content formats]: /content-management/formats/
-[Data]: /content-management/data-sources/
-[Diagrams]: /content-management/diagrams/
-[GDPR]: https://en.wikipedia.org/wiki/General_Data_Protection_Regulation
-[GitHub Flavored Markdown]: https://github.github.com/gfm/
-[Image processing]: /content-management/image-processing/
-[JavaScript bundling]: /functions/js/build/
-[Markdown attributes]: /content-management/markdown-attributes/
-[Markdown extensions]: /getting-started/configuration-markup/#goldmark-extensions
-[Markdown render hooks]: /render-hooks/introduction/
-[Mathematics]: /content-management/mathematics/
-[Menus]: /content-management/menus/
-[Minification]: /getting-started/configuration/#configure-minify
-[Modules]: https://gohugo.io/hugo-modules/
 [Multilingual]: /content-management/multilingual/
 [Multiplatform]: /installation/
-[Output formats]: /templates/output-formats/
-[Privacy]: /about/privacy/
-[Security]: /about/security/
-[Segmentation]: /getting-started/configuration/#configure-segments
-[Shortcodes]: /content-management/shortcodes/
-[Syntax highlighting]: /content-management/syntax-highlighting/
-[Tailwind CSS processing]: /functions/css/tailwindcss/
-[Taxonomies]: /content-management/taxonomies/
-[Templates]: templates/introduction/
+[Output formats]: /configuration/output-formats/
+[Templates]: /templates/introduction/
 [Themes]: https://themes.gohugo.io/
+[Modules]: /hugo-modules/
+[Privacy]: /configuration/privacy/
+[Security]: /about/security/
+
+[Content formats]: /content-management/formats/
+[CommonMark]: https://spec.commonmark.org/current/
+[GitHub Flavored Markdown]: https://github.github.com/gfm/
+[Markdown attributes]: /content-management/markdown-attributes/
+[Markdown extensions]: /configuration/markup/#extensions
+[Markdown render hooks]: /render-hooks/introduction/
+[Diagrams]: /content-management/diagrams/
+[Mathematics]: /content-management/mathematics/
+[Syntax highlighting]: /content-management/syntax-highlighting/
+[Shortcodes]: /content-management/shortcodes/
+
+[Content adapters]: /content-management/content-adapters/
+[Taxonomies]: /content-management/taxonomies/
+[Data]: /content-management/data-sources/
+[Menus]: /content-management/menus/
 [URL management]: /content-management/urls/
+
+[Image processing]: /content-management/image-processing/
+[JavaScript bundling]: /functions/js/build/
+[Sass processing]: /functions/css/Sass/
+[Tailwind CSS processing]: /functions/css/tailwindcss/
+
+[Caching]: /functions/partials/includecached/
+[Segmentation]: /configuration/segments/
+[Minification]: /configuration/minify/

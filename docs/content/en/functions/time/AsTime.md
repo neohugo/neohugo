@@ -3,17 +3,12 @@ title: time.AsTime
 description: Returns the given string representation of a date/time value as a time.Time value.
 categories: []
 keywords: []
-action:
-  aliases: [time]
-  related:
-    - functions/time/Duration
-    - functions/time/Format
-    - functions/time/Now
-    - functions/time/ParseDuration
-  returnType: time.Time
-  signatures: ['time.AsTime INPUT [TIMEZONE]']
+params:
+  functions_and_methods:
+    aliases: [time]
+    returnType: time.Time
+    signatures: ['time.AsTime INPUT [TIMEZONE]']
 aliases: [/functions/time]
-toc: true
 ---
 
 ## Overview
@@ -29,7 +24,7 @@ Hugo provides [functions] and [methods] to format, localize, parse, compare, and
 
 As shown above, the first argument must be a parsable string representation of a date/time value. For example:
 
-{{% include "functions/time/_common/parsable-date-time-strings.md" %}}
+{{% include "/_common/parsable-date-time-strings.md" %}}
 
 To override the default time zone, set the [`timeZone`] in your site configuration or provide a second argument to the `time.AsTime` function. For example:
 
@@ -42,14 +37,12 @@ The list of valid time zones may be system dependent, but should include `UTC`, 
 The order of precedence for determining the time zone is:
 
 1. The time zone offset in the date/time string
-2. The time zone provided as the second argument to the `time.AsTime` function
-3. The time zone specified in your site configuration
-4. The `Etc/UTC` time zone
-
-The order of precedence for determining the time zone is:
+1. The time zone provided as the second argument to the `time.AsTime` function
+1. The time zone specified in your site configuration
+1. The `Etc/UTC` time zone
 
 [IANA Time Zone database]: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
 [`time.Time`]: https://pkg.go.dev/time#Time
-[`timeZone`]: https://gohugo.io/getting-started/configuration/#timezone
+[`timeZone`]: /configuration/all/#timezone
 [functions]: /functions/time/
 [methods]: /methods/time/

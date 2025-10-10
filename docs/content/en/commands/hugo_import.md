@@ -29,6 +29,7 @@ Import requires a subcommand, e.g. `hugo import jekyll jekyll_root_path target_p
   -e, --environment string         build environment
       --ignoreVendorPaths string   ignores any _vendor for module paths matching the given Glob pattern
       --logLevel string            log level (debug|info|warn|error)
+      --noBuildLock                don't create .hugo_build.lock file
       --quiet                      build in quiet mode
   -M, --renderToMemory             render to memory (mostly useful when running the server)
   -s, --source string              filesystem path to read files relative from
@@ -38,5 +39,5 @@ Import requires a subcommand, e.g. `hugo import jekyll jekyll_root_path target_p
 ### SEE ALSO
 
 * [hugo](/commands/hugo/)	 - Build your site
-* [hugo import jekyll](/commands/hugo_import_jekyll/)	 - neohugo import from Jekyll
+* [hugo import jekyll](/commands/hugo_import_jekyll/)	 - hugo import from Jekyll
 

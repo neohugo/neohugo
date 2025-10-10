@@ -3,30 +3,22 @@ title: data.GetCSV
 description: Returns an array of arrays from a local or remote CSV file, or an error if the file does not exist.
 categories: []
 keywords: []
-action:
-  aliases: [getCSV]
-  related:
-    - functions/data/GetJSON
-    - functions/resources/Get
-    - functions/resources/GetRemote
-    - methods/page/Resources
-  returnType: '[][]string'
-  signatures: ['data.GetCSV SEPARATOR INPUT... [OPTIONS]']
-toc: true
-expiryDate: 2025-02-19 # deprecated 2024-02-19
+params:
+  functions_and_methods:
+    aliases: [getCSV]
+    returnType: '[][]string'
+    signatures: ['data.GetCSV SEPARATOR INPUT... [OPTIONS]']
+expiryDate: 2026-02-19 # deprecated 2024-02-19 in v0.123.0
 ---
 
-{{% deprecated-in 0.123.0 %}}
-Instead, use [`transform.Unmarshal`] with a [global], [page], or [remote] resource.
+{{< deprecated-in 0.123.0 >}}
+Instead, use [`transform.Unmarshal`] with a [global resource](g), [page resource](g), or [remote resource](g).
 
 See the [remote data example].
 
 [`transform.Unmarshal`]: /functions/transform/unmarshal/
-[global]: /getting-started/glossary/#global-resource
-[page]: /getting-started/glossary/#page-resource
 [remote data example]: /functions/resources/getremote/#remote-data
-[remote]: /getting-started/glossary/#remote-resource
-{{% /deprecated-in %}}
+{{< /deprecated-in >}}
 
 Given the following directory structure:
 
@@ -43,11 +35,10 @@ Access the data with either of the following:
 {{ $data := getCSV "," "other-files/" "pets.csv" }}
 ```
 
-{{% note %}}
-When working with local data, the file path is relative to the working directory.
-
-You must not place CSV files in the project's data directory.
-{{% /note %}}
+> [!note]
+> When working with local data, the file path is relative to the working directory.
+>
+> You must not place CSV files in the project's `data` directory.
 
 Access remote data with either of the following:
 
@@ -134,16 +125,16 @@ Consider using the [`resources.GetRemote`] function with [`transform.Unmarshal`]
 
 ```go-html-template
 {{ $data := dict }}
-{{ $u := "https://example.org/pets.csv" }}
-{{ with resources.GetRemote $u }}
+{{ $url := "https://example.org/pets.csv" }}
+{{ with try (resources.GetRemote $url) }}
   {{ with .Err }}
     {{ errorf "%s" . }}
-  {{ else }}
+  {{ else with .Value }}
     {{ $opts := dict "delimiter" "," }}
     {{ $data = . | transform.Unmarshal $opts }}
+  {{ else }}
+    {{ errorf "Unable to get remote resource %q" $url }}
   {{ end }}
-{{ else }}
-  {{ errorf "Unable to get remote resource %q" $u }}
 {{ end }}
 ```
 

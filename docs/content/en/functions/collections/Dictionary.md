@@ -3,12 +3,11 @@ title: collections.Dictionary
 description: Returns a map composed of the given key-value pairs.
 categories: []
 keywords: []
-action:
-  aliases: [dict]
-  related:
-    - functions/collections/Slice
-  returnType: mapany
-  signatures: ['collections.Dictionary [VALUE...]']
+params:
+  functions_and_methods:
+    aliases: [dict]
+    returnType: map[string]any
+    signatures: ['collections.Dictionary [VALUE...]']
 aliases: [/functions/dict]
 ---
 
@@ -33,8 +32,7 @@ To create an empty map:
 {{ $m := dict }}
 ```
 
-
-Note that the `key` can be either a `string` or a `string slice`. The latter is useful to create a deeply nested structure, e.g.:
+Note that the `key` can be either a `string` or a `[]string`. The latter is useful to create a deeply nested structure, e.g.:
 
 ```go-html-template
 {{ $m := dict (slice "a" "b" "c") "value" }}

@@ -3,13 +3,16 @@ on:
   push:
     tags:
       - v*.*.*
+  pull_request:
+    branches:
+      - main
 
 env:
   GOPATH: ${{ github.workspace }}
   GOBIN: ${{ github.workspace }}/bin
   GO111MODULE: "on"
   GOPROXY: "https://proxy.golang.org"
-  HUGO_BUILD_TAGS: "extended"
+  HUGO_BUILD_TAGS: "extended,withdeploy"
   SASS_VERSION: 1.80.3
   DART_SASS_SHA_LINUX: 7c933edbad0a7d389192c5b79393485c088bd2c4398e32f5754c32af006a9ffd
   DART_SASS_SHA_MACOS: 79e060b0e131c3bb3c16926bafc371dc33feab122bfa8c01aa337a072097967b
@@ -110,12 +113,14 @@ jobs:
         run: |
           ./neohugo -s docs/
       - name: Checkout docs repository
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: actions/checkout@v4
         with:
           repository: neohugo/neohugo.github.io
           path: docs
           token: ${{ secrets.NEOHUGO_GITHUB_TOKEN }}
       - name: Update documentation
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         working-directory: ./docs
         run: |
           rsync -hrvz --delete --exclude='.git/'  ../neohugo/docs/public/ .
@@ -148,7 +153,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release -f .goreleaser.yml --clean --timeout 60m
+          args: release -f .goreleaser.yml --clean --timeout 60m ${{ github.event_name == 'pull_request' && '--snapshot --skip=publish' || '' }}
           workdir: ./neohugo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

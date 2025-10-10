@@ -2,13 +2,8 @@
 title: Data inspection
 linkTitle: Inspection
 description: Use template functions to inspect values and data structures.
-categories: [troubleshooting]
+categories: []
 keywords: []
-menu:
-  docs:
-    parent: troubleshooting
-    weight: 40
-weight: 40
 ---
 
 Use the [`debug.Dump`] function to inspect a data structure:
@@ -39,6 +34,11 @@ Use the [`printf`] function (render) or [`warnf`] function (log to console) to i
 {{ printf "%[1]v (%[1]T)" $value }} → 42 (int)
 ```
 
+{{< new-in 0.146.0 />}}
+
+Use the [`templates.Current`] function to visually mark template execution boundaries or to display the template call stack.
+
 [`debug.Dump`]: /functions/debug/dump/
 [`printf`]: /functions/fmt/printf/
 [`warnf`]: /functions/fmt/warnf/
+[`templates.Current`]: /functions/templates/current/
