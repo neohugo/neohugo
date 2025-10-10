@@ -3,6 +3,9 @@ on:
   push:
     tags:
       - v*.*.*
+  pull_request:
+    branches:
+      - main
 
 env:
   GOPATH: ${{ github.workspace }}
@@ -110,12 +113,14 @@ jobs:
         run: |
           ./neohugo -s docs/
       - name: Checkout docs repository
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         uses: actions/checkout@v4
         with:
           repository: neohugo/neohugo.github.io
           path: docs
           token: ${{ secrets.NEOHUGO_GITHUB_TOKEN }}
       - name: Update documentation
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
         working-directory: ./docs
         run: |
           rsync -hrvz --delete --exclude='.git/'  ../neohugo/docs/public/ .
@@ -148,7 +153,7 @@ jobs:
         with:
           distribution: goreleaser
           version: latest
-          args: release -f .goreleaser.yml --clean --timeout 60m
+          args: release -f .goreleaser.yml --clean --timeout 60m ${{ github.event_name == 'pull_request' && '--snapshot --skip=publish' || '' }}
           workdir: ./neohugo
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
