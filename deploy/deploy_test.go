@@ -600,7 +600,7 @@ func initFsTests(t *testing.T) []*fsTest {
 
 	memfs := afero.NewMemMapFs()
 	membucket := memblob.OpenBucket(nil)
-	t.Cleanup(func() { 
+	t.Cleanup(func() {
 		if err := membucket.Close(); err != nil {
 			t.Errorf("failed to close membucket: %v", err)
 		}
@@ -611,7 +611,7 @@ func initFsTests(t *testing.T) []*fsTest {
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { 
+	t.Cleanup(func() {
 		if err := filebucket.Close(); err != nil {
 			t.Errorf("failed to close filebucket: %v", err)
 		}
