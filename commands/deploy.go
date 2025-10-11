@@ -36,7 +36,7 @@ documentation.
 			if err != nil {
 				return err
 			}
-			deployer, err := deploy.New(h.Configs.GetFirstLanguageConfig(), h.Log, h.PathSpec.PublishFs)
+			deployer, err := deploy.New(h.Configs.GetFirstLanguageConfig(), h.Log, h.PublishFs)
 			if err != nil {
 				return err
 			}

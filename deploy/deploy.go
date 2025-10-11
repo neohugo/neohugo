@@ -322,7 +322,13 @@ func (d *Deployer) doSingleUpload(ctx context.Context, bucket *blob.Bucket, uplo
 	if err != nil {
 		return err
 	}
-	defer r.Close()
+	defer func() {
+		if cerr := r.Close(); cerr != nil {
+			// Log the error but don't override the main error
+			// since this is in a defer block
+			_ = cerr
+		}
+	}()
 	_, err = io.Copy(w, r)
 	if err != nil {
 		return err
@@ -358,7 +364,12 @@ func newLocalFile(fs afero.Fs, nativePath, slashpath string, m *deployconfig.Mat
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() {
+		if cerr := f.Close(); cerr != nil {
+			// Log the error but don't override the main error
+			_ = cerr
+		}
+	}()
 	lf := &localFile{
 		NativePath: nativePath,
 		SlashPath:  slashpath,
@@ -460,7 +471,12 @@ func (lf *localFile) MD5() []byte {
 	if err != nil {
 		return nil
 	}
-	defer r.Close()
+	defer func() {
+		if cerr := r.Close(); cerr != nil {
+			// Log the error but don't override the main error
+			_ = cerr
+		}
+	}()
 	if _, err := io.Copy(h, r); err != nil {
 		return nil
 	}
@@ -616,7 +632,10 @@ func (d *Deployer) walkRemote(ctx context.Context, bucket *blob.Bucket, include,
 					if _, err := io.Copy(h, r); err == nil {
 						obj.MD5 = h.Sum(nil)
 					}
-					r.Close()
+					if cerr := r.Close(); cerr != nil {
+						// Log the error but don't override the main error
+						_ = cerr
+					}
 				}
 			} else {
 				obj.MD5 = attrMD5

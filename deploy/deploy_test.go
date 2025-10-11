@@ -253,7 +253,9 @@ func TestWalkLocal(t *testing.T) {
 				if fd, err := fs.Create(name); err != nil {
 					t.Fatal(err)
 				} else {
-					fd.Close()
+					if cerr := fd.Close(); cerr != nil {
+						t.Fatal(cerr)
+					}
 				}
 			}
 			d := newDeployer()
@@ -307,7 +309,9 @@ func TestStripIndexHTMLMatcher(t *testing.T) {
 		if fd, err := fs.Create(name); err != nil {
 			t.Fatal(err)
 		} else {
-			fd.Close()
+			if cerr := fd.Close(); cerr != nil {
+				t.Fatal(cerr)
+			}
 		}
 	}
 	d := newDeployer()
@@ -346,7 +350,9 @@ func TestLocalFile(t *testing.T) {
 	if _, err := gz.Write(contentBytes); err != nil {
 		t.Fatal(err)
 	}
-	gz.Close()
+	if err := gz.Close(); err != nil {
+		t.Fatal(err)
+	}
 	gzBytes := buf.Bytes()
 	gzLen := int64(len(gzBytes))
 	gzMD5 := md5.Sum(gzBytes)
@@ -476,7 +482,9 @@ func TestLocalFile(t *testing.T) {
 			if !bytes.Equal(gotContent, tc.WantContent) {
 				t.Errorf("got content %q want %q", string(gotContent), string(tc.WantContent))
 			}
-			r.Close()
+			if err := r.Close(); err != nil {
+				t.Fatal(err)
+			}
 			// Verify we can read again.
 			r, err = lf.Reader()
 			if err != nil {
@@ -486,7 +494,9 @@ func TestLocalFile(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			r.Close()
+			if err := r.Close(); err != nil {
+				t.Fatal(err)
+			}
 			if !bytes.Equal(gotContent, tc.WantContent) {
 				t.Errorf("got content %q want %q", string(gotContent), string(tc.WantContent))
 			}
@@ -590,14 +600,22 @@ func initFsTests(t *testing.T) []*fsTest {
 
 	memfs := afero.NewMemMapFs()
 	membucket := memblob.OpenBucket(nil)
-	t.Cleanup(func() { membucket.Close() })
+	t.Cleanup(func() { 
+		if err := membucket.Close(); err != nil {
+			t.Errorf("failed to close membucket: %v", err)
+		}
+	})
 
 	filefs := hugofs.NewBasePathFs(afero.NewOsFs(), tmpfsdir)
 	filebucket, err := fileblob.OpenBucket(tmpbucketdir, nil)
 	if err != nil {
 		t.Fatal(err)
 	}
-	t.Cleanup(func() { filebucket.Close() })
+	t.Cleanup(func() { 
+		if err := filebucket.Close(); err != nil {
+			t.Errorf("failed to close filebucket: %v", err)
+		}
+	})
 
 	tests := []*fsTest{
 		{"mem", memfs, membucket},
@@ -1049,7 +1067,13 @@ func writeFiles(fs afero.Fs, fds []*fileData) error {
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() {
+			if cerr := f.Close(); cerr != nil {
+				// This is in a defer, so we can't easily return the error
+				// without overriding the main function error
+				_ = cerr
+			}
+		}()
 		_, err = f.WriteString(fd.Contents)
 		if err != nil {
 			return err

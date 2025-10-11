@@ -54,7 +54,7 @@ contentDir="content/no"
 [languages.sv]
 weight=4
 contentDir="content/sv"
-			
+
 `)
 
 	createContent := func(dir, name string) {
@@ -126,7 +126,7 @@ This is [an example](http://example.com/ "Title") inline link.
 
 This is [Relative](/all-is-relative).
 
-See my [About](/about/) page for details. 
+See my [About](/about/) page for details.
 `
 
 func getBenchmarkSiteTestCases() []siteBenchmarkTestcase {
@@ -185,10 +185,10 @@ tags: ["taGR", "tbGR"]
 ---
 
 Some content.
-			
+
 `
 				for i := 1; i <= 100; i++ {
-					content := strings.Replace(pageTemplate, "GR", strconv.Itoa(i/3), -1)
+					content := strings.ReplaceAll(pageTemplate, "GR", strconv.Itoa(i/3))
 					sb.WithContent(fmt.Sprintf("content/page%d.md", i), content)
 				}
 
@@ -285,7 +285,7 @@ contentDir="content/no"
 [languages.sv]
 weight=4
 contentDir="content/sv"
-			
+
 `)
 
 				createContent := func(dir, name string) {
@@ -349,7 +349,7 @@ contentDir="content/no"
 [languages.sv]
 weight=4
 contentDir="content/sv"
-			
+
 `)
 
 				sb.WithTemplates("index.html", pageTemplateTemplate)
