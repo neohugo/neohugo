@@ -8,9 +8,6 @@ Hugo includes all features in a single edition. When built with CGO enabled and 
 - **Sass/SCSS support** - [Transpile Sass to CSS] using the embedded LibSass transpiler, or use the [Dart Sass] transpiler
 - **Cloud deployment** - Deploy your site directly to Google Cloud Storage, AWS S3, or Azure Storage. See [details]
 
-To build Hugo with all features enabled, you need CGO and a C compiler installed. See the [build from source] instructions for details.
-
-[build from source]: /installation/build-from-source/
 [dart sass]: /functions/css/sass/#dart-sass
 [processing images]: /content-management/image-processing/
 [transpile sass to css]: /functions/css/sass/

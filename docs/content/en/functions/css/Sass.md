@@ -6,11 +6,7 @@ keywords: []
 params:
   functions_and_methods:
     aliases: [toCSS]
-    returnType: re    - rm dart-sass*
-    # Install Hugo
-    - curl -LJO https://github.com/gohugoio/hugo/releases/download/v${HUGO_VERSION}/hugo_${HUGO_VERSION}_linux-amd64.deb
-    - apt install -y ./hugo_${HUGO_VERSION}_linux-amd64.deb
-    - rm hugo_${HUGO_VERSION}_linux-amd64.deb
+    returnType: resource.Resource
     # Build.Resource
     signatures: ['css.Sass [OPTIONS] RESOURCE']
 ---
