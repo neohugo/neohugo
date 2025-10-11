@@ -39,7 +39,7 @@ jobs:
           docker-images: true
           swap-storage: true
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: neohugo
       - name: Setup Go

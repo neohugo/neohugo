@@ -36,7 +36,7 @@ jobs:
           docker-images: true
           swap-storage: true
       - name: Git checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           path: neohugo
       - name: Setup Go
@@ -114,7 +114,7 @@ jobs:
           ../neohugo
       - name: Checkout docs repository
         if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: neohugo/neohugo.github.io
           path: docs
@@ -140,7 +140,7 @@ jobs:
       image: ghcr.io/gythialy/golang-cross:v1.25.1-0-trixie
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
           path: neohugo
