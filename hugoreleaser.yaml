@@ -6,20 +6,18 @@ definitions:
     type:
       format: zip
       extension: .zip
-  env_extended_linux: &env_extended_linux
+  env_linux: &env_linux
     - CGO_ENABLED=1
     - CC=aarch64-linux-gnu-gcc
     - CXX=aarch64-linux-gnu-g++
-  env_extended_windows: &env_extended_windows
+  env_windows: &env_windows
     - CGO_ENABLED=1
     - CC=x86_64-w64-mingw32-gcc
     - CXX=x86_64-w64-mingw32-g++
-  env_extended_darwin: &env_extended_darwin
+  env_darwin: &env_darwin
     - CGO_ENABLED=1
     - CC=o64-clang
     - CXX=o64-clang++
-  name_template_extended_withdeploy: &name_template_extended_withdeploy "{{ .Project }}_extended_withdeploy_{{ .Tag | trimPrefix `v` }}_{{ .Goos }}-{{ .Goarch }}"
-  name_template_extended: &name_template_extended "{{ .Project }}_extended_{{ .Tag | trimPrefix `v` }}_{{ .Goos }}-{{ .Goarch }}"
   archive_deb: &archive_deb
     binary_dir: /usr/local/bin
     extra_files: []
@@ -121,66 +119,31 @@ builds:
       - goos: solaris
         archs:
           - goarch: amd64
-  - path: container1/unix/extended
+  - path: container1/unix/full
     build_settings:
       flags:
         - -buildmode
         - exe
-        - -tags
-        - extended
       env:
         - CGO_ENABLED=1
     os:
       - goos: darwin
         build_settings:
-          env: *env_extended_darwin
+          env: *env_darwin
         archs:
           - goarch: universal
       - goos: linux
         archs:
           - goarch: amd64
-  - path: container1/unix/extended-withdeploy
+  - path: container2/linux/full
     build_settings:
       flags:
         - -buildmode
         - exe
-        - -tags
-        - extended,withdeploy
-      env:
-        - CGO_ENABLED=1
-    os:
-      - goos: darwin
-        build_settings:
-          env: *env_extended_darwin
-        archs:
-          - goarch: universal
-      - goos: linux
-        archs:
-          - goarch: amd64
-  - path: container2/linux/extended
-    build_settings:
-      flags:
-        - -buildmode
-        - exe
-        - -tags
-        - extended
     os:
       - goos: linux
         build_settings:
-          env: *env_extended_linux
-        archs:
-          - goarch: arm64
-  - path: container2/linux/extended-withdeploy
-    build_settings:
-      flags:
-        - -buildmode
-        - exe
-        - -tags
-        - extended,withdeploy
-    os:
-      - goos: linux
-        build_settings:
-          env: *env_extended_linux
+          env: *env_linux
         archs:
           - goarch: arm64
   - path: container1/windows/regular
@@ -191,29 +154,12 @@ builds:
         archs:
           - goarch: amd64
           - goarch: arm64
-  - path: container1/windows/extended
+  - path: container1/windows/full
     build_settings:
       flags:
         - -buildmode
         - exe
-        - -tags
-        - extended
-      env: *env_extended_windows
-      ldflags: -s -w -X github.com/neohugo/neohugo/common/hugo.vendorInfo=gohugoio -extldflags '-static'
-    os:
-      - goos: windows
-        build_settings:
-          binary: hugo.exe
-        archs:
-          - goarch: amd64
-  - path: container1/windows/extended-withdeploy
-    build_settings:
-      flags:
-        - -buildmode
-        - exe
-        - -tags
-        - extended,withdeploy
-      env: *env_extended_windows
+      env: *env_windows
       ldflags: -s -w -X github.com/neohugo/neohugo/common/hugo.vendorInfo=gohugoio -extldflags '-static'
     os:
       - goos: windows
@@ -225,47 +171,21 @@ archives:
   - paths:
       - builds/container1/unix/regular/**
   - paths:
-      - builds/container1/unix/extended/**
-    archive_settings:
-      name_template: *name_template_extended
+      - builds/container1/unix/full/**
   - paths:
-      - builds/container1/unix/extended-withdeploy/**
-    archive_settings:
-      name_template: *name_template_extended_withdeploy
-  - paths:
-      - builds/container2/*/extended/**
-    archive_settings:
-      name_template: *name_template_extended
-  - paths:
-      - builds/container2/*/extended-withdeploy/**
-    archive_settings:
-      name_template: *name_template_extended_withdeploy
+      - builds/container2/*/full/**
   - paths:
       - builds/**/windows/regular/**
     archive_settings: *archive_type_zip
   - paths:
-      - builds/**/windows/extended/**
-    archive_settings:
-      name_template: *name_template_extended
-      <<: *archive_type_zip
-  - paths:
-      - builds/**/windows/extended-withdeploy/**
-    archive_settings:
-      name_template: *name_template_extended_withdeploy
-      <<: *archive_type_zip
+      - builds/**/windows/full/**
+    archive_settings: *archive_type_zip
   - paths:
       - builds/**/regular/linux/{arm64,amd64}
     archive_settings: *archive_deb
   - paths:
-      - builds/**/extended/linux/{arm64,amd64}
-    archive_settings:
-      name_template: *name_template_extended
-      <<: *archive_deb
-  - paths:
-      - builds/**/extended-withdeploy/linux/{arm64,amd64}
-    archive_settings:
-      name_template: *name_template_extended_withdeploy
-      <<: *archive_deb
+      - builds/**/full/linux/{arm64,amd64}
+    archive_settings: *archive_deb
 releases:
   - paths:
       - archives/**

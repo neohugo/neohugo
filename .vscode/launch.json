@@ -11,9 +11,6 @@
       "mode": "exec",
       "program": "${env:GOPATH}/bin/mage",
       "output": "${workspaceFolder}/bin",
-      "env": {
-        "HUGO_BUILD_TAGS": "extended"
-      },
       "args": ["-v", "test"],
       "showLog": true
     }

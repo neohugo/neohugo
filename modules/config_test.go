@@ -54,7 +54,6 @@ workspace = "hugo.work"
 [module.hugoVersion]
 min = "0.54.2"
 max = "0.199.0"
-extended = true
 [[module.mounts]]
 source="src/project/blog"
 target="content/blog"
@@ -85,11 +84,6 @@ lang="en"
 
 		c.Assert(v056.Compare(hv.Min), qt.Equals, -1)
 		c.Assert(v056.Compare(hv.Max), qt.Equals, 1)
-		c.Assert(hv.Extended, qt.Equals, true)
-
-		if neohugo.IsExtended {
-			c.Assert(hv.IsValid(), qt.Equals, true)
-		}
 
 		c.Assert(mcfg.Workspace, qt.Equals, hugoWorkFilename)
 

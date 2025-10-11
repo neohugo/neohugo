@@ -10,7 +10,6 @@ ARG MOZJPEG_VERSION="4.1.1"
 FROM golang:${GO_VERSION}-${DEBIAN_VERSION} AS build
 
 # Build configuration
-ENV HUGO_BUILD_TAGS=extended,withdeploy
 ENV CGO_ENABLED=1
 ENV GOOS=linux
 ENV GO111MODULE=on

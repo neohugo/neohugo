@@ -1499,7 +1499,6 @@ config:
   module:
     auth: ""
     hugoVersion:
-      extended: false
       max: ""
       min: ""
     imports: null
@@ -2743,11 +2742,6 @@ tpl:
         Description: ""
         Examples: null
       IsDevelopment:
-        Aliases: null
-        Args: null
-        Description: ""
-        Examples: null
-      IsExtended:
         Aliases: null
         Args: null
         Description: ""

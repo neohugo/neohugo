@@ -71,9 +71,6 @@ This is the default configuration:
 
 You can omit any of the settings above.
 
-extended
-: (`bool`) Whether the extended edition of Hugo is required, satisfied by installing either the extended or extended/deploy edition.
-
 max
 : (`string`) The maximum Hugo version supported, for example `0.143.0`.
 

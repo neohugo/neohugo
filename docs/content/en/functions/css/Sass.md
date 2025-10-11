@@ -7,12 +7,13 @@ params:
   functions_and_methods:
     aliases: [toCSS]
     returnType: resource.Resource
+    # Build.Resource
     signatures: ['css.Sass [OPTIONS] RESOURCE']
 ---
 
 {{< new-in 0.128.0 />}}
 
-Transpile Sass to CSS using the LibSass transpiler included in Hugo's extended and extended/deploy editions, or [install Dart Sass](#dart-sass) to use the latest features of the Sass language.
+Transpile Sass to CSS using the LibSass transpiler included in Hugo when built with CGO, or [install Dart Sass](#dart-sass) to use the latest features of the Sass language.
 
 Sass has two forms of syntax: [SCSS] and [indented]. Hugo supports both.
 
@@ -48,7 +49,7 @@ targetPath
 : (`string`) The publish path for the transformed resource, relative to the[`publishDir`]. If unset, the target path defaults to the asset's original path with a `.css` extension.
 
 transpiler
-: (`string`) The transpiler to use, either `libsass` or `dartsass`. Hugo's extended and extended/deploy editions include the LibSass transpiler. To use the Dart Sass transpiler, see the [installation instructions](#dart-sass). Default is `libsass`.
+: (`string`) The transpiler to use, either `libsass` or `dartsass`. Hugo includes the LibSass transpiler when built with CGO enabled. To use the Dart Sass transpiler, see the [installation instructions](#dart-sass). Default is `libsass`.
 
 vars
 : (`map`) A map of key-value pairs that will be available in the `hugo:vars` namespace. Useful for [initializing Sass variables from Hugo templates](https://discourse.gohugo.io/t/42053/).
@@ -87,7 +88,7 @@ vars
 
 ## Dart Sass
 
-Hugo's extended and extended/deploy editions include [LibSass] to transpile Sass to CSS. In 2020, the Sass team deprecated LibSass in favor of [Dart Sass].
+Hugo includes [LibSass] to transpile Sass to CSS when built with CGO enabled. In 2020, the Sass team deprecated LibSass in favor of [Dart Sass].
 
 Use the latest features of the Sass language by installing Dart Sass in your development and production environments.
 

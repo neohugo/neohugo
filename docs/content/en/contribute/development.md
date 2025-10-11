@@ -84,16 +84,10 @@ To compile and install the standard edition:
 go install
 ```
 
-To compile and install the extended edition:
+To compile and install Hugo:
 
 ```text
-CGO_ENABLED=1 go install -tags extended
-```
-
-To compile and install the extended/deploy edition:
-
-```text
-CGO_ENABLED=1 go install -tags extended,withdeploy
+CGO_ENABLED=1 go install
 ```
 
 ### Step 6
@@ -142,30 +136,30 @@ A project maintainer will review your PR and may request changes. You may delete
 
 ## Building from source
 
-You can build, install, and test Hugo at any point in its development history. The examples below build and install the extended edition of Hugo.
+You can build, install, and test Hugo at any point in its development history.
 
 To build and install the latest release:
 
 ```sh
-CGO_ENABLED=1 go install -tags extended github.com/gohugoio/hugo@latest
+CGO_ENABLED=1 go install github.com/gohugoio/hugo@latest
 ```
 
 To build and install a specific release:
 
 ```sh
-CGO_ENABLED=1 go install -tags extended github.com/gohugoio/hugo@v0.147.1
+CGO_ENABLED=1 go install github.com/gohugoio/hugo@v0.147.1
 ```
 
 To build and install at the latest commit on the master branch:
 
 ```sh
-CGO_ENABLED=1 go install -tags extended github.com/gohugoio/hugo@master
+CGO_ENABLED=1 go install github.com/gohugoio/hugo@master
 ```
 
 To build and install at a specific commit:
 
 ```sh
-CGO_ENABLED=1 go install -tags extended github.com/gohugoio/hugo@0851c17
+CGO_ENABLED=1 go install github.com/gohugoio/hugo@0851c17
 ```
 
 [bugs]: https://github.com/gohugoio/hugo/issues?q=is%3Aopen+is%3Aissue+label%3ABug

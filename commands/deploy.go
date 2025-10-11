@@ -11,9 +11,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//go:build withdeploy
-// +build withdeploy
-
 package commands
 
 import (
@@ -39,7 +36,7 @@ documentation.
 			if err != nil {
 				return err
 			}
-			deployer, err := deploy.New(h.Configs.GetFirstLanguageConfig(), h.Log, h.PathSpec.PublishFs)
+			deployer, err := deploy.New(h.Configs.GetFirstLanguageConfig(), h.Log, h.PublishFs)
 			if err != nil {
 				return err
 			}
