@@ -38,7 +38,7 @@ builds:
       - amd64
       - arm64
   - binary: neohugo
-    id: neohugo_linux
+    id: neohugo_linux_amd64
     ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
     env:
       - CGO_ENABLED=1
@@ -49,6 +49,19 @@ builds:
       - linux
     goarch:
       - amd64
+  - binary: neohugo
+    id: neohugo_linux_arm64
+    ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
+    env:
+      - CGO_ENABLED=1
+      - CC=aarch64-linux-gnu-gcc
+      - CXX=aarch64-linux-gnu-g++
+    flags:
+      - -buildmode
+      - exe
+    goos:
+      - linux
+    goarch:
       - arm64
 changelog:
   sort: asc
@@ -65,7 +78,8 @@ archives:
     builds:
       [
         "neohugo_windows",
-        "neohugo_linux",
+        "neohugo_linux_amd64",
+        "neohugo_linux_arm64",
         "neohugo_darwin",
       ]
     format: tar.gz
