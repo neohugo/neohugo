@@ -49,8 +49,6 @@ builds:
       - linux
     goarch:
       - amd64
-    hooks:
-      post: ./release-hook-post-linux.sh
   - binary: neohugo
     id: neohugo_linux_arm64
     ldflags: -s -w -X github.com/neohugo/neohugo/common/neohugo.buildDate={{.Date}} -X github.com/neohugo/neohugo/common/neohugo.commitHash={{ .ShortCommit }} -X github.com/neohugo/neohugo/common/neohugo.vendorInfo=neohugo
@@ -94,15 +92,3 @@ archives:
     files:
       - README.md
       - LICENSE
-
-nfpms:
-  - id: "neohugo"
-    builds: ["neohugo_linux_amd64"]
-    formats:
-      - deb
-    vendor: "neohugo"
-    homepage: "https://neohugo.github.io/"
-    maintainer: "Prachya Saechua <blackb1rd@blackb1rd.dev>"
-    description: "hugo-fork focused on multilingual and bug fixes/refactor/cleanup."
-    license: "Apache-2.0"
-    file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
