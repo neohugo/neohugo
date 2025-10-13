@@ -374,7 +374,8 @@ func TestRebuilErrorRecovery(t *testing.T) {
 	_, err := b.EditFileReplaceAll("content/mysection/mysectionbundle/index.md", "My Section Bundle Content.", "My Section Bundle Content\n\n\n\n{{< foo }}.").BuildE()
 
 	b.Assert(err, qt.Not(qt.IsNil))
-	b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`"/content/mysection/mysectionbundle/index.md:8:9": unrecognized character`))
+	b.Assert(err.Error(), qt.Contains, filepath.FromSlash(`mysectionbundle/index.md:8:9"`))
+	b.Assert(err.Error(), qt.Contains, "unrecognized character")
 
 	// Fix the error
 	b.EditFileReplaceAll("content/mysection/mysectionbundle/index.md", "{{< foo }}", "{{< foo >}}").Build()

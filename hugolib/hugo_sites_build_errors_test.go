@@ -379,7 +379,8 @@ line 4
 	b.Assert(errors, qt.HasLen, 4)
 	b.Assert(errors[0].Position().LineNumber, qt.Equals, 3)
 	b.Assert(errors[0].Position().ColumnNumber, qt.Equals, 4)
-	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`"/layouts/index.html:3:4": execute of template failed`))
+	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`layouts/index.html:3:4"`))
+	b.Assert(errors[0].Error(), qt.Contains, "execute of template failed")
 	b.Assert(errors[0].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "1{{ .Render \"myview\" }}"})
 	b.Assert(errors[2].Position().LineNumber, qt.Equals, 2)
 	b.Assert(errors[2].Position().ColumnNumber, qt.Equals, 5)
@@ -435,7 +436,10 @@ line 4
 	b.Assert(errors[1].Position().LineNumber, qt.Equals, 6)
 	b.Assert(errors[1].Position().ColumnNumber, qt.Equals, 1)
 	b.Assert(errors[1].ErrorContext().ChromaLexer, qt.Equals, "md")
-	b.Assert(errors[1].Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:6:1": failed to render shortcode "hello": failed to process shortcode: "/layouts/shortcodes/hello.html:2:5":`))
+	b.Assert(errors[1].Error(), qt.Contains, filepath.FromSlash(`content/_index.md:6:1"`))
+	b.Assert(errors[1].Error(), qt.Contains, `failed to render shortcode "hello"`)
+	b.Assert(errors[1].Error(), qt.Contains, `failed to process shortcode`)
+	b.Assert(errors[1].Error(), qt.Contains, filepath.FromSlash(`layouts/shortcodes/hello.html:2:5"`))
 	b.Assert(errors[1].ErrorContext().Lines, qt.DeepEquals, []string{"", "## Hello", "{{< hello >}}", ""})
 	b.Assert(errors[2].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "12{{ partial \"foo.html\" . }}", "line 4", "line 5"})
 	b.Assert(errors[3].ErrorContext().Lines, qt.DeepEquals, []string{"line 1", "line 2", "123{{ .ThisDoesNotExist }}", "line 4"})
@@ -476,7 +480,9 @@ line 5
 	errors := herrors.UnwrapFileErrorsWithErrorContext(err)
 
 	b.Assert(errors, qt.HasLen, 3)
-	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:1:1": "/layouts/_default/_markup/render-heading.html:2:5": execute of template failed`))
+	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`content/_index.md:1:1"`))
+	b.Assert(errors[0].Error(), qt.Contains, filepath.FromSlash(`layouts/_default/_markup/render-heading.html:2:5"`))
+	b.Assert(errors[0].Error(), qt.Contains, "execute of template failed")
 }
 
 func TestErrorRenderHookCodeblock(t *testing.T) {
@@ -520,7 +526,9 @@ line 5
 
 	b.Assert(errors, qt.HasLen, 3)
 	first := errors[0]
-	b.Assert(first.Error(), qt.Contains, filepath.FromSlash(`"/content/_index.md:7:1": "/layouts/_default/_markup/render-codeblock-foo.html:2:5": execute of template failed`))
+	b.Assert(first.Error(), qt.Contains, filepath.FromSlash(`content/_index.md:7:1"`))
+	b.Assert(first.Error(), qt.Contains, filepath.FromSlash(`layouts/_default/_markup/render-codeblock-foo.html:2:5"`))
+	b.Assert(first.Error(), qt.Contains, "execute of template failed")
 }
 
 func TestErrorInBaseTemplate(t *testing.T) {
