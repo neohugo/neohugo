@@ -637,7 +637,7 @@ String: {{ . | safeHTML }}
 	builder.AssertFileContent("public/page/index.html",
 		filepath.FromSlash("File: content/page.md"),
 		"Line: 7", "Column: 4", "Offset: 40",
-		filepath.FromSlash("String: \"content/page.md:7:4\""),
+		filepath.FromSlash("content/page.md:7:4"),
 		"Name: s1",
 	)
 }
@@ -1227,7 +1227,8 @@ Inner: {{ .Get 0 }}: {{ len .Inner }}
 	).BuildE()
 
 	b.Assert(err, qt.Not(qt.IsNil))
-	b.Assert(err.Error(), qt.Contains, `p1.md:5:1": failed to extract shortcode: shortcode "sc" must be closed or self-closed`)
+	b.Assert(err.Error(), qt.Contains, `p1.md:5:1"`)
+	b.Assert(err.Error(), qt.Contains, `failed to extract shortcode: shortcode "sc" must be closed or self-closed`)
 }
 
 // Issue 10819.

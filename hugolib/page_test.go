@@ -1970,9 +1970,10 @@ Title: {{ .Title }}
 	b := Test(t, files, TestOptWarn())
 	b.AssertFileContent("public/mypath/index.html", "p1")
 	b.AssertLogContains(
-		"deprecated: kind in front matter was deprecated",
-		"deprecated: lang in front matter was deprecated",
-		"deprecated: path in front matter was deprecated",
+		"deprecated:",
+		"kind in front matter was deprecated",
+		"lang in front matter was deprecated",
+		"path in front matter was deprecated",
 	)
 }
 

@@ -208,7 +208,7 @@ canonifyURLs = true
 
 `)
 				for i := 1; i <= 100; i++ {
-					sb.WithContent(fmt.Sprintf("content/page%d.md", i), pageContent(i))
+					sb.WithContent(fmt.Sprintf("content/page%d.md", i), pageContent(2))
 				}
 
 				return sb

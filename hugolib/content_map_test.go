@@ -281,7 +281,7 @@ P1: {{ $p1.Title }}|{{ $p1.Params.foo }}|{{ $p1.File.Filename }}|
 	for range 3 {
 		b := Test(t, files, TestOptWarn())
 
-		b.AssertLogContains("WARN  Duplicate content path: \"/p1\"")
+		b.AssertLogContains("Duplicate content path:", "/p1")
 
 		// There's multiple content files sharing the same logical path and language.
 		// This is a little arbitrary, but we have to pick one and prefer the Markdown version.

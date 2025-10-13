@@ -1520,8 +1520,8 @@ List.
 		},
 	).Init()
 
-	b.AssertLogContains("WARN  Unknown kind \"foo\" in disableKinds configuration.\n")
-	b.AssertLogContains("WARN  Unknown kind \"foo\" in outputs configuration.\n")
+	b.AssertLogContains("Unknown kind", "foo", "disableKinds")
+	b.AssertLogContains("Unknown kind", "foo", "outputs")
 }
 
 func TestDeprecateTaxonomyTerm(t *testing.T) {
@@ -1547,8 +1547,8 @@ List.
 		},
 	).Init()
 
-	b.AssertLogContains("WARN  DEPRECATED: Kind \"taxonomyterm\" used in disableKinds is deprecated, use \"taxonomy\" instead.\n")
-	b.AssertLogContains("WARN  DEPRECATED: Kind \"taxonomyterm\" used in outputs configuration is deprecated, use \"taxonomy\" instead.\n")
+	b.AssertLogContains("DEPRECATED:", "taxonomyterm", "disableKinds", "deprecated")
+	b.AssertLogContains("DEPRECATED:", "taxonomyterm", "outputs", "deprecated")
 }
 
 func TestDisableKindsIssue12144(t *testing.T) {

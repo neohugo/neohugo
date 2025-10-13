@@ -134,7 +134,6 @@ jobs:
     env:
       GOPATH: ${{ github.workspace }}
       GOBIN: ${{ github.workspace }}/bin
-    needs: docdeploy
     runs-on: ubuntu-latest
     container:
       image: ghcr.io/gythialy/golang-cross:v1.25.1-0-trixie
