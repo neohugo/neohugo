@@ -47,6 +47,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/hairyhenderson/go-codeowners v0.7.0
 	github.com/jdkato/prose v1.2.1
+	github.com/kylelemons/godebug v1.1.0
 	github.com/kyokomi/emoji/v2 v2.2.13
 	github.com/magefile/mage v1.15.0
 	github.com/makeworld-the-better-one/dither/v2 v2.4.0
@@ -75,11 +76,11 @@ require (
 	gocloud.dev v0.40.0
 	golang.org/x/exp v0.0.0-20221031165847-c99f073a8326
 	golang.org/x/image v0.28.0
-	golang.org/x/mod v0.25.0
-	golang.org/x/net v0.41.0
-	golang.org/x/sync v0.15.0
-	golang.org/x/text v0.26.0
-	golang.org/x/tools v0.34.0
+	golang.org/x/mod v0.28.0
+	golang.org/x/net v0.44.0
+	golang.org/x/sync v0.17.0
+	golang.org/x/text v0.30.0
+	golang.org/x/tools v0.37.0
 	google.golang.org/api v0.237.0
 	gopkg.in/yaml.v2 v2.4.0
 	rsc.io/qr v0.2.0
@@ -123,7 +124,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.26.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.30.3 // indirect
 	github.com/aws/smithy-go v1.22.2 // indirect
-	github.com/cli/safeexec v1.0.1 // indirect
 	github.com/cncf/xds/go v0.0.0-20250326154945-ae57f3c0d45f // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.6 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
@@ -148,7 +148,6 @@ require (
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-runewidth v0.0.16 // indirect
@@ -175,9 +174,9 @@ require (
 	go.opentelemetry.io/otel/sdk v1.36.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.36.0 // indirect
 	go.opentelemetry.io/otel/trace v1.36.0 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
+	golang.org/x/crypto v0.42.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/xerrors v0.0.0-20240716161551-93cc26a95ae9 // indirect
 	google.golang.org/genproto v0.0.0-20250505200425-f936aa4a68b2 // indirect
@@ -190,4 +189,4 @@ require (
 	software.sslmate.com/src/go-pkcs12 v0.2.0 // indirect
 )
 
-go 1.23.0
+go 1.24.0
