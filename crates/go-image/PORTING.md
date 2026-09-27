@@ -263,6 +263,53 @@ rather than per block, so some valid libjpeg files (progressive, sampled
 luma, `-restart`) fail in Go with `missing 0xff00 sequence`; the port
 returns the same error.
 
+### Linux x86_64 verification pass
+
+Platform check on linux/amd64 (go1.27.1 via `GOTOOLCHAIN=go1.27.1`, rustc
+1.94.1, libjpeg-turbo 2.1.5 `cjpeg`/`jpegtran`, ImageMagick 6.9.12
+`convert`). Results:
+
+* `cargo test --release`: all 52 tests pass (no test is `#[ignore]`d; the
+  `*_big` tests and `decode_seeksnack_corpus` return early without their
+  environment variable / corpus).
+* An oracle built on linux/amd64 regenerates every checked-in Go-generated
+  fixture byte-for-byte (`synth.tsv`, `draw.tsv`, `draw2.tsv`, `dct.tsv`,
+  `color.tsv`, `fixtures-decode.tsv`, `fuzz.tsv`, `corpus/gen.tsv`,
+  `corpus/gen.enc.tsv`, `corpus/mut.bin`, `corpus/mut.tsv`), and `mkjpeg 0
+  3000` reproduces all 103 `mk/*` entries of `corpus/gen.bin`. The `lj*/*`
+  entries of `gen.bin` are *inputs* made by external tools and are not
+  reproducible: the `@extra.list` passed to `gen_libjpeg.py` was not
+  recorded (its length changes the Python RNG stream at the first jpegtran-of-
+  an-extra-file item), and the tools differ (libjpeg-turbo 2.1.5 has no
+  `-precision 12`, so e.g. `lj4/lj-4-000006.jpg`, a 12-bit file, cannot be
+  produced; ImageMagick 6 vs 7). Entries made before the streams diverge
+  with plain cjpeg/jpegtran are byte-identical (e.g. `lj2/lj-2-000026.jpg`,
+  `lj3/lj-3-000032.jpg`, `lj3/lj-3-000042.jpg`). Only the checked-in
+  `gen.bin` matters for parity; everything the oracle computes from it is
+  identical.
+* `go tool objdump` of the amd64 oracle: no floating-point instructions in
+  the 233 functions of `image`, `image/color`, `image/color/palette`,
+  `image/draw`, `image/jpeg`, `image/internal/imageutil` (as on arm64), so
+  nothing here can differ between architectures.
+* Oracle: `GO_IMAGE_SEED0` starts `synth`/`draw`/`fuzz`/`dct` at a fresh
+  seed (rows carry their seed, so the Rust tests replay any range);
+  `dct_matches_go_big` (`GO_IMAGE_DCT_BIG`) checks a large `dct` output;
+  `gen_libjpeg.py` falls back to `convert` when `magick` is absent.
+
+Out-of-repo differential runs, zero differences in every case:
+
+| run | entries |
+|---|---|
+| `synth 2000` (seeds 0..) / `synth 3000` at seed 10 000 000 | 2 000 / 3 000 images × 100 qualities |
+| `fuzz 100000` / `fuzz 200000` at seed 10 000 000 | 100 000 / 200 000 |
+| `draw 200000` / `draw 1200000` at seed 10 000 000 | 200 000 / 1 200 000 |
+| `draw2 0 2000000` / `draw2 10000000 2000000` (owned + aliased) | 2 000 000 / 2 000 000 |
+| `dct 1000000` at seed 10 000 000 | 1 000 000 blocks |
+| `mkjpeg 0 3000` + `mkjpeg 100000 10000` (`record`, `encsweep`) | 13 000 (10 121 sweeps) |
+| `gen_libjpeg.py` seeds 1–4 and 11–18 × 1000 (`record`, `encsweep`) | 13 166 (9 959 sweeps) |
+| `mutate` of those (seed0 0 and 20 000 000) | 120 000 + 200 000 |
+| larger real-tool images (1–1599 px per side, mean 0.29 MP, max 2.4 MP; ImageMagick plasma/gradient/noise/pattern content encoded by cjpeg/`convert`/jpegtran with random quality, sampling incl. 4:1:1/3x1/2x3, progressive, restart, optimize, CMYK, crop/rotate) + 20 000 mutations (`record`, `encsweep`) | 1 600 (1 326 sweeps) + 20 000 |
+
 `gotestdata/` holds Go's BSD-licensed `image/testdata/*.jpeg` (see
 `LICENSE-go`); `padded-rst-marker.b64` is the image from Go's
 TestPaddedRSTMarker.
