@@ -587,8 +587,8 @@ func writeLines(path string, lines []string) error {
 	}
 	w := bufio.NewWriter(f)
 	for _, l := range lines {
-		w.WriteString(l)
-		w.WriteByte('\n')
+		_, _ = w.WriteString(l)
+		_ = w.WriteByte('\n')
 	}
 	if err := w.Flush(); err != nil {
 		return err

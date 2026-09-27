@@ -17,8 +17,7 @@ import (
 
 func cmdNFDDump(args []string) error {
 	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-	fmt.Fprintf(w, "# x/text norm.Version=%s\n", norm.Version)
+	_, _ = fmt.Fprintf(w, "# x/text norm.Version=%s\n", norm.Version)
 	for r := rune(0); r <= 0x10FFFF; r++ {
 		if r >= 0xD800 && r <= 0xDFFF {
 			continue
@@ -27,8 +26,8 @@ func cmdNFDDump(args []string) error {
 		d := norm.NFD.String(s)
 		k := norm.NFKD.String(s)
 		if d != s || k != s {
-			fmt.Fprintf(w, "U+%04X\t%s\t%s\n", r, hex.EncodeToString([]byte(d)), hex.EncodeToString([]byte(k)))
+			_, _ = fmt.Fprintf(w, "U+%04X\t%s\t%s\n", r, hex.EncodeToString([]byte(d)), hex.EncodeToString([]byte(k)))
 		}
 	}
-	return nil
+	return w.Flush()
 }

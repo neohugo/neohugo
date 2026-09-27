@@ -507,12 +507,12 @@ func writeFuzzCases(w *bufio.Writer, seed uint64, n int, maxOut int) (int, int) 
 	g := &fuzzGen{r: rand.New(rand.NewPCG(seed, seed^0x9e3779b97f4a7c15))}
 	count, dropped := 0, 0
 	emit := func(fn, format string, args []string, out string, extra string) {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s%s\n", fn, strconv.Quote(format), strings.Join(args, " "), strconv.Quote(out), extra)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s%s\n", fn, strconv.Quote(format), strings.Join(args, " "), strconv.Quote(out), extra)
 		count++
 	}
 	for i := 0; i < n; i++ {
-		switch {
-		case i%10 == 0:
+		switch i % 10 {
+		case 0:
 			args := g.args(g.r.IntN(5), 0)
 			fn := "sprint"
 			if i%20 == 0 {
@@ -529,7 +529,7 @@ func writeFuzzCases(w *bufio.Writer, seed uint64, n int, maxOut int) (int, int) 
 				continue
 			}
 			emit(fn, "", args, o1, "")
-		case i%10 == 1:
+		case 1:
 			// Errorf: %w with errors, non-errors, reordering.
 			nargs := g.r.IntN(4)
 			var args []string
@@ -667,7 +667,7 @@ func writeFuzzMatrix(dir string, seed uint64, n int) {
 	formats := fuzzFormatMatrix()
 	f, w := create(dir, "fuzz_formats.txt")
 	for _, s := range formats {
-		fmt.Fprintln(w, strconv.Quote(s))
+		_, _ = fmt.Fprintln(w, strconv.Quote(s))
 	}
 	finish(f, w)
 
@@ -697,7 +697,7 @@ func writeFuzzMatrix(dir string, seed uint64, n int) {
 			h.Write([]byte(o1))
 			total++
 		}
-		fmt.Fprintf(w, "%s\t%016x\t%s\n", spec, h.Sum64(), ranges(nondet))
+		_, _ = fmt.Fprintf(w, "%s\t%016x\t%s\n", spec, h.Sum64(), ranges(nondet))
 	}
 	finish(f, w)
 	log.Printf("fuzz matrix: %d operands x %d formats: %d outputs hashed", n, len(formats), total)
@@ -743,7 +743,7 @@ func writeModelCases(dir string) int {
 	f, w := create(dir, "model_cases.txt")
 	n := 0
 	emit := func(fn, format string, args []string, out, extra string) {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s%s\n", fn, strconv.Quote(format), strings.Join(args, " "), strconv.Quote(out), extra)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s%s\n", fn, strconv.Quote(format), strings.Join(args, " "), strconv.Quote(out), extra)
 		n++
 	}
 	for _, args := range operands {
@@ -768,7 +768,7 @@ func writeModelCases(dir string) int {
 	for _, format := range weird {
 		emit("sprintf", format, args, fmt.Sprintf(format, decodeSpecs(args)...), "")
 		emit("sprintf", format, args[:1], fmt.Sprintf(format, decodeSpecs(args[:1])...), "")
-		emit("sprintf", format, nil, fmt.Sprintf(format), "")
+		emit("sprintf", format, nil, fmt.Sprintf(format, decodeSpecs(nil)...), "")
 	}
 	finish(f, w)
 	return n

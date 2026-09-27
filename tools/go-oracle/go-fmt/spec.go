@@ -465,7 +465,6 @@ func sTnil(t string) string              { return "tnil:" + hexs(t) }
 func sList(t string, elems ...string) string {
 	return "list:" + hexs(t) + "(" + strings.Join(elems, ",") + ")"
 }
-func sArgs(elems ...string) string { return "args(" + strings.Join(elems, ",") + ")" }
 
 // sMap builds a map node; kvs alternates key, value-spec. Keys are sorted
 // only for readability (map order does not matter).

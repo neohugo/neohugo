@@ -41,11 +41,11 @@ func newRecWriter(path string) *recWriter {
 }
 
 func (r *recWriter) rec(fields ...[]byte) {
-	fmt.Fprintf(r.w, "#rec %d\n", len(fields))
+	_, _ = fmt.Fprintf(r.w, "#rec %d\n", len(fields))
 	for _, f := range fields {
-		fmt.Fprintf(r.w, "%d\n", len(f))
-		r.w.Write(f)
-		r.w.WriteByte('\n')
+		_, _ = fmt.Fprintf(r.w, "%d\n", len(f))
+		_, _ = r.w.Write(f)
+		_ = r.w.WriteByte('\n')
 	}
 }
 
@@ -344,7 +344,7 @@ func corpusDigests(out string, roots []string) {
 		panic(err)
 	}
 	w := bufio.NewWriter(f)
-	fmt.Fprintf(w, "# root\tpath\tsize\t%s\n", strings.Join(modes, "\t"))
+	_, _ = fmt.Fprintf(w, "# root\tpath\tsize\t%s\n", strings.Join(modes, "\t"))
 	n := 0
 	for _, root := range roots {
 		var paths []string
@@ -367,11 +367,11 @@ func corpusDigests(out string, roots []string) {
 				panic(err)
 			}
 			rel, _ := filepath.Rel(root, p)
-			fmt.Fprintf(w, "%s\t%s\t%d", filepath.Base(root), rel, len(src))
+			_, _ = fmt.Fprintf(w, "%s\t%s\t%d", filepath.Base(root), rel, len(src))
 			for _, m := range modes {
-				fmt.Fprintf(w, "\t%s", digest(runMode(m, src)))
+				_, _ = fmt.Fprintf(w, "\t%s", digest(runMode(m, src)))
 			}
-			fmt.Fprintln(w)
+			_, _ = fmt.Fprintln(w)
 			n++
 		}
 	}

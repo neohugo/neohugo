@@ -453,10 +453,8 @@ func writeQuoteTable(path string) {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
 	w := bufio.NewWriter(f)
-	defer w.Flush()
-	fmt.Fprintln(w, "#first_rune\tquoted_len\tquoted_fnv64")
+	_, _ = fmt.Fprintln(w, "#first_rune\tquoted_len\tquoted_fnv64")
 	for lo := rune(0); lo < 0x110000; lo += 256 {
 		var sb strings.Builder
 		for c := lo; c < lo+256; c++ {
@@ -471,6 +469,12 @@ func writeQuoteTable(path string) {
 			h ^= uint64(q[i])
 			h *= 0x100000001b3
 		}
-		fmt.Fprintf(w, "%d\t%d\t%016x\n", lo, len(q), h)
+		_, _ = fmt.Fprintf(w, "%d\t%d\t%016x\n", lo, len(q), h)
+	}
+	if err := w.Flush(); err != nil {
+		panic(err)
+	}
+	if err := f.Close(); err != nil {
+		panic(err)
 	}
 }

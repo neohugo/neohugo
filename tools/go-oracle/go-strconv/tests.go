@@ -37,7 +37,7 @@ func (s *sink) put(b []byte) {
 		s.byte1(c)
 	}
 	if s.dump != nil {
-		fmt.Fprintf(s.dump, "  %x\n", b)
+		_, _ = fmt.Fprintf(s.dump, "  %x\n", b)
 	}
 }
 
@@ -67,7 +67,7 @@ func (s *sink) putErr(err error) {
 
 func (s *sink) ctx(format string, args ...any) {
 	if s.dump != nil {
-		fmt.Fprintf(s.dump, format+"\n", args...)
+		_, _ = fmt.Fprintf(s.dump, format+"\n", args...)
 	}
 }
 

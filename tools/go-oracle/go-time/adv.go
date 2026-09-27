@@ -178,7 +178,7 @@ type tzifZone struct {
 
 func buildTZif(s tzifSpec) []byte {
 	var b bytes.Buffer
-	w32 := func(v uint32) { binary.Write(&b, binary.BigEndian, v) }
+	w32 := func(v uint32) { _ = binary.Write(&b, binary.BigEndian, v) }
 	block := func(is64, empty bool) {
 		b.WriteString("TZif")
 		b.WriteByte(s.version)
@@ -199,14 +199,14 @@ func buildTZif(s tzifSpec) []byte {
 		}
 		for _, t := range s.tx {
 			if is64 {
-				binary.Write(&b, binary.BigEndian, t)
+				_ = binary.Write(&b, binary.BigEndian, t)
 			} else {
-				binary.Write(&b, binary.BigEndian, int32(t))
+				_ = binary.Write(&b, binary.BigEndian, int32(t))
 			}
 		}
 		b.Write(s.idx)
 		for _, z := range s.zones {
-			binary.Write(&b, binary.BigEndian, z.off)
+			_ = binary.Write(&b, binary.BigEndian, z.off)
 			if z.dst {
 				b.WriteByte(1)
 			} else {
@@ -218,11 +218,11 @@ func buildTZif(s tzifSpec) []byte {
 		for i := 0; i < s.nleap; i++ {
 			when := int64(78796800 + 15768000*i)
 			if is64 {
-				binary.Write(&b, binary.BigEndian, when)
+				_ = binary.Write(&b, binary.BigEndian, when)
 			} else {
-				binary.Write(&b, binary.BigEndian, int32(when))
+				_ = binary.Write(&b, binary.BigEndian, int32(when))
 			}
-			binary.Write(&b, binary.BigEndian, int32(i+1))
+			_ = binary.Write(&b, binary.BigEndian, int32(i+1))
 		}
 		b.Write(bytes.Repeat([]byte{1}, s.nstd))
 		b.Write(bytes.Repeat([]byte{0}, s.nut))
@@ -373,7 +373,7 @@ func exportExtraZones(dir string) map[string][]byte {
 	out := map[string][]byte{}
 	zr, err := zip.OpenReader(filepath.Join(runtime.GOROOT(), "lib", "time", "zoneinfo.zip"))
 	must(err)
-	defer zr.Close()
+	defer func() { _ = zr.Close() }()
 	for _, f := range zr.File {
 		for _, z := range extraTestZones {
 			if f.Name == z {
@@ -381,7 +381,7 @@ func exportExtraZones(dir string) map[string][]byte {
 				must(err)
 				d, err := io.ReadAll(rc)
 				must(err)
-				rc.Close()
+				_ = rc.Close()
 				out[zoneFile(z)] = d
 			}
 		}

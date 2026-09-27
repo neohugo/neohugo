@@ -240,16 +240,20 @@ func fuzzGen(outDir string, n int, seed int64, exhaust, maxWin int, roots []stri
 			panic(err)
 		}
 		w := bufio.NewWriterSize(f, 1<<20)
-		fmt.Fprintf(w, "#kinds %s\n", strings.Join(g.kinds, " "))
+		_, _ = fmt.Fprintf(w, "#kinds %s\n", strings.Join(g.kinds, " "))
 		for _, in := range inputs {
-			w.WriteString(hx(in))
+			_, _ = w.WriteString(hx(in))
 			for _, kind := range g.kinds {
-				fmt.Fprintf(w, "\t%016x", fnv64a(streamFor(kind, in)))
+				_, _ = fmt.Fprintf(w, "\t%016x", fnv64a(streamFor(kind, in)))
 			}
-			w.WriteByte('\n')
+			_ = w.WriteByte('\n')
 		}
-		w.Flush()
-		f.Close()
+		if err := w.Flush(); err != nil {
+			panic(err)
+		}
+		if err := f.Close(); err != nil {
+			panic(err)
+		}
 		fmt.Fprintf(os.Stderr, "%s.fz: %d inputs x %d kinds (%d corpus files)\n", name, len(inputs), len(g.kinds), len(corpus))
 	}
 }

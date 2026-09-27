@@ -476,9 +476,9 @@ func cmdPairs(args []string) error {
 		return err
 	}
 	w := bufio.NewWriter(f)
-	fmt.Fprintf(w, "N\t%d\t%d\n", *n, *seed)
+	_, _ = fmt.Fprintf(w, "N\t%d\t%d\n", *n, *seed)
 	for _, p := range pairs {
-		fmt.Fprintf(w, "P\t%s\t%s\n", hex.EncodeToString(p[0]), hex.EncodeToString(p[1]))
+		_, _ = fmt.Fprintf(w, "P\t%s\t%s\n", hex.EncodeToString(p[0]), hex.EncodeToString(p[1]))
 	}
 	cfgs := pairConfigs()
 	nmain := len(cfgs)
@@ -488,11 +488,11 @@ func cmdPairs(args []string) error {
 	for i, cfg := range cfgs {
 		res, kd := pairResults(cfg.collator(), pairs)
 		h := sha256.Sum256(res)
-		fmt.Fprintf(w, "C\t%s\t%s\t%s", cfg.line(), hex.EncodeToString(h[:]), kd)
+		_, _ = fmt.Fprintf(w, "C\t%s\t%s\t%s", cfg.line(), hex.EncodeToString(h[:]), kd)
 		if *full == "all" || *full == "main" && i < nmain {
-			fmt.Fprintf(w, "\t%s", res)
+			_, _ = fmt.Fprintf(w, "\t%s", res)
 		}
-		w.WriteByte('\n')
+		_ = w.WriteByte('\n')
 	}
 	if err := w.Flush(); err != nil {
 		return err

@@ -241,8 +241,8 @@ func (g *advGen) cssFunc(depth int) string {
 	low := strings.ToLower(f)
 	var b strings.Builder
 	b.WriteString(f)
-	switch {
-	case low == "rgb(" || low == "rgba(" || low == "hsl(" || low == "hsla(":
+	switch low {
+	case "rgb(", "rgba(", "hsl(", "hsla(":
 		n := 3 + g.r.Intn(2)
 		if g.chance(8) {
 			n = 2 + g.r.Intn(4)
@@ -280,13 +280,13 @@ func (g *advGen) cssFunc(depth int) string {
 		if g.chance(10) {
 			b.WriteString(",")
 		}
-	case low == "url(":
+	case "url(":
 		b.Reset()
 		u := g.pick([]string{"a.png", " b.png ", "'c d.png'", "\"e.png\"", "\"" + g.dataURI() + "\"", "'" + g.dataURI() + "'", g.dataURI(), "  ", "", "'a\\\nb'", "x)y"})
 		b.WriteString("url(" + u)
-	case low == "local(" || low == "format(":
+	case "local(", "format(":
 		b.WriteString(g.pick([]string{"\"Arial\"", "'A B'", "Arial", "\"woff2\"", "'x y'", "\"a\\\nb\""}))
-	case low == "var(" || low == "env(":
+	case "var(", "env(":
 		b.WriteString(g.pick([]string{"--x", "--y, 1px", "--a,#FFF", "--z,  ", "safe-area-inset-top"}))
 	default:
 		n := 1 + g.r.Intn(3)
@@ -754,11 +754,12 @@ func (g *advGen) htmlNode(b *strings.Builder, depth int) {
 	b.WriteString(g.pick([]string{">", ">", ">", " >", "\n>"}))
 	switch low {
 	case "script", "style", "textarea", "title", "xmp", "plaintext", "iframe", "svg", "math", "pre":
-		if low == "style" {
+		switch low {
+		case "style":
 			b.WriteString(g.cssSheet())
-		} else if low == "script" {
+		case "script":
 			b.WriteString(g.jsonValue(0))
-		} else {
+		default:
 			b.WriteString(g.htmlText())
 		}
 		if !g.chance(15) {

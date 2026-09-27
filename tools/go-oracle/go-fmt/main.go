@@ -79,7 +79,7 @@ func main() {
 		}
 		w := bufio.NewWriter(os.Stdout)
 		for _, f := range formatMatrix() {
-			fmt.Fprintln(w, strconv.Quote(fmt.Sprintf(f, v)))
+			_, _ = fmt.Fprintln(w, strconv.Quote(fmt.Sprintf(f, v)))
 		}
 		if err := w.Flush(); err != nil {
 			log.Fatal(err)
@@ -134,13 +134,13 @@ func writeVectors(dir, scratch string) {
 
 	f, w := create(dir, "values.txt")
 	for _, v := range values {
-		fmt.Fprintln(w, v)
+		_, _ = fmt.Fprintln(w, v)
 	}
 	finish(f, w)
 
 	f, w = create(dir, "formats.txt")
 	for _, s := range formats {
-		fmt.Fprintln(w, strconv.Quote(s))
+		_, _ = fmt.Fprintln(w, strconv.Quote(s))
 	}
 	finish(f, w)
 
@@ -166,7 +166,7 @@ func writeVectors(dir, scratch string) {
 			h.Write([]byte(o1))
 			total++
 		}
-		fmt.Fprintf(w, "%s\t%016x\t%s\n", spec, h.Sum64(), ranges(nondet))
+		_, _ = fmt.Fprintf(w, "%s\t%016x\t%s\n", spec, h.Sum64(), ranges(nondet))
 	}
 	finish(f, w)
 	log.Printf("matrix: %d operands x %d formats: %d outputs hashed, %d nondeterministic skipped", len(values), len(formats), total, skipped)
@@ -184,7 +184,7 @@ func writeVectors(dir, scratch string) {
 	}
 	f, w = create(dir, "fmttests.txt")
 	for _, l := range lines {
-		fmt.Fprintln(w, l)
+		_, _ = fmt.Fprintln(w, l)
 	}
 	finish(f, w)
 	log.Print(stats)
@@ -283,7 +283,7 @@ func writeCases(w *bufio.Writer, values []string) int {
 	r := rand.New(rand.NewPCG(1, 2))
 	count := 0
 	emit := func(fn, format string, args []string, out string, extra string) {
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s%s\n", fn, strconv.Quote(format), strings.Join(args, " "), strconv.Quote(out), extra)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s%s\n", fn, strconv.Quote(format), strings.Join(args, " "), strconv.Quote(out), extra)
 		count++
 	}
 	decodeAll := func(args []string) []any {

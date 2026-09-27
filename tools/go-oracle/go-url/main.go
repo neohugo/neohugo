@@ -167,18 +167,18 @@ func (w *writer) rec(op string, args []string, res ...string) {
 	if w.every > 1 && (w.seen-1)%w.every != 0 {
 		return
 	}
-	w.w.WriteString(op)
-	w.w.WriteByte('\t')
-	w.w.WriteString(strconv.Itoa(len(args)))
+	_, _ = w.w.WriteString(op)
+	_ = w.w.WriteByte('\t')
+	_, _ = w.w.WriteString(strconv.Itoa(len(args)))
 	for _, a := range args {
-		w.w.WriteByte('\t')
-		w.w.WriteString(esc(a))
+		_ = w.w.WriteByte('\t')
+		_, _ = w.w.WriteString(esc(a))
 	}
 	for _, r := range res {
-		w.w.WriteByte('\t')
-		w.w.WriteString(esc(r))
+		_ = w.w.WriteByte('\t')
+		_, _ = w.w.WriteString(esc(r))
 	}
-	w.w.WriteByte('\n')
+	_ = w.w.WriteByte('\n')
 	w.n++
 }
 

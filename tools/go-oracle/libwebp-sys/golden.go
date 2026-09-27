@@ -237,7 +237,7 @@ func goldenWebps(site, golden string) map[string]capturedWebp {
 
 	goldenHu := map[string]bool{}
 	dirs := map[string]bool{}
-	filepath.Walk(golden, func(p string, fi os.FileInfo, err error) error {
+	_ = filepath.Walk(golden, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}

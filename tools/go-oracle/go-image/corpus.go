@@ -214,7 +214,7 @@ func record(name string, data []byte) string {
 
 func recordCorpus(path string) {
 	for _, e := range readCorpus(path) {
-		fmt.Fprintln(out, record(e.name, e.data))
+		_, _ = fmt.Fprintln(out, record(e.name, e.data))
 	}
 }
 
@@ -234,7 +234,7 @@ func encsweep(path string) {
 		for q := 1; q <= 100; q++ {
 			hs = append(hs, encSha16(m, q)[:8])
 		}
-		fmt.Fprintf(out, "%s\t%s\n", e.name, strings.Join(hs, ","))
+		_, _ = fmt.Fprintf(out, "%s\t%s\n", e.name, strings.Join(hs, ","))
 	}
 }
 
@@ -244,17 +244,6 @@ func encsweep(path string) {
 // precision, restart intervals, scan layout, APP0/APP14 markers). The
 // entropy-coded data holds random coefficients laid out exactly in the order
 // Go's decoder reads them, so most files decode successfully.
-
-var mkUnzig = [64]int{
-	0, 1, 8, 16, 9, 2, 3, 10,
-	17, 24, 32, 25, 18, 11, 4, 5,
-	12, 19, 26, 33, 40, 48, 41, 34,
-	27, 20, 13, 6, 7, 14, 21, 28,
-	35, 42, 49, 56, 57, 50, 43, 36,
-	29, 22, 15, 23, 30, 37, 44, 51,
-	58, 59, 52, 45, 38, 31, 39, 46,
-	53, 60, 61, 54, 47, 55, 62, 63,
-}
 
 type mkSpec struct {
 	count [16]byte
@@ -572,7 +561,7 @@ func mkjpeg(seed uint64) []byte {
 	g := &mkGen{r: r}
 	g.buf = []byte{0xff, 0xd8}
 
-	nComp := 3
+	var nComp int
 	switch k := r.intn(10); {
 	case k < 3:
 		nComp = 1
@@ -1031,6 +1020,6 @@ func drawOps2(seed0, n int) {
 		default:
 			draw.DrawMask(dst, rr, src, sp, mask, mp, op)
 		}
-		fmt.Fprintf(out, "%d\t%T\t%T\t%s\t%d\t%s\n", seed, dst, src, rectStr(dst.Bounds()), how, sha16(pixOf(dst)))
+		_, _ = fmt.Fprintf(out, "%d\t%T\t%T\t%s\t%d\t%s\n", seed, dst, src, rectStr(dst.Bounds()), how, sha16(pixOf(dst)))
 	}
 }

@@ -40,7 +40,7 @@ import (
 var out = bufio.NewWriterSize(os.Stdout, 1<<20)
 
 func main() {
-	defer out.Flush()
+	defer func() { _ = out.Flush() }()
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: gift <cmd> ...")
 		os.Exit(2)
@@ -297,7 +297,7 @@ func genSynthCase(r *rng) synthCase {
 	}
 	c.src = imgSpec{typ: typ, rect: image.Rect(ox, oy, ox+w, oy+h), seed: r.next(), vmode: r.intn(2), amode: r.intn(3), valid: r.intn(8) != 0}
 
-	nf := 1
+	var nf int
 	switch k := r.intn(10); {
 	case k == 0:
 		nf = 0
@@ -365,7 +365,7 @@ func synth(n int, seed uint64) {
 	for i := 0; i < n; i++ {
 		c := genSynthCase(r)
 		dst := runSynth(c)
-		fmt.Fprintf(out, "%s\t%s\n", c.line(i), digest(dst))
+		_, _ = fmt.Fprintf(out, "%s\t%s\n", c.line(i), digest(dst))
 	}
 }
 
@@ -384,11 +384,11 @@ func parseSynthLine(line string) synthCase {
 func one(line string) {
 	c := parseSynthLine(line)
 	dst := runSynth(c)
-	fmt.Fprintf(out, "digest %s\n", digest(dst))
+	_, _ = fmt.Fprintf(out, "digest %s\n", digest(dst))
 	b := dst.Bounds()
 	for y := b.Min.Y; y < b.Max.Y; y++ {
 		for x := b.Min.X; x < b.Max.X; x++ {
-			fmt.Fprintf(out, "(%d,%d) %v\n", x, y, dst.At(x, y))
+			_, _ = fmt.Fprintf(out, "(%d,%d) %v\n", x, y, dst.At(x, y))
 		}
 	}
 }
@@ -428,7 +428,7 @@ func mathVectors(n int) {
 			x = math.Abs(x)
 		}
 		s, c := math.Sincos(x)
-		fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", f64(x), f64(y),
+		_, _ = fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", f64(x), f64(y),
 			f64(math.Exp(x)), f64(math.Log(x)), f64(math.Pow(x, y)), f64(math.Sin(x)), f64(math.Cos(x)), f64(s), f64(c))
 	}
 }
@@ -438,7 +438,7 @@ func kernels(n int) {
 	r := &rng{s: 777}
 	for _, name := range resamplingNames {
 		rs := resampling(name)
-		fmt.Fprintf(out, "support\t%s\t%08x\n", name, math.Float32bits(rs.Support()))
+		_, _ = fmt.Fprintf(out, "support\t%s\t%08x\n", name, math.Float32bits(rs.Support()))
 	}
 	for i := 0; i < n; i++ {
 		var x float32
@@ -454,6 +454,6 @@ func kernels(n int) {
 		for _, name := range resamplingNames {
 			parts = append(parts, fmt.Sprintf("%08x", math.Float32bits(resampling(name).Kernel(x))))
 		}
-		fmt.Fprintf(out, "k\t%08x\t%s\n", math.Float32bits(x), strings.Join(parts, ","))
+		_, _ = fmt.Fprintf(out, "k\t%08x\t%s\n", math.Float32bits(x), strings.Join(parts, ","))
 	}
 }

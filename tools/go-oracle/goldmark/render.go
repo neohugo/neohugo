@@ -95,13 +95,13 @@ func (g *gmfWriter) record(name string) {
 	if strings.ContainsAny(name, "\n") {
 		panic("bad record name")
 	}
-	fmt.Fprintf(g.w, "=== %s\n", name)
+	_, _ = fmt.Fprintf(g.w, "=== %s\n", name)
 }
 
 func (g *gmfWriter) field(key string, v []byte) {
-	fmt.Fprintf(g.w, "%s %d\n", key, len(v))
-	g.w.Write(v)
-	g.w.WriteByte('\n')
+	_, _ = fmt.Fprintf(g.w, "%s %d\n", key, len(v))
+	_, _ = g.w.Write(v)
+	_ = g.w.WriteByte('\n')
 }
 
 func (g *gmfWriter) flush() {

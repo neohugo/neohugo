@@ -191,11 +191,11 @@ func create(dir, name string) *out {
 func (o *out) rec(fields ...string) {
 	for i, f := range fields {
 		if i > 0 {
-			o.w.WriteByte('\t')
+			_ = o.w.WriteByte('\t')
 		}
-		o.w.WriteString(esc(f))
+		_, _ = o.w.WriteString(esc(f))
 	}
-	o.w.WriteByte('\n')
+	_ = o.w.WriteByte('\n')
 	o.n++
 }
 
@@ -238,7 +238,7 @@ func zoneFile(name string) string {
 func loadFixtureZones() {
 	zr, err := zip.OpenReader(filepath.Join(runtime.GOROOT(), "lib", "time", "zoneinfo.zip"))
 	must(err)
-	defer zr.Close()
+	defer func() { _ = zr.Close() }()
 	want := map[string]bool{}
 	for _, z := range fixtureZones {
 		want[z] = true
@@ -252,7 +252,7 @@ func loadFixtureZones() {
 		var buf bytes.Buffer
 		_, err = buf.ReadFrom(rc)
 		must(err)
-		rc.Close()
+		_ = rc.Close()
 		zoneDat[f.Name] = buf.Bytes()
 		must(os.WriteFile(filepath.Join(outDir, "zoneinfo", zoneFile(f.Name)), buf.Bytes(), 0o644))
 	}
@@ -1161,25 +1161,25 @@ func tzif(extend string, withTx bool) []byte {
 		b.WriteString("TZif2")
 		b.Write(make([]byte, 15))
 		for _, v := range []int{0, 0, 0, ntime, ntype, nchar} {
-			binary.Write(&b, binary.BigEndian, uint32(v))
+			_ = binary.Write(&b, binary.BigEndian, uint32(v))
 		}
 	}
 	abbr := "LMT\x00"
 	// v1 block (empty-ish)
 	hdr(0, 1, len(abbr))
-	binary.Write(&b, binary.BigEndian, int32(3600))
+	_ = binary.Write(&b, binary.BigEndian, int32(3600))
 	b.WriteByte(0)
 	b.WriteByte(0)
 	b.WriteString(abbr)
 	// v2 block
 	if withTx {
 		hdr(1, 1, len(abbr))
-		binary.Write(&b, binary.BigEndian, int64(-2000000000))
+		_ = binary.Write(&b, binary.BigEndian, int64(-2000000000))
 		b.WriteByte(0)
 	} else {
 		hdr(0, 1, len(abbr))
 	}
-	binary.Write(&b, binary.BigEndian, int32(3600))
+	_ = binary.Write(&b, binary.BigEndian, int32(3600))
 	b.WriteByte(0)
 	b.WriteByte(0)
 	b.WriteString(abbr)
@@ -1363,15 +1363,15 @@ func lookupsOf(l *time.Location) []string {
 
 func runChild(mode string) {
 	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
+	defer func() { _ = w.Flush() }()
 	rec := func(fields ...string) {
 		for i, f := range fields {
 			if i > 0 {
-				w.WriteByte('\t')
+				_ = w.WriteByte('\t')
 			}
-			w.WriteString(esc(f))
+			_, _ = w.WriteString(esc(f))
 		}
-		w.WriteByte('\n')
+		_ = w.WriteByte('\n')
 	}
 	switch mode {
 	case "zoneall":
@@ -1401,12 +1401,12 @@ func runChild(mode string) {
 			rec("H", "/usr/share/zoneinfo/"+n, fileHash("/usr/share/zoneinfo/"+n))
 		}
 	case "localenv":
-		w.WriteString(esc(time.Local.String()))
+		_, _ = w.WriteString(esc(time.Local.String()))
 		for _, s := range lookupsOf(time.Local) {
-			w.WriteByte('\t')
-			w.WriteString(esc(s))
+			_ = w.WriteByte('\t')
+			_, _ = w.WriteString(esc(s))
 		}
-		w.WriteByte('\n')
+		_ = w.WriteByte('\n')
 	}
 }
 
@@ -1455,7 +1455,7 @@ func genSeeksnack(dir string) {
 			}
 		}
 		for _, sub := range []string{"content", "data"} {
-			filepath.Walk(filepath.Join(root, sub), func(p string, info os.FileInfo, err error) error {
+			_ = filepath.Walk(filepath.Join(root, sub), func(p string, info os.FileInfo, err error) error {
 				if err == nil && !info.IsDir() {
 					re(p)
 				}
@@ -1481,13 +1481,13 @@ func genSeeksnack(dir string) {
 		for i, cl := range castLayouts {
 			t, err := time.Parse(cl.f, v)
 			if err == nil {
-				idx = i
 				d = t
 				if cl.typ <= 1 {
 					y, m, dd := d.Date()
 					h, mi, s := d.Clock()
 					d = time.Date(y, m, dd, h, mi, s, d.Nanosecond(), time.UTC)
 				}
+				idx = i
 				break
 			}
 		}

@@ -193,8 +193,8 @@ func cmdGoTests(args []string) {
 	add("flate", 1, "go:sparse:67108864", "none", "W32768x2048", "C")
 
 	out := bufio.NewWriter(os.Stdout)
-	defer out.Flush()
-	fmt.Fprintf(out, "# go-flate oracle (%s) gotests\n", goVersion())
+	defer func() { _ = out.Flush() }()
+	_, _ = fmt.Fprintf(out, "# go-flate oracle (%s) gotests\n", goVersion())
 	files := map[string][]byte{}
 	for _, name := range args {
 		b, err := os.ReadFile(name)
@@ -209,6 +209,6 @@ func cmdGoTests(args []string) {
 			// Write, Close, Flush (the Go test's order).
 			c.ops = []string{"W10000", "C", "F"}
 		}
-		fmt.Fprintln(out, formatCase(i, c, files))
+		_, _ = fmt.Fprintln(out, formatCase(i, c, files))
 	}
 }

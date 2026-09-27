@@ -510,11 +510,11 @@ func (d *dumper) n(node js.INode) {
 				d.n(e.Method)
 			}
 			d.s(" (Field ")
-			d.bool(e.Field.Static)
+			d.bool(e.Static)
 			d.s(" ")
-			d.pn(&e.Field.Name)
+			d.pn(&e.Name)
 			d.s(" ")
-			d.n(e.Field.Init)
+			d.n(e.Init)
 			d.s("))")
 		}
 		d.s("])")
@@ -709,8 +709,8 @@ func astDump(ast *js.AST) []byte {
 	// The module scope in ast.BlockStmt is a copy of parseModule's local
 	// scope, which is the one referenced by Parent/Func/VarDecl.Scope. The
 	// port has a single module scope; alias the local one to the copy.
-	if ast.BlockStmt.Scope.Func != nil && ast.BlockStmt.Scope.Func != &ast.BlockStmt.Scope {
-		d.scopeAlias[ast.BlockStmt.Scope.Func] = &ast.BlockStmt.Scope
+	if mod := &ast.Scope; mod.Func != nil && mod.Func != mod {
+		d.scopeAlias[mod.Func] = mod
 	}
 	d.block(&ast.BlockStmt)
 	d.s("\n== scopes\n")

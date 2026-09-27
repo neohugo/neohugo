@@ -20,6 +20,11 @@ import (
 //go:embed encode.go
 var encodeSource string
 
+// encode.go is only called from the temporary program (fmttestsMain); this
+// keeps it type-checked as part of the oracle without tripping the unused
+// linter.
+var _ = encSpec
+
 // The main function of the temporary program. It runs Go's own tables and
 // prints "table \t fmt \t args-spec \t out" for every entry whose Sprintf
 // result equals the table's expected output and whose operands the value
@@ -135,7 +140,7 @@ func runFmtTests(scratch string) (lines []string, stats string, err error) {
 	if err != nil {
 		return nil, "", err
 	}
-	defer os.RemoveAll(dir)
+	defer func() { _ = os.RemoveAll(dir) }()
 	tables, err := extractFmtTests()
 	if err != nil {
 		return nil, "", err

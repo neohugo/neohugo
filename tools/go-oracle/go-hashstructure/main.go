@@ -721,7 +721,7 @@ func writeLines(path string, lines []string) {
 	}
 	w := bufio.NewWriter(f)
 	for _, l := range lines {
-		fmt.Fprintln(w, l)
+		_, _ = fmt.Fprintln(w, l)
 	}
 	if err := w.Flush(); err != nil {
 		log.Fatal(err)

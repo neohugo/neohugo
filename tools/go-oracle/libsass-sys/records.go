@@ -32,9 +32,9 @@ func (r *recordWriter) put(key string, val []byte) {
 	if strings.ContainsAny(key, " \n") {
 		panic(key)
 	}
-	fmt.Fprintf(r.w, "@%s %d\n", key, len(val))
-	r.w.Write(val)
-	r.w.WriteByte('\n')
+	_, _ = fmt.Fprintf(r.w, "@%s %d\n", key, len(val))
+	_, _ = r.w.Write(val)
+	_ = r.w.WriteByte('\n')
 }
 
 func (r *recordWriter) putS(key, val string) { r.put(key, []byte(val)) }
@@ -56,7 +56,9 @@ func (r *recordWriter) close() {
 	if err := r.z.Close(); err != nil {
 		panic(err)
 	}
-	r.f.Close()
+	if err := r.f.Close(); err != nil {
+		panic(err)
+	}
 }
 
 // writeSitePack stores files (relative path -> content) as records.

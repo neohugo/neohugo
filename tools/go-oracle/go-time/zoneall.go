@@ -115,11 +115,11 @@ func genZoneAllChild(dir, textDir string) {
 		must(err)
 		d, err := io.ReadAll(rc)
 		must(err)
-		rc.Close()
+		_ = rc.Close()
 		names = append(names, f.Name)
 		datas[f.Name] = d
 	}
-	zr.Close()
+	_ = zr.Close()
 	sort.Strings(names)
 	for _, n := range names {
 		l, err := time.LoadLocationFromTZData(n, datas[n])
@@ -136,7 +136,7 @@ func genZoneAllChild(dir, textDir string) {
 	// System zoneinfo (what LoadLocation reads first on darwin).
 	root := "/usr/share/zoneinfo/"
 	var sys []string
-	filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
+	_ = filepath.Walk(root, func(p string, info os.FileInfo, err error) error {
 		if err != nil || info.IsDir() {
 			return nil
 		}

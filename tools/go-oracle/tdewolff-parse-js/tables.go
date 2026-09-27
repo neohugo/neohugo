@@ -30,26 +30,26 @@ func genTables(out string, seed int64) {
 	w := bufio.NewWriter(gz)
 
 	// TokenType.String: only the values with a name (all others are Invalid(N))
-	fmt.Fprintln(w, "#tokens")
+	_, _ = fmt.Fprintln(w, "#tokens")
 	for i := 0; i < 1<<16; i++ {
 		tt := js.TokenType(i)
 		if tt.Bytes() != nil {
-			fmt.Fprintf(w, "%d %s\n", i, tt.String())
+			_, _ = fmt.Fprintf(w, "%d %s\n", i, tt.String())
 		}
 	}
 
-	fmt.Fprintln(w, "#opprec")
+	_, _ = fmt.Fprintln(w, "#opprec")
 	for i := -3; i < 30; i++ {
-		fmt.Fprintf(w, "%d %s\n", i, js.OpPrec(i).String())
+		_, _ = fmt.Fprintf(w, "%d %s\n", i, js.OpPrec(i).String())
 	}
-	fmt.Fprintln(w, "#decltype")
+	_, _ = fmt.Fprintln(w, "#decltype")
 	for i := 0; i < 12; i++ {
-		fmt.Fprintf(w, "%d %s\n", i, js.DeclType(i).String())
+		_, _ = fmt.Fprintf(w, "%d %s\n", i, js.DeclType(i).String())
 	}
 
 	// every code point (surrogates encoded as raw 3-byte sequences, which Go's
 	// utf8 rejects but parse.Input.PeekRune decodes)
-	fmt.Fprintln(w, "#runes")
+	_, _ = fmt.Fprintln(w, "#runes")
 	start, prev := 0, ""
 	for r := 0; r <= 0x10FFFF+1; r++ {
 		sig := ""
@@ -61,23 +61,23 @@ func genTables(out string, seed int64) {
 			continue
 		}
 		if sig != prev {
-			fmt.Fprintf(w, "%x %x %s\n", start, r-1, prev)
+			_, _ = fmt.Fprintf(w, "%x %x %s\n", start, r-1, prev)
 			start, prev = r, sig
 		}
 	}
 
 	// invalid and truncated UTF-8 sequences
-	fmt.Fprintln(w, "#bytes")
+	_, _ = fmt.Fprintln(w, "#bytes")
 	for _, b := range invalidSeqs() {
-		fmt.Fprintf(w, "%x %s\n", b, bytesSig(b))
+		_, _ = fmt.Fprintf(w, "%x %s\n", b, bytesSig(b))
 	}
 
-	fmt.Fprintln(w, "#asname")
+	_, _ = fmt.Fprintln(w, "#asname")
 	alpha := []byte{'0', '1', '9', '.', 'a', 'Z', '$', '_', 'e', 'x', ' ', 0x80, 0xC3, '-', 'n'}
 	var cur []byte
 	var rec func(n int)
 	rec = func(n int) {
-		fmt.Fprintf(w, "%x %s%s\n", cur, b01(js.AsIdentifierName(cur)), b01(js.AsDecimalLiteral(cur)))
+		_, _ = fmt.Fprintf(w, "%x %s%s\n", cur, b01(js.AsIdentifierName(cur)), b01(js.AsDecimalLiteral(cur)))
 		if n == 0 {
 			return
 		}
@@ -90,7 +90,7 @@ func genTables(out string, seed int64) {
 	rec(3)
 
 	// sort.Sort(VarsByUses) with many ties: the renamer's order of names
-	fmt.Fprintln(w, "#sort")
+	_, _ = fmt.Fprintln(w, "#sort")
 	rnd := rand.New(rand.NewSource(seed))
 	for k := 0; k < 3000; k++ {
 		n := rnd.Intn(8)
@@ -112,7 +112,7 @@ func genTables(out string, seed int64) {
 		for i, v := range vs {
 			perm[i] = string(v.Data)
 		}
-		fmt.Fprintf(w, "%s|%s\n", strings.Join(uses, ","), strings.Join(perm, ","))
+		_, _ = fmt.Fprintf(w, "%s|%s\n", strings.Join(uses, ","), strings.Join(perm, ","))
 	}
 
 	if err := w.Flush(); err != nil {

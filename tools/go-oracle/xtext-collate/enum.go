@@ -28,12 +28,12 @@ var enumAlphabets = map[string][]string{
 			}
 			a = append(a, string(r))
 		}
-		return append(a, "a", "A", " ", "1", "́", "-", "​")
+		return append(a, "a", "A", " ", "1", "́", "-", "\u200b")
 	}(),
 	// Letters that start or end contractions in some locale, marks that
 	// interact with them (discontiguous matches), ignorables, digits.
 	"latin": {"a", "A", "c", "C", "h", "H", "l", "L", "·", "ŀ", "d", "z", "ž", "s", "n", "y", "g", "j",
-		"o", "e", "i", "I", "ı", "İ", "́", "̈", "̊", "̧", "̌", "̣", " ", "-", "'", "1", "0", "​", "­", "å"},
+		"o", "e", "i", "I", "ı", "İ", "́", "̈", "̊", "̧", "̌", "̣", " ", "-", "'", "1", "0", "\u200b", "\u00ad", "å"},
 	// Combining-mark ordering: starters and marks with various ccc values
 	// (doNorm), including Thai and Tibetan.
 	"marks": {"a", "o", "ก", "เ", "ཀ", "́", "̣", "̧", "̈", "̛", "ͅ",
@@ -112,7 +112,7 @@ func cmdEnum(args []string) error {
 	for _, u := range a {
 		hx = append(hx, hex.EncodeToString([]byte(u)))
 	}
-	fmt.Fprintf(w, "E\t%d\t%s\n", *maxLen, strings.Join(hx, ","))
+	_, _ = fmt.Fprintf(w, "E\t%d\t%s\n", *maxLen, strings.Join(hx, ","))
 	cfgs := pairConfigs()
 	if *locales {
 		cfgs = append(cfgs, localeConfigs()...)
@@ -120,12 +120,12 @@ func cmdEnum(args []string) error {
 	for _, cfg := range cfgs {
 		c := cfg.collator()
 		kd, cd := enumDigests(c, strs)
-		fmt.Fprintf(w, "C\t%s\t%s\t%s\n", cfg.line(), kd, cd)
+		_, _ = fmt.Fprintf(w, "C\t%s\t%s\t%s\n", cfg.line(), kd, cd)
 		if cfg.name == *dump {
 			var buf collate.Buffer
 			for i, s := range strs {
 				buf.Reset()
-				fmt.Fprintf(w, "H\t%s\t%d\t%s\n", cfg.name, i, keyHash(c.Key(&buf, s)))
+				_, _ = fmt.Fprintf(w, "H\t%s\t%d\t%s\n", cfg.name, i, keyHash(c.Key(&buf, s)))
 			}
 		}
 	}

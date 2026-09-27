@@ -25,7 +25,6 @@ func writeFile(path string, f func(g *gmfWriter)) {
 	if err != nil {
 		panic(err)
 	}
-	defer fp.Close()
 	if strings.HasSuffix(path, ".gz") {
 		zw, _ := gzip.NewWriterLevel(fp, gzip.BestCompression)
 		g := newGMF(zw)
@@ -34,11 +33,14 @@ func writeFile(path string, f func(g *gmfWriter)) {
 		if err := zw.Close(); err != nil {
 			panic(err)
 		}
-		return
+	} else {
+		g := newGMF(fp)
+		f(g)
+		g.flush()
 	}
-	g := newGMF(fp)
-	f(g)
-	g.flush()
+	if err := fp.Close(); err != nil {
+		panic(err)
+	}
 }
 
 // testutil.MarkdownTestCase parsing, copied from goldmark/testutil
@@ -62,7 +64,7 @@ func parseCaseFile(filename string) []tcase {
 	if err != nil {
 		panic(err)
 	}
-	defer fp.Close()
+	defer func() { _ = fp.Close() }()
 	scanner := bufio.NewScanner(fp)
 	var cases []tcase
 	for scanner.Scan() {

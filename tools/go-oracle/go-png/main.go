@@ -60,7 +60,7 @@ func sha16(b []byte) string {
 var out = bufio.NewWriterSize(os.Stdout, 1<<20)
 
 func main() {
-	defer out.Flush()
+	defer func() { _ = out.Flush() }()
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: go-png <cmd> ...")
 		os.Exit(2)
@@ -265,7 +265,7 @@ func files(root, listfile string) {
 		m, d := decStr(data)
 		cols = append(cols, d, regStr(data))
 		if m == nil {
-			fmt.Fprintln(out, strings.Join(cols, "\t"))
+			_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
 			continue
 		}
 		for _, lvl := range []png.CompressionLevel{png.DefaultCompression, png.NoCompression, png.BestSpeed, png.BestCompression} {
@@ -298,7 +298,7 @@ func files(root, listfile string) {
 			sub, _ = encStr(si.SubImage(r), png.DefaultCompression)
 		}
 		cols = append(cols, sub, failStr(m, uint64(len(data))))
-		fmt.Fprintln(out, strings.Join(cols, "\t"))
+		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
 	}
 }
 
@@ -628,7 +628,7 @@ func synth(seed0, n, maxDim int) {
 			_, rt = decStr(def)
 		}
 		cols = append(cols, rt, failStr(m, uint64(i)))
-		fmt.Fprintln(out, strings.Join(cols, "\t"))
+		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
 	}
 }
 
@@ -683,7 +683,7 @@ func record(path string) {
 		// (Go's own fuzz test does the same).
 		if cfg, err := png.DecodeConfig(bytes.NewReader(data)); err == nil && cfg.Width*cfg.Height > 4e6 {
 			cols = append(cols, "skip")
-			fmt.Fprintln(out, strings.Join(cols, "\t"))
+			_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
 			continue
 		}
 		m, d := decStr(data)
@@ -692,7 +692,7 @@ func record(path string) {
 			s, _ := encStr(m, png.DefaultCompression)
 			cols = append(cols, s)
 		}
-		fmt.Fprintln(out, strings.Join(cols, "\t"))
+		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
 	}
 }
 
@@ -913,7 +913,7 @@ func mkpng(r *rng) []byte {
 	if trns != nil && trnsPos == 1 {
 		writeChunk(&buf, "tRNS", trns)
 	}
-	if plte != nil && !(c.ct == 3 && r.intn(40) == 0) {
+	if plte != nil && (c.ct != 3 || r.intn(40) != 0) {
 		writeChunk(&buf, "PLTE", plte)
 	}
 	if trns != nil && trnsPos == 0 {
@@ -929,8 +929,8 @@ func mkpng(r *rng) []byte {
 	if err != nil {
 		panic(err)
 	}
-	zw.Write(raw)
-	zw.Close()
+	_, _ = zw.Write(raw)
+	_ = zw.Close()
 	zb := z.Bytes()
 	if r.intn(30) == 0 {
 		zb = append(zb, r.byte(), r.byte(), r.byte())

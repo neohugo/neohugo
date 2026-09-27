@@ -61,7 +61,7 @@ func main() {
 			panic(err)
 		}
 		out, err := m.Bytes(os.Args[2], in)
-		os.Stdout.Write(out)
+		_, _ = os.Stdout.Write(out)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)

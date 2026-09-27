@@ -268,7 +268,7 @@ func cmdRun(args []string) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	o, err := os.Create(*outPath)
 	if err != nil {
 		log.Fatal(err)
@@ -288,7 +288,7 @@ func cmdRun(args []string) {
 			log.Fatalf("%s: %v", name, err)
 		}
 		r := decodeAll(data)
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, hx, r[0], r[1], r[2], r[3])
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%s\n", name, hx, r[0], r[1], r[2], r[3])
 		n++
 	}
 	if err := sc.Err(); err != nil {
@@ -330,7 +330,7 @@ func (c *corpus) write(path string) {
 	}
 	w := bufio.NewWriter(f)
 	for i := range c.names {
-		fmt.Fprintf(w, "%s\t%s\n", c.names[i], hex.EncodeToString(c.data[i]))
+		_, _ = fmt.Fprintf(w, "%s\t%s\n", c.names[i], hex.EncodeToString(c.data[i]))
 	}
 	if err := w.Flush(); err != nil {
 		log.Fatal(err)

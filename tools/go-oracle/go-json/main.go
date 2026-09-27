@@ -82,9 +82,9 @@ func main() {
 
 // writeRec writes one record: "<name> <len>\n<data>\n".
 func writeRec(w io.Writer, name string, data []byte) {
-	fmt.Fprintf(w, "%s %d\n", name, len(data))
-	w.Write(data)
-	w.Write([]byte{'\n'})
+	_, _ = fmt.Fprintf(w, "%s %d\n", name, len(data))
+	_, _ = w.Write(data)
+	_, _ = w.Write([]byte{'\n'})
 }
 
 // errRec formats an error as "E<kind>:<offset>:<message>".

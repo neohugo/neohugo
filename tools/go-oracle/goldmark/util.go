@@ -101,7 +101,7 @@ func writeUtilVectors(g *gmfWriter) {
 		g.field("IsDangerousURL", boolb(html.IsDangerousURL(v)))
 		for _, cs := range []bool{false, true} {
 			for _, nest := range []bool{false, true} {
-				g.field(fmt.Sprintf("FindClosure/%v/%v", cs, nest), itoa(util.FindClosure(v, '[', ']', cs, nest)))
+				g.field(fmt.Sprintf("FindClosure/%v/%v", cs, nest), itoa(util.FindClosure(v, '[', ']', cs, nest))) //nolint:staticcheck // SA1019: the deprecated helper is ported too
 			}
 		}
 		g.field("IndentWidth/0", []byte(fmt.Sprint(util.IndentWidth(v, 0))))
@@ -113,9 +113,9 @@ func writeUtilVectors(g *gmfWriter) {
 				g.field(fmt.Sprintf("IndentPosition/%d/%d", pos, w), []byte(fmt.Sprint(p, pad)))
 				p, pad = util.IndentPositionPadding(v, pos, 2, w)
 				g.field(fmt.Sprintf("IndentPositionPadding/%d/%d", pos, w), []byte(fmt.Sprint(p, pad)))
-				p, pad = util.DedentPosition(v, pos, w)
+				p, pad = util.DedentPosition(v, pos, w) //nolint:staticcheck // SA1019: the deprecated helper is ported too
 				g.field(fmt.Sprintf("DedentPosition/%d/%d", pos, w), []byte(fmt.Sprint(p, pad)))
-				p, pad = util.DedentPositionPadding(v, pos, 1, w)
+				p, pad = util.DedentPositionPadding(v, pos, 1, w) //nolint:staticcheck // SA1019: the deprecated helper is ported too
 				g.field(fmt.Sprintf("DedentPositionPadding/%d/%d", pos, w), []byte(fmt.Sprint(p, pad)))
 			}
 		}

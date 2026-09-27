@@ -324,7 +324,7 @@ func writeFixtures(path string, e1 []ent1, e2 []ent2, n int, seed uint64, extra 
 	}
 	w := bufio.NewWriter(f)
 	for _, s := range inputs {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", esc(s), esc(html.EscapeString(s)), esc(html.UnescapeString(s)))
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\n", esc(s), esc(html.EscapeString(s)), esc(html.UnescapeString(s)))
 	}
 	if err := w.Flush(); err != nil {
 		log.Fatal(err)

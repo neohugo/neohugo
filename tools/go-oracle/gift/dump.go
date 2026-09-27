@@ -26,36 +26,38 @@ import (
 
 const dumpMagic = "GIFTIMG1"
 
+// dumpWriter only writes to a gzip.Writer over a bytes.Buffer, whose writes
+// cannot fail; saveDump checks the final Close.
 type dumpWriter struct{ w io.Writer }
 
-func (d dumpWriter) u8(v uint8)   { d.w.Write([]byte{v}) }
-func (d dumpWriter) i64(v int)    { binary.Write(d.w, binary.LittleEndian, int64(v)) }
-func (d dumpWriter) u32(v uint32) { binary.Write(d.w, binary.LittleEndian, v) }
+func (d dumpWriter) u8(v uint8)   { _, _ = d.w.Write([]byte{v}) }
+func (d dumpWriter) i64(v int)    { _ = binary.Write(d.w, binary.LittleEndian, int64(v)) }
+func (d dumpWriter) u32(v uint32) { _ = binary.Write(d.w, binary.LittleEndian, v) }
 func (d dumpWriter) buf(b []byte) {
-	binary.Write(d.w, binary.LittleEndian, uint64(len(b)))
-	d.w.Write(b)
+	_ = binary.Write(d.w, binary.LittleEndian, uint64(len(b)))
+	_, _ = d.w.Write(b)
 }
 
 func (d dumpWriter) color(c color.Color) {
 	switch c := c.(type) {
 	case color.RGBA:
 		d.u8(1)
-		d.w.Write([]byte{c.R, c.G, c.B, c.A})
+		_, _ = d.w.Write([]byte{c.R, c.G, c.B, c.A})
 	case color.NRGBA:
 		d.u8(2)
-		d.w.Write([]byte{c.R, c.G, c.B, c.A})
+		_, _ = d.w.Write([]byte{c.R, c.G, c.B, c.A})
 	case color.Gray:
 		d.u8(3)
-		d.w.Write([]byte{c.Y})
+		_, _ = d.w.Write([]byte{c.Y})
 	case color.RGBA64:
 		d.u8(4)
-		binary.Write(d.w, binary.BigEndian, []uint16{c.R, c.G, c.B, c.A})
+		_ = binary.Write(d.w, binary.BigEndian, []uint16{c.R, c.G, c.B, c.A})
 	case color.NRGBA64:
 		d.u8(5)
-		binary.Write(d.w, binary.BigEndian, []uint16{c.R, c.G, c.B, c.A})
+		_ = binary.Write(d.w, binary.BigEndian, []uint16{c.R, c.G, c.B, c.A})
 	case color.Alpha:
 		d.u8(6)
-		d.w.Write([]byte{c.A})
+		_, _ = d.w.Write([]byte{c.A})
 	default:
 		panic(fmt.Sprintf("dump: palette colour %T", c))
 	}
@@ -63,7 +65,7 @@ func (d dumpWriter) color(c color.Color) {
 
 func writeDump(w io.Writer, img image.Image) {
 	d := dumpWriter{w}
-	d.w.Write([]byte(dumpMagic))
+	_, _ = d.w.Write([]byte(dumpMagic))
 	rect := func(r image.Rectangle) {
 		d.i64(r.Min.X)
 		d.i64(r.Min.Y)
@@ -133,7 +135,9 @@ func saveDump(path string, img image.Image) {
 	var b bytes.Buffer
 	zw, _ := gzip.NewWriterLevel(&b, gzip.BestCompression)
 	writeDump(zw, img)
-	zw.Close()
+	if err := zw.Close(); err != nil {
+		panic(err)
+	}
 	if err := os.WriteFile(path, b.Bytes(), 0o644); err != nil {
 		panic(err)
 	}
@@ -144,7 +148,7 @@ func decodeFile(path string) image.Image {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	img, _, err := image.Decode(bufio.NewReader(f))
 	if err != nil {
 		panic(fmt.Sprintf("%s: %v", path, err))
@@ -206,95 +210,7 @@ func dumpFile(in, outPath, crop string) {
 		img = compactCopy(img, image.Rect(pi(f[0]), pi(f[1]), pi(f[2]), pi(f[3])))
 	}
 	saveDump(outPath, img)
-	fmt.Fprintf(out, "%s\t%T\t%v\n", outPath, img, img.Bounds())
-}
-
-func loadDump(path string) image.Image {
-	b, err := os.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-	zr, err := gzip.NewReader(bytes.NewReader(b))
-	if err != nil {
-		panic(err)
-	}
-	raw, err := io.ReadAll(zr)
-	if err != nil {
-		panic(err)
-	}
-	rd := bytes.NewReader(raw)
-	magic := make([]byte, 8)
-	io.ReadFull(rd, magic)
-	if string(magic) != dumpMagic {
-		panic("bad dump " + path)
-	}
-	u8 := func() uint8 { v, _ := rd.ReadByte(); return v }
-	i64 := func() int { var v int64; binary.Read(rd, binary.LittleEndian, &v); return int(v) }
-	buf := func() []byte {
-		var n uint64
-		binary.Read(rd, binary.LittleEndian, &n)
-		b := make([]byte, n)
-		io.ReadFull(rd, b)
-		return b
-	}
-	kind := u8()
-	r := image.Rect(i64(), i64(), i64(), i64())
-	switch kind {
-	case 1:
-		s := i64()
-		return &image.NRGBA{Rect: r, Stride: s, Pix: buf()}
-	case 2:
-		s := i64()
-		return &image.NRGBA64{Rect: r, Stride: s, Pix: buf()}
-	case 3:
-		s := i64()
-		return &image.RGBA{Rect: r, Stride: s, Pix: buf()}
-	case 4:
-		s := i64()
-		return &image.RGBA64{Rect: r, Stride: s, Pix: buf()}
-	case 5:
-		s := i64()
-		return &image.Gray{Rect: r, Stride: s, Pix: buf()}
-	case 6:
-		s := i64()
-		return &image.Gray16{Rect: r, Stride: s, Pix: buf()}
-	case 7:
-		ratio := image.YCbCrSubsampleRatio(u8())
-		ys := i64()
-		cs := i64()
-		return &image.YCbCr{Rect: r, SubsampleRatio: ratio, YStride: ys, CStride: cs, Y: buf(), Cb: buf(), Cr: buf()}
-	case 8:
-		s := i64()
-		pix := buf()
-		var n uint32
-		binary.Read(rd, binary.LittleEndian, &n)
-		pal := make(color.Palette, n)
-		for i := range pal {
-			switch u8() {
-			case 1:
-				pal[i] = color.RGBA{u8(), u8(), u8(), u8()}
-			case 2:
-				pal[i] = color.NRGBA{u8(), u8(), u8(), u8()}
-			case 3:
-				pal[i] = color.Gray{u8()}
-			case 4:
-				var v [4]uint16
-				binary.Read(rd, binary.BigEndian, &v)
-				pal[i] = color.RGBA64{v[0], v[1], v[2], v[3]}
-			case 5:
-				var v [4]uint16
-				binary.Read(rd, binary.BigEndian, &v)
-				pal[i] = color.NRGBA64{v[0], v[1], v[2], v[3]}
-			case 6:
-				pal[i] = color.Alpha{u8()}
-			}
-		}
-		return &image.Paletted{Rect: r, Stride: s, Pix: pix, Palette: pal}
-	case 9:
-		s := i64()
-		return &image.CMYK{Rect: r, Stride: s, Pix: buf()}
-	}
-	panic("bad dump kind")
+	_, _ = fmt.Fprintf(out, "%s\t%T\t%v\n", outPath, img, img.Bounds())
 }
 
 // doFilter is neohugo resources/images/image.go:(*ImageProcessor).doFilter
@@ -428,7 +344,7 @@ func realFixtures(siteRoot, giftTestdata, outDir string) {
 	// Find JPEGs with the wanted chroma subsampling in the site.
 	var jpgs []string
 	for _, dir := range []string{"content", "assets"} {
-		filepath.Walk(filepath.Join(siteRoot, dir), func(p string, fi os.FileInfo, err error) error {
+		_ = filepath.Walk(filepath.Join(siteRoot, dir), func(p string, fi os.FileInfo, err error) error {
 			if err == nil && !fi.IsDir() && strings.HasSuffix(strings.ToLower(p), ".jpg") {
 				jpgs = append(jpgs, p)
 			}
@@ -475,7 +391,7 @@ func realFixtures(siteRoot, giftTestdata, outDir string) {
 		}
 		img := imgs[p.name]
 		for _, op := range realOpsFor(img.Bounds(), i, "watermark_full", 2) {
-			fmt.Fprintf(out, "%s\t%s\t%s\t%s\n", p.name, op.kind, op.arg, digest(runRealOp(img, op, dumps)))
+			_, _ = fmt.Fprintf(out, "%s\t%s\t%s\t%s\n", p.name, op.kind, op.arg, digest(runRealOp(img, op, dumps)))
 		}
 	}
 }

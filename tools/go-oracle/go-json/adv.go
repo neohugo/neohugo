@@ -180,9 +180,7 @@ func halfway(r *rand.Rand, x float64) string {
 		// Just below: truncate the last significant digit.
 		if strings.Contains(s, ".") && len(s) > 3 {
 			s = s[:len(s)-1]
-			if strings.HasSuffix(s, ".") {
-				s = strings.TrimSuffix(s, ".")
-			}
+			s = strings.TrimSuffix(s, ".")
 		}
 	}
 	if r.IntN(2) == 0 {

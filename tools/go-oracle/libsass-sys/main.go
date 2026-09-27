@@ -102,7 +102,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer os.RemoveAll(tmp)
+	defer func() { _ = os.RemoveAll(tmp) }()
 	root, err := filepath.EvalSymlinks(tmp)
 	if err != nil {
 		panic(err)

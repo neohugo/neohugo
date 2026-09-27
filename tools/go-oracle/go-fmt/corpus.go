@@ -60,7 +60,7 @@ func valueCorpus() []string {
 	// Strings: ASCII, Unicode, invalid UTF-8, quoting-sensitive bytes.
 	for _, s := range []string{"", "a", "abc", "hello, world", "日本語", "☺", "⌘x", "\x00", "\xff\xfe", "abc\xffdef",
 		"\xed\xa0\x80", "\U0010ffff", "\U0010fffe", "a\tb\nc\r", "\a\b\f\v", "\"quoted\"", "back`tick", `back\slash`,
-		"  ​", "é", "🙂 emoji", "\x7f", "tab\tonly", strings.Repeat("xy", 30), "Ä", "%d%s"} {
+		"\u2028\u00a0\u200b", "é", "🙂 emoji", "\x7f", "tab\tonly", strings.Repeat("xy", 30), "Ä", "%d%s"} {
 		add(sStr(s))
 	}
 	for _, k := range []string{"html", "htmlattr", "css", "js", "jsstr", "url", "srcset"} {

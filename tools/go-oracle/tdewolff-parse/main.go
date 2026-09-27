@@ -75,7 +75,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		os.Stdout.Write(streamFor(os.Args[2], in))
+		_, _ = os.Stdout.Write(streamFor(os.Args[2], in))
 	default:
 		fmt.Fprintln(os.Stderr, "unknown mode", os.Args[1])
 		os.Exit(2)

@@ -322,13 +322,13 @@ func cmdFuzz(args []string) {
 	n := fs.Int("n", 5000, "number of cases")
 	seed := fs.Uint64("seed", 1, "seed")
 	maxSize := fs.Int("max", 400000, "maximum input size")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 	r := &rng{s: *seed}
 	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-	fmt.Fprintf(w, "# go-flate oracle (%s) fuzz n=%d seed=%d max=%d\n", goVersion(), *n, *seed, *maxSize)
+	defer func() { _ = w.Flush() }()
+	_, _ = fmt.Fprintf(w, "# go-flate oracle (%s) fuzz n=%d seed=%d max=%d\n", goVersion(), *n, *seed, *maxSize)
 	for i := 0; i < *n; i++ {
-		fmt.Fprintln(w, formatCase(i, genFuzzCase(r, *maxSize), nil))
+		_, _ = fmt.Fprintln(w, formatCase(i, genFuzzCase(r, *maxSize), nil))
 	}
 }
 
@@ -701,7 +701,7 @@ func cmdInflateGen(args []string) {
 	binPath := fs.String("bin", "", "binary corpus output")
 	maxBlock := fs.Int("maxblock", 70000, "maximum block input size")
 	maxDict := fs.Int("maxdict", 40000, "maximum dictionary size")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 	r := &rng{s: *seed}
 	bf, err := os.Create(*binPath)
 	if err != nil {
@@ -709,13 +709,13 @@ func cmdInflateGen(args []string) {
 	}
 	bin := bufio.NewWriter(bf)
 	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-	fmt.Fprintf(w, "# go-flate oracle (%s) inflate-gen n=%d seed=%d maxblock=%d maxdict=%d\n", goVersion(), *n, *seed, *maxBlock, *maxDict)
+	defer func() { _ = w.Flush() }()
+	_, _ = fmt.Fprintf(w, "# go-flate oracle (%s) inflate-gen n=%d seed=%d maxblock=%d maxdict=%d\n", goVersion(), *n, *seed, *maxBlock, *maxDict)
 	put := func(b []byte) {
 		var tmp [4]byte
 		binary.LittleEndian.PutUint32(tmp[:], uint32(len(b)))
-		bin.Write(tmp[:])
-		bin.Write(b)
+		_, _ = bin.Write(tmp[:])
+		_, _ = bin.Write(b)
 	}
 	for i := 0; i < *n; i++ {
 		wrapper := "flate"
@@ -771,14 +771,18 @@ func cmdInflateGen(args []string) {
 		}
 		readSize := []int{1, 7, 100, 4096, 32768, 70000}[r.intn(6)]
 		out, callLog, consumed, errStr := decodeGo(wrapper, stream, dictR, readSize)
-		bin.WriteString(wrapper[:1])
+		_, _ = bin.WriteString(wrapper[:1])
 		put(dictR)
 		put(stream)
-		fmt.Fprintf(w, "%d %s %d %d %s %s %d %016x %016x %d %s\n", i, wrapper, len(dictR), readSize, dictMode, muts,
+		_, _ = fmt.Fprintf(w, "%d %s %d %d %s %s %d %016x %016x %d %s\n", i, wrapper, len(dictR), readSize, dictMode, muts,
 			len(out), fnv64(out), callLog, consumed, errStr)
 	}
-	bin.Flush()
-	bf.Close()
+	if err := bin.Flush(); err != nil {
+		panic(err)
+	}
+	if err := bf.Close(); err != nil {
+		panic(err)
+	}
 }
 
 func decodeGo(wrapper string, stream, dict []byte, readSize int) (out []byte, callLog uint64, consumed int, errStr string) {
@@ -804,7 +808,7 @@ func decodeGo(wrapper string, stream, dict []byte, readSize int) (out []byte, ca
 	for i := 0; i < 1<<22; i++ {
 		n, err := r.Read(buf)
 		outBuf.Write(buf[:n])
-		fmt.Fprintf(h, "%d:%s;", n, errString(err))
+		_, _ = fmt.Fprintf(h, "%d:%s;", n, errString(err))
 		if err != nil {
 			final = err
 			break

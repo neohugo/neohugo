@@ -498,12 +498,12 @@ func genCases(profile string) []caseSpec {
 func cmdCases(args []string) {
 	fs := flag.NewFlagSet("cases", flag.ExitOnError)
 	profile := fs.String("profile", "small", "small or big")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-	fmt.Fprintf(w, "# go-flate oracle (%s) profile=%s\n", goVersion(), *profile)
+	defer func() { _ = w.Flush() }()
+	_, _ = fmt.Fprintf(w, "# go-flate oracle (%s) profile=%s\n", goVersion(), *profile)
 	for i, c := range genCases(*profile) {
-		fmt.Fprintln(w, formatCase(i, c, nil))
+		_, _ = fmt.Fprintln(w, formatCase(i, c, nil))
 	}
 }
 
@@ -511,7 +511,7 @@ func cmdCases(args []string) {
 func cmdFiles(args []string) {
 	fs := flag.NewFlagSet("files", flag.ExitOnError)
 	programs := fs.Int("programs", 2, "random programs per file and level")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 	files := map[string][]byte{}
 	var names []string
 	for _, p := range fs.Args() {
@@ -527,20 +527,20 @@ func cmdFiles(args []string) {
 		names = append(names, name)
 	}
 	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-	fmt.Fprintf(w, "# go-flate oracle (%s) files\n", goVersion())
+	defer func() { _ = w.Flush() }()
+	_, _ = fmt.Fprintf(w, "# go-flate oracle (%s) files\n", goVersion())
 	r := &rng{s: 777}
 	id := 0
 	for _, name := range names {
 		size := len(files[name])
 		for _, level := range allLevels {
 			for _, wrapper := range []string{"flate", "zlib"} {
-				fmt.Fprintln(w, formatCase(id, caseSpec{wrapper, level, "file:" + name, "none", chunkOps(size, 1<<30)}, files))
+				_, _ = fmt.Fprintln(w, formatCase(id, caseSpec{wrapper, level, "file:" + name, "none", chunkOps(size, 1<<30)}, files))
 				id++
 			}
 			for i := 0; i < *programs; i++ {
 				ops := randomOps(r, size, []int{0, 3, 20}[r.intn(3)], []int{0, 10}[r.intn(2)], 70000)
-				fmt.Fprintln(w, formatCase(id, caseSpec{"flate", level, "file:" + name, "none", ops}, files))
+				_, _ = fmt.Fprintln(w, formatCase(id, caseSpec{"flate", level, "file:" + name, "none", ops}, files))
 				id++
 			}
 		}
@@ -554,7 +554,7 @@ func cmdFiles(args []string) {
 func cmdPNG(args []string) {
 	fs := flag.NewFlagSet("png", flag.ExitOnError)
 	outDir := fs.String("out", "", "output directory")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 	if err := os.MkdirAll(*outDir, 0o755); err != nil {
 		panic(err)
 	}
@@ -565,7 +565,7 @@ func cmdPNG(args []string) {
 			panic(err)
 		}
 		img, _, err := image.Decode(f)
-		f.Close()
+		_ = f.Close()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "skip %s: %v\n", p, err)
 			continue
@@ -643,13 +643,13 @@ func buildStream(c inflateCase) []byte {
 		w = zw
 	}
 	if c.flushAt >= 0 {
-		w.Write(data[:c.flushAt])
-		w.Flush()
-		w.Write(data[c.flushAt:])
+		_, _ = w.Write(data[:c.flushAt])
+		_ = w.Flush()
+		_, _ = w.Write(data[c.flushAt:])
 	} else {
-		w.Write(data)
+		_, _ = w.Write(data)
 	}
-	w.Close()
+	_ = w.Close()
 	stream := buf.Bytes()
 	for _, m := range c.mutations {
 		switch m[0] {
@@ -704,7 +704,7 @@ func runInflate(c inflateCase) (out []byte, callLog uint64, consumed int, errStr
 	for i := 0; i < 1<<20; i++ {
 		n, err := r.Read(buf)
 		outBuf.Write(buf[:n])
-		fmt.Fprintf(h, "%d:%s;", n, errString(err))
+		_, _ = fmt.Fprintf(h, "%d:%s;", n, errString(err))
 		if err != nil {
 			final = err
 			break
@@ -718,11 +718,11 @@ func cmdInflateCases(args []string) {
 	fs := flag.NewFlagSet("inflate-cases", flag.ExitOnError)
 	n := fs.Int("n", 3000, "number of cases")
 	seed := fs.Uint64("seed", 99, "seed")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 	r := &rng{s: *seed}
 	w := bufio.NewWriter(os.Stdout)
-	defer w.Flush()
-	fmt.Fprintf(w, "# go-flate oracle (%s) inflate-cases\n", goVersion())
+	defer func() { _ = w.Flush() }()
+	_, _ = fmt.Fprintf(w, "# go-flate oracle (%s) inflate-cases\n", goVersion())
 	for i := 0; i < *n; i++ {
 		c := inflateCase{flushAt: -1}
 		c.wrapper = "flate"
@@ -778,7 +778,7 @@ func cmdInflateCases(args []string) {
 		}
 		c.readSize = []int{1, 7, 100, 4096, 32768, 70000}[r.intn(6)]
 		out, callLog, consumed, errStr := runInflate(c)
-		fmt.Fprintf(w, "%d %s %d %s %d %s %s %s %d %d %016x %016x %d %s\n",
+		_, _ = fmt.Fprintf(w, "%d %s %d %s %d %s %s %s %d %d %016x %016x %d %s\n",
 			i, c.wrapper, c.level, c.data, c.flushAt, c.dictW, c.dictR, muts, c.readSize,
 			len(out), fnv64(out), callLog, consumed, errStr)
 	}
@@ -833,10 +833,10 @@ func longStream(level int, variant string, total int64) string {
 		for written < total {
 			b := pool[r.intn(len(pool))]
 			n := 1 + r.intn(len(b))
-			w.Write(b[:n])
+			_, _ = w.Write(b[:n])
 			written += int64(n)
 			if r.intn(500) == 0 {
-				w.Flush()
+				_ = w.Flush()
 			}
 		}
 	case "random":
@@ -852,10 +852,10 @@ func longStream(level int, variant string, total int64) string {
 					buf[i+j] = byte(v >> (8 * j))
 				}
 			}
-			w.Write(buf[:n])
+			_, _ = w.Write(buf[:n])
 			written += int64(n)
 			if r.intn(500) == 0 {
-				w.Flush()
+				_ = w.Flush()
 			}
 		}
 	case "resets":
@@ -865,16 +865,16 @@ func longStream(level int, variant string, total int64) string {
 			if r.intn(50) == 0 {
 				n = r.intn(70000)
 			}
-			w.Write(b[:n])
+			_, _ = w.Write(b[:n])
 			if r.intn(2) == 0 {
-				w.Close()
+				_ = w.Close()
 			}
 			w.Reset(hw)
 		}
 	default:
 		panic("bad variant")
 	}
-	w.Close()
+	_ = w.Close()
 	return fmt.Sprintf("%d %s %d %d %016x %016x %d", level, variant, total, hw.n, hw.h, hw.wlog, hw.nw)
 }
 
@@ -885,7 +885,7 @@ func cmdLongStreams(args []string) {
 	levels := fs.String("levels", "1,2,3,4,5,6", "comma separated levels")
 	noResets := fs.Bool("noresets", false, "skip the resets variant")
 	variant := fs.String("variant", "stream", "first variant: stream or random")
-	fs.Parse(args)
+	_ = fs.Parse(args)
 	fmt.Printf("# go-flate oracle (%s) longstreams\n", goVersion())
 	for _, ls := range strings.Split(*levels, ",") {
 		level, err := strconv.Atoi(ls)
@@ -935,13 +935,13 @@ func main() {
 		kind, _ := strconv.Atoi(os.Args[2])
 		size, _ := strconv.Atoi(os.Args[3])
 		seed, _ := strconv.ParseUint(os.Args[4], 10, 64)
-		os.Stdout.Write(genData(kind, size, seed))
+		_, _ = os.Stdout.Write(genData(kind, size, seed))
 	case "run":
 		// run "<fixture line fields 1..5>": raw output of one case (for debugging).
 		f := strings.Fields(strings.Join(os.Args[2:], " "))
 		level, _ := strconv.Atoi(f[1])
 		out, _, _ := run(caseSpec{f[0], level, f[2], f[3], strings.Split(f[4], ",")}, nil)
-		os.Stdout.Write(out)
+		_, _ = os.Stdout.Write(out)
 	default:
 		fmt.Fprintln(os.Stderr, "unknown command")
 		os.Exit(2)

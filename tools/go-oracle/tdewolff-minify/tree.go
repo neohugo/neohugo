@@ -186,7 +186,7 @@ func allConfigDigests(src, outTSV string, cfgs []string, exts []string) {
 			if err != nil {
 				panic(err)
 			}
-			out, err, after := runM(m, mt, in)
+			out, after, err := runM(m, mt, in)
 			fmt.Fprintf(&b, "%s\t%s\t%d\t%d\t%s\t%s\t%s\n", cfg, rel, len(in), len(out), fnv64(out), errStr(err), fnv64(after))
 		}
 	}

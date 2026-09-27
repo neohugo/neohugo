@@ -126,14 +126,14 @@ func genLimits(out string) {
 		panic(err)
 	}
 	w := bufio.NewWriter(f)
-	fmt.Fprintf(w, "# prefix\tunit1\tmiddle\tunit2\tsuffix\tn\t%s\n", strings.Join(modes, "\t"))
+	_, _ = fmt.Fprintf(w, "# prefix\tunit1\tmiddle\tunit2\tsuffix\tn\t%s\n", strings.Join(modes, "\t"))
 	emit := func(s limitSpec, n int) {
 		src := s.build(n)
-		fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d", strconv.Quote(s.prefix), strconv.Quote(s.unit1), strconv.Quote(s.middle), strconv.Quote(s.unit2), strconv.Quote(s.suffix), n)
+		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d", strconv.Quote(s.prefix), strconv.Quote(s.unit1), strconv.Quote(s.middle), strconv.Quote(s.unit2), strconv.Quote(s.suffix), n)
 		for _, m := range modes {
-			fmt.Fprintf(w, "\t%s", digest(runMode(m, src)))
+			_, _ = fmt.Fprintf(w, "\t%s", digest(runMode(m, src)))
 		}
-		fmt.Fprintln(w)
+		_, _ = fmt.Fprintln(w)
 	}
 	for _, s := range nestSpecs {
 		for _, n := range nestCounts {

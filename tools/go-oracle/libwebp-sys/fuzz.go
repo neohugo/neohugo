@@ -240,10 +240,8 @@ func fuzzCases(out string, seed uint64, n int) {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
 	w := bufio.NewWriter(f)
-	defer w.Flush()
-	fmt.Fprintln(w, "#seed\tkind\tw\th\tmx\tmy\tstride\tquality\tpreset\tsharp\tin_len\tin_fnv\tout_len\tout_fnv\texpect")
+	_, _ = fmt.Fprintln(w, "#seed\tkind\tw\th\tmx\tmy\tstride\tquality\tpreset\tsharp\tin_len\tin_fnv\tout_len\tout_fnv\texpect")
 	var ok, errs int
 	for i := 0; i < n; i++ {
 		s := seed + uint64(i)
@@ -259,9 +257,15 @@ func fuzzCases(out string, seed uint64, n int) {
 		if p.sharp {
 			sharp = 1
 		}
-		fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%016x\t%d\t%016x\t%s\n",
+		_, _ = fmt.Fprintf(w, "%d\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%016x\t%d\t%016x\t%s\n",
 			s, p.kind, p.w, p.h, p.mx, p.my, p.stride, p.quality, p.preset, sharp,
 			len(buf), fnv64(buf), len(res), fnv64(res), exp)
 	}
 	fmt.Fprintf(os.Stderr, "fuzz: %d cases (%d ok, %d errors)\n", n, ok, errs)
+	if err := w.Flush(); err != nil {
+		panic(err)
+	}
+	if err := f.Close(); err != nil {
+		panic(err)
+	}
 }

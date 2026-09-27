@@ -61,7 +61,7 @@ func sha16(b []byte) string { return sha(b)[:16] }
 var out = bufio.NewWriterSize(os.Stdout, 1<<20)
 
 func main() {
-	defer out.Flush()
+	defer func() { _ = out.Flush() }()
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: go-image <cmd> ...")
 		os.Exit(2)
@@ -174,13 +174,13 @@ func decodeFiles(root, listfile string) {
 		}
 		m, err := jpeg.Decode(bytes.NewReader(data))
 		if err != nil {
-			fmt.Fprintf(out, "%s\t%s\terr:%s\n", rel, cfgStr, err.Error())
+			_, _ = fmt.Fprintf(out, "%s\t%s\terr:%s\n", rel, cfgStr, err.Error())
 			continue
 		}
 		b := m.Bounds()
 		rgba := image.NewRGBA(b)
 		draw.Draw(rgba, b, m, b.Min, draw.Src)
-		fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\t%s\n", rel, cfgStr, imgDigest(m), encSha(m, 75), sha(rgba.Pix), encSha(rgba, 75))
+		_, _ = fmt.Fprintf(out, "%s\t%s\t%s\t%s\t%s\t%s\n", rel, cfgStr, imgDigest(m), encSha(m, 75), sha(rgba.Pix), encSha(rgba, 75))
 	}
 }
 
@@ -371,10 +371,10 @@ func synth(n int) {
 		}
 		// nil options (default quality) and out-of-range qualities.
 		var bnil, b0, b200 bytes.Buffer
-		jpeg.Encode(&bnil, m, nil)
-		jpeg.Encode(&b0, m, &jpeg.Options{Quality: -5})
-		jpeg.Encode(&b200, m, &jpeg.Options{Quality: 200})
-		fmt.Fprintf(out, "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", seed, kind, rectStr(m.Bounds()),
+		_ = jpeg.Encode(&bnil, m, nil)
+		_ = jpeg.Encode(&b0, m, &jpeg.Options{Quality: -5})
+		_ = jpeg.Encode(&b200, m, &jpeg.Options{Quality: 200})
+		_, _ = fmt.Fprintf(out, "%d\t%d\t%s\t%s\t%s\t%s\t%s\t%s\n", seed, kind, rectStr(m.Bounds()),
 			strings.Join(hs, ","), rt, sha16(bnil.Bytes()), sha16(b0.Bytes()), sha16(b200.Bytes()))
 	}
 }
@@ -509,7 +509,7 @@ func drawOps(n int) {
 		default:
 			draw.DrawMask(dst, rr, src, sp, mask, mp, op)
 		}
-		fmt.Fprintf(out, "%d\t%T\t%T\t%s\t%d\t%s\n", seed, dst, src, rectStr(dst.Bounds()), how, sha16(pixOf(dst)))
+		_, _ = fmt.Fprintf(out, "%d\t%T\t%T\t%s\t%d\t%s\n", seed, dst, src, rectStr(dst.Bounds()), how, sha16(pixOf(dst)))
 	}
 }
 
@@ -621,7 +621,7 @@ func rgbaDigest(h *hasher, c color.Color) {
 }
 
 func colorSpace() {
-	emit := func(name string, h *hasher) { fmt.Fprintf(out, "%s\t%s\n", name, h.sum()) }
+	emit := func(name string, h *hasher) { _, _ = fmt.Fprintf(out, "%s\t%s\n", name, h.sum()) }
 
 	h := newHasher()
 	for i := 0; i < 1<<24; i++ {
@@ -732,8 +732,8 @@ func colorSpace() {
 	for i := 0; i < 1000000; i++ {
 		c := color.NRGBA64{r.u16(), r.u16(), r.u16(), r.u16()}
 		rgbaDigest(h, c)
-		colorDigest(h, color.NRGBA64Model.Convert(color.RGBA64{c.R, c.G, c.B, c.A}))
-		colorDigest(h, color.NRGBAModel.Convert(color.RGBA64{c.R, c.G, c.B, c.A}))
+		colorDigest(h, color.NRGBA64Model.Convert(color.RGBA64(c)))
+		colorDigest(h, color.NRGBAModel.Convert(color.RGBA64(c)))
 	}
 	emit("NRGBA64.random", h)
 
@@ -812,7 +812,7 @@ func fuzz(n int, files []string) {
 		} else {
 			cfgStr = fmt.Sprintf("%s,%d,%d", modelName(cfg.ColorModel), cfg.Width, cfg.Height)
 			if cfg.Width*cfg.Height > 4<<20 {
-				fmt.Fprintf(out, "%d\t%d\t%s\t%s\tskip\n", seed, bi, sha16(b), cfgStr)
+				_, _ = fmt.Fprintf(out, "%d\t%d\t%s\t%s\tskip\n", seed, bi, sha16(b), cfgStr)
 				continue
 			}
 		}
@@ -823,7 +823,7 @@ func fuzz(n int, files []string) {
 		} else {
 			res = imgDigest(m)
 		}
-		fmt.Fprintf(out, "%d\t%d\t%s\t%s\t%s\n", seed, bi, sha16(b), cfgStr, res)
+		_, _ = fmt.Fprintf(out, "%d\t%d\t%s\t%s\t%s\n", seed, bi, sha16(b), cfgStr, res)
 	}
 }
 
@@ -859,6 +859,6 @@ func dctBlocks(n int) {
 			fb = binary.LittleEndian.AppendUint32(fb, uint32(f[i]))
 			ib = binary.LittleEndian.AppendUint32(ib, uint32(iv[i]))
 		}
-		fmt.Fprintf(out, "%d\t%d\t%s\t%s\n", seed, class, sha16(fb), sha16(ib))
+		_, _ = fmt.Fprintf(out, "%d\t%d\t%s\t%s\n", seed, class, sha16(fb), sha16(ib))
 	}
 }

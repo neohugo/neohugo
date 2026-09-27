@@ -53,7 +53,7 @@ func (d *digester) flush() {
 	if d.cur == nil || d.cur.n == 0 {
 		return
 	}
-	fmt.Fprintf(out, "%s\t%d\t%d\t%016x\n", d.name, d.idx, d.cur.n, d.cur.h)
+	_, _ = fmt.Fprintf(out, "%s\t%d\t%d\t%016x\n", d.name, d.idx, d.cur.n, d.cur.h)
 	d.idx++
 	d.cur = nil
 }
@@ -197,7 +197,7 @@ func weightsDigest() {
 		}
 		d.flush()
 	}
-	fmt.Fprintf(out, "pairs\t%d\n", len(pairs))
+	_, _ = fmt.Fprintf(out, "pairs\t%d\n", len(pairs))
 }
 
 // rotBoundsDigest digests gift.Rotate(angle, ...).Bounds over many sizes
@@ -292,7 +292,7 @@ func setterCases() {
 			if typ != "paletted" && seed > 1 {
 				continue
 			}
-			fmt.Fprintf(out, "%s\t%s\n", c.line(i), digest(runSynth(c)))
+			_, _ = fmt.Fprintf(out, "%s\t%s\n", c.line(i), digest(runSynth(c)))
 			i++
 		}
 	}
@@ -309,7 +309,7 @@ func setterCases() {
 			if k%3 == 1 {
 				c.filters = "resize(" + strconv.Itoa(60+k) + ",0,box)"
 			}
-			fmt.Fprintf(out, "%s\t%s\n", c.line(i), digest(runSynth(c)))
+			_, _ = fmt.Fprintf(out, "%s\t%s\n", c.line(i), digest(runSynth(c)))
 			i++
 		}
 	}

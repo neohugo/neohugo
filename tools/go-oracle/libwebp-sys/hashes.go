@@ -46,8 +46,9 @@ type filter struct {
 	gift.Filter
 }
 
+// The original's unexported src field is left out: it is never read here,
+// and hashstructure skips unexported fields.
 type overlayFilter struct {
-	src  any
 	x, y int
 }
 

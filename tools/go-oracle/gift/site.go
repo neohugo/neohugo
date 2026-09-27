@@ -19,7 +19,7 @@ import (
 func site(siteRoot, outDir string) {
 	var files []string
 	for _, dir := range []string{"content", "assets"} {
-		filepath.Walk(filepath.Join(siteRoot, dir), func(p string, fi os.FileInfo, err error) error {
+		_ = filepath.Walk(filepath.Join(siteRoot, dir), func(p string, fi os.FileInfo, err error) error {
 			if err != nil || fi.IsDir() {
 				return nil
 			}
@@ -97,11 +97,19 @@ func site(siteRoot, outDir string) {
 		panic(err)
 	}
 	for _, r := range results {
-		fmt.Fprintln(idx, r.index)
+		if _, err := fmt.Fprintln(idx, r.index); err != nil {
+			panic(err)
+		}
 		for _, o := range r.ops {
-			fmt.Fprintln(ops, o)
+			if _, err := fmt.Fprintln(ops, o); err != nil {
+				panic(err)
+			}
 		}
 	}
-	idx.Close()
-	ops.Close()
+	if err := idx.Close(); err != nil {
+		panic(err)
+	}
+	if err := ops.Close(); err != nil {
+		panic(err)
+	}
 }

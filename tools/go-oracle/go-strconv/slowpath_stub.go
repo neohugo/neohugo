@@ -7,4 +7,4 @@ package main
 // need Go's slow path refuse to run. See slowpath.go.
 const haveSlowPath = false
 
-var strconvOptimize = true
+var strconvOptimize = true //nolint:unused // only written here; read by internal/strconv under -tags strconvslow

@@ -45,7 +45,7 @@ func newPack(dir string) *pack {
 		panic(err)
 	}
 	p := &pack{dir: dir, mf: mf, manifest: bufio.NewWriter(mf), inputs: in, outputs: out, seen: map[string][3]int64{}}
-	fmt.Fprintln(p.manifest, "#name\tkind\tstride\tminx\tminy\tmaxx\tmaxy\tquality\tpreset\tsharp\tin_off\tin_zlen\tin_len\tout_off\tout_len\texpect")
+	_, _ = fmt.Fprintln(p.manifest, "#name\tkind\tstride\tminx\tminy\tmaxx\tmaxy\tquality\tpreset\tsharp\tin_off\tin_zlen\tin_len\tout_off\tout_len\texpect")
 	return p
 }
 
@@ -76,8 +76,8 @@ func (p *pack) add(name string, img image.Image, o encOpts, out []byte, expect s
 	if !ok {
 		var zb bytes.Buffer
 		zw, _ := zlib.NewWriterLevel(&zb, zlib.BestCompression)
-		zw.Write(pix)
-		zw.Close()
+		_, _ = zw.Write(pix)
+		_ = zw.Close()
 		if _, err := p.inputs.Write(zb.Bytes()); err != nil {
 			panic(err)
 		}
@@ -94,15 +94,19 @@ func (p *pack) add(name string, img image.Image, o encOpts, out []byte, expect s
 	if o.UseSharpYuv {
 		sharp = 1
 	}
-	fmt.Fprintf(p.manifest, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
+	_, _ = fmt.Fprintf(p.manifest, "%s\t%s\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%d\t%s\n",
 		name, kind, stride, r.Min.X, r.Min.Y, r.Max.X, r.Max.Y, o.Quality, int(o.EncodingPreset), sharp,
 		loc[0], loc[1], loc[2], outOff, len(out), expect)
 	p.n++
 }
 
 func (p *pack) close() {
-	p.manifest.Flush()
-	p.mf.Close()
-	p.inputs.Close()
-	p.outputs.Close()
+	if err := p.manifest.Flush(); err != nil {
+		panic(err)
+	}
+	for _, f := range []*os.File{p.mf, p.inputs, p.outputs} {
+		if err := f.Close(); err != nil {
+			panic(err)
+		}
+	}
 }

@@ -186,7 +186,10 @@ func numInput(r *rand.Rand) []byte {
 	case 6: // random alphabet
 		b = []byte(randDigits(r, r.Intn(16), "0123456789.eE+-,x "))
 	default: // integers
-		b = stdstrconv.AppendInt(nil, r.Int63()>>uint(r.Intn(63))-r.Int63()>>uint(r.Intn(63)), 10)
+		// Two independent draws, in the original left-to-right call order.
+		x := r.Int63() >> uint(r.Intn(63))
+		y := r.Int63() >> uint(r.Intn(63))
+		b = stdstrconv.AppendInt(nil, x-y, 10)
 	}
 	if r.Intn(6) == 0 {
 		b = append([]byte{"+-"[r.Intn(2)]}, b...)
@@ -343,7 +346,7 @@ func corpusNumbers(dir string, roots []string) {
 			}
 			for i := 0; i < len(b); i++ {
 				c := b[i]
-				if !('0' <= c && c <= '9' || c == '.' || c == '-' || c == '+') {
+				if (c < '0' || c > '9') && c != '.' && c != '-' && c != '+' {
 					continue
 				}
 				if i > 0 && ('0' <= b[i-1] && b[i-1] <= '9' || b[i-1] == '.') {

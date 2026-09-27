@@ -149,7 +149,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		os.Stdout.Write(runMode(os.Args[2], src))
+		_, _ = os.Stdout.Write(runMode(os.Args[2], src))
 	default:
 		fmt.Fprintln(os.Stderr, "unknown command", os.Args[1])
 		os.Exit(2)

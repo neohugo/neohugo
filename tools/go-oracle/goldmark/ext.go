@@ -665,7 +665,7 @@ func boolField(b bool) []byte {
 func extRegexMain(args []string) {
 	n := 20000
 	if len(args) > 1 {
-		fmt.Sscan(args[1], &n)
+		_, _ = fmt.Sscan(args[1], &n)
 	}
 	r := rand.New(rand.NewSource(42))
 	var inputs []string

@@ -78,7 +78,7 @@ func writeCorpus(site, golden, dir string) {
 			for _, t := range corpusNumRe.FindAll(data, -1) {
 				// Plain integers of up to 6 digits from the (large) golden
 				// output add little and would dominate the fixture.
-				if len(t) <= 40 && !(skipSmallInts && corpusSmallInt.Match(t)) {
+				if len(t) <= 40 && (!skipSmallInts || !corpusSmallInt.Match(t)) {
 					tokens[string(t)] = true
 				}
 			}
@@ -95,8 +95,8 @@ func writeCorpus(site, golden, dir string) {
 	sort.Strings(list)
 
 	f, w := create(dir, "corpus_numbers.txt")
-	fmt.Fprintf(w, "# numeric tokens from the seeksnack sources and golden output\n")
-	fmt.Fprintf(w, "# token pf64bits pf64err pf32bits pf32err g-1 f-1 e-1 f2 g-1/32 pi10 pi10err pi0 pi0err atoi atoierr pu0 pu0err\n")
+	_, _ = fmt.Fprintf(w, "# numeric tokens from the seeksnack sources and golden output\n")
+	_, _ = fmt.Fprintf(w, "# token pf64bits pf64err pf32bits pf32err g-1 f-1 e-1 f2 g-1/32 pi10 pi10err pi0 pi0err atoi atoierr pu0 pu0err\n")
 	for _, t := range list {
 		v64, e64 := strconv.ParseFloat(t, 64)
 		v32, e32 := strconv.ParseFloat(t, 32)
@@ -104,7 +104,7 @@ func writeCorpus(site, golden, dir string) {
 		pi0, epi0 := strconv.ParseInt(t, 0, 64)
 		a, ea := strconv.Atoi(t)
 		pu0, epu0 := strconv.ParseUint(t, 0, 32)
-		fmt.Fprintf(w, "%s\t%016x\t%s\t%016x\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%d\t%s\n",
+		_, _ = fmt.Fprintf(w, "%s\t%016x\t%s\t%016x\t%s\t%s\t%s\t%s\t%s\t%s\t%d\t%s\t%d\t%s\t%d\t%s\t%d\t%s\n",
 			t,
 			math.Float64bits(v64), errCode(e64),
 			math.Float64bits(v32), errCode(e32),
@@ -118,7 +118,7 @@ func writeCorpus(site, golden, dir string) {
 	closeW(f, w)
 
 	f, w = create(dir, "corpus_quote.txt")
-	fmt.Fprintf(w, "# per-file fnv1a64 of quoting every line (and the whole file) of the seeksnack text sources\n")
+	_, _ = fmt.Fprintf(w, "# per-file fnv1a64 of quoting every line (and the whole file) of the seeksnack text sources\n")
 	for _, rel := range corpusFiles(site, corpusSiteDirs) {
 		data, err := os.ReadFile(filepath.Join(site, rel))
 		if err != nil {
@@ -126,7 +126,7 @@ func writeCorpus(site, golden, dir string) {
 		}
 		s := newSink(nil)
 		corpusQuoteFile(s, data)
-		fmt.Fprintf(w, "%s\t%d\t%016x\n", rel, len(data), s.h)
+		_, _ = fmt.Fprintf(w, "%s\t%d\t%016x\n", rel, len(data), s.h)
 	}
 	closeW(f, w)
 }

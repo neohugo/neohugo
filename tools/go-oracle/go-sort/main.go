@@ -470,13 +470,13 @@ func main() {
 					distinct := distincts[sel.intn(len(distincts))]
 					keys := genKeys(p, n, distinct, &splitmix{seed * 31})
 					res := run(c.variant, c.kind, keys, seed)
-					fmt.Fprintf(w, "%d %d %d %d %d %d %d %d %d", c.variant, c.kind, p, n, distinct, seed, res.ncalls, res.trace, res.res)
+					_, _ = fmt.Fprintf(w, "%d %d %d %d %d %d %d %d %d", c.variant, c.kind, p, n, distinct, seed, res.ncalls, res.trace, res.res)
 					if n <= *idsMax {
 						for _, id := range res.ids {
-							fmt.Fprintf(w, " %d", id)
+							_, _ = fmt.Fprintf(w, " %d", id)
 						}
 					}
-					w.WriteByte('\n')
+					_ = w.WriteByte('\n')
 					cases++
 				}
 			}
@@ -518,13 +518,13 @@ func writeDense(out string, sizes []int, idsMax, every int) {
 			distinct := distincts[sel.intn(len(distincts))]
 			keys := genKeys(p, n, distinct, &splitmix{seed * 31})
 			res := run(c.variant, c.kind, keys, seed)
-			fmt.Fprintf(w, "%d %d %d %d %d %d %d %d %d", c.variant, c.kind, p, n, distinct, seed, res.ncalls, res.trace, res.res)
+			_, _ = fmt.Fprintf(w, "%d %d %d %d %d %d %d %d %d", c.variant, c.kind, p, n, distinct, seed, res.ncalls, res.trace, res.res)
 			if n <= idsMax {
 				for _, id := range res.ids {
-					fmt.Fprintf(w, " %d", id)
+					_, _ = fmt.Fprintf(w, " %d", id)
 				}
 			}
-			w.WriteByte('\n')
+			_ = w.WriteByte('\n')
 			cases++
 		}
 	}

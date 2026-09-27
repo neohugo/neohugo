@@ -386,7 +386,7 @@ func digest(img image.Image) string {
 	default:
 		panic(fmt.Sprintf("digest: %T", img))
 	}
-	fmt.Fprintf(h, "|%d,%d,%d,%d", img.Bounds().Min.X, img.Bounds().Min.Y, img.Bounds().Max.X, img.Bounds().Max.Y)
+	_, _ = fmt.Fprintf(h, "|%d,%d,%d,%d", img.Bounds().Min.X, img.Bounds().Min.Y, img.Bounds().Max.X, img.Bounds().Max.Y)
 	s := h.Sum(nil)
 	return hex.EncodeToString(s[:])
 }

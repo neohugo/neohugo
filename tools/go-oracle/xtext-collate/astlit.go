@@ -14,8 +14,6 @@ import (
 	"go/parser"
 	"go/token"
 	"path/filepath"
-	"sort"
-	"strconv"
 )
 
 type srcFile struct {
@@ -360,34 +358,6 @@ func (s *srcFile) structOf(el ast.Expr, fields []string) ([]int64, error) {
 	return row, nil
 }
 
-// mapIntInt evaluates a map literal with integer keys and values, returned
-// sorted by key.
-func (s *srcFile) mapIntInt(name string) ([][2]int64, error) {
-	x, err := s.varExpr(name)
-	if err != nil {
-		return nil, err
-	}
-	cl, ok := x.(*ast.CompositeLit)
-	if !ok {
-		return nil, fmt.Errorf("%s: %s is not a composite literal", s.path, name)
-	}
-	var out [][2]int64
-	for _, el := range cl.Elts {
-		kv := el.(*ast.KeyValueExpr)
-		k, err := s.intVal(kv.Key)
-		if err != nil {
-			return nil, err
-		}
-		v, err := s.intVal(kv.Value)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, [2]int64{k, v})
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i][0] < out[j][0] })
-	return out, nil
-}
-
 // caseLessThan finds the constant n in a "case n < X:" clause inside the
 // named function (used for the trie block cutoffs of norm tries).
 func (s *srcFile) caseLessThan(fn string) (int64, error) {
@@ -422,12 +392,4 @@ func (s *srcFile) caseLessThan(fn string) (int64, error) {
 		return 0, fmt.Errorf("%s: no case n < X in %s", s.path, fn)
 	}
 	return res, nil
-}
-
-func atoi(s string) int {
-	n, err := strconv.Atoi(s)
-	if err != nil {
-		panic(err)
-	}
-	return n
 }
