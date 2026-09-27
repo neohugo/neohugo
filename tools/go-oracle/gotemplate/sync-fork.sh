@@ -130,4 +130,41 @@ import texttemplate "github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/
 // TextTemplate exposes the underlying text/template of an html template.
 func (t *Template) TextTemplate() *texttemplate.Template { return t.text }
 GO
+cat > "$dst/htmltemplate/oracle_exports_htmlexec.go" <<'GO'
+//go:build gotemplate_oracle
+
+package template
+
+import (
+	texttemplate "github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/texttemplate"
+	"github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/texttemplate/parse"
+)
+
+// EscapeTextExported runs escapeText over one text node from the start
+// context (TestEscapeText) and returns the output context and whether the
+// node text was left unmodified.
+func EscapeTextExported(text string) (string, bool) {
+	b, e := []byte(text), makeEscaper(nil)
+	c := e.escapeText(context{}, &parse.TextNode{NodeType: parse.NodeText, Text: b})
+	return c.String(), string(b) == text
+}
+
+// EnsurePipelineContainsExported runs ensurePipelineContains on the first
+// action of src (TestEnsurePipelineContains) and returns the pipeline.
+func EnsurePipelineContainsExported(src string, ids []string) (string, error) {
+	tmpl, err := texttemplate.New("test").Parse(src)
+	if err != nil {
+		return "", err
+	}
+	action, ok := tmpl.Tree.Root.Nodes[0].(*parse.ActionNode)
+	if !ok {
+		return "", nil
+	}
+	ensurePipelineContains(action.Pipe, append([]string(nil), ids...))
+	return action.Pipe.String(), nil
+}
+
+// RedundantFuncsExported lists the redundantFuncs pairs.
+func RedundantFuncsExported() map[string]map[string]bool { return redundantFuncs }
+GO
 echo "fork copied to $dst"

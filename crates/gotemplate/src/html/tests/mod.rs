@@ -10,4 +10,5 @@
 pub(crate) mod common;
 
 mod go_tests;
+mod internal;
 mod oracle;

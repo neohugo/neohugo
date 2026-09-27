@@ -371,7 +371,7 @@ func decodeNode(n *specNode) (any, error) {
 				return nil, err
 			}
 		}
-		if t.Kind() != reflect.Map || t.Key().Kind() != reflect.String {
+		if t.Kind() != reflect.Map || t.Key().Kind() != reflect.String && len(n.children) > 0 {
 			return nil, fmt.Errorf("map of bad type %s", t)
 		}
 		v := reflect.MakeMap(t)
@@ -505,6 +505,9 @@ func decodeNode(n *specNode) (any, error) {
 			return Plain{a, b}, nil
 		}
 		return &Plain{a, b}, nil
+	}
+	if v, ok, err := decodeTestNode(n); ok {
+		return v, err
 	}
 	return nil, fmt.Errorf("unknown node %q", n.name)
 }

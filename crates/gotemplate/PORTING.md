@@ -117,6 +117,10 @@ numbers). Strings → `Value::String`, `true`/`false` → `Value::Bool`,
   (`Arc<Tree>`) of each tree it enters, so later edits (copy-on-write) never
   disturb a running execution.
 
+Data passed to `execute*` is Go's `data any`: a `TypedNil` of an
+interface type (e.g. a nil `error`) is treated as an untyped nil
+(`Invalid`), as `reflect.ValueOf` does.
+
 ### C5 truthiness
 
 `helper.is_true(&v)` is used for `if`, `with`, `else with`, `and`, `or`,
@@ -222,8 +226,10 @@ every tree of the namespace if an edit was not found there.
    recursion needs ~64 MB. Hosts should run executions on threads with at
    least 128 MiB of stack. (Hugo limits partial nesting to 999 levels.)
 4. **`DefinedTemplates`** lists names sorted (Go: map order).
-5. **Template names** are Rust `String`s (lossy for non-UTF-8 `define`
-   names).
+5. **Template names and error texts** are Rust `String`s: invalid UTF-8
+   in a `define` name or inside an error message (e.g. the `%v` of a string
+   in `range can't iterate over %v`) becomes U+FFFD where Go keeps the raw
+   bytes. Output bytes are unaffected.
 6. **Host functions have no Go signature**: argument conversion and arity
    are the host's (contract C7). Messages for such errors may differ from
    Go's `evalArg` messages; output bytes do not.
@@ -276,6 +282,8 @@ the fork copied by `sync-fork.sh`, build tag `gotemplate_oracle`).
 | `src/html/tests/oracle.rs` | 39,048 escaper calls (17 escapers × 2,297 argument lists: every byte, special runes, invalid UTF-8, fuzz, Safe types, numbers, nils, time, collections, Stringers, errors, json/text marshalers, PrintableValue types, multi-arg), 53,730 transition runs (82,260 steps from 170 start contexts: contexts, error texts, brace slices incl. capacity/aliasing), 59,569 leaf-function checks — all equal to Go |
 | `src/html/tests/go_tests.rs` | Go's html_test, js_test, css_test, url_test, transition_test tables |
 | `tests/html_strip_tags.rs` | `stripTags` on 3,949 inputs |
+| `tests/html_exec.rs` | full engine (parse → escape → exec) replaying scripts recorded from the fork: Go's escape_test.go (TestEscape with value and pointer data, EscapeMap, EscapeSet, TestErrors texts, EscapeErrorsNotIgnorable, IndirectPrint, EmptyTemplateHTML, PipeToMethodIsEscaped, ErrorOnUndefined, IdempotentExecute, OrphanedTemplate, AliasedParseTreeDoesNotOverescape), content_test.go (every content type × every context, Stringer, nil non-empty interfaces), clone_test.go, multi_test.go, template_test.go and the html copy of exec_test.go — 773 scripts, 3,587 operations; plus a differential corpus of 217 templates (every escaping context, layout snippets) × ~70 values through plain `Execute` and through a Hugo-like `Executer`/helper (all funcs incl. escapers via the helper, case-insensitive `maps.Params`, methods by name) — 449 scripts, 23,542 operations. Remaining differences are listed per test with their reason (`KNOWN_GAPS`, value-model limits); a stale entry fails the test |
+| `src/html/tests/internal.rs` | TestEscapeText (151 contexts), TestEnsurePipelineContains, TestRedundantFuncs |
 | `tests/lex_go.rs`, `tests/parse_go.rs` | Go's lex_test.go (lexTests, delims, positions) and parse_test.go (numberTests, parseTests plain and copied, comments, keywords/funcs, SkipFuncCheck, IsEmpty, ErrorContext with tree copy, errorTests, TestBlock, TestLineNum) |
 | `tests/parse_oracle.rs` | 4,873 fork parse cases (trees, node structure, number flags, errors): all equal except 5 that differ only by lossy UTF-8 template names |
 | `tests/exec_go.rs` | exec_test.go: 528 table cases (479 equal, 36 listed value-model deviations, 13 skipped: pointer addresses, `iter.Seq`, complex) plus 11 hand-ported tests; expectations from the FORK (for every entry with an expectation the fork agrees with stock Go) |
@@ -291,6 +299,8 @@ GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate exec crates/gotemplate/tests/fixtures/text
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate exectests crates/gotemplate/tests/fixtures/text
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate escfuncs crates/gotemplate/tests/fixtures/html
+python3 tools/go-oracle/gotemplate/extract_tables.py   # after sync-fork.sh: regenerates htmlexec_tables.go
+GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate htmlexec crates/gotemplate/tests/fixtures/html
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate escdump \
   crates/gotemplate/tests/fixtures/html/escdump.txt docs/layouts create/skeletons/theme/layouts tpl/tplimpl/embedded/templates
 ```

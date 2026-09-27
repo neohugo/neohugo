@@ -574,7 +574,7 @@ impl Escaper {
 
     // Go: escape.go:(*escaper).escapeText
     /// Escapes a text template node.
-    fn escape_text(&mut self, mut c: Context, n: &TextNode) -> Context {
+    pub(crate) fn escape_text(&mut self, mut c: Context, n: &TextNode) -> Context {
         let s = &n.text[..];
         let mut written = 0usize;
         let mut i = 0usize;
@@ -946,7 +946,7 @@ fn equiv_escaper(e: &str) -> Option<&'static str> {
         // These two functions are not actually equivalent; urlquery is stricter as it
         // escapes reserved characters (e.g. '#'), while _html_template_urlnormalizer
         // does not. It is therefore only safe to replace _html_template_urlnormalizer
-        // with urlquery (this happens in ensurePipelineContains), but not the otherI've
+        // with urlquery (this happens in ensurePipelineContains), but not the other
         // way around. We keep this entry around to preserve the behavior of templates
         // written before Go 1.9, which might depend on this substitution taking place.
         "_html_template_urlnormalizer" => Some("urlquery"),
@@ -970,7 +970,7 @@ fn normalize_esc_fn(e: &str) -> &str {
 // Go: escape.go:redundantFuncs
 /// redundantFuncs[a][b] implies that funcMap[b](funcMap[a](x)) == funcMap[a](x)
 /// for all x.
-fn redundant_funcs(a: &str, b: &str) -> bool {
+pub(crate) fn redundant_funcs(a: &str, b: &str) -> bool {
     match a {
         "_html_template_commentescaper" => {
             b == "_html_template_attrescaper" || b == "_html_template_htmlescaper"

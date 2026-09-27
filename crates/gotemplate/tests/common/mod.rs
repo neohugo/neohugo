@@ -116,6 +116,37 @@ macro_rules! no_methods {
     };
 }
 
+/// The Go methods of the test types that return a string (`String`,
+/// `Error`, `GoString`; no arguments) as template-callable methods.
+macro_rules! string_methods {
+    ($($name:literal => $get:ident),* $(,)?) => {
+        fn has_method(&self, name: &str) -> bool {
+            matches!(name, $($name)|*)
+        }
+        fn call_method(
+            &self,
+            _ctx: HostCtx<'_>,
+            name: &str,
+            args: &[Value],
+        ) -> Option<Result<Value>> {
+            let v = match name {
+                $($name => GoString::from(self.$get()?),)*
+                _ => return None,
+            };
+            if !args.is_empty() {
+                return Some(Result::Err(go_value::Error::new(format!(
+                    "wrong number of args for {name}: want 0 got {}",
+                    args.len()
+                ))));
+            }
+            Some(Ok(Value::String(v)))
+        }
+        fn as_any(&self) -> &dyn std::any::Any {
+            self
+        }
+    };
+}
+
 impl Object for Str {
     fn type_name(&self) -> Cow<'_, str> {
         Cow::Borrowed("*main.Str")
@@ -126,7 +157,7 @@ impl Object for Str {
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
         fields_s("S", &self.0)
     }
-    no_methods!();
+    string_methods!("String" => go_string);
 }
 
 impl Object for Err {
@@ -140,7 +171,7 @@ impl Object for Err {
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
         fields_s("Msg", &self.0)
     }
-    no_methods!();
+    string_methods!("Error" => go_error);
 }
 
 impl Object for Both {
@@ -158,7 +189,7 @@ impl Object for Both {
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
         fields_s("S", &self.0)
     }
-    no_methods!();
+    string_methods!("Error" => go_error, "String" => go_string);
 }
 
 impl Object for Sv {
@@ -177,7 +208,7 @@ impl Object for Sv {
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
         fields_s("S", &self.0)
     }
-    no_methods!();
+    string_methods!("String" => go_string);
 }
 
 impl Object for Gs {
@@ -196,7 +227,7 @@ impl Object for Gs {
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
         fields_s("S", &self.0)
     }
-    no_methods!();
+    string_methods!("GoString" => go_go_string, "String" => go_string);
 }
 
 impl Object for Plain {
@@ -282,7 +313,7 @@ impl Object for Hs {
     fn printable_value(&self) -> Option<Value> {
         Some(Value::Safe(SafeKind::Html, self.0.clone()))
     }
-    no_methods!();
+    string_methods!("String" => go_string);
 }
 
 impl Object for Pv {
@@ -467,6 +498,17 @@ fn kv_entries(children: &[Node]) -> BTreeMap<GoString, Value> {
     m
 }
 
+/// Decoder for spec nodes defined outside this module (the Go test host
+/// types of `gotypes.rs`, which only the integration tests compile).
+pub type ExtraNodes = fn(&Node) -> Option<Value>;
+
+static EXTRA_NODES: std::sync::OnceLock<ExtraNodes> = std::sync::OnceLock::new();
+
+/// Registers the decoder for the extra spec nodes (first call wins).
+pub fn set_extra_nodes(f: ExtraNodes) {
+    let _ = EXTRA_NODES.set(f);
+}
+
 pub fn node_value(n: &Node) -> Value {
     let p = n.payload.as_str();
     let children = || n.children.as_deref().unwrap_or(&[]);
@@ -580,7 +622,10 @@ pub fn node_value(n: &Node) -> Value {
         "jnum" => Value::object(go_json::Number(unhex(p).into())),
         "obj_nm" => Value::object(NmObj(kv_entries(children()))),
         "obj_ns" => Value::object(NsObj(children().iter().map(node_value).collect())),
-        other => panic!("unknown spec node {other:?}"),
+        other => match EXTRA_NODES.get().and_then(|f| f(n)) {
+            Some(v) => v,
+            None => panic!("unknown spec node {other:?}"),
+        },
     }
 }
 

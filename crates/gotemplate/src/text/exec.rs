@@ -179,6 +179,9 @@ pub(crate) fn execute_template(
     wr: &mut dyn Write,
     data: &Value,
 ) -> Result<(), Error> {
+    // Go: `reflect.ValueOf(data)` of the `data any` parameter — a nil of an
+    // interface type (e.g. a nil `error`) passed as `any` is an untyped nil.
+    let data = &indirect_interface(data);
     let snapshot = tmpl.tree().map(|t| t.get());
     let empty;
     let tree: &Tree = match &snapshot {
