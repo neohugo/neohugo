@@ -1,0 +1,23 @@
+[package]
+name = "gift"
+version = "0.1.0"
+edition = "2024"
+description = "Byte-exact port of github.com/disintegration/gift v1.2.1 (+ neohugo resources/images/resampling.go filters), float math as compiled by go1.27.1 for darwin/arm64"
+license = "MIT"
+
+[dependencies]
+go-image = { path = "../go-image" }
+
+[dev-dependencies]
+sha2 = "0.10"
+flate2 = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
+
+# The differential tests process many images; optimise test builds so
+# `cargo test` stays fast. (Ignored once this crate joins a workspace.)
+[profile.test]
+opt-level = 3
+debug-assertions = true
+overflow-checks = true
