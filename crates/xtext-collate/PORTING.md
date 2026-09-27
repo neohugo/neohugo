@@ -249,6 +249,15 @@ compared through SHA-256 digests of all keys and 3 comparisons per string.
   pairs (seeds 101-104) x 138, numeric 131,513 + non-digit 126,756 x 43,
   enum thai<=3 / latin<=3 (+locales) / marks<=4, 800,000 tags (seeds
   12/13/14), 330,666 SetTypeForKey lines — 0 mismatches.
+* Extended campaign, brand-new seeds not used by any checked-in fixture or
+  the runs above (linux/amd64): 3,000,000 random strings (seed 9001) x 33
+  configs, 300,000 locale strings (seed 9002) x 128 configs, 300,000
+  stress strings (seed 9003) x 128 configs, 200,000 `th`-config strings
+  (seed 9004), 5 x 60,000 adversarial pairs (seeds 9101-9105, one without
+  `-site`) x 138 configs = 300,000 pairs, 8,931-string Thai enum (`-alpha
+  thai -maxlen 2 -locales -dump th`) x 138 configs, 3 x 300,000 fuzzed tags
+  (seeds 9201-9203) = 900,000 tags, 2 x ~329,700 SetTypeForKey lines
+  (seeds 9301-9302) = 659,348 lines — 0 mismatches in every category.
 
 Large runs: `go build -o $S/oracle ./tools/go-oracle/xtext-collate &&
 $S/oracle corpus -n 3000000 -seed 21 -out $S/a.txt` (also `-kind stress`,
