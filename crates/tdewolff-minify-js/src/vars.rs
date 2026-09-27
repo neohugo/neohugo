@@ -92,7 +92,9 @@ impl Renamer {
     }
 
     // Go: vars.go:renamer.getIndex
-    pub fn get_index(&self, name: &[u8]) -> i64 {
+    /// The inverse of `get_name` (only used by the tests, as in Go).
+    #[cfg_attr(not(test), allow(dead_code))]
+    pub(crate) fn get_index(&self, name: &[u8]) -> i64 {
         let mut index: i64 = 0;
         'name_loop: for i in (0..name.len()).rev() {
             let chars = if i == 0 {
@@ -123,7 +125,7 @@ impl Renamer {
     // Go: vars.go:renamer.getName
     /// Writes the new name into `name` in place when it fits (as Go does:
     /// `name[0] = ...`, `name[:n]` within capacity), else allocates.
-    pub fn get_name(&self, name: GoBytes, index: usize) -> GoBytes {
+    pub(crate) fn get_name(&self, name: GoBytes, index: usize) -> GoBytes {
         // Generate new names for variables where the last character is (a-zA-Z$_) and others are (a-zA-Z).
         // Thus we can have 54 one-character names and 52*54=2808 two-character names for every branch leaf.
         // That is sufficient for virtually all input.

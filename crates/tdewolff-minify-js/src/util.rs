@@ -164,6 +164,22 @@ pub(crate) fn cond_mut(ast: &mut Ast, i: NodeId) -> &mut CondExpr {
 }
 
 #[inline]
+pub(crate) fn group_mut(ast: &mut Ast, i: NodeId) -> &mut GroupExpr {
+    match ast.node_mut(i) {
+        Node::GroupExpr(g) => g,
+        _ => panic!("interface conversion: not *js.GroupExpr"),
+    }
+}
+
+#[inline]
+pub(crate) fn try_mut(ast: &mut Ast, i: NodeId) -> &mut TryStmt {
+    match ast.node_mut(i) {
+        Node::TryStmt(s) => s,
+        _ => panic!("interface conversion: not *js.TryStmt"),
+    }
+}
+
+#[inline]
 pub(crate) fn if_mut(ast: &mut Ast, i: NodeId) -> &mut IfStmt {
     match ast.node_mut(i) {
         Node::IfStmt(s) => s,
@@ -339,9 +355,9 @@ pub(crate) fn binary_right_prec_map(tt: TokenType) -> OpPrec {
         BitAndToken => OpEquals,
         BitXorToken => OpBitAnd,
         BitOrToken => OpBitXor,
-        AndToken => OpAnd,         // changes order in AST but not in execution
-        OrToken => OpOr,           // changes order in AST but not in execution
-        NullishToken => OpBitOr,   // or OpCoalesce
+        AndToken => OpAnd,       // changes order in AST but not in execution
+        OrToken => OpOr,         // changes order in AST but not in execution
+        NullishToken => OpBitOr, // or OpCoalesce
         CommaToken => OpAssign,
         _ => OpExpr,
     }
@@ -455,9 +471,7 @@ pub(crate) fn has_side_effects(ast: &Ast, i: NodeId) -> bool {
                 if has_side_effects(ast, item.value)
                     || item.init.is_some() && has_side_effects(ast, item.init)
                     || match &item.name {
-                        Some(name) => {
-                            name.is_computed() && has_side_effects(ast, name.computed)
-                        }
+                        Some(name) => name.is_computed() && has_side_effects(ast, name.computed),
                         None => false,
                     }
                 {
@@ -687,8 +701,7 @@ pub(crate) fn is_undefined_or_null_var(ast: &Ast, i: NodeId) -> Option<(NodeId, 
                 }
             }
         }
-    } else if let Some((bop, bx, by)) = binary.filter(|b| b.0 == EqEqToken || b.0 == NotEqToken)
-    {
+    } else if let Some((bop, bx, by)) = binary.filter(|b| b.0 == EqEqToken || b.0 == NotEqToken) {
         let mut variable = NodeId::NIL;
         if ast.is_var(bx) && is_undefined_or_null(ast, by) {
             variable = bx;
@@ -1024,8 +1037,7 @@ pub(crate) fn optimize_cond_expr(
     } else if is_equal_expr(ast, final_cond, ex)
         && (expr_prec(ast, final_cond) < OpAssign
             || binary_left_prec_map(OrToken) <= expr_prec(ast, final_cond))
-        && (expr_prec(ast, ey) < OpAssign
-            || binary_right_prec_map(OrToken) <= expr_prec(ast, ey))
+        && (expr_prec(ast, ey) < OpAssign || binary_right_prec_map(OrToken) <= expr_prec(ast, ey))
     {
         // if condition is equal to true body
         // for higher prec we need to add group parenthesis, and for lower prec we have parenthesis anyways. This only is shorter if len(expr.X) >= 3. isEqualExpr only checks for literal variables, which is a name will be minified to a one or two character name.
@@ -1034,8 +1046,7 @@ pub(crate) fn optimize_cond_expr(
     } else if is_equal_expr(ast, final_cond, ey)
         && (expr_prec(ast, final_cond) < OpAssign
             || binary_left_prec_map(AndToken) <= expr_prec(ast, final_cond))
-        && (expr_prec(ast, ex) < OpAssign
-            || binary_right_prec_map(AndToken) <= expr_prec(ast, ex))
+        && (expr_prec(ast, ex) < OpAssign || binary_right_prec_map(AndToken) <= expr_prec(ast, ex))
     {
         // if condition is equal to false body
         let l = group_expr(ast, ecnd, binary_left_prec_map(AndToken));
@@ -1174,8 +1185,7 @@ pub(crate) fn merge_binary_expr(ast: &mut Ast, expr: NodeId) {
                     strings.push(lx);
                     binary_mut(ast, left).x = NodeId::NIL;
                 } else if let Some((_, _, nly)) = as_binary(ast, lx) {
-                    if let Some(lit) =
-                        as_literal(ast, nly).filter(|l| l.token_type == StringToken)
+                    if let Some(lit) = as_literal(ast, nly).filter(|l| l.token_type == StringToken)
                     {
                         n += lit.data.len() as isize - 2;
                         strings.push(nly);
@@ -1251,8 +1261,7 @@ pub(crate) fn minify_string(b: GoBytes, allow_template: bool) -> GoBytes {
                     double_quotes += 1;
                 } else if at(i + 1) == b'4' && at(i + 2) == b'7' {
                     single_quotes += 1;
-                } else if i + 3 < n && at(i + 1) == b'1' && at(i + 2) == b'4' && at(i + 3) == b'0'
-                {
+                } else if i + 3 < n && at(i + 1) == b'1' && at(i + 2) == b'4' && at(i + 3) == b'0' {
                     backtick_quotes += 1;
                 }
             } else if at(i + 1) == b'x' && i + 3 < n {
@@ -1362,8 +1371,7 @@ pub(crate) fn replace_escapes(b: GoBytes, quote: u8, prefix: isize, suffix: isiz
                     && is_hex_digit(at(&b, i + 3))
                     && (!(at(&b, i + 2) == b'0' && at(&b, i + 3) == b'0')
                         || i + 3 == len(&b)
-                        || at(&b, i + 3) != b'\\'
-                            && (at(&b, i + 3) < b'0' && b'7' < at(&b, i + 3)))
+                        || at(&b, i + 3) != b'\\' && (at(&b, i + 3) < b'0' && b'7' < at(&b, i + 3)))
                 {
                     // don't convert \x00 to \0 if it may be an octal number
                     // hexadecimal escapes
@@ -1371,7 +1379,11 @@ pub(crate) fn replace_escapes(b: GoBytes, quote: u8, prefix: isize, suffix: isiz
                     set(&b, i, v);
                     n = 4;
                     let bi = at(&b, i);
-                    if bi == b'\\' || bi == quote || bi == b'\r' || quote != b'`' && bi == b'\n' || bi == 0
+                    if bi == b'\\'
+                        || bi == quote
+                        || bi == b'\r'
+                        || quote != b'`' && bi == b'\n'
+                        || bi == 0
                     {
                         if bi == b'\n' {
                             set(&b, i + 1, b'n');
@@ -1427,7 +1439,8 @@ pub(crate) fn replace_escapes(b: GoBytes, quote: u8, prefix: isize, suffix: isiz
                 }
                 if num == 0 {
                     // don't convert NULL to literal NULL (gives JS parsing problems)
-                    if r == len(&b) || at(&b, r) != b'\\' && (at(&b, r) < b'0' && b'7' < at(&b, r)) {
+                    if r == len(&b) || at(&b, r) != b'\\' && (at(&b, r) < b'0' && b'7' < at(&b, r))
+                    {
                         set(&b, i + 1, b'0');
                         i += 2;
                         n -= 2;
@@ -1473,14 +1486,20 @@ pub(crate) fn replace_escapes(b: GoBytes, quote: u8, prefix: isize, suffix: isiz
                 let mut num: u8 = c.wrapping_sub(b'0');
                 n += 1;
                 if i + 2 < len(&b) - 1 && b'0' <= at(&b, i + 2) && at(&b, i + 2) <= b'7' {
-                    num = num.wrapping_mul(8).wrapping_add(at(&b, i + 2)).wrapping_sub(b'0');
+                    num = num
+                        .wrapping_mul(8)
+                        .wrapping_add(at(&b, i + 2))
+                        .wrapping_sub(b'0');
                     n += 1;
                     if num < 32
                         && i + 3 < len(&b) - 1
                         && b'0' <= at(&b, i + 3)
                         && at(&b, i + 3) <= b'7'
                     {
-                        num = num.wrapping_mul(8).wrapping_add(at(&b, i + 3)).wrapping_sub(b'0');
+                        num = num
+                            .wrapping_mul(8)
+                            .wrapping_add(at(&b, i + 3))
+                            .wrapping_sub(b'0');
                         n += 1;
                     }
                 }
@@ -1558,10 +1577,14 @@ pub(crate) fn replace_escapes(b: GoBytes, quote: u8, prefix: isize, suffix: isiz
         } else if c == b'<' && 9 <= len(&b) - 1 - i {
             if at(&b, i + 1) == b'\\'
                 && 10 <= len(&b) - 1 - i
-                && b.slice((i + 2) as usize, (i + 10) as usize).equal(b"/script>")
+                && b.slice((i + 2) as usize, (i + 10) as usize)
+                    .equal(b"/script>")
             {
                 i += 9;
-            } else if b.slice((i + 1) as usize, (i + 9) as usize).equal(b"/script>") {
+            } else if b
+                .slice((i + 1) as usize, (i + 9) as usize)
+                .equal(b"/script>")
+            {
                 i += 1;
                 if j < start {
                     // avoid append
