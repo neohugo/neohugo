@@ -14,6 +14,9 @@
 //	go-image fuzz <n> <files...>              # decode mutated JPEGs
 //	go-image dct <n>                          # fdct/idct on random blocks
 //
+// synth, draw, fuzz and dct use seeds 0..n-1, or $GO_IMAGE_SEED0.. when that
+// environment variable is set.
+//
 // and the corpus commands documented in corpus.go.
 package main
 
@@ -57,6 +60,21 @@ func sha(b []byte) string {
 }
 
 func sha16(b []byte) string { return sha(b)[:16] }
+
+// seedOffset returns the first seed for synth, draw, fuzz and dct: 0 (the
+// checked-in fixtures), or $GO_IMAGE_SEED0 for out-of-repo campaigns over
+// fresh seeds. Rows carry their seed, so the Rust tests replay any range.
+func seedOffset() int {
+	s := os.Getenv("GO_IMAGE_SEED0")
+	if s == "" {
+		return 0
+	}
+	n, err := strconv.Atoi(s)
+	if err != nil || n < 0 {
+		panic("bad GO_IMAGE_SEED0: " + s)
+	}
+	return n
+}
 
 var out = bufio.NewWriterSize(os.Stdout, 1<<20)
 
@@ -338,7 +356,8 @@ func randRect(r *rng, maxSize, maxOff int) image.Rectangle {
 
 // synth encodes n synthetic images at every quality 1..100.
 func synth(n int) {
-	for seed := 0; seed < n; seed++ {
+	s0 := seedOffset()
+	for seed := s0; seed < s0+n; seed++ {
 		r := &rng{uint64(seed)*1000003 + 17}
 		kind := r.intn(numKinds)
 		maxSize := 40
@@ -490,7 +509,8 @@ func pixOf(m draw.Image) []byte {
 }
 
 func drawOps(n int) {
-	for seed := 0; seed < n; seed++ {
+	s0 := seedOffset()
+	for seed := s0; seed < s0+n; seed++ {
 		r := &rng{uint64(seed)*7919 + 3}
 		dst := dstImage(r)
 		src := srcImage(r)
@@ -770,7 +790,8 @@ func fuzz(n int, files []string) {
 		}
 		bases = append(bases, b)
 	}
-	for seed := 0; seed < n; seed++ {
+	s0 := seedOffset()
+	for seed := s0; seed < s0+n; seed++ {
 		r := &rng{uint64(seed)*31 + 1}
 		bi := r.intn(len(bases))
 		b := append([]byte(nil), bases[bi]...)
@@ -831,7 +852,8 @@ func fuzz(n int, files []string) {
 // DCT.
 
 func dctBlocks(n int) {
-	for seed := 0; seed < n; seed++ {
+	s0 := seedOffset()
+	for seed := s0; seed < s0+n; seed++ {
 		r := &rng{uint64(seed)*101 + 7}
 		var b block
 		class := r.intn(5)

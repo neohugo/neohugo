@@ -5,8 +5,13 @@ usage: gen_libjpeg.py <outdir> <n> <seed> [extra jpeg inputs for jpegtran...]
 """
 import os
 import random
+import shutil
 import subprocess
 import sys
+
+# ImageMagick 7 installs `magick`; ImageMagick 6 (e.g. Debian/Ubuntu) only
+# `convert`, which accepts the same arguments used here.
+MAGICK = "magick" if shutil.which("magick") else "convert"
 
 out = sys.argv[1]
 n = int(sys.argv[2])
@@ -230,7 +235,7 @@ while made < n:
         w, h = dim(), dim()
         src = os.path.join(tmp, "in.ppm")
         ppm(src, w, h, False)
-        args = ["magick", src, "-colorspace", "CMYK", "-quality", str(rnd.randrange(1, 101))]
+        args = [MAGICK, src, "-colorspace", "CMYK", "-quality", str(rnd.randrange(1, 101))]
         if rnd.randrange(2):
             args += ["-sampling-factor", rnd.choice(["1x1", "2x2", "2x1", "1x2"])]
         if rnd.randrange(3) == 0:

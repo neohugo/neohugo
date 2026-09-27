@@ -359,6 +359,23 @@ mod tests {
     fn dct_matches_go() {
         let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/dct.tsv");
         let data = std::fs::read_to_string(path).unwrap();
+        assert_eq!(check(&data), 5000);
+    }
+
+    /// Larger corpus kept outside the repository (GO_IMAGE_DCT_BIG=<path to
+    /// `go-image dct N` output, optionally with GO_IMAGE_SEED0 set>).
+    #[test]
+    fn dct_matches_go_big() {
+        let Ok(path) = std::env::var("GO_IMAGE_DCT_BIG") else {
+            return;
+        };
+        let data = std::fs::read_to_string(path).unwrap();
+        let n = check(&data);
+        eprintln!("dct: {} blocks match", n);
+    }
+
+    /// Checks every row of an oracle `dct` output; returns the row count.
+    fn check(data: &str) -> usize {
         let mut n = 0;
         for line in data.lines() {
             let f: Vec<&str> = line.split('\t').collect();
@@ -391,6 +408,6 @@ mod tests {
             assert_eq!(f[3], sha16(&ibytes), "idct seed {} class {}", seed, class);
             n += 1;
         }
-        assert_eq!(n, 5000);
+        n
     }
 }

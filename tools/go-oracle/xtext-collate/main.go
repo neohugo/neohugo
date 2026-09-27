@@ -22,8 +22,11 @@
 //	    Keys and comparisons of every string of length <= N over a small
 //	    alphabet (enum.go).
 //
-//	go run ./tools/go-oracle/xtext-collate tagfuzz -out FILE [-n N] [-seed S]
-//	    Adversarial language tags in the tags.tsv format (tagfuzz.go).
+//	go run ./tools/go-oracle/xtext-collate tagfuzz -out FILE [-n N] [-seed S] [-regressions] [-in FILE]
+//	    Adversarial language tags in the tags.tsv format (tagfuzz.go);
+//	    -regressions / -in prepend fixed inputs (`tagfuzz -regressions -n 3600
+//	    -seed 12` writes the equivalent of tests/fixtures/tags-fuzz.tsv; see
+//	    crates/xtext-collate/PORTING.md).
 //
 //	go run ./tools/go-oracle/xtext-collate settype -out FILE [-n N] [-seed S]
 //	    Tag.SetTypeForKey over fuzzed tags and adversarial key/values.
