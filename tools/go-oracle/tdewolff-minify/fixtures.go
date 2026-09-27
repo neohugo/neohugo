@@ -33,7 +33,14 @@ type fixWriter struct {
 	n  int
 }
 
+// newFix creates DIR/NAME.txt.gz; DIR "-" writes the uncompressed records
+// to stdout instead (streamed straight into a differential checker).
 func newFix(dir, name string) *fixWriter {
+	if dir == "-" {
+		bw := bufio.NewWriterSize(os.Stdout, 1<<20)
+		_, _ = fmt.Fprintf(bw, "# %s (%s)\n", name, goVersion())
+		return &fixWriter{nil, nil, bw, 0}
+	}
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		panic(err)
 	}
@@ -57,6 +64,10 @@ func (w *fixWriter) rec(fields ...string) {
 func (w *fixWriter) close() {
 	if err := w.bw.Flush(); err != nil {
 		panic(err)
+	}
+	if w.f == nil {
+		fmt.Fprintf(os.Stderr, "stdout: %d records\n", w.n)
+		return
 	}
 	if err := w.gz.Close(); err != nil {
 		panic(err)

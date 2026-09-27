@@ -16,6 +16,9 @@
 //	tdewolff-minify cfgdigests SRC OUT.tsv CFGS EXT... # digests of SRC through every listed config
 //	tdewolff-minify cases OUT LISTFILE         # hand-written cases (MEDIATYPE CONFIGS QUOTED-INPUT)
 //	tdewolff-minify adv OUT N SEED            # adversarial documents, page windows and helper inputs
+//	tdewolff-minify replay FILE...            # re-runs fixture records, reports differences
+//	tdewolff-minify rerun IN OUT              # re-answers the records of IN with this build
+//	tdewolff-minify rt KIND N SEED OUT        # red-team generators (redteam.go); OUT "-" = stdout
 package main
 
 import (
@@ -89,6 +92,23 @@ func main() {
 			panic(err)
 		}
 		genAdversarial(os.Args[2], n, seed)
+	case "rt":
+		// rt KIND N SEED OUT
+		n, err := strconv.Atoi(os.Args[3])
+		if err != nil {
+			panic(err)
+		}
+		seed, err := strconv.ParseInt(os.Args[4], 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		genRedTeam(os.Args[2], n, seed, os.Args[5])
+	case "rerun":
+		// rerun IN OUT
+		rerun(os.Args[2], os.Args[3])
+	case "replay":
+		// replay FILE...
+		replay(os.Args[2:])
 	case "structured":
 		// structured OUTDIR N SEED
 		n, err := strconv.Atoi(os.Args[3])

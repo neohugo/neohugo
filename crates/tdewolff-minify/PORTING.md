@@ -118,6 +118,40 @@ let (out, err) = m.bytes("image/svg+xml", GoBytes::from_slice(data)); // Go Byte
   dereferenced with `token_mut`) instead of `[]*Token`.
 * `AddCmd`/`AddCmdRegexp`, `M.Reader`, `M.Writer`, `M.ResponseWriter`,
   `Middleware*` and the `Warning` logger are not ported (not used by neohugo).
+* CSS function nesting is walked without recursion (see "Deep nesting"):
+  `parse_function` and `write_function` keep an explicit stack of frames
+  instead of calling themselves, `css::Token` implements `Clone` and `Drop`
+  by hand and `Token::equal` uses a work list. The frames visit the tokens
+  in Go's order, so the bytes are identical; only the Rust call depth
+  changes. (`Token::string`, the port of the debug-only `Token.String`, is
+  still recursive.)
+
+## Deep nesting (stack depth)
+
+Go grows goroutine stacks up to 1 GB, so Go's recursion depth is bounded by
+memory, not by a fixed thread stack. Two kinds of recursion reach it here:
+
+* **CSS functions** (`a{b:f(f(f(…)))}`, in stylesheets, `<style>` and
+  `style=""`): Go's `parseFunction`/`writeFunction`/`Token.Equal` recurse
+  once per level and handle ~1M levels (2M hit Go's 1 GB limit). The
+  recursive port overflowed an 8 MB main-thread stack at ~30k levels (2 MB
+  thread: ~7k) and aborted. Fixed as described under deviations; the port now
+  needs a constant ~90 KiB for any depth (measured up to 1M levels, output
+  equal to Go). Regression test: `fixtures::redteam` (100,000 levels, 1 MiB
+  stack).
+* **Nested minifier calls**: `<iframe>` content, raw-text elements whose
+  `type` is `text/html` (`<script type=text/html>`, `<style type=text/html>`)
+  and data URIs call `M` again, one Rust (and Go) recursion per level through
+  the `Minifier` trait (conditional comments recurse too, but at most one
+  level). The port needs ~2.2 KB of
+  stack per nested HTML level (release build), so ~900 levels fit a 2 MiB
+  thread and ~3,800 the 8 MiB main thread; Go handled 50,000 nested
+  `<iframe>`s (both Go and the port run out of memory on 50,000 nested
+  `<script type=text/html>`). Like the js crates, callers that minify
+  untrusted input should run on a thread with a large stack (the tests and
+  `examples/minify.rs` use 1 GiB virtual); with it the port matched Go on
+  50,000 nested `<iframe>`s. Regression test: `fixtures::redteam_nested`
+  (3,333 levels on a 1 GiB stack). Real pages nest 1–2 levels.
 
 ## Go semantics that needed care
 
@@ -143,6 +177,18 @@ let (out, err) = m.bytes("image/svg+xml", GoBytes::from_slice(data)); // Go Byte
   tie order).
 * `byte(f)` in `rgbToToken` is `FCVTZSDW` (float64 → int32, saturating)
   followed by the low byte: `(x as i32) as u8`.
+* **Go panics.** `css/css.go:748` (`minifyProperty`, property `url`, a
+  `local(` whose only argument is a 1-byte unterminated string) slices
+  `data[1:len(data)-1]` = `[1:0]` and panics with `slice bounds out of range
+  [1:0]`, e.g. on `url:local('` (inline), `a{url:local("`,
+  `<p style="url:local('">`, `<svg style="url:local('"/>` (a 2-byte string,
+  `a{url:local('x`, gives `local()`). The port panics at the same point
+  (`GoBytes` bounds check), like the js crates do where Go panics; a caller
+  that must not crash has to catch the panic around the page (the Go build
+  would crash). The red-team generators record a Go panic as `min CFG MT IN
+  ! HEX(panic) -`, and `tests/fixtures.rs`/`examples/rtdiff.rs` require the
+  port to panic on those records (`redteam` has 12). No other Go panic
+  appeared in the red-team runs.
 
 ## FMA sites (darwin/arm64, verified with `go tool objdump`)
 
@@ -163,9 +209,49 @@ the fixtures cannot distinguish it; it is ported anyway.
 
 Oracle: `tools/go-oracle/tdewolff-minify` (package main in the neohugo
 module; `gen.sh` regenerates everything). Modes: `tables`, `fixtures DIR
-[SCALE]`, `fuzz`, `digests`, `nested`, `tree`, `stdin`. Checked-in fixtures
-(2.1 MB, gzip TSV) in `tests/fixtures/`, read with `flate2` (decompression
-only).
+[SCALE]`, `fuzz`, `digests`, `nested`, `tree`, `stdin`, `structured`,
+`cfgdigests`, `cases OUT LISTFILE` (hand-written cases), `adv` (adversarial
+documents and helper inputs), and from the red-team: `rt KIND N SEED OUT`
+(generators, see `redteam.go`), `replay FILE...` (re-runs fixture records
+through this Go build and reports differences) and `rerun IN OUT`
+(re-answers the records of IN). An OUT of `-` streams uncompressed records
+to stdout. Checked-in fixtures (2.2 MB, gzip TSV) in `tests/fixtures/`,
+read with `flate2` (decompression only).
+
+Regenerating: fixtures must come from an arm64 Go (CSS colors are
+FMA-sensitive: `css/util.go:39`, parse's HSL2RGB). `gen.sh` builds the
+oracle for linux/arm64 and runs it under `qemu-aarch64-static` on non-arm64
+hosts. linux/arm64 under qemu reproduces the checked-in darwin/arm64
+fixtures byte for byte: `upstream`, `literals`, `structured`, `redteam` and
+`redteam-nested` regenerate to identical `.gz` files; `fuzz`/`units` draw
+inputs from the site corpora (they only regenerate with
+`SEEKSNACK_GOLDEN`/`CORPUS2`/`NUMBERS_JSONL` set), and `replay` of all
+fixture files reports 0 of 114,244 records different. `tables` also runs under qemu (the generated sources
+equal the checked-in ones after `cargo fmt`, which `gen.sh` runs). By hand:
+
+```sh
+export GOTOOLCHAIN=go1.27.1                  # from the repo root
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -o /tmp/oracle-arm64 ./tools/go-oracle/tdewolff-minify
+O="qemu-aarch64-static /tmp/oracle-arm64"
+$O fixtures /tmp/fix && cmp /tmp/fix/literals.txt.gz crates/tdewolff-minify/tests/fixtures/literals.txt.gz
+$O rt regress 100000 0 crates/tdewolff-minify/tests/fixtures   # redteam.txt.gz, redteam-nested.txt.gz
+$O replay crates/tdewolff-minify/tests/fixtures/*.txt.gz         # "replay: 114244 records, 0 differ (go1.27.1 arm64)"
+```
+
+Red-team loop (no files written, millions of cases):
+
+```sh
+cargo build --release --example rtdiff        # tests/common + the record checks of tests/fixtures.rs
+go build -o /tmp/oracle-amd64 ./tools/go-oracle/tdewolff-minify
+/tmp/oracle-amd64 rt css 500000 2001 - | RTDIFF_OUT=/tmp/mm.tsv target/release/examples/rtdiff
+$O rerun /tmp/mm.tsv /tmp/rr && target/release/examples/rtdiff /tmp/rr/rerun.txt.gz
+```
+
+(or `$O rt … - | rtdiff` directly, ~5× slower under qemu). For speed most
+runs used the amd64 oracle and re-answered every mismatch with the arm64
+oracle (`rerun`); only records that still differ from the arm64 answer
+count. (amd64 disagrees with arm64 on 0.05–0.2% of the generated
+html/css/svg records: the fused `rgbToToken`/HSL2RGB roundings.)
 
 * `tests/upstream.rs` — the upstream `_test.go` tables, extracted literally
   (911 rows: html ×9 tests, css ×3, json ×2, svg ×4 + path data ×2, xml ×2,
@@ -185,7 +271,15 @@ only).
   Configurations include neohugo's seeksnack setup, all option combinations
   of the upstream tests, `M.URL` http/https, template delimiters, and
   stand-in nested minifiers (copy, error, trimming "js", a js minifier
-  returning a positioned `*parse.Error`).
+  returning a positioned `*parse.Error`). The red-team's `o:…` names
+  (`tests/common/configs.rs::dyn_config`, Go `dynM`) encode any option
+  combination. `redteam` (69 records: CSS functions nested 100,000 deep in
+  stylesheets, `style=""`, `<style>`, SVG, plus deep JSON/XML/SVG/HTML
+  nesting, and the 6 `local('` inputs of "Go panics" (the 4 panicking
+  ones are `!` records), 3 configurations; 1 MiB stack) and
+  `redteam_nested` (10 records:
+  nested `<iframe>`/`type=text/html` minifier calls 3,333 deep; 1 GiB
+  stack) are the red-team regressions (`rt regress`).
 * `tests/corpus.rs` (`#[ignore]`, needs the corpora): the 4910
   .html/.xml/.json files of `golden/nominify`, the 2672 pristine site
   sources (templates, SCSS/CSS, SVG, JSON), the recorded nested calls of a
@@ -194,7 +288,8 @@ only).
 
 Results (2026-09-27, debug with overflow checks and release):
 
-* checked-in fixtures: 114,165 / 114,165 records; upstream 911/911 rows;
+* checked-in fixtures: 114,244 / 114,244 records (79 of them the red-team
+  regressions); upstream 911/911 rows;
   the 17 other tests of `upstream.rs` pass.
 * 30× set (`$SCRATCH/work/tdewolff-minify/fixtures-full`): literals
   14,942/14,942, fuzz 289,460/289,460, structured 135,000/135,000, units
@@ -208,6 +303,36 @@ Results (2026-09-27, debug with overflow checks and release):
   pre-minify input differs between Go builds (term-title collisions:
   "Lay's"/"Lays", "INS 322(i)"/"INS 322i", "5'-"/"5-"), not minifier output.
 
+Red-team (2026-09-27, linux/x86_64, `rt`/`adv` streamed into `rtdiff`,
+release build with overflow checks). "amd64" runs re-answered every
+mismatch with the arm64 oracle under qemu; "arm64" runs used the arm64
+oracle directly. 36.1M records in total, **0 records that differ from arm64
+Go** (the deep-nesting failures came from targeted probes, 37 to 3M levels,
+not from these generators):
+
+| kind | records | seeds / oracle |
+|---|---|---|
+| html (3 chaos levels, random `o:` configs) | 1,200,000 + 122,000 | 1001–1003 amd64; 1, 101, 1004 arm64 |
+| hugo (seeksnack-shaped pages) | 320,000 + 50,000 | 11001–11002 amd64; 11003 arm64 |
+| css (sheets + inline) | 1,595,432 + 300,000 | 2001, 2002, 2004, 2005 amd64; 2003, 2006 arm64 |
+| svg | 800,000 + 100,000 | 3001–3003 amd64; 3004 arm64 |
+| xml | 800,000 | 4001–4002 amd64 |
+| json | 1,500,000 | 5001–5002 amd64 |
+| units (num/dec/mt/duri/path) | 20,861,715 + 1,043,072 | 6001–6003 amd64; 6004 arm64 |
+| bytes (damaged docs + all upstream literals) | 1,000,000 + 100,000 | 8001–8002 amd64; 8003 arm64 |
+| refuzz (damaged inputs of the checked-in fixtures) | 800,000 | 12001–12002 amd64 |
+| trunc (every prefix) | 4,000,149 | 9001, 9002 amd64 (2 Go panics, matched) |
+| big (64 KiB–2 MiB documents) | 1,000 | 7001–7002 amd64 |
+| adv (the earlier adversarial generator) | 1,537,500 | 1001 arm64, 1002 amd64 |
+| hand-written (`cases`): error positions through nested minifiers, CDATA style growth, 100,000-byte path data limit, the `local('` panic | 437 (3 Go panics, matched) | amd64 + arm64 |
+
+The one Rust-side divergence found was the deep-nesting stack overflow
+(above; plus nested-minifier depth, documented). The one Go panic found is
+listed under "Go panics". `examples/minify.rs` (the Rust twin of the
+oracle's `stdin` mode) used `M::string`, which returns the untouched input on
+error, while the oracle uses `M.Bytes`, which returns the input as the
+minifier rewrote it; it now uses `M::bytes` (tooling only).
+
 ## Known gaps
 
 * The js minifier (separate crate). Upstream table rows that need it (2 rows
@@ -215,3 +340,6 @@ Results (2026-09-27, debug with overflow checks and release):
   Go-without-js.
 * `AddCmd*`, streaming `Reader`/`Writer`/`ResponseWriter`/`Middleware` (not
   used by neohugo).
+* Nested minifier calls recurse on the Rust stack (~2.2 KB per level); run on
+  a large stack for untrusted input (see "Deep nesting").
+* Inputs on which Go panics make the port panic too (see "Go panics").

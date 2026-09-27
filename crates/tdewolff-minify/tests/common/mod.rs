@@ -17,9 +17,19 @@ pub fn fixtures_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
 }
 
+/// The checked-in fixture directory (ignores `TDEWOLFF_MINIFY_FIXTURES`).
+pub fn checked_in_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures")
+}
+
 /// Reads `<name>.txt.gz` as tab-separated records (comment lines skipped).
 pub fn records(name: &str) -> Vec<Vec<String>> {
-    let p = fixtures_dir().join(format!("{}.txt.gz", name));
+    records_in(&fixtures_dir(), name)
+}
+
+/// Reads `<dir>/<name>.txt.gz` as tab-separated records.
+pub fn records_in(dir: &std::path::Path, name: &str) -> Vec<Vec<String>> {
+    let p = dir.join(format!("{}.txt.gz", name));
     let f = std::fs::File::open(&p).unwrap_or_else(|e| panic!("{}: {}", p.display(), e));
     let mut s = String::new();
     flate2::read::GzDecoder::new(f)

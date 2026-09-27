@@ -84,7 +84,13 @@ pub fn minify(
 }
 
 /// Go: css.Token — a parsed token with extra information for functions.
-#[derive(Clone, Debug)]
+///
+/// `Clone`, `Drop` and [`Token::equal`] walk nested `args` with an explicit
+/// stack instead of recursing: Go's goroutine stack grows to 1 GB, so Go
+/// minifies functions nested ~1M deep (`a{b:f(f(f(…)))}`), while recursion
+/// over such a tree overflows a Rust thread stack (PORTING.md, "Deep
+/// nesting").
+#[derive(Debug)]
 pub struct Token {
     pub token_type: TokenType,
     pub data: GoBytes,
@@ -94,6 +100,54 @@ pub struct Token {
     pub fun: Hash,
     /// only filled for identifiers
     pub ident: Hash,
+}
+
+impl Clone for Token {
+    /// Deep copy of the token tree without recursion (see [`Token`]).
+    fn clone(&self) -> Token {
+        let shallow = |t: &Token, args: Vec<Token>| Token {
+            token_type: t.token_type,
+            data: t.data.clone(),
+            args,
+            fun: t.fun,
+            ident: t.ident,
+        };
+        // (source token, its cloned args so far)
+        let mut stack: Vec<(&Token, Vec<Token>)> =
+            vec![(self, Vec::with_capacity(self.args.len()))];
+        loop {
+            let (src, done) = stack.last_mut().unwrap();
+            let src: &Token = src;
+            if done.len() < src.args.len() {
+                let child = &src.args[done.len()];
+                if child.args.is_empty() {
+                    done.push(shallow(child, Vec::new()));
+                } else {
+                    stack.push((child, Vec::with_capacity(child.args.len())));
+                }
+                continue;
+            }
+            let (src, args) = stack.pop().unwrap();
+            let t = shallow(src, args);
+            match stack.last_mut() {
+                Some((_, parent)) => parent.push(t),
+                Option::None => return t,
+            }
+        }
+    }
+}
+
+impl Drop for Token {
+    /// Drops nested args iteratively (see [`Token`]).
+    fn drop(&mut self) {
+        if self.args.is_empty() {
+            return;
+        }
+        let mut stack = std::mem::take(&mut self.args);
+        while let Some(mut t) = stack.pop() {
+            stack.append(&mut t.args);
+        }
+    }
 }
 
 impl Default for Token {
@@ -140,19 +194,19 @@ impl Token {
 
     // Go: css/css.go:Token.Equal
     /// Returns true if both tokens are equal.
+    /// (Go recurses over `Args`; an explicit stack visits the same pairs.)
     pub fn equal(&self, t2: &Token) -> bool {
-        if self.token_type == t2.token_type
-            && self.data == t2.data
-            && self.args.len() == t2.args.len()
-        {
-            for i in 0..self.args.len() {
-                if !self.args[i].equal(&t2.args[i]) {
-                    return false;
+        let mut stack = vec![(self, t2)];
+        while let Some((t, t2)) = stack.pop() {
+            if t.token_type == t2.token_type && t.data == t2.data && t.args.len() == t2.args.len() {
+                for i in (0..t.args.len()).rev() {
+                    stack.push((&t.args[i], &t2.args[i]));
                 }
+            } else {
+                return false;
             }
-            return true;
         }
-        false
+        true
     }
 
     // Go: css/css.go:Token.IsZero
@@ -481,43 +535,73 @@ impl CssMinifier<'_> {
     }
 
     // Go: css/css.go:cssMinifier.parseFunction
+    ///
+    /// Go recurses into nested functions (`c.parseFunction(values[i:])`);
+    /// this port keeps one frame per open function on an explicit stack so
+    /// that deep nesting cannot overflow the thread stack (see [`Token`]).
+    /// `i` indexes `values` in every frame: a Go callee gets `values[i:]`
+    /// (its index is ours minus the position of its function token), and
+    /// the caller's `i += di - 1` followed by the loop's `i++` lands exactly
+    /// on the callee's final `i`, so one shared `i` serves all frames.
     fn parse_function(&mut self, values: &[tdewolff_parse::css::Token]) -> (Vec<Token>, usize) {
-        let mut i = 1;
-        let mut level = 0;
-        let mut args: Vec<Token> = Vec::new();
-        while i < values.len() {
-            let tt = values[i].token_type;
-            let data = values[i].data.clone();
-            if tt == LeftParenthesisToken {
-                level += 1;
-            } else if tt == RightParenthesisToken {
-                if level == 0 {
-                    i += 1;
-                    break;
-                }
-                level -= 1;
-            }
-            if tt == FunctionToken {
-                let (sub_args, di) = self.parse_function(&values[i..]);
-                let h = to_hash_lower(&data.slice_to(data.len() - 1)); // TODO: use ToHashFold
-                args.push(Token {
-                    token_type: tt,
-                    data,
-                    args: sub_args,
-                    fun: h,
-                    ident: Hash(0),
-                });
-                i += di - 1;
-            } else {
-                let mut h = Hash(0);
-                if tt == IdentToken {
-                    h = to_hash_lower(&data); // TODO: use ToHashFold
-                }
-                args.push(Token::new(tt, data, Hash(0), h));
-            }
-            i += 1;
+        struct Frame {
+            args: Vec<Token>,
+            level: i64,
+            data: GoBytes, // the function token's data (unused for the outermost frame)
         }
-        (args, i)
+        let mut stack: Vec<Frame> = Vec::new();
+        let mut f = Frame {
+            args: Vec::new(),
+            level: 0,
+            data: GoBytes::nil(),
+        };
+        let mut i = 1;
+        loop {
+            while i < values.len() {
+                let tt = values[i].token_type;
+                let data = values[i].data.clone();
+                if tt == LeftParenthesisToken {
+                    f.level += 1;
+                } else if tt == RightParenthesisToken {
+                    if f.level == 0 {
+                        i += 1;
+                        break;
+                    }
+                    f.level -= 1;
+                }
+                if tt == FunctionToken {
+                    // subArgs, di := c.parseFunction(values[i:])
+                    let callee = Frame {
+                        args: Vec::new(),
+                        level: 0,
+                        data,
+                    };
+                    stack.push(std::mem::replace(&mut f, callee));
+                } else {
+                    let mut h = Hash(0);
+                    if tt == IdentToken {
+                        h = to_hash_lower(&data); // TODO: use ToHashFold
+                    }
+                    f.args.push(Token::new(tt, data, Hash(0), h));
+                }
+                i += 1;
+            }
+            // return args, i
+            let Some(caller) = stack.pop() else {
+                return (f.args, i);
+            };
+            let callee = std::mem::replace(&mut f, caller);
+            let data = callee.data;
+            let h = to_hash_lower(&data.slice_to(data.len() - 1)); // TODO: use ToHashFold
+            f.args.push(Token {
+                token_type: FunctionToken,
+                data,
+                args: callee.args,
+                fun: h,
+                ident: Hash(0),
+            });
+            // i += di - 1; i++ (the caller continues at the callee's final i)
+        }
     }
 
     // Go: css/css.go:cssMinifier.parseDeclaration
@@ -657,12 +741,25 @@ impl CssMinifier<'_> {
     }
 
     // Go: css/css.go:cssMinifier.writeFunction
+    ///
+    /// Go recurses into nested functions; an explicit stack of argument
+    /// iterators writes the same bytes without recursion (see [`Token`]).
     fn write_function(&mut self, args: &[Token]) {
-        for arg in args {
-            self.wrg(&arg.data);
-            if arg.token_type == FunctionToken {
-                self.write_function(&arg.args);
-                self.wr(RIGHT_PAREN_BYTES);
+        let mut stack = vec![args.iter()];
+        while let Some(it) = stack.last_mut() {
+            match it.next() {
+                Some(arg) => {
+                    self.wrg(&arg.data);
+                    if arg.token_type == FunctionToken {
+                        stack.push(arg.args.iter()); // c.writeFunction(arg.Args)
+                    }
+                }
+                Option::None => {
+                    stack.pop();
+                    if !stack.is_empty() {
+                        self.wr(RIGHT_PAREN_BYTES); // after the nested c.writeFunction
+                    }
+                }
             }
         }
     }

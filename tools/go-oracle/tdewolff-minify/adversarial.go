@@ -1066,7 +1066,7 @@ func genCases(outDir, listFile string) {
 			cfgs = append(append([]string{}, allConfigNames...), "dummyjs", "errjs", "t-htmlcsssvg", "xml-json-rx", "errplain")
 		}
 		for _, cfg := range cfgs {
-			minRec(w, cfg, configByName(cfg), f[0], []byte(in))
+			minRecSafe(w, cfg, configByName(cfg), f[0], []byte(in))
 		}
 	}
 	w.close()

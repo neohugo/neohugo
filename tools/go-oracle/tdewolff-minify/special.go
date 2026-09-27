@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"regexp"
+	"strings"
 
 	"github.com/tdewolff/minify/v2"
 	"github.com/tdewolff/minify/v2/css"
@@ -120,6 +121,9 @@ var specialConfigs = []config{
 }
 
 func configByName(name string) *minify.M {
+	if strings.HasPrefix(name, "o:") {
+		return dynM(name) // redteam.go
+	}
 	for _, c := range configs {
 		if c.name == name {
 			return c.m()

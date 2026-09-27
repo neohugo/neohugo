@@ -215,8 +215,86 @@ pub fn config(name: &str) -> M {
             },
             xml::Minifier::default(),
         ),
+        n if n.starts_with("o:") => dyn_config(n),
         _ => special_config(name),
     }
+}
+
+/// Go `rtDelims` (redteam.go): the template delimiters of "o:" configs.
+const RT_DELIMS: [[&str; 2]; 6] = [
+    ["", ""],
+    html::GoTemplateDelims,
+    html::EJSTemplateDelims,
+    html::PHPTemplateDelims,
+    ["[[", "]]"],
+    ["{", "}"],
+];
+
+/// Go `dynM` (redteam.go): the configuration encoded in an "o:" name,
+/// `o:HHHHHHH:T:CP:CF:SP:SF:JP:JF:X:U:N`.
+pub fn dyn_config(name: &str) -> M {
+    let f: Vec<&str> = name.split(':').collect();
+    assert!(f.len() == 12 && f[0] == "o", "bad dyn config {}", name);
+    let bit = |s: &str, i: usize| s.as_bytes()[i] == b'1';
+    let num = |s: &str| -> i64 { s.parse().unwrap() };
+    let h = html::Minifier {
+        keep_comments: bit(f[1], 0),
+        keep_special_comments: bit(f[1], 1),
+        keep_default_attr_vals: bit(f[1], 2),
+        keep_document_tags: bit(f[1], 3),
+        keep_end_tags: bit(f[1], 4),
+        keep_quotes: bit(f[1], 5),
+        keep_whitespace: bit(f[1], 6),
+        template_delims: delims(RT_DELIMS[num(f[2]) as usize]),
+        ..Default::default()
+    };
+    let c = css::Minifier {
+        precision: num(f[3]),
+        keep_css2: bit(f[4], 0),
+        inline: bit(f[4], 1),
+    };
+    let s = svg::Minifier {
+        precision: num(f[5]),
+        keep_comments: bit(f[6], 0),
+        inline: bit(f[6], 1),
+    };
+    let j = json::Minifier {
+        precision: num(f[7]),
+        keep_numbers: bit(f[8], 0),
+    };
+    let x = xml::Minifier {
+        keep_whitespace: bit(f[9], 0),
+    };
+    let mut m = all_m(h, c, j, s, x);
+    let scheme = match f[10] {
+        "1" => "http",
+        "2" => "https",
+        "3" => "ftp",
+        _ => "",
+    };
+    if !scheme.is_empty() {
+        m.url = Some(Url {
+            scheme: scheme.to_string(),
+        });
+    }
+    match f[11] {
+        "1" => m.add_func_regexp(Regexp::must_compile(JS_PATTERN), trim_copy_func),
+        "2" => m.add_func_regexp(Regexp::must_compile(JS_PATTERN), err_js_func),
+        "3" => {
+            m.add_func("application/javascript", copy_func);
+            m.add_func("application/mathml+xml", copy_func);
+        }
+        "4" => {
+            m.add_func("text/css", copy_func);
+            m.add_func("application/javascript", copy_func);
+        }
+        "5" => {
+            m.add_func("image/svg+xml", err_plain_func);
+            m.add_func("application/mathml+xml", err_plain_func);
+        }
+        _ => {}
+    }
+    m
 }
 
 /// Go `io.Copy(w, r)` as a minifier (upstream tests' dummy css/js).
