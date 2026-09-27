@@ -28,7 +28,7 @@ cd "$SITE"
 cp static/admin/config.yml static/admin/config.yml.bak
 cp static/admin/index.html static/admin/index.html.bak
 # Finder metadata that was present in static/ and is copied to the output.
-cp "$HERE/site-overlay/static/.DS_Store" static/.DS_Store
+cp "$HERE/site-overlay/static/DS_Store" static/.DS_Store  # stored without the dot: .DS_Store is gitignored
 
 npm ci --no-audit --no-fund
 cp -r node_modules/@fortawesome/fontawesome-free/webfonts static/assets/
