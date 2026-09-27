@@ -1,0 +1,22 @@
+[package]
+name = "goldmark"
+version = "0.1.0"
+edition = "2024"
+description = "Byte-exact port of github.com/yuin/goldmark v1.7.12 (CommonMark parser + HTML renderer) with Go semantics"
+license = "MIT"
+
+[dependencies]
+go-unicode = { path = "../go-unicode" }
+go-strconv = { path = "../go-strconv" }
+go-url = { path = "../go-url" }
+go-sort = { path = "../go-sort" }
+
+[dev-dependencies]
+# Test-only: reads the gzip-compressed oracle fixtures (decompression only).
+flate2 = "1"
+
+[profile.test]
+opt-level = 2
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

@@ -1,0 +1,276 @@
+=== options/attr/1
+cfg 4
+attr
+md 331
+## Title 0
+
+## Title1 # {#id_1 .class-1}
+
+## Title2 {#id_2}
+
+## Title3 ## {#id_3 .class-3}
+
+## Title4 ## {data-attr3=value3}
+
+## Title5 ## {#id_5 data-attr5=value5}
+
+## Title6 ## {#id_6 .class6 data-attr6=value6}
+
+## Title7 ## {#id_7 data-attr7="value \"7"}
+
+## Title8 {#id .className data-attrName=attrValue class="class1 class2"}
+spec 430
+<h2 id="title-0">Title 0</h2>
+<h2 id="id_1" class="class-1">Title1</h2>
+<h2 id="id_2">Title2</h2>
+<h2 id="id_3" class="class-3">Title3</h2>
+<h2 data-attr3="value3" id="title4">Title4</h2>
+<h2 id="id_5" data-attr5="value5">Title5</h2>
+<h2 id="id_6" class="class6" data-attr6="value6">Title6</h2>
+<h2 id="id_7" data-attr7="value &quot;7">Title7</h2>
+<h2 id="id" class="className class1 class2" data-attrName="attrValue">Title8</h2>
+
+html 430
+<h2 id="title-0">Title 0</h2>
+<h2 id="id_1" class="class-1">Title1</h2>
+<h2 id="id_2">Title2</h2>
+<h2 id="id_3" class="class-3">Title3</h2>
+<h2 data-attr3="value3" id="title4">Title4</h2>
+<h2 id="id_5" data-attr5="value5">Title5</h2>
+<h2 id="id_6" class="class6" data-attr6="value6">Title6</h2>
+<h2 id="id_7" data-attr7="value &quot;7">Title7</h2>
+<h2 id="id" class="className class1 class2" data-attrName="attrValue">Title8</h2>
+
+=== options/default/1
+cfg 7
+default
+md 331
+## Title 0
+
+## Title1 # {#id_1 .class-1}
+
+## Title2 {#id_2}
+
+## Title3 ## {#id_3 .class-3}
+
+## Title4 ## {data-attr3=value3}
+
+## Title5 ## {#id_5 data-attr5=value5}
+
+## Title6 ## {#id_6 .class6 data-attr6=value6}
+
+## Title7 ## {#id_7 data-attr7="value \"7"}
+
+## Title8 {#id .className data-attrName=attrValue class="class1 class2"}
+html 402
+<h2>Title 0</h2>
+<h2>Title1 # {#id_1 .class-1}</h2>
+<h2>Title2 {#id_2}</h2>
+<h2>Title3 ## {#id_3 .class-3}</h2>
+<h2>Title4 ## {data-attr3=value3}</h2>
+<h2>Title5 ## {#id_5 data-attr5=value5}</h2>
+<h2>Title6 ## {#id_6 .class6 data-attr6=value6}</h2>
+<h2>Title7 ## {#id_7 data-attr7=&quot;value &quot;7&quot;}</h2>
+<h2>Title8 {#id .className data-attrName=attrValue class=&quot;class1 class2&quot;}</h2>
+
+=== options/all/1
+cfg 3
+all
+md 331
+## Title 0
+
+## Title1 # {#id_1 .class-1}
+
+## Title2 {#id_2}
+
+## Title3 ## {#id_3 .class-3}
+
+## Title4 ## {data-attr3=value3}
+
+## Title5 ## {#id_5 data-attr5=value5}
+
+## Title6 ## {#id_6 .class6 data-attr6=value6}
+
+## Title7 ## {#id_7 data-attr7="value \"7"}
+
+## Title8 {#id .className data-attrName=attrValue class="class1 class2"}
+html 430
+<h2 id="title-0">Title 0</h2>
+<h2 id="id_1" class="class-1">Title1</h2>
+<h2 id="id_2">Title2</h2>
+<h2 id="id_3" class="class-3">Title3</h2>
+<h2 data-attr3="value3" id="title4">Title4</h2>
+<h2 id="id_5" data-attr5="value5">Title5</h2>
+<h2 id="id_6" class="class6" data-attr6="value6">Title6</h2>
+<h2 id="id_7" data-attr7="value &quot;7">Title7</h2>
+<h2 id="id" class="className class1 class2" data-attrName="attrValue">Title8</h2>
+
+=== options/attr/2
+cfg 4
+attr
+md 7
+#
+# FOO
+spec 45
+<h1 id="heading"></h1>
+<h1 id="foo">FOO</h1>
+
+html 45
+<h1 id="heading"></h1>
+<h1 id="foo">FOO</h1>
+
+=== options/default/2
+cfg 7
+default
+md 7
+#
+# FOO
+html 23
+<h1></h1>
+<h1>FOO</h1>
+
+=== options/all/2
+cfg 3
+all
+md 7
+#
+# FOO
+html 45
+<h1 id="heading"></h1>
+<h1 id="foo">FOO</h1>
+
+=== options/attr/3
+cfg 4
+attr
+md 35
+## `records(self, zone, params={})`
+spec 82
+<h2 id="recordsself-zone-params"><code>records(self, zone, params={})</code></h2>
+
+html 82
+<h2 id="recordsself-zone-params"><code>records(self, zone, params={})</code></h2>
+
+=== options/default/3
+cfg 7
+default
+md 35
+## `records(self, zone, params={})`
+html 53
+<h2><code>records(self, zone, params={})</code></h2>
+
+=== options/all/3
+cfg 3
+all
+md 35
+## `records(self, zone, params={})`
+html 82
+<h2 id="recordsself-zone-params"><code>records(self, zone, params={})</code></h2>
+
+=== options/attr/4
+cfg 4
+attr
+md 58
+## Test {#hey .sort,class=fine,class=shell} Doesn't matter
+spec 117
+<h2 id="test-hey-sortclassfineclassshell-doesnt-matter">Test {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+html 117
+<h2 id="test-hey-sortclassfineclassshell-doesnt-matter">Test {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+=== options/default/4
+cfg 7
+default
+md 58
+## Test {#hey .sort,class=fine,class=shell} Doesn't matter
+html 65
+<h2>Test {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+=== options/all/4
+cfg 3
+all
+md 58
+## Test {#hey .sort,class=fine,class=shell} Doesn't matter
+html 117
+<h2 id="test-hey-sortclassfineclassshell-doesnt-matter">Test {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+=== options/attr/5
+cfg 4
+attr
+md 61
+## Test ## {#hey .sort,class=fine,class=shell} Doesn't matter
+spec 121
+<h2 id="test--hey-sortclassfineclassshell-doesnt-matter">Test ## {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+html 121
+<h2 id="test--hey-sortclassfineclassshell-doesnt-matter">Test ## {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+=== options/default/5
+cfg 7
+default
+md 61
+## Test ## {#hey .sort,class=fine,class=shell} Doesn't matter
+html 68
+<h2>Test ## {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+=== options/all/5
+cfg 3
+all
+md 61
+## Test ## {#hey .sort,class=fine,class=shell} Doesn't matter
+html 121
+<h2 id="test--hey-sortclassfineclassshell-doesnt-matter">Test ## {#hey .sort,class=fine,class=shell} Doesn't matter</h2>
+
+=== options/attr/6
+cfg 4
+attr
+md 21
+# Test ## {class=0#.}
+spec 47
+<h1 id="test--class0">Test ## {class=0#.}</h1>
+
+html 47
+<h1 id="test--class0">Test ## {class=0#.}</h1>
+
+=== options/default/6
+cfg 7
+default
+md 21
+# Test ## {class=0#.}
+html 29
+<h1>Test ## {class=0#.}</h1>
+
+=== options/all/6
+cfg 3
+all
+md 21
+# Test ## {class=0#.}
+html 47
+<h1 id="test--class0">Test ## {class=0#.}</h1>
+
+=== options/attr/7
+cfg 4
+attr
+md 39
+# Test ## {#id-foo_bar:baz.qux .foobar}
+spec 53
+<h1 id="id-foo_bar:baz.qux" class="foobar">Test</h1>
+
+html 53
+<h1 id="id-foo_bar:baz.qux" class="foobar">Test</h1>
+
+=== options/default/7
+cfg 7
+default
+md 39
+# Test ## {#id-foo_bar:baz.qux .foobar}
+html 47
+<h1>Test ## {#id-foo_bar:baz.qux .foobar}</h1>
+
+=== options/all/7
+cfg 3
+all
+md 39
+# Test ## {#id-foo_bar:baz.qux .foobar}
+html 53
+<h1 id="id-foo_bar:baz.qux" class="foobar">Test</h1>
+

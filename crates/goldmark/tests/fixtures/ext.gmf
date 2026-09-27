@@ -1,0 +1,3667 @@
+=== ext-table/x-table/1
+cfg 7
+x-table
+md 41
+| foo | bar |
+| --- | --- |
+| baz | bim |
+spec 125
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>baz</td>
+<td>bim</td>
+</tr>
+</tbody>
+</table>
+
+html 125
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>baz</td>
+<td>bim</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/hugo/1
+cfg 4
+hugo
+md 41
+| foo | bar |
+| --- | --- |
+| baz | bim |
+html 125
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>baz</td>
+<td>bim</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-all/1
+cfg 5
+x-all
+md 41
+| foo | bar |
+| --- | --- |
+| baz | bim |
+html 125
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>baz</td>
+<td>bim</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-table/2
+cfg 7
+x-table
+md 45
+| abc | defghi |
+:-: | -----------:
+bar | baz
+spec 186
+<table>
+<thead>
+<tr>
+<th align="center">abc</th>
+<th align="right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">bar</td>
+<td align="right">baz</td>
+</tr>
+</tbody>
+</table>
+
+html 186
+<table>
+<thead>
+<tr>
+<th align="center">abc</th>
+<th align="right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">bar</td>
+<td align="right">baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/hugo/2
+cfg 4
+hugo
+md 45
+| abc | defghi |
+:-: | -----------:
+bar | baz
+html 230
+<table>
+<thead>
+<tr>
+<th style="text-align:center">abc</th>
+<th style="text-align:right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">bar</td>
+<td style="text-align:right">baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-all/2
+cfg 5
+x-all
+md 45
+| abc | defghi |
+:-: | -----------:
+bar | baz
+html 186
+<table>
+<thead>
+<tr>
+<th align="center">abc</th>
+<th align="right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">bar</td>
+<td align="right">baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-table/3
+cfg 7
+x-table
+md 51
+| f\|oo  |
+| ------ |
+| b `\|` az |
+| b **\|** im |
+spec 160
+<table>
+<thead>
+<tr>
+<th>f|oo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>b <code>|</code> az</td>
+</tr>
+<tr>
+<td>b <strong>|</strong> im</td>
+</tr>
+</tbody>
+</table>
+
+html 160
+<table>
+<thead>
+<tr>
+<th>f|oo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>b <code>|</code> az</td>
+</tr>
+<tr>
+<td>b <strong>|</strong> im</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/hugo/3
+cfg 4
+hugo
+md 51
+| f\|oo  |
+| ------ |
+| b `\|` az |
+| b **\|** im |
+html 160
+<table>
+<thead>
+<tr>
+<th>f|oo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>b <code>|</code> az</td>
+</tr>
+<tr>
+<td>b <strong>|</strong> im</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-all/3
+cfg 5
+x-all
+md 51
+| f\|oo  |
+| ------ |
+| b `\|` az |
+| b **\|** im |
+html 160
+<table>
+<thead>
+<tr>
+<th>f|oo</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>b <code>|</code> az</td>
+</tr>
+<tr>
+<td>b <strong>|</strong> im</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-table/4
+cfg 7
+x-table
+md 47
+| abc | def |
+| --- | --- |
+| bar | baz |
+> bar
+spec 163
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>bar</p>
+</blockquote>
+
+html 163
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>bar</p>
+</blockquote>
+
+=== ext-table/hugo/4
+cfg 4
+hugo
+md 47
+| abc | def |
+| --- | --- |
+| bar | baz |
+> bar
+html 163
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>bar</p>
+</blockquote>
+
+=== ext-table/x-all/4
+cfg 5
+x-all
+md 47
+| abc | def |
+| --- | --- |
+| bar | baz |
+> bar
+html 163
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>bar</p>
+</blockquote>
+
+=== ext-table/x-table/5
+cfg 7
+x-table
+md 50
+| abc | def |
+| --- | --- |
+| bar | baz |
+bar
+
+bar
+spec 170
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>bar</p>
+
+html 170
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>bar</p>
+
+=== ext-table/hugo/5
+cfg 4
+hugo
+md 50
+| abc | def |
+| --- | --- |
+| bar | baz |
+bar
+
+bar
+html 170
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>bar</p>
+
+=== ext-table/x-all/5
+cfg 5
+x-all
+md 50
+| abc | def |
+| --- | --- |
+| bar | baz |
+bar
+
+bar
+html 170
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>bar</p>
+
+=== ext-table/x-table/6
+cfg 7
+x-table
+md 29
+| abc | def |
+| --- |
+| bar |
+spec 37
+<p>| abc | def |
+| --- |
+| bar |</p>
+
+html 37
+<p>| abc | def |
+| --- |
+| bar |</p>
+
+=== ext-table/hugo/6
+cfg 4
+hugo
+md 29
+| abc | def |
+| --- |
+| bar |
+html 41
+<p>| abc | def |
+| &mdash; |
+| bar |</p>
+
+=== ext-table/x-all/6
+cfg 5
+x-all
+md 29
+| abc | def |
+| --- |
+| bar |
+html 41
+<p>| abc | def |
+| &mdash; |
+| bar |</p>
+
+=== ext-table/x-table/7
+cfg 7
+x-table
+md 55
+| abc | def |
+| --- | --- |
+| bar |
+| bar | baz | boo |
+spec 159
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+
+html 159
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/hugo/7
+cfg 4
+hugo
+md 55
+| abc | def |
+| --- | --- |
+| bar |
+| bar | baz | boo |
+html 159
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-all/7
+cfg 5
+x-all
+md 55
+| abc | def |
+| --- | --- |
+| bar |
+| bar | baz | boo |
+html 159
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td></td>
+</tr>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-table/8
+cfg 7
+x-table
+md 27
+| abc | def |
+| --- | --- |
+spec 71
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+</table>
+
+html 71
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+</table>
+
+=== ext-table/hugo/8
+cfg 4
+hugo
+md 27
+| abc | def |
+| --- | --- |
+html 71
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+</table>
+
+=== ext-table/x-all/8
+cfg 5
+x-all
+md 27
+| abc | def |
+| --- | --- |
+html 71
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>def</th>
+</tr>
+</thead>
+</table>
+
+=== ext-table/x-table/9
+cfg 7
+x-table
+md 27
+Foo|Bar
+---|---
+`Yoyo`|Dyne
+spec 140
+<table>
+<thead>
+<tr>
+<th>Foo</th>
+<th>Bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Yoyo</code></td>
+<td>Dyne</td>
+</tr>
+</tbody>
+</table>
+
+html 140
+<table>
+<thead>
+<tr>
+<th>Foo</th>
+<th>Bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Yoyo</code></td>
+<td>Dyne</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/hugo/9
+cfg 4
+hugo
+md 27
+Foo|Bar
+---|---
+`Yoyo`|Dyne
+html 140
+<table>
+<thead>
+<tr>
+<th>Foo</th>
+<th>Bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Yoyo</code></td>
+<td>Dyne</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-all/9
+cfg 5
+x-all
+md 27
+Foo|Bar
+---|---
+`Yoyo`|Dyne
+html 140
+<table>
+<thead>
+<tr>
+<th>Foo</th>
+<th>Bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Yoyo</code></td>
+<td>Dyne</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-table/10
+cfg 7
+x-table
+md 35
+foo|bar
+---|---
+`\` | second column
+spec 146
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\</code></td>
+<td>second column</td>
+</tr>
+</tbody>
+</table>
+
+html 146
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\</code></td>
+<td>second column</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/hugo/10
+cfg 4
+hugo
+md 35
+foo|bar
+---|---
+`\` | second column
+html 146
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\</code></td>
+<td>second column</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-all/10
+cfg 5
+x-all
+md 35
+foo|bar
+---|---
+`\` | second column
+html 146
+<table>
+<thead>
+<tr>
+<th>foo</th>
+<th>bar</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>\</code></td>
+<td>second column</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-table/x-table/11
+cfg 7
+x-table
+md 44
+**xxx**
+| hello |   hi  |
+| :----: | :----:|
+spec 130
+<p><strong>xxx</strong></p>
+<table>
+<thead>
+<tr>
+<th align="center">hello</th>
+<th align="center">hi</th>
+</tr>
+</thead>
+</table>
+
+html 130
+<p><strong>xxx</strong></p>
+<table>
+<thead>
+<tr>
+<th align="center">hello</th>
+<th align="center">hi</th>
+</tr>
+</thead>
+</table>
+
+=== ext-table/hugo/11
+cfg 4
+hugo
+md 44
+**xxx**
+| hello |   hi  |
+| :----: | :----:|
+html 152
+<p><strong>xxx</strong></p>
+<table>
+<thead>
+<tr>
+<th style="text-align:center">hello</th>
+<th style="text-align:center">hi</th>
+</tr>
+</thead>
+</table>
+
+=== ext-table/x-all/11
+cfg 5
+x-all
+md 44
+**xxx**
+| hello |   hi  |
+| :----: | :----:|
+html 130
+<p><strong>xxx</strong></p>
+<table>
+<thead>
+<tr>
+<th align="center">hello</th>
+<th align="center">hi</th>
+</tr>
+</thead>
+</table>
+
+=== ext-table/x-table/12
+cfg 7
+x-table
+md 11
+Foo
+    ---
+spec 15
+<p>Foo
+---</p>
+
+html 15
+<p>Foo
+---</p>
+
+=== ext-table/hugo/12
+cfg 4
+hugo
+md 11
+Foo
+    ---
+html 19
+<p>Foo
+&mdash;</p>
+
+=== ext-table/x-all/12
+cfg 5
+x-all
+md 11
+Foo
+    ---
+html 18
+<p>Foo&mdash;</p>
+
+=== ext-table/x-table/13
+cfg 7
+x-table
+md 18
+- aaa
+
+  Foo
+		---
+spec 48
+<ul>
+<li>
+<p>aaa</p>
+<p>Foo
+---</p>
+</li>
+</ul>
+
+html 48
+<ul>
+<li>
+<p>aaa</p>
+<p>Foo
+---</p>
+</li>
+</ul>
+
+=== ext-table/hugo/13
+cfg 4
+hugo
+md 18
+- aaa
+
+  Foo
+		---
+html 52
+<ul>
+<li>
+<p>aaa</p>
+<p>Foo
+&mdash;</p>
+</li>
+</ul>
+
+=== ext-table/x-all/13
+cfg 5
+x-all
+md 18
+- aaa
+
+  Foo
+		---
+html 51
+<ul>
+<li>
+<p>aaa</p>
+<p>Foo&mdash;</p>
+</li>
+</ul>
+
+=== ext-strikethrough/x-strike/1
+cfg 8
+x-strike
+md 20
+~~Hi~~ Hello, world!
+spec 35
+<p><del>Hi</del> Hello, world!</p>
+
+html 35
+<p><del>Hi</del> Hello, world!</p>
+
+=== ext-strikethrough/hugo/1
+cfg 4
+hugo
+md 20
+~~Hi~~ Hello, world!
+html 35
+<p><del>Hi</del> Hello, world!</p>
+
+=== ext-strikethrough/x-all/1
+cfg 5
+x-all
+md 20
+~~Hi~~ Hello, world!
+html 35
+<p><del>Hi</del> Hello, world!</p>
+
+=== ext-strikethrough/x-strike/2
+cfg 8
+x-strike
+md 30
+This ~~has a
+
+new paragraph~~.
+spec 44
+<p>This ~~has a</p>
+<p>new paragraph~~.</p>
+
+html 44
+<p>This ~~has a</p>
+<p>new paragraph~~.</p>
+
+=== ext-strikethrough/hugo/2
+cfg 4
+hugo
+md 30
+This ~~has a
+
+new paragraph~~.
+html 44
+<p>This ~~has a</p>
+<p>new paragraph~~.</p>
+
+=== ext-strikethrough/x-all/2
+cfg 5
+x-all
+md 30
+This ~~has a
+
+new paragraph~~.
+html 44
+<p>This ~~has a</p>
+<p>new paragraph~~.</p>
+
+=== ext-strikethrough/x-strike/3
+cfg 8
+x-strike
+md 18
+~Hi~ Hello, world!
+spec 35
+<p><del>Hi</del> Hello, world!</p>
+
+html 35
+<p><del>Hi</del> Hello, world!</p>
+
+=== ext-strikethrough/hugo/3
+cfg 4
+hugo
+md 18
+~Hi~ Hello, world!
+html 35
+<p><del>Hi</del> Hello, world!</p>
+
+=== ext-strikethrough/x-all/3
+cfg 5
+x-all
+md 18
+~Hi~ Hello, world!
+html 35
+<p><del>Hi</del> Hello, world!</p>
+
+=== ext-strikethrough/x-strike/4
+cfg 8
+x-strike
+md 27
+This will ~~~not~~~ strike.
+spec 35
+<p>This will ~~~not~~~ strike.</p>
+
+html 35
+<p>This will ~~~not~~~ strike.</p>
+
+=== ext-strikethrough/hugo/4
+cfg 4
+hugo
+md 27
+This will ~~~not~~~ strike.
+html 35
+<p>This will ~~~not~~~ strike.</p>
+
+=== ext-strikethrough/x-all/4
+cfg 5
+x-all
+md 27
+This will ~~~not~~~ strike.
+html 35
+<p>This will ~~~not~~~ strike.</p>
+
+=== ext-strikethrough/x-strike/5
+cfg 8
+x-strike
+md 22
+~~~Hi~~~ Hello, world!
+spec 48
+<pre><code class="language-Hi~~~"></code></pre>
+
+html 48
+<pre><code class="language-Hi~~~"></code></pre>
+
+=== ext-strikethrough/hugo/5
+cfg 4
+hugo
+md 22
+~~~Hi~~~ Hello, world!
+html 48
+<pre><code class="language-Hi~~~"></code></pre>
+
+=== ext-strikethrough/x-all/5
+cfg 5
+x-all
+md 22
+~~~Hi~~~ Hello, world!
+html 48
+<pre><code class="language-Hi~~~"></code></pre>
+
+=== ext-linkify/x-linkify/1
+cfg 9
+x-linkify
+md 18
+www.commonmark.org
+spec 66
+<p><a href="http://www.commonmark.org">www.commonmark.org</a></p>
+
+html 66
+<p><a href="http://www.commonmark.org">www.commonmark.org</a></p>
+
+=== ext-linkify/hugo/1
+cfg 4
+hugo
+md 18
+www.commonmark.org
+html 66
+<p><a href="http://www.commonmark.org">www.commonmark.org</a></p>
+
+=== ext-linkify/x-all/1
+cfg 5
+x-all
+md 18
+www.commonmark.org
+html 66
+<p><a href="http://www.commonmark.org">www.commonmark.org</a></p>
+
+=== ext-linkify/x-linkify/2
+cfg 9
+x-linkify
+md 51
+Visit www.commonmark.org/help for more information.
+spec 104
+<p>Visit <a href="http://www.commonmark.org/help">www.commonmark.org/help</a> for more information.</p>
+
+html 104
+<p>Visit <a href="http://www.commonmark.org/help">www.commonmark.org/help</a> for more information.</p>
+
+=== ext-linkify/hugo/2
+cfg 4
+hugo
+md 51
+Visit www.commonmark.org/help for more information.
+html 104
+<p>Visit <a href="http://www.commonmark.org/help">www.commonmark.org/help</a> for more information.</p>
+
+=== ext-linkify/x-all/2
+cfg 5
+x-all
+md 51
+Visit www.commonmark.org/help for more information.
+html 104
+<p>Visit <a href="http://www.commonmark.org/help">www.commonmark.org/help</a> for more information.</p>
+
+=== ext-linkify/x-linkify/3
+cfg 9
+x-linkify
+md 175
+www.google.com/search?q=Markup+(business)
+
+www.google.com/search?q=Markup+(business)))
+
+(www.google.com/search?q=Markup+(business))
+
+(www.google.com/search?q=Markup+(business)
+spec 453
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>))</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>)</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+
+html 453
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>))</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>)</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+
+=== ext-linkify/hugo/3
+cfg 4
+hugo
+md 175
+www.google.com/search?q=Markup+(business)
+
+www.google.com/search?q=Markup+(business)))
+
+(www.google.com/search?q=Markup+(business))
+
+(www.google.com/search?q=Markup+(business)
+html 453
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>))</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>)</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+
+=== ext-linkify/x-all/3
+cfg 5
+x-all
+md 175
+www.google.com/search?q=Markup+(business)
+
+www.google.com/search?q=Markup+(business)))
+
+(www.google.com/search?q=Markup+(business))
+
+(www.google.com/search?q=Markup+(business)
+html 453
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+<p><a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>))</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a>)</p>
+<p>(<a href="http://www.google.com/search?q=Markup+(business)">www.google.com/search?q=Markup+(business)</a></p>
+
+=== ext-linkify/x-linkify/4
+cfg 9
+x-linkify
+md 38
+www.google.com/search?q=(business))+ok
+spec 106
+<p><a href="http://www.google.com/search?q=(business))+ok">www.google.com/search?q=(business))+ok</a></p>
+
+html 106
+<p><a href="http://www.google.com/search?q=(business))+ok">www.google.com/search?q=(business))+ok</a></p>
+
+=== ext-linkify/hugo/4
+cfg 4
+hugo
+md 38
+www.google.com/search?q=(business))+ok
+html 106
+<p><a href="http://www.google.com/search?q=(business))+ok">www.google.com/search?q=(business))+ok</a></p>
+
+=== ext-linkify/x-all/4
+cfg 5
+x-all
+md 38
+www.google.com/search?q=(business))+ok
+html 106
+<p><a href="http://www.google.com/search?q=(business))+ok">www.google.com/search?q=(business))+ok</a></p>
+
+=== ext-linkify/x-linkify/5
+cfg 9
+x-linkify
+md 80
+www.google.com/search?q=commonmark&hl=en
+
+www.google.com/search?q=commonmark&hl;
+spec 224
+<p><a href="http://www.google.com/search?q=commonmark&amp;hl=en">www.google.com/search?q=commonmark&amp;hl=en</a></p>
+<p><a href="http://www.google.com/search?q=commonmark">www.google.com/search?q=commonmark</a>&amp;hl;</p>
+
+html 224
+<p><a href="http://www.google.com/search?q=commonmark&amp;hl=en">www.google.com/search?q=commonmark&amp;hl=en</a></p>
+<p><a href="http://www.google.com/search?q=commonmark">www.google.com/search?q=commonmark</a>&amp;hl;</p>
+
+=== ext-linkify/hugo/5
+cfg 4
+hugo
+md 80
+www.google.com/search?q=commonmark&hl=en
+
+www.google.com/search?q=commonmark&hl;
+html 224
+<p><a href="http://www.google.com/search?q=commonmark&amp;hl=en">www.google.com/search?q=commonmark&amp;hl=en</a></p>
+<p><a href="http://www.google.com/search?q=commonmark">www.google.com/search?q=commonmark</a>&amp;hl;</p>
+
+=== ext-linkify/x-all/5
+cfg 5
+x-all
+md 80
+www.google.com/search?q=commonmark&hl=en
+
+www.google.com/search?q=commonmark&hl;
+html 224
+<p><a href="http://www.google.com/search?q=commonmark&amp;hl=en">www.google.com/search?q=commonmark&amp;hl=en</a></p>
+<p><a href="http://www.google.com/search?q=commonmark">www.google.com/search?q=commonmark</a>&amp;hl;</p>
+
+=== ext-linkify/x-linkify/6
+cfg 9
+x-linkify
+md 24
+www.commonmark.org/he<lp
+spec 78
+<p><a href="http://www.commonmark.org/he">www.commonmark.org/he</a>&lt;lp</p>
+
+html 78
+<p><a href="http://www.commonmark.org/he">www.commonmark.org/he</a>&lt;lp</p>
+
+=== ext-linkify/hugo/6
+cfg 4
+hugo
+md 24
+www.commonmark.org/he<lp
+html 78
+<p><a href="http://www.commonmark.org/he">www.commonmark.org/he</a>&lt;lp</p>
+
+=== ext-linkify/x-all/6
+cfg 5
+x-all
+md 24
+www.commonmark.org/he<lp
+html 78
+<p><a href="http://www.commonmark.org/he">www.commonmark.org/he</a>&lt;lp</p>
+
+=== ext-linkify/x-linkify/7
+cfg 9
+x-linkify
+md 136
+http://commonmark.org
+
+(Visit https://encrypted.google.com/search?q=Markup+(business))
+
+Anonymous FTP is available at ftp://foo.bar.baz.
+spec 294
+<p><a href="http://commonmark.org">http://commonmark.org</a></p>
+<p>(Visit <a href="https://encrypted.google.com/search?q=Markup+(business)">https://encrypted.google.com/search?q=Markup+(business)</a>)</p>
+<p>Anonymous FTP is available at <a href="ftp://foo.bar.baz">ftp://foo.bar.baz</a>.</p>
+
+html 294
+<p><a href="http://commonmark.org">http://commonmark.org</a></p>
+<p>(Visit <a href="https://encrypted.google.com/search?q=Markup+(business)">https://encrypted.google.com/search?q=Markup+(business)</a>)</p>
+<p>Anonymous FTP is available at <a href="ftp://foo.bar.baz">ftp://foo.bar.baz</a>.</p>
+
+=== ext-linkify/hugo/7
+cfg 4
+hugo
+md 136
+http://commonmark.org
+
+(Visit https://encrypted.google.com/search?q=Markup+(business))
+
+Anonymous FTP is available at ftp://foo.bar.baz.
+html 294
+<p><a href="http://commonmark.org">http://commonmark.org</a></p>
+<p>(Visit <a href="https://encrypted.google.com/search?q=Markup+(business)">https://encrypted.google.com/search?q=Markup+(business)</a>)</p>
+<p>Anonymous FTP is available at <a href="ftp://foo.bar.baz">ftp://foo.bar.baz</a>.</p>
+
+=== ext-linkify/x-all/7
+cfg 5
+x-all
+md 136
+http://commonmark.org
+
+(Visit https://encrypted.google.com/search?q=Markup+(business))
+
+Anonymous FTP is available at ftp://foo.bar.baz.
+html 294
+<p><a href="http://commonmark.org">http://commonmark.org</a></p>
+<p>(Visit <a href="https://encrypted.google.com/search?q=Markup+(business)">https://encrypted.google.com/search?q=Markup+(business)</a>)</p>
+<p>Anonymous FTP is available at <a href="ftp://foo.bar.baz">ftp://foo.bar.baz</a>.</p>
+
+=== ext-linkify/x-linkify/8
+cfg 9
+x-linkify
+md 11
+foo@bar.baz
+spec 52
+<p><a href="mailto:foo@bar.baz">foo@bar.baz</a></p>
+
+html 52
+<p><a href="mailto:foo@bar.baz">foo@bar.baz</a></p>
+
+=== ext-linkify/hugo/8
+cfg 4
+hugo
+md 11
+foo@bar.baz
+html 52
+<p><a href="mailto:foo@bar.baz">foo@bar.baz</a></p>
+
+=== ext-linkify/x-all/8
+cfg 5
+x-all
+md 11
+foo@bar.baz
+html 52
+<p><a href="mailto:foo@bar.baz">foo@bar.baz</a></p>
+
+=== ext-linkify/x-linkify/9
+cfg 9
+x-linkify
+md 66
+hello@mail+xyz.example isn't valid, but hello+xyz@mail.example is.
+spec 118
+<p>hello@mail+xyz.example isn't valid, but <a href="mailto:hello+xyz@mail.example">hello+xyz@mail.example</a> is.</p>
+
+html 118
+<p>hello@mail+xyz.example isn't valid, but <a href="mailto:hello+xyz@mail.example">hello+xyz@mail.example</a> is.</p>
+
+=== ext-linkify/hugo/9
+cfg 4
+hugo
+md 66
+hello@mail+xyz.example isn't valid, but hello+xyz@mail.example is.
+html 124
+<p>hello@mail+xyz.example isn&rsquo;t valid, but <a href="mailto:hello+xyz@mail.example">hello+xyz@mail.example</a> is.</p>
+
+=== ext-linkify/x-all/9
+cfg 5
+x-all
+md 66
+hello@mail+xyz.example isn't valid, but hello+xyz@mail.example is.
+html 124
+<p>hello@mail+xyz.example isn&rsquo;t valid, but <a href="mailto:hello+xyz@mail.example">hello+xyz@mail.example</a> is.</p>
+
+=== ext-linkify/x-linkify/10
+cfg 9
+x-linkify
+md 53
+a.b-c_d@a.b
+
+a.b-c_d@a.b.
+
+a.b-c_d@a.b-
+
+a.b-c_d@a.b_
+spec 145
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a></p>
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a>.</p>
+<p>a.b-c_d@a.b-</p>
+<p>a.b-c_d@a.b_</p>
+
+html 145
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a></p>
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a>.</p>
+<p>a.b-c_d@a.b-</p>
+<p>a.b-c_d@a.b_</p>
+
+=== ext-linkify/hugo/10
+cfg 4
+hugo
+md 53
+a.b-c_d@a.b
+
+a.b-c_d@a.b.
+
+a.b-c_d@a.b-
+
+a.b-c_d@a.b_
+html 145
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a></p>
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a>.</p>
+<p>a.b-c_d@a.b-</p>
+<p>a.b-c_d@a.b_</p>
+
+=== ext-linkify/x-all/10
+cfg 5
+x-all
+md 53
+a.b-c_d@a.b
+
+a.b-c_d@a.b.
+
+a.b-c_d@a.b-
+
+a.b-c_d@a.b_
+html 145
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a></p>
+<p><a href="mailto:a.b-c_d@a.b">a.b-c_d@a.b</a>.</p>
+<p>a.b-c_d@a.b-</p>
+<p>a.b-c_d@a.b_</p>
+
+=== ext-linkify/x-linkify/11
+cfg 9
+x-linkify
+md 26
+https://github.com#sun,mon
+spec 75
+<p><a href="https://github.com#sun,mon">https://github.com#sun,mon</a></p>
+
+html 75
+<p><a href="https://github.com#sun,mon">https://github.com#sun,mon</a></p>
+
+=== ext-linkify/hugo/11
+cfg 4
+hugo
+md 26
+https://github.com#sun,mon
+html 75
+<p><a href="https://github.com#sun,mon">https://github.com#sun,mon</a></p>
+
+=== ext-linkify/x-all/11
+cfg 5
+x-all
+md 26
+https://github.com#sun,mon
+html 75
+<p><a href="https://github.com#sun,mon">https://github.com#sun,mon</a></p>
+
+=== ext-linkify/x-linkify/12
+cfg 9
+x-linkify
+md 27
+https://github.com/sunday's
+spec 77
+<p><a href="https://github.com/sunday's">https://github.com/sunday's</a></p>
+
+html 77
+<p><a href="https://github.com/sunday's">https://github.com/sunday's</a></p>
+
+=== ext-linkify/hugo/12
+cfg 4
+hugo
+md 27
+https://github.com/sunday's
+html 77
+<p><a href="https://github.com/sunday's">https://github.com/sunday's</a></p>
+
+=== ext-linkify/x-all/12
+cfg 5
+x-all
+md 27
+https://github.com/sunday's
+html 77
+<p><a href="https://github.com/sunday's">https://github.com/sunday's</a></p>
+
+=== ext-linkify/x-linkify/13
+cfg 9
+x-linkify
+md 29
+https://github.com?q=stars:>1
+spec 86
+<p><a href="https://github.com?q=stars:%3E1">https://github.com?q=stars:&gt;1</a></p>
+
+html 86
+<p><a href="https://github.com?q=stars:%3E1">https://github.com?q=stars:&gt;1</a></p>
+
+=== ext-linkify/hugo/13
+cfg 4
+hugo
+md 29
+https://github.com?q=stars:>1
+html 86
+<p><a href="https://github.com?q=stars:%3E1">https://github.com?q=stars:&gt;1</a></p>
+
+=== ext-linkify/x-all/13
+cfg 5
+x-all
+md 29
+https://github.com?q=stars:>1
+html 86
+<p><a href="https://github.com?q=stars:%3E1">https://github.com?q=stars:&gt;1</a></p>
+
+=== ext-linkify/x-linkify/14
+cfg 9
+x-linkify
+md 40
+[https://google.com](https://google.com)
+spec 59
+<p><a href="https://google.com">https://google.com</a></p>
+
+html 59
+<p><a href="https://google.com">https://google.com</a></p>
+
+=== ext-linkify/hugo/14
+cfg 4
+hugo
+md 40
+[https://google.com](https://google.com)
+html 59
+<p><a href="https://google.com">https://google.com</a></p>
+
+=== ext-linkify/x-all/14
+cfg 5
+x-all
+md 40
+[https://google.com](https://google.com)
+html 59
+<p><a href="https://google.com">https://google.com</a></p>
+
+=== ext-linkify/x-linkify/15
+cfg 9
+x-linkify
+md 34
+This is a `git@github.com:vim/vim`
+spec 53
+<p>This is a <code>git@github.com:vim/vim</code></p>
+
+html 53
+<p>This is a <code>git@github.com:vim/vim</code></p>
+
+=== ext-linkify/hugo/15
+cfg 4
+hugo
+md 34
+This is a `git@github.com:vim/vim`
+html 53
+<p>This is a <code>git@github.com:vim/vim</code></p>
+
+=== ext-linkify/x-all/15
+cfg 5
+x-all
+md 34
+This is a `git@github.com:vim/vim`
+html 53
+<p>This is a <code>git@github.com:vim/vim</code></p>
+
+=== ext-linkify/x-linkify/16
+cfg 9
+x-linkify
+md 19
+https://nic.college
+spec 61
+<p><a href="https://nic.college">https://nic.college</a></p>
+
+html 61
+<p><a href="https://nic.college">https://nic.college</a></p>
+
+=== ext-linkify/hugo/16
+cfg 4
+hugo
+md 19
+https://nic.college
+html 61
+<p><a href="https://nic.college">https://nic.college</a></p>
+
+=== ext-linkify/x-all/16
+cfg 5
+x-all
+md 19
+https://nic.college
+html 61
+<p><a href="https://nic.college">https://nic.college</a></p>
+
+=== ext-linkify/x-linkify/17
+cfg 9
+x-linkify
+md 36
+http://server.intranet.acme.com:1313
+spec 95
+<p><a href="http://server.intranet.acme.com:1313">http://server.intranet.acme.com:1313</a></p>
+
+html 95
+<p><a href="http://server.intranet.acme.com:1313">http://server.intranet.acme.com:1313</a></p>
+
+=== ext-linkify/hugo/17
+cfg 4
+hugo
+md 36
+http://server.intranet.acme.com:1313
+html 95
+<p><a href="http://server.intranet.acme.com:1313">http://server.intranet.acme.com:1313</a></p>
+
+=== ext-linkify/x-all/17
+cfg 5
+x-all
+md 36
+http://server.intranet.acme.com:1313
+html 95
+<p><a href="http://server.intranet.acme.com:1313">http://server.intranet.acme.com:1313</a></p>
+
+=== ext-linkify/x-linkify/18
+cfg 9
+x-linkify
+md 18
+https://g.page/foo
+spec 59
+<p><a href="https://g.page/foo">https://g.page/foo</a></p>
+
+html 59
+<p><a href="https://g.page/foo">https://g.page/foo</a></p>
+
+=== ext-linkify/hugo/18
+cfg 4
+hugo
+md 18
+https://g.page/foo
+html 59
+<p><a href="https://g.page/foo">https://g.page/foo</a></p>
+
+=== ext-linkify/x-all/18
+cfg 5
+x-all
+md 18
+https://g.page/foo
+html 59
+<p><a href="https://g.page/foo">https://g.page/foo</a></p>
+
+=== ext-linkify/x-linkify/19
+cfg 9
+x-linkify
+md 92
+__http://test.com/~/a__
+__http://test.com/~/__
+__http://test.com/~__
+__http://test.com/a/~__
+spec 283
+<p><strong><a href="http://test.com/~/a">http://test.com/~/a</a></strong>
+<strong><a href="http://test.com/~/">http://test.com/~/</a></strong>
+<strong><a href="http://test.com/">http://test.com/</a>~</strong>
+<strong><a href="http://test.com/a/">http://test.com/a/</a>~</strong></p>
+
+html 283
+<p><strong><a href="http://test.com/~/a">http://test.com/~/a</a></strong>
+<strong><a href="http://test.com/~/">http://test.com/~/</a></strong>
+<strong><a href="http://test.com/">http://test.com/</a>~</strong>
+<strong><a href="http://test.com/a/">http://test.com/a/</a>~</strong></p>
+
+=== ext-linkify/hugo/19
+cfg 4
+hugo
+md 92
+__http://test.com/~/a__
+__http://test.com/~/__
+__http://test.com/~__
+__http://test.com/a/~__
+html 283
+<p><strong><a href="http://test.com/~/a">http://test.com/~/a</a></strong>
+<strong><a href="http://test.com/~/">http://test.com/~/</a></strong>
+<strong><a href="http://test.com/">http://test.com/</a>~</strong>
+<strong><a href="http://test.com/a/">http://test.com/a/</a>~</strong></p>
+
+=== ext-linkify/x-all/19
+cfg 5
+x-all
+md 92
+__http://test.com/~/a__
+__http://test.com/~/__
+__http://test.com/~__
+__http://test.com/a/~__
+html 283
+<p><strong><a href="http://test.com/~/a">http://test.com/~/a</a></strong>
+<strong><a href="http://test.com/~/">http://test.com/~/</a></strong>
+<strong><a href="http://test.com/">http://test.com/</a>~</strong>
+<strong><a href="http://test.com/a/">http://test.com/a/</a>~</strong></p>
+
+=== ext-tasklist/x-tasklist/1
+cfg 10
+x-tasklist
+md 19
+- [ ] foo
+- [x] bar
+spec 120
+<ul>
+<li><input disabled="" type="checkbox"> foo</li>
+<li><input checked="" disabled="" type="checkbox"> bar</li>
+</ul>
+
+html 120
+<ul>
+<li><input disabled="" type="checkbox"> foo</li>
+<li><input checked="" disabled="" type="checkbox"> bar</li>
+</ul>
+
+=== ext-tasklist/hugo/1
+cfg 4
+hugo
+md 19
+- [ ] foo
+- [x] bar
+html 120
+<ul>
+<li><input disabled="" type="checkbox"> foo</li>
+<li><input checked="" disabled="" type="checkbox"> bar</li>
+</ul>
+
+=== ext-tasklist/x-all/1
+cfg 5
+x-all
+md 19
+- [ ] foo
+- [x] bar
+html 124
+<ul>
+<li><input disabled="" type="checkbox" /> foo</li>
+<li><input checked="" disabled="" type="checkbox" /> bar</li>
+</ul>
+
+=== ext-tasklist/x-tasklist/2
+cfg 10
+x-tasklist
+md 43
+- [x] foo
+  - [ ] bar
+  - [x] baz
+- [ ] bim
+spec 241
+<ul>
+<li><input checked="" disabled="" type="checkbox"> foo
+<ul>
+<li><input disabled="" type="checkbox"> bar</li>
+<li><input checked="" disabled="" type="checkbox"> baz</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> bim</li>
+</ul>
+
+html 241
+<ul>
+<li><input checked="" disabled="" type="checkbox"> foo
+<ul>
+<li><input disabled="" type="checkbox"> bar</li>
+<li><input checked="" disabled="" type="checkbox"> baz</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> bim</li>
+</ul>
+
+=== ext-tasklist/hugo/2
+cfg 4
+hugo
+md 43
+- [x] foo
+  - [ ] bar
+  - [x] baz
+- [ ] bim
+html 241
+<ul>
+<li><input checked="" disabled="" type="checkbox"> foo
+<ul>
+<li><input disabled="" type="checkbox"> bar</li>
+<li><input checked="" disabled="" type="checkbox"> baz</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox"> bim</li>
+</ul>
+
+=== ext-tasklist/x-all/2
+cfg 5
+x-all
+md 43
+- [x] foo
+  - [ ] bar
+  - [x] baz
+- [ ] bim
+html 249
+<ul>
+<li><input checked="" disabled="" type="checkbox" /> foo
+<ul>
+<li><input disabled="" type="checkbox" /> bar</li>
+<li><input checked="" disabled="" type="checkbox" /> baz</li>
+</ul>
+</li>
+<li><input disabled="" type="checkbox" /> bim</li>
+</ul>
+
+=== ext-tasklist/x-tasklist/3
+cfg 10
+x-tasklist
+md 13
+- test[x]=[x]
+spec 32
+<ul>
+<li>test[x]=[x]</li>
+</ul>
+
+html 32
+<ul>
+<li>test[x]=[x]</li>
+</ul>
+
+=== ext-tasklist/hugo/3
+cfg 4
+hugo
+md 13
+- test[x]=[x]
+html 32
+<ul>
+<li>test[x]=[x]</li>
+</ul>
+
+=== ext-tasklist/x-all/3
+cfg 5
+x-all
+md 13
+- test[x]=[x]
+html 32
+<ul>
+<li>test[x]=[x]</li>
+</ul>
+
+=== ext-tasklist/x-tasklist/4
+cfg 10
+x-tasklist
+md 9
++ [x] [x]
+spec 71
+<ul>
+<li><input checked="" disabled="" type="checkbox"> [x]</li>
+</ul>
+
+html 71
+<ul>
+<li><input checked="" disabled="" type="checkbox"> [x]</li>
+</ul>
+
+=== ext-tasklist/hugo/4
+cfg 4
+hugo
+md 9
++ [x] [x]
+html 71
+<ul>
+<li><input checked="" disabled="" type="checkbox"> [x]</li>
+</ul>
+
+=== ext-tasklist/x-all/4
+cfg 5
+x-all
+md 9
++ [x] [x]
+html 73
+<ul>
+<li><input checked="" disabled="" type="checkbox" /> [x]</li>
+</ul>
+
+=== ext-definition_list/x-deflist/1
+cfg 9
+x-deflist
+md 143
+Apple
+:   Pomaceous fruit of plants of the genus Malus in 
+the family Rosaceae.
+
+Orange
+:   The fruit of an evergreen tree of the genus Citrus.
+spec 181
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+html 181
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+=== ext-definition_list/hugo/1
+cfg 4
+hugo
+md 143
+Apple
+:   Pomaceous fruit of plants of the genus Malus in 
+the family Rosaceae.
+
+Orange
+:   The fruit of an evergreen tree of the genus Citrus.
+html 181
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+=== ext-definition_list/x-all/1
+cfg 5
+x-all
+md 143
+Apple
+:   Pomaceous fruit of plants of the genus Malus in 
+the family Rosaceae.
+
+Orange
+:   The fruit of an evergreen tree of the genus Citrus.
+html 181
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+=== ext-definition_list/x-deflist/2
+cfg 9
+x-deflist
+md 181
+Apple
+:   Pomaceous fruit of plants of the genus Malus in 
+    the family Rosaceae.
+:   An American computer company.
+
+Orange
+:   The fruit of an evergreen tree of the genus Citrus.
+spec 220
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dd>An American computer company.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+html 220
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dd>An American computer company.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+=== ext-definition_list/hugo/2
+cfg 4
+hugo
+md 181
+Apple
+:   Pomaceous fruit of plants of the genus Malus in 
+    the family Rosaceae.
+:   An American computer company.
+
+Orange
+:   The fruit of an evergreen tree of the genus Citrus.
+html 220
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dd>An American computer company.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+=== ext-definition_list/x-all/2
+cfg 5
+x-all
+md 181
+Apple
+:   Pomaceous fruit of plants of the genus Malus in 
+    the family Rosaceae.
+:   An American computer company.
+
+Orange
+:   The fruit of an evergreen tree of the genus Citrus.
+html 220
+<dl>
+<dt>Apple</dt>
+<dd>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</dd>
+<dd>An American computer company.</dd>
+<dt>Orange</dt>
+<dd>The fruit of an evergreen tree of the genus Citrus.</dd>
+</dl>
+
+=== ext-definition_list/x-deflist/3
+cfg 9
+x-deflist
+md 55
+Term 1
+Term 2
+:   Definition a
+
+Term 3
+:   Definition b
+spec 103
+<dl>
+<dt>Term 1</dt>
+<dt>Term 2</dt>
+<dd>Definition a</dd>
+<dt>Term 3</dt>
+<dd>Definition b</dd>
+</dl>
+
+html 103
+<dl>
+<dt>Term 1</dt>
+<dt>Term 2</dt>
+<dd>Definition a</dd>
+<dt>Term 3</dt>
+<dd>Definition b</dd>
+</dl>
+
+=== ext-definition_list/hugo/3
+cfg 4
+hugo
+md 55
+Term 1
+Term 2
+:   Definition a
+
+Term 3
+:   Definition b
+html 103
+<dl>
+<dt>Term 1</dt>
+<dt>Term 2</dt>
+<dd>Definition a</dd>
+<dt>Term 3</dt>
+<dd>Definition b</dd>
+</dl>
+
+=== ext-definition_list/x-all/3
+cfg 5
+x-all
+md 55
+Term 1
+Term 2
+:   Definition a
+
+Term 3
+:   Definition b
+html 103
+<dl>
+<dt>Term 1</dt>
+<dt>Term 2</dt>
+<dd>Definition a</dd>
+<dt>Term 3</dt>
+<dd>Definition b</dd>
+</dl>
+
+=== ext-definition_list/x-deflist/4
+cfg 9
+x-deflist
+md 150
+Apple
+
+:   Pomaceous fruit of plants of the genus Malus in 
+    the family Rosaceae.
+
+Orange
+
+:    The fruit of an evergreen tree of the genus Citrus.
+spec 199
+<dl>
+<dt>Apple</dt>
+<dd>
+<p>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</p>
+</dd>
+<dt>Orange</dt>
+<dd>
+<p>The fruit of an evergreen tree of the genus Citrus.</p>
+</dd>
+</dl>
+
+html 199
+<dl>
+<dt>Apple</dt>
+<dd>
+<p>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</p>
+</dd>
+<dt>Orange</dt>
+<dd>
+<p>The fruit of an evergreen tree of the genus Citrus.</p>
+</dd>
+</dl>
+
+=== ext-definition_list/hugo/4
+cfg 4
+hugo
+md 150
+Apple
+
+:   Pomaceous fruit of plants of the genus Malus in 
+    the family Rosaceae.
+
+Orange
+
+:    The fruit of an evergreen tree of the genus Citrus.
+html 199
+<dl>
+<dt>Apple</dt>
+<dd>
+<p>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</p>
+</dd>
+<dt>Orange</dt>
+<dd>
+<p>The fruit of an evergreen tree of the genus Citrus.</p>
+</dd>
+</dl>
+
+=== ext-definition_list/x-all/4
+cfg 5
+x-all
+md 150
+Apple
+
+:   Pomaceous fruit of plants of the genus Malus in 
+    the family Rosaceae.
+
+Orange
+
+:    The fruit of an evergreen tree of the genus Citrus.
+html 199
+<dl>
+<dt>Apple</dt>
+<dd>
+<p>Pomaceous fruit of plants of the genus Malus in
+the family Rosaceae.</p>
+</dd>
+<dt>Orange</dt>
+<dd>
+<p>The fruit of an evergreen tree of the genus Citrus.</p>
+</dd>
+</dl>
+
+=== ext-definition_list/x-deflist/5
+cfg 9
+x-deflist
+md 527
+Term 1
+
+:   This is a definition with two paragraphs. Lorem ipsum 
+    dolor sit amet, consectetuer adipiscing elit. Aliquam 
+    hendrerit mi posuere lectus.
+
+    Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+    vitae, risus.
+
+:   Second definition for term 1, also wrapped in a paragraph
+    because of the blank line preceding it.
+
+Term 2
+
+:   This definition has a code block, a blockquote and a list.
+
+        code block.
+
+    > block quote
+    > on two lines.
+
+    1.  first list item
+    2.  second list item
+spec 628
+<dl>
+<dt>Term 1</dt>
+<dd>
+<p>This is a definition with two paragraphs. Lorem ipsum
+dolor sit amet, consectetuer adipiscing elit. Aliquam
+hendrerit mi posuere lectus.</p>
+<p>Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+vitae, risus.</p>
+</dd>
+<dd>
+<p>Second definition for term 1, also wrapped in a paragraph
+because of the blank line preceding it.</p>
+</dd>
+<dt>Term 2</dt>
+<dd>
+<p>This definition has a code block, a blockquote and a list.</p>
+<pre><code>code block.
+</code></pre>
+<blockquote>
+<p>block quote
+on two lines.</p>
+</blockquote>
+<ol>
+<li>first list item</li>
+<li>second list item</li>
+</ol>
+</dd>
+</dl>
+
+html 628
+<dl>
+<dt>Term 1</dt>
+<dd>
+<p>This is a definition with two paragraphs. Lorem ipsum
+dolor sit amet, consectetuer adipiscing elit. Aliquam
+hendrerit mi posuere lectus.</p>
+<p>Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+vitae, risus.</p>
+</dd>
+<dd>
+<p>Second definition for term 1, also wrapped in a paragraph
+because of the blank line preceding it.</p>
+</dd>
+<dt>Term 2</dt>
+<dd>
+<p>This definition has a code block, a blockquote and a list.</p>
+<pre><code>code block.
+</code></pre>
+<blockquote>
+<p>block quote
+on two lines.</p>
+</blockquote>
+<ol>
+<li>first list item</li>
+<li>second list item</li>
+</ol>
+</dd>
+</dl>
+
+=== ext-definition_list/hugo/5
+cfg 4
+hugo
+md 527
+Term 1
+
+:   This is a definition with two paragraphs. Lorem ipsum 
+    dolor sit amet, consectetuer adipiscing elit. Aliquam 
+    hendrerit mi posuere lectus.
+
+    Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+    vitae, risus.
+
+:   Second definition for term 1, also wrapped in a paragraph
+    because of the blank line preceding it.
+
+Term 2
+
+:   This definition has a code block, a blockquote and a list.
+
+        code block.
+
+    > block quote
+    > on two lines.
+
+    1.  first list item
+    2.  second list item
+html 628
+<dl>
+<dt>Term 1</dt>
+<dd>
+<p>This is a definition with two paragraphs. Lorem ipsum
+dolor sit amet, consectetuer adipiscing elit. Aliquam
+hendrerit mi posuere lectus.</p>
+<p>Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+vitae, risus.</p>
+</dd>
+<dd>
+<p>Second definition for term 1, also wrapped in a paragraph
+because of the blank line preceding it.</p>
+</dd>
+<dt>Term 2</dt>
+<dd>
+<p>This definition has a code block, a blockquote and a list.</p>
+<pre><code>code block.
+</code></pre>
+<blockquote>
+<p>block quote
+on two lines.</p>
+</blockquote>
+<ol>
+<li>first list item</li>
+<li>second list item</li>
+</ol>
+</dd>
+</dl>
+
+=== ext-definition_list/x-all/5
+cfg 5
+x-all
+md 527
+Term 1
+
+:   This is a definition with two paragraphs. Lorem ipsum 
+    dolor sit amet, consectetuer adipiscing elit. Aliquam 
+    hendrerit mi posuere lectus.
+
+    Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+    vitae, risus.
+
+:   Second definition for term 1, also wrapped in a paragraph
+    because of the blank line preceding it.
+
+Term 2
+
+:   This definition has a code block, a blockquote and a list.
+
+        code block.
+
+    > block quote
+    > on two lines.
+
+    1.  first list item
+    2.  second list item
+html 628
+<dl>
+<dt>Term 1</dt>
+<dd>
+<p>This is a definition with two paragraphs. Lorem ipsum
+dolor sit amet, consectetuer adipiscing elit. Aliquam
+hendrerit mi posuere lectus.</p>
+<p>Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+vitae, risus.</p>
+</dd>
+<dd>
+<p>Second definition for term 1, also wrapped in a paragraph
+because of the blank line preceding it.</p>
+</dd>
+<dt>Term 2</dt>
+<dd>
+<p>This definition has a code block, a blockquote and a list.</p>
+<pre><code>code block.
+</code></pre>
+<blockquote>
+<p>block quote
+on two lines.</p>
+</blockquote>
+<ol>
+<li>first list item</li>
+<li>second list item</li>
+</ol>
+</dd>
+</dl>
+
+=== ext-definition_list/x-deflist/6
+cfg 9
+x-deflist
+md 11
+0
+:	```
+		0
+spec 60
+<dl>
+<dt>0</dt>
+<dd><pre><code>	0
+</code></pre>
+</dd>
+</dl>
+
+html 60
+<dl>
+<dt>0</dt>
+<dd><pre><code>	0
+</code></pre>
+</dd>
+</dl>
+
+=== ext-definition_list/hugo/6
+cfg 4
+hugo
+md 11
+0
+:	```
+		0
+html 60
+<dl>
+<dt>0</dt>
+<dd><pre><code>	0
+</code></pre>
+</dd>
+</dl>
+
+=== ext-definition_list/x-all/6
+cfg 5
+x-all
+md 11
+0
+:	```
+		0
+html 60
+<dl>
+<dt>0</dt>
+<dd><pre><code>	0
+</code></pre>
+</dd>
+</dl>
+
+=== ext-footnote/x-footnote/1
+cfg 10
+x-footnote
+md 103
+That's some text with a footnote.[^1]
+
+[^1]: And that's the footnote.
+
+    That's the second paragraph.
+spec 372
+<p>That's some text with a footnote.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>And that's the footnote.</p>
+<p>That's the second paragraph.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+html 372
+<p>That's some text with a footnote.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>And that's the footnote.</p>
+<p>That's the second paragraph.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/hugo/1
+cfg 4
+hugo
+md 103
+That's some text with a footnote.[^1]
+
+[^1]: And that's the footnote.
+
+    That's the second paragraph.
+html 390
+<p>That&rsquo;s some text with a footnote.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>And that&rsquo;s the footnote.</p>
+<p>That&rsquo;s the second paragraph.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/x-all/1
+cfg 5
+x-all
+md 103
+That's some text with a footnote.[^1]
+
+[^1]: And that's the footnote.
+
+    That's the second paragraph.
+html 392
+<p>That&rsquo;s some text with a footnote.<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn:1">
+<p>And that&rsquo;s the footnote.</p>
+<p>That&rsquo;s the second paragraph.&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/x-footnote/3
+cfg 10
+x-footnote
+md 13
+[^000]:0	[^]:
+spec 0
+
+html 0
+
+=== ext-footnote/hugo/3
+cfg 4
+hugo
+md 13
+[^000]:0	[^]:
+html 0
+
+=== ext-footnote/x-all/3
+cfg 5
+x-all
+md 13
+[^000]:0	[^]:
+html 0
+
+=== ext-footnote/x-footnote/4
+cfg 10
+x-footnote
+md 100
+This[^3] is[^1] text with footnotes[^2].
+
+[^1]: Footnote one
+[^2]: Footnote two
+[^3]: Footnote three
+spec 753
+<p>This<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> is<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup> text with footnotes<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>.</p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Footnote three&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>Footnote one&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>Footnote two&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+html 753
+<p>This<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> is<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup> text with footnotes<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>.</p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Footnote three&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>Footnote one&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>Footnote two&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/hugo/4
+cfg 4
+hugo
+md 100
+This[^3] is[^1] text with footnotes[^2].
+
+[^1]: Footnote one
+[^2]: Footnote two
+[^3]: Footnote three
+html 753
+<p>This<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> is<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup> text with footnotes<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>.</p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>Footnote three&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>Footnote one&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>Footnote two&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/x-all/4
+cfg 5
+x-all
+md 100
+This[^3] is[^1] text with footnotes[^2].
+
+[^1]: Footnote one
+[^2]: Footnote two
+[^3]: Footnote three
+html 755
+<p>This<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup> is<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup> text with footnotes<sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>.</p>
+<div class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn:1">
+<p>Footnote three&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:2">
+<p>Footnote one&#160;<a href="#fnref:2" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+<li id="fn:3">
+<p>Footnote two&#160;<a href="#fnref:3" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/x-footnote/5
+cfg 10
+x-footnote
+md 25
+test![^1]
+
+[^1]: footnote
+spec 292
+<p>test!<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>footnote&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+html 292
+<p>test!<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>footnote&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/hugo/5
+cfg 4
+hugo
+md 25
+test![^1]
+
+[^1]: footnote
+html 292
+<p>test!<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>footnote&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/x-all/5
+cfg 5
+x-all
+md 25
+test![^1]
+
+[^1]: footnote
+html 294
+<p>test!<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn:1">
+<p>footnote&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/x-footnote/6
+cfg 10
+x-footnote
+md 76
+something[^fn:1]
+
+something[^fn:1]
+
+something[^fn:1]
+
+[^fn:1]: footnote text
+spec 689
+<p>something<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref1:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref2:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>footnote text&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref1:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref2:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+html 689
+<p>something<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref1:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref2:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>footnote text&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref1:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref2:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/hugo/6
+cfg 4
+hugo
+md 76
+something[^fn:1]
+
+something[^fn:1]
+
+something[^fn:1]
+
+[^fn:1]: footnote text
+html 689
+<p>something<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref1:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref2:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="fn:1">
+<p>footnote text&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref1:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref2:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-footnote/x-all/6
+cfg 5
+x-all
+md 76
+something[^fn:1]
+
+something[^fn:1]
+
+something[^fn:1]
+
+[^fn:1]: footnote text
+html 691
+<p>something<sup id="fnref:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref1:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<p>something<sup id="fnref2:1"><a href="#fn:1" class="footnote-ref" role="doc-noteref">1</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="fn:1">
+<p>footnote text&#160;<a href="#fnref:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref1:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a>&#160;<a href="#fnref2:1" class="footnote-backref" role="doc-backlink">&#x21a9;&#xfe0e;</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-typographer/x-typo/1
+cfg 6
+x-typo
+md 25
+This should 'be' replaced
+spec 45
+<p>This should &lsquo;be&rsquo; replaced</p>
+
+html 45
+<p>This should &lsquo;be&rsquo; replaced</p>
+
+=== ext-typographer/hugo/1
+cfg 4
+hugo
+md 25
+This should 'be' replaced
+html 45
+<p>This should &lsquo;be&rsquo; replaced</p>
+
+=== ext-typographer/x-all/1
+cfg 5
+x-all
+md 25
+This should 'be' replaced
+html 45
+<p>This should &lsquo;be&rsquo; replaced</p>
+
+=== ext-typographer/x-typo/2
+cfg 6
+x-typo
+md 25
+This should "be" replaced
+spec 45
+<p>This should &ldquo;be&rdquo; replaced</p>
+
+html 45
+<p>This should &ldquo;be&rdquo; replaced</p>
+
+=== ext-typographer/hugo/2
+cfg 4
+hugo
+md 25
+This should "be" replaced
+html 45
+<p>This should &ldquo;be&rdquo; replaced</p>
+
+=== ext-typographer/x-all/2
+cfg 5
+x-all
+md 25
+This should "be" replaced
+html 45
+<p>This should &ldquo;be&rdquo; replaced</p>
+
+=== ext-typographer/x-typo/3
+cfg 6
+x-typo
+md 23
+**--** *---* a...<< b>>
+spec 75
+<p><strong>&ndash;</strong> <em>&mdash;</em> a&hellip;&laquo; b&raquo;</p>
+
+html 75
+<p><strong>&ndash;</strong> <em>&mdash;</em> a&hellip;&laquo; b&raquo;</p>
+
+=== ext-typographer/hugo/3
+cfg 4
+hugo
+md 23
+**--** *---* a...<< b>>
+html 75
+<p><strong>&ndash;</strong> <em>&mdash;</em> a&hellip;&laquo; b&raquo;</p>
+
+=== ext-typographer/x-all/3
+cfg 5
+x-all
+md 23
+**--** *---* a...<< b>>
+html 75
+<p><strong>&ndash;</strong> <em>&mdash;</em> a&hellip;&laquo; b&raquo;</p>
+
+=== ext-typographer/x-typo/4
+cfg 6
+x-typo
+md 62
+Some say '90s, others say 90's, but I can't say which is best.
+spec 88
+<p>Some say &rsquo;90s, others say 90&rsquo;s, but I can&rsquo;t say which is best.</p>
+
+html 88
+<p>Some say &rsquo;90s, others say 90&rsquo;s, but I can&rsquo;t say which is best.</p>
+
+=== ext-typographer/hugo/4
+cfg 4
+hugo
+md 62
+Some say '90s, others say 90's, but I can't say which is best.
+html 88
+<p>Some say &rsquo;90s, others say 90&rsquo;s, but I can&rsquo;t say which is best.</p>
+
+=== ext-typographer/x-all/4
+cfg 5
+x-all
+md 62
+Some say '90s, others say 90's, but I can't say which is best.
+html 88
+<p>Some say &rsquo;90s, others say 90&rsquo;s, but I can&rsquo;t say which is best.</p>
+
+=== ext-typographer/x-typo/5
+cfg 6
+x-typo
+md 102
+Alice's, I'm ,Don't, You'd
+
+I've, I'll, You're
+
+[Cat][]'s Pajamas
+
+Yahoo!'s
+
+[Cat]: http://example.com
+spec 184
+<p>Alice&rsquo;s, I&rsquo;m ,Don&rsquo;t, You&rsquo;d</p>
+<p>I&rsquo;ve, I&rsquo;ll, You&rsquo;re</p>
+<p><a href="http://example.com">Cat</a>&rsquo;s Pajamas</p>
+<p>Yahoo!&rsquo;s</p>
+
+html 184
+<p>Alice&rsquo;s, I&rsquo;m ,Don&rsquo;t, You&rsquo;d</p>
+<p>I&rsquo;ve, I&rsquo;ll, You&rsquo;re</p>
+<p><a href="http://example.com">Cat</a>&rsquo;s Pajamas</p>
+<p>Yahoo!&rsquo;s</p>
+
+=== ext-typographer/hugo/5
+cfg 4
+hugo
+md 102
+Alice's, I'm ,Don't, You'd
+
+I've, I'll, You're
+
+[Cat][]'s Pajamas
+
+Yahoo!'s
+
+[Cat]: http://example.com
+html 184
+<p>Alice&rsquo;s, I&rsquo;m ,Don&rsquo;t, You&rsquo;d</p>
+<p>I&rsquo;ve, I&rsquo;ll, You&rsquo;re</p>
+<p><a href="http://example.com">Cat</a>&rsquo;s Pajamas</p>
+<p>Yahoo!&rsquo;s</p>
+
+=== ext-typographer/x-all/5
+cfg 5
+x-all
+md 102
+Alice's, I'm ,Don't, You'd
+
+I've, I'll, You're
+
+[Cat][]'s Pajamas
+
+Yahoo!'s
+
+[Cat]: http://example.com
+html 184
+<p>Alice&rsquo;s, I&rsquo;m ,Don&rsquo;t, You&rsquo;d</p>
+<p>I&rsquo;ve, I&rsquo;ll, You&rsquo;re</p>
+<p><a href="http://example.com">Cat</a>&rsquo;s Pajamas</p>
+<p>Yahoo!&rsquo;s</p>
+
+=== ext-typographer/x-typo/6
+cfg 6
+x-typo
+md 19
+My height is 5'6"".
+spec 37
+<p>My height is 5'6&quot;&quot;.</p>
+
+html 37
+<p>My height is 5'6&quot;&quot;.</p>
+
+=== ext-typographer/hugo/6
+cfg 4
+hugo
+md 19
+My height is 5'6"".
+html 37
+<p>My height is 5'6&quot;&quot;.</p>
+
+=== ext-typographer/x-all/6
+cfg 5
+x-all
+md 19
+My height is 5'6"".
+html 37
+<p>My height is 5'6&quot;&quot;.</p>
+
+=== ext-typographer/x-typo/7
+cfg 6
+x-typo
+md 69
+reported "issue 1 (IE-only)", "issue 2", 'issue3 (FF-only)', 'issue4'
+spec 125
+<p>reported &ldquo;issue 1 (IE-only)&rdquo;, &ldquo;issue 2&rdquo;, &lsquo;issue3 (FF-only)&rsquo;, &lsquo;issue4&rsquo;</p>
+
+html 125
+<p>reported &ldquo;issue 1 (IE-only)&rdquo;, &ldquo;issue 2&rdquo;, &lsquo;issue3 (FF-only)&rsquo;, &lsquo;issue4&rsquo;</p>
+
+=== ext-typographer/hugo/7
+cfg 4
+hugo
+md 69
+reported "issue 1 (IE-only)", "issue 2", 'issue3 (FF-only)', 'issue4'
+html 125
+<p>reported &ldquo;issue 1 (IE-only)&rdquo;, &ldquo;issue 2&rdquo;, &lsquo;issue3 (FF-only)&rsquo;, &lsquo;issue4&rsquo;</p>
+
+=== ext-typographer/x-all/7
+cfg 5
+x-all
+md 69
+reported "issue 1 (IE-only)", "issue 2", 'issue3 (FF-only)', 'issue4'
+html 125
+<p>reported &ldquo;issue 1 (IE-only)&rdquo;, &ldquo;issue 2&rdquo;, &lsquo;issue3 (FF-only)&rsquo;, &lsquo;issue4&rsquo;</p>
+
+=== ext-typographer/x-typo/8
+cfg 6
+x-typo
+md 28
+"Monitor 21"" and "Monitor""
+spec 70
+<p>&ldquo;Monitor 21&quot;&rdquo; and &ldquo;Monitor&rdquo;&quot;</p>
+
+html 70
+<p>&ldquo;Monitor 21&quot;&rdquo; and &ldquo;Monitor&rdquo;&quot;</p>
+
+=== ext-typographer/hugo/8
+cfg 4
+hugo
+md 28
+"Monitor 21"" and "Monitor""
+html 70
+<p>&ldquo;Monitor 21&quot;&rdquo; and &ldquo;Monitor&rdquo;&quot;</p>
+
+=== ext-typographer/x-all/8
+cfg 5
+x-all
+md 28
+"Monitor 21"" and "Monitor""
+html 70
+<p>&ldquo;Monitor 21&quot;&rdquo; and &ldquo;Monitor&rdquo;&quot;</p>
+
+=== ext-typographer/x-typo/9
+cfg 6
+x-typo
+md 36
+*"At first, things were not clear."*
+spec 63
+<p><em>&ldquo;At first, things were not clear.&rdquo;</em></p>
+
+html 63
+<p><em>&ldquo;At first, things were not clear.&rdquo;</em></p>
+
+=== ext-typographer/hugo/9
+cfg 4
+hugo
+md 36
+*"At first, things were not clear."*
+html 63
+<p><em>&ldquo;At first, things were not clear.&rdquo;</em></p>
+
+=== ext-typographer/x-all/9
+cfg 5
+x-all
+md 36
+*"At first, things were not clear."*
+html 63
+<p><em>&ldquo;At first, things were not clear.&rdquo;</em></p>
+
+=== ext-typographer/x-typo/10
+cfg 6
+x-typo
+md 38
+**"At first, things were not clear."**
+spec 71
+<p><strong>&ldquo;At first, things were not clear.&rdquo;</strong></p>
+
+html 71
+<p><strong>&ldquo;At first, things were not clear.&rdquo;</strong></p>
+
+=== ext-typographer/hugo/10
+cfg 4
+hugo
+md 38
+**"At first, things were not clear."**
+html 71
+<p><strong>&ldquo;At first, things were not clear.&rdquo;</strong></p>
+
+=== ext-typographer/x-all/10
+cfg 5
+x-all
+md 38
+**"At first, things were not clear."**
+html 71
+<p><strong>&ldquo;At first, things were not clear.&rdquo;</strong></p>
+
+=== ext-typographer/x-typo/11
+cfg 6
+x-typo
+md 40
+***"At first, things were not clear."***
+spec 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+html 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+=== ext-typographer/hugo/11
+cfg 4
+hugo
+md 40
+***"At first, things were not clear."***
+html 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+=== ext-typographer/x-all/11
+cfg 5
+x-all
+md 40
+***"At first, things were not clear."***
+html 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+=== ext-typographer/x-typo/12
+cfg 6
+x-typo
+md 40
+***"At first, things were not clear."***
+spec 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+html 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+=== ext-typographer/hugo/12
+cfg 4
+hugo
+md 40
+***"At first, things were not clear."***
+html 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+=== ext-typographer/x-all/12
+cfg 5
+x-all
+md 40
+***"At first, things were not clear."***
+html 80
+<p><em><strong>&ldquo;At first, things were not clear.&rdquo;</strong></em></p>
+
+=== ext-typographer/x-typo/13
+cfg 6
+x-typo
+md 56
+John's dog is named Sam. The Smiths' dog is named Rover.
+spec 76
+<p>John&rsquo;s dog is named Sam. The Smiths&rsquo; dog is named Rover.</p>
+
+html 76
+<p>John&rsquo;s dog is named Sam. The Smiths&rsquo; dog is named Rover.</p>
+
+=== ext-typographer/hugo/13
+cfg 4
+hugo
+md 56
+John's dog is named Sam. The Smiths' dog is named Rover.
+html 76
+<p>John&rsquo;s dog is named Sam. The Smiths&rsquo; dog is named Rover.</p>
+
+=== ext-typographer/x-all/13
+cfg 5
+x-all
+md 56
+John's dog is named Sam. The Smiths' dog is named Rover.
+html 76
+<p>John&rsquo;s dog is named Sam. The Smiths&rsquo; dog is named Rover.</p>
+
+=== ext-typographer/x-typo/14
+cfg 6
+x-typo
+md 107
+This is not difficult (see "[Introduction to Hugo Templating](https://gohugo.io/templates/introduction/)").
+spec 138
+<p>This is not difficult (see &ldquo;<a href="https://gohugo.io/templates/introduction/">Introduction to Hugo Templating</a>&rdquo;).</p>
+
+html 138
+<p>This is not difficult (see &ldquo;<a href="https://gohugo.io/templates/introduction/">Introduction to Hugo Templating</a>&rdquo;).</p>
+
+=== ext-typographer/hugo/14
+cfg 4
+hugo
+md 107
+This is not difficult (see "[Introduction to Hugo Templating](https://gohugo.io/templates/introduction/)").
+html 138
+<p>This is not difficult (see &ldquo;<a href="https://gohugo.io/templates/introduction/">Introduction to Hugo Templating</a>&rdquo;).</p>
+
+=== ext-typographer/x-all/14
+cfg 5
+x-all
+md 107
+This is not difficult (see "[Introduction to Hugo Templating](https://gohugo.io/templates/introduction/)").
+html 138
+<p>This is not difficult (see &ldquo;<a href="https://gohugo.io/templates/introduction/">Introduction to Hugo Templating</a>&rdquo;).</p>
+
+=== ext-typographer/x-typo/15
+cfg 6
+x-typo
+md 136
+Apple's early Cairo font gave us ["moof" and the "dogcow."](https://www.macworld.com/article/2926184/we-miss-you-clarus-the-dogcow.html)
+spec 185
+<p>Apple&rsquo;s early Cairo font gave us <a href="https://www.macworld.com/article/2926184/we-miss-you-clarus-the-dogcow.html">&ldquo;moof&rdquo; and the &ldquo;dogcow.&rdquo;</a></p>
+
+html 185
+<p>Apple&rsquo;s early Cairo font gave us <a href="https://www.macworld.com/article/2926184/we-miss-you-clarus-the-dogcow.html">&ldquo;moof&rdquo; and the &ldquo;dogcow.&rdquo;</a></p>
+
+=== ext-typographer/hugo/15
+cfg 4
+hugo
+md 136
+Apple's early Cairo font gave us ["moof" and the "dogcow."](https://www.macworld.com/article/2926184/we-miss-you-clarus-the-dogcow.html)
+html 185
+<p>Apple&rsquo;s early Cairo font gave us <a href="https://www.macworld.com/article/2926184/we-miss-you-clarus-the-dogcow.html">&ldquo;moof&rdquo; and the &ldquo;dogcow.&rdquo;</a></p>
+
+=== ext-typographer/x-all/15
+cfg 5
+x-all
+md 136
+Apple's early Cairo font gave us ["moof" and the "dogcow."](https://www.macworld.com/article/2926184/we-miss-you-clarus-the-dogcow.html)
+html 185
+<p>Apple&rsquo;s early Cairo font gave us <a href="https://www.macworld.com/article/2926184/we-miss-you-clarus-the-dogcow.html">&ldquo;moof&rdquo; and the &ldquo;dogcow.&rdquo;</a></p>
+
+=== ext-typographer/x-typo/16
+cfg 6
+x-typo
+md 46
+"I'm not doin' that," Bill said with emphasis.
+spec 78
+<p>&ldquo;I&rsquo;m not doin&rsquo; that,&rdquo; Bill said with emphasis.</p>
+
+html 78
+<p>&ldquo;I&rsquo;m not doin&rsquo; that,&rdquo; Bill said with emphasis.</p>
+
+=== ext-typographer/hugo/16
+cfg 4
+hugo
+md 46
+"I'm not doin' that," Bill said with emphasis.
+html 78
+<p>&ldquo;I&rsquo;m not doin&rsquo; that,&rdquo; Bill said with emphasis.</p>
+
+=== ext-typographer/x-all/16
+cfg 5
+x-all
+md 46
+"I'm not doin' that," Bill said with emphasis.
+html 78
+<p>&ldquo;I&rsquo;m not doin&rsquo; that,&rdquo; Bill said with emphasis.</p>
+
+=== ext-typographer/x-typo/17
+cfg 6
+x-typo
+md 77
+Janet said, "When everything is 'breaking news,' nothing is 'breaking news.'"
+spec 121
+<p>Janet said, &ldquo;When everything is &lsquo;breaking news,&rsquo; nothing is &lsquo;breaking news.&rsquo;&rdquo;</p>
+
+html 121
+<p>Janet said, &ldquo;When everything is &lsquo;breaking news,&rsquo; nothing is &lsquo;breaking news.&rsquo;&rdquo;</p>
+
+=== ext-typographer/hugo/17
+cfg 4
+hugo
+md 77
+Janet said, "When everything is 'breaking news,' nothing is 'breaking news.'"
+html 121
+<p>Janet said, &ldquo;When everything is &lsquo;breaking news,&rsquo; nothing is &lsquo;breaking news.&rsquo;&rdquo;</p>
+
+=== ext-typographer/x-all/17
+cfg 5
+x-all
+md 77
+Janet said, "When everything is 'breaking news,' nothing is 'breaking news.'"
+html 121
+<p>Janet said, &ldquo;When everything is &lsquo;breaking news,&rsquo; nothing is &lsquo;breaking news.&rsquo;&rdquo;</p>
+
+=== ext-typographer/x-typo/18
+cfg 6
+x-typo
+md 72
+We're talking about the internet --- 'net for short. Let's rock 'n roll!
+spec 108
+<p>We&rsquo;re talking about the internet &mdash; &rsquo;net for short. Let&rsquo;s rock &rsquo;n roll!</p>
+
+html 108
+<p>We&rsquo;re talking about the internet &mdash; &rsquo;net for short. Let&rsquo;s rock &rsquo;n roll!</p>
+
+=== ext-typographer/hugo/18
+cfg 4
+hugo
+md 72
+We're talking about the internet --- 'net for short. Let's rock 'n roll!
+html 108
+<p>We&rsquo;re talking about the internet &mdash; &rsquo;net for short. Let&rsquo;s rock &rsquo;n roll!</p>
+
+=== ext-typographer/x-all/18
+cfg 5
+x-all
+md 72
+We're talking about the internet --- 'net for short. Let's rock 'n roll!
+html 108
+<p>We&rsquo;re talking about the internet &mdash; &rsquo;net for short. Let&rsquo;s rock &rsquo;n roll!</p>
+
+=== ext-typographer/x-typo/19
+cfg 6
+x-typo
+md 59
+![Nice & day, **isn't** it?](https://example.com/image.jpg)
+spec 87
+<p><img src="https://example.com/image.jpg" alt="Nice &amp; day, isn&rsquo;t it?"></p>
+
+html 87
+<p><img src="https://example.com/image.jpg" alt="Nice &amp; day, isn&rsquo;t it?"></p>
+
+=== ext-typographer/hugo/19
+cfg 4
+hugo
+md 59
+![Nice & day, **isn't** it?](https://example.com/image.jpg)
+html 87
+<p><img src="https://example.com/image.jpg" alt="Nice &amp; day, isn&rsquo;t it?"></p>
+
+=== ext-typographer/x-all/19
+cfg 5
+x-all
+md 59
+![Nice & day, **isn't** it?](https://example.com/image.jpg)
+html 89
+<p><img src="https://example.com/image.jpg" alt="Nice &amp; day, isn&rsquo;t it?" /></p>
+
+=== ext-gotest/x-table/0
+cfg 7
+x-table
+md 47
+
+| abc | defghi |
+:-: | -----------:
+bar | baz
+
+html 186
+<table>
+<thead>
+<tr>
+<th align="center">abc</th>
+<th align="right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">bar</td>
+<td align="right">baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-gotest/x-table-attr/1
+cfg 12
+x-table-attr
+md 47
+
+| abc | defghi |
+:-: | -----------:
+bar | baz
+
+html 186
+<table>
+<thead>
+<tr>
+<th align="center">abc</th>
+<th align="right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td align="center">bar</td>
+<td align="right">baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-gotest/x-table-style/2
+cfg 13
+x-table-style
+md 47
+
+| abc | defghi |
+:-: | -----------:
+bar | baz
+
+html 230
+<table>
+<thead>
+<tr>
+<th style="text-align:center">abc</th>
+<th style="text-align:right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">bar</td>
+<td style="text-align:right">baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-gotest/x-table-none/3
+cfg 12
+x-table-none
+md 47
+
+| abc | defghi |
+:-: | -----------:
+bar | baz
+
+html 128
+<table>
+<thead>
+<tr>
+<th>abc</th>
+<th>defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bar</td>
+<td>baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-gotest/x-table-styletr/4
+cfg 15
+x-table-styletr
+md 47
+
+| abc | defghi |
+:-: | -----------:
+bar | baz
+
+html 244
+<table>
+<thead>
+<tr>
+<th style="font-size:1em;text-align:center">abc</th>
+<th style="text-align:right">defghi</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align:center">bar</td>
+<td style="text-align:right">baz</td>
+</tr>
+</tbody>
+</table>
+
+=== ext-gotest/x-table/5
+cfg 7
+x-table
+md 9
+* 0
+-|
+	0
+html 117
+<ul>
+<li>
+<table>
+<thead>
+<tr>
+<th>0</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+</li>
+</ul>
+
+=== ext-gotest/x-footnote-opts/6
+cfg 15
+x-footnote-opts
+md 132
+That's some text with a footnote.[^1]
+
+Same footnote.[^1]
+
+Another one.[^2]
+
+[^1]: And that's the footnote.
+[^2]: Another footnote.
+
+html 969
+<p>That's some text with a footnote.<sup id="article12-fnref:1"><a href="#article12-fn:1" class="link-class" title="link-title-2-1" role="doc-noteref">1</a></sup></p>
+<p>Same footnote.<sup id="article12-fnref1:1"><a href="#article12-fn:1" class="link-class" title="link-title-2-1" role="doc-noteref">1</a></sup></p>
+<p>Another one.<sup id="article12-fnref:2"><a href="#article12-fn:2" class="link-class" title="link-title-1-2" role="doc-noteref">2</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr />
+<ol>
+<li id="article12-fn:1">
+<p>And that's the footnote.&#160;<a href="#article12-fnref:1" class="backlink-class" title="backlink-title" role="doc-backlink">^</a>&#160;<a href="#article12-fnref1:1" class="backlink-class" title="backlink-title" role="doc-backlink">^</a></p>
+</li>
+<li id="article12-fn:2">
+<p>Another footnote.&#160;<a href="#article12-fnref:2" class="backlink-class" title="backlink-title" role="doc-backlink">^</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-gotest/x-footnote-fn/7
+cfg 13
+x-footnote-fn
+md 132
+That's some text with a footnote.[^1]
+
+Same footnote.[^1]
+
+Another one.[^2]
+
+[^1]: And that's the footnote.
+[^2]: Another footnote.
+
+html 967
+<p>That's some text with a footnote.<sup id="article12-fnref:1"><a href="#article12-fn:1" class="link-class" title="link-title-2-1" role="doc-noteref">1</a></sup></p>
+<p>Same footnote.<sup id="article12-fnref1:1"><a href="#article12-fn:1" class="link-class" title="link-title-2-1" role="doc-noteref">1</a></sup></p>
+<p>Another one.<sup id="article12-fnref:2"><a href="#article12-fn:2" class="link-class" title="link-title-1-2" role="doc-noteref">2</a></sup></p>
+<div class="footnotes" role="doc-endnotes">
+<hr>
+<ol>
+<li id="article12-fn:1">
+<p>And that's the footnote.&#160;<a href="#article12-fnref:1" class="backlink-class" title="backlink-title" role="doc-backlink">^</a>&#160;<a href="#article12-fnref1:1" class="backlink-class" title="backlink-title" role="doc-backlink">^</a></p>
+</li>
+<li id="article12-fn:2">
+<p>Another footnote.&#160;<a href="#article12-fnref:2" class="backlink-class" title="backlink-title" role="doc-backlink">^</a></p>
+</li>
+</ol>
+</div>
+
+=== ext-gotest/x-linkify-proto/8
+cfg 15
+x-linkify-proto
+md 45
+hoge ssh://user@hoge.com. http://example.com/
+spec 86
+<p>hoge <a href="ssh://user@hoge.com">ssh://user@hoge.com</a>. http://example.com/</p>
+html 87
+<p>hoge <a href="ssh://user@hoge.com">ssh://user@hoge.com</a>. http://example.com/</p>
+
+=== ext-gotest/x-linkify-www/9
+cfg 13
+x-linkify-www
+md 30
+www.google.com www.example.com
+spec 74
+<p>www.google.com <a href="http://www.example.com">www.example.com</a></p>
+html 75
+<p>www.google.com <a href="http://www.example.com">www.example.com</a></p>
+
+=== ext-gotest/x-linkify-email/10
+cfg 15
+x-linkify-email
+md 33
+hoge@example.com user@example.com
+spec 78
+<p>hoge@example.com <a href="mailto:user@example.com">user@example.com</a></p>
+html 79
+<p>hoge@example.com <a href="mailto:user@example.com">user@example.com</a></p>
+
+=== ext-gotest/x-cjk-esc/11
+cfg 9
+x-cjk-esc
+md 60
+太郎は\ **「こんにちわ」**\ と言った
+んです
+spec 76
+<p>太郎は<strong>「こんにちわ」</strong>と言った
+んです</p>
+html 77
+<p>太郎は<strong>「こんにちわ」</strong>と言った
+んです</p>
+
+=== ext-gotest/x-cjk/12
+cfg 5
+x-cjk
+md 60
+太郎は\ **「こんにちわ」**\ と言った
+んです
+html 76
+<p>太郎は<strong>「こんにちわ」</strong>と言ったんです</p>
+
+=== ext-gotest/x-cjk-linkify/13
+cfg 13
+x-cjk-linkify
+md 60
+太郎は\ **「こんにちわ」**\ と言った
+んです
+spec 76
+<p>太郎は<strong>「こんにちわ」</strong>と言った
+んです</p>
+html 77
+<p>太郎は<strong>「こんにちわ」</strong>と言った
+んです</p>
+

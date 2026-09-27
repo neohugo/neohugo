@@ -1,0 +1,18 @@
+[package]
+name = "go-fmt"
+version = "0.1.0"
+edition = "2024"
+description = "Faithful port of Go's fmt printing (go1.27.1 print.go + format.go) over go_value::Value"
+license = "BSD-3-Clause"
+
+[dependencies]
+go-value = { path = "../go-value" }
+go-strconv = { path = "../go-strconv" }
+go-unicode = { path = "../go-unicode" }
+go-time = { path = "../go-time" }
+
+[profile.test]
+opt-level = 3
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

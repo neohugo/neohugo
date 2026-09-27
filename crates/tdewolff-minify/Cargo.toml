@@ -1,0 +1,27 @@
+[package]
+name = "tdewolff-minify"
+version = "0.1.0"
+edition = "2024"
+description = "Byte-exact port of github.com/tdewolff/minify/v2@v2.23.8 (without the js minifier)"
+license = "MIT"
+
+[lib]
+name = "tdewolff_minify"
+path = "src/lib.rs"
+
+[dependencies]
+tdewolff-parse = { path = "../tdewolff-parse" }
+go-strconv = { path = "../go-strconv" }
+go-sort = { path = "../go-sort" }
+# Go `regexp` for M.AddRegexp (mimetype patterns); justification in PORTING.md.
+regex = "1"
+
+[dev-dependencies]
+# Test-only: reads the gzip-compressed Go oracle fixtures (decompression only).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+[profile.test]
+opt-level = 2
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

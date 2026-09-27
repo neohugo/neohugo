@@ -1,0 +1,16 @@
+[package]
+name = "go-flate"
+version = "0.1.0"
+edition = "2024"
+description = "Byte-exact port of Go 1.27.1 compress/flate (compressor + decompressor) and compress/zlib"
+license = "BSD-3-Clause"
+
+[dependencies]
+
+[dev-dependencies]
+
+[profile.test]
+opt-level = 2
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

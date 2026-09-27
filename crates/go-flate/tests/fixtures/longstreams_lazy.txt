@@ -1,0 +1,4 @@
+# go-flate oracle (go1.27.1) longstreams -levels 7,8,9 -noresets -total 629145600 (hashOffset > maxHashOffset rebase, twice)
+7 stream 629145600 310173634 96a063cbff9a4451 6f24db3d332c4d24 1030181
+8 stream 629145600 308844408 68b8ba86cc61165c fe6378a3471fec9d 1012743
+9 stream 629145600 304129507 8b9a04dfcba2e1bf 636e85e1998248e6 1004283

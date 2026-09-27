@@ -1,0 +1,22 @@
+[package]
+name = "tdewolff-parse-js"
+version = "0.1.0"
+edition = "2024"
+description = "Byte-exact port of github.com/tdewolff/parse/v2@v2.8.1/js (ECMAScript lexer, parser, AST and scope analysis)"
+license = "MIT"
+
+[lib]
+name = "tdewolff_parse_js"
+path = "src/lib.rs"
+
+[dependencies]
+tdewolff-parse = { path = "../tdewolff-parse" }
+go-unicode = { path = "../go-unicode" }
+go-sort = { path = "../go-sort" }
+
+[dev-dependencies]
+# Test-only: reads the gzip-compressed oracle fixtures (decompression only).
+flate2 = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

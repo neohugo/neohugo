@@ -1,0 +1,25 @@
+[package]
+name = "libsass-sys"
+version = "0.1.0"
+edition = "2024"
+description = "Vendored LibSass 3.6.6 (as compiled by github.com/bep/golibsass v1.2.0) plus a port of the golibsass Go wrapper"
+license = "MIT"
+build = "build.rs"
+
+[lib]
+name = "libsass_sys"
+
+[dependencies]
+# Go's unicode.IsPrint (== strconv.IsPrint) and utf8.DecodeRune for the %q in
+# libsasserrors.Error.Error().
+go-unicode = { path = "../go-unicode" }
+
+[dev-dependencies]
+# Fixtures are zlib-compressed (decompression only; allowed by crates/README.md).
+miniz_oxide = "0.8"
+
+[build-dependencies]
+cc = { version = "1", features = ["parallel"] }
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

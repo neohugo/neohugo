@@ -1,0 +1,22 @@
+[package]
+name = "libwebp-sys"
+version = "0.1.0"
+edition = "2024"
+description = "Vendored libwebp 1.3.2 (as compiled by github.com/bep/gowebp v0.3.0) plus a port of the gowebp Go wrapper"
+license = "BSD-3-Clause AND MIT"
+build = "build.rs"
+
+[lib]
+name = "libwebp_sys"
+
+[dependencies]
+
+[dev-dependencies]
+# Fixture inputs are zlib-compressed (decompression only; allowed by crates/README.md).
+miniz_oxide = "0.8"
+
+[build-dependencies]
+cc = { version = "1", features = ["parallel"] }
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
