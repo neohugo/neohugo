@@ -162,22 +162,49 @@ func writeFuzzMode(g *gmfWriter, n int, seed int64, cfgs []string, mode string) 
 		case "extbytes":
 			md = fuzzExtBytesDoc(r)
 		default:
-			md = fuzzDoc(r)
+			if d, ok := redteamDoc(mode, r); ok {
+				md = d
+			} else {
+				md = fuzzDoc(r)
+			}
 		}
 		cfg := cfgs[i%len(cfgs)]
+		if fuzzOnly >= 0 && i != fuzzOnly {
+			continue
+		}
 		g.record(fmt.Sprintf("fuzz-%s/%d/%d/%s", mode, seed, i, cfg))
 		g.field("cfg", []byte(cfg))
 		g.field("md", []byte(md))
-		g.field("html", convert(cfg, []byte(md)))
+		if fuzzWithTime {
+			// timed runs are for slow inputs: show which record is running
+			g.flush()
+		}
+		html, took := timedConvert(cfg, []byte(md))
+		g.field("html", html)
+		if fuzzWithAST {
+			g.field("ast", parseDump(cfg, []byte(md)))
+		}
+		if fuzzWithTime {
+			g.field("ns", []byte(fmt.Sprint(took.Nanoseconds())))
+		}
 	}
 }
+
+// Extra fields of the fuzz records (off for the checked-in fixtures).
+var fuzzWithAST, fuzzWithTime bool
+
+// fuzzOnly >= 0 writes only that record (to reproduce one input).
+var fuzzOnly = -1
 
 func fuzzMain(args []string) {
 	fs := flag.NewFlagSet("fuzz", flag.ExitOnError)
 	n := fs.Int("n", 10000, "number of documents")
 	seed := fs.Int64("seed", 1, "random seed")
 	cfgs := fs.String("cfg", strings.Join(configNames, ","), "configs")
-	mode := fs.String("mode", "tokens", "tokens|bytes|deep|plugin|ext|extbytes")
+	mode := fs.String("mode", "tokens", "tokens|bytes|deep|plugin|ext|extbytes|long|patho|unicode|labels|tabs|hugomix")
+	fs.BoolVar(&fuzzWithAST, "ast", false, "add an AST dump field (astdump.go)")
+	fs.BoolVar(&fuzzWithTime, "time", false, "add the Go conversion time (ns field)")
+	fs.IntVar(&fuzzOnly, "only", -1, "write only record i (the others are generated, not rendered)")
 	_ = fs.Parse(args)
 	g := newGMF(os.Stdout)
 	writeFuzzMode(g, *n, *seed, strings.Split(*cfgs, ","), *mode)

@@ -243,7 +243,19 @@ order: `table()`, `strikethrough()`, `linkify()`, `task_list()`,
     visiting order and the same FirstChild/NextSibling read points (Go
     recurses on growable goroutine stacks; a Rust thread stack would overflow
     on e.g. 20k nested blockquotes — `deep_nesting_on_a_small_stack` renders
-    such input on a 2 MiB stack). `Ast::text` and `dump` still recurse.
+    such input on a 2 MiB stack). The same holds for input-controlled
+    recursion found by the red-team pass (below): `parser.ParseAttributes` →
+    `parseAttribute` → `parseAttributeValue` → `ParseAttributes` /
+    `parseAttributeArray` run as one loop over an explicit frame stack,
+    making the same reader calls in the same order (`# h {a=[[[[…` 50k deep
+    aborted the process; Go parses it); `Ast::text` (Go's recursive
+    `BaseNode.Text`) walks the children on an explicit stack; `AttrValue`
+    has an iterative `Drop` (a 100k-deep array stored on a heading would
+    overflow the default recursive drop — so `AttrValue` cannot be
+    destructured by value: match by reference or `std::mem::take`); the
+    "interface conversion" panic of `{id=<non-bytes>}` names the Go type
+    (`AttrValue::go_type_name`) instead of `Debug`-printing the value.
+    Only the debug `Ast::dump` still recurses.
 11. `util.StringToReadOnlyBytes`/`BytesToReadOnlyString` and
     `PrioritizedSlice.Remove` are not ported (no Rust use).
 12. **Extension regular expressions** are hand-written matchers with Go's
@@ -307,7 +319,12 @@ go run ./tools/go-oracle/goldmark fuzz -mode tokens|bytes|deep|plugin -n N -seed
 GOLDMARK_DIR=... go run ./tools/go-oracle/goldmark extfixtures crates/goldmark/tests/fixtures <seeksnack>/content   # ext.gmf, ext-edge, ext-fuzz, corpus-ext
 go run ./tools/go-oracle/goldmark extregex crates/goldmark/tests/fixtures/ext-regex.gmf.gz 10000
 go run ./tools/go-oracle/goldmark fuzz -mode ext|extbytes -cfg hugo,x-all,... -n N -seed S > big.gmf
+GOLDMARK_DIR=... go run ./tools/go-oracle/goldmark redteamfixtures crates/goldmark/tests/fixtures   # redteam*.gmf.gz (all HTML5 entity names)
 ```
+
+Run the oracle with `GOTOOLCHAIN=go1.27.1` (the golden toolchain): goldmark's
+output depends on Go's `unicode` tables, and the red-team generators draw
+runes from them. Every fixture regenerates byte for byte.
 
 Fixture format (GMF): `=== name\n` then `key <len>\n<raw bytes>\n` fields —
 raw bytes so inputs can hold invalid UTF-8, NUL and CR.
@@ -333,6 +350,10 @@ raw bytes so inputs can hold invalid UTF-8, NUL and CR.
 | external (scratch, `goldmark fuzz -mode ext|extbytes|tokens|deep -cfg <26 configs>`) | 300k + 200k extension-grammar, 200k extension byte-level, 100k core-token, 30k deep-nesting docs; seeksnack corpus concatenated ×8 (6.3 MB) × hugo/hugo-autoid/x-all | 830,003/830,003 identical |
 | `goldmark_tests` | ports of ast/ast_test.go, ast_test.go, extra_test.go (incl. the 5 performance tests) | pass |
 | `oracle::external_fuzz`, `plugin_api::external_plugin_fuzz` (ignored; corpora in the scratch dir, regenerate with `goldmark fuzz`) | 300k token-grammar + 700k byte-level + 100k deep-nesting docs over 9 configs (1,100,000 records); the whole seeksnack corpus concatenated ×8 (6.3 MB) × 3 configs; 150k plugin-extension docs | all identical |
+| `redteam::redteam_regressions` (2 MiB stack) | the red-team bugs below: heading/setext/closing-sequence/footnote headings with `{a=[[[…` 20k deep (open, closed, unclosed, with values, `class=`, `id=` + auto IDs → Go panic), 800-deep nested objects; `Node.Text` of 20k nested blockquotes, 10k nested lists, 60k-deep emphasis, 20k nested images (`texts` field: Text of the document and of the first inline node); HTML + AST dumps | 45/45 identical |
+| `redteam::redteam_fuzz_fixed_seed` (2 MiB stack) | 800 hugomix + 800 unicode + 500 labels + 800 tabs docs (HTML **and** AST dump) + 40 small pathological docs | 2940/2940 identical |
+| `redteam::parse_attributes_vectors` | 3000 direct `parser.ParseAttributes` calls (text reader and block reader; result, typed values and reader position afterwards; values up to 50k deep) | 6000/6000 identical |
+| `redteam::deep_attribute_value_is_kept_and_dropped` | a 100k-deep attribute array is stored on the heading and dropped on a 2 MiB stack | pass |
 
 Mutation checks: disabling the opened-block aliasing emulation or the base-0
 `ParseUint` quirk makes the suite fail; the InsertBefore child-count quirk,
@@ -340,10 +361,136 @@ the reader cache quirk, typed-nil delimiter bottoms and the linkLabelState
 `First` bug are ported faithfully but are output-neutral for goldmark core
 (no test can observe them without extensions).
 
+### Red-team pass (2026-09)
+
+An independent red-team pass aimed at what the token/byte/deep/ext grammars
+cannot reach. New oracle modes (`tools/go-oracle/goldmark/redteam.go`,
+`astdump.go`), streamed into the Rust checker without touching the disk:
+
+```
+goldmark fuzz -mode long|patho|unicode|labels|tabs|hugomix [-ast] [-time] [-only i] -cfg ... -n N -seed S \
+  | cargo run --release --example rtcheck -- -          # RT_STACK (default 2 MiB), RT_TRACE=<file>
+goldmark enum -alpha blocks|inline|ext|links|html|attrs|bytes|lists -len N -cfg a,b [-ast] | rtcheck -
+goldmark systematic -cfg a,b [-ast] | rtcheck -       # needs GOLDMARK_DIR (all HTML5 entity names)
+goldmark attrvec -n N -seed S | rtcheck -             # parser.ParseAttributes called directly
+```
+
+- `-ast` adds an AST dump (`astdump.go` / `tests/common/astdump.rs`): per
+  node in pre-order the kind, type, child count, `Lines()` segments (start,
+  stop, padding, ForceNewline), `HasBlankPreviousLines`, `IsRaw`, attributes
+  with typed values (`[]byte`/string/float64 bits/bool/nil/arrays/nested
+  lists), node fields (heading level, list marker/tight/start, item offset,
+  Text segment and soft/hard breaks, String value/code, emphasis level, link
+  destination/title, autolink type/protocol/URL/label, raw HTML segments,
+  fenced code info segment and language, HTML block type and closure line,
+  table alignments, task check state, definition list offset/temporary
+  paragraph/tightness, footnote ref/index/ref counts/list count), the
+  deprecated `Text()` (documents ≤ 4096 bytes) and, for every heading, its
+  inline subtrees rendered one by one with the configured renderer as
+  Hugo's TOC transformer does (`Renderer.Render` on non-document nodes).
+  This is the API nh-markup reads; the HTML hides most of it.
+- `long`: 100 KB–5 MB documents: many small docs of every grammar, one
+  multi-MB line of inline tokens, long paragraphs/containers, one construct
+  repeated (list items, table rows, 100k+ reference definitions, footnotes,
+  headings with attributes, linkify runs), long lines inside containers,
+  many bounded pathological constructs; CR/CRLF variants.
+- `patho`: 126 cmark-regression-style templates at log-uniform sizes up to
+  64k (`[[[[`, `*a **b` chains, `<` runs, backtick runs of every length,
+  deep `> `/`- `/`1. `/tab containers, nested parens in destinations,
+  100k reference/footnote definitions, 999-char labels, deep attribute
+  values, huge entity/number references, …), optionally inside a container
+  and with CR/CRLF. Templates that are quadratic in Go too (every `{` of a
+  heading's last line starts a `ParseAttributes`) are capped at 3000.
+- `unicode`: every Unicode P and S rune (`unicode.IsPunct || IsSymbol`,
+  ~9.5k), every space rune, letters/marks/digits, invalid UTF-8 (truncated,
+  overlong, surrogates, > U+10FFFF), NUL, U+FFFD, U+2028/9 around every
+  delimiter kind (flanking probes `X*a*Y`), all 2124 HTML5 entity names
+  with/without `;`, numeric references at the bounds (0, surrogates,
+  U+10FFFF, 0x110000, 7–9 digits), CR/CRLF/CR-only line endings.
+- `labels`: reference and footnote labels from simple-fold orbits and the
+  full-folding specials (ß/ẞ/ss, İ/ı, K/K, Å, ſ, ς/σ/Σ, ﬀ, ǰ, ΐ, ᾈ, …),
+  folded/upper/lower variants, whitespace variants (tabs, newlines, NBSP,
+  U+3000) and 900–1020-rune labels around the 999 limit.
+- `tabs`: tabs and spaces at every column inside `>`, list markers, `:`,
+  `[^1]:`, fences and code indentation (partial tab expansion).
+- `hugomix`: a recursive block grammar with Hugo's extension set nested in
+  each other — footnote references in table cells and list items, linkify
+  URLs/emails inside link text, link destinations and autolinks, typographer
+  characters inside code spans, fenced info strings and attribute values,
+  attribute lists on ATX/setext headings (generated and 31 odd or malformed
+  forms), attribute lines after tables/paragraphs, definition lists
+  containing lists/blockquotes/code, task lists, footnote definitions
+  containing blocks, HTML blocks, reference definitions.
+- `enum`: every string of up to N tokens over 8 alphabets (blocks, inline,
+  ext, links, html, attrs, bytes, lists).
+- `systematic`: every P/S/space rune (+ letters sample, invalid bytes) in 30
+  flanking/linkify/typographer/label patterns; every case-folding orbit and
+  special in reference labels; every HTML5 entity name in text,
+  destinations, titles, raw HTML, code, headings, attribute values and
+  labels; numeric references at the bounds.
+- `attrvec`: `parser.ParseAttributes` on a `text.Reader` and a block reader
+  (Hugo's attribute blocks and code block attributes call it directly):
+  well-formed and malformed lists, typed values (numbers incl. overflow,
+  underflow, 400-digit mantissas and 30-digit exponents), escapes, deep
+  arrays/objects up to 50k.
+- `rtcheck` renders on a 2 MiB-stack thread (Hugo's worker threads), so a
+  Rust stack overflow shows up as an abort, and reports Rust vs Go time per
+  record (`-time`); an `rtcheck` built with
+  `RUSTFLAGS="-C overflow-checks=on -C debug-assertions=on"` checks for
+  integer-overflow panics.
+
+Results (all runs are 0 differences in HTML, AST dumps where `-ast`, and
+`ParseAttributes` results/positions):
+
+| run | seeds | records |
+|---|---|---|
+| `enum` blocks ≤7 tokens (default, hugo, x-all, hugo-autoid) | – | 21,435,888 |
+| `enum` inline ≤6 (+AST) · ext ≤6 · links ≤6 (+AST) · html ≤6 (+AST) · attrs ≤6 (+AST) · bytes ≤6 (+AST) · lists ≤6 (+AST) | – | 5,229,043 · 17,895,697 · 8,108,731 · 3,257,437 · 12,204,241 · 5,229,043 · 3,257,437 |
+| `enum` blocks ≤6 (+AST) | – | 1,948,717 |
+| `unicode` +AST | 101, 102 | 100,000 + 1,000,000 |
+| `hugomix` +AST | 401, 402 | 600,000 + 1,000,000 |
+| `labels` +AST | 301, 302 | 300,000 + 500,000 |
+| `tabs` +AST | 201, 202 | 500,000 + 1,000,000 |
+| `patho` (`-time`) | 1, 2 | 1,000 + 2,000 |
+| `long` 100 KB–5 MB (`-time`; seed 502 stopped after 50 docs: doc 50 ran > 15 min in Go, quadratic there too) | 501, 502 | 200 + 50 |
+| `systematic` +AST (default, hugo, x-all, hugo-autoid, x-cjk) | – | 76,285 |
+| `attrvec` (seed 1: first, weaker generator version) | 1, 7 | 200,000 + 300,000 |
+| AST dump with the TOC-style subtree rendering (added last): `hugomix` +AST, `unicode` +AST, `enum` attrs ≤6 +AST (hugo-autoid, attr, hugo) | 403, 103, – | 100,000 + 300,000 + 12,204,241 |
+| overflow-checked `rtcheck`: tokens, bytes, ext, extbytes, hugomix, unicode, tabs 200k each; deep 50k; patho 500; systematic; attrvec 50k | 601–609, 8 | 1,576,785 |
+
+Bugs found (all crash-class: Go renders the input, Rust aborted the process
+with a stack overflow; fixed, see deviation 10):
+
+1. `parser/attribute.go` recursion: `# h {a=[[[[…` (20k levels overflow a
+   2 MiB stack) — also setext headings, `### h ## {…}`, headings inside
+   footnotes, and every direct `ParseAttributes` call (Hugo's attribute
+   blocks and code block attributes).
+2. Dropping a deep attribute value stored on a heading
+   (`# h {a=[[…]]}` 100k deep): recursive drop.
+3. `# h {id=[[…]]}` with `WithAutoHeadingID`: Go panics (interface
+   conversion); Rust formatted the value with the recursive `Debug` and
+   overflowed instead of panicking.
+4. `Node.Text` (`Ast::text`) on deep documents (20k nested blockquotes, 10k
+   nested lists, deep emphasis/images): Go's `BaseNode.Text` recurses on a
+   growable stack.
+
+No HTML or AST difference was found. Performance is at parity except the
+quadratic heading-attribute case (`# {a={a=…` 3000 deep): Rust ≈ 2.5× Go
+(same before the fix; constant factors of the reader calls).
+
+Mutation checks: reverting each fix separately makes `tests/redteam.rs`
+abort (stack overflow) on a 2 MiB stack.
+
 ## Known gaps
 
 - `extension/ast` `Dump` output is approximate (Table prints its
   alignments as one key/value, not Go's nested block).
 - `text.Reader.FindSubMatch` and regexp-based `Match` (see deviation 2).
-- `Dump` formatting is approximate (debug only).
+- `Dump` formatting is approximate (debug only), and `Ast::dump` still
+  recurses on the document depth.
+- `AttrValue`'s derived `Clone` and `Debug` recurse into nested arrays and
+  attribute lists (values as deep as the input, e.g. `{a=[[[…`); goldmark
+  never clones or prints them, downstream code should not either.
+- `parser::Context::get`/`set` grow the value store for keys created after
+  the context (Go indexes a fixed slice and panics).
 - A custom `parser.Context` implementation cannot be substituted.

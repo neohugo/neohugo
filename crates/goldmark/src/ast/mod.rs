@@ -183,6 +183,41 @@ impl AttrValue {
             _ => None,
         }
     }
+
+    /// The Go dynamic type name (as in a Go "interface conversion" panic).
+    pub fn go_type_name(&self) -> &'static str {
+        match self {
+            AttrValue::Bytes(_) => "[]uint8",
+            AttrValue::String(_) => "string",
+            AttrValue::Float(_) => "float64",
+            AttrValue::Bool(_) => "bool",
+            AttrValue::Nil => "nil",
+            AttrValue::Array(_) => "[]interface {}",
+            AttrValue::Attributes(_) => "parser.Attributes",
+            AttrValue::Other(_) => "?",
+        }
+    }
+}
+
+/// Arrays and nested attribute lists are dropped iteratively: the attribute
+/// parser accepts values nested as deep as the input (`{a=[[[[…`), which
+/// the default recursive drop would overflow the stack on.
+impl Drop for AttrValue {
+    fn drop(&mut self) {
+        let mut stack: Vec<AttrValue> = Vec::new();
+        let take = |v: &mut AttrValue, stack: &mut Vec<AttrValue>| match v {
+            AttrValue::Array(a) => stack.append(a),
+            AttrValue::Attributes(a) => stack.extend(
+                a.iter_mut()
+                    .map(|x| std::mem::replace(&mut x.value, AttrValue::Nil)),
+            ),
+            _ => {}
+        };
+        take(self, &mut stack);
+        while let Some(mut v) = stack.pop() {
+            take(&mut v, &mut stack);
+        }
+    }
 }
 
 /// An Attribute is an attribute of the Node.
@@ -672,8 +707,51 @@ impl Ast {
     /// Text returns text values of this node.
     ///
     /// Deprecated in Go: Use other properties of the node to get the text value.
+    ///
+    /// Go's `BaseNode.Text` recurses into the children; this walks them on an
+    /// explicit stack (same order), so deeply nested documents (e.g. 20k
+    /// nested blockquotes, which Go handles on its growable stacks) do not
+    /// overflow a Rust thread stack.
     pub fn text(&self, n: NodeId, source: &[u8]) -> Vec<u8> {
-        match self.value(n) {
+        enum Item {
+            /// buf.Write(c.Text(source))
+            Node(NodeId),
+            /// the SoftLineBreak newline after a child
+            After(NodeId),
+        }
+        let mut buf = Vec::new();
+        let mut stack = vec![Item::Node(n)];
+        while let Some(item) = stack.pop() {
+            match item {
+                Item::Node(x) => match self.own_text(x, source) {
+                    Some(t) => buf.extend_from_slice(&t),
+                    // Go: ast/ast.go:BaseNode.Text
+                    None => {
+                        for c in self.children(x).into_iter().rev() {
+                            stack.push(Item::After(c));
+                            stack.push(Item::Node(c));
+                        }
+                    }
+                },
+                Item::After(c) => {
+                    let slb = match self.value(c) {
+                        NodeValue::Text(t) => t.soft_line_break(),
+                        NodeValue::Custom(cn) => cn.soft_line_break().unwrap_or(false),
+                        _ => false,
+                    };
+                    if slb {
+                        buf.push(b'\n');
+                    }
+                }
+            }
+        }
+        buf
+    }
+
+    /// The Text of node types that override `BaseNode.Text` (`None`: the
+    /// children's text).
+    fn own_text(&self, n: NodeId, source: &[u8]) -> Option<Vec<u8>> {
+        Some(match self.value(n) {
             NodeValue::TextBlock
             | NodeValue::Paragraph
             | NodeValue::CodeBlock
@@ -691,31 +769,9 @@ impl Ast {
             NodeValue::RawHTML(r) => r.segments.value(source),
             NodeValue::Delimiter(d) => d.segment.value(source).into_owned(),
             NodeValue::LinkLabelState(s) => s.segment.value(source).into_owned(),
-            NodeValue::Custom(c) => match c.text(self, n, source) {
-                Some(t) => t,
-                None => self.base_text(n, source),
-            },
-            _ => self.base_text(n, source),
-        }
-    }
-
-    // Go: ast/ast.go:BaseNode.Text
-    fn base_text(&self, n: NodeId, source: &[u8]) -> Vec<u8> {
-        let mut buf = Vec::new();
-        let mut c = self.first_child(n);
-        while let Some(cid) = c {
-            buf.extend_from_slice(&self.text(cid, source));
-            let slb = match self.value(cid) {
-                NodeValue::Text(t) => t.soft_line_break(),
-                NodeValue::Custom(c) => c.soft_line_break().unwrap_or(false),
-                _ => false,
-            };
-            if slb {
-                buf.push(b'\n');
-            }
-            c = self.next_sibling(cid);
-        }
-        buf
+            NodeValue::Custom(c) => return c.text(self, n, source),
+            _ => return None,
+        })
     }
 
     // Go: BaseBlock.HasBlankPreviousLines / BaseInline panics

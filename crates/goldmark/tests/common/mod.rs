@@ -3,6 +3,8 @@
 //! the oracle renders with.
 #![allow(dead_code)]
 
+pub mod astdump;
+
 use std::collections::HashMap;
 use std::io::Read;
 use std::path::Path;
@@ -442,12 +444,16 @@ impl Markdowns {
         Markdowns(HashMap::new())
     }
 
+    /// The named goldmark instance (built on first use).
+    pub fn get(&mut self, cfg: &str) -> &goldmark::Markdown {
+        self.0
+            .entry(cfg.to_string())
+            .or_insert_with(|| new_markdown(cfg))
+    }
+
     /// Renders like the oracle's convert: a panic becomes "PANIC: ...".
     pub fn convert(&mut self, cfg: &str, md: &[u8]) -> Vec<u8> {
-        let m = self
-            .0
-            .entry(cfg.to_string())
-            .or_insert_with(|| new_markdown(cfg));
+        let m = self.get(cfg);
         let r = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
             let mut out: Vec<u8> = Vec::new();
             match m.convert(md, &mut out) {
@@ -469,22 +475,46 @@ pub fn check_records(recs: &[Record]) -> usize {
     std::panic::set_hook(Box::new(|_| {}));
     let mut mds = Markdowns::new();
     let mut failures = Vec::new();
+    let clip = |b: &[u8]| {
+        let s = String::from_utf8_lossy(b);
+        if s.len() > 2000 {
+            format!("{}... (len {})", &s[..s.floor_char_boundary(2000)], b.len())
+        } else {
+            s.into_owned()
+        }
+    };
     for r in recs {
         let cfg = r.str("cfg");
-        let got = mds.convert(&cfg, r.get("md"));
+        let md = r.get("md");
+        let got = mds.convert(&cfg, md);
         let want = r.get("html");
-        let ok = if want.starts_with(b"PANIC: ") {
+        let mut ok = if want.starts_with(b"PANIC: ") {
             got == b"PANIC"
         } else {
             got == want
         };
+        let (mut what, mut want, mut got) = ("html", want.to_vec(), got);
+        // The red-team fixtures also pin the AST (tests/common/astdump.rs) and
+        // Node.Text of deep documents.
+        if ok && let Some(w) = r.fields.get("ast") {
+            let g = astdump::dump_cfg(&mut mds, &cfg, md);
+            if &g != w {
+                (ok, what, want, got) = (false, "ast", w.clone(), g);
+            }
+        }
+        if ok && let Some(w) = r.fields.get("texts") {
+            let g = astdump::texts_cfg(&mut mds, &cfg, md);
+            if &g != w {
+                (ok, what, want, got) = (false, "texts", w.clone(), g);
+            }
+        }
         if !ok {
             failures.push(format!(
-                "--- {}\nmd:   {:?}\nwant: {:?}\ngot:  {:?}",
+                "--- {} ({what})\nmd:   {:?}\nwant: {:?}\ngot:  {:?}",
                 r.name,
-                String::from_utf8_lossy(r.get("md")),
-                String::from_utf8_lossy(want),
-                String::from_utf8_lossy(&got)
+                clip(md),
+                clip(&want),
+                clip(&got)
             ));
         }
     }

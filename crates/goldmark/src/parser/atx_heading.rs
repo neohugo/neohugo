@@ -258,7 +258,10 @@ impl BlockParser for AtxHeadingParser {
 pub(crate) fn attr_bytes(v: &AttrValue) -> Vec<u8> {
     match v {
         AttrValue::Bytes(b) => b.clone(),
-        other => panic!("interface conversion: interface {{}} is {other:?}, not []uint8"),
+        other => panic!(
+            "interface conversion: interface {{}} is {}, not []uint8",
+            other.go_type_name()
+        ),
     }
 }
 

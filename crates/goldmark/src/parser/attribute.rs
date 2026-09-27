@@ -34,54 +34,241 @@ fn find_update(
     false
 }
 
-// Go: parser/attribute.go:ParseAttributes
+// Go: parser/attribute.go:ParseAttributes, parseAttribute, parseAttributeValue,
+// parseAttributeArray
+//
+// goldmark recurses ParseAttributes → parseAttribute → parseAttributeValue →
+// ParseAttributes / parseAttributeArray on growable goroutine stacks, so it
+// parses e.g. `{a=[[[[…` 100k levels deep; a Rust thread stack would
+// overflow. The four functions run here on an explicit stack of frames
+// instead, making the same reader calls in the same order (PORTING.md,
+// deviation 10).
+
+/// A ParseAttributes or parseAttributeArray call in progress.
+enum Frame {
+    /// ParseAttributes: its saved reader position, the attributes so far and
+    /// the name of the attribute whose value is being parsed.
+    Object {
+        saved_line: i64,
+        saved_position: crate::text::Segment,
+        attrs: Attributes,
+        name: Vec<u8>,
+    },
+    /// parseAttributeArray: the values so far and the loop counter.
+    Array { ret: Vec<AttrValue>, i: i64 },
+}
+
+/// Where the explicit-stack parser continues.
+enum Step {
+    /// Call ParseAttributes.
+    EnterObject,
+    /// The loop of ParseAttributes (the top frame is an Object).
+    ObjectLoop,
+    /// parseAttribute returned an attribute to the top Object frame.
+    ObjectAttr(Attribute),
+    /// parseAttribute returned false: ParseAttributes resets and fails.
+    ObjectFail,
+    /// Call parseAttributeValue.
+    EnterValue,
+    /// The loop of parseAttributeArray (the top frame is an Array).
+    ArrayLoop,
+    /// A ParseAttributes / parseAttributeValue call returns (None = false).
+    Return(Option<AttrValue>),
+}
+
+/// parseAttribute up to its parseAttributeValue call.
+enum AttributeHead {
+    /// `#id` / `.class`: the whole attribute.
+    Done(Attribute),
+    /// `name=`: the value follows.
+    Value(Vec<u8>),
+    /// (Attribute{}, false)
+    Fail,
+}
+
 /// ParseAttributes parses attributes into a map.
 /// ParseAttributes returns a parsed attributes and true if could parse
 /// attributes, otherwise nil and false.
 pub fn parse_attributes<'a>(reader: &mut dyn Reader<'a>) -> Option<Attributes> {
-    let (saved_line, saved_position) = reader.position();
-    reader.skip_spaces();
-    if reader.peek() != b'{' {
-        reader.set_position(saved_line, saved_position);
-        return None;
-    }
-    reader.advance(1);
-    let mut attrs: Attributes = Vec::new();
+    let mut stack: Vec<Frame> = Vec::new();
+    let mut step = Step::EnterObject;
     loop {
-        if reader.peek() == b'}' {
-            reader.advance(1);
-            return Some(attrs);
-        }
-        let Some(attr) = parse_attribute(reader) else {
-            reader.set_position(saved_line, saved_position);
-            return None;
-        };
-        if attr.name == ATTR_NAME_CLASS {
-            let v2 = attr.value.clone();
-            if !find_update(&mut attrs, ATTR_NAME_CLASS, |v| {
-                let v = v.as_bytes().expect("interface conversion: not []byte");
-                let a = v2.as_bytes().expect("interface conversion: not []byte");
-                let mut ret = Vec::with_capacity(v.len() + 1 + a.len());
-                ret.extend_from_slice(v);
-                ret.push(b' ');
-                ret.extend_from_slice(a);
-                AttrValue::Bytes(ret)
-            }) {
-                attrs.push(attr);
+        step = match step {
+            // Go: ParseAttributes (prologue)
+            Step::EnterObject => {
+                let (saved_line, saved_position) = reader.position();
+                reader.skip_spaces();
+                if reader.peek() != b'{' {
+                    reader.set_position(saved_line, saved_position);
+                    Step::Return(None)
+                } else {
+                    reader.advance(1);
+                    stack.push(Frame::Object {
+                        saved_line,
+                        saved_position,
+                        attrs: Vec::new(),
+                        name: Vec::new(),
+                    });
+                    Step::ObjectLoop
+                }
             }
-        } else {
-            attrs.push(attr);
-        }
-        reader.skip_spaces();
-        if reader.peek() == b',' {
-            reader.advance(1);
-            reader.skip_spaces();
-        }
+            // Go: ParseAttributes (for loop)
+            Step::ObjectLoop => {
+                if reader.peek() == b'}' {
+                    reader.advance(1);
+                    let Some(Frame::Object { attrs, .. }) = stack.pop() else {
+                        unreachable!()
+                    };
+                    Step::Return(Some(AttrValue::Attributes(attrs)))
+                } else {
+                    match parse_attribute_head(reader) {
+                        AttributeHead::Done(attr) => Step::ObjectAttr(attr),
+                        AttributeHead::Fail => Step::ObjectFail,
+                        AttributeHead::Value(n) => {
+                            let Some(Frame::Object { name, .. }) = stack.last_mut() else {
+                                unreachable!()
+                            };
+                            *name = n;
+                            Step::EnterValue
+                        }
+                    }
+                }
+            }
+            Step::ObjectAttr(attr) => {
+                let Some(Frame::Object { attrs, .. }) = stack.last_mut() else {
+                    unreachable!()
+                };
+                if attr.name == ATTR_NAME_CLASS {
+                    if !find_update(attrs, ATTR_NAME_CLASS, |v| {
+                        let v = v.as_bytes().expect("interface conversion: not []byte");
+                        let a = attr
+                            .value
+                            .as_bytes()
+                            .expect("interface conversion: not []byte");
+                        let mut ret = Vec::with_capacity(v.len() + 1 + a.len());
+                        ret.extend_from_slice(v);
+                        ret.push(b' ');
+                        ret.extend_from_slice(a);
+                        AttrValue::Bytes(ret)
+                    }) {
+                        attrs.push(attr);
+                    }
+                } else {
+                    attrs.push(attr);
+                }
+                reader.skip_spaces();
+                if reader.peek() == b',' {
+                    reader.advance(1);
+                    reader.skip_spaces();
+                }
+                Step::ObjectLoop
+            }
+            Step::ObjectFail => {
+                let Some(Frame::Object {
+                    saved_line,
+                    saved_position,
+                    ..
+                }) = stack.pop()
+                else {
+                    unreachable!()
+                };
+                reader.set_position(saved_line, saved_position);
+                Step::Return(None)
+            }
+            // Go: parseAttributeValue
+            Step::EnterValue => {
+                reader.skip_spaces();
+                let c = reader.peek();
+                match c {
+                    // Go returns (Attribute{}, false) for EOF: the value is discarded.
+                    EOF => Step::Return(None),
+                    b'{' => Step::EnterObject,
+                    b'[' => {
+                        reader.advance(1); // skip [
+                        stack.push(Frame::Array {
+                            ret: Vec::new(),
+                            i: 0,
+                        });
+                        Step::ArrayLoop
+                    }
+                    b'"' => Step::Return(parse_attribute_string(reader).map(AttrValue::Bytes)),
+                    _ => {
+                        if c == b'-' || c == b'+' || util::is_numeric(c) {
+                            Step::Return(parse_attribute_number(reader).map(AttrValue::Float))
+                        } else {
+                            Step::Return(parse_attribute_others(reader))
+                        }
+                    }
+                }
+            }
+            // Go: parseAttributeArray (for loop)
+            Step::ArrayLoop => {
+                let Some(Frame::Array { i, .. }) = stack.last() else {
+                    unreachable!()
+                };
+                let c = reader.peek();
+                let mut comma = false;
+                if *i != 0 && c == b',' {
+                    reader.advance(1);
+                    comma = true;
+                }
+                if c == b']' {
+                    let Some(Frame::Array { ret, .. }) = stack.pop() else {
+                        unreachable!()
+                    };
+                    if !comma {
+                        reader.advance(1);
+                        Step::Return(Some(AttrValue::Array(ret)))
+                    } else {
+                        Step::Return(None)
+                    }
+                } else {
+                    reader.skip_spaces();
+                    Step::EnterValue
+                }
+            }
+            Step::Return(value) => match stack.last_mut() {
+                None => {
+                    return match value {
+                        Some(mut v) => match &mut v {
+                            AttrValue::Attributes(attrs) => Some(std::mem::take(attrs)),
+                            _ => unreachable!(),
+                        },
+                        None => None,
+                    };
+                }
+                // Go: parseAttribute (after parseAttributeValue)
+                Some(Frame::Object { name, .. }) => match value {
+                    None => Step::ObjectFail,
+                    Some(value) => {
+                        let name = std::mem::take(name);
+                        if name == ATTR_NAME_CLASS && !matches!(value, AttrValue::Bytes(_)) {
+                            Step::ObjectFail
+                        } else {
+                            Step::ObjectAttr(Attribute { name, value })
+                        }
+                    }
+                },
+                // Go: parseAttributeArray (after parseAttributeValue)
+                Some(Frame::Array { ret, i }) => match value {
+                    None => {
+                        stack.pop();
+                        Step::Return(None)
+                    }
+                    Some(value) => {
+                        ret.push(value);
+                        reader.skip_spaces();
+                        *i += 1;
+                        Step::ArrayLoop
+                    }
+                },
+            },
+        };
     }
 }
 
-// Go: parser/attribute.go:parseAttribute
-fn parse_attribute<'a>(reader: &mut dyn Reader<'a>) -> Option<Attribute> {
+// Go: parser/attribute.go:parseAttribute (up to the parseAttributeValue call)
+fn parse_attribute_head<'a>(reader: &mut dyn Reader<'a>) -> AttributeHead {
     reader.skip_spaces();
     let c = reader.peek();
     if c == b'#' || c == b'.' {
@@ -107,7 +294,7 @@ fn parse_attribute<'a>(reader: &mut dyn Reader<'a>) -> Option<Attribute> {
             name = ATTR_NAME_ID;
         }
         reader.advance(i as i64);
-        return Some(Attribute {
+        return AttributeHead::Done(Attribute {
             name: name.to_vec(),
             value: AttrValue::Bytes(line[0..i].to_vec()),
         });
@@ -115,11 +302,11 @@ fn parse_attribute<'a>(reader: &mut dyn Reader<'a>) -> Option<Attribute> {
     let (line, _) = reader.peek_line();
     let line = line.unwrap_or_default();
     if line.is_empty() {
-        return None;
+        return AttributeHead::Fail;
     }
     let c = line[0];
     if !(c.is_ascii_lowercase() || c.is_ascii_uppercase() || c == b'_' || c == b':') {
-        return None;
+        return AttributeHead::Fail;
     }
     let mut i = 0;
     while i < line.len() {
@@ -141,63 +328,11 @@ fn parse_attribute<'a>(reader: &mut dyn Reader<'a>) -> Option<Attribute> {
     reader.skip_spaces();
     let c = reader.peek();
     if c != b'=' {
-        return None;
+        return AttributeHead::Fail;
     }
     reader.advance(1);
     reader.skip_spaces();
-    let value = parse_attribute_value(reader)?;
-    if name == ATTR_NAME_CLASS && !matches!(value, AttrValue::Bytes(_)) {
-        return None;
-    }
-    Some(Attribute { name, value })
-}
-
-// Go: parser/attribute.go:parseAttributeValue
-fn parse_attribute_value<'a>(reader: &mut dyn Reader<'a>) -> Option<AttrValue> {
-    reader.skip_spaces();
-    let c = reader.peek();
-    // Go returns (Attribute{}, false) for EOF: the value is discarded.
-    let value = match c {
-        EOF => return None,
-        b'{' => parse_attributes(reader).map(AttrValue::Attributes),
-        b'[' => parse_attribute_array(reader).map(AttrValue::Array),
-        b'"' => parse_attribute_string(reader).map(AttrValue::Bytes),
-        _ => {
-            if c == b'-' || c == b'+' || util::is_numeric(c) {
-                parse_attribute_number(reader).map(AttrValue::Float)
-            } else {
-                parse_attribute_others(reader)
-            }
-        }
-    };
-    value
-}
-
-// Go: parser/attribute.go:parseAttributeArray
-fn parse_attribute_array<'a>(reader: &mut dyn Reader<'a>) -> Option<Vec<AttrValue>> {
-    reader.advance(1); // skip [
-    let mut ret: Vec<AttrValue> = Vec::new();
-    let mut i = 0;
-    loop {
-        let c = reader.peek();
-        let mut comma = false;
-        if i != 0 && c == b',' {
-            reader.advance(1);
-            comma = true;
-        }
-        if c == b']' {
-            if !comma {
-                reader.advance(1);
-                return Some(ret);
-            }
-            return None;
-        }
-        reader.skip_spaces();
-        let value = parse_attribute_value(reader)?;
-        ret.push(value);
-        reader.skip_spaces();
-        i += 1;
-    }
+    AttributeHead::Value(name)
 }
 
 // Go: parser/attribute.go:parseAttributeString
