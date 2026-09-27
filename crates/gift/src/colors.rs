@@ -15,7 +15,7 @@ use crate::pixels::{ImageType, Pixel, PixelGetter, PixelSetter};
 use crate::utils::{absf32, copyimage_filter, expf32, logf32, maxf32, minf32, parallelize, powf32};
 
 /// Go: colors.go:prepareLut
-fn prepare_lut(lut_size: i64, f: &dyn Fn(f32) -> f32) -> Vec<f32> {
+pub(crate) fn prepare_lut(lut_size: i64, f: &dyn Fn(f32) -> f32) -> Vec<f32> {
     let mut lut = vec![0f32; lut_size as usize];
     let q = 1.0f32 / (lut_size - 1) as f32;
     for v in 0..lut_size {
@@ -27,7 +27,7 @@ fn prepare_lut(lut_size: i64, f: &dyn Fn(f32) -> f32) -> Vec<f32> {
 
 /// Go: colors.go:getFromLut (`u*float32(len(lut)-1) + 0.5` is fused).
 #[inline]
-fn get_from_lut(lut: &[f32], u: f32) -> f32 {
+pub(crate) fn get_from_lut(lut: &[f32], u: f32) -> f32 {
     let v = u.mul_add((lut.len() as i64 - 1) as f32, 0.5) as i64;
     lut[v as usize]
 }
@@ -384,13 +384,12 @@ pub(crate) fn convert_rgb_to_hsl(r: f32, g: f32, b: f32) -> (f32, f32, f32) {
     }
 
     let mut h;
-    let s;
     let d = max - min;
-    if l > 0.5 {
-        s = d / (2.0 - max - min);
+    let s = if l > 0.5 {
+        d / (2.0 - max - min)
     } else {
-        s = d / (max + min);
-    }
+        d / (max + min)
+    };
 
     if r == max {
         h = (g - b) / d;

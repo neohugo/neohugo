@@ -56,6 +56,9 @@ mod resize;
 mod transform;
 mod utils;
 
+#[cfg(test)]
+mod go_tests;
+
 pub use colors::{
     ColorFilter, ColorchanFilter, brightness, color_balance, color_func, colorize,
     colorspace_linear_to_srgb, colorspace_srgb_to_linear, contrast, gamma, grayscale, hue, invert,

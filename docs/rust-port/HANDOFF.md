@@ -79,6 +79,8 @@ The golden was produced on **darwin/arm64**. Some Go outputs depend on the platf
 
 The Rust ports replicate the **arm64** behaviour explicitly (`mul_add` etc.), and every checked-in fixture came from arm64 Go. So `cargo test` is meaningful on any machine. **But do not regenerate float-sensitive fixtures (gift, go-flate, tdewolff strconv) with Go on amd64.** The fixtures would change even though the port is right.
 
+To produce arm64 Go output on Linux x86_64, build the oracle for linux/arm64 and run it under `qemu-aarch64-static` (`apt install qemu-user-static`). linux/arm64 Go reproduces the checked-in darwin/arm64 fixtures of gift (all of them) and go-png. Pure-Go oracles need only `GOARCH=arm64`. cgo oracles additionally need a C cross-compiler; zig works (`zig cc -target aarch64-linux-musl`, with `-ldflags '-linkmode external -extldflags -static'`). The recipe is in `crates/gift/PORTING.md` (§FMA sites, §Regenerating fixtures).
+
 The first Linux x86_64 cloud checks (go-value, go-html, go-path, go-sort, go-unicode, go-time, tdewolff-parse) passed with 0 real mismatches over about 20M fresh cases. The only differences were the Go platform differences listed above. libwebp-sys and libsass-sys pass on linux/x86_64 when compiled by clang with `-ffp-contract=on -mfma`, which their `build.rs` now selects off Apple (see their PORTING.md). gcc gives different bytes: FMA contraction in libwebp, argument evaluation order in LibSass.
 
 ## 4. Crate status (2026-09-27)
@@ -109,7 +111,7 @@ Legend:
 | libwebp-sys | vendored libwebp 1.3.2 + gowebp wrapper | ported | object code identical to cgo per unit; 807/807 golden webps; linux/x86_64 passes every test when built with clang `-ffp-contract=on -mfma` (now the `build.rs` default off Apple); red-team not run |
 | libsass-sys | vendored libsass 3.6.6 + golibsass wrapper | ported | 2,052 cases; linux/x86_64 passes every test with clang (gcc evaluates C++ arguments right to left: 194 error positions differ), now the `build.rs` default off Apple; red-team not run |
 | go-png | image/png | verified | Go reader/writer/paeth tests ported; 217,650 checked-in differential checks (synth, filter ties, pooled encoders, 75 real files, 42,590 truncations + 42,590 reader failures, 9k generated/mutated PNGs) + 1.56M out of repo (`GO_PNG_BIG`), 0 differences; 11 golden PNGs re-encode byte-identical; fixtures from an arm64 (qemu) oracle build, identical to amd64; see `crates/go-png/PORTING.md` |
-| gift | disintegration/gift + Hugo filters | partial | port complete, FMA sites mutation-tested, 603 site images identical; **PORTING.md and Go unit-test ports missing; red-team not run** |
+| gift | disintegration/gift + Hugo filters | ported | all 61 Go test functions ported (TestGolden with arm64 ±1 expectations); 603 site images identical (first session); every FMA site re-read from the arm64 disassembly (gift 119, resampling.go 15, Go math 68 instructions) and mutation-tested (125 `mul_add`: 77 killed by checked-in tests, 9 only by out-of-repo arm64 runs, 21 equivalent, 18 unobservable); linux/arm64 oracle under qemu reproduces every darwin/arm64 fixture; see `crates/gift/PORTING.md`; **red-team not run** |
 | tdewolff-minify-js | minify/js | ported | 783 upstream table rows, 58k checked-in fixture checks (+2×495k out of repo, 27.5 MB corpus × 6 configs) identical; 1,589 HTML docs through Hugo's full minifier; no FMA sites; **red-team not run** |
 | gotemplate | forked text/template + html/template | ported | host contract (`GOTEMPLATE_CONTRACT.md` C1–C13) implemented and documented in `crates/gotemplate/PORTING.md`; Go's lex/parse/exec/escape/content/clone/multi/template tests ported; oracles: 4,873 parse + 13,470 Hugo-like exec + 23,542 html exec operations, 39k escaper calls, 54k transitions; the escaper reproduces Go's escaped trees of all 120 repo layouts byte for byte; **red-team not run; the seeksnack layouts (private repo) are not yet in the escdump corpus**; nh-tplimpl (T13) can now replace its `engine.rs` placeholder |
 | nh-* (25 crates) | the Hugo layer | skeleton | all `cargo check`; 1,121 `todo!()`; ownership per `WAVE_B_PLAN.json` |
@@ -120,7 +122,7 @@ Legend:
    - Port `gotemplate` (text/template, then html/template) against the contract. This is the long pole; every Hugo-layer task needs it.
    - Finish `tdewolff-minify-js`. The whole-page golden check for the minify stack needs it.
    - ~~Write tests and PORTING.md for `go-png`.~~ Done.
-   - Write PORTING.md for `gift` and port its unit tests.
+   - ~~Write PORTING.md for `gift` and port its unit tests.~~ Done.
 2. **Red-team the "ported" crates.** Use an independent pass that extends the Go oracle with adversarial and random inputs and fixes any divergence. The first session found and fixed real bugs this way (go-time, go-yaml, xtext-collate).
 3. **Wave B, the Hugo layer.**
    - Follow `crates/WAVE_B_PLAN.json`: 27 port tasks with disjoint module ownership, then 4 integration tasks.

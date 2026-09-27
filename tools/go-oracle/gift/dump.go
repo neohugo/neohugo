@@ -143,6 +143,116 @@ func saveDump(path string, img image.Image) {
 	}
 }
 
+// dumpReader reads the format of writeDump. The oracle only reads its own
+// dumps, so a short read panics.
+type dumpReader struct{ r io.Reader }
+
+func (d dumpReader) read(n int) []byte {
+	b := make([]byte, n)
+	if _, err := io.ReadFull(d.r, b); err != nil {
+		panic(err)
+	}
+	return b
+}
+
+func (d dumpReader) u8() uint8   { return d.read(1)[0] }
+func (d dumpReader) i64() int    { return int(int64(binary.LittleEndian.Uint64(d.read(8)))) }
+func (d dumpReader) u32() uint32 { return binary.LittleEndian.Uint32(d.read(4)) }
+func (d dumpReader) buf() []byte { return d.read(d.i64()) }
+
+func (d dumpReader) rect() image.Rectangle {
+	var r image.Rectangle
+	r.Min.X = d.i64()
+	r.Min.Y = d.i64()
+	r.Max.X = d.i64()
+	r.Max.Y = d.i64()
+	return r
+}
+
+func (d dumpReader) color() color.Color {
+	switch k := d.u8(); k {
+	case 1:
+		v := d.read(4)
+		return color.RGBA{v[0], v[1], v[2], v[3]}
+	case 2:
+		v := d.read(4)
+		return color.NRGBA{v[0], v[1], v[2], v[3]}
+	case 3:
+		return color.Gray{d.u8()}
+	case 4, 5:
+		v := d.read(8)
+		w := func(i int) uint16 { return uint16(v[i])<<8 | uint16(v[i+1]) }
+		if k == 4 {
+			return color.RGBA64{w(0), w(2), w(4), w(6)}
+		}
+		return color.NRGBA64{w(0), w(2), w(4), w(6)}
+	case 6:
+		return color.Alpha{d.u8()}
+	default:
+		panic(fmt.Sprintf("dump: palette colour kind %d", k))
+	}
+}
+
+// loadDump reads a gzip-compressed dump written by saveDump (the Rust tests'
+// crates/gift/tests/common/mod.rs:load_dump is the same reader).
+func loadDump(path string) image.Image {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(raw))
+	if err != nil {
+		panic(err)
+	}
+	d := dumpReader{zr}
+	if string(d.read(len(dumpMagic))) != dumpMagic {
+		panic("dump: bad magic in " + path)
+	}
+	switch k := d.u8(); k {
+	case 1:
+		r := d.rect()
+		return &image.NRGBA{Rect: r, Stride: d.i64(), Pix: d.buf()}
+	case 2:
+		r := d.rect()
+		return &image.NRGBA64{Rect: r, Stride: d.i64(), Pix: d.buf()}
+	case 3:
+		r := d.rect()
+		return &image.RGBA{Rect: r, Stride: d.i64(), Pix: d.buf()}
+	case 4:
+		r := d.rect()
+		return &image.RGBA64{Rect: r, Stride: d.i64(), Pix: d.buf()}
+	case 5:
+		r := d.rect()
+		return &image.Gray{Rect: r, Stride: d.i64(), Pix: d.buf()}
+	case 6:
+		r := d.rect()
+		return &image.Gray16{Rect: r, Stride: d.i64(), Pix: d.buf()}
+	case 7:
+		m := &image.YCbCr{Rect: d.rect()}
+		m.SubsampleRatio = image.YCbCrSubsampleRatio(d.u8())
+		m.YStride = d.i64()
+		m.CStride = d.i64()
+		m.Y = d.buf()
+		m.Cb = d.buf()
+		m.Cr = d.buf()
+		return m
+	case 8:
+		m := &image.Paletted{Rect: d.rect()}
+		m.Stride = d.i64()
+		m.Pix = d.buf()
+		m.Palette = make(color.Palette, d.u32())
+		for i := range m.Palette {
+			m.Palette[i] = d.color()
+		}
+		return m
+	case 9:
+		r := d.rect()
+		return &image.CMYK{Rect: r, Stride: d.i64(), Pix: d.buf()}
+	default:
+		panic(fmt.Sprintf("dump: kind %d in %s", k, path))
+	}
+}
+
 func decodeFile(path string) image.Image {
 	f, err := os.Open(path)
 	if err != nil {
@@ -393,5 +503,48 @@ func realFixtures(siteRoot, giftTestdata, outDir string) {
 		for _, op := range realOpsFor(img.Bounds(), i, "watermark_full", 2) {
 			_, _ = fmt.Fprintf(out, "%s\t%s\t%s\t%s\n", p.name, op.kind, op.arg, digest(runRealOp(img, op, dumps)))
 		}
+	}
+}
+
+// realPickNames are the dumps realFixtures writes, in pick order (the index
+// feeds realOpsFor).
+var realPickNames = []string{"ycc444", "ycc420", "ycc422", "watermark", "watermark_full", "classic", "berli", "fritolay", "favicon32", "giftsrc"}
+
+// realOps re-runs the realFixtures op table from the dumps in dumpDir
+// (crates/gift/tests/fixtures/real), so real.tsv can be regenerated without
+// the seeksnack site.
+func realOps(dumpDir string) {
+	imgs := map[string]image.Image{}
+	for _, n := range realPickNames {
+		imgs[n] = loadDump(filepath.Join(dumpDir, n+".gz"))
+	}
+	dumps := func(n string) image.Image { return imgs[n] }
+	for i, n := range realPickNames {
+		if n == "watermark_full" {
+			continue
+		}
+		img := imgs[n]
+		for _, op := range realOpsFor(img.Bounds(), i, "watermark_full", 2) {
+			_, _ = fmt.Fprintf(out, "%s\t%s\t%s\t%s\n", n, op.kind, op.arg, digest(runRealOp(img, op, dumps)))
+		}
+	}
+}
+
+// goTestdata dumps the TestGolden images testdata/dst_*.png of gift and
+// prints name, Go type and bounds (testdata/src.png is realFixtures'
+// giftsrc dump). PNG decoding is integer-only, so the decoded pixels do not
+// depend on the platform (the gzip bytes may: compress/flate's block choice
+// uses float estimates).
+func goTestdata(giftTestdata, outDir string) {
+	names, err := filepath.Glob(filepath.Join(giftTestdata, "dst_*.png"))
+	if err != nil {
+		panic(err)
+	}
+	sort.Strings(names)
+	for _, p := range names {
+		img := decodeFile(p)
+		n := strings.TrimSuffix(filepath.Base(p), ".png")
+		saveDump(filepath.Join(outDir, n+".gz"), img)
+		_, _ = fmt.Fprintf(out, "%s\t%T\t%v\n", n, img, img.Bounds())
 	}
 }

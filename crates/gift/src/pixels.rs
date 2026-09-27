@@ -331,7 +331,7 @@ impl GetterImg<'_> {
 pub(crate) struct PixelGetter<'a> {
     pub it: ImageType,
     pub bounds: Rectangle,
-    img: GetterImg<'a>,
+    pub(crate) img: GetterImg<'a>,
     palette: Vec<Pixel>,
 }
 
@@ -419,7 +419,7 @@ pub(crate) struct PixelSetter<'a> {
     #[allow(dead_code)]
     pub it: ImageType,
     pub bounds: Rectangle,
-    img: SetterImg<'a>,
+    pub(crate) img: SetterImg<'a>,
     palette: Vec<Pixel>,
 }
 

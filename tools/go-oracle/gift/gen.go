@@ -454,6 +454,10 @@ func parseColor(s string) color.Color {
 	panic("bad color " + s)
 }
 
+// numSynthColorFuncs is the number of colorFuncs the synth generator picks
+// from (the ones defined here; extra.go appends a fourth one).
+const numSynthColorFuncs = 3
+
 // colorFuncs are the ColorFunc callbacks the Rust tests mirror.
 var colorFuncs = []func(r0, g0, b0, a0 float32) (r, g, b, a float32){
 	func(r0, g0, b0, a0 float32) (r, g, b, a float32) {

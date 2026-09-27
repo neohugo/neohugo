@@ -189,7 +189,7 @@ impl GIFT {
                     self.draw(dst, src);
                     return;
                 }
-                if self.draw_sub_image(dst, pt, src) {
+                if get_sub_image(dst, pt, |subimg| self.draw(subimg, src)) {
                     return;
                 }
                 let mut tb = self.bounds(src.bounds());
@@ -214,36 +214,41 @@ impl GIFT {
             }
         }
     }
+}
 
-    /// `if subimg, ok := getSubImage(dst, pt); ok { g.Draw(subimg, src) }`:
-    /// draws into Go's aliasing sub-image of dst (see go-image
-    /// `with_sub_image_mut`) and reports whether getSubImage succeeded.
-    fn draw_sub_image(&self, dst: &mut dyn draw::Image, pt: Point, src: &dyn Image) -> bool {
-        // Go: gift.go:getSubImage
-        if !pt.in_(dst.bounds()) {
-            return false;
-        }
-        let r = Rectangle {
-            min: pt,
-            max: dst.bounds().max,
-        };
-        if let Some(img) = dst.downcast_mut::<Gray>() {
-            img.with_sub_image_mut(r, |sub| self.draw(sub, src));
-        } else if let Some(img) = dst.downcast_mut::<Gray16>() {
-            img.with_sub_image_mut(r, |sub| self.draw(sub, src));
-        } else if let Some(img) = dst.downcast_mut::<RGBA>() {
-            img.with_sub_image_mut(r, |sub| self.draw(sub, src));
-        } else if let Some(img) = dst.downcast_mut::<RGBA64>() {
-            img.with_sub_image_mut(r, |sub| self.draw(sub, src));
-        } else if let Some(img) = dst.downcast_mut::<NRGBA>() {
-            img.with_sub_image_mut(r, |sub| self.draw(sub, src));
-        } else if let Some(img) = dst.downcast_mut::<NRGBA64>() {
-            img.with_sub_image_mut(r, |sub| self.draw(sub, src));
-        } else {
-            return false;
-        }
-        true
+/// Go: gift.go:getSubImage. Go returns an aliasing sub-image of img; the port
+/// instead runs `f` on that sub-image (go-image `with_sub_image_mut`, whose
+/// writes land in img) and reports whether getSubImage succeeded (`f` is not
+/// called otherwise). `DrawAt` uses it as
+/// `if subimg, ok := getSubImage(dst, pt); ok { g.Draw(subimg, src) }`.
+pub(crate) fn get_sub_image(
+    img: &mut dyn draw::Image,
+    pt: Point,
+    f: impl FnOnce(&mut dyn draw::Image),
+) -> bool {
+    if !pt.in_(img.bounds()) {
+        return false;
     }
+    let r = Rectangle {
+        min: pt,
+        max: img.bounds().max,
+    };
+    if let Some(img) = img.downcast_mut::<Gray>() {
+        img.with_sub_image_mut(r, |sub| f(sub));
+    } else if let Some(img) = img.downcast_mut::<Gray16>() {
+        img.with_sub_image_mut(r, |sub| f(sub));
+    } else if let Some(img) = img.downcast_mut::<RGBA>() {
+        img.with_sub_image_mut(r, |sub| f(sub));
+    } else if let Some(img) = img.downcast_mut::<RGBA64>() {
+        img.with_sub_image_mut(r, |sub| f(sub));
+    } else if let Some(img) = img.downcast_mut::<NRGBA>() {
+        img.with_sub_image_mut(r, |sub| f(sub));
+    } else if let Some(img) = img.downcast_mut::<NRGBA64>() {
+        img.with_sub_image_mut(r, |sub| f(sub));
+    } else {
+        return false;
+    }
+    true
 }
 
 /// The OverOperator blend of `(*GIFT).DrawAt` (gift.go:155-164), with the

@@ -5,7 +5,8 @@
 //! RGBA PNGs (*image.NRGBA) and gift's own testdata/src.png. Each image runs
 //! the Hugo pipeline ops (box resizes, same-size copy, watermark overlays)
 //! plus every resampling filter and the other gift filters
-//! (tools/go-oracle/gift `realfix`).
+//! (tools/go-oracle/gift `realfix`; `realops <fixtures/real>` regenerates
+//! real.tsv from the checked-in dumps).
 
 mod common;
 

@@ -24,12 +24,12 @@ fn gomaxprocs() -> i64 {
 /// disjoint set of destination pixels per part and reads only source pixels,
 /// so the result does not depend on scheduling; the port runs the parts in
 /// order on the calling thread (see PORTING.md).
-pub(crate) fn parallelize(enabled: bool, start: i64, stop: i64, mut f: impl FnMut(i64, i64)) {
+pub(crate) fn parallelize(enabled: bool, start: i64, stop: i64, f: impl FnMut(i64, i64)) {
     let mut procs = 1;
     if enabled {
         procs = gomaxprocs();
     }
-    split_range(start, stop, procs, |pstart, pstop| f(pstart, pstop));
+    split_range(start, stop, procs, f);
 }
 
 /// Go: utils.go:splitRange

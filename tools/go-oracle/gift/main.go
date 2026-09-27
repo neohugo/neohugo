@@ -15,6 +15,8 @@
 //	gift kernels <n>                  # every resampling kernel over float32 inputs
 //	gift dump <in> <out.gz> [crop]    # decode an image file and write a raw dump
 //	gift realfix <siteRoot> <giftTestdata> <outDir>  # checked-in real-image fixtures
+//	gift realops <dumpDir>            # real.tsv again, from the checked-in dumps
+//	gift gotestdata <giftTestdata> <outDir>  # dumps of gift's testdata/*.png (TestGolden)
 //	gift site <siteRoot> <outDir>     # dump all site images + run the Hugo ops
 //	gift setter                       # synth lines: every setter over the setter table, big Over cases
 //	gift mathdigest <scale>           # chunked digests of dense math sweeps
@@ -66,6 +68,10 @@ func main() {
 		dumpFile(os.Args[2], os.Args[3], crop)
 	case "realfix":
 		realFixtures(os.Args[2], os.Args[3], os.Args[4])
+	case "realops":
+		realOps(os.Args[2])
+	case "gotestdata":
+		goTestdata(os.Args[2], os.Args[3])
 	case "site":
 		site(os.Args[2], os.Args[3])
 	case "setter":
@@ -227,7 +233,10 @@ func genFilter(r *rng, b image.Rectangle, allowLut bool) string {
 		case k == 29:
 			return fmt.Sprintf("threshold(%s)", fstr(pickF(r, []float32{0, 50, 100, -10, 110}, -10, 110)))
 		case k == 30:
-			return fmt.Sprintf("colorfunc(%d)", r.intn(len(colorFuncs)))
+			// Only the three synth callbacks: colorFuncs[3] (extra.go's
+			// setter table) was added after synth.tsv was generated, and
+			// r.intn(len(colorFuncs)) would change the checked-in cases.
+			return fmt.Sprintf("colorfunc(%d)", r.intn(numSynthColorFuncs))
 		case k < 33:
 			n := r.intn(30)
 			var ks []string
