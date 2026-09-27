@@ -146,26 +146,24 @@ mod tests {
             s ^= s << 17;
             s as u8
         };
-        let mut pdat0 = vec![0u8; 32];
-        let mut pdat1 = vec![0u8; 32];
-        let mut pdat2 = vec![0u8; 32];
-        let mut cdat0 = vec![0u8; 32];
-        let mut cdat1 = vec![0u8; 32];
-        let mut cdat2 = vec![0u8; 32];
-        for _ in 0..1000 {
-            for j in 0..32 {
-                pdat0[j] = next();
-                cdat0[j] = next();
-            }
-            for bpp in [1usize, 2, 3, 4, 6, 8] {
-                let n = 32 - 32 % bpp;
-                pdat1[..n].copy_from_slice(&pdat0[..n]);
-                pdat2[..n].copy_from_slice(&pdat0[..n]);
-                cdat1[..n].copy_from_slice(&cdat0[..n]);
-                cdat2[..n].copy_from_slice(&cdat0[..n]);
-                filter_paeth(&mut cdat1[..n], &pdat1[..n], bpp);
-                slow_filter_paeth(&mut cdat2[..n], &pdat2[..n], bpp);
-                assert_eq!(cdat1[..n], cdat2[..n], "bpp: {bpp}");
+        let mut pdat0 = [0u8; 32];
+        let mut cdat0 = [0u8; 32];
+        for bytes_per_pixel in 1..=8 {
+            for _ in 0..100 {
+                for j in 0..pdat0.len() {
+                    pdat0[j] = next();
+                    cdat0[j] = next();
+                }
+                let pdat1 = pdat0;
+                let pdat2 = pdat0;
+                let mut cdat1 = cdat0;
+                let mut cdat2 = cdat0;
+                filter_paeth(&mut cdat1, &pdat1, bytes_per_pixel);
+                slow_filter_paeth(&mut cdat2, &pdat2, bytes_per_pixel);
+                assert_eq!(
+                    cdat1, cdat2,
+                    "bytesPerPixel: {bytes_per_pixel}\npdat0: {pdat0:x?}\ncdat0: {cdat0:x?}"
+                );
             }
         }
     }

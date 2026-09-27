@@ -108,7 +108,7 @@ Legend:
 | tdewolff-parse-js | parse/js | ported | 33k inputs × 8 dump modes; red-team interrupted |
 | libwebp-sys | vendored libwebp 1.3.2 + gowebp wrapper | ported | object code identical to cgo per unit; 807/807 golden webps; **Linux untested** |
 | libsass-sys | vendored libsass 3.6.6 + golibsass wrapper | ported | 2,052 cases; **Linux untested** |
-| go-png | image/png | partial | source complete and smoke-checked (11 golden PNGs + Go testdata identical); **no checked-in differential tests or PORTING.md yet** |
+| go-png | image/png | verified | Go reader/writer/paeth tests ported; 217,650 checked-in differential checks (synth, filter ties, pooled encoders, 75 real files, 42,590 truncations + 42,590 reader failures, 9k generated/mutated PNGs) + 1.56M out of repo (`GO_PNG_BIG`), 0 differences; 11 golden PNGs re-encode byte-identical; fixtures from an arm64 (qemu) oracle build, identical to amd64; see `crates/go-png/PORTING.md` |
 | gift | disintegration/gift + Hugo filters | partial | port complete, FMA sites mutation-tested, 603 site images identical; **PORTING.md and Go unit-test ports missing; red-team not run** |
 | tdewolff-minify-js | minify/js | ported | 783 upstream table rows, 58k checked-in fixture checks (+2×495k out of repo, 27.5 MB corpus × 6 configs) identical; 1,589 HTML docs through Hugo's full minifier; no FMA sites; **red-team not run** |
 | gotemplate | forked text/template + html/template | ported | host contract (`GOTEMPLATE_CONTRACT.md` C1–C13) implemented and documented in `crates/gotemplate/PORTING.md`; Go's lex/parse/exec/escape/content/clone/multi/template tests ported; oracles: 4,873 parse + 13,470 Hugo-like exec + 23,542 html exec operations, 39k escaper calls, 54k transitions; the escaper reproduces Go's escaped trees of all 120 repo layouts byte for byte; **red-team not run; the seeksnack layouts (private repo) are not yet in the escdump corpus**; nh-tplimpl (T13) can now replace its `engine.rs` placeholder |
@@ -119,7 +119,7 @@ Legend:
 1. **Finish Wave A.**
    - Port `gotemplate` (text/template, then html/template) against the contract. This is the long pole; every Hugo-layer task needs it.
    - Finish `tdewolff-minify-js`. The whole-page golden check for the minify stack needs it.
-   - Write tests and PORTING.md for `go-png`.
+   - ~~Write tests and PORTING.md for `go-png`.~~ Done.
    - Write PORTING.md for `gift` and port its unit tests.
 2. **Red-team the "ported" crates.** Use an independent pass that extends the Go oracle with adversarial and random inputs and fixes any divergence. The first session found and fixed real bugs this way (go-time, go-yaml, xtext-collate).
 3. **Wave B, the Hugo layer.**

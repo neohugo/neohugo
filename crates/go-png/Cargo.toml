@@ -12,6 +12,8 @@ crc32fast = "1.5"
 
 [dev-dependencies]
 sha2 = "0.10"
+# Gunzips checked-in fixtures and inflates IDAT streams in the tests only.
+flate2 = "1"
 
 # The differential tests decode/encode many images; optimise test builds so
 # `cargo test` stays fast. (Ignored once this crate joins a workspace.)

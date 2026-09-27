@@ -25,7 +25,12 @@
     clippy::manual_memcpy,
     clippy::too_many_arguments,
     clippy::needless_return,
-    clippy::unnecessary_cast
+    clippy::unnecessary_cast,
+    // Go type names (`PassImage::RGBA`) and Go conditions kept verbatim
+    // (`len(p) < 1`, `length%3 != 0`).
+    clippy::upper_case_acronyms,
+    clippy::len_zero,
+    clippy::manual_is_multiple_of
 )]
 #![forbid(unsafe_code)]
 

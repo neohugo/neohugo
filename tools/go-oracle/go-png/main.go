@@ -10,10 +10,21 @@
 //
 //	go-png files <root> <listfile>         # decode/encode real PNG files
 //	go-png synth <seed0> <n> [maxdim]      # synthetic images, all levels
+//	go-png filters <seed0> <n>             # filter-heuristic edge cases
+//	go-png pool <seed0> <n> [maxdim]       # Encoder.BufferPool reuse sequences
+//	go-png gotests                         # images of Go's writer tests/benchmarks
+//	go-png trunc <root> <listfile>         # decode every (sampled) prefix of files
+//	go-png errread <root> <listfile>       # decode through a reader failing after k bytes
+//	go-png fmasearch <seed0> <n>           # large images at 4 levels (arm64 vs amd64 search)
 //	go-png mkpng <seed0> <n> <out.bin>     # generate a PNG corpus
 //	go-png mutate <seed0> <n> <in.bin> <out.bin>  # mutate a corpus
 //	go-png pack <out.bin> <files...>       # pack files into a corpus
 //	go-png record <corpus.bin>             # decode records for a corpus
+//
+// The flate encoder behind image/png contains float32/float64 code whose
+// results depend on FMA fusion (see crates/go-flate/PORTING.md). The golden
+// build ran on darwin/arm64, so fixtures must come from an arm64 build of
+// this program (e.g. GOARCH=arm64 under qemu-aarch64 on Linux x86_64).
 package main
 
 import (
@@ -31,10 +42,12 @@ import (
 	"image/color/palette"
 	"image/draw"
 	"image/png"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"testing/iotest"
 )
 
 // rng is splitmix64.
@@ -81,6 +94,22 @@ func main() {
 			maxDim = atoi(os.Args[4])
 		}
 		synth(atoi(os.Args[2]), atoi(os.Args[3]), maxDim)
+	case "filters":
+		filtersCmd(atoi(os.Args[2]), atoi(os.Args[3]))
+	case "pool":
+		maxDim := 200
+		if len(os.Args) > 4 {
+			maxDim = atoi(os.Args[4])
+		}
+		poolCmd(atoi(os.Args[2]), atoi(os.Args[3]), maxDim)
+	case "gotests":
+		gotests()
+	case "trunc":
+		truncCmd(os.Args[2], os.Args[3])
+	case "errread":
+		errreadCmd(os.Args[2], os.Args[3])
+	case "fmasearch":
+		fmasearchCmd(atoi(os.Args[2]), atoi(os.Args[3]))
 	case "mkpng":
 		mkpngCmd(atoi(os.Args[2]), atoi(os.Args[3]), os.Args[4])
 	case "mutate":
@@ -203,6 +232,53 @@ func encStr(m image.Image, level png.CompressionLevel) (string, []byte) {
 	return fmt.Sprintf("%s:%d", sha16(buf.Bytes()), buf.Len()), buf.Bytes()
 }
 
+func errStr(err error) string {
+	if err == nil {
+		return "nil"
+	}
+	return err.Error()
+}
+
+// rowFilters returns the filter type of every row of a non-interlaced PNG
+// written by the encoder, as a string of digits ("-" if it cannot be
+// parsed).
+func rowFilters(data []byte) string {
+	var idat []byte
+	var w, depth, ct int
+	for off := 8; off+12 <= len(data); {
+		l := int(binary.BigEndian.Uint32(data[off:]))
+		if l < 0 || off+12+l > len(data) {
+			return "-"
+		}
+		body := data[off+8 : off+8+l]
+		switch string(data[off+4 : off+8]) {
+		case "IHDR":
+			if l != 13 {
+				return "-"
+			}
+			w = int(binary.BigEndian.Uint32(body[0:]))
+			depth, ct = int(body[8]), int(body[9])
+		case "IDAT":
+			idat = append(idat, body...)
+		}
+		off += 12 + l
+	}
+	zr, err := zlib.NewReader(bytes.NewReader(idat))
+	if err != nil {
+		return "-"
+	}
+	raw, err := io.ReadAll(zr)
+	if err != nil {
+		return "-"
+	}
+	rowSize := 1 + (depth*channels(ct)*w+7)/8
+	var sb strings.Builder
+	for i := 0; i < len(raw); i += rowSize {
+		sb.WriteByte('0' + raw[i])
+	}
+	return sb.String()
+}
+
 // countWriter counts Write calls.
 type countWriter struct{ calls int }
 
@@ -252,11 +328,7 @@ func failStr(m image.Image, seed uint64) string {
 // the config, the decoded image, the registry decode, encodings of the
 // decoded image at every level and encodings of conversions of it.
 func files(root, listfile string) {
-	list, err := os.ReadFile(listfile)
-	if err != nil {
-		panic(err)
-	}
-	for _, rel := range strings.Split(strings.TrimSpace(string(list)), "\n") {
+	for _, rel := range readList(listfile) {
 		data, err := os.ReadFile(filepath.Join(root, rel))
 		if err != nil {
 			panic(err)
@@ -510,7 +582,20 @@ var ratios = []image.YCbCrSubsampleRatio{
 	image.YCbCrSubsampleRatio440, image.YCbCrSubsampleRatio411, image.YCbCrSubsampleRatio410,
 }
 
-const nSynthKinds = 14
+const nSynthKinds = 16
+
+// hiddenImage has none of the optional methods (Opaque, ColorIndexAt,
+// SubImage, ...) and is not a concrete image type, so the encoder takes its
+// generic At-based paths.
+type hiddenImage struct{ m image.Image }
+
+func (h hiddenImage) ColorModel() color.Model { return h.m.ColorModel() }
+func (h hiddenImage) Bounds() image.Rectangle { return h.m.Bounds() }
+func (h hiddenImage) At(x, y int) color.Color { return h.m.At(x, y) }
+
+// wrappedPaletted is an image.PalettedImage (with Opaque) that is not an
+// *image.Paletted.
+type wrappedPaletted struct{ *image.Paletted }
 
 // genBase creates an image of kind 0..9 with bounds rect.
 func genBase(r *rng, kind int, rect image.Rectangle) image.Image {
@@ -606,6 +691,12 @@ func genSynth(r *rng, maxDim int) (image.Image, string) {
 		return sub, fmt.Sprintf("%s sub%d", desc, pk)
 	case 13:
 		return rect, desc
+	case 14:
+		// Paletted images are excluded: At panics on out-of-range indices.
+		pk := r.intn(9)
+		return hiddenImage{genBase(r, pk, rect)}, fmt.Sprintf("%s hidden%d", desc, pk)
+	case 15:
+		return wrappedPaletted{genPaletted(r, rect)}, desc + " wrapped"
 	}
 	return genBase(r, kind, rect), desc
 }
@@ -629,6 +720,394 @@ func synth(seed0, n, maxDim int) {
 		}
 		cols = append(cols, rt, failStr(m, uint64(i)))
 		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
+	}
+}
+
+var levels4 = []png.CompressionLevel{png.DefaultCompression, png.NoCompression, png.BestSpeed, png.BestCompression}
+
+// genFilterImage creates a small image whose rows make the sums of the
+// encoder's filter heuristic tie or nearly tie: few distinct sample values
+// (including 127/128/129 around abs8's sign boundary), repeated, constant,
+// ramp and delta rows. The kinds cover every bytes-per-pixel value the
+// heuristic sees (1, 2, 3, 4, 6, 8).
+func genFilterImage(r *rng) (image.Image, string) {
+	w, h := 1+r.intn(9), 1+r.intn(6)
+	if r.intn(4) == 0 {
+		w, h = 1+r.intn(40), 1+r.intn(12)
+	}
+	rect := image.Rect(0, 0, w, h)
+	vals := []byte{0, 1, 2, 127, 128, 129, 254, 255, r.byte(), r.byte()}
+	set := make([]byte, 1+r.intn(4))
+	for i := range set {
+		set[i] = vals[r.intn(len(vals))]
+	}
+	kind := r.intn(6)
+	mode := r.intn(5)
+	base := set[r.intn(len(set))]
+	dx, dy := r.intn(5)-2, r.intn(5)-2
+	var m image.Image
+	var pix []byte
+	psize, aoff, asize := 1, -1, 1
+	switch kind {
+	case 0:
+		g := image.NewGray(rect)
+		m, pix = g, g.Pix
+	case 1:
+		g := image.NewGray16(rect)
+		m, pix, psize = g, g.Pix, 2
+	case 2:
+		g := image.NewRGBA(rect)
+		m, pix, psize, aoff = g, g.Pix, 4, 3
+	case 3:
+		g := image.NewNRGBA(rect)
+		m, pix, psize, aoff = g, g.Pix, 4, 3
+	case 4:
+		g := image.NewRGBA64(rect)
+		m, pix, psize, aoff, asize = g, g.Pix, 8, 6, 2
+	default:
+		g := image.NewNRGBA64(rect)
+		m, pix, psize, aoff, asize = g, g.Pix, 8, 6, 2
+	}
+	rowLen := w * psize
+	for y := 0; y < h; y++ {
+		row := pix[y*rowLen : (y+1)*rowLen]
+		switch mode {
+		case 0:
+			for i := range row {
+				row[i] = set[r.intn(len(set))]
+			}
+		case 1:
+			if y > 0 && r.intn(2) == 0 {
+				copy(row, pix[(y-1)*rowLen:y*rowLen])
+			} else {
+				for i := range row {
+					row[i] = set[r.intn(len(set))]
+				}
+			}
+		case 2:
+			c := set[r.intn(len(set))]
+			for i := range row {
+				row[i] = c
+			}
+		case 3:
+			for i := range row {
+				row[i] = byte(int(base) + i*dx + y*dy)
+			}
+		default:
+			if y == 0 {
+				for i := range row {
+					row[i] = set[r.intn(len(set))]
+				}
+			} else {
+				d := set[r.intn(len(set))]
+				for i := range row {
+					row[i] = pix[(y-1)*rowLen+i] + d
+				}
+			}
+		}
+	}
+	if kind == 2 || kind == 4 {
+		// Opaque RGBA/RGBA64 (TC8/TC16).
+		for p := 0; p < w*h; p++ {
+			for k := 0; k < asize; k++ {
+				pix[p*psize+aoff+k] = 0xff
+			}
+		}
+	}
+	return m, fmt.Sprintf("f%d m%d %dx%d", kind, mode, w, h)
+}
+
+// filtersCmd prints, for filter edge-case images, the per-row filter types
+// chosen at the default level and the encodings at the four levels.
+func filtersCmd(seed0, n int) {
+	for i := seed0; i < seed0+n; i++ {
+		r := &rng{s: uint64(i)*0x9e3779b97f4a7c15 + 555}
+		m, desc := genFilterImage(r)
+		cols := []string{strconv.Itoa(i), desc}
+		var def []byte
+		var encs []string
+		for _, lvl := range levels4 {
+			s, b := encStr(m, lvl)
+			if lvl == png.DefaultCompression {
+				def = b
+			}
+			encs = append(encs, s)
+		}
+		cols = append(cols, rowFilters(def))
+		cols = append(cols, encs...)
+		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
+	}
+}
+
+// onePool is the pool of Go's BenchmarkEncodeGrayWithBufferPool: it holds at
+// most one EncoderBuffer, so every Encode after the first reuses it.
+type onePool struct{ b *png.EncoderBuffer }
+
+func (p *onePool) Get() *png.EncoderBuffer  { return p.b }
+func (p *onePool) Put(b *png.EncoderBuffer) { p.b = b }
+
+var poolLevels = []png.CompressionLevel{png.DefaultCompression, png.NoCompression, png.BestSpeed, png.BestCompression, 7}
+
+// poolCmd encodes sequences of synthetic images with one Encoder whose
+// BufferPool hands back the same EncoderBuffer (zlib writer, bufio.Writer
+// and row buffers are reused across images, levels and failed encodes).
+func poolCmd(seed0, n, maxDim int) {
+	for i := seed0; i < seed0+n; i++ {
+		r := &rng{s: uint64(i)*0x9e3779b97f4a7c15 + 999}
+		enc := &png.Encoder{BufferPool: &onePool{}}
+		steps := 2 + r.intn(6)
+		cols := []string{strconv.Itoa(i)}
+		for s := 0; s < steps; s++ {
+			m, desc := genSynth(r, maxDim)
+			li := r.intn(len(poolLevels))
+			enc.CompressionLevel = poolLevels[li]
+			var res string
+			if r.intn(4) == 0 {
+				fw := &failWriter{k: r.intn(10)}
+				err := enc.Encode(fw, m)
+				res = fmt.Sprintf("fail%d:%s:%d:%s", fw.k, sha16(fw.buf.Bytes()), fw.buf.Len(), errStr(err))
+			} else {
+				var buf bytes.Buffer
+				err := enc.Encode(&buf, m)
+				res = fmt.Sprintf("%s:%d:%s", sha16(buf.Bytes()), buf.Len(), errStr(err))
+			}
+			cols = append(cols, fmt.Sprintf("%s|L%d|%s", desc, li, res))
+		}
+		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
+	}
+}
+
+// gotests encodes the images of Go's image/png writer tests, benchmarks and
+// ExampleEncode (several are 640x480, i.e. multi-block flate streams), and
+// the encoder's size and palette-length errors, at the four levels.
+func gotests() {
+	type tc struct {
+		name string
+		m    image.Image
+	}
+	var cases []tc
+	// TestWriterPaletted.
+	for _, plen := range []int{256, 128, 16, 4, 2} {
+		pal := make(color.Palette, plen)
+		for i := range pal {
+			pal[i] = color.NRGBA{R: uint8(i), G: uint8(i), B: uint8(i), A: 255}
+		}
+		m := image.NewPaletted(image.Rect(0, 0, 32, 16), pal)
+		i := 0
+		for y := 0; y < 16; y++ {
+			for x := 0; x < 32; x++ {
+				m.SetColorIndex(x, y, uint8(i%plen))
+				i++
+			}
+		}
+		cases = append(cases, tc{fmt.Sprintf("writer-paletted-%d", plen), m})
+	}
+	// TestWriterLevels.
+	cases = append(cases, tc{"writer-levels", image.NewNRGBA(image.Rect(0, 0, 100, 100))})
+	// TestSubImage.
+	sub := image.NewRGBA(image.Rect(0, 0, 256, 256))
+	for y := 0; y < 256; y++ {
+		for x := 0; x < 256; x++ {
+			sub.Set(x, y, color.RGBA{uint8(x), uint8(y), 0, 255})
+		}
+	}
+	cases = append(cases, tc{"subimage", sub.SubImage(image.Rect(50, 30, 250, 130))})
+	// TestWriteRGBA.
+	const width, height = 640, 480
+	transparentImg := image.NewRGBA(image.Rect(0, 0, width, height))
+	opaqueImg := image.NewRGBA(image.Rect(0, 0, width, height))
+	mixedImg := image.NewRGBA(image.Rect(0, 0, width, height))
+	translucentImg := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			opaqueColor := color.RGBA{uint8(x), uint8(y), uint8(y + x), 255}
+			translucentColor := color.RGBA{uint8(x) % 128, uint8(y) % 128, uint8(y+x) % 128, 128}
+			opaqueImg.Set(x, y, opaqueColor)
+			translucentImg.Set(x, y, translucentColor)
+			if y%2 == 0 {
+				mixedImg.Set(x, y, opaqueColor)
+			}
+		}
+	}
+	cases = append(cases,
+		tc{"rgba-transparent", transparentImg},
+		tc{"rgba-opaque", opaqueImg},
+		tc{"rgba-mixed", mixedImg},
+		tc{"rgba-translucent", translucentImg})
+	// Benchmarks.
+	cases = append(cases, tc{"bench-gray", image.NewGray(image.Rect(0, 0, width, height))})
+	nrgbOpaque := image.NewNRGBA(image.Rect(0, 0, width, height))
+	rgbOpaque := image.NewRGBA(image.Rect(0, 0, width, height))
+	benchRGBA := image.NewRGBA(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			nrgbOpaque.Set(x, y, color.NRGBA{0, 0, 0, 255})
+			rgbOpaque.Set(x, y, color.RGBA{0, 0, 0, 255})
+			percent := (x + y) % 100
+			switch {
+			case percent < 10:
+				benchRGBA.Set(x, y, color.NRGBA{uint8(x), uint8(y), uint8(x * y), uint8(percent)})
+			case percent < 40:
+				benchRGBA.Set(x, y, color.NRGBA{uint8(x), uint8(y), uint8(x * y), 0})
+			default:
+				benchRGBA.Set(x, y, color.NRGBA{uint8(x), uint8(y), uint8(x * y), 255})
+			}
+		}
+	}
+	cases = append(cases,
+		tc{"bench-nrgb-opaque", nrgbOpaque},
+		tc{"bench-nrgba", image.NewNRGBA(image.Rect(0, 0, width, height))},
+		tc{"bench-paletted", image.NewPaletted(image.Rect(0, 0, width, height), color.Palette{
+			color.RGBA{0, 0, 0, 255},
+			color.RGBA{255, 255, 255, 255},
+		})},
+		tc{"bench-rgb-opaque", rgbOpaque},
+		tc{"bench-rgba", benchRGBA})
+	// ExampleEncode.
+	ex := image.NewNRGBA(image.Rect(0, 0, 256, 256))
+	for y := 0; y < 256; y++ {
+		for x := 0; x < 256; x++ {
+			ex.Set(x, y, color.NRGBA{
+				R: uint8((x + y) & 255),
+				G: uint8((x + y) << 1 & 255),
+				B: uint8((x + y) << 2 & 255),
+				A: 255,
+			})
+		}
+	}
+	cases = append(cases, tc{"example-encode", ex})
+	// Palette length errors (the header and IHDR are still written).
+	pal257 := make(color.Palette, 257)
+	for i := range pal257 {
+		pal257[i] = color.NRGBA{uint8(i), uint8(i), uint8(i), uint8(i)}
+	}
+	cases = append(cases,
+		tc{"pal-0", image.NewPaletted(image.Rect(0, 0, 3, 2), color.Palette{})},
+		tc{"pal-257", image.NewPaletted(image.Rect(0, 0, 3, 2), pal257)})
+	// Size errors (image.Rectangle is itself an image).
+	cases = append(cases,
+		tc{"size-wide", image.Rect(0, 0, 1<<32, 1)},
+		tc{"size-tall", image.Rect(0, 0, 1, 1<<32)},
+		tc{"size-neg", image.Rectangle{Max: image.Pt(-1, -2)}},
+		tc{"size-zero", image.Rect(0, 0, 0, 5)})
+	for _, c := range cases {
+		cols := []string{c.name}
+		var def []byte
+		for _, lvl := range levels4 {
+			s, b := encStr(c.m, lvl)
+			if lvl == png.DefaultCompression {
+				def = b
+			}
+			cols = append(cols, s)
+		}
+		fs := "-"
+		if def != nil {
+			fs = sha16([]byte(rowFilters(def)))
+		}
+		cols = append(cols, fs)
+		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
+	}
+}
+
+func readList(listfile string) []string {
+	list, err := os.ReadFile(listfile)
+	if err != nil {
+		panic(err)
+	}
+	return strings.Split(strings.TrimSpace(string(list)), "\n")
+}
+
+// truncLengths lists the prefix lengths trunc decodes: all of them for
+// small files, otherwise the first and last 300 and ~300 in between.
+func truncLengths(n int) []int {
+	var ls []int
+	if n <= 1200 {
+		for l := 0; l < n; l++ {
+			ls = append(ls, l)
+		}
+		return ls
+	}
+	for l := 0; l < 300; l++ {
+		ls = append(ls, l)
+	}
+	step := (n-600)/300 + 1
+	for l := 300; l < n-300; l += step {
+		ls = append(ls, l)
+	}
+	for l := n - 300; l < n; l++ {
+		ls = append(ls, l)
+	}
+	return ls
+}
+
+// truncCmd decodes prefixes of every file: DecodeConfig and Decode results
+// (exact error strings).
+func truncCmd(root, listfile string) {
+	for _, rel := range readList(listfile) {
+		data, err := os.ReadFile(filepath.Join(root, rel))
+		if err != nil {
+			panic(err)
+		}
+		for _, l := range truncLengths(len(data)) {
+			d := data[:l]
+			_, dec := decStr(d)
+			_, _ = fmt.Fprintln(out, strings.Join([]string{rel, strconv.Itoa(l), cfgStr(d), dec}, "\t"))
+		}
+	}
+}
+
+// fmasearchCmd encodes large genBase images (multi-block zlib streams) at
+// the four levels. Comparing the output of an arm64 and an amd64 build
+// finds encodings whose bytes depend on the FMA-sensitive float code of the
+// flate compressor.
+func fmasearchCmd(seed0, n int) {
+	for i := seed0; i < seed0+n; i++ {
+		r := &rng{s: uint64(i)*0x9e3779b97f4a7c15 + 31337}
+		w, h := 150+r.intn(500), 150+r.intn(500)
+		kind := r.intn(10)
+		m := genBase(r, kind, image.Rect(0, 0, w, h))
+		cols := []string{strconv.Itoa(i), fmt.Sprintf("k%d %dx%d", kind, w, h)}
+		for _, lvl := range levels4 {
+			s, _ := encStr(m, lvl)
+			cols = append(cols, s)
+		}
+		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
+	}
+}
+
+// errReader delivers data[:k] and then fails every Read with "boom".
+type errReader struct {
+	data []byte
+	k    int
+	pos  int
+}
+
+func (r *errReader) Read(p []byte) (int, error) {
+	if r.pos >= r.k {
+		return 0, errors.New("boom")
+	}
+	n := copy(p, r.data[r.pos:min(r.k, len(r.data))])
+	r.pos += n
+	return n, nil
+}
+
+// errreadCmd decodes files through a reader that fails after k bytes, for
+// the prefix lengths of trunc: the underlying reader's error surfaces as is
+// or wrapped in a FormatError depending on where the decoder meets it.
+func errreadCmd(root, listfile string) {
+	for _, rel := range readList(listfile) {
+		data, err := os.ReadFile(filepath.Join(root, rel))
+		if err != nil {
+			panic(err)
+		}
+		for _, k := range truncLengths(len(data)) {
+			m, err := png.Decode(&errReader{data: data, k: k})
+			s := "err:" + errStr(err)
+			if err == nil {
+				s = imgDigest(m)
+			}
+			_, _ = fmt.Fprintln(out, strings.Join([]string{rel, strconv.Itoa(k), s}, "\t"))
+		}
 	}
 }
 
@@ -687,13 +1166,31 @@ func record(path string) {
 			continue
 		}
 		m, d := decStr(data)
-		cols = append(cols, d, regStr(data))
+		cols = append(cols, d, regStr(data),
+			decWith(data, iotest.OneByteReader, d),
+			decWith(data, iotest.HalfReader, d))
 		if m != nil {
 			s, _ := encStr(m, png.DefaultCompression)
 			cols = append(cols, s)
 		}
 		_, _ = fmt.Fprintln(out, strings.Join(cols, "\t"))
 	}
+}
+
+// decWith decodes data through a reader wrapper that returns short reads
+// (Go's decoder result can depend on how much IDAT data the zlib reader's
+// bufio.Reader has pulled when the zlib stream ends). It returns "=" when the
+// result equals want.
+func decWith(data []byte, wrap func(io.Reader) io.Reader, want string) string {
+	m, err := png.Decode(wrap(bytes.NewReader(data)))
+	s := "err:" + errStr(err)
+	if err == nil {
+		s = imgDigest(m)
+	}
+	if s == want {
+		return "="
+	}
+	return s
 }
 
 func writeChunk(w *bytes.Buffer, name string, data []byte) {
@@ -938,6 +1435,9 @@ func mkpng(r *rng) []byte {
 	if r.intn(40) == 0 && len(zb) > 4 {
 		zb[len(zb)-1-r.intn(4)] ^= 1 << r.intn(8)
 	}
+	if r.intn(30) == 0 {
+		writeChunk(&buf, "IDAT", nil)
+	}
 	if r.intn(30) != 0 {
 		for len(zb) > 0 {
 			n := len(zb)
@@ -1017,7 +1517,7 @@ func mutate(r *rng, in []byte) []byte {
 			break
 		}
 		cs := chunks(b)
-		op := r.intn(10)
+		op := r.intn(11)
 		if len(cs) == 0 && op >= 2 {
 			op = r.intn(2)
 		}
@@ -1079,6 +1579,12 @@ func mutate(r *rng, in []byte) []byte {
 				}
 				fixCRC(b, c)
 			}
+		case 9:
+			// Huge chunk lengths (Go's "Bad chunk length" and IDAT
+			// length paths).
+			c := cs[r.intn(len(cs))]
+			lens := []uint32{0x7fffffff, 0x80000000, 0xfffffff0, 0xffffffff, uint32(r.next())}
+			binary.BigEndian.PutUint32(b[c.off:], lens[r.intn(len(lens))])
 		default:
 			var idats []chunkPos
 			for _, c := range cs {
