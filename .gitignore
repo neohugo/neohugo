@@ -38,3 +38,6 @@ imports.*
 dist/
 public/
 .DS_Store
+# Rust port
+/target/
+crates/*/target/
