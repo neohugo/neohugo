@@ -1,0 +1,15 @@
+[package]
+name = "xtext-collate"
+version = "0.1.0"
+edition = "2024"
+description = "Port of golang.org/x/text@v0.26.0 collate + internal/colltab (CLDR 23 tables), with the unicode/norm and language subsets it needs"
+license = "BSD-3-Clause"
+
+[dependencies]
+go-sort = { path = "../go-sort" }
+
+[dev-dependencies]
+sha2 = "0.10"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
