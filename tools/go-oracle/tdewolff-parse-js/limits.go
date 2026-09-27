@@ -131,6 +131,12 @@ func genLimits(out string) {
 		src := s.build(n)
 		_, _ = fmt.Fprintf(w, "%s\t%s\t%s\t%s\t%s\t%d", strconv.Quote(s.prefix), strconv.Quote(s.unit1), strconv.Quote(s.middle), strconv.Quote(s.unit2), strconv.Quote(s.suffix), n)
 		for _, m := range modes {
+			if m == "string" && 64 < n {
+				// ExprStmt.String calls Value.String twice: exponential in
+				// the nesting depth of expression statements
+				_, _ = fmt.Fprint(w, "\t-")
+				continue
+			}
 			_, _ = fmt.Fprintf(w, "\t%s", digest(runMode(m, src)))
 		}
 		_, _ = fmt.Fprintln(w)

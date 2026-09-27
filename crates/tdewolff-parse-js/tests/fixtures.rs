@@ -1,7 +1,9 @@
 //! Differential tests against the Go oracle (tools/go-oracle/tdewolff-parse-js):
 //! every string literal of the upstream parse/js and minify/js tests plus
-//! hand-written edge cases (full dumps), and seeded fuzz mutations of them
-//! (FNV digests of the dumps).
+//! hand-written edge cases (full dumps), seeded fuzz mutations of them
+//! (FNV digests of the dumps), the red-team sample (the minify-js oracle's
+//! generated inputs, `reparse`) and an exhaustive enumeration of short
+//! whitespace/line-terminator/comment token sequences (`enumerate`).
 
 mod common;
 
@@ -83,4 +85,29 @@ fn fuzz() {
 #[test]
 fn fuzz_corpus() {
     digests_test("fuzzcorpus.rec.gz");
+}
+
+/// The red-team sample: literal-heavy programs, logic trees, numbers, token
+/// soup and generated programs of the minify-js oracle (`gen`), reparsed.
+#[test]
+fn redteam() {
+    digests_test("redteam.rec.gz");
+}
+
+/// Every sequence of <= 3 tokens of whitespace, line terminators (CR,
+/// CRLF, LF, U+2028/9), NBSP, BOM, comments, HTML-like comments and
+/// hashbangs mixed with a few expression tokens.
+#[test]
+fn enumerate_ws() {
+    let (n, bad) = big_stack(|| check_enumerate(&fixtures_dir().join("enum-ws.txt.gz")));
+    for src in bad.iter().take(20) {
+        eprintln!("{:?}", String::from_utf8_lossy(src));
+    }
+    assert!(
+        bad.is_empty(),
+        "enum-ws: {} of {} inputs differ",
+        bad.len(),
+        n
+    );
+    eprintln!("enum-ws: {} inputs x {} modes identical", n, MODES.len());
 }

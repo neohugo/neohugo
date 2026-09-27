@@ -10,6 +10,9 @@
 //	tdewolff-minify-js tables OUT.rs              # the upstream test tables as Rust source
 //	tdewolff-minify-js corpus OUT.tsv CFGS ROOT... # per-file output digests
 //	tdewolff-minify-js sample N SEED              # prints generated programs
+//	tdewolff-minify-js gen KIND OUT.rec.gz N SEED # red-team runs (redteam.go; digests)
+//	tdewolff-minify-js files OUT.rec.gz CFGS LIST # listed files x configurations (digests)
+//	tdewolff-minify-js enumerate OUT CFGS ALPHA MAXLEN # all short symbol sequences (enumerate.go)
 //
 // A configuration CFG is a '-'-separated list of tokens: vN (Version),
 // pN (Precision), keep (KeepVarNames), alpha (the unexported
@@ -95,7 +98,7 @@ func minifyBuf(cfg string, buf []byte) (out []byte, err error) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: tdewolff-minify-js stdin|fixtures|tables|corpus|sample ...")
+		fmt.Fprintln(os.Stderr, "usage: tdewolff-minify-js stdin|fixtures|tables|corpus|sample|gen ...")
 		os.Exit(2)
 	}
 	switch os.Args[1] {
@@ -124,6 +127,27 @@ func main() {
 		genTables(os.Args[2])
 	case "corpus":
 		corpusDigests(os.Args[2], strings.Split(os.Args[3], ","), os.Args[4:])
+	case "gen":
+		// gen KIND OUT.rec.gz N SEED (red-team runs, see redteam.go)
+		n, err := strconv.Atoi(os.Args[4])
+		if err != nil {
+			panic(err)
+		}
+		seed, err := strconv.ParseInt(os.Args[5], 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		genRedTeam(os.Args[2], os.Args[3], n, seed)
+	case "enumerate":
+		// enumerate OUT CFGS ALPHA MAXLEN: all short symbol sequences (combined digests)
+		maxLen, err := strconv.Atoi(os.Args[5])
+		if err != nil {
+			panic(err)
+		}
+		enumerate(os.Args[2], strings.Split(os.Args[3], ","), os.Args[4], maxLen)
+	case "files":
+		// files OUT.rec.gz CFGS LIST: every listed file through every configuration (digests)
+		genFiles(os.Args[2], strings.Split(os.Args[3], ","), os.Args[4])
 	case "sample":
 		n, err := strconv.Atoi(os.Args[2])
 		if err != nil {

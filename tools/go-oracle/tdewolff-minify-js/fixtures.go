@@ -500,6 +500,9 @@ func genFixtures(dir string, scale int, seed int64) {
 		w.rec(append([][]byte{[]byte("min"), []byte(cfg), win}, digests(runMin(cfg, win))...)...)
 	}
 	w.close()
+
+	// redteam: a sample of the red-team generators (redteam.go; digests)
+	genRedTeamFixture(dir, scale, seed+6)
 }
 
 func repoRoot() string {

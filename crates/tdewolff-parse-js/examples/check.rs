@@ -20,6 +20,8 @@ fn main() {
     let file = PathBuf::from(&args[1]);
     let out = PathBuf::from(&args[2]);
     std::fs::create_dir_all(&out).unwrap();
+    // the dumps record Go's panics; keep the output readable
+    std::panic::set_hook(Box::new(|_| {}));
     let (n, bad) = big_stack(move || {
         // read_records resolves names against fixtures_dir(); pass an absolute path
         let recs = read_records(file.to_str().unwrap());

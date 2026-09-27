@@ -13,6 +13,8 @@
 //	tdewolff-parse-js grammarsample N SEED       # prints generated programs
 //	tdewolff-parse-js tables OUT SEED            # exhaustive token/rune/sort tables
 //	tdewolff-parse-js limits OUT.tsv             # nesting limits and uint16 wrap-around
+//	tdewolff-parse-js reparse IN.rec.gz OUT      # inputs of minify-js oracle records (digests)
+//	tdewolff-parse-js enumerate OUT ALPHAHEX MAXLEN # all short strings (combined digests)
 //	tdewolff-parse-js dump MODE FILE             # prints one dump of one file
 //	tdewolff-parse-js time FILE                  # average js.Parse time
 //
@@ -120,6 +122,16 @@ func main() {
 	case "limits":
 		// limits OUT.tsv: nesting-limit and uint16 wrap-around inputs (specs + digests)
 		genLimits(os.Args[2])
+	case "reparse":
+		// reparse IN.rec.gz OUT.rec.gz: the inputs of a minify-js oracle record file (digests)
+		reparse(os.Args[2], os.Args[3])
+	case "enumerate":
+		// enumerate OUT ALPHAHEX MAXLEN: all strings over an alphabet (combined digests)
+		maxLen, err := strconv.Atoi(os.Args[4])
+		if err != nil {
+			panic(err)
+		}
+		enumerate(os.Args[2], os.Args[3], maxLen)
 	case "grammarsample":
 		// grammarsample N SEED: prints generated programs and whether they parse
 		n, err := strconv.Atoi(os.Args[2])

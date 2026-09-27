@@ -157,20 +157,44 @@ None. `go tool objdump` of a darwin/arm64 build of the oracle shows no
 `FMADD`/`FMSUB`/`FNMADD`/`FNMSUB` — in fact no float instruction at all — in
 `minify/v2/js`, `minify.Number` and the `parse/v2/js`/`parse/v2/strconv`
 functions this path links. The output is platform-independent, so fixtures
-generated on linux/amd64 are valid.
+generated on linux/amd64 are valid. Re-checked by the red-team on a
+linux/arm64 build (`CGO_ENABLED=0 GOARCH=arm64`, go1.27.1): the only fused
+instructions in the binary are in `math`, `compress/flate`, the runtime,
+`parse/v2/css.HSL2RGB` and `minify/v2/css.rgbToToken`; the float-register
+instructions in `minify/v2/js` and `parse/v2/js` are `FMOVD`/`FMOVQ` struct
+copies. `parse/v2/strconv.ParseFloat` (FMA-sensitive on arm64) is linked
+for the CSS/SVG minifiers only; the JS path never calls it. The linux/arm64
+oracle under `qemu-aarch64-static` reproduces every checked-in fixture byte
+for byte, and its red-team record files are identical to the amd64
+oracle's. (The `html` fixture runs neohugo's whole `M`, so a document with
+CSS colours would be FMA-sensitive through the CSS minifier: regenerate it
+with `ARCH=arm64`.)
 
 ## Tests and parity evidence
 
 Oracle: `tools/go-oracle/tdewolff-minify-js` (package main in the neohugo
-module, gofmt/vet clean; `gen.sh` regenerates everything). Modes: `stdin
-CFG`, `fixtures DIR SCALE SEED`, `tables OUT.rs`, `corpus OUT.tsv CFGS
-ROOT…`, `sample N SEED`. A configuration name is `-`-separated tokens (`vN`,
-`pN`, `keep`, `alpha` — set through reflect/unsafe —, `inline`, or `0`);
+module; gofmt, `go vet` (go1.25 and go1.27) and golangci-lint clean;
+`gen.sh` regenerates everything: `SCRATCH=… gen.sh`, or on a linux/amd64
+host `ARCH=arm64 SCRATCH=… gen.sh`, which builds a linux/arm64 oracle with
+`CGO_ENABLED=0 GOARCH=arm64` and runs it under `qemu-aarch64-static`; the
+checked-in fixtures come from that arm64 build). Modes: `stdin CFG`,
+`fixtures DIR SCALE SEED`, `tables OUT.rs`, `corpus OUT.tsv CFGS ROOT…`,
+`sample N SEED`, and the red-team modes `gen KIND OUT.rec.gz N SEED`
+(`redteam.go`, `redteam_logic.go`: `lits`, `logic`, `num`, `soup`, `prog`,
+`corpus`, `corpus:LISTFILE`, `html`; digests), `files OUT.rec.gz CFGS
+LISTFILE` (whole files × configurations; `html` wraps the file in a
+`<script>` through neohugo's `M`) and `enumerate OUT CFGS ALPHA MAXLEN`
+(`enumerate.go`: every sequence of ≤ MAXLEN symbols of a byte or token
+alphabet; one combined digest per input, the Rust side enumerates the same
+inputs). A configuration name is `-`-separated tokens (`vN`, `pN`, `keep`,
+`alpha` — set through reflect/unsafe —, `inline`, or `0`);
 `tests/common/mod.rs` parses the same names. `examples/minify.rs` is the
 Rust twin of `stdin` (`cargo run --release --example minify -- v2022 <
-in.js`).
+in.js`); `examples/check.rs` checks any record file (`cargo run --release
+--example check -- /abs/FILE.rec.gz DIFFDIR`, differing inputs go to
+DIFFDIR) and `examples/enumerate.rs` an `enumerate` file.
 
-Checked-in fixtures (2.2 MB, gzip, length-prefixed binary-safe records in
+Checked-in fixtures (2.9 MB, gzip, length-prefixed binary-safe records in
 `tests/fixtures/`, read with `flate2`, decompression only). Each record
 compares the output, the error string (`err.Error()`, positions included)
 and the input buffer after the call:
@@ -185,6 +209,8 @@ and the input buffer after the call:
 | `fuzz` | mutated literals and mutated programs — digests | 18,000 |
 | `repo` | the neohugo repository's 28 JS files (578 KB) × 4 configurations — digests | 112 |
 | `corpuswin` | mutated windows (≤16 KiB) of the module-cache JS corpus — digests | 3,000 |
+| `redteam` | the red-team generators: literal-heavy programs (strings with every escape form, `</script>`, quotes, `${`; templates; numbers in every base with separators, BigInt and huge/tiny exponents; regexps) in the contexts that rewrite them, logic trees (`?:`, `&&`/`\|\|`/`??`, `!`, `==null`/`=== void 0` pairs, `typeof` comparisons) in if/return/throw-merging statement contexts, numbers at precisions 0–21, token soup, generated programs, and HTML documents with these scripts (also byte-mutated, for error positions) — 28 configurations (all versions, precisions, keep/alpha/inline), digests | 6,000 |
+| `enum-min` | every sequence of ≤ 3 of 29 statement/expression tokens (`var a`, `if(a)`, `else `, `return a`, `a?b:c`, `void 0`, `a==null`, `try{}catch(e)`, `x:`, …) through `v2022` and `keep-inline` — combined digests | 25,259 |
 
 * `tests/upstream.rs`: `TestJS` (722 rows), `TestJSVarRenaming` (52),
   `TestJSVersion` (3 × 5 versions), `TestHTMLCSSJS` (6), `TestReaderError`,
@@ -203,9 +229,9 @@ and the input buffer after the call:
 
 Results (2026-09-27, linux/amd64; debug-with-overflow-checks and release):
 
-* checked-in fixtures 58,031/58,031 checks; upstream 7 tests (783 table rows) and
-  7 unit tests pass; `cargo clippy --all-targets` and `cargo fmt --check`
-  clean.
+* checked-in fixtures 58,031/58,031 checks (89,290 with the red-team's
+  `redteam` and `enum-min`); upstream 7 tests (783 table rows) and 7 unit
+  tests pass; `cargo clippy --all-targets` and `cargo fmt --check` clean.
 * 20× sets (`TDEWOLFF_MINIFY_JS_FIXTURES=… cargo test --release --test
   fixtures`), seeds 7 and 11, each: literals 31,932, embedded 1,182, html
   1,589, adversarial 216, grammar 40,000, fuzz 360,000, corpuswin 60,000,
@@ -222,6 +248,35 @@ Results (2026-09-27, linux/amd64; debug-with-overflow-checks and release):
   there), and two `for`-init merges.
 * Performance (release, linux/amd64, whole process): typescript.js 348 ms
   (Go 351 ms), antd 186 ms (Go 175 ms), jquery 22 ms (Go 16 ms).
+
+Red-team (2026-09-27, linux/amd64 host; go1.27.1 oracle built for amd64
+for the large runs — the arm64 build under qemu reproduces every
+checked-in fixture byte for byte and writes byte-identical record files for
+20000-input samples of every generator, seed 99). Each check compares the
+output, the error string and the input buffer afterwards; **0 differences
+in every run**:
+
+| run | checks |
+|---|---|
+| `fixtures DIR 5 101` (all eight fixture kinds at 5× scale, new seed) | 150,031 |
+| `gen lits` seeds 1001, 1002 | 500,000 + 1,500,000 |
+| `gen logic` seeds 6001, 6002 | 600,000 + 1,000,000 |
+| `gen num` seeds 7001, 7002 (8 numbers per input at precisions 0–21: ~16M literals) | 1,000,000 + 1,000,000 |
+| `gen soup` seeds 3001, 3002 | 500,000 + 1,000,000 |
+| `gen prog` seeds 2001, 2002 | 400,000 + 500,000 |
+| `gen corpus` seed 4001 (module-cache windows ≤ 32 KiB, byte mutations) | 150,000 |
+| `gen corpus:LIST` seeds 4101, 4102 (windows of the node_modules files below) | 300,000 + 300,000 |
+| `gen html` seeds 5001, 5002, 5003 (through neohugo's `M`, incl. `on*` attributes, entity-escaped, byte-mutated scripts) | 100,000 + 200,000 + 300,000 |
+| `files`: every distinct `.js/.mjs/.cjs` under `/opt/node{20,21,22}/lib` (npm, pnpm, yarn, corepack, typescript, eslint, prettier, playwright, …), `/usr/share/javascript` and the Go/Ruby/LLVM distributions — 3830 files, 86.6 MB — × 13 configurations (`v2022`, `v2022-inline`, `0`, `keep`, `p3-v2022`, `alpha-v2019`, `v2015`, `keep-alpha`, `p1-v2022`, `v2019-inline`, `alpha-v2014`, `p10`, `keep-v2016`) + each file as a `<script>` through neohugo's `M` | 53,620 |
+| `enumerate`: ≤ 4 of 29 statement/expression tokens × `v2022`, `keep-inline` | 732,540 inputs |
+| `enumerate`: ≤ 4 of 40 lexer/parser tokens × `v2022` | 2,625,640 inputs |
+| `enumerate`: all strings of ≤ 4 bytes over a 39-byte alphabet × `v2022` | 2,374,320 inputs |
+| `enumerate`: ≤ 4 of 30 whitespace/line-terminator/comment/BOM/hashbang tokens × `v2022`, `v2022-inline` | 837,930 inputs |
+| by hand: a variable used 65,536–65,538 times (uint16 wrap of `Var.Uses` → renaming order), 10,005 and 12,000 declarations (`hoistVars`' 10000 limit), 120- and 400-term string concatenations (`mergeBinaryExpr`'s limit of 50), 63 modern-syntax snippets × 3 configurations | 196 |
+
+No divergence was found, so no port code changed; the new generators and
+a sample of them (`redteam`, `enum-min`) are checked in as regression
+fixtures.
 
 ## Known gaps
 

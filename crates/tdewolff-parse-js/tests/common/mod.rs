@@ -146,3 +146,66 @@ pub fn big_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static) -> T
         .join()
         .unwrap()
 }
+
+/// Parses an alphabet argument of the oracle's `enumerate`: hex bytes, or
+/// comma-separated hex tokens.
+pub fn parse_alphabet(s: &str) -> Vec<Vec<u8>> {
+    let unhex = |s: &str| -> Vec<u8> {
+        (0..s.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+            .collect()
+    };
+    if s.contains(',') {
+        s.split(',').map(unhex).collect()
+    } else {
+        unhex(s).into_iter().map(|c| vec![c]).collect()
+    }
+}
+
+/// Checks an `enumerate` file of the Go oracle (header
+/// `# enumerate ALPHAHEX MAXLEN`, then one combined digest per input):
+/// enumerates every sequence of 1..MAXLEN symbols in the same order
+/// (length-major, lexicographic) and returns the number of inputs and the
+/// differing ones. Call on a big stack.
+pub fn check_enumerate(path: &std::path::Path) -> (usize, Vec<Vec<u8>>) {
+    use std::io::BufRead;
+    let f = std::fs::File::open(path).unwrap_or_else(|e| panic!("{}: {}", path.display(), e));
+    let mut lines = std::io::BufReader::new(flate2::read::GzDecoder::new(f)).lines();
+    let head = lines.next().unwrap().unwrap();
+    let parts: Vec<&str> = head.split(' ').collect();
+    assert_eq!(parts[..2], ["#", "enumerate"], "not an enumerate file");
+    let alpha = parse_alphabet(parts[2]);
+    let max_len: usize = parts[3].parse().unwrap();
+    let (mut n, mut bad) = (0usize, Vec::new());
+    for l in 1..=max_len {
+        let mut idx = vec![0usize; l];
+        loop {
+            let src: Vec<u8> = idx.iter().flat_map(|&k| alpha[k].clone()).collect();
+            let mut all = Vec::new();
+            for mode in MODES {
+                all.extend_from_slice(digest(&run_mode(mode, &src)).as_bytes());
+            }
+            let want = lines.next().expect("short enumerate file").unwrap();
+            n += 1;
+            if digest(&all) != want {
+                bad.push(src);
+            }
+            // next index vector
+            let mut i = l as isize - 1;
+            while 0 <= i {
+                idx[i as usize] += 1;
+                if idx[i as usize] < alpha.len() {
+                    break;
+                }
+                idx[i as usize] = 0;
+                i -= 1;
+            }
+            if i < 0 {
+                break;
+            }
+        }
+    }
+    assert!(lines.next().is_none(), "long enumerate file");
+    (n, bad)
+}

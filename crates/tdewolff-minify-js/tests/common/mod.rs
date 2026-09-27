@@ -195,8 +195,12 @@ pub fn fixtures_dir() -> PathBuf {
 /// Reads `<name>.rec.gz`: `#rec N\n` then N fields `<len>\n<bytes>\n`. The
 /// first record (the generator comment) is skipped.
 pub fn records(name: &str) -> Vec<Vec<Vec<u8>>> {
-    let p = fixtures_dir().join(format!("{}.rec.gz", name));
-    let f = std::fs::File::open(&p).unwrap_or_else(|e| panic!("{}: {}", p.display(), e));
+    records_at(&fixtures_dir().join(format!("{}.rec.gz", name)))
+}
+
+/// `records` of an explicit path.
+pub fn records_at(p: &std::path::Path) -> Vec<Vec<Vec<u8>>> {
+    let f = std::fs::File::open(p).unwrap_or_else(|e| panic!("{}: {}", p.display(), e));
     let mut data = Vec::new();
     flate2::read::GzDecoder::new(f)
         .read_to_end(&mut data)
@@ -296,4 +300,77 @@ pub fn with_big_stack<T: Send + 'static>(f: impl FnOnce() -> T + Send + 'static)
         .unwrap()
         .join()
         .unwrap()
+}
+
+/// Parses an alphabet argument of the oracle's `enumerate`: hex bytes, or
+/// comma-separated hex tokens.
+pub fn parse_alphabet(s: &str) -> Vec<Vec<u8>> {
+    let unhex = |s: &str| -> Vec<u8> {
+        (0..s.len())
+            .step_by(2)
+            .map(|i| u8::from_str_radix(&s[i..i + 2], 16).unwrap())
+            .collect()
+    };
+    if s.contains(',') {
+        s.split(',').map(unhex).collect()
+    } else {
+        unhex(s).into_iter().map(|c| vec![c]).collect()
+    }
+}
+
+/// Checks an `enumerate` file of the Go oracle (header
+/// `# enumerate CFGS ALPHA MAXLEN`, then one combined digest per input):
+/// enumerates every sequence of 1..MAXLEN symbols in the same order
+/// (length-major, lexicographic), minifies it with every configuration and
+/// returns the number of inputs and the differing ones. On a panic only the
+/// panic is compared (output and buffer are left empty, as in the oracle).
+/// Call on a big stack.
+pub fn check_enumerate(path: &std::path::Path) -> (usize, Vec<Vec<u8>>) {
+    use std::io::BufRead;
+    let f = std::fs::File::open(path).unwrap_or_else(|e| panic!("{}: {}", path.display(), e));
+    let mut lines = std::io::BufReader::new(flate2::read::GzDecoder::new(f)).lines();
+    let head = lines.next().unwrap().unwrap();
+    let parts: Vec<&str> = head.split(' ').collect();
+    assert_eq!(parts[..2], ["#", "enumerate"], "not an enumerate file");
+    let cfgs: Vec<&str> = parts[2].split(',').collect();
+    let alpha = parse_alphabet(parts[3]);
+    let max_len: usize = parts[4].parse().unwrap();
+    let (mut n, mut bad) = (0usize, Vec::new());
+    for l in 1..=max_len {
+        let mut idx = vec![0usize; l];
+        loop {
+            let src: Vec<u8> = idx.iter().flat_map(|&k| alpha[k].clone()).collect();
+            let mut all = Vec::new();
+            for cfg in &cfgs {
+                let mut got = run_min(cfg, &src);
+                if got[1] == b"PANIC" {
+                    got[0] = Vec::new();
+                    got[2] = Vec::new();
+                }
+                for f in &got {
+                    all.extend_from_slice(&digest(f));
+                }
+            }
+            let want = lines.next().expect("short enumerate file").unwrap();
+            n += 1;
+            if digest(&all) != want.as_bytes() {
+                bad.push(src);
+            }
+            // next index vector
+            let mut i = l as isize - 1;
+            while 0 <= i {
+                idx[i as usize] += 1;
+                if idx[i as usize] < alpha.len() {
+                    break;
+                }
+                idx[i as usize] = 0;
+                i -= 1;
+            }
+            if i < 0 {
+                break;
+            }
+        }
+    }
+    assert!(lines.next().is_none(), "long enumerate file");
+    (n, bad)
 }

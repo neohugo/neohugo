@@ -20,7 +20,13 @@
 //! * `grammar` — generated programs (digests);
 //! * `fuzz` — mutated literals and programs (digests);
 //! * `repo` — the neohugo repository's own JS files, 4 configurations;
-//! * `corpuswin` — mutated windows of the JS corpus in the Go module cache.
+//! * `corpuswin` — mutated windows of the JS corpus in the Go module cache;
+//! * `redteam` — the red-team generators (`gen`): literal-heavy programs
+//!   (strings, templates, numbers, regexps in rewriting contexts), logic
+//!   trees over the rewritten operators, numbers at precisions 0-21, token
+//!   soup, generated programs and HTML documents (digests);
+//! * `enum-min` — every sequence of <= 3 statement/expression tokens through
+//!   `v2022` and `keep-inline` (`enumerate`, combined digests).
 //!
 //! `TDEWOLFF_MINIFY_JS_FIXTURES=<dir>` points the tests at a larger set
 //! generated with a higher scale (see tools/go-oracle/tdewolff-minify-js/gen.sh).
@@ -130,4 +136,24 @@ fn repo() {
 #[test]
 fn corpuswin() {
     check("corpuswin", true);
+}
+
+#[test]
+fn redteam() {
+    check("redteam", true);
+}
+
+#[test]
+fn enumerate_min() {
+    let (n, bad) = with_big_stack(|| check_enumerate(&fixtures_dir().join("enum-min.txt.gz")));
+    for src in bad.iter().take(20) {
+        eprintln!("{:?}", lossy(src));
+    }
+    assert!(
+        bad.is_empty(),
+        "enum-min: {} of {} inputs differ",
+        bad.len(),
+        n
+    );
+    eprintln!("enum-min: {} inputs identical", n);
 }

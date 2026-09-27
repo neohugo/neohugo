@@ -150,16 +150,35 @@ grow its stack up to 1 GB).
   dumps both record `PANIC`). None of these is reachable from a successful
   `Parse` + minify path on the corpus.
 - `Var.Info()` (prints Go pointer addresses) is not ported.
+- **`ExprStmt.String()`** evaluates `n.Value.String()` twice in Go (once for
+  the parenthesis check, once for the result), which is exponential in the
+  nesting depth of expression statements (`(function(){(function(){…` at
+  depth 18 takes 0.3 s, at depth 1000 it never finishes). The port
+  evaluates it once: the same bytes in linear time. The `limits` fixture
+  therefore has no `string` digests for nesting counts above 64.
 
 ## Tests and parity evidence
 
 - Oracle: `tools/go-oracle/tdewolff-parse-js` (package main in the neohugo
-  module, gofmt/vet clean). `gen.sh` regenerates everything
-  (`SCRATCH=… tools/go-oracle/tdewolff-parse-js/gen.sh`). Commands:
-  `fixtures DIR NFUZZ SEED`, `fuzzcorpus OUT N SEED MAXLEN ROOT…`,
-  `corpus OUT.tsv ROOT…`, `dump MODE FILE`, `time FILE`.
-  `gen_upstream_tables.py` converts the upstream Go test tables to
-  `tests/upstream_tables.rs`.
+  module; gofmt, `go vet` (go1.25 and go1.27) and golangci-lint clean).
+  `gen.sh` regenerates everything
+  (`SCRATCH=… tools/go-oracle/tdewolff-parse-js/gen.sh`; on a linux/amd64
+  host `ARCH=arm64 SCRATCH=… gen.sh` builds a linux/arm64 oracle with
+  `CGO_ENABLED=0 GOARCH=arm64` and runs it under `qemu-aarch64-static`, as
+  the golden toolchain was darwin/arm64 — parse/js has no float arithmetic
+  and both architectures give identical bytes, checked for every checked-in
+  fixture). Commands: `fixtures DIR NFUZZ SEED`, `tables OUT SEED`,
+  `fuzzcorpus OUT N SEED MAXLEN ROOT…`, `corpus OUT.tsv ROOT…`,
+  `grammar OUT N SEED`, `reparse IN.rec.gz OUT.rec.gz` (the inputs of a
+  minify-js oracle record file: its red-team generators and whole-file
+  runs), `enumerate OUT ALPHAHEX MAXLEN` (every sequence of ≤ MAXLEN
+  symbols of a byte or token alphabet; only a combined digest per input is
+  stored, the Rust side enumerates the same inputs), `limits OUT.tsv`,
+  `dump MODE FILE`, `time FILE`. `gen_upstream_tables.py` converts the
+  upstream Go test tables to `tests/upstream_tables.rs`. Out-of-repo runs
+  are checked with `cargo run --release --example check -- /abs/FILE.rec.gz
+  DIFFDIR` (differing inputs are written to DIFFDIR) and
+  `cargo run --release --example enumerate -- FILE.gz`.
 - Eight serializations are compared for every input: `lex` (plain token
   stream incl. data bytes and capacities, continuing after lexer errors),
   `lexre` (same with `RegExp()` re-lexing by a previous-token heuristic),
@@ -175,9 +194,24 @@ grow its stack up to 1 GB).
   upstream `parse/js` and `minify/js` `_test.go` files plus ~140 hand-written
   edge cases (3164 inputs, full dumps); `fuzz.rec.gz` — 30000 seeded
   mutations (digests); `fuzzcorpus.rec.gz` — 4000 mutated windows of the JS
-  corpus (digests). A 300000 + 100000 set lives in
+  corpus (digests); `redteam.rec.gz` — the 5500 non-HTML inputs of the
+  minify-js oracle's red-team sample (literal-heavy programs, logic trees,
+  numbers at every base, token soup, generated programs; digests);
+  `enum-ws.txt.gz` — every sequence of ≤ 3 of 30 tokens (CR, CRLF, LF,
+  U+2028/2029, NBSP, BOM, space, tab, VT, `<!--`, `-->`, `/*`, `*/`, `//`,
+  `#!`, `--`, `<`, `a`, `1`, `/`, `=`, `(`, `)`, `'`, `` ` ``, `{`, `}`, `$`,
+  `\`): 27930 inputs × 8 modes. A 300000 + 100000 set lives in
   `$SCRATCH/work/tdewolff-parse-js/full`
   (`TDEWOLFF_PARSE_JS_FIXTURES=… cargo test --release --test fixtures`).
+- `tests/tables.rs`: `tables.txt.gz` (`tables OUT 1`) — `TokenType.String`
+  for all 65536 values, `OpPrec`/`DeclType` strings, the identifier
+  predicates and the lexer's token streams around every code point,
+  `AsIdentifierName`/`AsDecimalLiteral` over all short strings of an
+  interesting alphabet, `sort.Sort(VarsByUses)` tie order.
+- `tests/limits.rs`: `limits.tsv` (`limits`) — 52 nesting shapes at 19
+  depths around the 1000-statement/1000-expression limits, and 51 inputs
+  that wrap `Var.Uses`, `NumForDecls`, `NumFuncArgs` or `NumArgUses` past
+  65535 (specs + digests; the inputs are rebuilt, up to 600 KB).
 - `tests/upstream.rs`: the upstream tests ported literally — `TestTokens`
   (88), `TestRegExp` (12), `TestOffset`, `TestLexerErrors` (9 + extras),
   `ExampleNewLexer`, `TestParse` (380, `String()`), `TestParseError` (264),
@@ -197,6 +231,41 @@ modes identical; fuzz 300000 × 8 and corpus-window fuzz 100000 × 8
 identical; corpus 3975 files × 8 modes identical (the literal set mixes
 2324 successful and 840 failing parses; the corpus exercises every
 real-world construct, TypeScript files the error paths).
+
+Red-team (2026-09-27, linux/amd64 host; go1.27.1 oracle built for amd64,
+with the arm64 build under qemu reproducing every checked-in fixture and
+producing byte-identical red-team record files for 20000-input samples of
+every generator). Every run compares all 8 modes; **0 differences in
+every run**:
+
+| run | inputs |
+|---|---|
+| `grammar` seed 101 (generated programs, 20% mutated) | 200,000 |
+| `reparse` of the minify-js `gen` runs: `lits` seeds 1001, 1002 | 500,000 + 1,500,000 |
+| `logic` seed 6002, `soup` seeds 3001, 3002 | 1,000,000 + 500,000 + 1,000,000 |
+| `prog` seeds 2001, 2002 (generated programs, 25% mutated, random configurations) | 400,000 + 500,000 |
+| `corpus` seed 4001 (module-cache windows ≤ 32 KiB, byte mutations: bit flips, random/invalid UTF-8 bytes, token splices) | 150,000 |
+| `corpus:` seed 4101 (the same over the 3830 node_modules files below) | 300,000 |
+| whole files: every distinct `.js/.mjs/.cjs` under `/opt/node{20,21,22}/lib` (npm, pnpm, yarn, corepack, typescript, eslint, prettier, playwright, …), `/usr/share/javascript`, Go/Ruby/LLVM distributions | 3,830 files, 86.6 MB |
+| `enumerate`, bytes: all strings of ≤ 4 bytes over a 39-byte alphabet (`a 0 1 . e n x _ \ u { } ( ) [ / * + - = < > ! ? : ; , ' " $ #`, backtick, space, LF, NUL, 0xE2 0x80 0xA8, 0xFF) | 2,374,320 |
+| `enumerate`, tokens: ≤ 4 of 40 tokens (`/`, `/=`, LF, brackets, `=>`, `++`, `?.`, template head and tail, `return`, `let`, `yield`, `await`, `async`, `in`, `of`, `typeof`, `new`, `class`, …: regexp-versus-division and ASI after every token kind) | 2,625,640 |
+| `enumerate`, tokens: ≤ 5 of 20 tokens | 3,368,420 |
+| `enumerate`, whitespace/terminators/comments/BOM/hashbang: ≤ 4 of 30 tokens | 837,930 |
+| 63 hand-written modern-syntax snippets (private methods, `#x in o`, static blocks, logical assignment, `/v` and `/d` regexps, optional-chain templates, …) | 63 |
+| `limits.tsv` (all of it, release) | 1,039 inputs |
+
+No divergence was found, so no port code changed; the new generators and
+samples of them (`redteam`, `enum-ws`, `limits`) are checked in as
+regression fixtures. The previously interrupted red-team's `limits` mode
+(nesting limits and uint16 wrap-around) never finished because Go's
+`ExprStmt.String()` is exponential (see *Deliberate deviations*); it now
+skips `string` above 64 nesting levels, and its output is the checked-in
+`limits.tsv` (`cargo test --test limits` checks the 7317 fast digests in
+about a minute; the 16 inputs with 65536+ distinct names, quadratic to
+declare in Go and in the port, are 112 more digests for `cargo test
+--release --test limits -- --ignored`, about an hour on a loaded 4-vCPU
+machine where the Go oracle needed about 15 minutes — the port's
+`GoBytes` name comparisons are slower, see *Performance*).
 
 Performance (release, darwin/arm64): jquery.js 4.5 ms per parse (Go 3.5
 ms), typescript.js 360 ms (Go 233 ms); the difference is the O(n²) name
