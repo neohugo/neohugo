@@ -28,6 +28,11 @@ tools/rust-port/build-site.sh <neohugo-binary> "$W/seeksnack" "$W/out"
 tools/rust-port/compare.py "$W/out"            # exit 0 == byte parity
 ```
 
+The site repo is **private**. In a cloud session, attach
+`blackb1rd/seeksnack-seeksnack` as a second repository (the Claude GitHub App
+needs access to it), then pass its local checkout path to `prepare-site.sh`
+instead of the URL. The script clones it again and checks out `ae6c922`.
+
 Rules:
 
 - The site dir must be named `seeksnack`; it keys the GetRemote cache.
@@ -132,5 +137,6 @@ Legend:
 - The first session ran ports as parallel agents, one crate each, followed by an independent **red-team agent** per crate. Every result was committed only after the crate's tests passed.
 - A cloud machine has 4 vCPUs, so run fewer agents at once, and give each crate its own `CARGO_TARGET_DIR`.
 - Commit to `rust-port` often; nothing outside git survives the session.
-- Pushing needs GitHub write access to `neohugo/neohugo`. Without the Claude GitHub App installed on the org, cloud pushes fail with 403.
+- Pushing needs GitHub write access to `neohugo/neohugo`. Without the Claude GitHub App installed on the org, cloud pushes fail with 403. As of 2026-09-27 evening, cloud pushes to `rust-port-cloud/*` worked.
+- Cloud verification branches: `rust-port-cloud/linux-verify-4` has unmerged work. It holds an extended xtext-collate/go-image Linux verification and its own copy of the `tags*.tsv` fixtures plus a nested `.gitignore`; `rust-port` already force-added the original fixtures. Review it and merge or cherry-pick, and resolve the fixture overlap in favour of `rust-port`'s Mac-generated files, which are byte-identical to the fixtures the tests were written against.
 - `tools/go-oracle/*` are `package main` programs inside the neohugo Go module. Keep them gofmt- and vet-clean, because CI runs `go vet`/`go test ./...` on the whole module.
