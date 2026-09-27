@@ -712,26 +712,31 @@ pub struct NumberNode {
     pub float64: f64,
     /// The complex value (real, imaginary).
     pub complex128: (f64, f64),
-    /// The original textual representation from the input.
-    pub text: String,
+    /// The original textual representation from the input (bytes: a
+    /// character constant may hold any byte).
+    pub text: Vec<u8>,
 }
 
 impl NumberNode {
     // Go: node.go:(*Tree).newNumber
-    pub(crate) fn new(tr: TreeRef, pos: Pos, text: &str, typ: ItemType) -> Result<NumberNode, String> {
+    /// Parses the number item `text` of lexer type `typ` (`CharConstant`,
+    /// `Complex` or `Number`).
+    pub fn new(tr: TreeRef, pos: Pos, text: &[u8], typ: ItemType) -> Result<NumberNode, String> {
         let mut n = NumberNode {
             pos,
             tr,
-            text: text.to_string(),
+            text: text.to_vec(),
             ..Default::default()
         };
         match typ {
             ItemType::CharConstant => {
-                let tb = text.as_bytes();
                 let (rune, _, tail) =
-                    go_strconv::unquote_char(&tb[1..], tb[0]).map_err(|e| e.to_string())?;
+                    go_strconv::unquote_char(&text[1..], text[0]).map_err(|e| e.to_string())?;
                 if tail != b"'" {
-                    return Err(format!("malformed character constant: {text}"));
+                    return Err(format!(
+                        "malformed character constant: {}",
+                        String::from_utf8_lossy(text)
+                    ));
                 }
                 n.int64 = rune as i64;
                 n.is_int = true;
@@ -743,7 +748,7 @@ impl NumberNode {
             }
             ItemType::Complex => {
                 // fmt.Sscan can parse the pair, so let it do the work.
-                let c = go_strconv::parse_complex(text, 128).map_err(|e| e.to_string())?;
+                let c = sscan_complex(text)?;
                 n.complex128 = c;
                 n.is_complex = true;
                 n.simplify_complex();
@@ -752,7 +757,7 @@ impl NumberNode {
             _ => {}
         }
         // Imaginary constants can only be complex unless they are zero.
-        if !text.is_empty() && text.ends_with('i') {
+        if !text.is_empty() && text.ends_with(b"i") {
             if let Ok(f) = go_strconv::parse_float(&text[..text.len() - 1], 64) {
                 n.is_complex = true;
                 n.complex128 = (0.0, f);
@@ -784,7 +789,7 @@ impl NumberNode {
         } else if let Ok(f) = go_strconv::parse_float(text, 64) {
             // If we parsed it as a float but it looks like an integer,
             // it's a huge number too large to fit in an int. Reject it.
-            if !text.contains(['.', 'e', 'E', 'p', 'P']) {
+            if !text.iter().any(|c| b".eEpP".contains(c)) {
                 return Err(format!("integer overflow: {}", go_strconv::quote(text)));
             }
             n.is_float = true;
@@ -800,7 +805,10 @@ impl NumberNode {
             }
         }
         if !n.is_int && !n.is_uint && !n.is_float {
-            return Err(format!("illegal number syntax: {}", go_strconv::quote(text)));
+            return Err(format!(
+                "illegal number syntax: {}",
+                go_strconv::quote(text)
+            ));
         }
         Ok(n)
     }
@@ -824,7 +832,7 @@ impl NumberNode {
     }
 
     fn write_to_impl(&self, sb: &mut Vec<u8>) {
-        sb.extend_from_slice(self.text.as_bytes());
+        sb.extend_from_slice(&self.text);
     }
 }
 node_common!(NumberNode, NodeType::Number);
@@ -838,6 +846,239 @@ fn go_int64(f: f64) -> i64 {
 /// Go `uint64(f)` on arm64 (FCVTZU: saturating, negative/NaN → 0).
 fn go_uint64(f: f64) -> u64 {
     f as u64
+}
+
+// ---------------------------------------------------------------------------
+// fmt.Sscan(text, &complex128)
+
+/// The part of Go's `fmt` scanner (`fmt/scan.go`, `ss` reading a string)
+/// that `fmt.Sscan(text, &c)` with a `complex128` operand runs: `doScan` →
+/// `scanOne('v')` → `scanComplex(verb, 128)`. Errors are the scanner's
+/// (`errComplex`, the `strconv.NumError` of `convertFloat`, `io.EOF`).
+struct ComplexScanner<'a> {
+    input: &'a [u8],
+    pos: usize,
+    buf: Vec<u8>,
+}
+
+const SCAN_SIGN: &[u8] = b"+-";
+const SCAN_PERIOD: &[u8] = b".";
+const SCAN_EXPONENT: &[u8] = b"eEpP";
+const ERR_COMPLEX: &str = "syntax error scanning complex number";
+
+impl ComplexScanner<'_> {
+    /// Go `ss.getRune` on a string reader: the next rune, `None` at EOF.
+    fn get_rune(&mut self) -> Option<(go_unicode::Rune, usize)> {
+        if self.pos >= self.input.len() {
+            return None;
+        }
+        let (r, w) = go_unicode::utf8::decode_rune(&self.input[self.pos..]);
+        self.pos += w;
+        Some((r, w))
+    }
+
+    // Go: fmt/scan.go:(*ss).consume (with accept == true)
+    /// Reads the next rune in the input and reports whether it is in the ok
+    /// string, putting it into the token buffer if so.
+    fn accept(&mut self, ok: &[u8]) -> bool {
+        let Some((r, w)) = self.get_rune() else {
+            return false;
+        };
+        if r >= 0 && r < 0x80 && ok.contains(&(r as u8)) {
+            self.buf.push(r as u8);
+            return true;
+        }
+        self.pos -= w; // UnreadRune
+        false
+    }
+
+    // Go: fmt/scan.go:(*ss).SkipSpace (nlIsSpace, as for Sscan)
+    fn skip_space(&mut self) {
+        while let Some((r, w)) = self.get_rune() {
+            if !scan_is_space(r) {
+                self.pos -= w;
+                break;
+            }
+        }
+    }
+
+    // Go: fmt/scan.go:(*ss).floatToken
+    /// Returns the floating-point number starting here. It's not rigorous
+    /// about syntax because it doesn't check that we have at least some
+    /// digits, but Atof will do that.
+    fn float_token(&mut self) -> Vec<u8> {
+        self.buf.clear();
+        // NaN?
+        if self.accept(b"nN") && self.accept(b"aA") && self.accept(b"nN") {
+            return self.buf.clone();
+        }
+        // leading sign?
+        self.accept(SCAN_SIGN);
+        // Inf?
+        if self.accept(b"iI") && self.accept(b"nN") && self.accept(b"fF") {
+            return self.buf.clone();
+        }
+        // decimalDigits + "_", hexadecimalDigits + "_"
+        let mut digits: &[u8] = b"0123456789_";
+        let mut exp = SCAN_EXPONENT;
+        if self.accept(b"0") && self.accept(b"xX") {
+            digits = b"0123456789aAbBcCdDeEfF_";
+            exp = b"pP";
+        }
+        // digits?
+        while self.accept(digits) {}
+        // decimal point?
+        if self.accept(SCAN_PERIOD) {
+            // fraction?
+            while self.accept(digits) {}
+        }
+        // exponent?
+        if self.accept(exp) {
+            // leading sign?
+            self.accept(SCAN_SIGN);
+            // digits?
+            while self.accept(b"0123456789_") {}
+        }
+        self.buf.clone()
+    }
+
+    // Go: fmt/scan.go:(*ss).complexTokens
+    /// Returns the real and imaginary parts of the complex number starting
+    /// here. The number might be parenthesized and has the format (N+Ni)
+    /// where N is a floating-point number and there are no spaces within.
+    fn complex_tokens(&mut self) -> Result<(Vec<u8>, Vec<u8>), String> {
+        let parens = self.accept(b"(");
+        let real = self.float_token();
+        self.buf.clear();
+        // Must now have a sign.
+        if !self.accept(b"+-") {
+            return Err(ERR_COMPLEX.to_string());
+        }
+        // Sign is now in buffer
+        let mut imag = self.buf.clone();
+        imag.extend_from_slice(&self.float_token());
+        if !self.accept(b"i") {
+            return Err(ERR_COMPLEX.to_string());
+        }
+        if parens && !self.accept(b")") {
+            return Err(ERR_COMPLEX.to_string());
+        }
+        Ok((real, imag))
+    }
+}
+
+// Go: fmt/scan.go:isSpace (the space table)
+fn scan_is_space(r: go_unicode::Rune) -> bool {
+    const SPACE: &[(u16, u16)] = &[
+        (0x0009, 0x000d),
+        (0x0020, 0x0020),
+        (0x0085, 0x0085),
+        (0x00a0, 0x00a0),
+        (0x1680, 0x1680),
+        (0x2000, 0x200a),
+        (0x2028, 0x2029),
+        (0x202f, 0x202f),
+        (0x205f, 0x205f),
+        (0x3000, 0x3000),
+    ];
+    if r >= 1 << 16 {
+        return false;
+    }
+    let rx = r as u16;
+    for &(lo, hi) in SPACE {
+        if rx < lo {
+            return false;
+        }
+        if rx <= hi {
+            return true;
+        }
+    }
+    false
+}
+
+// Go: fmt/scan.go:(*ss).convertFloat (n == 64)
+/// Converts the string to a float64 value.
+fn scan_convert_float(s: &[u8]) -> Result<f64, String> {
+    // strconv.ParseFloat will handle "+0x1.fp+2",
+    // but we have to implement our non-standard
+    // decimal+binary exponent mix (1.2p4) ourselves.
+    let has_x = s.iter().any(|&c| c == b'x' || c == b'X');
+    if let Some(p) = s.iter().position(|&c| c == b'p').filter(|_| !has_x) {
+        // Atof doesn't handle power-of-2 exponents,
+        // but they're easy to evaluate.
+        let f = go_strconv::parse_float(&s[..p], 64).map_err(|mut e| {
+            // Put full string into error.
+            e.num = s.to_vec();
+            e.to_string()
+        })?;
+        let m = go_strconv::atoi(&s[p + 1..]).map_err(|mut e| {
+            e.num = s.to_vec();
+            e.to_string()
+        })?;
+        return Ok(ldexp(f, m));
+    }
+    go_strconv::parse_float(s, 64).map_err(|e| e.to_string())
+}
+
+/// Go `fmt.Sscan(text, &c)` for a `complex128` `c` (fmt/scan.go:
+/// `scanComplex`): the value, or the error Sscan returns.
+fn sscan_complex(text: &[u8]) -> Result<(f64, f64), String> {
+    let mut s = ComplexScanner {
+        input: text,
+        pos: 0,
+        buf: Vec::new(),
+    };
+    s.skip_space();
+    // Go: notEOF — guarantee there is data to be read.
+    if s.pos >= s.input.len() {
+        return Err("EOF".to_string());
+    }
+    let (sreal, simag) = s.complex_tokens()?;
+    let real = scan_convert_float(&sreal)?;
+    let imag = scan_convert_float(&simag)?;
+    Ok((real, imag))
+}
+
+// Go: math/ldexp.go:ldexp (the portable version; no arch assembly on
+// amd64/arm64)
+/// Ldexp is the inverse of Frexp. It returns frac × 2**exp.
+fn ldexp(frac: f64, exp: i64) -> f64 {
+    const SHIFT: u32 = 64 - 11 - 1;
+    const MASK: u64 = 0x7FF;
+    const BIAS: i64 = 1023;
+    // special cases
+    if frac == 0.0 || frac.is_infinite() || frac.is_nan() {
+        return frac; // correctly return -0
+    }
+    // Go: normalize
+    let (frac, e) = if frac.abs() < 2.2250738585072014e-308 {
+        (frac * (1u64 << 52) as f64, -52)
+    } else {
+        (frac, 0)
+    };
+    let mut exp = exp.saturating_add(e);
+    let mut x = frac.to_bits();
+    exp = exp.saturating_add(((x >> SHIFT) & MASK) as i64 - BIAS);
+    if exp < -1075 {
+        return 0f64.copysign(frac); // underflow
+    }
+    if exp > 1023 {
+        // overflow
+        return if frac < 0.0 {
+            f64::NEG_INFINITY
+        } else {
+            f64::INFINITY
+        };
+    }
+    let mut m = 1.0;
+    if exp < -1022 {
+        // denormal
+        exp += 53;
+        m = 1.0 / (1u64 << 53) as f64; // 2**-53
+    }
+    x &= !(MASK << SHIFT);
+    x |= ((exp + BIAS) as u64) << SHIFT;
+    m * f64::from_bits(x)
 }
 
 // ---------------------------------------------------------------------------
@@ -1037,7 +1278,13 @@ pub struct TemplateNode {
 }
 
 impl TemplateNode {
-    pub fn new(tr: TreeRef, pos: Pos, line: usize, name: String, pipe: Option<PipeNode>) -> TemplateNode {
+    pub fn new(
+        tr: TreeRef,
+        pos: Pos,
+        line: usize,
+        name: String,
+        pipe: Option<PipeNode>,
+    ) -> TemplateNode {
         TemplateNode {
             pos,
             tr,

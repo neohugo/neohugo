@@ -7,7 +7,7 @@ use std::borrow::Cow;
 use std::io::Write;
 use std::sync::Arc;
 
-use go_value::{HostCtx, Kind, MapType, NilKind, Object, Value, typed_nil_kind};
+use go_value::{HostCtx, Kind, MapType, Object, Value};
 
 use crate::error::Error;
 
@@ -43,7 +43,13 @@ pub trait ExecHelper: Send + Sync {
     }
 
     /// Calls the method found by `has_method` with the evaluated arguments.
-    fn call_method(&self, ctx: HostCtx<'_>, receiver: &Value, name: &str, args: &[Value]) -> go_value::Result<Value> {
+    fn call_method(
+        &self,
+        ctx: HostCtx<'_>,
+        receiver: &Value,
+        name: &str,
+        args: &[Value],
+    ) -> go_value::Result<Value> {
         match receiver {
             Value::Object(o) => o
                 .call_method(ctx, name, args)
@@ -89,12 +95,9 @@ pub fn is_truthful_value(val: &Value) -> bool {
     match val {
         // Something like var x interface{}, never set. It's a form of nil.
         Value::Invalid => false,
-        Value::TypedNil(t) => match typed_nil_kind(t) {
-            // Nil pointers, funcs, chans and interfaces are false; nil
-            // slices and maps have length 0. (A nil maps.Params is
-            // IsZero.)
-            _ => false,
-        },
+        // Nil pointers, funcs, chans and interfaces are false; nil slices
+        // and maps have length 0. (A nil maps.Params is IsZero.)
+        Value::TypedNil(_) => false,
         Value::Bool(b) => *b,
         Value::Int(i, _) => *i != 0,
         Value::Uint(u, _) => *u != 0,
@@ -134,12 +137,10 @@ fn params_is_zero(m: &go_value::Map) -> bool {
     if m.entries.len() > 1 {
         return false;
     }
-    m.entries.keys().next().is_some_and(|k| k.as_bytes() == b"_merge")
-}
-
-#[allow(dead_code)]
-fn _nil_kind_is_used(k: NilKind) -> NilKind {
-    k
+    m.entries
+        .keys()
+        .next()
+        .is_some_and(|k| k.as_bytes() == b"_merge")
 }
 
 /// Go: `Preparer` — prepares the template before execution (html/template
@@ -208,7 +209,12 @@ impl Template {
     // Go: exec.go:(*Template).ExecuteTemplate
     /// Applies the template associated with t that has the given name to
     /// the specified data object and writes the output to wr.
-    pub fn execute_template(&self, wr: &mut dyn Write, name: &str, data: &Value) -> Result<(), Error> {
+    pub fn execute_template(
+        &self,
+        wr: &mut dyn Write,
+        name: &str,
+        data: &Value,
+    ) -> Result<(), Error> {
         let Some(tmpl) = self.lookup(name) else {
             return Err(Error::Other(format!(
                 "template: no template {} associated with template {}",
@@ -262,7 +268,12 @@ impl Object for TryValue {
     fn has_method(&self, _name: &str) -> bool {
         false
     }
-    fn call_method(&self, _ctx: HostCtx<'_>, _name: &str, _args: &[Value]) -> Option<go_value::Result<Value>> {
+    fn call_method(
+        &self,
+        _ctx: HostCtx<'_>,
+        _name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
         None
     }
     fn field(&self, name: &str) -> Option<Value> {
@@ -312,7 +323,12 @@ impl Object for ErrorValue {
     fn has_method(&self, name: &str) -> bool {
         name == "Error"
     }
-    fn call_method(&self, _ctx: HostCtx<'_>, name: &str, _args: &[Value]) -> Option<go_value::Result<Value>> {
+    fn call_method(
+        &self,
+        _ctx: HostCtx<'_>,
+        name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
         (name == "Error").then(|| Ok(Value::string(self.message.as_str())))
     }
     fn go_error(&self) -> Option<String> {
@@ -333,7 +349,12 @@ impl Object for TryError {
     fn has_method(&self, name: &str) -> bool {
         matches!(name, "Error" | "Unwrap")
     }
-    fn call_method(&self, _ctx: HostCtx<'_>, name: &str, _args: &[Value]) -> Option<go_value::Result<Value>> {
+    fn call_method(
+        &self,
+        _ctx: HostCtx<'_>,
+        name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
         match name {
             // Go: (*TryError).Error
             "Error" => Some(Ok(Value::string(self.err.to_string()))),
@@ -360,8 +381,14 @@ impl Object for TryError {
     }
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
         Some(vec![
-            (Cow::Borrowed("Err"), self.field("Err").unwrap_or(Value::Invalid)),
-            (Cow::Borrowed("Cause"), self.field("Cause").unwrap_or(Value::Invalid)),
+            (
+                Cow::Borrowed("Err"),
+                self.field("Err").unwrap_or(Value::Invalid),
+            ),
+            (
+                Cow::Borrowed("Cause"),
+                self.field("Cause").unwrap_or(Value::Invalid),
+            ),
         ])
     }
     fn go_error(&self) -> Option<String> {

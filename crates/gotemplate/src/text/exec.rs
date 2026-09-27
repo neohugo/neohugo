@@ -12,12 +12,14 @@ use std::borrow::Cow;
 use std::io::Write;
 use std::sync::Arc;
 
-use go_value::{HostCtx, Kind, NilKind, Object, Value, typed_nil_kind};
+use go_value::{HostCtx, Kind, MapType, NilKind, Object, SliceType, Value, typed_nil_kind};
 
 use crate::error::{Error, ExecError};
 use crate::parse::*;
 
-use super::funcs::{self, ArgType, Builtin, Func, FuncValue, indirect, indirect_interface, sprint_v, type_name};
+use super::funcs::{
+    self, ArgType, Builtin, Func, FuncValue, indirect, indirect_interface, sprint_v, type_name,
+};
 use super::hugo::{ExecHelper, TryError, TryValue};
 use super::template::{MissingKeyAction, Template};
 
@@ -65,7 +67,12 @@ impl Object for MissingVal {
     fn has_method(&self, _name: &str) -> bool {
         false
     }
-    fn call_method(&self, _ctx: HostCtx<'_>, _name: &str, _args: &[Value]) -> Option<go_value::Result<Value>> {
+    fn call_method(
+        &self,
+        _ctx: HostCtx<'_>,
+        _name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
         None
     }
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
@@ -94,7 +101,12 @@ impl Object for StructView {
     fn has_method(&self, _name: &str) -> bool {
         false
     }
-    fn call_method(&self, _ctx: HostCtx<'_>, _name: &str, _args: &[Value]) -> Option<go_value::Result<Value>> {
+    fn call_method(
+        &self,
+        _ctx: HostCtx<'_>,
+        _name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
         None
     }
     fn field(&self, name: &str) -> Option<Value> {
@@ -214,14 +226,16 @@ fn unwrap_ctrl(c: Ctrl) -> Error {
 // already-formatted parts instead of through a format string.
 
 // Go: exec.go:isRuneInt
-fn is_rune_int(s: &str) -> bool {
-    !s.is_empty() && s.as_bytes()[0] == b'\''
+fn is_rune_int(s: &[u8]) -> bool {
+    !s.is_empty() && s[0] == b'\''
 }
 
 // Go: exec.go:isHexInt
-fn is_hex_int(s: &str) -> bool {
-    let b = s.as_bytes();
-    b.len() > 2 && b[0] == b'0' && (b[1] == b'x' || b[1] == b'X') && !s.contains(['p', 'P'])
+fn is_hex_int(s: &[u8]) -> bool {
+    s.len() > 2
+        && s[0] == b'0'
+        && (s[1] == b'x' || s[1] == b'X')
+        && !s.iter().any(|c| b"pP".contains(c))
 }
 
 impl<'a> State<'a> {
@@ -337,7 +351,9 @@ impl<'a> State<'a> {
             Node::Break(_) => Err(Ctrl::Break),
             Node::Comment(_) => Ok(()),
             Node::Continue(_) => Err(Ctrl::Continue),
-            Node::If(n) => self.walk_if_or_with(NodeType::If, dot, &n.pipe, &n.list, n.else_list.as_ref()),
+            Node::If(n) => {
+                self.walk_if_or_with(NodeType::If, dot, &n.pipe, &n.list, n.else_list.as_ref())
+            }
             Node::List(n) => self.walk_list(dot, n),
             Node::Range(n) => self.walk_range(dot, n),
             Node::Template(n) => self.walk_template(dot, n),
@@ -347,7 +363,9 @@ impl<'a> State<'a> {
                 }
                 Ok(())
             }
-            Node::With(n) => self.walk_if_or_with(NodeType::With, dot, &n.pipe, &n.list, n.else_list.as_ref()),
+            Node::With(n) => {
+                self.walk_if_or_with(NodeType::With, dot, &n.pipe, &n.list, n.else_list.as_ref())
+            }
             _ => Err(self.errorf(format!("unknown node: {node}"))),
         }
     }
@@ -404,7 +422,13 @@ impl<'a> State<'a> {
         }
     }
 
-    fn one_iteration(&mut self, r: &'a BranchNode, mark: usize, index: Value, elem: Value) -> R<()> {
+    fn one_iteration(
+        &mut self,
+        r: &'a BranchNode,
+        mark: usize,
+        index: Value,
+        elem: Value,
+    ) -> R<()> {
         let decl = &r.pipe.decl;
         if !decl.is_empty() {
             if r.pipe.is_assign {
@@ -484,7 +508,8 @@ impl<'a> State<'a> {
             Value::List(l) => {
                 if !l.items.is_empty() {
                     for (i, elem) in l.items.iter().enumerate() {
-                        self.one_iteration(r, mark, Value::int(i as i64), elem.clone())?;
+                        let elem = list_elem(&l.ty, elem);
+                        self.one_iteration(r, mark, Value::int(i as i64), elem)?;
                     }
                     return Ok(());
                 }
@@ -492,7 +517,8 @@ impl<'a> State<'a> {
             Value::Map(m) => {
                 if !m.entries.is_empty() {
                     for (k, v) in m.entries.iter() {
-                        self.one_iteration(r, mark, Value::String(k.clone()), v.clone())?;
+                        let v = map_elem(&m.ty, v);
+                        self.one_iteration(r, mark, Value::String(k.clone()), v)?;
                     }
                     return Ok(());
                 }
@@ -501,6 +527,7 @@ impl<'a> State<'a> {
                 let items = o.list().unwrap_or_default();
                 if !items.is_empty() {
                     for (i, elem) in items.into_iter().enumerate() {
+                        let elem = list_elem(&SliceType::Any, &elem);
                         self.one_iteration(r, mark, Value::int(i as i64), elem)?;
                     }
                     return Ok(());
@@ -511,12 +538,18 @@ impl<'a> State<'a> {
                 if !keys.is_empty() {
                     for k in keys {
                         let v = o.map_get(&k).unwrap_or(Value::Invalid);
+                        let v = map_elem(&MapType::StringAny, &v);
                         self.one_iteration(r, mark, Value::String(k), v)?;
                     }
                     return Ok(());
                 }
             }
-            Value::TypedNil(t) if matches!(typed_nil_kind(t), NilKind::Slice | NilKind::Map | NilKind::Chan) => {
+            Value::TypedNil(t)
+                if matches!(
+                    typed_nil_kind(t),
+                    NilKind::Slice | NilKind::Map | NilKind::Chan
+                ) =>
+            {
                 // A nil slice, map or channel is empty.
             }
             Value::Invalid => {
@@ -536,10 +569,15 @@ impl<'a> State<'a> {
     fn walk_template(&mut self, dot: &Value, t: &'a TemplateNode) -> R<()> {
         self.at(t);
         let Some(tmpl) = self.tmpl.lookup(&t.name) else {
-            return Err(self.errorf(format!("template {} not defined", go_strconv::quote(&t.name))));
+            return Err(self.errorf(format!(
+                "template {} not defined",
+                go_strconv::quote(&t.name)
+            )));
         };
         if self.depth == MAX_EXEC_DEPTH {
-            return Err(self.errorf(format!("exceeded maximum template depth ({MAX_EXEC_DEPTH})")));
+            return Err(self.errorf(format!(
+                "exceeded maximum template depth ({MAX_EXEC_DEPTH})"
+            )));
         }
         // Variables declared by the pipeline persist.
         let dot = self.eval_pipeline(dot, t.pipe.as_ref())?;
@@ -589,10 +627,16 @@ impl<'a> State<'a> {
         self.at(pipe);
         let mut value: Option<Value> = None; // missingVal
         for cmd in &pipe.cmds {
-            value = Some(self.eval_command(dot, cmd, value)?); // previous value is this one's final arg.
+            let v = self.eval_command(dot, cmd, value)?; // previous value is this one's final arg.
             // If the object has type interface{}, dig down one level to the
-            // thing inside: values are already concrete here (a nil `any` is
-            // `Invalid`).
+            // thing inside. Values are concrete, except a nil `interface {}`
+            // (a nil `any` from a map, slice, field or result), whose Elem is
+            // the invalid Value.
+            value = Some(if is_nil_empty_interface(&v) {
+                Value::Invalid
+            } else {
+                v
+            });
         }
         let value = value.unwrap_or_else(|| Value::Object(Arc::new(MissingVal)));
         for variable in &pipe.decl {
@@ -614,7 +658,12 @@ impl<'a> State<'a> {
     }
 
     // Go: exec.go:(*state).evalCommand
-    fn eval_command(&mut self, dot: &Value, cmd: &'a CommandNode, final_: Option<Value>) -> R<Value> {
+    fn eval_command(
+        &mut self,
+        dot: &Value,
+        cmd: &'a CommandNode,
+        final_: Option<Value>,
+    ) -> R<Value> {
         let first_word = &cmd.args[0];
         match first_word {
             Node::Field(n) => return self.eval_field_node(dot, n, &cmd.args, final_),
@@ -662,13 +711,13 @@ impl<'a> State<'a> {
             // Deviation: the value model has no complex numbers.
             return Err(self.errorf(format!(
                 "complex constant {} is not supported",
-                constant.text
+                String::from_utf8_lossy(&constant.text)
             )));
         }
         if constant.is_float
             && !is_hex_int(&constant.text)
             && !is_rune_int(&constant.text)
-            && constant.text.contains(['.', 'e', 'E', 'p', 'P'])
+            && constant.text.iter().any(|c| b".eEpP".contains(c))
         {
             return Ok(Value::float64(constant.float64));
         }
@@ -677,25 +726,43 @@ impl<'a> State<'a> {
             return Ok(Value::int(constant.int64));
         }
         if constant.is_uint {
-            return Err(self.errorf(format!("{} overflows int", constant.text)));
+            return Err(self.errorf(format!(
+                "{} overflows int",
+                String::from_utf8_lossy(&constant.text)
+            )));
         }
         Ok(Value::Invalid)
     }
 
     // Go: exec.go:(*state).evalFieldNode
-    fn eval_field_node(&mut self, dot: &Value, field: &'a FieldNode, args: &'a [Node], final_: Option<Value>) -> R<Value> {
+    fn eval_field_node(
+        &mut self,
+        dot: &Value,
+        field: &'a FieldNode,
+        args: &'a [Node],
+        final_: Option<Value>,
+    ) -> R<Value> {
         self.at(field);
         self.eval_field_chain(dot, dot.clone(), field, &field.ident, args, final_)
     }
 
     // Go: exec.go:(*state).evalChainNode
-    fn eval_chain_node(&mut self, dot: &Value, chain: &'a ChainNode, args: &'a [Node], final_: Option<Value>) -> R<Value> {
+    fn eval_chain_node(
+        &mut self,
+        dot: &Value,
+        chain: &'a ChainNode,
+        args: &'a [Node],
+        final_: Option<Value>,
+    ) -> R<Value> {
         self.at(chain);
         if chain.field.is_empty() {
             return Err(self.errorf("internal error: no fields in evalChainNode".to_string()));
         }
         if chain.node.node_type() == NodeType::Nil {
-            return Err(self.errorf(format!("indirection through explicit nil in {}", chain.to_string_lossy())));
+            return Err(self.errorf(format!(
+                "indirection through explicit nil in {}",
+                chain.to_string_lossy()
+            )));
         }
         // (pipe).Field1.Field2 has pipe as .Node, fields as .Field. Eval the pipeline, then the fields.
         let pipe = self.eval_arg(dot, ArgType::Any, &chain.node)?;
@@ -755,16 +822,21 @@ impl<'a> State<'a> {
 
         // Added for Hugo.
         let mut is_builtin = name == "and" || name == "or";
-        let mut function = self.helper.get_func(self.ctx, name).map(Callee::Func);
+        let mut function = self.helper.get_func(self.ctx, name).map(callee_of);
 
         if function.is_none() {
             // Go: findFunction(name, s.tmpl)
             let exec = {
-                let funcs = self.tmpl.common().funcs.read().unwrap_or_else(|e| e.into_inner());
+                let funcs = self
+                    .tmpl
+                    .common()
+                    .funcs
+                    .read()
+                    .unwrap_or_else(|e| e.into_inner());
                 funcs.exec.get(name).cloned()
             };
             if let Some(f) = exec {
-                function = Some(Callee::Func(f));
+                function = Some(callee_of(f));
                 is_builtin = false;
             } else if let Some(b) = Builtin::from_name(name) {
                 function = Some(Callee::Builtin(b));
@@ -773,7 +845,10 @@ impl<'a> State<'a> {
         }
 
         let Some(function) = function else {
-            return Err(self.errorf(format!("{} is not a defined function", go_strconv::quote(name))));
+            return Err(self.errorf(format!(
+                "{} is not a defined function",
+                go_strconv::quote(name)
+            )));
         };
         self.eval_call(dot, function, is_builtin, cmd, name, args, final_)
     }
@@ -803,6 +878,9 @@ impl<'a> State<'a> {
         }
         let typ = type_name(&receiver);
         let (receiver, is_nil) = indirect(&receiver);
+        // Unless it's an interface, need to get to a value of type *T to
+        // guarantee we see all methods of T and *T.
+        let receiver = funcs::addr(receiver);
         let nil_kind = match &receiver {
             Value::TypedNil(t) => Some(typed_nil_kind(t)),
             _ => None,
@@ -815,7 +893,15 @@ impl<'a> State<'a> {
 
         // Added for Hugo.
         if self.helper.has_method(self.ctx, &receiver, field_name) {
-            return self.eval_call(dot, Callee::Method(receiver), false, node, field_name, args, final_);
+            return self.eval_call(
+                dot,
+                Callee::Method(receiver),
+                false,
+                node,
+                field_name,
+                args,
+                final_,
+            );
         }
 
         let has_args = args.len() > 1 || final_.is_some();
@@ -845,8 +931,13 @@ impl<'a> State<'a> {
                 return Err(self.errorf(format!("{field_name} is not a method but has arguments")));
             }
             // Added for Hugo.
-            let result = self.helper.get_map_value(self.ctx, &receiver, &Value::string(field_name));
+            let result = self
+                .helper
+                .get_map_value(self.ctx, &receiver, &Value::string(field_name));
             return match result {
+                // A present key holding nil: Go's MapIndex result is the
+                // element type's nil, a nil interface for these maps.
+                Some(Value::Invalid) => Ok(nil_empty_interface()),
                 Some(v) => Ok(v),
                 None => match self.tmpl.option().missing_key {
                     // Just use the invalid value.
@@ -994,21 +1085,30 @@ impl<'a> State<'a> {
 
         let result: Result<Value, go_value::Error> = match &fun {
             Callee::Builtin(Builtin::Not) => Ok(Value::Bool(!self.truth(&argv[0]))),
-            Callee::Builtin(Builtin::Call) => {
-                let cname = callee_name.unwrap_or_else(|| name.to_string());
+            Callee::Builtin(Builtin::Call) if callee_name.is_some() => {
+                let cname = callee_name.unwrap_or_default();
                 self.call(&cname, &argv[0], &argv[1..])
             }
-            Callee::Builtin(Builtin::And) | Callee::Builtin(Builtin::Or) => {
-                Err(go_value::Error::new("unreachable"))
+            // Go: emptyCall, and, or (reached without the special cases,
+            // e.g. through ExecHelper.GetFunc under another name).
+            Callee::Builtin(Builtin::Call)
+            | Callee::Builtin(Builtin::And)
+            | Callee::Builtin(Builtin::Or) => Err(go_value::Error::new("unreachable")),
+            Callee::Builtin(b) if b.takes_any() => {
+                let converted = convert_args(&argv);
+                funcs::call_builtin_simple(*b, &converted).map_err(go_value::Error::new)
             }
-            Callee::Builtin(b) => funcs::call_builtin_simple(*b, &argv).map_err(go_value::Error::new),
+            Callee::Builtin(b) => {
+                funcs::call_builtin_simple(*b, &argv).map_err(go_value::Error::new)
+            }
             Callee::Func(f) => {
                 let converted = convert_args(&argv);
                 f(self.ctx, &converted)
             }
             Callee::Method(receiver) => {
                 let converted = convert_args(&argv);
-                self.helper.call_method(self.ctx, receiver, name, &converted)
+                self.helper
+                    .call_method(self.ctx, receiver, name, &converted)
             }
         };
 
@@ -1018,7 +1118,10 @@ impl<'a> State<'a> {
             Ok(v) => v,
             Err(err) => {
                 self.at(node);
-                return Err(self.errorf_cause(format!("error calling {name}: {}", err.message()), Some(err)));
+                return Err(self.errorf_cause(
+                    format!("error calling {name}: {}", err.message()),
+                    Some(err),
+                ));
             }
         };
 
@@ -1037,14 +1140,52 @@ impl<'a> State<'a> {
         if fn_.is_invalid() {
             return Err(go_value::Error::new("call of nil"));
         }
-        let Some(fv) = fn_.downcast::<FuncValue>() else {
-            return Err(go_value::Error::new(format!(
-                "non-function {name} of type {}",
-                type_name(&fn_)
-            )));
+        // The function's type: a FuncValue's Go type string, or a nil func.
+        let fv = fn_.downcast::<FuncValue>();
+        let typ = match (&fn_, fv) {
+            (_, Some(fv)) => fv.type_name.as_str(),
+            (Value::TypedNil(t), None) if typed_nil_kind(t) == NilKind::Func => t,
+            _ => {
+                return Err(go_value::Error::new(format!(
+                    "non-function {name} of type {}",
+                    type_name(&fn_)
+                )));
+            }
         };
-        let argv: Vec<Value> = args.iter().map(indirect_interface).collect();
-        (fv.func)(self.ctx, &argv)
+        let mut argv: Vec<Value> = args.iter().map(indirect_interface).collect();
+        // Go checks the signature (goodFunc, arity, prepareArg). The value
+        // model only has the type string; when it is a func literal type the
+        // checks are Go's, otherwise the function checks its own arguments.
+        if let Some(sig) = funcs::FuncSig::parse(typ) {
+            sig.good_func(name).map_err(go_value::Error::new)?;
+            let num_in = sig.params.len();
+            if sig.variadic {
+                if args.len() < num_in - 1 {
+                    return Err(go_value::Error::new(format!(
+                        "wrong number of args for {name}: got {} want at least {}",
+                        args.len(),
+                        num_in - 1
+                    )));
+                }
+            } else if args.len() != num_in {
+                return Err(go_value::Error::new(format!(
+                    "wrong number of args for {name}: got {} want {num_in}",
+                    args.len()
+                )));
+            }
+            for (i, arg) in argv.iter_mut().enumerate() {
+                let arg_type = sig.in_type(i);
+                *arg = funcs::prepare_arg(arg, &arg_type)
+                    .map_err(|e| go_value::Error::new(format!("arg {i}: {e}")))?;
+            }
+        }
+        match fv {
+            Some(fv) => (fv.func)(self.ctx, &argv),
+            // Go: safeCall recovers reflect's panic.
+            None => Err(go_value::Error::new(
+                "reflect.Value.Call: call of nil function",
+            )),
+        }
     }
 
     // Go: exec.go:(*state).validateType
@@ -1128,7 +1269,9 @@ impl<'a> State<'a> {
             Node::String(n) => Ok(Value::string(n.text.as_slice())),
             Node::Variable(n) => self.eval_variable_node(dot, n, &[], None),
             Node::Pipe(n) => self.eval_pipeline(dot, Some(n)),
-            _ => Err(self.errorf(format!("can't handle assignment of {n} to empty interface argument"))),
+            _ => Err(self.errorf(format!(
+                "can't handle assignment of {n} to empty interface argument"
+            ))),
         }
     }
 
@@ -1161,6 +1304,16 @@ fn reflect_value_string(v: &Value) -> String {
     }
 }
 
+/// A function found by name: the engine's own builtins (Go: their
+/// `reflect.Value`s, whose signatures `evalCall` inspects) when a host
+/// hands them back (`go_funcs`), else a host function.
+fn callee_of(f: Func) -> Callee {
+    match funcs::builtin_of(&f) {
+        Some(b) => Callee::Builtin(b),
+        None => Callee::Func(f),
+    }
+}
+
 /// Contract C7: arguments passed to host functions and methods — a nil
 /// interface of a non-empty interface type arrives as an untyped nil.
 fn convert_args(argv: &[Value]) -> Cow<'_, [Value]> {
@@ -1174,10 +1327,49 @@ fn convert_args(argv: &[Value]) -> Cow<'_, [Value]> {
     }
 }
 
-/// The zero value of a map's element type (Go `reflect.Zero(receiver.Type().Elem())`).
-fn map_zero_elem(m: &Value) -> Value {
-    match m {
-        Value::Map(m) if m.ty == go_value::MapType::StringString => Value::string(""),
-        _ => Value::Invalid,
+/// A nil `interface {}` (Go: an interface-kind `reflect.Value` holding
+/// nil, e.g. the value of a `map[string]any` key holding nil). Field access
+/// on it is Go's "nil pointer evaluating interface {}.X"; a pipeline turns it
+/// into the invalid Value (`evalPipeline`'s `value.Elem()`).
+pub(crate) fn nil_empty_interface() -> Value {
+    Value::TypedNil(Arc::from(EMPTY_INTERFACE))
+}
+
+const EMPTY_INTERFACE: &str = "interface {}";
+
+/// Whether `v` is a nil of the empty interface type (Go: `value.Kind() ==
+/// reflect.Interface && value.Type().NumMethod() == 0` for a nil value).
+pub(crate) fn is_nil_empty_interface(v: &Value) -> bool {
+    matches!(v, Value::TypedNil(t) if &**t == EMPTY_INTERFACE)
+}
+
+/// A slice element as Go's `Index` sees it: an element that is nil in the
+/// value model (`Value::Invalid`) is the element type's nil — a nil
+/// interface for `[]any` (and for named or unknown element types), a nil map
+/// for `[]map[string]any`.
+fn list_elem(ty: &SliceType, elem: &Value) -> Value {
+    if !elem.is_invalid() {
+        return elem.clone();
     }
+    match ty {
+        SliceType::MapStringAny => Value::TypedNil(Arc::from("map[string]interface {}")),
+        _ => nil_empty_interface(),
+    }
+}
+
+/// A map value as Go's `MapIndex` sees it (see [`list_elem`]).
+fn map_elem(_ty: &MapType, v: &Value) -> Value {
+    if v.is_invalid() {
+        nil_empty_interface()
+    } else {
+        v.clone()
+    }
+}
+
+/// The zero value of a map's element type (Go `reflect.Zero(receiver.Type().Elem())`).
+/// Maps whose element type the model does not know (`map[string]any`,
+/// `maps.Params`, host maps) have interface elements, whose zero is a nil
+/// interface.
+fn map_zero_elem(m: &Value) -> Value {
+    funcs::map_elem_zero(m).unwrap_or_else(nil_empty_interface)
 }

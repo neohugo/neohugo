@@ -250,8 +250,16 @@ impl<'a> Lexer<'a> {
     // Go: lex.go:lex
     /// Creates a new scanner for the input string.
     pub fn new(name: &str, input: &'a [u8], left: &str, right: &str) -> Lexer<'a> {
-        let left = if left.is_empty() { LEFT_DELIM } else { left.as_bytes() };
-        let right = if right.is_empty() { RIGHT_DELIM } else { right.as_bytes() };
+        let left = if left.is_empty() {
+            LEFT_DELIM
+        } else {
+            left.as_bytes()
+        };
+        let right = if right.is_empty() {
+            RIGHT_DELIM
+        } else {
+            right.as_bytes()
+        };
         Lexer {
             name: name.to_string(),
             input,

@@ -71,10 +71,15 @@ Go's behaviour without a helper (`DefaultHelper`), so plain
 - `text::go_funcs()` returns the builtins as `Func`s (Go
   `texttemplate.GoFuncs`), `html::go_funcs()` the escapers (Go
   `htmltemplate.GoFuncs`), for hosts that merge them into their lookup.
-  A builtin reached through the host lookup is called like any host
-  function (Go: `isBuiltin` is false then), so `call` errors
-  (`unreachable`, as in Hugo) and arity errors are reported as
-  `error calling …`.
+  The builtin `Func`s are created once; when the helper hands one back,
+  the engine recognises it (pointer identity) and applies the builtin's Go
+  signature (arity, `printf`'s `string` format) exactly as Go's `evalCall`
+  inspects the reflect signature. As in Go, `isBuiltin` stays false on that
+  path, so `call`, `and`, `or` reached through the host lookup behave like
+  Hugo (`call` → `error calling call: unreachable`; `and`/`or` still take
+  the short-circuit path by name).
+- Hugo's helper must pass `has_method`/`call_method` through to `Object`
+  for engine objects (`TryValue`, `TryError`, `FuncValue`).
 
 ### C2 field/method/key resolution — `exec.rs` `eval_field`
 
@@ -205,14 +210,17 @@ every tree of the namespace if an edit was not found there.
 
 ## Deliberate deviations
 
-1. **Complex numbers** are not representable: complex literals are an
-   execution error.
+1. **Complex numbers** are not representable: complex literals parse
+   exactly as Go's `newNumber` (a port of `fmt.Sscan`'s complex scanning),
+   but evaluating one is an execution error
+   (`complex constant … is not supported`).
 2. **`slice` builtin** copies (the value model has no shared backing
    arrays; `cap == len`), so re-slicing beyond `len` is out of range.
-3. **Stack depth.** `MAX_EXEC_DEPTH` is Go's 100000, but Rust stacks do not
-   grow: a 10000-deep `{{template}}` recursion needs ~64 MB of stack. Hosts
-   that allow deep recursion must run executions on threads with large
-   stacks. (Hugo limits partial nesting to 999 levels.)
+3. **Stack depth.** `MAX_EXEC_DEPTH` is Go's 100000 (Go's exact
+   `exceeded maximum template depth (100000)` error is tested on a 512 MiB
+   thread), but Rust stacks do not grow: a 10000-deep `{{template}}`
+   recursion needs ~64 MB. Hosts should run executions on threads with at
+   least 128 MiB of stack. (Hugo limits partial nesting to 999 levels.)
 4. **`DefinedTemplates`** lists names sorted (Go: map order).
 5. **Template names** are Rust `String`s (lossy for non-UTF-8 `define`
    names).
@@ -244,6 +252,18 @@ every tree of the namespace if an edit was not found there.
 14. **Error edits.** Go mutates the shared `*Error` (`Name`, `Line`,
     `Description`) when it annotates branch/range errors; here the
     annotated error is a new `Arc`. Only error texts depend on it.
+15. **Static interface types.** Go names the static type of an
+    interface-typed slot in some messages (`can't evaluate field X in type
+    interface {}`); the value model knows only dynamic types. Only the nil
+    case is faithful (a nil `any` from a map, slice, range or
+    `missingkey=zero` is `TypedNil("interface {}")`, giving
+    `nil pointer evaluating interface {}.X` as in Go). Messages only.
+16. **Value-model limits** (messages or unrepresentable data only):
+    unexported struct fields are not exposed; maps have string keys only;
+    a pointer to a basic type (`*int`) is the value itself; channels and
+    `iter.Seq` funcs do not exist; a non-addressable struct copy in an `eq`
+    error prints `<0>` where Go prints `{0}`; outputs containing Go
+    pointer addresses are not comparable.
 
 ## Verification
 
@@ -256,16 +276,28 @@ the fork copied by `sync-fork.sh`, build tag `gotemplate_oracle`).
 | `src/html/tests/oracle.rs` | 39,048 escaper calls (17 escapers × 2,297 argument lists: every byte, special runes, invalid UTF-8, fuzz, Safe types, numbers, nils, time, collections, Stringers, errors, json/text marshalers, PrintableValue types, multi-arg), 53,730 transition runs (82,260 steps from 170 start contexts: contexts, error texts, brace slices incl. capacity/aliasing), 59,569 leaf-function checks — all equal to Go |
 | `src/html/tests/go_tests.rs` | Go's html_test, js_test, css_test, url_test, transition_test tables |
 | `tests/html_strip_tags.rs` | `stripTags` on 3,949 inputs |
+| `tests/lex_go.rs`, `tests/parse_go.rs` | Go's lex_test.go (lexTests, delims, positions) and parse_test.go (numberTests, parseTests plain and copied, comments, keywords/funcs, SkipFuncCheck, IsEmpty, ErrorContext with tree copy, errorTests, TestBlock, TestLineNum) |
+| `tests/parse_oracle.rs` | 4,873 fork parse cases (trees, node structure, number flags, errors): all equal except 5 that differ only by lossy UTF-8 template names |
+| `tests/exec_go.rs` | exec_test.go: 528 table cases (479 equal, 36 listed value-model deviations, 13 skipped: pointer addresses, `iter.Seq`, complex) plus 11 hand-ported tests; expectations from the FORK (for every entry with an expectation the fork agrees with stock Go) |
+| `tests/exec_oracle.rs` | 13,470 Hugo-like cases (plain and Hugo-helper modes: Params case-insensitivity, methods before keys, mainsections, typed nils, time, IsZero, Stringers, try, missingkey, all builtins): 0 differ; 232 skipped (pointer addresses); listed deviations by class |
+| `tests/exec_depth.rs` | `TestMaxExecDepth`: Go's exact error at depth 100000 |
 | `tests/smoke.rs` | text/template end-to-end smoke cases |
 
 Regenerate (repo root):
 
 ```sh
 tools/go-oracle/gotemplate/sync-fork.sh
+GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate parse crates/gotemplate/tests/fixtures/text
+GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate exec crates/gotemplate/tests/fixtures/text
+GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate exectests crates/gotemplate/tests/fixtures/text
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate escfuncs crates/gotemplate/tests/fixtures/html
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate escdump \
   crates/gotemplate/tests/fixtures/html/escdump.txt docs/layouts create/skeletons/theme/layouts tpl/tplimpl/embedded/templates
 ```
+
+`tools/go-oracle/gotemplate/exectests/data.go` is a verbatim copy of parts
+of the fork's `exec_test.go` (line ranges in its header); re-copy it by
+hand if that file changes.
 
 ## Gaps
 

@@ -7,7 +7,6 @@ mod hugo;
 mod template;
 
 pub use exec::MAX_EXEC_DEPTH;
-pub(crate) use exec::{deref_ptr_object, printable_value};
 pub use funcs::{
     BUILTIN_NAMES, Builtin, Func, FuncValue, eval_args, go_funcs, html_escape, html_escape_string,
     html_escaper, js_escape, js_escape_string, js_escaper, url_query_escaper,

@@ -7,7 +7,13 @@
 
 use std::sync::Arc;
 
-use go_value::{HostCtx, IntKind, Kind, MapType, NilKind, Object, SliceType, UintKind, Value, typed_nil_kind};
+use std::sync::OnceLock;
+
+use go_value::{
+    HostCtx, IntKind, Kind, MapType, NilKind, Object, SliceType, UintKind, Value, typed_nil_kind,
+};
+
+use super::exec::StructView;
 
 /// A template function (Go: a func in a `FuncMap`, or found by the
 /// `ExecHelper`). It receives the host context (Go injects the
@@ -33,7 +39,12 @@ impl Object for FuncValue {
     fn has_method(&self, _name: &str) -> bool {
         false
     }
-    fn call_method(&self, _ctx: HostCtx<'_>, _name: &str, _args: &[Value]) -> Option<go_value::Result<Value>> {
+    fn call_method(
+        &self,
+        _ctx: HostCtx<'_>,
+        _name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
         None
     }
     fn as_any(&self) -> &dyn std::any::Any {
@@ -43,8 +54,8 @@ impl Object for FuncValue {
 
 /// Go: `builtins()` — the names, in Go's declaration order.
 pub const BUILTIN_NAMES: &[&str] = &[
-    "and", "call", "html", "index", "slice", "js", "len", "not", "or", "print", "printf", "println",
-    "urlquery", "eq", "ge", "gt", "le", "lt", "ne",
+    "and", "call", "html", "index", "slice", "js", "len", "not", "or", "print", "printf",
+    "println", "urlquery", "eq", "ge", "gt", "le", "lt", "ne",
 ];
 
 /// The text/template builtin functions.
@@ -148,6 +159,21 @@ impl Builtin {
             ArgType::Any
         }
     }
+
+    /// Whether the (variadic) parameters are `any` rather than
+    /// `reflect.Value`: a nil interface argument then arrives as an untyped
+    /// nil (Go converts the reflect.Value to an interface for the call).
+    pub(crate) fn takes_any(self) -> bool {
+        matches!(
+            self,
+            Builtin::Html
+                | Builtin::Js
+                | Builtin::UrlQuery
+                | Builtin::Print
+                | Builtin::Printf
+                | Builtin::Println
+        )
+    }
 }
 
 type R<T> = Result<T, String>;
@@ -166,23 +192,47 @@ pub(crate) fn indirect_interface(v: &Value) -> Value {
     v.clone()
 }
 
-/// Go `indirect(v)`: follows pointers and interfaces; reports a nil pointer
-/// or interface. `Kind::Ptr` objects are non-nil pointers whose pointee is
-/// the object's struct view; since members are resolved on the object
-/// itself, the object is returned unchanged.
+// Go: exec.go:indirect
+/// Returns the item at the end of indirection, and a bool to indicate if
+/// it's nil. If the returned bool is true, the returned value's kind will be
+/// either a pointer or interface. A non-nil `Kind::Ptr` object (a pointer to
+/// a struct) becomes the struct it points to (its [`StructView`]).
 pub(crate) fn indirect(v: &Value) -> (Value, bool) {
     match v {
         Value::TypedNil(t) => match typed_nil_kind(t) {
             NilKind::Ptr | NilKind::Interface => (v.clone(), true),
             _ => (v.clone(), false),
         },
+        Value::Object(o)
+            if o.kind() == Kind::Ptr && o.as_any().downcast_ref::<StructView>().is_none() =>
+        {
+            (Value::Object(Arc::new(StructView(o.clone()))), false)
+        }
         _ => (v.clone(), false),
+    }
+}
+
+/// The address of a struct reached by [`indirect`] (Go `v.Addr()`, which
+/// `evalField` takes to see the methods of both `T` and `*T`): the pointer
+/// object again. Other values are returned unchanged.
+pub(crate) fn addr(v: Value) -> Value {
+    match &v {
+        Value::Object(o) => match o.as_any().downcast_ref::<StructView>() {
+            Some(sv) => Value::Object(sv.0.clone()),
+            None => v,
+        },
+        _ => v,
     }
 }
 
 /// The `%v` text of a value (Go `fmt.Sprintf("%v", v)`).
 pub(crate) fn sprint_v(v: &Value) -> String {
     String::from_utf8_lossy(&go_fmt::sprintf("%v", std::slice::from_ref(v))).into_owned()
+}
+
+/// The `%s` text of a value (Go `fmt.Sprintf("%s", v)`).
+pub(crate) fn sprint_s(v: &Value) -> String {
+    String::from_utf8_lossy(&go_fmt::sprintf("%s", std::slice::from_ref(v))).into_owned()
 }
 
 /// Go `v.Type()` of a (valid) value, as printed by `%s`.
@@ -217,12 +267,249 @@ fn index_arg(index: &Value, cap: usize) -> R<usize> {
         Value::Int(i, _) => *i,
         Value::Uint(u, _) => *u as i64,
         Value::Invalid => return Err("cannot index slice/array with nil".to_string()),
-        _ => return Err(format!("cannot index slice/array with type {}", type_name(index))),
+        _ => {
+            return Err(format!(
+                "cannot index slice/array with type {}",
+                type_name(index)
+            ));
+        }
     };
     if x < 0 || x as usize > cap {
         return Err(format!("index out of range: {x}"));
     }
     Ok(x as usize)
+}
+
+/// A Go func type, parsed from its type string (e.g. `func(string,
+/// ...int) (bool, error)`): what `call` inspects through reflection.
+#[derive(Debug, PartialEq)]
+pub(crate) struct FuncSig {
+    /// Parameter types; the last is `[]T` when variadic (Go `typ.In(i)`).
+    pub(crate) params: Vec<String>,
+    pub(crate) variadic: bool,
+    pub(crate) results: Vec<String>,
+}
+
+/// Splits `s` at top-level occurrences of ", ".
+fn split_types(s: &str) -> Vec<String> {
+    let b = s.as_bytes();
+    let mut out = Vec::new();
+    let mut depth = 0i32;
+    let mut start = 0;
+    let mut i = 0;
+    while i < b.len() {
+        match b[i] {
+            b'(' | b'[' | b'{' => depth += 1,
+            b')' | b']' | b'}' => depth -= 1,
+            b',' if depth == 0 => {
+                out.push(s[start..i].trim().to_string());
+                start = i + 1;
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    if !s[start..].trim().is_empty() || !out.is_empty() {
+        out.push(s[start..].trim().to_string());
+    }
+    out
+}
+
+/// The index of the parenthesis closing the one at `open`.
+fn matching_paren(b: &[u8], open: usize) -> Option<usize> {
+    let mut depth = 0i32;
+    for (i, &c) in b.iter().enumerate().skip(open) {
+        match c {
+            b'(' | b'[' | b'{' => depth += 1,
+            b')' | b']' | b'}' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(i);
+                }
+            }
+            _ => {}
+        }
+    }
+    None
+}
+
+impl FuncSig {
+    /// Parses a func literal type string; `None` for anything else (a
+    /// named func type, whose signature the value model does not know).
+    pub(crate) fn parse(t: &str) -> Option<FuncSig> {
+        let rest = t.strip_prefix("func")?;
+        if !rest.starts_with('(') {
+            return None;
+        }
+        let b = rest.as_bytes();
+        let close = matching_paren(b, 0)?;
+        let mut params = split_types(&rest[1..close]);
+        let mut variadic = false;
+        if let Some(last) = params.last_mut() {
+            if let Some(elem) = last.strip_prefix("...") {
+                *last = format!("[]{elem}");
+                variadic = true;
+            }
+        }
+        let res = rest[close + 1..].trim();
+        let results = if res.is_empty() {
+            Vec::new()
+        } else if res.starts_with('(') {
+            let c = matching_paren(res.as_bytes(), 0)?;
+            split_types(&res[1..c])
+        } else {
+            vec![res.to_string()]
+        };
+        Some(FuncSig {
+            params,
+            variadic,
+            results,
+        })
+    }
+
+    /// The type of argument `i` (Go `call`'s `argType`: the element type of
+    /// the variadic parameter for the trailing arguments).
+    pub(crate) fn in_type(&self, i: usize) -> String {
+        let n = self.params.len();
+        if !self.variadic || i < n - 1 {
+            self.params[i].clone()
+        } else {
+            self.params[n - 1]
+                .strip_prefix("[]")
+                .unwrap_or("")
+                .to_string()
+        }
+    }
+
+    // Go: funcs.go:goodFunc
+    /// Reports whether the function or method has the right result
+    /// signature.
+    pub(crate) fn good_func(&self, name: &str) -> R<()> {
+        // We allow functions with 1 result or 2 results where the second is an error.
+        match self.results.len() {
+            1 => Ok(()),
+            2 if self.results[1] == "error" => Ok(()),
+            2 => Err(format!(
+                "invalid function signature for {name}: second return value should be error; is {}",
+                self.results[1]
+            )),
+            n => Err(format!(
+                "function {name} has {n} return values; should be 1 or 2"
+            )),
+        }
+    }
+}
+
+/// Go's basic (non-nillable, non-interface) type names.
+fn is_basic_type(t: &str) -> bool {
+    matches!(
+        t,
+        "bool"
+            | "string"
+            | "int"
+            | "int8"
+            | "int16"
+            | "int32"
+            | "int64"
+            | "uint"
+            | "uint8"
+            | "uint16"
+            | "uint32"
+            | "uint64"
+            | "uintptr"
+            | "float32"
+            | "float64"
+            | "complex64"
+            | "complex128"
+    )
+}
+
+/// The integer kind named by a Go basic type name.
+fn int_like_type(t: &str) -> Option<Value> {
+    Some(match t {
+        "int" => Value::Int(0, IntKind::Int),
+        "int8" => Value::Int(0, IntKind::Int8),
+        "int16" => Value::Int(0, IntKind::Int16),
+        "int32" => Value::Int(0, IntKind::Int32),
+        "int64" => Value::Int(0, IntKind::Int64),
+        "uint" => Value::Uint(0, UintKind::Uint),
+        "uint8" => Value::Uint(0, UintKind::Uint8),
+        "uint16" => Value::Uint(0, UintKind::Uint16),
+        "uint32" => Value::Uint(0, UintKind::Uint32),
+        "uint64" => Value::Uint(0, UintKind::Uint64),
+        "uintptr" => Value::Uint(0, UintKind::Uintptr),
+        _ => return None,
+    })
+}
+
+// Go: exec.go:canBeNil
+/// Reports whether an untyped nil can be assigned to the type.
+fn can_be_nil(t: &str) -> bool {
+    !is_basic_type(t) && !t.starts_with("struct")
+}
+
+/// Go `value.Convert(t)` between integer kinds (two's complement wrapping).
+fn convert_int(v: &Value, to: &Value) -> Value {
+    let bits: u64 = match v {
+        Value::Int(i, _) => *i as u64,
+        Value::Uint(u, _) => *u,
+        _ => 0,
+    };
+    match to {
+        Value::Int(_, k) => {
+            let i = match k {
+                IntKind::Int8 => bits as i8 as i64,
+                IntKind::Int16 => bits as i16 as i64,
+                IntKind::Int32 => bits as i32 as i64,
+                IntKind::Int | IntKind::Int64 => bits as i64,
+            };
+            Value::Int(i, *k)
+        }
+        Value::Uint(_, k) => {
+            let u = match k {
+                UintKind::Uint8 => bits as u8 as u64,
+                UintKind::Uint16 => bits as u16 as u64,
+                UintKind::Uint32 => bits as u32 as u64,
+                UintKind::Uint | UintKind::Uint64 | UintKind::Uintptr => bits,
+            };
+            Value::Uint(u, *k)
+        }
+        _ => v.clone(),
+    }
+}
+
+// Go: funcs.go:prepareArg (for `call`)
+/// Checks if value can be used as an argument of type `arg_type` (a Go type
+/// string), and converts an invalid value to appropriate zero if possible.
+/// Assignability is decided on type names: `interface {}` accepts
+/// everything, `error`/`fmt.Stringer` need the method, other interface or
+/// unknown named types are accepted.
+pub(crate) fn prepare_arg(value: &Value, arg_type: &str) -> R<Value> {
+    if value.is_invalid() {
+        if !can_be_nil(arg_type) {
+            return Err(format!("value is nil; should be of type {arg_type}"));
+        }
+        // reflect.Zero(argType): a nil interface arrives as untyped nil.
+        if arg_type == "interface {}" || typed_nil_kind(arg_type) == NilKind::Interface {
+            return Ok(Value::Invalid);
+        }
+        return Ok(Value::TypedNil(Arc::from(arg_type)));
+    }
+    let vt = type_name(value);
+    let assignable = vt == arg_type
+        || arg_type == "interface {}"
+        || match arg_type {
+            "error" => matches!(value, Value::Object(o) if o.go_error().is_some()),
+            "fmt.Stringer" => matches!(value, Value::Object(o) if o.go_string().is_some()),
+            t => !is_basic_type(t) && typed_nil_kind(t) == NilKind::Interface && !t.contains('.'),
+        };
+    if assignable {
+        return Ok(value.clone());
+    }
+    if let (Value::Int(..) | Value::Uint(..), Some(to)) = (value, int_like_type(arg_type)) {
+        return Ok(convert_int(value, &to));
+    }
+    Err(format!("value has type {vt}; should be {arg_type}"))
 }
 
 // Go: funcs.go:prepareArg
@@ -232,17 +519,87 @@ fn prepare_map_key(value: &Value) -> R<Vec<u8>> {
     match value {
         Value::Invalid => Err("value is nil; should be of type string".to_string()),
         Value::String(s) => Ok(s.to_vec()),
-        _ => Err(format!("value has type {}; should be string", type_name(value))),
+        _ => Err(format!(
+            "value has type {}; should be string",
+            type_name(value)
+        )),
     }
 }
 
-/// The zero value of a map's element type (Go `reflect.Zero(item.Type().Elem())`).
+/// The zero value of a map's element type (Go `reflect.Zero(item.Type().Elem())`);
+/// an interface element's zero (a nil interface) is `Value::Invalid` here.
 fn map_zero_elem(m: &Value) -> Value {
-    match m {
-        Value::Map(m) if m.ty == MapType::StringString => Value::string(""),
-        Value::TypedNil(t) if &**t == "map[string]string" => Value::string(""),
-        _ => Value::Invalid,
+    map_elem_zero(m).unwrap_or(Value::Invalid)
+}
+
+/// Go `reflect.Zero(m.Type().Elem())` when the value model can construct
+/// it: the element type of `map[string]string` or of an unnamed map type
+/// `map[K]E` (named by `MapType::Named` or a typed nil) whose `E` is a
+/// basic type or an unnamed pointer, slice, map, func or chan type. `None`
+/// for interface elements (whose zero is a nil interface) and for element
+/// types the model cannot construct (structs, arrays, named types).
+pub(crate) fn map_elem_zero(m: &Value) -> Option<Value> {
+    let ty: &str = match m {
+        Value::Map(m) => match &m.ty {
+            MapType::StringString => return Some(Value::string("")),
+            MapType::Named(n) => n,
+            _ => return None,
+        },
+        Value::TypedNil(t) => t,
+        _ => return None,
+    };
+    zero_of_type(map_elem_type(ty)?)
+}
+
+/// The element type `E` of a Go type string `map[K]E`.
+fn map_elem_type(ty: &str) -> Option<&str> {
+    let rest = ty.strip_prefix("map[")?;
+    let mut depth = 1;
+    for (i, c) in rest.char_indices() {
+        match c {
+            '[' => depth += 1,
+            ']' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(&rest[i + 1..]);
+                }
+            }
+            _ => {}
+        }
     }
+    None
+}
+
+/// Go `reflect.Zero(t)` for the types [`map_elem_zero`] handles.
+fn zero_of_type(ty: &str) -> Option<Value> {
+    Some(match ty {
+        "string" => Value::string(""),
+        "bool" => Value::Bool(false),
+        "int" => Value::Int(0, IntKind::Int),
+        "int8" => Value::Int(0, IntKind::Int8),
+        "int16" => Value::Int(0, IntKind::Int16),
+        "int32" => Value::Int(0, IntKind::Int32),
+        "int64" => Value::Int(0, IntKind::Int64),
+        "uint" => Value::Uint(0, UintKind::Uint),
+        "uint8" => Value::Uint(0, UintKind::Uint8),
+        "uint16" => Value::Uint(0, UintKind::Uint16),
+        "uint32" => Value::Uint(0, UintKind::Uint32),
+        "uint64" => Value::Uint(0, UintKind::Uint64),
+        "uintptr" => Value::Uint(0, UintKind::Uintptr),
+        "float32" => Value::Float(0.0, go_value::FloatKind::F32),
+        "float64" => Value::float64(0.0),
+        _ if ty.starts_with('*')
+            || ty.starts_with("[]")
+            || ty.starts_with("map[")
+            || ty.starts_with("func(")
+            || ty == "func()"
+            || ty.starts_with("chan ")
+            || ty.starts_with("<-chan ") =>
+        {
+            Value::TypedNil(Arc::from(ty))
+        }
+        _ => return None,
+    })
 }
 
 // Go: funcs.go:index
@@ -341,7 +698,9 @@ pub(crate) fn slice(item: &Value, indexes: &[Value]) -> R<Value> {
             Sl::Str(s, Some(*k))
         }
         Value::List(l) => Sl::List(l.ty.clone(), l.items.clone()),
-        Value::TypedNil(t) if typed_nil_kind(t) == NilKind::Slice => Sl::List(SliceType::Named(t.clone()), Vec::new()),
+        Value::TypedNil(t) if typed_nil_kind(t) == NilKind::Slice => {
+            Sl::List(SliceType::Named(t.clone()), Vec::new())
+        }
         Value::Object(o) if o.kind() == Kind::Slice => Sl::List(
             SliceType::Named(Arc::from(o.type_name().as_ref())),
             o.list().unwrap_or_default(),
@@ -435,11 +794,7 @@ fn as_bytes(v: &Value) -> &[u8] {
 
 // Go: funcs.go:isNil
 fn is_nil_value(v: &Value) -> bool {
-    match v {
-        Value::Invalid => true,
-        Value::TypedNil(_) => true,
-        _ => false,
-    }
+    matches!(v, Value::Invalid | Value::TypedNil(_))
 }
 
 /// Go reflect Kind names for the non-basic comparison path.
@@ -496,7 +851,9 @@ fn interface_eq(a: &Value, b: &Value) -> R<bool> {
                 let fa = x.struct_fields();
                 let fb = y.struct_fields();
                 return Ok(match (fa, fb) {
-                    (Some(fa), Some(fb)) => fa.len() == fb.len() && fa.iter().zip(fb.iter()).all(|(p, q)| p.1 == q.1),
+                    (Some(fa), Some(fb)) => {
+                        fa.len() == fb.len() && fa.iter().zip(fb.iter()).all(|(p, q)| p.1 == q.1)
+                    }
                     _ => x.identity() == y.identity(),
                 });
             }
@@ -505,7 +862,7 @@ fn interface_eq(a: &Value, b: &Value) -> R<bool> {
         (Value::Time(x), Value::Time(y)) => Ok(x == y),
         (Value::List(_), _) | (Value::Map(_), _) => Err(format!(
             "non-comparable type {}: {}",
-            sprint_v(b),
+            sprint_s(b),
             type_name(b)
         )),
         _ => Ok(a == b),
@@ -535,7 +892,9 @@ pub(crate) fn eq(arg1: &Value, arg2: &[Value]) -> R<bool> {
             }
         } else {
             match k1 {
-                BKind::Bool => truth = matches!((&arg1, &arg), (Value::Bool(a), Value::Bool(b)) if a == b),
+                BKind::Bool => {
+                    truth = matches!((&arg1, &arg), (Value::Bool(a), Value::Bool(b)) if a == b)
+                }
                 BKind::Float => truth = as_float(&arg1) == as_float(&arg),
                 BKind::Int => truth = as_int(&arg1) == as_int(&arg),
                 BKind::String => truth = as_bytes(&arg1) == as_bytes(&arg),
@@ -544,7 +903,7 @@ pub(crate) fn eq(arg1: &Value, arg2: &[Value]) -> R<bool> {
                     if !can_compare(&arg1, &arg) {
                         return Err(format!(
                             "non-comparable types {}: {}, {}: {}",
-                            sprint_v(&arg1),
+                            sprint_s(&arg1),
                             type_name(&arg1),
                             type_name(&arg),
                             sprint_v(&arg)
@@ -786,7 +1145,9 @@ pub fn url_query_escaper(args: &[Value]) -> Vec<u8> {
 /// Formats the list of arguments into a string. It is therefore equivalent
 /// to
 ///
-///     fmt.Sprint(args...)
+/// ```text
+/// fmt.Sprint(args...)
+/// ```
 ///
 /// except that each argument is indirected (if a pointer), as required,
 /// using the same rules as the default string evaluation during template
@@ -816,16 +1177,39 @@ pub fn eval_args(args: &[Value]) -> Vec<u8> {
 /// when reached through a host lookup (an error, as in Hugo); the others
 /// run the builtin with Go's arity checks reported as call errors.
 pub fn go_funcs() -> Vec<(&'static str, Func)> {
-    BUILTIN_NAMES
+    builtin_funcs()
         .iter()
-        .map(|&name| {
-            let b = Builtin::from_name(name).expect("builtin");
-            let f: Func = Arc::new(move |_ctx: HostCtx<'_>, args: &[Value]| {
-                call_builtin_plain(b, args).map_err(go_value::Error::new)
-            });
-            (name, f)
-        })
+        .map(|(n, _, f)| (*n, f.clone()))
         .collect()
+}
+
+/// Go: `builtinFuncs()` — one `Func` per builtin, created once, so that the
+/// engine can recognise its own builtins when a host hands them back
+/// through `ExecHelper::get_func` (see [`builtin_of`]).
+fn builtin_funcs() -> &'static [(&'static str, Builtin, Func)] {
+    static FUNCS: OnceLock<Vec<(&'static str, Builtin, Func)>> = OnceLock::new();
+    FUNCS.get_or_init(|| {
+        BUILTIN_NAMES
+            .iter()
+            .map(|&name| {
+                let b = Builtin::from_name(name).expect("builtin");
+                let f: Func = Arc::new(move |_ctx: HostCtx<'_>, args: &[Value]| {
+                    call_builtin_plain(b, args).map_err(go_value::Error::new)
+                });
+                (name, b, f)
+            })
+            .collect()
+    })
+}
+
+/// Which builtin `f` is, if it is one of [`go_funcs`]' functions (Go: the
+/// `reflect.Value` of a builtin, whose signature `evalCall` inspects: arity,
+/// parameter types).
+pub(crate) fn builtin_of(f: &Func) -> Option<Builtin> {
+    builtin_funcs()
+        .iter()
+        .find(|(_, _, g)| Arc::ptr_eq(f, g))
+        .map(|(_, b, _)| *b)
 }
 
 /// Runs a builtin outside the evaluator (no short-circuit, no truth hook
@@ -870,7 +1254,12 @@ pub(crate) fn call_builtin_simple(b: Builtin, args: &[Value]) -> R<Value> {
         Builtin::Printf => {
             let format = match &args[0] {
                 Value::String(s) => s.to_vec(),
-                other => return Err(format!("wrong type for value; expected string; got {}", type_name(other))),
+                other => {
+                    return Err(format!(
+                        "wrong type for value; expected string; got {}",
+                        type_name(other)
+                    ));
+                }
             };
             Value::string(go_fmt::sprintf(format, &args[1..]))
         }
@@ -880,7 +1269,9 @@ pub(crate) fn call_builtin_simple(b: Builtin, args: &[Value]) -> R<Value> {
         Builtin::Le => Value::Bool(le(&args[0], &args[1])?),
         Builtin::Gt => Value::Bool(gt(&args[0], &args[1])?),
         Builtin::Ge => Value::Bool(ge(&args[0], &args[1])?),
-        Builtin::And | Builtin::Or | Builtin::Call | Builtin::Not => unreachable!("handled by the evaluator"),
+        Builtin::And | Builtin::Or | Builtin::Call | Builtin::Not => {
+            unreachable!("handled by the evaluator")
+        }
     })
 }
 

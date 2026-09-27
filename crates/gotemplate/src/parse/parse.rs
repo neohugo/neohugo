@@ -10,8 +10,89 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
+use go_value::Value;
+
 use super::lex::{Item, ItemType, LexOptions, Lexer};
 use super::node::*;
+
+/// A Go string argument for an error format.
+fn sv(s: impl AsRef<[u8]>) -> Value {
+    Value::string(s.as_ref())
+}
+
+/// A lexer `item` as a `fmt` argument: a struct whose `String` method is
+/// `item.String()` (it only matters when a `%` in the template name turns
+/// into a verb other than `%s`/`%v`, as in Go).
+fn item_arg(token: &Item) -> Value {
+    Value::object(ItemArg(token.clone()))
+}
+
+struct ItemArg(Item);
+
+/// An `error` as a `fmt` argument (Go: the `*errors.errorString` that
+/// `errors.New`/`fmt.Errorf` return); like [`ItemArg`] it only matters for
+/// a `%` verb in the template name.
+struct ErrArg(String);
+
+impl go_value::Object for ErrArg {
+    fn type_name(&self) -> std::borrow::Cow<'_, str> {
+        std::borrow::Cow::Borrowed("*errors.errorString")
+    }
+    fn has_method(&self, name: &str) -> bool {
+        name == "Error"
+    }
+    fn call_method(
+        &self,
+        _ctx: go_value::HostCtx<'_>,
+        name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
+        (name == "Error").then(|| Ok(sv(&self.0)))
+    }
+    fn go_error(&self) -> Option<String> {
+        Some(self.0.clone())
+    }
+    fn struct_fields(&self) -> Option<Vec<(std::borrow::Cow<'_, str>, Value)>> {
+        Some(vec![("s".into(), sv(&self.0))])
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
+impl go_value::Object for ItemArg {
+    fn type_name(&self) -> std::borrow::Cow<'_, str> {
+        std::borrow::Cow::Borrowed("parse.item")
+    }
+    fn kind(&self) -> go_value::Kind {
+        go_value::Kind::Struct
+    }
+    fn has_method(&self, name: &str) -> bool {
+        name == "String"
+    }
+    fn call_method(
+        &self,
+        _ctx: go_value::HostCtx<'_>,
+        name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
+        (name == "String").then(|| Ok(sv(self.0.string())))
+    }
+    fn go_string(&self) -> Option<go_value::GoString> {
+        Some(self.0.string().into())
+    }
+    fn struct_fields(&self) -> Option<Vec<(std::borrow::Cow<'_, str>, Value)>> {
+        Some(vec![
+            ("typ".into(), Value::int(self.0.typ as i64)),
+            ("pos".into(), Value::int(self.0.pos as i64)),
+            ("val".into(), sv(&self.0.val)),
+            ("line".into(), Value::int(self.0.line as i64)),
+        ])
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
 
 /// Go: `parse.Mode` — flags that control parser behavior.
 #[derive(Clone, Copy, PartialEq, Eq, Debug, Default)]
@@ -253,7 +334,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         tree_set: &'p mut BTreeMap<String, Tree>,
     ) -> TreeParser<'p, 'a> {
         t.root = None;
-        let mut p = TreeParser {
+        let p = TreeParser {
             t,
             funcs,
             lex,
@@ -340,13 +421,22 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     }
 
     // Go: parse.go:(*Tree).errorf
-    /// Formats the error and terminates processing.
-    fn errorf<T>(&mut self, msg: impl std::fmt::Display) -> PResult<T> {
+    /// Formats the error and terminates processing. As in Go, the prefix
+    /// (with the template's ParseName) becomes part of the format string.
+    fn errorf<T>(&mut self, format: &str, args: &[Value]) -> PResult<T> {
         self.t.root = None;
-        Err(ParseError(format!(
+        let format = format!(
             "template: {}:{}: {}",
-            self.t.parse_name, self.token[0].line, msg
-        )))
+            self.t.parse_name, self.token[0].line, format
+        );
+        let msg = go_fmt::sprintf(format.as_bytes(), args);
+        Err(ParseError(String::from_utf8_lossy(&msg).into_owned()))
+    }
+
+    // Go: parse.go:(*Tree).error
+    /// Terminates processing.
+    fn error<T>(&mut self, err: impl std::fmt::Display) -> PResult<T> {
+        self.errorf("%s", &[Value::object(ErrArg(err.to_string()))])
     }
 
     // Go: parse.go:(*Tree).expect
@@ -361,7 +451,12 @@ impl<'p, 'a> TreeParser<'p, 'a> {
 
     // Go: parse.go:(*Tree).expectOneOf
     /// Consumes the next token and guarantees it has one of the required types.
-    fn expect_one_of(&mut self, expected1: ItemType, expected2: ItemType, context: &str) -> PResult<Item> {
+    fn expect_one_of(
+        &mut self,
+        expected1: ItemType,
+        expected2: ItemType,
+        context: &str,
+    ) -> PResult<Item> {
         let token = self.next_non_space();
         if token.typ != expected1 && token.typ != expected2 {
             return self.unexpected(&token, context);
@@ -375,14 +470,17 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         if token.typ == ItemType::Error {
             let mut extra = String::new();
             if self.action_line != 0 && self.action_line != token.line {
-                extra = format!(" in action started at {}:{}", self.t.parse_name, self.action_line);
+                extra = format!(
+                    " in action started at {}:{}",
+                    self.t.parse_name, self.action_line
+                );
                 if token.val.ends_with(b" action") {
                     extra = extra[" in action".len()..].to_string(); // avoid "action in action"
                 }
             }
-            return self.errorf(format!("{}{}", token.string(), extra));
+            return self.errorf("%s%s", &[item_arg(token), sv(extra)]);
         }
-        self.errorf(format!("unexpected {} in {}", token.string(), context))
+        self.errorf("unexpected %s in %s", &[item_arg(token), sv(context)])
     }
 
     // Go: parse.go:(*Tree).add
@@ -397,8 +495,8 @@ impl<'p, 'a> TreeParser<'p, 'a> {
             return Ok(());
         }
         if !is_empty_tree(self.t.root.as_ref()) {
-            let name = go_strconv::quote(&self.t.name);
-            return self.errorf(format!("template: multiple definition of template {name}"));
+            let name = sv(&self.t.name);
+            return self.errorf("template: multiple definition of template %q", &[name]);
         }
         Ok(())
     }
@@ -434,7 +532,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
             let n = self.text_or_action()?;
             match n.node_type() {
                 NodeType::End | NodeType::Else => {
-                    return self.errorf(format!("unexpected {n}"));
+                    return self.errorf("unexpected %s", &[sv(n.to_bytes())]);
                 }
                 _ => {
                     if let Some(root) = self.t.root.as_mut() {
@@ -455,13 +553,13 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         let name = self.expect_one_of(ItemType::String, ItemType::RawString, CONTEXT)?;
         match go_strconv::unquote(&name.val) {
             Ok(s) => self.t.name = String::from_utf8_lossy(&s).into_owned(),
-            Err(e) => return self.errorf(e),
+            Err(e) => return self.error(e),
         }
         self.expect(ItemType::RightDelim, CONTEXT)?;
         let (root, end) = self.item_list()?;
         self.t.root = Some(root);
         if end.node_type() != NodeType::End {
-            return self.errorf(format!("unexpected {end} in {CONTEXT}"));
+            return self.errorf("unexpected %s in %s", &[sv(end.to_bytes()), sv(CONTEXT)]);
         }
         self.add()?;
         Ok(())
@@ -470,7 +568,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).itemList
     /// itemList:
     ///
-    ///     textOrAction*
+    /// ```text
+    /// textOrAction*
+    /// ```
     ///
     /// Terminates at {{end}} or {{else}}, returned separately.
     fn item_list(&mut self) -> PResult<(ListNode, Node)> {
@@ -484,13 +584,15 @@ impl<'p, 'a> TreeParser<'p, 'a> {
             }
             list.append(n);
         }
-        self.errorf("unexpected EOF")
+        self.errorf("unexpected EOF", &[])
     }
 
     // Go: parse.go:(*Tree).textOrAction
     /// textOrAction:
     ///
-    ///     text | comment | action
+    /// ```text
+    /// text | comment | action
+    /// ```
     fn text_or_action(&mut self) -> PResult<Node> {
         let token = self.next_non_space();
         match token.typ {
@@ -514,8 +616,10 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).action
     /// Action:
     ///
-    ///     control
-    ///     command ("|" command)*
+    /// ```text
+    /// control
+    /// command ("|" command)*
+    /// ```
     ///
     /// Left delim is past. Now get actions.
     /// First word could be a keyword such as range.
@@ -537,13 +641,20 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         let token = self.peek();
         // Do not pop variables; they persist until "end".
         let pipe = self.pipeline("command", ItemType::RightDelim)?;
-        Ok(Node::Action(ActionNode::new(self.tr(), token.pos, token.line, pipe)))
+        Ok(Node::Action(ActionNode::new(
+            self.tr(),
+            token.pos,
+            token.line,
+            pipe,
+        )))
     }
 
     // Go: parse.go:(*Tree).breakControl
     /// Break:
     ///
-    ///     {{break}}
+    /// ```text
+    /// {{break}}
+    /// ```
     ///
     /// Break keyword is past.
     fn break_control(&mut self, pos: Pos, line: usize) -> PResult<Node> {
@@ -552,7 +663,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
             return self.unexpected(&token, "{{break}}");
         }
         if self.range_depth == 0 {
-            return self.errorf("{{break}} outside {{range}}");
+            return self.errorf("{{break}} outside {{range}}", &[]);
         }
         Ok(Node::Break(BreakNode {
             pos,
@@ -564,7 +675,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).continueControl
     /// Continue:
     ///
-    ///     {{continue}}
+    /// ```text
+    /// {{continue}}
+    /// ```
     ///
     /// Continue keyword is past.
     fn continue_control(&mut self, pos: Pos, line: usize) -> PResult<Node> {
@@ -573,7 +686,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
             return self.unexpected(&token, "{{continue}}");
         }
         if self.range_depth == 0 {
-            return self.errorf("{{continue}} outside {{range}}");
+            return self.errorf("{{continue}} outside {{range}}", &[]);
         }
         Ok(Node::Continue(ContinueNode {
             pos,
@@ -585,7 +698,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).pipeline
     /// Pipeline:
     ///
-    ///     declarations? command ('|' command)*
+    /// ```text
+    /// declarations? command ('|' command)*
+    /// ```
     fn pipeline(&mut self, context: &str, end: ItemType) -> PResult<PipeNode> {
         let token = self.peek_non_space();
         let mut pipe = PipeNode::new(self.tr(), token.pos, token.line, Vec::new());
@@ -603,11 +718,13 @@ impl<'p, 'a> TreeParser<'p, 'a> {
                 if next.typ == ItemType::Assign || next.typ == ItemType::Declare {
                     pipe.is_assign = next.typ == ItemType::Assign;
                     self.next_non_space();
-                    pipe.decl.push(VariableNode::new(self.tr(), v.pos, v.val_str()));
+                    pipe.decl
+                        .push(VariableNode::new(self.tr(), v.pos, v.val_str()));
                     self.vars.push(v.val_str().to_string());
                 } else if next.typ == ItemType::Char && next.val == b"," {
                     self.next_non_space();
-                    pipe.decl.push(VariableNode::new(self.tr(), v.pos, v.val_str()));
+                    pipe.decl
+                        .push(VariableNode::new(self.tr(), v.pos, v.val_str()));
                     self.vars.push(v.val_str().to_string());
                     if context == "range" && pipe.decl.len() < 2 {
                         match self.peek_non_space().typ {
@@ -615,10 +732,10 @@ impl<'p, 'a> TreeParser<'p, 'a> {
                                 // second initialized variable in a range pipeline
                                 continue 'decls;
                             }
-                            _ => return self.errorf("range can only initialize variables"),
+                            _ => return self.errorf("range can only initialize variables", &[]),
                         }
                     }
-                    return self.errorf(format!("too many declarations in {context}"));
+                    return self.errorf("too many declarations in %s", &[sv(context)]);
                 } else if token_after_variable.typ == ItemType::Space {
                     self.backup3(v, token_after_variable);
                 } else {
@@ -660,14 +777,19 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     fn check_pipeline(&mut self, pipe: &PipeNode, context: &str) -> PResult<()> {
         // Reject empty pipelines
         if pipe.cmds.is_empty() {
-            return self.errorf(format!("missing value for {context}"));
+            return self.errorf("missing value for %s", &[sv(context)]);
         }
         // Only the first command of a pipeline can start with a non executable operand
         for (i, c) in pipe.cmds[1..].iter().enumerate() {
             match c.args[0].node_type() {
-                NodeType::Bool | NodeType::Dot | NodeType::Nil | NodeType::Number | NodeType::String => {
+                NodeType::Bool
+                | NodeType::Dot
+                | NodeType::Nil
+                | NodeType::Number
+                | NodeType::String => {
                     // With A|B|C, pipeline stage 2 is B
-                    return self.errorf(format!("non executable command in pipeline stage {}", i + 2));
+                    let stage = Value::int(i as i64 + 2);
+                    return self.errorf("non executable command in pipeline stage %d", &[stage]);
                 }
                 _ => {}
             }
@@ -676,7 +798,10 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     }
 
     // Go: parse.go:(*Tree).parseControl
-    fn parse_control(&mut self, context: &str) -> PResult<(Pos, usize, PipeNode, ListNode, Option<ListNode>)> {
+    fn parse_control(
+        &mut self,
+        context: &str,
+    ) -> PResult<(Pos, usize, PipeNode, ListNode, Option<ListNode>)> {
         let mark = self.vars.len();
         let r = self.parse_control_inner(context);
         // defer t.popVars(len(t.vars))
@@ -684,7 +809,10 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         r
     }
 
-    fn parse_control_inner(&mut self, context: &str) -> PResult<(Pos, usize, PipeNode, ListNode, Option<ListNode>)> {
+    fn parse_control_inner(
+        &mut self,
+        context: &str,
+    ) -> PResult<(Pos, usize, PipeNode, ListNode, Option<ListNode>)> {
         let pipe = self.pipeline(context, ItemType::RightDelim)?;
         if context == "range" {
             self.range_depth += 1;
@@ -720,7 +848,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
                 } else {
                     let (l, next) = self.item_list()?;
                     if next.node_type() != NodeType::End {
-                        return self.errorf(format!("expected end; found {next}"));
+                        return self.errorf("expected end; found %s", &[sv(next.to_bytes())]);
                     }
                     else_list = Some(l);
                 }
@@ -732,14 +860,24 @@ impl<'p, 'a> TreeParser<'p, 'a> {
 
     fn branch(&mut self, nt: NodeType, context: &str) -> PResult<BranchNode> {
         let (pos, line, pipe, list, else_list) = self.parse_control(context)?;
-        Ok(BranchNode::new(nt, self.tr(), pos, line, pipe, list, else_list))
+        Ok(BranchNode::new(
+            nt,
+            self.tr(),
+            pos,
+            line,
+            pipe,
+            list,
+            else_list,
+        ))
     }
 
     // Go: parse.go:(*Tree).ifControl
     /// If:
     ///
-    ///     {{if pipeline}} itemList {{end}}
-    ///     {{if pipeline}} itemList {{else}} itemList {{end}}
+    /// ```text
+    /// {{if pipeline}} itemList {{end}}
+    /// {{if pipeline}} itemList {{else}} itemList {{end}}
+    /// ```
     ///
     /// If keyword is past.
     fn if_control(&mut self) -> PResult<Node> {
@@ -749,8 +887,10 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).rangeControl
     /// Range:
     ///
-    ///     {{range pipeline}} itemList {{end}}
-    ///     {{range pipeline}} itemList {{else}} itemList {{end}}
+    /// ```text
+    /// {{range pipeline}} itemList {{end}}
+    /// {{range pipeline}} itemList {{else}} itemList {{end}}
+    /// ```
     ///
     /// Range keyword is past.
     fn range_control(&mut self) -> PResult<Node> {
@@ -760,8 +900,10 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).withControl
     /// With:
     ///
-    ///     {{with pipeline}} itemList {{end}}
-    ///     {{with pipeline}} itemList {{else}} itemList {{end}}
+    /// ```text
+    /// {{with pipeline}} itemList {{end}}
+    /// {{with pipeline}} itemList {{else}} itemList {{end}}
+    /// ```
     ///
     /// If keyword is past.
     fn with_control(&mut self) -> PResult<Node> {
@@ -771,7 +913,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).endControl
     /// End:
     ///
-    ///     {{end}}
+    /// ```text
+    /// {{end}}
+    /// ```
     ///
     /// End keyword is past.
     fn end_control(&mut self) -> PResult<Node> {
@@ -782,7 +926,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).elseControl
     /// Else:
     ///
-    ///     {{else}}
+    /// ```text
+    /// {{else}}
+    /// ```
     ///
     /// Else keyword is past.
     fn else_control(&mut self) -> PResult<Node> {
@@ -808,7 +954,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).blockControl
     /// Block:
     ///
-    ///     {{block stringValue pipeline}}
+    /// ```text
+    /// {{block stringValue pipeline}}
+    /// ```
     ///
     /// Block keyword is past.
     /// The name must be something that can evaluate to a string.
@@ -836,7 +984,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         };
         let _ = root;
         if end.node_type() != NodeType::End {
-            return self.errorf(format!("unexpected {end} in {CONTEXT}"));
+            return self.errorf("unexpected %s in %s", &[sv(end.to_bytes()), sv(CONTEXT)]);
         }
 
         Ok(Node::Template(TemplateNode::new(
@@ -851,7 +999,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).templateControl
     /// Template:
     ///
-    ///     {{template stringValue pipeline}}
+    /// ```text
+    /// {{template stringValue pipeline}}
+    /// ```
     ///
     /// Template keyword is past. The name must be something that can evaluate
     /// to a string.
@@ -879,7 +1029,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         match token.typ {
             ItemType::String | ItemType::RawString => match go_strconv::unquote(&token.val) {
                 Ok(s) => Ok(String::from_utf8_lossy(&s).into_owned()),
-                Err(e) => self.errorf(e),
+                Err(e) => self.error(e),
             },
             _ => self.unexpected(token, context),
         }
@@ -888,7 +1038,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).command
     /// command:
     ///
-    ///     operand (space operand)*
+    /// ```text
+    /// operand (space operand)*
+    /// ```
     ///
     /// space-separated arguments up to a pipeline character or right delimiter.
     /// we consume the pipe character but leave the right delim to terminate the action.
@@ -912,7 +1064,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
             break;
         }
         if cmd.args.is_empty() {
-            return self.errorf("empty command");
+            return self.errorf("empty command", &[]);
         }
         Ok(cmd)
     }
@@ -920,7 +1072,9 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).operand
     /// operand:
     ///
-    ///     term .Field*
+    /// ```text
+    /// term .Field*
+    /// ```
     ///
     /// An operand is a space-separated component of a command,
     /// a term possibly followed by field accesses.
@@ -950,9 +1104,13 @@ impl<'p, 'a> TreeParser<'p, 'a> {
                     let s = chain.to_string_lossy();
                     node = Node::Variable(VariableNode::new(self.tr(), chain.pos, &s));
                 }
-                NodeType::Bool | NodeType::String | NodeType::Number | NodeType::Nil | NodeType::Dot => {
-                    let q = go_strconv::quote(chain.node.to_bytes());
-                    return self.errorf(format!("unexpected . after term {q}"));
+                NodeType::Bool
+                | NodeType::String
+                | NodeType::Number
+                | NodeType::Nil
+                | NodeType::Dot => {
+                    let term = sv(chain.node.to_bytes());
+                    return self.errorf("unexpected . after term %q", &[term]);
                 }
                 _ => node = Node::Chain(chain),
             }
@@ -963,12 +1121,14 @@ impl<'p, 'a> TreeParser<'p, 'a> {
     // Go: parse.go:(*Tree).term
     /// term:
     ///
-    ///     literal (number, string, nil, boolean)
-    ///     function (identifier)
-    ///     .
-    ///     .Field
-    ///     $
-    ///     '(' pipeline ')'
+    /// ```text
+    /// literal (number, string, nil, boolean)
+    /// function (identifier)
+    /// .
+    /// .Field
+    /// $
+    /// '(' pipeline ')'
+    /// ```
     ///
     /// A term is a simple "expression".
     /// A nil return means the next item is not a term.
@@ -979,33 +1139,31 @@ impl<'p, 'a> TreeParser<'p, 'a> {
             ItemType::Identifier => {
                 let check_func = !self.t.mode.has(Mode::SKIP_FUNC_CHECK);
                 if check_func && !self.has_function(token.val_str()) {
-                    let q = go_strconv::quote(&token.val);
-                    return self.errorf(format!("function {q} not defined"));
+                    return self.errorf("function %q not defined", &[sv(&token.val)]);
                 }
-                Ok(Some(Node::Identifier(IdentifierNode::new(token.val_str(), tr, token.pos))))
+                Ok(Some(Node::Identifier(IdentifierNode::new(
+                    token.val_str(),
+                    tr,
+                    token.pos,
+                ))))
             }
             ItemType::Dot => Ok(Some(Node::Dot(DotNode { pos: token.pos, tr }))),
             ItemType::Nil => Ok(Some(Node::Nil(NilNode { pos: token.pos, tr }))),
             ItemType::Variable => Ok(Some(self.use_var(token.pos, token.val_str())?)),
-            ItemType::Field => Ok(Some(Node::Field(FieldNode::new(tr, token.pos, token.val_str())))),
+            ItemType::Field => Ok(Some(Node::Field(FieldNode::new(
+                tr,
+                token.pos,
+                token.val_str(),
+            )))),
             ItemType::Bool => Ok(Some(Node::Bool(BoolNode {
                 pos: token.pos,
                 tr,
                 true_: token.val == b"true",
             }))),
             ItemType::CharConstant | ItemType::Complex | ItemType::Number => {
-                // Number items are ASCII (the lexer only accepts ASCII digits,
-                // signs and letters after a digit); char constants may not be.
-                let text = String::from_utf8_lossy(&token.val).into_owned();
-                let text_bytes_ok = std::str::from_utf8(&token.val).is_ok();
-                let r = if text_bytes_ok {
-                    NumberNode::new(tr, token.pos, &text, token.typ)
-                } else {
-                    number_from_bytes(tr, token.pos, &token.val, token.typ)
-                };
-                match r {
+                match NumberNode::new(tr, token.pos, &token.val, token.typ) {
                     Ok(n) => Ok(Some(Node::Number(n))),
-                    Err(e) => self.errorf(e),
+                    Err(e) => self.error(e),
                 }
             }
             ItemType::LeftParen => Ok(Some(Node::Pipe(
@@ -1018,7 +1176,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
                     quoted: token.val,
                     text: s,
                 }))),
-                Err(e) => self.errorf(e),
+                Err(e) => self.error(e),
             },
             _ => {
                 self.backup();
@@ -1041,34 +1199,7 @@ impl<'p, 'a> TreeParser<'p, 'a> {
         if self.vars.iter().any(|var_name| *var_name == v.ident[0]) {
             return Ok(Node::Variable(v));
         }
-        let q = go_strconv::quote(&v.ident[0]);
-        self.errorf(format!("undefined variable {q}"))
+        let name = sv(&v.ident[0]);
+        self.errorf("undefined variable %q", &[name])
     }
-}
-
-/// A character constant containing invalid UTF-8: `strconv.UnquoteChar`
-/// decides; the node text keeps Go's bytes as far as a Rust `String` can.
-fn number_from_bytes(tr: TreeRef, pos: Pos, val: &[u8], typ: ItemType) -> Result<NumberNode, String> {
-    if typ == ItemType::CharConstant {
-        let (rune, _, tail) = go_strconv::unquote_char(&val[1..], val[0]).map_err(|e| e.to_string())?;
-        if tail != b"'" {
-            return Err(format!(
-                "malformed character constant: {}",
-                String::from_utf8_lossy(val)
-            ));
-        }
-        return Ok(NumberNode {
-            pos,
-            tr,
-            is_int: true,
-            is_uint: true,
-            is_float: true,
-            int64: rune as i64,
-            uint64: rune as i64 as u64,
-            float64: rune as f64,
-            text: String::from_utf8_lossy(val).into_owned(),
-            ..Default::default()
-        });
-    }
-    NumberNode::new(tr, pos, &String::from_utf8_lossy(val), typ)
 }

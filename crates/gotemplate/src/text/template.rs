@@ -121,7 +121,12 @@ impl Template {
     // Go: template.go:New
     /// Allocates a new, undefined template with the given name.
     pub fn new(name: &str) -> Template {
-        Template::with_common(name, Arc::new(Common::default()), String::new(), String::new())
+        Template::with_common(
+            name,
+            Arc::new(Common::default()),
+            String::new(),
+            String::new(),
+        )
     }
 
     // Go: template.go:(*Template).Name
@@ -152,7 +157,12 @@ impl Template {
 
     /// The template's `option` (Go: `t.option`, shared by the namespace).
     pub fn option(&self) -> TplOption {
-        *self.0.common.option.read().unwrap_or_else(|e| e.into_inner())
+        *self
+            .0
+            .common
+            .option
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
     }
 
     // Go: template.go:(*Template).New
@@ -195,7 +205,12 @@ impl Template {
         drop(tmpl);
         *nt.0.common.tmpl.write().unwrap_or_else(|e| e.into_inner()) = new_map;
         {
-            let src = self.0.common.funcs.read().unwrap_or_else(|e| e.into_inner());
+            let src = self
+                .0
+                .common
+                .funcs
+                .read()
+                .unwrap_or_else(|e| e.into_inner());
             let mut dst = nt.0.common.funcs.write().unwrap_or_else(|e| e.into_inner());
             dst.parse.extend(src.parse.iter().cloned());
             for (k, v) in &src.exec {
@@ -210,7 +225,8 @@ impl Template {
     /// Returns a shallow copy of t, with common set to the argument.
     fn copy(&self, c: Arc<Common>) -> Template {
         let f = self.fields();
-        let nt = Template::with_common(&self.0.name, c, f.left_delim.clone(), f.right_delim.clone());
+        let nt =
+            Template::with_common(&self.0.name, c, f.left_delim.clone(), f.right_delim.clone());
         nt.fields().tree = f.tree.clone();
         nt
     }
@@ -222,7 +238,12 @@ impl Template {
     /// name, the existing definition is replaced; otherwise a new template
     /// is created, defined, and returned.
     pub fn add_parse_tree(&self, name: &str, tree: SharedTree) -> Result<Template, crate::Error> {
-        let mut tmpl = self.0.common.tmpl.write().unwrap_or_else(|e| e.into_inner());
+        let mut tmpl = self
+            .0
+            .common
+            .tmpl
+            .write()
+            .unwrap_or_else(|e| e.into_inner());
         let nt = if name != self.0.name {
             self.new_associated(name)
         } else {
@@ -261,10 +282,18 @@ impl Template {
     // Go: template.go:(*Template).Funcs
     /// Adds the elements of the argument map to the template's function map.
     pub fn funcs(&self, func_map: &FuncMap) -> &Template {
-        let mut funcs = self.0.common.funcs.write().unwrap_or_else(|e| e.into_inner());
+        let mut funcs = self
+            .0
+            .common
+            .funcs
+            .write()
+            .unwrap_or_else(|e| e.into_inner());
         for (name, f) in func_map {
             if !good_name(name) {
-                panic!("function name {} is not a valid identifier", go_strconv::quote(name));
+                panic!(
+                    "function name {} is not a valid identifier",
+                    go_strconv::quote(name)
+                );
             }
             funcs.exec.insert(name.clone(), f.clone());
             funcs.parse.insert(name.clone());
@@ -280,11 +309,19 @@ impl Template {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        let mut funcs = self.0.common.funcs.write().unwrap_or_else(|e| e.into_inner());
+        let mut funcs = self
+            .0
+            .common
+            .funcs
+            .write()
+            .unwrap_or_else(|e| e.into_inner());
         for n in names {
             let n = n.into();
             if !good_name(&n) {
-                panic!("function name {} is not a valid identifier", go_strconv::quote(&n));
+                panic!(
+                    "function name {} is not a valid identifier",
+                    go_strconv::quote(&n)
+                );
             }
             funcs.parse.insert(n);
         }
@@ -309,9 +346,20 @@ impl Template {
             (f.left_delim.clone(), f.right_delim.clone())
         };
         let trees = {
-            let funcs = self.0.common.funcs.read().unwrap_or_else(|e| e.into_inner());
-            parse::parse(&self.0.name, text.as_ref(), &l, &r, &[&*funcs, &BuiltinNames])
-                .map_err(crate::Error::Parse)?
+            let funcs = self
+                .0
+                .common
+                .funcs
+                .read()
+                .unwrap_or_else(|e| e.into_inner());
+            parse::parse(
+                &self.0.name,
+                text.as_ref(),
+                &l,
+                &r,
+                &[&*funcs, &BuiltinNames],
+            )
+            .map_err(crate::Error::Parse)?
         };
         // Add the newly parsed trees, including the one for t, into our common structure.
         for (name, tree) in trees {
@@ -363,7 +411,12 @@ impl Template {
                     _ => None,
                 };
                 if let Some(mk) = mk {
-                    self.0.common.option.write().unwrap_or_else(|e| e.into_inner()).missing_key = mk;
+                    self.0
+                        .common
+                        .option
+                        .write()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .missing_key = mk;
                     return;
                 }
             }

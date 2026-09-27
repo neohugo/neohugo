@@ -15,8 +15,6 @@ pub use parse::{
     parse_with_mode,
 };
 
-pub(crate) use lex::find;
-
 /// Go: a `*parse.Tree` pointer — a parse tree shared by reference.
 ///
 /// Go templates hold `*parse.Tree` pointers: `Clone`, `CloneShallow` and
