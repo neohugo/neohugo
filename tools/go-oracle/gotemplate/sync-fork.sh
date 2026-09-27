@@ -42,4 +42,14 @@ func StripTagsExported(s string) string { return stripTags(s) }
 // IsJSTypeExported exposes isJSType.
 func IsJSTypeExported(s string) bool { return isJSType(s) }
 GO
+cat > "$dst/htmltemplate/oracle_exports_escdump.go" <<'GO'
+//go:build gotemplate_oracle
+
+package template
+
+import texttemplate "github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/texttemplate"
+
+// TextTemplate exposes the underlying text/template of an html template.
+func (t *Template) TextTemplate() *texttemplate.Template { return t.text }
+GO
 echo "fork copied to $dst"

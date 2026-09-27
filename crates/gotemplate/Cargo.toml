@@ -5,6 +5,10 @@ edition = "2024"
 description = "Faithful port of Go text/template + html/template as forked in neohugo tpl/internal/go_templates (go1.24.0 fork + Hugo hooks)"
 license = "BSD-3-Clause"
 
+[lib]
+# The doc comments quote Go grammar and code; nothing in them is a Rust example.
+doctest = false
+
 [dependencies]
 go-value = { path = "../go-value" }
 go-fmt = { path = "../go-fmt" }
