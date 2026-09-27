@@ -1,0 +1,14 @@
+[package]
+name = "go-strconv"
+version = "0.1.0"
+edition = "2024"
+description = "Faithful port of Go's strconv (go1.27.1: strconv + internal/strconv) for the neohugo Rust port"
+license = "BSD-3-Clause"
+
+[dependencies]
+
+[profile.test]
+opt-level = 3
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
