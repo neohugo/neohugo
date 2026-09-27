@@ -240,6 +240,8 @@ func resolveData(spec string, files map[string][]byte) []byte {
 		return nil
 	case spec == "empty":
 		return []byte{}
+	case strings.HasPrefix(spec, "gen:") && strings.ContainsAny(spec, "+/"):
+		return genSpecExt(spec)
 	case strings.HasPrefix(spec, "gen:"):
 		p := strings.Split(spec, ":")
 		kind, _ := strconv.Atoi(p[1])
@@ -901,7 +903,7 @@ func cmdLongStreams(args []string) {
 
 func main() {
 	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: go-flate cases|files|png|inflate-cases|longstreams|gendata|run|fuzz|inflate-gen ...")
+		fmt.Fprintln(os.Stderr, "usage: go-flate cases|files|png|inflate-cases|longstreams|gendata|run|fuzz|inflate-gen|gotests|specs|enc-sweep|inflate-exh|inflate-reset|zlib-hdr|adler ...")
 		os.Exit(2)
 	}
 	switch os.Args[1] {
@@ -921,6 +923,18 @@ func main() {
 		cmdGoTests(os.Args[2:])
 	case "inflate-gen":
 		cmdInflateGen(os.Args[2:])
+	case "specs":
+		cmdSpecs(os.Args[2:])
+	case "enc-sweep":
+		cmdEncSweep(os.Args[2:])
+	case "inflate-exh":
+		cmdInflateExh(os.Args[2:])
+	case "inflate-reset":
+		cmdInflateReset(os.Args[2:])
+	case "zlib-hdr":
+		cmdZlibHdr(os.Args[2:])
+	case "adler":
+		cmdAdler(os.Args[2:])
 	case "genhash":
 		// genhash: FNV-1a 64 of genData for every kind over a few sizes/seeds.
 		for kind := 0; kind < 16; kind++ {

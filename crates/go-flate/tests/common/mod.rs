@@ -454,6 +454,9 @@ pub fn resolve(spec: &str, files: &HashMap<String, Vec<u8>>) -> DataSpec {
     if spec == "empty" {
         return DataSpec::Empty;
     }
+    if spec.starts_with("gen:") && spec.contains(['+', '/']) {
+        return DataSpec::Bytes(gen_spec_ext(spec));
+    }
     if let Some(rest) = spec.strip_prefix("gen:") {
         let p: Vec<&str> = rest.split(':').collect();
         return DataSpec::Bytes(gen_data(
@@ -474,6 +477,30 @@ pub fn resolve(spec: &str, files: &HashMap<String, Vec<u8>>) -> DataSpec {
         );
     }
     panic!("bad spec {spec}")
+}
+
+/// "gen:K:S:SEED[+gen:K:S:SEED...][/POS=VAL...]": the concatenation of the
+/// generated parts, then byte assignments (Go: `genSpecExt` in
+/// tools/go-oracle/go-flate/redteam.go).
+pub fn gen_spec_ext(spec: &str) -> Vec<u8> {
+    let mut parts = spec.split('/');
+    let mut out = Vec::new();
+    for p in parts.next().unwrap().split('+') {
+        let f: Vec<&str> = p.split(':').collect();
+        assert!(f.len() == 4 && f[0] == "gen", "bad spec {spec}");
+        out.extend_from_slice(&gen_data(
+            f[1].parse().unwrap(),
+            f[2].parse().unwrap(),
+            f[3].parse().unwrap(),
+        ));
+    }
+    for m in parts {
+        let (pos, val) = m
+            .split_once('=')
+            .unwrap_or_else(|| panic!("bad spec {spec}"));
+        out[pos.parse::<usize>().unwrap()] = val.parse::<u8>().unwrap();
+    }
+    out
 }
 
 impl DataSpec {

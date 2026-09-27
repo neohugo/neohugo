@@ -1031,7 +1031,7 @@ mod tests {
                             "On size:{sz} flush:{flush}, Read() = (0, io.EOF), want (n, io.EOF)"
                         );
                         assert!(
-                            !(n != 0 && !early_eof),
+                            n == 0 || early_eof,
                             "On size:{sz} flush:{flush}, Read() = ({n}, io.EOF), want (0, io.EOF)"
                         );
                         break;

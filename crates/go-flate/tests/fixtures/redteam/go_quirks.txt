@@ -1,0 +1,10 @@
+# go-flate oracle (go1.27.1 arm64) specs Go quirks reproduced on purpose
+0 flate 7 gen:1:5000:11 gen:1:10:12 W5000,C 5017 85132c0b2871f8e6 fd2ef19840dfcb85 oo
+1 flate 8 gen:1:5000:13 gen:1:10:14 W5000,C 5017 8c85cab651af4ac8 fd2ef19840dfcb85 oo
+2 flate 9 gen:1:5000:15 gen:1:10:16 W5000,C 5017 164a1fec2a9a89ce fd2ef19840dfcb85 oo
+3 flate 9 gen:1:100000:17 gen:1:10:18 W100000,C 100032 da5c31444b78ca39 13d7eb2cf144ca3b oo
+4 flate 9 gen:1:2000:19 gen:1:1:20 W1000,F,W1000,C 2018 e55257f272f2870e 7785684e44da48e3 oooo
+5 zlib 9 gen:1:5000:21 gen:1:10:22 W5000,C 5027 6247e77461297b2c 8088ac5872184493 oo
+6 flate 9 gen:1:5000:23 gen:1:10:24 W2500,C,R,W2500,C 5034 7b5f1befe2b5421a 11f781e2face9679 ooooo
+7 flate 9 gen:1:5000:25 gen:1:1000:26 W5000,C 5048 7967d53a6bb2e2cb 0dde0fca90db15c5 oo
+8 flate 7 gen:1:30000:27 gen:1:40000:28 W30000,C 30040 6073e2b0743cef20 fffb21860f88d599 oo
