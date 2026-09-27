@@ -1,0 +1,28 @@
+[package]
+name = "nh-parser"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo parser/* : metadecoders (YAML via go-yaml, TOML via toml crate + go-toml/v2 type mapping, JSON via go-json), pageparser lexer"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+
+# Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
+# once their crate has landed (HUGO_LAYER.md §1 rule 4):
+go-yaml = { path = "../go-yaml" }
+# go-json = { path = "../go-json" }
+go-strconv = { path = "../go-strconv" }
+go-time = { path = "../go-time" }
+go-unicode = { path = "../go-unicode" }
+
+# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
+#   toml (parse only; values mapped to go-toml/v2 Go types)
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

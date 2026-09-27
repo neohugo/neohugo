@@ -1,0 +1,29 @@
+[package]
+name = "nh-images"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo resources/images/** (image config, spec parsing, processing, filters, encoders, exif stub)"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-config = { path = "../nh-config" }
+nh-media = { path = "../nh-media" }
+nh-resource = { path = "../nh-resource" }
+
+# Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
+# once their crate has landed (HUGO_LAYER.md §1 rule 4):
+# gift = { path = "../gift" }
+go-image = { path = "../go-image" }
+# go-png = { path = "../go-png" }
+# go-flate = { path = "../go-flate" }
+# libwebp-sys = { path = "../libwebp-sys" }
+go-hashstructure = { path = "../go-hashstructure" }
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

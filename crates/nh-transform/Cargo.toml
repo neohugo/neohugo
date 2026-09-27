@@ -1,0 +1,28 @@
+[package]
+name = "nh-transform"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo transform/{chain,urlreplacers} and minifiers/* (tdewolff registry by media type)"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-config = { path = "../nh-config" }
+nh-media = { path = "../nh-media" }
+
+# Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
+# once their crate has landed (HUGO_LAYER.md §1 rule 4):
+# tdewolff-minify = { path = "../tdewolff-minify" }
+# tdewolff-minify-js = { path = "../tdewolff-minify-js" }
+tdewolff-parse = { path = "../tdewolff-parse" }
+
+# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
+#   memchr / aho-corasick (optional, byte search)
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

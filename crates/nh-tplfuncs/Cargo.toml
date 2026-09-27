@@ -1,0 +1,53 @@
+[package]
+name = "nh-tplfuncs"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set fully, the rest as stubs), registry, tplimplinit"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-config = { path = "../nh-config" }
+nh-media = { path = "../nh-media" }
+nh-langs = { path = "../nh-langs" }
+nh-hugofs = { path = "../nh-hugofs" }
+nh-helpers = { path = "../nh-helpers" }
+nh-markup = { path = "../nh-markup" }
+nh-resource = { path = "../nh-resource" }
+nh-images = { path = "../nh-images" }
+nh-page = { path = "../nh-page" }
+nh-allconfig = { path = "../nh-allconfig" }
+nh-tpl = { path = "../nh-tpl" }
+nh-tplimpl = { path = "../nh-tplimpl" }
+nh-resources = { path = "../nh-resources" }
+nh-resource-transformers = { path = "../nh-resource-transformers" }
+nh-parser = { path = "../nh-parser" }
+nh-deps = { path = "../nh-deps" }
+
+# Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
+# once their crate has landed (HUGO_LAYER.md §1 rule 4):
+# go-fmt = { path = "../go-fmt" }
+# go-json = { path = "../go-json" }
+go-url = { path = "../go-url" }
+go-time = { path = "../go-time" }
+go-html = { path = "../go-html" }
+go-strconv = { path = "../go-strconv" }
+go-sort = { path = "../go-sort" }
+# xtext-collate = { path = "../xtext-collate" }   # (via nh-langs)
+
+# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
+#   md-5
+#   sha1
+#   sha2
+#   base64
+#   hex
+#   crc32fast
+#   regex (findRE/replaceRE; not exercised)
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

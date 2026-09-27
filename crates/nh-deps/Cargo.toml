@@ -1,0 +1,27 @@
+[package]
+name = "nh-deps"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo deps/deps.go: per-site dependency container (the Rust context struct)"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-config = { path = "../nh-config" }
+nh-media = { path = "../nh-media" }
+nh-hugofs = { path = "../nh-hugofs" }
+nh-helpers = { path = "../nh-helpers" }
+nh-resource = { path = "../nh-resource" }
+nh-page = { path = "../nh-page" }
+nh-allconfig = { path = "../nh-allconfig" }
+nh-tpl = { path = "../nh-tpl" }
+nh-tplimpl = { path = "../nh-tplimpl" }
+nh-resources = { path = "../nh-resources" }
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

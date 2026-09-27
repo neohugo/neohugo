@@ -1,0 +1,34 @@
+[package]
+name = "nh-commands"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo commands/* + main.go (bin `neohugo`): flags -> config, build, version/env/config commands, static copy (spf13/fsync)"
+license = "Apache-2.0"
+
+[lib]
+name = "nh_commands"
+path = "src/lib.rs"
+
+[[bin]]
+name = "neohugo"
+path = "src/main.rs"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-config = { path = "../nh-config" }
+nh-allconfig = { path = "../nh-allconfig" }
+nh-hugofs = { path = "../nh-hugofs" }
+nh-helpers = { path = "../nh-helpers" }
+nh-hugolib = { path = "../nh-hugolib" }
+nh-deps = { path = "../nh-deps" }
+
+# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
+#   clap (CLI parsing; no output-byte impact)
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

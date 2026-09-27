@@ -1,0 +1,30 @@
+[package]
+name = "nh-helpers"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo helpers/*, source/*, cache/filecache, cache/httpcache (+ gohugoio/httpcache + net/http response-dump subset)"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-config = { path = "../nh-config" }
+nh-media = { path = "../nh-media" }
+nh-hugofs = { path = "../nh-hugofs" }
+nh-markup = { path = "../nh-markup" }
+
+# Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
+# once their crate has landed (HUGO_LAYER.md §1 rule 4):
+go-url = { path = "../go-url" }
+go-time = { path = "../go-time" }
+go-strconv = { path = "../go-strconv" }
+
+# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
+#   md-5 (source.File.UniqueID)
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

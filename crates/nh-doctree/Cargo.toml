@@ -1,0 +1,17 @@
+[package]
+name = "nh-doctree"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo hugolib/doctree (radix-tree walk order == BTreeMap byte order; language-dimension shifting)"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

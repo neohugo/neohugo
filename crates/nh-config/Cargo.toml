@@ -1,0 +1,27 @@
+[package]
+name = "nh-config"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo config (base), config/{security,privacy,services}, common/hexec, common/neohugo"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-parser = { path = "../nh-parser" }
+nh-langs = { path = "../nh-langs" }
+
+# Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
+# once their crate has landed (HUGO_LAYER.md §1 rule 4):
+go-time = { path = "../go-time" }
+# go-json = { path = "../go-json" }
+
+# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
+#   regex (security whitelist patterns; RE2-compatible subset)
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

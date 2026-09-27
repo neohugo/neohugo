@@ -1,0 +1,21 @@
+[package]
+name = "nh-resource"
+version = "0.1.0"
+edition = "2024"
+description = "neohugo resources/resource (Resource interfaces, Resources, params, dates) and resources/internal (keys, target paths)"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+nh-common = { path = "../nh-common" }
+nh-config = { path = "../nh-config" }
+nh-media = { path = "../nh-media" }
+nh-langs = { path = "../nh-langs" }
+nh-helpers = { path = "../nh-helpers" }
+
+[dev-dependencies]
+# Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
+serde_json = "1"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
