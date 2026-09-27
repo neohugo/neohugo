@@ -1,0 +1,18 @@
+[package]
+name = "go-time"
+version = "0.1.0"
+edition = "2024"
+description = "Go time package (go1.27.1): Format/Parse/zone lookup/Duration/MarshalBinary over go_value::Time"
+license = "Apache-2.0"
+
+[dependencies]
+go-value = { path = "../go-value" }
+
+[dev-dependencies]
+# Test-only: reads the gzip-compressed Go oracle fixtures (decompression only).
+flate2 = "1"
+# Test-only: checks that system zoneinfo files match the fixture's hashes.
+sha2 = "0.10"
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]

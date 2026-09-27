@@ -19,9 +19,11 @@
 //!   methods declared on named slice/map types (`page.Pages.Reverse`,
 //!   `page.Taxonomy.Alphabetical`, ...) stay reachable through the host.
 
+mod nil_kind;
 mod time;
 
-pub use time::{Location, Time, Zone, ZoneTrans, UNIX_TO_INTERNAL, ZERO_TIME_UNIX};
+pub use nil_kind::{NilKind, register_named_kind, typed_nil_kind};
+pub use time::{Location, Time, UNIX_TO_INTERNAL, ZERO_TIME_UNIX, Zone, ZoneTrans};
 
 use std::any::Any;
 use std::borrow::Cow;
@@ -420,7 +422,10 @@ pub struct Map {
 
 impl Map {
     pub fn new(ty: MapType) -> Self {
-        Map { ty, entries: BTreeMap::new() }
+        Map {
+            ty,
+            entries: BTreeMap::new(),
+        }
     }
 
     pub fn with_entries(ty: MapType, entries: BTreeMap<GoString, Value>) -> Self {
@@ -507,6 +512,11 @@ pub trait Object: Send + Sync + 'static {
         None
     }
 
+    /// `fmt.GoStringer` (`GoString() string`, used by `%#v`).
+    fn go_go_string(&self) -> Option<GoString> {
+        None
+    }
+
     /// `error`.
     fn go_error(&self) -> Option<String> {
         None
@@ -561,7 +571,8 @@ pub enum Value {
     /// nothing; `fmt` prints `<nil>`.
     Invalid,
     /// A typed nil pointer, map, slice or interface, with its Go type string
-    /// (e.g. `"*source.File"`). Falsy; `fmt` prints `<nil>`.
+    /// (e.g. `"*source.File"`). Falsy. Use [`typed_nil_kind`] for its reflect
+    /// kind (a nil slice prints `[]` in `fmt`, a nil pointer `<nil>`).
     TypedNil(Arc<str>),
     Bool(bool),
     Int(i64, IntKind),
@@ -617,7 +628,10 @@ impl Value {
         I: IntoIterator<Item = S>,
         S: Into<GoString>,
     {
-        Value::list(SliceType::String, items.into_iter().map(|s| Value::String(s.into())).collect())
+        Value::list(
+            SliceType::String,
+            items.into_iter().map(|s| Value::String(s.into())).collect(),
+        )
     }
 
     pub fn map(m: Map) -> Value {
@@ -670,7 +684,8 @@ impl Value {
 
     /// Downcast an `Object` value to a concrete host type.
     pub fn downcast<T: Object>(&self) -> Option<&T> {
-        self.as_object().and_then(|o| o.as_any().downcast_ref::<T>())
+        self.as_object()
+            .and_then(|o| o.as_any().downcast_ref::<T>())
     }
 
     /// The Go type string, as printed by `%T` (`"<nil>"` for `Invalid`).
@@ -770,7 +785,12 @@ mod tests {
 
     #[test]
     fn gostring_orders_by_bytes() {
-        let mut v = vec![GoString::from("a"), GoString::from("M"), GoString::from("z"), GoString::from("ä")];
+        let mut v = vec![
+            GoString::from("a"),
+            GoString::from("M"),
+            GoString::from("z"),
+            GoString::from("ä"),
+        ];
         v.sort();
         let got: Vec<_> = v.iter().map(|s| s.to_string()).collect();
         assert_eq!(got, ["M", "a", "z", "ä"]);
@@ -783,7 +803,10 @@ mod tests {
         assert_eq!(Value::float64(1.0).go_type_name(), "float64");
         assert_eq!(Value::string_list(["a"]).go_type_name(), "[]string");
         assert_eq!(Value::any_list(vec![]).go_type_name(), "[]interface {}");
-        assert_eq!(Value::map(Map::new(MapType::Params)).go_type_name(), "maps.Params");
+        assert_eq!(
+            Value::map(Map::new(MapType::Params)).go_type_name(),
+            "maps.Params"
+        );
         assert_eq!(Value::html("x").go_type_name(), "template.HTML");
         assert_eq!(Value::Invalid.go_type_name(), "<nil>");
         assert_eq!(Value::Time(Time::zero()).go_type_name(), "time.Time");

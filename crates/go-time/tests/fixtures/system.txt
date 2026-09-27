@@ -1,0 +1,86 @@
+Y		OK	UTC	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0
+Y	UTC	OK	UTC	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0
+Y	America/New_York	OK	America/New_York	LMT -17762	EST -18000	EDT -14400	EDT -14400	EST -18000	EST -18000
+Y	Asia/Bangkok	OK	Asia/Bangkok	LMT 24124	+07 25200	+07 25200	+07 25200	+07 25200	+07 25200
+Y	Europe/Berlin	OK	Europe/Berlin	LMT 3208	CET 3600	CEST 7200	CEST 7200	CET 3600	CET 3600
+Y	Australia/Sydney	OK	Australia/Sydney	LMT 36292	AEST 36000	AEST 36000	AEST 36000	AEDT 39600	AEDT 39600
+Y	Asia/Kolkata	OK	Asia/Kolkata	LMT 21208	IST 19800	IST 19800	IST 19800	IST 19800	IST 19800
+Y	Etc/GMT+5	OK	Etc/GMT+5	-05 -18000	-05 -18000	-05 -18000	-05 -18000	-05 -18000	-05 -18000
+Y	../etc/passwd	ERR	time: invalid location name
+Y	a..b	ERR	time: invalid location name
+Y	/etc/localtime	ERR	time: invalid location name
+Y	\\x	ERR	time: invalid location name
+Y	No/Such_Zone	ERR	unknown time zone No/Such_Zone
+Y	America	ERR	is a directory
+Y	zone.tab	ERR	malformed time zone information
+Y	posixrules	OK	posixrules	LMT -17762	EST -18000	EDT -14400	EDT -14400	EST -18000	EST -18000
+Y	Asia/Bangkok/	ERR	not a directory
+Y	asia/bangkok	OK	asia/bangkok	LMT 24124	+07 25200	+07 25200	+07 25200	+07 25200	+07 25200
+Y	America/Argentina/Buenos_Aires	OK	America/Argentina/Buenos_Aires	LMT -14028	-03 -10800	-03 -10800	-03 -10800	-03 -10800	-03 -10800
+Y	Factory	OK	Factory	-00 0	-00 0	-00 0	-00 0	-00 0	-00 0
+Y	a\x00b	ERR	invalid argument
+Y	AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA	ERR	file name too long
+Y	Local	OK	Local	LMT 24124	+07 25200	+07 25200	+07 25200	+07 25200	+07 25200
+Y	UTC 	ERR	unknown time zone UTC 
+Y	utc	OK	utc	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0
+Y	Etc/UTC	OK	Etc/UTC	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0	UTC 0
+Y	Etc/GMT-14	OK	Etc/GMT-14	+14 50400	+14 50400	+14 50400	+14 50400	+14 50400	+14 50400
+Y	Asia//Tokyo	OK	Asia//Tokyo	LMT 33539	JST 32400	JST 32400	JST 32400	JST 32400	JST 32400
+Y	Asia/./Tokyo	OK	Asia/./Tokyo	LMT 33539	JST 32400	JST 32400	JST 32400	JST 32400	JST 32400
+Y	./Asia/Tokyo	OK	./Asia/Tokyo	LMT 33539	JST 32400	JST 32400	JST 32400	JST 32400	JST 32400
+Y	Asia/Tokyo/..	ERR	time: invalid location name
+Y	Asia/.	ERR	is a directory
+Y	.	ERR	is a directory
+Y	a.b	ERR	unknown time zone a.b
+Y	posixrules/x	ERR	not a directory
+Y	+VERSION	ERR	malformed time zone information
+Y	leapseconds	ERR	malformed time zone information
+Y	tzdata.zi	ERR	malformed time zone information
+Y	America/Argentina	ERR	is a directory
+Y	/	ERR	time: invalid location name
+Y	\\	ERR	time: invalid location name
+Y	Asia\\Tokyo	ERR	unknown time zone Asia\\Tokyo
+Y	Europe/London\x00	ERR	invalid argument
+Y	EST5EDT	OK	EST5EDT	LMT -17762	EST -18000	EDT -14400	EDT -14400	EST -18000	EST -18000
+Y	Factory	OK	Factory	-00 0	-00 0	-00 0	-00 0	-00 0	-00 0
+Y	GMT+0	OK	GMT+0	GMT 0	GMT 0	GMT 0	GMT 0	GMT 0	GMT 0
+Y	Etc/GMT+12	OK	Etc/GMT+12	-12 -43200	-12 -43200	-12 -43200	-12 -43200	-12 -43200	-12 -43200
+Y	A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/B	ERR	unknown time zone A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/A/B
+Y	Asia/Tokyo/////	ERR	not a directory
+H	/usr/share/zoneinfo/UTC	8b85846791ab2c8a5463c83a5be3c043e2570d7448434d41398969ed47e3e6f2
+H	/usr/share/zoneinfo/America/New_York	e9ed07d7bee0c76a9d442d091ef1f01668fee7c4f26014c0a868b19fe6c18a95
+H	/usr/share/zoneinfo/Asia/Bangkok	85fff93d57a041c1524bad028d2f340bb87e4c63ab7d0e27726f3737c5666649
+H	/usr/share/zoneinfo/Europe/Berlin	5ee475f71a0fc1a32faeb849f8c39c6e7aa66d6d41ec742b97b3a7436b3b0701
+H	/usr/share/zoneinfo/Australia/Sydney	42c3857585b16db2f8ffd47ba19faa60f473340de8d4fe9320ea7be861605906
+H	/usr/share/zoneinfo/Asia/Kolkata	e90c341036cb7203200e293cb3b513267e104a39a594f35e195254e6bc0a17cf
+H	/usr/share/zoneinfo/Etc/GMT+5	a1199e0b8d5d8185d3fb3cf264844a5cdf48bdd2f60dae674eec261b6fe9ac80
+H	/usr/share/zoneinfo/No/Such_Zone	missing
+H	/usr/share/zoneinfo/America	missing
+H	/usr/share/zoneinfo/zone.tab	7cc78ea166261b3dedf951cdd721051460851e6fcd96c12b8e3194cf25677f21
+H	/usr/share/zoneinfo/posixrules	e9ed07d7bee0c76a9d442d091ef1f01668fee7c4f26014c0a868b19fe6c18a95
+H	/usr/share/zoneinfo/Asia/Bangkok/	missing
+H	/usr/share/zoneinfo/asia/bangkok	85fff93d57a041c1524bad028d2f340bb87e4c63ab7d0e27726f3737c5666649
+H	/usr/share/zoneinfo/America/Argentina/Buenos_Aires	26653c941c26cb6f6047a3a67b2b6f15d311c7a39b24a9d834798bc8c9975f63
+H	/usr/share/zoneinfo/Factory	6851652b1f771d7a09a05e124ae4e50fc719b4903e9dee682b301ae9e5f65789
+H	/usr/share/zoneinfo/Local	missing
+H	/usr/share/zoneinfo/UTC 	missing
+H	/usr/share/zoneinfo/utc	8b85846791ab2c8a5463c83a5be3c043e2570d7448434d41398969ed47e3e6f2
+H	/usr/share/zoneinfo/Etc/UTC	8b85846791ab2c8a5463c83a5be3c043e2570d7448434d41398969ed47e3e6f2
+H	/usr/share/zoneinfo/Etc/GMT-14	3e95e8444061d36a85a6fc55323da957d200cd242f044ed73ef9cdf6a499f8a7
+H	/usr/share/zoneinfo/Asia//Tokyo	a02b9e66044dc5c35c5f76467627fdcba4aee1cc958606b85c777095cad82ceb
+H	/usr/share/zoneinfo/Asia/./Tokyo	a02b9e66044dc5c35c5f76467627fdcba4aee1cc958606b85c777095cad82ceb
+H	/usr/share/zoneinfo/./Asia/Tokyo	a02b9e66044dc5c35c5f76467627fdcba4aee1cc958606b85c777095cad82ceb
+H	/usr/share/zoneinfo/Asia/.	missing
+H	/usr/share/zoneinfo/.	missing
+H	/usr/share/zoneinfo/a.b	missing
+H	/usr/share/zoneinfo/posixrules/x	missing
+H	/usr/share/zoneinfo/+VERSION	b8b066b540bc2870e6f1f3cd76f1b0e6c3629b2e3a12f14ba9e47085a1abb781
+H	/usr/share/zoneinfo/leapseconds	8f066f297a37a798d5103321957c5f5f4f1c9dda0f3d05db30b77bec3491659e
+H	/usr/share/zoneinfo/tzdata.zi	5914dfd1cecfaefd5e692426cbda59429105c59f16e87fa2754c8eff3ccdefa2
+H	/usr/share/zoneinfo/America/Argentina	missing
+H	/usr/share/zoneinfo/Asia\\Tokyo	missing
+H	/usr/share/zoneinfo/EST5EDT	e9ed07d7bee0c76a9d442d091ef1f01668fee7c4f26014c0a868b19fe6c18a95
+H	/usr/share/zoneinfo/Factory	6851652b1f771d7a09a05e124ae4e50fc719b4903e9dee682b301ae9e5f65789
+H	/usr/share/zoneinfo/GMT+0	6d9f378883c079f86c0387a5547a92c449869d806e07de10084ab04f0249018d
+H	/usr/share/zoneinfo/Etc/GMT+12	6fbd0712112babc2099aaf31edc399cb8791fffddfab9b871e98ef3c1107a8c0
+H	/usr/share/zoneinfo/Asia/Tokyo/////	missing

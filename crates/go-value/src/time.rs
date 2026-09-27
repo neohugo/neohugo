@@ -51,8 +51,15 @@ impl Location {
     /// like Go's `&utcLoc`.
     pub fn utc() -> Arc<Location> {
         static UTC: std::sync::OnceLock<Arc<Location>> = std::sync::OnceLock::new();
-        UTC.get_or_init(|| Arc::new(Location { name: "UTC".into(), zone: Vec::new(), tx: Vec::new(), extend: String::new() }))
-            .clone()
+        UTC.get_or_init(|| {
+            Arc::new(Location {
+                name: "UTC".into(),
+                zone: Vec::new(),
+                tx: Vec::new(),
+                extend: String::new(),
+            })
+        })
+        .clone()
     }
 
     /// Go's `time.FixedZone(name, offset)`.
@@ -60,8 +67,17 @@ impl Location {
         let name = name.into();
         Arc::new(Location {
             name: name.clone(),
-            zone: vec![Zone { name, offset, is_dst: false }],
-            tx: vec![ZoneTrans { when: i64::MIN, index: 0, is_std: false, is_utc: false }],
+            zone: vec![Zone {
+                name,
+                offset,
+                is_dst: false,
+            }],
+            tx: vec![ZoneTrans {
+                when: i64::MIN,
+                index: 0,
+                is_std: false,
+                is_utc: false,
+            }],
             extend: String::new(),
         })
     }
@@ -88,7 +104,11 @@ pub struct Time {
 impl Time {
     /// The zero `time.Time{}`: 0001-01-01 00:00:00 +0000 UTC.
     pub fn zero() -> Time {
-        Time { unix_sec: ZERO_TIME_UNIX, nsec: 0, loc: None }
+        Time {
+            unix_sec: ZERO_TIME_UNIX,
+            nsec: 0,
+            loc: None,
+        }
     }
 
     /// Go's `time.Unix(sec, nsec).In(loc)`, with `nsec` normalised into range
@@ -102,7 +122,11 @@ impl Time {
             sec = sec.wrapping_add(n);
             nsec = nsec.wrapping_sub(n.wrapping_mul(1_000_000_000));
         }
-        Time { unix_sec: sec, nsec: nsec as u32, loc }
+        Time {
+            unix_sec: sec,
+            nsec: nsec as u32,
+            loc,
+        }
     }
 
     /// Seconds since 0001-01-01T00:00:00Z, wrapping like Go's internal
@@ -123,7 +147,9 @@ impl Time {
 
     /// Go's `Time.UnixNano` (wraps like Go for out-of-range instants).
     pub fn unix_nano(&self) -> i64 {
-        self.unix_sec.wrapping_mul(1_000_000_000).wrapping_add(self.nsec as i64)
+        self.unix_sec
+            .wrapping_mul(1_000_000_000)
+            .wrapping_add(self.nsec as i64)
     }
 
     /// Go's `Time.Equal`: same instant, location ignored.
@@ -168,7 +194,11 @@ impl PartialEq for Time {
 impl fmt::Debug for Time {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let loc = self.loc.as_ref().map(|l| l.name.as_str()).unwrap_or("UTC");
-        write!(f, "Time{{unix: {}, nsec: {}, loc: {}}}", self.unix_sec, self.nsec, loc)
+        write!(
+            f,
+            "Time{{unix: {}, nsec: {}, loc: {}}}",
+            self.unix_sec, self.nsec, loc
+        )
     }
 }
 
