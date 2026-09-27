@@ -21,3 +21,8 @@
 #![allow(clippy::nonminimal_bool)]
 
 pub mod parse;
+pub mod text;
+
+mod error;
+
+pub use error::{Error, ExecError};
