@@ -115,7 +115,9 @@ impl std::error::Error for ErrorBox {}
 
 impl Template {
     fn from_fields(f: Fields) -> Template {
-        Template(Arc::new(TemplateObj { fields: Mutex::new(f) }))
+        Template(Arc::new(TemplateObj {
+            fields: Mutex::new(f),
+        }))
     }
 
     fn fields(&self) -> MutexGuard<'_, Fields> {
@@ -180,7 +182,9 @@ impl Template {
         let ns = self.ns();
         let inner = ns.lock();
         if inner.escaped {
-            return Err(html_err("html/template: cannot Parse after Execute".to_string()));
+            return Err(html_err(
+                "html/template: cannot Parse after Execute".to_string(),
+            ));
         }
         Ok(())
     }
@@ -206,10 +210,11 @@ impl Template {
                 }
                 let name = text.name().to_string();
                 let snapshot = text.tree().map(|t| t.get());
-                let root: &dyn crate::parse::NodeLike = match snapshot.as_ref().and_then(|t| t.root.as_ref()) {
-                    Some(r) => r,
-                    None => &crate::parse::ListNode::default(),
-                };
+                let root: &dyn crate::parse::NodeLike =
+                    match snapshot.as_ref().and_then(|t| t.root.as_ref()) {
+                        Some(r) => r,
+                        None => &crate::parse::ListNode::default(),
+                    };
                 if let Err(e) = escape_template(&mut inner, root, &name) {
                     return Err(escape_err_to_crate(&e));
                 }
@@ -231,7 +236,12 @@ impl Template {
     // Go: template.go:(*Template).ExecuteTemplate
     /// Applies the template associated with t that has the given name to
     /// the specified data object and writes the output to wr.
-    pub fn execute_template(&self, wr: &mut dyn Write, name: &str, data: &Value) -> Result<(), CrateError> {
+    pub fn execute_template(
+        &self,
+        wr: &mut dyn Write,
+        name: &str,
+        data: &Value,
+    ) -> Result<(), CrateError> {
         let tmpl = self.lookup_and_escape_template(name)?;
         tmpl.text().execute(wr, data)
     }
@@ -244,7 +254,10 @@ impl Template {
         let mut inner = ns.lock();
         inner.escaped = true;
         let Some(tmpl) = inner.set.get(name).cloned() else {
-            return Err(html_err(format!("html/template: {} is undefined", go_strconv::quote(name))));
+            return Err(html_err(format!(
+                "html/template: {} is undefined",
+                go_strconv::quote(name)
+            )));
         };
         let state = tmpl.fields().escape_err.clone();
         if let EscapeState::Err(e) = &state {
@@ -262,7 +275,10 @@ impl Template {
         }
         if let EscapeState::None = state {
             let snapshot = text.tree().map(|t| t.get());
-            let root = snapshot.as_ref().and_then(|t| t.root.as_ref()).expect("root");
+            let root = snapshot
+                .as_ref()
+                .and_then(|t| t.root.as_ref())
+                .expect("root");
             if let Err(e) = escape_template(&mut inner, root, name) {
                 return Err(escape_err_to_crate(&e));
             }

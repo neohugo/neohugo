@@ -20,6 +20,7 @@
 #![allow(clippy::collapsible_if)]
 #![allow(clippy::nonminimal_bool)]
 
+pub mod html;
 pub mod parse;
 pub mod text;
 

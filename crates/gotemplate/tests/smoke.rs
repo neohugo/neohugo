@@ -3,9 +3,8 @@ use gotemplate::text::Template;
 
 fn run(src: &str, data: &Value) -> String {
     let t = Template::new("x");
-    match t.parse(src) {
-        Err(e) => return format!("PARSE ERR: {e}"),
-        Ok(_) => {}
+    if let Err(e) = t.parse(src) {
+        return format!("PARSE ERR: {e}");
     }
     let mut out = Vec::new();
     match t.execute(&mut out, data) {
@@ -32,16 +31,28 @@ fn smoke() {
         ("{{range 3}}{{.}}{{end}}", "012"),
         ("{{define \"t\"}}[{{.}}]{{end}}{{template \"t\" .B}}", "[x]"),
         ("{{- 1 -}} {{2}}", "12"),
-        ("{{ 017 }}|{{ 0b101 }}|{{ 1_000 }}|{{ 1.5e10 }}|{{ -0.0 }}|{{ 'a' }}", "15|5|1000|1.5e+10|-0|97"),
+        (
+            "{{ 017 }}|{{ 0b101 }}|{{ 1_000 }}|{{ 1.5e10 }}|{{ -0.0 }}|{{ 'a' }}",
+            "15|5|1000|1.5e+10|-0|97",
+        ),
         ("{{html \"<a href='x'>\"}}", "&lt;a href=&#39;x&#39;&gt;"),
         ("{{urlquery \"a b&c\"}}", "a+b%26c"),
         ("{{index .l 1}}", "q"),
         ("{{slice \"abcdef\" 1 3}}", "bc"),
         ("{{eq 1 1}} {{lt 1 2}} {{ne \"a\" \"b\"}}", "true true true"),
         ("{{with .B}}w{{.}}{{end}}", "wx"),
-        ("{{range .l}}{{if eq . \"q\"}}{{break}}{{end}}{{.}}{{end}}", "p"),
-        ("{{.a.b}}", "|ERR: template: x:1:4: executing \"x\" at <.a.b>: can't evaluate field b in type int"),
-        ("{{nofunc}}", "PARSE ERR: template: x:1: function \"nofunc\" not defined"),
+        (
+            "{{range .l}}{{if eq . \"q\"}}{{break}}{{end}}{{.}}{{end}}",
+            "p",
+        ),
+        (
+            "{{.a.b}}",
+            "|ERR: template: x:1:4: executing \"x\" at <.a.b>: can't evaluate field b in type int",
+        ),
+        (
+            "{{nofunc}}",
+            "PARSE ERR: template: x:1: function \"nofunc\" not defined",
+        ),
         ("{{$x := 1}}{{$x = 2}}{{$x}}", "2"),
         ("{{print 1 2 \"a\" 3}}", "1 2a3"),
         ("{{js \"a'b<\"}}", "a\\'b\\u003C"),

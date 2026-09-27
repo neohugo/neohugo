@@ -38,7 +38,11 @@ fn walk(dir: &Path, root: &Path, out: &mut Vec<LayoutFile>) {
         if ext != "html" && ext != "xml" {
             continue;
         }
-        let rel = p.strip_prefix(root).unwrap().to_string_lossy().replace('\\', "/");
+        let rel = p
+            .strip_prefix(root)
+            .unwrap()
+            .to_string_lossy()
+            .replace('\\', "/");
         let b = std::fs::read(&p).unwrap();
         out.push(LayoutFile {
             name: rel,
@@ -235,7 +239,13 @@ fn esc_dump_dir(out: &mut Vec<u8>, label: &str, dir: &Path) {
                 }
                 _ => b"<nil>".to_vec(),
             };
-            writeln!(out, "### TEMPLATE {} {}", go_strconv::quote(t.name()), s.len()).unwrap();
+            writeln!(
+                out,
+                "### TEMPLATE {} {}",
+                go_strconv::quote(t.name()),
+                s.len()
+            )
+            .unwrap();
             out.extend_from_slice(&s);
             out.push(b'\n');
         }
@@ -246,7 +256,11 @@ fn esc_dump_dir(out: &mut Vec<u8>, label: &str, dir: &Path) {
 fn escdump_matches_go() {
     let root = repo_root();
     let mut out = Vec::new();
-    for dir in ["docs/layouts", "create/skeletons/theme/layouts", "tpl/tplimpl/embedded/templates"] {
+    for dir in [
+        "docs/layouts",
+        "create/skeletons/theme/layouts",
+        "tpl/tplimpl/embedded/templates",
+    ] {
         esc_dump_dir(&mut out, dir, &root.join(dir));
     }
     let want = std::fs::read(
@@ -268,6 +282,10 @@ fn escdump_matches_go() {
                 );
             }
         }
-        panic!("escdump differs in length: got {} lines, want {}", gl.len(), wl.len());
+        panic!(
+            "escdump differs in length: got {} lines, want {}",
+            gl.len(),
+            wl.len()
+        );
     }
 }

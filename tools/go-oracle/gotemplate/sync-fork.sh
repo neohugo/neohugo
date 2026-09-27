@@ -41,6 +41,84 @@ func StripTagsExported(s string) string { return stripTags(s) }
 
 // IsJSTypeExported exposes isJSType.
 func IsJSTypeExported(s string) bool { return isJSType(s) }
+
+// --- html/template leaf functions (escfuncs mode) ---
+
+// OracleCtx is a context with exported fields. Braces is the jsBraceDepth
+// slice itself (not a copy), so slice aliasing stays observable.
+type OracleCtx struct {
+	State, Delim, URLPart, JSCtx, Attr, Element uint8
+	Braces                                      []int
+	Err                                         string
+}
+
+func toCtx(o OracleCtx) context {
+	return context{
+		state:        state(o.State),
+		delim:        delim(o.Delim),
+		urlPart:      urlPart(o.URLPart),
+		jsCtx:        jsCtx(o.JSCtx),
+		jsBraceDepth: o.Braces,
+		attr:         attr(o.Attr),
+		element:      element(o.Element),
+	}
+}
+
+func fromCtx(c context) OracleCtx {
+	o := OracleCtx{
+		State: uint8(c.state), Delim: uint8(c.delim), URLPart: uint8(c.urlPart),
+		JSCtx: uint8(c.jsCtx), Attr: uint8(c.attr), Element: uint8(c.element),
+		Braces: c.jsBraceDepth,
+	}
+	if c.err != nil {
+		o.Err = c.err.Error()
+	}
+	return o
+}
+
+// TransitionStepExported runs transitionFunc[c.state] once.
+func TransitionStepExported(o OracleCtx, s []byte) (OracleCtx, int) {
+	c := toCtx(o)
+	c2, n := transitionFunc[c.state](c, s)
+	return fromCtx(c2), n
+}
+
+// ContextStringExported exposes context.String (without an error).
+func ContextStringExported(o OracleCtx) string { return toCtx(o).String() }
+
+// MangleExported exposes context.mangle.
+func MangleExported(o OracleCtx, name string) string { return toCtx(o).mangle(name) }
+
+// NextJSCtxExported exposes nextJSCtx.
+func NextJSCtxExported(s []byte, preceding uint8) uint8 {
+	return uint8(nextJSCtx(s, jsCtx(preceding)))
+}
+
+// AttrTypeExported exposes attrType.
+func AttrTypeExported(name string) uint8 { return uint8(attrType(name)) }
+
+// IndexTagEndExported exposes indexTagEnd.
+func IndexTagEndExported(s, tag []byte) int { return indexTagEnd(s, tag) }
+
+// DecodeCSSExported exposes decodeCSS.
+func DecodeCSSExported(s []byte) []byte { return decodeCSS(s) }
+
+// EndsWithCSSKeywordExported exposes endsWithCSSKeyword.
+func EndsWithCSSKeywordExported(b []byte, kw string) bool { return endsWithCSSKeyword(b, kw) }
+
+// IsSafeURLExported exposes isSafeURL.
+func IsSafeURLExported(s string) bool { return isSafeURL(s) }
+
+// ContainsSpecialScriptTagExported exposes containsSpecialScriptTag.
+func ContainsSpecialScriptTagExported(s []byte) bool { return containsSpecialScriptTag(s) }
+
+// EscapeSpecialScriptTagsExported exposes escapeSpecialScriptTags.
+func EscapeSpecialScriptTagsExported(s []byte) []byte { return escapeSpecialScriptTags(s) }
+
+// ScriptTagReplaceExported applies jsValEscaper's scriptTagRe rewrite.
+func ScriptTagReplaceExported(s []byte) []byte {
+	return scriptTagRe.ReplaceAll(s, []byte(`\x3C${1}script`))
+}
 GO
 cat > "$dst/htmltemplate/oracle_exports_escdump.go" <<'GO'
 //go:build gotemplate_oracle

@@ -11,10 +11,12 @@ use std::sync::{Arc, Mutex};
 use crate::parse::*;
 use crate::text;
 
-use super::context::{Attr, Context, Delim, JsCtx, State, UrlPart, is_comment, is_in_script_literal};
+use super::context::{
+    Attr, Context, Delim, JsCtx, State, UrlPart, is_comment, is_in_script_literal,
+};
 use super::error::{Error, ErrorCode, errorf};
-use super::js::is_js_type;
-use super::transition::{attr_start_states, t_special_tag_end, transition_func};
+use super::js::{contains_special_script_tag, escape_special_script_tags, is_js_type};
+use super::transition::{attr_start_state, delim_ends, t_special_tag_end, transition};
 
 // Go: escape.go:escapeTemplate
 /// Rewrites the named template, which must be associated with t, to
@@ -67,7 +69,8 @@ pub(crate) fn esc_func_map() -> text::FuncMap {
     let mut m = text::FuncMap::new();
     for &name in super::ESC_FUNC_NAMES {
         let f = super::esc_func(name).expect("escaper func");
-        let func: text::Func = Arc::new(move |_ctx, args: &[go_value::Value]| Ok(go_value::Value::string(f(args))));
+        let func: text::Func =
+            Arc::new(move |_ctx, args: &[go_value::Value]| Ok(go_value::Value::string(f(args))));
         m.insert(name.to_string(), func);
     }
     m
@@ -142,7 +145,10 @@ impl Escaper {
                 let mut c = c;
                 c.n = Some(Node::Continue(cn.clone()));
                 if let Some(rc) = &self.range_context {
-                    rc.lock().unwrap_or_else(|e| e.into_inner()).continues.push(c);
+                    rc.lock()
+                        .unwrap_or_else(|e| e.into_inner())
+                        .continues
+                        .push(c);
                 }
                 Context {
                     state: State::Dead,
@@ -190,7 +196,10 @@ impl Escaper {
                         ErrorCode::ErrPredefinedEscaper,
                         Some(n),
                         n.line,
-                        format!("predefined escaper {} disallowed in template", go_strconv::quote(ident)),
+                        format!(
+                            "predefined escaper {} disallowed in template",
+                            go_strconv::quote(ident)
+                        ),
                     ))),
                     ..Default::default()
                 };
@@ -199,7 +208,12 @@ impl Escaper {
         let mut s: Vec<String> = Vec::with_capacity(3);
         match c.state {
             State::Error => return c,
-            State::Url | State::CssDqStr | State::CssSqStr | State::CssDqUrl | State::CssSqUrl | State::CssUrl => {
+            State::Url
+            | State::CssDqStr
+            | State::CssSqStr
+            | State::CssDqUrl
+            | State::CssSqUrl
+            | State::CssUrl => {
                 match c.url_part {
                     UrlPart::None | UrlPart::PreQuery => {
                         if c.url_part == UrlPart::None {
@@ -207,7 +221,9 @@ impl Escaper {
                         }
                         // fallthrough
                         match c.state {
-                            State::CssDqStr | State::CssSqStr => s.push("_html_template_cssescaper".to_string()),
+                            State::CssDqStr | State::CssSqStr => {
+                                s.push("_html_template_cssescaper".to_string())
+                            }
                             _ => s.push("_html_template_urlnormalizer".to_string()),
                         }
                     }
@@ -219,7 +235,10 @@ impl Escaper {
                                 ErrorCode::ErrAmbigContext,
                                 Some(n),
                                 n.line,
-                                format!("{} appears in an ambiguous context within a URL", n.to_string_lossy()),
+                                format!(
+                                    "{} appears in an ambiguous context within a URL",
+                                    n.to_string_lossy()
+                                ),
                             ))),
                             ..Default::default()
                         };
@@ -266,7 +285,13 @@ impl Escaper {
 
     // Go: escape.go:(*escaper).escapeBranch
     /// Escapes a branch template node: "if", "range" and "with".
-    fn escape_branch(&mut self, env: &Env<'_>, c: Context, n: &BranchNode, node_name: &str) -> Context {
+    fn escape_branch(
+        &mut self,
+        env: &Env<'_>,
+        c: Context,
+        n: &BranchNode,
+        node_name: &str,
+    ) -> Context {
         if node_name == "range" {
             self.range_context = Some(Arc::new(Mutex::new(RangeContext {
                 outer: self.range_context.take(),
@@ -426,7 +451,10 @@ impl Escaper {
                                 ErrorCode::ErrNoSuchTemplate,
                                 Some(node),
                                 line,
-                                format!("{} is an incomplete or empty template", go_strconv::quote(name)),
+                                format!(
+                                    "{} is an incomplete or empty template",
+                                    go_strconv::quote(name)
+                                ),
                             ))),
                             ..Default::default()
                         },
@@ -454,7 +482,10 @@ impl Escaper {
             match self.template(text_ns, &dname) {
                 Some(dt) if dt.tree.is_some() => dt,
                 _ => {
-                    let root = t.tree.as_ref().and_then(|tr| tr.get().root.as_ref().map(|r| r.copy_list()));
+                    let root = t
+                        .tree
+                        .as_ref()
+                        .and_then(|tr| tr.get().root.as_ref().map(|r| r.copy_list()));
                     let mut tree = Tree::new(dname.clone());
                     tree.root = root;
                     let st = SharedTree::new(tree);
@@ -508,7 +539,12 @@ impl Escaper {
     /// Escapes the given template assuming the given output context, and
     /// returns the best guess at the output context and whether the
     /// assumption was correct.
-    fn escape_template_body(&mut self, env: &Env<'_>, c: Context, t: &FoundTemplate) -> (Context, bool) {
+    fn escape_template_body(
+        &mut self,
+        env: &Env<'_>,
+        c: Context,
+        t: &FoundTemplate,
+    ) -> (Context, bool) {
         let t_name = t.name.clone();
         let assumed = c.clone();
         let filter = move |e1: &Escaper, c1: &Context| -> bool {
@@ -727,7 +763,7 @@ impl Escaper {
                         continue;
                     }
                     seen.push(tree.clone());
-                    applied += tree.update(|t| edits.apply_tree(t));
+                    tree.update(|t| edits.apply_tree(t));
                 }
             }
         }
@@ -843,7 +879,8 @@ pub(crate) fn ensure_pipeline_contains(p: &mut PipeNode, mut s: Vec<String>) {
                     // {{ _eval_args_ arg1 arg2 ... argN | esc }}, so that esc can be easily
                     // merged with the escapers in s.
                     let pos = p.cmds[last].args[0].position();
-                    p.cmds[last].args[0] = Node::Identifier(IdentifierNode::new("_eval_args_", None, pos));
+                    p.cmds[last].args[0] =
+                        Node::Identifier(IdentifierNode::new("_eval_args_", None, pos));
                     let cmds = std::mem::take(&mut p.cmds);
                     p.cmds = append_cmd(cmds, new_ident_cmd(&esc, p.pos));
                     pipeline_len += 1;
@@ -899,7 +936,9 @@ fn equiv_escaper(e: &str) -> Option<&'static str> {
     match e {
         // The following pairs of HTML escapers provide equivalent security
         // guarantees, since they all escape '\000', '\'', '"', '&', '<', and '>'.
-        "_html_template_attrescaper" | "_html_template_htmlescaper" | "_html_template_rcdataescaper" => Some("html"),
+        "_html_template_attrescaper"
+        | "_html_template_htmlescaper"
+        | "_html_template_rcdataescaper" => Some("html"),
         // These two URL escapers produce URLs safe for embedding in a URL query by
         // percent-encoding all the reserved characters specified in RFC 3986 Section
         // 2.2
@@ -994,7 +1033,7 @@ pub(crate) fn nudge(mut c: Context) -> Context {
         }
         State::BeforeValue => {
             // In `<foo bar={{.}}`, the action is an undelimited value.
-            c.state = attr_start_states(c.attr);
+            c.state = attr_start_state(c.attr);
             c.delim = Delim::SpaceOrTagEnd;
             c.attr = Attr::None;
         }
@@ -1012,7 +1051,12 @@ pub(crate) fn nudge(mut c: Context) -> Context {
 /// Joins the two contexts of a branch template node. The result is an error
 /// context if either of the input contexts are error contexts, or if the
 /// input contexts differ.
-pub(crate) fn join(a: Context, b: Context, node: Option<&dyn NodeLike>, node_name: &str) -> Context {
+pub(crate) fn join(
+    a: Context,
+    b: Context,
+    node: Option<&dyn NodeLike>,
+    node_name: &str,
+) -> Context {
     if a.state == State::Error {
         return a;
     }
@@ -1077,7 +1121,12 @@ fn join_range(mut c0: Context, rc: &Arc<Mutex<RangeContext>>) -> Context {
     // enough to treat them both as going back to the start of the loop (which may then stop).
     let rc = rc.lock().unwrap_or_else(|e| e.into_inner());
     for c in &rc.breaks {
-        c0 = join(c0, c.clone(), c.n.as_ref().map(|n| n as &dyn NodeLike), "range");
+        c0 = join(
+            c0,
+            c.clone(),
+            c.n.as_ref().map(|n| n as &dyn NodeLike),
+            "range",
+        );
         if c0.state == State::Error {
             if let (Some(e), Some(Node::Break(b))) = (&c0.err, &c.n) {
                 let mut e2 = (**e).clone();
@@ -1089,7 +1138,12 @@ fn join_range(mut c0: Context, rc: &Arc<Mutex<RangeContext>>) -> Context {
         }
     }
     for c in &rc.continues {
-        c0 = join(c0, c.clone(), c.n.as_ref().map(|n| n as &dyn NodeLike), "range");
+        c0 = join(
+            c0,
+            c.clone(),
+            c.n.as_ref().map(|n| n as &dyn NodeLike),
+            "range",
+        );
         if c0.state == State::Error {
             if let (Some(e), Some(Node::Continue(b))) = (&c0.err, &c.n) {
                 let mut e2 = (**e).clone();
@@ -1101,24 +1155,6 @@ fn join_range(mut c0: Context, rc: &Arc<Mutex<RangeContext>>) -> Context {
         }
     }
     c0
-}
-
-/// Go: `delimEnds` — maps each delim to a string of characters that
-/// terminate it.
-fn delim_ends(d: Delim) -> &'static [u8] {
-    match d {
-        Delim::DoubleQuote => b"\"",
-        Delim::SingleQuote => b"'",
-        // Determined empirically by running the below in various browsers.
-        // var div = document.createElement("DIV");
-        // for (var i = 0; i < 0x10000; ++i) {
-        //   div.innerHTML = "<span title=x" + String.fromCharCode(i) + "-bar>";
-        //   if (div.getElementsByTagName("SPAN")[0].title.indexOf("bar") < 0)
-        //     document.write("<p>U+" + i.toString(16));
-        // }
-        Delim::SpaceOrTagEnd => b" \t\n\x0c\r>",
-        Delim::None => b"",
-    }
 }
 
 const DOCTYPE_BYTES: &[u8] = b"<!DOCTYPE";
@@ -1161,72 +1197,6 @@ fn contains_any_js_line_terminator(s: &[u8]) -> bool {
     false
 }
 
-/// Go: `specialScriptTagRE = regexp.MustCompile("(?i)<(script|/script|!--)")`
-/// — the byte length of a match starting at `s[0]`, if any. Go's `(?i)`
-/// folds with Unicode simple folding: `s`/`S` also match U+017F (ſ), `k`
-/// is absent, `i` has no extra fold (U+0130/U+0131 are not simple folds of
-/// `i`), `t` has no extra fold.
-fn match_special_script_tag_at(s: &[u8]) -> Option<usize> {
-    if s.first() != Some(&b'<') {
-        return None;
-    }
-    let rest = &s[1..];
-    if rest.starts_with(b"!--") {
-        return Some(4);
-    }
-    let (rest, slash) = match rest.first() {
-        Some(b'/') => (&rest[1..], 1),
-        _ => (rest, 0),
-    };
-    let n = match_fold_ascii(rest, b"script")?;
-    Some(1 + slash + n)
-}
-
-/// Case-insensitive match of an ASCII lowercase word under Go regexp `(?i)`
-/// semantics; returns the matched byte length.
-fn match_fold_ascii(s: &[u8], word: &[u8]) -> Option<usize> {
-    let mut i = 0;
-    for &w in word {
-        let (r, sz) = go_unicode::utf8::decode_rune(&s[i.min(s.len())..]);
-        if i >= s.len() {
-            return None;
-        }
-        let ok = if w == b's' {
-            r == 's' as i32 || r == 'S' as i32 || r == 0x17F
-        } else {
-            r == w as i32 || r == w.to_ascii_uppercase() as i32
-        };
-        if !ok {
-            return None;
-        }
-        i += sz;
-    }
-    Some(i)
-}
-
-// Go: escape.go:containsSpecialScriptTag
-fn contains_special_script_tag(s: &[u8]) -> bool {
-    (0..s.len()).any(|i| match_special_script_tag_at(&s[i..]).is_some())
-}
-
-// Go: escape.go:escapeSpecialScriptTags
-/// `specialScriptTagRE.ReplaceAll(s, "\\x3C$1")`.
-fn escape_special_script_tags(s: &[u8]) -> Vec<u8> {
-    let mut out = Vec::with_capacity(s.len() + 8);
-    let mut i = 0;
-    while i < s.len() {
-        if let Some(n) = match_special_script_tag_at(&s[i..]) {
-            out.extend_from_slice(b"\\x3C");
-            out.extend_from_slice(&s[i + 1..i + n]);
-            i += n;
-        } else {
-            out.push(s[i]);
-            i += 1;
-        }
-    }
-    out
-}
-
 // Go: escape.go:contextAfterText
 /// Starts in context c, consumes some tokens from the front of s, then
 /// returns the context after those tokens and the unprocessed suffix.
@@ -1239,7 +1209,7 @@ pub(crate) fn context_after_text(c: Context, s: &[u8]) -> (Context, usize) {
             return (c1, 0);
         }
         // Consider all content up to any end tag.
-        return transition_func(c.state)(c, &s[..i]);
+        return transition(c, &s[..i]);
     }
 
     // We are at the beginning of an attribute value.
@@ -1259,7 +1229,7 @@ pub(crate) fn context_after_text(c: Context, s: &[u8]) -> (Context, usize) {
                 Context {
                     state: State::Error,
                     err: Some(Arc::new(errorf(
-                        ErrorCode::ErrBadHtml,
+                        ErrorCode::ErrBadHTML,
                         None,
                         0,
                         format!(
@@ -1283,7 +1253,7 @@ pub(crate) fn context_after_text(c: Context, s: &[u8]) -> (Context, usize) {
         let u = go_html::unescape_string_bytes(s);
         let mut u: &[u8] = &u;
         while !u.is_empty() {
-            let (c1, i1) = transition_func(c.state)(c, u);
+            let (c1, i1) = transition(c, u);
             c = c1;
             u = &u[i1..];
         }
