@@ -1,0 +1,136 @@
+# neohugo → Rust port: handoff (start here)
+
+This document is the entry point for continuing the Rust port of neohugo in a
+new session, for example a Claude Code cloud session on Linux x86_64. It was
+written when the first local session (macOS arm64) stopped on 2026-09-27.
+
+## 1. Goal and acceptance test
+
+Port neohugo (this Go repository, a Hugo fork) to Rust. The acceptance test is
+byte parity. The Rust binary must build the seeksnack site
+(`github.com/blackb1rd/seeksnack-seeksnack` at commit `ae6c922`) into output that
+is byte-identical to the golden Go build: all 6943 files listed with their
+SHA-256 in `tools/rust-port/golden/canonical.sha256`.
+
+The golden was built with go1.27.1 on darwin/arm64 by
+`tools/rust-port/build-site.sh` using these settings:
+
+- `--minify --clock 2026-09-27T12:00:00Z`;
+- `HUGO_NUMWORKERMULTIPLIER=1` (deterministic; 13 taxonomy terms collide on one URL, and the last in tree order wins);
+- a cold `resources/` cache;
+- the checked-in YouTube GetRemote cache (`HUGO_CACHEDIR=tools/rust-port/testdata/hugo_cache`).
+
+The procedure was verified on a fresh clone and reproduces the golden 100%:
+
+```sh
+tools/rust-port/prepare-site.sh https://github.com/blackb1rd/seeksnack-seeksnack.git "$W"
+tools/rust-port/build-site.sh <neohugo-binary> "$W/seeksnack" "$W/out"
+tools/rust-port/compare.py "$W/out"            # exit 0 == byte parity
+```
+
+Rules:
+
+- The site dir must be named `seeksnack`; it keys the GetRemote cache.
+- `npm ci` must use the site's lock file; the CSS bytes depend on postcss, cssnano, purgecss and caniuse-lite.
+- js.Build needs esbuild **0.25.6** (`npm i esbuild@0.25.6`). The Rust port finds it through `NEOHUGO_ESBUILD_BINARY`.
+
+## 2. Read these first
+
+1. `crates/README.md` holds the porting rules. Every crate is a faithful line-by-line port with
+   Go-oracle differential tests. It also covers the FMA rule, the allowed crates, and the standalone crate layout
+   (each crate has an empty `[workspace]` for now).
+2. `docs/rust-port/specs/*.md` is the research. It covers every subsystem the seeksnack build uses,
+   with Go file and line references and parity traps. `architecture-core.md` is the overview;
+   `template-engine.md` §16 is the engine contract.
+3. `crates/HUGO_LAYER.md`, `crates/WAVE_B_PLAN.json` and `crates/GOTEMPLATE_CONTRACT.md` hold the
+   Hugo-layer design, its 31-task plan, and the template engine interface.
+   `docs/rust-port/HUGO_LAYER_CRITIQUE.md` is the review the design was revised against; all 21
+   points were addressed.
+4. Each crate's `PORTING.md` has its Go→Rust map, deviations, verification and gaps.
+
+The specs and design docs mention paths such as `$SCRATCH/work/...`, `$W/...` and
+`/private/tmp/.../scratchpad`. Those were the first session's scratch
+directories. They do not exist anymore, and their large corpora (GBs) were
+not committed. Regenerate anything you need with the Go oracles in
+`tools/go-oracle/<crate>/`. The specs themselves are in `docs/rust-port/specs/`.
+
+## 3. Environment
+
+- **Go 1.27.1 exactly** for every oracle and for building the Go reference: `export GOTOOLCHAIN=go1.27.1`.
+  - Unicode 17 tables, `encoding/json` on jsonv2 (default in 1.27), and the new jpeg DCT and flate encoder all depend on it.
+  - go.mod's `go 1.23.0` line sets the GODEBUG defaults the go-url fixtures rely on, so do not change it.
+  - The Go project's CI uses go1.25. `tools/go-oracle/go-unicode` is gated with `//go:build go1.27` so `go build ./...` still passes there.
+- **Rust** with edition 2024 (≥1.85; the first session used 1.98). Build each crate with its own target dir, e.g. `CARGO_TARGET_DIR=/tmp/targets/<crate>`.
+- **C/C++ toolchain** for `libwebp-sys` and `libsass-sys`, and for the cgo oracles (gift, go-hashstructure, libwebp-sys, libsass-sys).
+- **Node + npm** for the site's postcss pipeline, plus esbuild 0.25.6.
+
+### Platform caveat (important on Linux x86_64)
+
+The golden was produced on **darwin/arm64**. Some Go outputs depend on the platform:
+
+- The arm64 Go compiler fuses `x*y+z` into FMA and amd64 does not. This affects gift resampling (11 of the golden images), the flate EstimatedBits choice and tdewolff ParseFloat.
+- arm64 and amd64 give different results for `int64(+Inf)` and for the `slices.Min`/`Max` NaN payload.
+- libwebp's DSP paths and libm, and libsass's number formatting, depend on the C toolchain.
+
+The Rust ports replicate the **arm64** behaviour explicitly (`mul_add` etc.), and every checked-in fixture came from arm64 Go. So `cargo test` is meaningful on any machine. **But do not regenerate float-sensitive fixtures (gift, go-flate, tdewolff strconv) with Go on amd64.** The fixtures would change even though the port is right.
+
+The first Linux x86_64 cloud checks (go-value, go-html, go-path, go-sort, go-unicode, go-time, tdewolff-parse) passed with 0 real mismatches over about 20M fresh cases. The only differences were the Go platform differences listed above. libwebp-sys and libsass-sys have not been built on Linux yet.
+
+## 4. Crate status (2026-09-27)
+
+Legend:
+
+- **verified**: ported, red-teamed and committed.
+- **ported**: complete; the red-team was interrupted or never run.
+- **partial**: work in progress.
+
+| crate | ports | status | evidence / next step |
+|---|---|---|---|
+| go-value | value model (`interface{}`+reflection), time data | verified | used by everything; has a NilKind registry for named Go types |
+| go-unicode | unicode (U17), utf8, utf16, strings/bytes | verified | exhaustive per code point, 9.2M strings vectors |
+| go-strconv | strconv | verified | all 2^32 float32 patterns, Go test tables |
+| go-time | time | verified | ~538k checks + 1,202 zones |
+| go-url, go-html, go-path, go-sort | net/url, html, path(+filepath), sort/slices | verified | ~15M adversarial cases; Linux-checked |
+| go-yaml, go-hashstructure | yaml.v2 + metadecoders, hashstructure | verified | 368k YAML inputs × 4 paths |
+| go-image | image, color, draw, jpeg | verified | all 538 site JPEGs, ~4M cases |
+| xtext-collate | x/text collate + CLDR 23 tables | verified | 30k tags, Thai enumerations |
+| tdewolff-parse | tdewolff/parse (minus js) | verified | ~21M fuzzed streams; Linux-checked |
+| go-flate | compress/flate + zlib | ported | 6,676 cases + 11 golden PNG IDAT streams; red-team unfinished (fuzz seeds 4–11 unchecked); PORTING.md predates the red-team additions |
+| go-fmt | fmt over Value | ported | 4.49M Sprintf outputs; red-team finished its fixes, but no final report |
+| go-json | encoding/json (jsonv2-backed v1) | ported | red-team interrupted. **Oracle bug: `adv.go -mode advtext` can make Go's Indent loop forever; fix before large runs** |
+| goldmark | yuin/goldmark v1.7.12 + extensions | ported | CommonMark spec, full seeksnack corpus, 8,658 ext edge cases; **red-team never run** |
+| tdewolff-minify | minify (html/css/json/svg/xml) | ported | ~114k records; red-team interrupted |
+| tdewolff-parse-js | parse/js | ported | 33k inputs × 8 dump modes; red-team interrupted |
+| libwebp-sys | vendored libwebp 1.3.2 + gowebp wrapper | ported | object code identical to cgo per unit; 807/807 golden webps; **Linux untested** |
+| libsass-sys | vendored libsass 3.6.6 + golibsass wrapper | ported | 2,052 cases; **Linux untested** |
+| go-png | image/png | partial | source complete and smoke-checked (11 golden PNGs + Go testdata identical); **no checked-in differential tests or PORTING.md yet** |
+| gift | disintegration/gift + Hugo filters | partial | port complete, FMA sites mutation-tested, 603 site images identical; **PORTING.md and Go unit-test ports missing; red-team not run** |
+| tdewolff-minify-js | minify/js | partial | util/stmtlist/vars written (2.9k lines, never compiled); **js.go printer, lib.rs, oracle and tests missing** |
+| gotemplate | forked text/template + html/template | **not started** | spec: `docs/rust-port/specs/template-engine.md` (§16 contract) + `crates/GOTEMPLATE_CONTRACT.md` |
+| nh-* (25 crates) | the Hugo layer | skeleton | all `cargo check`; 1,121 `todo!()`; ownership per `WAVE_B_PLAN.json` |
+
+## 5. What to do next (in order)
+
+1. **Finish Wave A.**
+   - Port `gotemplate` (text/template, then html/template) against the contract. This is the long pole; every Hugo-layer task needs it.
+   - Finish `tdewolff-minify-js`. The whole-page golden check for the minify stack needs it.
+   - Write tests and PORTING.md for `go-png`.
+   - Write PORTING.md for `gift` and port its unit tests.
+2. **Red-team the "ported" crates.** Use an independent pass that extends the Go oracle with adversarial and random inputs and fixes any divergence. The first session found and fixed real bugs this way (go-time, go-yaml, xtext-collate).
+3. **Wave B, the Hugo layer.**
+   - Follow `crates/WAVE_B_PLAN.json`: 27 port tasks with disjoint module ownership, then 4 integration tasks.
+   - Each task has concrete oracle and acceptance tests. The critical path is in `HUGO_LAYER.md` §12.
+   - Wire the Wave A dependencies into the nh-* `Cargo.toml` files as each lands.
+4. **Integration.**
+   - Merge all crates into one root Cargo workspace (drop the per-crate `[workspace]` tables).
+   - Build the `neohugo` binary (`nh-commands`).
+   - Iterate with `build-site.sh` + `compare.py` until 6943/6943 match.
+   - Classify each remaining diff by subsystem and fix it in the owning crate with a new oracle test.
+
+## 6. How work was run, and cloud notes
+
+- The first session ran ports as parallel agents, one crate each, followed by an independent **red-team agent** per crate. Every result was committed only after the crate's tests passed.
+- A cloud machine has 4 vCPUs, so run fewer agents at once, and give each crate its own `CARGO_TARGET_DIR`.
+- Commit to `rust-port` often; nothing outside git survives the session.
+- Pushing needs GitHub write access to `neohugo/neohugo`. Without the Claude GitHub App installed on the org, cloud pushes fail with 403.
+- `tools/go-oracle/*` are `package main` programs inside the neohugo Go module. Keep them gofmt- and vet-clean, because CI runs `go vet`/`go test ./...` on the whole module.

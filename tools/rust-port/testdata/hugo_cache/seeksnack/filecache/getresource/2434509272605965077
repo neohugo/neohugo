@@ -1,0 +1,98 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:12 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: e4c3b9ed068a286c888e901bfc8dc4b2
+X-Etags-2: e4c3b9ed068a286c888e901bfc8dc4b2
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "XeTj9fOM3tjOOzbCo62RojKOxqI",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "qsz4FKTyA83j5wH42nveAuKb290",
+      "id": "2uQkrC3sslA",
+      "snippet": {
+        "publishedAt": "2020-09-28T14:34:39Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Squidy Baked Squid",
+        "description": "Squidy Baked Squid (Boxed)\n\nIt's an exclusive snack made from 100% real squid with unique delicious taste.\n\nURL: https://seeksnack.com/seafood/squidy-baked-squid-boxed\n-------------------------------------------------------------------------------------------------------\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/2uQkrC3sslA/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/2uQkrC3sslA/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/2uQkrC3sslA/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/2uQkrC3sslA/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/2uQkrC3sslA/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Squidy",
+          "Squid",
+          "Spicy",
+          "Baked",
+          "Seeksnack",
+          "Thailand",
+          "Unpacking",
+          "Review",
+          "Snack",
+          "Eating",
+          "Seafood"
+        ],
+        "categoryId": "26",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Squidy Baked Squid",
+          "description": "Squidy Baked Squid (Boxed)\n\nIt's an exclusive snack made from 100% real squid with unique delicious taste.\n\nURL: https://seeksnack.com/seafood/squidy-baked-squid-boxed\n-------------------------------------------------------------------------------------------------------\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT57S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "70",
+        "likeCount": "0",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

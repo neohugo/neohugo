@@ -8,6 +8,8 @@ code that produces those bytes, not a reimplementation from a spec.
 The Go sources stay in this repository as the reference implementation until
 parity is reached.
 
+**Status, plan and acceptance procedure: `docs/rust-port/HANDOFF.md`.**
+
 ## Layout
 
 - `crates/<name>/` — one Rust crate per Go package cluster.

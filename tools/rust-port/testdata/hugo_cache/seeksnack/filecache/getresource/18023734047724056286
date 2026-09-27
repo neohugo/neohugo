@@ -1,0 +1,96 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:13 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: ed9537dd8f887c4f7a59e7b2c299d358
+X-Etags-2: ed9537dd8f887c4f7a59e7b2c299d358
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "jWL5rs5C5skZQp0bqdaREqhfd3Q",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "fOnBMSb8hphWROroVssGlu2VJ7c",
+      "id": "MscFsoazcVI",
+      "snippet": {
+        "publishedAt": "2020-09-04T12:43:10Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Doritos,Tortilla Chip Nacho Cheese Flavor",
+        "description": "Nacho Cheese Flavored DORITOS Tortilla Chips, it combines DORITOS tooth-rattling crunch with the bold flavor of nacho cheese, and you have got an unstoppably delicious snack.\n\nURL : https://seeksnack.com/tortilla-chips/doritos-corn-tortilla-chip-nacho-cheese-flavor/\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/MscFsoazcVI/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/MscFsoazcVI/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/MscFsoazcVI/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/MscFsoazcVI/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/MscFsoazcVI/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Doritos",
+          "Nacho cheese",
+          "Tortilla Chip",
+          "Review",
+          "Snacks",
+          "Unpacking",
+          "Seeksnack",
+          "Inside",
+          "Corn"
+        ],
+        "categoryId": "26",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Doritos,Tortilla Chip Nacho Cheese Flavor",
+          "description": "Nacho Cheese Flavored DORITOS Tortilla Chips, it combines DORITOS tooth-rattling crunch with the bold flavor of nacho cheese, and you have got an unstoppably delicious snack.\n\nURL : https://seeksnack.com/tortilla-chips/doritos-corn-tortilla-chip-nacho-cheese-flavor/\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT1M3S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "180",
+        "likeCount": "0",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

@@ -1,0 +1,97 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:12 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: 9472b2669c3f1ac9b69f8675a1be3b06
+X-Etags-2: 9472b2669c3f1ac9b69f8675a1be3b06
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "XUkUoKCc177gggTAIk5UmLDb9g4",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "T46a7eAMw_GXrvsZS9ElXms-C98",
+      "id": "3hf6s9-23sY",
+      "snippet": {
+        "publishedAt": "2020-10-15T17:00:01Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Squidy - Seasoned Roller Squid Hot&Spicy",
+        "description": "The smell of hot and spicy flavor is stronger than the original flavor. There was Chilli seasoning around roller squids\n-------------------------------------------------------------------------------------------------------------------------------------\nURL: https://seeksnack.com/seafood/squidy-seasoned-roller-squid-hot-spicy/\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/3hf6s9-23sY/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/3hf6s9-23sY/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/3hf6s9-23sY/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/3hf6s9-23sY/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/3hf6s9-23sY/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Squidy",
+          "Squid",
+          "spicy",
+          "Splicy",
+          "Chilli",
+          "Seeksnack",
+          "Snack",
+          "Thailand",
+          "Review",
+          "Unpacking"
+        ],
+        "categoryId": "24",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Squidy - Seasoned Roller Squid Hot&Spicy",
+          "description": "The smell of hot and spicy flavor is stronger than the original flavor. There was Chilli seasoning around roller squids\n-------------------------------------------------------------------------------------------------------------------------------------\nURL: https://seeksnack.com/seafood/squidy-seasoned-roller-squid-hot-spicy/\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT54S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "29",
+        "likeCount": "0",
+        "favoriteCount": "0",
+        "commentCount": "1"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

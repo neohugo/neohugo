@@ -1,0 +1,96 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:09 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: 80ba5eada488634cd8959a6d5063420f
+X-Etags-2: 80ba5eada488634cd8959a6d5063420f
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "Id6wOtQcaGWH8DGZz7sIj80MpvY",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "NfBfqw6dTjUiI4d0XjCGyc_XZto",
+      "id": "FC1QtNIOH9Q",
+      "snippet": {
+        "publishedAt": "2020-11-01T15:21:04Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Toro - Cara Cheese",
+        "description": "Toro - Cara Cheese (Caramel and Cheese Coated Popcorn)\nIs a perfect combination of the two flavours between Cheese and Caramel.\n\nURL: https://seeksnack.com/popcorn/toro-cara-cheese/\n-----------------------------------------------------------------------------------------------------------------------\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/FC1QtNIOH9Q/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/FC1QtNIOH9Q/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/FC1QtNIOH9Q/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/FC1QtNIOH9Q/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/FC1QtNIOH9Q/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Toro",
+          "Popcorn",
+          "Cheese",
+          "Caramel",
+          "Snacks",
+          "Eating",
+          "Thailand",
+          "Review",
+          "Unpacking"
+        ],
+        "categoryId": "24",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Toro - Cara Cheese",
+          "description": "Toro - Cara Cheese (Caramel and Cheese Coated Popcorn)\nIs a perfect combination of the two flavours between Cheese and Caramel.\n\nURL: https://seeksnack.com/popcorn/toro-cara-cheese/\n-----------------------------------------------------------------------------------------------------------------------\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT56S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "45",
+        "likeCount": "2",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

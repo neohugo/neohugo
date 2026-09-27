@@ -1,0 +1,96 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:10 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: 7688571ecb1e0ba23f679333bf4b22d1
+X-Etags-2: 7688571ecb1e0ba23f679333bf4b22d1
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "e0q0CtWTK8nP_yiy3py8hUPTGZ8",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "NgOwMd7VOOsY-hOcp3Uwiuuuimk",
+      "id": "mUJQZ6wpnks",
+      "snippet": {
+        "publishedAt": "2020-08-15T16:57:00Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Potato chips, (Lay's Rock) Ridged Potato Chips Mala Barbecue, Thailand",
+        "description": "LAY'S potato chips is a popular snacks around the world, it have been for more than 75 years. With flavors almost as rich as our history, it have a chip or crisp flavor guaranteed to bring a smile on your face.\n\nSubscribe http://seeksnack.com/ytss.html\nwebsite : https://seeksnack.com/\nFacebook : https://www.facebook.com/SeekSnack\nTwitter : https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/mUJQZ6wpnks/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/mUJQZ6wpnks/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/mUJQZ6wpnks/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/mUJQZ6wpnks/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/mUJQZ6wpnks/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Lay's Rock",
+          "Mala",
+          "Barbecue",
+          "Potato chips",
+          "Seeksnack",
+          "Snack",
+          "Unpack",
+          "Review",
+          "Thailand"
+        ],
+        "categoryId": "26",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Potato chips, (Lay's Rock) Ridged Potato Chips Mala Barbecue, Thailand",
+          "description": "LAY'S potato chips is a popular snacks around the world, it have been for more than 75 years. With flavors almost as rich as our history, it have a chip or crisp flavor guaranteed to bring a smile on your face.\n\nSubscribe http://seeksnack.com/ytss.html\nwebsite : https://seeksnack.com/\nFacebook : https://www.facebook.com/SeekSnack\nTwitter : https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT46S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "108",
+        "likeCount": "2",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

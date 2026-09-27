@@ -1,0 +1,99 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:09 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: 56af0d089d4a4ec65e63a46d3c2dc011
+X-Etags-2: 56af0d089d4a4ec65e63a46d3c2dc011
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "vY6q-IsMUqB-vTA2LUcrGup-DMQ",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "aA--kkA_fa8YCExD3_NB1i_p5os",
+      "id": "gEDMZmPN0xg",
+      "snippet": {
+        "publishedAt": "2021-01-19T16:36:31Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Lay's Flat Potato Chips Chili Lime Flavor",
+        "description": "Lay's Flat Potato Chips Chili Lime Flavor\nLay’s thai street food, Chili Lime taste for thai style.\nURL: https://seeksnack.com/potato-chips/lays-flat-potato-chips-chili-lime-flavor/\n\n--------------------------------------------------------------------------------------------------------------------------\n\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/gEDMZmPN0xg/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/gEDMZmPN0xg/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/gEDMZmPN0xg/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/gEDMZmPN0xg/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/gEDMZmPN0xg/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Lay's",
+          "Lays",
+          "Thailand",
+          "Lay's Flat",
+          "Potato Chip",
+          "Chili",
+          "Lime",
+          "Street Food",
+          "SeekSnack",
+          "Review",
+          "Unpack",
+          "Snack"
+        ],
+        "categoryId": "24",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Lay's Flat Potato Chips Chili Lime Flavor",
+          "description": "Lay's Flat Potato Chips Chili Lime Flavor\nLay’s thai street food, Chili Lime taste for thai style.\nURL: https://seeksnack.com/potato-chips/lays-flat-potato-chips-chili-lime-flavor/\n\n--------------------------------------------------------------------------------------------------------------------------\n\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT1M11S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "148",
+        "likeCount": "2",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

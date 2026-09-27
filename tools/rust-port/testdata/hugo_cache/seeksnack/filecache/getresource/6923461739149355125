@@ -1,0 +1,96 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:12 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: 515d7cef463264fc25f89fd58bfe665e
+X-Etags-2: 515d7cef463264fc25f89fd58bfe665e
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "rSa9UczatXXjMmal8L9MnWEwFJA",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "XciES1fnOG4Dq9u1MHbH7c65QVs",
+      "id": "KlaFOxH4n8M",
+      "snippet": {
+        "publishedAt": "2020-07-27T07:53:03Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Japanese Rice Crackers, Dozo So-Se-Ji Flavoured Review",
+        "description": "A crispy rice cracker, \"Dozo\"gives you a just right full, be delicious with genuine Japanese rice, featured with nutrition value and mixed with an authentic Japanese ingredient. Baked until getting a good smell for the rich well-rounded flavor. Also convenience to carry everywhere\n\nSubscribe http://seeksnack.com/ytss.html\nDetails https://seeksnack.com/rice-crackers/dozo-japanese-rice-so-se-ji-flavoured/\nFacebook https://facebook.com/seeksnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/KlaFOxH4n8M/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/KlaFOxH4n8M/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/KlaFOxH4n8M/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/KlaFOxH4n8M/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/KlaFOxH4n8M/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Dozo",
+          "Ricecrecker",
+          "SO-SE-JI",
+          "Review",
+          "Unpack",
+          "eating",
+          "Thailand",
+          "รีวิว",
+          "ขนม"
+        ],
+        "categoryId": "24",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Japanese Rice Crackers, Dozo So-Se-Ji Flavoured Review",
+          "description": "A crispy rice cracker, \"Dozo\"gives you a just right full, be delicious with genuine Japanese rice, featured with nutrition value and mixed with an authentic Japanese ingredient. Baked until getting a good smell for the rich well-rounded flavor. Also convenience to carry everywhere\n\nSubscribe http://seeksnack.com/ytss.html\nDetails https://seeksnack.com/rice-crackers/dozo-japanese-rice-so-se-ji-flavoured/\nFacebook https://facebook.com/seeksnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT1M22S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "357",
+        "likeCount": "6",
+        "favoriteCount": "0",
+        "commentCount": "1"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

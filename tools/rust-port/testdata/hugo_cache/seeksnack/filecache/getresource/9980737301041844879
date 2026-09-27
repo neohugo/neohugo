@@ -1,0 +1,98 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:02 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: 2e2fb98893aaf95b1951d7065fa49fd3
+X-Etags-2: 2e2fb98893aaf95b1951d7065fa49fd3
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "6cyKDsB8v4man7xP7F9vvj0H3uc",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "2U-vUxh-4GMUg4tyJfPHAzEFAeI",
+      "id": "0FUGhsMJelk",
+      "snippet": {
+        "publishedAt": "2020-10-07T14:47:40Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Koala's March Choco Banana",
+        "description": "Koala's March Choco Banana\n\nKoala's March is a biscuit confectionery that lovely. Deliciousness full fill of creamy chocolate banana.\n\nURL: https://seeksnack.com/biscuit/koalas-march-choco-banana/\n\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/0FUGhsMJelk/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/0FUGhsMJelk/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/0FUGhsMJelk/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/0FUGhsMJelk/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/0FUGhsMJelk/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Lotte",
+          "Koala's March",
+          "Koala",
+          "Snacks",
+          "Seeksnack",
+          "Chocolate",
+          "Banana",
+          "Thailand",
+          "Unpacking",
+          "Review",
+          "Creamy"
+        ],
+        "categoryId": "24",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Koala's March Choco Banana",
+          "description": "Koala's March Choco Banana\n\nKoala's March is a biscuit confectionery that lovely. Deliciousness full fill of creamy chocolate banana.\n\nURL: https://seeksnack.com/biscuit/koalas-march-choco-banana/\n\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT43S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "818",
+        "likeCount": "4",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

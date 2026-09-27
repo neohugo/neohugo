@@ -1,0 +1,98 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:10 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: a6961e5e26e0496d5bad6d800d27be78
+X-Etags-2: a6961e5e26e0496d5bad6d800d27be78
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "Lw4Z1kFToD810hBBPhY5-yZOiS8",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "3h3ZR-uVvv2w-y3EBlLQIHvZV7A",
+      "id": "WUZHHEfrHxA",
+      "snippet": {
+        "publishedAt": "2021-03-07T14:56:32Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Lay's Stax Potato Chips Lobster Flavor",
+        "description": "Lay's Stax Potato Chips Lobster Flavor\n\nCrunchy and excellente Lobster taste.\n\nURL : https://seeksnack.com/potato-chips/lays-stax-potato-chips-lobster-flavor-reduced-saturated-fat-formula/\n\n------------------------------------------------------------------------------------------------------------------------------------------------\n\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/WUZHHEfrHxA/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/WUZHHEfrHxA/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/WUZHHEfrHxA/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/WUZHHEfrHxA/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/WUZHHEfrHxA/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "Lay's Stax Potato Chips Lobster Flavor",
+          "Lays Stax",
+          "Lay's Stax",
+          "Potato Chips",
+          "Lobster",
+          "SeekSnack",
+          "Snack",
+          "Review",
+          "Unpacking",
+          "Thailand",
+          "Lays"
+        ],
+        "categoryId": "24",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Lay's Stax Potato Chips Lobster Flavor",
+          "description": "Lay's Stax Potato Chips Lobster Flavor\n\nCrunchy and excellente Lobster taste.\n\nURL : https://seeksnack.com/potato-chips/lays-stax-potato-chips-lobster-flavor-reduced-saturated-fat-formula/\n\n------------------------------------------------------------------------------------------------------------------------------------------------\n\nSubscribe http://seeksnack.com/ytss.html\nWebsite https://seeksnack.com/\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT1M34S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "181",
+        "likeCount": "3",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}

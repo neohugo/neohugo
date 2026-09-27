@@ -1,0 +1,97 @@
+HTTP/2.0 200 OK
+Alt-Svc: h3=":443"; ma=2592000,h3-29=":443"; ma=2592000
+Content-Type: application/json; charset=UTF-8
+Date: Sun, 27 Sep 2026 10:25:09 GMT
+Server: scaffolding on HTTPServer2
+Vary: Origin
+Vary: X-Origin
+Vary: Referer
+X-Content-Type-Options: nosniff
+X-Etags-1: 931ca6f285f551e0343a1af80297747c
+X-Etags-2: 931ca6f285f551e0343a1af80297747c
+X-Frame-Options: SAMEORIGIN
+X-Xss-Protection: 0
+
+{
+  "kind": "youtube#videoListResponse",
+  "etag": "otjhVRB07R0ncELRUCE-SkCUYOU",
+  "items": [
+    {
+      "kind": "youtube#video",
+      "etag": "ITYvwwaaX5Jvts0UxgBC0B1dn3Q",
+      "id": "Cv7koK1EztQ",
+      "snippet": {
+        "publishedAt": "2020-08-06T15:17:46Z",
+        "channelId": "UC1hJmgQbrJVfxN-_rgZGLow",
+        "title": "Potato chips, Lay's Butter Garlic Scallops, Thailand",
+        "description": "LAY'S potato chips is a popular snacks around the world, it have been for more than 75 years. With flavors almost as rich as our history, it have a chip or crisp flavor guaranteed to bring a smile on your face.\n\nSubscribe http://seeksnack.com/ytss.html\nDetails https://seeksnack.com/potato-chips/lays-butter-garlic-scallops-thailand\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack",
+        "thumbnails": {
+          "default": {
+            "url": "https://i.ytimg.com/vi/Cv7koK1EztQ/default.jpg",
+            "width": 120,
+            "height": 90
+          },
+          "medium": {
+            "url": "https://i.ytimg.com/vi/Cv7koK1EztQ/mqdefault.jpg",
+            "width": 320,
+            "height": 180
+          },
+          "high": {
+            "url": "https://i.ytimg.com/vi/Cv7koK1EztQ/hqdefault.jpg",
+            "width": 480,
+            "height": 360
+          },
+          "standard": {
+            "url": "https://i.ytimg.com/vi/Cv7koK1EztQ/sddefault.jpg",
+            "width": 640,
+            "height": 480
+          },
+          "maxres": {
+            "url": "https://i.ytimg.com/vi/Cv7koK1EztQ/maxresdefault.jpg",
+            "width": 1280,
+            "height": 720
+          }
+        },
+        "channelTitle": "SeekSnack",
+        "tags": [
+          "lay's",
+          "Thailand",
+          "snack",
+          "Garlic",
+          "Scallops",
+          "Eating",
+          "SeekSnack",
+          "Unpacking",
+          "Review",
+          "Seafood"
+        ],
+        "categoryId": "24",
+        "liveBroadcastContent": "none",
+        "defaultLanguage": "en",
+        "localized": {
+          "title": "Potato chips, Lay's Butter Garlic Scallops, Thailand",
+          "description": "LAY'S potato chips is a popular snacks around the world, it have been for more than 75 years. With flavors almost as rich as our history, it have a chip or crisp flavor guaranteed to bring a smile on your face.\n\nSubscribe http://seeksnack.com/ytss.html\nDetails https://seeksnack.com/potato-chips/lays-butter-garlic-scallops-thailand\nFacebook https://www.facebook.com/SeekSnack\nTwitter https://twitter.com/SeekSnack"
+        }
+      },
+      "contentDetails": {
+        "duration": "PT1M26S",
+        "dimension": "2d",
+        "definition": "hd",
+        "caption": "false",
+        "licensedContent": false,
+        "contentRating": {},
+        "projection": "rectangular"
+      },
+      "statistics": {
+        "viewCount": "96",
+        "likeCount": "1",
+        "favoriteCount": "0",
+        "commentCount": "0"
+      }
+    }
+  ],
+  "pageInfo": {
+    "totalResults": 1,
+    "resultsPerPage": 1
+  }
+}
