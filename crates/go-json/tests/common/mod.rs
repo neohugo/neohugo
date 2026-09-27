@@ -319,6 +319,7 @@ impl<'a> Parser<'a> {
             b'm' => {
                 let ty = match self.byte() {
                     b'A' => MapType::StringAny,
+                    b'P' => MapType::Params,
                     _ => MapType::StringString,
                 };
                 let n = self.count(b'{');
@@ -452,15 +453,39 @@ pub fn unmarshal_rec(v: &Value, err: &Option<Error>) -> Vec<u8> {
 }
 
 /// Reader returning `chunk` bytes per call, then EOF (the oracle's chunkReader).
+/// The oracle's chunkReader: reads of at most `chunk` bytes, or, with
+/// `sizes`, the i-th read of at most `sizes[i % sizes.len()]` bytes.
 pub struct ChunkReader {
     pub data: Vec<u8>,
     pub pos: usize,
     pub chunk: usize,
+    pub sizes: Vec<usize>,
+    pub reads: usize,
+}
+
+impl ChunkReader {
+    pub fn new(data: &[u8], chunk: usize, sizes: &[usize]) -> ChunkReader {
+        ChunkReader {
+            data: data.to_vec(),
+            pos: 0,
+            chunk,
+            sizes: sizes.to_vec(),
+            reads: 0,
+        }
+    }
 }
 
 impl Read for ChunkReader {
     fn read(&mut self, p: &mut [u8]) -> std::io::Result<usize> {
-        let n = self.chunk.min(p.len()).min(self.data.len() - self.pos);
+        if self.pos == self.data.len() {
+            return Ok(0); // io.EOF
+        }
+        let mut chunk = self.chunk;
+        if !self.sizes.is_empty() {
+            chunk = self.sizes[self.reads % self.sizes.len()];
+            self.reads += 1;
+        }
+        let n = chunk.min(p.len()).min(self.data.len() - self.pos);
         p[..n].copy_from_slice(&self.data[self.pos..self.pos + n]);
         self.pos += n;
         Ok(n)

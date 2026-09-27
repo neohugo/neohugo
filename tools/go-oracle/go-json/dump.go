@@ -18,7 +18,7 @@ package main
 //	t <sec> ; <nsec> ; U      time.Time in UTC
 //	t <sec> ; <nsec> ; F <str> <off> ;   time.Time in a FixedZone(name, off)
 //	a <t> <count> [ ... ]     slices: A []any S []string I []int L []int64 D []float64 B []bool Y []uint8 M []map[string]any
-//	m <t> <count> { (<str> value)* }   maps: A map[string]any S map[string]string
+//	m <t> <count> { (<str> value)* }   maps: A map[string]any S map[string]string P maps.Params
 //	n <str>                   json.Number
 //	J <str>                   main.jm: MarshalJSON returns the bytes
 //	E <str>                   main.jerr: MarshalJSON returns an error with this message
@@ -40,6 +40,8 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+
+	"github.com/neohugo/neohugo/common/maps"
 )
 
 type jm struct{ b string }
@@ -201,6 +203,16 @@ func dump(b []byte, v any) []byte {
 			b = dump(b, x[k])
 		}
 		return append(b, '}')
+	case maps.Params:
+		if x == nil {
+			return putStr(append(b, 'Z'), "maps.Params")
+		}
+		b = fmt.Appendf(b, "mP%d{", len(x))
+		for _, k := range sortedKeys(x) {
+			b = putStr(b, k)
+			b = dump(b, x[k])
+		}
+		return append(b, '}')
 	case map[string]string:
 		b = fmt.Appendf(b, "mS%d{", len(x))
 		for _, k := range sortedKeys(x) {
@@ -266,6 +278,15 @@ func unwrap(v any) any {
 			return x
 		}
 		out := make(map[string]any, len(x))
+		for k, e := range x {
+			out[k] = unwrap(e)
+		}
+		return out
+	case maps.Params:
+		if x == nil {
+			return x
+		}
+		out := make(maps.Params, len(x))
 		for k, e := range x {
 			out[k] = unwrap(e)
 		}

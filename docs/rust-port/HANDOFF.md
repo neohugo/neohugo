@@ -104,7 +104,7 @@ Legend:
 | tdewolff-parse | tdewolff/parse (minus js) | verified | ~21M fuzzed streams; Linux-checked |
 | go-flate | compress/flate + zlib | ported | 6,676 cases + 11 golden PNG IDAT streams; red-team unfinished (fuzz seeds 4–11 unchecked); PORTING.md predates the red-team additions |
 | go-fmt | fmt over Value | ported | 4.49M Sprintf outputs; red-team finished its fixes, but no final report |
-| go-json | encoding/json (jsonv2-backed v1) | ported | red-team interrupted. **Oracle bug: `adv.go -mode advtext` can make Go's Indent loop forever; fix before large runs** |
+| go-json | encoding/json (jsonv2-backed v1) | verified | red-team: 10.45M cases over 11 modes (adversarial, exhaustive 1–3-byte texts and every rune, 20k-digit numbers, 4–400 KB docs, random read chunking, Hugo-shaped values incl. the real `maps.Params`, 171k on arm64 via qemu), 0 differences after one fix (`omitzero` on `maps.Params` now calls its `IsZero`); the `advtext` hang was Go's own `json.Indent` looping forever (non-blank prefix, empty indent), now guarded exactly in the oracle and documented as deviation 9 |
 | goldmark | yuin/goldmark v1.7.12 + extensions | ported | CommonMark spec, full seeksnack corpus, 8,658 ext edge cases; **red-team never run** |
 | tdewolff-minify | minify (html/css/json/svg/xml) | ported | ~114k records; red-team interrupted |
 | tdewolff-parse-js | parse/js | ported | 33k inputs × 8 dump modes; red-team interrupted |

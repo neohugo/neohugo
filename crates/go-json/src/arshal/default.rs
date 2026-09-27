@@ -557,6 +557,9 @@ pub(crate) fn is_zero(v: &Value, st: Static) -> bool {
         Value::Uint(u, _) => *u == 0,
         Value::Float(f, _) => *f == 0.0,
         Value::String(s) | Value::Safe(_, s) => s.is_empty(),
+        // Hugo's maps.Params has an IsZero method, which omitzero calls
+        // (fields.go: t.Implements(isZeroerType)).
+        Value::Map(m) if m.ty == MapType::Params => params_is_zero(m),
         // A non-nil slice or map is never zero.
         Value::List(_) | Value::Map(_) => false,
         Value::Time(t) => t.is_zero(),
@@ -575,6 +578,21 @@ pub(crate) fn is_zero(v: &Value, st: Static) -> bool {
             false
         }
     }
+}
+
+// Go: neohugo common/maps/params.go:(Params).IsZero
+/// Params is zero when empty or when its only key is the merge strategy key.
+fn params_is_zero(m: &Map) -> bool {
+    if m.entries.is_empty() {
+        return true;
+    }
+    if m.entries.len() > 1 {
+        return false;
+    }
+    m.entries
+        .keys()
+        .next()
+        .is_some_and(|k| k.as_bytes() == b"_merge")
 }
 
 // Go: arshal_default.go:stringOrNumberKind

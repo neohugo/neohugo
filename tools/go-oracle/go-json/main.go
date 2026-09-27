@@ -16,6 +16,16 @@
 //	    random interleavings of Token/Decode/More/InputOffset.
 //	go run ./tools/go-oracle/go-json -mode advtext|advencode -out FILE [-n N] [-seed S]
 //	    adversarial inputs in the text/encode record formats (see adv.go).
+//	go run ./tools/go-oracle/go-json -mode exhausttext|exhaustencode -out FILE [-parts P -part K] [-seed S]
+//	    enumerated small inputs in the text/encode record formats (see
+//	    exhaust.go); -parts/-part split the enumeration.
+//	go run ./tools/go-oracle/go-json -mode numtext|bigtext|vartext -out FILE [-n N] [-seed S]
+//	    extreme number literals, 4-400 KB documents streamed with chunk
+//	    sizes around the decoder's buffer sizes, and advtext inputs streamed
+//	    with cycles of read sizes (see adv2.go).
+//	go run ./tools/go-oracle/go-json -mode hugoencode -out FILE [-n N] [-seed S]
+//	    Hugo-shaped values (maps.Params, dicts, index.json entries, page
+//	    content) in the encode record format (see hugo.go).
 //	go run ./tools/go-oracle/go-json -mode real -out crates/go-json/tests/fixtures/real.rec.gz FILE...
 //	    real inputs (HTTP responses have their header stripped): Unmarshal,
 //	    re-encoding with the options Hugo uses, and chunked streaming reads.
@@ -37,13 +47,16 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
-	mode := flag.String("mode", "", "encode | text | real")
+	mode := flag.String("mode", "", "encode | text | real | advtext | advencode | exhausttext | exhaustencode | numtext | bigtext | vartext | hugoencode")
 	out := flag.String("out", "", "output file (.gz)")
 	n := flag.Int("n", 3000, "number of random cases")
 	seed := flag.Uint64("seed", 1, "random seed")
+	part := flag.Int("part", 0, "exhaust modes: keep the cases whose number is part modulo parts")
+	parts := flag.Int("parts", 1, "exhaust modes: see -part")
 	flag.Parse()
 	if *out == "" {
 		log.Fatal("missing -out")
@@ -66,6 +79,18 @@ func main() {
 		writeAdvText(w, r, *n)
 	case "advencode":
 		writeAdvEncode(w, r, *n)
+	case "exhausttext":
+		writeExhaustText(w, r, *part, *parts)
+	case "exhaustencode":
+		writeExhaustEncode(w, r, *part, *parts)
+	case "numtext":
+		writeNumText(w, r, *n)
+	case "hugoencode":
+		writeHugoEncode(w, r, *n)
+	case "bigtext":
+		writeBigText(w, r, *n)
+	case "vartext":
+		writeVarText(w, r, *n)
 	default:
 		log.Fatalf("unknown -mode %q", *mode)
 	}
@@ -190,16 +215,24 @@ func b2i(b bool) int {
 }
 
 // chunkReader returns its data in chunks of the given size, then (0, EOF).
+// With sizes, the i-th Read uses sizes[i%len(sizes)] instead of chunk.
 type chunkReader struct {
 	data  []byte
 	chunk int
+	sizes []int
+	reads int
 }
 
 func (c *chunkReader) Read(p []byte) (int, error) {
 	if len(c.data) == 0 {
 		return 0, io.EOF
 	}
-	n := min(c.chunk, len(p), len(c.data))
+	chunk := c.chunk
+	if len(c.sizes) > 0 {
+		chunk = c.sizes[c.reads%len(c.sizes)]
+		c.reads++
+	}
+	n := min(chunk, len(p), len(c.data))
 	copy(p, c.data[:n])
 	c.data = c.data[n:]
 	return n, nil
@@ -224,7 +257,7 @@ func textCase(w io.Writer, r *rand.Rand, in []byte) {
 	writeRec(w, "indentargs", []byte(p+"\x00"+ind))
 	var ib bytes.Buffer
 	ib.WriteString("pre")
-	err = json.Indent(&ib, in, p, ind)
+	err = indentWatched(&ib, in, p, ind)
 	writeRec(w, "indent", result(ib.Bytes(), err))
 
 	var hb bytes.Buffer
@@ -252,9 +285,21 @@ func textCase(w io.Writer, r *rand.Rand, in []byte) {
 	if r.IntN(4) == 0 {
 		chunk = 1 << 20
 	}
+	if bigChunks {
+		chunk = bigChunkSizes[r.IntN(len(bigChunkSizes))]
+	}
 	useNumber := r.IntN(3) == 0
-	writeRec(w, "streamargs", []byte(fmt.Sprintf("%d %d", chunk, b2i(useNumber))))
-	dec := json.NewDecoder(&chunkReader{data: in, chunk: chunk})
+	args := fmt.Sprintf("%d %d", chunk, b2i(useNumber))
+	var sizes []int
+	if varChunks {
+		sizes = make([]int, 1+r.IntN(8))
+		for i := range sizes {
+			sizes[i] = varChunkSize(r)
+		}
+		args += " " + strings.Trim(fmt.Sprint(sizes), "[]")
+	}
+	writeRec(w, "streamargs", []byte(args))
+	dec := json.NewDecoder(&chunkReader{data: in, chunk: chunk, sizes: sizes})
 	if useNumber {
 		dec.UseNumber()
 	}
@@ -276,7 +321,7 @@ func textCase(w io.Writer, r *rand.Rand, in []byte) {
 	writeRec(w, "buffered", buf)
 
 	// Decoder.Token stream.
-	dec = json.NewDecoder(&chunkReader{data: in, chunk: chunk})
+	dec = json.NewDecoder(&chunkReader{data: in, chunk: chunk, sizes: sizes})
 	if useNumber {
 		dec.UseNumber()
 	}
@@ -303,13 +348,13 @@ func textCase(w io.Writer, r *rand.Rand, in []byte) {
 	// Interleaved Token/Decode/More/InputOffset calls.
 	ops := randomOps(r)
 	writeRec(w, "mixargs", []byte(ops))
-	mixedOps(w, in, ops, chunk, useNumber)
+	mixedOps(w, in, ops, chunk, sizes, useNumber)
 }
 
 // mixedOps interleaves Token, Decode, More and InputOffset calls on one
 // Decoder, as callers of the streaming API do.
-func mixedOps(w io.Writer, in []byte, ops string, chunk int, useNumber bool) {
-	dec := json.NewDecoder(&chunkReader{data: in, chunk: chunk})
+func mixedOps(w io.Writer, in []byte, ops string, chunk int, sizes []int, useNumber bool) {
+	dec := json.NewDecoder(&chunkReader{data: in, chunk: chunk, sizes: sizes})
 	if useNumber {
 		dec.UseNumber()
 	}
@@ -462,9 +507,21 @@ func writeReal(w io.Writer, files []string) {
 		// Streaming reads with several chunk sizes (buffer growth policy).
 		for _, chunk := range []int{1, 7, 100, 4096, 1 << 20} {
 			writeRec(w, "mixargs", fmt.Appendf(nil, "%d", chunk))
-			mixedOps(w, in, "ODOTTTMOTOD", chunk, chunk == 7)
+			mixedOps(w, in, "ODOTTTMOTOD", chunk, nil, chunk == 7)
 		}
 	}
+}
+
+// indentWatched is json.Indent with a watchdog. go1.27.1's Indent can loop
+// forever (see indentHangs), and the generators must never pass it such
+// arguments. If one does, the oracle stops and prints the arguments instead
+// of hanging without a trace.
+func indentWatched(dst *bytes.Buffer, src []byte, prefix, indent string) error {
+	t := time.AfterFunc(time.Minute, func() {
+		log.Fatalf("json.Indent(%q, %q, %q) has not returned after a minute", src, prefix, indent)
+	})
+	defer t.Stop()
+	return json.Indent(dst, src, prefix, indent)
 }
 
 func indentBytes(b []byte, prefix, indent string) ([]byte, error) {

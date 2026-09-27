@@ -23,10 +23,12 @@ package main
 //     U+2028, NUL).
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
+	"log"
 	"math"
 	"math/big"
 	"math/rand/v2"
@@ -55,31 +57,53 @@ func genIndentString(r *rand.Rand, allowNUL bool) string {
 	return b.String()
 }
 
-// indentHangs reports whether Go's appendIndent would loop forever on src
-// with these arguments: placeholder mode, an empty indent, and a newline in
-// the trailing whitespace of src followed by more spaces than len(prefix).
+// indentHangs reports whether Go's appendIndent (go1.27.1
+// src/encoding/json/v2_indent.go) loops forever on src with these arguments.
+//
+// When prefix or indent holds a byte other than space or tab, appendIndent
+// formats with placeholder spaces, and a deferred function then walks the
+// bytes it appended: after each '\n' it overwrites the run of spaces with the
+// prefix and then with copies of the indent. With an empty indent,
+// "for len(spaces) > 0 { spaces = spaces[copy(spaces, invalidIndent):] }"
+// never ends once a run is longer than the prefix. The bytes it walks are:
+//
+//   - on success, the formatted value plus the trailing whitespace of src
+//     (only that whitespace can hold such a run);
+//   - on a syntax error, src itself, because jsontext.AppendFormat returns
+//     append(dst, src...) together with the error. The deferred function
+//     still runs although appendIndent then returns dst[:dstLen]. So any
+//     invalid src with a '\n' followed by more than len(prefix) spaces
+//     hangs, for example Indent(dst, []byte("[\n  1,]"), "a", "").
+//
+// The earlier version of this check looked only at the trailing whitespace
+// and missed the error case, so -mode advtext could hang.
 func indentHangs(src []byte, prefix, indent string) bool {
 	if len(strings.Trim(prefix, " \t"))+len(strings.Trim(indent, " \t")) == 0 || indent != "" {
 		return false
 	}
-	trail := src[len(strings.TrimRight(string(src), " \n\r\t")):]
-	for i, c := range trail {
-		if c != '\n' {
-			continue
+	// The same call with the placeholder spaces does not take the
+	// placeholder path, and returns the bytes the deferred function walks
+	// (or the error, in which case it walks src).
+	walked, err := indentBytes(src, strings.Repeat(" ", len(prefix)), "")
+	if err != nil {
+		walked = src
+	}
+	for b := walked; ; {
+		i := bytes.IndexByte(b, '\n')
+		if i < 0 {
+			return false
 		}
-		n := 0
-		for _, d := range trail[i+1:] {
-			if d != ' ' {
-				break
-			}
-			n++
-		}
+		b = b[i+1:]
+		n := len(b) - len(bytes.TrimLeft(b, " "))
 		if n > len(prefix) {
 			return true
 		}
+		b = b[n:]
 	}
-	return false
 }
+
+// indentHangsAvoided counts the prefix/indent pairs pickAdvIndent rejected.
+var indentHangsAvoided int
 
 func pickAdvIndent(r *rand.Rand, src []byte) (string, string) {
 	for {
@@ -87,6 +111,7 @@ func pickAdvIndent(r *rand.Rand, src []byte) (string, string) {
 		if src == nil || !indentHangs(src, p, in) {
 			return p, in
 		}
+		indentHangsAvoided++
 	}
 }
 
@@ -488,46 +513,52 @@ func writeAdvText(w io.Writer, r *rand.Rand, n int) {
 		}
 	}
 	for i := 0; i < n; i++ {
-		var in string
-		switch r.IntN(10) {
-		case 0, 1:
-			// Arrays of number literals.
-			k := 1 + r.IntN(40)
-			nums := make([]string, k)
-			for j := range nums {
-				nums[j] = genNumberLit(r)
-			}
-			in = ws(r) + "[" + strings.Join(nums, ws(r)+","+ws(r)) + "]" + ws(r)
-		case 2:
-			// A lone number (terminated by EOF in streams).
-			in = genNumberLit(r) + ws(r)
-		case 3:
-			// Objects with adversarial names and string values.
-			k := r.IntN(6)
-			var b strings.Builder
-			b.WriteString("{")
-			for j := 0; j < k; j++ {
-				if j > 0 {
-					b.WriteString(",")
-				}
-				b.WriteString(genAdvJSONString(r, false) + ":" + genAdvJSONString(r, false))
-			}
-			b.WriteString("}")
-			in = b.String()
-		case 4:
-			// Possibly invalid strings.
-			in = "[" + genAdvJSONString(r, true) + "," + genAdvJSONString(r, true) + "]"
-		case 5:
-			// Streams of documents.
-			for k := 1 + r.IntN(4); k > 0; k-- {
-				in += genAdvDoc(r, 2, false) + []string{" ", "\n", "", "\t"}[r.IntN(4)]
-			}
-		case 6:
-			in = string(mutate(r, []byte(genAdvDoc(r, 3, false))))
-		default:
-			in = genAdvDoc(r, 3, r.IntN(4) == 0)
+		textCase(w, r, []byte(genAdvTextInput(r)))
+	}
+	log.Printf("advtext: re-drew %d Indent prefix/indent pairs that would hang", indentHangsAvoided)
+}
+
+// genAdvTextInput returns one random -mode advtext input.
+func genAdvTextInput(r *rand.Rand) string {
+	switch r.IntN(10) {
+	case 0, 1:
+		// Arrays of number literals.
+		k := 1 + r.IntN(40)
+		nums := make([]string, k)
+		for j := range nums {
+			nums[j] = genNumberLit(r)
 		}
-		textCase(w, r, []byte(in))
+		return ws(r) + "[" + strings.Join(nums, ws(r)+","+ws(r)) + "]" + ws(r)
+	case 2:
+		// A lone number (terminated by EOF in streams).
+		return genNumberLit(r) + ws(r)
+	case 3:
+		// Objects with adversarial names and string values.
+		k := r.IntN(6)
+		var b strings.Builder
+		b.WriteString("{")
+		for j := 0; j < k; j++ {
+			if j > 0 {
+				b.WriteString(",")
+			}
+			b.WriteString(genAdvJSONString(r, false) + ":" + genAdvJSONString(r, false))
+		}
+		b.WriteString("}")
+		return b.String()
+	case 4:
+		// Possibly invalid strings.
+		return "[" + genAdvJSONString(r, true) + "," + genAdvJSONString(r, true) + "]"
+	case 5:
+		// Streams of documents.
+		var in string
+		for k := 1 + r.IntN(4); k > 0; k-- {
+			in += genAdvDoc(r, 2, false) + []string{" ", "\n", "", "\t"}[r.IntN(4)]
+		}
+		return in
+	case 6:
+		return string(mutate(r, []byte(genAdvDoc(r, 3, false))))
+	default:
+		return genAdvDoc(r, 3, r.IntN(4) == 0)
 	}
 }
 

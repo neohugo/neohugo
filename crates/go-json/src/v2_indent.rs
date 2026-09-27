@@ -151,6 +151,10 @@ pub(crate) fn append_indent(
         ],
     );
     if let Some(err) = err {
+        // (Go's deferred fix-up still runs here, over `src`, which
+        // AppendFormat appends on error. With an empty indent it never
+        // returns once `src` has a '\n' followed by more spaces than the
+        // prefix is long; see PORTING.md, deviation 9.)
         dst.truncate(dst_len);
         return Err(transform_syntactic_error(err));
     }

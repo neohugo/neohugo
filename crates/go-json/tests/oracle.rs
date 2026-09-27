@@ -8,15 +8,15 @@ use go_json::{Decoder, Encoder, RawMessage, Token};
 use go_value::Value;
 
 struct Failures {
-    what: &'static str,
+    what: String,
     n: usize,
     msgs: Vec<String>,
 }
 
 impl Failures {
-    fn new(what: &'static str) -> Failures {
+    fn new(what: &str) -> Failures {
         Failures {
-            what,
+            what: what.to_string(),
             n: 0,
             msgs: Vec::new(),
         }
@@ -68,8 +68,50 @@ fn encode_with(
 
 #[test]
 fn encode_fixture() {
-    let cs = cases(read_records("encode.rec.gz"));
-    let mut f = Failures::new("encode");
+    check_encode("encode.rec.gz", "encode");
+}
+
+/// `-mode hugoencode -n 2000 -seed 21`: Hugo-shaped values, including
+/// maps.Params fields with omitzero (the Params.IsZero regression).
+#[test]
+fn hugo_encode_fixture() {
+    check_encode("hugoencode.rec.gz", "hugoencode");
+}
+
+/// `-mode advencode -n 500 -seed 25`: Go's TestMarshalFloat inputs and
+/// adversarial floats, strings, marshalers and indent arguments.
+#[test]
+fn adv_encode_fixture() {
+    check_encode("advencode.rec.gz", "advencode");
+}
+
+/// `-mode exhaustencode -parts 128 -part 0 -seed 27`: every 128th batch of
+/// the rune and 2-byte string enumeration.
+#[test]
+fn exhaust_encode_fixture() {
+    check_encode("exhaustencode.rec.gz", "exhaustencode");
+}
+
+/// Whether to run a replay of `name`: the checked-in fixtures always exist;
+/// a `$GO_JSON_FIXTURES` directory may hold only some corpora.
+fn have_fixture(name: &str) -> bool {
+    if std::path::Path::new(&fixture_path(name)).exists() {
+        return true;
+    }
+    assert!(
+        std::env::var("GO_JSON_FIXTURES").is_ok_and(|d| !d.is_empty()),
+        "missing fixture {name}"
+    );
+    eprintln!("{name}: not in $GO_JSON_FIXTURES, skipped");
+    false
+}
+
+fn check_encode(name: &str, what: &str) {
+    if !have_fixture(name) {
+        return;
+    }
+    let cs = cases(read_records(name));
+    let mut f = Failures::new(what);
     for (i, c) in cs.iter().enumerate() {
         let vd = get(c, "value");
         let v = parse_value(vd);
@@ -84,6 +126,16 @@ fn encode_fixture() {
             &ctx,
             "nohtml",
             &result(encode_with(&v, false, b"", b"")),
+            get(c, "nohtml"),
+        );
+        // marshal_with is the Encoder's bytes without the newline.
+        f.check(
+            &ctx,
+            "marshal_with",
+            &result(go_json::marshal_with(&v, false).map(|mut b| {
+                b.push(b'\n');
+                b
+            })),
             get(c, "nohtml"),
         );
         let (p, ind) = split_args(get(c, "indentargs"));
@@ -105,12 +157,13 @@ fn encode_fixture() {
     f.finish(cs.len());
 }
 
-fn stream_steps(input: &[u8], chunk: usize, use_number: bool) -> (Vec<Vec<u8>>, Vec<u8>) {
-    let mut dec = Decoder::new(ChunkReader {
-        data: input.to_vec(),
-        pos: 0,
-        chunk,
-    });
+fn stream_steps(
+    input: &[u8],
+    chunk: usize,
+    sizes: &[usize],
+    use_number: bool,
+) -> (Vec<Vec<u8>>, Vec<u8>) {
+    let mut dec = Decoder::new(ChunkReader::new(input, chunk, sizes));
     if use_number {
         dec.use_number();
     }
@@ -137,12 +190,8 @@ fn stream_steps(input: &[u8], chunk: usize, use_number: bool) -> (Vec<Vec<u8>>, 
     (steps, dec.buffered().to_vec())
 }
 
-fn token_steps(input: &[u8], chunk: usize, use_number: bool) -> Vec<Vec<u8>> {
-    let mut dec = Decoder::new(ChunkReader {
-        data: input.to_vec(),
-        pos: 0,
-        chunk,
-    });
+fn token_steps(input: &[u8], chunk: usize, sizes: &[usize], use_number: bool) -> Vec<Vec<u8>> {
+    let mut dec = Decoder::new(ChunkReader::new(input, chunk, sizes));
     if use_number {
         dec.use_number();
     }
@@ -180,13 +229,10 @@ fn mixed_steps(
     input: &[u8],
     ops: &[u8],
     chunk: usize,
+    sizes: &[usize],
     use_number: bool,
 ) -> (Vec<Vec<u8>>, Vec<u8>) {
-    let mut dec = Decoder::new(ChunkReader {
-        data: input.to_vec(),
-        pos: 0,
-        chunk,
-    });
+    let mut dec = Decoder::new(ChunkReader::new(input, chunk, sizes));
     if use_number {
         dec.use_number();
     }
@@ -220,10 +266,11 @@ fn check_mixed(
     c: &[(String, Vec<u8>)],
     input: &[u8],
     chunk: usize,
+    sizes: &[usize],
     use_number: bool,
 ) {
     let ops = get(c, "mixargs");
-    let (steps, buffered) = mixed_steps(input, ops, chunk, use_number);
+    let (steps, buffered) = mixed_steps(input, ops, chunk, sizes, use_number);
     let want = get_all(c, "mstep");
     f.check(
         ctx,
@@ -239,18 +286,52 @@ fn check_mixed(
 
 #[test]
 fn text_fixture() {
+    check_text("text.rec.gz", "text");
+}
+
+/// `-mode exhausttext -parts 128 -part 0 -seed 23`: every 128th input of
+/// the enumeration of short inputs, string escapes and number shapes.
+#[test]
+fn exhaust_text_fixture() {
+    check_text("exhausttext.rec.gz", "exhausttext");
+}
+
+/// `-mode numtext -n 400 -seed 22`: extreme number literals.
+#[test]
+fn num_text_fixture() {
+    check_text("numtext.rec.gz", "numtext");
+}
+
+/// `-mode bigtext -n 10 -seed 26`: 4-400 KB documents streamed with chunk
+/// sizes around the decoder's buffer sizes.
+#[test]
+fn big_text_fixture() {
+    check_text("bigtext.rec.gz", "bigtext");
+}
+
+/// `-mode vartext -n 100 -seed 28`: advtext inputs streamed through readers
+/// with cycles of read sizes.
+#[test]
+fn var_text_fixture() {
+    check_text("vartext.rec.gz", "vartext");
+}
+
+fn check_text(name: &'static str, what: &'static str) {
+    if !have_fixture(name) {
+        return;
+    }
     // Deeply nested inputs (10000 levels) need more stack than a test thread has.
     std::thread::Builder::new()
         .stack_size(1 << 30)
-        .spawn(text_fixture_body)
+        .spawn(move || text_fixture_body(name, what))
         .unwrap()
         .join()
         .unwrap();
 }
 
-fn text_fixture_body() {
-    let cs = cases(read_records("text.rec.gz"));
-    let mut f = Failures::new("text");
+fn text_fixture_body(name: &str, what: &str) {
+    let cs = cases(read_records(name));
+    let mut f = Failures::new(what);
     for (i, c) in cs.iter().enumerate() {
         let input = get(c, "input");
         let ctx = format!("case {i} input {}", show(input));
@@ -300,11 +381,13 @@ fn text_fixture_body() {
             get(c, "unmarshalmap"),
         );
 
+        // "chunk useNumber [read sizes...]" (-mode vartext adds the sizes).
         let sa = std::str::from_utf8(get(c, "streamargs")).unwrap();
-        let (chunk, un) = sa.split_once(' ').unwrap();
-        let chunk: usize = chunk.parse().unwrap();
-        let use_number = un == "1";
-        let (steps, buffered) = stream_steps(input, chunk, use_number);
+        let mut sa = sa.split(' ');
+        let chunk: usize = sa.next().unwrap().parse().unwrap();
+        let use_number = sa.next().unwrap() == "1";
+        let sizes: Vec<usize> = sa.map(|s| s.parse().unwrap()).collect();
+        let (steps, buffered) = stream_steps(input, chunk, &sizes, use_number);
         let want = get_all(c, "dstep");
         f.check(
             &ctx,
@@ -317,7 +400,7 @@ fn text_fixture_body() {
         }
         f.check(&ctx, "buffered", &buffered, get(c, "buffered"));
 
-        let steps = token_steps(input, chunk, use_number);
+        let steps = token_steps(input, chunk, &sizes, use_number);
         let want = get_all(c, "tstep");
         f.check(
             &ctx,
@@ -329,13 +412,16 @@ fn text_fixture_body() {
             f.check(&ctx, &format!("tstep {k}"), g, w);
         }
 
-        check_mixed(&mut f, &ctx, c, input, chunk, use_number);
+        check_mixed(&mut f, &ctx, c, input, chunk, &sizes, use_number);
     }
     f.finish(cs.len());
 }
 
 #[test]
 fn real_fixture() {
+    if !have_fixture("real.rec.gz") {
+        return;
+    }
     let cs = cases(read_records("real.rec.gz"));
     let mut f = Failures::new("real");
     for c in &cs {
@@ -406,6 +492,7 @@ fn real_fixture() {
                 &g2,
                 input,
                 chunk,
+                &[],
                 chunk == 7,
             );
         }
@@ -429,6 +516,9 @@ fn real_fixture() {
 /// give the same bytes.
 #[test]
 fn golden_index_json_roundtrip() {
+    if !have_fixture("real.rec.gz") {
+        return;
+    }
     let cs = cases(read_records("real.rec.gz"));
     let mut seen = 0;
     for c in &cs {
