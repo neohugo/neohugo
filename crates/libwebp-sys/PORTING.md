@@ -122,9 +122,16 @@ go run ./tools/go-oracle/libwebp-sys -mode fixtures -out crates/libwebp-sys/test
 
 ## Known gaps
 
-* Only darwin/arm64 with Apple clang 21 has been verified. On Linux, gcc
-  defaults to `-ffp-contract=fast`, and glibc `libm` may differ from Apple's
-  in the last ulp (sharp-YUV gamma tables use `pow`); a Linux build would
-  need `-ffp-contract=on` (or `off`) plus re-verification against a Linux Go
-  build. The x86_64 flags (`-m64` / `-arch x86_64`) are wired but unverified.
+* Platforms. The fixtures come from darwin/arm64 (Apple clang 21). On other
+  hosts `build.rs` compiles with clang (unless `CC` is set) and adds
+  `-ffp-contract=on` and, on x86_64, `-mfma`, so that `a*b+c` is fused into
+  FMA exactly where Apple clang fuses it on arm64. Verified on linux/x86_64
+  (Ubuntu clang 18.1.3, glibc): every test passes, including 807/807 golden
+  webps and 10,000/10,000 fuzz cases. Without `-mfma` (clang), or with gcc
+  13 and no `-mfma`, 2 of the 10,000 fuzz cases (seeds 1434 and 6947) differ
+  from darwin/arm64; for both, the Rust output equals the output of Go's
+  own cgo build on the same linux/amd64 machine, so the difference is
+  libwebp's platform float behaviour, not the port. `NEOHUGO_NO_FMA=1`
+  drops `-mfma` for CPUs without FMA3 and accepts those rare differences.
+  gcc still builds (with a cargo warning) but is not parity-checked.
 * The gowebp `dev` build tag (link a system libwebp) is not supported.

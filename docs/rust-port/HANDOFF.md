@@ -79,7 +79,7 @@ The golden was produced on **darwin/arm64**. Some Go outputs depend on the platf
 
 The Rust ports replicate the **arm64** behaviour explicitly (`mul_add` etc.), and every checked-in fixture came from arm64 Go. So `cargo test` is meaningful on any machine. **But do not regenerate float-sensitive fixtures (gift, go-flate, tdewolff strconv) with Go on amd64.** The fixtures would change even though the port is right.
 
-The first Linux x86_64 cloud checks (go-value, go-html, go-path, go-sort, go-unicode, go-time, tdewolff-parse) passed with 0 real mismatches over about 20M fresh cases. The only differences were the Go platform differences listed above. libwebp-sys and libsass-sys have not been built on Linux yet.
+The first Linux x86_64 cloud checks (go-value, go-html, go-path, go-sort, go-unicode, go-time, tdewolff-parse) passed with 0 real mismatches over about 20M fresh cases. The only differences were the Go platform differences listed above. libwebp-sys and libsass-sys pass on linux/x86_64 when compiled by clang with `-ffp-contract=on -mfma`, which their `build.rs` now selects off Apple (see their PORTING.md). gcc gives different bytes: FMA contraction in libwebp, argument evaluation order in LibSass.
 
 ## 4. Crate status (2026-09-27)
 
@@ -106,8 +106,8 @@ Legend:
 | goldmark | yuin/goldmark v1.7.12 + extensions | ported | CommonMark spec, full seeksnack corpus, 8,658 ext edge cases; **red-team never run** |
 | tdewolff-minify | minify (html/css/json/svg/xml) | ported | ~114k records; red-team interrupted |
 | tdewolff-parse-js | parse/js | ported | 33k inputs × 8 dump modes; red-team interrupted |
-| libwebp-sys | vendored libwebp 1.3.2 + gowebp wrapper | ported | object code identical to cgo per unit; 807/807 golden webps; **Linux untested** |
-| libsass-sys | vendored libsass 3.6.6 + golibsass wrapper | ported | 2,052 cases; **Linux untested** |
+| libwebp-sys | vendored libwebp 1.3.2 + gowebp wrapper | ported | object code identical to cgo per unit; 807/807 golden webps; linux/x86_64 passes every test when built with clang `-ffp-contract=on -mfma` (now the `build.rs` default off Apple); red-team not run |
+| libsass-sys | vendored libsass 3.6.6 + golibsass wrapper | ported | 2,052 cases; linux/x86_64 passes every test with clang (gcc evaluates C++ arguments right to left: 194 error positions differ), now the `build.rs` default off Apple; red-team not run |
 | go-png | image/png | verified | Go reader/writer/paeth tests ported; 217,650 checked-in differential checks (synth, filter ties, pooled encoders, 75 real files, 42,590 truncations + 42,590 reader failures, 9k generated/mutated PNGs) + 1.56M out of repo (`GO_PNG_BIG`), 0 differences; 11 golden PNGs re-encode byte-identical; fixtures from an arm64 (qemu) oracle build, identical to amd64; see `crates/go-png/PORTING.md` |
 | gift | disintegration/gift + Hugo filters | partial | port complete, FMA sites mutation-tested, 603 site images identical; **PORTING.md and Go unit-test ports missing; red-team not run** |
 | tdewolff-minify-js | minify/js | ported | 783 upstream table rows, 58k checked-in fixture checks (+2×495k out of repo, 27.5 MB corpus × 6 configs) identical; 1,589 HTML docs through Hugo's full minifier; no FMA sites; **red-team not run** |

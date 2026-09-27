@@ -15,6 +15,7 @@
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 fn main() {
     let manifest = PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
@@ -35,6 +36,7 @@ fn main() {
         b.flag(f);
     }
     b.flag("-O2").flag("-g").include(&src_root);
+    arm64_parity(&mut b, false);
 
     for line in units.lines() {
         let unit = line.trim();
@@ -75,4 +77,57 @@ fn cgo_default_flags() -> Vec<&'static str> {
         v.push("-fno-common");
     }
     v
+}
+
+/// darwin/arm64 parity on other hosts. The golden was built by Apple clang on
+/// arm64, where clang's default `-ffp-contract=on` fuses `a*b+c` within one
+/// expression into an FMA instruction, and C++ call arguments are evaluated
+/// left to right. Elsewhere:
+///
+/// * gcc evaluates arguments right to left (LibSass error columns change)
+///   and contracts across statements (`-ffp-contract=fast`, and `on` means
+///   `off` before gcc 14), so off Apple we compile with clang unless the
+///   user set CC/CXX;
+/// * x86_64 has no FMA in the baseline ISA, so clang lowers the fused
+///   operations to a multiply and an add, and the float results (libwebp's
+///   encoder decisions) differ; `-mfma` restores them.
+///
+/// Verified on linux/x86_64 (clang 18): every checked-in darwin/arm64 fixture
+/// matches; with gcc 13, or with clang without `-mfma`, some do not.
+/// `NEOHUGO_NO_FMA=1` drops `-mfma` for CPUs without FMA3, at the cost of
+/// rare output differences.
+fn arm64_parity(b: &mut cc::Build, cpp: bool) {
+    let os = env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+    let target = env::var("TARGET").unwrap_or_default();
+    let var = if cpp { "CXX" } else { "CC" };
+    let vars = [
+        var.to_string(),
+        format!("{var}_{target}"),
+        format!("{var}_{}", target.replace('-', "_")),
+    ];
+    for v in &vars {
+        println!("cargo:rerun-if-env-changed={v}");
+    }
+    println!("cargo:rerun-if-env-changed=NEOHUGO_NO_FMA");
+    if os != "macos" && vars.iter().all(|v| env::var_os(v).is_none()) {
+        let clang = if cpp { "clang++" } else { "clang" };
+        if Command::new(clang)
+            .arg("--version")
+            .output()
+            .is_ok_and(|o| o.status.success())
+        {
+            b.compiler(clang);
+        }
+    }
+    if b.get_compiler().is_like_clang() {
+        b.flag("-ffp-contract=on");
+    } else {
+        println!(
+            "cargo:warning={var} is not clang: output may differ from the darwin/arm64 golden (see PORTING.md)"
+        );
+    }
+    if arch == "x86_64" && env::var_os("NEOHUGO_NO_FMA").is_none() {
+        b.flag("-mfma");
+    }
 }

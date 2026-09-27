@@ -220,9 +220,9 @@ fn gen_case(seed: u64) -> (Params, Vec<u8>) {
         *b = r.next() as u8;
     }
     if kind == "gray" {
-        for i in 0..buf.len() {
+        for (i, b) in buf.iter_mut().enumerate() {
             let (y, x) = (i as i64 / stride, i as i64 % stride);
-            buf[i] = pixel_chan(pattern, r, x, y, 0, w, h);
+            *b = pixel_chan(pattern, r, x, y, 0, w, h);
         }
         return (p, buf);
     }

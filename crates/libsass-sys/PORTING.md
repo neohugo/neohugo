@@ -144,7 +144,15 @@ paths against the CWD) and write/compare outputs with that dir replaced by
 * `Error`'s `%q` of the file name uses an approximation of Go's
   `unicode.IsPrint` for non-ASCII runes (exact for ASCII). Switch to the
   `go-strconv` crate's `quote` once it is available.
-* Only darwin/arm64 with Apple clang 21 / libc++ verified. Other platforms
-  need their own verification (gcc `-ffp-contract`, libstdc++ number
-  formatting).
+* Platforms. The fixtures come from darwin/arm64 (Apple clang 21, libc++).
+  On other hosts `build.rs` compiles with clang/clang++ (unless `CC`/`CXX`
+  is set) and adds `-ffp-contract=on` and, on x86_64, `-mfma`, matching
+  Apple clang's FMA contraction on arm64. Verified on linux/x86_64 (Ubuntu
+  clang 18.1.3 with libstdc++): every test passes, including 2052/2052
+  oracle cases. With gcc 13, 194/2052 differ, all in error positions
+  (e.g. `@error` reports the real column instead of Apple's column 1):
+  LibSass builds a `SourceSpan` from arguments with side effects, and gcc
+  evaluates C++ call arguments right to left where clang goes left to
+  right. libstdc++ vs libc++ made no observable difference in the corpus.
+  `NEOHUGO_NO_FMA=1` drops `-mfma` for CPUs without FMA3.
 * The golibsass `dev` build tag (link a system libsass) is not supported.
