@@ -210,9 +210,25 @@ compared through SHA-256 digests of all keys and 3 comparisons per string.
   starters/marks of mixed ccc (16,276) x 43 configs — keys and 3
   comparisons per string.
 * Fuzzed language tags (`tagfuzz.go`, same checks as tags.tsv):
-  `tags-fuzz.tsv` 3,601 lines incl. the 22 inputs that used to panic and
-  `-u-rg-` tags; `SetTypeForKey` (`settype.tsv`, 3,261 lines of
-  adversarial key/values).
+  `tags-fuzz.tsv` 3,618 lines = the regression inputs of the bugs below
+  (`tagFuzzRegressions`: duplicate `-u` keys / duplicate variants followed
+  by another extension, `-u-rg-XXzzzz`, `pa-Zzzz`) + the first 3,600 tags of
+  seed 12 (`oracle tagfuzz -regressions -n 3600 -seed 12`);
+  `SetTypeForKey` (`settype.tsv`, 3,261 lines of adversarial key/values,
+  `oracle settype -n 400`).
+* `tags.tsv` and `tags-fuzz.tsv` match the repository root `.gitignore`
+  pattern `tags*` (ctags); `tests/fixtures/.gitignore` re-includes them
+  (they were missing from the first commit, so `tags_match_go` /
+  `fuzzed_tags_match_go` failed on a fresh checkout).
+* Exact regeneration commands of the checked-in fixtures (run from the repo
+  root; all reproduce byte-for-byte): `oracle fixtures -dir D -site SITE`
+  (tags.tsv, digests.txt, site-strings.hex, site-keys.txt; SITE is a text
+  file with the strings of `site-strings.hex` one per line — the original
+  Hugo test-data inputs are not in this repository), `oracle pairs -n 1500
+  -seed 7 -site tests/fixtures/site-strings.hex`, `oracle pairs -kind
+  numeric -every 29`, `oracle enum -alpha thai|latin -maxlen 2 -locales`,
+  `oracle enum -alpha marks -maxlen 3`, `oracle settype -n 400`, and
+  `oracle gen` for `data/*.bin`.
 * Scratch runs (`big_corpus` ignored test, corpora outside the repo):
   3,000,000 random strings × 33 configs; 300,000 random × 128 configs
   (33 + all 95 locales); 200,000 combining-mark stress strings × 128
@@ -225,6 +241,14 @@ compared through SHA-256 digests of all keys and 3 comparisons per string.
   43 configs (`big_enum`); 800,000 fuzzed tags (`big_tags`, also in a debug
   build) and 330,666 SetTypeForKey lines (`big_settype`) — 0 mismatches
   after the fixes below.
+* Platform independence (linux/amd64, go1.27.1, rustc 1.94.1; fixtures
+  were first made on darwin/arm64): `data/*.bin` and every checked-in
+  fixture regenerate byte-identically, and the documented large runs were
+  repeated — 3,000,000 random (seed 21) x 33 configs, 300,000 (seed 22) x
+  128, 200,000 stress (seed 23) x 128, every code point x 128, 4 x 60,000
+  pairs (seeds 101-104) x 138, numeric 131,513 + non-digit 126,756 x 43,
+  enum thai<=3 / latin<=3 (+locales) / marks<=4, 800,000 tags (seeds
+  12/13/14), 330,666 SetTypeForKey lines — 0 mismatches.
 
 Large runs: `go build -o $S/oracle ./tools/go-oracle/xtext-collate &&
 $S/oracle corpus -n 3000000 -seed 21 -out $S/a.txt` (also `-kind stress`,

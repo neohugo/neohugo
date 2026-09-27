@@ -6,7 +6,9 @@ package main
 // tags built from subtag pools and character-level mutations.
 
 import (
+	"encoding/hex"
 	"flag"
+	"os"
 	"strings"
 
 	"golang.org/x/text/language"
@@ -150,16 +152,73 @@ func genWellFormedTag(r *rng) string {
 	return strings.Join(parts, sep)
 }
 
+// tagFuzzRegressions are the inputs of the bugs listed in PORTING.md
+// ("Bugs found by adversarial verification"): duplicate -u keys / duplicate
+// variants followed by another extension (Go reads the shifted scanner
+// buffer through a stale token), -u-rg-XXzzzz compact tags, and the 8-bit
+// script overflow of CompactCoreInfo.
+var tagFuzzRegressions = []string{
+	"hr-u-ka-noignore-ka-shifted-x-PRIV-u-co",
+	"uk-u-co-zhuyin-kc-false-co-search-a-BCD",
+	"ru-PT-valencia-u-va-posix-ka-posix-ka-posix-a-BCD",
+	"mo_u_co_search_kn_false_co_UNIHAN_A_bcd",
+	"sl-rozaj-biske-rozaj-a-bcd",
+	"ca-ES-valencia-valencia-u-co-trad",
+	"de-1901-1996-1901-x-priv",
+	"en-u-co-phonebk-co-pinyin-t-zh-m0-ungegn",
+	"th-TH-u-rg-thzzzz",
+	"en-u-rg-gbzzzz",
+	"en-US-u-rg-gbzzzz",
+	"th-u-rg-uszzzz",
+	"de-u-co-phonebk-rg-chzzzz",
+	"zh-u-rg-twzzzz",
+	"en-u-rg-zzzzzz",
+	"en-u-rg-usxxxx",
+	"pa-CN",
+	"pa-Zzzz",
+}
+
 func cmdTagFuzz(args []string) error {
 	fs := flag.NewFlagSet("tagfuzz", flag.ExitOnError)
 	out := fs.String("out", "", "output file")
 	n := fs.Int("n", 100000, "tags")
 	seed := fs.Uint64("seed", 11, "seed")
+	in := fs.String("in", "", "file of explicit tag inputs (one per line, \"hex:\"-encoded like column 1) written before the n fuzzed tags")
+	regressions := fs.Bool("regressions", false, "write tagFuzzRegressions before the fuzzed tags")
 	_ = fs.Parse(args)
 	r := &rng{*seed}
 	seen := map[string]bool{}
 	var lines []string
-	for len(lines) < *n {
+	if *regressions {
+		for _, s := range tagFuzzRegressions {
+			if !seen[s] {
+				seen[s] = true
+				lines = append(lines, tagLine(s, probeStrings))
+			}
+		}
+	}
+	if *in != "" {
+		data, err := os.ReadFile(*in)
+		if err != nil {
+			return err
+		}
+		for _, l := range strings.Split(strings.TrimSuffix(string(data), "\n"), "\n") {
+			s := l
+			if h, ok := strings.CutPrefix(l, "hex:"); ok {
+				b, err := hex.DecodeString(h)
+				if err != nil {
+					return err
+				}
+				s = string(b)
+			}
+			if seen[s] {
+				continue
+			}
+			seen[s] = true
+			lines = append(lines, tagLine(s, probeStrings))
+		}
+	}
+	for want := len(lines) + *n; len(lines) < want; {
 		var s string
 		if r.intn(2) == 0 {
 			s = genTag(r)
