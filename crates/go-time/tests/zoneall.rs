@@ -103,6 +103,27 @@ fn sha256_file(p: &str) -> String {
     }
 }
 
+/// Candidate zoneinfo.zip paths: the one recorded in the fixture, then
+/// `$GOROOT/lib/time/zoneinfo.zip`, then the GOROOT reported by `go env`.
+fn zip_candidates(recorded: &str) -> Vec<String> {
+    let mut cands = vec![recorded.to_string()];
+    if let Ok(goroot) = std::env::var("GOROOT")
+        && !goroot.is_empty()
+    {
+        cands.push(format!("{goroot}/lib/time/zoneinfo.zip"));
+    }
+    if let Ok(out) = std::process::Command::new("go")
+        .args(["env", "GOROOT"])
+        .output()
+    {
+        let goroot = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        if out.status.success() && !goroot.is_empty() {
+            cands.push(format!("{goroot}/lib/time/zoneinfo.zip"));
+        }
+    }
+    cands
+}
+
 #[test]
 fn zoneall_fixture() {
     setup();
@@ -115,8 +136,20 @@ fn zoneall_fixture() {
     for r in &recs {
         match r.tag() {
             b"ZH" => {
-                zip_path = r.s(1);
-                zip_ok = sha256_file(&zip_path) == r.s(2);
+                // The fixture records the zoneinfo.zip path of the machine that
+                // generated it; elsewhere, find a zoneinfo.zip with the same
+                // hash under this machine's GOROOT (env var, then `go env`).
+                let want = r.s(2);
+                zip_path = zip_candidates(&r.s(1))
+                    .into_iter()
+                    .find(|p| sha256_file(p) == want)
+                    .unwrap_or_else(|| r.s(1));
+                zip_ok = sha256_file(&zip_path) == want;
+                if !zip_ok {
+                    eprintln!(
+                        "zoneall: no zoneinfo.zip with the recorded hash found; zip-zone checks will be skipped"
+                    );
+                }
                 goroot = zip_path
                     .strip_suffix("/lib/time/zoneinfo.zip")
                     .map(|s| s.to_string());
