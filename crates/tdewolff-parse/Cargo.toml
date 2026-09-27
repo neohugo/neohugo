@@ -1,0 +1,18 @@
+[package]
+name = "tdewolff-parse"
+version = "0.1.0"
+edition = "2024"
+description = "Byte-exact port of github.com/tdewolff/parse/v2@v2.8.1 (without the js package)"
+license = "MIT"
+
+[lib]
+name = "tdewolff_parse"
+path = "src/lib.rs"
+
+[dependencies]
+go-unicode = { path = "../go-unicode" }
+
+[dev-dependencies]
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
