@@ -1,3 +1,5 @@
+//go:build go1.27
+
 // Command go-unicode is the Go oracle for the Rust crate crates/go-unicode.
 //
 // It has three modes:
