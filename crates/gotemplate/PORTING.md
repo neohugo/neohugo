@@ -148,6 +148,15 @@ engine checks the builtins' Go signatures (arity messages
 `wrong type for value; expected string; got %s`,
 `invalid value; expected string`).
 
+Results: a host function or method (or a `call`ed func value) returns a
+nil `any` as `Invalid`, and an object field holding a nil `any` may be
+`Invalid` too. A Go call result or struct field is never the invalid
+`reflect.Value`, so the engine turns such an `Invalid` into a nil
+`interface {}` (`TypedNil("interface {}")`): `f.X`, `(try f).Value.X` and
+`.Field.X` fail with `nil pointer evaluating interface {}.X` as in Go, and
+the end of the pipeline command turns it back into `Invalid` (Go
+`evalPipeline`), which is what later commands, variables and hosts see.
+
 ### C8 printing — `print_value`/`printable_value`
 
 `Invalid` → `<no value>`; typed nils print through go-fmt (`<nil>`, `[]`,
@@ -182,7 +191,10 @@ Execution errors are `Error::Exec(ExecError { name, message, cause })` with
 Go's text `template: %s: executing %q at <%s>: %s`; func/method errors are
 `error calling %s: <err>` with `cause` = the host error. `try` returns a
 `TryValue` object (`.Value`, `.Err` = `*template.TryError` with `.Err`,
-`.Cause`, `Error()`).
+`.Cause`, `Error()`). Without an error `.Err` is a nil `*template.TryError`
+(`TypedNil`), declared to go-fmt as a type whose `Error` method panics on a
+nil receiver, so fmt prints it `<nil>` for every verb (`printf "%s" .Err`),
+as Go's `catchPanic` does.
 
 ### C13 API for nh-tplimpl
 
@@ -225,6 +237,10 @@ every tree of the namespace if an edit was not found there.
    thread), but Rust stacks do not grow: a 10000-deep `{{template}}`
    recursion needs ~64 MB. Hosts should run executions on threads with at
    least 128 MiB of stack. (Hugo limits partial nesting to 999 levels.)
+   The same holds for syntactic nesting, which the parser, the escaper,
+   `String()` and execution walk recursively (Go has no limit but its 1 GB
+   maximum stack): on a 128 MiB thread 30000 nested `{{if}}`s and 50000
+   nested parentheses work, 100000 overflow the stack (the process aborts).
 4. **`DefinedTemplates`** lists names sorted (Go: map order).
 5. **Template names and error texts** are Rust `String`s: invalid UTF-8
    in a `define` name or inside an error message (e.g. the `%v` of a string
@@ -232,7 +248,11 @@ every tree of the namespace if an edit was not found there.
    bytes. Output bytes are unaffected.
 6. **Host functions have no Go signature**: argument conversion and arity
    are the host's (contract C7). Messages for such errors may differ from
-   Go's `evalArg` messages; output bytes do not.
+   Go's `evalArg` messages. Go checks a host function's arity (and each
+   argument's type) before evaluating the arguments, so when an argument
+   also fails Go reports the arity error and the host reports the
+   argument's error, at another node. Output bytes differ only when `try`
+   captures such an error and the template prints its text.
 7. **Nil `*T` field access** reports `nil pointer evaluating T.Name` even
    when Go would say `can't evaluate field` (Go checks the struct's field
    set, which a typed nil does not carry).
@@ -263,7 +283,19 @@ every tree of the namespace if an edit was not found there.
     interface {}`); the value model knows only dynamic types. Only the nil
     case is faithful (a nil `any` from a map, slice, range or
     `missingkey=zero` is `TypedNil("interface {}")`, giving
-    `nil pointer evaluating interface {}.X` as in Go). Messages only.
+    `nil pointer evaluating interface {}.X` as in Go). Messages only
+    (also `non-function <error Value>` of `call` on a value piped from a
+    function declared to return `error`), with one exception: Go's `slice`
+    builtin does not unwrap interface-kinded index arguments, so an index
+    read straight from an interface-typed slot (`{{slice .S 0 .N}}` with
+    `.N` from a `map[string]any` or a range element of `[]any`) is Go's
+    error `cannot index slice/array with type interface {}` where the value
+    model slices. Hugo overrides `slice` (collections.Slice), so Hugo
+    templates never reach the builtin.
+17. **Template names with `%` verbs in parse errors.** Go's parser splices
+    the template name into `errorf`'s format string, so `%d`, `%s`… in a
+    name consume the message's arguments (and print Go pointers in some
+    messages); here the name is text. Messages only.
 16. **Value-model limits** (messages or unrepresentable data only):
     unexported struct fields are not exposed; maps have string keys only;
     a pointer to a basic type (`*int`) is the value itself; channels and
@@ -290,6 +322,57 @@ the fork copied by `sync-fork.sh`, build tag `gotemplate_oracle`).
 | `tests/exec_oracle.rs` | 13,470 Hugo-like cases (plain and Hugo-helper modes: Params case-insensitivity, methods before keys, mainsections, typed nils, time, IsZero, Stringers, try, missingkey, all builtins): 0 differ; 232 skipped (pointer addresses); listed deviations by class |
 | `tests/exec_depth.rs` | `TestMaxExecDepth`: Go's exact error at depth 100000 |
 | `tests/smoke.rs` | text/template end-to-end smoke cases |
+| red-team regressions: `parse_oracle.rs` `parse_redteam_regressions`, `exec_oracle.rs` `exec_redteam_regressions`, `html_exec.rs` `html_redteam_regressions` | `text/redteam_parse.txt.gz` (2,494 cases), `text/redteam_exec.txt.gz` (3,028 cases: the minimized findings — nil `*TryError` printing, `TryValue.Value` after an error, `ExecError` fields and identity, `slice` with interface-kinded indexes — plus a fixed-seed `rtexec` sample), `html/redteam.txt.gz` (1,180 scripts, 10,353 operations: host functions returning a nil `any` in chains/`try`/escaping, text and html, plus fixed-seed `rthtml`/`rtns`/`rttns`/`rtlayout` samples); written by the `rtfixtures` mode (Go outputs holding pointer-like numbers are left out so the files regenerate byte for byte) |
+
+### Red-team corpora (not checked in)
+
+Seeded generators in `tools/go-oracle/gotemplate/redteam_*.go`, replayed by
+ignored tests that take the corpus paths from environment variables
+(`:`-separated lists). The red-team replays classify the documented
+deviations anywhere in a line (inside `try` values in the output, URL- or
+JS-escaped): complex numbers (1), host signatures (6: arity and argument
+type errors, their order and location), lossy error texts (5), nil `*T`
+fields (7), static interface types (15, incl. `slice` with an
+interface-kinded index), `%` in template names (17), numbers derived from
+Go pointer addresses, Go panics on nil trees (8), named string types
+(go-fmt gaps). Everything else must be equal. Results at hand-off (after
+the fixes below): 0 unexplained differences.
+
+| mode (seeds × size) | what | cases |
+|---|---|---|
+| `rtparse` (1 × 200k, 2 × 300k, 3 × 300k) | token soup, literal syntaxes (numbers incl. hex/octal/binary floats, underscores, imaginary; char constants; interpreted/raw strings with bad escapes), nested `define`/`block`/`if`/`with`/`range`/`else if`/`else with`, `break`/`continue` anywhere, variable scope, trim markers next to comments, 25 delimiter pairs (overlapping `-`, `/*`, spaces, multi-byte), unicode/invalid UTF-8, byte mutations; all parse modes and func sets; tree dump + errors | 800,000 |
+| `rtexec` (1 × 20k, 2 × 150k, 3 × 150k templates, × plain/hugo) | grammar-generated templates over the `exec` data model, funcs and Hugo helper: random pipelines, method/field/key chains, all builtins with random args, printf formats, `range` over every kind with 1/2 variables and break/continue, `if`/`with`/`else with`, variables, `define`/`block`/`template` DAGs, every `missingkey` option, 7 data kinds | 640,000 |
+| `rtpairs pairs` (systematic) | every pair of 123 model values through `eq ne lt le gt ge`, `eq` with 3 args, `index`, `slice` (2 shapes), `and`, `or`, `print`, `html`, `js`, `urlquery`, `call`, `printf` (plain/hugo) | 544,644 |
+| `rtpairs fmt` | every model value through 57 `printf` formats (1 and 2 args) | 28,044 |
+| `rthtml` (1 × 100k, 2 × 150k, 3 × 150k scripts) | random HTML skeletons with actions in every context (attribute names/values quoted and unquoted, `on*`, `style`, `srcset`, URL parts, `<script>` of 17 types with regexp/division/template-literal/JSON tokens, `<style>` strings/urls/comments, comments, RCDATA, branches ending in different contexts, range re-entry, `{{template}}` in other contexts, recursion, missing templates): parse, `Prepare` (error text + `ErrorCode`), escaped trees of the namespace incl. derived templates, execution with 1–3 values (+ Hugo path) | 400,000 scripts, 2.9M operations |
+| `rtns` (1 × 100k, 2 × 150k) | random html namespace operation sequences: `New`, `Parse` (redefinitions, empty/comment-only bodies), `Lookup`, `AddParseTree` (parsed and shared trees), `Clone`, `CloneShallow`, `Funcs`, `Delims`, `Option`, `Execute`, `ExecuteTemplate`, Hugo path, `Templates`, identity/tree checks, escaped trees, after-execute errors | 250,000 scripts, 2.67M operations |
+| `rttns` (1 × 100k, 2 × 150k) | the same for text/template (`DefinedTemplates` names sorted, deviation 4) | 250,000 scripts, 2.60M operations |
+| `rtlayout` (1 × 20k, 2 × 60k) | the 122 layouts of this repository with 1–3 HTML-significant or in-action mutations, stub functions returning a nil `any` (contract C7): parse, `Prepare`, escaped trees, execution | 80,000 scripts, 520k operations |
+
+Findings (fixed; regression cases in the fixtures above):
+
+- a nil `*template.TryError` (`(try f).Err` without an error) printed as
+  `%!s(*template.TryError=<nil>)` by `printf "%s"`/`%q`/`%x`/`%X` where Go
+  prints `<nil>` (`hugo.rs`: declared to go-fmt as a type whose `Error`
+  panics on a nil receiver);
+- a host function or method returning a nil `any` as `Invalid` (as the
+  contract tells hosts to) made `f.X`, `(try f).Value.X` and similar
+  silently empty where Go fails with `nil pointer evaluating interface
+  {}.X` (`exec.rs` `eval_call_inner`); the same for `TryValue.Value` after
+  an error and any object field holding `Invalid` (`exec.rs` `eval_field`);
+- `TryError.Err` (`template.ExecError`) had no `Name`/`Err` fields and no
+  `Unwrap`, and its `Err` had no `*fmt.wrapError` type and `Unwrap`
+  (`hugo.rs` `ErrorValue`); `.Err`/`.Cause` were new objects on every
+  access, so `eq .Err.Cause .Err.Cause` was false (now created once).
+
+Left as documented deviations: host signatures (6), including the error
+location when an argument fails before a host's arity check; a host's
+typed error as `.Err.Cause` (9: `go_value::Error` is a message, e.g. an
+object error's fields are unreachable); methods of a nil
+`*template.TryError` (`(try 1).Err.Error`: Go calls it and reports the
+nil dereference, here `nil pointer evaluating`); static interface types
+(15) incl. the `slice` index case; parse/escape/exec nesting beyond the
+stack (3).
 
 Regenerate (repo root):
 
@@ -303,11 +386,35 @@ python3 tools/go-oracle/gotemplate/extract_tables.py   # after sync-fork.sh: reg
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate htmlexec crates/gotemplate/tests/fixtures/html
 GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate escdump \
   crates/gotemplate/tests/fixtures/html/escdump.txt docs/layouts create/skeletons/theme/layouts tpl/tplimpl/embedded/templates
+GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate rtfixtures crates/gotemplate/tests/fixtures
 ```
 
+Red-team corpora (repo root; `$C` is any scratch directory; each mode
+takes `<out.txt.gz> <seed> <n>`):
+
+```sh
+GOTOOLCHAIN=go1.27.1 go build -tags gotemplate_oracle -o $C/oracle ./tools/go-oracle/gotemplate
+$C/oracle rtparse $C/rtparse1.txt.gz 1 200000     # also seeds 2, 3 × 300000
+$C/oracle rtexec $C/rtexec1.txt.gz 1 20000        # also seeds 2, 3 × 150000
+$C/oracle rthtml $C/rthtml1.txt.gz 1 100000       # also seeds 2, 3 × 150000
+$C/oracle rtns $C/rtns1.txt.gz 1 100000           # also seed 2 × 150000
+$C/oracle rttns $C/rttns1.txt.gz 1 100000         # also seed 2 × 150000
+$C/oracle rtlayout $C/rtlayout1.txt.gz 1 20000    # also seed 2 × 60000 (run from the repo root)
+$C/oracle rtpairs $C/rtpairs.txt.gz pairs          # and: rtpairs $C/rtfmt.txt.gz fmt
+$C/oracle rtexeclist $C/list.txt.gz cases.txt     # one case per line: <data> <quoted option> <quoted source>
+cd crates/gotemplate
+GOTEMPLATE_RT_PARSE=$C/rtparse1.txt.gz cargo test --test parse_oracle parse_redteam -- --ignored
+GOTEMPLATE_RT_EXEC=$C/rtexec1.txt.gz:$C/rtpairs.txt.gz cargo test --test exec_oracle exec_redteam -- --ignored
+GOTEMPLATE_RT_HTML=$C/rthtml1.txt.gz:$C/rtns1.txt.gz:$C/rttns1.txt.gz:$C/rtlayout1.txt.gz \
+  cargo test --test html_exec html_redteam -- --ignored
+```
+
+`GOTEMPLATE_RT_VERBOSE=1` prints the complete lines of each difference.
+
 `tools/go-oracle/gotemplate/exectests/data.go` is a verbatim copy of parts
-of the fork's `exec_test.go` (line ranges in its header); re-copy it by
-hand if that file changes.
+of the fork's `exec_test.go` (line ranges in its header, plus `//nolint`
+comments); re-copy it by hand if that file changes. `sync-fork.sh` marks
+the copied fork as generated code, so golangci-lint skips it.
 
 ## Gaps
 

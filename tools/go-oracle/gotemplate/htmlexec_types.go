@@ -240,7 +240,7 @@ func (t *T) MAdd(a int, b []int) []int {
 	return v
 }
 
-var myError = errors.New("my error")
+var myError = errors.New("my error") //nolint:staticcheck // ST1012: the name of exec_test.go
 
 // MyError returns a value and an error according to its argument.
 func (t *T) MyError(error bool) (bool, error) {

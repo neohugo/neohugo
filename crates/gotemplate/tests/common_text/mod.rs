@@ -31,6 +31,22 @@ pub fn read_fixture(name: &str) -> String {
     String::from_utf8(bytes).expect("fixtures are ASCII (all strings are quoted)")
 }
 
+/// Reads a (possibly gzip-compressed) corpus outside the fixtures
+/// directory (the red-team corpora).
+pub fn read_gz_path(path: &std::path::Path) -> String {
+    let raw = std::fs::read(path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+    let bytes = if path.extension().is_some_and(|e| e == "gz") {
+        let mut out = Vec::new();
+        flate2::read::GzDecoder::new(&raw[..])
+            .read_to_end(&mut out)
+            .unwrap_or_else(|e| panic!("{}: {e}", path.display()));
+        out
+    } else {
+        raw
+    };
+    String::from_utf8(bytes).expect("corpora are ASCII (all strings are quoted)")
+}
+
 /// Go `strconv.Unquote` of a fixture field.
 pub fn unquote(s: &str) -> Vec<u8> {
     go_strconv::unquote(s).unwrap_or_else(|e| panic!("unquote {s:?}: {e}"))

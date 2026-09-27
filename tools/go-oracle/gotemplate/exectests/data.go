@@ -19,7 +19,7 @@ import (
 	"reflect"
 	"strings"
 
-	. "github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/texttemplate"
+	. "github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/texttemplate" //nolint:staticcheck // ST1001: as in exec_test.go (package template)
 )
 
 // ---- copied from exec_test.go (lines 25-859) ----
@@ -177,7 +177,7 @@ var tVal = &T{
 	ErrFunc:                   func() (string, error) { return "bla", nil },
 	PanicFunc:                 func() string { panic("test panic") },
 	TooFewReturnCountFunc:     func() {},
-	TooManyReturnCountFunc:    func() (string, error, int) { return "", nil, 0 },
+	TooManyReturnCountFunc:    func() (string, error, int) { return "", nil, 0 }, //nolint:staticcheck // ST1008: exec_test.go
 	InvalidReturnTypeFunc:     func() (string, bool) { return "", false },
 	Tmpl:                      Must(New("x").Parse("test template")), // "x" is the value of .X
 }
@@ -238,7 +238,7 @@ func (t *T) MAdd(a int, b []int) []int {
 	return v
 }
 
-var myError = errors.New("my error")
+var myError = errors.New("my error") //nolint:staticcheck // ST1012: exec_test.go
 
 // MyError returns a value and an error according to its argument.
 func (t *T) MyError(error bool) (bool, error) {

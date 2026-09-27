@@ -924,6 +924,13 @@ impl<'a> State<'a> {
                             "{field_name} has arguments but cannot be invoked as function"
                         )));
                     }
+                    // A Go struct field is never the invalid Value: a nil
+                    // `any` field (`Invalid` in the value model, e.g.
+                    // `TryValue.Value` after an error) is a nil
+                    // `interface {}`, so `.Value.X` fails as in Go.
+                    if field.is_invalid() {
+                        return Ok(nil_empty_interface());
+                    }
                     return Ok(field);
                 }
             }
@@ -1131,6 +1138,19 @@ impl<'a> State<'a> {
         // Added for Hugo
         self.helper.on_called(self.ctx, name, &argv, &v);
 
+        // A Go call result is never the invalid Value: a nil returned as
+        // `any` (which hosts return as `Invalid`, contract C7) is a nil
+        // `interface {}`, so `f.X` and `(try f).Value.X` fail with
+        // "nil pointer evaluating interface {}.X" as in Go; the end of the
+        // pipeline command turns it back into `Invalid` (evalPipeline).
+        if v.is_invalid()
+            && matches!(
+                fun,
+                Callee::Func(_) | Callee::Method(_) | Callee::Builtin(Builtin::Call)
+            )
+        {
+            return Ok(nil_empty_interface());
+        }
         Ok(v)
     }
 

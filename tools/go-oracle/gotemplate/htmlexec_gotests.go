@@ -736,7 +736,7 @@ line 3
 		want(wantExecErr(`template: top:7:20: executing "three" at <index "hi" $>: error calling index: index out of range: 5`)))
 
 	// TestTree
-	var tree func(v int, l, r string) string
+	var tree func(v int, l, r string) string //nolint:staticcheck // S1021: kept as in Go's TestTree
 	tree = func(v int, l, r string) string { return "tree:" + strconv.Itoa(v) + "(" + l + "," + r + ")" }
 	treeVal := tree(1,
 		tree(2, tree(3, tree(4, "nil", "nil"), "nil"), tree(5, tree(6, "nil", "nil"), "nil")),

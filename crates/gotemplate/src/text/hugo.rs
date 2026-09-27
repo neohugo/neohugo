@@ -253,9 +253,28 @@ impl TryValue {
     fn err_value(&self) -> Value {
         match &self.err {
             Some(e) => Value::Object(e.clone()),
-            None => Value::TypedNil(Arc::from("*template.TryError")),
+            None => {
+                register_nil_try_error();
+                Value::TypedNil(Arc::from("*template.TryError"))
+            }
         }
     }
+}
+
+/// A nil `*TryError` still has the `Error` method (pointer receiver), which
+/// dereferences it: fmt's `handleMethods` calls it for `%v %s %q %x %X` and
+/// `catchPanic` prints `<nil>` (fmt/print.go), e.g. `printf "%s" .Err`
+/// prints `<nil>`, not `%!s(*template.TryError=<nil>)`. Declared to go-fmt
+/// as a method that panics on the nil receiver.
+fn register_nil_try_error() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        go_fmt::register_named_method(
+            "*template.TryError",
+            // Go: hugo_template.go:(*TryError).Error — e.Err.Error() on a nil e.
+            go_fmt::NamedMethod::Error(|_| None),
+        )
+    });
 }
 
 impl Object for TryValue {
@@ -297,20 +316,90 @@ impl Object for TryValue {
 /// Go: `TryError` — wraps an error with a cause.
 pub struct TryError {
     pub err: Error,
+    /// The `Err` and `Cause` field values, created once so that they keep
+    /// their identity (Go: the same error values on every access).
+    fields: std::sync::OnceLock<(Value, Value)>,
 }
 
 impl TryError {
     // Go: hugo_template.go:newErrorWithCause
     pub(crate) fn new(err: Error) -> TryError {
-        TryError { err }
+        TryError {
+            err,
+            fields: std::sync::OnceLock::new(),
+        }
+    }
+
+    fn fields(&self) -> &(Value, Value) {
+        self.fields.get_or_init(|| {
+            let err = Value::object(match &self.err {
+                Error::Exec(e) => ErrorValue::exec_error(e),
+                other => ErrorValue::plain(ERROR_STRING, other.to_string()),
+            });
+            // Go: herrors.Cause(err), the innermost error of the Unwrap
+            // chain (a host error is a message, PORTING deviation 9).
+            let cause = Value::object(ErrorValue::plain(ERROR_STRING, self.err.cause_message()));
+            (err, cause)
+        })
     }
 }
 
 /// A Go `error` value visible to templates (the `Err`/`Cause` fields of
-/// `TryError`).
+/// `TryError` and what they wrap): `template.ExecError` (a struct with
+/// the fields `Name` and `Err` and the methods `Error` and `Unwrap`),
+/// `*fmt.wrapError` (`fmt.Errorf` with `%w`: `Error`, `Unwrap`) or
+/// `*errors.errorString` (`Error`).
 pub struct ErrorValue {
     pub type_name: String,
     pub message: String,
+    /// Go `ExecError.Name` (for `template.ExecError`).
+    pub name: Option<String>,
+    /// The wrapped error: `ExecError.Err`, or what `(*fmt.wrapError).Unwrap`
+    /// returns.
+    pub inner: Option<Arc<ErrorValue>>,
+}
+
+const EXEC_ERROR: &str = "template.ExecError";
+const WRAP_ERROR: &str = "*fmt.wrapError";
+const ERROR_STRING: &str = "*errors.errorString";
+
+impl ErrorValue {
+    fn plain(type_name: &str, message: String) -> ErrorValue {
+        ErrorValue {
+            type_name: type_name.to_string(),
+            message,
+            name: None,
+            inner: None,
+        }
+    }
+
+    // Go: exec.go:(*state).errorf builds `ExecError{Name, Err:
+    // fmt.Errorf(format, args...)}`; the format wraps (`%w`) the error of a
+    // function or method call ("error calling %s: %w").
+    fn exec_error(e: &crate::error::ExecError) -> ErrorValue {
+        let err = match &e.cause {
+            Some(cause) => ErrorValue {
+                inner: Some(Arc::new(ErrorValue::plain(
+                    ERROR_STRING,
+                    cause.message().to_string(),
+                ))),
+                ..ErrorValue::plain(WRAP_ERROR, e.message.clone())
+            },
+            None => ErrorValue::plain(ERROR_STRING, e.message.clone()),
+        };
+        ErrorValue {
+            name: Some(e.name.clone()),
+            inner: Some(Arc::new(err)),
+            ..ErrorValue::plain(EXEC_ERROR, e.message.clone())
+        }
+    }
+
+    fn inner_value(&self) -> Value {
+        match &self.inner {
+            Some(e) => Value::Object(e.clone()),
+            None => Value::TypedNil(Arc::from("error")),
+        }
+    }
 }
 
 impl Object for ErrorValue {
@@ -318,10 +407,18 @@ impl Object for ErrorValue {
         Cow::Borrowed(&self.type_name)
     }
     fn kind(&self) -> Kind {
-        Kind::Ptr
+        if self.type_name == EXEC_ERROR {
+            Kind::Struct
+        } else {
+            Kind::Ptr
+        }
     }
     fn has_method(&self, name: &str) -> bool {
-        name == "Error"
+        match name {
+            "Error" => true,
+            "Unwrap" => self.type_name == EXEC_ERROR || self.type_name == WRAP_ERROR,
+            _ => false,
+        }
     }
     fn call_method(
         &self,
@@ -329,7 +426,36 @@ impl Object for ErrorValue {
         name: &str,
         _args: &[Value],
     ) -> Option<go_value::Result<Value>> {
-        (name == "Error").then(|| Ok(Value::string(self.message.as_str())))
+        if !self.has_method(name) {
+            return None;
+        }
+        Some(Ok(match name {
+            // Go: (ExecError).Error, (*wrapError).Error, (*errorString).Error
+            "Error" => Value::string(self.message.as_str()),
+            // Go: (ExecError).Unwrap, (*wrapError).Unwrap
+            _ => self.inner_value(),
+        }))
+    }
+    fn field(&self, name: &str) -> Option<Value> {
+        if self.type_name != EXEC_ERROR {
+            return None;
+        }
+        match name {
+            "Name" => Some(Value::string(self.name.clone().unwrap_or_default())),
+            "Err" => Some(self.inner_value()),
+            _ => None,
+        }
+    }
+    fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
+        (self.type_name == EXEC_ERROR).then(|| {
+            vec![
+                (
+                    Cow::Borrowed("Name"),
+                    Value::string(self.name.clone().unwrap_or_default()),
+                ),
+                (Cow::Borrowed("Err"), self.inner_value()),
+            ]
+        })
     }
     fn go_error(&self) -> Option<String> {
         Some(self.message.clone())
@@ -365,17 +491,8 @@ impl Object for TryError {
     }
     fn field(&self, name: &str) -> Option<Value> {
         match name {
-            "Err" => Some(Value::object(ErrorValue {
-                type_name: match &self.err {
-                    Error::Exec(_) => "template.ExecError".to_string(),
-                    _ => "*errors.errorString".to_string(),
-                },
-                message: self.err.to_string(),
-            })),
-            "Cause" => Some(Value::object(ErrorValue {
-                type_name: "*errors.errorString".to_string(),
-                message: self.err.cause_message(),
-            })),
+            "Err" => Some(self.fields().0.clone()),
+            "Cause" => Some(self.fields().1.clone()),
             _ => None,
         }
     }

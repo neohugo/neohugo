@@ -465,9 +465,9 @@ type etxCase struct {
 var etxAddrRe = regexp.MustCompile(`0x[0-9a-f]{6,}`)
 
 func etxRun(w *bufio.Writer, i int, c etxCase, mode string) {
-	fmt.Fprintf(w, "#case %d %s\n", i, q(c.name))
-	fmt.Fprintf(w, "mode %s %s %s %s\n", mode, c.data, q(c.opt), q(c.exec))
-	fmt.Fprintf(w, "src %s\n", q(c.src))
+	_, _ = fmt.Fprintf(w, "#case %d %s\n", i, q(c.name))
+	_, _ = fmt.Fprintf(w, "mode %s %s %s %s\n", mode, c.data, q(c.opt), q(c.exec))
+	_, _ = fmt.Fprintf(w, "src %s\n", q(c.src))
 	data, sp, site := etxData(c.data)
 	tmpl := texttemplate.New("t")
 	if c.opt != "" {
@@ -479,7 +479,7 @@ func etxRun(w *bufio.Writer, i int, c etxCase, mode string) {
 		_, err = tmpl.Parse(c.src)
 	}
 	if err != nil {
-		fmt.Fprintf(w, "perr %s\n#end\n", q(err.Error()))
+		_, _ = fmt.Fprintf(w, "perr %s\n#end\n", q(err.Error()))
 		return
 	}
 	var buf bytes.Buffer
@@ -499,16 +499,16 @@ func etxRun(w *bufio.Writer, i int, c etxCase, mode string) {
 	}
 	out := buf.String()
 	if etxAddrRe.MatchString(out) || (err != nil && etxAddrRe.MatchString(err.Error())) {
-		fmt.Fprintf(w, "addr\n#end\n")
+		_, _ = fmt.Fprintf(w, "addr\n#end\n")
 		return
 	}
-	fmt.Fprintf(w, "out %s\n", q(out))
+	_, _ = fmt.Fprintf(w, "out %s\n", q(out))
 	if err != nil {
 		var ee texttemplate.ExecError
 		isExec := errors.As(err, &ee)
-		fmt.Fprintf(w, "err %s %t %s\n", q(err.Error()), isExec, q(herrors.Cause(err).Error()))
+		_, _ = fmt.Fprintf(w, "err %s %t %s\n", q(err.Error()), isExec, q(herrors.Cause(err).Error()))
 	}
-	fmt.Fprintf(w, "#end\n")
+	_, _ = fmt.Fprintf(w, "#end\n")
 }
 
 func etxMain(args []string) error {
@@ -519,7 +519,7 @@ func etxMain(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	zw, _ := gzip.NewWriterLevel(f, gzip.BestCompression)
 	w := bufio.NewWriter(zw)
 	n := 0

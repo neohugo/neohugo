@@ -113,7 +113,7 @@ func ptxMain(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	zw, _ := gzip.NewWriterLevel(f, gzip.BestCompression)
 	w := bufio.NewWriter(zw)
 	// The function name sets, so the Rust side need not duplicate them.
@@ -125,11 +125,11 @@ func ptxMain(args []string) error {
 			}
 		}
 		sort.Strings(names)
-		fmt.Fprintf(w, "funcs %s", kind)
+		_, _ = fmt.Fprintf(w, "funcs %s", kind)
 		for _, n := range names {
-			fmt.Fprintf(w, " %s", q(n))
+			_, _ = fmt.Fprintf(w, " %s", q(n))
 		}
-		fmt.Fprintf(w, "\n")
+		_, _ = fmt.Fprintf(w, "\n")
 	}
 	for i, c := range cases {
 		ptxRun(w, i, c)
@@ -145,16 +145,16 @@ func ptxMain(args []string) error {
 }
 
 func ptxRun(w *bufio.Writer, i int, c ptxCase) {
-	fmt.Fprintf(w, "#case %d %s\n", i, q(c.name))
-	fmt.Fprintf(w, "mode %d %s %s %s\n", c.mode, q(c.left), q(c.right), c.funcs)
-	fmt.Fprintf(w, "src %s\n", q(c.src))
+	_, _ = fmt.Fprintf(w, "#case %d %s\n", i, q(c.name))
+	_, _ = fmt.Fprintf(w, "mode %d %s %s %s\n", c.mode, q(c.left), q(c.right), c.funcs)
+	_, _ = fmt.Fprintf(w, "src %s\n", q(c.src))
 	treeSet := map[string]*parse.Tree{}
 	t := parse.New(c.name)
 	t.Mode = c.mode
 	_, err := t.Parse(c.src, c.left, c.right, treeSet, ptxFuncMaps(c.funcs)...)
 	if err != nil {
-		fmt.Fprintf(w, "err %s\n", q(err.Error()))
-		fmt.Fprintf(w, "#end\n")
+		_, _ = fmt.Fprintf(w, "err %s\n", q(err.Error()))
+		_, _ = fmt.Fprintf(w, "#end\n")
 		return
 	}
 	var names []string
@@ -164,16 +164,16 @@ func ptxRun(w *bufio.Writer, i int, c ptxCase) {
 	sort.Strings(names)
 	for _, n := range names {
 		tr := treeSet[n]
-		fmt.Fprintf(w, "tree %s %s %d\n", q(tr.Name), q(tr.ParseName), tr.Mode)
-		fmt.Fprintf(w, "str %s\n", q(tr.Root.String()))
+		_, _ = fmt.Fprintf(w, "tree %s %s %d\n", q(tr.Name), q(tr.ParseName), tr.Mode)
+		_, _ = fmt.Fprintf(w, "str %s\n", q(tr.Root.String()))
 		ptxDumpNode(w, tr, tr.Root, 0)
 		// A copy prints the same and keeps the original error context.
 		cp := tr.Copy()
 		if cp.Root.String() != tr.Root.String() {
-			fmt.Fprintf(w, "copy-differs\n")
+			_, _ = fmt.Fprintf(w, "copy-differs\n")
 		}
 	}
-	fmt.Fprintf(w, "#end\n")
+	_, _ = fmt.Fprintf(w, "#end\n")
 }
 
 // ptxLoc is the ErrorContext location of n without the (repeated)
@@ -206,19 +206,19 @@ func ptxDumpNode(w *bufio.Writer, tr *parse.Tree, n parse.Node, depth int) {
 	ind := strings.Repeat(" ", depth)
 	switch n := n.(type) {
 	case *parse.ListNode:
-		fmt.Fprintf(w, "%sList %d %s\n", ind, n.Pos, ptxLoc(tr, n))
+		_, _ = fmt.Fprintf(w, "%sList %d %s\n", ind, n.Pos, ptxLoc(tr, n))
 		for _, c := range n.Nodes {
 			ptxDumpNode(w, tr, c, depth+1)
 		}
 	case *parse.TextNode:
-		fmt.Fprintf(w, "%sText %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(string(n.Text)))
+		_, _ = fmt.Fprintf(w, "%sText %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(string(n.Text)))
 	case *parse.CommentNode:
-		fmt.Fprintf(w, "%sComment %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(n.Text))
+		_, _ = fmt.Fprintf(w, "%sComment %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(n.Text))
 	case *parse.ActionNode:
-		fmt.Fprintf(w, "%sAction %d %s L%d %s\n", ind, n.Pos, ptxLoc(tr, n), n.Line, q(n.String()))
+		_, _ = fmt.Fprintf(w, "%sAction %d %s L%d %s\n", ind, n.Pos, ptxLoc(tr, n), n.Line, q(n.String()))
 		ptxDumpNode(w, tr, n.Pipe, depth+1)
 	case *parse.PipeNode:
-		fmt.Fprintf(w, "%sPipe %d %s L%d assign=%t decl=%d cmds=%d %s\n", ind, n.Pos, ptxLoc(tr, n), n.Line,
+		_, _ = fmt.Fprintf(w, "%sPipe %d %s L%d assign=%t decl=%d cmds=%d %s\n", ind, n.Pos, ptxLoc(tr, n), n.Line,
 			n.IsAssign, len(n.Decl), len(n.Cmds), q(n.String()))
 		for _, d := range n.Decl {
 			ptxDumpNode(w, tr, d, depth+1)
@@ -227,31 +227,31 @@ func ptxDumpNode(w *bufio.Writer, tr *parse.Tree, n parse.Node, depth int) {
 			ptxDumpNode(w, tr, c, depth+1)
 		}
 	case *parse.CommandNode:
-		fmt.Fprintf(w, "%sCommand %d %s args=%d %s\n", ind, n.Pos, ptxLoc(tr, n), len(n.Args), q(n.String()))
+		_, _ = fmt.Fprintf(w, "%sCommand %d %s args=%d %s\n", ind, n.Pos, ptxLoc(tr, n), len(n.Args), q(n.String()))
 		for _, a := range n.Args {
 			ptxDumpNode(w, tr, a, depth+1)
 		}
 	case *parse.IdentifierNode:
-		fmt.Fprintf(w, "%sIdentifier %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(n.Ident))
+		_, _ = fmt.Fprintf(w, "%sIdentifier %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(n.Ident))
 	case *parse.VariableNode:
-		fmt.Fprintf(w, "%sVariable %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), ptxIdents(n.Ident))
+		_, _ = fmt.Fprintf(w, "%sVariable %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), ptxIdents(n.Ident))
 	case *parse.DotNode:
-		fmt.Fprintf(w, "%sDot %d %s\n", ind, n.Pos, ptxLoc(tr, n))
+		_, _ = fmt.Fprintf(w, "%sDot %d %s\n", ind, n.Pos, ptxLoc(tr, n))
 	case *parse.NilNode:
-		fmt.Fprintf(w, "%sNil %d %s\n", ind, n.Pos, ptxLoc(tr, n))
+		_, _ = fmt.Fprintf(w, "%sNil %d %s\n", ind, n.Pos, ptxLoc(tr, n))
 	case *parse.FieldNode:
-		fmt.Fprintf(w, "%sField %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), ptxIdents(n.Ident))
+		_, _ = fmt.Fprintf(w, "%sField %d %s %s\n", ind, n.Pos, ptxLoc(tr, n), ptxIdents(n.Ident))
 	case *parse.ChainNode:
-		fmt.Fprintf(w, "%sChain %d %s %s %s\n", ind, n.Pos, ptxLoc(tr, n), ptxIdents(n.Field), q(n.String()))
+		_, _ = fmt.Fprintf(w, "%sChain %d %s %s %s\n", ind, n.Pos, ptxLoc(tr, n), ptxIdents(n.Field), q(n.String()))
 		ptxDumpNode(w, tr, n.Node, depth+1)
 	case *parse.BoolNode:
-		fmt.Fprintf(w, "%sBool %d %s %t\n", ind, n.Pos, ptxLoc(tr, n), n.True)
+		_, _ = fmt.Fprintf(w, "%sBool %d %s %t\n", ind, n.Pos, ptxLoc(tr, n), n.True)
 	case *parse.NumberNode:
-		fmt.Fprintf(w, "%sNumber %d %s %s int=%t:%d uint=%t:%d float=%t:%s complex=%t:%s:%s\n", ind, n.Pos,
+		_, _ = fmt.Fprintf(w, "%sNumber %d %s %s int=%t:%d uint=%t:%d float=%t:%s complex=%t:%s:%s\n", ind, n.Pos,
 			ptxLoc(tr, n), q(n.Text), n.IsInt, n.Int64, n.IsUint, n.Uint64, n.IsFloat, ptxF64(n.Float64),
 			n.IsComplex, ptxF64(real(n.Complex128)), ptxF64(imag(n.Complex128)))
 	case *parse.StringNode:
-		fmt.Fprintf(w, "%sString %d %s %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(n.Quoted), q(n.Text))
+		_, _ = fmt.Fprintf(w, "%sString %d %s %s %s\n", ind, n.Pos, ptxLoc(tr, n), q(n.Quoted), q(n.Text))
 	case *parse.IfNode:
 		ptxDumpBranch(w, tr, "If", &n.BranchNode, depth)
 	case *parse.RangeNode:
@@ -259,30 +259,30 @@ func ptxDumpNode(w *bufio.Writer, tr *parse.Tree, n parse.Node, depth int) {
 	case *parse.WithNode:
 		ptxDumpBranch(w, tr, "With", &n.BranchNode, depth)
 	case *parse.TemplateNode:
-		fmt.Fprintf(w, "%sTemplate %d %s L%d %s %s\n", ind, n.Pos, ptxLoc(tr, n), n.Line, q(n.Name), q(n.String()))
+		_, _ = fmt.Fprintf(w, "%sTemplate %d %s L%d %s %s\n", ind, n.Pos, ptxLoc(tr, n), n.Line, q(n.Name), q(n.String()))
 		if n.Pipe == nil {
-			fmt.Fprintf(w, "%s nopipe\n", ind)
+			_, _ = fmt.Fprintf(w, "%s nopipe\n", ind)
 		} else {
 			ptxDumpNode(w, tr, n.Pipe, depth+1)
 		}
 	case *parse.BreakNode:
-		fmt.Fprintf(w, "%sBreak %d %s L%d\n", ind, n.Pos, ptxLoc(tr, n), n.Line)
+		_, _ = fmt.Fprintf(w, "%sBreak %d %s L%d\n", ind, n.Pos, ptxLoc(tr, n), n.Line)
 	case *parse.ContinueNode:
-		fmt.Fprintf(w, "%sContinue %d %s L%d\n", ind, n.Pos, ptxLoc(tr, n), n.Line)
+		_, _ = fmt.Fprintf(w, "%sContinue %d %s L%d\n", ind, n.Pos, ptxLoc(tr, n), n.Line)
 	default:
-		fmt.Fprintf(w, "%sUNKNOWN %T\n", ind, n)
+		_, _ = fmt.Fprintf(w, "%sUNKNOWN %T\n", ind, n)
 	}
 }
 
 func ptxDumpBranch(w *bufio.Writer, tr *parse.Tree, kind string, b *parse.BranchNode, depth int) {
 	ind := strings.Repeat(" ", depth)
-	fmt.Fprintf(w, "%s%s %d %s L%d\n", ind, kind, b.Pos, ptxLoc(tr, b), b.Line)
+	_, _ = fmt.Fprintf(w, "%s%s %d %s L%d\n", ind, kind, b.Pos, ptxLoc(tr, b), b.Line)
 	ptxDumpNode(w, tr, b.Pipe, depth+1)
 	ptxDumpNode(w, tr, b.List, depth+1)
 	if b.ElseList == nil {
-		fmt.Fprintf(w, "%s noelse\n", ind)
+		_, _ = fmt.Fprintf(w, "%s noelse\n", ind)
 	} else {
-		fmt.Fprintf(w, "%s else\n", ind)
+		_, _ = fmt.Fprintf(w, "%s else\n", ind)
 		ptxDumpNode(w, tr, b.ElseList, depth+1)
 	}
 }

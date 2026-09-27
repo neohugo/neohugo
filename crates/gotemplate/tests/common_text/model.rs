@@ -244,7 +244,7 @@ pub fn etx_pv(a: &str, b: i64) -> Value {
 /// field of a struct reached through a pointer is addressable.
 #[allow(clippy::too_many_arguments)]
 fn etx_t_fields(
-    name: &str,
+    name: impl AsRef<[u8]>,
     n: i64,
     f: f64,
     b: bool,
@@ -263,7 +263,7 @@ fn etx_t_fields(
     h: &str,
 ) -> Vec<(&'static str, Value)> {
     vec![
-        ("Name", s(name)),
+        ("Name", s(name.as_ref())),
         ("N", int(n)),
         ("F", Value::float64(f)),
         ("B", Value::Bool(b)),
@@ -292,7 +292,7 @@ fn etx_t_fields(
 
 /// A zero `EtxT` except for the given name (Go: `EtxT{Name: name}`),
 /// as a pointer or a (non-addressable) value.
-pub fn etx_t_zero(name: &str, ptr: bool, v: Value) -> Value {
+pub fn etx_t_zero(name: impl AsRef<[u8]>, ptr: bool, v: Value) -> Value {
     obj(SObj::new(
         "main.EtxT",
         ptr,
@@ -1267,11 +1267,7 @@ pub fn etx_funcs() -> BTreeMap<&'static str, Func> {
         "mkT",
         f(|a| {
             check_args("mkT", a, 1, false)?;
-            Ok(etx_t_zero(
-                &String::from_utf8_lossy(&sprint(&a[..1])),
-                true,
-                etx_v("", 0, true),
-            ))
+            Ok(etx_t_zero(sprint(&a[..1]), true, etx_v("", 0, true)))
         }),
     );
     m.insert(
@@ -1299,7 +1295,7 @@ pub fn etx_funcs() -> BTreeMap<&'static str, Func> {
         f(|a| {
             check_args("intarg", a, 1, false)?;
             match &a[0] {
-                Value::Int(i, IntKind::Int) => Ok(int(i * 2)),
+                Value::Int(i, IntKind::Int) => Ok(int(i.wrapping_mul(2))),
                 _ => Err(err("intarg: want int")),
             }
         }),

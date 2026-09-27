@@ -439,14 +439,14 @@ func writeScripts(w *bufio.Writer, scripts []*script, extraData ...string) (int,
 			}
 		}
 	}
-	fmt.Fprintf(w, "# gotemplate htmlexec fixture: D <i> <spec> / S <name> / O <op> <args> => <results> / E\n")
+	_, _ = fmt.Fprintf(w, "# gotemplate htmlexec fixture: D <i> <spec> / S <name> / O <op> <args> => <results> / E\n")
 	for i, spec := range table {
-		fmt.Fprintf(w, "D\t%d\t%s\n", i, spec)
+		_, _ = fmt.Fprintf(w, "D\t%d\t%s\n", i, spec)
 	}
 	failed := 0
 	for _, s := range scripts {
 		in := &interp{t: map[string]*htmltemplate.Template{}, tr: map[string]*parse.Tree{}, data: table}
-		fmt.Fprintf(w, "S\t%s\n", q(s.name))
+		_, _ = fmt.Fprintf(w, "S\t%s\n", q(s.name))
 		for _, o := range s.ops {
 			args := make([]string, len(o.args))
 			for i, a := range o.args {
@@ -463,17 +463,17 @@ func writeScripts(w *bufio.Writer, scripts []*script, extraData ...string) (int,
 					fmt.Fprintf(os.Stderr, "%s: %s %q: %v\n", s.name, o.kind, o.args, err)
 				}
 			}
-			fmt.Fprintf(w, "O\t%s", o.kind)
+			_, _ = fmt.Fprintf(w, "O\t%s", o.kind)
 			for _, a := range args {
-				fmt.Fprintf(w, "\t%s", q(a))
+				_, _ = fmt.Fprintf(w, "\t%s", q(a))
 			}
-			fmt.Fprintf(w, "\t=>")
+			_, _ = fmt.Fprintf(w, "\t=>")
 			for _, r := range res {
-				fmt.Fprintf(w, "\t%s", q(r))
+				_, _ = fmt.Fprintf(w, "\t%s", q(r))
 			}
-			fmt.Fprintln(w)
+			_, _ = fmt.Fprintln(w)
 		}
-		fmt.Fprintln(w, "E")
+		_, _ = fmt.Fprintln(w, "E")
 	}
 	return failed, nil
 }
@@ -589,14 +589,14 @@ func specOf(v any) string {
 // internal.txt.gz: TestEscapeText, TestEnsurePipelineContains, redundantFuncs
 
 func writeInternal(w *bufio.Writer) error {
-	fmt.Fprintf(w, "# gotemplate htmlexec internal fixture\n")
-	fmt.Fprintf(w, "# X <text> <context> <unmodified> / P <src> <ids> <pipeline or error> / F <a> <b>\n")
+	_, _ = fmt.Fprintf(w, "# gotemplate htmlexec internal fixture\n")
+	_, _ = fmt.Fprintf(w, "# X <text> <context> <unmodified> / P <src> <ids> <pipeline or error> / F <a> <b>\n")
 	for _, tc := range escapeTextTests() {
 		ctx, same := htmltemplate.EscapeTextExported(tc.input)
 		if tc.want != "" && ctx != tc.want {
 			fmt.Fprintf(os.Stderr, "TestEscapeText %q: want %s got %s\n", tc.input, tc.want, ctx)
 		}
-		fmt.Fprintf(w, "X\t%s\t%s\t%v\n", q(tc.input), q(ctx), same)
+		_, _ = fmt.Fprintf(w, "X\t%s\t%s\t%v\n", q(tc.input), q(ctx), same)
 	}
 	for _, tc := range ensurePipelineTests() {
 		got, err := htmltemplate.EnsurePipelineContainsExported(tc.input, tc.ids)
@@ -609,7 +609,7 @@ func writeInternal(w *bufio.Writer) error {
 		for i, id := range tc.ids {
 			qs[i] = q(id)
 		}
-		fmt.Fprintf(w, "P\t%s\t%s\t%s\n", q(tc.input), strings.Join(qs, ","), q(got))
+		_, _ = fmt.Fprintf(w, "P\t%s\t%s\t%s\n", q(tc.input), strings.Join(qs, ","), q(got))
 	}
 	var pairs []string
 	for a, m := range htmltemplate.RedundantFuncsExported() {
@@ -619,7 +619,7 @@ func writeInternal(w *bufio.Writer) error {
 	}
 	sort.Strings(pairs)
 	for _, p := range pairs {
-		fmt.Fprintf(w, "F\t%s\n", p)
+		_, _ = fmt.Fprintf(w, "F\t%s\n", p)
 	}
 	return nil
 }

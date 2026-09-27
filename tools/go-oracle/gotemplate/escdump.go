@@ -31,7 +31,7 @@ func init() { register("escdump", runEscDump) }
 
 func runEscDump(args []string) error {
 	if len(args) < 2 {
-		return fmt.Errorf("usage: escdump <outfile> <layoutsdir>...")
+		return fmt.Errorf("usage: escdump <outfile> <layoutsdir> [<layoutsdir>]")
 	}
 	var out bytes.Buffer
 	for _, dir := range args[1:] {

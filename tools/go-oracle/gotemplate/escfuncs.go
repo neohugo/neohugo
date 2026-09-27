@@ -374,9 +374,9 @@ func writeEscFuncs(w *bufio.Writer) error {
 		}
 		fs[i] = f
 	}
-	fmt.Fprintf(w, "# gotemplate escfuncs fixture: I <args spec> / O <func index> =<quoted>|P<quoted panic>|N\n")
+	_, _ = fmt.Fprintf(w, "# gotemplate escfuncs fixture: I <args spec> / O <func index> =<quoted>|P<quoted panic>|N\n")
 	for _, spec := range escArgsCorpus() {
-		fmt.Fprintf(w, "I\t%s\n", spec)
+		_, _ = fmt.Fprintf(w, "I\t%s\n", spec)
 		for i, f := range fs {
 			out1, p1, err := callEsc(f, spec)
 			if err != nil {
@@ -385,11 +385,11 @@ func writeEscFuncs(w *bufio.Writer) error {
 			out2, p2, _ := callEsc(f, spec)
 			switch {
 			case p1 != "":
-				fmt.Fprintf(w, "O\t%d\tP%s\n", i, q(p1))
+				_, _ = fmt.Fprintf(w, "O\t%d\tP%s\n", i, q(p1))
 			case out1 != out2 || p2 != "":
-				fmt.Fprintf(w, "O\t%d\tN\n", i)
+				_, _ = fmt.Fprintf(w, "O\t%d\tN\n", i)
 			default:
-				fmt.Fprintf(w, "O\t%d\t=%s\n", i, q(out1))
+				_, _ = fmt.Fprintf(w, "O\t%d\t=%s\n", i, q(out1))
 			}
 		}
 	}
@@ -542,12 +542,12 @@ func step(c htmltemplate.OracleCtx, s []byte) (res htmltemplate.OracleCtx, n int
 func writeTransitions(w *bufio.Writer) error {
 	texts := transitionTexts()
 	ctxs := startContexts()
-	fmt.Fprintf(w, "# gotemplate transitions fixture: T <text> / C <ctx> <braces> / R <ti> <ci> <step>...\n")
+	_, _ = fmt.Fprintf(w, "# gotemplate transitions fixture: T <text> / C <ctx> <braces> / R <ti> <ci> <step>...\n")
 	for _, t := range texts {
-		fmt.Fprintf(w, "T\t%s\n", q(t))
+		_, _ = fmt.Fprintf(w, "T\t%s\n", q(t))
 	}
 	for _, c := range ctxs {
-		fmt.Fprintf(w, "C\t%s\n", c)
+		_, _ = fmt.Fprintf(w, "C\t%s\n", c)
 	}
 	for ti, t := range texts {
 		for ci, sc := range ctxs {
@@ -577,11 +577,11 @@ func writeTransitions(w *bufio.Writer) error {
 				}
 				c, s = res, s[n:]
 			}
-			fmt.Fprintf(w, "R\t%d\t%d", ti, ci)
+			_, _ = fmt.Fprintf(w, "R\t%d\t%d", ti, ci)
 			for _, st := range steps {
-				fmt.Fprintf(w, "\t%s", st)
+				_, _ = fmt.Fprintf(w, "\t%s", st)
 			}
-			fmt.Fprintln(w)
+			_, _ = fmt.Fprintln(w)
 		}
 	}
 	return nil
@@ -598,7 +598,7 @@ func b01(b bool) int {
 }
 
 func writeLeaf(w *bufio.Writer) error {
-	fmt.Fprintf(w, "# gotemplate leaf fixture: L <func> <inputs...> <result>\n")
+	_, _ = fmt.Fprintf(w, "# gotemplate leaf fixture: L <func> <inputs...> <result>\n")
 	strs := stringCorpus()
 	strs = append(strs, transitionTexts()...)
 
@@ -620,7 +620,7 @@ func writeLeaf(w *bufio.Writer) error {
 		html = append(html, b.String())
 	}
 	for _, s := range html {
-		fmt.Fprintf(w, "L\tstriptags\t%s\t%s\n", q(s), q(htmltemplate.StripTagsExported(s)))
+		_, _ = fmt.Fprintf(w, "L\tstriptags\t%s\t%s\n", q(s), q(htmltemplate.StripTagsExported(s)))
 	}
 
 	// nextJSCtx.
@@ -633,19 +633,19 @@ func writeLeaf(w *bufio.Writer) error {
 	jsInputs = append(jsInputs, strs...)
 	for _, s := range jsInputs {
 		for p := uint8(0); p <= 2; p++ {
-			fmt.Fprintf(w, "L\tnextjs\t%s\t%d\t%d\n", q(s), p, htmltemplate.NextJSCtxExported([]byte(s), p))
+			_, _ = fmt.Fprintf(w, "L\tnextjs\t%s\t%d\t%d\n", q(s), p, htmltemplate.NextJSCtxExported([]byte(s), p))
 		}
 	}
 
 	// attrType, isJSType, isSafeURL, decodeCSS, special script tags.
 	for _, s := range strs {
-		fmt.Fprintf(w, "L\tattrtype\t%s\t%d\n", q(s), htmltemplate.AttrTypeExported(s))
-		fmt.Fprintf(w, "L\tisjstype\t%s\t%d\n", q(s), b01(htmltemplate.IsJSTypeExported(s)))
-		fmt.Fprintf(w, "L\tissafeurl\t%s\t%d\n", q(s), b01(htmltemplate.IsSafeURLExported(s)))
-		fmt.Fprintf(w, "L\tdecodecss\t%s\t%s\n", q(s), q(string(htmltemplate.DecodeCSSExported([]byte(s)))))
-		fmt.Fprintf(w, "L\tspecialtag\t%s\t%d\t%s\n", q(s), b01(htmltemplate.ContainsSpecialScriptTagExported([]byte(s))),
+		_, _ = fmt.Fprintf(w, "L\tattrtype\t%s\t%d\n", q(s), htmltemplate.AttrTypeExported(s))
+		_, _ = fmt.Fprintf(w, "L\tisjstype\t%s\t%d\n", q(s), b01(htmltemplate.IsJSTypeExported(s)))
+		_, _ = fmt.Fprintf(w, "L\tissafeurl\t%s\t%d\n", q(s), b01(htmltemplate.IsSafeURLExported(s)))
+		_, _ = fmt.Fprintf(w, "L\tdecodecss\t%s\t%s\n", q(s), q(string(htmltemplate.DecodeCSSExported([]byte(s)))))
+		_, _ = fmt.Fprintf(w, "L\tspecialtag\t%s\t%d\t%s\n", q(s), b01(htmltemplate.ContainsSpecialScriptTagExported([]byte(s))),
 			q(string(htmltemplate.EscapeSpecialScriptTagsExported([]byte(s)))))
-		fmt.Fprintf(w, "L\tscripttagre\t%s\t%s\n", q(s), q(string(htmltemplate.ScriptTagReplaceExported([]byte(s)))))
+		_, _ = fmt.Fprintf(w, "L\tscripttagre\t%s\t%s\n", q(s), q(string(htmltemplate.ScriptTagReplaceExported([]byte(s)))))
 	}
 	// Case folding of the script-tag regexps: every rune whose simple-fold
 	// orbit contains an ASCII byte, Latin-1/Latin Extended runes, and a few
@@ -670,16 +670,16 @@ func writeLeaf(w *bufio.Writer) error {
 		}
 		for _, pat := range []string{"<%cscript", "<s%cript", "<scrip%c", "</%cscript", "</s%cript", "<!-%c", "<%c!--"} {
 			s := fmt.Sprintf(pat, fr)
-			fmt.Fprintf(w, "L\tspecialtag\t%s\t%d\t%s\n", q(s), b01(htmltemplate.ContainsSpecialScriptTagExported([]byte(s))),
+			_, _ = fmt.Fprintf(w, "L\tspecialtag\t%s\t%d\t%s\n", q(s), b01(htmltemplate.ContainsSpecialScriptTagExported([]byte(s))),
 				q(string(htmltemplate.EscapeSpecialScriptTagsExported([]byte(s)))))
-			fmt.Fprintf(w, "L\tscripttagre\t%s\t%s\n", q(s), q(string(htmltemplate.ScriptTagReplaceExported([]byte(s)))))
+			_, _ = fmt.Fprintf(w, "L\tscripttagre\t%s\t%s\n", q(s), q(string(htmltemplate.ScriptTagReplaceExported([]byte(s)))))
 		}
 	}
 
 	// indexTagEnd.
 	for _, s := range strs {
 		for _, tag := range []string{"script", "style", "textarea", "title", "tag"} {
-			fmt.Fprintf(w, "L\tindextagend\t%s\t%s\t%d\n", q(s), q(tag), htmltemplate.IndexTagEndExported([]byte(s), []byte(tag)))
+			_, _ = fmt.Fprintf(w, "L\tindextagend\t%s\t%s\t%d\n", q(s), q(tag), htmltemplate.IndexTagEndExported([]byte(s), []byte(tag)))
 		}
 	}
 	for _, s := range []string{"", "hello </textarea> hello", "hello </TEXTarea> hello", "hello </textAREA>",
@@ -688,7 +688,7 @@ func writeLeaf(w *bufio.Writer) error {
 		"</TEXTAREAfoo </textarea>", "<</script >", "</script>", "</\u017fcript>", "</scrip\u0130>", "</SCRIPT/", "</script\f",
 		"</script\r", "</script\v", "</</script>", "</script></script>"} {
 		for _, tag := range []string{"script", "textarea", "textareax", "tag"} {
-			fmt.Fprintf(w, "L\tindextagend\t%s\t%s\t%d\n", q(s), q(tag), htmltemplate.IndexTagEndExported([]byte(s), []byte(tag)))
+			_, _ = fmt.Fprintf(w, "L\tindextagend\t%s\t%s\t%d\n", q(s), q(tag), htmltemplate.IndexTagEndExported([]byte(s), []byte(tag)))
 		}
 	}
 
@@ -696,7 +696,7 @@ func writeLeaf(w *bufio.Writer) error {
 	for _, s := range append([]string{"", "url", "URL", "Url", "important", "image-url", "imageurl", "image url",
 		"x\u00e9url", "\xffurl", "\u212aurl", "ur\u017f", "a:url", "_url", "9url", "\u2028url", "uRl"}, strs...) {
 		for _, kw := range []string{"url", "important"} {
-			fmt.Fprintf(w, "L\tendswithcss\t%s\t%s\t%d\n", q(s), q(kw), b01(htmltemplate.EndsWithCSSKeywordExported([]byte(s), kw)))
+			_, _ = fmt.Fprintf(w, "L\tendswithcss\t%s\t%s\t%d\n", q(s), q(kw), b01(htmltemplate.EndsWithCSSKeywordExported([]byte(s), kw)))
 		}
 	}
 
@@ -710,7 +710,7 @@ func writeLeaf(w *bufio.Writer) error {
 		}
 		for _, f := range combos {
 			o := htmltemplate.OracleCtx{State: st, Delim: f[0], URLPart: f[1], JSCtx: f[2], Attr: f[3], Element: f[4]}
-			fmt.Fprintf(w, "L\tctx\t%d,%d,%d,%d,%d,%d\t%s\t%s\n", st, f[0], f[1], f[2], f[3], f[4],
+			_, _ = fmt.Fprintf(w, "L\tctx\t%d,%d,%d,%d,%d,%d\t%s\t%s\n", st, f[0], f[1], f[2], f[3], f[4],
 				q(htmltemplate.ContextStringExported(o)), q(htmltemplate.MangleExported(o, "name")))
 		}
 	}
@@ -721,6 +721,6 @@ func writeLeaf(w *bufio.Writer) error {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	fmt.Fprintf(w, "L\tfuncmap\t%s\n", strings.Join(keys, ","))
+	_, _ = fmt.Fprintf(w, "L\tfuncmap\t%s\n", strings.Join(keys, ","))
 	return nil
 }

@@ -203,6 +203,46 @@ impl FuncNames for Names {
 #[test]
 fn parse_oracle() {
     let text = read_fixture("parse.txt.gz");
+    let (n, lossy_names, bad) = check_parse_fixture(&text, 20);
+    assert!(n > 4000, "fixture has {n} cases");
+    eprintln!("{n} parse cases; {lossy_names} differ only by lossy UTF-8 template names");
+    assert!(lossy_names <= 8, "{lossy_names} lossy-name cases");
+    assert_eq!(bad, 0, "{bad} of {n} parse cases differ from Go");
+}
+
+/// Red-team regressions: minimized cases that once differed from Go
+/// (`tools/go-oracle/gotemplate/redteam_fixtures.go`).
+#[test]
+fn parse_redteam_regressions() {
+    let text = read_fixture("redteam_parse.txt.gz");
+    let (n, _, bad) = check_parse_fixture(&text, 50);
+    assert!(n > 0);
+    assert_eq!(bad, 0, "{bad} of {n} red-team parse cases differ from Go");
+}
+
+/// The large seeded red-team corpus (`rtparse` oracle mode, not checked
+/// in): `GOTEMPLATE_RT_PARSE=<file.txt.gz> cargo test --test parse_oracle -- --ignored`.
+#[test]
+#[ignore]
+fn parse_redteam() {
+    let Some(path) = std::env::var_os("GOTEMPLATE_RT_PARSE") else {
+        eprintln!("GOTEMPLATE_RT_PARSE not set");
+        return;
+    };
+    for path in std::env::split_paths(&path) {
+        let text = read_gz_path(&path);
+        let (n, lossy_names, bad) = check_parse_fixture(&text, 50);
+        eprintln!(
+            "{}: {n} parse cases; {lossy_names} differ only by PORTING deviations 5 (lossy UTF-8 names and messages) or 17 (% verbs in names); {bad} differ",
+            path.display()
+        );
+        assert_eq!(bad, 0, "{bad} of {n} parse cases differ from Go");
+    }
+}
+
+/// Replays a parse fixture; returns (cases, lossy-name cases, differing
+/// cases), printing the first `show` differences.
+fn check_parse_fixture(text: &str, show: usize) -> (usize, usize, usize) {
     let mut func_sets: HashMap<String, Names> = HashMap::new();
     for line in text.lines().take_while(|l| l.starts_with("funcs ")) {
         let f = fields(line);
@@ -211,17 +251,16 @@ fn parse_oracle() {
             Names(f[2..].iter().map(|s| unquote_str(s)).collect()),
         );
     }
-    let recs = records(&text);
-    assert!(recs.len() > 4000, "fixture has {} cases", recs.len());
+    let recs = records(text);
     let mut bad = 0;
     let mut lossy_names = 0;
     for rec in &recs {
-        let name = unquote_str(rec.header[1]);
+        let name = String::from_utf8_lossy(&unquote(rec.header[1])).into_owned();
         let mode_line = fields(rec.lines[0]);
         assert_eq!(mode_line[0], "mode");
         let mode = Mode(mode_line[1].parse().unwrap());
-        let left = unquote_str(mode_line[2]);
-        let right = unquote_str(mode_line[3]);
+        let left = String::from_utf8_lossy(&unquote(mode_line[2])).into_owned();
+        let right = String::from_utf8_lossy(&unquote(mode_line[3])).into_owned();
         let funcs = &func_sets[mode_line[4]];
         let src_line = rec.lines[1].strip_prefix("src ").unwrap();
         let src = unquote(src_line);
@@ -255,21 +294,83 @@ fn parse_oracle() {
                 lossy_names += 1;
                 continue;
             }
+            // Known deviation (PORTING deviation 5): error texts are Rust
+            // strings, so invalid UTF-8 quoted in a message is replaced.
+            if lossy_err_equal(&rec.lines, &got) {
+                lossy_names += 1;
+                continue;
+            }
+            // Known deviation (PORTING deviation 17): Go splices the
+            // template name into errorf's format string, so `%` verbs in a
+            // name consume the message's arguments (printing Go pointers).
+            if name.contains('%') && rec.lines.len() == 3 && got.len() == 3 {
+                lossy_names += 1;
+                continue;
+            }
             bad += 1;
-            if bad <= 20 {
+            if bad <= show {
                 eprintln!(
-                    "case {} {}: src {}\n  {d}",
-                    rec.header[0], rec.header[1], src_line
+                    "case {} {}: {} src {}\n  {d}",
+                    rec.header[0], rec.header[1], rec.lines[0], src_line
                 );
             }
         }
     }
-    eprintln!(
-        "{} parse cases; {lossy_names} differ only by lossy UTF-8 template names",
-        recs.len()
+    (recs.len(), lossy_names, bad)
+}
+
+/// Whether both dumps are one error line whose texts are equal once Go's
+/// invalid UTF-8 is replaced by U+FFFD.
+fn lossy_err_equal(want: &[&str], got: &[String]) -> bool {
+    let (Some(w), Some(g)) = (want.get(2), got.get(2)) else {
+        return false;
+    };
+    if !(want.len() == 3 && got.len() == 3 && w.starts_with("err ") && g.starts_with("err ")) {
+        return false;
+    }
+    let (w, g) = (
+        String::from_utf8_lossy(&unquote(&w[4..])).into_owned(),
+        String::from_utf8_lossy(&unquote(&g[4..])).into_owned(),
     );
-    assert!(lossy_names <= 8, "{lossy_names} lossy-name cases");
-    assert_eq!(bad, 0, "{bad} of {} parse cases differ from Go", recs.len());
+    // A name quoted in the message (`%q`): Go escapes the invalid bytes.
+    w == g || collapse_replacement(&replace_high_escapes(&w)) == collapse_replacement(&g)
+}
+
+/// Replaces `\xHH` escapes of non-ASCII bytes (Go's `%q` of invalid UTF-8)
+/// by U+FFFD.
+fn replace_high_escapes(s: &str) -> String {
+    let b = s.as_bytes();
+    let mut out = String::new();
+    let mut i = 0;
+    while i < b.len() {
+        if b[i] == b'\\'
+            && i + 3 < b.len()
+            && b[i + 1] == b'x'
+            && b[i + 2].is_ascii_hexdigit()
+            && b[i + 3].is_ascii_hexdigit()
+            && b[i + 2] >= b'8'
+        {
+            out.push('\u{fffd}');
+            i += 4;
+            continue;
+        }
+        let c = s[i..].chars().next().unwrap();
+        out.push(c);
+        i += c.len_utf8();
+    }
+    out
+}
+
+/// Collapses runs of U+FFFD.
+fn collapse_replacement(s: &str) -> String {
+    let mut out = String::new();
+    for c in s.chars() {
+        if c == '\u{fffd}' && out.ends_with('\u{fffd}') {
+            continue;
+        }
+        out.push(c);
+    }
+    out
 }
 
 /// Whether a Go dump names a template (a `tree` line or a `Template`

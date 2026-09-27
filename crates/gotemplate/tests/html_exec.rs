@@ -33,7 +33,7 @@ use std::sync::Arc;
 
 use go_value::{GoString, HostCtx, MapType, SafeKind, Value};
 use gotemplate::html::Template;
-use gotemplate::parse::{self, Mode, SharedTree};
+use gotemplate::parse::{self, Mode, NodeLike, SharedTree};
 use gotemplate::text::{DefaultHelper, ExecHelper, Executer, Func, FuncMap};
 
 use common::{q, read_gz_fixture, spec_value, unquote};
@@ -257,6 +257,13 @@ fn func_set(args: &[String], t: &HashMap<String, Template>) -> FuncMap {
                 }),
             );
         }
+        "stubs" => {
+            // Red-team layouts (Go: redteam_layout.go rtStubFuncs): every
+            // name is `func(...any) any` returning nil.
+            for name in args[1].split(',').filter(|n| !n.is_empty()) {
+                m.insert(name.into(), func(|_| Ok(Value::Invalid)));
+            }
+        }
         "corpus" => {
             m.insert("safeHTML".into(), safe_func(SafeKind::Html));
             m.insert("safeHTMLAttr".into(), safe_func(SafeKind::HtmlAttr));
@@ -432,6 +439,8 @@ fn exec_data(spec: &str) -> Value {
 struct Interp<'a> {
     t: HashMap<String, Template>,
     tr: HashMap<String, SharedTree>,
+    /// Text templates of the red-team text namespace operations.
+    tt: HashMap<String, gotemplate::text::Template>,
     data: &'a [String],
 }
 
@@ -454,12 +463,113 @@ impl Interp<'_> {
         exec_data(&self.spec(arg))
     }
 
+    fn ttmpl(&self, name: &str) -> gotemplate::text::Template {
+        self.tt
+            .get(name)
+            .unwrap_or_else(|| panic!("undefined text template variable {name}"))
+            .clone()
+    }
+
+    /// The red-team text namespace operations (Go: redteam_textns.go
+    /// rtRunText).
+    fn run_text(&mut self, kind: &str, a: &[String], raw: &[Vec<u8>]) -> Option<Res> {
+        use gotemplate::text::Template as TextTemplate;
+        Some(match kind {
+            "tnew" => {
+                self.tt.insert(a[0].clone(), TextTemplate::new(&a[1]));
+                vec![]
+            }
+            "tnewassoc" => {
+                let t = self.ttmpl(&a[1]).new_associated(&a[2]);
+                self.tt.insert(a[0].clone(), t);
+                vec![]
+            }
+            "tparse" => ok_or_err(self.ttmpl(&a[0]).parse(&raw[1])),
+            "tclone" => {
+                let res = self.ttmpl(&a[1]).clone_ns();
+                if let Ok(c) = &res {
+                    self.tt.insert(a[0].clone(), c.clone());
+                }
+                ok_or_err(res)
+            }
+            "tlookup" => match self.ttmpl(&a[1]).lookup(&a[2]) {
+                None => vec![r("nil")],
+                Some(x) => {
+                    self.tt.insert(a[0].clone(), x);
+                    vec![r("ok")]
+                }
+            },
+            "taddtree" => {
+                let tree = if let Some(tr) = a[3].strip_prefix("tree:") {
+                    self.tr.get(tr).cloned()
+                } else if let Some(v) = a[3].strip_prefix("of:") {
+                    self.ttmpl(v).tree()
+                } else {
+                    panic!("bad tree ref {}", a[3])
+                };
+                let Some(tree) = tree else {
+                    return Some(vec![r("NOTREE")]);
+                };
+                let res = self.ttmpl(&a[1]).add_parse_tree(&a[2], tree);
+                if let Ok(x) = &res {
+                    self.tt.insert(a[0].clone(), x.clone());
+                }
+                ok_or_err(res)
+            }
+            "tfuncs" => {
+                let fm = func_set(&a[1..], &self.t);
+                self.ttmpl(&a[0]).funcs(&fm);
+                vec![]
+            }
+            "tdelims" => {
+                self.ttmpl(&a[0]).delims(&a[1], &a[2]);
+                vec![]
+            }
+            "toption" => {
+                self.ttmpl(&a[0]).set_option(&[a[1].as_str()]);
+                vec![]
+            }
+            "texec" => {
+                let mut out = Vec::new();
+                let res = self.ttmpl(&a[0]).execute(&mut out, &self.data(&a[1]));
+                exec_result(&out, res)
+            }
+            "texectmpl" => {
+                let mut out = Vec::new();
+                let res = self
+                    .ttmpl(&a[0])
+                    .execute_template(&mut out, &a[1], &self.data(&a[2]));
+                exec_result(&out, res)
+            }
+            "ttemplates" => {
+                let mut names: Vec<String> = self
+                    .ttmpl(&a[0])
+                    .templates()
+                    .iter()
+                    .map(|t| t.name().to_string())
+                    .collect();
+                names.sort();
+                let mut res = vec![r(names.len().to_string())];
+                res.extend(names.into_iter().map(r));
+                res
+            }
+            "tdefined" => vec![r(self.ttmpl(&a[0]).defined_templates())],
+            "tname" => vec![r(self.ttmpl(&a[0]).name())],
+            "thastree" => vec![r(self.ttmpl(&a[0]).tree().is_some().to_string())],
+            "tptreq" => vec![r(self.ttmpl(&a[0]).ptr_eq(&self.ttmpl(&a[1])).to_string())],
+            _ => return None,
+        })
+    }
+
     fn run(&mut self, kind: &str, raw: &[Vec<u8>]) -> Res {
         // Names and variables are text; template sources stay bytes.
         let a: Vec<String> = raw
             .iter()
             .map(|b| String::from_utf8_lossy(b).into_owned())
             .collect();
+        if let Some(res) = self.run_text(kind, &a, raw) {
+            return res;
+        }
         match kind {
             "new" => {
                 self.t.insert(a[0].clone(), Template::new(&a[1]));
@@ -604,11 +714,15 @@ impl Interp<'_> {
             }
             "addtree" => {
                 let tree = if let Some(tr) = a[3].strip_prefix("tree:") {
-                    self.tr[tr].clone()
+                    self.tr.get(tr).cloned()
                 } else if let Some(v) = a[3].strip_prefix("of:") {
-                    self.tmpl(v).tree().expect("tree")
+                    self.tmpl(v).tree()
                 } else {
                     panic!("bad tree ref {}", a[3])
+                };
+                // The red-team scripts skip nil trees (Go: rtRun).
+                let Some(tree) = tree else {
+                    return vec![r("NOTREE")];
                 };
                 let res = self.tmpl(&a[1]).add_parse_tree(&a[2], tree);
                 if let Ok(x) = &res {
@@ -616,8 +730,49 @@ impl Interp<'_> {
                 }
                 ok_or_err(res)
             }
+            // Red-team operations (Go: redteam_html.go rtRun).
+            "execc" => {
+                let mut out = Vec::new();
+                let res = self.tmpl(&a[0]).execute(&mut out, &self.data(&a[1]));
+                let code = html_error_code(&res);
+                let mut v = exec_result(&out, res);
+                v.push(r(code));
+                v
+            }
+            "prepare" => match self.tmpl(&a[0]).prepare() {
+                Ok(_) => vec![r("ok")],
+                Err(e) => {
+                    let code = html_error_code(&Err::<(), _>(e.clone()));
+                    vec![r("err"), r(e.to_string()), r(code)]
+                }
+            },
+            "dump" => {
+                let mut ts = self.tmpl(&a[0]).text().templates();
+                ts.sort_by(|x, y| x.name().cmp(y.name()));
+                let mut res = vec![r(ts.len().to_string())];
+                for t in ts {
+                    res.push(r(t.name()));
+                    res.push(match t.tree().and_then(|tr| tr.get().root.clone()) {
+                        Some(root) => root.to_bytes(),
+                        None => r("<nil>"),
+                    });
+                }
+                res
+            }
             other => panic!("unknown op {other}"),
         }
+    }
+}
+
+/// The html/template `ErrorCode` of an error ("" if it is not an
+/// `*html/template.Error`).
+fn html_error_code<T>(res: &Result<T, gotemplate::Error>) -> String {
+    match res {
+        Err(gotemplate::Error::Html(e)) => match e.downcast_ref::<gotemplate::html::ErrorBox>() {
+            Some(b) => b.0.error_code.value().to_string(),
+            None => String::new(),
+        },
+        _ => String::new(),
     }
 }
 
@@ -636,7 +791,10 @@ struct Script {
 }
 
 fn load(name: &str) -> (Vec<String>, Vec<Script>) {
-    let data = read_gz_fixture(name);
+    load_text(&read_gz_fixture(name))
+}
+
+fn load_text(data: &str) -> (Vec<String>, Vec<Script>) {
     let mut table = Vec::new();
     let mut scripts: Vec<Script> = Vec::new();
     for line in data.lines() {
@@ -930,7 +1088,8 @@ fn truncate(s: &str) -> String {
 /// The value spec of an operation's data argument, if it has one.
 fn data_spec<'a>(o: &Op, table: &'a [String]) -> Option<std::borrow::Cow<'a, str>> {
     let i = match o.kind.as_str() {
-        "exec" | "execerrw" | "execpar" | "exechugo" => 1,
+        "exec" | "execerrw" | "execpar" | "exechugo" | "execc" | "texec" => 1,
+        "texectmpl" => 2,
         "exectmpl" => 2,
         _ => return None,
     };
@@ -966,6 +1125,7 @@ fn run_scripts(fixture: &str) -> Outcome {
         let mut interp = Interp {
             t: HashMap::new(),
             tr: HashMap::new(),
+            tt: HashMap::new(),
             data: &table,
         };
         let mut diffs = Vec::new();
@@ -1080,4 +1240,208 @@ fn html_exec_go_tests_and_corpus() {
         stale.is_empty(),
         "KNOWN_GAPS entries that explain no difference any more (remove them): {stale:?}"
     );
+}
+
+// ---------------------------------------------------------------------------
+// Red-team corpora (tools/go-oracle/gotemplate/redteam_html.go: `rthtml`
+// random HTML skeletons, `rtns` random namespace operations)
+
+/// Classifies a red-team difference as a documented deviation.
+fn redteam_gap(kind: &str, spec: Option<&str>, want: &Res, got: &Res) -> Option<&'static str> {
+    // Go panics (e.g. on a nil tree) where Rust returns an error or panics
+    // (PORTING deviation 8).
+    if want.first().is_some_and(|w| w == b"PANIC") {
+        return Some("go-panic");
+    }
+    // The output of an execution must match exactly (only error texts are
+    // Rust strings).
+    let is_exec = matches!(
+        kind,
+        "exec" | "execc" | "exectmpl" | "exechugo" | "texec" | "texectmpl"
+    );
+    if is_exec && want.first() != got.first() && !spec.is_some_and(is_named_string_spec) {
+        return None;
+    }
+    // Named string types (hstring.HTML-like, json.Number) are objects
+    // (go-fmt PORTING, known gaps; KNOWN_GAPS above).
+    if spec.is_some_and(is_named_string_spec) {
+        return Some("named-string-type");
+    }
+    // Error texts are Rust strings (PORTING deviation 5).
+    let lossy = |x: &Res| -> Vec<String> {
+        x.iter()
+            .map(|f| String::from_utf8_lossy(f).into_owned())
+            .collect()
+    };
+    if lossy(want) == lossy(got) {
+        return Some("lossy-utf8-error");
+    }
+    // Go names the static type of an interface-typed slot where the value
+    // model knows the dynamic type (PORTING deviation 15): same output, the
+    // error differs only after `in type `.
+    let (w, g) = (lossy(want), lossy(got));
+    if w.len() >= 2 && w.len() == g.len() && w[0] == g[0] && w[2..] == g[2..] {
+        let cut = |s: &str| {
+            s.find("can't evaluate field ")
+                .and_then(|i| s[i..].find(" in type ").map(|j| s[..i + j].to_string()))
+        };
+        if let (Some(a), Some(b)) = (cut(&w[1]), cut(&g[1]))
+            && a == b
+            && ["interface {}", "error", "fmt.Stringer"]
+                .iter()
+                .any(|t| w[1][a.len() + " in type ".len()..].starts_with(t))
+        {
+            return Some("static-interface-type");
+        }
+    }
+    None
+}
+
+/// Named string types: `obj_hs` (hstring.HTML-like) and `json.Number`.
+fn is_named_string_spec(d: &str) -> bool {
+    d.starts_with("obj_hs:") || d.starts_with("jnum:")
+}
+
+/// Per-class counts of explained differences.
+type Classes = std::collections::BTreeMap<&'static str, usize>;
+
+/// Replays red-team scripts; returns (scripts, operations, differing
+/// scripts, explained differences by class).
+fn run_redteam(data: &str, show: usize) -> (usize, usize, usize, Classes) {
+    gotypes::register_named_methods();
+    common::set_extra_nodes(gotypes::extra_nodes);
+    let (table, scripts) = load_text(data);
+    let mut ops = 0;
+    let mut bad = 0;
+    let mut classes = Classes::new();
+    for s in &scripts {
+        if s.ops
+            .iter()
+            .any(|o| data_spec(o, &table).is_some_and(|d| gotypes::unsupported_spec(&d)))
+        {
+            *classes.entry("complex-value").or_default() += 1;
+            continue;
+        }
+        let mut interp = Interp {
+            t: HashMap::new(),
+            tr: HashMap::new(),
+            tt: HashMap::new(),
+            data: &table,
+        };
+        let mut diffs = Vec::new();
+        for (i, o) in s.ops.iter().enumerate() {
+            let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                interp.run(&o.kind, &o.args)
+            }));
+            let mut got = match run {
+                Ok(g) => g,
+                Err(p) => vec![
+                    r("PANIC"),
+                    r(p.downcast_ref::<String>()
+                        .cloned()
+                        .or_else(|| p.downcast_ref::<&str>().map(|s| s.to_string()))
+                        .unwrap_or_default()),
+                ],
+            };
+            // Go's Clone error names a template in map order; the oracle
+            // records a fixed name (htmlexec.go).
+            if (o.kind == "clone" || o.kind == "cloneshallow")
+                && got.len() == 2
+                && got[0] == b"err"
+                && got[1].ends_with(b"\" not found")
+            {
+                let msg = String::from_utf8_lossy(&got[1]).into_owned();
+                if let Some(i) = msg.rfind(", \"") {
+                    got[1] = r(format!("{}, \"<map order>\" not found", &msg[..i]));
+                }
+            }
+            ops += 1;
+            if got == o.want {
+                continue;
+            }
+            let spec = data_spec(o, &table);
+            if let Some(c) = redteam_gap(&o.kind, spec.as_deref(), &o.want, &got) {
+                *classes.entry(c).or_default() += 1;
+                continue;
+            }
+            diffs.push(format!(
+                "  op {i} {} {:?}\n    want {}\n    got  {}",
+                o.kind,
+                o.args
+                    .iter()
+                    .map(|a| String::from_utf8_lossy(a).into_owned())
+                    .collect::<Vec<_>>(),
+                o.want.iter().map(|w| q(w)).collect::<Vec<_>>().join(" "),
+                got.iter().map(|w| q(w)).collect::<Vec<_>>().join(" "),
+            ));
+        }
+        if !diffs.is_empty() {
+            bad += 1;
+            if bad <= show {
+                let src = s
+                    .ops
+                    .iter()
+                    .filter(|o| o.kind == "parse" || o.kind == "tparse")
+                    .map(|o| q(&o.args[1]))
+                    .collect::<Vec<_>>()
+                    .join(" ");
+                eprintln!("{}: src {src}\n{}", s.name, diffs.join("\n"));
+            }
+        }
+    }
+    (scripts.len(), ops, bad, classes)
+}
+
+/// Red-team regressions: minimized scripts that once differed from Go
+/// (`tools/go-oracle/gotemplate/redteam_fixtures.go`).
+#[test]
+fn html_redteam_regressions() {
+    // Recursive templates: run on a big stack (PORTING deviation 3).
+    std::thread::Builder::new()
+        .stack_size(256 << 20)
+        .spawn(|| {
+            let data = read_gz_fixture("html/redteam.txt.gz");
+            let (n, ops, bad, classes) = run_redteam(&data, 50);
+            eprintln!(
+                "{n} red-team scripts, {ops} operations, deviations {classes:?}, {bad} differ"
+            );
+            assert!(n > 0);
+            assert_eq!(bad, 0, "{bad} of {n} red-team scripts differ from Go");
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+/// The large seeded red-team corpora (`rthtml`/`rtns` oracle modes, not
+/// checked in): `GOTEMPLATE_RT_HTML=<a.txt.gz>:<b.txt.gz> cargo test --test html_exec -- --ignored`.
+#[test]
+#[ignore]
+fn html_redteam() {
+    let Some(paths) = std::env::var_os("GOTEMPLATE_RT_HTML") else {
+        eprintln!("GOTEMPLATE_RT_HTML not set");
+        return;
+    };
+    std::thread::Builder::new()
+        .stack_size(512 << 20)
+        .spawn(move || {
+            let mut total = 0;
+            for path in std::env::split_paths(&paths) {
+                use std::io::Read;
+                let mut data = String::new();
+                flate2::read::GzDecoder::new(std::fs::File::open(&path).unwrap())
+                    .read_to_string(&mut data)
+                    .unwrap();
+                let (n, ops, bad, classes) = run_redteam(&data, 40);
+                eprintln!(
+                    "{}: {n} scripts, {ops} operations, deviations {classes:?}, {bad} differ",
+                    path.display()
+                );
+                total += bad;
+            }
+            assert_eq!(total, 0, "{total} red-team scripts differ from Go");
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }

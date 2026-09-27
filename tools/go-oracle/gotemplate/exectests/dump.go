@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/texttemplate"
+	. "github.com/neohugo/neohugo/tools/go-oracle/gotemplate/fork/texttemplate" //nolint:staticcheck // ST1001: as in exec_test.go (package template)
 )
 
 // dumpCase is one execution: a Go test table entry.
@@ -37,7 +37,7 @@ func dataID(v any) string {
 	}
 	switch x := v.(type) {
 	case *T:
-		switch {
+		switch { //nolint:staticcheck // QF1002: pointer identity cases
 		case x == tVal:
 			return "tVal"
 		case x == nil:
@@ -103,12 +103,12 @@ func testFuncs() FuncMap {
 }
 
 func run(w *bufio.Writer, i int, c dumpCase) {
-	fmt.Fprintf(w, "#case %d %s %s\n", i, q(c.group), q(c.name))
-	fmt.Fprintf(w, "data %s\n", q(dataID(c.data)))
-	fmt.Fprintf(w, "opts %s %s %s\n", q(c.left), q(c.right), q(c.exec))
-	fmt.Fprintf(w, "src %s\n", q(c.input))
+	_, _ = fmt.Fprintf(w, "#case %d %s %s\n", i, q(c.group), q(c.name))
+	_, _ = fmt.Fprintf(w, "data %s\n", q(dataID(c.data)))
+	_, _ = fmt.Fprintf(w, "opts %s %s %s\n", q(c.left), q(c.right), q(c.exec))
+	_, _ = fmt.Fprintf(w, "src %s\n", q(c.input))
 	if c.ok != nil {
-		fmt.Fprintf(w, "expect %t %s\n", *c.ok, q(*c.output))
+		_, _ = fmt.Fprintf(w, "expect %t %s\n", *c.ok, q(*c.output))
 	}
 	tmpl := New(c.name)
 	if c.funcs != nil {
@@ -117,7 +117,7 @@ func run(w *bufio.Writer, i int, c dumpCase) {
 	tmpl.Delims(c.left, c.right)
 	_, err := tmpl.Parse(c.input)
 	if err != nil {
-		fmt.Fprintf(w, "perr %s\n#end\n", q(err.Error()))
+		_, _ = fmt.Fprintf(w, "perr %s\n#end\n", q(err.Error()))
 		return
 	}
 	var b bytes.Buffer
@@ -128,15 +128,15 @@ func run(w *bufio.Writer, i int, c dumpCase) {
 	}
 	out := b.String()
 	if addrRe.MatchString(out) || (err != nil && addrRe.MatchString(err.Error())) {
-		fmt.Fprintf(w, "addr\n#end\n")
+		_, _ = fmt.Fprintf(w, "addr\n#end\n")
 		return
 	}
-	fmt.Fprintf(w, "out %s\n", q(out))
+	_, _ = fmt.Fprintf(w, "out %s\n", q(out))
 	if err != nil {
 		var ee ExecError
-		fmt.Fprintf(w, "err %s %t\n", q(err.Error()), errors.As(err, &ee))
+		_, _ = fmt.Fprintf(w, "err %s %t\n", q(err.Error()), errors.As(err, &ee))
 	}
-	fmt.Fprintf(w, "#end\n")
+	_, _ = fmt.Fprintf(w, "#end\n")
 }
 
 // Dump runs Go's exec_test.go tables through the fork.
