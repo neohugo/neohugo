@@ -111,7 +111,7 @@ Legend:
 | go-png | image/png | partial | source complete and smoke-checked (11 golden PNGs + Go testdata identical); **no checked-in differential tests or PORTING.md yet** |
 | gift | disintegration/gift + Hugo filters | partial | port complete, FMA sites mutation-tested, 603 site images identical; **PORTING.md and Go unit-test ports missing; red-team not run** |
 | tdewolff-minify-js | minify/js | ported | 783 upstream table rows, 58k checked-in fixture checks (+2×495k out of repo, 27.5 MB corpus × 6 configs) identical; 1,589 HTML docs through Hugo's full minifier; no FMA sites; **red-team not run** |
-| gotemplate | forked text/template + html/template | partial | parse, text/template (+ Hugo hooks, host contract) and html/template ported; escaper reproduces Go's escaped trees of all 120 repo layouts byte for byte; 39k escaper + 54k transition oracle checks; **Go test-table ports (lex/parse/exec/escape/content) and the exec/htmlexec oracles in progress**; see `crates/gotemplate/PORTING.md` |
+| gotemplate | forked text/template + html/template | ported | host contract (`GOTEMPLATE_CONTRACT.md` C1–C13) implemented and documented in `crates/gotemplate/PORTING.md`; Go's lex/parse/exec/escape/content/clone/multi/template tests ported; oracles: 4,873 parse + 13,470 Hugo-like exec + 23,542 html exec operations, 39k escaper calls, 54k transitions; the escaper reproduces Go's escaped trees of all 120 repo layouts byte for byte; **red-team not run; the seeksnack layouts (private repo) are not yet in the escdump corpus**; nh-tplimpl (T13) can now replace its `engine.rs` placeholder |
 | nh-* (25 crates) | the Hugo layer | skeleton | all `cargo check`; 1,121 `todo!()`; ownership per `WAVE_B_PLAN.json` |
 
 ## 5. What to do next (in order)
