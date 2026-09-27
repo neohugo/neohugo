@@ -1,0 +1,1268 @@
+# Test tables extracted from go1.27.1 $GOROOT/src/{unicode,strings,bytes}/*_test.go by tools/go-oracle/go-unicode gotests.
+unicode.upperTest	i65
+unicode.upperTest	i192
+unicode.upperTest	i216
+unicode.upperTest	i256
+unicode.upperTest	i313
+unicode.upperTest	i330
+unicode.upperTest	i376
+unicode.upperTest	i385
+unicode.upperTest	i886
+unicode.upperTest	i975
+unicode.upperTest	i5053
+unicode.upperTest	i7978
+unicode.upperTest	i8450
+unicode.upperTest	i11264
+unicode.upperTest	i11280
+unicode.upperTest	i11296
+unicode.upperTest	i42576
+unicode.upperTest	i42786
+unicode.upperTest	i65338
+unicode.upperTest	i66560
+unicode.upperTest	i119808
+unicode.upperTest	i120778
+unicode.notupperTest	i64
+unicode.notupperTest	i91
+unicode.notupperTest	i97
+unicode.notupperTest	i389
+unicode.notupperTest	i432
+unicode.notupperTest	i887
+unicode.notupperTest	i903
+unicode.notupperTest	i8528
+unicode.notupperTest	i43901
+unicode.notupperTest	i65535
+unicode.notupperTest	i65536
+unicode.letterTest	i65
+unicode.letterTest	i97
+unicode.letterTest	i170
+unicode.letterTest	i186
+unicode.letterTest	i200
+unicode.letterTest	i219
+unicode.letterTest	i249
+unicode.letterTest	i748
+unicode.letterTest	i1333
+unicode.letterTest	i1568
+unicode.letterTest	i1766
+unicode.letterTest	i2365
+unicode.letterTest	i2581
+unicode.letterTest	i2969
+unicode.letterTest	i3520
+unicode.letterTest	i3805
+unicode.letterTest	i4096
+unicode.letterTest	i4608
+unicode.letterTest	i4882
+unicode.letterTest	i5121
+unicode.letterTest	i11264
+unicode.letterTest	i43008
+unicode.letterTest	i63744
+unicode.letterTest	i64048
+unicode.letterTest	i65498
+unicode.letterTest	i65500
+unicode.letterTest	i65536
+unicode.letterTest	i66304
+unicode.letterTest	i66560
+unicode.letterTest	i131072
+unicode.letterTest	i194560
+unicode.letterTest	i195101
+unicode.notletterTest	i32
+unicode.notletterTest	i53
+unicode.notletterTest	i885
+unicode.notletterTest	i1561
+unicode.notletterTest	i1792
+unicode.notletterTest	i6277
+unicode.notletterTest	i65534
+unicode.notletterTest	i131071
+unicode.notletterTest	i1114111
+unicode.spaceTest	i9
+unicode.spaceTest	i10
+unicode.spaceTest	i11
+unicode.spaceTest	i12
+unicode.spaceTest	i13
+unicode.spaceTest	i32
+unicode.spaceTest	i133
+unicode.spaceTest	i160
+unicode.spaceTest	i8192
+unicode.spaceTest	i12288
+unicode.caseTest	i-1	i10	i65533
+unicode.caseTest	i0	i-1	i-1
+unicode.caseTest	i0	i1073741824	i1073741824
+unicode.caseTest	i0	i10	i10
+unicode.caseTest	i0	i97	i65
+unicode.caseTest	i0	i65	i65
+unicode.caseTest	i0	i55	i55
+unicode.caseTest	i1	i10	i10
+unicode.caseTest	i1	i97	i97
+unicode.caseTest	i1	i65	i97
+unicode.caseTest	i1	i55	i55
+unicode.caseTest	i2	i10	i10
+unicode.caseTest	i2	i97	i65
+unicode.caseTest	i2	i65	i65
+unicode.caseTest	i2	i55	i55
+unicode.caseTest	i0	i128	i128
+unicode.caseTest	i0	i197	i197
+unicode.caseTest	i0	i229	i197
+unicode.caseTest	i1	i128	i128
+unicode.caseTest	i1	i197	i229
+unicode.caseTest	i1	i229	i229
+unicode.caseTest	i2	i128	i128
+unicode.caseTest	i2	i197	i197
+unicode.caseTest	i2	i229	i197
+unicode.caseTest	i0	i305	i73
+unicode.caseTest	i1	i305	i305
+unicode.caseTest	i2	i305	i73
+unicode.caseTest	i0	i307	i306
+unicode.caseTest	i1	i307	i307
+unicode.caseTest	i2	i307	i306
+unicode.caseTest	i0	i8490	i8490
+unicode.caseTest	i1	i8490	i107
+unicode.caseTest	i2	i8490	i8490
+unicode.caseTest	i0	i42560	i42560
+unicode.caseTest	i1	i42560	i42561
+unicode.caseTest	i2	i42560	i42560
+unicode.caseTest	i0	i42561	i42560
+unicode.caseTest	i1	i42561	i42561
+unicode.caseTest	i2	i42561	i42560
+unicode.caseTest	i0	i42574	i42574
+unicode.caseTest	i1	i42574	i42575
+unicode.caseTest	i2	i42574	i42574
+unicode.caseTest	i0	i42591	i42590
+unicode.caseTest	i1	i42591	i42591
+unicode.caseTest	i2	i42591	i42590
+unicode.caseTest	i0	i313	i313
+unicode.caseTest	i1	i313	i314
+unicode.caseTest	i2	i313	i313
+unicode.caseTest	i0	i319	i319
+unicode.caseTest	i1	i319	i320
+unicode.caseTest	i2	i319	i319
+unicode.caseTest	i0	i328	i327
+unicode.caseTest	i1	i328	i328
+unicode.caseTest	i2	i328	i327
+unicode.caseTest	i0	i43896	i5032
+unicode.caseTest	i1	i43896	i43896
+unicode.caseTest	i2	i43896	i5032
+unicode.caseTest	i0	i5032	i5032
+unicode.caseTest	i1	i5032	i43896
+unicode.caseTest	i2	i5032	i5032
+unicode.caseTest	i0	i66560	i66560
+unicode.caseTest	i1	i66560	i66600
+unicode.caseTest	i2	i66560	i66560
+unicode.caseTest	i0	i66599	i66599
+unicode.caseTest	i1	i66599	i66639
+unicode.caseTest	i2	i66599	i66599
+unicode.caseTest	i0	i66600	i66560
+unicode.caseTest	i1	i66600	i66600
+unicode.caseTest	i2	i66600	i66560
+unicode.caseTest	i0	i66639	i66599
+unicode.caseTest	i1	i66639	i66639
+unicode.caseTest	i2	i66639	i66599
+unicode.caseTest	i0	i66640	i66640
+unicode.caseTest	i1	i66640	i66640
+unicode.caseTest	i2	i66640	i66640
+unicode.caseTest	i1	i8545	i8561
+unicode.caseTest	i0	i837	i921
+unicode.simpleFoldTests	s4161
+unicode.simpleFoldTests	sceb4ce94
+unicode.simpleFoldTests	s4b6be284aa
+unicode.simpleFoldTests	s5373c5bf
+unicode.simpleFoldTests	scf81cfb1cea1
+unicode.simpleFoldTests	scd85ce99ceb9e1bebe
+unicode.simpleFoldTests	sc4b0
+unicode.simpleFoldTests	sc4b1
+unicode.simpleFoldTests	se18eb0eaae80
+unicode.testDigit	i48
+unicode.testDigit	i57
+unicode.testDigit	i1633
+unicode.testDigit	i1777
+unicode.testDigit	i1993
+unicode.testDigit	i2406
+unicode.testDigit	i2543
+unicode.testDigit	i2662
+unicode.testDigit	i2799
+unicode.testDigit	i2918
+unicode.testDigit	i2927
+unicode.testDigit	i3046
+unicode.testDigit	i3055
+unicode.testDigit	i3174
+unicode.testDigit	i3311
+unicode.testDigit	i3430
+unicode.testDigit	i3439
+unicode.testDigit	i3664
+unicode.testDigit	i3673
+unicode.testDigit	i3792
+unicode.testDigit	i3801
+unicode.testDigit	i3872
+unicode.testDigit	i3881
+unicode.testDigit	i4160
+unicode.testDigit	i4169
+unicode.testDigit	i4240
+unicode.testDigit	i4241
+unicode.testDigit	i4249
+unicode.testDigit	i6112
+unicode.testDigit	i6121
+unicode.testDigit	i6160
+unicode.testDigit	i6169
+unicode.testDigit	i6470
+unicode.testDigit	i6479
+unicode.testDigit	i6608
+unicode.testDigit	i6617
+unicode.testDigit	i6992
+unicode.testDigit	i7001
+unicode.testDigit	i7088
+unicode.testDigit	i7097
+unicode.testDigit	i7232
+unicode.testDigit	i7241
+unicode.testDigit	i7248
+unicode.testDigit	i7257
+unicode.testDigit	i42528
+unicode.testDigit	i42537
+unicode.testDigit	i43216
+unicode.testDigit	i43225
+unicode.testDigit	i43264
+unicode.testDigit	i43273
+unicode.testDigit	i43600
+unicode.testDigit	i43609
+unicode.testDigit	i65296
+unicode.testDigit	i65305
+unicode.testDigit	i66721
+unicode.testDigit	i120782
+unicode.testLetter	i65
+unicode.testLetter	i97
+unicode.testLetter	i170
+unicode.testLetter	i186
+unicode.testLetter	i200
+unicode.testLetter	i219
+unicode.testLetter	i249
+unicode.testLetter	i748
+unicode.testLetter	i1333
+unicode.testLetter	i1766
+unicode.testLetter	i2365
+unicode.testLetter	i2581
+unicode.testLetter	i2969
+unicode.testLetter	i3520
+unicode.testLetter	i3805
+unicode.testLetter	i4096
+unicode.testLetter	i4608
+unicode.testLetter	i4882
+unicode.testLetter	i5121
+unicode.testLetter	i6277
+unicode.testLetter	i11264
+unicode.testLetter	i43008
+unicode.testLetter	i63744
+unicode.testLetter	i64048
+unicode.testLetter	i65498
+unicode.testLetter	i65500
+unicode.testLetter	i65536
+unicode.testLetter	i66304
+unicode.testLetter	i66560
+unicode.testLetter	i131072
+unicode.testLetter	i194560
+unicode.testLetter	i195101
+unicode.inCategoryTest	i129	s4363
+unicode.inCategoryTest	i8203	s4366
+unicode.inCategoryTest	i983040	s436f
+unicode.inCategoryTest	i56192	s4373
+unicode.inCategoryTest	i566	s4c6c
+unicode.inCategoryTest	i7581	s4c6d
+unicode.inCategoryTest	i1999	s4c6f
+unicode.inCategoryTest	i8074	s4c74
+unicode.inCategoryTest	i1023	s4c75
+unicode.inCategoryTest	i3009	s4d63
+unicode.inCategoryTest	i8415	s4d65
+unicode.inCategoryTest	i2032	s4d6e
+unicode.inCategoryTest	i7090	s4e64
+unicode.inCategoryTest	i65863	s4e6c
+unicode.inCategoryTest	i9336	s4e6f
+unicode.inCategoryTest	i65075	s5063
+unicode.inCategoryTest	i8209	s5064
+unicode.inCategoryTest	i12318	s5065
+unicode.inCategoryTest	i11779	s5066
+unicode.inCategoryTest	i11778	s5069
+unicode.inCategoryTest	i34	s506f
+unicode.inCategoryTest	i10096	s5073
+unicode.inCategoryTest	i164	s5363
+unicode.inCategoryTest	i42769	s536b
+unicode.inCategoryTest	i9721	s536d
+unicode.inCategoryTest	i8456	s536f
+unicode.inCategoryTest	i8232	s5a6c
+unicode.inCategoryTest	i8233	s5a70
+unicode.inCategoryTest	i8239	s5a73
+unicode.inCategoryTest	i1194	s4c
+unicode.inCategoryTest	i9	s43
+unicode.inCategoryTest	i5906	s4d
+unicode.inCategoryTest	i49	s4e
+unicode.inCategoryTest	i187	s50
+unicode.inCategoryTest	i162	s53
+unicode.inCategoryTest	i160	s5a
+unicode.inCategoryTest	i101	s4c43
+unicode.inCategoryTest	i888	s436e
+unicode.inCategoryTest	i888	s43
+unicode.inPropTest	i70	s41534349495f4865785f4469676974
+unicode.inPropTest	i8207	s426964695f436f6e74726f6c
+unicode.inPropTest	i8722	s44617368
+unicode.inPropTest	i917505	s44657072656361746564
+unicode.inPropTest	i183	s446961637269746963
+unicode.inPropTest	i12542	s457874656e646572
+unicode.inPropTest	i65350	s4865785f4469676974
+unicode.inPropTest	i11799	s48797068656e
+unicode.inPropTest	i12283	s4944535f42696e6172795f4f70657261746f72
+unicode.inPropTest	i12275	s4944535f5472696e6172795f4f70657261746f72
+unicode.inPropTest	i64106	s4964656f67726170686963
+unicode.inPropTest	i8205	s4a6f696e5f436f6e74726f6c
+unicode.inPropTest	i3780	s4c6f676963616c5f4f726465725f457863657074696f6e
+unicode.inPropTest	i196607	s4e6f6e6368617261637465725f436f64655f506f696e74
+unicode.inPropTest	i1630	s4f746865725f416c7068616265746963
+unicode.inPropTest	i8293	s4f746865725f44656661756c745f49676e6f7261626c655f436f64655f506f696e74
+unicode.inPropTest	i3031	s4f746865725f4772617068656d655f457874656e64
+unicode.inPropTest	i903	s4f746865725f49445f436f6e74696e7565
+unicode.inPropTest	i8494	s4f746865725f49445f5374617274
+unicode.inPropTest	i8340	s4f746865725f4c6f77657263617365
+unicode.inPropTest	i8256	s4f746865725f4d617468
+unicode.inPropTest	i8559	s4f746865725f557070657263617365
+unicode.inPropTest	i39	s5061747465726e5f53796e746178
+unicode.inPropTest	i32	s5061747465726e5f57686974655f5370616365
+unicode.inPropTest	i1757	s50726570656e6465645f436f6e636174656e6174696f6e5f4d61726b
+unicode.inPropTest	i12301	s51756f746174696f6e5f4d61726b
+unicode.inPropTest	i12019	s5261646963616c
+unicode.inPropTest	i127487	s526567696f6e616c5f496e64696361746f72
+unicode.inPropTest	i1567	s535465726d
+unicode.inPropTest	i1567	s53656e74656e63655f5465726d696e616c
+unicode.inPropTest	i8305	s536f66745f446f74746564
+unicode.inPropTest	i58	s5465726d696e616c5f50756e6374756174696f6e
+unicode.inPropTest	i40899	s556e69666965645f4964656f6772617068
+unicode.inPropTest	i65039	s566172696174696f6e5f53656c6563746f72
+unicode.inPropTest	i32	s57686974655f5370616365
+unicode.inPropTest	i8734	s49445f436f6d7061745f4d6174685f5374617274
+unicode.inPropTest	i1763	s4d6f6469666965725f436f6d62696e696e675f4d61726b
+unicode.inPropTest	i8320	s49445f436f6d7061745f4d6174685f436f6e74696e7565
+unicode.inPropTest	i12286	s4944535f556e6172795f4f70657261746f72
+utf8.utf8map	i0	s00
+utf8.utf8map	i1	s01
+utf8.utf8map	i126	s7e
+utf8.utf8map	i127	s7f
+utf8.utf8map	i128	sc280
+utf8.utf8map	i129	sc281
+utf8.utf8map	i191	sc2bf
+utf8.utf8map	i192	sc380
+utf8.utf8map	i193	sc381
+utf8.utf8map	i200	sc388
+utf8.utf8map	i208	sc390
+utf8.utf8map	i224	sc3a0
+utf8.utf8map	i240	sc3b0
+utf8.utf8map	i248	sc3b8
+utf8.utf8map	i255	sc3bf
+utf8.utf8map	i256	sc480
+utf8.utf8map	i2047	sdfbf
+utf8.utf8map	i1024	sd080
+utf8.utf8map	i2048	se0a080
+utf8.utf8map	i2049	se0a081
+utf8.utf8map	i4096	se18080
+utf8.utf8map	i53248	sed8080
+utf8.utf8map	i55295	sed9fbf
+utf8.utf8map	i57344	see8080
+utf8.utf8map	i65534	sefbfbe
+utf8.utf8map	i65535	sefbfbf
+utf8.utf8map	i65536	sf0908080
+utf8.utf8map	i65537	sf0908081
+utf8.utf8map	i262144	sf1808080
+utf8.utf8map	i1114110	sf48fbfbe
+utf8.utf8map	i1114111	sf48fbfbf
+utf8.utf8map	i65533	sefbfbd
+utf8.surrogateMap	i55296	seda080
+utf8.surrogateMap	i57343	sedbfbf
+utf8.testStrings	s
+utf8.testStrings	s61626364
+utf8.testStrings	se298bae298bbe298b9
+utf8.testStrings	se697a561e69cac62e8aa9ec3a7e697a5c3b0e69cacc38ae8aa9ec3bee697a5c2a5e69cacc2bce8aa9e69e697a5c2a9
+utf8.testStrings	se697a561e69cac62e8aa9ec3a7e697a5c3b0e69cacc38ae8aa9ec3bee697a5c2a5e69cacc2bce8aa9e69e697a5c2a9e697a561e69cac62e8aa9ec3a7e697a5c3b0e69cacc38ae8aa9ec3bee697a5c2a5e69cacc2bce8aa9e69e697a5c2a9e697a561e69cac62e8aa9ec3a7e697a5c3b0e69cacc38ae8aa9ec3bee697a5c2a5e69cacc2bce8aa9e69e697a5c2a9
+utf8.testStrings	s80808080
+utf8.invalidSequenceTests	seda08080
+utf8.invalidSequenceTests	sedbfbf80
+utf8.invalidSequenceTests	s91808080
+utf8.invalidSequenceTests	sc27f8080
+utf8.invalidSequenceTests	sc2c08080
+utf8.invalidSequenceTests	sdf7f8080
+utf8.invalidSequenceTests	sdfc08080
+utf8.invalidSequenceTests	se09fbf80
+utf8.invalidSequenceTests	se0a07f80
+utf8.invalidSequenceTests	se0bfc080
+utf8.invalidSequenceTests	se0c08080
+utf8.invalidSequenceTests	se17fbf80
+utf8.invalidSequenceTests	se1807f80
+utf8.invalidSequenceTests	se1bfc080
+utf8.invalidSequenceTests	se1c08080
+utf8.invalidSequenceTests	sed7fbf80
+utf8.invalidSequenceTests	sed807f80
+utf8.invalidSequenceTests	sed9fc080
+utf8.invalidSequenceTests	seda08080
+utf8.invalidSequenceTests	sf08fbfbf
+utf8.invalidSequenceTests	sf0907fbf
+utf8.invalidSequenceTests	sf090807f
+utf8.invalidSequenceTests	sf0bfbfc0
+utf8.invalidSequenceTests	sf0bfc080
+utf8.invalidSequenceTests	sf0c08080
+utf8.invalidSequenceTests	sf17fbfbf
+utf8.invalidSequenceTests	sf1807fbf
+utf8.invalidSequenceTests	sf180807f
+utf8.invalidSequenceTests	sf1bfbfc0
+utf8.invalidSequenceTests	sf1bfc080
+utf8.invalidSequenceTests	sf1c08080
+utf8.invalidSequenceTests	sf47fbfbf
+utf8.invalidSequenceTests	sf4807fbf
+utf8.invalidSequenceTests	sf480807f
+utf8.invalidSequenceTests	sf48fbfc0
+utf8.invalidSequenceTests	sf48fc080
+utf8.invalidSequenceTests	sf4908080
+utf8.runecounttests	s61626364	i4
+utf8.runecounttests	se298bae298bbe298b9	i3
+utf8.runecounttests	s312c322c332c34	i7
+utf8.runecounttests	se200	i2
+utf8.runecounttests	se280	i2
+utf8.runecounttests	s61e280	i3
+utf8.runelentests	i0	i1
+utf8.runelentests	i101	i1
+utf8.runelentests	i233	i2
+utf8.runelentests	i9786	i3
+utf8.runelentests	i65533	i3
+utf8.runelentests	i1114111	i4
+utf8.runelentests	i55296	i-1
+utf8.runelentests	i57343	i-1
+utf8.runelentests	i1114112	i-1
+utf8.runelentests	i-1	i-1
+utf8.validTests	s	bT
+utf8.validTests	s61	bT
+utf8.validTests	s616263	bT
+utf8.validTests	sd096	bT
+utf8.validTests	sd096d096	bT
+utf8.validTests	sd0b1d180d18dd0b42dd09bd093d0a2d09c	bT
+utf8.validTests	se298bae298bbe298b9	bT
+utf8.validTests	s6161e2	bF
+utf8.validTests	s42fa	bF
+utf8.validTests	s42fa43	bF
+utf8.validTests	s61efbfbd62	bT
+utf8.validTests	sf48fbfbf	bT
+utf8.validTests	sf4908080	bF
+utf8.validTests	sf7bfbfbf	bF
+utf8.validTests	sfbbfbfbfbf	bF
+utf8.validTests	sc080	bF
+utf8.validTests	seda080	bF
+utf8.validTests	sedbfbf	bF
+utf8.validrunetests	i0	bT
+utf8.validrunetests	i101	bT
+utf8.validrunetests	i233	bT
+utf8.validrunetests	i9786	bT
+utf8.validrunetests	i65533	bT
+utf8.validrunetests	i1114111	bT
+utf8.validrunetests	i55295	bT
+utf8.validrunetests	i55296	bF
+utf8.validrunetests	i57343	bF
+utf8.validrunetests	i57344	bT
+utf8.validrunetests	i1114112	bF
+utf8.validrunetests	i-1	bF
+utf16.encodeTests	Li1,i2,i3,i4	Li1,i2,i3,i4
+utf16.encodeTests	Li65535,i65536,i65537,i74565,i1114111	Li65535,i55296,i56320,i55296,i56321,i55304,i57157,i56319,i57343
+utf16.encodeTests	Li97,i98,i55295,i55296,i57343,i57344,i1114112,i-1	Li97,i98,i55295,i65533,i65533,i57344,i65533,i65533
+utf16.decodeTests	Li1,i2,i3,i4	Li1,i2,i3,i4
+utf16.decodeTests	Li65535,i55296,i56320,i55296,i56321,i55304,i57157,i56319,i57343	Li65535,i65536,i65537,i74565,i1114111
+utf16.decodeTests	Li55296,i97	Li65533,i97
+utf16.decodeTests	Li57343	Li65533
+utf16.decodeRuneTests	i55296	i56320	i65536
+utf16.decodeRuneTests	i55296	i56321	i65537
+utf16.decodeRuneTests	i55304	i57157	i74565
+utf16.decodeRuneTests	i56319	i57343	i1114111
+utf16.decodeRuneTests	i55296	i97	i65533
+utf16.surrogateTests	i122	bF
+utf16.surrogateTests	i27700	bF
+utf16.surrogateTests	i65279	bF
+utf16.surrogateTests	i65536	bF
+utf16.surrogateTests	i119070	bF
+utf16.surrogateTests	i1114109	bF
+utf16.surrogateTests	i55295	bF
+utf16.surrogateTests	i55296	bT
+utf16.surrogateTests	i56320	bT
+utf16.surrogateTests	i57344	bF
+utf16.surrogateTests	i57343	bT
+strings.indexTests	s	s	i0
+strings.indexTests	s	s61	i-1
+strings.indexTests	s	s666f6f	i-1
+strings.indexTests	s666f	s666f6f	i-1
+strings.indexTests	s666f6f	s666f6f	i0
+strings.indexTests	s6f6f666f666f6f666f6f6f	s66	i2
+strings.indexTests	s6f6f666f666f6f666f6f6f	s666f6f	i4
+strings.indexTests	s626172666f6f626172666f6f	s666f6f	i3
+strings.indexTests	s666f6f	s	i0
+strings.indexTests	s666f6f	s6f	i1
+strings.indexTests	s616263414243616263	s41	i3
+strings.indexTests	s6a727a6d366a6a686f72696d676c6c6a726561347733726c676f7374733077326769613137686e6f327464347164316a7a	s6a7a	i47
+strings.indexTests	s656b6b756b356f6674346571306f637061636b6e68776f756963317575613436756e7831326c33376e696f71397762706e6f63716b7336	s6b7336	i52
+strings.indexTests	s3939396632786d696d756e62757965773576726b6c6139637077686d78616e386f39386563	s39386563	i33
+strings.indexTests	s396c7074397239386930346b38627a3663366473727468623936626869	s3936626869	i24
+strings.indexTests	s353575353538657166616f6432723267753432787873753633317866307a6f627335383430766c	s35383430766c	i33
+strings.indexTests	s	s61	i-1
+strings.indexTests	s78	s61	i-1
+strings.indexTests	s78	s78	i0
+strings.indexTests	s616263	s61	i0
+strings.indexTests	s616263	s62	i1
+strings.indexTests	s616263	s63	i2
+strings.indexTests	s616263	s78	i-1
+strings.indexTests	s	s6162	i-1
+strings.indexTests	s6263	s6162	i-1
+strings.indexTests	s6162	s6162	i0
+strings.indexTests	s786162	s6162	i1
+strings.indexTests	s7861	s6162	i-1
+strings.indexTests	s	s616263	i-1
+strings.indexTests	s786263	s616263	i-1
+strings.indexTests	s616263	s616263	i0
+strings.indexTests	s78616263	s616263	i1
+strings.indexTests	s786162	s616263	i-1
+strings.indexTests	s7861627863	s616263	i-1
+strings.indexTests	s	s61626364	i-1
+strings.indexTests	s78626364	s61626364	i-1
+strings.indexTests	s61626364	s61626364	i0
+strings.indexTests	s7861626364	s61626364	i1
+strings.indexTests	s7879616263	s61626364	i-1
+strings.indexTests	s7862637171	s6162637171	i-1
+strings.indexTests	s6162637171	s6162637171	i0
+strings.indexTests	s786162637171	s6162637171	i1
+strings.indexTests	s787961626371	s6162637171	i-1
+strings.indexTests	s78616278637171	s6162637171	i-1
+strings.indexTests	s78616263717871	s6162637171	i-1
+strings.indexTests	s	s3031323334353637	i-1
+strings.indexTests	s3332313435363738	s3031323334353637	i-1
+strings.indexTests	s3031323334353637	s3031323334353637	i0
+strings.indexTests	s783031323334353637	s3031323334353637	i1
+strings.indexTests	s7830313233343536783031323334353637	s3031323334353637	i9
+strings.indexTests	s787830313233343536	s3031323334353637	i-1
+strings.indexTests	s	s30313233343536373839	i-1
+strings.indexTests	s33323134353637383434	s30313233343536373839	i-1
+strings.indexTests	s30313233343536373839	s30313233343536373839	i0
+strings.indexTests	s7830313233343536373839	s30313233343536373839	i1
+strings.indexTests	s783031323334353637387830313233343536373839	s30313233343536373839	i11
+strings.indexTests	s78797a303132333435363738	s30313233343536373839	i-1
+strings.indexTests	s783031323334353637783839	s30313233343536373839	i-1
+strings.indexTests	s	s30313233343536373839303132333435	i-1
+strings.indexTests	s33323134353637383839303132333435	s30313233343536373839303132333435	i-1
+strings.indexTests	s30313233343536373839303132333435	s30313233343536373839303132333435	i0
+strings.indexTests	s7830313233343536373839303132333435	s30313233343536373839303132333435	i1
+strings.indexTests	s783031323334353637383930313233347830313233343536373839303132333435	s30313233343536373839303132333435	i17
+strings.indexTests	s	s3031323334353637383930313233343536373839	i-1
+strings.indexTests	s3332313435363738383930313233343536373839	s3031323334353637383930313233343536373839	i-1
+strings.indexTests	s3031323334353637383930313233343536373839	s3031323334353637383930313233343536373839	i0
+strings.indexTests	s783031323334353637383930313233343536373839	s3031323334353637383930313233343536373839	i1
+strings.indexTests	s7830313233343536373839303132333435363738783031323334353637383930313233343536373839	s3031323334353637383930313233343536373839	i21
+strings.indexTests	s78797a30313233343536373839303132333435363738	s3031323334353637383930313233343536373839	i-1
+strings.indexTests	s	s30313233343536373839303132333435363738393031323334353637383930	i-1
+strings.indexTests	s333231343536373838393031323334353637383930313233343536373839303132333435363738393131	s30313233343536373839303132333435363738393031323334353637383930	i-1
+strings.indexTests	s30313233343536373839303132333435363738393031323334353637383930	s30313233343536373839303132333435363738393031323334353637383930	i0
+strings.indexTests	s7830313233343536373839303132333435363738393031323334353637383930	s30313233343536373839303132333435363738393031323334353637383930	i1
+strings.indexTests	s783031323334353637383930313233343536373839303132333435363738397830313233343536373839303132333435363738393031323334353637383930	s30313233343536373839303132333435363738393031323334353637383930	i32
+strings.indexTests	s78797a303132333435363738393031323334353637383930313233343536373839	s30313233343536373839303132333435363738393031323334353637383930	i-1
+strings.indexTests	s	s3031323334353637383930313233343536373839303132333435363738393031	i-1
+strings.indexTests	s3332313435363738383930313233343536373839303132333435363738393031323334353637383930323131	s3031323334353637383930313233343536373839303132333435363738393031	i-1
+strings.indexTests	s3031323334353637383930313233343536373839303132333435363738393031	s3031323334353637383930313233343536373839303132333435363738393031	i0
+strings.indexTests	s783031323334353637383930313233343536373839303132333435363738393031	s3031323334353637383930313233343536373839303132333435363738393031	i1
+strings.indexTests	s7830313233343536373839303132333435363738393031323334353637383930783031323334353637383930313233343536373839303132333435363738393031	s3031323334353637383930313233343536373839303132333435363738393031	i33
+strings.indexTests	s78797a30313233343536373839303132333435363738393031323334353637383930	s3031323334353637383930313233343536373839303132333435363738393031	i-1
+strings.indexTests	s787878787878303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132	s303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132	i6
+strings.indexTests	s	s30313233343536373839303132333435363738393031323334353637383930313233343536373839	i-1
+strings.indexTests	s7878303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132	s30313233343536373839303132333435363738393031323334353637383930313233343536373839	i2
+strings.indexTests	s7878303132333435363738393031323334353637383930313233343536373839303132333435363738	s30313233343536373839303132333435363738393031323334353637383930313233343536373839	i-1
+strings.indexTests	s7878303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313233343536373839303132	s30313233343536373839303132333435363738393031323334353637383930313233343536787878	i-1
+strings.indexTests	s787830313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313230313233343536373839303132333435363738393031323334353637383930313233343536787878	s30313233343536373839303132333435363738393031323334353637383930313233343536787878	i65
+strings.indexTests	s6f786f786f786f786f786f786f786f786f786f786f786f79	s6f79	i22
+strings.indexTests	s6f786f786f786f786f786f786f786f786f786f786f786f78	s6f79	i-1
+strings.indexTests	s6f786f786f786f786f786f786f786f786f786f786f78e298ba	se298ba	i22
+strings.indexTests	s787830313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313230313233343536373839303132333435363738393031323334353637383930313233343536787878ed9fc0	sed9fc0	i105
+strings.lastIndexTests	s	s	i0
+strings.lastIndexTests	s	s61	i-1
+strings.lastIndexTests	s	s666f6f	i-1
+strings.lastIndexTests	s666f	s666f6f	i-1
+strings.lastIndexTests	s666f6f	s666f6f	i0
+strings.lastIndexTests	s666f6f	s66	i0
+strings.lastIndexTests	s6f6f666f666f6f666f6f6f	s66	i7
+strings.lastIndexTests	s6f6f666f666f6f666f6f6f	s666f6f	i7
+strings.lastIndexTests	s626172666f6f626172666f6f	s666f6f	i9
+strings.lastIndexTests	s666f6f	s	i3
+strings.lastIndexTests	s666f6f	s6f	i2
+strings.lastIndexTests	s616263414243616263	s41	i3
+strings.lastIndexTests	s616263414243616263	s61	i6
+strings.indexAnyTests	s	s	i-1
+strings.indexAnyTests	s	s61	i-1
+strings.indexAnyTests	s	s616263	i-1
+strings.indexAnyTests	s61	s	i-1
+strings.indexAnyTests	s61	s61	i0
+strings.indexAnyTests	s80	sff62	i0
+strings.indexAnyTests	s616161	s61	i0
+strings.indexAnyTests	s616263	s78797a	i-1
+strings.indexAnyTests	s616263	s78637a	i2
+strings.indexAnyTests	s6162e298ba63	s78e298ba797a	i2
+strings.indexAnyTests	s61e298ba62e298bb63e298b964	s6378	i8
+strings.indexAnyTests	s61e298ba62e298bb63e298b964	s757677e298bb78797a	i5
+strings.indexAnyTests	s615265674578702a	s2e287c292a2b3f5e245b5d	i7
+strings.indexAnyTests	s312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34	s20	i-1
+strings.indexAnyTests	s3031326162636261323130	sff62	i4
+strings.indexAnyTests	s3031328062636280323130	sff62	i3
+strings.indexAnyTests	s30313233343536cf80616263	scf6280	i10
+strings.lastIndexAnyTests	s	s	i-1
+strings.lastIndexAnyTests	s	s61	i-1
+strings.lastIndexAnyTests	s	s616263	i-1
+strings.lastIndexAnyTests	s61	s	i-1
+strings.lastIndexAnyTests	s61	s61	i0
+strings.lastIndexAnyTests	s80	sff62	i0
+strings.lastIndexAnyTests	s616161	s61	i2
+strings.lastIndexAnyTests	s616263	s78797a	i-1
+strings.lastIndexAnyTests	s616263	s6162	i1
+strings.lastIndexAnyTests	s6162e298ba63	s78e298ba797a	i2
+strings.lastIndexAnyTests	s61e298ba62e298bb63e298b964	s6378	i8
+strings.lastIndexAnyTests	s61e298ba62e298bb63e298b964	s757677e298bb78797a	i5
+strings.lastIndexAnyTests	s612e5265674578702a	s2e287c292a2b3f5e245b5d	i8
+strings.lastIndexAnyTests	s312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34	s20	i-1
+strings.lastIndexAnyTests	s3031326162636261323130	sff62	i6
+strings.lastIndexAnyTests	s3031328062636280323130	sff62	i7
+strings.lastIndexAnyTests	s30313233343536cf80616263	scf6280	i10
+strings.splittests	s	s	i-1	L
+strings.splittests	s61626364	s	i2	Ls61,s626364
+strings.splittests	s61626364	s	i4	Ls61,s62,s63,s64
+strings.splittests	s61626364	s	i-1	Ls61,s62,s63,s64
+strings.splittests	se298bae298bbe298b9	s	i-1	Lse298ba,se298bb,se298b9
+strings.splittests	se298bae298bbe298b9	s	i3	Lse298ba,se298bb,se298b9
+strings.splittests	se298bae298bbe298b9	s	i17	Lse298ba,se298bb,se298b9
+strings.splittests	se298baefbfbde298b9	s	i-1	Lse298ba,sefbfbd,se298b9
+strings.splittests	s61626364	s61	i0	n
+strings.splittests	s61626364	s61	i-1	Ls,s626364
+strings.splittests	s61626364	s7a	i-1	Ls61626364
+strings.splittests	s312c322c332c34	s2c	i-1	Ls31,s32,s33,s34
+strings.splittests	s312e2e2e2e322e2e2e2e332e2e2e2e34	s2e2e2e	i-1	Ls31,s2e32,s2e33,s2e34
+strings.splittests	se298bae298bbe298b9	se298b9	i-1	Lse298bae298bb,s
+strings.splittests	se298bae298bbe298b9	s7e	i-1	Lse298bae298bbe298b9
+strings.splittests	s31203220332034	s20	i3	Ls31,s32,s332034
+strings.splittests	s312032	s20	i3	Ls31,s32
+strings.splittests	s	s54	i2305843009213693951	Ls
+strings.splittests	sff2dff	s	i-1	Lsff,s2d,sff
+strings.splittests	sff2dff	s2d	i-1	Lsff,sff
+strings.splitaftertests	s61626364	s61	i-1	Ls61,s626364
+strings.splitaftertests	s61626364	s7a	i-1	Ls61626364
+strings.splitaftertests	s61626364	s	i-1	Ls61,s62,s63,s64
+strings.splitaftertests	s312c322c332c34	s2c	i-1	Ls312c,s322c,s332c,s34
+strings.splitaftertests	s312e2e2e2e322e2e2e2e332e2e2e2e34	s2e2e2e	i-1	Ls312e2e2e,s2e322e2e2e,s2e332e2e2e,s2e34
+strings.splitaftertests	se298bae298bbe298b9	se298b9	i-1	Lse298bae298bbe298b9,s
+strings.splitaftertests	se298bae298bbe298b9	s7e	i-1	Lse298bae298bbe298b9
+strings.splitaftertests	se298bae298bbe298b9	s	i-1	Lse298ba,se298bb,se298b9
+strings.splitaftertests	s31203220332034	s20	i3	Ls3120,s3220,s332034
+strings.splitaftertests	s3120322033	s20	i3	Ls3120,s3220,s33
+strings.splitaftertests	s312032	s20	i3	Ls3120,s32
+strings.splitaftertests	s313233	s	i2	Ls31,s3233
+strings.splitaftertests	s313233	s	i17	Ls31,s32,s33
+strings.fieldstests	s	L
+strings.fieldstests	s20	L
+strings.fieldstests	s200920	L
+strings.fieldstests	se28080	L
+strings.fieldstests	s20206162632020	Ls616263
+strings.fieldstests	s31203220332034	Ls31,s32,s33,s34
+strings.fieldstests	s31202032202033202034	Ls31,s32,s33,s34
+strings.fieldstests	s310909320909330934	Ls31,s32,s33,s34
+strings.fieldstests	s31e2808032e2808133e2808234	Ls31,s32,s33,s34
+strings.fieldstests	se28080e28081e28082	L
+strings.fieldstests	s0ae284a209e284a20a	Lse284a2,se284a2
+strings.fieldstests	s0ae2808031e284a232e2808020e2808120e284a2	Ls31e284a232,se284a2
+strings.fieldstests	s0a31efbfbd20efbfbd32e2808033efbfbd34	Ls31efbfbd,sefbfbd32,s33efbfbd34
+strings.fieldstests	s31ffe28080ff32ff20ff	Ls31ff,sff32ff,sff
+strings.fieldstests	se298bae298bbe298b9	Lse298bae298bbe298b9
+strings.FieldsFuncTests	s	L
+strings.FieldsFuncTests	s5858	L
+strings.FieldsFuncTests	s58586869585858	Ls6869
+strings.FieldsFuncTests	s615858625858586358	Ls61,s62,s63
+strings.upperTests	s	s
+strings.upperTests	s4f4e4c595550504552	s4f4e4c595550504552
+strings.upperTests	s616263	s414243
+strings.upperTests	s416243313233	s414243313233
+strings.upperTests	s617a415a30395f	s415a415a30395f
+strings.upperTests	s6c6f6e67537472696e47776974486d69786f66736d614c4c616e6463417073	s4c4f4e47535452494e47574954484d49584f46534d414c4c414e4443415053
+strings.upperTests	s52454e414e20424153544f5320393320414f5344414a444a4149444a414944414a49616964736a6a616964696a6164736a6961646a694f4f4b4b4f	s52454e414e20424153544f5320393320414f5344414a444a4149444a414944414a49414944534a4a414944494a4144534a4941444a494f4f4b4b4f
+strings.upperTests	s6c6f6e67c990737472696e67c99077697468c9906e6f6e6173636969e2b1af6368617273	s4c4f4e47e2b1af535452494e47e2b1af57495448e2b1af4e4f4e4153434949e2b1af4348415253
+strings.upperTests	sc990c990c990c990c990	se2b1afe2b1afe2b1afe2b1afe2b1af
+strings.upperTests	s61c280f48fbfbf	s41c280f48fbfbf
+strings.lowerTests	s	s
+strings.lowerTests	s616263	s616263
+strings.lowerTests	s416243313233	s616263313233
+strings.lowerTests	s617a415a30395f	s617a617a30395f
+strings.lowerTests	s6c6f6e67537472696e47776974486d69786f66736d614c4c616e6463417073	s6c6f6e67737472696e67776974686d69786f66736d616c6c616e6463617073
+strings.lowerTests	s72656e616e20626173746f7320393320414f5344414a444a4149444a414944414a49616964736a6a616964696a6164736a6961646a694f4f4b4b4f	s72656e616e20626173746f7320393320616f7364616a646a6169646a616964616a69616964736a6a616964696a6164736a6961646a696f6f6b6b6f
+strings.lowerTests	s4c4f4e47e2b1af535452494e47e2b1af57495448e2b1af4e4f4e4153434949e2b1af4348415253	s6c6f6e67c990737472696e67c99077697468c9906e6f6e6173636969c9906368617273
+strings.lowerTests	se2b1ade2b1ade2b1ade2b1ade2b1ad	sc991c991c991c991c991
+strings.lowerTests	s41c280f48fbfbf	s61c280f48fbfbf
+strings.trimSpaceTests	s	s
+strings.trimSpaceTests	s616263	s616263
+strings.trimSpaceTests	s090b0d0c0ac285c2a0e28080e38080616263090b0d0c0ac285c2a0e28080e38080	s616263
+strings.trimSpaceTests	s20	s
+strings.trimSpaceTests	s20090d0a2009090d0d0a0a20	s
+strings.trimSpaceTests	s20090d0a207809090d0d0a0a20	s78
+strings.trimSpaceTests	s20e28080090d0a207809090d0d0a790a20e38080	s7809090d0d0a79
+strings.trimSpaceTests	s3120090d0a32	s3120090d0a32
+strings.trimSpaceTests	s207880	s7880
+strings.trimSpaceTests	s2078c0	s78c0
+strings.trimSpaceTests	s7820c0c020	s7820c0c0
+strings.trimSpaceTests	s7820c0	s7820c0
+strings.trimSpaceTests	s7820c020	s7820c0
+strings.trimSpaceTests	s7820c0c020	s7820c0c0
+strings.trimSpaceTests	s7820e298bac0c020	s7820e298bac0c0
+strings.trimSpaceTests	s7820e298ba20	s7820e298ba
+strings.trimTests	s5472696d	s61626261	s61	s6262
+strings.trimTests	s5472696d	s61626261	s6162	s
+strings.trimTests	s5472696d4c656674	s61626261	s6162	s
+strings.trimTests	s5472696d5269676874	s61626261	s6162	s
+strings.trimTests	s5472696d4c656674	s61626261	s61	s626261
+strings.trimTests	s5472696d4c656674	s61626261	s62	s61626261
+strings.trimTests	s5472696d5269676874	s61626261	s61	s616262
+strings.trimTests	s5472696d5269676874	s61626261	s62	s61626261
+strings.trimTests	s5472696d	s3c7461673e	s3c3e	s746167
+strings.trimTests	s5472696d	s2a206c6973746974656d	s202a	s6c6973746974656d
+strings.trimTests	s5472696d	s2271756f746522	s22	s71756f7465
+strings.trimTests	s5472696d	se2b1afe2b1afc990c990e2b1afe2b1af	se2b1af	sc990c990
+strings.trimTests	s5472696d	s8074657374ff	sff	s74657374
+strings.trimTests	s5472696d	s20c4a020	s20	sc4a0
+strings.trimTests	s5472696d	s20c4a0c4b030	s3020	sc4a0c4b0
+strings.trimTests	s5472696d	s61626261	s	s61626261
+strings.trimTests	s5472696d	s	s313233	s
+strings.trimTests	s5472696d	s	s	s
+strings.trimTests	s5472696d4c656674	s61626261	s	s61626261
+strings.trimTests	s5472696d4c656674	s	s313233	s
+strings.trimTests	s5472696d4c656674	s	s	s
+strings.trimTests	s5472696d5269676874	s61626261	s	s61626261
+strings.trimTests	s5472696d5269676874	s	s313233	s
+strings.trimTests	s5472696d5269676874	s	s	s
+strings.trimTests	s5472696d5269676874	se298bac0	se298ba	se298bac0
+strings.trimTests	s5472696d507265666978	s61616262	s61	s616262
+strings.trimTests	s5472696d507265666978	s61616262	s62	s61616262
+strings.trimTests	s5472696d537566666978	s61616262	s61	s61616262
+strings.trimTests	s5472696d537566666978	s61616262	s62	s616162
+strings.trimFuncTests	dIsSpace	s090b0d0c0ac285c2a0e28080e380802068656c6c6f20090b0d0c0ac285c2a0e28080e38080	s68656c6c6f	s68656c6c6f20090b0d0c0ac285c2a0e28080e38080	s090b0d0c0ac285c2a0e28080e380802068656c6c6f
+strings.trimFuncTests	dIsDigit	se0b990e0b992313268656c6c6f3334e0b990e0b991	s68656c6c6f	s68656c6c6f3334e0b990e0b991	se0b990e0b992313268656c6c6f
+strings.trimFuncTests	dIsUpper	se2b1afe2b1afe2b1afe2b1af4142434468656c6c6f4546e2b1afe2b1af4748e2b1afe2b1af	s68656c6c6f	s68656c6c6f4546e2b1afe2b1af4748e2b1afe2b1af	se2b1afe2b1afe2b1afe2b1af4142434468656c6c6f
+strings.trimFuncTests	dnot IsSpace	s68656c6c6f090b0d0c0ac285c2a0e28080e3808068656c6c6f	s090b0d0c0ac285c2a0e28080e38080	s090b0d0c0ac285c2a0e28080e3808068656c6c6f	s68656c6c6f090b0d0c0ac285c2a0e28080e38080
+strings.trimFuncTests	dnot IsDigit	s68656c6c6fe0b990e0b99231323334e0b990e0b99168656c6f	se0b990e0b99231323334e0b990e0b991	se0b990e0b99231323334e0b990e0b99168656c6f	s68656c6c6fe0b990e0b99231323334e0b990e0b991
+strings.trimFuncTests	dIsValidRune	s6162c061c06364	sc061c0	sc061c06364	s6162c061c0
+strings.trimFuncTests	dnot IsValidRune	sc061c0	s61	s61c0	sc061
+strings.trimFuncTests	dIsSpace	s	s	s	s
+strings.trimFuncTests	dIsSpace	s20	s	s	s
+strings.indexFuncTests	s	dIsValidRune	i-1	i-1
+strings.indexFuncTests	s616263	dIsDigit	i-1	i-1
+strings.indexFuncTests	s30313233	dIsDigit	i0	i3
+strings.indexFuncTests	s613162	dIsDigit	i1	i1
+strings.indexFuncTests	s090b0d0c0ac285c2a0e28080e38080	dIsSpace	i0	i12
+strings.indexFuncTests	se0b990e0b992313268656c6c6f3334e0b990e0b991	dIsDigit	i0	i18
+strings.indexFuncTests	se2b1afe2b1afe2b1afe2b1af4142434468656c6c6f4546e2b1afe2b1af4748e2b1afe2b1af	dIsUpper	i0	i34
+strings.indexFuncTests	s3132e0b990e0b99268656c6c6f3334e0b990e0b991	dnot IsDigit	i8	i12
+strings.indexFuncTests	s8031	dIsDigit	i1	i1
+strings.indexFuncTests	s80616263	dIsDigit	i-1	i-1
+strings.indexFuncTests	sc061c0	dIsValidRune	i1	i1
+strings.indexFuncTests	sc061c0	dnot IsValidRune	i0	i2
+strings.indexFuncTests	sc0e298bac0	dnot IsValidRune	i0	i4
+strings.indexFuncTests	sc0e298bac0c0	dnot IsValidRune	i0	i5
+strings.indexFuncTests	s6162c061c06364	dnot IsValidRune	i2	i4
+strings.indexFuncTests	s61e0806364	dnot IsValidRune	i1	i2
+strings.indexFuncTests	s80808080	dnot IsValidRune	i0	i3
+strings.RepeatTests	s	s	i0
+strings.RepeatTests	s	s	i1
+strings.RepeatTests	s	s	i2
+strings.RepeatTests	s2d	s	i0
+strings.RepeatTests	s2d	s2d	i1
+strings.RepeatTests	s2d	s2d2d2d2d2d2d2d2d2d2d	i10
+strings.RepeatTests	s61626320	s616263206162632061626320	i3
+strings.RepeatTests	s20	s20	i1
+strings.RepeatTests	s2d2d	s2d2d2d2d	i2
+strings.RepeatTests	s3d3d3d	s3d3d3d3d3d3d	i2
+strings.RepeatTests	s303030	s303030303030303030	i3
+strings.RepeatTests	s09090909	s09090909090909090909090909090909	i4
+strings.RunesTests	s	L	bF
+strings.RunesTests	s20	Li32	bF
+strings.RunesTests	s414243	Li65,i66,i67	bF
+strings.RunesTests	s616263	Li97,i98,i99	bF
+strings.RunesTests	se697a5e69cace8aa9e	Li26085,i26412,i35486	bF
+strings.RunesTests	s61628063	Li97,i98,i65533,i99	bT
+strings.RunesTests	s6162c063	Li97,i98,i65533,i99	bT
+strings.ReplaceTests	s68656c6c6f	s6c	s4c	i0	s68656c6c6f
+strings.ReplaceTests	s68656c6c6f	s6c	s4c	i-1	s68654c4c6f
+strings.ReplaceTests	s68656c6c6f	s78	s58	i-1	s68656c6c6f
+strings.ReplaceTests	s	s78	s58	i-1	s
+strings.ReplaceTests	s7261646172	s72	s3c723e	i-1	s3c723e6164613c723e
+strings.ReplaceTests	s	s	s3c3e	i-1	s3c3e
+strings.ReplaceTests	s62616e616e61	s61	s3c3e	i-1	s623c3e6e3c3e6e3c3e
+strings.ReplaceTests	s62616e616e61	s61	s3c3e	i1	s623c3e6e616e61
+strings.ReplaceTests	s62616e616e61	s61	s3c3e	i1000	s623c3e6e3c3e6e3c3e
+strings.ReplaceTests	s62616e616e61	s616e	s3c3e	i-1	s623c3e3c3e61
+strings.ReplaceTests	s62616e616e61	s616e61	s3c3e	i-1	s623c3e6e61
+strings.ReplaceTests	s62616e616e61	s	s3c3e	i-1	s3c3e623c3e613c3e6e3c3e613c3e6e3c3e613c3e
+strings.ReplaceTests	s62616e616e61	s	s3c3e	i10	s3c3e623c3e613c3e6e3c3e613c3e6e3c3e613c3e
+strings.ReplaceTests	s62616e616e61	s	s3c3e	i6	s3c3e623c3e613c3e6e3c3e613c3e6e3c3e61
+strings.ReplaceTests	s62616e616e61	s	s3c3e	i5	s3c3e623c3e613c3e6e3c3e613c3e6e61
+strings.ReplaceTests	s62616e616e61	s	s3c3e	i1	s3c3e62616e616e61
+strings.ReplaceTests	s62616e616e61	s61	s61	i-1	s62616e616e61
+strings.ReplaceTests	s62616e616e61	s61	s61	i1	s62616e616e61
+strings.ReplaceTests	se298bae298bbe298b9	s	s3c3e	i-1	s3c3ee298ba3c3ee298bb3c3ee298b93c3e
+strings.TitleTests	s	s
+strings.TitleTests	s61	s41
+strings.TitleTests	s20616161206161612061616120	s20416161204161612041616120
+strings.TitleTests	s20416161204161612041616120	s20416161204161612041616120
+strings.TitleTests	s31323361343536	s31323361343536
+strings.TitleTests	s646f75626c652d626c696e64	s446f75626c652d426c696e64
+strings.TitleTests	sc3bfc3b8c3bb	sc5b8c3b8c3bb
+strings.TitleTests	s776974685f756e64657273636f7265	s576974685f756e64657273636f7265
+strings.TitleTests	s756e69636f646520e280a8206c696e6520736570617261746f72	s556e69636f646520e280a8204c696e6520536570617261746f72
+strings.ContainsTests	s616263	s6263	bT
+strings.ContainsTests	s616263	s626364	bF
+strings.ContainsTests	s616263	s	bT
+strings.ContainsTests	s	s61	bF
+strings.ContainsTests	s787878787878	s3031	bF
+strings.ContainsTests	s303178787878	s3031	bT
+strings.ContainsTests	s787830317878	s3031	bT
+strings.ContainsTests	s787878783031	s3031	bT
+strings.ContainsTests	s317878787878	s3031	bF
+strings.ContainsTests	s787878787830	s3031	bF
+strings.ContainsTests	s78787878787878	s303132	bF
+strings.ContainsTests	s30313278787878	s303132	bT
+strings.ContainsTests	s78783031327878	s303132	bT
+strings.ContainsTests	s78787878303132	s303132	bT
+strings.ContainsTests	s31327878787878	s303132	bF
+strings.ContainsTests	s78787878783031	s303132	bF
+strings.ContainsTests	s7878787878787878	s30313233	bF
+strings.ContainsTests	s3031323378787878	s30313233	bT
+strings.ContainsTests	s7878303132337878	s30313233	bT
+strings.ContainsTests	s7878787830313233	s30313233	bT
+strings.ContainsTests	s3132337878787878	s30313233	bF
+strings.ContainsTests	s7878787878303132	s30313233	bF
+strings.ContainsTests	s787878787878787878	s3031323334	bF
+strings.ContainsTests	s303132333478787878	s3031323334	bT
+strings.ContainsTests	s787830313233347878	s3031323334	bT
+strings.ContainsTests	s787878783031323334	s3031323334	bT
+strings.ContainsTests	s313233347878787878	s3031323334	bF
+strings.ContainsTests	s787878787830313233	s3031323334	bF
+strings.ContainsTests	s787878787878787878787878	s3031323334353637	bF
+strings.ContainsTests	s303132333435363778787878	s3031323334353637	bT
+strings.ContainsTests	s787830313233343536377878	s3031323334353637	bT
+strings.ContainsTests	s787878783031323334353637	s3031323334353637	bT
+strings.ContainsTests	s313233343536377878787878	s3031323334353637	bF
+strings.ContainsTests	s787878787830313233343536	s3031323334353637	bF
+strings.ContainsTests	s78787878787878787878787878	s303132333435363738	bF
+strings.ContainsTests	s30313233343536373878787878	s303132333435363738	bT
+strings.ContainsTests	s78783031323334353637387878	s303132333435363738	bT
+strings.ContainsTests	s78787878303132333435363738	s303132333435363738	bT
+strings.ContainsTests	s31323334353637387878787878	s303132333435363738	bF
+strings.ContainsTests	s78787878783031323334353637	s303132333435363738	bF
+strings.ContainsTests	s7878787878787878787878787878787878787878	s30313233343536373839414243444546	bF
+strings.ContainsTests	s3031323334353637383941424344454678787878	s30313233343536373839414243444546	bT
+strings.ContainsTests	s7878303132333435363738394142434445467878	s30313233343536373839414243444546	bT
+strings.ContainsTests	s7878787830313233343536373839414243444546	s30313233343536373839414243444546	bT
+strings.ContainsTests	s3132333435363738394142434445467878787878	s30313233343536373839414243444546	bF
+strings.ContainsTests	s7878787878303132333435363738394142434445	s30313233343536373839414243444546	bF
+strings.ContainsTests	s787878787878787878787878787878787878787878	s3031323334353637383941424344454647	bF
+strings.ContainsTests	s303132333435363738394142434445464778787878	s3031323334353637383941424344454647	bT
+strings.ContainsTests	s787830313233343536373839414243444546477878	s3031323334353637383941424344454647	bT
+strings.ContainsTests	s787878783031323334353637383941424344454647	s3031323334353637383941424344454647	bT
+strings.ContainsTests	s313233343536373839414243444546477878787878	s3031323334353637383941424344454647	bF
+strings.ContainsTests	s787878787830313233343536373839414243444546	s3031323334353637383941424344454647	bF
+strings.ContainsTests	s7878303178	s303132	bF
+strings.ContainsTests	s78783031323378	s3031323334	bF
+strings.ContainsTests	s7878303132333435363778	s303132333435363738	bF
+strings.ContainsTests	s78783031323334353637383941424344454678	s3031323334353637383941424344454647	bF
+strings.ContainsAnyTests	s	s	bF
+strings.ContainsAnyTests	s	s61	bF
+strings.ContainsAnyTests	s	s616263	bF
+strings.ContainsAnyTests	s61	s	bF
+strings.ContainsAnyTests	s61	s61	bT
+strings.ContainsAnyTests	s616161	s61	bT
+strings.ContainsAnyTests	s616263	s78797a	bF
+strings.ContainsAnyTests	s616263	s78637a	bT
+strings.ContainsAnyTests	s61e298ba62e298bb63e298b964	s757677e298bb78797a	bT
+strings.ContainsAnyTests	s615265674578702a	s2e287c292a2b3f5e245b5d	bT
+strings.ContainsAnyTests	s312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34	s20	bF
+strings.ContainsRuneTests	s	i97	bF
+strings.ContainsRuneTests	s61	i97	bT
+strings.ContainsRuneTests	s616161	i97	bT
+strings.ContainsRuneTests	s616263	i121	bF
+strings.ContainsRuneTests	s616263	i99	bT
+strings.ContainsRuneTests	s61e298ba62e298bb63e298b964	i120	bF
+strings.ContainsRuneTests	s61e298ba62e298bb63e298b964	i9787	bT
+strings.ContainsRuneTests	s615265674578702a	i42	bT
+strings.EqualFoldTests	s616263	s616263	bT
+strings.EqualFoldTests	s41426364	s41426364	bT
+strings.EqualFoldTests	s313233616263	s313233414243	bT
+strings.EqualFoldTests	sceb1ceb2ceb4	sce91ce92ce94	bT
+strings.EqualFoldTests	s616263	s78797a	bF
+strings.EqualFoldTests	s616263	s58595a	bF
+strings.EqualFoldTests	s6162636465666768696a6b	s6162636465666768696a58	bF
+strings.EqualFoldTests	s6162636465666768696a6b	s6162636465666768696ae284aa	bT
+strings.EqualFoldTests	s6162636465666768696a4b	s6162636465666768696ae284aa	bT
+strings.EqualFoldTests	s6162636465666768696a6b7a	s6162636465666768696ae284aa79	bF
+strings.EqualFoldTests	s6162636465666768696a4b7a	s6162636465666768696ae284aa79	bF
+strings.EqualFoldTests	s31	s32	bF
+strings.EqualFoldTests	s7574662d38	s55532d4153434949	bF
+strings.CountTests	s	s	i1
+strings.CountTests	s	s6e6f74656d707479	i0
+strings.CountTests	s6e6f74656d707479	s	i9
+strings.CountTests	s736d616c6c6572	s6e6f7420736d616c6c6572	i0
+strings.CountTests	s3132333435363738393837363534333231	s36	i2
+strings.CountTests	s363131313631313136	s36	i3
+strings.CountTests	s6e6f74657175616c	s4e6f74457175616c	i0
+strings.CountTests	s657175616c	s657175616c	i1
+strings.CountTests	s6162633132333132333131323371	s313233	i3
+strings.CountTests	s3131313131	s3131	i2
+strings.cutTests	s616263	s62	s61	s63	bT
+strings.cutTests	s616263	s61	s	s6263	bT
+strings.cutTests	s616263	s63	s6162	s	bT
+strings.cutTests	s616263	s616263	s	s	bT
+strings.cutTests	s616263	s	s	s616263	bT
+strings.cutTests	s616263	s64	s616263	s	bF
+strings.cutTests	s	s64	s	s	bF
+strings.cutTests	s	s	s	s	bT
+strings.cutPrefixTests	s616263	s61	s6263	bT
+strings.cutPrefixTests	s616263	s616263	s	bT
+strings.cutPrefixTests	s616263	s	s616263	bT
+strings.cutPrefixTests	s616263	s64	s616263	bF
+strings.cutPrefixTests	s	s64	s	bF
+strings.cutPrefixTests	s	s	s	bT
+strings.cutSuffixTests	s616263	s6263	s61	bT
+strings.cutSuffixTests	s616263	s616263	s	bT
+strings.cutSuffixTests	s616263	s	s616263	bT
+strings.cutSuffixTests	s616263	s64	s616263	bF
+strings.cutSuffixTests	s	s64	s	bF
+strings.cutSuffixTests	s	s	s	bT
+bytes.indexTests	s	s	i0
+bytes.indexTests	s	s61	i-1
+bytes.indexTests	s	s666f6f	i-1
+bytes.indexTests	s666f	s666f6f	i-1
+bytes.indexTests	s666f6f	s62617a	i-1
+bytes.indexTests	s666f6f	s666f6f	i0
+bytes.indexTests	s6f6f666f666f6f666f6f6f	s66	i2
+bytes.indexTests	s6f6f666f666f6f666f6f6f	s666f6f	i4
+bytes.indexTests	s626172666f6f626172666f6f	s666f6f	i3
+bytes.indexTests	s666f6f	s	i0
+bytes.indexTests	s666f6f	s6f	i1
+bytes.indexTests	s616263414243616263	s41	i3
+bytes.indexTests	s	s61	i-1
+bytes.indexTests	s78	s61	i-1
+bytes.indexTests	s78	s78	i0
+bytes.indexTests	s616263	s61	i0
+bytes.indexTests	s616263	s62	i1
+bytes.indexTests	s616263	s63	i2
+bytes.indexTests	s616263	s78	i-1
+bytes.indexTests	s626172666f6f626172666f6f7979797a7a7a7979797a7a7a7979797a7a7a7979797878787a7a7a797979	s78	i33
+bytes.indexTests	s666f666f666f666f6f6f666f626f6f	s6f6f	i7
+bytes.indexTests	s666f666f666f666f666f666f626f6f	s6f62	i11
+bytes.indexTests	s666f666f666f666f666f666f626f6f	s626f6f	i12
+bytes.indexTests	s666f666f666f666f666f666f626f6f	s6f626f6f	i11
+bytes.indexTests	s666f666f666f666f666f6f6f626f6f	s666f6f6f	i8
+bytes.indexTests	s666f666f666f666f666f666f626f6f	s666f626f6f	i10
+bytes.indexTests	s666f666f666f666f666f666f626f6f	s666f666f62	i8
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f66	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f66	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f	i13
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f6f	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f6f	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f6f62	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f6f62	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f6f6261	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f6f6261	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f6f626172	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f6f626172	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f6f62617266	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f6f62617266	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f6f626172666f	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f6f626172666f	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f66666f666f6f626172666f6f	i13
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f66666f666f6f626172666f6f	i12
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s6f666f66666f666f6f626172666f6f	i12
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s6f666f66666f666f6f626172666f6f	i11
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f666f66666f666f6f626172666f6f	i11
+bytes.indexTests	s666f666f666f666f666f666f666f66666f666f6f626172666f6f	s666f666f66666f666f6f626172666f6f	i10
+bytes.indexTests	s666f666f666f666f666f6f666f666f66666f666f6f626172666f6f	s666f6f62617273	i-1
+bytes.indexTests	s666f6f6679666f6f626172666f6f626172	s79	i4
+bytes.indexTests	s6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f6f	s72	i-1
+bytes.indexTests	s6f786f786f786f786f786f786f786f786f786f786f786f79	s6f79	i22
+bytes.indexTests	s6f786f786f786f786f786f786f786f786f786f786f786f78	s6f79	i-1
+bytes.indexTests	s303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031	s30303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303030303031	i5
+bytes.indexTests	s6f786f786f786f786f786f786f786f786f786f786f78e298ba	se298ba	i22
+bytes.indexTests	s787830313233343536373839303132333435363738393031323334353637383930313233343536373839303132333435363738393031323334353637383930313230313233343536373839303132333435363738393031323334353637383930313233343536787878ed9fc0	sed9fc0	i105
+bytes.lastIndexTests	s	s	i0
+bytes.lastIndexTests	s	s61	i-1
+bytes.lastIndexTests	s	s666f6f	i-1
+bytes.lastIndexTests	s666f	s666f6f	i-1
+bytes.lastIndexTests	s666f6f	s666f6f	i0
+bytes.lastIndexTests	s666f6f	s66	i0
+bytes.lastIndexTests	s6f6f666f666f6f666f6f6f	s66	i7
+bytes.lastIndexTests	s6f6f666f666f6f666f6f6f	s666f6f	i7
+bytes.lastIndexTests	s626172666f6f626172666f6f	s666f6f	i9
+bytes.lastIndexTests	s666f6f	s	i3
+bytes.lastIndexTests	s666f6f	s6f	i2
+bytes.lastIndexTests	s616263414243616263	s41	i3
+bytes.lastIndexTests	s616263414243616263	s61	i6
+bytes.indexAnyTests	s	s	i-1
+bytes.indexAnyTests	s	s61	i-1
+bytes.indexAnyTests	s	s616263	i-1
+bytes.indexAnyTests	s61	s	i-1
+bytes.indexAnyTests	s61	s61	i0
+bytes.indexAnyTests	s80	sff62	i0
+bytes.indexAnyTests	s616161	s61	i0
+bytes.indexAnyTests	s616263	s78797a	i-1
+bytes.indexAnyTests	s616263	s78637a	i2
+bytes.indexAnyTests	s6162e298ba63	s78e298ba797a	i2
+bytes.indexAnyTests	s61e298ba62e298bb63e298b964	s6378	i8
+bytes.indexAnyTests	s61e298ba62e298bb63e298b964	s757677e298bb78797a	i5
+bytes.indexAnyTests	s615265674578702a	s2e287c292a2b3f5e245b5d	i7
+bytes.indexAnyTests	s312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34	s20	i-1
+bytes.indexAnyTests	s3031326162636261323130	sff62	i4
+bytes.indexAnyTests	s3031328062636280323130	sff62	i3
+bytes.indexAnyTests	s30313233343536cf80616263	scf6280	i10
+bytes.lastIndexAnyTests	s	s	i-1
+bytes.lastIndexAnyTests	s	s61	i-1
+bytes.lastIndexAnyTests	s	s616263	i-1
+bytes.lastIndexAnyTests	s61	s	i-1
+bytes.lastIndexAnyTests	s61	s61	i0
+bytes.lastIndexAnyTests	s80	sff62	i0
+bytes.lastIndexAnyTests	s616161	s61	i2
+bytes.lastIndexAnyTests	s616263	s78797a	i-1
+bytes.lastIndexAnyTests	s616263	s6162	i1
+bytes.lastIndexAnyTests	s6162e298ba63	s78e298ba797a	i2
+bytes.lastIndexAnyTests	s61e298ba62e298bb63e298b964	s6378	i8
+bytes.lastIndexAnyTests	s61e298ba62e298bb63e298b964	s757677e298bb78797a	i5
+bytes.lastIndexAnyTests	s612e5265674578702a	s2e287c292a2b3f5e245b5d	i8
+bytes.lastIndexAnyTests	s312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34	s20	i-1
+bytes.lastIndexAnyTests	s3031326162636261323130	sff62	i6
+bytes.lastIndexAnyTests	s3031328062636280323130	sff62	i7
+bytes.lastIndexAnyTests	s30313233343536cf80616263	scf6280	i10
+bytes.splittests	s	s	i-1	L
+bytes.splittests	s61626364	s61	i0	n
+bytes.splittests	s61626364	s	i2	Ls61,s626364
+bytes.splittests	s61626364	s61	i-1	Ls,s626364
+bytes.splittests	s61626364	s7a	i-1	Ls61626364
+bytes.splittests	s61626364	s	i-1	Ls61,s62,s63,s64
+bytes.splittests	s312c322c332c34	s2c	i-1	Ls31,s32,s33,s34
+bytes.splittests	s312e2e2e2e322e2e2e2e332e2e2e2e34	s2e2e2e	i-1	Ls31,s2e32,s2e33,s2e34
+bytes.splittests	se298bae298bbe298b9	se298b9	i-1	Lse298bae298bb,s
+bytes.splittests	se298bae298bbe298b9	s7e	i-1	Lse298bae298bbe298b9
+bytes.splittests	se298bae298bbe298b9	s	i-1	Lse298ba,se298bb,se298b9
+bytes.splittests	s31203220332034	s20	i3	Ls31,s32,s332034
+bytes.splittests	s312032	s20	i3	Ls31,s32
+bytes.splittests	s313233	s	i2	Ls31,s3233
+bytes.splittests	s313233	s	i17	Ls31,s32,s33
+bytes.splittests	s6254	s54	i2305843009213693951	Ls62,s
+bytes.splittests	sff2dff	s	i-1	Lsff,s2d,sff
+bytes.splittests	sff2dff	s2d	i-1	Lsff,sff
+bytes.splitaftertests	s61626364	s61	i-1	Ls61,s626364
+bytes.splitaftertests	s61626364	s7a	i-1	Ls61626364
+bytes.splitaftertests	s61626364	s	i-1	Ls61,s62,s63,s64
+bytes.splitaftertests	s312c322c332c34	s2c	i-1	Ls312c,s322c,s332c,s34
+bytes.splitaftertests	s312e2e2e2e322e2e2e2e332e2e2e2e34	s2e2e2e	i-1	Ls312e2e2e,s2e322e2e2e,s2e332e2e2e,s2e34
+bytes.splitaftertests	se298bae298bbe298b9	se298b9	i-1	Lse298bae298bbe298b9,s
+bytes.splitaftertests	se298bae298bbe298b9	s7e	i-1	Lse298bae298bbe298b9
+bytes.splitaftertests	se298bae298bbe298b9	s	i-1	Lse298ba,se298bb,se298b9
+bytes.splitaftertests	s31203220332034	s20	i3	Ls3120,s3220,s332034
+bytes.splitaftertests	s3120322033	s20	i3	Ls3120,s3220,s33
+bytes.splitaftertests	s312032	s20	i3	Ls3120,s32
+bytes.splitaftertests	s313233	s	i2	Ls31,s3233
+bytes.splitaftertests	s313233	s	i17	Ls31,s32,s33
+bytes.fieldstests	s	L
+bytes.fieldstests	s20	L
+bytes.fieldstests	s200920	L
+bytes.fieldstests	s20206162632020	Ls616263
+bytes.fieldstests	s31203220332034	Ls31,s32,s33,s34
+bytes.fieldstests	s31202032202033202034	Ls31,s32,s33,s34
+bytes.fieldstests	s310909320909330934	Ls31,s32,s33,s34
+bytes.fieldstests	s31e2808032e2808133e2808234	Ls31,s32,s33,s34
+bytes.fieldstests	se28080e28081e28082	L
+bytes.fieldstests	s0ae284a209e284a20a	Lse284a2,se284a2
+bytes.fieldstests	se298bae298bbe298b9	Lse298bae298bbe298b9
+bytes.upperTests	s	s
+bytes.upperTests	s4f4e4c595550504552	s4f4e4c595550504552
+bytes.upperTests	s616263	s414243
+bytes.upperTests	s416243313233	s414243313233
+bytes.upperTests	s617a415a30395f	s415a415a30395f
+bytes.upperTests	s6c6f6e67537472696e47776974486d69786f66736d614c4c616e6463417073	s4c4f4e47535452494e47574954484d49584f46534d414c4c414e4443415053
+bytes.upperTests	s6c6f6e67c990737472696e67c99077697468c9906e6f6e6173636969e2b1af6368617273	s4c4f4e47e2b1af535452494e47e2b1af57495448e2b1af4e4f4e4153434949e2b1af4348415253
+bytes.upperTests	sc990c990c990c990c990	se2b1afe2b1afe2b1afe2b1afe2b1af
+bytes.upperTests	s61c280f48fbfbf	s41c280f48fbfbf
+bytes.lowerTests	s	s
+bytes.lowerTests	s616263	s616263
+bytes.lowerTests	s416243313233	s616263313233
+bytes.lowerTests	s617a415a30395f	s617a617a30395f
+bytes.lowerTests	s6c6f6e67537472696e47776974486d69786f66736d614c4c616e6463417073	s6c6f6e67737472696e67776974686d69786f66736d616c6c616e6463617073
+bytes.lowerTests	s4c4f4e47e2b1af535452494e47e2b1af57495448e2b1af4e4f4e4153434949e2b1af4348415253	s6c6f6e67c990737472696e67c99077697468c9906e6f6e6173636969c9906368617273
+bytes.lowerTests	se2b1ade2b1ade2b1ade2b1ade2b1ad	sc991c991c991c991c991
+bytes.lowerTests	s41c280f48fbfbf	s61c280f48fbfbf
+bytes.trimSpaceTests	s	n
+bytes.trimSpaceTests	s202061	s61
+bytes.trimSpaceTests	s622020	s62
+bytes.trimSpaceTests	s616263	s616263
+bytes.trimSpaceTests	s090b0d0c0ac285c2a0e28080e38080616263090b0d0c0ac285c2a0e28080e38080	s616263
+bytes.trimSpaceTests	s20	n
+bytes.trimSpaceTests	se3808020	n
+bytes.trimSpaceTests	s20e38080	n
+bytes.trimSpaceTests	s20090d0a2009090d0d0a0a20	n
+bytes.trimSpaceTests	s20090d0a207809090d0d0a0a20	s78
+bytes.trimSpaceTests	s20e28080090d0a207809090d0d0a790a20e38080	s7809090d0d0a79
+bytes.trimSpaceTests	s3120090d0a32	s3120090d0a32
+bytes.trimSpaceTests	s207880	s7880
+bytes.trimSpaceTests	s2078c0	s78c0
+bytes.trimSpaceTests	s7820c0c020	s7820c0c0
+bytes.trimSpaceTests	s7820c0	s7820c0
+bytes.trimSpaceTests	s7820c020	s7820c0
+bytes.trimSpaceTests	s7820c0c020	s7820c0c0
+bytes.trimSpaceTests	s7820e298bac0c020	s7820e298bac0c0
+bytes.trimSpaceTests	s7820e298ba20	s7820e298ba
+bytes.RepeatTests	s	s	i0
+bytes.RepeatTests	s	s	i1
+bytes.RepeatTests	s	s	i2
+bytes.RepeatTests	s2d	s	i0
+bytes.RepeatTests	s2d	s2d	i1
+bytes.RepeatTests	s2d	s2d2d2d2d2d2d2d2d2d2d	i10
+bytes.RepeatTests	s61626320	s616263206162632061626320	i3
+bytes.RunesTests	s	L	bF
+bytes.RunesTests	s20	Li32	bF
+bytes.RunesTests	s414243	Li65,i66,i67	bF
+bytes.RunesTests	s616263	Li97,i98,i99	bF
+bytes.RunesTests	se697a5e69cace8aa9e	Li26085,i26412,i35486	bF
+bytes.RunesTests	s61628063	Li97,i98,i65533,i99	bT
+bytes.RunesTests	s6162c063	Li97,i98,i65533,i99	bT
+bytes.trimTests	s5472696d	s61626261	s61	s6262
+bytes.trimTests	s5472696d	s61626261	s6162	s
+bytes.trimTests	s5472696d4c656674	s61626261	s6162	s
+bytes.trimTests	s5472696d5269676874	s61626261	s6162	s
+bytes.trimTests	s5472696d4c656674	s61626261	s61	s626261
+bytes.trimTests	s5472696d4c656674	s61626261	s62	s61626261
+bytes.trimTests	s5472696d5269676874	s61626261	s61	s616262
+bytes.trimTests	s5472696d5269676874	s61626261	s62	s61626261
+bytes.trimTests	s5472696d	s3c7461673e	s3c3e	s746167
+bytes.trimTests	s5472696d	s2a206c6973746974656d	s202a	s6c6973746974656d
+bytes.trimTests	s5472696d	s2271756f746522	s22	s71756f7465
+bytes.trimTests	s5472696d	se2b1afe2b1afc990c990e2b1afe2b1af	se2b1af	sc990c990
+bytes.trimTests	s5472696d	s8074657374ff	sff	s74657374
+bytes.trimTests	s5472696d	s20c4a020	s20	sc4a0
+bytes.trimTests	s5472696d	s20c4a0c4b030	s3020	sc4a0c4b0
+bytes.trimTests	s5472696d	s61626261	s	s61626261
+bytes.trimTests	s5472696d	s	s313233	s
+bytes.trimTests	s5472696d	s	s	s
+bytes.trimTests	s5472696d4c656674	s61626261	s	s61626261
+bytes.trimTests	s5472696d4c656674	s	s313233	s
+bytes.trimTests	s5472696d4c656674	s	s	s
+bytes.trimTests	s5472696d5269676874	s61626261	s	s61626261
+bytes.trimTests	s5472696d5269676874	s	s313233	s
+bytes.trimTests	s5472696d5269676874	s	s	s
+bytes.trimTests	s5472696d5269676874	se298bac0	se298ba	se298bac0
+bytes.trimTests	s5472696d507265666978	s61616262	s61	s616262
+bytes.trimTests	s5472696d507265666978	s61616262	s62	s61616262
+bytes.trimTests	s5472696d537566666978	s61616262	s61	s61616262
+bytes.trimTests	s5472696d537566666978	s61616262	s62	s616162
+bytes.trimFuncTests	dIsSpace	s090b0d0c0ac285c2a0e28080e380802068656c6c6f20090b0d0c0ac285c2a0e28080e38080	s68656c6c6f	s68656c6c6f20090b0d0c0ac285c2a0e28080e38080	s090b0d0c0ac285c2a0e28080e380802068656c6c6f
+bytes.trimFuncTests	dIsDigit	se0b990e0b992313268656c6c6f3334e0b990e0b991	s68656c6c6f	s68656c6c6f3334e0b990e0b991	se0b990e0b992313268656c6c6f
+bytes.trimFuncTests	dIsUpper	se2b1afe2b1afe2b1afe2b1af4142434468656c6c6f4546e2b1afe2b1af4748e2b1afe2b1af	s68656c6c6f	s68656c6c6f4546e2b1afe2b1af4748e2b1afe2b1af	se2b1afe2b1afe2b1afe2b1af4142434468656c6c6f
+bytes.trimFuncTests	dnot IsSpace	s68656c6c6f090b0d0c0ac285c2a0e28080e3808068656c6c6f	s090b0d0c0ac285c2a0e28080e38080	s090b0d0c0ac285c2a0e28080e3808068656c6c6f	s68656c6c6f090b0d0c0ac285c2a0e28080e38080
+bytes.trimFuncTests	dnot IsDigit	s68656c6c6fe0b990e0b99231323334e0b990e0b99168656c6f	se0b990e0b99231323334e0b990e0b991	se0b990e0b99231323334e0b990e0b99168656c6f	s68656c6c6fe0b990e0b99231323334e0b990e0b991
+bytes.trimFuncTests	dIsValidRune	s6162c061c06364	sc061c0	sc061c06364	s6162c061c0
+bytes.trimFuncTests	dnot IsValidRune	sc061c0	s61	s61c0	sc061
+bytes.trimFuncTests	dIsSpace	s	n	n	s
+bytes.trimFuncTests	dIsSpace	s20	n	n	s
+bytes.indexFuncTests	s	dIsValidRune	i-1	i-1
+bytes.indexFuncTests	s616263	dIsDigit	i-1	i-1
+bytes.indexFuncTests	s30313233	dIsDigit	i0	i3
+bytes.indexFuncTests	s613162	dIsDigit	i1	i1
+bytes.indexFuncTests	s090b0d0c0ac285c2a0e28080e38080	dIsSpace	i0	i12
+bytes.indexFuncTests	se0b990e0b992313268656c6c6f3334e0b990e0b991	dIsDigit	i0	i18
+bytes.indexFuncTests	se2b1afe2b1afe2b1afe2b1af4142434468656c6c6f4546e2b1afe2b1af4748e2b1afe2b1af	dIsUpper	i0	i34
+bytes.indexFuncTests	s3132e0b990e0b99268656c6c6f3334e0b990e0b991	dnot IsDigit	i8	i12
+bytes.indexFuncTests	s8031	dIsDigit	i1	i1
+bytes.indexFuncTests	s80616263	dIsDigit	i-1	i-1
+bytes.indexFuncTests	sc061c0	dIsValidRune	i1	i1
+bytes.indexFuncTests	sc061c0	dnot IsValidRune	i0	i2
+bytes.indexFuncTests	sc0e298bac0	dnot IsValidRune	i0	i4
+bytes.indexFuncTests	sc0e298bac0c0	dnot IsValidRune	i0	i5
+bytes.indexFuncTests	s6162c061c06364	dnot IsValidRune	i2	i4
+bytes.indexFuncTests	s61e0806364	dnot IsValidRune	i1	i2
+bytes.ReplaceTests	s68656c6c6f	s6c	s4c	i0	s68656c6c6f
+bytes.ReplaceTests	s68656c6c6f	s6c	s4c	i-1	s68654c4c6f
+bytes.ReplaceTests	s68656c6c6f	s78	s58	i-1	s68656c6c6f
+bytes.ReplaceTests	s	s78	s58	i-1	s
+bytes.ReplaceTests	s7261646172	s72	s3c723e	i-1	s3c723e6164613c723e
+bytes.ReplaceTests	s	s	s3c3e	i-1	s3c3e
+bytes.ReplaceTests	s62616e616e61	s61	s3c3e	i-1	s623c3e6e3c3e6e3c3e
+bytes.ReplaceTests	s62616e616e61	s61	s3c3e	i1	s623c3e6e616e61
+bytes.ReplaceTests	s62616e616e61	s61	s3c3e	i1000	s623c3e6e3c3e6e3c3e
+bytes.ReplaceTests	s62616e616e61	s616e	s3c3e	i-1	s623c3e3c3e61
+bytes.ReplaceTests	s62616e616e61	s616e61	s3c3e	i-1	s623c3e6e61
+bytes.ReplaceTests	s62616e616e61	s	s3c3e	i-1	s3c3e623c3e613c3e6e3c3e613c3e6e3c3e613c3e
+bytes.ReplaceTests	s62616e616e61	s	s3c3e	i10	s3c3e623c3e613c3e6e3c3e613c3e6e3c3e613c3e
+bytes.ReplaceTests	s62616e616e61	s	s3c3e	i6	s3c3e623c3e613c3e6e3c3e613c3e6e3c3e61
+bytes.ReplaceTests	s62616e616e61	s	s3c3e	i5	s3c3e623c3e613c3e6e3c3e613c3e6e61
+bytes.ReplaceTests	s62616e616e61	s	s3c3e	i1	s3c3e62616e616e61
+bytes.ReplaceTests	s62616e616e61	s61	s61	i-1	s62616e616e61
+bytes.ReplaceTests	s62616e616e61	s61	s61	i1	s62616e616e61
+bytes.ReplaceTests	se298bae298bbe298b9	s	s3c3e	i-1	s3c3ee298ba3c3ee298bb3c3ee298b93c3e
+bytes.TitleTests	s	s
+bytes.TitleTests	s61	s41
+bytes.TitleTests	s20616161206161612061616120	s20416161204161612041616120
+bytes.TitleTests	s20416161204161612041616120	s20416161204161612041616120
+bytes.TitleTests	s31323361343536	s31323361343536
+bytes.TitleTests	s646f75626c652d626c696e64	s446f75626c652d426c696e64
+bytes.TitleTests	sc3bfc3b8c3bb	sc5b8c3b8c3bb
+bytes.TitleTests	s776974685f756e64657273636f7265	s576974685f756e64657273636f7265
+bytes.TitleTests	s756e69636f646520e280a8206c696e6520736570617261746f72	s556e69636f646520e280a8204c696e6520536570617261746f72
+bytes.ToTitleTests	s	s
+bytes.ToTitleTests	s61	s41
+bytes.ToTitleTests	s20616161206161612061616120	s20414141204141412041414120
+bytes.ToTitleTests	s20416161204161612041616120	s20414141204141412041414120
+bytes.ToTitleTests	s31323361343536	s31323341343536
+bytes.ToTitleTests	s646f75626c652d626c696e64	s444f55424c452d424c494e44
+bytes.ToTitleTests	sc3bfc3b8c3bb	sc5b8c398c39b
+bytes.EqualFoldTests	s616263	s616263	bT
+bytes.EqualFoldTests	s41426364	s41426364	bT
+bytes.EqualFoldTests	s313233616263	s313233414243	bT
+bytes.EqualFoldTests	sceb1ceb2ceb4	sce91ce92ce94	bT
+bytes.EqualFoldTests	s616263	s78797a	bF
+bytes.EqualFoldTests	s616263	s58595a	bF
+bytes.EqualFoldTests	s6162636465666768696a6b	s6162636465666768696a58	bF
+bytes.EqualFoldTests	s6162636465666768696a6b	s6162636465666768696ae284aa	bT
+bytes.EqualFoldTests	s6162636465666768696a4b	s6162636465666768696ae284aa	bT
+bytes.EqualFoldTests	s6162636465666768696a6b7a	s6162636465666768696ae284aa79	bF
+bytes.EqualFoldTests	s6162636465666768696a4b7a	s6162636465666768696ae284aa79	bF
+bytes.cutTests	s616263	s62	s61	s63	bT
+bytes.cutTests	s616263	s61	s	s6263	bT
+bytes.cutTests	s616263	s63	s6162	s	bT
+bytes.cutTests	s616263	s616263	s	s	bT
+bytes.cutTests	s616263	s	s	s616263	bT
+bytes.cutTests	s616263	s64	s616263	s	bF
+bytes.cutTests	s	s64	s	s	bF
+bytes.cutTests	s	s	s	s	bT
+bytes.cutPrefixTests	s616263	s61	s6263	bT
+bytes.cutPrefixTests	s616263	s616263	s	bT
+bytes.cutPrefixTests	s616263	s	s616263	bT
+bytes.cutPrefixTests	s616263	s64	s616263	bF
+bytes.cutPrefixTests	s	s64	s	bF
+bytes.cutPrefixTests	s	s	s	bT
+bytes.cutSuffixTests	s616263	s6263	s61	bT
+bytes.cutSuffixTests	s616263	s616263	s	bT
+bytes.cutSuffixTests	s616263	s	s616263	bT
+bytes.cutSuffixTests	s616263	s64	s616263	bF
+bytes.cutSuffixTests	s	s64	s	bF
+bytes.cutSuffixTests	s	s	s	bT
+bytes.containsTests	s68656c6c6f	s68656c	bT
+bytes.containsTests	se697a5e69cace8aa9e	se697a5e69cac	bT
+bytes.containsTests	s68656c6c6f	s48656c6c6f2c20776f726c64	bF
+bytes.containsTests	se69db1e4baac	se4baace69db1	bF
+bytes.ContainsAnyTests	s	s	bF
+bytes.ContainsAnyTests	s	s61	bF
+bytes.ContainsAnyTests	s	s616263	bF
+bytes.ContainsAnyTests	s61	s	bF
+bytes.ContainsAnyTests	s61	s61	bT
+bytes.ContainsAnyTests	s616161	s61	bT
+bytes.ContainsAnyTests	s616263	s78797a	bF
+bytes.ContainsAnyTests	s616263	s78637a	bT
+bytes.ContainsAnyTests	s61e298ba62e298bb63e298b964	s757677e298bb78797a	bT
+bytes.ContainsAnyTests	s615265674578702a	s2e287c292a2b3f5e245b5d	bT
+bytes.ContainsAnyTests	s312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34312e2e2e2e322e2e2e2e332e2e2e2e34	s20	bF
+bytes.ContainsRuneTests	s	i97	bF
+bytes.ContainsRuneTests	s61	i97	bT
+bytes.ContainsRuneTests	s616161	i97	bT
+bytes.ContainsRuneTests	s616263	i121	bF
+bytes.ContainsRuneTests	s616263	i99	bT
+bytes.ContainsRuneTests	s61e298ba62e298bb63e298b964	i120	bF
+bytes.ContainsRuneTests	s61e298ba62e298bb63e298b964	i9787	bT
+bytes.ContainsRuneTests	s615265674578702a	i42	bT
