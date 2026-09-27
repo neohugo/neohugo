@@ -1,0 +1,26 @@
+[package]
+name = "gotemplate"
+version = "0.1.0"
+edition = "2024"
+description = "Faithful port of Go text/template + html/template as forked in neohugo tpl/internal/go_templates (go1.24.0 fork + Hugo hooks)"
+license = "BSD-3-Clause"
+
+[dependencies]
+go-value = { path = "../go-value" }
+go-fmt = { path = "../go-fmt" }
+go-strconv = { path = "../go-strconv" }
+go-unicode = { path = "../go-unicode" }
+go-url = { path = "../go-url" }
+go-html = { path = "../go-html" }
+go-json = { path = "../go-json" }
+go-time = { path = "../go-time" }
+
+[dev-dependencies]
+# Test-only: reads the gzip-compressed Go oracle fixtures (decompression only).
+flate2 = "1"
+
+[profile.test]
+opt-level = 1
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
