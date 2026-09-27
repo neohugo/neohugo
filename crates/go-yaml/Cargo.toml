@@ -1,0 +1,17 @@
+[package]
+name = "go-yaml"
+version = "0.1.0"
+edition = "2024"
+description = "Port of gopkg.in/yaml.v2 v2.4.0 decoding (+ neohugo parser/metadecoders YAML layer) for the neohugo Rust port"
+license = "Apache-2.0 AND MIT"
+
+[dependencies]
+go-value = { path = "../go-value" }
+go-strconv = { path = "../go-strconv" }
+
+[dev-dependencies]
+# Decompression of checked-in gzip fixtures only (allowed: cannot change output bytes).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+
+# Temporary: each crate is its own workspace while crates are ported in parallel.
+[workspace]
