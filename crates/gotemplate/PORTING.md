@@ -226,10 +226,46 @@ every tree of the namespace if an edit was not found there.
    dereferences nil and crashes).
 9. **`herrors.Cause`** stops at the host error (`go_value::Error` has no
    cause chain).
+10. **`context.jsBraceDepth`** is an `IntSlice` (Go `[]int` semantics:
+    `Clone` shares the backing array and `append` grows like Go's
+    `growslice`), because the go1.24 fork neither clones nor compares it and
+    the aliasing is observable in the escaper.
+11. **Transition from `stateDead`** behaves like `tError` (Go would index
+    out of range; the escaper never transitions from it).
+12. **Pointer dereference in html escapers** (`doIndirect`,
+    `indirectToStringerOrError`, `indirectToJSONMarshaler`): a `Kind::Ptr`
+    object without `String`/`Error`/`MarshalJSON` becomes a `Kind::Struct`
+    view of its fields (go-fmt's pointer-receiver convention); it keeps
+    `printable_value` (a value-receiver method for both Hugo types).
+13. **Replacement tables** are functions `Rune -> Option<&[u8]>` instead of
+    arrays (equivalent, including `htmlReplacer`'s length check); the
+    regular expressions are hand-coded with Go's case-folding orbits
+    (`(?i)s` matches U+017F).
+14. **Error edits.** Go mutates the shared `*Error` (`Name`, `Line`,
+    `Description`) when it annotates branch/range errors; here the
+    annotated error is a new `Arc`. Only error texts depend on it.
 
 ## Verification
 
-(See the test files; numbers filled in below.)
+All fixtures come from `tools/go-oracle/gotemplate` (go1.27.1 toolchain,
+the fork copied by `sync-fork.sh`, build tag `gotemplate_oracle`).
+
+| test | what |
+|---|---|
+| `tests/html_escdump.rs` | the escaper reproduces Go's escaped trees of all 120 layouts in this repository (`docs/layouts`, `create/skeletons/theme/layouts`, `tpl/tplimpl/embedded/templates`), namespaces built as tplimpl does (shared namespace + `CloneShallow` per overlay/baseof), every tree incl. the derived `name$htmltemplate_*` templates, byte for byte (665 KB dump) |
+| `src/html/tests/oracle.rs` | 39,048 escaper calls (17 escapers × 2,297 argument lists: every byte, special runes, invalid UTF-8, fuzz, Safe types, numbers, nils, time, collections, Stringers, errors, json/text marshalers, PrintableValue types, multi-arg), 53,730 transition runs (82,260 steps from 170 start contexts: contexts, error texts, brace slices incl. capacity/aliasing), 59,569 leaf-function checks — all equal to Go |
+| `src/html/tests/go_tests.rs` | Go's html_test, js_test, css_test, url_test, transition_test tables |
+| `tests/html_strip_tags.rs` | `stripTags` on 3,949 inputs |
+| `tests/smoke.rs` | text/template end-to-end smoke cases |
+
+Regenerate (repo root):
+
+```sh
+tools/go-oracle/gotemplate/sync-fork.sh
+GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate escfuncs crates/gotemplate/tests/fixtures/html
+GOTOOLCHAIN=go1.27.1 go run -tags gotemplate_oracle ./tools/go-oracle/gotemplate escdump \
+  crates/gotemplate/tests/fixtures/html/escdump.txt docs/layouts create/skeletons/theme/layouts tpl/tplimpl/embedded/templates
+```
 
 ## Gaps
 
