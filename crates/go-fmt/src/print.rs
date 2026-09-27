@@ -132,8 +132,10 @@ pub fn register_named_method(type_name: &str, m: NamedMethod) {
         .insert(type_name.to_string(), m);
 }
 
-/// The registered method of a value carried by type name.
-fn named_method(v: &Value) -> Option<NamedMethod> {
+/// The registered method of a value carried by type name (a named
+/// `List`/`Map` or a `TypedNil`), for other crates that must see the same
+/// `String`/`Error` methods as fmt (e.g. html/template's `jsValEscaper`).
+pub fn named_method(v: &Value) -> Option<NamedMethod> {
     let name: &str = match v {
         Value::List(l) => match &l.ty {
             SliceType::Named(n) => n,

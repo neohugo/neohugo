@@ -58,14 +58,7 @@ impl Failures {
 /// Oracle cases that fail because of a gap in another crate, as
 /// `(escaper, args spec, reason)`. They must still fail (so the entry is
 /// removed once the other crate is fixed).
-const KNOWN_EXTERNAL_GAPS: &[(&str, &str, &str)] = &[(
-    "_html_template_jsvalescaper",
-    // A nil `func()`: Go's json.Marshal returns "json: unsupported type:
-    // func()"; go-json (arshal/mod.rs) encodes every Value::TypedNil as
-    // `null`.
-    "args(tnil:66756e632829)",
-    "go-json: nil func/chan values must be UnsupportedTypeError",
-)];
+const KNOWN_EXTERNAL_GAPS: &[(&str, &str, &str)] = &[];
 
 #[test]
 fn oracle_escfuncs() {

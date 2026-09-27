@@ -31,7 +31,7 @@ mod print;
 use std::io;
 
 pub use go_value::Value;
-pub use print::{NamedMethod, NilKind, register_named_method, typed_nil_kind};
+pub use print::{NamedMethod, NilKind, named_method, register_named_method, typed_nil_kind};
 
 use print::Pp;
 

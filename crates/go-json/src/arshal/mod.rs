@@ -74,6 +74,16 @@ pub(crate) fn marshal_as(enc: &mut Enc, v: &Value, st: Static) -> Option<Err> {
 /// `makeMethodArshaler` and `makeDefaultArshaler` in Go's precedence.
 pub(crate) fn marshal_concrete(enc: &mut Enc, v: &Value) -> Option<Err> {
     crate::stack::guard(|| match v {
+        // Go: makeInvalidArshaler — func and chan types are unsupported
+        // even when nil.
+        Value::TypedNil(t)
+            if matches!(
+                go_value::typed_nil_kind(t),
+                go_value::NilKind::Func | go_value::NilKind::Chan
+            ) =>
+        {
+            Some(errors::new_marshal_error_before(enc, t, None))
+        }
         // Nil pointers, maps, slices and interfaces all marshal as null
         // (FormatNilMapAsNull and FormatNilSliceAsNull are set under v1).
         Value::Invalid | Value::TypedNil(_) => enc.write_token(&Token::Null),

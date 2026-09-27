@@ -236,30 +236,15 @@ pub(crate) fn indirect_to_json_marshaler(a: &Value) -> Value {
 ///
 /// Host objects report `String` through `Object::go_string`. Values the
 /// model carries only by type name (named slices/maps and typed nils) have
-/// their `String` methods in go-fmt's named-method registry, which go-fmt
-/// does not expose; its built-in entries (`page.Pages`,
-/// `page.TaxonomyList`, a nil `*time.Location`) are reproduced here with
-/// `fmt.Sprint`, which prints exactly `String()` for them.
+/// their `String` methods in go-fmt's named-method registry. A registered
+/// method that panics (`None`, a nil receiver) is treated as absent.
 pub(crate) fn stringer_string(a: &Value) -> Option<GoString> {
     match a {
         Value::Object(o) => o.go_string(),
-        Value::List(l) => match &l.ty {
-            go_value::SliceType::Named(n) if &**n == "page.Pages" => {
-                Some(go_fmt::sprint(std::slice::from_ref(a)).into())
-            }
+        Value::List(_) | Value::Map(_) | Value::TypedNil(_) => match go_fmt::named_method(a) {
+            Some(go_fmt::NamedMethod::String(f)) => f(a).map(GoString::from),
             _ => None,
         },
-        Value::Map(m) => match &m.ty {
-            go_value::MapType::Named(n) if &**n == "page.TaxonomyList" => {
-                Some(go_fmt::sprint(std::slice::from_ref(a)).into())
-            }
-            _ => None,
-        },
-        Value::TypedNil(t)
-            if matches!(&**t, "*time.Location" | "page.Pages" | "page.TaxonomyList") =>
-        {
-            Some(go_fmt::sprint(std::slice::from_ref(a)).into())
-        }
         _ => None,
     }
 }
