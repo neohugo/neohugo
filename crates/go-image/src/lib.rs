@@ -19,6 +19,9 @@
 //!
 //! Go `int` is `i64` throughout (coordinates, strides, offsets).
 
+// `clippy::manual_checked_ops` below is newer than some supported toolchains
+// (clippy 0.1.94 does not know it); don't fail `-D warnings` there.
+#![allow(unknown_lints)]
 // Lints that fight a faithful line-by-line port of the Go code.
 #![allow(
     clippy::too_many_arguments,

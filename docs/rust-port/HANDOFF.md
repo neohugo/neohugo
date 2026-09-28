@@ -143,5 +143,5 @@ Legend:
 - A cloud machine has 4 vCPUs, so run fewer agents at once, and give each crate its own `CARGO_TARGET_DIR`.
 - Commit to `rust-port` often; nothing outside git survives the session.
 - Pushing needs GitHub write access to `neohugo/neohugo`. Without the Claude GitHub App installed on the org, cloud pushes fail with 403. As of 2026-09-27 evening, cloud pushes to `rust-port-cloud/*` worked.
-- Cloud verification branches: `rust-port-cloud/linux-verify-4` has unmerged work. It holds an extended xtext-collate/go-image Linux verification and its own copy of the `tags*.tsv` fixtures plus a nested `.gitignore`; `rust-port` already force-added the original fixtures. Review it and merge or cherry-pick, and resolve the fixture overlap in favour of `rust-port`'s Mac-generated files, which are byte-identical to the fixtures the tests were written against.
+- Cloud verification branches: `rust-port-cloud/linux-verify-4` (extended xtext-collate/go-image Linux verification) is merged into `rust-port`. The `tags-fuzz.tsv` overlap was resolved in favour of `rust-port`'s original fixture; see `crates/xtext-collate/PORTING.md`.
 - `tools/go-oracle/*` are `package main` programs inside the neohugo Go module. Keep them gofmt- and vet-clean, because CI runs `go vet`/`go test ./...` on the whole module.
