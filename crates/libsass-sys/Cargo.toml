@@ -10,9 +10,8 @@ build = "build.rs"
 name = "libsass_sys"
 
 [dependencies]
-# Go's unicode.IsPrint (== strconv.IsPrint) and utf8.DecodeRune for the %q in
-# libsasserrors.Error.Error().
-go-unicode = { path = "../go-unicode" }
+# strconv.Quote for the %q in libsasserrors.Error.Error().
+go-strconv = { path = "../go-strconv" }
 
 [dev-dependencies]
 # Fixtures are zlib-compressed (decompression only; allowed by crates/README.md).

@@ -69,7 +69,12 @@ preserved). gowebp has no decoder; Hugo decodes WebP with
    `Error::EmptyPix` for the panic and `Error::PixOutOfRange` when libwebp
    would read past the buffer (Go: out-of-bounds read). Cases where libwebp
    fails before reading (non-positive dimensions, `|stride| < 4*width` for
-   RGBA) still go to C and give Go's `"failed to encode"`.
+   RGBA, a failing ARGB allocation, Gray above 16383) still go to C and give
+   Go's `"failed to encode"`. One out-of-bounds read has no effect on Go's
+   result: an RGBA/NRGBA picture wider or taller than 16383 is imported
+   (read) first and then rejected by `WebPEncode` whatever its pixels, so
+   with a short `Pix` Rust returns `Error::Encode` (`"failed to encode"`,
+   Go's result) without calling C (red-team fix, see Verification).
 3. **Gray input is copied** before the call (`encodeGray` takes a non-const
    pointer; libwebp does not write through it for this path).
 4. **No leaks.** Go leaks the output when `size == 0 && output != nil`;
@@ -112,12 +117,66 @@ cgo (verified identical machine code, see above).
 * `tests/api.rs` — `WebPConfig` layout vs. C `sizeof`/`offsetof`, encoder
   version 0x010302, the PHOTO preset config values from specs/images.md
   §6.4, buffer guards, writer errors.
+* `tests/fuzz.rs` — 10,000 splitmix-generated cases (`-mode fuzz -n 10000
+  -seed 1`); `LIBWEBP_FUZZ_TSV` runs a larger out-of-repo corpus.
+* `tests/redteam.rs` (red-team pass, 2026-09-28) — `-mode redteam`: the
+  option sweep (30 qualities incl. ±2^31, 2^24+1, 2^32, int64 extremes ×
+  20 presets incl. -1, 6, 7, 2^31, 2^32+2, int64 extremes × sharp on/off ×
+  NRGBA-alpha/RGBA/Gray) plus random geometry: sub-images with negative or
+  positive `Min`, zero / negative / short / padded / `C.int`-truncated
+  (2^31, 2^32+k) strides, non-positive and 16381–20000 dimensions, `Pix`
+  lengths around the exact read extent (0, 1, need−3…need+64), and an
+  "early" class whose theoretical reads are unbounded (4·width wrapping,
+  >2^34-byte allocations, over-size Gray) but on which libwebp fails
+  before reading. The oracle puts `Pix` between guard bytes and re-encodes
+  with other guard contents (random, 0xff, 0x55/0xaa); `read_outside = 1`
+  (Go read outside `Pix`) requires `Error::PixOutOfRange`, everything else
+  must match Go exactly. Checked in: 6,600 cases (seed 1000000, `-opts`).
+  Out of repo: 50,000 (seed 10000000) + 300,000 (seed 20000000) redteam
+  cases and 200,000 more fuzz cases (`-mode fuzz -seed 1000000`): **0
+  differences** after the fix below.
 
-Regenerate fixtures (repository root):
+  **Bug fixed:** an RGBA/NRGBA picture wider or taller than 16383 whose
+  `Pix` is shorter than the rows libwebp's import reads (e.g. `Max.X =
+  20000`, one row, `len(Pix) = 79999`; in Go a sub-image near the end of
+  its parent): Go `"failed to encode"` (the import reads out of bounds,
+  then `WebPEncode` rejects the dimensions whatever the pixels), Rust
+  returned `PixOutOfRange`. `check_pix_rgba` now returns `Error::Encode`
+  there (deviation 2). Regression: the `strip` cases of
+  `redteam_fixtures_match_go` (38 failed before the fix).
+
+Oracle builds. The checked-in fixtures come from darwin/arm64. On
+linux/x86_64 the oracle is built with clang and FMA:
+
+```
+GOTOOLCHAIN=go1.27.1 CC=clang CXX=clang++ \
+  CGO_CFLAGS='-O2 -g -ffp-contract=on -mfma' CGO_CXXFLAGS='-O2 -g -ffp-contract=on -mfma' \
+  go build -o webp-oracle ./tools/go-oracle/libwebp-sys
+```
+
+This build (clang 18.1.3) regenerates the checked-in `fuzz.tsv`, the
+`webp-edge` pack and the 955 synthetic cases of the `webp` pack (`-mode
+synth`, a byte-identical prefix of `manifest.tsv`/`inputs.bin`/
+`outputs.bin`; the other 7 cases need the private site) byte for byte, and
+produced `webp-redteam/redteam.tsv`. A linux/arm64 build (zig 0.16 `cc
+-target aarch64-linux-musl`, `GOARCH=arm64`, `-ldflags '-linkmode external
+-extldflags -static'`, run under `qemu-aarch64-static`; recipe in
+`crates/gift/PORTING.md`, plus `-UNDEBUG` in the zig wrappers because
+`zig cc -O2` defines `NDEBUG` and cgo's clang does not) reproduces
+`fuzz.tsv`, the `webp-edge` pack and `webp-redteam/redteam.tsv` byte for
+byte (`fuzz.tsv` and `redteam.tsv` also without `-UNDEBUG`; for LibSass
+it matters, see `crates/libsass-sys/PORTING.md`).
+
+Regenerate fixtures (repository root, with the oracle build above):
 
 ```
 go run ./tools/go-oracle/libwebp-sys -mode fixtures -out crates/libwebp-sys/tests/fixtures/webp \
     -site $S/canon/pristine-seeksnack -golden $S/golden/canonical
+go run ./tools/go-oracle/libwebp-sys -mode fuzz -out crates/libwebp-sys/tests/fixtures/webp -n 10000 -seed 1
+go run ./tools/go-oracle/libwebp-sys -mode edge -out crates/libwebp-sys/tests/fixtures/webp-edge
+go run ./tools/go-oracle/libwebp-sys -mode redteam -out crates/libwebp-sys/tests/fixtures/webp-redteam \
+    -n 3000 -seed 1000000 -opts
+go run ./tools/go-oracle/libwebp-sys -mode synth -out <dir>   # check only: prefix of the webp pack
 ```
 
 ## Known gaps
@@ -134,4 +193,10 @@ go run ./tools/go-oracle/libwebp-sys -mode fixtures -out crates/libwebp-sys/test
   libwebp's platform float behaviour, not the port. `NEOHUGO_NO_FMA=1`
   drops `-mfma` for CPUs without FMA3 and accepts those rare differences.
   gcc still builds (with a cargo warning) but is not parity-checked.
+* Allocation failures are host-dependent. For an RGBA/NRGBA picture of up
+  to 2^32 pixels (≤ 16 GiB of ARGB, below libwebp's limit) whose `Pix` is
+  too short, Rust returns `PixOutOfRange`; Go returns `"failed to encode"`
+  when `malloc` refuses the ARGB buffer (depends on the host's memory and
+  overcommit policy) and otherwise reads out of bounds. Not reachable from Hugo (decoded
+  images always have a full `Pix`).
 * The gowebp `dev` build tag (link a system libwebp) is not supported.

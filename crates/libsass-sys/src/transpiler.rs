@@ -158,10 +158,43 @@ impl Drop for ContextGuard {
     }
 }
 
+/// The stack LibSass runs on. Go (cgo) runs C code on the thread's system
+/// stack, which is 8 MiB on linux and darwin (go1.27.1
+/// runtime/cgo/pthread_unix.c: the default pthread stack size; on darwin the
+/// main thread's). LibSass recurses deeply on inputs Go handles: a Sass
+/// function recursing to LibSass's limit of 1024 calls needs ~4.4 MiB, an
+/// `@import` chain of 1900 files (Go's limit) ~8 MiB. Rust gives spawned
+/// threads 2 MiB by default, so [`Transpiler::execute`] runs each compile on
+/// its own thread with Go's stack size (measured: Go survives an import
+/// chain of 1900, this of 1901).
+pub const CGO_STACK_SIZE: usize = 8 << 20;
+
 impl Transpiler for LibsassTranspiler {
     // Go: transpiler.go:(libsassTranspiler).Execute
     /// Execute transpiles the SCSS or SASS from src into dst.
+    ///
+    /// The compile runs on a new thread with [`CGO_STACK_SIZE`] bytes of
+    /// stack (on the calling thread if no thread can be started); the import
+    /// resolver is called on that thread.
     fn execute(&self, src: &[u8]) -> Result<SassResult, Error> {
+        std::thread::scope(|s| {
+            let h = std::thread::Builder::new()
+                .name("libsass".to_string())
+                .stack_size(CGO_STACK_SIZE)
+                .spawn_scoped(s, || self.execute_on_this_thread(src));
+            match h {
+                Ok(h) => h
+                    .join()
+                    .unwrap_or_else(|payload| std::panic::resume_unwind(payload)),
+                Err(_) => self.execute_on_this_thread(src),
+            }
+        })
+    }
+}
+
+impl LibsassTranspiler {
+    // Go: transpiler.go:(libsassTranspiler).Execute
+    fn execute_on_this_thread(&self, src: &[u8]) -> Result<SassResult, Error> {
         let mut result = SassResult::default();
 
         let converted;

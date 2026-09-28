@@ -102,3 +102,42 @@ fn writer_errors_are_returned() {
     let err = libwebp_sys::encode(&mut Fail, &img, o).unwrap_err();
     assert_eq!(err.to_string(), "boom");
 }
+
+/// Red-team regression. gowebp imports (reads) an RGBA/NRGBA picture before
+/// `WebPEncode` rejects dimensions above 16383, so for such a picture with a
+/// short `Pix` (in Go: a sub-image near the end of its parent) Go returns
+/// "failed to encode" whatever the out-of-bounds bytes are. The Rust port
+/// returned `PixOutOfRange`.
+#[test]
+fn oversize_picture_with_short_pix_fails_like_go() {
+    let o = EncodingOptions {
+        quality: 75,
+        encoding_preset: EncodingPreset::PHOTO,
+        use_sharp_yuv: true,
+    };
+    let pix = vec![7u8; 79999];
+    for img in [
+        Image::Nrgba(PixView {
+            pix: &pix,
+            stride: 80000,
+            rect: Rectangle::new(0, 0, 20000, 1),
+        }),
+        Image::Rgba(PixView {
+            pix: &pix[..9],
+            stride: 8,
+            rect: Rectangle::new(0, 0, 2, 16384),
+        }),
+    ] {
+        let err = encode_to_vec(&img, o).unwrap_err();
+        assert!(matches!(err, Error::Encode), "{err:?}");
+        assert_eq!(err.to_string(), "failed to encode");
+    }
+    // Within WEBP_MAX_DIMENSION a short Pix is still refused (Go would
+    // encode bytes read out of bounds).
+    let img = Image::Nrgba(PixView {
+        pix: &pix[..16383 * 4 - 1],
+        stride: 16383 * 4,
+        rect: Rectangle::new(0, 0, 16383, 1),
+    });
+    assert!(matches!(encode_to_vec(&img, o), Err(Error::PixOutOfRange)));
+}

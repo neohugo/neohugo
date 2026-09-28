@@ -10,6 +10,12 @@
 //	    -site <pristine-seeksnack> -golden <golden/canonical>
 //	go run ./tools/go-oracle/libwebp-sys -mode fuzz -out crates/libwebp-sys/tests/fixtures/webp -n 10000 -seed 1
 //	go run ./tools/go-oracle/libwebp-sys -mode edge -out crates/libwebp-sys/tests/fixtures/webp-edge
+//	go run ./tools/go-oracle/libwebp-sys -mode redteam -out crates/libwebp-sys/tests/fixtures/webp-redteam -n 3000 -seed 1000000 -opts
+//	go run ./tools/go-oracle/libwebp-sys -mode synth -out <dir>   # the synthetic prefix of -mode fixtures
+//
+// On linux/amd64 build it with CC=clang CXX=clang++ and
+// CGO_CFLAGS/CGO_CXXFLAGS='-O2 -g -ffp-contract=on -mfma' to reproduce the
+// darwin/arm64 fixtures (see crates/libwebp-sys/PORTING.md).
 package main
 
 import (
@@ -57,15 +63,29 @@ var (
 )
 
 func main() {
-	mode := flag.String("mode", "fixtures", "fixtures | golden | fuzz | edge")
+	mode := flag.String("mode", "fixtures", "fixtures | golden | fuzz | edge | redteam | synth")
 	out := flag.String("out", "", "output directory")
 	site := flag.String("site", "", "pristine seeksnack site")
 	golden := flag.String("golden", "", "golden site output")
-	fuzzN := flag.Int("n", 3000, "fuzz: number of cases")
-	fuzzSeed := flag.Uint64("seed", 1, "fuzz: first case seed")
+	fuzzN := flag.Int("n", 3000, "fuzz, redteam: number of cases")
+	fuzzSeed := flag.Uint64("seed", 1, "fuzz, redteam: first case seed")
+	withOpts := flag.Bool("opts", false, "redteam: also write the option sweep")
 	flag.Parse()
 	if *mode == "fuzz" && *out != "" {
 		fuzzCases(*out, *fuzzSeed, *fuzzN)
+		return
+	}
+	if *mode == "redteam" && *out != "" {
+		redteamCases(*out, *fuzzSeed, *fuzzN, *withOpts)
+		return
+	}
+	if *mode == "synth" && *out != "" {
+		// The synthetic part of -mode fixtures (a prefix of its pack), for
+		// checking the fixture regeneration without the private site.
+		p := newPack(*out)
+		synthCases(p)
+		p.close()
+		fmt.Fprintf(os.Stderr, "wrote %d cases to %s\n", p.n, *out)
 		return
 	}
 	if *mode == "edge" && *out != "" {

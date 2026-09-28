@@ -6,8 +6,6 @@
 
 use std::fmt;
 
-use go_unicode::utf8;
-
 /// Go: `libsasserrors.Error` — a libsass error.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Error {
@@ -93,75 +91,96 @@ impl Parser<'_> {
     }
 
     /// Validates and skips one value. `depth` is the number of enclosing
-    /// objects/arrays.
+    /// objects/arrays. Iterative (an explicit stack of the open containers)
+    /// like jsontext's decoder: Go accepts 10000 nesting levels, which a
+    /// recursive validator overflows on a 2 MiB thread in a debug build.
     fn skip_value(&mut self, depth: usize) -> bool {
-        self.ws();
-        match self.peek() {
-            Some(b'{' | b'[') if depth >= MAX_NESTING_DEPTH => {
-                // jsontext: a container at nesting depth maxNestingDepth+1
-                // is a syntax error ("exceeded max depth").
-                false
-            }
-            Some(b'{') => {
-                self.i += 1;
-                self.ws();
-                if self.peek() == Some(b'}') {
-                    self.i += 1;
-                    return true;
+        // The containers open inside this value: true = object, false = array.
+        let mut open: Vec<bool> = Vec::new();
+        loop {
+            // One value (or the opening of a non-empty container).
+            self.ws();
+            let ok = match self.peek() {
+                Some(b'{' | b'[') if depth + open.len() >= MAX_NESTING_DEPTH => {
+                    // jsontext: a container at nesting depth maxNestingDepth+1
+                    // is a syntax error ("exceeded max depth").
+                    false
                 }
-                loop {
-                    self.ws();
-                    if self.peek() != Some(b'"') || self.read_string().is_none() {
-                        return false;
-                    }
-                    self.ws();
-                    if self.peek() != Some(b':') {
-                        return false;
-                    }
+                Some(b'{') => {
                     self.i += 1;
-                    if !self.skip_value(depth + 1) {
-                        return false;
-                    }
                     self.ws();
-                    match self.peek() {
-                        Some(b',') => self.i += 1,
-                        Some(b'}') => {
-                            self.i += 1;
-                            return true;
+                    if self.peek() == Some(b'}') {
+                        self.i += 1;
+                    } else {
+                        if !self.object_key() {
+                            return false;
                         }
-                        _ => return false,
+                        open.push(true);
+                        continue;
                     }
+                    true
                 }
-            }
-            Some(b'[') => {
-                self.i += 1;
-                self.ws();
-                if self.peek() == Some(b']') {
+                Some(b'[') => {
                     self.i += 1;
-                    return true;
-                }
-                loop {
-                    if !self.skip_value(depth + 1) {
-                        return false;
-                    }
                     self.ws();
-                    match self.peek() {
-                        Some(b',') => self.i += 1,
-                        Some(b']') => {
-                            self.i += 1;
-                            return true;
-                        }
-                        _ => return false,
+                    if self.peek() == Some(b']') {
+                        self.i += 1;
+                    } else {
+                        open.push(false);
+                        continue;
                     }
+                    true
+                }
+                Some(b'"') => self.read_string().is_some(),
+                Some(b't') => self.lit(b"true"),
+                Some(b'f') => self.lit(b"false"),
+                Some(b'n') => self.lit(b"null"),
+                Some(b'-' | b'0'..=b'9') => self.read_number().is_some(),
+                _ => false,
+            };
+            if !ok {
+                return false;
+            }
+            // A value is complete: close containers until one continues.
+            loop {
+                let Some(&object) = open.last() else {
+                    return true;
+                };
+                self.ws();
+                match self.peek() {
+                    Some(b',') => {
+                        self.i += 1;
+                        if object && !self.object_key() {
+                            return false;
+                        }
+                        break;
+                    }
+                    Some(b'}') if object => {
+                        self.i += 1;
+                        open.pop();
+                    }
+                    Some(b']') if !object => {
+                        self.i += 1;
+                        open.pop();
+                    }
+                    _ => return false,
                 }
             }
-            Some(b'"') => self.read_string().is_some(),
-            Some(b't') => self.lit(b"true"),
-            Some(b'f') => self.lit(b"false"),
-            Some(b'n') => self.lit(b"null"),
-            Some(b'-' | b'0'..=b'9') => self.read_number().is_some(),
-            _ => false,
         }
+    }
+
+    /// An object member's name and colon: `ws "name" ws :`.
+    fn object_key(&mut self) -> bool {
+        self.ws();
+        if self.peek() != Some(b'"') || self.read_string().is_none() {
+            return false;
+        }
+        self.ws();
+        if self.peek() != Some(b':') {
+            return false;
+        }
+        self.i += 1;
+        true
     }
 
     fn lit(&mut self, l: &[u8]) -> bool {
@@ -418,90 +437,10 @@ fn decode_rune(s: &[u8]) -> (char, usize) {
     }
 }
 
-// Go: strconv/quote.go:appendQuotedWith (quote '"', ASCIIonly false,
-// graphicOnly false), as used by fmt's %q verb for a string.
-/// Go `strconv.Quote` (the `%q` verb of `fmt.Sprintf` for a string).
+/// Go `strconv.Quote` (the `%q` verb of `fmt.Sprintf` for a string), from
+/// the `go-strconv` port.
 pub fn go_quote(s: &str) -> String {
-    const LOWERHEX: &[u8; 16] = b"0123456789abcdef";
-    let s = s.as_bytes();
-    let mut buf: Vec<u8> = Vec::with_capacity(3 * s.len() / 2 + 2);
-    buf.push(b'"');
-    let mut i = 0;
-    while i < s.len() {
-        let mut r = s[i] as i32;
-        let mut width = 1;
-        if r >= utf8::RUNE_SELF {
-            (r, width) = utf8::decode_rune(&s[i..]);
-        }
-        if width == 1 && r == utf8::RUNE_ERROR {
-            buf.extend_from_slice(b"\\x");
-            buf.push(LOWERHEX[(s[i] >> 4) as usize]);
-            buf.push(LOWERHEX[(s[i] & 0xF) as usize]);
-            i += width;
-            continue;
-        }
-        append_escaped_rune(&mut buf, r);
-        i += width;
-    }
-    buf.push(b'"');
-    // Only ASCII escapes and whole UTF-8 sequences of the input were written.
-    String::from_utf8(buf).expect("quoted string is UTF-8")
-}
-
-// Go: strconv/quote.go:appendEscapedRune (quote '"', ASCIIonly false,
-// graphicOnly false).
-fn append_escaped_rune(buf: &mut Vec<u8>, r: i32) {
-    const LOWERHEX: &[u8; 16] = b"0123456789abcdef";
-    if r == '"' as i32 || r == '\\' as i32 {
-        // always backslashed
-        buf.push(b'\\');
-        utf8::append_rune(buf, r);
-        return;
-    }
-    // strconv.IsPrint is defined to be unicode.IsPrint.
-    if go_unicode::is_print(r) {
-        utf8::append_rune(buf, r);
-        return;
-    }
-    match r {
-        0x07 => buf.extend_from_slice(b"\\a"),
-        0x08 => buf.extend_from_slice(b"\\b"),
-        0x0C => buf.extend_from_slice(b"\\f"),
-        0x0A => buf.extend_from_slice(b"\\n"),
-        0x0D => buf.extend_from_slice(b"\\r"),
-        0x09 => buf.extend_from_slice(b"\\t"),
-        0x0B => buf.extend_from_slice(b"\\v"),
-        _ => {
-            if r < ' ' as i32 || r == 0x7f {
-                buf.extend_from_slice(b"\\x");
-                buf.push(LOWERHEX[((r as u8) >> 4) as usize]);
-                buf.push(LOWERHEX[((r as u8) & 0xF) as usize]);
-            } else {
-                let r = if utf8::valid_rune(r) { r } else { 0xFFFD };
-                if r < 0x10000 {
-                    buf.extend_from_slice(b"\\u");
-                    let mut sh = 12;
-                    loop {
-                        buf.push(LOWERHEX[((r >> sh) & 0xF) as usize]);
-                        if sh == 0 {
-                            break;
-                        }
-                        sh -= 4;
-                    }
-                } else {
-                    buf.extend_from_slice(b"\\U");
-                    let mut sh = 28;
-                    loop {
-                        buf.push(LOWERHEX[((r >> sh) & 0xF) as usize]);
-                        if sh == 0 {
-                            break;
-                        }
-                        sh -= 4;
-                    }
-                }
-            }
-        }
-    }
+    go_strconv::quote(s)
 }
 
 #[cfg(test)]

@@ -257,7 +257,7 @@ name = "libsass-sys"
 version = "0.1.0"
 dependencies = [
  "cc",
- "go-unicode",
+ "go-strconv",
 ]
 
 [[package]]

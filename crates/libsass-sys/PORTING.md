@@ -16,7 +16,7 @@ builds it, and a port of the golibsass Go wrapper. Hugo uses it for
 | `internal/libsass/a__libsass.go` (`BridgeImport`, `Sass*` wrappers, `SassToScss`) | `src/internal.rs` (`bridge_import`, `sass_*` wrappers, `sass_to_scss`) |
 | `internal/libsass/a__importer.go` (C `SassImport`, `AddImportResolver`, `DeleteImportResolver`, `idMap`, `ImportResolver`) | `src/internal.rs` (`sass_import` as a Rust `extern "C"` fn, `add_import_resolver`, `delete_import_resolver`, `IdMap`, `ImportResolver`) |
 | `libsass/transpiler.go` (`New`, `Execute`, `Options`, `SourceMapOptions`, `Result`, `OutputStyle`, `ParseOutputStyle`) | `src/transpiler.rs` (`new`, `Transpiler::execute`, `Options`, `SourceMapOptions`, `SassResult`, `OutputStyle`, `parse_output_style`) |
-| `libsass/libsasserrors/libsasserrors.go` (`Error`, `JsonToError`) | `src/libsasserrors.rs` (`Error` + `Display`, `json_to_error`) |
+| `libsass/libsasserrors/libsasserrors.go` (`Error`, `JsonToError`) | `src/libsasserrors.rs` (`Error` + `Display` (`%q` = `go_strconv::quote`), `json_to_error`) |
 | `libsass/transpiler_test.go` | `tests/golibsass_tests.rs` |
 
 ## Build (byte parity of the C/C++ code)
@@ -52,6 +52,10 @@ let r: libsass_sys::SassResult = t.execute(src_bytes)?; // r.css, r.source_map_f
 // Err(libsass_sys::Error { status, column, file, line, message }); Display == Go Error()
 ```
 
+`execute` compiles on its own thread with an 8 MiB stack (deviation 7), so
+it can be called from any thread; the resolver runs on that thread. A
+resolver panic propagates out of `execute` (deviation 2).
+
 All strings are bytes (`&[u8]`/`Vec<u8>`), as Go strings. Hugo-level logic
 (`replaceRegularImportsIn/Out`, the resolver closure with `MakePathRelative`,
 the `stdin` → real filename error remap, the source-map `stdin"`
@@ -76,21 +80,44 @@ Import resolver semantics (`BridgeImport`), preserved exactly:
    frees the temporary strings, copies the outputs, and deletes the
    compiler and the data context (which frees output/error strings and the
    importer list). No output change.
-2. **Resolver panics.** A panic inside the resolver cannot unwind through
-   C++; it is caught, the import is treated as unresolved, and the panic is
-   resumed after the compile returns (Go would crash in the cgo callback).
+2. **Resolver panics.** In Go the panic unwinds through the cgo callback and
+   the C++ frames straight out of `Execute` (recoverable by the caller): no
+   further LibSass work, no further resolver calls. A Rust panic cannot
+   unwind through C++, so `bridge_import` catches it, returns an import
+   entry carrying an error (`sass_import_set_error`, which makes LibSass
+   abort the compile at once), never calls the resolver again in that
+   compile, and `execute` resumes the panic with the original payload
+   after the compile returns. (Before the red-team pass the import fell
+   back to LibSass's own resolution and the compile went on, calling the
+   resolver for later imports: `a b c d` where Go calls `a b`.)
 3. **`sass2scss` result** is freed after copying (Go leaks it).
 4. `new` returns `Result<LibsassTranspiler, Error>` (Go returns the
    `Transpiler` interface; its error is always nil).
 5. `parse_output_style` uses ASCII case folding; Go's `strings.ToLower`
    gives the same results because no non-ASCII rune lowers to a letter used
-   in `nested|expanded|compact|compressed`.
+   in `nested|expanded|compact|compressed` (checked over every rune with
+   go1.27.1 in the red-team pass).
 6. `json_to_error` is a small decoder implementing the `json.Unmarshal`
    behaviour needed here: whole-document validation first (invalid → zero
    `Error`), case-insensitive field names (with `ſ`/`K` folding), last
    duplicate wins, type mismatches leave the field unchanged, int fields
    reject fractions/exponents/overflow, Go string unescaping (invalid UTF-8
-   and unpaired surrogates → U+FFFD).
+   and unpaired surrogates → U+FFFD). The validator is iterative (an
+   explicit stack of open containers), so the 10000 nesting levels Go
+   accepts cost no Rust stack.
+7. **LibSass runs on its own 8 MiB thread.** cgo runs C code on the
+   thread's system stack, 8 MiB on linux and darwin (go1.27.1
+   `runtime/cgo/pthread_unix.c`), whatever goroutine calls `Execute`.
+   LibSass recursion needs several MiB on inputs Go compiles: a Sass
+   function recursing to LibSass's own limit of 1024 calls ~4.4 MiB, an
+   `@import` chain of 1900 files (Go's limit; 1901 crashes Go) ~8 MiB.
+   Rust gives spawned threads 2 MiB, where those inputs aborted the process
+   (stack overflow from 300 function calls or 450 imports). `execute`
+   therefore runs the compile on a scoped thread with
+   `CGO_STACK_SIZE` = 8 MiB (measured limits: Go 1900 imports, Rust 1901+),
+   falling back to the calling thread if no thread can be started; the
+   resolver is called on that thread (it is `Send + Sync` anyway). libwebp
+   needs no such thing (every encoder path runs in 64 KiB).
 
 ## FMA sites
 
@@ -100,9 +127,12 @@ code, see above).
 
 ## Verification
 
-* `tests/oracle.rs` — **254** cases from `tools/go-oracle/libsass-sys`, all
+* `tests/oracle.rs` — cases from `tools/go-oracle/libsass-sys`, all
   byte-identical (CSS, source-map filename and content, error string and
-  fields, and the full importer call trace `(url, prev)`):
+  fields, and the full importer call trace `(url, prev)`), run serially and
+  (except the seeksnack ones) again on 4 threads at once
+  (`LIBSASS_THREADS`): `cases.rec.zz` (254), `adv.rec.zz` (1,798, see
+  below) and `redteam.rec.zz` (2,510, red-team section). `cases.rec.zz`:
   * seeksnack `assets/scss/website.scss` with Hugo's settings (include paths
     `[assets/scss, node_modules, assets/scss]`, precision 8, Hugo's resolver
     emulated over the `assets` + `node_modules → assets/vendor` mounts, 115
@@ -123,16 +153,123 @@ code, see above).
   * Hugo resolver over extra files (`_partial`/`partial.scss`, `_index`,
     `index`, `_x.scss` vs `x.scss` preference, relative `../`, `.sass`
     partials, `.css`, `vendor` mount, `hugo:vars`, not found).
+* `adv.rec.zz` (`adv.go`): option plumbing outside Hugo's values (styles
+  ≥ 4, `uint32`/`C.int` truncation, precision extremes), error file names
+  with non-printable runes, messages with escapes, invalid UTF-8, NUL
+  truncation in every string option, import loops, a re-entrant resolver,
+  and 1,500 randomized cases (`fuzzSass`, seed 1).
 * `tests/golibsass_tests.rs` — port of golibsass `transpiler_test.go`
   (incl. the 10×10 and 10×100×10 concurrency tests), resolver panic
   propagation, version string.
+* `tests/json.rs` — `json_to_error` on 3,000+ JSON documents (`-json`);
+  `tests/quote.rs` — `%q` (now `go_strconv::quote`) against Go's
+  `strconv.Quote` of every code point (hash per 256-rune block).
 
-Regenerate fixtures (repository root):
+### Red-team pass (2026-09-28)
+
+Generator `redteam.go` (`-redteam <file> -rt-n N -seed S`): thousands of
+failing inputs for the error translation (LibSass error JSON →
+`libsasserrors.Error` → `Error()`): `@error` with every kind of value
+(Sass escapes of every C0 control, DEL, C1 controls, quotes, backslashes,
+non-printable/unassigned/private-use runes, surrogate and out-of-range
+escapes, raw control bytes and raw invalid UTF-8, unquoted text, numbers,
+lists, maps, colors, null, interpolation); undefined variables/mixins
+with odd names; wrong builtin arguments; incompatible units; `@extend` of
+missing targets; mutated snippets; string functions on invalid UTF-8
+(LibSass status 3 `"Not enough space"`); `@import` of unresolvable random
+URLs; errors inside resolver bodies under random `new_url`s (controls,
+quotes, backslashes, non-printables, invalid UTF-8) at random lines and
+columns, at a random depth of an import chain, SCSS and indented; random
+styles, precisions and source-map options; plus fixed deep-recursion cases
+(function recursion 300/1000/1024/1025, import chains of 400 and 1200,
+511/512 nested blocks, 99 nested parentheses). Of 2,510 checked-in cases
+(seed 1), 2,442 fail; they include zero `Error`s (LibSass writes no JSON
+for a non-UTF-8 path/message, or emits a raw 0x1F that Go's decoder
+rejects), status 3, C0 controls in messages, `%q`-escaped file names.
+
+Runs (clang+FMA amd64 oracle, below): checked-in 2,510 (seed 1); out of
+repo 5 × 100,010 (seeds 2–6) redteam cases and 5 × 10,000 `fuzzSass`
+cases (seeds 1000–5000), each serially and on 2 threads at once, and
+1,000,000 JSON documents (`-json -json-n 1000000 -seed 7`): **0
+differences** after the fixes below. (The `fuzzSass` corpora were made
+and checked under an address-space limit: 4 of their mutations make
+LibSass build outputs of more than 12 GB, recorded as status 2 `Unable to
+allocate memory: std::bad_alloc` on both sides.)
+
+Bugs fixed:
+
+1. **Stack overflow on deep recursion** (deviation 7): `f(1000)` for a
+   self-recursive Sass function, or an import chain of 1,200 files, aborted
+   the Rust process on a 2 MiB thread (Go: `.a{b:1000}` / the CSS).
+   Regressions: `rt/deep/*` in `redteam.rec.zz` (the oracle test runs on a
+   2 MiB test thread) and `deep_recursion_from_a_small_stack_thread`
+   (256 KiB caller; 1024 calls, 1900 imports) in `tests/redteam.rs`.
+2. **Resolver panic did not stop the compile** (deviation 2): with the
+   panicking import also resolvable by LibSass (an include path), Rust
+   kept compiling and called the resolver for the later imports (`a b c
+   d`; Go `a b`). Regressions: `resolver_panic_stops_the_compile_like_go`,
+   `nested_resolver_panic_propagates`.
+3. **Stack overflow in `json_to_error`** on deeply nested JSON: the
+   validator recursed once per level and aborted the process on the
+   10,000-level documents already in `json.rec.zz` when built in debug
+   (`cargo test` failed: `json_to_error_matches_go` overflowed its 2 MiB
+   thread; release builds had enough stack there). Go decodes them. Now iterative (deviation 6). Regression:
+   `deep_nesting_on_a_small_stack` in `tests/json.rs` (and
+   `json_to_error_matches_go` in debug).
+
+Also: `%q` switched to `go_strconv::quote` (the old hand-written quote
+already matched Go on every code point); the stale `adv.rec.zz` was
+regenerated (the oracle had stopped mutating the `selectors-fn` snippet,
+which segfaults LibSass on some mutations, after the file was written; 15
+of its 1,798 cases changed, all other bytes identical).
+
+LibSass 3.6.6 itself kills the process (Go and Rust alike) on some
+inputs, which the generators avoid: `std::terminate` on an uncaught
+`utf8::invalid_utf8` when it warns about, or imports below, a file whose
+path is not UTF-8; segfaults on some malformed selector-function
+arguments (`simple-selectors("}a.b#c")`); and some mutations make it
+build outputs of many GB.
+
+Oracle build. The checked-in fixtures come from darwin/arm64. On
+linux/x86_64 the oracle is built with clang and FMA:
+
+```
+GOTOOLCHAIN=go1.27.1 CC=clang CXX=clang++ \
+  CGO_CFLAGS='-O2 -g -ffp-contract=on -mfma' CGO_CXXFLAGS='-O2 -g -ffp-contract=on -mfma' \
+  go build -o sass-oracle ./tools/go-oracle/libsass-sys
+```
+
+This build (clang 18.1.3, libstdc++) regenerates `site.pack.zz`,
+`cases.rec.zz`, `adv.rec.zz` (after the regeneration above), `json.rec.zz`
+and `quote.tsv` byte for byte, and produced `redteam.rec.zz`. A
+linux/arm64 build (zig 0.16, `GOARCH=arm64`, static, under
+`qemu-aarch64-static`; recipe in `crates/gift/PORTING.md`) reproduces
+`redteam.rec.zz` byte for byte **only with `-UNDEBUG`** appended to the
+zig `cc`/`c++` wrappers: `zig cc -O2` defines `NDEBUG`, which cgo's clang
+does not, and LibSass's JSON writer then replaces invalid UTF-8 in an
+error's file name or message with U+FFFD instead of throwing (Go gets a
+real `Error` where darwin/arm64 and linux/amd64 get the zero `Error`: 35 of
+the 2,510 red-team cases, all of this kind). With `-UNDEBUG` it also
+reproduces `site.pack.zz`, `cases.rec.zz`, `adv.rec.zz` and `quote.tsv`
+(so linux/arm64 agrees with the darwin/arm64 originals). `-site` can
+be the checked-in `site.pack.zz` extracted into a directory (it holds
+exactly the three SCSS trees the oracle reads, plus the extra files it
+overwrites); `-hugocss` is optional.
+
+Regenerate fixtures (repository root, with the oracle build above):
 
 ```
 go run ./tools/go-oracle/libsass-sys -site $S/canon/pristine-seeksnack \
     -out crates/libsass-sys/tests/fixtures/sass -hugocss $S/work/resources-pipeline/libsass.out.css
+go run ./tools/go-oracle/libsass-sys -json crates/libsass-sys/tests/fixtures/sass/json.rec.zz
+go run ./tools/go-oracle/libsass-sys -site $S/canon/pristine-seeksnack -out <scratch> \
+    -redteam $PWD/crates/libsass-sys/tests/fixtures/sass/redteam.rec.zz     # -rt-n 2500 -seed 1
 ```
+
+(`-redteam` and `-fuzz-only` paths must be absolute: the oracle changes its
+working directory. golibsass leaks every data context and some `fuzzSass`
+mutations make LibSass build huge outputs, so run `-fuzz-only` in chunks of
+~10k cases under a memory limit, e.g. `ulimit -v 3000000`.)
 
 The oracle and the test both extract `site.pack.zz` into a fresh temp dir,
 make it the CWD (LibSass resolves `stdin`-relative imports and source-map
@@ -141,9 +278,6 @@ paths against the CWD) and write/compare outputs with that dir replaced by
 
 ## Known gaps
 
-* `Error`'s `%q` of the file name uses an approximation of Go's
-  `unicode.IsPrint` for non-ASCII runes (exact for ASCII). Switch to the
-  `go-strconv` crate's `quote` once it is available.
 * Platforms. The fixtures come from darwin/arm64 (Apple clang 21, libc++).
   On other hosts `build.rs` compiles with clang/clang++ (unless `CC`/`CXX`
   is set) and adds `-ffp-contract=on` and, on x86_64, `-mfma`, matching

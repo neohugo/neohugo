@@ -128,6 +128,14 @@ unsafe extern "C" {
         srcmap: *mut c_char,
     ) -> Sass_Import_Entry;
     pub fn sass_import_get_imp_path(entry: Sass_Import_Entry) -> *const c_char;
+    /// Not used by golibsass; aborts a compile after a resolver panic (see
+    /// `internal::bridge_import`).
+    pub fn sass_import_set_error(
+        import: Sass_Import_Entry,
+        message: *const c_char,
+        line: usize,
+        col: usize,
+    ) -> Sass_Import_Entry;
 
     // sass2scss.h
     pub fn sass2scss(sass: *const c_char, options: c_int) -> *mut c_char;

@@ -44,11 +44,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "go-unicode"
+name = "go-strconv"
 version = "0.1.0"
-dependencies = [
- "memchr",
-]
 
 [[package]]
 name = "jobserver"
@@ -71,15 +68,9 @@ name = "libsass-sys"
 version = "0.1.0"
 dependencies = [
  "cc",
- "go-unicode",
+ "go-strconv",
  "miniz_oxide",
 ]
-
-[[package]]
-name = "memchr"
-version = "2.8.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "miniz_oxide"

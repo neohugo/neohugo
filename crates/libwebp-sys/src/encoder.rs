@@ -149,7 +149,14 @@ fn check_pix_rgba(
     }
     // Import then reads `width * 4` bytes at `rgba + y * stride` for every
     // row y < height (WebPEncode's dimension check comes after the import).
-    rows_fit(v.pix.len(), width as i64 * 4, height, stride)
+    let fit = rows_fit(v.pix.len(), width as i64 * 4, height, stride);
+    if fit.is_err() && (width > WEBP_MAX_DIMENSION || height > WEBP_MAX_DIMENSION) {
+        // WebPEncode then rejects the picture whatever its pixels are, so Go
+        // returns "failed to encode" even though the import read outside
+        // Pix (those bytes never reach the output). Same result, no read.
+        return Err(Error::Encode);
+    }
+    fit
 }
 
 /// Memory-safety guard for the Gray pointer handed to C, following

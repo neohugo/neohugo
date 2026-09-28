@@ -17,8 +17,8 @@ use std::ptr;
 use std::sync::{Arc, LazyLock, Mutex};
 
 use crate::ffi::{
-    self, Sass_Compiler, Sass_Context, Sass_Data_Context, Sass_Import_List, Sass_Importer_Entry,
-    Sass_Options,
+    self, Sass_Compiler, Sass_Context, Sass_Data_Context, Sass_Import_Entry, Sass_Import_List,
+    Sass_Importer_Entry, Sass_Options,
 };
 
 /// Go: `type ImportResolver func(currPath string, prevPath string) (newPath
@@ -207,6 +207,13 @@ unsafe fn bridge_import(
         let rel = go_string(curr_path);
         let clist = ffi::sass_make_import_list(1);
 
+        // A resolver panicked earlier in this compile (see below): Go would
+        // not be here any more.
+        if RESOLVER_PANIC.with(|p| p.borrow().is_some()) {
+            *clist = abort_import(curr_path);
+            return clist;
+        }
+
         let resolver = imports_store().get(ci as i64);
         if let Some(resolver) = resolver {
             let r = catch_unwind(AssertUnwindSafe(|| resolver(&rel, &parent)));
@@ -224,12 +231,19 @@ unsafe fn bridge_import(
                 }
                 Ok(_) => {}
                 Err(payload) => {
+                    // Go's panic unwinds through the C++ frames straight out
+                    // of Execute: LibSass does nothing more and the resolver
+                    // is not called again. A Rust panic cannot unwind through
+                    // C++, so keep the payload for Execute to resume and make
+                    // LibSass abort the compile with an import error.
                     RESOLVER_PANIC.with(|p| {
                         let mut p = p.borrow_mut();
                         if p.is_none() {
                             *p = Some(payload);
                         }
                     });
+                    *clist = abort_import(curr_path);
+                    return clist;
                 }
             }
         }
@@ -237,6 +251,18 @@ unsafe fn bridge_import(
         let ent = ffi::sass_make_import_entry(curr_path, ptr::null_mut(), ptr::null_mut());
         *clist = ent;
         clist
+    }
+}
+
+/// An import entry carrying an error, which makes LibSass abort the compile
+/// (`Context::call_loader` throws it); used after a resolver panic, whose
+/// payload `Execute` resumes instead of returning this error.
+unsafe fn abort_import(curr_path: *const c_char) -> Sass_Import_Entry {
+    unsafe {
+        let ent = ffi::sass_make_import_entry(curr_path, ptr::null_mut(), ptr::null_mut());
+        let msg = CStringBuf::new(b"import resolver panicked");
+        ffi::sass_import_set_error(ent, msg.as_ptr(), usize::MAX, usize::MAX);
+        ent
     }
 }
 

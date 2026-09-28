@@ -11,6 +11,12 @@
 //	go run ./tools/go-oracle/libsass-sys -site <pristine-seeksnack> -out <scratch> \
 //	    -fuzz-only <scratch>/fuzz.rec.zz -n 20000 -seed 1000
 //	go run ./tools/go-oracle/libsass-sys -json crates/libsass-sys/tests/fixtures/sass/json.rec.zz
+//	go run ./tools/go-oracle/libsass-sys -site <pristine-seeksnack> -out <scratch> \
+//	    -redteam $PWD/crates/libsass-sys/tests/fixtures/sass/redteam.rec.zz [-rt-n 2500 -seed 1]
+//
+// On linux/amd64 build it with CC=clang CXX=clang++ and
+// CGO_CFLAGS/CGO_CXXFLAGS='-O2 -g -ffp-contract=on -mfma' to reproduce the
+// darwin/arm64 fixtures (see crates/libsass-sys/PORTING.md).
 //
 // The SCSS sources are stored in <out>/site.pack.zz; both this oracle and the
 // Rust test extract them into a fresh temporary directory, make it the
@@ -56,6 +62,8 @@ func main() {
 	fuzzOnly := flag.String("fuzz-only", "", "write only -n randomized cases (seed -seed) to this file")
 	jsonOut := flag.String("json", "", "write the JsonToError corpus (-json-n random documents) to this file and exit")
 	jsonN := flag.Int("json-n", 3000, "number of random documents for -json")
+	redteamOut := flag.String("redteam", "", "write the red-team corpus (the deep cases plus -rt-n error cases, seed -seed) to this file and exit")
+	redteamN := flag.Int("rt-n", 2500, "number of random cases for -redteam")
 	flag.Parse()
 	if *jsonOut != "" {
 		writeJSONCases(*jsonOut, *fuzzSeed, *jsonN)
@@ -133,6 +141,10 @@ func main() {
 		// A larger randomized corpus kept outside the repository (the Rust
 		// test reads it via LIBSASS_EXTRA_CASES).
 		env.run(fuzzSass(*fuzzSeed, *fuzzN), *fuzzOnly)
+		return
+	}
+	if *redteamOut != "" {
+		env.run(rtCases(*fuzzSeed, *redteamN), *redteamOut)
 		return
 	}
 	env.run(allCases(), filepath.Join(outDir, "cases.rec.zz"))
@@ -225,6 +237,9 @@ func (env runEnv) run(cases []sassCase, path string) {
 		}
 		if os.Getenv("LIBSASS_ORACLE_VERBOSE") != "" {
 			fmt.Fprintf(os.Stderr, "CASE %s %q\n", c.name, src)
+			for _, e := range c.table {
+				fmt.Fprintf(os.Stderr, "  TABLE %q -> %q %v %q\n", e.url, e.newURL, e.ok, e.body)
+			}
 		}
 		res, err := t.Execute(src)
 

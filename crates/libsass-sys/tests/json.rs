@@ -90,6 +90,39 @@ fn json_to_error_matches_go() {
     );
 }
 
+/// Red-team regression: the validator used to recurse once per nesting
+/// level and overflowed the stack (process abort) on the 10000-level
+/// documents of json.rec.zz in a debug build. Go decodes them (the file is
+/// kept, the nesting-depth limit decides validity).
+#[test]
+fn deep_nesting_on_a_small_stack() {
+    let h = std::thread::Builder::new()
+        .stack_size(64 << 10)
+        .spawn(|| {
+            for (d, valid) in [(9999, true), (10000, false)] {
+                let doc = format!(
+                    "{{\"file\": \"x\", \"deep\": {}{}}}",
+                    "[".repeat(d),
+                    "]".repeat(d)
+                );
+                let e = json_to_error(doc.as_bytes());
+                assert_eq!(e.file == "x", valid, "depth {d}");
+                let doc = format!(
+                    "{{\"file\": \"x\", \"deep\": {}1{}}}",
+                    "{\"a\":".repeat(d),
+                    "}".repeat(d)
+                );
+                assert_eq!(
+                    json_to_error(doc.as_bytes()).file == "x",
+                    valid,
+                    "depth {d}"
+                );
+            }
+        })
+        .unwrap();
+    h.join().unwrap();
+}
+
 #[test]
 fn json_to_error_external_corpus() {
     let Ok(p) = std::env::var("LIBSASS_JSON_CASES") else {
