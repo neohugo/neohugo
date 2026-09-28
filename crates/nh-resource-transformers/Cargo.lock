@@ -391,6 +391,9 @@ name = "nh-esbuild"
 version = "0.1.0"
 dependencies = [
  "go-json",
+ "go-path",
+ "go-strconv",
+ "go-unicode",
  "go-value",
  "nh-common",
  "nh-config",
@@ -557,6 +560,7 @@ version = "0.1.0"
 dependencies = [
  "base64",
  "flate2",
+ "go-fmt",
  "go-hashstructure",
  "go-json",
  "go-path",

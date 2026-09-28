@@ -410,6 +410,9 @@ name = "nh-esbuild"
 version = "0.1.0"
 dependencies = [
  "go-json",
+ "go-path",
+ "go-strconv",
+ "go-unicode",
  "go-value",
  "nh-common",
  "nh-config",
@@ -655,6 +658,7 @@ name = "nh-resource-transformers"
 version = "0.1.0"
 dependencies = [
  "base64",
+ "go-fmt",
  "go-hashstructure",
  "go-path",
  "go-strconv",

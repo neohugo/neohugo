@@ -14,16 +14,16 @@ Crate lead: Wave B task T15 (resource-factories).
 | `resource_transformers::integrity` | `resources/resource_transformers/integrity/integrity.go` | T15 | ported (all 7) |
 | `resource_transformers::minifier` | `resources/resource_transformers/minifier/minify.go` | T15 | ported (all 4) |
 | `resource_transformers::templates` | `resources/resource_transformers/templates/execute_as_template.go` | T15 | ported (all 4) |
-| `resource_transformers::js::build` | `resources/resource_transformers/js/build.go` | T16 js-css-pipeline |  |
-| `resource_transformers::js::transform` | `resources/resource_transformers/js/transform.go` | T16 js-css-pipeline |  |
-| `resource_transformers::cssjs::postcss` | `resources/resource_transformers/cssjs/postcss.go` | T16 js-css-pipeline |  |
-| `resource_transformers::cssjs::inline_imports` | `resources/resource_transformers/cssjs/inline_imports.go` | T16 js-css-pipeline | optional (inlineImports=false) |
-| `resource_transformers::cssjs::tailwindcss` | `resources/resource_transformers/cssjs/tailwindcss.go` | T16 js-css-pipeline | STUB |
-| `resource_transformers::babel` | `resources/resource_transformers/babel/babel.go` | T16 js-css-pipeline | STUB |
-| `resource_transformers::tocss::scss::client` | `resources/resource_transformers/tocss/scss/client.go` | T16 js-css-pipeline |  |
-| `resource_transformers::tocss::scss::client_extended` | `resources/resource_transformers/tocss/scss/client_extended.go` | T16 js-css-pipeline |  |
-| `resource_transformers::tocss::scss::tocss` | `resources/resource_transformers/tocss/scss/tocss.go` | T16 js-css-pipeline |  |
-| `resource_transformers::tocss::sass::helpers` | `resources/resource_transformers/tocss/sass/helpers.go` | T16 js-css-pipeline |  |
+| `resource_transformers::js::build` | `resources/resource_transformers/js/build.go` | T16 js-css-pipeline | ported (all 3) |
+| `resource_transformers::js::transform` | `resources/resource_transformers/js/transform.go` | T16 js-css-pipeline | ported (both) |
+| `resource_transformers::cssjs::postcss` | `resources/resource_transformers/cssjs/postcss.go` | T16 js-css-pipeline | ported (all 6) |
+| `resource_transformers::cssjs::inline_imports` | `resources/resource_transformers/cssjs/inline_imports.go` | T16 js-css-pipeline | ported (all 6) |
+| `resource_transformers::cssjs::tailwindcss` | `resources/resource_transformers/cssjs/tailwindcss.go` | T16 js-css-pipeline | STUB: `Process` is an explicit error; client, options, `toArgs`, the import exclusion ported |
+| `resource_transformers::babel` | `resources/resource_transformers/babel/babel.go` | T16 js-css-pipeline | STUB: `Process` is an explicit error; client, options, `toArgs` ported |
+| `resource_transformers::tocss::scss::client` | `resources/resource_transformers/tocss/scss/client.go` | T16 js-css-pipeline | ported (all 4; `Options`/`DecodeOptions` in `tocss`) |
+| `resource_transformers::tocss::scss::client_extended` | `resources/resource_transformers/tocss/scss/client_extended.go` | T16 js-css-pipeline | ported (both) |
+| `resource_transformers::tocss::scss::tocss` | `resources/resource_transformers/tocss/scss/tocss.go` | T16 js-css-pipeline | ported (all 3) |
+| `resource_transformers::tocss::sass::helpers` | `resources/resource_transformers/tocss/sass/helpers.go` | T16 js-css-pipeline | ported (both) |
 
 The tpl `resources` namespace (`nh_tplfuncs::resources`, `nh_tplfuncs::internal::resourcehelpers`)
 is T15's too; its notes are here.
@@ -133,3 +133,88 @@ Every fixture regenerates byte for byte.
 - Multilingual sharing (Concat/ExecuteAsTemplate first writer across languages) relies on the
   shared `SpecCommon` resource cache (T14); the oracles use one language.
 - `.Err.Data` of GetRemote errors (deviation 3).
+
+## T16 (js-css-pipeline): js.Build, toCSS, postCSS
+
+The modules `resource_transformers::{js, cssjs, tocss, babel}` are Wave B task T16's; the esbuild
+side (options, resolver plugins, the `--service` client) is crates/nh-esbuild (see its
+PORTING.md). Dependency added by T16: `go-fmt` (the `%q`/`%v` of `hugo:vars` values).
+
+### Public API
+
+- `js::build::Client::new(rs, c)` (skeleton) and `Client::new_default(rs)` (Go's `New(fs, rs)`:
+  the assets fs, an esbuild service started on the first build); `process(ctx, r, opts)`.
+- `tocss::scss::tocss::Client` has Go's fields (`rs`, `sfs`, `work_fs`); `Client::new(fs, rs)`
+  (in `client`); `to_css(ctx, r, opts)` (in `client_extended`); `decode_options(m)`;
+  `client_extended::key_value(&opts)` (the `tocss_<hash>` key value; `scss.Options` is hashed
+  like Go's struct through a go-hashstructure registration); `Options.vars` is `None` for a nil
+  or empty map (same stylesheet, same hash).
+- `cssjs::postcss::new_post_css_client(rs)`, `PostCssClient::process(ctx, r, options)`;
+  `cssjs::tailwindcss::new_tailwind_css_client(rs)`; `babel::Client::new(rs)`,
+  `babel::decode_options`.
+
+### Deliberate deviations
+
+1. **PostCSS runs in the working dir.** Go leaves the child's cwd to the process (the golden
+   build ran from the site dir; purgecss reads `./hugo_stats.json`, postcss-cli names its input
+   `<cwd>/stdin`); the port sets `dir = workingDir`, so it does not depend on where neohugo-rs is
+   started. The environment is Go's (`GetExecEnviron`: filtered OS env, `NODE_PATH`, `PWD`,
+   `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_PUBLISHDIR`, `HUGO_FILE_*` of `assets/_jsconfig`).
+2. **stdin is written before the command runs** (Go copies it in a goroutine while the command
+   runs; same bytes). postcss's stderr goes to the info log after the run.
+3. **tailwindcss and babel are stubs** (HUGO_LAYER.md §1 rule 5): `Process` returns
+   `neohugo-rs: css.TailwindCSS is not supported` / `neohugo-rs: js.Babel is not supported`.
+4. **LibSass errors** keep Go's position (file, line, column; the entry file's `stdin` becomes
+   its real filename) and message; the error text is `"file:line:col": message` like Go's
+   `FileError` (see nh-esbuild deviation 5 for how nh-common's `wrap` orders the prefix).
+
+### Go behaviour reproduced on purpose
+
+- toCSS: precision 0 → 8; `outputStyle` case-insensitive, unknown → nested; include paths =
+  `RealDirs(dir(source))` then each user path `Stat`ed in the work fs (missing ones dropped), the
+  seeksnack order `[assets/scss, node_modules, assets/scss]`; the Hugo importer (`hugo:vars`,
+  `prev == "stdin"` → the entry's dir, importers outside the assets fs left to LibSass, the
+  `_%s`/`%s`/`_%s.scss`/… patterns); `.sass` entries; the entry file's `@import "x.css"`
+  protection; `hugo:vars` sorted, `unquote(%q)` for plain strings (a bool gives Go's
+  `%!q(bool=true)`, a LibSass error in `hugo:vars`), `%q` for `css.Quoted`, `%v` for numbers,
+  units, colors, CSS functions and `css.Unquoted`; source maps with the working dir as root,
+  `stdin"` replaced by the source path, published as `<target>.map`. LibSass makes the map's
+  `sources` relative to the process working directory (in Go too: run from the site dir).
+- js.Build: `OutPath` = targetPath or `.js`; the source map of `external`/`linked` builds is
+  published, `linked` rewrites the `sourceMappingURL`; a JS import of CSS gives esbuild a second
+  output that Go ignores.
+- postCSS: `no-map` (snake case) read from the raw map; the config from `assets/_jsconfig`, then
+  the work dir; an explicit config that is missing is an error; `--config` omitted when none is
+  found; the `@import` inliner's quirks (a trailing comment stays in the path; `url()`, media
+  queries and `tailwindcss` are not inlined; repeated imports inlined once; line numbers of
+  postcss errors mapped back to the imported file).
+
+### Verification
+
+Oracles in `tools/go-oracle/nh-resource-transformers/{jsbuild,tocss,postcss}` (shared runner
+`t16support`) over hermetic copies of the synthetic site `tests/fixtures/t16site` (written by
+`t16site.py`; `_node_modules` becomes `node_modules`, mounted as `assets/vendor` like seeksnack's)
+and, for js.Build, of the repository's `docs/` assets. Each case is a script (Get, Concat,
+js.Build, toCSS, postCSS, minify, fingerprint); the Rust tests (`tests/{jsbuild,tocss,postcss}.rs`,
+runner `tests/t16_support`) replay it and compare TransformationKey, Content or its error,
+MediaType, Data, RelPermalink and every published file. Absolute paths of the site copy are
+`$SITE` (also inside inline source maps, which are decoded).
+
+| topic | inputs | result |
+|---|---|---|
+| `jsbuild` (native) | 62 synthetic cases (TS/JS/JSX/TSX, Hugo-resolved and node_modules imports incl. the vendor mount, JSON/text/base64/dataurl loaders, @params, defines, targets, formats, platforms, minify, source maps inline/external/linked, externals, shims, inject, JSX automatic/preserve, drop, CSS imports, option and esbuild errors, the seeksnack level-1/level-2 chains with Concat and fingerprint) + 6 docs cases | 68/68 identical (esbuild binary over `--service` vs Go's linked esbuild) |
+| `tocss` (arm64, qemu) | 31 cases (styles, precisions, include paths, partial/index/.sass/vendor resolution, css import protection, hugo:vars of every kind, source maps, targetPath, errors, toCSS \| minify \| fingerprint) + the seeksnack key `tocss_7149566072694007861` | 31/31 identical |
+| `postcss` (arm64, qemu; needs node + postcss-cli) | 15 cases (configs, noMap, the inliner, syntax errors mapped to imported files, env filtering, cwd, toCSS \| postCSS \| minify \| fingerprint) | 15/15 identical |
+
+`jsbuild` needs `NEOHUGO_ESBUILD_BINARY` (`tools/esbuild/build.sh`), `postcss` needs
+`NEOHUGO_POSTCSS_BIN` (the `node_modules/.bin/postcss` of postcss-cli 11.0.1 with postcss 8.5.8,
+installed outside the repository); without them the tests print `SKIPPED: …` to stderr and
+pass. `tocss` needs nothing.
+
+```sh
+python3 tools/go-oracle/nh-resource-transformers/t16site.py .
+CC_ARM64=<zig cc wrapper> CXX_ARM64=<zig c++ wrapper> POSTCSS_BIN=<…/node_modules/.bin/postcss> \
+  tools/go-oracle/nh-resource-transformers/t16regen.sh
+```
+
+Every fixture regenerates byte for byte.

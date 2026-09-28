@@ -27,13 +27,15 @@ go-path = { path = "../go-path" }
 go-url = { path = "../go-url" }
 go-strconv = { path = "../go-strconv" }
 go-unicode = { path = "../go-unicode" }
+# T16 (tocss `hugo:vars`: Go `%q`/`%v` of the var values).
+go-fmt = { path = "../go-fmt" }
 
 # crates.io (README rule 2; see PORTING.md): the digests and the base64 encoding of
 # integrity's fingerprint (they cannot change output bytes). Hex is written out.
 sha2 = "0.10"
 md-5 = "0.10"
 base64 = "0.23"
-# Intended (T16): regex (tocss import regexes).
+# T16: the tocss import regexes use nh_common::goregexp (no crates.io regex).
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
