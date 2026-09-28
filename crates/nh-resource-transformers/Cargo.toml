@@ -21,7 +21,7 @@ nh-esbuild = { path = "../nh-esbuild" }
 
 # Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
-# libsass-sys = { path = "../libsass-sys" }
+libsass-sys = { path = "../libsass-sys" }
 go-hashstructure = { path = "../go-hashstructure" }
 
 # crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):

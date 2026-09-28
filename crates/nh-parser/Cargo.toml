@@ -12,7 +12,7 @@ nh-common = { path = "../nh-common" }
 # Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
 go-yaml = { path = "../go-yaml" }
-# go-json = { path = "../go-json" }
+go-json = { path = "../go-json" }
 go-strconv = { path = "../go-strconv" }
 go-time = { path = "../go-time" }
 go-unicode = { path = "../go-unicode" }

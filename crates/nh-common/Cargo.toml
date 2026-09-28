@@ -12,13 +12,13 @@ go-value = { path = "../go-value" }
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
 go-unicode = { path = "../go-unicode" }
 go-strconv = { path = "../go-strconv" }
-# go-fmt = { path = "../go-fmt" }
+go-fmt = { path = "../go-fmt" }
 go-time = { path = "../go-time" }
 go-url = { path = "../go-url" }
 go-path = { path = "../go-path" }
 go-sort = { path = "../go-sort" }
 go-hashstructure = { path = "../go-hashstructure" }
-# go-json = { path = "../go-json" }
+go-json = { path = "../go-json" }
 go-html = { path = "../go-html" }
 
 # crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):

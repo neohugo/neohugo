@@ -13,7 +13,7 @@ nh-media = { path = "../nh-media" }
 
 # Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
-# goldmark = { path = "../goldmark" }
+goldmark = { path = "../goldmark" }
 go-html = { path = "../go-html" }
 go-unicode = { path = "../go-unicode" }
 

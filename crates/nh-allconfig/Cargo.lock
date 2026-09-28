@@ -3,6 +3,21 @@
 version = 4
 
 [[package]]
+name = "aho-corasick"
+version = "1.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c982642fa9e8606056828ee9a8505737230110bb1099153c79efe865c59d12ba"
+dependencies = [
+ "memchr",
+]
+
+[[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -12,10 +27,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "cc"
+version = "1.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f360145194ee8e21db5ee7f3fcd4fe52210864c75c985dae33218202c8bbe040"
+dependencies = [
+ "find-msvc-tools",
+ "jobserver",
+ "libc",
+ "shlex",
+]
+
+[[package]]
 name = "cfg-if"
 version = "1.0.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e7648175b45a9a48536d676f68d918270699102aa8dab5496df06904c914600"
+
+[[package]]
+name = "crc32fast"
+version = "1.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "01a7799fd6b852db0e61728dde9a204c423b44d689dbd432522543614b490e78"
+dependencies = [
+ "cfg-if",
+]
 
 [[package]]
 name = "crypto-common"
@@ -38,6 +74,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "find-msvc-tools"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aedcfb3409746eddb02b9e19ebda1c3394f759a152e48ee875a0844d1b955484"
+
+[[package]]
 name = "generic-array"
 version = "0.14.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -45,6 +87,38 @@ checksum = "85649ca51fd72272d7821adaf274ad91c288277713d9c18820d8499a7ff69e9a"
 dependencies = [
  "typenum",
  "version_check",
+]
+
+[[package]]
+name = "getrandom"
+version = "0.4.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "300e883d756b2e4ec94e02791f39b04b522276138852cfc41d9fb7e904106099"
+dependencies = [
+ "cfg-if",
+ "libc",
+ "r-efi",
+]
+
+[[package]]
+name = "gift"
+version = "0.1.0"
+dependencies = [
+ "go-image",
+]
+
+[[package]]
+name = "go-flate"
+version = "0.1.0"
+
+[[package]]
+name = "go-fmt"
+version = "0.1.0"
+dependencies = [
+ "go-strconv",
+ "go-time",
+ "go-unicode",
+ "go-value",
 ]
 
 [[package]]
@@ -67,8 +141,28 @@ name = "go-image"
 version = "0.1.0"
 
 [[package]]
+name = "go-json"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "go-strconv",
+ "go-time",
+ "go-unicode",
+ "go-value",
+]
+
+[[package]]
 name = "go-path"
 version = "0.1.0"
+
+[[package]]
+name = "go-png"
+version = "0.1.0"
+dependencies = [
+ "crc32fast",
+ "go-flate",
+ "go-image",
+]
 
 [[package]]
 name = "go-sort"
@@ -113,10 +207,57 @@ dependencies = [
 ]
 
 [[package]]
+name = "goldmark"
+version = "0.1.0"
+dependencies = [
+ "go-sort",
+ "go-strconv",
+ "go-unicode",
+ "go-url",
+]
+
+[[package]]
+name = "gotemplate"
+version = "0.1.0"
+dependencies = [
+ "go-fmt",
+ "go-html",
+ "go-json",
+ "go-strconv",
+ "go-time",
+ "go-unicode",
+ "go-url",
+ "go-value",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f42a60cbdf9a97f5d2305f08a87dc4e09308d1276d28c869c684d7777685682"
+
+[[package]]
+name = "jobserver"
+version = "0.1.35"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1c00acbd29eabad4a2392fa0e921c874934dbbf4194312ad20f04a0ed67a3cb3"
+dependencies = [
+ "getrandom",
+ "libc",
+]
+
+[[package]]
+name = "libc"
+version = "0.2.189"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3eaf3ede3fee6db1a4c2ee091bf8a8b4dccdc6d17f656fb07896ee72867612f2"
+
+[[package]]
+name = "libwebp-sys"
+version = "0.1.0"
+dependencies = [
+ "cc",
+]
 
 [[package]]
 name = "md-5"
@@ -158,8 +299,10 @@ dependencies = [
 name = "nh-common"
 version = "0.1.0"
 dependencies = [
+ "go-fmt",
  "go-hashstructure",
  "go-html",
+ "go-json",
  "go-path",
  "go-sort",
  "go-strconv",
@@ -173,6 +316,7 @@ dependencies = [
 name = "nh-config"
 version = "0.1.0"
 dependencies = [
+ "go-json",
  "go-time",
  "go-value",
  "nh-common",
@@ -211,9 +355,13 @@ dependencies = [
 name = "nh-images"
 version = "0.1.0"
 dependencies = [
+ "gift",
+ "go-flate",
  "go-hashstructure",
  "go-image",
+ "go-png",
  "go-value",
+ "libwebp-sys",
  "nh-common",
  "nh-config",
  "nh-media",
@@ -237,6 +385,7 @@ dependencies = [
  "go-html",
  "go-unicode",
  "go-value",
+ "goldmark",
  "nh-common",
  "nh-config",
  "nh-media",
@@ -274,6 +423,7 @@ dependencies = [
 name = "nh-parser"
 version = "0.1.0"
 dependencies = [
+ "go-json",
  "go-strconv",
  "go-time",
  "go-unicode",
@@ -300,6 +450,7 @@ version = "0.1.0"
 dependencies = [
  "go-unicode",
  "go-value",
+ "gotemplate",
  "nh-common",
  "nh-langs",
 ]
@@ -312,6 +463,8 @@ dependencies = [
  "nh-common",
  "nh-config",
  "nh-media",
+ "tdewolff-minify",
+ "tdewolff-minify-js",
  "tdewolff-parse",
 ]
 
@@ -332,6 +485,41 @@ checksum = "1fbf4db142a473a8d80c26bbf18454ed458bf8d26c8219c331daecfdbd079001"
 dependencies = [
  "proc-macro2",
 ]
+
+[[package]]
+name = "r-efi"
+version = "6.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8dcc9c7d52a811697d2151c701e0d08956f92b0e24136cf4cf27b57a6a0d9bf"
+
+[[package]]
+name = "regex"
+version = "1.13.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f020237b6c8eed93db2e2cb53c00c60a8e1bc73da7d073199a1180401450218d"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-automata",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-automata"
+version = "0.4.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ad8553b9b26413251cbf30e620595c7a41b3887f03da04579c0e6b0d6a06b4b2"
+dependencies = [
+ "aho-corasick",
+ "memchr",
+ "regex-syntax",
+]
+
+[[package]]
+name = "regex-syntax"
+version = "0.8.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d6f6ff9a378485b298a5286656da665ba74413d36db0979633275d2e708145d4"
 
 [[package]]
 name = "serde"
@@ -376,6 +564,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "shlex"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f8fadd59c855ef2080decdef8ff161eb6661b86933c9d82e5ba29dc602a55aba"
+
+[[package]]
 name = "syn"
 version = "3.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -387,10 +581,41 @@ dependencies = [
 ]
 
 [[package]]
+name = "tdewolff-minify"
+version = "0.1.0"
+dependencies = [
+ "go-sort",
+ "go-strconv",
+ "regex",
+ "tdewolff-parse",
+]
+
+[[package]]
+name = "tdewolff-minify-js"
+version = "0.1.0"
+dependencies = [
+ "go-sort",
+ "go-strconv",
+ "go-unicode",
+ "tdewolff-minify",
+ "tdewolff-parse",
+ "tdewolff-parse-js",
+]
+
+[[package]]
 name = "tdewolff-parse"
 version = "0.1.0"
 dependencies = [
  "go-unicode",
+]
+
+[[package]]
+name = "tdewolff-parse-js"
+version = "0.1.0"
+dependencies = [
+ "go-sort",
+ "go-unicode",
+ "tdewolff-parse",
 ]
 
 [[package]]

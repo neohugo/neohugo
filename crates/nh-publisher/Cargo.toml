@@ -17,7 +17,7 @@ nh-transform = { path = "../nh-transform" }
 # Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
 go-unicode = { path = "../go-unicode" }
-# go-json = { path = "../go-json" }
+go-json = { path = "../go-json" }
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).

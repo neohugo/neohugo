@@ -27,8 +27,8 @@ nh-deps = { path = "../nh-deps" }
 
 # Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
-# go-fmt = { path = "../go-fmt" }
-# go-json = { path = "../go-json" }
+go-fmt = { path = "../go-fmt" }
+go-json = { path = "../go-json" }
 go-url = { path = "../go-url" }
 go-time = { path = "../go-time" }
 go-html = { path = "../go-html" }

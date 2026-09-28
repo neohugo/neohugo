@@ -3,6 +3,12 @@
 version = 4
 
 [[package]]
+name = "base64"
+version = "0.23.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac07cdecf99051d9a5238b80f35af32cdeba5b336e55d957b318b50137e18da5"
+
+[[package]]
 name = "block-buffer"
 version = "0.10.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -48,6 +54,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "go-fmt"
+version = "0.1.0"
+dependencies = [
+ "go-strconv",
+ "go-time",
+ "go-unicode",
+ "go-value",
+]
+
+[[package]]
 name = "go-hashstructure"
 version = "0.1.0"
 dependencies = [
@@ -61,6 +77,17 @@ dependencies = [
 [[package]]
 name = "go-html"
 version = "0.1.0"
+
+[[package]]
+name = "go-json"
+version = "0.1.0"
+dependencies = [
+ "base64",
+ "go-strconv",
+ "go-time",
+ "go-unicode",
+ "go-value",
+]
 
 [[package]]
 name = "go-path"
@@ -109,6 +136,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "goldmark"
+version = "0.1.0"
+dependencies = [
+ "go-sort",
+ "go-strconv",
+ "go-unicode",
+ "go-url",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -134,8 +171,10 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 name = "nh-common"
 version = "0.1.0"
 dependencies = [
+ "go-fmt",
  "go-hashstructure",
  "go-html",
+ "go-json",
  "go-path",
  "go-sort",
  "go-strconv",
@@ -149,6 +188,7 @@ dependencies = [
 name = "nh-config"
 version = "0.1.0"
 dependencies = [
+ "go-json",
  "go-time",
  "go-value",
  "nh-common",
@@ -200,6 +240,7 @@ dependencies = [
  "go-html",
  "go-unicode",
  "go-value",
+ "goldmark",
  "nh-common",
  "nh-config",
  "nh-media",
@@ -218,6 +259,7 @@ dependencies = [
 name = "nh-parser"
 version = "0.1.0"
 dependencies = [
+ "go-json",
  "go-strconv",
  "go-time",
  "go-unicode",
