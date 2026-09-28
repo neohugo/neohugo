@@ -15,13 +15,25 @@ nh-langs = { path = "../nh-langs" }
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
 go-time = { path = "../go-time" }
 go-json = { path = "../go-json" }
+go-fmt = { path = "../go-fmt" }
+go-strconv = { path = "../go-strconv" }
+go-unicode = { path = "../go-unicode" }
+go-path = { path = "../go-path" }
+go-sort = { path = "../go-sort" }
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   regex (security whitelist patterns; RE2-compatible subset)
+# crates.io (justification in PORTING.md, README rule 2):
+#   regex: Go `regexp` (RE2) for the security whitelists, cache busters and server redirects,
+#   with Go's ASCII `\d \s \w \b` classes rewritten; it only decides matches and group texts.
+regex = "1"
+# The syntax errors of the same patterns, reported with Go's `regexp/syntax` texts.
+regex-syntax = "0.8"
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Decompression of the gzip-compressed oracle fixtures (tests only; README rule 2 allows
+# flate2 for decompression).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

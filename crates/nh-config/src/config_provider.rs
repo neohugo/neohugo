@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T04 (config-base-media).
 
-
 //! The two config interfaces of Go `config/configProvider.go`:
 //! * [`Provider`]: the raw, case-insensitive key/value config tree (`maps.Params`), used while
 //!   loading and by the section decoders.
@@ -15,7 +14,7 @@ use std::any::Any;
 use std::sync::Arc;
 use std::time::Duration;
 
-use go_value::{GoString, Map, Value};
+use go_value::{Map, Value};
 use nh_common::maps::params::KeyParams;
 use nh_common::paths::pathparser::PathParser;
 use nh_common::urls::BaseURL;
@@ -44,9 +43,15 @@ pub trait Provider: Send + Sync {
     fn is_set(&self, key: &str) -> bool;
 }
 
-/// Go: `config.GetStringSlicePreserveString(cfg, key)`.
+/// Go: `config.GetStringSlicePreserveString(cfg, key)`: a string value is not split into
+/// fields.
+// Go: config/configProvider.go:GetStringSlicePreserveString
 pub fn get_string_slice_preserve_string(cfg: &dyn Provider, key: &str) -> Vec<String> {
-    todo!()
+    let sd = cfg.get(key);
+    nh_common::types::convert::to_string_slice_preserve_string(&sd)
+        .iter()
+        .map(|s| String::from_utf8_lossy(s).into_owned())
+        .collect()
 }
 
 /// Go: `config.ContentTypesProvider` (implemented by `media.ContentTypes`).
@@ -125,5 +130,5 @@ pub fn config_section<T: Any + Send + Sync>(cfg: &dyn AllProvider, name: &str) -
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: config/configProvider.go (112 lines; 0/1 funcs executed)
 //   types: AllProvider, ContentTypesProvider, Provider
-//    L109-112: GetStringSlicePreserveString(cfg Provider, key string) []string
+// OK L109-112: GetStringSlicePreserveString(cfg Provider, key string) []string
 // ---------------------------------------------------------------------------
