@@ -10,6 +10,7 @@
 // repository or the module cache is modified):
 //
 //	go run ./tools/go-oracle/nh-tplfuncs/arm64build -o /tmp/data.arm64
+//	go run ./tools/go-oracle/nh-tplfuncs/arm64build -pkg ./tools/go-oracle/nh-tplfuncs/host -o /tmp/host.arm64
 //	qemu-aarch64-static /tmp/data.arm64 -out crates/nh-tplfuncs/tests/fixtures/data
 package main
 
@@ -124,6 +125,7 @@ func copyDir(src, dst string) error {
 
 func main() {
 	out := flag.String("o", "data.arm64", "output binary")
+	pkg := flag.String("pkg", "./tools/go-oracle/nh-tplfuncs/data", "oracle package to build (the data oracle, or ./tools/go-oracle/nh-tplfuncs/host)")
 	flag.Parse()
 
 	env := append(os.Environ(), "GOOS=linux", "GOARCH=arm64", "CGO_ENABLED=0")
@@ -168,7 +170,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	cmd := exec.Command("go", "build", "-modfile", modfile, "-o", *out, "./tools/go-oracle/nh-tplfuncs/data")
+	cmd := exec.Command("go", "build", "-modfile", modfile, "-o", *out, *pkg)
 	cmd.Env = env
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

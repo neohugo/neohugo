@@ -35,6 +35,8 @@ go-html = { path = "../go-html" }
 go-strconv = { path = "../go-strconv" }
 go-sort = { path = "../go-sort" }
 go-unicode = { path = "../go-unicode" }
+go-path = { path = "../go-path" }
+goldmark = { path = "../goldmark" }
 # xtext-collate = { path = "../xtext-collate" }   # (via nh-langs)
 
 # crates.io (README rule 2; see PORTING.md): MD5, SHA-256 and SHA-512 digests.
@@ -49,6 +51,10 @@ sha2 = "0.10"
 serde_json = "1"
 # Decompression of the gzip-compressed oracle fixtures (tests only; README rule 2).
 flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# The real in-memory sites of the host tests (process + assemble + freeze, as in nh-hugolib's
+# own tests): a dev-dependency cycle (nh-hugolib depends on this crate); the integration tests
+# link one copy of both.
+nh-hugolib = { path = "../nh-hugolib" }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

@@ -25,5 +25,5 @@ pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: tpl/lang/init.go (84 lines; 1/1 funcs executed)
-// EX L26-84: init()
+// OK L26-84: init()
 // ---------------------------------------------------------------------------

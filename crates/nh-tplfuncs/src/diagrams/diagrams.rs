@@ -1,8 +1,9 @@
 //! Port of `tpl/diagrams/diagrams.go`.
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
+//!
+//! `SVGDiagram` is the interface of `Goat`'s result (see `diagrams::goat`, a stub).
 
-use std::any::Any;
 use std::sync::Arc;
 
 use go_value::{HostCtx, Object, Value};
@@ -15,14 +16,16 @@ pub struct Namespace {
 }
 
 impl Namespace {
-    // Go: tpl/diagrams:New
+    /// Go: `&Namespace{d: d}` (the namespace `init`).
+    // Go: tpl/diagrams/init.go:init
     pub fn new(d: Arc<Deps>) -> Namespace {
         Namespace { d }
     }
 
-    // Go: tpl/diagrams:Goat
+    /// Goat creates a new SVG diagram from input v (see `diagrams::goat`).
+    // Go: tpl/diagrams/goat.go:Goat
     pub fn goat(&self, ctx: HostCtx<'_>, args: &[Value]) -> GoResult<Value> {
-        todo!()
+        super::goat::goat(ctx, args)
     }
 }
 

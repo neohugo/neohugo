@@ -24,5 +24,5 @@ pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
-// Source: tpl/css/init.go (not found in signature dump)
+// Source: tpl/css/init.go (not found in signature dump; Go registers the namespace from `init()` in css.go, see `css::css`)
 // ---------------------------------------------------------------------------
