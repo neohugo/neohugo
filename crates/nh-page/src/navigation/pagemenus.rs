@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 use super::menu::PageMenus;
 
 /// Go: `navigation.PageMenusFromPage(p)` (front matter `menus`).

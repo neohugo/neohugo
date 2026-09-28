@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `related/inverted_index.go`. Candidate collection iterates Go maps (random order) but the
 //! result is `sort.Stable`d by (Weight desc, PublishDate desc, Name asc); seeksnack has no full
 //! ties. Integer division rules of `norm` and `threshold/matches` must be ported exactly.

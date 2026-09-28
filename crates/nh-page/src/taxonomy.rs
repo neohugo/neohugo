@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `page.TaxonomyList` (`map[string]Taxonomy`), `page.Taxonomy` (`map[string]WeightedPages`),
 //! `OrderedTaxonomy`. Template values are named maps; `range` iterates keys in byte order.
 
@@ -57,14 +56,25 @@ pub fn taxonomy_list_to_value(tl: &TaxonomyList) -> Value {
 }
 
 pub fn taxonomy_has_method(name: &str) -> bool {
-    matches!(name, "Get" | "Count" | "TaxonomyArray" | "Alphabetical" | "ByCount" | "Page")
+    matches!(
+        name,
+        "Get" | "Count" | "TaxonomyArray" | "Alphabetical" | "ByCount" | "Page"
+    )
 }
 
-pub fn taxonomy_call_method(ctx: HostCtx<'_>, recv: &Value, name: &str, args: &[Value]) -> Option<GoResult<Value>> {
+pub fn taxonomy_call_method(
+    ctx: HostCtx<'_>,
+    recv: &Value,
+    name: &str,
+    args: &[Value],
+) -> Option<GoResult<Value>> {
     todo!()
 }
 
-pub const TAXONOMY_METHODS: NamedMethods = NamedMethods { has_method: taxonomy_has_method, call: taxonomy_call_method };
+pub const TAXONOMY_METHODS: NamedMethods = NamedMethods {
+    has_method: taxonomy_has_method,
+    call: taxonomy_call_method,
+};
 
 // ---------------------------------------------------------------------------
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,

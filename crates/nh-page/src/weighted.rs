@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 use std::any::Any;
 use std::borrow::Cow;
 use std::sync::Arc;
@@ -25,7 +24,11 @@ pub struct WeightedPage {
 impl WeightedPage {
     // Go: resources/page/weighted.go:NewWeightedPage
     pub fn new(weight: i64, p: PageRef, owner: Option<PageRef>) -> Self {
-        WeightedPage { weight, page: p, owner }
+        WeightedPage {
+            weight,
+            page: p,
+            owner,
+        }
     }
 }
 
@@ -71,19 +74,32 @@ pub fn sort(wp: &mut WeightedPages) {
 }
 
 pub fn weighted_pages_to_value(wp: &WeightedPages) -> Value {
-    Value::list(SliceType::Named(Arc::from(WEIGHTED_PAGES_TYPE)), wp.iter().map(|w| Value::object(w.clone())).collect())
+    Value::list(
+        SliceType::Named(Arc::from(WEIGHTED_PAGES_TYPE)),
+        wp.iter().map(|w| Value::object(w.clone())).collect(),
+    )
 }
 
 pub fn weighted_pages_has_method(name: &str) -> bool {
-    matches!(name, "Page" | "Pages" | "Next" | "Prev" | "Len" | "Count" | "Sort")
+    matches!(
+        name,
+        "Page" | "Pages" | "Next" | "Prev" | "Len" | "Count" | "Sort"
+    )
 }
 
-pub fn weighted_pages_call_method(ctx: HostCtx<'_>, recv: &Value, name: &str, args: &[Value]) -> Option<GoResult<Value>> {
+pub fn weighted_pages_call_method(
+    ctx: HostCtx<'_>,
+    recv: &Value,
+    name: &str,
+    args: &[Value],
+) -> Option<GoResult<Value>> {
     todo!()
 }
 
-pub const WEIGHTED_PAGES_METHODS: NamedMethods =
-    NamedMethods { has_method: weighted_pages_has_method, call: weighted_pages_call_method };
+pub const WEIGHTED_PAGES_METHODS: NamedMethods = NamedMethods {
+    has_method: weighted_pages_has_method,
+    call: weighted_pages_call_method,
+};
 
 // ---------------------------------------------------------------------------
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,

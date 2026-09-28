@@ -1,8 +1,7 @@
 //! Port of `resources/page/page.go`.
 //!
 //! Owner: Wave B task T11 (page-api-paths).
-
-
+//!
 //! Go `resources/page.Page`: the page interface as seen by every crate below nh-hugolib.
 //!
 //! * [`Page`] is object-safe and extends `nh_resource::Resource` (Go: `page.Page` embeds
@@ -20,9 +19,10 @@ use std::borrow::Cow;
 use std::sync::Arc;
 
 use go_value::{GoString, HostCtx, List, Map, Object, SliceType, Time, Value};
+use nh_common::Result;
+use nh_common::herrors::Error;
 use nh_common::object::GoResult;
 use nh_common::paths::pathparser::Path;
-use nh_common::Result;
 use nh_config::common_config::SitemapConfig;
 use nh_helpers::source::file_info::File;
 use nh_resource::resourcetypes::{Resource, Resources};
@@ -33,6 +33,8 @@ use crate::site::SiteRef;
 
 /// Go type string of the page.Pages named slice.
 pub const PAGES_TYPE: &str = "page.Pages";
+/// Go type string of the `page.Page` interface.
+pub const PAGE_TYPE: &str = "page.Page";
 
 /// Go: `page.Page` (typed subset + dynamic template API via `Resource`).
 pub trait Page: Resource {
@@ -95,6 +97,21 @@ pub trait Page: Resource {
     fn output_formats(&self) -> OutputFormats;
     fn all_translations(&self) -> Pages;
     fn translations(&self) -> Pages;
+
+    /// Go `CurrentSection()` (TreeProvider): the page itself for branch kinds, else its
+    /// section (home for root pages). Needed by the permalink expander (`:sections`).
+    /// The default is for skeleton implementors only: every real page type overrides it.
+    fn current_section(&self) -> Option<PageRef> {
+        unimplemented!("nh_page::page::Page::current_section must be implemented by the page type")
+    }
+    /// Go `SectionsEntries()` (e.g. `["docs", "functions"]`).
+    fn sections_entries(&self) -> Vec<String> {
+        unimplemented!("nh_page::page::Page::sections_entries must be implemented by the page type")
+    }
+    /// Go `SectionsPath()` (e.g. `/docs/functions`).
+    fn sections_path(&self) -> String {
+        unimplemented!("nh_page::page::Page::sections_path must be implemented by the page type")
+    }
 
     // ---- content (ctx = the template context as HostCtx) ----
     fn plain(&self, ctx: HostCtx<'_>) -> Result<GoString>;
@@ -159,7 +176,10 @@ pub type Pages = Vec<PageRef>;
 
 /// `page.Pages` as a template value.
 pub fn pages_to_value(ps: &[PageRef]) -> Value {
-    Value::list(SliceType::Named(Arc::from(PAGES_TYPE)), ps.iter().map(|p| p.to_value()).collect())
+    Value::list(
+        SliceType::Named(Arc::from(PAGES_TYPE)),
+        ps.iter().map(|p| p.to_value()).collect(),
+    )
 }
 
 /// A page from a template value.
@@ -176,17 +196,146 @@ pub fn resource_from_value(v: &Value) -> Option<Arc<dyn Resource>> {
     nh_resource::resourcetypes::resource_ref_from_value(v)
 }
 
+/// Go type strings of the concrete types that implement `page.Page`.
+pub fn implements_page(type_name: &str) -> bool {
+    matches!(
+        type_name,
+        "page.Page"
+            | "*page.nopPage"
+            | "*hugolib.pageState"
+            | "hugolib.pageWithWeight0"
+            | "*hugolib.pageWithOrdinal"
+            | "*hugolib.pageForShortcode"
+            | "*hugolib.pageForRenderHooks"
+    )
+}
+
+/// Registers the `page.Page` and `resource.Resource` interfaces with `hreflect` (so
+/// `Scratch.Add`/`append` keep `page.Pages`/`resource.Resources` typed as Go does) and installs
+/// [`resource_from_value`] as nh-resource's value converter. Idempotent; call it once at
+/// startup (nh-hugolib) and in tests.
+pub fn init() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        nh_resource::resourcetypes::register();
+        nh_common::hreflect::register_interface(PAGE_TYPE, implements_page);
+        nh_common::hreflect::register_named_elem(PAGES_TYPE, PAGE_TYPE);
+        nh_resource::resourcetypes::register_value_to_resource(resource_from_value);
+    });
+}
+
+fn is_pages_type(ty: &SliceType) -> bool {
+    matches!(ty, SliceType::Named(n) if &**n == PAGES_TYPE)
+}
+
+fn list_to_pages(l: &List) -> Option<Pages> {
+    l.items.iter().map(page_from_value).collect()
+}
+
 /// Go: `page.ToPages(seq any) (Pages, error)` — Pages, `[]Page`, `[]any` of pages, WeightedPages,
 /// PageGroup ...; nil -> empty.
 // Go: resources/page/pages.go:ToPages
 pub fn pages_from_value(v: &Value) -> Result<Pages> {
-    todo!()
+    match v {
+        Value::Invalid => return Ok(Vec::new()),
+        Value::List(l) => match &l.ty {
+            ty if is_pages_type(ty) => {
+                if let Some(p) = list_to_pages(l) {
+                    return Ok(p);
+                }
+            }
+            SliceType::Named(n) if &**n == crate::weighted::WEIGHTED_PAGES_TYPE => {
+                let mut out = Vec::with_capacity(l.items.len());
+                for it in &l.items {
+                    match it.downcast::<crate::weighted::WeightedPage>() {
+                        Some(w) => out.push(w.page.clone()),
+                        None => break,
+                    }
+                }
+                if out.len() == l.items.len() {
+                    return Ok(out);
+                }
+            }
+            SliceType::Named(n) if &**n == "[]page.Page" => {
+                if let Some(p) = list_to_pages(l) {
+                    return Ok(p);
+                }
+            }
+            SliceType::Any => {
+                if let Some(p) = list_to_pages(l) {
+                    return Ok(p);
+                }
+            }
+            _ => {}
+        },
+        Value::TypedNil(t) if &**t == PAGES_TYPE || &**t == "[]page.Page" => {
+            return Ok(Vec::new());
+        }
+        Value::TypedNil(t) if &**t == crate::weighted::WEIGHTED_PAGES_TYPE => {
+            return Ok(Vec::new());
+        }
+        // page.PageGroup (a struct value): its Pages field.
+        Value::Object(o) if o.type_name() == "page.PageGroup" => {
+            if let Some(pv) = o.field("Pages") {
+                return pages_from_value(&pv);
+            }
+        }
+        _ => {}
+    }
+    Err(Error::new(format!(
+        "cannot convert type {} to Pages",
+        go_type_of(v)
+    )))
+}
+
+fn go_type_of(v: &Value) -> String {
+    match v {
+        Value::Invalid => "<nil>".to_string(),
+        _ => v.go_type_name().into_owned(),
+    }
 }
 
 /// Go: `page.NamedPageMetaValue(p, nameLower)` — used by `where`/`sort`/related on page fields.
+/// `Ok(None)` is Go's `found == false` with a nil error. Go returns the value together with
+/// `found == false` when a params lookup fails; the port returns only the error.
 // Go: resources/page/page.go:NamedPageMetaValue
 pub fn named_page_meta_value(p: &dyn Page, name_lower: &str) -> Result<Option<Value>> {
-    todo!()
+    let v = match name_lower {
+        "kind" => Value::string(p.kind()),
+        "bundletype" => Value::string(p.bundle_type()),
+        "mediatype" => p.media_type().to_value(),
+        "section" => Value::string(p.section()),
+        "lang" => Value::string(p.lang()),
+        "aliases" => Value::string_list(p.aliases()),
+        "name" => Value::string(p.name()),
+        "keywords" => Value::string_list(p.keywords()),
+        "description" => Value::string(p.description()),
+        "title" => Value::string(Page::title(p)),
+        "linktitle" => Value::string(p.link_title()),
+        "slug" => Value::string(p.slug()),
+        "date" => Value::Time(p.date()),
+        "publishdate" => Value::Time(p.publish_date()),
+        "expirydate" => Value::Time(p.expiry_date()),
+        "lastmod" => Value::Time(p.lastmod()),
+        "draft" => Value::Bool(p.draft()),
+        "type" => Value::string(p.page_type()),
+        "layout" => Value::string(p.layout()),
+        "weight" => Value::int(p.weight()),
+        _ => {
+            // Try params.
+            let params = Resource::params(p);
+            let r = nh_resource::params::param(&params, None, &Value::string(name_lower));
+            match r {
+                Ok(Value::Invalid) => return Ok(None),
+                Ok(v) => v,
+                // Go: a nil value wins over the error (`if v == nil { return nil, false, nil }`);
+                // Param returns a nil value together with every error.
+                Err(_) => return Ok(None),
+            }
+        }
+    };
+
+    Ok(Some(v))
 }
 
 /// Go: `page.Clear()` (clears the page sort cache). The cache and its `clear` are T12's
@@ -194,6 +343,69 @@ pub fn named_page_meta_value(p: &dyn Page, name_lower: &str) -> Result<Option<Va
 // Go: resources/page/page.go:Clear
 pub fn clear() {
     crate::pages_cache::clear()
+}
+
+/// Go: `page.PageWithContext` — a page bound to a context, so the context-taking content
+/// methods can be called without one. The methods call the page's template API.
+pub struct PageWithContext<'a> {
+    pub page: Arc<dyn Page>,
+    pub ctx: HostCtx<'a>,
+}
+
+// `Len` is Go's method name (the rendered content length); there is no `IsEmpty`.
+#[allow(clippy::len_without_is_empty)]
+impl PageWithContext<'_> {
+    fn call(&self, name: &str) -> Result<Value> {
+        match self.page.tpl_call_method(self.ctx, name, &[]) {
+            Some(r) => r.map_err(Error::from),
+            None => Err(Error::new(format!("{name}: no such method"))),
+        }
+    }
+
+    // Go: resources/page/page.go:Content
+    pub fn content(&self) -> Result<Value> {
+        self.call("Content")
+    }
+
+    // Go: resources/page/page.go:Plain
+    pub fn plain(&self) -> Result<GoString> {
+        self.page.plain(self.ctx)
+    }
+
+    // Go: resources/page/page.go:PlainWords
+    pub fn plain_words(&self) -> Result<Value> {
+        self.call("PlainWords")
+    }
+
+    // Go: resources/page/page.go:Summary
+    pub fn summary(&self) -> Result<Value> {
+        self.call("Summary")
+    }
+
+    // Go: resources/page/page.go:Truncated
+    pub fn truncated(&self) -> Result<Value> {
+        self.call("Truncated")
+    }
+
+    // Go: resources/page/page.go:FuzzyWordCount
+    pub fn fuzzy_word_count(&self) -> Result<Value> {
+        self.call("FuzzyWordCount")
+    }
+
+    // Go: resources/page/page.go:WordCount
+    pub fn word_count(&self) -> Result<Value> {
+        self.call("WordCount")
+    }
+
+    // Go: resources/page/page.go:ReadingTime
+    pub fn reading_time(&self) -> Result<Value> {
+        self.call("ReadingTime")
+    }
+
+    // Go: resources/page/page.go:Len
+    pub fn len(&self) -> Result<i64> {
+        self.page.content_len(self.ctx)
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -207,15 +419,15 @@ pub fn clear() {
 //          PageMetaInternalProvider, PageRenderProvider, PageWithoutContent, Positioner, RawContentProvider,
 //          RenderShortcodesProvider, RefProvider, RelatedKeywordsProvider, ShortcodeInfoProvider, SitesProvider,
 //          TableOfContentsProvider, TranslationsProvider, TreeProvider, PageWithContext
-// EX L39-42: Clear() error
-// EX L263-319: NamedPageMetaValue(p PageMetaResource, nameLower string) (any, bool, error)
-//    L540-542: (p PageWithContext) Content() (any, error)
-//    L544-546: (p PageWithContext) Plain() string
-//    L548-550: (p PageWithContext) PlainWords() []string
-//    L552-554: (p PageWithContext) Summary() template.HTML
-//    L556-558: (p PageWithContext) Truncated() bool
-//    L560-562: (p PageWithContext) FuzzyWordCount() int
-//    L564-566: (p PageWithContext) WordCount() int
-//    L568-570: (p PageWithContext) ReadingTime() int
-//    L572-574: (p PageWithContext) Len() int
+// OK L39-42: Clear() error
+// OK L263-319: NamedPageMetaValue(p PageMetaResource, nameLower string) (any, bool, error)
+// OK L540-542: (p PageWithContext) Content() (any, error)
+// OK L544-546: (p PageWithContext) Plain() string
+// OK L548-550: (p PageWithContext) PlainWords() []string
+// OK L552-554: (p PageWithContext) Summary() template.HTML
+// OK L556-558: (p PageWithContext) Truncated() bool
+// OK L560-562: (p PageWithContext) FuzzyWordCount() int
+// OK L564-566: (p PageWithContext) WordCount() int
+// OK L568-570: (p PageWithContext) ReadingTime() int
+// OK L572-574: (p PageWithContext) Len() int
 // ---------------------------------------------------------------------------

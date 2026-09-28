@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 use crate::page::Pages;
 
 /// Go: `Pages.MergeByLanguage(other)`.

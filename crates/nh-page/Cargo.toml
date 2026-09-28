@@ -23,10 +23,22 @@ go-sort = { path = "../go-sort" }
 # xtext-collate = { path = "../xtext-collate" }   # (via nh-langs)
 go-time = { path = "../go-time" }
 go-url = { path = "../go-url" }
+go-fmt = { path = "../go-fmt" }
+go-path = { path = "../go-path" }
+go-strconv = { path = "../go-strconv" }
+go-unicode = { path = "../go-unicode" }
+# html/template's stripTags for tpl.StripHTML (page_markup; nh-tpl's port is not landed yet).
+gotemplate = { path = "../gotemplate" }
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Decompression of the gzip-compressed oracle fixtures only (README rule 2).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# go-toml local dates in the front matter fixtures.
+nh-parser = { path = "../nh-parser" }
+# sha256 of the long summary results in the fixtures (README rule 2).
+sha2 = "0.10"
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `pages_related.go`: `.Site.RegularPages.Related .` — an inverted index per page list
 //! (cached by list equality), searched with the related config (threshold, indices weights).
 
@@ -23,7 +22,10 @@ pub struct RelatedDocsHandler {
 impl RelatedDocsHandler {
     // Go: resources/page/pages_related.go:NewRelatedDocsHandler
     pub fn new(cfg: Config) -> Arc<RelatedDocsHandler> {
-        Arc::new(RelatedDocsHandler { cfg, posting_lists: Mutex::new(Vec::new()) })
+        Arc::new(RelatedDocsHandler {
+            cfg,
+            posting_lists: Mutex::new(Vec::new()),
+        })
     }
 
     // Go: resources/page/pages_related.go:getOrCreateIndex

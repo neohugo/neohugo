@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `resources/page/pages_sort.go`. All page sorts are `sort.Stable` (Rust stable sort is
 //! equivalent for strict weak orders). Tie-breaks use the x/text collator of the site returned by
 //! `p.Site().Current()` — i.e. the site being rendered when a list is first computed.
@@ -40,21 +39,37 @@ pub fn reverse(p: &Pages) -> Pages {
 }
 
 // Go: resources/page/pages_sort.go:ByWeight
-pub fn by_weight(p: &Pages) -> Pages { todo!() }
+pub fn by_weight(p: &Pages) -> Pages {
+    todo!()
+}
 // Go: resources/page/pages_sort.go:ByTitle (collator)
-pub fn by_title(p: &Pages) -> Pages { todo!() }
+pub fn by_title(p: &Pages) -> Pages {
+    todo!()
+}
 // Go: resources/page/pages_sort.go:ByLinkTitle (collator)
-pub fn by_link_title(p: &Pages) -> Pages { todo!() }
+pub fn by_link_title(p: &Pages) -> Pages {
+    todo!()
+}
 // Go: resources/page/pages_sort.go:ByDate
-pub fn by_date(p: &Pages) -> Pages { todo!() }
+pub fn by_date(p: &Pages) -> Pages {
+    todo!()
+}
 // Go: resources/page/pages_sort.go:ByPublishDate
-pub fn by_publish_date(p: &Pages) -> Pages { todo!() }
+pub fn by_publish_date(p: &Pages) -> Pages {
+    todo!()
+}
 // Go: resources/page/pages_sort.go:ByLastmod
-pub fn by_lastmod(p: &Pages) -> Pages { todo!() }
+pub fn by_lastmod(p: &Pages) -> Pages {
+    todo!()
+}
 // Go: resources/page/pages_sort.go:ByParam
-pub fn by_param(p: &Pages, key: &go_value::Value) -> Pages { todo!() }
+pub fn by_param(p: &Pages, key: &go_value::Value) -> Pages {
+    todo!()
+}
 // Go: resources/page/pages_sort.go:Limit
-pub fn limit(p: &Pages, n: usize) -> Pages { p.iter().take(n).cloned().collect() }
+pub fn limit(p: &Pages, n: usize) -> Pages {
+    p.iter().take(n).cloned().collect()
+}
 
 /// Go: `collatorStringCompare(getString, p1, p2)` — collator of `p1.Site().Current().Language()`.
 pub fn collator_string_compare(p1: &dyn Page, a: &str, b: &str) -> i32 {

@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `navigation`: menus from config (`[languages.X.menus.main]`) and front matter. Not
 //! referenced by seeksnack templates (`.Site.Menus` unused) but decoded; port faithfully later.
 

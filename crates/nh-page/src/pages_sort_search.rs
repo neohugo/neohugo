@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 use crate::page::{Page, Pages};
 
 /// Go: `searchPage(p, pages)` — index of `p` (used by Next/Prev), -1 if absent.

@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T11 (page-api-paths).
 
-
 use go_value::Value;
 
 /// Go: `internal.ResourceTransformationKey` — `Name` + elements hashed with `hashing.HashString`.
@@ -15,7 +14,10 @@ pub struct ResourceTransformationKey {
 impl ResourceTransformationKey {
     // Go: resources/internal/key.go:NewResourceTransformationKey
     pub fn new(name: &str, elements: Vec<Value>) -> Self {
-        ResourceTransformationKey { name: name.to_string(), elements }
+        ResourceTransformationKey {
+            name: name.to_string(),
+            elements,
+        }
     }
 
     /// Go: `Value()` = Name, or `Name + "_" + hashing.HashString(elements...)`.
@@ -24,7 +26,11 @@ impl ResourceTransformationKey {
         if self.elements.is_empty() {
             return self.name.clone();
         }
-        format!("{}_{}", self.name, nh_common::hashing::hash_string(&self.elements))
+        format!(
+            "{}_{}",
+            self.name,
+            nh_common::hashing::hash_string(&self.elements)
+        )
     }
 }
 
@@ -34,6 +40,6 @@ impl ResourceTransformationKey {
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: resources/internal/key.go (42 lines; 2/2 funcs executed)
 //   types: ResourceTransformationKey
-// EX L30-32: NewResourceTransformationKey(name string, elements ...any) ResourceTransformationKey
-// EX L36-42: (k ResourceTransformationKey) Value() string
+// OK L30-32: NewResourceTransformationKey(name string, elements ...any) ResourceTransformationKey
+// OK L36-42: (k ResourceTransformationKey) Value() string
 // ---------------------------------------------------------------------------

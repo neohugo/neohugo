@@ -2,8 +2,8 @@
 //!
 //! Owner: Wave B task T11 (page-api-paths).
 
-
-/// Go: `internal.ResourcePaths` — the target path parts of a resource.
+/// Go: `internal.ResourcePaths` — the target path parts of a resource. All directories have
+/// Unix-style slashes, with leading slash, but no trailing slash; empty directories are "".
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ResourcePaths {
     /// This is the directory component for the target file or link.
@@ -57,19 +57,56 @@ impl ResourcePaths {
         if self.target_base_paths.is_empty() {
             return vec![self.target_path()];
         }
-        self.target_base_paths.iter().map(|p| format!("{p}{}", self.target_path())).collect()
+        self.target_base_paths
+            .iter()
+            .map(|p| format!("{p}{}", self.target_path()))
+            .collect()
+    }
+
+    /// Go: `TargetFilenames()` — `TargetPaths` with OS separators (unix: unchanged).
+    // Go: resources/internal/resourcepaths.go:TargetFilenames
+    pub fn target_filenames(&self) -> Vec<String> {
+        self.target_paths()
+            .into_iter()
+            .map(|p| go_path::filepath::from_slash(&p).to_string())
+            .collect()
     }
 
     // Go: resources/internal/resourcepaths.go:FromTargetPath
     pub fn from_target_path(&self, target_path: &str) -> ResourcePaths {
-        todo!()
+        let target_path = go_path::filepath::to_slash(target_path).to_string();
+        let (dir, file) = go_path::path::split(&target_path);
+        let mut dir = nh_common::paths::path::to_slash_preserve_leading(dir);
+        if dir == "/" {
+            dir = String::new();
+        }
+        let mut d = self.clone();
+        d.dir = dir;
+        d.file = file.to_string();
+        d.base_dir_link = String::new();
+        d.base_dir_target = String::new();
+
+        d
     }
 }
 
-/// Go: `internal.ResourcePathsFromSourcePath` etc.
-// Go: resources/internal/resourcepaths.go:NewResourcePaths
-pub fn new_resource_paths(target_path: &str, base_dir_target: &str, base_dir_link: &str, target_base_paths: &[String]) -> ResourcePaths {
-    todo!()
+/// Convenience constructor (no Go counterpart; Go builds the struct literal): the base
+/// directories and multihost base paths, with `Dir`/`File` split from `target_path` like
+/// [`ResourcePaths::from_target_path`].
+pub fn new_resource_paths(
+    target_path: &str,
+    base_dir_target: &str,
+    base_dir_link: &str,
+    target_base_paths: &[String],
+) -> ResourcePaths {
+    let mut d = ResourcePaths {
+        target_base_paths: target_base_paths.to_vec(),
+        ..Default::default()
+    }
+    .from_target_path(target_path);
+    d.base_dir_target = base_dir_target.to_string();
+    d.base_dir_link = base_dir_link.to_string();
+    d
 }
 
 // ---------------------------------------------------------------------------
@@ -78,11 +115,11 @@ pub fn new_resource_paths(target_path: &str, base_dir_target: &str, base_dir_lin
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: resources/internal/resourcepaths.go (107 lines; 6/7 funcs executed)
 //   types: ResourcePaths
-// EX L44-60: (d ResourcePaths) join(p ...string) string
-// EX L62-64: (d ResourcePaths) TargetLink() string
-// EX L66-68: (d ResourcePaths) TargetPath() string
-//    L70-72: (d ResourcePaths) Path() string
-// EX L74-84: (d ResourcePaths) TargetPaths() []string
-// EX L86-92: (d ResourcePaths) TargetFilenames() []string
-// EX L94-107: (d ResourcePaths) FromTargetPath(targetPath string) ResourcePaths
+// OK L44-60: (d ResourcePaths) join(p ...string) string
+// OK L62-64: (d ResourcePaths) TargetLink() string
+// OK L66-68: (d ResourcePaths) TargetPath() string
+// OK L70-72: (d ResourcePaths) Path() string
+// OK L74-84: (d ResourcePaths) TargetPaths() []string
+// OK L86-92: (d ResourcePaths) TargetFilenames() []string
+// OK L94-107: (d ResourcePaths) FromTargetPath(targetPath string) ResourcePaths
 // ---------------------------------------------------------------------------

@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `page.LazyContentProvider`: a content provider that creates the real provider on first
 //! use and can be RESET (Go `lcp.init.Reset()`), after which the next use creates a new one.
 //! nh-hugolib's `shiftToOutputFormat` (page__init.rs) installs one on the current output of every
@@ -31,7 +30,8 @@ pub trait OutputFormatContentProvider: Send + Sync {
 }
 
 /// The factory Go passes to `NewLazyContentProvider`.
-pub type ContentProviderFactory = Box<dyn Fn() -> Result<Arc<dyn OutputFormatContentProvider>> + Send + Sync>;
+pub type ContentProviderFactory =
+    Box<dyn Fn() -> Result<Arc<dyn OutputFormatContentProvider>> + Send + Sync>;
 
 /// Go: `page.LazyContentProvider`.
 pub struct LazyContentProvider {
@@ -44,7 +44,10 @@ impl LazyContentProvider {
     /// Go: `NewLazyContentProvider(f)`.
     // Go: resources/page/page_lazy_contentprovider.go:NewLazyContentProvider
     pub fn new(f: ContentProviderFactory) -> LazyContentProvider {
-        LazyContentProvider { f, cp: Mutex::new(None) }
+        LazyContentProvider {
+            f,
+            cp: Mutex::new(None),
+        }
     }
 
     /// Go: `Reset()`.

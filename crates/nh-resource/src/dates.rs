@@ -2,7 +2,7 @@
 //!
 //! Owner: Wave B task T11 (page-api-paths).
 
-
+use go_time::GoTimeExt;
 use go_value::Time;
 
 /// Go: `resource.Dated`.
@@ -24,17 +24,56 @@ pub struct Dates {
 
 impl Default for Dates {
     fn default() -> Self {
-        Dates { date: Time::zero(), lastmod: Time::zero(), publish_date: Time::zero(), expiry_date: Time::zero() }
+        Dates {
+            date: Time::zero(),
+            lastmod: Time::zero(),
+            publish_date: Time::zero(),
+            expiry_date: Time::zero(),
+        }
     }
 }
 
-/// Go: `resource.IsFuture(d)` / `IsExpired(d)` (against `htime.Now()`).
-pub fn is_future(d: &dyn Dated) -> bool {
-    todo!()
+impl Dated for Dates {
+    fn date(&self) -> Time {
+        self.date.clone()
+    }
+    fn lastmod(&self) -> Time {
+        self.lastmod.clone()
+    }
+    fn publish_date(&self) -> Time {
+        self.publish_date.clone()
+    }
+    fn expiry_date(&self) -> Time {
+        self.expiry_date.clone()
+    }
 }
 
+/// Go: `resource.IsFuture(d)` — the publish date is after `htime.Now()`.
+// Go: resources/resource/dates.go:IsFuture
+pub fn is_future(d: &dyn Dated) -> bool {
+    if d.publish_date().go_is_zero() {
+        return false;
+    }
+
+    d.publish_date().go_after(&nh_common::htime::now())
+}
+
+/// Go: `resource.IsExpired(d)` — the expiry date is before `htime.Now()`.
+// Go: resources/resource/dates.go:IsExpired
 pub fn is_expired(d: &dyn Dated) -> bool {
-    todo!()
+    if d.expiry_date().go_is_zero() {
+        return false;
+    }
+    d.expiry_date().go_before(&nh_common::htime::now())
+}
+
+/// Go: `resource.IsZeroDates(d)`.
+// Go: resources/resource/dates.go:IsZeroDates
+pub fn is_zero_dates(d: &dyn Dated) -> bool {
+    d.date().go_is_zero()
+        && d.lastmod().go_is_zero()
+        && d.expiry_date().go_is_zero()
+        && d.publish_date().go_is_zero()
 }
 
 // ---------------------------------------------------------------------------
@@ -43,7 +82,7 @@ pub fn is_expired(d: &dyn Dated) -> bool {
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: resources/resource/dates.go (58 lines; 0/3 funcs executed)
 //   types: Dated
-//    L39-45: IsFuture(d Dated) bool
-//    L48-53: IsExpired(d Dated) bool
-//    L56-58: IsZeroDates(d Dated) bool
+// OK L39-45: IsFuture(d Dated) bool
+// OK L48-53: IsExpired(d Dated) bool
+// OK L56-58: IsZeroDates(d Dated) bool
 // ---------------------------------------------------------------------------

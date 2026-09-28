@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 use go_value::Value;
 use nh_common::Result;
 

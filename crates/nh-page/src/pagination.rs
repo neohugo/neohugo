@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `resources/page/pagination.go`: `Pager`/`Paginator`. The page-level "first call wins"
 //! (`.Paginator` vs `.Paginate`, one `sync.Once` per page output) lives in nh-hugolib
 //! `page__paginator.rs`.
@@ -45,38 +44,68 @@ pub struct Pager {
 
 impl Paginator {
     // Go: resources/page/pagination.go:Pagers
-    pub fn pagers(&self) -> Vec<Arc<Pager>> { todo!() }
+    pub fn pagers(&self) -> Vec<Arc<Pager>> {
+        todo!()
+    }
     // Go: resources/page/pagination.go:PagerSize
-    pub fn pager_size(&self) -> i64 { self.size }
+    pub fn pager_size(&self) -> i64 {
+        self.size
+    }
     // Go: resources/page/pagination.go:TotalPages
-    pub fn total_pages(&self) -> i64 { todo!() }
+    pub fn total_pages(&self) -> i64 {
+        todo!()
+    }
     // Go: resources/page/pagination.go:TotalNumberOfElements
-    pub fn total_number_of_elements(&self) -> i64 { self.total }
+    pub fn total_number_of_elements(&self) -> i64 {
+        self.total
+    }
 }
 
 impl Pager {
     // Go: resources/page/pagination.go:PageNumber
-    pub fn page_number(&self) -> i64 { self.number }
+    pub fn page_number(&self) -> i64 {
+        self.number
+    }
     // Go: resources/page/pagination.go:URL
-    pub fn url(&self) -> String { (self.paginator.url_factory)(self.number) }
+    pub fn url(&self) -> String {
+        (self.paginator.url_factory)(self.number)
+    }
     // Go: resources/page/pagination.go:Pages
-    pub fn pages(&self) -> Pages { todo!() }
+    pub fn pages(&self) -> Pages {
+        todo!()
+    }
     // Go: resources/page/pagination.go:PageGroups
-    pub fn page_groups(&self) -> PagesGroup { todo!() }
+    pub fn page_groups(&self) -> PagesGroup {
+        todo!()
+    }
     // Go: resources/page/pagination.go:HasPrev
-    pub fn has_prev(&self) -> bool { self.number > 1 }
+    pub fn has_prev(&self) -> bool {
+        self.number > 1
+    }
     // Go: resources/page/pagination.go:Prev
-    pub fn prev(&self) -> Option<Arc<Pager>> { todo!() }
+    pub fn prev(&self) -> Option<Arc<Pager>> {
+        todo!()
+    }
     // Go: resources/page/pagination.go:HasNext
-    pub fn has_next(&self) -> bool { todo!() }
+    pub fn has_next(&self) -> bool {
+        todo!()
+    }
     // Go: resources/page/pagination.go:Next
-    pub fn next(&self) -> Option<Arc<Pager>> { todo!() }
+    pub fn next(&self) -> Option<Arc<Pager>> {
+        todo!()
+    }
     // Go: resources/page/pagination.go:First
-    pub fn first(&self) -> Arc<Pager> { todo!() }
+    pub fn first(&self) -> Arc<Pager> {
+        todo!()
+    }
     // Go: resources/page/pagination.go:Last
-    pub fn last(&self) -> Arc<Pager> { todo!() }
+    pub fn last(&self) -> Arc<Pager> {
+        todo!()
+    }
     // Go: resources/page/pagination.go:NumberOfElements
-    pub fn number_of_elements(&self) -> i64 { todo!() }
+    pub fn number_of_elements(&self) -> i64 {
+        todo!()
+    }
 }
 
 /// Template value of `*page.Pager` (pointer identity: `eq $pag $p` compares pagers).
@@ -119,7 +148,12 @@ fn pager_opt_value(p: Option<Arc<Pager>>) -> Value {
 
 /// `page.pagers` named slice value.
 pub fn pagers_to_value(ps: &[Arc<Pager>]) -> Value {
-    Value::list(SliceType::Named(Arc::from("page.pagers")), ps.iter().map(|p| Value::object(PagerRef(p.clone()))).collect())
+    Value::list(
+        SliceType::Named(Arc::from("page.pagers")),
+        ps.iter()
+            .map(|p| Value::object(PagerRef(p.clone())))
+            .collect(),
+    )
 }
 
 /// Go: `page.ResolvePagerSize(conf, options...)`.
@@ -137,7 +171,9 @@ pub fn paginate(td: &TargetPathDescriptor, seq: &Value, pager_size: i64) -> Resu
 /// Go: `newPaginationURLFactory(d)` — page 1 -> the node's RelPermalink; page N ->
 /// `CreateTargetPaths(d + Addends "/page/N").RelPermalink`.
 // Go: resources/page/pagination.go:newPaginationURLFactory
-pub fn new_pagination_url_factory(d: TargetPathDescriptor) -> Arc<dyn Fn(i64) -> String + Send + Sync> {
+pub fn new_pagination_url_factory(
+    d: TargetPathDescriptor,
+) -> Arc<dyn Fn(i64) -> String + Send + Sync> {
     todo!()
 }
 

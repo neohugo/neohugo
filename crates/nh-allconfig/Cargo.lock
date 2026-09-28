@@ -427,10 +427,15 @@ dependencies = [
 name = "nh-page"
 version = "0.1.0"
 dependencies = [
+ "go-fmt",
+ "go-path",
  "go-sort",
+ "go-strconv",
  "go-time",
+ "go-unicode",
  "go-url",
  "go-value",
+ "gotemplate",
  "nh-common",
  "nh-config",
  "nh-helpers",
@@ -460,6 +465,9 @@ dependencies = [
 name = "nh-resource"
 version = "0.1.0"
 dependencies = [
+ "go-path",
+ "go-time",
+ "go-unicode",
  "go-value",
  "nh-common",
  "nh-config",

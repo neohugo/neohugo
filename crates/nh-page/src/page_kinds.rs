@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T11 (page-api-paths).
 
-
 pub use nh_common::kinds::{KIND_HOME, KIND_PAGE, KIND_SECTION, KIND_TAXONOMY, KIND_TERM};
 
 // ---------------------------------------------------------------------------

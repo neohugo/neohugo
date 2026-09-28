@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 //! Go `pageCache` (the package-global `spc`): memoizes sorted copies keyed by name + the identity
 //! of the input lists (`pagesEqual`). PORT IT FAITHFULLY: a hit returns the list sorted when it
 //! was first computed, and several comparators depend on mutable state (the collator of
@@ -49,7 +48,12 @@ impl PageCache {
     /// Go: `get(key, apply, pageLists...)` — a cached sorted copy of `page_lists[0]`, or a new
     /// copy with `apply` applied (and stored).
     // Go: resources/page/pages_cache.go:get
-    pub fn get(&self, key: &str, apply: &dyn Fn(&mut Pages), page_lists: &[&Pages]) -> (Pages, bool) {
+    pub fn get(
+        &self,
+        key: &str,
+        apply: &dyn Fn(&mut Pages),
+        page_lists: &[&Pages],
+    ) -> (Pages, bool) {
         todo!()
     }
 }

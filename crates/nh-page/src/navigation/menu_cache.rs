@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 // Go `navigation.menuCache` — memoizes sorted menus; recompute in Rust (same result).
 
 // ---------------------------------------------------------------------------

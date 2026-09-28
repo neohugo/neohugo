@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T11 (page-api-paths).
 
-
 use std::collections::BTreeMap;
 
 /// Go: `page.AuthorList` / `Author` (deprecated `.Site.Authors`; kept for API shape).
@@ -20,6 +19,9 @@ pub struct Author {
 }
 
 pub type AuthorList = BTreeMap<String, Author>;
+
+/// Go: `page.AuthorSocial` — the social network links of an author.
+pub type AuthorSocial = BTreeMap<String, String>;
 
 // ---------------------------------------------------------------------------
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,

@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T12 (page-collections).
 
-
 use crate::page::{Page, PageRef, Pages};
 
 /// Go: `Pages.Next(cur)` (previous element in the list — Hugo's reversed semantics).
