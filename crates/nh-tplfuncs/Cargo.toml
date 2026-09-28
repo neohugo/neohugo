@@ -34,20 +34,20 @@ go-time = { path = "../go-time" }
 go-html = { path = "../go-html" }
 go-strconv = { path = "../go-strconv" }
 go-sort = { path = "../go-sort" }
+go-unicode = { path = "../go-unicode" }
 # xtext-collate = { path = "../xtext-collate" }   # (via nh-langs)
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   md-5
-#   sha1
-#   sha2
-#   base64
-#   hex
-#   crc32fast
-#   regex (findRE/replaceRE; not exercised)
+# crates.io (README rule 2; see PORTING.md): MD5, SHA-256 and SHA-512 digests.
+md-5 = "0.10"
+sha2 = "0.10"
+# Not used: sha1 (not available offline; SHA-1 is written out in crypto.rs), base64/hex (Go's
+# codecs are ported), crc32fast, regex (findRE/replaceRE belong to T19).
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Decompression of the gzip-compressed oracle fixtures (tests only; README rule 2).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -10,13 +9,15 @@ use nh_deps::deps::Deps;
 use crate::internal::registry::TemplateFuncsNamespace;
 
 /// Go: `tpl/js` init — namespace `js` and its aliases.
-pub const ALIASES: &[(&str, &[&str])] = &[
-    ("Babel", &["babel"]),
-];
+pub const ALIASES: &[(&str, &[&str])] = &[("Babel", &["babel"])];
 
 // Go: tpl/js/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("js", Arc::new(super::js::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "js",
+        Arc::new(super::js::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------

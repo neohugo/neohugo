@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T15 (resource-factories).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -10,14 +9,16 @@ use nh_deps::deps::Deps;
 use crate::internal::registry::TemplateFuncsNamespace;
 
 /// Go: `tpl/resources` init — namespace `resources` and its aliases.
-pub const ALIASES: &[(&str, &[&str])] = &[
-    ("Fingerprint", &["fingerprint"]),
-    ("Minify", &["minify"]),
-];
+pub const ALIASES: &[(&str, &[&str])] =
+    &[("Fingerprint", &["fingerprint"]), ("Minify", &["minify"])];
 
 // Go: tpl/resources/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("resources", Arc::new(super::resources::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "resources",
+        Arc::new(super::resources::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------

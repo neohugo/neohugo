@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -10,14 +9,15 @@ use nh_deps::deps::Deps;
 use crate::internal::registry::TemplateFuncsNamespace;
 
 /// Go: `tpl/css` init — namespace `css` and its aliases.
-pub const ALIASES: &[(&str, &[&str])] = &[
-    ("Sass", &["toCSS"]),
-    ("PostCSS", &["postCSS"]),
-];
+pub const ALIASES: &[(&str, &[&str])] = &[("Sass", &["toCSS"]), ("PostCSS", &["postCSS"])];
 
 // Go: tpl/css/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("css", Arc::new(super::css::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "css",
+        Arc::new(super::css::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------

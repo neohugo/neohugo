@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 //! Go `tpl/tplimplinit.CreateFuncMap(d)`: all namespaces + aliases for one site (duplicates are a
 //! bug). Also merges the text/template builtins not overridden by Hugo (`and`, `or`, `not`, `len`,
 //! `html`, `urlquery`, `call`) and the html/template escaper funcs — that part is done by

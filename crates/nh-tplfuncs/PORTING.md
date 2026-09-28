@@ -9,38 +9,39 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
 | `internal::registry` | `tpl/internal/templatefuncsRegistry.go` | T19 tplfuncs-host |  |
 | `internal::resourcehelpers` | `tpl/internal/resourcehelpers/helpers.go` | T15 resource-factories |  |
 | `tplimplinit` | `tpl/tplimplinit/tplimplinit.go` | T19 tplfuncs-host |  |
-| `cast::init` | `tpl/cast/init.go` | T18 tplfuncs-data |  |
-| `cast::cast` | `tpl/cast/cast.go` | T18 tplfuncs-data |  |
-| `cast::docshelper` | `tpl/cast/docshelper.go` | T18 tplfuncs-data | not needed (docs) |
-| `collections::init` | `tpl/collections/init.go` | T18 tplfuncs-data |  |
-| `collections::append` | `tpl/collections/append.go` | T18 tplfuncs-data |  |
-| `collections::apply` | `tpl/collections/apply.go` | T18 tplfuncs-data |  |
-| `collections::collections` | `tpl/collections/collections.go` | T18 tplfuncs-data |  |
-| `collections::complement` | `tpl/collections/complement.go` | T18 tplfuncs-data |  |
-| `collections::index` | `tpl/collections/index.go` | T18 tplfuncs-data |  |
-| `collections::merge` | `tpl/collections/merge.go` | T18 tplfuncs-data |  |
-| `collections::querify` | `tpl/collections/querify.go` | T18 tplfuncs-data |  |
-| `collections::reflect_helpers` | `tpl/collections/reflect_helpers.go` | T18 tplfuncs-data |  |
-| `collections::sort` | `tpl/collections/sort.go` | T18 tplfuncs-data |  |
-| `collections::symdiff` | `tpl/collections/symdiff.go` | T18 tplfuncs-data |  |
-| `collections::where_` | `tpl/collections/where.go` | T18 tplfuncs-data |  |
-| `compare::init` | `tpl/compare/init.go` | T18 tplfuncs-data |  |
-| `compare::compare` | `tpl/compare/compare.go` | T18 tplfuncs-data |  |
-| `crypto::init` | `tpl/crypto/init.go` | T18 tplfuncs-data |  |
-| `crypto::crypto` | `tpl/crypto/crypto.go` | T18 tplfuncs-data |  |
-| `encoding::init` | `tpl/encoding/init.go` | T18 tplfuncs-data |  |
-| `encoding::encoding` | `tpl/encoding/encoding.go` | T18 tplfuncs-data |  |
-| `fmt::init` | `tpl/fmt/init.go` | T18 tplfuncs-data |  |
-| `fmt::fmt` | `tpl/fmt/fmt.go` | T18 tplfuncs-data |  |
-| `hash::init` | `tpl/hash/init.go` | T18 tplfuncs-data |  |
-| `hash::hash` | `tpl/hash/hash.go` | T18 tplfuncs-data |  |
-| `math::init` | `tpl/math/init.go` | T18 tplfuncs-data |  |
-| `math::math` | `tpl/math/math.go` | T18 tplfuncs-data |  |
-| `math::round` | `tpl/math/round.go` | T18 tplfuncs-data |  |
-| `reflect::init` | `tpl/reflect/init.go` | T18 tplfuncs-data |  |
-| `reflect::reflect` | `tpl/reflect/reflect.go` | T18 tplfuncs-data |  |
-| `safe::init` | `tpl/safe/init.go` | T18 tplfuncs-data |  |
-| `safe::safe` | `tpl/safe/safe.go` | T18 tplfuncs-data |  |
+| `cast::init` | `tpl/cast/init.go` | T18 tplfuncs-data | ported |
+| `cast::cast` | `tpl/cast/cast.go` | T18 tplfuncs-data | ported |
+| `cast::docshelper` | `tpl/cast/docshelper.go` | T18 tplfuncs-data | STUB (`hugo gen docshelper` only): explicit unsupported error |
+| `collections::init` | `tpl/collections/init.go` | T18 tplfuncs-data | ported |
+| `collections::append` | `tpl/collections/append.go` | T18 tplfuncs-data | ported |
+| `collections::apply` | `tpl/collections/apply.go` | T18 tplfuncs-data | ported |
+| `collections::collections` | `tpl/collections/collections.go` | T18 tplfuncs-data | ported |
+| `collections::complement` | `tpl/collections/complement.go` | T18 tplfuncs-data | ported |
+| `collections::index` | `tpl/collections/index.go` | T18 tplfuncs-data | ported |
+| `collections::merge` | `tpl/collections/merge.go` | T18 tplfuncs-data | ported |
+| `collections::querify` | `tpl/collections/querify.go` | T18 tplfuncs-data | ported |
+| `collections::reflect_helpers` | `tpl/collections/reflect_helpers.go` | T18 tplfuncs-data | ported |
+| `collections::sort` | `tpl/collections/sort.go` | T18 tplfuncs-data | ported |
+| `collections::symdiff` | `tpl/collections/symdiff.go` | T18 tplfuncs-data | ported |
+| `collections::where_` | `tpl/collections/where.go` | T18 tplfuncs-data | ported |
+| `compare::init` | `tpl/compare/init.go` | T18 tplfuncs-data | ported |
+| `compare::compare` | `tpl/compare/compare.go` | T18 tplfuncs-data | ported |
+| `crypto::init` | `tpl/crypto/init.go` | T18 tplfuncs-data | ported |
+| `crypto::crypto` | `tpl/crypto/crypto.go` | T18 tplfuncs-data | ported |
+| `encoding::init` | `tpl/encoding/init.go` | T18 tplfuncs-data | ported |
+| `encoding::encoding` | `tpl/encoding/encoding.go` | T18 tplfuncs-data | ported |
+| `fmt::init` | `tpl/fmt/init.go` | T18 tplfuncs-data | ported |
+| `fmt::fmt` | `tpl/fmt/fmt.go` | T18 tplfuncs-data | ported |
+| `hash::init` | `tpl/hash/init.go` | T18 tplfuncs-data | ported |
+| `hash::hash` | `tpl/hash/hash.go` | T18 tplfuncs-data | ported |
+| `math::init` | `tpl/math/init.go` | T18 tplfuncs-data | ported |
+| `math::math` | `tpl/math/math.go` | T18 tplfuncs-data | ported |
+| `math::round` | `tpl/math/round.go` | T18 tplfuncs-data | ported |
+| `math::gomath` | Go `math` (go1.27.1, arm64 build): `Exp` (asm), `Log`, `Pow`, `Sin`, `Cos`, `Tan`, `Asin`, `Acos`, `Atan`, `Atan2`, `Max`/`Min` (asm), `Frexp`, `Ldexp`, `Modf` | T18 tplfuncs-data | NEW: copy of `crates/gift/src/gomath.rs` + Tan, Asin, Acos, Atan, Atan2, Min, arm64 default NaN |
+| `reflect::init` | `tpl/reflect/init.go` | T18 tplfuncs-data | ported |
+| `reflect::reflect` | `tpl/reflect/reflect.go` | T18 tplfuncs-data | ported |
+| `safe::init` | `tpl/safe/init.go` | T18 tplfuncs-data | ported |
+| `safe::safe` | `tpl/safe/safe.go` | T18 tplfuncs-data | ported |
 | `css::init` | `tpl/css/init.go` | T19 tplfuncs-host |  |
 | `css::css` | `tpl/css/css.go` | T19 tplfuncs-host |  |
 | `data::init` | `tpl/data/init.go` | T19 tplfuncs-host |  |
@@ -90,13 +91,59 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
 ## Dependencies
 
 - nh-*: nh-common, nh-config, nh-media, nh-langs, nh-hugofs, nh-helpers, nh-markup, nh-resource, nh-images, nh-page, nh-allconfig, nh-tpl, nh-tplimpl, nh-resources, nh-resource-transformers, nh-parser, nh-deps
-- Wave A (to add when available): go-fmt, go-json, go-url, go-time, go-html, go-strconv, go-sort, xtext-collate (via nh-langs)
-- crates.io (justify each): md-5, sha1, sha2, base64, hex, crc32fast, regex (findRE/replaceRE; not exercised)
+- Wave A (landed): go-value, go-fmt, go-json, go-url, go-time, go-html, go-strconv, go-sort, go-unicode (T18: Go `strings` helpers such as EqualFold, TrimSpace and ToLower). xtext-collate is reached through nh-langs (`Language::collator1`).
+- crates.io (T18):
+  - `md-5 0.10`: MD5 for `crypto.MD5` and `crypto.HMAC "md5"` (pure digest, output identical to Go's `crypto/md5`).
+  - `sha2 0.10`: SHA-256 and SHA-512 for `crypto.SHA256` and `crypto.HMAC "sha256"/"sha512"`.
+  - SHA-1 (no offline crate), HMAC, FNV-32a, hex and base64 (Go's `decodeQuantum` with its error offsets) are written out in `crypto.rs` and `encoding.rs`. XxHash comes from nh-common hashing.
+  - dev-only: `serde_json` (fixture reader) and `flate2` (rust_backend; gunzips the oracle fixtures).
+- T19 still owns the `regex` decision (findRE/replaceRE).
 
 ## Deliberate deviations
 
-_Wave B: list every deviation from the Go code here (README rule 1)._
+- `where … "like"` goes through `nh_common::hstrings::get_or_compile_regexp`. With no Go regexp port it returns an "unsupported" error; Go would match. The known divergence is in `tests/data.rs`.
+- Go map iteration order is random. Where it can be seen, Rust uses sorted key order:
+  - `sort` of a map with tied keys;
+  - `merge`'s case-insensitive key lookup;
+  - `querify`'s choice of error when several values are bad.
+  The oracle records these cases as `unordered` or `nondet`, and the Rust result must be one of Go's possible results.
+- `shuffle` and `math.Rand` use a private xorshift generator, not Go's `math/rand`. The oracle checks only permutation or range.
+- `collections.Apply` does not check a function's signature for assignability (Go's `reflect.Value.Call` does). Functions come from the template store's `get_func` or from the namespaces' func map (test seam).
+- `where`'s `evaluateSubElem` approximates Go's static types (method result and map element types come from the `Object` and value model). The arity error of a method call is mapped to Go's "… requires more than 1 parameter" text.
+- A `*hugolib.pageWithOrdinal` wrapper's identity (in `uniq`/`intersect`/`in`/`union`) is its `Arc` pointer. `pageWithWeight0` is a value type and compares through `Unwrapv`.
+- Named string types other than `hstring.HTML`, `json.Number` and `neohugo.VersionString` become plain `string` when `after`, `first` or `last` rebuild a slice of them.
+- `fmt.Errorf/Warnf/Erroridf/Warnidf/Warnmf/Errormf` log through `Deps::log`. The `*mf` variants append ` key=value` fields in Go's field order.
+- Arity errors use the Go method name, not the template alias.
+- `compare.LtCollate` from a template receives a nil collator, as in Go, so it uses the default comparer.
+- `math` follows the Go linux/arm64 build (see `math::gomath`):
+  - FMA contraction at the sites the Go compiler fuses (tan, atan, asin);
+  - arm64 default NaN `0x7FF8000000000000`;
+  - `int(NaN/±Inf)` as arm64 converts it.
+  The x86-64 Go build gives different bits for these values.
+- `cast.ToInt`/`ToFloat` errors for pointer values print the value differently (nh-common cast deviation 19). This is a known divergence.
+- Comparing `neohugo.VersionString` with an unsigned number differs from Go because of nh-config's `VersionString::compare`. This is a known divergence, reported to T04.
+- `try` (alias registered by `tplimplinit`) is left to T19.
 
 ## Known gaps
 
-_Wave B: list unported / stubbed functionality here._
+- `cast::docshelper` is an explicit stub: `docs_provider()` returns "neohugo-rs: docshelper (hugo gen docshelper) is not supported".
+- `where` with `like` is unsupported until a Go-compatible regexp is available.
+
+## Verification
+
+- `tests/data.rs` runs the Go oracle fixtures `tests/fixtures/data/*.json.gz`:
+  - 94 topics, 515,023 cases over 673 shared values and 25 page entries;
+  - every function of cast, collections (plus the site-deps and Thai-collator variants), compare, crypto, encoding, fmt, hash, math, reflect and safe;
+  - the `*_test.go` tables;
+  - pages from an in-memory hugolib build, including regular, section and home pages, the `pageWithWeight0` term pages and the `*pageWithOrdinal` GetTerms results.
+- Each case records the value, the Go type/kind and the error text. Printed pointer addresses are masked.
+- Result: 0 failures. 1,256 cases are known divergences (listed above), 2 nondet and 16 unordered cases are accepted as sets, and the math counter is checked separately.
+- `tests/go_tables.rs` holds the Go test tables transcribed literally.
+- Regenerate the fixtures (they must come out byte for byte the same). The first step needs Go and the module cache; the second needs qemu-user-static:
+
+  ```
+  GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-tplfuncs/arm64build -o /tmp/data.arm64
+  qemu-aarch64-static /tmp/data.arm64 -out crates/nh-tplfuncs/tests/fixtures/data
+  ```
+
+  `arm64build` cross-compiles `tools/go-oracle/nh-tplfuncs/data` for linux/arm64 with CGO off. A temporary `-modfile` swaps in local copies of gowebp and golibsass that carry `!cgo` stub files.

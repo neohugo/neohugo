@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T18 (tplfuncs-data).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -18,7 +17,11 @@ pub const ALIASES: &[(&str, &[&str])] = &[
 
 // Go: tpl/encoding/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("encoding", Arc::new(super::encoding::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "encoding",
+        Arc::new(super::encoding::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -26,5 +29,5 @@ pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: tpl/encoding/init.go (61 lines; 1/1 funcs executed)
-// EX L25-61: init()
+// OK L25-61: init()
 // ---------------------------------------------------------------------------

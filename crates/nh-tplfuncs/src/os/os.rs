@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 use std::any::Any;
 use std::sync::Arc;
 

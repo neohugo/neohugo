@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -10,14 +9,15 @@ use nh_deps::deps::Deps;
 use crate::internal::registry::TemplateFuncsNamespace;
 
 /// Go: `tpl/data` init — namespace `data` and its aliases.
-pub const ALIASES: &[(&str, &[&str])] = &[
-    ("GetCSV", &["getCSV"]),
-    ("GetJSON", &["getJSON"]),
-];
+pub const ALIASES: &[(&str, &[&str])] = &[("GetCSV", &["getCSV"]), ("GetJSON", &["getJSON"])];
 
 // Go: tpl/data/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("data", Arc::new(super::data::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "data",
+        Arc::new(super::data::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------

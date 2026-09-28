@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;

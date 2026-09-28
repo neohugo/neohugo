@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -10,13 +9,15 @@ use nh_deps::deps::Deps;
 use crate::internal::registry::TemplateFuncsNamespace;
 
 /// Go: `tpl/templates` init — namespace `templates` and its aliases.
-pub const ALIASES: &[(&str, &[&str])] = &[
-    ("DoDefer", &["doDefer"]),
-];
+pub const ALIASES: &[(&str, &[&str])] = &[("DoDefer", &["doDefer"])];
 
 // Go: tpl/templates/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("templates", Arc::new(super::templates::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "templates",
+        Arc::new(super::templates::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------

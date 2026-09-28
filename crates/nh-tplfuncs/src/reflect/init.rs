@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T18 (tplfuncs-data).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -10,12 +9,15 @@ use nh_deps::deps::Deps;
 use crate::internal::registry::TemplateFuncsNamespace;
 
 /// Go: `tpl/reflect` init — namespace `reflect` and its aliases.
-pub const ALIASES: &[(&str, &[&str])] = &[
-];
+pub const ALIASES: &[(&str, &[&str])] = &[];
 
 // Go: tpl/reflect/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("reflect", Arc::new(super::reflect::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "reflect",
+        Arc::new(super::reflect::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -23,5 +25,5 @@ pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: tpl/reflect/init.go (53 lines; 1/1 funcs executed)
-// EX L26-53: init()
+// OK L26-53: init()
 // ---------------------------------------------------------------------------

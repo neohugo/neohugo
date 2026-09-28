@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 //! Go `tpl/internal/templatefuncsRegistry.go` (registry part): each namespace contributes its
 //! namespace object (`funcMap[ns] = ns.Context`, returning the namespace struct) and aliases
 //! (`funcMap[alias] = method`).
@@ -24,22 +23,32 @@ pub struct TemplateFuncsNamespace {
 
 impl TemplateFuncsNamespace {
     /// Namespace backed by an `Object` whose Go methods implement the aliases.
-    pub fn from_object(name: &'static str, obj: Arc<dyn Object>, aliases: &[(&str, &[&str])]) -> TemplateFuncsNamespace {
+    pub fn from_object(
+        name: &'static str,
+        obj: Arc<dyn Object>,
+        aliases: &[(&str, &[&str])],
+    ) -> TemplateFuncsNamespace {
         let ns_value = Value::Object(obj.clone());
-        let context: TplFunc = Arc::new(move |_ctx: HostCtx<'_>, _args: &[Value]| Ok(ns_value.clone()));
+        let context: TplFunc =
+            Arc::new(move |_ctx: HostCtx<'_>, _args: &[Value]| Ok(ns_value.clone()));
         let mut out = Vec::new();
         for (method, names) in aliases {
             for alias in names.iter() {
                 let obj = obj.clone();
                 let method = method.to_string();
                 let f: TplFunc = Arc::new(move |ctx: HostCtx<'_>, args: &[Value]| {
-                    obj.call_method(ctx, &method, args)
-                        .unwrap_or_else(|| Err(go_value::Error::new(format!("method {method} not found"))))
+                    obj.call_method(ctx, &method, args).unwrap_or_else(|| {
+                        Err(go_value::Error::new(format!("method {method} not found")))
+                    })
                 });
                 out.push((alias.to_string(), f));
             }
         }
-        TemplateFuncsNamespace { name, context, aliases: out }
+        TemplateFuncsNamespace {
+            name,
+            context,
+            aliases: out,
+        }
     }
 }
 

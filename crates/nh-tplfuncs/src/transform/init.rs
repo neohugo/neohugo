@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -22,7 +21,11 @@ pub const ALIASES: &[(&str, &[&str])] = &[
 
 // Go: tpl/transform/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("transform", Arc::new(super::transform::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "transform",
+        Arc::new(super::transform::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------

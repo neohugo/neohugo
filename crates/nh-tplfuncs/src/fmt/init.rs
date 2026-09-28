@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T18 (tplfuncs-data).
 
-
 use std::sync::Arc;
 
 use nh_deps::deps::Deps;
@@ -22,7 +21,11 @@ pub const ALIASES: &[(&str, &[&str])] = &[
 
 // Go: tpl/fmt/init.go:init
 pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
-    TemplateFuncsNamespace::from_object("fmt", Arc::new(super::fmt::Namespace::new(d.clone())), ALIASES)
+    TemplateFuncsNamespace::from_object(
+        "fmt",
+        Arc::new(super::fmt::Namespace::new(d.clone())),
+        ALIASES,
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -30,5 +33,5 @@ pub fn namespace(d: &Arc<Deps>) -> TemplateFuncsNamespace {
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: tpl/fmt/init.go (86 lines; 1/1 funcs executed)
-// EX L25-86: init()
+// OK L25-86: init()
 // ---------------------------------------------------------------------------

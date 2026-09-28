@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T15 (resource-factories).
 
-
 use std::any::Any;
 use std::sync::Arc;
 
