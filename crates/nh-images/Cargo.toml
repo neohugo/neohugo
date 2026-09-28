@@ -20,10 +20,26 @@ go-png = { path = "../go-png" }
 go-flate = { path = "../go-flate" }
 libwebp-sys = { path = "../libwebp-sys" }
 go-hashstructure = { path = "../go-hashstructure" }
+go-fmt = { path = "../go-fmt" }
+go-path = { path = "../go-path" }
+go-strconv = { path = "../go-strconv" }
+go-time = { path = "../go-time" }
+go-unicode = { path = "../go-unicode" }
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# gunzip of the fixtures (decompression only).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# SHA-256 of the encoded outputs (tests only).
+sha2 = "0.10"
+
+# The image pipeline tests resize and encode real images: optimise them, but keep the
+# overflow checks (Go's wrapping sites use wrapping_* explicitly).
+[profile.test]
+opt-level = 3
+debug-assertions = true
+overflow-checks = true
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

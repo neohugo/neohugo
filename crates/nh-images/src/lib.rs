@@ -4,23 +4,30 @@
 //! `crates/WAVE_B_PLAN.json` for module ownership. Every module mirrors one or more Go files; the
 //! generated GO PORTING CHECKLIST at the bottom of each module lists the Go functions to port.
 
-// Skeleton-time allowances. Remove `unused`/`dead_code` once the crate is ported (README rule 11).
-#![allow(unused, dead_code, clippy::too_many_arguments, clippy::new_without_default, clippy::type_complexity)]
+// Lints that fight a faithful port (README rule 11); the skeleton's `unused`/`dead_code`
+// allowances are gone now that the crate is ported.
+#![allow(
+    clippy::too_many_arguments,
+    clippy::new_without_default,
+    clippy::type_complexity
+)]
 
-pub mod config;
-pub mod image;
-pub mod filters;
-pub mod overlay;
-pub mod process;
-pub mod resampling;
-pub mod color;
-pub mod image_resource;
 pub mod auto_orient;
+pub mod color;
+pub mod config;
 pub mod dither;
+pub mod exif;
+mod exif_fields;
+pub mod filters;
+mod gif;
+pub mod image;
+pub mod image_resource;
 pub mod mask;
 pub mod opacity;
+pub mod overlay;
 pub mod padding;
+pub mod process;
+pub mod resampling;
 pub mod smartcrop;
 pub mod text;
-pub mod exif;
 pub mod webp;
