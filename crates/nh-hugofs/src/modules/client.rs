@@ -4,7 +4,6 @@
 //!
 //! Owner: Wave B task T09 (allconfig-modules).
 
-
 use std::sync::Arc;
 
 use super::config::Config;

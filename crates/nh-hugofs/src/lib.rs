@@ -5,20 +5,28 @@
 //! generated GO PORTING CHECKLIST at the bottom of each module lists the Go functions to port.
 
 // Skeleton-time allowances. Remove `unused`/`dead_code` once the crate is ported (README rule 11).
-#![allow(unused, dead_code, clippy::too_many_arguments, clippy::new_without_default, clippy::type_complexity)]
+#![allow(
+    unused,
+    dead_code,
+    clippy::too_many_arguments,
+    clippy::new_without_default,
+    clippy::type_complexity
+)]
 
 pub mod afero;
-pub mod overlayfs;
-pub mod fs;
-pub mod fileinfo;
-pub mod rootmapping_fs;
 pub mod component_fs;
 pub mod decorators;
 pub mod dirsmerger;
-pub mod walk;
-pub mod hasbytes_fs;
+pub mod fileinfo;
 pub mod filename_filter_fs;
-pub mod glob;
 pub mod filesystems;
-pub mod paths;
+pub mod fs;
+pub mod glob;
+pub mod hasbytes_fs;
 pub mod modules;
+pub mod nfc;
+pub mod oserror;
+pub mod overlayfs;
+pub mod paths;
+pub mod rootmapping_fs;
+pub mod walk;

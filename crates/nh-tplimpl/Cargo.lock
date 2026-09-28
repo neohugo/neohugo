@@ -256,6 +256,9 @@ name = "nh-hugofs"
 version = "0.1.0"
 dependencies = [
  "go-path",
+ "go-sort",
+ "go-strconv",
+ "go-unicode",
  "go-value",
  "nh-common",
  "nh-config",

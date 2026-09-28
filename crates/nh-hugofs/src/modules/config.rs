@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T09 (allconfig-modules).
 
-
 use go_value::{Map, Value};
 use nh_common::Result;
 use nh_config::config_provider::Provider;
@@ -74,7 +73,10 @@ pub fn decode_config(cfg: &dyn Provider) -> Result<Config> {
 
 /// Go: `modules.ApplyProjectConfigDefaults(mod, cfgs...)` — default mounts for components without one.
 // Go: modules/config.go:ApplyProjectConfigDefaults
-pub fn apply_project_config_defaults(m: &mut super::module::Module, cfgs: &[&dyn nh_config::config_provider::AllProvider]) -> Result<()> {
+pub fn apply_project_config_defaults(
+    m: &mut super::module::Module,
+    cfgs: &[&dyn nh_config::config_provider::AllProvider],
+) -> Result<()> {
     todo!()
 }
 
