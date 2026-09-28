@@ -20,6 +20,8 @@
 // range-contains / is_multiple_of / late-init idioms; mirroring the Go
 // expressions keeps the Rust diffable against Go).
 #![allow(
+    // Go conditions kept verbatim (`!(base.String() <= ...)` in sort.Search).
+    clippy::nonminimal_bool,
     clippy::needless_range_loop,
     clippy::too_many_arguments,
     clippy::module_inception,

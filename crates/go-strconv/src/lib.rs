@@ -26,6 +26,8 @@
 #![allow(clippy::eq_op)]
 #![allow(clippy::same_item_push)]
 #![allow(clippy::manual_is_multiple_of)]
+// Go conditions kept verbatim, e.g. `!(len(in) > 0 && in[0] == quote)`.
+#![allow(clippy::nonminimal_bool)]
 
 pub mod internal;
 mod isprint;

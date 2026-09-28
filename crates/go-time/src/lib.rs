@@ -13,6 +13,8 @@
 
 // Faithful-port lints: Go control flow is kept as-is.
 #![allow(
+    // Go conditions kept verbatim (`!ok || !(s[4] == '-' && ...)`).
+    clippy::nonminimal_bool,
     clippy::needless_range_loop,
     clippy::too_many_arguments,
     clippy::manual_range_contains,
