@@ -430,7 +430,7 @@ impl Site {
 
 /// Go: `renderForTemplate(ctx, name, outputFormat, d, w, templ)` — executes `templ` (through
 /// `template_exec`) and wraps an error as `render of "<page>" failed: ...`. A nil template
-/// logs the missing layout in Go (`logMissingLayout`, site_render.go: T24) and renders nothing.
+/// logs the missing layout (`logMissingLayout`, in site_render.rs) and renders nothing.
 // Go: hugolib/site.go:renderForTemplate
 #[allow(clippy::too_many_arguments)]
 pub fn render_for_template(
@@ -438,14 +438,14 @@ pub fn render_for_template(
     site_idx: usize,
     ctx: &TplContext,
     name: &str,
-    _output_format: &str,
+    output_format: &str,
     d: &Value,
     w: &mut Vec<u8>,
     templ: Option<&Arc<TemplInfo>>,
     call: ExecCall,
 ) -> Result<()> {
     let Some(templ) = templ else {
-        // Go: `s.logMissingLayout(name, "", "", outputFormat)` (T24's site_render.rs).
+        crate::site_render::log_missing_layout(h, site_idx, name, "", "", output_format);
         return Ok(());
     };
 

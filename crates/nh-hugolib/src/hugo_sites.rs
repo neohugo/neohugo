@@ -708,7 +708,7 @@ pub struct NewHugoSitesCfg {
 //    L376-381: (h *HugoSites) resetLogs()
 //    L383-390: (h *HugoSites) withSite(fn func(s *Site) error) error
 //    L392-403: (h *HugoSites) withPage(fn func(s string, p *pageState) bool)
-// EX L432-479: (cfg *BuildCfg) shouldRender(infol logg.LevelLogger, p *pageState) bool  [T24: needs the render state of T21-T23]
+// OK L432-479: (cfg *BuildCfg) shouldRender(infol logg.LevelLogger, p *pageState) bool  [T24: BuildCfg::should_render in hugo_sites_build.rs]
 // OK L481-496: (s *Site) preparePagesForRender(isRenderingSite bool, idx int) error
 // Source: hugolib/site.go (construction only; the rest of site.go is in site.rs and others)
 // OK L143-335: NewHugoSites(cfg deps.DepsCfg) (*HugoSites, error)

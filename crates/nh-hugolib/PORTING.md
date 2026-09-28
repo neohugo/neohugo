@@ -49,7 +49,7 @@ neohugo hugolib/** : HugoSites/Site/pageState, content capture, content map + as
 | `tplapi::page_methods` | — | T23 hugolib-site | NEW: template-visible method set of page.Page (replaces reflection on *pageState) |
 | `tplapi::site_methods` | — | T23 hugolib-site | NEW: template-visible method set of page.Site (*page.siteWrapper) and *hugolib.Site |
 | `tplapi::named_types` | — | T23 hugolib-site | NEW: NamedTypeRegistry assembly (page.Pages, resource.Resources, maps.Params, page.Taxonomy ...) |
-| `hugo_sites_build` | `hugolib/hugo_sites_build.go` (Build, render, writeBuildStats, postProcess, ...) | T24 hugolib-build |  |
+| `hugo_sites_build` | `hugolib/hugo_sites_build.go` (Build, render, writeBuildStats, postProcess, ...) + `hugolib/hugo_sites.go` `BuildCfg.shouldRender` | T24 hugolib-build | split |
 | `site_render` | `hugolib/site_render.go` + `hugolib/site.go` render | T24 hugolib-build |  |
 | `alias` | `hugolib/alias.go` | T24 hugolib-build |  |
 
@@ -605,6 +605,114 @@ go run ./tools/go-oracle/nh-hugolib/data -root .
 go run ./tools/go-oracle/nh-hugolib/site -root .
 ```
 
+## T24 hugolib-build: status
+
+`hugo_sites_build` (`Build`, `render`, `renderDeferred`, `printPathWarningsOnce`,
+`printUnusedTemplatesOnce`, `postProcess`, `writeBuildStats`, `BuildCfg.shouldRender` of
+hugo_sites.go), `site_render` (`renderPages`, `pageRenderer`, `logMissingLayout`,
+`renderPaginator`, `renderAliases`, `renderMainLanguageRedirect`, `shouldRenderStandalonePage`,
+site.go `render`) and `alias` (`newAliasHandler`, `renderAlias`, `writeDestAlias`,
+`publishDestAlias`, `targetPathAlias`, `aliasPage`) are ported. Every EX entry of their
+checklists is `OK`; not ported: the rebuild/server functions of hugo_sites_build.go
+(`initRebuild`, `processPartial*`, content adapter rebuilds, `LogServerAddresses`). Stub:
+`templates.Defer` (`renderDeferred`/`executeDeferredTemplates`: a published `__hdeferred/`
+placeholder fails the build with `neohugo-rs: templates.Defer is not supported`).
+
+### Entry points (for T25, I01)
+
+- `hugo_sites_build::build(h: HugoSites, cfg: BuildCfg) -> Result<Arc<HugoSites>>` is Go's
+  `HugoSites.Build`: build lock (unless `cfg.no_build_lock`), error collector, build start
+  listeners, `process`, `assemble`, `HugoSites::freeze`, `render`, `write_build_stats`,
+  `print_path_warnings_once`, `render_deferred`, `print_unused_templates_once`,
+  `post_process`, build end listeners, `build_counter + 1`, then the collected error
+  (`pick_one_and_log_the_rest`), the fatal error, and `logged N error(s)` when the site logger
+  or the global logger counted ERRORs. The frozen sites are returned for
+  `print_processing_stats`. `BuildCfg::default()` is Go's `BuildCfg{}` of a one-shot build.
+- The phases are public for tests and tools: `render(&h, &cfg)`, `site_render::render_site`,
+  `write_build_stats` / `build_stats_json(&[PublishStats])` (the `hugo_stats.json` bytes),
+  `post_process` / `post_process_file(fs, filename, &[Arc<PostPublishResource>])`,
+  `alias::publish_dest_alias`, `alias::target_path_alias_with(log, allow_root, src)`.
+- `site::render_for_template` with no template now logs the missing layout
+  (`site_render::log_missing_layout`, Go's `logMissingLayout`).
+
+### Go behaviour reproduced on purpose
+
+- Order: per site (language order), per render format: `preparePagesForRender` on every site,
+  `page.Clear()` (`nh_page::page::clear()`) first in every `Site.render`, front matter aliases
+  (first format of the first build, unless `disableAliases`) BEFORE the pages, so a page
+  overwrites an alias at its path; pages in `treePages` walk order; the paginator of a page
+  right after it (`page/1` alias for HTML formats incl. `404` -> `404/page/1.html`, unless
+  `pagination.disableAliases`; then pagers 2..N with `current` moved); the main-language
+  redirect when `shouldRenderStandalonePage("")`. Standalone pages: sitemap per site, 404 per
+  site, robots and sitemapindex once (per site when multihost).
+- Term collisions: several pages writing one target are all written; the last one in walk
+  order wins (Go with one render worker).
+- Aliases: relative ones resolve against `path.Join(SubResourceBaseLink, "..")`, absolute ones
+  below the format's `Path` (one alias set per distinct `Path` of the page's HTML formats), `.html`
+  appended in ugly-URL sections, the language prepended on multihost sites unless present;
+  an absolute alias of a non-default language is NOT prefixed (TH `/old-home/` overwrites EN's);
+  Windows-invalid names only log at INFO; `aliasPage.Permalink`/`.Page` are fields (the
+  embedded page's `Permalink`/`Page` methods are hidden); the redirect's `.Page` is a nil
+  `page.Page`.
+- Render errors do not stop the pass: the pass returns the error `pickOneAndLogTheRest` picks
+  (`failed to render pages: ` + `ImproveRenderErr`), the others are logged; `render: ` is added
+  by the build; a template with empty output writes no file.
+- `hugo_stats.json`: the sites' elements merged (append + unique) in site order, then sorted;
+  `json.Encoder` with `SetEscapeHTML(false)`, two-space indent, trailing newline, nil lists as
+  `null` (e.g. `"tags": null` with `disableTags`); written to the working dir only when the
+  bytes changed (and to the working dir fs when the source fs is not the OS fs).
+- postProcess: `jsconfig.json` in the project's assets dir when js.Build recorded source roots;
+  then every recorded file, in sorted order: Go's `bytes.Index(suffix) + len(suffix)` (3 when
+  there is no suffix, so such a prefix is skipped), the first resource whose
+  `GetFieldString` knows the placeholder, write back only when changed; the post process
+  resources are cleared after. Go panics (unknown accessor) are errors.
+- `printUnusedTemplatesOnce` errors are wrapped `printPathWarnings: ` (Go's copy/paste).
+
+### T24 deviations
+
+1. Rendering is sequential (Go: `GetNumWorkerMultiplier()` workers fed by the walk): the port's
+   order is Go's with `HUGO_NUMWORKERMULTIPLIER=1`, which the golden build equals
+   (HUGO_LAYER.md §7.1). The walk's page ids are collected before the pass renders (the page
+   tree does not change while rendering); `shouldRender` is still evaluated page by page.
+2. `BuildCfg` has only `skip_render` and `no_build_lock`: `WhatChanged`, `PartialReRender`,
+   `ErrRecovery`, `RecentlyTouched`, `ContentInclusionFilter` are rebuild/server features
+   (`shouldRender` in fast render mode after the first build returns false: no recently
+   touched URLs). No metrics, build counters, `siteState`.
+3. `printPathWarningsOnce` prints nothing: only the counting publish fs the Go commands install
+   for `--printPathWarnings` reports duplicates, and the port has none.
+4. `templates.Defer` is not supported (see status); `StartStageRender`/`StopStageRender` are
+   not needed.
+5. A `writeBuildStats` error returns at once as in Go, but the error collector is stopped first
+   (Go leaves its goroutine running).
+6. postProcess runs the files sequentially and returns the first error (Go: `para` workers,
+   first error of `Wait`); a placeholder is passed to `GetFieldString` as UTF-8 (lossy): the
+   bytes between a prefix and a suffix are ASCII in every placeholder the port writes.
+7. `writeBuildStats`' `dynacacheGCFilenameIfNotWatchedAndDrainMatching` (rebuild cache GC) is
+   not ported.
+8. `aliasPage` of the main-language redirect: Go panics (nil embedded interface) when a
+   template calls a page method on it; the port reports `can't evaluate field` (both are
+   template errors).
+
+### Verification (T24)
+
+| topic | inputs | Rust test | checks |
+|---|---|---|---|
+| `build/*.json.gz` (26) | `go run ./tools/go-oracle/nh-hugolib/build`: a real Go build per site (`HugoSites.Build`, one render worker, overlay hooks in package hugolib + patches of copies of site.go, site_render.go, alias.go, hugo_sites_build.go; the publish dir fs wrapped by a recorder; sites in temp dirs). Sites: the 17 assemble sites (docs/, testsite, synthetic, the seeksnack reconstruction, ...; the ones without page layouts get simple layouts whose nodes and 404 call `.Paginator`), and `build-aliases` (en/th, canonify, minify, absolute/relative/`.html`/Windows-invalid/`..` aliases, a `print` HTML format with a path, an ugly section, alias colliding with a page, a TH alias overwriting EN's, drafts/headless/no-render pages with aliases, bundles, RSS/JSON/robots/sitemaps), `build-custom-alias` (layouts/alias.html with `.Page`/`site`, `defaultContentLanguageInSubdir`, `relativeURLs`, a base path), `build-disable` (`disableAliases`, `pagination.disableAliases`, `disableDefaultLanguageRedirect`), `build-multihost`, `build-collide` (13 targets written twice: `Lay's`/`Lays`, `INS 322(i)`/`ins-322i`, Thai, paginated terms), `build-stats-notags`, `build-stats-classes`, `build-postprocess` (`resources.PostProcess` in HTML and JSON, js.Build with a project import), `build-errors` (two failing pages, an empty output) | `tests/build.rs` `build_*` (the whole `build` with a stub `TemplateExecutor` replaying Go: empty outputs, errors, `.Paginator` for the recorded pages; alias templates execute for real with a real `site` func) | per site: the publish order (every created file, duplicates included; files created by templates and by postProcess excluded on both sides), the bytes of every alias file, the executions (kind, pager N, lang, page, format, template), the pager counts, the log, the build error, jsconfig.json: 2,499 files in order, 418 alias files, 2,411 executions, 366 paginators: 0 differences |
+| `build/*.json.gz` `stats` (6 sites) | the HTML bytes each site's publisher fed its collector in Go, and Go's hugo_stats.json | `stats_*` | the port's collectors + `build_stats_json` give Go's bytes (tags/classes/ids toggles, `a&b` unescaped, nil lists) |
+| `build/build-postprocess.json.gz` `postprocess` | the 8 files with placeholders before postProcess, the field values of the 2 PostPublishResources, the files after | `postprocess`, `postprocess_edge_cases` | stub resources with Go's values: every file byte-identical; unknown resources and prefixes without suffix skipped, unknown accessor an error |
+| unit | Go's `TestTargetPathHTMLRedirectAlias` table + error texts | `target_path_alias_table` | all equal |
+
+Mutations checked (each fails the tests): no multihost language prefix on aliases, the
+main-language redirect in every pass, page/1 aliases for `html` only (not `404`), the
+relative-alias base, `aliasPage.Page` as a method, HTML escaping in hugo_stats.json.
+
+Regenerate (byte for byte; sites are built in temp dirs, never in the repository):
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-hugolib/build -root .
+```
+
 ## Deliberate deviations
 
 _Wave B (T21–T24): list every deviation from the Go code here (README rule 1). T20, T21, T22
@@ -613,4 +721,5 @@ and T23 list theirs in their sections above._
 ## Known gaps
 
 _Wave B: list unported / stubbed functionality here._ T23: `gitinfo`, `codeowners` (stubs),
-XML/CSV data files, the unsupported page methods above.
+XML/CSV data files, the unsupported page methods above. T24: `templates.Defer` (deferred
+templates), rebuilds and server-only build options.
