@@ -1,14 +1,19 @@
 //! Port of `common/text/position.go`, `common/text/transform.go`.
 //!
 //! Owner: Wave B task T02 (common-paths-text).
+//!
+//! The submodules port the golang.org/x/text packages behind `RemoveAccents`: `norm`
+//! (`unicode/norm`, NFC/NFD), `xtransform` (`transform`) and `runes`.
+
+pub mod norm;
+pub mod runes;
+pub mod xtransform;
 
 use std::sync::OnceLock;
 
 use go_unicode::replacer::Replacer;
 use go_unicode::{strings, utf8};
 use go_value::{IntKind, Value};
-
-use crate::herrors::{Error, Result};
 
 /// Go: `text.Position` — a source position in a text file or stream.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -116,24 +121,44 @@ fn position_string_format_func() -> &'static PositionStringFormatter {
     })
 }
 
-fn remove_accents_unsupported() -> Error {
-    Error::new(
-        "neohugo-rs: text.RemoveAccents (removePathAccents, autoIDType github-ascii) is not supported",
-    )
+// Go: common/text/transform.go:accentTransformerPool (New)
+fn accent_transformer() -> xtransform::Chain {
+    xtransform::chain(vec![
+        Box::new(norm::NFD),
+        Box::new(runes::remove(runes::in_table(go_unicode::tables::MN))),
+        Box::new(norm::NFC),
+    ])
 }
 
-/// Go: `text.RemoveAccents` (NFD, remove Mn, NFC). Not on the seeksnack path (it needs
-/// `removePathAccents` or goldmark's `github-ascii` auto IDs): an explicit unsupported error.
+/// Go: `text.RemoveAccents` — removes all accents from b: `transform.Bytes` over
+/// `transform.Chain(norm.NFD, runes.Remove(runes.In(unicode.Mn)), norm.NFC)`. The error is
+/// dropped, as in Go (the partial result is returned). Invalid UTF-8 bytes become U+FFFD.
 // Go: common/text/transform.go:RemoveAccents
-pub fn remove_accents(_b: &[u8]) -> Result<Vec<u8>> {
-    Err(remove_accents_unsupported())
+pub fn remove_accents(b: &[u8]) -> Vec<u8> {
+    // Go takes the chain from a sync.Pool; transform.Bytes resets it first, so a new chain is
+    // equivalent.
+    let mut t = accent_transformer();
+    let (b, _, _) = xtransform::bytes(&mut t, b);
+    b
 }
 
-/// Go: `text.RemoveAccentsString` (used only with removePathAccents=true); see
-/// [`remove_accents`].
+/// Go: `text.RemoveAccentsString` over Go string bytes: `transform.String` over the same chain
+/// (which feeds the input in 128-byte chunks, unlike `transform.Bytes`).
 // Go: common/text/transform.go:RemoveAccentsString
-pub fn remove_accents_string(_s: &str) -> Result<String> {
-    Err(remove_accents_unsupported())
+pub fn remove_accents_string_bytes(s: &[u8]) -> Vec<u8> {
+    let mut t = accent_transformer();
+    let (s, _, _) = xtransform::string(&mut t, s);
+    s
+}
+
+/// Go: `text.RemoveAccentsString` — removes all accents from s.
+///
+/// The result is valid UTF-8: the chain's last stage (NFC) only receives the output of
+/// `runes.Remove`, which replaces invalid bytes with U+FFFD, and it writes whole runes.
+// Go: common/text/transform.go:RemoveAccentsString
+pub fn remove_accents_string(s: &str) -> String {
+    String::from_utf8(remove_accents_string_bytes(s.as_bytes()))
+        .expect("RemoveAccentsString yields valid UTF-8")
 }
 
 /// Go: `text.Chomp` — removes trailing newline characters from s.
@@ -185,8 +210,8 @@ pub fn visit_lines_after(s: &str, mut f: impl FnMut(&str)) {
 // OK L54-96: createPositionStringFormatter(formatStr string) func(p Position) string (no ANSI)
 // OK L98-100: init()
 // Source: common/text/transform.go (78 lines; 0/5 funcs executed)
-// STUB L33-39: RemoveAccents(b []byte) []byte (explicit unsupported error)
-// STUB L42-48: RemoveAccentsString(s string) string (explicit unsupported error)
+// OK L33-39: RemoveAccents(b []byte) []byte
+// OK L42-48: RemoveAccentsString(s string) string
 // OK L51-55: Chomp(s string) string
 // OK L58-63: Puts(s string) string
 // OK L66-78: VisitLinesAfter(s string, fn func(line string))

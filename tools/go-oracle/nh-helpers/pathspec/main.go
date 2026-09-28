@@ -18,8 +18,9 @@
 // the other setups (canonifyURLs off, baseURLs with and without a path, port
 // or trailing slash, defaultContentLanguageInSubdir, disablePathToLower,
 // removePathAccents, uglyURLs, multihost) get the paths and adversarial
-// strings. Strings that are not valid UTF-8 are left out (the Rust helpers
-// take &str; nh-common deviation 21).
+// strings; the removePathAccents setup also gets accentStrings and every
+// corpus string that is not ASCII. Strings that are not valid UTF-8 are left
+// out (the Rust helpers take &str; nh-common deviation 21).
 //
 // Output: pathspec.json.gz. Nothing here depends on the platform.
 package main
@@ -32,6 +33,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/neohugo/neohugo/common/loggers"
@@ -151,6 +153,34 @@ var adversarial = []string{
 	"a@b", "a$b", "a!b", "a*b", "a(b)", "a[b]", "a{b}", "😀", "/😀/", "日本語/テスト", "x\x7fy",
 	"http://[::1]:1313/x", "http://ex ample.com/", "http://x/%zz", "https://x.com:99999/",
 	"//seeksnack.com/x", "/seeksnack.com/x", "seeksnack.com/x", "https:x", "http:/x",
+}
+
+// accentStrings are the extra inputs of the removePathAccents setup (with the
+// corpus strings that are not ASCII): precomposed and decomposed accents,
+// several scripts with combining marks, Hangul, compatibility characters,
+// marks without a base, a combining grapheme joiner and mark runs longer than
+// x/text's stream-safe limit of 30 non-starters.
+var accentStrings = []string{
+	"Résumé", "/résumé/", "café", "/Café/Crème Brûlée/", "Ðó ÿöü ßéé þïß?",
+	"Ånström", "Ångström", "Ωmega/ἄλφα βῆτα", "Банковский кассир", "Йод и ёж", "Tiếng Việt/Phở bò",
+	"Łódź Żółć", "Çà et là", "naïve coöperate", "São Paulo", "Mötley Crüe", "ﬁnance/ﬂow", "Ǆemal", "Ⅻ",
+	"각/한국어 문서", "각", "ภาษาไทย/น้ำ ใจ", "हिन्दी/संस्कृत", "עִבְרִית", "العَرَبِيَّة",
+	"́", "/́/", "a͏́", "ȩ́", "x" + strings.Repeat("́", 31) + "y",
+	"o" + strings.Repeat("̣́", 20), "\U0001d15e\U0001d165", "Z͑ͫ̓ͪ̂ͫ̽͏̴̙̤̞͉͚̯̞̠͍A̴̵̜̰͔ͫ͗͢L̠ͨͧͩ͘G̴̻͈͍͔̹̑͗̎̅͛́Ǫ̵̹̻̝̳͂̌̌͘",
+}
+
+// nonASCII returns the strings that have a byte >= 0x80.
+func nonASCII(in []string) []string {
+	var out []string
+	for _, s := range in {
+		for i := 0; i < len(s); i++ {
+			if s[i] >= utf8.RuneSelf {
+				out = append(out, s)
+				break
+			}
+		}
+	}
+	return out
 }
 
 func contentPaths(root string) ([]string, error) {
@@ -296,6 +326,9 @@ func main() {
 		inputs := small
 		if st.full {
 			inputs = full
+		}
+		if conf := site.Confs.GetFirstLanguageConfig(); conf.RemovePathAccents() {
+			inputs = dedupe(append(append(append([]string{}, small...), accentStrings...), nonASCII(strs)...))
 		}
 		var langs []any
 		for _, conf := range site.Confs.ConfigLangs() {

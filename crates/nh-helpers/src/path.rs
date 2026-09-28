@@ -20,26 +20,21 @@ use crate::pathspec::PathSpec;
 pub const FILE_PATH_SEPARATOR: &str = "/";
 
 impl PathSpec {
-    /// Go: `MakePath(s)` = `paths.Sanitize(s)` (+ RemoveAccents if configured).
-    ///
-    /// Panics with the explicit unsupported error when `removePathAccents` is set (nh-common's
-    /// `RemoveAccentsString` is a stub, nh-common deviation 27); see [`PathSpec::try_make_path`].
+    /// Go: `MakePath(s)` = `paths.Sanitize(s)` (+ `text.RemoveAccentsString` if
+    /// `removePathAccents` is set).
     // Go: helpers/path.go:MakePath
     pub fn make_path(&self, s: &str) -> String {
-        match self.try_make_path(s) {
-            Ok(s) => s,
-            Err(e) => panic!("{e}"),
-        }
-    }
-
-    /// [`PathSpec::make_path`] with the unsupported `removePathAccents` as an error.
-    // Go: helpers/path.go:MakePath
-    pub fn try_make_path(&self, s: &str) -> Result<String> {
         let mut s = nh_common::paths::path::sanitize(s);
         if self.cfg.remove_path_accents() {
-            s = nh_common::text::remove_accents_string(&s)?;
+            s = nh_common::text::remove_accents_string(&s);
         }
-        Ok(s)
+        s
+    }
+
+    /// [`PathSpec::make_path`] as a `Result` (kept for callers; it never fails).
+    // Go: helpers/path.go:MakePath
+    pub fn try_make_path(&self, s: &str) -> Result<String> {
+        Ok(self.make_path(s))
     }
 
     /// Go: `MakePathsSanitized(paths)` — applies `MakePathSanitized` to every item in place.
@@ -53,19 +48,16 @@ impl PathSpec {
     /// Go: `MakePathSanitized(s)` — lower-cased unless `disablePathToLower`.
     // Go: helpers/path.go:MakePathSanitized
     pub fn make_path_sanitized(&self, s: &str) -> String {
-        match self.try_make_path_sanitized(s) {
-            Ok(s) => s,
-            Err(e) => panic!("{e}"),
+        if self.cfg.disable_path_to_lower() {
+            return self.make_path(s);
         }
+        go_unicode::strings::to_lower_str(&self.make_path(s)).into_owned()
     }
 
-    /// [`PathSpec::make_path_sanitized`] with the unsupported `removePathAccents` as an error.
+    /// [`PathSpec::make_path_sanitized`] as a `Result` (kept for callers; it never fails).
     // Go: helpers/path.go:MakePathSanitized
     pub fn try_make_path_sanitized(&self, s: &str) -> Result<String> {
-        if self.cfg.disable_path_to_lower() {
-            return self.try_make_path(s);
-        }
-        Ok(go_unicode::strings::to_lower_str(&self.try_make_path(s)?).into_owned())
+        Ok(self.make_path_sanitized(s))
     }
 }
 

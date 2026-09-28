@@ -112,7 +112,7 @@ fn pathspec_matches_go() {
     .unwrap();
 
     let mut checks = 0usize;
-    let mut unsupported = 0usize;
+    let mut accents = 0usize;
     let mut fails = Vec::new();
     for c in fx["cases"].as_array().unwrap() {
         let input = String::from_utf8(gostr(&c["in"])).unwrap();
@@ -141,11 +141,8 @@ fn pathspec_matches_go() {
         for (i, (g, w)) in got.iter().zip(want).enumerate() {
             checks += 1;
             if p.cfg.remove_path_accents() && i < 3 {
-                // nh-common's RemoveAccentsString is an explicit unsupported error.
-                let msg = g["panic"].as_str().unwrap_or("");
-                assert!(msg.contains("neohugo-rs:"), "{key:?} {input:?}: {g}");
-                unsupported += 1;
-                continue;
+                // MakePath, MakePathSanitized and Urlize go through RemoveAccentsString.
+                accents += 1;
             }
             if g != w {
                 fails.push(format!(
@@ -156,7 +153,7 @@ fn pathspec_matches_go() {
         }
     }
     eprintln!(
-        "pathspec: {checks} checks, {unsupported} removePathAccents results are the explicit unsupported error, {} failures",
+        "pathspec: {checks} checks, {accents} of them through removePathAccents, {} failures",
         fails.len()
     );
     for f in fails.iter().take(40) {

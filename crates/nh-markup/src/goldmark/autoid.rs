@@ -79,7 +79,8 @@ fn is_alpha_numeric(r: i32) -> bool {
 /// `sanitizeAnchorNameWithHook` can observe it: every ASCII byte and the space-ness of every
 /// other rune are exact, other non-ASCII runes may differ. Generated data:
 /// `autoid_accents.rs` (see tools/go-oracle/nh-markup/gentables, which also checks that the
-/// per-rune model is exact). nh-common's `text::remove_accents` is an unsupported stub.
+/// per-rune model is exact). `nh_common::text::remove_accents` (a full x/text port) could
+/// replace this; see PORTING.md divergence 4.
 fn remove_accents(b: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(b.len());
     let mut i = 0;

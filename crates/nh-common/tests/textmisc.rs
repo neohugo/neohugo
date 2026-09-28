@@ -217,8 +217,10 @@ fn go_test_transform() {
     text::visit_lines_after(lines, |s| collected.push(s.to_string()));
     assert_eq!(collected, vec!["line 1\n", "line 2\n", "\n", "line 3"]);
 
-    // TestRemoveAccents: not supported (explicit error).
-    assert!(text::remove_accents_string("Resumé").is_err());
+    // Go: common/text/transform_test.go:TestRemoveAccents (the oracle test is tests/norm.rs).
+    assert_eq!(text::remove_accents("Resumé".as_bytes()), b"Resume");
+    assert_eq!(text::remove_accents(b"Hugo Rocks!"), b"Hugo Rocks!");
+    assert_eq!(text::remove_accents_string("Resumé"), "Resume");
 }
 
 // Go: common/hstrings/strings_test.go:TestStringEqualFold

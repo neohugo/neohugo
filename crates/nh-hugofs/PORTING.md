@@ -23,7 +23,7 @@ Crate lead: T05 (hugofs-vfs). `modules::*` belongs to T09 (allconfig-modules).
 | `filesystems::basefs` | `hugolib/filesystems/basefs.go` (+ `rogpeppe/go-internal/lockedfile.MutexAt`) | T05 | ported (`printFs` is a debugging helper, not ported) |
 | `paths` | `hugolib/paths/paths.go` | T05 | ported |
 | `oserror` | Go `os.PathError`/`syscall.Errno` texts (`zerrors_linux_arm64.go`, `zerrors_darwin_arm64.go`) | T05 | NEW |
-| `nfc` + `nfc15.txt` | `golang.org/x/text@v0.26.0/unicode/norm` `NFC.String` (Unicode 15.0.0) | T05 | NEW (deviation 7) |
+| `nfc` | `golang.org/x/text@v0.26.0/unicode/norm` `NFC.String` (Unicode 15.0.0) | T05 | re-export of `nh_common::text::norm::nfc_string` (deviation 7) |
 | `modules::client` | `modules/client.go` | T09 | only the project-module path (no go/npm) |
 | `modules::collect` | `modules/collect.go` | T09 | |
 | `modules::config` | `modules/config.go` | T09 | |
@@ -37,9 +37,9 @@ Every GO PORTING CHECKLIST entry of the T05 modules is `OK`.
 - Wave A: go-value, go-path, go-sort (`sort.Slice` = pdqsort, for componentFs, sortDirEntries and
   Walkway's `SortDirEntries`), go-strconv (`%q` in error texts), go-unicode (`strings.ToLower`
   in Glob).
-- crates.io: none. The darwin NFC normalization is ported over Go's own data instead of
-  `unicode-normalization`, which carries a newer Unicode version than x/text v0.26.0 (15.0.0)
-  and is not in the offline registry cache.
+- crates.io: none. The darwin NFC normalization is nh-common's port of x/text's `norm`
+  (`nh_common::text::norm`) instead of `unicode-normalization`, which carries a newer Unicode
+  version than x/text v0.26.0 (15.0.0) and is not in the offline registry cache.
 - dev: `serde_json`, `flate2` (`rust_backend`, gunzip of fixtures), nh-langs (the test
   `AllProvider` names `Language`).
 
@@ -113,12 +113,11 @@ are not read) and `Modules = Vec<Arc<Module>>`. BaseFs reads it the way Go does:
 6. **overlayfs.** `Dir` has no `sync.Pool`; `Read`/`Write`/`Seek` on a directory return an
    error where Go panics (`noOpRegularFileOps`, `Dir.notSupported`); a partial `ReadDir(n)` past
    the end stops at the end where Go reslices into stale capacity (hugofs always reads -1).
-7. **NFC.** `nfc::nfc_string` implements UAX #15 (decompose, canonical order, compose, and
-   x/text's stream-safe CGJ insertion after 30 non-starters, counting combining-backward
-   starters such as Hangul vowels as non-starters) over data extracted from Go's `norm` package.
-   It matches `norm.NFC.String` on every code point and 24,333 strings, including 31–62 mark
-   runs and 35 Hangul vowels; x/text's exact CGJ placement inside other long non-starter runs
-   is not modelled beyond that. Only darwin builds call it.
+7. **NFC.** `nfc::nfc_string` re-exports `nh_common::text::norm::nfc_string`, a
+   function-by-function port of x/text's `unicode/norm` (NFC/NFD, stream-safe CGJ insertion,
+   `Transform`) over x/text's own trie. It moved to nh-common with its data and oracle
+   (`tools/go-oracle/nh-common/norm`, which checks it on every code point and 77,726 fixture
+   cases; see nh-common's PORTING.md). Only darwin builds call it.
 8. **Go panics as errors** (rule 9): `NewRootMappingFs` with a too short `To` or an empty
    component (`invalid root mapping; from/to: ...`, ` rm.FromBase is empty`), `noOpFs.Create`/
    `Rename`/`Chmod`/`Chtimes`/`Chown`. Kept as panics (invariants): `NewComponentFs` without a
@@ -164,7 +163,6 @@ both the oracle and the test (file names only; configuration files keep their co
 |---|---|---|---|
 | `walk/*.json.gz` | 6 sites: `docs` (1,367 tree entries, 10 mounts incl. a single-file mount and the auto `_jsconfig` mounts), `testsite` (en + nn with `contentDir`), `multilang` (en/th/fr with `contentDir` per language, fr disabled, `foo.th.md`, bundles, NFC and NFD `café`, Thai, hidden files, `#`/`~` names, file/dir/dangling symlinks, empty dirs), `mounts` (a theme shadowing the project, overlapping content mounts with `includeFiles`/`excludeFiles`, `node_modules` → `assets/vendor`, a single-file mount, static from 5 mounts incl. a symlinked source and a `th` mount, nested `layouts/partials/extra`, data/i18n duplicates, a missing source), `multihost` (static per language), `empty`; config loaded by `allconfig.LoadConfig`, modules and PathParser answers recorded | `tests/walk.rs` | 48,974 cases: the Walkway walk of every component view (content, data, i18n, layouts, archetypes, assets, assets with duplicates, static per key) with path, Name, Filename, PathInfo.Path(), Lang, LangIndex, Weight, ModuleOrdinal, IsDir, Component, Module, IsProject, Watch, BaseDir, SourceRoot, meta Name, Type; Stat and Open+ReadDir of every walked path and 9 odd/missing names on every view, every RootMappingFs (mount roots, their children, missing paths) and the source/work fss; `Mounts` per component; `MakePathRelative` (check on/off) and `Contains` for every tree file on every view; `ResolvePaths`, `IsContent`, `IsStatic`, `MakeStaticPathRelative`, `RealDirs`, `ResolveJSConfigFile`, `AbsProjectContentDir`, `WatchFilenames`, `StatResource`, `Glob` (17 patterns, early stop, missing root, handle error); every PathParser callback replayed (a call Go never made fails) |
 | `hasbytes/hasbytes.json.gz` | 1,500 seeded writes of 30 file names (text and binary suffixes, dots, Thai) through `Create`, `OpenFile` (write, read-write, read-only), content from pattern fragments split at random chunk boundaries | `tests/hasbytes.rs` | the callbacks (name, pattern) in order, the bytes on disk, `shouldCheck` against nh-media's `IsTextSuffix` |
-| `nfc/nfc.json.gz` + `src/nfc15.txt` | `norm.NFC.String` of every code point that changes, the NFD form of all 2,061 decomposables (alone and between letters), Hangul, Thai, file names, long mark runs, 20,000 seeded random mixes | `tests/nfc.rs` | 24,333 strings + the 1,109,531 other code points (unchanged) |
 
 Go's tests are ported in `tests/go_tables.rs`: `TestIsOsFs`, `TestNewDefault`, `TestFileMeta`,
 `TestWalk`, `TestWalkRootMappingFs` (incl. the parallel run), `TestGlob`,
@@ -185,7 +183,6 @@ fixtures regenerate byte for byte on linux/amd64:
 export GOTOOLCHAIN=go1.27.1
 go run ./tools/go-oracle/nh-hugofs/walk -root . -out crates/nh-hugofs/tests/fixtures/walk
 go run ./tools/go-oracle/nh-hugofs/hasbytes -out crates/nh-hugofs/tests/fixtures/hasbytes
-go run ./tools/go-oracle/nh-hugofs/nfc -data crates/nh-hugofs/src/nfc15.txt -out crates/nh-hugofs/tests/fixtures/nfc
 ```
 
 The `docs` fixture records this repository's `docs/` tree (without `docs/rust-port`), so it

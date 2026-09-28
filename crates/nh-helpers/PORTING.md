@@ -44,10 +44,12 @@ Every ported function carries a `// Go: <path>:<Func>` line; every checklist lin
   error. The tests normalize Go results that carry an error to the error alone. Exceptions that keep
   the Go shape: `make_path_relative -> (String, Option<Error>)`, `extract_toc -> (Vec<u8>, Option<Vec<u8>>)`,
   `HttpCache::get -> (Option<Vec<u8>>, bool)`.
-- **Panicking Go functions** (`MakePath` via `removePathAccents`, `URLEscape`, `IsAbsURL`) have a
-  panicking form plus a `try_*` form.
-- **`removePathAccents`** (`RemovePathAccents: true`) needs `text/unicode/norm` + `runes.Remove`;
-  it returns nh-common's unsupported error (see requests, T02). All other `MakePath` paths are exact.
+- **Panicking Go functions** (`URLEscape`, `IsAbsURL`) have a panicking form plus a `try_*`
+  form. `MakePath`/`MakePathSanitized` never fail; their `try_*` forms are kept and always
+  return `Ok`.
+- **`removePathAccents`** (`RemovePathAccents: true`): `MakePath` calls nh-common's
+  `text::remove_accents_string` (the port of `text.RemoveAccentsString` over x/text `norm`,
+  `transform` and `runes`; nh-common deviations 27, 27a).
 - **Map order.** Go's random map iteration shows up in `filecache.DecodeConfig` error choice when
   several cache entries are invalid; Rust iterates in byte order. The oracle marks those 23 cases
   `nondet` and the test only requires that Rust returns one of Go's possible errors.
@@ -79,14 +81,11 @@ Every ported function carries a `// Go: <path>:<Func>` line; every checklist lin
 - `emoji::emojify` returns an explicit unsupported error (enableEmoji=false on every site in scope).
 - `general::tcp_listen` (server only), `general::print_fs` (debug helper) and `path::is_empty`
   (no caller on the build path) return explicit unsupported errors.
-- `removePathAccents` (see deviations).
 - httpcache `Transport`: no network, no store (see deviations). `source::FileObject.FileInfo` and
   `.Open` template methods return unsupported errors.
 
 ## Requests to other crates
 
-- **T02 / nh-common**: a `RemoveAccents` (NFD + remove `Mn` + NFC) helper so `removePathAccents` can
-  be ported.
 - **T05 / nh-hugofs**: OsFs read errors should be wrapped as Go's `read <realpath>: <errno>`
   (`*fs.PathError`). `filecache::read_file` currently reconstructs it by downcasting through
   `FilesystemsWrapper` to `BasePathFs`.
@@ -108,12 +107,12 @@ Fixtures are gzipped JSON in `tests/fixtures/<topic>/`; `cargo test` needs neith
 
 | Topic | Inputs | Result |
 |---|---|---|
-| pathspec | docs/ + hugolib/testsite strings and paths, the architecture-core-data config dumps, adversarial strings, multihost and non-multihost | 943,869 checks pass; 7,737 `removePathAccents` results are the expected unsupported error |
+| pathspec | docs/ + hugolib/testsite strings and paths, the architecture-core-data config dumps, adversarial strings, multihost and non-multihost; the `removePathAccents` setup also gets 33 accent strings (precomposed and decomposed accents, Greek, Cyrillic, Vietnamese, Hangul, Thai, Devanagari, Hebrew and Arabic marks, a CGJ, a 31-mark run, Zalgo text) and the non-ASCII corpus strings | 945,039 checks pass, 8,007 of them (`MakePath`, `MakePathSanitized`, `URLize`) through `removePathAccents` |
 | general | corpus strings, byte counts, readers, ~400 ProcessingStats tables, every code point's rune width, grapheme splits | ~24k cases pass |
 | srcfile | synthetic source trees on OsFs and MemMapFs | 2,378 File dumps, 9,696 IgnoreFile checks pass |
 | httpcache | Go `DumpResponse` output, truncations and seeded mutations; Go-made cache entries | 6,066 ReadResponse reads, 2,480 RoundTrips pass (70 store-path cases are the expected unsupported error); config decode passes |
 | filecache | cache configs, GetCacheDir environments, cache operations | 104 DecodeConfig (23 nondet), 120 GetCacheDir, 1,440 ops and NewCaches pass |
-| go_tables | Go's own `_test.go` tables (URLize, AbsURL, RelURL, MakePath*, MakeTitle, ContentSpec, ExtractTOC, GlobMatcher, filecache) | 16 tests pass |
+| go_tables | Go's own `_test.go` tables (URLize, AbsURL, RelURL, MakePath* (incl. the removeAccents rows), MakeTitle, ContentSpec, ExtractTOC, GlobMatcher, filecache) | 16 tests pass |
 
 Regenerate (each must reproduce byte for byte):
 

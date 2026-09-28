@@ -28,6 +28,7 @@ struct Opts<'a> {
     multilingual: bool,
     canonify: bool,
     disable_path_to_lower: bool,
+    remove_path_accents: bool,
 }
 
 impl Default for Opts<'_> {
@@ -40,6 +41,7 @@ impl Default for Opts<'_> {
             multilingual: false,
             canonify: false,
             disable_path_to_lower: false,
+            remove_path_accents: false,
         }
     }
 }
@@ -69,6 +71,7 @@ fn path_spec(o: &Opts<'_>, tmp: &TempDir) -> Arc<PathSpec> {
     };
     cfg.canonify_urls = o.canonify;
     cfg.disable_path_to_lower = o.disable_path_to_lower;
+    cfg.remove_path_accents = o.remove_path_accents;
     let fs = nh_hugofs::fs::new_from(nh_hugofs::afero::new_mem_map_fs(), &cfg.base_config());
     PathSpec::new(fs, Arc::new(cfg)).unwrap()
 }
@@ -341,31 +344,38 @@ fn test_rel_url() {
 #[test]
 fn test_make_path() {
     let tmp = TempDir::new("gt");
-    let p = path_spec(&Opts::default(), &tmp);
-    // The removeAccents rows need RemoveAccentsString (an nh-common stub); these are the rows
-    // with removePathAccents off, and the accent-free rows.
-    for (input, expected) in [
+    for (input, expected, remove_accents) in [
         (
             "dot.slash/backslash\\underscore_pound#plus+hyphen-",
             "dot.slash/backslash\\underscore_pound#plus+hyphen-",
+            true,
         ),
-        ("abcXYZ0123456789", "abcXYZ0123456789"),
-        ("%20 %2", "%20-2"),
-        ("foo- bar", "foo-bar"),
-        ("  Foo bar  ", "Foo-bar"),
-        ("Foo.Bar/foo_Bar-Foo", "Foo.Bar/foo_Bar-Foo"),
-        ("fOO,bar:foobAR", "fOObarfoobAR"),
-        ("FOo/BaR.html", "FOo/BaR.html"),
-        ("трям/трям", "трям/трям"),
-        ("은행", "은행"),
-        ("संस्कृत", "संस्कृत"),
-        ("a%C3%B1ame", "a%C3%B1ame"),
-        ("this+is+a+test", "this+is+a+test"),
-        ("~foo", "~foo"),
-        ("foo--bar", "foo--bar"),
-        ("foo@bar", "foo@bar"),
+        ("abcXYZ0123456789", "abcXYZ0123456789", true),
+        ("%20 %2", "%20-2", true),
+        ("foo- bar", "foo-bar", true),
+        ("  Foo bar  ", "Foo-bar", true),
+        ("Foo.Bar/foo_Bar-Foo", "Foo.Bar/foo_Bar-Foo", true),
+        ("fOO,bar:foobAR", "fOObarfoobAR", true),
+        ("FOo/BaR.html", "FOo/BaR.html", true),
+        ("трям/трям", "трям/трям", true),
+        ("은행", "은행", true),
+        ("Банковский кассир", "Банковскии-кассир", true),
+        // Issue #1488
+        ("संस्कृत", "संस्कृत", false),
+        ("a%C3%B1ame", "a%C3%B1ame", false), // Issue #1292
+        ("this+is+a+test", "this+is+a+test", false), // Issue #1290
+        ("~foo", "~foo", false),             // Issue #2177
+        ("foo--bar", "foo--bar", true),      // Issue #7288
+        ("foo@bar", "foo@bar", true),        //	Issue #10548
     ] {
-        assert_eq!(p.make_path(input), expected);
+        let p = path_spec(
+            &Opts {
+                remove_path_accents: remove_accents,
+                ..Default::default()
+            },
+            &tmp,
+        );
+        assert_eq!(p.make_path(input), expected, "{input}");
     }
 }
 

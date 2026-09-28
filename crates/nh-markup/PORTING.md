@@ -109,7 +109,9 @@ Other explicit errors (README rule 5): `enableEmoji` (goldmark-emoji) and the go
    `herrors::new_file_error_from_pos` (Go's `NewFileErrorFromPos`), whose text matches Go's
    (`"file:line:col": message`).
 4. **`text.RemoveAccents`** (x/text NFD, remove `unicode.Mn`, NFC) is needed by the `github-ascii`
-   auto IDs only, and nh-common's is an unsupported stub. `sanitizeAnchorNameWithHook` only sees
+   auto IDs only; nh-common's was a stub when this was ported (it is now a full x/text port,
+   `nh_common::text::remove_accents`, and swapping it in passes the autoid oracle — a possible
+   cleanup that would retire `autoid_accents.rs`). `sanitizeAnchorNameWithHook` only sees
    its result through `bytes.TrimSpace` and single-byte runes, so the port applies
    `RemoveAccents(string(r))` per rune from a generated table (`autoid_accents.rs`: the 509
    non-Mn runes whose result differs in its ASCII bytes or the space-ness of its runes; Mn
