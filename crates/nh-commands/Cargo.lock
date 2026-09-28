@@ -478,7 +478,12 @@ name = "nh-i18n"
 version = "0.1.0"
 dependencies = [
  "go-fmt",
+ "go-json",
+ "go-sort",
+ "go-strconv",
+ "go-unicode",
  "go-value",
+ "go-yaml",
  "gotemplate",
  "nh-common",
  "nh-config",
@@ -488,6 +493,7 @@ dependencies = [
  "nh-langs",
  "nh-parser",
  "nh-tpl",
+ "xtext-collate",
 ]
 
 [[package]]

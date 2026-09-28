@@ -6,5 +6,5 @@ pub mod bundle;
 pub mod localizer;
 pub mod message;
 pub mod parse;
-pub mod template;
 pub mod plural;
+pub mod template;

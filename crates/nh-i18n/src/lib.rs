@@ -3,10 +3,15 @@
 //! Part of the neohugo Rust port (Hugo layer). See `crates/HUGO_LAYER.md` for the design and
 //! `crates/WAVE_B_PLAN.json` for module ownership. Every module mirrors one or more Go files; the
 //! generated GO PORTING CHECKLIST at the bottom of each module lists the Go functions to port.
+//!
+//! - [`i18n`] and [`translation_provider`]: neohugo `langs/i18n`.
+//! - [`goi18n`]: the port of `github.com/gohugoio/go-i18n/v2@v2.1.3-0.20230805085216-e63c13218d0e`
+//!   (`i18n/{bundle,localizer,message,message_template,parse}.go`, `internal/template.go`,
+//!   `internal/plural`).
+//! - [`xlanguage`]: the port of the `golang.org/x/text@v0.26.0/language` matcher and likely-subtags code that
+//!   go-i18n uses and `xtext-collate` does not export.
 
-// Skeleton-time allowances. Remove `unused`/`dead_code` once the crate is ported (README rule 11).
-#![allow(unused, dead_code, clippy::too_many_arguments, clippy::new_without_default, clippy::type_complexity)]
-
+pub mod goi18n;
 pub mod i18n;
 pub mod translation_provider;
-pub mod goi18n;
+pub mod xlanguage;
