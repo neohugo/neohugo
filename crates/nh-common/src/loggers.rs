@@ -4,7 +4,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 //! MINIMAL port of `common/loggers`: levelled logging to stderr with counters. The build fails
 //! (non-zero exit) if any ERROR was logged (Go: `hugo_sites_build.go:212-223`). Message texts are
 //! not part of parity. `warnidf`/`erroridf` ids can be suppressed with `ignoreLogs`.

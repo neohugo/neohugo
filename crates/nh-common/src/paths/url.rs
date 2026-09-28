@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 /// Go: `paths.MakePermalink(host, plink string) *url.URL` — returns the URL's `String()` form
 /// (all callers immediately call `.String()`): `base.Path = path.Join(base.Path, p.Path)`, copy
 /// fragment/query, restore a trailing slash if `plink==""` and host ends with `/`, or p.Path ends `/`.
@@ -13,21 +12,33 @@ pub fn make_permalink(host: &str, plink: &str) -> String {
 
 /// Go: `paths.AddContextRoot(baseURL, relativePath)`.
 // Go: common/paths/url.go:AddContextRoot
-pub fn add_context_root(base_url: &str, relative_path: &str) -> String { todo!() }
+pub fn add_context_root(base_url: &str, relative_path: &str) -> String {
+    todo!()
+}
 
 /// Go: `paths.URLEscape(uri)` = `url.Parse(uri).String()` (panics on error in Go).
 // Go: common/paths/url.go:URLEscape
-pub fn url_escape(uri: &str) -> String { todo!() }
+pub fn url_escape(uri: &str) -> String {
+    todo!()
+}
 
 // Go: common/paths/url.go:TrimExt
-pub fn trim_ext(p: &str) -> String { todo!() }
+pub fn trim_ext(p: &str) -> String {
+    todo!()
+}
 
 /// Go: `paths.PrettifyURLPath` / `Uglify`.
-pub fn prettify_url_path(p: &str) -> String { todo!() }
-pub fn uglify(p: &str) -> String { todo!() }
+pub fn prettify_url_path(p: &str) -> String {
+    todo!()
+}
+pub fn uglify(p: &str) -> String {
+    todo!()
+}
 
 /// Go: `paths.IsAbsURL`.
-pub fn is_abs_url(s: &str) -> bool { todo!() }
+pub fn is_abs_url(s: &str) -> bool {
+    todo!()
+}
 
 // ---------------------------------------------------------------------------
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,

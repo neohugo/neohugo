@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 pub const FILENAME_PACKAGE_HUGO_JSON: &str = "package.hugo.json";
 pub const FILENAME_PACKAGE_JSON: &str = "package.json";
 pub const FILENAME_HUGO_STATS_JSON: &str = "hugo_stats.json";

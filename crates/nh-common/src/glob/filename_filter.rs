@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 use super::glob::Glob;
 use crate::herrors::Result;
 

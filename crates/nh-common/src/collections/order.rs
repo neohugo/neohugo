@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T01 (common-values).
 
-
 /// Go: `collections.Order` interface (`Ordinal() int`) — kept for API shape.
 pub trait Order {
     fn ordinal(&self) -> i64;

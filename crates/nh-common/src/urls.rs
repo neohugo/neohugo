@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 //! Go `common/urls`: `BaseURL` (compiled once from `baseURL`, trailing `/` forced on the path).
 
 use crate::herrors::Result;

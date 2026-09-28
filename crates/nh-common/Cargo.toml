@@ -21,14 +21,15 @@ go-hashstructure = { path = "../go-hashstructure" }
 go-json = { path = "../go-json" }
 go-html = { path = "../go-html" }
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   xxhash-rust (xxh64)
-#   md-5
-#   unicode-normalization (NFC only)
+# crates.io: none directly. xxhash (XXH64) and MD5 come through go-hashstructure, which carries
+# the allowed `xxhash-rust` and `md-5` crates (README rule 2).
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Decompression of the gzip-compressed oracle fixtures (tests only; README rule 2 allows
+# flate2 for decompression).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

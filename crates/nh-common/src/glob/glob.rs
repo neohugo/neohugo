@@ -4,7 +4,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 //! Go `hugofs/glob` over a port of the subset of `github.com/gobwas/glob` that Hugo uses
 //! (`*`, `**`, `?`, `[...]`, `{a,b}` with `/` as separator, case-insensitive variants).
 

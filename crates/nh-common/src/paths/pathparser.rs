@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 //! The canonical identity of every file (content, layouts, assets, i18n, data). `Path::base()` is
 //! the content-tree key; identifiers (lang, output format, kind, layout, baseof) are parsed
 //! right-to-left from the last path element. Port exactly: every layout lookup, every tree key and
@@ -93,7 +92,11 @@ impl PathParser {
 
     /// Go: `ParseBaseAndBaseNameNoIdentifier` (used by `GetPage` ref normalisation).
     // Go: common/paths/pathparser.go:ParseBaseAndBaseNameNoIdentifier
-    pub fn parse_base_and_base_name_no_identifier(&self, component: &str, s: &str) -> (String, String) {
+    pub fn parse_base_and_base_name_no_identifier(
+        &self,
+        component: &str,
+        s: &str,
+    ) -> (String, String) {
         todo!()
     }
 }
@@ -111,82 +114,154 @@ pub fn has_ext(p: &str) -> bool {
 
 impl Path {
     // Go: common/paths/pathparser.go:Container
-    pub fn container(&self) -> &str { todo!() }
+    pub fn container(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:ContainerDir
-    pub fn container_dir(&self) -> &str { todo!() }
+    pub fn container_dir(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Section
-    pub fn section(&self) -> &str { todo!() }
+    pub fn section(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:IsContent
-    pub fn is_content(&self) -> bool { todo!() }
+    pub fn is_content(&self) -> bool {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Name
-    pub fn name(&self) -> &str { todo!() }
+    pub fn name(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:NameNoExt
-    pub fn name_no_ext(&self) -> &str { todo!() }
+    pub fn name_no_ext(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:NameNoLang
-    pub fn name_no_lang(&self) -> String { todo!() }
+    pub fn name_no_lang(&self) -> String {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:BaseNameNoIdentifier
-    pub fn base_name_no_identifier(&self) -> &str { todo!() }
+    pub fn base_name_no_identifier(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:NameNoIdentifier
-    pub fn name_no_identifier(&self) -> &str { todo!() }
+    pub fn name_no_identifier(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Dir
-    pub fn dir(&self) -> &str { todo!() }
+    pub fn dir(&self) -> &str {
+        todo!()
+    }
     /// The full normalized path, e.g. `/brands/alice/_index.md`.
     // Go: common/paths/pathparser.go:Path
-    pub fn path(&self) -> &str { &self.s }
+    pub fn path(&self) -> &str {
+        &self.s
+    }
     // Go: common/paths/pathparser.go:PathNoLeadingSlash
-    pub fn path_no_leading_slash(&self) -> &str { todo!() }
+    pub fn path_no_leading_slash(&self) -> &str {
+        todo!()
+    }
     /// The path as written on disk (original case and spaces).
     // Go: common/paths/pathparser.go:Unnormalized
-    pub fn unnormalized(&self) -> &Path { self.unnormalized.as_deref().unwrap_or(self) }
+    pub fn unnormalized(&self) -> &Path {
+        self.unnormalized.as_deref().unwrap_or(self)
+    }
     // Go: common/paths/pathparser.go:PathNoIdentifier
-    pub fn path_no_identifier(&self) -> String { todo!() }
+    pub fn path_no_identifier(&self) -> String {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:PathBeforeLangAndOutputFormatAndExt
-    pub fn path_before_lang_and_output_format_and_ext(&self) -> String { todo!() }
+    pub fn path_before_lang_and_output_format_and_ext(&self) -> String {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:PathRel
-    pub fn path_rel(&self, owner: &Path) -> String { todo!() }
+    pub fn path_rel(&self, owner: &Path) -> String {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:BaseRel
-    pub fn base_rel(&self, owner: &Path) -> String { todo!() }
+    pub fn base_rel(&self, owner: &Path) -> String {
+        todo!()
+    }
     /// The tree key: without extension/language and without `/index`/`_index` for bundles.
     /// Home is `/` (its tree key is `""`, see hugolib `cleanTreeKey`).
     // Go: common/paths/pathparser.go:Base
-    pub fn base(&self) -> String { todo!() }
+    pub fn base(&self) -> String {
+        todo!()
+    }
     /// Go: `BaseReTyped(typ)` — first path segment replaced by the front-matter `type` (layout lookup).
     // Go: common/paths/pathparser.go:BaseReTyped
-    pub fn base_re_typed(&self, typ: &str) -> String { todo!() }
+    pub fn base_re_typed(&self, typ: &str) -> String {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:BaseNoLeadingSlash
-    pub fn base_no_leading_slash(&self) -> String { todo!() }
+    pub fn base_no_leading_slash(&self) -> String {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Ext
-    pub fn ext(&self) -> &str { todo!() }
+    pub fn ext(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:OutputFormat
-    pub fn output_format(&self) -> &str { todo!() }
+    pub fn output_format(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Kind
-    pub fn kind(&self) -> &str { todo!() }
+    pub fn kind(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Layout
-    pub fn layout(&self) -> &str { todo!() }
+    pub fn layout(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Lang
-    pub fn lang(&self) -> &str { todo!() }
+    pub fn lang(&self) -> &str {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Disabled
-    pub fn disabled(&self) -> bool { self.disabled }
+    pub fn disabled(&self) -> bool {
+        self.disabled
+    }
     // Go: common/paths/pathparser.go:Identifiers
-    pub fn identifiers(&self) -> Vec<&str> { todo!() }
+    pub fn identifiers(&self) -> Vec<&str> {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:IdentifiersUnknown
-    pub fn identifiers_unknown(&self) -> Vec<&str> { todo!() }
+    pub fn identifiers_unknown(&self) -> Vec<&str> {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Type
-    pub fn path_type(&self) -> PathType { self.path_type }
+    pub fn path_type(&self) -> PathType {
+        self.path_type
+    }
     // Go: common/paths/pathparser.go:IsBundle
-    pub fn is_bundle(&self) -> bool { matches!(self.path_type, PathType::Leaf | PathType::Branch) }
+    pub fn is_bundle(&self) -> bool {
+        matches!(self.path_type, PathType::Leaf | PathType::Branch)
+    }
     // Go: common/paths/pathparser.go:IsBranchBundle
-    pub fn is_branch_bundle(&self) -> bool { self.path_type == PathType::Branch }
+    pub fn is_branch_bundle(&self) -> bool {
+        self.path_type == PathType::Branch
+    }
     // Go: common/paths/pathparser.go:IsLeafBundle
-    pub fn is_leaf_bundle(&self) -> bool { self.path_type == PathType::Leaf }
+    pub fn is_leaf_bundle(&self) -> bool {
+        self.path_type == PathType::Leaf
+    }
     // Go: common/paths/pathparser.go:IsContentData
-    pub fn is_content_data(&self) -> bool { self.path_type == PathType::ContentData }
+    pub fn is_content_data(&self) -> bool {
+        self.path_type == PathType::ContentData
+    }
     // Go: common/paths/pathparser.go:ForType
-    pub fn for_type(&self, t: PathType) -> Path { todo!() }
+    pub fn for_type(&self, t: PathType) -> Path {
+        todo!()
+    }
     // Go: common/paths/pathparser.go:Component
-    pub fn component(&self) -> &str { &self.component }
+    pub fn component(&self) -> &str {
+        &self.component
+    }
     // Go: common/paths/pathparser.go:TrimLeadingSlash
-    pub fn trim_leading_slash(&self) -> Path { todo!() }
+    pub fn trim_leading_slash(&self) -> Path {
+        todo!()
+    }
 }
 
 // ---------------------------------------------------------------------------

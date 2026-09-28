@@ -2,14 +2,13 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 /// Go: `hstrings.StringEqualFold` — a string compared case-insensitively.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StringEqualFold(pub String);
 
 /// Go: `hstrings.EqualAny(a string, b ...string) bool`.
 pub fn equal_any(a: &str, b: &[&str]) -> bool {
-    b.iter().any(|x| *x == a)
+    b.contains(&a)
 }
 
 /// Go: `hstrings.InSlice` / `InSlicEqualFold` (EqualFold uses Go simple folding).

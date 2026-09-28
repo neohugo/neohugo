@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 pub const KIND_PAGE: &str = "page";
 pub const KIND_HOME: &str = "home";
 pub const KIND_SECTION: &str = "section";

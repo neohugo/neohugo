@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 //! Go `common/hugio`: reader/writer helpers. `ReadSeekCloser` providers are how resources open
 //! their source bytes lazily.
 

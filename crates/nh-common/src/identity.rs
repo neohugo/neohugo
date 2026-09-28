@@ -4,20 +4,81 @@
 //!
 //! Owner: Wave B task T01 (common-values).
 
+//! STUB of neohugo `identity`: dependency tracking only matters for server/watch rebuilds, so the
+//! managers are no-ops. What a one-shot build executes is ported: `CleanString`,
+//! `CleanStringIdentity`, `StringIdentity` and the `Incrementer`s (the PostProcess placeholder ids).
 
-//! STUB of neohugo `identity`: dependency tracking only matters for server/watch rebuilds.
-//! Kept as unit types so ported signatures can mention them.
+use std::sync::atomic::{AtomicU64, Ordering};
 
-/// Go: `identity.Identity`.
+use go_value::GoString;
+
+/// Go: `identity.Identity` — here always a `StringIdentity` (its `IdentifierBase`).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Hash)]
 pub struct Identity(pub String);
+
+impl Identity {
+    // Go: identity/identity.go:(StringIdentity).IdentifierBase
+    pub fn identifier_base(&self) -> &str {
+        &self.0
+    }
+}
+
+/// Go: `identity.StringIdentity`.
+pub type StringIdentity = Identity;
+
+/// Go: `identity.Anonymous`.
+pub fn anonymous() -> Identity {
+    Identity("__anonymous".to_string())
+}
+
+/// Go: `identity.GenghisKhan` (an identity everyone relates to).
+pub fn genghis_khan() -> Identity {
+    Identity("__genghiskhan".to_string())
+}
 
 /// Go: `identity.Manager` (no-op).
 #[derive(Clone, Debug, Default)]
 pub struct Manager;
 
+impl Manager {
+    // Go: identity/identity.go:(*nopManager).AddIdentity
+    pub fn add_identity(&self, _ids: &[Identity]) {}
+
+    // Go: identity/identity.go:(*nopManager).GetIdentity
+    pub fn get_identity(&self) -> Identity {
+        anonymous()
+    }
+
+    // Go: identity/identity.go:(*nopManager).Reset
+    pub fn reset(&self) {}
+}
+
 /// Go: `identity.NopManager`.
 pub const NOP_MANAGER: Manager = Manager;
+
+// Go: identity/identity.go:NewManager
+/// NewManager: dependency tracking is not needed for a one-shot build, so every manager is the
+/// no-op manager.
+pub fn new_manager(_name: &str) -> Manager {
+    Manager
+}
+
+// Go: identity/identity.go:CleanString
+/// CleanString cleans s to be suitable as an identifier: lower-cased, slashes trimmed, then
+/// `"/" + path.Clean(s)`.
+pub fn clean_string(s: &[u8]) -> GoString {
+    let s = go_unicode::strings::to_lower(s);
+    let s = go_unicode::strings::trim(&go_path::filepath::to_slash_bytes(&s), b"/").to_vec();
+    let mut out = b"/".to_vec();
+    out.extend_from_slice(&go_path::path::clean_bytes(&s));
+    GoString::from(out)
+}
+
+// Go: identity/identity.go:CleanStringIdentity
+/// CleanStringIdentity cleans s to be suitable as an identifier and wraps it in a StringIdentity.
+pub fn clean_string_identity(s: &[u8]) -> StringIdentity {
+    Identity(clean_string(s).to_str_lossy().into_owned())
+}
 
 /// Go: `identity.Incrementer` (`Incr() int`). The PostProcess placeholder ids
 /// (`__h_pp_l1_<id>_`) come from ONE incrementer: the build's `deps.BuildState`, shared by all
@@ -30,13 +91,14 @@ pub trait Incrementer: Send + Sync {
 /// Go: `identity.IncrementByOne` (the `NewSpec` fallback when no incrementer is given; tests).
 #[derive(Debug, Default)]
 pub struct IncrementByOne {
-    counter: std::sync::atomic::AtomicU64,
+    counter: AtomicU64,
 }
 
 impl Incrementer for IncrementByOne {
     // Go: identity/identity.go:Incr
+    /// `int(atomic.AddUint64(&c.counter, 1))`.
     fn incr(&self) -> i64 {
-        (self.counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1) as i64
+        self.counter.fetch_add(1, Ordering::SeqCst).wrapping_add(1) as i64
     }
 }
 
@@ -44,6 +106,7 @@ impl Incrementer for IncrementByOne {
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
+// STUB: every manager is the no-op manager; identity walking is not needed (no rebuilds).
 // Source: identity/identity.go (521 lines; 2/39 funcs executed)
 //   types: DependencyManagerProvider, DependencyManagerProviderFunc, DependencyManagerScopedProvider,
 //          ForEeachIdentityProvider, ForEeachIdentityProviderFunc, ForEeachIdentityByNameProvider,
@@ -51,9 +114,9 @@ impl Incrementer for IncrementByOne {
 //          IdentityProvider, SignalRebuilder, IncrementByOne, Incrementer, IsProbablyDependentProvider,
 //          IsProbablyDependencyProvider, Manager, ManagerOption, StringIdentity, identityManager, nopManager,
 //          orIdentity
-//    L44-56: NewManager(name string, opts ...ManagerOption) Manager
-// EX L59-63: CleanString(s string) string
-// EX L66-68: CleanStringIdentity(s string) StringIdentity
+// OK L44-56: NewManager(name string, opts ...ManagerOption) Manager (stub: the no-op manager)
+// OK L59-63: CleanString(s string) string
+// OK L66-68: CleanStringIdentity(s string) StringIdentity
 //    L71-81: GetDependencyManager(v any) Manager
 //    L84-91: FirstIdentity(v any) Identity
 //    L94-103: PrintIdentityInfo(v any)
@@ -67,8 +130,8 @@ impl Incrementer for IncrementByOne {
 //    L195-197: (f findFirstManagerIdentity) FindFirstManagerIdentity() ManagerIdentity
 //    L202-214: (ids Identities) AsSlice() []Identity
 //    L216-227: (ids Identities) String() string
-//    L257-259: (c *IncrementByOne) Incr() int
-//    L292-294: (s StringIdentity) IdentifierBase() string
+// OK L257-259: (c *IncrementByOne) Incr() int
+// OK L292-294: (s StringIdentity) IdentifierBase() string
 //    L312-328: (im *identityManager) AddIdentity(ids ...Identity)
 //    L330-334: (im *identityManager) AddIdentityForEach(ids ...ForEeachIdentityProvider)
 //    L336-345: (im *identityManager) ContainsIdentity(id Identity) FinderResult
@@ -78,11 +141,11 @@ impl Incrementer for IncrementByOne {
 //    L362-364: (im *identityManager) GetDependencyManagerForScopesAll() []Manager
 //    L366-368: (im *identityManager) String() string
 //    L370-384: (im *identityManager) forEeachIdentity(fn func(id Identity) bool) bool
-//    L388-389: (m *nopManager) AddIdentity(ids ...Identity)
+// OK L388-389: (m *nopManager) AddIdentity(ids ...Identity)
 //    L391-392: (m *nopManager) AddIdentityForEach(ids ...ForEeachIdentityProvider)
 //    L394-396: (m *nopManager) IdentifierBase() string
-//    L398-400: (m *nopManager) GetIdentity() Identity
-//    L402-403: (m *nopManager) Reset()
+// OK L398-400: (m *nopManager) GetIdentity() Identity
+// OK L402-403: (m *nopManager) Reset()
 //    L405-407: (m *nopManager) forEeachIdentity(func(id Identity) bool) bool
 //    L410-437: walkIdentities(v any, level int, deep bool, seen map[Identity]bool, cb func(level int, id Identity) bool)
 //    L441-471: walkIdentitiesShallow(v any, level int, cb func(level int, id Identity) bool) bool

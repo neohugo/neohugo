@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 //! Path helpers from `common/paths/path.go`. `sanitize` is the output-path rule (keeps
 //! `unicode.IsLetter/IsDigit/IsMark` per Go 1.27 tables — use go-unicode, never `char::is_*`).
 
@@ -19,40 +18,72 @@ pub fn path_escape(p: &str) -> String {
 }
 
 // Go: common/paths/path.go:AbsPathify
-pub fn abs_pathify(working_dir: &str, in_path: &str) -> String { todo!() }
+pub fn abs_pathify(working_dir: &str, in_path: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:AddTrailingSlash
-pub fn add_trailing_slash(p: &str) -> String { todo!() }
+pub fn add_trailing_slash(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:AddLeadingSlash
-pub fn add_leading_slash(p: &str) -> String { todo!() }
+pub fn add_leading_slash(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:ExtNoDelimiter
-pub fn ext_no_delimiter(p: &str) -> &str { todo!() }
+pub fn ext_no_delimiter(p: &str) -> &str {
+    todo!()
+}
 // Go: common/paths/path.go:Ext
-pub fn ext(p: &str) -> &str { todo!() }
+pub fn ext(p: &str) -> &str {
+    todo!()
+}
 /// Go: `PathAndExt` — (path without last ext, ext).
 // Go: common/paths/path.go:PathAndExt
-pub fn path_and_ext(p: &str) -> (String, String) { todo!() }
+pub fn path_and_ext(p: &str) -> (String, String) {
+    todo!()
+}
 /// Go: `FileAndExt` — (file name without ext, ext).
 // Go: common/paths/path.go:FileAndExt
-pub fn file_and_ext(p: &str) -> (String, String) { todo!() }
+pub fn file_and_ext(p: &str) -> (String, String) {
+    todo!()
+}
 // Go: common/paths/path.go:Filename
-pub fn filename(p: &str) -> String { todo!() }
+pub fn filename(p: &str) -> String {
+    todo!()
+}
 /// Go: `paths.Dir(s)` — `path.Dir` but "" for "" and "/" stays "/".
 // Go: common/paths/path.go:Dir
-pub fn dir(p: &str) -> String { todo!() }
+pub fn dir(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:ToSlashTrimLeading
-pub fn to_slash_trim_leading(p: &str) -> String { todo!() }
+pub fn to_slash_trim_leading(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:TrimLeading
-pub fn trim_leading(p: &str) -> String { todo!() }
+pub fn trim_leading(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:ToSlashTrimTrailing
-pub fn to_slash_trim_trailing(p: &str) -> String { todo!() }
+pub fn to_slash_trim_trailing(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:TrimTrailing
-pub fn trim_trailing(p: &str) -> String { todo!() }
+pub fn trim_trailing(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:ToSlashPreserveLeading
-pub fn to_slash_preserve_leading(p: &str) -> String { todo!() }
+pub fn to_slash_preserve_leading(p: &str) -> String {
+    todo!()
+}
 // Go: common/paths/path.go:FieldsSlash
-pub fn fields_slash(p: &str) -> Vec<String> { todo!() }
+pub fn fields_slash(p: &str) -> Vec<String> {
+    todo!()
+}
 // Go: common/paths/path.go:IsSameFilePath
-pub fn is_same_file_path(a: &str, b: &str) -> bool { todo!() }
+pub fn is_same_file_path(a: &str, b: &str) -> bool {
+    todo!()
+}
 
 // ---------------------------------------------------------------------------
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,

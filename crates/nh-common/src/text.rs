@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T02 (common-paths-text).
 
-
 /// Go: `text.Position`.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Position {
@@ -36,7 +35,11 @@ pub fn chomp(s: &str) -> &str {
 
 /// Go: `text.Puts` (ensures a trailing newline).
 pub fn puts(s: &str) -> String {
-    if s.ends_with('\n') { s.to_string() } else { format!("{s}\n") }
+    if s.ends_with('\n') {
+        s.to_string()
+    } else {
+        format!("{s}\n")
+    }
 }
 
 // ---------------------------------------------------------------------------

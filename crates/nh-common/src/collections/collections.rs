@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T01 (common-values).
 
-
 /// Go: `collections.Grouper` (`Group(key any, items any) (any, error)`), used by `group`.
 pub const GROUPER_METHOD: &str = "Group";
 

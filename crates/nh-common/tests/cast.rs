@@ -456,14 +456,14 @@ fn res<T>(r: nh_common::Result<T>, f: impl Fn(&T) -> J) -> J {
 fn normalize(j: &J) -> J {
     match j {
         J::Object(o) => {
-            if let Some(t) = o.get("t").and_then(J::as_str) {
-                if let Some(ty) = t.strip_prefix("nil:") {
-                    if ty.starts_with("[]") {
-                        return json!({"t": ty, "items": []});
-                    }
-                    if ty.starts_with("map[") || ty == "maps.Params" {
-                        return json!({"t": ty, "entries": []});
-                    }
+            if let Some(t) = o.get("t").and_then(J::as_str)
+                && let Some(ty) = t.strip_prefix("nil:")
+            {
+                if ty.starts_with("[]") {
+                    return json!({"t": ty, "items": []});
+                }
+                if ty.starts_with("map[") || ty == "maps.Params" {
+                    return json!({"t": ty, "entries": []});
                 }
             }
             J::Object(o.iter().map(|(k, v)| (k.clone(), normalize(v))).collect())
