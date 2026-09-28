@@ -133,6 +133,8 @@ pub struct TestCfg {
     pub is_multihost: bool,
     pub working_dir: String,
     pub sections: BTreeMap<String, Arc<dyn Any + Send + Sync>>,
+    /// The pagination config (T12's pagination test; `None`: unimplemented).
+    pub pagination: Option<Pagination>,
 }
 
 impl TestCfg {
@@ -165,6 +167,7 @@ impl TestCfg {
             is_multihost: false,
             working_dir: working_dir.to_string(),
             sections,
+            pagination: None,
         }
     }
 }
@@ -265,7 +268,10 @@ impl AllProvider for TestCfg {
         70
     }
     fn pagination(&self) -> Pagination {
-        unimplemented!("pagination")
+        match &self.pagination {
+            Some(p) => p.clone(),
+            None => unimplemented!("pagination"),
+        }
     }
     fn build_expired(&self) -> bool {
         false
@@ -329,8 +335,14 @@ impl AllProvider for TestCfg {
 /// Rebuilds a Go site's PathSpec from `psupport.PathSpecDump` and checks it against the Go
 /// results recorded with it.
 pub fn build_path_spec(d: &J) -> Arc<PathSpec> {
+    build_path_spec_with_pagination(d, None)
+}
+
+/// [`build_path_spec`] with a pagination config (T12).
+pub fn build_path_spec_with_pagination(d: &J, pagination: Option<Pagination>) -> Arc<PathSpec> {
     let wd = work_dir("ps");
     let mut cfg = TestCfg::new(&wd);
+    cfg.pagination = pagination;
     let lang = d["lang"].as_str().unwrap().to_string();
     cfg.base_url =
         nh_common::urls::new_base_url_from_string(d["baseURL"].as_str().unwrap()).unwrap();

@@ -130,6 +130,34 @@ pub trait Page: Resource {
     fn page_string(&self) -> String {
         format!("Page({})", self.path())
     }
+
+    // ---- added by T12 (page-collections); defaults for implementors that lack them ----
+    /// Go `RelatedDocsHandlerProvider.GetInternalRelatedDocsHandler()` (the site's handler);
+    /// `None` when the page is not a provider (`.Related` then fails with `invalid type`).
+    fn related_docs_handler(&self) -> Option<Arc<crate::pages_related::RelatedDocsHandler>> {
+        None
+    }
+    /// Go `related.FragmentProvider.Fragments(ctx).Identifiers`; `None` when the page is not a
+    /// `FragmentProvider`.
+    fn fragments_identifiers(&self, _ctx: HostCtx<'_>) -> Option<Vec<String>> {
+        None
+    }
+    /// Go `FragmentProvider.ApplyFilterToHeadings(ctx, fn)` with a heading ID filter: the page
+    /// wrapped as `*hugolib.pageHeadingsFiltered`; `None` when not a `FragmentProvider`.
+    fn apply_filter_to_headings(
+        &self,
+        _ctx: HostCtx<'_>,
+        _filter: &dyn Fn(&str) -> bool,
+    ) -> Option<PageRef> {
+        None
+    }
+    /// Go `IsAncestor(other)` (navigation's narrow `Page`); by default through the template API.
+    fn is_ancestor(&self, other: &Value) -> bool {
+        matches!(
+            self.tpl_call_method(&(), "IsAncestor", std::slice::from_ref(other)),
+            Some(Ok(Value::Bool(true)))
+        )
+    }
 }
 
 /// The template value of a page.
@@ -419,7 +447,7 @@ impl PageWithContext<'_> {
 //          PageMetaInternalProvider, PageRenderProvider, PageWithoutContent, Positioner, RawContentProvider,
 //          RenderShortcodesProvider, RefProvider, RelatedKeywordsProvider, ShortcodeInfoProvider, SitesProvider,
 //          TableOfContentsProvider, TranslationsProvider, TreeProvider, PageWithContext
-// OK L39-42: Clear() error
+// OK L39-42: Clear() error (T12: delegates to pages_cache::clear)
 // OK L263-319: NamedPageMetaValue(p PageMetaResource, nameLower string) (any, bool, error)
 // OK L540-542: (p PageWithContext) Content() (any, error)
 // OK L544-546: (p PageWithContext) Plain() string

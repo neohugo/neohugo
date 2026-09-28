@@ -21,22 +21,22 @@ Crate lead: T11 (page-api-paths). T12 (page-collections) owns the modules marked
 | `page_author` | `resources/page/page_author.go` | T11 page-api-paths | ported (types) |
 | `pagemeta::page_frontmatter` | `resources/page/pagemeta/page_frontmatter.go` | T11 page-api-paths | ported (content-adapter decoding: deviation 7) |
 | `pagemeta::pagemeta` | `resources/page/pagemeta/pagemeta.go` | T11 page-api-paths | ported |
-| `pages` | `resources/page/pages.go` | T12 page-collections |  |
-| `pages_sort` | `resources/page/pages_sort.go` | T12 page-collections |  |
-| `pages_sort_search` | `resources/page/pages_sort_search.go` | T12 page-collections |  |
-| `pages_cache` | `resources/page/pages_cache.go` | T12 page-collections |  |
-| `pages_language_merge` | `resources/page/pages_language_merge.go` | T12 page-collections |  |
-| `pages_prev_next` | `resources/page/pages_prev_next.go` | T12 page-collections |  |
-| `pages_related` | `resources/page/pages_related.go` | T12 page-collections |  |
-| `pagegroup` | `resources/page/pagegroup.go` | T12 page-collections |  |
-| `pagination` | `resources/page/pagination.go` | T12 page-collections |  |
-| `taxonomy` | `resources/page/taxonomy.go` | T12 page-collections |  |
-| `weighted` | `resources/page/weighted.go` | T12 page-collections |  |
-| `page_lazy_contentprovider` | `resources/page/page_lazy_contentprovider.go` | T12 page-collections |  |
-| `navigation::menu` | `navigation/menu.go` | T12 page-collections |  |
-| `navigation::menu_cache` | `navigation/menu_cache.go` | T12 page-collections |  |
-| `navigation::pagemenus` | `navigation/pagemenus.go` | T12 page-collections |  |
-| `related` | `related/inverted_index.go` | T12 page-collections |  |
+| `pages` | `resources/page/pages.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pages_sort` | `resources/page/pages_sort.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pages_sort_search` | `resources/page/pages_sort_search.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pages_cache` | `resources/page/pages_cache.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pages_language_merge` | `resources/page/pages_language_merge.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pages_prev_next` | `resources/page/pages_prev_next.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pages_related` | `resources/page/pages_related.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pagegroup` | `resources/page/pagegroup.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `pagination` | `resources/page/pagination.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `taxonomy` | `resources/page/taxonomy.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `weighted` | `resources/page/weighted.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `page_lazy_contentprovider` | `resources/page/page_lazy_contentprovider.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `navigation::menu` | `navigation/menu.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `navigation::menu_cache` | `navigation/menu_cache.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `navigation::pagemenus` | `navigation/pagemenus.go` | T12 page-collections | ported (see "T12: page collections" below) |
+| `related` | `related/inverted_index.go` | T12 page-collections | ported (see "T12: page collections" below) |
 
 Every GO PORTING CHECKLIST entry of the T11 modules is `OK`; every ported function carries a
 `// Go:` line.
@@ -194,4 +194,168 @@ go run ./tools/go-oracle/nh-page/permalinks
 go run ./tools/go-oracle/nh-page/frontmatter
 go run ./tools/go-oracle/nh-page/summary
 go run ./tools/go-oracle/nh-page/misc
+```
+
+## T12: page collections
+
+Every GO PORTING CHECKLIST entry of the T12 modules is `OK` except the Go test helper
+`Pages.shuffle` (math/rand; not ported). Every ported function carries a `// Go:` line.
+
+### API notes for the other tasks
+
+- **Additions to the `Page` trait** (T11's `page.rs`; defaults keep every implementor compiling):
+  `related_docs_handler()` (Go `GetInternalRelatedDocsHandler`; `None` makes `.Related` fail with
+  `invalid type`), `fragments_identifiers(ctx)` (Go `Fragments(ctx).Identifiers`; `None` = not a
+  `FragmentProvider`), `apply_filter_to_headings(ctx, filter)` (returns the
+  `*hugolib.pageHeadingsFiltered` wrapper), `is_ancestor(&Value)` (default: through
+  `tpl_call_method("IsAncestor")`). nh-hugolib's `PageHandle` must implement the first three.
+- **Named-type method tables** to register (T23 `tplapi::named_types`): `pages::PAGES_METHODS`
+  (`page.Pages`), `pagegroup::PAGES_GROUP_METHODS` (`page.PagesGroup`),
+  `taxonomy::TAXONOMY_METHODS` (`page.Taxonomy`), `taxonomy::TAXONOMY_LIST_METHODS`
+  (`page.TaxonomyList`), `taxonomy::ORDERED_TAXONOMY_METHODS` (`page.OrderedTaxonomy`),
+  `weighted::WEIGHTED_PAGES_METHODS` (`page.WeightedPages`), `navigation::menu::MENU_METHODS`
+  (`navigation.Menu`). Objects: `pagegroup::PageGroup` (`page.PageGroup`: fields `Key`, `Pages`,
+  the promoted `page.Pages` methods, `ProbablyEq`, `Slice`), `pagination::PagerRef`
+  (`*page.Pager`), `weighted::WeightedPage` (`page.WeightedPage`),
+  `taxonomy::OrderedTaxonomyEntry`, `navigation::menu::MenuEntryRef` (`*navigation.MenuEntry`),
+  `MenuConfigValue`. Values: `taxonomy_list_to_value`, `taxonomy_to_value`, `menus_to_value`,
+  `page_menus_to_value`, `menu_to_value`, `pages_group_to_value`, `pagers_to_value`.
+- **Pages methods** that Go declares with a `context.Context` (`ByLength`, `GroupBy`, `Related`,
+  `RelatedIndices`, `RelatedTo`) take the `HostCtx`; `group_by_ctx`, `related_opt`,
+  `related_indices`, `related_to` return `Option` for Go's nil results (the template value of a
+  nil `PagesGroup`/`Pages` is a typed nil).
+- **`pages_cache::clear()`** (= `page::clear()`) must be called at the start of every
+  `Site.render` (T24).
+- **Pagination**: `paginate(td, seq, size)` (Go `Paginate`), `paginate_with(url_factory, seq,
+  size)`, `resolve_pager_size(conf, options)`, `new_pagination_url_factory(td)`; the "first call
+  wins" `.Paginator`/`.Paginate` state is T23's. `PaginatorNotSupportedFunc` for page kinds
+  without pagination.
+- **Related**: `related::Document` gained `fragments`, `apply_filter_to_headings`, `as_any`;
+  `pages_related::PageDocument` wraps a page; `InvertedIndex::{add_ctx, search_ctx}` take the
+  context. `related::decode_config` takes a `maps.Params` value (`Value::Invalid` = nil).
+- **Menus**: `navigation::menu::decode_config_namespace` returns the whole `ConfigNamespace`
+  (nh-allconfig's `menus` field); `decode_config` only the menus. Menus are immutable
+  `Arc<MenuEntry>` trees: hugolib (T23 `assembleMenus`) builds the entries with their children and
+  page values (`set_page_values(&mut MenuEntry, page)`) before sharing them.
+  `pagemenus::page_menus_from_page_for(ms, page)` is Go's `PageMenusFromPage` (the skeleton's
+  page-less `page_menus_from_page` only handles a nil value); `pagemenus::PageMenusQuery`
+  (`new_menu_query_provider(page menus, site menus, page)`) answers `IsMenuCurrent` /
+  `HasMenuCurrent`.
+- **`LazyContentProvider`**: `init_do()` (Go `lcp.init.Do`), `current()` (the provider, or `None`
+  for the nop provider), `plain`, `content`, `reset`, `provider()`.
+
+### Go behaviour reproduced on purpose
+
+- **Stable sorts** (`sort.Stable`, `sort.SliceStable`) through `go_sort::stable_by`, unstable ones
+  (`sort.Sort` in `sortKeys`) through `go_sort::sort_by`, so comparators that are not strict weak
+  orders give Go's order: `ByParam` compares strings with `CompareStrings < 1` (i.e. `<=`) and
+  sorts nil params last with `v1 == nil → false`; `sortKeys` sorts string keys with the same `<=`.
+- **Collators**: the current site's language (`p.Site().Current()`); `collator1` locked for the
+  whole `ByTitle`/`ByLinkTitle`/`Alphabetical` sort and per comparison in `DefaultPageSort`,
+  `collator2` for `ByParam` and `sortKeys`. `lessPageLanguage` uses `compare.Strings`.
+- **The global sorted-pages cache** (`spc`): keyed by name and the element identity of the input
+  lists; a hit returns the list as sorted at first computation even when the current site (and so
+  the collator) changed since; `clear()` resets it. `GroupByDate` & co. reuse `ByDate`/`Reverse`
+  through it, `MergeByLanguage` too. The menu cache (`smc`) likewise (never cleared, as in Go).
+- **GroupBy**: the `page.Page` method set as reflect sees it (`GROUP_BY_METHODS`, checked against
+  the Go interface by the oracle). A result type that cannot be a map key panics in Go
+  (`reflect.MapOf: invalid key type …`), methods needing arguments panic (`reflect: Call with too
+  few input arguments`, `not supported`), an unknown key panics (`reflect: Elem of invalid type
+  page.Page`): the port returns those messages as errors. The key's static kind decides the sort
+  (an interface result such as `Content` is not sorted even when it holds a string).
+- **GroupByParam**: the key type is the dynamic type of the first non-nil, non-`[]string`
+  (lower-cased) param; pages with another type are skipped; map-typed keys panic in Go (error).
+- **groupByDateField**: sorted descending unless the order is `asc`, `rev` or `reverse` (Go's
+  inverted `rev`), consecutive equal formatted dates, the current site's time formatter.
+- **Pagination**: a nil sequence paginates as empty GROUPS (`ToPagesGroup(nil)` is ok), one pager
+  when there are no elements (`TotalPages` is 0 then), `splitPageGroups` starts a new group for
+  every page of a nil key, `ResolvePagerSize` through `cast.ToIntE`.
+- **Related**: `Add` returns the error of the last `RelatedKeywords` call (so a page whose last
+  index fails aborts `getOrCreateIndex`), duplicate keywords count twice, `norm`'s
+  `x/y*100 + 0.5` is an FMA on arm64 (one `FMADDD` in the arm64 build of `searchDate`;
+  `f64::mul_add` here; unit test `related::tests::norm_fma`), the cardinality percentage is
+  `ceil(len/numDocs*100)` (no fusion there: FMUL + FRINTP), the integer divisions of `avgWeight`
+  and `threshold` truncate toward zero, the fragments filter is the sorted filter list.
+- **Menus**: `Menu.Add` appends and stable-sorts (weight with 0 last, `compare.Strings(Name)`,
+  `Identifier`), a front matter list of menu names shares ONE entry whose `Menu` is the last name
+  (Go's `&me` in the loop), `cast.ToStringE` accepts a number as a menu name.
+
+### Deliberate deviations
+
+1. **Go map order.** Where Go iterates a map in random order the port uses first-appearance or
+   key order: GroupBy/GroupByParam keys of kinds other than int and string (bool, `time.Time`,
+   pages, …) keep first-appearance order; `Taxonomy.TaxonomyArray` (and so the order of
+   collator-equal names in `Alphabetical`) and `Taxonomy.Page` use key order; related candidates
+   are collected in first-match order, so results with the same weight, publish date and name
+   keep that order (Go: random); `DecodeConfig` of related prints `[basic fragments]`; menus
+   decode in key order (only which error is reported can differ). The oracles mark such results
+   (`unordered`, `ties`) and the tests compare them as sets.
+2. **Go panics as errors.** GroupBy's reflect panics (above), `WeightedPages.Page()` of an empty
+   list, `Limit` with a negative count and `Taxonomy.Page` with a nil owner return the panic
+   message as an error; `getOneOPage` of a taxonomy whose first entry has no pages returns no page
+   (Go panics; hugolib never builds one); an `Add` to a finalized index panics like Go.
+3. **nil vs empty.** Rust lists have no nil: `pagesEqual` treats a nil and an empty list alike
+   (Go: not equal), `HasChildren` is "has at least one child" (hugolib only sets children by
+   adding one). Go's nil results are `Option`s in the typed API and typed nils in template values.
+4. **Identity.** Go compares page interface values (`pagesEqual`, map keys): the port compares
+   `Arc` pointers, else page id + wrapper type + weight0 + ordinal; menu entries and pagers by
+   `Arc` pointer. A `Pager` holds its `Paginator` and the paginator its pagers: the `Arc` cycle
+   keeps a paginator alive until the process ends.
+5. **Menus source structure.** Go's `PrepareParams` of an entry's params also lower-cases the keys
+   of nested maps it shares with the decoded source structure (aliasing); the port's source
+   structure keeps them. It is only printed by `hugo config`; the source hash is computed before
+   and matches.
+6. **Locks** (HUGO_LAYER.md §4.8): the sorted-pages cache, the menu cache, the related indices and
+   the lazy content provider compute outside their locks and keep the first stored value (Go
+   computes under the lock); with sequential rendering the results are the same.
+7. `PageSize()` (deprecated) does not log Go's deprecation notice; `Pager.Paginator` (the embedded
+   `*Paginator` as a field) is not exposed.
+
+### Verification
+
+The oracles build the psupport sites (docs/, hugolib/testsite, the seeksnack-like and multihost
+synthetic sites) and two sites made to stress ties (`csupport.TiesSite`, `TiesThSite`: 40 items
+with equal/zero/negative weights, equal and missing dates, equal titles and link titles, Thai
+titles including ฯลฯ and ํา that order differently under the en and th collators, rating/mixed
+params that are ints, floats, strings, bools, dates or missing, weighted tags, translations, a
+Thai-first language order, pagination paths `seite` and `หน้า Ü`, a related config with a
+cardinality threshold, a date pattern and an `applyFilter` fragments index). A `go run -overlay`
+hook adds `hugolib.OracleSetCurrentSite`, so every case runs with each site as the current one.
+The Rust tests rebuild the recorded page values as fake pages (`tests/csupport`): kind, titles,
+weights, dates, params, paths, files, languages, wrappers (weight0/ordinal), fragments and
+headings, parents, ancestors.
+
+| topic | inputs | Rust test | checks |
+|---|---|---|---|
+| `collections/<site>.json.gz` | every site's collections, every node's Pages/RegularPages, GetTerms lists, shuffles, cross-language lists (436 lists) × every site as the current site | `tests/collections.rs` | 99,881: every ByX, Reverse, ByParam (10 keys), Limit, SortByDefault, SortByLanguage; GroupBy (22 keys incl. errors) in 3 orders, GroupByParam (10 keys), GroupByDate (5 formats), GroupByPublishDate/ExpiryDate/Lastmod/ParamDate in 5 orders; Next/Prev; MergeByLanguage; 98 cache sequences (20 where the collators give different orders); taxonomies (ByCount, Alphabetical per current site, Get/Count, Page, WeightedPages Sort/Next/Prev) |
+| `collections/methods.json.gz` | the `page.Page` interface through reflect | `tests/collections.rs` | the 101-method GroupBy table |
+| `pagination/<site>.json.gz` | every `page.Paginate` call of the builds (the paginator of every list page, 251 calls), replayed with pager sizes 1, 3, 10 and 100 and with grouped pages (GroupByDate, GroupBy Section, GroupByParam, a nil key), bad sizes and sequences; descriptors rebuilt with the T11 path support | `tests/pagination.rs` | 1,540 paginators, every pager (URL, pages, groups, navigation, sizes) |
+| `pagination/resolve.json.gz` | `ResolvePagerSize` options | `tests/pagination.rs` | 15 |
+| `related/<site>.json.gz` | `Pages.Related` for every regular page of every site with the site's config, option maps, bad arguments; direct indices with the default and 5 custom configs (includeNewer, toLower, thresholds 0–100, cardinality thresholds, date patterns, negative/zero weights, fragments with and without applyFilter, param indices of mixed types): document searches for every page, index subsets, fragments, named slices | `tests/related.rs` | 13,828 (with filtered headings; tie runs as sets) |
+| `related/decode.json.gz` | `DecodeConfig` of the custom configs and 10 invalid ones | `tests/related.rs` | 15 |
+| `menus/<site>.json.gz` | the hugolib/menu_test.go sites, docs/ and a nested multilingual site: DecodeConfig of each language's menus, the assembled menu entries (URL, KeyName, HasChildren), PageMenusFromPage of every front matter `menu`/`menus` value, IsMenuCurrent/HasMenuCurrent of every page × entry, Sort/ByWeight/ByName/Reverse/Limit of every menu and of shuffles | `tests/menus.rs` | 413 cases, 1,209 IsMenuCurrent/HasMenuCurrent pairs |
+| `menus/decode.json.gz` | adversarial `DecodeConfig` inputs | `tests/menus.rs` | 9 |
+
+`tests/go_tables.rs` ports pages_sort_test.go, pagination_test.go, pagegroup_test.go,
+pages_prev_next_test.go, pages_sort_search_test.go (plus 1,500-page lists for the binary search
+path), pages_cache_test.go, pages_test.go, pages_related_test.go and navigation/menu_cache_test.go
+over a port of Go's `testPage`; the `src/related.rs` unit tests port inverted_index_test.go;
+`src/page_lazy_contentprovider.rs` tests the reset semantics; `tests/tpl_methods.rs` covers the
+template method tables. Mutations that the tests detect: disabling the sorted-pages cache, `< 0`
+instead of `< 1` in `ByParam`, Rust's sort for `pageBy.Sort`, no integer `threshold/matches`
+division, `<` instead of `<=` in the cardinality test.
+
+Results: 0 differences outside the deviations above. The fixtures come from linux/amd64 Go; no
+recorded case reaches `norm`'s FMA rounding difference (it needs an average weight below the
+index minimum), which the unit test pins to arm64. `ResolvePagerSize` is not recorded with
+out-of-range floats (`int(f)` differs between amd64 and arm64).
+
+Regenerate (each reproduces byte for byte):
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-page/collections
+go run ./tools/go-oracle/nh-page/pagination
+go run ./tools/go-oracle/nh-page/related
+go run ./tools/go-oracle/nh-page/menus
 ```
