@@ -1,12 +1,9 @@
-//! `nh-parser`: neohugo parser/* : metadecoders (YAML via go-yaml, TOML via toml crate + go-toml/v2 type mapping, JSON via go-json), pageparser lexer.
+//! `nh-parser`: neohugo parser/* : metadecoders (YAML via go-yaml, TOML via a port of pelletier/go-toml/v2, JSON via go-json), pageparser lexer.
 //!
 //! Part of the neohugo Rust port (Hugo layer). See `crates/HUGO_LAYER.md` for the design and
 //! `crates/WAVE_B_PLAN.json` for module ownership. Every module mirrors one or more Go files; the
 //! generated GO PORTING CHECKLIST at the bottom of each module lists the Go functions to port.
 
-// Skeleton-time allowances. Remove `unused`/`dead_code` once the crate is ported (README rule 11).
-#![allow(unused, dead_code, clippy::too_many_arguments, clippy::new_without_default, clippy::type_complexity)]
-
+pub mod frontmatter;
 pub mod metadecoders;
 pub mod pageparser;
-pub mod frontmatter;

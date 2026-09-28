@@ -184,7 +184,10 @@ dependencies = [
 name = "nh-langs"
 version = "0.1.0"
 dependencies = [
+ "go-fmt",
+ "go-strconv",
  "go-time",
+ "go-unicode",
  "go-value",
  "nh-common",
  "xtext-collate",

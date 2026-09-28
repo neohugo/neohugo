@@ -2,7 +2,7 @@
 name = "nh-parser"
 version = "0.1.0"
 edition = "2024"
-description = "neohugo parser/* : metadecoders (YAML via go-yaml, TOML via toml crate + go-toml/v2 type mapping, JSON via go-json), pageparser lexer"
+description = "neohugo parser/* : metadecoders (YAML via go-yaml, TOML via a port of pelletier/go-toml/v2, JSON via go-json), pageparser lexer"
 license = "Apache-2.0"
 
 [dependencies]
@@ -16,13 +16,17 @@ go-json = { path = "../go-json" }
 go-strconv = { path = "../go-strconv" }
 go-time = { path = "../go-time" }
 go-unicode = { path = "../go-unicode" }
+go-path = { path = "../go-path" }
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   toml (parse only; values mapped to go-toml/v2 Go types)
+# crates.io: none. TOML is a port of pelletier/go-toml/v2 (see PORTING.md), not the `toml` crate.
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Decompression of the gzip-compressed oracle fixtures (tests only; README rule 2 allows
+# flate2 for decompression).
+go-fmt = { path = "../go-fmt" }
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]
