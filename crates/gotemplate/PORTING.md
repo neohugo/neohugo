@@ -129,6 +129,13 @@ length. `text::is_truthful_value` is `hreflect.IsTruthfulValue` over the
 value model: `Object::is_zero` first, zero `time.Time`, `maps.Params` that is
 empty or holds only `_merge`, then kind rules (typed nils are false).
 
+Named basic types (`type HTML string`, `time.Month`, …) are objects whose
+`Object::underlying` returns the basic value. Where Go's reflection switches
+on the Kind, the engine uses that value: truthiness (after `is_zero`),
+`len`, and the builtin comparisons `eq`/`ne`/`lt`/`le`/`gt`/`ge`
+(`funcs::basic_underlying`). Error texts keep the named type name
+(`len of type main.Month`). Tested in `tests/named_basic.rs` against Go.
+
 ### C6 `and`/`or`
 
 Short-circuit left to right; the result is the first operand whose truth

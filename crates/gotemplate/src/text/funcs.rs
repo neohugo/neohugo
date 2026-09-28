@@ -740,7 +740,7 @@ pub(crate) fn length(item: &Value) -> R<Value> {
     if item.is_invalid() {
         return Err("reflect: call of reflect.Value.Type on zero Value".to_string());
     }
-    match value_len(&item) {
+    match value_len(&basic_underlying(item.clone())) {
         Some(n) => Ok(Value::int(n as i64)),
         None => Err(format!("len of type {}", type_name(&item))),
     }
@@ -774,6 +774,22 @@ fn basic_kind(v: &Value) -> BKind {
         Value::String(_) | Value::Safe(..) => BKind::String,
         _ => BKind::Invalid,
     }
+}
+
+/// A named basic type (Go `type HTML string`, `time.Month`, ...) is its
+/// underlying value wherever Go's reflection switches on the Kind
+/// (basicKind, length); see go-value's `Object::underlying`.
+pub(crate) fn basic_underlying(v: Value) -> Value {
+    if let Value::Object(o) = &v
+        && let Some(u) = o.underlying()
+        && matches!(
+            u,
+            Value::Bool(_) | Value::Int(..) | Value::Uint(..) | Value::Float(..) | Value::String(_)
+        )
+    {
+        return u;
+    }
+    v
 }
 
 fn as_int(v: &Value) -> i64 {
@@ -872,13 +888,13 @@ fn interface_eq(a: &Value, b: &Value) -> R<bool> {
 // Go: funcs.go:eq
 /// Evaluates the comparison a == b || a == c || ...
 pub(crate) fn eq(arg1: &Value, arg2: &[Value]) -> R<bool> {
-    let arg1 = indirect_interface(arg1);
+    let arg1 = basic_underlying(indirect_interface(arg1));
     if arg2.is_empty() {
         return Err(ERR_NO_COMPARISON.to_string());
     }
     let k1 = basic_kind(&arg1);
     for arg in arg2 {
-        let arg = indirect_interface(arg);
+        let arg = basic_underlying(indirect_interface(arg));
         let k2 = basic_kind(&arg);
         let mut truth = false;
         if k1 != k2 {
@@ -935,12 +951,12 @@ pub(crate) fn ne(arg1: &Value, arg2: &Value) -> R<bool> {
 // Go: funcs.go:lt
 /// Evaluates the comparison a < b.
 pub(crate) fn lt(arg1: &Value, arg2: &Value) -> R<bool> {
-    let arg1 = indirect_interface(arg1);
+    let arg1 = basic_underlying(indirect_interface(arg1));
     let k1 = basic_kind(&arg1);
     if k1 == BKind::Invalid {
         return Err(ERR_BAD_COMPARISON_TYPE.to_string());
     }
-    let arg2 = indirect_interface(arg2);
+    let arg2 = basic_underlying(indirect_interface(arg2));
     let k2 = basic_kind(&arg2);
     if k2 == BKind::Invalid {
         return Err(ERR_BAD_COMPARISON_TYPE.to_string());

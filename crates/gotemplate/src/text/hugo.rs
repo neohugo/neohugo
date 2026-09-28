@@ -118,6 +118,20 @@ pub fn is_truthful_value(val: &Value) -> bool {
             if let Some(z) = o.is_zero() {
                 return !z;
             }
+            // A named basic type (`type HTML string`, `time.Month`) switches
+            // on its underlying Kind.
+            if let Some(u) = o.underlying()
+                && matches!(
+                    u,
+                    Value::Bool(_)
+                        | Value::Int(..)
+                        | Value::Uint(..)
+                        | Value::Float(..)
+                        | Value::String(_)
+                )
+            {
+                return is_truthful_value(&u);
+            }
             match o.kind() {
                 Kind::Map => !o.map_keys().is_empty(),
                 Kind::Slice => o.list().is_some_and(|l| !l.is_empty()),
