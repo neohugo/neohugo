@@ -2,7 +2,7 @@
 name = "nh-commands"
 version = "0.1.0"
 edition = "2024"
-description = "neohugo commands/* + main.go (bin `neohugo`): flags -> config, build, version/env/config commands, static copy (spf13/fsync)"
+description = "neohugo commands/* + main.go (bin `neohugo-rs`): flags -> config, build, version/env/config commands, static copy (spf13/fsync)"
 license = "Apache-2.0"
 
 [lib]
@@ -10,7 +10,7 @@ name = "nh_commands"
 path = "src/lib.rs"
 
 [[bin]]
-name = "neohugo"
+name = "neohugo-rs"
 path = "src/main.rs"
 
 [dependencies]
@@ -22,13 +22,25 @@ nh-hugofs = { path = "../nh-hugofs" }
 nh-helpers = { path = "../nh-helpers" }
 nh-hugolib = { path = "../nh-hugolib" }
 nh-deps = { path = "../nh-deps" }
+nh-parser = { path = "../nh-parser" }
+nh-tplimpl = { path = "../nh-tplimpl" }
+nh-tplfuncs = { path = "../nh-tplfuncs" }
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   clap (CLI parsing; no output-byte impact)
+# Wave A crates.
+go-json = { path = "../go-json" }
+go-path = { path = "../go-path" }
+go-strconv = { path = "../go-strconv" }
+go-unicode = { path = "../go-unicode" }
+
+# crates.io: none. The command line parser is a port of pflag/cobra/simplecobra (modules `pflag`
+# and `cobra`): clap is not in the offline crate cache, and the port reproduces Go's parse rules
+# and error texts.
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# gunzip of the Go-oracle fixtures (decompression only; README rule 2).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]
