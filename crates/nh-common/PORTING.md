@@ -41,18 +41,19 @@ the modules marked below.
 | `locales` | gohugoio/localescompressed v1.0.1 + locales v0.14.0 (en, th) | T26 | ported; other locales are an explicit unsupported error |
 | `flect` | gobuffalo/flect@v1.0.3 | T26 | ported |
 | `prose` | jdkato/prose@v1.2.1 transform/title.go | T26 | ported |
-| `paths::path` | `common/paths/path.go` | T02 | skeleton |
-| `paths::pathparser` | `common/paths/pathparser.go`, `type_string.go` | T02 | skeleton |
-| `paths::url` | `common/paths/url.go` | T02 | skeleton |
-| `urls` | `common/urls/baseURL.go`, `ref.go` | T02 | skeleton |
-| `text` | `common/text/position.go`, `transform.go` | T02 | skeleton |
-| `hstrings` | `common/hstrings/strings.go` | T02 | skeleton |
-| `hugio` | `common/hugio/*.go` | T02 | skeleton |
-| `loggers` | `common/loggers/*.go` | T02 | skeleton (MINIMAL) |
-| `kinds` | `resources/kinds/kinds.go` | T02 | skeleton |
-| `files` | `hugofs/files/classifier.go` | T02 | skeleton |
-| `glob::glob` | `hugofs/glob/glob.go` + gobwas/glob subset | T02 | skeleton |
-| `glob::filename_filter` | `hugofs/glob/filename_filter.go` | T02 | skeleton |
+| `paths::path` | `common/paths/path.go` | T02 | ported (all functions) |
+| `paths::pathparser` | `common/paths/pathparser.go`, `type_string.go` | T02 | ported (all functions; deviations 21-23) |
+| `paths::url` | `common/paths/url.go` (+ `helpers/url.go` `IsAbsURL`, placed here by the skeleton) | T02 | ported (unix `UrlFromFilename`/`UrlStringToFilename`; deviations 24-25) |
+| `urls` | `common/urls/baseURL.go`, `ref.go` | T02 | ported (deviation 24) |
+| `text` | `common/text/position.go`, `transform.go` | T02 | ported; `RemoveAccents*` STUB (deviation 27) |
+| `hstrings` | `common/hstrings/strings.go` | T02 | ported; `GetOrCompileRegexp` STUB (deviation 28) |
+| `hugio` | `common/hugio/*.go` | T02 | ported (deviation 29); `CopyFile`/`CopyDir` STUB |
+| `loggers` | `common/loggers/*.go` | T02 | MINIMAL: levels, counters, distinct/suppressed entries, stderr (deviation 30) |
+| `kinds` | `resources/kinds/kinds.go` | T02 | ported |
+| `files` | `hugofs/files/classifier.go` | T02 | ported |
+| `glob::glob` | `hugofs/glob/glob.go` | T02 | ported |
+| `glob::gobwas` | `github.com/gobwas/glob@v0.2.3` (glob.go, syntax, compiler, match, util) | T02 | ported in full, upstream quirks included (deviation 26) |
+| `glob::filename_filter` | `hugofs/glob/filename_filter.go` | T02 | ported (deviation 31) |
 
 ## Dependencies
 
@@ -184,6 +185,59 @@ T26 (cast, locales, flect, prose):
 20. Go panics are exposed as `try_*` variants that return errors; the plain variants panic like
     Go (flect `Humanize` of an empty result, locales slice panics, `hashing::hash_*`).
 
+T02 (paths, urls, text, hstrings, hugio, loggers, kinds, files, glob):
+
+21. **Paths are `&str`.** `PathParser.Parse` and the path helpers take UTF-8 (the Rust fs layer has
+    `String` paths); `Sanitize`, `MakeTitle`, `PathEscape` and `URLEscape` also have byte forms.
+    Where Go slices a string mid-rune and returns invalid UTF-8, the port panics: `BaseRel` against
+    an owner that is not an ancestor (Go: `p.Base()[len(ob)+1:]`; Hugo only passes the owning
+    bundle) and `BaseNoLeadingSlash`/`PathNoLeadingSlash` of a `TrimLeadingSlash` copy (Go's
+    `[1:]` on a path without its slash; no Hugo caller). The oracle has 60 such `BaseRel` cases,
+    all with synthetic layout owners.
+22. **`Path.Unnormalized()`** is `Option<Box<Path>>` with `None` = Go's self pointer, so
+    `ModifyPathBundleTypeResource` is visible through it exactly as in Go, and `ForType` /
+    `TrimLeadingSlash` copies point at the original (Go copies the pointer). The unnormalized
+    path's own `Unnormalized()` is nil in Go and itself here.
+23. Go's pooled parse (`ParseIdentity`, `ParseBaseAndBaseNameNoIdentifier`) keeps stale
+    `identifiersUnknown` from the pool; nothing reads them; the port allocates.
+24. **Non-UTF-8 URL paths.** A baseURL whose percent-decoded path is not valid UTF-8 (`%ff`) is an
+    explicit `neohugo-rs:` error (Go accepts it; 1 oracle input). `AddContextRoot` with such a
+    base panics with an explicit message (`try_add_context_root` returns Go's bytes).
+    `url.URL.String()` of a parsed `&str` is always UTF-8.
+25. Go panics kept: `PathEscape`, `URLEscape`, `MakePermalink`, `AddContextRoot` panic on a
+    `url.Parse` error (and `MakePermalink` on an absolute link) like Go; the `try_*` forms return
+    the panic value as an error. A nil `IsOutputFormat`/`IsContentExt` panics when called, like a
+    nil Go func (the `PathParser` callbacks and `LanguageIndex` are `Option`s: Go's nil).
+26. **gobwas/glob** is ported in full (lexer, parser, compiler with its tree minimisation and
+    matcher gluing, all 19 matchers with `Match`/`Index`/`Len`/`String`) over Go string bytes.
+    Upstream bugs are reproduced on purpose: rune counts used as byte offsets (`BTree`, `Row`),
+    `Row` cutting a multi-byte rune, `EveryOf.Len`, `LastIndexAnyRunes` searching the whole
+    string, U+0000 ending a pattern, U+FFFD rejected by the lexer. Two Go panics are reproduced:
+    `Row` slicing past its input (`a{,}` on "a"; 594 panics in the match matrix) and
+    `LastIndexAnyRunes` with a non-ASCII separator. The segment pools are not ported (they only
+    recycle buffers).
+27. `text.RemoveAccents`/`RemoveAccentsString` (x/text NFD + remove Mn + NFC) return an explicit
+    unsupported error: they need `removePathAccents` or goldmark's `github-ascii` auto IDs,
+    neither used by seeksnack. `Position.String` never adds ANSI colours (message text only).
+28. `hstrings.GetOrCompileRegexp` returns an explicit unsupported error (no Go regexp port;
+    non-EX). `StringEqualFold.Eq` is `eq_any` (clippy: `eq` shadows `PartialEq`).
+29. `hugio`: closing is dropping; `StringReadSeeker::read_string` is Go's `StringReader` fast path
+    on the concrete type (`read_all` of a `dyn Read` reads everything, the same bytes for a fresh
+    reader); `NewOpenReadSeekCloser` exists for byte content (a fresh cursor per open);
+    `CopyFile`/`CopyDir` (afero) return an explicit unsupported error. `HasBytesWriter` keeps
+    Go's quirks (it searches the whole buffer, stale half included, and skips the rest of a
+    `Write` after the first match).
+30. `loggers` is MINIMAL: callers format messages (no Go `fmt` verbs), no ANSI colours, no
+    `HandlerPost`/panic-on-warning hook, and distinct entries are keyed by (level, message,
+    statement id) instead of a hash of level, message and fields. Kept from Go: the level filter
+    (entries below it are neither printed nor counted), `ignoreLogs` statement ids (dropped
+    before counting), distinct entries at or above the distinct level (dropped before counting),
+    per-level counters (`LoggCount`), whitespace trimming, the `Erroridf`/`Warnidf` suppress hint,
+    `Errors()` with `StoreErrors`, and the global logger (`Log`, `SetGlobalLogger`).
+31. `FilenameFilter::new(&[String], &[String])` treats an empty slice as Go's nil; a non-nil empty
+    Go slice gives a filter that matches everything, like no filter. `new_opt` keeps the
+    distinction.
+
 ## Known gaps and requests to other crates
 
 - **go-json** does not read `Object::underlying`: an `hstring.HTML` would not encode as a JSON
@@ -194,7 +248,18 @@ T26 (cast, locales, flect, prose):
   `underlying` for named basic objects (Hugo's helper uses `hreflect::is_truthful`, which does).
 - **T03**: go-toml local dates must implement the `AsTime` method (argument: `LocationRef`).
 - **T11/T12**: register `page.Page`/`resource.Resource` with `hreflect::register_interface`.
-- **T02**: `KeyRenamer` could use `crate::glob` once ported (deviation 6).
+- **T01 / integration**: `KeyRenamer` can now use `crate::glob::gobwas::compile(&lower, &['/'])`
+  (Go: `glob.Compile(strings.ToLower(key), '/')`) instead of its private subset (deviation 6). T02
+  did not change `maps`; the gobwas port reproduces Go's compiled trees and `Match` over the glob
+  fixture (1,407 patterns × 5 separator sets incl. `/`).
+- **T02 skeleton changes** (no other crate used these items): `PathParser`'s fields are `Option`s
+  (Go's nil map/funcs; build it with a struct literal and `..Default::default()`);
+  `Path::is_bundle` includes `ContentData` like Go (the skeleton's `matches!` did not);
+  `BaseURL.url` is a `go_url::Url` (was its `String()`); `FilenameFilter`'s fields are Go's
+  (crate-private) with `new_opt`, `new_for_inclusion_func`, and the free functions `match_opt` and
+  `append` for Go's nil receiver; `Glob` wraps the compiled matcher (`matches_bytes`, `matcher`);
+  `text::remove_accents_string` returns `Result` (unsupported); `text::puts("")` is `""` like Go;
+  `Logger` filters by level before counting (the skeleton counted every `errorf`).
 - herrors file-error context, identity dependency tracking, dynacache eviction/clearing: not
   needed for a one-shot build (non-EX).
 
@@ -247,3 +312,41 @@ qemu-aarch64-static /tmp/compare-arm64 -root . -out crates/nh-common/tests/fixtu
 
 The fixtures regenerate byte for byte (gzip at best compression, no header name or time;
 order-dependent results are detected with 400 runs when a map has fold-equal keys).
+
+## Verification (T02)
+
+Go oracles `tools/go-oracle/nh-common/{paths,urls,glob,textmisc}` write
+`tests/fixtures/{paths,urls,glob,textmisc}/`; the Rust tests are `tests/{paths,urls,glob,textmisc}.rs`
+(shared helpers in `tests/t02support`). The seeksnack site is private, so the inputs are this
+repository's Hugo sites, the embedded templates, the seeksnack paths quoted in
+`docs/rust-port/specs`, synthetic sweeps and the string corpus of `../corpus`.
+
+| topic | inputs | Rust test | checks |
+|---|---|---|---|
+| `paths/pathparser.json.gz` | 14,513 `Parse(component, path)` calls with 3 parsers: `seeksnack` (the real `ContentPathParser` of `allconfig` loaded from `config-en.json`: en + th, 9 disabled languages, the site's output formats and media types), `test` (pathparser_test.go's) and `nolang` (nil `LanguageIndex`). Inputs: every file and directory of `docs/{content/en,layouts,assets,data,static,archetypes}`, `hugolib/testsite`, `create/skeletons` and `tpl/tplimpl/embedded/templates` (2,937); the specs' seeksnack content and asset paths and 58 layouts (282); a sweep of 12 directories × 164 names (bundles in every case, `.en`/`.th`/disabled/unknown languages, output-format/kind/layout/baseof identifiers, multiple dots, no extension, dot files, unicode, spaces, uppercase) over all 8 components (6,793); slash forms (287); the corpus as term keys and layout names (4,214). Every call to `IsOutputFormat`/`IsContentExt`/`IsLangDisabled` is recorded and replayed (a call Go never made fails the test). | `paths.rs::pathparser_matches_go` | 1,180,820: every exported accessor (37) of the path and of `Unnormalized()` (or its identity), 10 of `TrimLeadingSlash()`, `ForType`, `PathRel`/`BaseRel`, `ModifyPathBundleTypeResource`, `ParseIdentity`, `ParseBaseAndBaseNameNoIdentifier`, `NormalizePathStringBasic`, `HasExt` |
+| `paths/strings.json.gz` | 4,990 strings: the corpus (3,214, text helpers only), the repository/spec/sweep paths and 54 adversarial URLs | `paths.rs::string_helpers_match_go` | 124,159: every path.go/url.go helper (`Sanitize`, `MakeTitle`, `PathEscape`, `URLEscape`, `AddContextRoot` × 4 bases, `MakePermalink` × 3 hosts, `GetRelativePath`, `CommonDirPath`, `Uglify`, `PrettifyURL*`, …) |
+| `urls/baseurl.json.gz` | 3,276 base URLs: seeksnack's, Hugo's test ones, 54 adversarial (opaque, ports, userinfo, IPv6, escapes, unicode) and the corpus | `urls.rs::base_url_matches_go` | 3,867: every `BaseURL` field and method, `WithProtocol` × 9, `WithPort` × 4 (1 deviation 24) |
+| `glob/compile.json.gz`, `glob/match.json.gz` | 1,407 patterns (upstream and Hugo patterns, 1,500 random token soups from a fixed seed) × 5 separator sets × 274 inputs | `glob.rs` | 8,441 compiled trees (`String()`) and errors; 2,179,944 `Match` results incl. 594 Go panics; `GetGlob` |
+| `glob/filter.json.gz` | 18 `FilenameFilter` configurations (Go's tests, mount include/exclude globs, the single-file inclusion func, `Append` chains, bad globs) × 2,802 file/dir names from `docs/`; the hugofs/glob path helpers | `glob.rs::filename_filter_matches_go` | 65,375 |
+| `textmisc/textmisc.json.gz` | kinds, component folders, text (`Chomp`, `Puts`, `VisitLinesAfter`, `Position.String`), `EqualFold`/`InSlicEqualFold` triples, 600 `HasBytesWriter` streams cut into random writes | `textmisc.rs` | 16,975 cases |
+
+Results: 0 differences outside deviations 21 and 24. Go's tests are ported:
+`pathparser_test.go`, `path_test.go`, `url_test.go` (`tests/paths.rs`), `baseURL_test.go`
+(`tests/urls.rs`), hugofs `glob_test.go`, `filename_filter_test.go` and gobwas `glob_test.go`
+(`tests/glob.rs`), `kinds_test.go`, `classifier_test.go`, `position_test.go`,
+`transform_test.go`, `strings_test.go`, `hasBytesWriter_test.go` (`tests/textmisc.rs`).
+Mutations of `IsBundle`, `Sanitize`'s `%XX` bound, `BTree`'s rune step and `Row`'s rune cut each
+fail the oracle tests.
+
+Nothing here depends on the platform (no floats; unix path rules), so these fixtures carry no
+`goarch`. They regenerate byte for byte on linux/amd64 and from linux/arm64 builds of `urls`,
+`glob` and `textmisc` run under `qemu-aarch64-static`. `paths` imports `allconfig`, which needs
+cgo (libwebp), so its arm64 check replayed the recorded seeksnack callbacks instead: same bytes.
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-common/paths -root . -out crates/nh-common/tests/fixtures/paths
+go run ./tools/go-oracle/nh-common/urls -root . -out crates/nh-common/tests/fixtures/urls
+go run ./tools/go-oracle/nh-common/glob -root . -out crates/nh-common/tests/fixtures/glob
+go run ./tools/go-oracle/nh-common/textmisc -root . -out crates/nh-common/tests/fixtures/textmisc
+```
