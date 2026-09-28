@@ -105,7 +105,7 @@ lead.
 | `nh-helpers` | 5 | neohugo helpers/*, source/*, cache/filecache, cache/httpcache (+ gohugoio/httpcache + net/http response-dump subset) | `helpers`, `source`, `cache/filecache`, `cache/httpcache`; new/ported-3rd-party modules: `cache/httpcache/transport` | T08 |
 | `nh-publisher` | 6 | neohugo publisher/* (DestinationPublisher, transformer chain order, htmlElementsCollector) + x/net/html subset | `publisher`; new/ported-3rd-party modules: `xnethtml` | T07 |
 | `nh-resource` | 6 | neohugo resources/resource (Resource interfaces, Resources, params, dates) and resources/internal (keys, target paths) | `resources/resource`, `resources/internal` | T11 |
-| `nh-doctree` | 1 | neohugo hugolib/doctree (radix-tree walk order == BTreeMap byte order; language-dimension shifting) | `hugolib/doctree` | T27 |
+| `nh-doctree` | 1 | neohugo hugolib/doctree (a port of armon/go-radix, walk order incl. mutation during walks; language-dimension shifting) | `hugolib/doctree` | T27 |
 | `nh-images` | 7 | neohugo resources/images/** (image config, spec parsing, processing, filters, encoders, exif stub) | `resources/images`, `resources/images/exif`, `resources/images/webp` | T10 |
 | `nh-page` | 7 | neohugo resources/page/** (Page/Site traits, Pages ops, paths, permalinks, pagination, taxonomies), pagemeta, navigation, related | `resources/page`, `resources/page/pagemeta`, `navigation`, `related` | T11, T12 |
 | `nh-allconfig` | 8 | neohugo config/allconfig (load, decode all sections, compile, per-language configs), hugolib/segments, deploy/deployconfig stub | `config/allconfig`, `hugolib/segments`, `deploy/deployconfig` | T09 |
@@ -337,9 +337,15 @@ single slot and always use index 0.
 ### 4.4 Content trees (doctree)
 
 - `nh_doctree::nodeshifttree::NodeShiftTree<T>` stands in for Go's radix tree + dimension
-  shifter. Storage is `BTreeMap<String, T>`: Go walks armon/go-radix in **byte-lexicographic key
-  order**, and `BTreeMap<String,_>` iterates in the same byte order (Rust `str` `Ord` is bytewise).
-  CM §4.
+  shifter. Storage is a node-for-node port of armon/go-radix (`nh_doctree::radix`), **not** a
+  `BTreeMap`. Unmutated, go-radix walks in byte-lexicographic key order, but Hugo inserts and
+  deletes while walking (assembleTerms, addMissingRootSections, the term delete in
+  applyAggregatesToTaxonomiesAndTerms, DeleteAll), and what Go then visits depends on the node
+  structure: skipped inserts, re-visited siblings, even nil-pointer panics. T27's `walkmut`
+  oracle has 3,044 such walks; a `BTreeMap` got up to 898 wrong (see `crates/nh-doctree/PORTING.md`).
+  Walks that mutate the tree must use `NodeShiftTree::walk_mut` (never a key snapshot), and
+  `ContentNodeShifter` (T20) must implement `Shifter::delete_in_place`, or deleting one language
+  of a multi-language node panics. CM §4.
 - Keys are Go's: `PathInfo().Base()` for pages (e.g. `/`, `/biscuit`,
   `/biscuit/koalas-march-chocolate`), `Base()` + extension for resources, and for terms
   **`strings.ToLower("/" + plural + "/" + value)` with spaces → `-`, not sanitized**. The target

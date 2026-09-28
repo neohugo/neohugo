@@ -214,6 +214,8 @@ dependencies = [
 name = "nh-doctree"
 version = "0.1.0"
 dependencies = [
+ "go-path",
+ "go-strconv",
  "go-value",
  "nh-common",
 ]
