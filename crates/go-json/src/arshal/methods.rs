@@ -10,7 +10,8 @@ use std::sync::Arc;
 use go_value::{GoString, Kind, Object, UintKind, Value};
 
 use super::default::{
-    FieldRef, marshal_map_entries, marshal_slice, marshal_struct, plain_struct_fields,
+    FieldRef, marshal_bool, marshal_float, marshal_int, marshal_map_entries, marshal_slice,
+    marshal_string, marshal_struct, marshal_uint, plain_struct_fields,
 };
 use super::errors::new_marshal_error_before;
 use super::{Dec, Enc, Static};
@@ -67,6 +68,18 @@ pub(crate) fn marshal_object(enc: &mut Enc, o: &Arc<dyn Object>) -> Option<Err> 
     }
     if let Some(r) = o.marshal_text() {
         return marshal_text_method(enc, &type_name, r);
+    }
+    // A named basic type (`type HTML string`, `time.Month`): the default
+    // arshaler of its Kind (makeBoolArshaler, makeStringArshaler, ...).
+    if let Some(u) = o.underlying() {
+        match u {
+            Value::Bool(b) => return marshal_bool(enc, b),
+            Value::Int(i, _) => return marshal_int(enc, i, &type_name),
+            Value::Uint(x, _) => return marshal_uint(enc, x, &type_name),
+            Value::Float(f, k) => return marshal_float(enc, f, k),
+            Value::String(s) => return marshal_string(enc, &s, &type_name),
+            _ => {}
+        }
     }
     match o.kind() {
         Kind::Map => {

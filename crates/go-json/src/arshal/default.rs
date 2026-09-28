@@ -511,6 +511,16 @@ pub(crate) fn marshal_struct<'a>(
     enc.write_token(&Token::EndObject)
 }
 
+/// The basic value of a named basic type (`Object::underlying`), if any.
+fn basic_underlying(o: &dyn go_value::Object) -> Option<Value> {
+    o.underlying().filter(|u| {
+        matches!(
+            u,
+            Value::Bool(_) | Value::Int(..) | Value::Uint(..) | Value::Float(..) | Value::String(_)
+        )
+    })
+}
+
 // Go: arshal_default.go:isLegacyEmpty
 /// isLegacyEmpty reports whether a value is empty according to the v1 definition.
 pub(crate) fn is_legacy_empty(v: &Value, st: Static) -> bool {
@@ -531,6 +541,10 @@ pub(crate) fn is_legacy_empty(v: &Value, st: Static) -> bool {
         Value::Object(o) => {
             if let Some(n) = o.as_any().downcast_ref::<super::methods::Number>() {
                 return n.0.is_empty(); // json.Number is a string kind
+            }
+            // A named basic type is empty by its Kind.
+            if let Some(u) = basic_underlying(o.as_ref()) {
+                return is_legacy_empty(&u, Static::Concrete);
             }
             match o.kind() {
                 Kind::Map => o.map_keys().is_empty(),
@@ -569,6 +583,10 @@ pub(crate) fn is_zero(v: &Value, st: Static) -> bool {
             }
             if let Some(z) = o.is_zero() {
                 return z;
+            }
+            // A named basic type: reflect.Value.IsZero of its Kind.
+            if let Some(u) = basic_underlying(o.as_ref()) {
+                return is_zero(&u, Static::Concrete);
             }
             if o.kind() == Kind::Struct {
                 if let Some(fields) = o.struct_fields() {
