@@ -4,11 +4,12 @@
 //! `crates/WAVE_B_PLAN.json` for module ownership. Every module mirrors one or more Go files; the
 //! generated GO PORTING CHECKLIST at the bottom of each module lists the Go functions to port.
 
-// Skeleton-time allowances. Remove `unused`/`dead_code` once the crate is ported (README rule 11).
-#![allow(unused, dead_code, clippy::too_many_arguments, clippy::new_without_default, clippy::type_complexity)]
+// Lints that fight a faithful port: Go's `minifiers` package holds `minifiers.go`, so the
+// module is `minifiers::minifiers`.
+#![allow(clippy::module_inception)]
 
 pub mod chain;
-pub mod urlreplacers;
 pub mod livereloadinject;
 pub mod metainject;
 pub mod minifiers;
+pub mod urlreplacers;

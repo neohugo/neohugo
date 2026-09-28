@@ -585,8 +585,11 @@ dependencies = [
 name = "nh-publisher"
 version = "0.1.0"
 dependencies = [
+ "go-html",
  "go-json",
+ "go-strconv",
  "go-unicode",
+ "go-url",
  "go-value",
  "nh-common",
  "nh-config",
@@ -722,6 +725,9 @@ dependencies = [
 name = "nh-transform"
 version = "0.1.0"
 dependencies = [
+ "go-html",
+ "go-unicode",
+ "go-url",
  "go-value",
  "nh-common",
  "nh-config",
