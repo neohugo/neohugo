@@ -12,7 +12,7 @@ the modules marked below.
 | Rust module | Go source(s) | Owner | Status / note |
 |---|---|---|---|
 | `object` | — | T01 | NEW, frozen API (see "The template-API foundation") |
-| `herrors` | `common/herrors/errors.go`, `file_error.go`, `error_locator.go`, `line_number_extractors.go` | T01 | ported; simplified error model (deviation 9); error-context excerpts not ported |
+| `herrors` | `common/herrors/errors.go`, `file_error.go`, `error_locator.go`, `line_number_extractors.go`; `errors.Join` | T01 | ported; simplified error model with Go's error texts (deviation 9); error-context excerpts not ported |
 | `constants` | `common/constants/constants.go` | T01 | ported |
 | `collections::append` | `common/collections/append.go` | T01 | ported (reflect emulation through `hreflect`) |
 | `collections::collections` | `common/collections/collections.go` | T01 | types only |
@@ -155,8 +155,22 @@ truthiness), `math`, `hashing`, go-fmt and T26's cast read it.
    `0xFFF8000000000000` (the golden build ran on arm64). NaN operands propagate identically.
 9. **Errors.** One `herrors::Error` type (message, `ErrorKind`, optional position) replaces Go's
    wrapped error chains; `errors.Is` checks are `ErrorKind` checks (`NotExist`, `Exist`,
-   `FeatureNotAvailable`, `Timeout`, ...). File errors take their line/column from the message
-   with Go's four line-number extractors (hand-written matchers equivalent to the regexps);
+   `FeatureNotAvailable`, `Timeout`, ...). The kind survives every `wrap`, `join` and file
+   error, like `errors.Is` (Go's `herrors.IsNotExist`/`IsExist` look only one `Unwrap`
+   deep). The error *text* is Go's (it reaches output through `try`/`.Err` and the log):
+   `"file:line:col": cause` for a file error; `Error::wrap` is `fmt.Errorf("%s: %w")`, so a
+   wrapped file error reads `prefix: "file:line:col": cause` (the prefixes are kept in front of
+   the position; `at` updates the outermost file error's position like `UpdatePosition` and
+   keeps them); `NewFileError*` of an error that already has a position prints both positions like Go;
+   `herrors::join` is `errors.Join` (texts joined by `\n`, no position); `%v` is a new
+   `Error` from the text. `pos()` is `UnwrapFileError(err).Position()` and `message()` the text
+   below it (the cause of a file error). File errors take their line/column from the text one
+   `Unwrap` below the error, as Go's `extractFileTypePos` does, with Go's four line-number
+   extractors (hand-written matchers equivalent to the regexps); `NewFileError` takes a filename
+   only from a Sass error in Go, so here it is always empty; the Sass/JSON/TOML/minifier error
+   types Go inspects are converted where they are created (tocss, metadecoders);
+   `ImproveRenderErr` rewrites the message only (Go the whole text, whose prefixes and position
+   never hold a template call);
    `UpdateContent` (source excerpt, chroma lexer) and the fs-reading constructors are not ported
    (they only decorate a failing build's message). `Recover`/`PrintStackTrace` print Rust
    backtraces.
@@ -422,6 +436,25 @@ go run ./tools/go-oracle/nh-common/paths -root . -out crates/nh-common/tests/fix
 go run ./tools/go-oracle/nh-common/urls -root . -out crates/nh-common/tests/fixtures/urls
 go run ./tools/go-oracle/nh-common/glob -root . -out crates/nh-common/tests/fixtures/glob
 go run ./tools/go-oracle/nh-common/textmisc -root . -out crates/nh-common/tests/fixtures/textmisc
+```
+
+## Verification (herrors error texts)
+
+`tools/go-oracle/nh-common/herrors` writes `tests/fixtures/herrors/herrors.json.gz`; the Rust
+test is `tests/herrors.rs`. It reads no files; stdout goes to `/dev/null` (`Position.String`
+colours on a terminal) and it refuses to run with `HUGO_FILE_LOG_FORMAT` set.
+
+| inputs | checks |
+|---|---|
+| 8 base errors (plain, plain with a YAML line number, a `%w`-wrapped `fs.ErrNotExist`, `NewFileErrorFromPos` with and without a filename, `NewFileErrorFromName` of a template error with a line/column, `NewFileError` of an i18n-style `(7, 9)` error, a file error around a not-exist error) × every sequence of 0–3 steps over `%w`, `%v`, `errors.Join(err, other)`, `errors.Join(nil, fileErr, err)`, `NewFileErrorFromName`, `NewFileErrorFromPos`, `NewFileError` (400 sequences; the `%w`/`%v` prefix of the third step holds `:9:4:` for the line extractors) | 3,200 cases: `Error()`, `UnwrapFileError(err).Position()` (filename, line, column, or none), `errors.Is(err, fs.ErrNotExist)` |
+
+Results: 0 differences. Mutation checks: the old `wrap` (prefix after the position) fails 630
+cases; `NewFileError*` replacing a position instead of wrapping it fails 1,476; taking the line
+number from the whole text instead of the text one `Unwrap` below fails 76.
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-common/herrors -out crates/nh-common/tests/fixtures/herrors
 ```
 
 ## Verification (Go regexp)

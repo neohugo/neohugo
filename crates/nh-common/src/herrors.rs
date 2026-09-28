@@ -3,10 +3,24 @@
 //! Owner: Wave B task T01 (common-values).
 
 //!
-//! One error type for the whole Hugo layer. Error *texts* are not part of byte parity (a failing
-//! build produces no golden output), so this is deliberately simpler than Go's wrapped errors: a
+//! One error type for the whole Hugo layer, simpler than Go's chains of wrapped errors: a
 //! message, a coarse kind (for the places where Go code branches on the error type with
-//! `errors.Is`/type assertions) and an optional file position (Go's `FileError`).
+//! `errors.Is`/type assertions) and an optional file position (Go's `FileError`). The error
+//! *text* is Go's, though: it reaches site output through `try`/`.Err` in templates, and the log.
+//! Go composes it as follows (`tools/go-oracle/nh-common/herrors` records the matrix):
+//!
+//! - `(*fileError).Error()` is `"file:line:col": cause` (`text.Position.String`, `<stream>` for
+//!   an empty filename);
+//! - `fmt.Errorf("prefix: %w", err)` and `fmt.Errorf("prefix: %v", err)` both read
+//!   `prefix: ` + `err.Error()`, so wrapping a file error puts the prefix in front of its
+//!   position: `prefix: "file:line:col": cause` ([`Error::wrap`] keeps the prefixes apart from
+//!   the cause for that). `%v` does not keep the chain (no position, no kind): it is a new
+//!   [`Error`] made from the text;
+//! - `NewFileError*` wraps whatever it gets, so a positioned error gets a second position in
+//!   front (`"b:2:2": "a:1:1": cause`);
+//! - `errors.Join` joins the texts with `\n` ([`join`]; `errors.Unwrap` of a join is nil, so the
+//!   result has no position).
+//!
 //! Conversions exist to and from `go_value::Error` so `?` works across template boundaries.
 
 use std::fmt;
@@ -53,10 +67,22 @@ impl FilePos {
 
 #[derive(Clone)]
 pub struct Error {
+    /// The text below the position: the whole text of an error without a position, the cause of
+    /// a file error (`causeString`).
     msg: String,
     kind: ErrorKind,
+    /// The outermost file error's position (Go: `UnwrapFileError(err).Position()`).
     pos: Option<FilePos>,
+    /// The `fmt.Errorf("%s: %w")` prefixes around the file error, outermost first (always empty
+    /// without a position).
+    prefixes: Vec<String>,
+    /// For an error without a position made by [`Error::wrap`]: where the wrapped error's text
+    /// starts in `msg` (Go: `errors.Unwrap(err).Error()`).
+    unwrapped_at: Option<std::num::NonZeroU32>,
 }
+
+// `Result<_, (T, Error)>` stays under clippy's `result_large_err` limit (128 bytes) in callers.
+const _: () = assert!(std::mem::size_of::<Error>() <= 96);
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -66,6 +92,8 @@ impl Error {
             msg: msg.into(),
             kind: ErrorKind::Generic,
             pos: None,
+            prefixes: Vec::new(),
+            unwrapped_at: None,
         }
     }
 
@@ -74,6 +102,8 @@ impl Error {
             msg: msg.into(),
             kind,
             pos: None,
+            prefixes: Vec::new(),
+            unwrapped_at: None,
         }
     }
 
@@ -95,6 +125,8 @@ impl Error {
         self.kind
     }
 
+    /// The text without the position and the prefixes around it: the whole text of an error
+    /// without a position, the cause (Go: `causeString`) of a file error.
     pub fn message(&self) -> &str {
         &self.msg
     }
@@ -103,17 +135,58 @@ impl Error {
         self.pos.as_ref()
     }
 
-    /// Go: `herrors.NewFileErrorFromName` & friends (position attached for diagnostics only).
+    /// Sets the position of the outermost file error, or makes an error without a position a
+    /// file error at `pos` (Go: `FileError.UpdatePosition` + `SetFilename`; `NewFileErrorFromPos`
+    /// of an error without a position). Prefixes around a file error stay in front of it.
     pub fn at(mut self, pos: FilePos) -> Self {
+        if self.pos.is_none() {
+            self.unwrapped_at = None;
+        }
         self.pos = Some(pos);
         self
     }
 
-    /// Go: `fmt.Errorf("%s: %w", prefix, err)`.
-    pub fn wrap(self, prefix: impl fmt::Display) -> Self {
+    /// Go: `fmt.Errorf("%s: %w", prefix, err)`, which reads `prefix: ` + `err.Error()`; a file
+    /// error keeps its position (and the kind) inside the new text.
+    pub fn wrap(mut self, prefix: impl fmt::Display) -> Self {
+        let prefix = prefix.to_string();
+        if self.pos.is_some() {
+            self.prefixes.insert(0, prefix);
+        } else {
+            self.unwrapped_at = u32::try_from(prefix.len() + 2)
+                .ok()
+                .and_then(std::num::NonZeroU32::new);
+            self.msg = format!("{prefix}: {}", self.msg);
+        }
+        self
+    }
+
+    /// Go: `herrors.Unwrap(err).Error()`: the text one `errors.Unwrap` below this error (its own
+    /// text when it does not wrap).
+    fn unwrapped_text(&self) -> String {
+        if !self.prefixes.is_empty() {
+            let mut inner = self.clone();
+            inner.prefixes.remove(0);
+            return inner.to_string();
+        }
+        match (&self.pos, self.unwrapped_at) {
+            (None, Some(i)) => self.msg[i.get() as usize..].to_string(),
+            _ => self.msg.clone(),
+        }
+    }
+
+    /// Go: `&fileError{cause: err, position: pos}`, a new file error around this one. The text
+    /// of an error that already has a position becomes the cause, so both positions print.
+    fn into_file_error(self, pos: FilePos) -> Self {
+        if self.pos.is_none() {
+            return self.at(pos);
+        }
         Error {
-            msg: format!("{prefix}: {}", self.msg),
-            ..self
+            msg: self.to_string(),
+            kind: self.kind,
+            pos: Some(pos),
+            prefixes: Vec::new(),
+            unwrapped_at: None,
         }
     }
 
@@ -128,7 +201,11 @@ impl Error {
 
 impl fmt::Display for Error {
     // Go: common/herrors/file_error.go:(*fileError).Error
+    // Go: fmt/errors.go:Errorf (the `prefix: %w` wrappers around it)
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        for p in &self.prefixes {
+            write!(f, "{p}: ")?;
+        }
         if let Some(p) = &self.pos {
             write!(f, "{}: {}", p.string(), self.msg)
         } else {
@@ -254,15 +331,20 @@ const DEFERRED_PREFIX: &str = "__hdeferred/";
 // Go: common/herrors/errors.go:ImproveRenderErr
 /// ImproveRenderErr improves the error message for rendering errors: nil-pointer method calls get
 /// a "wrap it in if or with" hint, and deferred-template names are removed.
+/// The rewrites apply to the message; a position and the prefixes around it are kept (Go
+/// rewrites the whole text, which holds no template call or deferred name outside the message).
 pub fn improve_render_err(in_err: Error) -> Error {
     let mut out = in_err.clone();
     if let Some(msg) = improve_if_nil_pointer_msg(&in_err.msg) {
         out.msg = msg;
+        // Go: an `errMessage` whose Unwrap is inErr.
+        out.unwrapped_at = None;
     }
 
     if in_err.msg.contains(DEFERRED_PREFIX) {
         // deferredStringToRemove = `executing "__hdeferred/.*?" ` -> "executing "
         out.msg = remove_deferred(&in_err.msg);
+        out.unwrapped_at = None;
     }
     out
 }
@@ -365,15 +447,11 @@ pub fn unwrap(err: &Error) -> &Error {
 // Go: common/herrors/file_error.go:NewFileError
 /// NewFileError creates a new FileError that wraps err, taking the line and column from the
 /// error message (see [`extract_line_no`]); line 1, column 1 if none is found.
+/// The filename is empty (Go takes one only from a Sass error; deviation 9).
 pub fn new_file_error(err: Error) -> Error {
-    let (line, col) = extract_file_pos(&err.msg);
-    let filename = err
-        .pos
-        .as_ref()
-        .map(|p| p.filename.clone())
-        .unwrap_or_default();
-    err.at(FilePos {
-        filename,
+    let (line, col) = extract_file_pos(&err.unwrapped_text());
+    err.into_file_error(FilePos {
+        filename: String::new(),
         line,
         column: col,
     })
@@ -382,8 +460,8 @@ pub fn new_file_error(err: Error) -> Error {
 // Go: common/herrors/file_error.go:NewFileErrorFromName
 /// NewFileErrorFromName creates a new FileError that wraps err; name identifies the file.
 pub fn new_file_error_from_name(err: Error, name: &str) -> Error {
-    let (line, col) = extract_file_pos(&err.msg);
-    err.at(FilePos {
+    let (line, col) = extract_file_pos(&err.unwrapped_text());
+    err.into_file_error(FilePos {
         filename: name.to_string(),
         line,
         column: col,
@@ -393,7 +471,30 @@ pub fn new_file_error_from_name(err: Error, name: &str) -> Error {
 // Go: common/herrors/file_error.go:NewFileErrorFromPos
 /// NewFileErrorFromPos uses the filename and line number from pos, wrapping err.
 pub fn new_file_error_from_pos(err: Error, pos: FilePos) -> Error {
-    err.at(pos)
+    err.into_file_error(pos)
+}
+
+// Go: errors/join.go:Join
+/// Join returns an error that wraps the given errors (`None` entries are discarded; `None` when
+/// nothing is left). Its text is the errors' texts joined by newlines. `errors.Is` sees every
+/// joined error (the kind is the first one that is not `Generic`), `UnwrapFileError` none (no
+/// position: `errors.Unwrap` of a join is nil).
+pub fn join(errs: impl IntoIterator<Item = Option<Error>>) -> Option<Error> {
+    let errs: Vec<Error> = errs.into_iter().flatten().collect();
+    if errs.is_empty() {
+        return None;
+    }
+    let kind = errs
+        .iter()
+        .map(|e| e.kind)
+        .find(|k| *k != ErrorKind::Generic)
+        .unwrap_or(ErrorKind::Generic);
+    let msg = errs
+        .iter()
+        .map(|e| e.to_string())
+        .collect::<Vec<_>>()
+        .join("\n");
+    Some(Error::with_kind(kind, msg))
 }
 
 // Go: common/herrors/file_error.go:extractFileTypePos (the message part)
@@ -526,7 +627,7 @@ pub fn extract_line_no(p: LineNumberPattern, msg: &str) -> (i64, i64) {
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
-// Error texts are not part of byte parity; the error model is simplified (module docs). Items
+// The error model is simplified, the error texts are Go's (module docs). Items
 // without a prefix need a filesystem and error-context rendering (only used to print a failing
 // build's error) and are not ported.
 // Source: common/herrors/errors.go (187 lines; 2/16 funcs executed)

@@ -874,11 +874,14 @@ Steps 1 → 3 → 5 must be strictly ordered. Nothing may evaluate the PostProce
 
 ## 9. Error handling and logging
 
-- One error type: `nh_common::herrors::Error { msg, kind: ErrorKind, pos: Option<FilePos> }` and
-  `nh_common::Result<T>`. `ErrorKind` covers the cases Go code branches on: `NotExist`,
-  `FeatureNotAvailable` (postcss missing → cache fallback), `Fatal` (filecache), `ExecNotFound`,
-  `Template`. Error **texts** are not part of parity, but keep Go's wording where cheap: it makes
-  diffs against Go logs easy.
+- One error type: `nh_common::herrors::Error` (message, `kind: ErrorKind`, optional position,
+  plus the `%w` prefixes around a positioned error) and `nh_common::Result<T>`. `ErrorKind` covers
+  the cases Go code branches on: `NotExist`, `FeatureNotAvailable` (postcss missing → cache
+  fallback), `Fatal` (filecache), `ExecNotFound`, `Template`.
+- Error **texts** can reach site output (`try` / `.Err` in templates), so they follow Go: a wrapped
+  positioned error prints `prefix: "file:l:c": msg`, `NewFileError*` wraps (an already-positioned
+  error gets a second position), `herrors::join` is `errors.Join`. Verified against Go by
+  nh-common's `herrors` oracle (see its PORTING.md).
 - Template-facing code returns `go_value::Result` (`GoResult`). `From` conversions go both ways,
   so `?` works across the boundary.
 - `nh_common::loggers::Logger`: levels, counters, stderr output. **An `ERROR` log fails the build**

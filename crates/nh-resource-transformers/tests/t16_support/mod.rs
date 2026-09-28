@@ -333,10 +333,9 @@ impl Site {
         v.replace(&self.dir, "$SITE").replace(&parent, "$TMP")
     }
 
-    /// An error text, normalized, with Go's order of a wrapped positioned error (see
-    /// [`canon_wrapped_file_error`]).
+    /// An error text, normalized.
     fn err_text(&self, e: &nh_common::Error) -> String {
-        canon_wrapped_file_error(&self.norm(&e.to_string()))
+        self.norm(&e.to_string())
     }
 
     /// Go: `Site.Run` of one case.
@@ -453,19 +452,6 @@ fn walk(fs: &dyn AferoFs, dir: &str, f: &mut dyn FnMut(&str, &[u8])) {
             f(&p, &b);
         }
     }
-}
-
-/// Known cross-crate text difference (reported to T01/T14): Go wraps a transformation error with
-/// `fmt.Errorf("%s: %w", prefix, fileErr)`, which reads `PREFIX: "file:line:col": msg`, while
-/// nh-common's `Error::wrap` keeps the position in front: `"file:line:col": PREFIX: msg`. This
-/// puts the Rust text in Go's order; nothing else is rewritten.
-pub fn canon_wrapped_file_error(s: &str) -> String {
-    static RE: std::sync::LazyLock<nh_common::goregexp::Regexp> = std::sync::LazyLock::new(|| {
-        nh_common::goregexp::Regexp::must_compile(
-            r#"(?s)^("[^"]*:\d+:\d+"): ([A-Z0-9-]+: failed to transform "(?:[^"\\]|\\.)*" \([^)]*\)): (.*)$"#,
-        )
-    });
-    RE.replace_all_string(s, "$2: $1: $3")
 }
 
 fn go_quote(s: &str) -> String {

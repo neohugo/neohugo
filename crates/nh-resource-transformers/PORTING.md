@@ -166,7 +166,8 @@ PORTING.md). Dependency added by T16: `go-fmt` (the `%q`/`%v` of `hugo:vars` val
    `neohugo-rs: css.TailwindCSS is not supported` / `neohugo-rs: js.Babel is not supported`.
 4. **LibSass errors** keep Go's position (file, line, column; the entry file's `stdin` becomes
    its real filename) and message; the error text is `"file:line:col": message` like Go's
-   `FileError` (see nh-esbuild deviation 5 for how nh-common's `wrap` orders the prefix).
+   `FileError`, and `TOCSS: failed to transform "…" (…): "file:line:col": message` once nh-resources
+   wraps it (nh-common's `wrap` keeps Go's order; the tests compare the texts as they are).
 
 ### Go behaviour reproduced on purpose
 

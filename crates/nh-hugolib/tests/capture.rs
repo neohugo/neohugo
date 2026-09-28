@@ -271,27 +271,8 @@ fn dump(b: &Built) -> J {
     json!({"trees": trees, "siteWalks": site_walks, "pages": pages})
 }
 
-/// Go wraps a file error (`"file:line:col": msg`) with `readAndProcessContent: `; nh-common's
-/// `Error` keeps the position separately and prints it first. The texts are otherwise equal.
-fn go_err_as_rust(s: &str) -> String {
-    const P: &str = "readAndProcessContent: \"";
-    if let Some(rest) = s.strip_prefix(P)
-        && let Some(i) = rest.find("\": ")
-    {
-        return format!(
-            "\"{}\": readAndProcessContent: {}",
-            &rest[..i],
-            &rest[i + 3..]
-        );
-    }
-    s.to_string()
-}
-
 fn run_case(name: &str) {
-    let mut fx = fixture(&format!("capture/{name}.json.gz"));
-    if let Some(e) = fx["err"].as_str() {
-        fx["err"] = json!(go_err_as_rust(e));
-    }
+    let fx = fixture(&format!("capture/{name}.json.gz"));
     let tmp = TempDir::new(&format!("capture-{name}"));
     let mut b = new_sites(&fx["site"], &tmp.0).unwrap_or_else(|e| panic!("{name}: {e}"));
     let res = nh_hugolib::build_process::process(&mut b.h, &BuildCfg::default());

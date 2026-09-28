@@ -79,9 +79,8 @@ JavaScript API does:
    `js.Batch` only). `validate` keeps the `AbsWorkingDir` check.
 5. **Error texts.** `createErr` builds a positioned `nh_common::Error` (`"file:line:col": msg`)
    where Go builds a `FileError` with the file content; the position is the same (Go's simple line
-   matcher never moves it). When nh-resources wraps it (`JSBUILD: failed to transform …`),
-   nh-common's `Error::wrap` prints the position first, where Go prints the prefix first (reported
-   to T01/T14; the tests put the Rust text in Go's order).
+   matcher never moves it). When nh-resources wraps it, the text is Go's
+   (`JSBUILD: failed to transform "…" (…): "file:line:col": msg`, nh-common's `Error::wrap`).
 6. **Protocol decoding** returns `None` where Go panics (unknown tag, truncated bool) and refuses
    values nested deeper than 10,000 levels (esbuild never sends them).
 

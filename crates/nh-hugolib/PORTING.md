@@ -142,9 +142,8 @@ Construction (`HugoSites::new` = Go `NewHugoSites` + `newHugoSites`) and `proces
   `index.md` at the content root (leaf-bundle home warning), `lang`/`kind`/`path` front matter
   (`lang` of a disabled language drops the page), taxonomy detection by character prefix
   (`/tagsfoo` is under `/tags`), term values from the unnormalized base.
-- Error texts: Go wraps a file error as `readAndProcessContent: "file:l:c": msg`; nh-common's
-  `Error` prints the position first (`"file:l:c": readAndProcessContent: msg`). The test maps
-  one to the other; the texts are otherwise identical.
+- Error texts: a file error wrapped by `process` reads `readAndProcessContent: "file:l:c": msg`
+  as in Go (nh-common's `Error::wrap`); the capture test compares the texts unchanged.
 
 ### Deviations
 
