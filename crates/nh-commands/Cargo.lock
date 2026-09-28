@@ -400,8 +400,10 @@ dependencies = [
 name = "nh-helpers"
 version = "0.1.0"
 dependencies = [
+ "go-path",
  "go-strconv",
  "go-time",
+ "go-unicode",
  "go-url",
  "go-value",
  "nh-common",

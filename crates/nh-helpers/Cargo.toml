@@ -18,13 +18,20 @@ nh-markup = { path = "../nh-markup" }
 go-url = { path = "../go-url" }
 go-time = { path = "../go-time" }
 go-strconv = { path = "../go-strconv" }
+go-path = { path = "../go-path" }
+go-unicode = { path = "../go-unicode" }
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   md-5 (source.File.UniqueID)
+# crates.io: none directly. MD5 (source.File.UniqueID) comes through nh-common's hashing
+# (go-hashstructure's `md-5`, allowed by README rule 2).
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# gunzip of the fixtures (decompression only; README rule 2).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# sha256 of the cached response bodies in the tests (README rule 2).
+sha2 = "0.10"
+nh-langs = { path = "../nh-langs" }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]
