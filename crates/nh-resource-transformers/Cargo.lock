@@ -287,7 +287,12 @@ checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 name = "nh-allconfig"
 version = "0.1.0"
 dependencies = [
+ "go-json",
+ "go-path",
+ "go-sort",
+ "go-strconv",
  "go-time",
+ "go-unicode",
  "go-value",
  "nh-common",
  "nh-config",

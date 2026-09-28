@@ -322,7 +322,12 @@ dependencies = [
 name = "nh-allconfig"
 version = "0.1.0"
 dependencies = [
+ "go-json",
+ "go-path",
+ "go-sort",
+ "go-strconv",
  "go-time",
+ "go-unicode",
  "go-value",
  "nh-common",
  "nh-config",
