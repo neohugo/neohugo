@@ -129,7 +129,7 @@ Legend:
    - Each task has concrete oracle and acceptance tests. The critical path is in `HUGO_LAYER.md` §12.
    - Wire the Wave A dependencies into the nh-* `Cargo.toml` files as each lands.
    - Deep input: Go grows goroutine stacks to 1 GB, and the Rust ports recurse wherever Go does in nested minifier calls, the JS parser/printer and gotemplate exec. Run minification, JS processing and template execution on threads with large stacks (the JS crates and tdewolff-minify tests use 1 GiB; see each PORTING.md "stack" notes).
-   - Named basic types (`time.Month`, `time.Weekday`, `time.Duration`, `hstring.HTML`, `VersionString`, …): hosts must implement go-value's `Object::underlying` for them, or go-fmt prints them as structs. gotemplate's comparisons, go-json and go-hashstructure do not read `underlying` yet; extend them when the first such host type lands.
+   - Named basic types (`time.Month`, `time.Weekday`, `time.Duration`, `hstring.HTML`, `VersionString`, …): hosts must implement go-value's `Object::underlying` for them (nh-common's `hstring.HTML`, `maps.ParamsMergeStrategy` and css types do). go-fmt, gotemplate (truthiness, `len`, builtin comparisons) and go-json (marshal, omitempty/omitzero) read it; go-hashstructure does not yet, and T18's `eq`/`lt`/… must.
    - Go panics that the ports reproduce on purpose (for example tdewolff-minify's `url:local('` in CSS, `css/css.go:748`): a Go build crashes on them, so the Hugo layer must decide whether to let the panic propagate (parity) or catch it per page.
 4. **Integration.**
    - Merge all crates into one root Cargo workspace (drop the per-crate `[workspace]` tables).
