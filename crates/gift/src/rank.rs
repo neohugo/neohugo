@@ -6,7 +6,7 @@ use go_image::{Image, Rectangle, draw, rect};
 
 use crate::gift::{DEFAULT_OPTIONS, Filter, Options};
 use crate::pixels::{Pixel, PixelGetter, PixelSetter};
-use crate::utils::{copyimage, gen_disk, is_opaque, maxf32, minf32, parallelize, sort};
+use crate::utils::{add_sub, copyimage, gen_disk, is_opaque, maxf32, minf32, parallelize, sort};
 
 /// Go: rank.go:rankMode
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -84,8 +84,8 @@ impl Filter for RankFilter {
                 for y in start..stop {
                     // Init buffer.
                     pxbuf.clear();
-                    for i in srcb.min.x - kradius..=srcb.min.x + kradius {
-                        for j in y - kradius..=y + kradius {
+                    for i in srcb.min.x.wrapping_sub(kradius)..=srcb.min.x.wrapping_add(kradius) {
+                        for j in y.wrapping_sub(kradius)..=y.wrapping_add(kradius) {
                             let (mut kx, mut ky) = (i, j);
                             if kx < srcb.min.x {
                                 kx = srcb.min.x;
@@ -170,19 +170,19 @@ impl Filter for RankFilter {
                         }
 
                         pix_setter.set_pixel(
-                            dstb.min.x + x - srcb.min.x,
-                            dstb.min.y + y - srcb.min.y,
+                            add_sub(dstb.min.x, x, srcb.min.x),
+                            add_sub(dstb.min.y, y, srcb.min.y),
                             Pixel::new(r, g, b, a),
                         );
 
                         // Rotate buffer columns.
                         if x < srcb.max.x - 1 {
                             pxbuf.drain(0..ksize as usize);
-                            let mut kx = x + 1 + kradius;
+                            let mut kx = x.wrapping_add(1).wrapping_add(kradius);
                             if kx > srcb.max.x - 1 {
                                 kx = srcb.max.x - 1;
                             }
-                            for j in y - kradius..=y + kradius {
+                            for j in y.wrapping_sub(kradius)..=y.wrapping_add(kradius) {
                                 let mut ky = j;
                                 if ky < srcb.min.y {
                                     ky = srcb.min.y;

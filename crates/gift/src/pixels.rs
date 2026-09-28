@@ -577,7 +577,7 @@ impl<'a> PixelSetter<'a> {
         let mut x = self.bounds.min.x;
         for px in buf {
             self.set_pixel(x, y, *px);
-            x += 1;
+            x = x.wrapping_add(1);
         }
     }
 
@@ -586,7 +586,7 @@ impl<'a> PixelSetter<'a> {
         let mut y = self.bounds.min.y;
         for px in buf {
             self.set_pixel(x, y, *px);
-            y += 1;
+            y = y.wrapping_add(1);
         }
     }
 

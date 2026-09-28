@@ -12,7 +12,9 @@ use go_image::{Image, Rectangle, draw, rect};
 use crate::gift::{DEFAULT_OPTIONS, Filter, Options};
 use crate::gomath;
 use crate::pixels::{ImageType, Pixel, PixelGetter, PixelSetter};
-use crate::utils::{absf32, copyimage_filter, expf32, logf32, maxf32, minf32, parallelize, powf32};
+use crate::utils::{
+    absf32, add_sub, copyimage_filter, expf32, logf32, maxf32, minf32, parallelize, powf32,
+};
 
 /// Go: colors.go:prepareLut
 pub(crate) fn prepare_lut(lut_size: i64, f: &dyn Fn(f32) -> f32) -> Vec<f32> {
@@ -96,8 +98,8 @@ impl Filter for ColorchanFilter {
                             px.b = (self.f)(px.b);
                         }
                         pix_setter.set_pixel(
-                            dstb.min.x + x - srcb.min.x,
-                            dstb.min.y + y - srcb.min.y,
+                            add_sub(dstb.min.x, x, srcb.min.x),
+                            add_sub(dstb.min.y, y, srcb.min.y),
                             px,
                         );
                     }
@@ -266,8 +268,8 @@ impl Filter for ColorFilter {
                     for x in srcb.min.x..srcb.max.x {
                         let px = pix_getter.get_pixel(x, y);
                         pix_setter.set_pixel(
-                            dstb.min.x + x - srcb.min.x,
-                            dstb.min.y + y - srcb.min.y,
+                            add_sub(dstb.min.x, x, srcb.min.x),
+                            add_sub(dstb.min.y, y, srcb.min.y),
                             (self.f)(px),
                         );
                     }

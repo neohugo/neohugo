@@ -106,7 +106,13 @@ func genVal16(r *rng, vmode int) uint16 {
 
 // genColor returns a palette colour. valid: premultiplied colours are valid.
 func genColor(r *rng, vmode, amode int, valid bool) color.Color {
-	switch r.intn(6) {
+	return genColorK(r, r.intn(6), vmode, amode, valid)
+}
+
+// genColorK returns a colour of kind k (0..5, see genColor; redteam.go adds
+// kinds 6..10).
+func genColorK(r *rng, k, vmode, amode int, valid bool) color.Color {
+	switch k {
 	case 0:
 		c := color.RGBA{genVal(r, vmode), genVal(r, vmode), genVal(r, vmode), genAlpha8(r, amode)}
 		if valid {

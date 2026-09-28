@@ -32,9 +32,11 @@ pub(crate) fn parallelize(enabled: bool, start: i64, stop: i64, f: impl FnMut(i6
     split_range(start, stop, procs, f);
 }
 
-/// Go: utils.go:splitRange
+/// Go: utils.go:splitRange. Go's `int` arithmetic wraps (e.g. a stop of
+/// `dstb.Min.Y+h` beyond the int range, resize.go:resizeNearest), so the
+/// arithmetic is `wrapping_*`; the parts are then empty ranges, as in Go.
 pub(crate) fn split_range(start: i64, stop: i64, n: i64, mut f: impl FnMut(i64, i64)) {
-    let count = stop - start;
+    let count = stop.wrapping_sub(start);
     if count < 1 {
         return;
     }
@@ -52,10 +54,28 @@ pub(crate) fn split_range(start: i64, stop: i64, n: i64, mut f: impl FnMut(i64, 
 
     for i in 0..n {
         f(
-            start + i * div + minint(i, m),
-            start + (i + 1) * div + minint(i + 1, m),
+            start
+                .wrapping_add(i.wrapping_mul(div))
+                .wrapping_add(minint(i, m)),
+            start
+                .wrapping_add((i + 1).wrapping_mul(div))
+                .wrapping_add(minint(i + 1, m)),
         );
     }
+}
+
+/// Go's `a + b - c` on `int` (wrapping, evaluated left to right): the
+/// destination coordinate `dstb.Min.X + x - srcb.Min.X` of most filters.
+#[inline]
+pub(crate) fn add_sub(a: i64, b: i64, c: i64) -> i64 {
+    a.wrapping_add(b).wrapping_sub(c)
+}
+
+/// Go's `a + b - c - 1` on `int` (wrapping, left to right): the mirrored
+/// coordinates of transform.go (`dstb.Min.X + srcb.Max.X - srcx - 1`).
+#[inline]
+pub(crate) fn add_sub_1(a: i64, b: i64, c: i64) -> i64 {
+    a.wrapping_add(b).wrapping_sub(c).wrapping_sub(1)
 }
 
 /// Go: utils.go:absf32
@@ -219,8 +239,8 @@ pub(crate) fn copyimage(dst: &mut dyn draw::Image, src: &dyn Image, options: Opt
         |start, stop| {
             for srcy in start..stop {
                 for srcx in srcb.min.x..srcb.max.x {
-                    let dstx = dstb.min.x + srcx - srcb.min.x;
-                    let dsty = dstb.min.y + srcy - srcb.min.y;
+                    let dstx = add_sub(dstb.min.x, srcx, srcb.min.x);
+                    let dsty = add_sub(dstb.min.y, srcy, srcb.min.y);
                     pix_setter.set_pixel(dstx, dsty, pix_getter.get_pixel(srcx, srcy));
                 }
             }

@@ -85,6 +85,15 @@ go tool objdump -s 'neohugo/resources/images\.' oracle_arm64      #  15
 go tool objdump -s '^math\.' oracle_arm64                          #  68 (67 reachable from gift)
 ```
 
+`zig cc -O2` (cgo's default `CGO_CFLAGS` is `-g -O2`) defines `NDEBUG`,
+which cgo's own clang/gcc does not, so C `assert`s compile away. The gift
+oracle links C only through gowebp's libwebp (pulled in by
+`neohugo/resources/images`), which no gift command calls, so it does not
+affect any gift output. The fixtures above were generated with the plain
+wrapper. For a cgo oracle whose output runs through C code with asserts,
+add `-UNDEBUG` to the wrapper (`exec zig cc -target aarch64-linux-musl
+"$@" -UNDEBUG`).
+
 The fusion rules are per architecture, not per OS (the linux/arm64 oracle
 reproduces every checked-in darwin/arm64 fixture exactly, see
 Verification). For every site the operands were read from the disassembly
@@ -174,7 +183,7 @@ fused site.
 assembly for `Exp` and `Log` (`exp_amd64.s`, `log_amd64.s`) besides not
 fusing, so amd64 differs in the math functions too.
 
-## Deliberate deviations (none changes output bytes)
+## Deliberate deviations (none changes output bytes but the nil-colour case, 9)
 
 1. **Parallelism.** `parallelize` splits the range exactly like Go
    (`GOMAXPROCS` parts via `splitRange`) but runs the parts in order on the
@@ -206,14 +215,34 @@ fusing, so amd64 differs in the math functions too.
 7. **Integer conversions.** `f32 as i64` saturates and maps NaN to 0, which
    is arm64's `FCVTZS` (Go on amd64 returns `0x8000000000000000` instead;
    for the setters' clamping the result is the same, e.g. the NaN pixels of
-   a transparent-over-transparent Over blend).
+   a transparent-over-transparent Over blend). Go's `int` arithmetic wraps,
+   and gift relies on it for coordinates near the ends of the int range
+   (`dstb.Min.X+x-srcb.Min.X` of two far origins, `Min.X-kradius`,
+   `dstb.Min.Y+h` of resizeNearest, anchorPt's `b.Max.X-w` for a huge
+   CropToSize): those sites use `wrapping_*` (`utils::add_sub`,
+   `utils::add_sub_1`), so builds with overflow checks (the crate's own test
+   profile) behave like Go instead of panicking. (Release builds wrapped
+   already.)
 8. **Panics are kept.** Where Go panics (a LUT index out of range for
    channel values > 1, i.e. invalid premultiplied RGBA/RGBA64/Paletted input
-   through a LUT filter; out-of-range palette indexes), the port panics too.
+   through a LUT filter; out-of-range palette indexes; negative-origin
+   YCbCr chroma offsets; `image.Paletted.Opaque` of a palette with more than
+   256 entries, reached through the rank filters' `isOpaque`; a rank filter
+   whose `Min.X-kradius` wraps; a blur sigma whose kernel size overflows),
+   the port panics too. The red-team fixture checks this for 127 such
+   cases.
+9. **nil colours (known divergence).** A `Paletted` image with an *empty*
+   palette read through gift's generic path (a type-hiding wrapper, i.e.
+   `Paletted.At`) returns a nil `color.Color` in Go, and gift's
+   `pixelFromColor(nil)` panics (nil dereference). go-image's closed
+   `Color` enum cannot express nil and returns transparent black
+   (go-image deviation 3), so the port does not panic there. Hugo's
+   decoders never produce an empty palette; the red-team generators avoid
+   this one combination.
 
 ## Tests and verification
 
-`cargo test` (offline, no Go): 76 tests.
+`cargo test` (offline, no Go): 81 tests.
 
 | test | what |
 |---|---|
@@ -222,7 +251,10 @@ fusing, so amd64 differs in the math functions too.
 | `tests/synth.rs` | `synth 8000 1`: random 0–3-filter chains (every filter, every resampling kernel incl. Hugo's, both operators of DrawAt) over generated images of 18 kinds (every standard type, all six YCbCr ratios, NYCbCrA 4:4:4/4:2:0, paletted; invalid premultiplied colours, odd and negative origins) into the 10 settable destination types |
 | `tests/real.rs` | 1152 ops on 9 real images (crops of seeksnack JPEGs with 4:4:4/4:2:0/4:2:2 chroma, the NRGBA watermark, RGB/paletted/RGBA PNGs, gift's `src.png`): the Hugo pipeline (box resizes, same-size copy, watermark overlays), two resizes per resampling filter, ResizeToFill/Fit and every other gift filter |
 | `tests/setter.rs` | every setter over 65536 adversarial float32 values (rounding boundaries ±4 ulps, out of range, NaN, ±Inf, denormals) + large DrawAt Over cases over every destination type |
-| `tests/math.rs`, `tests/digests.rs` (`math_digest_fixture`) | `gomath` against Go: 20000 vectors of Exp/Log/Pow/Sin/Cos/Sincos (specials, random bits, ranges) + dense sweeps (92 FNV digests of up to 2^20 results each) |
+| `tests/math.rs`, `tests/digests.rs` (`math_digest_fixture`) | `gomath` against Go: 20000 vectors of Exp/Log/Pow/Sin/Cos/Sincos (specials, random bits, ranges) + dense sweeps (92 FNV digests of up to 2^20 results each); `math_fma_witnesses`: `mathwitness.tsv`, 7 inputs where an unfused Log (`t1` outer term) or Sin (third coefficient) gives a different float64 |
+| `tests/redteam.rs` (`redteam_fixture`) | `redteam.tsv.gz`, 15932 red-team cases (below): every image kind incl. sub-images, type-hiding wrappers, all YCbCr/NYCbCrA ratios, palettes of every colour kind and > 256 entries, far origins; extreme parameters (NaN, ±Inf, huge, denormal, -0); chains of up to 6 filters; resampling extremes; DrawAt into every destination kind; Hugo-shaped pipelines; 5000 `Bounds` cases; 127 cases where Go panics (expected `panic`); and the 81 FMA-witness cases |
+| `tests/redteam.rs` (`regression_*`) | `regressions.tsv`: the two red-team bugs, one case per overflowing site |
+| `tests/redteam.rs` (`redteam_big`, `GIFT_REDTEAM_BIG`) | red-team corpora, out of the repo |
 | `tests/kernels.rs`, `digests.rs` (`kernel_digest_fixture`) | all 16 kernels over 20000 inputs + every 64th float32 in [0, 4.5] (and a negative sweep) |
 | `digests.rs` (`weights`, `rotbounds`) | 1-row/1-column resizes over 3901 size pairs × 16 kernels; Rotate bounds over 2221 angles × ~1400 sizes |
 | `tests/site.rs` (`GIFT_SITE_DIR`) | the full seeksnack corpus, out of the repo (below) |
@@ -246,10 +278,13 @@ darwin/arm64. Regenerated in this session with the linux/arm64 oracle under
 qemu, all are identical: synth 8000/8000, math 20000/20000, kernels
 20016/20016, setter 60/60, real 1152/1152 (from the dumps, `realops`),
 weights 17/17 and kerneldigest 288/288 and mathdigest 92/92 and rotbounds
-3/3 chunk digests. The native amd64 oracle differs from them in 1569 synth
-cases, 2068 math rows, 4033 kernel rows, 23 setter cases, 131 real ops, 15
-weights, 3 rotbounds, 11 kerneldigest and 58 mathdigest chunks — which is
-why float-sensitive fixtures must never be generated by amd64 Go.
+3/3 chunk digests (and again with the red-team pass's oracle build). The
+red-team fixtures (`redteam.tsv.gz`, `regressions.tsv`, `mathwitness.tsv`)
+come from that linux/arm64 oracle. The native amd64 oracle differs from
+the darwin/arm64 fixtures in 1569 synth cases, 2068 math rows, 4033 kernel
+rows, 23 setter cases, 131 real ops, 15 weights, 3 rotbounds, 11
+kerneldigest and 58 mathdigest chunks — which is why float-sensitive
+fixtures must never be generated by amd64 Go.
 
 **Out-of-repo runs** (all 0 mismatches):
 
@@ -271,46 +306,77 @@ why float-sensitive fixtures must never be generated by amd64 Go.
 
 Each of the 125 `mul_add` calls in `src/` (90 in gift + Hugo's kernels, 35
 in `gomath`) was replaced, one at a time, by the unfused `x*y + z`, and the
-checked-in suite was run (then, for survivors, the out-of-repo arm64 runs).
-The disassembly above is the evidence that every site is fused; this
-measures how much of it the tests would catch on their own.
+checked-in suite was run. The disassembly above is the evidence that every
+site is fused; this measures how much of it the tests would catch on their
+own. (Site numbers below are the order of the `.mul_add(` calls in
+`pixels.rs, colors.rs, convolution.rs, gift.rs, resize.rs, transform.rs,
+hugo_resampling.rs, gomath.rs`; the red-team pass re-ran all 48 sites the
+checked-in suite did not kill before against its new tests.)
 
-* **77 killed by the checked-in tests**, among them everything on the
-  golden build's path except the setters' `+ 0.5` (below): resizeLine, the
-  resample `center`, DrawAt Over (all five), and further the Gray setter
-  luma, rotatePoint, the interpolations, convolution, unsharp, Sepia, HSL,
-  Sigmoid, Colorize r/g, bcspline's `x` terms and its `-b-6c`, the kernels'
-  Blackman `0.08*cos` term, exp's outer terms, log's `R`/`hfsq`
-  combination, the sin/cos outer terms and `y*PI4C`.
-* **9 more killed only by the out-of-repo arm64 runs.** synth300k:
-  getPaletteIndex's first add (10 of 300,000 cases), the `f32u8` setter
-  rounding (2 cases; it matters only for products within ~2^-25 below 0.5,
-  where the unfused sum rounds up to 1), Contrast for 0 ≤ p ≤ 1 (23),
-  Grayscale/Threshold's blue term (16), Colorize's blue channel (30),
-  Sobel green/blue (9, 8). mathdigest64: log's outer `t1` term and the
-  third sin coefficient term. The synth lines that kill them exist
-  (from the linux/arm64 oracle); they are not checked in because new
-  fixtures must be platform-independent and these differ on amd64 by
-  construction.
-* **21 equivalent (no input can tell them apart):** the six
-  `float32(n)/2 - 0.5` offsets and Hann's `0.5*cos + 0.5` / Blackman's
-  `0.5*cos` (exact products); bcspline's seven coefficient sites (for the
-  four (B, C) pairs gift and Hugo use, the unfused coefficient rounds to the
-  same float32 — any change would alter every kernel value);
-  `x - k*Ln2Hi` in exp and `k*Ln2Hi - …` in log, `y*PI4A` and `y*PI4B` in
-  the sin/cos reduction (constants with trailing zero bits: exact
-  products), cos's `1 - 0.5*zz`, pow's `x1 += x1` (`fma(x, x, RN(x²)) =
-  2·RN(x²)`).
-* **18 not observed.** The `f32u16` setter and getFromLut's index (the same
-  0/1 boundary as `f32u8`, never hit; the first session's experiment found
-  that the setter fusion changes none of the 1461 golden images either); ColorspaceLinearToSRGB's float64
-  `FNMSUBD` (checked exhaustively: 2 of the 1.14e9 positive float32 inputs
-  above 0.0031308 give a different float32, both > 2e9, outside any
-  channel range); Hamming's window (exhaustively, 2 of the 1.08e9 float32
-  in [0, 3) change the window by one ulp); exp's `Log2e*x ± 0.5` and the
-  inner polynomial terms of exp (3), log (4), sin (2) and cos (3), whose
-  rounding differences are absorbed by the outer terms in all 1.48e9
-  mathdigest64 values.
+* **88 killed by the checked-in tests** (77 before the red-team pass),
+  among them everything on the golden build's path: resizeLine, the
+  resample `center`, DrawAt Over (all five), the setters' `+ 0.5`, and
+  further the Gray setter luma, rotatePoint, the interpolations,
+  convolution, unsharp, Sepia, HSL, Sigmoid, Colorize, bcspline's `x` terms
+  and its `-b-6c`, the kernels' Blackman `0.08*cos` term, exp's outer
+  terms, log's `R`/`hfsq` combination, the sin/cos outer terms and
+  `y*PI4C`. The 11 added by the red-team pass, all from linux/arm64 (qemu)
+  output:
+  * in `redteam.tsv.gz`, 25 lines of the arm64 `synth 300000 12345` run
+    (the smallest of the lines that kill each site): getPaletteIndex's
+    first add (site 0), the `f32u8` setter rounding (3), Contrast for
+    0 ≤ p ≤ 1 (10), Grayscale/Threshold's blue term (12), Colorize's blue
+    channel (28), Sobel green and blue (39, 40);
+  * the `witness()` cases (`gift rtwitness`): float32 pixels found by an
+    exact search for which `f32u8(r*fa)` of the RGBA setter and
+    `f32u16(r*fa)` of the RGBA64 setter truncate differently fused and
+    unfused (`fa = a*255` or `a*65535`, rounded; e.g. RGBA64
+    r = `0x391fc3d7`, a = `0x3d4d1ab7`: 0 fused, 1 unfused). This kills the
+    `f32u16` site (4) and kills `f32u8` (3) a second time. The single-variable products
+    (`v*255`, `v*65535` of NRGBA/NRGBA64/Gray/generic setters) have no
+    float32 witness: their one candidate near 0.5 misses the window;
+  * Hamming's window (87): the exhaustive float32 sweep finds 2 of the
+    1,077,936,128 inputs in [0, 3) where the kernel value changes
+    (0.053204764, 0.20666514); a search of every size pair up to 600×600
+    finds that resizing a width of 423 to 364 evaluates the kernel at
+    exactly −0.053204764 (i = 259, j = 301), and 423→364 Hamming resizes
+    of random NRGBA64/NRGBA rows kill the mutant;
+  * `mathwitness.tsv` (`gift mathin`): log's outer `t1` term (98, 4 inputs
+    from the mathdigest64 sweep) and the third sin coefficient term (111,
+    3 inputs).
+* **25 equivalent (no input can tell them apart, or none that gift can
+  produce):** the six `float32(n)/2 - 0.5` offsets and Hann's
+  `0.5*cos + 0.5` / Blackman's `0.5*cos` (exact products); bcspline's seven
+  coefficient sites (for the four (B, C) pairs gift and Hugo use, the
+  unfused coefficient rounds to the same float32 — any change would alter
+  every kernel value); `x - k*Ln2Hi` in exp and `k*Ln2Hi - …` in log,
+  `y*PI4A` and `y*PI4B` in the sin/cos reduction (constants with trailing
+  zero bits: exact products), cos's `1 - 0.5*zz`, pow's `x1 += x1`
+  (`fma(x, x, RN(x²)) = 2·RN(x²)`); and, shown in the red-team pass:
+  * getFromLut's index (7): fused and unfused `int(u*N + 0.5)` differ only
+    for `u*N` within (2^-25, 1.5·2^-25) below 0.5 (at every other n + 0.5
+    the unfused sum is exact). Of all getter values, only YCbCr's
+    `float32(V)*inv` can come near that window (NRGBA/Gray give k/255,
+    RGBA r/a ≥ 1/255, the 16-bit types k/65535 or r/a ≥ 1/65535), and its
+    only candidate, V = 50000 (e.g. Y=222, Cb=131), lies exactly on the tie
+    2^-25 below 0.5, where both round the same;
+  * ColorspaceLinearToSRGB's float64 `FNMSUBD` (8): all 204,656,868
+    float32 inputs in (0.0031308, 65535] (the largest channel value a
+    getter can return is 65535, an RGBA64 r/a with a = 1) give the same
+    float32;
+  * exp's `Log2e*x ∓ 0.5` (90, 91): fused and unfused `int(k)` can only
+    differ where `Log2e*x ± 0.5` crosses ±1 (the one place where
+    `RN(Log2e*x) ± 0.5` is inexact); a scan of ±20,000 ulps around every
+    boundary `(n ± 0.5)/Log2e`, n = −1100…1100 (176M inputs) finds no
+    input where `k` differs.
+* **12 not observed:** the inner polynomial terms of exp (93–95), log
+  (99–102), sin (112, 113) and cos (118–120). Their rounding differences
+  are scaled by powers of `r²`/`s⁴`/`z²` before the outer terms and are
+  absorbed by the final rounding (an estimate for exp's P3 term gives
+  ~1e-14 per input); none differs in the 1.48e9 mathdigest64 values or in
+  a targeted native search (3M inputs per function per site: exp near
+  its reduction boundaries, log near 1 and over all exponents, sin/cos up
+  to 1e15, pow over gift's channel values).
 
 ### Regenerating fixtures
 
@@ -347,7 +413,138 @@ types with float estimates), only their content; the Rust reader
 decompresses. `gotestdata/LICENSE-gift` is gift's MIT license (the goldens
 are its test data); `src.png` is `real/giftsrc.gz`.
 
-## Changes in this pass
+Red-team fixtures (linux/arm64 under qemu; `rtrun.py` is the crash-tolerant
+driver, see "Red-team pass"). Each regenerates from itself, so the check is
+that the output is identical:
+
+```sh
+R=tools/go-oracle/gift/rtrun.py
+python3 $R "$O" $F/redteam.tsv.gz /tmp/rt.tsv && zcat $F/redteam.tsv.gz | cmp - /tmp/rt.tsv
+python3 $R "$O" $F/regressions.tsv /tmp/rg.tsv && cmp $F/regressions.tsv /tmp/rg.tsv
+$O mathin $F/mathwitness.tsv | cmp - $F/mathwitness.tsv
+$O rtwitness                  # the witness() lines inside redteam.tsv.gz
+```
+
+`redteam.tsv.gz` was assembled (then `gzip -9`) from these arm64 runs, in
+this order, dropping repeated cases: the 25 synth300k FMA-killer lines
+(`synth 300000 12345`, indices 10908 … 284468, see "Mutation testing"),
+`rtwitness`, 32 423→364 Hamming resizes (`rtrun` of hand-written lines),
+`rtbounds 2000 1`, the first 3000 lines of `rtbounds 1000000 701`,
+`rtgen far 3000 1` (all 3000) and case 22046 of `rtgen far 50000 601`, the
+first 2500 / 2500 / 1500 / 200 lines of `synth2 100000 101`,
+`params 100000 201`, `drawat 100000 301`, `hugo 20000 401`, the 150
+resample cases with the smallest source of `resample 5000 502`, and the
+first 1000 of `panic 20000 802` (`rtgen` + `rtrun.py` for the draw modes;
+`rtgen <mode> <n> <seed>` regenerates the case lines of each run).
+`regressions.tsv` is one line per site the red-team fixes touched, from
+the same far and bounds runs.
+
+## Red-team pass (independent)
+
+An adversarial pass that extended the oracle with new generators
+(`tools/go-oracle/gift/redteam.go`) and replayed their output through the
+port. Every expected value came from the **linux/arm64** oracle under
+`qemu-aarch64-static` (built as in "FMA sites"), which first reproduced
+every checked-in fixture byte for byte.
+
+**Generators** (`gift rt <mode> <n> <seed>`, `gift rtbounds`). The Rust
+side only parses their lines (`tests/common/mod.rs`: `gen_image_x`,
+`parse_filter_x`); image specs gain `w.<typ>` (a type-hiding wrapper: the
+generic getter/setter and no `Opaque`), `<typ>@x0/y0/x1/y1` (a `SubImage`
+of a larger parent, sometimes partly outside it), `nycbcra422/440/411/410`,
+`palettedx` (palettes of every colour kind incl. Gray16, Alpha16, CMYK,
+YCbCr, NYCbCrA, up to 300 entries), `palettedoor` (indexes beyond the
+palette), `palettedempty`, `rectimg` (`image.Rectangle` as an image);
+rotate background colours of every kind; `witness()` and `overlayg(…)`
+(Hugo's overlayFilter over a generated image).
+
+| mode | what |
+|---|---|
+| `synth2` | 0–6 filter chains, every filter with parameters at and beyond their bounds (NaN, ±Inf, ±MaxFloat32, denormals, −0, 1e10, 16777217, huge ints for Crop/CropToSize/Pixelate, anchors −1…10, interpolations −1…3, convolution kernels of 0–51 entries with NaN/Inf weights), all 16 kernels, every source kind above (origins up to ±1000 and ±2^40) into every destination kind, Draw and DrawAt |
+| `params` | one or two filters with extreme parameters over ≤ 12×12 images |
+| `resample` | Resize/ResizeToFit/ResizeToFill (every anchor)/Resize+CropToSize, all 16 kernels: 1→3000 and 20000→1 strips both ways, prime sizes, strips to strips, one side 0, kernel support wider than the source |
+| `drawat` | DrawAt, both operators, every destination kind (sub-images, wrappers, palettes > 256), points inside, outside, at Min and ±1000 away |
+| `hugo` | the images Hugo's decoders return, Hugo's filters with template-like parameters and every resampling name, doFilter's destination rule, overlays |
+| `far` | sources, destinations and DrawAt points near ±2^62, ±2^63 |
+| `panic` | out-of-range palette indexes, empty palettes, negative-origin YCbCr, LUT filters over invalid premultiplied input, blur sigmas whose kernel size overflows |
+| `rtbounds` | `GIFT.Bounds` of 1–4 filter chains with huge/negative ints and angles over rects with coordinates up to ±2^63 |
+
+A Go panic inside gift's `parallelize` goroutines cannot be recovered and
+runs the goroutine's `defer wg.Done()` first, so the main goroutine could
+print a partial digest before the process dies. Cases are therefore run
+by `rtrun.py`, which drives `gift rtrun` with `GOMAXPROCS=1` (the panicking
+goroutine then reaches the exit without being descheduled), records a
+crashing case as `panic` and restarts after it; results were checked to be
+deterministic across repeated runs.
+
+**Runs (all on the arm64 oracle; results after the fixes below).**
+
+| mode | seeds × cases | cases | Go panics (expected `panic`) |
+|---|---|---|---|
+| `synth2` | 101–106 × 100,000 | 600,000 | 19 |
+| `params` | 201–203 × 100,000 | 300,000 | 13 |
+| `drawat` | 301–303 × 100,000 | 300,000 | 3 |
+| `far` | 601 × 50,000, 602 × 100,000 | 150,000 | 27 |
+| `hugo` | 401–403 × 20,000 | 60,000 | 0 |
+| `resample` | 501 (first 3,133; stopped to bound ResizeToFill's temporary), 502, 503 × 5,000 | 13,133 | 0 |
+| `panic` | 801 (first 1,760), 802 (first 1,643), 803 × 3,000 | 6,403 | 817 |
+| `rtbounds` | 701, 702 × 1,000,000 | 2,000,000 | — |
+| `synth` (the original generator) | 12345 (the previous pass's arm64 corpus, regenerated), 777 × 300,000 | 600,000 | — |
+| smoke runs (seed 1, earlier generator versions) | 2,000 each of synth2/params/drawat/hugo/resample/rtbounds, 3,000 far, 500 panic | 15,500 | 60 |
+
+That is about 2.04M draw cases and 2.0M `Bounds` cases, with **0
+differences** from arm64 Go after the two fixes below (every Go panic is
+matched by a Rust panic), except 4 smoke `panic` cases that hit the
+nil-colour divergence (deviation 9), which the generators avoid since.
+Out of the repo, `GIFT_REDTEAM_BIG` replays the gzipped outputs
+(`GIFT_SYNTH_BIG` for `synth`).
+
+**Bugs found and fixed.** Both are integer overflows that Go wraps and the
+port turned into panics under overflow checks (the crate's `[profile.test]`
+and any debug build); release builds wrapped already and produced Go's
+bytes. No output difference was found in release semantics.
+
+1. `transform.go:anchorPt` (CropToSize, ResizeToFill): `b.Max.X - w`,
+   `b.Min.X + (b.Dx()-w)/2` for a huge width/height or a source rect whose
+   `Dx` overflows (e.g. `rtbounds` case 412: CropToSize(2^62, 2^40,
+   Bottom) over (MinInt64,861)-(2,1279) gives Go `0,0,1375,398` after
+   later filters; the port panicked). Fix: `wrapping_*` in
+   `transform.rs:anchor_pt`. Test: `regression_crop_to_size_anchor_wraps`.
+2. Coordinate arithmetic near the ends of the int range (images and DrawAt
+   points at ±2^62…±2^63, e.g. a DrawAt into an image at x ≈ MaxInt64−40):
+   `dstb.Min.X+x-srcb.Min.X` of copyimage, colorchanFilter, colorFilter,
+   convolutionFilter, convolve1dh/1dv, unsharp, Sobel, rankFilter, crop,
+   resizeHorizontal/Vertical; `dstb.Min.X+srcb.Max.X-srcx-1` of the
+   transforms; convolution's `starty+i-kcenter`, `x+w.u`,
+   `y+ksize/2+1`; rank's `Min.X±kradius`, `x+1+kradius`; resizeNearest's
+   `dstb.Min.Y+h` loop bound and `dsty-dstb.Min.Y`; rotate's
+   `dstb.Min.X+x`; interpolateCubic/Linear's `Min.X-1` and `x0+j-1`;
+   splitRange; setPixelRow/Column's `x++`. 813 of the first 3000 `far`
+   cases panicked. Fix: `wrapping_*` in Go's evaluation order
+   (`utils::add_sub`, `utils::add_sub_1`). Test:
+   `regression_far_origin_coordinates_wrap` (one case per site).
+
+**Go panics reproduced** (127 in the fixture; the port panics in the same
+cases): out-of-range palette indexes, negative-origin YCbCr chroma
+offsets, the `image.Paletted.Opaque` index panic for palettes with more
+than 256 entries (via the rank filters' `isOpaque`; go-image reproduces
+it), rank filters whose `Min.X-kradius` wraps (the init loop does not run
+and `pxbuf[...]` panics), LUT indexes of invalid premultiplied input and
+`makeslice` for sigmas of ±Inf/1e20/MaxFloat32.
+
+**Left unfixed:** the nil-colour case (deviation 9). Also theoretical and
+not tested: a rank filter whose `Min.X+kradius` is exactly MaxInt64 loops
+forever in Go (`i <= MaxInt64`); the port's inclusive range terminates.
+
+**Other checks.** The fused-instruction inventory of the arm64 build
+matches the tables above exactly (gift 119, resampling.go 15, math 68, same
+source lines). The FMA witness searches of "Mutation testing" (exact
+float32 setter/LUT search, exhaustive float32 Hamming and LinearToSRGB
+sweeps, the resize size-pair search, the exp boundary scan and the gomath
+mutant searches) are scratch programs over the crate, not checked in;
+their witnesses are.
+
+## Changes in the verification pass (before the red-team)
 
 * Ported all of gift's Go tests (`src/go_tests/`, `tests/go_golden.rs`);
   `get_sub_image` split out of `DrawAt` so TestSubImage can test it;
@@ -371,14 +568,14 @@ are its test data); `src.png` is `real/giftsrc.gz`.
 
 * The seeksnack site corpus was not re-run in this session (the site repo
   was not attached); its 603-image result is the first session's.
-* No independent red-team pass yet (this pass added the qemu-based arm64
-  regeneration, the large arm64 runs and the mutation testing, but no new
-  adversarial generators).
-* 9 FMA sites are caught only by out-of-repo runs and 18 by none (see
-  "Mutation testing"); their fusion rests on the disassembly. A small
-  arm64-generated witness fixture (the ~100 synth300k lines that kill the
-  9) would close the first group if FMA-dependent fixtures produced by
-  the linux/arm64 oracle under qemu are accepted.
+* 12 FMA sites (the inner polynomial terms of exp, log, sin and cos) are
+  observed by no test; their fusion rests on the disassembly, and their
+  effect is below every output rounding found so far (see "Mutation
+  testing").
+* nil colours (deviation 9) and other custom Go `color.Color`
+  implementations cannot be expressed with go-image's closed `Color` set.
+* The wrapping audit covers gift; go-image's own draw loops keep their
+  documented debug-build overflow gap (go-image PORTING.md).
 * The getPaletteIndex sites only matter for Paletted destinations (GIF,
   not used by seeksnack).
 * `BenchmarkFilter` is not ported (performance only). The sequential

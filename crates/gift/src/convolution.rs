@@ -14,7 +14,7 @@ use go_image::{Image, Rectangle, draw, rect};
 use crate::gift::{DEFAULT_OPTIONS, Filter, Options};
 use crate::gomath;
 use crate::pixels::{Pixel, PixelGetter, PixelSetter};
-use crate::utils::{absf32, copyimage, create_temp_image, gen_disk, parallelize, sqrtf32};
+use crate::utils::{absf32, add_sub, copyimage, create_temp_image, gen_disk, parallelize, sqrtf32};
 
 /// Go: convolution.go:uweight
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -135,7 +135,7 @@ impl Filter for ConvolutionFilter {
                 let starty = start;
                 let mut rows: Vec<Vec<Pixel>> = Vec::with_capacity(ksize as usize);
                 for i in 0..ksize {
-                    let mut rowy = starty + i - kcenter;
+                    let mut rowy = add_sub(starty, i, kcenter);
                     if rowy < srcb.min.y {
                         rowy = srcb.min.y;
                     } else if rowy > srcb.max.y - 1 {
@@ -151,7 +151,7 @@ impl Filter for ConvolutionFilter {
                     for x in srcb.min.x..srcb.max.x {
                         let (mut r, mut g, mut b, mut a) = (0f32, 0f32, 0f32, 0f32);
                         for w in &weights {
-                            let mut wx = x + w.u;
+                            let mut wx = x.wrapping_add(w.u);
                             if wx < srcb.min.x {
                                 wx = srcb.min.x;
                             } else if wx > srcb.max.x - 1 {
@@ -188,8 +188,8 @@ impl Filter for ConvolutionFilter {
                             a = rows[kcenter as usize][(x - srcb.min.x) as usize].a;
                         }
                         pix_setter.set_pixel(
-                            dstb.min.x + x - srcb.min.x,
-                            dstb.min.y + y - srcb.min.y,
+                            add_sub(dstb.min.x, x, srcb.min.x),
+                            add_sub(dstb.min.y, y, srcb.min.y),
                             Pixel::new(r, g, b, a),
                         );
                     }
@@ -197,7 +197,7 @@ impl Filter for ConvolutionFilter {
                     // Rotate temporary rows.
                     if y < stop - 1 {
                         let mut tmprow = rows.remove(0);
-                        let mut nextrowy = y + ksize / 2 + 1;
+                        let mut nextrowy = y.wrapping_add(ksize / 2).wrapping_add(1);
                         if nextrowy > srcb.max.y - 1 {
                             nextrowy = srcb.max.y - 1;
                         }
@@ -316,7 +316,7 @@ pub(crate) fn convolve_1dv(
             for x in start..stop {
                 pix_getter.get_pixel_column(x, &mut src_buf);
                 convolve_line(&mut dst_buf, &src_buf, &weights);
-                pix_setter.set_pixel_column(dstb.min.x + x - srcb.min.x, &dst_buf);
+                pix_setter.set_pixel_column(add_sub(dstb.min.x, x, srcb.min.x), &dst_buf);
             }
         },
     );
@@ -351,7 +351,7 @@ pub(crate) fn convolve_1dh(
             for y in start..stop {
                 pix_getter.get_pixel_row(y, &mut src_buf);
                 convolve_line(&mut dst_buf, &src_buf, &weights);
-                pix_setter.set_pixel_row(dstb.min.y + y - srcb.min.y, &dst_buf);
+                pix_setter.set_pixel_row(add_sub(dstb.min.y, y, srcb.min.y), &dst_buf);
             }
         },
     );
@@ -484,8 +484,8 @@ impl Filter for UnsharpMaskFilter {
                         let a = unsharp(px_orig.a, px_blur.a, self.amount, self.threshold);
 
                         pixel_setter.set_pixel(
-                            dstb.min.x + x - srcb.min.x,
-                            dstb.min.y + y - srcb.min.y,
+                            add_sub(dstb.min.x, x, srcb.min.x),
+                            add_sub(dstb.min.y, y, srcb.min.y),
                             Pixel::new(r, g, b, a),
                         );
                     }
@@ -630,8 +630,8 @@ impl Filter for HvConvolutionFilter {
                         let g = sqrtf32(pxh.g.mul_add(pxh.g, pxv.g * pxv.g));
                         let b = sqrtf32(pxh.b.mul_add(pxh.b, pxv.b * pxv.b));
                         pix_setter.set_pixel(
-                            dstb.min.x + x - srcb.min.x,
-                            dstb.min.y + y - srcb.min.y,
+                            add_sub(dstb.min.x, x, srcb.min.x),
+                            add_sub(dstb.min.y, y, srcb.min.y),
                             Pixel::new(r, g, b, pxh.a),
                         );
                     }

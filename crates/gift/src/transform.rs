@@ -14,7 +14,7 @@ use go_image::{Image, Point, Rectangle, draw, pt, rect};
 
 use crate::gift::{DEFAULT_OPTIONS, Filter, Options};
 use crate::pixels::{Pixel, PixelGetter, PixelSetter, pixel_from_color};
-use crate::utils::{floorf32, maxf32, minf32, parallelize, sincosf32};
+use crate::utils::{add_sub, add_sub_1, floorf32, maxf32, minf32, parallelize, sincosf32};
 
 /// Go: transform.go:transformType
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -67,32 +67,32 @@ impl Filter for TransformFilter {
                     for srcx in srcb.min.x..srcb.max.x {
                         let (dstx, dsty) = match self.tt {
                             TransformType::Rotate90 => (
-                                dstb.min.x + srcy - srcb.min.y,
-                                dstb.min.y + srcb.max.x - srcx - 1,
+                                add_sub(dstb.min.x, srcy, srcb.min.y),
+                                add_sub_1(dstb.min.y, srcb.max.x, srcx),
                             ),
                             TransformType::Rotate180 => (
-                                dstb.min.x + srcb.max.x - srcx - 1,
-                                dstb.min.y + srcb.max.y - srcy - 1,
+                                add_sub_1(dstb.min.x, srcb.max.x, srcx),
+                                add_sub_1(dstb.min.y, srcb.max.y, srcy),
                             ),
                             TransformType::Rotate270 => (
-                                dstb.min.x + srcb.max.y - srcy - 1,
-                                dstb.min.y + srcx - srcb.min.x,
+                                add_sub_1(dstb.min.x, srcb.max.y, srcy),
+                                add_sub(dstb.min.y, srcx, srcb.min.x),
                             ),
                             TransformType::FlipHorizontal => (
-                                dstb.min.x + srcb.max.x - srcx - 1,
-                                dstb.min.y + srcy - srcb.min.y,
+                                add_sub_1(dstb.min.x, srcb.max.x, srcx),
+                                add_sub(dstb.min.y, srcy, srcb.min.y),
                             ),
                             TransformType::FlipVertical => (
-                                dstb.min.x + srcx - srcb.min.x,
-                                dstb.min.y + srcb.max.y - srcy - 1,
+                                add_sub(dstb.min.x, srcx, srcb.min.x),
+                                add_sub_1(dstb.min.y, srcb.max.y, srcy),
                             ),
                             TransformType::Transpose => (
-                                dstb.min.x + srcy - srcb.min.y,
-                                dstb.min.y + srcx - srcb.min.x,
+                                add_sub(dstb.min.x, srcy, srcb.min.y),
+                                add_sub(dstb.min.y, srcx, srcb.min.x),
                             ),
                             TransformType::Transverse => (
-                                dstb.min.y + srcb.max.y - srcy - 1,
-                                dstb.min.x + srcb.max.x - srcx - 1,
+                                add_sub_1(dstb.min.y, srcb.max.y, srcy),
+                                add_sub_1(dstb.min.x, srcb.max.x, srcx),
                             ),
                         };
                         pix_setter.set_pixel(dstx, dsty, pix_getter.get_pixel(srcx, srcy));
@@ -252,7 +252,11 @@ impl Filter for RotateFilter {
                         _ => interpolate_nearest(xf, yf, srcb, &pix_getter, bgpx),
                     };
 
-                    pix_setter.set_pixel(dstb.min.x + x, dstb.min.y + y, px);
+                    pix_setter.set_pixel(
+                        dstb.min.x.wrapping_add(x),
+                        dstb.min.y.wrapping_add(y),
+                        px,
+                    );
                 }
             }
         });
@@ -273,8 +277,8 @@ fn interpolate_cubic(
 
     let (x0, y0) = (floorf32(xf) as i64, floorf32(yf) as i64);
     if !pt(x0, y0).in_(rect(
-        bounds.min.x - 1,
-        bounds.min.y - 1,
+        bounds.min.x.wrapping_sub(1),
+        bounds.min.y.wrapping_sub(1),
         bounds.max.x,
         bounds.max.y,
     )) {
@@ -284,7 +288,7 @@ fn interpolate_cubic(
 
     for i in 0..4 {
         for j in 0..4 {
-            let p = pt(x0 + j - 1, y0 + i - 1);
+            let p = pt(x0.wrapping_add(j - 1), y0.wrapping_add(i - 1));
             if p.in_(bounds) {
                 pxs[(i * 4 + j) as usize] = pix_getter.get_pixel(p.x, p.y);
             } else {
@@ -345,8 +349,8 @@ fn interpolate_linear(
 
     let (x0, y0) = (floorf32(xf) as i64, floorf32(yf) as i64);
     if !pt(x0, y0).in_(rect(
-        bounds.min.x - 1,
-        bounds.min.y - 1,
+        bounds.min.x.wrapping_sub(1),
+        bounds.min.y.wrapping_sub(1),
         bounds.max.x,
         bounds.max.y,
     )) {
@@ -356,7 +360,7 @@ fn interpolate_linear(
 
     for i in 0..2 {
         for j in 0..2 {
-            let p = pt(x0 + j, y0 + i);
+            let p = pt(x0.wrapping_add(j), y0.wrapping_add(i));
             if p.in_(bounds) {
                 pxs[(i * 2 + j) as usize] = pix_getter.get_pixel(p.x, p.y);
             } else {
@@ -447,8 +451,8 @@ impl Filter for CropFilter {
             |start, stop| {
                 for srcy in start..stop {
                     for srcx in srcb.min.x..srcb.max.x {
-                        let dstx = dstb.min.x + srcx - srcb.min.x;
-                        let dsty = dstb.min.y + srcy - srcb.min.y;
+                        let dstx = add_sub(dstb.min.x, srcx, srcb.min.x);
+                        let dsty = add_sub(dstb.min.y, srcy, srcb.min.y);
                         pix_setter.set_pixel(dstx, dsty, pix_getter.get_pixel(srcx, srcy));
                     }
                 }
@@ -490,18 +494,23 @@ pub const BOTTOM_ANCHOR: Anchor = Anchor(7);
 /// Go: transform.go:BottomRightAnchor
 pub const BOTTOM_RIGHT_ANCHOR: Anchor = Anchor(8);
 
-/// Go: transform.go:anchorPt
+/// Go: transform.go:anchorPt. Go's `int` arithmetic wraps (CropToSize with a
+/// huge width or height, or bounds whose Dx overflows), so every operation
+/// is `wrapping_*` (a plain `-` panics in builds with overflow checks).
 pub(crate) fn anchor_pt(b: Rectangle, w: i64, h: i64, anchor: Anchor) -> Point {
+    // b.Min.X + (b.Dx()-w)/2 (b.Dx() itself wraps in go-image).
+    let mid_x = || b.min.x.wrapping_add(b.dx().wrapping_sub(w) / 2);
+    let mid_y = || b.min.y.wrapping_add(b.dy().wrapping_sub(h) / 2);
     let (x, y) = match anchor {
         TOP_LEFT_ANCHOR => (b.min.x, b.min.y),
-        TOP_ANCHOR => (b.min.x + (b.dx() - w) / 2, b.min.y),
-        TOP_RIGHT_ANCHOR => (b.max.x - w, b.min.y),
-        LEFT_ANCHOR => (b.min.x, b.min.y + (b.dy() - h) / 2),
-        RIGHT_ANCHOR => (b.max.x - w, b.min.y + (b.dy() - h) / 2),
-        BOTTOM_LEFT_ANCHOR => (b.min.x, b.max.y - h),
-        BOTTOM_ANCHOR => (b.min.x + (b.dx() - w) / 2, b.max.y - h),
-        BOTTOM_RIGHT_ANCHOR => (b.max.x - w, b.max.y - h),
-        _ => (b.min.x + (b.dx() - w) / 2, b.min.y + (b.dy() - h) / 2),
+        TOP_ANCHOR => (mid_x(), b.min.y),
+        TOP_RIGHT_ANCHOR => (b.max.x.wrapping_sub(w), b.min.y),
+        LEFT_ANCHOR => (b.min.x, mid_y()),
+        RIGHT_ANCHOR => (b.max.x.wrapping_sub(w), mid_y()),
+        BOTTOM_LEFT_ANCHOR => (b.min.x, b.max.y.wrapping_sub(h)),
+        BOTTOM_ANCHOR => (mid_x(), b.max.y.wrapping_sub(h)),
+        BOTTOM_RIGHT_ANCHOR => (b.max.x.wrapping_sub(w), b.max.y.wrapping_sub(h)),
+        _ => (mid_x(), mid_y()),
     };
     pt(x, y)
 }

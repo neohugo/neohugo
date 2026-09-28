@@ -1,5 +1,7 @@
 //! Differential test of the Go math port (gift::gomath) against go1.27.1
-//! darwin/arm64: tools/go-oracle/gift `math 20000`.
+//! darwin/arm64: tools/go-oracle/gift `math 20000`, plus `mathwitness.tsv`
+//! (`gift mathin`, linux/arm64): inputs where an unfused port of one of
+//! arm64 Go's FMA sites in Log or Sin gives a different result.
 
 mod common;
 
@@ -16,8 +18,17 @@ fn same(got: f64, want: f64) -> bool {
 
 #[test]
 fn math_vectors() {
-    let rows = read_tsv(&fixtures_dir().join("math.tsv.gz"));
-    assert!(rows.len() >= 20000);
+    check_file("math.tsv.gz", 20000);
+}
+
+#[test]
+fn math_fma_witnesses() {
+    check_file("mathwitness.tsv", 7);
+}
+
+fn check_file(name: &str, min_rows: usize) {
+    let rows = read_tsv(&fixtures_dir().join(name));
+    assert!(rows.len() >= min_rows);
     let mut bad = 0;
     let mut nan_payload = 0;
     for row in &rows {

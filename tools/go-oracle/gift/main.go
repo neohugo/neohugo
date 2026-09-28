@@ -23,6 +23,13 @@
 //	gift kerneldigest <stride>        # chunked digests of every kernel over float32 sweeps
 //	gift weights                      # chunked digests of 1-row resizes over many size pairs
 //	gift rotbounds                    # chunked digest of Rotate bounds
+//	gift rt <mode> <n> <seed>         # red-team cases (redteam.go) with digests
+//	gift rtgen <mode> <n> <seed>      # red-team cases without running them
+//	gift rtrun <file> <start>         # run case lines (crash-tolerant driver)
+//	gift rtone <line>                 # re-run one red-team line, print all pixels
+//	gift rtbounds <n> <seed>          # Bounds of chains with extreme parameters
+//	gift rtwitness                    # the witness() setter-rounding cases
+//	gift mathin <file>                # math rows for listed x, y bit patterns
 package main
 
 import (
@@ -86,6 +93,8 @@ func main() {
 		weightsDigest()
 	case "rotbounds":
 		rotBoundsDigest()
+	case "rt", "rtgen", "rtrun", "rtone", "rtbounds", "rtwitness", "mathin":
+		rtMain(os.Args[1:])
 	default:
 		fmt.Fprintln(os.Stderr, "unknown command", os.Args[1])
 		os.Exit(2)

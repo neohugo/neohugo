@@ -128,7 +128,13 @@ fn gen_val16(r: &mut Rng, vmode: i64) -> u16 {
 
 // Go: gen.go:genColor
 pub fn gen_color(r: &mut Rng, vmode: i64, amode: i64, valid: bool) -> Color {
-    match r.intn(6) {
+    let k = r.intn(6);
+    gen_color_k(r, k, vmode, amode, valid)
+}
+
+// Go: gen.go:genColorK
+pub fn gen_color_k(r: &mut Rng, k: i64, vmode: i64, amode: i64, valid: bool) -> Color {
+    match k {
         0 => {
             let mut c = color::RGBA {
                 r: gen_val(r, vmode),
@@ -410,7 +416,7 @@ pub fn gen_image(s: &ImgSpec) -> TestImage {
             }
             TestImage::Plain(Box::new(m))
         }
-        "nycbcra444" | "nycbcra420" => {
+        "nycbcra444" | "nycbcra420" | "nycbcra422" | "nycbcra440" | "nycbcra411" | "nycbcra410" => {
             let mut m = NYCbCrA::new(s.rect, ycbcr_ratio(&s.typ));
             if !s.blank {
                 fill8(r, &mut m.ycbcr.y, s.vmode);
@@ -914,4 +920,344 @@ pub fn setter_table() -> Vec<f32> {
         *slot = f32::from_bits(bits);
     }
     tab
+}
+
+// ---------------------------------------------------------------------------
+// Red-team spec grammar (Go: redteam.go). The generators live only in Go;
+// the Rust tests replay their lines.
+
+/// Go: redteam.go:wrapImg — hides the concrete type (generic getter, no
+/// Opaque method).
+pub struct WrapImg(pub Box<dyn Image>);
+
+impl Image for WrapImg {
+    fn color_model(&self) -> color::Model {
+        self.0.color_model()
+    }
+    fn bounds(&self) -> Rectangle {
+        self.0.bounds()
+    }
+    fn at(&self, x: i64, y: i64) -> Color {
+        self.0.at(x, y)
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+        self
+    }
+}
+
+/// Go: redteam.go:wrapDraw — hides the concrete type of a settable image
+/// (generic getter and setter).
+pub struct WrapDraw(pub Box<dyn draw::Image>);
+
+impl Image for WrapDraw {
+    fn color_model(&self) -> color::Model {
+        self.0.color_model()
+    }
+    fn bounds(&self) -> Rectangle {
+        self.0.bounds()
+    }
+    fn at(&self, x: i64, y: i64) -> Color {
+        self.0.at(x, y)
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+        self
+    }
+}
+
+impl draw::Image for WrapDraw {
+    fn set(&mut self, x: i64, y: i64, c: Color) {
+        self.0.set(x, y, c)
+    }
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
+// Go: redteam.go:parseSlashRect
+fn parse_slash_rect(s: &str) -> Rectangle {
+    let f: Vec<i64> = s.split('/').map(pi).collect();
+    assert_eq!(f.len(), 4, "bad rect {}", s);
+    rect(f[0], f[1], f[2], f[3])
+}
+
+/// Go: `parent.(subImager).SubImage(r)` for every sub-imageable type.
+fn sub_image_of(img: TestImage, r: Rectangle) -> TestImage {
+    macro_rules! try_draw {
+        ($m:expr, $($t:ty),*) => {
+            $(if let Some(m) = $m.downcast_ref::<$t>() {
+                return TestImage::Draw(Box::new(m.sub_image(r)));
+            })*
+        };
+    }
+    match img {
+        TestImage::Draw(m) => {
+            let m: &dyn Image = &*m;
+            try_draw!(
+                m, NRGBA, RGBA, NRGBA64, RGBA64, Gray, Gray16, CMYK, Alpha, Alpha16, Paletted
+            );
+            panic!("no SubImage");
+        }
+        TestImage::Plain(m) => {
+            if let Some(m) = m.downcast_ref::<YCbCr>() {
+                return TestImage::Plain(Box::new(m.sub_image(r)));
+            }
+            if let Some(m) = m.downcast_ref::<NYCbCrA>() {
+                return TestImage::Plain(Box::new(m.sub_image(r)));
+            }
+            panic!("no SubImage");
+        }
+    }
+}
+
+/// Go: redteam.go:genImageX
+pub fn gen_image_x(s: &ImgSpec) -> TestImage {
+    let mut typ = s.typ.as_str();
+    let wrap = typ.starts_with("w.");
+    if wrap {
+        typ = &typ[2..];
+    }
+    let img = if let Some(at) = typ.find('@') {
+        let mut ps = s.clone();
+        ps.typ = typ[..at].to_string();
+        ps.rect = parse_slash_rect(&typ[at + 1..]);
+        sub_image_of(gen_image_base(&ps), s.rect)
+    } else {
+        let mut ps = s.clone();
+        ps.typ = typ.to_string();
+        gen_image_base(&ps)
+    };
+    if wrap {
+        return match img {
+            TestImage::Draw(m) => TestImage::Draw(Box::new(WrapDraw(m))),
+            TestImage::Plain(m) => TestImage::Plain(Box::new(WrapImg(m))),
+        };
+    }
+    img
+}
+
+// Go: redteam.go:genImageBase
+fn gen_image_base(s: &ImgSpec) -> TestImage {
+    let r = &mut Rng::new(s.seed);
+    // (gen_image also handles every NYCbCrA ratio, Go's genImageBase does.)
+    match s.typ.as_str() {
+        "palettedx" | "palettedoor" => {
+            let p = gen_palette2(r, s.vmode, s.amode, s.valid);
+            let n = p.len() as i64;
+            let mut m = Paletted::new(s.rect, p);
+            if !s.blank {
+                for px in m.pix.iter_mut() {
+                    *px = if s.typ == "palettedoor" {
+                        r.byte()
+                    } else {
+                        r.intn(n) as u8
+                    };
+                }
+            }
+            TestImage::Draw(Box::new(m))
+        }
+        "palettedempty" => TestImage::Draw(Box::new(Paletted::new(s.rect, Palette(Vec::new())))),
+        "rectimg" => TestImage::Plain(Box::new(s.rect)),
+        "grayseq" => {
+            let mut m = Gray::new(s.rect);
+            for (i, p) in m.pix.iter_mut().enumerate() {
+                *p = i as u8;
+            }
+            TestImage::Draw(Box::new(m))
+        }
+        _ => gen_image(s),
+    }
+}
+
+// Go: redteam.go:genColor2
+pub fn gen_color2(r: &mut Rng, vmode: i64, amode: i64, valid: bool) -> Color {
+    let k = r.intn(11);
+    match k {
+        6 => Color::Gray16(color::Gray16 {
+            y: gen_val16(r, vmode),
+        }),
+        7 => Color::Alpha16(color::Alpha16 {
+            a: gen_alpha16(r, amode),
+        }),
+        8 => Color::CMYK(color::CMYK {
+            c: gen_val(r, vmode),
+            m: gen_val(r, vmode),
+            y: gen_val(r, vmode),
+            k: gen_val(r, vmode),
+        }),
+        9 => Color::YCbCr(color::YCbCr {
+            y: gen_val(r, vmode),
+            cb: gen_val(r, vmode),
+            cr: gen_val(r, vmode),
+        }),
+        10 => {
+            let y = gen_val(r, vmode);
+            let cb = gen_val(r, vmode);
+            let cr = gen_val(r, vmode);
+            Color::NYCbCrA(color::NYCbCrA {
+                ycbcr: color::YCbCr { y, cb, cr },
+                a: gen_alpha8(r, amode),
+            })
+        }
+        _ => gen_color_k(r, k, vmode, amode, valid),
+    }
+}
+
+// Go: redteam.go:genPalette2
+fn gen_palette2(r: &mut Rng, vmode: i64, amode: i64, valid: bool) -> Palette {
+    let n = match r.intn(4) {
+        0 => 1 + r.intn(2),
+        1 => 1 + r.intn(16),
+        2 => 1 + r.intn(256),
+        _ => 257 + r.intn(44),
+    };
+    let mut p = Vec::with_capacity(n as usize);
+    for _ in 0..n {
+        p.push(gen_color2(r, vmode, amode, valid));
+    }
+    Palette(p)
+}
+
+/// Go: redteam.go:parseColor2
+pub fn parse_color2(s: &str) -> Color {
+    let f: Vec<&str> = s.split('/').collect();
+    let u = |i: usize| -> i64 { pi(f[i]) };
+    match f[0] {
+        "gray16" => Color::Gray16(color::Gray16 { y: u(1) as u16 }),
+        "alpha16" => Color::Alpha16(color::Alpha16 { a: u(1) as u16 }),
+        "cmyk" => Color::CMYK(color::CMYK {
+            c: u(1) as u8,
+            m: u(2) as u8,
+            y: u(3) as u8,
+            k: u(4) as u8,
+        }),
+        "ycbcr" => Color::YCbCr(color::YCbCr {
+            y: u(1) as u8,
+            cb: u(2) as u8,
+            cr: u(3) as u8,
+        }),
+        "nycbcra" => Color::NYCbCrA(color::NYCbCrA {
+            ycbcr: color::YCbCr {
+                y: u(1) as u8,
+                cb: u(2) as u8,
+                cr: u(3) as u8,
+            },
+            a: u(4) as u8,
+        }),
+        _ => parse_color(s),
+    }
+}
+
+/// Go: redteam.go:witnessTab — float32 pixels (r, g, b, a bits) whose fused
+/// and unfused setter roundings differ (RGBA f32u8(r*fa), RGBA64
+/// f32u16(r*fa)).
+const WITNESS_TAB: [[u32; 4]; 5] = [
+    [0x3f000000, 0x3e800000, 0x3f400000, 0x3f800000],
+    [0x3d2026c5, 0x3d2026c5, 0x3d2026c5, 0x3d4d68a1],
+    [0x3d20086b, 0x3d20086b, 0x00000000, 0x3d4d8f96],
+    [0x391fc3d7, 0x391fc3d7, 0x391fc3d7, 0x3d4d1ab7],
+    [0x391f873d, 0x3d2026c5, 0x391f873d, 0x3d4d68a1],
+];
+
+/// Go: redteam.go:witnessFunc (no float arithmetic but the index).
+fn witness_filter() -> Arc<dyn Filter> {
+    gift::color_func(|r0, _g0, _b0, _a0| {
+        let k = ((r0 as f64) * 255.0).round() as usize;
+        let w = WITNESS_TAB[k % WITNESS_TAB.len()];
+        (
+            f32::from_bits(w[0]),
+            f32::from_bits(w[1]),
+            f32::from_bits(w[2]),
+            f32::from_bits(w[3]),
+        )
+    })
+}
+
+/// Go: redteam.go:parseFilterX
+pub fn parse_filter_x(s: &str) -> Arc<dyn Filter> {
+    if s == "witness()" {
+        return witness_filter();
+    }
+    if let Some(inner) = s.strip_prefix("rotate(") {
+        let a: Vec<&str> = inner[..inner.len() - 1].split(',').collect();
+        return gift::rotate(pf(a[0]), parse_color2(a[1]), gift::Interpolation(pi(a[2])));
+    }
+    if let Some(inner) = s.strip_prefix("overlayg(") {
+        let a: Vec<&str> = inner[..inner.len() - 1].split(',').collect();
+        let spec = ImgSpec {
+            typ: a[0].to_string(),
+            rect: rect(pi(a[1]), pi(a[2]), pi(a[3]), pi(a[4])),
+            seed: a[5].parse().unwrap(),
+            vmode: pi(a[6]),
+            amode: 2,
+            valid: true,
+            blank: false,
+        };
+        let src: Arc<dyn Image> = match gen_image_x(&spec) {
+            TestImage::Draw(m) => Arc::from(boxed_draw_to_image(m)),
+            TestImage::Plain(m) => Arc::from(m),
+        };
+        return Arc::new(OverlayFilter {
+            src,
+            x: pi(a[7]),
+            y: pi(a[8]),
+        });
+    }
+    parse_filter(s, &|n: &str| -> Arc<dyn Image> { panic!("no dump {}", n) })
+}
+
+pub fn parse_filters_x(s: &str) -> Vec<Arc<dyn Filter>> {
+    if s.is_empty() || s == "-" {
+        return Vec::new();
+    }
+    s.split('|').map(parse_filter_x).collect()
+}
+
+/// Go: redteam.go:digestX (wrappers are unwrapped).
+pub fn digest_x(img: &dyn Image) -> String {
+    if let Some(w) = img.downcast_ref::<WrapDraw>() {
+        return digest(&*w.0);
+    }
+    digest(img)
+}
+
+/// Go: redteam.go:runSynthX — the digest of one synth-format line.
+pub fn run_synth_x(row: &[String]) -> String {
+    let src = gen_image_x(&parse_img_spec(&row[2]));
+    let g = gift::new(parse_filters_x(&row[5]));
+    let mut dst = gen_image_x(&parse_img_spec(&row[3]));
+    if row[1] == "drawat" {
+        let f: Vec<&str> = row[4].split(',').collect();
+        let op = if pi(f[2]) == 1 {
+            gift::OVER_OPERATOR
+        } else {
+            gift::COPY_OPERATOR
+        };
+        g.draw_at(dst.draw_image(), src.image(), pt(pi(f[0]), pi(f[1])), op);
+    } else {
+        g.draw(dst.draw_image(), src.image());
+    }
+    digest_x(dst.image())
+}
+
+/// The result of one red-team line: the digest, `panic`, or for `bounds`
+/// lines the rectangle `x0,y0,x1,y1` (Go: redteam.go:rtBounds).
+pub fn run_redteam_line(row: &[String]) -> String {
+    let run = || {
+        if row[1] == "bounds" {
+            let r: Vec<i64> = row[2].split(',').map(pi).collect();
+            let b = gift::new(parse_filters_x(&row[5])).bounds(rect(r[0], r[1], r[2], r[3]));
+            return format!("{},{},{},{}", b.min.x, b.min.y, b.max.x, b.max.y);
+        }
+        run_synth_x(row)
+    };
+    match std::panic::catch_unwind(std::panic::AssertUnwindSafe(run)) {
+        Ok(d) => d,
+        Err(_) => "panic".to_string(),
+    }
 }

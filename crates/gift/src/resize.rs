@@ -16,7 +16,7 @@ use crate::gift::{DEFAULT_OPTIONS, Filter, Options};
 use crate::gomath;
 use crate::pixels::{Pixel, PixelGetter, PixelSetter};
 use crate::transform::{Anchor, crop_to_size};
-use crate::utils::{copyimage, create_temp_image, maxint, minint, parallelize};
+use crate::utils::{add_sub, copyimage, create_temp_image, maxint, minint, parallelize};
 
 /// Resampling is an interpolation algorithm used for image resizing.
 ///
@@ -293,7 +293,7 @@ pub(crate) fn resize_horizontal(
             for srcy in start..stop {
                 pix_getter.get_pixel_row(srcy, &mut src_buf);
                 resize_line(&mut dst_buf, &src_buf, &weights);
-                pix_setter.set_pixel_row(dstb.min.y + srcy - srcb.min.y, &dst_buf);
+                pix_setter.set_pixel_row(add_sub(dstb.min.y, srcy, srcb.min.y), &dst_buf);
             }
         },
     );
@@ -325,7 +325,7 @@ pub(crate) fn resize_vertical(
             for srcx in start..stop {
                 pix_getter.get_pixel_column(srcx, &mut src_buf);
                 resize_line(&mut dst_buf, &src_buf, &weights);
-                pix_setter.set_pixel_column(dstb.min.x + srcx - srcb.min.x, &dst_buf);
+                pix_setter.set_pixel_column(add_sub(dstb.min.x, srcx, srcb.min.x), &dst_buf);
             }
         },
     );
@@ -350,12 +350,12 @@ pub(crate) fn resize_nearest(
     parallelize(
         options.parallelization,
         dstb.min.y,
-        dstb.min.y + h,
+        dstb.min.y.wrapping_add(h),
         |start, stop| {
             for dsty in start..stop {
-                for dstx in dstb.min.x..dstb.min.x + w {
-                    let fx = (((dstx - dstb.min.x) as f64 + 0.5) * dx).floor();
-                    let fy = (((dsty - dstb.min.y) as f64 + 0.5) * dy).floor();
+                for dstx in dstb.min.x..dstb.min.x.wrapping_add(w) {
+                    let fx = ((dstx.wrapping_sub(dstb.min.x) as f64 + 0.5) * dx).floor();
+                    let fy = ((dsty.wrapping_sub(dstb.min.y) as f64 + 0.5) * dy).floor();
                     let srcx = srcb.min.x + fx as i64;
                     let srcy = srcb.min.y + fy as i64;
                     let px = pix_getter.get_pixel(srcx, srcy);
