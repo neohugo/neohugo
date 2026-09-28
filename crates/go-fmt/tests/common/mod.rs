@@ -60,6 +60,13 @@ pub struct Plain {
 }
 /// Go: `main.NM` as a Kind::Map object.
 pub struct NmObj(pub BTreeMap<GoString, Value>);
+/// Go: `*main.NilPanicStr`, `*main.NilOKStr`, `*main.NilPanicErr` and
+/// `*main.NilOKErr` (redteam.go): pointer-receiver hooks; their typed nils
+/// use the named-method registry (see [`register_test_types`]).
+pub struct NilHook {
+    pub ty: &'static str,
+    pub s: GoString,
+}
 /// Go: `main.NS` as a Kind::Slice object.
 pub struct NsObj(pub Vec<Value>);
 
@@ -197,6 +204,143 @@ fn any_field(v: &Value) -> Value {
     }
 }
 
+impl Object for NilHook {
+    fn type_name(&self) -> Cow<'_, str> {
+        Cow::Borrowed(self.ty)
+    }
+    fn go_string(&self) -> Option<GoString> {
+        match self.ty {
+            "*main.NilPanicStr" => Some(self.s.clone()),
+            "*main.NilOKStr" => {
+                let mut b = b"OK(".to_vec();
+                b.extend_from_slice(&self.s);
+                b.push(b')');
+                Some(b.into())
+            }
+            _ => None,
+        }
+    }
+    fn go_error(&self) -> Option<String> {
+        match self.ty {
+            "*main.NilPanicErr" => Some(self.s.to_str_lossy().into_owned()),
+            "*main.NilOKErr" => Some(format!("E({})", self.s.to_str_lossy())),
+            _ => None,
+        }
+    }
+    fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
+        let name = if self.ty.ends_with("Str") { "S" } else { "Msg" };
+        fields_s(name, &self.s)
+    }
+    no_methods!();
+}
+
+/// A value of a named basic type (redteam.go `nb` nodes): `time.Month`,
+/// `time.Weekday`, `time.Duration`, `main.HStr` (String), `main.Celsius`
+/// (String), `main.NStrErr` (Error) and the method-less `main.NInt`,
+/// `main.NUint`, `main.NF32`, `main.NBool`, `main.NStr`. The Go value
+/// converted to its underlying type is [`Object::underlying`].
+pub struct NamedBasic {
+    pub ty: String,
+    pub under: Value,
+}
+
+impl NamedBasic {
+    fn int(&self) -> i64 {
+        match self.under {
+            Value::Int(i, _) => i,
+            _ => 0,
+        }
+    }
+    fn str(&self) -> GoString {
+        match &self.under {
+            Value::String(s) => s.clone(),
+            _ => GoString::empty(),
+        }
+    }
+}
+
+impl Object for NamedBasic {
+    fn type_name(&self) -> Cow<'_, str> {
+        Cow::Borrowed(&self.ty)
+    }
+    fn kind(&self) -> Kind {
+        Kind::Struct
+    }
+    fn underlying(&self) -> Option<Value> {
+        Some(self.under.clone())
+    }
+    fn go_string(&self) -> Option<GoString> {
+        match self.ty.as_str() {
+            "time.Month" => Some(go_time::Month(self.int()).string().into()),
+            "time.Weekday" => Some(go_time::Weekday(self.int()).string().into()),
+            "time.Duration" => Some(go_time::Duration(self.int()).string().into()),
+            "main.HStr" => Some(self.str()),
+            "main.Celsius" => Some(
+                go_fmt::sprintf(
+                    "%.1f\u{b0}C",
+                    &[match self.under {
+                        Value::Float(f, _) => Value::float64(f),
+                        _ => Value::Invalid,
+                    }],
+                )
+                .into(),
+            ),
+            _ => None,
+        }
+    }
+    fn go_error(&self) -> Option<String> {
+        match self.ty.as_str() {
+            "main.NStrErr" => Some(format!("NE:{}", self.str().to_str_lossy())),
+            _ => None,
+        }
+    }
+    no_methods!();
+}
+
+fn len_of(v: &Value) -> usize {
+    match v {
+        Value::List(l) => l.items.len(),
+        Value::Map(m) => m.entries.len(),
+        _ => 0,
+    }
+}
+
+/// Registers the methods and kinds of the oracle's named types that the
+/// value model carries by name (redteam.go): the nil receivers of the
+/// `*main.Nil*` hook types (`None` = the method panics on nil), and
+/// `main.SS` (slice, value-receiver `String`) / `main.SM` (map,
+/// value-receiver `Error`).
+pub fn register_test_types() {
+    static ONCE: std::sync::Once = std::sync::Once::new();
+    ONCE.call_once(|| {
+        use go_fmt::{NamedMethod, register_named_method};
+        register_named_method("*main.NilPanicStr", NamedMethod::String(|_| None));
+        register_named_method(
+            "*main.NilOKStr",
+            NamedMethod::String(|_| Some(b"nil-ok".to_vec())),
+        );
+        register_named_method("*main.NilPanicErr", NamedMethod::Error(|_| None));
+        register_named_method(
+            "*main.NilOKErr",
+            NamedMethod::Error(|_| Some(b"nil-err".to_vec())),
+        );
+        register_named_method(
+            "main.SS",
+            NamedMethod::String(|v| {
+                let mut b = format!("SS<{}", len_of(v)).into_bytes();
+                b.extend_from_slice(b"\xff\"\t>");
+                Some(b)
+            }),
+        );
+        register_named_method(
+            "main.SM",
+            NamedMethod::Error(|v| Some(format!("SM({})", len_of(v)).into_bytes())),
+        );
+        go_value::register_named_kind("main.SS", go_fmt::NilKind::Slice);
+        go_value::register_named_kind("main.SM", go_fmt::NilKind::Map);
+    });
+}
+
 impl Object for NmObj {
     fn type_name(&self) -> Cow<'_, str> {
         Cow::Borrowed("main.NM")
@@ -297,6 +441,7 @@ impl Parser<'_> {
 }
 
 pub fn parse_spec(s: &str) -> Node {
+    register_test_types();
     let mut p = Parser {
         s: s.as_bytes(),
         pos: 0,
@@ -413,6 +558,9 @@ pub fn node_value(n: &Node) -> Value {
             } else if let Some(rest) = loc.strip_prefix("fixed=") {
                 let (name, off) = rest.split_once('=').unwrap();
                 Some(go_time::fixed_zone(name, off.parse().unwrap()))
+            } else if let Some(rest) = loc.strip_prefix("fixedhex=") {
+                let (name, off) = rest.split_once('=').unwrap();
+                Some(go_time::fixed_zone(&unhex_str(name), off.parse().unwrap()))
             } else if let Some(z) = loc.strip_prefix("zone=") {
                 Some(go_time::load_location(z).unwrap())
             } else {
@@ -425,6 +573,50 @@ pub fn node_value(n: &Node) -> Value {
         "obj_both" => Value::object(Both(unhex(p).into())),
         "obj_sv" => Value::object(Sv(unhex(p).into())),
         "obj_gs" => Value::object(Gs(unhex(p).into())),
+        "nest" => {
+            // Built iteratively: the value is N levels deep.
+            let (kind, count) = p.split_once(';').unwrap();
+            let mut v = node_value(&children()[0]);
+            for i in 0..count.parse::<usize>().unwrap() {
+                let k = if kind == "mix" {
+                    ["list", "map", "plain"][i % 3]
+                } else {
+                    kind
+                };
+                let kv = |v: Value| BTreeMap::from([(GoString::from("k"), v)]);
+                v = match k {
+                    "list" => Value::list(SliceType::Any, vec![v]),
+                    "map" => Value::map(Map::with_entries(MapType::StringAny, kv(v))),
+                    "plain" => Value::object(Plain {
+                        ptr: false,
+                        a: v,
+                        b: Value::Invalid,
+                    }),
+                    "ns" => Value::list(SliceType::Named(Arc::from("main.NS")), vec![v]),
+                    "nm" => Value::map(Map::with_entries(
+                        MapType::Named(Arc::from("main.NM")),
+                        kv(v),
+                    )),
+                    "objns" => Value::object(NsObj(vec![v])),
+                    "objnm" => Value::object(NmObj(kv(v))),
+                    other => panic!("bad nest kind {other:?}"),
+                };
+            }
+            v
+        }
+        "nb" => Value::object(NamedBasic {
+            ty: unhex_str(p),
+            under: node_value(&children()[0]),
+        }),
+        "obj_nps" | "obj_nos" | "obj_npe" | "obj_noe" => Value::object(NilHook {
+            ty: match n.name.as_str() {
+                "obj_nps" => "*main.NilPanicStr",
+                "obj_nos" => "*main.NilOKStr",
+                "obj_npe" => "*main.NilPanicErr",
+                _ => "*main.NilOKErr",
+            },
+            s: unhex(p).into(),
+        }),
         "obj_plain" | "obj_pplain" => {
             let cs = children();
             Value::object(Plain {
@@ -467,6 +659,129 @@ pub fn spec_args(s: &str) -> Vec<Value> {
         .iter()
         .map(node_value)
         .collect()
+}
+
+// ---------------------------------------------------------------------------
+// Case and matrix runners (shared by fuzz.rs and redteam.rs).
+
+/// Parses the "a-b,c" format-index ranges of a matrix line.
+pub fn parse_ranges(s: &str) -> Vec<(usize, usize)> {
+    if s.is_empty() {
+        return Vec::new();
+    }
+    s.split(',')
+        .map(|p| match p.split_once('-') {
+            Some((a, b)) => (a.parse().unwrap(), b.parse().unwrap()),
+            None => {
+                let a = p.parse().unwrap();
+                (a, a)
+            }
+        })
+        .collect()
+}
+
+/// The inline operand specs of a case line.
+pub fn args_of(field: &str) -> Vec<go_value::Value> {
+    if field.is_empty() {
+        return Vec::new();
+    }
+    field.split(' ').map(spec_value).collect()
+}
+
+/// Runs "fn \t format \t operands \t output [\t wrapped]" lines (operands
+/// are inline specs) and returns the number of cases and the failure
+/// descriptions.
+pub fn run_cases(cases: &str) -> (usize, Vec<String>) {
+    let mut failures = Vec::new();
+    let mut n = 0;
+    for line in cases.lines() {
+        let parts: Vec<&str> = line.split('\t').collect();
+        let fname = parts[0];
+        let format = unquote(parts[1]);
+        let args = args_of(parts[2]);
+        let want = unquote(parts[3]);
+        let got = match fname {
+            "sprint" => go_fmt::sprint(&args),
+            "sprintln" => go_fmt::sprintln(&args),
+            "sprintf" => go_fmt::sprintf(&format, &args),
+            "errorf" => {
+                let (msg, wrapped) = go_fmt::errorf(&format, &args);
+                let want_wrapped: Vec<usize> = if parts[4].is_empty() {
+                    vec![]
+                } else {
+                    parts[4].split(',').map(|x| x.parse().unwrap()).collect()
+                };
+                if wrapped != want_wrapped {
+                    failures.push(format!(
+                        "errorf {} {}: wrapped {:?} want {:?}",
+                        parts[1], parts[2], wrapped, want_wrapped
+                    ));
+                }
+                msg
+            }
+            other => panic!("unknown fn {other}"),
+        };
+        n += 1;
+        if got != want {
+            failures.push(format!(
+                "{fname} {} [{}]:\n  got  {}\n  want {}",
+                parts[1],
+                parts[2],
+                q(&got),
+                q(&want)
+            ));
+        }
+    }
+    (n, failures)
+}
+
+/// Panics with the first failures; `GO_FMT_FAIL_FILE=<file>` also writes
+/// all of them to a file.
+pub fn assert_no_failures(what: &str, failures: &[String]) {
+    if let Some(p) = std::env::var_os("GO_FMT_FAIL_FILE") {
+        std::fs::write(p, failures.join("\n")).unwrap();
+    }
+    assert!(
+        failures.is_empty(),
+        "{} {what} differ:\n{}",
+        failures.len(),
+        failures
+            .iter()
+            .take(60)
+            .cloned()
+            .collect::<Vec<_>>()
+            .join("\n")
+    );
+}
+
+/// Checks "spec \t fnv64 \t nondeterministic ranges" matrix lines: the
+/// FNV-1a hash over (length, output) of every format not listed as
+/// nondeterministic. Returns the number of outputs compared and the
+/// differing operands.
+pub fn check_matrix(formats: &[Vec<u8>], matrix: &str) -> (usize, Vec<String>) {
+    let mut failures = Vec::new();
+    let mut hashed = 0usize;
+    for (vi, line) in matrix.lines().enumerate() {
+        let parts: Vec<&str> = line.split('\t').collect();
+        assert_eq!(parts.len(), 3, "bad matrix line {line:?}");
+        let v = spec_value(parts[0]);
+        let want = u64::from_str_radix(parts[1], 16).unwrap();
+        let skip = parse_ranges(parts[2]);
+        let mut h = Fnv64::new();
+        for (fi, f) in formats.iter().enumerate() {
+            if skip.iter().any(|&(a, b)| a <= fi && fi <= b) {
+                continue;
+            }
+            let out = go_fmt::sprintf(f, std::slice::from_ref(&v));
+            h.write(&(out.len() as u64).to_le_bytes());
+            h.write(&out);
+            hashed += 1;
+        }
+        if h.0 != want {
+            failures.push(format!("#{vi} {}", parts[0]));
+        }
+    }
+    (hashed, failures)
 }
 
 /// FNV-1a 64 (Go: hash/fnv New64a).

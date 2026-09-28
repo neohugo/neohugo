@@ -23,11 +23,16 @@
 //     (see fuzz.go) with the default seed;
 //   - model_cases.txt: hand-picked operands for the value-model mappings
 //     (named collection Stringers, interface nils in containers, GoStringer,
-//     nil *time.Location), in the cases.txt format.
+//     nil *time.Location), in the cases.txt format;
+//   - redteam_cases.txt, redteam_matrix.txt, flagperm_matrix.txt, deep.txt:
+//     the red-team pass's vectors (see redteam.go).
 //
 // "fuzz" writes only the randomized vectors, with -seed, -n (cases),
 // -nmatrix (dense matrix operands) and -maxout; the Rust tests read them
 // from GO_FMT_FUZZ_DIR for large runs outside the checked-in fixtures.
+//
+// "redteam" and "flagperm" write red-team vectors under the same file
+// names (see redteam.go); "redteam" also takes -depth.
 //
 // "dump" prints Sprintf(format, operand) for every format of one operand
 // (Go-quoted, one per line); the Rust test writes the same file to
@@ -51,7 +56,7 @@ import (
 )
 
 func main() {
-	mode := flag.String("mode", "vectors", "vectors | dump | fuzz")
+	mode := flag.String("mode", "vectors", "vectors | dump | fuzz | redteam | flagperm")
 	dir := flag.String("dir", ".", "output directory for -mode vectors")
 	value := flag.Int("value", 0, "operand index for -mode dump")
 	scratch := flag.String("scratch", os.TempDir(), "scratch directory for the fmt_test.go table program")
@@ -60,6 +65,7 @@ func main() {
 	nMatrix := flag.Int("nmatrix", 300, "number of random operands of the dense matrix for -mode fuzz")
 	maxOut := flag.Int("maxout", 4000, "longest output kept by -mode fuzz")
 	flag.StringVar(&fuzzMatrixKinds, "kinds", "", "restrict the -mode fuzz matrix operands: float | int | str")
+	flag.IntVar(&rtMaxDepth, "depth", rtMaxDepth, "maximum operand nesting for -mode redteam")
 	flag.Parse()
 	log.SetFlags(0)
 	log.SetPrefix("go-fmt oracle: ")
@@ -69,8 +75,13 @@ func main() {
 		writeVectors(*dir, *scratch)
 		writeFuzz(*dir, 1, 6000, 150, 4000)
 		log.Printf("model cases: %d", writeModelCases(*dir))
+		writeRedTeamFixtures(*dir)
 	case "fuzz":
 		writeFuzz(*dir, *seed, *nCases, *nMatrix, *maxOut)
+	case "redteam":
+		writeRedTeam(*dir, *seed, *nCases, *nMatrix, *maxOut)
+	case "flagperm":
+		writeFlagPerm(*dir, *seed, *nCases, *maxOut)
 	case "dump":
 		vs := valueCorpus()
 		v, err := decodeSpec(vs[*value])

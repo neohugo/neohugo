@@ -17,6 +17,7 @@ for `any` plus reflection. Numbers are formatted by `go-strconv` (Go's own
 | `print.go` `Sprintf`, `Appendf`, `Fprintf`, `Sprint`, `Append`, `Fprint`, `Sprintln`, `Appendln`, `Fprintln` | `src/lib.rs` | |
 | `errors.go` `Errorf`/`errorf` | `src/lib.rs` `errorf` | returns the message and the wrapped operand indexes |
 | `internal/fmtsort` | — | `Map` entries are already in byte order, and `Object::map_keys` is specified to be in fmtsort order (all keys are strings) |
+| (none) | `src/stack.rs` | stack-depth guard of `printValue`'s recursion (deviation 9) |
 | neohugo `resources/page/pages.go` `Pages.String`, `resources/page/taxonomy.go` `TaxonomyList.String`, Go `time.(*Location).String` on nil | `src/print.rs` (`pages_string`, `taxonomy_list_string`, `nil_location_string`) | default entries of the named-method registry (below) |
 
 `Printf`/`Print`/`Println` (stdout), `State`/`FormatString`, `Formatter`
@@ -48,6 +49,14 @@ Go strings are bytes, so formats are `impl AsRef<[u8]>` and the results are
   prints an unpadded `<nil>`). Registered by default: `page.Pages`
   (`Pages(N)`), `page.TaxonomyList` (`TaxonomyList(N)`) and
   `*time.Location` (a nil location is `UTC`).
+- `go_value::Object::underlying() -> Option<Value>` (added by the red-team
+  pass): a host object that stands for a **named basic type** (`time.Month`,
+  `time.Weekday`, `time.Duration`, `hstring.HTML`, `neohugo.VersionString`,
+  ...) returns its value converted to the underlying type
+  (`Value::Int(9, IntKind::Int)` for `time.September`, `Value::String` for
+  an `hstring.HTML`). fmt then uses that kind wherever Go reflects on it
+  (see the table below). Its `String`/`Error`/`GoString` methods stay
+  `go_string`/`go_error`/`go_go_string`.
 
 ## How reflection maps onto the value model
 
@@ -70,6 +79,7 @@ Go strings are bytes, so formats are `impl AsRef<[u8]>` and the results are
 | `Object` `Kind::Struct` | struct `{fields}` from `struct_fields()` (`%+v`/`%#v` add names, `%#v` adds the type) |
 | `Object` `Kind::Map` / `Kind::Slice` | map via `map_keys`/`map_get`, slice via `list()` |
 | `Object` `Kind::Func` | func pointer (`0x<identity>`) |
+| `Object` with `underlying()` = `Bool`/`Int`/`Uint`/`Float`/`String`/`Safe` | a named basic type: methods first (`handleMethods`, as for every non-basic type), then the underlying kind in `printValue` (`%02d` of a `time.Month` → `09`, `%#v` of a named string → `"x"`, bad verbs `%!t(time.Month=9)`); `Sprint` counts a string kind as a string; a `*` width/precision accepts an integer kind; `%p` is a bad verb. Other `underlying()` values are ignored |
 
 ## Deliberate deviations (none change output for representable values)
 
@@ -100,6 +110,16 @@ Go strings are bytes, so formats are `impl AsRef<[u8]>` and the results are
    come from a registry (`register_named_method`) with the neohugo
    `page.Pages`/`page.TaxonomyList` methods and the nil `*time.Location`
    case built in.
+9. **Recursion depth.** Go's goroutine stacks grow (to 1 GB), so Go prints
+   values nested 100,000 levels deep. `printValue`'s recursion
+   (`print_value`) runs under `stack::guard` (`src/stack.rs`, a copy of
+   go-json's): after about 256 KiB of stack it continues on a scoped helper
+   thread with an 8 MiB stack. Output is unchanged. Host methods
+   (`go_string`, `go_error`, `struct_fields`, `list`, `map_get`,
+   registered `NamedMethod`s ...) of deeply nested values may therefore run
+   on a helper thread, so they must not depend on thread-locals. Dropping
+   such a value recurses in Rust's drop glue (the caller's concern; the
+   tests leak them).
 
 ## Known gaps (model limitations)
 
@@ -115,13 +135,26 @@ Go strings are bytes, so formats are `impl AsRef<[u8]>` and the results are
   interface nil (`<nil>` instead of `[]`/`map[]`).
 - `Object::go_error` returns a Rust `String`, so an error message with
   invalid UTF-8 cannot be expressed (Go prints its raw bytes). The fuzz
-  generator only produces valid UTF-8 error messages for that reason.
-- Named basic types with methods (`time.Month`, `time.Weekday`,
-  `time.Duration`, `neohugo.VersionString`, `hstring.HTML` …) have no
-  representation: as `Object`s their `String` works, but `%d` of a
-  `time.Month` (Go `09` for `%02d`) and `Sprint`'s "is a string" spacing
-  rule for named string types cannot be reproduced. This needs an
-  "underlying basic value" in go-value (see the report).
+  and red-team generators only produce valid UTF-8 error messages for that
+  reason (`String` results, registered `NamedMethod`s and `GoString`s may
+  hold any bytes and are tested with invalid UTF-8).
+- Named basic types (`time.Month`, `time.Weekday`, `time.Duration`,
+  `neohugo.VersionString`, `hstring.HTML` …) print like Go only if the host
+  object implements `Object::underlying` (added by the red-team pass; see
+  its report). Without it they are struct objects: `%02d` of a
+  `time.Month` prints `{}` instead of `09`, and `Sprint` puts spaces
+  around a named string. go-value's other consumers (gotemplate's
+  comparisons and `printf` argument checks, go-json, go-hashstructure) do
+  not consult `underlying` yet.
+- Map keys are strings only (the value model normalises them), so Go's
+  `fmtsort` ordering of mixed key kinds, NaN keys, and non-string keys in
+  general cannot arise.
+- A bad verb on a `time.Time` whose location is not UTC prints the
+  `*time.Location` pointee in Go (`badVerb` re-enters `printValue` at depth
+  0 for the unexported `loc` field: `%!t(*time.Location=&{Europe/London
+  [{LMT -75 false} …] … 0xc…})`); the port prints `&{}` there. Go's output
+  always contains the `cacheZone` pointer, so it is not reproducible
+  anyway.
 - Struct printing shows only what `struct_fields()` returns (exported
   fields); Go also prints unexported fields. `struct_fields() == None`
   prints `{}`.
@@ -206,6 +239,18 @@ the real Go `fmt`:
   and 600 matrix operands each (293,515 cases, 32.9M matrix outputs), and
   kind-restricted matrices: 4,000 floats/float32s (73.3M outputs), 1,500
   integers (27.5M), 1,500 strings/byte slices (27.5M).
+- Red-team pass (third; `tools/go-oracle/go-fmt/redteam.go`,
+  `tests/redteam.rs`): `redteam_cases.txt` (3,077 cases, seed 1: nested
+  operands with nil-receiver hooks, named slice/map types with
+  `String`/`Error`, named basic types, fixed zones with arbitrary names;
+  formats with flags in any order, malformed indexes, star widths, odd
+  verbs; Sprint/Sprintln/Errorf), `redteam_matrix.txt` (`formats.txt` over
+  60 random nested operands: 1,106,855 outputs), `flagperm_matrix.txt`
+  (every flag string of length 0-3 in every order × 25 verbs × 2 widths ×
+  2 precisions, 15,600 formats built by the test, over `values.txt` plus
+  50 hook/named-type operands: 4,379,796 outputs), `deep.txt` (values
+  10,000-100,000 levels deep, on a 2 MiB thread) and the Go-verified
+  `named_basic_types` table. See "Red-team report (third pass)".
 - `tests/go_tables.rs`: hand ports of `TestFmtInterface`, `TestBlank`,
   `TestBlankln`, `TestStructPrinter`, `TestSlicePrinter`, `TestMapPrinter`,
   `TestEmptyMap`, `TestNilDoesNotBecomeTyped`, `TestAppendf`,
@@ -228,7 +273,8 @@ Not ported: `TestComplexFormatting` (no complex numbers), `TestPanics`,
 
 ## Adversarial verification (second pass)
 
-Bugs found and fixed (each has regression cases in `model_cases.txt`,
+This is the previous red-team's pass (see the report below for how it was
+re-checked). Bugs found and fixed (each has regression cases in `model_cases.txt`,
 `fuzz_cases.txt` and `tests/go_tables.rs`; 139 of the 410 value-model
 cases of `model_cases.txt` failed before the fixes):
 
@@ -267,3 +313,215 @@ go build -o "$TMPDIR/oracle" ./tools/go-oracle/go-fmt
 
 `Cargo.toml` sets `[profile.test] opt-level = 3` so the 4.5M-output matrix
 runs in a few seconds.
+
+## Red-team report (third pass)
+
+HANDOFF §5 item 2 listed go-fmt as "red-team finished its fixes, but no
+final report". This section is that report: what the previous pass did,
+an independent re-check of it, the extension of its coverage, and the two
+divergences this pass found and fixed.
+
+### What the previous red-team did
+
+Git cannot separate it from the port. The whole crate, its oracle and the
+second pass landed in one commit (`0a7ac06b`, "add ported crates awaiting
+red-team"). Later commits only exported `named_method` for gotemplate's
+`jsValEscaper` (`de563915`) and fixed golangci-lint findings without
+changing output (`c67c8afb`). From the code and the section above, the
+second pass:
+
+- added the value-model inputs: `model_cases.txt` (named collection
+  Stringers, interface nils in containers, GoStringers, nil
+  `*time.Location`, time fields, malformed indexes) and the randomized
+  `-mode fuzz` generator (`fuzz.go`: nested operands of every kind, formats
+  of 1-4 directives, Sprint/Sprintln/Errorf, the dense 18,324-format
+  single-operand matrix, `-kinds float|int|str`);
+- fixed the six value-model bugs listed above;
+- ran seeds 5-7 (293,515 cases, 32.9M matrix outputs) and the
+  kind-restricted matrices (73.3M + 27.5M + 27.5M outputs). All passed.
+
+This pass re-checked that work:
+
+- All nine of its fixtures regenerate byte for byte, on linux/amd64 and on
+  linux/arm64 under qemu.
+- Every test passes.
+- Its `fuzz` mode, run at eight fresh seeds with 3-4x larger counts and
+  with fresh kind-restricted matrices, finds 0 differences (table below).
+- Its six fixes hold. `model_cases.txt` passes, and the red-team corpora
+  exercise all of those paths again: Pages/TaxonomyList and their typed
+  nils inside lists, maps and struct fields; nil `*time.Location`; nested
+  GoStringers; interface nils in `[]error`, `[]fmt.Stringer` and
+  `map[string]error`; registered kinds.
+
+### Bugs found and fixed
+
+1. **Deeply nested values overflowed the Rust stack.** This was an abort,
+   not a panic.
+   - **Input:** a `[]interface {}` nested 10,000 deep around `1`, printed
+     with `Sprintf("%v", v)` on a 2 MiB thread.
+   - **Go 1.27.1:** prints `[[[…1…]]]` (20,001 bytes). Go also prints
+     100,000 levels; it fails only near 1,000,000, at its 1 GB goroutine
+     stack limit.
+   - **Rust:** `fatal runtime error: stack overflow, aborting` (SIGABRT),
+     at 10,000 levels on 2 MiB and at 100,000 levels on 8 MiB.
+   - **Root cause:** `src/print.rs` recurses through `print_value` ->
+     `print_value_kind` -> `print_slice`/`print_map`/`print_struct`/
+     `print_object` -> `print_elem`/`print_field` -> `print_value`, which
+     is several frames per level on a fixed-size thread stack. Hugo reaches
+     such values through data files (encoding/json allows 10,000 levels)
+     and through values built by templates.
+   - **Fix:** `src/stack.rs` (go-json's guard) wraps `print_value`
+     (deviation 9).
+   - **Tests** (in `tests/redteam.rs`):
+     - `deep_nesting_on_a_small_stack` uses `deep.txt`: lists, maps,
+       structs, named slices/maps, `Kind::Slice`/`Kind::Map` objects and a
+       mix, 10,000 to 100,000 levels deep, printed with `%v %+v %#v %d %s
+       %x %q %10.3v`. It compares the length and FNV-1a hash with Go's
+       output. Without the fix it aborts.
+     - `deep_stringers_on_a_small_stack`.
+2. **Named basic types could not be expressed.** This is the known gap
+   "needs an underlying basic value in go-value". A `time.Month`,
+   `time.Duration` or `hstring.HTML` could only be a struct-kind object
+   with `go_string`, which printed differently from Go:
+
+   | input | Go | Rust before the fix |
+   |---|---|---|
+   | `Sprintf("%02d", time.Month(9))` | `09` | `{}` |
+   | `%#v` of `hstring.HTML("x")` | `"x"` | `hstring.HTML{}` |
+   | `%d` of `hstring.HTML("x")` | `%!d(hstring.HTML=x)` | `{}` |
+   | `Sprint(hstring.HTML("a"), 1)` | `a1` (a string kind) | `a 1` |
+   | `Sprintf("%*d", time.Month(5), 3)` | `    3` | `%!(BADWIDTH)3` |
+
+   - **Root cause:** `print_value_kind` sent every `Object` to
+     `print_object`. `do_print` (its string test) only knew
+     `Value::String`/`Safe`, and `int_from_arg` only knew
+     `Value::Int`/`Uint`.
+   - **Fix in go-value:** a new trait method `Object::underlying() ->
+     Option<Value>`. It defaults to `None`, so no other crate needs a
+     change.
+   - **Fix in go-fmt:** `basic_underlying` now drives `printValue`'s kind
+     switch (print.go:777-792), `doPrint`'s string test (print.go:1188),
+     `intFromArg` (print.go:928-940) and `fmtPointer`'s kind check
+     (print.go:544-550).
+   - **Before and after:** on a red-team corpus with named basic types
+     (seed 302), 6,845 of 28,416 cases and 39 of 300 matrix operands
+     differed before the fix. After the fix, none did.
+   - **Tests:** `tests/redteam.rs` `named_basic_types` (25 outputs checked
+     against Go), and the `nb:` operands of `redteam_cases.txt` and
+     `flagperm_matrix.txt`.
+   - **Follow-up for the Hugo layer:** it must implement `underlying` for
+     its named basic types: `time.Month` and `time.Weekday` -> `Int`,
+     `time.Duration` -> `Int64`, `hstring.HTML` and
+     `neohugo.VersionString` -> `String`.
+
+The oracle itself needed care, and future runs should keep these
+safeguards:
+
+- The spec decoder now rejects integers that do not fit their kind. A
+  mistyped `int16:-1000001` had silently become -16961 in Go.
+- A `*` width of 1e6 pads every leaf of a container, and a bad verb on a
+  `time.Time` prints the hundreds of fields of its `*time.Location`. So the
+  red-team generator:
+  - bounds operands to 200 leaves (24 for the matrix, because of
+    `%1000001v`);
+  - uses the 1e6 star values only with scalar operands;
+  - is run under `ulimit -v 6000000`. One early run without these bounds
+    was OOM-killed at 13 GB.
+
+### What was run
+
+The Rust side always ran in the test profile (`opt-level = 3` with
+overflow checks). "Outputs" counts hashed single-operand matrix outputs.
+
+| run | generator | seeds | cases | outputs | differences |
+|---|---|---|---|---|---|
+| checked-in fixtures (9 existing + 4 new) | `-mode vectors` | 1 | 20,044 (+ 80 deep) | 12.7M | 0 |
+| previous pass's generator, fresh seeds | `-mode fuzz -n 300000 -nmatrix 1000` | 21-28 | 2,346,999 | 146.4M | 0 |
+| its kind-restricted matrices | `-mode fuzz -kinds float` (4,000 operands each), `int` and `str` (3,000 each) | 31, 32; 33; 34 | - | 146.6M + 55.0M + 55.0M | 0 |
+| red-team, first generator | `-mode redteam` | 101 (20k), 201 and 202 (300k, 1,500 operands) | 583,833 | 52.5M | 0 |
+| red-team with named basic types | `-mode redteam` | 301, 302 (30k each) | 56,789 | 8.5M | 0 after fix 2 |
+| red-team, final generator | `-mode redteam -n 300000 -nmatrix 1500` | 231-238 (and 205 at 20k) | 2,328,510 | 218.7M | 0 |
+| red-team, 12 levels deep | `-mode redteam -depth 12 -n 300000 -nmatrix 1500` | 241, 242 | 577,453 | 54.2M | 0 |
+| flag permutations (0-4 flags in every order, 78,100 formats × 291 operands) | `-mode flagperm -n 100000` | 251 | 96,238 | 21.9M | 0 |
+| deep values | `deep.txt` plus probes up to 100,000 levels | - | 80 | - | 0 after fix 1 |
+| gotemplate on the changed go-fmt | gotemplate `rtpairs pairs`, `rtpairs fmt`, `rtexec` | -, -, 7 (60k templates) | 544,644 + 28,044 + 120,000 | - | 0 beyond gotemplate's listed deviations |
+| Go amd64 vs Go arm64 (qemu) | `vectors`; `fuzz -kinds float -n 20000 -nmatrix 600`; `redteam -n 30000 -nmatrix 150` | 1; 61; 62 | all 13 fixtures and both corpora | 11.0M; 2.7M | identical |
+
+In total that is 5,989,822 go-fmt cases and 758.7M matrix outputs outside
+the fixtures, with 0 differences once the two fixes were in.
+
+**What the red-team generator produces** (`tools/go-oracle/go-fmt/redteam.go`).
+
+Formats have 1-6 pieces:
+
+- 0-8 flags, in any order and repeated;
+- zero-prefixed widths;
+- `*` and `[n]*` widths and precisions, taken from ints, uints, values at
+  the 1e6 limit, non-ints and named integer types;
+- argument indexes that are good, zero, negative, out of range or
+  malformed (`[`, `[]`, `[x]`, `[-1]`, `[+1]`, `[01]`, `[1`, `[ 1]`,
+  `[1]]`, `[99999999999]`);
+- widths of 9-13 digits, where parsenum gives up and swallows the rest of
+  the format;
+- about 90 verbs: every class of ASCII letter, punctuation, NUL and control
+  bytes, `\xff`, truncated and surrogate UTF-8, and U+2028.
+
+Operands are nested up to 6 levels (12 with `-depth 12`). They include
+everything `fuzz.go` generates, plus:
+
+- strings of random bytes and of random code points;
+- times in fixed zones with arbitrary valid-UTF-8 names (quotes,
+  backslashes, NUL, non-ASCII);
+- the nil-receiver hook types: with `*NilPanicStr`/`*NilPanicErr` the
+  method panics on nil and fmt prints `<nil>`; with `*NilOKStr`/`*NilOKErr`
+  it returns a string;
+- `main.SS`, a named slice whose value-receiver `String` result needs
+  quoting;
+- `main.SM`, a named map with a value-receiver `Error`, also wrapped by
+  `%w`;
+- `[]fmt.Stringer`, `[]error` and `map[string]error` holding those types;
+- named basic types: `time.Month`, `time.Weekday`, `time.Duration`, named
+  string and float types with `String`, a named string with `Error`, and
+  method-less named `int8`, `uint16`, `float32`, `bool` and `string`.
+
+One case in three is `Sprint` or `Sprintln` over operand lists that mix
+strings, named string types and everything else; this is the rule behind
+gotemplate's `print` and `println` spacing. One case in ten is `Errorf`.
+
+### Divergences left
+
+None were found for values the model can express. The model limits (see
+"Known gaps") remain:
+
+- `fmt.Formatter`, and panics in non-nil receivers (`%!v(PANIC=String
+  method: …)`), do not exist in the value model.
+- `go_error` cannot hold invalid UTF-8.
+- Map keys are strings only.
+- Complex numbers, arrays, channels and unexported struct fields are not
+  modelled.
+- Addresses are never byte-identical: `%p`, nested pointers, and the
+  `*time.Location` printed for a bad verb on a `time.Time`.
+- Named basic types print like Go only if the host implements
+  `underlying`.
+
+### Regenerating
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go build -o "$TMPDIR/oracle" ./tools/go-oracle/go-fmt
+# All 13 fixtures (about 25 s):
+"$TMPDIR/oracle" -mode vectors -dir crates/go-fmt/tests/fixtures -scratch "$TMPDIR"
+# Large runs outside the repository (about 90 MB per 300k-case directory $D):
+( ulimit -v 6000000; "$TMPDIR/oracle" -mode fuzz     -dir "$D" -seed 21  -n 300000 -nmatrix 1000 )
+( ulimit -v 6000000; "$TMPDIR/oracle" -mode fuzz     -dir "$D" -seed 31  -n 2000   -nmatrix 4000 -kinds float )
+( ulimit -v 6000000; "$TMPDIR/oracle" -mode redteam  -dir "$D" -seed 231 -n 300000 -nmatrix 1500 )   # -depth 12
+( ulimit -v 6000000; "$TMPDIR/oracle" -mode flagperm -dir "$D" -seed 251 -n 100000 )
+cd crates/go-fmt && GO_FMT_FUZZ_DIR="$D" GO_FMT_FAIL_FILE="$D/failures.txt" \
+  cargo test --test fuzz -- fuzz_cases fuzz_matrix
+# arm64 Go (reproduces darwin/arm64; every fixture is identical to amd64):
+GOARCH=arm64 CGO_ENABLED=0 go build -o "$TMPDIR/oracle-arm64" ./tools/go-oracle/go-fmt
+qemu-aarch64-static "$TMPDIR/oracle-arm64" -mode vectors -dir "$D" -scratch "$TMPDIR"
+```
+
+`GO_FMT_RT_DEBUG=1` makes `-mode redteam` log every case before it runs,
+which finds a case that exhausts memory.

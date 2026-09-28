@@ -4,7 +4,7 @@
 //! By default the checked-in fixtures (`fuzz_cases.txt`, `fuzz_formats.txt`,
 //! `fuzz_matrix.txt`, default seed) are used. `GO_FMT_FUZZ_DIR=<dir>` runs
 //! the same checks on a directory written by
-//! `oracle -mode fuzz -dir <dir> -seed N -n ... -nmatrix ...`.
+//! `oracle -mode fuzz|redteam|flagperm -dir <dir> -seed N -n ... -nmatrix ...`.
 
 mod common;
 
@@ -20,97 +20,15 @@ fn fuzz_file(name: &str) -> String {
     std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
-fn parse_ranges(s: &str) -> Vec<(usize, usize)> {
-    if s.is_empty() {
-        return Vec::new();
-    }
-    s.split(',')
-        .map(|p| match p.split_once('-') {
-            Some((a, b)) => (a.parse().unwrap(), b.parse().unwrap()),
-            None => {
-                let a = p.parse().unwrap();
-                (a, a)
-            }
-        })
-        .collect()
-}
-
-fn args_of(field: &str) -> Vec<go_value::Value> {
-    if field.is_empty() {
-        return Vec::new();
-    }
-    field.split(' ').map(spec_value).collect()
-}
-
-/// Runs "fn \t format \t operands \t output [\t wrapped]" lines and returns
-/// the number of cases and the failure descriptions.
-fn run_cases(cases: &str) -> (usize, Vec<String>) {
-    let mut failures = Vec::new();
-    let mut n = 0;
-    for line in cases.lines() {
-        let parts: Vec<&str> = line.split('\t').collect();
-        let fname = parts[0];
-        let format = unquote(parts[1]);
-        let args = args_of(parts[2]);
-        let want = unquote(parts[3]);
-        let got = match fname {
-            "sprint" => go_fmt::sprint(&args),
-            "sprintln" => go_fmt::sprintln(&args),
-            "sprintf" => go_fmt::sprintf(&format, &args),
-            "errorf" => {
-                let (msg, wrapped) = go_fmt::errorf(&format, &args);
-                let want_wrapped: Vec<usize> = if parts[4].is_empty() {
-                    vec![]
-                } else {
-                    parts[4].split(',').map(|x| x.parse().unwrap()).collect()
-                };
-                if wrapped != want_wrapped {
-                    failures.push(format!(
-                        "errorf {} {}: wrapped {:?} want {:?}",
-                        parts[1], parts[2], wrapped, want_wrapped
-                    ));
-                }
-                msg
-            }
-            other => panic!("unknown fn {other}"),
-        };
-        n += 1;
-        if got != want {
-            failures.push(format!(
-                "{fname} {} [{}]:\n  got  {}\n  want {}",
-                parts[1],
-                parts[2],
-                q(&got),
-                q(&want)
-            ));
-        }
-    }
-    (n, failures)
-}
-
-fn assert_no_failures(what: &str, failures: &[String]) {
-    if let Some(p) = std::env::var_os("GO_FMT_FAIL_FILE") {
-        std::fs::write(p, failures.join("\n")).unwrap();
-    }
-    assert!(
-        failures.is_empty(),
-        "{} {what} differ:\n{}",
-        failures.len(),
-        failures
-            .iter()
-            .take(60)
-            .cloned()
-            .collect::<Vec<_>>()
-            .join("\n")
-    );
-}
-
 /// Random nested operands with random multi-directive formats, plus
 /// Sprint/Sprintln operand lists and Errorf.
 #[test]
 fn fuzz_cases() {
     let (n, failures) = run_cases(&fuzz_file("fuzz_cases.txt"));
-    assert!(n > 1000, "too few fuzz cases");
+    assert!(
+        n > 1000 || std::env::var_os("GO_FMT_FUZZ_DIR").is_some(),
+        "too few fuzz cases"
+    );
     eprintln!("fuzz cases: {n}, {} differ", failures.len());
     assert_no_failures("fuzz cases", &failures);
 }

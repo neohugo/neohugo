@@ -34,7 +34,11 @@ import (
 //	list:HEX(nodes)                  slice of the registered type named by HEX
 //	map:HEX(kv:HEXKEY(node),...)     map of the registered type named by HEX
 //	time:SEC;NSEC;LOC                time.Unix(SEC, NSEC) in LOC: nil | utc | fixed=NAME=OFFSET | zone=IANA
+//	                                 | fixedhex=HEXNAME=OFFSET
 //	obj_str:HEX  obj_err:HEX  obj_both:HEX  obj_sv:HEX  obj_gs:HEX
+//	obj_nps:HEX  obj_nos:HEX  obj_npe:HEX  obj_noe:HEX   (redteam.go: nil-receiver hook types)
+//	nb:HEX(node)                     node converted to the registered named basic type named by HEX (redteam.go)
+//	nest:KIND;N(node)                node wrapped N times: KIND = list | map | plain | ns | nm | objns | objnm | mix (redteam.go)
 //	obj_plain(a,b) obj_pplain(a,b) obj_nm(kv...) obj_ns(nodes)
 //	pages:N                          page.Pages of N nil elements (String: "Pages(N)")
 //	taxlist:N                        page.TaxonomyList with keys t0..tN-1 of empty page.Taxonomy (String: "TaxonomyList(N)")
@@ -206,7 +210,8 @@ func decodeNode(n *specNode) (any, error) {
 	case "bool":
 		return n.payload == "1", nil
 	case "int", "int8", "int16", "int32", "int64":
-		i, err := strconv.ParseInt(n.payload, 10, 64)
+		bits := map[string]int{"int": 64, "int8": 8, "int16": 16, "int32": 32, "int64": 64}[n.name]
+		i, err := strconv.ParseInt(n.payload, 10, bits)
 		if err != nil {
 			return nil, err
 		}
@@ -222,7 +227,8 @@ func decodeNode(n *specNode) (any, error) {
 		}
 		return i, nil
 	case "uint", "uint8", "uint16", "uint32", "uint64", "uintptr":
-		u, err := strconv.ParseUint(n.payload, 10, 64)
+		bits := map[string]int{"uint": 64, "uint8": 8, "uint16": 16, "uint32": 32, "uint64": 64, "uintptr": 64}[n.name]
+		u, err := strconv.ParseUint(n.payload, 10, bits)
 		if err != nil {
 			return nil, err
 		}
@@ -360,13 +366,19 @@ func decodeNode(n *specNode) (any, error) {
 		switch {
 		case loc == "nil" || loc == "utc":
 			return t.UTC(), nil
-		case strings.HasPrefix(loc, "fixed="):
+		case strings.HasPrefix(loc, "fixed="), strings.HasPrefix(loc, "fixedhex="):
 			f := strings.SplitN(loc, "=", 3)
 			off, err := strconv.Atoi(f[2])
 			if err != nil {
 				return nil, err
 			}
-			return t.In(time.FixedZone(f[1], off)), nil
+			name := f[1]
+			if f[0] == "fixedhex" {
+				if name, err = unhex(name); err != nil {
+					return nil, err
+				}
+			}
+			return t.In(time.FixedZone(name, off)), nil
 		case strings.HasPrefix(loc, "zone="):
 			l, err := time.LoadLocation(loc[len("zone="):])
 			if err != nil {
@@ -424,8 +436,16 @@ func decodeNode(n *specNode) (any, error) {
 		}
 		return &Plain{a, b}, nil
 	}
+	if decodeHook != nil {
+		if v, ok, err := decodeHook(n); ok || err != nil {
+			return v, err
+		}
+	}
 	return nil, fmt.Errorf("unknown node %q", n.name)
 }
+
+// decodeHook, when set, decodes the spec nodes of other files (redteam.go).
+var decodeHook func(n *specNode) (v any, ok bool, err error)
 
 func regType(h string) (reflect.Type, error) {
 	name, err := unhex(h)

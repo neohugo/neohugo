@@ -528,6 +528,20 @@ pub trait Object: Send + Sync + 'static {
         None
     }
 
+    /// For a named basic type (a Go type whose underlying type is `bool`, a
+    /// numeric kind or `string`, e.g. `time.Month`, `time.Duration`,
+    /// `hstring.HTML`): the value converted to its underlying type, e.g.
+    /// `Value::Int(9, IntKind::Int)` for `time.September` or
+    /// `Value::String(..)` for an `hstring.HTML`. This is the value's
+    /// `reflect.Kind` and contents where Go reflects on it: `fmt` formats it
+    /// when no method applies (`%d` of a `time.Month`, `%#v`, bad verbs),
+    /// `Sprint` counts a string kind as a string, and a `*` width accepts an
+    /// integer kind. `type_name` stays the named type. `None` (the default)
+    /// for every other object; values of other kinds are ignored.
+    fn underlying(&self) -> Option<Value> {
+        None
+    }
+
     /// Exported struct fields in declaration order, for `fmt` `%v`/`%+v`,
     /// `encoding/json` and `hashstructure` of struct-like objects.
     fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
@@ -785,7 +799,7 @@ mod tests {
 
     #[test]
     fn gostring_orders_by_bytes() {
-        let mut v = vec![
+        let mut v = [
             GoString::from("a"),
             GoString::from("M"),
             GoString::from("z"),

@@ -17,6 +17,11 @@
 //!   `*time.Location` by default).
 //! - `Value::Time` is `time.Time`: `String()`, `GoString()`, and the struct
 //!   `{wall ext loc}` for verbs that do not accept a string.
+//! - An `Object` with `underlying()` (a named basic type such as
+//!   `time.Month` or `hstring.HTML`) has the reflect kind of that basic
+//!   value: printValue formats it, `doPrint` counts a string kind as a
+//!   string, `*` accepts an integer kind (Go: print.go:777-792, 1188,
+//!   928-940).
 
 use std::borrow::Cow;
 use std::collections::HashMap;
@@ -27,6 +32,7 @@ use go_unicode::utf8;
 use go_value::{FloatKind, Kind, List, Map, Object, SliceType, Time, UintKind, Value};
 
 use crate::format::{Fmt, LDIGITS, SIGNED, UDIGITS, UNSIGNED};
+use crate::stack;
 
 // Strings for use with buffer.WriteString.
 // This is less overhead than using buffer.Write with byte arrays.
@@ -160,6 +166,36 @@ pub(crate) fn is_error(v: &Value) -> bool {
     match v {
         Value::Object(o) => o.go_error().is_some(),
         _ => matches!(named_method(v), Some(NamedMethod::Error(_))),
+    }
+}
+
+/// The value of a named basic type (`time.Month`, `hstring.HTML`, ...)
+/// converted to its underlying type (`Object::underlying`), whose kind
+/// `printValue` formats (Go: `value.Kind()` is the underlying kind; the
+/// type switch of `printArg` only matches the unnamed basic types, so these
+/// always go through `handleMethods` first). `None` for other objects and
+/// non-basic results.
+fn basic_underlying(o: &Arc<dyn Object>) -> Option<Value> {
+    match o.underlying()? {
+        v @ (Value::Bool(_)
+        | Value::Int(..)
+        | Value::Uint(..)
+        | Value::Float(..)
+        | Value::String(_)
+        | Value::Safe(..)) => Some(v),
+        _ => None,
+    }
+}
+
+/// Go: `reflect.TypeOf(arg).Kind() == reflect.String` (`doPrint`).
+fn is_string_kind(v: &Value) -> bool {
+    match v {
+        Value::String(_) | Value::Safe(..) => true,
+        Value::Object(o) => matches!(
+            basic_underlying(o),
+            Some(Value::String(_) | Value::Safe(..))
+        ),
+        _ => false,
     }
 }
 
@@ -409,7 +445,16 @@ fn int_from_arg(a: &[Value], arg_num: usize) -> (i64, bool, usize) {
     let mut num: i64 = 0;
     let mut is_int = false;
     if arg_num < a.len() {
-        match &a[arg_num] {
+        // A named integer type (Object::underlying) has the integer kind.
+        let under;
+        let arg = match &a[arg_num] {
+            Value::Object(o) => {
+                under = basic_underlying(o);
+                under.as_ref().unwrap_or(&a[arg_num])
+            }
+            v => v,
+        };
+        match arg {
             // Almost always OK: a[argNum].(int), then the reflect kinds.
             Value::Int(n, _) => {
                 // int64(int(n)) == n always holds with a 64-bit int.
@@ -651,6 +696,11 @@ impl Pp {
             },
             Value::List(l) => Arc::as_ptr(l) as usize as u64,
             Value::Map(m) => Arc::as_ptr(m) as usize as u64,
+            // A named basic type is not a pointer kind.
+            Value::Object(o) if basic_underlying(o).is_some() => {
+                self.bad_verb(arg, Some(value), verb);
+                return;
+            }
             Value::Object(o) => match o.kind() {
                 Kind::Ptr | Kind::Map | Kind::Slice | Kind::Func | Kind::Interface => {
                     o.identity() as u64
@@ -880,12 +930,17 @@ impl Pp {
     // Go: fmt/print.go:(*pp).printValue
     /// printValue is similar to printArg but starts with a reflect value, not an interface{} value.
     /// It does not handle 'p' and 'T' verbs because these should have been already handled by printArg.
+    ///
+    /// Deviation: the recursion runs under [`stack::guard`], which moves it
+    /// to a helper thread when it gets deep (Go's goroutine stacks grow).
     pub(crate) fn print_value(&mut self, value: &Value, verb: Rune, depth: i64) {
-        // Handle values with special methods if not already handled by printArg (depth == 0).
-        if depth > 0 && !value.is_invalid() && self.handle_methods(value, Some(value), verb) {
-            return;
-        }
-        self.print_value_kind(value, verb, depth);
+        stack::guard(|| {
+            // Handle values with special methods if not already handled by printArg (depth == 0).
+            if depth > 0 && !value.is_invalid() && self.handle_methods(value, Some(value), verb) {
+                return;
+            }
+            self.print_value_kind(value, verb, depth);
+        })
     }
 
     /// The `switch value.Kind()` part of printValue (without the method
@@ -947,7 +1002,25 @@ impl Pp {
                 // A nil pointer is never printed as `&...`.
                 NilKind::Ptr | NilKind::Func | NilKind::Chan => self.fmt_pointer(None, value, verb),
             },
-            Value::Object(o) => self.print_object(o, value, verb, depth),
+            Value::Object(o) => match basic_underlying(o) {
+                // A named basic type: its underlying kind, reported (by
+                // badVerb) under the named type.
+                Some(Value::Bool(b)) => self.fmt_bool(None, Some(value), b, verb),
+                Some(Value::Int(i, _)) => {
+                    self.fmt_integer(None, Some(value), i as u64, SIGNED, verb)
+                }
+                Some(Value::Uint(u, _)) => self.fmt_integer(None, Some(value), u, UNSIGNED, verb),
+                Some(Value::Float(f, FloatKind::F32)) => {
+                    self.fmt_float(None, Some(value), f, 32, verb)
+                }
+                Some(Value::Float(f, FloatKind::F64)) => {
+                    self.fmt_float(None, Some(value), f, 64, verb)
+                }
+                Some(Value::String(s) | Value::Safe(_, s)) => {
+                    self.fmt_string(None, Some(value), &s, verb)
+                }
+                _ => self.print_object(o, value, verb, depth),
+            },
         }
     }
 
@@ -1343,7 +1416,7 @@ impl Pp {
     pub(crate) fn do_print(&mut self, a: &[Value]) {
         let mut prev_string = false;
         for (arg_num, arg) in a.iter().enumerate() {
-            let is_string = matches!(arg, Value::String(_) | Value::Safe(_, _));
+            let is_string = is_string_kind(arg);
             // Add a space between two non-string arguments.
             if arg_num > 0 && !is_string && !prev_string {
                 self.buf().push(b' ');

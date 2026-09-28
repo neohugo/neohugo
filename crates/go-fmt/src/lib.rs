@@ -27,6 +27,7 @@
 
 mod format;
 mod print;
+mod stack;
 
 use std::io;
 
