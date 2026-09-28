@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T16 (js-css-pipeline).
 
-
 // Go `js/transform.go`: the `jsbuild` ResourceTransformation (OutMediaType text/javascript; OutPath =
 // TargetPath or ReplaceOutPathExtension(".js"); SourceDir = dir(SourcePath); Stdin with contents).
 

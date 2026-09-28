@@ -23,17 +23,26 @@ nh-esbuild = { path = "../nh-esbuild" }
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
 libsass-sys = { path = "../libsass-sys" }
 go-hashstructure = { path = "../go-hashstructure" }
+go-path = { path = "../go-path" }
+go-url = { path = "../go-url" }
+go-strconv = { path = "../go-strconv" }
+go-unicode = { path = "../go-unicode" }
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   sha2
-#   md-5
-#   base64
-#   hex
-#   regex (tocss import regexes)
+# crates.io (README rule 2; see PORTING.md): the digests and the base64 encoding of
+# integrity's fingerprint (they cannot change output bytes). Hex is written out.
+sha2 = "0.10"
+md-5 = "0.10"
+base64 = "0.23"
+# Intended (T16): regex (tocss import regexes).
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Decompression of the gzip-compressed oracle fixtures (tests only; README rule 2).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# The test site's config and the JSON of resource data (tests only).
+nh-allconfig = { path = "../nh-allconfig" }
+go-json = { path = "../go-json" }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

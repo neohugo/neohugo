@@ -622,9 +622,15 @@ dependencies = [
 name = "nh-resource-transformers"
 version = "0.1.0"
 dependencies = [
+ "base64",
  "go-hashstructure",
+ "go-path",
+ "go-strconv",
+ "go-unicode",
+ "go-url",
  "go-value",
  "libsass-sys",
+ "md-5",
  "nh-common",
  "nh-config",
  "nh-esbuild",
@@ -636,6 +642,7 @@ dependencies = [
  "nh-tpl",
  "nh-tplimpl",
  "nh-transform",
+ "sha2",
 ]
 
 [[package]]

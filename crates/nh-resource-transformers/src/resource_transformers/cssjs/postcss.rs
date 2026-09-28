@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T16 (js-css-pipeline).
 
-
 //! Go `cssjs/postcss.go`: spawn `node_modules/.bin/postcss --config <abs postcss.config.js>` via
 //! `hexec.Npx` with stdin = CSS, stdout = result, env = `GetExecEnviron` (NODE_PATH, PWD,
 //! HUGO_ENVIRONMENT=production, HUGO_FILE_*...), cwd INHERITED (purgecss reads `./hugo_stats.json`).
@@ -34,7 +33,12 @@ pub struct PostCssClient {
 
 impl PostCssClient {
     // Go: resources/resource_transformers/cssjs/postcss.go:Process
-    pub fn process(&self, ctx: &nh_tpl::template::TplContext, r: Arc<dyn Resource>, options: Option<&Map>) -> Result<Arc<dyn Resource>> {
+    pub fn process(
+        &self,
+        ctx: &nh_tpl::template::TplContext,
+        r: Arc<dyn Resource>,
+        options: Option<&Map>,
+    ) -> Result<Arc<dyn Resource>> {
         todo!()
     }
 }

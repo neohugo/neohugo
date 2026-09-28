@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T16 (js-css-pipeline).
 
-
 //! Go `tocss/scss`: LibSass 3.6.6 via libsass-sys (golibsass wrapper): precision 0 -> 8,
 //! outputStyle "compressed" = 3, include paths `[<assets real dirs>/scss, node_modules, assets/scss]`,
 //! the Hugo importer (resolves `@import` in the assets fs; `prev == "stdin"` -> baseDir), entry
@@ -36,7 +35,12 @@ pub struct Client {
 impl Client {
     /// Go: `Client.ToCSS(res, opts)`.
     // Go: resources/resource_transformers/tocss/scss/client_extended.go:ToCSS
-    pub fn to_css(&self, ctx: &nh_tpl::template::TplContext, r: Arc<dyn Resource>, opts: Options) -> Result<Arc<dyn Resource>> {
+    pub fn to_css(
+        &self,
+        ctx: &nh_tpl::template::TplContext,
+        r: Arc<dyn Resource>,
+        opts: Options,
+    ) -> Result<Arc<dyn Resource>> {
         todo!()
     }
 }

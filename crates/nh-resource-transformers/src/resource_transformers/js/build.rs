@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T16 (js-css-pipeline).
 
-
 use std::sync::Arc;
 
 use go_value::Map;
@@ -24,7 +23,12 @@ impl Client {
     }
 
     // Go: resources/resource_transformers/js/build.go:Process
-    pub fn process(&self, ctx: &nh_tpl::template::TplContext, r: Arc<dyn Resource>, opts: Option<&Map>) -> Result<Arc<dyn Resource>> {
+    pub fn process(
+        &self,
+        ctx: &nh_tpl::template::TplContext,
+        r: Arc<dyn Resource>,
+        opts: Option<&Map>,
+    ) -> Result<Arc<dyn Resource>> {
         todo!()
     }
 }
