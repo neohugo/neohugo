@@ -14,7 +14,7 @@
 //! therefore needs the store (T13) with the embedded `ref`/`relref` shortcodes.
 
 use std::collections::BTreeSet;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use go_value::{GoString, List, Map, MapType, SliceType, Value};
 use nh_common::Result;
@@ -117,7 +117,9 @@ impl Shortcode {
     }
 }
 
-/// Go: `shortcodeHandler` (per page). Filled during capture; read-only afterwards.
+/// Go: `shortcodeHandler` (per page). The shortcodes are filled during capture and read-only
+/// afterwards; the name set also grows during rendering (`transferNames`: `RenderString` with
+/// shortcodes, `.RenderShortcodes` of included pages), so it sits behind a lock like Go's.
 #[derive(Default)]
 pub struct ShortcodeHandler {
     pub filename: String,
@@ -125,8 +127,11 @@ pub struct ShortcodeHandler {
     pub enable_inline_shortcodes: bool,
     /// Ordered list of shortcodes for a page.
     pub shortcodes: Vec<Arc<Shortcode>>,
-    /// All the shortcode names in this set.
-    pub name_set: BTreeSet<String>,
+    /// All the shortcode names in this set (Go `nameSet` + `nameSetMu`). The lock is held only
+    /// to read or insert names (HUGO_LAYER.md §4.8); use [`ShortcodeHandler::add_name`],
+    /// [`ShortcodeHandler::transfer_names`], [`ShortcodeHandler::has_name`] and
+    /// [`ShortcodeHandler::names`].
+    name_set: RwLock<BTreeSet<String>>,
 }
 
 /// Go: `createShortcodePlaceholder(sid, id, ordinal)` = `"HAHAHUGOSHORTCODE" + id + sid + ordinal + "HBHB"`.
@@ -320,20 +325,42 @@ impl ShortcodeHandler {
     }
 
     // Go: hugolib/shortcode.go:addName
-    pub fn add_name(&mut self, name: &str) {
-        self.name_set.insert(name.to_string());
+    pub fn add_name(&self, name: &str) {
+        self.name_set
+            .write()
+            .unwrap_or_else(|e| e.into_inner())
+            .insert(name.to_string());
     }
 
+    /// Go: `transferNames(in)` — adds the names of `input` to this set. Go holds this set's
+    /// lock while it iterates `in.nameSet` unlocked; the port copies `input`'s names under its
+    /// read lock first and then inserts them under this set's write lock, so the two locks are
+    /// never held together (a page that includes itself transfers into its own set).
     // Go: hugolib/shortcode.go:transferNames
-    pub fn transfer_names(&mut self, input: &ShortcodeHandler) {
-        for k in &input.name_set {
-            self.name_set.insert(k.clone());
+    pub fn transfer_names(&self, input: &ShortcodeHandler) {
+        let names = input.names();
+        let mut set = self.name_set.write().unwrap_or_else(|e| e.into_inner());
+        for k in names {
+            set.insert(k);
         }
     }
 
     // Go: hugolib/shortcode.go:hasName
     pub fn has_name(&self, name: &str) -> bool {
-        self.name_set.contains(name)
+        self.name_set
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .contains(name)
+    }
+
+    /// The names in the set, in byte order (Go ranges over the map; only membership matters).
+    pub fn names(&self) -> Vec<String> {
+        self.name_set
+            .read()
+            .unwrap_or_else(|e| e.into_inner())
+            .iter()
+            .cloned()
+            .collect()
     }
 }
 

@@ -119,8 +119,9 @@ impl ContentParseInfo {
 /// Go: `cachedContent` — created at page creation; immutable after capture except `scopes`.
 pub struct CachedContent {
     pub pi: ContentParseInfo,
-    /// Go `shortcodeState`: filled during parsing (mutable phase), read-only afterwards, so no
-    /// lock is needed.
+    /// Go `shortcodeState`: the shortcodes are filled during parsing (mutable phase) and read-only
+    /// afterwards; only its name set grows during rendering (`transferNames`), behind its own
+    /// lock.
     pub shortcode_state: ShortcodeHandler,
     pub enable_emoji: bool,
     /// Go `scopes` (`maps.Cache`): one scope per (markup scope + output format name). Dynacache

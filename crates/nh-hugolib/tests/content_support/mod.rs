@@ -1,19 +1,24 @@
 //! Shared harness of the T22 tests (`content.rs`, `hookrec.rs`): the replaying
 //! `TemplateExecutor`, the site setup after T20's `process` (what assembly computes and content
 //! rendering reads), `initLazyProviders`/`shiftToOutputFormat` stand-ins (T21's).
+//!
+//! Action mode (fixtures with `hasShortcodeNames`): a record also lists the `RenderString` /
+//! `.RenderShortcodes` calls its template made and its `.HasShortcode` probes, in order. The
+//! replay makes the same calls on the port (their executions are replayed in turn, and their
+//! results must equal Go's) and compares every probe (`transferNames`).
 
 #![allow(dead_code)]
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::sync::atomic::Ordering;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock, Weak};
 
-use go_value::Value;
+use go_value::{GoString, Map, MapType, Value};
 use nh_common::Result;
 use nh_common::herrors::Error;
 use nh_hugolib::HugoSites;
 use nh_hugolib::hugo_sites_build::BuildCfg;
-use nh_hugolib::page::{PageId, PageLazy};
+use nh_hugolib::page::{PageHandle, PageId, PageLazy, PageWrapper};
 use nh_hugolib::page__output::PageOutput;
 use nh_hugolib::page__paths::{PagePaths, TargetPathsHolder};
 use nh_hugolib::page__per_output::PageContentOutput;
@@ -33,6 +38,9 @@ pub struct Rec {
     /// The template context's `is_in_goldmark` Go saw (set only for `{{% %}}` shortcodes and
     /// what runs inside them; render hooks get the caller's context unchanged).
     pub in_goldmark: bool,
+    /// Action mode: the `RenderString`/`RenderShortcodes` calls and `HasShortcode` probes of
+    /// the execution, in order.
+    pub actions: Vec<J>,
 }
 
 pub type RecKey = (usize, String, String, u32);
@@ -49,6 +57,125 @@ pub struct Replay {
     /// markers), and recorded outputs may carry them (e.g. a `{{< ref >}}` placeholder in a link
     /// destination reaches the link hook).
     pub pids: HashMap<u64, u64>,
+    /// Action mode: the names the `HasShortcode` probes ask for (empty otherwise).
+    pub probe_names: Vec<String>,
+    /// The frozen sites and the port's page of each fixture page (set after `freeze`).
+    pub h: OnceLock<Weak<HugoSites>>,
+    pub ids: OnceLock<Vec<PageId>>,
+}
+
+/// For every fixture page, the probe names `.HasShortcode` reports (the Go recorder's
+/// `nhSnapshot`).
+pub fn has_shortcode_snapshot(h: &HugoSites, ids: &[PageId], names: &[String]) -> J {
+    J::Array(
+        ids.iter()
+            .map(|&id| {
+                let p = h.page(id);
+                J::Array(
+                    names
+                        .iter()
+                        .filter(|n| p.has_shortcode(n))
+                        .map(|n| J::String(n.clone()))
+                        .collect(),
+                )
+            })
+            .collect(),
+    )
+}
+
+/// A recorded `RenderString` argument: a string, or `{"map": {..}}` (a `map[string]any` of
+/// strings, e.g. `dict "display" "block"`).
+fn arg_value(a: &J) -> Value {
+    match a {
+        J::String(s) => Value::string(s.as_str()),
+        J::Object(o) => {
+            let mut m = Map::new(MapType::StringAny);
+            for (k, v) in o["map"].as_object().expect("a map argument") {
+                m.entries.insert(
+                    GoString::from(k.as_str()),
+                    Value::string(v.as_str().expect("a string map value")),
+                );
+            }
+            Value::Map(Arc::new(m))
+        }
+        other => panic!("unsupported recorded argument {other}"),
+    }
+}
+
+impl Replay {
+    /// Makes the recorded actions of the execution `key` on the port: the probes are compared,
+    /// the calls made with the execution's context (their own executions are replayed in turn)
+    /// and their results compared with Go's.
+    fn run_actions(&self, ctx: &TplContext, key: &RecKey, actions: &[J]) {
+        let h = self
+            .h
+            .get()
+            .and_then(|w| w.upgrade())
+            .expect("action mode needs the frozen sites");
+        let ids = self.ids.get().expect("action mode needs the page ids");
+        let fail = |msg: String| {
+            self.missing
+                .lock()
+                .unwrap()
+                .push(format!("actions of {key:?}: {msg}"))
+        };
+        for (i, a) in actions.iter().enumerate() {
+            let op = a["op"].as_str().unwrap();
+            if op == "probe" {
+                let got = has_shortcode_snapshot(&h, ids, &self.probe_names);
+                if got != a["has"] {
+                    fail(format!("probe {i}: HasShortcode {got} (Go: {})", a["has"]));
+                }
+                continue;
+            }
+            let pi = a["page"].as_u64().unwrap() as usize;
+            let id = ids[pi];
+            let po = h.page(id).current_output().clone();
+            let pco = po.content_renderer().expect("a page with a content output");
+            let format = a["format"].as_str().unwrap();
+            if pco.po.f.name != format {
+                fail(format!(
+                    "{op} {i}: content output format {} (Go: {format})",
+                    pco.po.f.name
+                ));
+            }
+            let res = match op {
+                "renderString" => {
+                    let handle = PageHandle {
+                        h: h.clone(),
+                        id,
+                        wrapper: PageWrapper::None,
+                    };
+                    let args: Vec<Value> = a["args"]
+                        .as_array()
+                        .unwrap()
+                        .iter()
+                        .map(arg_value)
+                        .collect();
+                    pco.render_string(ctx.as_host(), &handle, &args)
+                }
+                "renderShortcodes" => pco.render_shortcodes(ctx.as_host()),
+                other => panic!("unknown recorded action {other}"),
+            };
+            let want = translate_pids(a["out"].as_str().unwrap(), &self.pids);
+            match res {
+                Ok(v) => {
+                    let got = String::from_utf8_lossy(&value_bytes(&v)).into_owned();
+                    if got != want || a.get("err").is_some() {
+                        fail(format!(
+                            "{op} {i}: {got:?} (Go: {want:?}, err {})",
+                            a["err"]
+                        ));
+                    }
+                }
+                Err(e) => {
+                    if a.get("err").is_none() {
+                        fail(format!("{op} {i}: error {} (Go: {want:?})", e.message()));
+                    }
+                }
+            }
+        }
+    }
 }
 
 /// Rewrites the Go pids in shortcode placeholders (`HAHAHUGOSHORTCODE<pid>s`) and hugocontext
@@ -111,6 +238,9 @@ impl TemplateExecutor for Replay {
         let key = (pi, call.output_format.clone(), kind.clone(), ordinal);
         match self.records.get(&key) {
             Some(r) => {
+                if !r.actions.is_empty() {
+                    self.run_actions(ctx, &key, &r.actions);
+                }
                 if r.in_goldmark != ctx.is_in_goldmark {
                     self.missing.lock().unwrap().push(format!(
                         "replay: page {pi} format {} kind {kind} ordinal {ordinal}: is_in_goldmark {} (Go: {})",
@@ -402,6 +532,7 @@ pub fn setup(name: &str, fx: &J) -> Setup {
             out: r["out"].as_str().unwrap().to_string(),
             err: r["err"].as_str().map(|s| s.to_string()),
             in_goldmark: r["inGoldmark"].as_bool().unwrap(),
+            actions: r["actions"].as_array().cloned().unwrap_or_default(),
         };
         assert!(
             records.insert(key, rec).is_none(),
@@ -416,11 +547,19 @@ pub fn setup(name: &str, fx: &J) -> Setup {
         page_idx: Mutex::new(page_idx),
         missing: Mutex::new(Vec::new()),
         pids,
+        probe_names: dump["hasShortcodeNames"]
+            .as_array()
+            .map(|a| a.iter().map(|n| n.as_str().unwrap().to_string()).collect())
+            .unwrap_or_default(),
+        h: OnceLock::new(),
+        ids: OnceLock::new(),
     });
     b.h.template_executor = Some(replay.clone());
 
     let dir = b.dir.clone();
     let h = b.h.freeze();
+    assert!(replay.h.set(Arc::downgrade(&h)).is_ok());
+    assert!(replay.ids.set(ids.clone()).is_ok());
 
     for &id in &ids {
         init_outputs(&h, id);

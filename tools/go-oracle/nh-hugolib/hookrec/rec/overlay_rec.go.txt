@@ -26,24 +26,43 @@ type nhExecRecord struct {
 	nested  bool
 	// The template context's IsInGoldmark (set only for {{% %}} shortcodes).
 	inGoldmark bool
+	// The actions (RenderString, RenderShortcodes, HasShortcode probes) the
+	// execution made, in order (action mode only).
+	actions []any
 }
 
 // nhRec is the recorder. Builds run with one worker, so a plain global
 // suffices. Executions started while another recorded execution runs
 // (e.g. hooks of a markdownify call inside a shortcode template) are nested:
-// the outer output already contains them.
+// the outer output already contains them. In action mode, RenderString and
+// RenderShortcodes calls made by a template are recorded as actions of its
+// execution; the executions they start are not nested (the replay makes the
+// same calls), and HasShortcode probes record, for every page, which of the
+// probe names HasShortcode reports.
 var nhRec struct {
-	on      bool
-	depth   int
+	on bool
+	// The running executions (record index) and actions (-1).
+	stack   []int
 	counts  map[string]int
 	records []nhExecRecord
+
+	actions bool
+	names   []string
+	pages   []*pageState
+	index   map[*pageState]int
+	fail    string
 }
+
+// nhProbeName is the HasShortcode argument that records a probe.
+const nhProbeName = "__nhprobe"
 
 func nhRecordExec(ctx context.Context, p *pageState, format, kind string, w io.Writer, exec func(io.Writer) error) error {
 	if !nhRec.on {
 		return exec(w)
 	}
-	r := nhExecRecord{p: p, format: format, kind: kind, nested: nhRec.depth > 0, inGoldmark: tpl.Context.IsInGoldmark.Get(ctx)}
+	n := len(nhRec.stack)
+	nested := n > 0 && nhRec.stack[n-1] >= 0
+	r := nhExecRecord{p: p, format: format, kind: kind, nested: nested, inGoldmark: tpl.Context.IsInGoldmark.Get(ctx)}
 	if !r.nested {
 		key := fmt.Sprintf("%p|%s|%s", p, format, kind)
 		r.ordinal = nhRec.counts[key]
@@ -51,10 +70,10 @@ func nhRecordExec(ctx context.Context, p *pageState, format, kind string, w io.W
 	}
 	idx := len(nhRec.records)
 	nhRec.records = append(nhRec.records, r)
-	nhRec.depth++
+	nhRec.stack = append(nhRec.stack, idx)
 	var buf bytes.Buffer
 	err := exec(&buf)
-	nhRec.depth--
+	nhRec.stack = nhRec.stack[:n]
 	nhRec.records[idx].out = buf.String()
 	if err != nil {
 		nhRec.records[idx].err = err.Error()
@@ -62,6 +81,88 @@ func nhRecordExec(ctx context.Context, p *pageState, format, kind string, w io.W
 	}
 	_, err = w.Write(buf.Bytes())
 	return err
+}
+
+// nhOwner is the execution an action belongs to: the innermost running
+// execution, which must be one the replay makes (not nested).
+func nhOwner(what string) int {
+	for i := len(nhRec.stack) - 1; i >= 0; i-- {
+		if rec := nhRec.stack[i]; rec >= 0 {
+			if nhRec.records[rec].nested {
+				nhRec.fail = what + " in a nested execution (not replayable)"
+				return -1
+			}
+			return rec
+		}
+	}
+	nhRec.fail = what + " outside a template execution"
+	return -1
+}
+
+// nhSnapshot lists, per page, the probe names HasShortcode reports.
+func nhSnapshot() []any {
+	has := []any{}
+	for _, p := range nhRec.pages {
+		names := []string{}
+		for _, name := range nhRec.names {
+			if p.m.content.shortcodeState.hasName(name) {
+				names = append(names, name)
+			}
+		}
+		has = append(has, names)
+	}
+	return has
+}
+
+func nhProbe() {
+	if !nhRec.on || !nhRec.actions {
+		return
+	}
+	if owner := nhOwner("probe"); owner >= 0 {
+		nhRec.records[owner].actions = append(nhRec.records[owner].actions, map[string]any{"op": "probe", "has": nhSnapshot()})
+	}
+}
+
+// nhAction records a RenderString or RenderShortcodes call of pco.
+func nhAction(op string, pco *pageContentOutput, args []any, call func() (template.HTML, error)) (template.HTML, error) {
+	if !nhRec.on || !nhRec.actions {
+		return call()
+	}
+	owner := nhOwner(op)
+	if owner < 0 {
+		return call()
+	}
+	a := map[string]any{"op": op, "format": pco.po.f.Name}
+	i, ok := nhRec.index[pco.po.p]
+	if !ok {
+		nhRec.fail = op + " of a page without a file"
+		return call()
+	}
+	a["page"] = i
+	if op == "renderString" {
+		aa := []any{}
+		for _, v := range args {
+			switch v := v.(type) {
+			case string:
+				aa = append(aa, v)
+			case map[string]any:
+				aa = append(aa, map[string]any{"map": v})
+			default:
+				nhRec.fail = fmt.Sprintf("renderString: unsupported argument %T", v)
+			}
+		}
+		a["args"] = aa
+	}
+	nhRec.records[owner].actions = append(nhRec.records[owner].actions, a)
+	n := len(nhRec.stack)
+	nhRec.stack = append(nhRec.stack, -1)
+	res, err := call()
+	nhRec.stack = nhRec.stack[:n]
+	a["out"] = string(res)
+	if err != nil {
+		a["err"] = err.Error()
+	}
+	return res, err
 }
 
 func nhHook(hr hookRendererTemplate, cctx context.Context, w io.Writer, exec func(io.Writer) error) error {
@@ -78,7 +179,7 @@ func nhShortcode(ctx context.Context, data *ShortcodeWithPage, buf *bytes.Buffer
 // NHRecStart starts recording.
 func NHRecStart() {
 	nhRec.on = true
-	nhRec.depth = 0
+	nhRec.stack = nil
 	nhRec.counts = map[string]int{}
 	nhRec.records = nil
 }
@@ -134,14 +235,17 @@ func nhRecordsDump(index map[*pageState]int) []any {
 	recs := []any{}
 	for _, r := range nhRec.records {
 		m := map[string]any{
-			"format":  r.format,
-			"kind":    r.kind,
-			"ordinal": r.ordinal,
-			"out":     r.out,
-			"nested":  r.nested,
+			"format":     r.format,
+			"kind":       r.kind,
+			"ordinal":    r.ordinal,
+			"out":        r.out,
+			"nested":     r.nested,
 			"inGoldmark": r.inGoldmark,
-			"lang":    r.p.s.Lang(),
-			"path":    r.p.Path(),
+			"lang":       r.p.s.Lang(),
+			"path":       r.p.Path(),
+		}
+		if r.actions != nil {
+			m["actions"] = r.actions
 		}
 		if i, ok := index[r.p]; ok {
 			m["page"] = i
@@ -223,6 +327,9 @@ func nhContentValues(ctx context.Context, h *HugoSites, idx int, p *pageState, n
 	}
 	m["variations"] = p.pageOutputTemplateVariationsState.Load()
 	m["fatal"] = nhErr(h.fatalErrorHandler.getErr(), norm)
+	if nhRec.actions {
+		m["hasShortcode"] = nhSnapshot()
+	}
 	return m
 }
 
@@ -260,8 +367,10 @@ func nhHashValues(m map[string]any) {
 // NHOracleContent runs process and assemble, then, like the render loop,
 // for every site and render format shifts all pages (preparePagesForRender)
 // and reads every content value of every page (with a file) of the rendering
-// site. Hook and shortcode template executions are recorded.
-func NHOracleContent(h *HugoSites, norm func(string) string, hash bool) (map[string]any, error) {
+// site. Hook and shortcode template executions are recorded. With probe
+// names, the recorder runs in action mode (see nhRec) and every page's values
+// end with a HasShortcode probe.
+func NHOracleContent(h *HugoSites, norm func(string) string, hash bool, probeNames []string) (map[string]any, error) {
 	ctx := context.Background()
 	infol := h.Log.InfoCommand("build")
 	conf := &BuildCfg{WhatChanged: &WhatChanged{needsPagesAssembly: true}}
@@ -291,6 +400,12 @@ func NHOracleContent(h *HugoSites, norm func(string) string, hash bool) (map[str
 
 	NHRecStart()
 	defer NHRecStop()
+	nhRec.actions = probeNames != nil
+	nhRec.names = probeNames
+	nhRec.pages = pages
+	nhRec.index = index
+	nhRec.fail = ""
+	defer func() { nhRec.actions = false }()
 	steps := []any{}
 	i := 0
 	for si, s := range h.Sites {
@@ -317,14 +432,21 @@ func NHOracleContent(h *HugoSites, norm func(string) string, hash bool) (map[str
 		}
 	}
 	NHRecStop()
+	if nhRec.fail != "" {
+		return nil, fmt.Errorf("recorder: %s", nhRec.fail)
+	}
 
-	return map[string]any{
+	dump := map[string]any{
 		"pages":         pagesDump,
 		"renderFormats": global,
 		"sites":         sitesDump,
 		"steps":         steps,
 		"records":       nhRecordsDump(index),
-	}, nil
+	}
+	if probeNames != nil {
+		dump["hasShortcodeNames"] = probeNames
+	}
+	return dump, nil
 }
 
 // NHOracleHookrecBuild runs a real build (render included, into the site's

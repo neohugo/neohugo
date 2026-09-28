@@ -225,24 +225,46 @@ EX entry of their checklists is `OK`; not ported: identity/dependency tracking
 - Rendering never holds a lock (§4.8): the render-hook cache lock is held for the template lookup
   only (as Go's `renderCacheMu`); content caches are `PageMap` partitions (compute outside the
   lock, first stored wins).
+- `.HasShortcode` (T23's method table): `PageState::has_shortcode(name)` (page__per_output.rs;
+  Go `(p *pageState) HasShortcode`, page.go L365-371, in T23's checklist: mark it `OK` there).
+
+### `transferNames` (follow-up to T22)
+
+Go's `shortcodeHandler.nameSet` is a map behind a `sync.RWMutex` because it grows during
+rendering: `transferNames(in)` adds the names of another handler, and `.HasShortcode` reads it
+(`hasName`). Go calls it in two places, both ported:
+
+- `cachedContentScope.RenderString` (page__content.go L1039): after rendering a string that
+  contains shortcodes, the names of the string's own handler go to the page's handler (`We need
+  a consolidated view in $page.HasShortcode`), whatever template called it (shortcode, render
+  hook, another page's template).
+- the content callback of `contentToC` (page__content.go L714), called by `.RenderShortcodes`
+  when the context carries it: the included page's names go to the including page's handler.
+  The callback is in the context only while the including page's `{{% %}}` shortcodes run, so
+  `{{% include %}}` transfers and `{{< include >}}` does not; chains transfer transitively (the
+  included page's set already holds what it included or rendered with `RenderString`).
+
+`ShortcodeHandler.name_set` is private and an `RwLock<BTreeSet<String>>`, held only to read or
+insert names (HUGO_LAYER.md §4.8): `add_name(&self)`, `has_name`, `names()` (byte order; Go's map
+order never matters) and `transfer_names(&self, input)`, which copies `input`'s names under its
+read lock first and then inserts them under this set's write lock, so the two locks are never
+held together (Go holds only the target's lock while it ranges over the source; a page that
+transfers into itself cannot deadlock the port). The order of the calls is Go's (a probe of
+`.HasShortcode` sees exactly the names transferred so far).
 
 ### T22 deviations
 
 1. The markup converter (Go `pageState.contentConverter`, once per page) is kept per page OUTPUT
    (`PageOutput::content_converter`); converters are stateless between conversions (a fresh ID
    factory per conversion), so every output renders the same bytes.
-2. `shortcodeHandler.transferNames` (RenderString with shortcodes, `.RenderShortcodes` of included
-   pages) is not ported: T20's handler is immutable after capture. Only `.HasShortcode` of a page
-   that includes another page's shortcodes (or renders them with `RenderString`) could differ;
-   seeksnack uses neither. Making `ShortcodeHandler.name_set` a `Mutex` (T20) would allow it.
-3. `expandShortcodeTokens`: Go checks `(k+4) < len(source)` and then slices `source[end:end+4]`,
+2. `expandShortcodeTokens`: Go checks `(k+4) < len(source)` and then slices `source[end:end+4]`,
    which can read past `len` into the slice's spare capacity (or panic) for a token right at the
    end of the content after a `<p>`; the port treats such a token as not wrapped (Go's own test
    table, ported in `shortcode.rs`, expects exactly that result). Markdown output never ends inside
    a `<p>`.
-4. No identity/dependency tracking and no stale versions (`StaleValue` is always fresh, `version`
+3. No identity/dependency tracking and no stale versions (`StaleValue` is always fresh, `version`
    is the render version); `Reset` does not replace the render hooks (no server mode).
-5. Error texts: `wrapError` adds the filename as the error position (Go's
+4. Error texts: `wrapError` adds the filename as the error position (Go's
    `hugofs.AddFileInfoToError` also reads line numbers from the file); `parseError`/shortcode
    errors use `herrors` file errors. Only texts differ, never bytes of a successful build.
 
@@ -283,13 +305,18 @@ for `initLazyProviders`/`shiftToOutputFormat(true, idx)` (outputs per format nam
 
 | topic | inputs | Rust test | checks |
 |---|---|---|---|
-| `content/*.json.gz` | process + assemble in Go, then the render loop's order: per site and render format `preparePagesForRender` on all sites, then every page (with a file) of the rendering site: `.TableOfContents`, `.Content`, `.ContentWithoutSummary`, summary type, `.Summary`, `.Truncated`, `.Plain`, `.PlainWords`, `.WordCount`, `.FuzzyWordCount`, `.ReadingTime`, `.Len`, `.Fragments` (+ `ToHTML(1,3,true)`), the content output's format, the variations state, fatal errors. Sites: a content-focused en/th site (`{{< >}}`/`{{% %}}`, nested, `.Inner`/`.InnerDeindent`, positional/named params, `.Parent`, `.Ordinal`, inline, version 1, output-format shortcode variants, `.Page.TableOfContents`, shortcodes in summaries; manual/front matter/auto summaries, `summaryLength`; link, image, heading (+ rss variant), codeblock, blockquote/alert, table (+ `render-table.json.json`), passthrough off; TOC levels; CJK/`isCJKLanguage`/Thai; HTML content and `markup: html`; bundled page; JSON and RSS outputs), the seeksnack reconstruction (+ its hook templates), hugolib/testsite, docs/ (+ a code block hook: Chroma is not ported; values as FNV hashes), Go's TestExtractShortcodes site | `tests/content.rs` | 4,017 page/format value sets (docs 3,772), 19,128 replayed executions, 0 differences |
+| `content/*.json.gz` (but `hasshortcode`) | process + assemble in Go, then the render loop's order: per site and render format `preparePagesForRender` on all sites, then every page (with a file) of the rendering site: `.TableOfContents`, `.Content`, `.ContentWithoutSummary`, summary type, `.Summary`, `.Truncated`, `.Plain`, `.PlainWords`, `.WordCount`, `.FuzzyWordCount`, `.ReadingTime`, `.Len`, `.Fragments` (+ `ToHTML(1,3,true)`), the content output's format, the variations state, fatal errors. Sites: a content-focused en/th site (`{{< >}}`/`{{% %}}`, nested, `.Inner`/`.InnerDeindent`, positional/named params, `.Parent`, `.Ordinal`, inline, version 1, output-format shortcode variants, `.Page.TableOfContents`, shortcodes in summaries; manual/front matter/auto summaries, `summaryLength`; link, image, heading (+ rss variant), codeblock, blockquote/alert, table (+ `render-table.json.json`), passthrough off; TOC levels; CJK/`isCJKLanguage`/Thai; HTML content and `markup: html`; bundled page; JSON and RSS outputs), the seeksnack reconstruction (+ its hook templates), hugolib/testsite, docs/ (+ a code block hook: Chroma is not ported; values as FNV hashes), Go's TestExtractShortcodes site | `tests/content.rs` | 4,017 page/format value sets (docs 3,772), 19,128 replayed executions, 0 differences |
 | `hookrec/*.json.gz` | a REAL Go build (page layouts reading `.Content`, `.Summary`, `.Plain`, `.TableOfContents`, `.WordCount` in html/json/rss) of the same sites but docs: every hook/shortcode execution recorded, then the rendered-content caches (`/cont/ren`, `/cont/toc`, `/cont/pla`) per page and format | `tests/hookrec.rs` | 97 cache entries, 284 replayed executions, 0 differences |
 | unit | Go's `TestReplaceShortcodeTokens` table; the `<p>` cleanup regexp | `src/shortcode.rs` | all equal |
+| `content/hasshortcode.json.gz` | the content oracle in ACTION MODE on `rec.HasShortcodeSite` (en/th): the `RenderString` and `.RenderShortcodes` calls of the templates are recorded with the execution that made them (their own executions are replayable records, not nested ones), and `.HasShortcode` of every page for every name of the site (+ one never used) is probed before and after each call (`HasShortcode "__nhprobe"` in the templates) and after each page's values, in render order. Cases: `RenderString` on the page itself from `{{< >}}` and `{{% %}}` shortcodes, with `dict "display" "block"`, without shortcodes, from a link render hook, on another page, in a Thai page; `.RenderShortcodes` from `{{% include %}}` (with the included page's own `RenderString`), a chain of three includes, and from `{{< include >}}` (no transfer) | `tests/content.rs` (`content_hasshortcode`; `content_support::Replay` makes each recorded call on the port with the execution's context and compares its result and every probe) | 48 page/format value sets, 70 replayed executions, 11 `RenderString`, 13 `.RenderShortcodes`, 57 in-template probes + 48 per-page probes, 0 differences |
 
 Mutations checked (each fails the tests): reading time divisor, the `{{% %}}` inner `<p>` cleanup
 and the `<p>TOKEN</p>` unwrap, the hook-candidate variation increment (unused records), setting
-`is_in_goldmark` for `{{< >}}` shortcodes.
+`is_in_goldmark` for `{{< >}}` shortcodes, dropping either `transferNames` call.
+
+The action mode is off for the other sites, so their fixtures are unchanged. Page ids come from
+one counter per oracle process: regenerate with the full command below (a single `-site` run
+numbers the pages differently).
 
 Regenerate (byte for byte; sites are built in a temp dir, never in the repository):
 

@@ -474,7 +474,10 @@ another scope or format of page A itself. So:
   panics, and Go would deadlock too. Examples: `PageState.lazy`, `Site.taxonomies`, `h.data`,
   publish-once.
 - A plain `Mutex` for state written only in the mutable phase is unnecessary: use `&mut` (for
-  example the shortcode handler, filled during capture and read-only afterwards).
+  example the shortcode handler's shortcodes, filled during capture and read-only afterwards).
+  Its name set is the exception: `transferNames` adds names during rendering, so it is an
+  `RwLock` held only to read or insert names (the source set is copied before the target is
+  locked).
 
 ---
 
@@ -1207,6 +1210,8 @@ differs from the reviewer's suggestion, the reason is given.
     - `PageMap`, `HugoSites.cache_pages` and `CachedContent.scopes` are now dynacache
       `Partition`s.
     - The shortcode handler has no lock: it is written during capture, which is the mutable phase.
+      Exception (added later): its name set, which `transferNames` extends during rendering, is an
+      `RwLock` (§4.8).
     - The review also exposed that the rendered-content caches live in the site `PageMap` in Go,
       keyed by source key + scope + format, not in per-scope `OnceLock`s. The skeleton has been
       corrected accordingly.

@@ -10,6 +10,12 @@
 // the hook type (link, image, heading, codeblock, blockquote, table,
 // passthrough) or "shortcode:<name>". Executions nested in another recorded
 // execution are marked nested (their output is part of the outer one).
+//
+// In action mode (the content oracle's HasShortcodeSite), the patches of
+// pageContentOutput.RenderString/RenderShortcodes and pageState.HasShortcode
+// record those calls and HasShortcode probes as actions of the execution that
+// made them; the executions such a call starts are not nested, because the
+// replay makes the same call.
 package rec
 
 import (
@@ -73,6 +79,22 @@ func Patches() []hsupport.Patch {
 			After:  "\tbuffer := bp.GetBuffer()\n\tdefer bp.PutBuffer(buffer)\n",
 			Insert: "\tif nhRec.on {\n\t\tif err := nhShortcode(ctx, data, buffer, func(b *bytes.Buffer) error { return h.ExecuteWithContext(ctx, tmpl, b, data) }); err != nil {\n\t\t\treturn \"\", fmt.Errorf(\"failed to process shortcode: %w\", err)\n\t\t}\n\t\treturn buffer.String(), nil\n\t}\n",
 		},
+		// Action mode (the hasshortcode site of the content oracle).
+		{
+			File:   "hugolib/page__per_output.go",
+			After:  "func (pco *pageContentOutput) RenderString(ctx context.Context, args ...any) (template.HTML, error) {\n",
+			Insert: "\tif nhRec.actions {\n\t\treturn nhAction(\"renderString\", pco, args, func() (template.HTML, error) { return pco.c().RenderString(ctx, args...) })\n\t}\n",
+		},
+		{
+			File:   "hugolib/page__per_output.go",
+			After:  "func (pco *pageContentOutput) RenderShortcodes(ctx context.Context) (template.HTML, error) {\n",
+			Insert: "\tif nhRec.actions {\n\t\treturn nhAction(\"renderShortcodes\", pco, nil, func() (template.HTML, error) { return pco.c().RenderShortcodes(ctx) })\n\t}\n",
+		},
+		{
+			File:   "hugolib/page.go",
+			After:  "func (p *pageState) HasShortcode(name string) bool {\n",
+			Insert: "\tif name == nhProbeName {\n\t\tnhProbe()\n\t}\n",
+		},
 	}
 }
 
@@ -122,6 +144,71 @@ func Sites(root string) ([]hsupport.Site, error) {
 		}
 	}
 	return sites, nil
+}
+
+// HasShortcodeNames are the names the HasShortcode probes of
+// HasShortcodeSite ask for: every shortcode of the site and one it never
+// uses.
+var HasShortcodeNames = []string{"include", "leaf", "leaf2", "leafmd", "nosuch", "probe", "rs", "rsblock", "rsother"}
+
+// probe is a HasShortcode probe (the recorder snapshots every page's
+// HasShortcode for HasShortcodeNames; the template output is empty).
+const probe = `{{ if .Page.HasShortcode "__nhprobe" }}{{ end }}`
+
+// HasShortcodeSite is the en/th site of the content oracle's action mode:
+// it reaches every shortcodeHandler.transferNames call site. RenderString
+// with shortcodes on the page itself (from {{< >}} and {{% %}} shortcodes,
+// with display options, without shortcodes), on another page, from a link
+// render hook, and in a Thai page; .RenderShortcodes of included pages from
+// {{% %}} (the content callback transfers the names, also transitively
+// through a chain of includes and from an included page's own RenderString)
+// and from {{< >}} (no callback: no transfer). The templates probe
+// HasShortcode before and after each call.
+func HasShortcodeSite() hsupport.Site {
+	files := map[string]string{
+		"layouts/_shortcodes/leaf.html":    `[leaf]`,
+		"layouts/_shortcodes/leafmd.html":  `*leafmd*`,
+		"layouts/_shortcodes/leaf2.html":   `[leaf2:{{ .Page.Title }}]`,
+		"layouts/_shortcodes/probe.html":   probe + `(probe)`,
+		"layouts/_shortcodes/rs.html":      probe + `<span class="rs">{{ .Page.RenderString .Page.Params.rs }}</span>` + probe,
+		"layouts/_shortcodes/rsblock.html": `{{ .Page.RenderString (dict "display" "block") .Page.Params.rsblock }}` + probe,
+		"layouts/_shortcodes/rsother.html": `{{ $p := site.GetPage (.Get 0) }}` + probe + `{{ with $p }}{{ .RenderString .Params.rs }}{{ end }}` + probe,
+		"layouts/_shortcodes/include.html": `{{ $p := site.GetPage (.Get 0) }}` + probe + `{{ with $p }}{{ .RenderShortcodes }}{{ end }}` + probe,
+		"layouts/_markup/render-link.html": `{{ if eq .Destination "rs" }}` + probe + `{{ .Page.RenderString .Page.Params.rshook }}` + probe + `{{ else }}<a href="{{ .Destination | safeURL }}">{{ .Text }}</a>{{ end }}`,
+		"layouts/home.html":                `{{ .Content }}`,
+		"layouts/page.html":                `{{ .Content }}`,
+		"layouts/section.html":             `{{ .Content }}`,
+
+		"content/a-other.md":   fm(`title: "Other"`) + "\nRenders another page: {{< rsother \"/target\" >}}.\n",
+		"content/blockopts.md": fm(`title: "Block"`, `rsblock: "block {{< leaf >}}"`) + "\n{{< rsblock >}}\n",
+		"content/chain-a.md":   fm(`title: "Chain A"`) + "\nA {{% include \"/chain-b\" %}}\n\n{{< probe >}}\n",
+		"content/chain-b.md":   fm(`title: "Chain B"`) + "\nB {{% include \"/chain-c\" %}}\n",
+		"content/chain-c.md":   fm(`title: "Chain C"`) + "\nC {{< leaf >}} {{% leafmd %}}\n",
+		"content/hook.md":      fm(`title: "Hook"`, `rshook: "hook {{< leaf >}}"`) + "\nA [link](rs) and [plain](/x).\n",
+		"content/included.md":  fm(`title: "Included"`, `rs: "inc-rs {{< leaf2 >}}"`) + "\nIncluded {{< leaf >}} and {{% leafmd %}} and {{% rs %}}.\n",
+		"content/included2.md": fm(`title: "Included 2"`) + "\nTwo {{< leaf2 >}}.\n",
+		"content/includer.md":  fm(`title: "Includer"`) + "\n{{% include \"/included\" %}}\n\n{{< probe >}}\n",
+		"content/includer2.md": fm(`title: "Includer 2"`) + "\n{{< include \"/included2\" >}}\n\n{{< probe >}}\n",
+		"content/nosc.md":      fm(`title: "No shortcodes"`, `rs: "just *text*"`) + "\n{{< rs >}}\n",
+		"content/own.md":       fm(`title: "Own"`, `rs: "own {{< leaf >}} and {{% leafmd %}}"`) + "\nBefore {{< probe >}} then {{< rs >}} after {{< probe >}}.\n",
+		"content/own.th.md":    fm(`title: "ของตัวเอง"`, `rs: "th {{< leaf2 >}}"`) + "\n{{< rs >}}\n",
+		"content/ownmd.md":     fm(`title: "Own md"`, `rs: "md {{< leaf2 >}}"`) + "\n{{% rs %}}\n\n{{% probe %}}\n",
+		"content/plain.md":     fm(`title: "Plain"`) + "\nPlain text, no shortcodes.\n",
+		"content/target.md":    fm(`title: "Target"`, `rs: "target {{< leaf2 >}}"`) + "\nTarget body.\n",
+	}
+	toml := `baseURL = "https://example.org/"
+title = "HasShortcode"
+defaultContentLanguage = "en"
+[markup.goldmark.renderer]
+unsafe = true
+[outputs]
+page = ["html", "json"]
+[languages.en]
+weight = 1
+[languages.th]
+weight = 2
+`
+	return hsupport.Site{Name: "hasshortcode", TOML: toml, Files: inline(files)}
 }
 
 const tableJSON = `{"head":[{{ range $i, $r := .THead }}{{ if $i }},{{ end }}[{{ range $j, $c := $r }}{{ if $j }},{{ end }}{{ printf "%s:%s" $c.Alignment $c.Text | jsonify }}{{ end }}]{{ end }}],` +

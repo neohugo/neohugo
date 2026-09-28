@@ -715,6 +715,17 @@ pub fn execute_to_string(
 // hugolib/page.go + page__meta.go helpers used by content rendering.
 
 impl PageState {
+    /// Go: `HasShortcode(name)` — whether the page's content (or content it rendered or
+    /// included: `RenderString`, `.RenderShortcodes`) uses the shortcode `name`. T23's method
+    /// table calls this (page.go is T23's; the name set lives in the shortcode handler).
+    // Go: hugolib/page.go:HasShortcode
+    pub fn has_shortcode(&self, name: &str) -> bool {
+        match &self.content {
+            None => false,
+            Some(c) => c.shortcode_state.has_name(name),
+        }
+    }
+
     /// Go: `pathOrTitle()` — the filename, else the path, else the title.
     // Go: hugolib/page.go:pathOrTitle
     pub fn path_or_title(&self) -> String {

@@ -11,6 +11,13 @@
 // recorded (hookrec/rec), so the Rust test can replay them through
 // template_exec::TemplateExecutor.
 //
+// One more site, rec.HasShortcodeSite, runs the recorder in action mode: the
+// RenderString and .RenderShortcodes calls of its templates are recorded
+// with the execution that made them (the replay makes the same calls), and
+// .HasShortcode is probed for every page and every name of
+// rec.HasShortcodeNames before and after each call and after each page's
+// values, in render order (shortcodeHandler.transferNames).
+//
 // The recorder is added to package hugolib with `go run -overlay`; the
 // repository is never modified. Each site is written to a temporary directory
 // and recorded in the fixture (files taken unchanged from the repository as
@@ -32,7 +39,7 @@ import (
 )
 
 // oracle is set by the overlay-added hook file (hookFile).
-var oracle func(h *hugolib.HugoSites, norm func(string) string, hash bool) (map[string]any, error)
+var oracle func(h *hugolib.HugoSites, norm func(string) string, hash bool, probeNames []string) (map[string]any, error)
 
 const hookFile = `package main
 
@@ -66,6 +73,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	sites = append(sites, rec.HasShortcodeSite())
 
 	tmp, err := os.MkdirTemp("", "nh-hugolib-content")
 	if err != nil {
@@ -86,8 +94,12 @@ func main() {
 			log.Fatal(err)
 		}
 		c := map[string]any{"site": s.Describe()}
+		var probeNames []string
+		if s.Name == "hasshortcode" {
+			probeNames = rec.HasShortcodeNames
+		}
 		// The docs site is large: its values are recorded as hashes.
-		dump, err := oracle(b.H, b.Norm, s.Name == "docs")
+		dump, err := oracle(b.H, b.Norm, s.Name == "docs", probeNames)
 		if err != nil {
 			c["err"] = b.Norm(err.Error())
 		} else {

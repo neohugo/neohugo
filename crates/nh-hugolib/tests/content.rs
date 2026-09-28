@@ -15,10 +15,8 @@
 mod content_support;
 mod support;
 
-use std::sync::Arc;
 use std::sync::atomic::Ordering;
 
-use nh_hugolib::HugoSites;
 use nh_hugolib::page::{PageHandle, PageId, PageWrapper};
 use nh_tpl::template::TplContext;
 use serde_json::{Value as J, json};
@@ -26,8 +24,10 @@ use serde_json::{Value as J, json};
 use content_support::*;
 use support::*;
 
-/// The values of one page in its current output format, in the oracle's call order.
-fn content_values(h: &Arc<HugoSites>, id: PageId, want: &J) -> J {
+/// The values of one page in its current output format, in the oracle's call order (then, in
+/// action mode, every page's `.HasShortcode` for the probe names).
+fn content_values(st: &Setup, id: PageId, want: &J) -> J {
+    let h = &st.h;
     let ps = h.page(id);
     let ctx = TplContext::default();
     let host = ctx.as_host();
@@ -142,6 +142,12 @@ fn content_values(h: &Arc<HugoSites>, id: PageId, want: &J) -> J {
             None => J::Null,
         },
     );
+    if want.get("hasShortcode").is_some() {
+        m.insert(
+            "hasShortcode".into(),
+            has_shortcode_snapshot(h, &st.ids, &st.replay.probe_names),
+        );
+    }
     J::Object(m)
 }
 
@@ -186,7 +192,7 @@ fn run_case(name: &str) {
         }
         for want in step["values"].as_array().unwrap() {
             let pi = want["page"].as_u64().unwrap() as usize;
-            let mut got = content_values(h, ids[pi], want);
+            let mut got = content_values(&st, ids[pi], want);
             let mut want = want.clone();
             normalize_errors(&mut got);
             normalize_errors(&mut want);
@@ -249,6 +255,13 @@ fn content_testsite() {
 #[test]
 fn content_shortcodes() {
     run("shortcodes");
+}
+
+/// Action mode: `RenderString` and `.RenderShortcodes` made by the templates, `.HasShortcode`
+/// probed before and after each call and after each page's values (`transferNames`).
+#[test]
+fn content_hasshortcode() {
+    run("hasshortcode");
 }
 
 #[test]

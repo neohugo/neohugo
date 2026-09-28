@@ -445,8 +445,12 @@ impl CachedContentScope {
                         .extend(other);
 
                     // Transfer shortcode names so HasShortcode works for shortcodes from
-                    // included pages: not ported (the handler is immutable after capture; see
-                    // PORTING.md).
+                    // included pages.
+                    if let (Some(dst), Some(src)) =
+                        (&h.page(cp1.po.p).content, &h.page(cp2.po.p).content)
+                    {
+                        dst.shortcode_state.transfer_names(&src.shortcode_state);
+                    }
                     if h.page(cp2.po.p)
                         .page_output_template_variations_state
                         .load(std::sync::atomic::Ordering::SeqCst)
@@ -801,8 +805,10 @@ impl CachedContentScope {
                 }
             }
 
-            // We need a consolidated view in $page.HasShortcode (transferNames: not ported,
-            // see PORTING.md).
+            // We need a consolidated view in $page.HasShortcode
+            if let Some(c) = &p.content {
+                c.shortcode_state.transfer_names(&s);
+            }
         } else {
             let c = pco
                 .render_content_with_converter(ctx, &*conv, content_to_render, false)

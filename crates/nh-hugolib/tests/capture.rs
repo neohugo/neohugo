@@ -201,7 +201,7 @@ impl Dumper<'_> {
                 ContentItem::Shortcode(s) => json!({"t": "sc", "sc": self.sc(s, pi.pid)}),
             })
             .collect();
-        let names: Vec<&String> = c.shortcode_state.name_set.iter().collect();
+        let names: Vec<String> = c.shortcode_state.names();
         let source_key = if m.f.is_none() {
             "PID".to_string()
         } else {
