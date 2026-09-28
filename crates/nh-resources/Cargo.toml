@@ -22,16 +22,25 @@ nh-tpl = { path = "../nh-tpl" }
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
 go-hashstructure = { path = "../go-hashstructure" }
 go-json = { path = "../go-json" }
-
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   sha2
-#   md-5
-#   base64
-#   hex
+go-image = { path = "../go-image" }
+go-path = { path = "../go-path" }
+go-strconv = { path = "../go-strconv" }
+go-unicode = { path = "../go-unicode" }
+gift = { path = "../gift" }
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# gunzip of the fixtures (decompression only; README rule 2).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# Test-only transformations mirroring integrity's fingerprint (README rule 2: digests and
+# encodings cannot change output bytes).
+sha2 = "0.10"
+md-5 = "0.10"
+base64 = "0.23"
+# The resource `minify` test transformation uses T07's minifier client.
+nh-transform = { path = "../nh-transform" }
+nh-langs = { path = "../nh-langs" }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

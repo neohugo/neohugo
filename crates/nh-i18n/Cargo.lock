@@ -568,8 +568,13 @@ dependencies = [
 name = "nh-resources"
 version = "0.1.0"
 dependencies = [
+ "gift",
  "go-hashstructure",
+ "go-image",
  "go-json",
+ "go-path",
+ "go-strconv",
+ "go-unicode",
  "go-value",
  "nh-allconfig",
  "nh-common",
