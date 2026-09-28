@@ -95,6 +95,10 @@ pub struct HugoSites {
     pub translation_provider: TranslationProvider,
     /// Go's package-level `pageIDCounter` (page `pid`s; any unique numbering works).
     pub page_id_counter: AtomicU64,
+    /// Go `translationKeyPages` (`maps.SliceCache[page.Page]`): the pages with a front matter
+    /// `translationKey`, filled by `assembleResources` (T21), read by
+    /// `getOrCreateResourcesForPage`.
+    pub translation_key_pages: std::collections::BTreeMap<String, Vec<PageId>>,
     /// Go `buildCounter`: tracks invocations of the Build method.
     pub build_counter: AtomicU64,
     /// Go `*fatalErrorHandler`.
@@ -488,6 +492,7 @@ fn new_hugo_sites(
         template_executor: None,
         translation_provider: TranslationProvider::new(),
         page_id_counter: AtomicU64::new(0),
+        translation_key_pages: std::collections::BTreeMap::new(),
         build_counter: AtomicU64::new(0),
         fatal_error_handler: FatalErrorHandler::default(),
         self_ref: Arc::new(OnceLock::new()),

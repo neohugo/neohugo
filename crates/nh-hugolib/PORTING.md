@@ -326,9 +326,169 @@ go run ./tools/go-oracle/nh-hugolib/content -root .
 go run ./tools/go-oracle/nh-hugolib/hookrec -root .
 ```
 
+## T21 hugolib-assemble: status
+
+`build_assemble` (`assemble`, `initRenderFormats`, `shouldBuild`), `content_map_page` (queries +
+assembly steps), `page__meta_post` (`setMetaPost`, `setMetaPostParams`, `applyDefaultValues`),
+`page__init` (`initLazyProviders`, `initPage`, `initCommonProviders`, `shiftToOutputFormat`,
+template variations), `page__paths`, `pagecollections`, `collections`, `page__data`,
+`page__tree` and `site_sections` are ported. Every checklist entry of these modules is `OK`
+(also the non-EX ones); not ported: the rebuild-only functions of content_map_page.go
+(`debugPrint`, `dynacacheGC*`, `resolveAndClearStateForIdentities`,
+`resolveAndResetDependententPageOutputs`) and the rebuild branches inside the assembly steps
+(`assembleChanges`, post hooks comparing dates). No stubs on the build path; resource configs
+of content adapters (`rs.rc`) return the explicit unsupported error (capture already rejects
+content adapters).
+
+### Page-output lifecycle (for T23, T24)
+
+- `build_assemble::assemble(&mut h, &cfg)` after `build_process::process`, then
+  `h.freeze()`. It fills `Site.home`, `Site.lastmod`, `Site.render_formats`,
+  `HugoSites.render_formats` (global index), the main sections (`conf.compiled()`), and
+  `HugoSites.translation_key_pages`; `assembleResources` already ran `init_page` and
+  `shift_to_output_format(h, true, 0)` on every page (the page outputs and bundle resources
+  exist before freezing).
+- `PageState::init_page(h) -> Result<&PageLazy>` (Go `initPage`; the result or error is
+  cached): `PageLazy.paths` (`PagePaths`: `output_formats()` is Go's `.OutputFormats`,
+  `first_output_format`, `target_paths` by format name) and `outputs` (one per global render
+  format, shared `Arc` per format NAME; a standalone page has one slot). The target path
+  descriptor is `PageCommon.target_path_descriptor` (unset for a page without output formats,
+  Go's zero descriptor).
+- `PageState::shift_to_output_format(h, is_rendering_site, idx)` (T24's
+  `HugoSites::prepare_pages_for_render` already calls it for every page of every site before
+  each format): sets `current_output_idx` (0 for one-slot pages); rendering site: resets a
+  BUILT paginator, installs the output's `pco` (created, or reused from another output when
+  `can_reuse_page_output_content`); other sites: installs (or resets) a
+  `ContentProviderSlot::Lazy` whose factory creates the content output of the page's CURRENT
+  output when first used (Go's closure reads `p.pageOutput`), `pco` untouched. The lazy
+  factory needs the frozen `HugoSites` (installed only by the render loop).
+- `PageState::current_output()` (T20's `page.rs`) is the current output: its
+  `target_paths` give `.RelPermalink`/`.Permalink` (`target_paths.output_format`),
+  `rel_url`, the target file name; `po.render` whether it renders; `po.paginator`.
+
+### Queries and navigation API (for T23)
+
+- `content_map_page::PageMap::get_pages_in_section(h, site, &PageMapQueryPagesInSection{path,
+  key_part, recursive, include_self, include})`, `get_pages_with_term(h, site,
+  &PageMapQueryPagesBelowPath{path, key_part, include})`, `get_terms_for_page_in_taxonomy`
+  (`.GetTerms`), `get_or_create_resources_for_page(h, page)` (`.Resources`),
+  `for_each_page`/`for_each_page_including_bundled_pages`; `site_taxonomies(h, site)` is
+  `Site.Taxonomies()`'s lazy init (`create_site_taxonomies`). `page_predicates::*` are Go's
+  `pagePredicates` (`and`/`or` = `P.And`/`P.Or`). The exact query shapes of page.go
+  `Pages()`/`RegularPages()` and site.go `Pages()`/`RegularPages()` are in
+  `tests/assemble.rs` (`Dumper::pages_of`, ...): copy them into T23's methods.
+- `pagecollections::new_page_finder(h, site)`: `get_page_for_refs(&refs)` (`Site.GetPage`;
+  `None` becomes `page.NilPage`), `get_page(Some(ctx), ref)` (`pageSiteAdapter.GetPage`),
+  `get_page_ref(ctx, ref)` (ref/relref).
+- `page__tree`: `parent`, `current_section`, `first_section`, `in_section`, `is_ancestor`,
+  `is_descendant`, `ancestors`, `sections`, `page`, `sections_entries`, `sections_path` on
+  handles, and `parent_id`/`current_section_id`/`first_section_id`/`sections_*_id` on the
+  arena. `page__data::data(&handle)` (`.Data`), `collections::{slice, group}`,
+  `site_sections::{home, sections}`.
+- `page__paths::get_language_target_path_lang`/`get_language_permalink_lang` (crate-visible)
+  are Go's `Site` methods the descriptor needs during assembly; T23's `Site` methods can
+  delegate to them.
+
+### Changes outside the T21 modules
+
+- `hugo_sites.rs` (T20): new field `HugoSites.translation_key_pages` (Go
+  `translationKeyPages`).
+- `tplapi/page_methods.rs` (T23): `Page::weight()`, `Page::site()` and `Resource::name()` of
+  `PageHandle` are filled (the default page sort reads the weight and
+  `Site().Current().Language()`; the resource sort and `NameNormalizedOrName` read the name).
+- `Cargo.toml`/`Cargo.lock`: `go-url` (landed Wave A crate: `url.QueryUnescape` of expanded
+  permalinks).
+- T20 checklist entries implemented here, where their only caller is: `DeletePageAndResourcesBelow`
+  (content_map_trees.rs L223-232, in `content_map_page.rs`) and `setMetaPostPrepareRebuild`
+  (page__meta.rs L72-75, in `page__meta_post.rs`). `viewName.IsZero` is T20's
+  (`content_map.rs`).
+
+### Go behaviour reproduced on purpose
+
+- Cache keys: `"gagesInSection/" + path + "/" + keyPart + "/" + recursive + "/" + includeSelf`
+  and `path + "/" + keyPart`, both in `cachePages1`: a term's `.Pages` and `.RegularPages`
+  share one key, the first query wins (the oracle queries terms in both orders).
+- Terms: tree key = `PathParser.Base("/" + plural + "/" + value + "/_index.md")` (lower-case,
+  spaces to `-`, not sanitized: `Lay's` and `Lays` are two terms; `a/b` is a nested term); the
+  LAST value seen in walk order is `m.term` (title-cased into the default title in
+  `applyAggregatesToTaxonomiesAndTerms`), `.Name` is the first; `types.ToStringSlicePreserveString`
+  nil vs empty (an empty `[]string` still reads `<plural>_weight`, whose conversion error is
+  logged); `""` values skipped with their ordinal kept; the walked key `""` becomes `"/"` and
+  stays so for the rest of the page's taxonomies.
+- A term that should not build is deleted from the page tree during the walk and its entries
+  from EVERY language's entries tree (`TreeShiftTree.DeletePrefix`).
+- `removeShouldNotBuild` disables (not deletes) home, sections and taxonomies; deletes the rest
+  with their resources (this site's dimension only).
+- Resources: ownership only checked for branch pages, so a page whose key prefixes a leaf
+  bundle's (`/leafy` and `/leafy/b`) creates and lists that bundle's resources and visits its
+  bundled page (whose `setMetaPost` then runs twice: the cascade compares equal, the dates are
+  restored, `resourcePath` is the last walker's); with `duplicateResourceFiles` or multihost the
+  walks are non-exact and another language's resources are cloned into the current dimension
+  (else a page only creates the resources of its own language); the sort
+  is Go's non-strict `less` through `go_sort::stable_by`.
+- `setMetaPostParams`: the reserved-key switch (params written back normalised; `outputs`,
+  `draft`, `sitemap`, `resources` left as they were), `[]any` of strings to `[]string`, empty
+  `[]any` to `[]string{}`, `published`, `_build` (deprecation), `headless`, `params` merged
+  last; `applyDefaultValues` titles (home = site title, section = CreateTitle(Pluralize(dir)),
+  taxonomy with `-` to space, term, 404) only without a file; kinds disabled by config are
+  disabled builds.
+- Cascade: merge into the page's own cascade (own keys win), matchers on kind/lang/path
+  (lower-cased, leading `/`)/environment, params and fields only where the page has no value;
+  the site cascade enters at the home page; terms get theirs in step 2 from the taxonomy walk.
+- Dates: branches with all-zero dates (and the home page, for `Site.lastmod`) take the max of
+  the dates events of their descendants (publish date only if before `htime.Now()`); terms and
+  taxonomies in step 2 from their entries; events are handled after each walk.
+- `createTargetPathDescriptor` reads `h.Conf` (the FIRST site's config) for uglyURLs and
+  multihost; sitemaps are always in a language subdir; expanded permalinks are
+  `url.QueryUnescape`d (`""` on error) and a trailing `//` loses one slash.
+
+### Deviations
+
+1. The "dates" listeners of `applyAggregates`/`applyAggregatesToTaxonomiesAndTerms` cannot
+   borrow the page arena (nh-doctree's handlers are `'static`): each records (listener,
+   source) and the updates are applied in delivery order after the events are handled. Go's
+   listeners only read the source's dates and write their own page's, so the result is equal.
+2. Go picks the main section in map order (a random one of the sections with the most pages);
+   the port takes the first in byte order. The oracle records ties as a set.
+3. A page without output formats: Go's zero `pagePaths{}`; the port keeps the computed
+   descriptor in `PagePaths` but leaves `PageCommon.target_path_descriptor` unset.
+4. The cascade `PageMatcher.Matches` is applied to the values it reads (kind, lang, path,
+   environment) and the permalink expander reads a `PathsPageView` (kind, date, title, slug,
+   section, file, path info, the current section's `SectionsEntries`/`SectionsPath`):
+   assembly has no `page.Page` handle (the `Arc<HugoSites>` does not exist yet).
+5. `assembleResources`: the pages tree is not modified by that walk, so its visits are taken
+   first and each page is handled in walk order (the resources tree walk is a `walk_mut`).
+6. `setMetaPost` on a second run compares the cascades structurally instead of by
+   `hashing.HashUint64` (equal hashes = equal values).
+7. Assembly step 1 runs per site in site order (Go runs the sites in parallel; the sites only
+   touch their own language dimension).
+8. `.Data` is built on each call (Go: once per page); its values are the same.
+9. `Site.Taxonomies()` after a `CreateSiteTaxonomies` error: an empty list (Go keeps the
+   taxonomies built so far; the error is a missing taxonomy view, which cannot happen).
+10. `h.newPage` errors in `addMissingTaxonomies`/`addStandalonePages` are returned (Go ignores
+    them and inserts a nil page, which panics later).
+
+### Verification (T21)
+
+| topic | inputs | Rust test | checks |
+|---|---|---|---|
+| `assemble/*.json.gz` | process + assemble in Go (`go run -overlay`: `NHOracleAssemble` in package hugolib), 17 sites: docs/, hugolib/testsite, nh-page's synthetic site, the seeksnack reconstruction, T20's edge sites (shortcodes, edge-tree, contentdir, homeleaf, nokinds), T22's content site, and 7 assembly sites: `asm-taxo` (term case/slug/punctuation/nested/space collisions, numeric/bool/nil/nested-list values, weights and a bad weight, content terms, unused terms, permalinks for page/section/taxonomy/term with `:year :month :slug :title :sections :section :filename :contentbasename`, url patterns, uglyURLs per section, sitemap config, robots, resources metadata, the leafy double visit, a main-section tie), `asm-build`/`asm-flags` (drafts, `published`, future/expired pages, terms and sections, build list/render/publishResources, headless, `_build`, disableKinds, outputs per kind; with and without buildDrafts/buildFuture/buildExpired), `asm-cascade` (site and front matter cascades, `_target` kind/path/lang/environment, merges, fields, taxonomy cascades to terms, en/th), `asm-i18n` (en/th/fr, defaultContentLanguageInSubdir, translationKey with resources, language-specific resources, headless bundle, aliases, custom formats with path/baseName/permalinkable/isPlainText/noUgly/weight, `outputs` front matter), `asm-multihost`, `asm-ugly` (uglyURLs, disablePathToLower, no list-title capitalisation/pluralisation, permalinks `:slugorcontentbasename`) | `tests/assemble.rs` | 1,461 pages (meta, params with Go types, dates, cascade, build, sitemap, target path descriptor, output formats, 6,014 page outputs with slot sharing, target paths, permalinks, tree relations), 2,924 collections, 1,436 `.Data`, 41 `GetTerms`, 31,421 `GetPage` results (plain, old two-argument forms, with a context page, ref), 128 resources, 54 taxonomy keys, 2,046 cache keys, the log: 0 differences |
+| lifecycle | `asm-i18n`, `asm-cascade` | `tests/lifecycle.rs` | outputs shared by name, one-slot standalone pages, rendering-site shift (keep/create/reuse `pco`, reset only a built paginator), non-rendering shift (lazy provider installed then reset, created for the current output, `pco` untouched, `pco` back on the next rendering shift) |
+
+Mutations checked (each fails the tests): the `gagesInSection` key, the last-value `m.term`
+update, the date aggregation of zero-date branches, the `[]any` → `[]string` conversion.
+
+Regenerate (byte for byte; each site is built in a temp dir, never in the repository):
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-hugolib/assemble -root .
+```
+
 ## Deliberate deviations
 
-_Wave B (T21–T24): list every deviation from the Go code here (README rule 1)._
+_Wave B (T21–T24): list every deviation from the Go code here (README rule 1). T20, T21 and
+T22 list theirs in their sections above._
 
 ## Known gaps
 

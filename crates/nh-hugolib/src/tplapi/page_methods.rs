@@ -81,7 +81,8 @@ impl Resource for PageHandle {
         todo!()
     }
     fn name(&self) -> String {
-        todo!()
+        // (T21: `resource.NameNormalizedOrName` in getOrCreateResourcesForPage.)
+        self.state().meta.name()
     }
     fn title(&self) -> String {
         todo!()
@@ -173,7 +174,8 @@ impl Page for PageHandle {
         todo!()
     }
     fn weight(&self) -> i64 {
-        todo!()
+        // (T21: needed by the default page sort of the page collections.)
+        self.state().meta.weight()
     }
     fn date(&self) -> Time {
         self.state().meta.date()
@@ -242,7 +244,12 @@ impl Page for PageHandle {
         todo!()
     }
     fn site(&self) -> SiteRef {
-        todo!()
+        // (T21: needed by the default page sort, `Site().Current().Language()`.)
+        crate::site::SiteHandle {
+            h: self.h.clone(),
+            idx: self.state().site_idx,
+        }
+        .site_ref()
     }
     fn file(&self) -> Option<Arc<File>> {
         todo!()
