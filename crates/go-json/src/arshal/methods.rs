@@ -205,6 +205,13 @@ impl Object for Number {
         Kind::Struct
     }
 
+    /// Go: `type Number string`. fmt formats the underlying string where no
+    /// method applies (`%#v` prints `"5"`, including inside collections, and
+    /// bad verbs print `%!d(json.Number=5)`).
+    fn underlying(&self) -> Option<Value> {
+        Some(Value::String(self.0.clone()))
+    }
+
     fn has_method(&self, name: &str) -> bool {
         matches!(name, "String" | "Float64" | "Int64")
     }

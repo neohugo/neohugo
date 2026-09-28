@@ -573,14 +573,8 @@ fn cast_matches_go() {
 
     let mut bad = Vec::new();
     let mut n = 0;
-    let mut text_only = 0;
     for c in cases {
         let input = decode(&c["in"], &zones);
-        // go-fmt prints a json.Number nested in a collection as `json.Number{}` (go_json::Number
-        // has no `underlying` string); Go prints `"5"`. Only error texts are affected.
-        let nested_json_number = matches!(&input, Value::List(l) if l.items.iter().any(|i| {
-            i.as_object().is_some_and(|o| o.type_name() == "json.Number")
-        }));
         for (name, want) in c.as_object().unwrap() {
             if name == "in" {
                 continue;
@@ -595,10 +589,6 @@ fn cast_matches_go() {
             if got == want {
                 continue;
             }
-            if nested_json_number && got.get("err").is_some() && want.get("err").is_some() {
-                text_only += 1;
-                continue;
-            }
             bad.push(format!(
                 "{name}({}):\n   got  {got}\n   want {want}",
                 c["in"]
@@ -606,7 +596,6 @@ fn cast_matches_go() {
         }
     }
     assert!(n > 15000, "too few results: {n}");
-    assert!(text_only <= 30, "{text_only} error texts differ");
     assert!(
         bad.is_empty(),
         "{} of {n} mismatches:\n{}",
