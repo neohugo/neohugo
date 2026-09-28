@@ -99,8 +99,10 @@ pub struct HugoSites {
     pub build_counter: AtomicU64,
     /// Go `*fatalErrorHandler`.
     pub fatal_error_handler: FatalErrorHandler,
-    /// Set once frozen: a weak self-reference for creating handles.
-    pub(crate) self_ref: OnceLock<std::sync::Weak<HugoSites>>,
+    /// Set once frozen: a weak self-reference for creating handles. Shared (`Arc`) with the page
+    /// outputs created before freezing (T22: content rendering reaches `Arc<HugoSites>` through
+    /// it, see `page__output::HugoSitesRef`).
+    pub(crate) self_ref: crate::page__output::HugoSitesRef,
 }
 
 impl HugoSites {
@@ -488,7 +490,7 @@ fn new_hugo_sites(
         page_id_counter: AtomicU64::new(0),
         build_counter: AtomicU64::new(0),
         fatal_error_handler: FatalErrorHandler::default(),
-        self_ref: OnceLock::new(),
+        self_ref: Arc::new(OnceLock::new()),
     };
 
     let factory = cfg.func_map_factory.clone();

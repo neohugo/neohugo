@@ -178,6 +178,128 @@ go run ./tools/go-oracle/nh-hugolib/funcnames -root .
 The docs and testsite fixtures reference repository files by FNV hash; the test fails with a
 "regenerate" message when they change.
 
+## T22 hugolib-content: status
+
+`page__content` (render half of page__content.go), `page__output`, `page__per_output` (+ site.go
+`hookRendererTemplate`, page__meta.go `newContentConverter`, the page.go helpers content rendering
+needs), `shortcode` (render half) and `shortcode_page` (+ `ShortcodeWithPage`) are ported. Every
+EX entry of their checklists is `OK`; not ported: identity/dependency tracking
+(`trackDependency`, `IdentifierBase`, `GetDependencyManager`), and the `pageForShortcode` /
+`pageForRenderHooks` methods, which are T23's method tables (`tplapi/page_methods.rs`).
+
+### API for T21, T23, T24
+
+- `PageOutput::new(h, ps, pp, f, render)` (Go `newPageOutput`; takes `&HugoSites` for the
+  self-reference cell, see below) or `PageOutput::new_with_target_paths(h, ps, holder, f,
+  render)`. `set_content_provider(Some(pco))`, `pco()`, `provider_slot()`, `content_renderer()`
+  (the content output behind the slot: `Pco`, or the `Lazy` provider's, created on first use;
+  `None` = nop). `get_internal_template_base_path_and_descriptor(ps)` is Go's
+  `(po *pageOutput) GetInternalTemplateBasePathAndDescriptor` (page.go:480-492, in T23's
+  checklist: implemented here, where the type lives).
+- `PageContentOutput::new(&po, idx)` (Go `newPageContentOutput`). For `shiftToOutputFormat`'s
+  lazy provider (T21): `LazyContentProvider::new(Box::new(move || Ok(PageContentOutput::new(&po,
+  idx)? as Arc<dyn OutputFormatContentProvider>)))`; `ContentProviderSlot::resolve()` downcasts it
+  back.
+- Template methods (T23): `pco.content(ctx, &handle)`, `plain(ctx, &handle)`, `plain_words`,
+  `summary`, `truncated`, `word_count`, `fuzzy_word_count`, `reading_time`, `len`,
+  `table_of_contents`, `fragments`, `content_without_summary`, `render_string(ctx, &handle, args)`,
+  `render_shortcodes`, `render(ctx, layouts)`, `markup(opts)` / `c()` (the scope,
+  `CachedContentScope`: the `page.Markup` value). All take the template context as `HostCtx` and
+  pass it through unchanged. A page whose current provider is the nop provider returns Go's nop
+  values (T23).
+- `impl PageState` in page__per_output.rs: `path_or_title`, `pos_from_input`, `pos_offset`,
+  `parse_error`, `wrap_error`, `get_page_info_for_error`, `get_content_converter(h, po)` (page.go
+  checklist entries of T23: do not duplicate them, mark them `OK`); `new_content_converter(h, ps,
+  markup)` is page__meta.go's `newContentConverter` (T20 left it to T22).
+- `HugoSites.self_ref` is now `page__output::HugoSitesRef` (`Arc<OnceLock<Weak<HugoSites>>>`,
+  set by `freeze` as before): page outputs are created during assembly, before the `Arc` exists,
+  and content rendering reaches the frozen `HugoSites` through the shared cell.
+- `template_exec::ExecCall.ordinal`: T22's callers pass 0; an executor that needs Go's
+  per-(page, format, kind) ordinal counts the calls itself (the T22 replay does). Hooks are
+  `ExecKind::Hook("link" | "image" | "heading" | "codeblock" | "blockquote" | "table" |
+  "passthrough")`, shortcodes `ExecKind::Shortcode(name)`; `output_format` is the content output's
+  format (Go `pco.po.f.Name`), which differs from the page's current format when content is
+  reused.
+- Go's hugolib-only context keys travel in `TplContext.host` as `page__content::HostState`
+  (the content callback of `setGetContentCallbackInContext`, used by `.RenderShortcodes`). T23/T24
+  code that sets `host` must keep it (extend `HostState` rather than replacing it).
+- Rendering never holds a lock (§4.8): the render-hook cache lock is held for the template lookup
+  only (as Go's `renderCacheMu`); content caches are `PageMap` partitions (compute outside the
+  lock, first stored wins).
+
+### T22 deviations
+
+1. The markup converter (Go `pageState.contentConverter`, once per page) is kept per page OUTPUT
+   (`PageOutput::content_converter`); converters are stateless between conversions (a fresh ID
+   factory per conversion), so every output renders the same bytes.
+2. `shortcodeHandler.transferNames` (RenderString with shortcodes, `.RenderShortcodes` of included
+   pages) is not ported: T20's handler is immutable after capture. Only `.HasShortcode` of a page
+   that includes another page's shortcodes (or renders them with `RenderString`) could differ;
+   seeksnack uses neither. Making `ShortcodeHandler.name_set` a `Mutex` (T20) would allow it.
+3. `expandShortcodeTokens`: Go checks `(k+4) < len(source)` and then slices `source[end:end+4]`,
+   which can read past `len` into the slice's spare capacity (or panic) for a token right at the
+   end of the content after a `<p>`; the port treats such a token as not wrapped (Go's own test
+   table, ported in `shortcode.rs`, expects exactly that result). Markdown output never ends inside
+   a `<p>`.
+4. No identity/dependency tracking and no stale versions (`StaleValue` is always fresh, `version`
+   is the render version); `Reset` does not replace the render hooks (no server mode).
+5. Error texts: `wrapError` adds the filename as the error position (Go's
+   `hugofs.AddFileInfoToError` also reads line numbers from the file); `parseError`/shortcode
+   errors use `herrors` file errors. Only texts differ, never bytes of a successful build.
+
+### Go behaviour reproduced on purpose
+
+- Content reuse across output formats: `initRenderHooks` moves the page's template variations
+  state 0 -> 1; a hook lookup that finds more than one output-format candidate (or a shortcode with
+  more than one `ofCount` format, or a `.RenderShortcodes`d page with variations) increments it,
+  and only state 1 lets `shiftToOutputFormat` reuse another output's content output. The hook
+  descriptor comes from the page's CURRENT output while the cache key and the rendered-content
+  key use the content output's format; `getRenderer` does not cache "not found".
+- Front matter `summary` is rendered through `po.contentRenderer.ParseAndRenderContent` +
+  `TrimShortHTML` whenever the computed summary is empty (also an empty manual summary); a
+  summary divider wins over front matter `summary` only when the summary before it is non-empty.
+- CJK word counts (`isCJKLanguage`: runes per non-ASCII word), `(wc+500)/501` vs `(wc+212)/213`
+  reading time, fuzzy `(wc+100)/100*100`; Thai is not CJK (`hasCJKLanguage` detection), so a
+  Thai sentence without spaces is one word.
+- `{{% %}}` inner content of nested/version-1 shortcodes is rendered with the page's CURRENT
+  output's content renderer and loses a single wrapping `<p>…</p>\n` when the inner text has no
+  newline (Go's `\A<p>(.*)</p>\n\z`); shortcodes without inner content re-indent every line after
+  the first with the source indentation; `.Parent.Inner` is empty inside the child (Go sets
+  `Inner` after the children rendered).
+- `is_in_goldmark` is set only by the render function of `{{% %}}` shortcodes in markdown
+  content; hooks and `{{< >}}` shortcodes get the caller's context (the hooks run inside a nested
+  `{{% %}}` render see it set, as in Go).
+- `mustContentToC` panics on error (Go panics in `.TableOfContents`/`.Fragments`); the other
+  `must*` report a fatal error and return zero values.
+
+### Verification (T22)
+
+The acceptance replays every render-hook and shortcode template execution of the Go build
+through `template_exec::TemplateExecutor` (`tests/content_support`: keyed (page, content output
+format, kind, ordinal); a call without a record, a recorded call never made, or a different
+`is_in_goldmark` fails; Go pids in recorded placeholders/hugocontext markers are mapped to the
+port's). The harness sets what T21's assembly computes and content reads (kind, type, layout,
+markup, content media type, front matter summary, `isCJKLanguage`, render formats) and stands in
+for `initLazyProviders`/`shiftToOutputFormat(true, idx)` (outputs per format name, content reuse).
+
+| topic | inputs | Rust test | checks |
+|---|---|---|---|
+| `content/*.json.gz` | process + assemble in Go, then the render loop's order: per site and render format `preparePagesForRender` on all sites, then every page (with a file) of the rendering site: `.TableOfContents`, `.Content`, `.ContentWithoutSummary`, summary type, `.Summary`, `.Truncated`, `.Plain`, `.PlainWords`, `.WordCount`, `.FuzzyWordCount`, `.ReadingTime`, `.Len`, `.Fragments` (+ `ToHTML(1,3,true)`), the content output's format, the variations state, fatal errors. Sites: a content-focused en/th site (`{{< >}}`/`{{% %}}`, nested, `.Inner`/`.InnerDeindent`, positional/named params, `.Parent`, `.Ordinal`, inline, version 1, output-format shortcode variants, `.Page.TableOfContents`, shortcodes in summaries; manual/front matter/auto summaries, `summaryLength`; link, image, heading (+ rss variant), codeblock, blockquote/alert, table (+ `render-table.json.json`), passthrough off; TOC levels; CJK/`isCJKLanguage`/Thai; HTML content and `markup: html`; bundled page; JSON and RSS outputs), the seeksnack reconstruction (+ its hook templates), hugolib/testsite, docs/ (+ a code block hook: Chroma is not ported; values as FNV hashes), Go's TestExtractShortcodes site | `tests/content.rs` | 4,017 page/format value sets (docs 3,772), 19,128 replayed executions, 0 differences |
+| `hookrec/*.json.gz` | a REAL Go build (page layouts reading `.Content`, `.Summary`, `.Plain`, `.TableOfContents`, `.WordCount` in html/json/rss) of the same sites but docs: every hook/shortcode execution recorded, then the rendered-content caches (`/cont/ren`, `/cont/toc`, `/cont/pla`) per page and format | `tests/hookrec.rs` | 97 cache entries, 284 replayed executions, 0 differences |
+| unit | Go's `TestReplaceShortcodeTokens` table; the `<p>` cleanup regexp | `src/shortcode.rs` | all equal |
+
+Mutations checked (each fails the tests): reading time divisor, the `{{% %}}` inner `<p>` cleanup
+and the `<p>TOKEN</p>` unwrap, the hook-candidate variation increment (unused records), setting
+`is_in_goldmark` for `{{< >}}` shortcodes.
+
+Regenerate (byte for byte; sites are built in a temp dir, never in the repository):
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-hugolib/content -root .
+go run ./tools/go-oracle/nh-hugolib/hookrec -root .
+```
+
 ## Deliberate deviations
 
 _Wave B (T21–T24): list every deviation from the Go code here (README rule 1)._
