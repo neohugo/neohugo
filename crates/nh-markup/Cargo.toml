@@ -16,13 +16,21 @@ nh-media = { path = "../nh-media" }
 goldmark = { path = "../goldmark" }
 go-html = { path = "../go-html" }
 go-unicode = { path = "../go-unicode" }
+go-strconv = { path = "../go-strconv" }
+go-path = { path = "../go-path" }
+# html/template's stripTags (for tpl.StripHTML in render.TextPlain).
+gotemplate = { path = "../gotemplate" }
 
-# crates.io dependencies intended (each needs a justification line in PORTING.md; README rule 2):
-#   regex (blockquote alert, hugocontext; with Go \s rewritten)
+# crates.io: none. The two Go regexps (blockquote alert, hugocontext) are hand-written matchers.
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Decompression of the gzip-compressed oracle fixtures (tests only; README rule 2 allows
+# flate2 for decompression).
+flate2 = { version = "1", default-features = false, features = ["rust_backend"] }
+# The language types of the `config::AllProvider` stub in tests/config.rs.
+nh-langs = { path = "../nh-langs" }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

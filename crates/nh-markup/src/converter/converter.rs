@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T06 (markup).
 
-
 //! Go `markup/converter`: the markup-converter API between page content rendering (nh-hugolib) and
 //! the markdown engine glue (goldmark).
 
@@ -24,7 +23,10 @@ use crate::tableofcontents::Fragments;
 pub struct ProviderConfig {
     pub conf: Arc<dyn AllProvider>,
     pub exec: Arc<Exec>,
-    pub highlighter: Arc<dyn Highlighter>,
+    /// Go's `highlight.Highlighter` (nil = `NewConverterProvider` creates one).
+    pub highlighter: Option<Arc<dyn Highlighter>>,
+    /// Go's `Logger` (`None` = no logging).
+    pub logger: Option<Arc<nh_common::loggers::Logger>>,
 }
 
 impl ProviderConfig {
@@ -69,7 +71,7 @@ pub trait Converter: Send + Sync {
         None
     }
     /// Go: `converter.AnchorNameSanitizer`.
-    fn sanitize_anchor_name(&self, s: &str) -> Option<String> {
+    fn sanitize_anchor_name(&self, _s: &str) -> Option<String> {
         None
     }
 }
@@ -108,8 +110,32 @@ impl Converter for NopConverter {
 
 /// Go: `converter.NewProvider(name, create)`.
 // Go: markup/converter/converter.go:NewProvider
-pub fn new_provider(name: &str, create: Arc<dyn Fn(DocumentContext) -> Result<Arc<dyn Converter>> + Send + Sync>) -> Arc<dyn Provider> {
-    todo!()
+pub fn new_provider(
+    name: &str,
+    create: Arc<dyn Fn(DocumentContext) -> Result<Arc<dyn Converter>> + Send + Sync>,
+) -> Arc<dyn Provider> {
+    Arc::new(NewConverter {
+        name: name.to_string(),
+        create,
+    })
+}
+
+/// Go: `converter.newConverter`.
+struct NewConverter {
+    name: String,
+    create: Arc<dyn Fn(DocumentContext) -> Result<Arc<dyn Converter>> + Send + Sync>,
+}
+
+impl Provider for NewConverter {
+    // Go: markup/converter/converter.go:New
+    fn new_converter(&self, ctx: DocumentContext) -> Result<Arc<dyn Converter>> {
+        (self.create)(ctx)
+    }
+
+    // Go: markup/converter/converter.go:Name
+    fn name(&self) -> &str {
+        &self.name
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -120,11 +146,11 @@ pub fn new_provider(name: &str, create: Arc<dyn Fn(DocumentContext) -> Result<Ar
 //   types: ProviderConfig, ProviderProvider, Provider, newConverter, nopConverter, Converter, ParseRenderer,
 //          ResultRender, ResultParse, DocumentInfo, TableOfContentsProvider, AnchorNameSanitizer, Bytes,
 //          DocumentContext, RenderContext
-// EX L40-42: (p ProviderConfig) MarkupConfig() markup_config.Config
-// EX L56-61: NewProvider(name string, create func(ctx DocumentContext) (Converter, error)) Provider
-// EX L68-70: (n newConverter) New(ctx DocumentContext) (Converter, error)
-// EX L72-74: (n newConverter) Name() string
-//    L80-82: (nopConverter) Convert(ctx RenderContext) (ResultRender, error)
-//    L84-86: (nopConverter) Supports(feature identity.Identity) bool
-//    L132-134: (b Bytes) Bytes() []byte
+// OK L40-42: (p ProviderConfig) MarkupConfig() markup_config.Config
+// OK L56-61: NewProvider(name string, create func(ctx DocumentContext) (Converter, error)) Provider
+// OK L68-70: (n newConverter) New(ctx DocumentContext) (Converter, error)
+// OK L72-74: (n newConverter) Name() string
+// OK L80-82: (nopConverter) Convert(ctx RenderContext) (ResultRender, error)
+// OK L84-86: (nopConverter) Supports(feature identity.Identity) bool
+// OK L132-134: (b Bytes) Bytes() []byte (ResultRender.bytes)
 // ---------------------------------------------------------------------------

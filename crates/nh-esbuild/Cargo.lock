@@ -411,9 +411,12 @@ name = "nh-markup"
 version = "0.1.0"
 dependencies = [
  "go-html",
+ "go-path",
+ "go-strconv",
  "go-unicode",
  "go-value",
  "goldmark",
+ "gotemplate",
  "nh-common",
  "nh-config",
  "nh-media",

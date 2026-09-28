@@ -155,6 +155,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "gotemplate"
+version = "0.1.0"
+dependencies = [
+ "go-fmt",
+ "go-html",
+ "go-json",
+ "go-strconv",
+ "go-time",
+ "go-unicode",
+ "go-url",
+ "go-value",
+]
+
+[[package]]
 name = "itoa"
 version = "1.0.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -261,9 +275,12 @@ name = "nh-markup"
 version = "0.1.0"
 dependencies = [
  "go-html",
+ "go-path",
+ "go-strconv",
  "go-unicode",
  "go-value",
  "goldmark",
+ "gotemplate",
  "nh-common",
  "nh-config",
  "nh-media",
