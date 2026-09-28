@@ -169,9 +169,9 @@ fn check(c: &J) -> Result<(), String> {
         "Version" => {
             let v = c["v"].as_array().unwrap();
             let v = Version {
-                major: v[0].as_i64().unwrap() as i32,
-                minor: v[1].as_i64().unwrap() as i32,
-                patch_level: v[2].as_i64().unwrap() as i32,
+                major: v[0].as_i64().unwrap(),
+                minor: v[1].as_i64().unwrap(),
+                patch_level: v[2].as_i64().unwrap(),
                 suffix: static_suffix(v[3].as_str().unwrap()),
             };
             cmp!("string", json!(v.string()));

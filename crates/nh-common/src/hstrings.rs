@@ -56,13 +56,12 @@ pub fn equal_any(a: &str, b: &[&str]) -> bool {
     b.contains(&a)
 }
 
-/// Go: `hstrings.GetOrCompileRegexp` (a cache of Go `regexp`s). There is no Go `regexp` port and
-/// the seeksnack build never calls it: an explicit unsupported error.
+/// Go: `hstrings.GetOrCompileRegexp`: the compiled Go regexp for the pattern, from a
+/// process-wide cache (Go's `regexpCache`: compiled once per pattern, errors are not cached).
+/// The error is Go's `*syntax.Error` text.
 // Go: common/hstrings/strings.go:GetOrCompileRegexp
-pub fn get_or_compile_regexp(_pattern: &str) -> Result<()> {
-    Err(Error::new(
-        "neohugo-rs: hstrings.GetOrCompileRegexp (Go regexp) is not supported",
-    ))
+pub fn get_or_compile_regexp(pattern: impl AsRef<[u8]>) -> Result<crate::goregexp::Regexp> {
+    crate::goregexp::get_or_compile(pattern.as_ref()).map_err(|e| Error::new(e.error()))
 }
 
 /// Go: `hstrings.InSlice` — whether `el` is an element of `arr`.
@@ -104,10 +103,10 @@ pub type Strings3 = [String; 3];
 // OK L37-39: (s StringEqualFold) String() string
 // OK L41-50: (s StringEqualFold) Eq(s2 any) bool
 // OK L53-55: EqualAny(a string, b ...string) bool
-// STUB L63-75: (rc *regexpCache) getOrCompileRegexp(pattern string) (re *regexp.Regexp, err error)
-// STUB L77-82: (rc *regexpCache) get(key string) (re *regexp.Regexp, ok bool)
-// STUB L84-88: (rc *regexpCache) set(key string, re *regexp.Regexp)
-// STUB L95-97: GetOrCompileRegexp(pattern string) (re *regexp.Regexp, err error)
+// OK L63-75: (rc *regexpCache) getOrCompileRegexp(pattern string) (re *regexp.Regexp, err error)
+// OK L77-82: (rc *regexpCache) get(key string) (re *regexp.Regexp, ok bool)
+// OK L84-88: (rc *regexpCache) set(key string, re *regexp.Regexp)
+// OK L95-97: GetOrCompileRegexp(pattern string) (re *regexp.Regexp, err error)
 // OK L101-103: InSlice(arr []string, el string) bool
 // OK L108-115: InSlicEqualFold(arr []string, el string) bool
 // OK L121-129: ToString(v any) (string, bool)

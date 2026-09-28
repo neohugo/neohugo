@@ -238,7 +238,16 @@ fn go_test_string_equal_fold() {
     assert!(!f(s1).eq_any(&go_value::Value::string("b")));
     assert!(hstrings::in_slice_equal_fold(&["x", "A"], "a"));
     assert!(!hstrings::in_slice(&["x", "A"], "a"));
-    assert!(hstrings::get_or_compile_regexp(r"\d+").is_err());
+    let re = hstrings::get_or_compile_regexp(r"\d+").unwrap();
+    assert!(re.match_string("a1"));
+    // The cache hands out the same compiled regexp.
+    assert_eq!(hstrings::get_or_compile_regexp(r"\d+").unwrap(), re);
+    assert_eq!(
+        hstrings::get_or_compile_regexp("a(")
+            .unwrap_err()
+            .to_string(),
+        "error parsing regexp: missing closing ): `a(`"
+    );
 }
 
 // Go: common/hugio/hasBytesWriter_test.go:TestHasBytesWriter (a fixed pseudo-random sequence

@@ -41,7 +41,8 @@ go-unicode = { path = "../go-unicode" }
 md-5 = "0.10"
 sha2 = "0.10"
 # Not used: sha1 (not available offline; SHA-1 is written out in crypto.rs), base64/hex (Go's
-# codecs are ported), crc32fast, regex (findRE/replaceRE belong to T19).
+# codecs are ported), crc32fast, regex (Go regexp is nh-common's `goregexp` port; T19 uses it
+# for findRE/replaceRE).
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).

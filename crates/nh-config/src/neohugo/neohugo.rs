@@ -325,7 +325,7 @@ pub enum DeprecationLevel {
 pub fn deprecation_log_level_from_version(ver: &str) -> DeprecationLevel {
     let from = super::version::must_parse_version(ver);
     let to = CURRENT_VERSION;
-    let minor_diff = to.minor - from.minor;
+    let minor_diff = to.minor.wrapping_sub(from.minor);
     if minor_diff >= 15 {
         // Start failing the build after about 15 months.
         DeprecationLevel::Error

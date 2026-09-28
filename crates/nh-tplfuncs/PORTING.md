@@ -97,11 +97,10 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
   - `sha2 0.10`: SHA-256 and SHA-512 for `crypto.SHA256` and `crypto.HMAC "sha256"/"sha512"`.
   - SHA-1 (no offline crate), HMAC, FNV-32a, hex and base64 (Go's `decodeQuantum` with its error offsets) are written out in `crypto.rs` and `encoding.rs`. XxHash comes from nh-common hashing.
   - dev-only: `serde_json` (fixture reader) and `flate2` (rust_backend; gunzips the oracle fixtures).
-- T19 still owns the `regex` decision (findRE/replaceRE).
+- Go `regexp` is `nh_common::goregexp`, a port of Go's package (no crates.io regex): `where … "like"` uses it through `hstrings::get_or_compile_regexp` (Go's cache); T19's `findRE`, `replaceRE`, `findRESubmatch` and `strings.*` regexp functions should too (`find_all`, `find_all_submatch`, `replace_all`/`replace_all_literal`, `split` over the template's byte strings).
 
 ## Deliberate deviations
 
-- `where … "like"` goes through `nh_common::hstrings::get_or_compile_regexp`. With no Go regexp port it returns an "unsupported" error; Go would match. The known divergence is in `tests/data.rs`.
 - Go map iteration order is random. Where it can be seen, Rust uses sorted key order:
   - `sort` of a map with tied keys;
   - `merge`'s case-insensitive key lookup;
@@ -120,14 +119,11 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
   - arm64 default NaN `0x7FF8000000000000`;
   - `int(NaN/±Inf)` as arm64 converts it.
   The x86-64 Go build gives different bits for these values.
-- `cast.ToInt`/`ToFloat` errors for pointer values print the value differently (nh-common cast deviation 19). This is a known divergence.
-- Comparing `neohugo.VersionString` with an unsigned number differs from Go because of nh-config's `VersionString::compare`. This is a known divergence, reported to T04.
 - `try` (alias registered by `tplimplinit`) is left to T19.
 
 ## Known gaps
 
 - `cast::docshelper` is an explicit stub: `docs_provider()` returns "neohugo-rs: docshelper (hugo gen docshelper) is not supported".
-- `where` with `like` is unsupported until a Go-compatible regexp is available.
 
 ## Verification
 
@@ -137,7 +133,7 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
   - the `*_test.go` tables;
   - pages from an in-memory hugolib build, including regular, section and home pages, the `pageWithWeight0` term pages and the `*pageWithOrdinal` GetTerms results.
 - Each case records the value, the Go type/kind and the error text. Printed pointer addresses are masked.
-- Result: 0 failures. 1,256 cases are known divergences (listed above), 2 nondet and 16 unordered cases are accepted as sets, and the math counter is checked separately.
+- Result: 0 failures and no known divergences. The 1,256 cases that T18 had to mask now match Go: 48 `where … "like"` cases (the Go regexp port), 16 `lt`/`le`/`gt`/`ge` comparisons of a `neohugo.VersionString` with `uint64` max (nh-config's `Version` fields are Go `int`s now and keep `strconv.Atoi`'s clamped value) and 1,192 cast errors of pointer objects (nh-common's cast dereferences them like spf13/cast). 2 nondet and 16 unordered cases are accepted as sets, and the math counter is checked separately.
 - `tests/go_tables.rs` holds the Go test tables transcribed literally.
 - Regenerate the fixtures (they must come out byte for byte the same). The first step needs Go and the module cache; the second needs qemu-user-static:
 

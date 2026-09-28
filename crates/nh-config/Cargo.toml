@@ -21,12 +21,7 @@ go-unicode = { path = "../go-unicode" }
 go-path = { path = "../go-path" }
 go-sort = { path = "../go-sort" }
 
-# crates.io (justification in PORTING.md, README rule 2):
-#   regex: Go `regexp` (RE2) for the security whitelists, cache busters and server redirects,
-#   with Go's ASCII `\d \s \w \b` classes rewritten; it only decides matches and group texts.
-regex = "1"
-# The syntax errors of the same patterns, reported with Go's `regexp/syntax` texts.
-regex-syntax = "0.8"
+# crates.io: none (Go `regexp` is nh-common's `goregexp`, a port of Go's package).
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).

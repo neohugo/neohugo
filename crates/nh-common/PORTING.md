@@ -49,7 +49,13 @@ the modules marked below.
 | `text::norm` (+ generated `text/norm/tables15.rs`) | `golang.org/x/text@v0.26.0/unicode/norm`: `normalize.go`, `composition.go`, `forminfo.go`, `input.go`, `transform.go`, `trie.go`, the NFC trie of `tables15.0.0.go` (Unicode 15.0.0) | — | NFC and NFD ported (moved from nh-hugofs `nfc.rs`; deviation 27a) |
 | `text::xtransform` | `golang.org/x/text@v0.26.0/transform/transform.go` | — | `Transformer`, `Chain`, `String`, `Bytes`, `RemoveFunc` ported (deviation 27a) |
 | `text::runes` | `golang.org/x/text@v0.26.0/runes/runes.go` | — | `Set`, `In`, `NotIn`, `Predicate`, `Remove` ported (deviation 27a) |
-| `hstrings` | `common/hstrings/strings.go` | T02 | ported; `GetOrCompileRegexp` STUB (deviation 28) |
+| `hstrings` | `common/hstrings/strings.go` | T02 | ported; `GetOrCompileRegexp` over `goregexp` (deviation 28) |
+| `goregexp` | Go `regexp`: `regexp.go` (go1.27.1) | — | ported (deviation 32): compile, Find*/FindAll*/Submatch/Index, ReplaceAll*/Expand, Split, QuoteMeta, Longest, the hstrings cache |
+| `goregexp::exec` | `regexp/exec.go` | — | ported: the NFA (Pike VM), the one-pass executor, `find` (engine choice) |
+| `goregexp::backtrack` | `regexp/backtrack.go` | — | ported |
+| `goregexp::onepass` | `regexp/onepass.go` | — | ported |
+| `goregexp::syntax::{parse, perl_groups}` | `regexp/syntax/parse.go`, `perl_groups.go` | — | ported (every error text; the size/height limits with Go's pointer-keyed caches) |
+| `goregexp::syntax::{regexp, simplify, compile, prog}` | `regexp/syntax/regexp.go`, `simplify.go`, `compile.go`, `prog.go` | — | ported (incl. `Regexp.String` and `Prog.String`, used by the oracle tests) |
 | `hugio` | `common/hugio/*.go` | T02 | ported (deviation 29); `CopyFile`/`CopyDir` STUB |
 | `loggers` | `common/loggers/*.go` | T02 | MINIMAL: levels, counters, distinct/suppressed entries, stderr (deviation 30) |
 | `kinds` | `resources/kinds/kinds.go` | T02 | ported |
@@ -181,10 +187,14 @@ T26 (cast, locales, flect, prose):
 17. flect `LoadInflections` applies entries in byte order, not Go's random map order; this only
     matters for invalid entries.
 18. flect custom data (`inflections.json`) is read on first use, not at process start.
-19. 26 cast error texts differ, because go-fmt prints a `json.Number` inside a slice as
-    `json.Number{}`. Also (found by the T01 oracle): for a non-nil pointer object, Go's cast
-    error message dereferences the pointer (`main.pg{id:"p1"} of type main.pg`); the port prints
-    the pointer (`&main.pg{...} of type *main.pg`). Error texts only.
+19. (Resolved; the number is kept.) A `json.Number` inside a slice prints like Go
+    (`[]interface {}{"5", "6"}`: go-json's `Number` implements `Object::underlying`, which go-fmt
+    reads), and cast's `indirect` now dereferences a non-nil pointer object to a struct
+    (a `*T` type name with `struct_fields`) into its struct value (`Pointee`: type `T`, the same
+    fields, no methods), so errors read `main.pg{id:"p1"} of type main.pg` like Go
+    (`tests/values.rs::cast_errors_dereference_pointer_objects`; nh-tplfuncs' 1,192 such cases
+    pass). A pointer object without `struct_fields` (host objects that expose no fields) is
+    left as it is; Go would print the whole struct, which the value model cannot.
 20. Go panics are exposed as `try_*` variants that return errors; the plain variants panic like
     Go (flect `Humanize` of an empty result, locales slice panics, `hashing::hash_*`).
 
@@ -245,8 +255,10 @@ T02 (paths, urls, text, hstrings, hugio, loggers, kinds, files, glob):
     be valid UTF-8 (normalization keeps valid UTF-8 valid); `Form::string_bytes`/`bytes` take Go
     string bytes. `unicode-normalization` (README rule 2) is not used: it has a newer Unicode
     version than x/text v0.26.0 and does not reproduce x/text's stream-safe segmentation.
-28. `hstrings.GetOrCompileRegexp` returns an explicit unsupported error (no Go regexp port;
-    non-EX). `StringEqualFold.Eq` is `eq_any` (clippy: `eq` shadows `PartialEq`).
+28. `hstrings.GetOrCompileRegexp` returns the cached `goregexp::Regexp`; its error is Go's
+    `*syntax.Error` text in a `herrors::Error` (a `String`: lossy for a pattern that is not valid
+    UTF-8, whose error text quotes the bytes). `StringEqualFold.Eq` is `eq_any` (clippy: `eq`
+    shadows `PartialEq`).
 29. `hugio`: closing is dropping; `StringReadSeeker::read_string` is Go's `StringReader` fast path
     on the concrete type (`read_all` of a `dyn Read` reads everything, the same bytes for a fresh
     reader); `NewOpenReadSeekCloser` exists for byte content (a fresh cursor per open);
@@ -263,6 +275,40 @@ T02 (paths, urls, text, hstrings, hugio, loggers, kinds, files, glob):
 31. `FilenameFilter::new(&[String], &[String])` treats an empty slice as Go's nil; a non-nil empty
     Go slice gives a filter that matches everything, like no filter. `new_opt` keeps the
     distinction.
+
+Go `regexp` (`goregexp`, shared by every Hugo-layer crate; nh-config re-exports it):
+
+32. **A port, not the `regex` crate.** The whole of Go's `regexp` and `regexp/syntax` is ported
+    (parser, simplifier, compiler, the one-pass, backtracking and NFA engines, which Go picks per
+    call exactly as ported), so there is no crates.io dependency. The `regex` crate (which
+    nh-config used before) differs from Go in ways that reach output: Unicode `\d \s \w \b`,
+    its own Unicode version for `\p{…}` and `(?i)` (Go: Unicode 17 from go-unicode, e.g.
+    `\p{Garay}`, and `SimpleFold` orbits such as k/K/U+212A, s/S/ſ, σ/ς/Σ), no invalid UTF-8 in
+    `&str` and a `bytes::Regex` whose `.` skips bad bytes (Go: one U+FFFD per bad byte, matched by
+    `.`, `[^a]` and `\x{FFFD}`), its own empty-match iteration, and different syntax and error
+    texts. `tests/regexp_go_semantics.rs` pins each of these with go1.27.1's results. API
+    mapping: Go's `string` and `[]byte` forms run the same code on the same bytes, so the port has
+    one byte form (`find`, `find_all`, `find_submatch_index`, `replace_all`, `split`, …, taking
+    `&[u8]`; `match_string` and `compile` take `impl AsRef<[u8]>`) plus `&str` conveniences where
+    callers want Rust strings (`find_string`, `find_all_string`, `find_string_submatch`,
+    `find_all_string_submatch`, `replace_all_string`, `replace_all_literal_string`,
+    `split_string`: a `&str` input matches on character boundaries, so the results are valid).
+    Go's `nil` results are `None`/empty vectors; a group that did not participate is `None`
+    (`[]byte` forms) or `""` (`string` forms) and `-1` in index forms. Not ported (no Hugo
+    caller): the `io.RuneReader` forms, `MatchReader`, `Copy`, `MarshalText`/`UnmarshalText`,
+    the `iter.Seq` `All*` methods. Go's `sync.Pool`s of machines are not ported (a machine per
+    call; no observable difference). `syntax.Regexp` nodes are owned by their parent: Go's
+    `Simplify` shares sub-nodes (`x{2,5}`), the port copies them (the compiled program is the
+    same, Go compiles a shared node once per reference). The parser's `p.size`/`p.height` maps
+    (keyed by pointer; a node recycled through the free list keeps its stale size entry) are
+    per-node caches plus a free list of stale sizes, so `expression too large` and `expression
+    nests too deeply` are decided as in Go. `Error` keeps Go's error text as bytes
+    (`as_bytes`); `Display` is lossy for invalid UTF-8. Stack: the syntax tree can be ~1,000
+    levels deep (~2,000 after `Simplify`) and its walks recurse like Go's (which grows goroutine
+    stacks); a pattern longer than 1 KiB (nesting groups ~1,000 deep takes ~2 KiB) is compiled
+    on a thread with a 256 MiB stack, and the ~2,000 levels of a short `x{0,1000}` fit a default
+    2 MiB thread (`regexp_go_semantics.rs::deep_expressions`, debug build). Matching recurses
+    only in the NFA's `add` (as deep as the nesting of groups), which fits a default thread.
 
 ## Known gaps and requests to other crates
 
@@ -376,6 +422,41 @@ go run ./tools/go-oracle/nh-common/paths -root . -out crates/nh-common/tests/fix
 go run ./tools/go-oracle/nh-common/urls -root . -out crates/nh-common/tests/fixtures/urls
 go run ./tools/go-oracle/nh-common/glob -root . -out crates/nh-common/tests/fixtures/glob
 go run ./tools/go-oracle/nh-common/textmisc -root . -out crates/nh-common/tests/fixtures/textmisc
+```
+
+## Verification (Go regexp)
+
+`tools/go-oracle/nh-common/regexp` runs go1.27.1's `regexp` and `regexp/syntax` and writes
+`tests/fixtures/regexp/` (2.1 MB); the Rust tests are `tests/regexp.rs` (fixtures) and
+`tests/regexp_go_semantics.rs` (the `regex`-crate traps with go1.27.1's results, and Go's
+`all_test.go` tables: good/bad compiles, `replaceTests`, `replaceLiteralTests`,
+`replaceFuncTests`, `splitTests`, `metaTests`, `literalPrefixTests`); the parser has unit tests
+(`TestFoldConstants`, alias-name uniqueness).
+
+| topic | inputs | Rust test | checks |
+|---|---|---|---|
+| `matrix.json.gz` | 388 patterns (every syntax feature and flag, Perl/POSIX/Unicode classes, `(?i)` with ſ, K, Σ, ß, ǅ, İ, error patterns) × 60 inputs (ASCII, Thai, CJK, emoji, invalid UTF-8, empty, newlines, `$` templates), leftmost-first and `Longest`, plus the pattern/text pairs of Go's `find_test.go`/`all_test.go` tables | `matrix` | 37,890: per input `MatchString`, `FindStringSubmatchIndex`, `FindAllStringSubmatchIndex`, `FindAllStringIndex` (-1 and 1), `FindAllString(2)`, `FindAllStringSubmatch(3)`, `FindString`, `FindStringSubmatch`, `ReplaceAllString` × 7 templates (`$1x`, `${1}`, `$10`, `$01`, `${name}`, `$$`, `$ß`, unclosed `${`), `ReplaceAllLiteralString`, `ReplaceAllStringFunc`, `Split` (-1, 2, 0); per pattern the compile error or `NumSubexp`, `SubexpNames`, `LiteralPrefix` |
+| `hugo.json.gz` | the 54 regexps of Hugo's Go sources (`regexp.MustCompile`) and of the docs site (layouts, `findRE`/`replaceRE`/`where … "like"` examples) × 71 Hugo-shaped inputs | `hugo_patterns` | 3,888, as `matrix` |
+| `long.json.gz` | 40 patterns × 5 inputs of 30–100 KB (HTML, Thai, invalid UTF-8; the NFA takes over from the backtracker above 256K bits / len(prog)), both match modes | `long_inputs` | 470 (counts and FNV checksums of all matches, `ReplaceAll` and `Split`) |
+| `re2search.json.gz` | Go's `regexp/testdata/re2-search.txt` (944 patterns × their strings), both match modes | `re2_search` | 5,504 |
+| `fuzz.json.gz` | 20,000 seeded random token-soup patterns (compile errors included); the first 7,000 that compile × 5 random inputs (letters, folds, Thai, CJK, newlines, bad bytes) | `fuzz` | 55,000 |
+| `syntax.json.gz` | the matrix, Go-table and Hugo patterns and 29 size/nesting-limit patterns (`\pL`×27000, 1000/1001 nested groups, `(a{1000}){1000}`, …) | `syntax_dump` | 2,432: `syntax.Parse(…).String()`, `Simplify().String()`, `syntax.Compile(…).String()`, `MaxCap`, `CapNames` or the error, in Perl, POSIX and Literal modes, and `CompilePOSIX` errors |
+| `tables.json.gz` | every Unicode category, script and category alias name (plus special names and spellings: `Any`, `Assigned`, `ASCII`, `LC`, `old-italic`, …) as `\p{}`/`\P{}`/`(?i)`/negated-class patterns; `(?i)[…]` and `(?i)[^…]` of every 4,096-rune block; `(?i)` of every folding rune below U+20000 | `unicode_tables` | 2,231 (compiled programs by length and checksum) |
+
+Results: 0 differences. Out of repo, the oracle's `-big` mode (25,000 random patterns and 5
+inputs each, a fifth of them 200–5,000 runes long) ran with seeds 1–12 through the same test
+(`GOREGEXP_BIG=<file> cargo test --release --test regexp fuzz`): ~1.04M checks, 0 differences.
+Mutation check: dropping `|| a[0] == 0` from `replaceAll` fails 7,533 fixture checks.
+
+Nothing here depends on the platform (no floats). The fixtures regenerate byte for byte
+(go1.27.1 reads `regexp/testdata/re2-search.txt` from its GOROOT):
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-common/regexp -out crates/nh-common/tests/fixtures/regexp
+# red-team (out of repo):
+go run ./tools/go-oracle/nh-common/regexp -big /tmp/big1.json.gz -bign 25000 -bigseed 1
+GOREGEXP_BIG=/tmp/big1.json.gz cargo test --release --test regexp fuzz
 ```
 
 ## Verification (x/text norm, RemoveAccents)

@@ -321,9 +321,11 @@ impl Namespace {
                 return Err(err("invalid intersect values"));
             }
             "like" => {
-                if let (Some(_sv), Some(smv)) = (&svp, &smvp) {
-                    nh_common::hstrings::get_or_compile_regexp(&smv.to_str_lossy())?;
-                    // Unreachable until a Go regexp port exists (the stub above errors).
+                if let (Some(sv), Some(smv)) = (&svp, &smvp) {
+                    let re = nh_common::hstrings::get_or_compile_regexp(smv.as_bytes())?;
+                    if re.match_string(sv.as_bytes()) {
+                        return Ok(true);
+                    }
                     return Ok(false);
                 }
             }

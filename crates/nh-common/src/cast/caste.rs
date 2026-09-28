@@ -35,11 +35,13 @@
 //! saturates to int64 then truncates, `uint`/`uint64` saturate to [0, 2^64-1], NaN is 0 (verified
 //! against arm64 Go under qemu; amd64 Go differs for out-of-range values).
 
+use std::borrow::Cow;
 use std::fmt::Display;
 use std::sync::Arc;
 
 use go_value::{
-    FloatKind, GoString, IntKind, List, Map, MapType, NilKind, SliceType, UintKind, Value,
+    FloatKind, GoString, IntKind, Kind, List, Map, MapType, NilKind, Object, SliceType, UintKind,
+    Value,
 };
 
 use crate::herrors::{Error, Result};
@@ -91,16 +93,62 @@ fn cast_error_with(i: &Value, target: &str, err: impl Display) -> Error {
 // Dynamic type helpers (indirect.go, alias.go)
 
 // Go: spf13/cast indirect.go:indirect
-/// Returns the value after dereferencing pointers (or nil). In the value model the only pointers
-/// that can be dereferenced are typed nils of pointer (or interface) kind, which become `nil`.
+/// Returns the value after dereferencing pointers (or nil). In the value model the pointers that
+/// can be dereferenced are typed nils of pointer (or interface) kind, which become `nil`, and
+/// pointer objects to structs (a `*T` type name with struct fields), which become the struct
+/// value ([`Pointee`]); Go's error messages print that value (`main.pg{...} of type main.pg`).
 pub(super) fn indirect(i: &Value) -> (Value, bool) {
-    if let Value::TypedNil(t) = i {
-        match go_value::typed_nil_kind(t) {
+    match i {
+        Value::TypedNil(t) => match go_value::typed_nil_kind(t) {
             NilKind::Ptr | NilKind::Interface => return (Value::Invalid, true),
             _ => {}
+        },
+        Value::Object(o)
+            if o.kind() == Kind::Ptr
+                && o.type_name().starts_with('*')
+                && o.struct_fields().is_some() =>
+        {
+            return (Value::Object(Arc::new(Pointee(o.clone()))), true);
         }
+        _ => {}
     }
     (i.clone(), false)
+}
+
+/// Go's `reflect.Value.Elem()` of a non-nil pointer to a struct, as `indirect` returns it: the
+/// struct value, with the pointee's type name and fields. It has no methods: the value's method
+/// set lacks the pointer-receiver methods, and the host objects do not say which methods have
+/// value receivers.
+struct Pointee(Arc<dyn Object>);
+
+impl Object for Pointee {
+    fn type_name(&self) -> Cow<'_, str> {
+        let t = self.0.type_name();
+        Cow::Owned(t.strip_prefix('*').unwrap_or(&t).to_string())
+    }
+    fn kind(&self) -> Kind {
+        Kind::Struct
+    }
+    fn has_method(&self, _name: &str) -> bool {
+        false
+    }
+    fn call_method(
+        &self,
+        _ctx: go_value::HostCtx<'_>,
+        _name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
+        None
+    }
+    fn field(&self, name: &str) -> Option<Value> {
+        self.0.field(name)
+    }
+    fn struct_fields(&self) -> Option<Vec<(Cow<'_, str>, Value)>> {
+        self.0.struct_fields()
+    }
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
 }
 
 // Go: spf13/cast alias.go:resolveAlias

@@ -18,10 +18,10 @@ pub const CURRENT_VERSION: Version = Version {
 /// Go: `neohugo.Version`: the Hugo build version.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Default)]
 pub struct Version {
-    pub major: i32,
-    pub minor: i32,
+    pub major: i64,
+    pub minor: i64,
     /// Increment this for bug releases
-    pub patch_level: i32,
+    pub patch_level: i64,
     /// HugoVersionSuffix is the suffix used in the Hugo version string. It will be blank for
     /// release versions (Go parses only `-test` and `-DEV`).
     pub suffix: &'static str,
@@ -35,12 +35,7 @@ impl Version {
     /// versions after 0.53).
     // Go: common/neohugo/version.go:(Version).String
     pub fn string(&self) -> String {
-        version(
-            i64::from(self.major),
-            i64::from(self.minor),
-            i64::from(self.patch_level),
-            self.suffix,
-        )
+        version(self.major, self.minor, self.patch_level, self.suffix)
     }
 
     /// Version returns the Hugo version.
@@ -69,7 +64,7 @@ impl Version {
     pub fn next(&self) -> Version {
         Version {
             major: self.major,
-            minor: self.minor + 1,
+            minor: self.minor.wrapping_add(1),
             ..Default::default()
         }
     }
@@ -79,7 +74,7 @@ impl Version {
     pub fn prev(&self) -> Version {
         Version {
             major: self.major,
-            minor: self.minor - 1,
+            minor: self.minor.wrapping_sub(1),
             ..Default::default()
         }
     }
@@ -87,7 +82,7 @@ impl Version {
     /// NextPatchLevel returns the next patch/bugfix Hugo version. This will be a patch
     /// increment on the previous Hugo version.
     // Go: common/neohugo/version.go:NextPatchLevel
-    pub fn next_patch_level(&self, level: i32) -> Version {
+    pub fn next_patch_level(&self, level: i64) -> Version {
         let mut prev = self.prev();
         prev.patch_level = level;
         prev
@@ -135,7 +130,7 @@ impl Object for Version {
             "Next" => Value::object(self.next()),
             "Prev" => Value::object(self.prev()),
             "NextPatchLevel" => match args {
-                [Value::Int(i, _)] => Value::object(self.next_patch_level(*i as i32)),
+                [Value::Int(i, _)] => Value::object(self.next_patch_level(*i)),
                 _ => {
                     return Some(Err(go_value::Error::new(
                         "wrong number of args for NextPatchLevel",
@@ -147,9 +142,9 @@ impl Object for Version {
     }
     fn field(&self, name: &str) -> Option<Value> {
         Some(match name {
-            "Major" => Value::int(i64::from(self.major)),
-            "Minor" => Value::int(i64::from(self.minor)),
-            "PatchLevel" => Value::int(i64::from(self.patch_level)),
+            "Major" => Value::int(self.major),
+            "Minor" => Value::int(self.minor),
+            "PatchLevel" => Value::int(self.patch_level),
             "Suffix" => Value::string(self.suffix),
             _ => return None,
         })
@@ -250,9 +245,9 @@ pub fn parse_version(s: &str) -> Version {
     }
 
     let (major, minor, patch) = parse_version_parts(s);
-    vv.major = major as i32;
-    vv.minor = minor as i32;
-    vv.patch_level = patch as i32;
+    vv.major = major;
+    vv.minor = minor;
+    vv.patch_level = patch;
 
     vv
 }
@@ -405,7 +400,9 @@ fn compare_versions(in_version: Version, input: &Value) -> i64 {
 // Go: common/neohugo/version.go:parseVersion
 fn parse_version_parts(s: &str) -> (i64, i64, i64) {
     let parts: Vec<&str> = s.split('.').collect();
-    let atoi = |p: &str| go_strconv::atoi(p).unwrap_or(0);
+    // Go ignores Atoi's error but keeps its value: the clamped int for a number out of range
+    // (e.g. `uint64` max from `compareVersions`' string conversion), 0 for bad syntax.
+    let atoi = |p: &str| go_strconv::internal::atoi(p.as_bytes()).0;
     let major = parts.first().map(|p| atoi(p)).unwrap_or(0);
     let minor = parts.get(1).map(|p| atoi(p)).unwrap_or(0);
     let patch = parts.get(2).map(|p| atoi(p)).unwrap_or(0);
@@ -426,19 +423,19 @@ fn compare_float_with_version(v1: f64, v2: Version) -> i64 {
     let v1maj = mf as i64;
     let v1min = (minf * 100.0) as i64;
 
-    if i64::from(v2.major) == v1maj && i64::from(v2.minor) == v1min {
+    if v2.major == v1maj && v2.minor == v1min {
         return 0;
     }
 
-    if v1maj > i64::from(v2.major) {
+    if v1maj > v2.major {
         return 1;
     }
 
-    if v1maj < i64::from(v2.major) {
+    if v1maj < v2.major {
         return -1;
     }
 
-    if v1min > i64::from(v2.minor) {
+    if v1min > v2.minor {
         return 1;
     }
 
@@ -494,6 +491,33 @@ fn scan_int_len(s: &str) -> Option<usize> {
         return None;
     }
     Some(i)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A number out of `int` range: Go's `parseVersion` keeps `strconv.Atoi`'s clamped value
+    /// (and `Version` fields are Go `int`s), so `uint64` max is a version above any other
+    /// (go1.27.1: `VersionString("0.105.0").Compare(uint64(math.MaxUint64))` is 1).
+    #[test]
+    fn compare_out_of_range_numbers() {
+        let v = VersionString("0.105.0".into());
+        let max = Value::Uint(u64::MAX, go_value::UintKind::Uint64);
+        assert_eq!(v.compare(&max), 1);
+        assert_eq!(
+            parse_version("18446744073709551615.1").major,
+            i64::MAX,
+            "clamped"
+        );
+        assert_eq!(parse_version("-99999999999999999999").major, i64::MIN);
+        assert_eq!(parse_version("x.2").minor, 2);
+        assert_eq!(
+            VersionString("0.99".into()).compare(&max),
+            1,
+            "0.99 < MaxInt64.0.0"
+        );
+    }
 }
 
 // ---------------------------------------------------------------------------

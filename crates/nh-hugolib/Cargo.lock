@@ -348,8 +348,6 @@ dependencies = [
  "nh-common",
  "nh-langs",
  "nh-parser",
- "regex",
- "regex-syntax",
 ]
 
 [[package]]

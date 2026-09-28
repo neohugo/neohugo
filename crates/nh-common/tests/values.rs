@@ -583,3 +583,22 @@ fn htime() {
     }
     r.finish();
 }
+
+/// spf13/cast's `indirect` dereferences a non-nil pointer to a struct before its type switch, so
+/// the error prints the struct value (Go, via the T01 oracle: `main.pg{id:"p1"} of type main.pg`).
+#[test]
+fn cast_errors_dereference_pointer_objects() {
+    use nh_common::cast::caste;
+    let pg = Value::object(Pg("p1".into()));
+    for (got, target) in [
+        (caste::to_int_e(&pg).map(|_| ()), "int"),
+        (caste::to_bool_e(&pg).map(|_| ()), "bool"),
+        (caste::to_string_e(&pg).map(|_| ()), "string"),
+        (caste::to_float64_e(&pg).map(|_| ()), "float64"),
+    ] {
+        assert_eq!(
+            got.unwrap_err().to_string(),
+            format!("unable to cast main.pg{{id:\"p1\"}} of type main.pg to {target}")
+        );
+    }
+}

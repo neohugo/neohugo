@@ -25,6 +25,7 @@ pub mod dynacache;
 pub mod files;
 pub mod flect;
 pub mod glob;
+pub mod goregexp;
 pub mod hashing;
 pub mod herrors;
 pub mod hreflect;

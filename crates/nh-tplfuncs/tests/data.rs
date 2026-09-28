@@ -161,40 +161,6 @@ fn sorted_items(v: &J) -> Option<(J, Vec<String>)> {
     Some((ok["t"].clone(), items))
 }
 
-/// Known divergences (PORTING.md): `where` with the `like` operator needs Go regexp; the
-/// cast error text of a non-nil pointer object (nh-common deviation 19: Go's spf13/cast
-/// dereferences the pointer in its message).
-fn known_divergence(m: &str, args: &[Value], want: &J, got: &J) -> bool {
-    // nh-config's `VersionString.Compare` of a uint64 (T04; reported).
-    if matches!(m, "Lt" | "Le" | "Gt" | "Ge")
-        && args.iter().any(|a| {
-            a.as_object()
-                .is_some_and(|o| o.type_name() == "neohugo.VersionString")
-        })
-        && args.iter().any(|a| matches!(a, Value::Uint(..)))
-    {
-        return true;
-    }
-    if m == "Where"
-        && got
-            .get("err")
-            .and_then(J::as_str)
-            .is_some_and(|g| g.contains("hstrings.GetOrCompileRegexp"))
-    {
-        return true;
-    }
-    let (Some(w), Some(g)) = (
-        want.get("err").and_then(J::as_str),
-        got.get("err").and_then(J::as_str),
-    ) else {
-        return false;
-    };
-    g.contains("unable to cast &")
-        && g.replacen("unable to cast &", "unable to cast ", 1)
-            .replacen(" of type *", " of type ", 1)
-            == w
-}
-
 #[test]
 fn data_namespaces() {
     let header = fixture("data/values.json.gz");
@@ -209,7 +175,6 @@ fn data_namespaces() {
 
     let mut total = 0usize;
     let mut failed = 0usize;
-    let mut known = 0usize;
     let mut nondet = 0usize;
     let mut unordered = 0usize;
     let mut report: Vec<String> = Vec::new();
@@ -259,10 +224,6 @@ fn data_namespaces() {
             if ok {
                 continue;
             }
-            if known_divergence(m, &args, want, &got) {
-                known += 1;
-                continue;
-            }
             failed += 1;
             *per_file.entry(file.clone()).or_insert(0) += 1;
             if per_file[&file] <= 3 && report.len() < 200 {
@@ -275,7 +236,7 @@ fn data_namespaces() {
         }
     }
     eprintln!(
-        "data: {total} cases, {failed} failed, {known} known divergences, {nondet} nondeterministic and {unordered} unordered in Go"
+        "data: {total} cases, {failed} failed, {nondet} nondeterministic and {unordered} unordered in Go"
     );
     eprintln!("{per_file:?}");
     for r in &report {

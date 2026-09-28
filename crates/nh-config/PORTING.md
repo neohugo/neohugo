@@ -15,7 +15,7 @@ task T04 (config-base-media).
 | `env` | `config/env.go` | ported |
 | `namespace` | `config/namespace.go` | ported |
 | `decode` | `github.com/mitchellh/mapstructure@v1.5.1-0.20231216201459-8508981c8b6c` (`mapstructure.go`, `error.go`, `decode_hooks.go`: `StringToTimeDurationHookFunc`) | ported for Rust targets (the `Decode` trait) |
-| `goregexp` | Go `regexp` (RE2 syntax) over the `regex` crate | NEW: Go's syntax and error texts |
+| `goregexp` | Go `regexp` | re-export of `nh_common::goregexp` (the port of Go's `regexp` and `regexp/syntax`; see nh-common deviation 32) |
 | `security::security_config` | `config/security/securityConfig.go` | ported |
 | `security::whitelist` | `config/security/whitelist.go` | ported |
 | `privacy` | `config/privacy/privacyConfig.go` | ported |
@@ -30,14 +30,9 @@ Every GO PORTING CHECKLIST entry is `OK`.
 
 - nh-*: nh-common, nh-parser (config file decoding), nh-langs.
 - Wave A: go-value, go-time, go-json, go-fmt, go-strconv, go-unicode, go-path, go-sort.
-- crates.io:
-  - `regex` — Go's `regexp` package (security whitelists, cache busters, server header and
-    redirect globs). Both are RE2 engines with leftmost-first semantics; `goregexp` translates
-    Go's syntax where it differs (Perl classes and `\b` are ASCII in Go, `\Q…\E`, octal
-    escapes, `\p{^X}`) and runs Go's own compile checks first (nested repetition, repeat counts
-    over 1000, backreferences).
-  - `regex-syntax` — parses a pattern to map a compile error to Go's `error parsing regexp:
-    <code>: `<expr>`` text.
+- crates.io: none. Go's `regexp` (security whitelists, cache busters, server header and redirect
+  globs) is nh-common's `goregexp`, a port of Go's package; the former `regex`/`regex-syntax`
+  translation layer is gone.
 - dev: `serde_json`, `flate2` (`rust_backend`, gunzip of fixtures).
 
 ## mapstructure (`decode`)
@@ -71,11 +66,8 @@ the callers that Go lets panic.
    dynamic type for scalars, maps and slices; other dynamic types (pointers, structs, typed
    nils) are replaced by the input. `decodeMapFromStruct` (a struct input decoded into a
    map) handles the struct objects the config produces, not arbitrary Go structs.
-4. **Regexp errors.** `goregexp` reproduces Go's error text for the common kinds (missing or
-   unexpected parenthesis, missing bracket, bad escape, bad repeat, invalid nested repetition,
-   bad repeat count, invalid character class range, invalid named capture, invalid UTF-8,
-   Perl flags). Other patterns Go rejects are rejected with a Go-style message whose code may
-   differ.
+4. (Resolved; the number is kept.) Regexp errors and matching are Go's: `goregexp` is now a
+   port of Go's `regexp` (nh-common).
 5. **`FromConfigString`** errors carry nh-parser's TOML error position (nh-parser deviation 1).
 6. **HugoInfo.** `CommitHash` and `BuildDate` are empty (no VCS stamp) and `GoVersion` is the
    constant `go1.27.1` (the toolchain of the golden build).
@@ -102,6 +94,11 @@ the callers that Go lets panic.
   `LanguageConfig` with `decode_struct!` and decode `BTreeMap<String, LanguageConfig>` with
   `weak_decode_into`. It would then depend on nh-config (nh-config already depends on
   nh-langs, so the shared part would have to move below both, e.g. to nh-common).
+
+`neohugo.Version`'s fields are `i64` (Go `int`): `parseVersion` keeps `strconv.Atoi`'s value
+when it fails (clamped to the int range, 0 for bad syntax), so comparing a `VersionString` with
+a number out of range (e.g. `uint64` max) gives Go's result (`version.rs` unit test; nh-tplfuncs'
+16 `lt`/`le`/`gt`/`ge` cases now pass).
 
 ## Verification
 
