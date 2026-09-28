@@ -235,6 +235,15 @@ impl Object for FileObject {
     fn is_zero(&self) -> Option<bool> {
         Some(self.0.is_none())
     }
+
+    // Go: source/fileInfo.go:String (`fmt.Stringer`: `{{ .File }}` prints the base file name; a
+    // nil `*source.File` panics in `String`, which fmt prints as `<nil>`)
+    fn go_string(&self) -> Option<go_value::GoString> {
+        Some(go_value::GoString::from(match &self.0 {
+            Some(f) => f.string(),
+            None => "<nil>".to_string(),
+        }))
+    }
 }
 
 // ---------------------------------------------------------------------------

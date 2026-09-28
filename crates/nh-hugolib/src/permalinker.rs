@@ -2,7 +2,30 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-// Wave B: port per the checklist below.
+/// Go: `Permalinker` — permalinks of both the relative and absolute kind (a page, or one of
+/// its output formats in `refLink`).
+pub trait Permalinker {
+    fn permalink(&self) -> String;
+    fn rel_permalink(&self) -> String;
+}
+
+impl Permalinker for crate::page::PageHandle {
+    fn permalink(&self) -> String {
+        nh_resource::resourcetypes::Resource::permalink(self)
+    }
+    fn rel_permalink(&self) -> String {
+        nh_resource::resourcetypes::Resource::rel_permalink(self)
+    }
+}
+
+impl Permalinker for nh_page::page_outputformat::OutputFormat {
+    fn permalink(&self) -> String {
+        nh_page::page_outputformat::OutputFormat::permalink(self).to_string()
+    }
+    fn rel_permalink(&self) -> String {
+        nh_page::page_outputformat::OutputFormat::rel_permalink(self).to_string()
+    }
+}
 
 // ---------------------------------------------------------------------------
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,

@@ -485,11 +485,132 @@ export GOTOOLCHAIN=go1.27.1
 go run ./tools/go-oracle/nh-hugolib/assemble -root .
 ```
 
+## T23 hugolib-site: status
+
+`site` (the rest of site.go: `renderAndWritePage`, `renderForTemplate`, the Site methods,
+`refLink`, `assembleMenus`, `initPrevNext*`, `Sites`/`GetPage`/`Taxonomies`/`Menus`),
+`site_output`, `hugo_sites_data` (`.Site.Data`: `Data`, `loadData`, `handleDataFile`,
+`readData`), `page` (the rest of page.go: translations, `Pages`/`RegularPages`/...,
+`GetTerms`, `Eq`, output formats, resolve template, ...), `page__common`, `page__menus`,
+`page__paginator`, `page__position`, `page__ref`, `page_unwrap`, `permalinker` and the
+template API (`tplapi::*`) are ported. Every checklist entry of these modules is `OK` (EX and
+non-EX), except the internal identity/dependency methods, which are marked unsupported.
+Stubs (explicit errors, as allowed): `gitinfo` (`enableGitInfo = true` fails the build with
+`neohugo-rs: enableGitInfo is not supported`; `.GitInfo` is Go's nil `*gitmap.GitInfo`) and
+`codeowners` (`.CodeOwners` is Go's nil `[]string` without a CODEOWNERS file; with one the
+build fails with `neohugo-rs: CODEOWNERS is not supported`).
+
+### Template API design
+
+- Pages are `PageRef` objects holding a `PageHandle { h, id, wrapper }`; `PageWrapper` gives
+  the Go type (`*hugolib.pageState`, `hugolib.pageWithWeight0`, `*hugolib.pageWithOrdinal`,
+  `*hugolib.pageForShortcode`, `*hugolib.pageForRenderHooks`) and its method set
+  (`tplapi::page_methods::{PAGE_STATE_METHODS, PAGE_FOR_SHORTCODE_METHODS}`, sorted, Go's
+  `reflect` sets). `PageHeadingsFiltered` is `*hugolib.pageHeadingsFiltered`.
+  `call_page_method` is the single dispatcher: Go's arity messages (the injected
+  `context.Context` counted), `goodFunc` errors for methods templates cannot call, nil vs
+  `NopPage` exactly as Go (`Parent` of home is a nil `page.Page`; `GetPage` misses are the nil
+  `*page.nopPage`; the query-built lists are nil when empty).
+- Sites: `SiteRef(SiteHandle)` is `*page.siteWrapper` (`SITE_WRAPPER_METHODS`),
+  `HugolibSiteObject(SiteHandle)` is `*hugolib.Site` (`HUGOLIB_SITE_METHODS`, with the
+  promoted `PathSpec` helpers; `.Site.Current`). `.Site.Params` is the same `Arc<Map>` on
+  every call (and the language's).
+- Named slice/map types: `tplapi::named_types::registry()` registers every named type with
+  methods (`maps.Params`, `page.Pages`, `page.PagesGroup`, `page.Data`, `page.Taxonomy`,
+  `page.TaxonomyList`, `page.OrderedTaxonomy`, `page.WeightedPages`, `page.OutputFormats`,
+  `navigation.Menu`, `resource.Resources`, `langs.Languages`, `page.Sites`,
+  `tableofcontents.Headings`, `collections.SortedStringSlice`); `init()` runs nh-page's
+  process-wide registrations.
+- Per-page lazy state lives in `PageCommon` (T23): positions, menus, params, the wrapped
+  site, the store. The paginator (`PagePaginator`) is per page output: first call wins (the
+  pager or the first error; later calls get (nil, nil) after an error), reset by a rendering
+  shift.
+- Before the first shift (a page bundled in a leaf bundle is never shifted before rendering)
+  a page has Go's `nopPageOutput` and `NopPage` providers: empty links, nil output formats,
+  "" refs, `NopPage` positions and paginator, zero output format; `.Sites` is Go's
+  nil-interface panic (as an error).
+
+### API for T19, T24, T25
+
+- T24 (render loop): `Site::render_and_write_page_with(h, si, stat_counter, target, p, data,
+  templ, ExecKind)` (`ExecKind::Pager(n)` for `renderPaginator`); `render_for_template(..,
+  None, ..)` does NOT log the missing layout (`logMissingLayout` is T24's); the pager of a
+  paginated page is `PagePaginator::{current, set_current}` of the current page output;
+  `hugolib_sites_value(h)` is the `[]*hugolib.Site` of `sitemapindex.xml`;
+  `HugoSites::prepare_pages_for_render(si, true, idx)` resets the built paginators.
+- T19 / other crates (found by `tests/methodsets.rs`; listed there as `KNOWN`): nh-page's
+  `*page.nopPage` and `page.Pages`/`page.PageGroup` context methods do not count the context in
+  their arity messages (`want 0 got 1` where Go says `want 1 got 2`); `page.WeightedPage`
+  answers every `*pageState` method (Go: the `page.Page` interface's, with `Page`/`Weight` as
+  fields); `*page.Pager` has no `Paginator` field; nh-page's nop `GitInfo` returns a nil
+  `*source.GitInfo` where Go's type string is `*gitmap.GitInfo`; nh-media's `media.Type`
+  (no `HasSuffix`) and nh-config's `neohugo.HugoInfo` check no argument counts; nh-common's
+  `maps.Params` and nh-page's `Sort`/`Swap` report `goodFunc` before arity; nh-langs has no
+  `LanguageConfig` field. gotemplate reports a host method's arity error as `error calling X:
+  wrong number of args ...` (Go: without `error calling X: `).
+- T25: `HugoSites::data()` returns the shared `Arc<Map>`; a load error is sent to the error
+  handler (double-wrapped `failed to load data: failed to load data: ...`, as Go).
+
+### Changes outside the T23 modules
+
+- `crates/nh-helpers/src/source/file_info.rs`: `FileObject::go_string` (Go's `String()`,
+  `<nil>` for a nil file): `{{ .File }}` printed `{}`.
+
+### Go behaviour reproduced on purpose
+
+1. Arity errors count the injected `context.Context` (`{{ .Content 1 }}`: `want 1 got 2`);
+   variadic ones report the arguments without it.
+2. `Aliases`/`Keywords`: nil unless set in front matter; an empty list in front matter is a
+   non-nil empty `[]string` (`cast.ToStringSlice`).
+3. `AllTranslations` is nil when the tree has no node at the path in any language, a non-nil
+   empty list when all translations are filtered out.
+4. `NextPage`/`PrevPage` log their deprecation only when the positioner is not `NopPage`.
+5. `.Site.Data` of a directory named like a file merges as Go (maps merged, the rest kept or
+   replaced with the same warnings); a data file with an unknown extension is skipped.
+6. `.Sites.First` logs its deprecation.
+
+### T23 deviations
+
+1. After a `.Site.Data` load error Go's `Data()` is a nil map; the port's is an empty map (the
+   build fails either way).
+2. XML (`clbanning/mxj`) and CSV (`encoding/csv`) data files are nh-parser explicit
+   unsupported errors (T03 gap; tests `data_xml_unsupported`, `data_csv_unsupported`).
+3. Not supported (explicit `neohugo-rs: (T).M is not supported` errors): `PathInfo`,
+   `MarshalJSON`, the identity/dependency methods (`GetIdentity`, `ForEeachIdentity`,
+   `GetDependencyManager*`, `GetInternal*`, `MarkStale`), `Markup` of a real page. Go
+   templates can read the exported embedded fields of the hugolib types (`.Positioner`,
+   `.PageMetaProvider`, `.Deps`, ...): none are exposed.
+4. `ref`/`relref` with a fragment: Go appends the converter's `DocumentInfo.AnchorSuffix()`;
+   no converter implements `DocumentInfo` (in Go either), so the port does not model it and
+   nothing is added (same result).
+5. The automatic main section with a tie (Go ranges over a map) is the first in byte order;
+   the oracle records that variant.
+6. Menu entries: Go mutates shared `*MenuEntry` values; the port assembles them in an arena
+   and freezes them into `Arc` trees (page menus remapped to the assembled entries); results
+   are the same.
+
+### Verification (T23)
+
+| topic | inputs | Rust test | checks |
+|---|---|---|---|
+| `data/*.json.gz` (15) | `go run ./tools/go-oracle/nh-hugolib/data`: data-basic, data-theme, data-themeonly, data-i18n, data-mounts, data-ignore, data-none, data-badjson, data-badyaml, data-badtoml, data-unknownext, data-dirfile, data-docs (docs/data), data-xml, data-csv | `tests/data.rs` | the data tree with Go types (int/int64/uint64/float64, go-toml local dates, nil), merge warnings, errors: 13 identical, 2 known gaps |
+| `site/*.json.gz` (19) | `go run ./tools/go-oracle/nh-hugolib/site` (overlay `NHOracleSite` in package hugolib): the 17 assemble sites + `site-menus` (config/front matter menus, pageRef, children, missing parent, section pages menu, pagination, next/prev orders) + `site-refs` (refs across languages and output formats, not-found URL, bundles) | `tests/site.rs` | 29 sites × 3,760 site method results; 651 pages × 99,951 page method results (with arguments: Eq/InSection/Is* with pages, nop, strings, nil; GetPage; GetTerms; HasShortcode; Param; Ref/RelRef/RefFrom/RelRefFrom forms and errors; IsMenuCurrent/HasMenuCurrent; ...) + 40,355 on wrappers; 616 paginator results (first call wins, reset after shift); 5,424 probe templates (619 errors); 2,509 log lines: 0 differences |
+| `site/methodsets.json.gz` | Go `reflect` method sets and fields of the 39 types templates receive (1,196 methods, 231 fields) | `tests/methodsets.rs` | type strings, method presence and absence, arity messages, `goodFunc` errors, fields: only the `KNOWN` list differs |
+
+Regenerate (byte for byte; sites are built in temp dirs, never in the repository):
+
+```sh
+export GOTOOLCHAIN=go1.27.1
+go run ./tools/go-oracle/nh-hugolib/data -root .
+go run ./tools/go-oracle/nh-hugolib/site -root .
+```
+
 ## Deliberate deviations
 
-_Wave B (T21–T24): list every deviation from the Go code here (README rule 1). T20, T21 and
-T22 list theirs in their sections above._
+_Wave B (T21–T24): list every deviation from the Go code here (README rule 1). T20, T21, T22
+and T23 list theirs in their sections above._
 
 ## Known gaps
 
-_Wave B: list unported / stubbed functionality here._
+_Wave B: list unported / stubbed functionality here._ T23: `gitinfo`, `codeowners` (stubs),
+XML/CSV data files, the unsupported page methods above.
