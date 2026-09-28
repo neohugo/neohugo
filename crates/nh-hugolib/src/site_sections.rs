@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Go `hugolib/site_sections.go`: `.Site.Sections` / `.Site.Home`.
 
 // ---------------------------------------------------------------------------

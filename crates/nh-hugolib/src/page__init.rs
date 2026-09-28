@@ -3,7 +3,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Split out so that the page-output lifecycle has one owner that runs before rendering:
 //! `assembleResources` (T21) already calls `shiftToOutputFormat(true, 0)` on every page, so the
 //! assembly task owns the lazy page init and the shifting. It uses T22's constructors
@@ -47,20 +46,28 @@ impl PageState {
 
     /// Go: `shiftToOutputFormat(isRenderingSite, idx)` — see the module docs.
     // Go: hugolib/page.go:shiftToOutputFormat
-    pub fn shift_to_output_format(&self, h: &HugoSites, is_rendering_site: bool, idx: usize) -> Result<()> {
+    pub fn shift_to_output_format(
+        &self,
+        h: &HugoSites,
+        is_rendering_site: bool,
+        idx: usize,
+    ) -> Result<()> {
         todo!()
     }
 
     /// Go: `incrPageOutputTemplateVariation()`.
     // Go: hugolib/page.go:incrPageOutputTemplateVariation
     pub fn incr_page_output_template_variation(&self) {
-        self.page_output_template_variations_state.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        self.page_output_template_variations_state
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
     }
 
     /// Go: `canReusePageOutputContent()` — `pageOutputTemplateVariationsState == 1`.
     // Go: hugolib/page.go:canReusePageOutputContent
     pub fn can_reuse_page_output_content(&self) -> bool {
-        self.page_output_template_variations_state.load(std::sync::atomic::Ordering::SeqCst) == 1
+        self.page_output_template_variations_state
+            .load(std::sync::atomic::Ordering::SeqCst)
+            == 1
     }
 }
 

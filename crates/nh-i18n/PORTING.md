@@ -96,7 +96,7 @@ change them (verified).
    and a nil pointer as data (`reflect.Value.Type` on the zero Value); text/template turns the
    panic into the error of the `i18n`/`T` call. `Translator::func_e` returns these as errors
    with Go's panic text; `Translator::func` (the `nh_deps::deps::TranslateFunc` stored in
-   `Deps.translate`, which returns a `String`) panics with the same text. See "Requests".
+   `Deps.translate`) is the same func: T20 made `TranslateFunc` return a `Result`.
 8. **`errWithFileContext`** keeps Go's message and position (a `*toml.DecodeError`'s position is
    carried in `ParseError::toml_position`, like Go's `extractFileTypePos`), but does not attach
    the error-context lines (`UpdateContent`), which only matter for error display.
@@ -134,8 +134,7 @@ Fixtures: 512 KB gzipped JSON; every fixture and both generated files regenerate
 
 ## Requests to other crates
 
-- **nh-deps (T20):** `TranslateFunc` returns `String`, so the Go panics of deviation 7 can only
-  become a Rust panic there. Suggest `Arc<dyn Fn(HostCtx, &str, &Value) -> Result<String>>`
-  (then `Translator::func_e` fits directly); until then T19 can call
-  `TranslationProvider::translator()?.func_e(lang)` to get Go's template error.
+- ~~**nh-deps (T20):** `TranslateFunc` returns `String`.~~ Done by T20: `TranslateFunc` returns
+  `Result<String>` and `Translator::func` is `func_e`; T19's `lang.Translate` returns the `Err`
+  as the template error.
 - **gotemplate:** static receiver types for `can't evaluate field` errors (deviation 6).

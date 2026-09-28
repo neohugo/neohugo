@@ -1,0 +1,267 @@
+package hugolib
+
+// Added to package hugolib by the nh-hugolib capture oracle (go run -overlay);
+// never part of a real build.
+
+import (
+	"context"
+	"sort"
+	"strconv"
+	"strings"
+
+	"github.com/neohugo/neohugo/common/paths"
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/parser/pageparser"
+	"github.com/neohugo/neohugo/resources/page"
+)
+
+// NHOracleCapture runs the capture phase of a build (process: collect the
+// content files, create the pages with setMetaPre, insert them into the page
+// trees) and dumps the trees (walk order) and every page reached from them.
+// norm normalises file names; enc encodes a Go value as typed JSON.
+func NHOracleCapture(h *HugoSites, norm func(string) string, enc func(any) any) (map[string]any, error) {
+	conf := &BuildCfg{WhatChanged: &WhatChanged{needsPagesAssembly: true}}
+	if err := h.process(context.Background(), h.Log.InfoCommand("build"), conf, func(*BuildCfg) error { return nil }); err != nil {
+		return nil, err
+	}
+
+	var pages []*pageState
+	seen := map[*pageState]int{}
+	addPage := func(p *pageState) int {
+		if i, ok := seen[p]; ok {
+			return i
+		}
+		seen[p] = len(pages)
+		pages = append(pages, p)
+		return len(pages) - 1
+	}
+	pageNode := func(p *pageState) any {
+		return map[string]any{"t": "page", "lang": p.s.languagei, "page": addPage(p)}
+	}
+	resNode := func(r *resourceSource) any {
+		m := map[string]any{"t": "res", "lang": r.langIndex}
+		if r.path != nil {
+			m["path"] = r.path.Path()
+		}
+		if r.fi != nil {
+			m["filename"] = norm(r.fi.Meta().Filename)
+		}
+		if p, ok := r.r.(*pageState); ok {
+			m["page"] = addPage(p)
+		}
+		return m
+	}
+	nodeDump := func(n contentNodeI) any {
+		switch v := n.(type) {
+		case *pageState:
+			return pageNode(v)
+		case contentNodeIs:
+			nodes := []any{}
+			for _, vv := range v {
+				if vv == nil {
+					nodes = append(nodes, nil)
+					continue
+				}
+				nodes = append(nodes, pageNode(vv.(*pageState)))
+			}
+			return map[string]any{"t": "pages", "nodes": nodes}
+		case *resourceSource:
+			return resNode(v)
+		case resourceSources:
+			nodes := []any{}
+			for _, vv := range v {
+				if vv == nil {
+					nodes = append(nodes, nil)
+					continue
+				}
+				nodes = append(nodes, resNode(vv))
+			}
+			return map[string]any{"t": "resources", "nodes": nodes}
+		}
+		panic("unknown node")
+	}
+
+	trees := map[string]any{}
+	for _, t := range []struct {
+		name string
+		tree *doctree.NodeShiftTree[contentNodeI]
+	}{{"pages", h.pageTrees.treePages}, {"resources", h.pageTrees.treeResources}} {
+		entries := []any{}
+		t.tree.WalkPrefixRaw("", func(key string, n contentNodeI) bool {
+			entries = append(entries, map[string]any{"key": key, "node": nodeDump(n)})
+			return false
+		})
+		trees[t.name] = entries
+	}
+
+	// Each site's view of the trees (shaped to its language; resources fall back to
+	// another language's non-page resource): the walk the assembly and render walks do.
+	siteWalks := []any{}
+	for _, s := range h.Sites {
+		sw := map[string]any{}
+		for _, t := range []struct {
+			name string
+			tree *doctree.NodeShiftTree[contentNodeI]
+		}{{"pages", s.pageMap.treePages}, {"resources", s.pageMap.treeResources}} {
+			entries := []any{}
+			w := &doctree.NodeShiftTreeWalker[contentNodeI]{
+				Tree: t.tree,
+				Handle: func(key string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
+					entries = append(entries, map[string]any{"key": key, "node": nodeDump(n), "match": int(match)})
+					return false, nil
+				},
+			}
+			if err := w.Walk(context.Background()); err != nil {
+				return nil, err
+			}
+			sw[t.name] = entries
+		}
+		siteWalks = append(siteWalks, sw)
+	}
+
+	pathDump := func(p *paths.Path) any {
+		if p == nil {
+			return nil
+		}
+		ids := []string{}
+		ids = append(ids, p.Identifiers()...)
+		return map[string]any{
+			"path":                 p.Path(),
+			"base":                 p.Base(),
+			"unnormalizedPath":     p.Unnormalized().Path(),
+			"unnormalizedBase":     p.Unnormalized().Base(),
+			"type":                 int(p.Type()),
+			"lang":                 p.Lang(),
+			"section":              p.Section(),
+			"baseNameNoIdentifier": p.BaseNameNoIdentifier(),
+			"ext":                  p.Ext(),
+			"component":            p.Component(),
+			"identifiers":          ids,
+			"disabled":             p.Disabled(),
+		}
+	}
+
+	var scDump func(sc *shortcode, pid uint64) any
+	scDump = func(sc *shortcode, pid uint64) any {
+		inner := []any{}
+		for _, in := range sc.inner {
+			switch v := in.(type) {
+			case string:
+				inner = append(inner, map[string]any{"text": v})
+			case *shortcode:
+				inner = append(inner, map[string]any{"sc": scDump(v, pid)})
+			}
+		}
+		var templ any
+		if sc.templ != nil {
+			templ = sc.templ.Name()
+		}
+		prefix := shortcodePlaceholderPrefix + strconv.FormatUint(pid, 10)
+		return map[string]any{
+			"name":              sc.name,
+			"ordinal":           sc.ordinal,
+			"doMarkup":          sc.doMarkup,
+			"isInline":          sc.isInline,
+			"isClosing":         sc.isClosing,
+			"params":            enc(sc.params),
+			"inner":             inner,
+			"indentation":       sc.indentation,
+			"pos":               sc.pos,
+			"length":            sc.length,
+			"placeholder":       strings.Replace(sc.placeholder, prefix, shortcodePlaceholderPrefix+"PID", 1),
+			"templ":             templ,
+			"insertPlaceholder": sc.insertPlaceholder(),
+			"needsInner":        sc.needsInner(),
+			"configVersion":     sc.configVersion(),
+		}
+	}
+
+	cascadeDump := func(pc *pageMeta) any {
+		c := pc.pageConfig.CascadeCompiled
+		if c == nil {
+			return nil
+		}
+		out := []any{}
+		c.Range(func(k page.PageMatcher, v page.PageMatcherParamsConfig) bool {
+			out = append(out, map[string]any{
+				"target": map[string]any{"path": k.Path, "kind": k.Kind, "lang": k.Lang, "environment": k.Environment},
+				"params": enc(v.Params),
+				"fields": enc(v.Fields),
+			})
+			return true
+		})
+		return out
+	}
+
+	pageDumps := []any{}
+	for i := 0; i < len(pages); i++ {
+		p := pages[i]
+		m := p.m
+		pd := map[string]any{
+			"kind":         m.Kind(),
+			"lang":         m.s.Lang(),
+			"siteIdx":      m.s.languagei,
+			"term":         m.term,
+			"singular":     m.singular,
+			"bundled":      m.bundled,
+			"resourcePath": m.resourcePath,
+			"standalone":   !m.standaloneOutputFormat.IsZero(),
+			"pathInfo":     pathDump(m.pathInfo),
+		}
+		if m.f != nil {
+			pd["file"] = map[string]any{
+				"filename": norm(m.f.Filename()),
+				"path":     m.f.Path(),
+				"lang":     m.f.Lang(),
+			}
+		}
+		pc := m.pageConfig
+		pd["pageConfig"] = map[string]any{
+			"kind":    pc.Kind,
+			"path":    pc.Path,
+			"lang":    pc.Lang,
+			"params":  enc(pc.Params),
+			"cascade": cascadeDump(m),
+		}
+		c := m.content
+		pi := c.pi
+		source := c.mustSource()
+		items := []any{}
+		for _, it := range pi.itemsStep2 {
+			switch v := it.(type) {
+			case pageparser.Item:
+				items = append(items, map[string]any{"t": "src", "lo": v.Pos(), "hi": v.Pos() + len(v.Val(source))})
+			case pageContentReplacement:
+				items = append(items, map[string]any{"t": "repl", "val": string(v.val)})
+			case *shortcode:
+				items = append(items, map[string]any{"t": "sc", "sc": scDump(v, pi.pid)})
+			}
+		}
+		names := []string{}
+		for k := range c.shortcodeState.nameSet {
+			names = append(names, k)
+		}
+		sort.Strings(names)
+		sourceKey := norm(pi.sourceKey)
+		if m.f == nil {
+			sourceKey = "PID"
+		}
+		pd["content"] = map[string]any{
+			"sourceKey":               sourceKey,
+			"hasOpenSource":           pi.openSource != nil,
+			"frontMatterNil":          pi.frontMatter == nil,
+			"hasSummaryDivider":       pi.hasSummaryDivider,
+			"posMainContent":          pi.posMainContent,
+			"hasNonMarkdownShortcode": pi.hasNonMarkdownShortcode,
+			"items":                   items,
+			"shortcodeNames":          names,
+			"numShortcodes":           len(c.shortcodeState.shortcodes),
+			"filename":                norm(c.shortcodeState.filename),
+			"enableInlineShortcodes":  c.shortcodeState.enableInlineShortcodes,
+			"enableEmoji":             c.enableEmoji,
+		}
+		pageDumps = append(pageDumps, pd)
+	}
+
+	return map[string]any{"trees": trees, "siteWalks": siteWalks, "pages": pageDumps}, nil
+}

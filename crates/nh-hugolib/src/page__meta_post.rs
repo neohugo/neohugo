@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Split from `page__meta.go`: these run only in the assembly walks (`applyAggregates`,
 //! content_map_page.go:1445, 1512, 1579), so they belong to the assembly task.
 //! * `setMetaPost(cascade)`: applies the cascade, then `setMetaPostParams`, then (first run)

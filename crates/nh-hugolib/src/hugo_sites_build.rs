@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T24 (hugolib-build).
 
-
 //! Go `hugolib/hugo_sites_build.go`: `Build(cfg)` = lock -> process -> assemble -> (freeze) ->
 //! render -> writeBuildStats -> renderDeferred -> postProcess -> error check.
 //!

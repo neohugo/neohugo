@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T22 (hugolib-content).
 
-
 //! Go `pageOutput`: one per render format NAME of a page (shared by every global format index
 //! with that name, see `crate::page::PageLazy`). It carries the per-output state that
 //! `shiftToOutputFormat` (page__init.rs, T21) switches:
@@ -61,7 +60,12 @@ pub struct PageOutput {
 impl PageOutput {
     /// Go: `newPageOutput(ps, pp, f, render)`.
     // Go: hugolib/page__output.go:newPageOutput
-    pub fn new(ps: &crate::page::PageState, pp: &PagePaths, f: OutputFormat, render: bool) -> PageOutput {
+    pub fn new(
+        ps: &crate::page::PageState,
+        pp: &PagePaths,
+        f: OutputFormat,
+        render: bool,
+    ) -> PageOutput {
         todo!()
     }
 

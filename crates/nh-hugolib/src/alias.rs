@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T24 (hugolib-build).
 
-
 //! Go `hugolib/alias.go`: alias pages via the embedded `alias.html` (LookupPagesLayout with
 //! OutputFormat alias), `targetPathAlias`, published with the page's HTML output format
 //! (canonify applies; counts as HTML for hugo_stats).
@@ -30,13 +29,24 @@ impl Object for AliasPage {
         go_value::Kind::Struct
     }
     fn has_method(&self, name: &str) -> bool {
-        self.page.as_ref().map(|p| p.has_method(name)).unwrap_or(false) && name != "Permalink"
+        self.page
+            .as_ref()
+            .map(|p| p.has_method(name))
+            .unwrap_or(false)
+            && name != "Permalink"
     }
-    fn call_method(&self, ctx: HostCtx<'_>, name: &str, args: &[Value]) -> Option<go_value::Result<Value>> {
+    fn call_method(
+        &self,
+        ctx: HostCtx<'_>,
+        name: &str,
+        args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
         if name == "Permalink" {
             return None;
         }
-        self.page.as_ref().and_then(|p| p.call_method(ctx, name, args))
+        self.page
+            .as_ref()
+            .and_then(|p| p.call_method(ctx, name, args))
     }
     fn field(&self, name: &str) -> Option<Value> {
         match name {
@@ -57,7 +67,15 @@ pub fn target_path_alias(src: &str) -> Result<String> {
 
 /// Go: `Site.publishDestAlias(allowRoot, path, permalink, outputFormat, p)`.
 // Go: hugolib/alias.go:publishDestAlias
-pub fn publish_dest_alias(h: &Arc<HugoSites>, site_idx: usize, allow_root: bool, path: &str, permalink: &str, f: &OutputFormat, p: Option<nh_page::page::PageRef>) -> Result<()> {
+pub fn publish_dest_alias(
+    h: &Arc<HugoSites>,
+    site_idx: usize,
+    allow_root: bool,
+    path: &str,
+    permalink: &str,
+    f: &OutputFormat,
+    p: Option<nh_page::page::PageRef>,
+) -> Result<()> {
     todo!()
 }
 

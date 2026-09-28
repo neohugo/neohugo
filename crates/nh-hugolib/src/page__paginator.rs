@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-
 //! Go `hugolib/page__paginator.go`: `.Paginator` and `.Paginate` share ONE `sync.Once` per page
 //! output — the first call builds the pager (head.html calls `.Paginator` first, so
 //! `.Paginate (sort ...)` in index.html is IGNORED). `current` is advanced by `renderPaginator`.
@@ -54,14 +53,23 @@ impl PagePaginator {
 
     /// Go: `Paginate(seq, options...)`.
     // Go: hugolib/page__paginator.go:Paginate
-    pub fn paginate(&self, source: &crate::page::PageHandle, seq: &Value, options: &[Value]) -> Result<Option<Arc<Pager>>> {
+    pub fn paginate(
+        &self,
+        source: &crate::page::PageHandle,
+        seq: &Value,
+        options: &[Value],
+    ) -> Result<Option<Arc<Pager>>> {
         todo!()
     }
 
     /// Go: `Paginator(options...)` — home: `s.RegularPages()`; term/taxonomy: `Pages()`;
     /// other nodes: `RegularPages()`.
     // Go: hugolib/page__paginator.go:Paginator
-    pub fn paginator(&self, source: &crate::page::PageHandle, options: &[Value]) -> Result<Option<Arc<Pager>>> {
+    pub fn paginator(
+        &self,
+        source: &crate::page::PageHandle,
+        options: &[Value],
+    ) -> Result<Option<Arc<Pager>>> {
         todo!()
     }
 }

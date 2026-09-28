@@ -5,27 +5,29 @@
 //! generated GO PORTING CHECKLIST at the bottom of each module lists the Go functions to port.
 
 // Skeleton-time allowances. Remove `unused`/`dead_code` once the crate is ported (README rule 11).
-#![allow(unused, dead_code, clippy::too_many_arguments, clippy::new_without_default, clippy::type_complexity)]
+#![allow(
+    unused,
+    dead_code,
+    clippy::too_many_arguments,
+    clippy::new_without_default,
+    clippy::type_complexity
+)]
 // Module names mirror Go file names such as `page__meta.go`.
 #![allow(non_snake_case)]
 
-pub mod hugo_sites;
-pub mod hugo_sites_data;
-pub mod hugo_sites_build;
-pub mod site;
-pub mod site_output;
-pub mod site_render;
-pub mod site_sections;
 pub mod alias;
-pub mod build_process;
 pub mod build_assemble;
-pub mod template_exec;
-pub mod pages_capture;
-pub mod content_map;
-pub mod content_map_trees;
-pub mod content_map_page;
-pub mod pagecollections;
+pub mod build_process;
+pub mod codeowners;
 pub mod collections;
+pub mod content_map;
+pub mod content_map_page;
+pub mod content_map_trees;
+pub mod file_info;
+pub mod gitinfo;
+pub mod hugo_sites;
+pub mod hugo_sites_build;
+pub mod hugo_sites_data;
 pub mod page;
 pub mod page__common;
 pub mod page__content;
@@ -45,13 +47,17 @@ pub mod page__ref;
 pub mod page__tree;
 pub mod page_kinds;
 pub mod page_unwrap;
-pub mod shortcode;
-pub mod shortcode_parse;
-pub mod shortcode_page;
-pub mod file_info;
-pub mod gitinfo;
-pub mod codeowners;
+pub mod pagecollections;
+pub mod pages_capture;
 pub mod permalinker;
+pub mod shortcode;
+pub mod shortcode_page;
+pub mod shortcode_parse;
+pub mod site;
+pub mod site_output;
+pub mod site_render;
+pub mod site_sections;
+pub mod template_exec;
 pub mod tplapi;
 
 pub use hugo_sites::HugoSites;

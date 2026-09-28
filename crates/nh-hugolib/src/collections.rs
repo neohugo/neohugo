@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Go `hugolib/collections.go`: `pageState.Slice(items)` (collections.Slicer -> page.Pages),
 //! `Group(key, pages)`.
 

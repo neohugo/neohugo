@@ -2,8 +2,8 @@
 //!
 //! Owner: Wave B task T20 (hugolib-capture).
 
-
-// Wave B: port per the checklist below.
+/// Go: `pageResourceType` (the `ResourceType()` of a page).
+pub const PAGE_RESOURCE_TYPE: &str = "page";
 
 // ---------------------------------------------------------------------------
 // GO PORTING CHECKLIST (generated from the Go sources; `EX` = executed by the seeksnack build,

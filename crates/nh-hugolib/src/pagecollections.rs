@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Go `hugolib/pagecollections.go`: `pageFinder` — GetPage ref normalisation (trailing `/`
 //! trimmed, `.md` appended, `/_index.md` for `/`, PathParser base), tree lookup in the site's
 //! language, reverse index by base name for bare refs.
@@ -15,7 +14,12 @@ use nh_page::page::PageRef;
 use crate::hugo_sites::HugoSites;
 
 // Go: hugolib/pagecollections.go:getPageNew
-pub fn get_page(h: &Arc<HugoSites>, site_idx: usize, context: Option<&PageRef>, ref_: &str) -> Result<Option<PageRef>> {
+pub fn get_page(
+    h: &Arc<HugoSites>,
+    site_idx: usize,
+    context: Option<&PageRef>,
+    ref_: &str,
+) -> Result<Option<PageRef>> {
     todo!()
 }
 

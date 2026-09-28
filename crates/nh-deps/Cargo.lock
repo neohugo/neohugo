@@ -337,6 +337,7 @@ dependencies = [
 name = "nh-deps"
 version = "0.1.0"
 dependencies = [
+ "go-path",
  "go-value",
  "nh-allconfig",
  "nh-common",

@@ -50,14 +50,10 @@ impl Translator {
     }
 
     /// Go: `Func(lang)` — unknown language -> default content language's func. A Go panic in
-    /// the returned func becomes a Rust panic with Go's message; see [`Translator::func_e`].
+    /// the returned func is its `Err` (Go's panic message); see [`Translator::func_e`].
     // Go: langs/i18n/i18n.go:Func
     pub fn func(&self, lang: &str) -> nh_deps::deps::TranslateFunc {
-        let f = self.func_e(lang);
-        Arc::new(move |ctx, id, data| match f(ctx, id, data) {
-            Ok(s) => s,
-            Err(e) => panic!("{}", e.message()),
-        })
+        self.func_e(lang)
     }
 
     /// Go: `Func(lang)`, with Go's runtime panics as errors.

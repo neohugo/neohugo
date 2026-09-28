@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-
 // Wave B: port per the checklist below.
 
 // ---------------------------------------------------------------------------

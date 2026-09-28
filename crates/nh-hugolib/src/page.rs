@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-
 //! Go `hugolib/page.go` (`pageState`) — split into sub-structs owned by the module that ports the
 //! corresponding Go file (so parallel Wave B tasks never edit the same struct):
 //! * `meta: PageMeta` — page__meta.rs (T20)
@@ -21,8 +20,8 @@ use std::sync::atomic::{AtomicU32, AtomicUsize, Ordering};
 use std::sync::{Arc, OnceLock};
 
 use go_value::{HostCtx, Map, Time, Value};
-use nh_common::object::GoResult;
 use nh_common::Result;
+use nh_common::object::GoResult;
 
 use crate::hugo_sites::HugoSites;
 use crate::page__common::PageCommon;
@@ -69,7 +68,11 @@ impl PageState {
     /// Go: `p.pageOutput` (the current output). Panics if called before `init_page()` (an
     /// invariant: every caller runs after assembly, which initialises every page).
     pub fn current_output(&self) -> &Arc<PageOutput> {
-        let lazy = self.lazy.get().and_then(|r| r.as_ref().ok()).expect("page outputs not initialised (init_page)");
+        let lazy = self
+            .lazy
+            .get()
+            .and_then(|r| r.as_ref().ok())
+            .expect("page outputs not initialised (init_page)");
         &lazy.outputs[self.current_output_idx.load(Ordering::Relaxed)]
     }
 
@@ -82,7 +85,10 @@ impl PageState {
     /// Go: `resolveTemplate(layouts...)` — `TemplateQuery{Path: PathInfo().BaseReTyped(type),
     /// Category: layout, Desc: {Kind, Lang, LayoutFromUser, OutputFormat, MediaType, IsPlainText}}`.
     // Go: hugolib/page.go:resolveTemplate
-    pub fn resolve_template(&self, h: &Arc<HugoSites>) -> Result<Option<Arc<nh_tplimpl::templatestore::TemplInfo>>> {
+    pub fn resolve_template(
+        &self,
+        h: &Arc<HugoSites>,
+    ) -> Result<Option<Arc<nh_tplimpl::templatestore::TemplInfo>>> {
         todo!()
     }
 }
@@ -98,8 +104,8 @@ pub enum PageWrapper {
     Weight0(i64),
     /// `*hugolib.pageWithOrdinal` (pages from `.Pages` of a menu/section with ordinal).
     Ordinal(i64),
-    /// `*hugolib.pageForShortcode` (`.Page` inside shortcodes). Method set = `PageWithoutContent`
-    /// + `TableOfContents` (returns the TOC placeholder) + NopPage `Markup`/`Content` providers +
+    /// `*hugolib.pageForShortcode` (`.Page` inside shortcodes). Method set = `PageWithoutContent`,
+    /// `TableOfContents` (returns the TOC placeholder), NopPage `Markup`/`Content` providers and
     /// `Unwrapv`/`String` — NOT the full `*pageState` set (tplapi/page_methods.rs).
     ForShortcode,
     /// `*hugolib.pageForRenderHooks` (`.Page` inside link/image/heading/table render hooks).

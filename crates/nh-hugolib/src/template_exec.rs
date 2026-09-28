@@ -4,7 +4,6 @@
 //!
 //! Owner: Wave B task T20 (hugolib-capture), crate lead of nh-hugolib.
 
-
 //! Every template execution that nh-hugolib itself starts goes through [`execute`]: pages and
 //! pagers (`renderAndWritePage`, T23/T24), aliases (T24), markdown render hooks
 //! (`HookRendererTemplate`, T22) and shortcodes (`renderShortcodeWithPage`, T22).
@@ -58,11 +57,19 @@ pub struct ExecCall {
 
 /// Test seam: replaces template execution for everything nh-hugolib renders itself.
 pub trait TemplateExecutor: Send + Sync {
-    fn execute(&self, ctx: &TplContext, templ: &Arc<TemplInfo>, w: &mut Vec<u8>, data: &Value, call: &ExecCall) -> Result<()>;
+    fn execute(
+        &self,
+        ctx: &TplContext,
+        templ: &Arc<TemplInfo>,
+        w: &mut Vec<u8>,
+        data: &Value,
+        call: &ExecCall,
+    ) -> Result<()>;
 }
 
 /// Executes `templ` for site `site_idx`: through `h.template_executor` when set, else through
 /// the site's template store (`ExecuteWithContext`). The context is passed through unchanged.
+// Go: hugolib/site.go:renderForTemplate (the `ExecuteWithContext` call; hooks: site.go:1504-1526)
 pub fn execute(
     h: &Arc<HugoSites>,
     site_idx: usize,
@@ -72,5 +79,11 @@ pub fn execute(
     data: &Value,
     call: &ExecCall,
 ) -> Result<()> {
-    todo!()
+    if let Some(ex) = &h.template_executor {
+        return ex.execute(ctx, templ, w, data, call);
+    }
+    h.sites[site_idx]
+        .deps
+        .get_template_store()
+        .execute_with_context(ctx, templ, w, data)
 }

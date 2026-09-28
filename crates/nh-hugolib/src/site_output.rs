@@ -2,14 +2,17 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-
 use std::collections::BTreeMap;
 
 use nh_media::output::output_format::Formats;
 
 /// Go: `createSiteOutputFormats(allFormats, outputs, rssDisabled)` — kind -> formats.
 // Go: hugolib/site_output.go:createSiteOutputFormats
-pub fn create_site_output_formats(all_formats: &Formats, outputs: &BTreeMap<String, Vec<String>>, rss_disabled: bool) -> nh_common::Result<BTreeMap<String, Formats>> {
+pub fn create_site_output_formats(
+    all_formats: &Formats,
+    outputs: &BTreeMap<String, Vec<String>>,
+    rss_disabled: bool,
+) -> nh_common::Result<BTreeMap<String, Formats>> {
     todo!()
 }
 

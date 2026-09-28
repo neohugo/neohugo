@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-
 //! Go `hugolib/site.go`: `Site` (one per language), its lazy inits (taxonomies, menus, prevNext),
 //! `renderAndWritePage` (execute template -> publisher Descriptor: RSS always absURL, HTML absURL
 //! when canonify; empty output writes NO file), GetPage, refLinker, language prefixes,
@@ -18,14 +17,14 @@ use std::sync::{Arc, OnceLock};
 
 use go_value::{Map, Time, Value};
 use nh_allconfig::allconfig::Config;
-use nh_common::maps::scratch::Scratch;
 use nh_common::Result;
+use nh_common::maps::scratch::Scratch;
 use nh_deps::deps::Deps;
 use nh_langs::language::Language;
 use nh_media::output::output_format::Formats;
 use nh_page::navigation::menu::Menus;
-use nh_page::pages_related::RelatedDocsHandler;
 use nh_page::pagemeta::page_frontmatter::FrontMatterHandler;
+use nh_page::pages_related::RelatedDocsHandler;
 use nh_page::taxonomy::TaxonomyList;
 use nh_publisher::publisher::DestinationPublisher;
 use nh_tplimpl::templatestore::TemplateStore;
@@ -61,7 +60,14 @@ pub struct Site {
 impl Site {
     /// Go: `renderAndWritePage(statCounter, name, targetPath, p, d, templ)`.
     // Go: hugolib/site.go:renderAndWritePage
-    pub fn render_and_write_page(h: &Arc<HugoSites>, site_idx: usize, target_path: &str, p: PageId, data: &Value, templ: &Arc<nh_tplimpl::templatestore::TemplInfo>) -> Result<()> {
+    pub fn render_and_write_page(
+        h: &Arc<HugoSites>,
+        site_idx: usize,
+        target_path: &str,
+        p: PageId,
+        data: &Value,
+        templ: &Arc<nh_tplimpl::templatestore::TemplInfo>,
+    ) -> Result<()> {
         todo!()
     }
 

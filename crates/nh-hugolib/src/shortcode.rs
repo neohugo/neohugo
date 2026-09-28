@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T22 (hugolib-content).
 
-
 //! Go `hugolib/shortcode.go` (render half; extraction is `shortcode_parse.rs`, T20): rendering
 //! with the shortcode template (data = `ShortcodeWithPage`, template execution through
 //! `crate::template_exec::execute` with `ExecKind::Shortcode`), `prepareShortcodesForPage` and
@@ -14,11 +13,16 @@ use std::sync::Arc;
 use go_value::Value;
 use nh_common::Result;
 
-pub use crate::shortcode_parse::{create_shortcode_placeholder, Shortcode, ShortcodeHandler, ShortcodeInner};
+pub use crate::shortcode_parse::{
+    Shortcode, ShortcodeHandler, ShortcodeInner, create_shortcode_placeholder,
+};
 
 /// Go: `expandShortcodeTokens(ctx, source, tokenHandler)`.
 // Go: hugolib/shortcode.go:expandShortcodeTokens
-pub fn expand_shortcode_tokens(source: &[u8], token_handler: &mut dyn FnMut(&str) -> Result<Vec<u8>>) -> Result<Vec<u8>> {
+pub fn expand_shortcode_tokens(
+    source: &[u8],
+    token_handler: &mut dyn FnMut(&str) -> Result<Vec<u8>>,
+) -> Result<Vec<u8>> {
     todo!()
 }
 

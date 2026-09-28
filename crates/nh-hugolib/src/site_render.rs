@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T24 (hugolib-build).
 
-
 //! Go `hugolib/site_render.go`: `renderPages` (tree walk in key order; sequential), `pageRenderer`
 //! (standalone filter, `renderResources`, resolve template, renderAndWritePage, renderPaginator),
 //! `renderPaginator` (page/1 alias for HTML formats, then pagers 2..N with `current` advanced),
@@ -31,7 +30,12 @@ pub fn render_pages(h: &Arc<HugoSites>, site_idx: usize, ctx: &SiteRenderContext
 }
 
 // Go: hugolib/site_render.go:renderPaginator
-pub fn render_paginator(h: &Arc<HugoSites>, site_idx: usize, p: PageId, templ: &Arc<nh_tplimpl::templatestore::TemplInfo>) -> Result<()> {
+pub fn render_paginator(
+    h: &Arc<HugoSites>,
+    site_idx: usize,
+    p: PageId,
+    templ: &Arc<nh_tplimpl::templatestore::TemplInfo>,
+) -> Result<()> {
     todo!()
 }
 

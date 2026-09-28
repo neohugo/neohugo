@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T22 (hugolib-content).
 
-
 //! Go `hugolib/page__content.go` (render half; parsing is `page__content_parse.rs`, T20):
 //! `contentToRender` (shortcode placeholders `HAHAHUGOSHORTCODE<pid>s<n>HBHB`), markup conversion
 //! (parse once for TOC, render per output), `expandShortcodeTokens` (incl. the `<p>TOKEN</p>`
@@ -68,7 +67,11 @@ pub struct ContentTableOfContents {
 
 /// Go: `(c *cachedContent) getOrCreateScope(scope, pco)` — key `scope + pco.po.f.Name`.
 // Go: hugolib/page__content.go:getOrCreateScope
-pub fn get_or_create_scope(c: &CachedContent, scope: &str, pco: &Arc<PageContentOutput>) -> Arc<CachedContentScope> {
+pub fn get_or_create_scope(
+    c: &CachedContent,
+    scope: &str,
+    pco: &Arc<PageContentOutput>,
+) -> Arc<CachedContentScope> {
     todo!()
 }
 

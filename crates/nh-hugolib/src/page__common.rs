@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-
 use std::sync::{Arc, OnceLock};
 
 use nh_common::maps::scratch::Scratch;
@@ -20,8 +19,14 @@ pub struct PageCommon {
     pub all_translations: OnceLock<Pages>,
     pub translations: OnceLock<Pages>,
     /// Go `posNextPrev` / `posNextPrevSection` (lazy).
-    pub next_prev: OnceLock<(Option<nh_page::page::PageRef>, Option<nh_page::page::PageRef>)>,
-    pub next_prev_in_section: OnceLock<(Option<nh_page::page::PageRef>, Option<nh_page::page::PageRef>)>,
+    pub next_prev: OnceLock<(
+        Option<nh_page::page::PageRef>,
+        Option<nh_page::page::PageRef>,
+    )>,
+    pub next_prev_in_section: OnceLock<(
+        Option<nh_page::page::PageRef>,
+        Option<nh_page::page::PageRef>,
+    )>,
 }
 
 // ---------------------------------------------------------------------------

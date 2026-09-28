@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Go `hugolib/page__data.go`: `.Data` (page.Data): taxonomy -> Singular/Plural/Terms/Pages;
 //! term -> Singular/Plural/Term/<singular>/Pages; section/home -> Pages; sitemap -> Pages = site Pages.
 

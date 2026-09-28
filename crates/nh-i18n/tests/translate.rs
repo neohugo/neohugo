@@ -12,7 +12,6 @@
 mod common;
 
 use std::collections::BTreeMap;
-use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -105,16 +104,6 @@ fn static_type_divergence(got: &J, want: &J) -> bool {
             };
             g[0] == w[0] && gs[..j] == ws[..i]
         })
-}
-
-fn panic_message(p: Box<dyn std::any::Any + Send>) -> String {
-    if let Some(s) = p.downcast_ref::<String>() {
-        return s.clone();
-    }
-    if let Some(s) = p.downcast_ref::<&str>() {
-        return s.to_string();
-    }
-    "<non-string panic>".to_string()
 }
 
 fn run_site(tmp: &TempDir, site: &J) -> Vec<String> {
@@ -233,9 +222,9 @@ fn run_site(tmp: &TempDir, site: &J) -> Vec<String> {
             c["arg"]
         );
         let d = &by_lang[lang];
-        let got = match catch_unwind(AssertUnwindSafe(|| d.translate(&(), id, &arg))) {
+        let got = match d.translate(&(), id, &arg) {
             Ok(s) => J::String(s),
-            Err(p) => json!({"panic": panic_message(p)}),
+            Err(e) => json!({"panic": e.message()}),
         };
         let log = tap.take();
         if got == c["out"] && log != c["log"] && static_type_divergence(&log, &c["log"]) {

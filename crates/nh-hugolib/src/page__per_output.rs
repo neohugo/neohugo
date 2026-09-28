@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T22 (hugolib-content).
 
-
 //! Go `hugolib/page__per_output.go`: per-output content (`.Content`, `.Plain`, `.Summary`, TOC,
 //! `RenderString`) and the render-hook provider: for each hook type look up
 //! `_markup/render-<type>` via `LookupPagesLayout` (CategoryMarkup, Variant1=type, output format of
@@ -27,7 +26,10 @@ pub struct PageContentOutput {
 impl PageContentOutput {
     /// Go: `newPageContentOutput(po)`.
     // Go: hugolib/page__per_output.go:newPageContentOutput
-    pub fn new(po: &Arc<crate::page__output::PageOutput>, output_idx: usize) -> Result<Arc<PageContentOutput>> {
+    pub fn new(
+        po: &Arc<crate::page__output::PageOutput>,
+        output_idx: usize,
+    ) -> Result<Arc<PageContentOutput>> {
         todo!()
     }
 
@@ -44,7 +46,12 @@ impl PageContentOutput {
 
     /// Go: `RenderString(ctx, args...)` (markdownify: `display: inline`, fresh ID factory, TrimShortHTML).
     // Go: hugolib/page__per_output.go:RenderString
-    pub fn render_string(&self, ctx: HostCtx<'_>, p: &crate::page::PageHandle, args: &[Value]) -> Result<Value> {
+    pub fn render_string(
+        &self,
+        ctx: HostCtx<'_>,
+        p: &crate::page::PageHandle,
+        args: &[Value],
+    ) -> Result<Value> {
         todo!()
     }
 

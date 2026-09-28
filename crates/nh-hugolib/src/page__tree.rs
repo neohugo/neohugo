@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Go `hugolib/page__tree.go`: Parent (LongestPrefix of ContainerDir to a branch; home -> nil),
 //! CurrentSection, FirstSection, InSection, IsAncestor/IsDescendant, Sections, SectionsEntries.
 

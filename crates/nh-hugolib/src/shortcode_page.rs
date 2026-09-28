@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T22 (hugolib-content).
 
-
 //! Go `ShortcodeWithPage` (template data of a shortcode): `.Params`, `.Page`, `.Inner`,
 //! `.InnerDeindent`, `.Get`, `.Name`, `.Ordinal`, `.Parent`, `.Position`, `.IsNamedParams`,
 //! `.Site`, `.Ref`, `.RelRef`, `.Scratch`, `.Store`. `.Params` is a FIELD (`[]interface{}` or

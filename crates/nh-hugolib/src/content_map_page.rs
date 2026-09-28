@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Go `hugolib/content_map_page.go` (queries + assembly; the tree types, the language shifter,
 //! the `pageMap` struct and `newPageMap` are in `content_map_trees.rs`, owned by T20 because
 //! capture inserts into them): page queries (`getPagesInSection`, `getPagesWithTerm` — note the shared cache key quirk for
@@ -18,7 +17,9 @@ use nh_common::Result;
 use nh_page::page::Pages;
 use nh_resource::resourcetypes::Resources;
 
-pub use crate::content_map_trees::{ContentNode, ContentNodeShifter, PageMap, PageTrees, WeightedContentNode};
+pub use crate::content_map_trees::{
+    ContentNode, ContentNodeShifter, PageMap, PageTrees, WeightedContentNode,
+};
 use crate::hugo_sites::HugoSites;
 use crate::page::PageId;
 
@@ -35,20 +36,32 @@ impl PageMapQueryPagesInSection {
     /// Go: `Key()` = "gagesInSection/" + Path + "/" + KeyPart + "/" + Recursive + "/" + IncludeSelf.
     // Go: hugolib/content_map_page.go:Key
     pub fn key(&self) -> String {
-        format!("gagesInSection/{}/{}/{}/{}", self.path, self.key_part, self.recursive, self.include_self)
+        format!(
+            "gagesInSection/{}/{}/{}/{}",
+            self.path, self.key_part, self.recursive, self.include_self
+        )
     }
 }
 
 impl PageMap {
     /// Go: `getPagesInSection(q)` (sorted by default; recursive or not; include self).
     // Go: hugolib/content_map_page.go:getPagesInSection
-    pub fn get_pages_in_section(h: &Arc<HugoSites>, site_idx: usize, q: &PageMapQueryPagesInSection) -> Pages {
+    pub fn get_pages_in_section(
+        h: &Arc<HugoSites>,
+        site_idx: usize,
+        q: &PageMapQueryPagesInSection,
+    ) -> Pages {
         todo!()
     }
 
     /// Go: `getPagesWithTerm(q)` — entries under the term key, wrapped as `pageWithWeight0`.
     // Go: hugolib/content_map_page.go:getPagesWithTerm
-    pub fn get_pages_with_term(h: &Arc<HugoSites>, site_idx: usize, path: &str, key_part: &str) -> Pages {
+    pub fn get_pages_with_term(
+        h: &Arc<HugoSites>,
+        site_idx: usize,
+        path: &str,
+        key_part: &str,
+    ) -> Pages {
         todo!()
     }
 
@@ -60,7 +73,10 @@ impl PageMap {
 
     /// Go: `CreateSiteTaxonomies(ctx)`.
     // Go: hugolib/content_map_page.go:CreateSiteTaxonomies
-    pub fn create_site_taxonomies(h: &Arc<HugoSites>, site_idx: usize) -> Result<nh_page::taxonomy::TaxonomyList> {
+    pub fn create_site_taxonomies(
+        h: &Arc<HugoSites>,
+        site_idx: usize,
+    ) -> Result<nh_page::taxonomy::TaxonomyList> {
         todo!()
     }
 }
@@ -85,21 +101,37 @@ impl SitePagesAssembler<'_> {
         todo!()
     }
     // Go: hugolib/content_map_page.go:addMissingTaxonomies
-    fn add_missing_taxonomies(&mut self) -> Result<()> { todo!() }
+    fn add_missing_taxonomies(&mut self) -> Result<()> {
+        todo!()
+    }
     // Go: hugolib/content_map_page.go:addMissingRootSections
-    fn add_missing_root_sections(&mut self) -> Result<()> { todo!() }
+    fn add_missing_root_sections(&mut self) -> Result<()> {
+        todo!()
+    }
     // Go: hugolib/content_map_page.go:addStandalonePages
-    fn add_standalone_pages(&mut self) -> Result<()> { todo!() }
+    fn add_standalone_pages(&mut self) -> Result<()> {
+        todo!()
+    }
     // Go: hugolib/content_map_page.go:applyAggregates
-    fn apply_aggregates(&mut self) -> Result<()> { todo!() }
+    fn apply_aggregates(&mut self) -> Result<()> {
+        todo!()
+    }
     // Go: hugolib/content_map_page.go:removeShouldNotBuild
-    fn remove_should_not_build(&mut self) -> Result<()> { todo!() }
+    fn remove_should_not_build(&mut self) -> Result<()> {
+        todo!()
+    }
     // Go: hugolib/content_map_page.go:assembleTermsAndTranslations
-    fn assemble_terms_and_translations(&mut self) -> Result<()> { todo!() }
+    fn assemble_terms_and_translations(&mut self) -> Result<()> {
+        todo!()
+    }
     // Go: hugolib/content_map_page.go:applyAggregatesToTaxonomiesAndTerms
-    fn apply_aggregates_to_taxonomies_and_terms(&mut self) -> Result<()> { todo!() }
+    fn apply_aggregates_to_taxonomies_and_terms(&mut self) -> Result<()> {
+        todo!()
+    }
     // Go: hugolib/content_map_page.go:assembleResources
-    fn assemble_resources(&mut self) -> Result<()> { todo!() }
+    fn assemble_resources(&mut self) -> Result<()> {
+        todo!()
+    }
 }
 
 // ---------------------------------------------------------------------------

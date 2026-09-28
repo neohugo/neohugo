@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T23 (hugolib-site).
 
-
 //! Split from `hugo_sites.go` (construction is T20's): `h.Data()` runs `loadData` once (Go
 //! `h.init.data`), which walks the data component (BaseFs.Data, walk order), decodes each file
 //! with the metadecoders (JSON/YAML/TOML/CSV; Go types preserved: int vs float64 vs string,

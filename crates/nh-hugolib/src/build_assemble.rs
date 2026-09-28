@@ -3,7 +3,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Split from `hugo_sites_build.go`/`site.go` so that the assembly task (T21) owns the whole
 //! second build phase and its acceptance test (the model after `assemble`) needs no later task.
 //!

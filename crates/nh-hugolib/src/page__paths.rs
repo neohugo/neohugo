@@ -2,7 +2,6 @@
 //!
 //! Owner: Wave B task T21 (hugolib-assemble).
 
-
 //! Go `hugolib/page__paths.go`: `createTargetPathDescriptor` (prefixes: "" for en, "th" for th;
 //! sitemap always in a language subdir; BaseName = slug / standalone basename / BaseNameNoIdentifier)
 //! and per-format target paths + `page.OutputFormats`. Owned by T21 because `initLazyProviders`
