@@ -4,16 +4,17 @@
 //! `crates/WAVE_B_PLAN.json` for module ownership. Every module mirrors one or more Go files; the
 //! generated GO PORTING CHECKLIST at the bottom of each module lists the Go functions to port.
 
-// Skeleton-time allowances. Remove `unused`/`dead_code` once the crate is ported (README rule 11).
-#![allow(unused, dead_code, clippy::too_many_arguments, clippy::new_without_default, clippy::type_complexity)]
+// Lints that fight a faithful port: Go functions with many parameters (insertTemplate2) and
+// Go's nested map types.
+#![allow(clippy::too_many_arguments, clippy::type_complexity)]
 
-pub mod engine;
-pub mod templatestore;
-pub mod templates;
-pub mod templatetransform;
-pub mod templatedescriptor;
-pub mod template_funcs;
-pub mod legacy;
-pub mod template_info;
 pub mod category;
 pub mod embedded;
+pub mod engine;
+pub mod legacy;
+pub mod template_funcs;
+pub mod template_info;
+pub mod templatedescriptor;
+pub mod templates;
+pub mod templatestore;
+pub mod templatetransform;

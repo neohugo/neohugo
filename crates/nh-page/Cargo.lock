@@ -416,6 +416,7 @@ dependencies = [
  "go-value",
  "gotemplate",
  "nh-common",
+ "nh-config",
  "nh-langs",
 ]
 

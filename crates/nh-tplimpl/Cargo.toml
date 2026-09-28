@@ -22,10 +22,20 @@ nh-langs = { path = "../nh-langs" }
 # Wave A crates. Uncommented = landed in git and passing `cargo check`; uncomment the others (only)
 # once their crate has landed (HUGO_LAYER.md §1 rule 4):
 gotemplate = { path = "../gotemplate" }
+go-unicode = { path = "../go-unicode" }
+go-strconv = { path = "../go-strconv" }
+go-fmt = { path = "../go-fmt" }
+go-time = { path = "../go-time" }
+go-path = { path = "../go-path" }
+go-sort = { path = "../go-sort" }
 
 [dev-dependencies]
 # Fixture reader for the Go-oracle JSON fixtures (tests only; never in parity paths).
 serde_json = "1"
+# Test-only: reads the gzip-compressed Go oracle fixtures (decompression only).
+flate2 = "1"
+# The probe test's minimal jsonify (the plan's MINIMAL TEST FuncMap).
+go-json = { path = "../go-json" }
 
 # Temporary: each crate is its own workspace while crates are ported in parallel.
 [workspace]

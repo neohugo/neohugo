@@ -578,6 +578,7 @@ dependencies = [
  "go-value",
  "gotemplate",
  "nh-common",
+ "nh-config",
  "nh-langs",
 ]
 
@@ -617,6 +618,12 @@ dependencies = [
 name = "nh-tplimpl"
 version = "0.1.0"
 dependencies = [
+ "go-fmt",
+ "go-path",
+ "go-sort",
+ "go-strconv",
+ "go-time",
+ "go-unicode",
  "go-value",
  "gotemplate",
  "nh-common",
