@@ -1,6 +1,6 @@
 # Tera templates on the Hugo page model
 
-Status: proposal. This replaces the "byte-identical to Go Hugo" goal for **template output only**.
+Status: superseded by `docs/rust-port/REWRITE_PLAN.md` (full idiomatic-Rust rewrite, Tera 2 templates). Kept for history.
 
 ## 1. Decision
 
