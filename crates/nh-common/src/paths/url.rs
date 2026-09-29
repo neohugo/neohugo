@@ -62,7 +62,10 @@ pub fn make_permalink(host: &str, plink: &str) -> String {
 }
 
 /// [`make_permalink`] returning the `*url.URL` (Go's panic value as an error).
-pub fn try_make_permalink_url(host: &str, plink: &str) -> Result<go_url::Url> {
+///
+/// `plink` is a Go string: any bytes (invalid UTF-8 included; `URL.String` escapes them).
+pub fn try_make_permalink_url(host: &str, plink: impl AsRef<[u8]>) -> Result<go_url::Url> {
+    let plink = plink.as_ref();
     let mut base = go_url::parse(host).map_err(url_err)?;
 
     let p = go_url::parse(plink).map_err(url_err)?;
@@ -105,13 +108,16 @@ pub fn add_context_root(base_url: &str, relative_path: &str) -> String {
 
 /// [`add_context_root`] with Go's byte result (the decoded base path may hold any bytes) and Go's
 /// panic value as an error.
-pub fn try_add_context_root(base_url: &str, relative_path: &str) -> Result<Vec<u8>> {
+///
+/// `relative_path` is a Go string: any bytes.
+pub fn try_add_context_root(base_url: &str, relative_path: impl AsRef<[u8]>) -> Result<Vec<u8>> {
+    let relative_path = relative_path.as_ref();
     let url = go_url::parse(base_url).map_err(url_err)?;
 
-    let mut new_path = path::join_bytes(&[&url.path[..], relative_path.as_bytes()]);
+    let mut new_path = path::join_bytes(&[&url.path[..], relative_path]);
 
     // path strips trailing slash, ignore root path.
-    if new_path != b"/" && relative_path.ends_with('/') {
+    if new_path != b"/" && relative_path.ends_with(b"/") {
         new_path.push(b'/');
     }
     Ok(new_path)

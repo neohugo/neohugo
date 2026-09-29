@@ -207,10 +207,10 @@ impl Object for VersionString {
         let one = |args: &[Value]| -> go_value::Result<Value> {
             match args {
                 [a] => Ok(a.clone()),
-                _ => Err(go_value::Error::new(format!(
-                    "wrong number of args for {name}: want 1 got {}",
-                    args.len()
-                ))),
+                _ => Err(go_value::Error::eval_call(
+                    format!("wrong number of args for {name}: want 1 got {}", args.len()),
+                    go_value::EvalCallError::Call,
+                )),
             }
         };
         Some(match name {

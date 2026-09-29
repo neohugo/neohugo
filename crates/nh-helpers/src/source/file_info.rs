@@ -205,9 +205,11 @@ nh_common::go_methods!(FileObject {
     "ContentBaseName" => |f, _c, a| f.str_method(a, "ContentBaseName", |x| x.content_base_name()),
     "Dir" => |f, _c, a| f.str_method(a, "Dir", |x| x.dir()),
     "Ext" => |f, _c, a| f.str_method(a, "Ext", |x| x.ext()),
-    "FileInfo" => |_f, _c, _a| Err(go_value::Error::new(
-        "neohugo-rs: .File.FileInfo is not supported in templates",
-    )),
+    // (Go checks the argument count before the call.)
+    "FileInfo" => |_f, _c, a| {
+        nh_common::object::args::exactly(a, 0, "FileInfo")?;
+        Err(go_value::Error::new("neohugo-rs: .File.FileInfo is not supported in templates"))
+    },
     "Filename" => |f, _c, a| f.str_method(a, "Filename", |x| x.filename().to_string()),
     "IsContentAdapter" => |f, _c, a| {
         args::exactly(a, 0, "IsContentAdapter")?;
@@ -219,9 +221,11 @@ nh_common::go_methods!(FileObject {
     },
     "Lang" => |f, _c, a| f.str_method(a, "Lang", |x| x.lang()),
     "LogicalName" => |f, _c, a| f.str_method(a, "LogicalName", |x| x.logical_name()),
-    "Open" => |_f, _c, _a| Err(go_value::Error::new(
-        "neohugo-rs: .File.Open is not supported in templates",
-    )),
+    // (Go checks the argument count before the call.)
+    "Open" => |_f, _c, a| {
+        nh_common::object::args::exactly(a, 0, "Open")?;
+        Err(go_value::Error::new("neohugo-rs: .File.Open is not supported in templates"))
+    },
     "Path" => |f, _c, a| f.str_method(a, "Path", |x| x.path()),
     "Section" => |f, _c, a| f.str_method(a, "Section", |x| x.section()),
     "String" => |f, _c, a| f.str_method(a, "String", |x| x.string()),

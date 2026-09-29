@@ -1,7 +1,7 @@
 //! Ports of the Go test tables of `parser/metadecoders` (`decoder_test.go`, `format_test.go`),
 //! `parser` (`frontmatter_test.go`, `lowercase_camel_json_test.go`) and go-toml's
-//! `localtime_test.go`. XML, ORG and CSV rows (stubbed decoders) assert the explicit
-//! unsupported error instead.
+//! `localtime_test.go`. ORG rows (the stubbed decoder) assert the explicit unsupported error
+//! instead.
 
 mod support;
 
@@ -103,14 +103,13 @@ fn unmarshal_to_map_table() {
         let m = d.unmarshal_to_map(data.as_bytes(), f).unwrap();
         assert_eq!(enc(&Value::map(m)), enc(&want), "{data}");
     }
-    // Stubbed decoders.
-    for (data, f) in [
-        ("<root><a>b</a></root>", Format::Xml),
-        ("#+a: b", Format::Org),
-    ] {
-        let e = d.unmarshal_to_map(data.as_bytes(), f).unwrap_err();
-        assert!(e.message().starts_with("neohugo-rs:"), "{e}");
-    }
+    let m = d
+        .unmarshal_to_map(b"<root><a>b</a></root>", Format::Xml)
+        .unwrap();
+    assert_eq!(enc(&Value::map(m)), enc(&expect));
+    // Stubbed decoder.
+    let e = d.unmarshal_to_map(b"#+a: b", Format::Org).unwrap_err();
+    assert!(e.message().starts_with("neohugo-rs:"), "{e}");
     // errors
     for (data, f) in [
         ("a = b", Format::Toml),
@@ -119,6 +118,72 @@ fn unmarshal_to_map_table() {
     ] {
         assert!(d.unmarshal_to_map(data.as_bytes(), f).is_err(), "{data}");
     }
+}
+
+// Go: parser/metadecoders/decoder_test.go:TestUnmarshalXML
+#[test]
+fn unmarshal_xml() {
+    let xml_doc = r#"<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+	<rss version="2.0"
+		xmlns:atom="http://www.w3.org/2005/Atom">
+		<channel>
+			<title>Example feed</title>
+			<link>https://example.com/</link>
+			<description>Example feed</description>
+			<generator>Hugo -- gohugo.io</generator>
+			<language>en-us</language>
+			<copyright>Example</copyright>
+			<lastBuildDate>Fri, 08 Jan 2021 14:44:10 +0000</lastBuildDate>
+			<atom:link href="https://example.com/feed.xml" rel="self" type="application/rss+xml"/>
+			<item>
+				<title>Example title</title>
+				<link>https://example.com/2021/11/30/example-title/</link>
+				<pubDate>Tue, 30 Nov 2021 15:00:00 +0000</pubDate>
+				<guid>https://example.com/2021/11/30/example-title/</guid>
+				<description>Example description</description>
+			</item>
+		</channel>
+	</rss>"#;
+    let expect = map(&[
+        ("-atom", s("http://www.w3.org/2005/Atom")),
+        ("-version", s("2.0")),
+        (
+            "channel",
+            map(&[
+                ("copyright", s("Example")),
+                ("description", s("Example feed")),
+                ("generator", s("Hugo -- gohugo.io")),
+                (
+                    "item",
+                    map(&[
+                        ("description", s("Example description")),
+                        ("guid", s("https://example.com/2021/11/30/example-title/")),
+                        ("link", s("https://example.com/2021/11/30/example-title/")),
+                        ("pubDate", s("Tue, 30 Nov 2021 15:00:00 +0000")),
+                        ("title", s("Example title")),
+                    ]),
+                ),
+                ("language", s("en-us")),
+                ("lastBuildDate", s("Fri, 08 Jan 2021 14:44:10 +0000")),
+                (
+                    "link",
+                    Value::any_list(vec![
+                        s("https://example.com/"),
+                        map(&[
+                            ("-href", s("https://example.com/feed.xml")),
+                            ("-rel", s("self")),
+                            ("-type", s("application/rss+xml")),
+                        ]),
+                    ]),
+                ),
+                ("title", s("Example feed")),
+            ]),
+        ),
+    ]);
+    let m = Decoder::default()
+        .unmarshal(xml_doc.as_bytes(), Format::Xml)
+        .unwrap();
+    assert_eq!(enc(&m), enc(&expect));
 }
 
 #[test]
@@ -156,15 +221,17 @@ fn unmarshal_to_interface_table() {
     }
     // errors
     assert!(d.unmarshal(br#"a = ""#, Format::Toml).is_err());
-    // Stubbed decoders.
-    for (data, f) in [
-        ("#+a: b", Format::Org),
-        ("<root><a>b</a></root>", Format::Xml),
-        ("a,b,c", Format::Csv),
-    ] {
-        let e = d.unmarshal(data.as_bytes(), f).unwrap_err();
-        assert!(e.message().starts_with("neohugo-rs:"), "{e}");
-    }
+    let v = d.unmarshal(b"<root><a>b</a></root>", Format::Xml).unwrap();
+    assert_eq!(enc(&v), enc(&expect));
+    let v = d.unmarshal(b"a,b,c", Format::Csv).unwrap();
+    assert_eq!(
+        enc(&v),
+        json!({"t": "[][]string", "items": [{"t": "[]string", "items": [
+            {"t": "string", "s": "a"}, {"t": "string", "s": "b"}, {"t": "string", "s": "c"}]}]})
+    );
+    // Stubbed decoder.
+    let e = d.unmarshal(b"#+a: b", Format::Org).unwrap_err();
+    assert!(e.message().starts_with("neohugo-rs:"), "{e}");
 }
 
 #[test]
@@ -251,6 +318,21 @@ fn stringify_yaml_map_keys() {
 #[test]
 fn interface_to_config_table() {
     let cases: Vec<(Value, Format, Option<&[u8]>)> = vec![
+        // TOML
+        (map(&[]), Format::Toml, Some(b"")),
+        (
+            map(&[("title", s("test' 1"))]),
+            Format::Toml,
+            Some(b"title = \"test' 1\"\n"),
+        ),
+        // YAML
+        (map(&[]), Format::Yaml, Some(b"{}\n")),
+        (
+            map(&[("title", s("test 1"))]),
+            Format::Yaml,
+            Some(b"title: test 1\n"),
+        ),
+        // JSON
         (map(&[]), Format::Json, Some(b"{}\n")),
         (
             map(&[("title", s("test 1"))]),
@@ -272,9 +354,6 @@ fn interface_to_config_table() {
             None => assert!(r.is_err()),
         }
     }
-    // YAML and TOML encoders are not ported.
-    let e = interface_to_config(&map(&[]), Format::Toml, &mut Vec::new()).unwrap_err();
-    assert!(e.message().starts_with("neohugo-rs:"));
 }
 
 #[test]

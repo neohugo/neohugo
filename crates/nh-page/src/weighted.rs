@@ -84,6 +84,110 @@ fn type_of(v: &Value) -> String {
     }
 }
 
+/// The methods of the `page.Page` interface (`WeightedPage` embeds the interface, so only these
+/// are promoted; `Slice` and `String` are `WeightedPage`'s own), sorted.
+// Go: resources/page/page.go:Page (method set of page.WeightedPage)
+const PAGE_INTERFACE_METHODS: &[&str] = &[
+    "Aliases",
+    "AllTranslations",
+    "AlternativeOutputFormats",
+    "Ancestors",
+    "BundleType",
+    "CodeOwners",
+    "Content",
+    "ContentWithoutSummary",
+    "CurrentSection",
+    "Data",
+    "Date",
+    "Description",
+    "Draft",
+    "Eq",
+    "ExpiryDate",
+    "File",
+    "FirstSection",
+    "Fragments",
+    "FuzzyWordCount",
+    "GetPage",
+    "GetTerms",
+    "GitInfo",
+    "HasMenuCurrent",
+    "HasShortcode",
+    "HeadingsFiltered",
+    "InSection",
+    "IsAncestor",
+    "IsDescendant",
+    "IsHome",
+    "IsMenuCurrent",
+    "IsNode",
+    "IsPage",
+    "IsSection",
+    "IsTranslated",
+    "Keywords",
+    "Kind",
+    "Lang",
+    "Language",
+    "Lastmod",
+    "Layout",
+    "Len",
+    "LinkTitle",
+    "Markup",
+    "MediaType",
+    "Menus",
+    "Name",
+    "Next",
+    "NextInSection",
+    "NextPage",
+    "OutputFormats",
+    "Pages",
+    "Paginate",
+    "Paginator",
+    "Param",
+    "Params",
+    "Parent",
+    "Path",
+    "PathInfo",
+    "Permalink",
+    "Plain",
+    "PlainWords",
+    "Prev",
+    "PrevInSection",
+    "PrevPage",
+    "PublishDate",
+    "RawContent",
+    "ReadingTime",
+    "Ref",
+    "RefFrom",
+    "RegularPages",
+    "RegularPagesRecursive",
+    "RelPermalink",
+    "RelRef",
+    "RelRefFrom",
+    "RelatedKeywords",
+    "Render",
+    "RenderShortcodes",
+    "RenderString",
+    "ResourceType",
+    "Resources",
+    "Scratch",
+    "Section",
+    "Sections",
+    "SectionsEntries",
+    "SectionsPath",
+    "Site",
+    "Sitemap",
+    "Sites",
+    "Slug",
+    "Store",
+    "Summary",
+    "TableOfContents",
+    "Title",
+    "TranslationKey",
+    "Translations",
+    "Truncated",
+    "Type",
+    "WordCount",
+];
+
 impl Object for WeightedPage {
     fn type_name(&self) -> Cow<'_, str> {
         Cow::Borrowed(WEIGHTED_PAGE_TYPE)
@@ -93,7 +197,9 @@ impl Object for WeightedPage {
     }
     /// Promoted methods of the embedded Page, plus `Slice`, `String`.
     fn has_method(&self, name: &str) -> bool {
-        name == "Slice" || name == "String" || self.page.has_method(name)
+        name == "Slice"
+            || name == "String"
+            || (PAGE_INTERFACE_METHODS.binary_search(&name).is_ok() && self.page.has_method(name))
     }
     fn call_method(&self, ctx: HostCtx<'_>, name: &str, args: &[Value]) -> Option<GoResult<Value>> {
         match name {
@@ -103,7 +209,10 @@ impl Object for WeightedPage {
             "String" => Some(
                 args::exactly(args, 0, name).map(|_| Value::string(GoString::from(self.string()))),
             ),
-            _ => self.page.call_method(ctx, name, args),
+            _ if PAGE_INTERFACE_METHODS.binary_search(&name).is_ok() => {
+                self.page.call_method(ctx, name, args)
+            }
+            _ => None,
         }
     }
     fn field(&self, name: &str) -> Option<Value> {
@@ -290,8 +399,16 @@ fn weighted_pages_call(wp: &WeightedPages, name: &str, a: &[Value]) -> GoResult<
             }
             Ok(Value::Bool(weighted_less(&wp[i as usize], &wp[j as usize])))
         }
-        // `Swap` and `Sort` have no results: templates cannot call them.
-        _ => Err(nh_common::object::bad_results_error(name, 0)),
+        // `Swap(i, j int)` and `Sort()` have no results: templates cannot call them. Go's
+        // text/template checks the argument count first (evalCall), then goodFunc.
+        "Swap" => {
+            args::exactly(a, 2, name)?;
+            Err(nh_common::object::bad_results_error(name, 0))
+        }
+        _ => {
+            args::exactly(a, 0, name)?;
+            Err(nh_common::object::bad_results_error(name, 0))
+        }
     }
 }
 

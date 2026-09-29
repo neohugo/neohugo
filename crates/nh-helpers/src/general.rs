@@ -34,6 +34,19 @@ pub fn first_upper(s: &str) -> String {
     String::from_utf8(out).expect("valid UTF-8 in, valid UTF-8 out")
 }
 
+/// [`first_upper`] over Go string bytes: an invalid first byte decodes to `U+FFFD` (width 1),
+/// which is written as its UTF-8 encoding; the rest is copied as is.
+// Go: helpers/general.go:FirstUpper
+pub fn first_upper_bytes(s: &[u8]) -> Vec<u8> {
+    if s.is_empty() {
+        return Vec::new();
+    }
+    let (r, n) = utf8::decode_rune_in_string(s);
+    let mut out = utf8::rune_to_string(go_unicode::to_upper(r));
+    out.extend_from_slice(&s[n..]);
+    out
+}
+
 /// Go: `helpers.UniqueStrings(s)` — a copy with the duplicates removed, order preserved.
 // Go: helpers/general.go:UniqueStrings
 pub fn unique_strings(s: &[String]) -> Vec<String> {
@@ -183,6 +196,29 @@ pub fn reader_contains(r: Option<&mut dyn Read>, subslice: &[u8]) -> bool {
 
 /// A title function (Go `func(s string) string`).
 pub type TitleFunc = Arc<dyn Fn(&str) -> String + Send + Sync>;
+
+/// A title func over Go string bytes (invalid UTF-8 included).
+pub type TitleBytesFunc = Arc<dyn Fn(&[u8]) -> Vec<u8> + Send + Sync>;
+
+/// [`get_title_func`] over Go string bytes: the same styles, with Go's handling of invalid
+/// UTF-8 (`strings.Title` maps an invalid byte to `U+FFFD`; the prose converters and
+/// `FirstUpper` copy the bytes they do not change).
+// Go: helpers/general.go:GetTitleFunc
+pub fn get_title_bytes_func(style: &str) -> TitleBytesFunc {
+    match go_unicode::strings::to_lower_str(style).as_ref() {
+        "go" => Arc::new(|s: &[u8]| go_unicode::strings::title(s).into_owned()),
+        "chicago" => {
+            let tc = TitleConverter::new(TitleStyle::Chicago);
+            Arc::new(move |s: &[u8]| tc.title_bytes(s))
+        }
+        "none" => Arc::new(|s: &[u8]| s.to_vec()),
+        "firstupper" => Arc::new(first_upper_bytes),
+        _ => {
+            let tc = TitleConverter::new(TitleStyle::Ap);
+            Arc::new(move |s: &[u8]| tc.title_bytes(s))
+        }
+    }
+}
 
 /// Go: `helpers.GetTitleFunc(style)` — "ap" (default), "chicago", "go", "firstupper", "none".
 // Go: helpers/general.go:GetTitleFunc

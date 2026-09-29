@@ -26,7 +26,7 @@ use nh_resource::resourcetypes::Resource;
 use nh_resources::resource::ResourceSourceDescriptor;
 
 use super::create::{Client, nil_resource, nil_to_none};
-use super::mime;
+use nh_resources::mime;
 
 /// Go: `create.HTTPError` — an error with the response data (`Data`: `StatusCode`, `Status`,
 /// `Body`, ...). The tpl namespace turns it into a `resource.ResourceError`.

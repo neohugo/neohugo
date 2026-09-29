@@ -2,8 +2,7 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 //!
-//! The encoders are nh-parser's `InterfaceToConfig` (JSON; its YAML, TOML and XML encoders are
-//! explicit `neohugo-rs` stubs).
+//! The encoders are nh-parser's `InterfaceToConfig` (JSON, YAML, TOML and XML).
 //!
 //! Deviation: Go's `applyMarshalTypes` rewrites the caller's map in place when `data` is a map;
 //! the port rewrites a copy (template maps are immutable values).

@@ -125,3 +125,13 @@ qemu-aarch64-static /tmp/nhc-misc-arm64 -root . -out crates/nh-config/tests/fixt
 ```
 
 The fixtures regenerate byte for byte.
+
+## Cross-crate follow-up (gaps task)
+
+- `AllProvider::create_title_bytes` (default: lossy over `create_title`; nh-allconfig's is exact
+  via `helpers.GetTitleFunc` over bytes).
+- `deprecate`/`deprecate_level_min` log through `deprecate_level_with_logger`, with Go's command
+  field: `Logger::logf_cmd(level, "deprecated", msg)` prints `<LEVEL> deprecated: <msg>` (the
+  prefix is part of the stored errors and of the distinct-entries key, as Go's fields are).
+- `neohugo.HugoInfo` methods check their argument count (Go's `evalCall`), marked as
+  `go_value::Error::eval_call` errors.

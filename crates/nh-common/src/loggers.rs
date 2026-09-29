@@ -152,6 +152,18 @@ impl Logger {
     /// One logg entry through Go's handler chain: level filter, suppressed statements, distinct
     /// entries, counters, (trace-only filter), whitespace trimmer, output, stored errors.
     fn log(&self, level: Level, msg: &str, statement_id: Option<&str>) {
+        self.log_entry(level, None, msg, statement_id);
+    }
+
+    /// Go: `logger.WithLevel(level).WithField(loggers.FieldNameCmd, cmd).Logf("%s", msg)`: the
+    /// handlers print the command field as a `<cmd>: ` prefix of the message (also in the stored
+    /// errors), and the distinct-entries handler hashes the fields with the message.
+    // Go: common/loggers/handlerterminal.go:(*noAnsiEscapeHandler).HandleLog
+    pub fn logf_cmd(&self, level: Level, cmd: &str, msg: impl AsRef<str>) {
+        self.log_entry(level, Some(cmd), msg.as_ref(), None);
+    }
+
+    fn log_entry(&self, level: Level, cmd: Option<&str>, msg: &str, statement_id: Option<&str>) {
         let inner = &*self.inner;
         // logg: entries below the logger level are disabled.
         if level < inner.level {
@@ -167,7 +179,12 @@ impl Logger {
         if let Some(threshold) = inner.distinct_level
             && level >= threshold
         {
-            let key = (level, msg.to_string(), statement_id.map(str::to_string));
+            // (The fields are part of Go's hash: the command prefix stands for them.)
+            let key = (
+                level,
+                format!("{}\x00{msg}", cmd.unwrap_or("")),
+                statement_id.map(str::to_string),
+            );
             let mut seen = inner.seen.lock().unwrap();
             if !seen.insert(key) {
                 return;
@@ -186,7 +203,11 @@ impl Logger {
         let msg = go_unicode::strings::trim_space(msg.as_bytes());
 
         // Go: common/loggers/handlerterminal.go:(*noAnsiEscapeHandler).HandleLog
-        let mut line = format!("{} ", level.prefix()).into_bytes();
+        let prefix = match cmd {
+            Some(c) if !c.is_empty() => format!("{c}: "),
+            _ => String::new(),
+        };
+        let mut line = format!("{} {prefix}", level.prefix()).into_bytes();
         line.extend_from_slice(msg);
         line.push(b'\n');
         {
@@ -197,6 +218,7 @@ impl Logger {
         if inner.store_errors && level >= Level::Error {
             // The no-level-prefix handler writing to Go's errors builder.
             let mut e = inner.errors.lock().unwrap();
+            e.push_str(&prefix);
             e.push_str(std::str::from_utf8(msg).expect("trimmed at char boundaries"));
             e.push('\n');
         }

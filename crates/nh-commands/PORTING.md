@@ -74,10 +74,9 @@ Functions T19 has not ported yet (`now`, `upper`, `transform.XMLEscape`, …) st
    (`HugoBuilder::hugo` returns it). The logger that Go's `NewHugoSites` creates from
    `DepsCfg{LogLevel, StdOut, StdErr}` (distinct level warn, the `ignoreLogs` statements,
    errors stored when watching) is created in `new_hugo_sites`.
-6. **`config` in TOML or YAML** (TOML is the default format!) fails with nh-parser's explicit
-   `neohugo-rs: TOML encoding (go-toml Encoder) is not supported` / YAML error:
-   `parser.InterfaceToConfig` has no TOML/YAML encoder in nh-parser. `--format json` and every
-   other path (the JSON dump, `unsupported format: "xml"`, the language lookup) are Go's.
+6. **`config` in TOML or YAML** (TOML is the default format) uses nh-parser's go-toml and
+   yaml.v2 encoder ports; `tests/cli.rs` matches Go's output for `config/toml-default`,
+   `config/yaml` and `config-err/unknown-sub`.
 7. **`config mounts` with a verbose logger** (`--logLevel info|debug`): Go adds the module's
    meta params and `hugoVersion`; the port returns an explicit error.
 8. **`env` with a verbose logger** lists only the non-Go dependencies (Go also lists every Go

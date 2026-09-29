@@ -479,7 +479,7 @@ impl Namespace {
     pub fn title(&self, _ctx: HostCtx<'_>, a: &[Value]) -> GoResult<Value> {
         args::exactly(a, 1, "Title")?;
         let ss = to_string_e(&a[0])?;
-        Ok(sv(self.d.conf.create_title(&ss.to_str_lossy())))
+        Ok(sv(self.d.conf.create_title_bytes(ss.as_bytes())))
     }
 
     /// ToLower returns a copy of the input s with all Unicode letters mapped to their lower

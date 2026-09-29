@@ -10,11 +10,11 @@
 use go_value::{IntKind, Map, MapType, SliceType, Value};
 
 use super::format::{Format, format_from_string};
-use crate::metadecoders::toml;
+use crate::metadecoders::{csv, mxj, toml};
 
 pub use nh_common::{Error, Result};
 
-/// Go: `metadecoders.Decoder` (CSV options are unused by seeksnack).
+/// Go: `metadecoders.Decoder`.
 #[derive(Clone, Debug)]
 pub struct Decoder {
     /// Delimiter is the field delimiter. Used in the CSV decoder. Default is ','.
@@ -201,7 +201,27 @@ impl Decoder {
                     Err(e) => (Error::new(e.to_string()), None),
                 }
             }
-            Format::Xml => return Err(unsupported("XML decoding (clbanning/mxj)")),
+            Format::Xml => match mxj::new_map_xml_root(data) {
+                Ok((root_name, root_value)) => {
+                    // Type check before conversion
+                    return match root_value {
+                        Value::Map(_) => Ok(root_value),
+                        other => Err(to_file_error(
+                            f,
+                            Error::new(format!(
+                                "XML root element '{}' must be a map/object, got {}",
+                                String::from_utf8_lossy(&root_name),
+                                other.go_type_name()
+                            )),
+                            None,
+                        )),
+                    };
+                }
+                Err(e) => (
+                    Error::new(String::from_utf8_lossy(&e.error_bytes()).into_owned()),
+                    None,
+                ),
+            },
             Format::Toml => match toml::unmarshal_to_map(data) {
                 Ok(m) => return Ok(Value::map(m)),
                 Err(e) => (Error::new(e.message()), e.position()),
@@ -237,8 +257,77 @@ impl Decoder {
     }
 
     // Go: parser/metadecoders/decoder.go:unmarshalCSV
-    fn unmarshal_csv(&self, _data: &[u8], _target: Target) -> Result<Value> {
-        Err(unsupported("CSV decoding (encoding/csv)"))
+    fn unmarshal_csv(&self, data: &[u8], target: Target) -> Result<Value> {
+        let mut r = csv::Reader::new(data);
+        r.comma = self.delimiter as go_unicode::Rune;
+        r.comment = self.comment.map_or(0, |c| c as go_unicode::Rune);
+        r.lazy_quotes = self.lazy_quotes;
+
+        let records = r.read_all().map_err(|e| Error::new(e.to_string()))?;
+
+        let v_type = match target {
+            Target::Any => "*interface {}",
+            Target::Map => "*map[string]interface {}",
+        };
+        match target {
+            Target::Any => match self.target_type.as_str() {
+                "map" => {
+                    let records = records.unwrap_or_default();
+                    if records.len() < 2 {
+                        return Err(Error::new(format!(
+                            "cannot unmarshal CSV into {v_type}: expected at least a header row and one data row"
+                        )));
+                    }
+
+                    let mut seen = std::collections::HashSet::new();
+                    for field_name in &records[0] {
+                        if !seen.insert(field_name.clone()) {
+                            return Err(Error::new(format!(
+                                "cannot unmarshal CSV into {v_type}: header row contains duplicate field names"
+                            )));
+                        }
+                    }
+
+                    let sm: Vec<Value> = records[1..]
+                        .iter()
+                        .map(|record| {
+                            let mut m = Map::new(MapType::StringString);
+                            for (j, col) in record.iter().enumerate() {
+                                m.entries.insert(
+                                    records[0][j].clone().into(),
+                                    Value::string(col.clone()),
+                                );
+                            }
+                            Value::map(m)
+                        })
+                        .collect();
+                    Ok(Value::list(
+                        SliceType::Named(std::sync::Arc::from("[]map[string]string")),
+                        sm,
+                    ))
+                }
+                "slice" => Ok(match records {
+                    None => Value::TypedNil(std::sync::Arc::from("[][]string")),
+                    Some(records) => Value::list(
+                        SliceType::Named(std::sync::Arc::from("[][]string")),
+                        records
+                            .into_iter()
+                            .map(|rec| {
+                                Value::list(
+                                    SliceType::String,
+                                    rec.into_iter().map(Value::string).collect(),
+                                )
+                            })
+                            .collect(),
+                    ),
+                }),
+                _ => Err(Error::new(format!(
+                    "cannot unmarshal CSV into {v_type}: invalid targetType: expected either slice or map, received {}",
+                    self.target_type
+                ))),
+            },
+            Target::Map => Err(Error::new(format!("cannot unmarshal CSV into {v_type}"))),
+        }
     }
 }
 
@@ -271,8 +360,8 @@ pub fn stringify_map_keys(v: Value) -> Value {
 // OK L88-99: (d Decoder) UnmarshalFileToMap(fs afero.Fs, filename string) (map[string]any, error)
 // OK L102-125: (d Decoder) UnmarshalStringTo(data string, typ any) (any, error)
 // OK L129-149: (d Decoder) Unmarshal(data []byte, f Format) (any, error)
-// OK L152-235: (d Decoder) UnmarshalTo(data []byte, f Format, v any) error   (XML, ORG: STUB)
-// STUB L237-283: (d Decoder) unmarshalCSV(data []byte, v any) error
+// OK L152-235: (d Decoder) UnmarshalTo(data []byte, f Format, v any) error   (ORG: STUB)
+// OK L237-283: (d Decoder) unmarshalCSV(data []byte, v any) error
 // STUB L285-291: parseORGDate(s string) string
 // STUB L293-324: (d Decoder) unmarshalORG(data []byte, v any) error
 // OK L326-328: toFileError(f Format, data []byte, err error) error   (no source excerpt)

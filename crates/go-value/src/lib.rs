@@ -35,14 +35,55 @@ use std::sync::Arc;
 // Errors
 
 /// Error produced while evaluating Go-semantics operations.
-#[derive(Clone, PartialEq, Eq)]
+///
+/// Equality compares the message only.
+#[derive(Clone)]
 pub struct Error {
     msg: String,
+    /// Set for the errors Go's text/template reports itself before calling a function or
+    /// method (see [`Error::eval_call`]).
+    eval_call: Option<EvalCallError>,
 }
+
+/// Where Go's `evalCall` reports a pre-call error.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum EvalCallError {
+    /// At the call (argument count, `goodFunc`).
+    Call,
+    /// At the i-th argument (`validateType`).
+    Arg(usize),
+}
+
+impl PartialEq for Error {
+    fn eq(&self, other: &Self) -> bool {
+        self.msg == other.msg
+    }
+}
+
+impl Eq for Error {}
 
 impl Error {
     pub fn new(msg: impl Into<String>) -> Self {
-        Error { msg: msg.into() }
+        Error {
+            msg: msg.into(),
+            eval_call: None,
+        }
+    }
+
+    /// An error Go's text/template `evalCall` reports before the call (the argument count, an
+    /// argument's type, or a result count templates cannot call): the template engine reports
+    /// it as is, without the `error calling X: ` prefix of an error the callee returned. Hosts
+    /// check these themselves because they receive every argument as `any`.
+    pub fn eval_call(msg: impl Into<String>, at: EvalCallError) -> Self {
+        Error {
+            msg: msg.into(),
+            eval_call: Some(at),
+        }
+    }
+
+    /// See [`Error::eval_call`].
+    pub fn eval_call_at(&self) -> Option<EvalCallError> {
+        self.eval_call
     }
 
     pub fn message(&self) -> &str {

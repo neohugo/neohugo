@@ -40,10 +40,6 @@ const STUBS: &[(&str, &str)] = &[
     ("js.Batch", "the JS batcher"),
     ("images.Config", "GIF decoding (nh-images)"),
     ("f:imageConfig", "GIF decoding (nh-images)"),
-    // nh-parser's metadecoders: CSV and XML decoding, YAML/TOML/XML encoding.
-    ("transform.Unmarshal", "CSV/XML decoding (nh-parser)"),
-    ("f:unmarshal", "CSV/XML decoding (nh-parser)"),
-    ("transform.Remarshal", "YAML/TOML/XML encoding (nh-parser)"),
 ];
 
 fn is_stub(m: &str) -> bool {
@@ -57,43 +53,9 @@ fn same_other_type(got: &J, want: &J) -> bool {
 }
 
 /// Differences that follow from other crates (PORTING.md "Known divergences"): the reason, or
-/// `None`.
-fn known(m: &str, c: &J, want: &J) -> Option<&'static str> {
-    let args = c["a"].to_string();
-    // Invalid UTF-8 input to the functions whose helpers take `&str` (nh-config's
-    // `AllProvider::create_title`, nh-helpers' `PathSpec::abs_url`/`rel_url`): the input is
-    // converted lossily.
-    if args.contains("\"hex\"")
-        && matches!(
-            m,
-            "strings.Title"
-                | "urls.AbsURL"
-                | "urls.RelURL"
-                | "urls.AbsLangURL"
-                | "urls.RelLangURL"
-                | "urls.URLize"
-                | "urls.Anchorize"
-        )
-    {
-        return Some("invalid UTF-8 through a &str helper");
-    }
-    // nh-hugofs' `afero::read_file` returns the plain I/O error of reading a directory; Go's is
-    // the `*PathError` `read <path>: is a directory`.
-    if m == "os.ReadFile"
-        && want["err"]
-            .as_str()
-            .is_some_and(|e| e.starts_with("read ") && e.ends_with(": is a directory"))
-    {
-        return Some("nh-hugofs read_file error of a directory");
-    }
-    // Go's Unmarshal cache key of a string ignores the decoder options: a CSV document cached
-    // by an earlier call (with a delimiter) is returned to later calls; the port's CSV decoding
-    // is nh-parser's stub, so nothing was cached.
-    if matches!(m, "transform.Unmarshal" | "f:unmarshal")
-        && want["ok"]["t"].as_str() == Some("[][]string")
-    {
-        return Some("CSV decoding (nh-parser stub) via the Unmarshal cache");
-    }
+/// `None`. None remain: the invalid-UTF-8 helpers, `read_file` of a directory, CSV decoding and
+/// the deprecation log field were fixed in their crates.
+fn known(_m: &str, _c: &J, _want: &J) -> Option<&'static str> {
     None
 }
 
@@ -188,13 +150,7 @@ fn run() {
         assert_eq!(entry["site"].as_str(), Some(name.as_str()));
         let dir = sites.envs[&format!("{name}/0")].dir.clone();
         let got = String::from_utf8_lossy(&log.lock().unwrap()).replace(&dir, "/SITE");
-        // Known divergence (nh-config's `deprecate`): Go logs deprecations with the command field
-        // "deprecated" (`ERROR deprecated: ...`); the port logs the message without it.
-        let want = support::gostr(&entry["log"])
-            .to_str_lossy()
-            .replace("ERROR deprecated: ", "ERROR ")
-            .replace("WARN  deprecated: ", "WARN  ")
-            .replace("INFO  deprecated: ", "INFO  ");
+        let want = support::gostr(&entry["log"]).to_str_lossy().into_owned();
         let (got, want) = (log_lines(&got), log_lines(&want));
         if got != want {
             failures.push(format!("log of {name}:\n  want {want:#?}\n  got  {got:#?}"));

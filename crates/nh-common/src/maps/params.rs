@@ -592,8 +592,9 @@ pub fn params_call_method(
             Ok(get_nested(p, &idx))
         })(),
         "IsZero" => args::exactly(a, 0, name).map(|_| Value::Bool(params_is_zero(p))),
-        "GetMergeStrategy" => Err(bad_results_error(name, 2)),
-        "SetMergeStrategy" => Err(bad_results_error(name, 0)),
+        // Go's text/template checks the argument count first (evalCall), then goodFunc.
+        "GetMergeStrategy" => args::exactly(a, 0, name).and(Err(bad_results_error(name, 2))),
+        "SetMergeStrategy" => args::exactly(a, 1, name).and(Err(bad_results_error(name, 0))),
         "DeleteMergeStrategy" => args::exactly(a, 0, name)
             .map(|_| Value::Bool(p.get(MERGE_STRATEGY_KEY.as_bytes()).is_some())),
         _ => return None,

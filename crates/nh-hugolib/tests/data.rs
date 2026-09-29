@@ -60,41 +60,8 @@ cases! {
     data_unknownext => "data-unknownext",
     data_dirfile => "data-dirfile",
     data_docs => "data-docs",
-}
-
-/// Known gap: XML (`clbanning/mxj`) and CSV (`encoding/csv`) data files are explicit
-/// unsupported errors in nh-parser (T03); `data-xml`/`data-csv` record Go's results and the port
-/// must fail with those errors (Go: XML is a map; CSV gives `[][]string`, which Go's
-/// `handleDataFile` logs as an unexpected data type).
-fn gap_case(name: &str, msg: &str) {
-    let fx = fixture(&format!("data/{name}.json.gz"));
-    let tmp = TempDir::new(name);
-    let b = new_sites(&fx["site"], &tmp.0).unwrap();
-    assert!(b.h.data().is_empty());
-    let log = b.log_lines();
-    assert_eq!(log.len(), 1, "{log:?}");
-    assert!(log[0].ends_with(msg), "{log:?}");
-}
-
-#[test]
-fn data_xml_unsupported() {
-    let fx = fixture("data/data-xml.json.gz");
-    assert_eq!(fx["data"]["t"], json!("map[string]interface {}"));
-    gap_case(
-        "data-xml",
-        "neohugo-rs: XML decoding (clbanning/mxj) is not supported",
-    );
-}
-
-#[test]
-fn data_csv_unsupported() {
-    let fx = fixture("data/data-csv.json.gz");
-    assert_eq!(
-        fx["log"],
-        json!(["ERROR unexpected data type [][]string in file table.csv"])
-    );
-    gap_case(
-        "data-csv",
-        "neohugo-rs: CSV decoding (encoding/csv) is not supported",
-    );
+    // XML (clbanning/mxj) gives a map; CSV (encoding/csv) gives `[][]string`, which Go's
+    // `handleDataFile` logs as an unexpected data type.
+    data_xml => "data-xml",
+    data_csv => "data-csv",
 }

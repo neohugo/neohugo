@@ -371,10 +371,10 @@ impl Object for Rat {
             return None;
         }
         if !args.is_empty() {
-            return Some(Err(go_value::Error::new(format!(
-                "wrong number of args for {name}: want 0 got {}",
-                args.len()
-            ))));
+            return Some(Err(go_value::Error::eval_call(
+                format!("wrong number of args for {name}: want 0 got {}", args.len()),
+                go_value::EvalCallError::Call,
+            )));
         }
         Some(Ok(match (name, *self) {
             ("Num", Rat::Uint32(n, _)) => Value::Uint(n as u64, UintKind::Uint32),

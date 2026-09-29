@@ -2,22 +2,78 @@
 //!
 //! Owner: Wave B task T03 (parser-langs).
 //!
-//! Not on the seeksnack build path (`hugo config`, `hugo new`). JSON output is ported over
-//! go-json; the YAML, TOML and XML encoders (yaml.v2 `Marshal`, go-toml's `Encoder`, mxj) are not
-//! ported and return an explicit unsupported error.
+//! Not on the seeksnack build path (`hugo config`, `hugo new`, `transform.Remarshal`). JSON
+//! output is ported over go-json, YAML over go-yaml's port of yaml.v2 `Marshal`, TOML over the
+//! port of go-toml's `Encoder` (`metadecoders::toml::marshaler`) and XML over the port of mxj's
+//! `AnyXmlIndent` (`metadecoders::mxj`). Values those encoders would reach through reflection
+//! only (Go structs without `MarshalText`, funcs, channels) give a `neohugo-rs:` error.
 
 use std::sync::Arc;
 
 use go_value::{GoString, Map, MapType, Value};
 
 use crate::metadecoders::format::Format;
+use crate::metadecoders::mxj;
+use crate::metadecoders::toml::marshaler::{EncodeError, Encoder};
 use nh_common::{Error, Result};
 
 const YAML_DELIM_LF: &[u8] = b"---\n";
 const TOML_DELIM_LF: &[u8] = b"+++\n";
 
-fn unsupported(what: &str) -> Error {
-    Error::new(format!("neohugo-rs: {what} is not supported"))
+fn unsupported_value(format: &str, v: &Value) -> Error {
+    Error::new(format!(
+        "neohugo-rs: {format} encoding of {} is not supported",
+        v.go_type_name()
+    ))
+}
+
+/// The yaml.v2 encoder's view of a value (`reflect.Kind`, `time.Time`, `TextMarshaler`).
+// Go: gopkg.in/yaml.v2@v2.4.0/encode.go:(*encoder).marshal (the dispatch)
+fn yaml_node(v: &Value) -> Result<go_yaml::encode::Node> {
+    use go_yaml::encode::Node;
+    Ok(match v {
+        Value::Invalid => Node::Nil,
+        Value::TypedNil(t) => match go_value::typed_nil_kind(t) {
+            go_value::NilKind::Map => Node::Map(Vec::new()),
+            go_value::NilKind::Slice => Node::Seq(Vec::new()),
+            go_value::NilKind::Ptr | go_value::NilKind::Interface => Node::Nil,
+            _ => return Err(unsupported_value("YAML", v)),
+        },
+        Value::Bool(b) => Node::Bool(*b),
+        Value::Int(i, _) => Node::Int(*i),
+        Value::Uint(u, _) => Node::Uint(*u),
+        Value::Float(f, k) => Node::Float(*f, *k == go_value::FloatKind::F32),
+        Value::String(s) | Value::Safe(_, s) => Node::Str(s.as_bytes().to_vec()),
+        Value::Time(t) => {
+            use go_time::GoTimeExt;
+            Node::Time(t.format(go_time::RFC3339_NANO).into_bytes())
+        }
+        Value::List(l) => Node::Seq(l.items.iter().map(yaml_node).collect::<Result<_>>()?),
+        Value::Map(m) => Node::Map(
+            m.entries
+                .iter()
+                .map(|(k, v)| Ok((k.as_bytes().to_vec(), yaml_node(v)?)))
+                .collect::<Result<_>>()?,
+        ),
+        Value::Object(o) => {
+            if let Some(text) = o.marshal_text() {
+                // encoding.TextMarshaler
+                Node::Str(text.map_err(|e| Error::new(e.message().to_string()))?)
+            } else {
+                match o.underlying() {
+                    Some(u @ (Value::String(_) | Value::Bool(_) | Value::Float(..))) => {
+                        yaml_node(&u)?
+                    }
+                    Some(u @ (Value::Int(..) | Value::Uint(..)))
+                        if o.type_name() != "time.Duration" =>
+                    {
+                        yaml_node(&u)?
+                    }
+                    _ => return Err(unsupported_value("YAML", v)),
+                }
+            }
+        }
+    })
 }
 
 /// Go: `parser.InterfaceToConfig(in, format, w)` (config/front matter writer; used by `hugo config`).
@@ -28,8 +84,20 @@ pub fn interface_to_config(v: &Value, format: Format, w: &mut Vec<u8>) -> Result
     }
 
     match format {
-        Format::Yaml => Err(unsupported("YAML encoding (yaml.v2 Marshal)")),
-        Format::Toml => Err(unsupported("TOML encoding (go-toml Encoder)")),
+        Format::Yaml => {
+            let b =
+                go_yaml::encode::marshal(&yaml_node(v)?).map_err(|e| Error::new(e.message()))?;
+
+            w.extend_from_slice(&b);
+            Ok(())
+        }
+        Format::Toml => {
+            let mut enc = Encoder::new();
+            enc.set_indent_tables(true);
+            enc.encode(w, v).map_err(|e| match e {
+                EncodeError::Go(m) | EncodeError::Unsupported(m) => Error::new(m),
+            })
+        }
         Format::Json => {
             let b = go_json::marshal_indent(v, "", "   ").map_err(|e| Error::new(e.to_string()))?;
 
@@ -37,7 +105,19 @@ pub fn interface_to_config(v: &Value, format: Format, w: &mut Vec<u8>) -> Result
             w.push(b'\n');
             Ok(())
         }
-        Format::Xml => Err(unsupported("XML encoding (clbanning/mxj)")),
+        Format::Xml => {
+            // xml.AnyXmlIndent(in, "", "\t", "root"): the input is a map (a Remarshal or
+            // `hugo config` document).
+            if !matches!(v, Value::Map(_)) {
+                return Err(unsupported_value("XML", v));
+            }
+            let b = mxj::any_xml_indent_map(v, b"", b"\t", b"root").map_err(|e| match e {
+                mxj::EncodeError::Go(m) | mxj::EncodeError::Unsupported(m) => Error::new(m),
+            })?;
+
+            w.extend_from_slice(&b);
+            Ok(())
+        }
         _ => Err(Error::new("unsupported Format provided")),
     }
 }
@@ -246,7 +326,7 @@ fn remove_zero_values(m: &mut Map) {
 // see specs/architecture-core-data/neohugo-executed-funcs.txt). Port every EX item faithfully;
 // non-EX items are ported when cheap or stubbed with an explicit unsupported error.
 // Source: parser/frontmatter.go (117 lines; 0/2 funcs executed)
-// OK L35-78: InterfaceToConfig(in any, format metadecoders.Format, w io.Writer) error   (JSON; YAML/TOML/XML STUB)
+// OK L35-78: InterfaceToConfig(in any, format metadecoders.Format, w io.Writer) error
 // OK L80-117: InterfaceToFrontMatter(in any, format metadecoders.Format, w io.Writer) error
 // Source: parser/lowercase_camel_json.go (132 lines; 0/4 funcs executed)
 //   types: NullBoolJSONMarshaller, LowerCaseCamelJSONMarshaller, ReplacingJSONMarshaller

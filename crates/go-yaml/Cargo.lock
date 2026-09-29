@@ -34,8 +34,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "go-sort"
+version = "0.1.0"
+
+[[package]]
 name = "go-strconv"
 version = "0.1.0"
+
+[[package]]
+name = "go-unicode"
+version = "0.1.0"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "go-value"
@@ -46,9 +57,17 @@ name = "go-yaml"
 version = "0.1.0"
 dependencies = [
  "flate2",
+ "go-sort",
  "go-strconv",
+ "go-unicode",
  "go-value",
 ]
+
+[[package]]
+name = "memchr"
+version = "2.8.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cf8baf1c55e62ffcace7a9f06f4bd9cd3f0c4beb022d3b367256b91b87513d98"
 
 [[package]]
 name = "miniz_oxide"

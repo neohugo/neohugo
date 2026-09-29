@@ -174,7 +174,9 @@ version = "0.1.0"
 name = "go-yaml"
 version = "0.1.0"
 dependencies = [
+ "go-sort",
  "go-strconv",
+ "go-unicode",
  "go-value",
 ]
 
@@ -353,6 +355,7 @@ dependencies = [
 name = "nh-parser"
 version = "0.1.0"
 dependencies = [
+ "go-fmt",
  "go-json",
  "go-path",
  "go-strconv",

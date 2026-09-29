@@ -183,7 +183,7 @@ impl Namespace {
         Ok(sv(self
             .d
             .path_spec()
-            .abs_url(&ss.to_str_lossy(), !self.multihost)))
+            .abs_url_bytes(ss.as_bytes(), !self.multihost)))
     }
 
     /// AbsURL takes the string s and converts it to an absolute URL.
@@ -191,7 +191,7 @@ impl Namespace {
     pub fn abs_url(&self, _ctx: HostCtx<'_>, a: &[Value]) -> GoResult<Value> {
         args::exactly(a, 1, "AbsURL")?;
         let ss = to_string_e(&a[0])?;
-        Ok(sv(self.d.path_spec().abs_url(&ss.to_str_lossy(), false)))
+        Ok(sv(self.d.path_spec().abs_url_bytes(ss.as_bytes(), false)))
     }
 
     /// Anchorize creates sanitized anchor name version of the string s that is compatible with
@@ -362,7 +362,7 @@ impl Namespace {
         Ok(sv(self
             .d
             .path_spec()
-            .rel_url(&ss.to_str_lossy(), !self.multihost)))
+            .rel_url_bytes(ss.as_bytes(), !self.multihost)))
     }
 
     /// RelURL takes the string s and prepends the relative path according to a page's position
@@ -371,7 +371,7 @@ impl Namespace {
     pub fn rel_url(&self, _ctx: HostCtx<'_>, a: &[Value]) -> GoResult<Value> {
         args::exactly(a, 1, "RelURL")?;
         let ss = to_string_e(&a[0])?;
-        Ok(sv(self.d.path_spec().rel_url(&ss.to_str_lossy(), false)))
+        Ok(sv(self.d.path_spec().rel_url_bytes(ss.as_bytes(), false)))
     }
 
     /// URLDecode does the inverse transformation of QueryEscape, converting each 3-byte
@@ -400,7 +400,7 @@ impl Namespace {
     pub fn ur_lize(&self, _ctx: HostCtx<'_>, a: &[Value]) -> GoResult<Value> {
         args::exactly(a, 1, "URLize")?;
         let ss = to_string_e(&a[0])?;
-        Ok(sv(self.d.path_spec().urlize(&ss.to_str_lossy())))
+        Ok(sv(self.d.path_spec().urlize_bytes(ss.as_bytes())))
     }
 }
 

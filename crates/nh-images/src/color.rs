@@ -139,10 +139,10 @@ impl Object for Color {
             return None;
         }
         if !args.is_empty() {
-            return Some(Err(go_value::Error::new(format!(
-                "wrong number of args for {name}: want 0 got {}",
-                args.len()
-            ))));
+            return Some(Err(go_value::Error::eval_call(
+                format!("wrong number of args for {name}: want 0 got {}", args.len()),
+                go_value::EvalCallError::Call,
+            )));
         }
         Some(Ok(match name {
             "Luminance" => Value::float64(self.luminance),

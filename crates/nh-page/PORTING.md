@@ -308,8 +308,8 @@ Every GO PORTING CHECKLIST entry of the T12 modules is `OK` except the Go test h
 6. **Locks** (HUGO_LAYER.md §4.8): the sorted-pages cache, the menu cache, the related indices and
    the lazy content provider compute outside their locks and keep the first stored value (Go
    computes under the lock); with sequential rendering the results are the same.
-7. `PageSize()` (deprecated) does not log Go's deprecation notice; `Pager.Paginator` (the embedded
-   `*Paginator` as a field) is not exposed.
+7. `PageSize()` (deprecated) does not log Go's deprecation notice. `Pager.Paginator` (the
+   embedded `*Paginator` field) is a `*page.Paginator` object (`PaginatorRef`) with its methods.
 
 ### Verification
 

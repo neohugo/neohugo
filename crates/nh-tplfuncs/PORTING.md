@@ -83,8 +83,8 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
 | `time::time` | `tpl/time/time.go` | T19 tplfuncs-host | ported |
 | `transform::init` | `tpl/transform/init.go` | T19 tplfuncs-host | ported |
 | `transform::transform` | `tpl/transform/transform.go` | T19 tplfuncs-host | ported; STUB `Highlight`, `HighlightCodeBlock`, `CanHighlight` (Chroma), `ToMath` (KaTeX), `PortableText`; `Emojify` reaches the nh-helpers stub |
-| `transform::unmarshal` | `tpl/transform/unmarshal.go` | T19 tplfuncs-host | ported (CSV/XML decoding and YAML/TOML/XML encoding are nh-parser stubs) |
-| `transform::remarshal` | `tpl/transform/remarshal.go` | T19 tplfuncs-host | ported (CSV/XML decoding and YAML/TOML/XML encoding are nh-parser stubs) |
+| `transform::unmarshal` | `tpl/transform/unmarshal.go` | T19 tplfuncs-host | ported |
+| `transform::remarshal` | `tpl/transform/remarshal.go` | T19 tplfuncs-host | ported |
 | `urls::init` | `tpl/urls/init.go` | T19 tplfuncs-host | ported |
 | `urls::urls` | `tpl/urls/urls.go` | T19 tplfuncs-host | ported |
 
@@ -141,13 +141,13 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
 - These reach stubs in other crates:
   - `transform.Emojify` (nh-helpers emoji table);
   - `images.Text`, `images.Dither` and `images.Config` of a GIF (nh-images);
-  - `transform.Unmarshal` of CSV/XML and `transform.Remarshal` to YAML/TOML/XML (nh-parser metadecoders);
   - `css.Sass` with Dart Sass.
-- Known divergences, all caused by other crates. `tests/host.rs` lists them in `known()`:
-  - Invalid UTF-8 given to `strings.Title` and the `urls` functions over `PathSpec::abs_url`/`rel_url`/`urlize` (46 cases). The `&str` helpers of nh-config and nh-helpers convert the input lossily.
-  - `os.ReadFile` of a directory (1 case). nh-hugofs returns the plain I/O error; Go's is `read <path>: is a directory`.
-  - `transform.Unmarshal` of a string with a later call's options (7 cases). Go's cache key ignores the options, so Go returns a CSV document cached by an earlier call; the port's CSV decoding is a stub, so nothing was cached.
-  - Deprecation log lines lack Go's `deprecated: ` field (nh-config's `deprecate`). The test strips it from Go's log.
+- Known divergences caused by other crates: none remain. The earlier ones were fixed in their
+  crates: invalid UTF-8 through `strings.Title` and the `urls` functions (nh-config's
+  `create_title_bytes`, nh-helpers' `abs_url_bytes`/`rel_url_bytes`/`urlize_bytes`),
+  `os.ReadFile` of a directory (nh-hugofs' `OsFile` read errors are Go's `*PathError`), CSV
+  decoding (nh-parser; Go's Unmarshal cache then returns the cached CSV document as Go does),
+  and the `deprecated: ` log field (nh-config's `deprecate`).
 
 ## Verification
 
@@ -182,8 +182,8 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
     - urls, urls_ref, and urls_<site><n> for every site and language.
   - `funcnames` is Go's `CreateFuncMap` name set (155 names). Every site's func map must equal it and T20's `crates/nh-hugolib/tests/fixtures/funcnames` fixture.
   - Result: 0 differences.
-    - 155 cases hit a listed stub and must fail with the `neohugo-rs:` error (`STUBS`).
-    - 54 cases are known divergences (see Known gaps).
+    - 127 cases hit a listed stub and must fail with the `neohugo-rs:` error (`STUBS`).
+    - No known divergences remain (54 before the cross-crate fixes).
     - `time.Now` is checked against the clock.
     - 7 of the 12 js cases (`js.Build`) need the pinned esbuild (`NEOHUGO_ESBUILD_BINARY`, `tools/esbuild/build.sh`). Without it they are skipped, and so are their JSBUILD errors.
 - Regenerate the host fixtures (they must come out byte for byte the same). Everything except css runs as linux/arm64 under qemu, because float formatting must match the arm64 build. css runs natively, because libsass needs cgo:

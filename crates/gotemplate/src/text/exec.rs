@@ -1008,6 +1008,10 @@ impl<'a> State<'a> {
         args: &'a [Node],
         final_: Option<Value>,
     ) -> R<Value> {
+        // Where Go's evalCall reports its argument-count and goodFunc errors: the node
+        // current on entry (the function identifier or the field), before the arguments are
+        // evaluated.
+        let entry_node = self.node;
         // Zeroth arg is function name/node; not passed to function.
         let args: &'a [Node] = if args.is_empty() { args } else { &args[1..] };
         let num_in = args.len() + usize::from(final_.is_some());
@@ -1126,6 +1130,27 @@ impl<'a> State<'a> {
         // error to the caller.
         let v = match result {
             Ok(v) => v,
+            // Go's evalCall checks the argument count, the argument types (validateType) and
+            // the result count (goodFunc) before the call and reports them with s.errorf: no
+            // "error calling" prefix, no wrapped cause, at the call or at the argument. Hosts
+            // receive every argument as `any` and make these checks themselves (contract C3),
+            // marking the errors (`go_value::Error::eval_call`).
+            Err(err) if err.eval_call_at().is_some() && !matches!(fun, Callee::Builtin(_)) => {
+                match err.eval_call_at() {
+                    Some(go_value::EvalCallError::Arg(i)) if i < args.len() => self.at(&args[i]),
+                    // The final (pipeline) value is validated after the last argument.
+                    Some(go_value::EvalCallError::Arg(_)) => match (args.last(), entry_node) {
+                        (Some(last), _) => self.at(last),
+                        (None, Some(n)) => self.at(n),
+                        (None, None) => self.at(node),
+                    },
+                    _ => match entry_node {
+                        Some(n) => self.at(n),
+                        None => self.at(node),
+                    },
+                }
+                return Err(self.errorf_cause(err.message().to_string(), None));
+            }
             Err(err) => {
                 self.at(node);
                 return Err(self.errorf_cause(

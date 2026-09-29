@@ -187,3 +187,9 @@ go run ./tools/go-oracle/nh-hugofs/hasbytes -out crates/nh-hugofs/tests/fixtures
 
 The `docs` fixture records this repository's `docs/` tree (without `docs/rust-port`), so it
 changes when that tree does.
+
+## Cross-crate follow-up (gaps task)
+
+- `OsFile`'s `Read`/`Write`/`Seek` wrap an OS error like Go's `(*os.File).wrapErr`: a
+  `*PathError` with the file's name (`read <path>: is a directory` for `afero.ReadFile` of a
+  directory, the `os.ReadFile` case of nh-tplfuncs' host test).

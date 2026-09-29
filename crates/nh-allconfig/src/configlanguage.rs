@@ -230,6 +230,10 @@ impl AllProvider for ConfigLanguage {
     fn create_title(&self, s: &str) -> String {
         (self.config.compiled().create_title)(s)
     }
+    // Go: config/allconfig/configlanguage.go:CreateTitle
+    fn create_title_bytes(&self, s: &[u8]) -> Vec<u8> {
+        (self.config.compiled().create_title_bytes)(s)
+    }
     // Go: config/allconfig/configlanguage.go:IgnoreFile
     fn ignore_file(&self, s: &str) -> bool {
         (self.config.compiled().ignore_file)(s)

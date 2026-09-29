@@ -19,7 +19,7 @@ T14 (resources-core).
 | `postpub::postpub` | `resources/postpub/postpub.go` | ported (all 15) |
 | `postpub::fields` | `resources/postpub/fields.go` | ported (all 3); `structToMap`'s reflection over `media.Type` is a table |
 | `jsconfig` | `resources/jsconfig/jsconfig.go` | ported (all 4) |
-| `mime` (private) | go1.27.1 `mime/type.go`, `type_unix.go`, `mediatype.go`, `grammar.go` | the parts `TypeByExtension` needs (the fallback of `ResourceSourceDescriptor.init`) |
+| `mime` (public) | go1.27.1 `mime/type.go`, `type_unix.go`, `mediatype.go`, `grammar.go` | `TypeByExtension` (the fallback of `ResourceSourceDescriptor.init`), and for nh-resource-transformers' `create/remote.go` `ParseMediaType` and `ExtensionsByType` (the one shared copy; the tables gained Go's `extensions` map, which `TypeByExtension` does not read) |
 
 Every GO PORTING CHECKLIST entry is `OK`; every ported function carries a `// Go:` line.
 

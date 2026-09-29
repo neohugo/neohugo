@@ -1,7 +1,7 @@
 //! Types and character classes of the libyaml port.
 //!
 //! Go: gopkg.in/yaml.v2@v2.4.0 yamlh.go (parser half) and yamlprivateh.go.
-//! Emitter/document types are not ported (decoding only).
+//! The emitter's types are in `encode.rs`.
 
 use std::collections::HashMap;
 
@@ -51,6 +51,26 @@ pub(crate) fn as_hex(b: &[u8], i: usize) -> i64 {
         return bi as i64 - b'a' as i64 + 10;
     }
     bi as i64 - b'0' as i64
+}
+
+// Go: yamlprivateh.go:is_ascii
+#[inline]
+pub(crate) fn is_ascii(b: &[u8], i: usize) -> bool {
+    b[i] <= 0x7F
+}
+
+// Go: yamlprivateh.go:is_printable
+#[inline]
+pub(crate) fn is_printable(b: &[u8], i: usize) -> bool {
+    (b[i] == 0x0A) // . == #x0A
+        || (b[i] >= 0x20 && b[i] <= 0x7E) // #x20 <= . <= #x7E
+        || (b[i] == 0xC2 && b[i + 1] >= 0xA0) // #0xA0 <= . <= #xD7FF
+        || (b[i] > 0xC2 && b[i] < 0xED)
+        || (b[i] == 0xED && b[i + 1] < 0xA0)
+        || (b[i] == 0xEE)
+        || (b[i] == 0xEF // #xE000 <= . <= #xFFFD
+            && !(b[i + 1] == 0xBB && b[i + 2] == 0xBF) // && . != #xFEFF
+            && !(b[i + 1] == 0xBF && (b[i + 2] == 0xBE || b[i + 2] == 0xBF)))
 }
 
 // Go: yamlprivateh.go:is_z

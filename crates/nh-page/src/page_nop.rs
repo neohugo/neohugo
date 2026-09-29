@@ -68,6 +68,23 @@ fn ret(a: &[Value], n: usize, name: &str, v: Value) -> GoResult<Value> {
     Ok(v)
 }
 
+/// A method whose first parameter is a `context.Context` (the template engine passes it; Go's
+/// argument count includes it): `n` more parameters, then the value.
+// Go: text/template/exec.go:evalCall (argument count of a method taking the context)
+fn ret_ctx(a: &[Value], n: usize, name: &str, v: Value) -> GoResult<Value> {
+    if a.len() != n {
+        return Err(go_value::Error::eval_call(
+            format!(
+                "wrong number of args for {name}: want {} got {}",
+                n + 1,
+                a.len() + 1
+            ),
+            go_value::EvalCallError::Call,
+        ));
+    }
+    Ok(v)
+}
+
 nh_common::go_methods!(NopPage {
     "Aliases" => |_p, _c, a| ret(a, 0, "Aliases", nil_of("[]string")),
     "Sitemap" => |_p, _c, a| ret(a, 0, "Sitemap", Value::object(SitemapConfig::default())),
@@ -78,8 +95,8 @@ nh_common::go_methods!(NopPage {
     "BaseFileName" => |_p, _c, a| ret(a, 0, "BaseFileName", Value::string("")),
     "BundleType" => |_p, _c, a| ret(a, 0, "BundleType", Value::string("")),
     "Markup" => |_p, _c, _a| Ok(Value::object(NopMarkup)),
-    "Content" => |_p, _c, a| ret(a, 0, "Content", Value::string("")),
-    "ContentWithoutSummary" => |_p, _c, a| ret(a, 0, "ContentWithoutSummary", html_empty()),
+    "Content" => |_p, _c, a| ret_ctx(a, 0, "Content", Value::string("")),
+    "ContentWithoutSummary" => |_p, _c, a| ret_ctx(a, 0, "ContentWithoutSummary", html_empty()),
     "ContentBaseName" => |_p, _c, a| ret(a, 0, "ContentBaseName", Value::string("")),
     "CurrentSection" => |_p, _c, a| ret(a, 0, "CurrentSection", nil_of("page.Page")),
     "Data" => |_p, _c, a| ret(a, 0, "Data", Value::Invalid),
@@ -102,7 +119,7 @@ nh_common::go_methods!(NopPage {
     "FileInfo" => |_p, _c, a| ret(a, 0, "FileInfo", nil_of("hugofs.FileMetaInfo")),
     "Filename" => |_p, _c, a| ret(a, 0, "Filename", Value::string("")),
     "FirstSection" => |_p, _c, a| ret(a, 0, "FirstSection", nil_of("page.Page")),
-    "FuzzyWordCount" => |_p, _c, a| ret(a, 0, "FuzzyWordCount", Value::int(0)),
+    "FuzzyWordCount" => |_p, _c, a| ret_ctx(a, 0, "FuzzyWordCount", Value::int(0)),
     "GetPage" => |_p, _c, a| {
         args::exactly(a, 1, "GetPage")?;
         args::string(a, 0)?;
@@ -118,7 +135,7 @@ nh_common::go_methods!(NopPage {
         args::string(a, 0)?;
         Ok(nil_of("page.Pages"))
     },
-    "GitInfo" => |_p, _c, a| ret(a, 0, "GitInfo", nil_of("*source.GitInfo")),
+    "GitInfo" => |_p, _c, a| ret(a, 0, "GitInfo", nil_of("*gitmap.GitInfo")),
     "CodeOwners" => |_p, _c, a| ret(a, 0, "CodeOwners", nil_of("[]string")),
     "HasMenuCurrent" => |_p, _c, a| ret(a, 2, "HasMenuCurrent", Value::Bool(false)),
     "HasShortcode" => |_p, _c, a| {
@@ -147,7 +164,7 @@ nh_common::go_methods!(NopPage {
     "Lang" => |_p, _c, a| ret(a, 0, "Lang", Value::string("")),
     "Language" => |_p, _c, a| ret(a, 0, "Language", nil_of("*langs.Language")),
     "Lastmod" => |_p, _c, a| ret(a, 0, "Lastmod", zero_time()),
-    "Len" => |_p, _c, a| ret(a, 0, "Len", Value::int(0)),
+    "Len" => |_p, _c, a| ret_ctx(a, 0, "Len", Value::int(0)),
     "LinkTitle" => |_p, _c, a| ret(a, 0, "LinkTitle", Value::string("")),
     "LogicalName" => |_p, _c, a| ret(a, 0, "LogicalName", Value::string("")),
     "MediaType" => |_p, _c, a| ret(a, 0, "MediaType", MediaType::default().to_value()),
@@ -171,8 +188,8 @@ nh_common::go_methods!(NopPage {
     "Path" => |_p, _c, a| ret(a, 0, "Path", Value::string("")),
     "PathInfo" => |_p, _c, a| ret(a, 0, "PathInfo", nil_of("*paths.Path")),
     "Permalink" => |_p, _c, a| ret(a, 0, "Permalink", Value::string("")),
-    "Plain" => |_p, _c, a| ret(a, 0, "Plain", Value::string("")),
-    "PlainWords" => |_p, _c, a| ret(a, 0, "PlainWords", nil_of("[]string")),
+    "Plain" => |_p, _c, a| ret_ctx(a, 0, "Plain", Value::string("")),
+    "PlainWords" => |_p, _c, a| ret_ctx(a, 0, "PlainWords", nil_of("[]string")),
     "Prev" => |_p, _c, a| ret(a, 0, "Prev", nil_of("page.Page")),
     "PublishDate" => |_p, _c, a| ret(a, 0, "PublishDate", zero_time()),
     "PrevInSection" => |_p, _c, a| ret(a, 0, "PrevInSection", nil_of("page.Page")),
@@ -180,8 +197,8 @@ nh_common::go_methods!(NopPage {
     "PrevPage" => |_p, _c, a| ret(a, 0, "PrevPage", nil_of("page.Page")),
     "NextPage" => |_p, _c, a| ret(a, 0, "NextPage", nil_of("page.Page")),
     "RawContent" => |_p, _c, a| ret(a, 0, "RawContent", Value::string("")),
-    "RenderShortcodes" => |_p, _c, a| ret(a, 0, "RenderShortcodes", html_empty()),
-    "ReadingTime" => |_p, _c, a| ret(a, 0, "ReadingTime", Value::int(0)),
+    "RenderShortcodes" => |_p, _c, a| ret_ctx(a, 0, "RenderShortcodes", html_empty()),
+    "ReadingTime" => |_p, _c, a| ret_ctx(a, 0, "ReadingTime", Value::int(0)),
     "Ref" => |_p, _c, a| ret(a, 1, "Ref", Value::string("")),
     "RelPermalink" => |_p, _c, a| ret(a, 0, "RelPermalink", Value::string("")),
     "RelRef" => |_p, _c, a| ret(a, 1, "RelRef", Value::string("")),
@@ -200,20 +217,20 @@ nh_common::go_methods!(NopPage {
     "Sites" => |_p, _c, a| ret(a, 0, "Sites", nil_of("page.Sites")),
     "Slug" => |_p, _c, a| ret(a, 0, "Slug", Value::string("")),
     "String" => |_p, _c, a| ret(a, 0, "String", Value::string("nopPage")),
-    "Summary" => |_p, _c, a| ret(a, 0, "Summary", html_empty()),
-    "TableOfContents" => |_p, _c, a| ret(a, 0, "TableOfContents", html_empty()),
+    "Summary" => |_p, _c, a| ret_ctx(a, 0, "Summary", html_empty()),
+    "TableOfContents" => |_p, _c, a| ret_ctx(a, 0, "TableOfContents", html_empty()),
     "Title" => |_p, _c, a| ret(a, 0, "Title", Value::string("")),
     "TranslationBaseName" => |_p, _c, a| ret(a, 0, "TranslationBaseName", Value::string("")),
     "TranslationKey" => |_p, _c, a| ret(a, 0, "TranslationKey", Value::string("")),
     "Translations" => |_p, _c, a| ret(a, 0, "Translations", nil_of("page.Pages")),
-    "Truncated" => |_p, _c, a| ret(a, 0, "Truncated", Value::Bool(false)),
+    "Truncated" => |_p, _c, a| ret_ctx(a, 0, "Truncated", Value::Bool(false)),
     "Type" => |_p, _c, a| ret(a, 0, "Type", Value::string("")),
     "URL" => |_p, _c, a| ret(a, 0, "URL", Value::string("")),
     "UniqueID" => |_p, _c, a| ret(a, 0, "UniqueID", Value::string("")),
     "Weight" => |_p, _c, a| ret(a, 0, "Weight", Value::int(0)),
-    "WordCount" => |_p, _c, a| ret(a, 0, "WordCount", Value::int(0)),
-    "Fragments" => |_p, _c, a| ret(a, 0, "Fragments", nil_of("*tableofcontents.Fragments")),
-    "HeadingsFiltered" => |_p, _c, a| ret(a, 0, "HeadingsFiltered", nil_of("tableofcontents.Headings")),
+    "WordCount" => |_p, _c, a| ret_ctx(a, 0, "WordCount", Value::int(0)),
+    "Fragments" => |_p, _c, a| ret_ctx(a, 0, "Fragments", nil_of("*tableofcontents.Fragments")),
+    "HeadingsFiltered" => |_p, _c, a| ret_ctx(a, 0, "HeadingsFiltered", nil_of("tableofcontents.Headings")),
 });
 
 impl Resource for NopPage {
@@ -450,15 +467,15 @@ pub struct NopMarkup;
 
 nh_common::go_methods!(NopMarkup {
     // Go: resources/page/page_nop.go:Render
-    "Render" => |_m, _c, a| ret(a, 0, "Render", Value::object(NopContent)),
+    "Render" => |_m, _c, a| ret_ctx(a, 0, "Render", Value::object(NopContent)),
     // Go: resources/page/page_nop.go:RenderString
     "RenderString" => |_m, _c, _a| Ok(html_empty()),
     // Go: resources/page/page_nop.go:RenderShortcodes
-    "RenderShortcodes" => |_m, _c, a| ret(a, 0, "RenderShortcodes", html_empty()),
+    "RenderShortcodes" => |_m, _c, a| ret_ctx(a, 0, "RenderShortcodes", html_empty()),
     // Go: resources/page/page_nop.go:Fragments
-    "Fragments" => |_m, _c, a| ret(a, 0, "Fragments", nil_of("*tableofcontents.Fragments")),
+    "Fragments" => |_m, _c, a| ret_ctx(a, 0, "Fragments", nil_of("*tableofcontents.Fragments")),
     // Go: resources/page/page_nop.go:FragmentsHTML
-    "FragmentsHTML" => |_m, _c, a| ret(a, 0, "FragmentsHTML", html_empty()),
+    "FragmentsHTML" => |_m, _c, a| ret_ctx(a, 0, "FragmentsHTML", html_empty()),
 });
 
 impl Object for NopMarkup {
@@ -471,23 +488,23 @@ pub struct NopContent;
 
 nh_common::go_methods!(NopContent {
     // Go: resources/page/page_nop.go:Plain
-    "Plain" => |_m, _c, a| ret(a, 0, "Plain", Value::string("")),
+    "Plain" => |_m, _c, a| ret_ctx(a, 0, "Plain", Value::string("")),
     // Go: resources/page/page_nop.go:PlainWords
-    "PlainWords" => |_m, _c, a| ret(a, 0, "PlainWords", nil_of("[]string")),
+    "PlainWords" => |_m, _c, a| ret_ctx(a, 0, "PlainWords", nil_of("[]string")),
     // Go: resources/page/page_nop.go:WordCount
-    "WordCount" => |_m, _c, a| ret(a, 0, "WordCount", Value::int(0)),
+    "WordCount" => |_m, _c, a| ret_ctx(a, 0, "WordCount", Value::int(0)),
     // Go: resources/page/page_nop.go:FuzzyWordCount
-    "FuzzyWordCount" => |_m, _c, a| ret(a, 0, "FuzzyWordCount", Value::int(0)),
+    "FuzzyWordCount" => |_m, _c, a| ret_ctx(a, 0, "FuzzyWordCount", Value::int(0)),
     // Go: resources/page/page_nop.go:ReadingTime
-    "ReadingTime" => |_m, _c, a| ret(a, 0, "ReadingTime", Value::int(0)),
+    "ReadingTime" => |_m, _c, a| ret_ctx(a, 0, "ReadingTime", Value::int(0)),
     // Go: resources/page/page_nop.go:Len
-    "Len" => |_m, _c, a| ret(a, 0, "Len", Value::int(0)),
+    "Len" => |_m, _c, a| ret_ctx(a, 0, "Len", Value::int(0)),
     // Go: resources/page/page_nop.go:Content
-    "Content" => |_m, _c, a| ret(a, 0, "Content", html_empty()),
+    "Content" => |_m, _c, a| ret_ctx(a, 0, "Content", html_empty()),
     // Go: resources/page/page_nop.go:ContentWithoutSummary
-    "ContentWithoutSummary" => |_m, _c, a| ret(a, 0, "ContentWithoutSummary", html_empty()),
+    "ContentWithoutSummary" => |_m, _c, a| ret_ctx(a, 0, "ContentWithoutSummary", html_empty()),
     // Go: resources/page/page_nop.go:Summary
-    "Summary" => |_m, _c, a| ret(a, 0, "Summary", Value::object(crate::page_markup::Summary::default())),
+    "Summary" => |_m, _c, a| ret_ctx(a, 0, "Summary", Value::object(crate::page_markup::Summary::default())),
 });
 
 impl Object for NopContent {

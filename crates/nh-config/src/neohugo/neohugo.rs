@@ -166,21 +166,53 @@ impl HugoInfo {
     }
 }
 
+// Go: common/neohugo/neohugo.go:HugoInfo (methods; text/template checks the argument count)
 nh_common::go_methods!(HugoInfo {
-    "Version" => |h, _c, _a| Ok(Value::object(h.version())),
-    "Generator" => |h, _c, _a| Ok(h.generator()),
-    "IsDevelopment" => |h, _c, _a| Ok(Value::Bool(h.is_development())),
-    "IsProduction" => |h, _c, _a| Ok(Value::Bool(h.is_production())),
-    "IsServer" => |h, _c, _a| Ok(Value::Bool(h.conf.running())),
-    "WorkingDir" => |h, _c, _a| Ok(Value::string(h.conf.working_dir())),
-    "Deps" => |h, _c, _a| Ok(h.deps_value()),
-    "Store" => |h, _c, _a| Ok(Value::Object(h.store.clone())),
-    "IsMultiHost" => |h, _c, _a| {
+    "Version" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "Version")?;
+        Ok(Value::object(h.version()))
+    },
+    "Generator" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "Generator")?;
+        Ok(h.generator())
+    },
+    "IsDevelopment" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "IsDevelopment")?;
+        Ok(Value::Bool(h.is_development()))
+    },
+    "IsProduction" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "IsProduction")?;
+        Ok(Value::Bool(h.is_production()))
+    },
+    "IsServer" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "IsServer")?;
+        Ok(Value::Bool(h.conf.running()))
+    },
+    "WorkingDir" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "WorkingDir")?;
+        Ok(Value::string(h.conf.working_dir()))
+    },
+    "Deps" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "Deps")?;
+        Ok(h.deps_value())
+    },
+    "Store" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "Store")?;
+        Ok(Value::Object(h.store.clone()))
+    },
+    "IsMultiHost" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "IsMultiHost")?;
         deprecate("hugo.IsMultiHost", "Use hugo.IsMultihost instead.", "v0.124.0");
         Ok(Value::Bool(h.conf.is_multihost()))
     },
-    "IsMultihost" => |h, _c, _a| Ok(Value::Bool(h.conf.is_multihost())),
-    "IsMultilingual" => |h, _c, _a| Ok(Value::Bool(h.conf.is_multilingual())),
+    "IsMultihost" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "IsMultihost")?;
+        Ok(Value::Bool(h.conf.is_multihost()))
+    },
+    "IsMultilingual" => |h, _c, a| {
+        nh_common::object::args::exactly(a, 0, "IsMultilingual")?;
+        Ok(Value::Bool(h.conf.is_multilingual()))
+    },
 });
 
 impl Object for HugoInfo {
@@ -372,13 +404,33 @@ pub fn deprecate_level_min(item: &str, alternative: &str, version: &str, min: De
 
 // Go: common/neohugo/neohugo.go:deprecateLevel
 fn deprecate_level(item: &str, alternative: &str, version: &str, level: DeprecationLevel) {
+    deprecate_level_with_logger(
+        item,
+        alternative,
+        version,
+        level,
+        &nh_common::loggers::log(),
+    );
+}
+
+/// DeprecateLevel informs about a deprecation logging at the given level, with the command
+/// field `deprecated` (printed as a `deprecated: ` prefix).
+// Go: common/neohugo/neohugo.go:deprecateLevelWithLogger
+pub fn deprecate_level_with_logger(
+    item: &str,
+    alternative: &str,
+    version: &str,
+    level: DeprecationLevel,
+    log: &nh_common::loggers::Logger,
+) {
+    use nh_common::loggers::Level;
     let msg = deprecation_message(item, alternative, version, level);
-    let log = nh_common::loggers::log();
-    match level {
-        DeprecationLevel::Error => log.errorf(&msg),
-        DeprecationLevel::Warn => log.warnf(&msg),
-        DeprecationLevel::Info => log.infof(&msg),
-    }
+    let level = match level {
+        DeprecationLevel::Error => Level::Error,
+        DeprecationLevel::Warn => Level::Warn,
+        DeprecationLevel::Info => Level::Info,
+    };
+    log.logf_cmd(level, "deprecated", msg);
 }
 
 /// Go: `GetDependencyListNonGo()` without Dart Sass (not supported): libsass and libwebp.

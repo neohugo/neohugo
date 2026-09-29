@@ -413,6 +413,8 @@ impl Object for LanguageObject {
             "LanguageDirection" => Some(Value::string(self.0.config.language_direction.as_str())),
             "Weight" => Some(Value::int(self.0.config.weight)),
             "Disabled" => Some(Value::Bool(self.0.config.disabled)),
+            // The embedded struct itself (its fields are promoted above).
+            "LanguageConfig" => Some(Value::object(self.0.config.clone())),
             _ => None,
         }
     }

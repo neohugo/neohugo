@@ -108,6 +108,11 @@ pub trait AllProvider: Send + Sync {
     fn print_i18n_warnings(&self) -> bool;
     /// Go: `CreateTitle(s)` = `helpers.GetTitleFunc(titleCaseStyle)`.
     fn create_title(&self, s: &str) -> String;
+    /// Go: `CreateTitle(s)` over Go string bytes (invalid UTF-8 included). The default converts
+    /// invalid UTF-8 lossily; `nh-allconfig`'s provider is exact.
+    fn create_title_bytes(&self, s: &[u8]) -> Vec<u8> {
+        self.create_title(&String::from_utf8_lossy(s)).into_bytes()
+    }
     fn ignore_file(&self, s: &str) -> bool;
     fn new_content_editor(&self) -> String;
     fn timeout(&self) -> Duration;

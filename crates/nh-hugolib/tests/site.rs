@@ -922,7 +922,7 @@ impl Dumper {
                         json!(self.norm(&String::from_utf8_lossy(&buf))),
                     );
                     if let Err(err) = r {
-                        let msg = normalize_arity_error(&self.norm(&err.to_string()));
+                        let msg = self.norm(&err.to_string());
                         e.insert("err".into(), json!(msg));
                     }
                     probe_dumps.push(J::Object(e));
@@ -953,20 +953,6 @@ fn s_(v: &str) -> Value {
 }
 
 /// Go panics in methods are errors in the port.
-/// Known engine gap (gotemplate, not T23): Go checks a method's argument count from its reflect
-/// signature before calling it (`...: wrong number of args for Title: want 0 got 1`); gotemplate
-/// lets the host method check it and reports the error as a call error (`...: error calling
-/// Title: wrong number of args for Title: want 0 got 1`). The message after the prefix is Go's.
-fn normalize_arity_error(msg: &str) -> String {
-    if let Some(i) = msg.find("error calling ") {
-        let rest = &msg[i + "error calling ".len()..];
-        if let Some(j) = rest.find(": wrong number of args for ") {
-            return format!("{}{}", &msg[..i], &rest[j + 2..]);
-        }
-    }
-    msg.to_string()
-}
-
 fn normalize_panics(v: &mut J) {
     match v {
         J::Object(m) => {

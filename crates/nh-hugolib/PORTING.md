@@ -538,16 +538,14 @@ build fails with `neohugo-rs: CODEOWNERS is not supported`).
   paginated page is `PagePaginator::{current, set_current}` of the current page output;
   `hugolib_sites_value(h)` is the `[]*hugolib.Site` of `sitemapindex.xml`;
   `HugoSites::prepare_pages_for_render(si, true, idx)` resets the built paginators.
-- T19 / other crates (found by `tests/methodsets.rs`; listed there as `KNOWN`): nh-page's
-  `*page.nopPage` and `page.Pages`/`page.PageGroup` context methods do not count the context in
-  their arity messages (`want 0 got 1` where Go says `want 1 got 2`); `page.WeightedPage`
-  answers every `*pageState` method (Go: the `page.Page` interface's, with `Page`/`Weight` as
-  fields); `*page.Pager` has no `Paginator` field; nh-page's nop `GitInfo` returns a nil
-  `*source.GitInfo` where Go's type string is `*gitmap.GitInfo`; nh-media's `media.Type`
-  (no `HasSuffix`) and nh-config's `neohugo.HugoInfo` check no argument counts; nh-common's
-  `maps.Params` and nh-page's `Sort`/`Swap` report `goodFunc` before arity; nh-langs has no
-  `LanguageConfig` field. gotemplate reports a host method's arity error as `error calling X:
-  wrong number of args ...` (Go: without `error calling X: `).
+- Other crates' method tables (found by `tests/methodsets.rs`) now match Go: the context
+  methods count the context, `page.WeightedPage` has the `page.Page` interface's methods,
+  `*page.Pager` has its `Paginator` field, `media.Type` and `neohugo.HugoInfo` check argument
+  counts, arity is checked before `goodFunc`, `*langs.Language` has its `LanguageConfig` field,
+  and gotemplate reports the pre-call errors (`go_value::Error::eval_call`) without the
+  `error calling X: ` prefix, as Go's `evalCall`. `KNOWN` keeps only the embedded provider
+  fields of the hugolib types (7 entries, from 75; the unsupported `*source.File` `FileInfo`/`Open` now check their argument count first too). The XML and CSV data files are decoded
+  (`tests/data.rs` `data-xml`, `data-csv`).
 - T25: `HugoSites::data()` returns the shared `Arc<Map>`; a load error is sent to the error
   handler (double-wrapped `failed to load data: failed to load data: ...`, as Go).
 

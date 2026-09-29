@@ -31,6 +31,16 @@ impl PathSpec {
         s
     }
 
+    /// [`PathSpec::make_path`] over Go string bytes (invalid UTF-8 included).
+    // Go: helpers/path.go:MakePath
+    pub fn make_path_bytes(&self, s: &[u8]) -> Vec<u8> {
+        let mut s = nh_common::paths::path::sanitize_bytes(s).into_owned();
+        if self.cfg.remove_path_accents() {
+            s = nh_common::text::remove_accents_string_bytes(&s);
+        }
+        s
+    }
+
     /// [`PathSpec::make_path`] as a `Result` (kept for callers; it never fails).
     // Go: helpers/path.go:MakePath
     pub fn try_make_path(&self, s: &str) -> Result<String> {
@@ -52,6 +62,15 @@ impl PathSpec {
             return self.make_path(s);
         }
         go_unicode::strings::to_lower_str(&self.make_path(s)).into_owned()
+    }
+
+    /// [`PathSpec::make_path_sanitized`] over Go string bytes (invalid UTF-8 included).
+    // Go: helpers/path.go:MakePathSanitized
+    pub fn make_path_sanitized_bytes(&self, s: &[u8]) -> Vec<u8> {
+        if self.cfg.disable_path_to_lower() {
+            return self.make_path_bytes(s);
+        }
+        go_unicode::strings::to_lower(&self.make_path_bytes(s)).into_owned()
     }
 
     /// [`PathSpec::make_path_sanitized`] as a `Result` (kept for callers; it never fails).

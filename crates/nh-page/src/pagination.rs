@@ -326,6 +326,54 @@ impl Object for PagerRef {
         Some(GoString::from(self.0.string()))
     }
 
+    /// Go: the embedded `*Paginator` field.
+    fn field(&self, name: &str) -> Option<Value> {
+        match name {
+            "Paginator" => Some(Value::object(PaginatorRef(self.0.paginator.clone()))),
+            _ => None,
+        }
+    }
+
+    fn identity(&self) -> usize {
+        Arc::as_ptr(&self.0) as usize
+    }
+}
+
+/// Go: a `*page.Paginator` as a template value (the `Paginator` field of a `*page.Pager`).
+#[derive(Clone)]
+pub struct PaginatorRef(pub Arc<Paginator>);
+
+nh_common::go_methods!(PaginatorRef {
+    // Go: resources/page/pagination.go:Pagers
+    "Pagers" => |p, _c, a| {
+        args::exactly(a, 0, "Pagers")?;
+        Ok(pagers_to_value(&p.0.pagers()))
+    },
+    // Go: resources/page/pagination.go:PageSize
+    "PageSize" => |p, _c, a| {
+        args::exactly(a, 0, "PageSize")?;
+        Ok(Value::int(p.0.page_size()))
+    },
+    // Go: resources/page/pagination.go:PagerSize
+    "PagerSize" => |p, _c, a| {
+        args::exactly(a, 0, "PagerSize")?;
+        Ok(Value::int(p.0.pager_size()))
+    },
+    // Go: resources/page/pagination.go:TotalPages
+    "TotalPages" => |p, _c, a| {
+        args::exactly(a, 0, "TotalPages")?;
+        Ok(Value::int(p.0.total_pages()))
+    },
+    // Go: resources/page/pagination.go:TotalNumberOfElements
+    "TotalNumberOfElements" => |p, _c, a| {
+        args::exactly(a, 0, "TotalNumberOfElements")?;
+        Ok(Value::int(p.0.total_number_of_elements()))
+    },
+});
+
+impl Object for PaginatorRef {
+    nh_common::object_basics!("*page.Paginator");
+
     fn identity(&self) -> usize {
         Arc::as_ptr(&self.0) as usize
     }

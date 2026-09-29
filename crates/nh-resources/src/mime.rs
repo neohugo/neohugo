@@ -1,22 +1,23 @@
-//! Port of the parts of Go's `mime` package (go1.27.1) that `resources/resource.go` reaches:
-//! `mime.TypeByExtension` (the fallback when no Hugo media type matches a resource's
-//! extension), with the built-in table, the unix system databases (`type_unix.go`) and the
-//! `ParseMediaType`/`FormatMediaType` it needs (`mediatype.go`, `grammar.go`).
-//!
-//! Like Go, the result depends on the machine: the FreeDesktop `globs2` database, or else the
-//! `mime.types` files, are read once (`sync.Once`) from the OS file system. Go strings are bytes:
-//! everything here works on `&[u8]`.
+//! Port of the parts of Go's `mime` package (go1.27.1) that neohugo reaches:
+//! `mime.TypeByExtension` (`resources/resource.go`: the fallback when no Hugo media type matches a
+//! resource's extension), `mime.ParseMediaType` and `mime.ExtensionsByType`
+//! (`resources/resource_factories/create/remote.go`: the `Content-Disposition` file name and the
+//! extension hints of a response whose content type is not accepted), with the built-in table,
+//! the unix system databases (`type_unix.go`) and `FormatMediaType` (`mediatype.go`,
+//! `grammar.go`). Shared by nh-resources and nh-resource-transformers.
 
 use std::collections::{BTreeMap, HashMap};
 use std::sync::OnceLock;
 
 use go_unicode::strings;
 
-/// Go: `mimeTypes`, `mimeTypesLower` (the `extensions` map is only read by
-/// `ExtensionsByType`, which Hugo does not call).
+/// Go: `mimeTypes`, `mimeTypesLower`, `extensions`.
 struct Tables {
     mime_types: HashMap<Vec<u8>, Vec<u8>>,
     mime_types_lower: HashMap<Vec<u8>, Vec<u8>>,
+    /// Go `extensions`: media type (without parameters) -> lower-case extensions, in insertion
+    /// order (Go ranges over the built-in map: the order is random, `ExtensionsByType` sorts).
+    extensions: HashMap<Vec<u8>, Vec<Vec<u8>>>,
 }
 
 /// Go: `builtinTypesLower` (go1.27.1 `mime/type.go`).
@@ -118,6 +119,7 @@ fn init_mime() -> Tables {
     let mut t = Tables {
         mime_types: HashMap::new(),
         mime_types_lower: HashMap::new(),
+        extensions: HashMap::new(),
     };
     set_mime_types(&mut t);
     init_mime_unix(&mut t);
@@ -132,6 +134,29 @@ fn set_mime_types(t: &mut Tables) {
         t.mime_types
             .insert(k.as_bytes().to_vec(), v.as_bytes().to_vec());
     }
+
+    for (k, v) in BUILTIN_TYPES_LOWER {
+        let (just_type, _) = parse_media_type(v.as_bytes()).unwrap_or_else(|e| panic!("{e}"));
+        t.extensions
+            .entry(just_type)
+            .or_default()
+            .push(k.as_bytes().to_vec());
+    }
+}
+
+/// ExtensionsByType returns the extensions known to be associated with the MIME type typ. The
+/// returned extensions will each begin with a leading dot, as in ".html". When typ has no
+/// associated extensions, ExtensionsByType returns `Ok(None)` (Go's nil slice).
+// Go: mime/type.go:ExtensionsByType
+pub fn extensions_by_type(typ: &[u8]) -> Result<Option<Vec<Vec<u8>>>, String> {
+    let (just_type, _) = parse_media_type(typ)?;
+
+    let Some(s) = tables().extensions.get(&just_type) else {
+        return Ok(None);
+    };
+    let mut ret = s.clone();
+    ret.sort();
+    Ok(Some(ret))
 }
 
 // Go: mime/type_unix.go:initMimeUnix
@@ -237,7 +262,13 @@ fn set_extension_type(t: &mut Tables, extension: &[u8], mime_type: &[u8]) -> Res
     let ext_lower = strings::to_lower(extension).into_owned();
 
     t.mime_types.insert(extension.to_vec(), mime_type.clone());
-    t.mime_types_lower.insert(ext_lower, mime_type);
+    t.mime_types_lower.insert(ext_lower.clone(), mime_type);
+
+    let exts = t.extensions.entry(just_type).or_default();
+    if exts.contains(&ext_lower) {
+        return Ok(());
+    }
+    exts.push(ext_lower);
     Ok(())
 }
 
@@ -434,11 +465,12 @@ fn trim_left_space(s: &[u8]) -> &[u8] {
     strings::trim_left_func(s, go_unicode::is_space)
 }
 
-type Params = BTreeMap<Vec<u8>, Vec<u8>>;
+/// Go: the `params map[string]string` of `ParseMediaType`.
+pub type Params = BTreeMap<Vec<u8>, Vec<u8>>;
 
 /// ParseMediaType parses a media type value and any optional parameters, per RFC 1521.
 // Go: mime/mediatype.go:ParseMediaType
-fn parse_media_type(v: &[u8]) -> Result<(Vec<u8>, Params), String> {
+pub fn parse_media_type(v: &[u8]) -> Result<(Vec<u8>, Params), String> {
     let base = match v.iter().position(|&c| c == b';') {
         Some(i) => &v[..i],
         None => v,
@@ -686,5 +718,19 @@ mod tests {
         assert_eq!(p.get(b"charset".as_slice()).unwrap(), b"utf-8");
         assert_eq!(format_media_type(&t, &p), b"text/html; charset=utf-8");
         assert!(parse_media_type(b"text/").is_err());
+    }
+
+    #[test]
+    fn extensions() {
+        // Built-in entries (a system database may add more; the result is sorted).
+        let json = extensions_by_type(b"application/json; charset=UTF-8")
+            .unwrap()
+            .unwrap();
+        assert!(json.contains(&b".json".to_vec()));
+        let mut sorted = json.clone();
+        sorted.sort();
+        assert_eq!(json, sorted);
+        assert_eq!(extensions_by_type(b"x-no/such-type").unwrap(), None);
+        assert!(extensions_by_type(b"").is_err());
     }
 }

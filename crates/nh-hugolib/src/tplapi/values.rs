@@ -22,9 +22,10 @@ use nh_page::page::{PageRef, Pages, pages_to_value};
 pub fn arity(args: &[Value], num_in: usize, ctx: bool, name: &str) -> GoResult<()> {
     let got = args.len() + usize::from(ctx);
     if got != num_in {
-        return Err(go_value::Error::new(format!(
-            "wrong number of args for {name}: want {num_in} got {got}"
-        )));
+        return Err(go_value::Error::eval_call(
+            format!("wrong number of args for {name}: want {num_in} got {got}"),
+            go_value::EvalCallError::Call,
+        ));
     }
     Ok(())
 }
@@ -34,11 +35,14 @@ pub fn arity(args: &[Value], num_in: usize, ctx: bool, name: &str) -> GoResult<(
 pub fn arity_variadic(args: &[Value], num_in: usize, ctx: bool, name: &str) -> GoResult<()> {
     let got = args.len() + usize::from(ctx);
     if got < num_in - 1 {
-        return Err(go_value::Error::new(format!(
-            "wrong number of args for {name}: want at least {} got {}",
-            num_in - 1,
-            args.len()
-        )));
+        return Err(go_value::Error::eval_call(
+            format!(
+                "wrong number of args for {name}: want at least {} got {}",
+                num_in - 1,
+                args.len()
+            ),
+            go_value::EvalCallError::Call,
+        ));
     }
     Ok(())
 }

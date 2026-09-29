@@ -7,7 +7,7 @@
 pub mod image;
 pub mod image_cache;
 pub mod jsconfig;
-pub(crate) mod mime;
+pub mod mime;
 pub mod post_publish;
 pub mod postpub;
 pub mod resource;

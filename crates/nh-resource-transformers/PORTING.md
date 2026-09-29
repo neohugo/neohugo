@@ -9,7 +9,7 @@ Crate lead: Wave B task T15 (resource-factories).
 |---|---|---|---|
 | `resource_factories::create::create` | `resources/resource_factories/create/create.go` | T15 | ported (all 10) |
 | `resource_factories::create::remote` | `resources/resource_factories/create/remote.go` | T15 | ported (13 of 14); `transport.RoundTrip` (the network, with retries) is the httpcache transport's `NoNetwork` |
-| `resource_factories::create::mime` (private) | go1.27.1 `mime/type.go`, `type_unix.go`, `mediatype.go`, `grammar.go` | T15 | NEW: a copy of nh-resources' private `mime` module plus `ExtensionsByType` |
+| (`nh_resources::mime`) | go1.27.1 `mime/type.go`, `type_unix.go`, `mediatype.go`, `grammar.go` | T15 | `ParseMediaType` and `ExtensionsByType` come from nh-resources' shared `mime` module (the former private copy here was merged into it) |
 | `resource_factories::bundler` | `resources/resource_factories/bundler/bundler.go` | T15 | ported (all 7) |
 | `resource_transformers::integrity` | `resources/resource_transformers/integrity/integrity.go` | T15 | ported (all 7) |
 | `resource_transformers::minifier` | `resources/resource_transformers/minifier/minify.go` | T15 | ported (all 4) |
@@ -75,7 +75,7 @@ is T15's too; its notes are here.
 7. **Go panics become errors**: a resource over a directory (`resources.Get "js"`) panics in Go
    when read (`this operation is not supported`), the port returns that error; `Get`/`Match`/
    `GetMatch`/`ByType`/`Copy` panics are template errors in both.
-8. The ExtensionsByType copy of the `mime` tables is machine dependent like Go (globs2 or
+8. The `mime` tables (`nh_resources::mime`) is machine dependent like Go (globs2 or
    mime.types); only content types without an accepted media type reach it.
 
 ## Go behaviour reproduced on purpose

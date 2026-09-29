@@ -317,15 +317,31 @@ impl OsFile {
     }
 }
 
+impl OsFile {
+    /// Go: `(*os.File).wrapErr(op, err)`: an OS error of `Read`/`Write`/`Seek` is a
+    /// `*PathError` with the file's name (e.g. `read <path>: is a directory`).
+    // Go: os/file.go:(*File).wrapErr
+    fn wrap_err(&self, op: &str, e: io::Error) -> io::Error {
+        if e.raw_os_error().is_none() {
+            return e;
+        }
+        oserror::to_io(oserror::from_io(op, &self.name, &e))
+    }
+}
+
 impl Read for OsFile {
+    // Go: os/file.go:(*File).Read
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
-        self.file()?.read(buf)
+        let r = self.file()?.read(buf);
+        r.map_err(|e| self.wrap_err("read", e))
     }
 }
 
 impl Write for OsFile {
+    // Go: os/file.go:(*File).Write
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.file()?.write(buf)
+        let r = self.file()?.write(buf);
+        r.map_err(|e| self.wrap_err("write", e))
     }
     fn flush(&mut self) -> io::Result<()> {
         self.file()?.flush()
@@ -333,8 +349,10 @@ impl Write for OsFile {
 }
 
 impl Seek for OsFile {
+    // Go: os/file.go:(*File).Seek
     fn seek(&mut self, pos: SeekFrom) -> io::Result<u64> {
-        self.file()?.seek(pos)
+        let r = self.file()?.seek(pos);
+        r.map_err(|e| self.wrap_err("seek", e))
     }
 }
 

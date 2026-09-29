@@ -32,6 +32,70 @@ pub struct LanguageConfig {
     pub disabled: bool,
 }
 
+impl LanguageConfig {
+    /// The exported fields in declaration order.
+    fn fields(&self) -> Vec<(std::borrow::Cow<'_, str>, Value)> {
+        use std::borrow::Cow::Borrowed;
+        vec![
+            (
+                Borrowed("LanguageName"),
+                Value::string(self.language_name.as_str()),
+            ),
+            (
+                Borrowed("LanguageCode"),
+                Value::string(self.language_code.as_str()),
+            ),
+            (Borrowed("Title"), Value::string(self.title.as_str())),
+            (
+                Borrowed("LanguageDirection"),
+                Value::string(self.language_direction.as_str()),
+            ),
+            (Borrowed("Weight"), Value::int(self.weight)),
+            (Borrowed("Disabled"), Value::Bool(self.disabled)),
+        ]
+    }
+}
+
+/// Go: a `langs.LanguageConfig` struct value (the embedded field of `*langs.Language`; it has no
+/// methods).
+impl go_value::Object for LanguageConfig {
+    fn type_name(&self) -> std::borrow::Cow<'_, str> {
+        std::borrow::Cow::Borrowed("langs.LanguageConfig")
+    }
+
+    fn kind(&self) -> go_value::Kind {
+        go_value::Kind::Struct
+    }
+
+    fn has_method(&self, _name: &str) -> bool {
+        false
+    }
+
+    fn call_method(
+        &self,
+        _ctx: go_value::HostCtx<'_>,
+        _name: &str,
+        _args: &[Value],
+    ) -> Option<go_value::Result<Value>> {
+        None
+    }
+
+    fn field(&self, name: &str) -> Option<Value> {
+        self.fields()
+            .into_iter()
+            .find(|(n, _)| n == name)
+            .map(|(_, v)| v)
+    }
+
+    fn struct_fields(&self) -> Option<Vec<(std::borrow::Cow<'_, str>, Value)>> {
+        Some(self.fields())
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
 /// Go: `langs.DecodeConfig(m map[string]any) (map[string]LanguageConfig, error)`.
 // Go: langs/config.go:DecodeConfig
 pub fn decode_config(m: &go_value::Map) -> Result<BTreeMap<String, LanguageConfig>> {

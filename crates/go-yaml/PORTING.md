@@ -225,3 +225,14 @@ Bugs found and fixed in this round:
 - `yaml.Decoder` after a parse error: Go panics on the next `Decode`
   ("attempted to parse unknown event"); the port returns that message as an
   error (neohugo does not use `yaml.Decoder`).
+
+## Encoding (`encode.rs`)
+
+`yaml.Marshal` (encode.go, sorter.go, emitterc.go, the emitter half of apic.go/writerc.go,
+`encodeBase64`, `isBase60Float`) over a `Node` tree: the caller maps its values onto the kinds
+yaml.v2 dispatches on (`TextMarshaler`s resolved to strings, `time.Time` pre-formatted with
+`RFC3339Nano`). The map key order is `keyList.Less` run through go-sort's pdqsort (Go's
+`sort.Sort`), starting from byte order. Anchors, aliases, directives, flow style and struct
+values are not reachable from a `Node`. Added for nh-parser's `InterfaceToConfig(YAML)` and
+verified by nh-parser's `formats` oracle (encode cases). New dependencies: go-unicode
+(`IsLetter`/`IsDigit`, utf8) and go-sort.

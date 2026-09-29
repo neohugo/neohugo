@@ -196,7 +196,13 @@ slices/maps and `Invalid` (empty → `else`); anything else is
 
 Execution errors are `Error::Exec(ExecError { name, message, cause })` with
 Go's text `template: %s: executing %q at <%s>: %s`; func/method errors are
-`error calling %s: <err>` with `cause` = the host error. `try` returns a
+`error calling %s: <err>` with `cause` = the host error, except the errors Go's `evalCall`
+reports itself before the call (argument count, `validateType`, `goodFunc`): hosts check those
+(they receive `any` arguments) and mark them with `go_value::Error::eval_call(msg, at)`, and the
+engine reports them without the prefix and without a cause, at the node Go uses (the function
+identifier or field for the count and `goodFunc`, the argument for its type). Verified by
+`tests/callerr.rs` against `tools/go-oracle/gotemplate/callerr` (33 cases, Go 1.27.1
+`text/template`; the fork's `goodFunc` text is the Hugo layer's). `try` returns a
 `TryValue` object (`.Value`, `.Err` = `*template.TryError` with `.Err`,
 `.Cause`, `Error()`). Without an error `.Err` is a nil `*template.TryError`
 (`TypedNil`), declared to go-fmt as a type whose `Error` method panics on a

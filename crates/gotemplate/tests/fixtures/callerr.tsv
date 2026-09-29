@@ -1,0 +1,33 @@
+{{.M0}}	m0	
+{{.M0 1}}		template: t:1:2: executing "t" at <.M0>: wrong number of args for M0: want 0 got 1
+{{.M0 1 2}}		template: t:1:2: executing "t" at <.M0>: wrong number of args for M0: want 0 got 2
+{{.M1}}		template: t:1:2: executing "t" at <.M1>: wrong number of args for M1: want 1 got 0
+{{.M1 "a"}}	m1:a	
+{{.M1 "a" "b"}}		template: t:1:2: executing "t" at <.M1>: wrong number of args for M1: want 1 got 2
+{{$x := 1}}{{.M1 $x}}		template: t:1:17: executing "t" at <$x>: wrong type for value; expected string; got int
+{{.M2 1}}		template: t:1:2: executing "t" at <.M2>: wrong number of args for M2: want 2 got 1
+{{.M2 1 2 3}}		template: t:1:2: executing "t" at <.M2>: wrong number of args for M2: want 2 got 3
+{{.V}}		template: t:1:2: executing "t" at <.V>: wrong number of args for V: want at least 1 got 0
+{{.V "a"}}	0	
+{{.V "a" "b"}}	1	
+{{.Err}}		template: t:1:2: executing "t" at <.Err>: error calling Err: boom
+{{.ErrLike}}		template: t:1:2: executing "t" at <.ErrLike>: error calling ErrLike: wrong number of args for ErrLike: want 9 got 9
+{{.Bad 1}}		template: t:1:2: executing "t" at <.Bad>: wrong number of args for Bad: want 0 got 1
+{{.Arg1Err "x"}}		template: t:1:2: executing "t" at <.Arg1Err>: error calling Arg1Err: bad x
+{{.Arg1Err}}		template: t:1:2: executing "t" at <.Arg1Err>: wrong number of args for Arg1Err: want 1 got 0
+{{f0}}	f0	
+{{f0 1}}		template: t:1:2: executing "t" at <f0>: wrong number of args for f0: want 0 got 1
+{{f1}}		template: t:1:2: executing "t" at <f1>: wrong number of args for f1: want 1 got 0
+{{f1 "a" "b"}}		template: t:1:2: executing "t" at <f1>: wrong number of args for f1: want 1 got 2
+{{$x := 2}}{{f1 $x}}		template: t:1:16: executing "t" at <$x>: wrong type for value; expected string; got int
+{{fv}}		template: t:1:2: executing "t" at <fv>: wrong number of args for fv: want at least 1 got 0
+{{fv "a"}}	0	
+{{ferr}}		template: t:1:2: executing "t" at <ferr>: error calling ferr: ferr failed
+{{"a" | f1}}	a	
+{{"a" | f0}}		template: t:1:8: executing "t" at <f0>: wrong number of args for f0: want 0 got 1
+{{"a" | .M0}}		template: t:1:8: executing "t" at <.M0>: wrong number of args for M0: want 0 got 1
+{{"a" | .M1}}	m1:a	
+{{"a" | .M1 "b"}}		template: t:1:8: executing "t" at <.M1>: wrong number of args for M1: want 1 got 2
+{{1 | .M2 1}}	2	
+{{$x := 3}}{{$x | .M1}}		template: t:1:18: executing "t" at <.M1>: wrong type for value; expected string; got int
+{{$y := 4}}{{"a" | .V $y}}		template: t:1:22: executing "t" at <$y>: wrong type for value; expected string; got int

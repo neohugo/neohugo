@@ -183,7 +183,7 @@ fn call(ctx: HostCtx<'_>, recv: &Value, p: &Pages, name: &str, a: &[Value]) -> G
         "ByLastmod" => sorted(ps::by_lastmod),
         "ByLanguage" => sorted(ps::by_language),
         "ByLength" => {
-            args::exactly(a, 0, name)?;
+            exactly_ctx(a, 0, name)?;
             Ok(pages_to_value(&ps::by_length(ctx, p)))
         }
         "ByParam" => {
@@ -209,7 +209,7 @@ fn call(ctx: HostCtx<'_>, recv: &Value, p: &Pages, name: &str, a: &[Value]) -> G
             Ok(recv.clone())
         }
         "GroupBy" => {
-            args::at_least(a, 1, name)?;
+            at_least_ctx(a, 1, name)?;
             let key = args::string(a, 0)?;
             let order = strings_vec(a, 1)?;
             let g =
@@ -271,12 +271,12 @@ fn call(ctx: HostCtx<'_>, recv: &Value, p: &Pages, name: &str, a: &[Value]) -> G
                 .map_err(err)
         }
         "Related" => {
-            args::exactly(a, 1, name)?;
+            exactly_ctx(a, 1, name)?;
             let r = crate::pages_related::related_opt(ctx, p, &args::get(a, 0)?).map_err(err)?;
             Ok(pages_opt_value(r))
         }
         "RelatedIndices" => {
-            args::at_least(a, 1, name)?;
+            at_least_ctx(a, 1, name)?;
             let doc = crate::pages_related::document_arg(&args::get(a, 0)?)
                 .map_err(|t| args::wrong_type("related.Document", &Value::string(t)))?;
             let r = crate::pages_related::related_indices(ctx, p, doc, args::rest(a, 1))
@@ -343,6 +343,40 @@ pub fn probably_eq_value(a: &Pages, other: &Value) -> bool {
 /// A page from a value, for callers that hold one (`Eq` semantics: the unwrapped page).
 pub fn same_page(a: &PageRef, b: &Value) -> bool {
     page_from_value(b).is_some_and(|b| a.same_page(&b))
+}
+
+/// The argument count of a method whose first parameter is a `context.Context` (passed by the
+/// template engine): `n` more parameters; Go's counts include the context.
+// Go: text/template/exec.go:evalCall (argument count)
+fn exactly_ctx(a: &[Value], n: usize, name: &str) -> GoResult<()> {
+    if a.len() != n {
+        return Err(go_value::Error::eval_call(
+            format!(
+                "wrong number of args for {name}: want {} got {}",
+                n + 1,
+                a.len() + 1
+            ),
+            go_value::EvalCallError::Call,
+        ));
+    }
+    Ok(())
+}
+
+/// [`exactly_ctx`] for a variadic method with `n` fixed parameters after the context: Go's
+/// "want at least" counts the context, its "got" does not.
+// Go: text/template/exec.go:evalCall (variadic argument count)
+fn at_least_ctx(a: &[Value], n: usize, name: &str) -> GoResult<()> {
+    if a.len() < n {
+        return Err(go_value::Error::eval_call(
+            format!(
+                "wrong number of args for {name}: want at least {} got {}",
+                n + 1,
+                a.len()
+            ),
+            go_value::EvalCallError::Call,
+        ));
+    }
+    Ok(())
 }
 
 // ---------------------------------------------------------------------------

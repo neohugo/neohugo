@@ -7,7 +7,11 @@ go-json), pageparser lexer. Owner and crate lead: Wave B task T03 (parser-langs)
 
 | Rust module | Go source(s) | Status / note |
 |---|---|---|
-| `metadecoders::decoder` | `parser/metadecoders/decoder.go` | ported; CSV, XML and ORG decoding STUB (explicit `neohugo-rs:` error) |
+| `metadecoders::decoder` | `parser/metadecoders/decoder.go` | ported; ORG decoding STUB (explicit `neohugo-rs:` error) |
+| `metadecoders::csv` | go1.27.1 `encoding/csv/reader.go` | NEW: the reader subset `unmarshalCSV` uses (`Comma`, `Comment`, `LazyQuotes`, `ReadAll`) |
+| `metadecoders::xml` | go1.27.1 `encoding/xml/xml.go` | NEW: the strict `Decoder.Token` path (no `CharsetReader`/`Entity`/`AutoClose`), the name tables, `EscapeText` |
+| `metadecoders::mxj` | `github.com/clbanning/mxj/v2@v2.7.0` `xml.go`, `anyxml.go`, `misc.go` | NEW: `NewMapXml` + `Map.Root` and `AnyXmlIndent` of a map, with mxj's default settings |
+| `metadecoders::toml::marshaler` | `github.com/pelletier/go-toml/v2@v2.2.4/marshaler.go` | NEW: the `Encoder` with `SetIndentTables(true)` over map/slice/scalar/time/TextMarshaler values (no structs) |
 | `metadecoders::format` | `parser/metadecoders/format.go` | ported (all functions) |
 | `metadecoders::toml` (+ `toml/*`) | `github.com/pelletier/go-toml/v2@v2.2.4`: `unstable/{ast,builder,kind,parser,scanner}.go` (`toml/parser.rs`), `internal/characters` (`toml/characters.rs`), `decode.go` (`toml/decode.rs`), `errors.go` (`toml/errors.rs`), `internal/tracker/seen.go` (`toml/tracker.rs`), `localtime.go` (`toml.rs`), `unmarshaler.go` for `any`/`map[string]any` targets (`toml/unmarshaler.rs`) | NEW: full port (decision below) |
 | `pageparser::item` | `parser/pageparser/item.go`, `itemtype_string.go` | ported (all functions) |
@@ -15,15 +19,16 @@ go-json), pageparser lexer. Owner and crate lead: Wave B task T03 (parser-langs)
 | `pageparser::pagelexer_intro` | `parser/pageparser/pagelexer_intro.go` | ported (all functions, JSON and org front matter included) |
 | `pageparser::pagelexer_shortcode` | `parser/pageparser/pagelexer_shortcode.go` | ported (all functions) |
 | `pageparser::pageparser` | `parser/pageparser/pageparser.go` | ported (all functions) |
-| `frontmatter` | `parser/frontmatter.go`, `parser/lowercase_camel_json.go` | JSON output and the three JSON marshallers ported; YAML/TOML/XML encoders STUB |
+| `frontmatter` | `parser/frontmatter.go`, `parser/lowercase_camel_json.go` | ported: JSON (go-json), YAML (go-yaml's port of yaml.v2 `Marshal`), TOML (`toml::marshaler`), XML (`mxj`), the three JSON marshallers |
 
-Every GO PORTING CHECKLIST entry is `OK` except the stubs (`unmarshalCSV`, `parseORGDate`,
-`unmarshalORG`: `STUB`). No `EX` entries remain.
+Every GO PORTING CHECKLIST entry is `OK` except the ORG stubs (`parseORGDate`, `unmarshalORG`:
+`STUB`). No `EX` entries remain.
 
 ## Dependencies
 
 - nh-*: nh-common.
-- Wave A: go-value, go-yaml, go-json, go-strconv, go-time, go-unicode, go-path.
+- Wave A: go-value, go-yaml, go-json, go-strconv, go-time, go-unicode, go-path, go-fmt (`%v` of
+  the mxj encoder's values).
 - crates.io: none. The `toml` crate is not used (see below).
 - dev: `serde_json` (fixture reader), `flate2` with `rust_backend` (gunzip of fixtures; README
   rule 2), `go-fmt` (a `%v` check of the go-toml objects).
@@ -81,9 +86,15 @@ position and human context) and 314,767 in the larger out-of-repo run, with 0 di
    `_stream.toml`; for the others nh-common's line-number extraction. Go's `UpdateContent`
    (source excerpt, offset → line) is not ported. `metadecoders::toml::Error` keeps go-toml's
    error bytes, position and human text exactly.
-4. **CSV, XML and ORG** decoding return `neohugo-rs: … is not supported` (seeksnack has none;
-   HUGO_LAYER.md §1 rule 5). The lexer handles org front matter fully; decoding it fails. The
-   YAML, TOML and XML encoders of `frontmatter.rs` (`hugo config`, `hugo new`) are stubs too.
+4. **ORG** decoding returns `neohugo-rs: … is not supported` (seeksnack has none; HUGO_LAYER.md
+   §1 rule 5). The lexer handles org front matter fully; decoding it fails.
+   The encoders take go_value values; values Go would reach only through reflection (structs
+   without `MarshalText`, funcs, channels, typed nil pointers) give a `neohugo-rs:` error. XML
+   error texts are converted lossily into `nh_common::Error` (like YAML's).
+   Go picks the invalid attribute an mxj error names, and the order of map keys yaml.v2's
+   `keyList` gives for keys it cannot order consistently ("01", "1.5", "0x1F"), from Go's random
+   map order; the port starts from byte order. The oracle records every result Go gave in 200
+   runs (`alts`, 6 of 3,698 encode cases); the port's must be one of them.
 5. **Nil maps and nil data.** Go's `UnmarshalToMap(nil)` (no front matter) differs from an empty
    non-nil slice (JSON: `unexpected end of JSON input`), and a `null` YAML/JSON document gives a
    nil map. `Decoder::unmarshal_to_map_opt`/`unmarshal_to_map_nilable` keep both distinctions;
@@ -107,8 +118,7 @@ position and human context) and 314,767 in the larger out-of-repo run, with 0 di
 
 ## Known gaps
 
-- CSV/XML/ORG decoding and YAML/TOML/XML encoding (stubs, above).
-- `Decoder.unmarshal_csv` would need an `encoding/csv` port if a data file ever uses CSV.
+- ORG decoding (stub, above).
 
 ## Verification
 
@@ -121,6 +131,9 @@ site is private, so the inputs substitute for it.
 |---|---|---|---|
 | `pageparser/pages.json.gz` | 5,540 pages: every `.md/.markdown/.html/.gotmpl` file under `docs/content`, `hugolib/testsite`, `create/skeletons` (980); the 291 string literals of `parser/pageparser/*_test.go`; the 218 seeksnack YAML front matters kept in go-yaml's fixture, wrapped in `---` with a shortcode body; 51 hand-written front matter shapes (YAML/TOML/JSON/org, BOM, CRLF, unterminated, every value type); 4,000 seeded token soups of shortcode syntax (nested, inline, self-closing, unclosed, comments, quoted/raw/escaped params, `{{% %}}` vs `{{< >}}`, summary dividers, unicode, invalid UTF-8) | `tests/pageparser.rs` | 141,869 items × (type, low, high, first byte, isString, segments, error, `Pos`, `ValTyped`, `ToString`, `Val`) for 3 configs (default, `NoFrontMatter`, `NoSummaryDivider`), `IsProbablySourceOfItems`, `LineNumber` of every item, `Consume`/`IsValueNext`, `HasShortcode`, and `ParseFrontMatterAndContent` (format, content offset, 4,555 decoded front matters with Go types, error texts): 211,919 checks |
 | `metadecoders/decode.json.gz` | 29,435 documents: every `.toml/.yaml/.yml/.json` file of the repository (`docs/hugo.toml`, `docs/data/**`, test data: 46); every string literal of go-toml's tests (the toml-test suite, `unmarshaler_test.go`, `errors_test.go`, …) and its fuzz corpus; 221 hand-written TOML documents (ints at the int64 bounds, all bases, floats, inf/nan, offset/local dates and times, fractional seconds, leap seconds, nested tables, arrays of tables, dotted keys, inline tables, multiline strings, escapes, invalid documents), YAML and JSON documents; every prefix of the small valid documents (20,094), seeded byte substitutions, concatenations, 3,000 TOML token soups | `tests/metadecoders.rs` | `UnmarshalToMap` and `Unmarshal` (value + Go type or error cause) for every document; for TOML also `toml.Unmarshal` (value, or `Error()`, `DecodeError.Position()` and `String()`): 109,474 checks |
+| `formats/csv.json.gz` | 552 CSV documents (hand-written, the `Input`s of go1.27.1's `encoding/csv/reader_test.go`, 300 seeded token soups) × 16 decoder configurations (delimiters `,` `;` tab `é` `\|` and invalid ones, comments, lazy quotes, target types map/slice/bogus) | `tests/formats.rs` | 8,832 cases: `Unmarshal` and `UnmarshalToMap` (typed value or error): 17,664 checks |
+| `formats/xml.json.gz` | 2,242 XML documents: hand-written, the string literals of go1.27.1's `encoding/xml` tests and mxj's tests and `.xml` files, prefixes and byte substitutions of the small ones, 400 seeded token soups | `tests/formats.rs` | `Unmarshal` and `UnmarshalToMap`: 4,484 checks |
+| `formats/encode.json.gz` | 3,698 maps decoded from hand-written YAML/TOML/JSON, the repository's data files and 1,800 random documents (random keys and values serialized with yaml.v2 / JSON: tricky strings and keys, ints, uint64 max, floats incl. inf/NaN/5e-324, nil, nested maps and lists, invalid UTF-8), each with and without `transform.Remarshal`'s `applyMarshalTypes` | `tests/formats.rs` | `InterfaceToConfig` to YAML, TOML, XML and JSON: 14,792 checks (12,846 outputs) |
 | `metadecoders/misc.json.gz` | format names, content strings × 2 delimiters, decoder options, empty data × formats × target types, `UnmarshalStringTo` 24 strings × 10 target types | `tests/metadecoders.rs` | 332 |
 
 Go's own tests are ported in `tests/go_tables.rs` (`decoder_test.go`, `format_test.go`,
@@ -150,3 +163,13 @@ NH_PARSER_DECODE=/tmp/md/decode.json.gz cargo test --release --test metadecoders
 ```
 
 The fixtures regenerate byte for byte (gzip at best compression without name or time).
+
+The `formats` fixtures come from `tools/go-oracle/nh-parser/formats`, run as linux/arm64 under
+qemu (`applyMarshalTypes`' `int64(2^63)` saturates on arm64, the golden platform, and gives
+`MinInt64` on amd64: the amd64 run differs in the encode cases of 9223372036854775807). The
+fixtures regenerate byte for byte:
+
+```sh
+GOARCH=arm64 CGO_ENABLED=0 go build -o /tmp/formats-arm64 ./tools/go-oracle/nh-parser/formats
+qemu-aarch64-static /tmp/formats-arm64 -goroot "$(go env GOROOT)" -out crates/nh-parser/tests/fixtures/formats
+```

@@ -171,17 +171,26 @@ macro_rules! object_basics {
 /// this only matters for templates that fail in Go).
 pub mod args {
     use super::*;
-    use go_value::{FloatKind, GoString, IntKind};
+    use go_value::{EvalCallError, FloatKind, GoString, IntKind};
+
+    /// A `validateType` error of the i-th argument (Go reports it at that argument, without the
+    /// `error calling X: ` prefix).
+    fn at(i: usize, e: go_value::Error) -> go_value::Error {
+        go_value::Error::eval_call(e.message(), EvalCallError::Arg(i))
+    }
 
     // Go: text/template/exec.go:evalCall (argument count)
     /// Errors unless exactly `n` arguments were passed
     /// (Go: `wrong number of args for %s: want %d got %d`).
     pub fn exactly(args: &[Value], n: usize, name: &str) -> GoResult<()> {
         if args.len() != n {
-            return Err(go_value::Error::new(format!(
-                "wrong number of args for {name}: want {n} got {}",
-                args.len()
-            )));
+            return Err(go_value::Error::eval_call(
+                format!(
+                    "wrong number of args for {name}: want {n} got {}",
+                    args.len()
+                ),
+                EvalCallError::Call,
+            ));
         }
         Ok(())
     }
@@ -191,10 +200,13 @@ pub mod args {
     /// (Go: `wrong number of args for %s: want at least %d got %d`).
     pub fn at_least(args: &[Value], n: usize, name: &str) -> GoResult<()> {
         if args.len() < n {
-            return Err(go_value::Error::new(format!(
-                "wrong number of args for {name}: want at least {n} got {}",
-                args.len()
-            )));
+            return Err(go_value::Error::eval_call(
+                format!(
+                    "wrong number of args for {name}: want at least {n} got {}",
+                    args.len()
+                ),
+                EvalCallError::Call,
+            ));
         }
         Ok(())
     }
@@ -233,8 +245,8 @@ pub mod args {
     pub fn string(args: &[Value], i: usize) -> GoResult<GoString> {
         match args.get(i) {
             Some(Value::String(s)) => Ok(s.clone()),
-            Some(Value::Invalid) => Err(invalid_value("string")),
-            Some(v) => Err(wrong_type("string", v)),
+            Some(Value::Invalid) => Err(at(i, invalid_value("string"))),
+            Some(v) => Err(at(i, wrong_type("string", v))),
             None => Err(missing(i)),
         }
     }
@@ -246,16 +258,16 @@ pub mod args {
     pub fn named_string(args: &[Value], i: usize, go_type: &str) -> GoResult<GoString> {
         match args.get(i) {
             Some(Value::String(s)) => Ok(s.clone()),
-            Some(Value::Invalid) => Err(invalid_value(go_type)),
+            Some(Value::Invalid) => Err(at(i, invalid_value(go_type))),
             Some(v @ Value::Object(o)) => {
                 if o.type_name() == go_type
                     && let Some(Value::String(s)) = o.underlying()
                 {
                     return Ok(s);
                 }
-                Err(wrong_type(go_type, v))
+                Err(at(i, wrong_type(go_type, v)))
             }
-            Some(v) => Err(wrong_type(go_type, v)),
+            Some(v) => Err(at(i, wrong_type(go_type, v))),
             None => Err(missing(i)),
         }
     }
@@ -265,8 +277,8 @@ pub mod args {
     pub fn bool(args: &[Value], i: usize) -> GoResult<bool> {
         match args.get(i) {
             Some(Value::Bool(b)) => Ok(*b),
-            Some(Value::Invalid) => Err(invalid_value("bool")),
-            Some(v) => Err(wrong_type("bool", v)),
+            Some(Value::Invalid) => Err(at(i, invalid_value("bool"))),
+            Some(v) => Err(at(i, wrong_type("bool", v))),
             None => Err(missing(i)),
         }
     }
@@ -276,8 +288,8 @@ pub mod args {
     pub fn int(args: &[Value], i: usize) -> GoResult<i64> {
         match args.get(i) {
             Some(Value::Int(n, IntKind::Int)) => Ok(*n),
-            Some(Value::Invalid) => Err(invalid_value("int")),
-            Some(v) => Err(wrong_type("int", v)),
+            Some(Value::Invalid) => Err(at(i, invalid_value("int"))),
+            Some(v) => Err(at(i, wrong_type("int", v))),
             None => Err(missing(i)),
         }
     }
@@ -287,8 +299,8 @@ pub mod args {
     pub fn int64(args: &[Value], i: usize) -> GoResult<i64> {
         match args.get(i) {
             Some(Value::Int(n, IntKind::Int64 | IntKind::Int)) => Ok(*n),
-            Some(Value::Invalid) => Err(invalid_value("int64")),
-            Some(v) => Err(wrong_type("int64", v)),
+            Some(Value::Invalid) => Err(at(i, invalid_value("int64"))),
+            Some(v) => Err(at(i, wrong_type("int64", v))),
             None => Err(missing(i)),
         }
     }
@@ -300,8 +312,8 @@ pub mod args {
         match args.get(i) {
             Some(Value::Float(f, FloatKind::F64)) => Ok(*f),
             Some(Value::Int(n, IntKind::Int)) => Ok(*n as f64),
-            Some(Value::Invalid) => Err(invalid_value("float64")),
-            Some(v) => Err(wrong_type("float64", v)),
+            Some(Value::Invalid) => Err(at(i, invalid_value("float64"))),
+            Some(v) => Err(at(i, wrong_type("float64", v))),
             None => Err(missing(i)),
         }
     }
@@ -328,9 +340,10 @@ pub mod args {
 /// this error.
 // Go: text/template/exec.go:evalCall (goodFunc)
 pub fn bad_results_error(name: &str, num_out: usize) -> go_value::Error {
-    go_value::Error::new(format!(
-        "can't call method/function {name:?} with {num_out} results"
-    ))
+    go_value::Error::eval_call(
+        format!("can't call method/function {name:?} with {num_out} results"),
+        go_value::EvalCallError::Call,
+    )
 }
 
 /// A method dispatcher for a named Go type that is represented as `Value::List` or `Value::Map`.

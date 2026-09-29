@@ -49,10 +49,13 @@ pub fn alias_func(obj: Arc<dyn Object>, method: &str, alias: &str) -> TplFunc {
     let to = format!("wrong number of args for {alias}: ");
     Arc::new(
         move |ctx: HostCtx<'_>, args: &[Value]| match obj.call_method(ctx, &method, args) {
-            Some(Err(e)) if e.message().starts_with(&from) => Err(go_value::Error::new(format!(
-                "{to}{}",
-                &e.message()[from.len()..]
-            ))),
+            Some(Err(e)) if e.message().starts_with(&from) => {
+                let msg = format!("{to}{}", &e.message()[from.len()..]);
+                Err(match e.eval_call_at() {
+                    Some(at) => go_value::Error::eval_call(msg, at),
+                    None => go_value::Error::new(msg),
+                })
+            }
             Some(r) => r,
             None => Err(go_value::Error::new(format!("method {method} not found"))),
         },

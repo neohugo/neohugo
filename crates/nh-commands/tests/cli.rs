@@ -18,20 +18,7 @@ use support::{TempDir, encode, fixture, materialize, norm_output};
 
 /// Cases whose Go output the port cannot produce, with the reason. The test checks that the
 /// port fails with the explicit error instead.
-const KNOWN: &[(&str, &str)] = &[
-    (
-        "config/toml-default",
-        "TOML encoding (go-toml Encoder) is not supported by nh-parser",
-    ),
-    (
-        "config/yaml",
-        "YAML encoding (yaml.v2 Marshal) is not supported by nh-parser",
-    ),
-    (
-        "config-err/unknown-sub",
-        "TOML encoding (go-toml Encoder) is not supported by nh-parser",
-    ),
-];
+const KNOWN: &[(&str, &str)] = &[];
 
 fn replace_root(s: &str, root: &str) -> String {
     s.replace("$ROOT", root)

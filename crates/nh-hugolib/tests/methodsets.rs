@@ -92,7 +92,8 @@ fn outcome(r: &Option<Result<Value, String>>) -> String {
     }
 }
 
-/// Known mismatches. All but the first group are in tables other crates own (reported to them).
+/// Known mismatches: Go features the port does not have (the embedded provider fields of the
+/// hugolib types). The other crates' method tables now match Go.
 const KNOWN: &[&str] = &[
     // T23 (not supported): Go templates can read the exported embedded fields of the hugolib
     // types (`.PageMetaProvider`, `.Positioner`, ... of a page; `.Deps`, `.PathSpec`, ... of
@@ -104,87 +105,6 @@ const KNOWN: &[&str] = &[
     "*hugolib.pageState: none of the 32 fields",
     "*hugolib.pageWithOrdinal: none of the 32 fields",
     "hugolib.pageWithWeight0: none of the 32 fields",
-    // nh-langs: the embedded `LanguageConfig` struct itself (its fields are promoted).
-    "*langs.Language: missing field LanguageConfig",
-    // nh-page: the embedded `*Paginator` of `*page.Pager`.
-    "*page.Pager: none of the 1 fields",
-    // nh-page (page_nop.rs): the nop page's `context.Context` methods do not count the context
-    // (Go: `want 1 got 2`).
-    "*page.nopPage: Content arity: \"wrong number of args for Content: want 0 got 1\"",
-    "*page.nopPage: ContentWithoutSummary arity: \"wrong number of args for ContentWithoutSummary: want 0 got 1\"",
-    "*page.nopPage: Fragments arity: \"wrong number of args for Fragments: want 0 got 1\"",
-    "*page.nopPage: FuzzyWordCount arity: \"wrong number of args for FuzzyWordCount: want 0 got 1\"",
-    "*page.nopPage: HeadingsFiltered arity: \"wrong number of args for HeadingsFiltered: want 0 got 1\"",
-    "*page.nopPage: Len arity: \"wrong number of args for Len: want 0 got 1\"",
-    "*page.nopPage: Plain arity: \"wrong number of args for Plain: want 0 got 1\"",
-    "*page.nopPage: PlainWords arity: \"wrong number of args for PlainWords: want 0 got 1\"",
-    "*page.nopPage: ReadingTime arity: \"wrong number of args for ReadingTime: want 0 got 1\"",
-    "*page.nopPage: RenderShortcodes arity: \"wrong number of args for RenderShortcodes: want 0 got 1\"",
-    "*page.nopPage: Summary arity: \"wrong number of args for Summary: want 0 got 1\"",
-    "*page.nopPage: TableOfContents arity: \"wrong number of args for TableOfContents: want 0 got 1\"",
-    "*page.nopPage: Truncated arity: \"wrong number of args for Truncated: want 0 got 1\"",
-    "*page.nopPage: WordCount arity: \"wrong number of args for WordCount: want 0 got 1\"",
-    // nh-page (pages.rs, shared by `page.PageGroup`): the same for the context methods of
-    // `page.Pages`.
-    "page.PageGroup: ByLength arity: \"wrong number of args for ByLength: want 0 got 1\"",
-    "page.PageGroup: GroupBy arity: \"wrong number of args for GroupBy: want at least 1 got 0\"",
-    "page.PageGroup: Related arity: \"wrong number of args for Related: want 1 got 2\"",
-    "page.PageGroup: RelatedIndices arity: \"wrong number of args for RelatedIndices: want at least 1 got 0\"",
-    "page.Pages: ByLength arity: \"wrong number of args for ByLength: want 0 got 1\"",
-    "page.Pages: GroupBy arity: \"wrong number of args for GroupBy: want at least 1 got 0\"",
-    "page.Pages: Related arity: \"wrong number of args for Related: want 1 got 2\"",
-    "page.Pages: RelatedIndices arity: \"wrong number of args for RelatedIndices: want at least 1 got 0\"",
-    // nh-common / nh-page: methods text/template cannot call report that before the argument
-    // count (Go checks the count first; only a template that is wrong twice sees it).
-    "maps.Params: GetMergeStrategy arity: \"can't call method/function \\\"GetMergeStrategy\\\" with 2 results\"",
-    "maps.Params: SetMergeStrategy arity: \"can't call method/function \\\"SetMergeStrategy\\\" with 0 results\"",
-    "page.OrderedTaxonomyEntry: Sort arity: \"can't call method/function \\\"Sort\\\" with 0 results\"",
-    "page.OrderedTaxonomyEntry: Swap arity: \"can't call method/function \\\"Swap\\\" with 0 results\"",
-    "page.WeightedPages: Sort arity: \"can't call method/function \\\"Sort\\\" with 0 results\"",
-    "page.WeightedPages: Swap arity: \"can't call method/function \\\"Swap\\\" with 0 results\"",
-    // nh-helpers: the unsupported `*source.File` methods fail before the argument count.
-    "*source.File: FileInfo arity: \"neohugo-rs: .File.FileInfo is not supported in templates\"",
-    "*source.File: Open arity: \"neohugo-rs: .File.Open is not supported in templates\"",
-    // nh-media: `media.Type` checks no argument counts and has no `HasSuffix`.
-    "media.Type: IsHTML arity: succeeds",
-    "media.Type: IsMarkdown arity: succeeds",
-    "media.Type: IsText arity: succeeds",
-    "media.Type: IsZero arity: succeeds",
-    "media.Type: MarshalJSON arity: succeeds",
-    "media.Type: String arity: succeeds",
-    "media.Type: Suffixes arity: succeeds",
-    "media.Type: missing method HasSuffix",
-    // nh-config: `neohugo.HugoInfo` checks no argument counts.
-    "neohugo.HugoInfo: Deps arity: succeeds",
-    "neohugo.HugoInfo: Generator arity: succeeds",
-    "neohugo.HugoInfo: IsDevelopment arity: succeeds",
-    "neohugo.HugoInfo: IsMultiHost arity: succeeds",
-    "neohugo.HugoInfo: IsMultihost arity: succeeds",
-    "neohugo.HugoInfo: IsMultilingual arity: succeeds",
-    "neohugo.HugoInfo: IsProduction arity: succeeds",
-    "neohugo.HugoInfo: IsServer arity: succeeds",
-    "neohugo.HugoInfo: Store arity: succeeds",
-    "neohugo.HugoInfo: Version arity: succeeds",
-    "neohugo.HugoInfo: WorkingDir arity: succeeds",
-    // nh-page (weighted.rs): `page.WeightedPage` forwards every method of the page it holds,
-    // where Go's set is the `page.Page` interface's (`Page` and `Weight` are its fields).
-    "page.WeightedPage: extra method ApplyFilterToHeadings",
-    "page.WeightedPage: extra method ForEeachIdentity",
-    "page.WeightedPage: extra method GetDependencyManager",
-    "page.WeightedPage: extra method GetDependencyManagerForScope",
-    "page.WeightedPage: extra method GetDependencyManagerForScopesAll",
-    "page.WeightedPage: extra method GetIdentity",
-    "page.WeightedPage: extra method GetInternalRelatedDocsHandler",
-    "page.WeightedPage: extra method GetInternalTemplateBasePathAndDescriptor",
-    "page.WeightedPage: extra method Group",
-    "page.WeightedPage: extra method IdentifierBase",
-    "page.WeightedPage: extra method Key",
-    "page.WeightedPage: extra method MarkStale",
-    "page.WeightedPage: extra method MarshalJSON",
-    "page.WeightedPage: extra method Page",
-    "page.WeightedPage: extra method PagesRecursive",
-    "page.WeightedPage: extra method StaleVersion",
-    "page.WeightedPage: extra method Weight",
 ];
 
 #[test]

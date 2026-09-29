@@ -39,6 +39,13 @@ Every ported function carries a `// Go: <path>:<Func>` line; every checklist lin
 
 ## Deliberate deviations
 
+- **Go string bytes in the URL helpers.** `PathSpec::urlize_bytes`, `abs_url_bytes`,
+  `rel_url_bytes`, `url_escape_bytes`, `make_path_bytes`, `make_path_sanitized_bytes` and
+  `general::get_title_bytes_func`/`first_upper_bytes` take and return bytes (invalid UTF-8 as in
+  Go); the `&str` functions are wrappers (`rel_url` panics when the decoded base path is not
+  UTF-8: use `rel_url_bytes`). The tplfuncs `urls` and `strings.Title` functions use the byte
+  versions (the 46 invalid-UTF-8 host cases now match Go).
+
 - **Result-returning APIs.** Go functions returning `(T, error)` become `Result<T>`; where Go also
   returns a meaningful partial value together with a non-nil error, the Rust port returns only the
   error. The tests normalize Go results that carry an error to the error alone. Exceptions that keep
@@ -86,9 +93,8 @@ Every ported function carries a `// Go: <path>:<Func>` line; every checklist lin
 
 ## Requests to other crates
 
-- **T05 / nh-hugofs**: OsFs read errors should be wrapped as Go's `read <realpath>: <errno>`
-  (`*fs.PathError`). `filecache::read_file` currently reconstructs it by downcasting through
-  `FilesystemsWrapper` to `BasePathFs`.
+- (Done) nh-hugofs' `OsFile` now returns Go's `read <path>: <errno>` `*fs.PathError`s itself;
+  `filecache::read_file`'s reconstruction of it is kept for other files.
 - **nh-config**: a way for `ContentSpec::new` to get the decoded content types from the config
   provider (an `as_any` downcast on the provider, or a `"contentTypes"` config section).
 - **T09 / nh-allconfig**: Go's `LoadConfig` lets `HUGO_CACHEDIR` override the `cacheDir` config

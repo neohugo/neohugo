@@ -2,8 +2,7 @@
 //!
 //! Owner: Wave B task T19 (tplfuncs-host).
 //!
-//! The decoding is nh-parser's `metadecoders.Decoder` (JSON, TOML, YAML; its CSV and XML
-//! decoders are explicit `neohugo-rs` stubs).
+//! The decoding is nh-parser's `metadecoders.Decoder` (JSON, TOML, YAML, CSV and XML).
 //!
 //! Deviation: Go's `decodeDecoder` deletes the `Delimiter`/`Comment` keys from the caller's
 //! options map (a template `dict`); template maps are immutable values here, so the caller's

@@ -1,7 +1,8 @@
 //! A port of `gopkg.in/yaml.v2` v2.4.0 **decoding** (the version neohugo's
 //! `parser/metadecoders` uses for front matter, config, data files and
 //! i18n), plus neohugo's YAML post-processing (`stringifyMapKeys`) and the
-//! conversion to [`go_value::Value`].
+//! conversion to [`go_value::Value`], and of its **encoding** (`yaml.Marshal`,
+//! [`encode::marshal`], for `parser.InterfaceToConfig`).
 //!
 //! The whole libyaml-derived pipeline is ported from the Go sources
 //! (reader, scanner, parser, node builder, decoder, resolver), so scanner
@@ -21,6 +22,7 @@
 #![allow(clippy::nonminimal_bool)] // keep Go boolean expressions verbatim
 
 mod decode;
+pub mod encode;
 mod gostd;
 pub mod metadecoders;
 mod parserc;

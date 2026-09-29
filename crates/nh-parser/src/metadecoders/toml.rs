@@ -20,6 +20,7 @@
 mod characters;
 mod decode;
 mod errors;
+pub mod marshaler;
 mod parser;
 mod tracker;
 mod unmarshaler;

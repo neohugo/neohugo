@@ -7,6 +7,7 @@
 use std::borrow::Cow;
 
 use go_value::{GoString, Kind, Object, Value};
+use nh_common::object::args;
 use nh_common::{Error, Result};
 use nh_config::decode::FieldRef;
 use nh_config::{decode_struct, struct_object};
@@ -505,17 +506,57 @@ pub fn from_content(types: &Types, extension_hints: &[String], content: &[u8]) -
 }
 
 nh_common::go_methods!(MediaType {
-    "String" => |m, _c, _a| Ok(Value::string(m.typ.as_str())),
-    "Suffixes" => |m, _c, _a| Ok(if m.suffixes_csv.is_empty() {
-        Value::TypedNil(std::sync::Arc::from("[]string"))
-    } else {
-        nh_common::object::string_slice(&m.suffixes())
-    }),
-    "IsZero" => |m, _c, _a| Ok(Value::Bool(m.is_zero())),
-    "IsText" => |m, _c, _a| Ok(Value::Bool(m.is_text())),
-    "IsHTML" => |m, _c, _a| Ok(Value::Bool(m.is_html())),
-    "IsMarkdown" => |m, _c, _a| Ok(Value::Bool(m.is_markdown())),
-    "MarshalJSON" => |m, _c, _a| {
+    // Go: media/mediaType.go:String
+    "String" => |m, _c, a| {
+        args::exactly(a, 0, "String")?;
+        Ok(Value::string(m.typ.as_str()))
+    },
+    // Go: media/mediaType.go:Suffixes
+    "Suffixes" => |m, _c, a| {
+        args::exactly(a, 0, "Suffixes")?;
+        Ok(if m.suffixes_csv.is_empty() {
+            Value::TypedNil(std::sync::Arc::from("[]string"))
+        } else {
+            nh_common::object::string_slice(&m.suffixes())
+        })
+    },
+    // Go: media/mediaType.go:IsZero
+    "IsZero" => |m, _c, a| {
+        args::exactly(a, 0, "IsZero")?;
+        Ok(Value::Bool(m.is_zero()))
+    },
+    // Go: media/mediaType.go:IsText
+    "IsText" => |m, _c, a| {
+        args::exactly(a, 0, "IsText")?;
+        Ok(Value::Bool(m.is_text()))
+    },
+    // Go: media/mediaType.go:IsHTML
+    "IsHTML" => |m, _c, a| {
+        args::exactly(a, 0, "IsHTML")?;
+        Ok(Value::Bool(m.is_html()))
+    },
+    // Go: media/mediaType.go:IsMarkdown
+    "IsMarkdown" => |m, _c, a| {
+        args::exactly(a, 0, "IsMarkdown")?;
+        Ok(Value::Bool(m.is_markdown()))
+    },
+    // Go: media/mediaType.go:HasSuffix
+    "HasSuffix" => |m, _c, a| {
+        args::exactly(a, 1, "HasSuffix")?;
+        let suffix = args::string(a, 0)?;
+        let mut hay = b",".to_vec();
+        hay.extend_from_slice(m.suffixes_csv.as_bytes());
+        hay.push(b',');
+        let mut needle = b",".to_vec();
+        needle.extend_from_slice(suffix.as_bytes());
+        needle.push(b',');
+        Ok(Value::Bool(
+            hay.windows(needle.len()).any(|w| w == needle.as_slice()),
+        ))
+    },
+    // Go: media/mediaType.go:MarshalJSON
+    "MarshalJSON" => |m, _c, a| {
+        args::exactly(a, 0, "MarshalJSON")?;
         let b = m.marshal_json_bytes()?;
         Ok(Value::list(
             go_value::SliceType::Uint8,

@@ -374,6 +374,8 @@ pub struct ConfigCompiled {
     pub disabled_languages: BTreeSet<String>,
     pub ignored_logs: BTreeSet<String>,
     pub create_title: Arc<dyn Fn(&str) -> String + Send + Sync>,
+    /// `create_title` over Go string bytes (invalid UTF-8 included).
+    pub create_title_bytes: nh_helpers::general::TitleBytesFunc,
     pub is_ugly_url_section: Arc<dyn Fn(&str) -> bool + Send + Sync>,
     pub ignore_file: Arc<dyn Fn(&str) -> bool + Send + Sync>,
     pub segment_filter: SegmentFilter,
@@ -828,6 +830,8 @@ impl Config {
         };
 
         let create_title = nh_helpers::general::get_title_func(&self.root.title_case_style);
+        let create_title_bytes =
+            nh_helpers::general::get_title_bytes_func(&self.root.title_case_style);
 
         self.c = Some(Arc::new(ConfigCompiled {
             timeout,
@@ -840,6 +844,7 @@ impl Config {
             kind_output_formats,
             default_output_format,
             create_title,
+            create_title_bytes,
             is_ugly_url_section: is_ugly_url,
             ignore_file,
             segment_filter,
@@ -892,19 +897,10 @@ impl Config {
 // Go: common/neohugo/neohugo.go:DeprecateWithLogger
 pub(crate) fn deprecate_with_logger(item: &str, alternative: &str, version: &str, log: &Logger) {
     use nh_config::neohugo::neohugo::{
-        DeprecationLevel, deprecation_log_level_from_version, deprecation_message,
+        deprecate_level_with_logger, deprecation_log_level_from_version,
     };
     let level = deprecation_log_level_from_version(version);
-    // Go logs with the field cmd=deprecated, printed as a "deprecated: " prefix.
-    let msg = format!(
-        "deprecated: {}",
-        deprecation_message(item, alternative, version, level)
-    );
-    match level {
-        DeprecationLevel::Error => log.errorf(msg),
-        DeprecationLevel::Warn => log.warnf(msg),
-        DeprecationLevel::Info => log.infof(msg),
-    }
+    deprecate_level_with_logger(item, alternative, version, level, log);
 }
 
 /// Go `%q` of a string.
