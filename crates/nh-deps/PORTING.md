@@ -16,8 +16,8 @@ neohugo deps/deps.go: per-site dependency container (the Rust context struct).
 
 ## Deliberate deviations
 
-Status (T20): ported. Every EX checklist entry is `OK` except `StopStageRender` (deferred
-templates, `renderDeferred`: T24).
+Status (T20): ported. Every EX checklist entry is `OK` (`StartStageRender`/`StopStageRender`
+and the deferred executions: I01).
 
 1. **`TranslateFunc` returns `Result<String>`** (Go: `string`). Go's translate func panics for a
    few inputs and text/template turns the panic into the `i18n`/`T` error; the `Err` carries Go's
@@ -33,8 +33,20 @@ templates, `renderDeferred`: T24).
    resources `SpecCommon`; it gets its own exec helper, PathSpec (over a BaseFs built with
    `NewPathSpecWithBaseBaseFsProvided`), ContentSpec, file caches and resources Spec.
 4. The HasBytes receiver records `__h_pp_l1` files in `BuildState.filenames_with_post_prefix`
-   and `__hdeferred/` files in `BuildState.filenames_with_deferred_prefix` (Go:
-   `DeferredExecutions.FilenamesWithPostPrefix`); patterns in Go's order (deferred, post).
+   and `__hdeferred/` files in the current stage's `DeferredExecutions.filenames_with_post_prefix`
+   (Go: `DeferredExecutions.FilenamesWithPostPrefix`); patterns in Go's order (deferred, post).
+   Go's `HasBytesWriter` stops scanning a write at the first pattern it matches, so when a page
+   is written in one piece only the placeholder kind that completes first is recorded (a page
+   with a PostProcess placeholder before a `templates.Defer` one never gets its deferred block
+   executed); nh-common's `hugio::HasBytesWriter` reproduces it.
+8. **Deferred executions (I01).** `BuildState` holds the current stage's
+   `Arc<DeferredExecutions>` (filenames + `executions`, first creator wins) and the stages
+   grouped by `RenderingContext{site_idx, site_out_idx}`: Go's map
+   `DeferredExecutionsGroupedByRenderingContext` is kept as a list in render order (Go ranges
+   over the map in random order; each stage's files are handled on their own, so the order only
+   matters when two stages share a file). `StopStageRender` moves the current set into the
+   group (replacing the same stage's) and starts a fresh one. `DeferredExecution` keeps the
+   template path, the caller's `TplContext`, the data and the result bytes.
 5. `globalErrHandler`: `start_error_collector` / `stop_error_collector` replace the channel and
    Go's reader goroutine in `HugoSites.Build` (which keeps the first 50 errors); `send_error`
    without a collector logs the error. The resources Spec's `error_sender` is set to it (Go passes
@@ -46,7 +58,7 @@ templates, `renderDeferred`: T24).
 
 ## Known gaps
 
-- `StopStageRender` / deferred executions (T24 owns `renderDeferred`; unused by seeksnack).
+None.
 
 ## Test seam: `Deps::for_tests(conf)` (T15, T17, T18, T19)
 

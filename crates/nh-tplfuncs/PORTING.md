@@ -78,7 +78,7 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
 | `strings::regexp` | `tpl/strings/regexp.go` | T19 tplfuncs-host | ported |
 | `strings::truncate` | `tpl/strings/truncate.go` | T19 tplfuncs-host | ported |
 | `templates::init` | `tpl/templates/init.go` | T19 tplfuncs-host | ported |
-| `templates::templates` | `tpl/templates/templates.go` | T19 tplfuncs-host | ported; STUB `DoDefer` (see Known gaps) |
+| `templates::templates` | `tpl/templates/templates.go` | T19 tplfuncs-host | ported (`DoDefer`: I01) |
 | `time::init` | `tpl/time/init.go` | T19 tplfuncs-host | ported |
 | `time::time` | `tpl/time/time.go` | T19 tplfuncs-host | ported |
 | `transform::init` | `tpl/transform/init.go` | T19 tplfuncs-host | ported |
@@ -137,7 +137,6 @@ neohugo tpl/<namespace>/** template functions (all namespaces; seeksnack's set f
 - T19 stubs. Each returns `neohugo-rs: ... is not supported`:
   - `diagrams.Goat`, `openapi3.Unmarshal`, `getJSON`/`getCSV`, `images.QR`, `js.Batch`;
   - `transform.Highlight`, `HighlightCodeBlock`, `CanHighlight`, `ToMath`, `PortableText`;
-  - `templates.DoDefer`. `templates.Defer` itself is ported. Deferred execution needs `BuildState.DeferredExecutions` (T20) and running them after the build (T24).
 - These reach stubs in other crates:
   - `transform.Emojify` (nh-helpers emoji table);
   - `images.Text`, `images.Dither` and `images.Config` of a GIF (nh-images);

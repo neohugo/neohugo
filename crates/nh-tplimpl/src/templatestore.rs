@@ -1280,36 +1280,87 @@ impl StoreShared {
         Ok(())
     }
 
-    /// Go: `addFileContext(ti, what, inerr)`. Go reads the template file (and the base
-    /// template's) to locate the error line; here the error gets the file name and the
-    /// position found in the message (see PORTING.md).
+    /// Go: `addFileContext(ti, what, inerr)`: the error becomes a file error of the template's
+    /// file, or of its base template's file, whichever has, at the error's line, a line that
+    /// contains one of the identifiers of the message (`at <…>:`); with neither, the base's
+    /// (when there is one). The position is the one in the message. Go's `UpdateContent` also
+    /// records the context lines (for the server's error page); they are not part of the text.
     // Go: tpl/tplimpl/templatestore.go:addFileContext
     fn add_file_context(&self, ti: &TemplInfo, what: &str, inerr: Error) -> Error {
         let Some(fi) = &ti.fi else {
             return inerr;
         };
 
+        let identifiers = self.extract_identifiers(&inerr.to_string());
+
+        let check_filename = |fi: &FileMetaInfo, in_err: &Error| -> (Error, bool) {
+            let content = match fi.meta().read_all() {
+                Ok(b) => b,
+                Err(_) => return (in_err.clone(), false),
+            };
+            let fe =
+                nh_common::herrors::new_file_error_from_name(in_err.clone(), &fi.meta().filename);
+            let line_number = fe.pos().map(|p| p.line).unwrap_or(0);
+            // Go: locateError with the line matcher: the line must be the error's line and
+            // contain one of the identifiers.
+            let found = content
+                .split(|&c| c == b'\n')
+                .enumerate()
+                .any(|(li, line)| {
+                    (li as i64 + 1) == line_number
+                        && identifiers
+                            .iter()
+                            .any(|id| bytes_contains(line, id.as_bytes()))
+                });
+            (fe, found)
+        };
+
         let inerr = Error::new(format!("{what}: {}", inerr.message()));
-        nh_common::herrors::new_file_error_from_name(inerr, &fi.meta().filename)
+
+        let (mut current_err, ok) = check_filename(fi, &inerr);
+        if ok {
+            return current_err;
+        }
+
+        if let Some(base) = &ti.base
+            && let Some(bfi) = &base.fi
+        {
+            let (e, ok) = check_filename(bfi, &inerr);
+            current_err = e;
+            if ok {
+                return current_err;
+            }
+        }
+
+        current_err
     }
 
+    /// Go: `identifiersRe.FindAllStringSubmatch(line, -1)` with
+    /// `identifiersRe = regexp.MustCompile(`at \<(.*?)(\.{3})?\>:`)`: the leftmost-first
+    /// matches, lazy `.*?` (which never crosses a newline), an optional `...` before `>:`.
     // Go: tpl/tplimpl/templatestore.go:extractIdentifiers
-    #[allow(dead_code)]
     fn extract_identifiers(&self, line: &str) -> Vec<String> {
-        // identifiersRe = `at \<(.*?)(\.{3})?\>:`
         let mut identifiers = Vec::new();
-        let mut rest = line;
-        while let Some(i) = rest.find("at <") {
-            let after = &rest[i + 4..];
-            let Some(j) = after.find(">:") else {
-                break;
-            };
-            let mut id = &after[..j];
-            if let Some(s) = id.strip_suffix("...") {
-                id = s;
+        let mut pos = 0;
+        while let Some(i) = line[pos..].find("at <").map(|i| i + pos) {
+            let start = i + 4;
+            let after = &line[start..];
+            // The first `>:` that the lazy group can reach without crossing a newline.
+            let nl = after.find('\n').unwrap_or(after.len());
+            match after[..nl].find(">:") {
+                Some(j) => {
+                    let mut id = &after[..j];
+                    if let Some(s) = id.strip_suffix("...") {
+                        id = s;
+                    }
+                    identifiers.push(id.to_string());
+                    pos = start + j + 2;
+                }
+                None => pos = i + 1,
             }
-            identifiers.push(id.to_string());
-            rest = &after[j + 2..];
+            if pos >= line.len() {
+                break;
+            }
         }
         identifiers
     }
@@ -2402,6 +2453,11 @@ fn is_backup_file(path: &str) -> bool {
 // Go: tpl/tplimpl/templatestore.go:isDotFile
 fn is_dot_file(path: &str) -> bool {
     go_path::filepath::base(path).as_bytes()[0] == b'.'
+}
+
+/// Go: `strings.Contains(line, id)` over bytes.
+fn bytes_contains(haystack: &[u8], needle: &[u8]) -> bool {
+    needle.is_empty() || haystack.windows(needle.len()).any(|w| w == needle)
 }
 
 // ---------------------------------------------------------------------------

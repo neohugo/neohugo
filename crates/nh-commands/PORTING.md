@@ -15,7 +15,7 @@ neohugo commands/* + main.go (bin `neohugo-rs`): flags -> config, build, version
 | `fsync` | — | T25 commands-cli | NEW: spf13/fsync@v0.10.1 Syncer (copy-if-different, chmod, mtimes) |
 | `pflag` | — | T25 commands-cli | NEW: spf13/pflag@v1.0.6 FlagSet parse (+ `encoding/csv` record read/write of string slices) |
 | `cobra` | — | T25 commands-cli | NEW: spf13/cobra@v1.9.1 `Find`/`stripFlags`/`legacyArgs`/suggestions/`ParseFlags` + bep/simplecobra@v0.6.0 `checkArgs`/`CommandError` |
-| `funcmap` | `tpl/tplimplinit/tplimplinit.go` (loop) | T25 commands-cli | the binary's template func map factory (interim, see below) |
+| `funcmap` | — | T25 commands-cli | the binary's template func map factory (`None` = `tplimplinit::create_func_map`, see below) |
 
 The binary is `neohugo-rs` (`src/main.rs`): `commandeer::execute_with(args, ExecOptions {
 func_map_factory: funcmap::production_func_map_factory(), .. })`, exit code 0/1 like Go's
@@ -24,27 +24,19 @@ func_map_factory: funcmap::production_func_map_factory(), .. })`, exit code 0/1 
 ## Dependencies
 
 - nh-*: nh-common, nh-config, nh-allconfig, nh-hugofs, nh-helpers, nh-hugolib, nh-deps,
-  nh-parser (config TOML/YAML encoders), nh-tplimpl + nh-tplfuncs (the interim func map)
+  nh-parser (config TOML/YAML encoders), nh-tplimpl + nh-tplfuncs
 - Wave A: go-value, go-json, go-path, go-strconv, go-unicode
 - crates.io: none. clap is not in the offline crate cache; the command line parser is a port of
   pflag/cobra/simplecobra, which also reproduces Go's parse rules and error texts exactly.
 - dev: `serde_json` (fixture reader), `flate2` with `rust_backend` (gunzip of the fixtures;
   decompression only, README rule 2).
 
-## The template func map (for I01)
+## The template func map
 
 `HugoSites::new` takes `NewHugoSitesCfg.func_map_factory` (`None` = hugolib's default,
-`nh_tplfuncs::tplimplinit::create_func_map`). At this task's base `create_func_map` and the
-`hugo`, `page` and `site` namespace constructors are `todo!()` (T19 is in progress), so
-`funcmap::production_func_map_factory()` returns `Some(interim_func_map_factory())`: Go's
-`CreateFuncMap` loop over every other namespace (their real implementations), Go's extra `return`
-and `try` mappings (partials, safe), `site` and `hugo` as Go's namespaces define them
-(`WrapSite(d.Site)`, `d.Site.Hugo()`), and `page` bound to an explicit "not ported yet" error.
-Functions T19 has not ported yet (`now`, `upper`, `transform.XMLEscape`, …) still panic with
-`todo!()` when a template calls them.
-
-**I01: once T19 lands, make `production_func_map_factory()` return `None` and delete
-`interim_func_map_factory`.** Tests and tools pass their own factory through
+`nh_tplfuncs::tplimplinit::create_func_map`, Go's `CreateFuncMap`).
+`funcmap::production_func_map_factory()` returns `None` (I01: the interim factory T25 used while
+T19 was in progress is deleted). Tests and tools pass their own factory through
 `ExecOptions.func_map_factory`.
 
 ## Deliberate deviations
@@ -130,6 +122,7 @@ Functions T19 has not ported yet (`now`, `upper`, `transform.XMLEscape`, …) st
 | `cli/cli.json.gz` | `go run ./tools/go-oracle/nh-commands/cli`: neohugo's real command tree in a child process per case (131 command lines, each run twice), in temp copies of the seeksnack reconstruction (+ alternative config files, a config dir, two themes dirs), the repo's `docs/`, `hugolib/testsite` with and without a config, an empty dir; explicit environment (HOME, TMPDIR, empty PATH, case variables such as `HUGO_ENVIRONMENT`, `HUGO_PARAMS_*`, `HUGO_CACHEDIR`) | `tests/cli.rs` | parse (131): the resolved command, the flag args, the parse error, the changed flags (type, value), the positional args and the `flagsToCfg` provider (goval encoding); run (90): exit code, stdout, stderr of `config` (json, printZero, lang, env, baseURL, cacheDir, destination, source, clock, config files, configDir, themes, themesDir, contentDir, renderSegments, noBuildLock, ignoreVendorPaths, quiet, renderToMemory, logLevel, env overrides), `config mounts`, `version`, `env`, help, and every command line that fails before the build (flag and command errors, invalid clock, no config, missing source); command errors compare stderr and the `Error:` lines (help text not ported). 3 known gaps (TOML/YAML config output) are checked to fail explicitly. The version line is masked (`$OS/$ARCH`, `$DATE`, no revision), as are `GOOS`/`GOARCH` and `Total in N ms`. |
 | `staticcopy/staticcopy.json.gz` | `go run ./tools/go-oracle/nh-commands/staticcopy`: 13 synthetic sites (text, binary around fsync's 1000-byte buffer, empty files and dirs, hidden files and dirs, `.bak`, NFC/NFD/Thai/emoji/space names, modes 0600/0755/0444, fixed mtimes; several mounts into static with overlaps, a theme, a file mount, `staticDir` lists; symlinks to files, dirs, outside, broken; a symlinked static dir; existing publish dirs with identical/same-size/grown files, dir↔file swaps and extra entries, with and without `cleanDestinationDir`, `noTimes`/`noChmod`; a custom `publishDir`; no/empty static dir; 23 files) — allconfig + `filesystems.NewBase` + copyStaticTo's Syncer | `tests/staticcopy.rs` | the static file counts, the error, and every entry of the publish dir afterwards (kind, bytes, mode unless noChmod, mtime unless noTimes; directories the root mapping creates report "now"): 118 files, identical |
 | `smoke/smoke.json.gz` | `go run ./tools/go-oracle/nh-commands/smoke`: 8 builds of a synthetic site (baseof/single/list/index layouts using only functions ported at this base, markdown, taxonomies, drafts/future, static files incl. `.DS_Store`, build stats): `--minify --clock 2026-09-27T12:00:00Z -d $ROOT/out`, `build --destination=`, `-DF`, `--quiet` with the default publishDir, `--cleanDestinationDir --noBuildLock` over an existing `public/`, `-e staging -b …`, `HUGO_ENVIRONMENT`, `-s` | `tests/smoke.rs` | exit code, stdout (the processing stats table), stderr, every published file, `hugo_stats.json`, `.hugo_build.lock`: 124 files, identical |
+| `e2e/e2e.json.gz` (I01) | `go run ./tools/go-oracle/nh-commands/e2e`: 3 complete sites built by the real Go command line with the golden flags (`--minify --clock 2026-09-27T12:00:00Z -d $ROOT/out`, `HUGO_NUMWORKERMULTIPLIER=1`) in a child process: `mini.txtar` (en/th; templates, render hooks, shortcodes, pagination, taxonomies with a term collision, menus, i18n, data, related, aliases, `templates.Defer`, GetRemote from a golden file cache entry + `transform.Unmarshal`, minify/fingerprint/Concat/ExecuteAsTemplate/FromString/PostProcess), `tools/rust-port/i01/testsite.txtar` on `hugolib/testsite`, `tools/rust-port/i01/errors.txtar` (a failing build). No image encoding, LibSass, esbuild or PostCSS (platform floats / external tools): `tools/rust-port/i01/compare.sh` covers those against the arm64 Go build | `tests/e2e.rs` | exit code, stdout, stderr (temp names masked; Go's `deprecated: ` field stripped until nh-config adds it), every published file and `hugo_stats.json`: 112 files, identical |
 | Go tests | spf13/fsync `fsync_test.go` (TestSync, TestDeleteFileFilter, TestDeleteFileFilterNotSet) | `tests/fsync_go_tests.rs` | ported assertions |
 
 Results: 0 mismatches. The release binary built the smoke site into output identical to the
@@ -142,6 +135,7 @@ export GOTOOLCHAIN=go1.27.1
 go run ./tools/go-oracle/nh-commands/cli -root .
 go run ./tools/go-oracle/nh-commands/staticcopy
 go run ./tools/go-oracle/nh-commands/smoke
+go run ./tools/go-oracle/nh-commands/e2e
 ```
 
 The cli oracle reaches `commands.newExec`, `mapLegacyArgs` and `flagsToCfg` with
@@ -155,5 +149,4 @@ The cli oracle reaches `commands.newExec`, `mapLegacyArgs` and `flagsToCfg` with
   `printPathWarningsOnce` can read (`--printPathWarnings`).
 - nh-common: a post-handler hook on `Logger` for `loggers.PanicOnWarningHook`
   (`--panicOnWarning`).
-- T19: `tplimplinit::create_func_map` (then I01 switches the binary to it, see above).
 - cobra's help/usage templates (stdout only).

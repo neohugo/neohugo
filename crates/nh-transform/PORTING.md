@@ -78,9 +78,13 @@ Every checklist entry is `OK`; nothing is stubbed.
   zero-`nextPos` rewind); the Go build crashes. The port returns
   `Err("runtime error: slice bounds out of range [2:1]")` from the transformer (README rule 9);
   the oracle records 93 such inputs and the test requires the error with Go's text.
-- `Chain::apply` returns a failing transformer's error as it is. Go writes the failing step's
-  input to a temp file and wraps the error in a `herrors.FileError` naming that (random) file;
-  the publisher then wraps it in `failed to process "<target>": …` (ported in nh-publisher).
+- `Chain::apply`: as Go, the failing step's input is written to a new temp file
+  `$TMPDIR/hugo-transform-error<random>` and the error is wrapped in a file error naming it
+  (`"<file>:<line>:<col>": …`, the position taken from the message); the publisher then wraps it
+  in `failed to process "<target>": …` (ported in nh-publisher). The random suffix comes from a
+  private xorshift generator (Go: `os.CreateTemp`'s `fastrand`), so the name differs between runs
+  in both implementations (I01; the harness masks it). Go's `UpdateContent` (error context lines
+  for the server's error page) is not modelled; it does not change the error text.
 - `Client::transformer`/`minify` copy the input into a `GoBytes` (Go minifies the pooled buffer
   in place); the output bytes are the same.
 - The HTML minifier's `KeepConditionalComments` deprecation line is printed per call (see

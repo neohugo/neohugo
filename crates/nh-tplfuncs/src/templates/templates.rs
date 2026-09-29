@@ -11,6 +11,23 @@ use nh_tpl::template::{
     CurrentTemplateBase, CurrentTemplateInfo, TplContext, reverse_current_template_infos,
 };
 
+/// Go: `defferedIDCounter` (process-wide; the ids only need to be unique).
+static DEFERRED_ID_COUNTER: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+
+/// Go: `templates.DeferOpts`.
+#[derive(Clone, Default)]
+pub struct DeferOpts {
+    /// Optional cache key. If set, the deferred block will be executed once per unique key.
+    pub key: String,
+    /// Optional data context to use when executing the deferred block.
+    pub data: nh_config::decode::AnyValue,
+}
+
+nh_config::decode_struct!(DeferOpts, "templates.DeferOpts", |s| vec![
+    nh_config::decode::FieldRef::new("Key", &mut s.key),
+    nh_config::decode::FieldRef::new("Data", &mut s.data),
+]);
+
 /// Go: `templates.Namespace` (template value `*templates.Namespace`).
 pub struct Namespace {
     pub d: Arc<Deps>,
@@ -151,16 +168,44 @@ impl Namespace {
 
     /// DoDefer defers the execution of a template block. For internal use only.
     ///
-    /// STUB: the deferred executions (`BuildState.DeferredExecutions`) and their execution after
-    /// the render are not ported (seeksnack does not use `templates.Defer`): an explicit error
-    /// instead of output without the deferred block.
+    /// Records the execution in the current rendering stage's `BuildState.DeferredExecutions`
+    /// (first creator wins) and returns its placeholder; nh-hugolib's `render_deferred` executes
+    /// it after the render and replaces the placeholder.
     // Go: tpl/templates/templates.go:DoDefer
-    pub fn do_defer(&self, _ctx: HostCtx<'_>, a: &[Value]) -> GoResult<Value> {
+    pub fn do_defer(&self, ctx: HostCtx<'_>, a: &[Value]) -> GoResult<Value> {
         args::exactly(a, 2, "DoDefer")?;
-        args::string(a, 0)?;
-        Err(go_value::Error::new(
-            "neohugo-rs: templates.Defer is not supported",
-        ))
+        let id = args::string(a, 0)?.to_str_lossy().into_owned();
+        let mut opts = DeferOpts::default();
+        if !matches!(a[1], Value::Invalid) {
+            // Go panics on a decode error; text/template turns the panic into the call's error.
+            nh_config::decode::weak_decode_into(&a[1], &mut opts)
+                .map_err(|e| go_value::Error::new(e.to_string()))?;
+        }
+
+        let template_name = id.clone();
+        let key = if !opts.key.is_empty() {
+            nh_common::hashing::md5_from_string_hex_encoded(opts.key.as_bytes())
+        } else {
+            (DEFERRED_ID_COUNTER.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1).to_string()
+        };
+
+        let id = format!(
+            "{id}_{key}{}",
+            nh_tpl::template::HUGO_DEFERRED_TEMPLATE_SUFFIX
+        );
+
+        let tctx = TplContext::from_host(ctx).cloned().unwrap_or_default();
+        self.d
+            .build_state
+            .deferred_executions()
+            .get_or_create(&id, || nh_deps::deps::DeferredExecution {
+                template_path: template_name,
+                ctx: tctx,
+                data: opts.data.0,
+                result: std::sync::Mutex::new(None),
+            });
+
+        Ok(Value::string(id))
     }
 
     /// Exists returns whether the template with the given name exists. Note that this is the
@@ -197,6 +242,6 @@ impl Object for Namespace {
 // OK L30-36: New(deps *deps.Deps) *Namespace
 // OK L46-48: (ns *Namespace) Exists(name string) bool
 // OK L51-60: (ns *Namespace) Defer(args ...any) (bool, error)
-// STUB L75-104: (ns *Namespace) DoDefer(ctx context.Context, id string, optsv any) string (explicit unsupported error)
+// OK L75-104: (ns *Namespace) DoDefer(ctx context.Context, id string, optsv any) string
 // OK L107-109: (ns *Namespace) Current(ctx context.Context) *tpl.CurrentTemplateInfo
 // ---------------------------------------------------------------------------

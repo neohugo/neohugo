@@ -1,0 +1,627 @@
+The seeksnack reconstruction's layouts, assets, i18n, data, static files and extra content,
+written by tools/rust-port/i01/sites.py on top of the synthetic en/th content tree of the
+nh-hugolib oracles. The real seeksnack layouts are private; these are written from the template
+inventory (docs/rust-port/specs/templates-inventory.md) to exercise the same template functions,
+receivers and pipelines: legacy layout paths (_default/, partials/, shortcodes/, taxonomy/,
+term/), baseof blocks, partials with dict data, recursive named templates, shortcodes, render
+hooks (heading, image, table, link), pagination, taxonomies, menus, i18n, related content,
+Scratch, GetRemote (served from the file cache) + transform.Unmarshal, toCSS -> postCSS ->
+minify -> fingerprint -> PostProcess, js.Build, Concat, ExecuteAsTemplate, image processing
+with a watermark overlay, webp, RSS, sitemap, robots, JSON output.
+-- postcss.config.js --
+// A tiny purge step (like seeksnack's purgecss): drops rules whose classes are all missing from
+// ./hugo_stats.json, so the CSS depends on the stats of this build.
+const fs = require('fs');
+const purge = () => ({
+  postcssPlugin: 'purge-lite',
+  Once(root) {
+    const stats = JSON.parse(fs.readFileSync('./hugo_stats.json', 'utf8')).htmlElements;
+    const keep = new Set([...(stats.classes || []), ...(stats.tags || [])]);
+    root.walkRules((rule) => {
+      const classes = (rule.selector.match(/\.[A-Za-z][A-Za-z0-9_-]*/g) || []).map((c) => c.slice(1));
+      if (classes.length && !classes.some((c) => keep.has(c))) {
+        rule.remove();
+      }
+    });
+    root.append({ text: 'env: ' + process.env.HUGO_ENVIRONMENT });
+  },
+});
+purge.postcss = true;
+module.exports = { plugins: [purge()] };
+-- assets/scss/website.scss --
+@import "variables";
+@import "components/card";
+
+$gutter: 12px !default;
+
+body {
+  font-family: $font-stack;
+  color: darken($primary, 10%);
+  margin: 0 auto;
+  max-width: 72rem;
+}
+
+.pagination {
+  display: flex;
+  li { padding: $gutter / 2; &.active { font-weight: bold; } }
+}
+
+.rating-star { color: mix($primary, #ffcc00, 25%); }
+.never-used-class { color: red; }
+.tag-list a:hover { text-decoration: underline; }
+.breadcrumb, .nav-main { display: flex; flex-wrap: wrap; }
+
+@each $name in brand, category, company {
+  .tax-#{$name} { border-left: 2px solid lighten($primary, 20%); }
+}
+-- assets/scss/_variables.scss --
+$primary: #d2691e;
+$font-stack: "Sarabun", Helvetica, sans-serif;
+-- assets/scss/components/_card.scss --
+.card {
+  border-radius: 4px;
+  .card-title { font-size: 1.25rem; }
+  img { width: 100%; height: auto; }
+}
+.card-unused { display: none; }
+-- assets/ts/search.ts --
+// Executed as a template first (resources.ExecuteAsTemplate): the data of the first execution wins.
+interface SearchItem { title: string; url: string }
+const api: string = "{{ .api }}";
+export function search(items: SearchItem[], q: string): SearchItem[] {
+  return items.filter((i) => i.title.toLowerCase().includes(q.toLowerCase()));
+}
+export const endpoint = `${api}/search`;
+-- assets/ts/comment.ts --
+const lang: string = "{{ .lang }}";
+export function commentURL(id: string): string {
+  return `${endpoint}/comments/${id}?lang=${lang}`;
+}
+console.log(commentURL("x"));
+-- assets/js/set-theme.js --
+(function () {
+  var theme = localStorage.getItem("theme") || "light";
+  document.documentElement.setAttribute("data-theme", theme);
+})();
+-- assets/js/menu.js --
+export function toggle(el) {
+  el.classList.toggle("is-open");
+}
+-- assets/ts/main.ts --
+import { toggle } from "../js/menu";
+import * as params from "@params";
+document.querySelectorAll(".nav-main a").forEach((a) => a.addEventListener("click", () => toggle(a)));
+console.log(params.site, params.count);
+-- layouts/_default/baseof.html --
+<!DOCTYPE html>
+<html lang="{{ .Site.Language.LanguageCode }}">
+<head>
+{{- partial "head.html" . -}}
+<title>{{ block "title" . }}{{ .Title }} | {{ .Site.Title }}{{ end }}</title>
+</head>
+<body class="{{ .Kind }} {{ .Type }}">
+{{ partial "header.html" . }}
+<main id="main" class="container">
+{{ partial "breadcrumb.html" . }}
+{{- block "main" . }}{{ end }}
+</main>
+{{ partial "footer.html" . }}
+{{ block "scripts" . }}{{ partial "scripts.html" . }}{{ end }}
+</body>
+</html>
+-- layouts/_default/single.html --
+{{ define "title" }}{{ .Title }} - {{ i18n "review" }} | {{ .Site.Title }}{{ end }}
+{{ define "main" }}
+<article class="card single" id="article">
+  <h1 class="card-title">{{ .Title }}</h1>
+  {{ partial "single/date.html" . }}
+  {{ with .Params.image }}{{ with $.Resources.Get . }}
+    {{ $wm := resources.Get "images/watermark.png" }}
+    {{ $img := .Resize "320x" | images.Filter (images.Overlay $wm 0 0) }}
+    <img class="hero" src="{{ $img.RelPermalink }}" width="{{ $img.Width }}" height="{{ $img.Height }}" alt="{{ $.Title }}">
+    {{ $webp := .Resize "160x webp q70" }}
+    <img class="thumb" src="{{ $webp.Permalink }}" alt="{{ path.Ext . }}">
+  {{ end }}{{ end }}
+  {{ .Content }}
+  {{ with .TableOfContents }}<nav class="toc">{{ . }}</nav>{{ end }}
+  <p class="words">{{ .WordCount }} {{ i18n "words" .WordCount }} · {{ .ReadingTime }} min · {{ .FuzzyWordCount }}</p>
+  {{ partial "taxonomy/categories.html" .Params.categories }}
+  {{ partial "taxonomy/tags.html" (dict "tags" .Params.tags "page" .) }}
+  {{ partial "taxonomy/companies.html" .Params.companies }}
+  {{ partial "rating/rating.html" . }}
+  {{ partial "single/nutritionfacts.html" . }}
+  {{ partial "comments.html" . }}
+  {{ partial "related.html" . }}
+  {{ with .PrevInSection }}<a class="prev" href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}
+  {{ with .NextInSection }}<a class="next" href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}
+  {{ range .Resources.ByType "page" }}<section class="bundled">{{ .Title }}: {{ .Content }}</section>{{ end }}
+  {{ range .Resources.Match "sub/*" }}<a class="res" href="{{ .RelPermalink }}">{{ .Name }} {{ .MediaType }}</a>{{ end }}
+</article>
+{{ end }}
+-- layouts/_default/list.html --
+{{ define "main" }}
+<section class="list">
+  <h1>{{ .Title }}</h1>
+  {{ .Content }}
+  {{ $pages := sort .Pages "Title" }}
+  <p class="count">{{ len $pages }} / {{ len .RegularPagesRecursive }} / {{ mul (len .Sections) 10 }}</p>
+  <ul class="sections">{{ range .Sections }}<li><a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a> ({{ len .Pages }})</li>{{ end }}</ul>
+  {{ range .Paginator.Pages }}{{ partial "card.html" . }}{{ end }}
+  {{ partial "pagination.html" . }}
+  {{ range .Pages.GroupByDate "2006" }}<h2 class="group">{{ .Key }}</h2>{{ range .Pages }}<span>{{ .Title }}</span>{{ end }}{{ end }}
+</section>
+{{ end }}
+-- layouts/_default/simple.html --
+{{ define "main" }}<div class="simple">{{ .Content }}<p>{{ .Summary }}</p><p>{{ .Plain | truncate 40 }}</p></div>{{ end }}
+-- layouts/_default/latesturl.html --
+{{ range first 3 (sort (where .Site.RegularPages "Params.type" "snacks") "Date" "desc") }}{{ .Permalink }}
+{{ end }}
+-- layouts/_default/index.json --
+{{- $s := newScratch -}}
+{{- range sort (where .Site.RegularPages "Params.type" "snacks") "Date" -}}
+{{- $item := dict "title" .Title "url" .Permalink "date" (.Date.Format "2006-01-02") "summary" (.Summary | plainify) "plain" (.Plain | truncate 60) -}}
+{{- with .Params.image }}{{ with $.Resources.Get . }}{{ $t := .Fill "64x64 Center" }}{{ $item = merge $item (dict "thumb" $t.RelPermalink) }}{{ end }}{{ end -}}
+{{- $s.Add "items" (slice $item) -}}
+{{- end -}}
+{{- dict "lang" .Lang "items" ($s.Get "items") "home" .Title | jsonify (dict "indent" " ") -}}
+-- layouts/_default/rss.xml --
+{{- $pctx := . -}}
+{{- if .IsHome -}}{{ $pctx = .Site }}{{- end -}}
+{{- $pages := slice -}}
+{{- if or $.IsHome $.IsSection -}}{{- $pages = $pctx.RegularPages -}}{{- else -}}{{- $pages = $pctx.Pages -}}{{- end -}}
+{{- $limit := .Site.Config.Services.RSS.Limit -}}
+{{- if ge $limit 1 -}}{{- $pages = $pages | first $limit -}}{{- end -}}
+{{- printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>{{ if eq .Title .Site.Title }}{{ .Site.Title }}{{ else }}{{ with .Title }}{{ . }} on {{ end }}{{ .Site.Title }}{{ end }}</title>
+    <link>{{ .Permalink }}</link>
+    <description>Recent content {{ if ne .Title .Site.Title }}{{ with .Title }}in {{ . }} {{ end }}{{ end }}on {{ .Site.Title }}</description>
+    <language>{{ .Site.LanguageCode }}</language>
+    <copyright>{{ .Site.Params.yearCreate }}-{{ now.Format "2006" }} {{ if ge .Site.Params.yearCreate (now.Format "2006") }}same{{ end }}</copyright>
+    {{ with .OutputFormats.Get "RSS" }}{{ printf "<atom:link href=%q rel=\"self\" type=%q />" .Permalink .MediaType | safeHTML }}{{ end }}
+    {{ range $pages }}
+    <item>
+      <title>{{ .Title }}</title>
+      <link>{{ .Permalink }}</link>
+      <pubDate>{{ .Date.Format "Mon, 02 Jan 2006 15:04:05 -0700" | safeHTML }}</pubDate>
+      <guid>{{ .Permalink }}</guid>
+      {{ with .Params.categories }}<category>{{ index . 0 | humanize }}</category>{{ end }}
+      <description>{{ .Summary | html }}</description>
+    </item>
+    {{ end }}
+  </channel>
+</rss>
+-- layouts/index.html --
+{{ define "title" }}{{ .Site.Params.hometitle }} | {{ .Site.Title }}{{ end }}
+{{ define "main" }}
+{{ partial "carousel.html" . }}
+<section class="home">
+  {{ $snacks := sort (where .Site.RegularPages "Params.type" "snacks") "Date" "desc" }}
+  <h2>{{ i18n "latest" }} ({{ len $snacks }})</h2>
+  {{ range first (mul 2 2) $snacks }}{{ partial "card.html" . }}{{ end }}
+  {{ range .Paginator.Pages }}<a class="pg" href="{{ .RelPermalink }}">{{ .LinkTitle }}</a>{{ end }}
+  {{ partial "pagination.html" . }}
+  <ul class="taxonomies">
+  {{ range $name, $taxonomy := .Site.Taxonomies }}
+    <li class="tax-{{ $name }}">{{ $name | humanize }}: {{ len $taxonomy }}
+      {{ range $taxonomy.ByCount | first 3 }}<a href="{{ .Page.RelPermalink }}">{{ .Page.Title }} ({{ .Count }})</a>{{ end }}
+    </li>
+  {{ end }}
+  </ul>
+  <p class="i18n">{{ i18n "reviews" 1 }} / {{ i18n "reviews" 5 }} / {{ i18n "welcome" (dict "Name" .Site.Title) }}</p>
+  {{ range .Site.Home.AllTranslations }}<a hreflang="{{ .Lang }}" href="{{ .Permalink }}">{{ .Language.LanguageName }}</a>{{ end }}
+</section>
+{{ end }}
+-- layouts/404.html --
+{{ define "main" }}<div class="notfound"><h1>404</h1><p>{{ i18n "notFound" }}</p>{{ range first 2 .Paginator.Pages }}<a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}</div>{{ end }}
+-- layouts/taxonomy/list.html --
+{{ define "main" }}
+<section class="taxonomy tax-{{ .Data.Singular }}">
+  <h1>{{ .Title }} · {{ .Data.Singular | humanize }} / {{ .Data.Plural }}</h1>
+  {{ range .Data.Terms.Alphabetical }}<a class="term" href="{{ .Page.RelPermalink }}">{{ .Page.Title }} <sup>{{ .Count }}</sup></a>{{ end }}
+  {{ range sort .Paginator.Pages "Title" }}<span class="t">{{ .Title }}</span>{{ end }}
+  {{ partial "pagination.html" . }}
+</section>
+{{ end }}
+-- layouts/term/term.html --
+{{ define "main" }}
+<section class="term">
+  <h1>{{ .Title }} <small>{{ .Data.Term }} / {{ .Name }}</small></h1>
+  {{ with .Params.website }}{{ partial "taxonomy/company/website.html" . }}{{ end }}
+  {{ with .Resources.GetMatch "*.png" }}{{ $l := .Resize "48x48" }}<img class="logo" src="{{ $l.RelPermalink }}" width="{{ $l.Width }}">{{ end }}
+  {{ .Content }}
+  {{ range sort .Paginator.Pages "Title" }}{{ partial "card.html" . }}{{ end }}
+  {{ partial "pagination.html" . }}
+</section>
+{{ end }}
+-- layouts/robots.txt --
+User-agent: *
+{{ range .Site.RegularPages }}{{ if .Params.private }}Disallow: {{ .RelPermalink }}
+{{ end }}{{ end }}Sitemap: {{ "sitemap.xml" | absURL }}
+-- layouts/sitemap.xml --
+{{ printf "<?xml version=\"1.0\" encoding=\"utf-8\" standalone=\"yes\"?>" | safeHTML }}
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  {{ range .Pages }}{{ if .Permalink }}
+  <url>
+    <loc>{{ .Permalink }}</loc>{{ if not .Lastmod.IsZero }}
+    <lastmod>{{ safeHTML (.Lastmod.Format "2006-01-02T15:04:05-07:00") }}</lastmod>{{ end }}
+    <priority>{{ index $.Site.Params.sitemap.priority .Kind }}</priority>
+    {{ range .Translations }}<xhtml:link rel="alternate" hreflang="{{ .Lang }}" href="{{ .Permalink }}"/>{{ end }}
+  </url>{{ end }}{{ end }}
+</urlset>
+-- layouts/_default/_markup/render-heading.html --
+<h{{ .Level }} id="{{ .Anchor | safeURL }}" class="heading">{{ .Text | safeHTML }} <a class="anchor" href="#{{ .Anchor | safeURL }}">#</a></h{{ .Level }}>
+-- layouts/_default/_markup/render-image.html --
+{{- $img := .Page.Resources.Get .Destination -}}
+{{- with $img -}}
+{{- $wm := resources.Get "images/watermark.png" -}}
+{{- $r := .Resize (printf "%dx" 240) | images.Filter (images.Overlay $wm 0 0) -}}
+<img src="{{ $r.RelPermalink }}" width="{{ $r.Width }}" height="{{ $r.Height }}" alt="{{ $.Text }}"{{ with $.Title }} title="{{ . }}"{{ end }}>
+{{- else -}}
+<img src="{{ .Destination | safeURL }}" alt="{{ .Text }}">
+{{- end -}}
+-- layouts/_default/_markup/render-table.html --
+<table class="md-table">{{ range .THead }}<tr>{{ range . }}<th{{ with .Alignment }} class="a-{{ . }}"{{ end }}>{{ .Text }}</th>{{ end }}</tr>{{ end }}{{ range .TBody }}<tr>{{ range . }}<td>{{ .Text }}</td>{{ end }}</tr>{{ end }}</table>
+-- layouts/_default/_markup/render-table.json.json --
+TABLE({{ len .THead }}x{{ len .TBody }})
+-- layouts/partials/head.html --
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{{- $paginator := false }}{{ if or .IsNode (eq .Kind "404") }}{{ $paginator = .Paginator }}{{ end -}}
+{{- $permalink := .Permalink -}}
+{{- if and $paginator (gt $paginator.PageNumber 1) }}
+<link rel="canonical" href="{{ print $permalink "page/" $paginator.PageNumber "/" }}">
+{{- else }}
+<link rel="canonical" href="{{ $permalink }}">
+{{- end }}
+<meta name="description" content="{{ with .Description }}{{ . }}{{ else }}{{ .Site.Params.description }}{{ end }}">
+<meta property="og:image" content="{{ printf "%s" .Params.image | absLangURL }}">
+<meta property="og:locale" content="{{ .Site.Language.Params.LanguageCodeOpenGraph | default "en_US" }}">
+{{- range first 1 .AllTranslations }}<meta property="og:locale:alternate" content="{{ .Lang }}">{{ end }}
+{{- range .Translations }}<link rel="alternate" hreflang="{{ .Lang }}" href="{{ .Permalink }}">{{ end }}
+{{- with .OutputFormats.Get "rss" }}<link rel="alternate" type="{{ .MediaType.Type }}" href="{{ .Permalink }}" title="{{ $.Site.Title }}">{{ end }}
+{{- range $i, $f := slice "favicon-16x16.png" "favicon-32x32.png" }}
+{{- with resources.Get (printf "images/favicon/%s" $f) }}<link rel="icon" href="{{ .RelPermalink }}" sizes="{{ .Width }}x{{ .Height }}">{{ end }}
+{{- end }}
+{{- $opts := dict "enableSourceMap" false "includePaths" (slice "node_modules" "assets/scss") "outputStyle" "compressed" }}
+{{- $css := resources.Get "scss/website.scss" | toCSS $opts | postCSS | minify | fingerprint | resources.PostProcess }}
+<style>{{ $css.Content | safeCSS }}</style>
+<link rel="preload" href="{{ $css.RelPermalink }}" as="style" integrity="{{ $css.Data.Integrity }}">
+{{- partial "marketing/jsonLd.html" . }}
+-- layouts/partials/header.html --
+<header class="site-header">
+  <a class="logo" href="{{ "/" | absLangURL }}">{{ with resources.Get (index .Site.Params.header "logo") }}<img src="{{ .RelPermalink }}" width="{{ .Width }}" alt="logo">{{ end }}{{ .Site.Title }}</a>
+  <nav class="nav-main">
+  {{- $current := . }}
+  {{- range .Site.Menus.main }}
+    <a class="{{ if $current.IsMenuCurrent "main" . }}active{{ else if $current.HasMenuCurrent "main" . }}parent{{ end }}" href="{{ .URL | relLangURL }}">{{ .Name }}{{ with .Weight }}<i>{{ . }}</i>{{ end }}</a>
+  {{- end }}
+  </nav>
+  <nav class="langs">{{ range .Site.Languages }}<span data-lang="{{ .Lang }}">{{ .LanguageName }}</span>{{ end }}</nav>
+</header>
+-- layouts/partials/footer.html --
+<footer class="site-footer">
+  {{ with index .Site.Params.footer "logo" }}{{ with resources.Get . }}{{ $s := .Resize "35x35" }}<img src="{{ $s.RelPermalink }}" alt="logo">{{ end }}{{ end }}
+  {{ range index .Site.Params.footer "socialmedia" }}<a class="social {{ .type }}" href="{{ .link }}" title="{{ .name | humanize }}"><i class="{{ .icon }}"></i></a>{{ end }}
+  {{ range $k, $col := index .Site.Params.footer "quicklinks" }}<div class="col-{{ $k }}"><h4>{{ $col.title }}</h4>{{ range $col.links }}<a href="{{ .link | relLangURL }}">{{ .text }}</a>{{ end }}</div>{{ end }}
+  <p>&copy; {{ .Site.Params.yearCreate }}-{{ now.Format "2006" }} {{ .Site.Params.company }} · {{ hugo.Environment }} · {{ len .Site.RegularPages }}</p>
+</footer>
+-- layouts/partials/scripts.html --
+{{- $theme := resources.Get "js/set-theme.js" | js.Build (dict "target" "es2015") | fingerprint }}
+<script src="{{ $theme.RelPermalink }}" integrity="{{ $theme.Data.Integrity }}"></script>
+{{- $search := resources.Get "ts/search.ts" | resources.ExecuteAsTemplate "ts/search.ts" (dict "api" .Site.Params.Comment.Apipro) }}
+{{- $comment := resources.Get "ts/comment.ts" | resources.ExecuteAsTemplate "ts/comment.ts" (dict "lang" .Lang) }}
+{{- $main := resources.Get "ts/main.ts" }}
+{{- $bundle := slice $main $search $comment | resources.Concat "js/all.ts" | js.Build (dict "targetPath" "js/website.js" "minify" true "params" (dict "site" .Site.Title "count" 3)) | fingerprint }}
+<script src="{{ $bundle.RelPermalink }}" integrity="{{ $bundle.Data.Integrity }}" defer></script>
+-- layouts/partials/breadcrumb.html --
+<nav class="breadcrumb">{{ template "breadcrumbnav" (dict "p1" . "p2" .) }}</nav>
+{{ define "breadcrumbnav" }}
+{{- if .p1.Parent }}{{ template "breadcrumbnav" (dict "p1" .p1.Parent "p2" .p2) }}
+{{- else if not .p1.IsHome }}{{ template "breadcrumbnav" (dict "p1" .p1.Site.Home "p2" .p2) }}{{ end -}}
+<a class="{{ if eq .p1 .p2 }}active{{ end }}" href="{{ .p1.RelPermalink }}">{{ if .p1.IsHome }}{{ i18n "home" }}{{ else }}{{ .p1.LinkTitle }}{{ end }}{{ if eq .p1.Data.Singular "company" }} (company){{ end }}</a>
+{{ end }}
+-- layouts/partials/pagination.html --
+{{- $pag := .Paginator }}
+{{- if gt $pag.TotalPages 1 }}
+<ul class="pagination">
+  {{- with $pag.First }}<li><a href="{{ .URL }}">«</a></li>{{ end }}
+  {{- if $pag.HasPrev }}<li><a href="{{ $pag.Prev.URL }}">‹</a></li>{{ end }}
+  {{- range $pag.Pagers }}
+  {{- $right := add $pag.PageNumber 2 }}{{ $left := sub $pag.PageNumber 2 }}
+  {{- if and (ge .PageNumber $left) (le .PageNumber $right) }}
+  <li class="{{ if eq . $pag }}active{{ end }}"><a href="{{ .URL }}">{{ .PageNumber }}</a></li>
+  {{- end }}
+  {{- end }}
+  {{- if $pag.HasNext }}<li><a href="{{ $pag.Next.URL }}">›</a></li>{{ end }}
+  {{- with $pag.Last }}<li><a href="{{ .URL }}">» {{ $pag.TotalNumberOfElements }}</a></li>{{ end }}
+</ul>
+{{- end }}
+-- layouts/partials/card.html --
+<div class="card">
+  {{- with .Params.image }}{{ with $.Resources.Get . }}{{ $t := .Fill "120x90 Center" }}<img src="{{ $t.RelPermalink }}" width="{{ $t.Width }}" height="{{ $t.Height }}" alt="{{ $.Title }}">{{ end }}{{ end }}
+  <a class="card-title" href="{{ .RelPermalink }}">{{ .LinkTitle }}</a>
+  <p>{{ .Summary | plainify | truncate 80 }}</p>
+  {{ with .Params.brands }}<span class="brand">{{ delimit (slice .) ", " }}</span>{{ end }}
+</div>
+-- layouts/partials/carousel.html --
+{{- $pages := first .Site.Params.carousel.totalShow (sort (where .Site.RegularPages "Params.type" "snacks") "Date" "desc") }}
+<div class="carousel">
+{{- range $i, $n := seq (len $pages) }}
+  {{- $p := index $pages (sub $n 1) }}
+  <div class="slide" data-index="{{ add $i 1 }}"><a href="{{ $p.RelPermalink }}">{{ $p.Title }}</a></div>
+{{- end }}
+</div>
+-- layouts/partials/related.html --
+{{- $related := .Site.RegularPages.Related . | first 5 }}
+{{- with $related }}
+<section class="related"><h3>{{ i18n "related" }}</h3>
+{{- range . }}<a href="{{ .RelPermalink }}">{{ .Title }}</a>{{ end }}
+</section>
+{{- end }}
+-- layouts/partials/rating/rating.html --
+{{- with .Params.rating }}
+<div class="rating">{{ i18n "rating" }}
+{{- range $k, $v := . }}
+  <span class="rating-star" title="{{ $k }}">{{ template "partials/rating/rating-review" (dict "score" $v) }} {{ $k | humanize }}</span>
+{{- end }}
+</div>
+{{- end }}
+{{ define "partials/rating/rating-review" }}{{ range seq 5 }}{{ if ge $.score . }}★{{ else }}☆{{ end }}{{ end }}{{ end }}
+-- layouts/partials/single/date.html --
+<p class="date">
+<time datetime="{{ .Date.Format "2006-01-02T15:04:05Z07:00" }}">{{ .Date | dateFormat (default ":date_medium" .Site.Params.dateFormat) }}</time>
+{{ with .Params.when_seen }} · {{ dateFormat "Jan 2, 2006" . }}{{ end }}
+· {{ .Lastmod | time.Format ":date_long" }} · {{ .PublishDate.Year }}
+</p>
+-- layouts/partials/single/nutritionfacts.html --
+{{- with .Params.ingredients_percentage }}
+<table class="nutrition">
+{{- range . }}<tr><td>{{ .Name }}</td><td>{{ with .Value }}{{ . }}%{{ else }}–{{ end }}</td></tr>{{ end }}
+</table>
+{{- end }}
+-- layouts/partials/comments.html --
+{{- $key := trim .RelPermalink "/" }}
+{{- with index .Site.Data.comments $key }}
+<section class="comments"><h3>{{ i18n "comments" (len .) }}</h3>
+{{- range . }}
+  <div class="comment"><b>{{ .name }}</b> <time>{{ dateFormat ":date_medium" .date }}</time>
+  {{ .text | markdownify }} {{ template "partials/comment/rating-comment" . }}</div>
+{{- end }}
+</section>
+{{- end }}
+{{ define "partials/comment/rating-comment" }}{{ with .rating }}<span class="rating-star">{{ . }}/5</span>{{ end }}{{ end }}
+-- layouts/partials/taxonomy/categories.html --
+{{- if . }}
+{{- $cats := . }}{{ if not (reflect.IsSlice .) }}{{ $cats = slice . }}{{ end }}
+<div class="tag-list tax-category">
+{{- range $cats }}{{ if reflect.IsSlice . }}{{ range . }}<a href="{{ printf "/categories/%s/" (urlize . | lower) | relLangURL }}">{{ . | humanize }}</a>{{ end }}{{ else }}<a href="{{ printf "/categories/%s/" (urlize . | lower) | relLangURL }}">{{ . | humanize }}</a>{{ end }}{{ end }}
+</div>
+{{- end }}
+-- layouts/partials/taxonomy/tags.html --
+{{- if isset . "tags" }}{{ with .tags }}
+<div class="tag-list tags">
+{{- range sort . }}{{ if . }}<a href="{{ printf "/tags/%s/" (urlize . | lower) | relLangURL }}">#{{ . }}</a>{{ end }}{{ end }}
+</div>
+{{- end }}{{ end }}
+{{- with .page.GetTerms "tags" }}<p class="terms">{{ range . }}<a href="{{ .RelPermalink }}">{{ .LinkTitle }}</a>{{ end }}</p>{{ end }}
+-- layouts/partials/taxonomy/companies.html --
+{{- with . }}
+<div class="tax-company">{{ range (cond (reflect.IsSlice .) . (slice .)) }}<a href="{{ printf "/companies/%s/" (urlize .) | relLangURL }}">{{ . }}</a>{{ end }}</div>
+{{- end }}
+-- layouts/partials/taxonomy/company/website.html --
+<a class="website" href="{{ . }}" rel="nofollow">{{ (urls.Parse .).Host }}</a>
+-- layouts/partials/marketing/jsonLd.html --
+{{- $s := newScratch }}
+{{- $s.Set "type" "WebPage" }}
+{{- if .IsPage }}{{ $s.Set "type" "Article" }}{{ end }}
+{{- $crumbs := slice }}
+{{- range $i, $p := .Ancestors.Reverse }}{{ $crumbs = $crumbs | append (dict "position" (add $i 1) "name" $p.LinkTitle "item" $p.Permalink) }}{{ end }}
+{{- $ld := dict "@context" "https://schema.org" "@type" ($s.Get "type") "name" .Title "url" .Permalink "breadcrumb" (sort $crumbs "position" "asc") }}
+{{- with .Params.youtube_video }}
+  {{- $url := printf "https://www.googleapis.com/youtube/v3/videos?key=API_KEY&part=snippet,contentDetails,statistics&id=%s" . }}
+  {{- with try (resources.GetRemote $url) }}
+    {{- with .Err }}{{ warnf "GetRemote: %s" . }}
+    {{- else with .Value }}
+      {{- $data := .Content | transform.Unmarshal }}
+      {{- range first 1 $data.items }}
+        {{- $ld = merge $ld (dict "video" (dict "name" .snippet.title "uploadDate" .snippet.publishedAt "duration" .contentDetails.duration "views" .statistics.viewCount "tags" (first 3 (default (slice) .snippet.tags)))) }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+{{- end }}
+<script type="application/ld+json">{{ $ld | jsonify | safeJS }}</script>
+-- layouts/shortcodes/note.html --
+<div class="note">{{ .Inner }}</div>
+-- layouts/shortcodes/box.html --
+<div class="box {{ .Get "class" }}">{{ .Inner | markdownify }}</div>
+-- layouts/shortcodes/badge.html --
+<span class="badge">{{ .Get 0 }}{{ with .Get 1 }}-{{ . }}{{ end }}</span>
+-- layouts/shortcodes/img.html --
+<img src="{{ .Get "src" }}" alt="{{ .Get "alt" }}" width="{{ .Get "width" }}">
+-- layouts/shortcodes/v1.html --
+{{ $_hugo_config := `{ "version": 1 }` }}<em>{{ .Inner }}</em>
+-- layouts/shortcodes/quote.html --
+<blockquote>{{ .Inner }} — {{ .Page.Title }} ({{ .Ordinal }})</blockquote>
+-- layouts/shortcodes/Mixed.html --
+mixed {{ .Name }}
+-- layouts/shortcodes/thai.html --
+{{ .Get "คำ" }}
+-- layouts/shortcodes/empty.html --
+{{- .Inner -}}
+-- layouts/shortcodes/nested.html --
+<section>{{ .Inner }}{{ with .Parent }} in {{ .Name }}{{ end }}</section>
+-- layouts/shortcodes/modalImage.html --
+{{ with .Get "src" }}<img class="modal" src="{{ . }}">{{ else }}<span>no image</span>{{ end }}
+-- i18n/en.toml --
+review = "Review"
+latest = "Latest snacks"
+home = "Home"
+related = "Related snacks"
+rating = "Rating"
+notFound = "Page not found"
+welcome = "Welcome to {{ .Name }}"
+[words]
+one = "word"
+other = "words"
+[reviews]
+one = "{{ .Count }} review"
+other = "{{ .Count }} reviews"
+[comments]
+one = "One comment"
+other = "{{ .Count }} comments"
+-- i18n/th.toml --
+review = "รีวิว"
+latest = "ขนมล่าสุด"
+home = "หน้าแรก"
+related = "ขนมที่เกี่ยวข้อง"
+rating = "คะแนน"
+welcome = "ยินดีต้อนรับสู่ {{ .Name }}"
+[words]
+other = "คำ"
+[reviews]
+other = "{{ .Count }} รีวิว"
+[comments]
+other = "{{ .Count }} ความคิดเห็น"
+-- data/comments.json --
+{
+  "snacks/lays-rock-prawn": [
+    {"name": "Nok", "date": "2021-03-04T05:06:07Z", "text": "Very **crispy**, would buy again.", "rating": 4},
+    {"name": "Tom", "date": "2021-05-01", "text": "Too salty for me.\n\nBut the *prawn* flavour is real.", "rating": 2.5}
+  ],
+  "th/snacks/lays-rock-prawn": [
+    {"name": "นก", "date": "2021-03-04T05:06:07Z", "text": "กรอบ **มาก**", "rating": 5}
+  ]
+}
+-- static/favicon.ico --
+ICO
+-- static/.DS_Store --
+ds store
+-- static/files/menu.bak --
+backup file
+-- content/snacks/_index.md --
+---
+title: "Snacks"
+description: "All snack reviews"
+---
+The snack section with a [link to about](/about/) and a table:
+
+| Name | Score |
+|:-----|------:|
+| Koala | 4 |
+| Lay's | 5 |
+-- content/snacks/_index.th.md --
+---
+title: "ขนม"
+---
+ขนมทั้งหมด
+-- content/snacks/lays-rock-prawn/index.md --
+---
+title: "Lay's Rock Prawn"
+date: 2021-02-03T04:05:06Z
+lastmod: 2021-06-07T08:09:10Z
+type: snacks
+image: prawn.jpg
+youtube_video: "10426788187073209306"
+categories: ["potato-chips", "seafood"]
+brands: ["Lay's"]
+companies: ["Frito Lay", "Thai Lotte Co., Ltd."]
+countries: ["Thailand"]
+ingredients: ["INS 322(i)", "Potato"]
+tags: ["Lay's", "crispy", "Prawn"]
+when_seen: "2020-09-23"
+rating: {taste: 4, smell: 3.5, crunch: 5}
+ingredients_percentage: [{Name: Potato, Value: 60}, {Name: Oil, Value: 30}]
+aliases: ["/old/lays-prawn/"]
+---
+## Taste notes
+
+Crispy chips with ![the pack](prawn.jpg "Pack") and a [relative link](../koala/).
+
+### Smell
+
+Prawn-like. {{< badge "hot" >}}
+
+<!--more-->
+
+## The end
+
+| a | b |
+|---|---|
+| 1 | 2 |
+-- content/snacks/lays-rock-prawn/index.th.md --
+---
+title: "เลย์ร็อค กุ้ง"
+date: 2021-02-03T04:05:06Z
+type: snacks
+image: prawn.jpg
+youtube_video: "10921459942904219419"
+categories: ["potato-chips"]
+brands: ["Lay's"]
+tags: ["กรอบ", "อาหารทะเล", "กุ้ง"]
+ingredients: ["มันฝรั่ง", "เกลือ"]
+rating: {taste: 5}
+---
+## รสชาติ
+
+อร่อย ![ห่อ](prawn.jpg) มาก
+-- content/snacks/koala/index.md --
+---
+title: "Koala's March Strawberry"
+date: 2021-01-10T10:00:00Z
+type: snacks
+image: koala.jpg
+youtube_video: "11152450411989392523"
+categories: biscuit
+brands: Lotte
+companies: "Thai Lotte Co., Ltd."
+countries: ["Japan", "Thailand"]
+tags: ["Koala", "Strawberry"]
+---
+Pink koalas. ![koala](koala.jpg)
+
+{{% note %}}Lots of *koalas*{{% /note %}}
+-- content/snacks/pringles-paprika/index.md --
+---
+title: "Pringles Paprika"
+date: 2020-12-24T12:00:00+07:00
+type: snacks
+image: pringles.jpg
+categories: ["potato-chips"]
+brands: ["Pringles"]
+companies: ["Kellogg"]
+tags: ["Paprika", "crispy"]
+---
+Paprika flavour {{< ref "/snacks/koala" >}}.
+-- content/snacks/combos/index.md --
+---
+title: "Combos Pizzeria"
+date: 2020-11-12T13:24:30.025Z
+type: snacks
+image: combos.jpg
+categories: ["pretzels"]
+tags: ["Pizza"]
+weight: 3
+---
+Pretzel with pizza filling.
+-- content/snacks/taro-bread/index.md --
+---
+title: "Taro Custard Bread"
+date: 2020-10-01T00:00:00Z
+type: snacks
+image: taro.jpg
+categories: ["bread-pan"]
+brands: ["Le Pan"]
+companies: ["Le Pan Bakery"]
+tags: ["Taro", "Bread"]
+---
+Soft bread.
+-- content/companies/le-pan-bakery/_index.md --
+---
+title: "Le Pan Bakery"
+website: "https://www.facebook.com/lepanbakery/"
+---
+A bakery.
+-- content/companies/le-pan-bakery/logo.png --
+placeholder (replaced by sites.py)

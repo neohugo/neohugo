@@ -89,14 +89,56 @@ impl Chain {
                 })
             };
 
-            // Go writes the failing step's input to a temp file and wraps the error in a
-            // `herrors.FileError` naming it; the port returns the transformer's error (see
-            // PORTING.md, deviations).
-            res?;
+            if let Err(err) = res {
+                // Write output to a temp file so it can be read by the user for trouble shooting.
+                let from = if from_is_b1 { &b1 } else { &b2 };
+                let filename = match create_temp_with(from) {
+                    Some(name) => name,
+                    None => "output.html".to_string(),
+                };
+                return Err(nh_common::herrors::new_file_error_from_name(err, &filename));
+            }
         }
 
         Ok(if from_is_b1 { b2 } else { b1 })
     }
+}
+
+/// Go's `os.CreateTemp("", "hugo-transform-error")` + `io.Copy(tempfile, fb.from)`: a new file
+/// `hugo-transform-error<random decimal>` in `os.TempDir()` holding `content`; `None` when it
+/// cannot be created (Go then names the error's file `output.html`).
+fn create_temp_with(content: &[u8]) -> Option<String> {
+    use std::io::Write;
+    // Go: os.TempDir() ($TMPDIR, else /tmp).
+    let dir = match std::env::var_os("TMPDIR") {
+        Some(d) if !d.is_empty() => std::path::PathBuf::from(d),
+        _ => std::path::PathBuf::from("/tmp"),
+    };
+    // Go: os.nextRandom (a random uint32 in decimal); try up to 10000 names like Go.
+    let mut seed = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos() as u64)
+        .unwrap_or(0)
+        ^ (u64::from(std::process::id()) << 32);
+    for _ in 0..10000 {
+        seed ^= seed << 13;
+        seed ^= seed >> 7;
+        seed ^= seed << 17;
+        let name = dir.join(format!("hugo-transform-error{}", seed as u32));
+        match std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&name)
+        {
+            Ok(mut f) => {
+                let _ = f.write_all(content);
+                return Some(name.to_string_lossy().into_owned());
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(_) => return None,
+        }
+    }
+    None
 }
 
 // ---------------------------------------------------------------------------

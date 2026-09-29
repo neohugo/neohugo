@@ -395,9 +395,12 @@ pub struct BuildState {
     pub(crate) counter: AtomicU64,
     /// Files in /public that contain a post-processing placeholder (`__h_pp_l1`).
     pub(crate) filenames_with_post_prefix: Mutex<BTreeSet<String>>,
-    /// Files with deferred-template placeholders (`__hdeferred/`; Go
-    /// `DeferredExecutions.FilenamesWithPostPrefix`); unused by seeksnack.
-    pub(crate) filenames_with_deferred_prefix: Mutex<BTreeSet<String>>,
+    /// Go `DeferredExecutions`: the deferred executions of the rendering stage in progress
+    /// (replaced by a fresh set when a stage stops).
+    pub(crate) deferred_executions: Mutex<Arc<DeferredExecutions>>,
+    /// Go `DeferredExecutionsGroupedByRenderingContext` (a map in Go, iterated in random order
+    /// by `renderDeferred`; the port keeps the stages in render order, one of Go's orders).
+    pub(crate) deferred_executions_grouped: Mutex<Vec<(RenderingContext, Arc<DeferredExecutions>)>>,
 }
 
 impl BuildState {
@@ -421,23 +424,120 @@ impl BuildState {
     }
 
     /// Go: `DeferredExecutions.FilenamesWithPostPrefix.Set(name, true)` (the HasBytes receiver
-    /// callback for `__hdeferred/`).
+    /// callback for `__hdeferred/`): recorded in the current stage's executions.
     pub fn add_filename_with_deferred_prefix(&self, filename: &str) {
-        self.filenames_with_deferred_prefix
+        self.deferred_executions()
+            .filenames_with_post_prefix
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .insert(filename.to_string());
     }
 
-    /// The files with a deferred-template placeholder (sorted).
+    /// The files with a deferred-template placeholder of the current stage (sorted).
     pub fn get_filenames_with_deferred_prefix(&self) -> Vec<String> {
-        self.filenames_with_deferred_prefix
+        self.deferred_executions().filenames()
+    }
+
+    /// Go: `BuildState.DeferredExecutions` (the current stage's).
+    pub fn deferred_executions(&self) -> Arc<DeferredExecutions> {
+        self.deferred_executions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+
+    /// Go: `StartStageRender(stage)` (a no-op).
+    // Go: deps/deps.go:StartStageRender
+    pub fn start_stage_render(&self, _stage: RenderingContext) {}
+
+    /// Go: `StopStageRender(stage)`: the stage's executions are grouped under the stage (a map
+    /// assignment in Go: the same stage replaces its earlier group) and a fresh set starts.
+    // Go: deps/deps.go:StopStageRender
+    pub fn stop_stage_render(&self, stage: RenderingContext) {
+        let de = std::mem::take(
+            &mut *self
+                .deferred_executions
+                .lock()
+                .unwrap_or_else(|e| e.into_inner()),
+        );
+        let mut grouped = self
+            .deferred_executions_grouped
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+        match grouped.iter_mut().find(|(rc, _)| *rc == stage) {
+            Some(g) => g.1 = de,
+            None => grouped.push((stage, de)),
+        }
+    }
+
+    /// Go: `DeferredExecutionsGroupedByRenderingContext` (in render order).
+    pub fn deferred_executions_grouped(&self) -> Vec<(RenderingContext, Arc<DeferredExecutions>)> {
+        self.deferred_executions_grouped
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .clone()
+    }
+}
+
+/// Go: `tpl.RenderingContext{Site, SiteOutIdx}` (the site by index).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct RenderingContext {
+    pub site_idx: usize,
+    pub site_out_idx: usize,
+}
+
+/// Go: `deps.DeferredExecutions`.
+#[derive(Default)]
+pub struct DeferredExecutions {
+    /// Go `FilenamesWithPostPrefix`: the files in /public that contain a deferred placeholder.
+    pub filenames_with_post_prefix: Mutex<BTreeSet<String>>,
+    /// Go `Executions`: placeholder id -> deferred execution.
+    pub executions: Mutex<std::collections::HashMap<String, Arc<DeferredExecution>>>,
+}
+
+impl DeferredExecutions {
+    /// The recorded filenames (sorted; Go's `ForEeach` over a map is unordered, and each file is
+    /// handled on its own).
+    pub fn filenames(&self) -> Vec<String> {
+        self.filenames_with_post_prefix
             .lock()
             .unwrap_or_else(|e| e.into_inner())
             .iter()
             .cloned()
             .collect()
     }
+
+    /// Go: `Executions.GetOrCreate(id, create)` (the first creator wins).
+    pub fn get_or_create(
+        &self,
+        id: &str,
+        create: impl FnOnce() -> DeferredExecution,
+    ) -> Arc<DeferredExecution> {
+        self.executions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .entry(id.to_string())
+            .or_insert_with(|| Arc::new(create()))
+            .clone()
+    }
+
+    /// Go: `Executions.Get(id)`.
+    pub fn get(&self, id: &str) -> Option<Arc<DeferredExecution>> {
+        self.executions
+            .lock()
+            .unwrap_or_else(|e| e.into_inner())
+            .get(id)
+            .cloned()
+    }
+}
+
+/// Go: `tpl.DeferredExecution`: the template and data of a deferred execution; `result` is
+/// `Some` once executed (Go's `Executed` + `Result`, under `Mu`).
+pub struct DeferredExecution {
+    pub template_path: String,
+    pub ctx: nh_tpl::template::TplContext,
+    pub data: Value,
+    pub result: Mutex<Option<Vec<u8>>>,
 }
 
 impl Incrementer for BuildState {
@@ -565,8 +665,8 @@ impl<T> Listeners<T> {
 // OK L346-353: (b *Listeners[T]) Add(f func(...T) bool)
 // OK L356-366: (b *Listeners[T]) Notify(vs ...T)
 // OK L374-387: (d *Deps) Close() error
-//    L460-461: (b *BuildState) StartStageRender(stage tpl.RenderingContext)
-// EX L464-470: (b *BuildState) StopStageRender(stage tpl.RenderingContext)
+// OK L460-461: (b *BuildState) StartStageRender(stage tpl.RenderingContext)
+// OK L464-470: (b *BuildState) StopStageRender(stage tpl.RenderingContext)
 //    L472-474: (b *BuildState) SignalRebuild(ids ...identity.Identity)
 // OK L476-483: (b *BuildState) AddFilenameWithPostPrefix(filename string)
 // OK L485-494: (b *BuildState) GetFilenamesWithPostPrefix() []string

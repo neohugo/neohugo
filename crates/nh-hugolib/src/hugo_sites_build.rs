@@ -307,24 +307,33 @@ pub fn render(h: &Arc<HugoSites>, cfg: &BuildCfg) -> Result<()> {
                 continue;
             }
 
-            // Go: `h.BuildState.StartStageRender(rc)` / `StopStageRender(rc)` group the
+            // Go: `h.BuildState.StartStageRender(rc)` / `defer StopStageRender(rc)` group the
             // deferred executions of this pass; see `render_deferred`.
+            let rc = nh_deps::deps::RenderingContext {
+                site_idx: si,
+                site_out_idx,
+            };
+            h.deps.build_state.start_stage_render(rc);
+            let res = (|| -> Result<()> {
+                site_render_context.out_idx = site_out_idx;
+                site_render_context.sites_out_idx = i;
+                i += 1;
 
-            site_render_context.out_idx = site_out_idx;
-            site_render_context.sites_out_idx = i;
-            i += 1;
-
-            // Go: `case <-h.Done(): return nil`.
-            if h.fatal_error_handler.done() {
-                continue;
-            }
-            for s2 in 0..h.sites.len() {
-                h.prepare_pages_for_render(s2, si == s2, site_render_context.sites_out_idx)?;
-            }
-            if !cfg.skip_render {
-                // Go: `PartialReRender` (renderPages only) is a server feature (not ported).
-                render_site(h, si, &site_render_context).map_err(render_err)?;
-            }
+                // Go: `case <-h.Done(): return nil`.
+                if h.fatal_error_handler.done() {
+                    return Ok(());
+                }
+                for s2 in 0..h.sites.len() {
+                    h.prepare_pages_for_render(s2, si == s2, site_render_context.sites_out_idx)?;
+                }
+                if !cfg.skip_render {
+                    // Go: `PartialReRender` (renderPages only) is a server feature (not ported).
+                    render_site(h, si, &site_render_context).map_err(render_err)?;
+                }
+                Ok(())
+            })();
+            h.deps.build_state.stop_stage_render(rc);
+            res?;
         }
     }
 
@@ -332,26 +341,114 @@ pub fn render(h: &Arc<HugoSites>, cfg: &BuildCfg) -> Result<()> {
 }
 
 /// Go: `renderDeferred(l)` — executes the `templates.Defer` blocks whose placeholders
-/// (`__hdeferred/`) were published, per rendering pass. The port does not support
-/// `templates.Defer` (it records no deferred executions): a published placeholder is an
-/// explicit error; without one there is nothing to do, as in Go.
+/// (`__hdeferred/`) were published, per rendering pass (Go ranges over a map of the passes, so
+/// its order is random; the port uses the render order). Before a pass's files are handled,
+/// every site's pages are shifted to the pass's output format — with the pass's SITE-LOCAL
+/// output index, exactly as Go calls `preparePagesForRender(s == s2, rc.SiteOutIdx)`.
 // Go: hugolib/hugo_sites_build.go:renderDeferred
 pub fn render_deferred(h: &Arc<HugoSites>) -> Result<()> {
-    if !h
-        .deps
-        .build_state
-        .get_filenames_with_deferred_prefix()
-        .is_empty()
-    {
-        return Err(execute_deferred_templates());
+    for (rc, de) in h.deps.build_state.deferred_executions_grouped() {
+        if de.filenames().is_empty() {
+            continue;
+        }
+        for s2 in 0..h.sites.len() {
+            h.prepare_pages_for_render(s2, rc.site_idx == s2, rc.site_out_idx)?;
+        }
+        execute_deferred_templates(h, rc.site_idx, &de)
+            .map_err(nh_common::herrors::improve_render_err)?;
     }
     Ok(())
 }
 
-/// Go: `(s *Site) executeDeferredTemplates(de)` (not supported).
+/// Go: `(s *Site) executeDeferredTemplates(de)` — for every recorded file (Go: `numWorkers`
+/// workers over an unordered map; the port handles the files one by one in sorted order, each
+/// file on its own), replaces each `__hdeferred/…__d=` placeholder with the result of its
+/// deferred execution (executed once, with the context and data recorded by `DoDefer`), and
+/// writes the file back when something changed. Go's panics (unknown id or template) are errors.
 // Go: hugolib/hugo_sites_build.go:executeDeferredTemplates
-fn execute_deferred_templates() -> Error {
-    Error::new("neohugo-rs: templates.Defer is not supported")
+fn execute_deferred_templates(
+    h: &Arc<HugoSites>,
+    site_idx: usize,
+    de: &nh_deps::deps::DeferredExecutions,
+) -> Result<()> {
+    let s = &h.sites[site_idx];
+    let publish_fs = s.deps.path_spec().base_fs.publish_fs.clone();
+    let prefix = nh_tpl::template::HUGO_DEFERRED_TEMPLATE_PREFIX.as_bytes();
+    let suffix = nh_tpl::template::HUGO_DEFERRED_TEMPLATE_SUFFIX.as_bytes();
+
+    let handle_file = |filename: &str| -> Result<()> {
+        let mut content = read_file(publish_fs.as_ref(), filename)?;
+
+        let mut k: usize = 0;
+        let mut changed = false;
+
+        while k < content.len() {
+            let Some(l) = bytes_index(&content[k..], prefix) else {
+                break;
+            };
+            // Go: `bytes.Index(...) + len(suffix)` (len(suffix)-1 when not found).
+            let m = match bytes_index(&content[k + l..], suffix) {
+                Some(i) => i + suffix.len(),
+                None => suffix.len() - 1,
+            };
+
+            let (low, high) = (k + l, k + l + m);
+            if high > content.len() {
+                return Err(Error::new(format!(
+                    "runtime error: slice bounds out of range [:{high}] with capacity {}",
+                    content.len()
+                )));
+            }
+
+            let id = String::from_utf8_lossy(&content[low..high]).into_owned();
+
+            let Some(deferred) = de.get(&id) else {
+                return Err(Error::new(format!(
+                    "deferred execution with id {} not found",
+                    go_strconv::quote(&id)
+                )));
+            };
+            let result = {
+                let mut state = deferred.result.lock().unwrap_or_else(|e| e.into_inner());
+                if state.is_none() {
+                    let store = s
+                        .template_store
+                        .get()
+                        .ok_or_else(|| Error::new("template store not initialised".to_string()))?;
+                    let Some(ti) = store.lookup_by_path(&deferred.template_path) else {
+                        return Err(Error::new(format!(
+                            "template {} not found",
+                            go_strconv::quote(&deferred.template_path)
+                        )));
+                    };
+                    let mut buf = Vec::new();
+                    store.execute_with_context(&deferred.ctx, &ti, &mut buf, &deferred.data)?;
+                    *state = Some(buf);
+                }
+                state.clone().unwrap_or_default()
+            };
+
+            let mut next = Vec::with_capacity(content.len() + result.len());
+            next.extend_from_slice(&content[..low]);
+            next.extend_from_slice(&result);
+            next.extend_from_slice(&content[high..]);
+            content = next;
+            changed = true;
+
+            k += result.len();
+        }
+
+        if changed {
+            return write_file(publish_fs.as_ref(), filename, &content, 0o666);
+        }
+
+        Ok(())
+    };
+
+    for filename in de.filenames() {
+        handle_file(&filename)?;
+    }
+    Ok(())
 }
 
 /// Go: `printPathWarningsOnce()` — with `printPathWarnings`, the publish fs layers that count
@@ -656,8 +753,8 @@ fn bytes_index(s: &[u8], sep: &[u8]) -> Option<usize> {
 // OK L228-231: (h *HugoSites) initSites(config *BuildCfg) error  [h.reset: nothing to reset in a first build]
 //    L233-251: (h *HugoSites) initRebuild(config *BuildCfg) error  [rebuilds: not ported]
 // OK L351-438: (h *HugoSites) render(l logg.LevelLogger, config *BuildCfg) error
-// OK L440-469: (h *HugoSites) renderDeferred(l logg.LevelLogger) error  [templates.Defer: explicit unsupported error]
-// OK L471-558: (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error  [unsupported]
+// OK L440-469: (h *HugoSites) renderDeferred(l logg.LevelLogger) error
+// OK L471-558: (s *Site) executeDeferredTemplates(de *deps.DeferredExecutions) error
 // OK L561-579: (h *HugoSites) printPathWarningsOnce() error
 // OK L582-597: (h *HugoSites) printUnusedTemplatesOnce() error
 // OK L600-717: (h *HugoSites) postProcess(l logg.LevelLogger) error

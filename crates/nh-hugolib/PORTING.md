@@ -613,8 +613,7 @@ site.go `render`) and `alias` (`newAliasHandler`, `renderAlias`, `writeDestAlias
 `publishDestAlias`, `targetPathAlias`, `aliasPage`) are ported. Every EX entry of their
 checklists is `OK`; not ported: the rebuild/server functions of hugo_sites_build.go
 (`initRebuild`, `processPartial*`, content adapter rebuilds, `LogServerAddresses`). Stub:
-`templates.Defer` (`renderDeferred`/`executeDeferredTemplates`: a published `__hdeferred/`
-placeholder fails the build with `neohugo-rs: templates.Defer is not supported`).
+none (`templates.Defer`, `renderDeferred`/`executeDeferredTemplates`, were ported by I01).
 
 ### Entry points (for T25, I01)
 
@@ -678,8 +677,13 @@ placeholder fails the build with `neohugo-rs: templates.Defer is not supported`)
    touched URLs). No metrics, build counters, `siteState`.
 3. `printPathWarningsOnce` prints nothing: only the counting publish fs the Go commands install
    for `--printPathWarnings` reports duplicates, and the port has none.
-4. `templates.Defer` is not supported (see status); `StartStageRender`/`StopStageRender` are
-   not needed.
+4. `templates.Defer` (I01): each render pass is a stage (`start_stage_render` /
+   `stop_stage_render`, also when the pass fails); `render_deferred` handles the stages in render
+   order (Go: map order) and, per stage, shifts every site's pages with the pass's SITE-LOCAL
+   output index (Go passes `rc.SiteOutIdx` to `preparePagesForRender`, not the global index the
+   render loop uses), then replaces each placeholder of the stage's files with its execution's
+   result (executed once, with the recorded context and data), sequentially in sorted file order
+   (Go: `numWorkers` workers). Go's panics (unknown id or template) are errors.
 5. A `writeBuildStats` error returns at once as in Go, but the error collector is stopped first
    (Go leaves its goroutine running).
 6. postProcess runs the files sequentially and returns the first error (Go: `para` workers,
@@ -719,5 +723,4 @@ and T23 list theirs in their sections above._
 ## Known gaps
 
 _Wave B: list unported / stubbed functionality here._ T23: `gitinfo`, `codeowners` (stubs),
-XML/CSV data files, the unsupported page methods above. T24: `templates.Defer` (deferred
-templates), rebuilds and server-only build options.
+XML/CSV data files, the unsupported page methods above. T24: rebuilds and server-only build options.
