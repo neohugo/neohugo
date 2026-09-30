@@ -3,7 +3,7 @@
 // command line with the golden flags (`--minify --clock 2026-09-27T12:00:00Z
 // -d <out>`, one render worker), in a child process per site like main.go.
 //
-//	go run ./tools/go-oracle/nh-commands/e2e [-root .] [-out crates/nh-commands/tests/fixtures/e2e]
+//	go run ./tools/go-oracle/nh-commands/e2e [-root .] [-out rust/testdata/oracle/commands/e2e]
 //
 // Sites: mini.txtar (this directory; GetRemote served from a file cache entry
 // of the golden build), tools/rust-port/i01/testsite.txtar on top of
@@ -61,7 +61,7 @@ type caseSpec struct {
 
 func main() {
 	root := flag.String("root", ".", "the neohugo module root")
-	out := flag.String("out", "crates/nh-commands/tests/fixtures/e2e", "fixture directory (relative to -root)")
+	out := flag.String("out", "rust/testdata/oracle/commands/e2e", "fixture directory (relative to -root)")
 	child := flag.String("child", "", "internal: run the command line (JSON args)")
 	flag.Parse()
 
@@ -136,7 +136,7 @@ func readTxtar(path string) (map[string]string, error) {
 func cases(root string) ([]caseSpec, error) {
 	args := []string{"--minify", "--clock", "2026-09-27T12:00:00Z", "-d", "$ROOT/out"}
 
-	mini, err := readTxtar(filepath.Join(root, "tools/go-oracle/nh-commands/e2e/mini.txtar"))
+	mini, err := readTxtar(filepath.Join(root, "rust/testdata/oracle/commands/e2e/mini.txtar"))
 	if err != nil {
 		return nil, err
 	}

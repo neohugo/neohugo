@@ -3,7 +3,7 @@
 // pelletier/go-toml/v2, yaml/yml = gopkg.in/yaml.v2, json = encoding/json)
 // as crates/nh-i18n ports it in src/goi18n/{parse,message}.rs (Wave B T17).
 //
-//	go run ./tools/go-oracle/nh-i18n/parse [-out crates/nh-i18n/tests/fixtures/parse]
+//	go run ./tools/go-oracle/nh-i18n/parse [-out rust/testdata/oracle/i18n/parse]
 //
 // Inputs: hand-written message files in TOML, YAML and JSON covering flat
 // `key = "..."` messages, `[key] one/other` tables, nested namespaces, dotted
@@ -250,7 +250,7 @@ func parseOnce(buf []byte, path string) (out map[string]any) {
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-i18n/tests/fixtures/parse", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/i18n/parse", "output directory")
 	flag.Parse()
 
 	var cases []map[string]any

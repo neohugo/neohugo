@@ -1,7 +1,7 @@
 // Command cast is the Go oracle for crates/nh-common/src/cast, the port of
 // github.com/spf13/cast (the version in go.mod).
 //
-//	go run ./tools/go-oracle/nh-common/cast [-out crates/nh-common/tests/fixtures/cast/cast.json]
+//	go run ./tools/go-oracle/nh-common/cast [-out rust/testdata/oracle/common/cast/cast.json]
 //
 // It runs every exported E-function neohugo reaches (ToStringE, ToBoolE, the
 // integer, unsigned and float conversions, ToDurationE, ToTimeE,
@@ -102,7 +102,7 @@ type zoneSpec struct {
 var zones []*zoneSpec
 
 func main() {
-	out := flag.String("out", "crates/nh-common/tests/fixtures/cast/cast.json", "output file")
+	out := flag.String("out", "rust/testdata/oracle/common/cast/cast.json", "output file")
 	zipPath := flag.String("zoneinfo", filepath.Join(runtime.GOROOT(), "lib", "time", "zoneinfo.zip"), "zoneinfo.zip")
 	flag.Parse()
 

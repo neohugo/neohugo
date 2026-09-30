@@ -2,7 +2,7 @@
 // (navigation/menu.go, menu_cache.go, pagemenus.go) in crates/nh-page (Wave B
 // task T12).
 //
-//	go run ./tools/go-oracle/nh-page/menus [-root .] [-out crates/nh-page/tests/fixtures/menus]
+//	go run ./tools/go-oracle/nh-page/menus [-root .] [-out rust/testdata/oracle/page/menus]
 //
 // The sites are the ones of hugolib/menu_test.go (section pages menus, front
 // matter menus as a name, a list and a map, multiple output formats, children
@@ -315,7 +315,7 @@ var decodeInputs = []any{
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/menus", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/menus", "output directory")
 	flag.Parse()
 	outDir := psupport.OutDir(*root, *out)
 

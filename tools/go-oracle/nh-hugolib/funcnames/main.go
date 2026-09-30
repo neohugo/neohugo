@@ -5,7 +5,7 @@
 // to parse the templates, so capture does not wait for the template
 // functions (T18/T19).
 //
-//	go run ./tools/go-oracle/nh-hugolib/funcnames -root . -out crates/nh-hugolib/tests/fixtures/funcnames/funcnames.json.gz
+//	go run ./tools/go-oracle/nh-hugolib/funcnames -root . -out rust/testdata/oracle/hugolib/funcnames/funcnames.json.gz
 package main
 
 import (
@@ -21,7 +21,7 @@ import (
 
 func main() {
 	root := flag.String("root", ".", "the neohugo module root")
-	out := flag.String("out", "crates/nh-hugolib/tests/fixtures/funcnames/funcnames.json.gz", "output file (relative to -root)")
+	out := flag.String("out", "rust/testdata/oracle/hugolib/funcnames/funcnames.json.gz", "output file (relative to -root)")
 	flag.Parse()
 
 	tmp, err := os.MkdirTemp("", "nh-hugolib-funcnames")

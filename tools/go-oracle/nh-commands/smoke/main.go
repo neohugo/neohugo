@@ -3,7 +3,7 @@
 // synthetic sites whose templates use only the template functions that are
 // ported at this task's base (no now, upper, site, hugo, page; RSS disabled).
 //
-//	go run ./tools/go-oracle/nh-commands/smoke [-out crates/nh-commands/tests/fixtures/smoke]
+//	go run ./tools/go-oracle/nh-commands/smoke [-out rust/testdata/oracle/commands/smoke]
 //
 // Each case recreates its site in a temporary directory and runs
 // commands.Execute in a child process (like main.go) with an explicit
@@ -45,7 +45,7 @@ type caseSpec struct {
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-commands/tests/fixtures/smoke", "fixture directory")
+	out := flag.String("out", "rust/testdata/oracle/commands/smoke", "fixture directory")
 	child := flag.String("child", "", "internal: run the command line (JSON args)")
 	flag.Parse()
 

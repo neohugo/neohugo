@@ -1,7 +1,7 @@
 // Command flect is the Go oracle for crates/nh-common/src/flect.rs, the port of
 // github.com/gobuffalo/flect (the version in go.mod).
 //
-//	go run ./tools/go-oracle/nh-common/flect [-root .] [-out crates/nh-common/tests/fixtures/flect/flect.json]
+//	go run ./tools/go-oracle/nh-common/flect [-root .] [-out rust/testdata/oracle/common/flect/flect.json]
 //
 // For every string of the corpus (see ../corpus) it records Pluralize,
 // Singularize, Humanize, Ordinalize (the functions neohugo calls), Titleize and the
@@ -54,7 +54,7 @@ func apply(op, s string) any {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-common/tests/fixtures/flect/flect.json", "output file")
+	out := flag.String("out", "rust/testdata/oracle/common/flect/flect.json", "output file")
 	child := flag.String("child", "", "internal: write the custom-data results for the inputs in this file")
 	flag.Parse()
 

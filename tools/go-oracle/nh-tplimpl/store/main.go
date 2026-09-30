@@ -1,7 +1,7 @@
 // Command store is the Go oracle for the template store of crates/nh-tplimpl
 // (Wave B task T13): tpl/tplimpl.NewStore as hugolib creates it.
 //
-//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-tplimpl/store [-root .] [-out crates/nh-tplimpl/tests/fixtures/store]
+//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-tplimpl/store [-root .] [-out rust/testdata/oracle/tplimpl/store]
 //
 // The oracle runs itself again with `go run -overlay` (tsupport.RunOverlaid),
 // which adds dump functions to tpl/tplimpl and hugolib. For every site
@@ -25,7 +25,7 @@ import (
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-tplimpl/tests/fixtures/store", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/tplimpl/store", "output directory")
 	flag.Parse()
 
 	if !tsupport.IsChild() {

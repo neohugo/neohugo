@@ -41,16 +41,16 @@ type source struct {
 }
 
 var sources = []source{
-	{"almonds.jpg", "crates/go-image/tests/fixtures/site/assets_images_categories_almonds.jpg"},
-	{"pringles-paprika.jpg", "crates/go-image/tests/fixtures/site/content_potato-crisps_pringles-paprika_pringles-paprika.jpg"},
-	{"combos-pipr.jpg", "crates/go-image/tests/fixtures/site/content_pretzels_combos-pizzeria-pretzel_combos-pipr.jpg"},
-	{"hanamifoods.jpg", "crates/go-image/tests/fixtures/site/content_companies_hanami-foods-co-ltd_hanamifoods.jpg"},
-	{"600x200.jpg", "crates/go-image/tests/fixtures/site/content_cookies_alices-pineapple-pastry_600x200.jpg"},
+	{"almonds.jpg", "rust/testdata/site-assets/site/assets_images_categories_almonds.jpg"},
+	{"pringles-paprika.jpg", "rust/testdata/site-assets/site/content_potato-crisps_pringles-paprika_pringles-paprika.jpg"},
+	{"combos-pipr.jpg", "rust/testdata/site-assets/site/content_pretzels_combos-pizzeria-pretzel_combos-pipr.jpg"},
+	{"hanamifoods.jpg", "rust/testdata/site-assets/site/content_companies_hanami-foods-co-ltd_hanamifoods.jpg"},
+	{"600x200.jpg", "rust/testdata/site-assets/site/content_cookies_alices-pineapple-pastry_600x200.jpg"},
 	{"sunset.jpg", "resources/testdata/sunset.jpg"},
 	{"orientation6.jpg", "resources/testdata/exif/orientation6.jpg"},
-	{"berli-jucker.png", "crates/go-png/tests/fixtures/golden/berli-jucker-foods-ltd.berli-jucker-plc_hu_efcb259769ef42b1.png"},
-	{"classic-foods-inc.png", "crates/go-png/tests/fixtures/golden/classic-foods-inc_hu_c0871b21a075dd2d.png"},
-	{"cpram.png", "crates/go-png/tests/fixtures/golden/cpram_hu_d59b22a35402c9d8.png"},
+	{"berli-jucker.png", "rust/testdata/site-assets/golden/berli-jucker-foods-ltd.berli-jucker-plc_hu_efcb259769ef42b1.png"},
+	{"classic-foods-inc.png", "rust/testdata/site-assets/golden/classic-foods-inc_hu_c0871b21a075dd2d.png"},
+	{"cpram.png", "rust/testdata/site-assets/golden/cpram_hu_d59b22a35402c9d8.png"},
 	{"gopher-hero8.png", "resources/testdata/gopher-hero8.png"},
 	{"fuzzy-circle.png", "resources/testdata/fuzzy-cirlcle.png"},
 }
@@ -68,14 +68,14 @@ type op struct {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resources/tests/fixtures/images", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resources/images", "fixture dir")
 	flag.Parse()
 
 	absRoot, err := filepath.Abs(*root)
 	if err != nil {
 		log.Fatal(err)
 	}
-	site, err := rsupport.LoadSite(filepath.Join(absRoot, "crates/nh-resources/tests/fixtures/site"))
+	site, err := rsupport.LoadSite(filepath.Join(absRoot, "rust/testdata/oracle/resources/site"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func main() {
 		}
 		return r
 	}
-	named["W"] = newRes("watermark.png", "crates/nh-resources/tests/fixtures/site/assets/images/watermark.png")
+	named["W"] = newRes("watermark.png", "rust/testdata/oracle/resources/site/assets/images/watermark.png")
 
 	var ops []op
 	for i, s := range sources {

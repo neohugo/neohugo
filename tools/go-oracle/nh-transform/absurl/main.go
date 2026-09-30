@@ -2,7 +2,7 @@
 // (transform/urlreplacers) and transform.Chain in crates/nh-transform (Wave B
 // task T07).
 //
-//	go run ./tools/go-oracle/nh-transform/absurl [-out crates/nh-transform/tests/fixtures/absurl]
+//	go run ./tools/go-oracle/nh-transform/absurl [-out rust/testdata/oracle/transform/absurl]
 //
 // Every case runs through transform.New(urlreplacers.NewAbs...Transformer(path))
 // .Apply with the source delivered in one piece, one byte per Read
@@ -162,7 +162,7 @@ var alphabet = []string{
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-transform/tests/fixtures/absurl", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/transform/absurl", "output directory")
 	flag.Parse()
 
 	w, err := osupport.Create(filepath.Join(*out, "cases.jsonl.gz"))

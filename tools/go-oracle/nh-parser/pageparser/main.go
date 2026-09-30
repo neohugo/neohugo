@@ -4,7 +4,7 @@
 // HasShortcode) and ParseFrontMatterAndContent with the decoded front matter
 // (metadecoders, Go types recorded with ../tval).
 //
-//	go run ./tools/go-oracle/nh-parser/pageparser [-root .] [-out crates/nh-parser/tests/fixtures/pageparser]
+//	go run ./tools/go-oracle/nh-parser/pageparser [-root .] [-out rust/testdata/oracle/parser/pageparser]
 //
 // Inputs (the seeksnack site is private, so these substitute for its content):
 //   - every .md/.markdown/.html/.gotmpl file under docs/content,
@@ -12,7 +12,7 @@
 //   - every string literal of parser/pageparser/*_test.go (the lexer's own test
 //     inputs);
 //   - the 218 seeksnack YAML front matters kept in
-//     crates/go-yaml/tests/fixtures/seeksnack-fm.fixture.gz, wrapped in "---"
+//     rust/testdata/corpus/yaml/seeksnack-fm.fixture.gz, wrapped in "---"
 //     delimiters with a shortcode body;
 //   - hand-written front matter shapes (YAML, TOML, JSON, org, BOM, CRLF,
 //     unterminated, every value type);
@@ -59,7 +59,7 @@ var roots = []string{"docs/content", "hugolib/testsite", "create/skeletons"}
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-parser/tests/fixtures/pageparser", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/parser/pageparser", "output directory")
 	soups := flag.Int("soups", 4000, "number of random shortcode token soups")
 	seed := flag.Int64("seed", 20260928, "seed of the soups")
 	flag.Parse()
@@ -103,7 +103,7 @@ func main() {
 	}
 
 	// Seeksnack front matter.
-	for _, fm := range seeksnackFrontMatter(filepath.Join(*root, "crates/go-yaml/tests/fixtures/seeksnack-fm.fixture.gz")) {
+	for _, fm := range seeksnackFrontMatter(filepath.Join(*root, "rust/testdata/corpus/yaml/seeksnack-fm.fixture.gz")) {
 		src := "---\n" + fm.src + "---\n\nSome text {{< youtube id=\"iIsZs0m-BVU\" >}}\n<!--more-->\nMore.\n"
 		add("seeksnack:"+fm.name, []byte(src), false)
 	}

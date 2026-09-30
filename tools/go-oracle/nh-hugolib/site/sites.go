@@ -32,7 +32,7 @@ func inline(m map[string]string) map[string]hsupport.File {
 }
 
 // AssembleFixtureSites reads the site descriptions of the assemble oracle's
-// fixtures (crates/nh-hugolib/tests/fixtures/assemble/*.json.gz).
+// fixtures (rust/testdata/oracle/hugolib/assemble/*.json.gz).
 func AssembleFixtureSites(root string) ([]hsupport.Site, error) {
 	dir := filepath.Join(root, "crates", "nh-hugolib", "tests", "fixtures", "assemble")
 	entries, err := os.ReadDir(dir)

@@ -1,7 +1,7 @@
 // Command resources is the Go oracle of crates/nh-resources/tests/resources.rs
 // (Wave B task T14): every asset and bundle resource of the repository's docs
 // site, hugolib/testsite and the synthetic site in
-// crates/nh-resources/tests/fixtures/site.
+// rust/testdata/oracle/resources/site.
 //
 // The bundle resources are discovered with an in-memory hugolib build
 // (SkipRender); the assets through resources.Get (the create client) over the
@@ -19,7 +19,7 @@
 // the publish dir are recorded.
 //
 //	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-resources/resources -root . \
-//	    -out crates/nh-resources/tests/fixtures/resources
+//	    -out rust/testdata/oracle/resources/resources
 package main
 
 import (
@@ -56,7 +56,7 @@ type siteDef struct {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resources/tests/fixtures/resources", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resources/resources", "fixture dir")
 	flag.Parse()
 
 	absRoot, err := filepath.Abs(*root)
@@ -65,7 +65,7 @@ func main() {
 	}
 
 	sites := []siteDef{
-		{name: "synth", dir: "crates/nh-resources/tests/fixtures/site"},
+		{name: "synth", dir: "rust/testdata/oracle/resources/site"},
 		{name: "docs", dir: "docs", ignoreFiles: []string{`_content\.gotmpl$`}},
 		{name: "testsite", dir: "hugolib/testsite"},
 	}

@@ -91,7 +91,7 @@ var Probes = [][2]string{
 
 func main() {
 	root := flag.String("root", ".", "the neohugo module root")
-	out := flag.String("out", "crates/nh-hugolib/tests/fixtures/site", "output directory (relative to -root)")
+	out := flag.String("out", "rust/testdata/oracle/hugolib/site", "output directory (relative to -root)")
 	only := flag.String("site", "", "only this site")
 	flag.Parse()
 

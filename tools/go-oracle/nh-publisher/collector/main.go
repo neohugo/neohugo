@@ -2,7 +2,7 @@
 // (the hugo_stats.json HTML elements collector) in crates/nh-publisher (Wave
 // B task T07).
 //
-//	go run ./tools/go-oracle/nh-publisher/collector [-out crates/nh-publisher/tests/fixtures/collector]
+//	go run ./tools/go-oracle/nh-publisher/collector [-out rust/testdata/oracle/publisher/collector]
 //
 // The oracle runs itself again with `go build -overlay` (osupport): the overlay
 // exports parseHTMLElement, isClosedByTag and the collector writer
@@ -256,7 +256,7 @@ func html5libInputs() ([]string, error) {
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-publisher/tests/fixtures/collector", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/publisher/collector", "output directory")
 	flag.Parse()
 
 	if !osupport.IsChild() {

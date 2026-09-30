@@ -2,7 +2,7 @@
 // (TranslationProvider.NewResource/CloneResource and the translate funcs of
 // i18n.Translator) as crates/nh-i18n ports it (Wave B task T17).
 //
-//	go run ./tools/go-oracle/nh-i18n/translate [-out crates/nh-i18n/tests/fixtures/translate]
+//	go run ./tools/go-oracle/nh-i18n/translate [-out rust/testdata/oracle/i18n/translate]
 //
 // The seeksnack site is private and this repository has no i18n files of its
 // own, so the sites are synthetic: en + th like seeksnack (messages with
@@ -675,7 +675,7 @@ func loadSite(tmp string, s site) (*allconfig.Configs, error) {
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-i18n/tests/fixtures/translate", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/i18n/translate", "output directory")
 	flag.Parse()
 
 	tmp, err := os.MkdirTemp("", "nh-i18n-translate")

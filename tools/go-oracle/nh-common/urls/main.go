@@ -2,7 +2,7 @@
 // task T02): NewBaseURLFromString and every BaseURL accessor, WithProtocol
 // and WithPort.
 //
-//	go run ./tools/go-oracle/nh-common/urls [-root .] [-out crates/nh-common/tests/fixtures/urls]
+//	go run ./tools/go-oracle/nh-common/urls [-root .] [-out rust/testdata/oracle/common/urls]
 //
 // Inputs: the seeksnack baseURL (docs/rust-port/specs/architecture-core-data/
 // config-en.json), the base URLs of Hugo's tests, adversarial URLs (schemes,
@@ -82,7 +82,7 @@ func try(f func() any) (out any) {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-common/tests/fixtures/urls", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/common/urls", "output directory")
 	flag.Parse()
 
 	set := map[string]bool{}

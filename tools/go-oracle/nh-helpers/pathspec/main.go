@@ -1,7 +1,7 @@
 // Command pathspec is the Go oracle for helpers.PathSpec (url.go, path.go,
 // pathspec.go) and helpers.ContentSpec in crates/nh-helpers (Wave B task T08).
 //
-//	go run ./tools/go-oracle/nh-helpers/pathspec [-root .] [-out crates/nh-helpers/tests/fixtures/pathspec]
+//	go run ./tools/go-oracle/nh-helpers/pathspec [-root .] [-out rust/testdata/oracle/helpers/pathspec]
 //
 // The seeksnack site is private, so the inputs are this repository's strings:
 // the nh-common corpus (every front matter title, taxonomy term, heading and
@@ -296,7 +296,7 @@ var shortHTML = []string{
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-helpers/tests/fixtures/pathspec", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/helpers/pathspec", "output directory")
 	flag.Parse()
 
 	strs, err := corpus.Strings(*root)

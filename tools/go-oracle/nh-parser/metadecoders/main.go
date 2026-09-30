@@ -4,12 +4,12 @@
 // to record DecodeError positions and texts), YAML and JSON; UnmarshalStringTo;
 // the format helpers.
 //
-//	go run ./tools/go-oracle/nh-parser/metadecoders [-root .] [-out crates/nh-parser/tests/fixtures/metadecoders]
+//	go run ./tools/go-oracle/nh-parser/metadecoders [-root .] [-out rust/testdata/oracle/parser/metadecoders]
 //
 // Inputs (the seeksnack site is private, so these substitute for its
 // hugo.toml, i18n and data files):
 //   - every .toml/.yaml/.yml/.json file of this repository (docs/hugo.toml,
-//     docs/data/**, test data, ...), outside crates/, tools/ and node_modules;
+//     docs/data/**, test data, ...), outside rust/, tools/ and node_modules;
 //   - every string literal of go-toml's own tests (the toml-test suite in
 //     toml_testgen_test.go, unmarshaler_test.go, errors_test.go, ...) and its
 //     fuzz corpus;
@@ -58,7 +58,7 @@ type doc struct {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-parser/tests/fixtures/metadecoders", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/parser/metadecoders", "output directory")
 	gomodcache := flag.String("gomodcache", "", "GOMODCACHE (default: go env GOMODCACHE via $GOMODCACHE or ~/go/pkg/mod)")
 	soups := flag.Int("soups", 3000, "number of random TOML token soups")
 	seed := flag.Int64("seed", 20260928, "seed of the random mutations and soups")
@@ -239,7 +239,7 @@ func withSpareCapacity(s string) []byte {
 }
 
 // repoFiles lists the repository's TOML, YAML and JSON files (sorted), outside
-// crates/, tools/, .git and node_modules, up to 256 KiB.
+// rust/, tools/, .git and node_modules, up to 256 KiB.
 func repoFiles(root string) []string {
 	var files []string
 	err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
@@ -250,7 +250,7 @@ func repoFiles(root string) []string {
 		rel = filepath.ToSlash(rel)
 		if d.IsDir() {
 			switch rel {
-			case ".git", "crates", "tools", "node_modules", ".claude":
+			case ".git", "rust", "tools", "node_modules", ".claude":
 				return filepath.SkipDir
 			}
 			if d.Name() == "node_modules" {

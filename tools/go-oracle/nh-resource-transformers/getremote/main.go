@@ -272,14 +272,14 @@ func setTransport(dial func(ctx context.Context, network, addr string) (net.Conn
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resource-transformers/tests/fixtures/getremote", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resource-transformers/getremote", "fixture dir")
 	flag.Parse()
 
 	absRoot, err := filepath.Abs(*root)
 	if err != nil {
 		log.Fatal(err)
 	}
-	siteDir := filepath.Join(absRoot, "crates/nh-resource-transformers/tests/fixtures/site")
+	siteDir := filepath.Join(absRoot, "rust/testdata/oracle/resource-transformers/site")
 
 	srv := httptest.NewServer(http.HandlerFunc(handler))
 	addr := srv.Listener.Addr().String()

@@ -51,7 +51,7 @@ var (
 )
 
 func main() {
-	out := flag.String("out", "crates/nh-images/tests/fixtures/process", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/images/process", "output directory")
 	flag.StringVar(&root, "root", ".", "repository root")
 	only := flag.String("only", "", "only sources whose id contains this (debugging; do not use for fixtures)")
 	flag.Parse()
@@ -289,8 +289,8 @@ func allSources() []source {
 	var files []string
 	for _, dir := range []string{
 		"resources/testdata", "resources/images/testdata", "docs", "media/testdata", "hugolib/testdata",
-		"tpl/images/testdata", "snap", "crates/go-image/tests/fixtures/gotestdata", "crates/go-image/tests/fixtures/site",
-		"crates/go-png/tests/fixtures/gotestdata", "crates/go-png/tests/fixtures/golden", "crates/go-png/tests/fixtures/repo",
+		"tpl/images/testdata", "snap", "rust/testdata/site-assets/site",
+		"rust/testdata/site-assets/golden", "rust/testdata/site-assets/repo",
 	} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, d os.DirEntry, err error) error {
 			if err != nil {

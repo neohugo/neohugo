@@ -2,7 +2,7 @@
 // port of the en and th translators of github.com/gohugoio/localescompressed
 // (the version in go.mod).
 //
-//	go run ./tools/go-oracle/nh-common/locales [-out crates/nh-common/tests/fixtures/locales/locales.json]
+//	go run ./tools/go-oracle/nh-common/locales [-out rust/testdata/oracle/common/locales/locales.json]
 //
 // It records, for en and th:
 //   - FmtDateShort/Medium/Long/Full and FmtTimeShort/Medium/Long/Full over a
@@ -48,7 +48,7 @@ type zoneSpec struct {
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-common/tests/fixtures/locales/locales.json", "output file")
+	out := flag.String("out", "rust/testdata/oracle/common/locales/locales.json", "output file")
 	zipPath := flag.String("zoneinfo", filepath.Join(runtime.GOROOT(), "lib", "time", "zoneinfo.zip"), "zoneinfo.zip")
 	flag.Parse()
 

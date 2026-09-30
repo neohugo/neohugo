@@ -1,5 +1,0 @@
-decode/len1	256	ead7bdd37db855ce
-decode/len2	65536	064b96be5ff46aa5
-decode/len3hi	8388608	0e19fc62a1641f25
-decode/len4	5308416	4644969109ea9025
-decode/len5	6718464	1c5ec30d148c2a7d

@@ -3,7 +3,7 @@
 // page.ToPagesGroup (resources/page/pagination.go, pagegroup.go) in
 // crates/nh-page (Wave B task T12).
 //
-//	go run ./tools/go-oracle/nh-page/pagination [-root .] [-out crates/nh-page/tests/fixtures/pagination]
+//	go run ./tools/go-oracle/nh-page/pagination [-root .] [-out rust/testdata/oracle/page/pagination]
 //
 // It runs itself again with `go run -overlay`: a hook in page.Paginate
 // records every call of the real builds (csupport.Sites; the list layouts
@@ -91,7 +91,7 @@ func record(td page.TargetPathDescriptor, seq any, size int) {
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/pagination", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/pagination", "output directory")
 	flag.Parse()
 	if !psupport.IsChild() {
 		if err := psupport.RunOverlaid(*root, "./tools/go-oracle/nh-page/pagination", patches, hookName, hookFile, []string{"-root", *root, "-out", *out}); err != nil {

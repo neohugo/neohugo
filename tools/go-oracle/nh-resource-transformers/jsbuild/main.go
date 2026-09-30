@@ -1,7 +1,7 @@
 // Command jsbuild is the js.Build oracle of Wave B task T16 (js-css-pipeline):
 // neohugo's real resource_transformers/js client (esbuild v0.25.6 linked
 // in, as in a Hugo build) over a hermetic copy of the synthetic site
-// crates/nh-resource-transformers/tests/fixtures/t16site and of the
+// rust/testdata/oracle/resource-transformers/t16site and of the
 // repository's docs site assets. The Rust port runs the same scripts through
 // the pinned esbuild binary over --service and must produce the same bytes
 // (crates/nh-resource-transformers/tests/jsbuild.rs).
@@ -123,7 +123,7 @@ func docsCases() []t16support.Case {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resource-transformers/tests/fixtures/jsbuild", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resource-transformers/jsbuild", "fixture dir")
 	flag.Parse()
 
 	absRoot, err := filepath.Abs(*root)
@@ -135,7 +135,7 @@ func main() {
 		only      []string
 		cases     []t16support.Case
 	}{
-		{"synth", "crates/nh-resource-transformers/tests/fixtures/t16site", nil, synthCases()},
+		{"synth", "rust/testdata/oracle/resource-transformers/t16site", nil, synthCases()},
 		{"docs", "docs", []string{"hugo.toml", "assets", "package.json", "package.hugo.json", "hugo_stats.json"}, docsCases()},
 	} {
 		dir, err := t16support.CopySite(filepath.Join(absRoot, sd.dir), sd.only, nil)

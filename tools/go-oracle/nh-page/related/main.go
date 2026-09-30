@@ -2,7 +2,7 @@
 // decoding and Pages.Related (related/inverted_index.go,
 // resources/page/pages_related.go) in crates/nh-page (Wave B task T12).
 //
-//	go run ./tools/go-oracle/nh-page/related [-root .] [-out crates/nh-page/tests/fixtures/related]
+//	go run ./tools/go-oracle/nh-page/related [-root .] [-out rust/testdata/oracle/page/related]
 //
 // Over the builds of csupport.Sites (docs/ and hugolib/testsite, two psupport
 // synthetic sites, the ties sites with keywords, tags, categories, authors,
@@ -116,7 +116,7 @@ var invalidConfigs = []any{
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/related", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/related", "output directory")
 	flag.Parse()
 	outDir := psupport.OutDir(*root, *out)
 

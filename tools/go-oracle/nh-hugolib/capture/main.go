@@ -19,7 +19,7 @@
 // taken unchanged from the repository as references with their hash), so the
 // Rust test recreates it.
 //
-//	go run ./tools/go-oracle/nh-hugolib/capture -root . -out crates/nh-hugolib/tests/fixtures/capture
+//	go run ./tools/go-oracle/nh-hugolib/capture -root . -out rust/testdata/oracle/hugolib/capture
 package main
 
 import (
@@ -52,7 +52,7 @@ func init() {
 
 func main() {
 	root := flag.String("root", ".", "the neohugo module root")
-	out := flag.String("out", "crates/nh-hugolib/tests/fixtures/capture", "output directory (relative to -root)")
+	out := flag.String("out", "rust/testdata/oracle/hugolib/capture", "output directory (relative to -root)")
 	flag.Parse()
 
 	if !hsupport.IsChild() {

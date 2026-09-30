@@ -5,7 +5,7 @@
 // OutputFormats.Get, MarkupToMediaType, PageConfig.Init/Compile and
 // NamedPageMetaValue (on page.NopPage).
 //
-//	go run ./tools/go-oracle/nh-page/misc [-out crates/nh-page/tests/fixtures/misc]
+//	go run ./tools/go-oracle/nh-page/misc [-out rust/testdata/oracle/page/misc]
 //
 // Output: misc.json.gz. Nothing here depends on the platform.
 package main
@@ -112,7 +112,7 @@ var markups = []string{
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-page/tests/fixtures/misc", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/misc", "output directory")
 	flag.Parse()
 
 	var cases []map[string]any

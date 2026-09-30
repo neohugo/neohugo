@@ -1,3 +1,0 @@
-$c: #123456;
-.simple { color: $c; .child { margin: 0 auto; } }
-@media print { .simple { display: none; } }

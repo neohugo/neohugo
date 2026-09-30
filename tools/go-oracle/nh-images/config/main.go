@@ -8,7 +8,7 @@
 // from an arm64 build (see crates/nh-images/PORTING.md, "Regenerating fixtures"):
 //
 //	GOARCH=arm64 CGO_ENABLED=1 CC=zcc go build -o /tmp/nhi-config ./tools/go-oracle/nh-images/config
-//	qemu-aarch64-static /tmp/nhi-config -out crates/nh-images/tests/fixtures/config
+//	qemu-aarch64-static /tmp/nhi-config -out rust/testdata/oracle/images/config
 package main
 
 import (
@@ -30,7 +30,7 @@ import (
 )
 
 func main() {
-	out := flag.String("out", "crates/nh-images/tests/fixtures/config", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/images/config", "output directory")
 	_ = flag.String("root", ".", "repository root (unused by this topic)")
 	flag.Parse()
 

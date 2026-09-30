@@ -19,7 +19,7 @@
 //
 // Run (names and hashes only, no float code: any platform):
 //
-//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-resources/keys -root . -out crates/nh-resources/tests/fixtures/keys
+//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-resources/keys -root . -out rust/testdata/oracle/resources/keys
 package main
 
 import (
@@ -56,14 +56,14 @@ func (s fakeSource) Key() string                       { return s.key }
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resources/tests/fixtures/keys", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resources/keys", "fixture dir")
 	flag.Parse()
 
 	absRoot, err := filepath.Abs(*root)
 	if err != nil {
 		log.Fatal(err)
 	}
-	site, err := rsupport.LoadSite(filepath.Join(absRoot, "crates/nh-resources/tests/fixtures/site"))
+	site, err := rsupport.LoadSite(filepath.Join(absRoot, "rust/testdata/oracle/resources/site"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -214,14 +214,14 @@ func main() {
 	// Multihost: the language in the Key and the image memory key, the resources
 	// published under each language's dir, and the second language's image found in
 	// the file cache the first one filled (Go's read path: a Key without the hash).
-	mh, err := rsupport.LoadSite(filepath.Join(absRoot, "crates/nh-resources/tests/fixtures/site-multihost"))
+	mh, err := rsupport.LoadSite(filepath.Join(absRoot, "rust/testdata/oracle/resources/site-multihost"))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer mh.Close()
 	var mhRecs []any
 	for i, spec := range mh.Specs {
-		abs := filepath.Join(absRoot, "crates/nh-resources/tests/fixtures/site/assets/images/watermark.png")
+		abs := filepath.Join(absRoot, "rust/testdata/oracle/resources/site/assets/images/watermark.png")
 		r, err := spec.NewResource(resources.ResourceSourceDescriptor{
 			TargetPath: "/images/watermark.png", OpenReadSeekCloser: rsupport.OpenFile(abs),
 			SourceFilenameOrPath: abs, LazyPublish: true,

@@ -2,7 +2,7 @@
 // (internal/plural: Operands, Rules.Rule, the generated rule_gen.go) as
 // crates/nh-i18n ports them (Wave B task T17).
 //
-//	go run ./tools/go-oracle/nh-i18n/plural [-out crates/nh-i18n/tests/fixtures/plural]
+//	go run ./tools/go-oracle/nh-i18n/plural [-out rust/testdata/oracle/i18n/plural]
 //
 // internal/plural cannot be imported, so every rule is exercised through the
 // public API the way Hugo reaches it: a Bundle with English as default
@@ -40,7 +40,7 @@ import (
 )
 
 func main() {
-	out := flag.String("out", "crates/nh-i18n/tests/fixtures/plural", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/i18n/plural", "output directory")
 	flag.Parse()
 
 	dir := modDir("github.com/gohugoio/go-i18n/v2")

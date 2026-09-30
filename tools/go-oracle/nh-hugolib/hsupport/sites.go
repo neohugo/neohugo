@@ -12,7 +12,7 @@ import (
 // The sites of the nh-hugolib oracles. The seeksnack site is private, so
 // they are: this repository's docs/ site and hugolib/testsite (as the nh-page
 // oracles build them), nh-page's synthetic en/th site, the reconstructed
-// seeksnack config (crates/nh-allconfig/tests/fixtures/load/seeksnack) with a
+// seeksnack config (rust/testdata/oracle/allconfig/load/seeksnack) with a
 // synthetic en/th content tree covering what capture depends on, and small
 // sites that stress page-tree edge cases.
 

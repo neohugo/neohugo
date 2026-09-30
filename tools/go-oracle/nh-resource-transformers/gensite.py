@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the synthetic site of the nh-resource-transformers oracles (Wave B task T15) to
-crates/nh-resource-transformers/tests/fixtures/site (run from the repository root).
+rust/testdata/oracle/resource-transformers/site (run from the repository root).
 
 The site holds assets of every kind the resources namespace handles: JavaScript parts with and
 without trailing newlines (Concat's "\\n;\\n" separator), CSS with numbers and a data URI
@@ -14,7 +14,7 @@ import os
 import struct
 import zlib
 
-ROOT = "crates/nh-resource-transformers/tests/fixtures/site"
+ROOT = "rust/testdata/oracle/resource-transformers/site"
 
 HUGO_TOML = """\
 # The synthetic site of the nh-resource-transformers oracles (Wave B task T15),

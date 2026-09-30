@@ -5,7 +5,7 @@
 // negative weights, seeded random inputs) with its sort order, SourceHash and
 // config dump (`hugo config` JSON), and the Formats and Format methods.
 //
-//	go run ./tools/go-oracle/nh-media/output [-root .] [-out crates/nh-media/tests/fixtures/output] [-random 1500] [-seed 1]
+//	go run ./tools/go-oracle/nh-media/output [-root .] [-out rust/testdata/oracle/media/output] [-random 1500] [-seed 1]
 //
 // DecodeConfig visits its input map in Go's random order: new formats are
 // appended in that order before sort.Sort (not stable, and Formats.Less is not
@@ -44,7 +44,7 @@ const reruns = 100
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-media/tests/fixtures/output", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/media/output", "output directory")
 	nRandom := flag.Int("random", 1500, "number of random DecodeConfig inputs")
 	seed := flag.Int64("seed", 1, "random seed")
 	flag.Parse()

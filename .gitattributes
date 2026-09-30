@@ -9,7 +9,6 @@
 
 # Rust port: test fixtures and golden/test data must be stored byte-exact
 # (some contain CRLF that text=auto would rewrite).
-crates/*/tests/fixtures/** -text
 rust/testdata/** -text
 tools/rust-port/testdata/** -text
 tools/rust-port/golden/** -text

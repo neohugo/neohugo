@@ -1,7 +1,7 @@
 // Command glob is the Go oracle for hugofs/glob and its github.com/gobwas/glob
 // (v0.2.3) dependency in crates/nh-common (Wave B task T02).
 //
-//	go run ./tools/go-oracle/nh-common/glob [-root .] [-out crates/nh-common/tests/fixtures/glob]
+//	go run ./tools/go-oracle/nh-common/glob [-root .] [-out rust/testdata/oracle/common/glob]
 //
 // Output (gzip, best compression, no name or time):
 //   - compile.json.gz: glob.Compile(pattern, separators...) for every pattern
@@ -173,7 +173,7 @@ func strs(ss []string) []any {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-common/tests/fixtures/glob", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/common/glob", "output directory")
 	flag.Parse()
 
 	r := rand.New(rand.NewSource(20260928))

@@ -3,7 +3,7 @@
 // go-i18n's art-aware matcher), as crates/nh-i18n ports it in
 // src/xlanguage.rs and src/goi18n/bundle.rs (Wave B task T17).
 //
-//	go run ./tools/go-oracle/nh-i18n/matcher [-out crates/nh-i18n/tests/fixtures/matcher]
+//	go run ./tools/go-oracle/nh-i18n/matcher [-out rust/testdata/oracle/i18n/matcher]
 //
 // Inputs: a pool of tag strings (the i18n file names Hugo sites use: plain
 // languages, regional and script variants, deprecated and macro codes,
@@ -58,7 +58,7 @@ var pool = []string{
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-i18n/tests/fixtures/matcher", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/i18n/matcher", "output directory")
 	flag.Parse()
 
 	rng := rand.New(rand.NewSource(17))

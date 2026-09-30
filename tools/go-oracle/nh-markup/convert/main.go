@@ -10,7 +10,7 @@
 // two fixed level pairs. It also records SanitizeAnchorName and the decoded
 // markup config of each configuration.
 //
-//	go run ./tools/go-oracle/nh-markup/convert [-root .] [-out crates/nh-markup/tests/fixtures/convert]
+//	go run ./tools/go-oracle/nh-markup/convert [-root .] [-out rust/testdata/oracle/markup/convert]
 package main
 
 import (
@@ -125,7 +125,7 @@ func deepDocs() []string {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-markup/tests/fixtures/convert", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/markup/convert", "output directory")
 	flag.Parse()
 
 	docs := mdoracle.LoadCorpus(*root)

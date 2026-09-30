@@ -3,7 +3,7 @@
 // and pagemeta.DecodeBuildConfig (resources/page/pagemeta) in crates/nh-page
 // (Wave B task T11).
 //
-//	go run ./tools/go-oracle/nh-page/frontmatter [-root .] [-out crates/nh-page/tests/fixtures/frontmatter]
+//	go run ./tools/go-oracle/nh-page/frontmatter [-root .] [-out rust/testdata/oracle/page/frontmatter]
 //
 // Like the paths oracle it runs itself again with `go run -overlay`; the
 // overlay adds a hook to HandleDates that records every call of the real
@@ -220,7 +220,7 @@ func decodeTime(v any) time.Time {
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/frontmatter", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/frontmatter", "output directory")
 	flag.Parse()
 
 	if !psupport.IsChild() {

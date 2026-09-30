@@ -7,7 +7,7 @@
 // minimal function map (safeHTML, safeHTMLAttr, safeCSS, safeJS, safeURL,
 // printf, jsonify, eq, ne, not, dict, slice, try) and a stub page.
 //
-//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-tplimpl/probe [-root .] [-out crates/nh-tplimpl/tests/fixtures/probe]
+//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-tplimpl/probe [-root .] [-out rust/testdata/oracle/tplimpl/probe]
 //
 // The oracle runs itself again with `go run -overlay` (tsupport.RunOverlaid)
 // to create a store with the minimal function map (hugolib.OracleNewStore).
@@ -168,7 +168,7 @@ var goBuiltins = map[string]bool{
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-tplimpl/tests/fixtures/probe", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/tplimpl/probe", "output directory")
 	flag.Parse()
 
 	if !tsupport.IsChild() {

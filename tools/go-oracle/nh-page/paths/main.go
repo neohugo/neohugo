@@ -2,7 +2,7 @@
 // TargetPaths.RelPermalink and TargetPaths.PermalinkForOutputFormat
 // (resources/page/page_paths.go) in crates/nh-page (Wave B task T11).
 //
-//	go run ./tools/go-oracle/nh-page/paths [-root .] [-out crates/nh-page/tests/fixtures/paths]
+//	go run ./tools/go-oracle/nh-page/paths [-root .] [-out rust/testdata/oracle/page/paths]
 //
 // The oracle runs itself again with `go run -overlay`: the overlay adds a
 // recording hook to CreateTargetPaths (generated from the current
@@ -87,7 +87,7 @@ func recordTargetPaths(d page.TargetPathDescriptor, tp page.TargetPaths) {
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/paths", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/paths", "output directory")
 	flag.Parse()
 
 	if !psupport.IsChild() {

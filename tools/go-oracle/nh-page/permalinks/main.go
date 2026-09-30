@@ -2,7 +2,7 @@
 // page.DecodePermalinksConfig (resources/page/permalinks.go) in
 // crates/nh-page (Wave B task T11).
 //
-//	go run ./tools/go-oracle/nh-page/permalinks [-root .] [-out crates/nh-page/tests/fixtures/permalinks]
+//	go run ./tools/go-oracle/nh-page/permalinks [-root .] [-out rust/testdata/oracle/page/permalinks]
 //
 // The pages are the real pages of the psupport builds (docs/,
 // hugolib/testsite and the synthetic sites, whose content has varied dates,
@@ -77,7 +77,7 @@ func allTokens() map[string]map[string]string {
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/permalinks", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/permalinks", "output directory")
 	flag.Parse()
 	outDir := psupport.OutDir(*root, *out)
 

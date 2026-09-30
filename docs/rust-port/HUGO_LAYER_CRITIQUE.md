@@ -1,5 +1,9 @@
 # Completeness critique of the Hugo-layer design (first pass)
 
+> **Historical (old port).** Paths under `crates/` refer to the byte-parity port that T00 of
+> [`REWRITE_PLAN.md`](REWRITE_PLAN.md) deleted; it is recoverable with
+> `git show go-parity-final:crates/<path>` (commit `be02933a`, local tag).
+
 Written by an adversarial reviewer of crates/HUGO_LAYER.md, crates/WAVE_B_PLAN.json and the nh-* skeleton. The architect started a revision addressing these points; that revision was interrupted when the local session stopped, so check each point against the current HUGO_LAYER.md before relying on it.
 
 **Hugo-layer design review: HUGO_LAYER.md, WAVE_B_PLAN.json and the nh-* skeleton**

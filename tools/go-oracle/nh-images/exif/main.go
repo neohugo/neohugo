@@ -57,7 +57,7 @@ var cfgs = []decoderCfg{
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-images/tests/fixtures/exif", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/images/exif", "output directory")
 	flag.StringVar(&root, "root", ".", "repository root")
 	flag.Parse()
 
@@ -153,7 +153,7 @@ func decode(d *exif.Decoder, format imagemeta.ImageFormat, b []byte) map[string]
 
 func repoFiles() []string {
 	var files []string
-	for _, dir := range []string{"resources", "docs", "media", "hugolib", "tpl", "crates/go-image/tests/fixtures", "crates/go-png/tests/fixtures"} {
+	for _, dir := range []string{"resources", "docs", "media", "hugolib", "tpl", "rust/testdata/site-assets"} {
 		err := filepath.WalkDir(filepath.Join(root, dir), func(path string, d os.DirEntry, err error) error {
 			if err != nil {
 				return err

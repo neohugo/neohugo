@@ -7,7 +7,7 @@
 // ContentTypes methods, http.DetectContentType and FromContent over a byte
 // corpus.
 //
-//	go run ./tools/go-oracle/nh-media/media [-root .] [-out crates/nh-media/tests/fixtures/media] [-random 1500] [-seed 1]
+//	go run ./tools/go-oracle/nh-media/media [-root .] [-out rust/testdata/oracle/media/media] [-random 1500] [-seed 1]
 //
 // Go iterates maps in random order, so a decode whose result depends on that
 // order (several bad keys: the first one met is reported) is run 100 times
@@ -43,7 +43,7 @@ const reruns = 100
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-media/tests/fixtures/media", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/media/media", "output directory")
 	nRandom := flag.Int("random", 1500, "number of random DecodeTypes/DecodeContentTypes inputs")
 	seed := flag.Int64("seed", 1, "random seed")
 	flag.Parse()

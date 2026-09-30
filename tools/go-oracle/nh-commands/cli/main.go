@@ -1,7 +1,7 @@
 // Command cli is the Go oracle for crates/nh-commands (Wave B task T25): the
 // neohugo command line (commands/*.go, main.go) run in-process.
 //
-//	go run ./tools/go-oracle/nh-commands/cli [-root .] [-out crates/nh-commands/tests/fixtures/cli]
+//	go run ./tools/go-oracle/nh-commands/cli [-root .] [-out rust/testdata/oracle/commands/cli]
 //
 // Every case is a command line run in a site tree recreated in a temporary
 // directory ("$ROOT" in the arguments, the environment and the outputs is that
@@ -80,7 +80,7 @@ type caseSpec struct {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-commands/tests/fixtures/cli", "fixture directory")
+	out := flag.String("out", "rust/testdata/oracle/commands/cli", "fixture directory")
 	child := flag.String("child", "", "internal: run one case (JSON) in this process")
 	mode := flag.String("mode", "", "internal: parse or run")
 	flag.Parse()

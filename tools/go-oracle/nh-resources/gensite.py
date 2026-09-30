@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Writes the synthetic site of the nh-resources oracles to
-crates/nh-resources/tests/fixtures/site (run from the repository root).
+rust/testdata/oracle/resources/site (run from the repository root).
 
 The site is checked in; this script documents how it was made and regenerates it byte for
 byte: text files, bundles with front matter `resources` metadata (name/title/params with globs
@@ -13,8 +13,8 @@ import shutil
 import struct
 import zlib
 
-ROOT = "crates/nh-resources/tests/fixtures/site"
-ROOT_MH = "crates/nh-resources/tests/fixtures/site-multihost"
+ROOT = "rust/testdata/oracle/resources/site"
+ROOT_MH = "rust/testdata/oracle/resources/site-multihost"
 
 
 def w(rel, data):
@@ -170,15 +170,15 @@ Paquet un.
 """,
     )
     cp(
-        "crates/go-image/tests/fixtures/site/content_potato-crisps_pringles-paprika_pringles-paprika.jpg",
+        "rust/testdata/site-assets/site/content_potato-crisps_pringles-paprika_pringles-paprika.jpg",
         "content/blog/bundle1/pic1.jpg",
     )
     cp(
-        "crates/go-image/tests/fixtures/site/content_pretzels_combos-pizzeria-pretzel_combos-pipr.jpg",
+        "rust/testdata/site-assets/site/content_pretzels_combos-pizzeria-pretzel_combos-pipr.jpg",
         "content/blog/bundle1/Pic 2.JPG",
     )
     cp(
-        "crates/go-png/tests/fixtures/golden/berli-jucker-foods-ltd.berli-jucker-plc_hu_efcb259769ef42b1.png",
+        "rust/testdata/site-assets/golden/berli-jucker-foods-ltd.berli-jucker-plc_hu_efcb259769ef42b1.png",
         "content/blog/bundle1/logo.png",
     )
     w("content/blog/bundle1/data.json", '{"x": [1, 2, 3]}\n')

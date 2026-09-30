@@ -1,4 +1,0 @@
-# The repository root .gitignore has `tags*` (ctags), which silently kept
-# these two oracle fixtures out of git; re-include them.
-!tags.tsv
-!tags-fuzz.tsv

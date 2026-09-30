@@ -17,7 +17,7 @@ import (
 //     own) with and without a two-language hugo.toml;
 //   - empty: an empty directory.
 func buildSites(root string) (map[string]site, error) {
-	toml, err := os.ReadFile(filepath.Join(root, "crates/nh-allconfig/tests/fixtures/load/seeksnack/hugo.toml"))
+	toml, err := os.ReadFile(filepath.Join(root, "rust/testdata/oracle/allconfig/load/seeksnack/hugo.toml"))
 	if err != nil {
 		return nil, err
 	}

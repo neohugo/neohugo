@@ -17,7 +17,7 @@
 // "errlang", blockquote text "BQERR") or lack a code block renderer
 // (language "nohook").
 //
-//	go run ./tools/go-oracle/nh-markup/hooks [-root .] [-out crates/nh-markup/tests/fixtures/hooks]
+//	go run ./tools/go-oracle/nh-markup/hooks [-root .] [-out rust/testdata/oracle/markup/hooks]
 package main
 
 import (
@@ -69,7 +69,7 @@ func lookup(pid uint64) any {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-markup/tests/fixtures/hooks", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/markup/hooks", "output directory")
 	flag.Parse()
 
 	docs := append(mdoracle.LoadCorpus(*root), errorDocs...)

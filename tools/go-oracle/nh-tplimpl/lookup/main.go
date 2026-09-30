@@ -2,7 +2,7 @@
 // crates/nh-tplimpl (Wave B task T13): LookupPagesLayout (pages, aliases,
 // render hooks), LookupPartial, LookupShortcode and LookupShortcodeByName.
 //
-//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-tplimpl/lookup [-root .] [-out crates/nh-tplimpl/tests/fixtures/lookup]
+//	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-tplimpl/lookup [-root .] [-out rust/testdata/oracle/tplimpl/lookup]
 //
 // The oracle runs itself again with `go run -overlay` (tsupport.RunOverlaid),
 // which adds recording hooks to the lookups: every query is logged before it
@@ -37,7 +37,7 @@ import (
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-tplimpl/tests/fixtures/lookup", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/tplimpl/lookup", "output directory")
 	flag.Parse()
 
 	if !tsupport.IsChild() {

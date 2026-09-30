@@ -2,7 +2,7 @@
 // task T02): PathParser (every Path accessor), the path.go and url.go string
 // helpers.
 //
-//	go run ./tools/go-oracle/nh-common/paths [-root .] [-out crates/nh-common/tests/fixtures/paths]
+//	go run ./tools/go-oracle/nh-common/paths [-root .] [-out rust/testdata/oracle/common/paths]
 //
 // The seeksnack site is private, so the PathParser inputs are this
 // repository's Hugo sites (docs/, hugolib/testsite, create/skeletons, every
@@ -39,7 +39,7 @@ import (
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-common/tests/fixtures/paths", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/common/paths", "output directory")
 	flag.Parse()
 
 	writeGz := func(name string, h map[string]any, cases []map[string]any) {

@@ -1,8 +1,0 @@
-P	/Users/blackb1rd/git/github/org/neohugo/crates/go-time/tests/fixtures/test.zip
-Z	Test/NewYork	OK	Test/NewYork	LMT -17762	EST -18000	EDT -14400	EDT -14400	EST -18000	EST -18000
-Z	Test/Bangkok	OK	Test/Bangkok	LMT 24124	+07 25200	+07 25200	+07 25200	+07 25200	+07 25200
-Z	Test/Compressed	ERR	unsupported compression for Test/Compressed in /Users/blackb1rd/git/github/org/neohugo/crates/go-time/tests/fixtures/test.zip
-Z	Test/Bad	ERR	unknown time zone Test/Bad
-Z	Europe/Berlin	OK	Europe/Berlin	LMT 33539	JST 32400	JST 32400	JST 32400	JST 32400	JST 32400
-Z	No/Such	ERR	unknown time zone No/Such
-Z	Test	ERR	unknown time zone Test

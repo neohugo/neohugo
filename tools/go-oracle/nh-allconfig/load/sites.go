@@ -15,7 +15,7 @@ var procEnv = map[string]string{"HOME": "$ROOT/home", "XDG_CACHE_HOME": "$ROOT/x
 var environ = []string{"NEOHUGO_ORACLE=1"}
 
 func readFixture(root, name string) (string, error) {
-	b, err := os.ReadFile(filepath.Join(root, "crates/nh-allconfig/tests/fixtures/load", name))
+	b, err := os.ReadFile(filepath.Join(root, "rust/testdata/oracle/allconfig/load", name))
 	return string(b), err
 }
 

@@ -1,7 +1,7 @@
 // Command load is the Go oracle for crates/nh-allconfig (Wave B task T09):
 // allconfig.LoadConfig and the project module collection of modules.Client.
 //
-//	go run ./tools/go-oracle/nh-allconfig/load [-root .] [-out crates/nh-allconfig/tests/fixtures/load]
+//	go run ./tools/go-oracle/nh-allconfig/load [-root .] [-out rust/testdata/oracle/allconfig/load]
 //	go run ./tools/go-oracle/nh-allconfig/load -print <case> [-lang th] [-zero]
 //
 // Every case is a site tree (files with their contents) recreated in a
@@ -91,7 +91,7 @@ var (
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-allconfig/tests/fixtures/load", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/allconfig/load", "output directory")
 	printCase := flag.String("print", "", "print the `neohugo config` JSON of this case")
 	printLang := flag.String("lang", "", "with -print: the language")
 	printZero := flag.Bool("zero", false, "with -print: include zero values")

@@ -3,7 +3,7 @@
 // pages_prev_next.go, pages_sort_search.go, pages_language_merge.go,
 // taxonomy.go, weighted.go) in crates/nh-page (Wave B task T12).
 //
-//	go run ./tools/go-oracle/nh-page/collections [-root .] [-out crates/nh-page/tests/fixtures/collections]
+//	go run ./tools/go-oracle/nh-page/collections [-root .] [-out rust/testdata/oracle/page/collections]
 //
 // It runs itself again with `go run -overlay` (csupport.Patches) to be able
 // to set hugolib's current site, whose language gives the collator of the
@@ -55,7 +55,7 @@ import (
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/collections", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/collections", "output directory")
 	flag.Parse()
 	if !psupport.IsChild() {
 		if err := psupport.RunOverlaid(*root, "./tools/go-oracle/nh-page/collections", csupport.Patches, csupport.HookName, csupport.HookFile, []string{"-root", *root, "-out", *out}); err != nil {

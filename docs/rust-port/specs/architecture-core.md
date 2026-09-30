@@ -1,5 +1,9 @@
 # neohugo to Rust: overall architecture and build flow (spec `architecture-core`)
 
+> **Historical (old port).** Paths under `crates/` refer to the byte-parity port that T00 of
+> [`REWRITE_PLAN.md`](../REWRITE_PLAN.md) deleted; it is recoverable with
+> `git show go-parity-final:crates/<path>` (commit `be02933a`, local tag). Byte-parity sections are obsolete.
+
 Author: agent `architecture-core`. Scope: the end-to-end `neohugo --minify` build as used by the
 seeksnack site, measured against the Go source at `/Users/blackb1rd/git/github/org/neohugo`
 (module `github.com/neohugo/neohugo`, HEAD d5930ba1f, version string `v0.149.0-DEV`, built with

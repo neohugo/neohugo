@@ -3,7 +3,7 @@
 // goldmark converter (converter.AnchorNameSanitizer) for the three auto ID
 // types (github, github-ascii, blackfriday).
 //
-//	go run ./tools/go-oracle/nh-markup/autoid [-out crates/nh-markup/tests/fixtures/autoid]
+//	go run ./tools/go-oracle/nh-markup/autoid [-out rust/testdata/oracle/markup/autoid]
 //
 // Inputs:
 //
@@ -111,7 +111,7 @@ type fixture struct {
 }
 
 func main() {
-	out := flag.String("out", "crates/nh-markup/tests/fixtures/autoid", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/markup/autoid", "output directory")
 	flag.Parse()
 
 	var fx fixture

@@ -1,5 +1,9 @@
 # neohugo → Rust port: handoff (start here)
 
+> **Historical (old port).** Paths under `crates/` refer to the byte-parity port that T00 of
+> [`REWRITE_PLAN.md`](REWRITE_PLAN.md) deleted; it is recoverable with
+> `git show go-parity-final:crates/<path>` (commit `be02933a`, local tag). REWRITE_PLAN.md replaces §4 and the byte-parity rules; T70 rewrites this file.
+
 This document is the entry point for continuing the Rust port of neohugo in a
 new session, for example a Claude Code cloud session on Linux x86_64. It was
 written when the first local session (macOS arm64) stopped on 2026-09-27.

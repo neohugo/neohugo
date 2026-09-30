@@ -1,7 +1,7 @@
 // Command prose is the Go oracle for crates/nh-common/src/prose.rs, the port of
 // github.com/jdkato/prose transform/title.go (the version in go.mod).
 //
-//	go run ./tools/go-oracle/nh-common/prose [-root .] [-out crates/nh-common/tests/fixtures/prose/title.json]
+//	go run ./tools/go-oracle/nh-common/prose [-root .] [-out rust/testdata/oracle/common/prose/title.json]
 //
 // For every string of the corpus (see ../corpus) it records
 // NewTitleConverter(APStyle).Title, NewTitleConverter(ChicagoStyle).Title and
@@ -27,7 +27,7 @@ import (
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-common/tests/fixtures/prose/title.json", "output file")
+	out := flag.String("out", "rust/testdata/oracle/common/prose/title.json", "output file")
 	flag.Parse()
 
 	strs, err := corpus.Strings(*root)

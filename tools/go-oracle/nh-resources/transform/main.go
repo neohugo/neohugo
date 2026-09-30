@@ -14,7 +14,7 @@
 // output for these inputs.
 //
 //	GOTOOLCHAIN=go1.27.1 go run ./tools/go-oracle/nh-resources/transform -root . \
-//	    -out crates/nh-resources/tests/fixtures/transform
+//	    -out rust/testdata/oracle/resources/transform
 package main
 
 import (
@@ -70,14 +70,14 @@ var assets = []string{
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resources/tests/fixtures/transform", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resources/transform", "fixture dir")
 	flag.Parse()
 
 	absRoot, err := filepath.Abs(*root)
 	if err != nil {
 		log.Fatal(err)
 	}
-	site, err := rsupport.LoadSite(filepath.Join(absRoot, "crates/nh-resources/tests/fixtures/site"))
+	site, err := rsupport.LoadSite(filepath.Join(absRoot, "rust/testdata/oracle/resources/site"))
 	if err != nil {
 		log.Fatal(err)
 	}

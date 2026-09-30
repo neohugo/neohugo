@@ -2,7 +2,7 @@
 // crates/nh-commands (Wave B task T25): commands/hugobuilder.go copyStaticTo,
 // the spf13/fsync Syncer over the static filesystem of hugolib/filesystems.
 //
-//	go run ./tools/go-oracle/nh-commands/staticcopy [-out crates/nh-commands/tests/fixtures/staticcopy]
+//	go run ./tools/go-oracle/nh-commands/staticcopy [-out rust/testdata/oracle/commands/staticcopy]
 //
 // Every case is a site tree (files with contents, modes and modification times,
 // symlinks, empty directories, a hugo.toml with mounts and the static options)
@@ -68,7 +68,7 @@ type caseSpec struct {
 const baseTime = 1700000000
 
 func main() {
-	out := flag.String("out", "crates/nh-commands/tests/fixtures/staticcopy", "fixture directory")
+	out := flag.String("out", "rust/testdata/oracle/commands/staticcopy", "fixture directory")
 	flag.Parse()
 
 	var rows []map[string]any

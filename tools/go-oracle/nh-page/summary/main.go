@@ -2,7 +2,7 @@
 // page.ExtractSummaryFromHTMLWithDivider and the HtmlSummary methods
 // (resources/page/page_markup.go) in crates/nh-page (Wave B task T11).
 //
-//	go run ./tools/go-oracle/nh-page/summary [-root .] [-out crates/nh-page/tests/fixtures/summary]
+//	go run ./tools/go-oracle/nh-page/summary [-root .] [-out rust/testdata/oracle/page/summary]
 //
 // Like the paths oracle it runs itself again with `go run -overlay`; the
 // overlay adds hooks to both extract functions that record every call of the
@@ -165,7 +165,7 @@ func (t *table) encode(c call, src string) map[string]any {
 
 func main() {
 	root := flag.String("root", ".", "neohugo module root")
-	out := flag.String("out", "crates/nh-page/tests/fixtures/summary", "output directory")
+	out := flag.String("out", "rust/testdata/oracle/page/summary", "output directory")
 	flag.Parse()
 
 	if !psupport.IsChild() {

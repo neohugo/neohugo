@@ -1,7 +1,7 @@
 // Command postcss is the postCSS oracle of Wave B task T16 (js-css-pipeline):
 // neohugo's resource_transformers/cssjs client running a real postcss-cli
 // (node) over a hermetic copy of the synthetic site
-// crates/nh-resource-transformers/tests/fixtures/t16site, whose
+// rust/testdata/oracle/resource-transformers/t16site, whose
 // node_modules/.bin/postcss is linked to -postcss. The site's
 // postcss.config.js has no dependencies: an inline plugin that rewrites a
 // declaration and appends what the child process sees (HUGO_ENVIRONMENT, the
@@ -72,7 +72,7 @@ func Cases() []t16support.Case {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resource-transformers/tests/fixtures/postcss", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resource-transformers/postcss", "fixture dir")
 	postcssBin := flag.String("postcss", "", "node_modules/.bin/postcss of postcss-cli")
 	flag.Parse()
 	if *postcssBin == "" {
@@ -91,7 +91,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	src := "crates/nh-resource-transformers/tests/fixtures/t16site"
+	src := "rust/testdata/oracle/resource-transformers/t16site"
 	dir, err := t16support.CopySite(filepath.Join(absRoot, src), nil, map[string]string{"node_modules/.bin/postcss": bin})
 	if err != nil {
 		log.Fatal(err)

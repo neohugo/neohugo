@@ -1,7 +1,7 @@
 // Command tocss is the toCSS (LibSass) oracle of Wave B task T16
 // (js-css-pipeline): neohugo's resource_transformers/tocss/scss client with
 // golibsass (cgo) over a hermetic copy of the synthetic site
-// crates/nh-resource-transformers/tests/fixtures/t16site. The Rust port runs
+// rust/testdata/oracle/resource-transformers/t16site. The Rust port runs
 // the same scripts through libsass-sys (crates/nh-resource-transformers/tests/tocss.rs).
 //
 // LibSass formats numbers with C++ floating point, which the arm64 compiler
@@ -99,7 +99,7 @@ func Cases() []t16support.Case {
 
 func main() {
 	root := flag.String("root", ".", "repository root")
-	out := flag.String("out", "crates/nh-resource-transformers/tests/fixtures/tocss", "fixture dir")
+	out := flag.String("out", "rust/testdata/oracle/resource-transformers/tocss", "fixture dir")
 	flag.Parse()
 
 	absRoot, err := filepath.Abs(*root)
@@ -110,7 +110,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	src := "crates/nh-resource-transformers/tests/fixtures/t16site"
+	src := "rust/testdata/oracle/resource-transformers/t16site"
 	dir, err := t16support.CopySite(filepath.Join(absRoot, src), nil, nil)
 	if err != nil {
 		log.Fatal(err)

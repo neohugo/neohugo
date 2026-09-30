@@ -11,8 +11,10 @@
 #                                      qemu-aarch64-static on other hosts. The Rust port reproduces
 #                                      the arm64 Go build (FMA in flate, gift, strconv; see
 #                                      docs/rust-port/HANDOFF.md §3), so on amd64 the reference must
-#                                      be the arm64 build (build-go-arm64.sh); the native amd64 build
-#                                      differs in processed-image bytes.
+#                                      be the arm64 build (build-go-arm64.sh, deleted in T00 of
+#                                      REWRITE_PLAN.md; at tag go-parity-final); the native amd64
+#                                      build differs in processed-image bytes. The rewrite compares
+#                                      structurally with tools/neohugo/compare.sh (T03) instead.
 #   NEOHUGO_RS    the Rust binary     (default: /tmp/targets/i01/release/neohugo-rs)
 #   I01_WORK      scratch dir         (default: $TMPDIR/neohugo-i01); every build happens below it,
 #                                      never in the repository

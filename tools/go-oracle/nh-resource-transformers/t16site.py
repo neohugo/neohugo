@@ -1,4 +1,4 @@
-"""Writes crates/nh-resource-transformers/tests/fixtures/t16site, the synthetic site of the
+"""Writes rust/testdata/oracle/resource-transformers/t16site, the synthetic site of the
 Wave B task T16 (js-css-pipeline) oracles (jsbuild, tocss, postcss).
 
     python3 tools/go-oracle/nh-resource-transformers/t16site.py .
@@ -8,7 +8,7 @@ assets/vendor, like seeksnack's)."""
 import os
 import sys
 
-root = os.path.join(sys.argv[1], "crates/nh-resource-transformers/tests/fixtures/t16site")
+root = os.path.join(sys.argv[1], "rust/testdata/oracle/resource-transformers/t16site")
 
 files = {
     "hugo.toml": '''baseURL = "https://example.org/"

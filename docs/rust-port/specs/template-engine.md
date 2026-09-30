@@ -1,5 +1,9 @@
 # Spec: The Go template engine in neohugo (text/template + html/template + tplimpl glue) — Rust port
 
+> **Historical (old port).** Paths under `crates/` refer to the byte-parity port that T00 of
+> [`REWRITE_PLAN.md`](../REWRITE_PLAN.md) deleted; it is recoverable with
+> `git show go-parity-final:crates/<path>` (commit `be02933a`, local tag). Byte-parity sections are obsolete.
+
 Agent: `template-engine`. Scope: `tpl/internal/go_templates/**` (forked Go packages), `tpl/tplimpl/**`
 (Hugo glue), `tpl/internal/templatefuncsRegistry.go`, `tpl/tplimplinit`, `tpl/template.go`,
 `tpl/partials`, `common/hreflect`, plus the Go stdlib behaviour (fmt, strconv, encoding/json) that the
