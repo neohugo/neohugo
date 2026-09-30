@@ -262,6 +262,11 @@ fn url_path_escapes_like_go() {
     // A `%` that starts no escape is a literal percent sign.
     assert_eq!(esc("/100%/"), "/100%25/");
     assert_eq!(esc("/50%off/"), "/50%25off/");
+    // Without any `%`, sub-delimiters Go's path encoder escapes are escaped.
+    assert_eq!(
+        esc("/herrs-salt-&-vinegar/Lay's.txt"),
+        "/herrs-salt-&-vinegar/Lay%27s.txt"
+    );
     // A query mark is part of the path.
     assert_eq!(esc("/q?x=1/"), "/q%3Fx=1/");
 }

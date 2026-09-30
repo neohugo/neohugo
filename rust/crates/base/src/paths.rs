@@ -183,7 +183,9 @@ impl UrlPath {
     /// The path percent-escaped as a URL path (upper-case hex; `/` and the sub-delimiters
     /// stay), like Go's `url.URL.EscapedPath` of the path parsed as a URL: `%XX` sequences in
     /// the path are escapes. A path that is already a valid escaping (only characters a path
-    /// may hold, and every `%` starting an escape) is returned as it is (`/a%2Fb/` stays);
+    /// may hold, and every `%` starting an escape) that contains at least one `%XX` escape is
+    /// returned as it is (`/a%2Fb/` stays); a path without `%` is always escaped (`/Lay's/` →
+    /// `/Lay%27s/`), as Go does for a URL built from a path rather than parsed from text;
     /// otherwise its escapes are decoded and the result escaped (`/a b%2F/` → `/a%20b//`). A
     /// `%` that starts no escape is escaped (`/100%/` → `/100%25/`).
     #[must_use]
@@ -191,7 +193,10 @@ impl UrlPath {
         let Ok(decoded) = unescape(&self.0, Component::Path) else {
             return escape(self.0.as_bytes(), Component::Path).into_owned();
         };
-        if valid_encoded(&self.0, Component::Path) {
+        // Go keeps a raw path only when it came from parsed text that carried escapes (a
+        // front-matter `url` such as `/a%2Fb/`); a path without any `%` is escaped like a URL
+        // built from a file path (`Lay's.txt` → `Lay%27s.txt`).
+        if self.0.contains('%') && valid_encoded(&self.0, Component::Path) {
             return self.0.to_string();
         }
         escape(&decoded, Component::Path).into_owned()
