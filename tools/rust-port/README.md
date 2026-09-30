@@ -1,8 +1,32 @@
 # tools/rust-port
 
-Acceptance harness for the Rust port (see `docs/rust-port/HANDOFF.md`).
+Site inputs for the Rust rewrite's acceptance harness, and the record of the real seeksnack
+golden build. The comparison itself lives in `tools/neohugo/` (`compare.sh`, `structdiff.py`,
+`manifest.py`; see `docs/rust-port/HANDOFF.md`).
 
-- `prepare-site.sh <site-repo> <workdir>` — checks out seeksnack at the golden commit, installs its npm deps, applies `site-overlay/`.
-- `build-site.sh <neohugo-binary> <workdir>/seeksnack <outdir>` — builds with the golden settings (pinned clock, single worker, cold cache, `testdata/hugo_cache`).
-- `compare.py <outdir> [--golden DIR]` — byte comparison against `golden/canonical.sha256` (6943 files).
-- `golden/hugo_stats.json` — the golden build's `hugo_stats.json` (written to the site root, not the output).
+**In use:**
+
+- `i01/sites.py` generates every test site outside the repository (`make`, `cache`, `list`) and
+  keeps `i01/patches.json` and the Tera patch files of `rust/sites/docs/patches/` in step
+  (`patches [--check]`). `tools/neohugo/{oracle,compare}.sh`, the gate tests in
+  `rust/crates/cli/tests/it/` and CI call it.
+- `i01/testsite.txtar`, `i01/seeksnack.txtar`, `i01/errors.txtar`: inputs of the testsite, the
+  seeksnack reconstruction and the error-text site (`sites.py make`).
+- `testdata/hugo_cache/`: the golden GetRemote (YouTube API) cache entries; `sites.py cache
+  seeksnack` serves them, and the config and resources tests read them.
+- `golden/hugo_stats.json`: the real seeksnack build's `hugo_stats.json` (neohugo-publish's
+  collector tests).
+- `golden/canonical.sha256`: the file list (with SHA-256) of the real seeksnack golden Go build,
+  6,943 files. Gate A-S (REWRITE_PLAN.md §7.3; needs the private site repository, T73) compares
+  the **path set** after L1 normalisation; the hashes are no longer a target.
+- `prepare-site.sh <site-repo> <workdir>` checks out the private seeksnack site at the golden
+  commit, installs its npm dependencies and applies `site-overlay/` (for A-S).
+
+**Historical (byte-for-byte port, obsolete):**
+
+- `build-site.sh` records the settings the golden Go build was made with (darwin/arm64, go1.27.1,
+  `--minify --clock 2026-09-27T12:00:00Z`, one worker, cold `resources/`, `testdata/hugo_cache`).
+- `compare.py` compares a build with `golden/canonical.sha256` byte for byte, the acceptance test
+  of the deleted port. The rewrite does not aim at byte parity; use `tools/neohugo/compare.sh`.
+- `i01/compare.sh` and `i01/diff.py` (the old port's byte comparison against an arm64 Go build)
+  were removed in T70; they are in the history before that commit.

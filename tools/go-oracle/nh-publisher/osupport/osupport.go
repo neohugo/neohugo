@@ -35,7 +35,7 @@ const ChildEnv = "NH_T07_ORACLE_CHILD"
 
 // ArchEnv selects the architecture of the overlaid child: "arm64" builds it
 // for linux/arm64 and runs it under qemu-aarch64-static (the golden build's
-// FMA behaviour, HANDOFF.md §3); anything else runs it natively.
+// FMA behaviour, docs/rust-port/archive/HANDOFF-old-port.md §3); anything else runs it natively.
 const ArchEnv = "NH_T07_ORACLE_ARCH"
 
 // CCEnv and CXXEnv name the C/C++ cross compilers for an arm64 child that

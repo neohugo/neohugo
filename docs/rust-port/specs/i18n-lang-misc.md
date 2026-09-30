@@ -1,5 +1,14 @@
 # Spec: config, languages, i18n, string/time helpers, collation, front matter decoding (agent: i18n-lang-misc)
 
+> **Byte-parity sections obsolete.** This spec is research for the old byte-for-byte port
+> (the `crates/` tree deleted in T00 of [`REWRITE_PLAN.md`](../REWRITE_PLAN.md); recoverable with
+> `git show go-parity-final:crates/<path>`, commit `be02933a`, local tag). The Rust rewrite in
+> `rust/` compares structurally (REWRITE_PLAN.md §7), so every byte-parity target, golden-byte
+> count and "reproduce Go's bytes" rule below is obsolete. The Hugo semantics it documents (Go
+> file and line references, parity traps) remain a reference; scratch paths (`/Users/…`,
+> `/private/tmp/…`, `$W`, `$SP`, `golden/run1`) no longer exist. Current state:
+> [`HANDOFF.md`](../HANDOFF.md).
+
 Scope: everything needed so that a Rust port of neohugo reproduces, byte-for-byte, the parts of the seeksnack output that come from
 (1) configuration loading and language setup, (2) `i18n`/`T`, (3) the string/URL/time/compare/collection helpers the seeksnack
 templates call, (4) locale collation used by sorting, (5) YAML/TOML/JSON decoding of front matter, config, i18n and data files.

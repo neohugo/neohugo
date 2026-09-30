@@ -1,5 +1,14 @@
 # Minification byte-parity spec (tdewolff/minify v2.23.8 + tdewolff/parse v2.8.1)
 
+> **Byte-parity sections obsolete.** This spec is research for the old byte-for-byte port
+> (the `crates/` tree deleted in T00 of [`REWRITE_PLAN.md`](../REWRITE_PLAN.md); recoverable with
+> `git show go-parity-final:crates/<path>`, commit `be02933a`, local tag). The Rust rewrite in
+> `rust/` compares structurally (REWRITE_PLAN.md §7), so every byte-parity target, golden-byte
+> count and "reproduce Go's bytes" rule below is obsolete. The Hugo semantics it documents (Go
+> file and line references, parity traps) remain a reference; scratch paths (`/Users/…`,
+> `/private/tmp/…`, `$W`, `$SP`, `golden/run1`) no longer exist. Current state:
+> [`HANDOFF.md`](../HANDOFF.md).
+
 Agent: `minify`. Scope: everything that turns neohugo's pre-minify bytes into the `--minify` golden bytes
 for the seeksnack site, plus the `minify` template function on the postcss CSS resource.
 

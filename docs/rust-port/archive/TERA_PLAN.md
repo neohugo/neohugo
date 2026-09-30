@@ -1,6 +1,6 @@
 # Tera templates on the Hugo page model
 
-> **Superseded.** The current plan is [`REWRITE_PLAN.md`](REWRITE_PLAN.md) (full idiomatic-Rust
+> **Superseded.** The current plan is [`REWRITE_PLAN.md`](../REWRITE_PLAN.md) (full idiomatic-Rust
 > rewrite in `rust/`, Tera 2 templates). This file was `crates/TERA_PLAN.md`; T00 moved it here
 > for history when `crates/` was deleted (the old port is at commit `be02933a`, local tag
 > `go-parity-final`). Paths and crate names below refer to that old port.

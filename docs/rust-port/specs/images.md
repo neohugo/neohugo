@@ -1,5 +1,14 @@
 # Image processing: byte-parity spec for the Rust port (agent: images)
 
+> **Byte-parity sections obsolete.** This spec is research for the old byte-for-byte port
+> (the `crates/` tree deleted in T00 of [`REWRITE_PLAN.md`](../REWRITE_PLAN.md); recoverable with
+> `git show go-parity-final:crates/<path>`, commit `be02933a`, local tag). The Rust rewrite in
+> `rust/` compares structurally (REWRITE_PLAN.md §7), so every byte-parity target, golden-byte
+> count and "reproduce Go's bytes" rule below is obsolete. The Hugo semantics it documents (Go
+> file and line references, parity traps) remain a reference; scratch paths (`/Users/…`,
+> `/private/tmp/…`, `$W`, `$SP`, `golden/run1`) no longer exist. Current state:
+> [`HANDOFF.md`](../HANDOFF.md).
+
 Scope: everything needed so that a Rust port of neohugo produces the processed images of the
 seeksnack golden build (`golden/run1`) byte for byte, with identical file names. This covers
 1169 jpg, 807 webp and 35 png files, of which 1461 are processed (`*_hu_*`) and 552 are copies.

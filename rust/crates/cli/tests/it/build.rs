@@ -82,8 +82,9 @@ pub fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     out
 }
 
-/// The command line of `tools/rust-port/i01/compare.sh` (no command: `build`; run from the site
-/// directory; `--clock`, `-d`), then `build` with kebab-case and camelCase spellings: the tree
+/// The command line of the old port's byte comparison (`tools/rust-port/i01/compare.sh`, removed
+/// in T70; no command: `build`; run from the site directory; `--clock`, `-d`), then `build`
+/// with kebab-case and camelCase spellings: the tree
 /// is Go's, byte for byte (`crates/build/tests/it/testsite-go.txtar`, 55 files).
 #[test]
 fn testsite_matches_go() {

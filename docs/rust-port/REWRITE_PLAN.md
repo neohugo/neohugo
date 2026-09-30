@@ -3,9 +3,9 @@
 **Status.** Final plan, revision 2, dated 2026-09-29. This revision applies the completeness, feasibility and Rust-style reviews. Review points that were rejected, or only partly applied, are listed in §12 "Review notes".
 
 **What it replaces.**
-- `crates/TERA_PLAN.md`. T00 moves that file to `docs/rust-port/` with a pointer to this plan.
+- `crates/TERA_PLAN.md`. T00 moved that file to `docs/rust-port/` with a pointer to this plan (T70 archived it: `docs/rust-port/archive/TERA_PLAN.md`).
 - The byte-parity rules in `crates/README.md`.
-- `docs/rust-port/HANDOFF.md` §4.
+- `docs/rust-port/HANDOFF.md` §4 (T70 rewrote the handoff; the old one is `docs/rust-port/archive/HANDOFF-old-port.md`).
 
 **Repo.** `/home/user/neohugo`, branch `rust-port`.
 

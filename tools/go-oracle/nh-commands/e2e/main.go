@@ -15,8 +15,9 @@
 // The sites avoid output that depends on the platform's floating point (image
 // encoding, LibSass, decimal numbers in minified CSS) and external tools
 // (esbuild, PostCSS), so a native build of this oracle on any architecture
-// records the same bytes; tools/rust-port/i01/compare.sh covers the rest
-// against the arm64 Go build.
+// records the same bytes; the rest was covered by the old port's byte
+// comparison against the arm64 Go build (tools/rust-port/i01/compare.sh,
+// removed in T70 of docs/rust-port/REWRITE_PLAN.md).
 package main
 
 import (

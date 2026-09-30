@@ -1,5 +1,14 @@
 # Markdown rendering (goldmark) and shortcodes: Rust port spec (seeksnack parity)
 
+> **Byte-parity sections obsolete.** This spec is research for the old byte-for-byte port
+> (the `crates/` tree deleted in T00 of [`REWRITE_PLAN.md`](../REWRITE_PLAN.md); recoverable with
+> `git show go-parity-final:crates/<path>`, commit `be02933a`, local tag). The Rust rewrite in
+> `rust/` compares structurally (REWRITE_PLAN.md §7), so every byte-parity target, golden-byte
+> count and "reproduce Go's bytes" rule below is obsolete. The Hugo semantics it documents (Go
+> file and line references, parity traps) remain a reference; scratch paths (`/Users/…`,
+> `/private/tmp/…`, `$W`, `$SP`, `golden/run1`) no longer exist. Current state:
+> [`HANDOFF.md`](../HANDOFF.md).
+
 Agent: `markdown`. Scope: everything between a content file's body bytes and the HTML string that
 templates receive as `.Content` / `.Plain` / `markdownify`, including render hooks and shortcodes.
 

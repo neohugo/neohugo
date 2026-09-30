@@ -1,5 +1,14 @@
 # Spec: RESOURCE PIPELINE (non-image) — neohugo → Rust port
 
+> **Byte-parity sections obsolete.** This spec is research for the old byte-for-byte port
+> (the `crates/` tree deleted in T00 of [`REWRITE_PLAN.md`](../REWRITE_PLAN.md); recoverable with
+> `git show go-parity-final:crates/<path>`, commit `be02933a`, local tag). The Rust rewrite in
+> `rust/` compares structurally (REWRITE_PLAN.md §7), so every byte-parity target, golden-byte
+> count and "reproduce Go's bytes" rule below is obsolete. The Hugo semantics it documents (Go
+> file and line references, parity traps) remain a reference; scratch paths (`/Users/…`,
+> `/private/tmp/…`, `$W`, `$SP`, `golden/run1`) no longer exist. Current state:
+> [`HANDOFF.md`](../HANDOFF.md).
+
 Agent: `resources-pipeline`. Scope: `resources.Get`, publishing and links (`Permalink`/`RelPermalink`/`.Content`), the transformation chain engine, `resources.ExecuteAsTemplate`, `resources.Concat`, `js.Build` (esbuild), `toCSS` (libsass), `postCSS`, `minify` (as a resource transform), `fingerprint`, `resources.PostProcess`, build stats (`hugo_stats.json`), and `resources/_gen` caching.
 
 All Go paths are relative to `/Users/blackb1rd/git/github/org/neohugo` unless prefixed with `$GOMODCACHE` (`/Users/blackb1rd/go/pkg/mod`).
