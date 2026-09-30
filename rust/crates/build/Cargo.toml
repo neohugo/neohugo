@@ -35,8 +35,9 @@ neohugo-resources.workspace = true
 jiff.workspace = true
 rayon.workspace = true
 thiserror.workspace = true
+# The structure dump (`NEOHUGO_STRUCTURE_OUT`, `structure.rs`).
+serde_json.workspace = true
 
 [dev-dependencies]
 neohugo-testkit.workspace = true
-serde_json.workspace = true
 tempfile.workspace = true

@@ -16,6 +16,10 @@
 //! | E6 | resources named by URL tokens (and eager bundle files), processed images | `publish_resources` |
 //! | E7 | sorted, de-duplicated diagnostics; errors fail the build | `build` |
 //!
+//! **Structure dump.** With [`STRUCTURE_ENV`] (`NEOHUGO_STRUCTURE_OUT=<file>`) set, the waves
+//! record every job and a successful build writes the Go structure oracle's dump of what it
+//! did (`structure`); without it nothing is recorded.
+//!
 //! **Determinism.** Every parallel phase runs on one render pool (`stack_size(16 MiB)`, the
 //! thread count of [`BuildRequest::threads`], else `RAYON_NUM_THREADS`, else the CPUs) and
 //! collects into indexed or sorted collections; target collisions are resolved from the jobs'
@@ -26,7 +30,10 @@
 #![forbid(unsafe_code)]
 
 mod deferred;
+mod structure;
 mod waves;
+
+pub use structure::ENV as STRUCTURE_ENV;
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -285,6 +292,7 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     laps.lap(&mut report, "static");
 
     // E2 (language sub-waves in order), E3.
+    let mut structure = structure::Recorder::from_env();
     let mut written = waves::Written::default();
     for lang in 0..cfg.sites.len() {
         let jobs = session.wave1(LangIdx::from_index(lang));
@@ -295,6 +303,7 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
             &jobs,
             &mut written,
             &mut report,
+            structure.as_mut(),
         )?;
     }
     laps.lap(&mut report, "wave 1");
@@ -306,6 +315,7 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
         &jobs,
         &mut written,
         &mut report,
+        structure.as_mut(),
     )?;
     report.collisions = written.into_collisions();
     laps.lap(&mut report, "wave 2");
@@ -324,6 +334,9 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     let diagnostics = session.diagnostics().report();
     if session.diagnostics().has_errors() {
         return Err(BuildError::Diagnostics(diagnostics));
+    }
+    if let Some(s) = structure {
+        s.write(&session)?;
     }
     report.diagnostics = diagnostics;
     report.memory = memory;

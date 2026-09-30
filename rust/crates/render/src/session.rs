@@ -741,10 +741,19 @@ impl Session {
         jobs
     }
 
+    /// The layout chosen for page `page` in `format` in [`new`](Self::new) (the template and
+    /// base template its [`Job::Page`] or [`Job::Standalone`] renders); `None`: no layout, the
+    /// job renders nothing. The structure dump of `neohugo-build` records it.
+    #[must_use]
+    pub fn selection(&self, page: PageId, format: FormatId) -> Option<&Selection> {
+        self.selections.get(&(page, format))
+    }
+
     /// The redirect to the default language's home page (`neohugo_nav::language_redirect`:
     /// `/en/` → `/`, or `/` → `/en/` with `defaultContentLanguageInSubdir`), when the home page
-    /// has that output.
-    fn language_redirect(&self) -> Option<AliasPlan> {
+    /// has that output: what [`Job::LanguageRedirect`] renders.
+    #[must_use]
+    pub fn language_redirect(&self) -> Option<AliasPlan> {
         let a = neohugo_nav::language_redirect(self.views.nav(), &self.model.config)?;
         outputs(&self.model.pages[a.to])
             .any(|o| o.format == a.format)

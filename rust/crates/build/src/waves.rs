@@ -26,6 +26,7 @@ use neohugo_publish::{Emitted, Publisher};
 use neohugo_render::{Job, JobOrder, Session};
 use rayon::prelude::*;
 
+use crate::structure::Recorder;
 use crate::{BuildError, BuildReport, Collision, RenderPool};
 
 /// Which kind of job wrote a file: on a collision a page beats an alias.
@@ -159,7 +160,7 @@ fn plan<'j>(
     Ok(planned)
 }
 
-/// Plans, renders and publishes one wave.
+/// Plans, renders and publishes one wave; `structure` records every job (the structure dump).
 pub(crate) fn run(
     session: &Session,
     publisher: &Publisher,
@@ -167,15 +168,17 @@ pub(crate) fn run(
     jobs: &[Job],
     written: &mut Written,
     report: &mut BuildReport,
+    mut structure: Option<&mut Recorder>,
 ) -> Result<(), BuildError> {
     let planned = plan(session, jobs, written)?;
-    let results: Vec<Result<usize, BuildError>> = pool.run(|| {
+    let results: Vec<Result<(usize, bool), BuildError>> = pool.run(|| {
         planned
             .par_iter()
             .map(|p| {
                 let outputs = session.render_job(p.job)?;
+                let wrote = outputs.iter().any(|o| !o.text.is_empty());
                 if !p.publish {
-                    return Ok(0);
+                    return Ok((0, wrote));
                 }
                 let mut published = 0;
                 for o in outputs {
@@ -189,15 +192,18 @@ pub(crate) fn run(
                         published += 1;
                     }
                 }
-                Ok(published)
+                Ok((published, wrote))
             })
             .collect()
     });
     for (p, r) in planned.iter().zip(results) {
-        let n = r?;
+        let (n, wrote) = r?;
         report.outputs += n;
         if Class::of(p.job) == Class::Alias {
             report.aliases += n;
+        }
+        if let Some(s) = structure.as_deref_mut() {
+            s.job(session, p.job, wrote)?;
         }
     }
     Ok(())
