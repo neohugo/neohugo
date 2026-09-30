@@ -1,0 +1,351 @@
+//! `Publisher::emit` end to end: canonify per format, minify dispatch, empty outputs, held
+//! outputs and `patch_held`, URL tokens, stats, and the `hugo_stats.json` format against the
+//! golden files.
+
+use std::collections::BTreeMap;
+use std::sync::Arc;
+
+use neohugo_base::diag::Diagnostics;
+use neohugo_base::paths::OutputPath;
+use neohugo_base::{FormatId, Idx, LangIdx, Sink};
+use neohugo_config::global::BuildStats;
+use neohugo_config::{Config, LoadOptions, load};
+use neohugo_publish::{
+    DiskSink, Emitted, HtmlElements, HugoStats, MemorySink, Output, PublishError, PublishSettings,
+    Publisher,
+};
+use rayon::prelude::*;
+
+struct Site {
+    _dir: tempfile::TempDir,
+    cfg: Config,
+}
+
+fn site(toml: &str) -> Site {
+    let dir = tempfile::tempdir().unwrap();
+    std::fs::write(dir.path().join("hugo.toml"), toml).unwrap();
+    let cfg = load(&LoadOptions {
+        source: dir.path().to_owned(),
+        env: vec![(
+            "HOME".into(),
+            dir.path().join("home").to_str().unwrap().into(),
+        )],
+        ..LoadOptions::default()
+    })
+    .unwrap();
+    Site { _dir: dir, cfg }
+}
+
+fn publisher(s: &Site) -> (Publisher, Arc<MemorySink>, Arc<Diagnostics>) {
+    let sink = Arc::new(MemorySink::new());
+    let diags = Arc::new(Diagnostics::new(Vec::<String>::new()));
+    let settings = PublishSettings::from_config(&s.cfg).unwrap();
+    let p = Publisher::new(
+        settings,
+        Arc::clone(&sink) as Arc<dyn Sink>,
+        Arc::clone(&diags),
+    );
+    (p, sink, diags)
+}
+
+fn format(s: &Site, name: &str) -> FormatId {
+    s.cfg.output_formats.by_name(name).unwrap()
+}
+
+fn output(s: &Site, path: &str, format_name: &str, text: &str) -> Output {
+    Output {
+        path: OutputPath::new(path),
+        text: text.to_owned(),
+        format: format(s, format_name),
+        lang: LangIdx::from_index(0),
+    }
+}
+
+const PAGE: &str = concat!(
+    r#"<!doctype html><html><head><link href="/css/a.css" rel=stylesheet></head>"#,
+    r#"<body><a href="/about/">About</a> <img srcset="/i/a.jpg 1x, /i/b.jpg 2x"></body></html>"#
+);
+
+#[test]
+fn canonify_by_format() {
+    let s = site("baseURL = 'https://example.org/docs/'\ncanonifyURLs = true\n");
+    let (p, sink, _) = publisher(&s);
+    p.emit(output(&s, "/a/index.html", "html", PAGE)).unwrap();
+    p.emit(output(
+        &s,
+        "/index.xml",
+        "rss",
+        r#"<description>&lt;a href=&#34;/x/&#34;&gt; <link href="/y"/></description>"#,
+    ))
+    .unwrap();
+    p.emit(output(&s, "/index.json", "json", r#"{"u":"/z"}"#))
+        .unwrap();
+    let html = sink.text("/a/index.html").unwrap();
+    assert!(
+        html.contains(r#"href="https://example.org/docs/about/""#),
+        "{html}"
+    );
+    assert!(
+        html.contains(
+            r#"srcset="https://example.org/docs/i/a.jpg 1x, https://example.org/docs/i/b.jpg 2x""#
+        ),
+        "{html}"
+    );
+    // RSS is canonified with the entity quotes; a raw `"` is not a quote there.
+    assert_eq!(
+        sink.text("/index.xml").unwrap(),
+        r#"<description>&lt;a href=&#34;https://example.org/docs/x/&#34;&gt; <link href="/y"/></description>"#
+    );
+    assert_eq!(sink.text("/index.json").unwrap(), r#"{"u":"/z"}"#);
+}
+
+#[test]
+fn rss_is_canonified_without_the_setting() {
+    let s = site("baseURL = 'https://example.org/'\n");
+    let (p, sink, _) = publisher(&s);
+    p.emit(output(&s, "/a/index.html", "html", PAGE)).unwrap();
+    p.emit(output(&s, "/index.xml", "rss", "<d>src=&#34;/x&#34;</d>"))
+        .unwrap();
+    assert_eq!(sink.text("/a/index.html").unwrap(), PAGE);
+    assert_eq!(
+        sink.text("/index.xml").unwrap(),
+        "<d>src=&#34;https://example.org/x&#34;</d>"
+    );
+}
+
+#[test]
+fn relative_urls() {
+    let s = site("baseURL = 'https://example.org/'\nrelativeURLs = true\n");
+    let (p, sink, _) = publisher(&s);
+    p.emit(output(&s, "/a/b/index.html", "html", PAGE)).unwrap();
+    let html = sink.text("/a/b/index.html").unwrap();
+    assert!(html.contains(r#"href="../../about/""#), "{html}");
+    // Tokens of relative URLs resolve against the output's directory.
+    assert!(p.url_tokens().contains("/css/a.css"));
+}
+
+#[test]
+fn minify_dispatch_and_empty_outputs() {
+    let s = site("baseURL = 'https://example.org/'\nminify = true\n");
+    let (p, sink, diags) = publisher(&s);
+    p.emit(output(&s, "/index.html", "html", "<p>\n  a  </p>\n\n"))
+        .unwrap();
+    p.emit(output(&s, "/robots.txt", "robots", "User-agent: *\n\n"))
+        .unwrap();
+    p.emit(output(&s, "/index.json", "json", "{ \"a\" : [1, 2] }"))
+        .unwrap();
+    p.emit(output(&s, "/bad.json", "json", "{ not json"))
+        .unwrap();
+    assert_eq!(
+        p.emit(output(&s, "/empty.html", "html", "")).unwrap(),
+        Emitted::Empty
+    );
+    assert!(sink.text("/index.html").unwrap().len() < "<p>\n  a  </p>\n\n".len());
+    assert_eq!(sink.text("/robots.txt").unwrap(), "User-agent: *\n\n");
+    assert_eq!(sink.text("/index.json").unwrap(), r#"{"a":[1,2]}"#);
+    // Invalid JSON is published as it is, with a warning.
+    assert_eq!(sink.text("/bad.json").unwrap(), "{ not json");
+    assert_eq!(diags.report().len(), 1);
+    assert!(!sink.exists(&OutputPath::new("/empty.html")));
+    assert_eq!(p.written(), 4);
+}
+
+#[test]
+fn held_outputs_are_patched_and_rescanned() {
+    let s = site("baseURL = 'https://example.org/'\nminify = true\n");
+    let (p, sink, _) = publisher(&s);
+    let page = "<html><head>__nh_defer_css__</head><body>  <p>x</p>  </body></html>";
+    assert_eq!(
+        p.emit(output(&s, "/index.html", "html", page)).unwrap(),
+        Emitted::Held
+    );
+    assert_eq!(
+        p.emit(output(
+            &s,
+            "/b/index.html",
+            "html",
+            "<link href=\"__nh_pp_7_rel_permalink__\">"
+        ))
+        .unwrap(),
+        Emitted::Held
+    );
+    assert!(sink.is_empty());
+    assert_eq!(p.held().len(), 2);
+    assert!(!p.url_tokens().contains("/css/styles.min.css"));
+
+    let repl = BTreeMap::from([
+        (
+            "__nh_defer_css__".to_owned(),
+            r#"<link rel="stylesheet" href="/css/styles.min.css">"#.to_owned(),
+        ),
+        (
+            "__nh_pp_7_rel_permalink__".to_owned(),
+            "/css/pp.css".to_owned(),
+        ),
+    ]);
+    assert_eq!(p.patch_held(&repl).unwrap(), 2);
+    let html = sink.text("/index.html").unwrap();
+    assert!(html.contains("/css/styles.min.css"), "{html}");
+    assert!(!html.contains("  <p>"), "minified after patching: {html}");
+    assert!(p.url_tokens().contains("/css/styles.min.css"));
+    assert!(p.url_tokens().contains("/css/pp.css"));
+    assert!(p.held().is_empty());
+}
+
+#[test]
+fn unresolved_placeholder_is_an_error() {
+    let s = site("baseURL = 'https://example.org/'\n");
+    let (p, sink, _) = publisher(&s);
+    p.emit(output(&s, "/index.html", "html", "a __nh_defer_x__ b"))
+        .unwrap();
+    match p.patch_held(&BTreeMap::new()) {
+        Err(PublishError::UnresolvedPlaceholder { path, placeholder }) => {
+            assert_eq!(path.as_str(), "/index.html");
+            assert_eq!(placeholder, "__nh_defer_x__");
+        }
+        other => panic!("{other:?}"),
+    }
+    assert!(sink.is_empty());
+}
+
+#[test]
+fn url_tokens_of_outputs() {
+    let s = site("baseURL = 'https://example.org/'\n");
+    let (p, _, _) = publisher(&s);
+    p.emit(output(
+        &s,
+        "/b/index.html",
+        "html",
+        r#"<img src="/b/herrs-salt-&amp;-vinegar/Lay&#39;s.jpg"><img srcset="/r/a.webp 1x,/r/b.webp 2x">"#,
+    ))
+    .unwrap();
+    p.emit(output(
+        &s,
+        "/index.json",
+        "json",
+        r#"{"image":"https:\/\/example.org\/j\/c\u0026d.png?x=1"}"#,
+    ))
+    .unwrap();
+    p.add_tokens_from("url(/from/template.png)");
+    let t = p.url_tokens();
+    for want in [
+        "/b/herrs-salt-&-vinegar/Lay's.jpg",
+        "/r/a.webp",
+        "/r/b.webp",
+        "https://example.org/j/c&d.png",
+        "https://example.org/j/c&d.png?x=1",
+        "/from/template.png",
+    ] {
+        assert!(
+            t.contains(want),
+            "{want}: {:?}",
+            t.iter().collect::<Vec<_>>()
+        );
+    }
+}
+
+#[test]
+fn stats_from_html_outputs_only() {
+    let s = site(
+        "baseURL = 'https://example.org/'\n[build.buildStats]\nenable = true\ndisableIDs = true\n",
+    );
+    let (p, _, _) = publisher(&s);
+    p.emit(output(
+        &s,
+        "/index.html",
+        "html",
+        r#"<div class="a b" id="x"><span class=c>"#,
+    ))
+    .unwrap();
+    p.emit(output(&s, "/index.xml", "rss", r#"<item class="rss"/>"#))
+        .unwrap();
+    let stats = p.stats();
+    assert_eq!(
+        stats.to_json(),
+        "{\n  \"htmlElements\": {\n    \"tags\": [\n      \"div\",\n      \"span\"\n    ],\n    \"classes\": [\n      \"a\",\n      \"b\",\n      \"c\"\n    ],\n    \"ids\": null\n  }\n}\n"
+    );
+}
+
+/// Concurrent emits give the same tokens and stats as sequential ones.
+#[test]
+fn concurrent_emits_are_deterministic() {
+    let s = site("baseURL = 'https://example.org/'\n[build.buildStats]\nenable = true\n");
+    let pages: Vec<String> = (0..200)
+        .map(|i| {
+            format!(
+                r#"<div class="c{}" id="i{i}"><a href="/p/{i}/">x</a></div>"#,
+                i % 17
+            )
+        })
+        .collect();
+    let run = |threads: usize| {
+        let (p, sink, _) = publisher(&s);
+        let pool = rayon::ThreadPoolBuilder::new()
+            .num_threads(threads)
+            .build()
+            .unwrap();
+        pool.install(|| {
+            pages.par_iter().enumerate().for_each(|(i, text)| {
+                p.emit(output(&s, &format!("/p/{i}/index.html"), "html", text))
+                    .unwrap();
+            });
+        });
+        (p.url_tokens(), p.stats(), sink.paths())
+    };
+    assert_eq!(run(1), run(4));
+}
+
+/// `hugo_stats.json` is written exactly as Hugo writes it: the golden files of the seeksnack
+/// and docs builds round-trip byte for byte.
+#[test]
+fn golden_stats_format() {
+    let repo = neohugo_testkit::fixture::rust_dir().join("..");
+    for file in [
+        "tools/rust-port/golden/hugo_stats.json",
+        "docs/hugo_stats.json",
+    ] {
+        let text = std::fs::read_to_string(repo.join(file)).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+        let list = |k: &str| -> Option<Vec<String>> {
+            v["htmlElements"][k]
+                .as_array()
+                .map(|a| a.iter().map(|s| s.as_str().unwrap().to_owned()).collect())
+        };
+        let found = HtmlElements {
+            tags: list("tags").unwrap_or_default().into_iter().collect(),
+            classes: list("classes").unwrap_or_default().into_iter().collect(),
+            ids: list("ids").unwrap_or_default().into_iter().collect(),
+        };
+        let conf = BuildStats {
+            enable: true,
+            disable_tags: list("tags").is_none(),
+            disable_classes: list("classes").is_none(),
+            disable_ids: list("ids").is_none(),
+        };
+        assert_eq!(HugoStats::new(found, &conf).to_json(), text, "{file}");
+    }
+}
+
+#[test]
+fn disk_sink_creates_directories() {
+    let dir = tempfile::tempdir().unwrap();
+    let sink = DiskSink::new(dir.path());
+    let path = OutputPath::new("/a/b/index.html");
+    assert!(!sink.exists(&path));
+    sink.write(&path, b"x").unwrap();
+    sink.write(&path, b"yz").unwrap();
+    assert!(sink.exists(&path));
+    assert_eq!(
+        std::fs::read(dir.path().join("a/b/index.html")).unwrap(),
+        b"yz"
+    );
+
+    let mem = MemorySink::new();
+    mem.write(&path, b"m").unwrap();
+    mem.write_to(&dir.path().join("mem")).unwrap();
+    assert_eq!(
+        std::fs::read(dir.path().join("mem/a/b/index.html")).unwrap(),
+        b"m"
+    );
+    assert_eq!(mem.get("a/b/index.html").as_deref(), Some(&b"m"[..]));
+}
