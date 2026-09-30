@@ -129,6 +129,7 @@ fn scanner_reads_calls() {
                  name,
                  kwargs,
                  line,
+                 ..
              }| (kind, name, kwargs, line),
         )
         .collect();

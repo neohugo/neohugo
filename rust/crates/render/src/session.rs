@@ -125,8 +125,16 @@ fn outputs(p: &Page) -> impl Iterator<Item = &PageUrl> {
         .filter(move |u| p.rendered() && u.links.is_some())
 }
 
-/// The layout query of page `p` in `format`.
-fn layout_query<'a>(p: &'a Page, path: &'a ContentKey, format: FormatId) -> LayoutQuery<'a> {
+/// The output formats page `p` is rendered in (none unless it is written), the primary first:
+/// the (page, format) pairs that get a layout job (`neohugo-rs templates check` lists their
+/// lookups).
+pub fn rendered_formats(p: &Page) -> impl Iterator<Item = FormatId> + '_ {
+    outputs(p).map(|u| u.format)
+}
+
+/// The layout query of page `p` in `format` (`path` is [`lookup_path`]`(p)`).
+#[must_use]
+pub fn layout_query<'a>(p: &'a Page, path: &'a ContentKey, format: FormatId) -> LayoutQuery<'a> {
     let standalone = matches!(
         p.kind,
         PageKind::NotFound | PageKind::Sitemap | PageKind::SitemapIndex | PageKind::RobotsTxt
@@ -142,8 +150,9 @@ fn layout_query<'a>(p: &'a Page, path: &'a ContentKey, format: FormatId) -> Layo
 }
 
 /// The lookup path of a page: its key with the first segment replaced by its type when that
-/// differs from the section.
-pub(crate) fn lookup_path(p: &Page) -> ContentKey {
+/// differs from the section. Layouts, shortcodes and render hooks are looked up from it.
+#[must_use]
+pub fn lookup_path(p: &Page) -> ContentKey {
     if p.section.is_empty() || p.r#type == p.section || p.r#type == "page" {
         return p.key.clone();
     }

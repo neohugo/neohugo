@@ -3,7 +3,10 @@
 //! `runtime`) [`register_pure`]: the pure Tera filters, functions and tests plus the tera-contrib
 //! subset.
 //!
-//! `spec` has no dependencies and `register_placeholders` needs only tera, so both are available
+//! [`scan`] tokenizes template tags for the static checks Tera does not make (kwargs, the lints
+//! of `neohugo-rs templates check`).
+//!
+//! `spec` and `scan` have no dependencies and `register_placeholders` needs only tera, so all are available
 //! with `default-features = false` (neohugo-testkit's contract test uses that; REWRITE_PLAN.md §4.8).
 //!
 //! # Attaching the functions to a Tera instance
@@ -20,6 +23,7 @@
 #![forbid(unsafe_code)]
 
 mod placeholders;
+pub mod scan;
 pub mod spec;
 
 #[cfg(feature = "runtime")]

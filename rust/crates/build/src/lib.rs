@@ -63,6 +63,9 @@ pub struct BuildRequest {
     pub source: PathBuf,
     /// The publish directory (`--destination`); relative to `source`.
     pub destination: Option<PathBuf>,
+    /// `--config` files, relative to `source`, the first with the highest precedence (empty:
+    /// the default `hugo.*` / `config.*` file).
+    pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
     /// The build's "now" (`--clock`; `None`: the system clock).
     pub clock: Option<jiff::Timestamp>,
@@ -130,8 +133,10 @@ pub struct BuildReport {
     pub memory: Option<Arc<MemorySink>>,
 }
 
-/// The process environment the configuration reads.
-fn process_env() -> Vec<(String, String)> {
+/// The process environment the configuration reads: `HUGO_*` overrides, and `HOME`,
+/// `XDG_CACHE_HOME`, `TMPDIR` and `USER` for the default cache directory.
+#[must_use]
+pub fn process_env() -> Vec<(String, String)> {
     std::env::vars()
         .filter(|(k, _)| {
             k.starts_with("HUGO_")
@@ -212,7 +217,7 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     }
     let cfg = Arc::new(neohugo_config::load(&LoadOptions {
         source: r.source.clone(),
-        config_files: Vec::new(),
+        config_files: r.config_files,
         cli,
         env: process_env(),
     })?);
