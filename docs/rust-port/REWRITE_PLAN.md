@@ -1442,6 +1442,12 @@ These rules are generated into `template-api.md`. They are applied by hand; the 
 - Assets used with `execute_as_template` are Tera templates: `{{ .api }}` → `{{ data.api }}`.
 - i18n files stay Hugo syntax, limited to `{{ . }}` and `{{ .Field }}` (§2.4 locale).
 
+
+**Tera 2.4 syntax limits found in T35 (binding for every conversion, T60–T66):**
+- No attribute or index access after a call or a parenthesised expression: `get_page(path=x).title`, `paginator().page_number` and `(x | f).y` are syntax errors. Bind first (`{% set p = get_page(path=x) %}{{ p.title }}`) or use `| get(key=…)` / `| get_path(path=[…])`.
+- `}}` inside an expression ends the tag: write nested map literals with a space, `{"a": {"b": 1} }`.
+- Functions receive no call position; pagination conflicts report the partial or layout the call ran in.
+
 ### 4.8 Template tooling
 
 **Contract test** (`neohugo-testkit::contract`, T02).
