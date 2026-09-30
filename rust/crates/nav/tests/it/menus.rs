@@ -39,17 +39,12 @@ fn params_eq(mine: &Params, want: &J) -> bool {
 }
 
 /// A decoded configuration entry against the oracle's (in the menu's sorted order).
-/// `weak_bools`: `true`/`false` equal Go's weakly decoded `"1"`/`"0"`.
-fn config_entry_eq(c: &MenuEntryConfig, w: &J, weak_bools: bool) -> bool {
-    let html = |got: &str, want: &J| {
-        let want = s(want);
-        got == want || (weak_bools && matches!((got, want), ("true", "1") | ("false", "0")))
-    };
+fn config_entry_eq(c: &MenuEntryConfig, w: &J) -> bool {
     c.menu == s(&w["menu"])
         && c.identifier == s(&w["identifier"])
         && c.name == s(&w["name"])
-        && html(&c.pre, &w["pre"])
-        && html(&c.post, &w["post"])
+        && c.pre == s(&w["pre"])
+        && c.post == s(&w["post"])
         && c.url == s(&w["url"])
         && c.page_ref == s(&w["pageRef"])
         && i64::from(c.weight) == w["weight"].as_i64().expect("weight")
@@ -67,7 +62,6 @@ fn check_decode(file: &str, c: &J, entries: &[MenuEntryConfig], t: &mut Tally) {
         cfgs.entry(e.menu.as_str()).or_default().push(e);
     }
     let mut ok = cfgs.len() == want.as_object().map_or(0, serde_json::Map::len);
-    let mut weak_ok = ok;
     for (menu, list) in &cfgs {
         // Sort the configured entries the way menus are sorted.
         let mut order: Vec<usize> = (0..list.len()).collect();
@@ -85,17 +79,7 @@ fn check_decode(file: &str, c: &J, entries: &[MenuEntryConfig], t: &mut Tally) {
             && order
                 .iter()
                 .zip(w)
-                .all(|(&i, w)| config_entry_eq(list[i], w, false));
-        weak_ok &= w.len() == order.len()
-            && order
-                .iter()
-                .zip(w)
-                .all(|(&i, w)| config_entry_eq(list[i], w, true));
-    }
-    if !ok && weak_ok {
-        // neohugo-config decodes a boolean `pre`/`post` as "true"; Go's weak decoding as "1".
-        t.accept("config-weak-bool-string");
-        return;
+                .all(|(&i, w)| config_entry_eq(list[i], w));
     }
     t.check(ok, || {
         format!(
@@ -145,15 +129,6 @@ fn section_pages_menu(fx: &J, site: usize) -> Option<String> {
             })
             .then(|| name.clone())
     })
-}
-
-/// Whether oracle entry `i` belongs to a page whose front matter menus neohugo-page rejects.
-fn rejected(site: &DumpSite, fx: &J, i: usize) -> bool {
-    let e = &fx["entries"][i];
-    e["page"]
-        .as_u64()
-        .and_then(|p| usize::try_from(p).ok())
-        .is_some_and(|p| site.pages[p].menus_rejected && s(&e["pageRef"]).is_empty())
 }
 
 /// Compares an assembled entry with oracle entry `i`; records where each oracle entry is.
@@ -223,17 +198,6 @@ fn run(file: &str, t: &mut Tally) {
         };
         let (menus, _) = build_site_menus(&site, lang, &opts);
         let mut want = fx["siteMenus"][si].as_object().cloned().unwrap_or_default();
-        // Entries of pages whose front matter menus neohugo-page rejects (a number as the
-        // menu name) are not expected.
-        for list in want.values_mut() {
-            let before = list.as_array().map_or(0, Vec::len);
-            if let Some(a) = list.as_array_mut() {
-                a.retain(|i| !rejected(&site, &fx, idx(i)));
-            }
-            for _ in list.as_array().map_or(0, Vec::len)..before {
-                t.accept("page-menus-scalar-name");
-            }
-        }
         want.retain(|_, l| l.as_array().is_some_and(|a| !a.is_empty()));
         let names_ok = menus.menus.keys().eq(want.keys());
         t.check(names_ok, || {
@@ -279,12 +243,9 @@ fn run(file: &str, t: &mut Tally) {
                 let Ok(decoded) = page_menus(&Params::fold(
                     value(&json!({ "menus": c["in"] })).as_map().expect("map"),
                 )) else {
-                    if c["res"].get("err").is_some() {
-                        t.pass();
-                    } else {
-                        // neohugo-page rejects a number as a menu name; Go uses "42".
-                        t.accept("page-menus-scalar-name");
-                    }
+                    t.check(c["res"].get("err").is_some(), || {
+                        format!("{file}: PageMenusFromPage {c}: rejected")
+                    });
                     continue;
                 };
                 let mut facts = site.page(id);
@@ -320,16 +281,12 @@ fn run(file: &str, t: &mut Tally) {
                         mine_own[menu].name == s(&w["name"])
                             && mine_own[menu].identifier == s(&w["identifier"])
                     });
-                if !own_ok && site.pages[page.index()].menus_rejected {
-                    t.accept("page-menus-scalar-name");
-                } else {
-                    t.check(own_ok, || {
-                        format!(
-                            "{file}: page {page:?} own entries {:?} want {own:?}",
-                            mine_own.keys()
-                        )
-                    });
-                }
+                t.check(own_ok, || {
+                    format!(
+                        "{file}: page {page:?} own entries {:?} want {own:?}",
+                        mine_own.keys()
+                    )
+                });
                 for r in c["res"].as_array().map_or(&[][..], Vec::as_slice) {
                     let menu = s(&r[0]);
                     let i = idx(&r[1]);
@@ -339,10 +296,6 @@ fn run(file: &str, t: &mut Tally) {
                             .and_then(|(m, _)| mine_own.get(m).cloned())
                     });
                     let Some(entry) = entry else {
-                        if rejected(&site, &fx, i) {
-                            t.accept("page-menus-scalar-name");
-                            continue;
-                        }
                         t.fail(|| format!("{file}: entry {i} not assembled"));
                         continue;
                     };
@@ -364,10 +317,6 @@ fn run(file: &str, t: &mut Tally) {
                 let input: Vec<usize> = c["in"].as_array().expect("in").iter().map(idx).collect();
                 let Some(entries) = input.iter().map(|i| at.get(i)).collect::<Option<Vec<_>>>()
                 else {
-                    if input.iter().any(|&i| rejected(&site, &fx, i)) {
-                        t.accept("page-menus-scalar-name");
-                        continue;
-                    }
                     t.fail(|| format!("{file}: sort input not assembled {input:?}"));
                     continue;
                 };
@@ -419,7 +368,9 @@ fn menu_config_decodes_like_hugo() {
         let menus = c["in"].as_object();
         match (&entries, c["res"].get("ok").is_some()) {
             (Ok(e), true) => {
-                // Menu names are configuration keys, which neohugo-config lower-cases.
+                // Menu names are configuration keys, which the site's configuration loader
+                // lower-cases (Hugo's too; this oracle calls `navigation.DecodeConfig` on
+                // keys as written).
                 let folded = menus.is_some_and(|m| m.keys().any(|k| k.to_lowercase() != *k));
                 if folded {
                     t.accept("config-menu-name-folded");
@@ -428,14 +379,6 @@ fn menu_config_decodes_like_hugo() {
                 }
             }
             (Err(_), false) => t.pass(),
-            // A single table where a list is expected is one entry to neohugo-config.
-            (Ok(_), false) if menus.is_some_and(|m| m.values().any(J::is_object)) => {
-                t.accept("config-single-entry-table");
-            }
-            // neohugo-config ignores a `menus` value that is not a table.
-            (Ok(e), false) if e.is_empty() && !c["in"].is_object() => {
-                t.accept("config-menus-not-table-ignored");
-            }
             (got, _) => t.fail(|| format!("decode {}: got {got:?} want {}", c["in"], c["res"])),
         }
     }

@@ -273,24 +273,11 @@ fn related_config_decodes_like_hugo() {
             (Err(_), None) => true,
             _ => false,
         };
-        let cardinality = |i: &J| {
-            i["cardinalityThreshold"]
-                .as_i64()
-                .is_some_and(|c| !(0..=100).contains(&c))
-        };
         if !ok && got.is_ok() && c["in"].as_object().is_some_and(serde_json::Map::is_empty) {
-            // neohugo-config: an empty `[related]` table is the empty configuration.
+            // An empty `[related]` table is the empty configuration: in the site's loader,
+            // Hugo's too (allconfig oracle `sections/related-empty`); this oracle calls
+            // `related.DecodeConfig` on the bare table.
             t.accept("config-related-empty-accepted");
-            continue;
-        }
-        if !ok
-            && got.is_ok()
-            && c["in"]["indices"]
-                .as_array()
-                .is_some_and(|a| a.iter().any(cardinality))
-        {
-            // neohugo-config does not range-check `cardinalityThreshold`.
-            t.accept("config-related-cardinality-unchecked");
             continue;
         }
         t.check(ok, || {

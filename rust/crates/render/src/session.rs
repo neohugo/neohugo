@@ -14,6 +14,7 @@ use neohugo_layouts::{
     Templates,
 };
 use neohugo_markup::Fragments;
+use neohugo_nav::AliasKind;
 use neohugo_site::Model;
 use neohugo_vfs::Vfs;
 use neohugo_view::interim::{FlatPage, FlatSite};
@@ -437,6 +438,7 @@ impl Session {
                     from: a.from,
                     to: a.to,
                     format: a.format,
+                    kind: AliasKind::FrontMatter,
                 })
             })
             .collect();

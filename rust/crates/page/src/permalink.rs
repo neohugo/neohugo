@@ -13,7 +13,7 @@ use neohugo_base::PageKind;
 use neohugo_base::url::SiteUrls;
 use neohugo_config::sections::Permalinks;
 
-use crate::PageError;
+use crate::{GoLayout, PageError};
 
 /// A compiled permalink pattern.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,17 +45,8 @@ enum Attr {
     Filename,
     ContentBaseName,
     SlugOrContentBaseName,
-    /// A Go layout, as `strftime` formats around zone abbreviations.
-    Layout(Vec<LayoutChunk>),
-}
-
-/// A piece of a translated Go layout.
-#[derive(Clone, Debug, PartialEq, Eq)]
-enum LayoutChunk {
-    Strftime(String),
-    /// Go's `MST`: the abbreviation of a named zone (`UTC`, `ICT`, `+07`), the offset
-    /// (`-0700`) of a fixed-offset date.
-    Zone,
+    /// A Go layout.
+    Layout(GoLayout),
 }
 
 /// A `:sections[…]` selection.
@@ -200,21 +191,7 @@ impl PermalinkPattern {
             Attr::Filename => filename(c),
             Attr::ContentBaseName => urlize(c.content_base_name),
             Attr::SlugOrContentBaseName => slug_or(urlize(c.content_base_name)),
-            Attr::Layout(chunks) => chunks
-                .iter()
-                .map(|c| match c {
-                    LayoutChunk::Strftime(f) => date.strftime(f.as_str()).to_string(),
-                    LayoutChunk::Zone => {
-                        let named = date.time_zone().iana_name().is_some();
-                        let abbr = date.strftime("%Z").to_string();
-                        if named && !abbr.is_empty() {
-                            abbr
-                        } else {
-                            date.strftime("%z").to_string()
-                        }
-                    }
-                })
-                .collect(),
+            Attr::Layout(layout) => layout.format(date),
         })
     }
 
@@ -309,7 +286,7 @@ fn parse_attr(attr: &str) -> Option<Attr> {
             {
                 return Some(Attr::SectionsSlice(Slice::parse(cut)));
             }
-            return go_layout_to_strftime(attr).map(Attr::Layout);
+            return GoLayout::parse(attr).map(Attr::Layout);
         }
     })
 }
@@ -372,83 +349,6 @@ impl Slice {
             }
         }
     }
-}
-
-/// Translates a Go time layout made of word characters (`2006`, `Jan`, `02`, `Monday`,
-/// `15`, `MST`, …) to `strftime` formats; `None` when it holds no layout element (it would
-/// format as itself).
-fn go_layout_to_strftime(layout: &str) -> Option<Vec<LayoutChunk>> {
-    // (Go element, strftime), longest first where one is a prefix of another.
-    const ELEMENTS: &[(&str, &str)] = &[
-        ("January", "%B"),
-        ("Jan", "%b"),
-        ("Monday", "%A"),
-        ("Mon", "%a"),
-        ("MST", "%Z"),
-        ("2006", "%Y"),
-        ("002", "%j"),
-        ("01", "%m"),
-        ("02", "%d"),
-        ("03", "%I"),
-        ("04", "%M"),
-        ("05", "%S"),
-        ("06", "%y"),
-        ("15", "%H"),
-        ("__2", "%_j"),
-        ("_2", "%e"),
-        ("1", "%-m"),
-        ("2", "%-d"),
-        ("3", "%-I"),
-        ("4", "%-M"),
-        ("5", "%-S"),
-        ("PM", "%p"),
-        ("pm", "%P"),
-        ("Z070000", "%z"),
-        ("Z0700", "%z"),
-        ("Z07", "%z"),
-    ];
-    let mut chunks = Vec::new();
-    let mut out = String::new();
-    let mut found = false;
-    let mut rest = layout;
-    'outer: while !rest.is_empty() {
-        for (go, strf) in ELEMENTS {
-            if let Some(after) = rest.strip_prefix(go) {
-                // Go reads `_2006` as `_` + year, and `Mon`/`Jan` only when not followed by a
-                // lower-case letter.
-                if (*go == "Jan" || *go == "Mon")
-                    && after.starts_with(|c: char| c.is_ascii_lowercase())
-                {
-                    continue;
-                }
-                if *go == "_2" && after.starts_with("006") {
-                    continue;
-                }
-                if *go == "MST" {
-                    if !out.is_empty() {
-                        chunks.push(LayoutChunk::Strftime(std::mem::take(&mut out)));
-                    }
-                    chunks.push(LayoutChunk::Zone);
-                } else {
-                    out.push_str(strf);
-                }
-                found = true;
-                rest = after;
-                continue 'outer;
-            }
-        }
-        let c = rest.chars().next().expect("not empty");
-        if c == '%' {
-            out.push_str("%%");
-        } else {
-            out.push(c);
-        }
-        rest = &rest[c.len_utf8()..];
-    }
-    if !out.is_empty() {
-        chunks.push(LayoutChunk::Strftime(out));
-    }
-    found.then_some(chunks)
 }
 
 /// The compiled `[permalinks]` of a site: per kind, section (or taxonomy) → pattern.

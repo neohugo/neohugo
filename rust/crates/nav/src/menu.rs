@@ -214,23 +214,13 @@ pub struct MenuOptions<'a> {
 }
 
 impl<'a> MenuOptions<'a> {
-    /// The options of language `lang` of `cfg`. `sectionPagesMenu` is read from the raw
-    /// configuration tree (`languages.<key>.sectionPagesMenu`, else the root key), which
-    /// `SiteConfig` does not carry yet.
+    /// The options of language `lang` of `cfg`.
     #[must_use]
     pub fn from_config(cfg: &'a Config, lang: LangIdx) -> Self {
         let site = &cfg.sites[lang];
-        let key = &site.language.key;
-        let section_pages_menu = cfg
-            .raw
-            .get_path(&format!("languages.{key}.sectionpagesmenu"))
-            .or_else(|| cfg.raw.get("sectionpagesmenu"))
-            .and_then(|v| v.as_str())
-            .filter(|s| !s.is_empty())
-            .map(str::to_owned);
         Self {
             entries: &site.menus,
-            section_pages_menu,
+            section_pages_menu: site.section_pages_menu.clone(),
             urls: site.site_urls(),
         }
     }

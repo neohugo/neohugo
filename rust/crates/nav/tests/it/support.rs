@@ -277,8 +277,6 @@ pub struct DumpPage {
     pub ancestor_of: Vec<usize>,
     pub outputs: Vec<(FormatId, TargetPaths)>,
     pub aliases_rendered: Rendering,
-    /// `neohugo-page` rejected the front matter menus (they are empty then).
-    pub menus_rejected: bool,
 }
 
 /// A [`NavModel`] over the `pages` dump of a fixture. `pageRef`s resolve by path in the same
@@ -324,7 +322,6 @@ impl DumpSite {
                         expiry_date: zoned(&p["expiryDate"]),
                     },
                     menus: page_menus(&params).unwrap_or_default(),
-                    menus_rejected: page_menus(&params).is_err(),
                     params,
                     rel_permalink: s(&p["relPermalink"]).to_owned(),
                     fragments: strings(&p["fragments"]),

@@ -517,3 +517,63 @@ fn toc_end_level_and_permalink_errors() {
     let e = p.load(CliOverrides::default(), &[]).expect_err("pattern");
     assert_eq!(position(&e), ("hugo.toml".into(), 2, 1));
 }
+
+#[test]
+fn menus_section_pages_menu_and_language_redirect() {
+    let p = Project::new(&[(
+        "hugo.toml",
+        r#"
+sectionPagesMenu = "main"
+disableDefaultLanguageRedirect = true
+[[menus.main]]
+name = "A"
+pre = true
+post = 3
+[languages.en]
+weight = 1
+[languages.de]
+weight = 2
+sectionPagesMenu = "sections"
+"#,
+    )]);
+    let c = p.ok();
+    assert_eq!(
+        c.default_language_redirect,
+        neohugo_config::RedirectPolicy::Disabled
+    );
+    let en = c.site("en").expect("en");
+    assert_eq!(en.section_pages_menu.as_deref(), Some("main"));
+    assert_eq!(
+        c.site("de").expect("de").section_pages_menu.as_deref(),
+        Some("sections")
+    );
+    // A boolean `pre`/`post` reads as `1`/`0`, as in Hugo.
+    assert_eq!(
+        (en.menus[0].pre.as_str(), en.menus[0].post.as_str()),
+        ("1", "3")
+    );
+
+    let c = Project::new(&[("hugo.toml", "title = \"x\"\n")]).ok();
+    assert_eq!(
+        c.default_language_redirect,
+        neohugo_config::RedirectPolicy::Write
+    );
+    assert_eq!(c.default_site().section_pages_menu, None);
+
+    // An empty `[related]` is the empty configuration (Hugo's site loader: the table is
+    // set, and not empty to `related.DecodeConfig` because of its merge-strategy key).
+    let c = Project::new(&[("hugo.toml", "[related]\n")]).ok();
+    assert!(c.default_site().related.indices.is_empty());
+    assert_eq!(c.default_site().related.threshold, 0);
+
+    // Menus are lists of entries; `menus` is a table; the related cardinality thresholds
+    // are percentages.
+    for bad in [
+        "[menus.main]\nname = \"single\"\n",
+        "menus = \"main\"\n",
+        "[related]\nthreshold = 80\n[[related.indices]]\nname = \"tags\"\ncardinalityThreshold = 101\n",
+    ] {
+        let p = Project::new(&[("hugo.toml", bad)]);
+        assert!(p.load(CliOverrides::default(), &[]).is_err(), "{bad}");
+    }
+}

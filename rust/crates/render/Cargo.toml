@@ -30,6 +30,8 @@ neohugo-view.workspace = true
 neohugo-layouts.workspace = true
 neohugo-funcs.workspace = true
 neohugo-markup.workspace = true
+# `AliasPlan` is neohugo-nav's (T24).
+neohugo-nav.workspace = true
 # T38 (walking skeleton) dropped the planned `neohugo-sitefuncs` and `neohugo-pageparser`
 # edges: the skeleton registers stub site functions itself (`stubs.rs`) and runs no
 # shortcodes. T34/T35 add them back.

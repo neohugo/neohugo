@@ -7,7 +7,7 @@ use std::collections::BTreeSet;
 use neohugo_base::paths::{clean, join};
 use neohugo_base::{FormatId, LangIdx, OutputPath, PageId};
 use neohugo_config::Config;
-use neohugo_config::site::AliasPolicy;
+use neohugo_config::site::{AliasPolicy, RedirectPolicy};
 
 use crate::NavError;
 use crate::model::{NavModel, Rendering};
@@ -138,11 +138,7 @@ pub fn page_aliases(
 /// `disableDefaultLanguageRedirect` is set, or without an `html` format or home page.
 #[must_use]
 pub fn language_redirect(m: &impl NavModel, cfg: &Config) -> Option<AliasPlan> {
-    let disabled = cfg
-        .raw
-        .get("disabledefaultlanguageredirect")
-        .and_then(neohugo_base::Value::as_bool)
-        .unwrap_or(false);
+    let disabled = cfg.default_language_redirect == RedirectPolicy::Disabled;
     let multilingual = cfg.sites.len() > 1;
     if disabled || cfg.multihost || !(cfg.default_language_in_subdir || multilingual) {
         return None;

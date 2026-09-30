@@ -18,7 +18,6 @@
 #![forbid(unsafe_code)]
 
 mod alias;
-mod layout;
 mod menu;
 mod model;
 mod pagination;

@@ -14,6 +14,7 @@ pub struct ExpandedMarkdown<'a> { text, page: PageId, contexts: &SourceContexts,
 pub struct SourceContexts(pub Vec<(Range<usize>, PageId)>);       // innermost span → HookEnv::inner_page
 pub trait Hooks: Sync { link, image, heading, code_block, blockquote, table, passthrough }  // all default to HookOut::Default
 pub struct HookEnv { page, inner_page, ordinal /* per kind, call order */, position }
+pub struct HighlightOptions { options, attributes, ordinal /* the fence's code block ordinal */ }
 pub trait Highlighter: Send + Sync { fn highlight(&self, code, lang, &HighlightOptions) -> Result<String, HookError>; }
 pub struct Toc { headings } / Fragments { headings, identifiers } / Heading { id, level, html, plain, children }
 pub mod text { strip_html, word_count, auto_summary -> Summary { html, truncated }, split_at_marker }

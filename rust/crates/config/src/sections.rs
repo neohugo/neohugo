@@ -436,6 +436,16 @@ impl RelatedConfig {
                     });
                 }
             };
+            if !(0..=100).contains(&ix.cardinality_threshold) {
+                return Err(crate::de::DeError {
+                    path: vec![
+                        "indices".to_owned(),
+                        i.to_string(),
+                        "cardinalityThreshold".to_owned(),
+                    ],
+                    message: "must be between 0 and 100".to_owned(),
+                });
+            }
             indices.push(RelatedIndex {
                 name: ix.name.to_lowercase(),
                 kind,
@@ -572,8 +582,8 @@ pub(crate) fn decode_menus(config: &Map) -> Result<Vec<MenuEntryConfig>, crate::
     struct Raw {
         identifier: String,
         name: String,
-        pre: String,
-        post: String,
+        pre: Value,
+        post: Value,
         #[serde(rename = "URL")]
         url: String,
         page_ref: String,
@@ -583,10 +593,9 @@ pub(crate) fn decode_menus(config: &Map) -> Result<Vec<MenuEntryConfig>, crate::
         params: Value,
     }
     let mut out = Vec::new();
-    for (menu, entries) in config.iter() {
+    for (menu, entries) in config.iter().filter(|(k, _)| *k != "_merge") {
         let items = match entries {
             Value::Array(a) => a.as_slice(),
-            Value::Map(_) => std::slice::from_ref(entries),
             other => {
                 return Err(crate::de::DeError {
                     path: vec![menu.to_owned()],
@@ -599,12 +608,18 @@ pub(crate) fn decode_menus(config: &Map) -> Result<Vec<MenuEntryConfig>, crate::
                 e.path.splice(0..0, [menu.to_owned(), i.to_string()]);
                 e
             })?;
+            let html = |field: &str, v: &Value| {
+                menu_html(v).ok_or_else(|| crate::de::DeError {
+                    path: vec![menu.to_owned(), i.to_string(), field.to_owned()],
+                    message: format!("expected a string, found {v:?}"),
+                })
+            };
             out.push(MenuEntryConfig {
                 menu: menu.to_owned(),
                 identifier: r.identifier,
                 name: r.name,
-                pre: r.pre,
-                post: r.post,
+                pre: html("pre", &r.pre)?,
+                post: html("post", &r.post)?,
                 url: r.url,
                 page_ref: r.page_ref,
                 weight: r.weight,
@@ -615,6 +630,16 @@ pub(crate) fn decode_menus(config: &Map) -> Result<Vec<MenuEntryConfig>, crate::
         }
     }
     Ok(out)
+}
+
+/// The text of a menu entry's `pre`/`post`: a scalar as written, a boolean as `1`/`0` (how
+/// Hugo reads a boolean into these string fields), nothing when unset.
+fn menu_html(v: &Value) -> Option<String> {
+    match v {
+        Value::Null => Some(String::new()),
+        Value::Bool(b) => Some(if *b { "1" } else { "0" }.to_owned()),
+        other => crate::de::weak_string(other),
+    }
 }
 
 /// A `[[cascade]]` entry: front matter applied to the pages below the defining page.

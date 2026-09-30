@@ -382,7 +382,8 @@ fn decode_resources(v: &Value) -> Result<Vec<ResourceMetaRule>, PageError> {
     Ok(out)
 }
 
-/// `menu: main`, `menus: [main, footer]`, or `menus: {main: {weight: 10, parent: docs}}`.
+/// `menu: main` (or a number: `menu: 42`), `menus: [main, footer]`, or
+/// `menus: {main: {weight: 10, parent: docs}}`.
 fn decode_menus(v: Option<&Value>) -> Result<Vec<PageMenuEntry>, PageError> {
     let entry = |menu: &str| PageMenuEntry {
         menu: menu.to_owned(),
@@ -391,6 +392,10 @@ fn decode_menus(v: Option<&Value>) -> Result<Vec<PageMenuEntry>, PageError> {
     Ok(match v {
         None | Some(Value::Null) => Vec::new(),
         Some(Value::String(s)) => vec![entry(s)],
+        // A number or boolean names a menu too (`menu: 42` is the menu "42").
+        Some(v @ (Value::Int(_) | Value::Float(_) | Value::Bool(_))) => {
+            vec![entry(&value::weak_string(v).unwrap_or_default())]
+        }
         Some(Value::Array(a)) => a
             .iter()
             .filter_map(value::weak_string)
@@ -404,8 +409,11 @@ fn decode_menus(v: Option<&Value>) -> Result<Vec<PageMenuEntry>, PageError> {
                     Value::Null => {}
                     Value::Map(pm) => {
                         let pm = Params::fold(pm);
-                        let s =
-                            |k: &str| pm.get(k).and_then(value::weak_string).unwrap_or_default();
+                        // A boolean reads as `1`/`0` in these text fields, as in Hugo.
+                        let s = |k: &str| match pm.get(k) {
+                            Some(Value::Bool(b)) => if *b { "1" } else { "0" }.to_owned(),
+                            v => v.and_then(value::weak_string).unwrap_or_default(),
+                        };
                         e.identifier = s("identifier");
                         e.name = s("name");
                         e.pre = s("pre");

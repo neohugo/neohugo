@@ -2,23 +2,13 @@
 
 use neohugo_base::paths::OutputPath;
 use neohugo_base::{FormatId, LangIdx, PageId};
-
-/// An alias file: `from` redirects to page `to`'s permalink in `format`.
-///
-/// Defined here by the T38 skeleton; the plan puts it in `neohugo-nav` (`alias_plan`), which
-/// then owns it and this crate re-exports it.
-#[derive(Clone, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub struct AliasPlan {
-    pub from: OutputPath,
-    pub to: PageId,
-    pub format: FormatId,
-}
+pub use neohugo_nav::AliasPlan;
 
 /// One unit of phase E work; [`Session::render_job`](crate::Session::render_job) turns it into
 /// outputs without I/O.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Job {
-    /// A front matter alias.
+    /// A front matter alias (`neohugo-nav`'s plan; its `kind` is `FrontMatter`).
     Alias(AliasPlan),
     /// A page in one format (pager 1 when the render paginates).
     Page { page: PageId, format: FormatId },
