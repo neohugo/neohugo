@@ -26,7 +26,7 @@ use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
 use neohugo_base::{FormatId, IdVec, Idx, LangIdx, PageId, PageKind, ResourceId, TaxonomyIdx};
-use neohugo_config::output::Escaping;
+use neohugo_config::output::{Escaping, Listing};
 use neohugo_nav::{MenuEntry, Menus};
 use neohugo_resources::{ResourceError, ResourceStore};
 use neohugo_site::{Model, PageRole};
@@ -712,12 +712,20 @@ impl ViewGeneration {
             }
             _ => None,
         };
-        let alternative = summary
+        // Every output format of the page but the first, less the `notAlternative` ones.
+        let formats = summary
             .as_map()
             .and_then(|m| m.get(&tera::value::Key::Str("output_formats")))
-            .and_then(tera::Value::as_map)
-            .map(|f| f.values().skip(1).cloned().collect::<Vec<_>>())
-            .unwrap_or_default();
+            .and_then(tera::Value::as_map);
+        let alternative = p
+            .urls
+            .iter()
+            .filter(|u| u.links.is_some())
+            .skip(1)
+            .map(|u| model.config.output_formats.get(u.format))
+            .filter(|f| f.listing != Listing::NotAlternative)
+            .filter_map(|f| formats?.get(&tera::value::Key::Str(&f.name)).cloned())
+            .collect::<Vec<_>>();
         let translations: Vec<PageId> = p
             .translations
             .iter()
