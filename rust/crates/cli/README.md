@@ -138,9 +138,11 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 |---|---|
 | `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 56/56 (55 in `public` + `hugo_stats.json`; the reference has 55 because Go writes `hugo_stats.json` next to `hugo.toml`); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; `hugo_stats.json` tag/class/id sets equal the `neohugo-publish` collector (checked against Go's by `oracle/publisher/collector`) over Go's HTML. Accepted-deviation lists per level: empty. Structure oracle: TODO(T01). Full output tree: `snapshots/testsite_output.snap` |
 | `parity::parity_helpers` | the scanner, normalisations and text extraction of the gate |
+| `docs::gate_a_d2` | **gate A-D2** (§7.3, T66): `compare.sh docs-reduced --ref golden` with this binary (Chroma, goat, emoji, math, remarshal, Tailwind via `defer`, Alpine/Turbo `js_build`): L1 889/889 in both passes, L2, L4 and the structure oracle equal everywhere, A7 ≥ 0.98, clean ratchet (`rust/testdata/baselines/docs-reduced.json`); `SKIPPED` without the node tools/esbuild (shared with `reconstruction::gate_a_r` in `tests/it/acceptance.rs`) |
 | `embedded::embedded_templates` | the embedded templates rendered against testsite views (test-only overlay `tests/it/embedded-overlay.txtar`, see below): snapshots `hooks`, `shortcodes`, `bundle`, `featured`, `section_page1`, `section_page2` |
 | `embedded::embedded_templates_simple_and_disabled` | `privacy.{vimeo,x,instagram}.simple` (snapshot `shortcodes_simple`) and every service disabled |
-| `embedded::embedded_template_errors` | argument errors and warnings of the embedded templates, `diagrams_goat` not in this build (snapshot `errors`) |
+| `embedded::embedded_template_errors` | argument errors and warnings of the embedded templates (snapshot `errors`) |
+| `embedded::goat_code_block` | the goat code block hook: `viewBox` of GoAT's size, `width`/`class` attributes, the svgbob drawing |
 | `embedded::qr_shortcode_equals_hugo_s` | the `qr` shortcode against Hugo's `TestQRShortcode`: image names, sizes and attributes; images published |
 | `build::testsite_matches_go` | `sites.py`'s testsite with `rust/sites/testsite/layouts`, built by the binary with compare.sh's command line (`--clock … -d …`, no command) and with `build --source … --destination … --cleanDestinationDir -q`: **55/55 files byte-identical** to `crates/build/tests/it/testsite-go.txtar` |
 | `build::flags_and_environment` | every configuration flag in both spellings, `HUGO_TITLE`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_BASEURL`, `-M` writes nothing |
@@ -179,7 +181,7 @@ hooks are byte-identical to Go's output in A-T.
 | `_shortcodes/{vimeo,x}.html` simple/oEmbed failure | two warnings (`get_remote`'s and the shortcode's); Go writes one with the error appended | accepted deviation |
 | `_markup/render-table.html` | the Tera file is not executed (the native writer is); it stays for lookup and precedence | accepted deviation (performance, same output) |
 | `_shortcodes/highlight.html` | Chroma span structure not reviewed token by token | accepted deviation (§7.3 allowed: highlight spans) |
-| `_markup/render-codeblock-goat.html` | `diagrams_goat` not compiled in: the page fails | open (T66) |
+| `_markup/render-codeblock-goat.html` | `diagrams_goat` draws with svgbob (features `goat`, on by default): same size and `viewBox` as GoAT, other SVG bytes (a scoped `<style>`, whole-word `<text>`) | accepted deviation (§7.3 allowed: goat SVG bytes; T66) |
 | `_shortcodes/qr.html` | argument checks equal Go's messages; images named and sized as Go's (`qr_shortcode_equals_hugo_s`), their bytes equal Go's (`neohugo-images` QR tests) | none |
 | figure, instagram (body byte-equal to Go's `render-instagram`), x, param, ref, relref, opengraph, twitter_cards, schema, `_funcs/get-page-images`, render-link, render-image | none | – |
 

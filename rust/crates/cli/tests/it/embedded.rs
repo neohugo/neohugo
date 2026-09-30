@@ -181,8 +181,8 @@ fn embedded_templates_simple_and_disabled() {
     assert!(!read(&site, "embedded/hooks/index.html").contains("gtag"));
 }
 
-/// The embedded templates' errors and warnings: argument checks, the Universal Analytics
-/// warning, and the function that is not in this build yet (`diagrams_goat`, T66).
+/// The embedded templates' errors and warnings: argument checks and the Universal Analytics
+/// warning.
 #[test]
 fn embedded_template_errors() {
     let site = site_from(
@@ -243,21 +243,55 @@ title: qr
     let mut lines: Vec<&str> = err.lines().collect();
     lines.sort_unstable();
 
-    // A function this build does not have fails the page: `diagrams_goat` (T66).
-    let unavailable = |content: &str| {
-        let s = site_from(&format!(
-            "-- hugo.toml --\nbaseURL = \"https://example.org/\"\n[markup.highlight]\ncodeFences = true\n\
-             -- layouts/single.html --\n{{{{ page.content }}}}\n-- content/p.md --\n---\ntitle: p\n---\n\
-             {content}\n"
-        ));
-        let o = neohugo(s.path(), &["-M"], NO_NETWORK);
-        assert_eq!(o.status.code(), Some(1));
-        stderr(&o).replace(&s.path().display().to_string(), "[site]")
-    };
-    let goat_err = unavailable("```goat\n*--*\n```");
     neohugo_testkit::snapshot::settings().bind(|| {
-        insta::assert_snapshot!("errors", format!("{}\n\n{goat_err}", lines.join("\n")));
+        insta::assert_snapshot!("errors", lines.join("\n"));
     });
+}
+
+/// The goat code block hook (`diagrams_goat`, svgbob; feature `goat` of the default build):
+/// a `viewBox` of GoAT's size, or the `width`/`height` attributes instead, and the `class`.
+#[test]
+fn goat_code_block() {
+    let site = site_from(
+        r#"
+-- hugo.toml --
+baseURL = "https://example.org/"
+disableKinds = ["taxonomy", "term", "rss", "sitemap", "robotstxt", "404", "section", "home"]
+-- layouts/single.html --
+{{ page.content }}
+-- content/p.md --
+---
+title: p
+---
+```goat
+*--+
+   |
+   v
+```
+
+```goat {class="c" width="100"}
+\
+```
+"#,
+    );
+    let o = neohugo(site.path(), &["--quiet"], NO_NETWORK);
+    assert!(o.status.success(), "{}", stderr(&o));
+    let page = read(site.path(), "p/index.html");
+    assert!(
+        page.contains(r#"<div class="goat svg-container ">"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"viewBox="0 0 40 64""#), "{page}");
+    assert!(
+        page.contains(r#"<div class="goat svg-container c">"#),
+        "{page}"
+    );
+    assert!(page.contains(r#"width="100""#), "{page}");
+    assert!(!page.contains(r#"viewBox="0 0 16 32""#), "{page}");
+    assert!(
+        page.contains("<g class='svgbob' transform='translate(4,8)'>"),
+        "{page}"
+    );
 }
 
 /// The `qr` shortcode renders what Hugo's `TestQRShortcode` asserts (names, sizes and

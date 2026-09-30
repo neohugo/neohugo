@@ -1,9 +1,11 @@
 //! Integration tests of `neohugo` (the crate's single test binary, REWRITE_PLAN.md §2.2): the
 //! `neohugo-rs` binary run on small sites.
 
+mod acceptance;
 mod build;
 mod check;
 mod cli;
+mod docs;
 mod embedded;
 mod parity;
 mod reconstruction;

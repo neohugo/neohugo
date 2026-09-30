@@ -1,5 +1,6 @@
 ---
 source: crates/cli/tests/it/embedded.rs
+assertion_line: 247
 expression: "lines.join(\"\\n\")"
 ---
 ERROR build failed: 10 error(s)

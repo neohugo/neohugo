@@ -188,6 +188,19 @@ The full description is the docstring of `tools/neohugo/fixtures2json.py`; read 
 `neohugo_testkit::fixture` (`oracle`, `oracle_lines`, `Tag`, `GoString`) and compare semantic
 fields only, with a reviewed `expected_diffs.toml` per crate.
 
+## Optional features
+
+`neohugo-funcs` compiles two SHOULD template functions only with a feature: `to_math` (`math`,
+pulldown-latex) and `diagrams_goat` (`goat`, svgbob and its geometry crates). Without it the
+name is registered as a stub that fails when called. The `neohugo` crate (the `neohugo-rs`
+binary) turns both on by default (`default = ["goat", "math"]`), so the release build and CI's
+`-p neohugo` builds render the documentation site's formulas and diagrams (gate A-D2, T66);
+`--no-default-features` leaves them out. Their cost (T66): 53 more packages in `neohugo`'s
+normal dependency tree (nalgebra, parry2d, sauron, futures, …; all licences pass
+`licence-check.sh`, which always checks `--all-features`) and about 1.4 MB (1.5 %) of a
+stripped debug binary. A test of `neohugo-funcs`
+alone builds without them unless `--features goat,math` is given (`tests/it/{math,goat}.rs`).
+
 ## Feature unification
 
 Cargo unifies features per invocation over the selected packages, so `-p a` and `-p b` could
