@@ -85,7 +85,7 @@ fn base_url_oracle() {
                     t.skip(|| format!("{input:?}.with_port({p}): not a port number"));
                     continue;
                 };
-                let got = b.with_port(port);
+                let got = Ok(b.with_port(port));
                 t.check(same(want, &got), || {
                     format!(
                         "{input:?}.with_port({p}): want {want}, got {:?}",
@@ -128,7 +128,6 @@ fn base_url_examples() {
         BaseUrl::parse("http://localhost:1313/")
             .unwrap()
             .with_port(8080)
-            .unwrap()
             .as_str(),
         "http://localhost:8080/"
     );

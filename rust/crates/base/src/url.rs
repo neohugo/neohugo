@@ -788,16 +788,13 @@ impl BaseUrl {
     }
 
     /// The same URL with another port.
-    ///
-    /// # Errors
-    /// Never in practice (the path is unchanged); kept for symmetry with
-    /// [`with_protocol`](Self::with_protocol).
-    pub fn with_port(&self, port: u16) -> Result<Self, UrlError> {
+    #[must_use]
+    pub fn with_port(&self, port: u16) -> Self {
         let mut u = self.url.clone();
         let mut host = u.hostname().to_vec();
         host.extend_from_slice(format!(":{port}").as_bytes());
         u.host = host;
-        Self::from_url(u)
+        Self::from_url(u).expect("the path of a base URL is UTF-8")
     }
 }
 

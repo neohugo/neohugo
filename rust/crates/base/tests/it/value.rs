@@ -6,7 +6,7 @@ use neohugo_base::{
 use pretty_assertions::assert_eq;
 
 fn docs_yaml() -> String {
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../docs/data/docs.yaml");
+    let path = neohugo_testkit::fixture::rust_dir().join("../docs/data/docs.yaml");
     std::fs::read_to_string(path).expect("docs/data/docs.yaml")
 }
 
@@ -155,7 +155,6 @@ fn id_vec_and_kinds() {
     assert_eq!(pages.ids().collect::<Vec<_>>(), vec![home, about]);
     let langs: IdVec<LangIdx, &str> = vec!["en", "th"].into();
     assert_eq!(langs[LangIdx::from_raw(1)], "th");
-    assert!(std::panic::catch_unwind(|| FormatId::from_index(256)).is_err());
 
     assert_eq!(PageKind::parse("taxonomyTerm"), Some(PageKind::Taxonomy));
     assert_eq!(PageKind::parse("404"), Some(PageKind::NotFound));
@@ -173,6 +172,12 @@ fn id_vec_and_kinds() {
     );
     assert_eq!(KindSet::ALL.len(), PageKind::ALL.len());
     assert!(PageKind::Section.is_branch() && !PageKind::Page.is_branch());
+}
+
+#[test]
+#[should_panic(expected = "FormatId overflow")]
+fn id_overflow_panics() {
+    let _ = FormatId::from_index(256);
 }
 
 #[test]

@@ -9,7 +9,7 @@ use crate::support::{Tally, fixture, text};
 
 /// The patterns gobwas mis-matches (`expected_diffs.toml`, `[glob]`).
 fn gobwas_bugs() -> BTreeSet<String> {
-    let path = concat!(env!("CARGO_MANIFEST_DIR"), "/expected_diffs.toml");
+    let path = neohugo_testkit::fixture::rust_dir().join("crates/base/expected_diffs.toml");
     let doc: toml::Table = toml::from_str(&std::fs::read_to_string(path).unwrap()).unwrap();
     doc["glob"]
         .as_table()
