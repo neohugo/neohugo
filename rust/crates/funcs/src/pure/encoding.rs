@@ -209,14 +209,14 @@ impl Format {
         }
     }
 
-    /// The format of a document, from the first of `{`/`[` (JSON), `:` (YAML) and `=` (TOML).
+    /// The format of a document, from the first of `{` (JSON), `:` (YAML) and `=` (TOML); a
+    /// document starting with `[` is JSON only if it parses as JSON (TOML tables start with `[`).
     fn detect(s: &str) -> Option<Self> {
+        if s.trim_start().starts_with('[') && Data::from_json_str(s).is_ok() {
+            return Some(Self::Json);
+        }
         let first = |c: char| s.find(c).unwrap_or(usize::MAX);
-        let json = first('{').min(if s.trim_start().starts_with('[') {
-            first('[')
-        } else {
-            usize::MAX
-        });
+        let json = first('{');
         let yaml = first(':');
         let toml = first('=');
         let min = json.min(yaml).min(toml);
@@ -464,4 +464,21 @@ fn toml_table(v: &Value, path: &[String], out: &mut String) -> TeraResult<()> {
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::Format;
+
+    #[test]
+    fn detect_tells_toml_tables_from_json_arrays() {
+        assert!(Format::detect("[1, 2]") == Some(Format::Json));
+        assert!(Format::detect("[{\"a\": 1}]") == Some(Format::Json));
+        assert!(Format::detect("[[headers]]\nfor = '/*'\n") == Some(Format::Toml));
+        assert!(Format::detect("[params.x]\ny = 1\n") == Some(Format::Toml));
+        assert!(
+            Format::detect("[server]\n  [[server.headers]]\n    for = '/*'\n")
+                == Some(Format::Toml)
+        );
+    }
 }
