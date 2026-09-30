@@ -41,8 +41,9 @@ use std::time::{Duration, Instant};
 
 use neohugo_base::diag::Diagnostic;
 use neohugo_base::paths::OutputPath;
+use neohugo_base::url::{BaseUrl, UrlRef};
 use neohugo_base::{Clock, Idx, LangIdx, Sink};
-use neohugo_config::{CliOverrides, ConfigError, LoadOptions};
+use neohugo_config::{CliOverrides, Config, ConfigError, LoadOptions};
 use neohugo_layouts::{LayoutStore, TemplateError};
 use neohugo_publish::{
     DiskSink, MemorySink, PublishError, PublishSettings, Publisher, StaticSyncOptions, sync_static,
@@ -50,7 +51,7 @@ use neohugo_publish::{
 };
 use neohugo_render::{JobOrder, Project, RenderError, RenderOptions, Session};
 use neohugo_resources::ResourceError;
-use neohugo_site::{LoadModelOptions, ModelError};
+use neohugo_site::{LoadModelOptions, Model, ModelError};
 use neohugo_vfs::{Vfs, VfsError};
 
 /// Where the outputs go.
@@ -82,6 +83,34 @@ pub struct BuildRequest {
     /// The render pool's thread count (`None`: `RAYON_NUM_THREADS`, else the CPUs). The
     /// output does not depend on it.
     pub threads: Option<usize>,
+    /// A configuration the caller loaded, used instead of loading one from `source`,
+    /// `config_files`, `cli`, `destination` and the process environment (`neohugo-rs server`
+    /// loads it once per configuration change and points the base URLs at itself).
+    pub config: Option<Arc<Config>>,
+    /// `neohugo-rs server`: put the LiveReload script into the HTML pages (not into `build`'s
+    /// output).
+    pub live_reload: Option<LiveReload>,
+}
+
+/// The LiveReload script of `neohugo-rs server` (T71): every HTML page except alias
+/// redirects loads `livereload.js` from its language's base URL, which the script also
+/// connects to (Hugo's `livereloadinject`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct LiveReload {
+    /// The port the script connects to instead of the base URL's (`--liveReloadPort`, e.g.
+    /// 443 behind an HTTPS proxy).
+    pub port: Option<u16>,
+}
+
+impl LiveReload {
+    /// The URL the script of a language with base URL `base` uses.
+    #[must_use]
+    pub fn url(self, base: &BaseUrl) -> UrlRef {
+        match self.port {
+            Some(port) => base.with_port(port).url().clone(),
+            None => base.url().clone(),
+        }
+    }
 }
 
 /// Why a build failed.
@@ -138,6 +167,9 @@ pub struct BuildReport {
     pub timings: Vec<(&'static str, Duration)>,
     /// The files of a [`SinkKind::Memory`] build (static files included).
     pub memory: Option<Arc<MemorySink>>,
+    /// The site model that was rendered (pages, their content files and links), for callers
+    /// that map files to pages (`neohugo-rs server --navigateToChanged`).
+    pub model: Option<Arc<Model>>,
 }
 
 /// The process environment the configuration reads: `HUGO_*` overrides, and `HOME`,
@@ -218,16 +250,21 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     let mut laps = Laps(Instant::now());
 
     // A1–B6.
-    let mut cli = r.cli;
-    if let Some(d) = &r.destination {
-        cli.destination = Some(d.clone());
-    }
-    let cfg = Arc::new(neohugo_config::load(&LoadOptions {
-        source: r.source.clone(),
-        config_files: r.config_files,
-        cli,
-        env: process_env(),
-    })?);
+    let cfg = match r.config {
+        Some(cfg) => cfg,
+        None => {
+            let mut cli = r.cli;
+            if let Some(d) = &r.destination {
+                cli.destination = Some(d.clone());
+            }
+            Arc::new(neohugo_config::load(&LoadOptions {
+                source: r.source.clone(),
+                config_files: r.config_files,
+                cli,
+                env: process_env(),
+            })?)
+        }
+    };
     let vfs = Arc::new(Vfs::new(&cfg)?);
     let clock = r.clock.map_or_else(Clock::system, Clock);
     let pool = RenderPool::new(r.threads)?;
@@ -284,8 +321,14 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
             Arc::new(DiskSink::new(root))
         }
     };
+    let mut settings = PublishSettings::from_config(&cfg)?;
+    if let Some(lr) = r.live_reload {
+        for (links, site) in settings.sites.iter_mut().zip(&cfg.sites) {
+            links.livereload = Some(lr.url(&site.base_url));
+        }
+    }
     let publisher = Publisher::new(
-        PublishSettings::from_config(&cfg)?,
+        settings,
         Arc::clone(&sink),
         Arc::clone(session.diagnostics()),
     );
@@ -340,5 +383,6 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     }
     report.diagnostics = diagnostics;
     report.memory = memory;
+    report.model = Some(Arc::clone(session.model()));
     Ok(report)
 }

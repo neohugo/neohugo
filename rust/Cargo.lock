@@ -2645,6 +2645,7 @@ dependencies = [
  "neohugo-publish",
  "neohugo-render",
  "neohugo-resources",
+ "neohugo-serve",
  "neohugo-site",
  "neohugo-testkit",
  "neohugo-vfs",
@@ -3014,13 +3015,22 @@ name = "neohugo-serve"
 version = "0.149.0-DEV"
 dependencies = [
  "axum",
+ "mime_guess",
  "neohugo-base",
  "neohugo-build",
+ "neohugo-config",
+ "neohugo-publish",
+ "neohugo-site",
+ "neohugo-testkit",
+ "neohugo-vfs",
  "neohugo-workspace-hack",
  "notify",
  "notify-debouncer-full",
+ "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
+ "tungstenite",
 ]
 
 [[package]]

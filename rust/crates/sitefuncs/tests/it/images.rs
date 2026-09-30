@@ -1,4 +1,7 @@
-//! Image operations are queued: names and sizes are known at once.
+//! Image operations are queued: names and sizes are known at once; QR codes.
+
+use neohugo_base::ResourceId;
+use neohugo_testkit::fixture::rust_dir;
 
 use crate::support;
 
@@ -86,4 +89,146 @@ fn image_filter_with_overlays_and_exif() {
         .try_render("{{ get_asset(path=\"img/logo.png\") | image_colors }}", &s)
         .expect_err("not implemented");
     assert!(e.to_string().contains("not implemented"), "{e}");
+}
+
+/// The store resource of a rendered `{{ x.__rid }}`.
+fn rid(out: &str) -> ResourceId {
+    ResourceId::from_raw(out.trim().parse().expect("resource id"))
+}
+
+const LOGO: &str = r#"get_asset(path="img/logo.png")"#;
+const FONT: &str = r#"get_asset(path="fonts/mulish.ttf")"#;
+
+#[test]
+fn text_and_dither_filters() {
+    let mulish = rust_dir().join("../docs/assets/opengraph/mulish-black.ttf");
+    let site = support::load_copying(&[], &[("assets/fonts/mulish.ttf", &mulish)]);
+    let s = site.home_scope();
+    let r = |src: &str| site.render(src, &s);
+    // Text with a font resource (any key case, Tera's `line_spacing`), then dithering.
+    let text =
+        format!(r#"{{"op": "text", "text": "Hi", "size": 20, "line_spacing": 4, "Font": {FONT}}}"#);
+    let out = r(&format!(
+        r#"{{% set i = {LOGO} | image_filter(filters=[{text}, {{"op": "dither", "method": "FloydSteinberg"}}]) %}}{{{{ i.width }}}}x{{{{ i.height }}}}|{{{{ i.rel_permalink }}}}|{{{{ i.__rid }}}}"#
+    ));
+    let parts: Vec<&str> = out.split('|').collect();
+    assert_eq!(parts[0], "128x128", "{out}");
+    assert!(
+        parts[1].starts_with("/sub/img/logo_hu_") && parts[1].ends_with(".png"),
+        "{out}"
+    );
+    let png = site.store.content(rid(parts[2])).expect("processed");
+    let (size, _) = neohugo_images::probe(&png, "result").expect("png");
+    assert_eq!(size, (128, 128));
+    // The default font with the same options: another image.
+    let default_font = r(&format!(
+        r#"{{% set i = {LOGO} | image_filter(filters=[{{"op": "text", "text": "Hi", "size": 20, "line_spacing": 4}}, {{"op": "dither"}}]) %}}{{{{ i.rel_permalink }}}}"#
+    ));
+    assert_ne!(default_font, parts[1]);
+    // The same filters again (keys in another order): the same resource.
+    let again = r(&format!(
+        r#"{{% set i = {LOGO} | image_filter(filters=[{{"text": "Hi", "op": "text", "size": 20, "font": {FONT}, "line_spacing": 4}}, {{"op": "dither"}}]) %}}{{{{ i.rel_permalink }}}}"#
+    ));
+    assert_eq!(again, parts[1]);
+
+    for (bad, why) in [
+        (
+            r#"{"op": "text", "text": "x", "font": "fonts/mulish.ttf"}"#,
+            "must be a resource",
+        ),
+        (
+            r#"{"op": "text", "text": "x", "font": get_asset(path="css/a.css")}"#,
+            "not a usable font",
+        ),
+        (
+            r#"{"op": "text", "text": "x", "alignx": "middle"}"#,
+            "alignment",
+        ),
+        (r##"{"op": "dither", "colors": ["#000"]}"##, "two colors"),
+        (r#"{"op": "dither", "method": "bayer"}"#, "dithering method"),
+    ] {
+        let e = site
+            .try_render(
+                &format!("{{{{ {LOGO} | image_filter(filters=[{bad}]) }}}}"),
+                &s,
+            )
+            .expect_err(bad);
+        assert!(e.to_string().contains(why), "{bad}: {e}");
+    }
+}
+
+/// `images.QR` names from Hugo's `TestQR` and `TestQRShortcode` (the site's base path is
+/// `/sub`), and Hugo's bytes.
+#[test]
+fn qr_codes_have_hugo_s_names_and_bytes() {
+    let site = support::load();
+    let s = site.home_scope();
+    let r = |src: &str| site.render(src, &s);
+    let url = "https://gohugo.io";
+    for (args, path) in [
+        ("", "/sub/qr_924bf7d80a564b23.png"),
+        (r#", level="medium""#, "/sub/qr_924bf7d80a564b23.png"),
+        (
+            r#", level="medium", scale=4"#,
+            "/sub/qr_924bf7d80a564b23.png",
+        ),
+        (r#", level="low", scale=2"#, "/sub/qr_9bf1ce25c5f2c058.png"),
+        (
+            r#", level="medium", scale=3"#,
+            "/sub/qr_7af14b329dd10af7.png",
+        ),
+        (
+            r#", level="quartile", scale=5"#,
+            "/sub/qr_9600ecb2010c2185.png",
+        ),
+        (r#", level="high", scale=6"#, "/sub/qr_bdc74ee7f5c11cc6.png"),
+        (
+            r#", level="high", scale=6, target_dir="foo/bar""#,
+            "/sub/foo/bar/qr_14162f02f2b83fff.png",
+        ),
+        // Hugo decodes the options weakly: a numeric string is a scale too.
+        (
+            r#", level="low", scale="2""#,
+            "/sub/qr_9bf1ce25c5f2c058.png",
+        ),
+    ] {
+        let out = r(&format!(
+            r#"{{% set q = qr_code(text="{url}"{args}) %}}{{{{ q.rel_permalink }}}}"#
+        ));
+        assert_eq!(out, path, "{args}");
+    }
+    let out = r(&format!(
+        r#"{{% set q = qr_code(text="{url}", level="high", scale=4, target_dir="codes") %}}{{{{ q.rel_permalink }}}} {{{{ q.width }}}}x{{{{ q.height }}}} {{{{ q.media_type.type }}}} {{{{ q.__rid }}}}"#
+    ));
+    let parts: Vec<&str> = out.split(' ').collect();
+    assert_eq!(
+        parts[..3],
+        ["/sub/codes/qr_be5d263c2671bcbd.png", "148x148", "image/png"]
+    );
+    let png = site.store.content(rid(parts[3])).expect("qr");
+    assert_eq!(
+        &*png,
+        &neohugo_images::qr_png(url, neohugo_images::QrLevel::High, 4).expect("qr")[..]
+    );
+    // One resource per name.
+    assert_eq!(
+        r(&format!(
+            r#"{{% set a = qr_code(text="{url}") %}}{{% set b = qr_code(text="{url}", level="MEDIUM") %}}{{{{ a.__rid == b.__rid }}}}"#
+        )),
+        "true"
+    );
+    for (bad, why) in [
+        (r#"qr_code(text="")"#, "empty"),
+        (
+            r#"qr_code(text="x", level="huge")"#,
+            "low, medium, quartile or high",
+        ),
+        (r#"qr_code(text="x", scale=1)"#, "at least 2"),
+        (r#"qr_code(text="x", scale="big")"#, "at least 2"),
+    ] {
+        let e = site
+            .try_render(&format!("{{{{ {bad} }}}}"), &s)
+            .expect_err(bad);
+        assert!(e.to_string().contains(why), "{bad}: {e}");
+    }
 }

@@ -528,10 +528,10 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Images, "fit", ".Fit", "Downscales to fit `width`×`height`.").args(IMAGE_ARGS).site(),
     filter(G::Images, "crop", ".Crop", "Crops to `width`×`height` at `anchor`.").args(IMAGE_ARGS).site(),
     filter(G::Images, "process", ".Process", "Any of the above per `spec` (or the typed kwargs).").args(IMAGE_ARGS).site(),
-    filter(G::Images, "image_filter", "images.Filter, .Filter", "Applies `filters`, a list of `{\"op\": …}` maps (overlay, grayscale, …).").args(&[req("filters", A::Array)]).site(),
+    filter(G::Images, "image_filter", "images.Filter, .Filter, images.Text, images.Dither", "Applies `filters`, a list of `{\"op\": …}` maps, one per Hugo `images.*` filter: `brightness`, `color_balance`, `colorize`, `contrast`, `gamma`, `gaussian_blur`, `grayscale`, `hue`, `invert`, `saturation`, `sepia`, `sigmoid`, `unsharp_mask`, `pixelate`, `opacity`, `padding`, `overlay` and `mask` (`image`: a resource), `auto_orient`, `text` (`text`, `color`, `size`, `x`, `y`, `alignx`, `aligny`, `linespacing`, `font`: a font resource), `dither` (`colors`, `method`, `serpentine`, `strength`), `process` (`spec`). E.g. `img | image_filter(filters=[{\"op\": \"text\", \"text\": page.title, \"size\": 40}, {\"op\": \"dither\"}])`.").args(&[req("filters", A::Array)]).site(),
     filter(G::Images, "exif", ".Exif", "EXIF data of an image, or none.").site(),
     filter(G::Images, "image_colors", ".Colors", "Dominant colours as hex strings.").site(),
-    func(G::Images, "qr_code", "images.QR", "A QR code image of `text` (COULD).")
+    func(G::Images, "qr_code", "images.QR", "A PNG image resource of the QR code of `text`, with Hugo's bytes and name (`<target_dir>/qr_<hash>.png`): `level` low, medium (default), quartile or high; `scale` pixels per module (at least 2, default 4). E.g. `qr_code(text=page.permalink, target_dir=\"images/qr\")`.")
         .args(&[req("text", A::String), opt("level", A::String), opt("scale", A::Int), opt("target_dir", A::String)]).site(),
     // ── templates ──
     func(G::Templates, "super", "", "The parent block's content (inside `{% block %}` only).").builtin(),

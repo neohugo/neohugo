@@ -36,6 +36,7 @@ neohugo-layouts.workspace = true
 neohugo-funcs.workspace = true
 neohugo-render.workspace = true
 neohugo-build.workspace = true
+neohugo-serve.workspace = true
 tera.workspace = true
 clap.workspace = true
 anyhow.workspace = true

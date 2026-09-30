@@ -5,5 +5,7 @@ mod exif;
 mod filters;
 mod process;
 mod psnr;
+mod qr;
 mod queue;
 mod spec;
+mod text_dither;

@@ -27,6 +27,7 @@
 
 #![forbid(unsafe_code)]
 
+mod gohash;
 pub mod meta;
 pub mod pipes;
 mod publish;
@@ -37,6 +38,6 @@ pub use pipes::{PipeError, PostProcessId, PpField, TemplateExecutor, Transform, 
 pub use publish::PublishStats;
 pub use remote::{RemoteConfig, RemoteError, RemoteOptions, cache_key, hugo_keys};
 pub use store::{
-    Body, BundleResource, CallSite, HashAlgo, LangTarget, Origin, PublishPolicy, Resource,
-    ResourceError, ResourceKind, ResourceStore, StoreConfig,
+    Body, BundleResource, CallSite, HashAlgo, LangTarget, Origin, PublishPolicy, QrOptions,
+    Resource, ResourceError, ResourceKind, ResourceStore, StoreConfig, qr_target,
 };

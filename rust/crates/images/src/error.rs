@@ -5,6 +5,7 @@ use std::path::PathBuf;
 
 use neohugo_base::ImageOpId;
 
+use crate::font::FontId;
 use crate::format::ImageFormat;
 
 /// Why an image could not be described, planned, processed or published.
@@ -43,6 +44,15 @@ pub enum ImageError {
     /// The EXIF data of a source could not be read.
     #[error("{what}: cannot read EXIF data: {reason}")]
     Exif { what: String, reason: String },
+    /// Bytes that are not a TrueType or OpenType font the text filter can use.
+    #[error("{what}: not a usable font: {reason}")]
+    Font { what: String, reason: String },
+    /// A font id this queue never registered.
+    #[error("unknown font {0}")]
+    UnknownFont(FontId),
+    /// A QR code that cannot be made.
+    #[error("QR code: {0}")]
+    Qr(String),
 }
 
 impl ImageError {

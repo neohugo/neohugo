@@ -21,10 +21,21 @@ workspace = true
 [dependencies]
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
+neohugo-config.workspace = true
+neohugo-vfs.workspace = true
+neohugo-site.workspace = true
+neohugo-publish.workspace = true
 neohugo-build.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
 axum.workspace = true
 tokio.workspace = true
 notify.workspace = true
 notify-debouncer-full.workspace = true
+mime_guess.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+tempfile.workspace = true
+# The LiveReload client of the tests (blocking; already locked through axum's `ws`).
+tungstenite.workspace = true

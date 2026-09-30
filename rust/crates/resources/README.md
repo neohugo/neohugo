@@ -16,6 +16,7 @@ asset, remote and named-target resources, front matter `resources` metadata and 
 | `get_asset(lang, path)`, `find_assets(lang, glob)`, `find_asset` | `resources.Get` / `Match` / `GetMatch` over the assets view. Assets are one resource per path (per language on multihost sites). |
 | `register_bundle(&BundleResource)` | A page bundle file (`lang`, `file`, `name` relative to the bundle, link `dir`, `policy`); one resource per target. |
 | `from_string`, `from_template_output`, `concat`, `copy` (target, …, `&CallSite`) | Resources that name a target path. `CallSite { lang, position }`. `template_outputs()` (T36): the ids `from_template_output` made, whose text the build scans for URL tokens. |
+| `qr_code(text, &QrOptions, &CallSite)`, `QrOptions`, `qr_target` | `images.QR` (T72a): the PNG of `neohugo_images::qr_png` (Hugo's bytes) as a named target at Hugo's path, `<targetDir>/qr_<hex>.png` with the hex of `hashing.HashStringHex(text, {Level, Scale, TargetDir})` (`gohash`, checked against Hugo's `TestQR`); `QrOptions` defaults to medium, 4, no directory. |
 | `transform(id, Transform)` | A pipe (see [Pipes](#pipes-t42)); memoized per `(id, transform)`. `fingerprint` (md5, sha256, sha384, sha512; `HashAlgo::from_str`, `""` = sha256): `.<hex>` before the extension, `Data.Integrity` = SRI. |
 | `realize(id)` | Computes a pending transform result (its record is replaced; the id stays). |
 | `post_process(id) -> PostProcessId`, `post_processes()` (T36: every id so far), `PostProcessId::placeholder(PpField)`, `resolve_post_process(text)`, `pipes::has_placeholder` | `resources.PostProcess`: `__nh_pp_<n>_<field>__` placeholders (content, rel_permalink, permalink, integrity, media_type), filled in E5. |
@@ -81,7 +82,10 @@ typed and decoded from the template's map with `from_json` (keys case-insensitiv
   the same language it is `ResourceError::TargetConflict { target, first, second }` naming
   both call sites; in another language the earlier language's resource is returned (language
   sub-waves render in order). On multihost sites every language has its own target, so nothing
-  is shared.
+  is shared. QR codes are named targets whose name hashes every input, so equal calls share one
+  resource.
+- `gohash`: Hugo's `hashing.HashString` (gohugoio/hashstructure v0.5.0 with xxHash64) for the
+  names that must equal Go's: getresource cache entries and QR codes.
 
 ## Publishing
 
@@ -152,6 +156,7 @@ Listed with their reasons in `expected_diffs.toml` (the tests read it):
 | `fingerprint` | `oracle/resources/transform` (fingerprint chains, SRI, copy) | 144 equal to Go, 28 sha1 errors, 52 copy conflicts |
 | `remote` | `oracle/resource-transformers/getremote` (key vectors, 48 calls from the Hugo cache, 51 YouTube entries) | 48 + 48 + 51 |
 | `identity`, `publish` | — | named targets, concat, metadata, `inject_generated`, image seam, multihost, token forms |
+| `identity::qr_codes`, `gohash` unit test | Hugo's `TestQR` (8 option maps: file names; bytes via `neohugo-images`) | names, bytes, sizes, identity, publishing, multihost |
 | `pipes::tocss` | `oracle/resource-transformers/tocss` (LibSass on t16site) + the reconstruction's SCSS | 31: 16 equal (normalised), 15 accepted; reconstruction compiled, slash division checked |
 | `pipes::postcss` | `oracle/resource-transformers/postcss` | 13 of 15 with a fake postcss (node; contents normalised, the config's comment exact); all 15 with `NEOHUGO_POSTCSS_BIN` |
 | `pipes::jsbuild` | `oracle/resource-transformers/jsbuild` (t16site, docs) | 62 + 6: 51 scripts byte-identical, 17 errors at Go's positions, published files |

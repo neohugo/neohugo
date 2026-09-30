@@ -1,5 +1,5 @@
 //! Image filters (`images.Filter` and friends), deserialized from template maps such as
-//! `{"op": "overlay", "image": logo, "x": 10, "y": 10}`.
+//! `{"op": "overlay", "image": logo, "x": 10, "y": 10}` or `{"op": "text", "text": "Hi"}`.
 
 use std::path::PathBuf;
 
@@ -7,8 +7,10 @@ use neohugo_base::ImageOpId;
 use serde::{Deserialize, Serialize};
 
 use crate::color::Color;
+use crate::dither::DitherSpec;
 use crate::error::ImageError;
 use crate::spec::ImageSpec;
+use crate::text::TextSpec;
 
 /// An image a filter or an operation reads: a source file, or the result of a queued
 /// operation. In template maps a string is a file path and an integer an operation id.
@@ -101,6 +103,11 @@ pub enum ImageFilter {
     },
     /// Applies the EXIF orientation of the source.
     AutoOrient,
+    /// Draws text (`images.Text`), wrapped and aligned as Hugo does.
+    Text(TextSpec),
+    /// Reduces the image to a palette by error diffusion or ordered dithering
+    /// (`images.Dither`).
+    Dither(DitherSpec),
     /// A processing spec inside a filter chain; the last `Process` also decides the target
     /// format, quality, hint and background.
     Process {
@@ -132,6 +139,8 @@ impl ImageFilter {
             Self::Overlay { .. } => "overlay",
             Self::Mask { .. } => "mask",
             Self::AutoOrient => "auto_orient",
+            Self::Text(_) => "text",
+            Self::Dither(_) => "dither",
             Self::Process { .. } => "process",
         }
     }

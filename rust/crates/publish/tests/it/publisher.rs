@@ -58,6 +58,7 @@ fn output(s: &Site, path: &str, format_name: &str, text: &str) -> Output {
         text: text.to_owned(),
         format: format(s, format_name),
         lang: LangIdx::from_index(0),
+        alias: false,
     }
 }
 
@@ -122,6 +123,48 @@ fn relative_urls() {
     assert!(html.contains(r#"href="../../about/""#), "{html}");
     // Tokens of relative URLs resolve against the output's directory.
     assert!(p.url_tokens().contains("/css/a.css"));
+}
+
+/// `serve`: each language's HTML pages get the script of its own LiveReload URL; aliases,
+/// non-HTML formats and languages without a URL get none (Hugo's publisher).
+#[test]
+fn livereload_script_per_language() {
+    let s = site(concat!(
+        "baseURL = 'https://example.org/'\n",
+        "[languages.en]\nweight = 1\n[languages.nn]\nweight = 2\n",
+    ));
+    let mut settings = PublishSettings::from_config(&s.cfg).unwrap();
+    assert!(settings.sites.iter().all(|l| l.livereload.is_none()));
+    let url = neohugo_base::url::UrlRef::parse("http://localhost:1313/docs/").unwrap();
+    settings.sites.iter_mut().next().unwrap().livereload = Some(url);
+    let sink = Arc::new(MemorySink::new());
+    let diags = Arc::new(Diagnostics::new(Vec::<String>::new()));
+    let p = Publisher::new(settings, Arc::clone(&sink) as Arc<dyn Sink>, diags);
+    let page = "<!doctype html><html><head><title>t</title></head></html>";
+    p.emit(output(&s, "/index.html", "html", page)).unwrap();
+    p.emit(Output {
+        alias: true,
+        ..output(&s, "/old/index.html", "html", page)
+    })
+    .unwrap();
+    p.emit(output(&s, "/index.xml", "rss", "<rss></rss>"))
+        .unwrap();
+    p.emit(Output {
+        lang: LangIdx::from_index(1),
+        ..output(&s, "/nn/index.html", "html", page)
+    })
+    .unwrap();
+    let script = concat!(
+        r#"<script src="/docs/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;"#,
+        r#"path=docs/livereload" data-no-instant defer></script>"#
+    );
+    assert_eq!(
+        sink.text("/index.html").unwrap(),
+        format!("<!doctype html><html><head>{script}<title>t</title></head></html>")
+    );
+    assert_eq!(sink.text("/old/index.html").unwrap(), page);
+    assert_eq!(sink.text("/index.xml").unwrap(), "<rss></rss>");
+    assert_eq!(sink.text("/nn/index.html").unwrap(), page);
 }
 
 #[test]

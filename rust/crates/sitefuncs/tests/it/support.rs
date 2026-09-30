@@ -246,11 +246,21 @@ pub fn load() -> Site {
 
 /// The site of [`FILES`] plus `extra` files.
 pub fn load_with(extra: &[(&str, &str)]) -> Site {
+    load_copying(extra, &[])
+}
+
+/// The site of [`FILES`] plus `extra` files and copies of files (`(site path, source)`).
+pub fn load_copying(extra: &[(&str, &str)], copies: &[(&str, &Path)]) -> Site {
     let dir = tempfile::tempdir().expect("tempdir");
     for (rel, text) in FILES.iter().chain(extra) {
         let path = dir.path().join(rel);
         fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
         fs::write(path, text).expect("write");
+    }
+    for (rel, from) in copies {
+        let path = dir.path().join(rel);
+        fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
+        fs::copy(from, path).expect("copy");
     }
     let png = neohugo_testkit::fixture::testdata(
         "site-assets/golden/mstile-70x70_hu_80634bc5fec9785.png",

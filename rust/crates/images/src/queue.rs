@@ -21,11 +21,13 @@ use crate::codec;
 use crate::error::ImageError;
 use crate::exif;
 use crate::filter::{ImageFilter, ImageInput};
+use crate::font::{FontData, FontId};
 use crate::format::ImageFormat;
 use crate::pixels;
 use crate::plan::{InputInfo, InputRef, Plan};
 use crate::settings::Imaging;
 use crate::spec::ImageSpec;
+use crate::text::FontInput;
 
 /// The result of [`ImageQueue::enqueue`]: known before any pixel is processed.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -124,6 +126,9 @@ pub struct ImageQueue {
     ops: Mutex<BTreeMap<ImageOpId, Arc<Op>>>,
     sources: Mutex<BTreeMap<PathBuf, Arc<SourceMeta>>>,
     results: Mutex<BTreeMap<u64, SharedResult>>,
+    /// Fonts of text filters, by content.
+    fonts: Mutex<BTreeMap<FontId, FontData>>,
+    font_files: Mutex<BTreeMap<PathBuf, FontId>>,
 }
 
 fn stem_of(name: &str) -> &str {
@@ -142,6 +147,8 @@ impl ImageQueue {
             ops: Mutex::new(BTreeMap::new()),
             sources: Mutex::new(BTreeMap::new()),
             results: Mutex::new(BTreeMap::new()),
+            fonts: Mutex::new(BTreeMap::new()),
+            font_files: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -198,6 +205,71 @@ impl ImageQueue {
         Ok(meta)
     }
 
+    /// Registers the bytes of a TrueType or OpenType font for text filters
+    /// ([`FontInput::Registered`]). The id is the bytes' identity: registering the same bytes
+    /// again returns the same id.
+    ///
+    /// # Errors
+    /// Bytes that are not a usable font.
+    pub fn add_font(&self, bytes: impl Into<Arc<[u8]>>) -> Result<FontId, ImageError> {
+        let font = FontData::new(bytes.into());
+        let id = font.id();
+        let known = self
+            .fonts
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .contains_key(&id);
+        if !known {
+            font.validate(&format!("font {id}"))?;
+            self.fonts
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .insert(id, font);
+        }
+        Ok(id)
+    }
+
+    /// The font of a text filter: the default one (Go Regular, as Hugo), a registered one, or
+    /// a font file (read once per path).
+    fn font(&self, input: Option<&FontInput>) -> Result<FontData, ImageError> {
+        let registered = |id: FontId| {
+            self.fonts
+                .lock()
+                .unwrap_or_else(PoisonError::into_inner)
+                .get(&id)
+                .cloned()
+                .ok_or(ImageError::UnknownFont(id))
+        };
+        match input {
+            None => Ok(FontData::go_regular()),
+            Some(FontInput::Registered(id)) => registered(*id),
+            Some(FontInput::File(path)) => {
+                let known = self
+                    .font_files
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .get(path)
+                    .copied();
+                if let Some(id) = known {
+                    return registered(id);
+                }
+                let bytes = fs::read(path).map_err(|e| ImageError::io(path, e))?;
+                let font = FontData::new(bytes.into());
+                font.validate(&path.display().to_string())?;
+                self.fonts
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .entry(font.id())
+                    .or_insert_with(|| font.clone());
+                self.font_files
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .insert(path.clone(), font.id());
+                Ok(font)
+            }
+        }
+    }
+
     fn input_ref(&self, input: &ImageInput) -> Result<InputRef, ImageError> {
         let identity = match input {
             ImageInput::File(p) => self.source(p)?.hash,
@@ -214,8 +286,8 @@ impl ImageQueue {
     /// returns the same id.
     ///
     /// # Errors
-    /// An unreadable source or one whose format is unknown, an unknown input operation, or
-    /// an operation whose result would be empty.
+    /// An unreadable source or one whose format is unknown, an unknown input operation or
+    /// font, a font that cannot be used, or an operation whose result would be empty.
     pub fn enqueue(
         &self,
         input: &ImageInput,
@@ -243,9 +315,14 @@ impl ImageQueue {
                 (info, op.digest, op.stem.clone(), op.ext.clone())
             }
         };
-        let plan = Plan::new(&info, spec, filters, &self.imaging, &mut |i| {
-            self.input_ref(i)
-        })?;
+        let plan = Plan::new(
+            &info,
+            spec,
+            filters,
+            &self.imaging,
+            &mut |i| self.input_ref(i),
+            &mut |f| self.font(f),
+        )?;
         let hash = xxh3_64(format!("{identity:016x}|{}", plan.key()).as_bytes());
         let format = plan.encode.format;
         // Keep the source's spelling (`.JPEG`) when it names the result's format.

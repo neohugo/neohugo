@@ -2,8 +2,7 @@
 
 use std::time::Duration;
 
-use neohugo_base::diag::Severity;
-use neohugo_build::{BuildError, BuildReport, BuildRequest, SinkKind};
+use neohugo_build::{BuildReport, BuildRequest, SinkKind};
 
 use crate::Exit;
 use crate::args::BuildArgs;
@@ -27,6 +26,8 @@ pub(crate) fn request(a: &BuildArgs) -> anyhow::Result<BuildRequest> {
         },
         clean_destination: a.output.clean_destination_dir,
         threads: a.threads,
+        config: None,
+        live_reload: None,
     })
 }
 
@@ -36,25 +37,20 @@ pub(crate) fn run(a: &BuildArgs) -> anyhow::Result<Exit> {
             report::diagnostics(&r.diagnostics);
             if !a.quiet {
                 print_summary(&r);
+                let total: Duration = r.timings.iter().map(|(_, d)| *d).sum();
+                println!("Total in {} ms", total.as_millis());
             }
             Ok(Exit::Success)
         }
-        Err(BuildError::Diagnostics(ds)) => {
-            report::diagnostics(&ds);
-            let errors = ds.iter().filter(|d| d.severity == Severity::Error).count();
-            eprintln!("ERROR build failed: {errors} error(s)");
-            Ok(Exit::Failure)
-        }
-        // The error's message carries its position and Tera's snippet.
         Err(e) => {
-            eprintln!("ERROR build failed: {e}");
+            report::build_failed(&e);
             Ok(Exit::Failure)
         }
     }
 }
 
-fn print_summary(r: &BuildReport) {
-    let total: Duration = r.timings.iter().map(|(_, d)| *d).sum();
+/// What a build produced (`build`, and `server`'s first build).
+pub(crate) fn print_summary(r: &BuildReport) {
     println!(
         "pages {} | files {} (aliases {}) | resources {} | processed images {} | static files {}",
         r.pages, r.outputs, r.aliases, r.resources, r.images, r.static_files
@@ -62,5 +58,4 @@ fn print_summary(r: &BuildReport) {
     if !r.collisions.is_empty() {
         println!("target collisions {}", r.collisions.len());
     }
-    println!("Total in {} ms", total.as_millis());
 }

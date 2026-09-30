@@ -10,11 +10,11 @@ use neohugo_base::diag::Position;
 use neohugo_base::url::BaseUrl;
 use neohugo_base::{Idx, LangIdx, Value};
 use neohugo_config::MediaTypes;
-use neohugo_images::{ImageQueue, ImageSpec, Imaging};
+use neohugo_images::{ImageQueue, ImageSpec, Imaging, QrLevel};
 use neohugo_resources::meta::ResourceMeta;
 use neohugo_resources::{
-    Body, CallSite, HashAlgo, LangTarget, PublishPolicy, RemoteConfig, ResourceError, ResourceKind,
-    ResourceStore, StoreConfig, Transform,
+    Body, CallSite, HashAlgo, LangTarget, PublishPolicy, QrOptions, RemoteConfig, ResourceError,
+    ResourceKind, ResourceStore, StoreConfig, Transform, qr_target,
 };
 use neohugo_vfs::Vfs;
 
@@ -60,6 +60,81 @@ fn bare(multihost: bool) -> ResourceStore {
         remote: RemoteConfig::default(),
         transforms: Arc::default(),
     })
+}
+
+/// `images.QR`: Hugo's names (`TestQR`), Hugo's bytes, one resource per name, published when
+/// referenced, per-language targets on multihost sites.
+#[test]
+fn qr_codes() {
+    let s = bare(false);
+    let url = "https://gohugo.io";
+    let opts = QrOptions::default();
+    let a = s.qr_code(url, &opts, &at(0, "layouts/a.html", 1)).unwrap();
+    let r = s.resource(a);
+    assert_eq!(r.rel_permalink, "/sub/qr_924bf7d80a564b23.png");
+    assert_eq!(r.target.as_str(), "/qr_924bf7d80a564b23.png");
+    assert_eq!(r.media_type_string(), "image/png");
+    assert_eq!(r.kind, ResourceKind::Image);
+    assert_eq!(r.policy, PublishPolicy::OnReference);
+    assert_eq!(s.image_size(&r), Some((132, 132)));
+    let png = neohugo_images::qr_png(url, QrLevel::Medium, 4).unwrap();
+    assert_eq!(&*s.content(a).unwrap(), &png[..]);
+    // Another call site or language: the same resource.
+    assert_eq!(
+        s.qr_code(url, &opts, &at(1, "layouts/b.html", 9)).unwrap(),
+        a
+    );
+    let options = |level, scale, dir: &str| QrOptions {
+        level,
+        scale,
+        target_dir: dir.to_owned(),
+    };
+    for (o, want) in [
+        (options(QrLevel::Low, 2, ""), "/sub/qr_9bf1ce25c5f2c058.png"),
+        (
+            options(QrLevel::High, 6, ""),
+            "/sub/qr_bdc74ee7f5c11cc6.png",
+        ),
+        (
+            options(QrLevel::High, 6, "foo/bar"),
+            "/sub/foo/bar/qr_14162f02f2b83fff.png",
+        ),
+    ] {
+        let id = s.qr_code(url, &o, &at(0, "x", 1)).unwrap();
+        assert_eq!(s.resource(id).rel_permalink, want, "{o:?}");
+        assert_eq!(qr_target(url, &o), want.trim_start_matches("/sub"));
+    }
+    // Go hashes the directory as written, then cleans the path.
+    let slashed = qr_target(url, &options(QrLevel::High, 6, "/foo/bar/"));
+    assert!(slashed.starts_with("/foo/bar/qr_"), "{slashed}");
+    assert_ne!(slashed, "/foo/bar/qr_14162f02f2b83fff.png");
+    assert!(matches!(
+        s.qr_code("", &opts, &at(0, "x", 1)),
+        Err(ResourceError::Image(_))
+    ));
+    assert!(
+        s.qr_code(url, &options(QrLevel::Low, 1, ""), &at(0, "x", 1))
+            .is_err()
+    );
+
+    // Published once referenced.
+    let sink = MemSink::default();
+    s.publish(["/sub/qr_924bf7d80a564b23.png"], &sink).unwrap();
+    assert_eq!(
+        sink.0.lock().unwrap().get("qr_924bf7d80a564b23.png"),
+        Some(&png)
+    );
+
+    // Multihost: one image per language, under each language's prefix.
+    let m = bare(true);
+    let en = m.resource(m.qr_code(url, &opts, &at(0, "x", 1)).unwrap());
+    let fr = m.resource(m.qr_code(url, &opts, &at(1, "x", 1)).unwrap());
+    assert_eq!(en.target.as_str(), "/en/qr_924bf7d80a564b23.png");
+    assert_eq!(fr.target.as_str(), "/fr/qr_924bf7d80a564b23.png");
+    assert_eq!(
+        fr.permalink.as_str(),
+        "https://fr.example.org/qr_924bf7d80a564b23.png"
+    );
 }
 
 #[test]

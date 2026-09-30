@@ -107,7 +107,7 @@ pub(crate) fn view_value(store: &ResourceStore, id: ResourceId) -> Value {
     Value::from_serializable(&resource_view(store, id))
 }
 
-fn call_site(views: &ViewCache, st: &State) -> TeraResult<CallSite> {
+pub(crate) fn call_site(views: &ViewCache, st: &State) -> TeraResult<CallSite> {
     Ok(CallSite::in_lang(render_lang(views.model(), st)?))
 }
 

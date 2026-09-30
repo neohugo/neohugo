@@ -29,8 +29,8 @@ use neohugo_base::{LangIdx, Map, Params, ResourceId, Value, text};
 use neohugo_config::global::{MaxAge, SecurityPolicy, Whitelist};
 use neohugo_config::{Config, MediaType, MediaTypes};
 use xxhash_rust::xxh3::xxh3_128;
-use xxhash_rust::xxh64::xxh64;
 
+use crate::gohash;
 use crate::store::{Body, NewResource, Origin, PublishPolicy, ResourceStore, lock};
 
 /// `[caches.getresource]` and `[security.http]` as the store uses them.
@@ -260,41 +260,8 @@ pub fn cache_key(url: &str, o: &RemoteOptions) -> String {
 
 // ── Hugo's cache names ───────────────────────────────────────────────────────────────────────
 //
-// Hugo names a getresource entry by the decimal xxHash64 structure hash (gohugoio/hashstructure
-// with Hugo's options) of `[url, options]`, or of the `key` option. Only the value kinds a
-// template can pass are covered: strings, integers, floats, booleans, nil, lists and maps.
-
-fn xh(b: &[u8]) -> u64 {
-    xxh64(b, 0)
-}
-
-fn ordered(a: u64, b: u64) -> u64 {
-    let mut buf = [0u8; 16];
-    buf[..8].copy_from_slice(&a.to_le_bytes());
-    buf[8..].copy_from_slice(&b.to_le_bytes());
-    xh(&buf)
-}
-
-fn hash_map(m: Option<&Map>) -> u64 {
-    let mut h = 0u64;
-    for (k, v) in m.into_iter().flat_map(Map::iter) {
-        h ^= ordered(xh(k.as_bytes()), hash_value(v));
-    }
-    xh(&h.to_le_bytes())
-}
-
-fn hash_value(v: &Value) -> u64 {
-    match v {
-        Value::String(s) => xh(s.as_bytes()),
-        Value::Int(i) => xh(&i.to_le_bytes()),
-        Value::Float(f) => xh(&f.to_bits().to_le_bytes()),
-        Value::Bool(b) => xh(&[u8::from(*b)]),
-        Value::Null => xh(&0i64.to_le_bytes()),
-        Value::Date(d) => xh(d.to_string().as_bytes()),
-        Value::Array(items) => items.iter().fold(0, |h, i| ordered(h, hash_value(i))),
-        Value::Map(m) => hash_map(Some(m)),
-    }
-}
+// Hugo names a getresource entry by the decimal xxHash64 structure hash (`crate::gohash`) of
+// `[url, options]`, or of the `key` option.
 
 /// Hugo's `(user key, options key)` of `GetRemote url options`: the options key hashes the URL
 /// and the option map without `key` (its name ignores case); the user key hashes the `key`
@@ -306,8 +273,8 @@ pub fn hugo_keys(url: &str, options: Option<&Map>) -> (String, String) {
         let name = m.keys().find(|k| k.eq_ignore_ascii_case("key"))?.to_owned();
         m.remove(&name)
     });
-    let options_key = ordered(ordered(0, xh(url.as_bytes())), hash_map(options.as_ref()));
-    let user_key = key_value.as_ref().map_or(options_key, hash_value);
+    let options_key = gohash::list([gohash::string(url), gohash::map(options.as_ref())]);
+    let user_key = key_value.as_ref().map_or(options_key, gohash::value);
     (user_key.to_string(), options_key.to_string())
 }
 

@@ -4,7 +4,8 @@
 //! 1. `canonifyURLs` / `relativeURLs` rewrite (always for RSS, for HTML outputs when
 //!    configured; a held output is rewritten again after [`Publisher::patch_held`] inserted its
 //!    replacements, so post-processed links follow the site's URL style);
-//! 2. the LiveReload script (`serve` only);
+//! 2. the LiveReload script (`serve` only; HTML outputs that are not alias redirects, as in
+//!    Hugo);
 //! 3. `hugo_stats.json` collection (HTML outputs);
 //! 4. URL-token extraction;
 //! 5. an output holding a deferred placeholder (`__nh_defer_<key>__`, `__nh_pp_<id>_<field>__`)
@@ -45,6 +46,9 @@ pub struct Output {
     pub format: FormatId,
     /// The language whose base URL canonifies the output.
     pub lang: LangIdx,
+    /// An alias redirect (front matter alias, `page/1/` alias or language redirect): Hugo
+    /// publishes these without the LiveReload script.
+    pub alias: bool,
 }
 
 /// How one language writes URLs.
@@ -56,6 +60,9 @@ pub struct SiteLinks {
     pub style: LinkStyle,
     /// `relativeURLs`.
     pub output: LinkOutput,
+    /// The LiveReload server whose script goes into this language's HTML pages (`serve`; the
+    /// URL's path and port are used). `None`: no script.
+    pub livereload: Option<UrlRef>,
 }
 
 impl SiteLinks {
@@ -83,8 +90,6 @@ pub struct PublishSettings {
     /// `Some` with `minifyOutput`.
     pub minifier: Option<Minifier>,
     pub build_stats: BuildStats,
-    /// The LiveReload server's URL (`serve`).
-    pub livereload: Option<UrlRef>,
 }
 
 impl PublishSettings {
@@ -99,6 +104,7 @@ impl PublishSettings {
                 base_url: s.base_url.as_str().to_owned(),
                 style: s.urls.link_style,
                 output: s.urls.output,
+                livereload: None,
             });
         }
         let minifier = if cfg.minify.minify_output {
@@ -112,7 +118,6 @@ impl PublishSettings {
             media_types: Arc::clone(&cfg.media_types),
             minifier,
             build_stats: cfg.build.build_stats.clone(),
-            livereload: None,
         })
     }
 }
@@ -140,7 +145,8 @@ struct Held {
 pub struct Publisher {
     sink: Arc<dyn Sink>,
     settings: PublishSettings,
-    livereload_script: Option<String>,
+    /// Per language: the LiveReload `<script>` element, when the language has a server.
+    livereload_scripts: IdVec<LangIdx, Option<String>>,
     stats: StatsCollector,
     tokens: Mutex<UrlTokens>,
     held: Mutex<BTreeMap<OutputPath, Held>>,
@@ -168,9 +174,13 @@ impl Publisher {
         sink: Arc<dyn Sink>,
         diagnostics: Arc<Diagnostics>,
     ) -> Self {
+        let mut livereload_scripts = IdVec::with_capacity(settings.sites.len());
+        for s in &settings.sites {
+            livereload_scripts.push(s.livereload.as_ref().map(livereload::script));
+        }
         Self {
             sink,
-            livereload_script: settings.livereload.as_ref().map(livereload::script),
+            livereload_scripts,
             stats: StatsCollector::new(settings.build_stats.clone()),
             settings,
             tokens: Mutex::new(UrlTokens::new()),
@@ -197,7 +207,10 @@ impl Publisher {
             .ok_or(PublishError::UnknownLanguage(o.lang))?;
 
         let mut text = self.rewrite(o.text, &o.path, o.format, links);
-        if is_html && let Some(script) = &self.livereload_script {
+        if is_html
+            && !o.alias
+            && let Some(Some(script)) = self.livereload_scripts.get(o.lang)
+        {
             text = String::from_utf8(livereload::inject(text.as_bytes(), script))
                 .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned());
         }
