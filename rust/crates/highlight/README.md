@@ -12,7 +12,7 @@ files**. Sites keep their Chroma style sheets (the docs' `chroma.css`), and
 ```rust
 pub struct Highlight;                                     // Send + Sync; build once per build
 impl Highlight {
-    pub fn new(&HighlightConfig) -> Self;                 // [markup.highlight]; loads syntaxes (~0.6 s dev)
+    pub fn new(&HighlightConfig) -> Self;                 // [markup.highlight]; first call loads the syntaxes (~85 ms dev)
     pub fn highlight_with(&self, code, lang, OptionsArg) -> Result<String, HighlightError>; // `highlight` function
     pub fn highlight(&self, code, lang, &Options, attributes: Option<&Map>) -> String;
     pub fn css(&self, style, CssMode) -> Result<String, HighlightError>;  // gen chromastyles
@@ -104,8 +104,10 @@ Per lexer (docs corpus, characters Chroma classifies):
 | Go | 196 | 100.0 | 99.0 | 99.0 |
 | CSV / SCSS / Go Template / react / Terminfo | 178 / 57 / 108 / 141 / 86 | 100 / 98.2 / 100 / 100 / 0 | 98.3 / 98.2 / 100 / 39.7 / 0 | 98.3 / 98.2 / 100 / 36.2 / 0 |
 
-Speed (dev profile, syntect at opt-level 3): `Highlight::new` ≈ 0.6 s (the syntax set is
-rebuilt to add the Go template syntaxes), the 2,284 docs items ≈ 1.9 s.
+Speed (dev profile, syntect at opt-level 3): the first `Highlight::new` of a process ≈ 85 ms
+(`build.rs` links two-face's syntaxes and the Go template syntaxes into one set at compile time
+and the binary loads its dump lazily; linking it at run time took ≈ 0.45 s in release, T70),
+the 2,284 docs items ≈ 1.9 s.
 
 ## Accepted deviations
 
