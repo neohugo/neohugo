@@ -3057,6 +3057,7 @@ dependencies = [
  "flate2",
  "insta",
  "neohugo-base",
+ "neohugo-funcs",
  "neohugo-workspace-hack",
  "pretty_assertions",
  "serde",
