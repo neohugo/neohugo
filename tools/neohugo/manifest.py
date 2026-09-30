@@ -20,8 +20,9 @@ documented in rust/testdata/golden/README.md; in short, per file:
       JSON: the key paths and URL leaves; _redirects/_headers/robots.txt: the line set. URLs are
       percent-decoded and NFC-normalised; internal ones are site paths (`/a/b/`, query and
       fragment kept) with the L1 normalisation applied to the path;
-  L3  HTML: the visible text (sha256, length, words; the text itself with --full-text) and the
-      heading ids; hugo_stats.json: its tag, class and id sets;
+  L3  HTML: the visible text (sha256, length, words; the text itself with --full-text; a tag
+      boundary is a space, except a `span`'s inside `pre`/`code`, so highlighter token spans do
+      not split words) and the heading ids; hugo_stats.json: its tag, class and id sets;
   L4  size and sha256 of every file, `static` for files copied from static/; images: width,
       height and format from the file header; CSS/JS: non-empty and referenced by an HTML page.
 
@@ -157,10 +158,19 @@ class HtmlScan(html.parser.HTMLParser):
         self.ids = []
         self._skip = 0
         self._title = None
+        self._code = 0
+
+    def _boundary(self, tag):
+        # A tag boundary separates words, except a `span` in code: highlighters wrap tokens in
+        # spans that touch (their span structure is an allowed difference, §7.3).
+        if not (tag == "span" and self._code):
+            self.text.append(" ")
 
     def handle_starttag(self, tag, attrs):
         a = {k: (v or "") for k, v in attrs}
-        self.text.append(" ")
+        self._boundary(tag)
+        if tag in ("pre", "code"):
+            self._code += 1
         if tag in ("script", "style"):
             self._skip += 1
         if tag == "title":
@@ -189,9 +199,13 @@ class HtmlScan(html.parser.HTMLParser):
         self.handle_starttag(tag, attrs)
         if tag in ("script", "style"):
             self._skip -= 1
+        if tag in ("pre", "code"):
+            self._code -= 1
 
     def handle_endtag(self, tag):
-        self.text.append(" ")
+        self._boundary(tag)
+        if tag in ("pre", "code") and self._code:
+            self._code -= 1
         if tag in ("script", "style") and self._skip:
             self._skip -= 1
         if tag == "title" and self._title is not None:
