@@ -196,7 +196,7 @@ fastrand = { version = "2", features = ["alloc", "std"] }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
 hashbrown = { version = "0.16", default-features = false, features = ["allocator-api2", "default-hasher", "inline-more"] }
 icu_locale_core = { version = "2", default-features = false, features = ["alloc", "zerovec"] }
-icu_provider = { version = "2", default-features = false, features = ["alloc", "baked"] }
+icu_provider = { version = "2", default-features = false, features = ["alloc", "baked", "sync"] } # sync: Send + Sync ICU formatters (T12)
 itertools = { version = "0.14", features = ["use_alloc", "use_std"] }
 libc = { version = "0.2", features = ["std"] }
 litemap = { version = "0.8", default-features = false, features = ["alloc"] }

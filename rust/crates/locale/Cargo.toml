@@ -1,6 +1,6 @@
 [package]
 name = "neohugo-locale"
-description = "ICU4X collation and plural rules, i18n bundles with the restricted {{ "
+description = "ICU4X collation and plural rules, i18n bundles with the restricted {{ .Field }} message evaluator, number formatting and localized dates"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -10,6 +10,7 @@ autotests = false
 
 [lib]
 doctest = false
+test = false # every test is in tests/it (one binary links the ICU data)
 
 [[test]]
 name = "it"
@@ -21,14 +22,19 @@ workspace = true
 [dependencies]
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
 icu_collator.workspace = true
 icu_plurals.workspace = true
 icu_decimal.workspace = true
-icu_locale.workspace = true
+icu_locale_core.workspace = true
 icu_datetime.workspace = true
 jiff.workspace = true
+writeable.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+serde.workspace = true
 serde_json.workspace = true
 toml.workspace = true
-serde-saphyr.workspace = true
-thiserror.workspace = true
+regex.workspace = true
+pretty_assertions.workspace = true

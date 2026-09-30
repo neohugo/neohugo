@@ -2855,15 +2855,19 @@ dependencies = [
  "icu_collator",
  "icu_datetime",
  "icu_decimal",
- "icu_locale",
+ "icu_locale_core",
  "icu_plurals",
  "jiff",
  "neohugo-base",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
- "serde-saphyr",
+ "pretty_assertions",
+ "regex",
+ "serde",
  "serde_json",
  "thiserror 2.0.21",
  "toml",
+ "writeable",
 ]
 
 [[package]]
