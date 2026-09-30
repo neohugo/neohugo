@@ -2717,10 +2717,11 @@ dependencies = [
 name = "neohugo-base"
 version = "0.149.0-DEV"
 dependencies = [
- "globset",
  "jiff",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
- "percent-encoding",
+ "pretty_assertions",
+ "regex",
  "serde",
  "serde-saphyr",
  "serde_json",
