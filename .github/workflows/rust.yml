@@ -105,6 +105,11 @@ jobs:
       - name: Licence check
         run: tools/neohugo/licence-check.sh
 
+      # structdiff's self-test (§7.2): perturbations of Go's testsite output must be classified
+      # correctly, and the ratchet must reject unlisted differences (no-Go mode in CI).
+      - name: structdiff self-test
+        run: python3 tools/neohugo/selftest.py
+
   test:
     name: Test
     runs-on: ubuntu-24.04
