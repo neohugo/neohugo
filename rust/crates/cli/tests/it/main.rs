@@ -6,6 +6,7 @@ mod check;
 mod cli;
 mod embedded;
 mod parity;
+mod reconstruction;
 mod server;
 
 use std::path::{Path, PathBuf};
