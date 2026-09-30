@@ -178,8 +178,13 @@ impl SiteFilter for SortPages {
     }
 }
 
-/// `group_by_date(format=, attribute=?)`: `[{key, pages}]` by the date (`date` by default;
-/// `publish_date`, `lastmod`, `expiry_date`) formatted with strftime `format`, newest first.
+/// `group_by_date(format=, attribute=?, order=?)`: `[{key, pages}]` by the date (`date` by
+/// default; `publish_date`, `lastmod`, `expiry_date`) formatted with strftime `format`.
+///
+/// As Go's `groupByDateField`: a stable sort by the date's Unix seconds, oldest first, then the
+/// whole list reversed unless `order` is `asc` (or Go's synonyms `rev`, `reverse`), so pages
+/// with the same date come in reverse input order; a page without the date has Go's zero date
+/// (`0001-01-01T00:00:00Z`, key `"0001"` for `"%Y"`).
 struct GroupByDate {
     views: Arc<ViewCache>,
 }
@@ -188,6 +193,12 @@ impl SiteFilter for GroupByDate {
     fn call(&self, v: Value, kw: &Kwargs, _: &State) -> TeraResult<Value> {
         let format = kw.must_get::<&str>("format")?;
         let attribute = kw.get::<&str>("attribute")?.unwrap_or("date");
+        let ascending = kw
+            .get::<&str>("order")?
+            .is_some_and(|o| matches!(o.to_lowercase().as_str(), "asc" | "rev" | "reverse"));
+        let zero = jiff::Timestamp::from_second(ZERO_DATE_SECONDS)
+            .map_err(|e| chain("group_by_date", e))?
+            .to_zoned(jiff::tz::TimeZone::UTC);
         let mut items = pages(&self.views, &v, "group_by_date")?;
         let model = self.views.model();
         let date = |id: PageId| -> TeraResult<Option<&Zoned>> {
@@ -210,14 +221,14 @@ impl SiteFilter for GroupByDate {
         let mut keyed = Vec::with_capacity(items.len());
         for (v, id) in items.drain(..) {
             let d = date(id)?;
-            let key = match d {
-                Some(d) => jiff::fmt::strtime::format(format, d)
-                    .map_err(|e| chain(format!("group_by_date(format=\"{format}\")"), e))?,
-                None => String::new(),
-            };
+            let key = jiff::fmt::strtime::format(format, d.unwrap_or(&zero))
+                .map_err(|e| chain(format!("group_by_date(format=\"{format}\")"), e))?;
             keyed.push((seconds(d), key, v));
         }
-        keyed.sort_by(|a, b| b.0.cmp(&a.0));
+        keyed.sort_by_key(|k| k.0);
+        if !ascending {
+            keyed.reverse();
+        }
         let mut groups: Vec<(String, Vec<Value>)> = Vec::new();
         for (_, key, v) in keyed {
             match groups.last_mut() {
@@ -283,7 +294,53 @@ fn compare_keys(a: &Value, b: &Value, c: &Collator) -> Ordering {
     }
 }
 
-/// `by_count` (most pages first, then name) and `alphabetical` (name) over the terms of a
+/// Go's `compare.Strings` (`ByCount`'s tie-break): code points compared case-insensitively
+/// (Unicode simple folding), then byte order. Unlike a collation, `&` sorts before `.` and
+/// `é` after `z`.
+fn go_compare_strings(s: &str, t: &str) -> Ordering {
+    go_compare_fold(s, t).then_with(|| s.cmp(t))
+}
+
+/// Go's `compare.compareFold`.
+fn go_compare_fold(s: &str, t: &str) -> Ordering {
+    let folds_to = |a: char, b: char| {
+        a.to_lowercase().eq(b.to_lowercase()) || a.to_uppercase().eq(b.to_uppercase())
+    };
+    let (mut si, mut ti) = (s.chars(), t.chars());
+    loop {
+        match (si.next(), ti.next()) {
+            (None, None) => return Ordering::Equal,
+            (None, Some(_)) => return Ordering::Less,
+            (Some(_), None) => return Ordering::Greater,
+            (Some(sr), Some(tr)) if sr == tr => {}
+            (Some(sr), Some(tr)) => {
+                // `lo` is the smaller code point; `c` is the order when `s` holds it.
+                let (lo, hi, c) = if tr < sr {
+                    (tr, sr, Ordering::Greater)
+                } else {
+                    (sr, tr, Ordering::Less)
+                };
+                if hi.is_ascii() && lo.is_ascii_uppercase() {
+                    if hi <= 'Z' {
+                        return c;
+                    }
+                    let folded = lo.to_ascii_lowercase();
+                    if hi == folded {
+                        continue;
+                    }
+                    return if hi < folded { c.reverse() } else { c };
+                }
+                if folds_to(lo, hi) {
+                    continue;
+                }
+                return c;
+            }
+        }
+    }
+}
+
+/// `by_count` (most pages first, then the lower-cased name in Go's string order) and
+/// `alphabetical` (the lower-cased name, collated) over the terms of a
 /// taxonomy (`site.taxonomies.tags`, a map of term entries, or a list of them).
 struct SortTerms {
     views: Arc<ViewCache>,
@@ -310,22 +367,24 @@ impl SiteFilter for SortTerms {
             None => render_lang(self.views.model(), st)?,
         };
         let c = self.collators.get(lang);
+        // Go sorts by the taxonomy's map key, the lower-cased term.
         let name = |t: &Value| {
             field(t, "name")
                 .and_then(Value::as_str)
                 .unwrap_or_default()
-                .to_owned()
+                .to_lowercase()
         };
         let count = |t: &Value| field(t, "count").and_then(Value::as_u64).unwrap_or(0);
         if terms.iter().any(|t| field(t, "name").is_none()) {
             return Err(msg(format!("{what}: expected taxonomy terms")));
         }
         terms.sort_by(|a, b| {
-            let by_name = || c.compare(&name(a), &name(b));
             if self.by_count {
-                count(b).cmp(&count(a)).then_with(by_name)
+                count(b)
+                    .cmp(&count(a))
+                    .then_with(|| go_compare_strings(&name(a), &name(b)))
             } else {
-                by_name()
+                c.compare(&name(a), &name(b))
             }
         });
         Ok(Value::from(terms))

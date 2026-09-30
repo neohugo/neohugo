@@ -350,6 +350,9 @@ pub struct SiteModel {
     /// `.Site.Pages` and `.Site.RegularPages` (default order).
     pub pages: Vec<PageId>,
     pub regular_pages: Vec<PageId>,
+    /// The regular pages listed locally (`build.list` `always` or `local`), default order:
+    /// what `.RegularPagesRecursive` of the home page and of a section (filtered) read.
+    pub regular_pages_local: Vec<PageId>,
     /// The configured taxonomies with their terms (configuration order).
     pub taxonomies: IdVec<TaxonomyIdx, Taxonomy>,
     /// `.Site.MainSections`: configured, else the root section with the most regular pages.
@@ -555,6 +558,7 @@ pub fn load_model(cfg: Arc<Config>, vfs: &Vfs, o: &LoadModelOptions) -> Result<M
             home: PageId::from_raw(0),
             pages: Vec::new(),
             regular_pages: Vec::new(),
+            regular_pages_local: Vec::new(),
             taxonomies: IdVec::new(),
             main_sections: Vec::new(),
             last_mod: None,

@@ -18,7 +18,7 @@ use neohugo_view::{
     resource_view,
 };
 
-use crate::support::{FILES, freeze, get, keys, load, page, same};
+use crate::support::{FILES, freeze, get, keys, load, load_dir, page, same};
 
 fn sorted(lists: &[&[&str]]) -> Vec<String> {
     let mut v: Vec<String> = lists
@@ -462,6 +462,98 @@ fn resource_values() {
     );
     assert!(v.rel_permalink.ends_with("_rel_permalink__"));
     assert_eq!(v.media_type.sub_type, "css");
+}
+
+/// Go's `.RegularPagesRecursive` lists the regular pages below the section that are listed
+/// *locally* (`build.list = "local"` included, `never` not), unlike `site.regular_pages`,
+/// in the default order; the home page walks the whole language.
+#[test]
+fn regular_pages_recursive_lists_local_pages() {
+    let mut files = FILES.to_vec();
+    files.extend([
+        ("content/posts/deep/_index.md", "---\ntitle: Deep\n---\n"),
+        (
+            "content/posts/deep/local.md",
+            "---\ntitle: Local\ndate: 2021-06-01\nbuild: {list: local}\n---\n",
+        ),
+        (
+            "content/posts/deep/never.md",
+            "---\ntitle: Never\ndate: 2021-07-01\nbuild: {list: never}\n---\n",
+        ),
+        (
+            "content/posts/deep/leaf/index.md",
+            "---\ntitle: Leaf\ndate: 2020-01-01\n---\n",
+        ),
+    ]);
+    let s = load(&files);
+    freeze(&s);
+    let m = &s.model;
+    let g = s.views.generation(Phase::Layout, HookVariant::Html);
+    let titles = |v: &tera::Value| -> Vec<String> {
+        v.as_array()
+            .expect("list")
+            .iter()
+            .map(|p| get(p, "title").as_str().unwrap_or_default().to_owned())
+            .collect()
+    };
+    let posts = g.full(page(m, PageKind::Section, "/posts", 0));
+    assert_eq!(
+        titles(get(&posts, "regular_pages_recursive")),
+        ["Local", "Bundle", "Two", "One", "Leaf"]
+    );
+    let deep = g.full(page(m, PageKind::Section, "/posts/deep", 0));
+    assert_eq!(
+        titles(get(&deep, "regular_pages_recursive")),
+        ["Local", "Leaf"]
+    );
+    let home = g.full(page(m, PageKind::Home, "/", 0));
+    let all = titles(get(&home, "regular_pages_recursive"));
+    let site: Vec<String> = m.sites[neohugo_base::LangIdx::from_index(0)]
+        .regular_pages
+        .iter()
+        .map(|&q| m.pages[q].title.clone())
+        .collect();
+    assert!(all.contains(&"Local".to_owned()) && !site.contains(&"Local".to_owned()));
+    assert_eq!(all.len(), site.len() + 1, "{all:?} vs {site:?}");
+}
+
+/// An image that is not processed knows its size from its header (Go `.Width`/`.Height`,
+/// REWRITE_PLAN §4.6 "known immediately"); a file that is not a decodable image has none.
+#[test]
+fn unprocessed_image_sizes() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    for (rel, text) in FILES {
+        let path = dir.path().join(rel);
+        std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
+        std::fs::write(path, text).expect("write");
+    }
+    let png = neohugo_testkit::fixture::rust_dir().join("../resources/testdata/gopher-hero8.png");
+    std::fs::copy(png, dir.path().join("content/posts/bundle/img.png")).expect("copy");
+    std::fs::write(
+        dir.path().join("content/posts/bundle/bad.jpg"),
+        "not a jpeg",
+    )
+    .expect("bad");
+    let (m, _store, views) = load_dir(dir.path());
+    let g = views.meta();
+    let bundle = page(&m, PageKind::Page, "/posts/bundle", 0);
+    let rs = get(&g.summaries[bundle], "resources")
+        .as_array()
+        .expect("resources")
+        .to_vec();
+    let by_name = |n: &str| {
+        rs.iter()
+            .find(|r| get(r, "name").as_str() == Some(n))
+            .unwrap_or_else(|| panic!("resource {n}"))
+            .clone()
+    };
+    let cover = by_name("cover");
+    assert_eq!(get(&cover, "width").as_u64(), Some(591));
+    assert_eq!(get(&cover, "height").as_u64(), Some(612));
+    let bad = by_name("bad.jpg");
+    assert!(get(&bad, "width").is_none(), "{:?}", get(&bad, "width"));
+    let txt = by_name("data.txt");
+    assert!(get(&txt, "width").is_none());
 }
 
 /// A renderer that knows only the content of pages with a file.

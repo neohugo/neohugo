@@ -32,15 +32,9 @@ fn pending_fingerprint(r: &Resource) -> bool {
 }
 
 fn base_view(store: &ResourceStore, r: &Resource) -> ResourceView {
-    let (width, height) = match &r.body {
-        Body::PendingImage(op) => store
-            .config()
-            .images
-            .as_ref()
-            .and_then(|q| q.get(*op))
-            .map_or((None, None), |e| (Some(e.width), Some(e.height))),
-        _ => (None, None),
-    };
+    let (width, height) = store
+        .image_size(r)
+        .map_or((None, None), |(w, h)| (Some(w), Some(h)));
     ResourceView {
         rid: r.id.raw(),
         name: r.name.clone(),

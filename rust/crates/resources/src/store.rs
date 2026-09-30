@@ -404,6 +404,8 @@ pub struct ResourceStore {
     transforms: Memo<(ResourceId, Transform)>,
     metas: Memo<(ResourceId, String, String, String)>,
     images: Memo<(ResourceId, ImageOpId)>,
+    /// Header sizes of images that are not processed, per source file.
+    sizes: Mutex<BTreeMap<PathBuf, Option<(u32, u32)>>>,
     targets: Mutex<BTreeMap<OutputPath, Claim>>,
     generated: RwLock<BTreeMap<String, Arc<[u8]>>>,
     pub(crate) marked: Mutex<BTreeSet<ResourceId>>,
@@ -431,6 +433,7 @@ impl ResourceStore {
             transforms: Memo::new(),
             metas: Memo::new(),
             images: Memo::new(),
+            sizes: Mutex::new(BTreeMap::new()),
             targets: Mutex::new(BTreeMap::new()),
             generated: RwLock::new(BTreeMap::new()),
             marked: Mutex::new(BTreeSet::new()),
@@ -1012,6 +1015,35 @@ impl ResourceStore {
             Body::File(p) => Some(ImageInput::File(p.clone())),
             Body::PendingImage(op) => Some(ImageInput::Op(*op)),
             Body::Bytes(_) | Body::Generated(_) | Body::Pending => None,
+        }
+    }
+
+    /// `.Width` and `.Height` of an image resource: a processed image's planned size, else the
+    /// size in the source's header (read once per file, no pixels decoded). `None` for other
+    /// resources and for images whose header cannot be read.
+    #[must_use]
+    pub fn image_size(&self, r: &Resource) -> Option<(u32, u32)> {
+        if r.kind != ResourceKind::Image {
+            return None;
+        }
+        match &r.body {
+            Body::PendingImage(op) => self
+                .cfg
+                .images
+                .as_ref()
+                .and_then(|q| q.get(*op))
+                .map(|e| (e.width, e.height)),
+            Body::File(p) => {
+                if let Some(size) = lock(&self.sizes).get(p) {
+                    return *size;
+                }
+                let size = neohugo_images::probe_file(p).ok().map(|(s, _)| s);
+                *lock(&self.sizes).entry(p.clone()).or_insert(size)
+            }
+            Body::Bytes(b) | Body::Generated(b) => {
+                neohugo_images::probe(b, &r.name).ok().map(|(s, _)| s)
+            }
+            Body::Pending => None,
         }
     }
 

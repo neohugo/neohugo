@@ -61,8 +61,9 @@ media type are final, so its view is built without computing it. A `fingerprint`
 resource has provisional links and no integrity: its view carries `__nh_pp_<n>_<field>__`
 placeholders for `rel_permalink`, `permalink` and `data.integrity` (`ResourceStore::post_process`),
 so the output is held and patched in E5 (Hugo's laziness; seeksnack's PostCSS purge). `width`
-and `height` are known for processed images (the queue's result size); a source image's size
-needs its pixels, so it is none in the view and T35's `resize` & co. read it.
+and `height` are known for every image (`ResourceStore::image_size`): a processed image's
+planned size, else the size in the source's header (read once per file, no pixels decoded);
+none for other resources and undecodable images.
 
 ## Render state
 

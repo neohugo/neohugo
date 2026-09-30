@@ -14,7 +14,7 @@ use neohugo_config::site::{EmojiPolicy, SiteConfig};
 use neohugo_highlight::Highlight;
 use neohugo_markup::{
     CodeFences, ExpandedMarkdown, Fragments, Heading, HighlightOptions, Highlighter, HookError,
-    MarkdownOptions, SourceContexts, Toc,
+    MarkdownOptions, SourceContexts,
 };
 use neohugo_page::{Cjk, Markup};
 use neohugo_site::{Page, SourceFile};
@@ -292,9 +292,11 @@ impl Session {
                 .map_err(|e| ContentError::Render(e.to_string()))?;
                 (r.html, r.toc.to_html(&o.toc), r.fragments)
             }
+            // Go builds a TOC only for converted markup: HTML content has none (not even
+            // the empty `nav` a markdown page without headings gets).
             Markup::Html => (
                 expanded.markdown.clone(),
-                Toc::default().to_html(&o.toc),
+                String::new(),
                 Fragments::default(),
             ),
         };

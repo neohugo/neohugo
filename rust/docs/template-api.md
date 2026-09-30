@@ -149,9 +149,9 @@ Flattened render-hook fields:
 | `x \| by_publish_date` | F (s) | both |  | `.ByPublishDate` | Pages by publish date. |
 | `x \| by_lastmod` | F (s) | both |  | `.ByLastmod` | Pages by last modification. |
 | `x \| by_weight` | F (s) | both |  | `.ByWeight` | Pages by Hugo's default order (weight, date, link title, path). |
-| `x \| group_by_date(format=, attribute=?)` | F (s) | both |  | `.GroupByDate` | `[{key, pages}]` grouped by the date formatted with `format` (strftime), newest first. (format: string, attribute: string) |
+| `x \| group_by_date(format=, attribute=?, order=?)` | F (s) | both |  | `.GroupByDate` | `[{key, pages}]` grouped by the date formatted with `format` (strftime), newest first (`order="asc"`: oldest first); no date is Go's zero date (`0001`). (format: string, attribute: string, order: string) |
 | `x \| group_by_param(param=)` | F (s) | both |  | `.GroupByParam` | `[{key, pages}]` grouped by the page param `param`. (param: string) |
-| `x \| by_count` | F (s) | both |  | `.ByCount` | Taxonomy terms by page count, then name. |
+| `x \| by_count` | F (s) | both |  | `.ByCount` | Taxonomy terms by page count, then lower-cased name in Go's string order. |
 | `x \| alphabetical` | F (s) | both |  | `.Alphabetical` | Taxonomy terms by name (collation). |
 
 ## Strings

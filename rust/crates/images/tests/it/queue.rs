@@ -38,7 +38,9 @@ fn names_are_stable_and_content_addressed() {
     let (hash, ext) = rest.split_once('.').expect("ext");
     assert_eq!(hash.len(), 16);
     assert_eq!(ext, "jpg");
-    assert_eq!(hash, format!("{:016x}", a.id.raw()));
+    // The digits hash content and operation only; the id also covers the name (see
+    // `identical_bytes_keep_their_own_names`).
+    assert!(hash.bytes().all(|b| b.is_ascii_hexdigit()), "{hash}");
 
     let webp = q
         .enqueue(&photo(), Some(&spec("resize 300x webp")), &[])
@@ -291,4 +293,62 @@ fn every_format_encodes() {
             }
         );
     }
+}
+
+/// Identical bytes in two bundles under different names (seeksnack `s00.jpg` and
+/// `s15.jpg`): each result is named after its own source, whichever is queued first, and
+/// only the hash digits (content + operation, as in Go) are shared.
+#[test]
+fn identical_bytes_keep_their_own_names() {
+    let dir = tempfile::tempdir().expect("tempdir");
+    let bytes = std::fs::read(repo_dir().join("resources/testdata/sunset.jpg")).expect("read");
+    std::fs::create_dir_all(dir.path().join("a")).expect("mkdir");
+    std::fs::create_dir_all(dir.path().join("b")).expect("mkdir");
+    let s00 = ImageInput::File(write_file(&dir.path().join("a"), "s00.jpg", &bytes));
+    let s15 = ImageInput::File(write_file(&dir.path().join("b"), "s15.jpg", &bytes));
+    let names = |first: &ImageInput, second: &ImageInput| {
+        let q = ImageQueue::new(Imaging::default(), None);
+        let f = q.enqueue(first, Some(&spec("resize 30x")), &[]).expect("1");
+        let s = q
+            .enqueue(second, Some(&spec("resize 30x")), &[])
+            .expect("2");
+        let fc = q
+            .enqueue(&ImageInput::Op(f.id), None, &[ImageFilter::Grayscale])
+            .expect("1c");
+        let sc = q
+            .enqueue(&ImageInput::Op(s.id), None, &[ImageFilter::Grayscale])
+            .expect("2c");
+        for e in [&f, &s, &fc, &sc] {
+            assert_eq!(q.get(e.id).as_ref(), Some(e), "get returns the caller's op");
+        }
+        let sink = MemorySink::default();
+        let wanted: BTreeMap<OutputPath, _> = [&f, &s, &fc, &sc]
+            .into_iter()
+            .map(|e| (OutputPath::new(&e.file_name), e.id))
+            .collect();
+        q.process(&wanted, &sink).expect("process");
+        assert_eq!(sink.files.lock().expect("lock").len(), 4);
+        (f.file_name, s.file_name, fc.file_name, sc.file_name)
+    };
+    let (a00, a15, a00c, a15c) = names(&s00, &s15);
+    let (b15, b00, b15c, b00c) = names(&s15, &s00);
+    assert!(
+        a00.starts_with("s00_hu_") && a15.starts_with("s15_hu_"),
+        "{a00} {a15}"
+    );
+    assert!(
+        a00c.starts_with("s00_hu_") && a15c.starts_with("s15_hu_"),
+        "{a00c} {a15c}"
+    );
+    assert_eq!(
+        (&a00, &a15, &a00c, &a15c),
+        (&b00, &b15, &b00c, &b15c),
+        "order-independent"
+    );
+    let digits = |n: &str| n.split_once("_hu_").expect("_hu_").1.to_owned();
+    assert_eq!(
+        digits(&a00),
+        digits(&a15),
+        "the digits hash content and operation"
+    );
 }

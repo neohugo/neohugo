@@ -22,7 +22,7 @@ asset, remote and named-target resources, front matter `resources` metadata and 
 | `execute_as_template(id, target, &data, &dyn TemplateExecutor, &CallSite)` | `resources.ExecuteAsTemplate`; the template engine is the render layer's (`TemplateExecutor`). The result is a named target (`from_template_output`). |
 | `meta::ResourceMeta::parse(&Value)`, `apply_meta(id, &meta)` | Front matter `resources` metadata; a new resource (same target and content) only when name, title or params change. |
 | `meta::{get, get_match, matches, by_type}` over `impl Named` | `.Resources.Get/GetMatch/Match/ByType` (bundle pages implement `Named` too). |
-| `image_input(id)`, `register_image(from, &Enqueued)` | The seam to `neohugo-images`: what `ImageQueue::enqueue` reads, and the resource of a queued operation (sibling target `<stem>_hu_<hash>.<ext>`, `Body::PendingImage`). The store never decodes images. |
+| `image_input(id)`, `register_image(from, &Enqueued)`, `image_size(&Resource)` | The seam to `neohugo-images`: what `ImageQueue::enqueue` reads, the resource of a queued operation (sibling target `<stem>_hu_<hash>.<ext>` named after its own source, `Body::PendingImage`), and `.Width`/`.Height` (planned size of a processed image, else the source's header, cached per file). The store never decodes pixels. |
 | `inject_generated(asset_path, bytes)` | Build phase E4: `hugo_stats.json` (or any asset path) now reads these bytes; already registered assets at that path see them too. |
 | `mark_published(id)` | The `publish` filter. |
 | `publish(tokens, &dyn Sink) -> PublishStats` | See below. `resolve_token(token)` for diagnostics. |

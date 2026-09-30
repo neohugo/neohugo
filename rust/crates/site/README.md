@@ -9,7 +9,7 @@ translations, bundle resources, page references).
 | Entry point | `load_model(Arc<Config>, &Vfs, &LoadModelOptions { clock, content: ContentFilter }) -> Result<Model, ModelError>`; `LoadModelOptions::from_config(&cfg, clock)` |
 | Model | `Model { config, pages: IdVec<PageId, Page>, sites: IdVec<LangIdx, SiteModel>, bundle_resources: IdVec<ResourceId, BundleResource>, data: Arc<Map>, diagnostics }`; `page(id)`, `bundle_owner(id)`, `page_name(id)` (`.Name`), `is_ancestor(a, b)`, `pager_paths(id, format, "/page/2")` |
 | Page | `id, lang, kind, role: PageRole, key: ContentKey, source: Option<SourceFile>, path_info: PathInfo, meta: PageMeta`; T23b: `title, link_title, section, type, taxonomy: Option<TaxonomyIdx>, term: Option<TermIdx>, standalone: Option<FormatId>, formats: Vec<FormatId>, urls: Vec<PageUrl { format, paths: TargetPaths, links: Option<Links> }>, parent, ancestors, current_section, first_section, pages, regular_pages, sections, translations (= .AllTranslations), terms: Vec<(TaxonomyIdx, TermIdx)>, resources: Vec<ResourceId>`; `path()` (`.Path`), `name()`, `listed(ListScope::{Local, Global})`, `linked()`, `rendered()`, `url(format)`, `links()`, `dir_key()` |
-| SiteModel | `lang, tree: SiteTree, resources: BTreeMap<ContentKey, ResourceId>, cascade`; T23b: `home, pages, regular_pages (.Site.Pages/.RegularPages), taxonomies: IdVec<TaxonomyIdx, Taxonomy>, main_sections, last_mod, permalinks: PermalinkPatterns` |
+| SiteModel | `lang, tree: SiteTree, resources: BTreeMap<ContentKey, ResourceId>, cascade`; T23b: `home, pages, regular_pages (.Site.Pages/.RegularPages), regular_pages_local (regular pages listed locally, default order: `.RegularPagesRecursive` of home and sections), taxonomies: IdVec<TaxonomyIdx, Taxonomy>, main_sections, last_mod, permalinks: PermalinkPatterns` |
 | Taxonomies | `Taxonomy { def, page: Option<PageId>, terms: IdVec<TermIdx, Term> }` (terms by key), `listed_terms(&Model)` (`.Site.Taxonomies`: listed terms with members); `Term { key, term (.Data.Term), page, members: Vec<WeightedPage { page, weight, ordinal }> }` (weight, then default order) |
 | BundleResource | `key, lang, file, info, page`; T23b: `copy_of` (a `duplicateResourceFiles` copy), `owner`, `name` (as written below the owner), `name_normalized`, `target_base: Option<ResourceBase>`, `publish`; `target()`, `link()`. Feeds `neohugo_resources::BundleResource { lang, file: file.abs, name, dir: target_base.link, policy: publish ? Eager : OnReference }` |
 | References | `get_page(lang, ref, from)` (`.GetPage`), `site_get_page(lang, &[args])` (legacy kind-first `.Site.GetPage`), `ref_page(lang, ref, from)`, `ref_link(lang, &RefArgs { path, lang, output_format }, from, RefLink::{Permalink, RelPermalink})` → `Result<_, RefError>` (the caller maps errors to `refLinks`) |
@@ -159,8 +159,8 @@ except `/tagsfoo` of edge-tree (below), an accepted deviation.
 ## For later tasks
 
 - T24 (nav): `Page::pages`/`regular_pages`/`sections`/`translations`, `Model::pager_paths`,
-  `Taxonomy::listed_terms`; next/prev, `RegularPagesRecursive` and alias plans are not in the
-  model (they derive from the lists and `PageUrl`s).
+  `Taxonomy::listed_terms`; next/prev and alias plans are not in the model (they derive from
+  the lists and `PageUrl`s); `RegularPagesRecursive` filters `SiteModel::regular_pages_local`.
 - T33 (view): `.Rel` of `.OutputFormats` (`canonical` for a page's only built-in format),
   `.Data`, `.Site.Taxonomies` keys (`to_lower(term.term)`), bundle-resource metadata and its
   re-sort, `refLinks` error level and not-found URL.

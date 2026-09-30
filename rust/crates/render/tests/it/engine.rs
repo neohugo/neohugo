@@ -356,3 +356,29 @@ fn c1_renders_bundled_pages_and_html_content() {
     assert_eq!(c.summary, "<div><i>x</i></div>");
     assert_eq!(c.html, "<div><i>x</i></div>\n\n\n\n\n<p>rest</p>");
 }
+
+/// `.TableOfContents`: empty for HTML content files (Go computes a TOC only for converted
+/// markup), `<nav id="TableOfContents"></nav>` for a markdown page without headings (Go's
+/// goldmark TOC builder always writes the `nav`).
+#[test]
+fn toc_of_html_content_is_empty() {
+    let s = site(&[
+        ("hugo.toml", CONFIG),
+        (
+            "content/h.html",
+            "---\ntitle: H\n---\n<h2 id=\"x\">X</h2>\n<p>Body</p>\n",
+        ),
+        ("content/m.md", "---\ntitle: M\n---\nNo headings.\n"),
+    ]);
+    let toc = |path: &str| {
+        let id = s.page(path, 0);
+        let scope = content_scope(&s.session, id, HookVariant::Html);
+        s.session
+            .content(id, HookVariant::Html, &scope)
+            .unwrap_or_else(|e| panic!("{path}: {e}"))
+            .table_of_contents
+            .clone()
+    };
+    assert_eq!(toc("/h"), "");
+    assert_eq!(toc("/m"), "<nav id=\"TableOfContents\"></nav>");
+}

@@ -87,3 +87,64 @@ fn taxonomy_term_orders() {
         "a,b"
     );
 }
+
+/// Pages for the Go tie rules: equal dates, zero dates, terms whose collation order differs
+/// from Go's byte order.
+const TIES: &[(&str, &str)] = &[
+    (
+        "content/notes/a.md",
+        "---\ntitle: A\ndate: 2021-03-01T00:00:00Z\ntags: [\"x&y\", \"x.y\", \"éclair\", \"fudge\"]\n---\n",
+    ),
+    (
+        "content/notes/b.md",
+        "---\ntitle: B\ndate: 2021-03-01T00:00:00Z\n---\n",
+    ),
+    (
+        "content/notes/c.md",
+        "---\ntitle: C\ndate: 2021-01-01T00:00:00Z\n---\n",
+    ),
+    ("content/notes/d.md", "---\ntitle: D\n---\n"),
+    ("content/notes/e.md", "---\ntitle: E\n---\n"),
+];
+
+/// Go's `GroupByDate`: a stable sort by date ascending, then the whole list reversed (so
+/// pages with the same date come in reverse input order); the zero date is formatted too
+/// (`"0001"` for `"2006"`).
+#[test]
+fn group_by_date_matches_go_ties_and_zero_dates() {
+    let site = support::load_with(TIES);
+    let s = site.home_scope();
+    let groups = |kw: &str| {
+        site.render(
+            &format!(
+                "{{% for g in get_page(path=\"/notes\") | get_path(path=[\"regular_pages\"]) | by_title | group_by_date({kw}) %}}{{{{ g.key }}}}:{{{{ [p.title for p in g.pages] | join(sep=\",\") }}}};{{% endfor %}}"
+            ),
+            &s,
+        )
+    };
+    assert_eq!(groups("format=\"%Y\""), "2021:B,A,C;0001:E,D;");
+    assert_eq!(
+        groups("format=\"%Y-%m\""),
+        "2021-03:B,A;2021-01:C;0001-01:E,D;"
+    );
+    // Go's `asc` (and its `rev`/`reverse` synonyms) keeps the ascending sort.
+    assert_eq!(
+        groups("format=\"%Y\", order=\"asc\""),
+        "0001:D,E;2021:C,A,B;"
+    );
+}
+
+/// Go's `ByCount`: count descending, then the lower-cased term by Go's `compare.Strings`
+/// (case-folded code points, not the language's collation).
+#[test]
+fn by_count_ties_use_go_string_order() {
+    let site = support::load_with(TIES);
+    let s = site.scope(site.page(PageKind::Home, "/", 0), None);
+    assert_eq!(
+        site.render(
+            "{% for t in site.taxonomies.tags | by_count %}{{ t.name | safe }}={{ t.count }};{% endfor %}",
+            &s
+        ),
+        "a=2;b=2;fudge=1;x&y=1;x.y=1;éclair=1;"
+    );
+}

@@ -31,3 +31,20 @@ pub use plan::{Size, cover_size, crop_rect, fit_size, resize_size, rotated_size,
 pub use queue::{Enqueued, ImageCache, ImageQueue};
 pub use settings::{DEFAULT_EXIF_EXCLUDE, ExifPart, ExifSettings, Imaging};
 pub use spec::{Action, Anchor, Hint, ImageSpec, Resample, ResolvedSpec};
+
+/// The size and format of an encoded image, from its header (`.Width` and `.Height` of an
+/// image that is not processed).
+///
+/// # Errors
+/// Bytes that are not an image in a supported format.
+pub fn probe(bytes: &[u8], what: &str) -> Result<(Size, ImageFormat), ImageError> {
+    codec::probe(bytes, what)
+}
+
+/// [`probe`] of a file; reads its header only.
+///
+/// # Errors
+/// An unreadable file, or one that is not an image in a supported format.
+pub fn probe_file(path: &std::path::Path) -> Result<(Size, ImageFormat), ImageError> {
+    codec::probe_file(path)
+}
