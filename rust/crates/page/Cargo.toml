@@ -23,8 +23,11 @@ neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
 neohugo-config.workspace = true
 neohugo-vfs.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
-serde.workspace = true
 jiff.workspace = true
-globset.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+# The oracle of the default sort order compares titles with the site language's collator.
+neohugo-locale.workspace = true
+serde_json.workspace = true

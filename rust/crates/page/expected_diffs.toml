@@ -1,0 +1,56 @@
+# Reviewed differences between neohugo-page and the Go oracles (rust/testdata/oracle/page).
+#
+# The oracle tests (tests/it) classify every difference; a class listed here is accepted with
+# exactly the count given (a changed count fails the test, so the file stays reviewed), and any
+# other difference fails. Keys: [<family>.<class>].
+
+[paths.url-query-or-escape]
+count = 272
+reason = """
+A front matter `url` with a query (`/q?x=1`) or percent escapes (`/a%20b/`). Hugo keeps the
+query and the raw escapes in `.RelPermalink`; neohugo keeps page links as URL paths
+(`UrlPath`, unescaped) and escapes them once when writing, so `?` becomes `%3F` and `%20`
+stays `%20` only after a decode/encode round trip. Output files are identical; only the
+escaping of these adversarial links differs.
+"""
+
+[frontmatter-dates.unix-seconds-in-utc]
+count = 70
+reason = """
+A front matter date given as Unix seconds (`date: 1136214245`) is placed in UTC. Go places it
+in the process's local zone, which the oracle ran as a nameless zero offset (`+00:00`); the
+instant is the same.
+"""
+
+[cascade-match.bad-glob-rejected]
+count = 18
+reason = """
+A cascade target glob that does not compile (`[bad`, `[`). Go ignores that criterion (and
+panics when decoding a bad `kind`); neohugo rejects the cascade entry with an error.
+"""
+
+[markup.markup-not-supported]
+count = 11
+reason = """
+AsciiDoc, reStructuredText, Pandoc, Org, plain text and JSON as content markup. Hugo renders
+them with external tools; neohugo supports Markdown and HTML (`Markup`) and reports the others
+as unsupported.
+"""
+
+[page-config.markup-not-supported]
+count = 1
+reason = "As markup.markup-not-supported (an `.adoc` content file)."
+
+[page-config.content-adapter]
+count = 5
+reason = "Content adapters (`_content.gotmpl`, pages from data) are not supported (REWRITE_PLAN)."
+
+[default-sort.thai-paiyannoi-collation]
+count = 33
+reason = """
+Lists sorted while the Thai site is current, whose link titles hold PAIYANNOI (ฯ). Hugo's Thai
+collation (x/text, CLDR 23) sorts ฯ with the punctuation, before Latin letters;
+neohugo-locale collates Thai in the root order (docs/rust-port/specs/i18n-lang-misc.md §4),
+where ฯ is a Thai letter. With ฯ sorted as punctuation the order equals Hugo's in all 33
+lists, so `default_order` itself agrees; the difference belongs to the Thai collator.
+"""
