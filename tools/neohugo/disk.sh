@@ -1,6 +1,8 @@
 #!/bin/sh
 # Disk guard (docs/rust-port/REWRITE_PLAN.md §8.1): fails when the shared Rust target directory
-# exceeds 2.5 GB or the root file system has less than 700 MB free. Prints both numbers, as
+# exceeds NEOHUGO_TARGET_LIMIT_MB (default 8000 MB) or the root file system has less than
+# 2 GB free. The plan's 2.5 GB budget (§8.1) assumed ~4.5 GB free; after the old port and its
+# build output were deleted ~20 GB is free, so the budget was raised. Prints both numbers, as
 # every task reports them when it ends.
 #
 #   tools/neohugo/disk.sh
@@ -9,8 +11,8 @@
 # all worktrees).
 set -eu
 
-limit_target_kb=$((2500 * 1024))
-min_free_kb=$((700 * 1024))
+limit_target_kb=$((${NEOHUGO_TARGET_LIMIT_MB:-8000} * 1024))
+min_free_kb=$((2048 * 1024))
 
 if [ -n "${CARGO_TARGET_DIR:-}" ]; then
 	target=$CARGO_TARGET_DIR
