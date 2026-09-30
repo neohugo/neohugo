@@ -1,5 +1,5 @@
-//! Collections and maps: `default_if_empty`, `get_path`, `sort_keys`, `append`, `concat`,
-//! `merge`, `delimit`, the set operations, `sort_by`, `querify`, `max`, `min`.
+//! Collections and maps: `default_if_empty`, `get_path`, `sort_keys`, `from_pairs`, `append`,
+//! `concat`, `merge`, `delimit`, the set operations, `sort_by`, `querify`, `max`, `min`.
 
 use std::cmp::Ordering;
 use std::sync::Arc;
@@ -13,6 +13,7 @@ pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
     r.filter("default_if_empty", |v, kw, _| default_if_empty(v, kw));
     r.filter("get_path", |v, kw, _| get_path(&v, kw));
     r.filter("sort_keys", |v, _, _| sort_keys(&v));
+    r.filter("from_pairs", |v, _, _| from_pairs(&v));
     r.filter("append", |v, kw, _| append(&v, kw));
     r.filter("concat", |v, kw, _| concat(&v, kw));
     r.filter("merge", |v, kw, _| merge_filter(&v, kw));
@@ -75,6 +76,26 @@ fn sort_keys(v: &Value) -> TeraResult<Value> {
         tera::Error::message(format!("sort_keys expects a map, got {}", v.name()))
     })?;
     Ok(sorted_map(entries(m).map(|(k, v)| (k, v.clone()))))
+}
+
+/// A map from `[key, value]` pairs (the inverse of Tera's `pairs`): keys are strings (numbers
+/// and bools are stringified), a later pair wins, the keys are sorted.
+fn from_pairs(v: &Value) -> TeraResult<Value> {
+    let mut out = Vec::new();
+    if v.is_none() || v.is_undefined() {
+        return Ok(sorted_map::<&str>([]));
+    }
+    for p in array(v, "from_pairs")? {
+        let pair = array(p, "from_pairs (each pair)")?;
+        let [k, v] = pair else {
+            return Err(tera::Error::message(format!(
+                "from_pairs expects [key, value] pairs, got an array of {}",
+                pair.len()
+            )));
+        };
+        out.push((text(k, "from_pairs (a key)")?.into_owned(), v.clone()));
+    }
+    Ok(sorted_map(out))
 }
 
 fn append(v: &Value, kw: &Kwargs) -> TeraResult<Value> {

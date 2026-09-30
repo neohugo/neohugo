@@ -41,6 +41,10 @@ const EXAMPLES: &[(&str, &str)] = &[
         "sort_keys",
         "{% for k, v in {'b': 1, 'a': 2} | sort_keys %}{{ k }}={{ v }} {% endfor %}",
     ),
+    (
+        "from_pairs",
+        "{% set k = 'b' ~ 1 %}{{ [[k, 1], ['a', {'x': 2}], [3, true], [k, 4]] | from_pairs | jsonify }}",
+    ),
     ("append", "{{ [1, 2] | append(value=3) | jsonify }}"),
     ("concat", "{{ [1, 2] | concat(with=[3, 4]) | jsonify }}"),
     (

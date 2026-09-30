@@ -804,6 +804,8 @@ pub struct PageSummaryView {
     pub output_formats: tera::Value,                            // {name: OutputFormatView}, format order
     pub resources: tera::Value,                                 // [ResourceView]
     pub terms: tera::Value,                                     // {plural: [PageLink]} — a key for EVERY configured taxonomy
+    pub raw_content: String,                                    // source after the front matter: known after parsing, so in
+                                                                // every generation (F8: shortcodes read other pages' sources)
     #[serde(flatten, skip_serializing_if = "Option::is_none")]
     pub content: Option<ContentView>,                           // Full generations only
 }
@@ -812,7 +814,7 @@ pub struct PageSummaryView {
 #[derive(Serialize)] pub struct SitemapView { pub change_freq: String, pub priority: f64, pub disable: bool }
 #[derive(Serialize)] pub struct ContentView {
     pub content: tera::Value /* safe */, pub summary: tera::Value /* safe */, pub truncated: bool,
-    pub plain: String, pub raw_content: String, pub word_count: usize, pub fuzzy_word_count: usize,
+    pub plain: String, pub word_count: usize, pub fuzzy_word_count: usize,
     pub reading_time: usize, pub table_of_contents: tera::Value /* safe */, pub fragments: FragmentsView, pub len: usize,
 }
 #[derive(Serialize)] pub struct FragmentsView { pub headings: Vec<HeadingView>, pub identifiers: Vec<String> }
@@ -1170,7 +1172,7 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
 | Shortcode | `page` (full value of the Meta generation: relations yes, content fields no), `site`, `hugo`, `lang`, `shortcode` (`ShortcodeView`), `inner` (safe), `inner_deindent`, `__nh` |
 | Render hook | `page` and `page_inner` (Meta generation), `site`, `hugo`, `lang`, `__nh`, plus the hook fields **flattened** (below) |
 | `partial(name=…, …)` | the kwargs as top-level names, plus the caller's `page`, `site`, `hugo`, `lang`, `output_format`, and a child `__nh` (same page, format and pager; new frame; depth+1) |
-| Component | only its arguments. Implicit `@page`, `@site`, `@lang` and `@__nh` may be declared. |
+| Component | only its arguments. Implicit `@page`, `@site`, `@hugo`, `@lang` and `@__nh` may be declared (Tera looks each up by name in the caller's scope; `hugo` is in every render that can call a component). |
 | `defer` template | `data`, `site`, `hugo`, `__nh` (phase `Deferred`) |
 | `execute_as_template` | `data`, `site`, `hugo`, `__nh` |
 | Alias | `permalink`, `page` (link), `site`, `hugo` |
@@ -1254,6 +1256,7 @@ Flattened hook fields, per hook:
 |---|---|---|
 | Metadata, URLs, params, resources, terms of any page | summary and full values of the Meta generation | summary and full values of the Full generation for the job's variant |
 | Relations of a listed page | `p \| deref` or `get_page(path=p.path)` | the same |
+| Raw source (`raw_content`, after the front matter) of any page | field of the Meta generation (known after parsing, before rendering) | the same |
 | Content-derived data of this or another page | functions `page_content(page=)`, `page_summary`, `page_plain`, `page_word_count`, `page_fragments`, `page_toc`, `render_shortcodes(page=)`: lazy, memoised, cycle-checked through `__nh.chain` | fields `p.content`, `p.summary`, `p.plain`, `p.fragments`, … (the functions also work) |
 | Content of a bundled content resource | `resource_content` on a view with `page_id` → that page's HTML (safe) | the same |
 | Page store | `store_set(key=, value=)`, `store_get(key=)`; writes buffered per transaction | writes applied directly; visible later in the same render |
@@ -1306,9 +1309,9 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 | `default X v` (bool is always set; 0, "", empty and none are unset) | `v \| default_if_empty(value=X)`; Tera `default(value=)` only for undefined values | F/bi | D S R |
 | `cond c a b` | `a if c else b` | op | D R |
 | `len` | `length` | bi | all |
-| `print`, `printf` | `~`; `pad_start(width=)`, `pad_end(width=)` (`%-35s`); `round(precision=)` / `format_number(precision=)` (`%0.1f`); `"\u{a0}"` (`%c`); `'"' ~ x ~ '"'` under autoescape (`%q` in attributes), `jsonify` (`%q` in JS). No printf. | op/F | D S R |
+| `print`, `printf` | `~`; `pad_start(width=)`, `pad_end(width=)` (`%-35s`); `round(precision=)` / `format_number(precision=)` (`%0.1f`); a literal U+00A0 character in the string (`%c` of 160; see the string note below the table); `'"' ~ x ~ '"'` under autoescape (`%q` in attributes), `jsonify` (`%q` in JS). No printf. | op/F | D S R |
 | `errorf`, `warnf`, `erroridf`, `warnidf` | `log_error(message=)` (records an error; the build fails at the end), `log_warn(message=, id=?)`; `throw(message=)` aborts at once | fn/bi | D R |
-| `dict`, `slice` | map and array literals | op | all |
+| `dict`, `slice` | map and array literals; computed keys: `[[k, v]] \| from_pairs` (Go's `dict $path v` nesting: wrap once per key, innermost first) | op/F | all |
 | `index m k`, `index m "a" "b"` | `m[k]`, `m.k`, `m \| get_path(path=["a","b"])` | op/F | all |
 | `in`, `strings.Contains` | `x in l`, `"x" in s`; pages `p.id in [q.id for q in l]` | op | D |
 | `isset`, `reflect.IsMap`, `reflect.IsSlice` | `"k" in m`, `is defined`, `is map`, `is array` | op/T | D S R |
@@ -1353,7 +1356,7 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 | `markdownify`, `.RenderString (dict "display" "block")` | `markdownify`, `render_string(display=?, page=?)` (uses that page's hooks) | F (s) | D S R |
 | `plainify`, `emojify` | `plainify` (html5gum), `emojify` | F | D R |
 | `highlight`, `transform.Highlight` | `highlight(lang=, options=?)` (syntect; Chroma classes or inline styles per `noClasses`; `hl_inline`) | F | D |
-| `transform.ToMath` | `to_math(display=?)` (pulldown-latex → MathML; SHOULD, feature `math`) | F | D |
+| `transform.ToMath` (+ `try`) | `to_math(display=?, optional=?)` (pulldown-latex → MathML; SHOULD, feature `math`). A construct it cannot parse (invalid LaTeX, or mhchem, which KaTeX has) is an error; with `optional=true` a warning (id `to_math`, as `get_remote`) and an in-place `<merror>` | F | D |
 | `diagrams.Goat` | `diagrams_goat(text=)` → `{inner (safe SVG), width, height, wrapped}` (svgbob; SHOULD, T66) | F | D |
 | `base64Encode/Decode`, `md5`, `sha1`, `sha256`, `hash.FNV32a`, `hash.XxHash` | `base64_encode`/`base64_decode` (tc), `md5`, `sha1`, `sha256`, `fnv32a`, `xxhash` | tc/F | D |
 | `now` | `now()` (honours `--clock`) | fn | all |
@@ -1391,6 +1394,8 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 | (map order in templates) | `m \| sort_keys` (Go ranges maps sorted; literals keep insertion order) | F | – |
 | (extra tests) | `defined` `undefined` `none` `string` `number` `map` `array` `starting_with` `ending_with` `containing` (bi), `matching` (tc) | T | – |
 
+**Tera strings.** Tera 2.4 string literals know only the escapes `\n` `\t` `\r` `\"` `\'` `\/` `\\`; any other escape (`"\u{a0}"`, `"\s"`) is a syntax error. Write other characters literally (a U+00A0 character for Go's `printf "%c" 160`) and double the backslashes of regular expressions (`regex_replace(pattern="^\\s+", …)`).
+
 **tera-contrib** supplies `regex_replace`, `urlencode`, `base64`, `filesizeformat` and `matching`. Its `date` filter is used only if T12 confirms that it produces Gregorian Thai month names (`th-u-ca-gregory`); otherwise neohugo-locale registers `date` itself. `shuffle` is not registered, because no target site uses it and it needs the `rand` feature.
 
 ### 4.7 Conversion rules
@@ -1422,10 +1427,11 @@ These rules are generated into `template-api.md`. They are applied by hand; the 
 **Templates and partials.**
 - `define`/`block` in children → `{% extends "baseof.html" %}` plus `{% block %}`. Delete blocks the parent does not define.
 - Partials → include, component or `partial()` (§4.3).
-- `try` → `optional=true` on `get_remote`, or a `none` check.
+- `try` → `optional=true` on `get_remote` and `to_math`, or a `none` check.
 
 **Formatting.**
 - Go `printf` → `~`, `pad_start`/`pad_end`, `round`/`format_number`, `jsonify`, as in §4.6.
+- Tera strings know only `\n \t \r \" \' \/ \\`: other characters literally (U+00A0), regex backslashes doubled (`"\\s+"`).
 - Go date layouts → strftime (`"Jan 2, 2006"` → `"%b %-d, %Y"`).
 
 **Removed Hugo idioms.**

@@ -27,8 +27,9 @@ impl ViewGeneration {
 }
 ```
 
-- **Generations.** Meta (content phase): summaries without content keys. Full (one per hook
-  variant, frozen in a `OnceLock` before any layout renders): summaries with the
+- **Generations.** Meta (content phase): summaries without content keys (`raw_content`, the
+  source, is known after parsing, so it is a summary key in every generation). Full (one per
+  hook variant, frozen in a `OnceLock` before any layout renders): summaries with the
   `ContentView` keys of that variant. Every list (relations, `site.*` lists, terms, pagers)
   holds **summary** values of its own generation: acyclic, one allocation per page shared by
   every list (the tests check pointer equality). `full`/`page_value` add `PageRelations`.

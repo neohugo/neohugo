@@ -9,8 +9,9 @@ use tera::Context;
 
 use crate::support::{Harness, crate_dir};
 
-/// Formulas using mhchem (`\ce`, `\pu`), a KaTeX extension pulldown-latex does not have: they
-/// render with the unknown commands as `<merror>` (accepted deviation).
+/// Formulas using mhchem (`\ce`, `\pu`), a KaTeX extension pulldown-latex does not have: an
+/// error, and with `optional=true` a warning and the unknown commands as `<merror>` (accepted
+/// deviation).
 fn needs_mhchem(tex: &str) -> bool {
     tex.contains("\\ce{") || tex.contains("\\pu{")
 }
@@ -60,7 +61,8 @@ fn renders_every_docs_formula() {
     let mut deviations = 0;
     for (tex, display) in &formulas {
         ctx.insert("tex", tex);
-        let src = format!("{{{{ tex | to_math(display={display}) }}}}");
+        let strict = format!("{{{{ tex | to_math(display={display}) }}}}");
+        let src = format!("{{{{ tex | to_math(display={display}, optional=true) }}}}");
         let out = h
             .render(&src, &ctx)
             .unwrap_or_else(|e| panic!("{tex}: {e}"));
@@ -68,7 +70,14 @@ fn renders_every_docs_formula() {
         if needs_mhchem(tex) {
             deviations += 1;
             assert!(out.contains("<merror"), "{tex}: {out}");
+            let e = h.render(&strict, &ctx).expect_err("mhchem is an error");
+            assert!(e.contains("to_math: `"), "{tex}: {e}");
         } else {
+            assert_eq!(
+                h.render(&strict, &ctx).as_deref(),
+                Ok(out.as_str()),
+                "{tex}"
+            );
             assert!(!out.contains("<merror"), "{tex}: {out}");
         }
         if *display {
@@ -92,4 +101,36 @@ fn inline_and_block() {
     neohugo_testkit::snapshot::settings().bind(|| {
         insta::assert_yaml_snapshot!("to_math", [inline, block]);
     });
+}
+
+/// Go's `try (transform.ToMath …)`: `optional=true` turns a parse error into a warning (id
+/// `to_math`, like `get_remote(optional=true)`) and renders the construct as `<merror>`.
+#[test]
+fn optional_turns_errors_into_warnings() {
+    let env = crate::support::env();
+    let h = Harness::with_env(&env);
+    let ctx = Context::new();
+    let e = h
+        .render("{{ '\\\\nosuchcommand{x}' | to_math }}", &ctx)
+        .expect_err("an unknown command is an error");
+    assert!(e.contains("to_math: `\\nosuchcommand{x}`: "), "{e}");
+    assert!(env.diagnostics.report().is_empty());
+    let out = h
+        .render(
+            "{{ '\\\\nosuchcommand{x}' | to_math(optional=true) }}",
+            &ctx,
+        )
+        .expect("optional");
+    assert!(out.starts_with("<math") && out.contains("<merror"), "{out}");
+    let report = env.diagnostics.report();
+    assert_eq!(report.len(), 1, "{report:?}");
+    assert_eq!(report[0].severity, neohugo_base::diag::Severity::Warning);
+    assert_eq!(report[0].id.as_deref(), Some("to_math"));
+    assert!(
+        report[0]
+            .message
+            .starts_with("to_math: `\\nosuchcommand{x}`: "),
+        "{}",
+        report[0].message
+    );
 }

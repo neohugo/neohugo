@@ -178,3 +178,144 @@ fn docs_cross_page_shortcodes() {
     );
     assert!(report.collisions.is_empty());
 }
+
+/// `@hugo` is an implicit component argument like `@site` (the docs `linkcss`, `linkjs` and
+/// `sponsors` components): Tera looks it up in the caller's scope, and every render that can
+/// call a component (layout job, `partial()`, shortcode, render hook) has `hugo`.
+#[test]
+fn components_take_hugo_implicitly() {
+    let comp = "{% component env(label, @hugo, @site) %}{{ label }}={{ hugo.environment }}/{{ site.title }}{% endcomponent env %}";
+    let files: Vec<(String, String)> = [
+        (
+            "hugo.toml",
+            "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\", \"section\"]\n",
+        ),
+        ("layouts/_partials/env.html", comp),
+        ("layouts/_partials/p.html", "{{ <env label=\"partial\" /> }}"),
+        (
+            "layouts/_shortcodes/sc.html",
+            "{{ <env label=\"shortcode\" /> }}",
+        ),
+        (
+            "layouts/_markup/render-link.html",
+            "{{ <env label=\"hook\" /> }}",
+        ),
+        (
+            "layouts/home.html",
+            "{{ <env label=\"layout\" /> }} {{ partial(name=\"p.html\") }} {{ page.content }}",
+        ),
+        (
+            "content/_index.md",
+            "---\ntitle: Home\n---\n\n{{< sc >}} [x](/)\n",
+        ),
+    ]
+    .into_iter()
+    .map(|(p, c)| (p.to_owned(), c.to_owned()))
+    .collect();
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let dir = tmp.path().join("site");
+    write_files(&dir, &files);
+    let report = build(BuildRequest {
+        source: dir,
+        sink: SinkKind::Memory,
+        clock: Some("2026-09-27T12:00:00Z".parse().expect("clock")),
+        ..BuildRequest::default()
+    })
+    .unwrap_or_else(|e| panic!("build: {e}"));
+    let mem = report.memory.as_ref().expect("memory");
+    let html = mem.text("index.html").expect("home");
+    assert_eq!(
+        html,
+        "layout=production/Docs partial=production/Docs <p>shortcode=production/Docs hook=production/Docs</p>\n"
+    );
+}
+
+/// The docs `glossary` shortcode (`rust/sites/docs/layouts/_shortcodes/glossary.html`) on a
+/// docs-shaped site (`content/en` mounted as `content`): each term's definition is its
+/// `raw_content` (a summary key of every generation, so the content phase reads it), trimmed.
+#[test]
+fn docs_glossary() {
+    let glossary = std::fs::read_to_string(
+        neohugo_testkit::fixture::rust_dir().join("sites/docs/layouts/_shortcodes/glossary.html"),
+    )
+    .expect("glossary.html");
+    let files: Vec<(String, String)> = [
+        (
+            "hugo.toml",
+            concat!(
+                "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\n",
+                "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n",
+                "[[module.mounts]]\nlang = 'en'\nsource = 'content/en'\ntarget = 'content'\n",
+            ),
+        ),
+        ("layouts/single.html", LAYOUT),
+        ("layouts/list.html", LAYOUT),
+        ("layouts/home.html", LAYOUT),
+        ("layouts/_shortcodes/glossary.html", glossary.as_str()),
+        ("content/en/_index.md", "---\ntitle: Home\n---\n"),
+        (
+            "content/en/quick-reference/_index.md",
+            "---\ntitle: Quick reference\n---\n",
+        ),
+        (
+            "content/en/quick-reference/glossary/_index.md",
+            concat!(
+                "---\ntitle: Glossary\nbuild:\n  render: always\n  list: always\ncascade:\n",
+                "  build:\n    render: never\n    list: local\nlayout: single\n---\n\n",
+                "{{% glossary %}}\n",
+            ),
+        ),
+        (
+            "content/en/quick-reference/glossary/array.md",
+            concat!(
+                "---\ntitle: array\nreference: https://go.dev/ref/spec#Array_types\n---\n\n",
+                "An _array_ is a numbered sequence of elements --- fixed length.\n",
+            ),
+        ),
+        (
+            "content/en/quick-reference/glossary/cache.md",
+            "---\ntitle: cache\n---\n\n  A _cache_ stores data.\n\n",
+        ),
+        (
+            "content/en/quick-reference/glossary/cicd.md",
+            concat!(
+                "---\ntitle: CI/CD\nparams:\n  reference: /functions/\n---\n\n",
+                "The term _CI/CD_ is an abbreviation.\n",
+            ),
+        ),
+        (
+            "content/en/functions/_index.md",
+            "---\ntitle: Functions\n---\n",
+        ),
+    ]
+    .into_iter()
+    .map(|(p, c)| (p.to_owned(), c.to_owned()))
+    .collect();
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let dir = tmp.path().join("docs");
+    write_files(&dir, &files);
+    let report = build(BuildRequest {
+        source: dir,
+        sink: SinkKind::Memory,
+        clock: Some("2026-09-27T12:00:00Z".parse().expect("clock")),
+        ..BuildRequest::default()
+    })
+    .unwrap_or_else(|e| panic!("docs-like build: {e}"));
+    let mem = report.memory.as_ref().expect("memory");
+    let html = mem
+        .text("quick-reference/glossary/index.html")
+        .expect("glossary page");
+    println!("{html}");
+    assert_eq!(
+        html,
+        concat!(
+            "<main><p><a href=\"#array\">A</a>\u{a0}\n<a href=\"#cache\">C</a>\u{a0}</p>\n<dl>\n",
+            "<dt>array</dt>\n",
+            "<dd>An <em>array</em> is a numbered sequence of elements &mdash; fixed length.</dd>\n",
+            "<dd>\n<p>See\u{a0}<a href=\"https://go.dev/ref/spec#Array_types\">details</a>.</p>\n</dd>\n",
+            "<dt>cache</dt>\n<dd>A <em>cache</em> stores data.</dd>\n",
+            "<dt>CI/CD</dt>\n<dd>The term <em>CI/CD</em> is an abbreviation.</dd>\n",
+            "<dd>\n<p>See\u{a0}<a href=\"/functions/\">details</a>.</p>\n</dd>\n</dl>\n</main>",
+        )
+    );
+}

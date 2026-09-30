@@ -71,6 +71,7 @@ permalink: "https://example.org/fr/posts/one/"
 publish_date:
   rfc3339: "2021-02-01T10:00:00+00:00"
   unix: 1612173600
+raw_content: "Corps.\n"
 rel_permalink: /fr/posts/one/
 resources: []
 section: posts

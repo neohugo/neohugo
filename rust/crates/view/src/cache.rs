@@ -75,10 +75,9 @@ struct Shared {
     menus: Arc<Menus>,
     /// `.Resources` of every page (store ids).
     resources: IdVec<PageId, Vec<ResourceId>>,
-    /// The Meta summaries (content-free): the base of every generation's summaries.
+    /// The Meta summaries (content-free, `raw_content` included): the base of every
+    /// generation's summaries.
     base: IdVec<PageId, tera::Value>,
-    /// `raw_content` of every page, shared by the Full generations.
-    raw: IdVec<PageId, tera::Value>,
     /// The empty list (shared by every empty list value).
     empty: tera::Value,
     links: IdVec<PageId, tera::Value>,
@@ -344,6 +343,7 @@ impl Shared {
             .par_iter()
             .zip(resource_values)
             .map(|(p, resources)| {
+                let raw_content = tera::Value::from(p.source.as_ref().map_or("", |s| s.body()));
                 let m = &p.meta;
                 let [date, lastmod, publish_date, expiry_date] = dates(&m.dates);
                 let site = &model.sites[p.lang];
@@ -402,16 +402,11 @@ impl Shared {
                     output_formats: output_formats(&model, &media_types, p),
                     resources,
                     terms: tera::Value::from(terms),
+                    raw_content,
                 })
             })
             .collect::<Vec<_>>()
             .into();
-
-        let raw = model
-            .pages
-            .iter()
-            .map(|p| tera::Value::from(p.source.as_ref().map_or("", |s| s.body())))
-            .collect();
 
         let mut prev_next = model.pages.iter().map(|_| (None, None)).collect();
         for s in &model.sites {
@@ -471,7 +466,6 @@ impl Shared {
             menus,
             resources,
             base,
-            raw,
             empty,
             links,
             prev_next,
@@ -507,7 +501,7 @@ impl Default for ContentMemo {
 }
 
 impl ContentMemo {
-    fn content(&self, shared: &Shared, id: PageId, c: Option<&Arc<RenderedContent>>) -> tera::Map {
+    fn content(&self, c: Option<&Arc<RenderedContent>>) -> tera::Map {
         let key = c.map(|c| Arc::as_ptr(c) as usize);
         if let Some(k) = key
             && let Some(m) = self
@@ -518,7 +512,7 @@ impl ContentMemo {
         {
             return m.clone();
         }
-        let mut view = ContentView::new(c.map(Arc::as_ref), shared.raw[id].clone());
+        let mut view = ContentView::new(c.map(Arc::as_ref));
         if c.is_none_or(|c| c.fragments.headings.is_empty() && c.fragments.identifiers.is_empty()) {
             view.fragments = self.no_fragments.clone();
         }
@@ -544,7 +538,7 @@ impl ViewGeneration {
                 .as_slice()
                 .par_iter()
                 .map(|p| {
-                    let content = memo.content(shared, p.id, c.get(p.id).and_then(Option::as_ref));
+                    let content = memo.content(c.get(p.id).and_then(Option::as_ref));
                     merged(&shared.base[p.id], content)
                 })
                 .collect::<Vec<_>>()

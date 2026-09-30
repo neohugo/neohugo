@@ -192,7 +192,7 @@ pub fn register_pure(tera: &mut Tera, env: &Arc<PureEnv>) {
     system::register(&mut r, env);
     views::register(&mut r);
     #[cfg(feature = "math")]
-    math::register(&mut r);
+    math::register(&mut r, env);
     for name in NOT_COMPILED {
         r.not_compiled(name);
     }
