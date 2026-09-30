@@ -9,13 +9,13 @@ Usage:
 Sites:
   docs          this repository's docs/ site, patched to build offline (see DOCS_* below)
   testsite      hugolib/testsite plus a small config and layouts (TESTSITE_FILES)
-  seeksnack     the reconstructed seeksnack config (crates/nh-allconfig/tests/fixtures/load/
+  seeksnack     the reconstructed seeksnack config (rust/testdata/oracle/allconfig/load/
                 seeksnack/hugo.toml) with the synthetic en/th content tree of the nh-hugolib
-                oracles (read from crates/nh-hugolib/tests/fixtures/build/seeksnack.json.gz) and
+                oracles (read from rust/testdata/oracle/hugolib/build/seeksnack.json.gz) and
                 the layouts/assets/i18n/data of seeksnack.txtar; its GetRemote calls are served
                 from the 51 golden getresource cache entries
   errors        a failing build (errors.txtar): the error texts must be Go's
-  t24-<name>    the T24 build-oracle sites (crates/nh-hugolib/tests/fixtures/build/<name>.json.gz)
+  t24-<name>    the T24 build-oracle sites (rust/testdata/oracle/hugolib/build/<name>.json.gz)
 
 Both binaries build the same copy with the same flags (see compare.sh).
 """
@@ -27,11 +27,12 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
-BUILD_FX = os.path.join(ROOT, "crates", "nh-hugolib", "tests", "fixtures", "build")
+TESTDATA = os.path.join(ROOT, "rust", "testdata")
+BUILD_FX = os.path.join(TESTDATA, "oracle", "hugolib", "build")
 GOLDEN_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache", "seeksnack",
                             "filecache", "getresource")
-GETREMOTE_FX = os.path.join(ROOT, "crates", "nh-resource-transformers", "tests", "fixtures",
-                            "getremote", "getremote.json.gz")
+GETREMOTE_FX = os.path.join(TESTDATA, "oracle", "resource-transformers", "getremote",
+                            "getremote.json.gz")
 
 
 def write(dir_, rel, content):
@@ -275,7 +276,7 @@ def generated_snacks():
                 f"[link](/snacks/snack-{(i + 1) % len(ids):02d}/).\n\n<!--more-->\n\n"
                 f"### Details\n\n" + "More words. " * (5 + i % 40) + "\n")
         files[f"content/snacks/{slug}/index.md"] = "\n".join(fm) + "\n" + body
-        with open(os.path.join(ROOT, "crates", "go-image", "tests", "fixtures", "site",
+        with open(os.path.join(TESTDATA, "site-assets", "site",
                                _JPGS[i % len(_JPGS)]), "rb") as fh:
             files[f"content/snacks/{slug}/{img}"] = fh.read()
         if i % 3 == 0:
@@ -287,9 +288,9 @@ def generated_snacks():
     return files
 
 
-_SITE_JPG = "crates/go-image/tests/fixtures/site/"
-_REPO_PNG = "crates/go-png/tests/fixtures/repo/"
-_GOLDEN_PNG = "crates/go-png/tests/fixtures/golden/"
+_SITE_JPG = "rust/testdata/site-assets/site/"
+_REPO_PNG = "rust/testdata/site-assets/repo/"
+_GOLDEN_PNG = "rust/testdata/site-assets/golden/"
 SEEKSNACK_IMAGES = {
     "content/biscuit/koalas-march-chocolate/koala.jpg": _SITE_JPG + "assets_images_categories_biscuit-stick.jpg",
     "content/biscuit/koalas-march-chocolate/koala_pack.jpg": _SITE_JPG + "assets_images_categories_almonds.jpg",
@@ -323,7 +324,7 @@ def seeksnack_cache(dir_):
         shutil.copyfile(os.path.join(GOLDEN_CACHE, e["entry"]), os.path.join(gdir, e["fileCacheKey"]))
 
 
-PROBE_FX = os.path.join(ROOT, "crates", "nh-tplimpl", "tests", "fixtures", "probe", "probe.json.gz")
+PROBE_FX = os.path.join(TESTDATA, "oracle", "tplimpl", "probe", "probe.json.gz")
 
 PROBE_CONFIG = """baseURL = "https://example.org/"
 title = "Site"

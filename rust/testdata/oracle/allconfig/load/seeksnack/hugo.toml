@@ -1,0 +1,355 @@
+# Reconstruction of the seeksnack site config (github.com/blackb1rd/seeksnack-seeksnack
+# at ae6c922, private) from the decoded Go dumps in
+# docs/rust-port/specs/architecture-core-data/config-{en,th,en-printzero,mounts}.json.
+# Go's allconfig.LoadConfig of this file reproduces those dumps (see
+# crates/nh-allconfig/PORTING.md for what the dumps cannot tell).
+baseURL = "https://seeksnack.com/"
+languageCode = "en"
+defaultContentLanguage = "en"
+title = "SeekSnack"
+canonifyURLs = true
+enableRobotsTXT = true
+disableLanguages = ["de", "es", "fr", "ja", "nl", "pl", "pt", "zh-cn", "zh-tw"]
+
+[build]
+  [build.buildStats]
+    enable = true
+
+[imaging]
+  [imaging.exif]
+    disableDate = false
+    disableLatLong = false
+    excludeFields = ".*"
+    includeFields = ""
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    guessSyntax = true
+    lineNos = true
+
+[outputFormats]
+
+[outputs]
+  home = ["html", "json", "rss"]
+
+[pagination]
+  pagerSize = 12
+
+[permalinks]
+  posts = "/posts/:year/:month/:title"
+
+[related]
+  includeNewer = false
+  threshold = 80
+  toLower = false
+  [[related.indices]]
+    name = "categories"
+    weight = 100
+  [[related.indices]]
+    name = "brands"
+    weight = 80
+  [[related.indices]]
+    name = "companies"
+    weight = 60
+
+[server]
+  [[server.redirects]]
+    from = "/**"
+    to = "/404.html"
+    status = 404
+
+[services]
+  [services.rss]
+    limit = 10
+
+[sitemap]
+  changefreq = "weekly"
+
+[taxonomies]
+  brand = "brands"
+  category = "categories"
+  company = "companies"
+  country = "countries"
+  ingredient = "ingredients"
+  tag = "tags"
+
+[module]
+  [[module.mounts]]
+    source = "content"
+    target = "content"
+  [[module.mounts]]
+    source = "static"
+    target = "static"
+  [[module.mounts]]
+    source = "layouts"
+    target = "layouts"
+  [[module.mounts]]
+    source = "data"
+    target = "data"
+  [[module.mounts]]
+    source = "assets"
+    target = "assets"
+  [[module.mounts]]
+    source = "i18n"
+    target = "i18n"
+  [[module.mounts]]
+    source = "archetypes"
+    target = "archetypes"
+  [[module.mounts]]
+    source = "node_modules"
+    target = "assets/vendor"
+
+[[menus.main]]
+  name = "Snack Companies"
+  url = "/companies/"
+  weight = 1
+[[menus.main]]
+  name = "Snack Brands"
+  url = "/brands/"
+  weight = 2
+[[menus.main]]
+  name = "Snack Countries"
+  url = "/countries/"
+  weight = 3
+[[menus.main]]
+  name = "Snack Categories"
+  url = "/categories/"
+  weight = 4
+[[menus.main]]
+  name = "Snack Ingredients"
+  url = "/ingredients/"
+  weight = 5
+
+[languages]
+  [languages.en]
+    languageName = "🇺🇸 English"
+    languageCode = "en"
+    weight = 1
+  [languages.th]
+    languageName = "🇹🇭 ไทย"
+    languageCode = "th"
+    weight = 2
+    [languages.th.params]
+      description = "ไดอารี่ของการแสวงหาขนมขบเคี้ยว"
+      hometitle = "สมุดไดอารีขนมขบเคี้ยว"
+      languageCode = "th"
+      languageCodeOpenGraph = "th_TH"
+    [[languages.th.menus.main]]
+      name = "บริษัทขนม"
+      url = "/companies/"
+      weight = 1
+    [[languages.th.menus.main]]
+      name = "ยี่ห้อขนม"
+      url = "/brands/"
+      weight = 3
+    [[languages.th.menus.main]]
+      name = "ขนมของประเทศ"
+      url = "/countries/"
+      weight = 3
+    [[languages.th.menus.main]]
+      name = "ประเภทขนม"
+      url = "/categories/"
+      weight = 2
+    [[languages.th.menus.main]]
+      name = "ส่วนผสมขนม"
+      url = "/ingredients/"
+      weight = 4
+  [languages.fr]
+    languageCode = "fr"
+    languageName = "Français"
+    title = "avis sur les collations - SeekSnack"
+    weight = 3
+  [languages.pl]
+    languageCode = "pl"
+    languageName = "Polski"
+    title = "Recenzje przekąsek - SeekSnack"
+    weight = 4
+  [languages.pt]
+    languageCode = "pt"
+    languageName = "Português"
+    title = "Resenhas de lanches - SeekSnack"
+    weight = 5
+  [languages.de]
+    languageCode = "de"
+    languageName = "Deutsche"
+    weight = 6
+  [languages.es]
+    languageCode = "es"
+    languageName = "Española"
+    weight = 7
+  [languages.zh-cn]
+    languageName = "中文"
+    languageCode = "zh-CN"
+    weight = 8
+  [languages.zh-tw]
+    languageName = "中文"
+    languageCode = "zh-TW"
+    weight = 9
+  [languages.ja]
+    languageCode = "ja"
+    languageName = "日本語"
+    weight = 10
+  [languages.nl]
+    languageCode = "nl"
+    languageName = "Nederlands"
+    weight = 11
+
+
+[params]
+author = "SeekSnack"
+authoremail = "seeksnack@gmail.com"
+baseurl = "https://seeksnack.com/"
+baseurlsearch = "https://seeksnack.com/search/?s={search_term_string}"
+company = "SeekSnack"
+description = "The diary of seeking the snack food"
+dynamiccontent = false
+hidecopyright = false
+hometitle = "Snack Food Diary"
+languagecode = "en"
+languagecodeopengraph = "en_US"
+yearcreate = "2019"
+
+[params.api]
+youtube = "REDACTED_LEAKED_YOUTUBE_API_KEY_0000000"
+
+[params.carousel]
+totalshow = 5
+
+[params.comment]
+apidev = "http://localhost:53354"
+apipro = "https://api.seeksnack.com"
+enabled = true
+
+[params.comment.recaptcha]
+encryptedkey = ""
+sitekey = ""
+
+[params.footer]
+logo = "images/favicon/mstile-70x70.png"
+
+[params.footer.quicklinks.column1]
+title = "Overview"
+
+[[params.footer.quicklinks.column1.links]]
+link = "/about"
+text = "About"
+
+[[params.footer.quicklinks.column1.links]]
+link = "/privacy"
+text = "Privacy"
+
+[[params.footer.quicklinks.column1.links]]
+link = "/disclaimer"
+text = "Disclaimer"
+
+[[params.footer.quicklinks.column1.links]]
+link = "/terms"
+text = "Terms of Service"
+
+[[params.footer.quicklinks.column1.links]]
+link = "/contact"
+text = "Contact Us"
+
+[params.footer.quicklinks.column2]
+title = "Blog"
+
+[[params.footer.quicklinks.column2.links]]
+link = "/blog"
+text = "Latest news"
+
+[[params.footer.socialmedia]]
+icon = "fab fa-facebook-square"
+link = "https://facebook.com/SeekSnack"
+name = "facebook"
+type = "social"
+
+[[params.footer.socialmedia]]
+icon = "fab fa-instagram"
+link = "https://instagram.com/SeekSnack"
+name = "instagram"
+type = "social"
+
+[[params.footer.socialmedia]]
+icon = "fab fa-square-x-twitter"
+link = "https://twitter.com/SeekSnack"
+name = "twitter"
+type = "social"
+
+[[params.footer.socialmedia]]
+icon = "fab fa-youtube"
+link = "https://www.youtube.com/channel/UC1hJmgQbrJVfxN-_rgZGLow"
+name = "youtube"
+type = "social"
+
+[[params.footer.socialmedia]]
+icon = "fab fa-pinterest"
+link = "https://www.pinterest.com/seeksnack/"
+name = "pinterest"
+type = "social"
+
+[[params.footer.socialmedia]]
+icon = "fab fa-linkedin"
+link = "https://linkedin.com/company/seeksnack"
+name = "linkedin"
+type = "social"
+
+[[params.footer.socialmedia]]
+icon = "fab fa-dribbble"
+link = "https://dribbble.com/SeekSnack"
+name = "dribbble"
+type = "social"
+
+[[params.footer.socialmedia]]
+icon = "fas fa-rss-square"
+link = "https://seeksnack.com/index.xml"
+name = "rss"
+type = "rss"
+
+[params.header]
+logo = "images/favicon/favicon-32x32.png"
+
+[params.marketing.google]
+googleanalyticsgtag = "UA-149754145-1"
+googletagmanager = "G-8E03TCKZZV"
+
+[params.marketing.pinterest]
+enable = true
+
+[params.marketing.twitter]
+enable = true
+logo = "images/favicon/mstile-150x150.png"
+
+[params.monetization.ads]
+autoads = false
+dataadclient = "ca-pub-4498724782889750"
+dataadslot = "3644268402"
+manualads = true
+showads = true
+
+[params.monetization.affiliate]
+hideamazonaffiliate = true
+hidelazadaaffiliate = true
+hideshoppeeaffiliate = true
+
+[params.sitemap.priority]
+page = 1
+section = 0.3
+taxonomy = 0.1
+term = 0.5
+
+[params.social.facebook]
+appid = "2512577315512597"
+enable = true
+link = "https://facebook.com/SeekSnack"
+
+[params.social.instagram]
+name = "seeksnack"
+
+[params.social.twitter]
+name = "SeekSnack"
+
+[params.typescript.compiler]
+target = "es2015"

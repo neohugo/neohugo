@@ -41,3 +41,5 @@ public/
 # Rust port
 /target/
 crates/*/target/
+# Test data is stored verbatim (the rules above, e.g. imports.* and tags*, match fixture names).
+!/rust/testdata/**
