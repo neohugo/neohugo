@@ -1,0 +1,70 @@
+# neohugo-vfs
+
+Mounts → one union file view per component, walkers, ignore rules and the path parser
+(REWRITE_PLAN.md §2.4, phases A2 and A3 of §3.1).
+
+| API | What |
+|---|---|
+| `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped, except `hugo_stats.json`), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then each theme's component directories; duplicates (source, target, lang) dropped |
+| `Vfs::mounts`, `mounts_of` | the mounts in precedence order (project, then themes in `theme` order) |
+| `Vfs::walk(c)` | the union view of a component, sorted by path (bytes) then mount precedence: first mount wins (content: per mount language; data and i18n keep every file) |
+| `Vfs::open(c, rel)` | the first mount's file at `rel`, same rules as `walk` |
+| `PathParser::from_config`, `parse(c, rel)` | `PathInfo` (key, path, name, section, ext, language, output format, `BundleKind`, layout parts, original spelling) or `Parsed::DisabledLanguage` |
+| `Vfs::discover_content(&PathParser)` | phase A3: content files with path info and resolved language; leaf bundles demote their other files to resources; duplicate (key, language) pairs settled (`Discovery::duplicates`) |
+
+## Rules
+
+- **Ignore rules.** Content, data, i18n: names starting with `.` or `#` or ending with `~`
+  (files and directories) and `ignoreFiles` regexps (absolute file name). Layouts: files
+  starting with `.` or ending with `~`. Assets, static, archetypes: none (the static copy keeps
+  dotfiles). Symbolic links below a mount root are skipped.
+- **`includeFiles`/`excludeFiles`** are Hugo globs (`base::glob`, case-folded) matched against
+  the path below the mount source with a leading slash. A file matching an inclusion is kept,
+  else one matching an exclusion dropped, else kept only without inclusions. A directory is
+  walked when it matches an inclusion or is a directory leading to one (`/`, `/guide` for
+  `guide/**.md`), so `guide/**.md` does not reach `guide/deep/x.md` (Hugo's rule).
+- **Leaf bundles.** A directory is a leaf bundle when its first file is a leaf index, ranking
+  module, bundle files first, suffix descending (`md` before `html`), key, mount, a language in
+  the file name first, path. Everything below it becomes a resource except the index files of
+  other languages in the bundle directory itself.
+- **Duplicates** (same key, language and page/resource tree): the kept file is the first by
+  bundle index before single page (`foo/_index.md` before `foo.md`), `_index` before `index`,
+  suffix descending, mount, file-name language, path. Hugo gets the same winners from its walk
+  and insertion order (verified against the capture oracle, including its duplicate warnings).
+  The plan put this in `site` (B1); it lives here because it is a rule about files, and `site`
+  reports `Discovery::duplicates` as warnings.
+
+## Acceptance evidence
+
+`cargo test -p neohugo-vfs`:
+
+- `pathparser`: `oracle/common/paths/pathparser.json.gz`, 14,513 cases × 3 parsers, 324,666
+  checks, 0 differences: `Base` (key), `BaseNameNoIdentifier`, `Path`, `Dir`, `Section`, `Ext`,
+  `Type`, `Lang`, `OutputFormat`, `Layout`, `Kind`, `Is*`, `Disabled`, the normalisation, the
+  unnormalised `Path`/`Base`/`BaseNameNoIdentifier`/`Section`, and the bundled-resource form
+  (`ModifyPathBundleTypeResource`).
+- `mounts`: `oracle/allconfig/load/mounts.json.gz`, all 13 cases equal (the invalid target is an
+  error).
+- `capture`: `oracle/hugolib/capture/{testsite,seeksnack,docs}` — (file, key, language, kind)
+  for every file in Hugo's page and resource trees, plus name, section, extension and original
+  base of every page: testsite 2, seeksnack 56, docs 1,011 files equal. Also contentdir,
+  edge-tree, homeleaf, nokinds, shortcodes, synthetic.
+- `walk`: mount precedence (project over themes, per-language content, data/i18n keep all),
+  mounts below a component and single-file mounts, ignore rules, filters, disabled and unknown
+  mount languages, symlinks, leaf bundles, duplicates.
+- `walk::discover_sites` (ignored; `NEOHUGO_VFS_SITES=<dir>:…`): whole `sites.py` sites.
+
+## Accepted deviations
+
+| What | Why |
+|---|---|
+| `original` names keep the normalised structure (192 oracle cases) | Go parses the unnormalised path again with case-sensitive lookups, so `Index.EN.md` or `UPPER.MD` get another structure there (`EN` no language, `MD` no content suffix). Here every lookup uses the normalised identifier, so `original.base` of `Index.md` is `/`, like its key. |
+| Keys with an empty segment or a trailing slash (162 checks) | Go's `Base()` of `a//`, `/tags//_index.md` or a page file named `.md` keeps the slashes; `ContentKey` has neither. Walks never produce such paths (no empty segments; content names starting with `.` are ignored). |
+| Go `TypeShortcode` outside layouts is `BundleKind::Resource` (144 cases) | A non-content file below `/_shortcodes/` in another component; Go treats it exactly like `TypeFile`. |
+| Not modelled: `Container`, `ContainerDir`, `Identifiers`, `NameNoExt`, `NameNoLang`, `PathNoLang`, `PathBeforeLangAndOutputFormatAndExt`, `BaseReTyped`, `IdentifierBase`, `TrimLeadingSlash`, `ForType`, `PathRel`, `BaseRel` | Go conveniences; callers derive what they need from `key`, `path` and `dir()`. |
+| Themes get the default component mounts only | A theme's own configuration (its mounts, nested themes) is not read; `neohugo-config` loads the project configuration only. |
+| A missing `hugo_stats.json` mount source is kept but not created | Hugo creates the empty file; here the build writes it (E4) and `walk`/`open` see it once it exists. |
+| No NFC normalisation of file names | Hugo does it on darwin only; neohugo runs on Linux. |
+| `walk` returns a `Vec` in byte order, not Hugo's `ReadDir` order | Order only affected Hugo's insertion ids; the trees are keyed. |
+| Discovery is sequential | The plan's `par_iter` over mounts is not needed: the docs site (1,000 files) walks in milliseconds. |
+| Pages of disabled kinds and front matter `path`/`lang` moves | Not file-system rules: `page`/`site` apply them (the capture test leaves those files out). |

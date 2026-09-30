@@ -3090,12 +3090,14 @@ dependencies = [
 name = "neohugo-vfs"
 version = "0.149.0-DEV"
 dependencies = [
- "globset",
  "neohugo-base",
  "neohugo-config",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
+ "regex",
+ "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
- "walkdir",
 ]
 
 [[package]]

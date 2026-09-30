@@ -1,0 +1,526 @@
+//! Mount precedence, the union views, ignore rules, filters and content discovery on small
+//! projects.
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use neohugo_base::{Idx, LangIdx};
+use neohugo_config::{Config, LoadOptions, load};
+use neohugo_vfs::{BundleKind, Component, FileRef, Module, PathParser, Vfs};
+
+struct Project {
+    _tmp: tempfile::TempDir,
+    dir: PathBuf,
+}
+
+impl Project {
+    fn new(files: &[(&str, &str)]) -> Self {
+        let tmp = tempfile::tempdir().unwrap();
+        let dir = tmp.path().join("site");
+        for (name, content) in files {
+            let p = dir.join(name);
+            fs::create_dir_all(p.parent().unwrap()).unwrap();
+            fs::write(p, content).unwrap();
+        }
+        Self { _tmp: tmp, dir }
+    }
+
+    fn config(&self) -> Config {
+        load(&LoadOptions {
+            source: self.dir.clone(),
+            env: vec![(
+                "HOME".into(),
+                self.dir.join("_home").to_str().unwrap().into(),
+            )],
+            ..LoadOptions::default()
+        })
+        .unwrap()
+    }
+
+    fn vfs(&self) -> Vfs {
+        Vfs::new(&self.config()).unwrap()
+    }
+
+    /// `rel` of every file with the mount's source directory relative to the project.
+    fn walk(&self, vfs: &Vfs, c: Component) -> Vec<(String, String)> {
+        vfs.walk(c)
+            .unwrap()
+            .iter()
+            .map(|f| (f.rel.clone(), self.origin(f)))
+            .collect()
+    }
+
+    fn origin(&self, f: &FileRef) -> String {
+        f.abs
+            .strip_prefix(&self.dir)
+            .unwrap()
+            .to_str()
+            .unwrap()
+            .to_owned()
+    }
+}
+
+fn pairs(v: &[(&str, &str)]) -> Vec<(String, String)> {
+    v.iter()
+        .map(|(a, b)| ((*a).to_owned(), (*b).to_owned()))
+        .collect()
+}
+
+const THEMED: &[(&str, &str)] = &[
+    ("hugo.toml", "theme = [\"t1\", \"t2\"]\n"),
+    ("layouts/single.html", "p"),
+    ("layouts/_partials/head.html", "p"),
+    ("themes/t1/layouts/single.html", "t1"),
+    ("themes/t1/layouts/list.html", "t1"),
+    ("themes/t2/layouts/list.html", "t2"),
+    ("themes/t2/layouts/baseof.html", "t2"),
+    ("content/p.md", ""),
+    ("themes/t1/content/p.md", ""),
+    ("themes/t1/content/q.md", ""),
+    ("data/x.toml", "a = 1"),
+    ("themes/t1/data/x.toml", "a = 2"),
+    ("themes/t2/i18n/en.toml", ""),
+    ("i18n/en.toml", ""),
+];
+
+#[test]
+fn project_before_themes_first_wins() {
+    let p = Project::new(THEMED);
+    let vfs = p.vfs();
+    assert_eq!(
+        p.walk(&vfs, Component::Layouts),
+        pairs(&[
+            ("_partials/head.html", "layouts/_partials/head.html"),
+            ("baseof.html", "themes/t2/layouts/baseof.html"),
+            ("list.html", "themes/t1/layouts/list.html"),
+            ("single.html", "layouts/single.html"),
+        ])
+    );
+    assert_eq!(
+        p.walk(&vfs, Component::Content),
+        pairs(&[("p.md", "content/p.md"), ("q.md", "themes/t1/content/q.md")])
+    );
+    // Data and i18n keep every file, project first.
+    assert_eq!(
+        p.walk(&vfs, Component::Data),
+        pairs(&[
+            ("x.toml", "data/x.toml"),
+            ("x.toml", "themes/t1/data/x.toml")
+        ])
+    );
+    assert_eq!(
+        p.walk(&vfs, Component::I18n),
+        pairs(&[
+            ("en.toml", "i18n/en.toml"),
+            ("en.toml", "themes/t2/i18n/en.toml")
+        ])
+    );
+    let open = |rel| vfs.open(Component::Layouts, rel).map(|f| p.origin(&f));
+    assert_eq!(open("single.html").as_deref(), Some("layouts/single.html"));
+    assert_eq!(
+        open("/list.html").as_deref(),
+        Some("themes/t1/layouts/list.html")
+    );
+    assert_eq!(
+        open("baseof.html").as_deref(),
+        Some("themes/t2/layouts/baseof.html")
+    );
+    assert_eq!(open("none.html"), None);
+    assert_eq!(open("_partials"), None);
+
+    let modules: Vec<Module> = vfs
+        .mounts_of(Component::Layouts)
+        .map(|(_, m)| m.module)
+        .collect();
+    assert_eq!(
+        modules,
+        [Module::Project, Module::Theme(0), Module::Theme(1)]
+    );
+}
+
+#[test]
+fn missing_theme_is_an_error() {
+    let p = Project::new(&[("hugo.toml", "theme = \"nope\"\n")]);
+    assert!(Vfs::new(&p.config()).is_err());
+}
+
+#[test]
+fn content_is_merged_per_language() {
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            "defaultContentLanguage = \"en\"\n\
+             [languages.en]\nweight = 1\n\
+             [languages.th]\nweight = 2\ncontentDir = \"content_th\"\n\
+             [[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\n\
+             [[module.mounts]]\nsource = \"extra\"\ntarget = \"content\"\n\
+             [[module.mounts]]\nsource = \"content_th\"\ntarget = \"content\"\nlang = \"th\"\n",
+        ),
+        ("content/p.md", ""),
+        ("extra/p.md", ""),
+        ("extra/x.md", ""),
+        ("content_th/p.md", ""),
+    ]);
+    let vfs = p.vfs();
+    // The same path in another language is kept; in the same language the first mount wins.
+    assert_eq!(
+        p.walk(&vfs, Component::Content),
+        pairs(&[
+            ("p.md", "content/p.md"),
+            ("p.md", "content_th/p.md"),
+            ("x.md", "extra/x.md")
+        ])
+    );
+    let langs: Vec<Option<LangIdx>> = vfs
+        .walk(Component::Content)
+        .unwrap()
+        .iter()
+        .map(|f| f.mount_lang)
+        .collect();
+    assert_eq!(langs, [None, Some(LangIdx::from_index(1)), None]);
+}
+
+#[test]
+fn mounts_below_a_component_and_single_files() {
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            "[[module.mounts]]\nsource = \"assets\"\ntarget = \"assets\"\n\
+             [[module.mounts]]\nsource = \"node_modules/lib\"\ntarget = \"assets/vendor/lib\"\n\
+             [[module.mounts]]\nsource = \"hugo_stats.json\"\n\
+             target = \"assets/notwatching/hugo_stats.json\"\n",
+        ),
+        ("assets/main.css", ""),
+        ("node_modules/lib/dist/lib.js", ""),
+        ("package.json", "{}"),
+        ("postcss.config.js", ""),
+    ]);
+    let vfs = p.vfs();
+    assert_eq!(
+        p.walk(&vfs, Component::Assets),
+        pairs(&[
+            ("_jsconfig/package.json", "package.json"),
+            ("_jsconfig/postcss.config.js", "postcss.config.js"),
+            ("main.css", "assets/main.css"),
+            ("vendor/lib/dist/lib.js", "node_modules/lib/dist/lib.js"),
+        ])
+    );
+    let open = |rel| vfs.open(Component::Assets, rel).map(|f| p.origin(&f));
+    assert_eq!(
+        open("vendor/lib/dist/lib.js").as_deref(),
+        Some("node_modules/lib/dist/lib.js")
+    );
+    assert_eq!(open("vendor/lib"), None);
+    // The build writes hugo_stats.json later: the mount exists, the file not yet.
+    assert!(
+        vfs.mounts()
+            .iter()
+            .any(|m| m.target == "assets/notwatching/hugo_stats.json")
+    );
+    assert_eq!(open("notwatching/hugo_stats.json"), None);
+    fs::write(p.dir.join("hugo_stats.json"), "{}").unwrap();
+    assert_eq!(
+        open("notwatching/hugo_stats.json").as_deref(),
+        Some("hugo_stats.json")
+    );
+}
+
+#[test]
+fn ignore_rules_per_component() {
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            "ignoreFiles = [\"\\\\.draft\\\\.md$\", \"/private/\"]\n",
+        ),
+        ("content/a.md", ""),
+        ("content/.hidden.md", ""),
+        ("content/#autosave.md", ""),
+        ("content/b.md~", ""),
+        ("content/c.draft.md", ""),
+        ("content/.git/d.md", ""),
+        ("content/private/e.md", ""),
+        ("layouts/single.html", ""),
+        ("layouts/.single.html", ""),
+        ("layouts/list.html~", ""),
+        ("layouts/.dir/x.html", ""),
+        ("layouts/#x.html", ""),
+        ("static/.well-known/a.txt", ""),
+        ("static/.DS_Store", ""),
+        ("data/.x.toml", ""),
+        ("data/y.toml", ""),
+    ]);
+    let vfs = p.vfs();
+    let rels = |c| -> Vec<String> { p.walk(&vfs, c).into_iter().map(|(r, _)| r).collect() };
+    assert_eq!(rels(Component::Content), ["a.md"]);
+    assert_eq!(
+        rels(Component::Layouts),
+        ["#x.html", ".dir/x.html", "single.html"]
+    );
+    assert_eq!(rels(Component::Static), [".DS_Store", ".well-known/a.txt"]);
+    assert_eq!(rels(Component::Data), ["y.toml"]);
+    assert_eq!(vfs.open(Component::Content, "c.draft.md"), None);
+    assert_eq!(vfs.open(Component::Content, ".git/d.md"), None);
+    assert!(vfs.open(Component::Content, "a.md").is_some());
+}
+
+#[cfg(unix)]
+#[test]
+fn symlinks_below_a_mount_are_skipped() {
+    let p = Project::new(&[
+        ("hugo.toml", ""),
+        ("content/a.md", ""),
+        ("outside/b.md", ""),
+    ]);
+    std::os::unix::fs::symlink(p.dir.join("outside/b.md"), p.dir.join("content/b.md")).unwrap();
+    std::os::unix::fs::symlink(p.dir.join("outside"), p.dir.join("content/dir")).unwrap();
+    let vfs = p.vfs();
+    assert_eq!(
+        p.walk(&vfs, Component::Content),
+        pairs(&[("a.md", "content/a.md")])
+    );
+    assert_eq!(vfs.open(Component::Content, "b.md"), None);
+}
+
+#[test]
+fn include_and_exclude_files() {
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            "[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\n\
+             excludeFiles = [\"**/drafts/**\", \"*.tmp\"]\n\
+             [[module.mounts]]\nsource = \"docs\"\ntarget = \"content/docs\"\n\
+             includeFiles = \"guide/**.md\"\n",
+        ),
+        ("content/a.md", ""),
+        ("content/a.tmp", ""),
+        ("content/s/b.tmp", ""),
+        ("content/s/drafts/c.md", ""),
+        ("docs/guide/one.md", ""),
+        ("docs/guide/deep/two.md", ""),
+        ("docs/guide/img.png", ""),
+        ("docs/other/three.md", ""),
+        ("docs/top.md", ""),
+    ]);
+    let vfs = p.vfs();
+    let rels: Vec<String> = p
+        .walk(&vfs, Component::Content)
+        .into_iter()
+        .map(|(r, _)| r)
+        .collect();
+    // A directory is walked when it matches an inclusion or leads to one (`/`, `/guide`):
+    // `guide/**.md` does not open `guide/deep` (Hugo's rule; `guide/**` would).
+    assert_eq!(rels, ["a.md", "docs/guide/one.md", "s/b.tmp"]);
+}
+
+#[test]
+fn disabled_and_unknown_mount_languages() {
+    let langs = "defaultContentLanguage = \"en\"\ndisableLanguages = [\"fr\"]\n\
+                 [languages.en]\nweight = 1\n[languages.fr]\nweight = 2\n";
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            &format!(
+                "{langs}[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\n\
+                 [[module.mounts]]\nsource = \"content_fr\"\ntarget = \"content\"\nlang = \"fr\"\n"
+            ),
+        ),
+        ("content/a.md", ""),
+        ("content/a.fr.md", ""),
+        ("content_fr/b.md", ""),
+    ]);
+    let vfs = p.vfs();
+    let cfg = p.config();
+    assert!(vfs.mounts().iter().any(neohugo_vfs::Mount::is_disabled));
+    // The disabled mount contributes nothing; a disabled language in the name drops the file.
+    assert_eq!(
+        p.walk(&vfs, Component::Content),
+        pairs(&[("a.fr.md", "content/a.fr.md"), ("a.md", "content/a.md")])
+    );
+    let found = vfs
+        .discover_content(&PathParser::from_config(&cfg))
+        .unwrap();
+    let keys: Vec<&str> = found.files.iter().map(|f| f.info.key.as_str()).collect();
+    assert_eq!(keys, ["a"]);
+
+    let p = Project::new(&[(
+        "hugo.toml",
+        "[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\nlang = \"xx\"\n",
+    )]);
+    fs::create_dir_all(p.dir.join("content")).unwrap();
+    assert!(Vfs::new(&p.config()).is_err());
+}
+
+/// (rel, key, kind, language key) of a discovered file.
+type Found = (String, String, BundleKind, String);
+
+/// Every discovered file, and the dropped duplicates.
+fn discover(p: &Project) -> (Vec<Found>, Vec<PathBuf>) {
+    let cfg = p.config();
+    let found = p
+        .vfs()
+        .discover_content(&PathParser::from_config(&cfg))
+        .unwrap();
+    let files = found
+        .files
+        .iter()
+        .map(|f| {
+            (
+                f.file.rel.clone(),
+                f.info.key.as_str().to_owned(),
+                f.info.kind,
+                cfg.sites[f.lang].language.key.clone(),
+            )
+        })
+        .collect();
+    let dropped = found
+        .duplicates
+        .iter()
+        .map(|d| d.dropped.strip_prefix(&p.dir).unwrap().to_path_buf())
+        .collect();
+    (files, dropped)
+}
+
+fn rec(rel: &str, key: &str, kind: BundleKind, lang: &str) -> Found {
+    (rel.to_owned(), key.to_owned(), kind, lang.to_owned())
+}
+
+#[test]
+fn leaf_bundles_and_duplicates() {
+    use BundleKind::{Branch, ContentResource, Leaf, Resource, Single};
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            "defaultContentLanguage = \"en\"\n[languages.en]\nweight = 1\n\
+             [languages.th]\nweight = 2\n",
+        ),
+        ("content/_index.md", ""),
+        ("content/b/index.md", ""),
+        ("content/b/index.th.md", ""),
+        ("content/b/_index.md", ""),
+        ("content/b/notes.th.md", ""),
+        ("content/b/img.jpg", ""),
+        ("content/b/sub/index.md", ""),
+        ("content/b/sub/data.json", ""),
+        ("content/s/_index.md", ""),
+        ("content/s/index.md", ""),
+        ("content/s/p.md", ""),
+        ("content/s/p.html", ""),
+        ("content/s/x.md", ""),
+        ("content/s/x/_index.md", ""),
+        ("content/s/y.th.md", ""),
+        ("content/s/y.md", ""),
+        ("content/s/img.png", ""),
+    ]);
+    let (files, dropped) = discover(&p);
+    assert_eq!(
+        files,
+        [
+            rec("_index.md", "", Branch, "en"),
+            rec("b/index.md", "b", Leaf, "en"),
+            rec("b/index.th.md", "b", Leaf, "th"),
+            rec("b/_index.md", "b/_index.md", ContentResource, "en"),
+            rec("b/img.jpg", "b/img.jpg", Resource, "en"),
+            rec("b/notes.th.md", "b/notes.md", ContentResource, "th"),
+            rec("b/sub/data.json", "b/sub/data.json", Resource, "en"),
+            rec("b/sub/index.md", "b/sub/index.md", ContentResource, "en"),
+            rec("s/_index.md", "s", Branch, "en"),
+            rec("s/img.png", "s/img.png", Resource, "en"),
+            rec("s/p.md", "s/p", Single, "en"),
+            rec("s/x/_index.md", "s/x", Branch, "en"),
+            rec("s/y.md", "s/y", Single, "en"),
+            rec("s/y.th.md", "s/y", Single, "th"),
+        ]
+    );
+    // `_index` before `index` and a bundle before a single page; `md` before `html`.
+    assert_eq!(
+        dropped,
+        [
+            PathBuf::from("content/s/index.md"),
+            PathBuf::from("content/s/p.html"),
+            PathBuf::from("content/s/x.md"),
+        ]
+    );
+}
+
+#[test]
+fn a_leaf_bundle_at_the_root_owns_everything() {
+    let p = Project::new(&[
+        ("hugo.toml", ""),
+        ("content/index.md", ""),
+        ("content/a.md", ""),
+        ("content/s/_index.md", ""),
+    ]);
+    let (files, _) = discover(&p);
+    let kinds: Vec<(&str, BundleKind)> = files.iter().map(|f| (f.1.as_str(), f.2)).collect();
+    assert_eq!(
+        kinds,
+        [
+            ("", BundleKind::Leaf),
+            ("a.md", BundleKind::ContentResource),
+            ("s/_index.md", BundleKind::ContentResource),
+        ]
+    );
+}
+
+#[test]
+fn default_mounts_follow_the_dirs() {
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            "contentDir = \"c\"\nstaticDir = [\"s1\", \"s2\"]\n",
+        ),
+        ("c/a.md", ""),
+        ("s1/x.txt", "1"),
+        ("s2/x.txt", "2"),
+        ("s2/y.txt", ""),
+    ]);
+    let vfs = p.vfs();
+    assert_eq!(
+        p.walk(&vfs, Component::Content),
+        pairs(&[("a.md", "c/a.md")])
+    );
+    assert_eq!(
+        p.walk(&vfs, Component::Static),
+        pairs(&[("x.txt", "s1/x.txt"), ("y.txt", "s2/y.txt")])
+    );
+    let dir: &Path = &p.dir;
+    assert!(vfs.mounts().iter().all(|m| m.abs.starts_with(dir)));
+}
+
+/// Discovery on whole sites: `NEOHUGO_VFS_SITES=<dir>:<dir> cargo test -p neohugo-vfs --
+/// --ignored discover_sites` (sites from `tools/rust-port/i01/sites.py make <site> <dir>`).
+#[test]
+#[ignore = "needs NEOHUGO_VFS_SITES"]
+fn discover_sites() {
+    let dirs = std::env::var("NEOHUGO_VFS_SITES").expect("NEOHUGO_VFS_SITES");
+    for dir in dirs.split(':') {
+        let cfg = load(&LoadOptions {
+            source: PathBuf::from(dir),
+            ..LoadOptions::default()
+        })
+        .unwrap();
+        let vfs = Vfs::new(&cfg).unwrap();
+        let found = vfs
+            .discover_content(&PathParser::from_config(&cfg))
+            .unwrap();
+        let pages = found.files.iter().filter(|f| f.info.kind.is_page()).count();
+        let walked: Vec<String> = [
+            Component::Layouts,
+            Component::Assets,
+            Component::Data,
+            Component::I18n,
+            Component::Static,
+        ]
+        .iter()
+        .map(|&c| format!("{c} {}", vfs.walk(c).unwrap().len()))
+        .collect();
+        eprintln!(
+            "{dir}: {} mounts; content {} pages, {} resources, {} duplicates; {}",
+            vfs.mounts().len(),
+            pages,
+            found.files.len() - pages,
+            found.duplicates.len(),
+            walked.join(", ")
+        );
+    }
+}
