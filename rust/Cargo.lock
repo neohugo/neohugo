@@ -2634,6 +2634,7 @@ version = "0.149.0-DEV"
 dependencies = [
  "anyhow",
  "clap 4.6.7",
+ "insta",
  "jiff",
  "neohugo-base",
  "neohugo-build",
@@ -2641,7 +2642,9 @@ dependencies = [
  "neohugo-funcs",
  "neohugo-layouts",
  "neohugo-pageparser",
+ "neohugo-publish",
  "neohugo-render",
+ "neohugo-resources",
  "neohugo-site",
  "neohugo-testkit",
  "neohugo-vfs",

@@ -105,7 +105,7 @@ impl TeraHooks<'_> {
             ctx.insert("is_block", &c.is_block);
             ctx.insert_value("attributes", Value::from_serializable(&c.attributes));
             ctx.insert("ordinal", &env.ordinal);
-            ctx.insert("position", &env.position.to_string());
+            ctx.insert("position", &format!("\"{}\"", env.position));
         })
     }
 }
@@ -137,7 +137,7 @@ impl Hooks for TeraHooks<'_> {
             ctx.insert_value("options", Value::from_serializable(&c.options));
             ctx.insert_value("attributes", Value::from_serializable(&c.attributes));
             ctx.insert("ordinal", &env.ordinal);
-            ctx.insert("position", &env.position.to_string());
+            ctx.insert("position", &format!("\"{}\"", env.position));
         })
     }
 
@@ -168,7 +168,7 @@ impl Hooks for TeraHooks<'_> {
             ctx.insert("inner", &c.inner);
             ctx.insert_value("attributes", Value::from_serializable(&c.attributes));
             ctx.insert("ordinal", &env.ordinal);
-            ctx.insert("position", &env.position.to_string());
+            ctx.insert("position", &format!("\"{}\"", env.position));
         })
     }
 }

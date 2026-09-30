@@ -45,4 +45,9 @@ toml.workspace = true
 
 [dev-dependencies]
 neohugo-testkit.workspace = true
+# T60: the collector for A-T's `hugo_stats.json` sets, the getresource cache key for the
+# embedded x/vimeo snapshots.
+neohugo-publish.workspace = true
+neohugo-resources.workspace = true
+insta.workspace = true
 tempfile.workspace = true

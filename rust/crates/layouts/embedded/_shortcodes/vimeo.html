@@ -16,7 +16,10 @@
     {%- set cls = (shortcode | arg(index=1, default="")) if pc.simple else "" %}
   {%- endif %}
 
-  {%- if not video_id %}
+  {%- if not video_id and pc.simple %}
+    {%- set kind = "named" if shortcode.is_named_params else "positional" %}
+    {{- log_error(message='The "' ~ shortcode.name ~ '" shortcode requires a single ' ~ kind ~ ' parameter, the ID of the Vimeo video. See ' ~ shortcode.position) }}
+  {%- elif not video_id %}
     {{- log_error(message='The "' ~ shortcode.name ~ '" shortcode requires a video id, either as the first positional argument or an argument named id. See ' ~ shortcode.position) }}
   {%- elif pc.simple %}
     {%- set query = querify(params={"url": join_url(parts=["https://vimeo.com", video_id | str]), "dnt": dnt}) %}
@@ -57,7 +60,7 @@
         {%- endif %}
       {%- endif %}
       {%- set thumbnail = video.thumbnail_url %}
-      {%- set original = thumbnail | regex_replace(pattern="(_.*\\.)", rep=".") %}
+      {%- set original = thumbnail | regex_replace(pattern="(_.*\\.)", rep=".") -%}
         <div class="{{ wrapper_class }}">
           <a href="{{ video.provider_url }}{{ video.video_id | str }}" rel="noopener" target="_blank">
             <img src="{{ thumbnail }}" srcset="{{ thumbnail }} 1x, {{ original }} 2x" alt="{{ video.title }}">
@@ -73,7 +76,7 @@
     {%- set loading = shortcode | arg(name="loading", default="") %}
     {%- set video_title = shortcode | arg(name="title", default="") %}
     {%- set allow_full_screen = (shortcode | arg(name="allowFullScreen", default="")) not in ["false", false, 0] %}
-    {%- set src = "https://player.vimeo.com/video/" ~ video_id ~ "?dnt=" ~ dnt -%}
+    {%- set src = "https://player.vimeo.com/video/" ~ video_id ~ "?dnt=" ~ dnt %}
       <div
         {%- if cls %}
           class="{{ cls }}"
@@ -91,4 +94,4 @@
         </iframe>
       </div>
   {%- endif %}
-{%- endif -%}
+{%- endif %}

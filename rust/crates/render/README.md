@@ -62,7 +62,8 @@ for F uses `Format(F)` if it exists):
    through its Tera template (looked up with the variant's format, so `fmt.rss.xml` serves the
    RSS variant) with `page` (Meta full value), `site`, `hugo`, `lang`, `shortcode`
    (`ShortcodeView`: typed `args`, `params` list or map, `is_named_params`, `ordinal` per
-   nesting level, `parent`, `position`), `inner` / `inner_deindent` (safe) and `__nh`.
+   nesting level, `parent`, `position` — `"file:line:col"`, quoted as Go's `.Position` prints),
+   `inner` / `inner_deindent` (safe) and `__nh`. Render hooks get `position` in the same form.
    - `{{% %}}` output is spliced into the Markdown; `{{< >}}` output becomes `NHSC<n>X`.
    - Nested calls run first, into the parent's `inner`. The inner of the outermost `{{% %}}`
      is raw; a nested `{{% %}}` inner is rendered as Markdown (a one-line inner loses its
