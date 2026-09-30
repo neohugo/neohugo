@@ -8,7 +8,7 @@ use std::sync::{Arc, Mutex};
 use neohugo_base::Sink;
 use neohugo_base::paths::OutputPath;
 use neohugo_config::{Config, LoadOptions, load};
-use neohugo_resources::{Resource, ResourceStore, StoreConfig};
+use neohugo_resources::{Resource, ResourceStore, StoreConfig, TransformEnv};
 use neohugo_testkit::fixture::rust_dir;
 use neohugo_vfs::Vfs;
 use serde_json::{Value as J, json};
@@ -74,6 +74,20 @@ pub fn store(dir: &Path, home: &Path) -> ResourceStore {
     let cfg = config(dir, home);
     let vfs = Arc::new(Vfs::new(&cfg).unwrap());
     ResourceStore::new(StoreConfig::from_config(&cfg, Some(vfs), None))
+}
+
+/// A store as [`store`] whose external tools (PostCSS, Tailwind, Babel) are never found: no
+/// `NEOHUGO_*_BIN` / `NEOHUGO_NODE_MODULES` directories and no `PATH`, like the Go oracle runs
+/// that had none of them (their `na:` chains), whatever this machine or CI has installed.
+pub fn store_without_tools(dir: &Path, home: &Path) -> ResourceStore {
+    let cfg = config(dir, home);
+    let vfs = Arc::new(Vfs::new(&cfg).unwrap());
+    let mut sc = StoreConfig::from_config(&cfg, Some(vfs), None);
+    let mut env = TransformEnv::from_config(&cfg);
+    env.tools = Default::default();
+    env.os_env.retain(|(k, _)| k != "PATH");
+    sc.transforms = Arc::new(env);
+    ResourceStore::new(sc)
 }
 
 /// A sink that keeps what is written.
