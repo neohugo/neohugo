@@ -148,8 +148,8 @@ Measured on the testsite (debug build; 4 CPUs shared with other builds):
 
 | Run | content edit → reload | layout edit | static edit (no build) |
 |---|---|---|---|
-| `neohugo-rs server`, alone (2 sessions, 8 content and 6 static edits) | 1.57–1.84 s, one 2.17 s while the machine was compiling | – | 1.00–1.14 s |
-| `testsite_is_served_and_reloads`, 3 runs next to the other 12 tests | 1.54–2.03 s (8 of 9 ≤ 2 s) | 1.55–1.64 s | 1.05–1.07 s |
+| `neohugo-rs server`, alone (3 sessions, 13 content and 9 static edits) | 1.54–1.84 s, one 2.17 s while the machine was compiling | – | 1.00–1.14 s |
+| `testsite_is_served_and_reloads` (8 runs, 6 of them next to the other tests) | 1.54–2.03 s (23 of 24 ≤ 2 s) | 1.55–1.69 s | 1.01–1.07 s |
 
 That is the 1 s debounce, up to one 100 ms tick, and the rebuild (≈0.52–0.76 s in the debug
 build). Callgrind on a testsite build: **92 % of it is `neohugo_highlight::Highlight::new`**
