@@ -1,4 +1,5 @@
-//! HTML text: `truncate_html`, `plainify`, `html_escape`, `html_unescape`, `emojify`.
+//! HTML and XML text: `truncate_html`, `plainify`, `html_escape`, `xml_escape`, `html_unescape`,
+//! `emojify`.
 
 use std::sync::LazyLock;
 
@@ -16,6 +17,9 @@ pub(super) fn register(r: &mut Registrar<'_>) {
     });
     r.filter("html_escape", |v, _, _| {
         Ok(Value::safe_string(&html_escape(&text(&v, "html_escape")?)))
+    });
+    r.filter("xml_escape", |v, _, _| {
+        Ok(Value::safe_string(&xml_escape(&text(&v, "xml_escape")?)))
     });
     r.filter("html_unescape", |v, _, _| {
         Ok(Value::from(html_unescape(&text(&v, "html_unescape")?)))
@@ -36,6 +40,29 @@ pub(super) fn html_escape(s: &str) -> String {
             '"' => out.push_str("&#34;"),
             '\'' => out.push_str("&#39;"),
             c => out.push(c),
+        }
+    }
+    out
+}
+
+/// Hugo's `transform.XMLEscape`: drops the characters XML 1.0 forbids, then escapes as Go's
+/// `xml.EscapeText` (`& < > " '` as `&amp; &lt; &gt; &#34; &#39;`, tab, newline and CR as
+/// `&#x9; &#xA; &#xD;`).
+pub(super) fn xml_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + s.len() / 8);
+    for c in s.chars() {
+        match c {
+            '&' => out.push_str("&amp;"),
+            '<' => out.push_str("&lt;"),
+            '>' => out.push_str("&gt;"),
+            '"' => out.push_str("&#34;"),
+            '\'' => out.push_str("&#39;"),
+            '\t' => out.push_str("&#x9;"),
+            '\n' => out.push_str("&#xA;"),
+            '\r' => out.push_str("&#xD;"),
+            // https://www.w3.org/TR/xml/#NT-Char (surrogates cannot occur in a `char`)
+            '\u{20}'..='\u{FFFD}' | '\u{10000}'.. => out.push(c),
+            _ => {}
         }
     }
     out

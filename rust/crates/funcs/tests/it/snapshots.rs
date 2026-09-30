@@ -166,6 +166,10 @@ const EXAMPLES: &[(&str, &str)] = &[
     // encoding
     ("html_escape", "{{ \"<a href='x'>&</a>\" | html_escape }}"),
     (
+        "xml_escape",
+        "{{ `<p class=\"x\">'&'</p>` | safe | xml_escape }}",
+    ),
+    (
         "html_unescape",
         "{{ '&lt;b&gt; &amp;amp; &#39; &eacute;' | html_unescape }}",
     ),

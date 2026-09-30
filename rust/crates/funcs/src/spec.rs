@@ -455,7 +455,8 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Encoding, "safe", "safeHTML, safeHTMLAttr, safeURL, safeJS, safeCSS", "Marks the value safe.").builtin(),
     filter(G::Encoding, "escape", "", "Tera's escape (leaves safe input alone). Hugo's `html` is `html_escape`.").builtin(),
     filter(G::Encoding, "escape_html", "", "Tera's HTML escape of a string.").builtin(),
-    filter(G::Encoding, "escape_xml", "transform.XMLEscape", "XML escape.").builtin(),
+    filter(G::Encoding, "escape_xml", "", "Tera's XML escape (`&quot;`, `&apos;`; leaves safe input alone). Hugo's `transform.XMLEscape` is `xml_escape`.").builtin(),
+    filter(G::Encoding, "xml_escape", "transform.XMLEscape", "Drops the characters XML forbids, then escapes `& < > \" '`, tab, newline and CR (`&#34; &#39; &#x9; &#xA; &#xD;`, Go's `xml.EscapeText`) even when the input is safe; the result is safe.").safe(),
     filter(G::Encoding, "html_escape", "html, htmlEscape, transform.HTMLEscape", "Escapes `& < > \" '` even when the input is safe; the result is safe.").safe(),
     filter(G::Encoding, "html_unescape", "htmlUnescape, transform.HTMLUnescape", "Decodes HTML entities."),
     filter(G::Encoding, "jsonify", "jsonify", "JSON with sorted keys, `<>&` escaped as `\\u003c…`; `indent` pretty-prints.").args(&[opt("indent", A::String)]).safe(),
@@ -489,7 +490,7 @@ pub const FUNCS: &[FuncSpec] = &[
     func(G::Urls, "path_join", "path.Join", "Joins `parts` and cleans the result.").args(&[req("parts", A::Array)]),
     // ── dates ──
     func(G::Dates, "now", "now", "The build time (honours `--clock`) as a date value."),
-    filter(G::Dates, "date", ".Format, time.Format, dateFormat", "Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`) in `locale` (default: the render's `lang`; Thai uses the Gregorian calendar). Accepts a date value, a date string or Unix seconds; none prints nothing.")
+    filter(G::Dates, "date", ".Format, time.Format, dateFormat", "Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`). A style is localized in `locale` (default: the render's `lang`; Thai uses the Gregorian calendar); a `format`'s month and weekday names are English (Go's `.Format`) unless `locale` is given (`time.Format`, `dateFormat`: `locale=lang`). Accepts a date value, a date string or Unix seconds; none prints nothing.")
         .args(&[opt("format", A::String), opt("style", A::String), opt("locale", A::String)]),
     filter(G::Dates, "to_date", "time.AsTime, time", "Parses a string or number into a date value (`{rfc3339, unix}`)."),
     // ── language ──
@@ -923,7 +924,7 @@ pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
         "Formatting",
         &[
             "Go `printf` → `~`, `pad_start`/`pad_end`, `round`/`format_number`, `jsonify`.",
-            "Go date layouts → strftime: `\"2006-01-02\"` → `\"%Y-%m-%d\"`, `\"Jan 2, 2006\"` → `\"%b %-d, %Y\"`.",
+            "Go date layouts → strftime: `\"2006-01-02\"` → `\"%Y-%m-%d\"`, `\"Jan 2, 2006\"` → `\"%b %-d, %Y\"`. `.Format` stays English; `time.Format` and `dateFormat` localize names, so add `locale=lang`.",
         ],
     ),
     (

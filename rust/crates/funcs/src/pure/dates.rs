@@ -89,18 +89,22 @@ fn parse(s: &str, tz: &TimeZone) -> TeraResult<Zoned> {
     parse_date(s.trim(), tz).map_err(|e| tera::Error::chain(format!("`{s}` is not a date"), e))
 }
 
-/// `date(format=)` (strftime) or `date(style=)` (`short`, `medium`, `long`, `full`), in
-/// `locale` or the render's language. A none input prints nothing (zero dates are none).
+/// `date(format=)` (strftime) or `date(style=)` (`short`, `medium`, `long`, `full`). A style is
+/// always localized, in `locale` or the render's language; the names of a strftime `format`
+/// (`%B %b %h %A %a`) are English, as Go's `Time.Format`, unless `locale` is given (as Hugo's
+/// `time.Format`). A none input prints nothing (zero dates are none).
 fn date(v: &Value, kw: &Kwargs, st: &State, env: &PureEnv) -> TeraResult<Value> {
     if v.is_none() || v.is_undefined() {
         return Ok(Value::from(""));
     }
     let d = to_zoned(v, &env.time_zone)?;
-    let locale = match kw.get::<&str>("locale")? {
-        Some(key) => env.locales.get(key),
-        None => env.locales.current(st),
-    };
+    let locale = kw.get::<&str>("locale")?;
     let pattern = match (kw.get::<&str>("format")?, kw.get::<&str>("style")?) {
+        (Some(f), None) if locale.is_none() => {
+            return jiff::fmt::strtime::format(f.as_bytes(), &d)
+                .map(Value::from)
+                .map_err(|e| tera::Error::chain(format!("date: bad strftime format `{f}`"), e));
+        }
         (Some(f), None) => DatePattern::Strftime(f),
         (None, Some(s)) => DatePattern::Style(style(s)?),
         (Some(_), Some(_)) => {
@@ -109,6 +113,10 @@ fn date(v: &Value, kw: &Kwargs, st: &State, env: &PureEnv) -> TeraResult<Value> 
             ));
         }
         (None, None) => return Err(tera::Error::message("date needs `format` or `style`")),
+    };
+    let locale = match locale {
+        Some(key) => env.locales.get(key),
+        None => env.locales.current(st),
     };
     format_date(&d, pattern, &locale)
         .map(Value::from)

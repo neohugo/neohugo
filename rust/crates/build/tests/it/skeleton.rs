@@ -1,6 +1,6 @@
 //! T38 walking skeleton: the testsite (`tools/rust-port/i01/sites.py make testsite` with the
-//! Tera layouts of `rust/sites/testsite`) built into a `MemorySink`, and its file list compared
-//! with the Go build's (L1).
+//! Tera layouts of `rust/sites/testsite`) built into a `MemorySink`, and its file list (L1) and
+//! bytes compared with the Go build's (`tests/it/testsite-go.txtar`).
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -8,66 +8,17 @@ use std::path::Path;
 
 use neohugo_build::{BuildRequest, SinkKind, build};
 use neohugo_testkit::fixture::rust_dir;
+use neohugo_testkit::txtar::Archive;
 
-/// `find public -type f` of the Go build of the same site (`hugo -d public`), 55 files; Go's
-/// 56th file is `hugo_stats.json` in the project directory, which a memory build does not write.
-const GO_FILES: &[&str] = &[
-    "404.html",
-    "about/index.html",
-    "categories/index.html",
-    "categories/index.xml",
-    "categories/page/1/index.html",
-    "css/site.css",
-    "en/index.html",
-    "en/sitemap.xml",
-    "first-post/index.html",
-    "index.html",
-    "index.json",
-    "index.xml",
-    "nn/404.html",
-    "nn/categories/index.html",
-    "nn/categories/index.xml",
-    "nn/categories/page/1/index.html",
-    "nn/first-post/index.html",
-    "nn/gamal/index.html",
-    "nn/index.html",
-    "nn/index.json",
-    "nn/index.xml",
-    "nn/om/index.html",
-    "nn/page/1/index.html",
-    "nn/sitemap.xml",
-    "nn/tags/index.html",
-    "nn/tags/index.xml",
-    "nn/tags/page/1/index.html",
-    "old-about/index.html",
-    "older/about.html",
-    "page/1/index.html",
-    "page/2/index.html",
-    "page/3/index.html",
-    "posts/2/index.html",
-    "posts/index.html",
-    "posts/index.xml",
-    "posts/one/index.html",
-    "posts/page/1/index.html",
-    "posts/page/2/index.html",
-    "posts/three/index.html",
-    "posts/two/index.html",
-    "robots.txt",
-    "sitemap.xml",
-    "tags/a/index.html",
-    "tags/a/index.xml",
-    "tags/a/page/1/index.html",
-    "tags/b/index.html",
-    "tags/b/index.xml",
-    "tags/b/page/1/index.html",
-    "tags/c/index.html",
-    "tags/c/index.xml",
-    "tags/c/page/1/index.html",
-    "tags/index.html",
-    "tags/index.xml",
-    "tags/page/1/index.html",
-    "tags/page/2/index.html",
-];
+/// Every file of the Go build of the same site (`hugo -d public`), 55 files; Go's 56th file is
+/// `hugo_stats.json` in the project directory, which a memory build does not write.
+fn go_build() -> Archive {
+    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/it/testsite-go.txtar");
+    Archive::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
+}
+
+/// Files whose bytes still differ from Go's, with the reason (none since F3).
+const KNOWN_BYTE_DIFFS: &[(&str, &str)] = &[];
 
 fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).expect("mkdir");
@@ -142,7 +93,7 @@ fn testsite_l1() {
         .iter()
         .map(|p| p.relative().to_owned())
         .collect();
-    let want: BTreeSet<String> = GO_FILES.iter().map(|s| (*s).to_owned()).collect();
+    let want: BTreeSet<String> = go_build().files.into_iter().map(|f| f.name).collect();
     let missing: Vec<&String> = want.difference(&got).collect();
     let extra: Vec<&String> = got.difference(&want).collect();
     println!(
@@ -164,6 +115,33 @@ fn testsite_l1() {
             .expect("write the memory sink");
     }
     assert_eq!(got, want, "L1 file list differs from Go's");
+}
+
+/// L2 on the testsite: the bytes of every file equal the Go build's.
+#[test]
+fn testsite_bytes() {
+    let (_tmp, report) = build_testsite();
+    let mem = report.memory.as_ref().expect("memory sink");
+    let go = go_build();
+    let differ: Vec<&str> = go
+        .files
+        .iter()
+        .filter(|f| {
+            mem.get(&f.name)
+                .is_none_or(|got| *got != *f.data.as_bytes())
+        })
+        .map(|f| f.name.as_str())
+        .collect();
+    println!(
+        "L2 testsite: {} of {} files byte-identical to Go's; differ: {differ:?}",
+        go.files.len() - differ.len(),
+        go.files.len()
+    );
+    let known: Vec<&str> = KNOWN_BYTE_DIFFS.iter().map(|(p, _)| *p).collect();
+    assert_eq!(
+        differ, known,
+        "files whose bytes differ from Go's (NEOHUGO_T38_OUT=<dir> writes ours for a diff)"
+    );
 }
 
 #[test]
