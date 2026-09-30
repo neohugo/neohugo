@@ -178,12 +178,14 @@ pub(crate) fn run(
                     return Ok(0);
                 }
                 let mut published = 0;
+                let alias = Class::of(p.job) == Class::Alias;
                 for o in outputs {
                     let emitted = publisher.emit(neohugo_publish::Output {
                         path: o.path,
                         text: o.text,
                         format: o.format,
                         lang: o.lang,
+                        alias,
                     })?;
                     if emitted != Emitted::Empty {
                         published += 1;

@@ -28,7 +28,9 @@ exif_patterns = "an invalid `[imaging.exif]` field pattern is a configuration er
 
 [psnr]
 # Interim golden images (resources/images/testdata/images_golden) below 30 dB.
-"methods/resize-gopherpng-100x-03fc56-jpg.jpg" = "a 100 px cartoon with hard edges, flattened and JPEG-encoded at q75 by two different encoders (image: 4:2:2 chroma, Go: 4:2:0): 25 dB, while the same result as PNG (resize-gopherpng-100x-fc03ec.png) is 33 dB"
+"methods/resize-gopherpng-100x-03fc56-jpg.jpg" = "a 100 px cartoon with hard edges, flattened and JPEG-encoded at q75 by two different encoders (image: 4:4:4 chroma, Go: 4:2:0): 25 dB, while the same result as PNG (resize-gopherpng-100x-fc03ec.png) is 33 dB"
+# T01 golden images (rust/testdata/golden/images).
+"seeksnack-combos-fill-120x90-center.jpg" = "a 120x90 fill of a detailed photo (red and green lettering), JPEG-encoded at q75 by two different encoders (image: 4:4:4 chroma, Go: 4:2:0): 28.9 dB (luma 38.8 dB, Cr 29.6 dB), while the same fill saved as PNG is 55.2 dB (T01)"
 
 [text]
 # Rules of the text filter (tests/it/text_dither.rs, src/text.rs tests).

@@ -4,6 +4,7 @@
 use std::io::{self, Write};
 
 use neohugo_base::diag::{Diagnostic, Severity};
+use neohugo_build::BuildError;
 
 /// The label of a severity (Hugo's log levels).
 fn label(s: Severity) -> &'static str {
@@ -38,6 +39,19 @@ pub(crate) fn diagnostics(ds: &[Diagnostic]) {
     let mut out = stderr.lock();
     for d in ds {
         let _ = write_diagnostic(&mut out, d);
+    }
+}
+
+/// A failed build (`build`, and `server`'s builds): its diagnostics and a summary line, or the
+/// error, whose message carries its position and Tera's snippet.
+pub(crate) fn build_failed(e: &BuildError) {
+    match e {
+        BuildError::Diagnostics(ds) => {
+            diagnostics(ds);
+            let errors = ds.iter().filter(|d| d.severity == Severity::Error).count();
+            eprintln!("ERROR build failed: {errors} error(s)");
+        }
+        e => eprintln!("ERROR build failed: {e}"),
     }
 }
 

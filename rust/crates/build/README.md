@@ -8,15 +8,28 @@ pub enum SinkKind { Disk /* default */, Memory }
 pub struct BuildRequest { pub source: PathBuf, pub destination: Option<PathBuf>,
                           pub config_files: Vec<PathBuf> /* T37: --config */, pub cli: CliOverrides,
                           pub clock: Option<jiff::Timestamp>, pub sink: SinkKind, pub clean_destination: bool,
-                          pub threads: Option<usize> /* T36: the render pool size */ }
+                          pub threads: Option<usize> /* T36: the render pool size */,
+                          pub config: Option<Arc<Config>> /* T71: loaded by the caller (server) */,
+                          pub live_reload: Option<LiveReload> /* T71: the server's script */ }
+pub struct LiveReload { pub port: Option<u16> /* --liveReloadPort */ }  // url(&BaseUrl) -> UrlRef
 pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError>;
 pub fn process_env() -> Vec<(String, String)>; // T37: HUGO_*, HOME, XDG_CACHE_HOME, TMPDIR, USER (the CLI's config loads too)
 pub enum BuildError { Config, Vfs, Model, Template, Render, Publish, Resource, Pool, Diagnostics(Vec<Diagnostic>) }
 pub struct Collision { pub path: OutputPath, pub winner: JobOrder, pub loser: JobOrder }
 pub struct BuildReport { pub pages, pub outputs, pub aliases, pub resources, pub images, pub static_files: usize,
                          pub collisions: Vec<Collision>, pub diagnostics: Vec<Diagnostic>,
-                         pub timings: Vec<(&'static str, Duration)>, pub memory: Option<Arc<MemorySink>> }
+                         pub timings: Vec<(&'static str, Duration)>, pub memory: Option<Arc<MemorySink>>,
+                         pub model: Option<Arc<Model>> /* T71: the rendered model (file → page) */ }
 ```
+
+**`neohugo-rs server` (T71).** The server loads the configuration itself (once per
+configuration change) with every language's base URL pointed at its listener and passes it as
+`config` (then `source`, `config_files`, `cli` and `destination` are not read). With
+`live_reload`, every language's `SiteLinks::livereload` is its base URL (the port replaced by
+`LiveReload::port` when set), so the publisher puts the LiveReload script into every HTML page
+but the alias redirects (`Output::alias`, set for alias, `page/1/` alias and language-redirect
+jobs). `build` never sets it (the A-T bytes are unchanged). `model` lets the server find the
+page of a changed content file (`--navigateToChanged`).
 
 `Vfs` and `Pool` are beyond §2.6 (the Vfs has its own error type; the render pool may fail to
 start).
@@ -56,6 +69,7 @@ reported in job order.
 | Test | What | Result |
 |---|---|---|
 | `skeleton::testsite_{l1,bytes,contents}` | `sites.py make testsite` with `rust/sites/testsite/layouts` vs Go's `public/` (`tests/it/testsite-go.txtar`) | **55/55 files, 55/55 byte-identical** |
+| `skeleton::testsite_for_the_server` | the testsite with a caller-loaded configuration (base URL `http://localhost:1313/`) and `live_reload` | the script right after `<head>` (after `<html>` in the 404 page) of every HTML page, none in aliases, `page/1/`, the language redirect, RSS and JSON; canonified links on the server URL; `model` set |
 | `mini::mini_matches_the_go_tree` | the e2e `mini.txtar` site (en/th, hooks, shortcodes, pagination, taxonomies, menus, i18n, data, related, aliases, `defer`, `GetRemote` from the file cache + `unmarshal`, minify, fingerprint, Concat, ExecuteAsTemplate, FromString, PostProcess), Go layouts converted to Tera in the test, `--minify --clock`, vs the Go tree of `e2e.json.gz` | **53/53 files** (fingerprints normalised); no placeholder left, deferred footer everywhere, post-processed CSS linked and published, stats in the project directory |
 | `edges::edge_trees_match_the_go_file_lists` | the 25 build oracles of `oracle/hugolib/build` (all but `build-errors`): cascade, i18n, multihost, ugly, taxonomy permalinks, aliases, collisions, custom alias template, disabled kinds/aliases/redirect, post-processing, stats, content dirs, Thai/punctuated paths, headless and build options, `content`/`seeksnack`/`shortcodes` (with `neohugo-render`'s shortcode and hook conversions), `docs` (948 pages, stub layouts) — disk builds vs the files Go wrote, and whether errors are reported | **2451/2451 files** over 25 sites; 2 accepted differences (below) |
 | `docs_shortcodes::docs_cross_page_shortcodes` | docs' `include`, `glossary-term` and `quick-reference` converted to Tera on a docs-shaped site | renumbered placeholders around an include, `page_inner` of included links, a never-rendered glossary term, other sections' `.Content` and descriptions as a definition list |

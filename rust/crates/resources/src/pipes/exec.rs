@@ -53,7 +53,7 @@ pub struct ToolPaths {
     pub babel: Option<PathBuf>,
     /// `node_modules` directories searched after the project's own (their `.bin`), e.g.
     /// `tools/neohugo/node_modules` installed by `tools/neohugo/node.sh`. Also added to
-    /// `NODE_PATH`.
+    /// `NODE_PATH` when they exist.
     pub node_modules: Vec<PathBuf>,
 }
 
@@ -202,8 +202,17 @@ fn environment(store: &ResourceStore, env: &TransformEnv) -> Vec<(String, String
         vars.retain(|(name, _)| name != k);
         vars.push((k.to_owned(), v));
     };
-    let mut node_path: Vec<PathBuf> = vec![env.project_dir.join("node_modules")];
-    node_path.extend(env.tools.node_modules.iter().cloned());
+    // Only directories that exist: Tailwind 4 (`@tailwindcss/node`) reads NODE_PATH as one
+    // directory, so a missing project `node_modules` in front of the tools' would hide them.
+    // With neither, the project's, as Go sets it.
+    let project_modules = env.project_dir.join("node_modules");
+    let mut node_path: Vec<PathBuf> = std::iter::once(project_modules.clone())
+        .chain(env.tools.node_modules.iter().cloned())
+        .filter(|dir| dir.is_dir())
+        .collect();
+    if node_path.is_empty() {
+        node_path.push(project_modules);
+    }
     if let Some((_, np)) = env.os_env.iter().find(|(k, _)| k == "NODE_PATH") {
         node_path.extend(std::env::split_paths(np));
     }

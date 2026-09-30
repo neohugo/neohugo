@@ -7,9 +7,9 @@ E5).
 | API | What |
 |---|---|
 | `DiskSink { root }`, `MemorySink { files: DashMap<OutputPath, Arc<[u8]>> }` | `base::Sink`; the disk sink creates parent directories and truncates; the memory sink has `get`, `text`, `paths` (sorted) and `write_to(dir)` |
-| `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]`, optional LiveReload URL (`serve`) |
+| `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`, LiveReload URL: `None` here, set by `neohugo-build` for `serve`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]` |
 | `Publisher::new(settings, Arc<dyn Sink>, Arc<Diagnostics>)` | shared by the render workers (`Send + Sync`) |
-| `Publisher::emit(Output { path, text, format, lang })` | canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML, `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present, else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
+| `Publisher::emit(Output { path, text, format, lang, alias })` | canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Hugo; `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present, else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
 | `Publisher::patch_held(&BTreeMap<placeholder, text>)` | replaces the placeholders of every held output, rewrites its URLs again (canonify / relative), extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
 | `Publisher::add_tokens_from(text)`, `url_tokens()` | `execute_as_template` results; the sorted `UrlTokens` so far |
 | `Publisher::stats() -> HugoStats`, `HugoStats::{to_json, write_if_changed}` | `hugo_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
@@ -18,6 +18,7 @@ E5).
 | `UrlTokens::{extract, iter, contains}` | URL-shaped words after decoding HTML references and JSON escapes (srcset lists, unquoted attributes, `./` / `../` resolved against the output) |
 | `sync_static_dir(&Vfs, root, &StaticSyncOptions)` | phase E1 on disk: rewrite only changed files, copy permissions and modification times (`noChmod`, `noTimes`), `cleanDestinationDir` (keeps `.`-directories), multihost language directories; returns the file count |
 | `sync_static(&Vfs, &dyn Sink, &StaticSyncOptions)` | the same files into any sink (memory builds) |
+| `StaticSyncOptions::target(&FileRef)` | the publish path of a static file (below its language directory on a multihost site); `serve` copies single changed files with it |
 | `livereload::{script, inject}` | the LiveReload `<script>` placed at the start of the head |
 
 **URL-token seam.** `neohugo-resources` does not depend on this crate (§2.3). The store's
@@ -44,7 +45,7 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
 
 ## Acceptance evidence
 
-`cargo test -p neohugo-publish` (lib 6, it 17):
+`cargo test -p neohugo-publish` (lib 6, it 19):
 
 - **canonify** — `oracle/transform/absurl/cases.jsonl.gz`: 94,180 cases, 93,178 exact, 1,002
   accepted in 3 Go-quirk classes (below), 0 unexplained; the upstream `absurlreplacer_test.go`
@@ -70,7 +71,8 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   JSON published with a warning), empty outputs, held outputs patched then re-scanned (the
   PostProcess URL becomes a token) and minified, unresolved placeholders, URL tokens (entities,
   JSON escapes, srcset, `&`/`'` paths), stats of HTML outputs only, identical tokens/stats/paths
-  with 1 and 4 threads, disk and memory sinks.
+  with 1 and 4 threads, disk and memory sinks, the LiveReload script per language (HTML pages
+  only; not aliases, RSS, or a language without a LiveReload URL).
 
 ## Accepted deviations
 

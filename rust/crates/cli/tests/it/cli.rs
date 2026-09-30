@@ -15,7 +15,7 @@ fn version_help_and_usage_errors() {
     assert_eq!(o.status.code(), Some(0));
     let o = neohugo(dir.path(), &["--help"], &[]);
     assert_eq!(o.status.code(), Some(0));
-    for cmd in ["build", "templates", "config", "version"] {
+    for cmd in ["build", "server", "templates", "config", "version"] {
         assert!(stdout(&o).contains(cmd), "{cmd}: {}", stdout(&o));
     }
     let o = neohugo(dir.path(), &["templates", "check", "--help"], &[]);

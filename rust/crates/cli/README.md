@@ -1,12 +1,13 @@
 # neohugo (`neohugo-rs`)
 
 The command line (REWRITE_PLAN.md §2.1, §4.8, §7.5). **State: T37; T60's A-T gate and
-embedded-template snapshots run through it.** clap derive; `anyhow` only
+embedded-template snapshots run through it; `server` (T71).** clap derive; `anyhow` only
 here.
 
 ```
 neohugo-rs [build flags]                 # no command: build (as `hugo`)
 neohugo-rs build [build flags]
+neohugo-rs server [build flags] [server flags]   # alias `serve`; neohugo-serve
 neohugo-rs templates check [project flags] [--coverage summary|full|none] [--deny-warnings]
 neohugo-rs config [project flags] [--format json|toml]
 neohugo-rs version                       # also --version
@@ -21,7 +22,7 @@ Kebab-case, with Hugo's camelCase spelling as an alias.
 | `-s`, `--source DIR` | | all | project directory (default: the working directory) |
 | `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `neohugo.{toml,yaml,yml,json}`, `hugo.*`, `config.*` (a warning names the others when several exist) |
 | `--config-dir DIR` | `--configDir` | all | `CliOverrides::config_dir` |
-| `-e`, `--environment ENV` | | all | wins over `HUGO_ENVIRONMENT` / `HUGO_ENV` |
+| `-e`, `--environment ENV` | | all | wins over `HUGO_ENVIRONMENT` / `HUGO_ENV` (default `production`; `development` for `server`) |
 | `-b`, `--base-url URL` | `--baseURL`, `--baseUrl` | all | `baseURL` |
 | `-t`, `--theme A,B` | | all | `theme` |
 | `--themes-dir DIR` | `--themesDir` | all | `themesDir` |
@@ -31,12 +32,43 @@ Kebab-case, with Hugo's camelCase spelling as an alias.
 | `-E`, `--build-expired` | `--buildExpired` | all | `buildExpired` |
 | `-F`, `--build-future` | `--buildFuture` | all | `buildFuture` |
 | `--clock TIME` | | all | the build's "now" (RFC 3339 with offset) |
-| `-d`, `--destination DIR` | | build | publish directory, relative to the source |
-| `--clean-destination-dir` | `--cleanDestinationDir` | build | static sync removes files the static dirs lack |
-| `--minify` | | build | `minify.minifyOutput` |
-| `-M`, `--render-to-memory` | `--renderToMemory` | build | `SinkKind::Memory`: nothing is written |
-| `--threads N` | | build | render pool size (output does not depend on it) |
-| `-q`, `--quiet` | | build | no summary on success |
+| `-d`, `--destination DIR` | | build, server | publish directory, relative to the source |
+| `--clean-destination-dir` | `--cleanDestinationDir` | build, server | static sync removes files the static dirs lack |
+| `--minify` | | build, server | `minify.minifyOutput` |
+| `-M`, `--render-to-memory` | `--renderToMemory` | build, server | `SinkKind::Memory`: nothing is written |
+| `--threads N` | | build, server | render pool size (output does not depend on it) |
+| `-q`, `--quiet` | | build, server | no summary on success |
+
+### `server` (alias `serve`)
+
+Hugo's development server (`neohugo-serve`, whose README has the details): `build`'s flags
+(`-s`, `--config`, `-e`, `-b`, `-D -E -F`, `--minify`, `--clock`, `--threads`, `-q`, …; the
+same `BuildArgs`), the environment `development` unless `-e`, `HUGO_ENVIRONMENT` or `HUGO_ENV`
+says otherwise, and:
+
+| Flag | Alias | Effect |
+|---|---|---|
+| `-p`, `--port PORT` | | listen on PORT (a busy one is an error; 0: a free port); default 1313, or a free port when it is taken |
+| `--bind INTERFACE` | | default `127.0.0.1` |
+| `--append-port[=BOOL]` | `--appendPort` | the port goes into the base URL (default true) |
+| `--disable-live-reload` | `--disableLiveReload` | no LiveReload script, `livereload.js` or WebSocket |
+| `--live-reload-port PORT` | `--liveReloadPort` | the port in the LiveReload script (e.g. 443 behind a proxy) |
+| `-N`, `--navigate-to-changed` | `--navigateToChanged` | the browsers go to the page whose content changed |
+| `--render-to-disk` | `--renderToDisk` | build into the publish directory (`-d`, `publishDir`) and serve it from there; without it the site is built into memory and `-d` is a usage error (`-M` is the default and conflicts with it) |
+| `--no-http-cache` | `--noHTTPCache` | `Cache-Control: no-store, …` and `Pragma: no-cache` |
+| `-w`, `--watch[=BOOL]` | | watch and rebuild (default true; `--watch=false` builds once) |
+| `--poll INTERVAL` | | poll for changes (`700ms`, `1s`, or milliseconds) instead of file notifications |
+| `--disable-fast-render`, `--disable-browser-error` | camelCase | accepted, change nothing (every rebuild is full; errors are never shown in the browser) |
+
+Output (stdout; errors and warnings on stderr as `build` prints them): `Environment:
+"development"`, `Serving pages from memory|disk`, `Watching for changes in <dirs>`, `Watching
+for config changes in <files>`, the build summary and `Built in N ms`, `Web Server is
+available at <url> (bind address <interface>)` per listener, `Press Ctrl+C to stop`; per
+change `Change [of config file|of Static files] detected, rebuilding site (#N).`, the time,
+`Source changed <path>` lines, then `Total in N ms`, `Synced N static file(s) in N ms`, a
+build failure (`ERROR build failed: …`, the last good build is still served) or `ERROR Failed
+to reload config: …`. A first build that fails exits with 1 and the build's report; a port
+that cannot be opened or a configuration that does not load exits with 1.
 
 **Environment.** The process's `HUGO_*` variables (`HUGO_TITLE`, `HUGO_PARAMS_X`,
 `HUGO_BASEURL`, `HUGO_CACHEDIR`, `HUGO_ENVIRONMENT`/`HUGO_ENV`, …) plus `HOME`,
@@ -60,7 +92,8 @@ message carries Tera's `--> <template>:<line>:<col>` snippet. A successful build
 |---|---|
 | `source/s destination/d environment/e theme/t themesDir baseURL/b cacheDir ignoreCache buildDrafts/D buildFuture/F buildExpired/E clock config configDir cleanDestinationDir renderToMemory/M minify quiet` | the flags above (kebab-case + the camelCase alias) |
 | `contentDir/c layoutDir/l noTimes noChmod disableKinds enableGitInfo printPathWarnings printI18nWarnings panicOnWarning` | configuration keys (file or `HUGO_*`), not flags |
-| `watch/w poll` (server) | T71 (`serve`) |
+| `server`: `port/p bind appendPort disableLiveReload liveReloadPort navigateToChanged/N noHTTPCache watch/w poll renderToDisk disableFastRender disableBrowserError` | the `server` flags above (T71) |
+| `server`: `tlsCertFile tlsKeyFile tlsAuto openBrowser/O pprof renderStaticToDisk forceSyncStatic`, command `server trust` | not supported (clap usage error) |
 | `logLevel devMode gc noBuildLock forceSyncStatic ignoreVendorPaths renderSegments templateMetrics templateMetricsHints printUnusedTemplates printMemoryUsage profile-* trace` | not supported (clap usage error) |
 | commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env` | not supported; `config` prints the resolved configuration as JSON or TOML |
 
@@ -113,6 +146,9 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `build::flags_and_environment` | every configuration flag in both spellings, `HUGO_TITLE`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_BASEURL`, `-M` writes nothing |
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
 | `cli::version_help_and_usage_errors` | `version`, `--help`, usage errors exit 2 |
+| `server::server_starts_and_serves` | `serve -p 0` with camelCase flags: the start report (environment `development`, memory, watching, built), the page with the LiveReload script and `--noHTTPCache` headers, nothing on disk |
+| `server::server_renders_to_disk_without_live_reload` | `--render-to-disk --disable-live-reload --watch=false -e staging`: `public/` written and served, no script, no watching |
+| `server::server_start_errors` | a first build that fails exits 1 with the build's report; `-d` without `--render-to-disk`, `--render-to-disk -M`, bad `--poll`/`--port`/`--watch` exit 2; every server flag in `--help` |
 | `cli::config_prints_the_resolved_configuration` | JSON / TOML, config dir, `HUGO_PARAMS_*`, flags |
 | `check::bad_layouts_report_every_rule` | `tests/it/bad-layouts.txtar`: each rule once at its position, nothing else, exit 1 |
 | `check::testsite_overlay_is_clean` | the testsite overlay: 0 errors, 0 warnings; 35 (page, format) rows with `--coverage full` |

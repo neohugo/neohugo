@@ -1,5 +1,6 @@
 //! The `neohugo-rs` command line (REWRITE_PLAN.md §2.1, §4.8, §7.5): `build` (also the command
-//! line without a command), `templates check`, `config` and `version`.
+//! line without a command), `server` (alias `serve`), `templates check`, `config` and
+//! `version`.
 //!
 //! Exit codes ([`Exit`]): 0 success; 1 the build or the check failed (errors, printed with their
 //! positions), or the project could not be loaded; 2 a usage error (clap).
@@ -11,6 +12,7 @@ mod build;
 mod check;
 mod config;
 mod report;
+mod server;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -50,6 +52,7 @@ pub fn run(cli: Cli) -> Exit {
     let result = match cli.command {
         None => build::run(&cli.build),
         Some(Command::Build(b)) => build::run(&b),
+        Some(Command::Server(s)) => server::run(&s),
         Some(Command::Templates(TemplatesCommand::Check(c))) => check::run(&c),
         Some(Command::Config(c)) => config::run(&c),
         Some(Command::Version) => {
