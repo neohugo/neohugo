@@ -15,7 +15,8 @@ COPYRIGHT*, UNLICENSE*, AUTHORS* or PATENTS*, and for packages that build C code
 as libwebp. A text already printed for an earlier package is referenced instead of repeated.
 
 A package that ships no licence file but is licensed under MIT (alone or as one choice) gets the
-MIT licence text with the authors from its Cargo.toml. Any other package without a licence file
+MIT licence text with the authors from its Cargo.toml; one under Apache-2.0 refers to the
+Apache-2.0 text another linked package ships. Any other package without a licence file
 is printed and the script exits with status 1 unless --allow-missing is given, so a new
 dependency like that is noticed. Workspace members are covered by the repository's LICENSE.
 
@@ -88,8 +89,24 @@ def closure(meta, target_pkg):
     return seen
 
 
+def offers(expr, licence):
+    return licence in (expr or "").replace("(", " ").replace(")", " ").replace("/", " ").split()
+
+
 def offers_mit(expr):
-    return "MIT" in (expr or "").replace("(", " ").replace(")", " ").replace("/", " ").split()
+    return offers(expr, "MIT")
+
+
+def apache_text(ids, packages):
+    """The first Apache-2.0 licence file a linked package ships: `(text, "<name> <version>, <file>")`."""
+    for pid in ids:
+        root, files = notice_files(packages[pid])
+        for path in files:
+            if "apache" in path.name.lower():
+                text = path.read_text(encoding="utf-8", errors="replace").rstrip() + "\n"
+                if "Apache License" in text and "Version 2.0" in text:
+                    return text, f"{packages[pid]['name']} {packages[pid]['version']}, {path.relative_to(root).as_posix()}"
+    return None
 
 
 def main(argv):
@@ -131,10 +148,19 @@ def main(argv):
         if pkg.get("repository"):
             parts.append(f"Repository: {pkg['repository']}\n")
         if not files:
+            apache = offers(expr, "Apache-2.0") and apache_text(ids, packages)
             if offers_mit(expr):
                 parts.append("\nThe package ships no licence file. It is licensed under MIT "
                              "(one of the choices above); the MIT licence text follows, the "
                              "copyright holders being its authors listed above.\n\n" + MIT)
+            elif apache:
+                text, source = apache
+                parts.append("\nThe package ships no licence file. It is licensed under Apache-2.0; "
+                             f"the licence text is the same as {source}, printed "
+                             + ("above" if text in printed else "here") + ".\n")
+                if text not in printed:
+                    printed[text] = source
+                    parts.append("\n" + text)
             else:
                 missing.append(f"{name} {version} ({expr})")
                 parts.append("\n(the package ships no licence file; its licence is the "
