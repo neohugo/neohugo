@@ -2,31 +2,38 @@
 //! state of phases C–E. `Session::{new, render_content, freeze_views, render_job}` are frozen by
 //! T38; their bodies are the skeleton's.
 
-use std::collections::BTreeMap;
-use std::sync::{Arc, OnceLock};
+use std::collections::{BTreeMap, BTreeSet};
+use std::sync::{Arc, OnceLock, Weak};
 
 use neohugo_base::diag::{Diagnostic, Diagnostics};
 use neohugo_base::paths::{ContentKey, OutputPath};
 use neohugo_base::{Clock, FormatId, IdVec, Idx, LangIdx, PageId, PageKind};
 use neohugo_funcs::{Locales, PureEnv, register_placeholders, register_pure};
+use neohugo_highlight::Highlight;
+use neohugo_images::{ImageQueue, Imaging};
 use neohugo_layouts::{
-    LayoutQuery, LayoutStore, Selection, Selections, StandaloneKind, TemplateName, TemplateRole,
-    Templates,
+    EmbeddedHooks, LayoutQuery, LayoutStore, Origin, Selection, Selections, StandaloneKind,
+    TemplateName, TemplateRole, Templates,
 };
-use neohugo_markup::Fragments;
+use neohugo_locale::Translations;
+use neohugo_markup::{Fragments, MarkdownOptions};
+use neohugo_nav::RelatedIndex;
 use neohugo_resources::{ResourceStore, StoreConfig};
-use neohugo_site::{Model, Page, PageRole, PageUrl};
+use neohugo_site::{Model, Page, PageUrl};
+use neohugo_sitefuncs::Handles;
 use neohugo_vfs::Vfs;
 use neohugo_view::views::HugoView;
 use neohugo_view::{
-    ContentError, ContentRenderer, Contents, ExpandedSource, HookVariant, NavSite,
-    PaginationRecorder, Phase, RenderScope, RenderStringOptions, RenderedContent, SCOPE_KEY,
-    ViewCache, ViewInputs, page_target,
+    ContentError, ContentRenderer, Contents, DeferredRegistry, ExpandedSource, HookVariant,
+    NavSite, PageStores, PaginationRecorder, Phase, RenderScope, RenderStringOptions,
+    RenderedContent, SCOPE_KEY, ViewCache, ViewInputs, page_target,
 };
 use rayon::prelude::*;
 
 use crate::job::{AliasPlan, Job, JobOrder, Output};
+use crate::memo::ContentStore;
 use crate::stubs::Stubs;
+use crate::tokens::Inclusions;
 use crate::{RenderError, content};
 
 /// The project inputs a session renders besides the model: the file system and the scanned
@@ -61,9 +68,26 @@ pub struct Session {
     templates: Arc<Templates>,
     views: Arc<ViewCache>,
     pagination: Arc<PaginationRecorder>,
+    /// What the site functions hold (their `Arc`s are the session's named mutable state).
+    handles: Handles,
     selections: BTreeMap<(PageId, FormatId), Selection>,
     /// Front matter alias files per language (`neohugo_nav::page_aliases`).
     aliases: IdVec<LangIdx, Vec<AliasPlan>>,
+    /// The hook variants content is rendered in: `Html`, then `Format(F)` for every format F
+    /// with a `_markup/*.<F>.*` hook.
+    variants: Vec<HookVariant>,
+    html_format: FormatId,
+    /// The memo cells of the content phase.
+    cells: ContentStore,
+    /// Per language: Markdown options, `useEmbedded`, the highlighter (built at the first
+    /// fence no hook handles).
+    markdown: IdVec<LangIdx, MarkdownOptions>,
+    embedded_hooks: IdVec<LangIdx, EmbeddedHooks>,
+    highlighters: IdVec<LangIdx, OnceLock<Highlight>>,
+    /// The Tera names of embedded templates (the embedded table hook is written natively).
+    embedded: BTreeSet<TemplateName>,
+    inclusions: Inclusions,
+    /// Phase C1's result, frozen into the views in phase D.
     contents: OnceLock<BTreeMap<HookVariant, Contents>>,
     hugo: tera::Value,
     diagnostics: Arc<Diagnostics>,
@@ -122,7 +146,7 @@ fn layout_query<'a>(p: &'a Page, path: &'a ContentKey, format: FormatId) -> Layo
 
 /// The lookup path of a page: its key with the first segment replaced by its type when that
 /// differs from the section.
-fn lookup_path(p: &Page) -> ContentKey {
+pub(crate) fn lookup_path(p: &Page) -> ContentKey {
     if p.section.is_empty() || p.r#type == p.section || p.r#type == "page" {
         return p.key.clone();
     }
@@ -143,13 +167,10 @@ fn is_standalone(kind: PageKind) -> bool {
 }
 
 impl Session {
-    /// Loads the templates and prepares the views of `model`: the site functions are
-    /// registered, then the layouts are loaded (validating every template).
-    ///
-    /// The skeleton's stubs need no content, so it has no renderer slot yet. T35 adds it in
-    /// the plan's order: slot created empty → `sitefuncs::register` → `layouts::load` →
-    /// `Arc::new(Session)` → `slot.set(Arc::downgrade(&session))` (a `Weak<dyn
-    /// ContentRenderer>`; `Session` implements the trait).
+    /// Loads the templates and prepares the views of `model`, in the plan's order: the renderer
+    /// slot is created empty → the site functions are registered (`neohugo_sitefuncs::register`
+    /// after the pure functions and the skeleton's stubs) → the layouts are loaded (validating
+    /// every template) → `Arc::new(Session)` → the slot is set to the session.
     ///
     /// # Errors
     /// [`RenderError::View`] (invalid `resources` front matter), [`RenderError::Nav`] (an
@@ -158,6 +179,20 @@ impl Session {
         project: Project,
         model: Arc<Model>,
         o: &RenderOptions,
+    ) -> Result<Arc<Self>, RenderError> {
+        Self::with_functions(project, model, o, &|_, _| {})
+    }
+
+    /// [`new`](Self::new), with `extra` registering more template functions after the site
+    /// functions (tests; a function registered here replaces one of the same name).
+    ///
+    /// # Errors
+    /// As [`new`](Self::new).
+    pub fn with_functions(
+        project: Project,
+        model: Arc<Model>,
+        o: &RenderOptions,
+        extra: &dyn Fn(&mut tera::Tera, &Handles),
     ) -> Result<Arc<Self>, RenderError> {
         let diagnostics = Arc::new(Diagnostics::new(model.config.ignore_logs.iter()));
         let store = Arc::new(ResourceStore::new(StoreConfig::from_config(
@@ -172,7 +207,7 @@ impl Session {
         }
         let views = Arc::new(ViewCache::new(ViewInputs {
             model: Arc::clone(&model),
-            store,
+            store: Arc::clone(&store),
             menus: Arc::new(menus),
         })?);
         let pagination = Arc::new(PaginationRecorder::default());
@@ -203,6 +238,40 @@ impl Session {
         }
         let sel: Selections = selections.values().cloned().collect();
 
+        let cfg = &model.config;
+        let html_format = cfg
+            .output_formats
+            .by_name("html")
+            .unwrap_or(FormatId::from_raw(0));
+        let variants = hook_variants(&project.layouts, html_format);
+        let embedded = project
+            .layouts
+            .templates()
+            .filter(|t| t.origin == Origin::Embedded)
+            .map(|t| t.render_name().clone())
+            .collect();
+        let imaging = Imaging::from_config(&cfg.imaging).unwrap_or_else(|e| {
+            diagnostics.push(Diagnostic::error(format!("[imaging]: {e}")));
+            Imaging::default()
+        });
+        let renderer: Arc<OnceLock<Weak<dyn ContentRenderer>>> = Arc::new(OnceLock::new());
+        let handles = Handles {
+            model: Arc::clone(&model),
+            views: Arc::clone(&views),
+            store,
+            images: Arc::new(ImageQueue::new(imaging, None)),
+            stores: Arc::new(PageStores::new(model.pages.len())),
+            pagination: Arc::clone(&pagination),
+            deferred: Arc::new(DeferredRegistry::default()),
+            menus: Arc::clone(views.menus()),
+            related: Arc::new(RelatedIndex::new(&cfg.default_site().related)),
+            i18n: Arc::new(Translations::empty(cfg.sites.len())),
+            diagnostics: Arc::clone(&diagnostics),
+            renderer: Arc::clone(&renderer),
+            frames: Arc::default(),
+            partial_cache: Arc::default(),
+        };
+
         let pure = Arc::new(pure_env(&model, o, &diagnostics));
         let stubs = Stubs {
             views: Arc::clone(&views),
@@ -212,56 +281,91 @@ impl Session {
             register_placeholders(t);
             register_pure(t, &pure);
             stubs.register(t);
+            neohugo_sitefuncs::register(t, &handles);
+            extra(t, &handles);
         })?;
         let session = Arc::new(Self {
             hugo: tera::Value::from_serializable(&HugoView::new(&model.config)),
+            cells: ContentStore::new(model.pages.len(), &variants),
+            markdown: cfg.sites.iter().map(content::markdown_options).collect(),
+            embedded_hooks: cfg
+                .sites
+                .iter()
+                .map(|s| EmbeddedHooks::of(s, cfg))
+                .collect(),
+            highlighters: cfg.sites.iter().map(|_| OnceLock::new()).collect(),
             model,
             project,
             templates: Arc::new(templates),
             views,
             pagination,
+            handles,
             selections,
             aliases,
+            variants,
+            html_format,
+            embedded,
+            inclusions: Inclusions::default(),
             contents: OnceLock::new(),
             diagnostics,
         });
+        let weak: Weak<Self> = Arc::downgrade(&session);
+        let weak: Weak<dyn ContentRenderer> = weak;
+        let _ = renderer.set(weak);
         Ok(session)
     }
 
-    /// Phase C1: renders the content of every page (all hook variants; the skeleton has only
-    /// `Html`). A second call does nothing.
+    /// Phase C1: renders the content of every page with a content file (bundled content pages
+    /// included) in every hook variant. A second call does nothing.
     ///
     /// # Errors
-    /// The first page whose content fails.
+    /// [`RenderError::Content`] of the first page (in page order) whose content fails.
     pub fn render_content(&self) -> Result<(), RenderError> {
         if self.contents.get().is_some() {
             return Ok(());
         }
         let model = &self.model;
-        let rendered: Vec<Option<Arc<RenderedContent>>> = model
+        let per_page: Vec<Vec<Option<Arc<RenderedContent>>>> = model
             .pages
             .as_slice()
             .par_iter()
             .map(|p| {
-                p.source
-                    .as_ref()
-                    .filter(|_| p.rendered() && p.role == PageRole::Standalone)
-                    .map(|src| {
-                        let src = content::PageSource {
-                            body: src.body(),
-                            file: Arc::from(src.file.abs.as_path()),
-                            markup: p.meta.markup,
-                            summary: p.meta.summary.as_deref(),
-                        };
-                        content::render_page(p.id, &src, &model.config.sites[p.lang]).map(Arc::new)
+                self.variants
+                    .iter()
+                    .map(|&v| {
+                        if p.source.is_none() {
+                            return Ok(None);
+                        }
+                        let scope = self.root_scope(p, v);
+                        self.content_of(p.id, v, &scope)
+                            .map(Some)
+                            .map_err(|source| RenderError::Content {
+                                page: p.source.as_ref().map_or_else(
+                                    || p.key.to_path(),
+                                    |s| s.file.abs.display().to_string(),
+                                ),
+                                source: Box::new(source),
+                            })
                     })
-                    .transpose()
+                    .collect::<Result<Vec<_>, _>>()
             })
             .collect::<Result<_, _>>()?;
         let mut all = BTreeMap::new();
-        all.insert(HookVariant::Html, IdVec::from(rendered));
+        for (i, &v) in self.variants.iter().enumerate() {
+            let c: Contents = per_page.iter().map(|row| row[i].clone()).collect();
+            all.insert(v, c);
+        }
         let _ = self.contents.set(all);
         Ok(())
+    }
+
+    /// The scope a phase C1 computation of page `p` in variant `v` starts from.
+    fn root_scope(&self, p: &Page, v: HookVariant) -> RenderScope {
+        RenderScope {
+            phase: Phase::Content,
+            variant: v,
+            ..RenderScope::layout(p.id, p.lang, self.variant_format(v), None)
+        }
     }
 
     /// Phase D: freezes the Full view generations (after [`render_content`](Self::render_content)).
@@ -367,7 +471,9 @@ impl Session {
         };
         let cfg = &self.model.config;
         let p = &self.model.pages[page];
-        let scope = RenderScope::layout(page, p.lang, format, pager);
+        let mut scope = RenderScope::layout(page, p.lang, format, pager);
+        // A layout job for format F sees variant `Format(F)` if it exists, else `Html`.
+        scope.variant = self.known_variant(HookVariant::Format(format));
         let generation = self.views.generation(Phase::Layout, scope.variant);
         let full = generation.page_value(page);
         let format_name = &cfg.output_formats.get(format).name;
@@ -544,6 +650,100 @@ impl Session {
     pub fn diagnostics(&self) -> &Arc<Diagnostics> {
         &self.diagnostics
     }
+
+    /// The page stores (`.Store`).
+    #[must_use]
+    pub fn page_stores(&self) -> &Arc<PageStores> {
+        &self.handles.stores
+    }
+
+    /// The hook variants content is rendered in (`Html` first).
+    #[must_use]
+    pub fn variants(&self) -> &[HookVariant] {
+        &self.variants
+    }
+
+    /// The loaded templates.
+    #[must_use]
+    pub fn templates(&self) -> &Templates {
+        &self.templates
+    }
+
+    pub(crate) fn hugo(&self) -> &tera::Value {
+        &self.hugo
+    }
+
+    pub(crate) fn stores(&self) -> &PageStores {
+        &self.handles.stores
+    }
+
+    pub(crate) fn cells(&self) -> &ContentStore {
+        &self.cells
+    }
+
+    pub(crate) fn inclusions(&self) -> &Inclusions {
+        &self.inclusions
+    }
+
+    pub(crate) fn markdown(&self, lang: LangIdx) -> &MarkdownOptions {
+        &self.markdown[lang]
+    }
+
+    pub(crate) fn embedded_hooks(&self, lang: LangIdx) -> EmbeddedHooks {
+        self.embedded_hooks[lang]
+    }
+
+    pub(crate) fn highlighter(&self, lang: LangIdx) -> &OnceLock<Highlight> {
+        &self.highlighters[lang]
+    }
+
+    pub(crate) fn html_format(&self) -> FormatId {
+        self.html_format
+    }
+
+    /// Whether `t` is an embedded template.
+    pub(crate) fn is_embedded(&self, t: &TemplateName) -> bool {
+        self.embedded.contains(t)
+    }
+
+    /// `v` if content is rendered in it, else `Html`.
+    pub(crate) fn known_variant(&self, v: HookVariant) -> HookVariant {
+        if self.variants.contains(&v) {
+            v
+        } else {
+            HookVariant::Html
+        }
+    }
+
+    /// The output format shortcodes and hooks are looked up with in variant `v`.
+    pub(crate) fn variant_format(&self, v: HookVariant) -> FormatId {
+        match v {
+            HookVariant::Html => self.html_format,
+            HookVariant::Format(f) => f,
+        }
+    }
+
+    pub(crate) fn variant_name(&self, v: HookVariant) -> String {
+        self.model
+            .config
+            .output_formats
+            .get(self.variant_format(v))
+            .name
+            .clone()
+    }
+}
+
+/// `Html`, then `Format(F)` for every output format F other than HTML that has a render hook.
+fn hook_variants(layouts: &LayoutStore, html: FormatId) -> Vec<HookVariant> {
+    let formats: BTreeSet<FormatId> = layouts
+        .templates()
+        .filter(|t| matches!(t.role, TemplateRole::Hook { .. }))
+        .filter_map(|t| t.format)
+        .filter(|&f| f != html)
+        .collect();
+    std::iter::once(HookVariant::Html)
+        .chain(formats.into_iter().map(HookVariant::Format))
+        .collect()
 }
 
 impl ContentRenderer for Session {
@@ -551,45 +751,33 @@ impl ContentRenderer for Session {
         &self,
         p: PageId,
         v: HookVariant,
-        _: &RenderScope,
+        s: &RenderScope,
     ) -> Result<Arc<RenderedContent>, ContentError> {
-        let all = self
-            .contents
-            .get()
-            .ok_or_else(|| ContentError::Render("content not rendered yet".to_owned()))?;
-        all.get(&v)
-            .or_else(|| all.get(&HookVariant::Html))
-            .and_then(|c| c.get(p))
-            .and_then(Option::clone)
-            .ok_or(ContentError::NoContent(p))
+        self.content_of(p, v, s)
     }
 
     fn fragments(&self, p: PageId, s: &RenderScope) -> Result<Arc<Fragments>, ContentError> {
-        self.content(p, HookVariant::Html, s)
-            .map(|c| Arc::clone(&c.fragments))
+        self.fragments_of(p, s)
     }
 
+    /// In the content phase, the returned `markdown` is an inclusion token that the expanding
+    /// page replaces by `p`'s expanded source (a site function prints `markdown` as it is);
+    /// elsewhere it is `p`'s source with the shortcode outputs in place.
     fn render_shortcodes(
         &self,
-        _: PageId,
-        _: &RenderScope,
+        p: PageId,
+        s: &RenderScope,
     ) -> Result<Arc<ExpandedSource>, ContentError> {
-        Err(ContentError::Render(
-            "render_shortcodes is not in the walking skeleton".to_owned(),
-        ))
+        self.shortcodes_of(p, s)
     }
 
     fn render_markdown(
         &self,
         md: &str,
-        _: RenderStringOptions,
+        o: RenderStringOptions,
         s: &RenderScope,
     ) -> Result<String, ContentError> {
-        let site = &self.model.config.sites[s.lang];
-        let file: Arc<std::path::Path> = Arc::from(std::path::Path::new(""));
-        content::markdown(md, s.page, &file, &content::markdown_options(site))
-            .map(|r| r.html)
-            .map_err(|e| ContentError::Render(e.to_string()))
+        self.markdown_in_scope(md, o, s)
     }
 
     fn render_template(
@@ -608,6 +796,6 @@ impl ContentRenderer for Session {
         self.templates
             .tera()
             .render(t.as_str(), &ctx)
-            .map_err(|e| ContentError::Render(e.to_string()))
+            .map_err(|e| ContentError::Render(crate::shortcode::error_chain(&e)))
     }
 }

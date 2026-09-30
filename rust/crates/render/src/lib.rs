@@ -1,18 +1,27 @@
 //! The render session (REWRITE_PLAN.md §2.6, §3.2–3.3): the Tera instance with the template
 //! functions, the content phase, the view freeze and the render jobs of phase E.
 //!
-//! **State: T38 walking skeleton.** Frozen here: [`Job`], [`JobOrder`], [`Output`] and
-//! `Session::{new, render_content, freeze_views, render_job}`. The bodies are the skeleton's:
-//! content without shortcodes or hooks, stub site functions ([`stubs`](self) module docs),
-//! job planning in [`Session::wave1`] / [`Session::wave2`]. T34 (content), T35 (site
-//! functions) and T36 (orchestration) replace them.
+//! **State: T34.** The content engine is real: shortcodes (the private `shortcode` and
+//! `tokens` modules), summaries ([`summary`]), render hooks through Tera, memo cells that never
+//! block with cycle detection through the scope's chain, fragments as their own stage,
+//! page-store writes buffered per computation and committed by the winner, one content variant
+//! per hook format.
+//! Frozen by T38: [`Job`], [`JobOrder`], [`Output`] and
+//! `Session::{new, render_content, freeze_views, render_job}`. Still the skeleton's: the stub
+//! site functions (`stubs`; T35) and job planning in [`Session::wave1`] / [`Session::wave2`]
+//! (T36).
 
 #![forbid(unsafe_code)]
 
 mod content;
+mod hooks;
 mod job;
+mod memo;
 mod session;
+mod shortcode;
 mod stubs;
+pub mod summary;
+mod tokens;
 
 use neohugo_base::{FormatId, PageId};
 
@@ -39,6 +48,13 @@ pub enum RenderError {
     Markup {
         file: std::path::PathBuf,
         message: String,
+    },
+    /// The content of a page failed (a shortcode, a hook, Markdown, a cycle).
+    #[error("{page}: {source}")]
+    Content {
+        page: String,
+        #[source]
+        source: Box<neohugo_view::ContentError>,
     },
     /// A template failed.
     #[error("{template} ({page}): {source}")]
