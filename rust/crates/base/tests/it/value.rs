@@ -208,3 +208,29 @@ fn diagnostics_are_sorted_and_deduplicated() {
     );
     assert!(d.has_errors());
 }
+
+#[test]
+fn map_params_and_id_vec_serde() {
+    // `Map` deserializes from a table only, keeping key case; it iterates in byte order.
+    let m: Map = serde_json::from_str(r#"{"b": 1, "A": {"C": [true]}, "a": null}"#).unwrap();
+    assert_eq!(m.keys().collect::<Vec<_>>(), vec!["A", "a", "b"]);
+    assert_eq!(m["b"], Value::Int(1));
+    assert_eq!(
+        serde_json::to_string(&m).unwrap(),
+        r#"{"A":{"C":[true]},"a":null,"b":1}"#
+    );
+    assert!(serde_json::from_str::<Map>("[1]").is_err());
+
+    // `Params` serializes its folded map and folds what it deserializes.
+    let p: Params = serde_json::from_str(r#"{"Title": "T", "Author": {"Name": "A"}}"#).unwrap();
+    assert_eq!(p.get_path("author.name"), Some(&Value::string("A")));
+    assert_eq!(
+        serde_json::to_string(&p).unwrap(),
+        r#"{"author":{"name":"A"},"title":"T"}"#
+    );
+
+    // `IdVec` is a sequence in id order.
+    let v: IdVec<LangIdx, String> = serde_json::from_str(r#"["en", "th"]"#).unwrap();
+    assert_eq!(v[LangIdx::from_index(1)], "th");
+    assert_eq!(serde_json::to_string(&v).unwrap(), r#"["en","th"]"#);
+}

@@ -2,6 +2,8 @@
 
 use std::sync::Arc;
 
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
 use crate::text;
 use crate::value::{Map, Value};
 
@@ -118,6 +120,20 @@ impl Params {
     #[must_use]
     pub fn to_tera(&self) -> tera::Value {
         Value::map(self.0.clone()).to_tera()
+    }
+}
+
+impl Serialize for Params {
+    /// The folded map: lower-case keys in byte order.
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        self.0.serialize(s)
+    }
+}
+
+impl<'de> Deserialize<'de> for Params {
+    /// A table, folded like [`Params::fold`].
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        Map::deserialize(d).map(|m| Self::fold(&m))
     }
 }
 

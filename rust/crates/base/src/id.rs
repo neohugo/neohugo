@@ -252,6 +252,20 @@ impl<I: Idx, T> FromIterator<T> for IdVec<I, T> {
     }
 }
 
+impl<I: Idx, T: serde::Serialize> serde::Serialize for IdVec<I, T> {
+    /// A sequence in id order (the ids are the positions).
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        self.items.serialize(s)
+    }
+}
+
+impl<'de, I: Idx, T: serde::Deserialize<'de>> serde::Deserialize<'de> for IdVec<I, T> {
+    /// A sequence; the id of the `i`-th item is `I::from_index(i)`.
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        Vec::<T>::deserialize(d).map(Self::from)
+    }
+}
+
 impl<'a, I: Idx, T> IntoIterator for &'a IdVec<I, T> {
     type Item = &'a T;
     type IntoIter = std::slice::Iter<'a, T>;

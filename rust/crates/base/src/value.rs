@@ -541,19 +541,43 @@ impl<'de> Visitor<'de> for ValueVisitor {
         Ok(Value::array(items))
     }
 
-    fn visit_map<A: MapAccess<'de>>(self, mut access: A) -> Result<Value, A::Error> {
-        let mut m = Map::new();
-        while let Some(MapKey(k)) = access.next_key()? {
-            let v: Value = access.next_value()?;
-            m.insert(k, v);
-        }
-        Ok(Value::map(m))
+    fn visit_map<A: MapAccess<'de>>(self, access: A) -> Result<Value, A::Error> {
+        read_map(access).map(Value::map)
     }
+}
+
+/// The entries of a table; a later duplicate key replaces an earlier one.
+fn read_map<'de, A: MapAccess<'de>>(mut access: A) -> Result<Map, A::Error> {
+    let mut m = Map::new();
+    while let Some(MapKey(k)) = access.next_key()? {
+        let v: Value = access.next_value()?;
+        m.insert(k, v);
+    }
+    Ok(m)
 }
 
 impl<'de> Deserialize<'de> for Value {
     fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         d.deserialize_any(ValueVisitor)
+    }
+}
+
+impl<'de> Deserialize<'de> for Map {
+    /// A table of any data format; keys keep their case (scalar keys become strings, as in
+    /// [`Value`]) and a later duplicate key replaces an earlier one. Anything but a table is an
+    /// error.
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        struct MapVisitor;
+        impl<'de> Visitor<'de> for MapVisitor {
+            type Value = Map;
+            fn expecting(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+                f.write_str("a table")
+            }
+            fn visit_map<A: MapAccess<'de>>(self, access: A) -> Result<Map, A::Error> {
+                read_map(access)
+            }
+        }
+        d.deserialize_map(MapVisitor)
     }
 }
 
