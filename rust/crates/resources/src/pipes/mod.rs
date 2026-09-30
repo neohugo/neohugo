@@ -1,0 +1,605 @@
+//! The resource pipes (REWRITE_PLAN.md §2.1, §3.4, task T42): every [`Transform`] beyond
+//! `fingerprint`, `post_process` placeholders and `execute_as_template`.
+//!
+//! | Transform | Implementation | Target |
+//! |---|---|---|
+//! | [`Transform::Minify`] | `neohugo-minify` by media type (no minifier: an error) | `.min` before the extension |
+//! | [`Transform::ToCss`] | grass (dart-sass semantics); imports through the assets view, `includePaths`, `hugo:vars` | `targetPath`, else `.css` |
+//! | [`Transform::PostCss`] | the `postcss` CLI (`postcss-cli`), optional `@import` inlining | unchanged |
+//! | [`Transform::TailwindCss`] | the `tailwindcss` CLI (v4), `@import` inlining unless disabled | unchanged |
+//! | [`Transform::Babel`] | the `babel` CLI (`@babel/cli`) | unchanged |
+//! | [`Transform::JsBuild`] | esbuild through `neohugo-esbuild` | `targetPath`, else `.js` |
+//! | [`Transform::Fingerprint`] | the store (T40) | `.<hex digest>` before the extension |
+//!
+//! **Laziness.** [`ResourceStore::transform`] registers the result at once with its final
+//! target, link and media type, and a [`Body::Pending`] body; the work runs when the content is
+//! needed ([`ResourceStore::realize`], [`ResourceStore::content`], publishing). Only a
+//! `fingerprint` depends on the content for its link: over a computed resource it is computed
+//! at once; over a pending one it is pending too, its record provisional (the source's link,
+//! [`PublishPolicy::Never`]) until computed. So a chain ending in
+//! [`ResourceStore::post_process`] runs in build phase E5, after `hugo_stats.json` exists,
+//! as long as nobody asks for its content or its fingerprinted link earlier (the crate README
+//! says how template functions build views of pending results).
+//!
+//! **External tools** ([`Tool`]) are looked up in [`ToolPaths`] (explicit paths, then
+//! `<project>/node_modules/.bin`, then the extra `node_modules` directories, then `PATH`),
+//! must be allowed by `security.exec.allow`, run with the project directory as working
+//! directory and an environment of the allowed variables (`security.exec.osEnv`) plus
+//! `NODE_PATH`, `PWD`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_PUBLISHDIR` and `HUGO_FILE_<NAME>`
+//! for each file in `assets/_jsconfig`. At most `min(4, cpus)` run at once. A missing tool is
+//! [`PipeError::ToolNotFound`], naming the binary.
+
+mod assets;
+mod babel;
+mod css_imports;
+mod exec;
+mod jsbuild;
+mod minify;
+mod postcss;
+mod postprocess;
+mod sass;
+mod tailwind;
+mod template;
+
+use std::collections::{BTreeMap, HashMap};
+use std::hash::{Hash, Hasher};
+use std::path::PathBuf;
+use std::sync::{Arc, Mutex, OnceLock};
+
+use base64::Engine as _;
+use neohugo_base::paths::{self, OutputPath, UrlPath};
+use neohugo_base::{ResourceId, Value};
+use neohugo_config::global::SecurityPolicy;
+use neohugo_config::{Config, MediaType};
+use neohugo_esbuild::{JsBuildError, JsBuildOptions, JsBuilder, OptionsError, Service};
+use neohugo_minify::{Minifier, MinifyError};
+use serde_json::Value as Json;
+
+use crate::store::{
+    Body, HashAlgo, NewResource, Origin, PublishPolicy, Resource, ResourceError, ResourceStore,
+    add_identifier, kind_of, lock,
+};
+
+pub use babel::{BabelFlag, BabelOptions, BabelSourceMap};
+pub use css_imports::InlineImports;
+pub use exec::{Tool, ToolPaths};
+pub use postcss::PostCssOptions;
+pub use postprocess::{PostProcessId, PpField, has_placeholder};
+pub use sass::{OutputStyle, SassVar, ToCssOptions};
+pub use tailwind::TailwindOptions;
+pub use template::TemplateExecutor;
+
+/// A transform of one resource into another (see the module table).
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum Transform {
+    /// `fingerprint`: the content is unchanged; the target gets `.<hex digest>` before its
+    /// extension and `Data.Integrity` is `<algo>-<base64 digest>` (subresource integrity).
+    Fingerprint(HashAlgo),
+    /// `minify`: by the media type's minifier (HTML, CSS, JS, JSON, SVG, XML).
+    Minify,
+    /// `to_css` (`css.Sass`, `toCSS`).
+    ToCss(ToCssOptions),
+    /// `post_css` (`css.PostCSS`).
+    PostCss(PostCssOptions),
+    /// `tailwind_css` (`css.TailwindCSS`).
+    TailwindCss(TailwindOptions),
+    /// `babel` (`js.Babel`).
+    Babel(BabelOptions),
+    /// `js_build` (`js.Build`).
+    JsBuild(JsBuildSpec),
+}
+
+impl Transform {
+    /// The template function's name (`to_css`), as errors name the transform.
+    #[must_use]
+    pub const fn name(&self) -> &'static str {
+        match self {
+            Self::Fingerprint(_) => "fingerprint",
+            Self::Minify => "minify",
+            Self::ToCss(_) => "to_css",
+            Self::PostCss(_) => "post_css",
+            Self::TailwindCss(_) => "tailwind_css",
+            Self::Babel(_) => "babel",
+            Self::JsBuild(_) => "js_build",
+        }
+    }
+}
+
+/// `js_build` options with the identity a transform needs: two specs are the same transform
+/// when their options are equal (`params` compared as JSON).
+#[derive(Clone, Debug, PartialEq)]
+pub struct JsBuildSpec(pub JsBuildOptions);
+
+impl JsBuildSpec {
+    /// Decodes the template's options map (`null`: the defaults).
+    ///
+    /// # Errors
+    /// An option of the wrong type or with an unknown value.
+    pub fn from_json(v: &Json) -> Result<Self, PipeError> {
+        Ok(Self(JsBuildOptions::from_json(v)?))
+    }
+}
+
+// JSON numbers are finite, so the options' equality is reflexive.
+impl Eq for JsBuildSpec {}
+
+impl Hash for JsBuildSpec {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // The options' Debug form is deterministic (sorted maps); equal options hash equally.
+        format!("{:?}", self.0).hash(state);
+    }
+}
+
+/// Why a transform failed.
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum PipeError {
+    /// An option of a transform could not be decoded.
+    #[error("option {option:?}: {reason}")]
+    Option { option: String, reason: String },
+    #[error(transparent)]
+    JsOptions(#[from] OptionsError),
+    /// An external tool is not installed where [`ToolPaths`] looks.
+    #[error(
+        "the {tool} binary was not found (looked in {searched}); install the node tools with tools/neohugo/node.sh or set {env}"
+    )]
+    ToolNotFound {
+        tool: &'static str,
+        env: &'static str,
+        searched: String,
+    },
+    /// `security.exec.allow` does not allow the tool.
+    #[error("running {tool} is not allowed by security.exec.allow")]
+    ExecDenied { tool: &'static str },
+    #[error("starting {tool} ({path}): {source}")]
+    Spawn {
+        tool: &'static str,
+        path: PathBuf,
+        source: std::io::Error,
+    },
+    /// The tool exited unsuccessfully.
+    #[error("{tool} failed ({status}):\n{stderr}")]
+    ToolFailed {
+        tool: &'static str,
+        status: String,
+        stderr: String,
+    },
+    /// A configuration file named by an option does not exist.
+    #[error("{tool} config {name:?} not found")]
+    ConfigNotFound { tool: &'static str, name: String },
+    /// A Sass compilation error at a position (`hugo:vars` for the variables sheet).
+    #[error("{file}:{line}:{column}: {message}")]
+    Sass {
+        file: String,
+        line: usize,
+        column: usize,
+        message: String,
+    },
+    /// Sass could not read its input.
+    #[error("{0}")]
+    SassInput(String),
+    /// A CSS `@import` of a missing asset (`inlineImports`).
+    #[error("{file}:{line}: @import of {path:?}: no such asset")]
+    CssImport {
+        file: String,
+        line: usize,
+        path: String,
+    },
+    /// The esbuild service could not be started.
+    #[error("esbuild: {0}")]
+    Esbuild(String),
+    #[error(transparent)]
+    JsBuild(#[from] JsBuildError),
+    #[error(transparent)]
+    Minify(#[from] MinifyError),
+    /// `minify` of a media type no minifier handles.
+    #[error("no minifier for media type {0:?}")]
+    NoMinifier(String),
+    /// The template of `execute_as_template` failed.
+    #[error("{0}")]
+    Template(String),
+    /// A text transform got content that is not UTF-8.
+    #[error("the content is not UTF-8")]
+    NotUtf8,
+    #[error("{what}: {source}")]
+    Io {
+        what: String,
+        source: std::io::Error,
+    },
+}
+
+/// Everything the pipes need from the build: directories, the environment, the tools, esbuild
+/// and the minifier. One per build, shared by the store.
+pub struct TransformEnv {
+    /// The project directory: the working directory of the tools, the base of `includePaths`,
+    /// of config files and of esbuild's `node_modules` lookups.
+    pub project_dir: PathBuf,
+    /// The absolute publish directory (`HUGO_PUBLISHDIR`, esbuild's output directory).
+    pub publish_dir: PathBuf,
+    /// `HUGO_ENVIRONMENT` (`production`, `development`).
+    pub environment: String,
+    /// `security.exec.allow` and `security.exec.osEnv`.
+    pub security: SecurityPolicy,
+    /// The process environment the tools may inherit (filtered by `osEnv`).
+    pub os_env: Vec<(String, String)>,
+    pub tools: ToolPaths,
+    pub minifier: Arc<Minifier>,
+    /// The esbuild binary (started on first use as a `--service`).
+    pub esbuild_binary: PathBuf,
+    esbuild: OnceLock<Result<JsBuilder, String>>,
+    slots: exec::Slots,
+}
+
+impl std::fmt::Debug for TransformEnv {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TransformEnv")
+            .field("project_dir", &self.project_dir)
+            .field("publish_dir", &self.publish_dir)
+            .field("environment", &self.environment)
+            .field("tools", &self.tools)
+            .field("esbuild_binary", &self.esbuild_binary)
+            .finish_non_exhaustive()
+    }
+}
+
+impl Default for TransformEnv {
+    /// The current directory as project, `public` in it, `production`, the default security
+    /// policy, no inherited environment, [`ToolPaths::from_env`] and
+    /// [`neohugo_esbuild::binary_path`].
+    fn default() -> Self {
+        let project_dir = std::env::current_dir().unwrap_or_default();
+        Self::new(
+            project_dir.clone(),
+            project_dir.join("public"),
+            "production".to_owned(),
+        )
+    }
+}
+
+impl TransformEnv {
+    /// An environment for a project directory, a publish directory and an environment name;
+    /// the other fields as in [`Default`].
+    #[must_use]
+    pub fn new(project_dir: PathBuf, publish_dir: PathBuf, environment: String) -> Self {
+        Self {
+            project_dir,
+            publish_dir,
+            environment,
+            security: SecurityPolicy::default(),
+            os_env: Vec::new(),
+            tools: ToolPaths::from_env(),
+            minifier: Arc::new(Minifier::default()),
+            esbuild_binary: neohugo_esbuild::binary_path(),
+            esbuild: OnceLock::new(),
+            slots: exec::Slots::default(),
+        }
+    }
+
+    /// The environment of a loaded project: its directories, environment name, security
+    /// policy and minifier configuration, the process environment, [`ToolPaths::from_env`].
+    /// An invalid `[minify]` table gives the default minifier (the publisher reports it).
+    #[must_use]
+    pub fn from_config(cfg: &Config) -> Self {
+        let publish_dir = cfg.project_dir.join(&cfg.dirs.publish);
+        let mut env = Self::new(
+            cfg.project_dir.clone(),
+            publish_dir,
+            cfg.environment.clone(),
+        );
+        env.security = cfg.security.clone();
+        env.os_env = std::env::vars_os()
+            .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)))
+            .collect();
+        env.minifier = Arc::new(Minifier::new(&cfg.minify).unwrap_or_default());
+        env
+    }
+
+    /// The `js_build` builder, starting the esbuild service on first use.
+    fn js_builder(&self) -> Result<&JsBuilder, PipeError> {
+        self.esbuild
+            .get_or_init(|| {
+                Service::start(&self.esbuild_binary)
+                    .map(|s| {
+                        let tsconfig = ["tsconfig.json", "jsconfig.json"]
+                            .into_iter()
+                            .map(|n| self.project_dir.join(n))
+                            .find(|p| p.is_file());
+                        JsBuilder::new(
+                            Arc::new(s),
+                            self.project_dir.clone(),
+                            self.publish_dir.clone(),
+                        )
+                        .with_tsconfig(tsconfig)
+                    })
+                    .map_err(|e| format!("{} ({})", e, self.esbuild_binary.display()))
+            })
+            .as_ref()
+            .map_err(|e| PipeError::Esbuild(e.clone()))
+    }
+}
+
+/// The pipes' state in a store: realization locks, companion files, post-processed resources.
+#[derive(Default)]
+pub(crate) struct PipeState {
+    realizing: Mutex<HashMap<ResourceId, Arc<Mutex<()>>>>,
+    /// Files published with a resource (source maps).
+    companions: Mutex<BTreeMap<ResourceId, Vec<ResourceId>>>,
+    pub(crate) post: postprocess::Registry,
+}
+
+impl PipeState {
+    /// The companions of `ids`.
+    pub(crate) fn companions_of(
+        &self,
+        ids: &std::collections::BTreeSet<ResourceId>,
+    ) -> Vec<ResourceId> {
+        let c = lock(&self.companions);
+        ids.iter()
+            .filter_map(|id| c.get(id))
+            .flatten()
+            .copied()
+            .collect()
+    }
+}
+
+/// What running a transform produced.
+struct Output {
+    bytes: Vec<u8>,
+    /// A source map published next to the result (`<target>.map`).
+    source_map: Option<Vec<u8>>,
+}
+
+/// Registers the result of `t` on `id` (see the module documentation).
+pub(crate) fn start(
+    store: &ResourceStore,
+    id: ResourceId,
+    t: Transform,
+) -> Result<ResourceId, ResourceError> {
+    let src = store.resource(id);
+    let (link, target, media_type, policy) = match &t {
+        Transform::Fingerprint(_) => (
+            src.link.as_str().to_owned(),
+            src.target.clone(),
+            src.media_type.clone(),
+            PublishPolicy::Never,
+        ),
+        Transform::Minify => (
+            add_identifier(src.link.as_str(), ".min"),
+            OutputPath::new(&add_identifier(src.target.as_str(), ".min")),
+            src.media_type.clone(),
+            PublishPolicy::OnReference,
+        ),
+        Transform::ToCss(o) => {
+            let (link, target) = retarget(store, &src, o.target_path.as_deref(), ".css");
+            (
+                link,
+                target,
+                media_type(store, "text/css"),
+                PublishPolicy::OnReference,
+            )
+        }
+        Transform::JsBuild(o) => {
+            let (link, target) = retarget(store, &src, o.0.target_path.as_deref(), ".js");
+            (
+                link,
+                target,
+                media_type(store, "text/javascript"),
+                PublishPolicy::OnReference,
+            )
+        }
+        Transform::PostCss(_) | Transform::TailwindCss(_) | Transform::Babel(_) => (
+            src.link.as_str().to_owned(),
+            src.target.clone(),
+            src.media_type.clone(),
+            PublishPolicy::OnReference,
+        ),
+    };
+    let fingerprint_now =
+        matches!(t, Transform::Fingerprint(_)) && !matches!(src.body, Body::Pending);
+    let new = store.push(NewResource {
+        origin: Origin::Transformed {
+            from: id,
+            transform: Box::new(t),
+        },
+        kind: Some(if media_type == src.media_type {
+            src.kind
+        } else {
+            kind_of(&media_type)
+        }),
+        media_type,
+        name: src.name.clone(),
+        name_normalized: Some(src.name_normalized.clone()),
+        title: src.title.clone(),
+        params: src.params.clone(),
+        data: src.data.clone(),
+        lang: src.lang,
+        target,
+        link: UrlPath::new(&link),
+        body: Body::Pending,
+        policy,
+    });
+    if fingerprint_now {
+        realize(store, new)?;
+    }
+    Ok(new)
+}
+
+/// The link and target of a transform result: `target_path` (relative to the site root), else
+/// the source's with the extension replaced by `ext`.
+fn retarget(
+    store: &ResourceStore,
+    src: &Resource,
+    target_path: Option<&str>,
+    ext: &str,
+) -> (String, OutputPath) {
+    if let Some(tp) = target_path.filter(|t| !t.trim_start_matches('/').is_empty()) {
+        let link = paths::clean(&format!("/{}", tp.trim_start_matches('/')));
+        let target = store.global_target(src.lang, &link);
+        return (link, target);
+    }
+    (
+        replace_extension(src.link.as_str(), ext),
+        OutputPath::new(&replace_extension(src.target.as_str(), ext)),
+    )
+}
+
+/// `path` with the extension of its last element replaced by `ext` (`.css`), or `ext` appended.
+fn replace_extension(path: &str, ext: &str) -> String {
+    let (dir, file) = paths::split(path);
+    let stem = file.rfind('.').map_or(file, |i| &file[..i]);
+    format!("{dir}{stem}{ext}")
+}
+
+/// The configured media type `t` (`text/css`), else parsed.
+fn media_type(store: &ResourceStore, t: &str) -> MediaType {
+    let types = &store.cfg.media_types;
+    types.by_type(t).map_or_else(
+        || MediaType::parse(t).unwrap_or_else(|_| crate::store::empty_media_type()),
+        |id| types.get(id).clone(),
+    )
+}
+
+/// Computes pending resource `id` (and its sources), replacing its record.
+pub(crate) fn realize(
+    store: &ResourceStore,
+    id: ResourceId,
+) -> Result<Arc<Resource>, ResourceError> {
+    let r = store.resource(id);
+    if !matches!(r.body, Body::Pending) {
+        return Ok(r);
+    }
+    let cell = Arc::clone(lock(&store.pipes.realizing).entry(id).or_default());
+    let _guard = lock(&cell);
+    let r = store.resource(id);
+    if !matches!(r.body, Body::Pending) {
+        return Ok(r);
+    }
+    let Origin::Transformed { from, transform } = &r.origin else {
+        unreachable!("only transform results are pending");
+    };
+    let src = realize(store, *from)?;
+    let input = store.content(*from)?;
+    let env = Arc::clone(&store.cfg.transforms);
+    let fail = |e: PipeError| ResourceError::Pipe {
+        resource: src.name.clone(),
+        transform: transform.name(),
+        source: Box::new(e),
+    };
+    let mut done = Resource::clone(&r);
+    done.policy = PublishPolicy::OnReference;
+    let out = match &**transform {
+        Transform::Fingerprint(algo) => {
+            let digest = algo.digest(&input);
+            let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
+            let integrity = format!(
+                "{}-{}",
+                algo.name(),
+                base64::engine::general_purpose::STANDARD.encode(&digest)
+            );
+            done.data.insert("Integrity", Value::from(integrity));
+            let ident = format!(".{hex}");
+            let link = UrlPath::new(&add_identifier(src.link.as_str(), &ident));
+            done.target = OutputPath::new(&add_identifier(src.target.as_str(), &ident));
+            done.rel_permalink = store.rel_permalink(done.lang, &link);
+            done.permalink = store.permalink(done.lang, &link);
+            done.link = link;
+            done.body = src.body.clone();
+            store.replace(id, done);
+            return Ok(store.resource(id));
+        }
+        Transform::Minify => minify::run(&env, &r, &input).map_err(fail)?,
+        Transform::ToCss(o) => sass::run(store, &src, o, &input).map_err(fail)?,
+        Transform::PostCss(o) => postcss::run(store, &env, &src, o, &input).map_err(fail)?,
+        Transform::TailwindCss(o) => tailwind::run(store, &env, &src, o, &input).map_err(fail)?,
+        Transform::Babel(o) => babel::run(store, &env, &src, &r, o, &input).map_err(fail)?,
+        Transform::JsBuild(o) => jsbuild::run(store, &env, &src, &o.0, &input).map_err(fail)?,
+    };
+    if let Some(map) = out.source_map {
+        let map_link = format!("{}.map", r.link.as_str());
+        let companion = store.push(NewResource {
+            origin: Origin::Named,
+            media_type: media_type(store, "application/json"),
+            name: map_link.clone(),
+            name_normalized: None,
+            title: map_link.clone(),
+            params: neohugo_base::Params::default(),
+            data: neohugo_base::Map::new(),
+            lang: r.lang,
+            target: OutputPath::new(&format!("{}.map", r.target.as_str())),
+            link: UrlPath::new(&map_link),
+            body: Body::Bytes(map.into()),
+            policy: PublishPolicy::OnReference,
+            kind: None,
+        });
+        lock(&store.pipes.companions)
+            .entry(id)
+            .or_default()
+            .push(companion);
+    }
+    done.body = Body::Bytes(out.bytes.into());
+    store.replace(id, done);
+    Ok(store.resource(id))
+}
+
+/// `bytes` as text, for the text transforms.
+fn text(bytes: &[u8]) -> Result<&str, PipeError> {
+    std::str::from_utf8(bytes).map_err(|_| PipeError::NotUtf8)
+}
+
+// ── option decoding ─────────────────────────────────────────────────────────────────────────
+
+/// The entries of an options map, keys lower-cased (options are matched case-insensitively);
+/// `null` is no options.
+fn option_entries(v: &Json) -> Result<Vec<(String, &Json)>, PipeError> {
+    match v {
+        Json::Null => Ok(Vec::new()),
+        Json::Object(m) => Ok(m
+            .iter()
+            .filter(|(_, v)| !v.is_null())
+            .map(|(k, v)| (k.to_ascii_lowercase(), v))
+            .collect()),
+        other => Err(PipeError::Option {
+            option: String::new(),
+            reason: format!("the options must be a map, got {other}"),
+        }),
+    }
+}
+
+fn bad(option: &str, reason: impl Into<String>) -> PipeError {
+    PipeError::Option {
+        option: option.to_owned(),
+        reason: reason.into(),
+    }
+}
+
+/// A boolean option; `"true"`/`"false"` and numbers are accepted, as templates pass them.
+fn opt_bool(option: &str, v: &Json) -> Result<bool, PipeError> {
+    match v {
+        Json::Bool(b) => Ok(*b),
+        Json::String(s) => match s.to_ascii_lowercase().as_str() {
+            "true" | "1" => Ok(true),
+            "false" | "0" | "" => Ok(false),
+            _ => Err(bad(option, format!("expected a boolean, got {s:?}"))),
+        },
+        Json::Number(n) => Ok(n.as_f64().is_some_and(|f| f != 0.0)),
+        other => Err(bad(option, format!("expected a boolean, got {other}"))),
+    }
+}
+
+/// A string option; numbers and booleans are accepted as their text.
+fn opt_string(option: &str, v: &Json) -> Result<String, PipeError> {
+    match v {
+        Json::String(s) => Ok(s.clone()),
+        Json::Number(n) => Ok(n.to_string()),
+        Json::Bool(b) => Ok(b.to_string()),
+        other => Err(bad(option, format!("expected a string, got {other}"))),
+    }
+}
+
+/// A list of strings; a single string is a one-item list.
+fn opt_strings(option: &str, v: &Json) -> Result<Vec<String>, PipeError> {
+    match v {
+        Json::Array(a) => a.iter().map(|x| opt_string(option, x)).collect(),
+        other => Ok(vec![opt_string(option, other)?]),
+    }
+}

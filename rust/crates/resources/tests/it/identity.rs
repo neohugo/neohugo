@@ -58,6 +58,7 @@ fn bare(multihost: bool) -> ResourceStore {
         vfs: None,
         images: None,
         remote: RemoteConfig::default(),
+        transforms: Arc::default(),
     })
 }
 
@@ -171,7 +172,7 @@ fn transforms_and_metadata_are_memoized() {
     assert_eq!(s.get_asset(lang(0), "css/missing.css").unwrap(), None);
     assert_eq!(s.get_asset(lang(0), "").unwrap(), None);
     let f = Transform::Fingerprint(HashAlgo::from_str("sha384").unwrap());
-    let fp = s.transform(css, f).unwrap();
+    let fp = s.transform(css, f.clone()).unwrap();
     assert_eq!(s.transform(css, f).unwrap(), fp);
     assert!(s.resource(fp).integrity().unwrap().starts_with("sha384-"));
     assert!(matches!(

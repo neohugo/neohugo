@@ -2970,8 +2970,6 @@ name = "neohugo-resources"
 version = "0.149.0-DEV"
 dependencies = [
  "base64 0.23.1",
- "dashmap 6.2.1",
- "filetime",
  "grass",
  "md-5",
  "mime_guess",
@@ -2984,7 +2982,6 @@ dependencies = [
  "neohugo-vfs",
  "neohugo-workspace-hack",
  "serde_json",
- "sha1 0.11.0",
  "sha2",
  "tempfile",
  "tera",

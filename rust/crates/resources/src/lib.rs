@@ -21,19 +21,22 @@
 //!   cache (entries are raw HTTP responses), with `[security.http]` checks, network fetches
 //!   through `ureq`, and an importer of caches Hugo wrote (see [`remote`]).
 //!
-//! The pipes (`to_css`, PostCSS, Tailwind, Babel, `js_build`, minify, `post_process`,
-//! `execute_as_template`) are task T42's (`pipes/`).
+//! - [`pipes`]: the transforms beyond `fingerprint` (`minify`, `to_css` with grass, PostCSS,
+//!   Tailwind and Babel as external tools, `js_build` with esbuild), computed lazily;
+//!   `post_process` placeholders; `execute_as_template` (the template engine is a seam).
 
 #![forbid(unsafe_code)]
 
 pub mod meta;
+pub mod pipes;
 mod publish;
 pub mod remote;
 mod store;
 
+pub use pipes::{PipeError, PostProcessId, PpField, TemplateExecutor, Transform, TransformEnv};
 pub use publish::PublishStats;
 pub use remote::{RemoteConfig, RemoteError, RemoteOptions, cache_key, hugo_keys};
 pub use store::{
     Body, BundleResource, CallSite, HashAlgo, LangTarget, Origin, PublishPolicy, Resource,
-    ResourceError, ResourceKind, ResourceStore, StoreConfig, Transform,
+    ResourceError, ResourceKind, ResourceStore, StoreConfig,
 };
