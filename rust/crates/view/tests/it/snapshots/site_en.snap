@@ -171,6 +171,7 @@ regular_pages:
   - /posts/one
 sections:
   - /posts
+server_port: 0
 sitemap_abs_url: "https://example.org/en/sitemap.xml"
 taxonomies: ~
 title: Views

@@ -66,7 +66,8 @@ Flattened render-hook fields:
 | `.GetTerms "tags"` | `page.terms.tags` |
 | `.Data.Singular/Plural/Term/Terms` | `page.taxonomy.singular/plural/terms`, `page.term.term` |
 | `.OutputFormats.Get "rss"`, `.AlternativeOutputFormats`, `.MediaType` | `page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type` |
-| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `Generator` | `hugo.version` (`"0.149.0-DEV"`), `hugo.environment`, `hugo.is_production`, `hugo.is_development`, `hugo.generator` |
+| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `hugo.version` (`"0.149.0-DEV"`), `hugo.environment`, `hugo.is_production`, `hugo.is_development`, `hugo.is_server`, `hugo.generator` |
+| `.Site.ServerPort` | `site.server_port` (the base URL's port, 0 without one) |
 | `.Site.Config.Privacy.*` | `site.config.privacy.*` |
 | `.Data.Integrity`, `.Width`, `.Height` | `r.data.integrity`, `r.width`, `r.height` |
 | `partial "x" .` (shares the context) | `{% include "_partials/x.html" %}` |

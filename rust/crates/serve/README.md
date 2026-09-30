@@ -111,8 +111,6 @@ harmless for memory builds.
 - No TLS (`--tlsCertFile`, `--tlsKeyFile`, `--tlsAuto`, `trust`), `--openBrowser`, `--pprof`,
   `--renderStaticToDisk`, `--forceSyncStatic` (clap usage errors); `--disableFastRender` and
   `--disableBrowserError` are accepted and change nothing.
-- `hugo.IsServer` and `site.ServerPort` are not set (the views are built by `neohugo-view`,
-  which has no server flag).
 - A busy default port falls back to a free port on `--bind` (Hugo listens on all interfaces
   then). Directory listings are not served (Hugo's `filesOnlyFs` lists nothing either; a
   directory without `index.html` is a miss).
@@ -142,6 +140,7 @@ harmless for memory builds.
 | `serve::a_new_static_directory_is_watched` | a site without `static/`: the new directory's file is copied, and a second edit inside it is seen (no build) |
 | `serve::theme_and_new_config_files_are_watched` | a theme's layout (→ its one changed page) and its `hugo.toml` (→ reloaded configuration), then a new `neohugo.toml` over `hugo.toml` |
 | `serve::polling_watcher` | `--poll 100ms` picks up an edit |
+| `serve::hugo_is_server_and_site_server_port` | `hugo.is_server` true and `site.server_port` the listener's port in the server (`BuildRequest::server`, T70); `false` and 0 in a `build` of the same site |
 | `testsite::testsite_is_served_and_reloads` | the testsite: pages of both languages and formats with the canonified server URLs, no script in JSON and aliases, static, types, both 404 pages, then edit → reload **measured**: 3 content edits, 1 layout edit, 1 static edit (no build) |
 
 Measured on the testsite (debug build; 4 CPUs shared with other builds):

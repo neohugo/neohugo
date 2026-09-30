@@ -145,6 +145,7 @@ impl Rebuilder {
                 Target::Disk => SinkKind::Disk,
             },
             live_reload: self.live_reload.map(|l| LiveReload { port: l.port }),
+            server: true,
             ..self.request.clone()
         })
     }

@@ -857,8 +857,12 @@ pub const SYNTAX: &[SyntaxRule] = &[
         "`page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type`",
     ),
     syn(
-        "`hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `Generator`",
-        "`hugo.version` (`\"0.149.0-DEV\"`), `hugo.environment`, `hugo.is_production`, `hugo.is_development`, `hugo.generator`",
+        "`hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator`",
+        "`hugo.version` (`\"0.149.0-DEV\"`), `hugo.environment`, `hugo.is_production`, `hugo.is_development`, `hugo.is_server`, `hugo.generator`",
+    ),
+    syn(
+        "`.Site.ServerPort`",
+        "`site.server_port` (the base URL's port, 0 without one)",
     ),
     syn("`.Site.Config.Privacy.*`", "`site.config.privacy.*`"),
     syn(

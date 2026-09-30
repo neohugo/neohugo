@@ -638,6 +638,7 @@ impl ViewGeneration {
             last_mod: site.last_mod.as_ref().map(DateView::new),
             config: sh.configs[lang].clone(),
             sitemap_abs_url: sh.sitemap_abs_urls[lang].clone(),
+            server_port: site_cfg.base_url.port().unwrap_or(0),
         })
     }
 

@@ -28,6 +28,7 @@ pub(crate) fn request(a: &BuildArgs) -> anyhow::Result<BuildRequest> {
         threads: a.threads,
         config: None,
         live_reload: None,
+        server: false,
     })
 }
 

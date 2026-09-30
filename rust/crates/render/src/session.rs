@@ -46,12 +46,15 @@ pub struct Project {
 pub struct RenderOptions {
     /// `now()` and the build's "now" (`--clock`).
     pub clock: Clock,
+    /// The build runs in `neohugo-rs server` (`hugo.is_server`).
+    pub server: bool,
 }
 
 impl Default for RenderOptions {
     fn default() -> Self {
         Self {
             clock: Clock::system(),
+            server: false,
         }
     }
 }
@@ -311,7 +314,7 @@ impl Session {
             extra(t, &handles);
         })?;
         let session = Arc::new(Self {
-            hugo: tera::Value::from_serializable(&HugoView::new(&model.config)),
+            hugo: tera::Value::from_serializable(&HugoView::new(&model.config, o.server)),
             cells: ContentStore::new(model.pages.len(), &variants),
             markdown: cfg.sites.iter().map(content::markdown_options).collect(),
             embedded_hooks: cfg

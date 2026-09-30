@@ -116,6 +116,7 @@ pub const SITE_KEYS: &[&str] = &[
     "last_mod",
     "config",
     "sitemap_abs_url",
+    "server_port",
 ];
 
 /// The keys of a page link (`page.terms.<plural>[i]`, alias pages, menu entries' `page`).
@@ -471,6 +472,9 @@ pub struct SiteView {
     pub last_mod: Option<DateView>,
     pub config: tera::Value,
     pub sitemap_abs_url: Option<String>,
+    /// The port of the language's base URL, 0 without one (Hugo's `.Site.ServerPort`; the
+    /// server points the base URLs at its listeners).
+    pub server_port: u16,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -643,15 +647,16 @@ pub struct HugoView {
 }
 
 impl HugoView {
+    /// `server`: the build runs in `neohugo-rs server` (`hugo.IsServer`).
     #[must_use]
-    pub fn new(cfg: &Config) -> Self {
+    pub fn new(cfg: &Config, server: bool) -> Self {
         Self {
             version: "0.149.0-DEV",
             neohugo_version: env!("CARGO_PKG_VERSION"),
             environment: cfg.environment.clone(),
             is_production: cfg.environment == "production",
             is_development: cfg.environment == "development",
-            is_server: false,
+            is_server: server,
             generator: tera::Value::safe_string(
                 r#"<meta name="generator" content="Hugo 0.149.0-DEV">"#,
             ),

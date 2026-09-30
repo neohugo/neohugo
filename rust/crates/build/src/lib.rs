@@ -90,6 +90,8 @@ pub struct BuildRequest {
     /// `neohugo-rs server`: put the LiveReload script into the HTML pages (not into `build`'s
     /// output).
     pub live_reload: Option<LiveReload>,
+    /// `neohugo-rs server`: `hugo.is_server` is true.
+    pub server: bool,
 }
 
 /// The LiveReload script of `neohugo-rs server` (T71): every HTML page except alias
@@ -287,7 +289,10 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
                 layouts,
             },
             Arc::new(model),
-            &RenderOptions { clock },
+            &RenderOptions {
+                clock,
+                server: r.server,
+            },
         )
     })?;
     // The configuration's notices (deprecated keys, ignored configuration files) first.

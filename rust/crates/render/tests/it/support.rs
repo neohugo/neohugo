@@ -55,7 +55,10 @@ pub fn session_in(dir: &Path, extra: &dyn Fn(&mut tera::Tera, &Handles)) -> Arc<
     Session::with_functions(
         Project { vfs, layouts },
         Arc::new(model),
-        &RenderOptions { clock },
+        &RenderOptions {
+            clock,
+            ..RenderOptions::default()
+        },
         &|t, h| {
             crate::fakes::register(t, h);
             extra(t, h);

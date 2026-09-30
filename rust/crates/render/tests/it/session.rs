@@ -63,7 +63,10 @@ fn session(dir: &Path) -> Arc<Session> {
     Session::new(
         Project { vfs, layouts },
         Arc::new(model),
-        &RenderOptions { clock },
+        &RenderOptions {
+            clock,
+            ..RenderOptions::default()
+        },
     )
     .expect("session")
 }

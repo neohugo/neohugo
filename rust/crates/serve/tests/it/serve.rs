@@ -565,3 +565,32 @@ fn polling_watcher() {
     assert!(get(addr, "/about/", &[]).text().contains("Polled."));
     server.shutdown();
 }
+
+/// `hugo.is_server` is true and `site.server_port` is the listener's port in the server
+/// (T70); a `build` of the same site has `false` and its base URL's port (none: 0).
+#[test]
+fn hugo_is_server_and_site_server_port() {
+    let dir = site(concat!(
+        "-- hugo.toml --\n",
+        "baseURL = \"https://example.org/\"\n",
+        "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\", \"404\"]\n",
+        "-- layouts/home.html --\n",
+        "<html><head></head><body>server={{ hugo.is_server }} port={{ site.server_port }}</body></html>\n",
+    ));
+    let (server, _events) = serve(dir.path(), |o| o.watch = Watch::Off);
+    let addr = server.local_addrs()[0];
+    let home = get(addr, "/", &[]).text();
+    let want = format!("server=true port={}", addr.port());
+    assert!(home.contains(&want), "{home}");
+    server.shutdown();
+
+    let report = neohugo_build::build(neohugo_build::BuildRequest {
+        source: dir.path().to_owned(),
+        sink: neohugo_build::SinkKind::Memory,
+        ..neohugo_build::BuildRequest::default()
+    })
+    .expect("build");
+    let memory = report.memory.expect("memory sink");
+    let home = memory.text("index.html").expect("index.html");
+    assert!(home.contains("server=false port=0"), "{home}");
+}
