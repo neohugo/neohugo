@@ -7,7 +7,6 @@ use std::io;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, RwLock};
 
-use base64::Engine as _;
 use md5::Md5;
 use neohugo_base::diag::Position;
 use neohugo_base::glob::{self, GlobError, GlobOpts};
@@ -20,6 +19,7 @@ use neohugo_vfs::{Component, Vfs, VfsError};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use xxhash_rust::xxh3::xxh3_64;
 
+use crate::pipes::{self, PipeError, PipeState, Transform, TransformEnv};
 use crate::remote::{RemoteConfig, RemoteState};
 
 /// What a resource is, for the template layer.
@@ -55,6 +55,9 @@ pub enum Body {
     Generated(Arc<[u8]>),
     /// A processed image; the pixels come from the [`ImageQueue`].
     PendingImage(ImageOpId),
+    /// A transform result not computed yet ([`Origin::Transformed`] names the source and the
+    /// transform); [`ResourceStore::realize`] computes it.
+    Pending,
 }
 
 /// How a resource was made.
@@ -71,7 +74,7 @@ pub enum Origin {
     /// A transform of another resource.
     Transformed {
         from: ResourceId,
-        transform: Transform,
+        transform: Box<Transform>,
     },
     /// Another resource with front matter metadata (name, title, params) applied.
     Meta { from: ResourceId },
@@ -100,7 +103,7 @@ impl HashAlgo {
         }
     }
 
-    fn digest(self, bytes: &[u8]) -> Vec<u8> {
+    pub(crate) fn digest(self, bytes: &[u8]) -> Vec<u8> {
         match self {
             Self::Md5 => Md5::digest(bytes).to_vec(),
             Self::Sha256 => Sha256::digest(bytes).to_vec(),
@@ -123,14 +126,6 @@ impl std::str::FromStr for HashAlgo {
             other => Err(ResourceError::UnsupportedHash(other.to_owned())),
         }
     }
-}
-
-/// A transform of one resource into another. The pipes of T42 add their variants here.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
-pub enum Transform {
-    /// `fingerprint`: the content is unchanged; the target gets `.<hex digest>` before its
-    /// extension and `Data.Integrity` is `<algo>-<base64 digest>` (subresource integrity).
-    Fingerprint(HashAlgo),
 }
 
 /// Where a call that names a target path was made: its language (sub-wave) and template
@@ -258,6 +253,13 @@ pub enum ResourceError {
     NotAnImage(String),
     #[error("writing {path}: {source}")]
     Write { path: OutputPath, source: io::Error },
+    /// A transform (`to_css`, `post_css`, `js_build`, …) failed.
+    #[error("{resource}: {transform}: {source}")]
+    Pipe {
+        resource: String,
+        transform: &'static str,
+        source: Box<PipeError>,
+    },
 }
 
 impl ResourceError {
@@ -290,6 +292,9 @@ pub struct StoreConfig {
     /// Processed images; `None` gives a store that cannot publish or read them.
     pub images: Option<Arc<ImageQueue>>,
     pub remote: RemoteConfig,
+    /// What the pipes need: the project and publish directories, external tools, esbuild,
+    /// the minifier.
+    pub transforms: Arc<TransformEnv>,
 }
 
 impl StoreConfig {
@@ -319,6 +324,7 @@ impl StoreConfig {
             vfs,
             images,
             remote: RemoteConfig::from_config(cfg),
+            transforms: Arc::new(TransformEnv::from_config(cfg)),
         }
     }
 }
@@ -403,6 +409,7 @@ pub struct ResourceStore {
     pub(crate) marked: Mutex<BTreeSet<ResourceId>>,
     pub(crate) published: Mutex<BTreeSet<OutputPath>>,
     pub(crate) remote: RemoteState,
+    pub(crate) pipes: PipeState,
 }
 
 impl ResourceStore {
@@ -427,6 +434,7 @@ impl ResourceStore {
             marked: Mutex::new(BTreeSet::new()),
             published: Mutex::new(BTreeSet::new()),
             remote: RemoteState::default(),
+            pipes: PipeState::default(),
         }
     }
 
@@ -496,11 +504,23 @@ impl ResourceStore {
         ))
     }
 
+    /// The escaped relative permalink of `link` in `lang` (with the base URL's path).
+    pub(crate) fn rel_permalink(&self, lang: LangIdx, link: &UrlPath) -> String {
+        let base_path = self
+            .lang_target(lang)
+            .base_url
+            .base_path_no_trailing_slash();
+        format!("{base_path}{}", link.escaped())
+    }
+
+    /// The permalink of `link` in `lang`.
+    pub(crate) fn permalink(&self, lang: LangIdx, link: &UrlPath) -> Permalink {
+        Permalink::new(&self.lang_target(lang).base_url, link)
+    }
+
     pub(crate) fn push(&self, n: NewResource) -> ResourceId {
-        let lt = self.lang_target(n.lang);
-        let base_path = lt.base_url.base_path_no_trailing_slash();
-        let rel_permalink = format!("{base_path}{}", n.link.escaped());
-        let permalink = Permalink::new(&lt.base_url, &n.link);
+        let rel_permalink = self.rel_permalink(n.lang, &n.link);
+        let permalink = self.permalink(n.lang, &n.link);
         let kind = n.kind.unwrap_or_else(|| kind_of(&n.media_type));
         let mut arena = self.arena.write().unwrap_or_else(PoisonError::into_inner);
         let id = arena.next_id();
@@ -903,44 +923,30 @@ impl ResourceStore {
 
     // ── transforms, metadata and images ─────────────────────────────────────────────────────
 
-    /// Applies `t` to resource `id` (memoized per `(id, t)`).
+    /// Applies `t` to resource `id` (memoized per `(id, t)`). The result is computed lazily
+    /// (see [`crate::pipes`]): its links are final except for a `fingerprint` of a pending
+    /// resource; [`realize`](Self::realize) or [`content`](Self::content) computes it.
+    /// A `fingerprint` of a computed resource is computed at once.
     ///
     /// # Errors
-    /// An unreadable source.
+    /// An unreadable source (a `fingerprint` computed at once).
     pub fn transform(&self, id: ResourceId, t: Transform) -> Result<ResourceId, ResourceError> {
-        self.transforms.get_or_try((id, t), || match t {
-            Transform::Fingerprint(algo) => {
-                let src = self.resource(id);
-                let digest = algo.digest(&self.content(id)?);
-                let hex: String = digest.iter().map(|b| format!("{b:02x}")).collect();
-                let integrity = format!(
-                    "{}-{}",
-                    algo.name(),
-                    base64::engine::general_purpose::STANDARD.encode(&digest)
-                );
-                let mut data = src.data.clone();
-                data.insert("Integrity", Value::from(integrity));
-                let ident = format!(".{hex}");
-                Ok(self.push(NewResource {
-                    origin: Origin::Transformed {
-                        from: id,
-                        transform: t,
-                    },
-                    media_type: src.media_type.clone(),
-                    name: src.name.clone(),
-                    name_normalized: Some(src.name_normalized.clone()),
-                    title: src.title.clone(),
-                    params: src.params.clone(),
-                    data,
-                    lang: src.lang,
-                    target: OutputPath::new(&add_identifier(src.target.as_str(), &ident)),
-                    link: UrlPath::new(&add_identifier(src.link.as_str(), &ident)),
-                    body: src.body.clone(),
-                    policy: PublishPolicy::OnReference,
-                    kind: Some(src.kind),
-                }))
-            }
-        })
+        self.transforms
+            .get_or_try((id, t.clone()), || pipes::start(self, id, t))
+    }
+
+    /// Resource `id` with a pending transform computed (see [`crate::pipes`]); `id` keeps its
+    /// id, its record is replaced by the computed one.
+    ///
+    /// # Errors
+    /// A failing transform ([`ResourceError::Pipe`]) or an unreadable source.
+    pub fn realize(&self, id: ResourceId) -> Result<Arc<Resource>, ResourceError> {
+        pipes::realize(self, id)
+    }
+
+    /// Replaces the record of `id` (a computed pending transform).
+    pub(crate) fn replace(&self, id: ResourceId, r: Resource) {
+        self.arena.write().unwrap_or_else(PoisonError::into_inner)[id] = Arc::new(r);
     }
 
     /// Resource `id` under another name, title and params (front matter metadata, see
@@ -992,7 +998,7 @@ impl ResourceStore {
         match &r.body {
             Body::File(p) => Some(ImageInput::File(p.clone())),
             Body::PendingImage(op) => Some(ImageInput::Op(*op)),
-            Body::Bytes(_) | Body::Generated(_) => None,
+            Body::Bytes(_) | Body::Generated(_) | Body::Pending => None,
         }
     }
 
@@ -1047,6 +1053,10 @@ impl ResourceStore {
                 Some(q) => Ok(q.encoded(*op)?),
                 None => Err(ResourceError::NotAnImage(r.name.clone())),
             },
+            Body::Pending => {
+                self.realize(id)?;
+                self.content(id)
+            }
         }
     }
 
@@ -1057,7 +1067,7 @@ impl ResourceStore {
     }
 }
 
-fn kind_of(mt: &MediaType) -> ResourceKind {
+pub(crate) fn kind_of(mt: &MediaType) -> ResourceKind {
     if mt.main == "image" && ImageFormat::from_subtype(&mt.sub).is_some() {
         ResourceKind::Image
     } else if !mt.main.is_empty() && mt.is_text() {
@@ -1098,7 +1108,7 @@ pub(crate) fn normalize_name(name: &str) -> String {
 
 /// `ident` inserted before the extension of the last path element (`/a/b.css` + `.min` →
 /// `/a/b.min.css`; a name without extension gets it at the end).
-fn add_identifier(path: &str, ident: &str) -> String {
+pub(crate) fn add_identifier(path: &str, ident: &str) -> String {
     let (dir, file) = paths::split(path);
     match file.rfind('.') {
         Some(i) => format!("{dir}{}{ident}{}", &file[..i], &file[i..]),

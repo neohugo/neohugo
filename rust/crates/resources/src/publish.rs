@@ -200,6 +200,9 @@ impl ResourceStore {
                 .filter(|r| r.policy == PublishPolicy::Eager)
                 .map(|r| r.id),
         );
+        // Files that go with a published resource (source maps of the pipes).
+        let companions = self.pipes.companions_of(&wanted);
+        wanted.extend(companions);
 
         // One writer per target: the lowest id.
         let mut by_target: BTreeMap<OutputPath, &Resource> = BTreeMap::new();

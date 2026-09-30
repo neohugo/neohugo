@@ -3,6 +3,7 @@
 mod collection;
 mod fingerprint;
 mod identity;
+mod pipes;
 mod publish;
 mod remote;
 mod resources;
