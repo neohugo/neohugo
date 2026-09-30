@@ -207,8 +207,9 @@ fn structure_reader_self_test() {
              "template": "home.json", "baseof": ""},
             {"path": "", "kind": "404", "layout": "", "lang": "en", "format": "404",
              "template": "404.html", "baseof": ""},
+            // The embedded rss.xml (T32) serves every kind, as Go's does.
             {"path": "", "kind": "page", "layout": "", "lang": "en", "format": "rss",
-             "template": "", "baseof": ""},
+             "template": "rss.xml", "baseof": ""},
         ],
     });
     let tmp = tempfile::tempdir().unwrap();
