@@ -110,7 +110,9 @@ flate2 = "1"           # gzip of the plain-JSON fixtures (testkit); not in the p
 
 # ── templates ──
 tera = { version = "=2.4.0", features = ["no_fmt", "fast_hash", "preserve_order"] }
-tera-contrib = { version = "0.3", default-features = false, features = ["regex", "urlencode", "base64", "filesize_format", "date"] }
+# No `date`: neohugo registers its own `date` on neohugo-locale (T12, T31); tera-contrib's would
+# pull jiff-icu, icu_calendar and icu_time into funcs.
+tera-contrib = { version = "0.3", default-features = false, features = ["regex", "urlencode", "base64", "filesize_format"] }
 
 # ── markdown & text ──
 comrak = { version = "0.55", default-features = false, features = ["attributes", "shortcodes"] }
@@ -126,6 +128,7 @@ percent-encoding = "2.3.2"
 url = "2.5"
 pulldown-latex = "0.8" # SHOULD (A-D2): to_math → MathML
 svgbob = "0.7.6"       # SHOULD (A-D2): diagrams_goat (Apache-2.0)
+emojis = "0.8"         # emojify (T31); already locked through comrak `shortcodes`
 
 # ── time & locale (ICU4X, Unicode-3.0) ──
 jiff = { version = "0.2.37", features = ["serde"] }

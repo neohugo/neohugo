@@ -354,8 +354,8 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Collections, "sort", "", "Tera's sort (by value, or by `attribute` path); not locale-aware. Use `sort_by` for Hugo's `sort`.")
         .args(&[opt("attribute", A::String)]).builtin(),
     filter(G::Collections, "group_by", "", "Tera's grouping by `attribute` path into a map.").args(&[req("attribute", A::String)]).builtin(),
-    filter(G::Collections, "sort_by", "sort", "Sorts by `attribute` (a path such as `params.weight`): collation per language, dates as instants, stable.")
-        .args(&[req("attribute", A::String), opt("reverse", A::Bool)]).site(),
+    filter(G::Collections, "sort_by", "sort", "Sorts by `attribute` (a path such as `params.weight`; `\"\"` or `value`: the elements): collation of the render's `lang`, dates as instants, stable.")
+        .args(&[req("attribute", A::String), opt("reverse", A::Bool)]),
     filter(G::Collections, "complement", "complement", "Elements not in `without` (pages compared by id).").args(&[req("without", A::Array)]),
     filter(G::Collections, "union", "union", "Elements of either array, first occurrence kept (pages by id).").args(&[req("with", A::Array)]),
     filter(G::Collections, "intersect", "intersect", "Elements present in both (pages by id).").args(&[req("with", A::Array)]),
@@ -443,13 +443,13 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Strings, "markdownify", "markdownify", "Renders Markdown with the current page's hooks; a single paragraph is unwrapped.").site().safe(),
     filter(G::Strings, "render_string", ".RenderString", "Renders Markdown with `page`'s hooks; `display=\"block\"` keeps the paragraph.")
         .args(&[opt("display", A::String), PAGE_OPT]).site().safe(),
-    filter(G::Strings, "highlight", "highlight, transform.Highlight", "Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`).")
-        .args(&[req("lang", A::String), opt("options", A::Any)]).safe(),
+    filter(G::Strings, "highlight", "highlight, transform.Highlight", "Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration).")
+        .args(&[req("lang", A::String), opt("options", A::Any)]).site().safe(),
     filter(G::Strings, "to_math", "transform.ToMath", "LaTeX to MathML (SHOULD; feature `math`).").args(&[opt("display", A::Bool)]).safe(),
     func(G::Strings, "diagrams_goat", "diagrams.Goat", "`{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`).")
         .args(&[req("text", A::String)]),
-    filter(G::Strings, "format_number", "lang.FormatNumber, printf \"%.1f\"", "The number with `precision` decimals in the current language's format.")
-        .args(&[opt("precision", A::Int)]).site(),
+    filter(G::Strings, "format_number", "lang.FormatNumber, printf \"%.1f\"", "The number with `precision` decimals in the format of the render's `lang`.")
+        .args(&[opt("precision", A::Int)]),
     filter(G::Strings, "filesize_format", "", "Human file size (`binary` units by default).").args(&[opt("binary", A::Bool)]).contrib(),
     // ── encoding, escaping, hashing ──
     filter(G::Encoding, "safe", "safeHTML, safeHTMLAttr, safeURL, safeJS, safeCSS", "Marks the value safe.").builtin(),
@@ -489,8 +489,8 @@ pub const FUNCS: &[FuncSpec] = &[
     func(G::Urls, "path_join", "path.Join", "Joins `parts` and cleans the result.").args(&[req("parts", A::Array)]),
     // ── dates ──
     func(G::Dates, "now", "now", "The build time (honours `--clock`) as a date value."),
-    filter(G::Dates, "date", ".Format, time.Format, dateFormat", "Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`) in `locale` (default: the current language; Thai uses the Gregorian calendar).")
-        .args(&[opt("format", A::String), opt("style", A::String), opt("locale", A::String)]).site(),
+    filter(G::Dates, "date", ".Format, time.Format, dateFormat", "Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`) in `locale` (default: the render's `lang`; Thai uses the Gregorian calendar). Accepts a date value, a date string or Unix seconds; none prints nothing.")
+        .args(&[opt("format", A::String), opt("style", A::String), opt("locale", A::String)]),
     filter(G::Dates, "to_date", "time.AsTime, time", "Parses a string or number into a date value (`{rfc3339, unix}`)."),
     // ── language ──
     func(G::Locale, "i18n", "i18n, T", "The translation of `key` in `page`'s language; `count` picks the plural form, `data` fills `{{ .Field }}`.")
@@ -543,7 +543,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Templates, "arg", ".Get (shortcodes)", "A shortcode argument by position `index` or by `name`, else `default`: `shortcode | arg(index=0, default=\"\")`.")
         .args(&[opt("index", A::Int), opt("name", A::String), opt("default", A::Any)]).only(P::Content),
     // ── environment, files, debugging ──
-    func(G::System, "get_env", "os.Getenv", "An environment variable allowed by `security.funcs.getenv`, else \"\".").args(&[req("name", A::String)]),
+    func(G::System, "get_env", "os.Getenv", "An environment variable (\"\" when unset); `name` must match `security.funcs.getenv`, else an error.").args(&[req("name", A::String)]),
     func(G::System, "read_file", "os.ReadFile", "A file of the project (`security` rules apply).").args(&[req("path", A::String)]),
     func(G::System, "file_exists", "os.FileExists", "Whether a project file exists.").args(&[req("path", A::String)]),
     filter(G::System, "dump", "debug.Dump", "Pretty-printed JSON of any value."),
