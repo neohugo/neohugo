@@ -8,7 +8,7 @@ crate holds no page store; `neohugo-site` calls it while it assembles the model.
 |---|---|
 | Capture overrides | `capture_overrides(&Params) -> CaptureOverrides { kind, lang, path: Option<ContentKey> }` |
 | Cascade | `Cascade::decode(&Value)`, `Cascade::from_config(&[CascadeConfig])`, `Cascade::inherit(parent, own)`, `Cascade::apply(&MatchCtx, &mut Params)`; `CascadeTarget::new(kind, path, lang, env)` (Hugo globs via `base::glob`), `matches`, `path_looks_like_file` |
-| Front matter | `meta_from_params(Params, &MetaCtx) -> PageMeta` (reserved keys typed; normalised values written back to params; `params:` merged last; dates resolved) |
+| Front matter | `meta_from_params(Params, &MetaCtx) -> PageMeta` (reserved keys typed, including the legacy `_build` (wins over `build`, as in Hugo) and the undocumented `published: <bool>` (`!draft` when `draft` is unset); normalised values written back to params; `params:` merged last; dates resolved) |
 | Dates | `DateResolver::{new, from_site, resolve(&mut Params, Option<&FileCtx>, &TimeZone)} -> DateOutcome { dates, slug, unparsable }` |
 | Build | `BuildPolicy { list: ListMode, render: RenderMode, publish_resources }`, `BuildPolicy::decode`, `.headless()` |
 | Markup | `Markup::{Markdown, Html}`, `Markup::detect(MarkupSource { media_type, markup, ext }, &MediaTypes)` |

@@ -5,7 +5,8 @@
 //!   default mount of each unconfigured component, the JS config files and the themes.
 //! - [`Vfs::walk`] and [`Vfs::open`] give the union view of a component: the project's mounts
 //!   before the themes', the first mount holding a path wins (content: per language; data and
-//!   i18n keep every file).
+//!   i18n keep every file; static: the last mount of the first module, symbolic links
+//!   followed).
 //! - [`PathParser::parse`] gives a file's [`PathInfo`].
 //! - [`Vfs::discover_content`] is phase A3: the content files with their path info, leaf
 //!   bundles resolved and duplicates settled.

@@ -1,5 +1,6 @@
 //! The union file view of each component.
 
+use std::cmp::Reverse;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -8,7 +9,7 @@ use neohugo_base::{Idx, LangIdx};
 use neohugo_config::Config;
 
 use crate::filter::IgnoreRules;
-use crate::mount::{self, Mount};
+use crate::mount::{self, Module, Mount};
 use crate::{Component, VfsError};
 
 /// A file of a component's union view.
@@ -25,7 +26,8 @@ pub struct FileRef {
     pub mount_idx: u16,
 }
 
-/// Which files of different mounts with the same path a component keeps.
+/// Which files of different mounts with the same path a component keeps. "First" is by
+/// [`Vfs::walk`]'s order of the mounts holding a path (see [`Vfs::rank`]).
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Union {
     /// The first mount's file: layouts, assets, archetypes, static.
@@ -37,7 +39,8 @@ enum Union {
 }
 
 /// The mounts of a project and the union file view of each component: for every component the
-/// project's mounts come first, then the themes', and the first mount holding a path wins.
+/// project's mounts come first, then the themes', and the first mount holding a path wins
+/// (static: the last mount of the first module holding it, see [`Vfs::walk`]).
 #[derive(Clone, Debug)]
 pub struct Vfs {
     mounts: Vec<Mount>,
@@ -89,9 +92,15 @@ impl Vfs {
     }
 
     /// Every file of component `c`, sorted by path (byte order) and, for one path, by mount
-    /// precedence. The ignore rules and the mounts' file filters are applied, and symbolic
-    /// links below a mount root are skipped. Files hidden by an earlier mount are left out,
-    /// except for data and i18n, which keep every file.
+    /// precedence. The ignore rules and the mounts' file filters are applied. Files hidden by
+    /// an earlier mount are left out, except for data and i18n, which keep every file.
+    ///
+    /// Static follows Hugo's static copy: of the mounts of one module holding a path the
+    /// *last* wins (Hugo's root-mapping file system opens the last file mount, and its sync
+    /// copies the mounts one after the other), and the project still wins over the themes.
+    /// Symbolic links below a static mount root are followed (a dangling link is skipped, and
+    /// so is a link to a directory it is inside of); for every other component they are
+    /// skipped.
     ///
     /// # Errors
     /// A directory that cannot be read, or a file name that is not UTF-8.
@@ -110,10 +119,21 @@ impl Vfs {
                     files.push(file_ref(m, idx, rel, m.abs.clone()));
                 }
             } else {
-                self.walk_dir(m, idx, &m.abs, "", &mut files)?;
+                let mut stack = Vec::new();
+                if c == Component::Static {
+                    stack.push(fs::canonicalize(&m.abs).map_err(|e| VfsError::io(&m.abs, e))?);
+                }
+                self.walk_dir(m, idx, &m.abs, "", &mut stack, &mut files)?;
             }
         }
-        files.sort_by(|a, b| a.rel.cmp(&b.rel));
+        // A stable sort: for one path the files are in mount order, or `rank` order for static.
+        if c == Component::Static {
+            files.sort_by(|a, b| {
+                (&a.rel, self.rank(a.mount_idx)).cmp(&(&b.rel, self.rank(b.mount_idx)))
+            });
+        } else {
+            files.sort_by(|a, b| a.rel.cmp(&b.rel));
+        }
 
         let union = self.union(c);
         if union != Union::KeepAll {
@@ -137,15 +157,29 @@ impl Vfs {
         Ok(files)
     }
 
+    /// The precedence of static mount `idx` among the mounts holding a path (lower wins): its
+    /// module, then the later mount first.
+    fn rank(&self, idx: u16) -> (Module, Reverse<u16>) {
+        let module = self
+            .mounts
+            .get(usize::from(idx))
+            .map_or(Module::Project, |m| m.module);
+        (module, Reverse(idx))
+    }
+
     /// Walks `dir`, the directory at `below` (`""` or `/a/b`) under mount `m`'s source.
+    /// `stack` holds the canonical paths of `dir` and its ancestors when symbolic links are
+    /// followed (static), and is empty otherwise.
     fn walk_dir(
         &self,
         m: &Mount,
         idx: u16,
         dir: &Path,
         below: &str,
+        stack: &mut Vec<PathBuf>,
         out: &mut Vec<FileRef>,
     ) -> Result<(), VfsError> {
+        let follow = !stack.is_empty();
         let mut entries = Vec::new();
         for e in fs::read_dir(dir).map_err(|e| VfsError::io(dir, e))? {
             let e = e.map_err(|e| VfsError::io(dir, e))?;
@@ -158,17 +192,35 @@ impl Vfs {
         }
         entries.sort_by(|a, b| a.0.cmp(&b.0));
         for (name, ft) in entries {
-            if ft.is_symlink() {
-                continue;
-            }
             let abs = dir.join(&name);
+            let (is_dir, is_file) = if !ft.is_symlink() {
+                (ft.is_dir(), ft.is_file())
+            } else if follow {
+                match fs::metadata(&abs) {
+                    Ok(meta) => (meta.is_dir(), meta.is_file()),
+                    Err(e) if e.kind() == io::ErrorKind::NotFound => continue,
+                    Err(e) => return Err(VfsError::io(&abs, e)),
+                }
+            } else {
+                continue;
+            };
             let below = format!("{below}/{name}");
-            if !self.admits(m, &name, &below, &abs, ft.is_dir()) {
+            if !self.admits(m, &name, &below, &abs, is_dir) {
                 continue;
             }
-            if ft.is_dir() {
-                self.walk_dir(m, idx, &abs, &below, out)?;
-            } else if ft.is_file() {
+            if is_dir {
+                if follow {
+                    let real = fs::canonicalize(&abs).map_err(|e| VfsError::io(&abs, e))?;
+                    if stack.contains(&real) {
+                        continue;
+                    }
+                    stack.push(real);
+                    self.walk_dir(m, idx, &abs, &below, stack, out)?;
+                    stack.pop();
+                } else {
+                    self.walk_dir(m, idx, &abs, &below, stack, out)?;
+                }
+            } else if is_file {
                 let rel = join_rel(&m.sub, &below[1..]);
                 out.push(file_ref(m, idx, rel, abs));
             }
@@ -182,11 +234,17 @@ impl Vfs {
     }
 
     /// The file at `rel` (a path inside component `c`) in the first mount that has it, with the
-    /// same rules as [`Vfs::walk`].
+    /// same rules as [`Vfs::walk`] (static: the last mount of the first module, following
+    /// symbolic links).
     #[must_use]
     pub fn open(&self, c: Component, rel: &str) -> Option<FileRef> {
         let rel = rel.trim_start_matches('/');
-        self.mounts_of(c).find_map(|(idx, m)| {
+        let mut mounts: Vec<(u16, &Mount)> = self.mounts_of(c).collect();
+        let follow = c == Component::Static;
+        if follow {
+            mounts.sort_by_key(|(idx, _)| self.rank(*idx));
+        }
+        mounts.into_iter().find_map(|(idx, m)| {
             let meta = fs::metadata(&m.abs).ok()?;
             if meta.is_file() {
                 let own = file_mount_rel(m);
@@ -208,7 +266,13 @@ impl Vfs {
                 abs.push(seg);
                 below.push('/');
                 below.push_str(seg);
-                let ft = fs::symlink_metadata(&abs).ok()?.file_type();
+                let ft = if follow {
+                    fs::metadata(&abs)
+                } else {
+                    fs::symlink_metadata(&abs)
+                }
+                .ok()?
+                .file_type();
                 if ft.is_symlink()
                     || ft.is_dir() != is_dir
                     || !self.admits(m, seg, &below, &abs, is_dir)

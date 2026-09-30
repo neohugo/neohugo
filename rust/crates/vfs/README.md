@@ -7,8 +7,8 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 |---|---|
 | `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped, except `hugo_stats.json`), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then each theme's component directories; duplicates (source, target, lang) dropped |
 | `Vfs::mounts`, `mounts_of` | the mounts in precedence order (project, then themes in `theme` order) |
-| `Vfs::walk(c)` | the union view of a component, sorted by path (bytes) then mount precedence: first mount wins (content: per mount language; data and i18n keep every file) |
-| `Vfs::open(c, rel)` | the first mount's file at `rel`, same rules as `walk` |
+| `Vfs::walk(c)` | the union view of a component, sorted by path (bytes) then mount precedence: first mount wins (content: per mount language; data and i18n keep every file; static: the last mount of the first module, see Rules) |
+| `Vfs::open(c, rel)` | the winning file at `rel`, same rules as `walk` |
 | `PathParser::from_config`, `parse(c, rel)` | `PathInfo` (key, path, name, section, ext, language, output format, `BundleKind`, layout parts, original spelling) or `Parsed::DisabledLanguage` |
 | `Vfs::discover_content(&PathParser)` | phase A3: content files with path info and resolved language; leaf bundles demote their other files to resources; duplicate (key, language) pairs settled (`Discovery::duplicates`) |
 
@@ -17,7 +17,13 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 - **Ignore rules.** Content, data, i18n: names starting with `.` or `#` or ending with `~`
   (files and directories) and `ignoreFiles` regexps (absolute file name). Layouts: files
   starting with `.` or ending with `~`. Assets, static, archetypes: none (the static copy keeps
-  dotfiles). Symbolic links below a mount root are skipped.
+  dotfiles). Symbolic links below a mount root are skipped, except in static (below).
+- **Static** follows Hugo's static copy (`commands/hugobuilder.go` `copyStaticTo`, the
+  root-mapping and overlay file systems of `hugofs`): of the mounts of one module holding a
+  path the *last* wins (`staticDir = ["static", "static-b"]`, or two `[[module.mounts]]` into
+  `static`), and the project still wins over the themes (per language on multihost sites).
+  Symbolic links below a static mount root are followed; a dangling link is skipped, and so is
+  a link to a directory that is already on the walked path (loop protection).
 - **`includeFiles`/`excludeFiles`** are Hugo globs (`base::glob`, case-folded) matched against
   the path below the mount source with a leading slash. A file matching an inclusion is kept,
   else one matching an exclusion dropped, else kept only without inclusions. A directory is
@@ -49,7 +55,8 @@ Mounts → one union file view per component, walkers, ignore rules and the path
   for every file in Hugo's page and resource trees, plus name, section, extension and original
   base of every page: testsite 2, seeksnack 56, docs 1,011 files equal. Also contentdir,
   edge-tree, homeleaf, nokinds, shortcodes, synthetic.
-- `walk`: mount precedence (project over themes, per-language content, data/i18n keep all),
+- `walk`: mount precedence (project over themes, per-language content, data/i18n keep all,
+  static later-mount-wins within a module and symlink following with loops),
   mounts below a component and single-file mounts, ignore rules, filters, disabled and unknown
   mount languages, symlinks, leaf bundles, duplicates.
 - `walk::discover_sites` (ignored; `NEOHUGO_VFS_SITES=<dir>:…`): whole `sites.py` sites.

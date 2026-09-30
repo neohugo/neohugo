@@ -177,10 +177,15 @@ pub fn meta_from_params(mut params: Params, ctx: &MetaCtx<'_>) -> Result<PageMet
             .and_then(|w| i32::try_from(w).ok())
             .ok_or_else(|| PageError::field("weight", "expected an integer"))
     })?;
-    let draft = params
-        .get("draft")
-        .and_then(value::weak_bool)
-        .unwrap_or(false);
+    // `draft`, else Hugo's undocumented `published: <bool>` as its opposite (a `published`
+    // date is not a bool and only a date source of `publishDate`).
+    let draft = match params.get("draft") {
+        Some(v) => value::weak_bool(v).unwrap_or(false),
+        None => params
+            .get("published")
+            .and_then(value::weak_bool)
+            .is_some_and(|published| !published),
+    };
     let keywords = params
         .get("keywords")
         .map(value::string_list)
@@ -210,8 +215,10 @@ pub fn meta_from_params(mut params: Params, ctx: &MetaCtx<'_>) -> Result<PageMet
         })
         .transpose()?;
 
+    // The legacy `_build` wins over `build`, as in Hugo; params keep the key as written.
     let mut build = params
-        .get("build")
+        .get("_build")
+        .or_else(|| params.get("build"))
         .map_or(Ok(BuildPolicy::default()), BuildPolicy::decode)?;
     if params.get("headless").and_then(value::weak_bool) == Some(true) {
         build = build.headless();

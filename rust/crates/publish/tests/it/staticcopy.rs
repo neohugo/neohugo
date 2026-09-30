@@ -220,18 +220,6 @@ fn staticcopy_oracle() {
         let count = sync_static_dir(&vfs, &publish, &options)
             .unwrap_or_else(|e| panic!("{}: {e}", case.name));
 
-        let symlinks: Vec<&str> = case
-            .entries
-            .iter()
-            .filter(|e| e.kind == "symlink")
-            .filter_map(|e| e.path.strip_prefix("static/"))
-            .collect();
-        let under_symlink = |p: &str| {
-            symlinks
-                .iter()
-                .any(|s| p == *s || p.starts_with(&format!("{s}/")))
-        };
-
         let want_tree = case.result.tree.clone().unwrap_or_default();
         // The mounts that hold a file of the tree.
         let sources = |path: &str| {
@@ -246,8 +234,7 @@ fn staticcopy_oracle() {
 
         match case.result.counts.get("") {
             Some(&want) if want == count => t.pass(),
-            Some(_) if !symlinks.is_empty() => t.accept("symlinks-not-followed"),
-            Some(_) if overlapping => t.accept("static-mount-precedence"),
+            Some(&want) if overlapping && want > count => t.accept("shadowed-files-counted"),
             None if count == 0 => t.accept("missing-static-dir"),
             want => t.fail(|| format!("{}: count {count}, want {want:?}", case.name)),
         }
@@ -260,17 +247,12 @@ fn staticcopy_oracle() {
             .collect();
         let want: BTreeMap<&str, &Node> = want_tree.iter().map(|n| (n.path.as_str(), n)).collect();
         for (path, w) in &want {
-            let sources = sources(path);
             match got.get(*path) {
                 Some(g) if same(w, g) => t.pass(),
                 None if w.kind == "dir"
                     && !want.keys().any(|p| p.starts_with(&format!("{path}/"))) =>
                 {
                     t.accept("empty-dirs-not-copied");
-                }
-                None if under_symlink(path) => t.accept("symlinks-not-followed"),
-                Some(g) if w.kind == "file" && g.kind == "file" && sources > 1 => {
-                    t.accept("static-mount-precedence");
                 }
                 g => t.fail(|| format!("{} {path}: got {g:?}, want {w:?}", case.name)),
             }

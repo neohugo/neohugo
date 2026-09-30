@@ -195,6 +195,37 @@ fn meta_rejects_bad_values() {
     assert_eq!(meta.cascade.rules().len(), 1);
 }
 
+/// Hugo's undocumented `published: <bool>` and the legacy `_build` key.
+#[test]
+fn published_and_legacy_build() {
+    let site = Site::new();
+    let ctx = site.ctx(PageKind::Page, "md", None);
+    let meta = |toml: &str| meta_from_params(params(toml), &ctx).expect(toml);
+    assert!(meta("published = false").draft);
+    assert!(!meta("published = true").draft);
+    assert!(meta(r#"published = "false""#).draft);
+    // `draft` wins over `published`.
+    assert!(!meta("published = false\ndraft = false").draft);
+    assert!(meta("published = true\ndraft = true").draft);
+    // A `published` date is a date source, not a draft flag.
+    let dated = meta("published = 2024-03-04");
+    assert!(!dated.draft);
+    assert_eq!(dated.params.get("draft"), Some(&Value::Bool(false)));
+
+    let legacy = meta(r#"_build = { list = "never", render = "link" }"#);
+    assert_eq!(legacy.build.list, ListMode::Never);
+    assert_eq!(legacy.build.render, RenderMode::Link);
+    assert!(legacy.params.get("_build").is_some());
+    assert!(legacy.params.get("build").is_none());
+    // `_build` wins over `build`, as in Hugo.
+    let both = meta("_build = { list = \"never\" }\nbuild = { list = \"local\" }");
+    assert_eq!(both.build.list, ListMode::Never);
+    assert!(matches!(
+        meta_from_params(params(r#"_build = { publishResources = "maybe" }"#), &ctx),
+        Err(PageError::Field { .. })
+    ));
+}
+
 #[test]
 fn filename_dates_supply_the_slug() {
     let site = Site::new();

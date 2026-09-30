@@ -68,7 +68,6 @@ pub(crate) fn metas(
                 },
                 &mut params,
             );
-            let legacy_build = legacy_keys(&mut params);
             let src = &p.page.source;
             let ctx = MetaCtx {
                 kind: p.kind,
@@ -93,9 +92,6 @@ pub(crate) fn metas(
                 path: src.file.abs.clone(),
                 source,
             })?;
-            if legacy_build {
-                meta.params.remove("build");
-            }
             if meta.cjk == Cjk::Detect {
                 meta.cjk = if src.body().chars().any(is_cjk) {
                     Cjk::Yes
@@ -126,27 +122,6 @@ pub(crate) fn metas(
         metas.push(meta);
     }
     Ok((metas, diagnostics))
-}
-
-/// Legacy front matter spellings `neohugo_page::meta_from_params` does not read: `_build` for
-/// `build`, and Hugo's undocumented `published: <bool>` (the opposite of `draft`, unless
-/// `draft` is set; a `published` date is a date source of `publishDate`).
-/// Returns whether `_build` was read (the params keep only `_build`).
-fn legacy_keys(params: &mut Params) -> bool {
-    let mut legacy_build = false;
-    if params.get("build").is_none()
-        && let Some(b) = params.get("_build").cloned()
-    {
-        params.insert("build", &b);
-        legacy_build = true;
-    }
-    if params.get("draft").is_none()
-        && let Some(Value::Bool(published)) = params.get("published")
-    {
-        let draft = Value::Bool(!published);
-        params.insert("draft", &draft);
-    }
-    legacy_build
 }
 
 /// Han, Hiragana, Katakana and Hangul (`hasCJKLanguage` detection).

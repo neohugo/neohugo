@@ -281,6 +281,79 @@ fn symlinks_below_a_mount_are_skipped() {
     assert_eq!(vfs.open(Component::Content, "b.md"), None);
 }
 
+/// Static: of one module's mounts the last wins, the project still wins over a theme.
+#[test]
+fn static_later_mount_wins_within_a_module() {
+    let p = Project::new(&[
+        (
+            "hugo.toml",
+            "theme = \"t\"\n\
+             [[module.mounts]]\nsource = \"static\"\ntarget = \"static\"\n\
+             [[module.mounts]]\nsource = \"static2\"\ntarget = \"static\"\n",
+        ),
+        ("static/a.txt", ""),
+        ("static/only.txt", ""),
+        ("static2/a.txt", ""),
+        ("themes/t/static/a.txt", ""),
+        ("themes/t/static/t.txt", ""),
+        ("layouts/x.html", ""),
+        ("themes/t/layouts/x.html", ""),
+    ]);
+    let vfs = p.vfs();
+    assert_eq!(
+        p.walk(&vfs, Component::Static),
+        pairs(&[
+            ("a.txt", "static2/a.txt"),
+            ("only.txt", "static/only.txt"),
+            ("t.txt", "themes/t/static/t.txt"),
+        ])
+    );
+    let open = |c, rel| vfs.open(c, rel).map(|f| p.origin(&f));
+    assert_eq!(
+        open(Component::Static, "a.txt").as_deref(),
+        Some("static2/a.txt")
+    );
+    // Other components keep first-mount-wins.
+    assert_eq!(
+        open(Component::Layouts, "x.html").as_deref(),
+        Some("layouts/x.html")
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn static_follows_symlinks() {
+    use std::os::unix::fs::symlink;
+    let p = Project::new(&[
+        ("hugo.toml", ""),
+        ("static/real.txt", ""),
+        ("outside/o.txt", ""),
+        ("outside/dir/d.txt", ""),
+    ]);
+    symlink("real.txt", p.dir.join("static/link.txt")).unwrap();
+    symlink("../outside/o.txt", p.dir.join("static/out.txt")).unwrap();
+    symlink("../outside/dir", p.dir.join("static/dir")).unwrap();
+    symlink("nope.txt", p.dir.join("static/broken")).unwrap();
+    // Loops: to the mount root and to the directory itself.
+    symlink("..", p.dir.join("outside/dir/up")).unwrap();
+    symlink(".", p.dir.join("static/self")).unwrap();
+    let vfs = p.vfs();
+    assert_eq!(
+        p.walk(&vfs, Component::Static),
+        pairs(&[
+            ("dir/d.txt", "static/dir/d.txt"),
+            // `dir/up` is `outside`, not yet on the path, so it is walked; its `dir` is.
+            ("dir/up/o.txt", "static/dir/up/o.txt"),
+            ("link.txt", "static/link.txt"),
+            ("out.txt", "static/out.txt"),
+            ("real.txt", "static/real.txt"),
+        ])
+    );
+    let open = |rel| vfs.open(Component::Static, rel).map(|f| p.origin(&f));
+    assert_eq!(open("dir/d.txt").as_deref(), Some("static/dir/d.txt"));
+    assert_eq!(open("broken"), None);
+}
+
 #[test]
 fn include_and_exclude_files() {
     let p = Project::new(&[
@@ -479,10 +552,14 @@ fn default_mounts_follow_the_dirs() {
         p.walk(&vfs, Component::Content),
         pairs(&[("a.md", "c/a.md")])
     );
+    // Static: the later static dir wins (Hugo's static copy; this test expected `s1/x.txt`
+    // while the vfs applied first-mount-wins to static too).
     assert_eq!(
         p.walk(&vfs, Component::Static),
-        pairs(&[("x.txt", "s1/x.txt"), ("y.txt", "s2/y.txt")])
+        pairs(&[("x.txt", "s2/x.txt"), ("y.txt", "s2/y.txt")])
     );
+    let open = vfs.open(Component::Static, "x.txt").map(|f| p.origin(&f));
+    assert_eq!(open.as_deref(), Some("s2/x.txt"));
     let dir: &Path = &p.dir;
     assert!(vfs.mounts().iter().all(|m| m.abs.starts_with(dir)));
 }

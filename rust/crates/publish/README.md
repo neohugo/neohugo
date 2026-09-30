@@ -61,7 +61,8 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   sorting, `null`). Scanning the golden HTML itself needs the Go build outputs (T01 golden
   trees), which are not in the repository.
 - **static sync** — `oracle/commands/staticcopy/staticcopy.json.gz`: 12 cases, 179 checks
-  (count + every entry's bytes, mode, mtime), 163 exact, 16 accepted, 0 unexplained;
+  (count + every entry's bytes, mode, mtime), 171 exact, 8 accepted, 0 unexplained (later
+  static mounts of a module win and symbolic links are followed, both in `Vfs::walk`);
   `sync_static` into a `MemorySink` (plain and multihost).
 - **publisher** — canonify per format (HTML with `canonifyURLs`, RSS always with entity quotes,
   JSON never), `relativeURLs`, minify dispatch (HTML, JSON, `text/plain` untouched, invalid
@@ -79,7 +80,7 @@ All counted in `expected_diffs.toml` (a changed count fails the tests):
 | absurl | `go-panic` 93, `leading-candidate` 855 (Go's prefix positions start at 0, so a document starting with `/x` gets the base written up to 4 times), `prefix-inside-rewrite` 54 (stale positions jump back into written input) |
 | inject | `generator-tag-never-injected` 14 |
 | collector-* | x/net/html tree-builder and Go-scanner artefacts: markup declarations as tags, table/head/frame elements dropped in a body context, `<prefix>`-style raw-text skips, quotes tracked across tags, repeated attributes, Unicode tag names, NUL and numeric references, characters split across writes, invalid UTF-8 |
-| staticcopy | `static-mount-precedence` 4 (Hugo: the later static mount overwrites; neohugo-vfs: the first mount wins), `symlinks-not-followed` 5 (neohugo-vfs skips symbolic links below a mount root), `empty-dirs-not-copied` 6, `missing-static-dir` 1 |
+| staticcopy | `shadowed-files-counted` 1 (Hugo counts a path once per static mount of one module holding it; neohugo counts published files), `empty-dirs-not-copied` 6, `missing-static-dir` 1 |
 
 Not implemented here: `Output` carries no `JobOrder` (that type lives in `render`, which this
 crate does not depend on; collisions are ordered by `build`).
