@@ -200,7 +200,7 @@ pub fn unescape(s: &str, component: Component) -> Result<Vec<u8>, UrlError> {
 
 /// Whether `s` is a valid escaping for `component`: every byte either needs no escape, is a
 /// sub-delimiter, `:`, `@`, `[`, `]` or starts an escape.
-fn valid_encoded(s: &str, component: Component) -> bool {
+pub(crate) fn valid_encoded(s: &str, component: Component) -> bool {
     s.bytes().all(|c| {
         matches!(
             c,

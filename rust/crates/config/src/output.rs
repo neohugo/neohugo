@@ -87,7 +87,6 @@ pub struct OutputFormat {
 /// then by name).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct OutputFormats {
-    #[serde(serialize_with = "crate::ser_idvec")]
     formats: IdVec<FormatId, OutputFormat>,
 }
 

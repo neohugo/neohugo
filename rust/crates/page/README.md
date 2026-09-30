@@ -28,14 +28,16 @@ of `expected_diffs.toml` with its exact count:
 |---|---|---|---|
 | paths (target file, link, resource dirs, rel/permalink) | 80,299 | 99.66 % | 272 `url-query-or-escape` |
 | permalinks (site config, every-token config, 55 patterns) | 89,148 | 100 % | – |
+| permalinks config decode (`config::Permalinks::decode` + `PermalinkPatterns::compile`) | 36 | 97.2 % | 1 `go-typed-map` |
 | frontmatter dates (recorded calls and 16,568 replays) | 18,398 | 99.62 % | 70 `unix-seconds-in-utc` |
+| frontmatter config decode (`config::decode_front_matter`) | 14 | 100 % | – |
 | build options | 15 | 100 % | – |
 | cascade decode / match | 18 / 144 | 100 % / 87.5 % | 18 `bad-glob-rejected` |
 | markup detection / page config | 26 / 21 | 57.7 % / 71.4 % | 12 `markup-not-supported`, 5 `content-adapter` |
-| default sort (`SortByDefault`, every current site) | 617 | 94.65 % | 33 `thai-paiyannoi-collation` |
+| default sort (`SortByDefault`, every current site) | 617 | 100 % | – |
 | source paths (`SourcePath::from_path_info` over the vfs parser) | 1,798 | 100 % | – |
 
-Overall 190,484 checks, 99.78 % exact, no unexplained difference.
+Overall 190,534 checks, 99.80 % exact, no unexplained difference.
 
 ## Deviations from Hugo (by design)
 
@@ -45,8 +47,8 @@ Overall 190,484 checks, 99.78 % exact, no unexplained difference.
 - **Unix-second dates** are UTC, not the process's local zone.
 - **Cascade globs that do not compile** are errors (Go ignores or panics).
 - **Only Markdown and HTML** content; content adapters are not supported.
-- **Page links are URL paths.** `TargetPaths::link` is unescaped and escaped once when written;
-  a front matter `url` with a query or `%` escapes is escaped differently from Hugo.
+- **Page links are URL paths.** `TargetPaths::link` is escaped when written (`%XX` escapes are
+  kept, as Go's `EscapedPath` keeps them); a front matter `url` with a query gets `%3F`.
 - **Resource output directories are clean paths** (`/th/section`, not `/th/section/`).
 - **Standalone formats** (404, sitemap, robots.txt; no resource directory) are recognised by
   name, not by struct equality with the built-in formats.

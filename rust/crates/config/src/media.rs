@@ -183,7 +183,6 @@ pub const DEFAULT_CONTENT_TYPES: [&str; 6] = [
 /// `application/rss+xml` before `application/xml`).
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct MediaTypes {
-    #[serde(serialize_with = "crate::ser_idvec")]
     types: IdVec<MediaTypeId, MediaType>,
 }
 

@@ -167,7 +167,7 @@ impl From<&TocConfig> for TocOptions {
     fn from(t: &TocConfig) -> Self {
         Self {
             start: t.start_level,
-            end: Some(t.end_level),
+            end: t.end_level,
             ordered: t.ordered,
         }
     }

@@ -7,11 +7,18 @@
 [paths.url-query-or-escape]
 count = 272
 reason = """
-A front matter `url` with a query (`/q?x=1`) or percent escapes (`/a%20b/`). Hugo keeps the
-query and the raw escapes in `.RelPermalink`; neohugo keeps page links as URL paths
-(`UrlPath`, unescaped) and escapes them once when writing, so `?` becomes `%3F` and `%20`
-stays `%20` only after a decode/encode round trip. Output files are identical; only the
-escaping of these adversarial links differs.
+A front matter `url` with a query (`/q?x=1`). Hugo keeps the query in `.RelPermalink`;
+neohugo keeps page links as URL paths (`UrlPath`) and escapes them when writing, so `?`
+becomes `%3F`. (Percent escapes such as `/a%20b/` are kept as written, as in Hugo.) Output
+files are identical; only the links of these adversarial URLs differ.
+"""
+
+[permalinks-decode.go-typed-map]
+count = 1
+reason = """
+The oracle's `advi` case hands Go's `[permalinks]` decoder a `map[string]string` for `page`,
+which it rejects (it expects the `map[string]any` a configuration file decodes to). The same
+table is an ordinary `[permalinks.page]` table to neohugo.
 """
 
 [frontmatter-dates.unix-seconds-in-utc]
@@ -44,13 +51,3 @@ reason = "As markup.markup-not-supported (an `.adoc` content file)."
 [page-config.content-adapter]
 count = 5
 reason = "Content adapters (`_content.gotmpl`, pages from data) are not supported (REWRITE_PLAN)."
-
-[default-sort.thai-paiyannoi-collation]
-count = 33
-reason = """
-Lists sorted while the Thai site is current, whose link titles hold PAIYANNOI (ฯ). Hugo's Thai
-collation (x/text, CLDR 23) sorts ฯ with the punctuation, before Latin letters;
-neohugo-locale collates Thai in the root order (docs/rust-port/specs/i18n-lang-misc.md §4),
-where ฯ is a Thai letter. With ฯ sorted as punctuation the order equals Hugo's in all 33
-lists, so `default_order` itself agrees; the difference belongs to the Thai collator.
-"""

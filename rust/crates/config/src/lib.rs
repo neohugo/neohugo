@@ -47,8 +47,11 @@ pub use global::{
 pub use markup::MarkupConfig;
 pub use media::{ContentTypes, MediaType, MediaTypes};
 pub use output::{OutputFormat, OutputFormats};
-pub use sections::{DateField, DateSource, KindOutputs, TaxonomyDef};
-pub use site::{Direction, Language, SiteConfig};
+pub use sections::{
+    CascadeConfig, CascadeTarget, DateField, DateSource, KindOutputs, Permalinks, SitemapConfig,
+    TaxonomyDef, decode_cascade, decode_front_matter,
+};
+pub use site::{Direction, Language, SiteConfig, TitleConfig};
 
 /// Settings from the command line; they override the configuration files (the environment
 /// overrides them in turn).
@@ -138,7 +141,6 @@ pub struct Config {
     /// The files the configuration was read from, lowest precedence first.
     pub config_files: Vec<PathBuf>,
     /// Enabled languages: the default language first, then by (weight, key).
-    #[serde(serialize_with = "ser_idvec")]
     pub sites: IdVec<LangIdx, SiteConfig>,
     /// Languages switched off with `disabled` or `disableLanguages`.
     pub disabled_languages: Vec<String>,
@@ -173,7 +175,6 @@ pub struct Config {
     pub ignore_logs: Vec<String>,
     pub enable_git_info: bool,
     /// The merged configuration tree (root level, keys lower case).
-    #[serde(serialize_with = "ser_params")]
     pub raw: Params,
     /// Deprecations and other notices found while loading.
     #[serde(skip)]
@@ -815,17 +816,7 @@ pub(crate) fn decode_error(prefix: &str, e: &de::DeError) -> ConfigError {
     ConfigError::invalid(key, &e.message)
 }
 
-pub(crate) fn ser_idvec<I: Idx, T: Serialize, S: serde::Serializer>(
-    v: &IdVec<I, T>,
-    s: S,
-) -> Result<S::Ok, S::Error> {
-    v.as_slice().serialize(s)
-}
-
-pub(crate) fn ser_params<S: serde::Serializer>(p: &Params, s: S) -> Result<S::Ok, S::Error> {
-    p.as_map().serialize(s)
-}
-
+/// A table, with `null` (an unset section) as the empty table.
 pub(crate) fn de_map<'de, D: serde::Deserializer<'de>>(d: D) -> Result<Map, D::Error> {
     match <Value as serde::Deserialize>::deserialize(d)? {
         Value::Map(m) => Ok(Arc::unwrap_or_clone(m)),

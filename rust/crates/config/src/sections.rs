@@ -116,35 +116,53 @@ impl Permalinks {
         self.0.get(&kind)
     }
 
-    /// Decodes `[permalinks]`: `[permalinks.page]` style tables per kind, or the legacy flat
-    /// `section = pattern`, which applies to pages and terms.
-    pub(crate) fn decode(config: &Map) -> Self {
+    /// Decodes a `[permalinks]` table: `[permalinks.page]` style tables per kind (`page`,
+    /// `section`, `taxonomy`, `term`), or the legacy flat `section = pattern`, which applies to
+    /// pages and terms. Section keys keep their case; `null` is no patterns.
+    ///
+    /// # Errors
+    /// A table for a kind that cannot have permalinks (`home`), or a pattern that is not a
+    /// string.
+    pub fn decode(config: &Value) -> Result<Self, ConfigError> {
         let mut out: BTreeMap<PageKind, BTreeMap<String, String>> = PERMALINK_KINDS
             .iter()
             .map(|&k| (k, BTreeMap::new()))
             .collect();
-        for (k, v) in config.iter() {
-            match v {
-                Value::Map(m) => {
-                    if let Some(kind) = PageKind::parse(k).filter(|k| PERMALINK_KINDS.contains(k)) {
-                        let entry = out.entry(kind).or_default();
-                        for (section, pattern) in m.iter() {
-                            if let Some(p) = crate::de::weak_string(pattern) {
-                                entry.insert(section.to_owned(), p);
-                            }
-                        }
-                    }
+        let table = match config {
+            Value::Null => return Ok(Self(out)),
+            Value::Map(m) => m,
+            _ => return Err(ConfigError::invalid("permalinks", "expected a table")),
+        };
+        let pattern = |key: String, v: &Value| match v {
+            Value::String(p) => Ok(p.to_string()),
+            _ => Err(ConfigError::invalid(
+                key,
+                "expected a permalink pattern (a string)",
+            )),
+        };
+        for (k, v) in table.iter() {
+            if let Value::Map(m) = v {
+                let kind = PageKind::parse(k)
+                    .filter(|k| PERMALINK_KINDS.contains(k))
+                    .ok_or_else(|| {
+                        ConfigError::invalid(
+                            format!("permalinks.{k}"),
+                            "only page, section, taxonomy and term can have permalinks",
+                        )
+                    })?;
+                let entry = out.entry(kind).or_default();
+                for (section, p) in m.iter() {
+                    let p = pattern(format!("permalinks.{k}.{section}"), p)?;
+                    entry.insert(section.to_owned(), p);
                 }
-                other => {
-                    if let Some(p) = crate::de::weak_string(other) {
-                        for kind in [PageKind::Page, PageKind::Term] {
-                            out.entry(kind).or_default().insert(k.to_owned(), p.clone());
-                        }
-                    }
+            } else {
+                let p = pattern(format!("permalinks.{k}"), v)?;
+                for kind in [PageKind::Page, PageKind::Term] {
+                    out.entry(kind).or_default().insert(k.to_owned(), p.clone());
                 }
             }
         }
-        Self(out)
+        Ok(Self(out))
     }
 }
 
@@ -239,12 +257,16 @@ pub enum DateSource {
 }
 
 impl DateSource {
-    fn parse(s: &str) -> Self {
-        match s {
+    /// A source as configured, ignoring case: `:filename`, `:fileModTime`, `:git`, or a front
+    /// matter field (kept lower case).
+    #[must_use]
+    pub fn parse(s: &str) -> Self {
+        let s = s.to_lowercase();
+        match s.as_str() {
             ":filename" => Self::Filename,
             ":filemodtime" => Self::FileModTime,
             ":git" => Self::Git,
-            field => Self::Field(field.to_owned()),
+            _ => Self::Field(s),
         }
     }
 
@@ -260,10 +282,15 @@ impl DateSource {
     }
 }
 
-/// Decodes `[frontmatter]`: for each date field, its sources in priority order. `:default`
-/// stands for Hugo's list; naming `lastmod`, `publishdate` or `expirydate` includes their
-/// aliases (`modified`; `pubdate`, `published`; `unpublishdate`).
-pub(crate) fn decode_front_matter(config: &Map) -> Vec<(DateField, Vec<DateSource>)> {
+/// Decodes a `[frontmatter]` table: for each date field (all four, in [`DateField::ALL`]
+/// order), its sources in priority order, without duplicates. Keys and sources ignore case. An
+/// unconfigured field has Hugo's defaults; `:default` stands for them inside a list; naming
+/// `lastmod`, `publishdate` or `expirydate` includes their aliases (`modified`; `pubdate`,
+/// `published`; `unpublishdate`). A scalar is a one-element list; `null` or `[]` is no
+/// sources; unknown keys are ignored.
+#[must_use]
+pub fn decode_front_matter(config: &Map) -> Vec<(DateField, Vec<DateSource>)> {
+    let config = Params::fold(config);
     DateField::ALL
         .into_iter()
         .map(|field| {
@@ -536,7 +563,6 @@ pub struct MenuEntryConfig {
     pub weight: i32,
     pub parent: String,
     pub title: String,
-    #[serde(serialize_with = "crate::ser_params")]
     pub params: Params,
 }
 
@@ -595,10 +621,8 @@ pub(crate) fn decode_menus(config: &Map) -> Result<Vec<MenuEntryConfig>, crate::
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]
 pub struct CascadeConfig {
     /// `params` for the matched pages.
-    #[serde(serialize_with = "crate::ser_params")]
     pub params: Params,
     /// Other front matter fields (`title`, `build`, …), keys lower case.
-    #[serde(serialize_with = "crate::ser_params")]
     pub fields: Params,
     pub target: CascadeTarget,
 }
@@ -613,8 +637,14 @@ pub struct CascadeTarget {
     pub environment: String,
 }
 
-/// Decodes `cascade` (a table or a list of tables).
-pub(crate) fn decode_cascade(v: &Value) -> Result<Vec<CascadeConfig>, crate::de::DeError> {
+/// Decodes a `cascade` value (a table, a list of tables, or `null` for none): keys fold to
+/// lower case; `params` becomes [`CascadeConfig::params`], `target` (or the legacy `_target`)
+/// the [`CascadeTarget`], every other key [`CascadeConfig::fields`].
+///
+/// # Errors
+/// A value that is not a table or a list of tables, or a `target` that is not a table of
+/// strings; the error's path names the entry.
+pub fn decode_cascade(v: &Value) -> Result<Vec<CascadeConfig>, crate::de::DeError> {
     let items = match v {
         Value::Array(a) => a.as_slice(),
         Value::Map(_) => std::slice::from_ref(v),

@@ -1,10 +1,10 @@
 //! Oracle: page dates (Hugo's `HandleDates`) for every page of the reference builds, replayed
 //! over 8 `[frontmatter]` variants × 3 time zones × with and without a Git date; and the
-//! `build` option decoding (`oracle/page/frontmatter/*`).
+//! `[frontmatter]` and `build` option decoding (`oracle/page/frontmatter/*`).
 
 use jiff::{SignedDuration, Timestamp};
 use neohugo_base::{Date, Params, Value};
-use neohugo_config::{DateField, DateSource};
+use neohugo_config::{DateField, DateSource, decode_front_matter};
 use neohugo_page::{BuildPolicy, DateResolver, FileCtx, ListMode, RenderMode};
 use serde_json::{Map as JMap, Value as J, json};
 
@@ -16,16 +16,7 @@ fn resolver(cfg: &J) -> DateResolver {
     let chain = |k: &str| -> Vec<DateSource> {
         cfg[k]
             .as_array()
-            .map(|a| {
-                a.iter()
-                    .map(|v| match s(v) {
-                        ":filename" => DateSource::Filename,
-                        ":filemodtime" => DateSource::FileModTime,
-                        ":git" => DateSource::Git,
-                        key => DateSource::Field(key.to_owned()),
-                    })
-                    .collect()
-            })
+            .map(|a| a.iter().map(|v| DateSource::parse(s(v))).collect())
             .unwrap_or_default()
     };
     DateResolver::new(&[
@@ -174,6 +165,49 @@ fn dates_match_hugo() {
     }
     assert!(replays > 16_000, "{replays} replays");
     t.finish("frontmatter-dates");
+}
+
+/// `decode_front_matter` gives the date sources Hugo decodes from `[frontmatter]` (defaults,
+/// `:default`, aliases, case, duplicates, scalars and empty lists).
+#[test]
+fn front_matter_config_decodes_like_hugo() {
+    let fx = fixture("frontmatter/decode.json.gz");
+    let mut t = Tally::default();
+    for c in fx["cases"].as_array().expect("cases") {
+        if c["fn"] != "frontmatter" {
+            continue;
+        }
+        let config = match value(&c["in"]) {
+            Value::Map(m) => (*m).clone(),
+            Value::Null => neohugo_base::Map::new(),
+            other => panic!("not a table: {other:?}"),
+        };
+        let got: JMap<String, J> = decode_front_matter(&config)
+            .into_iter()
+            .map(|(field, sources)| {
+                let name = match field {
+                    DateField::Date => "date",
+                    DateField::Lastmod => "lastmod",
+                    DateField::PublishDate => "publishDate",
+                    DateField::ExpiryDate => "expiryDate",
+                };
+                // Go's empty list is `nil`.
+                let list = if sources.is_empty() {
+                    J::Null
+                } else {
+                    sources.iter().map(|s| json!(s.as_config_str())).collect()
+                };
+                (name.to_owned(), list)
+            })
+            .collect();
+        let got = J::Object(got);
+        let want = &c["want"]["ok"];
+        t.check(&got == want, || {
+            format!("{}: got {got}, want {want}", c["in"])
+        });
+    }
+    assert!(t.total >= 10, "{} cases", t.total);
+    t.finish("frontmatter-config");
 }
 
 #[test]
