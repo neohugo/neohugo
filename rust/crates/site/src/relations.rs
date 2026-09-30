@@ -399,6 +399,15 @@ pub(crate) fn lists(m: &mut Model) {
             .copied()
             .filter(|&id| m.pages[id].kind == PageKind::Page)
             .collect();
+        let mut local_regular: Vec<PageId> = tree
+            .iter()
+            .map(|(_, id)| id)
+            .filter(|&id| {
+                let p = &m.pages[id];
+                p.kind == PageKind::Page && p.listed(ListScope::Local)
+            })
+            .collect();
+        sort_default(m, c, &mut local_regular);
 
         let mut lists = Vec::new();
         for (key, id) in tree.iter() {
@@ -499,6 +508,7 @@ pub(crate) fn lists(m: &mut Model) {
         let site = &mut m.sites[lang];
         site.pages = site_pages;
         site.regular_pages = site_regular;
+        site.regular_pages_local = local_regular;
         site.main_sections = main;
     }
 }

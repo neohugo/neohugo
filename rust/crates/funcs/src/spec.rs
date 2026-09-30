@@ -396,10 +396,10 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Pages, "by_publish_date", ".ByPublishDate", "Pages by publish date.").site(),
     filter(G::Pages, "by_lastmod", ".ByLastmod", "Pages by last modification.").site(),
     filter(G::Pages, "by_weight", ".ByWeight", "Pages by Hugo's default order (weight, date, link title, path).").site(),
-    filter(G::Pages, "group_by_date", ".GroupByDate", "`[{key, pages}]` grouped by the date formatted with `format` (strftime), newest first.")
-        .args(&[req("format", A::String), opt("attribute", A::String)]).site(),
+    filter(G::Pages, "group_by_date", ".GroupByDate", "`[{key, pages}]` grouped by the date formatted with `format` (strftime), newest first (`order=\"asc\"`: oldest first); no date is Go's zero date (`0001`).")
+        .args(&[req("format", A::String), opt("attribute", A::String), opt("order", A::String)]).site(),
     filter(G::Pages, "group_by_param", ".GroupByParam", "`[{key, pages}]` grouped by the page param `param`.").args(&[req("param", A::String)]).site(),
-    filter(G::Pages, "by_count", ".ByCount", "Taxonomy terms by page count, then name.").site(),
+    filter(G::Pages, "by_count", ".ByCount", "Taxonomy terms by page count, then lower-cased name in Go's string order.").site(),
     filter(G::Pages, "alphabetical", ".Alphabetical", "Taxonomy terms by name (collation).").site(),
     // ── strings ──
     filter(G::Strings, "lower", "lower", "Lower case.").builtin(),

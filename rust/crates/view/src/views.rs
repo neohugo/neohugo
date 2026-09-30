@@ -609,7 +609,8 @@ pub struct ResourceView {
     /// Links; post-process placeholders when the value is only known in phase E5.
     pub rel_permalink: String,
     pub permalink: String,
-    /// Processed images only (a source image's size needs its pixels; `resize` knows it).
+    /// Images: the planned size of a processed image, else the size in the file's header
+    /// (none for other resources and undecodable images).
     pub width: Option<u32>,
     pub height: Option<u32>,
     pub data: ResourceDataView,

@@ -1,6 +1,8 @@
 //! Decoding sources and encoding results.
 
-use std::io::Cursor;
+use std::fs::File;
+use std::io::{BufRead, BufReader, Cursor, Seek};
+use std::path::Path;
 
 use image::codecs::bmp::BmpEncoder;
 use image::codecs::gif::GifEncoder;
@@ -23,11 +25,27 @@ pub(crate) struct Decoded {
 
 /// The size and format of an encoded image, from its header.
 pub(crate) fn probe(bytes: &[u8], what: &str) -> Result<(Size, ImageFormat), ImageError> {
+    probe_reader(image::ImageReader::new(Cursor::new(bytes)), what)
+}
+
+/// [`probe`] of a file, reading its header only.
+pub(crate) fn probe_file(path: &Path) -> Result<(Size, ImageFormat), ImageError> {
+    let file = File::open(path).map_err(|e| ImageError::io(path, e))?;
+    probe_reader(
+        image::ImageReader::new(BufReader::new(file)),
+        &path.display().to_string(),
+    )
+}
+
+fn probe_reader<R: BufRead + Seek>(
+    reader: image::ImageReader<R>,
+    what: &str,
+) -> Result<(Size, ImageFormat), ImageError> {
     let decode_err = |source| ImageError::Decode {
         what: what.to_owned(),
         source,
     };
-    let reader = image::ImageReader::new(Cursor::new(bytes))
+    let reader = reader
         .with_guessed_format()
         .map_err(|e| decode_err(image::ImageError::IoError(e)))?;
     let format = reader

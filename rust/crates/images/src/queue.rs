@@ -30,9 +30,11 @@ use crate::spec::ImageSpec;
 /// The result of [`ImageQueue::enqueue`]: known before any pixel is processed.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub struct Enqueued {
+    /// Identifies the operation *and* its name: the same content and operation under two
+    /// source names (identical bundle images) are two operations that share their pixels.
     pub id: ImageOpId,
-    /// `<source stem>_hu_<16 hex digits>.<ext>`; the digits hash the source content and the
-    /// planned operation.
+    /// `<source stem>_hu_<16 hex digits>.<ext>`, as in Go: the stem and extension are the
+    /// source's own and the digits hash the source content and the planned operation.
     pub file_name: String,
     pub width: u32,
     pub height: u32,
@@ -99,6 +101,9 @@ struct SourceMeta {
     ext: String,
 }
 
+/// A processed result, shared by the operations that differ only in their name.
+type SharedResult = Arc<OnceLock<Arc<[u8]>>>;
+
 struct Op {
     input: ImageInput,
     plan: Plan,
@@ -106,7 +111,10 @@ struct Op {
     /// The extension of the result as spelled in `out.file_name`.
     ext: String,
     stem: String,
-    result: OnceLock<Arc<[u8]>>,
+    /// The hash of the source content and the operation (the digits of the name).
+    digest: u64,
+    /// Shared by every operation with the same `digest`: identical bytes are processed once.
+    result: SharedResult,
 }
 
 /// Queued image operations, shared by every render of a build.
@@ -115,6 +123,7 @@ pub struct ImageQueue {
     cache: Option<ImageCache>,
     ops: Mutex<BTreeMap<ImageOpId, Arc<Op>>>,
     sources: Mutex<BTreeMap<PathBuf, Arc<SourceMeta>>>,
+    results: Mutex<BTreeMap<u64, SharedResult>>,
 }
 
 fn stem_of(name: &str) -> &str {
@@ -132,6 +141,7 @@ impl ImageQueue {
             cache,
             ops: Mutex::new(BTreeMap::new()),
             sources: Mutex::new(BTreeMap::new()),
+            results: Mutex::new(BTreeMap::new()),
         }
     }
 
@@ -191,7 +201,7 @@ impl ImageQueue {
     fn input_ref(&self, input: &ImageInput) -> Result<InputRef, ImageError> {
         let identity = match input {
             ImageInput::File(p) => self.source(p)?.hash,
-            ImageInput::Op(id) => self.op(*id)?.out.id.raw(),
+            ImageInput::Op(id) => self.op(*id)?.digest,
         };
         Ok(InputRef {
             input: input.clone(),
@@ -230,7 +240,7 @@ impl ImageQueue {
                     // Processed results carry no EXIF data.
                     orientation: None,
                 };
-                (info, id.raw(), op.stem.clone(), op.ext.clone())
+                (info, op.digest, op.stem.clone(), op.ext.clone())
             }
         };
         let plan = Plan::new(&info, spec, filters, &self.imaging, &mut |i| {
@@ -244,22 +254,34 @@ impl ImageQueue {
         } else {
             format.extension().to_owned()
         };
+        let file_name = format!("{stem}_hu_{hash:016x}{ext}");
+        // The name is part of the identity: keyed by the digits alone, identical images in
+        // two bundles would share whichever name was queued first (non-deterministic).
+        let id = xxh3_64(format!("{hash:016x}|{file_name}").as_bytes());
         let out = Enqueued {
-            id: ImageOpId::from_raw(hash),
-            file_name: format!("{stem}_hu_{hash:016x}{ext}"),
+            id: ImageOpId::from_raw(id),
+            file_name,
             width: plan.size.0,
             height: plan.size.1,
             format,
         };
         let mut ops = self.ops.lock().unwrap_or_else(PoisonError::into_inner);
         let op = ops.entry(out.id).or_insert_with(|| {
+            let result = Arc::clone(
+                self.results
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .entry(hash)
+                    .or_default(),
+            );
             Arc::new(Op {
                 input: input.clone(),
                 plan,
                 out,
                 ext,
                 stem,
-                result: OnceLock::new(),
+                digest: hash,
+                result,
             })
         });
         Ok(op.out.clone())
@@ -341,6 +363,22 @@ impl ImageQueue {
         let mut ids: Vec<ImageOpId> = wanted.values().copied().collect();
         ids.sort_unstable();
         ids.dedup();
+        // Operations that differ only in their name share their pixels: process one of each
+        // first, so the others find the shared result.
+        let mut firsts: BTreeMap<u64, ImageOpId> = BTreeMap::new();
+        for id in &ids {
+            if let Ok(op) = self.op(*id) {
+                firsts.entry(op.digest).or_insert(*id);
+            }
+        }
+        firsts
+            .into_values()
+            .collect::<Vec<_>>()
+            .into_par_iter()
+            .for_each(|id| {
+                // Errors are reported below, in target order.
+                let _ = self.encoded(id);
+            });
         let mut results: BTreeMap<ImageOpId, Result<Arc<[u8]>, ImageError>> = ids
             .into_par_iter()
             .map(|id| (id, self.encoded(id)))

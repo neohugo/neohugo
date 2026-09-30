@@ -24,9 +24,12 @@ PSNR ≥ 30 dB against Go-processed images and exact result sizes, not byte pari
 
 `enqueue` probes the source (header only; content hash, EXIF orientation), plans the spec and
 the filters into concrete steps with every intermediate size, and hashes the source content
-plus the plan (xxh3) into the operation id and file name. Enqueueing the same thing twice
-returns the same id; any change of the source, the spec, the filters or the `[imaging]`
-defaults gives another name. A chain (`B.Resize` of a filtered `B`) takes an `Op` input and is
+plus the plan (xxh3) into the digits of the file name, `<stem>_hu_<digits>.<ext>`, where stem
+and extension are the source's own (as in Go). The operation id hashes the digits *and* the
+name: identical bytes under two names (the same photo in two bundles) are two operations, each
+named after its own source whatever the render order, that share one processed result.
+Enqueueing the same thing twice returns the same id; any change of the source, the spec, the
+filters or the `[imaging]` defaults gives other digits. A chain (`B.Resize` of a filtered `B`) takes an `Op` input and is
 decoded from its parent's encoded bytes, as in Hugo.
 
 `process`/`encoded` decode with `image`, run the steps and encode:

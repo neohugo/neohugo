@@ -664,21 +664,21 @@ impl ViewGeneration {
         self.full_value(id)
     }
 
-    /// `.RegularPagesRecursive`: the site's regular pages for the home page, those below a
-    /// section, a taxonomy's or term's regular pages; none for other pages.
+    /// `.RegularPagesRecursive`, as Go: for the home page and a section, the regular pages
+    /// below it that are listed locally (so `build.list = "local"` pages of nested sections
+    /// too, which `site.regular_pages` leaves out); else `.RegularPages`.
     fn regular_pages_recursive(&self, id: PageId) -> Vec<PageId> {
         let model = &self.shared.model;
         let p = &model.pages[id];
+        let local = &model.sites[p.lang].regular_pages_local;
         match p.kind {
-            PageKind::Home => model.sites[p.lang].regular_pages.clone(),
-            PageKind::Section => model.sites[p.lang]
-                .regular_pages
+            PageKind::Home => local.clone(),
+            PageKind::Section => local
                 .iter()
                 .copied()
                 .filter(|&q| model.is_ancestor(id, q))
                 .collect(),
-            PageKind::Taxonomy | PageKind::Term => p.regular_pages.clone(),
-            _ => Vec::new(),
+            _ => p.regular_pages.clone(),
         }
     }
 
