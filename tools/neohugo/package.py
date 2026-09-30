@@ -1,0 +1,120 @@
+#!/usr/bin/env python3
+"""Packages a release build of neohugo-rs for one target (Python stdlib only).
+
+Usage:
+  package.py <binary> <target> <out-dir>
+
+Runs `<binary> version` (a smoke test; the version it prints names the archive) and writes
+
+  <out-dir>/neohugo-rs-<version>-<target>.tar.gz          (.zip for Windows targets)
+  <out-dir>/neohugo-rs-<version>-<target>.tar.gz.sha256   "<sha256>  <archive>", as `sha256sum -c`
+                                                          and `shasum -a 256 -c` read it
+
+The archive holds one directory, neohugo-rs-<version>-<target>/, with the binary, the
+repository's LICENSE, rust/PROVENANCE.md and rust/THIRD_PARTY/. Entries are sorted, owned by
+root and dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the same archive.
+
+.github/workflows/rust.yml runs it for every release target (rust/README.md, "CI and releases").
+"""
+import gzip
+import hashlib
+import io
+import os
+import re
+import subprocess
+import sys
+import tarfile
+import time
+import zipfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent.parent
+
+
+def binary_version(binary):
+    """The version `<binary> version` prints (`neohugo-rs <version>`)."""
+    out = subprocess.run([str(binary), "version"], capture_output=True, text=True, check=True)
+    m = re.fullmatch(r"neohugo-rs (\S+)\n?", out.stdout)
+    if not m:
+        sys.exit(f"package.py: `{binary} version` printed {out.stdout!r}, "
+                 "not 'neohugo-rs <version>'")
+    return m.group(1)
+
+
+def entries(binary):
+    """(name in the archive, source file, mode), sorted; directories have no source."""
+    files = [
+        (binary.name, binary, 0o755),
+        ("LICENSE", ROOT / "LICENSE", 0o644),
+        ("PROVENANCE.md", ROOT / "rust" / "PROVENANCE.md", 0o644),
+    ]
+    third_party = ROOT / "rust" / "THIRD_PARTY"
+    dirs = {"THIRD_PARTY"}
+    for path in sorted(third_party.rglob("*")):
+        rel = path.relative_to(third_party.parent).as_posix()
+        if path.is_dir():
+            dirs.add(rel)
+        else:
+            files.append((rel, path, 0o644))
+    for name, src, _ in files:
+        if not src.is_file():
+            sys.exit(f"package.py: {src} is missing")
+    return sorted([(d, None, 0o755) for d in dirs] + files)
+
+
+def write_tar_gz(path, top, items, mtime):
+    raw = io.BytesIO()
+    with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=mtime, compresslevel=9) as gz:
+        with tarfile.open(fileobj=gz, mode="w", format=tarfile.PAX_FORMAT) as tar:
+            for name, src, mode in [("", None, 0o755)] + items:
+                info = tarfile.TarInfo(f"{top}/{name}".rstrip("/"))
+                info.mode, info.mtime = mode, mtime
+                info.uid = info.gid = 0
+                info.uname = info.gname = ""
+                if src is None:
+                    info.type = tarfile.DIRTYPE
+                    tar.addfile(info)
+                else:
+                    data = src.read_bytes()
+                    info.size = len(data)
+                    tar.addfile(info, io.BytesIO(data))
+    path.write_bytes(raw.getvalue())
+
+
+def write_zip(path, top, items, mtime):
+    stamp = time.gmtime(max(mtime, 315532800))[:6]  # zip dates start in 1980
+    with zipfile.ZipFile(path, "w") as z:
+        for name, src, mode in [("", None, 0o755)] + items:
+            arcname = f"{top}/{name}".rstrip("/") + ("/" if src is None else "")
+            info = zipfile.ZipInfo(arcname, date_time=stamp)
+            info.create_system = 3  # Unix, so external_attr carries the mode
+            if src is None:
+                info.external_attr = (0o40000 | mode) << 16 | 0x10
+                z.writestr(info, b"")
+            else:
+                info.external_attr = (0o100000 | mode) << 16
+                info.compress_type = zipfile.ZIP_DEFLATED
+                z.writestr(info, src.read_bytes())
+
+
+def main(argv):
+    if len(argv) != 4:
+        sys.exit(__doc__)
+    binary, target, out = Path(argv[1]), argv[2], Path(argv[3])
+    version = binary_version(binary)
+    top = f"neohugo-rs-{version}-{target}"
+    ext = "zip" if "windows" in target else "tar.gz"
+    archive = out / f"{top}.{ext}"
+    mtime = int(os.environ.get("SOURCE_DATE_EPOCH") or time.time())
+    out.mkdir(parents=True, exist_ok=True)
+    items = entries(binary)
+    (write_zip if ext == "zip" else write_tar_gz)(archive, top, items, mtime)
+    digest = hashlib.sha256(archive.read_bytes()).hexdigest()
+    line = f"{digest}  {archive.name}\n"
+    Path(f"{archive}.sha256").write_text(line, encoding="ascii", newline="\n")
+    print(f"neohugo-rs {version}: {archive} ({archive.stat().st_size} bytes, {len(items)} entries)")
+    print(line, end="")
+
+
+if __name__ == "__main__":
+    main(sys.argv)
