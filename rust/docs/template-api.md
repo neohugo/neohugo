@@ -13,7 +13,7 @@ Templates are Tera 2.4.0 (REWRITE_PLAN.md §4). Kind codes: `bi` Tera built-in, 
 | Shortcode | `page`, `site`, `hugo`, `lang`, `shortcode`, `inner`, `inner_deindent`, `__nh` |
 | Render hook | `page`, `page_inner`, `site`, `hugo`, `lang`, `__nh`, plus the hook's fields, flattened (below) |
 | `partial(name=…, …)` | `page`, `site`, `hugo`, `lang`, `output_format`, `__nh`, plus the call's kwargs as top-level names |
-| Component | only its declared arguments; `@page`, `@site`, `@lang` and `@__nh` may be declared as implicit arguments |
+| Component | only its declared arguments; `@page`, `@site`, `@hugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope) |
 | `defer` template | `data`, `site`, `hugo`, `__nh` |
 | `execute_as_template` | `data`, `site`, `hugo`, `__nh` |
 | Alias | `permalink`, `page`, `site`, `hugo` |
@@ -53,8 +53,8 @@ Flattened render-hook fields:
 |---|---|
 | `and` `or` `not` `eq` `ne` `lt` `le` `gt` `ge` | `and` `or` `not` `==` `!=` `<` `<=` `>` `>=`; pages compare by `.id`, pagers by `.page_number`, dates by `.unix` |
 | `cond c a b` | `a if c else b` |
-| `print`, `printf` | `~`, plus the filters `pad_start`, `pad_end`, `round`, `format_number`, `jsonify`; `"\u{a0}"` for `%c`; `'"' ~ x ~ '"'` for `%q` in attributes |
-| `dict`, `slice` | map and array literals `{"k": v}`, `[a, b]` |
+| `print`, `printf` | `~`, plus the filters `pad_start`, `pad_end`, `round`, `format_number`, `jsonify`; a literal U+00A0 character for `%c` of 160; `'"' ~ x ~ '"'` for `%q` in attributes |
+| `dict`, `slice` | map and array literals `{"k": v}`, `[a, b]`; computed keys: `[[k, v]] \| from_pairs` |
 | `index m k` | `m[k]`, `m.k` |
 | `in`, `strings.Contains` | `x in l`, `"x" in s`; pages `p.id in [q.id for q in l]` |
 | `isset m "k"` | `"k" in m`, `is defined` |
@@ -104,6 +104,7 @@ Flattened render-hook fields:
 | `x \| values` | bi | both |  |  | The values of a map. |
 | `x \| pairs` | bi | both |  |  | `[key, value]` pairs of a map. |
 | `x \| sort_keys` | F | both |  | `(range over a map)` | The map with its keys sorted; Go ranges maps in key order, Tera literals keep insertion order. |
+| `x \| from_pairs` | F | both |  | `dict $k $v (computed keys)` | A map from `[key, value]` pairs (the inverse of `pairs`), for keys a map literal cannot compute: `[[k, v]] \| from_pairs`. Keys are stringified, a later pair wins, keys sorted. |
 | `x \| append(value=)` | F | both |  | `append` | The array with `value` appended. (value: any) |
 | `x \| concat(with=)` | F | both |  | `append l1 l2` | The array followed by the elements of `with`. (with: array) |
 | `x \| merge(with=)` | F | both |  | `merge` | Deep merge of two maps; `with` wins; keys sorted. (with: map) |
@@ -195,7 +196,7 @@ Flattened render-hook fields:
 | `x \| markdownify` | F (s) | both | yes | `markdownify` | Renders Markdown with the current page's hooks; a single paragraph is unwrapped. |
 | `x \| render_string(display=?, page=?)` | F (s) | both | yes | `.RenderString` | Renders Markdown with `page`'s hooks; `display="block"` keeps the paragraph. (display: string, page: page) |
 | `x \| highlight(lang=, options=?)` | F (s) | both | yes | `highlight`, `transform.Highlight` | Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration). (lang: string, options: any) |
-| `x \| to_math(display=?)` | F | both | yes | `transform.ToMath` | LaTeX to MathML (SHOULD; feature `math`). (display: bool) |
+| `x \| to_math(display=?, optional=?)` | F | both | yes | `transform.ToMath (+ try)` | LaTeX to MathML (SHOULD; feature `math`). A construct it cannot parse (invalid LaTeX, mhchem) is an error; with `optional=true` a warning (id `to_math`) and an in-place `<merror>`. (display: bool, optional: bool) |
 | `diagrams_goat(text=)` | fn | both |  | `diagrams.Goat` | `{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`). (text: string) |
 | `x \| format_number(precision=?)` | F | both |  | `lang.FormatNumber`, `printf "%.1f"` | The number with `precision` decimals in the format of the render's `lang`. (precision: int) |
 | `x \| filesize_format(binary=?)` | tc | both |  |  | Human file size (`binary` units by default). (binary: bool) |
@@ -376,11 +377,12 @@ Flattened render-hook fields:
 
 - `define`/`block` in children → `{% extends "baseof.html" %}` plus `{% block %}`; delete blocks the parent does not define.
 - Partials → include, component or `partial()`; component calls pass arguments as `name={expr}`, `name="literal"` or the shorthand `name`.
-- `try` → `optional=true` on `get_remote`, or a `none` check.
+- `try` → `optional=true` on `get_remote` and `to_math`, or a `none` check.
 
 **Formatting**
 
 - Go `printf` → `~`, `pad_start`/`pad_end`, `round`/`format_number`, `jsonify`.
+- Tera 2.4 strings know only the escapes `\n` `\t` `\r` `\"` `\'` `\/` `\\`: write other characters such as U+00A0 literally (`"\u{a0}"` is an error), and double a regex backslash (`pattern="\\s+"`).
 - Go date layouts → strftime: `"2006-01-02"` → `"%Y-%m-%d"`, `"Jan 2, 2006"` → `"%b %-d, %Y"`. `.Format` stays English; `time.Format` and `dateFormat` localize names, so add `locale=lang`.
 
 **Removed Hugo idioms**

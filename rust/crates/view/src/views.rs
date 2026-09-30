@@ -55,6 +55,7 @@ pub const PAGE_SUMMARY_KEYS: &[&str] = &[
     "output_formats",
     "resources",
     "terms",
+    "raw_content",
 ];
 
 /// The content keys a page value has in the Full generations only.
@@ -63,7 +64,6 @@ pub const CONTENT_KEYS: &[&str] = &[
     "summary",
     "truncated",
     "plain",
-    "raw_content",
     "word_count",
     "fuzzy_word_count",
     "reading_time",
@@ -246,8 +246,6 @@ pub struct ContentView {
     pub summary: tera::Value,
     pub truncated: bool,
     pub plain: tera::Value,
-    /// The source after the front matter (one value per page, shared by the generations).
-    pub raw_content: tera::Value,
     pub word_count: usize,
     pub fuzzy_word_count: usize,
     pub reading_time: usize,
@@ -259,10 +257,9 @@ pub struct ContentView {
 }
 
 impl ContentView {
-    /// The content fields of `c` (`None`: a page without content, all fields empty); `raw` is
-    /// the source after the front matter, as a value.
+    /// The content fields of `c` (`None`: a page without content, all fields empty).
     #[must_use]
-    pub fn new(c: Option<&RenderedContent>, raw: tera::Value) -> Self {
+    pub fn new(c: Option<&RenderedContent>) -> Self {
         let empty = RenderedContent::default();
         let c = c.unwrap_or(&empty);
         Self {
@@ -270,7 +267,6 @@ impl ContentView {
             summary: tera::Value::safe_string(&c.summary),
             truncated: c.truncated,
             plain: tera::Value::from(c.plain.as_str()),
-            raw_content: raw,
             word_count: c.word_count,
             fuzzy_word_count: c.fuzzy_word_count,
             reading_time: c.reading_time,
@@ -369,6 +365,10 @@ pub struct PageSummaryView {
     pub resources: tera::Value,
     /// `{plural: [PageLink]}`, a key for every configured taxonomy.
     pub terms: tera::Value,
+    /// `.RawContent`: the source after the front matter. Known after parsing, so it is in
+    /// every generation (shortcodes and hooks read other pages' sources through it); one
+    /// value per page, shared by the generations.
+    pub raw_content: tera::Value,
 }
 
 /// The relations a full page value adds on top of its summary. Every list holds summary values

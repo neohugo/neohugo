@@ -8,11 +8,6 @@ Yes, the terms themselves are pages, but we don't want to link to the pages, at
 least not right now. Instead, we want to link to the ids rendered by this
 shortcode.
 
-Go printed each term's .RawContent. The content phase has no raw-content function (a spec
-gap: `raw_content` is a Full-generation field), and render_shortcodes splices an inclusion
-whose leading newline breaks the `: ` definition line, so the term's source is read from its
-file (mounted from content/en) and its YAML front matter dropped.
-
 @example {{% glossary %}}
 -#}
 {%- set path = "/quick-reference/glossary" %}
@@ -37,9 +32,8 @@ file (mounted from content/en) and its YAML front matter dropped.
 
   {# Render glossary terms. #}
   {%- for p in terms %}
-    {%- set source_parts = read_file(path="content/en/" ~ p.file.path) | split(pat="---\n") %}
 {{ p.title }}{# Do not indent. #}
-: {{ source_parts[2:] | join(sep="---\n") | trim | safe }}{# Do not indent. #}
+: {{ p.raw_content | trim | safe }}{# Do not indent. #}
     {% if p.params.reference %}
       {%- set u = p.params.reference | parse_url %}
       {%- set_global destination = "" %}

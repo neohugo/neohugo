@@ -344,6 +344,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Collections, "values", "", "The values of a map.").builtin(),
     filter(G::Collections, "pairs", "", "`[key, value]` pairs of a map.").builtin(),
     filter(G::Collections, "sort_keys", "(range over a map)", "The map with its keys sorted; Go ranges maps in key order, Tera literals keep insertion order."),
+    filter(G::Collections, "from_pairs", "dict $k $v (computed keys)", "A map from `[key, value]` pairs (the inverse of `pairs`), for keys a map literal cannot compute: `[[k, v]] | from_pairs`. Keys are stringified, a later pair wins, keys sorted."),
     filter(G::Collections, "append", "append", "The array with `value` appended.").args(&[req("value", A::Any)]),
     filter(G::Collections, "concat", "append l1 l2", "The array followed by the elements of `with`.").args(&[req("with", A::Array)]),
     filter(G::Collections, "merge", "merge", "Deep merge of two maps; `with` wins; keys sorted.").args(&[req("with", A::Map)]),
@@ -445,7 +446,7 @@ pub const FUNCS: &[FuncSpec] = &[
         .args(&[opt("display", A::String), PAGE_OPT]).site().safe(),
     filter(G::Strings, "highlight", "highlight, transform.Highlight", "Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration).")
         .args(&[req("lang", A::String), opt("options", A::Any)]).site().safe(),
-    filter(G::Strings, "to_math", "transform.ToMath", "LaTeX to MathML (SHOULD; feature `math`).").args(&[opt("display", A::Bool)]).safe(),
+    filter(G::Strings, "to_math", "transform.ToMath (+ try)", "LaTeX to MathML (SHOULD; feature `math`). A construct it cannot parse (invalid LaTeX, mhchem) is an error; with `optional=true` a warning (id `to_math`) and an in-place `<merror>`.").args(&[opt("display", A::Bool), opt("optional", A::Bool)]).safe(),
     func(G::Strings, "diagrams_goat", "diagrams.Goat", "`{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`).")
         .args(&[req("text", A::String)]),
     filter(G::Strings, "format_number", "lang.FormatNumber, printf \"%.1f\"", "The number with `precision` decimals in the format of the render's `lang`.")
@@ -691,7 +692,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         role: RenderRole::Component,
         title: "Component",
         names: &[],
-        note: "only its declared arguments; `@page`, `@site`, `@lang` and `@__nh` may be declared as implicit arguments",
+        note: "only its declared arguments; `@page`, `@site`, `@hugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope)",
     },
     ContextSpec {
         role: RenderRole::Deferred,
@@ -817,11 +818,11 @@ pub const SYNTAX: &[SyntaxRule] = &[
     syn("`cond c a b`", "`a if c else b`"),
     syn(
         "`print`, `printf`",
-        "`~`, plus the filters `pad_start`, `pad_end`, `round`, `format_number`, `jsonify`; `\"\\u{a0}\"` for `%c`; `'\"' ~ x ~ '\"'` for `%q` in attributes",
+        "`~`, plus the filters `pad_start`, `pad_end`, `round`, `format_number`, `jsonify`; a literal U+00A0 character for `%c` of 160; `'\"' ~ x ~ '\"'` for `%q` in attributes",
     ),
     syn(
         "`dict`, `slice`",
-        "map and array literals `{\"k\": v}`, `[a, b]`",
+        "map and array literals `{\"k\": v}`, `[a, b]`; computed keys: `[[k, v]] | from_pairs`",
     ),
     syn("`index m k`", "`m[k]`, `m.k`"),
     syn(
@@ -917,13 +918,14 @@ pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
         &[
             "`define`/`block` in children → `{% extends \"baseof.html\" %}` plus `{% block %}`; delete blocks the parent does not define.",
             "Partials → include, component or `partial()`; component calls pass arguments as `name={expr}`, `name=\"literal\"` or the shorthand `name`.",
-            "`try` → `optional=true` on `get_remote`, or a `none` check.",
+            "`try` → `optional=true` on `get_remote` and `to_math`, or a `none` check.",
         ],
     ),
     (
         "Formatting",
         &[
             "Go `printf` → `~`, `pad_start`/`pad_end`, `round`/`format_number`, `jsonify`.",
+            "Tera 2.4 strings know only the escapes `\\n` `\\t` `\\r` `\\\"` `\\'` `\\/` `\\\\`: write other characters such as U+00A0 literally (`\"\\u{a0}\"` is an error), and double a regex backslash (`pattern=\"\\\\s+\"`).",
             "Go date layouts → strftime: `\"2006-01-02\"` → `\"%Y-%m-%d\"`, `\"Jan 2, 2006\"` → `\"%b %-d, %Y\"`. `.Format` stays English; `time.Format` and `dateFormat` localize names, so add `locale=lang`.",
         ],
     ),

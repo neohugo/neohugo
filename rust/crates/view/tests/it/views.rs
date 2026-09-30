@@ -89,6 +89,11 @@ fn generations_and_variants() {
         get(&html.summaries[one], "raw_content").as_str(),
         Some("# Hello\n\nOne *body*.\n")
     );
+    // The source is known before rendering: the content phase reads it too (one shared value).
+    assert_eq!(
+        get(&c.summaries[one], "raw_content").as_str(),
+        Some("# Hello\n\nOne *body*.\n")
+    );
     // A second freeze is ignored.
     s.views.freeze(&BTreeMap::new());
     assert_eq!(s.views.variants().len(), 2);

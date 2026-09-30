@@ -33,7 +33,6 @@ const CONTENT_FIELDS: &[&str] = &[
     "summary",
     "truncated",
     "plain",
-    "raw_content",
     "word_count",
     "fuzzy_word_count",
     "reading_time",

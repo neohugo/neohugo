@@ -1,4 +1,6 @@
 {#- Renders math (a passthrough element) to MathML. Go used KaTeX with output
-"htmlAndMathml" and wrapped the call in try/errorf; a to_math error fails the render here. -#}
-{{- inner | to_math(display=(type == "block")) }}
+"htmlAndMathml" inside try, and errorf on an error. `optional=true` is that try: a construct
+pulldown-latex cannot parse is a warning (id to_math) and an in-place <merror>, not an error,
+because it includes mhchem (\ce, \pu), which Go's KaTeX renders. -#}
+{{- inner | to_math(display=(type == "block"), optional=true) }}
 {{- store_set(key="hasMath", value=true) -}}

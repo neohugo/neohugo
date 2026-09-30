@@ -29,6 +29,7 @@ find_resources: "img/a.jpg,img/b.png,"
 fnv32a: "2258058496"
 format_number: "1,234,567.89"
 format_number/th: "1,234.5"
+from_pairs: "{\"3\":true,\"a\":{\"x\":2},\"b1\":4}"
 get_env: "[]"
 get_path: y
 get_path/missing: "true"

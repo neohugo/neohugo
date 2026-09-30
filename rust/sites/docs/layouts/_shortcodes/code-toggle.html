@@ -14,8 +14,8 @@
           draft='false
           {{< /code-toggle }}
 
-Go wrapped a config section in its keys with `dict $sections $section`. Map literal keys are
-constants in Tera, so that wrapper is written as a JSON document, which remarshal reads.
+Go wrapped a config section in its keys with `dict $sections $section`; here each key wraps
+it, innermost first, with `[[key, value]] | from_pairs` (map literal keys are constants).
 -#}
 {#- Get parameters. #}
 {%- set config = shortcode | arg(name="config", default="") %}
@@ -38,9 +38,10 @@ constants in Tera, so that wrapper is written as a JSON document, which remarsha
   {%- if skip_header %}
     {%- set code = config_section %}
   {%- else %}
-    {%- set code = ["{" ~ (s | jsonify) ~ ":" for s in sections] | join(sep="")
-      ~ (config_section | jsonify)
-      ~ ["}" for s in sections] | join(sep="") %}
+    {%- set_global code = config_section %}
+    {%- for s in sections | reverse %}
+      {%- set_global code = [[s, code]] | from_pairs %}
+    {%- endfor %}
   {%- endif %}
 {%- elif data_key %}
   {%- set file = file or data_key %}
