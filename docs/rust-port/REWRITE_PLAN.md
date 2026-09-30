@@ -395,7 +395,8 @@ pub struct Config {
     pub project_dir: PathBuf, pub environment: String,
     pub sites: IdVec<LangIdx, SiteConfig>,      // enabled languages sorted (weight, key); [0] = default
     pub output_formats: Arc<OutputFormats>, pub media_types: Arc<MediaTypes>,
-    pub mounts: Vec<MountConfig>, pub build: BuildConfig /* buildStats, cachebusters */,
+    pub mounts: Vec<MountConfig>, pub themes: Vec<Theme> /* precedence order: dir, ThemeMounts */,
+    pub build: BuildConfig /* buildStats, cachebusters */,
     pub caches: CachesConfig /* dirs with :cacheDir, :project resolved; maxAge */,
     pub security: SecurityPolicy, pub privacy: PrivacyConfig, pub imaging: ImagingConfig, pub minify: MinifyConfig,
     pub raw: Params,
@@ -997,7 +998,7 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 | # | Phase | Crate | Input → output | Parallelism |
 |---|---|---|---|---|
 | A1 | **Config** | config | See the pipeline below | sequential |
-| A2 | **Mounts** | vfs | Config → `Vfs`. Default mounts only for unconfigured components; `lang` on mounts; themes after the project. | sequential |
+| A2 | **Mounts** | vfs | Config → `Vfs`. Default mounts only for unconfigured components; `lang` on mounts; themes after the project, in `Config::themes` order (each theme's configured mounts, else its component directories). | sequential |
 | A3 | **Discover** | vfs | Walk content mounts → `FileRef` + `PathInfo`. Ignore rules apply; files in a disabled language are dropped. | `par_iter` over mounts |
 | A4 | **Parse** | pageparser, page, site, locale | Read, split and decode front matter → folded `Params` + body `Arc<str>`. `data::load` → case-preserved `Map`. `Translations::load` → messages parsed into pieces. | **`par_iter` over files** |
 | B1 | **Assemble tree** | site | Apply `capture_overrides` (kind, lang, path) **before** insertion. Insert into the per-language `SiteTree` in key order. Bundle ownership is the segment-aware longest-prefix owner. A duplicate (Base, lang) keeps the first and warns. Bundled content files get `PageRole::BundledResource`. Bundle resources are registered once per bundle directory with the owning language. | sequential per language, languages in parallel |
@@ -1021,8 +1022,8 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 **A1 config pipeline** (rust-style; there is no mapstructure port):
 1. **Bootstrap.** Read `environment`, `source` and `configDir` from `CliOverrides` and `HUGO_*`.
 2. **Load sources into `Value` trees:**
-   - the config file(s) `hugo.*` or `config.*`;
-   - `config/_default/**`, then `config/<env>/**`, with the file-name → key rules of semantics §1.2.
+   - the project's config file: the first that exists of `neohugo.{toml,yaml,yml,json}`, then Hugo's `hugo.*` and `config.*` (compatibility with Hugo sites); when several exist, a warning names the file read and the ones ignored. `--config a,b` lists the files explicitly;
+   - `config/_default/**`, then `config/<env>/**`, with the file-name → key rules of semantics §1.2 (`neohugo.*`, `hugo.*` and `config.*` there are root files).
 3. **Normalise every tree.**
    - `normalize_keys`: lower-case keys except inside arrays; `menu`→`menus`; drop `internal`.
    - `migrate_legacy_keys`:
@@ -1038,6 +1039,11 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 4. **Deep-merge once**, in this precedence: defaults < file < dir < CLI < env.
    - Env is applied once. Each value is parsed into the variant of the value it overrides.
    - `disableKinds` and `disableLanguages` are split on commas and whitespace.
+   - **Themes** below the project (Hugo's module collection and `_merge` semantics; `neohugo-config` README "Themes"):
+     - found in import order, depth first: `[[module.imports]]`, then `theme = [...]`, then each theme's own imports after it (`theme = ["a", "b"]` with `a` importing `c`: a, c, b; the first wins); in `themesDir`, `_vendor` (`modules.txt`) or at an absolute path; `module.replacements`, `ignoreConfig`, `ignoreImports`, `noMounts`, `disable`; Hugo Modules are not downloaded;
+     - each theme's config: the first of `neohugo.*`, `hugo.*`, `config.*` in its directory, then its `config/_default/**` and `config/<env>/**`;
+     - merged theme by theme: the project's values win; a theme adds only keys the project lacks, as the `_merge` strategy of the project's table allows (`params` deep, `menus`/`outputFormats`/`mediaTypes` shallow, other root keys none unless the root sets `_merge`; `languages.X.params` deep, `languages.X.menus` shallow; inherited below); root values that are not tables only with a `deep` root; a theme's `theme`, `module` and `themesDir` are never merged.
+     - Deliberate deviations: no Hugo Modules download (a theme that is not found is always an error); a theme's `theme`/`module`/`themesDir`/bootstrap keys never merge (Go merges them under a `deep` root after using the project's); `_merge` values ignore case; a project non-table value where a theme has a table is kept (Go panics).
 5. **Per-language merge.** For each enabled language, merge `languages.X` over the root tree.
 6. **Typed deserialise.** serde into structs with `#[serde(default)]` and `impl Default` holding Hugo's defaults. `[frontmatter]` chains become `Vec<DateSource>` and `outputs` become `Vec<FormatId>`. Errors carry toml/saphyr spans.
 
@@ -1758,7 +1764,7 @@ All of this is Python stdlib under `tools/neohugo/`; there is no pip dependency.
 
 ### 7.3 Acceptance gates
 
-**Docs patch variants** (T01 writes them as `patches.json`; each entry maps to a Tera patch file under `rust/sites/docs/patches/<variant>/`):
+**Docs patch variants** (T01 writes them as `tools/rust-port/i01/patches.json`, from `sites.py`'s `DOCS_*` lists; each layout entry maps to a Tera patch file under `rust/sites/docs/patches/<variant>/`):
 
 | `sites.py` entry | i01 | reduced |
 |---|---|---|
@@ -1775,9 +1781,9 @@ All of this is Python stdlib under `tools/neohugo/`; there is no pip dependency.
 | Gate | Site | Criterion |
 |---|---|---|
 | **A-T** | hugolib/testsite + `testsite.txtar` | L1 56/56 (Go's 55 files in `public`, the reference `neohugo-build/tests/it/testsite-go.txtar`, plus `hugo_stats.json`, which Go writes to the project directory and the reference does not hold) plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); `hugo_stats.json` sets equal |
-| **A-R** | seeksnack reconstruction | L1 713/713 plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
-| **A-D1** | docs, `--docs-patches i01` | L1 888/888 plus structure oracle; L2 all; heading-ID lists equal on every page; A7 ≥ 0.90 with a clean ratchet. Fences are plain `<pre><code>` (`codeFences = false`). |
-| **A-D2** | docs, `--docs-patches reduced` | Working: <ul><li>Chroma-class highlighting (incl. `hl` inline/noClasses and `highlight.md`);</li><li>goat diagrams (`diagrams_goat`);</li><li>emoji;</li><li>passthrough + `to_math`;</li><li>`remarshal` in `code-toggle`;</li><li>Tailwind through `defer`;</li><li>real Alpine/Turbo `js_build`.</li></ul> L1 equal to the Go build with the same patches; L2 all. Math and goat pages are `accepted-deviation` at L3. |
+| **A-R** | seeksnack reconstruction | L1 713/713 (712 files in `public` plus `hugo_stats.json` in the project directory; T61's count of 712 is `public` alone) plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
+| **A-D1** | docs, `--docs-patches i01` | L1 888/888 (887 in `public` plus `hugo_stats.json`) plus structure oracle; L2 all; heading-ID lists equal on every page; A7 ≥ 0.90 with a clean ratchet. Fences are plain `<pre><code>` (`codeFences = false`). |
+| **A-D2** | docs, `--docs-patches reduced` | Working: <ul><li>Chroma-class highlighting (incl. `hl` inline/noClasses and `highlight.md`);</li><li>goat diagrams (`diagrams_goat`);</li><li>emoji;</li><li>passthrough + `to_math`;</li><li>`remarshal` in `code-toggle`;</li><li>Tailwind through `defer`;</li><li>real Alpine/Turbo `js_build`.</li></ul> L1 equal to the Go build with the same patches (889: 888 in `public` plus `hugo_stats.json`; `shortcodes/highlight.md` is kept); L2 all. Math and goat pages are `accepted-deviation` at L3. |
 | **A-S** | real seeksnack (needs the private repo, D6) | L1 path set equals `tools/rust-port/golden/canonical.sha256` (6,943 paths, normalised); static files byte-equal; L2 on 100 sampled pages |
 | **A-DET** | all sites | byte-identical across `RAYON_NUM_THREADS=1/8` and across repeated runs |
 | **A-P** | performance (goals, not gates) | **Release profile**, measured in T70 after `cargo clean` of the dev artifacts, with no agents active: docs cold build ≤ 1.5× the Go time on this machine, warm (image cache) ≤ 1.0×, peak RSS ≤ 1 GB |
@@ -1801,7 +1807,7 @@ All of this is Python stdlib under `tools/neohugo/`; there is no pip dependency.
   - overlays `assets/` files (Tera versions of template-processed assets);
   - for docs, layers `patches/<variant>/`.
 - Content, i18n, data and all other assets are shared unchanged. The Go side always builds the original, Go-patched layouts.
-- A check asserts that `patches.json` and `rust/sites/docs/patches/**` correspond 1:1.
+- A check (`sites.py patches --check`) asserts that `patches.json` and `rust/sites/docs/patches/**` correspond 1:1.
 
 | Site | Files | Tera lines (est.) |
 |---|---|---|
@@ -1869,7 +1875,7 @@ Sizes are Rust src + tests unless noted.
 | ID | Title | Owns | Depends on | Acceptance | Size |
 |---|---|---|---|---|---|
 | **T00** | Bootstrap | `rust/{Cargo.toml,Cargo.lock,.cargo,clippy.toml,deny.toml,README.md,PROVENANCE.md,THIRD_PARTY/}`; stub crates with **real dependency edges**; `crates/workspace-hack`; `crates/testkit`; `rust/testdata/{oracle,corpus,site-assets}`; `tools/neohugo/{licence-check.sh,disk.sh,fixtures2json.py}`; `sites.py` fixture paths; `.gitignore`; TERA_PLAN move; deletion of `crates/` and obsolete oracles | – | <ul><li>`go-parity-final` exists</li><li>`sites.py` produces site inputs with the same file hashes as before</li><li>`cargo metadata --filter-platform …` resolves the acyclic graph</li><li>fixtures converted (record counts match)</li><li>`cargo test -p neohugo-testkit` green (plain-JSON reader on 3 families, txtar)</li><li>(verify) items pinned in `Cargo.lock`</li><li>feature unification checked with `cargo tree -e features`</li><li>licence check passes on SPDX</li><li>`rust/target` < 400 MB</li></ul> | 1.8k |
-| **T01** | Go oracle, patch variants, node tooling | `tools/neohugo/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> | 0.5k Go + 1.1k Py |
+| **T01** | Go oracle, patch variants, node tooling | `tools/neohugo/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count; every count includes the project directory's `hugo_stats.json`)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> **State:** `rust/testdata/golden/` (schemas in its README): manifests and structure dumps of testsite, seeksnack, docs-i01, docs-reduced (56/713/888/889 files) and the structure dump of mini; `tools/rust-port/i01/patches.json` (26 entries); the Go binaries and the node modules live in the main checkout's `tools/neohugo/{bin,node_modules}` (`NEOHUGO_TOOLS_BIN`, `NEOHUGO_NODE_MODULES`) | 0.5k Go + 1.1k Py |
 | **T02** | Template contract + testsite layouts | `crates/funcs/src/spec.rs` (then handed to T31), `rust/docs/template-api.md` (generated), `rust/sites/testsite/**`, `crates/testkit/src/contract.rs` | T00 | <ul><li>every §4.2 context and §4.6 name in `FUNCS` with kwargs, kind, phase, safety, site-bound flag and Hugo origin</li><li>`EMBEDDED_TEMPLATES` list</li><li>Tera facts verified and recorded: `@__nh` as an implicit name, `==` with an undefined final segment, `split`/`nth` kwargs, `?.`</li><li>5 testsite layouts converted; contract test clean</li><li>`template-api.md` snapshot equals `FUNCS`</li></ul> | 1.0k + doc |
 | **T03** | structdiff, ratchet, self-test | `tools/neohugo/{structdiff.py,compare.sh,selftest.py,changes/}`, `rust/testdata/baselines/` | T01 | <ul><li>Go vs Go gives 0 diffs on 3 sites, both passes</li><li>self-test classifies all 8 perturbations correctly</li><li>an unlisted diff fails</li><li>`KEEP=1` keeps outputs</li></ul> | 1.5k Py |
 | **T04** | comrak spike | `crates/markup` (spike; released before T22) | T00 | <ul><li>all 959 docs files and 251 seeksnack bodies run</li><li>per-feature verdict against normalised goldmark HTML: tight deflists (840), heading attrs, block attrs, fence attrs, math delimiters, alerts, emoji, linkify, typographer, raw HTML, `codeFences` plain</li><li>`sourcepos` accuracy for inline nodes</li><li>engine decision and list of custom passes in the crate README</li></ul> | 0.4k |

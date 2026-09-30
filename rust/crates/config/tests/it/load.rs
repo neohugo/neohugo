@@ -189,8 +189,20 @@ fn compare(site: &Site, c: &Config, want: &J, tally: &mut Tally, case: &str) {
                 h.remove("enabledefault");
             }
         }
-        for (k, mine) in dump(c, s) {
+        for (k, mut mine) in dump(c, s) {
             let theirs_k = theirs.get(&k).cloned().unwrap_or(J::Null);
+            if k == "mediatypes" {
+                // Go's dump shows a configured media type as written: without `delimiter`
+                // when the configuration has none (the decoded delimiter is `.`).
+                for (name, entry) in theirs_k.as_object().into_iter().flatten() {
+                    if entry.get("delimiter").is_none()
+                        && let Some(e) = mine.get_mut(name).and_then(J::as_object_mut)
+                        && e.get("delimiter") == Some(&J::from("."))
+                    {
+                        e.remove("delimiter");
+                    }
+                }
+            }
             let (m, t) = (strip(&mine), strip(&theirs_k));
             tally.check(m == t, || {
                 format!(

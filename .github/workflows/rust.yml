@@ -1,0 +1,375 @@
+# CI and releases of the Rust rewrite (rust/, the neohugo-rs binary). The Go implementation
+# keeps its own workflows (ci.yml, release.yml, ...). rust/README.md, "CI and releases", says
+# what runs when, how to cut a release and how to reproduce these jobs locally.
+name: Rust
+
+on:
+  push:
+    branches: [main, rust-port]
+    # Releases of neohugo-rs: rust-v<workspace version>, e.g. rust-v0.149.0. The Go release
+    # workflows trigger on v*.*.*, which never matches these tags. Path filters are not
+    # evaluated for tag pushes.
+    tags: ["rust-v*"]
+    # Keep in sync with pull_request.paths.
+    paths:
+      - ".github/workflows/rust.yml"
+      - "rust/**"
+      - "tools/esbuild/**"
+      - "tools/neohugo/**"
+      - "tools/rust-port/**"
+      # tools/esbuild/build.sh builds the esbuild that go.mod pins.
+      - "go.mod"
+      - "go.sum"
+      # Repository files the Rust tests read; the fixtures record many of them by hash.
+      - "docs/**"
+      - "hugolib/testsite/**"
+      - "resources/testdata/**"
+      - "resources/images/testdata/**"
+      # Packaged into the release archives.
+      - "LICENSE"
+  pull_request:
+    paths:
+      - ".github/workflows/rust.yml"
+      - "rust/**"
+      - "tools/esbuild/**"
+      - "tools/neohugo/**"
+      - "tools/rust-port/**"
+      - "go.mod"
+      - "go.sum"
+      - "docs/**"
+      - "hugolib/testsite/**"
+      - "resources/testdata/**"
+      - "resources/images/testdata/**"
+      - "LICENSE"
+  workflow_dispatch:
+
+# A newer run on the same ref cancels the older one, except for release tags.
+concurrency:
+  group: rust-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    shell: bash
+
+env:
+  # The toolchain CI builds with: the one the workspace is developed with. rust/Cargo.toml's
+  # rust-version (1.94) is the MSRV. A newer clippy brings new lints that -D warnings turns into
+  # failures, so this moves only on purpose (rust/README.md, "CI and releases").
+  RUST_TOOLCHAIN: "1.94.1"
+  CARGO_TERM_COLOR: always
+  CARGO_NET_RETRY: "10"
+  RUSTUP_MAX_RETRIES: "10"
+  RUST_BACKTRACE: "1"
+  # Caches are saved by pushes to these branches only; pull requests restore their base's.
+  SAVE_CACHE: ${{ github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/rust-port') }}
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt --no-self-update
+          rustup default "$RUST_TOOLCHAIN"
+
+      - name: Release tag matches the workspace version
+        if: startsWith(github.ref, 'refs/tags/rust-v')
+        run: |
+          version=$(python3 -c 'import tomllib; print(tomllib.load(open("rust/Cargo.toml", "rb"))["workspace"]["package"]["version"])')
+          if [ "rust-v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $version in rust/Cargo.toml (expected rust-v$version)"
+            exit 1
+          fi
+
+      - name: cargo fmt
+        working-directory: rust
+        run: cargo fmt --all --check
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          save-if: ${{ env.SAVE_CACHE }}
+
+      - name: cargo clippy
+        working-directory: rust
+        run: cargo clippy --workspace --all-targets --locked -- -D warnings
+
+      - name: Licence check
+        run: tools/neohugo/licence-check.sh
+
+  test:
+    name: Test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
+        run: |
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --no-self-update
+          rustup default "$RUST_TOOLCHAIN"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          save-if: ${{ env.SAVE_CACHE }}
+
+      # Go, the release tools/esbuild/build.sh names: it builds esbuild, and its image test data
+      # (NEOHUGO_GOROOT) adds ~2,200 cases to neohugo-images' process oracle.
+      - name: esbuild and Go versions
+        id: esbuild
+        run: |
+          esbuild=$(awk '$1 == "github.com/evanw/esbuild" { print $2 }' go.mod)
+          go=$(sed -n 's/.*GOTOOLCHAIN:-go\([0-9][0-9.]*\)}.*/\1/p' tools/esbuild/build.sh)
+          if ! [[ $esbuild =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ && $go =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
+            echo "::error::cannot read the esbuild version from go.mod ('$esbuild') or the Go release from tools/esbuild/build.sh ('$go')"
+            exit 1
+          fi
+          echo "esbuild=$esbuild" >>"$GITHUB_OUTPUT"
+          echo "go=$go" >>"$GITHUB_OUTPUT"
+
+      - name: Set up Go ${{ steps.esbuild.outputs.go }}
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ steps.esbuild.outputs.go }}
+          # Its cache key would be the Go workflows' own; esbuild is cached below instead.
+          cache: false
+
+      - name: Go image test data
+        env:
+          GOTOOLCHAIN: local
+        run: echo "NEOHUGO_GOROOT=$(go env GOROOT)" >>"$GITHUB_ENV"
+
+      # esbuild for the js_build tests (neohugo-esbuild, neohugo-resources), which skip
+      # without it: build.sh builds the version go.mod pins from the Go module proxy (checked
+      # against go.sum), as a local build does.
+      - name: Restore esbuild
+        id: esbuild-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: tools/esbuild/bin/esbuild
+          key: esbuild-${{ runner.os }}-${{ runner.arch }}-${{ steps.esbuild.outputs.esbuild }}-go${{ steps.esbuild.outputs.go }}-${{ hashFiles('tools/esbuild/build.sh') }}
+
+      - name: Build esbuild
+        if: steps.esbuild-cache.outputs.cache-hit != 'true'
+        env:
+          GOTOOLCHAIN: local
+          GOPROXY: https://proxy.golang.org
+        run: tools/esbuild/build.sh
+
+      - name: Save esbuild
+        if: steps.esbuild-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: tools/esbuild/bin/esbuild
+          key: ${{ steps.esbuild-cache.outputs.cache-primary-key }}
+
+      - name: Use esbuild
+        env:
+          WANT: ${{ steps.esbuild.outputs.esbuild }}
+        run: |
+          got=$(tools/esbuild/bin/esbuild --version)
+          if [ "v$got" != "$WANT" ]; then
+            echo "::error::tools/esbuild/bin/esbuild is $got, go.mod pins $WANT"
+            exit 1
+          fi
+          echo "NEOHUGO_ESBUILD_BINARY=$GITHUB_WORKSPACE/tools/esbuild/bin/esbuild" >>"$GITHUB_ENV"
+
+      # node on PATH runs the fake-tool tests (small node scripts standing in for PostCSS,
+      # Tailwind and Babel). tools/neohugo/node.sh, once it exists, installs the real tools
+      # (pinned npm ci) for the real-tool tests, which skip without NEOHUGO_*_BIN.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Node tools
+        run: |
+          if [ ! -f tools/neohugo/node.sh ]; then
+            echo "::notice::tools/neohugo/node.sh is not in this tree: the PostCSS, Tailwind and Babel real-tool tests skip"
+            exit 0
+          fi
+          tools/neohugo/node.sh
+          for dir in tools/neohugo/node_modules tools/neohugo/node/node_modules; do
+            [ -d "$dir/.bin" ] || continue
+            echo "NEOHUGO_NODE_MODULES=$GITHUB_WORKSPACE/$dir" >>"$GITHUB_ENV"
+            for tool in postcss:NEOHUGO_POSTCSS_BIN tailwindcss:NEOHUGO_TAILWINDCSS_BIN babel:NEOHUGO_BABEL_BIN; do
+              bin=$dir/.bin/${tool%%:*}
+              if [ -x "$bin" ]; then
+                echo "${tool#*:}=$GITHUB_WORKSPACE/$bin" >>"$GITHUB_ENV"
+              else
+                echo "::warning::tools/neohugo/node.sh installed no $bin"
+              fi
+            done
+            exit 0
+          done
+          echo "::warning::tools/neohugo/node.sh ran but left no node_modules/.bin under tools/neohugo"
+
+      # --show-output keeps each passing test's report (parity counts, SKIPPED notes) in the log.
+      - name: cargo test
+        working-directory: rust
+        run: cargo test --workspace --locked --no-fail-fast -- --show-output 2>&1 | tee "$RUNNER_TEMP/cargo-test.log"
+
+      - name: Skipped tests
+        if: always()
+        run: |
+          skipped=$(grep -h '^SKIPPED' "$RUNNER_TEMP/cargo-test.log" | sort -u || true)
+          {
+            echo "### Skipped tests"
+            if [ -n "$skipped" ]; then
+              echo '```'
+              echo "$skipped"
+              echo '```'
+            else
+              echo "None."
+            fi
+          } >>"$GITHUB_STEP_SUMMARY"
+          echo "${skipped:-no test printed SKIPPED}"
+
+      - name: Disk use
+        if: always()
+        run: |
+          df -h /
+          du -sh rust/target ~/.cargo/registry 2>/dev/null || true
+
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        # Native runners only (no cross toolchains): libwebp-sys (via webp) and ring (via
+        # rustls) compile C with the platform's own compiler. Linux builds on 22.04: a binary
+        # linked against 24.04's glibc needs glibc 2.39 (std's weak pidfd_spawnp reference
+        # still records GLIBC_2.39), one linked on 22.04 runs on glibc 2.35 and newer.
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04-arm
+          - target: x86_64-apple-darwin
+            os: macos-15-intel
+          - target: aarch64-apple-darwin
+            os: macos-15
+          - target: x86_64-pc-windows-msvc
+            os: windows-2025
+            exe: .exe
+    env:
+      TARGET: ${{ matrix.target }}
+      BINARY: rust/target/${{ matrix.target }}/release/neohugo-rs${{ matrix.exe }}
+      # The static MSVC runtime (cc builds the C code with /MT to match): neohugo-rs.exe then
+      # needs no Visual C++ redistributable. Applies to that target only.
+      CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: -C target-feature=+crt-static
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust ${{ env.RUST_TOOLCHAIN }}
+        run: |
+          if ! command -v rustup >/dev/null; then
+            curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |
+              sh -s -- -y --no-modify-path --profile minimal --default-toolchain none
+            echo "$HOME/.cargo/bin" >>"$GITHUB_PATH"
+            export PATH="$HOME/.cargo/bin:$PATH"
+          fi
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --no-self-update
+          rustup default "$RUST_TOOLCHAIN"
+          host=$(rustc -vV | sed -n 's/^host: //p')
+          if [ "$host" != "$TARGET" ]; then
+            echo "::error::this runner builds for $host, not $TARGET"
+            exit 1
+          fi
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: rust
+          key: ${{ matrix.target }}
+          save-if: ${{ env.SAVE_CACHE }}
+
+      - name: cargo build --release
+        working-directory: rust
+        run: cargo build --release --locked -p neohugo --target "$TARGET"
+
+      - name: Smoke test
+        run: |
+          "$BINARY" version
+          if [ "$RUNNER_OS" = Linux ]; then
+            echo "needs $(objdump -T "$BINARY" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)"
+          fi
+
+      # notices.py writes the licences of the crates linked for this target (MIT, BSD and
+      # Apache-2.0 ask for them in binary distributions); it fails if a linked crate ships no
+      # licence file and is not MIT. package.py runs `neohugo-rs version` again: the version it
+      # prints names the archive.
+      - name: Package
+        run: |
+          python=python3
+          if [ "$RUNNER_OS" = Windows ]; then python=python; fi
+          "$python" tools/neohugo/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
+          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) "$python" tools/neohugo/package.py "$BINARY" "$TARGET" dist "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: neohugo-rs-${{ matrix.target }}
+          path: dist/*
+          if-no-files-found: error
+          overwrite: true
+          compression-level: 0
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/rust-v')
+    needs: [lint, test, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: neohugo-rs-*
+          path: dist
+          merge-multiple: true
+
+      - name: Verify checksums
+        working-directory: dist
+        run: |
+          ls -l
+          count=$(ls *.sha256 | wc -l)
+          if [ "$count" -ne 5 ]; then
+            echo "::error::expected 5 archives, found $count"
+            exit 1
+          fi
+          sha256sum -c *.sha256
+          cat *.sha256 >SHA256SUMS
+
+      # Idempotent: a re-run replaces the assets of the release an earlier run created. Never
+      # marked latest, so /releases/latest keeps pointing at the Go release.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version=${TAG#rust-v}
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+            exit 0
+          fi
+          prerelease=
+          case $version in *-*) prerelease=--prerelease ;; esac
+          {
+            echo "neohugo-rs $version, the Rust rewrite of neohugo (\`rust/\`), built from $GITHUB_SHA."
+            echo
+            echo "Each archive holds the \`neohugo-rs\` binary, \`LICENSE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
+            echo "Check a download with \`sha256sum -c SHA256SUMS --ignore-missing\`."
+          } >"$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" dist/* --verify-tag --latest=false $prerelease \
+            --title "neohugo-rs $version" --notes-file "$RUNNER_TEMP/notes.md"

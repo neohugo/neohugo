@@ -4,24 +4,51 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_base::diag::Position;
+use neohugo_base::diag::{Diagnostic, Position};
 use neohugo_base::value::DecodeError;
 use neohugo_base::{Map, Value};
 
 use crate::error::ConfigError;
 use crate::tree;
 
-/// The file names searched in the project directory, first match wins.
-pub const CONFIG_FILE_NAMES: [&str; 8] = [
-    "hugo.toml",
-    "hugo.yaml",
-    "hugo.yml",
-    "hugo.json",
-    "config.toml",
-    "config.yaml",
-    "config.yml",
-    "config.json",
-];
+/// The base names of a configuration file, in lookup order: `neohugo`, then Hugo's `hugo` and
+/// `config`. In a configuration directory each of them places its content at the root.
+pub const CONFIG_BASE_NAMES: [&str; 3] = ["neohugo", "hugo", "config"];
+
+/// The configuration file extensions, in lookup order.
+pub const CONFIG_EXTENSIONS: [&str; 4] = ["toml", "yaml", "yml", "json"];
+
+/// The configuration file names searched in a project (or theme) directory, in lookup order;
+/// the first that exists is read.
+pub fn config_file_names() -> impl Iterator<Item = String> {
+    CONFIG_BASE_NAMES
+        .into_iter()
+        .flat_map(|base| CONFIG_EXTENSIONS.map(|ext| format!("{base}.{ext}")))
+}
+
+/// The configuration file of `dir` (the first of [`config_file_names`] that exists) and, when
+/// other names of that list exist as well, a warning naming the file read and the ones ignored.
+pub fn find_config_file(dir: &Path) -> (Option<PathBuf>, Option<Diagnostic>) {
+    let mut found = config_file_names().filter(|name| dir.join(name).is_file());
+    let Some(used) = found.next() else {
+        return (None, None);
+    };
+    let ignored: Vec<String> = found.collect();
+    let path = dir.join(&used);
+    let warning = (!ignored.is_empty()).then(|| {
+        Diagnostic::warning(format!(
+            "using {used}; ignoring {} (the first of neohugo.*, hugo.*, config.* is read)",
+            ignored.join(", ")
+        ))
+        .with_id("config-file-ignored")
+        .at(Position {
+            file: Arc::from(path.as_path()),
+            line: 0,
+            col: 0,
+        })
+    });
+    (Some(path), warning)
+}
 
 /// A configuration file format.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -299,8 +326,13 @@ impl Sources {
 }
 
 /// The configuration file(s) of the project: the explicit list (the first file has the
-/// highest precedence), or the first of [`CONFIG_FILE_NAMES`] that exists.
-pub fn project_files(project: &Path, explicit: &[PathBuf]) -> Result<Vec<Source>, ConfigError> {
+/// highest precedence), or the first of [`config_file_names`] that exists (a warning goes to
+/// `diagnostics` when there are several).
+pub fn project_files(
+    project: &Path,
+    explicit: &[PathBuf],
+    diagnostics: &mut Vec<Diagnostic>,
+) -> Result<Vec<Source>, ConfigError> {
     if !explicit.is_empty() {
         let mut out = Vec::with_capacity(explicit.len());
         for f in explicit.iter().rev() {
@@ -326,20 +358,21 @@ pub fn project_files(project: &Path, explicit: &[PathBuf]) -> Result<Vec<Source>
         }
         return Ok(out);
     }
-    for name in CONFIG_FILE_NAMES {
-        let path = project.join(name);
-        if path.is_file() {
+    let (found, warning) = find_config_file(project);
+    diagnostics.extend(warning);
+    match found {
+        Some(path) => {
             let format = Format::from_path(&path).expect("known extension");
-            return Ok(vec![Source::read(&path, format, Vec::new())?]);
+            Ok(vec![Source::read(&path, format, Vec::new())?])
         }
+        None => Ok(Vec::new()),
     }
-    Ok(Vec::new())
 }
 
 /// The files of one configuration directory (`config/_default`, `config/production`), in
-/// path order, each placed by its file name: `hugo.*`/`config.*` at the root, `params.en.*`
-/// under `languages.en.params`, `menus.en.*` under `languages.en.menus`, any other `name.*`
-/// under `name`.
+/// path order, each placed by its file name: `neohugo.*`/`hugo.*`/`config.*` at the root,
+/// `params.en.*` under `languages.en.params`, `menus.en.*` under `languages.en.menus`, any
+/// other `name.*` under `name`.
 pub fn dir_files(dir: &Path) -> Result<Vec<Source>, ConfigError> {
     let mut paths = Vec::new();
     collect_files(dir, &mut paths)?;
@@ -366,7 +399,7 @@ fn file_prefix(stem: &str) -> Vec<String> {
     };
     let name = if name == "menu" { "menus" } else { name };
     match (name, lang) {
-        ("hugo" | "config", _) => Vec::new(),
+        (root, _) if CONFIG_BASE_NAMES.contains(&root) => Vec::new(),
         (name, None) => vec![name.to_owned()],
         (name, Some(lang)) => vec!["languages".to_owned(), lang.to_owned(), name.to_owned()],
     }

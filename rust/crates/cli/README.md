@@ -20,7 +20,7 @@ Kebab-case, with Hugo's camelCase spelling as an alias.
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
 | `-s`, `--source DIR` | | all | project directory (default: the working directory) |
-| `--config A,B` | | all | configuration files, relative to the source, first wins |
+| `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `neohugo.{toml,yaml,yml,json}`, `hugo.*`, `config.*` (a warning names the others when several exist) |
 | `--config-dir DIR` | `--configDir` | all | `CliOverrides::config_dir` |
 | `-e`, `--environment ENV` | | all | wins over `HUGO_ENVIRONMENT` / `HUGO_ENV` (default `production`; `development` for `server`) |
 | `-b`, `--base-url URL` | `--baseURL`, `--baseUrl` | all | `baseURL` |

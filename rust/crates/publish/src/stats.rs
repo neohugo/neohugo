@@ -60,9 +60,13 @@ impl HtmlElements {
                             }
                             _ => None,
                         };
-                        if let Some(state) = text_state {
+                        // The text ends at the end tag of the tokenizer's own last start tag
+                        // (its name, lower-cased ASCII only), so the state switches only when
+                        // that is `name`: `<SCRİPT>` is recorded as `script`, but its content is
+                        // not skipped, as with Hugo's `(?i)` match.
+                        if let Some(state) = text_state.filter(|_| tag.name[..] == *name.as_bytes())
+                        {
                             tokenizer.set_state(state);
-                            tokenizer.set_last_start_tag(Some(&name));
                         }
                     }
                     self.tags.insert(name);

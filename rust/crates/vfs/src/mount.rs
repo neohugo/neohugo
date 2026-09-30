@@ -1,11 +1,11 @@
 //! The effective mounts of a project: `[[module.mounts]]`, the default mounts of unconfigured
-//! components, the JS config files, and the themes.
+//! components, the JS config files, and the themes' mounts.
 
 use std::path::{Path, PathBuf};
 
 use neohugo_base::paths;
 use neohugo_base::{Idx, LangIdx};
-use neohugo_config::{Config, MountConfig};
+use neohugo_config::{Config, MountConfig, Theme, ThemeMounts};
 
 use crate::filter::FileFilter;
 use crate::{Component, VfsError};
@@ -15,7 +15,8 @@ use crate::{Component, VfsError};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Module {
     Project,
-    /// The n-th theme of `theme`.
+    /// The n-th theme of `Config::themes` (the `theme` list, `[[module.imports]]` and their
+    /// themes, in precedence order).
     Theme(u16),
 }
 
@@ -173,15 +174,7 @@ pub(crate) fn mounts(cfg: &Config) -> Result<Vec<Mount>, VfsError> {
     }
 
     if !drafts.iter().any(Draft::is_js_config) {
-        let mut names: Vec<String> = match std::fs::read_dir(project) {
-            Ok(rd) => rd
-                .filter_map(|e| e.ok()?.file_name().into_string().ok())
-                .filter(|n| is_js_config_file(n))
-                .collect(),
-            Err(_) => Vec::new(),
-        };
-        names.sort();
-        for n in names {
+        for n in js_config_files(project) {
             drafts.push(Draft::new(
                 project,
                 &n,
@@ -236,26 +229,97 @@ pub(crate) fn mounts(cfg: &Config) -> Result<Vec<Mount>, VfsError> {
         }
     }
 
-    let mut seen = std::collections::BTreeSet::new();
-    drafts.retain(|d| seen.insert((d.source.clone(), d.target.clone(), d.lang.clone())));
+    dedupe(&mut drafts);
 
-    for (i, name) in cfg.themes.iter().enumerate() {
-        let dir = project.join(&dirs.themes).join(name);
-        if !dir.is_dir() {
-            return Err(VfsError::ThemeNotFound {
-                name: name.clone(),
-                dir,
-            });
-        }
+    for (i, theme) in cfg.themes.iter().enumerate() {
         let module = Module::Theme(u16::try_from(i).unwrap_or(u16::MAX));
-        for c in Component::ALL {
-            let mut d = Draft::new(&dir, c.as_str(), c.as_str(), None);
+        let mut theme_drafts = theme_mounts(theme)?;
+        for d in &mut theme_drafts {
             d.module = module;
-            drafts.push(d);
         }
+        dedupe(&mut theme_drafts);
+        drafts.extend(theme_drafts);
     }
 
     drafts.into_iter().map(|d| resolve(cfg, d)).collect()
+}
+
+/// Drops repeated mounts (same source, target and language), keeping the first.
+fn dedupe(drafts: &mut Vec<Draft>) {
+    let mut seen = std::collections::BTreeSet::new();
+    drafts.retain(|d| seen.insert((d.source.clone(), d.target.clone(), d.lang.clone())));
+}
+
+/// The mounts of a theme (module still unset): its configured mounts whose source exists
+/// (below the theme's directory), or each component directory it has, then its JS config
+/// files unless a mount targets `assets/_jsconfig`; nothing with `noMounts`.
+fn theme_mounts(theme: &Theme) -> Result<Vec<Draft>, VfsError> {
+    let dir = &theme.dir;
+    if !dir.is_dir() {
+        return Err(VfsError::ThemeNotFound {
+            name: theme.path.clone(),
+            dir: dir.clone(),
+        });
+    }
+    let mut drafts: Vec<Draft> = match &theme.mounts {
+        ThemeMounts::None => return Ok(Vec::new()),
+        ThemeMounts::Configured(mounts) => {
+            let mut out = Vec::new();
+            for (index, m) in mounts.iter().enumerate() {
+                let mut m = m.clone();
+                // An absolute source is relative to the theme's directory too (Hugo joins it).
+                m.source = m.source.trim_start_matches(['/', '\\']).to_owned();
+                let d = Draft::configured(dir, &m);
+                if d.component().is_none() {
+                    return Err(VfsError::InvalidTarget {
+                        index,
+                        target: m.target.clone(),
+                    });
+                }
+                if d.abs.exists() || d.source.ends_with("hugo_stats.json") {
+                    out.push(d);
+                }
+            }
+            out
+        }
+        ThemeMounts::Components => THEME_COMPONENTS
+            .into_iter()
+            .filter(|c| dir.join(c.as_str()).is_dir())
+            .map(|c| Draft::new(dir, c.as_str(), c.as_str(), None))
+            .collect(),
+    };
+    if !drafts.iter().any(Draft::is_js_config) {
+        drafts.extend(
+            js_config_files(dir)
+                .into_iter()
+                .map(|n| Draft::new(dir, &n, &format!("assets/_jsconfig/{n}"), None)),
+        );
+    }
+    Ok(drafts)
+}
+
+/// The order of a theme's default mounts (Hugo's, by name).
+const THEME_COMPONENTS: [Component; 7] = [
+    Component::Archetypes,
+    Component::Assets,
+    Component::Content,
+    Component::Data,
+    Component::I18n,
+    Component::Layouts,
+    Component::Static,
+];
+
+/// The JS config files in `dir` (see [`is_js_config_file`]), sorted.
+fn js_config_files(dir: &Path) -> Vec<String> {
+    let mut names: Vec<String> = match std::fs::read_dir(dir) {
+        Ok(rd) => rd
+            .filter_map(|e| e.ok()?.file_name().into_string().ok())
+            .filter(|n| is_js_config_file(n))
+            .collect(),
+        Err(_) => Vec::new(),
+    };
+    names.sort();
+    names
 }
 
 fn resolve(cfg: &Config, d: Draft) -> Result<Mount, VfsError> {
