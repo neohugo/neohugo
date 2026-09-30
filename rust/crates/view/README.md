@@ -52,7 +52,7 @@ display_block }` and `ContentError` are the skeleton's shapes; T34 may add field
 
 | Item | Now | Replaced by |
 |---|---|---|
-| `interim::FlatSite` | the flat interim model over T23a's `Model`: auto nodes (home, root sections, taxonomies, terms, 404, sitemap, robots.txt, sitemap index), target paths via `neohugo_page::{target_paths, links}`, default-ordered lists, parents, node dates, prev/next in section, translations by (kind, key), front matter aliases | T23b (model), T24 (aliases, pagination), T33 (views) |
+| `interim::FlatSite` | the flat interim model copied out of T23b's `Model` (same page ids: made pages, titles, `Page.urls`, parents, lists, `.Sections`, translations, terms, node dates, `.Site.Taxonomies` via `listed_terms`); pager targets via `Model::pager_paths`; derives only prev/next in section and front matter alias files | T24 (aliases, pagination), T33 (views) |
 | `ViewCache`, `ViewGeneration` | `new(flat)` builds the Meta generation, `freeze(&contents)` the Full ones; `generation(phase, variant)`, `summaries`, `links`, `sites`, `full(id)` (lazy, `OnceLock`) | T33 keeps this API over the real model |
 | `views::*` | a subset of §2.5's views: what the testsite and embedded rss/sitemap/alias templates read | T33 (every documented key) |
 | `PaginationRecorder`, `Recorded` | first call per (page, format) wins; `total_pages`, `page(n)`, `recorded()` | T35 (conflict error with both positions), T24 (`Pagination`) |

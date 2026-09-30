@@ -214,16 +214,13 @@ fn output_formats(cfg: &Config, p: &FlatPage) -> tera::Value {
 /// The link value of page `p`.
 #[must_use]
 pub fn page_link(flat: &FlatSite, p: &FlatPage) -> PageLink {
-    let (permalink, rel_permalink) = p.primary().map_or_else(Default::default, |o| {
-        (
-            o.links.permalink.to_string(),
-            o.links.rel_permalink.escaped(),
-        )
+    let (permalink, rel_permalink) = p.links.as_ref().map_or_else(Default::default, |l| {
+        (l.permalink.to_string(), l.rel_permalink.escaped())
     });
     PageLink {
         id: p.id.raw(),
         kind: p.kind,
-        path: p.key.to_path(),
+        path: p.path.clone(),
         lang: flat.config.sites[p.lang].language.key.clone(),
         title: p.title.clone(),
         link_title: p.link_title.clone(),
@@ -241,20 +238,15 @@ pub fn page_summary(
 ) -> PageSummaryView {
     let cfg = &flat.config;
     let site = &cfg.sites[p.lang];
-    let (permalink, rel_permalink) = p.primary().map_or_else(Default::default, |o| {
-        (
-            o.links.permalink.to_string(),
-            o.links.rel_permalink.escaped(),
-        )
+    let (permalink, rel_permalink) = p.links.as_ref().map_or_else(Default::default, |l| {
+        (l.permalink.to_string(), l.rel_permalink.escaped())
     });
     let date = |d: Option<&Zoned>| d.map(DateView::new);
     let mut terms = tera::Map::new();
-    for t in &flat.langs[p.lang].taxonomies {
-        let links: Vec<tera::Value> = t
-            .terms
+    for (t, pages) in flat.langs[p.lang].taxonomies.iter().zip(&p.terms) {
+        let links: Vec<tera::Value> = pages
             .iter()
-            .filter(|term| term.pages.contains(&p.id))
-            .map(|term| tera::Value::from_serializable(&page_link(flat, &flat.pages[term.page])))
+            .map(|&term| tera::Value::from_serializable(&page_link(flat, &flat.pages[term])))
             .collect();
         terms.insert(t.plural.clone().into(), tera::Value::from(links));
     }
@@ -262,7 +254,7 @@ pub fn page_summary(
         id: p.id.raw(),
         kind: p.kind,
         lang: site.language.key.clone(),
-        path: p.key.to_path(),
+        path: p.path.clone(),
         section: p.section.clone(),
         r#type: p.r#type.clone(),
         layout: p.layout.clone(),

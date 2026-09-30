@@ -115,8 +115,8 @@ impl ViewGeneration {
             .iter()
             .map(|&p| &flat.pages[p])
             .find(|p| p.kind == PageKind::Sitemap)
-            .and_then(|p| p.primary())
-            .map(|o| o.links.permalink.to_string());
+            .and_then(|p| p.links.as_ref())
+            .map(|l| l.permalink.to_string());
         let mut m = tera::Map::new();
         let mut put = |k: &'static str, v: tera::Value| {
             m.insert(k.into(), v);
@@ -187,20 +187,10 @@ impl ViewGeneration {
         let mut put = |k: &'static str, v: tera::Value| {
             m.insert(k.into(), v);
         };
-        let pages: &[PageId] = match p.kind {
-            PageKind::Sitemap => &self.flat.langs[p.lang].pages,
-            _ => &p.pages,
-        };
         put("parent", self.opt(p.parent));
-        put("pages", self.list(pages));
+        put("pages", self.list(&p.pages));
         put("regular_pages", self.list(&p.regular_pages));
-        let sections: Vec<PageId> = p
-            .pages
-            .iter()
-            .copied()
-            .filter(|&q| self.flat.pages[q].kind == PageKind::Section)
-            .collect();
-        put("sections", self.list(&sections));
+        put("sections", self.list(&p.sections));
         put("prev_in_section", self.opt(p.prev_in_section));
         put("next_in_section", self.opt(p.next_in_section));
         put("translations", self.list(&p.translations));
