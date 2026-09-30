@@ -22,18 +22,16 @@ workspace = true
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
 neohugo-config.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
 comrak.workspace = true
 bitflags.workspace = true
 serde.workspace = true
 regex.workspace = true
-aho-corasick.workspace = true
-html5gum.workspace = true
-unicode-segmentation.workspace = true
-unicode-normalization.workspace = true
+unicode-properties.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-# T04 spike harness (tests/it/comrak_spike): oracle fixtures and the gzipped goldmark corpus.
+# Acceptance and T04 spike harness (tests/it): oracle fixtures, the gzipped goldmark corpus
+# and the HTML normaliser.
 neohugo-testkit.workspace = true
 flate2.workspace = true
+html5gum.workspace = true

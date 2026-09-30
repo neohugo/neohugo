@@ -1,10 +1,118 @@
 # neohugo-markup
 
 Markdown for neohugo: comrak behind an engine-neutral API (REWRITE_PLAN.md §2.4), plus
-Hugo's passes. The API is T22's; this file records the **T04 comrak spike** that settles the
-engine before the API is frozen.
+Hugo's passes. The first part of this file describes the crate (T22); the second records the
+**T04 comrak spike** that chose the engine.
 
-## Decision
+## API (T22)
+
+```rust
+pub fn render(src: &ExpandedMarkdown, o: &MarkdownOptions, h: &dyn Hooks, hl: Option<&dyn Highlighter>)
+    -> Result<RenderedMarkdown, MarkupError>;               // { html, toc: Toc, fragments: Fragments }
+pub fn fragments(src: &ExpandedMarkdown, o: &MarkdownOptions) -> Result<Fragments, MarkupError>;  // parse only, no hooks
+pub struct ExpandedMarkdown<'a> { text, page: PageId, contexts: &SourceContexts, file: &Arc<Path> }
+pub struct SourceContexts(pub Vec<(Range<usize>, PageId)>);       // innermost span → HookEnv::inner_page
+pub trait Hooks: Sync { link, image, heading, code_block, blockquote, table, passthrough }  // all default to HookOut::Default
+pub struct HookEnv { page, inner_page, ordinal /* per kind, call order */, position }
+pub trait Highlighter: Send + Sync { fn highlight(&self, code, lang, &HighlightOptions) -> Result<String, HookError>; }
+pub struct Toc { headings } / Fragments { headings, identifiers } / Heading { id, level, html, plain, children }
+pub mod text { strip_html, word_count, auto_summary -> Summary { html, truncated }, split_at_marker }
+MarkdownOptions::from_config(&MarkupConfig, enable_emoji)
+```
+
+Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `TableCtx`,
+`PassthroughCtx`) are `Serialize` with the field names of `neohugo_funcs::spec::HOOK_FIELDS`
+(`ordinal` and `position` come from `HookEnv`). Enums replace Hugo's strings:
+`BlockquoteKind`, `AlertSign`, `Alignment`, `PassthroughKind`, and in the options `RawHtml`,
+`CodeFences`, `LineBreaks`, `TagStyle`, `StandaloneImages`, `LinkifyProtocol`.
+
+### Pipeline
+
+1. **Prepare** (only when needed): a first comrak parse finds code and raw HTML; outside them
+   block-attribute lines are blanked (same length, positions unchanged) and passthrough spans
+   replaced by `NHPT<n>X` tokens; an edit list maps parsed offsets back to the expanded source.
+2. **Parse** with comrak (`table`, `strikethrough`, `tasklist`, `description_lists`,
+   `footnotes`, `shortcodes` per options; `escaped_char_spans`; everything Hugo owns is off).
+3. **Passes** (`src/passes`): the link-reference-definition sourcepos fix; HTML comments dropped
+   under `RawHtml::Omit`; passthrough nodes; `<…>` autolinks marked; block attributes
+   (applied to the block the line follows, goldmark's rules: no blank line before, never a
+   fenced code block, container depth from the `>` markers); heading attributes (Hugo's
+   grammar, `src/attributes.rs`); goldmark definition lists (one term per line, per-`<dd>`
+   tightness, only the first paragraph unwrapped, lists split at link reference
+   definitions); block images; padded table cells; **linkify and typographer in one
+   left-to-right scan** (goldmark interleaves them: a converted quote lets a link start, a
+   link swallows the quote after it); heading and definition-term ids (Hugo's `TextPlain`
+   with its first-child quirk, raw source text for entities/escapes, `base::anchor`
+   `anchorize` + `Deduper`).
+4. **Render** (`src/render.rs`): an iterative walk (no recursion on nesting depth) writing
+   goldmark's HTML and Hugo's renderers (blockquote default, embedded table template,
+   footnotes, alerts detected on the rendered content with Hugo's regex, code blocks, raw
+   HTML omission). Hooks run post-order: a node that needs its content records the output
+   length on entry and takes what follows on exit. Hook destinations and titles are the
+   source text (as Hugo passes them).
+
+### Acceptance (T22 row of §8.2), `cargo test -p neohugo-markup --test it acceptance -- --nocapture`
+
+| criterion | result |
+|---|---|
+| heading ids, docs corpus (convert oracle, all 6 configurations) | 1654/1654 per configuration; pages 895/895…897/897 |
+| definition-term ids (`autoDefinitionTermID`, cfgs ascii, noattr) | 842/842 |
+| heading ids, seeksnack | spec §7 examples (Thai, first-child quirk, entities, dedupe, setext) 16/16; the adversarial seeksnack headings of both oracles 100%; the seeksnack corpus has no Hugo-id oracle (its `hugo-autoid` instance uses goldmark's own ids from raw lines) |
+| hook invocations (hooks oracle, 1357 conversions) | 1350/1357 identical sequences (≥ 99.4%) |
+| hook fields, after typographer normalisation | 57850/57929 (99.86%); `PageInner` 11231/11271 |
+| TOC (tree, identifiers, 5 × `ToHTML`), all configurations | 995/995 each; `fragments()` equals `render().fragments` on every document |
+| seeksnack bodies, normalised HTML | 251/251 for goldmark `unsafe`, `all`, `hugo`, `hugo-autoid`; 240/251 for plain `default` (see deviations) |
+| docs pages, normalised HTML | default 870/875, seeksnack 871/877, ascii 871/877, blackfriday 872/875, noattr 870/875, cjk 540/877 |
+| `CodeFences::Plain` | testsite fence byte-equal; first 20 docs pages with fences 20/20; all 2036 docs `<pre>` blocks byte-equal |
+| passes | deflist ids, alert title/sign, block attributes, passthrough, emoji, linkify: `acceptance::passes` |
+| context spans | `acceptance::context`: includes, nesting (innermost wins) and inlines after link reference definitions |
+
+### Accepted deviations
+
+- **Hugo's textual context markers** (`{{__hugo_ctx pid=N}}`) are not interpreted; spans come
+  from `SourceContexts`. Hugo keeps the last context for what follows an include (the
+  oracle's `Outro` link and blocks whose content contains the closing marker); spans do not
+  leak. These account for the 40 `PageInner` and most `IsBlock`/`TBody` field differences.
+- **A fence whose language has no hook and no highlighter** renders as plain
+  `<pre><code class="language-x">`; Hugo fails the page ("no code renderer found").
+- **HTML comments** are dropped under `RawHtml::Omit` (Hugo's behaviour); the plain goldmark
+  `default` corpus instance writes `<!-- raw HTML omitted -->` instead (11 seeksnack bodies).
+- **Structural goldmark quirks not reproduced** (3 docs pages): a table delimiter row with
+  more cells than the header (`functions/images/QR.md`), a table as a lazy continuation line
+  in a list item (`host-on-21yunbox.md`), list tightness with a blank line before an
+  indented table (`host-on-codeberg-pages.md`).
+- **Typographer**: goldmark's rules are ported; 2 docs pages still differ on a closing `'`
+  at the end of a line inside a paragraph (goldmark's choice there depends on state this
+  port does not model).
+- **Pathological nesting** (the oracle's `deep` documents: 3000 nested lists or brackets,
+  1000 nested images): renders on a 2 MiB stack; 3/7 equal Go, the rest differ where comrak
+  caps list and bracket nesting.
+- **CJK** east-Asian line breaks and escaped spaces (cfg `cjk`) are not implemented (none of
+  the three sites enables them).
+- **Invalid UTF-8** reaches this crate already replaced by U+FFFD (the input is `&str`).
+- **Numbers in attributes** are `Value::Int` when written without fraction or exponent
+  (goldmark: always `float64`).
+- **Code-block options** are always split from attributes (Chroma's option names, keys as
+  written); Hugo does the same for its default highlighter.
+- **Tables**: the embedded template writes attribute values as text (the oracle's replica
+  prints `s:`-typed dumps).
+- **`TocOptions::end`** is `Option<u8>` (`None` = Hugo's `-1`); `fragments()` returns a
+  `Result` (attribute errors); `ExpandedMarkdown` carries the content file for positions;
+  `MarkdownOptions` has the extra enums above and `heading_ids: Option<Style>` (`None` =
+  `autoHeadingID = false`). These are additions to the plan's sketch, not changes of meaning.
+- A heading without an id has TOC level 0 (Hugo sets the level only with an id).
+
+### Plan issues
+
+- `neohugo-config`'s `TocConfig::end_level` is `u8`, so Hugo's `endLevel = -1` (cfg
+  `blackfriday` of the oracle) cannot be decoded; `TocOptions::from` maps a present value to
+  `Some`. A config fix task should make it signed (or optional).
+- No Hugo-rendered seeksnack HTML with Hugo heading ids exists under `rust/testdata` (the
+  goldmark corpus uses goldmark's own id generator), so "heading IDs 100% on seeksnack" is
+  evidenced by the spec examples and the adversarial documents only; the golden site (T01)
+  will give the full check.
+
+## T04 spike: decision
 
 **comrak 0.55.0 is the engine** (workspace features `attributes`, `shortcodes`; no `bon`,
 `syntect` or CLI features). pulldown-cmark stays the documented fallback behind the same API,
