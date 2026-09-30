@@ -19,14 +19,17 @@
 //!   and the heading-ID list; `hugo_stats.json` tag, class and id sets equal the collector's
 //!   (`neohugo-publish`, checked against Go's collector by `oracle/publisher/collector`) over
 //!   Go's HTML files.
-//! - **Structure oracle** (per (page, format) target, permalink and template): TODO(T01) — the
-//!   Go `structure` oracle does not exist yet (`tools/go-oracle/structure/`,
-//!   `rust/testdata/golden/testsite/structure.json`); `neohugo-layouts`'
-//!   `structure_oracle_template_and_baseof` skips until it does. Add the (page, format)
-//!   comparison here when T01 has written the dump.
+//! - **Structure oracle**: the build's own dump (`NEOHUGO_STRUCTURE_OUT`, `neohugo-build`'s
+//!   `structure.rs`) against Go's (`rust/testdata/golden/testsite/structure.json`, T01), with
+//!   the facts `tools/neohugo/structdiff.py` compares: per (lang, page, kind, format) the
+//!   target, `.RelPermalink`, `.Permalink`, template and base template (an embedded one marked
+//!   as such), `written` and `pagers`; per alias file and `page/1/` alias the page, format,
+//!   kind and permalink; per bundle resource the link, file and `publish`; per page its output
+//!   formats.
 //!
-//! Accepted deviations are listed per level below (a ratchet in miniature until T03's
-//! `rust/testdata/baselines/` exists); every list is empty.
+//! Accepted deviations are listed per level below; every list is empty. A structure fact may
+//! differ only when the ratchet's baseline (`rust/testdata/baselines/testsite.json`, T03)
+//! accepts it (`accepted-deviation`); it accepts none.
 //!
 //! The full output tree (every file's content, `hugo_stats.json` included) is an insta
 //! snapshot: `snapshots/it__parity__testsite_output.snap`.
@@ -62,21 +65,31 @@ struct Built {
     _tmp: tempfile::TempDir,
     public: BTreeMap<String, Vec<u8>>,
     stats: String,
+    /// The structure dump of the build.
+    structure: serde_json::Value,
 }
 
 fn build_testsite() -> Built {
     let tmp = tempfile::tempdir().expect("tempdir");
     let site = tmp.path().join("testsite");
     testsite(&site);
-    let o = neohugo(&site, &["--clock", "2026-01-01T00:00:00Z"], &[]);
+    let dump = tmp.path().join("structure.json");
+    let dump_env = dump.to_string_lossy().into_owned();
+    let o = neohugo(
+        &site,
+        &["--clock", "2026-01-01T00:00:00Z"],
+        &[(neohugo_build::STRUCTURE_ENV, dump_env.as_str())],
+    );
     assert!(o.status.success(), "{}", stderr(&o));
     let public = tree(&site.join("public"));
     let stats =
         std::fs::read_to_string(site.join("hugo_stats.json")).expect("hugo_stats.json written");
+    let structure = neohugo_testkit::fixture::read_json(&dump).expect("the structure dump");
     Built {
         _tmp: tmp,
         public,
         stats,
+        structure,
     }
 }
 
@@ -459,6 +472,99 @@ fn heading_ids(doc: &str) -> Vec<String> {
         .collect()
 }
 
+// ── Structure oracle ─────────────────────────────────────────────────────────────────────────
+
+/// A template's identity: its v0.146 name, marked when it is an embedded one.
+fn template_id(r: &serde_json::Value, name: &str, file: &str) -> String {
+    let n = r[name].as_str().unwrap_or_default();
+    let f = r[file].as_str().unwrap_or(n);
+    if !n.is_empty() && f.starts_with("_embedded/") {
+        format!("{n} (embedded)")
+    } else {
+        n.to_owned()
+    }
+}
+
+/// Every compared fact of a structure dump by key (the keys and fields of
+/// `tools/neohugo/structdiff.py`'s `structure_items`).
+fn structure_facts(doc: &serde_json::Value) -> BTreeMap<String, serde_json::Value> {
+    let s = |v: &serde_json::Value, k: &str| v[k].as_str().unwrap_or_default().to_owned();
+    let rows = |k: &str| doc[k].as_array().cloned().unwrap_or_default();
+    let mut out = BTreeMap::new();
+    for r in rows("records") {
+        let key = format!(
+            "record {} {} {} {}",
+            s(&r, "lang"),
+            s(&r, "path"),
+            s(&r, "kind"),
+            s(&r, "format")
+        );
+        let v = serde_json::json!({
+            "target": s(&r, "target"),
+            "relPermalink": s(&r, "relPermalink"),
+            "permalink": s(&r, "permalink"),
+            "template": template_id(&r, "template", "templateFile"),
+            "baseof": template_id(&r, "baseof", "baseofFile"),
+            "written": r["written"].as_bool().unwrap_or(true),
+            "pagers": r["pagers"].as_u64().unwrap_or(0),
+        });
+        out.insert(key, v);
+    }
+    for (name, section) in [("alias", "aliases"), ("pager", "pagerAliases")] {
+        for a in rows(section) {
+            let key = format!(
+                "{name} {} {} {} {}",
+                s(&a, "from"),
+                s(&a, "lang"),
+                s(&a, "path"),
+                s(&a, "format")
+            );
+            let kind = if name == "alias" {
+                s(&a, "kind")
+            } else {
+                String::new()
+            };
+            out.insert(key, serde_json::json!([s(&a, "permalink"), kind]));
+        }
+    }
+    for r in rows("resources") {
+        let key = format!(
+            "resource {} {} {}",
+            s(&r, "lang"),
+            s(&r, "path"),
+            s(&r, "name")
+        );
+        let targets = r
+            .get("targets")
+            .cloned()
+            .unwrap_or_else(|| serde_json::json!([s(&r, "target")]));
+        let publish = r["publish"].as_bool().unwrap_or(true);
+        out.insert(
+            key,
+            serde_json::json!([s(&r, "relPermalink"), targets, publish]),
+        );
+    }
+    for p in rows("pages") {
+        let key = format!("page {} {} {}", s(&p, "lang"), s(&p, "path"), s(&p, "kind"));
+        out.insert(key, p["outputs"].clone());
+    }
+    out
+}
+
+/// The structure facts the baseline accepts as differing.
+fn accepted_structure() -> BTreeSet<String> {
+    let path = rust_dir().join("testdata/baselines/testsite.json");
+    let doc: serde_json::Value =
+        neohugo_testkit::fixture::read_json(&path).unwrap_or_else(|e| panic!("{e}"));
+    doc["structure"]
+        .as_object()
+        .into_iter()
+        .flatten()
+        .filter(|(_, v)| v["S"]["class"].as_str() == Some("accepted-deviation"))
+        .map(|(k, _)| k.clone())
+        .collect()
+}
+
 // ── The gate ─────────────────────────────────────────────────────────────────────────────────
 
 fn accepted(list: &[(&str, &str)]) -> Vec<String> {
@@ -574,7 +680,7 @@ fn testsite_gate_a_t() {
     println!(
         "A-T: L1 {}/56 paths; L2 {}/55 files byte-identical, links equal, {} aliases, {} dangling \
          links (all dangling in Go's output too); L3 {} HTML pages equal, hugo_stats.json sets equal \
-         ({} tags, {} classes, {} ids); structure oracle: TODO(T01)",
+         ({} tags, {} classes, {} ids); structure oracle below",
         got.len(),
         go.len() - differ.len(),
         aliases,
@@ -583,6 +689,34 @@ fn testsite_gate_a_t() {
         go_elements.tags.len(),
         go_elements.classes.len(),
         go_elements.ids.len(),
+    );
+
+    // Structure oracle: the build's dump against Go's.
+    let golden = neohugo_testkit::fixture::read_json(
+        &rust_dir().join("testdata/golden/testsite/structure.json"),
+    )
+    .expect("golden structure dump");
+    let (want, got) = (structure_facts(&golden), structure_facts(&built.structure));
+    let structure_diffs: BTreeSet<String> = want
+        .keys()
+        .chain(got.keys())
+        .filter(|k| want.get(*k) != got.get(*k))
+        .cloned()
+        .collect();
+    let unaccepted: Vec<String> = structure_diffs
+        .difference(&accepted_structure())
+        .map(|k| format!("{k}: go {:?}, rust {:?}", want.get(k), got.get(k)))
+        .collect();
+    assert!(
+        unaccepted.is_empty(),
+        "structure oracle: {} facts differ:\n{}",
+        unaccepted.len(),
+        unaccepted.join("\n")
+    );
+    println!(
+        "A-T structure oracle: {}/{} facts equal (records, aliases, page/1 aliases, resources, pages)",
+        want.len() - structure_diffs.len(),
+        want.len()
     );
 
     // The full output tree, reviewed with `INSTA_UPDATE=always` plus `git diff`.
