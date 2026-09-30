@@ -2937,9 +2937,12 @@ dependencies = [
 name = "neohugo-pageparser"
 version = "0.149.0-DEV"
 dependencies = [
+ "jiff",
+ "memchr",
  "neohugo-base",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
- "serde-saphyr",
+ "pretty_assertions",
  "serde_json",
  "thiserror 2.0.21",
  "toml",
