@@ -1,0 +1,16 @@
+{#-
+  The site stylesheet, deferred by baseof.html (`defer(key="global")`): rendered once after
+  every page, so Tailwind sees the classes of the whole site. Context: `data`, `site`, `hugo`.
+  `data.tailwind` is false in the docs patch variant i01 (no Tailwind CLI: `minify` only).
+-#}
+{%- set r = get_asset(path="css/styles.css") %}
+{%- if r %}
+  {%- if data.tailwind %}
+    {%- set css = r | tailwind(options={"minify": not hugo.is_development}) %}
+  {%- else %}
+    {%- set css = r | minify %}
+  {%- endif %}
+  {%- if css %}
+    {{ <linkcss r={css} /> }}
+  {%- endif %}
+{%- endif %}
