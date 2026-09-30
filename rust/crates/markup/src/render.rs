@@ -680,11 +680,27 @@ impl<'r, 'a> Renderer<'r, 'a> {
             self.out.push_str(&html);
             return Ok(());
         }
-        // Hugo's embedded table template.
+        // Hugo's embedded table template: `range $k, $v := .Attributes` (key order), falsy
+        // values skipped, `printf " %s=%q" $k ($v | transform.HTMLEscape)`.
         self.out.push_str("<table");
-        for (k, v) in &attrs {
+        for (k, v) in ctx.attributes.iter() {
+            let falsy = match v {
+                neohugo_base::Value::Null => true,
+                neohugo_base::Value::Bool(b) => !b,
+                neohugo_base::Value::Int(i) => *i == 0,
+                neohugo_base::Value::Float(f) => *f == 0.0,
+                neohugo_base::Value::String(s) => s.is_empty(),
+                _ => false,
+            };
+            if falsy {
+                continue;
+            }
             self.out.push_str(&format!(" {k}=\""));
-            escape::html(&mut self.out, &escape::value_text(v));
+            let mut text = String::new();
+            escape::html(&mut text, &escape::value_text(v));
+            // Go's html.EscapeString also escapes `'`, and writes `"` as `&#34;`.
+            self.out
+                .push_str(&text.replace('\'', "&#39;").replace("&quot;", "&#34;"));
             self.out.push('"');
         }
         self.out.push_str(">\n  <thead>");

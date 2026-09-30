@@ -5,7 +5,7 @@
     {%- if ga_id | lower is starting_with(pat="ua-") %}
       {{- log_warn(message="Google Analytics 4 (GA4) replaced Google Universal Analytics (UA) effective 1 July 2023. See https://support.google.com/analytics/answer/11583528. Create a GA4 property and data stream, then replace the Google Analytics ID in your site configuration with the new value.") }}
     {%- else %}
-      <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id | urlencode_strict }}"></script>
+      <script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id | urlencode }}"></script>
       <script>
         var doNotTrack = false;
         if ({{ site.config.privacy.google_analytics.respect_do_not_track | jsonify }}) {
@@ -16,7 +16,7 @@
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
-          gtag('config', {{ ga_id | jsonify }});
+          gtag('config', '{{ ga_id }}');
         }
       </script>
     {%- endif %}

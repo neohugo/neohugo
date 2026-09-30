@@ -46,7 +46,8 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
    with its first-child quirk, raw source text for entities/escapes, `base::anchor`
    `anchorize` + `Deduper`).
 4. **Render** (`src/render.rs`): an iterative walk (no recursion on nesting depth) writing
-   goldmark's HTML and Hugo's renderers (blockquote default, embedded table template,
+   goldmark's HTML and Hugo's renderers (blockquote default, embedded table template —
+   attributes in key order, falsy ones left out, values escaped as `transform.HTMLEscape` —,
    footnotes, alerts detected on the rendered content with Hugo's regex, code blocks, raw
    HTML omission). Hooks run post-order: a node that needs its content records the output
    length on entry and takes what follows on exit. Hook destinations and titles are the

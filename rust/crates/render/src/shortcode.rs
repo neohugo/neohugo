@@ -255,7 +255,8 @@ impl<'s> Expander<'s> {
             is_named_params: named,
             ordinal: u32::try_from(call.ordinal).unwrap_or(u32::MAX),
             parent: parent.map(|p| Box::new(p.clone())),
-            position: position.clone(),
+            // Go's `.Position` prints as `"file:line:col"` (common/text.Position).
+            position: format!("\"{position}\""),
         };
         let mut inner = String::new();
         let mut has_inner = false;

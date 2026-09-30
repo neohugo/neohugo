@@ -4,6 +4,8 @@
 mod build;
 mod check;
 mod cli;
+mod embedded;
+mod parity;
 
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};

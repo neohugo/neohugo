@@ -61,7 +61,7 @@ pub fn testsite(dir: &Path) {
 }
 
 /// Every file under `dir`, by slash-separated relative path.
-fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
+pub fn tree(dir: &Path) -> BTreeMap<String, Vec<u8>> {
     let mut out = BTreeMap::new();
     let mut stack = vec![dir.to_owned()];
     while let Some(d) = stack.pop() {

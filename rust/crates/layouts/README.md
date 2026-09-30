@@ -3,7 +3,9 @@
 Layout templates (REWRITE_PLAN.md §4.1, §4.3, §4.5): the scan of Hugo v0.146 layout names,
 Hugo's lookup scorer, base template resolution, escaping by output format and loading into one
 Tera instance. The embedded templates (`embedded/**`) are T32's; the build script
-(`src/build.rs`) lists whatever is there for `include_str!`.
+(`src/build.rs`) lists whatever is there for `include_str!`. T60 renders them against testsite
+views through the binary and reviews them against Go's (`neohugo` crate: `tests/it/embedded.rs`,
+the review table in its README).
 
 | API | What |
 |---|---|

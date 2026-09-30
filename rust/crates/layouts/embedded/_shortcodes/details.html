@@ -6,7 +6,7 @@
 {%- set group = shortcode | arg(name="name", default="") %}
 {%- set summary = (shortcode | arg(name="summary", default="")) or "Details" %}
 {%- set details_title = shortcode | arg(name="title", default="") %}
-{%- set is_open = (shortcode | arg(name="open", default=false)) in ["true", true, 1] -%}
+{%- set is_open = (shortcode | arg(name="open", default=false)) in ["true", true, 1] %}
 <details
   {%- if cls %} class="{{ cls }}"{% endif %}
   {%- if group %} name="{{ group }}"{% endif %}

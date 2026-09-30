@@ -1276,6 +1276,7 @@ The docs `quick-reference` shortcode reads `.Content` of child sections, and bec
 - In query strings, use `urlencode`.
 - `safeHTML`, `safeHTMLAttr`, `safeURL`, `safeJS` and `safeCSS` all become `safe`.
 - `#ZgotmplZ` has no equivalent (D5).
+- Escaped bytes differ from html/template's (T60): Tera writes `"` as `&quot;` and leaves `+`, Go writes `&#34;` and `&#43;`. The text is the same after entity decoding (L3); an embedded template that must match Go byte for byte avoids such characters or escapes itself.
 
 ### 4.6 Function, filter and test catalogue
 
@@ -1704,8 +1705,8 @@ It also dumps each site's layout file list with normalised names, which T30 uses
    - markdown for about 150 curated docs and seeksnack bodies plus an adversarial set (html, toc, fragments, hook-call log with `page_inner`);
    - function outputs;
    - `template-api.md` against `FUNCS`;
-   - embedded templates rendered against testsite views (in T60);
-   - the full testsite output tree (56 files).
+   - embedded templates rendered against testsite views (in T60: `neohugo/tests/it/embedded.rs`, a test-only overlay of the testsite);
+   - the full testsite output tree (56 files: 55 in `public` plus `hugo_stats.json`; `neohugo/tests/it/snapshots/testsite_output.snap`).
 
    Hashes, timestamps and versions are redacted. Snapshots are reviewed with `INSTA_UPDATE=always` plus `git diff`.
 4. **Robustness corpora.** All 959 docs files and all 251 seeksnack bodies render without a panic, with idempotent heading IDs.
@@ -1767,7 +1768,7 @@ All of this is Python stdlib under `tools/neohugo/`; there is no pip dependency.
 
 | Gate | Site | Criterion |
 |---|---|---|
-| **A-T** | hugolib/testsite + `testsite.txtar` | L1 56/56 plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); `hugo_stats.json` sets equal |
+| **A-T** | hugolib/testsite + `testsite.txtar` | L1 56/56 (Go's 55 files in `public`, the reference `neohugo-build/tests/it/testsite-go.txtar`, plus `hugo_stats.json`, which Go writes to the project directory and the reference does not hold) plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); `hugo_stats.json` sets equal |
 | **A-R** | seeksnack reconstruction | L1 713/713 plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
 | **A-D1** | docs, `--docs-patches i01` | L1 888/888 plus structure oracle; L2 all; heading-ID lists equal on every page; A7 ≥ 0.90 with a clean ratchet. Fences are plain `<pre><code>` (`codeFences = false`). |
 | **A-D2** | docs, `--docs-patches reduced` | Working: <ul><li>Chroma-class highlighting (incl. `hl` inline/noClasses and `highlight.md`);</li><li>goat diagrams (`diagrams_goat`);</li><li>emoji;</li><li>passthrough + `to_math`;</li><li>`remarshal` in `code-toggle`;</li><li>Tailwind through `defer`;</li><li>real Alpine/Turbo `js_build`.</li></ul> L1 equal to the Go build with the same patches; L2 all. Math and goat pages are `accepted-deviation` at L3. |
@@ -1892,7 +1893,7 @@ Sizes are Rust src + tests unless noted.
 | **T35** | neohugo-sitefuncs | `crates/sitefuncs` | T33, T40, T41, T42, T12 | <ul><li>every site-bound `FUNCS` entry</li><li>get_page/ref/rel_ref cases</li><li>pagination recorder: first call, identical reuse, conflict error with both positions, pager N in wave 2 incl. inside `partial()`</li><li>frames: nested `return_value`; `partial_cached` caches values</li><li>defer; store; i18n; deref; components via `page=` and via `@__nh`</li><li>`get_remote` error and `optional`</li></ul> | 3.0k |
 | **T36** | neohugo-build | `crates/build` | T34, T35, T50 | <ul><li>full §3 pipeline: language sub-waves, wave 2, deferred wave, URL-token publishing, images</li><li>mini, testsite and edge trees in memory match the structure oracle</li><li>docs cross-page shortcode cases (`include`, `glossary-term`, `quick-reference`)</li><li>A-DET; collisions logged</li></ul> | 2.6k |
 | **T37** | CLI + `templates check` | `crates/cli` | T36 | <ul><li>kebab-case flags with camelCase aliases (`--clean-destination-dir` / `--cleanDestinationDir`, `-s -d -b -e --minify --clock -D -E -F`)</li><li>`HUGO_*` env</li><li>error report with positions; exit codes</li><li>`templates check` (§4.8) on 3 overlays</li><li>`nh-commands/cli` mapping</li></ul> | 1.4k |
-| **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed | fixes |
+| **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed. **State:** `neohugo/tests/it/parity.rs` runs A-T through the binary: L1 56/56, L2 55/55 byte-identical (links, aliases, feeds, JSON URLs; dangling links only where Go's are), L3 every page, `hugo_stats.json` sets equal the oracle-checked collector over Go's HTML (Go's file itself is not in the reference); the structure oracle waits for T01 (TODO in the test). Embedded snapshots and their review table: `neohugo/tests/it/embedded.rs`, `crates/cli/README.md`; goat (T66) and `qr_code` are not renderable yet | fixes |
 | **T61** | Reconstruction layouts + assets in Tera | `rust/sites/seeksnack/**` | T02 (`FUNCS` final after T35) | contract test clean; v0.146 names; TS assets converted; redundant `.Paginate` dropped; §4.7 review | ~0.9k Tera |
 | **T62** | Reconstruction parity | `rust/sites/seeksnack/**`, baselines | T60, T61, T41, T42 | A-R | fixes |
 | **T63** | docs layouts A | `rust/sites/docs/layouts/{top-level,_partials/**}`, `patches/{i01,reduced}/` for baseof, get-featured-image, qr, body-main-start, get-github-info | T02 | contract test clean for the base and both variants; patch files 1:1 with `patches.json` | ~2.3k Tera |
