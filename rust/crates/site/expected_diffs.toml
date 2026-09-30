@@ -31,3 +31,44 @@ fixtures = ["data/data-basic", "data/data-theme"]
 path = "/numbers/localtime"
 reason = """A TOML local time without a date (`07:32:00`) is a string in neohugo-base's Value (no
 date a template can use); go-toml keeps it as a LocalTime."""
+
+# Difference classes of the structure tests (T23b): each is counted over every fixture of the
+# test and must occur exactly `count` times.
+
+[[class]]
+test = "structure"
+id = "segment-wise-taxonomy-prefix"
+count = 2
+reason = """The home page's `.Pages` and `.Sections` of edge-tree hold `/tagsfoo`, a section here
+and a term of `tags` in Hugo (the `/tagsfoo` deviation above: prefixes are segment-wise)."""
+
+[[class]]
+test = "structure"
+id = "single-page-takes-sibling-bundle"
+count = 1
+reason = """asm-taxo: Hugo lists the files of the leaf bundle `leafy/b/` as resources of the
+single-file page `leafy.md` too (it takes every file below `/leafy/` without checking who
+owns it). A file belongs to its owner only (the longest page key above it)."""
+
+[[class]]
+test = "structure"
+id = "resource-named-by-owner"
+count = 1
+reason = """asm-taxo: Hugo names a bundle file after the first page that walks it: `leafy.md`
+(the case above) makes `leafy/b/img.jpg` the resource `b/img.jpg`, also for its owner
+`leafy/b`. Here a file is named below its owner (`img.jpg`); its URL is the same."""
+
+[[class]]
+test = "calls"
+id = "segment-wise-taxonomy-prefix"
+count = 17
+reason = """edge-tree: calls whose result or argument is `/tagsfoo` (a section here, a term of `tags`
+in Hugo; the `/tagsfoo` deviation above)."""
+
+[[class]]
+test = "calls"
+id = "ref-from-bundled-page"
+count = 257
+reason = """`ref`/`relref` called on a bundled page (a content file inside a leaf bundle): Hugo's
+bundled pages have no working site (`.Sites` panics), so every ref returns `""`. Here refs
+resolve from a bundled page like from any page."""

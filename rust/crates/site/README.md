@@ -1,17 +1,20 @@
 # neohugo-site
 
-Capture and assembly into the `Model` (REWRITE_PLAN.md §2.4, phases A4–B2; T23a). The next
-phases (auto nodes, URLs, relations, taxonomies, translations, `get_page`/`ref`) are T23b's and
-build on the seams listed below.
+Capture, assembly and structure of the `Model` (REWRITE_PLAN.md §2.4, phases A4–B5): T23a
+(capture, tree, cascade, meta, filter) and T23b (made pages, URLs, relations, taxonomies,
+translations, bundle resources, page references).
 
 | Piece | API |
 |---|---|
 | Entry point | `load_model(Arc<Config>, &Vfs, &LoadModelOptions { clock, content: ContentFilter }) -> Result<Model, ModelError>`; `LoadModelOptions::from_config(&cfg, clock)` |
-| Model | `Model { config, pages: IdVec<PageId, Page>, sites: IdVec<LangIdx, SiteModel>, bundle_resources: IdVec<ResourceId, BundleResource>, data: Arc<Map>, diagnostics }`; `page(id)`, `bundle_owner(id)` |
-| Page | `Page { id, lang, kind, role: PageRole, key: ContentKey, source: Option<SourceFile>, meta: PageMeta }`; `PageRole::{Standalone, Bundled { bundle: ContentKey }}` |
-| Source | `SourceFile { file: FileRef, file_info, info (after front matter path), front_matter, text: Arc<str>, body_offset, mod_time }`, `body()`, `base_filename()` |
-| Trees | `SiteModel { lang, tree: SiteTree, resources: BTreeMap<ContentKey, ResourceId>, cascade: CascadeIndex }`; `SiteTree::{get, insert, remove, longest_prefix, descendants, iter}` (segment-wise) |
-| Cascade | `CascadeIndex::{new, add_branch, received(key), in_force(key, own), branches}`; `meta::cascaded_params(cfg, index, lang, kind, key)` for pages without a file |
+| Model | `Model { config, pages: IdVec<PageId, Page>, sites: IdVec<LangIdx, SiteModel>, bundle_resources: IdVec<ResourceId, BundleResource>, data: Arc<Map>, diagnostics }`; `page(id)`, `bundle_owner(id)`, `page_name(id)` (`.Name`), `is_ancestor(a, b)`, `pager_paths(id, format, "/page/2")` |
+| Page | `id, lang, kind, role: PageRole, key: ContentKey, source: Option<SourceFile>, path_info: PathInfo, meta: PageMeta`; T23b: `title, link_title, section, type, taxonomy: Option<TaxonomyIdx>, term: Option<TermIdx>, standalone: Option<FormatId>, formats: Vec<FormatId>, urls: Vec<PageUrl { format, paths: TargetPaths, links: Option<Links> }>, parent, ancestors, current_section, first_section, pages, regular_pages, sections, translations (= .AllTranslations), terms: Vec<(TaxonomyIdx, TermIdx)>, resources: Vec<ResourceId>`; `path()` (`.Path`), `name()`, `listed(ListScope::{Local, Global})`, `linked()`, `rendered()`, `url(format)`, `links()`, `dir_key()` |
+| SiteModel | `lang, tree: SiteTree, resources: BTreeMap<ContentKey, ResourceId>, cascade`; T23b: `home, pages, regular_pages (.Site.Pages/.RegularPages), taxonomies: IdVec<TaxonomyIdx, Taxonomy>, main_sections, last_mod, permalinks: PermalinkPatterns` |
+| Taxonomies | `Taxonomy { def, page: Option<PageId>, terms: IdVec<TermIdx, Term> }` (terms by key), `listed_terms(&Model)` (`.Site.Taxonomies`: listed terms with members); `Term { key, term (.Data.Term), page, members: Vec<WeightedPage { page, weight, ordinal }> }` (weight, then default order) |
+| BundleResource | `key, lang, file, info, page`; T23b: `copy_of` (a `duplicateResourceFiles` copy), `owner`, `name` (as written below the owner), `name_normalized`, `target_base: Option<ResourceBase>`, `publish`; `target()`, `link()`. Feeds `neohugo_resources::BundleResource { lang, file: file.abs, name, dir: target_base.link, policy: publish ? Eager : OnReference }` |
+| References | `get_page(lang, ref, from)` (`.GetPage`), `site_get_page(lang, &[args])` (legacy kind-first `.Site.GetPage`), `ref_page(lang, ref, from)`, `ref_link(lang, &RefArgs { path, lang, output_format }, from, RefLink::{Permalink, RelPermalink})` → `Result<_, RefError>` (the caller maps errors to `refLinks`) |
+| Trees | `SiteTree::{get, insert, remove, longest_prefix, descendants, iter}` (segment-wise) |
+| Cascade | `CascadeIndex::{new, add_branch, received(key), in_force(key, own), branches}`; `meta::cascaded_params(cfg, index, lang, kind, key)` |
 | Data | `data::load(&Vfs) -> Result<Data { map, diagnostics }, DataError>` |
 
 ## Phases
@@ -19,56 +22,145 @@ build on the seams listed below.
 1. **Capture** (A4; rayon over files): `Vfs::discover_content` (its duplicates become
    `duplicate-content-path` warnings), read, `split_front_matter`, `decode_front_matter`,
    `capture_overrides`, the page's own `cascade`. Front matter `lang` moves a page only to an
-   enabled language (`lang: TH` → `th`; a disabled `fr` is ignored and stays in the params);
-   `kind` is normalised; `path` re-parses the page's path (`/custom/moved` →
-   `/custom/moved/index.md`, `_index` for branch kinds). `data::load` runs alongside.
-2. **Tree** (B1): kind from the override, else home (empty key, also for a root `index.md`,
-   with the `warning-home-page-is-leaf-bundle` warning), taxonomy (`/<plural>`), term (below
-   it, segment-wise), section (other branch bundles) or page; pages of a disabled `page` kind
-   are dropped. A key claimed twice after the overrides keeps the first file and warns.
-   Content files inside leaf bundles are `PageRole::Bundled` pages registered as bundle
-   resources of their language; other bundle files are `BundleResource`s of their language.
-3. **Cascade → meta → dates** (B2; the cascade index is built per language in tree order, the
-   pages run in parallel): the site `[[cascade]]` at the root, each branch page's own entries
-   merged over what it receives; `Cascade::apply`, then `meta_from_params` with the
-   language's date sources, time zone and sitemap defaults; `hasCJKLanguage` detected on the
-   body; `_build` and `published: <bool>` read as Hugo does. Unparsable front matter dates are
-   `front-matter-date` errors (Hugo logs them as errors).
-4. **Filter** (B2): drafts, `publishDate` after the clock and `expiryDate` before it, and
-   disabled kinds. Home, section and taxonomy pages stay for the structure with their build
-   policy switched off; other pages are removed with the bundle files below them in their
-   language (as Hugo's `DeletePageAndResourcesBelow`; pages below a removed page stay).
+   enabled language; `kind` is normalised; `path` re-parses the page's path. `data::load` runs
+   alongside.
+2. **Tree** (B1): kind from the override, else home, taxonomy (`/<plural>`), term (below it,
+   segment-wise), section or page; pages of a disabled `page` kind are dropped. A key claimed
+   twice keeps the first file and warns. Content files inside leaf bundles are
+   `PageRole::Bundled` pages registered as bundle resources; other bundle files are
+   `BundleResource`s of their language.
+3. **Cascade → meta → dates** (B2, pages in parallel), then the **filter**: drafts, future and
+   expired content, disabled kinds. Home, section and taxonomy pages stay switched off; other
+   pages are removed with the bundle files below them (their dates still count for node dates,
+   as in Hugo, which aggregates before it removes).
+4. **Made pages** (B3, `nodes.rs`), per language in Hugo's order: a taxonomy page per
+   configured taxonomy (unless taxonomy and term pages are both disabled); a section page per
+   root section that has pages (named as its first page writes it: `/Upper Case/` → *Upper
+   Cases*); the home page; the standalone pages, in the tree under Hugo's keys (`404`,
+   `_robots`, `_sitemap`, `_sitemapindex`; `.Path` `/404`, `/_robots.txt`, …): 404 and a
+   sitemap per language, robots.txt and the sitemap index once (default language) unless
+   multihost, the index only for multilingual or subdirectory sites. Made pages get the
+   cascade in force at their key and go through the filter.
+5. **Terms** (`taxonomy.rs`): every linked page in tree order, per taxonomy in plural order,
+   names terms in front matter (a string is one term; numbers and booleans are written out;
+   a list holding a list or map names none; empty values are skipped). `/<plural>/<value>` is
+   read as a content path (lower case, spaces → `-`, `/` nests); the page at that key is the
+   term page, made when missing (unless a content term page there was removed by the filter).
+   `.Data.Term` is the last value; the weight is `<plural>_weight` (a warning when it is not
+   an integer).
+6. **Relations** (`relations.rs`): titles (a page without a file: site title, pluralised and
+   title-cased section name, taxonomy plural, term, `404 Page not found`), link titles,
+   sections, types; `.Parent` (nearest branch page above; a bundled page's bundle),
+   `.Ancestors`, `.CurrentSection`, `.FirstSection`, `.Sections`; **node dates** (a home,
+   section or taxonomy page without dates takes the latest date/lastmod and the latest passed
+   publish date below it, terms excepted; then term and taxonomy pages without dates take their
+   terms' and members' dates; `.Site.Lastmod`); the **lists** in the default order with the
+   language's collator (home/section: pages and sections directly in it; taxonomy: its terms
+   at all levels; term: its members, weighted; standalone pages: the site's pages);
+   `.Site.MainSections` (configured, else the root section with the most regular pages, the
+   first by name on a tie).
+7. **Translations** (`translations.rs`): a `translationKey` groups pages of any language;
+   otherwise the linked pages at the page's `.Path` in every language (a standalone page's
+   path is not its key: sitemaps have none). Language weight, date, link title, file.
+8. **URLs** (`urls.rs`, rayon over pages): formats (front matter `outputs`, else the kind's;
+   the standalone format; only the first for pages not rendered); per format
+   `neohugo_page::target_paths` (current section, slug/standalone base name/name, language
+   prefixes — multihost writes to `/<lang>`, sitemaps are always in their language's directory
+   on multilingual sites —, front matter `url` expanded when it holds `:` attributes, the
+   `[permalinks]` pattern of the kind and section) and `links` for pages with a link.
+9. **Bundle resources** (`resources.rs`): a file belongs to the page at the longest key above
+   it in any language; the owner in the file's language names it (below the owner) and places
+   it (the owner's resource directory in its primary format); publish with the owner when it
+   is rendered and publishes resources. With `duplicateResourceFiles` (or multihost, or
+   non-Markdown owners) every translation of the owner gets a copy (`copy_of`). `.Resources`
+   of a page: the files its key owns, in its language else the first language that has the
+   file (bundled pages only in their own language), plus a `translationKey`'s translations'
+   files; files by media main type then name, then bundled pages in the default order. Front
+   matter `resources` metadata is applied by `neohugo-resources` (`ResourceStore::apply_meta`),
+   which then re-sorts by the new names.
+10. **References** (`refs.rs`): `.GetPage`/`ref` as semantics §12.4 (`.md` added to references
+    without an extension, relative to the page asking — a branch's own directory, else its
+    container; above the root is the root —, then from the root, then a file or directory next
+    to the page's or the home page's file, then by unique page name).
 
-Page ids follow the capture order (key, then language), so the model is the same for any
-number of threads.
-
-## Seams for T23b
-
-- Auto nodes (missing home, root sections, taxonomies, terms, standalone pages): create a
-  `Page` with `source: None`, params from `meta::cascaded_params`, `meta_from_params`, insert
-  into `SiteModel::tree`. Page ids are appended after the content pages.
-- `Page` gains the URL and relation fields of §2.4 (title, section, type, formats, urls,
-  links, parent, ancestors, lists, translations, terms, resources).
-- `BundleResource` gains `target_base`, `meta` and `publish`; owners come from
-  `SiteTree::longest_prefix` over the language's tree (plus the fallback language), bundled
-  pages' from `Model::bundle_owner`.
-- Node dates (a branch without dates takes its descendants') and `.Site.Lastmod`.
+Page ids follow the capture order (key, then language), then the made pages in phase order,
+so the model is the same for any number of threads.
 
 ## Acceptance (tests/it)
 
+`cargo test -p neohugo-site -- --nocapture` prints the tallies. Every difference is exact or a
+reviewed class of `expected_diffs.toml` (`[[class]]`, exact counts).
+
 | Test | Fixtures | Result |
 |---|---|---|
-| `capture` | `oracle/hugolib/capture/*` (9 sites; the 5 `sc-err-*` are T34's shortcode errors) | per language tree pages (key, file, kind) and resource trees equal: 1,121 pages, 96 resources; 1,143 page configs (override params `kind`/`lang`/`path`, own cascade) equal; duplicate warnings equal |
-| `assemble` | `oracle/hugolib/assemble/*` (17 sites) | every page with a file equal: page set per language, kind, bundle role, params after cascade, build options, draft, own dates, typed fields (16 per page), cascade in force: 1,248 pages, 19,776 fields; duplicate, date and home-leaf diagnostics counted |
-| `data` | `oracle/hugolib/data/*` (15 cases) | trees equal (numbers by value), warnings and rejected files counted, the 4 load errors fail |
-| `model` | R (the seeksnack reconstruction content), `docs/data`, `seeksnack.txtar` | FM overrides, drafts/future/expired, bundle roles, cascade, keys with `/` (R), nested JSON, case preserved (D), determinism |
-| `real_sites` (ignored) | `sites.py make docs\|testsite\|seeksnack` | `NEOHUGO_SITES=<dir>:… cargo test -p neohugo-site real_sites -- --ignored --nocapture` |
+| `capture` | `oracle/hugolib/capture/*` (9 sites) | per language tree pages and resource trees, page configs, duplicate warnings equal (T23a) |
+| `assemble` | `oracle/hugolib/assemble/*` (17 sites) | every page with a file: 1,248 pages, 19,776 fields equal, including the aggregated dates of content branch pages (T23a + node dates) |
+| `structure` | `oracle/hugolib/assemble/*` (17 sites, 1,461 pages) | 52,928 / 52,932 checks exact, 4 accepted: page set incl. every made page (1,460), title/link title/type/section/term (1,461 each), dates of every page (1,461), params and build of made pages (212), parent/current/first section (1,436 each), `.Sections` (349), rendered formats (1,436), **target file, link and resource directory per (page, format) (1,515)**, **`.OutputFormats` rel/permalinks (1,436)**, `.Pages`/`.RegularPages` per node (2,869), site pages/regular pages/home/lastmod/main sections (26 languages each), taxonomy terms and weighted members (110), `.GetTerms` (41), `.Site.GetPage` (11,317) and page-relative `GetPage`/ref lookups (2 × 10,052), **bundle resource URLs per (page, name) (61)** |
+| `calls` | `oracle/hugolib/site/*` (19 sites; recorded template calls) | 68,153 / 68,427 exact, 274 accepted: translations (2,600), relations (3,250), lists (1,950), links and output formats (1,950), dates (2,600), names and kinds (7,150), `.Eq`/`.IsAncestor`/`.IsDescendant`/`.InSection` (12,436), page `.GetPage` (4,707), `.GetTerms` (1,882), **`ref`/`relref`/`RefFrom`/`RelRefFrom` (27,820)**, site lists/taxonomies/lastmod/main sections (261), `.Site.GetPage` (1,821) |
+| `build` | `oracle/hugolib/build/*` (26 sites incl. the 9 build-* sites) | every (language, page, format) Hugo rendered is rendered here (1,647), its target is a file Hugo wrote (1,642 non-empty), pagers 2..N via `Model::pager_paths` are files Hugo wrote (344) |
+| `golden` | `rust/testdata/golden/<site>/structure.json[.gz]` + `NEOHUGO_SITES` | the structure oracle gate (targets and permalinks per (page, format), resource URLs per (page, name)); skips with a message until T01 writes the dumps; a self-test runs the reader |
+| `data`, `model` | as T23a | |
+| `real_sites` (ignored) | `sites.py make docs\|testsite\|seeksnack` | `NEOHUGO_SITES=<dir>:… cargo test -p neohugo-site real_sites -- --ignored --nocapture`: page counts, made pages, terms, outputs, shared target files (seeksnack: exactly Hugo's 3 term collisions, `lay's`/`lays`, `ins-322(i)`/`ins-322i`) |
+
+**Segment-aware prefix lookup**: every ancestor lookup (parent, sections, owners, lists, node
+dates, cascades) is segment-wise; on all 17 + 19 + 26 oracle sites it gives Hugo's result
+except `/tagsfoo` of edge-tree (below), an accepted deviation.
+
+## Structure-oracle dump (for T01)
+
+`rust/testdata/golden/<site>[-<variant>]/structure.json[.gz]`, read by
+`crates/layouts/tests/it/structure.rs` (T30: `config`, `records[].template/baseof`) and
+`crates/site/tests/it/golden.rs` (T23b):
+
+```json
+{ "config": { /* as oracle/tplimpl/store: defaultContentLanguage, languageIndex, … */ },
+  "records": [ { "path": "/posts/p1", "kind": "page", "layout": "", "lang": "en",
+                 "format": "html", "template": "single.html", "baseof": "baseof.html",
+                 "target": "/posts/p1/index.html",
+                 "relPermalink": "/posts/p1/",
+                 "permalink": "https://example.org/posts/p1/" } ],
+  "aliases": [ { "path": "/posts/p1", "lang": "en", "format": "html",
+                 "alias": "/old/", "target": "/old/index.html" } ],
+  "resources": [ { "path": "/posts/p1", "lang": "en", "name": "cover.jpg",
+                   "relPermalink": "/posts/p1/Cover.JPG", "target": "/posts/p1/Cover.JPG" } ] }
+```
+
+- One record per (page, format) Hugo renders (pager 1 only; standalone pages once). `path` is
+  the page's `.Path` (`/` for the home page, `/_robots.txt`), `kind` its `.Kind`, `lang` its
+  language key, `format` the output format name.
+- `target`: the file under `publishDir` with a leading slash (`targetPaths.TargetFilename`,
+  multihost language directory included); `relPermalink`/`permalink`: `.OutputFormats.Get
+  <format>` of the page (escaped, as templates print them).
+- `aliases`: every alias file Hugo writes (front matter aliases, `page/1/`, the language
+  redirect) with the page and format it points to (T24's alias plan).
+- `resources`: every bundle file in a page's `.Resources` (bundled pages excepted): `name` is
+  `NameNormalized` (the path below the page, lower case), `relPermalink` as templates print it,
+  `target` the file under `publishDir`.
 
 ## Deviations from Hugo (`expected_diffs.toml`)
 
 - **Taxonomy prefix is segment-wise**: `content/tagsfoo/_index.md` is a section, not a term of
-  `tags` (Hugo's go-radix matches characters).
-- **YAML 1.2** data (`017` is decimal) and **TOML local times** as strings (neohugo-base).
-- **CSV data files** are lists of rows; Hugo rejects them (a Go type detail).
-- Data **messages** are ours; a scalar data file is an error diagnostic, as in Hugo, but the
-  load goes on (Hugo logs it as an error too).
+  `tags` (Hugo's go-radix matches characters); edge-tree's home lists and calls that name it.
+- **Bundle files belong to their owner**: a single-file page `leafy.md` does not also list the
+  files of the bundle `leafy/b/`, and a file is named below its owner (`img.jpg`), not after
+  the first page that walked it (`b/img.jpg`; same URL).
+- **`ref`/`relref` from a bundled page** resolve (Hugo's bundled pages have no working site
+  and return `""`).
+- **Lists use the page's own language's collator** (Hugo: the collator of the site being
+  rendered when a list is first computed); a term's `.RegularPages` are its regular members
+  (Hugo caches `.Pages` and `.RegularPages` of a term under one key: whichever is asked first
+  answers both). Neither occurs in the fixtures.
+- **`.Resources` order** is a strict order (files by media main type then name, then bundled
+  pages); Go's comparator is not a strict weak order when types differ.
+- **Main-section ties** pick the first section by name (Go: map order).
+- **YAML 1.2** data, **TOML local times** as strings, **CSV data files** as rows, data
+  messages (T23a).
+
+## For later tasks
+
+- T24 (nav): `Page::pages`/`regular_pages`/`sections`/`translations`, `Model::pager_paths`,
+  `Taxonomy::listed_terms`; next/prev, `RegularPagesRecursive` and alias plans are not in the
+  model (they derive from the lists and `PageUrl`s).
+- T33 (view): `.Rel` of `.OutputFormats` (`canonical` for a page's only built-in format),
+  `.Data`, `.Site.Taxonomies` keys (`to_lower(term.term)`), bundle-resource metadata and its
+  re-sort, `refLinks` error level and not-found URL.

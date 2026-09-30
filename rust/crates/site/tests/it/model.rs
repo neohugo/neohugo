@@ -200,5 +200,46 @@ fn real_sites() {
         for d in &m.diagnostics {
             eprintln!("  {d}");
         }
+        // T23b: made pages, terms, outputs and target collisions.
+        let mut made: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+        for p in m.pages.iter().filter(|p| p.source.is_none()) {
+            *made.entry(p.kind.as_str()).or_default() += 1;
+        }
+        let terms: usize = m
+            .sites
+            .iter()
+            .flat_map(|s| s.taxonomies.iter())
+            .map(|t| t.terms.len())
+            .sum();
+        let mut targets: std::collections::BTreeMap<String, Vec<String>> =
+            std::collections::BTreeMap::new();
+        let mut outputs = 0;
+        for p in m.pages.iter().filter(|p| p.rendered()) {
+            for u in &p.urls {
+                outputs += 1;
+                targets
+                    .entry(u.paths.target.to_string())
+                    .or_default()
+                    .push(format!(
+                        "{} ({})",
+                        p.path(),
+                        m.config.sites[p.lang].language.key
+                    ));
+            }
+        }
+        let collisions: Vec<_> = targets.iter().filter(|(_, v)| v.len() > 1).collect();
+        let resources = m
+            .bundle_resources
+            .iter()
+            .filter(|r| r.target_base.is_some())
+            .count();
+        eprintln!(
+            "{dir}: made pages {made:?}, {terms} terms, {outputs} (page, format) outputs, \
+             {resources} placed bundle files, {} shared target files",
+            collisions.len()
+        );
+        for (t, pages) in collisions.iter().take(20) {
+            eprintln!("  {t}: {pages:?}");
+        }
     }
 }
