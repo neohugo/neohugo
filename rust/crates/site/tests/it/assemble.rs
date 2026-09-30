@@ -1,10 +1,11 @@
 //! Assembly against the Go oracle `oracle/hugolib/assemble/<site>.json.gz` (every page after
 //! `setMetaPost` and the removal of drafts, future and expired content). Compared for every page
 //! with a content file: the page set per language with kinds and bundle roles, the params after
-//! the cascade, build options, draft, the four dates (own dates only: node dates aggregated from
-//! descendants are T23b's), the typed front matter fields, and the cascade in force.
+//! the cascade, build options, draft, the four dates (branch pages without dates of their own
+//! after node-date aggregation), the typed front matter fields, and the cascade in force.
 //!
-//! Pages without a file (missing home, root sections, taxonomies, standalone pages) are T23b's.
+//! Pages without a file (missing home, root sections, taxonomies, standalone pages) are checked
+//! by `structure`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -141,7 +142,7 @@ fn check(name: &str) -> usize {
     let got: BTreeMap<Rec, &Page> = m
         .pages
         .iter()
-        .filter(|p| !dev.contains(&p.key.to_path()))
+        .filter(|p| p.source.is_some() && !dev.contains(&p.key.to_path()))
         .map(|p| {
             let file = site.norm(&p.source.as_ref().unwrap().file.abs);
             let rec = (

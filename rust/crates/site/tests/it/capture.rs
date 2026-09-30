@@ -84,6 +84,9 @@ fn got(site: &Site, m: &Model) -> (BTreeSet<PageRec>, BTreeSet<ResRec>) {
     for (lang, s) in m.sites.iter_enumerated() {
         for (key, id) in s.tree.iter() {
             let p = m.page(id);
+            if p.source.is_none() {
+                continue;
+            }
             let file = p
                 .source
                 .as_ref()
@@ -98,6 +101,9 @@ fn got(site: &Site, m: &Model) -> (BTreeSet<PageRec>, BTreeSet<ResRec>) {
         }
         for (key, rid) in &s.resources {
             let r = &m.bundle_resources[*rid];
+            if r.copy_of.is_some() {
+                continue;
+            }
             rr.insert((
                 lang.index(),
                 key.to_path(),
