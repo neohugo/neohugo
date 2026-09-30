@@ -45,6 +45,12 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
   never `--release` before T70; never `cargo clean` (`cargo clean -p X` only when coordinated).
   `cargo fetch`/`cargo metadata` use `--target x86_64-unknown-linux-gnu` /
   `--filter-platform x86_64-unknown-linux-gnu`. Builds run offline after T00.
+- **Shared target dir and stale artifacts.** Every worktree has the same layout, so a path crate
+  gets the same cargo metadata hash in every worktree and cargo may reuse another worktree's
+  artifact when its source mtimes look older. Before a final test run (and when a result looks
+  impossible), `touch` the sources of the crates you test, e.g.
+  `find crates/<name> -name '*.rs' -exec touch {} +`. Read data paths at run time with
+  `neohugo_testkit::fixture::{rust_dir, testdata}`, never with `env!("CARGO_MANIFEST_DIR")`.
 - **Disk:** `tools/neohugo/disk.sh` fails above 8 GB of `rust/target` (`NEOHUGO_TARGET_LIMIT_MB`) or below 2 GB free (raised from the plan's 2.5 GB once ~20 GB became free).
   Every task reports `du -sh /home/user/neohugo/rust/target` and `df -h /` when it ends.
 - **Clean room:** never open Zola ≥ 0.22 source (EUPL-1.2). Copied files go through
