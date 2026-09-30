@@ -1,0 +1,2 @@
+{% extends "baseof.html" %}
+{% block main %}<div class="notfound"><h1>404</h1><p>{{ i18n(key="notFound") }}</p>{% set pager = paginator() %}{% for p in pager.pages[:2] %}<a href="{{ p.rel_permalink }}">{{ p.title }}</a>{% endfor %}</div>{% endblock main %}

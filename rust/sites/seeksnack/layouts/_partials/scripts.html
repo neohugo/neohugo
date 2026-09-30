@@ -1,0 +1,7 @@
+{%- set theme = get_asset(path="js/set-theme.js") | js_build(options={"target": "es2015"}) | fingerprint %}
+<script src="{{ theme.rel_permalink }}" integrity="{{ theme.data.integrity }}"></script>
+{%- set search = get_asset(path="ts/search.ts") | execute_as_template(target="ts/search.ts", data={"api": site.params.comment.apipro}) %}
+{%- set comment = get_asset(path="ts/comment.ts") | execute_as_template(target="ts/comment.ts", data={"lang": page.lang}) %}
+{%- set main = get_asset(path="ts/main.ts") %}
+{%- set bundle = concat_assets(target="js/all.ts", items=[main, search, comment]) | js_build(options={"targetPath": "js/website.js", "minify": true, "params": {"site": site.title, "count": 3} }) | fingerprint %}
+<script src="{{ bundle.rel_permalink }}" integrity="{{ bundle.data.integrity }}" defer></script>

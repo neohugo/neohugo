@@ -1,0 +1,21 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+{%- set pager = paginator() if (page.is_node or page.kind == "404") else none %}
+{%- if pager and pager.page_number > 1 %}
+<link rel="canonical" href="{{ page.permalink ~ "page/" ~ pager.page_number ~ "/" }}">
+{%- else %}
+<link rel="canonical" href="{{ page.permalink }}">
+{%- endif %}
+<meta name="description" content="{% if page.description %}{{ page.description }}{% else %}{{ site.params.description }}{% endif %}">
+<meta property="og:image" content="{% if page.params.image %}{{ page.params.image | abs_lang_url }}{% endif %}">
+<meta property="og:locale" content="{{ site.language.params?.languagecodeopengraph | default_if_empty(value="en_US") }}">
+{%- for t in page.all_translations[:1] %}<meta property="og:locale:alternate" content="{{ t.lang }}">{% endfor %}
+{%- for t in page.translations %}<link rel="alternate" hreflang="{{ t.lang }}" href="{{ t.permalink }}">{% endfor %}
+{%- if page.output_formats.rss %}{% set rss = page.output_formats.rss %}<link rel="alternate" type="{{ rss.media_type.type }}" href="{{ rss.permalink }}" title="{{ site.title }}">{% endif %}
+{%- for f in ["favicon-16x16.png", "favicon-32x32.png"] %}
+{%- set icon = get_asset(path="images/favicon/" ~ f) %}{% if icon %}<link rel="icon" href="{{ icon.rel_permalink }}" sizes="{{ icon.width }}x{{ icon.height }}">{% endif %}
+{%- endfor %}
+{%- set css = get_asset(path="scss/website.scss") | to_css(options={"enableSourceMap": false, "includePaths": ["node_modules", "assets/scss"], "outputStyle": "compressed"}) | postcss | minify | fingerprint | post_process %}
+<style>{{ css | resource_content | safe }}</style>
+<link rel="preload" href="{{ css.rel_permalink }}" as="style" integrity="{{ css.data.integrity }}">
+{%- include "_partials/marketing/jsonld.html" %}

@@ -1,0 +1,10 @@
+{%- set key = page.rel_permalink | trim_chars(chars="/") %}
+{%- set comments = site.data.comments | get(key=key, default=none) %}
+{%- if comments %}
+<section class="comments"><h3>{{ i18n(key="comments", count=comments | length) }}</h3>
+{%- for c in comments %}
+  <div class="comment"><b>{{ c.name }}</b> <time>{{ c.date | date(style="medium") }}</time>
+  {{ c.text | markdownify }} {% if c.rating %}<span class="rating-star">{{ c.rating }}/5</span>{% endif %}</div>
+{%- endfor %}
+</section>
+{%- endif %}

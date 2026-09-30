@@ -1,0 +1,11 @@
+{% extends "baseof.html" %}
+{% block main %}
+<section class="term">
+  <h1>{{ page.title }} <small>{{ page.term.term }} / {{ page.name }}</small></h1>
+  {% if page.params.website %}{{ <website url={page.params.website} /> }}{% endif %}
+  {% set logo = page.resources | find_resource(pattern="*.png") %}{% if logo %}{% set l = logo | resize(width=48, height=48) %}<img class="logo" src="{{ l.rel_permalink }}" width="{{ l.width }}">{% endif %}
+  {{ page.content }}
+  {% set pager = paginator() %}{% for p in pager.pages | sort_by(attribute="title") %}{{ <card p={p} /> }}{% endfor %}
+  {% include "_partials/pagination.html" %}
+</section>
+{% endblock main %}

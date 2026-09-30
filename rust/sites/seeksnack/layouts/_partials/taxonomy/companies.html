@@ -1,0 +1,6 @@
+{#- `value`: a company or a list of them. #}
+{% component companies(value, @__nh) %}
+{%- if value %}
+<div class="tax-company">{% for c in (value if value is array else [value]) %}<a href="{{ ("/companies/" ~ (c | urlize) ~ "/") | rel_lang_url }}">{{ c }}</a>{% endfor %}</div>
+{%- endif %}
+{% endcomponent companies %}

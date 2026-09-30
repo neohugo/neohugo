@@ -1,0 +1,9 @@
+{#- `tags`: the page's `tags` param (empty entries skipped); `page`: the page whose tag terms follow. #}
+{% component tags(tags, page, @__nh) %}
+{%- if tags %}
+<div class="tag-list tags">
+{%- for t in tags | sort_by(attribute="") %}{% if t %}<a href="{{ ("/tags/" ~ (t | urlize | lower) ~ "/") | rel_lang_url }}">#{{ t }}</a>{% endif %}{% endfor %}
+</div>
+{%- endif %}
+{%- set terms = get_terms(taxonomy="tags", page=page) %}{% if terms %}<p class="terms">{% for t in terms %}<a href="{{ t.rel_permalink }}">{{ t.link_title }}</a>{% endfor %}</p>{% endif %}
+{% endcomponent tags %}

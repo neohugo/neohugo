@@ -1,0 +1,8 @@
+{%- if page.params.rating %}
+<div class="rating">{{ i18n(key="rating") }}
+{%- for k, v in page.params.rating | sort_keys %}
+  <span class="rating-star" title="{{ k }}">{{ <rating_review score={v} /> }} {{ k | humanize }}</span>
+{%- endfor %}
+</div>
+{%- endif %}
+{% component rating_review(score) %}{% for i in range(start=1, end=6) %}{% if score >= i %}★{% else %}☆{% endif %}{% endfor %}{% endcomponent rating_review %}

@@ -1,0 +1,15 @@
+{%- set pag = paginator() %}
+{%- if pag.total_pages > 1 %}
+<ul class="pagination">
+  {%- if pag.first %}<li><a href="{{ pag.first.url }}">«</a></li>{% endif %}
+  {%- if pag.has_prev %}<li><a href="{{ pag.prev.url }}">‹</a></li>{% endif %}
+  {%- for p in pag.pagers %}
+  {%- set right = pag.page_number + 2 %}{% set left = pag.page_number - 2 %}
+  {%- if p.page_number >= left and p.page_number <= right %}
+  <li class="{% if p.page_number == pag.page_number %}active{% endif %}"><a href="{{ p.url }}">{{ p.page_number }}</a></li>
+  {%- endif %}
+  {%- endfor %}
+  {%- if pag.has_next %}<li><a href="{{ pag.next.url }}">›</a></li>{% endif %}
+  {%- if pag.last %}<li><a href="{{ pag.last.url }}">» {{ pag.total_number_of_elements }}</a></li>{% endif %}
+</ul>
+{%- endif %}

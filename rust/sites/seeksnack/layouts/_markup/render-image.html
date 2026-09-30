@@ -1,0 +1,9 @@
+{#- `text` (HTML) in an attribute: its plain form, as Go's attribute escaper strips the tags. -#}
+{%- set img = page.resources | get_resource(name=destination) -%}
+{%- if img -%}
+{%- set wm = get_asset(path="images/watermark.png") -%}
+{%- set r = img | resize(width=240) | image_filter(filters=[{"op": "overlay", "image": wm, "x": 0, "y": 0}]) -%}
+<img src="{{ r.rel_permalink }}" width="{{ r.width }}" height="{{ r.height }}" alt="{{ plain_text }}"{% if title %} title="{{ title }}"{% endif %}>
+{%- else -%}
+<img src="{{ destination | safe }}" alt="{{ plain_text }}">
+{%- endif -%}

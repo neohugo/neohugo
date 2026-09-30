@@ -1,0 +1,7 @@
+{#- `.Site.Params.dateFormat` is not set on this site: the date uses the default medium style.
+    Go's layout `Z07:00` writes `Z` for a zero offset. #}
+<p class="date">
+<time datetime="{{ page.date | date(format="%Y-%m-%dT%H:%M:%S%:z") | replace(from="+00:00", to="Z") }}">{{ page.date | date(style="medium") }}</time>
+{% if page.params.when_seen %} · {{ page.params.when_seen | date(format="%b %-d, %Y", locale=lang) }}{% endif %}
+· {{ page.lastmod | date(style="long") }} · {{ page.publish_date | date(format="%Y") }}
+</p>

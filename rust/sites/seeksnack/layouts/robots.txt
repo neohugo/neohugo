@@ -1,0 +1,3 @@
+User-agent: *
+{% for p in site.regular_pages %}{% if p.params.private %}Disallow: {{ p.rel_permalink }}
+{% endif %}{% endfor %}Sitemap: {{ "sitemap.xml" | abs_url }}

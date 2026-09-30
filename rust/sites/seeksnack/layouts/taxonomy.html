@@ -1,0 +1,9 @@
+{% extends "baseof.html" %}
+{% block main %}
+<section class="taxonomy tax-{{ page.taxonomy.singular }}">
+  <h1>{{ page.title }} · {{ page.taxonomy.singular | humanize }} / {{ page.taxonomy.plural }}</h1>
+  {% for t in page.taxonomy.terms | alphabetical %}<a class="term" href="{{ t.page.rel_permalink }}">{{ t.page.title }} <sup>{{ t.count }}</sup></a>{% endfor %}
+  {% set pager = paginator() %}{% for p in pager.pages | sort_by(attribute="title") %}<span class="t">{{ p.title }}</span>{% endfor %}
+  {% include "_partials/pagination.html" %}
+</section>
+{% endblock main %}

@@ -1,0 +1,9 @@
+{#- A snack card for the listed page `p`. `brands` prints only a single brand given as a string: Go's
+    `delimit (slice .) ", "` prints nothing for a list of brands (the element is itself a list). #}
+{% component card(p, @__nh) %}<div class="card">
+  {%- if p.params.image %}{% set r = p.resources | get_resource(name=p.params.image) %}{% if r %}{% set t = r | fill(width=120, height=90, anchor="center") %}<img src="{{ t.rel_permalink }}" width="{{ t.width }}" height="{{ t.height }}" alt="{{ p.title }}">{% endif %}{% endif %}
+  <a class="card-title" href="{{ p.rel_permalink }}">{{ p.link_title }}</a>
+  <p>{{ p.summary | plainify | truncate_html(length=80) }}</p>
+  {% if p.params.brands %}<span class="brand">{% if p.params.brands is string %}{{ p.params.brands }}{% endif %}</span>{% endif %}
+</div>
+{% endcomponent card %}

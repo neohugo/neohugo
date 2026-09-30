@@ -1,0 +1,6 @@
+{%- set rel = related(pages=site.regular_pages, limit=5) %}
+{%- if rel %}
+<section class="related"><h3>{{ i18n(key="related") }}</h3>
+{%- for p in rel %}<a href="{{ p.rel_permalink }}">{{ p.title }}</a>{% endfor %}
+</section>
+{%- endif %}
