@@ -1,5 +1,33 @@
-//! Image processing: `ImageSpec`, operations and filters, codecs, the deferred image queue and its cache.
+//! Image processing: [`ImageSpec`], operations and [`ImageFilter`]s, codecs, the deferred
+//! [`ImageQueue`] and its cache (`[caches.images]`), and EXIF metadata.
 //!
-//! Stub written by T00 (docs/rust-port/REWRITE_PLAN.md §2.1); no API yet.
+//! A template asks for an operation (`resize "600x400 webp"`, `images.Filter`); the resource
+//! layer calls [`ImageQueue::enqueue`], which plans it from the source's metadata and returns
+//! the final file name and size at once. Build phase E6 calls [`ImageQueue::process`] for the
+//! operations whose URLs were published; it decodes, runs the planned steps with rayon and
+//! encodes (JPEG, PNG, GIF, TIFF and BMP with `image`, WebP with libwebp). See the crate
+//! README for the accepted differences from Hugo.
 
 #![forbid(unsafe_code)]
+
+mod codec;
+mod color;
+mod error;
+pub mod exif;
+mod filter;
+mod format;
+mod pixels;
+mod plan;
+mod queue;
+mod settings;
+mod spec;
+
+pub use color::Color;
+pub use error::ImageError;
+pub use exif::Exif;
+pub use filter::{ImageFilter, ImageInput, MAX_PADDING, PaddingSpec};
+pub use format::ImageFormat;
+pub use plan::{Size, cover_size, crop_rect, fit_size, resize_size, rotated_size, smart_region};
+pub use queue::{Enqueued, ImageCache, ImageQueue};
+pub use settings::{DEFAULT_EXIF_EXCLUDE, ExifPart, ExifSettings, Imaging};
+pub use spec::{Action, Anchor, Hint, ImageSpec, Resample, ResolvedSpec};
