@@ -9,10 +9,11 @@
 //! is idempotent, and yields output that parses as the same type (checked on the tdewolff
 //! corpora by the crate's tests).
 //!
-//! Invalid CSS, JavaScript, JSON or XML is an error ([`MinifyError`], with a position), where
-//! tdewolff mostly passes such input through; a caller that wants Hugo's leniency publishes the
-//! input unchanged on `Err`. HTML never fails: minify-html leaves inline CSS/JS it cannot parse
-//! as written.
+//! Invalid JavaScript, JSON or XML is an error ([`MinifyError`], with a position); a caller that
+//! wants more leniency publishes the input unchanged on `Err`. CSS never fails, as in tdewolff:
+//! rules lightningcss rejects (Tailwind's `@media screen(md)`, stray tokens, `@import` after
+//! rules) are passed through with only comments and whitespace removed, the rest is minified.
+//! HTML never fails either: minify-html leaves inline CSS/JS it cannot parse as written.
 
 #![forbid(unsafe_code)]
 
@@ -37,8 +38,6 @@ pub use options::{DecodedOptions, IgnoredOption, Options};
 pub enum MinifyError {
     #[error("[minify.tdewolff] {key}: expected {expected}")]
     Option { key: String, expected: &'static str },
-    #[error("CSS: {0}")]
-    Css(String),
     #[error("JavaScript: {0}")]
     Js(String),
     #[error("JSON at byte {offset}: {kind}")]
@@ -125,7 +124,7 @@ impl Minifier {
     /// Minifies `input` as `target`; a disabled target is returned unchanged.
     ///
     /// # Errors
-    /// Input that does not parse as `target` (HTML never fails).
+    /// Input that does not parse as `target` (HTML and CSS never fail).
     pub fn minify<'a>(
         &self,
         target: MinifyTarget,
@@ -142,7 +141,7 @@ impl Minifier {
                 self.is_enabled(MinifyTarget::Js),
                 input,
             )?,
-            MinifyTarget::Css => css::minify(&o.css, input)?,
+            MinifyTarget::Css => css::minify(&o.css, input),
             MinifyTarget::Js => js::minify(&o.js, input)?,
             MinifyTarget::Json => json::minify(input)?,
             MinifyTarget::Svg => xml::minify(

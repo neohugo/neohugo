@@ -155,8 +155,8 @@ fn css() {
         .minify(MinifyTarget::Css, "a { color: red; ")
         .map(|_| ());
     assert!(err.is_ok(), "an unclosed block at the end is valid CSS");
-    let err = Minifier::default().minify(MinifyTarget::Css, "a{b:)}");
-    assert!(matches!(err, Err(MinifyError::Css(_))), "{err:?}");
+    // Invalid CSS passes through (css_tolerance.rs).
+    assert_eq!(min(MinifyTarget::Css, "a { b: ) }"), "a{b:)}");
 }
 
 #[test]

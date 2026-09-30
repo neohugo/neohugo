@@ -288,12 +288,21 @@ fn run(m: &Minifier, inputs: &[Input]) -> Report {
 fn reparse(kind: MinifyTarget, input: &str, out: &str) -> Result<(), String> {
     match kind {
         MinifyTarget::Html => reparse_html(input, out),
-        MinifyTarget::Css => lightningcss::stylesheet::StyleSheet::parse(
-            out,
-            lightningcss::stylesheet::ParserOptions::default(),
-        )
-        .map(drop)
-        .map_err(|e| e.to_string()),
+        MinifyTarget::Css => {
+            let parse = |s| {
+                lightningcss::stylesheet::StyleSheet::parse(
+                    s,
+                    lightningcss::stylesheet::ParserOptions::default(),
+                )
+                .map(drop)
+                .map_err(|e| e.to_string())
+            };
+            // Input lightningcss rejects passes through (css_tolerance.rs): nothing to check.
+            if parse(input).is_err() {
+                return Ok(());
+            }
+            parse(out)
+        }
         MinifyTarget::Js => {
             let alloc = oxc_allocator::Allocator::default();
             let r =
