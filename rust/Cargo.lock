@@ -2915,16 +2915,22 @@ name = "neohugo-publish"
 version = "0.149.0-DEV"
 dependencies = [
  "aho-corasick",
+ "dashmap 6.2.1",
  "filetime",
  "html5gum",
+ "memchr",
  "neohugo-base",
  "neohugo-config",
  "neohugo-minify",
+ "neohugo-testkit",
+ "neohugo-vfs",
  "neohugo-workspace-hack",
  "rayon",
+ "serde",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
- "walkdir",
+ "toml",
 ]
 
 [[package]]
