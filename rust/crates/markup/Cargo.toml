@@ -32,3 +32,8 @@ html5gum.workspace = true
 unicode-segmentation.workspace = true
 unicode-normalization.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+# T04 spike harness (tests/it/comrak_spike): oracle fixtures and the gzipped goldmark corpus.
+neohugo-testkit.workspace = true
+flate2.workspace = true
