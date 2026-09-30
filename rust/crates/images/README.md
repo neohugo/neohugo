@@ -92,14 +92,16 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
   **13087/13089** with Go's image test data (`NEOHUGO_GOROOT=/usr/local/go…`, 85 more sources),
   the two differences being corrupt PNGs (below). The small synthetic results are processed too
   (4100), and their pixels have the planned size.
-* `psnr`: `golden/images/manifest.json` (T01) when present; interim: 45 of Hugo's own golden
-  images (`resources/images/testdata/images_golden`), all ≥ 30 dB but one documented case (the
-  text goldens 37–41 dB: glyph placement is pixel-exact, a one-pixel shift gives 28.5 dB;
-  `dither-default` 33.8 dB through the low-pass below), and the small oracle outputs stored in
-  full. A recipe with a `dither` filter is compared after a 7×7 box blur of both images: error
-  diffusion is chaotic in its input (the resized source already differs from Go's by a few
-  levels), so its pattern cannot match pixel for pixel; the blur compares the local tone (the
-  unblurred PSNR is 7.8 dB, the mean differs by 0.1 level).
+* `psnr`: the 20 Go-processed images of `golden/images/manifest.json` (T01) and 45 of Hugo's
+  own golden images (`resources/images/testdata/images_golden`), all ≥ 30 dB but one documented
+  JPEG case in each set (`seeksnack-combos-fill-120x90-center.jpg`, 28.9 dB, luma 38.8 dB, and
+  `methods/resize-gopherpng-100x-03fc56-jpg.jpg`, 25 dB: Go's 4:2:0 chroma against `image`'s
+  4:4:4); the text goldens reach 37–41 dB (glyph placement is pixel-exact, a one-pixel shift
+  gives 28.5 dB) and `dither-default` 33.8 dB through the low-pass below. Also the small oracle
+  outputs stored in full. A recipe with a `dither` filter is compared after a 7×7 box blur of
+  both images: error diffusion is chaotic in its input (the resized source already differs from
+  Go's by a few levels), so its pattern cannot match pixel for pixel; the blur compares the
+  local tone (the unblurred PSNR is 7.8 dB, the mean differs by 0.1 level).
 * `qr`: `qr_png` equals Hugo's golden QR images byte for byte
   (`tpl/images/testdata/images_golden/funcs`) and the XXH64 content hashes of Hugo's `TestQR`.
 * `text_dither`: text placement per option (colour, size, alignment, line spacing, wrapping),
@@ -131,7 +133,7 @@ Go-processed text and dither results enter the same way: a `{"filters": [{"op": 
 Also in `expected_diffs.toml`, which the tests read.
 
 * **Pixels**: not byte-identical to Go (other resampling code, other JPEG/PNG/WebP encoders:
-  `image`'s JPEG writes 4:2:2 chroma, Go 4:2:0; libwebp 1.4+ instead of 1.3.2). Measured by PSNR.
+  `image`'s JPEG writes 4:4:4 chroma, Go 4:2:0; libwebp 1.4+ instead of 1.3.2). Measured by PSNR.
 * **Names**: `<stem>_hu_<xxh3>.<ext>`, not Hugo's hashes; they depend on content and plan only
   (Hugo's warm/cold-cache naming difference does not exist here).
 * **Smart anchor**: the region *size* of Hugo's smart crop is reproduced exactly (so sizes
