@@ -1,0 +1,4 @@
+{#- Renders math (a passthrough element) to MathML. Go used KaTeX with output
+"htmlAndMathml" and wrapped the call in try/errorf; a to_math error fails the render here. -#}
+{{- inner | to_math(display=(type == "block")) }}
+{{- store_set(key="hasMath", value=true) -}}
