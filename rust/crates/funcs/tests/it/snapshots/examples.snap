@@ -66,6 +66,7 @@ read_file: "Hello from a project file.\n"
 regex_find: "[\"1\",\"22\"]"
 regex_replace: a&lt;1&gt;b&lt;22&gt;
 remarshal/json: "{\n   &quot;a&quot;: 1,\n   &quot;b&quot;: &quot;x&quot;\n}\n"
+remarshal/json_dates_html: "{\n   \"d\": \"2023-01-01\",\n   \"h\": \"\\u003ci\\u003e\\u0026\\u003c/i\\u003e\",\n   \"t\": \"2023-01-01T07:32:00.5\",\n   \"z\": \"2023-01-01T07:32:00+07:00\"\n}\n"
 remarshal/toml: "b = [1, 2]\n\n[a]\n  c = &quot;x&quot;\n"
 remarshal/yaml: "a:\n  c: x\nb:\n- 1\n- 2\n"
 sets/pages-by-id: "apple,"

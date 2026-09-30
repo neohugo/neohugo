@@ -246,7 +246,7 @@ fn remarshal(v: &Value, kw: &Kwargs) -> TeraResult<Value> {
         })?;
         let decoded = match from {
             Format::Json => Data::from_json_str(s).map_err(|e| e.to_string()),
-            Format::Toml => Data::from_toml_str(s).map_err(|e| e.to_string()),
+            Format::Toml => toml_with_text_dates(s),
             Format::Yaml => Data::from_yaml_str(s).map_err(|e| e.to_string()),
         }
         .map_err(|e| tera::Error::message(format!("remarshal: {e}")))?;
@@ -261,9 +261,10 @@ fn remarshal(v: &Value, kw: &Kwargs) -> TeraResult<Value> {
     };
     let out = match format {
         Format::Json => {
+            // Go's `json.MarshalIndent` escapes `<`, `>` and `&` (`<` …).
             let mut s = Json {
                 indent: Some("   "),
-                html_safe: false,
+                html_safe: true,
             }
             .encode(&data)?;
             s.push('\n');
@@ -277,6 +278,59 @@ fn remarshal(v: &Value, kw: &Kwargs) -> TeraResult<Value> {
         Format::Toml => toml(&data)?,
     };
     Ok(Value::from(out))
+}
+
+/// Decodes a TOML document for `remarshal`, its date-times as their text: a local date stays
+/// `2023-01-01` (as Go's `toml.LocalDate` marshals), not midnight of that day.
+fn toml_with_text_dates(s: &str) -> Result<Data, String> {
+    fn walk(v: toml::Value) -> toml::Value {
+        match v {
+            toml::Value::Datetime(d) => toml::Value::String(toml_date_text(&d)),
+            toml::Value::Array(a) => toml::Value::Array(a.into_iter().map(walk).collect()),
+            toml::Value::Table(t) => {
+                toml::Value::Table(t.into_iter().map(|(k, v)| (k, walk(v))).collect())
+            }
+            other => other,
+        }
+    }
+    let table: toml::Table = toml::from_str(s).map_err(|e| e.to_string())?;
+    Ok(Data::from_toml(walk(toml::Value::Table(table))))
+}
+
+/// A TOML date-time as text: `2006-01-02`, `15:04:05[.frac]`, `2006-01-02T15:04:05[.frac]`, and
+/// with an offset `…Z` or `…+07:00` (RFC 3339 with trailing fraction zeros trimmed).
+fn toml_date_text(d: &toml::value::Datetime) -> String {
+    let mut out = String::new();
+    if let Some(date) = d.date {
+        let _ = write!(out, "{:04}-{:02}-{:02}", date.year, date.month, date.day);
+    }
+    if let Some(time) = d.time {
+        if d.date.is_some() {
+            out.push('T');
+        }
+        let _ = write!(
+            out,
+            "{:02}:{:02}:{:02}",
+            time.hour,
+            time.minute,
+            time.second.unwrap_or(0)
+        );
+        let nanos = time.nanosecond.unwrap_or(0);
+        if nanos > 0 {
+            let frac = format!("{nanos:09}");
+            let _ = write!(out, ".{}", frac.trim_end_matches('0'));
+        }
+    }
+    match d.offset {
+        None => {}
+        Some(toml::value::Offset::Z | toml::value::Offset::Custom { minutes: 0 }) => out.push('Z'),
+        Some(toml::value::Offset::Custom { minutes }) => {
+            let sign = if minutes < 0 { '-' } else { '+' };
+            let m = minutes.unsigned_abs();
+            let _ = write!(out, "{sign}{:02}:{:02}", m / 60, m % 60);
+        }
+    }
+    out
 }
 
 fn sorted_entries(v: &Value) -> Vec<(String, &Value)> {

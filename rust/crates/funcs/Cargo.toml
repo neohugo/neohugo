@@ -37,6 +37,7 @@ runtime = [
     "dep:xxhash-rust",
     "dep:html5gum",
     "dep:emojis",
+    "dep:toml",
 ]
 # `to_math` (LaTeX → MathML).
 math = ["runtime", "dep:pulldown-latex"]
@@ -57,6 +58,7 @@ md-5 = { workspace = true, optional = true }
 xxhash-rust = { workspace = true, optional = true }
 html5gum = { workspace = true, optional = true }
 emojis = { workspace = true, optional = true }
+toml = { workspace = true, optional = true }
 pulldown-latex = { workspace = true, optional = true }
 svgbob = { workspace = true, optional = true }
 
