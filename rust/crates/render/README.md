@@ -7,7 +7,7 @@ and session signatures below are frozen; T34 (content engine), T35 (site functio
 ## Frozen by T38
 
 ```rust
-pub struct AliasPlan { pub from: OutputPath, pub to: PageId, pub format: FormatId }   // moves to neohugo-nav (T24), re-exported here
+pub use neohugo_nav::AliasPlan;   // { from: OutputPath, to: PageId, format: FormatId, kind: AliasKind }
 pub enum Job {
     Alias(AliasPlan),
     Page { page: PageId, format: FormatId },               // pager 1 when paginated

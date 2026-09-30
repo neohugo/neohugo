@@ -37,7 +37,9 @@ pub mod scope { pub const RULES; pub const NESTED; pub enum Rule { Type, Whole, 
 Options follow Hugo: the site's `[markup.highlight]`, then a fence's `{…}` options (keys
 case-insensitive, `hl_lines` as markup's 0-based ranges shifted by that map's `linenostart`), or
 the function's option string / map (weakly typed like mapstructure: `"true"`, `1`, `"0x10"`).
-`linenos=table|inline` also picks the layout. Invalid values are errors (`OptionsError`).
+`linenos=table|inline` also picks the layout. A fence without `lineanchors` (site or fence)
+numbers its line ids `hl-<ordinal>-<n>`, the ordinal being `HighlightOptions::ordinal` (the
+page's code block count), as Hugo does; the function has no prefix. Invalid values are errors (`OptionsError`).
 
 ## How it works
 
@@ -115,9 +117,6 @@ rebuilt to add the Go template syntaxes), the 2,284 docs items ≈ 1.9 s.
   themes"): the token types are already Chroma's, so Chroma's own definitions give Hugo's exact
   colours and every Chroma style name works; two-face's themes are unused. The "fallback
   warning" is for names Chroma does not have either (Hugo falls back silently).
-- **Fence line anchors**: Hugo prefixes fence line ids with `hl-<ordinal>` when `lineanchors`
-  is unset; the `Highlighter` seam carries no ordinal, so fence ids have no prefix unless the
-  fence sets `lineanchors` (plan issue below).
 - **Fence attributes** are written in key order (markup's attribute `Map` is sorted; Hugo keeps
   source order), and the `class` value is escaped (Hugo writes it raw).
 - **`guessSyntax`** uses syntect's first-line detection instead of Chroma's analysers; the
@@ -129,8 +128,6 @@ rebuilt to add the Go template syntaxes), the 2,284 docs items ≈ 1.9 s.
 
 ## Plan issues
 
-- `neohugo_markup::HighlightOptions` should carry the fence's ordinal so that fences get Hugo's
-  `hl-<ordinal>` line anchors (a markup fix task).
 - Chroma's licence and data (styles, lexer table) live in the crate (`src/styles/COPYING`,
   PROVENANCE rows); a `THIRD_PARTY/chroma/` entry would match the other assets (this task could
   only edit `THIRD_PARTY/two-face/`).

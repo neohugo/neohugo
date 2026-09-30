@@ -356,10 +356,14 @@ impl Highlight {
 
 impl Highlighter for Highlight {
     /// A code fence no hook handled: the site's defaults, overridden by the fence's options;
-    /// the fence's attributes go on the wrapping `<div>`.
+    /// the fence's attributes go on the wrapping `<div>`; line ids default to `hl-<ordinal>`.
     fn highlight(&self, code: &str, lang: &str, o: &HighlightOptions) -> Result<String, HookError> {
         let mut opts = self.defaults.clone();
         opts.apply_map(&o.options).map_err(HookError::new)?;
+        // Without `lineanchors`, line ids are numbered per code block, as in Hugo.
+        if opts.line_anchors.is_empty() {
+            opts.line_anchors = format!("hl-{}", o.ordinal);
+        }
         // Hugo's code block renderer ends the code with a newline.
         let mut code = code.to_owned();
         if !code.is_empty() && !code.ends_with('\n') {

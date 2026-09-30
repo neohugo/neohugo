@@ -74,7 +74,7 @@ fn date_keyword(d: Option<&Zoned>, pattern: &str) -> String {
             .expect("year 1 is in range");
         &zero
     };
-    crate::layout::format(d, layout)
+    neohugo_page::format_go_layout(d, layout)
 }
 
 fn text_keyword(cfg: &IndexConfig, s: &str) -> Keyword {

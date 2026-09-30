@@ -18,13 +18,14 @@ impl Highlighter for Stub {
         }
         let hl = o.options.get("hl_lines").cloned().unwrap_or(Value::Null);
         Ok(format!(
-            "<div class=\"highlight\" data-lang=\"{lang}\" data-hl=\"{hl:?}\">{code}</div>\n"
+            "<div class=\"highlight\" data-lang=\"{lang}\" data-hl=\"{hl:?}\" data-ord=\"{}\">{code}</div>\n",
+            o.ordinal
         ))
     }
 }
 
 /// Under `CodeFences::Hooked` a fence no hook takes goes to the highlighter, with its
-/// options; `Plain` never calls it.
+/// options and its ordinal among the code blocks; `Plain` never calls it.
 #[test]
 fn highlighter_seam() {
     let md = "```go {hl_lines=[2]}\na\nb\n```\n";
@@ -42,7 +43,19 @@ fn highlighter_seam() {
         .html;
     assert_eq!(
         out,
-        "<div class=\"highlight\" data-lang=\"go\" data-hl=\"Array([Array([Int(1), Int(1)])])\">a\nb</div>\n"
+        "<div class=\"highlight\" data-lang=\"go\" data-hl=\"Array([Array([Int(1), Int(1)])])\" data-ord=\"0\">a\nb</div>\n"
+    );
+    let two = ExpandedMarkdown {
+        text: "```a\nx\n```\n\n```b\ny\n```\n",
+        ..src
+    };
+    let out = render(&two, &o, &NoHooks, Some(&Stub))
+        .expect("renders")
+        .html;
+    assert!(
+        out.contains("data-lang=\"a\" data-hl=\"Null\" data-ord=\"0\"")
+            && out.contains("data-lang=\"b\" data-hl=\"Null\" data-ord=\"1\""),
+        "{out}"
     );
     let plain = MarkdownOptions {
         code_fences: CodeFences::Plain,

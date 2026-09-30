@@ -51,7 +51,7 @@ pub use sections::{
     CascadeConfig, CascadeTarget, DateField, DateSource, KindOutputs, Permalinks, SitemapConfig,
     TaxonomyDef, decode_cascade, decode_front_matter,
 };
-pub use site::{Direction, Language, SiteConfig, TitleConfig};
+pub use site::{Direction, Language, RedirectPolicy, SiteConfig, TitleConfig};
 
 /// Settings from the command line; they override the configuration files (the environment
 /// overrides them in turn).
@@ -148,6 +148,9 @@ pub struct Config {
     pub multihost: bool,
     /// The default language's content is under `/<lang>/` too.
     pub default_language_in_subdir: bool,
+    /// Whether the redirect to the default language's home page is written
+    /// (`disableDefaultLanguageRedirect`).
+    pub default_language_redirect: RedirectPolicy,
     pub output_formats: Arc<OutputFormats>,
     pub media_types: Arc<MediaTypes>,
     pub content_types: ContentTypes,
@@ -357,6 +360,7 @@ impl<'a> Loader<'a> {
             disabled_languages: langs.disabled,
             multihost: langs.multihost,
             default_language_in_subdir: langs.in_subdir,
+            default_language_redirect: g.default_language_redirect,
             output_formats: Arc::new(output_formats),
             media_types: Arc::new(media_types),
             content_types,
@@ -679,6 +683,11 @@ impl<'a> Loader<'a> {
                 .map(|s| s.to_lowercase())
                 .collect(),
             enable_git_info: flag("enablegitinfo"),
+            default_language_redirect: if flag("disabledefaultlanguageredirect") {
+                RedirectPolicy::Disabled
+            } else {
+                RedirectPolicy::Write
+            },
         })
     }
 
@@ -750,6 +759,7 @@ struct Global {
     ignore_files: Vec<String>,
     ignore_logs: Vec<String>,
     enable_git_info: bool,
+    default_language_redirect: RedirectPolicy,
 }
 
 /// Merges a language table over the root tree: tables merge deeply, except `menus`,

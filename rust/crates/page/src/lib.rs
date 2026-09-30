@@ -17,6 +17,7 @@ mod build;
 mod cascade;
 mod dates;
 mod error;
+mod golayout;
 mod markup;
 mod meta;
 mod paths;
@@ -29,6 +30,7 @@ pub use build::{BuildPolicy, ListMode, RenderMode};
 pub use cascade::{Cascade, CascadeRule, CascadeTarget, MatchCtx};
 pub use dates::{DateOutcome, DateResolver, Dates, FileCtx};
 pub use error::PageError;
+pub use golayout::{GoLayout, format_go_layout};
 pub use markup::{Markup, MarkupSource};
 pub use meta::{
     CaptureOverrides, Cjk, MetaCtx, PageMenuEntry, PageMeta, ResourceMetaRule, capture_overrides,

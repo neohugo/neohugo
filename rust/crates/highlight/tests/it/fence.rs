@@ -71,6 +71,29 @@ fn fence_equals_the_function_with_a_newline() {
 }
 
 #[test]
+fn fence_line_anchors_are_numbered_per_code_block() {
+    let hl = classes();
+    let md = "```go {linenos=inline anchorlinenos=true}\na\n```\n\n\
+              ```go {linenos=inline anchorlinenos=true}\nb\n```\n\n\
+              ```go {linenos=inline anchorlinenos=true lineanchors=x}\nc\n```\n";
+    let html = markdown(&hl, md).expect("render");
+    // Hugo: `lineanchors` defaults to `hl-<ordinal>` for code blocks.
+    for id in ["hl-0-1", "hl-1-1", "x-1"] {
+        assert!(html.contains(&format!("id=\"{id}\"")), "{id}: {html}");
+        assert!(html.contains(&format!("href=\"#{id}\"")), "{id}: {html}");
+    }
+    // The function has no ordinal: no prefix unless `lineanchors` is given.
+    let direct = hl
+        .highlight_with(
+            "a\n",
+            "go",
+            OptionsArg::Str("linenos=inline,anchorlinenos=true"),
+        )
+        .expect("highlight");
+    assert!(direct.contains("id=\"1\""), "{direct}");
+}
+
+#[test]
 fn unknown_language_stays_plain() {
     let hl = classes();
     let html = markdown(&hl, "```nosuch\na < b\n```\n").expect("render");

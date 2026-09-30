@@ -252,6 +252,8 @@ pub struct HighlightOptions {
     pub options: Map,
     /// The fence's other attributes.
     pub attributes: Map,
+    /// The fence's ordinal among the page's code blocks (from 0; [`HookEnv::ordinal`]).
+    pub ordinal: u32,
 }
 
 /// Highlights fenced code that no code-block hook handled (implemented by `neohugo-highlight`).

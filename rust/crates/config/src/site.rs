@@ -121,6 +121,16 @@ pub enum AliasPolicy {
     Disabled,
 }
 
+/// Whether the redirect to the default language's home page is written
+/// (`disableDefaultLanguageRedirect`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum RedirectPolicy {
+    #[default]
+    Write,
+    Disabled,
+}
+
 /// Whether `robots.txt` is rendered (`enableRobotsTXT`).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -197,6 +207,8 @@ pub struct SiteConfig {
     pub sitemap: SitemapConfig,
     pub services: Services,
     pub menus: Vec<MenuEntryConfig>,
+    /// `sectionPagesMenu`: the menu the top-level sections are added to, when set.
+    pub section_pages_menu: Option<String>,
     pub cascade: Vec<CascadeConfig>,
     pub urls: UrlPolicy,
     #[serde(serialize_with = "ser_kinds")]
@@ -293,6 +305,7 @@ struct Raw {
     ref_links_not_found_url: String,
     #[serde(rename = "hasCJKLanguage")]
     has_cjk_language: bool,
+    section_pages_menu: String,
     pagination: PaginationConfig,
     markup: MarkupConfig,
     sitemap: SitemapConfig,
@@ -404,8 +417,13 @@ pub(crate) fn decode_site(tree: &Map, cx: SiteContext<'_>) -> Result<SiteConfig,
         }
         Some(_) => return Err(ConfigError::invalid("related", "expected a table")),
     };
-    let menus = crate::sections::decode_menus(&section("menus"))
-        .map_err(|e| crate::decode_error("menus", &e))?;
+    let menus = match tree.get("menus") {
+        None | Some(Value::Null) => Vec::new(),
+        Some(Value::Map(m)) => {
+            crate::sections::decode_menus(m).map_err(|e| crate::decode_error("menus", &e))?
+        }
+        Some(_) => return Err(ConfigError::invalid("menus", "expected a table")),
+    };
     let cascade = crate::sections::decode_cascade(tree.get("cascade").unwrap_or(&Value::Null))
         .map_err(|e| crate::decode_error("cascade", &e))?;
 
@@ -442,6 +460,7 @@ pub(crate) fn decode_site(tree: &Map, cx: SiteContext<'_>) -> Result<SiteConfig,
         sitemap: raw.sitemap,
         services: raw.services,
         menus,
+        section_pages_menu: Some(raw.section_pages_menu).filter(|s| !s.is_empty()),
         cascade,
         urls: UrlPolicy {
             link_style: if raw.canonify_urls {

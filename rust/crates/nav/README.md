@@ -30,16 +30,17 @@ the normalised score and threshold use exact integer arithmetic. `page/1` redire
 
 The oracle tests replay `rust/testdata/oracle/page/{menus,pagination,related}` and the alias
 files of `rust/testdata/oracle/hugolib/build/*` and print pass rates; every difference is exact
-or a reviewed class of `expected_diffs.toml` (all of them upstream decoding differences):
+or a reviewed class of `expected_diffs.toml` (two oracle cases that call Go's decoders on
+tables Hugo's configuration loader never produces):
 
 | Family | Checks | Exact | Accepted |
 |---|---|---|---|
-| menus (assembled trees, page entries, IsMenuCurrent/HasMenuCurrent, sorts) | 1,915 | 99.16 % | 16 `page-menus-scalar-name` (neohugo-page) |
-| menus config decode (neohugo-config over `decode.json.gz`) | 9 | 55.6 % | 4 config classes |
+| menus (assembled trees, page entries, IsMenuCurrent/HasMenuCurrent, sorts) | 1,927 | 100 % | – |
+| menus config decode (neohugo-config over `decode.json.gz`) | 9 | 88.9 % | 1 `config-menu-name-folded` (oracle artifact) |
 | pagination (every build paginator, other sizes, groups, pager URLs) | 1,516 | 100 % | – |
 | pager-size option | 15 | 100 % | – |
 | related (Related, option maps, Add, Search, SearchNamed) | 13,672 | 100 % | – |
-| related config decode (neohugo-config) | 15 | 80 % | 3 config classes |
+| related config decode (neohugo-config) | 15 | 93.3 % | 1 `config-related-empty-accepted` (oracle artifact) |
 | aliases (front matter + main-language redirect of the 25 Go builds that wrote redirects) | 60 | 100 % | – |
 
 Not this crate's (skipped, counted): 24 pagination and 156 related cases that test template

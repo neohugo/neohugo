@@ -8,9 +8,9 @@ use neohugo_config::sections::SitemapConfig;
 use neohugo_config::site::TitleConfig;
 use neohugo_config::{DateField, DateSource, MediaTypes, OutputFormats};
 use neohugo_page::{
-    Cascade, Cjk, DateResolver, FileCtx, ListMode, Markup, MarkupSource, MatchCtx, MetaCtx,
-    PageError, PermalinkCtx, PermalinkPattern, RenderMode, capture_overrides, default_title,
-    meta_from_params,
+    Cascade, Cjk, DateResolver, FileCtx, GoLayout, ListMode, Markup, MarkupSource, MatchCtx,
+    MetaCtx, PageError, PermalinkCtx, PermalinkPattern, RenderMode, capture_overrides,
+    default_title, format_go_layout, meta_from_params,
 };
 
 fn params(toml: &str) -> Params {
@@ -426,4 +426,46 @@ fn go_layouts_become_strftime() {
         "/sub/sub/a-title/"
     );
     assert!(PermalinkPattern::parse("/:nothing/").is_err());
+}
+
+#[test]
+fn front_matter_menu_scalars() {
+    let site = Site::new();
+    let menus = |toml: &str| {
+        meta_from_params(params(toml), &site.ctx(PageKind::Page, "md", None))
+            .expect("meta")
+            .menus
+    };
+    let m = menus("menu = 42");
+    assert_eq!(m.len(), 1);
+    assert_eq!(m[0].menu, "42");
+    assert_eq!(menus("menus = [\"main\", 7]")[1].menu, "7");
+    // A boolean in the entry's text fields reads as `1`/`0`.
+    let m = menus("[menus.main]\npre = true\npost = false\nname = \"n\"");
+    assert_eq!(
+        (m[0].pre.as_str(), m[0].post.as_str(), m[0].name.as_str()),
+        ("1", "0", "n")
+    );
+}
+
+#[test]
+fn go_layouts_format() {
+    let d: jiff::Zoned = "2024-03-05T14:07:09+07:00[Asia/Bangkok]"
+        .parse()
+        .expect("date");
+    assert_eq!(format_go_layout(&d, "2006"), "2024");
+    assert_eq!(format_go_layout(&d, "2006-01-02"), "2024-03-05");
+    assert_eq!(format_go_layout(&d, "Jan 2, 06 3:04PM"), "Mar 5, 24 2:07PM");
+    assert_eq!(
+        format_go_layout(&d, "Monday 15:04:05 -07:00"),
+        "Tuesday 14:07:09 +07:00"
+    );
+    assert_eq!(format_go_layout(&d, "x_2y"), "x 5y");
+    assert_eq!(format_go_layout(&d, "-0700 Z07:00 -07"), "+0700 +07:00 +07");
+    // `1` is the month; `%` is text.
+    assert_eq!(format_go_layout(&d, "100%"), "300%");
+    assert_eq!(format_go_layout(&d, "2006 %d"), "2024 %d");
+    let utc: jiff::Zoned = "0001-01-01T00:00:00+00:00[UTC]".parse().expect("date");
+    assert_eq!(format_go_layout(&utc, "2006 Z0700 -0700"), "0001 Z +0000");
+    assert!(GoLayout::parse("text").is_none());
 }

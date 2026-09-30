@@ -725,6 +725,8 @@ impl<'r, 'a> Renderer<'r, 'a> {
             options: attributes::to_map(&options),
             attributes: attributes::to_map(&attrs),
         };
+        // `call` numbers the code block (hooks are set here).
+        let ordinal = self.ordinals[HookKind::CodeBlock as usize];
         if let Some(html) = self.call(HookKind::CodeBlock, n, |h, env| h.code_block(env, &ctx))? {
             self.out.push_str(&html);
             return Ok(());
@@ -733,6 +735,7 @@ impl<'r, 'a> Renderer<'r, 'a> {
             let o = HighlightOptions {
                 options: ctx.options,
                 attributes: ctx.attributes,
+                ordinal,
             };
             let html = hl
                 .highlight(&inner, &lang, &o)
