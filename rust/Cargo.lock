@@ -2673,17 +2673,19 @@ dependencies = [
 name = "neohugo-build"
 version = "0.149.0-DEV"
 dependencies = [
+ "jiff",
  "neohugo-base",
- "neohugo-esbuild",
- "neohugo-highlight",
- "neohugo-images",
+ "neohugo-config",
+ "neohugo-layouts",
  "neohugo-publish",
  "neohugo-render",
- "neohugo-resources",
+ "neohugo-site",
+ "neohugo-testkit",
+ "neohugo-vfs",
  "neohugo-workspace-hack",
  "rayon",
+ "tempfile",
  "thiserror 2.0.21",
- "tracing",
 ]
 
 [[package]]
@@ -2937,16 +2939,18 @@ dependencies = [
 name = "neohugo-render"
 version = "0.149.0-DEV"
 dependencies = [
- "dashmap 6.2.1",
  "neohugo-base",
+ "neohugo-config",
  "neohugo-funcs",
  "neohugo-layouts",
  "neohugo-markup",
- "neohugo-pageparser",
- "neohugo-sitefuncs",
+ "neohugo-page",
+ "neohugo-site",
+ "neohugo-vfs",
  "neohugo-view",
  "neohugo-workspace-hack",
  "rayon",
+ "tempfile",
  "tera",
  "thiserror 2.0.21",
 ]
@@ -3065,11 +3069,12 @@ name = "neohugo-view"
 version = "0.149.0-DEV"
 dependencies = [
  "dhat",
+ "jiff",
  "neohugo-base",
+ "neohugo-config",
  "neohugo-layouts",
  "neohugo-markup",
- "neohugo-nav",
- "neohugo-resources",
+ "neohugo-page",
  "neohugo-site",
  "neohugo-workspace-hack",
  "serde",

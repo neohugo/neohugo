@@ -22,13 +22,19 @@ workspace = true
 [dependencies]
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
+neohugo-config.workspace = true
+neohugo-vfs.workspace = true
+neohugo-site.workspace = true
+neohugo-layouts.workspace = true
 neohugo-render.workspace = true
 neohugo-publish.workspace = true
-neohugo-resources.workspace = true
-neohugo-images.workspace = true
-neohugo-highlight.workspace = true
-neohugo-esbuild.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
+# T38 (walking skeleton) dropped the planned `neohugo-resources`, `neohugo-images`,
+# `neohugo-highlight` and `neohugo-esbuild` edges: the skeleton publishes no resources, processes
+# no images and highlights nothing. T36 adds them back.
+jiff.workspace = true
 rayon.workspace = true
-tracing.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+tempfile.workspace = true

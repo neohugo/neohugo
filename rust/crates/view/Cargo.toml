@@ -22,14 +22,16 @@ workspace = true
 [dependencies]
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
+neohugo-config.workspace = true
+neohugo-page.workspace = true
 neohugo-site.workspace = true
-neohugo-nav.workspace = true
-neohugo-resources.workspace = true
 neohugo-markup.workspace = true
 neohugo-layouts.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
+# T38 (walking skeleton) dropped the planned `neohugo-nav` and `neohugo-resources` edges: the
+# skeleton has no menus, related pages or resources. T33 adds them back with the real views.
 tera.workspace = true
 serde.workspace = true
+jiff.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
