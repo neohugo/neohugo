@@ -7,7 +7,7 @@ texts and sources are kept here (REWRITE_PLAN.md §5). Each entry names the task
 | Directory | Material | Licence | Added by |
 |---|---|---|---|
 | `hugo/` | Hugo (gohugoio/hugo, forked as neohugo): the embedded templates rewritten in Tera (`crates/layouts/embedded/`) derive from Hugo's `tpl/tplimpl/embedded/templates` | Apache-2.0 (`hugo/LICENSE`) | T00 (licence), T32 (templates) |
-| `two-face/` | Syntax definitions and themes bundled in the two-face / syntect dumps (bat's assets), each with its own licence | per asset (MIT, Apache-2.0, BSD, …) | T25 |
+| `two-face/` | Syntax definitions and themes bundled in the two-face 0.5.2 dump (bat's assets), each with its own licence; `ACKNOWLEDGEMENTS.md` is two-face's listing | per asset (MIT, Apache-2.0, BSD, …; `two-face/ACKNOWLEDGEMENTS.md`) | T25 |
 | `cldr/` | Unicode CLDR 48.2.1 data compiled into the ICU4X 2.3 data crates (collation, plurals, numbers, dates) used by `crates/locale` | Unicode-3.0 (`cldr/LICENSE`) | T12 |
 | `emoji/` | Emoji short-code data (comrak's `emojis` crate, from GitHub gemoji / Unicode) | MIT / Unicode-3.0 | T22 |
 | `livereload/` | `livereload.js` served by `neohugo-rs server` | MIT | T71 |

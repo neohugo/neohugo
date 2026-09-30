@@ -1,0 +1,17 @@
+%YAML 1.2
+---
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 the neohugo authors.
+#
+# Go HTML templates (html/template) for neohugo-highlight: HTML with the actions and comments
+# of `GoTemplate.sublime-syntax` recognised everywhere, including attribute values, comments,
+# scripts and styles (Chroma's go-html-template lexes the template first and HTML in between).
+name: Go HTML Template
+scope: text.html.go-template
+file_extensions: []
+contexts:
+  main:
+    - match: ''
+      push: scope:text.html.basic
+      with_prototype:
+        - include: scope:text.go-template#template
