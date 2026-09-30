@@ -2936,13 +2936,14 @@ dependencies = [
 name = "neohugo-page"
 version = "0.149.0-DEV"
 dependencies = [
- "globset",
  "jiff",
  "neohugo-base",
  "neohugo-config",
+ "neohugo-locale",
+ "neohugo-testkit",
  "neohugo-vfs",
  "neohugo-workspace-hack",
- "serde",
+ "serde_json",
  "thiserror 2.0.21",
 ]
 
