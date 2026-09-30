@@ -1373,7 +1373,7 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 | `toCSS`/`css.Sass`, `postCSS`, `css.TailwindCSS`, `babel`, `js.Build`, `resources.ExecuteAsTemplate`, `resources.PostProcess` | `to_css(options=)`, `postcss(options=)`, `tailwind(options=)`, `babel(options=)`, `js_build(options=)`, `execute_as_template(target=, data=)` (the asset is a Tera template), `post_process` | F (s) | D S R |
 | `.Resize` `.Fill` `.Fit` `.Crop` `.Process`, `.Width`, `.Height` | `resize(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)`, likewise `fill` `fit` `crop` `process`; `r.width`, `r.height` (known immediately) | F (s) | D S R |
 | `images.Filter`, `.Filter`, `images.*` constructors | `image_filter(filters=[{"op": "overlay", "image": logo, "x": 10, "y": 10}, {"op": "grayscale"}])` | F (s) | D S R |
-| `images.Text`, `images.QR`, `.Exif`, `.Colors` | `{"op": "text", …}` (COULD), `qr_code(text=, …)` (COULD), `exif`, `image_colors` | F/fn (s) | D |
+| `images.Text`, `images.Dither`, `images.QR`, `.Exif`, `.Colors` | `{"op": "text", …}`, `{"op": "dither", …}` (T72a), `qr_code(text=, level=?, scale=?, target_dir=?)` (T72a: Hugo's bytes and name), `exif`, `image_colors` | F/fn (s) | D |
 | `partial`, `partialCached`, `return`, `templates.Exists`, `templates.Defer` | include / component / `partial(name=, …)`, `partial_cached(name=, key=, …)`, `return_value(value=)`, `template_exists(name=)`, `defer(template=, key=, data=?)` | op/fn (s) | all |
 | `site.GetPage`, `.GetPage` | `get_page(path=, lang=?, page=?)` → full value or `none` | fn (s) | D S R |
 | (full value of a listed page) | `p \| deref` | F (s) | D |
@@ -1535,8 +1535,8 @@ fast_image_resize = { version = "6.1", features = ["image", "rayon"] }
 webp         = { version = "0.3.1", default-features = false }   # lossy q, preset, sharp YUV (C libwebp, BSD-3)
 kamadak-exif = "0.6.1"
 imageproc    = { version = "0.27", default-features = false }
-ab_glyph     = "0.2.32"                        # COULD (images.Text)
-qrcode       = { version = "0.14", default-features = false }   # COULD (verify)
+ab_glyph     = "0.2.32"                        # images.Text (T72a)
+qrcode       = { version = "0.14", default-features = false }   # images.QR (T72a)
 color_quant  = "2"
 kmeans_colors = "0.7.1"
 smartcrop2   = "0.4"                           # COULD
@@ -1899,7 +1899,7 @@ Sizes are Rust src + tests unless noted.
 | **T35** | neohugo-sitefuncs | `crates/sitefuncs` | T33, T40, T41, T42, T12 | <ul><li>every site-bound `FUNCS` entry</li><li>get_page/ref/rel_ref cases</li><li>pagination recorder: first call, identical reuse, conflict error with both positions, pager N in wave 2 incl. inside `partial()`</li><li>frames: nested `return_value`; `partial_cached` caches values</li><li>defer; store; i18n; deref; components via `page=` and via `@__nh`</li><li>`get_remote` error and `optional`</li></ul> | 3.0k |
 | **T36** | neohugo-build | `crates/build` | T34, T35, T50 | <ul><li>full §3 pipeline: language sub-waves, wave 2, deferred wave, URL-token publishing, images</li><li>mini, testsite and edge trees in memory match the structure oracle</li><li>docs cross-page shortcode cases (`include`, `glossary-term`, `quick-reference`)</li><li>A-DET; collisions logged</li></ul> | 2.6k |
 | **T37** | CLI + `templates check` | `crates/cli` | T36 | <ul><li>kebab-case flags with camelCase aliases (`--clean-destination-dir` / `--cleanDestinationDir`, `-s -d -b -e --minify --clock -D -E -F`)</li><li>`HUGO_*` env</li><li>error report with positions; exit codes</li><li>`templates check` (§4.8) on 3 overlays</li><li>`nh-commands/cli` mapping</li></ul> | 1.4k |
-| **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed. **State:** `neohugo/tests/it/parity.rs` runs A-T through the binary: L1 56/56, L2 55/55 byte-identical (links, aliases, feeds, JSON URLs; dangling links only where Go's are), L3 every page, `hugo_stats.json` sets equal the oracle-checked collector over Go's HTML (Go's file itself is not in the reference); the structure oracle waits for T01 (TODO in the test). Embedded snapshots and their review table: `neohugo/tests/it/embedded.rs`, `crates/cli/README.md`; goat (T66) and `qr_code` are not renderable yet | fixes |
+| **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed. **State:** `neohugo/tests/it/parity.rs` runs A-T through the binary: L1 56/56, L2 55/55 byte-identical (links, aliases, feeds, JSON URLs; dangling links only where Go's are), L3 every page, `hugo_stats.json` sets equal the oracle-checked collector over Go's HTML (Go's file itself is not in the reference); the structure oracle waits for T01 (TODO in the test). Embedded snapshots and their review table: `neohugo/tests/it/embedded.rs`, `crates/cli/README.md`; goat (T66) is not renderable yet (`qr_code` since T72a) | fixes |
 | **T61** | Reconstruction layouts + assets in Tera | `rust/sites/seeksnack/**` | T02 (`FUNCS` final after T35) | contract test clean; v0.146 names; TS assets converted; redundant `.Paginate` dropped; §4.7 review | ~0.9k Tera |
 | **T62** | Reconstruction parity | `rust/sites/seeksnack/**`, baselines | T60, T61, T41, T42 | A-R | fixes |
 | **T63** | docs layouts A | `rust/sites/docs/layouts/{top-level,_partials/**}`, `patches/{i01,reduced}/` for baseof, get-featured-image, qr, body-main-start, get-github-info | T02 | contract test clean for the base and both variants; patch files 1:1 with `patches.json` | ~2.3k Tera |
@@ -1908,7 +1908,7 @@ Sizes are Rust src + tests unless noted.
 | **T66** | docs A-D2 | `diagrams_goat` in `funcs` (fix-task lock), markup/highlight/resources fix tasks, docs overlay | T65, T25, T42, T31 | A-D2 | ~1k + fixes |
 | **T70** | Cleanup, audit, A-P | `docs/rust-port/`, `tools/rust-port/`, `PROVENANCE.md` | T62, T65 | HANDOFF rewritten; specs marked "byte-parity sections obsolete"; licence and provenance audit; A-P measured (release) | 0.3k |
 | **T71** | neohugo-serve | `crates/serve`, `cli` (serve) | T36 | memory sink; `/livereload.js` + `/livereload` WebSocket on the same port; notify debounce 1 s; full rebuild; static-only copy; edit → reload ≤ 2 s on testsite | 1.5k |
-| **T72** | COULD features | per-feature crates (fix-task locks) | T65 | Each item lifts one patch and keeps A-D2 green: <ul><li>`images.Text` (`{op:"text"}`), `qr_code`, Dither, smartcrop</li><li>Chroma style gallery</li><li>`:git` lastmod</li><li>content adapters as a `_content.html` Tera template calling `add_page`</li><li>Org front matter</li></ul> | 3k |
+| **T72** | COULD features | per-feature crates (fix-task locks) | T65 | Each item lifts one patch and keeps A-D2 green: <ul><li>`images.Text` (`{op:"text"}`), `qr_code`, Dither, smartcrop (**T72a** implemented the first three in `images`/`resources`/`sitefuncs`; the docs patches are not lifted yet)</li><li>Chroma style gallery</li><li>`:git` lastmod</li><li>content adapters as a `_content.html` Tera template calling `add_page`</li><li>Org front matter</li></ul> | 3k |
 | **T73** | neohugo-migrate + real seeksnack | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(neohugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
 
 ### 8.3 Schedule (four lanes) and critical path

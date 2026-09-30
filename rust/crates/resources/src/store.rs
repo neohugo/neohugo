@@ -14,13 +14,51 @@ use neohugo_base::paths::{self, OutputPath, Permalink, UrlPath};
 use neohugo_base::url::BaseUrl;
 use neohugo_base::{IdVec, Idx, ImageOpId, LangIdx, Map, PageId, Params, ResourceId, Value};
 use neohugo_config::{Config, MediaType, MediaTypes};
-use neohugo_images::{Enqueued, ImageError, ImageFormat, ImageInput, ImageQueue};
+use neohugo_images::{Enqueued, ImageError, ImageFormat, ImageInput, ImageQueue, QrLevel};
 use neohugo_vfs::{Component, Vfs, VfsError};
 use sha2::{Digest, Sha256, Sha384, Sha512};
 use xxhash_rust::xxh3::xxh3_64;
 
+use crate::gohash;
 use crate::pipes::{self, PipeError, PipeState, Transform, TransformEnv};
 use crate::remote::{RemoteConfig, RemoteState};
+
+/// The options of `images.QR` (Hugo's defaults: medium, 4, no directory).
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QrOptions {
+    pub level: QrLevel,
+    /// Image pixels per module, at least 2.
+    pub scale: u32,
+    /// The directory of the image below the publish directory.
+    pub target_dir: String,
+}
+
+impl Default for QrOptions {
+    fn default() -> Self {
+        Self {
+            level: QrLevel::Medium,
+            scale: 4,
+            target_dir: String::new(),
+        }
+    }
+}
+
+/// Hugo's target path of `images.QR text options`: `<targetDir>/qr_<hash>.png`, the hash being
+/// `hashing.HashStringHex(text, opts)` of the decoded options struct
+/// `{Level string; Scale int; TargetDir string}` (hex without leading zeros).
+#[must_use]
+pub fn qr_target(text: &str, options: &QrOptions) -> String {
+    let opts = gohash::structure(
+        "",
+        &[
+            ("Level", gohash::string(options.level.name())),
+            ("Scale", gohash::int(i64::from(options.scale))),
+            ("TargetDir", gohash::string(&options.target_dir)),
+        ],
+    );
+    let hash = gohash::list([gohash::string(text), opts]);
+    paths::clean(&format!("/{}/qr_{hash:x}.png", options.target_dir))
+}
 
 /// What a resource is, for the template layer.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -934,6 +972,27 @@ impl ResourceStore {
                 policy: PublishPolicy::OnReference,
                 kind: Some(src.kind),
             })
+        })
+    }
+
+    /// `images.QR`: the PNG of the QR code of `text` (see [`neohugo_images::qr_png`], equal to
+    /// Hugo's bytes), published at [`qr_target`] — Hugo's name, so its URLs are the Go build's.
+    ///
+    /// # Errors
+    /// Empty or too long text, a scale below 2, or (never in practice: the name hashes the
+    /// inputs) a target conflict.
+    pub fn qr_code(
+        &self,
+        text: &str,
+        options: &QrOptions,
+        call: &CallSite,
+    ) -> Result<ResourceId, ResourceError> {
+        let target = qr_target(text, options);
+        // The name hashes every input: the same name is the same image.
+        let input = xxh3_64(target.as_bytes());
+        self.claim(&target, input, call, |out, link| {
+            let png = neohugo_images::qr_png(text, options.level, options.scale)?;
+            Ok(self.named(call.lang, out, link, Body::Bytes(png.into())))
         })
     }
 

@@ -29,3 +29,33 @@ exif_patterns = "an invalid `[imaging.exif]` field pattern is a configuration er
 [psnr]
 # Interim golden images (resources/images/testdata/images_golden) below 30 dB.
 "methods/resize-gopherpng-100x-03fc56-jpg.jpg" = "a 100 px cartoon with hard edges, flattened and JPEG-encoded at q75 by two different encoders (image: 4:2:2 chroma, Go: 4:2:0): 25 dB, while the same result as PNG (resize-gopherpng-100x-fc03ec.png) is 33 dB"
+
+[text]
+# Rules of the text filter (tests/it/text_dither.rs, src/text.rs tests).
+coverage = "glyph coverage is ab_glyph's (outlines not rounded to 1/64 px first) and compositing is floating point, not Go's 16-bit integer arithmetic: edge pixels differ slightly (PSNR 37-41 dB against Hugo's text goldens)"
+strict_options = "unknown option keys, an invalid colour, a size that is not positive or above 10000 px and x/y/linespacing beyond 2^24 px are errors; Go ignores unknown keys and invalid colours, fails later on a bad size and wraps its integers"
+align_case = "alignx/aligny values ignore case; Go accepts lower case only"
+font_identity = "a font is identified by its content hash; Go keys it by the font resource's key"
+gpos_subset = "GPOS kerning subtables x/image cannot parse (unknown coverage or class formats) give no kerning; Go refuses the whole font"
+
+[dither]
+# Method names (and the pattern rule) whose results cannot equal Go's (src/dither.rs,
+# tests/it/text_dither.rs checks that every key but `pattern` is a method).
+pattern = "error-diffusion noise is chaotic in its input, so results are compared through a 7x7 box blur (tone), not pixel for pixel: dither-default is 7.8 dB unblurred, 33.8 dB blurred"
+stevenpigeon = "Steven Pigeon's kernel (hbfs.wordpress.com, 2013) could not be consulted offline: a stand-in with its reach (two pixels ahead, two rows down) is used"
+clustereddot6x6 = "Ulichney, Digital Halftoning, fig. 5.9 not available offline: a 6x6 dot grown from the centre (36 levels + 1)"
+clustereddot6x6_2 = "the table of the page the library cites (archive.is/71e9G) not available offline: the 6x6 dot grown counter-clockwise"
+clustereddot6x6_3 = "the table of the page the library cites (archive.is/71e9G) not available offline: a 6x6 dot grown by rings (Chebyshev distance)"
+clustereddot8x8 = "Lau & Arce, Modern Digital Halftoning, fig. 1.5 not available offline: an 8x8 dot grown from the centre (64 levels + 1)"
+clustereddotdiagonal16x16 = "Ulichney fig. 5.4 (M = 8) not available offline: two 45-degree dots grown together (128 levels + 1)"
+clustereddotdiagonal6x6 = "Ulichney fig. 5.4 (M = 3) not available offline: two 45-degree dots grown together (18 levels + 1)"
+clustereddotdiagonal8x8_2 = "Ulichney fig. 5.4 (M = 4) not available offline: two 45-degree dots grown together (32 levels + 1)"
+clustereddotdiagonal8x8_3 = "the table of the page the library cites (archive.is/71e9G) not available offline: the caca.zoy.org 45-degree 8x8 matrix with its values halved (32 levels + 1)"
+clustereddothorizontalline = "Ulichney fig. 5.13 not available offline: a 6x6 cell filled row by row from the middle rows outwards"
+clustereddotspiral5x5 = "Ulichney fig. 5.13 not available offline: a square spiral from the centre of a 5x5 cell"
+clustereddotverticalline = "the transpose of clustereddothorizontalline (as the library rotates its horizontal-line matrix)"
+horizontal3x5 = "the library's own rotation of vertical5x3; its direction is not documented: the transpose is used"
+
+[qr]
+# QR code images equal Go's bytes (tests/it/qr.rs); only the option rules differ.
+level_case = "a level name may be in any case and is hashed lower-cased into the file name; Go accepts lower case only"

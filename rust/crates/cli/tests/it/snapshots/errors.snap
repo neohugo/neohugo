@@ -1,6 +1,6 @@
 ---
 source: crates/cli/tests/it/embedded.rs
-expression: "format!(\"{}\\n\\n{goat_err}\\n{qr_err}\", lines.join(\"\\n\"))"
+expression: "format!(\"{}\\n\\n{goat_err}\", lines.join(\"\\n\"))"
 ---
 ERROR build failed: 10 error(s)
 ERROR: Missing param key: "[site]/content/param.md:4:1"
@@ -20,9 +20,3 @@ ERROR build failed: [site]/content/p.md: [site]/content/p.md:1:1: code block ren
   |
 5 |   {%- set diagram = diagrams_goat(text=inner) %}
   |                     ^^^^^^^^^^^^^^^^^^^^^^^^^
-
-ERROR build failed: [site]/content/p.md: [site]/content/p.md:4:1: shortcode template _embedded/_shortcodes/qr.html: error: `qr_code` is not implemented in this build of neohugo
-  --> _embedded/_shortcodes/qr.html:34:17
-   |
-34 |   {%- set img = qr_code(text=text, level=level, scale=scale, target_dir=target_dir) %}
-   |                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

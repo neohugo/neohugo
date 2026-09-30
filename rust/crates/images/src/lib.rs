@@ -1,5 +1,6 @@
-//! Image processing: [`ImageSpec`], operations and [`ImageFilter`]s, codecs, the deferred
-//! [`ImageQueue`] and its cache (`[caches.images]`), and EXIF metadata.
+//! Image processing: [`ImageSpec`], operations and [`ImageFilter`]s (text and dithering
+//! included), codecs, the deferred [`ImageQueue`] and its cache (`[caches.images]`), EXIF
+//! metadata, and QR code images ([`qr_png`]).
 //!
 //! A template asks for an operation (`resize "600x400 webp"`, `images.Filter`); the resource
 //! layer calls [`ImageQueue::enqueue`], which plans it from the source's metadata and returns
@@ -10,27 +11,38 @@
 
 #![forbid(unsafe_code)]
 
+#[macro_use]
+mod named;
+
 mod codec;
 mod color;
+mod dither;
 mod error;
 pub mod exif;
 mod filter;
+mod font;
 mod format;
 mod pixels;
 mod plan;
+mod qr;
 mod queue;
 mod settings;
 mod spec;
+mod text;
 
 pub use color::Color;
+pub use dither::{DitherMethod, DitherSpec};
 pub use error::ImageError;
 pub use exif::Exif;
 pub use filter::{ImageFilter, ImageInput, MAX_PADDING, PaddingSpec};
+pub use font::FontId;
 pub use format::ImageFormat;
 pub use plan::{Size, cover_size, crop_rect, fit_size, resize_size, rotated_size, smart_region};
+pub use qr::{QrLevel, QrModules, qr_modules, qr_png};
 pub use queue::{Enqueued, ImageCache, ImageQueue};
 pub use settings::{DEFAULT_EXIF_EXCLUDE, ExifPart, ExifSettings, Imaging};
 pub use spec::{Action, Anchor, Hint, ImageSpec, Resample, ResolvedSpec};
+pub use text::{AlignX, AlignY, FontInput, TextSpec};
 
 /// The size and format of an encoded image, from its header (`.Width` and `.Height` of an
 /// image that is not processed).

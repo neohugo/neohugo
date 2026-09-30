@@ -1,18 +1,22 @@
 //! Images: `resize`, `fill`, `fit`, `crop`, `process`, `image_filter` (queued in the
 //! [`ImageQueue`]: the result's name and size are known at once, its pixels are processed in
-//! phase E6), `exif`; `image_colors` and `qr_code` are not implemented yet.
+//! phase E6), `exif`, `qr_code`; `image_colors` is not implemented yet.
 
 use std::sync::Arc;
 
-use neohugo_images::{Action, Anchor, ImageFilter, ImageFormat, ImageQueue, ImageSpec, Resample};
-use neohugo_resources::ResourceStore;
+use neohugo_images::{
+    Action, Anchor, ImageFilter, ImageFormat, ImageQueue, ImageSpec, QrLevel, Resample,
+};
+use neohugo_resources::{QrOptions, ResourceStore};
+use neohugo_view::ViewCache;
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;
 use crate::call::{
-    Registrar, SiteFilter, SiteFunction, chain, field, list, map_value, msg, resource_id, to_json,
+    Registrar, SiteFilter, SiteFunction, chain, field, list, map_value, msg, resource_id, text,
+    to_json,
 };
-use crate::resources::view_value;
+use crate::resources::{call_site, view_value};
 
 pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
     for (name, action) in [
@@ -47,7 +51,13 @@ pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
         },
     );
     r.filter("image_colors", NotImplemented("image_colors"));
-    r.function("qr_code", NotImplemented("qr_code"));
+    r.function(
+        "qr_code",
+        QrCode {
+            views: Arc::clone(&h.views),
+            store: Arc::clone(&h.store),
+        },
+    );
 }
 
 /// Queues `spec` then `filters` on image resource `v`; its resource view.
@@ -165,15 +175,51 @@ impl SiteFilter for Process {
 }
 
 /// `r | image_filter(filters=[{"op": …}, …])`: `overlay` and `mask` take a resource view as
-/// `image`; `process` a spec string.
+/// `image`, `text` as `font` (any resource: a file, a remote font, …); `process` a spec string.
 struct Filter {
     store: Arc<ResourceStore>,
     images: Arc<ImageQueue>,
 }
 
 impl Filter {
+    /// Registers the font resource of a text filter with the queue: its id replaces the view.
+    fn font(&self, json: &mut serde_json::Value, f: &Value) -> TeraResult<()> {
+        let Some((key, font)) = f.as_map().and_then(|m| {
+            m.iter().find_map(|(k, v)| {
+                let k = k.as_str()?;
+                k.eq_ignore_ascii_case("font").then(|| (k.to_owned(), v))
+            })
+        }) else {
+            return Ok(());
+        };
+        if field(font, "__rid").is_none() {
+            return Err(msg(format!(
+                "image_filter: the font of a text filter must be a resource, got {}",
+                font.name()
+            )));
+        }
+        let id = resource_id(&self.store, font, "image_filter(font=)")?;
+        let bytes = self
+            .store
+            .content(id)
+            .map_err(|e| chain("image_filter(font=)", e))?;
+        let font_id = self.images.add_font(bytes).map_err(|e| {
+            chain(
+                format!("image_filter(font={})", self.store.resource(id).name),
+                e,
+            )
+        })?;
+        if let Some(m) = json.as_object_mut() {
+            m.insert(key, serde_json::Value::from(font_id.raw()));
+        }
+        Ok(())
+    }
+
     fn filter(&self, f: &Value) -> TeraResult<ImageFilter> {
         let mut json = to_json(f);
+        if field(f, "op").and_then(Value::as_str) == Some("text") {
+            self.font(&mut json, f)?;
+        }
         if let Some(image) = field(f, "image").filter(|i| field(i, "__rid").is_some()) {
             let id = resource_id(&self.store, image, "image_filter(image=)")?;
             let input = self.store.image_input(id).ok_or_else(|| {
@@ -239,6 +285,53 @@ impl SiteFilter for Exif {
     }
 }
 
+/// `qr_code(text=, level=?, scale=?, target_dir=?)`: a PNG image resource of the QR code of
+/// `text`, published at Hugo's name (`<target_dir>/qr_<hash>.png`) with Hugo's bytes.
+struct QrCode {
+    views: Arc<ViewCache>,
+    store: Arc<ResourceStore>,
+}
+
+impl SiteFunction for QrCode {
+    fn call(&self, kw: &Kwargs, st: &State) -> TeraResult<Value> {
+        let content = text(&kw.must_get::<Value>("text")?, "qr_code(text=)")?;
+        let mut options = QrOptions::default();
+        if let Some(level) = kw.get::<Value>("level")? {
+            let level = level.as_str().unwrap_or_default();
+            options.level = level.parse::<QrLevel>().map_err(|_| {
+                msg(format!(
+                    "qr_code(level={level:?}): expected low, medium, quartile or high"
+                ))
+            })?;
+        }
+        if let Some(scale) = kw.get::<Value>("scale")? {
+            // An integer, or a string of one (Hugo decodes the options weakly).
+            let n = scale
+                .as_i64()
+                .or_else(|| scale.as_str().and_then(|s| s.trim().parse().ok()));
+            options.scale = n
+                .and_then(|n| u32::try_from(n).ok())
+                .filter(|&n| n >= 2)
+                .ok_or_else(|| {
+                    msg(format!(
+                        "qr_code(scale={scale}): expected an integer of at least 2"
+                    ))
+                })?;
+        }
+        if let Some(dir) = kw.get::<Value>("target_dir")? {
+            options.target_dir = text(&dir, "qr_code(target_dir=)")?;
+        }
+        if content.is_empty() {
+            return Err(msg("qr_code: the text to encode is empty"));
+        }
+        let id = self
+            .store
+            .qr_code(&content, &options, &call_site(&self.views, st)?)
+            .map_err(|e| chain("qr_code", e))?;
+        Ok(view_value(&self.store, id))
+    }
+}
+
 /// A name of the spec whose implementation does not exist yet.
 struct NotImplemented(&'static str);
 
@@ -253,12 +346,6 @@ impl NotImplemented {
 
 impl SiteFilter for NotImplemented {
     fn call(&self, _: Value, _: &Kwargs, _: &State) -> TeraResult<Value> {
-        Err(self.fail())
-    }
-}
-
-impl SiteFunction for NotImplemented {
-    fn call(&self, _: &Kwargs, _: &State) -> TeraResult<Value> {
         Err(self.fail())
     }
 }

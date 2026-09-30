@@ -182,8 +182,7 @@ fn embedded_templates_simple_and_disabled() {
 }
 
 /// The embedded templates' errors and warnings: argument checks, the Universal Analytics
-/// warning, and the two functions that are not in this build yet (`diagrams_goat`, T66;
-/// `images.QR`, `qr_code`).
+/// warning, and the function that is not in this build yet (`diagrams_goat`, T66).
 #[test]
 fn embedded_template_errors() {
     let site = site_from(
@@ -244,7 +243,7 @@ title: qr
     let mut lines: Vec<&str> = err.lines().collect();
     lines.sort_unstable();
 
-    // Functions this build does not have fail the page: `diagrams_goat` (T66), `qr_code`.
+    // A function this build does not have fails the page: `diagrams_goat` (T66).
     let unavailable = |content: &str| {
         let s = site_from(&format!(
             "-- hugo.toml --\nbaseURL = \"https://example.org/\"\n[markup.highlight]\ncodeFences = true\n\
@@ -256,11 +255,61 @@ title: qr
         stderr(&o).replace(&s.path().display().to_string(), "[site]")
     };
     let goat_err = unavailable("```goat\n*--*\n```");
-    let qr_err = unavailable("{{< qr text=\"https://gohugo.io\" />}}");
     neohugo_testkit::snapshot::settings().bind(|| {
-        insta::assert_snapshot!(
-            "errors",
-            format!("{}\n\n{goat_err}\n{qr_err}", lines.join("\n"))
-        );
+        insta::assert_snapshot!("errors", format!("{}\n\n{goat_err}", lines.join("\n")));
     });
+}
+
+/// The `qr` shortcode renders what Hugo's `TestQRShortcode` asserts (names, sizes and
+/// attributes), and publishes the images.
+#[test]
+fn qr_shortcode_equals_hugo_s() {
+    let site = site_from(
+        r#"
+-- hugo.toml --
+baseURL = "https://example.org/"
+disableKinds = ['page','rss','section','sitemap','taxonomy','term']
+-- layouts/home.html --
+{{ page.content }}
+-- content/_index.md --
+---
+title: home
+---
+{{< qr
+	text="https://gohugo.io"
+	level="high"
+	scale=4
+	targetDir="codes"
+	alt="QR code linking to https://gohugo.io"
+	class="my-class"
+	id="my-id"
+	title="My Title"
+/>}}
+
+{{< qr >}}
+https://gohugo.io"
+{{< /qr >}}
+"#,
+    );
+    let o = neohugo(
+        site.path(),
+        &["--clock", "2026-01-01T00:00:00Z"],
+        NO_NETWORK,
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let html = read(site.path(), "index.html");
+    for want in [
+        r#"<img src="/codes/qr_be5d263c2671bcbd.png" width="148" height="148" alt="QR code linking to https://gohugo.io" class="my-class" id="my-id" title="My Title">"#,
+        r#"<img src="/qr_472aab57ec7a6e3d.png" width="132" height="132">"#,
+    ] {
+        assert!(html.contains(want), "{want}\nnot in\n{html}");
+    }
+    for (file, side) in [
+        ("codes/qr_be5d263c2671bcbd.png", 148),
+        ("qr_472aab57ec7a6e3d.png", 132),
+    ] {
+        let png = fs::read(site.path().join("public").join(file)).expect("published");
+        let be = |i: usize| u32::from_be_bytes(png[i..i + 4].try_into().expect("4 bytes"));
+        assert_eq!((be(16), be(20)), (side, side), "{file}");
+    }
 }

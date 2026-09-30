@@ -33,11 +33,12 @@ regex.workspace = true
 serde.workspace = true
 thiserror.workspace = true
 xxhash-rust.workspace = true
-# Planned (T00), not used yet; kept so that Cargo.lock keeps them: ab_glyph (images.Text),
-# qrcode (qr_code) and smartcrop2 (smart anchor) are COULD features (T72); color_quant and
-# kmeans_colors are for `.Colors` (README, "Not ported yet").
+# The text filter's glyphs and QR code symbols (T72a).
 ab_glyph.workspace = true
 qrcode.workspace = true
+# Planned (T00), not used yet; kept so that Cargo.lock keeps them: smartcrop2 (smart anchor) is
+# a COULD feature (T72); color_quant and kmeans_colors are for `.Colors` (README, "Not ported
+# yet").
 color_quant.workspace = true
 kmeans_colors.workspace = true
 smartcrop2.workspace = true

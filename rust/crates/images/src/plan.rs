@@ -4,11 +4,14 @@
 use std::fmt;
 
 use crate::color::Color;
+use crate::dither::DitherSpec;
 use crate::error::ImageError;
 use crate::filter::{ImageFilter, ImageInput, PaddingSpec};
+use crate::font::FontData;
 use crate::format::ImageFormat;
 use crate::settings::Imaging;
 use crate::spec::{Action, Anchor, Hint, ImageSpec, Resample, ResolvedSpec};
+use crate::text::{FontInput, TextSpec};
 
 /// A width and height in pixels.
 pub type Size = (u32, u32);
@@ -60,6 +63,13 @@ pub(crate) enum Step {
     Mask {
         image: InputRef,
     },
+    /// Text drawn with `font` (the spec's own `font` is cleared: the font's identity is its
+    /// content, which `font` prints).
+    Text {
+        spec: TextSpec,
+        font: FontData,
+    },
+    Dither(DitherSpec),
 }
 
 /// How the result is written.
@@ -236,13 +246,15 @@ pub(crate) const fn orientation_swaps(o: u8) -> bool {
 impl Plan {
     /// The steps of `spec` and `filters` applied to an input.
     ///
-    /// `resolve_input` gives the identity of the images overlay and mask filters read.
+    /// `resolve_input` gives the identity of the images overlay and mask filters read,
+    /// `resolve_font` the font of a text filter (`None`: the default font).
     pub(crate) fn new(
         input: &InputInfo,
         spec: Option<&ImageSpec>,
         filters: &[ImageFilter],
         imaging: &Imaging,
         resolve_input: &mut dyn FnMut(&ImageInput) -> Result<InputRef, ImageError>,
+        resolve_font: &mut dyn FnMut(Option<&FontInput>) -> Result<FontData, ImageError>,
     ) -> Result<Self, ImageError> {
         let mut encode = Encode {
             format: input.format,
@@ -318,6 +330,15 @@ impl Plan {
                     let image = resolve_input(image)?;
                     plan.steps.push(Step::Mask { image });
                 }
+                ImageFilter::Text(t) => {
+                    let t = t.clone().check()?;
+                    let font = resolve_font(t.font.as_ref())?;
+                    plan.steps.push(Step::Text {
+                        spec: TextSpec { font: None, ..t },
+                        font,
+                    });
+                }
+                ImageFilter::Dither(d) => plan.steps.push(Step::Dither(d.clone().check()?)),
                 ImageFilter::Pixelate { size: 0 } => {
                     return Err(ImageError::filter(
                         "pixelate",

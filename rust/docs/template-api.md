@@ -294,10 +294,10 @@ Flattened render-hook fields:
 | `x \| fit(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Fit` | Downscales to fit `width`×`height`. (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
 | `x \| crop(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Crop` | Crops to `width`×`height` at `anchor`. (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
 | `x \| process(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Process` | Any of the above per `spec` (or the typed kwargs). (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
-| `x \| image_filter(filters=)` | F (s) | both |  | `images.Filter`, `.Filter` | Applies `filters`, a list of `{"op": …}` maps (overlay, grayscale, …). (filters: array) |
+| `x \| image_filter(filters=)` | F (s) | both |  | `images.Filter`, `.Filter`, `images.Text`, `images.Dither` | Applies `filters`, a list of `{"op": …}` maps, one per Hugo `images.*` filter: `brightness`, `color_balance`, `colorize`, `contrast`, `gamma`, `gaussian_blur`, `grayscale`, `hue`, `invert`, `saturation`, `sepia`, `sigmoid`, `unsharp_mask`, `pixelate`, `opacity`, `padding`, `overlay` and `mask` (`image`: a resource), `auto_orient`, `text` (`text`, `color`, `size`, `x`, `y`, `alignx`, `aligny`, `linespacing`, `font`: a font resource), `dither` (`colors`, `method`, `serpentine`, `strength`), `process` (`spec`). E.g. `img \| image_filter(filters=[{"op": "text", "text": page.title, "size": 40}, {"op": "dither"}])`. (filters: array) |
 | `x \| exif` | F (s) | both |  | `.Exif` | EXIF data of an image, or none. |
 | `x \| image_colors` | F (s) | both |  | `.Colors` | Dominant colours as hex strings. |
-| `qr_code(text=, level=?, scale=?, target_dir=?)` | fn (s) | both |  | `images.QR` | A QR code image of `text` (COULD). (text: string, level: string, scale: int, target_dir: string) |
+| `qr_code(text=, level=?, scale=?, target_dir=?)` | fn (s) | both |  | `images.QR` | A PNG image resource of the QR code of `text`, with Hugo's bytes and name (`<target_dir>/qr_<hash>.png`): `level` low, medium (default), quartile or high; `scale` pixels per module (at least 2, default 4). E.g. `qr_code(text=page.permalink, target_dir="images/qr")`. (text: string, level: string, scale: int, target_dir: string) |
 
 ## Templates
 

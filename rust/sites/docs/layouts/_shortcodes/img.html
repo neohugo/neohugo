@@ -33,7 +33,7 @@ templates "validate-arg-count" and "validate-arg-value", and resolved images in 
 partial "get-resource". Here the argument count is checked first (Go failed on the index
 after reporting it), each filter becomes an image_filter map plus a list of range checks, and
 the images (the source, a mask or overlay image, the text filter's font) are resolved in one
-loop. The dither and text filters have no image_filter op in neohugo: they fail at render.
+loop.
 -#}
 {#- Initialize. #}
 {%- set example_width = 384 %}

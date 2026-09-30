@@ -10,11 +10,17 @@
 //! `manifest.json` is an array of
 //! `{"golden": "<file in golden/images>", "source": "<path from the repository root>",
 //!   "imaging": {<[imaging] keys>}?, "steps": [{"spec": "<spec>"} | {"filters": [<filter>]}]}`;
-//! each step applies to the previous result, and file paths in filters (`image`) are relative
-//! to the repository root.
+//! each step applies to the previous result, and file paths in filters (`image` of overlay and
+//! mask, `font` of text) are relative to the repository root.
+//!
+//! A recipe with a `dither` filter is compared after a 7×7 box blur of both images: error
+//! diffusion is chaotic in its input (the resized source already differs from Go's by a few
+//! levels), so its noise pattern cannot match pixel for pixel, while the blur compares what
+//! dithering must preserve, the local tone.
 
 use std::path::{Path, PathBuf};
 
+use image::{Rgba, RgbaImage};
 use neohugo_config::ImagingConfig;
 use neohugo_images::{ImageFilter, ImageInput, ImageQueue, ImageSpec, Imaging};
 use neohugo_testkit::fixture::{oracle, testdata};
@@ -42,13 +48,40 @@ enum Step {
     Filters { filters: Vec<J> },
 }
 
-/// Makes the `image` paths of filters absolute (relative to the repository root).
+/// Makes the `image` and `font` paths of filters absolute (relative to the repository root).
 fn rooted(mut filter: J, root: &Path) -> ImageFilter {
-    if let Some(J::String(p)) = filter.get("image") {
-        let abs = root.join(p);
-        filter["image"] = json!(abs);
+    for key in ["image", "font"] {
+        if let Some(J::String(p)) = filter.get(key) {
+            let abs = root.join(p);
+            filter[key] = json!(abs);
+        }
     }
     serde_json::from_value(filter).expect("filter")
+}
+
+/// Whether a recipe dithers (compared through a low-pass filter, see the module docs).
+fn dithers(recipe: &Recipe) -> bool {
+    recipe.steps.iter().any(|s| match s {
+        Step::Filters { filters } => filters.iter().any(|f| f["op"] == "dither"),
+        Step::Spec { .. } => false,
+    })
+}
+
+/// A `(2r + 1)²` box blur (the low-pass of dithered comparisons), edges clamped.
+fn box_blur(img: &RgbaImage, r: u32) -> RgbaImage {
+    let (w, h) = img.dimensions();
+    RgbaImage::from_fn(w, h, |x, y| {
+        let (mut sum, mut n) = ([0u32; 4], 0u32);
+        for yy in y.saturating_sub(r)..=(y + r).min(h - 1) {
+            for xx in x.saturating_sub(r)..=(x + r).min(w - 1) {
+                for (s, v) in sum.iter_mut().zip(img.get_pixel(xx, yy).0) {
+                    *s += u32::from(v);
+                }
+                n += 1;
+            }
+        }
+        Rgba(sum.map(|s| u8::try_from((s + n / 2) / n).unwrap_or(u8::MAX)))
+    })
 }
 
 /// Runs a recipe and returns the PSNR of the result against the golden image.
@@ -96,6 +129,9 @@ fn run(recipe: &Recipe, golden_dir: &Path) -> Result<f64, String> {
         )
     {
         return Err(format!("format {} for {}", e.format, recipe.golden));
+    }
+    if dithers(recipe) {
+        return Ok(psnr(&box_blur(&ours, 3), &box_blur(&golden, 3)));
     }
     Ok(psnr(&ours, &golden))
 }
@@ -159,8 +195,8 @@ fn golden_images_from_t01() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Hugo's own golden images and their recipes (images_golden_integration_test.go). Text,
-/// dither and smart-anchor results are not compared (COULD features / content-aware crop).
+/// Hugo's own golden images and their recipes (images_golden_integration_test.go). The
+/// smart-anchor results are not compared (content-aware crop is a COULD feature).
 fn hugo_golden_recipes() -> Vec<Recipe> {
     let sunset = "resources/testdata/sunset.jpg";
     let gopher = "resources/testdata/gopher-hero8.png";
@@ -245,6 +281,55 @@ fn hugo_golden_recipes() -> Vec<Recipe> {
         J::Null,
         json!([{"filters": [{"op": "auto_orient"}]}]),
     );
+    add(
+        "filters/misc/text.jpg",
+        sunset,
+        J::Null,
+        misc(
+            json!([{"op": "text", "text": "Hugo Rocks!", "color": "#fbfaf5",
+            "linespacing": 8, "size": 40, "x": 25, "y": 190}]),
+        ),
+    );
+    add(
+        "filters/misc/dither-default.jpg",
+        sunset,
+        J::Null,
+        misc(json!([{"op": "dither"}])),
+    );
+    // TestImagesGoldenFiltersText: the 900×562 sunset, text centred on (450, 281).
+    let lorem = "Pariatur deserunt sunt nisi sunt tempor quis eu. Sint et nulla enim officia \
+        sunt cupidatat. Eu amet ipsum qui velit cillum cillum ad Lorem in non ad aute.";
+    let longer = "Est exercitation deserunt exercitation nostrud magna. Eiusmod anim deserunt \
+        sit elit dolore ea incididunt nisi. Ea ullamco excepteur voluptate occaecat duis \
+        pariatur proident cupidatat.  Eu id esse qui consectetur commodo ad ex esse cupidatat \
+        velit duis cupidatat. Aliquip irure tempor consequat non amet in mollit ipsum officia \
+        tempor laborum.";
+    for (name, text, alignx, aligny) in [
+        ("text_alignx-center.jpg", lorem, "center", "top"),
+        ("text_alignx-right.jpg", lorem, "right", "top"),
+        ("text_alignx-left.jpg", lorem, "left", "top"),
+        (
+            "text_alignx-center_aligny-center.jpg",
+            longer,
+            "center",
+            "center",
+        ),
+        (
+            "text_alignx-center_aligny-bottom.jpg",
+            longer,
+            "center",
+            "bottom",
+        ),
+    ] {
+        add(
+            &format!("filters/text/{name}"),
+            sunset,
+            J::Null,
+            json!([{"filters": [{"op": "text", "text": text, "color": "#fbfaf5",
+                "linespacing": 8, "size": 28, "x": 450, "y": 281,
+                "alignx": alignx, "aligny": aligny}]}]),
+        );
+    }
     // The overlay is the gopher resized to x80, itself an operation: run it separately below.
     let mask_cfg = |bg: &str| json!({"bgColor": bg, "hint": "photo", "quality": 75, "resampleFilter": "Lanczos"});
     for (name, spec, bg, m) in [

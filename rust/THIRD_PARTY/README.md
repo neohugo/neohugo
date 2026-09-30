@@ -13,3 +13,7 @@ texts and sources are kept here (REWRITE_PLAN.md §5). Each entry names the task
 | `livereload/` | `livereload.js` served by `neohugo-rs server` | MIT | T71 |
 | `flect/` | Inflection word lists and rules from gobuffalo/flect v1.0.3, transcribed into `crates/base/src/inflect.rs` | MIT (`flect/LICENSE`) | T10 |
 | `prose/` | Title-case word lists and rules from jdkato/prose v1.2.1, transcribed into `crates/base/src/title.rs` | MIT (`prose/LICENSE`) | T10 |
+| `gofont/` | `Go-Regular.ttf`, the default font of the text filter (the font Hugo embeds, `golang.org/x/image/font/gofont` v0.28.0), embedded by `crates/images/src/font.rs` | BSD-3-Clause, Bigelow & Holmes (`gofont/LICENSE`, the `ttfs/README` that ships with the font) | T72a |
+| `x-image/` | golang.org/x/image v0.28.0 (`font/sfnt`, `font/opentype`, `vector`): the 26.6 metrics, the GPOS/`kern` kerning subset and its quirks, and the coverage quantisation that `crates/images/src/font.rs` reproduces | BSD-3-Clause (`x-image/LICENSE`) | T72a |
+| `rsc-qr/` | rsc.io/qr v0.2.0: the PNG writer (1-bit, one fixed-Huffman deflate block) rewritten in `crates/images/src/qr.rs`, and the encoder choices (mode, version, mask 0) it reproduces with the `qrcode` crate | BSD-3-Clause (`rsc-qr/LICENSE`) | T72a |
+| `hashstructure/` | gohugoio/hashstructure v0.5.0: the structure-hash rules of Hugo's `hashing.HashString`, re-implemented in `crates/resources/src/gohash.rs` (GetRemote cache names, QR code names) | MIT (`hashstructure/LICENSE`) | T40, T72a |

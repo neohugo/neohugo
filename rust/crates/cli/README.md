@@ -107,7 +107,8 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `parity::parity_helpers` | the scanner, normalisations and text extraction of the gate |
 | `embedded::embedded_templates` | the embedded templates rendered against testsite views (test-only overlay `tests/it/embedded-overlay.txtar`, see below): snapshots `hooks`, `shortcodes`, `bundle`, `featured`, `section_page1`, `section_page2` |
 | `embedded::embedded_templates_simple_and_disabled` | `privacy.{vimeo,x,instagram}.simple` (snapshot `shortcodes_simple`) and every service disabled |
-| `embedded::embedded_template_errors` | argument errors and warnings of the embedded templates, `diagrams_goat` and `qr_code` not in this build (snapshot `errors`) |
+| `embedded::embedded_template_errors` | argument errors and warnings of the embedded templates, `diagrams_goat` not in this build (snapshot `errors`) |
+| `embedded::qr_shortcode_equals_hugo_s` | the `qr` shortcode against Hugo's `TestQRShortcode`: image names, sizes and attributes; images published |
 | `build::testsite_matches_go` | `sites.py`'s testsite with `rust/sites/testsite/layouts`, built by the binary with compare.sh's command line (`--clock … -d …`, no command) and with `build --source … --destination … --cleanDestinationDir -q`: **55/55 files byte-identical** to `crates/build/tests/it/testsite-go.txtar` |
 | `build::flags_and_environment` | every configuration flag in both spellings, `HUGO_TITLE`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_BASEURL`, `-M` writes nothing |
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
@@ -143,7 +144,7 @@ hooks are byte-identical to Go's output in A-T.
 | `_markup/render-table.html` | the Tera file is not executed (the native writer is); it stays for lookup and precedence | accepted deviation (performance, same output) |
 | `_shortcodes/highlight.html` | Chroma span structure not reviewed token by token | accepted deviation (§7.3 allowed: highlight spans) |
 | `_markup/render-codeblock-goat.html` | `diagrams_goat` not compiled in: the page fails | open (T66) |
-| `_shortcodes/qr.html` | argument checks equal Go's messages; `qr_code` is not implemented, the page fails | open (`neohugo-sitefuncs` images) |
+| `_shortcodes/qr.html` | argument checks equal Go's messages; images named and sized as Go's (`qr_shortcode_equals_hugo_s`), their bytes equal Go's (`neohugo-images` QR tests) | none |
 | figure, instagram (body byte-equal to Go's `render-instagram`), x, param, ref, relref, opengraph, twitter_cards, schema, `_funcs/get-page-images`, render-link, render-image | none | – |
 
 `.Summary` and `.WordCount` values the partials print are the engine's and are not reviewed here.

@@ -3,7 +3,7 @@
 //! Resizing uses `fast_image_resize` (alpha-premultiplied, so transparent edges do not darken)
 //! with Hugo's fifteen kernels; blurs use `imageproc`; rotations by multiples of 90° and
 //! EXIF orientations use `image`. The colour filters, compositing, padding, pixelation and
-//! arbitrary-angle rotation are written here.
+//! arbitrary-angle rotation are written here; text and dithering are in their own modules.
 
 use fast_image_resize::{self as fir, FilterType, ResizeAlg, ResizeOptions, Resizer};
 use image::{DynamicImage, Rgba, Rgba32FImage, RgbaImage, imageops};
@@ -13,6 +13,7 @@ use crate::error::ImageError;
 use crate::filter::{ImageFilter, PaddingSpec};
 use crate::plan::{InputRef, Size, Step, sin_cos};
 use crate::spec::Resample;
+use crate::{dither, text};
 
 /// Loads the pixels of an image a step reads (overlay, mask).
 pub(crate) type LoadInput<'a> = dyn Fn(&InputRef) -> Result<RgbaImage, ImageError> + 'a;
@@ -44,6 +45,12 @@ pub(crate) fn run(
                 let mask = load(image)?;
                 apply_mask(img, &mask)?
             }
+            Step::Text { spec, font } => {
+                let mut img = img;
+                text::draw(&mut img, spec, font.bytes())?;
+                img
+            }
+            Step::Dither(spec) => dither::apply(img, spec),
         };
     }
     Ok(img)
@@ -415,6 +422,8 @@ fn adjust(img: RgbaImage, f: &ImageFilter) -> RgbaImage {
         | ImageFilter::Overlay { .. }
         | ImageFilter::Mask { .. }
         | ImageFilter::AutoOrient
+        | ImageFilter::Text(_)
+        | ImageFilter::Dither(_)
         | ImageFilter::Process { .. } => img,
     }
 }
@@ -536,7 +545,7 @@ pub(crate) fn draw_over(dst: &mut RgbaImage, top: &RgbaImage, x: i64, y: i64) {
 }
 
 /// `top` over `bottom`, non-premultiplied.
-fn over(bottom: Rgba<u8>, top: Rgba<u8>) -> Rgba<u8> {
+pub(crate) fn over(bottom: Rgba<u8>, top: Rgba<u8>) -> Rgba<u8> {
     let ta = unit(top.0[3]);
     if ta >= 1.0 {
         return top;

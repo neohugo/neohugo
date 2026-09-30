@@ -7,7 +7,7 @@ use serde_json::json;
 
 use crate::common::{decode, png, repo_dir, write_file};
 
-/// One template map per variant (`Text` and `Dither` are COULD features, T72).
+/// One template map per variant.
 fn all_filter_maps(overlay: &str) -> Vec<serde_json::Value> {
     vec![
         json!({"op": "brightness", "percentage": 20}),
@@ -29,6 +29,8 @@ fn all_filter_maps(overlay: &str) -> Vec<serde_json::Value> {
         json!({"op": "overlay", "image": overlay, "x": 4, "y": -2}),
         json!({"op": "mask", "image": overlay}),
         json!({"op": "auto_orient"}),
+        json!({"op": "text", "text": "Hi there", "size": 9, "x": 2, "y": 3, "color": "#123456", "alignx": "center", "aligny": "bottom", "linespacing": 1}),
+        json!({"op": "dither", "colors": ["#000000", "#ff0000", "#ffffff"], "method": "Atkinson", "serpentine": false, "strength": 0.8}),
         json!({"op": "process", "spec": "resize 20x webp q60"}),
     ]
 }
@@ -54,7 +56,7 @@ fn every_filter_variant_runs_with_its_planned_size() {
     let maps = all_filter_maps(overlay.to_str().expect("utf-8 path"));
     let names: std::collections::BTreeSet<&str> =
         maps.iter().map(|m| m["op"].as_str().expect("op")).collect();
-    assert_eq!(names.len(), 20, "one map per variant");
+    assert_eq!(names.len(), 22, "one map per variant");
     let q = ImageQueue::new(Imaging::default(), None);
     let small_jpg = q
         .enqueue(
@@ -102,8 +104,14 @@ fn every_filter_variant_runs_with_its_planned_size() {
 #[test]
 fn template_maps_are_checked() {
     for bad in [
-        json!({"op": "text", "text": "hi"}),
-        json!({"op": "dither"}),
+        json!({"op": "text"}),
+        json!({"op": "text", "text": "hi", "alignx": "middle"}),
+        json!({"op": "text", "text": "hi", "size": -1}),
+        json!({"op": "text", "text": "hi", "nope": 1}),
+        json!({"op": "dither", "colors": ["#000000"]}),
+        json!({"op": "dither", "method": "bayer"}),
+        json!({"op": "dither", "strength": "strong"}),
+        json!({"op": "dither", "colours": ["#000", "#fff"]}),
         json!({"op": "brightness"}),
         json!({"op": "padding"}),
         json!({"op": "padding", "margin": [1, 2, 3, 4, 5]}),
