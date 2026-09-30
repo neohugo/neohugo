@@ -15,3 +15,7 @@ commit `be02933a` (local tag `go-parity-final`).
   longer compared with Go.
 - Comments that name `crates/nh-…` (sources, tests, `PORTING.md`) describe the old port, which
   is only available through `git show go-parity-final:crates/…`.
+- `structure/` (T01) is different: it is the neohugo command line with recording hooks, built
+  once into `tools/neohugo/bin/neohugo-structure` and run by `tools/neohugo/oracle.sh` over the
+  target sites; its dumps are `rust/testdata/golden/<site>/structure.json[.gz]` (schema in
+  `rust/testdata/golden/README.md`).
