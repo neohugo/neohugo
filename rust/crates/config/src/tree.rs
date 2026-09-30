@@ -180,12 +180,10 @@ pub(crate) fn set_segments(m: &mut Map, segs: &[&str], v: Value) {
 
 /// Merges `over` into `base`: tables merge key by key, anything else in `over` replaces the
 /// value in `base`. A table in `over` with `_merge = "none"` replaces instead of merging.
-/// `_merge` keys are kept (a later merge may need them); [`strip_merge`] removes them.
+/// `_merge` keys are kept, `over`'s winning (the theme merge reads them, see [`crate::merge`]);
+/// [`strip_merge`] removes them.
 pub fn merge_deep(base: &mut Map, over: &Map) {
     for (k, v) in over.iter() {
-        if k == "_merge" {
-            continue;
-        }
         match base.get_mut(k) {
             Some(existing) => merge_value(existing, v),
             None => {

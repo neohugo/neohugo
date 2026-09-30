@@ -140,8 +140,100 @@ fn project_before_themes_first_wins() {
 
 #[test]
 fn missing_theme_is_an_error() {
+    // The configuration finds the themes (it reads their configuration).
     let p = Project::new(&[("hugo.toml", "theme = \"nope\"\n")]);
-    assert!(Vfs::new(&p.config()).is_err());
+    let e = load(&LoadOptions {
+        source: p.dir.clone(),
+        ..LoadOptions::default()
+    })
+    .expect_err("missing theme");
+    assert!(
+        matches!(e, neohugo_config::ConfigError::ThemeNotFound { .. }),
+        "{e}"
+    );
+    // A theme directory removed after loading.
+    let p = Project::new(&[
+        ("neohugo.toml", "theme = \"gone\"\n"),
+        ("themes/gone/layouts/x.html", ""),
+    ]);
+    let cfg = p.config();
+    fs::remove_dir_all(p.dir.join("themes/gone")).unwrap();
+    assert!(matches!(
+        Vfs::new(&cfg),
+        Err(neohugo_vfs::VfsError::ThemeNotFound { .. })
+    ));
+}
+
+/// Nested themes, `[[module.imports]]` options and a theme's own `[[module.mounts]]` (with a
+/// language), and JS config files of a theme.
+#[test]
+fn theme_mounts_and_nested_themes() {
+    let p = Project::new(&[
+        (
+            "neohugo.toml",
+            "theme = [\"a\", \"b\", \"A\"]\n\
+             [[module.imports]]\npath = \"m\"\n\
+             [[module.imports.mounts]]\nsource = \"src\"\ntarget = \"assets/m\"\n\
+             [[module.imports]]\npath = \"x\"\nnoMounts = true\n",
+        ),
+        // `a` imports `c`: a, c, b (depth first); `A` is `a` again.
+        ("themes/a/hugo.toml", "theme = \"c\"\n"),
+        ("themes/a/layouts/single.html", "a"),
+        ("themes/a/package.json", "{}"),
+        ("themes/b/layouts/single.html", "b"),
+        ("themes/b/layouts/list.html", "b"),
+        ("themes/c/layouts/list.html", "c"),
+        ("themes/c/layouts/baseof.html", "c"),
+        // The import's mounts win over the theme's own.
+        (
+            "themes/m/config.toml",
+            "[[module.mounts]]\nsource = \"layouts\"\ntarget = \"layouts\"\n",
+        ),
+        ("themes/m/src/m.css", ""),
+        ("themes/m/layouts/single.html", "m"),
+        ("themes/x/layouts/single.html", "x"),
+    ]);
+    let cfg = p.config();
+    let paths: Vec<&str> = cfg.themes.iter().map(|t| t.path.as_str()).collect();
+    assert_eq!(paths, ["m", "x", "a", "c", "b"]);
+    let vfs = Vfs::new(&cfg).unwrap();
+    assert_eq!(
+        p.walk(&vfs, Component::Layouts),
+        pairs(&[
+            ("baseof.html", "themes/c/layouts/baseof.html"),
+            ("list.html", "themes/c/layouts/list.html"),
+            ("single.html", "themes/a/layouts/single.html"),
+        ]),
+        "m mounts only src (its import's mounts), x nothing; c before b"
+    );
+    assert_eq!(
+        p.walk(&vfs, Component::Assets),
+        pairs(&[
+            ("_jsconfig/package.json", "themes/a/package.json"),
+            ("m/m.css", "themes/m/src/m.css"),
+        ])
+    );
+
+    // A theme's own mounts, with a language.
+    let p = Project::new(&[
+        (
+            "neohugo.toml",
+            "theme = \"t\"\n[languages.en]\nweight = 1\n[languages.nn]\nweight = 2\n",
+        ),
+        (
+            "themes/t/hugo.toml",
+            "[[module.mounts]]\nsource = \"content/nn\"\ntarget = \"content\"\nlang = \"nn\"\n\
+             [[module.mounts]]\nsource = \"missing\"\ntarget = \"static\"\n",
+        ),
+        ("themes/t/content/nn/p.md", ""),
+        ("themes/t/layouts/single.html", "not mounted"),
+    ]);
+    let vfs = p.vfs();
+    let files = vfs.walk(Component::Content).unwrap();
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].rel, "p.md");
+    assert_eq!(files[0].mount_lang, Some(LangIdx::from_index(1)));
+    assert!(vfs.walk(Component::Layouts).unwrap().is_empty());
 }
 
 #[test]

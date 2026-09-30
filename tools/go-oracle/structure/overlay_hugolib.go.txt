@@ -1,0 +1,391 @@
+package hugolib
+
+// Added to package hugolib by the structure oracle (tools/go-oracle/structure,
+// built with `go build -overlay`); never part of a neohugo build. Patched
+// copies of site_render.go, site.go, alias.go and hugo_sites_build.go call the
+// nhStruct* hooks below (see patches.go of the oracle).
+
+import (
+	"context"
+	"fmt"
+	"path/filepath"
+	"reflect"
+	"sort"
+	"strings"
+	"sync"
+
+	"github.com/neohugo/neohugo/hugolib/doctree"
+	"github.com/neohugo/neohugo/output"
+	"github.com/neohugo/neohugo/resources"
+	"github.com/neohugo/neohugo/resources/page"
+	"github.com/neohugo/neohugo/resources/resource"
+	"github.com/neohugo/neohugo/tpl/tplimpl"
+)
+
+// nhStructKey identifies one (page, output format) render.
+type nhStructKey struct {
+	lang, path, kind, format string
+}
+
+// nhStructRender is what pageRenderer did for one (page, output format).
+type nhStructRender struct {
+	key        nhStructKey
+	layout     string
+	lookupPath string
+	templ      *tplimpl.TemplInfo
+	target     string
+	rel        string
+	perma      string
+	written    bool
+	pagers     int
+}
+
+// nhStructRec records one build. Pages are rendered by several workers, so
+// every hook locks; the dump sorts everything.
+type nhStructRec struct {
+	mu         sync.Mutex
+	h          *HugoSites
+	renders    map[nhStructKey]*nhStructRender
+	aliases    []map[string]any
+	pagerFiles map[string]bool
+}
+
+var nhStruct = &nhStructRec{
+	renders:    map[nhStructKey]*nhStructRender{},
+	pagerFiles: map[string]bool{},
+}
+
+func nhStructKeyOf(p *pageState) nhStructKey {
+	return nhStructKey{lang: p.Language().Lang, path: p.Path(), kind: p.Kind(), format: p.outputFormat().Name}
+}
+
+func nhSlash(s string) string {
+	return filepath.ToSlash(s)
+}
+
+// nhStructSetSites is called when a build starts.
+func nhStructSetSites(h *HugoSites) {
+	nhStruct.mu.Lock()
+	defer nhStruct.mu.Unlock()
+	nhStruct.h = h
+}
+
+// nhStructRenderStart is called by pageRenderer once the template of a
+// (page, output format) is resolved (templ is nil when none was found).
+func nhStructRenderStart(s *Site, p *pageState, templ *tplimpl.TemplInfo, found bool) {
+	if !found {
+		templ = nil
+	}
+	dir, _ := p.GetInternalTemplateBasePathAndDescriptor()
+	// The links of this output format (.OutputFormats.Get <format>); the
+	// page's own .RelPermalink is the one of its first format.
+	f := p.outputFormat()
+	rel, perma := p.RelPermalink(), p.Permalink()
+	for _, of := range p.OutputFormats() {
+		if of.Format.Name == f.Name {
+			rel, perma = of.RelPermalink(), of.Permalink()
+			break
+		}
+	}
+	r := &nhStructRender{
+		key:        nhStructKeyOf(p),
+		layout:     p.Layout(),
+		lookupPath: dir,
+		templ:      templ,
+		target:     nhSlash(p.targetPaths().TargetFilename),
+		rel:        rel,
+		perma:      perma,
+	}
+	nhStruct.mu.Lock()
+	defer nhStruct.mu.Unlock()
+	nhStruct.renders[r.key] = r
+}
+
+// nhStructWritten is called by renderAndWritePage when the template wrote
+// something (the file is published).
+func nhStructWritten(s *Site, p *pageState, statCounter *uint64) {
+	if statCounter != &s.ProcessingStats.Pages {
+		return
+	}
+	nhStruct.mu.Lock()
+	defer nhStruct.mu.Unlock()
+	if r, ok := nhStruct.renders[nhStructKeyOf(p)]; ok {
+		r.written = true
+	}
+}
+
+// nhStructPagers is called after the render of a page that initialised a
+// paginator.
+func nhStructPagers(s *Site, p *pageState) {
+	n := p.paginator.current.TotalPages()
+	nhStruct.mu.Lock()
+	defer nhStruct.mu.Unlock()
+	if r, ok := nhStruct.renders[nhStructKeyOf(p)]; ok {
+		r.pagers = n
+	}
+}
+
+// nhStructPagerAlias marks the alias renderPaginator writes for page 1.
+func nhStructPagerAlias(s *Site, targetFilename string) {
+	nhStruct.mu.Lock()
+	defer nhStruct.mu.Unlock()
+	nhStruct.pagerFiles[nhSlash(targetFilename)] = true
+}
+
+// nhStructAlias records an alias file (publishDestAlias).
+func nhStructAlias(s *Site, alias, targetPath, permalink string, f output.Format, p page.Page) {
+	lang, pth := "", ""
+	if p != nil {
+		lang, pth = p.Language().Lang, p.Path()
+	}
+	from := "/" + strings.TrimPrefix(nhSlash(targetPath), "/")
+	nhStruct.mu.Lock()
+	defer nhStruct.mu.Unlock()
+	kind := "front matter"
+	switch {
+	case p == nil:
+		kind = "redirect"
+	case nhStruct.pagerFiles[nhSlash(alias)]:
+		kind = "pager"
+	}
+	nhStruct.aliases = append(nhStruct.aliases, map[string]any{
+		"alias":     nhSlash(alias),
+		"from":      from,
+		"format":    f.Name,
+		"kind":      kind,
+		"lang":      lang,
+		"path":      pth,
+		"permalink": permalink,
+	})
+}
+
+func nhMediaTypeDump(m any) map[string]any {
+	v := reflect.ValueOf(m)
+	suffixes := v.MethodByName("Suffixes").Call(nil)[0].Interface().([]string)
+	return map[string]any{
+		"type":        v.FieldByName("Type").String(),
+		"mainType":    v.FieldByName("MainType").String(),
+		"subType":     v.FieldByName("SubType").String(),
+		"delimiter":   v.FieldByName("Delimiter").String(),
+		"suffix":      v.FieldByName("FirstSuffix").FieldByName("Suffix").String(),
+		"fullSuffix":  v.FieldByName("FirstSuffix").FieldByName("FullSuffix").String(),
+		"mimeSuffix":  v.FieldByName("mimeSuffix").String(),
+		"suffixesCSV": v.FieldByName("SuffixesCSV").String(),
+		"suffixes":    suffixes,
+	}
+}
+
+// nhStructConfig is the configuration the template store depends on, as the
+// nh-tplimpl store oracle dumps it (rust/testdata/oracle/tplimpl/store), plus
+// every language's base URL.
+func nhStructConfig(h *HugoSites) map[string]any {
+	s := h.Sites[0]
+	conf := s.conf
+	formats := []any{}
+	for _, f := range conf.OutputFormats.Config {
+		formats = append(formats, map[string]any{
+			"name":           f.Name,
+			"mediaType":      nhMediaTypeDump(f.MediaType),
+			"path":           f.Path,
+			"baseName":       f.BaseName,
+			"rel":            f.Rel,
+			"protocol":       f.Protocol,
+			"isPlainText":    f.IsPlainText,
+			"isHTML":         f.IsHTML,
+			"noUgly":         f.NoUgly,
+			"ugly":           f.Ugly,
+			"notAlternative": f.NotAlternative,
+			"root":           f.Root,
+			"permalinkable":  f.Permalinkable,
+			"weight":         f.Weight,
+		})
+	}
+	mediaTypes := []any{}
+	suffixSet := map[string]bool{}
+	for _, m := range conf.MediaTypes.Config {
+		mediaTypes = append(mediaTypes, nhMediaTypeDump(m))
+		for _, sfx := range m.Suffixes() {
+			suffixSet[sfx] = true
+		}
+	}
+	contentSuffixes := []string{}
+	for sfx := range suffixSet {
+		if conf.ContentTypes.Config.IsContentSuffix(sfx) {
+			contentSuffixes = append(contentSuffixes, sfx)
+		}
+	}
+	sort.Strings(contentSuffixes)
+	disabled := []string{}
+	for l, b := range conf.C.DisabledLanguages {
+		if b {
+			disabled = append(disabled, l)
+		}
+	}
+	sort.Strings(disabled)
+	baseURLs := map[string]any{}
+	for _, ss := range h.Sites {
+		baseURLs[ss.language.Lang] = ss.BaseURL()
+	}
+	pp := s.Conf.PathParser()
+	return map[string]any{
+		"outputFormats":          formats,
+		"mediaTypes":             mediaTypes,
+		"contentSuffixes":        contentSuffixes,
+		"disabledLanguages":      disabled,
+		"languageIndex":          pp.LanguageIndex,
+		"defaultContentLanguage": s.Conf.DefaultContentLanguage(),
+		"defaultOutputFormat":    conf.DefaultOutputFormat,
+		"taxonomies":             conf.Taxonomies,
+		"renderHookImage":        conf.Markup.Goldmark.RenderHooks.Image.UseEmbedded,
+		"renderHookLink":         conf.Markup.Goldmark.RenderHooks.Link.UseEmbedded,
+		"baseURLs":               baseURLs,
+	}
+}
+
+// nhStructWalk calls f for every page of every site, in tree order.
+func nhStructWalk(h *HugoSites, f func(s *Site, p *pageState)) error {
+	for _, s := range h.Sites {
+		w := &doctree.NodeShiftTreeWalker[contentNodeI]{
+			Tree: s.pageMap.treePages,
+			Handle: func(key string, n contentNodeI, match doctree.DimensionFlag) (bool, error) {
+				if p, ok := n.(*pageState); ok {
+					f(s, p)
+				}
+				return false, nil
+			},
+		}
+		if err := w.Walk(context.Background()); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func nhSortMaps(list []map[string]any, keys ...string) {
+	sort.SliceStable(list, func(i, j int) bool {
+		for _, k := range keys {
+			a, b := fmt.Sprint(list[i][k]), fmt.Sprint(list[j][k])
+			if a != b {
+				return a < b
+			}
+		}
+		return false
+	})
+}
+
+// NHStructureDump returns the structure of the last build (see the
+// oracle's package doc for the schema).
+func NHStructureDump() (map[string]any, error) {
+	nhStruct.mu.Lock()
+	defer nhStruct.mu.Unlock()
+	h := nhStruct.h
+	if h == nil {
+		return nil, fmt.Errorf("no build recorded")
+	}
+	store := h.GetTemplateStore()
+	idx := tplimpl.NHStructNewIndex(store)
+
+	records := []map[string]any{}
+	for _, r := range nhStruct.renders {
+		rec := map[string]any{
+			"lang":         r.key.lang,
+			"path":         r.key.path,
+			"kind":         r.key.kind,
+			"format":       r.key.format,
+			"layout":       r.layout,
+			"target":       r.target,
+			"relPermalink": r.rel,
+			"permalink":    r.perma,
+		}
+		if r.lookupPath != r.key.path {
+			rec["lookupPath"] = r.lookupPath
+		}
+		t := idx.Names(r.templ)
+		rec["template"] = t.Template
+		rec["baseof"] = t.Baseof
+		if t.TemplateFile != t.Template {
+			rec["templateFile"] = t.TemplateFile
+		}
+		if t.BaseofFile != t.Baseof {
+			rec["baseofFile"] = t.BaseofFile
+		}
+		if !r.written {
+			rec["written"] = false
+		}
+		if r.pagers > 0 {
+			rec["pagers"] = r.pagers
+		}
+		records = append(records, rec)
+	}
+	nhSortMaps(records, "lang", "path", "kind", "format")
+
+	aliases, pagerAliases := []map[string]any{}, []map[string]any{}
+	for _, a := range nhStruct.aliases {
+		if a["kind"] == "pager" {
+			pagerAliases = append(pagerAliases, a)
+		} else {
+			aliases = append(aliases, a)
+		}
+	}
+	nhSortMaps(aliases, "from", "lang", "path", "format", "alias")
+	nhSortMaps(pagerAliases, "from", "lang", "path", "format", "alias")
+
+	pages := []map[string]any{}
+	res := []map[string]any{}
+	err := nhStructWalk(h, func(s *Site, p *pageState) {
+		outputs := []string{}
+		for _, of := range p.OutputFormats() {
+			outputs = append(outputs, of.Format.Name)
+		}
+		pages = append(pages, map[string]any{
+			"lang":    p.Language().Lang,
+			"path":    p.Path(),
+			"kind":    p.Kind(),
+			"outputs": outputs,
+		})
+		publish := p.m.pageConfig.Build.PublishResources
+		for _, r := range p.Resources() {
+			if _, ok := r.(page.Page); ok {
+				continue
+			}
+			name := r.Name()
+			if nn, ok := r.(resource.NameNormalizedProvider); ok {
+				name = nn.NameNormalized()
+			}
+			e := map[string]any{
+				"lang":         p.Language().Lang,
+				"path":         p.Path(),
+				"name":         name,
+				"relPermalink": r.RelPermalink(),
+			}
+			targets := resources.NHTargetPaths(r)
+			if len(targets) > 0 {
+				e["target"] = targets[0]
+			}
+			if len(targets) > 1 {
+				e["targets"] = targets
+			}
+			if !publish {
+				e["publish"] = false
+			}
+			res = append(res, e)
+		}
+	})
+	if err != nil {
+		return nil, err
+	}
+	nhSortMaps(pages, "lang", "path", "kind")
+	nhSortMaps(res, "lang", "path", "name")
+	layouts := idx.Layouts()
+	nhSortMaps(layouts, "file", "name", "category", "key", "desc")
+
+	return map[string]any{
+		"config":       nhStructConfig(h),
+		"records":      records,
+		"aliases":      aliases,
+		"pagerAliases": pagerAliases,
+		"pages":        pages,
+		"resources":    res,
+		"layouts":      layouts,
+	}, nil
+}

@@ -64,7 +64,7 @@ pub struct BuildRequest {
     /// The publish directory (`--destination`); relative to `source`.
     pub destination: Option<PathBuf>,
     /// `--config` files, relative to `source`, the first with the highest precedence (empty:
-    /// the default `hugo.*` / `config.*` file).
+    /// the first of `neohugo.*`, `hugo.*`, `config.*`).
     pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
     /// The build's "now" (`--clock`; `None`: the system clock).
@@ -246,7 +246,8 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
             &RenderOptions { clock },
         )
     })?;
-    for d in model_diags {
+    // The configuration's notices (deprecated keys, ignored configuration files) first.
+    for d in cfg.diagnostics.iter().cloned().chain(model_diags) {
         session.diagnostics().push(d);
     }
     report.pages = session.model().pages.len();

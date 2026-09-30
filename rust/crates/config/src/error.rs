@@ -17,8 +17,20 @@ pub enum ConfigError {
         source: std::io::Error,
     },
     /// Neither a configuration file nor a configuration directory was found.
-    #[error("no configuration file (hugo.toml, hugo.yaml, hugo.json or config.*) or config directory in {}", dir.display())]
+    #[error("no configuration file (neohugo.toml, neohugo.yaml, neohugo.json, or Hugo's hugo.* or config.*) or config directory in {}", dir.display())]
     NotFound { dir: PathBuf },
+    /// A theme (`theme`, `[[module.imports]]`) is not in the themes directory, in the project's
+    /// `_vendor` directory or at the absolute path given.
+    #[error("theme {name:?} not found: {} does not exist (neohugo reads themes from themesDir, _vendor or an absolute path; Hugo Modules are not downloaded)", dir.display())]
+    ThemeNotFound { name: String, dir: PathBuf },
+    /// A theme of a theme is imported with an absolute path or a path outside the themes
+    /// directory.
+    #[error("theme {name:?} imported by {owner:?}: a theme's themes must be below themesDir ({})", themes_dir.display())]
+    ThemeOutsideThemesDir {
+        name: String,
+        owner: String,
+        themes_dir: PathBuf,
+    },
     /// A file is not valid TOML, YAML or JSON.
     #[error("{position}: {message}")]
     Syntax { position: Position, message: String },
@@ -49,7 +61,10 @@ impl ConfigError {
         match self {
             Self::Syntax { position, .. } => Some(position),
             Self::Invalid { position, .. } => position.as_ref(),
-            Self::Io { .. } | Self::NotFound { .. } => None,
+            Self::Io { .. }
+            | Self::NotFound { .. }
+            | Self::ThemeNotFound { .. }
+            | Self::ThemeOutsideThemesDir { .. } => None,
         }
     }
 }

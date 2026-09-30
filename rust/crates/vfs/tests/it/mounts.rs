@@ -58,6 +58,24 @@ fn split(mounts: Vec<J>) -> (Vec<J>, Vec<String>) {
     (rest, js.iter().map(ToString::to_string).collect())
 }
 
+/// Loads the case written below `root` and sets up its mounts.
+fn load_case(root: &Path) -> Result<Vfs, String> {
+    let options = LoadOptions {
+        source: root.join("site"),
+        env: vec![
+            ("HOME".into(), root.join("home").to_str().unwrap().into()),
+            (
+                "XDG_CACHE_HOME".into(),
+                root.join("xdg").to_str().unwrap().into(),
+            ),
+        ],
+        ..LoadOptions::default()
+    };
+    load(&options)
+        .map_err(|e| e.to_string())
+        .and_then(|cfg| Vfs::new(&cfg).map_err(|e| e.to_string()))
+}
+
 #[test]
 fn mounts_match_go() {
     let f: J = oracle("oracle/allconfig/load/mounts.json.gz");
@@ -68,20 +86,7 @@ fn mounts_match_go() {
         let tmp = tempfile::tempdir().unwrap();
         let root = tmp.path();
         write_case(root, c["case"]["files"].as_object().unwrap());
-        let options = LoadOptions {
-            source: root.join("site"),
-            env: vec![
-                ("HOME".into(), root.join("home").to_str().unwrap().into()),
-                (
-                    "XDG_CACHE_HOME".into(),
-                    root.join("xdg").to_str().unwrap().into(),
-                ),
-            ],
-            ..LoadOptions::default()
-        };
-        let got = load(&options)
-            .map_err(|e| e.to_string())
-            .and_then(|cfg| Vfs::new(&cfg).map_err(|e| e.to_string()));
+        let got = load_case(root);
         if let Some(err) = c["result"].get("err") {
             assert!(got.is_err(), "{name}: want an error like {err}");
             checked += 1;
@@ -107,4 +112,85 @@ fn mounts_match_go() {
     }
     assert_eq!(checked, cases.len());
     eprintln!("mounts: {checked} cases equal");
+}
+
+/// The themes against the oracle's modules after the project (`modules[1..]` of
+/// `oracle/allconfig/load/{themes,merge}.json.gz`): the order (nested imports depth first,
+/// duplicates and disabled imports skipped), each theme's directory (themes directory,
+/// `themesDir`, `_vendor`, absolute and replaced paths) and its mounts (the component
+/// directories it has, its own or its import's `[[module.mounts]]`, `noMounts`, JS config
+/// files). The cases Go fails fail here too.
+#[test]
+fn theme_mounts_match_go() {
+    let mut themes = 0;
+    for group in ["themes", "merge"] {
+        let f: J = oracle(&format!("oracle/allconfig/load/{group}.json.gz"));
+        for c in f["cases"].as_array().unwrap() {
+            let name = c["case"]["name"].as_str().unwrap();
+            if c["case"]["ignoreModuleDoesNotExist"].as_bool() == Some(true) {
+                continue; // `hugo mod` commands only: a missing theme is an error here.
+            }
+            let tmp = tempfile::tempdir().unwrap();
+            let root = tmp.path();
+            write_case(root, c["case"]["files"].as_object().unwrap());
+            let got = load_case(root);
+            if let Some(err) = c["result"].get("err") {
+                assert!(got.is_err(), "{name}: want an error like {err}");
+                continue;
+            }
+            let vfs = got.unwrap_or_else(|e| panic!("{name}: {e}"));
+            let root_str = root.to_str().unwrap();
+            let want = &c["result"]["modules"].as_array().unwrap()[1..];
+            let cfg_themes = load(&LoadOptions {
+                source: root.join("site"),
+                env: vec![(
+                    "XDG_CACHE_HOME".into(),
+                    root.join("xdg").to_str().unwrap().into(),
+                )],
+                ..LoadOptions::default()
+            })
+            .unwrap()
+            .themes;
+            let paths: Vec<String> = cfg_themes
+                .iter()
+                .map(|t| t.path.replace(root_str, "$ROOT"))
+                .collect();
+            let want_paths: Vec<&str> = want.iter().map(|m| m["path"].as_str().unwrap()).collect();
+            assert_eq!(paths, want_paths, "{name}: theme order");
+            for (i, (theme, w)) in cfg_themes.iter().zip(want).enumerate() {
+                let dir = theme.dir.to_str().unwrap().replace(root_str, "$ROOT");
+                let what = format!("{name}: {}", theme.path);
+                assert_eq!(
+                    dir,
+                    w["dir"].as_str().unwrap().trim_end_matches('/'),
+                    "{what}"
+                );
+                if w["vendor"].as_bool() == Some(true) {
+                    assert_eq!(theme.vendored.as_deref(), w["version"].as_str(), "{what}");
+                } else {
+                    // For a vendored theme Go names the owner of the `_vendor` directory.
+                    assert_eq!(
+                        theme.owner.as_deref().unwrap_or("project"),
+                        w["owner"].as_str().unwrap(),
+                        "{what}: owner"
+                    );
+                }
+                let module = Module::Theme(u16::try_from(i).unwrap());
+                let ours: Vec<J> = vfs
+                    .mounts()
+                    .iter()
+                    .filter(|m| m.module == module)
+                    .map(|m| dump(m, root_str))
+                    .collect();
+                let (ours, ours_js) = split(ours);
+                let (want_mounts, want_js) =
+                    split(w["mounts"].as_array().cloned().unwrap_or_default());
+                assert_eq!(ours, want_mounts, "{what}: mounts");
+                assert_eq!(ours_js, want_js, "{what}: JS config mounts");
+                themes += 1;
+            }
+        }
+    }
+    assert!(themes >= 20, "{themes} themes compared");
+    eprintln!("theme mounts: {themes} themes equal");
 }

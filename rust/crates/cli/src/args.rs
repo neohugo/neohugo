@@ -48,7 +48,8 @@ pub struct ProjectArgs {
     /// The project directory (default: the working directory).
     #[arg(short = 's', long, value_name = "DIR")]
     pub source: Option<PathBuf>,
-    /// Configuration files, relative to the source (comma-separated; the first wins).
+    /// Configuration files, relative to the source (comma-separated; the first wins). Default:
+    /// the first of neohugo.{toml,yaml,yml,json}, hugo.*, config.*.
     #[arg(long, value_name = "FILES", value_delimiter = ',')]
     pub config: Vec<PathBuf>,
     /// The configuration directory (default `config`).

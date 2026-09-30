@@ -1,24 +1,36 @@
 #!/usr/bin/env python3
-"""Writes the I01 end-to-end sites into a directory (never into the repository).
+"""Writes the end-to-end sites into a directory (never into the repository).
 
 Usage:
   sites.py list
-  sites.py make <site> <dir>        # <dir> must not exist; for seeksnack its basename must be "seeksnack"
+  sites.py make <site> <dir> [--docs-patches i01|reduced] [--overlay rust/sites/<site>]
+                                    # <dir> must not exist; for seeksnack and mini its basename
+                                    # must be the site's name (it keys the GetRemote cache)
   sites.py cache <site> <dir>       # the HUGO_CACHEDIR contents the site needs (may be empty)
+  sites.py patches [--check]        # write patches.json / check it and the Tera patch files
 
 Sites:
-  docs          this repository's docs/ site, patched to build offline (see DOCS_* below)
-  testsite      hugolib/testsite plus a small config and layouts (TESTSITE_FILES)
+  docs          this repository's docs/ site, patched to build offline; --docs-patches picks the
+                variant (i01, the default, or reduced; DOCS_* below, patches.json); docs-i01
+                and docs-reduced name the variants too
+  testsite      hugolib/testsite plus a small config and layouts (testsite.txtar)
   seeksnack     the reconstructed seeksnack config (rust/testdata/oracle/allconfig/load/
                 seeksnack/hugo.toml) with the synthetic en/th content tree of the nh-hugolib
                 oracles (read from rust/testdata/oracle/hugolib/build/seeksnack.json.gz) and
                 the layouts/assets/i18n/data of seeksnack.txtar; its GetRemote calls are served
                 from the 51 golden getresource cache entries
+  mini          the e2e oracle's small en/th site (rust/testdata/oracle/commands/e2e/mini.txtar)
+  images        the golden image recipes (rust/testdata/golden/images/manifest.json) as a site
   errors        a failing build (errors.txtar): the error texts must be Go's
+  probe         T13's template probe site
   t24-<name>    the T24 build-oracle sites (rust/testdata/oracle/hugolib/build/<name>.json.gz)
 
-Both binaries build the same copy with the same flags (see compare.sh).
+--overlay makes the input of the Rust build: the same site with its layouts replaced by the Tera
+layouts of the overlay directory, the overlay's assets copied over, and for docs the variant's
+Tera patch files (rust/sites/docs/patches/<variant>/) layered on top (REWRITE_PLAN.md §7.4).
+The Go build always builds the site without an overlay (tools/neohugo/oracle.sh).
 """
+import argparse
 import gzip
 import json
 import os
@@ -83,91 +95,177 @@ def read_txtar(path):
 
 
 # ---------------------------------------------------------------------------------------------
-# docs/: the offline patch (the same edits the nh-publisher site oracle made, plus the features
-# the Rust port does not support: goldmark passthrough, emoji, Chroma highlighting).
+# docs/: the offline patch variants (docs/rust-port/REWRITE_PLAN.md §7.3). Every entry names the
+# variants it belongs to:
+#   i01      the I01 site: offline, no Chroma, passthrough, emoji, Tailwind or node modules
+#            (acceptance gate A-D1);
+#   reduced  offline, with Chroma highlighting, passthrough, emoji, remarshal, Tailwind and the
+#            real Alpine/Turbo imports (node.sh modules; gate A-D2).
+# The Go build always builds these Go-template patches. A patch of a file below layouts/ has a
+# Tera counterpart at rust/sites/docs/patches/<variant>/<same path> for every variant it belongs
+# to (`sites.py patches --check` asserts the 1:1 correspondence); all other patches change the
+# site input both builds share. `sites.py patches` writes the list as patches.json.
 
-DOCS_REMOVE = [
-    "content/en/news/_content.gotmpl",      # GetRemote of GitHub releases (a content adapter)
-    "content/en/functions/images/Text.md",  # GetRemote of a font (images.Text)
-    "hugo_stats.json",                      # written by the build
-    # Explicit errors in the Rust port (not used by seeksnack): images.QR (rsc.io/qr),
-    # images.Dither (makeworld-the-better-one/dither).
-    "content/en/shortcodes/qr.md",
-    "content/en/functions/images/QR.md",
-    "content/en/functions/images/Dither.md",
+I01 = "i01"
+REDUCED = "reduced"
+DOCS_VARIANTS = (I01, REDUCED)
+BOTH = DOCS_VARIANTS
+
+DOCS_REMOVE = [  # (file, variants, why)
+    ("content/en/news/_content.gotmpl", BOTH, "GetRemote of GitHub releases (a content adapter)"),
+    ("content/en/functions/images/Text.md", BOTH, "GetRemote of a font (images.Text)"),
+    ("hugo_stats.json", BOTH, "written by the build"),
+    # COULD features (T72): images.QR (rsc.io/qr), images.Dither.
+    ("content/en/shortcodes/qr.md", BOTH, "images.QR (COULD, T72)"),
+    ("content/en/functions/images/QR.md", BOTH, "images.QR (COULD, T72)"),
+    ("content/en/functions/images/Dither.md", BOTH, "images.Dither (COULD, T72)"),
     # Chroma: the embedded highlight shortcode, the styles gallery (transform.Highlight).
-    "content/en/shortcodes/highlight.md",
-    "content/en/quick-reference/syntax-highlighting-styles.md",
+    ("content/en/shortcodes/highlight.md", (I01,), "the embedded highlight shortcode (Chroma)"),
+    ("content/en/quick-reference/syntax-highlighting-styles.md", BOTH,
+     "the Chroma style gallery (T72)"),
     # The embedded x shortcode calls GetRemote (publish.x.com oEmbed): the Go build fetches it
     # when the machine has network access, the Rust port never does.
-    "content/en/shortcodes/x.md",
+    ("content/en/shortcodes/x.md", BOTH, "the embedded x shortcode calls GetRemote (oEmbed)"),
 ]
 
-DOCS_REPLACE = [
-    ("layouts/baseof.html", "css.TailwindCSS $opts", "minify"),  # no Tailwind CLI
+DOCS_REPLACE = [  # (file, old, new, variants, why)
+    ("layouts/baseof.html", "css.TailwindCSS $opts", "minify", (I01,), "no Tailwind CLI"),
     ("assets/js/main.js", "import Alpine from 'alpinejs';",
-     "const Alpine = { plugin() {}, data() {}, store() {}, magic() {}, start() {}, directive() {} };"),
+     "const Alpine = { plugin() {}, data() {}, store() {}, magic() {}, start() {}, directive() {} };",
+     (I01,), "no node modules (Alpine.js)"),
     ("assets/js/main.js", "import persist from '@alpinejs/persist';\nimport focus from '@alpinejs/focus';",
-     "const persist = {};\nconst focus = {};"),
-    ("assets/js/turbo.js", "import * as Turbo from '@hotwired/turbo';", "window.Turbo = { session: {} };"),
-    # Not supported by the Rust port (explicit errors): passthrough, goldmark-emoji.
+     "const persist = {};\nconst focus = {};", (I01,), "no node modules (Alpine.js plugins)"),
+    ("assets/js/turbo.js", "import * as Turbo from '@hotwired/turbo';", "window.Turbo = { session: {} };",
+     (I01,), "no node modules (Turbo)"),
     ("hugo.toml", "[markup.goldmark.extensions.passthrough]\n        enable = true",
-     "[markup.goldmark.extensions.passthrough]\n        enable = false"),
-    ("hugo.toml", "enableEmoji            = true", "enableEmoji            = false"),
-    # No Chroma: code fences are rendered as plain <pre><code>.
-    ("hugo.toml", "  [markup.highlight]\n", "  [markup.highlight]\n    codeFences         = false\n"),
-    # images.Text (a font rasterizer) and images.QR (rsc.io/qr) are explicit errors in the Rust
-    # port; replaced with other image processing so the pipelines still run.
+     "[markup.goldmark.extensions.passthrough]\n        enable = false", (I01,),
+     "no goldmark passthrough"),
+    ("hugo.toml", "enableEmoji            = true", "enableEmoji            = false", (I01,),
+     "no goldmark emoji"),
+    ("hugo.toml", "  [markup.highlight]\n", "  [markup.highlight]\n    codeFences         = false\n",
+     (I01,), "no Chroma: code fences are rendered as plain <pre><code>"),
+    # images.Text (a font rasterizer) and images.QR (rsc.io/qr) are COULD features (T72):
+    # replaced with other image processing so the pipelines still run.
     ("layouts/_partials/opengraph/get-featured-image.html",
-     "images.Filter (images.Text $text $textOptions)", "images.Filter (images.Grayscale)"),
+     "images.Filter (images.Text $text $textOptions)", "images.Filter (images.Grayscale)", BOTH,
+     "images.Text (COULD, T72)"),
     ("layouts/_partials/layouts/header/qr.html",
      'images.QR $.page.Permalink (dict "targetDir" "images/qr")',
-     '(resources.Get "/opengraph/gohugoio-card-base-1.png").Resize "64x"'),
+     '(resources.Get "/opengraph/gohugoio-card-base-1.png").Resize "64x"', BOTH,
+     "images.QR (COULD, T72)"),
     ("layouts/_partials/layouts/hooks/body-main-start.html",
      'images.QR .Permalink (dict "targetDir" "images/qr")',
-     '(resources.Get "/opengraph/gohugoio-card-base-1.png").Resize "48x"'),
-    # Chroma (transform.Highlight, highlight) is an explicit error in the Rust port: the code is
-    # escaped into a plain <pre><code> instead.
+     '(resources.Get "/opengraph/gohugoio-card-base-1.png").Resize "48x"', BOTH,
+     "images.QR (COULD, T72)"),
+    # No Chroma (transform.Highlight, highlight): the code is escaped into a plain <pre><code>.
     ("layouts/_markup/render-codeblock.html",
      "transform.Highlight (strings.TrimSpace .Inner) $lang .Options",
-     'printf "<pre><code class=%q>%s</code></pre>" $lang (strings.TrimSpace .Inner | htmlEscape) | safeHTML'),
+     'printf "<pre><code class=%q>%s</code></pre>" $lang (strings.TrimSpace .Inner | htmlEscape) | safeHTML',
+     (I01,), "no Chroma (transform.Highlight)"),
     ("layouts/_shortcodes/hl.html", "transform.Highlight $code $lang $opts",
-     'printf "<code class=%q>%s</code>" $lang (htmlEscape $code) | safeHTML'),
+     'printf "<code class=%q>%s</code>" $lang (htmlEscape $code) | safeHTML', (I01,),
+     "no Chroma (transform.Highlight)"),
     ("layouts/_shortcodes/code-toggle.html", 'highlight $hCode . ""',
-     'printf "<pre><code>%s</code></pre>" (htmlEscape $hCode)'),
-    # Smart cropping (muesli/smartcrop) is an explicit error in the Rust port.
+     'printf "<pre><code>%s</code></pre>" (htmlEscape $hCode)', (I01,), "no Chroma (highlight)"),
+    # Smart cropping (muesli/smartcrop) is a COULD feature (T72): anchors instead.
     ("content/en/content-management/image-processing/index.md",
-     'spec="fill 200x200 smart"', 'spec="fill 200x200 topleft"'),
+     'spec="fill 200x200 smart"', 'spec="fill 200x200 topleft"', BOTH, "smartcrop (COULD, T72)"),
     ("content/en/content-management/image-processing/index.md",
-     'spec="crop 200x200 smart"', 'spec="crop 200x200 bottomright"'),
-] + ([] if os.environ.get("I01_DOCS_REMARSHAL") == "1" else [
-    # transform.Remarshal to YAML/TOML reaches nh-parser's encoder stubs (gaps agent). Until they
-    # land, every code-toggle tab shows JSON; set I01_DOCS_REMARSHAL=1 to keep Go's templates.
+     'spec="crop 200x200 smart"', 'spec="crop 200x200 bottomright"', BOTH,
+     "smartcrop (COULD, T72)"),
+    # Every code-toggle tab shows JSON (transform.Remarshal to YAML and TOML stays in reduced).
     ("layouts/_shortcodes/code-toggle.html", "$code | transform.Remarshal .",
-     '$code | transform.Remarshal "json"'),
-])
+     '$code | transform.Remarshal "json"', (I01,), "remarshal to JSON only"),
+]
 
-DOCS_WRITE = {
-    # GetRemote of the GitHub API.
-    "layouts/_partials/helpers/funcs/get-github-info.html":
-        '{{ return dict "html_url" "https://github.com/gohugoio/hugo" "stargazers_url" '
-        '"https://api.github.com/repos/gohugoio/hugo/stargazers" "watchers_count" 1234 '
-        '"stargazers_count" 76543 "forks_count" 7890 "contributors_url" '
-        '"https://api.github.com/repos/gohugoio/hugo/contributors" "releases_url" '
-        '"https://api.github.com/repos/gohugoio/hugo/releases{/id}" }}',
-}
+DOCS_WRITE = [  # (file, content, variants, why)
+    ("layouts/_partials/helpers/funcs/get-github-info.html",
+     '{{ return dict "html_url" "https://github.com/gohugoio/hugo" "stargazers_url" '
+     '"https://api.github.com/repos/gohugoio/hugo/stargazers" "watchers_count" 1234 '
+     '"stargazers_count" 76543 "forks_count" 7890 "contributors_url" '
+     '"https://api.github.com/repos/gohugoio/hugo/contributors" "releases_url" '
+     '"https://api.github.com/repos/gohugoio/hugo/releases{/id}" }}',
+     BOTH, "GetRemote of the GitHub API"),
+]
+
+PATCHES_JSON = os.path.join(HERE, "patches.json")
+TERA_PATCHES = os.path.join(ROOT, "rust", "sites", "docs", "patches")
 
 
-def make_docs(dir_):
+def docs_patches():
+    """Every DOCS_* entry as the patches.json document (in application order)."""
+    out = []
+
+    def add(op, file, variants, why, **kw):
+        tera = file if file.startswith("layouts/") else None
+        e = {"op": op, "file": file, "variants": list(variants), "why": why, "tera": tera}
+        e.update(kw)
+        out.append(e)
+
+    for file, variants, why in DOCS_REMOVE:
+        add("remove", file, variants, why)
+    for file, old, new, variants, why in DOCS_REPLACE:
+        add("replace", file, variants, why, old=old, new=new)
+    for file, content, variants, why in DOCS_WRITE:
+        add("write", file, variants, why, content=content)
+    return {
+        "schema": "neohugo-docs-patches/1",
+        "about": "Written by tools/rust-port/i01/sites.py (`sites.py patches`) from its DOCS_REMOVE, "
+                 "DOCS_REPLACE and DOCS_WRITE lists: the edits of the docs site per variant. `tera` is "
+                 "the file below rust/sites/docs/patches/<variant>/ that mirrors a layout patch in the "
+                 "Tera overlay (null: the patch changes the site input both builds share).",
+        "variants": list(DOCS_VARIANTS),
+        "patches": out,
+    }
+
+
+def patches_json_text():
+    """patches.json: sorted keys, one patch per line."""
+    doc = docs_patches()
+    dump = lambda v: json.dumps(v, ensure_ascii=False, sort_keys=True)  # noqa: E731
+    lines = [f"{dump(k)}: {dump(v)}" for k, v in sorted(doc.items()) if k != "patches"]
+    patches = ",\n".join(dump(p) for p in doc["patches"])
+    lines.append(f'"patches": [\n{patches}\n]')
+    return "{\n" + ",\n".join(sorted(lines)) + "\n}\n"
+
+
+def check_patches():
+    """Errors: patches.json out of date, or the Tera patch files not 1:1 with the layout patches."""
+    errors = []
+    try:
+        with open(PATCHES_JSON, encoding="utf-8") as fh:
+            if fh.read() != patches_json_text():
+                errors.append(f"{PATCHES_JSON} is out of date (run sites.py patches)")
+    except FileNotFoundError:
+        errors.append(f"{PATCHES_JSON} is missing (run sites.py patches)")
+    doc = docs_patches()
+    for v in DOCS_VARIANTS:
+        want = sorted({p["tera"] for p in doc["patches"] if p["tera"] and v in p["variants"]})
+        vdir = os.path.join(TERA_PATCHES, v)
+        have = sorted(os.path.relpath(os.path.join(d, f), vdir).replace(os.sep, "/")
+                      for d, _, fs in os.walk(vdir) for f in fs)
+        errors += [f"{v}: no Tera patch file for {f}" for f in want if f not in have]
+        errors += [f"{v}: Tera patch file {f} has no entry in patches.json" for f in have if f not in want]
+    extra = sorted(set(os.listdir(TERA_PATCHES)) - set(DOCS_VARIANTS)) if os.path.isdir(TERA_PATCHES) else []
+    errors += [f"{TERA_PATCHES}/{e}: not a variant" for e in extra]
+    return errors
+
+
+def make_docs(dir_, variant=I01):
+    if variant not in DOCS_VARIANTS:
+        sys.exit(f"unknown docs patch variant {variant!r} (one of {', '.join(DOCS_VARIANTS)})")
     copy_tree(os.path.join(ROOT, "docs"), dir_)
-    for rel in DOCS_REMOVE:
-        fn = os.path.join(dir_, *rel.split("/"))
-        if os.path.exists(fn):
-            os.remove(fn)
-    for rel, old, new in DOCS_REPLACE:
-        edit(dir_, rel, old, new)
-    for rel, content in DOCS_WRITE.items():
-        write(dir_, rel, content)
+    for p in docs_patches()["patches"]:
+        if variant not in p["variants"]:
+            continue
+        fn = os.path.join(dir_, *p["file"].split("/"))
+        if p["op"] == "remove":
+            if os.path.exists(fn):
+                os.remove(fn)
+        elif p["op"] == "replace":
+            edit(dir_, p["file"], p["old"], p["new"])
+        else:
+            write(dir_, p["file"], p["content"])
 
 
 # ---------------------------------------------------------------------------------------------
@@ -394,34 +492,201 @@ def make_errors(dir_):
         write(dir_, k, v)
 
 
+# ---------------------------------------------------------------------------------------------
+# mini: the e2e oracle's small en/th site (rust/testdata/oracle/commands/e2e/mini.txtar). Its
+# one GetRemote call is served from a golden getresource entry stored under the file cache key
+# of the URL it requests (as tools/go-oracle/nh-commands/e2e does).
+
+MINI_TXTAR = os.path.join(TESTDATA, "oracle", "commands", "e2e", "mini.txtar")
+MINI_CACHE = [("10426788187073209306", "17211370855584179129")]  # (golden entry, file cache key)
+
+
+def make_mini(dir_):
+    if os.path.basename(os.path.normpath(dir_)) != "mini":
+        sys.exit("the mini site dir must be named mini (it keys the GetRemote cache)")
+    for k, v in read_txtar(MINI_TXTAR).items():
+        write(dir_, k, v)
+
+
+def mini_cache(dir_):
+    gdir = os.path.join(dir_, "mini", "filecache", "getresource")
+    os.makedirs(gdir, exist_ok=True)
+    for entry, key in MINI_CACHE:
+        shutil.copyfile(os.path.join(GOLDEN_CACHE, entry), os.path.join(gdir, key))
+
+
+# ---------------------------------------------------------------------------------------------
+# images: the recipes of rust/testdata/golden/images/manifest.json (the golden images of the
+# PSNR gate of T41) as a site whose home page runs every recipe with Go's image processing and
+# prints `<golden name> <RelPermalink>` per line (tools/neohugo/oracle.sh copies the published
+# files into rust/testdata/golden/images).
+
+IMAGES_MANIFEST = os.path.join(TESTDATA, "golden", "images", "manifest.json")
+
+# The filters of the recipes (the JSON of neohugo_images::ImageFilter) as Go template calls: the
+# images.* function and the keys of its arguments.
+_FILTER_ARGS = {
+    "brightness": ("Brightness", ["percentage"]),
+    "contrast": ("Contrast", ["percentage"]),
+    "gamma": ("Gamma", ["gamma"]),
+    "gaussian_blur": ("GaussianBlur", ["sigma"]),
+    "grayscale": ("Grayscale", []),
+    "hue": ("Hue", ["shift"]),
+    "invert": ("Invert", []),
+    "colorize": ("Colorize", ["hue", "saturation", "percentage"]),
+    "color_balance": ("ColorBalance", ["r", "g", "b"]),
+    "saturation": ("Saturation", ["percentage"]),
+    "sepia": ("Sepia", ["percentage"]),
+    "sigmoid": ("Sigmoid", ["midpoint", "factor"]),
+    "unsharp_mask": ("UnsharpMask", ["sigma", "amount", "threshold"]),
+    "pixelate": ("Pixelate", ["size"]),
+    "opacity": ("Opacity", ["opacity"]),
+    "auto_orient": ("AutoOrient", []),
+}
+
+
+def _go_value(v):
+    if isinstance(v, str):
+        return json.dumps(v)
+    if isinstance(v, bool) or not isinstance(v, (int, float)):
+        sys.exit(f"images: unsupported filter argument {v!r}")
+    return repr(v)
+
+
+def make_images(dir_):
+    with open(IMAGES_MANIFEST, encoding="utf-8") as fh:
+        recipes = json.load(fh)
+    files = {}  # repository path -> assets path
+
+    def asset(repo_path):
+        if repo_path not in files:
+            files[repo_path] = f"g/{len(files):02d}{os.path.splitext(repo_path)[1].lower()}"
+            with open(os.path.join(ROOT, *repo_path.split("/")), "rb") as fh:
+                write(dir_, "assets/" + files[repo_path], fh.read())
+        return f'(resources.Get "{files[repo_path]}")'
+
+    def filter_call(f):
+        op = f["op"]
+        if op in _FILTER_ARGS:
+            name, keys = _FILTER_ARGS[op]
+            return " ".join([f"images.{name}"] + [_go_value(f[k]) for k in keys])
+        if op == "padding":
+            margin = f.get("margin") or [f.get(k, 0) for k in ("top", "right", "bottom", "left")]
+            color = [_go_value(f["color"])] if "color" in f else []
+            return " ".join(["images.Padding"] + [_go_value(m) for m in margin] + color)
+        if op == "overlay":
+            return f'images.Overlay {asset(f["image"])} {_go_value(f.get("x", 0))} {_go_value(f.get("y", 0))}'
+        if op == "mask":
+            return f'images.Mask {asset(f["image"])}'
+        if op == "process":
+            return f'images.Process {_go_value(f["spec"])}'
+        sys.exit(f"images: unsupported filter {op!r}")
+
+    lines = []
+    for r in recipes:
+        if r.get("imaging"):
+            sys.exit(f"images: {r['golden']}: a recipe's own [imaging] is not supported (one site)")
+        lines.append("{{- $r := " + asset(r["source"]) + " }}")
+        for step in r["steps"]:
+            if "spec" in step:
+                lines.append("{{- $r = $r.Process " + _go_value(step["spec"]) + " }}")
+            else:
+                fs = " ".join(f"({filter_call(f)})" for f in step["filters"])
+                lines.append("{{- $r = $r | images.Filter (slice " + fs + ") }}")
+        lines.append(r["golden"] + " {{ $r.RelPermalink }}")
+    write(dir_, "hugo.toml", 'baseURL = "https://example.org/"\n'
+          'disableKinds = ["page", "section", "taxonomy", "term", "rss", "sitemap", "robotsTXT", "404"]\n'
+          '[outputs]\nhome = ["html"]\n')
+    write(dir_, "layouts/home.html", "\n".join(lines) + "\n")
+
+
+# ---------------------------------------------------------------------------------------------
+# The Rust overlay (REWRITE_PLAN.md §7.4): the site as generated above, with its layouts replaced
+# by the Tera layouts of rust/sites/<site>/layouts, the Tera versions of template-processed assets
+# (rust/sites/<site>/assets) copied over, and for docs the variant's Tera patch files
+# (rust/sites/docs/patches/<variant>/) layered on top. Content, i18n, data, config and all other
+# assets stay as generated.
+
+def apply_overlay(dir_, overlay, variant=None):
+    if not os.path.isdir(os.path.join(overlay, "layouts")):
+        sys.exit(f"{overlay} has no layouts directory")
+    shutil.rmtree(os.path.join(dir_, "layouts"), ignore_errors=True)
+    shutil.copytree(os.path.join(overlay, "layouts"), os.path.join(dir_, "layouts"))
+    if os.path.isdir(os.path.join(overlay, "assets")):
+        shutil.copytree(os.path.join(overlay, "assets"), os.path.join(dir_, "assets"), dirs_exist_ok=True)
+    if variant is not None:
+        vdir = os.path.join(overlay, "patches", variant)
+        if not os.path.isdir(vdir):
+            sys.exit(f"{overlay} has no patches/{variant}")
+        shutil.copytree(vdir, dir_, dirs_exist_ok=True)
+
+
 SITES = {"docs": make_docs, "testsite": make_testsite, "seeksnack": make_seeksnack,
-         "errors": make_errors, "probe": make_probe}
+         "mini": make_mini, "images": make_images, "errors": make_errors, "probe": make_probe}
+CACHES = {"seeksnack": seeksnack_cache, "mini": mini_cache}
+
+
+def site_and_variant(name, variant):
+    """The site and its docs patch variant: `docs-<variant>` is docs with --docs-patches."""
+    base, _, v = name.partition("-")
+    if base == "docs" and v in DOCS_VARIANTS:
+        if variant not in (None, v):
+            sys.exit(f"{name} contradicts --docs-patches {variant}")
+        return base, v
+    if name == "docs":
+        return name, variant or I01
+    if variant is not None:
+        sys.exit("--docs-patches applies to the docs site only")
+    return name, None
 
 
 def main():
     sys.path.insert(0, HERE)
-    if len(sys.argv) < 2:
-        sys.exit(__doc__)
-    cmd = sys.argv[1]
-    if cmd == "list":
-        for n in list(SITES) + ["t24-" + n for n in t24_names()]:
+    ap = argparse.ArgumentParser(usage=__doc__)
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("list")
+    mk = sub.add_parser("make")
+    mk.add_argument("site")
+    mk.add_argument("dir")
+    mk.add_argument("--overlay", metavar="DIR")
+    mk.add_argument("--docs-patches", choices=DOCS_VARIANTS)
+    ca = sub.add_parser("cache")
+    ca.add_argument("site")
+    ca.add_argument("dir")
+    pa = sub.add_parser("patches")
+    pa.add_argument("--check", action="store_true")
+    a = ap.parse_args()
+
+    if a.cmd == "list":
+        for n in list(SITES) + ["docs-" + v for v in DOCS_VARIANTS] + ["t24-" + n for n in t24_names()]:
             print(n)
         return
-    if len(sys.argv) != 4:
-        sys.exit(__doc__)
-    name, dir_ = sys.argv[2], sys.argv[3]
-    if cmd == "cache":
-        os.makedirs(dir_, exist_ok=True)
-        if name == "seeksnack":
-            seeksnack_cache(dir_)
+    if a.cmd == "patches":
+        if not a.check:
+            with open(PATCHES_JSON, "w", encoding="utf-8", newline="\n") as fh:
+                fh.write(patches_json_text())
+        errors = check_patches()
+        for e in errors:
+            print(f"sites.py patches: {e}", file=sys.stderr)
+        if errors:
+            sys.exit(1)
+        print(f"patches.json: {len(docs_patches()['patches'])} entries; the Tera patch files of "
+              f"{', '.join(DOCS_VARIANTS)} correspond 1:1")
         return
-    if cmd != "make":
-        sys.exit(__doc__)
+    name, variant = site_and_variant(a.site, getattr(a, "docs_patches", None))
+    dir_ = a.dir
+    if a.cmd == "cache":
+        os.makedirs(dir_, exist_ok=True)
+        if name in CACHES:
+            CACHES[name](dir_)
+        return
     if os.path.exists(dir_):
         sys.exit(f"{dir_} exists")
     if os.path.commonpath([os.path.abspath(dir_), ROOT]) == ROOT:
         sys.exit("refusing to write a site into the repository tree")
-    if name in SITES:
+    if name == "docs":
+        make_docs(dir_, variant)
+    elif name in SITES:
         SITES[name](dir_)
     elif name.startswith("t24-"):
         site = fixture_site(name[4:])
@@ -434,6 +699,8 @@ def main():
         write_fixture_site(site, dir_)
     else:
         sys.exit(f"unknown site {name}")
+    if a.overlay:
+        apply_overlay(dir_, os.path.abspath(a.overlay), variant)
 
 
 if __name__ == "__main__":

@@ -5,8 +5,8 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 
 | API | What |
 |---|---|
-| `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped, except `hugo_stats.json`), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then each theme's component directories; duplicates (source, target, lang) dropped |
-| `Vfs::mounts`, `mounts_of` | the mounts in precedence order (project, then themes in `theme` order) |
+| `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped, except `hugo_stats.json`), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then the mounts of each theme of `Config::themes` (see Themes); duplicates (source, target, lang) dropped per module |
+| `Vfs::mounts`, `mounts_of` | the mounts in precedence order (project, then the themes in `Config::themes` order: the `theme` list and `[[module.imports]]`, each theme's own themes after it) |
 | `Vfs::walk(c)` | the union view of a component, sorted by path (bytes) then mount precedence: first mount wins (content: per mount language; data and i18n keep every file; static: the last mount of the first module, see Rules) |
 | `Vfs::open(c, rel)` | the winning file at `rel`, same rules as `walk` |
 | `PathParser::from_config`, `parse(c, rel)` | `PathInfo` (key, path, name, section, ext, language, output format, `BundleKind`, layout parts, original spelling) or `Parsed::DisabledLanguage` |
@@ -14,6 +14,14 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 
 ## Rules
 
+- **Themes.** `neohugo-config` finds the themes (nested themes, `[[module.imports]]`,
+  `_vendor`, replacements) and says what each mounts (`ThemeMounts`); here a theme's mounts
+  are: its configured mounts (the importer's `[[module.imports.mounts]]`, else its own
+  `[[module.mounts]]`; sources are relative to the theme's directory, an absolute one too, as
+  in Hugo; missing ones skipped; `lang` resolved like the project's), or each component
+  directory it has (Hugo's name order); then its root JS config files →
+  `assets/_jsconfig/` unless a mount targets that directory; nothing with `noMounts`.
+  `Module::Theme(n)` is the n-th of `Config::themes`.
 - **Ignore rules.** Content, data, i18n: names starting with `.` or `#` or ending with `~`
   (files and directories) and `ignoreFiles` regexps (absolute file name). Layouts: files
   starting with `.` or ending with `~`. Assets, static, archetypes: none (the static copy keeps
@@ -50,12 +58,16 @@ Mounts → one union file view per component, walkers, ignore rules and the path
   unnormalised `Path`/`Base`/`BaseNameNoIdentifier`/`Section`, and the bundled-resource form
   (`ModifyPathBundleTypeResource`).
 - `mounts`: `oracle/allconfig/load/mounts.json.gz`, all 13 cases equal (the invalid target is an
-  error).
+  error); `theme_mounts_match_go`: the 30 themes of `oracle/allconfig/load/{themes,merge}`
+  (order, directory, `_vendor` version, importer, mounts incl. JS config files) equal Go's
+  modules, and the cases Go fails fail.
 - `capture`: `oracle/hugolib/capture/{testsite,seeksnack,docs}` — (file, key, language, kind)
   for every file in Hugo's page and resource trees, plus name, section, extension and original
   base of every page: testsite 2, seeksnack 56, docs 1,011 files equal. Also contentdir,
   edge-tree, homeleaf, nokinds, shortcodes, synthetic.
-- `walk`: mount precedence (project over themes, per-language content, data/i18n keep all,
+- `walk`: nested themes and import options (`theme_mounts_and_nested_themes`), a missing theme
+  (a configuration error; a theme directory removed after loading: `VfsError::ThemeNotFound`),
+  mount precedence (project over themes, per-language content, data/i18n keep all,
   static later-mount-wins within a module and symlink following with loops),
   mounts below a component and single-file mounts, ignore rules, filters, disabled and unknown
   mount languages, symlinks, leaf bundles, duplicates.
@@ -69,7 +81,6 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 | Keys with an empty segment or a trailing slash (162 checks) | Go's `Base()` of `a//`, `/tags//_index.md` or a page file named `.md` keeps the slashes; `ContentKey` has neither. Walks never produce such paths (no empty segments; content names starting with `.` are ignored). |
 | Go `TypeShortcode` outside layouts is `BundleKind::Resource` (144 cases) | A non-content file below `/_shortcodes/` in another component; Go treats it exactly like `TypeFile`. |
 | Not modelled: `Container`, `ContainerDir`, `Identifiers`, `NameNoExt`, `NameNoLang`, `PathNoLang`, `PathBeforeLangAndOutputFormatAndExt`, `BaseReTyped`, `IdentifierBase`, `TrimLeadingSlash`, `ForType`, `PathRel`, `BaseRel` | Go conveniences; callers derive what they need from `key`, `path` and `dir()`. |
-| Themes get the default component mounts only | A theme's own configuration (its mounts, nested themes) is not read; `neohugo-config` loads the project configuration only. |
 | A missing `hugo_stats.json` mount source is kept but not created | Hugo creates the empty file; here the build writes it (E4) and `walk`/`open` see it once it exists. |
 | No NFC normalisation of file names | Hugo does it on darwin only; neohugo runs on Linux. |
 | `walk` returns a `Vec` in byte order, not Hugo's `ReadDir` order | Order only affected Hugo's insertion ids; the trees are keyed. |
