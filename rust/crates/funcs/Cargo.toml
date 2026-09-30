@@ -41,7 +41,7 @@ runtime = [
 ]
 # `to_math` (LaTeX → MathML).
 math = ["runtime", "dep:pulldown-latex"]
-# `diagrams_goat` (T66; not implemented yet).
+# `diagrams_goat` (ASCII diagrams to SVG with svgbob).
 goat = ["runtime", "dep:svgbob"]
 
 [dependencies]

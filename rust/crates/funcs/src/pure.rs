@@ -8,6 +8,8 @@
 mod collections;
 mod dates;
 mod encoding;
+#[cfg(feature = "goat")]
+mod goat;
 mod html;
 #[cfg(feature = "math")]
 mod math;
@@ -33,11 +35,12 @@ use crate::spec::{self, FuncSpec, NameKind, Source};
 pub use dates::date_value;
 
 /// Pure entries whose implementation is not compiled into this build: `to_math` without the
-/// `math` feature, and `diagrams_goat` (feature `goat`, task T66). [`register_pure`] registers
+/// `math` feature, `diagrams_goat` without the `goat` feature. [`register_pure`] registers
 /// them as stubs that fail when called, so templates that name them still load.
 pub const NOT_COMPILED: &[&str] = &[
     #[cfg(not(feature = "math"))]
     "to_math",
+    #[cfg(not(feature = "goat"))]
     "diagrams_goat",
 ];
 
@@ -193,6 +196,8 @@ pub fn register_pure(tera: &mut Tera, env: &Arc<PureEnv>) {
     views::register(&mut r);
     #[cfg(feature = "math")]
     math::register(&mut r, env);
+    #[cfg(feature = "goat")]
+    goat::register(&mut r);
     for name in NOT_COMPILED {
         r.not_compiled(name);
     }

@@ -25,6 +25,14 @@ path = "tests/it/main.rs"
 [lints]
 workspace = true
 
+[features]
+# The SHOULD template functions the Hugo documentation site needs (A-D2), on in the shipped
+# binary: `diagrams_goat` (svgbob) and `to_math` (pulldown-latex). `--no-default-features`
+# builds without them; the functions then fail when called.
+default = ["goat", "math"]
+goat = ["neohugo-funcs/goat"]
+math = ["neohugo-funcs/math"]
+
 [dependencies]
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
