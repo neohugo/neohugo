@@ -5,6 +5,8 @@ mod support;
 
 #[cfg(feature = "runtime")]
 mod determinism;
+#[cfg(feature = "runtime")]
+mod hugo_bytes;
 #[cfg(feature = "math")]
 mod math;
 #[cfg(feature = "runtime")]

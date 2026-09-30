@@ -17,7 +17,7 @@ Everything language-dependent, on ICU4X 2.3 compiled data (CLDR 48.2.1, Unicode-
 | `MessageFile::read(path, content)` | The messages of one file (TOML/YAML/JSON; flat, `[key]` tables, nested namespaces, `[{id, translation}]` lists). |
 | `Template::parse` / `parse_with(left, right)` / `render` | The restricted evaluator. |
 | `format_number(n, precision, &Locale)` | `lang.FormatNumber`. |
-| `format_date(&Zoned, DatePattern::{Strftime(fmt), Style(DateStyle)}, &Locale)` | `date(format=…)` with localized `%B %b %h %A %a`, and `:date_short` … `:date_full`. |
+| `format_date(&Zoned, DatePattern::{Strftime(fmt), Style(DateStyle)}, &Locale)` | `date(format=…, locale=…)` with localized `%B %b %h %A %a` (without `locale`, `date(format=)` prints English names as Go's `Time.Format`), and `:date_short` … `:date_full`. |
 
 `Translations::load(vfs, langs)` of the plan's §2.4 sketch became the builder: this crate cannot
 depend on `vfs` or `config` (§2.3), so `site` walks the i18n mounts and feeds the files, and

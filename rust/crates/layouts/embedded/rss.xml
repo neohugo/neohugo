@@ -43,7 +43,7 @@
     {%- if page.date %}
       {%- set newest = pages | by_lastmod | reverse | first %}
       {%- if newest and newest.lastmod %}
-    <lastBuildDate>{{ newest.lastmod | date(format=rfc822, locale="en") }}</lastBuildDate>
+    <lastBuildDate>{{ newest.lastmod | date(format=rfc822) }}</lastBuildDate>
       {%- endif %}
     {%- endif %}
     {%- if page.output_formats.rss %}
@@ -54,10 +54,10 @@
     <item>
       <title>{{ p.title }}</title>
       <link>{{ p.permalink }}</link>
-      <pubDate>{% if p.publish_date %}{{ p.publish_date | date(format=rfc822, locale="en") }}{% else %}Mon, 01 Jan 0001 00:00:00 +0000{% endif %}</pubDate>
+      <pubDate>{% if p.publish_date %}{{ p.publish_date | date(format=rfc822) }}{% else %}Mon, 01 Jan 0001 00:00:00 +0000{% endif %}</pubDate>
       {%- if author_email %}<author>{{ author_email }}{{ author_suffix }}</author>{% endif %}
       <guid>{{ p.permalink }}</guid>
-      <description>{{ p.summary | html_escape }}</description>
+      <description>{{ p.summary | xml_escape }}</description>
     </item>
     {%- endfor %}
   </channel>

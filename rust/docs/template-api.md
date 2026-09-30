@@ -207,7 +207,8 @@ Flattened render-hook fields:
 | `x \| safe` | bi | both |  | `safeHTML`, `safeHTMLAttr`, `safeURL`, `safeJS`, `safeCSS` | Marks the value safe. |
 | `x \| escape` | bi | both |  |  | Tera's escape (leaves safe input alone). Hugo's `html` is `html_escape`. |
 | `x \| escape_html` | bi | both |  |  | Tera's HTML escape of a string. |
-| `x \| escape_xml` | bi | both |  | `transform.XMLEscape` | XML escape. |
+| `x \| escape_xml` | bi | both |  |  | Tera's XML escape (`&quot;`, `&apos;`; leaves safe input alone). Hugo's `transform.XMLEscape` is `xml_escape`. |
+| `x \| xml_escape` | F | both | yes | `transform.XMLEscape` | Drops the characters XML forbids, then escapes `& < > " '`, tab, newline and CR (`&#34; &#39; &#x9; &#xA; &#xD;`, Go's `xml.EscapeText`) even when the input is safe; the result is safe. |
 | `x \| html_escape` | F | both | yes | `html`, `htmlEscape`, `transform.HTMLEscape` | Escapes `& < > " '` even when the input is safe; the result is safe. |
 | `x \| html_unescape` | F | both |  | `htmlUnescape`, `transform.HTMLUnescape` | Decodes HTML entities. |
 | `x \| jsonify(indent=?)` | F | both | yes | `jsonify` | JSON with sorted keys, `<>&` escaped as `\u003c…`; `indent` pretty-prints. (indent: string) |
@@ -248,7 +249,7 @@ Flattened render-hook fields:
 | Call | Kind | Phase | Safe | Hugo | Description |
 |---|---|---|---|---|---|
 | `now()` | fn | both |  | `now` | The build time (honours `--clock`) as a date value. |
-| `x \| date(format=?, style=?, locale=?)` | F | both |  | `.Format`, `time.Format`, `dateFormat` | Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`) in `locale` (default: the render's `lang`; Thai uses the Gregorian calendar). Accepts a date value, a date string or Unix seconds; none prints nothing. (format: string, style: string, locale: string) |
+| `x \| date(format=?, style=?, locale=?)` | F | both |  | `.Format`, `time.Format`, `dateFormat` | Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`). A style is localized in `locale` (default: the render's `lang`; Thai uses the Gregorian calendar); a `format`'s month and weekday names are English (Go's `.Format`) unless `locale` is given (`time.Format`, `dateFormat`: `locale=lang`). Accepts a date value, a date string or Unix seconds; none prints nothing. (format: string, style: string, locale: string) |
 | `x \| to_date` | F | both |  | `time.AsTime`, `time` | Parses a string or number into a date value (`{rfc3339, unix}`). |
 
 ## Language
@@ -380,7 +381,7 @@ Flattened render-hook fields:
 **Formatting**
 
 - Go `printf` → `~`, `pad_start`/`pad_end`, `round`/`format_number`, `jsonify`.
-- Go date layouts → strftime: `"2006-01-02"` → `"%Y-%m-%d"`, `"Jan 2, 2006"` → `"%b %-d, %Y"`.
+- Go date layouts → strftime: `"2006-01-02"` → `"%Y-%m-%d"`, `"Jan 2, 2006"` → `"%b %-d, %Y"`. `.Format` stays English; `time.Format` and `dateFormat` localize names, so add `locale=lang`.
 
 **Removed Hugo idioms**
 

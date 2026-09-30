@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
   xmlns:xhtml="http://www.w3.org/1999/xhtml">
-  {%- for p in page.pages %}
-    {%- if p.permalink and not p.sitemap.disable %}
+  {% for p in page.pages -%}
+    {%- if p.permalink and not p.sitemap.disable -%}
   <url>
     <loc>{{ p.permalink }}</loc>
     {%- if p.lastmod %}
-    <lastmod>{{ p.lastmod | date(format="%Y-%m-%dT%H:%M:%S%:z", locale="en") }}</lastmod>
+    <lastmod>{{ p.lastmod | date(format="%Y-%m-%dT%H:%M:%S%:z") }}</lastmod>
     {%- endif %}
     {%- if p.sitemap.change_freq %}
     <changefreq>{{ p.sitemap.change_freq }}</changefreq>
@@ -30,6 +30,6 @@
                 />
     {%- endif %}
   </url>
-    {%- endif %}
+    {%- endif -%}
   {%- endfor %}
 </urlset>

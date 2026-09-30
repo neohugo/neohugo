@@ -95,4 +95,5 @@ urlencode: a%20b/c%3Fd
 urlencode_strict: a%20b%2Fc%3Fd
 urlize: hello-world-%C3%BCn%C3%AFcode
 version_at_least: true false true
+xml_escape: "&lt;p class=&#34;x&#34;&gt;&#39;&amp;&#39;&lt;/p&gt;"
 xxhash: ab8524a32dca4a0a
