@@ -8,7 +8,7 @@ use std::time::Duration;
 
 use neohugo_config::Config;
 use neohugo_vfs::{Component, Vfs};
-use notify::event::{AccessKind, AccessMode, EventKind, MetadataKind, ModifyKind, RenameMode};
+use notify::event::{EventKind, MetadataKind, ModifyKind, RenameMode};
 use notify::{PollWatcher, RecommendedWatcher, RecursiveMode};
 use notify_debouncer_full::{
     DebounceEventResult, DebouncedEvent, Debouncer, NoCache, RecommendedCache, new_debouncer_opt,
@@ -287,10 +287,10 @@ impl Classifier {
             }
             let kind = &e.kind;
             let wrote = match kind {
-                // A write (inotify's close after writing; the poll watcher's newer time).
-                EventKind::Access(AccessKind::Close(AccessMode::Write))
-                | EventKind::Modify(ModifyKind::Metadata(MetadataKind::WriteTime)) => true,
-                // Reads, and permission or time changes (Hugo skips chmod events).
+                // The poll watcher reports a write as a newer modification time.
+                EventKind::Modify(ModifyKind::Metadata(MetadataKind::WriteTime)) => true,
+                // Opening, reading and closing (a write is also a modification), permission or
+                // time changes (Hugo skips chmod events).
                 EventKind::Access(_) | EventKind::Modify(ModifyKind::Metadata(_)) => continue,
                 _ => false,
             };

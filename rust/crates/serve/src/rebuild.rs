@@ -31,6 +31,8 @@ use neohugo_build::{BuildError, BuildReport, BuildRequest, LiveReload, SinkKind}
 use neohugo_config::{Config, LoadOptions};
 use neohugo_publish::{MemorySink, StaticSyncOptions};
 use neohugo_vfs::{Component, Vfs, VfsError};
+use notify::EventKind;
+use notify_debouncer_full::DebouncedEvent;
 
 use crate::address::server_base_url;
 use crate::tree::{Served, Tree, publish_dir};
@@ -202,10 +204,40 @@ impl Rebuilder {
                 }
             }
             let changes = self.classifier.classify(&events);
+            // Before the reload goes out, so that the next edit in a new directory is seen.
+            self.refresh_watches(&events, &mut watcher);
             if !changes.is_empty() {
                 self.handle(&changes, &mut watcher);
             }
         }
+    }
+
+    /// Watches the mounted directories as they are now: one created since (a first `static/`
+    /// or `assets/`) is watched from now on, and one removed and created again is watched
+    /// anew.
+    fn refresh_watches(&mut self, events: &[DebouncedEvent], watcher: &mut Watcher) {
+        let vfs = match Vfs::new(&self.cfg) {
+            Ok(v) => v,
+            Err(e) => {
+                self.error(&format!("mounts: {e}"));
+                return;
+            }
+        };
+        let set = WatchSet::new(&self.cfg, &vfs, &self.config_dir);
+        let mut old = self.watch_set.clone();
+        for e in events {
+            if matches!(e.kind, EventKind::Create(_)) {
+                for p in &e.paths {
+                    old.roots.remove(p);
+                }
+            }
+        }
+        for (path, e) in watcher.update(&old, &set) {
+            self.error(&format!("watching {}: {e}", path.display()));
+        }
+        self.classifier = Classifier::new(&self.cfg, &vfs, &self.config_dir);
+        self.vfs = vfs;
+        self.watch_set = set;
     }
 
     fn handle(&mut self, changes: &Changes, watcher: &mut Watcher) {
@@ -387,10 +419,24 @@ impl Rebuilder {
             .map(|(t, _)| t.clone())
             .collect();
         let tree = self.shared.served().tree.clone();
+        // Only files whose bytes change count (an editor saving the same bytes, a write
+        // reported twice).
+        let mut changed: Vec<&String> = Vec::new();
         for t in &targets {
+            let current = tree.read_now(t);
             let result = match files.get(t) {
-                Some(abs) => std::fs::read(abs).and_then(|bytes| tree.write(t, &bytes)),
-                None => tree.remove(t),
+                Some(abs) => std::fs::read(abs).and_then(|bytes| {
+                    if current.as_deref() == Some(bytes.as_slice()) {
+                        return Ok(());
+                    }
+                    changed.push(t);
+                    tree.write(t, &bytes)
+                }),
+                None if current.is_some() => {
+                    changed.push(t);
+                    tree.remove(t)
+                }
+                None => Ok(()),
             };
             if let Err(e) = result {
                 self.error(&format!("copying the static file {t}: {e}"));
@@ -398,16 +444,15 @@ impl Rebuilder {
         }
         self.static_files = files;
         self.reporter.report(&Event::StaticSynced {
-            files: targets.len(),
+            files: changed.len(),
             elapsed: started.elapsed(),
         });
-        if self.live_reload.is_none() || targets.is_empty() {
+        if self.live_reload.is_none() {
             return;
         }
-        match targets.iter().next() {
-            Some(one) if targets.len() == 1 => {
-                self.send(&livereload::reload(&self.url_path(one)));
-            }
+        match changed.as_slice() {
+            [] => {}
+            [one] => self.send(&livereload::reload(&self.url_path(one))),
             _ => self.send(&livereload::force_refresh()),
         }
     }

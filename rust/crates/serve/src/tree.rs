@@ -51,6 +51,14 @@ impl Tree {
         }
     }
 
+    /// The file at `rel` now (blocking; the watch thread's).
+    pub(crate) fn read_now(&self, rel: &str) -> Option<Vec<u8>> {
+        match self {
+            Self::Memory(m) => m.get(rel).map(|b| b.to_vec()),
+            Self::Disk(root) => fs::read(root.join(OutputPath::new(rel).relative())).ok(),
+        }
+    }
+
     /// Writes a static file.
     pub(crate) fn write(&self, rel: &str, bytes: &[u8]) -> io::Result<()> {
         let path = OutputPath::new(rel);

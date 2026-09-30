@@ -483,6 +483,27 @@ fn per_language_404_pages() {
     server.shutdown();
 }
 
+/// A component directory created while serving (the site had no `static/`) is copied and
+/// watched from then on.
+#[test]
+fn a_new_static_directory_is_watched() {
+    let dir = site(SITE);
+    fs::remove_dir_all(dir.path().join("static")).expect("remove static");
+    let (server, events) = serve(dir.path(), |_| {});
+    let addr = server.local_addrs()[0];
+    let mut lr = LiveReload::connect(addr, "/livereload");
+    assert_eq!(get(addr, "/new.txt", &[]).status, 404);
+    write(&dir.path().join("static/new.txt"), "one\n");
+    assert!(lr.expect().contains(r#""path":"/new.txt""#));
+    assert_eq!(get(addr, "/new.txt", &[]).text(), "one\n");
+    // The new directory is watched itself now.
+    write(&dir.path().join("static/new.txt"), "two\n");
+    assert!(lr.expect().contains(r#""path":"/new.txt""#));
+    assert_eq!(get(addr, "/new.txt", &[]).text(), "two\n");
+    assert_eq!(events.count("built"), 1, "{:#?}", events.lines());
+    server.shutdown();
+}
+
 /// Polling notices changes too.
 #[test]
 fn polling_watcher() {

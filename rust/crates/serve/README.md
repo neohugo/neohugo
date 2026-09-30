@@ -66,19 +66,23 @@ out) recursively, a mounted file through its directory, the configuration direct
 notify's native watcher (inotify, FSEvents, …) or its poller (`--poll 700ms`; a number is
 milliseconds; the poller compares contents, because notify keeps modification times in
 whole seconds), debounced by notify-debouncer-full: an event is delivered 1 s after it
-happened (100 ms ticks); batches that arrive during a build are handled together.
+happened (100 ms ticks); batches that arrive during a build are handled together. After each
+batch the watch set is computed again, so a component directory created while serving (a
+first `static/` or `assets/`, seen through the project directory's watch) is watched from
+then on, and one removed and created again is watched anew (Hugo misses both).
 
 **Ignored**: editors' temporary and backup files (Hugo's list: `~`, `.swp`, `.swx`, `.bck`,
 `.tmp`, `4913`, `.goutputstream*`, JetBrains `___jb_*___`, `.sb-*`, `#…`, `.#…`), names
 starting with `.`, anything below `.git`, `node_modules` or `bower_components` inside a
 mount, the project's `hugo_stats.json` (the build writes it), permission and time changes,
-reads, and files created or written that are gone again.
+opening, reading and closing (a write is seen as a modification), and files created or
+written that are gone again.
 
 | A batch with | Does | Then sends |
 |---|---|---|
 | a configuration file (or `config/**`) | reloads the configuration (and the watch set), rebuilds everything; a configuration that does not load pauses everything else until it loads (Hugo); a site that becomes or stops being multihost needs a restart | a full reload |
 | content, layouts, assets, data, i18n, archetypes (or lost events) | a full rebuild into a new memory sink, served when it succeeds; a failure is reported with positions (as `build` reports) and the last good build stays | Hugo's fast-render rules on the files that changed against the last good build (source maps left out): none, nothing; content changed, a full reload, or with `--navigateToChanged` `__hugo_navigate<page path>` with the page's server port in `overrideURL`; one other file, that path; stylesheets only, each stylesheet (applied in place by livereload.js); else a full reload, then the stylesheets after 200 ms. `--renderToDisk` builds are not compared: a full reload |
-| static files only | no build: the static mounts are listed again, each file below a changed path is copied into the served tree (memory, or the publish directory), a file no static directory has any more is removed. As in Hugo, a static file wins over a rendered file of the same path until the next build | one file: its path (a stylesheet or image is updated in place); several: a full reload |
+| static files only | no build: the static mounts are listed again, each file below a changed path is copied into the served tree (memory, or the publish directory), a file no static directory has any more is removed. Files whose bytes did not change are left alone. As in Hugo, a static file wins over a rendered file of the same path until the next build | one changed file: its path (a stylesheet or image is updated in place); several: a full reload; none: nothing |
 
 A full reload is Hugo's `{"command":"reload","path":"/x.js","originalPath":"","liveCSS":true,
 "liveImg":true}`; the hello answer is `{"command":"hello","protocols":
@@ -130,6 +134,7 @@ harmless for memory builds.
 | `serve::base_path_caching_and_no_live_reload` | `/docs/` base path, `/docs` redirect, outside paths, `--noHTTPCache`, no script or endpoints without live reload, `--watch=false` |
 | `serve::multihost_sites_get_a_listener_each` | two listeners, each language's base URL with its port, its script and 404 page, a WebSocket each |
 | `serve::per_language_404_pages` | `/nn/…` → `nn/404.html`, other misses → `404.html` |
+| `serve::a_new_static_directory_is_watched` | a site without `static/`: the new directory's file is copied, and a second edit inside it is seen (no build) |
 | `serve::polling_watcher` | `--poll 100ms` picks up an edit |
 | `testsite::testsite_is_served_and_reloads` | the testsite: pages of both languages and formats with the canonified server URLs, no script in JSON and aliases, static, types, both 404 pages, then edit → reload **measured**: 3 content edits, 1 layout edit, 1 static edit (no build) |
 
