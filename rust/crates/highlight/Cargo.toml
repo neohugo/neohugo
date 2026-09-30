@@ -27,6 +27,11 @@ syntect.workspace = true
 two-face.workspace = true
 thiserror.workspace = true
 
+[build-dependencies]
+# build.rs links two-face's syntaxes and the crate's own into one dumped set (T70).
+syntect.workspace = true
+two-face.workspace = true
+
 [dev-dependencies]
 # Acceptance harness (tests/it): the docs fences are read through neohugo-markup, the Chroma
 # oracle fixtures are gzipped JSON.

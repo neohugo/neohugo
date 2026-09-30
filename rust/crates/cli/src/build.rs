@@ -40,6 +40,9 @@ pub(crate) fn run(a: &BuildArgs) -> anyhow::Result<Exit> {
                 let total: Duration = r.timings.iter().map(|(_, d)| *d).sum();
                 println!("Total in {} ms", total.as_millis());
             }
+            if std::env::var_os("NEOHUGO_TIMINGS").is_some() {
+                print_timings(&r);
+            }
             Ok(Exit::Success)
         }
         Err(e) => {
@@ -47,6 +50,16 @@ pub(crate) fn run(a: &BuildArgs) -> anyhow::Result<Exit> {
             Ok(Exit::Failure)
         }
     }
+}
+
+/// The build's phase timings on stderr (`NEOHUGO_TIMINGS` set; for profiling, T70).
+fn print_timings(r: &BuildReport) {
+    let phases: Vec<String> = r
+        .timings
+        .iter()
+        .map(|(name, d)| format!("{name} {} ms", d.as_millis()))
+        .collect();
+    eprintln!("timings: {}", phases.join(" | "));
 }
 
 /// What a build produced (`build`, and `server`'s first build).

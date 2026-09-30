@@ -3,23 +3,13 @@
 
 use std::collections::BTreeMap;
 
-use syntect::parsing::SyntaxDefinition;
-use syntect::parsing::{SyntaxReference, SyntaxSet, SyntaxSetBuilder};
+use syntect::parsing::{SyntaxReference, SyntaxSet};
 
 /// Chroma's lexer lookup table (`data/chroma-lexers.tsv`).
 const CHROMA_LEXERS: &str = include_str!("data/chroma-lexers.tsv");
 
-/// The crate's own syntaxes, added to two-face's set.
-const OWN_SYNTAXES: &[(&str, &str)] = &[
-    (
-        "GoTemplate.sublime-syntax",
-        include_str!("syntaxes/GoTemplate.sublime-syntax"),
-    ),
-    (
-        "GoHtmlTemplate.sublime-syntax",
-        include_str!("syntaxes/GoHtmlTemplate.sublime-syntax"),
-    ),
-];
+/// two-face's syntaxes plus the crate's own (`src/syntaxes/`), linked by `build.rs`.
+const SYNTAXES_DUMP: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/syntaxes.dump"));
 
 /// Chroma lexers whose syntect syntax the automatic match (name, aliases, file extensions)
 /// would not find, or would find wrongly.
@@ -102,18 +92,10 @@ pub(crate) struct Languages {
 }
 
 impl Languages {
-    /// Loads two-face's syntaxes plus the crate's own and maps every Chroma lexer to one.
-    ///
-    /// # Panics
-    /// When a bundled syntax is malformed (checked by the crate's tests).
+    /// Loads two-face's syntaxes plus the crate's own (linked at compile time by `build.rs`)
+    /// and maps every Chroma lexer to one.
     pub fn load() -> Self {
-        let mut builder: SyntaxSetBuilder = two_face::syntax::extra_newlines().into_builder();
-        for (file, src) in OWN_SYNTAXES {
-            let def = SyntaxDefinition::load_from_str(src, true, None)
-                .unwrap_or_else(|e| panic!("{file}: {e}"));
-            builder.add(def);
-        }
-        let syntaxes = builder.build();
+        let syntaxes: SyntaxSet = syntect::dumps::from_binary(SYNTAXES_DUMP);
 
         let mut by_name = BTreeMap::new();
         let mut by_file = BTreeMap::new();
