@@ -1,0 +1,31 @@
+# Reviewed differences from the Go oracles and golden images (REWRITE_PLAN.md §6.3). Read by
+# tests/it. Each entry: a case or rule the tests check precisely, and its reason (crate
+# README, "Accepted deviations").
+
+[spec]
+# Rules of tests/it/spec.rs (Go accepts these; the Rust grammar rejects or reads them
+# differently).
+unknown_tokens = "an unknown spec token (`bogus`, `1234`) is an error; Hugo ignores it silently"
+negative_sizes = "a negative size (`-10x20`) is an error; Hugo accepts it and fails later with an empty image"
+alpha_hex_colors = "`#rgba` / `#rrggbbaa` are CSS (non-premultiplied) colours; Go stores the digits as premultiplied color.RGBA"
+lenient_extensions = "format extensions are case-insensitive and the dot is optional (`JPG`, `.Png`)"
+config_hint = "an unknown `[imaging] hint` is an error; Hugo accepts any string and then ignores the setting (it always encodes WebP with the photo preset unless the spec names a hint)"
+exif_patterns = "an invalid `[imaging.exif]` field pattern is a configuration error; Go reports it when the first image is decoded"
+
+[process]
+# "<oracle source id> <op>" of oracle/images/process (sizes; checked only when the Go test
+# data is available through NEOHUGO_GOROOT / GOROOT).
+"file:crates/go-png/tests/fixtures/gotestdata/invalid-trunc.png decode" = "the png crate decodes a PNG truncated after its last IDAT chunk (no IEND); Go reports unexpected EOF"
+"file:crates/go-png/tests/fixtures/gotestdata/invalid-zlib.png decode" = "the png crate does not verify the zlib Adler-32 checksum; Go reports a checksum error"
+
+[exif]
+# Case-id prefixes of oracle/images/exif (synthetic EXIF blocks) whose date or position differ.
+# Every real image file matches.
+"mut" = "byte mutations of a valid block: kamadak-exif rejects a damaged IFD as a whole; Go's imagemeta keeps the tags it can still read"
+"jpeg:II:gpsascii" = "GPS coordinates stored as ASCII text are not read (only the standard RATIONAL form)"
+"jpeg:MM:gpsascii" = "as jpeg:II:gpsascii"
+"webp-noflag" = "an EXIF chunk in a WebP file whose VP8X header does not flag it is read; Go ignores it"
+
+[psnr]
+# Interim golden images (resources/images/testdata/images_golden) below 30 dB.
+"methods/resize-gopherpng-100x-03fc56-jpg.jpg" = "a 100 px cartoon with hard edges, flattened and JPEG-encoded at q75 by two different encoders (image: 4:2:2 chroma, Go: 4:2:0): 25 dB, while the same result as PNG (resize-gopherpng-100x-fc03ec.png) is 33 dB"
