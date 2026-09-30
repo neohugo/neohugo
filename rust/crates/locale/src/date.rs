@@ -3,6 +3,7 @@
 
 use icu_datetime::fieldsets::{self, enums::DateFieldSet};
 use icu_datetime::input::Date;
+use icu_datetime::options::YearStyle;
 use icu_datetime::pattern::{DateTimePattern, FixedCalendarDateTimeNames};
 use icu_datetime::{DateTimeFormatter, DateTimeFormatterPreferences};
 use writeable::TryWriteable as _;
@@ -132,15 +133,25 @@ fn localize_strftime(format: &str, date: jiff::civil::Date, locale: &Locale) -> 
 }
 
 /// The date formatter of a style.
+///
+/// The medium, long and full styles print the year in full and add no era of their own to
+/// early years (`Jan 1, 1`, Go's zero time, not ICU's `Jan 1, 1 AD`), as Hugo's CLDR patterns
+/// do; an era the language's pattern has (Thai `ค.ศ.`) stays.
 pub(crate) fn date_formatter(
     prefs: DateTimeFormatterPreferences,
     style: DateStyle,
 ) -> DateTimeFormatter<DateFieldSet> {
     let fields = match style {
         DateStyle::Short => DateFieldSet::YMD(fieldsets::YMD::short()),
-        DateStyle::Medium => DateFieldSet::YMD(fieldsets::YMD::medium()),
-        DateStyle::Long => DateFieldSet::YMD(fieldsets::YMD::long()),
-        DateStyle::Full => DateFieldSet::YMDE(fieldsets::YMDE::long()),
+        DateStyle::Medium => {
+            DateFieldSet::YMD(fieldsets::YMD::medium().with_year_style(YearStyle::NoEra))
+        }
+        DateStyle::Long => {
+            DateFieldSet::YMD(fieldsets::YMD::long().with_year_style(YearStyle::NoEra))
+        }
+        DateStyle::Full => {
+            DateFieldSet::YMDE(fieldsets::YMDE::long().with_year_style(YearStyle::NoEra))
+        }
     };
     DateTimeFormatter::try_new(prefs, fields).expect("compiled data has every date style")
 }

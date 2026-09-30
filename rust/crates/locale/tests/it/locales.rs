@@ -110,10 +110,13 @@ fn date_styles() {
         let Ok(ts) = ts else { continue };
         let zone = &zones[usize::try_from(case["zone"].as_u64().unwrap()).unwrap()];
         let zoned = ts.to_zoned(zone.clone());
-        // gohugoio/locales misprints years before 1000 and after 9999
-        if !(1000..=9999).contains(&zoned.year()) {
+        // gohugoio/locales misprints years after 9999, BC years, and the short style's
+        // two-digit year before 1000; early AD years (Go's zero time is year 1) are compared
+        // in the other styles
+        if !(1..=9999).contains(&zoned.year()) {
             continue;
         }
+        let early = zoned.year() < 1000;
         for lang in ["en", "th"] {
             let locale = Locale::new(lang);
             for (style, field) in [
@@ -122,6 +125,9 @@ fn date_styles() {
                 (DateStyle::Long, "date_long"),
                 (DateStyle::Full, "date_full"),
             ] {
+                if early && style == DateStyle::Short {
+                    continue;
+                }
                 let want = case[lang][field].as_str().unwrap();
                 let got = format_date(&zoned, DatePattern::Style(style), &locale).unwrap();
                 let key = format!("{lang} {field}");
