@@ -171,8 +171,11 @@ fn yaml_resolves_to_string(s: &str) -> bool {
                 return false;
             }
             let plain = s.replace('_', "");
-            !(go_parse_int(&plain) || YAML_FLOAT.is_match(&plain) || binary_int(&plain))
-                && !BASE60_FLOAT.is_match(s)
+            let number = go_parse_int(&plain)
+                || YAML_FLOAT.is_match(&plain)
+                || binary_int(&plain)
+                || BASE60_FLOAT.is_match(s);
+            !number
         }
         _ => true,
     }

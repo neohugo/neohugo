@@ -8,13 +8,14 @@ expected (the right file, level and difference class, and nothing else):
   3. change an internal link            L2 html links
   4. reorder attributes                 ignored (no difference)
   5. percent-encode a Thai href         ignored (no difference; a percent-encoded one is decoded)
-  6. change visible text                L3 text
-  7. change image dimensions            L4 image
-  8. change an RSS item link            L2 xml items
-  9. drop the most linked page          L1 missing, and L2 dangling links in every file that
+  6. split code into token spans        ignored (no difference: a highlighter's span structure)
+  7. change visible text                L3 text
+  8. change image dimensions            L4 image
+  9. change an RSS item link            L2 xml items
+ 10. drop the most linked page          L1 missing, and L2 dangling links in every file that
                                         links to it (link integrity)
 
-then the ratchet: against a baseline of the unperturbed output, perturbation 6 unlisted fails;
+then the ratchet: against a baseline of the unperturbed output, perturbation 7 unlisted fails;
 listed in a changes file it passes, and --update writes it into the baseline; the unperturbed
 output against that baseline is an unlisted improvement, which does not fail.
 
@@ -314,6 +315,29 @@ def thai_href(d, run, man):
     return f"{len(changed)} Thai hrefs {how}, e.g. {rel}: {v} -> {nv}", {}
 
 
+P_WORD_RE = re.compile(r"(<p\b[^>]*>)([^<]*?\s)([^\W\d_]{4,})(?=\s)")
+
+
+def split_code(d, run, man):
+    """Turns a word of a paragraph into a code element with every character in its own span,
+    as a highlighter's token spans (Chroma and syntect split differently): the visible text
+    must not change."""
+    for rel in html_files(d):
+        e = man["files"].get(rel)
+        if not e or e["type"] != "html":
+            continue
+        text = read(d, rel)
+        body = text.lower().find("<body")
+        m = P_WORD_RE.search(text, max(body, 0))
+        if m is None or m.start() < body:
+            continue
+        word = m.group(3)
+        spans = "".join(f'<span class="t">{c}</span>' for c in word)
+        put(d, rel, text[:m.start(3)] + f"<code>{spans}</code>" + text[m.end(3):])
+        return f"{rel}: {word!r} as <code> with {len(word)} spans", {}
+    raise SystemExit("split code: no <p> with a word between spaces")
+
+
 P_TEXT_RE = re.compile(r"(<p\b[^>]*>)([^<]*?)(\b[^\W\d_]{4,}\b)")
 
 
@@ -396,10 +420,11 @@ PERTURBATIONS = [
     ("change an internal link", change_link),
     ("reorder attributes (ignored)", reorder_attributes),
     ("percent-encode a Thai href (ignored)", thai_href),
+    ("split code into token spans (ignored)", split_code),
     ("change visible text", change_text),
     ("change image dimensions", change_image),
     ("change an RSS item link", change_rss_link),
-    # Beyond §7.2's eight: link integrity.
+    # Beyond §7.2's eight: link integrity (the span split is T66's).
     ("drop a linked page (link integrity)", drop_linked_page),
 ]
 
