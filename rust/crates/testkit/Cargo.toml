@@ -19,9 +19,12 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-# The graph edge testkit -> funcs (spec::FUNCS, REWRITE_PLAN.md §2.3) is added by T02 with the
-# contract test; T00's reader does not use it, and its ICU data would breach the T00 disk budget.
 neohugo-workspace-hack.workspace = true
+# The contract test needs only `spec` and `register_placeholders`. `default-features = false`
+# drops funcs' `runtime` feature (ICU data via neohugo-locale and tera-contrib `date`), so
+# `cargo test -p neohugo-testkit` builds nothing of funcs beyond tera. A path dependency, because
+# an inherited (`workspace = true`) one cannot turn default features off in edition 2024.
+neohugo-funcs = { path = "../funcs", default-features = false }
 neohugo-base.workspace = true
 tera.workspace = true
 serde.workspace = true

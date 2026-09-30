@@ -5,11 +5,12 @@
 //!   schema (see `tools/neohugo/fixtures2json.py`).
 //! - [`txtar`]: Go's txtar archive format, used for small test sites.
 //! - [`snapshot`]: the shared insta settings.
-//!
-//! The contract test (`contract.rs`) is added by T02.
+//! - [`contract`]: the template contract (REWRITE_PLAN.md §4.8): converted templates load against
+//!   `neohugo_funcs::spec::FUNCS` and call only declared kwargs.
 
 #![forbid(unsafe_code)]
 
+pub mod contract;
 pub mod fixture;
 pub mod snapshot;
 pub mod txtar;

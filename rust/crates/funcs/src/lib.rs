@@ -1,5 +1,13 @@
-//! The template API: `spec::FUNCS` (the single source of truth) and the pure Tera filters, functions and tests.
+//! The template API: [`spec`] (the single source of truth: `spec::FUNCS`, the render contexts and
+//! `spec::EMBEDDED_TEMPLATES`), [`register_placeholders`] for the contract instance, and (T31,
+//! feature `runtime`) the pure Tera filters, functions and tests.
 //!
-//! Stub written by T00 (docs/rust-port/REWRITE_PLAN.md §2.1); no API yet.
+//! `spec` has no dependencies and `register_placeholders` needs only tera, so both are available
+//! with `default-features = false` (neohugo-testkit's contract test uses that; REWRITE_PLAN.md §4.8).
 
 #![forbid(unsafe_code)]
+
+mod placeholders;
+pub mod spec;
+
+pub use placeholders::{check_kwargs, register_placeholders};

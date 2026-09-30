@@ -2770,7 +2770,7 @@ dependencies = [
 name = "neohugo-esbuild"
 version = "0.149.0-DEV"
 dependencies = [
- "neohugo-base",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
  "serde_json",
  "thiserror 2.0.21",
@@ -2873,9 +2873,11 @@ dependencies = [
  "aho-corasick",
  "bitflags 2.13.2",
  "comrak",
+ "flate2",
  "html5gum",
  "neohugo-base",
  "neohugo-config",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
  "regex",
  "serde",
@@ -3058,6 +3060,7 @@ dependencies = [
  "flate2",
  "insta",
  "neohugo-base",
+ "neohugo-funcs",
  "neohugo-workspace-hack",
  "pretty_assertions",
  "serde",
