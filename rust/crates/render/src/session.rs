@@ -17,7 +17,6 @@ use neohugo_layouts::{
 };
 use neohugo_locale::Translations;
 use neohugo_markup::{Fragments, MarkdownOptions};
-use neohugo_nav::RelatedIndex;
 use neohugo_resources::{ResourceStore, StoreConfig};
 use neohugo_site::{Model, Page, PageUrl};
 use neohugo_sitefuncs::Handles;
@@ -255,6 +254,7 @@ impl Session {
             Imaging::default()
         });
         let renderer: Arc<OnceLock<Weak<dyn ContentRenderer>>> = Arc::new(OnceLock::new());
+        let templates_slot: Arc<OnceLock<Weak<Templates>>> = Arc::new(OnceLock::new());
         let handles = Handles {
             model: Arc::clone(&model),
             views: Arc::clone(&views),
@@ -264,10 +264,12 @@ impl Session {
             pagination: Arc::clone(&pagination),
             deferred: Arc::new(DeferredRegistry::default()),
             menus: Arc::clone(views.menus()),
-            related: Arc::new(RelatedIndex::new(&cfg.default_site().related)),
+            related: Arc::new(neohugo_sitefuncs::RelatedCache::default()),
             i18n: Arc::new(Translations::empty(cfg.sites.len())),
             diagnostics: Arc::clone(&diagnostics),
+            highlight: Arc::new(Highlight::new(&cfg.default_site().markup.highlight)),
             renderer: Arc::clone(&renderer),
+            templates: Arc::clone(&templates_slot),
             frames: Arc::default(),
             partial_cache: Arc::default(),
         };
@@ -296,7 +298,11 @@ impl Session {
             highlighters: cfg.sites.iter().map(|_| OnceLock::new()).collect(),
             model,
             project,
-            templates: Arc::new(templates),
+            templates: {
+                let templates = Arc::new(templates);
+                let _ = templates_slot.set(Arc::downgrade(&templates));
+                templates
+            },
             views,
             pagination,
             handles,
