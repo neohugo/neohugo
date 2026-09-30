@@ -1,0 +1,36 @@
+# Reviewed deviations of neohugo-nav's oracle tests from Go: per test family, per class, the
+# number of accepted differences and why. Every class here is a difference of an upstream crate
+# whose output these tests consume (neohugo-page decodes front matter menus, neohugo-config the
+# `menus` and `related` tables); neohugo-nav itself has none. See README.md.
+
+[menus.page-menus-scalar-name]
+count = 16
+reason = """neohugo-page rejects a number as a front matter menu name (`menu: 42`); Go casts it to the
+menu "42". The page's entry, its menu, and the current/sort cases that involve it are not
+built (front-matter.json.gz, one page)."""
+
+[menus-decode.config-menu-name-folded]
+count = 1
+reason = """Menu names are configuration keys, which neohugo-config lower-cases: `Main` and `main` are
+one menu; Go keeps two."""
+
+[menus-decode.config-menus-not-table-ignored]
+count = 1
+reason = "neohugo-config ignores a `menus` value that is not a table (Go: decode error)."
+
+[menus-decode.config-single-entry-table]
+count = 1
+reason = """neohugo-config reads a single table where a list of entries is expected as one entry
+(Go: decode error)."""
+
+[menus-decode.config-weak-bool-string]
+count = 1
+reason = """A boolean `pre`/`post` decodes to "true" in neohugo-config, to "1" in Go's weak decoding."""
+
+[related-decode.config-related-cardinality-unchecked]
+count = 2
+reason = "neohugo-config does not range-check `cardinalityThreshold` (Go: error outside 0–100)."
+
+[related-decode.config-related-empty-accepted]
+count = 1
+reason = "neohugo-config reads an empty `[related]` table as the empty configuration (Go: error)."

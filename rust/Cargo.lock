@@ -2879,9 +2879,16 @@ dependencies = [
 name = "neohugo-nav"
 version = "0.149.0-DEV"
 dependencies = [
+ "jiff",
  "neohugo-base",
+ "neohugo-config",
+ "neohugo-page",
  "neohugo-site",
+ "neohugo-testkit",
+ "neohugo-vfs",
  "neohugo-workspace-hack",
+ "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
 ]
 

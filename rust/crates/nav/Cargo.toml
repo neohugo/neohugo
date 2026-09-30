@@ -21,6 +21,15 @@ workspace = true
 [dependencies]
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
+neohugo-config.workspace = true
+neohugo-page.workspace = true
+# The `NavModel` implementation of the site `Model` lands with T23b (URLs and relations).
 neohugo-site.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
+jiff.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+neohugo-vfs.workspace = true
+serde_json.workspace = true
+tempfile.workspace = true
