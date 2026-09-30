@@ -1,0 +1,29 @@
+[package]
+name = "neohugo-highlight"
+description = "Code highlighting with syntect and two-face, emitting Chroma class names (or inline styles), fence options and style CSS"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[lib]
+doctest = false
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+neohugo-workspace-hack.workspace = true
+neohugo-base.workspace = true
+neohugo-config.workspace = true
+neohugo-markup.workspace = true
+# planned third-party dependencies (T00); the owning task adjusts them
+syntect.workspace = true
+two-face.workspace = true
+thiserror.workspace = true

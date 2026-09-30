@@ -38,8 +38,9 @@ imports.*
 dist/
 public/
 .DS_Store
-# Rust port
-/target/
-crates/*/target/
+# Rust rewrite (docs/rust-port/REWRITE_PLAN.md §6.1)
+/rust/target/
+/tools/neohugo/bin/
+/tools/neohugo/node_modules/
 # Test data is stored verbatim (the rules above, e.g. imports.* and tags*, match fixture names).
 !/rust/testdata/**

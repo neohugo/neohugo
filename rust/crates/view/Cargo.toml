@@ -1,0 +1,36 @@
+[package]
+name = "neohugo-view"
+description = "Views"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[lib]
+doctest = false
+test = false # tests live only in tests/it (one test binary, REWRITE_PLAN.md §2.2)
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+neohugo-workspace-hack.workspace = true
+neohugo-base.workspace = true
+neohugo-site.workspace = true
+neohugo-nav.workspace = true
+neohugo-resources.workspace = true
+neohugo-markup.workspace = true
+neohugo-layouts.workspace = true
+# planned third-party dependencies (T00); the owning task adjusts them
+tera.workspace = true
+serde.workspace = true
+thiserror.workspace = true
+
+[dev-dependencies]
+dhat.workspace = true # T33 allocation measurement (it binary only)

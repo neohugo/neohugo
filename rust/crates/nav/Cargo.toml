@@ -1,0 +1,26 @@
+[package]
+name = "neohugo-nav"
+description = "Menus, pagination arithmetic and pager URLs, the related-content index and the alias plan"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[lib]
+doctest = false
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+neohugo-workspace-hack.workspace = true
+neohugo-base.workspace = true
+neohugo-site.workspace = true
+# planned third-party dependencies (T00); the owning task adjusts them
+thiserror.workspace = true

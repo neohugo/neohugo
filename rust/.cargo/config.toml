@@ -1,0 +1,6 @@
+# Disk budget (docs/rust-port/REWRITE_PLAN.md §2.2, §8.1). Agents also export
+# CARGO_TARGET_DIR=/home/user/neohugo/rust/target (one target dir shared by every worktree),
+# CARGO_BUILD_JOBS=4 and CARGO_INCREMENTAL=0.
+[build]
+target-dir = "target"
+jobs = 4

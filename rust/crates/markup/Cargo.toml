@@ -1,0 +1,34 @@
+[package]
+name = "neohugo-markup"
+description = "Markdown through comrak behind an engine-neutral API, plus Hugo's passes"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[lib]
+doctest = false
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+neohugo-workspace-hack.workspace = true
+neohugo-base.workspace = true
+neohugo-config.workspace = true
+# planned third-party dependencies (T00); the owning task adjusts them
+comrak.workspace = true
+bitflags.workspace = true
+serde.workspace = true
+regex.workspace = true
+aho-corasick.workspace = true
+html5gum.workspace = true
+unicode-segmentation.workspace = true
+unicode-normalization.workspace = true
+thiserror.workspace = true

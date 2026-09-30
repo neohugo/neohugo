@@ -1,0 +1,31 @@
+[package]
+name = "neohugo-sitefuncs"
+description = "Site-bound Tera functions as small handle structs (get_page, ref, i18n, assets, images, paginate, partial, …)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[lib]
+doctest = false
+test = false # tests live only in tests/it (one test binary, REWRITE_PLAN.md §2.2)
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+neohugo-workspace-hack.workspace = true
+neohugo-base.workspace = true
+neohugo-view.workspace = true
+neohugo-funcs.workspace = true
+neohugo-resources.workspace = true
+neohugo-locale.workspace = true
+# planned third-party dependencies (T00); the owning task adjusts them
+tera.workspace = true
+thiserror.workspace = true

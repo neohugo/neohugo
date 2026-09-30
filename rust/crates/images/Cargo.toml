@@ -1,0 +1,37 @@
+[package]
+name = "neohugo-images"
+description = "Image processing"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[lib]
+doctest = false
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+neohugo-workspace-hack.workspace = true
+neohugo-base.workspace = true
+neohugo-config.workspace = true
+# planned third-party dependencies (T00); the owning task adjusts them
+image.workspace = true
+fast_image_resize.workspace = true
+webp.workspace = true
+kamadak-exif.workspace = true
+imageproc.workspace = true
+ab_glyph.workspace = true
+qrcode.workspace = true
+color_quant.workspace = true
+kmeans_colors.workspace = true
+smartcrop2.workspace = true
+rayon.workspace = true
+thiserror.workspace = true

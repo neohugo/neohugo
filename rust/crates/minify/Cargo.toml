@@ -1,0 +1,30 @@
+[package]
+name = "neohugo-minify"
+description = "Output minification"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+autotests = false
+
+[lib]
+doctest = false
+
+[[test]]
+name = "it"
+path = "tests/it/main.rs"
+
+[lints]
+workspace = true
+
+[dependencies]
+neohugo-workspace-hack.workspace = true
+neohugo-base.workspace = true
+neohugo-config.workspace = true
+# planned third-party dependencies (T00); the owning task adjusts them
+minify-html.workspace = true
+lightningcss.workspace = true
+oxc_minifier.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
