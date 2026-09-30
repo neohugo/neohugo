@@ -1,6 +1,6 @@
 [package]
 name = "neohugo-esbuild"
-description = "A client of esbuild --service (kept from the old port's nh-esbuild) and the js"
+description = "A client of esbuild --service (kept from the old port's nh-esbuild) and js.Build"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -20,7 +20,8 @@ workspace = true
 
 [dependencies]
 neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
 serde_json.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true

@@ -2769,7 +2769,7 @@ dependencies = [
 name = "neohugo-esbuild"
 version = "0.149.0-DEV"
 dependencies = [
- "neohugo-base",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
  "serde_json",
  "thiserror 2.0.21",
