@@ -10,7 +10,7 @@ E5).
 | `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]`, optional LiveReload URL (`serve`) |
 | `Publisher::new(settings, Arc<dyn Sink>, Arc<Diagnostics>)` | shared by the render workers (`Send + Sync`) |
 | `Publisher::emit(Output { path, text, format, lang })` | canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML, `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present, else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
-| `Publisher::patch_held(&BTreeMap<placeholder, text>)` | replaces the placeholders of every held output, extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
+| `Publisher::patch_held(&BTreeMap<placeholder, text>)` | replaces the placeholders of every held output, rewrites its URLs again (canonify / relative), extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
 | `Publisher::add_tokens_from(text)`, `url_tokens()` | `execute_as_template` results; the sorted `UrlTokens` so far |
 | `Publisher::stats() -> HugoStats`, `HugoStats::{to_json, write_if_changed}` | `hugo_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
 | `UrlRewriter::{absolute, relative, new}.rewrite(bytes, Quoting)` | the canonify rewriter (also `rewrite_str`); `canonify::dotted_path_to_root` |
@@ -38,8 +38,9 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   single-quoted words). The content of `pre`, `textarea`, `script` and `style` is skipped.
   Collected before minification.
 - **Held outputs**: the plan's placeholder prefixes (`PLACEHOLDER_PREFIXES`). Replacement text
-  is inserted after canonify (as Hugo inserts deferred output into published files) and
-  minified with the page.
+  is inserted into the canonified output, the result is rewritten once more (T36: the links of
+  a pending `fingerprint` are post-process placeholders until E5, and Go canonifies them; the
+  rewrite leaves already rewritten URLs alone), then minified with the page.
 
 ## Acceptance evidence
 

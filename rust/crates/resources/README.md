@@ -15,10 +15,10 @@ asset, remote and named-target resources, front matter `resources` metadata and 
 | `resource(id)`, `resources()`, `content(id)` | Lookup; `.Content` (reads the file, or asks the image queue). |
 | `get_asset(lang, path)`, `find_assets(lang, glob)`, `find_asset` | `resources.Get` / `Match` / `GetMatch` over the assets view. Assets are one resource per path (per language on multihost sites). |
 | `register_bundle(&BundleResource)` | A page bundle file (`lang`, `file`, `name` relative to the bundle, link `dir`, `policy`); one resource per target. |
-| `from_string`, `from_template_output`, `concat`, `copy` (target, …, `&CallSite`) | Resources that name a target path. `CallSite { lang, position }`. |
+| `from_string`, `from_template_output`, `concat`, `copy` (target, …, `&CallSite`) | Resources that name a target path. `CallSite { lang, position }`. `template_outputs()` (T36): the ids `from_template_output` made, whose text the build scans for URL tokens. |
 | `transform(id, Transform)` | A pipe (see [Pipes](#pipes-t42)); memoized per `(id, transform)`. `fingerprint` (md5, sha256, sha384, sha512; `HashAlgo::from_str`, `""` = sha256): `.<hex>` before the extension, `Data.Integrity` = SRI. |
 | `realize(id)` | Computes a pending transform result (its record is replaced; the id stays). |
-| `post_process(id) -> PostProcessId`, `PostProcessId::placeholder(PpField)`, `resolve_post_process(text)`, `pipes::has_placeholder` | `resources.PostProcess`: `__nh_pp_<n>_<field>__` placeholders (content, rel_permalink, permalink, integrity, media_type), filled in E5. |
+| `post_process(id) -> PostProcessId`, `post_processes()` (T36: every id so far), `PostProcessId::placeholder(PpField)`, `resolve_post_process(text)`, `pipes::has_placeholder` | `resources.PostProcess`: `__nh_pp_<n>_<field>__` placeholders (content, rel_permalink, permalink, integrity, media_type), filled in E5. |
 | `execute_as_template(id, target, &data, &dyn TemplateExecutor, &CallSite)` | `resources.ExecuteAsTemplate`; the template engine is the render layer's (`TemplateExecutor`). The result is a named target (`from_template_output`). |
 | `meta::ResourceMeta::parse(&Value)`, `apply_meta(id, &meta)` | Front matter `resources` metadata; a new resource (same target and content) only when name, title or params change. |
 | `meta::{get, get_match, matches, by_type}` over `impl Named` | `.Resources.Get/GetMatch/Match/ByType` (bundle pages implement `Named` too). |

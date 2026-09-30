@@ -193,6 +193,26 @@ fn held_outputs_are_patched_and_rescanned() {
 }
 
 #[test]
+fn patched_links_are_canonified() {
+    let s = site("baseURL = 'https://example.org/'\ncanonifyURLs = true\n");
+    let (p, sink, _) = publisher(&s);
+    let page = r#"<a href="/a/">a</a><link href="__nh_pp_1_rel_permalink__">"#;
+    assert_eq!(
+        p.emit(output(&s, "/index.html", "html", page)).unwrap(),
+        Emitted::Held
+    );
+    let repl = BTreeMap::from([(
+        "__nh_pp_1_rel_permalink__".to_owned(),
+        "/css/a.css".to_owned(),
+    )]);
+    assert_eq!(p.patch_held(&repl).unwrap(), 1);
+    assert_eq!(
+        sink.text("/index.html").unwrap(),
+        r#"<a href="https://example.org/a/">a</a><link href="https://example.org/css/a.css">"#
+    );
+}
+
+#[test]
 fn unresolved_placeholder_is_an_error() {
     let s = site("baseURL = 'https://example.org/'\n");
     let (p, sink, _) = publisher(&s);

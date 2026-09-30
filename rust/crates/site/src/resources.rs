@@ -54,7 +54,9 @@ fn attach(m: &mut Model, rid: ResourceId, owner: PageId) {
         base.push('/');
     }
     let target_base = o.urls.first().and_then(|u| u.paths.resources.clone());
-    let publish = o.rendered() && o.meta.build.publish_resources;
+    // Hugo publishes the bundle files of every page with `publishResources`, rendered or not
+    // (headless bundles included; `hugolib/site_render.go`).
+    let publish = o.meta.build.publish_resources;
     let owner_key = o.key.clone();
     let r = &mut m.bundle_resources[rid];
     let original = &r.info.original.path;

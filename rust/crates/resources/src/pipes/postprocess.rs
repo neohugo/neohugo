@@ -110,6 +110,16 @@ impl ResourceStore {
         pp
     }
 
+    /// Every post-process id handed out so far, in order (phase E5 resolves their
+    /// placeholders).
+    #[must_use]
+    pub fn post_processes(&self) -> Vec<PostProcessId> {
+        let n = lock(&self.pipes.post.0).resources.len();
+        (1..=n)
+            .map(|i| PostProcessId(u32::try_from(i).unwrap_or(u32::MAX)))
+            .collect()
+    }
+
     /// The resource a post-process id stands for.
     #[must_use]
     pub fn post_processed(&self, pp: PostProcessId) -> Option<ResourceId> {

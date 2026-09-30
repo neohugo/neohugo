@@ -2679,11 +2679,13 @@ dependencies = [
  "neohugo-layouts",
  "neohugo-publish",
  "neohugo-render",
+ "neohugo-resources",
  "neohugo-site",
  "neohugo-testkit",
  "neohugo-vfs",
  "neohugo-workspace-hack",
  "rayon",
+ "serde_json",
  "tempfile",
  "thiserror 2.0.21",
 ]

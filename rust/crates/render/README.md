@@ -1,8 +1,9 @@
 # neohugo-render
 
 The render session (REWRITE_PLAN.md §2.6, §3.2–3.4, §4.2–4.4). **State: T34** (the content
-engine). The job and session signatures frozen by T38 are kept; the site functions are still
-T38's stubs until T35 fills `neohugo_sitefuncs::register`, and the job planning is T36's.
+engine) **+ T36 wiring**: the site functions are T35's `neohugo_sitefuncs::register` (the T38
+stubs are gone), and `neohugo-build` runs the phases with the jobs of `wave1`/`wave2`, the
+targets of `target` and the deferred templates of `render_deferred`.
 
 ## API
 
@@ -23,18 +24,32 @@ impl Session {
     pub fn render_job(&self, job: &Job) -> Result<Vec<Output>, RenderError>;  // E, pure: no I/O
     pub fn variants(&self) -> &[HookVariant]; pub fn page_stores(&self) -> &Arc<PageStores>;
     pub fn templates(&self) -> &Templates; // + model, views, diagnostics, order, wave1, wave2
+    /// T36: the file a job writes without rendering it (`None`: it writes nothing).
+    pub fn target(&self, job: &Job) -> Result<Option<OutputPath>, RenderError>;
+    /// T36, phase E5: a `defer(...)` template with `data`, `site`, `hugo`, `__nh` (phase Deferred).
+    pub fn render_deferred(&self, key: &str, d: &Deferred) -> Result<String, RenderError>;
+    pub fn handles(&self) -> &Handles; // T36: the store, image queue, deferred registry, … for E4–E6
 }
 impl ContentRenderer for Session { content, fragments, render_shortcodes, render_markdown, render_template }
 pub mod summary { manual, auto, plain, counts, unwrap_paragraph, Split, DIVIDER, DIVIDER_SOURCE }
-pub enum RenderError { …, Content { page, source: Box<ContentError> } /* T34 */ }
+pub enum RenderError { …, Content { page, source: Box<ContentError> } /* T34 */,
+                       I18n, Vfs, Io, Deferred { key, template, source } /* T36 */ }
 ```
 
 `Session::new` follows §2.6: the renderer slot (`Arc<OnceLock<Weak<dyn ContentRenderer>>>`) is
 created empty → `Handles` (the session's named mutable state: page stores, pagination
-recorder, deferred registry, frames, partial cache, image queue, resource store) →
-`register_placeholders`, `register_pure`, the T38 stubs, `neohugo_sitefuncs::register` (T35's
-functions replace the stubs of the same name), `extra` → `layouts::load` → `Arc::new(Session)`
-→ `slot.set(weak)`.
+recorder, deferred registry, frames, partial cache, related cache; **one `ImageQueue` with the
+`[caches.images]` file cache, shared with `StoreConfig::from_config`**; **the translations of
+every i18n file** of the project and its themes, lowest precedence first; **one `Highlight`**,
+also used for the fences of every language whose `[markup.highlight]` is the default site's) →
+`register_placeholders`, `register_pure`, `neohugo_sitefuncs::register`, `extra` →
+`layouts::load` → `Arc::new(Session)` → the templates slot and the renderer slot are set.
+
+**Jobs (T36).** `wave1(lang)`: front matter aliases, pages × formats, standalone pages
+(robots.txt and the sitemap index with the first language). `wave2()`: from the recorded
+paginations the `page/1/` aliases (HTML formats, unless `pagination.disableAliases`) and pagers
+2..N, then the language redirect of `neohugo_nav::language_redirect` (`/en/` → `/`, or `/` →
+`/en/` with `defaultContentLanguageInSubdir`; none with `disableDefaultLanguageRedirect`).
 
 ## Content phase (C1)
 
@@ -144,5 +159,5 @@ follows the cut. The manual divider grows to its paragraph (walking back over wh
   its own transaction): a counter incremented by a shortcode counts the variants.
 - C1 renders every page with a content file, also pages with `build.render = never`; a content
   error there fails the build where Hugo, rendering lazily, would not notice.
-- `Handles.i18n` is `Translations::empty`, `Handles.related` an empty `RelatedIndex` and the
-  image queue has no file cache: T35/T36 load them.
+- The deferred template of a key renders with the default language's `site` (a `Deferred`
+  records no language).

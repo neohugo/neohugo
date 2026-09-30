@@ -22,8 +22,9 @@ pub enum Job {
     PagerAlias { page: PageId, format: FormatId },
     /// 404, sitemap, sitemap index, robots.txt.
     Standalone { page: PageId, format: FormatId },
-    /// `/<default language>/` → the site root (multilingual sites whose default language is not
-    /// in a subdirectory).
+    /// The default language's redirect (`neohugo_nav::language_redirect`): `/<default
+    /// language>/` → the site root, or `/` → `/<default language>/` when the default language
+    /// is in a subdirectory.
     LanguageRedirect,
 }
 

@@ -37,16 +37,16 @@ pub(crate) fn markdown_options(site: &SiteConfig) -> MarkdownOptions {
 
 /// The highlighter of a language, built at its first fence.
 struct LazyHighlight<'a> {
-    cell: &'a OnceLock<Highlight>,
+    cell: &'a OnceLock<Arc<Highlight>>,
     site: &'a SiteConfig,
 }
 
 impl Highlighter for LazyHighlight<'_> {
     fn highlight(&self, code: &str, lang: &str, o: &HighlightOptions) -> Result<String, HookError> {
-        let h: &dyn Highlighter = self
+        let h = self
             .cell
-            .get_or_init(|| Highlight::new(&self.site.markup.highlight));
-        h.highlight(code, lang, o)
+            .get_or_init(|| Arc::new(Highlight::new(&self.site.markup.highlight)));
+        Highlighter::highlight(h.as_ref(), code, lang, o)
     }
 }
 

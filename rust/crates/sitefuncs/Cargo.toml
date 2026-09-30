@@ -36,6 +36,9 @@ neohugo-images.workspace = true
 neohugo-layouts.workspace = true
 # The `highlight` filter (site `[markup.highlight]` defaults).
 neohugo-highlight.workspace = true
+# `page_toc` in the content phase: the TOC of the fragments stage (T36; already a dependency of
+# `neohugo-view`).
+neohugo-markup.workspace = true
 dashmap.workspace = true
 tera.workspace = true
 thiserror.workspace = true
@@ -48,5 +51,4 @@ roxmltree.workspace = true
 [dev-dependencies]
 neohugo-testkit.workspace = true
 neohugo-vfs.workspace = true
-neohugo-markup.workspace = true
 tempfile.workspace = true

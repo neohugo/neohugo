@@ -1,3 +1,10 @@
 //! Integration tests of `neohugo-build` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 
+mod determinism;
+mod docs_shortcodes;
+mod edges;
+mod images;
+mod mini;
 mod skeleton;
+mod smoke;
+mod support;

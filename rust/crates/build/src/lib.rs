@@ -1,15 +1,33 @@
 //! Build orchestration (REWRITE_PLAN.md §2.6, §3): configuration → file system → model →
-//! layouts → render session → static copy → render waves → publisher.
+//! layouts → render session → static copy → render waves → deferred wave → resources.
 //!
-//! **State: T38 walking skeleton.** [`build`] runs phases A1–B2 (config, vfs, `load_model`),
-//! B7 (layout scan), C1, D, E1, E2 (one sub-wave per language) and E3 (pagers, pager aliases,
-//! the language redirect) and E4 on disk builds. Not yet: resources, images, the deferred wave,
-//! URL-token publishing (T36). [`BuildRequest`], [`build`], [`BuildError`] and [`BuildReport`]
-//! are the plan's (§2.6); fields are only added.
+//! [`build`] runs the phases of §3.1 in order:
+//!
+//! | Phase | What | Where |
+//! |---|---|---|
+//! | A1–B6 | configuration, mounts, discovery, parsing, the site model | `config`, `vfs`, `site` |
+//! | B7 | layout scan and selection; `Session::new` loads Tera once (site functions, i18n) | `layouts`, `render` |
+//! | C1, D | content of every page in every hook variant, then the frozen views | `render` (render pool) |
+//! | E1 | static files into the sink (rendered outputs win conflicts) | `publish` |
+//! | E2 | wave 1: one sub-wave per language, in language order | `waves` (render pool) |
+//! | E3 | wave 2: pagers 2..N, `page/1/` aliases, the language redirect | `waves` |
+//! | E4 | `hugo_stats.json`: the project directory and its asset mounts | `deferred` |
+//! | E5 | `defer(...)` templates once per key, post-process fields → `patch_held` | `deferred` (render pool) |
+//! | E6 | resources named by URL tokens (and eager bundle files), processed images | `publish_resources` |
+//! | E7 | sorted, de-duplicated diagnostics; errors fail the build | `build` |
+//!
+//! **Determinism.** Every parallel phase runs on one render pool (`stack_size(16 MiB)`, the
+//! thread count of [`BuildRequest::threads`], else `RAYON_NUM_THREADS`, else the CPUs) and
+//! collects into indexed or sorted collections; target collisions are resolved from the jobs'
+//! targets before rendering, by [`JobOrder`] (a page beats an alias; among equals the later job
+//! wins; losers render for what they record but are not published), so the output tree does
+//! not depend on the thread count.
 
 #![forbid(unsafe_code)]
 
-use std::collections::BTreeMap;
+mod deferred;
+mod waves;
+
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -21,11 +39,12 @@ use neohugo_config::{CliOverrides, ConfigError, LoadOptions};
 use neohugo_layouts::{LayoutStore, TemplateError};
 use neohugo_publish::{
     DiskSink, MemorySink, PublishError, PublishSettings, Publisher, StaticSyncOptions, sync_static,
+    sync_static_dir,
 };
-use neohugo_render::{Job, JobOrder, Output, Project, RenderError, RenderOptions, Session};
+use neohugo_render::{JobOrder, Project, RenderError, RenderOptions, Session};
+use neohugo_resources::ResourceError;
 use neohugo_site::{LoadModelOptions, ModelError};
 use neohugo_vfs::{Vfs, VfsError};
-use rayon::prelude::*;
 
 /// Where the outputs go.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -50,6 +69,9 @@ pub struct BuildRequest {
     pub sink: SinkKind,
     /// `--cleanDestinationDir`.
     pub clean_destination: bool,
+    /// The render pool's thread count (`None`: `RAYON_NUM_THREADS`, else the CPUs). The
+    /// output does not depend on it.
+    pub threads: Option<usize>,
 }
 
 /// Why a build failed.
@@ -67,11 +89,16 @@ pub enum BuildError {
     Render(#[from] RenderError),
     #[error(transparent)]
     Publish(#[from] PublishError),
+    #[error(transparent)]
+    Resource(#[from] ResourceError),
+    /// The render pool could not be started.
+    #[error("render pool: {0}")]
+    Pool(String),
     #[error("{} errors", .0.len())]
     Diagnostics(Vec<Diagnostic>),
 }
 
-/// Two outputs for the same file: the later [`JobOrder`] wins.
+/// Two jobs for the same file: the winner is written, the loser is not rendered.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Collision {
     pub path: OutputPath,
@@ -84,12 +111,17 @@ pub struct Collision {
 pub struct BuildReport {
     /// Pages of the model (all kinds, auto nodes included).
     pub pages: usize,
-    /// Files published (static files not counted).
+    /// Rendered files published (static files and resources not counted).
     pub outputs: usize,
     /// Alias files among them (front matter, pager, language redirect).
     pub aliases: usize,
+    /// Resource files published (processed images not counted).
     pub resources: usize,
+    /// Processed images published.
     pub images: usize,
+    /// Static files copied.
+    pub static_files: usize,
+    /// Target collisions, by path then loser order.
     pub collisions: Vec<Collision>,
     /// Sorted, de-duplicated warnings.
     pub diagnostics: Vec<Diagnostic>,
@@ -108,80 +140,72 @@ fn process_env() -> Vec<(String, String)> {
         .collect()
 }
 
-/// Keeps the output of the later job for every path; reports the others.
-fn resolve_collisions(outputs: Vec<Output>, collisions: &mut Vec<Collision>) -> Vec<Output> {
-    let mut by_path: BTreeMap<OutputPath, Output> = BTreeMap::new();
-    for o in outputs {
-        match by_path.remove(&o.path) {
-            None => {
-                by_path.insert(o.path.clone(), o);
-            }
-            Some(prev) => {
-                let (winner, loser) = if o.order >= prev.order {
-                    (o, prev)
-                } else {
-                    (prev, o)
-                };
-                collisions.push(Collision {
-                    path: winner.path.clone(),
-                    winner: winner.order,
-                    loser: loser.order,
-                });
-                by_path.insert(winner.path.clone(), winner);
-            }
-        }
+/// The thread pool every parallel phase runs on. Parallel work is only started from outside
+/// it: a render never starts parallel work (REWRITE_PLAN.md §3.5).
+pub(crate) struct RenderPool(rayon::ThreadPool);
+
+impl RenderPool {
+    fn new(threads: Option<usize>) -> Result<Self, BuildError> {
+        rayon::ThreadPoolBuilder::new()
+            .num_threads(threads.unwrap_or(0))
+            .stack_size(16 << 20)
+            .thread_name(|i| format!("neohugo-render-{i}"))
+            .build()
+            .map(Self)
+            .map_err(|e| BuildError::Pool(e.to_string()))
     }
-    by_path.into_values().collect()
+
+    /// Runs `f` (which starts the parallel work) on the pool.
+    pub(crate) fn run<R: Send>(&self, f: impl FnOnce() -> R + Send) -> R {
+        debug_assert!(
+            self.0.current_thread_index().is_none(),
+            "parallel work started from inside a render"
+        );
+        self.0.install(f)
+    }
 }
 
-fn is_alias(j: &Job) -> bool {
-    matches!(
-        j,
-        Job::Alias(_) | Job::PagerAlias { .. } | Job::LanguageRedirect
-    )
+/// Phase timings.
+struct Laps(Instant);
+
+impl Laps {
+    fn lap(&mut self, report: &mut BuildReport, name: &'static str) {
+        report.timings.push((name, self.0.elapsed()));
+        self.0 = Instant::now();
+    }
 }
 
-/// Renders `jobs` (in parallel) and publishes their outputs in [`JobOrder`].
-fn wave(
+/// Phase E6: the resources the outputs reference (URL tokens of every output, of the
+/// `execute_as_template` results and of the patched held outputs), the eager bundle files and
+/// the `publish` filter's, with the processed images they name.
+fn publish_resources(
     session: &Session,
     publisher: &Publisher,
-    jobs: &[Job],
+    sink: &dyn Sink,
+    pool: &RenderPool,
     report: &mut BuildReport,
 ) -> Result<(), BuildError> {
-    let rendered: Vec<(bool, Vec<Output>)> = jobs
-        .par_iter()
-        .map(|j| session.render_job(j).map(|o| (is_alias(j), o)))
-        .collect::<Result<_, _>>()?;
-    let mut outputs = Vec::new();
-    for (alias, outs) in rendered {
-        report.aliases += usize::from(alias) * outs.len();
-        outputs.extend(outs);
+    let store = &session.handles().store;
+    for id in store.template_outputs() {
+        let bytes = store.content(id)?;
+        publisher.add_tokens_from(&String::from_utf8_lossy(&bytes));
     }
-    outputs.sort_by_key(|o| o.order);
-    for o in resolve_collisions(outputs, &mut report.collisions) {
-        publisher.emit(neohugo_publish::Output {
-            path: o.path,
-            text: o.text,
-            format: o.format,
-            lang: o.lang,
-        })?;
-        report.outputs += 1;
-    }
+    let tokens = publisher.url_tokens();
+    let stats = pool.run(|| store.publish(tokens.iter(), sink))?;
+    report.images = stats.images;
+    report.resources = stats.files - stats.images;
     Ok(())
 }
 
-/// Builds a site (see the crate docs for the phases the skeleton runs).
+/// Builds a site (see the crate docs for the phases).
 ///
 /// # Errors
 /// The first failing phase; [`BuildError::Diagnostics`] when a phase reported errors.
 pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     let mut report = BuildReport::default();
-    let mut t = Instant::now();
-    let mut lap = |report: &mut BuildReport, name: &'static str| {
-        report.timings.push((name, t.elapsed()));
-        t = Instant::now();
-    };
+    let mut laps = Laps(Instant::now());
 
+    // A1–B6.
     let mut cli = r.cli;
     if let Some(d) = &r.destination {
         cli.destination = Some(d.clone());
@@ -194,80 +218,103 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     })?);
     let vfs = Arc::new(Vfs::new(&cfg)?);
     let clock = r.clock.map_or_else(Clock::system, Clock);
-    let model = neohugo_site::load_model(
-        Arc::clone(&cfg),
-        &vfs,
-        &LoadModelOptions::from_config(&cfg, clock),
-    )?;
+    let pool = RenderPool::new(r.threads)?;
+    let model = pool.run(|| {
+        neohugo_site::load_model(
+            Arc::clone(&cfg),
+            &vfs,
+            &LoadModelOptions::from_config(&cfg, clock),
+        )
+    })?;
     let model_diags = model.diagnostics.clone();
-    lap(&mut report, "model");
+    laps.lap(&mut report, "model");
 
+    // B7, C0.
     let layouts = Arc::new(LayoutStore::scan(&vfs, &cfg)?);
-    let session = Session::new(
-        Project {
-            vfs: Arc::clone(&vfs),
-            layouts,
-        },
-        Arc::new(model),
-        &RenderOptions { clock },
-    )?;
+    let session = pool.run(|| {
+        Session::new(
+            Project {
+                vfs: Arc::clone(&vfs),
+                layouts,
+            },
+            Arc::new(model),
+            &RenderOptions { clock },
+        )
+    })?;
     for d in model_diags {
         session.diagnostics().push(d);
     }
     report.pages = session.model().pages.len();
-    lap(&mut report, "templates");
+    laps.lap(&mut report, "templates");
 
-    session.render_content()?;
+    // C1, D.
+    pool.run(|| session.render_content())?;
     session.freeze_views()?;
-    lap(&mut report, "content");
+    laps.lap(&mut report, "content");
 
+    // E1.
     let memory = (r.sink == SinkKind::Memory).then(|| Arc::new(MemorySink::new()));
+    let mut sync = StaticSyncOptions::from_config(&cfg);
+    sync.clean_destination |= r.clean_destination;
     let sink: Arc<dyn Sink> = match &memory {
-        Some(m) => Arc::clone(m) as Arc<dyn Sink>,
+        Some(m) => {
+            report.static_files = pool.run(|| sync_static(&vfs, m.as_ref(), &sync))?;
+            Arc::clone(m) as Arc<dyn Sink>
+        }
         None => {
-            let publish = if cfg.dirs.publish.is_absolute() {
+            let root = if cfg.dirs.publish.is_absolute() {
                 cfg.dirs.publish.clone()
             } else {
                 cfg.project_dir.join(&cfg.dirs.publish)
             };
-            Arc::new(DiskSink::new(publish))
+            report.static_files = pool.run(|| sync_static_dir(&vfs, &root, &sync))?;
+            Arc::new(DiskSink::new(root))
         }
     };
-    sync_static(
-        &vfs,
-        sink.as_ref(),
-        &StaticSyncOptions {
-            clean_destination: r.clean_destination,
-            ..StaticSyncOptions::default()
-        },
-    )?;
     let publisher = Publisher::new(
         PublishSettings::from_config(&cfg)?,
         Arc::clone(&sink),
         Arc::clone(session.diagnostics()),
     );
-    lap(&mut report, "static");
+    laps.lap(&mut report, "static");
 
+    // E2 (language sub-waves in order), E3.
+    let mut written = waves::Written::default();
     for lang in 0..cfg.sites.len() {
         let jobs = session.wave1(LangIdx::from_index(lang));
-        wave(&session, &publisher, &jobs, &mut report)?;
+        waves::run(
+            &session,
+            &publisher,
+            &pool,
+            &jobs,
+            &mut written,
+            &mut report,
+        )?;
     }
-    lap(&mut report, "wave 1");
+    laps.lap(&mut report, "wave 1");
     let jobs = session.wave2();
-    wave(&session, &publisher, &jobs, &mut report)?;
-    lap(&mut report, "wave 2");
+    waves::run(
+        &session,
+        &publisher,
+        &pool,
+        &jobs,
+        &mut written,
+        &mut report,
+    )?;
+    report.collisions = written.into_collisions();
+    laps.lap(&mut report, "wave 2");
 
-    if memory.is_none() && publisher.stats_enabled() {
-        publisher
-            .stats()
-            .write_if_changed(&cfg.project_dir.join("hugo_stats.json"))
-            .map_err(|source| PublishError::Io {
-                path: cfg.project_dir.join("hugo_stats.json"),
-                source,
-            })?;
-    }
-    lap(&mut report, "stats");
+    // E4, E5.
+    deferred::write_stats(&session, &publisher, &vfs)?;
+    laps.lap(&mut report, "stats");
+    deferred::run(&session, &publisher, &pool)?;
+    laps.lap(&mut report, "deferred");
 
+    // E6.
+    publish_resources(&session, &publisher, sink.as_ref(), &pool, &mut report)?;
+    laps.lap(&mut report, "resources");
+
+    // E7.
     let diagnostics = session.diagnostics().report();
     if session.diagnostics().has_errors() {
         return Err(BuildError::Diagnostics(diagnostics));

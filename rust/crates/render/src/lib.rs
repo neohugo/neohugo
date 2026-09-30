@@ -7,19 +7,20 @@
 //! page-store writes buffered per computation and committed by the winner, one content variant
 //! per hook format.
 //! Frozen by T38: [`Job`], [`JobOrder`], [`Output`] and
-//! `Session::{new, render_content, freeze_views, render_job}`. Still the skeleton's: the stub
-//! site functions (`stubs`; T35) and job planning in [`Session::wave1`] / [`Session::wave2`]
-//! (T36).
+//! `Session::{new, render_content, freeze_views, render_job}`. The site functions are
+//! `neohugo_sitefuncs::register`'s (T35); `neohugo-build` (T36) runs the phases, with the jobs
+//! of [`Session::wave1`] / [`Session::wave2`], the targets of [`Session::target`] and the
+//! deferred templates of [`Session::render_deferred`].
 
 #![forbid(unsafe_code)]
 
 mod content;
 mod hooks;
+mod i18n;
 mod job;
 mod memo;
 mod session;
 mod shortcode;
-mod stubs;
 pub mod summary;
 mod tokens;
 
@@ -70,6 +71,33 @@ pub enum RenderError {
     /// A phase called out of order.
     #[error("render phase out of order: {0}")]
     Phase(&'static str),
+    /// An i18n file does not load.
+    #[error(transparent)]
+    I18n(Box<neohugo_locale::I18nError>),
+    /// A component directory cannot be read.
+    #[error(transparent)]
+    Vfs(Box<neohugo_vfs::VfsError>),
+    /// A file cannot be read.
+    #[error("{}: {source}", path.display())]
+    Io {
+        path: std::path::PathBuf,
+        #[source]
+        source: std::io::Error,
+    },
+    /// A `defer(...)` template failed in phase E5.
+    #[error("defer(key=\"{key}\") ({template}): {source}")]
+    Deferred {
+        key: String,
+        template: String,
+        #[source]
+        source: Box<tera::Error>,
+    },
+}
+
+impl From<neohugo_vfs::VfsError> for RenderError {
+    fn from(e: neohugo_vfs::VfsError) -> Self {
+        Self::Vfs(Box::new(e))
+    }
 }
 
 impl From<neohugo_view::TargetError> for RenderError {

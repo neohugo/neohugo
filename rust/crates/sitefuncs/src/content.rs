@@ -4,8 +4,11 @@
 use std::sync::{Arc, OnceLock, Weak};
 
 use neohugo_highlight::{Highlight, OptionsArg};
+use neohugo_markup::{MarkdownOptions, Toc};
 use neohugo_view::views::FragmentsView;
-use neohugo_view::{ContentRenderer, ExpandedSource, RenderScope, RenderStringOptions, ViewCache};
+use neohugo_view::{
+    ContentRenderer, ExpandedSource, Phase, RenderScope, RenderStringOptions, ViewCache,
+};
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;
@@ -114,6 +117,19 @@ impl SiteFunction for PageContent {
                     .render_shortcodes(s.page, &req)
                     .map_err(|e| chain(what(), e))?;
                 Ok(Value::safe_string(&inline_placeholders(&e)))
+            }
+            // In the content phase the TOC comes from the fragments stage: a `{{< toc >}}`
+            // shortcode asks for the TOC of the page whose content it is part of, which the
+            // fragments of its body (parsed without the calls) answer without a cycle.
+            Field::Toc if req.phase == Phase::Content => {
+                let f = r.fragments(s.page, &req).map_err(|e| chain(what(), e))?;
+                let model = self.views.model();
+                let site = &model.config.sites[model.pages[s.page].lang];
+                let toc = Toc {
+                    headings: f.headings.clone(),
+                };
+                let o = MarkdownOptions::from_config(&site.markup, false);
+                Ok(Value::safe_string(&toc.to_html(&o.toc)))
             }
             f => {
                 let c = r

@@ -407,6 +407,8 @@ pub struct ResourceStore {
     targets: Mutex<BTreeMap<OutputPath, Claim>>,
     generated: RwLock<BTreeMap<String, Arc<[u8]>>>,
     pub(crate) marked: Mutex<BTreeSet<ResourceId>>,
+    /// The results of `execute_as_template`: template output whose URLs publish resources.
+    template_outputs: Mutex<BTreeSet<ResourceId>>,
     pub(crate) published: Mutex<BTreeSet<OutputPath>>,
     pub(crate) remote: RemoteState,
     pub(crate) pipes: PipeState,
@@ -432,6 +434,7 @@ impl ResourceStore {
             targets: Mutex::new(BTreeMap::new()),
             generated: RwLock::new(BTreeMap::new()),
             marked: Mutex::new(BTreeSet::new()),
+            template_outputs: Mutex::new(BTreeSet::new()),
             published: Mutex::new(BTreeSet::new()),
             remote: RemoteState::default(),
             pipes: PipeState::default(),
@@ -837,14 +840,24 @@ impl ResourceStore {
         call: &CallSite,
     ) -> Result<ResourceId, ResourceError> {
         let input = xxh3_64(output.as_bytes()) ^ 0x7465_6d70_6c61_7465;
-        self.claim(target, input, call, |out, link| {
+        let id = self.claim(target, input, call, |out, link| {
             Ok(self.named(
                 call.lang,
                 out,
                 link,
                 Body::Bytes(output.into_bytes().into()),
             ))
-        })
+        })?;
+        lock(&self.template_outputs).insert(id);
+        Ok(id)
+    }
+
+    /// The resources made by [`from_template_output`](Self::from_template_output), in id
+    /// order: their text is template output, so the build extracts URL tokens from it
+    /// (REWRITE_PLAN.md §3.4).
+    #[must_use]
+    pub fn template_outputs(&self) -> Vec<ResourceId> {
+        lock(&self.template_outputs).iter().copied().collect()
     }
 
     /// `resources.Concat`: the items' contents joined (JavaScript parts with `\n;\n` between

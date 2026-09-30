@@ -10,12 +10,11 @@ use neohugo_base::paths::{ContentKey, OutputPath};
 use neohugo_base::{Clock, FormatId, IdVec, Idx, LangIdx, PageId, PageKind};
 use neohugo_funcs::{Locales, PureEnv, register_placeholders, register_pure};
 use neohugo_highlight::Highlight;
-use neohugo_images::{ImageQueue, Imaging};
+use neohugo_images::{ImageCache, ImageQueue, Imaging};
 use neohugo_layouts::{
     EmbeddedHooks, LayoutQuery, LayoutStore, Origin, Selection, Selections, StandaloneKind,
     TemplateName, TemplateRole, Templates,
 };
-use neohugo_locale::Translations;
 use neohugo_markup::{Fragments, MarkdownOptions};
 use neohugo_resources::{ResourceStore, StoreConfig};
 use neohugo_site::{Model, Page, PageUrl};
@@ -23,17 +22,16 @@ use neohugo_sitefuncs::Handles;
 use neohugo_vfs::Vfs;
 use neohugo_view::views::HugoView;
 use neohugo_view::{
-    ContentError, ContentRenderer, Contents, DeferredRegistry, ExpandedSource, HookVariant,
-    NavSite, PageStores, PaginationRecorder, Phase, RenderScope, RenderStringOptions,
+    ContentError, ContentRenderer, Contents, Deferred, DeferredRegistry, ExpandedSource,
+    HookVariant, NavSite, PageStores, PaginationRecorder, Phase, RenderScope, RenderStringOptions,
     RenderedContent, SCOPE_KEY, ViewCache, ViewInputs, page_target,
 };
 use rayon::prelude::*;
 
 use crate::job::{AliasPlan, Job, JobOrder, Output};
 use crate::memo::ContentStore;
-use crate::stubs::Stubs;
 use crate::tokens::Inclusions;
-use crate::{RenderError, content};
+use crate::{RenderError, content, i18n};
 
 /// The project inputs a session renders besides the model: the file system and the scanned
 /// layouts.
@@ -82,7 +80,7 @@ pub struct Session {
     /// fence no hook handles).
     markdown: IdVec<LangIdx, MarkdownOptions>,
     embedded_hooks: IdVec<LangIdx, EmbeddedHooks>,
-    highlighters: IdVec<LangIdx, OnceLock<Highlight>>,
+    highlighters: IdVec<LangIdx, OnceLock<Arc<Highlight>>>,
     /// The Tera names of embedded templates (the embedded table hook is written natively).
     embedded: BTreeSet<TemplateName>,
     inclusions: Inclusions,
@@ -168,12 +166,17 @@ fn is_standalone(kind: PageKind) -> bool {
 impl Session {
     /// Loads the templates and prepares the views of `model`, in the plan's order: the renderer
     /// slot is created empty → the site functions are registered (`neohugo_sitefuncs::register`
-    /// after the pure functions and the skeleton's stubs) → the layouts are loaded (validating
-    /// every template) → `Arc::new(Session)` → the slot is set to the session.
+    /// after the pure functions) → the layouts are loaded (validating every template) →
+    /// `Arc::new(Session)` → the slot is set to the session.
+    ///
+    /// `Handles` gets one [`ImageQueue`] (with the `[caches.images]` file cache) shared with the
+    /// resource store, the translations of the i18n files, and a highlighter shared with the
+    /// Markdown of every language with the default `[markup.highlight]`.
     ///
     /// # Errors
     /// [`RenderError::View`] (invalid `resources` front matter), [`RenderError::Nav`] (an
-    /// alias that cannot be written), [`RenderError::Template`] (Tera load errors).
+    /// alias that cannot be written), [`RenderError::Template`] (Tera load errors),
+    /// [`RenderError::I18n`] (an i18n file that does not load).
     pub fn new(
         project: Project,
         model: Arc<Model>,
@@ -194,11 +197,23 @@ impl Session {
         extra: &dyn Fn(&mut tera::Tera, &Handles),
     ) -> Result<Arc<Self>, RenderError> {
         let diagnostics = Arc::new(Diagnostics::new(model.config.ignore_logs.iter()));
+        let cfg = &model.config;
+        let imaging = Imaging::from_config(&cfg.imaging).unwrap_or_else(|e| {
+            diagnostics.push(Diagnostic::error(format!("[imaging]: {e}")));
+            Imaging::default()
+        });
+        // One image queue: the store registers processed images in it, `resize` & co. enqueue
+        // into it, and phase E6 processes it into `[caches.images]`.
+        let images = Arc::new(ImageQueue::new(
+            imaging,
+            cfg.caches.get("images").map(ImageCache::from_config),
+        ));
         let store = Arc::new(ResourceStore::new(StoreConfig::from_config(
-            &model.config,
+            cfg,
             Some(Arc::clone(&project.vfs)),
-            None,
+            Some(Arc::clone(&images)),
         )));
+        let translations = Arc::new(i18n::load(&project.vfs, cfg)?);
         let (menus, menu_diagnostics) =
             neohugo_nav::build_menus(&NavSite::new(Arc::clone(&model)), &model.config);
         for d in menu_diagnostics {
@@ -237,7 +252,6 @@ impl Session {
         }
         let sel: Selections = selections.values().cloned().collect();
 
-        let cfg = &model.config;
         let html_format = cfg
             .output_formats
             .by_name("html")
@@ -249,25 +263,22 @@ impl Session {
             .filter(|t| t.origin == Origin::Embedded)
             .map(|t| t.render_name().clone())
             .collect();
-        let imaging = Imaging::from_config(&cfg.imaging).unwrap_or_else(|e| {
-            diagnostics.push(Diagnostic::error(format!("[imaging]: {e}")));
-            Imaging::default()
-        });
+        let highlight = Arc::new(Highlight::new(&cfg.default_site().markup.highlight));
         let renderer: Arc<OnceLock<Weak<dyn ContentRenderer>>> = Arc::new(OnceLock::new());
         let templates_slot: Arc<OnceLock<Weak<Templates>>> = Arc::new(OnceLock::new());
         let handles = Handles {
             model: Arc::clone(&model),
             views: Arc::clone(&views),
             store,
-            images: Arc::new(ImageQueue::new(imaging, None)),
+            images,
             stores: Arc::new(PageStores::new(model.pages.len())),
             pagination: Arc::clone(&pagination),
             deferred: Arc::new(DeferredRegistry::default()),
             menus: Arc::clone(views.menus()),
             related: Arc::new(neohugo_sitefuncs::RelatedCache::default()),
-            i18n: Arc::new(Translations::empty(cfg.sites.len())),
+            i18n: translations,
             diagnostics: Arc::clone(&diagnostics),
-            highlight: Arc::new(Highlight::new(&cfg.default_site().markup.highlight)),
+            highlight: Arc::clone(&highlight),
             renderer: Arc::clone(&renderer),
             templates: Arc::clone(&templates_slot),
             frames: Arc::default(),
@@ -275,14 +286,9 @@ impl Session {
         };
 
         let pure = Arc::new(pure_env(&model, o, &diagnostics));
-        let stubs = Stubs {
-            views: Arc::clone(&views),
-            pagination: Arc::clone(&pagination),
-        };
         let templates = neohugo_layouts::load(Arc::clone(&project.layouts), &sel, &|t| {
             register_placeholders(t);
             register_pure(t, &pure);
-            stubs.register(t);
             neohugo_sitefuncs::register(t, &handles);
             extra(t, &handles);
         })?;
@@ -295,7 +301,19 @@ impl Session {
                 .iter()
                 .map(|s| EmbeddedHooks::of(s, cfg))
                 .collect(),
-            highlighters: cfg.sites.iter().map(|_| OnceLock::new()).collect(),
+            // A language whose `[markup.highlight]` is the default site's shares the `highlight`
+            // filter's highlighter (the syntax sets are loaded once).
+            highlighters: cfg
+                .sites
+                .iter()
+                .map(|s| {
+                    let cell = OnceLock::new();
+                    if s.markup.highlight == cfg.default_site().markup.highlight {
+                        let _ = cell.set(Arc::clone(&highlight));
+                    }
+                    cell
+                })
+                .collect(),
             model,
             project,
             templates: {
@@ -422,21 +440,87 @@ impl Session {
                 self.render_alias(job, &target.target, &to, Some(page), format)
             }
             Job::LanguageRedirect => {
-                let cfg = &model.config;
-                let lang = LangIdx::from_index(0);
-                let home = model.sites[lang].home;
-                let Some(out) = outputs(&model.pages[home]).next() else {
+                let Some(a) = self.language_redirect() else {
                     return Ok(Vec::new());
                 };
-                let Some(links) = &out.links else {
-                    return Ok(Vec::new());
-                };
-                let from =
-                    OutputPath::new(&format!("/{}/index.html", cfg.sites[lang].language.key));
-                let to = links.permalink.to_string();
-                self.render_alias(job, &from, &to, None, out.format)
+                let to = self.permalink(a.to, a.format)?;
+                self.render_alias(job, &a.from, &to, None, a.format)
             }
         }
+    }
+
+    /// The file `job` writes, without rendering it: `None` when it writes nothing (a page
+    /// without a layout, an alias without an alias template, a language redirect without a
+    /// home output). Phase E resolves target collisions with it before rendering.
+    ///
+    /// # Errors
+    /// An unknown page or format, or a pager whose file cannot be made.
+    pub fn target(&self, job: &Job) -> Result<Option<OutputPath>, RenderError> {
+        let model = &self.model;
+        let has_layout =
+            |page: PageId, format: FormatId| self.selections.contains_key(&(page, format));
+        Ok(match *job {
+            Job::Page { page, format } | Job::Standalone { page, format } => {
+                if !has_layout(page, format) {
+                    return Ok(None);
+                }
+                let out = outputs(&model.pages[page])
+                    .find(|o| o.format == format)
+                    .ok_or(RenderError::NoOutput { page, format })?;
+                Some(out.paths.target.clone())
+            }
+            Job::Pager {
+                page,
+                format,
+                number,
+            } => {
+                if !has_layout(page, format) {
+                    return Ok(None);
+                }
+                Some(page_target(model, page, format, Some(number))?.0.target)
+            }
+            Job::Alias(ref a) => self.alias_template().map(|_| a.from.clone()),
+            Job::PagerAlias { page, format } => match self.alias_template() {
+                Some(_) => Some(page_target(model, page, format, Some(1))?.0.target),
+                None => None,
+            },
+            Job::LanguageRedirect => match (self.alias_template(), self.language_redirect()) {
+                (Some(_), Some(a)) => Some(a.from),
+                _ => None,
+            },
+        })
+    }
+
+    /// Phase E5: renders the template of a `defer(...)` call registered under `key`, with
+    /// `data`, `site` (the default language's), `hugo` and a scope in phase `Deferred`.
+    ///
+    /// # Errors
+    /// [`RenderError::Phase`] before [`freeze_views`](Self::freeze_views), or
+    /// [`RenderError::Deferred`] when the template fails.
+    pub fn render_deferred(&self, key: &str, d: &Deferred) -> Result<String, RenderError> {
+        if !self.views.is_frozen() {
+            return Err(RenderError::Phase("render_deferred before freeze_views"));
+        }
+        let lang = LangIdx::from_index(0);
+        let home = self.model.sites[lang].home;
+        let scope = RenderScope {
+            phase: Phase::Deferred,
+            ..RenderScope::layout(home, lang, self.html_format, None)
+        };
+        let generation = self.views.generation(Phase::Deferred, HookVariant::Html);
+        let mut ctx = tera::Context::new();
+        ctx.insert_value("data", d.data.clone());
+        ctx.insert_value("site", generation.sites[lang].clone());
+        ctx.insert_value("hugo", self.hugo.clone());
+        ctx.insert_value(SCOPE_KEY, scope.to_value());
+        self.templates
+            .tera()
+            .render(&d.template, &ctx)
+            .map_err(|source| RenderError::Deferred {
+                key: key.to_owned(),
+                template: d.template.to_string(),
+                source: Box::new(source),
+            })
     }
 
     fn permalink(&self, page: PageId, format: FormatId) -> Result<String, RenderError> {
@@ -569,7 +653,7 @@ impl Session {
         }])
     }
 
-    /// **Skeleton (T38) job planning; T36 owns the real one.** Wave 1 of language `lang`:
+    /// Wave 1 of language `lang` (phase E2):
     /// aliases, then every page × format, then the standalone pages (robots.txt and the
     /// sitemap index with the first language), in [`JobOrder`].
     #[must_use]
@@ -612,7 +696,7 @@ impl Session {
         jobs
     }
 
-    /// **Skeleton (T38).** Wave 2: from the recorded paginations, the `page/1/` aliases (HTML
+    /// Wave 2 (phase E3): from the paginations recorded in wave 1, the `page/1/` aliases (HTML
     /// formats, unless `pagination.disableAliases`) and pagers 2..N; then the language
     /// redirect.
     #[must_use]
@@ -633,10 +717,20 @@ impl Session {
             }
         }
         jobs.sort_by_key(|j| self.order(j));
-        if cfg.sites.len() > 1 && cfg.default_site().language.url_prefix.is_empty() {
+        if self.language_redirect().is_some() {
             jobs.push(Job::LanguageRedirect);
         }
         jobs
+    }
+
+    /// The redirect to the default language's home page (`neohugo_nav::language_redirect`:
+    /// `/en/` → `/`, or `/` → `/en/` with `defaultContentLanguageInSubdir`), when the home page
+    /// has that output.
+    fn language_redirect(&self) -> Option<AliasPlan> {
+        let a = neohugo_nav::language_redirect(self.views.nav(), &self.model.config)?;
+        outputs(&self.model.pages[a.to])
+            .any(|o| o.format == a.format)
+            .then_some(a)
     }
 
     /// The model the session renders.
@@ -661,6 +755,13 @@ impl Session {
     #[must_use]
     pub fn page_stores(&self) -> &Arc<PageStores> {
         &self.handles.stores
+    }
+
+    /// The named mutable build state the site functions share (resource store, image queue,
+    /// pagination recorder, deferred registry, …); phases E4–E6 read it.
+    #[must_use]
+    pub fn handles(&self) -> &Handles {
+        &self.handles
     }
 
     /// The hook variants content is rendered in (`Html` first).
@@ -699,7 +800,7 @@ impl Session {
         self.embedded_hooks[lang]
     }
 
-    pub(crate) fn highlighter(&self, lang: LangIdx) -> &OnceLock<Highlight> {
+    pub(crate) fn highlighter(&self, lang: LangIdx) -> &OnceLock<Arc<Highlight>> {
         &self.highlighters[lang]
     }
 

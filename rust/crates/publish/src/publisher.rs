@@ -2,7 +2,8 @@
 //!
 //! The steps of `emit` (REWRITE_PLAN.md §3.4):
 //! 1. `canonifyURLs` / `relativeURLs` rewrite (always for RSS, for HTML outputs when
-//!    configured);
+//!    configured; a held output is rewritten again after [`Publisher::patch_held`] inserted its
+//!    replacements, so post-processed links follow the site's URL style);
 //! 2. the LiveReload script (`serve` only);
 //! 3. `hugo_stats.json` collection (HTML outputs);
 //! 4. URL-token extraction;
@@ -131,6 +132,8 @@ pub enum Emitted {
 struct Held {
     text: String,
     media_type: MediaTypeId,
+    format: FormatId,
+    lang: LangIdx,
 }
 
 /// Publishes rendered outputs; shared by the render workers.
@@ -187,20 +190,13 @@ impl Publisher {
         }
         let format = self.settings.formats.get(o.format);
         let is_html = format.is_html;
-        let is_rss = format.name.eq_ignore_ascii_case("rss");
         let links = self
             .settings
             .sites
             .get(o.lang)
             .ok_or(PublishError::UnknownLanguage(o.lang))?;
 
-        let mut text = o.text;
-        if let Some(rw) = links.rewriter(&o.path, is_html, is_rss) {
-            let quoting = if is_html { Quoting::Html } else { Quoting::Xml };
-            if let std::borrow::Cow::Owned(s) = rw.rewrite_str(&text, quoting) {
-                text = s;
-            }
-        }
+        let mut text = self.rewrite(o.text, &o.path, o.format, links);
         if is_html && let Some(script) = &self.livereload_script {
             text = String::from_utf8(livereload::inject(text.as_bytes(), script))
                 .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned());
@@ -216,12 +212,36 @@ impl Publisher {
                 Held {
                     text,
                     media_type: format.media_type,
+                    format: o.format,
+                    lang: o.lang,
                 },
             );
             return Ok(Emitted::Held);
         }
         self.write(&o.path, &text, format.media_type)?;
         Ok(Emitted::Written)
+    }
+
+    /// The canonify / relative-URL rewrite of an output of `format` at `path` (RSS always,
+    /// HTML when configured).
+    fn rewrite(
+        &self,
+        text: String,
+        path: &OutputPath,
+        format: FormatId,
+        links: &SiteLinks,
+    ) -> String {
+        let format = self.settings.formats.get(format);
+        let is_html = format.is_html;
+        let is_rss = format.name.eq_ignore_ascii_case("rss");
+        let Some(rw) = links.rewriter(path, is_html, is_rss) else {
+            return text;
+        };
+        let quoting = if is_html { Quoting::Html } else { Quoting::Xml };
+        match rw.rewrite_str(&text, quoting) {
+            std::borrow::Cow::Owned(s) => s,
+            std::borrow::Cow::Borrowed(_) => text,
+        }
     }
 
     /// Adds the URL tokens of text that is not an output of its own (`execute_as_template`
@@ -294,6 +314,12 @@ impl Publisher {
             .into_par_iter()
             .map(|(path, h)| {
                 let text = replacer.replace_all(&h.text, &values);
+                // The links of post-processed resources arrive only now: rewrite again (the
+                // rewrite leaves URLs it already rewrote alone).
+                let text = match self.settings.sites.get(h.lang) {
+                    Some(links) => self.rewrite(text, &path, h.format, links),
+                    None => text,
+                };
                 if let Some(placeholder) = find_placeholder(&text) {
                     return Err(PublishError::UnresolvedPlaceholder {
                         path,
