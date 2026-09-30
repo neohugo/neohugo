@@ -67,8 +67,10 @@ impl StaticSyncOptions {
         }
     }
 
-    /// The publish path of a static file.
-    fn target(&self, f: &FileRef) -> String {
+    /// The publish path of a static file (below its language's directory on a multihost site;
+    /// no leading slash).
+    #[must_use]
+    pub fn target(&self, f: &FileRef) -> String {
         match &self.language_dirs {
             Some(dirs) => {
                 let lang = f.mount_lang.unwrap_or_else(|| LangIdx::from_index(0));

@@ -5,8 +5,10 @@
 use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
+use std::sync::Arc;
 
-use neohugo_build::{BuildRequest, SinkKind, build};
+use neohugo_base::url::BaseUrl;
+use neohugo_build::{BuildRequest, LiveReload, SinkKind, build};
 use neohugo_testkit::fixture::rust_dir;
 use neohugo_testkit::txtar::Archive;
 
@@ -211,4 +213,61 @@ fn testsite_contents() {
     assert!(text("sitemap.xml").contains("<loc>https://example.org/nn/sitemap.xml</loc>"));
     assert_eq!(text("robots.txt").trim_end(), "User-agent: *");
     assert!(text("css/site.css").contains('{'));
+}
+
+/// `neohugo-rs server`'s request: a configuration loaded by the caller with the base URLs
+/// pointed at the server, and the LiveReload script in every HTML page but the aliases.
+#[test]
+fn testsite_for_the_server() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    let site = tmp.path().join("testsite");
+    testsite(&site);
+    let mut cfg = neohugo_config::load(&neohugo_config::LoadOptions {
+        source: site,
+        ..neohugo_config::LoadOptions::default()
+    })
+    .expect("config");
+    for s in cfg.sites.iter_mut() {
+        s.base_url = BaseUrl::parse("http://localhost:1313/").expect("url");
+    }
+    let report = build(BuildRequest {
+        config: Some(Arc::new(cfg)),
+        live_reload: Some(LiveReload::default()),
+        sink: SinkKind::Memory,
+        clock: Some("2026-01-01T00:00:00Z".parse().expect("clock")),
+        ..BuildRequest::default()
+    })
+    .unwrap_or_else(|e| panic!("testsite build: {e}"));
+    let mem = report.memory.as_ref().expect("memory sink");
+    let text = |p: &str| mem.text(p).unwrap_or_else(|| panic!("no {p}"));
+    let script = concat!(
+        r#"<script src="/livereload.js?mindelay=10&amp;v=2&amp;port=1313&amp;path=livereload" "#,
+        "data-no-instant defer></script>"
+    );
+    let home = text("index.html");
+    assert!(
+        home.starts_with(&format!(
+            "<!DOCTYPE html>\n<html lang=\"en\">\n<head>{script}\n"
+        )),
+        "{home}"
+    );
+    assert!(
+        home.contains(r#"<link rel="stylesheet" href="http://localhost:1313/css/site.css">"#),
+        "{home}"
+    );
+    assert!(text("nn/om/index.html").contains(script));
+    assert!(text("404.html").starts_with(&format!("<html>{script}<body class=\"nf\">")));
+    for alias in ["old-about/index.html", "page/1/index.html", "en/index.html"] {
+        let a = text(alias);
+        assert!(!a.contains("livereload"), "{alias}: {a}");
+        assert!(a.contains("http://localhost:1313/"), "{alias}: {a}");
+    }
+    assert!(!text("index.xml").contains("livereload"));
+    assert!(!text("index.json").contains("livereload"));
+    let model = report.model.as_ref().expect("model");
+    assert!(model.pages.iter().any(|p| {
+        p.source
+            .as_ref()
+            .is_some_and(|s| s.file.rel == "posts/one.md")
+    }));
 }
