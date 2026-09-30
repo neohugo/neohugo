@@ -1,0 +1,29 @@
+package resources
+
+// Added to package resources by the structure oracle (tools/go-oracle/structure,
+// built with `go build -overlay`); never part of a neohugo build.
+
+import (
+	"github.com/neohugo/neohugo/resources/internal"
+	"github.com/neohugo/neohugo/resources/resource"
+)
+
+type nhResourcePathsProvider interface {
+	getResourcePaths() internal.ResourcePaths
+}
+
+// NHTargetPaths returns the files (below publishDir, with a leading slash and
+// Unix slashes) a resource of this package is published to, or nil.
+func NHTargetPaths(r resource.Resource) []string {
+	if ra, ok := r.(*resourceAdapter); ok {
+		ra.init(false, false)
+		r = ra.target
+	}
+	if rp, ok := r.(nhResourcePathsProvider); ok {
+		return rp.getResourcePaths().TargetPaths()
+	}
+	if tp, ok := r.(targetPathProvider); ok {
+		return []string{tp.targetPath()}
+	}
+	return nil
+}
