@@ -1,0 +1,98 @@
+---
+source: crates/funcs/tests/it/snapshots.rs
+expression: out
+---
+anchorize: hello-world creme-brulee
+append: "[1,2,3]"
+arg/index: "b [] d"
+arg/name: x.png true
+b64_decode: neohugo
+b64_encode: bmVvaHVnbw==
+by_type: "notes/index.md,"
+complement: "[1,3]"
+concat: "[1,2,3,4]"
+date: "February 29, 2024 08:00"
+date/locale: วันอังคาร 14 พ.ย. 2023
+date/none: "[]"
+date/style-th: 14 กรกฎาคม ค.ศ. 2024
+default_if_empty/empty-string: fallback
+default_if_empty/false-is-set: "false"
+default_if_empty/undefined: d
+default_if_empty/zero: "9"
+delimit: "a, b and c"
+dump: "{\n  &quot;a&quot;: &quot;x&quot;,\n  &quot;b&quot;: [\n    1\n  ]\n}"
+emojify: "I ❤️ Rust :no_such_emoji:"
+file_exists: true false
+filesize_format: 117.74 MiB
+find_resource: img/b.png
+find_resources: "img/a.jpg,img/b.png,"
+fnv32a: "2258058496"
+format_number: "1,234,567.89"
+format_number/th: "1,234.5"
+get_env: "[]"
+get_path: y
+get_path/missing: "true"
+get_resource: img/a.jpg
+html_escape: "&lt;a href=&#39;x&#39;&gt;&amp;&lt;/a&gt;"
+html_unescape: "&lt;b&gt; &amp;amp; &#39; é"
+humanize: My first post / 3rd
+intersect: "[2,3]"
+join_url: "https://example.org/docs/a/b/"
+jsonify: "{\"a\":\"\\u003c\\u003e\\u0026\",\"n\":null,\"z\":[1,2,1e+21,1e-7]}"
+jsonify/indent: "{\n  \"a\": 1,\n  \"b\": {\n    \"c\": []\n  }\n}"
+log_error: "[]"
+log_warn: "[]"
+matching: "true"
+max: "7.5"
+md5: def9394339de6bde1f1a5023d39863e3
+merge: "{\"a\":2,\"b\":1,\"n\":{\"x\":1,\"y\":2}}"
+min: "-2"
+now: "2024-07-14T10:31:59+00:00 1720953119"
+ordinalize: 22nd 13th
+pad_end: "[ab   ]"
+pad_start: "[   ab]"
+parse_url: "{\"fragment\":\"frag\",\"host\":\"example.org\",\"is_absolute\":true,\"path\":\"/a b/\",\"query\":\"q=1\",\"scheme\":\"https\",\"string\":\"https://example.org/a%20b/?q=1#frag\"}"
+path_base: c.md
+path_base_name: c
+path_clean: a/c
+path_dir: a/b
+path_ext: ".gz"
+path_join: a/c
+plainify: "Hello world\nagain\n"
+pluralize_word: categories people
+querify: a=1&amp;c=x%26y&amp;q=a+b
+read_file: "Hello from a project file.\n"
+regex_find: "[\"1\",\"22\"]"
+regex_replace: a&lt;1&gt;b&lt;22&gt;
+remarshal/json: "{\n   &quot;a&quot;: 1,\n   &quot;b&quot;: &quot;x&quot;\n}\n"
+remarshal/toml: "b = [1, 2]\n\n[a]\n  c = &quot;x&quot;\n"
+remarshal/yaml: "a:\n  c: x\nb:\n- 1\n- 2\n"
+sets/pages-by-id: "apple,"
+sha1: 3d54c96a0a66b8eedebe19cd5607886c8263b20e
+sha256: 91a7d2827b057b1570c4ad05168d802c72c5f4ef49d83a8b74e9a9219d841264
+singularize_word: category
+sort_by/date-desc: "apple,Zebra,Äpfel,"
+sort_by/param: "apple,Äpfel,Zebra,"
+sort_by/title: "Äpfel,apple,Zebra,"
+sort_by/values: "a,ä,b,B"
+sort_keys: "a=2 b=1 "
+strip_prefix: name
+strip_suffix: name
+substr: ้าว
+substr/negative: def
+symdiff: "[1,2,4]"
+title_case: The Lord of the Rings
+title_case/chicago: The Lord of the Rings
+to_date: "{\"rfc3339\":\"2024-02-29T08:00:00+07:00\",\"unix\":1709168400}"
+trim_chars: a-b
+trim_end_chars: a
+trim_start_chars: a
+truncate_html: "<p>Some <em>long …</em></p>"
+truncate_html/plain: Some...
+union: "[1,2,3]"
+urldecode: a b c
+urlencode: a%20b/c%3Fd
+urlencode_strict: a%20b%2Fc%3Fd
+urlize: hello-world-%C3%BCn%C3%AFcode
+version_at_least: true false true
+xxhash: ab8524a32dca4a0a

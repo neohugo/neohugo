@@ -113,7 +113,7 @@ Flattened render-hook fields:
 | `x \| unique` | bi | both |  | `uniq` | Removes duplicates, keeping the first. |
 | `x \| sort(attribute=?)` | bi | both |  |  | Tera's sort (by value, or by `attribute` path); not locale-aware. Use `sort_by` for Hugo's `sort`. (attribute: string) |
 | `x \| group_by(attribute=)` | bi | both |  |  | Tera's grouping by `attribute` path into a map. (attribute: string) |
-| `x \| sort_by(attribute=, reverse=?)` | F (s) | both |  | `sort` | Sorts by `attribute` (a path such as `params.weight`): collation per language, dates as instants, stable. (attribute: string, reverse: bool) |
+| `x \| sort_by(attribute=, reverse=?)` | F | both |  | `sort` | Sorts by `attribute` (a path such as `params.weight`; `""` or `value`: the elements): collation of the render's `lang`, dates as instants, stable. (attribute: string, reverse: bool) |
 | `x \| complement(without=)` | F | both |  | `complement` | Elements not in `without` (pages compared by id). (without: array) |
 | `x \| union(with=)` | F | both |  | `union` | Elements of either array, first occurrence kept (pages by id). (with: array) |
 | `x \| intersect(with=)` | F | both |  | `intersect` | Elements present in both (pages by id). (with: array) |
@@ -194,10 +194,10 @@ Flattened render-hook fields:
 | `x \| emojify` | F | both | yes | `emojify` | Replaces `:shortcode:` emoji. |
 | `x \| markdownify` | F (s) | both | yes | `markdownify` | Renders Markdown with the current page's hooks; a single paragraph is unwrapped. |
 | `x \| render_string(display=?, page=?)` | F (s) | both | yes | `.RenderString` | Renders Markdown with `page`'s hooks; `display="block"` keeps the paragraph. (display: string, page: page) |
-| `x \| highlight(lang=, options=?)` | F | both | yes | `highlight`, `transform.Highlight` | Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`). (lang: string, options: any) |
+| `x \| highlight(lang=, options=?)` | F (s) | both | yes | `highlight`, `transform.Highlight` | Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration). (lang: string, options: any) |
 | `x \| to_math(display=?)` | F | both | yes | `transform.ToMath` | LaTeX to MathML (SHOULD; feature `math`). (display: bool) |
 | `diagrams_goat(text=)` | fn | both |  | `diagrams.Goat` | `{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`). (text: string) |
-| `x \| format_number(precision=?)` | F (s) | both |  | `lang.FormatNumber`, `printf "%.1f"` | The number with `precision` decimals in the current language's format. (precision: int) |
+| `x \| format_number(precision=?)` | F | both |  | `lang.FormatNumber`, `printf "%.1f"` | The number with `precision` decimals in the format of the render's `lang`. (precision: int) |
 | `x \| filesize_format(binary=?)` | tc | both |  |  | Human file size (`binary` units by default). (binary: bool) |
 
 ## Encoding, escaping and hashing
@@ -248,7 +248,7 @@ Flattened render-hook fields:
 | Call | Kind | Phase | Safe | Hugo | Description |
 |---|---|---|---|---|---|
 | `now()` | fn | both |  | `now` | The build time (honours `--clock`) as a date value. |
-| `x \| date(format=?, style=?, locale=?)` | F (s) | both |  | `.Format`, `time.Format`, `dateFormat` | Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`) in `locale` (default: the current language; Thai uses the Gregorian calendar). (format: string, style: string, locale: string) |
+| `x \| date(format=?, style=?, locale=?)` | F | both |  | `.Format`, `time.Format`, `dateFormat` | Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`) in `locale` (default: the render's `lang`; Thai uses the Gregorian calendar). Accepts a date value, a date string or Unix seconds; none prints nothing. (format: string, style: string, locale: string) |
 | `x \| to_date` | F | both |  | `time.AsTime`, `time` | Parses a string or number into a date value (`{rfc3339, unix}`). |
 
 ## Language
@@ -313,7 +313,7 @@ Flattened render-hook fields:
 
 | Call | Kind | Phase | Safe | Hugo | Description |
 |---|---|---|---|---|---|
-| `get_env(name=)` | fn | both |  | `os.Getenv` | An environment variable allowed by `security.funcs.getenv`, else "". (name: string) |
+| `get_env(name=)` | fn | both |  | `os.Getenv` | An environment variable ("" when unset); `name` must match `security.funcs.getenv`, else an error. (name: string) |
 | `read_file(path=)` | fn | both |  | `os.ReadFile` | A file of the project (`security` rules apply). (path: string) |
 | `file_exists(path=)` | fn | both |  | `os.FileExists` | Whether a project file exists. (path: string) |
 | `x \| dump` | F | both |  | `debug.Dump` | Pretty-printed JSON of any value. |

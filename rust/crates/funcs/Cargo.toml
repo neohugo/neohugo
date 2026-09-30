@@ -19,52 +19,51 @@ path = "tests/it/main.rs"
 workspace = true
 
 [features]
-# `runtime` (default) is everything but the spec: the pure filter/function/test implementations
-# and their dependencies (ICU data through neohugo-locale and tera-contrib `date`). Without it the
-# crate is `spec` (dependency-free data) plus `register_placeholders` (needs only tera), which is
-# all neohugo-testkit's contract test uses; testkit therefore depends on this crate with
+# `runtime` (default) is everything but the spec: `register_pure` with the pure filter, function
+# and test implementations and their dependencies (ICU data through neohugo-locale). Without it
+# the crate is `spec` (dependency-free data) plus `register_placeholders` (needs only tera),
+# which is all neohugo-testkit's contract test uses; testkit therefore depends on this crate with
 # `default-features = false` and a test of testkit alone never builds ICU data (T02).
 default = ["runtime"]
 runtime = [
     "dep:neohugo-base",
     "dep:neohugo-locale",
     "dep:tera-contrib",
+    "dep:jiff",
     "dep:regex",
-    "dep:serde_json",
-    "dep:toml",
-    "dep:serde-saphyr",
-    "dep:base64",
     "dep:sha2",
     "dep:sha1",
     "dep:md-5",
-    "dep:percent-encoding",
-    "dep:url",
+    "dep:xxhash-rust",
     "dep:html5gum",
-    "dep:unicode-normalization",
-    "dep:thiserror",
+    "dep:emojis",
 ]
+# `to_math` (LaTeX → MathML).
 math = ["runtime", "dep:pulldown-latex"]
+# `diagrams_goat` (T66; not implemented yet).
 goat = ["runtime", "dep:svgbob"]
 
 [dependencies]
 neohugo-workspace-hack.workspace = true
 tera.workspace = true
-# planned third-party dependencies (T00); the owning task (T31) adjusts them
 neohugo-base = { workspace = true, optional = true }
 neohugo-locale = { workspace = true, optional = true }
 tera-contrib = { workspace = true, optional = true }
+jiff = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
-toml = { workspace = true, optional = true }
-serde-saphyr = { workspace = true, optional = true }
-base64 = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 sha1 = { workspace = true, optional = true }
 md-5 = { workspace = true, optional = true }
-percent-encoding = { workspace = true, optional = true }
-url = { workspace = true, optional = true }
+xxhash-rust = { workspace = true, optional = true }
 html5gum = { workspace = true, optional = true }
-unicode-normalization = { workspace = true, optional = true }
-thiserror = { workspace = true, optional = true }
+emojis = { workspace = true, optional = true }
 pulldown-latex = { workspace = true, optional = true }
 svgbob = { workspace = true, optional = true }
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+insta.workspace = true
+pretty_assertions.workspace = true
+jiff.workspace = true

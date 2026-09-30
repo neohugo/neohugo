@@ -1,0 +1,6 @@
+---
+source: crates/funcs/tests/it/math.rs
+expression: "[inline, block]"
+---
+- "<math display=\"inline\"><msup><mi>a</mi><mn>2</mn></msup><mo>+</mo><msup><mi>b</mi><mn>2</mn></msup><mo>=</mo><msup><mi>c</mi><mn>2</mn></msup></math>"
+- "<math display=\"block\"><mfrac><mrow><mn>1</mn></mrow><mrow><mn>2</mn></mrow></mfrac></math>"

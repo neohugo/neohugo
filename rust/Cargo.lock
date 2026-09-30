@@ -1284,15 +1284,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "77ce24cb58228fbb8aa041425bb1050850ac19177686ea6e0f41a70416f56fdb"
 
 [[package]]
-name = "form_urlencoded"
-version = "1.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb4cb245038516f5f85277875cdaa4f7d2c9a0fa0468de06ed190163b1581fcf"
-dependencies = [
- "percent-encoding",
-]
-
-[[package]]
 name = "fsevent-sys"
 version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1719,7 +1710,6 @@ dependencies = [
  "icu_locale_fallback",
  "icu_provider",
  "ixdtf",
- "serde",
  "tinystr",
  "zerovec",
 ]
@@ -1822,21 +1812,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4c887fc7d4c297cf3f9436864af9e3dba7f8be9415a6c2a7f392f3b1636298c"
 
 [[package]]
-name = "icu_locale"
-version = "2.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "785f595c61ef57169a467eeed7b4b6936a66f6cacbb116a96ee86da983251bf4"
-dependencies = [
- "icu_collections",
- "icu_locale_core",
- "icu_locale_data",
- "icu_locale_fallback",
- "icu_provider",
- "tinystr",
- "zerovec",
-]
-
-[[package]]
 name = "icu_locale_core"
 version = "2.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1849,12 +1824,6 @@ dependencies = [
  "writeable",
  "zerovec",
 ]
-
-[[package]]
-name = "icu_locale_data"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d37d91460e362a5cf58907cd7ce871411775ee6294e49a5cc8e6cec16dfa75ea"
 
 [[package]]
 name = "icu_locale_fallback"
@@ -2014,27 +1983,6 @@ name = "icu_time_data"
 version = "2.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9e21be527807cda7562cbfbdb04179f9cca46c12691d6a8073ffae6cfd7aeec"
-
-[[package]]
-name = "idna"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b0875f23caa03898994f6ddc501886a45c7d3d62d04d2d90788d47be1b1e4de"
-dependencies = [
- "idna_adapter",
- "smallvec",
- "utf8_iter",
-]
-
-[[package]]
-name = "idna_adapter"
-version = "1.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cb68373c0d6620ef8105e855e7745e18b0d00d3bdb07fb532e434244cdb9a714"
-dependencies = [
- "icu_normalizer",
- "icu_properties",
-]
 
 [[package]]
 name = "image"
@@ -2226,17 +2174,6 @@ checksum = "5e52fe76043ccecc9005d2305ebaadf7d7fc0cc89ca6baa10a94d6bc68c7128c"
 dependencies = [
  "defmt",
  "log",
-]
-
-[[package]]
-name = "jiff-icu"
-version = "0.2.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e67c2beaae8b10a82d849b9aabb698a43a682f32b17bcdc035d5ecadb44d646"
-dependencies = [
- "icu_calendar",
- "icu_time",
- "jiff",
 ]
 
 [[package]]
@@ -2780,26 +2717,26 @@ dependencies = [
 name = "neohugo-funcs"
 version = "0.149.0-DEV"
 dependencies = [
- "base64 0.23.1",
+ "emojis",
  "html5gum",
+ "insta",
+ "jiff",
  "md-5",
  "neohugo-base",
  "neohugo-locale",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
- "percent-encoding",
+ "pretty_assertions",
  "pulldown-latex",
  "regex",
- "serde-saphyr",
+ "serde",
  "serde_json",
  "sha1 0.11.0",
  "sha2",
  "svgbob",
  "tera",
  "tera-contrib",
- "thiserror 2.0.21",
- "toml",
- "unicode-normalization",
- "url",
+ "xxhash-rust",
 ]
 
 [[package]]
@@ -5215,16 +5152,9 @@ checksum = "e6c07f9f25dce5c40e92d0dcaa33508c451a07395dfcdd9040320ed6bb4a52a9"
 dependencies = [
  "base64 0.23.1",
  "humansize",
- "icu_calendar",
- "icu_datetime",
- "icu_locale",
- "icu_time",
- "jiff",
- "jiff-icu",
  "percent-encoding",
  "regex",
  "tera",
- "writeable",
 ]
 
 [[package]]
@@ -5663,18 +5593,6 @@ dependencies = [
  "http",
  "httparse",
  "log",
-]
-
-[[package]]
-name = "url"
-version = "2.5.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ff67a8a4397373c3ef660812acab3268222035010ab8680ec4215f38ba3d0eed"
-dependencies = [
- "form_urlencoded",
- "idna",
- "percent-encoding",
- "serde",
 ]
 
 [[package]]
