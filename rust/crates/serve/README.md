@@ -61,8 +61,13 @@ files new).
 
 **Watched** (Hugo's `WatchFilenames` + config files): every mount of the project and its
 themes (content, layouts, assets, data, i18n, archetypes, static; `disableWatch` mounts left
-out) recursively, a mounted file through its directory, the configuration directory
-(`config/`) recursively, and the directories of the configuration files (not recursively).
+out) recursively, a mounted file through its directory, the configuration directories (the
+project's `--configDir` and each theme's `config/`) recursively, and, not recursively, the
+directories of the configuration files `Config::config_files` lists (the project's and its
+themes') and the project's and each theme's directory. **Configuration** is any of those
+files, anything below a configuration directory, and a `neohugo.*`, `hugo.*` or `config.*`
+file in the project's or a theme's directory (so a new `neohugo.toml` next to `hugo.toml`
+is a configuration change, and wins).
 notify's native watcher (inotify, FSEvents, …) or its poller (`--poll 700ms`; a number is
 milliseconds; the poller compares contents, because notify keeps modification times in
 whole seconds), debounced by notify-debouncer-full: an event is delivered 1 s after it
@@ -80,7 +85,7 @@ written that are gone again.
 
 | A batch with | Does | Then sends |
 |---|---|---|
-| a configuration file (or `config/**`) | reloads the configuration (and the watch set), rebuilds everything; a configuration that does not load pauses everything else until it loads (Hugo); a site that becomes or stops being multihost needs a restart | a full reload |
+| configuration (above) | reloads the configuration (and the watch set), rebuilds everything; a configuration that does not load pauses everything else until it loads (Hugo); a site that becomes or stops being multihost needs a restart | a full reload |
 | content, layouts, assets, data, i18n, archetypes (or lost events) | a full rebuild into a new memory sink, served when it succeeds; a failure is reported with positions (as `build` reports) and the last good build stays | Hugo's fast-render rules on the files that changed against the last good build (source maps left out): none, nothing; content changed, a full reload, or with `--navigateToChanged` `__hugo_navigate<page path>` with the page's server port in `overrideURL`; one other file, that path; stylesheets only, each stylesheet (applied in place by livereload.js); else a full reload, then the stylesheets after 200 ms. `--renderToDisk` builds are not compared: a full reload |
 | static files only | no build: the static mounts are listed again, each file below a changed path is copied into the served tree (memory, or the publish directory), a file no static directory has any more is removed. Files whose bytes did not change are left alone. As in Hugo, a static file wins over a rendered file of the same path until the next build | one changed file: its path (a stylesheet or image is updated in place); several: a full reload; none: nothing |
 
@@ -135,6 +140,7 @@ harmless for memory builds.
 | `serve::multihost_sites_get_a_listener_each` | two listeners, each language's base URL with its port, its script and 404 page, a WebSocket each |
 | `serve::per_language_404_pages` | `/nn/…` → `nn/404.html`, other misses → `404.html` |
 | `serve::a_new_static_directory_is_watched` | a site without `static/`: the new directory's file is copied, and a second edit inside it is seen (no build) |
+| `serve::theme_and_new_config_files_are_watched` | a theme's layout (→ its one changed page) and its `hugo.toml` (→ reloaded configuration), then a new `neohugo.toml` over `hugo.toml` |
 | `serve::polling_watcher` | `--poll 100ms` picks up an edit |
 | `testsite::testsite_is_served_and_reloads` | the testsite: pages of both languages and formats with the canonified server URLs, no script in JSON and aliases, static, types, both 404 pages, then edit → reload **measured**: 3 content edits, 1 layout edit, 1 static edit (no build) |
 

@@ -504,6 +504,48 @@ fn a_new_static_directory_is_watched() {
     server.shutdown();
 }
 
+/// A theme's layouts and configuration are watched; a `neohugo.toml` created next to
+/// `hugo.toml` is a configuration change (and wins).
+#[test]
+fn theme_and_new_config_files_are_watched() {
+    let dir = site(concat!(
+        "-- hugo.toml --\n",
+        "baseURL = \"https://example.org/\"\ntitle = \"Hugo\"\ntheme = \"t\"\n",
+        "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\", \"404\"]\n",
+        "-- themes/t/hugo.toml --\n[params]\ncolor = \"red\"\n",
+        "-- themes/t/layouts/home.html --\n",
+        "<html><head></head><body>{{ site.title }} {{ site.params.color }}</body></html>\n",
+        "-- content/_index.md --\n---\ntitle: Home\n---\n",
+    ));
+    let (server, _events) = serve(dir.path(), |_| {});
+    let addr = server.local_addrs()[0];
+    let mut lr = LiveReload::connect(addr, "/livereload");
+    assert!(get(addr, "/", &[]).text().contains("Hugo red"));
+
+    write(
+        &dir.path().join("themes/t/layouts/home.html"),
+        "<html><head></head><body>theme {{ site.title }} {{ site.params.color }}</body></html>\n",
+    );
+    assert!(lr.expect().contains(r#""path":"/index.html""#));
+    assert!(get(addr, "/", &[]).text().contains("theme Hugo red"));
+
+    write(
+        &dir.path().join("themes/t/hugo.toml"),
+        "[params]\ncolor = \"blue\"\n",
+    );
+    assert!(lr.expect().contains(r#""path":"/x.js""#));
+    assert!(get(addr, "/", &[]).text().contains("theme Hugo blue"));
+
+    let text = fs::read_to_string(dir.path().join("hugo.toml")).expect("hugo.toml");
+    write(
+        &dir.path().join("neohugo.toml"),
+        &text.replace("title = \"Hugo\"", "title = \"Neo\""),
+    );
+    assert!(lr.expect().contains(r#""path":"/x.js""#));
+    assert!(get(addr, "/", &[]).text().contains("theme Neo blue"));
+    server.shutdown();
+}
+
 /// Polling notices changes too.
 #[test]
 fn polling_watcher() {

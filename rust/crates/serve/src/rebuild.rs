@@ -36,7 +36,7 @@ use notify_debouncer_full::DebouncedEvent;
 
 use crate::address::server_base_url;
 use crate::tree::{Served, Tree, publish_dir};
-use crate::watch::{Changes, Classifier, Message, WatchSet, Watcher};
+use crate::watch::{Changes, Classifier, ConfigPlaces, Message, WatchSet, Watcher};
 use crate::{
     ChangeKind, Event, LiveReloadOptions, Reporter, ServeError, ServeOptions, Shared, Target,
     livereload,
@@ -88,13 +88,14 @@ impl Rebuilder {
             opts.append_port,
         )?;
         let vfs = Vfs::new(&cfg)?;
+        let (classifier, watch_set) = watching(&cfg, &vfs, &config_dir);
         Ok(Self {
             request: opts.build.clone(),
             append_port: opts.append_port,
             live_reload: opts.live_reload,
             target: opts.target,
-            classifier: Classifier::new(&cfg, &vfs, &config_dir),
-            watch_set: WatchSet::new(&cfg, &vfs, &config_dir),
+            classifier,
+            watch_set,
             config_dir,
             ports,
             cfg: Arc::new(cfg),
@@ -131,8 +132,7 @@ impl Rebuilder {
             self.append_port,
         )?;
         self.vfs = Vfs::new(&cfg)?;
-        self.classifier = Classifier::new(&cfg, &self.vfs, &self.config_dir);
-        self.watch_set = WatchSet::new(&cfg, &self.vfs, &self.config_dir);
+        (self.classifier, self.watch_set) = watching(&cfg, &self.vfs, &self.config_dir);
         self.cfg = Arc::new(cfg);
         Ok(())
     }
@@ -223,7 +223,7 @@ impl Rebuilder {
                 return;
             }
         };
-        let set = WatchSet::new(&self.cfg, &vfs, &self.config_dir);
+        let (classifier, set) = watching(&self.cfg, &vfs, &self.config_dir);
         let mut old = self.watch_set.clone();
         for e in events {
             if matches!(e.kind, EventKind::Create(_)) {
@@ -235,7 +235,7 @@ impl Rebuilder {
         for (path, e) in watcher.update(&old, &set) {
             self.error(&format!("watching {}: {e}", path.display()));
         }
-        self.classifier = Classifier::new(&self.cfg, &vfs, &self.config_dir);
+        self.classifier = classifier;
         self.vfs = vfs;
         self.watch_set = set;
     }
@@ -465,6 +465,13 @@ impl Rebuilder {
     fn error(&self, message: &str) {
         self.reporter.report(&Event::Error { message });
     }
+}
+
+/// The event classifier and the watch set of a configuration.
+fn watching(cfg: &Config, vfs: &Vfs, config_dir: &Path) -> (Classifier, WatchSet) {
+    let places = ConfigPlaces::new(cfg, config_dir);
+    let set = WatchSet::new(vfs, &places);
+    (Classifier::new(cfg, vfs, places), set)
 }
 
 /// Every language's base URL becomes the server's (Hugo's `fixURL`): the language's listener

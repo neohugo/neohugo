@@ -28,21 +28,65 @@ pub(crate) enum Message {
     Shutdown,
 }
 
+/// Where configuration lives: the files it was read from (the project's and its themes'),
+/// the configuration directories (the project's `--configDir` and each theme's `config/`),
+/// and the directories whose `neohugo.*`, `hugo.*` or `config.*` file is configuration even
+/// when it did not exist yet (the project's and each theme's).
+#[derive(Clone, Debug)]
+pub(crate) struct ConfigPlaces {
+    files: BTreeSet<PathBuf>,
+    dirs: Vec<PathBuf>,
+    homes: Vec<PathBuf>,
+    names: BTreeSet<String>,
+}
+
+impl ConfigPlaces {
+    pub(crate) fn new(cfg: &Config, config_dir: &Path) -> Self {
+        let mut dirs = vec![config_dir.to_path_buf()];
+        let mut homes = vec![cfg.project_dir.clone()];
+        for t in &cfg.themes {
+            dirs.push(t.dir.join("config"));
+            homes.push(t.dir.clone());
+        }
+        Self {
+            files: cfg.config_files.iter().cloned().collect(),
+            dirs,
+            homes,
+            names: neohugo_config::config_file_names().collect(),
+        }
+    }
+
+    /// Whether a change of `path` changes the configuration.
+    fn contains(&self, path: &Path) -> bool {
+        self.files.contains(path)
+            || self.dirs.iter().any(|d| path.starts_with(d))
+            || (path
+                .parent()
+                .is_some_and(|p| self.homes.iter().any(|h| h == p))
+                && path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .is_some_and(|n| self.names.contains(n)))
+    }
+}
+
 /// The directories to watch, each with its mode, and what they are watched for.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub(crate) struct WatchSet {
     pub(crate) roots: BTreeMap<PathBuf, RecursiveMode>,
     /// The mounted directories and files (for the report).
     pub(crate) sources: Vec<PathBuf>,
-    /// The configuration files and directory (for the report).
+    /// The configuration files and directories (for the report).
     pub(crate) config: Vec<PathBuf>,
 }
 
 impl WatchSet {
     /// Every mount of the project and its themes that is not `disableWatch` (a directory with
     /// everything below it; a mounted file through its directory), the configuration
-    /// directory, and the directories of the configuration files. Missing paths are left out.
-    pub(crate) fn new(cfg: &Config, vfs: &Vfs, config_dir: &Path) -> Self {
+    /// directories (with everything below them), and the directories of the configuration
+    /// files, of the project and of each theme (only their own files). Missing paths are left
+    /// out.
+    pub(crate) fn new(vfs: &Vfs, config: &ConfigPlaces) -> Self {
         let mut recursive: BTreeSet<PathBuf> = BTreeSet::new();
         let mut flat: BTreeSet<PathBuf> = BTreeSet::new();
         let mut sources: BTreeSet<PathBuf> = BTreeSet::new();
@@ -60,16 +104,17 @@ impl WatchSet {
                 sources.insert(m.abs.clone());
             }
         }
-        let mut config: Vec<PathBuf> = cfg.config_files.clone();
-        if config_dir.is_dir() {
-            recursive.insert(config_dir.to_path_buf());
-            config.push(config_dir.to_path_buf());
+        let mut report: Vec<PathBuf> = config.files.iter().cloned().collect();
+        for d in &config.dirs {
+            if d.is_dir() {
+                recursive.insert(d.clone());
+                report.push(d.clone());
+            }
         }
-        for f in &cfg.config_files {
-            if let Some(parent) = f.parent()
-                && parent.is_dir()
-            {
-                flat.insert(parent.to_path_buf());
+        let parents = config.files.iter().filter_map(|f| f.parent());
+        for dir in parents.chain(config.homes.iter().map(PathBuf::as_path)) {
+            if dir.is_dir() {
+                flat.insert(dir.to_path_buf());
             }
         }
         // A root inside a recursive root adds nothing.
@@ -92,7 +137,7 @@ impl WatchSet {
         Self {
             roots,
             sources: sources.into_iter().collect(),
-            config,
+            config: report,
         }
     }
 }
@@ -252,14 +297,13 @@ struct WatchedMount {
 #[derive(Clone, Debug)]
 pub(crate) struct Classifier {
     mounts: Vec<WatchedMount>,
-    config_files: BTreeSet<PathBuf>,
-    config_dir: PathBuf,
+    config: ConfigPlaces,
     /// `hugo_stats.json`, which the build itself writes.
     stats_file: PathBuf,
 }
 
 impl Classifier {
-    pub(crate) fn new(cfg: &Config, vfs: &Vfs, config_dir: &Path) -> Self {
+    pub(crate) fn new(cfg: &Config, vfs: &Vfs, config: ConfigPlaces) -> Self {
         Self {
             mounts: vfs
                 .mounts()
@@ -271,8 +315,7 @@ impl Classifier {
                     watched: !m.disable_watch,
                 })
                 .collect(),
-            config_files: cfg.config_files.iter().cloned().collect(),
-            config_dir: config_dir.to_path_buf(),
+            config,
             stats_file: cfg.project_dir.join("hugo_stats.json"),
         }
     }
@@ -320,7 +363,7 @@ impl Classifier {
         if is_ignored(path) || *path == self.stats_file {
             return None;
         }
-        if self.config_files.contains(path) || path.starts_with(&self.config_dir) {
+        if self.config.contains(path) {
             return Some(Kind::Config);
         }
         // The watched mounts holding the path: content wins, then anything but static.
