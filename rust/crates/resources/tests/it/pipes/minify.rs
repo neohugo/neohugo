@@ -13,7 +13,7 @@ use neohugo_resources::{HashAlgo, PipeError, ResourceError, Transform};
 use serde_json::Value as J;
 use std::str::FromStr as _;
 
-use crate::support::{rule, store, synth_site};
+use crate::support::{rule, store_without_tools, synth_site};
 
 #[test]
 fn minify_chains() {
@@ -21,7 +21,9 @@ fn minify_chains() {
     rule("transform", "tocss_builtin");
     let fx: J = neohugo_testkit::fixture::oracle("oracle/resources/transform/transform.json.gz");
     let home = tempfile::tempdir().unwrap();
-    let store = store(&synth_site(home.path()), home.path());
+    // Go's oracle ran without PostCSS and Babel (`na:` chains): so does this comparison, even
+    // where the real tools are installed (the real-tool tests in tools.rs use them).
+    let store = store_without_tools(&synth_site(home.path()), home.path());
     let lang = LangIdx::from_index(0);
     let mut failures = Vec::new();
     let (mut identical, mut accepted, mut tool_errors, mut builtin) = (0, 0, 0, 0);

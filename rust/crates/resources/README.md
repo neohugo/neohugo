@@ -64,7 +64,8 @@ typed and decoded from the template's map with `from_json` (keys case-insensitiv
   binary and the variable. `security.exec.allow` must accept the binary's name
   (`PipeError::ExecDenied`; Hugo's default list has no `babel`). The tool runs in the project
   directory with only the `security.exec.osEnv` variables plus `NODE_PATH`
-  (`<project>/node_modules`, the extra directories, `$NODE_PATH`), `PWD`, `HUGO_ENVIRONMENT`,
+  (those of `<project>/node_modules` and the extra directories that exist — Tailwind 4 reads
+  `NODE_PATH` as one directory — else `<project>/node_modules`; then `$NODE_PATH`), `PWD`, `HUGO_ENVIRONMENT`,
   `HUGO_ENV`, `HUGO_PUBLISHDIR` and `HUGO_FILE_<NAME>` per `assets/_jsconfig` file; at most
   `min(4, cpus)` at once. No `npx` (no network).
 - **Errors** are `ResourceError::Pipe { resource, transform, source: PipeError }`; Sass errors

@@ -114,9 +114,11 @@ process.stdout.write(JSON.stringify({cwd: process.cwd(), env: Object.fromEntries
 ";
     let bin = fake_tool(tmp.path(), "postcss", script);
     let extra = tmp.path().join("tools-node-modules");
+    std::fs::create_dir(&extra).unwrap();
+    let missing = tmp.path().join("missing-node-modules");
     let p = project(site.path(), |env| {
         env.tools.postcss = Some(bin);
-        env.tools.node_modules = vec![extra.clone()];
+        env.tools.node_modules = vec![missing.clone(), extra.clone()];
         env.os_env.push(("SECRET_TOKEN".into(), "x".into()));
         env.environment = "staging".into();
     });
@@ -131,10 +133,9 @@ process.stdout.write(JSON.stringify({cwd: process.cwd(), env: Object.fromEntries
     let dir = p.dir.display().to_string();
     assert_eq!(out["cwd"], dir.as_str());
     let env = &out["env"];
-    assert_eq!(
-        env["NODE_PATH"],
-        format!("{dir}/node_modules:{}", extra.display()).as_str()
-    );
+    // Only existing directories (Tailwind 4 reads NODE_PATH as one directory): the project has
+    // no node_modules and one tools directory is missing.
+    assert_eq!(env["NODE_PATH"], extra.display().to_string().as_str());
     assert_eq!(env["PWD"], dir.as_str());
     assert_eq!(env["HUGO_ENVIRONMENT"], "staging");
     assert_eq!(env["HUGO_ENV"], "staging");
