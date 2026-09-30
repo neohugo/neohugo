@@ -5,10 +5,12 @@ entry point).
 
 ```rust
 pub enum SinkKind { Disk /* default */, Memory }
-pub struct BuildRequest { pub source: PathBuf, pub destination: Option<PathBuf>, pub cli: CliOverrides,
+pub struct BuildRequest { pub source: PathBuf, pub destination: Option<PathBuf>,
+                          pub config_files: Vec<PathBuf> /* T37: --config */, pub cli: CliOverrides,
                           pub clock: Option<jiff::Timestamp>, pub sink: SinkKind, pub clean_destination: bool,
                           pub threads: Option<usize> /* T36: the render pool size */ }
 pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError>;
+pub fn process_env() -> Vec<(String, String)>; // T37: HUGO_*, HOME, XDG_CACHE_HOME, TMPDIR, USER (the CLI's config loads too)
 pub enum BuildError { Config, Vfs, Model, Template, Render, Publish, Resource, Pool, Diagnostics(Vec<Diagnostic>) }
 pub struct Collision { pub path: OutputPath, pub winner: JobOrder, pub loser: JobOrder }
 pub struct BuildReport { pub pages, pub outputs, pub aliases, pub resources, pub images, pub static_files: usize,

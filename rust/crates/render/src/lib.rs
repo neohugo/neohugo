@@ -10,7 +10,9 @@
 //! `Session::{new, render_content, freeze_views, render_job}`. The site functions are
 //! `neohugo_sitefuncs::register`'s (T35); `neohugo-build` (T36) runs the phases, with the jobs
 //! of [`Session::wave1`] / [`Session::wave2`], the targets of [`Session::target`] and the
-//! deferred templates of [`Session::render_deferred`].
+//! deferred templates of [`Session::render_deferred`]. The lookup inputs [`lookup_path`],
+//! [`layout_query`] and [`rendered_formats`] are public for `neohugo-rs templates check` (T37),
+//! so its coverage runs exactly the build's lookups.
 
 #![forbid(unsafe_code)]
 
@@ -27,7 +29,7 @@ mod tokens;
 use neohugo_base::{FormatId, PageId};
 
 pub use job::{AliasPlan, Job, JobOrder, Output};
-pub use session::{Project, RenderOptions, Session};
+pub use session::{Project, RenderOptions, Session, layout_query, lookup_path, rendered_formats};
 
 /// Why a render failed.
 #[derive(Debug, thiserror::Error)]
