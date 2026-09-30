@@ -8,7 +8,7 @@ use std::sync::{Arc, OnceLock, Weak};
 use neohugo_base::diag::{Diagnostic, Diagnostics};
 use neohugo_base::paths::{ContentKey, OutputPath};
 use neohugo_base::{Clock, FormatId, IdVec, Idx, LangIdx, PageId, PageKind};
-use neohugo_funcs::{Locales, PureEnv, register_placeholders, register_pure};
+use neohugo_funcs::{EnvAllowlist, Locales, PureEnv, register_placeholders, register_pure};
 use neohugo_highlight::Highlight;
 use neohugo_images::{ImageCache, ImageQueue, Imaging};
 use neohugo_layouts::{
@@ -115,6 +115,15 @@ fn pure_env(model: &Model, o: &RenderOptions, diagnostics: &Arc<Diagnostics>) ->
     env.accents = site.urls.accents;
     env.diagnostics = Arc::clone(diagnostics);
     env.project_dir = Some(cfg.project_dir.clone());
+    // The config compiled these patterns already; `none` and empty entries allow nothing.
+    env.getenv = EnvAllowlist::new(
+        cfg.security
+            .getenv
+            .patterns()
+            .iter()
+            .filter(|p| !p.is_empty() && !p.eq_ignore_ascii_case("none")),
+    )
+    .unwrap_or_default();
     env
 }
 
@@ -902,7 +911,9 @@ impl ContentRenderer for Session {
         mut ctx: tera::Context,
         s: &RenderScope,
     ) -> Result<String, ContentError> {
-        let child = s.child();
+        let mut child = s.child();
+        // A `partial()` opened its `return_value` frame on `s`; the template it renders owns it.
+        child.frame = s.frame;
         if child.too_deep() {
             return Err(ContentError::TooDeep {
                 limit: neohugo_view::MAX_DEPTH,

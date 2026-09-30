@@ -129,3 +129,32 @@ fn phases_jobs_and_pagination() {
         ("/page/2/index.html".to_owned(), "2/2:A".to_owned())
     );
 }
+
+#[test]
+fn partial_return_values_and_getenv_policy() {
+    let tmp = tempfile::tempdir().expect("tempdir");
+    write_site(tmp.path());
+    let dir = tmp.path();
+    let cfg = fs::read_to_string(dir.join("hugo.toml")).expect("config");
+    fs::write(
+        dir.join("hugo.toml"),
+        format!("{cfg}[security.funcs]\ngetenv = ['^PATH$']\n"),
+    )
+    .expect("write");
+    fs::create_dir_all(dir.join("layouts/_partials")).expect("mkdir");
+    fs::write(
+        dir.join("layouts/_partials/double.html"),
+        "{{ return_value(value=x * 2) }}",
+    )
+    .expect("write");
+    fs::write(
+        dir.join("layouts/single.html"),
+        "{{ partial(name=\"double.html\", x=21) }}:{{ get_env(name=\"PATH\") != \"\" }}",
+    )
+    .expect("write");
+    let s = session(dir);
+    s.render_content().expect("content");
+    s.freeze_views().expect("freeze");
+    let got = texts(&s, &s.wave1(LangIdx::from_raw(0)));
+    assert_eq!(got[1], ("/a/index.html".to_owned(), "42:true".to_owned()));
+}
