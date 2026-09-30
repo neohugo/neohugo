@@ -2882,7 +2882,6 @@ dependencies = [
 name = "neohugo-markup"
 version = "0.149.0-DEV"
 dependencies = [
- "aho-corasick",
  "bitflags 2.13.2",
  "comrak",
  "flate2",
@@ -2894,8 +2893,7 @@ dependencies = [
  "regex",
  "serde",
  "thiserror 2.0.21",
- "unicode-normalization",
- "unicode-segmentation",
+ "unicode-properties",
 ]
 
 [[package]]

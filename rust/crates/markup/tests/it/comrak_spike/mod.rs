@@ -7,10 +7,10 @@
 //! The assertions are floors at the measured values, so a comrak upgrade that regresses a
 //! feature fails here.
 
-mod corpus;
+pub mod corpus;
 mod engine;
 mod features;
-mod normalize;
+pub mod normalize;
 mod sourcepos;
 
 use std::collections::BTreeMap;
