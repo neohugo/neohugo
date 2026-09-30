@@ -22,9 +22,19 @@ workspace = true
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
 neohugo-config.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
 minify-html.workspace = true
 lightningcss.workspace = true
+oxc_allocator.workspace = true
+oxc_codegen.workspace = true
 oxc_minifier.workspace = true
-serde_json.workspace = true
+oxc_parser.workspace = true
+oxc_span.workspace = true
+quick-xml.workspace = true
 thiserror.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+html5gum.workspace = true
+roxmltree.workspace = true

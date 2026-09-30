@@ -2903,12 +2903,21 @@ dependencies = [
 name = "neohugo-minify"
 version = "0.149.0-DEV"
 dependencies = [
+ "html5gum",
  "lightningcss",
  "minify-html",
  "neohugo-base",
  "neohugo-config",
+ "neohugo-testkit",
  "neohugo-workspace-hack",
+ "oxc_allocator",
+ "oxc_codegen",
  "oxc_minifier",
+ "oxc_parser",
+ "oxc_span",
+ "quick-xml",
+ "roxmltree",
+ "serde",
  "serde_json",
  "thiserror 2.0.21",
 ]

@@ -62,6 +62,10 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.grass]
 opt-level = 3
+# minify-html's parser `debug_assert`s that a raw-text element's end tag has its name, which
+# `<script>x</scriptx>` violates (release builds accept it); T26 needs dev to behave like release.
+[profile.dev.package.minify-html]
+debug-assertions = false
 
 [workspace.dependencies]
 # ── workspace members ──
@@ -144,6 +148,11 @@ grass = { version = "0.13.4", default-features = false, features = ["random"] }
 minify-html = "0.18.1"
 lightningcss = { version = "1.0.0-alpha.72", default-features = false }
 oxc_minifier = "0.95" # lockstep with minify-html's oxc
+oxc_allocator = "0.95" # the oxc pipeline around oxc_minifier (T26), same lockstep
+oxc_parser = "0.95"
+oxc_codegen = "0.95"
+oxc_span = "0.95"
+quick-xml = "0.42"    # XML/SVG minifier tokens (T26); already locked through plist
 
 # ── images ──
 image = { version = "0.25.10", default-features = false, features = ["jpeg", "png", "gif", "webp", "bmp", "tiff", "rayon"] }
