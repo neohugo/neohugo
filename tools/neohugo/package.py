@@ -2,7 +2,7 @@
 """Packages a release build of neohugo-rs for one target (Python stdlib only).
 
 Usage:
-  package.py <binary> <target> <out-dir>
+  package.py <binary> <target> <out-dir> [<notices>]
 
 Runs `<binary> version` (a smoke test; the version it prints names the archive) and writes
 
@@ -11,8 +11,10 @@ Runs `<binary> version` (a smoke test; the version it prints names the archive) 
                                                           and `shasum -a 256 -c` read it
 
 The archive holds one directory, neohugo-rs-<version>-<target>/, with the binary, the
-repository's LICENSE, rust/PROVENANCE.md and rust/THIRD_PARTY/. Entries are sorted, owned by
-root and dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the same archive.
+repository's LICENSE, rust/PROVENANCE.md, rust/THIRD_PARTY/ and, when given, <notices> as
+THIRD_PARTY_NOTICES.txt (the licences of the linked crates, written by notices.py). Entries are
+sorted, owned by root and dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the
+same archive.
 
 .github/workflows/rust.yml runs it for every release target (rust/README.md, "CI and releases").
 """
@@ -41,13 +43,15 @@ def binary_version(binary):
     return m.group(1)
 
 
-def entries(binary):
+def entries(binary, notices=None):
     """(name in the archive, source file, mode), sorted; directories have no source."""
     files = [
         (binary.name, binary, 0o755),
         ("LICENSE", ROOT / "LICENSE", 0o644),
         ("PROVENANCE.md", ROOT / "rust" / "PROVENANCE.md", 0o644),
     ]
+    if notices is not None:
+        files.append(("THIRD_PARTY_NOTICES.txt", notices, 0o644))
     third_party = ROOT / "rust" / "THIRD_PARTY"
     dirs = {"THIRD_PARTY"}
     for path in sorted(third_party.rglob("*")):
@@ -98,16 +102,17 @@ def write_zip(path, top, items, mtime):
 
 
 def main(argv):
-    if len(argv) != 4:
+    if len(argv) not in (4, 5):
         sys.exit(__doc__)
     binary, target, out = Path(argv[1]), argv[2], Path(argv[3])
+    notices = Path(argv[4]) if len(argv) == 5 else None
     version = binary_version(binary)
     top = f"neohugo-rs-{version}-{target}"
     ext = "zip" if "windows" in target else "tar.gz"
     archive = out / f"{top}.{ext}"
     mtime = int(os.environ.get("SOURCE_DATE_EPOCH") or time.time())
     out.mkdir(parents=True, exist_ok=True)
-    items = entries(binary)
+    items = entries(binary, notices)
     (write_zip if ext == "zip" else write_tar_gz)(archive, top, items, mtime)
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     line = f"{digest}  {archive.name}\n"

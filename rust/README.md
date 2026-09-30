@@ -95,7 +95,7 @@ same ref cancels the older one, except on tags.
 |---|---|---|
 | Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; on a tag, the tag must be `rust-v<version of [workspace.package]>` |
 | Test | ubuntu-24.04 | `cargo test --workspace --locked --no-fail-fast` with the tools below; the job summary lists every test that printed `SKIPPED` |
-| Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>`; `neohugo-rs version`; `tools/neohugo/package.py` → artifact `neohugo-rs-<triple>` |
+| Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>`; `neohugo-rs version`; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-rs-<triple>` |
 | Release | ubuntu-24.04 | tags only, after the other three: the GitHub release (below) |
 
 Build targets and runners: `x86_64-unknown-linux-gnu` (ubuntu-22.04), `aarch64-unknown-linux-gnu`
@@ -108,7 +108,12 @@ version; linked on 24.04 they would need 2.39: std's weak `pidfd_spawnp` referen
 records `GLIBC_2.39`). The Windows binary links the MSVC runtime statically (`+crt-static`), so
 it needs no Visual C++ redistributable. An archive
 (`neohugo-rs-<version>-<triple>.tar.gz`, `.zip` for Windows) holds the binary, `LICENSE`,
-`PROVENANCE.md` and `THIRD_PARTY/`, next to its `.sha256`.
+`THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`, next to its `.sha256`.
+`THIRD_PARTY_NOTICES.txt` is written by `tools/neohugo/notices.py <triple> <file>`: the licence
+and notice files of every crate linked into `neohugo-rs` for that target (the normal-dependency
+closure of `neohugo` without proc macros; vendored C libraries such as libwebp included), each
+text printed once. A linked crate that ships no licence file gets the MIT text when MIT is one of
+its licences; any other such crate fails the step, so it is noticed before a release.
 
 **Toolchain.** CI installs `RUST_TOOLCHAIN` (1.94.1, the toolchain the workspace is developed
 with) through rustup; `rust-version = "1.94"` in `Cargo.toml` stays the MSRV. A newer clippy
@@ -128,7 +133,7 @@ test data, compares fewer cases), so CI provides all of them:
 | `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh` when the tree has it; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
 | `neohugo-images`: `sizes_match_the_process_oracle` (13,218 cases with the data, 11,046 without) | Go's image test data: `NEOHUGO_GOROOT` (or `GOROOT`) | `go env GOROOT` of the same Go |
 
-Not needed by `cargo test`: Python (only `tools/neohugo/licence-check.sh` and `package.py`, and
+Not needed by `cargo test`: Python (only `tools/neohugo/licence-check.sh`, `notices.py` and `package.py`, and
 `tools/rust-port/i01/sites.py` for the ignored real-site tests that read `NEOHUGO_SITES`),
 dart-sass (grass compiles Sass in process) and the network (`get_remote` tests read caches with
 the network off). The structure oracle and the T01 golden images skip until T01 commits their
@@ -146,8 +151,9 @@ NEOHUGO_GOROOT=$(GOTOOLCHAIN=go1.27.1 go env GOROOT) \
   cargo test --workspace --locked --offline --no-fail-fast -- --show-output
 cargo build --release --locked --offline -p neohugo --target x86_64-unknown-linux-gnu \
   --target-dir <scratch>/target                  # never the shared target dir
+python3 ../tools/neohugo/notices.py x86_64-unknown-linux-gnu <scratch>/THIRD_PARTY_NOTICES.txt
 python3 ../tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/release/neohugo-rs \
-  x86_64-unknown-linux-gnu <scratch>/dist
+  x86_64-unknown-linux-gnu <scratch>/dist <scratch>/THIRD_PARTY_NOTICES.txt
 ```
 
 **Cutting a release.**

@@ -304,12 +304,16 @@ jobs:
             echo "needs $(objdump -T "$BINARY" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)"
           fi
 
-      # package.py runs `neohugo-rs version` again: the version it prints names the archive.
+      # notices.py writes the licences of the crates linked for this target (MIT, BSD and
+      # Apache-2.0 ask for them in binary distributions); it fails if a linked crate ships no
+      # licence file and is not MIT. package.py runs `neohugo-rs version` again: the version it
+      # prints names the archive.
       - name: Package
         run: |
           python=python3
           if [ "$RUNNER_OS" = Windows ]; then python=python; fi
-          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) "$python" tools/neohugo/package.py "$BINARY" "$TARGET" dist
+          "$python" tools/neohugo/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
+          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) "$python" tools/neohugo/package.py "$BINARY" "$TARGET" dist "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -364,7 +368,7 @@ jobs:
           {
             echo "neohugo-rs $version, the Rust rewrite of neohugo (\`rust/\`), built from $GITHUB_SHA."
             echo
-            echo "Each archive holds the \`neohugo-rs\` binary, \`LICENSE\`, \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
+            echo "Each archive holds the \`neohugo-rs\` binary, \`LICENSE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
             echo "Check a download with \`sha256sum -c SHA256SUMS --ignore-missing\`."
           } >"$RUNNER_TEMP/notes.md"
           gh release create "$TAG" dist/* --verify-tag --latest=false $prerelease \
