@@ -3051,17 +3051,18 @@ dependencies = [
  "csv",
  "jiff",
  "neohugo-base",
+ "neohugo-config",
  "neohugo-locale",
  "neohugo-page",
  "neohugo-pageparser",
+ "neohugo-testkit",
  "neohugo-vfs",
  "neohugo-workspace-hack",
  "rayon",
  "roxmltree",
- "serde-saphyr",
  "serde_json",
+ "tempfile",
  "thiserror 2.0.21",
- "toml",
 ]
 
 [[package]]

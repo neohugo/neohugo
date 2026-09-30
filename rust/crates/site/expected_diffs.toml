@@ -1,0 +1,33 @@
+# Reviewed deviations of neohugo-site from the Go oracles (docs/rust-port/REWRITE_PLAN.md §1.2).
+# Each entry names the fixtures it applies to and the page or value path that differs; the tests
+# in tests/it skip exactly these paths.
+
+[[deviation]]
+class = "accepted-deviation"
+fixtures = ["capture/edge-tree", "assemble/edge-tree"]
+path = "/tagsfoo"
+reason = """Hugo finds a branch's taxonomy by a character-level prefix (go-radix), so
+`content/tagsfoo/_index.md` becomes a term of `tags`. Keys are matched segment-wise here
+(REWRITE_PLAN.md §1.2: no go-radix emulation): `/tagsfoo` is a section."""
+
+[[deviation]]
+class = "accepted-deviation"
+fixtures = ["data/data-basic", "data/data-theme"]
+path = "/numbers/octal"
+reason = """YAML 1.2 (serde-saphyr, the decoder of every YAML value in the rewrite): `017` is
+decimal. Go's yaml.v2 reads YAML 1.1, where a leading zero means octal (15)."""
+
+[[deviation]]
+class = "accepted-deviation"
+fixtures = ["data/data-csv"]
+path = "/table"
+reason = """A CSV data file is a list of rows of strings (REWRITE_PLAN.md §2.4 data::load). Go
+decodes it to [][]string, which handleDataFile rejects only because it is not []any (a Go type
+detail, §1.2)."""
+
+[[deviation]]
+class = "accepted-deviation"
+fixtures = ["data/data-basic", "data/data-theme"]
+path = "/numbers/localtime"
+reason = """A TOML local time without a date (`07:32:00`) is a string in neohugo-base's Value (no
+date a template can use); go-toml keeps it as a LocalTime."""
