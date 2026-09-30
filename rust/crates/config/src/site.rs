@@ -186,9 +186,7 @@ pub struct SiteConfig {
     pub base_url: BaseUrl,
     pub title: String,
     pub copyright: String,
-    #[serde(serialize_with = "crate::ser_params")]
     pub params: Params,
-    #[serde(serialize_with = "crate::ser_idvec")]
     pub taxonomies: IdVec<TaxonomyIdx, TaxonomyDef>,
     pub outputs: KindOutputs,
     pub permalinks: Permalinks,
@@ -389,7 +387,7 @@ pub(crate) fn decode_site(tree: &Map, cx: SiteContext<'_>) -> Result<SiteConfig,
         disable_kinds,
         rss_disabled,
     )?;
-    let permalinks = Permalinks::decode(&section("permalinks"));
+    let permalinks = Permalinks::decode(tree.get("permalinks").unwrap_or(&Value::Null))?;
 
     let mut markup = raw.markup;
     for hook in [

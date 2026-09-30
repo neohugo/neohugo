@@ -484,3 +484,36 @@ weight = 4
         neohugo_config::Direction::Rtl
     );
 }
+
+#[test]
+fn toc_end_level_and_permalink_errors() {
+    // `endLevel = -1` is no end level; other levels are levels.
+    let p = Project::new(&[(
+        "hugo.toml",
+        "[markup.tableOfContents]\nstartLevel = 1\nendLevel = -1\n",
+    )]);
+    let c = p.ok();
+    let toc = &c.default_site().markup.table_of_contents;
+    assert_eq!((toc.start_level, toc.end_level), (1, None));
+    let p = Project::new(&[("hugo.toml", "[markup.tableOfContents]\nendLevel = 4\n")]);
+    assert_eq!(
+        p.ok().default_site().markup.table_of_contents.end_level,
+        Some(4)
+    );
+    assert_eq!(
+        neohugo_config::markup::TocConfig::default().end_level,
+        Some(3)
+    );
+    let p = Project::new(&[("hugo.toml", "[markup.tableOfContents]\nendLevel = -2\n")]);
+    let e = p.load(CliOverrides::default(), &[]).expect_err("end level");
+    assert_eq!(position(&e), ("hugo.toml".into(), 2, 1));
+
+    // Permalinks for a kind that has none, or a pattern that is not a string.
+    let p = Project::new(&[("hugo.toml", "[permalinks.home]\na = \"/a/\"\n")]);
+    let e = p.load(CliOverrides::default(), &[]).expect_err("home");
+    assert_eq!(position(&e).0, "hugo.toml");
+    assert!(e.to_string().contains("permalinks.home"), "{e}");
+    let p = Project::new(&[("hugo.toml", "[permalinks]\nposts = 42\n")]);
+    let e = p.load(CliOverrides::default(), &[]).expect_err("pattern");
+    assert_eq!(position(&e), ("hugo.toml".into(), 2, 1));
+}

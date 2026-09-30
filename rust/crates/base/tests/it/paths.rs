@@ -1,8 +1,9 @@
 //! `paths` and the URL string helpers against the `common/paths/strings` oracle, plus the
 //! path newtypes.
 
-use neohugo_base::paths::{self, ContentKey, OutputPath, Permalink, TermKey, UrlPath};
+use neohugo_base::paths;
 use neohugo_base::url::{self, BaseUrl};
+use neohugo_base::{ContentKey, OutputPath, Permalink, TermKey, UrlPath};
 use serde_json::Value as J;
 
 use crate::support::{Tally, fixture, text};
@@ -236,4 +237,31 @@ fn newtypes() {
         Permalink::new(&base, &u).as_str(),
         "https://example.org/docs/posts/my%20post/"
     );
+    assert_eq!(
+        Permalink::from_escaped(&base, "/q?x=1/").as_str(),
+        "https://example.org/docs/q?x=1/"
+    );
+    assert_eq!(
+        Permalink::from_escaped(&base, "a%20b/").as_str(),
+        "https://example.org/docs/a%20b/"
+    );
+}
+
+/// `UrlPath::escaped` takes `%XX` as escapes, like Go's `EscapedPath` of the parsed path.
+#[test]
+fn url_path_escapes_like_go() {
+    let esc = |p: &str| UrlPath::new(p).escaped();
+    // A valid escaping is kept as written (hex case included).
+    assert_eq!(esc("/a%20b/"), "/a%20b/");
+    assert_eq!(esc("/a%2Fb/"), "/a%2Fb/");
+    assert_eq!(esc("/a%2fb/"), "/a%2fb/");
+    assert_eq!(esc("/a%E0%B8%A0/"), "/a%E0%B8%A0/");
+    // Otherwise the escapes are decoded and the whole path escaped.
+    assert_eq!(esc("/a b%2F/"), "/a%20b//");
+    assert_eq!(esc("/ภ%e0%b8%a0/"), "/%E0%B8%A0%E0%B8%A0/");
+    // A `%` that starts no escape is a literal percent sign.
+    assert_eq!(esc("/100%/"), "/100%25/");
+    assert_eq!(esc("/50%off/"), "/50%25off/");
+    // A query mark is part of the path.
+    assert_eq!(esc("/q?x=1/"), "/q%3Fx=1/");
 }

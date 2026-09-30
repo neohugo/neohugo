@@ -561,7 +561,10 @@ impl Default for HighlightConfig {
 #[serde(default, rename_all = "camelCase")]
 pub struct TocConfig {
     pub start_level: u8,
-    pub end_level: u8,
+    /// The deepest heading level listed; `None` (Hugo's `endLevel = -1`) lists every level
+    /// from `start_level` down.
+    #[serde(deserialize_with = "de_end_level", serialize_with = "ser_end_level")]
+    pub end_level: Option<u8>,
     pub ordered: bool,
 }
 
@@ -569,8 +572,33 @@ impl Default for TocConfig {
     fn default() -> Self {
         Self {
             start_level: 2,
-            end_level: 3,
+            end_level: Some(3),
             ordered: false,
         }
+    }
+}
+
+/// `-1` is no end level; otherwise a level from 0 to 255.
+fn de_end_level<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u8>, D::Error> {
+    let level = i64::deserialize(d)?;
+    if level == -1 {
+        return Ok(None);
+    }
+    u8::try_from(level).map(Some).map_err(|_| {
+        serde::de::Error::custom(format_args!(
+            "expected a heading level or -1 (no end level), found {level}"
+        ))
+    })
+}
+
+/// Hugo's spelling: `-1` for no end level.
+#[expect(
+    clippy::ref_option,
+    reason = "serde's serialize_with passes the field by reference"
+)]
+fn ser_end_level<S: serde::Serializer>(level: &Option<u8>, s: S) -> Result<S::Ok, S::Error> {
+    match level {
+        Some(l) => s.serialize_u8(*l),
+        None => s.serialize_i8(-1),
     }
 }

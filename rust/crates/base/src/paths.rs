@@ -20,7 +20,7 @@ use std::sync::Arc;
 use serde::Serialize;
 
 use crate::text;
-use crate::url::{BaseUrl, Component, escape};
+use crate::url::{BaseUrl, Component, escape, unescape, valid_encoded};
 
 macro_rules! str_newtype_common {
     ($name:ident) => {
@@ -181,10 +181,20 @@ impl UrlPath {
     }
 
     /// The path percent-escaped as a URL path (upper-case hex; `/` and the sub-delimiters
-    /// stay).
+    /// stay), like Go's `url.URL.EscapedPath` of the path parsed as a URL: `%XX` sequences in
+    /// the path are escapes. A path that is already a valid escaping (only characters a path
+    /// may hold, and every `%` starting an escape) is returned as it is (`/a%2Fb/` stays);
+    /// otherwise its escapes are decoded and the result escaped (`/a b%2F/` → `/a%20b//`). A
+    /// `%` that starts no escape is escaped (`/100%/` → `/100%25/`).
     #[must_use]
     pub fn escaped(&self) -> String {
-        escape(self.0.as_bytes(), Component::Path).into_owned()
+        let Ok(decoded) = unescape(&self.0, Component::Path) else {
+            return escape(self.0.as_bytes(), Component::Path).into_owned();
+        };
+        if valid_encoded(&self.0, Component::Path) {
+            return self.0.to_string();
+        }
+        escape(&decoded, Component::Path).into_owned()
     }
 }
 
@@ -199,8 +209,15 @@ impl Permalink {
     /// `path`, escaped, appended to the base URL.
     #[must_use]
     pub fn new(base: &BaseUrl, path: &UrlPath) -> Self {
-        let escaped = path.escaped();
-        let rel = escaped.strip_prefix('/').unwrap_or(&escaped);
+        Self::from_escaped(base, &path.escaped())
+    }
+
+    /// An already escaped link path (`/a%20b/`, as [`UrlPath::escaped`] returns it, or one
+    /// with a query) appended to the base URL as it is; a leading `/` is dropped because the
+    /// base URL ends with one.
+    #[must_use]
+    pub fn from_escaped(base: &BaseUrl, escaped: &str) -> Self {
+        let rel = escaped.strip_prefix('/').unwrap_or(escaped);
         Self(format!("{}{rel}", base.as_str()).into())
     }
 }

@@ -25,6 +25,7 @@ pub use id::{
 };
 pub use kind::{KindSet, PageKind};
 pub use params::Params;
+pub use paths::{ContentKey, OutputPath, Permalink, TermKey, UrlPath};
 pub use time::{Clock, DateError, parse_date};
 pub use value::{Date, Map, Value};
 
@@ -51,7 +52,7 @@ pub trait Sink: Send + Sync {
     ///
     /// # Errors
     /// I/O errors of the destination.
-    fn write(&self, path: &paths::OutputPath, bytes: &[u8]) -> std::io::Result<()>;
+    fn write(&self, path: &OutputPath, bytes: &[u8]) -> std::io::Result<()>;
     /// Whether a file was written at `path`.
-    fn exists(&self, path: &paths::OutputPath) -> bool;
+    fn exists(&self, path: &OutputPath) -> bool;
 }

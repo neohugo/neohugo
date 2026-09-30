@@ -43,7 +43,10 @@ instead of `config::Language` for the same reason.
   which uses the root order: CLDR ≥ 24 gave Thai `[reorder Thai]` + `alternate=shifted`, which
   would sort a Thai site's mixed lists Thai-first and ignore punctuation; Hugo (x/text, CLDR 23)
   sorts them like the root order, and ICU4X root reproduces x/text on every sortable string of the
-  reference sites (spec i18n-lang-misc §4). Accepted deviation D5 (newer CLDR) otherwise.
+  reference sites (spec i18n-lang-misc §4), with one change for Thai: PAIYANNOI (ฯ) sorts as the
+  punctuation mark `!` (before digits and letters), as in Hugo's Thai collation. ICU4X has no
+  runtime tailoring rules, so the Thai collator compares with ฯ replaced by `!` (strings equal
+  that way fall back to the plain order). Accepted deviation D5 (newer CLDR) otherwise.
 - **Dates** always use the Gregorian calendar (`th` is `th-u-ca-gregory`), names in the format
   context (`MMMM`, `MMM`, `EEEE`, `EEE`). A language without CLDR date data formats as English.
 - **Numbers**: rounded half-to-even on the binary value (`{:.*}`), then ICU grouping and symbols;
@@ -68,7 +71,7 @@ workspace (it pulls `jiff-icu`, `icu_calendar`, `icu_time` into `funcs` for noth
 | `messages::*` | R's `welcome`/`reviews`/`comments` in en and th; unsupported syntax errors with file and key |
 | `parse::message_file_layouts_oracle` | 148/161 files as go-i18n; 13 listed |
 | `plural::plural_rules_oracle` | 99.53% on the 138 locales with ICU data; 11 CLDR rule changes and 74 locales without ICU data listed |
-| `collate::*` | 2,801 site strings: consistent total order, no distinct strings equal, `th` = `en` = root, Latin before Thai, Thai leading vowels skipped |
+| `collate::*` | 2,801 site strings: consistent total order, no distinct strings equal, `th` = `en` = root, Latin before Thai, Thai leading vowels skipped, Thai ฯ as punctuation |
 | `locales::*` | month/weekday names en and th (Gregorian) equal gohugoio/locales except `th` abbreviated weekdays; date styles 701/701 except listed fields; numbers 845/845 |
 
 Every difference is listed with its reason in [`expected_diffs.toml`](expected_diffs.toml); the

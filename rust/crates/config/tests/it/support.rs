@@ -477,7 +477,7 @@ fn markup(s: &SiteConfig) -> J {
             "tabwidth": h.tab_width, "guesssyntax": h.guess_syntax, "wrapperclass": h.wrapper_class,
         },
         "tableofcontents": {"startlevel": m.table_of_contents.start_level,
-                            "endlevel": m.table_of_contents.end_level,
+                            "endlevel": m.table_of_contents.end_level.map_or(-1, i16::from),
                             "ordered": m.table_of_contents.ordered},
     })
 }

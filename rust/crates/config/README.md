@@ -97,8 +97,12 @@ LoadOptions { source, config_files, cli: CliOverrides, env }
 
 ## Notes for later tasks
 
-- **base fix-ups** (worked around here): `Map` has no `Deserialize` (`de_map` helper) and
-  `IdVec` no `Serialize` (`ser_idvec`), `Params` no `Serialize` (`ser_params`).
+- **Decoders for other crates**: `Permalinks::decode(&Value)` (rejects kinds without
+  permalinks and non-string patterns, as Hugo does), `decode_front_matter(&Map)`,
+  `decode_cascade(&Value)`, `DateSource::parse`; `markup::TocConfig::end_level` is
+  `Option<u8>` (`endLevel = -1` is `None`).
+- **base serde** (F1): `IdVec` and `Params` serialize and `Map` deserializes in base; `de_map`
+  remains for sections where `null` means an empty table.
 - **vfs (T20)**: default mounts for unconfigured components, `_jsconfig` auto-mounts and
   language content directories (`SiteConfig::content_dir`) are the file system layer's; the
   mount targets are validated here.

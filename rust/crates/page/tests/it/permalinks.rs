@@ -1,27 +1,21 @@
 //! Oracle: permalink patterns expanded for every page of Hugo's builds of the reference sites,
 //! with the site's `[permalinks]`, a configuration using every token, and 55 patterns
-//! (`oracle/page/permalinks/*`).
-
-use std::collections::BTreeMap;
+//! (`oracle/page/permalinks/*`); and the decoding of `[permalinks]` tables
+//! (`oracle/page/permalinks/decode.json.gz`).
 
 use neohugo_base::PageKind;
-use neohugo_page::{PermalinkCtx, PermalinkFile, PermalinkPattern};
+use neohugo_config::Permalinks;
+use neohugo_config::sections::PERMALINK_KINDS;
+use neohugo_page::{PermalinkCtx, PermalinkFile, PermalinkPattern, PermalinkPatterns};
 use serde_json::{Value as J, json};
 
-use crate::support::{Tally, family, fixture, idx, oracle_paths, s, site_urls, zoned};
+use crate::support::{Tally, family, fixture, idx, oracle_paths, s, site_urls, value, zoned};
 
-/// A kind → section → pattern table, compiled (the keys trimmed like
-/// [`neohugo_page::PermalinkPatterns`] does).
-fn compile(v: &J) -> BTreeMap<(String, String), Result<PermalinkPattern, String>> {
-    let mut out = BTreeMap::new();
-    for (kind, m) in v.as_object().expect("config") {
-        for (section, pattern) in m.as_object().expect("patterns") {
-            let key = section.trim_matches([' ', '/']).to_owned();
-            out.entry((kind.clone(), key))
-                .or_insert_with(|| PermalinkPattern::parse(s(pattern)).map_err(|e| e.to_string()));
-        }
-    }
-    out
+/// A kind → section → pattern table of a fixture, decoded and compiled as a site's
+/// `[permalinks]` is.
+fn compile(v: &J) -> PermalinkPatterns {
+    let config = Permalinks::decode(&value(v)).unwrap_or_else(|e| panic!("{v}: {e}"));
+    PermalinkPatterns::compile(&config).unwrap_or_else(|e| panic!("{v}: {e}"))
 }
 
 fn result(r: Result<String, String>) -> J {
@@ -89,15 +83,11 @@ fn permalinks_match_hugo() {
                 urls: &urls[idx(&c["ps"])],
             };
             let kind = s(&c["kind"]);
-            assert!(PageKind::parse(kind).is_some(), "kind {kind}");
-            let expand =
-                |table: &BTreeMap<(String, String), Result<PermalinkPattern, String>>| match table
-                    .get(&(kind.to_owned(), s(&c["section"]).to_owned()))
-                {
-                    None => Ok(String::new()),
-                    Some(Err(e)) => Err(e.clone()),
-                    Some(Ok(p)) => p.expand(&ctx).map_err(|e| e.to_string()),
-                };
+            let kind = PageKind::parse(kind).unwrap_or_else(|| panic!("kind {kind}"));
+            let expand = |table: &PermalinkPatterns| match table.get(kind, s(&c["section"])) {
+                None => Ok(String::new()),
+                Some(p) => p.expand(&ctx).map_err(|e| e.to_string()),
+            };
             let mut check = |name: &str, got: J, want: &J| {
                 let same = match (want.get("ok"), got.get("ok")) {
                     (Some(w), Some(g)) => w == g,
@@ -124,4 +114,50 @@ fn permalinks_match_hugo() {
         }
     }
     t.finish("permalinks");
+}
+
+/// `Permalinks::decode` gives the kind → section → pattern tables Hugo decodes (legacy flat
+/// entries apply to pages and terms, section keys keep their case), rejects what Hugo rejects,
+/// and `PermalinkPatterns::compile` compiles every decoded table.
+#[test]
+fn permalink_config_decodes_like_hugo() {
+    let fx = fixture("permalinks/decode.json.gz");
+    let mut t = Tally::default();
+    for c in fx["cases"].as_array().expect("cases") {
+        let name = s(&c["name"]);
+        let want = &c["want"];
+        match (Permalinks::decode(&value(&c["in"])), want.get("ok")) {
+            (Ok(got), Some(want)) => {
+                let tables = PERMALINK_KINDS.iter().all(|&kind| {
+                    let got = got.of_kind(kind).map_or_else(|| json!({}), |m| json!(m));
+                    got == want[kind.as_str()]
+                });
+                t.check(tables, || format!("{name}: got {got:?}, want {want}"));
+                t.check(
+                    PermalinkPatterns::compile(&got).is_ok_and(|compiled| {
+                        PERMALINK_KINDS.iter().all(|&kind| {
+                            want[kind.as_str()]
+                                .as_object()
+                                .expect("patterns")
+                                .keys()
+                                .all(|section| {
+                                    compiled
+                                        .get(kind, section.trim_matches([' ', '/']))
+                                        .is_some()
+                                })
+                        })
+                    }),
+                    || format!("{name}: does not compile"),
+                );
+            }
+            // Both reject it: the error texts are ours.
+            (Err(_), None) => t.pass(),
+            // Go's decoder rejects a nested table typed `map[string]string` (a Go type the
+            // oracle built by hand; configuration files decode to `map[string]any`), which
+            // is the ordinary `[permalinks.page]` table here.
+            (Ok(_), None) if name == "advi" => t.accept("go-typed-map"),
+            (got, _) => t.fail(|| format!("{name}: got {got:?}, want {want}")),
+        }
+    }
+    t.finish("permalinks-decode");
 }

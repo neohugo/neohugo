@@ -92,6 +92,31 @@ fn thai_uses_the_root_order() {
     );
 }
 
+/// Thai sorts PAIYANNOI (ฯ) with the punctuation, before digits and Latin letters, as Hugo's Thai
+/// collation does; other languages keep the root order, where it is a Thai letter.
+#[test]
+fn thai_sorts_paiyannoi_as_punctuation() {
+    let th = Collator::for_language("th");
+    let und = Collator::for_language("und");
+    assert_eq!(th.compare("ฯ", "A"), Ordering::Less);
+    assert_eq!(th.compare("ฯ", "1"), Ordering::Less);
+    assert_eq!(und.compare("ฯ", "A"), Ordering::Greater);
+    // Inside a word it is punctuation too: before any letter at that position.
+    assert_eq!(th.compare("กรุงเทพฯ", "กรุงเทพก"), Ordering::Less);
+    assert_eq!(th.compare("กรุงเทพฯ", "กรุงเทพ"), Ordering::Greater);
+    // Distinct strings stay distinct and the order stays antisymmetric.
+    assert_eq!(th.compare("aฯ", "a!"), Ordering::Greater);
+    assert_eq!(th.compare("a!", "aฯ"), Ordering::Less);
+    assert_eq!(th.compare("ฯ", "ฯ"), Ordering::Equal);
+    let list = sorted(
+        &th,
+        &["กรุงเทพฯ ข", "Bangkok", "กรุงเทพ", "ฯลฯ", "123"].map(String::from),
+    );
+    assert_eq!(list, ["ฯลฯ", "123", "Bangkok", "กรุงเทพ", "กรุงเทพฯ ข"]);
+    // `Locale` uses the same collator.
+    assert_eq!(Locale::new("th").compare("ฯ", "A"), Ordering::Less);
+}
+
 #[test]
 fn case_and_accents_are_secondary_to_letters() {
     let c = Collator::for_language("en");
