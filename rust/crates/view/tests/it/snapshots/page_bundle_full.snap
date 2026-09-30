@@ -132,14 +132,11 @@ all_translations:
           integrity: ~
         height: ~
         media_type:
-          delimiter: "."
-          main_type: text
-          sub_type: markdown
-          suffixes:
-            - md
-            - mdown
-            - markdown
-          type: text/markdown
+          delimiter: ""
+          main_type: application
+          sub_type: octet-stream
+          suffixes: []
+          type: application/octet-stream
         name: notes.md
         page_id: 4
         params:
@@ -1056,14 +1053,11 @@ resources:
       integrity: ~
     height: ~
     media_type:
-      delimiter: "."
-      main_type: text
-      sub_type: markdown
-      suffixes:
-        - md
-        - mdown
-        - markdown
-      type: text/markdown
+      delimiter: ""
+      main_type: application
+      sub_type: octet-stream
+      suffixes: []
+      type: application/octet-stream
     name: notes.md
     page_id: 4
     params:

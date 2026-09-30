@@ -12,6 +12,7 @@
 //! known in E5 is a placeholder.
 
 use neohugo_base::{PageId, ResourceId, Value};
+use neohugo_config::media::MediaType;
 use neohugo_page::ResourceMetaRule;
 use neohugo_resources::meta::ResourceMeta;
 use neohugo_resources::{
@@ -182,7 +183,8 @@ pub fn page_resources(
 }
 
 /// A bundled content page as a resource of its bundle: its title and params, `resources`
-/// metadata applied, no links (bundled pages have none).
+/// metadata applied, no links (bundled pages have none), and the media type of every page,
+/// `application/octet-stream` (Hugo's pages are not typed by their content file).
 fn page_resource(
     model: &Model,
     store: &ResourceStore,
@@ -198,6 +200,9 @@ fn page_resource(
     view.title = a.title;
     view.params = params_value(&a.params);
     "page".clone_into(&mut view.resource_type);
+    view.media_type = MediaTypeView::new(
+        &MediaType::parse("application/octet-stream").expect("a valid media type"),
+    );
     view.rel_permalink = String::new();
     view.permalink = String::new();
     view.page_id = Some(page.raw());

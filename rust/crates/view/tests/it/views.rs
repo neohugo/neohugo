@@ -401,6 +401,10 @@ fn resource_values() {
     );
     // The bundled content page is a `page` resource pointing at its page.
     assert_eq!(field(&rs[2], "resource_type"), "page");
+    assert_eq!(
+        field(get(&rs[2], "media_type"), "type"),
+        "application/octet-stream"
+    );
     assert_eq!(field(&rs[2], "title"), "Notes");
     assert_eq!(field(&rs[2], "rel_permalink"), "");
     let notes = get(&rs[2], "page_id").as_u64().expect("page id");
