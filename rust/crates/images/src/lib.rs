@@ -6,8 +6,8 @@
 //! layer calls [`ImageQueue::enqueue`], which plans it from the source's metadata and returns
 //! the final file name and size at once. Build phase E6 calls [`ImageQueue::process`] for the
 //! operations whose URLs were published; it decodes, runs the planned steps with rayon and
-//! encodes (JPEG, PNG, GIF, TIFF and BMP with `image`, WebP with libwebp). See the crate
-//! README for the accepted differences from Hugo.
+//! encodes (JPEG with [`jpeg`], a port of Go's encoder; PNG, GIF, TIFF and BMP with `image`;
+//! WebP with libwebp). See the crate README for the accepted differences from Hugo.
 
 #![forbid(unsafe_code)]
 
@@ -22,6 +22,7 @@ pub mod exif;
 mod filter;
 mod font;
 mod format;
+pub mod jpeg;
 mod pixels;
 mod plan;
 mod qr;
