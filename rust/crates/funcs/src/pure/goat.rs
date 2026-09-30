@@ -10,10 +10,10 @@
 
 use std::fmt::Write as _;
 
-use svgbob::{CellBuffer, Node, Settings};
-use tera::{Map, Value};
 use super::Registrar;
 use super::value::text;
+use svgbob::{CellBuffer, Node, Settings};
+use tera::{Map, Value};
 
 /// GoAT's cell size in pixels.
 const CELL_WIDTH: usize = 8;
@@ -120,7 +120,10 @@ mod tests {
         assert!(svg.inner.ends_with("</g>\n"));
         assert!(svg.inner.contains("<style"));
         assert!(!svg.inner.contains("<svg"));
-        assert!(svg.wrapped().starts_with("<svg xmlns='http://www.w3.org/2000/svg'"));
+        assert!(
+            svg.wrapped()
+                .starts_with("<svg xmlns='http://www.w3.org/2000/svg'")
+        );
     }
 
     #[test]

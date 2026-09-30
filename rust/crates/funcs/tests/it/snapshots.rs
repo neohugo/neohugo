@@ -194,6 +194,14 @@ const EXAMPLES: &[(&str, &str)] = &[
         "{{ 'b: [1, 2]\na:\n  c: x\n' | remarshal(format='toml') }}",
     ),
     (
+        "remarshal/toml_quoting_dates",
+        "{{ `d = 2023-01-01\nz = 2023-01-01T07:32:00Z\nf = 2.0\nl = [1.0, 'x']\n[\"text/html\"]\ns = 'a.b'\nq = \"it's\"\n` | remarshal(format='toml') | safe }}",
+    ),
+    (
+        "remarshal/yaml_quoting",
+        "{{ `a = \":dir\"\nb = \"{{ x }}\"\nc = \"true\"\nd = \"\"\ne = \"\"\"l1\nl2\"\"\"\nk10 = 1\nk9 = 2\nz = 2023-01-01T07:32:00Z\nl = 2023-01-01\n` | remarshal(format='yaml') | safe }}",
+    ),
+    (
         "remarshal/json",
         "{{ 'a = 1\nb = \"x\"' | remarshal(format='json') }}",
     ),
@@ -339,8 +347,12 @@ fn every_pure_entry_has_an_example() {
         .collect();
     let missing: Vec<&str> = pure_specs()
         .map(|f| f.name)
-        // `to_math` has its own tests (feature `math`)
-        .filter(|n| !covered.contains(n) && !NOT_COMPILED.contains(n) && *n != "to_math")
+        // `to_math` and `diagrams_goat` have their own tests (features `math`, `goat`)
+        .filter(|n| {
+            !covered.contains(n)
+                && !NOT_COMPILED.contains(n)
+                && !["to_math", "diagrams_goat"].contains(n)
+        })
         .collect();
     assert!(missing.is_empty(), "no example for {missing:?}");
 }

@@ -5,6 +5,8 @@ mod support;
 
 #[cfg(feature = "runtime")]
 mod determinism;
+#[cfg(feature = "goat")]
+mod goat;
 #[cfg(feature = "runtime")]
 mod hugo_bytes;
 #[cfg(feature = "math")]
@@ -13,5 +15,7 @@ mod math;
 mod oracle;
 #[cfg(feature = "runtime")]
 mod registration;
+#[cfg(feature = "runtime")]
+mod remarshal;
 #[cfg(feature = "runtime")]
 mod snapshots;

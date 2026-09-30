@@ -6,8 +6,8 @@ use md5::Digest as _;
 use neohugo_base::Value as Data;
 use tera::{Kwargs, TeraResult, Value};
 
-use super::Registrar;
 use super::value::{entries, text};
+use super::{Registrar, marshal};
 
 pub(super) fn register(r: &mut Registrar<'_>) {
     r.filter("jsonify", |v, kw, _| {
@@ -259,6 +259,7 @@ fn remarshal(v: &Value, kw: &Kwargs) -> TeraResult<Value> {
             v.name()
         )));
     };
+    let data = marshal::prepare(&data, format == Format::Json);
     let out = match format {
         Format::Json => {
             // Go's `json.MarshalIndent` escapes `<`, `>` and `&` (`<` …).
@@ -270,22 +271,22 @@ fn remarshal(v: &Value, kw: &Kwargs) -> TeraResult<Value> {
             s.push('\n');
             s
         }
-        Format::Yaml => {
-            let mut s = String::new();
-            yaml(&data, 0, &mut s);
-            s
-        }
-        Format::Toml => toml(&data)?,
+        Format::Yaml => marshal::yaml(&data),
+        Format::Toml => marshal::toml(&data)?,
     };
     Ok(Value::from(out))
 }
 
-/// Decodes a TOML document for `remarshal`, its date-times as their text: a local date stays
-/// `2023-01-01` (as Go's `toml.LocalDate` marshals), not midnight of that day.
+/// Decodes a TOML document for `remarshal`, its date-times as marked text
+/// ([`marshal::date_marker`]): a local date stays `2023-01-01` (as Go's `toml.LocalDate`
+/// marshals), not midnight of that day, and TOML writes it back as a date.
 fn toml_with_text_dates(s: &str) -> Result<Data, String> {
     fn walk(v: toml::Value) -> toml::Value {
         match v {
-            toml::Value::Datetime(d) => toml::Value::String(toml_date_text(&d)),
+            toml::Value::Datetime(d) => toml::Value::String(marshal::date_marker(
+                &toml_date_text(&d),
+                d.offset.is_some(),
+            )),
             toml::Value::Array(a) => toml::Value::Array(a.into_iter().map(walk).collect()),
             toml::Value::Table(t) => {
                 toml::Value::Table(t.into_iter().map(|(k, v)| (k, walk(v))).collect())
@@ -331,193 +332,6 @@ fn toml_date_text(d: &toml::value::Datetime) -> String {
         }
     }
     out
-}
-
-fn sorted_entries(v: &Value) -> Vec<(String, &Value)> {
-    let mut pairs: Vec<(String, &Value)> = v
-        .as_map()
-        .map(|m| entries(m).map(|(k, v)| (k.into_owned(), v)).collect())
-        .unwrap_or_default();
-    pairs.sort_by(|a, b| a.0.cmp(&b.0));
-    pairs
-}
-
-/// A YAML scalar.
-fn yaml_scalar(v: &Value) -> String {
-    if v.is_none() || v.is_undefined() {
-        return "null".to_owned();
-    }
-    if let Some(s) = v.as_str() {
-        let plain = !s.is_empty()
-            && !s.starts_with([
-                ' ', '-', '?', ':', ',', '[', ']', '{', '}', '#', '&', '*', '!', '|', '>', '\'',
-                '"', '%', '@', '`',
-            ])
-            && !s.ends_with(' ')
-            && !s.contains(": ")
-            && !s.contains(" #")
-            && !s.contains(['\n', '\t'])
-            && !matches!(
-                s.to_ascii_lowercase().as_str(),
-                "true" | "false" | "yes" | "no" | "on" | "off" | "null" | "~" | "y" | "n"
-            )
-            && s.parse::<f64>().is_err();
-        if plain {
-            return s.to_owned();
-        }
-        let json = Json {
-            indent: None,
-            html_safe: false,
-        };
-        let mut out = String::new();
-        json.string(s, &mut out);
-        return out;
-    }
-    if v.is_f64() {
-        return format!("{}", v.as_f64().unwrap_or_default());
-    }
-    v.to_string()
-}
-
-fn yaml(v: &Value, depth: usize, out: &mut String) {
-    let pad = "  ".repeat(depth);
-    if v.is_map() {
-        for (k, item) in sorted_entries(v) {
-            let key = yaml_scalar(&Value::from(k.as_str()));
-            if item.as_map().is_some_and(|m| !m.is_empty()) {
-                let _ = writeln!(out, "{pad}{key}:");
-                yaml(item, depth + 1, out);
-            } else if item.as_array().is_some_and(|a| !a.is_empty()) {
-                let _ = writeln!(out, "{pad}{key}:");
-                yaml(item, depth, out);
-            } else {
-                let _ = writeln!(out, "{pad}{key}: {}", yaml_inline(item));
-            }
-        }
-    } else if let Some(a) = v.as_array() {
-        for item in a {
-            if item.as_map().is_some_and(|m| !m.is_empty()) {
-                let mut nested = String::new();
-                yaml(item, depth + 1, &mut nested);
-                let nested = nested.trim_start();
-                let _ = write!(out, "{pad}- {nested}");
-            } else if item.as_array().is_some_and(|a| !a.is_empty()) {
-                let _ = writeln!(out, "{pad}-");
-                yaml(item, depth + 1, out);
-            } else {
-                let _ = writeln!(out, "{pad}- {}", yaml_inline(item));
-            }
-        }
-    } else {
-        let _ = writeln!(out, "{pad}{}", yaml_scalar(v));
-    }
-}
-
-fn yaml_inline(v: &Value) -> String {
-    if v.is_map() {
-        "{}".to_owned()
-    } else if v.is_array() {
-        "[]".to_owned()
-    } else {
-        yaml_scalar(v)
-    }
-}
-
-/// A TOML key, bare when it can be.
-fn toml_key(k: &str) -> String {
-    if !k.is_empty()
-        && k.chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
-    {
-        k.to_owned()
-    } else {
-        let mut out = String::new();
-        Json {
-            indent: None,
-            html_safe: false,
-        }
-        .string(k, &mut out);
-        out
-    }
-}
-
-fn toml_inline(v: &Value) -> TeraResult<String> {
-    if v.is_none() || v.is_undefined() {
-        return Err(tera::Error::message("remarshal: TOML has no null"));
-    }
-    if let Some(s) = v.as_str() {
-        let mut out = String::new();
-        Json {
-            indent: None,
-            html_safe: false,
-        }
-        .string(s, &mut out);
-        return Ok(out);
-    }
-    if v.is_f64() {
-        let f = v.as_f64().unwrap_or_default();
-        return Ok(if f.fract() == 0.0 && f.abs() < 1e16 {
-            format!("{f:.1}")
-        } else {
-            format!("{f}")
-        });
-    }
-    if let Some(a) = v.as_array() {
-        let items = a.iter().map(toml_inline).collect::<TeraResult<Vec<_>>>()?;
-        return Ok(format!("[{}]", items.join(", ")));
-    }
-    if v.is_map() {
-        let items = sorted_entries(v)
-            .into_iter()
-            .map(|(k, x)| Ok(format!("{} = {}", toml_key(&k), toml_inline(x)?)))
-            .collect::<TeraResult<Vec<_>>>()?;
-        return Ok(format!("{{{}}}", items.join(", ")));
-    }
-    Ok(v.to_string())
-}
-
-fn is_table_array(v: &Value) -> bool {
-    v.as_array()
-        .is_some_and(|a| !a.is_empty() && a.iter().all(Value::is_map))
-}
-
-/// A TOML document: plain keys first, then tables (indented two spaces per level) and arrays of
-/// tables.
-fn toml(v: &Value) -> TeraResult<String> {
-    if !v.is_map() {
-        return Err(tera::Error::message(
-            "remarshal: a TOML document is a table",
-        ));
-    }
-    let mut out = String::new();
-    toml_table(v, &[], &mut out)?;
-    Ok(out)
-}
-
-fn toml_table(v: &Value, path: &[String], out: &mut String) -> TeraResult<()> {
-    let pad = "  ".repeat(path.len());
-    let pairs = sorted_entries(v);
-    for (k, item) in &pairs {
-        if item.is_map() || is_table_array(item) || item.is_none() {
-            continue;
-        }
-        let _ = writeln!(out, "{pad}{} = {}", toml_key(k), toml_inline(item)?);
-    }
-    for (k, item) in &pairs {
-        let mut sub = path.to_vec();
-        sub.push(toml_key(k));
-        let header_pad = "  ".repeat(path.len());
-        if item.is_map() {
-            let _ = write!(out, "\n{header_pad}[{}]\n", sub.join("."));
-            toml_table(item, &sub, out)?;
-        } else if is_table_array(item) {
-            for t in item.as_array().unwrap_or_default() {
-                let _ = write!(out, "\n{header_pad}[[{}]]\n", sub.join("."));
-                toml_table(t, &sub, out)?;
-            }
-        }
-    }
-    Ok(())
 }
 
 #[cfg(test)]

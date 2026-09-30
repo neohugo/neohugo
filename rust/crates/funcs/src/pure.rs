@@ -11,6 +11,7 @@ mod encoding;
 #[cfg(feature = "goat")]
 mod goat;
 mod html;
+mod marshal;
 #[cfg(feature = "math")]
 mod math;
 mod strings;

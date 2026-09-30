@@ -67,8 +67,10 @@ regex_find: "[\"1\",\"22\"]"
 regex_replace: a&lt;1&gt;b&lt;22&gt;
 remarshal/json: "{\n   &quot;a&quot;: 1,\n   &quot;b&quot;: &quot;x&quot;\n}\n"
 remarshal/json_dates_html: "{\n   \"d\": \"2023-01-01\",\n   \"h\": \"\\u003ci\\u003e\\u0026\\u003c/i\\u003e\",\n   \"t\": \"2023-01-01T07:32:00.5\",\n   \"z\": \"2023-01-01T07:32:00+07:00\"\n}\n"
-remarshal/toml: "b = [1, 2]\n\n[a]\n  c = &quot;x&quot;\n"
+remarshal/toml: "b = [1, 2]\n\n[a]\n  c = &#39;x&#39;\n"
+remarshal/toml_quoting_dates: "d = 2023-01-01\nf = 2\nl = [1.0, 'x']\nz = 2023-01-01T07:32:00Z\n\n['text/html']\n  q = \"it's\"\n  s = 'a.b'\n"
 remarshal/yaml: "a:\n  c: x\nb:\n- 1\n- 2\n"
+remarshal/yaml_quoting: "a: :dir\nb: '{{ x }}'\nc: \"true\"\nd: \"\"\ne: |-\n  l1\n  l2\nk9: 2\nk10: 1\nl: \"2023-01-01\"\nz: 2023-01-01T07:32:00Z\n"
 sets/pages-by-id: "apple,"
 sha1: 3d54c96a0a66b8eedebe19cd5607886c8263b20e
 sha256: 91a7d2827b057b1570c4ad05168d802c72c5f4ef49d83a8b74e9a9219d841264
