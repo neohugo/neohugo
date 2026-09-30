@@ -27,10 +27,24 @@ exif_patterns = "an invalid `[imaging.exif]` field pattern is a configuration er
 "webp-noflag" = "an EXIF chunk in a WebP file whose VP8X header does not flag it is read; Go ignores it"
 
 [psnr]
-# Interim golden images (resources/images/testdata/images_golden) below 30 dB.
-"methods/resize-gopherpng-100x-03fc56-jpg.jpg" = "a 100 px cartoon with hard edges, flattened and JPEG-encoded at q75 by two different encoders (image: 4:4:4 chroma, Go: 4:2:0): 25 dB, while the same result as PNG (resize-gopherpng-100x-fc03ec.png) is 33 dB"
-# T01 golden images (rust/testdata/golden/images).
-"seeksnack-combos-fill-120x90-center.jpg" = "a 120x90 fill of a detailed photo (red and green lettering), JPEG-encoded at q75 by two different encoders (image: 4:4:4 chroma, Go: 4:2:0): 28.9 dB (luma 38.8 dB, Cr 29.6 dB), while the same fill saved as PNG is 55.2 dB (T01)"
+# Golden images below 30 dB (none since the JPEG encoder is Go's, F9).
+
+[jpeg]
+# Oracle cases (oracle/images/process, Go 1.27.1) with exactly known pixels whose JPEG bytes
+# differ from Go's (tests/it/jpeg.rs; each is within 0.1 % of Go's size). Go 1.26 replaced
+# image/jpeg's DCT (IJG jfdctint, still in the Go 1.24/1.25 sources) with a new fixed-point
+# implementation whose source is not available offline; ours computes the exactly rounded DCT,
+# which Go's output equals but for a rare coefficient near a quantisation boundary (found
+# by flipping candidates until the SHA-256 matched: nrgba 33x17 chroma (1,1), exact 923.54,
+# Go below 923.5; ycbcr444 33x17 chroma (5,0), exact -1199.45, Go at or below -1199.5).
+"gen:nrgba:33x17:png d:jpg" = "one Cr coefficient rounded the other way by Go 1.26+'s DCT (same length)"
+"gen:ycbcr444:33x17:jpg" = "one Cr coefficient rounded the other way by Go 1.26+'s DCT (1204 vs 1203 bytes)"
+"gen:nrgba:640x480:png d:jpg" = "a few coefficients rounded the other way by Go 1.26+'s DCT (145861 vs 145841 bytes)"
+"gen:rgba:640x480:png d:jpg" = "a few coefficients rounded the other way by Go 1.26+'s DCT (145709 vs 145653 bytes)"
+"gen:gray:640x480:png d:jpg" = "a few coefficients rounded the other way by Go 1.26+'s DCT (104529 vs 104536 bytes)"
+"gen:ycbcr444:640x480:jpg" = "a few coefficients rounded the other way by Go 1.26+'s DCT (249519 vs 249484 bytes)"
+"gen:ycbcr420:640x480:jpg" = "a few coefficients rounded the other way by Go 1.26+'s DCT (265639 vs 265635 bytes)"
+"gen:ycbcr420:2048x1536:jpg" = "a few coefficients rounded the other way by Go 1.26+'s DCT (2713096 vs 2713197 bytes)"
 
 [text]
 # Rules of the text filter (tests/it/text_dither.rs, src/text.rs tests).

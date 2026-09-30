@@ -6,13 +6,13 @@ use std::path::Path;
 
 use image::codecs::bmp::BmpEncoder;
 use image::codecs::gif::GifEncoder;
-use image::codecs::jpeg::JpegEncoder;
 use image::codecs::png::PngEncoder;
 use image::codecs::tiff::TiffEncoder;
 use image::{ColorType, ExtendedColorType, ImageEncoder, RgbaImage};
 
 use crate::error::ImageError;
 use crate::format::ImageFormat;
+use crate::jpeg;
 use crate::pixels::flatten;
 use crate::plan::{Encode, Size};
 use crate::spec::Hint;
@@ -167,9 +167,16 @@ pub(crate) fn encode(
     let mut out = Vec::new();
     match enc.format {
         ImageFormat::Jpeg => {
+            // Go's encoder, as Hugo: 4:2:0 from the RGB of the (opaque, flattened) result, or
+            // one component for a greyscale source whose result is still grey (Go's
+            // `*image.Gray`).
             let (bytes, layout) = packed(&img, gray_source);
-            JpegEncoder::new_with_quality(&mut out, enc.quality)
-                .write_image(&bytes, w, h, layout)
+            let pixels = match layout {
+                ExtendedColorType::L8 => jpeg::Pixels::Gray(&bytes),
+                ExtendedColorType::Rgb8 => jpeg::Pixels::Rgb(&bytes),
+                _ => jpeg::Pixels::Rgba(&bytes),
+            };
+            out = jpeg::encode(pixels, w, h, i32::from(enc.quality))
                 .map_err(|e| encode_err(e.to_string()))?;
         }
         ImageFormat::Png => {

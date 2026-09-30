@@ -84,8 +84,15 @@ fn box_blur(img: &RgbaImage, r: u32) -> RgbaImage {
     })
 }
 
-/// Runs a recipe and returns the PSNR of the result against the golden image.
-fn run(recipe: &Recipe, golden_dir: &Path) -> Result<f64, String> {
+/// A comparison: the PSNR, and the encoded sizes of our result and of the golden image.
+struct Compared {
+    db: f64,
+    ours_len: usize,
+    golden_len: usize,
+}
+
+/// Runs a recipe and compares the result with the golden image.
+fn run(recipe: &Recipe, golden_dir: &Path) -> Result<Compared, String> {
     let root = repo_dir();
     let imaging = match &recipe.imaging {
         Some(c) => Imaging::from_config(c).map_err(|e| e.to_string())?,
@@ -108,11 +115,12 @@ fn run(recipe: &Recipe, golden_dir: &Path) -> Result<f64, String> {
         last = Some(e);
     }
     let e = last.ok_or("no steps")?;
-    let ours = decode(&q.encoded(e.id).map_err(|e| e.to_string())?);
+    let ours_bytes = q.encoded(e.id).map_err(|e| e.to_string())?;
+    let ours = decode(&ours_bytes);
     let golden_path = golden_dir.join(&recipe.golden);
-    let golden = decode(
-        &std::fs::read(&golden_path).map_err(|e| format!("{}: {e}", golden_path.display()))?,
-    );
+    let golden_bytes =
+        std::fs::read(&golden_path).map_err(|e| format!("{}: {e}", golden_path.display()))?;
+    let golden = decode(&golden_bytes);
     if ours.dimensions() != golden.dimensions() {
         return Err(format!(
             "size {:?}, golden {:?}",
@@ -130,10 +138,16 @@ fn run(recipe: &Recipe, golden_dir: &Path) -> Result<f64, String> {
     {
         return Err(format!("format {} for {}", e.format, recipe.golden));
     }
-    if dithers(recipe) {
-        return Ok(psnr(&box_blur(&ours, 3), &box_blur(&golden, 3)));
-    }
-    Ok(psnr(&ours, &golden))
+    let db = if dithers(recipe) {
+        psnr(&box_blur(&ours, 3), &box_blur(&golden, 3))
+    } else {
+        psnr(&ours, &golden)
+    };
+    Ok(Compared {
+        db,
+        ours_len: ours_bytes.len(),
+        golden_len: golden_bytes.len(),
+    })
 }
 
 /// Accepted exceptions (expected_diffs.toml `[psnr]`) must still reach this.
@@ -145,10 +159,14 @@ fn run_all(recipes: &[Recipe], dir: &Path, label: &str) -> Vec<String> {
     let mut rows = Vec::new();
     for r in recipes {
         match run(r, dir) {
-            Ok(db) => {
+            Ok(Compared {
+                db,
+                ours_len,
+                golden_len,
+            }) => {
                 let exception = accepted.contains_key(&r.golden);
                 rows.push(format!(
-                    "  {db:6.2} dB  {}{}",
+                    "  {db:6.2} dB  {ours_len:7} B (Go {golden_len:7} B)  {}{}",
                     r.golden,
                     if exception {
                         "  (accepted, expected_diffs.toml)"
@@ -474,12 +492,15 @@ fn hugo_golden_images_interim() {
             }],
         )
         .expect("overlay");
-    let ours = decode(&q.encoded(over.id).expect("encode"));
-    let golden = decode(
-        &std::fs::read(hugo_golden_dir().join("filters/misc/overlay-20-20.jpg")).expect("golden"),
+    let ours_bytes = q.encoded(over.id).expect("encode");
+    let golden_bytes =
+        std::fs::read(hugo_golden_dir().join("filters/misc/overlay-20-20.jpg")).expect("golden");
+    let db = psnr(&decode(&ours_bytes), &decode(&golden_bytes));
+    eprintln!(
+        "  {db:6.2} dB  {:7} B (Go {:7} B)  filters/misc/overlay-20-20.jpg",
+        ours_bytes.len(),
+        golden_bytes.len()
     );
-    let db = psnr(&ours, &golden);
-    eprintln!("  {db:6.2} dB  filters/misc/overlay-20-20.jpg");
     if db < MIN_PSNR {
         failures.push(format!("overlay-20-20.jpg: {db:.2} dB"));
     }
@@ -502,7 +523,8 @@ fn oracle_small_outputs_interim() {
             continue;
         };
         if !src.ends_with(":png") || spec.contains("gif") {
-            // JPEG sources are Go-encoded (not reproducible); GIF palettes differ by design.
+            // JPEG sources: their bytes are Go's (tests/it/jpeg.rs), but they decode with
+            // another IDCT and chroma upsampling than Go's; GIF palettes differ by design.
             continue;
         }
         let transparent = ["nrgbaa", "nrgba64", "paletted"]

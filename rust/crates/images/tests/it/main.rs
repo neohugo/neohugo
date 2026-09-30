@@ -3,6 +3,7 @@
 mod common;
 mod exif;
 mod filters;
+mod jpeg;
 mod process;
 mod psnr;
 mod qr;

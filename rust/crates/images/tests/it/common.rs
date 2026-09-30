@@ -7,10 +7,11 @@ use std::sync::Mutex;
 
 use image::{
     DynamicImage, ExtendedColorType, ImageBuffer, ImageEncoder, Luma, Rgb, Rgba, RgbaImage,
-    codecs::jpeg::JpegEncoder, codecs::png::PngEncoder,
+    codecs::png::PngEncoder,
 };
 use neohugo_base::Sink;
 use neohugo_base::paths::OutputPath;
+use neohugo_images::jpeg;
 use neohugo_testkit::fixture::rust_dir;
 
 /// The repository root (the Go sources and Hugo's own test images live there).
@@ -100,7 +101,7 @@ fn splitmix64(x: u64) -> u64 {
     z ^ (z >> 31)
 }
 
-fn pix(seed: u64, w: u32, x: u32, y: u32) -> [u8; 8] {
+pub fn pix(seed: u64, w: u32, x: u32, y: u32) -> [u8; 8] {
     let h = splitmix64(
         seed.wrapping_mul(1_000_003)
             .wrapping_add(u64::from(y) * u64::from(w) + u64::from(x)),
@@ -113,7 +114,7 @@ fn pix(seed: u64, w: u32, x: u32, y: u32) -> [u8; 8] {
     v
 }
 
-fn kind_seed(kind: &str) -> u64 {
+pub fn kind_seed(kind: &str) -> u64 {
     kind.bytes()
         .fold(0u64, |s, c| s.wrapping_mul(131).wrapping_add(u64::from(c)))
 }
@@ -126,17 +127,82 @@ fn alpha(v: u8) -> u8 {
     }
 }
 
+/// The planes of the oracle's `image.YCbCr` synthetic images (`ycbcr444`, `ycbcr420`), as
+/// main.go fills them: every pixel writes its chroma sample, so the last pixel of a group
+/// wins.
+pub fn synth_ycbcr(kind: &str, w: u32, h: u32) -> Option<Planes> {
+    let sub = match kind {
+        "ycbcr444" => 1,
+        "ycbcr420" => 2,
+        _ => return None,
+    };
+    let seed = synth_seed(kind, w, h);
+    let (wu, hu) = (usize::try_from(w).ok()?, usize::try_from(h).ok()?);
+    let (cw, ch) = (wu.div_ceil(sub), hu.div_ceil(sub));
+    let (mut y, mut cb, mut cr) = (vec![0; wu * hu], vec![0; cw * ch], vec![0; cw * ch]);
+    for (yy, row) in (0..h).zip(0usize..) {
+        for (xx, col) in (0..w).zip(0usize..) {
+            let v = pix(seed, w, xx, yy);
+            y[row * wu + col] = v[0];
+            let ci = row / sub * cw + col / sub;
+            cb[ci] = v[1];
+            cr[ci] = v[2];
+        }
+    }
+    Some(Planes {
+        y,
+        cb,
+        cr,
+        c_stride: cw,
+    })
+}
+
+/// Planar YCbCr samples (Go's `image.YCbCr`, origin 0, 0; the luma stride is the width).
+pub struct Planes {
+    pub y: Vec<u8>,
+    pub cb: Vec<u8>,
+    pub cr: Vec<u8>,
+    pub c_stride: usize,
+}
+
+fn synth_seed(kind: &str, w: u32, h: u32) -> u64 {
+    kind_seed(kind)
+        .wrapping_add(u64::from(w) * 7919)
+        .wrapping_add(u64::from(h))
+}
+
 /// The encoded synthetic source `gen:<kind>:<w>x<h>:<png|jpg>`. PNG sources decode to the
-/// oracle's pixels exactly; JPEG sources only have its size (Go's encoder differs).
+/// oracle's pixels exactly; JPEG sources (`ycbcr444`, `ycbcr420`) are Go's bytes, encoded
+/// from the same planes at q90 with the port of Go's encoder (`neohugo_images::jpeg`).
 pub fn synth(id: &str) -> Option<Vec<u8>> {
     let mut parts = id.strip_prefix("gen:")?.split(':');
     let kind = parts.next()?;
     let (w, h) = parts.next()?.split_once('x')?;
     let (w, h): (u32, u32) = (w.parse().ok()?, h.parse().ok()?);
     let enc = parts.next()?;
-    let seed = kind_seed(kind)
-        .wrapping_add(u64::from(w) * 7919)
-        .wrapping_add(u64::from(h));
+    let seed = synth_seed(kind, w, h);
+    if enc == "jpg" {
+        let Planes {
+            y,
+            cb,
+            cr,
+            c_stride,
+        } = synth_ycbcr(kind, w, h)?;
+        let subsample = if kind == "ycbcr420" {
+            jpeg::Subsample::S420
+        } else {
+            jpeg::Subsample::S444
+        };
+        let planes = jpeg::YCbCr {
+            y: &y,
+            cb: &cb,
+            cr: &cr,
+            y_stride: usize::try_from(w).ok()?,
+            c_stride,
+            subsample,
+        };
+        return jpeg::encode(jpeg::Pixels::YCbCr(planes), w, h, 90).ok();
+    }
     let hi = |a: u8, b: u8| u16::from(a) << 8 | u16::from(b);
     let img: DynamicImage = match kind {
         "nrgba" | "nrgbaa" => DynamicImage::ImageRgba8(RgbaImage::from_fn(w, h, |x, y| {
@@ -180,27 +246,141 @@ pub fn synth(id: &str) -> Option<Vec<u8>> {
                 Rgba(palette[usize::from(pix(seed, w, x, y)[0] % 40)])
             }))
         }
-        "ycbcr444" | "ycbcr420" => DynamicImage::ImageRgb8(ImageBuffer::from_fn(w, h, |x, y| {
-            let v = pix(seed, w, x, y);
-            let [yy, cb, cr] = [v[0], v[1], v[2]].map(f32::from);
-            let r = yy + 1.402 * (cr - 128.0);
-            let g = yy - 0.344_136 * (cb - 128.0) - 0.714_136 * (cr - 128.0);
-            let b = yy + 1.772 * (cb - 128.0);
-            Rgb([r, g, b].map(|c| c.round().clamp(0.0, 255.0) as u8))
-        })),
         _ => return None,
     };
-    let mut out = Vec::new();
-    if enc == "png" {
-        img.write_to(&mut Cursor::new(&mut out), image::ImageFormat::Png)
-            .ok()?;
-    } else {
-        let rgb = img.to_rgb8();
-        JpegEncoder::new_with_quality(&mut out, 90)
-            .write_image(rgb.as_raw(), w, h, ExtendedColorType::Rgb8)
-            .ok()?;
+    if enc != "png" {
+        return None;
     }
+    let mut out = Vec::new();
+    img.write_to(&mut Cursor::new(&mut out), image::ImageFormat::Png)
+        .ok()?;
     Some(out)
+}
+
+/// SHA-256 of `data`, in lower-case hex (the oracle's content hashes; FIPS 180-4).
+pub fn sha256_hex(data: &[u8]) -> String {
+    const K: [u32; 64] = [
+        0x428a_2f98,
+        0x7137_4491,
+        0xb5c0_fbcf,
+        0xe9b5_dba5,
+        0x3956_c25b,
+        0x59f1_11f1,
+        0x923f_82a4,
+        0xab1c_5ed5,
+        0xd807_aa98,
+        0x1283_5b01,
+        0x2431_85be,
+        0x550c_7dc3,
+        0x72be_5d74,
+        0x80de_b1fe,
+        0x9bdc_06a7,
+        0xc19b_f174,
+        0xe49b_69c1,
+        0xefbe_4786,
+        0x0fc1_9dc6,
+        0x240c_a1cc,
+        0x2de9_2c6f,
+        0x4a74_84aa,
+        0x5cb0_a9dc,
+        0x76f9_88da,
+        0x983e_5152,
+        0xa831_c66d,
+        0xb003_27c8,
+        0xbf59_7fc7,
+        0xc6e0_0bf3,
+        0xd5a7_9147,
+        0x06ca_6351,
+        0x1429_2967,
+        0x27b7_0a85,
+        0x2e1b_2138,
+        0x4d2c_6dfc,
+        0x5338_0d13,
+        0x650a_7354,
+        0x766a_0abb,
+        0x81c2_c92e,
+        0x9272_2c85,
+        0xa2bf_e8a1,
+        0xa81a_664b,
+        0xc24b_8b70,
+        0xc76c_51a3,
+        0xd192_e819,
+        0xd699_0624,
+        0xf40e_3585,
+        0x106a_a070,
+        0x19a4_c116,
+        0x1e37_6c08,
+        0x2748_774c,
+        0x34b0_bcb5,
+        0x391c_0cb3,
+        0x4ed8_aa4a,
+        0x5b9c_ca4f,
+        0x682e_6ff3,
+        0x748f_82ee,
+        0x78a5_636f,
+        0x84c8_7814,
+        0x8cc7_0208,
+        0x90be_fffa,
+        0xa450_6ceb,
+        0xbef9_a3f7,
+        0xc671_78f2,
+    ];
+    let mut h: [u32; 8] = [
+        0x6a09_e667,
+        0xbb67_ae85,
+        0x3c6e_f372,
+        0xa54f_f53a,
+        0x510e_527f,
+        0x9b05_688c,
+        0x1f83_d9ab,
+        0x5be0_cd19,
+    ];
+    let mut msg = data.to_vec();
+    let bit_len = u64::try_from(data.len()).expect("length") * 8;
+    msg.push(0x80);
+    while msg.len() % 64 != 56 {
+        msg.push(0);
+    }
+    msg.extend_from_slice(&bit_len.to_be_bytes());
+    for chunk in msg.chunks_exact(64) {
+        let mut w = [0u32; 64];
+        for (i, word) in chunk.chunks_exact(4).enumerate() {
+            w[i] = u32::from_be_bytes([word[0], word[1], word[2], word[3]]);
+        }
+        for i in 16..64 {
+            let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
+            let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
+            w[i] = w[i - 16]
+                .wrapping_add(s0)
+                .wrapping_add(w[i - 7])
+                .wrapping_add(s1);
+        }
+        let [mut a, mut b, mut c, mut d, mut e, mut f, mut g, mut hh] = h;
+        for i in 0..64 {
+            let s1 = e.rotate_right(6) ^ e.rotate_right(11) ^ e.rotate_right(25);
+            let ch = (e & f) ^ (!e & g);
+            let t1 = hh
+                .wrapping_add(s1)
+                .wrapping_add(ch)
+                .wrapping_add(K[i])
+                .wrapping_add(w[i]);
+            let s0 = a.rotate_right(2) ^ a.rotate_right(13) ^ a.rotate_right(22);
+            let maj = (a & b) ^ (a & c) ^ (b & c);
+            let t2 = s0.wrapping_add(maj);
+            hh = g;
+            g = f;
+            f = e;
+            e = d.wrapping_add(t1);
+            d = c;
+            c = b;
+            b = a;
+            a = t1.wrapping_add(t2);
+        }
+        for (x, y) in h.iter_mut().zip([a, b, c, d, e, f, g, hh]) {
+            *x = x.wrapping_add(y);
+        }
+    }
+    h.iter().map(|x| format!("{x:08x}")).collect()
 }
 
 /// Writes a PNG of `img` (test helper).
