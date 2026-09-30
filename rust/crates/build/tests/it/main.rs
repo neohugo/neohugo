@@ -8,3 +8,4 @@ mod mini;
 mod skeleton;
 mod smoke;
 mod support;
+mod themes;

@@ -395,7 +395,8 @@ pub struct Config {
     pub project_dir: PathBuf, pub environment: String,
     pub sites: IdVec<LangIdx, SiteConfig>,      // enabled languages sorted (weight, key); [0] = default
     pub output_formats: Arc<OutputFormats>, pub media_types: Arc<MediaTypes>,
-    pub mounts: Vec<MountConfig>, pub build: BuildConfig /* buildStats, cachebusters */,
+    pub mounts: Vec<MountConfig>, pub themes: Vec<Theme> /* precedence order: dir, ThemeMounts */,
+    pub build: BuildConfig /* buildStats, cachebusters */,
     pub caches: CachesConfig /* dirs with :cacheDir, :project resolved; maxAge */,
     pub security: SecurityPolicy, pub privacy: PrivacyConfig, pub imaging: ImagingConfig, pub minify: MinifyConfig,
     pub raw: Params,
@@ -997,7 +998,7 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 | # | Phase | Crate | Input → output | Parallelism |
 |---|---|---|---|---|
 | A1 | **Config** | config | See the pipeline below | sequential |
-| A2 | **Mounts** | vfs | Config → `Vfs`. Default mounts only for unconfigured components; `lang` on mounts; themes after the project. | sequential |
+| A2 | **Mounts** | vfs | Config → `Vfs`. Default mounts only for unconfigured components; `lang` on mounts; themes after the project, in `Config::themes` order (each theme's configured mounts, else its component directories). | sequential |
 | A3 | **Discover** | vfs | Walk content mounts → `FileRef` + `PathInfo`. Ignore rules apply; files in a disabled language are dropped. | `par_iter` over mounts |
 | A4 | **Parse** | pageparser, page, site, locale | Read, split and decode front matter → folded `Params` + body `Arc<str>`. `data::load` → case-preserved `Map`. `Translations::load` → messages parsed into pieces. | **`par_iter` over files** |
 | B1 | **Assemble tree** | site | Apply `capture_overrides` (kind, lang, path) **before** insertion. Insert into the per-language `SiteTree` in key order. Bundle ownership is the segment-aware longest-prefix owner. A duplicate (Base, lang) keeps the first and warns. Bundled content files get `PageRole::BundledResource`. Bundle resources are registered once per bundle directory with the owning language. | sequential per language, languages in parallel |
@@ -1021,8 +1022,8 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 **A1 config pipeline** (rust-style; there is no mapstructure port):
 1. **Bootstrap.** Read `environment`, `source` and `configDir` from `CliOverrides` and `HUGO_*`.
 2. **Load sources into `Value` trees:**
-   - the config file(s) `hugo.*` or `config.*`;
-   - `config/_default/**`, then `config/<env>/**`, with the file-name → key rules of semantics §1.2.
+   - the project's config file: the first that exists of `neohugo.{toml,yaml,yml,json}`, then Hugo's `hugo.*` and `config.*` (compatibility with Hugo sites); when several exist, a warning names the file read and the ones ignored. `--config a,b` lists the files explicitly;
+   - `config/_default/**`, then `config/<env>/**`, with the file-name → key rules of semantics §1.2 (`neohugo.*`, `hugo.*` and `config.*` there are root files).
 3. **Normalise every tree.**
    - `normalize_keys`: lower-case keys except inside arrays; `menu`→`menus`; drop `internal`.
    - `migrate_legacy_keys`:
@@ -1038,6 +1039,11 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 4. **Deep-merge once**, in this precedence: defaults < file < dir < CLI < env.
    - Env is applied once. Each value is parsed into the variant of the value it overrides.
    - `disableKinds` and `disableLanguages` are split on commas and whitespace.
+   - **Themes** below the project (Hugo's module collection and `_merge` semantics; `neohugo-config` README "Themes"):
+     - found in import order, depth first: `[[module.imports]]`, then `theme = [...]`, then each theme's own imports after it (`theme = ["a", "b"]` with `a` importing `c`: a, c, b; the first wins); in `themesDir`, `_vendor` (`modules.txt`) or at an absolute path; `module.replacements`, `ignoreConfig`, `ignoreImports`, `noMounts`, `disable`; Hugo Modules are not downloaded;
+     - each theme's config: the first of `neohugo.*`, `hugo.*`, `config.*` in its directory, then its `config/_default/**` and `config/<env>/**`;
+     - merged theme by theme: the project's values win; a theme adds only keys the project lacks, as the `_merge` strategy of the project's table allows (`params` deep, `menus`/`outputFormats`/`mediaTypes` shallow, other root keys none unless the root sets `_merge`; `languages.X.params` deep, `languages.X.menus` shallow; inherited below); root values that are not tables only with a `deep` root; a theme's `theme`, `module` and `themesDir` are never merged.
+     - Deliberate deviations: no Hugo Modules download (a theme that is not found is always an error); a theme's `theme`/`module`/`themesDir`/bootstrap keys never merge (Go merges them under a `deep` root after using the project's); `_merge` values ignore case; a project non-table value where a theme has a table is kept (Go panics).
 5. **Per-language merge.** For each enabled language, merge `languages.X` over the root tree.
 6. **Typed deserialise.** serde into structs with `#[serde(default)]` and `impl Default` holding Hugo's defaults. `[frontmatter]` chains become `Vec<DateSource>` and `outputs` become `Vec<FormatId>`. Errors carry toml/saphyr spans.
 

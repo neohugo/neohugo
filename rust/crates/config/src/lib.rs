@@ -4,12 +4,17 @@
 //!
 //! 1. **Bootstrap**: the environment and the config directory come from [`CliOverrides`] and
 //!    `HUGO_ENVIRONMENT`/`HUGO_ENV`.
-//! 2. **Sources**: the project file (`hugo.toml` … `config.json`, or the explicit list), then
-//!    `config/_default/**` and `config/<environment>/**` (file names place their content:
-//!    `params.toml` under `params`, `menus.en.toml` under `languages.en.menus`).
+//! 2. **Sources**: the project file (the first of `neohugo.toml`, `neohugo.yaml`,
+//!    `neohugo.yml`, `neohugo.json`, then Hugo's `hugo.*` and `config.*`; a warning names the
+//!    others when several exist; or the explicit list), then `config/_default/**` and
+//!    `config/<environment>/**` (file names place their content: `neohugo.*`, `hugo.*` and
+//!    `config.*` at the root, `params.toml` under `params`, `menus.en.toml` under
+//!    `languages.en.menus`).
 //! 3. **Normalise** each tree ([`tree::normalize_keys`]) and migrate legacy keys
 //!    ([`tree::migrate_legacy_keys`]).
-//! 4. **Merge once**: file < directory < CLI < environment ([`env`]).
+//! 4. **Merge once**: file < directory < CLI < environment ([`env`]); then the themes
+//!    ([`theme`]: `theme`, `[[module.imports]]` and their themes) are read and their
+//!    configuration merged below the project's by Hugo's `_merge` rules ([`merge`]).
 //! 5. **Per language**: `languages.X` over the root (`params` merge deeply, `menus`,
 //!    `taxonomies` and `permalinks` replace).
 //! 6. **Typed decode** with serde ([`de`]) into structs whose `Default` holds Hugo's defaults.
@@ -25,10 +30,12 @@ mod error;
 pub mod global;
 pub mod markup;
 pub mod media;
+pub mod merge;
 pub mod output;
 pub mod sections;
 pub mod site;
 mod source;
+pub mod theme;
 pub mod tree;
 
 use std::path::{Path, PathBuf};
@@ -52,6 +59,8 @@ pub use sections::{
     TaxonomyDef, decode_cascade, decode_front_matter,
 };
 pub use site::{Direction, Language, RedirectPolicy, SiteConfig, TitleConfig};
+pub use source::{CONFIG_BASE_NAMES, CONFIG_EXTENSIONS, config_file_names};
+pub use theme::{Theme, ThemeMounts};
 
 /// Settings from the command line; they override the configuration files (the environment
 /// overrides them in turn).
@@ -123,7 +132,8 @@ pub struct LoadOptions {
     /// The project directory (`--source`).
     pub source: PathBuf,
     /// `--config` files, relative to `source`; the first has the highest precedence. Empty:
-    /// the first of `hugo.toml`, `hugo.yaml`, `hugo.yml`, `hugo.json`, `config.*`.
+    /// the first of `neohugo.toml`, `neohugo.yaml`, `neohugo.yml`, `neohugo.json`, `hugo.*`,
+    /// `config.*` ([`config_file_names`]).
     pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
     /// The process environment: `HUGO_*` overrides, and `HOME`, `XDG_CACHE_HOME`, `TMPDIR`
@@ -138,7 +148,8 @@ pub struct Config {
     pub project_dir: PathBuf,
     /// `production`, `development`, …
     pub environment: String,
-    /// The files the configuration was read from, lowest precedence first.
+    /// The files the configuration was read from, lowest precedence first: the themes' (the
+    /// last theme first), then the project's.
     pub config_files: Vec<PathBuf>,
     /// Enabled languages: the default language first, then by (weight, key).
     pub sites: IdVec<LangIdx, SiteConfig>,
@@ -161,8 +172,8 @@ pub struct Config {
     pub cache_dir: PathBuf,
     /// `[[module.mounts]]` as configured (default mounts are added by the file system layer).
     pub mounts: Vec<MountConfig>,
-    /// `theme`.
-    pub themes: Vec<String>,
+    /// The themes (`theme`, `[[module.imports]]` and their themes), in precedence order.
+    pub themes: Vec<Theme>,
     pub build: BuildConfig,
     pub caches: CachesConfig,
     pub security: SecurityPolicy,
@@ -208,7 +219,10 @@ pub fn load(o: &LoadOptions) -> Result<Config, ConfigError> {
 
 struct Loader<'a> {
     o: &'a LoadOptions,
+    /// The project's configuration files.
     sources: source::Sources,
+    /// Each theme's configuration files, in precedence order.
+    theme_sources: Vec<source::Sources>,
     diagnostics: Vec<Diagnostic>,
 }
 
@@ -217,6 +231,7 @@ impl<'a> Loader<'a> {
         Self {
             o,
             sources: source::Sources::default(),
+            theme_sources: Vec::new(),
             diagnostics: Vec::new(),
         }
     }
@@ -250,7 +265,8 @@ impl<'a> Loader<'a> {
                 .as_deref()
                 .unwrap_or(Path::new("config")),
         );
-        self.sources.files = source::project_files(&project, &self.o.config_files)?;
+        self.sources.files =
+            source::project_files(&project, &self.o.config_files, &mut self.diagnostics)?;
         for sub in ["_default", environment.as_str()] {
             let dir = config_dir.join(sub);
             if dir.is_dir() {
@@ -274,6 +290,16 @@ impl<'a> Loader<'a> {
             .collect();
         env::apply(&mut root, &hugo_env);
         let mut root = tree::normalize_keys(&root);
+
+        // Step 4, then: the themes (found and read) and their configuration below the
+        // project's.
+        let themes = theme::collect(&project, &root, &environment, &mut self.diagnostics)
+            .map_err(|e| self.locate(e, ""))?;
+        if !themes.trees.is_empty() {
+            merge::merge_themes(&mut root, &themes.trees);
+        }
+        self.theme_sources = themes.sources;
+
         self.migrate(&mut root);
         for key in ["disablekinds", "disablelanguages"] {
             if let Some(v) = root.get(key) {
@@ -351,10 +377,11 @@ impl<'a> Loader<'a> {
             project_dir: project,
             environment,
             config_files: self
-                .sources
-                .files
+                .theme_sources
                 .iter()
-                .map(|s| s.path.to_path_buf())
+                .rev()
+                .chain(std::iter::once(&self.sources))
+                .flat_map(|s| s.files.iter().map(|f| f.path.to_path_buf()))
                 .collect(),
             sites,
             disabled_languages: langs.disabled,
@@ -368,7 +395,7 @@ impl<'a> Loader<'a> {
             dirs: g.dirs,
             cache_dir: g.cache_dir,
             mounts: g.mounts,
-            themes: g.themes,
+            themes: themes.themes,
             build: g.build,
             caches: g.caches,
             security: g.security,
@@ -408,7 +435,8 @@ impl<'a> Loader<'a> {
         }
     }
 
-    /// Adds the file position of the offending key to a value error.
+    /// Adds the file position of the offending key to a value error: the project's files
+    /// first, then the themes' in precedence order.
     fn locate(&self, e: ConfigError, lang: &str) -> ConfigError {
         match e {
             ConfigError::Invalid {
@@ -419,11 +447,10 @@ impl<'a> Loader<'a> {
                 let segs = key_segments(&key);
                 let mut in_lang = vec!["languages".to_owned(), lang.to_owned()];
                 in_lang.extend(segs.iter().cloned());
-                match self
-                    .sources
-                    .locate(&in_lang)
-                    .or_else(|| self.sources.locate(&segs))
-                {
+                let found = std::iter::once(&self.sources)
+                    .chain(&self.theme_sources)
+                    .find_map(|s| s.locate(&in_lang).or_else(|| s.locate(&segs)));
+                match found {
                     Some(found) => ConfigError::Invalid {
                         key: found.dotted_key(),
                         position: Some(found.position),
@@ -441,11 +468,12 @@ impl<'a> Loader<'a> {
     }
 
     fn languages(&self, root: &Map) -> Result<Languages, ConfigError> {
-        let configured_tables = root
+        let mut configured_tables = root
             .get("languages")
             .and_then(Value::as_map)
             .cloned()
             .unwrap_or_default();
+        configured_tables.remove(merge::MERGE_KEY);
         let configured = !configured_tables.is_empty();
         let explicit_default = root
             .get("defaultcontentlanguage")
@@ -664,7 +692,6 @@ impl<'a> Loader<'a> {
             dirs,
             cache_dir,
             mounts,
-            themes: strings("theme"),
             build,
             caches,
             security,
@@ -747,7 +774,6 @@ struct Global {
     dirs: Dirs,
     cache_dir: PathBuf,
     mounts: Vec<MountConfig>,
-    themes: Vec<String>,
     build: BuildConfig,
     caches: CachesConfig,
     security: SecurityPolicy,
@@ -793,7 +819,7 @@ fn section(t: &Map, key: &str) -> Map {
         .unwrap_or_default()
 }
 
-fn key_segments(key: &str) -> Vec<String> {
+pub(crate) fn key_segments(key: &str) -> Vec<String> {
     let mut out = Vec::new();
     for part in key.split('.') {
         let (name, idx) = match part.find('[') {

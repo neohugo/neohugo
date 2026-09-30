@@ -52,7 +52,8 @@ impl Vfs {
     /// The mounts of `cfg`: `[[module.mounts]]` (a missing source is skipped), then the default
     /// mount of each component no mount targets (per language for content, from
     /// `languages.<lang>.contentDir`; per static dir for static), the root JS config files
-    /// (`assets/_jsconfig`), and each theme's component directories.
+    /// (`assets/_jsconfig`), and the mounts of each theme of `Config::themes` (its configured
+    /// mounts, else its component directories, and its JS config files).
     ///
     /// # Errors
     /// A mount with an unknown language or an invalid glob, an invalid `ignoreFiles` pattern,

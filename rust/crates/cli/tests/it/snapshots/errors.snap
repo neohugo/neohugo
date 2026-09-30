@@ -14,6 +14,7 @@ ERROR: The "x" shortcode requires two named parameters: user and id. See "[site]
 ERROR: The "youtube" shortcode requires an id argument. See "[site]/content/youtube.md:4:1"
 ERROR: The 'format' specified for the embedded pagination template is invalid. Valid choices are: default, terse.
 WARN : Google Analytics 4 (GA4) replaced Google Universal Analytics (UA) effective 1 July 2023. See https://support.google.com/analytics/answer/11583528. Create a GA4 property and data stream, then replace the Google Analytics ID in your site configuration with the new value.
+WARN : disableKinds: unknown kind "robots"
 
 ERROR build failed: [site]/content/p.md: [site]/content/p.md:1:1: code block render hook: _embedded/_markup/render-codeblock-goat.html: error: `diagrams_goat` is not available in this build of neohugo (feature not compiled in)
  --> _embedded/_markup/render-codeblock-goat.html:5:21
