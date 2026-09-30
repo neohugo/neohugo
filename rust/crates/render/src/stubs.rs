@@ -8,16 +8,18 @@
 //!
 //! | name | stub |
 //! |---|---|
-//! | `paginator()` | records the scope page's default list (`FlatSite::pagination_list`) with `pagination.pagerSize` on the first call per (page, format); returns pager `__nh.pager` (1 when unset) as a pager value (`page_number`, `url`, `pages`, `pager_size`, `total_pages`, `total_number_of_elements`, `has_prev`, `has_next`, `prev`, `next`, `first`, `last`) |
+//! | `paginator()` | records the scope page's default list (`neohugo_nav::default_pagination_list`) with `pagination.pagerSize` on the first call per (page, format); returns pager `__nh.pager` (1 when unset) as a `PagerView` (`neohugo_view::pager_view`) |
 //! | `x \| rel_url`, `x \| abs_url` | `SiteUrls::rel_url` / `abs_url` of the scope's language (the default language without a scope) |
 //! | `p \| deref` | the full value of the page with `p.id` in the scope's generation |
 //! | `pages \| by_lastmod` | stable sort by `lastmod.unix`, pages without one first |
 
 use std::sync::Arc;
 
-use neohugo_base::{FormatId, Idx, LangIdx, PageId};
-use neohugo_view::interim::FlatSite;
-use neohugo_view::{PaginationRecorder, Phase, Recorded, RenderScope, SCOPE_KEY, ViewCache};
+use neohugo_base::{Idx, LangIdx, PageId};
+use neohugo_nav::{Pagination, PaginationItems, default_pagination_list};
+use neohugo_view::{
+    PaginationRecorder, Phase, RenderScope, SCOPE_KEY, ViewCache, pager_url, pager_view,
+};
 use tera::{Kwargs, State, TeraResult, Value};
 
 /// What the stubs read.
@@ -45,10 +47,6 @@ fn field<'a>(v: &'a Value, k: &'static str) -> Option<&'a Value> {
 }
 
 impl Stubs {
-    fn flat(&self) -> &FlatSite {
-        self.views.flat()
-    }
-
     pub(crate) fn register(&self, tera: &mut tera::Tera) {
         let s = self.clone();
         tera.register_function("paginator", move |_: Kwargs, st: &State| s.paginator(st));
@@ -83,12 +81,12 @@ impl Stubs {
             .ok()
             .flatten()
             .map_or(LangIdx::from_index(0), |s| s.lang);
-        self.flat().config.sites[lang].site_urls()
+        self.views.model().config.sites[lang].site_urls()
     }
 
     fn deref(&self, v: &Value, st: &State) -> TeraResult<Value> {
         let id = page_id(v).ok_or_else(|| tera::Error::message("deref expects a page value"))?;
-        if id.index() >= self.flat().pages.len() {
+        if !self.views.contains(id) {
             return Err(tera::Error::message(format!("deref: no page {id}")));
         }
         let (phase, variant) = RenderScope::from_state(st)?
@@ -98,66 +96,24 @@ impl Stubs {
         Ok(self.views.generation(phase, variant).full(id))
     }
 
-    fn pager_url(&self, page: PageId, format: FormatId, number: u32) -> TeraResult<String> {
-        let (_, links) = self
-            .flat()
-            .target(page, format, (number > 1).then_some(number))
-            .map_err(|e| tera::Error::chain("paginator", e))?;
-        Ok(links.rel_permalink.escaped())
-    }
-
     fn paginator(&self, st: &State) -> TeraResult<Value> {
         let sc = scope(st, "paginator")?;
-        let flat = self.flat();
-        let size = flat.config.sites[sc.lang].pagination.pager_size;
-        let rec = self.pagination.record(sc.page, sc.format, || Recorded {
-            items: flat.pagination_list(sc.page).into(),
-            size,
-        });
-        let number = sc.pager.unwrap_or(1);
-        let total = rec.total_pages();
-        let generation = self.views.generation(sc.phase, sc.variant);
-        let link = |n: u32| -> TeraResult<Value> {
-            let mut m = tera::Map::new();
-            m.insert("page_number".into(), n.into());
-            m.insert("url".into(), self.pager_url(sc.page, sc.format, n)?.into());
-            Ok(Value::from(m))
+        let model = self.views.model();
+        let size = model.config.sites[sc.lang].pagination.pager_size.max(1);
+        let rec = match self.pagination.get(sc.page, sc.format) {
+            Some(r) => r,
+            None => {
+                let items =
+                    PaginationItems::Pages(default_pagination_list(self.views.nav(), sc.page));
+                let p =
+                    Pagination::new(items, size).map_err(|e| tera::Error::chain("paginator", e))?;
+                self.pagination.paginator(sc.page, sc.format, None, || p)
+            }
         };
-        let pages: Vec<Value> = rec
-            .page(number)
-            .iter()
-            .map(|&p| generation.summaries[p].clone())
-            .collect();
-        let mut m = tera::Map::new();
-        m.insert("page_number".into(), number.into());
-        m.insert(
-            "url".into(),
-            self.pager_url(sc.page, sc.format, number)?.into(),
-        );
-        m.insert("pages".into(), Value::from(pages));
-        m.insert("pager_size".into(), rec.size.into());
-        m.insert("total_pages".into(), total.into());
-        m.insert("total_number_of_elements".into(), rec.items.len().into());
-        m.insert("has_prev".into(), (number > 1).into());
-        m.insert("has_next".into(), (number < total).into());
-        m.insert(
-            "prev".into(),
-            if number > 1 {
-                link(number - 1)?
-            } else {
-                Value::none()
-            },
-        );
-        m.insert(
-            "next".into(),
-            if number < total {
-                link(number + 1)?
-            } else {
-                Value::none()
-            },
-        );
-        m.insert("first".into(), link(1)?);
-        m.insert("last".into(), link(total)?);
-        Ok(Value::from(m))
+        let generation = self.views.generation(sc.phase, sc.variant);
+        let pager = pager_view(generation, &rec, sc.pager.unwrap_or(1), |n| {
+            pager_url(model, sc.page, sc.format, n).map_err(|e| tera::Error::chain("paginator", e))
+        })?;
+        Ok(Value::from_serializable(&pager))
     }
 }

@@ -27,12 +27,18 @@ neohugo-page.workspace = true
 neohugo-site.workspace = true
 neohugo-markup.workspace = true
 neohugo-layouts.workspace = true
-# T38 (walking skeleton) dropped the planned `neohugo-nav` and `neohugo-resources` edges: the
-# skeleton has no menus, related pages or resources. T33 adds them back with the real views.
+neohugo-nav.workspace = true
+neohugo-resources.workspace = true
+neohugo-vfs.workspace = true
 tera.workspace = true
 serde.workspace = true
 jiff.workspace = true
 thiserror.workspace = true
+md-5.workspace = true
+rayon.workspace = true
 
 [dev-dependencies]
 dhat.workspace = true # T33 allocation measurement (it binary only)
+neohugo-testkit.workspace = true
+insta.workspace = true
+tempfile.workspace = true

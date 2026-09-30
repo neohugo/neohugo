@@ -31,7 +31,8 @@ impl Session {
     pub fn render_job(&self, job: &Job) -> Result<Vec<Output>, RenderError>;  // E, pure: no I/O
 }
 impl ContentRenderer for Session { … }
-pub enum RenderError { Model(FlatError), Template(TemplateError), Markup { file, message },
+pub enum RenderError { Target(Box<TargetError>), View(Box<ViewError>), Nav(Box<NavError>),
+                       Template(TemplateError), Markup { file, message },
                        Render { template, page, source: Box<tera::Error> }, NoOutput { page, format },
                        Phase(&'static str) }
 ```
@@ -45,7 +46,9 @@ Calling the phases out of order (`freeze_views` before `render_content`, `render
 
 ## Skeleton parts (replaced)
 
-- `Session::new`: interim `FlatSite` → Meta views → layout selection for every (page, format)
+- `Session::new`: resource store (`StoreConfig::from_config`, no image queue yet) and menus
+  (`neohugo_nav::build_menus` over `NavSite`) → `ViewCache::new` (T33's views over the model)
+  → alias plan (`neohugo_nav::page_aliases`) → layout selection for every (page, format)
   (a page without a layout is a warning; standalone pages without one are skipped) →
   `layouts::load` with `funcs::register_placeholders`, `funcs::register_pure` and the stubs.
   No renderer slot yet: T35 adds it in the plan's order (slot empty → `sitefuncs::register`
@@ -59,12 +62,12 @@ Calling the phases out of order (`freeze_views` before `render_content`, `render
 
   | name | stub |
   |---|---|
-  | `paginator()` | records the scope page's default list (home and standalone: site regular pages; section: regular pages; taxonomy/term: pages) with `pagination.pagerSize`, first call wins; returns pager `__nh.pager` (1 when unset): `page_number`, `url`, `pages`, `pager_size`, `total_pages`, `total_number_of_elements`, `has_prev`, `has_next`, `prev`, `next`, `first`, `last` |
+  | `paginator()` | records the scope page's default list (`neohugo_nav::default_pagination_list`) with `pagination.pagerSize` in the view crate's `PaginationRecorder`, first call wins; returns pager `__nh.pager` (1 when unset) as a `PagerView` (`neohugo_view::pager_view`) |
   | `rel_url`, `abs_url` | `SiteUrls::{rel_url, abs_url}` of the scope's language |
   | `deref` | the full value of `p.id` in the scope's generation |
   | `by_lastmod` | stable sort by `lastmod.unix` |
 
-- **Contexts**: layout jobs get `page` (full), `site`, `hugo`, `lang`, `output_format`,
+- **Contexts**: layout jobs get `page` (the full value, `ViewGeneration::page_value`), `site`, `hugo`, `lang`, `output_format`,
   `__nh` (+ `sites` for the sitemap index); aliases get `permalink`, `page` (link), `site`,
   `hugo` (`alias.html` of the earliest origin).
 - **Job planning** (not frozen, T36's): `Session::wave1(lang)` (aliases, pages × formats,

@@ -22,9 +22,15 @@ pub use session::{Project, RenderOptions, Session};
 /// Why a render failed.
 #[derive(Debug, thiserror::Error)]
 pub enum RenderError {
-    /// The interim model could not compute a target path.
+    /// A pager's file or link could not be made.
     #[error(transparent)]
-    Model(#[from] neohugo_view::interim::FlatError),
+    Target(Box<neohugo_view::TargetError>),
+    /// The views could not be built.
+    #[error(transparent)]
+    View(Box<neohugo_view::ViewError>),
+    /// The alias plan could not be made.
+    #[error(transparent)]
+    Nav(Box<neohugo_nav::NavError>),
     /// The templates did not load.
     #[error(transparent)]
     Template(#[from] neohugo_layouts::TemplateError),
@@ -48,4 +54,22 @@ pub enum RenderError {
     /// A phase called out of order.
     #[error("render phase out of order: {0}")]
     Phase(&'static str),
+}
+
+impl From<neohugo_view::TargetError> for RenderError {
+    fn from(e: neohugo_view::TargetError) -> Self {
+        Self::Target(Box::new(e))
+    }
+}
+
+impl From<neohugo_view::ViewError> for RenderError {
+    fn from(e: neohugo_view::ViewError) -> Self {
+        Self::View(Box::new(e))
+    }
+}
+
+impl From<neohugo_nav::NavError> for RenderError {
+    fn from(e: neohugo_nav::NavError) -> Self {
+        Self::Nav(Box::new(e))
+    }
 }

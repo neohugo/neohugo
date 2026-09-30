@@ -26,6 +26,11 @@ neohugo-view.workspace = true
 neohugo-funcs.workspace = true
 neohugo-resources.workspace = true
 neohugo-locale.workspace = true
+# `Handles` (T33): the model, menus and related index, the image queue.
+neohugo-site.workspace = true
+neohugo-nav.workspace = true
+neohugo-images.workspace = true
+dashmap.workspace = true
 # planned third-party dependencies (T00); the owning task adjusts them
 tera.workspace = true
 thiserror.workspace = true

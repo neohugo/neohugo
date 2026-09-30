@@ -1,12 +1,8 @@
 //! The render scope travels through Tera contexts as `__nh` and is read back by functions;
-//! the pagination recorder keeps the first call.
-
-use std::sync::Arc;
+//! `child` and the depth limit.
 
 use neohugo_base::{FormatId, FrameId, LangIdx, PageId};
-use neohugo_view::{
-    HookVariant, PaginationRecorder, Phase, Recorded, RenderScope, SCOPE_KEY, Stage,
-};
+use neohugo_view::{HookVariant, Phase, RenderScope, SCOPE_KEY, Stage};
 
 fn scope() -> RenderScope {
     let mut s = RenderScope::layout(
@@ -67,29 +63,4 @@ fn child_scope() {
     let mut deep = s;
     deep.depth = neohugo_view::MAX_DEPTH;
     assert!(deep.child().too_deep());
-}
-
-#[test]
-fn pagination_first_call_wins() {
-    let rec = PaginationRecorder::default();
-    let items: Arc<[PageId]> = (0..5).map(PageId::from_raw).collect();
-    let (p, f) = (PageId::from_raw(1), FormatId::from_raw(0));
-    let first = rec.record(p, f, || Recorded {
-        items: Arc::clone(&items),
-        size: 2,
-    });
-    let again = rec.record(p, f, || Recorded {
-        items: Arc::from([]),
-        size: 9,
-    });
-    assert!(Arc::ptr_eq(&first, &again));
-    assert_eq!(first.total_pages(), 3);
-    assert_eq!(first.page(3), &[PageId::from_raw(4)]);
-    assert!(first.page(4).is_empty());
-    let empty = Recorded {
-        items: Arc::from([]),
-        size: 2,
-    };
-    assert_eq!(empty.total_pages(), 1);
-    assert_eq!(rec.recorded().len(), 1);
 }

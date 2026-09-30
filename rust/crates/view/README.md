@@ -1,69 +1,106 @@
 # neohugo-view
 
-Views and render state (REWRITE_PLAN.md §2.5). **State: T38 walking skeleton.** T33 turns the
-views into the plan's full set; the render-state types below are frozen and T33/T34/T35 build
-on exactly these signatures.
+Views and render state (REWRITE_PLAN.md §2.5). **State: T33.** The views are built directly
+from `neohugo_site::Model`, `neohugo-nav` (menus, aliases, pagination lists), `neohugo-resources`
+(resource values) and the content the `ContentRenderer` produces (`neohugo_markup` outputs).
+The render-state types are final; `neohugo_sitefuncs::{Handles, register}` is the frozen stub
+T34 builds against.
 
-## Frozen by T38
+## View cache
 
 ```rust
-pub const SCOPE_KEY: &str = "__nh";
-pub const MAX_DEPTH: u16 = 64;
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Phase { Content, Layout, Deferred }
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum HookVariant { Html, Format(FormatId) }
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub enum Stage { Expand, Fragments, Content(HookVariant) }
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
-pub struct RenderScope {
-    pub page: PageId, pub lang: LangIdx, pub format: FormatId, pub pager: Option<u32>,
-    pub phase: Phase, pub variant: HookVariant, pub frame: Option<FrameId>, pub txn: Option<TxnId>,
-    pub depth: u16, pub chain: Vec<(PageId, Stage)>,
+pub struct ViewInputs { pub model: Arc<Model>, pub store: Arc<ResourceStore>, pub menus: Arc<Menus> }
+impl ViewCache {
+    pub fn new(i: ViewInputs) -> Result<Self, ViewError>;          // C0: Meta generation; bundle files registered in the store
+    pub fn freeze(&self, contents: &BTreeMap<HookVariant, Contents>);   // D: one Full generation per variant (second call ignored)
+    pub fn freeze_from(&self, r: &dyn ContentRenderer, variants: &[HookVariant]) -> Result<(), ContentError>;
+    pub fn generation(&self, phase: Phase, v: HookVariant) -> &ViewGeneration; // Content → Meta; else Full(v), Full(Html), Meta before D
+    pub fn meta(&self) -> &ViewGeneration;  pub fn variants(&self) -> Vec<HookVariant>;  pub fn is_frozen(&self) -> bool;
+    pub fn model(&self) -> &Arc<Model>;  pub fn nav(&self) -> &NavSite;  pub fn store(&self) -> &Arc<ResourceStore>;
+    pub fn menus(&self) -> &Arc<Menus>;  pub fn resources(&self, p: PageId) -> &[ResourceId];  pub fn contains(&self, p: PageId) -> bool;
 }
-impl RenderScope {
-    pub fn layout(page: PageId, lang: LangIdx, format: FormatId, pager: Option<u32>) -> Self;
-    pub fn from_state(s: &tera::State) -> tera::TeraResult<Option<Self>>;  // None: no `__nh`
-    pub fn child(&self) -> Self;        // same page/format/pager, depth + 1, frame None
-    pub fn too_deep(&self) -> bool;     // depth > MAX_DEPTH
-    pub fn to_value(&self) -> tera::Value;
-}
-
-pub trait ContentRenderer: Send + Sync {
-    fn content(&self, p: PageId, v: HookVariant, s: &RenderScope) -> Result<Arc<RenderedContent>, ContentError>;
-    fn fragments(&self, p: PageId, s: &RenderScope) -> Result<Arc<Fragments>, ContentError>;   // neohugo_markup::Fragments
-    fn render_shortcodes(&self, p: PageId, s: &RenderScope) -> Result<Arc<ExpandedSource>, ContentError>;
-    fn render_markdown(&self, md: &str, o: RenderStringOptions, s: &RenderScope) -> Result<String, ContentError>;
-    fn render_template(&self, t: &TemplateName, ctx: tera::Context, s: &RenderScope) -> Result<String, ContentError>;
+pub struct ViewGeneration { pub summaries: IdVec<PageId, Value>, pub links: IdVec<PageId, Value>, pub sites: IdVec<LangIdx, Value>, /* full: OnceLock per page */ }
+impl ViewGeneration {
+    pub fn full(&self, p: PageId) -> Value;        // summary + relations, built once (deref, get_page)
+    pub fn page_value(&self, p: PageId) -> Value;  // the same value for a layout job, not kept
+    pub fn list(&self, ids: &[PageId]) -> Value;  pub fn opt(&self, id: Option<PageId>) -> Value;
 }
 ```
 
-The scope is a plain serde value in the context: `{{ __nh.page }}` works in templates, and
-Tera's `Value` deserializer (enums as `{"Format": 1}` or `"Html"`) reads it back. No
-thread-locals.
+- **Generations.** Meta (content phase): summaries without content keys. Full (one per hook
+  variant, frozen in a `OnceLock` before any layout renders): summaries with the
+  `ContentView` keys of that variant. Every list (relations, `site.*` lists, terms, pagers)
+  holds **summary** values of its own generation: acyclic, one allocation per page shared by
+  every list (the tests check pointer equality). `full`/`page_value` add `PageRelations`.
+- **Sharing.** Everything content-independent (params, output formats, resources, terms,
+  links, languages, menus, `site.data`, `site.config`, `raw_content`) is serialised once for
+  all generations; media types, sitemap settings, equal dates and empty lists are shared
+  across pages; variants whose content of a page is the same `Arc<RenderedContent>` share its
+  values.
+- **Keys.** `views::{PAGE_SUMMARY_KEYS, CONTENT_KEYS, PAGE_RELATION_KEYS, SITE_KEYS,
+  PAGE_LINK_KEYS, RESOURCE_KEYS, MENU_ENTRY_KEYS, PAGER_KEYS}`: every documented key is always
+  present (`none` when absent). Beyond §2.5: page `name` (`.Name`), `site.main_sections`, menu
+  `key_name` and `parent`. `site.config` is snake case: `services.{rss.limit,
+  google_analytics.id, disqus.shortname, instagram|x|twitter.disable_inline_css}`,
+  `privacy.<disqus|google_analytics|instagram|twitter|vimeo|x|youtube>.{disable, simple,
+  enable_dnt, respect_do_not_track, privacy_enhanced}` (every switch for every service).
+- `alternative_output_formats` is the list of output formats other than the page's primary
+  one (a full value is per page, not per rendered format; templates that need "other than the
+  current" compare with `output_format.name`).
 
-`RenderedContent { html, summary, truncated, plain, word_count, fuzzy_word_count,
-reading_time, table_of_contents, fragments: Arc<Fragments> }`, `ExpandedSource { markdown,
-placeholders: Vec<Arc<str>>, contexts: SourceContexts }`, `RenderStringOptions {
-display_block }` and `ContentError` are the skeleton's shapes; T34 may add fields and variants.
+## Resources
 
-## Skeleton parts (replaced)
+`page_resources(&Model, &ResourceStore)` registers every bundle file of the model in the store
+(publish policy from the model: eager, on reference; bundled content pages `Never`) and
+applies the page's `resources` front matter (`apply_meta`; files re-sorted by type and name
+when renamed, bundled pages after them as `page` resources with `page_id`). `resource_view(store,
+id)` is the value of any store resource; `post_processed_view(store, id)` of `post_process`.
 
-| Item | Now | Replaced by |
-|---|---|---|
-| `interim::FlatSite` | the flat interim model copied out of T23b's `Model` (same page ids: made pages, titles, `Page.urls`, parents, lists, `.Sections`, translations, terms, node dates, `.Site.Taxonomies` via `listed_terms`); pager targets via `Model::pager_paths`; derives only prev/next in section and front matter alias files | T24 (aliases, pagination), T33 (views) |
-| `ViewCache`, `ViewGeneration` | `new(flat)` builds the Meta generation, `freeze(&contents)` the Full ones; `generation(phase, variant)`, `summaries`, `links`, `sites`, `full(id)` (lazy, `OnceLock`) | T33 keeps this API over the real model |
-| `views::*` | a subset of §2.5's views: what the testsite and embedded rss/sitemap/alias templates read | T33 (every documented key) |
-| `PaginationRecorder`, `Recorded` | first call per (page, format) wins; `total_pages`, `page(n)`, `recorded()` | T35 (conflict error with both positions), T24 (`Pagination`) |
+**Pending transforms (T42's "for the template layer").** A pending result's links, name and
+media type are final, so its view is built without computing it. A `fingerprint` of a pending
+resource has provisional links and no integrity: its view carries `__nh_pp_<n>_<field>__`
+placeholders for `rel_permalink`, `permalink` and `data.integrity` (`ResourceStore::post_process`),
+so the output is held and patched in E5 (Hugo's laziness; seeksnack's PostCSS purge). `width`
+and `height` are known for processed images (the queue's result size); a source image's size
+needs its pixels, so it is none in the view and T35's `resize` & co. read it.
 
-Not in the skeleton: `PageStores`, `DeferredRegistry`, menus, resources, related pages.
+## Render state
 
-The planned dependency edges on `neohugo-nav` and `neohugo-resources` were dropped for the
-skeleton (nothing uses them yet); T33 restores them.
+Frozen by T38 and kept: `SCOPE_KEY`, `MAX_DEPTH`, `Phase`, `HookVariant`, `Stage`,
+`RenderScope { page, lang, format, pager, phase, variant, frame, txn, depth, chain }` with
+`layout`, `from_state`, `child`, `too_deep`, `to_value`, and the `ContentRenderer` trait
+(`content`, `fragments`, `render_shortcodes`, `render_markdown`, `render_template`). No
+thread-locals: the scope is the context value `__nh`.
+
+| Type | API |
+|---|---|
+| `PaginationRecorder` | `paginator(page, format, at, make) -> Arc<Recorded>` (first call records), `paginate(page, format, at, Pagination) -> Result<Arc<Recorded>, PaginationConflict>` (equal: reuse; else both positions), `get`, `recorded()`; `Recorded { pagination: Arc<neohugo_nav::Pagination>, first_call: Option<Position> }`, `total_pages()` (≥ 1), `page(n)` |
+| `PageStores` | `new(pages)`, `begin() -> TxnId`, `set(txn, page, key, value)` (buffered in a transaction, else direct), `get(txn, page, key)` (own writes first), `commit(txn)`, `discard(txn)` |
+| `DeferredRegistry` | `register(key, Deferred { template, data })` (first wins), `entries()` |
+| Pagers | `pager_view(&ViewGeneration, &Recorded, n, url) -> PagerView`, `pager_url(model, page, format, n)`, `page_target(model, page, format, pager) -> (TargetPaths, Links)` |
+| `NavSite` | `neohugo_nav::NavModel` over the model (menus, `page_aliases`, `default_pagination_list`, related index) |
 
 ## Tests (`cargo test -p neohugo-view`)
 
-`scope`: the scope round-trips through a Tera render and is read back by a function; a render
-without `__nh` has none; `child`/depth limit; the pagination recorder keeps the first call.
-The views are exercised end to end by `neohugo-build`'s testsite test.
+- `views`: a bilingual site with every kind (home, section, page, leaf bundle with resources
+  and a bundled page, taxonomy, term, 404, sitemap, sitemap index, robots.txt): Meta and Full
+  generations for `Html` and a `json` variant (fallback to `Html`, content phase → Meta),
+  every documented key printed for every kind (pages, links, sites, resources, menus, pagers,
+  `site.config` switches), pointer-equal list entries, relations and site values, resource
+  metadata and pending-fingerprint placeholders, `freeze_from` a `ContentRenderer`, insta
+  snapshots (`tests/it/snapshots`).
+- `state`: pagination recorder (first call, identical re-call, conflict with both positions),
+  page-store transactions, deferred registry. `scope`: the scope through a Tera render.
+- `memory::real_sites` (ignored): `NEOHUGO_SITES=<dir>[:<dir>…] cargo test -p neohugo-view
+  real_sites -- --ignored --nocapture` with sites from `tools/rust-port/i01/sites.py make`:
+  every page's full value in the Meta and two Full generations has every key, lists share
+  summaries, and dhat measures the heap kept. Last run:
+
+| Site | Pages | Model kept | Views kept (Meta + Full, job values) | + every full value cached | worst (3 generations, all cached) |
+|---|---|---|---|---|---|
+| testsite | 23 | 0.38 MB | 0.33 MB (0.86×) | 1.22× | 2.09× |
+| seeksnack | 198 | 2.07 MB | 3.16 MB (1.53×) | 2.12× | 3.59× |
+| docs | 948 | 9.49 MB | 17.6 MB (**1.85×**, asserted < 2×) | 2.42× | 3.80× |
+
+The views copy the content strings (Tera 2 builds string values from `&str` only):
+`raw_content` (1.4 MB on docs) and the rendered HTML, summary, plain text and TOC (3.8 MB).

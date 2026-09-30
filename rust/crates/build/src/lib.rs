@@ -214,7 +214,7 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     for d in model_diags {
         session.diagnostics().push(d);
     }
-    report.pages = session.views().flat().pages.len();
+    report.pages = session.model().pages.len();
     lap(&mut report, "templates");
 
     session.render_content()?;

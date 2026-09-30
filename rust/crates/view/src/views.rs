@@ -1,18 +1,184 @@
-//! The view structs (REWRITE_PLAN.md §2.5), serialised once into `tera::Value`s.
+//! The view structs (REWRITE_PLAN.md §2.5), serialised once into `tera::Value`s by the
+//! [`ViewCache`](crate::ViewCache).
 //!
-//! **Skeleton subset (T38).** These are the fields the testsite layouts and the embedded
-//! `rss.xml`, `sitemap.xml`, `sitemapindex.xml` and `alias.html` read; T33 completes them to
-//! the plan's list (file, resources, menus, related, git info, …) with every documented key
-//! always present.
+//! Every documented key is always present (`none` for an absent value), because Tera raises an
+//! error when an undefined value is printed. The key lists ([`PAGE_SUMMARY_KEYS`],
+//! [`CONTENT_KEYS`], [`PAGE_RELATION_KEYS`], [`SITE_KEYS`], …) are what templates may read;
+//! the tests print every one of them for every kind.
+//!
+//! Beyond the plan's list, a page has `name` (`.Name`) and a site `main_sections`
+//! (`.Site.MainSections`); menu entries have `key_name` and `parent`.
 
 use jiff::Zoned;
 use neohugo_base::{PageKind, Params, Value};
 use neohugo_config::Config;
+use neohugo_config::media::MediaType;
 use neohugo_config::site::SiteConfig;
 use serde::Serialize;
 
 use crate::content::RenderedContent;
-use crate::interim::{FlatPage, FlatSite};
+
+/// The keys of a summary page value (every generation).
+pub const PAGE_SUMMARY_KEYS: &[&str] = &[
+    "id",
+    "kind",
+    "lang",
+    "path",
+    "section",
+    "type",
+    "layout",
+    "bundle_type",
+    "name",
+    "title",
+    "link_title",
+    "description",
+    "date",
+    "lastmod",
+    "publish_date",
+    "expiry_date",
+    "weight",
+    "draft",
+    "params",
+    "keywords",
+    "aliases",
+    "permalink",
+    "rel_permalink",
+    "is_home",
+    "is_section",
+    "is_page",
+    "is_node",
+    "is_translated",
+    "file",
+    "git_info",
+    "sitemap",
+    "language",
+    "output_formats",
+    "resources",
+    "terms",
+];
+
+/// The content keys a page value has in the Full generations only.
+pub const CONTENT_KEYS: &[&str] = &[
+    "content",
+    "summary",
+    "truncated",
+    "plain",
+    "raw_content",
+    "word_count",
+    "fuzzy_word_count",
+    "reading_time",
+    "table_of_contents",
+    "fragments",
+    "len",
+];
+
+/// The keys a full page value adds to its summary (the rendered page, `deref`, `get_page`).
+pub const PAGE_RELATION_KEYS: &[&str] = &[
+    "parent",
+    "current_section",
+    "first_section",
+    "ancestors",
+    "pages",
+    "regular_pages",
+    "regular_pages_recursive",
+    "sections",
+    "prev",
+    "next",
+    "prev_in_section",
+    "next_in_section",
+    "translations",
+    "all_translations",
+    "alternative_output_formats",
+    "taxonomy",
+    "term",
+];
+
+/// The keys of `site`.
+pub const SITE_KEYS: &[&str] = &[
+    "title",
+    "base_url",
+    "lang",
+    "language_code",
+    "language",
+    "languages",
+    "is_multilingual",
+    "copyright",
+    "params",
+    "data",
+    "home",
+    "pages",
+    "regular_pages",
+    "all_pages",
+    "sections",
+    "main_sections",
+    "taxonomies",
+    "menus",
+    "last_mod",
+    "config",
+    "sitemap_abs_url",
+];
+
+/// The keys of a page link (`page.terms.<plural>[i]`, alias pages, menu entries' `page`).
+pub const PAGE_LINK_KEYS: &[&str] = &[
+    "id",
+    "kind",
+    "path",
+    "lang",
+    "title",
+    "link_title",
+    "permalink",
+    "rel_permalink",
+];
+
+/// The keys of a resource value.
+pub const RESOURCE_KEYS: &[&str] = &[
+    "__rid",
+    "name",
+    "title",
+    "params",
+    "resource_type",
+    "media_type",
+    "rel_permalink",
+    "permalink",
+    "width",
+    "height",
+    "data",
+    "page_id",
+];
+
+/// The keys of a menu entry.
+pub const MENU_ENTRY_KEYS: &[&str] = &[
+    "identifier",
+    "key_name",
+    "name",
+    "title",
+    "url",
+    "weight",
+    "parent",
+    "pre",
+    "post",
+    "params",
+    "page",
+    "children",
+    "has_children",
+];
+
+/// The keys of a pager (`paginator()`, `paginate()`).
+pub const PAGER_KEYS: &[&str] = &[
+    "page_number",
+    "url",
+    "pages",
+    "pager_size",
+    "total_pages",
+    "total_number_of_elements",
+    "has_prev",
+    "has_next",
+    "prev",
+    "next",
+    "first",
+    "last",
+    "pagers",
+];
 
 /// A date: compare instants with `.unix`, format with the `date` filter.
 #[derive(Clone, Debug, Serialize)]
@@ -36,11 +202,275 @@ impl DateView {
     }
 }
 
+/// `.File` of a page with a content file.
+#[derive(Clone, Debug, Serialize)]
+pub struct FileView {
+    /// The path inside the content directory as written (`posts/My Post.md`).
+    pub path: String,
+    /// Its directory with a trailing slash (`posts/`; empty at the root).
+    pub dir: String,
+    /// The file name without extension (`My Post`, `index`).
+    pub base_file_name: String,
+    /// The bundle directory's name for a bundle index, else the base file name.
+    pub content_base_name: String,
+    /// The MD5 hex digest of `path`.
+    pub unique_id: String,
+    pub is_content_adapter: bool,
+}
+
+/// `.GitInfo` (always none: `enableGitInfo` is a COULD).
+#[derive(Clone, Debug, Serialize)]
+pub struct GitInfoView {
+    pub hash: String,
+    pub abbreviated_hash: String,
+    pub subject: String,
+    pub author_name: String,
+    pub author_email: String,
+    pub author_date: DateView,
+    pub commit_date: DateView,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct SitemapView {
     pub change_freq: String,
     pub priority: f64,
     pub disable: bool,
+}
+
+/// The content fields of a page value in a Full generation (inserted into its summary map).
+#[derive(Clone, Debug, Serialize)]
+pub struct ContentView {
+    /// HTML (safe).
+    pub content: tera::Value,
+    /// HTML (safe).
+    pub summary: tera::Value,
+    pub truncated: bool,
+    pub plain: tera::Value,
+    /// The source after the front matter (one value per page, shared by the generations).
+    pub raw_content: tera::Value,
+    pub word_count: usize,
+    pub fuzzy_word_count: usize,
+    pub reading_time: usize,
+    /// HTML (safe).
+    pub table_of_contents: tera::Value,
+    /// `FragmentsView`.
+    pub fragments: tera::Value,
+    pub len: usize,
+}
+
+impl ContentView {
+    /// The content fields of `c` (`None`: a page without content, all fields empty); `raw` is
+    /// the source after the front matter, as a value.
+    #[must_use]
+    pub fn new(c: Option<&RenderedContent>, raw: tera::Value) -> Self {
+        let empty = RenderedContent::default();
+        let c = c.unwrap_or(&empty);
+        Self {
+            content: tera::Value::safe_string(&c.html),
+            summary: tera::Value::safe_string(&c.summary),
+            truncated: c.truncated,
+            plain: tera::Value::from(c.plain.as_str()),
+            raw_content: raw,
+            word_count: c.word_count,
+            fuzzy_word_count: c.fuzzy_word_count,
+            reading_time: c.reading_time,
+            table_of_contents: tera::Value::safe_string(&c.table_of_contents),
+            fragments: tera::Value::from_serializable(&FragmentsView::new(&c.fragments)),
+            len: c.html.len(),
+        }
+    }
+}
+
+/// `.Fragments`.
+#[derive(Clone, Debug, Serialize)]
+pub struct FragmentsView {
+    pub headings: Vec<HeadingView>,
+    pub identifiers: Vec<String>,
+}
+
+impl FragmentsView {
+    #[must_use]
+    pub fn new(f: &neohugo_markup::Fragments) -> Self {
+        Self {
+            headings: f.headings.iter().map(HeadingView::new).collect(),
+            identifiers: f.identifiers.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct HeadingView {
+    pub id: String,
+    pub level: u8,
+    /// The heading as HTML (rendered without hooks).
+    pub title: String,
+    pub headings: Vec<HeadingView>,
+}
+
+impl HeadingView {
+    fn new(h: &neohugo_markup::Heading) -> Self {
+        Self {
+            id: h.id.clone(),
+            level: h.level,
+            title: h.html.clone(),
+            headings: h.children.iter().map(Self::new).collect(),
+        }
+    }
+}
+
+/// The relation-free page value, Arc-shared in every list. The Full generations insert the
+/// [`ContentView`] keys into it. Values that many pages share (dates, sitemap settings, media
+/// types, empty lists) are pre-serialised once and passed through.
+#[derive(Clone, Debug, Serialize)]
+#[allow(clippy::struct_excessive_bools)] // template fields (`is_home`, `draft`, …), not state
+pub struct PageSummaryView {
+    pub id: u32,
+    pub kind: PageKind,
+    pub lang: String,
+    pub path: String,
+    pub section: String,
+    pub r#type: String,
+    pub layout: Option<String>,
+    /// `leaf`, `branch`, or none.
+    pub bundle_type: Option<&'static str>,
+    /// `.Name`.
+    pub name: String,
+    pub title: String,
+    pub link_title: String,
+    pub description: String,
+    /// `DateView` or none (as the three below).
+    pub date: tera::Value,
+    pub lastmod: tera::Value,
+    pub publish_date: tera::Value,
+    pub expiry_date: tera::Value,
+    pub weight: i32,
+    pub draft: bool,
+    pub params: tera::Value,
+    /// `[String]` (as `aliases`).
+    pub keywords: tera::Value,
+    pub aliases: tera::Value,
+    /// The primary format's links (`""` when the page has no link).
+    pub permalink: String,
+    pub rel_permalink: String,
+    pub is_home: bool,
+    pub is_section: bool,
+    pub is_page: bool,
+    pub is_node: bool,
+    pub is_translated: bool,
+    pub file: Option<FileView>,
+    pub git_info: Option<GitInfoView>,
+    /// `SitemapView`.
+    pub sitemap: tera::Value,
+    /// `LanguageView`.
+    pub language: tera::Value,
+    /// `{name: OutputFormatView}` in format order.
+    pub output_formats: tera::Value,
+    /// `[ResourceView]`.
+    pub resources: tera::Value,
+    /// `{plural: [PageLink]}`, a key for every configured taxonomy.
+    pub terms: tera::Value,
+}
+
+/// The relations a full page value adds on top of its summary. Every list holds summary values
+/// of the same generation (acyclic, Arc-shared).
+#[derive(Clone, Debug, Serialize)]
+pub struct PageRelations {
+    pub parent: Option<tera::Value>,
+    pub current_section: tera::Value,
+    pub first_section: tera::Value,
+    pub ancestors: tera::Value,
+    pub pages: tera::Value,
+    pub regular_pages: tera::Value,
+    pub regular_pages_recursive: tera::Value,
+    pub sections: tera::Value,
+    pub prev: Option<tera::Value>,
+    pub next: Option<tera::Value>,
+    pub prev_in_section: Option<tera::Value>,
+    pub next_in_section: Option<tera::Value>,
+    pub translations: tera::Value,
+    pub all_translations: tera::Value,
+    /// The output formats other than the primary one.
+    pub alternative_output_formats: tera::Value,
+    /// Taxonomy pages.
+    pub taxonomy: Option<TaxonomyView>,
+    /// Term pages.
+    pub term: Option<TermView>,
+}
+
+/// `page.taxonomy` of a taxonomy page (`.Data.Singular/Plural/Terms`).
+#[derive(Clone, Debug, Serialize)]
+pub struct TaxonomyView {
+    pub singular: String,
+    pub plural: String,
+    /// `[TermEntryView]` by term key.
+    pub terms: tera::Value,
+}
+
+/// `page.term` of a term page.
+#[derive(Clone, Debug, Serialize)]
+pub struct TermView {
+    /// `.Name`: the term as first written.
+    pub name: String,
+    /// `.Data.Term`.
+    pub term: String,
+    /// The term's key (`blue-sky`).
+    pub key: String,
+    pub singular: String,
+    pub plural: String,
+}
+
+/// A term with its pages (`site.taxonomies.<plural>.<key>`, `page.taxonomy.terms`).
+#[derive(Clone, Debug, Serialize)]
+pub struct TermEntryView {
+    pub name: String,
+    pub key: String,
+    pub count: usize,
+    /// The term page (summary).
+    pub page: tera::Value,
+    /// Its members (summaries): weight, then the default order.
+    pub pages: tera::Value,
+}
+
+/// A reference to a page (terms, alias pages, menu entries).
+#[derive(Clone, Debug, Serialize)]
+pub struct PageLink {
+    pub id: u32,
+    pub kind: PageKind,
+    pub path: String,
+    pub lang: String,
+    pub title: String,
+    pub link_title: String,
+    pub permalink: String,
+    pub rel_permalink: String,
+}
+
+/// `site`, per language.
+#[derive(Clone, Debug, Serialize)]
+pub struct SiteView {
+    pub title: String,
+    pub base_url: String,
+    pub lang: String,
+    pub language_code: String,
+    pub language: tera::Value,
+    pub languages: tera::Value,
+    pub is_multilingual: bool,
+    pub copyright: String,
+    pub params: tera::Value,
+    /// `.Site.Data`: shared by every language and generation, keys as written.
+    pub data: tera::Value,
+    pub home: tera::Value,
+    pub pages: tera::Value,
+    pub regular_pages: tera::Value,
+    pub all_pages: tera::Value,
+    pub sections: tera::Value,
+    pub main_sections: Vec<String>,
+    /// `{plural: {term_key: TermEntryView}}`, terms by key.
+    pub taxonomies: tera::Value,
+    /// `{menu: [MenuEntryView]}`.
+    pub menus: tera::Value,
+    pub last_mod: Option<DateView>,
+    pub config: tera::Value,
+    pub sitemap_abs_url: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -72,8 +502,30 @@ impl LanguageView {
     }
 }
 
+/// A menu entry (`site.menus.<name>`).
+#[derive(Clone, Debug, Serialize)]
+pub struct MenuEntryView {
+    pub identifier: String,
+    /// `.KeyName`: the identifier, else the name.
+    pub key_name: String,
+    pub name: String,
+    pub title: String,
+    pub url: String,
+    pub weight: i32,
+    pub parent: Option<String>,
+    /// HTML (safe).
+    pub pre: tera::Value,
+    /// HTML (safe).
+    pub post: tera::Value,
+    pub params: tera::Value,
+    pub page: Option<PageLink>,
+    pub children: Vec<MenuEntryView>,
+    pub has_children: bool,
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct MediaTypeView {
+    /// `text/html`: what `{{ .MediaType }}` printed.
     pub r#type: String,
     pub main_type: String,
     pub sub_type: String,
@@ -81,213 +533,100 @@ pub struct MediaTypeView {
     pub delimiter: String,
 }
 
+impl MediaTypeView {
+    #[must_use]
+    pub fn new(mt: &MediaType) -> Self {
+        Self {
+            r#type: if mt.main.is_empty() {
+                String::new()
+            } else {
+                mt.type_string()
+            },
+            main_type: mt.main.clone(),
+            sub_type: mt.sub.clone(),
+            suffixes: mt.suffixes.clone(),
+            delimiter: mt.delimiter.clone(),
+        }
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct OutputFormatView {
     pub name: String,
     pub rel: String,
-    pub media_type: MediaTypeView,
+    /// `MediaTypeView` (one value per format).
+    pub media_type: tera::Value,
     pub permalink: String,
     pub rel_permalink: String,
     pub is_plain_text: bool,
     pub is_html: bool,
 }
 
-/// A reference to a page (menus, terms).
+/// A pager (`paginator()`, `paginate()`).
 #[derive(Clone, Debug, Serialize)]
-pub struct PageLink {
-    pub id: u32,
-    pub kind: PageKind,
-    pub path: String,
-    pub lang: String,
+pub struct PagerView {
+    pub page_number: u32,
+    pub url: String,
+    /// Summaries, or `[{key, pages}]` groups.
+    pub pages: tera::Value,
+    pub pager_size: usize,
+    pub total_pages: u32,
+    pub total_number_of_elements: usize,
+    pub has_prev: bool,
+    pub has_next: bool,
+    pub prev: Option<PagerLink>,
+    pub next: Option<PagerLink>,
+    pub first: PagerLink,
+    pub last: PagerLink,
+    pub pagers: Vec<PagerLink>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PagerLink {
+    pub page_number: u32,
+    pub url: String,
+}
+
+/// `.Data` of a resource.
+#[derive(Clone, Debug, Serialize)]
+pub struct ResourceDataView {
+    /// `Integrity` of a fingerprinted resource (else none).
+    pub integrity: Option<String>,
+}
+
+/// A resource (bundle files, assets, transform results).
+#[derive(Clone, Debug, Serialize)]
+pub struct ResourceView {
+    /// The store id site functions read back (`ResourceArg`).
+    #[serde(rename = "__rid")]
+    pub rid: u32,
+    pub name: String,
     pub title: String,
-    pub link_title: String,
-    pub permalink: String,
-    pub rel_permalink: String,
-}
-
-/// The content fields of a Full generation's page values.
-#[derive(Clone, Debug, Serialize)]
-pub struct ContentView {
-    pub content: tera::Value,
-    pub summary: tera::Value,
-    pub truncated: bool,
-    pub plain: String,
-    pub raw_content: String,
-    pub word_count: usize,
-    pub fuzzy_word_count: usize,
-    pub reading_time: usize,
-    pub table_of_contents: tera::Value,
-    pub len: usize,
-}
-
-impl ContentView {
-    /// The content fields of `c` (`None`: a page without content, all fields empty).
-    #[must_use]
-    pub fn new(c: Option<&RenderedContent>, raw: &str) -> Self {
-        let empty = RenderedContent::default();
-        let c = c.unwrap_or(&empty);
-        Self {
-            content: tera::Value::safe_string(&c.html),
-            summary: tera::Value::safe_string(&c.summary),
-            truncated: c.truncated,
-            plain: c.plain.clone(),
-            raw_content: raw.to_owned(),
-            word_count: c.word_count,
-            fuzzy_word_count: c.fuzzy_word_count,
-            reading_time: c.reading_time,
-            table_of_contents: tera::Value::safe_string(&c.table_of_contents),
-            len: c.html.len(),
-        }
-    }
-}
-
-/// The relation-free page value, Arc-shared in every list.
-#[derive(Clone, Debug, Serialize)]
-#[allow(clippy::struct_excessive_bools)] // template fields (`is_home`, `draft`, …), not state
-pub struct PageSummaryView {
-    pub id: u32,
-    pub kind: PageKind,
-    pub lang: String,
-    pub path: String,
-    pub section: String,
-    pub r#type: String,
-    pub layout: Option<String>,
-    pub title: String,
-    pub link_title: String,
-    pub description: String,
-    pub date: Option<DateView>,
-    pub lastmod: Option<DateView>,
-    pub publish_date: Option<DateView>,
-    pub expiry_date: Option<DateView>,
-    pub weight: i32,
-    pub draft: bool,
     pub params: tera::Value,
-    pub keywords: Vec<String>,
-    pub aliases: Vec<String>,
-    pub permalink: String,
+    /// `image`, `text`, `page`, …
+    pub resource_type: String,
+    pub media_type: MediaTypeView,
+    /// Links; post-process placeholders when the value is only known in phase E5.
     pub rel_permalink: String,
-    pub is_home: bool,
-    pub is_section: bool,
-    pub is_page: bool,
-    pub is_node: bool,
-    pub is_translated: bool,
-    pub sitemap: SitemapView,
-    pub language: LanguageView,
-    pub output_formats: tera::Value,
-    pub resources: tera::Value,
-    pub terms: tera::Value,
-    #[serde(flatten, skip_serializing_if = "Option::is_none")]
-    pub content: Option<ContentView>,
+    pub permalink: String,
+    /// Processed images only (a source image's size needs its pixels; `resize` knows it).
+    pub width: Option<u32>,
+    pub height: Option<u32>,
+    pub data: ResourceDataView,
+    /// Bundled content pages: `resource_content` gives that page's HTML.
+    pub page_id: Option<u32>,
 }
 
-/// The template value of front matter or configuration params.
-#[must_use]
-pub fn params_value(p: &Params) -> tera::Value {
-    Value::Map(std::sync::Arc::new(p.as_map().clone())).to_tera()
-}
-
-fn output_formats(cfg: &Config, p: &FlatPage) -> tera::Value {
-    let mut m = tera::Map::new();
-    for o in &p.outputs {
-        let f = cfg.output_formats.get(o.format);
-        let mt = cfg.media_types.get(f.media_type);
-        let v = OutputFormatView {
-            name: f.name.clone(),
-            rel: f.rel.clone(),
-            media_type: MediaTypeView {
-                r#type: mt.type_string(),
-                main_type: mt.main.clone(),
-                sub_type: mt.sub.clone(),
-                suffixes: mt.suffixes.clone(),
-                delimiter: mt.delimiter.clone(),
-            },
-            permalink: o.links.permalink.to_string(),
-            rel_permalink: o.links.rel_permalink.escaped(),
-            is_plain_text: f.escaping == neohugo_config::output::Escaping::Plain,
-            is_html: f.is_html,
-        };
-        m.insert(f.name.clone().into(), tera::Value::from_serializable(&v));
-    }
-    tera::Value::from(m)
-}
-
-/// The link value of page `p`.
-#[must_use]
-pub fn page_link(flat: &FlatSite, p: &FlatPage) -> PageLink {
-    let (permalink, rel_permalink) = p.links.as_ref().map_or_else(Default::default, |l| {
-        (l.permalink.to_string(), l.rel_permalink.escaped())
-    });
-    PageLink {
-        id: p.id.raw(),
-        kind: p.kind,
-        path: p.path.clone(),
-        lang: flat.config.sites[p.lang].language.key.clone(),
-        title: p.title.clone(),
-        link_title: p.link_title.clone(),
-        permalink,
-        rel_permalink,
-    }
-}
-
-/// The summary value of page `p`, with `content` for Full generations.
-#[must_use]
-pub fn page_summary(
-    flat: &FlatSite,
-    p: &FlatPage,
-    content: Option<ContentView>,
-) -> PageSummaryView {
-    let cfg = &flat.config;
-    let site = &cfg.sites[p.lang];
-    let (permalink, rel_permalink) = p.links.as_ref().map_or_else(Default::default, |l| {
-        (l.permalink.to_string(), l.rel_permalink.escaped())
-    });
-    let date = |d: Option<&Zoned>| d.map(DateView::new);
-    let mut terms = tera::Map::new();
-    for (t, pages) in flat.langs[p.lang].taxonomies.iter().zip(&p.terms) {
-        let links: Vec<tera::Value> = pages
-            .iter()
-            .map(|&term| tera::Value::from_serializable(&page_link(flat, &flat.pages[term])))
-            .collect();
-        terms.insert(t.plural.clone().into(), tera::Value::from(links));
-    }
-    PageSummaryView {
-        id: p.id.raw(),
-        kind: p.kind,
-        lang: site.language.key.clone(),
-        path: p.path.clone(),
-        section: p.section.clone(),
-        r#type: p.r#type.clone(),
-        layout: p.layout.clone(),
-        title: p.title.clone(),
-        link_title: p.link_title.clone(),
-        description: p.description.clone(),
-        date: date(p.dates.date.as_ref()),
-        lastmod: date(p.dates.lastmod.as_ref()),
-        publish_date: date(p.dates.publish_date.as_ref()),
-        expiry_date: date(p.dates.expiry_date.as_ref()),
-        weight: p.weight,
-        draft: p.draft,
-        params: params_value(&p.params),
-        keywords: p.keywords.clone(),
-        aliases: p.aliases.clone(),
-        permalink,
-        rel_permalink,
-        is_home: p.kind == PageKind::Home,
-        is_section: p.kind == PageKind::Section,
-        is_page: p.kind == PageKind::Page,
-        is_node: p.kind.is_branch() || p.kind == PageKind::NotFound,
-        is_translated: !p.translations.is_empty(),
-        sitemap: SitemapView {
-            change_freq: p.sitemap.change_freq.clone(),
-            priority: p.sitemap.priority,
-            disable: p.sitemap.disable,
-        },
-        language: LanguageView::new(site),
-        output_formats: output_formats(cfg, p),
-        resources: tera::Value::from(Vec::<tera::Value>::new()),
-        terms: tera::Value::from(terms),
-        content,
-    }
+/// A shortcode call (`shortcode`); built by the content engine.
+#[derive(Clone, Debug, Serialize)]
+pub struct ShortcodeView {
+    pub name: String,
+    pub args: Vec<tera::Value>,
+    pub params: tera::Value,
+    pub is_named_params: bool,
+    pub ordinal: u32,
+    pub parent: Option<Box<ShortcodeView>>,
+    pub position: String,
 }
 
 /// `hugo`.
@@ -317,4 +656,129 @@ impl HugoView {
             ),
         }
     }
+}
+
+/// `site.config`: the configuration the embedded templates read, in snake case.
+#[derive(Clone, Debug, Serialize)]
+pub struct SiteConfigView {
+    pub services: ServicesView,
+    /// Every service has every switch (false when the service has none).
+    pub privacy: PrivacyView,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct ServicesView {
+    pub rss: RssView,
+    pub google_analytics: GoogleAnalyticsView,
+    pub disqus: DisqusView,
+    pub instagram: InlineCssView,
+    pub x: InlineCssView,
+    pub twitter: InlineCssView,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct RssView {
+    /// `-1`: no limit.
+    pub limit: i64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct GoogleAnalyticsView {
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct DisqusView {
+    pub shortname: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct InlineCssView {
+    pub disable_inline_css: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct PrivacyView {
+    pub disqus: PrivacyServiceView,
+    pub google_analytics: PrivacyServiceView,
+    pub instagram: PrivacyServiceView,
+    pub twitter: PrivacyServiceView,
+    pub vimeo: PrivacyServiceView,
+    pub x: PrivacyServiceView,
+    pub youtube: PrivacyServiceView,
+}
+
+/// The privacy switches of one service.
+#[derive(Clone, Debug, Default, Serialize)]
+#[allow(clippy::struct_excessive_bools)] // configuration switches, as Hugo names them
+pub struct PrivacyServiceView {
+    pub disable: bool,
+    pub simple: bool,
+    pub enable_dnt: bool,
+    pub respect_do_not_track: bool,
+    pub privacy_enhanced: bool,
+}
+
+impl SiteConfigView {
+    #[must_use]
+    pub fn new(cfg: &Config, site: &SiteConfig) -> Self {
+        let s = &site.services;
+        let p = &cfg.privacy;
+        let x = |v: &neohugo_config::global::XPrivacy| PrivacyServiceView {
+            disable: v.disable,
+            simple: v.simple,
+            enable_dnt: v.enable_dnt,
+            ..PrivacyServiceView::default()
+        };
+        Self {
+            services: ServicesView {
+                rss: RssView { limit: s.rss.limit },
+                google_analytics: GoogleAnalyticsView {
+                    id: s.google_analytics.id.clone(),
+                },
+                disqus: DisqusView {
+                    shortname: s.disqus.shortname.clone(),
+                },
+                instagram: InlineCssView {
+                    disable_inline_css: s.instagram.disable_inline_css,
+                },
+                x: InlineCssView {
+                    disable_inline_css: s.x.disable_inline_css,
+                },
+                twitter: InlineCssView {
+                    disable_inline_css: s.twitter.disable_inline_css,
+                },
+            },
+            privacy: PrivacyView {
+                disqus: PrivacyServiceView {
+                    disable: p.disqus.disable,
+                    ..PrivacyServiceView::default()
+                },
+                google_analytics: PrivacyServiceView {
+                    disable: p.google_analytics.disable,
+                    respect_do_not_track: p.google_analytics.respect_do_not_track,
+                    ..PrivacyServiceView::default()
+                },
+                instagram: PrivacyServiceView {
+                    disable: p.instagram.disable,
+                    simple: p.instagram.simple,
+                    ..PrivacyServiceView::default()
+                },
+                twitter: x(&p.twitter),
+                vimeo: x(&p.vimeo),
+                x: x(&p.x),
+                youtube: PrivacyServiceView {
+                    disable: p.youtube.disable,
+                    privacy_enhanced: p.youtube.privacy_enhanced,
+                    ..PrivacyServiceView::default()
+                },
+            },
+        }
+    }
+}
+
+/// The template value of front matter or configuration params.
+#[must_use]
+pub fn params_value(p: &Params) -> tera::Value {
+    Value::Map(std::sync::Arc::new(p.as_map().clone())).to_tera()
 }

@@ -2956,6 +2956,7 @@ dependencies = [
  "neohugo-markup",
  "neohugo-nav",
  "neohugo-page",
+ "neohugo-resources",
  "neohugo-site",
  "neohugo-vfs",
  "neohugo-view",
@@ -3031,10 +3032,14 @@ dependencies = [
 name = "neohugo-sitefuncs"
 version = "0.149.0-DEV"
 dependencies = [
+ "dashmap 6.2.1",
  "neohugo-base",
  "neohugo-funcs",
+ "neohugo-images",
  "neohugo-locale",
+ "neohugo-nav",
  "neohugo-resources",
+ "neohugo-site",
  "neohugo-view",
  "neohugo-workspace-hack",
  "tera",
@@ -3077,15 +3082,23 @@ name = "neohugo-view"
 version = "0.149.0-DEV"
 dependencies = [
  "dhat",
+ "insta",
  "jiff",
+ "md-5",
  "neohugo-base",
  "neohugo-config",
  "neohugo-layouts",
  "neohugo-markup",
+ "neohugo-nav",
  "neohugo-page",
+ "neohugo-resources",
  "neohugo-site",
+ "neohugo-testkit",
+ "neohugo-vfs",
  "neohugo-workspace-hack",
+ "rayon",
  "serde",
+ "tempfile",
  "tera",
  "thiserror 2.0.21",
 ]

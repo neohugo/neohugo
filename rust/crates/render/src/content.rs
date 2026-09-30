@@ -11,7 +11,6 @@ use neohugo_config::site::{EmojiPolicy, SiteConfig};
 use neohugo_markup::{ExpandedMarkdown, MarkdownOptions, NoHooks, SourceContexts, text};
 use neohugo_page::Markup;
 use neohugo_view::RenderedContent;
-use neohugo_view::interim::FlatSource;
 
 use crate::RenderError;
 
@@ -48,20 +47,30 @@ pub(crate) fn markdown(
     })
 }
 
+/// A page's content file, as the content phase reads it.
+pub(crate) struct PageSource<'a> {
+    /// The text after the front matter.
+    pub body: &'a str,
+    pub file: Arc<std::path::Path>,
+    pub markup: Markup,
+    /// Front matter `summary`.
+    pub summary: Option<&'a str>,
+}
+
 /// The content of page `page` from `src`.
 pub(crate) fn render_page(
     page: PageId,
-    src: &FlatSource,
+    src: &PageSource<'_>,
     site: &SiteConfig,
 ) -> Result<RenderedContent, RenderError> {
     let o = markdown_options(site);
     let (html, toc, fragments) = match src.markup {
         Markup::Markdown => {
-            let r = markdown(&src.body, page, &src.file, &o)?;
+            let r = markdown(src.body, page, &src.file, &o)?;
             let toc = r.toc.to_html(&o.toc);
             (r.html, toc, r.fragments)
         }
-        Markup::Html => (src.body.to_string(), String::new(), Default::default()),
+        Markup::Html => (src.body.to_owned(), String::new(), Default::default()),
     };
     let (content, summary, truncated) = match text::split_at_marker(&html, SUMMARY_DIVIDER) {
         Some((summary, rest)) => {
@@ -69,7 +78,7 @@ pub(crate) fn render_page(
             let content = format!("{summary}\n{}", rest.trim_end());
             (content, summary, truncated)
         }
-        None => match &src.summary {
+        None => match src.summary {
             Some(s) => {
                 let r = markdown(s, page, &src.file, &o)?;
                 let truncated = true;

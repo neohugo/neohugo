@@ -90,11 +90,11 @@ fn phases_jobs_and_pagination() {
     s.render_content().expect("content");
     s.freeze_views().expect("freeze");
 
-    let flat = s.views().flat();
+    let model = s.model();
     let kinds: Vec<PageKind> = wave1
         .iter()
         .map(|j| match j {
-            Job::Page { page, .. } | Job::Standalone { page, .. } => flat.pages[*page].kind,
+            Job::Page { page, .. } | Job::Standalone { page, .. } => model.pages[*page].kind,
             other => panic!("unexpected wave 1 job {other:?}"),
         })
         .collect();

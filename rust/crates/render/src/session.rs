@@ -14,14 +14,14 @@ use neohugo_layouts::{
     Templates,
 };
 use neohugo_markup::Fragments;
-use neohugo_nav::AliasKind;
-use neohugo_site::Model;
+use neohugo_resources::{ResourceStore, StoreConfig};
+use neohugo_site::{Model, Page, PageRole, PageUrl};
 use neohugo_vfs::Vfs;
-use neohugo_view::interim::{FlatPage, FlatSite};
 use neohugo_view::views::HugoView;
 use neohugo_view::{
-    ContentError, ContentRenderer, Contents, ExpandedSource, HookVariant, PaginationRecorder,
-    Phase, RenderScope, RenderStringOptions, RenderedContent, SCOPE_KEY, ViewCache,
+    ContentError, ContentRenderer, Contents, ExpandedSource, HookVariant, NavSite,
+    PaginationRecorder, Phase, RenderScope, RenderStringOptions, RenderedContent, SCOPE_KEY,
+    ViewCache, ViewInputs, page_target,
 };
 use rayon::prelude::*;
 
@@ -62,6 +62,8 @@ pub struct Session {
     views: Arc<ViewCache>,
     pagination: Arc<PaginationRecorder>,
     selections: BTreeMap<(PageId, FormatId), Selection>,
+    /// Front matter alias files per language (`neohugo_nav::page_aliases`).
+    aliases: IdVec<LangIdx, Vec<AliasPlan>>,
     contents: OnceLock<BTreeMap<HookVariant, Contents>>,
     hugo: tera::Value,
     diagnostics: Arc<Diagnostics>,
@@ -70,7 +72,7 @@ pub struct Session {
 impl std::fmt::Debug for Session {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Session")
-            .field("pages", &self.views.flat().pages.len())
+            .field("pages", &self.model.pages.len())
             .field("templates", &self.templates)
             .finish_non_exhaustive()
     }
@@ -95,8 +97,15 @@ fn pure_env(model: &Model, o: &RenderOptions, diagnostics: &Arc<Diagnostics>) ->
     env
 }
 
+/// The outputs a page is rendered in (none unless it is written), the primary first.
+fn outputs(p: &Page) -> impl Iterator<Item = &PageUrl> {
+    p.urls
+        .iter()
+        .filter(move |u| p.rendered() && u.links.is_some())
+}
+
 /// The layout query of page `p` in `format`.
-fn layout_query<'a>(p: &'a FlatPage, path: &'a ContentKey, format: FormatId) -> LayoutQuery<'a> {
+fn layout_query<'a>(p: &'a Page, path: &'a ContentKey, format: FormatId) -> LayoutQuery<'a> {
     let standalone = matches!(
         p.kind,
         PageKind::NotFound | PageKind::Sitemap | PageKind::SitemapIndex | PageKind::RobotsTxt
@@ -104,7 +113,7 @@ fn layout_query<'a>(p: &'a FlatPage, path: &'a ContentKey, format: FormatId) -> 
     LayoutQuery {
         path,
         kind: Some(p.kind),
-        layout: p.layout.as_deref(),
+        layout: p.meta.layout.as_deref(),
         exact_layout: false,
         lang: (!standalone).then_some(p.lang),
         format,
@@ -113,7 +122,7 @@ fn layout_query<'a>(p: &'a FlatPage, path: &'a ContentKey, format: FormatId) -> 
 
 /// The lookup path of a page: its key with the first segment replaced by its type when that
 /// differs from the section.
-fn lookup_path(p: &FlatPage) -> ContentKey {
+fn lookup_path(p: &Page) -> ContentKey {
     if p.section.is_empty() || p.r#type == p.section || p.r#type == "page" {
         return p.key.clone();
     }
@@ -143,22 +152,41 @@ impl Session {
     /// ContentRenderer>`; `Session` implements the trait).
     ///
     /// # Errors
-    /// [`RenderError::Model`] (the interim model's target paths), [`RenderError::Template`]
-    /// (Tera load errors).
+    /// [`RenderError::View`] (invalid `resources` front matter), [`RenderError::Nav`] (an
+    /// alias that cannot be written), [`RenderError::Template`] (Tera load errors).
     pub fn new(
         project: Project,
         model: Arc<Model>,
         o: &RenderOptions,
     ) -> Result<Arc<Self>, RenderError> {
         let diagnostics = Arc::new(Diagnostics::new(model.config.ignore_logs.iter()));
-        let flat = Arc::new(FlatSite::build(&model)?);
-        let views = Arc::new(ViewCache::new(Arc::clone(&flat)));
+        let store = Arc::new(ResourceStore::new(StoreConfig::from_config(
+            &model.config,
+            Some(Arc::clone(&project.vfs)),
+            None,
+        )));
+        let (menus, menu_diagnostics) =
+            neohugo_nav::build_menus(&NavSite::new(Arc::clone(&model)), &model.config);
+        for d in menu_diagnostics {
+            diagnostics.push(d);
+        }
+        let views = Arc::new(ViewCache::new(ViewInputs {
+            model: Arc::clone(&model),
+            store,
+            menus: Arc::new(menus),
+        })?);
         let pagination = Arc::new(PaginationRecorder::default());
+        let aliases = model
+            .config
+            .sites
+            .ids()
+            .map(|l| neohugo_nav::page_aliases(views.nav(), &model.config, l))
+            .collect::<Result<_, _>>()?;
 
         let mut selections = BTreeMap::new();
-        for p in &flat.pages {
+        for p in &model.pages {
             let path = lookup_path(p);
-            for out in &p.outputs {
+            for out in outputs(p) {
                 match project.layouts.select(&layout_query(p, &path, out.format)) {
                     Some(s) => {
                         selections.insert((p.id, out.format), s);
@@ -193,6 +221,7 @@ impl Session {
             views,
             pagination,
             selections,
+            aliases,
             contents: OnceLock::new(),
             diagnostics,
         });
@@ -208,16 +237,23 @@ impl Session {
         if self.contents.get().is_some() {
             return Ok(());
         }
-        let flat = self.views.flat();
-        let rendered: Vec<Option<Arc<RenderedContent>>> = flat
+        let model = &self.model;
+        let rendered: Vec<Option<Arc<RenderedContent>>> = model
             .pages
             .as_slice()
             .par_iter()
             .map(|p| {
                 p.source
                     .as_ref()
+                    .filter(|_| p.rendered() && p.role == PageRole::Standalone)
                     .map(|src| {
-                        content::render_page(p.id, src, &flat.config.sites[p.lang]).map(Arc::new)
+                        let src = content::PageSource {
+                            body: src.body(),
+                            file: Arc::from(src.file.abs.as_path()),
+                            markup: p.meta.markup,
+                            summary: p.meta.summary.as_deref(),
+                        };
+                        content::render_page(p.id, &src, &model.config.sites[p.lang]).map(Arc::new)
                     })
                     .transpose()
             })
@@ -249,21 +285,21 @@ impl Session {
         if !self.views.is_frozen() {
             return Err(RenderError::Phase("render_job before freeze_views"));
         }
-        let flat = self.views.flat();
+        let model = &self.model;
         match *job {
             Job::Page { page, format } | Job::Standalone { page, format } => {
-                let p = &flat.pages[page];
-                let Some(out) = p.outputs.iter().find(|o| o.format == format) else {
+                let p = &model.pages[page];
+                let Some(out) = outputs(p).find(|o| o.format == format) else {
                     return Err(RenderError::NoOutput { page, format });
                 };
-                self.render_layout(job, page, format, None, out.target.target.clone())
+                self.render_layout(job, page, format, None, out.paths.target.clone())
             }
             Job::Pager {
                 page,
                 format,
                 number,
             } => {
-                let (target, _) = flat.target(page, format, Some(number))?;
+                let (target, _) = page_target(model, page, format, Some(number))?;
                 self.render_layout(job, page, format, Some(number), target.target)
             }
             Job::Alias(ref a) => {
@@ -271,43 +307,42 @@ impl Session {
                 self.render_alias(job, &a.from, &to, Some(a.to), a.format)
             }
             Job::PagerAlias { page, format } => {
-                let (target, _) = flat.target(page, format, Some(1))?;
+                let (target, _) = page_target(model, page, format, Some(1))?;
                 let to = self.permalink(page, format)?;
                 self.render_alias(job, &target.target, &to, Some(page), format)
             }
             Job::LanguageRedirect => {
-                let cfg = &flat.config;
+                let cfg = &model.config;
                 let lang = LangIdx::from_index(0);
-                let Some(home) = flat.langs[lang].home else {
+                let home = model.sites[lang].home;
+                let Some(out) = outputs(&model.pages[home]).next() else {
                     return Ok(Vec::new());
                 };
-                let Some(out) = flat.pages[home].primary() else {
+                let Some(links) = &out.links else {
                     return Ok(Vec::new());
                 };
                 let from =
                     OutputPath::new(&format!("/{}/index.html", cfg.sites[lang].language.key));
-                let to = out.links.permalink.to_string();
+                let to = links.permalink.to_string();
                 self.render_alias(job, &from, &to, None, out.format)
             }
         }
     }
 
     fn permalink(&self, page: PageId, format: FormatId) -> Result<String, RenderError> {
-        self.views.flat().pages[page]
-            .outputs
-            .iter()
+        outputs(&self.model.pages[page])
             .find(|o| o.format == format)
-            .map(|o| o.links.permalink.to_string())
+            .and_then(|o| o.links.as_ref())
+            .map(|l| l.permalink.to_string())
             .ok_or(RenderError::NoOutput { page, format })
     }
 
     /// The order of a job.
     #[must_use]
     pub fn order(&self, job: &Job) -> JobOrder {
-        let flat = self.views.flat();
         let rank = |f: FormatId| u8::try_from(f.index()).unwrap_or(u8::MAX);
         let of = |page: PageId, format: FormatId, sub: u8| {
-            JobOrder::new(flat.pages[page].lang, rank(format), page.raw(), sub)
+            JobOrder::new(self.model.pages[page].lang, rank(format), page.raw(), sub)
         };
         match *job {
             Job::Alias(ref a) => of(a.to, a.format, 0),
@@ -330,12 +365,12 @@ impl Session {
         let Some(sel) = self.selections.get(&(page, format)) else {
             return Ok(Vec::new());
         };
-        let flat = self.views.flat();
-        let p = &flat.pages[page];
+        let cfg = &self.model.config;
+        let p = &self.model.pages[page];
         let scope = RenderScope::layout(page, p.lang, format, pager);
         let generation = self.views.generation(Phase::Layout, scope.variant);
-        let full = generation.full(page);
-        let format_name = &flat.config.output_formats.get(format).name;
+        let full = generation.page_value(page);
+        let format_name = &cfg.output_formats.get(format).name;
         let output_format = full
             .as_map()
             .and_then(|m| m.get(&tera::value::Key::Str("output_formats")))
@@ -347,7 +382,7 @@ impl Session {
         ctx.insert_value("page", full);
         ctx.insert_value("site", generation.sites[p.lang].clone());
         ctx.insert_value("hugo", self.hugo.clone());
-        ctx.insert("lang", &flat.config.sites[p.lang].language.key);
+        ctx.insert("lang", &cfg.sites[p.lang].language.key);
         ctx.insert_value("output_format", output_format);
         if p.kind == PageKind::SitemapIndex {
             ctx.insert_value("sites", tera::Value::from(generation.sites.as_slice()));
@@ -367,7 +402,7 @@ impl Session {
             text,
             format,
             lang: p.lang,
-            is_html: flat.config.output_formats.get(format).is_html,
+            is_html: cfg.output_formats.get(format).is_html,
             order: self.order(job),
         }])
     }
@@ -393,8 +428,7 @@ impl Session {
         let Some(name) = self.alias_template() else {
             return Ok(Vec::new());
         };
-        let flat = self.views.flat();
-        let lang = page.map_or(LangIdx::from_index(0), |p| flat.pages[p].lang);
+        let lang = page.map_or(LangIdx::from_index(0), |p| self.model.pages[p].lang);
         let generation = self.views.generation(Phase::Layout, HookVariant::Html);
         let mut ctx = tera::Context::new();
         ctx.insert("permalink", to);
@@ -428,29 +462,26 @@ impl Session {
     /// sitemap index with the first language), in [`JobOrder`].
     #[must_use]
     pub fn wave1(&self, lang: LangIdx) -> Vec<Job> {
-        let flat = self.views.flat();
-        let mut jobs: Vec<Job> = flat
-            .aliases()
-            .into_iter()
-            .filter(|a| flat.pages[a.to].lang == lang)
-            .map(|a| {
-                Job::Alias(AliasPlan {
-                    from: a.from,
-                    to: a.to,
-                    format: a.format,
-                    kind: AliasKind::FrontMatter,
-                })
-            })
+        let model = &self.model;
+        let mut jobs: Vec<Job> = self.aliases[lang].iter().cloned().map(Job::Alias).collect();
+        // robots.txt and the sitemap index are rendered once, with the first language.
+        let root = |p: &Page| {
+            matches!(p.kind, PageKind::RobotsTxt | PageKind::SitemapIndex) && p.lang.index() == 0
+        };
+        let mut standalone: Vec<PageId> = model
+            .pages
+            .iter()
+            .filter(|p| p.lang == lang && p.standalone.is_some() && !root(p))
+            .map(|p| p.id)
             .collect();
-        let mut standalone: Vec<PageId> = flat.langs[lang].standalone.clone();
         if lang.index() == 0 {
-            standalone.extend(&flat.root_standalone);
+            standalone.extend(model.pages.iter().filter(|p| root(p)).map(|p| p.id));
         }
-        for p in &flat.pages {
+        for p in &model.pages {
             if p.lang != lang || is_standalone(p.kind) {
                 continue;
             }
-            for o in &p.outputs {
+            for o in outputs(p) {
                 jobs.push(Job::Page {
                     page: p.id,
                     format: o.format,
@@ -458,7 +489,7 @@ impl Session {
             }
         }
         for s in standalone {
-            for o in &flat.pages[s].outputs {
+            for o in outputs(&model.pages[s]) {
                 jobs.push(Job::Standalone {
                     page: s,
                     format: o.format,
@@ -474,11 +505,10 @@ impl Session {
     /// redirect.
     #[must_use]
     pub fn wave2(&self) -> Vec<Job> {
-        let flat = self.views.flat();
-        let cfg = &flat.config;
+        let cfg = &self.model.config;
         let mut jobs = Vec::new();
         for ((page, format), rec) in self.pagination.recorded() {
-            let site = &cfg.sites[flat.pages[page].lang];
+            let site = &cfg.sites[self.model.pages[page].lang];
             if cfg.output_formats.get(format).is_html && !site.pagination.disable_aliases {
                 jobs.push(Job::PagerAlias { page, format });
             }
@@ -555,8 +585,7 @@ impl ContentRenderer for Session {
         _: RenderStringOptions,
         s: &RenderScope,
     ) -> Result<String, ContentError> {
-        let flat = self.views.flat();
-        let site = &flat.config.sites[s.lang];
+        let site = &self.model.config.sites[s.lang];
         let file: Arc<std::path::Path> = Arc::from(std::path::Path::new(""));
         content::markdown(md, s.page, &file, &content::markdown_options(site))
             .map(|r| r.html)
