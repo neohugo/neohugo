@@ -7,6 +7,9 @@ license.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 autotests = false
+# Lists `embedded/**` (T32) for `include_str!`; kept under src/ so the crate's files stay in
+# src/, tests/, embedded/ and Cargo.toml.
+build = "src/build.rs"
 
 [lib]
 doctest = false
@@ -23,6 +26,14 @@ neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
 neohugo-config.workspace = true
 neohugo-vfs.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
 tera.workspace = true
 thiserror.workspace = true
+serde.workspace = true # neohugo_base::define_id! derives serde traits
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+# Only `spec` and `register_placeholders` (a path dependency, so default features can be off:
+# see crates/testkit/Cargo.toml).
+neohugo-funcs = { path = "../funcs", default-features = false }
+serde_json.workspace = true
+tempfile.workspace = true

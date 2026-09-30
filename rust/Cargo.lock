@@ -2842,8 +2842,13 @@ version = "0.149.0-DEV"
 dependencies = [
  "neohugo-base",
  "neohugo-config",
+ "neohugo-funcs",
+ "neohugo-testkit",
  "neohugo-vfs",
  "neohugo-workspace-hack",
+ "serde",
+ "serde_json",
+ "tempfile",
  "tera",
  "thiserror 2.0.21",
 ]
