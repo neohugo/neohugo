@@ -22,6 +22,18 @@ isPlainText = true
 [outputFormats.htmlish]
 mediaType = "text/plain"
 isPlainText = false
+# The docs site's Netlify formats (`rust/sites/docs/layouts/home.{redir,headers}`).
+[mediaTypes."text/netlify"]
+delimiter = ""
+[outputFormats.redir]
+baseName = "_redirects"
+isPlainText = true
+mediaType = "text/netlify"
+[outputFormats.headers]
+baseName = "_headers"
+isPlainText = true
+mediaType = "text/netlify"
+notAlternative = true
 "#;
 
 fn env() -> LayoutEnv {
