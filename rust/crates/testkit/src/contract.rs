@@ -49,10 +49,10 @@ impl fmt::Display for Finding {
     }
 }
 
-/// `rust/` of this checkout.
+/// `rust/` of the checkout being tested (see [`crate::fixture::rust_dir`]).
 #[must_use]
 pub fn rust_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../..")
+    crate::fixture::rust_dir()
 }
 
 /// `rust/docs/template-api.md`.

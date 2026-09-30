@@ -17,7 +17,7 @@ use neohugo_esbuild::{BINARY_ENV, DEFAULT_BINARY, Service};
 
 /// The repository root (`rust/..`).
 fn repo_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../..")
+    neohugo_testkit::fixture::rust_dir().join("..")
 }
 
 /// The esbuild binary, or `None` (with a note on stderr) when there is none.

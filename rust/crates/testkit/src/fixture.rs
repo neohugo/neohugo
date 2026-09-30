@@ -63,10 +63,24 @@ impl Layout {
     }
 }
 
-/// `rust/testdata` of this checkout.
+/// `rust/` of the checkout being tested.
+///
+/// Resolved at run time: every worktree shares one cargo target dir and reuses the same
+/// artifacts, so a path baked in with `env!` could point into another (possibly removed)
+/// checkout. Cargo sets `CARGO_MANIFEST_DIR` for the test binary of the crate under test, and
+/// every crate lives at `rust/crates/<name>`. `NEOHUGO_RUST_DIR` overrides both.
+#[must_use]
+pub fn rust_dir() -> PathBuf {
+    std::env::var_os("NEOHUGO_RUST_DIR")
+        .map(PathBuf::from)
+        .or_else(|| std::env::var_os("CARGO_MANIFEST_DIR").map(|d| PathBuf::from(d).join("../..")))
+        .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
+}
+
+/// `rust/testdata` of the checkout being tested (see [`rust_dir`]).
 #[must_use]
 pub fn testdata_dir() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../testdata")
+    rust_dir().join("testdata")
 }
 
 /// A path under `rust/testdata`, e.g. `oracle/page/permalinks/docs.json.gz`.
