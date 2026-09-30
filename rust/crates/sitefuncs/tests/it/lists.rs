@@ -1,0 +1,89 @@
+//! Page orders and groupings; taxonomy term orders.
+
+use neohugo_base::PageKind;
+
+use crate::support;
+
+fn titles(filter: &str) -> String {
+    format!(
+        "{{{{ [p.title for p in get_page(path=\"/posts\") | get_path(path=[\"regular_pages\"]) | {filter}] | join(sep=\",\") }}}}"
+    )
+}
+
+#[test]
+fn page_orders() {
+    let site = support::load();
+    let s = site.home_scope();
+    assert_eq!(site.render(&titles("by_title"), &s), "Bundle,One,Three,Two");
+    // link titles: Bundle, One, Three, Zwei.
+    assert_eq!(
+        site.render(&titles("by_link_title"), &s),
+        "Bundle,One,Three,Two"
+    );
+    assert_eq!(site.render(&titles("by_date"), &s), "Bundle,One,Two,Three");
+    assert_eq!(
+        site.render(&titles("by_date | reverse"), &s),
+        "Three,Two,One,Bundle"
+    );
+    assert_eq!(
+        site.render(&titles("by_lastmod"), &s),
+        "Bundle,Two,One,Three"
+    );
+    // Hugo's default order: weight (0 last), then date descending.
+    assert_eq!(
+        site.render(&titles("by_weight"), &s),
+        "Two,One,Three,Bundle"
+    );
+    let e = site
+        .try_render("{{ [1, 2] | by_title }}", &s)
+        .expect_err("not pages");
+    assert!(e.to_string().contains("expected a page"), "{e}");
+}
+
+#[test]
+fn groupings() {
+    let site = support::load();
+    let s = site.home_scope();
+    assert_eq!(
+        site.render(
+            "{% for g in get_page(path=\"/posts\") | get_path(path=[\"regular_pages\"]) | group_by_date(format=\"%Y\") %}{{ g.key }}:{{ [p.title for p in g.pages] | join(sep=\",\") }};{% endfor %}",
+            &s
+        ),
+        "2022:Three,Two;2021:One;2020:Bundle;"
+    );
+    assert_eq!(
+        site.render(
+            "{% for g in get_page(path=\"/posts\") | get_path(path=[\"regular_pages\"]) | group_by_date(format=\"%Y\", attribute=\"lastmod\") %}{{ g.key }};{% endfor %}",
+            &s
+        ),
+        "2023;2021;2020;"
+    );
+    assert_eq!(
+        site.render(
+            "{% for g in get_page(path=\"/posts\") | get_path(path=[\"regular_pages\"]) | by_weight | group_by_param(param=\"series\") %}{{ g.key }}:{{ [p.title for p in g.pages] | join(sep=\",\") }};{% endfor %}",
+            &s
+        ),
+        "x:One,Three;z:Two;"
+    );
+}
+
+#[test]
+fn taxonomy_term_orders() {
+    let site = support::load();
+    let s = site.scope(site.page(PageKind::Home, "/", 0), None);
+    // a: one, two; b: one, three.
+    assert_eq!(
+        site.render(
+            "{% for t in site.taxonomies.tags | by_count %}{{ t.name }}={{ t.count }};{% endfor %}",
+            &s
+        ),
+        "a=2;b=2;"
+    );
+    assert_eq!(
+        site.render(
+            "{{ [t.name for t in site.taxonomies.tags | alphabetical] | join(sep=\",\") }}",
+            &s
+        ),
+        "a,b"
+    );
+}

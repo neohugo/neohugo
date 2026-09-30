@@ -22,15 +22,31 @@ workspace = true
 [dependencies]
 neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
+neohugo-config.workspace = true
 neohugo-view.workspace = true
 neohugo-funcs.workspace = true
 neohugo-resources.workspace = true
 neohugo-locale.workspace = true
-# `Handles` (T33): the model, menus and related index, the image queue.
 neohugo-site.workspace = true
+neohugo-page.workspace = true
 neohugo-nav.workspace = true
 neohugo-images.workspace = true
+# `partial()` / `template_exists` look templates up; `execute_as_template` renders with the
+# build's Tera instance (`Handles::templates`).
+neohugo-layouts.workspace = true
+# The `highlight` filter (site `[markup.highlight]` defaults).
+neohugo-highlight.workspace = true
 dashmap.workspace = true
-# planned third-party dependencies (T00); the owning task adjusts them
 tera.workspace = true
 thiserror.workspace = true
+serde_json.workspace = true
+jiff.workspace = true
+# `unmarshal` of CSV and XML (the same readers as `site.data`).
+csv.workspace = true
+roxmltree.workspace = true
+
+[dev-dependencies]
+neohugo-testkit.workspace = true
+neohugo-vfs.workspace = true
+neohugo-markup.workspace = true
+tempfile.workspace = true

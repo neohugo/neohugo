@@ -3032,16 +3032,28 @@ dependencies = [
 name = "neohugo-sitefuncs"
 version = "0.149.0-DEV"
 dependencies = [
+ "csv",
  "dashmap 6.2.1",
+ "jiff",
  "neohugo-base",
+ "neohugo-config",
  "neohugo-funcs",
+ "neohugo-highlight",
  "neohugo-images",
+ "neohugo-layouts",
  "neohugo-locale",
+ "neohugo-markup",
  "neohugo-nav",
+ "neohugo-page",
  "neohugo-resources",
  "neohugo-site",
+ "neohugo-testkit",
+ "neohugo-vfs",
  "neohugo-view",
  "neohugo-workspace-hack",
+ "roxmltree",
+ "serde_json",
+ "tempfile",
  "tera",
  "thiserror 2.0.21",
 ]
