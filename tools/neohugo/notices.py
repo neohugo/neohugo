@@ -98,9 +98,10 @@ def main(argv):
     if len(args) != 2:
         sys.exit(__doc__)
     target, out = args[0], Path(args[1])
+    # cargo prints UTF-8 whatever the locale (Windows' default is cp1252).
     meta = json.loads(subprocess.run(
         ["cargo", "metadata", "--format-version", "1", "--locked", "--filter-platform", target],
-        cwd=ROOT / "rust", capture_output=True, text=True, check=True).stdout)
+        cwd=ROOT / "rust", capture_output=True, check=True).stdout.decode("utf-8"))
     packages = {p["id"]: p for p in meta["packages"]}
     members = set(meta["workspace_members"])
     ids = sorted((i for i in closure(meta, "neohugo") if i not in members),

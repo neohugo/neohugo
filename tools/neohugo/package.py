@@ -35,7 +35,8 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 
 def binary_version(binary):
     """The version `<binary> version` prints (`neohugo-rs <version>`)."""
-    out = subprocess.run([str(binary), "version"], capture_output=True, text=True, check=True)
+    out = subprocess.run([str(binary), "version"], capture_output=True, text=True,
+                         encoding="utf-8", check=True)
     m = re.fullmatch(r"neohugo-rs (\S+)\n?", out.stdout)
     if not m:
         sys.exit(f"package.py: `{binary} version` printed {out.stdout!r}, "

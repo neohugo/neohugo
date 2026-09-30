@@ -23,7 +23,7 @@ mod style;
 mod token;
 
 use std::collections::{BTreeMap, BTreeSet};
-use std::sync::{Mutex, PoisonError};
+use std::sync::{Mutex, OnceLock, PoisonError};
 
 use neohugo_base::Map;
 use neohugo_base::diag::Diagnostic;
@@ -67,11 +67,29 @@ pub enum OptionsArg<'a> {
 /// A token: its Chroma type and its text.
 pub type Token<'a> = (TokenType, &'a str);
 
-/// The highlighter: syntaxes, Chroma's lexer table and styles, and the site's defaults.
-pub struct Highlight {
+/// The syntaxes, Chroma's lexer table, the scope rules and the bundled styles. They do not
+/// depend on the site and loading the syntaxes is most of the cost of a [`Highlight`], so they
+/// are loaded once per process and shared (the server makes a `Highlight` for every rebuild).
+struct Tables {
     languages: Languages,
     scopes: ScopeMap,
     styles: Styles,
+}
+
+fn tables() -> &'static Tables {
+    static TABLES: OnceLock<Tables> = OnceLock::new();
+    TABLES.get_or_init(|| Tables {
+        languages: Languages::load(),
+        scopes: ScopeMap::new(),
+        styles: Styles::bundled(),
+    })
+}
+
+/// The highlighter: syntaxes, Chroma's lexer table and styles, and the site's defaults.
+pub struct Highlight {
+    languages: &'static Languages,
+    scopes: &'static ScopeMap,
+    styles: &'static Styles,
     defaults: Options,
     /// Style names that fell back to [`FALLBACK_STYLE`], for [`Highlight::diagnostics`].
     fallbacks: Mutex<BTreeSet<String>>,
@@ -86,14 +104,15 @@ impl std::fmt::Debug for Highlight {
 }
 
 impl Highlight {
-    /// A highlighter with the site's `[markup.highlight]` settings (loads the syntaxes; build
-    /// it once per build).
+    /// A highlighter with the site's `[markup.highlight]` settings. The first one in a process
+    /// loads the syntaxes; later ones share them.
     #[must_use]
     pub fn new(config: &HighlightConfig) -> Self {
+        let tables = tables();
         Self {
-            languages: Languages::load(),
-            scopes: ScopeMap::new(),
-            styles: Styles::bundled(),
+            languages: &tables.languages,
+            scopes: &tables.scopes,
+            styles: &tables.styles,
             defaults: Options::from_config(config),
             fallbacks: Mutex::new(BTreeSet::new()),
         }
@@ -256,7 +275,7 @@ impl Highlight {
             Some((last, s, e)) if *last == t && *e == start && *e - *s < 8192 => *e = end,
             _ => spans.push((t, start, end)),
         };
-        let mut classifier = Classifier::new(&self.scopes);
+        let mut classifier = Classifier::new(self.scopes);
         self.scan(code, syntax, |stack, start, end| {
             let t = stack.map_or(TokenType::Text, |s| classifier.classify(s));
             if t != TokenType::Text || whitespace == Whitespace::Text {
@@ -376,5 +395,22 @@ impl Highlighter for Highlight {
             &opts,
             Some(&o.attributes),
         ))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn highlighters_share_the_tables() {
+        let a = Highlight::new(&HighlightConfig::default());
+        let b = Highlight::new(&HighlightConfig::default());
+        assert!(std::ptr::eq(a.languages, b.languages));
+        assert!(std::ptr::eq(a.scopes, b.scopes));
+        assert!(std::ptr::eq(a.styles, b.styles));
+        // Only the tables are shared: the fallback notices stay per highlighter.
+        a.fallbacks.lock().unwrap().insert("x".into());
+        assert!(b.fallbacks.lock().unwrap().is_empty());
     }
 }
