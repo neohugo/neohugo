@@ -23,3 +23,5 @@ Rules:
 | `rust/testdata/site-assets/site/*.jpg` | Images of the seeksnack site (owner's private repository), via the old port's go-image fixtures | `be02933a` | seeksnack site content (repository owner's) | verbatim |
 | `rust/testdata/site-assets/golden/*.png` | PNG outputs of the golden seeksnack build, via the old port's go-png fixtures | `be02933a` | seeksnack site content (repository owner's) | verbatim |
 | `rust/testdata/site-assets/repo/*.png` | Copies of this repository's `docs/static`, `resources/testdata`, `tpl/images/testdata`, `resources/images/testdata` PNGs (Hugo test data), via the old port's go-png fixtures | `be02933a` | Apache-2.0 (Hugo) | verbatim |
+| `rust/crates/base/src/inflect.rs` (word lists and rules) | gobuffalo/flect (the inflector Hugo uses) | v1.0.3 | MIT (`THIRD_PARTY/flect/LICENSE`) | rewritten (data tables transcribed, logic re-implemented; T10) |
+| `rust/crates/base/src/title.rs` (AP/Chicago small-word lists and rules) | jdkato/prose `transform` title casing (used by Hugo) | v1.2.1 | MIT (`THIRD_PARTY/prose/LICENSE`) | rewritten (data tables transcribed, logic re-implemented; T10) |

@@ -11,3 +11,5 @@ texts and sources are kept here (REWRITE_PLAN.md §5). Each entry names the task
 | `cldr/` | Unicode CLDR data compiled into the ICU4X data crates | Unicode-3.0 | T12 |
 | `emoji/` | Emoji short-code data (comrak's `emojis` crate, from GitHub gemoji / Unicode) | MIT / Unicode-3.0 | T22 |
 | `livereload/` | `livereload.js` served by `neohugo-rs server` | MIT | T71 |
+| `flect/` | Inflection word lists and rules from gobuffalo/flect v1.0.3, transcribed into `crates/base/src/inflect.rs` | MIT (`flect/LICENSE`) | T10 |
+| `prose/` | Title-case word lists and rules from jdkato/prose v1.2.1, transcribed into `crates/base/src/title.rs` | MIT (`prose/LICENSE`) | T10 |
