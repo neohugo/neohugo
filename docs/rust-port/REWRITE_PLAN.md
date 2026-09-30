@@ -1357,7 +1357,7 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 | `diagrams.Goat` | `diagrams_goat(text=)` → `{inner (safe SVG), width, height, wrapped}` (svgbob; SHOULD, T66) | F | D |
 | `base64Encode/Decode`, `md5`, `sha1`, `sha256`, `hash.FNV32a`, `hash.XxHash` | `base64_encode`/`base64_decode` (tc), `md5`, `sha1`, `sha256`, `fnv32a`, `xxhash` | tc/F | D |
 | `now` | `now()` (honours `--clock`) | fn | all |
-| `.Format`, `time.Format`, `dateFormat`, `:date_long` | `date(format="%B %-d, %Y", locale=?)`, `date(style="long")` (Thai uses the Gregorian calendar) | tc or F | D S R |
+| `.Format`, `time.Format`, `dateFormat`, `:date_long` | `.Format` → `date(format="%B %-d, %Y")` (English names, like Go's `.Format`); `time.Format`/`dateFormat` → `date(format=…, locale=lang)` (localised names, F3); `date(style="long")` (localised; Thai uses the Gregorian calendar) | tc or F | D S R |
 | `time.AsTime`, `.Year`, `.IsZero` | `to_date`, `d \| date(format="%Y")`, `is none` (zero dates serialise as `none`) | F/T | D |
 | `i18n` / `T` | `i18n(key=, count=?, data=?, page=?)` | fn (s) | S R |
 | `lang.FormatNumber` | `format_number(precision=)` | F (s) | D |

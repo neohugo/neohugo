@@ -43,7 +43,7 @@ files for a manual diff. `skeleton::testsite_contents` checks canonified links, 
 taxonomies, translations, JSON and RSS homes, aliases, the language redirect, sitemaps and
 robots.txt.
 
-Byte diff against Go (informational): 49 of 55 files identical. The rest: whitespace control
-in the embedded `sitemap.xml`/`sitemapindex.xml` (`</url><url>` in Go), `html_escape` keeps
-newlines where Go writes `&#xA;` (one RSS description), and `date(format="%b …")` is
-localised in `nn` (`feb.` vs Go's always-English `Feb`).
+Byte diff against Go: **55 of 55 files identical** (F3). `tests/it/testsite-go.txtar` holds
+Go's `public/` output (built offline from this repo); `skeleton::testsite_l1` takes the file
+list from it and `skeleton::testsite_bytes` checks every file's bytes, with allowed differences
+listed (with reasons) in `KNOWN_BYTE_DIFFS`, currently empty.
