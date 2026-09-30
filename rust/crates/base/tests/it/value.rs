@@ -136,6 +136,16 @@ fn toml_dates_and_json_numbers() {
 }
 
 #[test]
+fn yaml_non_finite_floats_keep_their_yaml_spelling() {
+    let v = Value::from_yaml_str("a: .inf\nb: -.inf\nc: .nan\nd: 1.5\n").unwrap();
+    let m = v.as_map().unwrap();
+    assert_eq!(m.get("a"), Some(&Value::string(".inf")));
+    assert_eq!(m.get("b"), Some(&Value::string("-.inf")));
+    assert_eq!(m.get("c"), Some(&Value::string(".nan")));
+    assert_eq!(m.get("d"), Some(&Value::Float(1.5)));
+}
+
+#[test]
 fn id_vec_and_kinds() {
     let mut pages: IdVec<PageId, &str> = IdVec::new();
     let home = pages.push("home");

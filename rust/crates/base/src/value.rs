@@ -321,7 +321,11 @@ impl Value {
     /// # Errors
     /// Invalid YAML.
     pub fn from_yaml_str(s: &str) -> Result<Self, DecodeError> {
-        Ok(serde_saphyr::from_str(s)?)
+        // `.inf`/`.nan` would otherwise fail the whole document: an untyped value cannot hold a
+        // non-finite float in serde-saphyr, so keep them as their canonical YAML strings.
+        let mut options = serde_saphyr::Options::default();
+        options.reject_non_finite_typeless_float = false;
+        Ok(serde_saphyr::from_str_with_options(s, options)?)
     }
 
     /// The template value: maps keep key case and byte order, dates are RFC 3339 strings.

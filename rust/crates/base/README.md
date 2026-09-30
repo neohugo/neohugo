@@ -67,6 +67,7 @@ rules, not transliterated.
 
 ## Accepted deviations
 
+- **YAML `.inf` / `-.inf` / `.nan`** decode to those strings, not to non-finite floats: an untyped serde-saphyr value cannot carry them, and rejecting them (the crate default) failed the whole document. Hugo (yaml.v2) gives float ±Inf/NaN.
 1. **Strings that are not UTF-8** (not applicable): the API takes `&str`. Affects 7 inputs of
    each string corpus, 44 of the 274 glob inputs and one glob pattern.
 2. **`BaseUrl`**
