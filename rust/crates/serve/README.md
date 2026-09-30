@@ -150,10 +150,11 @@ Measured on the testsite (debug build; 4 CPUs shared with other builds):
 |---|---|---|---|
 | `neohugo-rs server`, alone (3 sessions, 13 content and 9 static edits) | 1.54–1.84 s, one 2.17 s while the machine was compiling | – | 1.00–1.14 s |
 | `testsite_is_served_and_reloads` (8 runs, 6 of them next to the other tests) | 1.54–2.03 s (23 of 24 ≤ 2 s) | 1.55–1.69 s | 1.01–1.07 s |
+| the same test after the highlighter cache (below) | 1.09–1.11 s | 1.11 s | 1.06 s |
 
-That is the 1 s debounce, up to one 100 ms tick, and the rebuild (≈0.52–0.76 s in the debug
-build). Callgrind on a testsite build: **92 % of it is `neohugo_highlight::Highlight::new`**
-(`Languages::load` → syntect `SyntaxSetBuilder::build`, which dumps, deflates and reloads the
-syntax set) in `Session::new`, on every build, although the testsite highlights nothing. A
-process-wide cache of the highlighter's languages and styles (`neohugo-highlight`, not this
-task's crate) would bring a debug rebuild to ≈40 ms and edit → reload to ≈1.1 s.
+That is the 1 s debounce, up to one 100 ms tick, and the rebuild. Before the cache, callgrind
+on a testsite build found **92 % of the rebuild (≈0.52–0.76 s in the debug build) in
+`neohugo_highlight::Highlight::new`** (`Languages::load` → syntect `SyntaxSetBuilder::build`,
+which dumps, deflates and reloads the syntax set), on every build, although the testsite
+highlights nothing. `neohugo-highlight` now loads its syntaxes, scope rules and styles once per
+process and every `Highlight` shares them, so a rebuild after the first costs tens of ms.
