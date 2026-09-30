@@ -4,7 +4,10 @@
 # the sites run or import:
 #   - @tailwindcss/cli, tailwindcss, @tailwindcss/typography: css.TailwindCSS of docs-reduced;
 #   - alpinejs, @alpinejs/{focus,persist}, @hotwired/turbo: js.Build imports of docs-reduced;
-#   - postcss, postcss-cli: css.PostCSS of the seeksnack reconstruction.
+#   - postcss, postcss-cli: css.PostCSS of the seeksnack reconstruction;
+#   - @babel/cli, @babel/core: the real-tool Babel test of neohugo-resources (js.Babel).
+# CI (.github/workflows/rust.yml) runs this script and points NEOHUGO_{POSTCSS,TAILWINDCSS,BABEL}_BIN
+# and NEOHUGO_NODE_MODULES into the result.
 #
 #   tools/neohugo/node.sh [install]   npm ci into the node_modules directory (network)
 #   tools/neohugo/node.sh check       exit 1 unless the installed modules match the lock file
@@ -57,12 +60,12 @@ install)
 	echo "$want" >"$stage/node_modules/.neohugo-lock-sha256"
 	rm -rf "$target"
 	mv "$stage/node_modules" "$target"
-	for bin in tailwindcss postcss; do
+	for bin in tailwindcss postcss babel; do
 		[ -x "$target/.bin/$bin" ] || { echo "node.sh: $target/.bin/$bin missing" >&2; exit 1; }
 	done
 	echo "node.sh: installed into $target ($(du -sh "$target" | cut -f1)):"
 	for pkg in @tailwindcss/cli tailwindcss @tailwindcss/typography alpinejs @alpinejs/focus \
-		@alpinejs/persist @hotwired/turbo postcss postcss-cli; do
+		@alpinejs/persist @hotwired/turbo postcss postcss-cli @babel/cli @babel/core; do
 		echo "  $pkg $(node -p "require('$target/$pkg/package.json').version")"
 	done
 	;;
