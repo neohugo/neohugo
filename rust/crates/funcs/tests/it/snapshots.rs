@@ -197,6 +197,10 @@ const EXAMPLES: &[(&str, &str)] = &[
         "remarshal/json",
         "{{ 'a = 1\nb = \"x\"' | remarshal(format='json') }}",
     ),
+    (
+        "remarshal/json_dates_html",
+        "{{ 'd = 2023-01-01\nt = 2023-01-01T07:32:00.5\nz = 2023-01-01T07:32:00+07:00\nh = \"<i>&</i>\"' | remarshal(format='json') | safe }}",
+    ),
     ("urlencode", "{{ 'a b/c?d' | urlencode }}"),
     ("urlencode_strict", "{{ 'a b/c?d' | urlencode_strict }}"),
     ("urldecode", "{{ 'a%20b+c' | urldecode }}"),

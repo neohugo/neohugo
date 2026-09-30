@@ -29,7 +29,12 @@ languageName = "English"
 weight = 2
 languageName = "Français"
 [outputs]
-home = ["html", "rss", "json"]
+home = ["html", "rss", "json", "headers"]
+[outputFormats.headers]
+baseName = "_headers"
+isPlainText = true
+mediaType = "text/plain"
+notAlternative = true
 [taxonomies]
 tag = "tags"
 [[menus.main]]

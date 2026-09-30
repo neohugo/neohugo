@@ -179,10 +179,14 @@ DOCS_REPLACE = [  # (file, old, new, variants, why)
 ]
 
 DOCS_WRITE = [  # (file, content, variants, why)
+    # The GitHub API stub holds what `resources.GetRemote | transform.Unmarshal` gives in Go: JSON
+    # numbers are float64 (Go prints 76543.0 as 76543; with ints `printf "%0.1fk" (div 76543 1000)`
+    # printed "%!f(int64=76)k"). The Tera patch keeps integers: the Rust `unmarshal` gives Int for
+    # integral JSON numbers.
     ("layouts/_partials/helpers/funcs/get-github-info.html",
      '{{ return dict "html_url" "https://github.com/gohugoio/hugo" "stargazers_url" '
-     '"https://api.github.com/repos/gohugoio/hugo/stargazers" "watchers_count" 1234 '
-     '"stargazers_count" 76543 "forks_count" 7890 "contributors_url" '
+     '"https://api.github.com/repos/gohugoio/hugo/stargazers" "watchers_count" 1234.0 '
+     '"stargazers_count" 76543.0 "forks_count" 7890.0 "contributors_url" '
      '"https://api.github.com/repos/gohugoio/hugo/contributors" "releases_url" '
      '"https://api.github.com/repos/gohugoio/hugo/releases{/id}" }}',
      BOTH, "GetRemote of the GitHub API"),

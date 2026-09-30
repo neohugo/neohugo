@@ -317,6 +317,20 @@ ancestors:
     link_title: Home
     name: Home
     output_formats:
+      headers:
+        is_html: false
+        is_plain_text: true
+        media_type:
+          delimiter: "."
+          main_type: text
+          sub_type: plain
+          suffixes:
+            - txt
+          type: text/plain
+        name: headers
+        permalink: "https://example.org/_headers.txt"
+        rel: alternate
+        rel_permalink: /_headers.txt
       html:
         is_html: true
         is_plain_text: false

@@ -117,6 +117,9 @@ struct Op {
     digest: u64,
     /// Shared by every operation with the same `digest`: identical bytes are processed once.
     result: SharedResult,
+    /// The EXIF orientation of the original source: like Go, a processed image keeps its
+    /// source's EXIF data for `auto_orient` (the encoded result carries none).
+    orientation: Option<u8>,
 }
 
 /// Queued image operations, shared by every render of a build.
@@ -309,12 +312,12 @@ impl ImageQueue {
                 let info = InputInfo {
                     size: (op.out.width, op.out.height),
                     format: op.out.format,
-                    // Processed results carry no EXIF data.
-                    orientation: None,
+                    orientation: op.orientation,
                 };
                 (info, op.digest, op.stem.clone(), op.ext.clone())
             }
         };
+        let orientation = info.orientation;
         let plan = Plan::new(
             &info,
             spec,
@@ -359,6 +362,7 @@ impl ImageQueue {
                 stem,
                 digest: hash,
                 result,
+                orientation,
             })
         });
         Ok(op.out.clone())

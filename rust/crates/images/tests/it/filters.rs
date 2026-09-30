@@ -230,6 +230,22 @@ fn auto_orient_follows_exif() {
         (oriented.width, oriented.height),
         (plain.height, plain.width)
     );
+    // A processed image keeps its source's orientation (Go keeps its EXIF data): resize
+    // (80x40 → 40x20), then orient (20x40).
+    let resized = q
+        .enqueue(&src, Some(&"resize 40x".parse().expect("spec")), &[])
+        .expect("resized");
+    assert_eq!((resized.width, resized.height), (40, 20));
+    let then_oriented = q
+        .enqueue(
+            &ImageInput::Op(resized.id),
+            None,
+            &[ImageFilter::AutoOrient],
+        )
+        .expect("then oriented");
+    assert_eq!((then_oriented.width, then_oriented.height), (20, 40));
+    let img = decode(&q.encoded(then_oriented.id).expect("process"));
+    assert_eq!(img.dimensions(), (20, 40));
     // Without EXIF orientation the filter does nothing.
     let sunset = ImageInput::File(repo_dir().join("resources/testdata/sunset.jpg"));
     let a = q.enqueue(&sunset, None, &[]).expect("a");

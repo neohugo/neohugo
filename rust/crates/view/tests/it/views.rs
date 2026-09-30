@@ -327,6 +327,7 @@ fn relations_and_site_values() {
         .iter()
         .map(|f| str_of(f, "name"))
         .collect();
+    // `headers` is `notAlternative`.
     assert_eq!(alternatives, ["rss", "json"]);
     let tags = g.full(page(m, PageKind::Taxonomy, "/tags", 0));
     let taxonomy = get(&tags, "taxonomy");
