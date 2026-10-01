@@ -2,7 +2,8 @@
 
 An idiomatic Rust rewrite of neohugo (Hugo's site and page model, Tera 2 templates). The plan,
 binding for every task and review, is [`docs/rust-port/REWRITE_PLAN.md`](../docs/rust-port/REWRITE_PLAN.md);
-§1.2 "What Rust style means here" is the review checklist.
+§1.2 "What Rust style means here" is the review checklist. The current state (crate map,
+commands, gates, deviations, open items) is [`docs/rust-port/HANDOFF.md`](../docs/rust-port/HANDOFF.md).
 
 **The old port** (the byte-identical `crates/` tree and its byte-exact Go oracles) was deleted in
 T00. It is recoverable at commit `be02933a`, tagged `go-parity-final` in the local repository
@@ -42,7 +43,7 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
   ```
 - **Build commands:** only `cargo test -p <crate>` (plus `-p` of direct dependants after an API
   change). Never `cargo check`, `clippy` or `doc` in the edit–test loop; never `--workspace`;
-  never `--release` before T70; never `cargo clean` (`cargo clean -p X` only when coordinated).
+  `--release` only for measurements and packaging (since T70); never `cargo clean` (`cargo clean -p X` only when coordinated).
   `cargo fetch`/`cargo metadata` use `--target x86_64-unknown-linux-gnu` /
   `--filter-platform x86_64-unknown-linux-gnu`. Builds run offline after T00.
 - **Shared target dir and stale artifacts.** Every worktree has the same layout, so a path crate
