@@ -6,11 +6,12 @@ use std::time::Duration;
 
 use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
 
-/// neohugo-rs: builds a Hugo site with Tera layouts.
+/// neohugo: builds a Hugo site with Tera layouts.
 #[derive(Debug, Parser)]
 #[command(
-    name = "neohugo-rs",
-    version = crate::VERSION,
+    name = "neohugo",
+    // `--version` prints the name and this: the line of `version`.
+    version = crate::version::line().strip_prefix("neohugo ").unwrap_or_default(),
     about,
     args_conflicts_with_subcommands = true,
     disable_help_subcommand = true

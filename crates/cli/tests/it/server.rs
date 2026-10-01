@@ -22,7 +22,7 @@ struct Running {
 
 impl Running {
     fn start(dir: &std::path::Path, args: &[&str]) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_neohugo-rs"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_neohugo"))
             .current_dir(dir)
             .args(args)
             .env_clear()
@@ -31,7 +31,7 @@ impl Running {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("run neohugo-rs");
+            .expect("run neohugo");
         let out = child.stdout.take().expect("stdout");
         let (tx, lines) = mpsc::channel();
         std::thread::spawn(move || {

@@ -84,17 +84,17 @@ pub struct BuildRequest {
     /// output does not depend on it.
     pub threads: Option<usize>,
     /// A configuration the caller loaded, used instead of loading one from `source`,
-    /// `config_files`, `cli`, `destination` and the process environment (`neohugo-rs server`
+    /// `config_files`, `cli`, `destination` and the process environment (`neohugo server`
     /// loads it once per configuration change and points the base URLs at itself).
     pub config: Option<Arc<Config>>,
-    /// `neohugo-rs server`: put the LiveReload script into the HTML pages (not into `build`'s
+    /// `neohugo server`: put the LiveReload script into the HTML pages (not into `build`'s
     /// output).
     pub live_reload: Option<LiveReload>,
-    /// `neohugo-rs server`: `hugo.is_server` is true.
+    /// `neohugo server`: `hugo.is_server` is true.
     pub server: bool,
 }
 
-/// The LiveReload script of `neohugo-rs server` (T71): every HTML page except alias
+/// The LiveReload script of `neohugo server` (T71): every HTML page except alias
 /// redirects loads `livereload.js` from its language's base URL, which the script also
 /// connects to (Hugo's `livereloadinject`).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -170,7 +170,7 @@ pub struct BuildReport {
     /// The files of a [`SinkKind::Memory`] build (static files included).
     pub memory: Option<Arc<MemorySink>>,
     /// The site model that was rendered (pages, their content files and links), for callers
-    /// that map files to pages (`neohugo-rs server --navigateToChanged`).
+    /// that map files to pages (`neohugo server --navigateToChanged`).
     pub model: Option<Arc<Model>>,
 }
 

@@ -1,5 +1,5 @@
 //! Gate A-D2 (REWRITE_PLAN.md §7.3, T66): the Hugo documentation site with the `reduced` docs
-//! patches, built by the `neohugo-rs` binary against the committed golden data of the Go build
+//! patches, built by the `neohugo` binary against the committed golden data of the Go build
 //! (`testdata/golden/docs-reduced/`) through the acceptance harness:
 //! `tools/neohugo/compare.sh docs-reduced --ref golden` (`sites.py make docs-reduced --overlay
 //! sites/docs`, both passes, `structdiff.py` and the ratchet of

@@ -69,13 +69,13 @@ impl fmt::Display for IssueKind {
             Self::LegacyName { rename } => write!(
                 f,
                 "legacy layout name; rename it to {rename} (Hugo v0.146 layout names are required; \
-                 `neohugo-rs templates check` lists every legacy name)"
+                 `neohugo templates check` lists every legacy name)"
             ),
             Self::UnknownName { reason } => f.write_str(reason),
             Self::GoTemplate { marker } => write!(
                 f,
                 "Go template syntax `{marker}`: layouts must be Tera templates; run \
-                 `neohugo-rs templates check` and convert the file (the migrate tool translates \
+                 `neohugo templates check` and convert the file (the migrate tool translates \
                  most constructs)"
             ),
         }

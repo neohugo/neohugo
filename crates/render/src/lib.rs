@@ -11,7 +11,7 @@
 //! `neohugo_sitefuncs::register`'s (T35); `neohugo-build` (T36) runs the phases, with the jobs
 //! of [`Session::wave1`] / [`Session::wave2`], the targets of [`Session::target`] and the
 //! deferred templates of [`Session::render_deferred`]. The lookup inputs [`lookup_path`],
-//! [`layout_query`] and [`rendered_formats`] are public for `neohugo-rs templates check` (T37),
+//! [`layout_query`] and [`rendered_formats`] are public for `neohugo templates check` (T37),
 //! so its coverage runs exactly the build's lookups.
 
 #![forbid(unsafe_code)]

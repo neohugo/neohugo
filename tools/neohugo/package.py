@@ -1,53 +1,76 @@
 #!/usr/bin/env python3
-"""Packages a release build of neohugo-rs for one target (Python stdlib only).
+"""Packages a release build of neohugo for one target (Python 3.11 or later, stdlib only).
 
 Usage:
   package.py <binary> <target> <out-dir> [<notices>]
 
-Runs `<binary> version` (a smoke test; the version it prints names the archive) and writes
+<version> is `version` in [workspace.package] of Cargo.toml; `<binary> version` must print
+"neohugo v<version>…" (a smoke test). <target> is a Rust target triple, named in the archive as
+the Go releases name it (goreleaser's "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}" at
+44529028): <os> linux, darwin or windows, <arch> amd64 or arm64. Writes
 
-  <out-dir>/neohugo-rs-<version>-<target>.tar.gz          (.zip for Windows targets)
-  <out-dir>/neohugo-rs-<version>-<target>.tar.gz.sha256   "<sha256>  <archive>", as `sha256sum -c`
+  <out-dir>/neohugo_<version>_<os>-<arch>.tar.gz          (.zip for Windows)
+  <out-dir>/neohugo_<version>_<os>-<arch>.tar.gz.sha256   "<sha256>  <archive>", as `sha256sum -c`
                                                           and `shasum -a 256 -c` read it
 
-The archive holds one directory, neohugo-rs-<version>-<target>/, with the binary, the
-repository's LICENSE, PROVENANCE.md, THIRD_PARTY/ and, when given, <notices> as
-THIRD_PARTY_NOTICES.txt (the licences of the linked crates, written by notices.py). Entries are
-sorted, owned by root and dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the
-same archive.
+The archive holds, at its root as the Go releases do, the binary, the repository's README.md,
+LICENSE, PROVENANCE.md, THIRD_PARTY/ and, when given, <notices> as THIRD_PARTY_NOTICES.txt (the
+licences of the linked crates, written by notices.py). Entries are sorted, owned by root and
+dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the same archive.
 
-.github/workflows/ci.yml runs it for every release target (DEVELOPMENT.md, "CI and releases").
+.github/workflows/ci.yml runs it for every release target; the release job checks the .sha256
+files and joins them into neohugo_<version>_checksums.txt, the checksums file of the Go releases
+(DEVELOPMENT.md, "CI and releases").
 """
 import gzip
 import hashlib
 import io
 import os
-import re
 import subprocess
 import sys
 import tarfile
 import time
+import tomllib
 import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+# Go's GOOS and GOARCH names of the parts of a Rust target triple.
+GO_OS = {"linux": "linux", "darwin": "darwin", "windows": "windows"}
+GO_ARCH = {"x86_64": "amd64", "aarch64": "arm64"}
 
 
-def binary_version(binary):
-    """The version `<binary> version` prints (`neohugo-rs <version>`)."""
+def workspace_version():
+    """`version` of [workspace.package] in Cargo.toml."""
+    with open(ROOT / "Cargo.toml", "rb") as f:
+        return tomllib.load(f)["workspace"]["package"]["version"]
+
+
+def check_binary(binary, version):
+    """`<binary> version` must print the version line of `version`; returns the line."""
     out = subprocess.run([str(binary), "version"], capture_output=True, text=True,
                          encoding="utf-8", check=True)
-    m = re.fullmatch(r"neohugo-rs (\S+)\n?", out.stdout)
-    if not m:
+    prefix = f"neohugo v{version}"
+    if not out.stdout.startswith(prefix) or out.stdout[len(prefix):][:1] not in (" ", "-"):
         sys.exit(f"package.py: `{binary} version` printed {out.stdout!r}, "
-                 "not 'neohugo-rs <version>'")
-    return m.group(1)
+                 f"not '{prefix} …' (the version of Cargo.toml)")
+    return out.stdout.strip()
+
+
+def go_platform(target):
+    """`<os>-<arch>` of a Rust target triple, in Go's names."""
+    arch, *rest = target.split("-")
+    oses = [GO_OS[part] for part in rest if part in GO_OS]
+    if arch not in GO_ARCH or len(oses) != 1:
+        sys.exit(f"package.py: no Go os/arch names for the target {target!r}")
+    return f"{oses[0]}-{GO_ARCH[arch]}"
 
 
 def entries(binary, notices=None):
     """(name in the archive, source file, mode), sorted; directories have no source."""
     files = [
         (binary.name, binary, 0o755),
+        ("README.md", ROOT / "README.md", 0o644),
         ("LICENSE", ROOT / "LICENSE", 0o644),
         ("PROVENANCE.md", ROOT / "PROVENANCE.md", 0o644),
     ]
@@ -67,12 +90,12 @@ def entries(binary, notices=None):
     return sorted([(d, None, 0o755) for d in dirs] + files)
 
 
-def write_tar_gz(path, top, items, mtime):
+def write_tar_gz(path, items, mtime):
     raw = io.BytesIO()
     with gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=mtime, compresslevel=9) as gz:
         with tarfile.open(fileobj=gz, mode="w", format=tarfile.PAX_FORMAT) as tar:
-            for name, src, mode in [("", None, 0o755)] + items:
-                info = tarfile.TarInfo(f"{top}/{name}".rstrip("/"))
+            for name, src, mode in items:
+                info = tarfile.TarInfo(name)
                 info.mode, info.mtime = mode, mtime
                 info.uid = info.gid = 0
                 info.uname = info.gname = ""
@@ -86,12 +109,11 @@ def write_tar_gz(path, top, items, mtime):
     path.write_bytes(raw.getvalue())
 
 
-def write_zip(path, top, items, mtime):
+def write_zip(path, items, mtime):
     stamp = time.gmtime(max(mtime, 315532800))[:6]  # zip dates start in 1980
     with zipfile.ZipFile(path, "w") as z:
-        for name, src, mode in [("", None, 0o755)] + items:
-            arcname = f"{top}/{name}".rstrip("/") + ("/" if src is None else "")
-            info = zipfile.ZipInfo(arcname, date_time=stamp)
+        for name, src, mode in items:
+            info = zipfile.ZipInfo(name + ("/" if src is None else ""), date_time=stamp)
             info.create_system = 3  # Unix, so external_attr carries the mode
             if src is None:
                 info.external_attr = (0o40000 | mode) << 16 | 0x10
@@ -107,19 +129,19 @@ def main(argv):
         sys.exit(__doc__)
     binary, target, out = Path(argv[1]), argv[2], Path(argv[3])
     notices = Path(argv[4]) if len(argv) == 5 else None
-    version = binary_version(binary)
-    top = f"neohugo-rs-{version}-{target}"
+    version = workspace_version()
+    line = check_binary(binary, version)
     ext = "zip" if "windows" in target else "tar.gz"
-    archive = out / f"{top}.{ext}"
+    archive = out / f"neohugo_{version}_{go_platform(target)}.{ext}"
     mtime = int(os.environ.get("SOURCE_DATE_EPOCH") or time.time())
     out.mkdir(parents=True, exist_ok=True)
     items = entries(binary, notices)
-    (write_zip if ext == "zip" else write_tar_gz)(archive, top, items, mtime)
+    (write_zip if ext == "zip" else write_tar_gz)(archive, items, mtime)
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
-    line = f"{digest}  {archive.name}\n"
-    Path(f"{archive}.sha256").write_text(line, encoding="ascii", newline="\n")
-    print(f"neohugo-rs {version}: {archive} ({archive.stat().st_size} bytes, {len(items)} entries)")
-    print(line, end="")
+    sha_line = f"{digest}  {archive.name}\n"
+    Path(f"{archive}.sha256").write_text(sha_line, encoding="ascii", newline="\n")
+    print(f"{line}: {archive} ({archive.stat().st_size} bytes, {len(items)} entries)")
+    print(sha_line, end="")
 
 
 if __name__ == "__main__":

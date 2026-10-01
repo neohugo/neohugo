@@ -4,7 +4,7 @@
 Those crates embed data generated from the Unicode Common Locale Data Repository (CLDR) and ICU;
 they are ordinary crates in `Cargo.lock` (licence `Unicode-3.0`, allowed in `deny.toml`), and
 this directory keeps the licence text with the neohugo sources as well, since the data ends up in
-the `neohugo-rs` binary.
+the `neohugo` binary.
 
 | Crate (version) | Data used by neohugo |
 |---|---|

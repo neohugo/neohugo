@@ -214,7 +214,7 @@ fn testsite_contents() {
     assert!(text("css/site.css").contains('{'));
 }
 
-/// `neohugo-rs server`'s request: a configuration loaded by the caller with the base URLs
+/// `neohugo server`'s request: a configuration loaded by the caller with the base URLs
 /// pointed at the server, and the LiveReload script in every HTML page but the aliases.
 #[test]
 fn testsite_for_the_server() {

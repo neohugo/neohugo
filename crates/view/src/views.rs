@@ -647,7 +647,7 @@ pub struct HugoView {
 }
 
 impl HugoView {
-    /// `server`: the build runs in `neohugo-rs server` (`hugo.IsServer`).
+    /// `server`: the build runs in `neohugo server` (`hugo.IsServer`).
     #[must_use]
     pub fn new(cfg: &Config, server: bool) -> Self {
         Self {

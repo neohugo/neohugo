@@ -1,4 +1,4 @@
-//! `neohugo-rs server` (REWRITE_PLAN.md T71): Hugo's development server.
+//! `neohugo server` (REWRITE_PLAN.md T71): Hugo's development server.
 //!
 //! [`Server::start`] loads the configuration, opens the listeners (one per language of a
 //! multihost site), points every language's base URL at its listener (Hugo's `fixURL`),

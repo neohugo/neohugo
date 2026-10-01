@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Writes the third-party licence notices for a release build of neohugo-rs (Python stdlib only).
+"""Writes the third-party licence notices for a release build of neohugo (Python stdlib only).
 
 Usage:
   notices.py <target> <out-file>
 
-The notices cover every package linked into `neohugo-rs` for <target>: the normal-dependency
+The notices cover every package linked into `neohugo` for <target>: the normal-dependency
 closure of the `neohugo` package in `cargo metadata --filter-platform <target>`. Build and dev
 dependencies are not linked into the binary, and neither are proc-macro packages (they run in
 the compiler), so the walk does not enter them. For each package the file lists its name,
@@ -127,9 +127,9 @@ def main(argv):
     missing = []
     printed = {}  # licence text -> "<package> <version>, <file>" that printed it
     parts = [
-        "Third-party software in neohugo-rs\n",
-        "==================================\n\n",
-        f"neohugo-rs for {target} links the {len(ids)} packages below. Their licence and notice\n",
+        "Third-party software in neohugo\n",
+        "===============================\n\n",
+        f"neohugo for {target} links the {len(ids)} packages below. Their licence and notice\n",
         "files follow each entry. The source code of every package is available from\n",
         "https://crates.io/crates/<name>/<version> and from the repository listed with it.\n",
         "Files copied into the neohugo source tree (data, fonts, scripts) are listed in\n",

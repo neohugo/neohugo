@@ -22,7 +22,7 @@ pub struct BuildReport { pub pages, pub outputs, pub aliases, pub resources, pub
                          pub model: Option<Arc<Model>> /* T71: the rendered model (file → page) */ }
 ```
 
-**`neohugo-rs server` (T71).** The server loads the configuration itself (once per
+**`neohugo server` (T71).** The server loads the configuration itself (once per
 configuration change) with every language's base URL pointed at its listener and passes it as
 `config` (then `source`, `config_files`, `cli` and `destination` are not read). With
 `live_reload`, every language's `SiteLinks::livereload` is its base URL (the port replaced by

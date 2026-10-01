@@ -1,6 +1,6 @@
 //! A small tokenizer for Tera template tags, for static checks Tera does not make when templates
 //! are added (REWRITE_PLAN.md §4.8): the kwargs of calls (neohugo-testkit's contract test) and
-//! the lints of `neohugo-rs templates check`.
+//! the lints of `neohugo templates check`.
 //!
 //! [`tags`] splits a source into its `{{ … }}` and `{% … %}` tags (skipping `{# #}` comments and
 //! `{% raw %}` sections) and tokenizes each; [`scan_calls`] reads the filter, function and test

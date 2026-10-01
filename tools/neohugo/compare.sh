@@ -14,7 +14,7 @@
 #   --ref golden   the reference, the only one: the committed golden data of
 #                  testdata/golden/<label> (manifests of both passes and the structure dump;
 #                  T01's oracle.sh wrote them with the Go build, frozen at 44529028)
-#   candidate      neohugo-rs: the site from `sites.py make <label> --overlay sites/<site>`;
+#   candidate      neohugo: the site from `sites.py make <label> --overlay sites/<site>`;
 #                  its structure dump comes from the unminified build (NEOHUGO_STRUCTURE_OUT)
 #
 # The candidate builds each pass from a freshly generated site, from the site directory, with
@@ -34,8 +34,8 @@
 # Environment:
 #   KEEP=1                  keep the sites, outputs, manifests and logs of the work directory
 #   NEOHUGO_COMPARE_WORK    work directory (default: $TMPDIR/neohugo-compare), outside the repo
-#   NEOHUGO_RS              the neohugo-rs binary (default: `cargo build --offline --locked -p
-#                           neohugo`, then a copy of target/debug/neohugo-rs in the work dir)
+#   NEOHUGO_BINARY          the neohugo binary (default: `cargo build --offline --locked -p
+#                           neohugo`, then a copy of target/debug/neohugo in the work dir)
 #   NEOHUGO_NODE_MODULES    the node modules (default: see tools/neohugo/node.sh)
 #   NEOHUGO_ESBUILD_BINARY  esbuild for the Rust build (default: tools/esbuild/bin/esbuild of the
 #                           main checkout)
@@ -112,22 +112,22 @@ cleanup() {
 }
 trap cleanup EXIT
 
-rust_binary() {
-	if [ -n "${NEOHUGO_RS:-}" ]; then
-		echo "$NEOHUGO_RS"
+neohugo_binary() {
+	if [ -n "${NEOHUGO_BINARY:-}" ]; then
+		echo "$NEOHUGO_BINARY"
 		return
 	fi
-	log "building neohugo-rs (cargo build --offline --locked -p neohugo)"
-	(cd "$ROOT" && cargo build --offline --locked -q -p neohugo --bin neohugo-rs >&2)
+	log "building neohugo (cargo build --offline --locked -p neohugo)"
+	(cd "$ROOT" && cargo build --offline --locked -q -p neohugo --bin neohugo >&2)
 	local target=${CARGO_TARGET_DIR:-$ROOT/target}
 	case $target in /*) ;; *) target=$ROOT/$target ;; esac
 	# A copy: the target directory is shared, another build may replace the file.
 	mkdir -p "$W/bin"
-	cp "$target/debug/neohugo-rs" "$W/bin/neohugo-rs"
-	echo "$W/bin/neohugo-rs"
+	cp "$target/debug/neohugo" "$W/bin/neohugo"
+	echo "$W/bin/neohugo"
 }
 
-# build <dir> <structure-out|""> [args…]: a fresh site in <dir>/<label>, built by neohugo-rs into
+# build <dir> <structure-out|""> [args…]: a fresh site in <dir>/<label>, built by neohugo into
 # <dir>/out; the log goes to <dir>/log.
 build() {
 	local dir=$1 structure=$2
@@ -148,7 +148,7 @@ build() {
 	[ -n "$structure" ] && env+=(NEOHUGO_STRUCTURE_OUT="$structure")
 	local start end
 	start=$(date +%s)
-	if ! (cd "$dir/$label" && env -i "${env[@]}" "$RS" --clock "$CLOCK" "$@" -d "$dir/out" >"$dir/log" 2>&1); then
+	if ! (cd "$dir/$label" && env -i "${env[@]}" "$BIN" --clock "$CLOCK" "$@" -d "$dir/out" >"$dir/log" 2>&1); then
 		log "$label: the build failed ($dir/log):"
 		sed -e "s#$dir#\$W#g" "$dir/log" | tail -40 >&2
 		exit 1
@@ -181,7 +181,7 @@ side() {
 	eval "${name}_structure=\$W/\$name.structure.json"
 }
 
-RS=$(rust_binary)
+BIN=$(neohugo_binary)
 ref_min=$GOLDEN/manifest.minified.json
 ref_unmin=$GOLDEN/manifest.unminified.json
 ref_structure=$GOLDEN/structure.json

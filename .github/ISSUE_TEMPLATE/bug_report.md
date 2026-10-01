@@ -13,10 +13,10 @@ Please include as much of the information requested below as possible.
 If you have an issue that can be shown visually, please provide a screenshot or GIF of the problem as well.
 -->
 
-**What version of neohugo are you using (`neohugo-rs version`)?**
+**What version of neohugo are you using (`neohugo version`)?**
 
 <pre>
-$ neohugo-rs version
+$ neohugo version
 
 </pre>
 
@@ -32,7 +32,7 @@ If Hugo has the same defect, please also report it at https://github.com/gohugoi
 <!--
 Steps to reproduce the behavior. For example:
 1. Create file '...'
-2. Run neohugo-rs '....'
+2. Run neohugo '....'
 3. See error at '....'
 -->
 

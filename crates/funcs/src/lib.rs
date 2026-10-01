@@ -4,7 +4,7 @@
 //! subset.
 //!
 //! [`scan`] tokenizes template tags for the static checks Tera does not make (kwargs, the lints
-//! of `neohugo-rs templates check`).
+//! of `neohugo templates check`).
 //!
 //! `spec` and `scan` have no dependencies and `register_placeholders` needs only tera, so all are available
 //! with `default-features = false` (neohugo-testkit's contract test uses that; REWRITE_PLAN.md §4.8).

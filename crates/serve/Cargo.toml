@@ -1,6 +1,6 @@
 [package]
 name = "neohugo-serve"
-description = "neohugo-rs server (T71)"
+description = "neohugo server (T71)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

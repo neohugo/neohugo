@@ -98,7 +98,7 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 | disk | `tools/neohugo/disk.sh` |
 | fixtures | `tools/neohugo/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
 | acceptance | `tools/neohugo/compare.sh <site> [--docs-patches i01\|reduced] [KEEP=1]` (T03) |
-| templates | `neohugo-rs templates check -s <site-dir>` (T37) |
+| templates | `neohugo templates check -s <site-dir>` (T37) |
 | CI, locally | see "CI and releases" below (workspace-wide: not for the edit–test loop) |
 
 ## CI and releases
@@ -113,8 +113,8 @@ same ref cancels the older one, except on tags.
 | Job | Runner | Steps |
 |---|---|---|
 | Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; `tools/neohugo/selftest.py`; on a tag, the tag must be `v<version of [workspace.package]>` |
-| Test | ubuntu-24.04 | `cargo test --workspace --locked --no-fail-fast` with the tools below; the job summary lists every test that printed `SKIPPED` |
-| Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>`; `neohugo-rs version`; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-rs-<triple>` |
+| Test | ubuntu-24.04 | `cargo test --workspace --locked --no-fail-fast` with the tools below; the job summary lists every test that printed `SKIPPED`, and any such test fails the job |
+| Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>` with the version variables (below); `neohugo version`; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-<triple>` |
 | Release | ubuntu-24.04 | tags only, after the other three: the GitHub release (below) |
 
 Build targets and runners: `x86_64-unknown-linux-gnu` (ubuntu-22.04), `aarch64-unknown-linux-gnu`
@@ -125,11 +125,23 @@ compiler through the `cc` crate; there are no cross toolchains. The Linux binari
 Ubuntu 22.04, so they need no glibc newer than its 2.35 (the smoke test prints the exact
 version; linked on 24.04 they would need 2.39: std's weak `pidfd_spawnp` reference still
 records `GLIBC_2.39`). The Windows binary links the MSVC runtime statically (`+crt-static`), so
-it needs no Visual C++ redistributable. An archive
-(`neohugo-rs-<version>-<triple>.tar.gz`, `.zip` for Windows) holds the binary, `LICENSE`,
-`THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`, next to its `.sha256`.
+it needs no Visual C++ redistributable.
+
+The release is a drop-in replacement for the Go releases (`.goreleaser.yml` at `44529028`):
+the binary is `neohugo` (`neohugo.exe`), and an archive is named as theirs,
+`neohugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows; `<os>` `linux`, `darwin` or
+`windows`, `<arch>` `amd64` or `arm64`). It holds, at its root, the binary, `README.md` and
+`LICENSE` (as the Go archives did) and `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and
+`THIRD_PARTY/`; the build job writes a `.sha256` next to it. `neohugo version` prints the Go
+format, `neohugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]`
+(`crates/cli/src/version.rs`): the build job sets `NEOHUGO_BUILD_COMMIT` (the commit),
+`NEOHUGO_BUILD_DATE` (its time in UTC, RFC 3339) and `NEOHUGO_VENDOR_INFO=neohugo` for the
+build, and the smoke test checks the line; without them (a local build) the line has no commit,
+`BuildDate=unknown` and no vendor. `package.py` takes the version from `Cargo.toml` and checks
+that `neohugo version` prints it.
+
 `THIRD_PARTY_NOTICES.txt` is written by `tools/neohugo/notices.py <triple> <file>`: the licence
-and notice files of every crate linked into `neohugo-rs` for that target (the normal-dependency
+and notice files of every crate linked into `neohugo` for that target (the normal-dependency
 closure of `neohugo` without proc macros; vendored C libraries such as libwebp included), each
 text printed once. A linked crate that ships no licence file gets the MIT text when MIT is one of
 its licences; any other such crate fails the step, so it is noticed before a release.
@@ -143,7 +155,7 @@ look for a toolchain named `1.94.1` and try to download it. Add one (and drop `R
 once every environment can install toolchains.
 
 **Tools the tests use.** Without its tool a test prints `SKIPPED …` and passes, so CI provides
-all of them:
+all of them, and its Test job fails when a test prints `SKIPPED`:
 
 | Tests | Tool | In CI |
 |---|---|---|
@@ -155,7 +167,7 @@ all of them:
 `neohugo-images`' `sizes_match_the_process_oracle` compares 11,046 cases (at least 10,000 must
 compare); the cases of 85 more sources need Go's own image test data, which is not in the
 repository (`crates/images/README.md`). Python is needed only by the gate tests and the tools
-(`licence-check.sh`, `selftest.py`, `notices.py`, `package.py`, and
+(`licence-check.sh`, `selftest.py`, `notices.py`, `package.py` (Python 3.11 or later), and
 `tools/rust-port/i01/sites.py` for the ignored real-site tests that read `NEOHUGO_SITES`). Not
 needed by `cargo test`: dart-sass (grass compiles Sass in process) and the network (`get_remote`
 tests read caches with the network off).
@@ -176,7 +188,7 @@ NEOHUGO_BABEL_BIN=$N/.bin/babel \
 cargo build --release --locked --offline -p neohugo --target x86_64-unknown-linux-gnu \
   --target-dir <scratch>/target                  # never the shared target dir
 python3 tools/neohugo/notices.py x86_64-unknown-linux-gnu <scratch>/THIRD_PARTY_NOTICES.txt
-python3 tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/release/neohugo-rs \
+python3 tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/release/neohugo \
   x86_64-unknown-linux-gnu <scratch>/dist <scratch>/THIRD_PARTY_NOTICES.txt
 ```
 
@@ -185,9 +197,12 @@ python3 tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/relea
    it.
 2. Tag that commit and push the tag: `git tag v0.149.0 <commit>`, `git push origin v0.149.0`.
 3. The workflow checks the tag against the version, runs lint, test and the five builds, then
-   creates the GitHub release `v<version>` with the five archives, their `.sha256` files and
-   `SHA256SUMS`. It is marked latest, unless the version has a `-` (e.g. `0.150.0-rc.1`):
-   that makes a pre-release, not latest.
+   creates the GitHub release `v<version>`, titled `neohugo <version>`, with the five archives
+   and `neohugo_<version>_checksums.txt` (`<sha256>  <archive>` per archive, the checksums file
+   of the Go releases; the `.sha256` files of the build jobs are checked and joined into it).
+   A version with a `-` (e.g. `0.150.0-rc.1`) makes a pre-release, never latest; any other
+   release is marked latest only if no published release has a higher version, so a patch
+   release of an older line does not take latest from a newer one.
 
 Re-running the workflow (or its failed jobs) for a tag replaces the assets of the release an
 earlier run created. The tags `v0.148.2` and older are the Go implementation's releases.
@@ -212,7 +227,7 @@ fields only, with a reviewed `expected_diffs.toml` per crate.
 
 `neohugo-funcs` compiles two SHOULD template functions only with a feature: `to_math` (`math`,
 pulldown-latex) and `diagrams_goat` (`goat`, svgbob and its geometry crates). Without it the
-name is registered as a stub that fails when called. The `neohugo` crate (the `neohugo-rs`
+name is registered as a stub that fails when called. The `neohugo` crate (the `neohugo`
 binary) turns both on by default (`default = ["goat", "math"]`), so the release build and CI's
 `-p neohugo` builds render the documentation site's formulas and diagrams (gate A-D2, T66);
 `--no-default-features` leaves them out. Their cost (T66): 53 more packages in `neohugo`'s

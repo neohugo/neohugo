@@ -1,4 +1,4 @@
-//! The `neohugo-rs` command line (REWRITE_PLAN.md §2.1, §4.8, §7.5): `build` (also the command
+//! The `neohugo` command line (REWRITE_PLAN.md §2.1, §4.8, §7.5): `build` (also the command
 //! line without a command), `server` (alias `serve`), `templates check`, `config` and
 //! `version`.
 //!
@@ -13,6 +13,7 @@ mod check;
 mod config;
 mod report;
 mod server;
+pub mod version;
 
 use std::path::PathBuf;
 use std::process::ExitCode;
@@ -22,7 +23,7 @@ use neohugo_config::{CliOverrides, LoadOptions};
 pub use args::Cli;
 use args::{Command, ProjectArgs, TemplatesCommand};
 
-/// The version `version` and `--version` print.
+/// The version (`[workspace.package]` of `Cargo.toml`): the `v<version>` of [`version::line`].
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// How a command ended.
@@ -56,7 +57,7 @@ pub fn run(cli: Cli) -> Exit {
         Some(Command::Templates(TemplatesCommand::Check(c))) => check::run(&c),
         Some(Command::Config(c)) => config::run(&c),
         Some(Command::Version) => {
-            println!("neohugo-rs {VERSION}");
+            println!("{}", version::line());
             Ok(Exit::Success)
         }
     };

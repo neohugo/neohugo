@@ -8,8 +8,9 @@ to build, test and run it, how the gates work, what deviates from Hugo, and what
 
 ## 0. Summary for the pull request
 
-neohugo-rs is an idiomatic Rust rewrite of neohugo (a Hugo fork), the Cargo workspace at the
-repository root: Hugo's site and page model (content tree, bundles, kinds, front matter,
+neohugo is now an idiomatic Rust rewrite of the Go neohugo (a Hugo fork) and replaces it in
+place: the same binary (`neohugo`), version line and release archives (§9). The Cargo workspace
+is at the repository root: Hugo's site and page model (content tree, bundles, kinds, front matter,
 cascade, permalinks, output formats, taxonomies, menus, pagination, i18n, Hugo Pipes, image
 processing, Markdown with render hooks and shortcodes) with **Tera 2** templates instead of Go
 templates (decision D4). It is not a byte-for-byte port: the Go build was the oracle (its
@@ -27,7 +28,7 @@ outputs are frozen as golden data, §9), and outputs are compared structurally.
   cold in 3.29 s against Go's 3.99 s (0.82×; goal ≤ 1.5×), warm in 3.26 s against 3.51 s
   (0.93×; goal ≤ 1.0×), peak RSS 384 MB (goal ≤ 1 GB). The testsite and the seeksnack
   reconstruction are faster than Go as well (§5).
-- **Commands:** `neohugo-rs build` (also with no command), `server` (live reload, memory or
+- **Commands:** `neohugo build` (also with no command), `server` (live reload, memory or
   disk), `templates check`, `config`, `version`.
 - **CI/CD:** `.github/workflows/ci.yml`, the only build workflow (fmt, clippy `-D warnings`,
   licence check, the whole test suite with the gate tests, release builds for five targets);
@@ -52,7 +53,7 @@ tools/neohugo/              harness: compare.sh, structdiff.py, manifest.py, sel
                             changes/ (the ratchet's changes files)
 tools/esbuild/install.sh    esbuild for js_build (the binary of the npm package node.sh installs)
 tools/rust-port/i01/        sites.py (generates every test site), patches.json, site txtars
-.github/workflows/ci.yml    CI and releases of neohugo-rs
+.github/workflows/ci.yml    CI and releases of neohugo
 docs/rust-port/             this file, template-api.md (the template API, generated from
                             crates/funcs/src/spec.rs), REWRITE_PLAN.md, specs/ (research of the
                             old port, "byte-parity sections obsolete"), archive/ (the old port's
@@ -92,8 +93,8 @@ Dependencies point down the table (lower crates never depend on higher ones). Li
 | `sitefuncs` | `neohugo-sitefuncs` | site-bound Tera functions (`get_page`, `ref`, `i18n`, resources, images, `paginate`, `partial`, `defer`, …) | 3.0k + 1.9k |
 | `render` | `neohugo-render` | the render `Session`: content (shortcodes, hooks), layout jobs, waves | 2.7k + 1.3k |
 | `build` | `neohugo-build` | build orchestration (phases B–E7 of REWRITE_PLAN.md §3), `BuildRequest`/`BuildReport` | 1.1k + 2.0k |
-| `serve` | `neohugo-serve` | `neohugo-rs server`: listeners, file serving, LiveReload, watching, rebuilds | 2.4k + 1.0k |
-| `cli` | `neohugo` | the `neohugo-rs` binary (clap); the gate tests live in its `tests/it` | 1.9k + 2.0k |
+| `serve` | `neohugo-serve` | `neohugo server`: listeners, file serving, LiveReload, watching, rebuilds | 2.4k + 1.0k |
+| `cli` | `neohugo` | the `neohugo` binary (clap); the gate tests live in its `tests/it` | 1.9k + 2.0k |
 | `migrate` | `neohugo-migrate` | stub (T73: Go-template → Tera converter) | – |
 | `testkit` | `neohugo-testkit` | dev-only: fixture readers, txtar sites, the template contract test | 0.7k + 0.7k |
 | `workspace-hack` | `neohugo-workspace-hack` | feature unification of shared dependencies | – |
@@ -104,7 +105,7 @@ Environment (every checkout and worktree shares one target directory):
 
 ```sh
 export CARGO_TARGET_DIR=/home/user/neohugo/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
-cargo build --release --offline --locked -p neohugo      # → $CARGO_TARGET_DIR/release/neohugo-rs
+cargo build --release --offline --locked -p neohugo      # → $CARGO_TARGET_DIR/release/neohugo
 cargo test -p <crate> --offline --locked                  # the edit–test loop
 ```
 
@@ -132,11 +133,11 @@ Running it (Hugo's flags in kebab-case, the camelCase spellings as aliases; the 
 `crates/cli/README.md`):
 
 ```sh
-neohugo-rs [build] -s <site> [-d <out>] [--minify] [-b <url>] [-e <env>] [-D -E -F] [--clock <rfc3339>]
-neohugo-rs server -s <site> [-p 1313] [--bind 127.0.0.1] [--render-to-disk] [--disable-live-reload] [--poll 1s]
-neohugo-rs templates check -s <site> [--coverage summary|full|none] [--deny-warnings]
-neohugo-rs config -s <site> [--format json|toml]
-neohugo-rs version
+neohugo [build] -s <site> [-d <out>] [--minify] [-b <url>] [-e <env>] [-D -E -F] [--clock <rfc3339>]
+neohugo server -s <site> [-p 1313] [--bind 127.0.0.1] [--render-to-disk] [--disable-live-reload] [--poll 1s]
+neohugo templates check -s <site> [--coverage summary|full|none] [--deny-warnings]
+neohugo config -s <site> [--format json|toml]
+neohugo version
 ```
 
 `NEOHUGO_TIMINGS=1` prints the build's phase timings on stderr (T70).
@@ -148,7 +149,7 @@ neohugo-rs version
 configuration. Layouts must be Tera with Hugo's v0.146 names (`home.html`, `single.html`,
 `_partials/`, `_shortcodes/`, `_markup/`); legacy names are errors with a hint. The template
 API (every function, filter, test and context, with Hugo's name for each) is
-`docs/rust-port/template-api.md`; `neohugo-rs templates check` checks a site's templates against it.
+`docs/rust-port/template-api.md`; `neohugo templates check` checks a site's templates against it.
 
 ## 3. Gates and the harness
 
@@ -186,16 +187,17 @@ The gate tests need python3, bash, node, the node tools and esbuild (else `SKIPP
 issues). It runs on pushes to `main` and `rust-port`, on every pull request (no path filters),
 on `v[0-9]*` tags and by hand. Jobs: **Lint** (fmt, clippy `-D warnings`, licence check,
 structdiff self-test, tag = `v<workspace version>`), **Test** (the whole workspace with every
-tool installed: `tools/neohugo/node.sh`, then `tools/esbuild/install.sh`; the summary lists
-`SKIPPED` tests), **Build** (release for `x86_64`/`aarch64` Linux, `x86_64`/`aarch64` macOS,
-`x86_64` Windows; `notices.py` writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive),
-**Release** (tags only: the GitHub release `v<version>`, marked latest unless the version has a
-`-`, which makes a pre-release). Cutting a release: set `[workspace.package] version`, merge,
+tool installed: `tools/neohugo/node.sh`, then `tools/esbuild/install.sh`; a test that prints
+`SKIPPED` fails the job), **Build** (release for `x86_64`/`aarch64` Linux, `x86_64`/`aarch64`
+macOS, `x86_64` Windows, with the commit, date and vendor of `neohugo version`; `notices.py`
+writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive), **Release** (tags only: the GitHub
+release `v<version>` with the five archives and `neohugo_<version>_checksums.txt`; a version
+with a `-` makes a pre-release, any other is latest only if no release has a higher version). Cutting a release: set `[workspace.package] version`, merge,
 tag `v<version>`, push the tag (DEVELOPMENT.md "CI and releases").
 
 ## 5. Performance (A-P, T70)
 
-Release build of `neohugo-rs` (default features), the Go `neohugo` that `oracle.sh install`
+Release build of the Rust `neohugo` (default features), the Go `neohugo` that `oracle.sh install`
 built for T01 (`go build -trimpath -ldflags="-s -w"`; the Go tree and `oracle.sh` are at
 `44529028`, §9).
 Each run: a freshly generated site (`sites.py make`; Rust with its overlay), the environment of
@@ -337,7 +339,7 @@ tests read them, with counts):
   offline).
 - The real-site tests that read `NEOHUGO_SITES` are ignored by default.
 - The follow-ups of the Go removal outside the repository (§9): branch protection, unused
-  secrets, the channels frozen at the last Go build, the binary's name.
+  secrets, the channels frozen at the last Go build.
 
 ## 9. Without Go (2026-10-01)
 
@@ -380,8 +382,20 @@ that comments and READMEs cite.
   recorded below `rust/` (the sources of `testdata/golden/images/manifest.json`) resolve at the
   root through `repo_file` (`neohugo_testkit::fixture`, `sites.py`).
 - **Releases:** tags `v<version>` instead of `rust-v<version>`; the CI workflow publishes the
-  GitHub release and marks it latest unless the version has a `-`. The tags `v0.148.2` and
-  older are the Go releases.
+  GitHub release (a pre-release if the version has a `-`, else latest only if no release has a
+  higher version). The tags `v0.148.2` and older are the Go releases.
+- **Drop-in names:** the binary is `neohugo` again (it was `neohugo-rs`); `neohugo version`
+  prints the Go line, `neohugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[
+  VendorInfo=<vendor>]` (`crates/cli/src/version.rs`; CI sets the commit, its UTC date and
+  `VendorInfo=neohugo` as the Go releases' build did); the archives are named as goreleaser
+  named them, `neohugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows), with the binary,
+  `README.md` and `LICENSE` at the root plus `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and
+  `THIRD_PARTY/`, next to `neohugo_<version>_checksums.txt`. `compare.sh` takes the binary from
+  `NEOHUGO_BINARY` (was `NEOHUGO_RS`). Not reproduced from the Go release: goreleaser's
+  changelog in the release notes and its `v<version>` release title, and the Go commands the
+  Rust command line does not have (`env`, which also printed the version line, `new`, `mod`,
+  `deploy`, `list`, `gen`, `convert`, `import`, `release`); the Docker images and the docs
+  deploy are below.
 
 Follow-ups outside the repository:
 
@@ -394,8 +408,6 @@ Follow-ups outside the repository:
   `ghcr.io/neohugo/neohugo`; the documentation site neohugo.github.io (deployed on `v*` tags by
   `release.yml`); and `/releases/latest`, which stays at the Go `v0.148.2` until the first Rust
   release that is not a pre-release (`v0.149.0`).
-- **The binary is still named `neohugo-rs`** (`[[bin]]` of `crates/cli/Cargo.toml`); the
-  release archives, `package.py`, `notices.py`, `compare.sh` and the docs use that name.
 
 ## 10. History
 
@@ -405,4 +417,5 @@ Follow-ups outside the repository:
 - T70 (2026-09-30): this handoff, A-P, the licence and provenance audit, archive of the old
   port's documents, `hugo.is_server`/`site.server_port`.
 - 2026-10-01: the Go implementation and its CI/CD removed, the Cargo workspace moved from `rust/`
-  to the repository root (§9).
+  to the repository root, the binary, its version line and the release archives named as the Go
+  releases named them (§9).

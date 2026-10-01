@@ -1,6 +1,6 @@
 [package]
 name = "neohugo"
-description = "The neohugo-rs command line"
+description = "The neohugo command line"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -13,7 +13,7 @@ doctest = false
 test = false # tests live only in tests/it (one test binary, REWRITE_PLAN.md §2.2)
 
 [[bin]]
-name = "neohugo-rs"
+name = "neohugo"
 path = "src/main.rs"
 test = false
 doctest = false

@@ -1,17 +1,22 @@
-# neohugo (`neohugo-rs`)
+# neohugo (the `neohugo` binary)
 
 The command line (REWRITE_PLAN.md §2.1, §4.8, §7.5). **State: T37; T60's A-T gate and
 embedded-template snapshots run through it; `server` (T71).** clap derive; `anyhow` only
 here.
 
 ```
-neohugo-rs [build flags]                 # no command: build (as `hugo`)
-neohugo-rs build [build flags]
-neohugo-rs server [build flags] [server flags]   # alias `serve`; neohugo-serve
-neohugo-rs templates check [project flags] [--coverage summary|full|none] [--deny-warnings]
-neohugo-rs config [project flags] [--format json|toml]
-neohugo-rs version                       # also --version
+neohugo [build flags]                 # no command: build (as `hugo`)
+neohugo build [build flags]
+neohugo server [build flags] [server flags]   # alias `serve`; neohugo-serve
+neohugo templates check [project flags] [--coverage summary|full|none] [--deny-warnings]
+neohugo config [project flags] [--format json|toml]
+neohugo version                       # also --version
 ```
+
+`version` prints the Go build's line (`src/version.rs`): `neohugo v<version>[-<commit>]
+<os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]`, with Go's os/arch names and the
+commit, date and vendor of the build-time variables `NEOHUGO_BUILD_COMMIT`, `NEOHUGO_BUILD_DATE`
+and `NEOHUGO_VENDOR_INFO` (set by CI's release builds).
 
 ## Flags
 

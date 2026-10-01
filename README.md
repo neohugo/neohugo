@@ -55,7 +55,7 @@ Neohugo's fast asset pipelines include:
 - Sass processing &ndash; Transpile Sass to CSS, bundle, tree shake, minify, create source maps, perform SRI hashing, and integrate with PostCSS
 - Tailwind CSS processing &ndash; Compile Tailwind CSS utility classes into standard CSS, bundle, tree shake, optimize, minify, perform SRI hashing, and integrate with PostCSS
 
-Neohugo reads Hugo's project layout and configuration (a `neohugo.toml` wins over a `hugo.toml` next to it). Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates: [docs/rust-port/template-api.md](docs/rust-port/template-api.md) lists every function, filter and test with Hugo's name for each, and `neohugo-rs templates check` checks a site's templates against it. Themes come from the themes directory or `_vendor`; [Hugo Modules] are not downloaded. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
+Neohugo reads Hugo's project layout and configuration (a `neohugo.toml` wins over a `hugo.toml` next to it). Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates: [docs/rust-port/template-api.md](docs/rust-port/template-api.md) lists every function, filter and test with Hugo's name for each, and `neohugo templates check` checks a site's templates against it. Themes come from the themes directory or `_vendor`; [Hugo Modules] are not downloaded. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
 
 See the [features] section of the documentation for a comprehensive summary of Hugo's capabilities.
 
@@ -70,18 +70,18 @@ See the [features] section of the documentation for a comprehensive summary of H
 
 ## Installation
 
-Download the archive for your platform from the [releases] page. Releases are tagged `v<version>`; v0.149 and later are the Rust implementation, v0.148.2 and earlier are the former Go implementation. Each archive, `neohugo-rs-<version>-<target>.tar.gz` (`.zip` for Windows), holds the `neohugo-rs` binary, `LICENSE`, `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`:
+Download the archive for your platform from the [releases] page. Releases are tagged `v<version>`; v0.149 and later are the Rust implementation, v0.148.2 and earlier are the former Go implementation. The archives are named as before, `neohugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows), and hold the `neohugo` binary, `README.md`, `LICENSE`, `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`:
 
-- `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu` (glibc 2.35 or later)
-- `x86_64-apple-darwin`, `aarch64-apple-darwin`
-- `x86_64-pc-windows-msvc`
+- `linux-amd64`, `linux-arm64` (glibc 2.35 or later)
+- `darwin-amd64`, `darwin-arm64`
+- `windows-amd64`
 
-Check a download with `sha256sum -c SHA256SUMS --ignore-missing`, then put `neohugo-rs` on your `PATH`:
+Check a download with `sha256sum -c neohugo_<version>_checksums.txt --ignore-missing`, then put `neohugo` on your `PATH`:
 
 ```text
-neohugo-rs version
-neohugo-rs -s <site>                # build into the publish directory
-neohugo-rs server -s <site>         # development server with live reload
+neohugo version
+neohugo -s <site>                # build into the publish directory
+neohugo server -s <site>         # development server with live reload
 ```
 
 The commands and flags (Hugo's, in kebab-case with the camelCase spellings as aliases) are listed in [crates/cli/README.md](crates/cli/README.md).
@@ -99,7 +99,7 @@ Build neohugo:
 cargo build --release --locked -p neohugo
 ```
 
-The binary is `target/release/neohugo-rs`.
+The binary is `target/release/neohugo`.
 
 ## External tools
 

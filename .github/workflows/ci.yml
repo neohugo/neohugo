@@ -1,12 +1,12 @@
-# CI and releases of neohugo (the Cargo workspace at the repository root, the neohugo-rs
-# binary): the repository's only build, test and release workflow. DEVELOPMENT.md, "CI and
-# releases", says what runs when, how to cut a release and how to reproduce these jobs locally.
+# CI and releases of neohugo (the Cargo workspace at the repository root, the neohugo binary):
+# the repository's only build, test and release workflow. DEVELOPMENT.md, "CI and releases",
+# says what runs when, how to cut a release and how to reproduce these jobs locally.
 name: CI
 
 on:
   push:
     branches: [main, rust-port]
-    # Releases of neohugo-rs: v<workspace version>, e.g. v0.149.0.
+    # Releases of neohugo: v<workspace version>, e.g. v0.149.0.
     tags: ["v[0-9]*"]
   pull_request:
   workflow_dispatch:
@@ -92,8 +92,9 @@ jobs:
           save-if: ${{ env.SAVE_CACHE }}
 
       # node on PATH runs the fake-tool tests (small node scripts standing in for PostCSS,
-      # Tailwind and Babel). tools/neohugo/node.sh installs the real tools and esbuild (pinned
-      # npm ci) for the real-tool and js_build tests, which skip without them.
+      # Tailwind and Babel). tools/neohugo/node.sh (pinned npm ci) installs the real tools for
+      # the real-tool tests and the esbuild package the next step copies the binary from; a
+      # failure fails the job.
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -129,6 +130,8 @@ jobs:
       - name: cargo test
         run: cargo test --workspace --locked --no-fail-fast -- --show-output 2>&1 | tee "$RUNNER_TEMP/cargo-test.log"
 
+      # The steps above install every tool the tests use, so a test that prints SKIPPED lost
+      # its tool: the job fails (after listing them in the summary).
       - name: Skipped tests
         if: always()
         run: |
@@ -144,6 +147,7 @@ jobs:
             fi
           } >>"$GITHUB_STEP_SUMMARY"
           echo "${skipped:-no test printed SKIPPED}"
+          [ -z "$skipped" ] || { echo "::error::tests skipped (a tool is missing): see the job summary"; exit 1; }
 
       - name: Disk use
         if: always()
@@ -176,10 +180,14 @@ jobs:
             exe: .exe
     env:
       TARGET: ${{ matrix.target }}
-      BINARY: target/${{ matrix.target }}/release/neohugo-rs${{ matrix.exe }}
-      # The static MSVC runtime (cc builds the C code with /MT to match): neohugo-rs.exe then
+      BINARY: target/${{ matrix.target }}/release/neohugo${{ matrix.exe }}
+      # The static MSVC runtime (cc builds the C code with /MT to match): neohugo.exe then
       # needs no Visual C++ redistributable. Applies to that target only.
       CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: -C target-feature=+crt-static
+      # `neohugo version` (crates/cli/src/version.rs) names the commit and the vendor, as the Go
+      # releases did (the vendor was their ldflags' vendorInfo); the Version step adds the date.
+      NEOHUGO_BUILD_COMMIT: ${{ github.sha }}
+      NEOHUGO_VENDOR_INFO: neohugo
     steps:
       - uses: actions/checkout@v4
 
@@ -204,30 +212,49 @@ jobs:
           key: ${{ matrix.target }}
           save-if: ${{ env.SAVE_CACHE }}
 
+      # package.py reads Cargo.toml with tomllib (Python 3.11 or later; Ubuntu 22.04 has 3.10).
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # BuildDate: the commit's time in UTC, RFC 3339 (Go's vcs.time). sys.stdout.write, not
+      # print: Python on Windows ends a printed line with CRLF, which $(…) would keep the CR of.
+      - name: Version
+        run: |
+          date=$(python -c 'import datetime, sys; sys.stdout.write(datetime.datetime.fromtimestamp(int(sys.argv[1]), datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))' "$(git log -1 --format=%ct)")
+          echo "NEOHUGO_BUILD_DATE=$date" >>"$GITHUB_ENV"
+
       - name: cargo build --release
         run: cargo build --release --locked -p neohugo --target "$TARGET"
 
       - name: Smoke test
         run: |
-          "$BINARY" version
+          line=$("$BINARY" version)
+          echo "$line"
+          case $line in
+            "neohugo v"*"-$NEOHUGO_BUILD_COMMIT "*" BuildDate=$NEOHUGO_BUILD_DATE VendorInfo=$NEOHUGO_VENDOR_INFO") ;;
+            *)
+              echo "::error::\`neohugo version\` does not print 'neohugo v<version>-$NEOHUGO_BUILD_COMMIT <os>/<arch> BuildDate=$NEOHUGO_BUILD_DATE VendorInfo=$NEOHUGO_VENDOR_INFO'"
+              exit 1
+              ;;
+          esac
           if [ "$RUNNER_OS" = Linux ]; then
             echo "needs $(objdump -T "$BINARY" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)"
           fi
 
       # notices.py writes the licences of the crates linked for this target (MIT, BSD and
       # Apache-2.0 ask for them in binary distributions); it fails if a linked crate ships no
-      # licence file and is not MIT. package.py runs `neohugo-rs version` again: the version it
-      # prints names the archive.
+      # licence file and is not MIT. package.py writes neohugo_<version>_<os>-<arch>.tar.gz
+      # (.zip for Windows) and its .sha256, after checking that `neohugo version` prints the
+      # version of Cargo.toml.
       - name: Package
         run: |
-          python=python3
-          if [ "$RUNNER_OS" = Windows ]; then python=python; fi
-          "$python" tools/neohugo/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
-          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) "$python" tools/neohugo/package.py "$BINARY" "$TARGET" dist "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
+          python tools/neohugo/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
+          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) python tools/neohugo/package.py "$BINARY" "$TARGET" dist "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: neohugo-rs-${{ matrix.target }}
+          name: neohugo-${{ matrix.target }}
           path: dist/*
           if-no-files-found: error
           overwrite: true
@@ -244,24 +271,36 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: neohugo-rs-*
+          pattern: neohugo-*
           path: dist
           merge-multiple: true
 
-      - name: Verify checksums
+      # The assets of the Go releases: the five archives and goreleaser's checksums file,
+      # neohugo_<version>_checksums.txt ("<sha256>  <archive>" per archive). The build jobs'
+      # .sha256 files check the artifacts' transfer and make that file; they are not published.
+      - name: Checksums
         working-directory: dist
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
           ls -l
-          count=$(ls *.sha256 | wc -l)
-          if [ "$count" -ne 5 ]; then
-            echo "::error::expected 5 archives, found $count"
+          version=${TAG#v}
+          shopt -s nullglob
+          archives=(neohugo_"$version"_*.tar.gz neohugo_"$version"_*.zip)
+          sums=(*.sha256)
+          if [ "${#archives[@]}" -ne 5 ] || [ "${#sums[@]}" -ne 5 ]; then
+            echo "::error::expected 5 archives of $version and their .sha256 files, found ${#archives[@]} and ${#sums[@]}"
             exit 1
           fi
-          sha256sum -c *.sha256
-          cat *.sha256 >SHA256SUMS
+          sha256sum -c "${sums[@]}"
+          LC_ALL=C sort -k 2 "${sums[@]}" >"neohugo_${version}_checksums.txt"
+          rm "${sums[@]}"
+          cat "neohugo_${version}_checksums.txt"
 
-      # Idempotent: a re-run replaces the assets of the release an earlier run created. Marked
-      # latest unless the version has a pre-release suffix (e.g. 0.150.0-rc.1).
+      # Idempotent: a re-run replaces the assets of the release an earlier run created. A version
+      # with a pre-release suffix (e.g. 0.150.0-rc.1) makes a pre-release, never latest. Any other
+      # becomes latest only if no published release has a higher version, so a patch release of an
+      # older line does not take latest from a newer one (the API would make it latest).
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -273,13 +312,23 @@ jobs:
             gh release upload "$TAG" dist/* --clobber
             exit 0
           fi
-          latest=--latest
-          case $version in *-*) latest="--prerelease --latest=false" ;; esac
+          case $version in
+            *-*) latest=(--prerelease --latest=false) ;;
+            *)
+              newest=$({
+                gh release list --limit 1000 --json tagName,isDraft,isPrerelease \
+                  --jq '.[] | select((.isDraft or .isPrerelease) | not) | .tagName'
+                echo "$TAG"
+              } | sed -n 's/^v\([0-9][0-9.]*\)$/\1/p' | sort -V | tail -n 1)
+              latest=(--latest=false)
+              if [ "$newest" = "$version" ]; then latest=(--latest); fi
+              ;;
+          esac
           {
-            echo "neohugo-rs $version, the Rust rewrite of neohugo, built from $GITHUB_SHA."
+            echo "neohugo $version, built from $GITHUB_SHA."
             echo
-            echo "Each archive holds the \`neohugo-rs\` binary, \`LICENSE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
-            echo "Check a download with \`sha256sum -c SHA256SUMS --ignore-missing\`."
+            echo "Each archive holds the \`neohugo\` binary, \`README.md\`, \`LICENSE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
+            echo "Check a download with \`sha256sum -c neohugo_${version}_checksums.txt --ignore-missing\`."
           } >"$RUNNER_TEMP/notes.md"
-          gh release create "$TAG" dist/* --verify-tag $latest \
-            --title "neohugo-rs $version" --notes-file "$RUNNER_TEMP/notes.md"
+          gh release create "$TAG" dist/* --verify-tag "${latest[@]}" \
+            --title "neohugo $version" --notes-file "$RUNNER_TEMP/notes.md"

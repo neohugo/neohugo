@@ -32,7 +32,7 @@ the review table in its README).
   `_hugo/` and `_server/`, suffixes with no output format or media type, two files with the same
   Tera name. **Refused** (`GoTemplate`, with the line): `{{ .`, `{{ $`, `{{ end }}`, `{{/*`,
   `{{ define|range|with|if|else|block|template|partial …` outside `{% raw %}` and comments; the
-  message points to `neohugo-rs templates check` and the migrate tool.
+  message points to `neohugo templates check` and the migrate tool.
 - **Descriptor.** Kind, layout, language and format come from the file name (Vfs
   `PathParser`); the media type from the format, else the only format with that suffix, else
   the first media type with it (then the format named like its sub type decides plain text);

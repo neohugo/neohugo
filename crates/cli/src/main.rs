@@ -1,4 +1,4 @@
-//! `neohugo-rs`, the neohugo Rust binary (see the `neohugo` library for the commands).
+//! The `neohugo` binary (see the `neohugo` library for the commands).
 
 #![forbid(unsafe_code)]
 

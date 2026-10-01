@@ -46,7 +46,7 @@ pub struct Project {
 pub struct RenderOptions {
     /// `now()` and the build's "now" (`--clock`).
     pub clock: Clock,
-    /// The build runs in `neohugo-rs server` (`hugo.is_server`).
+    /// The build runs in `neohugo server` (`hugo.is_server`).
     pub server: bool,
 }
 
@@ -138,7 +138,7 @@ fn outputs(p: &Page) -> impl Iterator<Item = &PageUrl> {
 }
 
 /// The output formats page `p` is rendered in (none unless it is written), the primary first:
-/// the (page, format) pairs that get a layout job (`neohugo-rs templates check` lists their
+/// the (page, format) pairs that get a layout job (`neohugo templates check` lists their
 /// lookups).
 pub fn rendered_formats(p: &Page) -> impl Iterator<Item = FormatId> + '_ {
     outputs(p).map(|u| u.format)

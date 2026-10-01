@@ -1,5 +1,5 @@
 //! Gate A-R (REWRITE_PLAN.md §7.3, T62): the seeksnack reconstruction built by the
-//! `neohugo-rs` binary against the committed golden data of the Go build
+//! `neohugo` binary against the committed golden data of the Go build
 //! (`testdata/golden/seeksnack/`, T01), through the acceptance harness:
 //! `tools/neohugo/compare.sh seeksnack --ref golden` (`sites.py make seeksnack --overlay
 //! sites/seeksnack`, both passes, `structdiff.py` and the ratchet of

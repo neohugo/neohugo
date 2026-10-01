@@ -32,7 +32,7 @@ If you believe you have found a defect in neohugo, use the
 [issue tracker](https://github.com/neohugo/neohugo/issues) of this repository to report
 the problem. If you're not sure if it's a bug or not,
 start by asking in the [discussion forum](https://github.com/neohugo/neohugo/discussions).
-When reporting the issue, please provide the version of neohugo in use (`neohugo-rs
+When reporting the issue, please provide the version of neohugo in use (`neohugo
 version`), your operating system, and whether Hugo behaves differently on the same site.
 Defects of Hugo itself, its documentation or its themes site go to Hugo's trackers:
 
@@ -160,7 +160,7 @@ Now, to make a change to neohugo's source:
 `DEVELOPMENT.md` describes the workspace (layout, commands, CI and releases) and
 `docs/rust-port/HANDOFF.md` the crates, the parity gates and the deviations from Hugo.
 
-To build neohugo (`target/release/neohugo-rs`):
+To build neohugo (`target/release/neohugo`):
 
 ```bash
 cargo build --release --locked -p neohugo

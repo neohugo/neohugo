@@ -1,5 +1,5 @@
 //! The acceptance harness from a test: `tools/neohugo/compare.sh <label> --ref golden` with the
-//! test's `neohugo-rs` binary against the committed golden data of the Go build, and the parsed
+//! test's `neohugo` binary against the committed golden data of the Go build, and the parsed
 //! `structdiff.json` (REWRITE_PLAN.md §7.2, §7.3). The Go binaries are not needed.
 //!
 //! The sites' asset pipelines need the node tools (`tools/neohugo/node.sh`,
@@ -89,7 +89,7 @@ pub fn compare(gate: &str, label: &str, node_bins: &[&str]) -> Option<serde_json
     let out = Command::new("bash")
         .arg(repo.join("tools/neohugo/compare.sh"))
         .args([label, "--ref", "golden", "--show", "20"])
-        .env("NEOHUGO_RS", env!("CARGO_BIN_EXE_neohugo-rs"))
+        .env("NEOHUGO_BINARY", env!("CARGO_BIN_EXE_neohugo"))
         .env("NEOHUGO_COMPARE_WORK", work.path())
         .env("NEOHUGO_NODE_MODULES", &node_modules)
         .env("NEOHUGO_ESBUILD_BINARY", &esbuild)

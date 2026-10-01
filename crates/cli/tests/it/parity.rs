@@ -1,8 +1,8 @@
-//! Gate A-T (REWRITE_PLAN.md §7.3, T60): the testsite built by the `neohugo-rs` binary against
+//! Gate A-T (REWRITE_PLAN.md §7.3, T60): the testsite built by the `neohugo` binary against
 //! the Go build of the same site (`crates/build/tests/it/testsite-go.txtar`).
 //!
 //! The gate lives here, not in `neohugo-build`, because only this crate's tests can run the
-//! binary (`CARGO_BIN_EXE_neohugo-rs`): the command line, the disk sink, the static copy and
+//! binary (`CARGO_BIN_EXE_neohugo`): the command line, the disk sink, the static copy and
 //! `hugo_stats.json` in the project directory are part of what is compared.
 //!
 //! - **L1** paths: the file set, after §7.2's normalisation, equals Go's 55 files in `public`

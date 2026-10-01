@@ -1034,7 +1034,7 @@ fn theme_mounts_and_import_options() {
     );
     assert!(c.themes[0].config_files.is_empty());
     assert_eq!(params(&c), toml("fromnomounts = true\n"));
-    // `neohugo-rs config` prints the themes (JSON and TOML).
+    // `neohugo config` prints the themes (JSON and TOML).
     let json = serde_json::to_value(&c).expect("json");
     assert_eq!(
         json["themes"][3]["mounts"]["Configured"][0]["source"],

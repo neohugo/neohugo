@@ -4,6 +4,11 @@
 # package.json belong to the docs site, whose files the test fixtures record by hash.
 version: 2
 updates:
+  # One grouped pull request for the minor and patch bumps. Several crates shape the output the
+  # parity gates compare with the Go build's golden data (comrak, syntect, minify-html,
+  # lightningcss, oxc, grass, image, webp, ...): the group must pass the gates of CI's Test job
+  # like any change, and a bump that changes a gate's differences needs an entry in
+  # tools/neohugo/changes/ (see its README).
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
@@ -12,6 +17,10 @@ updates:
       minor-and-patch:
         patterns: ["*"]
         update-types: ["minor", "patch"]
+    ignore:
+      # Pinned exactly ("=2.4.0" in Cargo.toml) on purpose, a young engine whose behaviour the
+      # layouts rely on (docs/rust-port/REWRITE_PLAN.md §9, risk 3): moved by hand.
+      - dependency-name: "tera"
 
   - package-ecosystem: "github-actions"
     directory: "/"

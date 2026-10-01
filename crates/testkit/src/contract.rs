@@ -4,7 +4,7 @@
 //!
 //! Tera validates names (filters, functions, tests, components, include targets, blocks) when
 //! templates are added, but kwargs only when a call runs. [`scan_calls`] (the tokenizer of
-//! `neohugo_funcs::scan`, shared with `neohugo-rs templates check`) therefore reads the calls of
+//! `neohugo_funcs::scan`, shared with `neohugo templates check`) therefore reads the calls of
 //! a template and [`kwarg_findings`] checks them against the spec.
 //!
 //! Template sets: one per site under `sites/<site>/` (its `layouts/**` by relative name,

@@ -1,5 +1,5 @@
 //! Integration tests of `neohugo` (the crate's single test binary, REWRITE_PLAN.md §2.2): the
-//! `neohugo-rs` binary run on small sites.
+//! `neohugo` binary run on small sites.
 
 mod acceptance;
 mod build;
@@ -16,9 +16,9 @@ use std::process::{Command, Output};
 
 use neohugo_testkit::txtar::Archive;
 
-/// `neohugo-rs` with `args`, in `dir`, with an environment reduced to `PATH` plus `env`.
+/// `neohugo` with `args`, in `dir`, with an environment reduced to `PATH` plus `env`.
 pub fn neohugo(dir: &Path, args: &[&str], env: &[(&str, &str)]) -> Output {
-    let mut c = Command::new(env!("CARGO_BIN_EXE_neohugo-rs"));
+    let mut c = Command::new(env!("CARGO_BIN_EXE_neohugo"));
     c.current_dir(dir).args(args).env_clear();
     if let Some(path) = std::env::var_os("PATH") {
         c.env("PATH", path);
@@ -27,7 +27,7 @@ pub fn neohugo(dir: &Path, args: &[&str], env: &[(&str, &str)]) -> Output {
     for (k, v) in env {
         c.env(k, v);
     }
-    c.output().expect("run neohugo-rs")
+    c.output().expect("run neohugo")
 }
 
 pub fn stdout(o: &Output) -> String {

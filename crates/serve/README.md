@@ -1,6 +1,6 @@
 # neohugo-serve
 
-`neohugo-rs server` (REWRITE_PLAN.md T71): Hugo's development server. axum 0.8 (HTTP/1 and
+`neohugo server` (REWRITE_PLAN.md T71): Hugo's development server. axum 0.8 (HTTP/1 and
 the LiveReload WebSocket on one port) on a current-thread tokio runtime, notify 8 with
 notify-debouncer-full 0.7 (1 s debounce), full rebuilds through `neohugo_build::build`.
 **State: T71.**
@@ -147,7 +147,7 @@ Measured on the testsite (debug build; 4 CPUs shared with other builds):
 
 | Run | content edit → reload | layout edit | static edit (no build) |
 |---|---|---|---|
-| `neohugo-rs server`, alone (3 sessions, 13 content and 9 static edits) | 1.54–1.84 s, one 2.17 s while the machine was compiling | – | 1.00–1.14 s |
+| `neohugo server`, alone (3 sessions, 13 content and 9 static edits) | 1.54–1.84 s, one 2.17 s while the machine was compiling | – | 1.00–1.14 s |
 | `testsite_is_served_and_reloads` (8 runs, 6 of them next to the other tests) | 1.54–2.03 s (23 of 24 ≤ 2 s) | 1.55–1.69 s | 1.01–1.07 s |
 | the same test after the highlighter cache (below) | 1.09–1.11 s | 1.11 s | 1.06 s |
 
