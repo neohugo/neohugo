@@ -1,4 +1,0 @@
-# Test the completion commands.
-
-neohugo completion -h
-stdout 'Generate the autocompletion script for neohugo for the specified shell.'

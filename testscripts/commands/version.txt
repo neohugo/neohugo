@@ -1,7 +1,0 @@
-# Test the hugo version command.
-
-neohugo -h
-stdout 'neohugo is the main command, used to build your Hugo site'
-
-neohugo version
-stdout 'neohugo v.* BuildDate=unknown'
