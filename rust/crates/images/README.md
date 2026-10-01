@@ -96,9 +96,9 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
   `oracle/images/config` (all match, bar the documented rules below), `[imaging]` decoding,
   colours, formats, typed kwargs.
 * `process`: result sizes against `oracle/images/process` — every spec, filter chain and
-  seeksnack template chain the oracle ran: **11046/11046** with the sources in this repository;
-  **13087/13089** with Go's image test data (`NEOHUGO_GOROOT=/usr/local/go…`, 85 more sources),
-  the two differences being corrupt PNGs (below). The small synthetic results are processed too
+  seeksnack template chain the oracle ran: **11046/11046** with the sources in this repository.
+  The 85 others are Go's own image test data (with it, at 44529028: 13087/13089, the two
+  differences being corrupt PNGs, below). The small synthetic results are processed too
   (4100), and their pixels have the planned size.
 * `psnr`: the 20 Go-processed images of `golden/images/manifest.json` (T01) and 45 of Hugo's
   own golden images (`rust/testdata/upstream/resources/images/testdata/images_golden`), all

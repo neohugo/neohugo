@@ -91,14 +91,9 @@ pub fn testdata(rel: &str) -> PathBuf {
 
 /// Hugo's test data that the tests read, by its path in the Go tree; it moved to
 /// `rust/testdata/upstream/<path>` when the Go sources were removed.
-pub const UPSTREAM: [&str; 10] = [
-    "hugolib/testdata/sunset.jpg",
+pub const UPSTREAM: [&str; 5] = [
     "hugolib/testsite",
     "media/testdata/fake.png",
-    "media/testdata/resource.jpg",
-    "media/testdata/resource.png",
-    "media/testdata/resource.webp",
-    "resources/assets/sunset.jpg",
     "resources/images/testdata",
     "resources/testdata",
     "tpl/images/testdata",

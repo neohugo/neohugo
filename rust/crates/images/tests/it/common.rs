@@ -29,17 +29,9 @@ pub fn expected_diffs(section: &str) -> BTreeMap<String, String> {
         .unwrap_or_default()
 }
 
-/// The Go standard library's `src/` for the oracle sources taken from Go's image test data:
-/// `NEOHUGO_GOROOT` or `GOROOT`, when set and present.
-fn goroot_src() -> Option<PathBuf> {
-    ["NEOHUGO_GOROOT", "GOROOT"]
-        .into_iter()
-        .filter_map(std::env::var_os)
-        .map(|r| PathBuf::from(r).join("src"))
-        .find(|p| p.is_dir())
-}
-
-/// The file of an oracle source id (`file:<path as the oracle saw it>`), when available.
+/// The file of an oracle source id (`file:<path as the oracle saw it>`), when available. The
+/// oracle's sources from Go's own image test data (`crates/go-*/tests/fixtures/gotestdata/`) are
+/// not in the repository.
 pub fn source_path(id: &str) -> Option<PathBuf> {
     let rel = id.strip_prefix("file:")?;
     let map = [
@@ -61,32 +53,42 @@ pub fn source_path(id: &str) -> Option<PathBuf> {
             return Some(repo_file(to).join(rest)).filter(|p| p.is_file());
         }
     }
-    let go = [
+    // Files of the Go tree (44529028) with a byte-identical twin in the repository.
+    let twins = [
         (
-            "crates/go-image/tests/fixtures/gotestdata/",
-            "image/testdata/",
+            "hugolib/testdata/sunset.jpg",
+            "resources/testdata/sunset.jpg",
         ),
         (
-            "crates/go-png/tests/fixtures/gotestdata/image/",
-            "image/testdata/",
+            "resources/assets/sunset.jpg",
+            "resources/testdata/sunset.jpg",
         ),
         (
-            "crates/go-png/tests/fixtures/gotestdata/",
-            "image/png/testdata/",
+            "media/testdata/resource.jpg",
+            "resources/testdata/iss8079.jpg",
+        ),
+        (
+            "media/testdata/resource.png",
+            "resources/testdata/gopher-hero8.png",
+        ),
+        (
+            "media/testdata/resource.webp",
+            "resources/testdata/sunset.webp",
+        ),
+        (
+            "snap/local/logo.png",
+            "docs/assets/images/logos/logo-512x512.png",
         ),
     ];
-    for (from, to) in go {
-        if let Some(rest) = rel.strip_prefix(from) {
-            return goroot_src()
-                .map(|g| g.join(to).join(rest))
-                .filter(|p| p.is_file());
-        }
-    }
+    let rel = twins
+        .into_iter()
+        .find_map(|(from, to)| (from == rel).then_some(to))
+        .unwrap_or(rel);
     Some(repo_file(rel)).filter(|p| p.is_file())
 }
 
 // ---------------------------------------------------------------------------------------
-// The oracle's synthetic images (tools/go-oracle/nh-images/process/main.go).
+// The oracle's synthetic images (tools/go-oracle/nh-images/process/main.go at 44529028).
 
 fn splitmix64(x: u64) -> u64 {
     let x = x.wrapping_add(0x9e37_79b9_7f4a_7c15);

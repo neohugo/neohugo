@@ -13,10 +13,8 @@ config_hint = "an unknown `[imaging] hint` is an error; Hugo accepts any string 
 exif_patterns = "an invalid `[imaging.exif]` field pattern is a configuration error; Go reports it when the first image is decoded"
 
 [process]
-# "<oracle source id> <op>" of oracle/images/process (sizes; checked only when the Go test
-# data is available through NEOHUGO_GOROOT / GOROOT).
-"file:crates/go-png/tests/fixtures/gotestdata/invalid-trunc.png decode" = "the png crate decodes a PNG truncated after its last IDAT chunk (no IEND); Go reports unexpected EOF"
-"file:crates/go-png/tests/fixtures/gotestdata/invalid-zlib.png decode" = "the png crate does not verify the zlib Adler-32 checksum; Go reports a checksum error"
+# "<oracle source id> <op>" of oracle/images/process (sizes). None: the two that differ, corrupt
+# PNGs (README, "Accepted deviations"), are in Go's image test data, not in this repository.
 
 [exif]
 # Case-id prefixes of oracle/images/exif (synthetic EXIF blocks) whose date or position differ.

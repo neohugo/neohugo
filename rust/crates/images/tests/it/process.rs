@@ -304,7 +304,7 @@ fn sizes_match_the_process_oracle() {
     let r = run_oracle(true);
     eprintln!(
         "process oracle: {}/{} sizes match ({} accepted differences); {} sources unavailable \
-         (Go test data: set NEOHUGO_GOROOT or GOROOT); {} small results processed",
+         (Go's image test data); {} small results processed",
         r.matched, r.compared, r.accepted, r.missing_sources, r.processed
     );
     assert!(
