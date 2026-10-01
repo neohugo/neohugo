@@ -181,7 +181,7 @@ fn structure_oracle_template_and_baseof() {
                 }
                 None => eprintln!(
                     "structure oracle: skipping {label}: {} has no structure.json[.gz] \
-                     (T01 has not produced the structure dumps yet)",
+                     (the golden data, frozen at 44529028, has none for this label)",
                     golden.join(&label).display()
                 ),
             }

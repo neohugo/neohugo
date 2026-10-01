@@ -167,7 +167,7 @@ fn structure_oracle_targets_permalinks_resources() {
             }
             None => eprintln!(
                 "structure oracle: skipping {label}: testdata/golden/{label} has no \
-                 structure.json[.gz] (T01 has not produced the structure dumps yet)"
+                 structure.json[.gz] (the golden data, frozen at 44529028, has none for this label)"
             ),
         }
     }

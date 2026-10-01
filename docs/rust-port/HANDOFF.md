@@ -371,8 +371,11 @@ that comments and READMEs cite.
 - **Frozen references:** what the Go implementation generated stays as committed: the oracle
   fixtures (`testdata/oracle/`), the golden data (`testdata/golden/`),
   `crates/build/tests/it/testsite-go.txtar`, the highlight fixtures
-  (`crates/highlight/tests/data/`) and `docs/data/docs.yaml`. To regenerate, run the old
-  recipe in a worktree of `44529028` and copy the result back (`testdata/golden/README.md`,
+  (`crates/highlight/tests/data/`) and lexer table
+  (`crates/highlight/src/data/chroma-lexers.tsv`), `crates/funcs/tests/fixtures/remarshal/go.txt`
+  and `docs/data/docs.yaml`; so do the Go outputs the old port recorded at `be02933a`, such as
+  `testdata/corpus/minify/*.tsv` (PROVENANCE.md). To regenerate, run the old recipe in a
+  worktree of `44529028` and copy the result back (`testdata/golden/README.md`,
   `crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`). `compare.sh` takes only
   `--ref golden`; `selftest.py` perturbs the Go testsite output of `testsite-go.txtar`.
 - **Workspace at the root:** the Cargo workspace moved from `rust/` to the repository root

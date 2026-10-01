@@ -94,8 +94,8 @@ fn structure_oracle_aliases() {
                 );
             }
             None => eprintln!(
-                "structure oracle: skipping {label}: no structure.json[.gz] (T01 has not \
-                 produced the structure dumps yet)"
+                "structure oracle: skipping {label}: no structure.json[.gz] (the golden data, \
+                 frozen at 44529028, has none for this label)"
             ),
         }
     }

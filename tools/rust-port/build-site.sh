@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Build the prepared seeksnack site with a neohugo binary (Go or Rust) using
-# the golden build settings.
+# Build the prepared seeksnack site with the neohugo binary of this tree (or a
+# Go neohugo built at 44529028) using the golden build settings.
 #
 # Usage: tools/rust-port/build-site.sh <neohugo-binary> <workdir>/seeksnack <outdir>
 #
@@ -10,8 +10,9 @@
 # - HUGO_CACHEDIR points at the checked-in GetRemote (YouTube API) cache so
 #   the build is offline and reproducible.
 # - The resources/ directory must not exist: the golden is a cold-cache build.
-# - esbuild 0.25.6 is needed for js.Build; the Rust port looks for it via
-#   NEOHUGO_ESBUILD_BINARY (install with `npm i esbuild@0.25.6`).
+# - esbuild 0.25.6 is needed for js.Build; neohugo looks for it via
+#   NEOHUGO_ESBUILD_BINARY (install with
+#   `tools/neohugo/node.sh && tools/esbuild/install.sh`).
 set -euo pipefail
 
 BIN=${1:?neohugo binary}

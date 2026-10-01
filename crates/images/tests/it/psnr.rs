@@ -1,8 +1,8 @@
 //! Pixel parity: PSNR against images processed by Go Hugo.
 //!
 //! * `testdata/golden/images/` (T01): the 20 Go-processed images of the acceptance gate
-//!   (≥ 30 dB each), described by `manifest.json` (format below). Skipped with a note while
-//!   T01 has not produced them.
+//!   (≥ 30 dB each), described by `manifest.json` (format below), frozen at 44529028 (nothing
+//!   regenerates them). Skipped with a note if they are missing.
 //! * Interim: Hugo's own golden images (`images_golden` in
 //!   `testdata/upstream/resources/images/testdata`, written by
 //!   `resources/images/images_golden_integration_test.go`), whose recipes are known.
@@ -195,8 +195,9 @@ fn golden_images_from_t01() {
     let manifest = dir.join("manifest.json");
     if !manifest.is_file() {
         eprintln!(
-            "SKIPPED: {} is missing: the 20 Go-processed golden images come from T01, which \
-             has not run yet (the interim PSNR checks below cover Hugo's own golden images)",
+            "SKIPPED: {} is missing: the 20 Go-processed golden images (T01) are frozen at \
+             44529028, restore them from git (the interim PSNR checks below cover Hugo's own \
+             golden images)",
             manifest.display()
         );
         return;

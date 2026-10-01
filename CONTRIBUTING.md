@@ -99,12 +99,12 @@ Most title/subjects should have a lower-cased prefix with a colon and one whites
 * Note that the above excludes nouns seen in other repositories, e.g. "chore:".
 
 Also, if your commit references one or more GitHub issues, always end your commit message body with *See #1234* or *Fixes #1234*.
-Replace *1234* with the GitHub issue ID. The last example will close the issue when the commit is merged into *master*.
+Replace *1234* with the GitHub issue ID. The last example will close the issue when the commit is merged into *main*.
 
 An example:
 
 ```text
-tpl: Add custom index function
+funcs: Add custom index function
 
 Add a custom index template function that deviates from the stdlib simply by not
 returning an "index out of range" error if an array, slice or string index is
@@ -192,4 +192,4 @@ export NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULE
   NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss NEOHUGO_BABEL_BIN=$N/.bin/babel
 ```
 
-The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar` and `crates/highlight/tests/data/`. It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. To regenerate it, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.
+The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar`, `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`, and `crates/funcs/tests/fixtures/remarshal/go.txt`. It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. The same holds for the Go outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv` (`PROVENANCE.md`). To regenerate it, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.
