@@ -49,5 +49,6 @@ non-page `document`), which belong to `neohugo-sitefuncs`.
 
 **Pending.** The `NavModel` implementation of the site `Model` (T23b); until then the alias test
 takes the pages' output formats and links from the recorded renders, and `pageRef`s resolve by
-path in the tests. The structure-oracle alias check (`structure.rs`) skips until T01 writes
-`testdata/golden/<site>/structure.json[.gz]` and T23b lands.
+path in the tests. The structure-oracle alias check (`structure.rs`) reads the alias rows of
+`testdata/golden/<site>/structure.json[.gz]` (frozen at 44529028) but checks none until T23b
+lands (it prints `PENDING T23b`).

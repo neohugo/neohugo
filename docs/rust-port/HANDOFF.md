@@ -397,10 +397,15 @@ that comments and READMEs cite.
   `LICENSE` at the root plus `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`,
   next to `neohugo_<version>_checksums.txt`. `compare.sh` takes the binary from
   `NEOHUGO_BINARY` (was `NEOHUGO_RS`). Not reproduced from the Go release: goreleaser's
-  changelog in the release notes and its `v<version>` release title, and the Go commands the
-  Rust command line does not have (`env`, which also printed the version line, `new`, `mod`,
-  `deploy`, `list`, `gen`, `convert`, `import`, `release`); the Docker images and the docs
-  deploy are below.
+  changelog in the release notes and its `v<version>` release title (the title is now
+  `neohugo <version>`); the Go commands the Rust command line does not have (`env`, which also
+  printed the version line, `new`, `mod`, `deploy`, `list`, `gen`, `convert`, `import`,
+  `release`), Hugo's flags it does not list (`crates/cli/README.md`; e.g. `--gc`, `--logLevel`)
+  and the "Start building sites …" banner with the version line; the commit and date of a local
+  build (Go read them from git, a cargo build gets them only from CI's variables). New: a
+  `--version` flag, printing the `version` line. The Docker images and the docs deploy are
+  below; `snap/snapcraft.yaml` and `hugoreleaser.yaml` were in the tree at `44529028`, but no
+  workflow published them.
 
 Follow-ups outside the repository:
 

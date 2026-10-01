@@ -154,8 +154,9 @@ the 2,284 docs items ≈ 1.9 s.
 
 Regenerate in a worktree of 44529028, which has the Go tree and the oracle (`git worktree add
 <dir> 44529028`; Go ≥ 1.24 with the module cache of its `go.mod`, offline): run this from its
-root (the Cargo workspace is `rust/` there), then copy the fixtures above (oracle/ aside) and
-`src/data/chroma-lexers.tsv` here.
+root (the Cargo workspace is `rust/` there), then copy the fixtures above (oracle/ aside) from
+its `rust/crates/highlight/tests/data/` and its `rust/crates/highlight/src/data/chroma-lexers.tsv`
+to the same paths below `crates/highlight/` here.
 
 ```sh
 W=$(mktemp -d); mkdir $W/oracle; cp rust/crates/highlight/tests/data/oracle/main.go.txt $W/oracle/main.go

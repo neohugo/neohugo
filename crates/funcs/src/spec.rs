@@ -1037,10 +1037,10 @@ fn write_markdown(w: &mut String) -> std::fmt::Result {
     )?;
     writeln!(
         w,
-        "Templates are Tera 2.4.0 (REWRITE_PLAN.md §4). Kind codes: `bi` Tera built-in, `tc` \
-         tera-contrib, `F` neohugo filter, `fn` neohugo function, `T` neohugo test; `(s)` \
-         site-bound (needs the site model or the render scope). Phase: `both`, or the only phase \
-         the name works in. `=?` marks an optional kwarg, `…` any further kwargs.\n"
+        "Templates are Tera 2.4.0 ([REWRITE_PLAN.md](REWRITE_PLAN.md) §4). Kind codes: `bi` Tera \
+         built-in, `tc` tera-contrib, `F` neohugo filter, `fn` neohugo function, `T` neohugo \
+         test; `(s)` site-bound (needs the site model or the render scope). Phase: `both`, or \
+         the only phase the name works in. `=?` marks an optional kwarg, `…` any further kwargs.\n"
     )?;
 
     writeln!(

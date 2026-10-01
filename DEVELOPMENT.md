@@ -47,6 +47,16 @@ testdata/corpus/            corpora: seeksnack bodies and front matter, dates, m
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
 testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids)
 testdata/COUNTS.json        per fixture: old path, record and value counts at conversion
+sites/<site>/               the Tera layouts (and assets) of the test sites; sites/docs/patches/
+tools/neohugo/              the harness (compare.sh, structdiff.py, manifest.py, selftest.py,
+                            changes/), node.sh, licence-check.sh, notices.py, package.py, disk.sh,
+                            fixtures2json.py
+tools/esbuild/install.sh    esbuild for js_build (tools/esbuild/bin/esbuild)
+tools/rust-port/            i01/sites.py (every test site), patches.json and the site txtars; the
+                            GetRemote cache and the real seeksnack record (its README.md)
+docs/                       Hugo's documentation site, a test site the tests record by hash (keep
+                            it unchanged); docs/rust-port/: the plan, the handoff, template-api.md
+.github/workflows/ci.yml    CI and releases (below)
 ```
 
 Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs`

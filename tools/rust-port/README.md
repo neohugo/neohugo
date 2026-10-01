@@ -38,7 +38,7 @@ the Go implementation was removed after commit `44529028`:
 
 - `build-site.sh` records the settings the golden Go build was made with (darwin/arm64, go1.27.1,
   `--minify --clock 2026-09-27T12:00:00Z`, one worker, cold `resources/`, `testdata/hugo_cache`);
-  a Go binary for it now comes from `44529028` or earlier.
+  it runs this tree's `neohugo` or a Go neohugo built at `44529028`.
 - `compare.py` compares a build with `golden/canonical.sha256` byte for byte, the acceptance test
   of the deleted port. The rewrite does not aim at byte parity; use `tools/neohugo/compare.sh`.
 - `i01/compare.sh` and `i01/diff.py` (the old port's byte comparison against an arm64 Go build)

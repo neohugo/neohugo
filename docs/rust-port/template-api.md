@@ -3,7 +3,7 @@
 <!-- GENERATED from neohugo_funcs::spec (crates/funcs/src/spec.rs); do not edit.
      Regenerate: INSTA_UPDATE=always cargo test -p neohugo-testkit contract -->
 
-Templates are Tera 2.4.0 (REWRITE_PLAN.md §4). Kind codes: `bi` Tera built-in, `tc` tera-contrib, `F` neohugo filter, `fn` neohugo function, `T` neohugo test; `(s)` site-bound (needs the site model or the render scope). Phase: `both`, or the only phase the name works in. `=?` marks an optional kwarg, `…` any further kwargs.
+Templates are Tera 2.4.0 ([REWRITE_PLAN.md](REWRITE_PLAN.md) §4). Kind codes: `bi` Tera built-in, `tc` tera-contrib, `F` neohugo filter, `fn` neohugo function, `T` neohugo test; `(s)` site-bound (needs the site model or the render scope). Phase: `both`, or the only phase the name works in. `=?` marks an optional kwarg, `…` any further kwargs.
 
 ## Render contexts
 

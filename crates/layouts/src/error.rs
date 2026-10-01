@@ -75,8 +75,8 @@ impl fmt::Display for IssueKind {
             Self::GoTemplate { marker } => write!(
                 f,
                 "Go template syntax `{marker}`: layouts must be Tera templates; run \
-                 `neohugo templates check` and convert the file (the migrate tool translates \
-                 most constructs)"
+                 `neohugo templates check` and convert the file (docs/rust-port/template-api.md \
+                 of the neohugo repository gives Hugo's functions with their Tera names)"
             ),
         }
     }

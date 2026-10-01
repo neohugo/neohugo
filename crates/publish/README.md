@@ -60,8 +60,8 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   and have no counterpart.
 - **golden stats** — `tools/rust-port/golden/hugo_stats.json` (seeksnack) and
   `docs/hugo_stats.json` round-trip byte for byte through `HugoStats::to_json` (format,
-  sorting, `null`). Scanning the golden HTML itself needs the Go build outputs (T01 golden
-  trees), which are not in the repository.
+  sorting, `null`). Scanning the golden HTML itself would need the Go build's output trees,
+  which are not in the repository (`testdata/golden/` holds manifests).
 - **static sync** — `oracle/commands/staticcopy/staticcopy.json.gz`: 12 cases, 179 checks
   (count + every entry's bytes, mode, mtime), 171 exact, 8 accepted, 0 unexplained (later
   static mounts of a module win and symbolic links are followed, both in `Vfs::walk`);

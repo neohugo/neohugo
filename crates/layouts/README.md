@@ -32,7 +32,8 @@ the review table in its README).
   `_hugo/` and `_server/`, suffixes with no output format or media type, two files with the same
   Tera name. **Refused** (`GoTemplate`, with the line): `{{ .`, `{{ $`, `{{ end }}`, `{{/*`,
   `{{ define|range|with|if|else|block|template|partial …` outside `{% raw %}` and comments; the
-  message points to `neohugo templates check` and the migrate tool.
+  message points to `neohugo templates check` and `docs/rust-port/template-api.md` (the
+  migrate tool, T73, is a stub).
 - **Descriptor.** Kind, layout, language and format come from the file name (Vfs
   `PathParser`); the media type from the format, else the only format with that suffix, else
   the first media type with it (then the format named like its sub type decides plain text);
@@ -74,8 +75,9 @@ the review table in its README).
   Every synthesised file round-trips to Go's key and descriptor.
 - `structure_oracle_template_and_baseof`: compares template + baseof for every (page, format)
   of `testdata/golden/<site>[-<variant>]/structure.json[.gz]` against the converted
-  layouts of `sites/<site>`; skips with a message until T01 writes the dumps (expected
-  schema in `tests/it/structure.rs`); `structure_reader_self_test` exercises the reader.
+  layouts of `sites/<site>`; a label without a dump is skipped with a message (the golden
+  data, frozen at 44529028, has dumps for testsite, seeksnack, docs-i01, docs-reduced and
+  mini; schema in `tests/it/structure.rs`); `structure_reader_self_test` exercises the reader.
 - `scan`: legacy names with hints, Go markers with lines, unknown names, roles, descriptors,
   theme prefixes and shadowing, all through `Vfs` + `Config`.
 - `load`: fallback prefixes (user → theme 1 → theme 2 → embedded), escaping by format and

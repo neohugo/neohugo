@@ -4,8 +4,7 @@
 //! The dumps come from T01 (`tools/go-oracle/structure/`, frozen at 44529028); without
 //! `testdata/golden/<site>/structure.json[.gz]` the test prints why it skips.
 //! Building a site's plan also needs the site `Model` as a `NavModel` (T23b: URLs and
-//! relations). **Expected schema** (next to T30's `records`; T01 adapts either its dump or
-//! this reader):
+//! relations). **Schema** (of the frozen dumps, next to T30's `records`):
 //!
 //! ```json
 //! { "aliases": [ { "from": "/old/a/index.html",  // the redirect file (OutputPath)

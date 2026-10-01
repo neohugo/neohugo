@@ -7,7 +7,7 @@ the Rust side is compared file set, URLs, templates, links, text and assets, lev
 Everything here was written by `tools/neohugo/oracle.sh` (never by hand, except the image recipes
 of `images/manifest.json`) and is frozen: the Go tree and oracle.sh are at 44529028. To
 regenerate, run this in a worktree of that commit (`git worktree add <dir> 44529028`) and copy
-the results here:
+the results, which it writes to its `rust/testdata/golden/` (or `$NEOHUGO_GOLDEN`), here:
 
 ```sh
 export NEOHUGO_NODE_MODULES=$PWD/tools/neohugo/node_modules   # this worktree's own (below)

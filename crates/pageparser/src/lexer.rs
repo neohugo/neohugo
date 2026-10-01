@@ -6,7 +6,7 @@
 //!
 //! Hugo's lexer is the behavioural reference: the token boundaries (including the split of a
 //! text run into text and trailing indentation, and the three text pieces of an escaped
-//! shortcode `{{</* x */>}}`) are checked against its 141,869 items in `tests/it/oracle.rs`.
+//! shortcode `{{</* x */>}}`) are checked against its 141,869 items in `tests/it/lexer.rs`.
 
 use std::collections::HashSet;
 use std::fmt;

@@ -55,7 +55,7 @@ Neohugo's fast asset pipelines include:
 - Sass processing &ndash; Transpile Sass to CSS, bundle, tree shake, minify, create source maps, perform SRI hashing, and integrate with PostCSS
 - Tailwind CSS processing &ndash; Compile Tailwind CSS utility classes into standard CSS, bundle, tree shake, optimize, minify, perform SRI hashing, and integrate with PostCSS
 
-Neohugo reads Hugo's project layout and configuration (a `neohugo.toml` wins over a `hugo.toml` next to it). Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates: [docs/rust-port/template-api.md](docs/rust-port/template-api.md) lists every function, filter and test with Hugo's name for each, and `neohugo templates check` checks a site's templates against it. Themes come from the themes directory or `_vendor`; [Hugo Modules] are not downloaded. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
+Neohugo reads Hugo's project layout and configuration (a `neohugo.toml` wins over a `hugo.toml` next to it). Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates; [Upgrading from the Go build](#upgrading-from-the-go-build) says what else changed with v0.149. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
 
 See the [features] section of the documentation for a comprehensive summary of Hugo's capabilities.
 
@@ -86,6 +86,16 @@ neohugo server -s <site>         # development server with live reload
 
 The commands and flags (Hugo's, in kebab-case with the camelCase spellings as aliases) are listed in [crates/cli/README.md](crates/cli/README.md).
 
+## Upgrading from the Go build
+
+v0.149 replaces the Go neohugo in place: the binary, the `neohugo version` line and the release archives keep their names and formats. What a site or a script may have to change:
+
+- **Layouts are Tera 2 templates, not Go templates**, with Hugo's v0.146 layout names (`home.html`, `single.html`, `_partials/`, `_shortcodes/`, `_markup/`). A layout with Go template syntax or a legacy name is an error that says what to change. [docs/rust-port/template-api.md](docs/rust-port/template-api.md) lists every function, filter and test with Hugo's name for each and how Go-template idioms translate; `neohugo templates check -s <site>` checks a site's templates against it. Output is escaped by output format (HTML and XML), not by context as in Go's `html/template`: in `<script>` use `jsonify | safe`, in query strings `urlencode`.
+- **Commands and flags:** `build` (also with no command), `server`, `templates check`, `config` and `version`; the Go build's `env`, `new`, `mod`, `deploy`, `list`, `gen`, `convert`, `import` and `release` are not available. Of Hugo's flags, only those [crates/cli/README.md](crates/cli/README.md) lists are accepted; another, such as `--gc` or `--logLevel`, is an error.
+- **[Hugo Modules]** are not downloaded: themes come from the themes directory, `_vendor` or an absolute path.
+- **`js.Build` runs an esbuild binary** instead of a built-in esbuild ([External tools](#external-tools)); Sass is compiled in process with dart-sass semantics, whatever `transpiler` says.
+- The Docker images (`neohugo/neohugo`, `ghcr.io/neohugo/neohugo`) are no longer updated; they stay at the last Go build.
+
 ## Build from source
 
 Prerequisites to build neohugo from source:
@@ -99,7 +109,7 @@ Build neohugo:
 cargo build --release --locked -p neohugo
 ```
 
-The binary is `target/release/neohugo`.
+The binary is `target/release/neohugo`. [DEVELOPMENT.md](DEVELOPMENT.md) describes the workspace, its tests and the CI and release workflow.
 
 ## External tools
 

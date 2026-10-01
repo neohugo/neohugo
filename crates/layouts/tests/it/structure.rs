@@ -5,7 +5,7 @@
 //!
 //! The dumps come from T01 (`tools/go-oracle/structure/`, frozen at 44529028); without
 //! `testdata/golden/<site>/structure.json[.gz]` the test prints why it skips.
-//! **Expected schema** (T01 adapts either its dump or this reader):
+//! **Schema** (of the frozen dumps):
 //!
 //! ```json
 //! { "config": { /* as in oracle/tplimpl/store/*.json.gz: defaultContentLanguage,

@@ -86,7 +86,7 @@ To make the contribution process as seamless as possible, we ask for the followi
 
 This [blog article](https://cbea.ms/git-commit/) is a good resource for learning how to write good commit messages,
 the most important part being that each commit message should have a title/subject in imperative mood starting with a capital letter and no trailing period:
-*"js: Return error when option x is not set"*, **NOT** *"returning some error."*
+*"esbuild: Return error when option x is not set"*, **NOT** *"returning some error."*
 
 Most title/subjects should have a lower-cased prefix with a colon and one whitespace. The prefix can be:
 

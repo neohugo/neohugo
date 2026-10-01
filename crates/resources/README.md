@@ -60,9 +60,9 @@ typed and decoded from the template's map with `from_json` (keys case-insensitiv
   holding the output until E5. The second is what seeksnack's PostCSS purge needs.
 - **Tools.** `ToolPaths`: explicit binaries (`NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`,
   `NEOHUGO_BABEL_BIN`), then `<project>/node_modules/.bin/<name>`, then each
-  `NEOHUGO_NODE_MODULES` directory's `.bin` (`tools/neohugo/node_modules` once T01's
-  `node.sh` installs it), then `PATH`. Nothing found: `PipeError::ToolNotFound` naming the
-  binary and the variable. `security.exec.allow` must accept the binary's name
+  `NEOHUGO_NODE_MODULES` directory's `.bin` (e.g. `tools/neohugo/node_modules`, which
+  `tools/neohugo/node.sh` installs), then `PATH`. Nothing found: `PipeError::ToolNotFound`
+  naming the binary and the variable. `security.exec.allow` must accept the binary's name
   (`PipeError::ExecDenied`; Hugo's default list has no `babel`). The tool runs in the project
   directory with only the `security.exec.osEnv` variables plus `NODE_PATH`
   (those of `<project>/node_modules` and the extra directories that exist — Tailwind 4 reads
