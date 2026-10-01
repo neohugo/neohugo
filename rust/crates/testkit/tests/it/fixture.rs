@@ -5,8 +5,8 @@ use std::collections::BTreeMap;
 use std::fs;
 
 use neohugo_testkit::fixture::{
-    self, Counts, FixtureError, GoString, Layout, Tag, counts, oracle, oracle_lines, read_values,
-    records, testdata,
+    self, Counts, FixtureError, GoString, Layout, Tag, UPSTREAM, counts, oracle, oracle_lines,
+    read_values, records, repo_file, rust_dir, testdata,
 };
 use pretty_assertions::assert_eq;
 use serde::Deserialize;
@@ -63,6 +63,9 @@ fn hugolib_build_sites() {
         assert!(!fx.site.files.is_empty() && !fx.renders.is_empty(), "{rel}");
         for f in &fx.site.files {
             assert!(f.content.is_some() != f.repo.is_some(), "{rel}: {}", f.path);
+            if let Some(r) = &f.repo {
+                assert!(repo_file(r).is_file(), "{rel}: {r}");
+            }
         }
         assert_records(&rel);
     }
@@ -205,6 +208,32 @@ fn errors_name_the_file() {
         .to_string();
     assert!(err.starts_with(&missing.display().to_string()), "{err}");
     assert_eq!(Layout::of(&missing), Some(Layout::Document));
+}
+
+/// Hugo's test data is read from `rust/testdata/upstream` by the path the fixtures record; other
+/// paths, and names that only share a prefix, stay at the repository root.
+#[test]
+fn repo_files_of_the_go_tree() {
+    let root = rust_dir().join("..");
+    assert_eq!(
+        repo_file("hugolib/testsite"),
+        testdata("upstream/hugolib/testsite")
+    );
+    assert_eq!(
+        repo_file("resources/testdata/exif/orientation6.jpg"),
+        testdata("upstream/resources/testdata/exif/orientation6.jpg")
+    );
+    for rel in [
+        "docs/hugo.toml",
+        "hugolib/testdata/fruits.json",
+        "resources/testdata2/a.png",
+        "rust/Cargo.toml",
+    ] {
+        assert_eq!(repo_file(rel), root.join(rel));
+    }
+    for p in UPSTREAM {
+        assert!(repo_file(p).exists(), "{p}");
+    }
 }
 
 /// Every converted fixture still has the record count the conversion recorded (T00 acceptance:

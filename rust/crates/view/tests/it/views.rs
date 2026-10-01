@@ -537,7 +537,7 @@ fn unprocessed_image_sizes() {
         std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
         std::fs::write(path, text).expect("write");
     }
-    let png = neohugo_testkit::fixture::rust_dir().join("../resources/testdata/gopher-hero8.png");
+    let png = neohugo_testkit::fixture::repo_file("resources/testdata/gopher-hero8.png");
     std::fs::copy(png, dir.path().join("content/posts/bundle/img.png")).expect("copy");
     std::fs::write(
         dir.path().join("content/posts/bundle/bad.jpg"),

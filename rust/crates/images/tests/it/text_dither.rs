@@ -7,9 +7,10 @@ use neohugo_images::{
     Color, DitherMethod, DitherSpec, FontInput, ImageError, ImageFilter, ImageInput, ImageQueue,
     Imaging, TextSpec,
 };
+use neohugo_testkit::fixture::repo_file;
 use serde_json::json;
 
-use crate::common::{decode, expected_diffs, png, repo_dir, write_file};
+use crate::common::{decode, expected_diffs, png, write_file};
 
 /// Every key but `pattern` of `expected_diffs.toml` `[dither]` is a method, and they are the
 /// methods whose published definition could not be used: Steven Pigeon's kernel and the
@@ -66,7 +67,7 @@ fn ink(img: &RgbaImage, bg: [u8; 4]) -> Option<(u32, u32, u32, u32)> {
 }
 
 fn mulish() -> std::path::PathBuf {
-    repo_dir().join("docs/assets/opengraph/mulish-black.ttf")
+    repo_file("docs/assets/opengraph/mulish-black.ttf")
 }
 
 #[test]
@@ -363,7 +364,7 @@ fn dither_options_change_the_result_deterministically() {
 #[test]
 fn names_follow_the_filter_options() {
     let q = ImageQueue::new(Imaging::default(), None);
-    let sunset = ImageInput::File(repo_dir().join("resources/testdata/sunset.jpg"));
+    let sunset = ImageInput::File(repo_file("resources/testdata/sunset.jpg"));
     let name = |f: serde_json::Value| {
         q.enqueue(&sunset, None, &[filter(f)])
             .expect("enqueue")

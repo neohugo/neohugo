@@ -10,15 +10,16 @@ use neohugo_images::{
     Hint, ImageCache, ImageError, ImageFilter, ImageFormat, ImageInput, ImageQueue, ImageSpec,
     Imaging,
 };
+use neohugo_testkit::fixture::repo_file;
 
-use crate::common::{MemorySink, decode, png, psnr, repo_dir, write_file};
+use crate::common::{MemorySink, decode, png, psnr, write_file};
 
 fn spec(s: &str) -> ImageSpec {
     s.parse().expect("spec")
 }
 
 fn photo() -> ImageInput {
-    ImageInput::File(repo_dir().join("resources/testdata/sunset.jpg"))
+    ImageInput::File(repo_file("resources/testdata/sunset.jpg"))
 }
 
 #[test]
@@ -61,7 +62,7 @@ fn names_are_stable_and_content_addressed() {
     assert_eq!(chained.file_name.matches("_hu_").count(), 1);
 
     // The extension keeps its spelling when the format is kept.
-    let bytes = std::fs::read(repo_dir().join("resources/testdata/sunset.jpg")).expect("read");
+    let bytes = std::fs::read(repo_file("resources/testdata/sunset.jpg")).expect("read");
     let upper = ImageInput::File(write_file(dir.path(), "Photo.JPEG", &bytes));
     let e = q
         .enqueue(&upper, Some(&spec("resize 10x")), &[])
@@ -106,12 +107,12 @@ fn unknown_and_bad_inputs_are_errors() {
         Err(ImageError::UnknownOp(_))
     ));
     assert!(matches!(q.encoded(id), Err(ImageError::UnknownOp(_))));
-    let missing = ImageInput::File(repo_dir().join("does/not/exist.png"));
+    let missing = ImageInput::File(repo_file("does/not/exist.png"));
     assert!(matches!(
         q.enqueue(&missing, None, &[]),
         Err(ImageError::Io { .. })
     ));
-    let not_image = ImageInput::File(repo_dir().join("rust/Cargo.toml"));
+    let not_image = ImageInput::File(repo_file("rust/Cargo.toml"));
     assert!(q.enqueue(&not_image, None, &[]).is_err());
     let pad: ImageFilter =
         serde_json::from_value(serde_json::json!({"op": "padding", "margin": -5000}))
@@ -130,7 +131,7 @@ fn process_writes_only_wanted_results() {
         .expect("a");
     let wm = q
         .enqueue(
-            &ImageInput::File(repo_dir().join("resources/testdata/gopher-hero8.png")),
+            &ImageInput::File(repo_file("resources/testdata/gopher-hero8.png")),
             Some(&spec("resize 40x")),
             &[],
         )
@@ -301,7 +302,7 @@ fn every_format_encodes() {
 #[test]
 fn identical_bytes_keep_their_own_names() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let bytes = std::fs::read(repo_dir().join("resources/testdata/sunset.jpg")).expect("read");
+    let bytes = std::fs::read(repo_file("resources/testdata/sunset.jpg")).expect("read");
     std::fs::create_dir_all(dir.path().join("a")).expect("mkdir");
     std::fs::create_dir_all(dir.path().join("b")).expect("mkdir");
     let s00 = ImageInput::File(write_file(&dir.path().join("a"), "s00.jpg", &bytes));

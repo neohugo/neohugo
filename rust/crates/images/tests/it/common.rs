@@ -12,12 +12,7 @@ use image::{
 use neohugo_base::Sink;
 use neohugo_base::paths::OutputPath;
 use neohugo_images::jpeg;
-use neohugo_testkit::fixture::rust_dir;
-
-/// The repository root (the Go sources and Hugo's own test images live there).
-pub fn repo_dir() -> PathBuf {
-    rust_dir().join("..")
-}
+use neohugo_testkit::fixture::{repo_file, rust_dir};
 
 /// One table of `crates/images/expected_diffs.toml`: case or rule → reason.
 pub fn expected_diffs(section: &str) -> BTreeMap<String, String> {
@@ -63,7 +58,7 @@ pub fn source_path(id: &str) -> Option<PathBuf> {
     ];
     for (from, to) in map {
         if let Some(rest) = rel.strip_prefix(from) {
-            return Some(repo_dir().join(to).join(rest)).filter(|p| p.is_file());
+            return Some(repo_file(to).join(rest)).filter(|p| p.is_file());
         }
     }
     let go = [
@@ -87,7 +82,7 @@ pub fn source_path(id: &str) -> Option<PathBuf> {
                 .filter(|p| p.is_file());
         }
     }
-    Some(repo_dir().join(rel)).filter(|p| p.is_file())
+    Some(repo_file(rel)).filter(|p| p.is_file())
 }
 
 // ---------------------------------------------------------------------------------------

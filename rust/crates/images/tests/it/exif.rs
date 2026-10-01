@@ -6,7 +6,7 @@ use std::collections::BTreeSet;
 use neohugo_base::Date;
 use neohugo_config::ImagingConfig;
 use neohugo_images::{ExifSettings, Imaging, exif};
-use neohugo_testkit::fixture::oracle;
+use neohugo_testkit::fixture::{oracle, repo_file};
 use serde_json::{Value as J, json};
 
 use crate::common::source_path;
@@ -159,9 +159,7 @@ fn dates_and_positions_match_the_exif_oracle() {
 
 #[test]
 fn orientation_is_read() {
-    let bytes =
-        std::fs::read(crate::common::repo_dir().join("resources/testdata/exif/orientation6.jpg"))
-            .expect("read");
+    let bytes = std::fs::read(repo_file("resources/testdata/exif/orientation6.jpg")).expect("read");
     assert_eq!(exif::orientation(&bytes), Some(6));
     let e = exif::read(&bytes, &ExifSettings::default()).expect("exif");
     // The default settings exclude GPS and Exif* tags but keep Orientation.

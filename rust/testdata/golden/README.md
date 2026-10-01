@@ -24,7 +24,7 @@ The binaries (`neohugo`, `neohugo-structure`) and the node modules live, gitigno
 
 | Label | Site (`tools/rust-port/i01/sites.py make <label> <dir>`) | Files (L1) | Golden files |
 |---|---|---:|---|
-| `testsite` | `hugolib/testsite` + `testsite.txtar` | **56** = 55 in `public` + `hugo_stats.json` | manifests, structure |
+| `testsite` | `rust/testdata/upstream/hugolib/testsite` + `testsite.txtar` | **56** = 55 in `public` + `hugo_stats.json` | manifests, structure |
 | `seeksnack` | the seeksnack reconstruction | **713** = 712 in `public` + `hugo_stats.json` | manifests, structure |
 | `docs-i01` | `docs/` with `--docs-patches i01` | **888** = 887 in `public` + `hugo_stats.json` | manifests, structure |
 | `docs-reduced` | `docs/` with `--docs-patches reduced` | **889** = 888 in `public` + `hugo_stats.json` | manifests, structure |

@@ -3,9 +3,10 @@
 
 use image::{Rgba, RgbaImage};
 use neohugo_images::{ImageFilter, ImageFormat, ImageInput, ImageQueue, ImageSpec, Imaging};
+use neohugo_testkit::fixture::repo_file;
 use serde_json::json;
 
-use crate::common::{decode, png, repo_dir, write_file};
+use crate::common::{decode, png, write_file};
 
 /// One template map per variant.
 fn all_filter_maps(overlay: &str) -> Vec<serde_json::Value> {
@@ -52,7 +53,7 @@ fn every_filter_variant_runs_with_its_planned_size() {
     }
     let src_alpha = write_file(dir.path(), "alpha.png", &png(&transparent));
     let overlay = write_file(dir.path(), "over.png", &png(&checker(10, 8)));
-    let jpg = repo_dir().join("resources/testdata/sunset.jpg");
+    let jpg = repo_file("resources/testdata/sunset.jpg");
     let maps = all_filter_maps(overlay.to_str().expect("utf-8 path"));
     let names: std::collections::BTreeSet<&str> =
         maps.iter().map(|m| m["op"].as_str().expect("op")).collect();
@@ -221,7 +222,7 @@ fn geometry_and_compositing_pixels() {
 #[test]
 fn auto_orient_follows_exif() {
     let q = ImageQueue::new(Imaging::default(), None);
-    let src = ImageInput::File(repo_dir().join("resources/testdata/exif/orientation6.jpg"));
+    let src = ImageInput::File(repo_file("resources/testdata/exif/orientation6.jpg"));
     let plain = q.enqueue(&src, None, &[]).expect("plain");
     let oriented = q
         .enqueue(&src, None, &[ImageFilter::AutoOrient])
@@ -247,7 +248,7 @@ fn auto_orient_follows_exif() {
     let img = decode(&q.encoded(then_oriented.id).expect("process"));
     assert_eq!(img.dimensions(), (20, 40));
     // Without EXIF orientation the filter does nothing.
-    let sunset = ImageInput::File(repo_dir().join("resources/testdata/sunset.jpg"));
+    let sunset = ImageInput::File(repo_file("resources/testdata/sunset.jpg"));
     let a = q.enqueue(&sunset, None, &[]).expect("a");
     let b = q
         .enqueue(&sunset, None, &[ImageFilter::AutoOrient])

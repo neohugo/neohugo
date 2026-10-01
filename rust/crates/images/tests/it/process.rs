@@ -9,10 +9,10 @@ use neohugo_images::{
     Anchor, Color, Enqueued, ImageError, ImageFilter, ImageInput, ImageQueue, ImageSpec, Imaging,
     PaddingSpec, Resample,
 };
-use neohugo_testkit::fixture::oracle;
+use neohugo_testkit::fixture::{oracle, repo_file};
 use serde_json::Value as J;
 
-use crate::common::{decode, expected_diffs, repo_dir, source_path, synth, write_file};
+use crate::common::{decode, expected_diffs, source_path, synth, write_file};
 
 /// The oracle's `[imaging]` configurations by prefix.
 fn imaging(prefix: &str) -> Imaging {
@@ -230,7 +230,7 @@ fn run_oracle(process_small: bool) -> Report {
         "watermark.png",
         &synth("gen:nrgbaa:600x480:png").expect("wm"),
     );
-    let mask_path = repo_dir().join("resources/testdata/mask.png");
+    let mask_path = repo_file("resources/testdata/mask.png");
     let queues: BTreeMap<&'static str, ImageQueue> = ["d", "lz"]
         .into_iter()
         .map(|p| (p, ImageQueue::new(imaging(p), None)))

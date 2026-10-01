@@ -9,7 +9,7 @@ use std::sync::Arc;
 
 use neohugo_base::url::BaseUrl;
 use neohugo_build::{BuildRequest, LiveReload, SinkKind, build};
-use neohugo_testkit::fixture::rust_dir;
+use neohugo_testkit::fixture::{repo_file, rust_dir};
 use neohugo_testkit::txtar::Archive;
 
 /// Every file of the Go build of the same site (`hugo -d public`), 55 files; Go's 56th file is
@@ -65,7 +65,7 @@ fn write_txtar(archive: &str, to: &Path) {
 fn testsite(dir: &Path) {
     let rust = rust_dir();
     let root = rust.join("..");
-    copy_tree(&root.join("hugolib/testsite"), dir);
+    copy_tree(&repo_file("hugolib/testsite"), dir);
     let txtar = fs::read_to_string(root.join("tools/rust-port/i01/testsite.txtar")).expect("txtar");
     write_txtar(&txtar, dir);
     fs::remove_dir_all(dir.join("layouts")).expect("remove Go layouts");

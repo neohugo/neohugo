@@ -9,7 +9,7 @@ use jiff::tz::Offset;
 use neohugo_base::{Clock, Date, Value};
 use neohugo_config::{Config, LoadOptions, load};
 use neohugo_site::{LoadModelOptions, Model, ModelError, load_model};
-use neohugo_testkit::fixture::{Tag, rust_dir};
+use neohugo_testkit::fixture::{Tag, repo_file};
 use neohugo_vfs::Vfs;
 use serde_json::{Value as J, json};
 
@@ -28,11 +28,10 @@ fn fnv(b: &[u8]) -> String {
 pub fn write_site(site: &J, dir: &Path) {
     fs::create_dir_all(dir).unwrap();
     fs::write(dir.join("hugo.toml"), site["toml"].as_str().unwrap()).unwrap();
-    let repo = rust_dir().join("..");
     for f in site["files"].as_array().unwrap() {
         let p = f["path"].as_str().unwrap();
         let content = if let Some(r) = f["repo"].as_str() {
-            let b = fs::read(repo.join(r)).unwrap_or_else(|e| panic!("{r}: {e}"));
+            let b = fs::read(repo_file(r)).unwrap_or_else(|e| panic!("{r}: {e}"));
             assert_eq!(fnv(&b), f["fnv"].as_str().unwrap(), "{r} changed");
             b
         } else {

@@ -13,7 +13,8 @@ Sites:
   docs          this repository's docs/ site, patched to build offline; --docs-patches picks the
                 variant (i01, the default, or reduced; DOCS_* below, patches.json); docs-i01
                 and docs-reduced name the variants too
-  testsite      hugolib/testsite plus a small config and layouts (testsite.txtar)
+  testsite      Hugo's hugolib/testsite (rust/testdata/upstream) plus a small config and layouts
+                (testsite.txtar)
   seeksnack     the reconstructed seeksnack config (rust/testdata/oracle/allconfig/load/
                 seeksnack/hugo.toml) with the synthetic en/th content tree of the nh-hugolib
                 oracles (read from rust/testdata/oracle/hugolib/build/seeksnack.json.gz) and
@@ -45,6 +46,9 @@ GOLDEN_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache"
                             "filecache", "getresource")
 GETREMOTE_FX = os.path.join(TESTDATA, "oracle", "resource-transformers", "getremote",
                             "getremote.json.gz")
+# Hugo's test data by its Go-tree path, as the fixtures record it, moved to
+# rust/testdata/upstream (the sites use only these; neohugo_testkit::fixture::UPSTREAM lists all).
+UPSTREAM = ("hugolib/testsite",)
 
 
 def write(dir_, rel, content):
@@ -71,6 +75,12 @@ def copy_tree(src, dst, skip=("public", "resources", "node_modules")):
             return [n for n in names if n in skip or n.startswith(".")]
         return []
     shutil.copytree(src, dst, ignore=ignore, symlinks=False)
+
+
+def repo_file(rel):
+    """A repository file by the path the fixtures record (neohugo_testkit::fixture::repo_file)."""
+    upstream = any(rel == p or rel.startswith(p + "/") for p in UPSTREAM)
+    return os.path.join(os.path.join(TESTDATA, "upstream") if upstream else ROOT, *rel.split("/"))
 
 
 def read_txtar(path):
@@ -276,7 +286,7 @@ def make_docs(dir_, variant=I01):
 # hugolib/testsite (T25's cli oracle used it with a small config).
 
 def make_testsite(dir_):
-    copy_tree(os.path.join(ROOT, "hugolib", "testsite"), dir_)
+    copy_tree(repo_file("hugolib/testsite"), dir_)
     for k, v in read_txtar(os.path.join(HERE, "testsite.txtar")).items():
         write(dir_, k, v)
 
@@ -294,7 +304,7 @@ def write_fixture_site(site, dir_):
     write(dir_, "hugo.toml", site["toml"])
     for f in site["files"]:
         if f.get("repo"):
-            with open(os.path.join(ROOT, *f["repo"].split("/")), "rb") as fh:
+            with open(repo_file(f["repo"]), "rb") as fh:
                 write(dir_, f["path"], fh.read())
         else:
             write(dir_, f["path"], f["content"])

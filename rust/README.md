@@ -22,6 +22,7 @@ crates/<name>/              the product crates of §2.1 (T00 wrote stubs with th
 testdata/oracle/<area>/     Go-oracle fixtures as plain JSON (neohugo schema, below)
 testdata/corpus/            corpora: seeksnack bodies and front matter, dates, minifier, Thai strings
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
+testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids)
 testdata/COUNTS.json        per fixture: old path, record and value counts at conversion
 ```
 

@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 use neohugo_base::{Idx, LangIdx, Value};
 use neohugo_resources::meta::ResourceMeta;
 use neohugo_resources::{BundleResource, PublishPolicy, ResourceStore};
+use neohugo_testkit::fixture::repo_file;
 use serde_json::Value as J;
 
 use crate::support::{MemSink, diff, rec, repo_dir, rule, store, synth_site, want};
@@ -21,7 +22,7 @@ use crate::support::{MemSink, diff, rec, repo_dir, rule, store, synth_site, want
 fn file_of(site: &Path, rel: &str) -> PathBuf {
     match rel.strip_prefix("crates/nh-resources/tests/fixtures/site/") {
         Some(rest) => site.join(rest),
-        None => repo_dir().join(rel),
+        None => repo_file(rel),
     }
 }
 

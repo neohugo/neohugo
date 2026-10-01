@@ -89,6 +89,34 @@ pub fn testdata(rel: &str) -> PathBuf {
     testdata_dir().join(rel)
 }
 
+/// Hugo's test data that the tests read, by its path in the Go tree; it moved to
+/// `rust/testdata/upstream/<path>` when the Go sources were removed.
+pub const UPSTREAM: [&str; 10] = [
+    "hugolib/testdata/sunset.jpg",
+    "hugolib/testsite",
+    "media/testdata/fake.png",
+    "media/testdata/resource.jpg",
+    "media/testdata/resource.png",
+    "media/testdata/resource.webp",
+    "resources/assets/sunset.jpg",
+    "resources/images/testdata",
+    "resources/testdata",
+    "tpl/images/testdata",
+];
+
+/// A file or directory of the checkout by its repository-relative path as the fixtures name it
+/// (`repo` and `file:` ids keep the Go tree's paths): under one of [`UPSTREAM`] it is in
+/// `rust/testdata/upstream`, anything else at `<rel>` from the repository root (see
+/// [`rust_dir`]).
+#[must_use]
+pub fn repo_file(rel: &str) -> PathBuf {
+    if UPSTREAM.iter().any(|p| Path::new(rel).starts_with(p)) {
+        testdata("upstream").join(rel)
+    } else {
+        rust_dir().join("..").join(rel)
+    }
+}
+
 fn read_text(path: &Path) -> Result<String, FixtureError> {
     let io = |source| FixtureError::Io {
         path: path.to_owned(),

@@ -101,8 +101,8 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
   the two differences being corrupt PNGs (below). The small synthetic results are processed too
   (4100), and their pixels have the planned size.
 * `psnr`: the 20 Go-processed images of `golden/images/manifest.json` (T01) and 45 of Hugo's
-  own golden images (`resources/images/testdata/images_golden`), all ≥ 30 dB: JPEG results
-  reach 40–57 dB since the encoder is Go's, within 1.5 % of Go's sizes (the table printed with
+  own golden images (`rust/testdata/upstream/resources/images/testdata/images_golden`), all
+  ≥ 30 dB: JPEG results reach 40–57 dB since the encoder is Go's, within 1.5 % of Go's sizes (the table printed with
   `--nocapture` gives both sizes); the text goldens 47–50 dB (glyph placement is pixel-exact, a
   one-pixel shift gives 28.5 dB) and `dither-default` 33.8 dB through the low-pass below.
   Also the small oracle outputs stored in full. A recipe with a `dither` filter is compared after a 7×7 box blur of
@@ -116,7 +116,8 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
   larger images, two 33×17) are listed in `expected_diffs.toml [jpeg]` and within 0.1 % of
   Go's size. Also the frame layout, decoding, quality clamping, greyscale.
 * `qr`: `qr_png` equals Hugo's golden QR images byte for byte
-  (`tpl/images/testdata/images_golden/funcs`) and the XXH64 content hashes of Hugo's `TestQR`.
+  (`rust/testdata/upstream/tpl/images/testdata/images_golden/funcs`) and the XXH64 content
+  hashes of Hugo's `TestQR`.
 * `text_dither`: text placement per option (colour, size, alignment, line spacing, wrapping),
   fonts from files and registered bytes (by content; unknown ids and non-fonts are errors);
   every dither method and palette gives palette colours only, with the source alpha; options

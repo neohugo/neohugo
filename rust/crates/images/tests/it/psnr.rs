@@ -3,7 +3,8 @@
 //! * `rust/testdata/golden/images/` (T01): the 20 Go-processed images of the acceptance gate
 //!   (≥ 30 dB each), described by `manifest.json` (format below). Skipped with a note while
 //!   T01 has not produced them.
-//! * Interim: Hugo's own golden images (`resources/images/testdata/images_golden`, written by
+//! * Interim: Hugo's own golden images (`images_golden` in
+//!   `rust/testdata/upstream/resources/images/testdata`, written by
 //!   `resources/images/images_golden_integration_test.go`), whose recipes are known.
 //! * Interim: the small outputs of `nh-images/process` stored in full (`bytes.json.gz`).
 //!
@@ -23,11 +24,11 @@ use std::path::{Path, PathBuf};
 use image::{Rgba, RgbaImage};
 use neohugo_config::ImagingConfig;
 use neohugo_images::{ImageFilter, ImageInput, ImageQueue, ImageSpec, Imaging};
-use neohugo_testkit::fixture::{oracle, testdata};
+use neohugo_testkit::fixture::{oracle, repo_file, testdata};
 use serde::Deserialize;
 use serde_json::{Value as J, json};
 
-use crate::common::{decode, expected_diffs, psnr, repo_dir, synth, write_file};
+use crate::common::{decode, expected_diffs, psnr, synth, write_file};
 
 /// The gate of the acceptance criteria.
 const MIN_PSNR: f64 = 30.0;
@@ -49,10 +50,10 @@ enum Step {
 }
 
 /// Makes the `image` and `font` paths of filters absolute (relative to the repository root).
-fn rooted(mut filter: J, root: &Path) -> ImageFilter {
+fn rooted(mut filter: J) -> ImageFilter {
     for key in ["image", "font"] {
         if let Some(J::String(p)) = filter.get(key) {
-            let abs = root.join(p);
+            let abs = repo_file(p);
             filter[key] = json!(abs);
         }
     }
@@ -93,20 +94,18 @@ struct Compared {
 
 /// Runs a recipe and compares the result with the golden image.
 fn run(recipe: &Recipe, golden_dir: &Path) -> Result<Compared, String> {
-    let root = repo_dir();
     let imaging = match &recipe.imaging {
         Some(c) => Imaging::from_config(c).map_err(|e| e.to_string())?,
         None => Imaging::default(),
     };
     let q = ImageQueue::new(imaging, None);
-    let mut input = ImageInput::File(root.join(&recipe.source));
+    let mut input = ImageInput::File(repo_file(&recipe.source));
     let mut last = None;
     for step in &recipe.steps {
         let e = match step {
             Step::Spec { spec } => q.enqueue(&input, Some(spec), &[]),
             Step::Filters { filters } => {
-                let fs: Vec<ImageFilter> =
-                    filters.iter().map(|f| rooted(f.clone(), &root)).collect();
+                let fs: Vec<ImageFilter> = filters.iter().map(|f| rooted(f.clone())).collect();
                 q.enqueue(&input, None, &fs)
             }
         }
@@ -457,7 +456,7 @@ fn hugo_golden_recipes() -> Vec<Recipe> {
 }
 
 fn hugo_golden_dir() -> PathBuf {
-    repo_dir().join("resources/images/testdata/images_golden")
+    repo_file("resources/images/testdata/images_golden")
 }
 
 #[test]
@@ -466,17 +465,16 @@ fn hugo_golden_images_interim() {
     let mut failures = run_all(&recipes, &hugo_golden_dir(), "Hugo golden images (interim)");
     // The overlay: the gopher resized to x80 drawn at (20, 20) over the x300 sunset.
     let q = ImageQueue::new(Imaging::default(), None);
-    let root = repo_dir();
     let sunset = q
         .enqueue(
-            &ImageInput::File(root.join("resources/testdata/sunset.jpg")),
+            &ImageInput::File(repo_file("resources/testdata/sunset.jpg")),
             Some(&"resize x300".parse().expect("spec")),
             &[],
         )
         .expect("sunset");
     let gopher = q
         .enqueue(
-            &ImageInput::File(root.join("resources/testdata/gopher-hero8.png")),
+            &ImageInput::File(repo_file("resources/testdata/gopher-hero8.png")),
             Some(&"resize x80".parse().expect("spec")),
             &[],
         )

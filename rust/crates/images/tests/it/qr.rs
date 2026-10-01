@@ -2,14 +2,13 @@
 //! (`TestImagesGoldenFuncs`) byte for byte, and the content hashes `TestQR` asserts.
 
 use neohugo_images::{QrLevel, qr_modules, qr_png};
+use neohugo_testkit::fixture::repo_file;
 use xxhash_rust::xxh64::xxh64;
-
-use crate::common::repo_dir;
 
 /// `images.QR "https://gohugo.io"` with the options of `TestImagesGoldenFuncs`.
 #[test]
 fn equal_to_hugo_s_golden_images() {
-    let dir = repo_dir().join("tpl/images/testdata/images_golden/funcs");
+    let dir = repo_file("tpl/images/testdata/images_golden/funcs");
     for (golden, level, scale) in [
         ("qr-default.png", QrLevel::Medium, 4),
         ("qr-level-high_scale-6.png", QrLevel::High, 6),

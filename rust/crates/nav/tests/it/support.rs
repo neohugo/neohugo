@@ -17,7 +17,7 @@ use neohugo_page::{
     Cjk, DateResolver, Dates, ListMode, MetaCtx, PageMenuEntry, PathShape, SourcePath, TargetPaths,
     meta_from_params,
 };
-use neohugo_testkit::fixture::{Tag, oracle, rust_dir};
+use neohugo_testkit::fixture::{Tag, oracle, repo_file, rust_dir};
 use serde_json::Value as J;
 
 /// A fixture under `rust/testdata/oracle/`.
@@ -442,9 +442,7 @@ impl Project {
             let fp = dir.join(s(&f["path"]));
             fs::create_dir_all(fp.parent().expect("parent")).expect("mkdir");
             let content = match f["repo"].as_str() {
-                Some(r) => {
-                    fs::read(rust_dir().join("..").join(r)).unwrap_or_else(|e| panic!("{r}: {e}"))
-                }
+                Some(r) => fs::read(repo_file(r)).unwrap_or_else(|e| panic!("{r}: {e}")),
                 None => s(&f["content"]).as_bytes().to_vec(),
             };
             fs::write(fp, content).expect("write");

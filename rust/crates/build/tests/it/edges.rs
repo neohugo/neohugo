@@ -16,7 +16,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use neohugo_base::diag::Severity;
 use neohugo_build::{BuildError, BuildRequest, SinkKind, build};
-use neohugo_testkit::fixture::{oracle, rust_dir};
+use neohugo_testkit::fixture::{oracle, repo_file};
 use serde_json::Value as J;
 
 use crate::support::{files_below, normalize_fingerprints, write_files};
@@ -396,8 +396,7 @@ pub(crate) fn write_site(name: &str, dir: &std::path::Path) -> J {
         }
         // Repository files (the docs content) are recorded by path and hash.
         if let Some(r) = file["repo"].as_str() {
-            let bytes =
-                std::fs::read(rust_dir().join("..").join(r)).unwrap_or_else(|e| panic!("{r}: {e}"));
+            let bytes = std::fs::read(repo_file(r)).unwrap_or_else(|e| panic!("{r}: {e}"));
             assert_eq!(
                 fnv(&bytes),
                 file["fnv"].as_str().expect("fnv"),
