@@ -225,6 +225,48 @@ fn flags_and_environment() {
     }
 }
 
+/// pflag's explicit `=false` overrides the configuration, as Go's flags did (`flagsToCfg`):
+/// `-D=false` against `buildDrafts = true`, `--cleanDestinationDir=false` against
+/// `cleanDestinationDir = true`.
+#[test]
+fn explicit_false_overrides_the_configuration() {
+    let site = FLAGS_SITE.replacen(
+        "title = \"Config title\"\n",
+        "title = \"Config title\"\nbuildDrafts = true\nbuildFuture = true\ncleanDestinationDir = true\n",
+        1,
+    );
+    let s = site_from(&site);
+    let stale = s.path().join("public/stale.txt");
+    let run = |args: &[&str]| {
+        fs::create_dir_all(s.path().join("public")).expect("mkdir public");
+        fs::write(&stale, "stale\n").expect("write stale");
+        let mut a = vec!["--clock", "2026-06-01T00:00:00Z"];
+        a.extend_from_slice(args);
+        let o = neohugo(s.path(), &a, &[]);
+        assert!(o.status.success(), "{args:?}: {}", stderr(&o));
+        (home(s.path()), stale.exists())
+    };
+    for (flags, pages, kept) in [
+        (&[][..], "Draft,Future,", false),
+        (&["-D=false"], "Future,", false),
+        (&["--buildDrafts=0", "--buildFuture=f"], "", false),
+        (
+            &["-D=true", "--cleanDestinationDir=false"],
+            "Draft,Future,",
+            true,
+        ),
+        (
+            &["--clean-destination-dir=FALSE", "-E"],
+            "Draft,Expired,Future,",
+            true,
+        ),
+    ] {
+        let (got, stale_kept) = run(flags);
+        assert!(got.ends_with(&format!("|{pages}\n")), "{flags:?}: {got}");
+        assert_eq!(stale_kept, kept, "{flags:?}");
+    }
+}
+
 /// Errors: the message with its file, line and column, Tera's snippet, exit code 1.
 #[test]
 fn errors_are_reported_with_positions() {

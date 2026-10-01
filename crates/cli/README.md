@@ -27,8 +27,13 @@ parses, so `neohugo -s site server` is `neohugo server -s site` (a flag keeps it
 `-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`,
 `--log-level` and `--no-build-lock`, are clap `global` flags: every command accepts them, and
 one that does not use a flag ignores it (`version -s x`, `config -q -d out`), as Go did. A
-boolean flag also takes pflag's explicit value (`--minify=true`, `--gc=false`, `-D=1`, with Go's
-`strconv.ParseBool` spellings): `command_first` turns it into the flag or drops it.
+boolean flag also takes pflag's explicit value, with Go's `strconv.ParseBool` spellings (`1`,
+`t`, `T`, `TRUE`, `true`, `True`; `0`, `f`, `F`, `FALSE`, `false`, `False`). The flags that set
+a configuration key (`-D`, `-E`, `-F`, `--ignore-cache`, `--clean-destination-dir`, `--minify`,
+`--no-times`, `--no-chmod`, shown as `[=BOOL]` below) and the server's `-w`/`--watch` and
+`--append-port` read it themselves, so `-D=false` overrides `buildDrafts = true` in the
+configuration, as in Go; for the others (`--gc=false`, `-q=1`, `-M=false`) `command_first` turns
+it into the flag (true) or drops it (false, the default).
 
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
@@ -40,19 +45,19 @@ boolean flag also takes pflag's explicit value (`--minify=true`, `--gc=false`, `
 | `-t`, `--theme A,B` | | all | `theme` |
 | `--themes-dir DIR` | `--themesDir` | all | `themesDir` |
 | `--cache-dir DIR` | `--cacheDir` | all | `cacheDir` |
-| `--ignore-cache` | `--ignoreCache` | all | `ignoreCache` |
-| `-D`, `--build-drafts` | `--buildDrafts` | all | `buildDrafts` |
-| `-E`, `--build-expired` | `--buildExpired` | all | `buildExpired` |
-| `-F`, `--build-future` | `--buildFuture` | all | `buildFuture` |
+| `--ignore-cache[=BOOL]` | `--ignoreCache` | all | `ignoreCache` |
+| `-D`, `--build-drafts[=BOOL]` | `--buildDrafts` | all | `buildDrafts` |
+| `-E`, `--build-expired[=BOOL]` | `--buildExpired` | all | `buildExpired` |
+| `-F`, `--build-future[=BOOL]` | `--buildFuture` | all | `buildFuture` |
 | `--clock TIME` | | all | the build's "now" (RFC 3339 with offset) |
 | `-d`, `--destination DIR` | | build, server | publish directory, relative to the source |
-| `--clean-destination-dir` | `--cleanDestinationDir` | build, server | static sync removes files the static dirs lack |
-| `--minify` | | build, server | `minify.minifyOutput` |
+| `--clean-destination-dir[=BOOL]` | `--cleanDestinationDir` | build, server | `cleanDestinationDir`: the static sync removes files the static dirs lack |
+| `--minify[=BOOL]` | | build, server | `minify.minifyOutput` |
 | `-M`, `--render-to-memory` | `--renderToMemory` | build, server | `SinkKind::Memory`: nothing is written |
 | `--threads N` | | build, server | render pool size (output does not depend on it) |
 | `-q`, `--quiet` | | build, server | no summary on success; warnings and errors are still printed (the Go build's `--quiet` discarded its whole log, and had no `-q`) |
-| `--no-times` | `--noTimes` | build, server | `noTimes`: the static copy does not copy modification times |
-| `--no-chmod` | `--noChmod` | build, server | `noChmod`: the static copy does not copy permissions |
+| `--no-times[=BOOL]` | `--noTimes` | build, server | `noTimes`: the static copy does not copy modification times |
+| `--no-chmod[=BOOL]` | `--noChmod` | build, server | `noChmod`: the static copy does not copy permissions |
 
 The Go build's logging and housekeeping flags are accepted so that its command lines keep
 working (`args::HugoFlags`, hidden from `--help`): `--log-level LEVEL` (`--logLevel`; every
@@ -177,12 +182,13 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `embedded::qr_shortcode_equals_hugo_s` | the `qr` shortcode against Hugo's `TestQRShortcode`: image names, sizes and attributes; images published |
 | `build::testsite_matches_go` | `sites.py`'s testsite with `sites/testsite/layouts`, built by the binary with compare.sh's command line (`--clock … -d …`, no command) and with `build --source … --destination … --cleanDestinationDir -q`: **55/55 files byte-identical** to `crates/build/tests/it/testsite-go.txtar` |
 | `build::flags_and_environment` | every configuration flag in both spellings, `HUGO_TITLE`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_BASEURL`, `-M` writes nothing |
+| `build::explicit_false_overrides_the_configuration` | `-D=false`, `--buildFuture=f` and `--cleanDestinationDir=false` against `buildDrafts`, `buildFuture` and `cleanDestinationDir = true` in the configuration: drafts and future pages left out, a stale file kept |
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
 | `cli::version_help_and_usage_errors` | `version` and `--version` print the line of `version::BuildInfo::CURRENT`, `--help`, usage errors exit 2 |
 | `cli::version_line_has_the_go_format` | the Go format with and without commit, date and vendor; Go's os/arch names for the five release targets; the version is the package's |
-| `cli::hugo_flags_are_accepted` | the Go build's logging and housekeeping flags: accepted, a warning for each one neohugo does not act on, none for the others; `--logLevel` and `--noBuildLock` on every command; an unknown level, `config --gc` and `-v` exit 2 |
+| `cli::hugo_flags_are_accepted` | the Go build's logging and housekeeping flags: accepted, a warning for each one neohugo does not act on, none for the others; `--logLevel` and `--noBuildLock` on every command; an unknown level, `config --gc` and `-v` exit 2; explicit values with Go's `ParseBool` spellings (`-DE=f`, `--watch=0`, `--appendPort=F`, …) parsed into the flags' `Option<bool>` |
 | `cli::no_times_and_no_chmod_reach_the_static_copy` | `--noTimes`/`--noChmod` (both spellings): the static copy keeps or leaves the source's modification time and permissions (Unix) |
-| `cli::command_first_moves_the_command_before_the_flags` | flags before the command (cobra's order): the command moved to the front, values kept, everything else left for clap |
+| `cli::command_first_moves_the_command_before_the_flags` | flags before the command (cobra's order): the command moved to the front, values kept (also after `=` in a short cluster), `=BOOL` of the `SetTrue` flags rewritten, everything else left for clap |
 | `cli::persistent_flags_anywhere` | the Go build's persistent flags before the command and on `config`, `templates check` and `version`; a flag the command does not take is still a usage error |
 | `server::server_starts_and_serves` | `serve -p 0` with camelCase flags: the start report (environment `development`, memory, watching, built), the page with the LiveReload script and `--noHTTPCache` headers, nothing on disk |
 | `server::server_renders_to_disk_without_live_reload` | `--render-to-disk --disable-live-reload --watch=false -e staging`: `public/` written and served, no script, no watching |

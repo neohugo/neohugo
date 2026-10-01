@@ -171,27 +171,37 @@ fn command_first_moves_the_command_before_the_flags() {
             &["neohugo", "-sserver", "config"],
             &["neohugo", "config", "-sserver"],
         ),
+        // `=` ends a cluster: what follows is a value, not shorts (`t` and `e` take values).
+        (
+            &["neohugo", "-D=t", "-E=True", "server"],
+            &["neohugo", "server", "-D=t", "-E=True"],
+        ),
         // A flag of a command (`server`'s `--port`) keeps its value too.
         (
             &["neohugo", "--port", "1314", "serve"],
             &["neohugo", "serve", "--port", "1314"],
         ),
-        // pflag's explicit values of boolean flags: `=true` is the flag, `=false` none (`--watch`
-        // takes `=BOOL` itself).
+        // pflag's explicit values of the boolean flags that set no configuration key: `=true` is
+        // the flag, `=false` none. The others (`-D`, `--minify`, `--watch`, …) take `=BOOL`
+        // themselves.
         (
             &[
                 "neohugo",
-                "--minify=true",
+                "--gc=true",
                 "server",
+                "-M=false",
+                "--quiet=1",
                 "-D=false",
-                "--buildDrafts=1",
+                "--minify=0",
                 "--watch=false",
             ],
             &[
                 "neohugo",
                 "server",
-                "--minify",
-                "--buildDrafts",
+                "--gc",
+                "--quiet",
+                "-D=false",
+                "--minify=0",
                 "--watch=false",
             ],
         ),
@@ -341,6 +351,51 @@ fn hugo_flags_are_accepted() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert!(!stderr(&o).contains("ignored-flag"), "{}", stderr(&o));
     assert!(!stdout(&o).contains("Total in"), "{}", stdout(&o));
+    // The flags that take `=BOOL` themselves read it with Go's `strconv.ParseBool` spellings;
+    // `=false` is kept (it overrides the configuration).
+    let parse = |args: &[&str]| {
+        let args = command_first(args.iter().map(OsString::from).collect());
+        Cli::try_parse_from(&args).unwrap_or_else(|e| panic!("{args:?}: {e}"))
+    };
+    let cli = parse(&[
+        "neohugo",
+        "-DE=f",
+        "--buildFuture=FALSE",
+        "--minify=0",
+        "--ignoreCache=T",
+        "--cleanDestinationDir=False",
+        "--noTimes=1",
+        "--noChmod=t",
+    ]);
+    let (b, p) = (&cli.build, &cli.build.project);
+    assert_eq!(
+        (p.include.build_drafts, p.include.build_expired),
+        (Some(true), Some(false))
+    );
+    assert_eq!(
+        (p.include.build_future, b.minify),
+        (Some(false), Some(false))
+    );
+    assert_eq!(
+        (p.ignore_cache, b.output.clean_destination_dir),
+        (Some(true), Some(false))
+    );
+    assert_eq!(
+        (b.output.no_times, b.output.no_chmod),
+        (Some(true), Some(true))
+    );
+    let cli = parse(&["neohugo"]);
+    assert_eq!(
+        (cli.build.project.include.build_drafts, cli.build.minify),
+        (None, None)
+    );
+    let Some(::neohugo::args::Command::Server(server)) =
+        parse(&["neohugo", "server", "--watch=0", "--appendPort=F", "-DEF"]).command
+    else {
+        panic!("server");
+    };
+    assert!(!server.watch.watch && !server.listen.append_port);
+    assert_eq!(server.build.project.include.build_future, Some(true));
     // An unknown level, and a build flag of a command that does not build.
     for bad in [&["--logLevel", "loud"][..], &["config", "--gc"], &["-v"]] {
         let o = neohugo(s.path(), bad, &[]);

@@ -101,17 +101,16 @@ impl ProjectArgs {
 
     /// The configuration overrides of the flags (`destination` and `minify` are `build`'s).
     fn overrides(&self) -> CliOverrides {
-        let flag = |b: bool| b.then_some(true);
         CliOverrides {
             base_url: self.base_url.clone(),
             environment: self.environment.clone(),
-            build_drafts: flag(self.include.build_drafts),
-            build_future: flag(self.include.build_future),
-            build_expired: flag(self.include.build_expired),
+            build_drafts: self.include.build_drafts,
+            build_future: self.include.build_future,
+            build_expired: self.include.build_expired,
             cache_dir: self.cache_dir.clone(),
             themes_dir: self.themes_dir.clone(),
             theme: (!self.theme.is_empty()).then(|| self.theme.clone()),
-            ignore_cache: flag(self.ignore_cache),
+            ignore_cache: self.ignore_cache,
             config_dir: self.config_dir.clone(),
             ..CliOverrides::default()
         }

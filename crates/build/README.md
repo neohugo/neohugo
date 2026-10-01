@@ -7,7 +7,8 @@ entry point).
 pub enum SinkKind { Disk /* default */, Memory }
 pub struct BuildRequest { pub source: PathBuf, pub destination: Option<PathBuf>,
                           pub config_files: Vec<PathBuf> /* T37: --config */, pub cli: CliOverrides,
-                          pub clock: Option<jiff::Timestamp>, pub sink: SinkKind, pub clean_destination: bool,
+                          pub clock: Option<jiff::Timestamp>, pub sink: SinkKind,
+                          pub clean_destination: Option<bool> /* None: the config's cleanDestinationDir */,
                           pub threads: Option<usize> /* T36: the render pool size */,
                           pub config: Option<Arc<Config>> /* T71: loaded by the caller (server) */,
                           pub live_reload: Option<LiveReload> /* T71: the server's script */ }

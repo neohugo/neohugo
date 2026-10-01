@@ -12,9 +12,9 @@ use crate::report;
 pub(crate) fn request(a: &BuildArgs) -> anyhow::Result<BuildRequest> {
     let p = &a.project;
     let mut cli = p.overrides();
-    cli.minify = a.minify.then_some(true);
-    cli.no_times = a.output.no_times.then_some(true);
-    cli.no_chmod = a.output.no_chmod.then_some(true);
+    cli.minify = a.minify;
+    cli.no_times = a.output.no_times;
+    cli.no_chmod = a.output.no_chmod;
     Ok(BuildRequest {
         source: p.source_dir()?,
         destination: a.output.destination.clone(),

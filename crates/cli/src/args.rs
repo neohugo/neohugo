@@ -6,6 +6,13 @@
 //! `--clock`, `-q`, `-M`, `--logLevel`, `--noBuildLock`) are accepted by every command
 //! (`global`); the commands that do not use one ignore it. The Go build's logging and
 //! housekeeping flags are accepted too ([`HugoFlags`]).
+//!
+//! A boolean flag takes pflag's explicit value (`--minify=false`, `-D=1`, with Go's
+//! `strconv.ParseBool` spellings, `parse_bool`). The flags that set a configuration key
+//! (`-D`, `-E`, `-F`, `--minify`, `--ignoreCache`, `--cleanDestinationDir`, `--noTimes`,
+//! `--noChmod`) and `--watch` and `--appendPort` read the value themselves (`Option<bool>`, so
+//! that `=false` overrides the configuration, as in Go); [`command_first`] rewrites it for the
+//! others.
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -87,8 +94,17 @@ pub struct ProjectArgs {
     #[arg(long, alias = "cacheDir", value_name = "DIR")]
     pub cache_dir: Option<PathBuf>,
     /// Ignores the cache directory.
-    #[arg(long, alias = "ignoreCache")]
-    pub ignore_cache: bool,
+    #[arg(
+        long,
+        alias = "ignoreCache",
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub ignore_cache: Option<bool>,
     #[command(flatten)]
     pub include: IncludeArgs,
     /// The build's "now" (RFC 3339, e.g. `2026-09-27T12:00:00Z`), for dates and `now()`.
@@ -96,18 +112,49 @@ pub struct ProjectArgs {
     pub clock: Option<jiff::Timestamp>,
 }
 
-/// Which content the build policy lets in besides published content.
+/// Which content the build policy lets in besides published content (`None`: as configured;
+/// `-D=false` overrides a configured `buildDrafts = true`).
 #[derive(Clone, Copy, Debug, Default, Args)]
 pub struct IncludeArgs {
     /// Includes content marked as draft.
-    #[arg(short = 'D', long, alias = "buildDrafts")]
-    pub build_drafts: bool,
+    #[arg(
+        short = 'D',
+        long,
+        alias = "buildDrafts",
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub build_drafts: Option<bool>,
     /// Includes expired content.
-    #[arg(short = 'E', long, alias = "buildExpired")]
-    pub build_expired: bool,
+    #[arg(
+        short = 'E',
+        long,
+        alias = "buildExpired",
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub build_expired: Option<bool>,
     /// Includes content with a publish date in the future.
-    #[arg(short = 'F', long, alias = "buildFuture")]
-    pub build_future: bool,
+    #[arg(
+        short = 'F',
+        long,
+        alias = "buildFuture",
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub build_future: Option<bool>,
 }
 
 /// `build` (and the command line without a command).
@@ -118,8 +165,16 @@ pub struct BuildArgs {
     #[command(flatten)]
     pub output: OutputArgs,
     /// Minifies the supported output formats.
-    #[arg(long)]
-    pub minify: bool,
+    #[arg(
+        long,
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub minify: Option<bool>,
     /// The render thread count (default: `RAYON_NUM_THREADS`, else the CPUs). The output does
     /// not depend on it.
     #[arg(long, value_name = "N")]
@@ -219,26 +274,49 @@ impl HugoFlags {
 
 /// Where a build writes.
 #[derive(Clone, Debug, Default, Args)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "one field per command-line flag, as clap reads them"
-)]
 pub struct OutputArgs {
     /// The publish directory, relative to the source.
     #[arg(short = 'd', long, value_name = "DIR", global = true)]
     pub destination: Option<PathBuf>,
     /// Removes files from the publish directory that the static directories do not have.
-    #[arg(long, alias = "cleanDestinationDir")]
-    pub clean_destination_dir: bool,
+    #[arg(
+        long,
+        alias = "cleanDestinationDir",
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub clean_destination_dir: Option<bool>,
     /// Renders into memory only (a dry run: nothing is written; what `server` does by default).
     #[arg(short = 'M', long, alias = "renderToMemory", global = true)]
     pub render_to_memory: bool,
     /// Does not copy the static files' modification times (config `noTimes`).
-    #[arg(long, alias = "noTimes")]
-    pub no_times: bool,
+    #[arg(
+        long,
+        alias = "noTimes",
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub no_times: Option<bool>,
     /// Does not copy the static files' permissions (config `noChmod`).
-    #[arg(long, alias = "noChmod")]
-    pub no_chmod: bool,
+    #[arg(
+        long,
+        alias = "noChmod",
+        value_name = "BOOL",
+        action = ArgAction::Set,
+        num_args = 0..=1,
+        require_equals = true,
+        default_missing_value = "true",
+        value_parser = parse_bool
+    )]
+    pub no_chmod: Option<bool>,
 }
 
 /// `server` (alias `serve`): `build`'s flags and the server's.
@@ -276,7 +354,8 @@ pub struct ListenArgs {
         num_args = 0..=1,
         require_equals = true,
         default_value_t = true,
-        default_missing_value = "true"
+        default_missing_value = "true",
+        value_parser = parse_bool
     )]
     pub append_port: bool,
 }
@@ -326,7 +405,8 @@ pub struct WatchArgs {
         num_args = 0..=1,
         require_equals = true,
         default_value_t = true,
-        default_missing_value = "true"
+        default_missing_value = "true",
+        value_parser = parse_bool
     )]
     pub watch: bool,
     /// Polls for changes at this interval instead of using file notifications (`700ms`, `2s`;
@@ -386,9 +466,11 @@ pub enum ConfigFormat {
 /// flag's value stays with it (`neohugo -e server` builds with the environment `server`);
 /// anything this does not recognise is left where it is, for clap to report.
 ///
-/// A boolean flag with an explicit value, which cobra (pflag) takes and clap's flags do not,
-/// is rewritten: `--minify=true` (or `1`, `t`, `TRUE`, … as Go's `strconv.ParseBool` reads it)
-/// becomes `--minify`, and `--minify=false` (`0`, `f`, `FALSE`, …) is dropped.
+/// A boolean flag with an explicit value, which cobra (pflag) takes and clap's `SetTrue` flags
+/// do not, is rewritten: `--gc=true` (or `1`, `t`, `TRUE`, … as Go's `strconv.ParseBool` reads
+/// it) becomes `--gc`, and `--gc=false` (`0`, `f`, `FALSE`, …) is dropped. Only flags that set
+/// no configuration key are `SetTrue` (logging, housekeeping, `--quiet`, `-M`, the server's), so
+/// a dropped `=false` is the default; the others take the value themselves (`parse_bool`).
 #[must_use]
 pub fn command_first(mut args: Vec<OsString>) -> Vec<OsString> {
     let root = Cli::command();
@@ -414,8 +496,10 @@ pub fn command_first(mut args: Vec<OsString>) -> Vec<OsString> {
                 i += 1;
             }
         } else if let Some(shorts) = arg.strip_prefix('-').filter(|s| !s.is_empty()) {
-            // A cluster such as `-DEs dir` or `-sdir`: a short that takes a value ends it.
-            for (at, c) in shorts.char_indices() {
+            // A cluster such as `-DEs dir` or `-sdir`: a short that takes a value ends it, and
+            // so does `=`, which starts a value (`-D=true`, `-e=x`).
+            let flags = shorts.split_once('=').map_or(shorts, |(f, _)| f);
+            for (at, c) in flags.char_indices() {
                 if takes_value(&root, &|a| has_short(a, c)) {
                     if at + c.len_utf8() == shorts.len() {
                         i += 1;
@@ -446,7 +530,7 @@ fn takes_value(cmd: &ClapCommand, is: &dyn Fn(&Arg) -> bool) -> bool {
 }
 
 /// A boolean flag (`ArgAction::SetTrue`) given with an explicit value, as pflag reads it
-/// (`--gc=false`, `--buildDrafts=true`, `-D=1`): the flag without the value, and the value.
+/// (`--gc=false`, `--quiet=true`, `-M=1`): the flag without the value, and the value.
 /// `None` for anything else, an unknown value included (clap reports it).
 fn explicit_bool(root: &ClapCommand, arg: &str) -> Option<(String, bool)> {
     let (flag, value) = arg.split_once('=')?;
@@ -462,12 +546,18 @@ fn explicit_bool(root: &ClapCommand, arg: &str) -> Option<(String, bool)> {
     if !matches!(found.get_action(), ArgAction::SetTrue) {
         return None;
     }
-    let on = match value {
-        "1" | "t" | "T" | "TRUE" | "true" | "True" => true,
-        "0" | "f" | "F" | "FALSE" | "false" | "False" => false,
-        _ => return None,
-    };
-    Some((flag.to_owned(), on))
+    Some((flag.to_owned(), parse_bool(value).ok()?))
+}
+
+/// A boolean flag's explicit value as pflag reads it (Go's `strconv.ParseBool`).
+fn parse_bool(s: &str) -> Result<bool, String> {
+    match s {
+        "1" | "t" | "T" | "TRUE" | "true" | "True" => Ok(true),
+        "0" | "f" | "F" | "FALSE" | "false" | "False" => Ok(false),
+        _ => Err(
+            "must be true or false (also 1, 0, t, f, T, F, TRUE, FALSE, True, False)".to_owned(),
+        ),
+    }
 }
 
 /// The argument of `cmd` (or else of a command below it) that `is` picks.

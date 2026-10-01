@@ -78,8 +78,8 @@ pub struct BuildRequest {
     /// The build's "now" (`--clock`; `None`: the system clock).
     pub clock: Option<jiff::Timestamp>,
     pub sink: SinkKind,
-    /// `--cleanDestinationDir`.
-    pub clean_destination: bool,
+    /// `--cleanDestinationDir` (`None`: the configuration's `cleanDestinationDir`).
+    pub clean_destination: Option<bool>,
     /// The render pool's thread count (`None`: `RAYON_NUM_THREADS`, else the CPUs). The
     /// output does not depend on it.
     pub threads: Option<usize>,
@@ -310,7 +310,9 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     // E1.
     let memory = (r.sink == SinkKind::Memory).then(|| Arc::new(MemorySink::new()));
     let mut sync = StaticSyncOptions::from_config(&cfg);
-    sync.clean_destination |= r.clean_destination;
+    if let Some(clean) = r.clean_destination {
+        sync.clean_destination = clean;
+    }
     let sink: Arc<dyn Sink> = match &memory {
         Some(m) => {
             report.static_files = pool.run(|| sync_static(&vfs, m.as_ref(), &sync))?;
