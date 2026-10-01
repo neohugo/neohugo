@@ -3,13 +3,17 @@
 neohugo is the Cargo workspace at the repository root: an idiomatic Rust rewrite of Hugo's site
 and page model with Tera 2 templates. The plan, binding for every task and review, is
 [`docs/rust-port/REWRITE_PLAN.md`](docs/rust-port/REWRITE_PLAN.md); §1.2 "What Rust style means
-here" is the review checklist. The current state (crate map, commands, gates, deviations, open
-items) is [`docs/rust-port/HANDOFF.md`](docs/rust-port/HANDOFF.md).
+here" is the review checklist. Its paths below `rust/` and the binary name `neohugo-rs` predate
+the move to the root and the drop-in names (HANDOFF §9): read `rust/<path>` as `<path>`
+(`rust/README.md` is this file, `rust/docs/template-api.md` is
+`docs/rust-port/template-api.md`) and `neohugo-rs` as `neohugo`; where the plan differs from
+this file or HANDOFF on paths and names, they win. The current state (crate map, commands,
+gates, deviations, open items) is [`docs/rust-port/HANDOFF.md`](docs/rust-port/HANDOFF.md).
 
-**The old port** (the byte-identical `crates/` tree and its byte-exact Go oracles) was deleted in
-T00. It is recoverable at commit `be02933a`, tagged `go-parity-final` in the local repository
-(the tag is not on GitHub): `git show go-parity-final:crates/<crate>/<path>`. Salvage rules, not
-code, from it (§6.2).
+**The old port** (the byte-identical tree in the root `crates/` of `be02933a`, not today's
+crates, and its byte-exact Go oracles) was deleted in T00. It is recoverable at that commit,
+tagged `go-parity-final` in the local repository (the tag is not on GitHub):
+`git show go-parity-final:crates/<crate>/<path>`. Salvage rules, not code, from it (§6.2).
 
 **The Go implementation** (Hugo's Go tree, `tools/go-oracle`, `tools/neohugo/oracle.sh` and the
 Go workflows) was removed after commit `44529028`. What it generated is frozen:
@@ -127,7 +131,7 @@ same ref cancels the older one, except on tags.
 |---|---|---|
 | Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; `tools/neohugo/selftest.py`; on a tag, the tag must be `v<version of [workspace.package]>` |
 | Test | ubuntu-24.04 | `cargo test --workspace --locked --no-fail-fast` with the tools below; the job summary lists every test that printed `SKIPPED`, and any such test fails the job |
-| Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>` with the version variables (below); `neohugo version`; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-<triple>` |
+| Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>` with the version variables (below); `neohugo version`; a tiny site built, whose sitemap, RSS and `robots.txt` (embedded templates) must have no CR; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-<triple>` |
 | Release | ubuntu-24.04 | tags only, after the other three: the GitHub release (below) |
 
 Build targets and runners: `x86_64-unknown-linux-gnu` (ubuntu-22.04), `aarch64-unknown-linux-gnu`
@@ -138,7 +142,9 @@ compiler through the `cc` crate; there are no cross toolchains. The Linux binari
 Ubuntu 22.04, so they need no glibc newer than its 2.35 (the smoke test prints the exact
 version; linked on 24.04 they would need 2.39: std's weak `pidfd_spawnp` reference still
 records `GLIBC_2.39`). The Windows binary links the MSVC runtime statically (`+crt-static`), so
-it needs no Visual C++ redistributable.
+it needs no Visual C++ redistributable. Text files are checked out with LF on every runner
+(`.gitattributes`: `* text=auto eol=lf`), so the templates the binary embeds and the files the
+archives ship have LF on Windows too, as the Go releases (cross-built on Linux) had.
 
 The release is a drop-in replacement for the Go releases (`.goreleaser.yml` at `44529028`):
 the binary is `neohugo` (`neohugo.exe`), and an archive is named as theirs,
@@ -151,13 +157,15 @@ format, `neohugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ Ven
 `NEOHUGO_BUILD_DATE` (its time in UTC, RFC 3339) and `NEOHUGO_VENDOR_INFO=neohugo` for the
 build, and the smoke test checks the line; without them (a local build) the line has no commit,
 `BuildDate=unknown` and no vendor. `package.py` takes the version from `Cargo.toml` and checks
-that `neohugo version` prints it.
+that `neohugo version` prints exactly `v<version>`, followed by `-$NEOHUGO_BUILD_COMMIT` when
+that is set (else by a hex commit or nothing).
 
 `THIRD_PARTY_NOTICES.txt` is written by `tools/neohugo/notices.py <triple> <file>`: the licence
 and notice files of every crate linked into `neohugo` for that target (the normal-dependency
 closure of `neohugo` without proc macros; vendored C libraries such as libwebp included), each
 text printed once. A linked crate that ships no licence file gets the MIT text when MIT is one of
-its licences; any other such crate fails the step, so it is noticed before a release.
+its licences, or a reference to the Apache-2.0 text another linked crate ships when Apache-2.0
+is; any other such crate fails the step, so it is noticed before a release.
 
 **Toolchain.** CI installs `RUST_TOOLCHAIN` (1.94.1, the toolchain the workspace is developed
 with) through rustup; `rust-version = "1.94"` in `Cargo.toml` stays the MSRV. A newer clippy

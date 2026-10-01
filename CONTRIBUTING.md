@@ -47,11 +47,11 @@ Hugo has become a fully featured static site generator, so any new functionality
 * be useful to many.
 * fit naturally into _what Hugo does best._
 * strive not to break existing sites.
-* close or update an open [Hugo issue](https://github.com/gohugoio/hugo/issues)
+* close or update an open [issue](https://github.com/neohugo/neohugo/issues)
 
 If it is of some complexity, the contributor is expected to maintain and support the new feature in the future (answer questions on the forum, fix any bugs etc.).
 
-Any non-trivial code change needs to update an open [issue](https://github.com/gohugoio/hugo/issues). A non-trivial code change without an issue reference with one of the labels `bug` or `enhancement` will not be merged.
+Any non-trivial code change needs to update an open [issue](https://github.com/neohugo/neohugo/issues). A non-trivial code change without an issue reference with one of the labels `bug` or `enhancement` will not be merged.
 
 A new third-party crate goes into `[workspace.dependencies]` of `Cargo.toml` (members
 never add their own `features =`) and must pass `tools/neohugo/licence-check.sh`, which allows
@@ -192,4 +192,4 @@ export NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULE
   NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss NEOHUGO_BABEL_BIN=$N/.bin/babel
 ```
 
-The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar`, `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`, and `crates/funcs/tests/fixtures/remarshal/go.txt`. It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. The same holds for the Go outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv` (`PROVENANCE.md`). To regenerate the data of `44529028`, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.
+The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar`, `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`, `crates/funcs/tests/fixtures/remarshal/go.txt`, and `docs/data/docs.yaml` (written by the Go binary's `gen docshelper`). It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. The same holds for the Go outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv` (`PROVENANCE.md`). To regenerate the data of `44529028`, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.

@@ -1,7 +1,7 @@
 # tools/rust-port
 
-Site inputs for the Rust rewrite's acceptance harness, and the record of the real seeksnack
-golden build. The comparison itself lives in `tools/neohugo/` (`compare.sh`, `structdiff.py`,
+Site inputs for neohugo's acceptance harness, and the record of the real seeksnack golden
+build. The comparison itself lives in `tools/neohugo/` (`compare.sh`, `structdiff.py`,
 `manifest.py`; see `docs/rust-port/HANDOFF.md`).
 
 **In use:**

@@ -5,7 +5,7 @@ use std::path::Path;
 
 use tera::{Context, Value};
 
-use crate::support::{Harness, crate_dir};
+use crate::support::Harness;
 
 fn collect(dir: &Path, out: &mut Vec<(String, String)>) {
     let re = regex::Regex::new(r"(?ms)^```goat[^\n]*\n(.*?)^```").expect("valid");
@@ -33,7 +33,7 @@ fn field(d: &Value, key: &str) -> serde_json::Value {
 
 #[test]
 fn renders_every_docs_diagram() {
-    let docs = crate_dir().join("../../docs/content");
+    let docs = neohugo_testkit::fixture::repo_dir().join("docs/content");
     let mut diagrams = Vec::new();
     collect(&docs, &mut diagrams);
     assert!(

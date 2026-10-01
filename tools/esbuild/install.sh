@@ -1,5 +1,5 @@
 #!/bin/sh
-# Installs the esbuild CLI that the Rust rewrite (crates/esbuild) runs over `--service`: the
+# Installs the esbuild CLI that neohugo (crates/esbuild) runs over `--service`: the
 # platform binary of the esbuild package that tools/neohugo/node/package.json pins, copied from
 # the node modules of tools/neohugo/node.sh. Run by hand and by CI (.github/workflows/ci.yml).
 #

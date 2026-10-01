@@ -5,9 +5,11 @@ Usage:
   package.py <binary> <target> <out-dir> [<notices>]
 
 <version> is `version` in [workspace.package] of Cargo.toml; `<binary> version` must print
-"neohugo v<version>…" (a smoke test). <target> is a Rust target triple, named in the archive as
-the Go releases name it (goreleaser's "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}" at
-44529028): <os> linux, darwin or windows, <arch> amd64 or arm64. Writes
+"neohugo v<version>[-<commit>] …" (a smoke test): the version exactly, then the commit the
+binary names, which is $NEOHUGO_BUILD_COMMIT when that is set (as in CI) and otherwise any hex
+commit or none. <target> is a Rust target triple, named in the archive as the Go releases name
+it (goreleaser's "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}" at 44529028): <os> linux,
+darwin or windows, <arch> amd64 or arm64. Writes
 
   <out-dir>/neohugo_<version>_<os>-<arch>.tar.gz          (.zip for Windows)
   <out-dir>/neohugo_<version>_<os>-<arch>.tar.gz.sha256   "<sha256>  <archive>", as `sha256sum -c`
@@ -26,6 +28,7 @@ import gzip
 import hashlib
 import io
 import os
+import re
 import subprocess
 import sys
 import tarfile
@@ -47,13 +50,24 @@ def workspace_version():
 
 
 def check_binary(binary, version):
-    """`<binary> version` must print the version line of `version`; returns the line."""
+    """`<binary> version` must print the version line of `version` (and of $NEOHUGO_BUILD_COMMIT
+    when set); returns the line."""
     out = subprocess.run([str(binary), "version"], capture_output=True, text=True,
                          encoding="utf-8", check=True)
-    prefix = f"neohugo v{version}"
-    if not out.stdout.startswith(prefix) or out.stdout[len(prefix):][:1] not in (" ", "-"):
+    words = out.stdout.split()
+    token = words[1] if len(words) > 1 and words[0] == "neohugo" else None
+    want = f"v{version}"
+    commit = os.environ.get("NEOHUGO_BUILD_COMMIT")
+    if commit:
+        ok = token == f"{want}-{commit}"
+        want = f"{want}-{commit}"
+    else:
+        ok = token is not None and (
+            token == want or re.fullmatch(rf"{re.escape(want)}-[0-9a-f]{{7,40}}", token))
+        want = f"{want}[-<commit>]"
+    if not ok:
         sys.exit(f"package.py: `{binary} version` printed {out.stdout!r}, "
-                 f"not '{prefix} …' (the version of Cargo.toml)")
+                 f"not 'neohugo {want} …' (the version of Cargo.toml)")
     return out.stdout.strip()
 
 

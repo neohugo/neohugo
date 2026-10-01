@@ -1,5 +1,8 @@
-# Text files have auto line endings
-* text=auto
+# Text files are stored with LF and checked out with LF on every platform (eol=lf): the build
+# embeds some of them (crates/layouts/embedded, the highlight styles, livereload.min.js, ...) and
+# the release archives ship others (README.md, LICENSE, ...), so a Windows checkout with
+# core.autocrlf=true must not give them CRLF.
+* text=auto eol=lf
 
 # SVG files should not be modified
 *.svg -text

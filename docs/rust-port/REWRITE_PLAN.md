@@ -2,6 +2,8 @@
 
 **Status.** Final plan, revision 2, dated 2026-09-29. This revision applies the completeness, feasibility and Rust-style reviews. Review points that were rejected, or only partly applied, are listed in §12 "Review notes".
 
+**Since the Go removal** (after `44529028`, 2026-10-01) the Cargo workspace is the repository root and the binary is `neohugo` ([DEVELOPMENT.md](../../DEVELOPMENT.md), [HANDOFF.md §9](HANDOFF.md#9-without-go-2026-10-01)). The `rust/…` paths, `rust/target` and `neohugo-rs` below are the layout this plan was written for: read `rust/<path>` as `<path>` (`rust/README.md` is now `DEVELOPMENT.md`, `rust/docs/template-api.md` is `docs/rust-port/template-api.md`) and `neohugo-rs` as `neohugo`. Where they differ, DEVELOPMENT.md and HANDOFF.md win.
+
 **What it replaces.**
 - `crates/TERA_PLAN.md`. T00 moved that file to `docs/rust-port/` with a pointer to this plan (T70 archived it: `docs/rust-port/archive/TERA_PLAN.md`).
 - The byte-parity rules in `crates/README.md`.

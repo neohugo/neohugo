@@ -59,7 +59,7 @@ says otherwise, and:
 | `--disable-live-reload` | `--disableLiveReload` | no LiveReload script, `livereload.js` or WebSocket |
 | `--live-reload-port PORT` | `--liveReloadPort` | the port in the LiveReload script (e.g. 443 behind a proxy) |
 | `-N`, `--navigate-to-changed` | `--navigateToChanged` | the browsers go to the page whose content changed |
-| `--render-to-disk` | `--renderToDisk` | build into the publish directory (`-d`, `publishDir`) and serve it from there; without it the site is built into memory and `-d` is a usage error (`-M` is the default and conflicts with it) |
+| `--render-to-disk` | `--renderToDisk` | build into the publish directory (`-d`, `publishDir`) and serve it from there; without it the site is built into memory and `-d` is a usage error (`-M` is the default and conflicts with it). A neohugo flag, not one of the Go build's: its server rendered to disk by default and `-M`/`--renderToMemory` into memory (README.md, "Upgrading from the Go build") |
 | `--no-http-cache` | `--noHTTPCache` | `Cache-Control: no-store, …` and `Pragma: no-cache` |
 | `-w`, `--watch[=BOOL]` | | watch and rebuild (default true; `--watch=false` builds once) |
 | `--poll INTERVAL` | | poll for changes (`700ms`, `1s`, or milliseconds) instead of file notifications |
@@ -99,8 +99,8 @@ message carries Tera's `--> <template>:<line>:<col>` snippet. A successful build
 | `contentDir/c layoutDir/l noTimes noChmod disableKinds enableGitInfo printPathWarnings printI18nWarnings panicOnWarning` | configuration keys (file or `HUGO_*`), not flags |
 | `server`: `port/p bind appendPort disableLiveReload liveReloadPort navigateToChanged/N noHTTPCache watch/w poll renderToDisk disableFastRender disableBrowserError` | the `server` flags above (T71) |
 | `server`: `tlsCertFile tlsKeyFile tlsAuto openBrowser/O pprof renderStaticToDisk forceSyncStatic`, command `server trust` | not supported (clap usage error) |
-| `logLevel devMode gc noBuildLock forceSyncStatic ignoreVendorPaths renderSegments templateMetrics templateMetricsHints printUnusedTemplates printMemoryUsage profile-* trace` | not supported (clap usage error) |
-| commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env` | not supported; `config` prints the resolved configuration as JSON or TOML |
+| `logLevel devMode gc noBuildLock forceSyncStatic ignoreVendorPaths renderSegments templateMetrics templateMetricsHints printUnusedTemplates printMemoryUsage profile-* trace`, the build's `watch/w` | not supported (clap usage error) |
+| commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env`, `release`, `config mounts`, and cobra's `completion` and `help` | not supported (`--help` prints the help); `config` prints the resolved configuration as JSON (the default; Go's was TOML) or TOML, without Go's `yaml`, `--lang` and `--printZero` |
 
 ## `templates check`
 
@@ -141,7 +141,7 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 
 | Test | What |
 |---|---|
-| `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 56/56 (55 in `public` + `hugo_stats.json`; the reference has 55 because Go writes `hugo_stats.json` next to `hugo.toml`); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; `hugo_stats.json` tag/class/id sets equal the `neohugo-publish` collector (checked against Go's by `oracle/publisher/collector`) over Go's HTML. Accepted-deviation lists per level: empty. Structure oracle: TODO(T01). Full output tree: `snapshots/testsite_output.snap` |
+| `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 56/56 (55 in `public` + `hugo_stats.json`; the reference has 55 because Go writes `hugo_stats.json` next to `hugo.toml`); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; `hugo_stats.json` tag/class/id sets equal the `neohugo-publish` collector (checked against Go's by `oracle/publisher/collector`) over Go's HTML. Accepted-deviation lists per level: empty. Structure oracle: the build's structure dump against `testdata/golden/testsite/structure.json` (Go's, frozen at `44529028`), every fact equal (the baseline `testdata/baselines/testsite.json` accepts none). Full output tree: `snapshots/testsite_output.snap` |
 | `parity::parity_helpers` | the scanner, normalisations and text extraction of the gate |
 | `docs::gate_a_d2` | **gate A-D2** (§7.3, T66): `compare.sh docs-reduced --ref golden` with this binary (Chroma, goat, emoji, math, remarshal, Tailwind via `defer`, Alpine/Turbo `js_build`): L1 889/889 in both passes, L2, L4 and the structure oracle equal everywhere, A7 ≥ 0.98, clean ratchet (`testdata/baselines/docs-reduced.json`); `SKIPPED` without the node tools/esbuild (shared with `reconstruction::gate_a_r` in `tests/it/acceptance.rs`) |
 | `embedded::embedded_templates` | the embedded templates rendered against testsite views (test-only overlay `tests/it/embedded-overlay.txtar`, see below): snapshots `hooks`, `shortcodes`, `bundle`, `featured`, `section_page1`, `section_page2` |

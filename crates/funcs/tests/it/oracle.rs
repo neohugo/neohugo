@@ -19,7 +19,7 @@ use serde::Deserialize;
 use serde_json::Value as J;
 use tera::{Context, Value};
 
-use crate::support::{Harness, crate_dir};
+use crate::support::Harness;
 
 #[derive(Deserialize)]
 struct Case {
@@ -134,9 +134,10 @@ fn eval(h: &Harness, c: &Case) -> Result<Value, String> {
 
 #[test]
 fn tplfuncs_agreement() {
-    let cases: Vec<Case> =
-        neohugo_testkit::fixture::read_jsonl(&crate_dir().join("tests/fixtures/tplfuncs.jsonl.gz"))
-            .expect("fixture");
+    let cases: Vec<Case> = neohugo_testkit::fixture::read_jsonl(
+        &neohugo_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/tplfuncs.jsonl.gz"),
+    )
+    .expect("fixture");
     let h = Harness::new();
     // family → (agree, total, first disagreements)
     let mut stats: BTreeMap<String, (usize, usize, Vec<String>)> = BTreeMap::new();

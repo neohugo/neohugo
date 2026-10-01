@@ -60,10 +60,10 @@ docs/rust-port/             this file, template-api.md (the template API, genera
                             docs)
 ```
 
-The old byte-for-byte port (`crates/`, line-by-line ports of Go packages) was deleted in T00;
-it is at commit `be02933a` (local tag `go-parity-final`). Its documents are in
-[`archive/`](archive/README.md). The Go implementation (Hugo's Go tree, `tools/go-oracle`,
-`tools/neohugo/oracle.sh`) is at commit `44529028` (§9).
+The old byte-for-byte port (the root `crates/` of `be02933a`, not today's crates; line-by-line
+ports of Go packages) was deleted in T00; it is at that commit (local tag `go-parity-final`).
+Its documents are in [`archive/`](archive/README.md). The Go implementation (Hugo's Go tree,
+`tools/go-oracle`, `tools/neohugo/oracle.sh`) is at commit `44529028` (§9).
 
 ### Crate map
 
@@ -349,13 +349,18 @@ repository is the Rust implementation only. `44529028` is the last commit with t
 tag): `git worktree add <dir> 44529028`, or `git show 44529028:<path>` for the Go-tree paths
 that comments and READMEs cite.
 
-- **Removed:** Hugo's Go packages, `main.go`, `go.mod`/`go.sum`, `magefile.go`, the release
-  (GoReleaser, hugoreleaser), Docker, snap and golangci-lint configuration, `testscripts/`,
-  `scripts/`, `tools/go-oracle/`, `tools/neohugo/oracle.sh`, `tools/esbuild/build.sh`, the
-  highlight oracle (`crates/highlight/tests/data/oracle/`), and the workflows `ci.yml`,
-  `release.yml`, `benchmark.yml`, `golangci-lint.yml`, `image.yml`. `docs/go.mod`, `docs/go.sum`
-  and `docs/hugo.work` stay: they belong to the docs site, which stays byte-identical (only
-  `docs/rust-port/` changes).
+- **Removed:** Hugo's Go packages, `main.go` with `main_test.go` and
+  `main_withdeploy_test.go`, `go.mod`/`go.sum`, `magefile.go` (and `.vscode/`, its debug
+  configuration), the release (GoReleaser, hugoreleaser with `hugoreleaser.env`,
+  `merge-release.sh`), Docker, snap and golangci-lint configuration, `check_gofmt.sh`,
+  `watchtestscripts.sh`, `testscripts/`, `scripts/`, `tools/go-oracle/`,
+  `tools/neohugo/oracle.sh`, `tools/esbuild/build.sh`, the highlight oracle
+  (`crates/highlight/tests/data/oracle/`), and the Go workflows `ci.yml` (Go's; the current
+  `ci.yml` is the renamed `rust.yml`, below), `release.yml`, `benchmark.yml`,
+  `golangci-lint.yml`, `image.yml`. `pull-docs.sh` (a `git subtree pull` of `docs/` from
+  neohugo/neohugoDocs) is gone too: `docs/` is a frozen test fixture now and is no longer pulled.
+  `docs/go.mod`, `docs/go.sum` and `docs/hugo.work` stay: they belong to the docs site, which
+  stays byte-identical (only `docs/rust-port/` changes).
 - **Test data moved:** Hugo's test data the tests read is in `testdata/upstream/` at its
   Go-tree path (`hugolib/testsite`, `resources/testdata`, `resources/images/testdata`,
   `tpl/images/testdata`, `media/testdata/fake.png`; 90 files). Fixture ids keep the old paths;
@@ -400,12 +405,17 @@ that comments and READMEs cite.
   changelog in the release notes and its `v<version>` release title (the title is now
   `neohugo <version>`); the Go commands the Rust command line does not have (`env`, which also
   printed the version line, `new`, `mod`, `deploy`, `list`, `gen`, `convert`, `import`,
-  `release`), Hugo's flags it does not list (`crates/cli/README.md`; e.g. `--gc`, `--logLevel`)
-  and the "Start building sites …" banner with the version line; the commit and date of a local
-  build (Go read them from git, a cargo build gets them only from CI's variables). New: a
-  `--version` flag, printing the `version` line. The Docker images and the docs deploy are
-  below; `snap/snapcraft.yaml` and `hugoreleaser.yaml` were in the tree at `44529028`, but no
-  workflow published them.
+  `release`, `server trust`, `config mounts`, cobra's `completion` and `help`), Hugo's flags it
+  does not list (`crates/cli/README.md`; e.g. `--gc`, `--logLevel`, the build's `-w`/`--watch`)
+  and the "Start building sites …" banner with the version line; `config`'s TOML default and its
+  `--format yaml`, `--lang` and `--printZero` (the Rust `config` prints JSON or TOML); `server`
+  rendering to disk by default: the Go server wrote the publish directory and served it
+  (`-M`/`--renderToMemory`: memory), the Rust one renders into memory unless `--render-to-disk`
+  (a neohugo flag, not the Go build's) is given, and `-d` needs that flag; the commit and date
+  of a local build (Go read them from git, a cargo build gets them only from CI's variables).
+  New: a `--version` flag, printing the `version` line. The Docker images and the docs deploy
+  are below; `snap/snapcraft.yaml` and `hugoreleaser.yaml` were in the tree at `44529028`, but
+  no workflow published them.
 
 Follow-ups outside the repository:
 

@@ -10,7 +10,7 @@ pub struct ServeOptions { pub build: BuildRequest /* project + build flags */, p
                           pub port: Port, pub append_port: bool, pub live_reload: Option<LiveReloadOptions>,
                           pub target: Target, pub watch: Watch, pub http_cache: HttpCache }
 pub enum Port { Exact(u16) /* --port; 0: any free port */, Preferred(u16) /* 1313, else a free one */ }
-pub enum Target { Memory /* default */, Disk /* --renderToDisk */ }
+pub enum Target { Memory /* default */, Disk /* --renderToDisk, neohugo's flag */ }
 pub enum Watch { Off /* --watch=false */, Native, Poll(Duration) /* --poll */ }
 pub enum HttpCache { Default, Disabled /* --noHTTPCache */ }
 pub struct LiveReloadOptions { pub port: Option<u16> /* --liveReloadPort */, pub navigate_to_changed: bool }
@@ -55,7 +55,8 @@ A multihost site's listener serves its language's directory (`en/`), with that l
 max-age=0` and `Pragma: no-cache`. Files come from the memory sink of the last successful
 build (swapped in whole: a failing build leaves it in place), or with `--renderToDisk` from
 the publish directory (written in place by each build, so a failing build can leave some
-files new).
+files new). `--renderToDisk` is neohugo's flag, not one of the Go build's: the Go server
+rendered to disk by default and into memory with `-M`/`--renderToMemory`.
 
 ## Watching and rebuilding (`src/watch.rs`, `src/rebuild.rs`)
 

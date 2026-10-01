@@ -102,20 +102,13 @@ jobs:
       - name: Node tools
         run: |
           tools/neohugo/node.sh
-          for dir in tools/neohugo/node_modules tools/neohugo/node/node_modules; do
-            [ -d "$dir/.bin" ] || continue
-            echo "NEOHUGO_NODE_MODULES=$GITHUB_WORKSPACE/$dir" >>"$GITHUB_ENV"
-            for tool in postcss:NEOHUGO_POSTCSS_BIN tailwindcss:NEOHUGO_TAILWINDCSS_BIN babel:NEOHUGO_BABEL_BIN; do
-              bin=$dir/.bin/${tool%%:*}
-              if [ -x "$bin" ]; then
-                echo "${tool#*:}=$GITHUB_WORKSPACE/$bin" >>"$GITHUB_ENV"
-              else
-                echo "::warning::tools/neohugo/node.sh installed no $bin"
-              fi
-            done
-            exit 0
+          dir=$(tools/neohugo/node.sh path)
+          echo "NEOHUGO_NODE_MODULES=$dir" >>"$GITHUB_ENV"
+          for tool in postcss:NEOHUGO_POSTCSS_BIN tailwindcss:NEOHUGO_TAILWINDCSS_BIN babel:NEOHUGO_BABEL_BIN; do
+            bin=$dir/.bin/${tool%%:*}
+            [ -x "$bin" ] || { echo "::error::tools/neohugo/node.sh installed no $bin"; exit 1; }
+            echo "${tool#*:}=$bin" >>"$GITHUB_ENV"
           done
-          echo "::warning::tools/neohugo/node.sh ran but left no node_modules/.bin under tools/neohugo"
 
       # esbuild for the js_build tests (neohugo-esbuild, neohugo-resources, the gates), which
       # skip without it, so a failure here fails the job: install.sh copies the binary of the
@@ -135,6 +128,11 @@ jobs:
       - name: Skipped tests
         if: always()
         run: |
+          if [ ! -f "$RUNNER_TEMP/cargo-test.log" ]; then
+            printf '### Skipped tests\ncargo test did not run.\n' >>"$GITHUB_STEP_SUMMARY"
+            echo "cargo test did not run"
+            exit 0
+          fi
           skipped=$(grep -h '^SKIPPED' "$RUNNER_TEMP/cargo-test.log" | sort -u || true)
           {
             echo "### Skipped tests"
@@ -241,12 +239,22 @@ jobs:
           if [ "$RUNNER_OS" = Linux ]; then
             echo "needs $(objdump -T "$BINARY" | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -n 1)"
           fi
+          # The embedded templates keep LF on every runner (.gitattributes: eol=lf), so the
+          # sitemap, RSS and robots.txt they write have no CR, as on Linux and in the Go releases.
+          site=target/eol-site
+          mkdir -p "$site/content"
+          printf 'baseURL = "https://example.org/"\nenableRobotsTXT = true\n' >"$site/hugo.toml"
+          printf -- '---\ntitle: Home\n---\n' >"$site/content/_index.md"
+          "$BINARY" -s "$site" -q
+          python -c 'import pathlib, sys; cr = [p for p in sys.argv[1:] if b"\r" in pathlib.Path(p).read_bytes()]; cr and print(f"::error::CR line endings in {cr}"); sys.exit(1 if cr else 0)' \
+            "$site/public/sitemap.xml" "$site/public/index.xml" "$site/public/robots.txt"
 
       # notices.py writes the licences of the crates linked for this target (MIT, BSD and
       # Apache-2.0 ask for them in binary distributions); it fails if a linked crate ships no
-      # licence file and is not MIT. package.py writes neohugo_<version>_<os>-<arch>.tar.gz
-      # (.zip for Windows) and its .sha256, after checking that `neohugo version` prints the
-      # version of Cargo.toml.
+      # licence file and is neither MIT nor Apache-2.0 (those get the MIT text, or a reference
+      # to the Apache-2.0 text another linked crate ships). package.py writes
+      # neohugo_<version>_<os>-<arch>.tar.gz (.zip for Windows) and its .sha256, after checking
+      # that `neohugo version` prints v<version of Cargo.toml>-$NEOHUGO_BUILD_COMMIT.
       - name: Package
         run: |
           python tools/neohugo/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"

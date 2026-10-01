@@ -15,7 +15,7 @@ use neohugo_testkit::txtar::Archive;
 /// Every file of the Go build of the same site (`hugo -d public`), 55 files; Go's 56th file is
 /// `hugo_stats.json` in the project directory, which a memory build does not write.
 fn go_build() -> Archive {
-    let path = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/it/testsite-go.txtar");
+    let path = repo_dir().join("crates/build/tests/it/testsite-go.txtar");
     Archive::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 

@@ -4,9 +4,11 @@
 # package.json belong to the docs site, whose files the test fixtures record by hash.
 version: 2
 updates:
-  # One grouped pull request for the minor and patch bumps. Several crates shape the output the
-  # parity gates compare with the Go build's golden data (comrak, syntect, minify-html,
-  # lightningcss, oxc, grass, image, webp, ...): the group must pass the gates of CI's Test job
+  # One grouped pull request for the patch bumps and one for the minor bumps, so that a minor
+  # bump of a 0.x crate (a breaking change for Cargo: comrak 0.55 to 0.56, two-face, tera-contrib,
+  # ...) does not hold back the patch and security fixes. Several crates shape the output the
+  # parity gates compare with the Go build's golden data (comrak, syntect, two-face, minify-html,
+  # lightningcss, oxc, grass, image, webp, ...): each group must pass the gates of CI's Test job
   # like any change, and a bump that changes a gate's differences needs an entry in
   # tools/neohugo/changes/ (see its README).
   - package-ecosystem: "cargo"
@@ -14,9 +16,12 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      minor-and-patch:
+      patch:
         patterns: ["*"]
-        update-types: ["minor", "patch"]
+        update-types: ["patch"]
+      minor:
+        patterns: ["*"]
+        update-types: ["minor"]
     ignore:
       # Pinned exactly ("=2.4.0" in Cargo.toml) on purpose, a young engine whose behaviour the
       # layouts rely on (docs/rust-port/REWRITE_PLAN.md §9, risk 3): moved by hand.

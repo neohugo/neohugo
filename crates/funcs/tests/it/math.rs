@@ -7,7 +7,7 @@ use std::path::Path;
 
 use tera::Context;
 
-use crate::support::{Harness, crate_dir};
+use crate::support::Harness;
 
 /// Formulas using mhchem (`\ce`, `\pu`), a KaTeX extension pulldown-latex does not have: an
 /// error, and with `optional=true` a warning and the unknown commands as `<merror>` (accepted
@@ -48,7 +48,7 @@ fn collect(dir: &Path, out: &mut BTreeSet<(String, bool)>) {
 
 #[test]
 fn renders_every_docs_formula() {
-    let docs = crate_dir().join("../../docs/content");
+    let docs = neohugo_testkit::fixture::repo_dir().join("docs/content");
     let mut formulas = BTreeSet::new();
     collect(&docs, &mut formulas);
     assert!(
