@@ -7,9 +7,9 @@ golden build. The comparison itself lives in `tools/neohugo/` (`compare.sh`, `st
 **In use:**
 
 - `i01/sites.py` generates every test site outside the repository (`make`, `cache`, `list`) and
-  keeps `i01/patches.json` and the Tera patch files of `rust/sites/docs/patches/` in step
+  keeps `i01/patches.json` and the Tera patch files of `sites/docs/patches/` in step
   (`patches [--check]`). `tools/neohugo/compare.sh` and the gate tests in
-  `rust/crates/cli/tests/it/` call it, as `tools/neohugo/oracle.sh` (at `44529028`) did for the golden data.
+  `crates/cli/tests/it/` call it, as `tools/neohugo/oracle.sh` (at `44529028`) did for the golden data.
 - `i01/testsite.txtar`, `i01/seeksnack.txtar`, `i01/errors.txtar`: inputs of the testsite, the
   seeksnack reconstruction and the error-text site (`sites.py make`).
 - `testdata/hugo_cache/`: the golden GetRemote (YouTube API) cache entries; `sites.py cache
@@ -25,12 +25,12 @@ golden build. The comparison itself lives in `tools/neohugo/` (`compare.sh`, `st
 **Golden data.** The reference of every comparison is what the Go neohugo built, frozen since
 the Go implementation was removed after commit `44529028`:
 
-- `rust/testdata/golden/`: the manifests and structure dumps of the testsite, the seeksnack
+- `testdata/golden/`: the manifests and structure dumps of the testsite, the seeksnack
   reconstruction and the docs variants, and the golden images, written by
   `tools/neohugo/oracle.sh` (T01; the docs labels again in T65 and T66);
-  `rust/testdata/golden/README.md` has the schema and the recipe to regenerate them in a
+  `testdata/golden/README.md` has the schema and the recipe to regenerate them in a
   worktree of `44529028`.
-- `rust/crates/build/tests/it/testsite-go.txtar`: the Go build of the testsite (gate A-T).
+- `crates/build/tests/it/testsite-go.txtar`: the Go build of the testsite (gate A-T).
 - `golden/canonical.sha256` and `golden/hugo_stats.json` (above): the real seeksnack golden Go
   build, made with the settings of `build-site.sh`.
 

@@ -7,10 +7,10 @@ nohup.out
 *~
 /dist/
 public/
-# Rust rewrite (docs/rust-port/REWRITE_PLAN.md §6.1)
-/rust/target/
-/rust/target-*/
+# Cargo build output (docs/rust-port/REWRITE_PLAN.md §6.1)
+/target/
+/target-*/
 /tools/neohugo/bin/
 /tools/neohugo/node_modules/
 # Test data is stored verbatim, whatever the rules above match.
-!/rust/testdata/**
+!/testdata/**

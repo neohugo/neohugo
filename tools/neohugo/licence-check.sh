@@ -1,6 +1,6 @@
 #!/bin/sh
 # Checks the licences of every package in the Rust workspace's dependency graph against the
-# policy in rust/deny.toml (docs/rust-port/REWRITE_PLAN.md §5). Python stdlib only.
+# policy in deny.toml (docs/rust-port/REWRITE_PLAN.md §5). Python stdlib only.
 #
 #   tools/neohugo/licence-check.sh [-v]
 #
@@ -12,7 +12,7 @@
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
-ws="$here/../../rust"
+ws="$here/../.."
 meta=$(mktemp)
 trap 'rm -f "$meta"' EXIT
 (cd "$ws" && cargo metadata --format-version 1 --locked --all-features \

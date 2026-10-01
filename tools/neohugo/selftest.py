@@ -22,7 +22,7 @@ output against that baseline is an unlisted improvement, which does not fail.
 Usage: selftest.py [--go-out DIR [--project DIR]] [--keep]
 
 The Go output: --go-out (a publish directory, --project its site directory), else Go's testsite
-output (rust/crates/build/tests/it/testsite-go.txtar) with a Thai page and a PNG added (the
+output (crates/build/tests/it/testsite-go.txtar) with a Thai page and a PNG added (the
 testsite has neither). Python stdlib only; everything happens in a temporary directory.
 """
 import argparse
@@ -42,7 +42,7 @@ sys.dont_write_bytecode = True  # the sibling modules below: no __pycache__ in t
 import manifest as mf  # noqa: E402
 import structdiff as sd  # noqa: E402
 
-TESTSITE_GO = os.path.join(ROOT, "rust", "crates", "build", "tests", "it", "testsite-go.txtar")
+TESTSITE_GO = os.path.join(ROOT, "crates", "build", "tests", "it", "testsite-go.txtar")
 THAI_RE = re.compile(r"[฀-๿]|%E0%B[89]%[89AB][0-9A-F]", re.I)
 
 

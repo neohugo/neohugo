@@ -2,8 +2,8 @@
 
 The acceptance comparison (`tools/neohugo/compare.sh`, `tools/neohugo/structdiff.py`;
 docs/rust-port/REWRITE_PLAN.md §7.2) compares the Rust build of a site with the golden data of the
-Go build (`rust/testdata/golden/`, frozen at `44529028`), file by file and level by level, and
-checks the result against the site's **baseline** (`rust/testdata/baselines/<label>.json`). A task
+Go build (`testdata/golden/`, frozen at `44529028`), file by file and level by level, and
+checks the result against the site's **baseline** (`testdata/baselines/<label>.json`). A task
 may change the baseline only by listing every change in its own changes file,
 `tools/neohugo/changes/<task-id>.md`, with exactly one triage class and a one-line reason. **An
 unlisted new or changed difference fails the run.**
@@ -52,7 +52,7 @@ is an error. An entry that matches no change is reported as unused.
 
 ## The baseline
 
-`rust/testdata/baselines/<label>.json` (schema `neohugo-baseline/1`; gzipped when over 256 KiB):
+`testdata/baselines/<label>.json` (schema `neohugo-baseline/1`; gzipped when over 256 KiB):
 per file (`files`) and per structure fact (`structure`), per level, the status of the last
 accepted run: `"ok"`, or `{"status": "diff" | "missing" | "extra", "fp": "<diff fingerprint>",
 "class": "…", "task": "…", "reason": "…"}` with the class, task and reason of the entry that

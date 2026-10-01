@@ -11,7 +11,7 @@ Usage:
 hugo_stats.json (Hugo writes it next to the config, not into publishDir) as `project:hugo_stats.json`.
 The base URLs default to the site config (`baseURL` of <project>/hugo.toml and of its
 languages). A file name ending in `.gz` is written gzipped (deterministically). The schema is
-documented in rust/testdata/golden/README.md; in short, per file:
+documented in testdata/golden/README.md; in short, per file:
 
   L1  the path and, when it differs, its normalised form (`norm`): `_hu_<hex>` -> `_hu_H`,
       fingerprints `.<16-64 hex>.` -> `.H.`;

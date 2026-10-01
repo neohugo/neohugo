@@ -21,7 +21,7 @@ is printed and the script exits with status 1 unless --allow-missing is given, s
 dependency like that is noticed. Workspace members are covered by the repository's LICENSE.
 
 package.py puts the result into the release archives as THIRD_PARTY_NOTICES.txt
-(.github/workflows/rust.yml, rust/README.md "CI and releases").
+(.github/workflows/ci.yml, DEVELOPMENT.md "CI and releases").
 """
 import json
 import subprocess
@@ -118,7 +118,7 @@ def main(argv):
     # cargo prints UTF-8 whatever the locale (Windows' default is cp1252).
     meta = json.loads(subprocess.run(
         ["cargo", "metadata", "--format-version", "1", "--locked", "--filter-platform", target],
-        cwd=ROOT / "rust", capture_output=True, check=True).stdout.decode("utf-8"))
+        cwd=ROOT, capture_output=True, check=True).stdout.decode("utf-8"))
     packages = {p["id"]: p for p in meta["packages"]}
     members = set(meta["workspace_members"])
     ids = sorted((i for i in closure(meta, "neohugo") if i not in members),

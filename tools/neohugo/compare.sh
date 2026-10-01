@@ -2,7 +2,7 @@
 # Acceptance comparison of one site (docs/rust-port/REWRITE_PLAN.md §7.2, §7.3): builds the
 # candidate (the Rust build), compares it with the reference (the Go build's committed golden
 # data) through tools/neohugo/structdiff.py, level by level (L1-L4, the structure oracle, A7),
-# and applies the ratchet (rust/testdata/baselines/<label>.json).
+# and applies the ratchet (testdata/baselines/<label>.json).
 #
 #   tools/neohugo/compare.sh <site> [--docs-patches i01|reduced] [--ref golden]
 #                            [--task ID]... [--update] [--report-only] [--show N]
@@ -12,9 +12,9 @@
 #
 # Sides:
 #   --ref golden   the reference, the only one: the committed golden data of
-#                  rust/testdata/golden/<label> (manifests of both passes and the structure dump;
+#                  testdata/golden/<label> (manifests of both passes and the structure dump;
 #                  T01's oracle.sh wrote them with the Go build, frozen at 44529028)
-#   candidate      neohugo-rs: the site from `sites.py make <label> --overlay rust/sites/<site>`;
+#   candidate      neohugo-rs: the site from `sites.py make <label> --overlay sites/<site>`;
 #                  its structure dump comes from the unminified build (NEOHUGO_STRUCTURE_OUT)
 #
 # The candidate builds each pass from a freshly generated site, from the site directory, with
@@ -90,12 +90,12 @@ testsite | seeksnack)
 	label=$site ;;
 *) log "unknown site $site (testsite, seeksnack, docs-i01, docs-reduced)"; exit 2 ;;
 esac
-overlay=$ROOT/rust/sites/${label%%-*}
+overlay=$ROOT/sites/${label%%-*}
 
 NODE_MODULES=${NEOHUGO_NODE_MODULES:-$("$HERE/node.sh" path)}
 ESBUILD=${NEOHUGO_ESBUILD_BINARY:-$(main_checkout)/tools/esbuild/bin/esbuild}
-GOLDEN=$ROOT/rust/testdata/golden/$label
-BASELINE=$ROOT/rust/testdata/baselines/$label.json
+GOLDEN=$ROOT/testdata/golden/$label
+BASELINE=$ROOT/testdata/baselines/$label.json
 WORK_ROOT=${NEOHUGO_COMPARE_WORK:-${TMPDIR:-/tmp}/neohugo-compare}
 W=$WORK_ROOT/$label
 case "$WORK_ROOT" in "$ROOT" | "$ROOT"/*) log "the work directory must be outside the repository"; exit 2 ;; esac
@@ -118,9 +118,9 @@ rust_binary() {
 		return
 	fi
 	log "building neohugo-rs (cargo build --offline --locked -p neohugo)"
-	(cd "$ROOT/rust" && cargo build --offline --locked -q -p neohugo --bin neohugo-rs >&2)
-	local target=${CARGO_TARGET_DIR:-$ROOT/rust/target}
-	case $target in /*) ;; *) target=$ROOT/rust/$target ;; esac
+	(cd "$ROOT" && cargo build --offline --locked -q -p neohugo --bin neohugo-rs >&2)
+	local target=${CARGO_TARGET_DIR:-$ROOT/target}
+	case $target in /*) ;; *) target=$ROOT/$target ;; esac
 	# A copy: the target directory is shared, another build may replace the file.
 	mkdir -p "$W/bin"
 	cp "$target/debug/neohugo-rs" "$W/bin/neohugo-rs"

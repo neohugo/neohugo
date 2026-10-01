@@ -7,8 +7,8 @@
 #
 #   tools/neohugo/disk.sh
 #
-# The target directory is $CARGO_TARGET_DIR, else rust/target of the main checkout (shared by
-# all worktrees).
+# The target directory is $CARGO_TARGET_DIR, else target/ of the main checkout (shared by all
+# worktrees).
 set -eu
 
 limit_target_kb=$((${NEOHUGO_TARGET_LIMIT_MB:-8000} * 1024))
@@ -18,7 +18,7 @@ if [ -n "${CARGO_TARGET_DIR:-}" ]; then
 	target=$CARGO_TARGET_DIR
 else
 	common=$(git -C "$(dirname "$0")" rev-parse --path-format=absolute --git-common-dir)
-	target=$(dirname "$common")/rust/target
+	target=$(dirname "$common")/target
 fi
 
 used_kb=0
@@ -27,12 +27,12 @@ if [ -d "$target" ]; then
 fi
 free_kb=$(df -Pk / | awk 'NR == 2 { print $4 }')
 
-echo "rust/target: $((used_kb / 1024)) MB ($target), limit $((limit_target_kb / 1024)) MB"
-echo "free on /:   $((free_kb / 1024)) MB, minimum $((min_free_kb / 1024)) MB"
+echo "target:    $((used_kb / 1024)) MB ($target), limit $((limit_target_kb / 1024)) MB"
+echo "free on /: $((free_kb / 1024)) MB, minimum $((min_free_kb / 1024)) MB"
 
 status=0
 if [ "$used_kb" -gt "$limit_target_kb" ]; then
-	echo "disk.sh: rust/target exceeds the budget" >&2
+	echo "disk.sh: the target directory exceeds the budget" >&2
 	status=1
 fi
 if [ "$free_kb" -lt "$min_free_kb" ]; then

@@ -4,7 +4,7 @@
 Usage:
   fixtures2json.py convert <src> <dst>   # a file or a directory tree; <dst> may equal <src> (in place)
   fixtures2json.py count <path>...       # print the record counts of fixture files
-  fixtures2json.py t00 <old-crates-dir> <rust/testdata-dir>
+  fixtures2json.py t00 <old-crates-dir> <testdata-dir>
                                          # the one-off T00 move (see T00_MAP); writes COUNTS.json
 
 The Go oracles (tools/go-oracle, frozen at 44529028) wrote the typed formats below; re-run
@@ -371,8 +371,8 @@ def convert_tree(src, dst):
 
 
 # ------------------------------------------------------------------------------------------------
-# T00: old crates/ layout -> rust/testdata (REWRITE_PLAN.md §6.3). Paths are relative to crates/
-# on the source side and to rust/testdata on the destination side. A directory maps recursively.
+# T00: old crates/ layout -> testdata (REWRITE_PLAN.md §6.3). Paths are relative to crates/
+# on the source side and to testdata on the destination side. A directory maps recursively.
 
 T00_MAP = [
     # oracle/<area>: the engine-neutral Go-oracle fixtures (area = old crate name without "nh-")

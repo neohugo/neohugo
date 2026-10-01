@@ -3,7 +3,7 @@
 
 Usage:
   sites.py list
-  sites.py make <site> <dir> [--docs-patches i01|reduced] [--overlay rust/sites/<site>]
+  sites.py make <site> <dir> [--docs-patches i01|reduced] [--overlay sites/<site>]
                                     # <dir> must not exist; for seeksnack and mini its basename
                                     # must be the site's name (it keys the GetRemote cache)
   sites.py cache <site> <dir>       # the HUGO_CACHEDIR contents the site needs (may be empty)
@@ -13,22 +13,22 @@ Sites:
   docs          this repository's docs/ site, patched to build offline; --docs-patches picks the
                 variant (i01, the default, or reduced; DOCS_* below, patches.json); docs-i01
                 and docs-reduced name the variants too
-  testsite      Hugo's hugolib/testsite (rust/testdata/upstream) plus a small config and layouts
+  testsite      Hugo's hugolib/testsite (testdata/upstream) plus a small config and layouts
                 (testsite.txtar)
-  seeksnack     the reconstructed seeksnack config (rust/testdata/oracle/allconfig/load/
+  seeksnack     the reconstructed seeksnack config (testdata/oracle/allconfig/load/
                 seeksnack/hugo.toml) with the synthetic en/th content tree of the nh-hugolib
-                oracles (read from rust/testdata/oracle/hugolib/build/seeksnack.json.gz) and
+                oracles (read from testdata/oracle/hugolib/build/seeksnack.json.gz) and
                 the layouts/assets/i18n/data of seeksnack.txtar; its GetRemote calls are served
                 from the 51 golden getresource cache entries
-  mini          the e2e oracle's small en/th site (rust/testdata/oracle/commands/e2e/mini.txtar)
-  images        the golden image recipes (rust/testdata/golden/images/manifest.json) as a site
+  mini          the e2e oracle's small en/th site (testdata/oracle/commands/e2e/mini.txtar)
+  images        the golden image recipes (testdata/golden/images/manifest.json) as a site
   errors        a failing build (errors.txtar): the error texts must be Go's
   probe         T13's template probe site
-  t24-<name>    the T24 build-oracle sites (rust/testdata/oracle/hugolib/build/<name>.json.gz)
+  t24-<name>    the T24 build-oracle sites (testdata/oracle/hugolib/build/<name>.json.gz)
 
 --overlay makes the input of the Rust build: the same site with its layouts replaced by the Tera
 layouts of the overlay directory, the overlay's assets copied over, and for docs the variant's
-Tera patch files (rust/sites/docs/patches/<variant>/) layered on top (REWRITE_PLAN.md §7.4).
+Tera patch files (sites/docs/patches/<variant>/) layered on top (REWRITE_PLAN.md §7.4).
 The Go build that wrote the golden data built the site without an overlay
 (tools/neohugo/oracle.sh, frozen at 44529028).
 """
@@ -41,15 +41,18 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
-TESTDATA = os.path.join(ROOT, "rust", "testdata")
+TESTDATA = os.path.join(ROOT, "testdata")
 BUILD_FX = os.path.join(TESTDATA, "oracle", "hugolib", "build")
 GOLDEN_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache", "seeksnack",
                             "filecache", "getresource")
 GETREMOTE_FX = os.path.join(TESTDATA, "oracle", "resource-transformers", "getremote",
                             "getremote.json.gz")
 # Hugo's test data by its Go-tree path, as the fixtures record it, moved to
-# rust/testdata/upstream (the sites use only these; neohugo_testkit::fixture::UPSTREAM lists all).
+# testdata/upstream (the sites use only these; neohugo_testkit::fixture::UPSTREAM lists all).
 UPSTREAM = ("hugolib/testsite",)
+# The workspace's directory until it moved to the repository root; paths recorded below it
+# (golden/images/manifest.json) name the same files at the root.
+LEGACY_WORKSPACE = "rust/"
 
 
 def write(dir_, rel, content):
@@ -81,6 +84,8 @@ def copy_tree(src, dst, skip=("public", "resources", "node_modules")):
 def repo_file(rel):
     """A repository file by the path the fixtures record (neohugo_testkit::fixture::repo_file)."""
     upstream = any(rel == p or rel.startswith(p + "/") for p in UPSTREAM)
+    if not upstream and rel.startswith(LEGACY_WORKSPACE):
+        rel = rel[len(LEGACY_WORKSPACE):]
     return os.path.join(os.path.join(TESTDATA, "upstream") if upstream else ROOT, *rel.split("/"))
 
 
@@ -113,7 +118,7 @@ def read_txtar(path):
 #   reduced  offline, with Chroma highlighting, passthrough, emoji, remarshal, Tailwind and the
 #            real Alpine/Turbo imports (node.sh modules; gate A-D2).
 # The Go build always builds these Go-template patches. A patch of a file below layouts/ has a
-# Tera counterpart at rust/sites/docs/patches/<variant>/<same path> for every variant it belongs
+# Tera counterpart at sites/docs/patches/<variant>/<same path> for every variant it belongs
 # to (`sites.py patches --check` asserts the 1:1 correspondence); all other patches change the
 # site input both builds share. `sites.py patches` writes the list as patches.json.
 
@@ -204,7 +209,7 @@ DOCS_WRITE = [  # (file, content, variants, why)
 ]
 
 PATCHES_JSON = os.path.join(HERE, "patches.json")
-TERA_PATCHES = os.path.join(ROOT, "rust", "sites", "docs", "patches")
+TERA_PATCHES = os.path.join(ROOT, "sites", "docs", "patches")
 
 
 def docs_patches():
@@ -227,7 +232,7 @@ def docs_patches():
         "schema": "neohugo-docs-patches/1",
         "about": "Written by tools/rust-port/i01/sites.py (`sites.py patches`) from its DOCS_REMOVE, "
                  "DOCS_REPLACE and DOCS_WRITE lists: the edits of the docs site per variant. `tera` is "
-                 "the file below rust/sites/docs/patches/<variant>/ that mirrors a layout patch in the "
+                 "the file below sites/docs/patches/<variant>/ that mirrors a layout patch in the "
                  "Tera overlay (null: the patch changes the site input both builds share).",
         "variants": list(DOCS_VARIANTS),
         "patches": out,
@@ -401,9 +406,9 @@ def generated_snacks():
     return files
 
 
-_SITE_JPG = "rust/testdata/site-assets/site/"
-_REPO_PNG = "rust/testdata/site-assets/repo/"
-_GOLDEN_PNG = "rust/testdata/site-assets/golden/"
+_SITE_JPG = "testdata/site-assets/site/"
+_REPO_PNG = "testdata/site-assets/repo/"
+_GOLDEN_PNG = "testdata/site-assets/golden/"
 SEEKSNACK_IMAGES = {
     "content/biscuit/koalas-march-chocolate/koala.jpg": _SITE_JPG + "assets_images_categories_biscuit-stick.jpg",
     "content/biscuit/koalas-march-chocolate/koala_pack.jpg": _SITE_JPG + "assets_images_categories_almonds.jpg",
@@ -508,7 +513,7 @@ def make_errors(dir_):
 
 
 # ---------------------------------------------------------------------------------------------
-# mini: the e2e oracle's small en/th site (rust/testdata/oracle/commands/e2e/mini.txtar). Its
+# mini: the e2e oracle's small en/th site (testdata/oracle/commands/e2e/mini.txtar). Its
 # one GetRemote call is served from a golden getresource entry stored under the file cache key
 # of the URL it requests (as tools/go-oracle/nh-commands/e2e did, frozen at 44529028).
 
@@ -531,10 +536,10 @@ def mini_cache(dir_):
 
 
 # ---------------------------------------------------------------------------------------------
-# images: the recipes of rust/testdata/golden/images/manifest.json (the golden images of the
+# images: the recipes of testdata/golden/images/manifest.json (the golden images of the
 # PSNR gate of T41) as a site whose home page runs every recipe with Go's image processing and
 # prints `<golden name> <RelPermalink>` per line (tools/neohugo/oracle.sh, frozen at 44529028,
-# copied the published files into rust/testdata/golden/images).
+# copied the published files into testdata/golden/images).
 
 IMAGES_MANIFEST = os.path.join(TESTDATA, "golden", "images", "manifest.json")
 
@@ -576,7 +581,7 @@ def make_images(dir_):
     def asset(repo_path):
         if repo_path not in files:
             files[repo_path] = f"g/{len(files):02d}{os.path.splitext(repo_path)[1].lower()}"
-            with open(os.path.join(ROOT, *repo_path.split("/")), "rb") as fh:
+            with open(repo_file(repo_path), "rb") as fh:
                 write(dir_, "assets/" + files[repo_path], fh.read())
         return f'(resources.Get "{files[repo_path]}")'
 
@@ -617,9 +622,9 @@ def make_images(dir_):
 
 # ---------------------------------------------------------------------------------------------
 # The Rust overlay (REWRITE_PLAN.md §7.4): the site as generated above, with its layouts replaced
-# by the Tera layouts of rust/sites/<site>/layouts, the Tera versions of template-processed assets
-# (rust/sites/<site>/assets) copied over, and for docs the variant's Tera patch files
-# (rust/sites/docs/patches/<variant>/) layered on top. Content, i18n, data, config and all other
+# by the Tera layouts of sites/<site>/layouts, the Tera versions of template-processed assets
+# (sites/<site>/assets) copied over, and for docs the variant's Tera patch files
+# (sites/docs/patches/<variant>/) layered on top. Content, i18n, data, config and all other
 # assets stay as generated.
 
 def apply_overlay(dir_, overlay, variant=None):

@@ -2,7 +2,7 @@
 """Structural comparison of two builds of one site (docs/rust-port/REWRITE_PLAN.md §7.2): a
 reference (the Go build's committed golden data) against a candidate (the Rust build), level by
 level and per file, plus the structure oracle; then the ratchet
-(rust/testdata/baselines/<site>.json, tools/neohugo/changes/<task>.md). Python stdlib only.
+(testdata/baselines/<site>.json, tools/neohugo/changes/<task>.md). Python stdlib only.
 
 Usage:
   structdiff.py compare --site LABEL
@@ -15,7 +15,7 @@ Usage:
 M is a manifest (tools/neohugo/manifest.py; `.json` or `.json.gz`) or a publish directory,
 which is extracted with manifest.py (its project directory, for hugo_stats.json, static/ and the
 base URLs, is --ref-project/--cand-project). The minified pass gives L1 and L4, the unminified
-pass L1, L2 and L3; S is the structure dump (rust/testdata/golden/README.md). Every comparison
+pass L1, L2 and L3; S is the structure dump (testdata/golden/README.md). Every comparison
 reads both sides through the same extractor, with the §7.2 normalisations:
 
   L1  the multisets of output paths: `_hu_<hex>` -> `_hu_H`, fingerprints `.<16-64 hex>.` -> `.H.`,

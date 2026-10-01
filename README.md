@@ -30,7 +30,7 @@ what is the different between neohugo vs hugo?
 [Installation Guide](https://neohugo.github.io/getting-started/installing/) |
 [Contribution Guide](CONTRIBUTING.md)
 
-[![Rust](https://github.com/neohugo/neohugo/actions/workflows/rust.yml/badge.svg)](https://github.com/neohugo/neohugo/actions/workflows/rust.yml)
+[![CI](https://github.com/neohugo/neohugo/actions/workflows/ci.yml/badge.svg)](https://github.com/neohugo/neohugo/actions/workflows/ci.yml)
 
 [Website] | [Installation] | [Documentation] | [Support] | [Contributing] | <a rel="me" href="https://fosstodon.org/@gohugoio">Mastodon</a>
 ## Overview
@@ -55,7 +55,7 @@ Neohugo's fast asset pipelines include:
 - Sass processing &ndash; Transpile Sass to CSS, bundle, tree shake, minify, create source maps, perform SRI hashing, and integrate with PostCSS
 - Tailwind CSS processing &ndash; Compile Tailwind CSS utility classes into standard CSS, bundle, tree shake, optimize, minify, perform SRI hashing, and integrate with PostCSS
 
-Neohugo reads Hugo's project layout and configuration (a `neohugo.toml` wins over a `hugo.toml` next to it). Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates: [rust/docs/template-api.md](rust/docs/template-api.md) lists every function, filter and test with Hugo's name for each, and `neohugo-rs templates check` checks a site's templates against it. Themes come from the themes directory or `_vendor`; [Hugo Modules] are not downloaded. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
+Neohugo reads Hugo's project layout and configuration (a `neohugo.toml` wins over a `hugo.toml` next to it). Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates: [docs/rust-port/template-api.md](docs/rust-port/template-api.md) lists every function, filter and test with Hugo's name for each, and `neohugo-rs templates check` checks a site's templates against it. Themes come from the themes directory or `_vendor`; [Hugo Modules] are not downloaded. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
 
 See the [features] section of the documentation for a comprehensive summary of Hugo's capabilities.
 
@@ -70,7 +70,7 @@ See the [features] section of the documentation for a comprehensive summary of H
 
 ## Installation
 
-Download the archive for your platform from the [releases] page. Releases are tagged `v<version>`; v0.149 and later are built from `rust/`, v0.148.2 and earlier are the former Go implementation. Each archive, `neohugo-rs-<version>-<target>.tar.gz` (`.zip` for Windows), holds the `neohugo-rs` binary, `LICENSE`, `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`:
+Download the archive for your platform from the [releases] page. Releases are tagged `v<version>`; v0.149 and later are the Rust implementation, v0.148.2 and earlier are the former Go implementation. Each archive, `neohugo-rs-<version>-<target>.tar.gz` (`.zip` for Windows), holds the `neohugo-rs` binary, `LICENSE`, `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`:
 
 - `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu` (glibc 2.35 or later)
 - `x86_64-apple-darwin`, `aarch64-apple-darwin`
@@ -84,23 +84,22 @@ neohugo-rs -s <site>                # build into the publish directory
 neohugo-rs server -s <site>         # development server with live reload
 ```
 
-The commands and flags (Hugo's, in kebab-case with the camelCase spellings as aliases) are listed in [rust/crates/cli/README.md](rust/crates/cli/README.md).
+The commands and flags (Hugo's, in kebab-case with the camelCase spellings as aliases) are listed in [crates/cli/README.md](crates/cli/README.md).
 
 ## Build from source
 
 Prerequisites to build neohugo from source:
 
-- Rust 1.94 or later (`rust-version` in `rust/Cargo.toml`; CI builds with 1.94.1)
+- Rust 1.94 or later (`rust-version` in `Cargo.toml`; CI builds with 1.94.1)
 - A C compiler (libwebp and ring are compiled with the `cc` crate)
 
 Build neohugo:
 
 ```text
-cd rust
 cargo build --release --locked -p neohugo
 ```
 
-The binary is `rust/target/release/neohugo-rs`.
+The binary is `target/release/neohugo-rs`.
 
 ## External tools
 
@@ -147,8 +146,8 @@ If there is sufficient interest, [create a proposal]. Do not submit a pull reque
 
 For a complete guide to contributing to Hugo, see the [Contribution Guide](CONTRIBUTING.md).
 
-The code is the Cargo workspace in [rust/](rust/README.md): its README has the layout, the commands and the CI and release workflow, and [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md) the crate map, the parity gates, the deviations from Hugo and the open items.
+The code is the Cargo workspace at the repository root: [DEVELOPMENT.md](DEVELOPMENT.md) has the layout, the commands and the CI and release workflow, and [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md) the crate map, the parity gates, the deviations from Hugo and the open items.
 
 ## Dependencies
 
-Neohugo stands on the shoulders of great open source libraries. The Rust crates it uses are declared in [rust/Cargo.toml](rust/Cargo.toml) (`[workspace.dependencies]`, locked by `rust/Cargo.lock`); material taken from other projects is listed in [rust/PROVENANCE.md](rust/PROVENANCE.md), with licences cargo cannot see in [rust/THIRD_PARTY](rust/THIRD_PARTY/README.md). The `THIRD_PARTY_NOTICES.txt` of each release archive holds the licences of the crates linked into that binary.
+Neohugo stands on the shoulders of great open source libraries. The Rust crates it uses are declared in [Cargo.toml](Cargo.toml) (`[workspace.dependencies]`, locked by `Cargo.lock`); material taken from other projects is listed in [PROVENANCE.md](PROVENANCE.md), with licences cargo cannot see in [THIRD_PARTY](THIRD_PARTY/README.md). The `THIRD_PARTY_NOTICES.txt` of each release archive holds the licences of the crates linked into that binary.

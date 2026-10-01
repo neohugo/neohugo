@@ -7,7 +7,7 @@
 #   - postcss, postcss-cli: css.PostCSS of the seeksnack reconstruction;
 #   - @babel/cli, @babel/core: the real-tool Babel test of neohugo-resources (js.Babel);
 #   - esbuild: js.Build via neohugo-esbuild (tools/esbuild/install.sh copies its binary).
-# CI (.github/workflows/rust.yml) runs this script and points NEOHUGO_{POSTCSS,TAILWINDCSS,BABEL}_BIN
+# CI (.github/workflows/ci.yml) runs this script and points NEOHUGO_{POSTCSS,TAILWINDCSS,BABEL}_BIN
 # and NEOHUGO_NODE_MODULES into the result.
 #
 #   tools/neohugo/node.sh [install]   npm ci into the node_modules directory (network)

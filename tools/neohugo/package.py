@@ -11,12 +11,12 @@ Runs `<binary> version` (a smoke test; the version it prints names the archive) 
                                                           and `shasum -a 256 -c` read it
 
 The archive holds one directory, neohugo-rs-<version>-<target>/, with the binary, the
-repository's LICENSE, rust/PROVENANCE.md, rust/THIRD_PARTY/ and, when given, <notices> as
+repository's LICENSE, PROVENANCE.md, THIRD_PARTY/ and, when given, <notices> as
 THIRD_PARTY_NOTICES.txt (the licences of the linked crates, written by notices.py). Entries are
 sorted, owned by root and dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the
 same archive.
 
-.github/workflows/rust.yml runs it for every release target (rust/README.md, "CI and releases").
+.github/workflows/ci.yml runs it for every release target (DEVELOPMENT.md, "CI and releases").
 """
 import gzip
 import hashlib
@@ -49,11 +49,11 @@ def entries(binary, notices=None):
     files = [
         (binary.name, binary, 0o755),
         ("LICENSE", ROOT / "LICENSE", 0o644),
-        ("PROVENANCE.md", ROOT / "rust" / "PROVENANCE.md", 0o644),
+        ("PROVENANCE.md", ROOT / "PROVENANCE.md", 0o644),
     ]
     if notices is not None:
         files.append(("THIRD_PARTY_NOTICES.txt", notices, 0o644))
-    third_party = ROOT / "rust" / "THIRD_PARTY"
+    third_party = ROOT / "THIRD_PARTY"
     dirs = {"THIRD_PARTY"}
     for path in sorted(third_party.rglob("*")):
         rel = path.relative_to(third_party.parent).as_posix()

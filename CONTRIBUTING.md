@@ -53,10 +53,10 @@ If it is of some complexity, the contributor is expected to maintain and support
 
 Any non-trivial code change needs to update an open [issue](https://github.com/gohugoio/hugo/issues). A non-trivial code change without an issue reference with one of the labels `bug` or `enhancement` will not be merged.
 
-A new third-party crate goes into `[workspace.dependencies]` of `rust/Cargo.toml` (members
+A new third-party crate goes into `[workspace.dependencies]` of `Cargo.toml` (members
 never add their own `features =`) and must pass `tools/neohugo/licence-check.sh`, which allows
-only the licences of `rust/deny.toml`. Code or data taken from another project needs a row in
-`rust/PROVENANCE.md` first (and its licence in `rust/THIRD_PARTY/` when cargo cannot see it);
+only the licences of `deny.toml`. Code or data taken from another project needs a row in
+`PROVENANCE.md` first (and its licence in `THIRD_PARTY/` when cargo cannot see it);
 Zola 0.22 and later (EUPL-1.2) must not be opened or copied.
 
 **Bug fixes are, of course, always welcome.**
@@ -75,11 +75,11 @@ To make the contribution process as seamless as possible, we ask for the followi
 * When you’re ready to create a pull request, be sure to:
     * Sign the [CLA](https://cla-assistant.io/gohugoio/hugo).
     * Have test cases for the new code. If you have questions about how to do this, please ask in your pull request.
-    * Run `cargo fmt --all` in `rust/`.
-    * Add documentation if you are adding new features or changing functionality: the crate's `README.md`, and for template functions their entry in `rust/crates/funcs/src/spec.rs`, which generates `rust/docs/template-api.md`. Leave `docs/` outside `docs/rust-port/` unchanged: the tests record its files by hash.
-    * Record any change of a parity difference (a test site's output against Hugo's) in the ratchet: the baselines in `rust/testdata/baselines/` change only through an entry in `tools/neohugo/changes/<task>.md` (`tools/neohugo/changes/README.md`; `rust/README.md`).
+    * Run `cargo fmt --all`.
+    * Add documentation if you are adding new features or changing functionality: the crate's `README.md`, and for template functions their entry in `crates/funcs/src/spec.rs`, which generates `docs/rust-port/template-api.md`. Leave `docs/` outside `docs/rust-port/` unchanged: the tests record its files by hash.
+    * Record any change of a parity difference (a test site's output against Hugo's) in the ratchet: the baselines in `testdata/baselines/` change only through an entry in `tools/neohugo/changes/<task>.md` (`tools/neohugo/changes/README.md`; `DEVELOPMENT.md`).
     * Squash your commits into a single commit. `git rebase -i`. It’s okay to force update your pull request with `git push -f`.
-    * Ensure that the checks under [Building and Testing Your Changes](#building-and-testing-your-changes) succeed. The Rust workflow (`.github/workflows/rust.yml`) runs them on every pull request and fails the build if one fails.
+    * Ensure that the checks under [Building and Testing Your Changes](#building-and-testing-your-changes) succeed. The CI workflow (`.github/workflows/ci.yml`) runs them on every pull request and fails the build if one fails.
     * Follow the **Git Commit Message Guidelines** below.
 
 ### Git Commit Message Guidelines
@@ -90,8 +90,8 @@ the most important part being that each commit message should have a title/subje
 
 Most title/subjects should have a lower-cased prefix with a colon and one whitespace. The prefix can be:
 
-* The name of the crate where (most of) the changes are made, as its directory in `rust/crates/` names it (e.g. `images: Add the dither filter`)
-* For a change outside `rust/crates`, the area: `CI` (`.github/workflows`), `harness` (`tools/neohugo`), `sites.py`, `provenance`, `docs`.
+* The name of the crate where (most of) the changes are made, as its directory in `crates/` names it (e.g. `images: Add the dither filter`)
+* For a change outside `crates`, the area: `CI` (`.github/workflows`), `harness` (`tools/neohugo`), `sites.py`, `provenance`, `docs`.
 * If this commit touches several crates with a common functional topic, use that as a prefix, e.g. `errors: Resolve correct line numbers`)
 * If this commit touches many crates without a common functional topic, prefix with `all:` (e.g. `all: Apply the clippy lints of Rust 1.95`)
 * If this is a documentation update, prefix with `docs:`.
@@ -116,7 +116,7 @@ Fixes #1949
 
 ###  Fetching the Sources From GitHub
 
-Neohugo is the Cargo workspace in `rust/`. Building it needs Rust 1.94 or later (`rust-version` in `rust/Cargo.toml`; CI uses 1.94.1) and a C compiler. Clone the repository:
+Neohugo is the Cargo workspace at the repository root. Building it needs Rust 1.94 or later (`rust-version` in `Cargo.toml`; CI uses 1.94.1) and a C compiler. Clone the repository:
 
 ```bash
 mkdir $HOME/src
@@ -157,28 +157,27 @@ Now, to make a change to neohugo's source:
 
 ### Building and Testing Your Changes
 
-`rust/README.md` describes the workspace (layout, commands, CI and releases) and
+`DEVELOPMENT.md` describes the workspace (layout, commands, CI and releases) and
 `docs/rust-port/HANDOFF.md` the crates, the parity gates and the deviations from Hugo.
 
-To build neohugo (`rust/target/release/neohugo-rs`):
+To build neohugo (`target/release/neohugo-rs`):
 
 ```bash
-cd rust
 cargo build --release --locked -p neohugo
 ```
 
-To run the tests of the crate you are working on (package `neohugo-<crate>`; `rust/crates/cli` is package `neohugo`):
+To run the tests of the crate you are working on (package `neohugo-<crate>`; `crates/cli` is package `neohugo`):
 
 ```bash
 cargo test -p neohugo-<crate>
 ```
 
-The checks of the Rust workflow, from the repository root (the last one checks the docs patches of `tools/rust-port/i01/patches.json` against `rust/sites/docs/patches/`; CI does not run it):
+The checks of the CI workflow, from the repository root (the last one checks the docs patches of `tools/rust-port/i01/patches.json` against `sites/docs/patches/`; CI does not run it):
 
 ```bash
-(cd rust && cargo fmt --all --check)
-(cd rust && cargo clippy --workspace --all-targets --locked -- -D warnings)
-(cd rust && cargo test --workspace --locked --no-fail-fast -- --show-output)
+cargo fmt --all --check
+cargo clippy --workspace --all-targets --locked -- -D warnings
+cargo test --workspace --locked --no-fail-fast -- --show-output
 tools/neohugo/licence-check.sh
 python3 tools/neohugo/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
@@ -193,4 +192,4 @@ export NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULE
   NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss NEOHUGO_BABEL_BIN=$N/.bin/babel
 ```
 
-The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`rust/testdata/oracle/`), the golden data of the test sites (`rust/testdata/golden/`), `rust/crates/build/tests/it/testsite-go.txtar` and `rust/crates/highlight/tests/data/`. It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. To regenerate it, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `rust/testdata/golden/README.md`, `rust/crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.
+The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar` and `crates/highlight/tests/data/`. It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. To regenerate it, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.
