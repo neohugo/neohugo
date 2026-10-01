@@ -10,6 +10,7 @@ public/
 # Cargo build output (docs/rust-port/REWRITE_PLAN.md §6.1)
 /target/
 /target-*/
+# The Go binaries of tools/neohugo/oracle.sh (removed after 44529028; testdata/golden/README.md)
 /tools/neohugo/bin/
 /tools/neohugo/node_modules/
 # Test data is stored verbatim, whatever the rules above match.

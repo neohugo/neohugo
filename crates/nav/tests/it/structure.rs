@@ -72,8 +72,13 @@ fn diff(got: &[Row], want: &[Row]) -> Vec<String> {
 #[test]
 fn structure_oracle_aliases() {
     let golden = neohugo_testkit::fixture::repo_dir().join("testdata/golden");
+    // The site labels: the directories (testdata/golden also holds its README.md).
     let mut sites: Vec<PathBuf> = fs::read_dir(&golden)
-        .map(|rd| rd.map(|e| e.expect("dir entry").path()).collect())
+        .map(|rd| {
+            rd.map(|e| e.expect("dir entry").path())
+                .filter(|p| p.is_dir())
+                .collect()
+        })
         .unwrap_or_default();
     sites.sort();
     let mut found = 0;

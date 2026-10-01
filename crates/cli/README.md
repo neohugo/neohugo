@@ -20,7 +20,13 @@ and `NEOHUGO_VENDOR_INFO` (set by CI's release builds).
 
 ## Flags
 
-Kebab-case, with Hugo's camelCase spelling as an alias.
+Kebab-case, with Hugo's camelCase spelling as an alias. As in the Go build (cobra), flags may
+come before the command: `args::command_first` moves the command to the front before clap
+parses, so `neohugo -s site server` is `neohugo server -s site` (a flag keeps its value:
+`neohugo -e server` builds with the environment `server`). The Go build's persistent flags,
+`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q` and `-M`, are
+clap `global` flags: every command accepts them, and one that does not use a flag ignores it
+(`version -s x`, `config -q -d out`), as Go did.
 
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
@@ -82,7 +88,9 @@ that cannot be opened or a configuration that does not load exits with 1.
 environment; `-e` wins over `HUGO_ENV*`).
 
 **Exit codes** (`Exit`): 0 success; 1 build errors, check errors (or warnings with
-`--deny-warnings`), or a project that does not load; 2 usage errors (clap).
+`--deny-warnings`), or a project that does not load; 2 usage errors (clap, printed as
+`error: …`). The Go build exited with 1 on every error, usage errors included, and printed
+`Error: …`.
 
 **Reports** (stderr for `build`, stdout for `templates check`):
 `ERROR [id] <file>:<line>:<col>: <message>` (then `WARN `, `INFO `), notes (Tera's snippet)
@@ -153,6 +161,8 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `build::flags_and_environment` | every configuration flag in both spellings, `HUGO_TITLE`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_BASEURL`, `-M` writes nothing |
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
 | `cli::version_help_and_usage_errors` | `version`, `--help`, usage errors exit 2 |
+| `cli::command_first_moves_the_command_before_the_flags` | flags before the command (cobra's order): the command moved to the front, values kept, everything else left for clap |
+| `cli::persistent_flags_anywhere` | the Go build's persistent flags before the command and on `config`, `templates check` and `version`; a flag the command does not take is still a usage error |
 | `server::server_starts_and_serves` | `serve -p 0` with camelCase flags: the start report (environment `development`, memory, watching, built), the page with the LiveReload script and `--noHTTPCache` headers, nothing on disk |
 | `server::server_renders_to_disk_without_live_reload` | `--render-to-disk --disable-live-reload --watch=false -e staging`: `public/` written and served, no script, no watching |
 | `server::server_start_errors` | a first build that fails exits 1 with the build's report; `-d` without `--render-to-disk`, `--render-to-disk -M`, bad `--poll`/`--port`/`--watch` exit 2; every server flag in `--help` |

@@ -1,5 +1,8 @@
-//! The command line itself: `version`, `--help`, usage errors, `config`.
+//! The command line itself: `version`, `--help`, usage errors, flags before the command, `config`.
 
+use std::ffi::OsString;
+
+use ::neohugo::args::command_first;
 use ::neohugo::version::BuildInfo;
 
 use crate::{neohugo, site_from, stderr, stdout};
@@ -115,4 +118,118 @@ fn config_prints_the_resolved_configuration() {
         "{}",
         stdout(&o)
     );
+}
+
+/// Flags before the command, as the Go build (cobra) reads them: `command_first` moves the
+/// command to the front, a flag keeps its value.
+#[test]
+fn command_first_moves_the_command_before_the_flags() {
+    let first = |args: &[&str]| -> Vec<String> {
+        command_first(args.iter().map(OsString::from).collect())
+            .into_iter()
+            .map(|a| a.into_string().expect("UTF-8"))
+            .collect()
+    };
+    for (given, want) in [
+        (
+            &["neohugo", "-s", "site", "server", "-D"][..],
+            &["neohugo", "server", "-s", "site", "-D"][..],
+        ),
+        (
+            &["neohugo", "--environment=production", "--minify", "build"],
+            &["neohugo", "build", "--environment=production", "--minify"],
+        ),
+        (
+            &[
+                "neohugo",
+                "-e",
+                "production",
+                "templates",
+                "-s",
+                "x",
+                "check",
+            ],
+            &[
+                "neohugo",
+                "templates",
+                "check",
+                "-e",
+                "production",
+                "-s",
+                "x",
+            ],
+        ),
+        // Short clusters: a short that takes a value takes the rest or the next argument.
+        (
+            &["neohugo", "-DEs", "server", "config"],
+            &["neohugo", "config", "-DEs", "server"],
+        ),
+        (
+            &["neohugo", "-sserver", "config"],
+            &["neohugo", "config", "-sserver"],
+        ),
+        // A flag of a command (`server`'s `--port`) keeps its value too.
+        (
+            &["neohugo", "--port", "1314", "serve"],
+            &["neohugo", "serve", "--port", "1314"],
+        ),
+    ] {
+        assert_eq!(first(given), want, "{given:?}");
+    }
+    // Unchanged: a value that names a command, `=`-only values, no command, `--`, an unknown
+    // command, a command after a command without subcommands.
+    for args in [
+        &["neohugo", "-e", "server"][..],
+        &["neohugo", "server", "--append-port", "false"],
+        &["neohugo", "-s", "site", "-D"],
+        &["neohugo", "--", "server"],
+        &["neohugo", "-s", "site", "nope"],
+        &["neohugo", "build", "--minify", "server"],
+    ] {
+        assert_eq!(first(args), args, "{args:?}");
+    }
+}
+
+/// The binary takes flags before the command, and every command takes the Go build's persistent
+/// flags (`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`).
+#[test]
+fn persistent_flags_anywhere() {
+    let s = site_from("-- hugo.toml --\ntitle = \"T\"\n");
+    let o = neohugo(s.path(), &["-s", ".", "-e", "staging", "config"], &[]);
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let v: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("json");
+    assert_eq!(v["environment"], "staging");
+    for args in [
+        &[
+            "config",
+            "-s",
+            ".",
+            "--quiet",
+            "-d",
+            "out",
+            "-M",
+            "--clock",
+            "2026-01-01T00:00:00Z",
+        ][..],
+        &[
+            "--config",
+            "hugo.toml",
+            "--config-dir",
+            "config",
+            "templates",
+            "check",
+            "--coverage",
+            "none",
+        ],
+        &["-q", "version", "-s", ".", "--themes-dir", "themes"],
+    ] {
+        let o = neohugo(s.path(), args, &[]);
+        assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
+    }
+    // A flag the command does not take is still an error, before the command or after it.
+    for args in [&["--minify", "version"][..], &["version", "--minify"]] {
+        let o = neohugo(s.path(), args, &[]);
+        assert_eq!(o.status.code(), Some(2), "{args:?}");
+        assert!(stderr(&o).contains("--minify"), "{args:?}: {}", stderr(&o));
+    }
 }

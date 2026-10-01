@@ -51,7 +51,11 @@ impl fmt::Display for ServiceError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Spawn { binary, source } => {
-                write!(f, "cannot run esbuild {}: {source}", binary.display())
+                write!(f, "cannot run esbuild {}: {source}", binary.display())?;
+                if source.kind() == io::ErrorKind::NotFound {
+                    f.write_str(" (install esbuild on PATH or set NEOHUGO_ESBUILD_BINARY)")?;
+                }
+                Ok(())
             }
             Self::Version { binary, detail } => write!(
                 f,

@@ -314,5 +314,5 @@ fn sizes_match_the_process_oracle() {
         r.compared,
         r.failures.join("\n")
     );
-    assert!(r.compared >= 10_000, "only {} cases compared", r.compared);
+    assert!(r.compared >= 13_000, "only {} cases compared", r.compared);
 }

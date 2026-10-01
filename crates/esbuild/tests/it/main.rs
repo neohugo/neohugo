@@ -4,6 +4,7 @@
 //! `tools/esbuild/bin/esbuild` (installed by `tools/esbuild/install.sh`); without a binary they
 //! print `SKIPPED` and pass.
 
+mod binary;
 mod jsbuild;
 mod options;
 mod protocol;

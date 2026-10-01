@@ -31,10 +31,23 @@ pub fn expected_diffs(section: &str) -> BTreeMap<String, String> {
 
 /// The file of an oracle source id (`file:<path as the oracle saw it>`), when available. The
 /// oracle's sources from Go's own image test data (`crates/go-*/tests/fixtures/gotestdata/`) are
-/// not in the repository.
+/// in `testdata/upstream/goroot/src/image/` (Go 1.24.7's files); five that only a newer Go has
+/// are not.
 pub fn source_path(id: &str) -> Option<PathBuf> {
     let rel = id.strip_prefix("file:")?;
     let map = [
+        (
+            "crates/go-image/tests/fixtures/gotestdata/",
+            "testdata/upstream/goroot/src/image/testdata/",
+        ),
+        (
+            "crates/go-png/tests/fixtures/gotestdata/image/",
+            "testdata/upstream/goroot/src/image/testdata/",
+        ),
+        (
+            "crates/go-png/tests/fixtures/gotestdata/",
+            "testdata/upstream/goroot/src/image/png/testdata/",
+        ),
         (
             "crates/go-image/tests/fixtures/site/",
             "testdata/site-assets/site/",

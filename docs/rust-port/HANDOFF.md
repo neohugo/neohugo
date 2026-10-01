@@ -183,18 +183,18 @@ The gate tests need python3, bash, node, the node tools and esbuild (else `SKIPP
 
 ## 4. CI/CD
 
-`.github/workflows/ci.yml` is the repository's only build workflow (`stale.yml` manages
-issues). It runs on pushes to `main` and `rust-port`, on every pull request (no path filters),
-on `v[0-9]*` tags and by hand. Jobs: **Lint** (fmt, clippy `-D warnings`, licence check,
-structdiff self-test, tag = `v<workspace version>`), **Test** (the whole workspace with every
-tool installed: `tools/neohugo/node.sh`, then `tools/esbuild/install.sh`; a test that prints
-`SKIPPED` fails the job), **Build** (release for `x86_64`/`aarch64` Linux, `x86_64`/`aarch64`
-macOS, `x86_64` Windows, with the commit, date and vendor of `neohugo version`; `notices.py`
-writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive), **Release** (tags only: the GitHub
-release `v<version>` with the five archives and `neohugo_<version>_checksums.txt`; a version
-with a `-` makes a pre-release, any other is latest only if no release has a higher version).
-Cutting a release: set `[workspace.package] version`, merge, tag `v<version>`, push the tag
-(DEVELOPMENT.md "CI and releases").
+`.github/workflows/ci.yml` is the repository's only build workflow (`stale.yml` manages issues).
+It runs on pushes to `main` and `rust-port`, on every pull request (no path filters), on
+`v[0-9]*` tags and by hand. Jobs: **Lint** (fmt, clippy `-D warnings`, licence check, structdiff
+self-test, tag = `v<workspace version>`), **Test** (Linux only, §8: the whole workspace with
+every tool installed: `tools/neohugo/node.sh`, then `tools/esbuild/install.sh`; a test that
+prints `SKIPPED` fails the job), **Build** (release for `x86_64`/`aarch64` Linux,
+`x86_64`/`aarch64` macOS, `x86_64` Windows, with the commit, date and vendor of `neohugo
+version`; `notices.py` writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive), **Release**
+(tags only: the GitHub release `v<version>` with the five archives and
+`neohugo_<version>_checksums.txt`; a version with a `-` makes a pre-release, any other is latest
+only if no release has a higher version). Cutting a release: set `[workspace.package] version`,
+merge, tag `v<version>`, push the tag (DEVELOPMENT.md "CI and releases").
 
 ## 5. Performance (A-P, T70)
 
@@ -339,6 +339,11 @@ tests read them, with counts):
 - `THIRD_PARTY/emoji/LICENSE-GEMOJI` to be compared with gemoji's `LICENSE` (written
   offline).
 - The real-site tests that read `NEOHUGO_SITES` are ignored by default.
+- **Windows tests:** the Test job runs on Linux only, while the Go CI also ran its tests on
+  `windows-latest` (`mage -v test`); Windows and macOS get only the release build and its smoke
+  test. A Windows leg needs the Unix-only test code gated first: `use std::os::unix` in
+  `crates/publish/tests/it/staticcopy.rs` and in the fake tools of
+  `crates/resources/tests/it/pipes/` (§9).
 - The follow-ups of the Go removal outside the repository (§9): branch protection, unused
   secrets, the channels frozen at the last Go build.
 
@@ -355,25 +360,32 @@ that comments and READMEs cite.
   `merge-release.sh`), Docker, snap and golangci-lint configuration, `check_gofmt.sh`,
   `watchtestscripts.sh`, `testscripts/`, `scripts/`, `tools/go-oracle/`,
   `tools/neohugo/oracle.sh`, `tools/esbuild/build.sh`, the highlight oracle
-  (`crates/highlight/tests/data/oracle/`), and the Go workflows `ci.yml` (Go's; the current
-  `ci.yml` is the renamed `rust.yml`, below), `release.yml`, `benchmark.yml`,
-  `golangci-lint.yml`, `image.yml`. `pull-docs.sh` (a `git subtree pull` of `docs/` from
-  neohugo/neohugoDocs) is gone too: `docs/` is a frozen test fixture now and is no longer pulled.
-  `docs/go.mod`, `docs/go.sum` and `docs/hugo.work` stay: they belong to the docs site, which
-  stays byte-identical (only `docs/rust-port/` changes).
+  (`rust/crates/highlight/tests/data/oracle/` at `44529028`), and the Go workflows `ci.yml`
+  (Go's; the current `ci.yml` is the renamed `rust.yml`, below; Go's ran its tests on
+  `ubuntu-latest` and `windows-latest`, the current one tests on Linux only, §8),
+  `release.yml`, `benchmark.yml`, `golangci-lint.yml`, `image.yml`. `pull-docs.sh` (a `git
+  subtree pull` of `docs/` from neohugo/neohugoDocs) is gone too: `docs/` is a frozen test
+  fixture now and is no longer pulled. `docs/go.mod`, `docs/go.sum` and `docs/hugo.work` stay:
+  they belong to the docs site, which stays byte-identical (only `docs/rust-port/` changes).
 - **Test data moved:** Hugo's test data the tests read is in `testdata/upstream/` at its
   Go-tree path (`hugolib/testsite`, `resources/testdata`, `resources/images/testdata`,
   `tpl/images/testdata`, `media/testdata/fake.png`; 90 files). Fixture ids keep the old paths;
   `neohugo_testkit::fixture::repo_file` resolves them (and `tools/rust-port/i01/sites.py` does
   the same for the testsite). The image oracles read five more Go-tree images and
   `snap/local/logo.png` from byte-identical copies (`crates/images/tests/it/common.rs`). The
-  process oracle compares 11,046 cases; the `NEOHUGO_GOROOT` hook for Go's own image test data
-  is gone.
+  `NEOHUGO_GOROOT` hook for Go's own image test data is gone: the 80 files of it the image
+  oracles read (Go 1.24.7's) are in `testdata/upstream/goroot/src/image/`, so the process
+  oracle compares 13,089 cases again (13,087 equal, two accepted corrupt-PNG differences), as
+  CI did at `44529028` with Go installed, and the EXIF oracle 2,415; five sources only a newer
+  Go has are not included.
 - **esbuild:** `tools/neohugo/node/package.json` pins `esbuild` 0.25.6 (the version the Go build
   linked); `tools/neohugo/node.sh` installs it with the other node tools, and
   `tools/esbuild/install.sh` copies its platform binary to `tools/esbuild/bin/esbuild` and checks
   `--version` against the pin. CI runs both, and a failure fails the Test job. A checkout made
   before needs `tools/neohugo/node.sh && tools/esbuild/install.sh` once (the lock file changed).
+  The binary neohugo runs is `NEOHUGO_ESBUILD_BINARY`, else `esbuild` next to the executable, on
+  `PATH`, or at `tools/esbuild/bin/esbuild` (`neohugo_esbuild::binary_path`); the release
+  archives do not ship one (the Go build linked esbuild in).
 - **Frozen references:** what the Go implementation generated stays as committed: the oracle
   fixtures (`testdata/oracle/`), the golden data (`testdata/golden/`),
   `crates/build/tests/it/testsite-go.txtar`, the highlight fixtures
@@ -412,10 +424,13 @@ that comments and READMEs cite.
   rendering to disk by default: the Go server wrote the publish directory and served it
   (`-M`/`--renderToMemory`: memory), the Rust one renders into memory unless `--render-to-disk`
   (a neohugo flag, not the Go build's) is given, and `-d` needs that flag; the commit and date
-  of a local build (Go read them from git, a cargo build gets them only from CI's variables).
-  New: a `--version` flag, printing the `version` line. The Docker images and the docs deploy
-  are below; `snap/snapcraft.yaml` and `hugoreleaser.yaml` were in the tree at `44529028`, but
-  no workflow published them.
+  of a local build (Go read them from git, a cargo build gets them only from CI's variables);
+  the exit code 1 of usage errors (they exit with 2) and Go's `Error: …` prefix (clap prints
+  `error: …`, a failed build `ERROR …`). As in Go, flags may come before the command and every
+  command takes the persistent flags (`-s`, `-d`, `-e`, `--config`, `--configDir`, `--themesDir`,
+  `--clock`, `--quiet`, `-M`; `crates/cli/README.md`). New: a `--version` flag, printing the
+  `version` line. The Docker images and the docs deploy are below; `snap/snapcraft.yaml` and
+  `hugoreleaser.yaml` were in the tree at `44529028`, but no workflow published them.
 
 Follow-ups outside the repository:
 

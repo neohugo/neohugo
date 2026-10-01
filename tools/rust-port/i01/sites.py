@@ -140,7 +140,7 @@ DOCS_REMOVE = [  # (file, variants, why)
     ("content/en/quick-reference/syntax-highlighting-styles.md", BOTH,
      "the Chroma style gallery (T72)"),
     # The embedded x shortcode calls GetRemote (publish.x.com oEmbed): the Go build fetches it
-    # when the machine has network access, the Rust port never does.
+    # when the machine has network access, neohugo never does.
     ("content/en/shortcodes/x.md", BOTH, "the embedded x shortcode calls GetRemote (oEmbed)"),
 ]
 
@@ -711,7 +711,8 @@ def main():
     elif name.startswith("t24-"):
         site = fixture_site(name[4:])
         if name == "t24-docs":
-            # No Chroma in the Rust port: code fences are rendered as plain <pre><code>.
+            # t24-docs keeps code fences as plain <pre><code> (codeFences = false), as its T24
+            # build-oracle comparison was set up before neohugo had a highlighter.
             old = "  [markup.highlight]\n"
             if site["toml"].count(old) != 1:
                 sys.exit("t24-docs: highlight anchor not found")

@@ -33,13 +33,14 @@ name files of that commit: `git show 44529028:<path>`.
 then it was `rust/` (at `44529028` as well: `git show 44529028:rust/<path>`). Ids recorded
 before the move keep the prefix (the sources of `testdata/golden/images/manifest.json`, e.g.
 `rust/testdata/site-assets/…`); `neohugo_testkit::fixture::repo_file` and `sites.py`'s
-`repo_file` resolve them at the root.
+`repo_file` resolve them at the root. The move commit (`7e58cfce`) also rewrote nearly every
+line of `PROVENANCE.md`, so git does not see that rename: its history before the move is
+`git log -- rust/PROVENANCE.md`.
 
 ## Layout
 
 ```
 Cargo.toml  Cargo.lock      all third-party deps and features live in [workspace.dependencies]
-.cargo/config.toml          target-dir, jobs = 4
 clippy.toml deny.toml       thread_local ban; licence policy
 PROVENANCE.md THIRD_PARTY/  every non-original file; licences cargo cannot see
 crates/<name>/              the product crates of §2.1 (T00 wrote stubs with the real
@@ -49,7 +50,8 @@ testdata/golden/<label>/    the Go build's manifests, structure dumps and images
 testdata/baselines/         the ratchet's baselines (tools/neohugo/changes/README.md)
 testdata/corpus/            corpora: seeksnack bodies and front matter, dates, minifier, Thai strings
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
-testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids)
+testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids);
+                            goroot/: Go's image test data the image oracles read
 testdata/COUNTS.json        per fixture: old path, record and value counts at conversion
 sites/<site>/               the Tera layouts (and assets) of the test sites; sites/docs/patches/
 tools/neohugo/              the harness (compare.sh, structdiff.py, manifest.py, selftest.py,
@@ -74,7 +76,8 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
 - **One git worktree per agent**, based on `rust-port`. Only green commits are merged; rebase
   before merging. At most one agent edits a given crate at a time (crate lock); a bug found in
   another crate becomes a short fix task that takes that crate's lock.
-- **Environment:**
+- **Environment** (the agents' disk budget, §2.2; the repository has no `.cargo/config.toml`, so
+  a plain `cargo build` builds into `target/` with Cargo's defaults):
   ```sh
   export CARGO_TARGET_DIR=/home/user/neohugo/target   # shared by all worktrees
   export CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
@@ -134,6 +137,13 @@ same ref cancels the older one, except on tags.
 | Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>` with the version variables (below); `neohugo version`; a tiny site built, whose sitemap, RSS and `robots.txt` (embedded templates) must have no CR; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-<triple>` |
 | Release | ubuntu-24.04 | tags only, after the other three: the GitHub release (below) |
 
+The tests run on Linux only; the macOS and Windows binaries get the release build and its smoke
+test (the version line and one tiny site). The Go CI also ran its tests on Windows (`mage -v
+test` on `windows-latest`; `.github/workflows/ci.yml` at `44529028`). A Windows leg of the Test
+job is an open item (HANDOFF §8): the test crates do not build there yet, since
+`crates/publish/tests/it/staticcopy.rs` and the fake tools of
+`crates/resources/tests/it/pipes/` use `std::os::unix` without a `cfg(unix)` gate.
+
 Build targets and runners: `x86_64-unknown-linux-gnu` (ubuntu-22.04), `aarch64-unknown-linux-gnu`
 (ubuntu-22.04-arm), `x86_64-apple-darwin` (macos-15-intel), `aarch64-apple-darwin` (macos-15),
 `x86_64-pc-windows-msvc` (windows-2025). The binary's native C code, libwebp (`webp` →
@@ -185,13 +195,13 @@ all of them, and its Test job fails when a test prints `SKIPPED`:
 | `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
 | `neohugo`: `gate_a_r`, `gate_a_d2` (`tools/neohugo/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`NEOHUGO_NODE_MODULES`, else `tools/neohugo/node.sh path`) and esbuild (`NEOHUGO_ESBUILD_BINARY`, else the main checkout's `tools/esbuild/bin/esbuild`) | the runner's `python3` and `bash`; the three rows above |
 
-`neohugo-images`' `sizes_match_the_process_oracle` compares 11,046 cases (at least 10,000 must
-compare); the cases of 85 more sources need Go's own image test data, which is not in the
-repository (`crates/images/README.md`). Python is needed only by the gate tests and the tools
-(`licence-check.sh`, `selftest.py`, `notices.py`, `package.py` (Python 3.11 or later), and
-`tools/rust-port/i01/sites.py` for the ignored real-site tests that read `NEOHUGO_SITES`). Not
-needed by `cargo test`: dart-sass (grass compiles Sass in process) and the network (`get_remote`
-tests read caches with the network off).
+`neohugo-images`' `sizes_match_the_process_oracle` compares 13,089 cases (at least 13,000 must
+compare), 2,043 of them from Go's own image test data in `testdata/upstream/goroot/`; five
+sources that only a newer Go has are not in the repository (`crates/images/README.md`). Python
+is needed only by the gate tests and the tools (`licence-check.sh`, `selftest.py`, `notices.py`,
+`package.py` (Python 3.11 or later), and `tools/rust-port/i01/sites.py` for the ignored
+real-site tests that read `NEOHUGO_SITES`). Not needed by `cargo test`: dart-sass (grass
+compiles Sass in process) and the network (`get_remote` tests read caches with the network off).
 
 **Reproduce CI locally** (from the repository root, offline; `touch` the sources first, see the
 shared-target note above):
@@ -226,7 +236,9 @@ python3 tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/relea
    release of an older line does not take latest from a newer one.
 
 Re-running the workflow (or its failed jobs) for a tag replaces the assets of the release an
-earlier run created. The tags `v0.148.2` and older are the Go implementation's releases.
+earlier run created, and publishes it if that run stopped before (`gh release create` makes a
+draft, uploads the assets, then publishes it). The tags `v0.148.2` and older are the Go
+implementation's releases.
 
 **Caches.** `Swatinem/rust-cache` per job and target; only pushes to `main` and `rust-port` save
 them, and pull requests restore their base branch's. A cold test job builds about 3.2 GB of

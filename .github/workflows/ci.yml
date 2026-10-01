@@ -305,10 +305,12 @@ jobs:
           rm "${sums[@]}"
           cat "neohugo_${version}_checksums.txt"
 
-      # Idempotent: a re-run replaces the assets of the release an earlier run created. A version
-      # with a pre-release suffix (e.g. 0.150.0-rc.1) makes a pre-release, never latest. Any other
-      # becomes latest only if no published release has a higher version, so a patch release of an
-      # older line does not take latest from a newer one (the API would make it latest).
+      # Idempotent: a re-run replaces the assets of the release an earlier run created, and
+      # publishes it if that run stopped before (gh creates the release as a draft, uploads the
+      # assets, then publishes it). A version with a pre-release suffix (e.g. 0.150.0-rc.1) makes
+      # a pre-release, never latest. Any other becomes latest only if no published release has a
+      # higher version, so a patch release of an older line does not take latest from a newer one
+      # (the API would make it latest).
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
@@ -316,10 +318,6 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           version=${TAG#v}
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" dist/* --clobber
-            exit 0
-          fi
           case $version in
             *-*) latest=(--prerelease --latest=false) ;;
             *)
@@ -332,11 +330,18 @@ jobs:
               if [ "$newest" = "$version" ]; then latest=(--latest); fi
               ;;
           esac
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" dist/* --clobber
+            if [ "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true ]; then
+              gh release edit "$TAG" --draft=false "${latest[@]}"
+            fi
+            exit 0
+          fi
           {
             echo "neohugo $version, built from $GITHUB_SHA."
             echo
             echo "Each archive holds the \`neohugo\` binary, \`README.md\`, \`LICENSE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
-            echo "Check a download with \`sha256sum -c neohugo_${version}_checksums.txt --ignore-missing\`."
+            echo "Check a download with \`sha256sum -c neohugo_${version}_checksums.txt --ignore-missing\` (on macOS: \`shasum -a 256 -c neohugo_${version}_checksums.txt --ignore-missing\`)."
           } >"$RUNNER_TEMP/notes.md"
           gh release create "$TAG" dist/* --verify-tag "${latest[@]}" \
             --title "neohugo $version" --notes-file "$RUNNER_TEMP/notes.md"

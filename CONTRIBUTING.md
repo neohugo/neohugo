@@ -23,7 +23,9 @@ The Hugo community and maintainers are [very active](https://github.com/gohugoio
 
 ## Asking Support Questions
 
-We have an active [discussion forum](https://discourse.gohugo.io) where users and developers can ask questions.
+Ask questions about neohugo in the [discussions](https://github.com/neohugo/neohugo/discussions)
+of this repository; questions about Hugo itself belong in Hugo's
+[discussion forum](https://discourse.gohugo.io).
 Please don't use the GitHub issue tracker to ask questions.
 
 ## Reporting Issues

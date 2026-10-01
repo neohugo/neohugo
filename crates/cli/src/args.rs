@@ -1,10 +1,18 @@
 //! The command line (clap). Flags are kebab-case; Hugo's camelCase spellings are aliases
 //! (`--clean-destination-dir` / `--cleanDestinationDir`, `--base-url` / `--baseURL`).
+//!
+//! As in the Go build (cobra), flags may come before the command ([`command_first`]), and the Go
+//! build's persistent flags (`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`,
+//! `--clock`, `-q`, `-M`) are accepted by every command (`global`); the commands that do not use
+//! one ignore it.
 
+use std::ffi::OsString;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
+use clap::{
+    Arg, ArgAction, Args, Command as ClapCommand, CommandFactory, Parser, Subcommand, ValueEnum,
+};
 
 /// neohugo: builds a Hugo site with Tera layouts.
 #[derive(Debug, Parser)]
@@ -52,18 +60,18 @@ pub enum TemplatesCommand {
 #[derive(Clone, Debug, Default, Args)]
 pub struct ProjectArgs {
     /// The project directory (default: the working directory).
-    #[arg(short = 's', long, value_name = "DIR")]
+    #[arg(short = 's', long, value_name = "DIR", global = true)]
     pub source: Option<PathBuf>,
     /// Configuration files, relative to the source (comma-separated; the first wins). Default:
     /// the first of neohugo.{toml,yaml,yml,json}, hugo.*, config.*.
-    #[arg(long, value_name = "FILES", value_delimiter = ',')]
+    #[arg(long, value_name = "FILES", value_delimiter = ',', global = true)]
     pub config: Vec<PathBuf>,
     /// The configuration directory (default `config`).
-    #[arg(long, alias = "configDir", value_name = "DIR")]
+    #[arg(long, alias = "configDir", value_name = "DIR", global = true)]
     pub config_dir: Option<PathBuf>,
     /// The build environment (default `production`, `development` for `server`;
     /// `HUGO_ENVIRONMENT`, `HUGO_ENV`).
-    #[arg(short = 'e', long, value_name = "ENV")]
+    #[arg(short = 'e', long, value_name = "ENV", global = true)]
     pub environment: Option<String>,
     /// The site's base URL.
     #[arg(short = 'b', long, aliases = ["baseURL", "baseUrl"], value_name = "URL")]
@@ -72,7 +80,7 @@ pub struct ProjectArgs {
     #[arg(short = 't', long, value_delimiter = ',', value_name = "THEMES")]
     pub theme: Vec<String>,
     /// The themes directory.
-    #[arg(long, alias = "themesDir", value_name = "DIR")]
+    #[arg(long, alias = "themesDir", value_name = "DIR", global = true)]
     pub themes_dir: Option<PathBuf>,
     /// The cache directory.
     #[arg(long, alias = "cacheDir", value_name = "DIR")]
@@ -83,7 +91,7 @@ pub struct ProjectArgs {
     #[command(flatten)]
     pub include: IncludeArgs,
     /// The build's "now" (RFC 3339, e.g. `2026-09-27T12:00:00Z`), for dates and `now()`.
-    #[arg(long, value_name = "TIME", value_parser = parse_clock)]
+    #[arg(long, value_name = "TIME", value_parser = parse_clock, global = true)]
     pub clock: Option<jiff::Timestamp>,
 }
 
@@ -116,7 +124,7 @@ pub struct BuildArgs {
     #[arg(long, value_name = "N")]
     pub threads: Option<usize>,
     /// Prints only warnings and errors.
-    #[arg(short = 'q', long)]
+    #[arg(short = 'q', long, global = true)]
     pub quiet: bool,
 }
 
@@ -124,13 +132,13 @@ pub struct BuildArgs {
 #[derive(Clone, Debug, Default, Args)]
 pub struct OutputArgs {
     /// The publish directory, relative to the source.
-    #[arg(short = 'd', long, value_name = "DIR")]
+    #[arg(short = 'd', long, value_name = "DIR", global = true)]
     pub destination: Option<PathBuf>,
     /// Removes files from the publish directory that the static directories do not have.
     #[arg(long, alias = "cleanDestinationDir")]
     pub clean_destination_dir: bool,
     /// Renders into memory only (a dry run: nothing is written; what `server` does by default).
-    #[arg(short = 'M', long, alias = "renderToMemory")]
+    #[arg(short = 'M', long, alias = "renderToMemory", global = true)]
     pub render_to_memory: bool,
 }
 
@@ -270,6 +278,67 @@ pub enum ConfigFormat {
     #[default]
     Json,
     Toml,
+}
+
+/// The arguments (the program name first) with the command moved before the flags. The Go
+/// build's command line (cobra) finds the command wherever it is among the arguments and reads
+/// every flag as the command's, so `neohugo -s site server` is `neohugo server -s site` and
+/// `neohugo -e production templates check` is `neohugo templates check -e production`. A
+/// flag's value stays with it (`neohugo -e server` builds with the environment `server`);
+/// anything this does not recognise is left where it is, for clap to report.
+#[must_use]
+pub fn command_first(mut args: Vec<OsString>) -> Vec<OsString> {
+    let root = Cli::command();
+    let mut cmd = &root;
+    let mut next = 1;
+    let mut i = 1;
+    while i < args.len() {
+        let Some(arg) = args[i].to_str() else { break };
+        if arg == "--" {
+            break;
+        }
+        if let Some(long) = arg.strip_prefix("--") {
+            if !long.contains('=') && takes_value(&root, &|a| has_long(a, long)) {
+                i += 1;
+            }
+        } else if let Some(shorts) = arg.strip_prefix('-').filter(|s| !s.is_empty()) {
+            // A cluster such as `-DEs dir` or `-sdir`: a short that takes a value ends it.
+            for (at, c) in shorts.char_indices() {
+                if takes_value(&root, &|a| has_short(a, c)) {
+                    if at + c.len_utf8() == shorts.len() {
+                        i += 1;
+                    }
+                    break;
+                }
+            }
+        } else if let Some(sub) = cmd.find_subcommand(arg) {
+            let name = args.remove(i);
+            args.insert(next, name);
+            next += 1;
+            cmd = sub;
+        } else {
+            break;
+        }
+        i += 1;
+    }
+    args
+}
+
+/// Whether the argument of `cmd` (or else of a command below it) that `is` picks takes a separate
+/// value (`--append-port=false` takes it only after `=`).
+fn takes_value(cmd: &ClapCommand, is: &dyn Fn(&Arg) -> bool) -> bool {
+    match cmd.get_arguments().find(|a| is(a)) {
+        Some(a) => a.get_action().takes_values() && !a.is_require_equals_set(),
+        None => cmd.get_subcommands().any(|c| takes_value(c, is)),
+    }
+}
+
+fn has_long(a: &Arg, name: &str) -> bool {
+    a.get_long() == Some(name) || a.get_all_aliases().is_some_and(|v| v.contains(&name))
+}
+
+fn has_short(a: &Arg, c: char) -> bool {
+    a.get_short() == Some(c) || a.get_all_short_aliases().is_some_and(|v| v.contains(&c))
 }
 
 fn parse_clock(s: &str) -> Result<jiff::Timestamp, String> {
