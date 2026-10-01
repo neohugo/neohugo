@@ -1,6 +1,6 @@
 # Golden data from the Go build (T01)
 
-What the Go neohugo produces for the target sites, as the **structural oracle** of the Rust
+What the Go neohugo produced for the target sites, as the **structural oracle** of the Rust
 rewrite (`docs/rust-port/REWRITE_PLAN.md` §6.4, §7.2, §7.3). Output bytes do not have to match:
 the Rust side is compared file set, URLs, templates, links, text and assets, level by level.
 
@@ -10,6 +10,7 @@ regenerate, run this in a worktree of that commit (`git worktree add <dir> 44529
 the results here:
 
 ```sh
+export NEOHUGO_NODE_MODULES=$PWD/tools/neohugo/node_modules   # this worktree's own (below)
 tools/neohugo/node.sh              # the pinned node modules (once; network)
 tools/neohugo/oracle.sh install    # the Go binaries (once; Go + module cache)
 tools/neohugo/oracle.sh sites      # manifests + structure dumps of every label below
@@ -17,10 +18,12 @@ tools/neohugo/oracle.sh images     # the golden images
 tools/neohugo/oracle.sh check      # regenerate into a temporary directory and diff (idempotency)
 ```
 
-The binaries (`neohugo`, `neohugo-structure`) and the node modules live, gitignored, in
-`tools/neohugo/{bin,node_modules}` of the **main checkout**, so every worktree shares them;
-`NEOHUGO_TOOLS_BIN` and `NEOHUGO_NODE_MODULES` override the locations (`oracle.sh bin`,
-`node.sh path` print them).
+At that commit the binaries (`neohugo`, `neohugo-structure`) and the node modules live,
+gitignored, in `tools/neohugo/{bin,node_modules}` of the **main checkout**, so every worktree
+shares them; `NEOHUGO_TOOLS_BIN` and `NEOHUGO_NODE_MODULES` override the locations (`oracle.sh
+bin`, `node.sh path` print them). Its lock file has no esbuild, and its `node.sh` replaces the
+modules of another lock, so it gets a directory of its own: the main checkout's modules stay the
+ones the Rust tests use.
 
 ## Labels and file counts
 

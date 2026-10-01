@@ -10,6 +10,17 @@ T00. It is recoverable at commit `be02933a`, tagged `go-parity-final` in the loc
 (the tag is not on GitHub): `git show go-parity-final:crates/<crate>/<path>`. Salvage rules, not
 code, from it (§6.2).
 
+**The Go implementation** (Hugo's Go tree, `tools/go-oracle`, `tools/neohugo/oracle.sh` and the
+Go workflows) was removed after commit `44529028`. What it generated is frozen:
+`testdata/oracle/`, `testdata/golden/`, `crates/build/tests/it/testsite-go.txtar`,
+`crates/highlight/tests/data/` and `docs/data/docs.yaml`. To regenerate any of it, run the old
+recipe in a worktree of that commit (`git worktree add <dir> 44529028`) and copy the result
+back: `testdata/golden/README.md`, `crates/highlight/README.md`, the docstring of
+`tools/neohugo/fixtures2json.py`; `docs.yaml` is written by the Go binary's `gen docshelper`.
+Hugo's test data that the tests read is in `testdata/upstream/`, at its Go-tree path. Go-tree
+paths in comments and READMEs (`resources/images/text.go`, `tpl/tplimpl/embedded/templates/`, …)
+name files of that commit: `git show 44529028:<path>`.
+
 ## Layout
 
 ```
@@ -19,7 +30,9 @@ clippy.toml deny.toml       thread_local ban; licence policy
 PROVENANCE.md THIRD_PARTY/  every non-original file; licences cargo cannot see
 crates/<name>/              the product crates of §2.1 (T00 wrote stubs with the real
                             dependency edges of §2.3), testkit (dev), workspace-hack (internal)
-testdata/oracle/<area>/     Go-oracle fixtures as plain JSON (neohugo schema, below)
+testdata/oracle/<area>/     Go-oracle fixtures as plain JSON (neohugo schema, below; frozen)
+testdata/golden/<label>/    the Go build's manifests, structure dumps and images (frozen)
+testdata/baselines/         the ratchet's baselines (tools/neohugo/changes/README.md)
 testdata/corpus/            corpora: seeksnack bodies and front matter, dates, minifier, Thai strings
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
 testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids)
@@ -76,26 +89,23 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 | phase end | `cargo clippy -p <crate> -- -D warnings` per crate of the phase; `cargo fmt --check`; `tools/neohugo/licence-check.sh` |
 | graph | `cargo metadata --format-version 1 --filter-platform x86_64-unknown-linux-gnu` |
 | disk | `tools/neohugo/disk.sh` |
-| fixtures | `tools/neohugo/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle |
+| fixtures | `tools/neohugo/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
 | acceptance | `tools/neohugo/compare.sh <site> [--docs-patches i01\|reduced] [KEEP=1]` (T03) |
 | templates | `neohugo-rs templates check -s <site-dir>` (T37) |
 | CI, locally | see "CI and releases" below (workspace-wide: not for the edit–test loop) |
 
 ## CI and releases
 
-`.github/workflows/rust.yml` builds, tests and releases this workspace; the Go implementation
-keeps its own workflows (`ci.yml`, `release.yml`, …).
+`.github/workflows/rust.yml` builds, tests and releases this workspace; it is the repository's
+only build workflow (`stale.yml` manages issues).
 
-**When it runs.** On pushes to `main` and `rust-port` and on pull requests that touch
-`rust/**`, `tools/{esbuild,neohugo,rust-port}/**`, the repository files the tests read
-(`docs/**`, `hugolib/testsite/**`, `resources/testdata/**`, `resources/images/testdata/**`; the
-fixtures record many of them by hash), `LICENSE` or the workflow itself; on every `rust-v*` tag;
-and by hand (`workflow_dispatch`). A newer run on the same ref cancels the older one, except on
-tags.
+**When it runs.** On pushes to `main` and `rust-port`, on every pull request, on every
+`v[0-9]*` tag, and by hand (`workflow_dispatch`); there are no path filters. A newer run on the
+same ref cancels the older one, except on tags.
 
 | Job | Runner | Steps |
 |---|---|---|
-| Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; on a tag, the tag must be `rust-v<version of [workspace.package]>` |
+| Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; `tools/neohugo/selftest.py`; on a tag, the tag must be `v<version of [workspace.package]>` |
 | Test | ubuntu-24.04 | `cargo test --workspace --locked --no-fail-fast` with the tools below; the job summary lists every test that printed `SKIPPED` |
 | Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>`; `neohugo-rs version`; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-rs-<triple>` |
 | Release | ubuntu-24.04 | tags only, after the other three: the GitHub release (below) |
@@ -125,21 +135,23 @@ agents' offline rustup has only `stable` (which is 1.94.1), and a pinned channel
 look for a toolchain named `1.94.1` and try to download it. Add one (and drop `RUST_TOOLCHAIN`)
 once every environment can install toolchains.
 
-**Tools the tests use.** Without its tool a test prints `SKIPPED …` and passes (or, for Go's
-test data, compares fewer cases), so CI provides all of them but Go's test data:
+**Tools the tests use.** Without its tool a test prints `SKIPPED …` and passes, so CI provides
+all of them:
 
 | Tests | Tool | In CI |
 |---|---|---|
 | `neohugo-esbuild`: `jsbuild_synth`, `jsbuild_docs`, `build_errors_are_messages`, `inline_source_map`, `concurrent_builds_share_one_service`, `plugin_callbacks`, `version_ping_and_build_round_trip`; `neohugo-resources`: `js_build_docs`, `js_build_t16site` and the js_build half of `execute_as_template_with_tera` (silent) | esbuild: `NEOHUGO_ESBUILD_BINARY`, else `tools/esbuild/bin/esbuild` | `tools/esbuild/install.sh` after `tools/neohugo/node.sh`, like a local install: the binary of the npm package `tools/neohugo/node/package.json` pins, checked with `--version`; a failure fails the job |
 | `neohugo-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_reconstruction_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
 | `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
-| `neohugo-images`: `sizes_match_the_process_oracle` (13,218 cases with the data, 11,046 without) | Go's image test data: `NEOHUGO_GOROOT` (or `GOROOT`) | not set: 11,046 cases (at least 10,000 must compare) |
+| `neohugo`: `gate_a_r`, `gate_a_d2` (`tools/neohugo/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`NEOHUGO_NODE_MODULES`, else `tools/neohugo/node.sh path`) and esbuild (`NEOHUGO_ESBUILD_BINARY`, else the main checkout's `tools/esbuild/bin/esbuild`) | the runner's `python3` and `bash`; the three rows above |
 
-Not needed by `cargo test`: Python (only `tools/neohugo/licence-check.sh`, `notices.py` and `package.py`, and
-`tools/rust-port/i01/sites.py` for the ignored real-site tests that read `NEOHUGO_SITES`),
-dart-sass (grass compiles Sass in process) and the network (`get_remote` tests read caches with
-the network off). The structure oracle and the T01 golden images skip until T01 commits their
-data under `testdata/golden/`.
+`neohugo-images`' `sizes_match_the_process_oracle` compares 11,046 cases (at least 10,000 must
+compare); the cases of 85 more sources need Go's own image test data, which is not in the
+repository (`crates/images/README.md`). Python is needed only by the gate tests and the tools
+(`licence-check.sh`, `selftest.py`, `notices.py`, `package.py`, and
+`tools/rust-port/i01/sites.py` for the ignored real-site tests that read `NEOHUGO_SITES`). Not
+needed by `cargo test`: dart-sass (grass compiles Sass in process) and the network (`get_remote`
+tests read caches with the network off).
 
 **Reproduce CI locally** (in `rust/`, offline; `touch` the sources first, see the shared-target
 note above):
@@ -148,7 +160,11 @@ note above):
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 ../tools/neohugo/licence-check.sh
-NEOHUGO_ESBUILD_BINARY=$PWD/../tools/esbuild/bin/esbuild \
+python3 ../tools/neohugo/selftest.py
+N=$(../tools/neohugo/node.sh path)   # once: ../tools/neohugo/node.sh && ../tools/esbuild/install.sh
+NEOHUGO_ESBUILD_BINARY=$PWD/../tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
+NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
+NEOHUGO_BABEL_BIN=$N/.bin/babel \
   cargo test --workspace --locked --offline --no-fail-fast -- --show-output
 cargo build --release --locked --offline -p neohugo --target x86_64-unknown-linux-gnu \
   --target-dir <scratch>/target                  # never the shared target dir
@@ -158,20 +174,16 @@ python3 ../tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/re
 ```
 
 **Cutting a release.**
-1. Set `version` in `[workspace.package]` of `Cargo.toml` (e.g. `0.149.0-alpha.1`); commit and
-   merge it.
-2. Tag that commit and push the tag: `git tag rust-v0.149.0-alpha.1 <commit>`,
-   `git push origin rust-v0.149.0-alpha.1`.
+1. Set `version` in `[workspace.package]` of `Cargo.toml` (e.g. `0.149.0`); commit and merge
+   it.
+2. Tag that commit and push the tag: `git tag v0.149.0 <commit>`, `git push origin v0.149.0`.
 3. The workflow checks the tag against the version, runs lint, test and the five builds, then
-   creates the GitHub release `rust-v<version>` with the five archives, their `.sha256` files
-   and `SHA256SUMS`. A version with a `-` makes a pre-release. The release is never marked
-   latest, so `/releases/latest` keeps pointing at the Go release.
+   creates the GitHub release `v<version>` with the five archives, their `.sha256` files and
+   `SHA256SUMS`. It is marked latest, unless the version has a `-` (e.g. `0.150.0-rc.1`):
+   that makes a pre-release, not latest.
 
 Re-running the workflow (or its failed jobs) for a tag replaces the assets of the release an
-earlier run created. `v*.*.*` tags remain the Go releases, and no Go workflow triggers on
-`rust-v*`. GoReleaser (`release.yml`) does see every tag, though: do not put a `rust-v` tag on
-the same commit as a `v` tag, and expect a Go release's changelog to start at a `rust-v` tag
-made after the previous `v` tag, unless `.goreleaser.yml` is told to ignore the prefix.
+earlier run created. The tags `v0.148.2` and older are the Go implementation's releases.
 
 **Caches.** `Swatinem/rust-cache` per job and target; only pushes to `main` and `rust-port` save
 them, and pull requests restore their base branch's. A cold test job builds about 3.2 GB of

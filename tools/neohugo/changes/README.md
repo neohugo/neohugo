@@ -1,11 +1,12 @@
 # Ratchet changes (`tools/neohugo/changes/<task-id>.md`)
 
 The acceptance comparison (`tools/neohugo/compare.sh`, `tools/neohugo/structdiff.py`;
-docs/rust-port/REWRITE_PLAN.md §7.2) compares the Rust build of a site with the Go build, file by
-file and level by level, and checks the result against the site's **baseline**
-(`rust/testdata/baselines/<label>.json`). A task may change the baseline only by listing every
-change in its own changes file, `tools/neohugo/changes/<task-id>.md`, with exactly one triage
-class and a one-line reason. **An unlisted new or changed difference fails the run.**
+docs/rust-port/REWRITE_PLAN.md §7.2) compares the Rust build of a site with the golden data of the
+Go build (`rust/testdata/golden/`, frozen at `44529028`), file by file and level by level, and
+checks the result against the site's **baseline** (`rust/testdata/baselines/<label>.json`). A task
+may change the baseline only by listing every change in its own changes file,
+`tools/neohugo/changes/<task-id>.md`, with exactly one triage class and a one-line reason. **An
+unlisted new or changed difference fails the run.**
 
 ```sh
 tools/neohugo/compare.sh seeksnack --task T62            # compare; fails on unlisted changes

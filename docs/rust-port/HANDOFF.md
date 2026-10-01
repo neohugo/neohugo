@@ -1,8 +1,9 @@
 # neohugo Rust rewrite: handoff (start here)
 
-State as of T70 (2026-09-30), branch `rust-port`. The plan and its task table are
-[`REWRITE_PLAN.md`](REWRITE_PLAN.md) (§8.2 holds every task's state); the workspace's own rules
-and CI details are [`rust/README.md`](../../rust/README.md). This document says what exists, how
+State as of T70 (2026-09-30) and the removal of the Go implementation (2026-10-01, §9), branch
+`rust-port`. The plan and its task table are [`REWRITE_PLAN.md`](REWRITE_PLAN.md) (§8.2 holds
+every task's state); the workspace's own rules and CI details are
+[`rust/README.md`](../../rust/README.md). This document says what exists, how
 to build, test and run it, how the gates work, what deviates from Hugo, and what is open.
 
 ## 0. Summary for the pull request
@@ -11,9 +12,10 @@ neohugo-rs is an idiomatic Rust rewrite of neohugo (a Hugo fork) in `rust/`: Hug
 page model (content tree, bundles, kinds, front matter, cascade, permalinks, output formats,
 taxonomies, menus, pagination, i18n, Hugo Pipes, image processing, Markdown with render hooks
 and shortcodes) with **Tera 2** templates instead of Go templates (decision D4). It is not a
-byte-for-byte port: the Go build is the oracle, and outputs are compared structurally.
+byte-for-byte port: the Go build was the oracle (its outputs are frozen as golden data, §9), and
+outputs are compared structurally.
 
-- **Gates passed** (REWRITE_PLAN.md §7.3; each against the Go neohugo on the same site):
+- **Gates passed** (REWRITE_PLAN.md §7.3; each against the Go neohugo's build of the same site):
   - A-T, the testsite: L1 56/56, L2 and L3 equal on every page, structure oracle equal.
   - A-R, the seeksnack reconstruction: L1 713/713, L2 427/427, structure 673/673, A7 1.0.
   - A-D1, the Hugo docs with the `i01` patches: L1 888/888, L2 756/756, L3 748/750, A7 0.9987.
@@ -27,9 +29,11 @@ byte-for-byte port: the Go build is the oracle, and outputs are compared structu
   reconstruction are faster than Go as well (§5).
 - **Commands:** `neohugo-rs build` (also with no command), `server` (live reload, memory or
   disk), `templates check`, `config`, `version`.
-- **CI/CD:** `.github/workflows/rust.yml` (fmt, clippy `-D warnings`, licence check, the whole
-  test suite with the gate tests, release builds for five targets); tags `rust-v<version>`
-  publish a GitHub pre-release with archives, licence notices and checksums.
+- **CI/CD:** `.github/workflows/rust.yml`, the only build workflow (fmt, clippy `-D warnings`,
+  licence check, the whole test suite with the gate tests, release builds for five targets);
+  tags `v<version>` publish a GitHub release with archives, licence notices and checksums.
+- **Go removed** (2026-10-01): the Go implementation, its tools and its workflows are gone; what
+  it generated is frozen at commit `44529028` (§9).
 - **Known deviations** from Hugo are listed and classified (§7); none is silent.
 - **Open:** real seeksnack (A-S, needs the private repository) and the migrate tool (T73), the
   remaining COULD features (T72), server extras (§8).
@@ -41,13 +45,13 @@ rust/                       the Cargo workspace (26 crates), PROVENANCE.md, THIR
 rust/crates/<name>/         one crate each; README.md per crate (API, state, accepted deviations)
 rust/sites/<site>/          the Tera layouts of the test sites (testsite, seeksnack, docs + patches)
 rust/testdata/              Go-oracle fixtures (oracle/), corpora, golden Go-build data (golden/),
-                            the ratchet baselines (baselines/)
+                            Hugo's test data (upstream/), the ratchet baselines (baselines/)
 rust/docs/template-api.md   the template API, generated from crates/funcs/src/spec.rs
 tools/neohugo/              harness: compare.sh, structdiff.py, manifest.py, selftest.py,
-                            oracle.sh (Go side), node.sh, licence-check.sh, notices.py, package.py,
+                            node.sh, licence-check.sh, notices.py, package.py,
                             changes/ (the ratchet's changes files)
+tools/esbuild/install.sh    esbuild for js_build (the binary of the npm package node.sh installs)
 tools/rust-port/i01/        sites.py (generates every test site), patches.json, site txtars
-tools/go-oracle/            the Go oracle programs (structure dump and the fixture generators)
 .github/workflows/rust.yml  CI and releases of neohugo-rs
 docs/rust-port/             this file, REWRITE_PLAN.md, specs/ (research of the old port,
                             "byte-parity sections obsolete"), archive/ (the old port's docs)
@@ -55,7 +59,8 @@ docs/rust-port/             this file, REWRITE_PLAN.md, specs/ (research of the 
 
 The old byte-for-byte port (`crates/`, line-by-line ports of Go packages) was deleted in T00;
 it is at commit `be02933a` (local tag `go-parity-final`). Its documents are in
-[`archive/`](archive/README.md).
+[`archive/`](archive/README.md). The Go implementation (Hugo's Go tree, `tools/go-oracle`,
+`tools/neohugo/oracle.sh`) is at commit `44529028` (§9).
 
 ### Crate map
 
@@ -146,14 +151,14 @@ API (every function, filter, test and context, with Hugo's name for each) is
 
 ## 3. Gates and the harness
 
-The Go side is the oracle: `tools/neohugo/bin/{neohugo,neohugo-structure}` (built once by
-`tools/neohugo/oracle.sh install`; gitignored, kept in the main checkout), and the golden data
-it wrote to `rust/testdata/golden/<label>/` (manifests of a minified and an unminified build,
-the structure dump). Sites are generated outside the repository by
+The oracle is the golden data the Go build wrote to `rust/testdata/golden/<label>/` (manifests
+of a minified and an unminified build, the structure dump; `tools/neohugo/oracle.sh` with the Go
+binaries), frozen at `44529028` (§9; `rust/testdata/golden/README.md` has the recipe to
+regenerate it in a worktree of that commit). Sites are generated outside the repository by
 `tools/rust-port/i01/sites.py make <site> <dir> [--overlay rust/sites/<site>] [--docs-patches
 i01|reduced]`; the Rust side replaces the layouts with the overlay's Tera files.
 
-`tools/neohugo/compare.sh <label> [--ref golden|go] [--task Txx] [--update] [--report-only]`
+`tools/neohugo/compare.sh <label> [--ref golden] [--task Txx] [--update] [--report-only]`
 builds the Rust side (both passes, plus its structure dump), compares with `structdiff.py` at
 the levels of REWRITE_PLAN.md §7.2 (L1 file set, L2 links and URLs, L3 visible text and
 heading IDs, L4 assets, S the structure oracle, A7 the share of pages with equal text) and
@@ -164,7 +169,7 @@ fails (`tools/neohugo/changes/README.md`).
 
 | Gate | Site (label) | How it runs | State |
 |---|---|---|---|
-| A-T | testsite | `cargo test -p neohugo --test it parity` (`testsite_gate_a_t`; in-process comparison with the Go tree `crates/build/tests/it/testsite-go.txtar` and the structure oracle); also `compare.sh testsite` | passed (T60, T03) |
+| A-T | testsite | `cargo test -p neohugo --test it parity` (`testsite_gate_a_t`; in-process comparison with the Go build's output `crates/build/tests/it/testsite-go.txtar` and the structure oracle); also `compare.sh testsite` | passed (T60, T03) |
 | A-R | seeksnack (reconstruction) | `cargo test -p neohugo --test it reconstruction` (`gate_a_r`: `compare.sh seeksnack --ref golden`) | passed (T62) |
 | A-D1 | docs-i01 | `tools/neohugo/compare.sh docs-i01` (not a committed test) | passed (T65) |
 | A-D2 | docs-reduced | `cargo test -p neohugo --test it docs` (`gate_a_d2`: `compare.sh docs-reduced --ref golden`) | passed (T66) |
@@ -172,24 +177,26 @@ fails (`tools/neohugo/changes/README.md`).
 | A-S | real seeksnack | needs the private repository (`tools/rust-port/prepare-site.sh`); the path set of `tools/rust-port/golden/canonical.sha256` after L1 normalisation | open (T73) |
 | A-P | docs (release) | §5 | goals met (T70) |
 
-The gate tests need python3, the node tools and esbuild (else `SKIPPED`), not the Go binaries.
+The gate tests need python3, bash, node, the node tools and esbuild (else `SKIPPED`).
 
 ## 4. CI/CD
 
-`.github/workflows/rust.yml` runs on pushes to `main` and `rust-port`, on pull requests
-touching `rust/**`, the tools, the docs and test data the fixtures read, on `rust-v*` tags and
-by hand. Jobs: **Lint** (fmt, clippy `-D warnings`, licence check, tag = `rust-v<workspace
-version>`), **Test** (the whole workspace with every tool installed; the summary lists
+`.github/workflows/rust.yml` is the repository's only build workflow (`stale.yml` manages
+issues). It runs on pushes to `main` and `rust-port`, on every pull request (no path filters),
+on `v[0-9]*` tags and by hand. Jobs: **Lint** (fmt, clippy `-D warnings`, licence check,
+structdiff self-test, tag = `v<workspace version>`), **Test** (the whole workspace with every
+tool installed: `tools/neohugo/node.sh`, then `tools/esbuild/install.sh`; the summary lists
 `SKIPPED` tests), **Build** (release for `x86_64`/`aarch64` Linux, `x86_64`/`aarch64` macOS,
 `x86_64` Windows; `notices.py` writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive),
-**Release** (tags only: a GitHub pre-release `rust-v<version>`, never "latest", so the Go
-releases keep `/releases/latest`). Cutting a release: set `[workspace.package] version`,
-merge, tag `rust-v<version>`, push the tag (rust/README.md "CI and releases").
+**Release** (tags only: the GitHub release `v<version>`, marked latest unless the version has a
+`-`, which makes a pre-release). Cutting a release: set `[workspace.package] version`, merge,
+tag `v<version>`, push the tag (rust/README.md "CI and releases").
 
 ## 5. Performance (A-P, T70)
 
-Release build of `neohugo-rs` (default features), `neohugo` Go from T01's
-`tools/neohugo/bin/neohugo` (`go build -trimpath -ldflags="-s -w"`, `oracle.sh install`).
+Release build of `neohugo-rs` (default features), the Go `neohugo` that `oracle.sh install`
+built for T01 (`go build -trimpath -ldflags="-s -w"`; the Go tree and `oracle.sh` are at
+`44529028`, §9).
 Each run: a freshly generated site (`sites.py make`; Rust with its overlay), the environment of
 `compare.sh` (clean env, `TZ=UTC`, HTTP disabled, the golden GetRemote cache, node modules on
 `PATH`) but with each implementation's default parallelism (no `HUGO_NUMWORKERMULTIPLIER`),
@@ -328,11 +335,66 @@ tests read them, with counts):
 - `rust/THIRD_PARTY/emoji/LICENSE-GEMOJI` to be compared with gemoji's `LICENSE` (written
   offline).
 - The real-site tests that read `NEOHUGO_SITES` are ignored by default.
+- The follow-ups of the Go removal outside the repository (§9): branch protection, unused
+  secrets, the channels frozen at the last Go build, the binary's name.
 
-## 9. History
+## 9. Without Go (2026-10-01)
+
+Branch `go-removal` (from `44529028`) removed the Go implementation and its CI/CD; the
+repository is the Rust implementation only. `44529028` is the last commit with the Go tree (no
+tag): `git worktree add <dir> 44529028`, or `git show 44529028:<path>` for the Go-tree paths
+that comments and READMEs cite.
+
+- **Removed:** Hugo's Go packages, `main.go`, `go.mod`/`go.sum`, `magefile.go`, the release
+  (GoReleaser, hugoreleaser), Docker, snap and golangci-lint configuration, `testscripts/`,
+  `scripts/`, `tools/go-oracle/`, `tools/neohugo/oracle.sh`, `tools/esbuild/build.sh`, the
+  highlight oracle (`crates/highlight/tests/data/oracle/`), and the workflows `ci.yml`,
+  `release.yml`, `benchmark.yml`, `golangci-lint.yml`, `image.yml`. `docs/go.mod`, `docs/go.sum`
+  and `docs/hugo.work` stay: they belong to the docs site, which stays byte-identical (only
+  `docs/rust-port/` changes).
+- **Test data moved:** Hugo's test data the tests read is in `rust/testdata/upstream/` at its
+  Go-tree path (`hugolib/testsite`, `resources/testdata`, `resources/images/testdata`,
+  `tpl/images/testdata`, `media/testdata/fake.png`; 90 files). Fixture ids keep the old paths;
+  `neohugo_testkit::fixture::repo_file` resolves them (and `tools/rust-port/i01/sites.py` does
+  the same for the testsite). The image oracles read five more Go-tree images and
+  `snap/local/logo.png` from byte-identical copies (`crates/images/tests/it/common.rs`). The
+  process oracle compares 11,046 cases; the `NEOHUGO_GOROOT` hook for Go's own image test data
+  is gone.
+- **esbuild:** `tools/neohugo/node/package.json` pins `esbuild` 0.25.6 (the version the Go build
+  linked); `tools/neohugo/node.sh` installs it with the other node tools, and
+  `tools/esbuild/install.sh` copies its platform binary to `tools/esbuild/bin/esbuild` and checks
+  `--version` against the pin. CI runs both, and a failure fails the Test job. A checkout made
+  before needs `tools/neohugo/node.sh && tools/esbuild/install.sh` once (the lock file changed).
+- **Frozen references:** what the Go implementation generated stays as committed: the oracle
+  fixtures (`rust/testdata/oracle/`), the golden data (`rust/testdata/golden/`),
+  `rust/crates/build/tests/it/testsite-go.txtar`, the highlight fixtures
+  (`rust/crates/highlight/tests/data/`) and `docs/data/docs.yaml`. To regenerate, run the old
+  recipe in a worktree of `44529028` and copy the result back (`rust/testdata/golden/README.md`,
+  `rust/crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`). `compare.sh` takes only
+  `--ref golden`; `selftest.py` perturbs the Go testsite output of `testsite-go.txtar`.
+- **Releases:** tags `v<version>` instead of `rust-v<version>`; the Rust workflow publishes the
+  GitHub release and marks it latest unless the version has a `-`. The tags `v0.148.2` and
+  older are the Go releases.
+
+Follow-ups outside the repository:
+
+- **Branch protection:** required status checks that name jobs of the removed workflows (CI's
+  `Build (ubuntu-latest, Go 1.25)`, Golangci-lint, Release, Benchmark, Docker image) would block
+  every pull request; require the Rust workflow's `Lint`, `Test` and `Build (<target>)` instead.
+- **Secrets** no workflow reads any more: `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN`, `CR_PAT`
+  (`image.yml`), `NEOHUGO_GITHUB_TOKEN`, `NEOHUGO_EMAIL` (the docs deploy of `release.yml`).
+- **Public channels frozen at the last Go build:** the Docker images `neohugo/neohugo` and
+  `ghcr.io/neohugo/neohugo`; the documentation site neohugo.github.io (deployed on `v*` tags by
+  `release.yml`); and `/releases/latest`, which stays at the Go `v0.148.2` until the first Rust
+  release that is not a pre-release (`v0.149.0`).
+- **The binary is still named `neohugo-rs`** (`[[bin]]` of `rust/crates/cli/Cargo.toml`); the
+  release archives, `package.py`, `notices.py`, `compare.sh` and the docs use that name.
+
+## 10. History
 
 - 2026-09-27: the first session's byte-for-byte port (`archive/HANDOFF-old-port.md`).
 - 2026-09-29: REWRITE_PLAN.md revision 2; T00 deleted the old port.
 - T00–T66: the rewrite, the harness and the gates (REWRITE_PLAN.md §8.2).
 - T70 (2026-09-30): this handoff, A-P, the licence and provenance audit, archive of the old
   port's documents, `hugo.is_server`/`site.server_port`.
+- 2026-10-01: the Go implementation and its CI/CD removed (§9).

@@ -4,24 +4,20 @@
 [create a proposal]: https://github.com/gohugoio/hugo/issues/new?labels=Proposal%2C+NeedsTriage&template=feature_request.md
 [documentation repository]: https://github.com/gohugoio/hugoDocs
 [documentation]: https://gohugo.io/documentation
-[dragonfly bsd, freebsd, netbsd, and openbsd]: https://gohugo.io/installation/bsd
 [features]: https://gohugo.io/about/features/
 [forum]: https://discourse.gohugo.io
 [friends]: https://github.com/gohugoio/hugo/graphs/contributors
-[go]: https://go.dev/
 [hugo modules]: https://gohugo.io/hugo-modules/
-[installation]: https://gohugo.io/installation
+[installation]: #installation
 [issue queue]: https://github.com/gohugoio/hugo/issues
-[linux]: https://gohugo.io/installation/linux
-[macos]: https://gohugo.io/installation/macos
-[prebuilt binary]: https://github.com/gohugoio/hugo/releases/latest
+[releases]: https://github.com/neohugo/neohugo/releases
 [requesting help]: https://discourse.gohugo.io/t/requesting-help/9132
+[rust]: https://www.rust-lang.org/
 [spf13]: https://github.com/spf13
 [static site generator]: https://en.wikipedia.org/wiki/Static_site_generator
 [support]: https://discourse.gohugo.io
 [themes]: https://themes.gohugo.io/
 [website]: https://gohugo.io
-[windows]: https://gohugo.io/installation/windows
 
 what is the different between neohugo vs hugo?
 
@@ -34,16 +30,12 @@ what is the different between neohugo vs hugo?
 [Installation Guide](https://neohugo.github.io/getting-started/installing/) |
 [Contribution Guide](CONTRIBUTING.md)
 
-[![Go Reference](https://pkg.go.dev/badge/neohugo/neohugo.svg)](https://pkg.go.dev/github.com/neohugo/neohugo)
-![Golangci-lint](https://github.com/neohugo/neohugo/workflows/Golangci-lint/badge.svg)
-![CI](https://github.com/neohugo/neohugo/workflows/CI/badge.svg)
-![Release](https://github.com/neohugo/neohugo/workflows/Release/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/neohugo/neohugo)](https://goreportcard.com/report/github.com/neohugo/neohugo)
+[![Rust](https://github.com/neohugo/neohugo/actions/workflows/rust.yml/badge.svg)](https://github.com/neohugo/neohugo/actions/workflows/rust.yml)
 
 [Website] | [Installation] | [Documentation] | [Support] | [Contributing] | <a rel="me" href="https://fosstodon.org/@gohugoio">Mastodon</a>
 ## Overview
 
-Hugo is a [static site generator] written in [Go], optimized for speed and designed for flexibility. With its advanced templating system and fast asset pipelines, Hugo renders a complete site in seconds, often less.
+Neohugo is a fork of Hugo, a [static site generator] optimized for speed and designed for flexibility, rewritten in [Rust]. With its advanced templating system and fast asset pipelines, neohugo renders a complete site in seconds, often less.
 
 Due to its flexible framework, multilingual support, and powerful taxonomy system, Hugo is widely used to create:
 
@@ -63,7 +55,7 @@ Neohugo's fast asset pipelines include:
 - Sass processing &ndash; Transpile Sass to CSS, bundle, tree shake, minify, create source maps, perform SRI hashing, and integrate with PostCSS
 - Tailwind CSS processing &ndash; Compile Tailwind CSS utility classes into standard CSS, bundle, tree shake, optimize, minify, perform SRI hashing, and integrate with PostCSS
 
-And with [Hugo Modules], you can share content, assets, data, translations, themes, templates, and configuration with other projects via public or private Git repositories.
+Neohugo reads Hugo's project layout and configuration (a `neohugo.toml` wins over a `hugo.toml` next to it). Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates: [rust/docs/template-api.md](rust/docs/template-api.md) lists every function, filter and test with Hugo's name for each, and `neohugo-rs templates check` checks a site's templates against it. Themes come from the themes directory or `_vendor`; [Hugo Modules] are not downloaded. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
 
 See the [features] section of the documentation for a comprehensive summary of Hugo's capabilities.
 
@@ -78,31 +70,45 @@ See the [features] section of the documentation for a comprehensive summary of H
 
 ## Installation
 
-Install Hugo from a [prebuilt binary], package manager, or package repository. Please see the installation instructions for your operating system:
+Download the archive for your platform from the [releases] page. Releases are tagged `v<version>`; v0.149 and later are built from `rust/`, v0.148.2 and earlier are the former Go implementation. Each archive, `neohugo-rs-<version>-<target>.tar.gz` (`.zip` for Windows), holds the `neohugo-rs` binary, `LICENSE`, `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`:
 
-- [macOS]
-- [Linux]
-- [Windows]
-- [DragonFly BSD, FreeBSD, NetBSD, and OpenBSD]
+- `x86_64-unknown-linux-gnu`, `aarch64-unknown-linux-gnu` (glibc 2.35 or later)
+- `x86_64-apple-darwin`, `aarch64-apple-darwin`
+- `x86_64-pc-windows-msvc`
+
+Check a download with `sha256sum -c SHA256SUMS --ignore-missing`, then put `neohugo-rs` on your `PATH`:
+
+```text
+neohugo-rs version
+neohugo-rs -s <site>                # build into the publish directory
+neohugo-rs server -s <site>         # development server with live reload
+```
+
+The commands and flags (Hugo's, in kebab-case with the camelCase spellings as aliases) are listed in [rust/crates/cli/README.md](rust/crates/cli/README.md).
 
 ## Build from source
 
-Prerequisites to build Hugo from source:
+Prerequisites to build neohugo from source:
 
-- Go 1.20 or later
-- GCC or another C compiler (for SCSS, WebP, and deploy features)
+- Rust 1.94 or later (`rust-version` in `rust/Cargo.toml`; CI builds with 1.94.1)
+- A C compiler (libwebp and ring are compiled with the `cc` crate)
 
-Build Hugo:
-
-```text
-CGO_ENABLED=1 go install github.com/gohugoio/hugo@latest
-```
-
-To build without CGO (lightweight version without SCSS, WebP, and deploy support):
+Build neohugo:
 
 ```text
-go install github.com/gohugoio/hugo@latest
+cd rust
+cargo build --release --locked -p neohugo
 ```
+
+The binary is `rust/target/release/neohugo-rs`.
+
+## External tools
+
+Sass is compiled in process. The other asset pipelines run external tools, looked up when a site uses them:
+
+- `js_build` (`js.Build`): esbuild, named by `NEOHUGO_ESBUILD_BINARY` (default: `tools/esbuild/bin/esbuild`, relative to the working directory). The tests use esbuild 0.25.6, the version `tools/neohugo/node/package.json` pins; in a checkout, `tools/neohugo/node.sh && tools/esbuild/install.sh` installs it.
+- `postcss`, `tailwind` and `babel` (`css.PostCSS`, `css.TailwindCSS`, `js.Babel`): `postcss`, `tailwindcss` and `babel`, named by `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN` and `NEOHUGO_BABEL_BIN`, else looked up in the project's `node_modules/.bin`, in the `.bin` of each directory of `NEOHUGO_NODE_MODULES` (a path list), then on `PATH`. As in Hugo, `security.exec.allow` must allow them (the default allows `postcss` and `tailwindcss`, not `babel`).
+
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=gohugoio/hugo&type=Timeline)](https://star-history.com/#gohugoio/hugo&Timeline)
@@ -141,121 +147,8 @@ If there is sufficient interest, [create a proposal]. Do not submit a pull reque
 
 For a complete guide to contributing to Hugo, see the [Contribution Guide](CONTRIBUTING.md).
 
+The code is the Cargo workspace in [rust/](rust/README.md): its README has the layout, the commands and the CI and release workflow, and [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md) the crate map, the parity gates, the deviations from Hugo and the open items.
+
 ## Dependencies
 
-Hugo stands on the shoulders of great open source libraries. Run `hugo env --logLevel info` to display a list of dependencies.
-
-<details>
-<summary>See current dependencies</summary>
-
-```text
-github.com/BurntSushi/locker="v0.0.0-20171006230638-a6e239ea1c69"
-github.com/PuerkitoBio/goquery="v1.10.1"
-github.com/alecthomas/chroma/v2="v2.15.0"
-github.com/andybalholm/cascadia="v1.3.3"
-github.com/armon/go-radix="v1.0.1-0.20221118154546-54df44f2176c"
-github.com/bep/clocks="v0.5.0"
-github.com/bep/debounce="v1.2.0"
-github.com/bep/gitmap="v1.6.0"
-github.com/bep/goat="v0.5.0"
-github.com/bep/godartsass/v2="v2.3.2"
-github.com/bep/golibsass="v1.2.0"
-github.com/bep/gowebp="v0.3.0"
-github.com/bep/imagemeta="v0.8.4"
-github.com/bep/lazycache="v0.7.0"
-github.com/bep/logg="v0.4.0"
-github.com/bep/mclib="v1.20400.20402"
-github.com/bep/overlayfs="v0.9.2"
-github.com/bep/simplecobra="v0.5.0"
-github.com/bep/tmc="v0.5.1"
-github.com/cespare/xxhash/v2="v2.3.0"
-github.com/clbanning/mxj/v2="v2.7.0"
-github.com/cpuguy83/go-md2man/v2="v2.0.4"
-github.com/disintegration/gift="v1.2.1"
-github.com/dlclark/regexp2="v1.11.5"
-github.com/dop251/goja="v0.0.0-20250125213203-5ef83b82af17"
-github.com/evanw/esbuild="v0.24.2"
-github.com/fatih/color="v1.18.0"
-github.com/frankban/quicktest="v1.14.6"
-github.com/fsnotify/fsnotify="v1.8.0"
-github.com/getkin/kin-openapi="v0.129.0"
-github.com/ghodss/yaml="v1.0.0"
-github.com/go-openapi/jsonpointer="v0.21.0"
-github.com/go-openapi/swag="v0.23.0"
-github.com/go-sourcemap/sourcemap="v2.1.4+incompatible"
-github.com/gobuffalo/flect="v1.0.3"
-github.com/gobwas/glob="v0.2.3"
-github.com/gohugoio/go-i18n/v2="v2.1.3-0.20230805085216-e63c13218d0e"
-github.com/gohugoio/hashstructure="v0.5.0"
-github.com/gohugoio/httpcache="v0.7.0"
-github.com/gohugoio/hugo-goldmark-extensions/extras="v0.2.0"
-github.com/gohugoio/hugo-goldmark-extensions/passthrough="v0.3.0"
-github.com/gohugoio/locales="v0.14.0"
-github.com/gohugoio/localescompressed="v1.0.1"
-github.com/golang/freetype="v0.0.0-20170609003504-e2365dfdc4a0"
-github.com/google/go-cmp="v0.6.0"
-github.com/google/pprof="v0.0.0-20250208200701-d0013a598941"
-github.com/gorilla/websocket="v1.5.3"
-github.com/hairyhenderson/go-codeowners="v0.7.0"
-github.com/hashicorp/golang-lru/v2="v2.0.7"
-github.com/jdkato/prose="v1.2.1"
-github.com/josharian/intern="v1.0.0"
-github.com/kr/pretty="v0.3.1"
-github.com/kr/text="v0.2.0"
-github.com/kyokomi/emoji/v2="v2.2.13"
-github.com/lucasb-eyer/go-colorful="v1.2.0"
-github.com/mailru/easyjson="v0.7.7"
-github.com/makeworld-the-better-one/dither/v2="v2.4.0"
-github.com/marekm4/color-extractor="v1.2.1"
-github.com/mattn/go-colorable="v0.1.13"
-github.com/mattn/go-isatty="v0.0.20"
-github.com/mattn/go-runewidth="v0.0.9"
-github.com/mazznoer/csscolorparser="v0.1.5"
-github.com/mitchellh/mapstructure="v1.5.1-0.20231216201459-8508981c8b6c"
-github.com/mohae/deepcopy="v0.0.0-20170929034955-c48cc78d4826"
-github.com/muesli/smartcrop="v0.3.0"
-github.com/niklasfasching/go-org="v1.7.0"
-github.com/oasdiff/yaml3="v0.0.0-20241210130736-a94c01f36349"
-github.com/oasdiff/yaml="v0.0.0-20241210131133-6b86fb107d80"
-github.com/olekukonko/tablewriter="v0.0.5"
-github.com/pbnjay/memory="v0.0.0-20210728143218-7b4eea64cf58"
-github.com/pelletier/go-toml/v2="v2.2.3"
-github.com/perimeterx/marshmallow="v1.1.5"
-github.com/pkg/browser="v0.0.0-20240102092130-5ac0b6a4141c"
-github.com/pkg/errors="v0.9.1"
-github.com/rivo/uniseg="v0.4.7"
-github.com/rogpeppe/go-internal="v1.13.1"
-github.com/russross/blackfriday/v2="v2.1.0"
-github.com/sass/libsass="3.6.6"
-github.com/spf13/afero="v1.11.0"
-github.com/spf13/cast="v1.7.1"
-github.com/spf13/cobra="v1.8.1"
-github.com/spf13/fsync="v0.10.1"
-github.com/spf13/pflag="v1.0.6"
-github.com/tdewolff/minify/v2="v2.20.37"
-github.com/tdewolff/parse/v2="v2.7.15"
-github.com/tetratelabs/wazero="v1.8.2"
-github.com/webmproject/libwebp="v1.3.2"
-github.com/yuin/goldmark-emoji="v1.0.4"
-github.com/yuin/goldmark="v1.7.8"
-go.uber.org/automaxprocs="v1.5.3"
-golang.org/x/crypto="v0.33.0"
-golang.org/x/exp="v0.0.0-20250210185358-939b2ce775ac"
-golang.org/x/image="v0.24.0"
-golang.org/x/mod="v0.23.0"
-golang.org/x/net="v0.35.0"
-golang.org/x/sync="v0.11.0"
-golang.org/x/sys="v0.30.0"
-golang.org/x/text="v0.22.0"
-golang.org/x/tools="v0.30.0"
-golang.org/x/xerrors="v0.0.0-20240903120638-7835f813f4da"
-gonum.org/v1/plot="v0.15.0"
-google.golang.org/protobuf="v1.36.5"
-gopkg.in/yaml.v2="v2.4.0"
-gopkg.in/yaml.v3="v3.0.1"
-oss.terrastruct.com/d2="v0.6.9"
-oss.terrastruct.com/util-go="v0.0.0-20241005222610-44c011a04896"
-rsc.io/qr="v0.2.0"
-software.sslmate.com/src/go-pkcs12="v0.2.0"
-```
-</details>
+Neohugo stands on the shoulders of great open source libraries. The Rust crates it uses are declared in [rust/Cargo.toml](rust/Cargo.toml) (`[workspace.dependencies]`, locked by `rust/Cargo.lock`); material taken from other projects is listed in [rust/PROVENANCE.md](rust/PROVENANCE.md), with licences cargo cannot see in [rust/THIRD_PARTY](rust/THIRD_PARTY/README.md). The `THIRD_PARTY_NOTICES.txt` of each release archive holds the licences of the crates linked into that binary.

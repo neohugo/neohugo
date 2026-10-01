@@ -1,5 +1,3 @@
->**Note:** We would appreciate if you hold on with any big refactoring (like renaming deprecated Go packages), mainly because of potential for extra merge work for future coming in in the near future.
-
 # Contributing to Hugo
 
 We welcome contributions to Hugo of any kind including documentation, themes,
@@ -9,7 +7,7 @@ helping to manage issues, etc.
 
 The Hugo community and maintainers are [very active](https://github.com/gohugoio/hugo/pulse/monthly) and helpful, and the project benefits greatly from this activity. We created a [step by step guide](https://gohugo.io/tutorials/how-to-contribute-to-hugo/) if you're unfamiliar with GitHub or contributing to open source projects in general.
 
-*Note that this repository only contains the actual source code of Hugo. For **only** documentation-related pull requests / issues please refer to the [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
+*Note that `docs/` in this repository is a copy of Hugo's documentation that the tests read byte for byte; only `docs/rust-port/` belongs to neohugo. For **only** documentation-related pull requests / issues please refer to the [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
 
 *Changes to the codebase **and** related documentation, e.g. for a new feature, should still use a single pull request.*
 
@@ -21,7 +19,7 @@ The Hugo community and maintainers are [very active](https://github.com/gohugoio
   * [Code Contribution Guidelines](#code-contribution-guidelines)
   * [Git Commit Message Guidelines](#git-commit-message-guidelines)
   * [Fetching the Sources From GitHub](#fetching-the-sources-from-github)
-  * [Building Hugo with Your Changes](#building-hugo-with-your-changes)
+  * [Building and Testing Your Changes](#building-and-testing-your-changes)
 
 ## Asking Support Questions
 
@@ -30,12 +28,13 @@ Please don't use the GitHub issue tracker to ask questions.
 
 ## Reporting Issues
 
-If you believe you have found a defect in Hugo or its documentation, use
-the GitHub issue tracker to report
-the problem to the Hugo maintainers. If you're not sure if it's a bug or not,
-start by asking in the [discussion forum](https://discourse.gohugo.io).
-When reporting the issue, please provide the version of Hugo in use (`hugo
-version`) and your operating system.
+If you believe you have found a defect in neohugo, use the
+[issue tracker](https://github.com/neohugo/neohugo/issues) of this repository to report
+the problem. If you're not sure if it's a bug or not,
+start by asking in the [discussion forum](https://github.com/neohugo/neohugo/discussions).
+When reporting the issue, please provide the version of neohugo in use (`neohugo-rs
+version`), your operating system, and whether Hugo behaves differently on the same site.
+Defects of Hugo itself, its documentation or its themes site go to Hugo's trackers:
 
 - [Hugo Issues · gohugoio/hugo](https://github.com/gohugoio/hugo/issues)
 - [Hugo Documentation Issues · gohugoio/hugoDocs](https://github.com/gohugoio/hugoDocs/issues)
@@ -54,8 +53,11 @@ If it is of some complexity, the contributor is expected to maintain and support
 
 Any non-trivial code change needs to update an open [issue](https://github.com/gohugoio/hugo/issues). A non-trivial code change without an issue reference with one of the labels `bug` or `enhancement` will not be merged.
 
-Note that we do not accept new features that require [CGO](https://github.com/golang/go/wiki/cgo).
-We have one exception to this rule which is LibSASS.
+A new third-party crate goes into `[workspace.dependencies]` of `rust/Cargo.toml` (members
+never add their own `features =`) and must pass `tools/neohugo/licence-check.sh`, which allows
+only the licences of `rust/deny.toml`. Code or data taken from another project needs a row in
+`rust/PROVENANCE.md` first (and its licence in `rust/THIRD_PARTY/` when cargo cannot see it);
+Zola 0.22 and later (EUPL-1.2) must not be opened or copied.
 
 **Bug fixes are, of course, always welcome.**
 
@@ -73,10 +75,11 @@ To make the contribution process as seamless as possible, we ask for the followi
 * When you’re ready to create a pull request, be sure to:
     * Sign the [CLA](https://cla-assistant.io/gohugoio/hugo).
     * Have test cases for the new code. If you have questions about how to do this, please ask in your pull request.
-    * Run `go fmt`.
-    * Add documentation if you are adding new features or changing functionality.  The docs site lives in `/docs`.
+    * Run `cargo fmt --all` in `rust/`.
+    * Add documentation if you are adding new features or changing functionality: the crate's `README.md`, and for template functions their entry in `rust/crates/funcs/src/spec.rs`, which generates `rust/docs/template-api.md`. Leave `docs/` outside `docs/rust-port/` unchanged: the tests record its files by hash.
+    * Record any change of a parity difference (a test site's output against Hugo's) in the ratchet: the baselines in `rust/testdata/baselines/` change only through an entry in `tools/neohugo/changes/<task>.md` (`tools/neohugo/changes/README.md`; `rust/README.md`).
     * Squash your commits into a single commit. `git rebase -i`. It’s okay to force update your pull request with `git push -f`.
-    * Ensure that `mage check` succeeds. [Travis CI](https://travis-ci.org/gohugoio/hugo) (Windows, Linux and macOS) will fail the build if `mage check` fails.
+    * Ensure that the checks under [Building and Testing Your Changes](#building-and-testing-your-changes) succeed. The Rust workflow (`.github/workflows/rust.yml`) runs them on every pull request and fails the build if one fails.
     * Follow the **Git Commit Message Guidelines** below.
 
 ### Git Commit Message Guidelines
@@ -87,10 +90,10 @@ the most important part being that each commit message should have a title/subje
 
 Most title/subjects should have a lower-cased prefix with a colon and one whitespace. The prefix can be:
 
-* The name of the package where (most of) the changes are made (e.g. `media: Add text/calendar`)
-* If the package name is deeply nested/long, try to shorten it from the left side, e.g. `markup/goldmark` is OK, `resources/resource_transformers/js` can be shortened to `js`.
-* If this commit touches several packages with a common functional topic, use that as a prefix, e.g. `errors: Resolve correct line numbers`)
-* If this commit touches many packages without a common functional topic, prefix with `all:` (e.g. `all: Reformat Go code`)
+* The name of the crate where (most of) the changes are made, as its directory in `rust/crates/` names it (e.g. `images: Add the dither filter`)
+* For a change outside `rust/crates`, the area: `CI` (`.github/workflows`), `harness` (`tools/neohugo`), `sites.py`, `provenance`, `docs`.
+* If this commit touches several crates with a common functional topic, use that as a prefix, e.g. `errors: Resolve correct line numbers`)
+* If this commit touches many crates without a common functional topic, prefix with `all:` (e.g. `all: Apply the clippy lints of Rust 1.95`)
 * If this is a documentation update, prefix with `docs:`.
 * If nothing of the above applies, just leave the prefix out.
 * Note that the above excludes nouns seen in other repositories, e.g. "chore:".
@@ -113,23 +116,16 @@ Fixes #1949
 
 ###  Fetching the Sources From GitHub
 
-Since Hugo 0.48, Hugo uses the Go Modules support built into Go 1.11 to build. The easiest is to clone Hugo in a directory outside of `GOPATH`, as in the following example:
+Neohugo is the Cargo workspace in `rust/`. Building it needs Rust 1.94 or later (`rust-version` in `rust/Cargo.toml`; CI uses 1.94.1) and a C compiler. Clone the repository:
 
 ```bash
 mkdir $HOME/src
 cd $HOME/src
-git clone https://github.com/gohugoio/hugo.git
-cd hugo
-go install
+git clone https://github.com/neohugo/neohugo.git
+cd neohugo
 ```
 
-For some convenient build and test targets, you also will want to install Mage:
-
-```bash
-go install github.com/magefile/mage
-```
-
-Now, to make a change to Hugo's source:
+Now, to make a change to neohugo's source:
 
 1. Create a new branch for your changes (the branch name is arbitrary):
 
@@ -143,12 +139,12 @@ Now, to make a change to Hugo's source:
     git commit -a -v
     ```
 
-1. Fork Hugo in GitHub.
+1. Fork neohugo in GitHub.
 
 1. Add your fork as a new remote (the remote name, "fork" in this example, is arbitrary):
 
     ```bash
-    git remote add fork git@github.com:USERNAME/hugo.git
+    git remote add fork git@github.com:USERNAME/neohugo.git
     ```
 
 1. Push the changes to your new remote:
@@ -159,41 +155,42 @@ Now, to make a change to Hugo's source:
 
 1. You're now ready to submit a PR based upon the new branch in your forked repository.
 
-### Building Hugo with Your Changes
+### Building and Testing Your Changes
 
-Hugo uses [mage](https://github.com/magefile/mage) to sync vendor dependencies, build Hugo, run the test suite and other things. You must run mage from the Hugo directory.
+`rust/README.md` describes the workspace (layout, commands, CI and releases) and
+`docs/rust-port/HANDOFF.md` the crates, the parity gates and the deviations from Hugo.
+
+To build neohugo (`rust/target/release/neohugo-rs`):
 
 ```bash
-cd $HOME/go/src/github.com/gohugoio/hugo
+cd rust
+cargo build --release --locked -p neohugo
 ```
 
-To build Hugo:
+To run the tests of the crate you are working on (package `neohugo-<crate>`; `rust/crates/cli` is package `neohugo`):
 
 ```bash
-mage hugo
+cargo test -p neohugo-<crate>
 ```
 
-To install hugo in `$HOME/go/bin`:
+The checks of the Rust workflow, from the repository root (the last one checks the docs patches of `tools/rust-port/i01/patches.json` against `rust/sites/docs/patches/`; CI does not run it):
 
 ```bash
-mage install
+(cd rust && cargo fmt --all --check)
+(cd rust && cargo clippy --workspace --all-targets --locked -- -D warnings)
+(cd rust && cargo test --workspace --locked --no-fail-fast -- --show-output)
+tools/neohugo/licence-check.sh
+python3 tools/neohugo/selftest.py
+python3 tools/rust-port/i01/sites.py patches --check
 ```
 
-To run the tests:
+Some tests need external tools: Node.js, the pinned PostCSS, Tailwind CSS and Babel, and esbuild. Without them a test prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install the tools once (network) and point the tests at them:
 
 ```bash
-mage hugoRace
-mage -v check
+tools/neohugo/node.sh && tools/esbuild/install.sh
+N=$(tools/neohugo/node.sh path)
+export NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
+  NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss NEOHUGO_BABEL_BIN=$N/.bin/babel
 ```
 
-To list all available commands along with descriptions:
-
-```bash
-mage -l
-```
-
-**Note:** Hugo now includes **SCSS support** by default. This requires a C compiler to be installed for building.
-
-```bash
-mage install
-````
+The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`rust/testdata/oracle/`), the golden data of the test sites (`rust/testdata/golden/`), `rust/crates/build/tests/it/testsite-go.txtar` and `rust/crates/highlight/tests/data/`. It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. To regenerate it, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `rust/testdata/golden/README.md`, `rust/crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.
