@@ -1,10 +1,17 @@
 # See https://docs.github.com/en/github/administering-a-repository/configuration-options-for-dependency-updates#package-ecosystem
+# No npm entry: the versions in tools/neohugo/node are parity pins (the tools the golden data was
+# built with), not dependencies to keep current. No entry for docs/ either: its go.mod and
+# package.json belong to the docs site, whose files the test fixtures record by hash.
 version: 2
 updates:
-  - package-ecosystem: "gomod"
-    directory: "/"
+  - package-ecosystem: "cargo"
+    directory: "/rust"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+    groups:
+      minor-and-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

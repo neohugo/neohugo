@@ -1,41 +1,14 @@
-# CI and releases of the Rust rewrite (rust/, the neohugo-rs binary). The Go implementation
-# keeps its own workflows (ci.yml, release.yml, ...). rust/README.md, "CI and releases", says
-# what runs when, how to cut a release and how to reproduce these jobs locally.
+# CI and releases of neohugo (rust/, the neohugo-rs binary): the repository's only build, test
+# and release workflow. rust/README.md, "CI and releases", says what runs when, how to cut a
+# release and how to reproduce these jobs locally.
 name: Rust
 
 on:
   push:
     branches: [main, rust-port]
-    # Releases of neohugo-rs: rust-v<workspace version>, e.g. rust-v0.149.0. The Go release
-    # workflows trigger on v*.*.*, which never matches these tags. Path filters are not
-    # evaluated for tag pushes.
-    tags: ["rust-v*"]
-    # Keep in sync with pull_request.paths.
-    paths:
-      - ".github/workflows/rust.yml"
-      - "rust/**"
-      - "tools/esbuild/**"
-      - "tools/neohugo/**"
-      - "tools/rust-port/**"
-      # Repository files the Rust tests read; the fixtures record many of them by hash.
-      - "docs/**"
-      - "hugolib/testsite/**"
-      - "resources/testdata/**"
-      - "resources/images/testdata/**"
-      # Packaged into the release archives.
-      - "LICENSE"
+    # Releases of neohugo-rs: v<workspace version>, e.g. v0.149.0.
+    tags: ["v[0-9]*"]
   pull_request:
-    paths:
-      - ".github/workflows/rust.yml"
-      - "rust/**"
-      - "tools/esbuild/**"
-      - "tools/neohugo/**"
-      - "tools/rust-port/**"
-      - "docs/**"
-      - "hugolib/testsite/**"
-      - "resources/testdata/**"
-      - "resources/images/testdata/**"
-      - "LICENSE"
   workflow_dispatch:
 
 # A newer run on the same ref cancels the older one, except for release tags.
@@ -76,11 +49,11 @@ jobs:
           rustup default "$RUST_TOOLCHAIN"
 
       - name: Release tag matches the workspace version
-        if: startsWith(github.ref, 'refs/tags/rust-v')
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
           version=$(python3 -c 'import tomllib; print(tomllib.load(open("rust/Cargo.toml", "rb"))["workspace"]["package"]["version"])')
-          if [ "rust-v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $version in rust/Cargo.toml (expected rust-v$version)"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $version in rust/Cargo.toml (expected v$version)"
             exit 1
           fi
 
@@ -101,7 +74,7 @@ jobs:
         run: tools/neohugo/licence-check.sh
 
       # structdiff's self-test (§7.2): perturbations of Go's testsite output must be classified
-      # correctly, and the ratchet must reject unlisted differences (no-Go mode in CI).
+      # correctly, and the ratchet must reject unlisted differences.
       - name: structdiff self-test
         run: python3 tools/neohugo/selftest.py
 
@@ -269,7 +242,7 @@ jobs:
 
   release:
     name: Release
-    if: startsWith(github.ref, 'refs/tags/rust-v')
+    if: startsWith(github.ref, 'refs/tags/v')
     needs: [lint, test, build]
     runs-on: ubuntu-24.04
     timeout-minutes: 15
@@ -294,26 +267,26 @@ jobs:
           sha256sum -c *.sha256
           cat *.sha256 >SHA256SUMS
 
-      # Idempotent: a re-run replaces the assets of the release an earlier run created. Never
-      # marked latest, so /releases/latest keeps pointing at the Go release.
+      # Idempotent: a re-run replaces the assets of the release an earlier run created. Marked
+      # latest unless the version has a pre-release suffix (e.g. 0.150.0-rc.1).
       - name: Publish
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ github.ref_name }}
         run: |
-          version=${TAG#rust-v}
+          version=${TAG#v}
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" dist/* --clobber
             exit 0
           fi
-          prerelease=
-          case $version in *-*) prerelease=--prerelease ;; esac
+          latest=--latest
+          case $version in *-*) latest="--prerelease --latest=false" ;; esac
           {
             echo "neohugo-rs $version, the Rust rewrite of neohugo (\`rust/\`), built from $GITHUB_SHA."
             echo
             echo "Each archive holds the \`neohugo-rs\` binary, \`LICENSE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
             echo "Check a download with \`sha256sum -c SHA256SUMS --ignore-missing\`."
           } >"$RUNNER_TEMP/notes.md"
-          gh release create "$TAG" dist/* --verify-tag --latest=false $prerelease \
+          gh release create "$TAG" dist/* --verify-tag $latest \
             --title "neohugo-rs $version" --notes-file "$RUNNER_TEMP/notes.md"

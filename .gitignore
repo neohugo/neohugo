@@ -1,47 +1,15 @@
-# binary
-/neohugo
-/hugo
-hugo.exe
-neohugo.exe
-
 docs/public*
 /.idea
-hugo.exe
-*.test
-*.prof
 nohup.out
-cover.out
 *.swp
 *.swo
 .DS_Store
 *~
-vendor/*/
-*.bench
-*.debug
-coverage*.out
-
-dock.sh
-
-GoBuilds
-dist
-
-hugolib/hugo_stats.json
-resources/sunset.jpg
-
-vendor
-.hugo_build.lock
-
-tags*
-
-*.test
-imports.*
-dist/
+/dist/
 public/
-.DS_Store
 # Rust rewrite (docs/rust-port/REWRITE_PLAN.md §6.1)
 /rust/target/
 /rust/target-*/
-/tools/neohugo/bin/
 /tools/neohugo/node_modules/
-# Test data is stored verbatim (the rules above, e.g. imports.* and tags*, match fixture names).
+# Test data is stored verbatim, whatever the rules above match.
 !/rust/testdata/**
