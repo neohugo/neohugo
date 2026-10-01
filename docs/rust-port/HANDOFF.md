@@ -10,10 +10,10 @@ to build, test and run it, how the gates work, what deviates from Hugo, and what
 
 neohugo is now an idiomatic Rust rewrite of the Go neohugo (a Hugo fork) and replaces it in
 place: the same binary (`neohugo`), version line and release archives (§9). The Cargo workspace
-is at the repository root: Hugo's site and page model (content tree, bundles, kinds, front matter,
-cascade, permalinks, output formats, taxonomies, menus, pagination, i18n, Hugo Pipes, image
-processing, Markdown with render hooks and shortcodes) with **Tera 2** templates instead of Go
-templates (decision D4). It is not a byte-for-byte port: the Go build was the oracle (its
+is at the repository root: Hugo's site and page model (content tree, bundles, kinds, front
+matter, cascade, permalinks, output formats, taxonomies, menus, pagination, i18n, Hugo Pipes,
+image processing, Markdown with render hooks and shortcodes) with **Tera 2** templates instead
+of Go templates (decision D4). It is not a byte-for-byte port: the Go build was the oracle (its
 outputs are frozen as golden data, §9), and outputs are compared structurally.
 
 - **Gates passed** (REWRITE_PLAN.md §7.3; each against the Go neohugo's build of the same site):
@@ -192,8 +192,9 @@ tool installed: `tools/neohugo/node.sh`, then `tools/esbuild/install.sh`; a test
 macOS, `x86_64` Windows, with the commit, date and vendor of `neohugo version`; `notices.py`
 writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive), **Release** (tags only: the GitHub
 release `v<version>` with the five archives and `neohugo_<version>_checksums.txt`; a version
-with a `-` makes a pre-release, any other is latest only if no release has a higher version). Cutting a release: set `[workspace.package] version`, merge,
-tag `v<version>`, push the tag (DEVELOPMENT.md "CI and releases").
+with a `-` makes a pre-release, any other is latest only if no release has a higher version).
+Cutting a release: set `[workspace.package] version`, merge, tag `v<version>`, push the tag
+(DEVELOPMENT.md "CI and releases").
 
 ## 5. Performance (A-P, T70)
 
@@ -388,12 +389,13 @@ that comments and READMEs cite.
   GitHub release (a pre-release if the version has a `-`, else latest only if no release has a
   higher version). The tags `v0.148.2` and older are the Go releases.
 - **Drop-in names:** the binary is `neohugo` again (it was `neohugo-rs`); `neohugo version`
-  prints the Go line, `neohugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[
-  VendorInfo=<vendor>]` (`crates/cli/src/version.rs`; CI sets the commit, its UTC date and
-  `VendorInfo=neohugo` as the Go releases' build did); the archives are named as goreleaser
-  named them, `neohugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows), with the binary,
-  `README.md` and `LICENSE` at the root plus `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and
-  `THIRD_PARTY/`, next to `neohugo_<version>_checksums.txt`. `compare.sh` takes the binary from
+  prints the Go line,
+  `neohugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]`
+  (`crates/cli/src/version.rs`; CI sets the commit, its UTC date and `VendorInfo=neohugo` as
+  the Go releases' build did); the archives are named as goreleaser named them,
+  `neohugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows), with the binary, `README.md` and
+  `LICENSE` at the root plus `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`,
+  next to `neohugo_<version>_checksums.txt`. `compare.sh` takes the binary from
   `NEOHUGO_BINARY` (was `NEOHUGO_RS`). Not reproduced from the Go release: goreleaser's
   changelog in the release notes and its `v<version>` release title, and the Go commands the
   Rust command line does not have (`env`, which also printed the version line, `new`, `mod`,

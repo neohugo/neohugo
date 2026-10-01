@@ -17,8 +17,8 @@ Go workflows) was removed after commit `44529028`. What it generated is frozen:
 `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`,
 `crates/funcs/tests/fixtures/remarshal/go.txt` and `docs/data/docs.yaml`, as well as the Go
 outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv`
-(PROVENANCE.md). To regenerate any of it, run the old recipe in a worktree of that commit (`git
-worktree add <dir> 44529028`) and copy the result back: `testdata/golden/README.md`,
+(PROVENANCE.md). To regenerate the data of `44529028`, run the old recipe in a worktree of it
+(`git worktree add <dir> 44529028`) and copy the result back: `testdata/golden/README.md`,
 `crates/highlight/README.md`, the docstring of `tools/neohugo/fixtures2json.py`; `docs.yaml` is
 written by the Go binary's `gen docshelper`.
 Hugo's test data that the tests read is in `testdata/upstream/`, at its Go-tree path. Go-tree
