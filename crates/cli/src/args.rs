@@ -385,6 +385,10 @@ pub enum ConfigFormat {
 /// `neohugo -e production templates check` is `neohugo templates check -e production`. A
 /// flag's value stays with it (`neohugo -e server` builds with the environment `server`);
 /// anything this does not recognise is left where it is, for clap to report.
+///
+/// A boolean flag with an explicit value, which cobra (pflag) takes and clap's flags do not,
+/// is rewritten: `--minify=true` (or `1`, `t`, `TRUE`, … as Go's `strconv.ParseBool` reads it)
+/// becomes `--minify`, and `--minify=false` (`0`, `f`, `FALSE`, …) is dropped.
 #[must_use]
 pub fn command_first(mut args: Vec<OsString>) -> Vec<OsString> {
     let root = Cli::command();
@@ -395,6 +399,15 @@ pub fn command_first(mut args: Vec<OsString>) -> Vec<OsString> {
         let Some(arg) = args[i].to_str() else { break };
         if arg == "--" {
             break;
+        }
+        if let Some((flag, on)) = explicit_bool(&root, arg) {
+            if on {
+                args[i] = flag.into();
+                i += 1;
+            } else {
+                args.remove(i);
+            }
+            continue;
         }
         if let Some(long) = arg.strip_prefix("--") {
             if !long.contains('=') && takes_value(&root, &|a| has_long(a, long)) {
@@ -432,6 +445,38 @@ fn takes_value(cmd: &ClapCommand, is: &dyn Fn(&Arg) -> bool) -> bool {
     }
 }
 
+/// A boolean flag (`ArgAction::SetTrue`) given with an explicit value, as pflag reads it
+/// (`--gc=false`, `--buildDrafts=true`, `-D=1`): the flag without the value, and the value.
+/// `None` for anything else, an unknown value included (clap reports it).
+fn explicit_bool(root: &ClapCommand, arg: &str) -> Option<(String, bool)> {
+    let (flag, value) = arg.split_once('=')?;
+    let found = if let Some(long) = flag.strip_prefix("--") {
+        find_arg(root, &|a| has_long(a, long))
+    } else {
+        let mut shorts = flag.strip_prefix('-')?.chars();
+        match (shorts.next(), shorts.next()) {
+            (Some(c), None) => find_arg(root, &|a| has_short(a, c)),
+            _ => None,
+        }
+    }?;
+    if !matches!(found.get_action(), ArgAction::SetTrue) {
+        return None;
+    }
+    let on = match value {
+        "1" | "t" | "T" | "TRUE" | "true" | "True" => true,
+        "0" | "f" | "F" | "FALSE" | "false" | "False" => false,
+        _ => return None,
+    };
+    Some((flag.to_owned(), on))
+}
+
+/// The argument of `cmd` (or else of a command below it) that `is` picks.
+fn find_arg<'a>(cmd: &'a ClapCommand, is: &dyn Fn(&Arg) -> bool) -> Option<&'a Arg> {
+    cmd.get_arguments()
+        .find(|a| is(a))
+        .or_else(|| cmd.get_subcommands().find_map(|c| find_arg(c, is)))
+}
+
 fn has_long(a: &Arg, name: &str) -> bool {
     a.get_long() == Some(name) || a.get_all_aliases().is_some_and(|v| v.contains(&name))
 }
@@ -440,10 +485,11 @@ fn has_short(a: &Arg, c: char) -> bool {
     a.get_short() == Some(c) || a.get_all_short_aliases().is_some_and(|v| v.contains(&c))
 }
 
-/// A log level as Go's `--logLevel` reads it (any case; `warning` is `warn`).
+/// A log level as Go's `--logLevel` reads it (any case; `warning` and the empty string, Go's
+/// default, are `warn`).
 fn parse_log_level(s: &str) -> Result<String, String> {
     match s.to_ascii_lowercase().as_str() {
-        "warn" | "warning" => Ok("warn".to_owned()),
+        "" | "warn" | "warning" => Ok("warn".to_owned()),
         l @ ("debug" | "info" | "error") => Ok(l.to_owned()),
         _ => Err("must be one of debug, info, warn or error".to_owned()),
     }

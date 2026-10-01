@@ -26,7 +26,9 @@ parses, so `neohugo -s site server` is `neohugo server -s site` (a flag keeps it
 `neohugo -e server` builds with the environment `server`). The Go build's persistent flags,
 `-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`,
 `--log-level` and `--no-build-lock`, are clap `global` flags: every command accepts them, and
-one that does not use a flag ignores it (`version -s x`, `config -q -d out`), as Go did.
+one that does not use a flag ignores it (`version -s x`, `config -q -d out`), as Go did. A
+boolean flag also takes pflag's explicit value (`--minify=true`, `--gc=false`, `-D=1`, with Go's
+`strconv.ParseBool` spellings): `command_first` turns it into the flag or drops it.
 
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
@@ -48,13 +50,14 @@ one that does not use a flag ignores it (`version -s x`, `config -q -d out`), as
 | `--minify` | | build, server | `minify.minifyOutput` |
 | `-M`, `--render-to-memory` | `--renderToMemory` | build, server | `SinkKind::Memory`: nothing is written |
 | `--threads N` | | build, server | render pool size (output does not depend on it) |
-| `-q`, `--quiet` | | build, server | no summary on success |
+| `-q`, `--quiet` | | build, server | no summary on success; warnings and errors are still printed (the Go build's `--quiet` discarded its whole log, and had no `-q`) |
 | `--no-times` | `--noTimes` | build, server | `noTimes`: the static copy does not copy modification times |
 | `--no-chmod` | `--noChmod` | build, server | `noChmod`: the static copy does not copy permissions |
 
 The Go build's logging and housekeeping flags are accepted so that its command lines keep
 working (`args::HugoFlags`, hidden from `--help`): `--log-level LEVEL` (`--logLevel`; every
-command; `debug`, `info`, `warn`/`warning` or `error` in any case, another is a usage error),
+command; `debug`, `info`, `warn`/`warning` or `error` in any case, empty for `warn` as in Go,
+another is a usage error),
 `--no-build-lock` (`--noBuildLock`; every command), and for build and server `--gc`,
 `--print-i18n-warnings`, `--print-path-warnings`, `--print-unused-templates`,
 `--template-metrics` and `--template-metrics-hints` (camelCase aliases). `--logLevel warn`,

@@ -104,7 +104,7 @@ Dependencies point down the table (lower crates never depend on higher ones). Li
 Environment (every checkout and worktree shares one target directory):
 
 ```sh
-export CARGO_TARGET_DIR=/home/user/neohugo/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
+export CARGO_TARGET_DIR=<main checkout>/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
 cargo build --release --offline --locked -p neohugo      # → $CARGO_TARGET_DIR/release/neohugo
 cargo test -p neohugo-<crate> --offline --locked          # the edit–test loop (cli: -p neohugo)
 ```
@@ -112,8 +112,8 @@ cargo test -p neohugo-<crate> --offline --locked          # the edit–test loop
 The full check CI runs (workspace-wide; not for the edit–test loop):
 
 ```sh
-N=/home/user/neohugo/tools/neohugo/node_modules            # tools/neohugo/node.sh && tools/esbuild/install.sh
-NEOHUGO_ESBUILD_BINARY=/home/user/neohugo/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
+N=$PWD/tools/neohugo/node_modules                         # tools/neohugo/node.sh && tools/esbuild/install.sh
+NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
 NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
 NEOHUGO_BABEL_BIN=$N/.bin/babel \
   cargo test --workspace --offline --locked               # includes the gate tests A-T, A-R, A-D2
@@ -186,7 +186,7 @@ The gate tests need python3, bash, node, the node tools and esbuild (else `SKIPP
 `.github/workflows/ci.yml` is the repository's only build workflow (`stale.yml` manages issues).
 It runs on pushes to `main` and `rust-port`, on every pull request (no path filters), on
 `v[0-9]*` tags and by hand. Jobs: **Lint** (fmt, clippy `-D warnings`, licence check, structdiff
-self-test, tag = `v<workspace version>`), **Test** (Linux only, §8: the whole workspace with
+self-test, `sites.py patches --check`, tag = `v<workspace version>`), **Test** (Linux only, §8: the whole workspace with
 every tool installed: `tools/neohugo/node.sh`, then `tools/esbuild/install.sh`; a test that
 prints `SKIPPED` fails the job), **Build** (release for `x86_64`/`aarch64` Linux,
 `x86_64`/`aarch64` macOS, `x86_64` Windows, with the commit, date and vendor of `neohugo
@@ -364,9 +364,10 @@ that comments and READMEs cite.
   (`rust/crates/highlight/tests/data/oracle/` at `44529028`), and the Go workflows `ci.yml`
   (Go's; the current `ci.yml` is the renamed `rust.yml`, below; Go's ran its tests on
   `ubuntu-latest` and `windows-latest`, the current one tests on Linux only, §8),
-  `release.yml`, `benchmark.yml`, `golangci-lint.yml`, `image.yml`, and `.github/stale.yml`
+  `release.yml`, `benchmark.yml`, `golangci-lint.yml` and `image.yml`. `.github/stale.yml`
   (the Probot stale bot's configuration, with other labels and periods than the
-  `workflows/stale.yml` that manages issues). `pull-docs.sh` (a `git
+  `workflows/stale.yml` that manages issues) is not Go's and stays, for the maintainers to
+  decide on. `pull-docs.sh` (a `git
   subtree pull` of `docs/` from neohugo/neohugoDocs) is gone too: `docs/` is a frozen test
   fixture now and is no longer pulled. `docs/go.mod`, `docs/go.sum` and `docs/hugo.work` stay:
   they belong to the docs site, which stays byte-identical (only `docs/rust-port/` changes).

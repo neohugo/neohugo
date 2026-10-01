@@ -16,7 +16,7 @@ E5).
 | `UrlRewriter::{absolute, relative, new}.rewrite(bytes, Quoting)` | the canonify rewriter (also `rewrite_str`); `canonify::dotted_path_to_root` |
 | `HtmlElements::collect(html)`, `StatsCollector` | the tags, classes and ids of HTML |
 | `UrlTokens::{extract, iter, contains}` | URL-shaped words after decoding HTML references and JSON escapes (srcset lists, unquoted attributes, `./` / `../` resolved against the output) |
-| `sync_static_dir(&Vfs, root, &StaticSyncOptions)` | phase E1 on disk: rewrite only changed files, copy permissions and modification times (`noChmod`, `noTimes`), `cleanDestinationDir` (keeps `.`-directories), multihost language directories; returns the file count |
+| `sync_static_dir(&Vfs, root, &StaticSyncOptions)` | phase E1 on disk: rewrite only changed files, copy permissions and modification times (`noChmod`, `noTimes`), `cleanDestinationDir` (keeps `.`-directories; on macOS the names it lists are NFC-normalised before they are compared with the static files'), multihost language directories; returns the file count |
 | `sync_static(&Vfs, &dyn Sink, &StaticSyncOptions)` | the same files into any sink (memory builds) |
 | `StaticSyncOptions::target(&FileRef)` | the publish path of a static file (below its language directory on a multihost site); `serve` copies single changed files with it |
 | `livereload::{script, inject}` | the LiveReload `<script>` placed at the start of the head |

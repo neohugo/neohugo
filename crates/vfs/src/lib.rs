@@ -29,4 +29,4 @@ pub use parser::{
     BundleKind, FormatSpec, LayoutParts, LayoutRole, Original, Parsed, PathInfo, PathParser,
     PathParserSpec,
 };
-pub use vfs::{FileRef, Vfs};
+pub use vfs::{FileRef, NFC_NAMES, Vfs, entry_name};

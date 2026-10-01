@@ -174,7 +174,7 @@ To run the tests of the crate you are working on (package `neohugo-<crate>`; `cr
 cargo test -p neohugo-<crate>
 ```
 
-The checks of the CI workflow, from the repository root (the last one checks the docs patches of `tools/rust-port/i01/patches.json` against `sites/docs/patches/`; CI does not run it):
+The checks of the CI workflow, from the repository root (the last one checks the docs patches of `tools/rust-port/i01/patches.json` against `sites/docs/patches/`):
 
 ```bash
 cargo fmt --all --check

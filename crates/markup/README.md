@@ -296,7 +296,7 @@ replaced by `NodeValue::Raw`.
 ## Re-running the harness
 
 ```sh
-export CARGO_TARGET_DIR=/home/user/neohugo/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
+export CARGO_TARGET_DIR=<main checkout>/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
 cargo test --offline -p neohugo-markup --test it comrak_spike -- --nocapture   # ~30 s, prints the tables
 NEOHUGO_SPIKE_SHOW='definition lists' cargo test ...   # print differing items of one row (label substring)
 NEOHUGO_GOLDMARK_EMOJI_TSV=/path/goldmark-emoji.tsv cargo test ...   # enable the emoji comparison

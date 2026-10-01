@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use neohugo_base::paths::{self, OutputPath};
 use neohugo_base::{IdVec, Idx, LangIdx, Sink, Value};
 use neohugo_config::Config;
-use neohugo_vfs::{Component, FileRef, Vfs};
+use neohugo_vfs::{Component, FileRef, NFC_NAMES, Vfs, entry_name};
 use rayon::prelude::*;
 
 use crate::PublishError;
@@ -158,7 +158,7 @@ pub fn sync_static_dir(
             .map(|(t, _)| PathBuf::from(t))
             .chain(dirs.keys().map(PathBuf::from))
             .collect();
-        clean(root, Path::new(""), &keep)?;
+        clean(root, Path::new(""), Path::new(""), &keep, NFC_NAMES)?;
     }
     if o.times {
         // Deepest first, so that setting a directory's time is not undone by its children.
@@ -219,33 +219,47 @@ fn copy_mtime(src: &Path, dest: &Path) -> Result<(), PublishError> {
     filetime::set_file_mtime(dest, mtime).map_err(|e| PublishError::io(dest, e))
 }
 
-/// Removes what is below `root/rel` and not in `keep` (paths relative to `root`); directories
-/// whose name starts with `.` are left alone.
-fn clean(root: &Path, rel: &Path, keep: &BTreeSet<PathBuf>) -> Result<(), PublishError> {
-    let dir = root.join(rel);
+/// Removes what is below `root/os_rel` and not in `keep` (paths relative to `root`, with the
+/// static files' names); directories whose name starts with `.` are left alone. `rel` is
+/// `os_rel` with the build's names: the names the publish directory lists are compared with
+/// `keep` as [`entry_name`] gives them (NFC when `nfc`, on macOS, where the static files' names
+/// are NFC and the publish directory may hold their NFD form), and removed by the OS's name.
+fn clean(
+    root: &Path,
+    os_rel: &Path,
+    rel: &Path,
+    keep: &BTreeSet<PathBuf>,
+    nfc: bool,
+) -> Result<(), PublishError> {
+    let dir = root.join(os_rel);
     let entries = fs::read_dir(&dir).map_err(|e| PublishError::io(&dir, e))?;
-    let mut names: Vec<(PathBuf, bool)> = Vec::new();
+    let mut names: Vec<(PathBuf, PathBuf, bool)> = Vec::new();
     for e in entries {
         let e = e.map_err(|e| PublishError::io(&dir, e))?;
         let is_dir = e
             .file_type()
             .map_err(|err| PublishError::io(e.path(), err))?
             .is_dir();
-        names.push((rel.join(e.file_name()), is_dir));
+        let os_name = e.file_name();
+        let name = match os_name.to_str() {
+            Some(n) => PathBuf::from(entry_name(n, nfc).into_owned()),
+            None => PathBuf::from(&os_name),
+        };
+        names.push((rel.join(name), os_rel.join(os_name), is_dir));
     }
     names.sort();
-    for (path, is_dir) in names {
+    for (path, os_path, is_dir) in names {
         let hidden = path
             .file_name()
             .and_then(|n| n.to_str())
             .is_some_and(|n| n.starts_with('.'));
-        let abs = root.join(&path);
+        let abs = root.join(&os_path);
         if is_dir {
             if hidden {
                 continue;
             }
             if keep.contains(&path) {
-                clean(root, &path, keep)?;
+                clean(root, &os_path, &path, keep, nfc)?;
             } else {
                 fs::remove_dir_all(&abs).map_err(|e| PublishError::io(&abs, e))?;
             }
@@ -254,4 +268,34 @@ fn clean(root: &Path, rel: &Path, keep: &BTreeSet<PathBuf>) -> Result<(), Publis
         }
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeSet;
+    use std::fs;
+    use std::path::{Path, PathBuf};
+
+    use super::clean;
+
+    /// On macOS the static files' names are NFC while the publish directory may list them
+    /// decomposed (HFS+, or an earlier copy under the source's NFD name): `cleanDestinationDir`
+    /// keeps them; without normalisation the NFD directory is not a static file's.
+    #[test]
+    fn clean_compares_nfc_names() {
+        let root = tempfile::tempdir().expect("temp dir");
+        let nfd = root.path().join("cafe\u{301}");
+        fs::create_dir(&nfd).expect("mkdir");
+        fs::write(nfd.join("logo.png"), b"png").expect("write");
+        fs::write(nfd.join("stale.png"), b"old").expect("write");
+        let keep: BTreeSet<PathBuf> = ["caf\u{e9}", "caf\u{e9}/logo.png"]
+            .into_iter()
+            .map(PathBuf::from)
+            .collect();
+        clean(root.path(), Path::new(""), Path::new(""), &keep, true).expect("clean");
+        assert!(nfd.join("logo.png").is_file());
+        assert!(!nfd.join("stale.png").exists());
+        clean(root.path(), Path::new(""), Path::new(""), &keep, false).expect("clean");
+        assert!(!nfd.exists());
+    }
 }

@@ -35,7 +35,10 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 - **File names on macOS** are NFC-normalised as they are walked, as Hugo does on darwin
   (`hugofs` `normalizeFilename`, `componentFs.applyMeta`): HFS+ stores names decomposed (NFD)
   and APFS keeps the form they were created in, so `rel` (and with it paths, URLs and keys) and
-  the names the ignore rules and filters see are NFC. Elsewhere names are used as they are.
+  the names the ignore rules (the `ignoreFiles` regexps: the NFC form of the absolute name) and
+  filters see are NFC; `abs` keeps the OS's name. Elsewhere names are used as they are.
+  `entry_name` is the rule, for what compares names read from the file system with `rel` (the
+  static copy's `cleanDestinationDir`).
 - **`includeFiles`/`excludeFiles`** are Hugo globs (`base::glob`, case-folded) matched against
   the path below the mount source with a leading slash. A file matching an inclusion is kept,
   else one matching an exclusion dropped, else kept only without inclusions. A directory is

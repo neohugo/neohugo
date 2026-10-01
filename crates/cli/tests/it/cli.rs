@@ -176,6 +176,25 @@ fn command_first_moves_the_command_before_the_flags() {
             &["neohugo", "--port", "1314", "serve"],
             &["neohugo", "serve", "--port", "1314"],
         ),
+        // pflag's explicit values of boolean flags: `=true` is the flag, `=false` none (`--watch`
+        // takes `=BOOL` itself).
+        (
+            &[
+                "neohugo",
+                "--minify=true",
+                "server",
+                "-D=false",
+                "--buildDrafts=1",
+                "--watch=false",
+            ],
+            &[
+                "neohugo",
+                "server",
+                "--minify",
+                "--buildDrafts",
+                "--watch=false",
+            ],
+        ),
     ] {
         assert_eq!(first(given), want, "{given:?}");
     }
@@ -188,6 +207,7 @@ fn command_first_moves_the_command_before_the_flags() {
         &["neohugo", "--", "server"],
         &["neohugo", "-s", "site", "nope"],
         &["neohugo", "build", "--minify", "server"],
+        &["neohugo", "--minify=maybe", "-e=x"],
     ] {
         assert_eq!(first(args), args, "{args:?}");
     }
@@ -306,6 +326,21 @@ fn hugo_flags_are_accepted() {
     ];
     let args = command_first(server.iter().map(OsString::from).collect());
     assert!(Cli::try_parse_from(args).is_ok(), "{server:?}");
+    // Explicit values of boolean flags (pflag), and the empty level (Go's default).
+    let o = neohugo(
+        s.path(),
+        &[
+            "--gc=false",
+            "--minify=true",
+            "--quiet=TRUE",
+            "--logLevel",
+            "",
+        ],
+        &[],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(!stderr(&o).contains("ignored-flag"), "{}", stderr(&o));
+    assert!(!stdout(&o).contains("Total in"), "{}", stdout(&o));
     // An unknown level, and a build flag of a command that does not build.
     for bad in [&["--logLevel", "loud"][..], &["config", "--gc"], &["-v"]] {
         let o = neohugo(s.path(), bad, &[]);

@@ -8,6 +8,7 @@ use neohugo_base::paths;
 use regex::Regex;
 
 use crate::Component;
+use crate::vfs::{NFC_NAMES, entry_name};
 
 /// A mount's `includeFiles` and `excludeFiles`, matched (case-insensitively) against the path
 /// below the mount source with a leading slash (`/posts/a.md`).
@@ -79,6 +80,9 @@ fn with_leading_slash(p: &str) -> String {
 pub(crate) struct IgnoreRules {
     /// `ignoreFiles`: regular expressions matched against absolute file names.
     patterns: Vec<Regex>,
+    /// Whether the regular expressions see the NFC form of the file name ([`NFC_NAMES`]), as
+    /// Hugo matches them against `meta.Filename`, which it normalises on darwin.
+    nfc: bool,
 }
 
 impl IgnoreRules {
@@ -87,7 +91,10 @@ impl IgnoreRules {
             .iter()
             .map(|p| Regex::new(p).map_err(|e| (p.clone(), e)))
             .collect::<Result<_, _>>()?;
-        Ok(Self { patterns })
+        Ok(Self {
+            patterns,
+            nfc: NFC_NAMES,
+        })
     }
 
     /// Whether the walk of component `c` skips the entry `name` at `abs`.
@@ -101,12 +108,33 @@ impl IgnoreRules {
             Component::Content | Component::Data | Component::I18n => {
                 name.starts_with(['.', '#'])
                     || name.ends_with('~')
-                    || abs
-                        .to_str()
-                        .is_some_and(|a| self.patterns.iter().any(|r| r.is_match(a)))
+                    || abs.to_str().is_some_and(|a| {
+                        let a = entry_name(a, self.nfc);
+                        self.patterns.iter().any(|r| r.is_match(&a))
+                    })
             }
             Component::Layouts => !is_dir && (name.starts_with('.') || name.ends_with('~')),
             Component::Assets | Component::Static | Component::Archetypes => false,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    use super::IgnoreRules;
+    use crate::Component;
+
+    /// `ignoreFiles` written in NFC matches a file whose name the OS gives decomposed (HFS+) when
+    /// names are normalised (macOS).
+    #[test]
+    fn ignore_files_see_the_nfc_name_on_macos() {
+        let mut rules = IgnoreRules::new(&["caf\u{e9}".to_owned()]).expect("valid regexp");
+        let nfd = Path::new("/site/content/cafe\u{301}.md");
+        rules.nfc = false;
+        assert!(!rules.skips(Component::Content, "cafe\u{301}.md", nfd, false));
+        rules.nfc = true;
+        assert!(rules.skips(Component::Content, "caf\u{e9}.md", nfd, false));
     }
 }

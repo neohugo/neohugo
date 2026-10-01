@@ -190,7 +190,7 @@ impl Vfs {
             let os_name = e.file_name();
             let name = os_name
                 .to_str()
-                .map(|n| entry_name(n, cfg!(target_os = "macos")).into_owned())
+                .map(|n| entry_name(n, NFC_NAMES).into_owned())
                 .ok_or_else(|| VfsError::NonUtf8 { path: e.path() })?;
             entries.push((name, os_name, ft));
         }
@@ -289,12 +289,18 @@ impl Vfs {
     }
 }
 
-/// The name of a directory entry as the build uses it (in [`FileRef::rel`], so in paths, URLs
-/// and keys, and for the ignore rules and filters): NFC-normalised when `nfc` (on macOS), as
-/// Hugo's `normalizeFilename` does on darwin, where HFS+ stores names decomposed (NFD) and APFS
-/// keeps the form they were created in. [`FileRef::abs`] keeps the name the OS returned, so the
-/// file is read, and matched with the watcher's events, by it.
-fn entry_name(name: &str, nfc: bool) -> Cow<'_, str> {
+/// Whether [`entry_name`] normalises names on this platform: on macOS.
+pub const NFC_NAMES: bool = cfg!(target_os = "macos");
+
+/// The name of a directory entry (or a path) as the build uses it (in [`FileRef::rel`], so in
+/// paths, URLs and keys, and for the ignore rules and filters): NFC-normalised when `nfc`
+/// ([`NFC_NAMES`]), as Hugo's `normalizeFilename` does on darwin, where HFS+ stores names
+/// decomposed (NFD) and APFS keeps the form they were created in. [`FileRef::abs`] keeps the
+/// name the OS returned, so the file is read, and matched with the watcher's events, by it;
+/// what compares names read from the file system with `rel` (the static copy's
+/// `cleanDestinationDir`) passes them through this first.
+#[must_use]
+pub fn entry_name(name: &str, nfc: bool) -> Cow<'_, str> {
     if nfc {
         neohugo_base::text::nfc(name)
     } else {

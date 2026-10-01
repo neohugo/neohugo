@@ -80,7 +80,7 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
 - **Environment** (the agents' disk budget, §2.2; the repository has no `.cargo/config.toml`, so
   a plain `cargo build` builds into `target/` with Cargo's defaults):
   ```sh
-  export CARGO_TARGET_DIR=/home/user/neohugo/target   # shared by all worktrees
+  export CARGO_TARGET_DIR=<main checkout>/target   # shared by all worktrees
   export CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
   ```
 - **Build commands:** only `cargo test -p neohugo-<crate>` (`crates/cli` is package `neohugo`;
@@ -95,7 +95,7 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
   `find crates/<name> -name '*.rs' -exec touch {} +`. Read data paths at run time with
   `neohugo_testkit::fixture::{repo_dir, testdata}`, never with `env!("CARGO_MANIFEST_DIR")`.
 - **Disk:** `tools/neohugo/disk.sh` fails above 8 GB of `target` (`NEOHUGO_TARGET_LIMIT_MB`) or below 2 GB free (raised from the plan's 2.5 GB once ~20 GB became free).
-  Every task reports `du -sh /home/user/neohugo/target` and `df -h /` when it ends.
+  Every task reports `du -sh "$CARGO_TARGET_DIR"` and `df -h /` when it ends.
 - **Clean room:** never open Zola ≥ 0.22 source (EUPL-1.2). Copied files go through
   `PROVENANCE.md` first.
 - **Review checklist:** §1.2 (typed model, no thread-locals, no Go-order emulation, no Go error
