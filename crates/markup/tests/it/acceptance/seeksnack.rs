@@ -6,7 +6,8 @@ use super::super::comrak_spike::corpus::seeksnack;
 use super::super::comrak_spike::normalize::{Fold, normalize};
 use super::{Row, html, print, show};
 
-/// The goldmark instance of a corpus configuration (`tools/go-oracle/goldmark` at 44529028).
+/// The goldmark instance of a corpus configuration (`tools/go-oracle/goldmark` at `be02933a`,
+/// `go-parity-final`).
 fn goldmark(cfg: &str) -> MarkdownOptions {
     let plain = MarkdownOptions {
         extensions: Extensions::empty(),

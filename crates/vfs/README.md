@@ -32,6 +32,10 @@ Mounts → one union file view per component, walkers, ignore rules and the path
   `static`), and the project still wins over the themes (per language on multihost sites).
   Symbolic links below a static mount root are followed; a dangling link is skipped, and so is
   a link to a directory that is already on the walked path (loop protection).
+- **File names on macOS** are NFC-normalised as they are walked, as Hugo does on darwin
+  (`hugofs` `normalizeFilename`, `componentFs.applyMeta`): HFS+ stores names decomposed (NFD)
+  and APFS keeps the form they were created in, so `rel` (and with it paths, URLs and keys) and
+  the names the ignore rules and filters see are NFC. Elsewhere names are used as they are.
 - **`includeFiles`/`excludeFiles`** are Hugo globs (`base::glob`, case-folded) matched against
   the path below the mount source with a leading slash. A file matching an inclusion is kept,
   else one matching an exclusion dropped, else kept only without inclusions. A directory is
@@ -70,7 +74,8 @@ Mounts → one union file view per component, walkers, ignore rules and the path
   mount precedence (project over themes, per-language content, data/i18n keep all,
   static later-mount-wins within a module and symlink following with loops),
   mounts below a component and single-file mounts, ignore rules, filters, disabled and unknown
-  mount languages, symlinks, leaf bundles, duplicates.
+  mount languages, symlinks, leaf bundles, duplicates, NFC names on macOS
+  (`file_names_are_nfc_on_macos`; the normalisation itself is unit-tested on every platform).
 - `walk::discover_sites` (ignored; `NEOHUGO_VFS_SITES=<dir>:…`): whole `sites.py` sites.
 
 ## Accepted deviations
@@ -82,7 +87,7 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 | Go `TypeShortcode` outside layouts is `BundleKind::Resource` (144 cases) | A non-content file below `/_shortcodes/` in another component; Go treats it exactly like `TypeFile`. |
 | Not modelled: `Container`, `ContainerDir`, `Identifiers`, `NameNoExt`, `NameNoLang`, `PathNoLang`, `PathBeforeLangAndOutputFormatAndExt`, `BaseReTyped`, `IdentifierBase`, `TrimLeadingSlash`, `ForType`, `PathRel`, `BaseRel` | Go conveniences; callers derive what they need from `key`, `path` and `dir()`. |
 | A missing `hugo_stats.json` mount source is kept but not created | Hugo creates the empty file; here the build writes it (E4) and `walk`/`open` see it once it exists. |
-| No NFC normalisation of file names | Hugo does it on darwin only; neohugo runs on Linux. |
+| On macOS `abs` keeps the name the OS returned; only `rel` is NFC | Hugo normalises its absolute file names too. Reading by the OS's name also works on file systems that do not normalise names, and keeps the server's watcher events (which carry the OS's names) matching `abs`. |
 | `walk` returns a `Vec` in byte order, not Hugo's `ReadDir` order | Order only affected Hugo's insertion ids; the trees are keyed. |
 | Discovery is sequential | The plan's `par_iter` over mounts is not needed: the docs site (1,000 files) walks in milliseconds. |
 | Pages of disabled kinds and front matter `path`/`lang` moves | Not file-system rules: `page`/`site` apply them (the capture test leaves those files out). |

@@ -90,6 +90,10 @@ pub struct CliOverrides {
     pub ignore_cache: Option<bool>,
     /// `--configDir` (default `config`).
     pub config_dir: Option<PathBuf>,
+    /// `--noTimes`: the static copy does not copy modification times.
+    pub no_times: Option<bool>,
+    /// `--noChmod`: the static copy does not copy permissions.
+    pub no_chmod: Option<bool>,
 }
 
 impl CliOverrides {
@@ -122,6 +126,8 @@ impl CliOverrides {
                 .map(|t| Value::array(t.iter().map(|s| Value::string(s)).collect())),
         );
         set("ignorecache", self.ignore_cache.map(Value::Bool));
+        set("notimes", self.no_times.map(Value::Bool));
+        set("nochmod", self.no_chmod.map(Value::Bool));
         m
     }
 }

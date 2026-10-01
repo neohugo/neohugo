@@ -18,7 +18,7 @@ tera for `to_tera`, regex, unicode-properties, unicode-normalization, thiserror)
 | `glob` | `compile(pattern, GlobOpts { case, separator }) -> Glob` (Hugo/gobwas syntax) |
 | `time` | `parse_date(s, &TimeZone)` (Hugo's 21 date layouts), `Clock`, `DateError` |
 | `diag` | `Position`, `Severity`, `Diagnostic`, `Diagnostics` (thread-safe, ignoreLogs, sorted + de-duplicated report) |
-| `text` | general-category predicates, simple case mappings, `remove_accents` |
+| `text` | general-category predicates, simple case mappings, `remove_accents`, `nfc` |
 | crate root | `Collate` (+ `ByteOrder`), `Sink` |
 
 ## Oracle acceptance (T10)

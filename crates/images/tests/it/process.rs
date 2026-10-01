@@ -314,5 +314,6 @@ fn sizes_match_the_process_oracle() {
         r.compared,
         r.failures.join("\n")
     );
-    assert!(r.compared >= 13_000, "only {} cases compared", r.compared);
+    assert_eq!(r.missing_sources, 0, "oracle sources not found");
+    assert!(r.compared >= 13_250, "only {} cases compared", r.compared);
 }

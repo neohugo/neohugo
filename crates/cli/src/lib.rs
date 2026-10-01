@@ -18,6 +18,7 @@ pub mod version;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
+use neohugo_base::diag::Diagnostic;
 use neohugo_config::{CliOverrides, LoadOptions};
 
 pub use args::Cli;
@@ -50,6 +51,7 @@ impl From<Exit> for ExitCode {
 /// Runs a parsed command line.
 #[must_use]
 pub fn run(cli: Cli) -> Exit {
+    warn_ignored(&cli);
     let result = match cli.command {
         None => build::run(&cli.build),
         Some(Command::Build(b)) => build::run(&b),
@@ -65,6 +67,26 @@ pub fn run(cli: Cli) -> Exit {
         report::fatal(&e);
         Exit::Failure
     })
+}
+
+/// Warns about the Go build's flags given that neohugo accepts but does not act on
+/// ([`args::HugoFlags::ignored`]).
+fn warn_ignored(cli: &Cli) {
+    let command = match &cli.command {
+        Some(Command::Build(b)) => Some(&b.hugo),
+        Some(Command::Server(s)) => Some(&s.build.hugo),
+        _ => None,
+    };
+    let mut warnings: Vec<Diagnostic> = Vec::new();
+    for message in std::iter::once(&cli.build.hugo)
+        .chain(command)
+        .flat_map(args::HugoFlags::ignored)
+    {
+        if !warnings.iter().any(|w| w.message == message) {
+            warnings.push(Diagnostic::warning(message).with_id("ignored-flag"));
+        }
+    }
+    report::diagnostics(&warnings);
 }
 
 impl ProjectArgs {

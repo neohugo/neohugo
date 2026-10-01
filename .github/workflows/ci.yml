@@ -75,6 +75,11 @@ jobs:
       - name: structdiff self-test
         run: python3 tools/neohugo/selftest.py
 
+      # sites.py's docs patches must match patches.json, and the Tera patch files the layout
+      # patches 1:1 (no cargo test checks this).
+      - name: sites.py patches
+        run: python3 tools/rust-port/i01/sites.py patches --check
+
   test:
     name: Test
     runs-on: ubuntu-24.04

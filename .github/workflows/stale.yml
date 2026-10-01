@@ -41,9 +41,9 @@ jobs:
 
               This issue will automatically be closed if no further activity occurs. Thank you for your contributions.
           stale-pr-message: This PR has been automatically marked as stale because it has not had
-            recent activity. The resources of the Hugo team are limited, and so we are asking for your help.
+            recent activity. The resources of the neohugo maintainers are limited, and so we are asking for your help.
 
-            Please check https://github.com/neohugo/neohugo/blob/main/CONTRIBUTING.md#code-contribution and verify that this code contribution fits with the description. If yes, tell is in a comment.
+            Please check https://github.com/neohugo/neohugo/blob/main/CONTRIBUTING.md#code-contribution and verify that this code contribution fits with the description. If yes, tell us in a comment.
 
             This PR will automatically be closed in the near future if no further activity occurs. Thank you for all your contributions.
           stale-issue-label: 'Stale'

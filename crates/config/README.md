@@ -110,7 +110,7 @@ one.
 |---|---|
 | `load(&LoadOptions) -> Result<Config, ConfigError>` | the pipeline |
 | `LoadOptions` | `source`, `config_files`, `cli`, `env` (the process environment: `HUGO_*` plus `HOME`, `XDG_CACHE_HOME`, `TMPDIR`, `USER`) |
-| `CliOverrides` | typed CLI layer (`base_url`, `environment`, `destination`, `minify`, `build_drafts/future/expired`, `cache_dir`, `themes_dir`, `theme`, `ignore_cache`, `config_dir`); `to_tree()` |
+| `CliOverrides` | typed CLI layer (`base_url`, `environment`, `destination`, `minify`, `build_drafts/future/expired`, `cache_dir`, `themes_dir`, `theme`, `ignore_cache`, `config_dir`, `no_times`, `no_chmod`); `to_tree()` |
 | `Config` | `project_dir`, `environment`, `config_files` (the themes' then the project's, lowest precedence first), `sites`, `disabled_languages`, `multihost`, `default_language_in_subdir`, `output_formats: Arc<OutputFormats>`, `media_types: Arc<MediaTypes>`, `content_types`, `default_output_format`, `dirs`, `cache_dir`, `mounts`, `themes: Vec<Theme>`, `build`, `caches`, `security`, `privacy`, `imaging`, `minify`, `content: ContentFilter`, `timeout`, `ignore_files`, `ignore_logs`, `enable_git_info`, `raw: Params`, `diagnostics` (deprecations, ignored configuration files; the build reports them); `default_site()`, `site(key)` |
 | `Theme` / `ThemeMounts` (`theme`) | a theme in precedence order: `path`, `dir`, `owner`, `config_files`, `mounts` (`Components`, `Configured(Vec<MountConfig>)`, `None`), `vendored`; `theme::path_key` |
 | `merge` | `MergeStrategy` (`None`, `Shallow`, `Deep`; `parse`, `written`, `default_for`), `merge_themes(&mut Map, themes)` |

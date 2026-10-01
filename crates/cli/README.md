@@ -24,9 +24,9 @@ Kebab-case, with Hugo's camelCase spelling as an alias. As in the Go build (cobr
 come before the command: `args::command_first` moves the command to the front before clap
 parses, so `neohugo -s site server` is `neohugo server -s site` (a flag keeps its value:
 `neohugo -e server` builds with the environment `server`). The Go build's persistent flags,
-`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q` and `-M`, are
-clap `global` flags: every command accepts them, and one that does not use a flag ignores it
-(`version -s x`, `config -q -d out`), as Go did.
+`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`,
+`--log-level` and `--no-build-lock`, are clap `global` flags: every command accepts them, and
+one that does not use a flag ignores it (`version -s x`, `config -q -d out`), as Go did.
 
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
@@ -49,6 +49,19 @@ clap `global` flags: every command accepts them, and one that does not use a fla
 | `-M`, `--render-to-memory` | `--renderToMemory` | build, server | `SinkKind::Memory`: nothing is written |
 | `--threads N` | | build, server | render pool size (output does not depend on it) |
 | `-q`, `--quiet` | | build, server | no summary on success |
+| `--no-times` | `--noTimes` | build, server | `noTimes`: the static copy does not copy modification times |
+| `--no-chmod` | `--noChmod` | build, server | `noChmod`: the static copy does not copy permissions |
+
+The Go build's logging and housekeeping flags are accepted so that its command lines keep
+working (`args::HugoFlags`, hidden from `--help`): `--log-level LEVEL` (`--logLevel`; every
+command; `debug`, `info`, `warn`/`warning` or `error` in any case, another is a usage error),
+`--no-build-lock` (`--noBuildLock`; every command), and for build and server `--gc`,
+`--print-i18n-warnings`, `--print-path-warnings`, `--print-unused-templates`,
+`--template-metrics` and `--template-metrics-hints` (camelCase aliases). `--logLevel warn`,
+`--noBuildLock` (neohugo writes no lock file) and `--printPathWarnings` (target collisions are
+always warnings) are what neohugo does anyway; each of the others prints
+`WARN  [ignored-flag]: <flag> is ignored: …` and changes nothing (warnings and errors are
+printed at every log level).
 
 ### `server` (alias `serve`)
 
@@ -97,18 +110,20 @@ environment; `-e` wins over `HUGO_ENV*`).
 indented below. Build errors that are not diagnostics print `ERROR build failed: <error>`, whose
 message carries Tera's `--> <template>:<line>:<col>` snippet. A successful build prints
 `pages … | files … (aliases …) | resources … | processed images … | static files …` and
-`Total in N ms`.
+`Total in N ms` (the Go build printed a statistics table per language).
 
 ### Mapping from the old port (`nh-commands`, `go-parity-final`)
 
 | Old flag | Here |
 |---|---|
 | `source/s destination/d environment/e theme/t themesDir baseURL/b cacheDir ignoreCache buildDrafts/D buildFuture/F buildExpired/E clock config configDir cleanDestinationDir renderToMemory/M minify quiet` | the flags above (kebab-case + the camelCase alias) |
-| `contentDir/c layoutDir/l noTimes noChmod disableKinds enableGitInfo printPathWarnings printI18nWarnings panicOnWarning` | configuration keys (file or `HUGO_*`), not flags |
+| `noTimes noChmod` | the flags above |
+| `logLevel noBuildLock gc printPathWarnings printI18nWarnings printUnusedTemplates templateMetrics templateMetricsHints` | accepted (`HugoFlags`, above); a warning for those neohugo does not act on |
+| `contentDir/c layoutDir/l disableKinds enableGitInfo panicOnWarning` | configuration keys (file or `HUGO_*`), not flags |
 | `server`: `port/p bind appendPort disableLiveReload liveReloadPort navigateToChanged/N noHTTPCache watch/w poll renderToDisk disableFastRender disableBrowserError` | the `server` flags above (T71) |
 | `server`: `tlsCertFile tlsKeyFile tlsAuto openBrowser/O pprof renderStaticToDisk forceSyncStatic`, command `server trust` | not supported (clap usage error) |
-| `logLevel devMode gc noBuildLock forceSyncStatic ignoreVendorPaths renderSegments templateMetrics templateMetricsHints printUnusedTemplates printMemoryUsage profile-* trace`, the build's `watch/w` | not supported (clap usage error) |
-| commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env`, `release`, `config mounts`, and cobra's `completion` and `help` | not supported (`--help` prints the help); `config` prints the resolved configuration as JSON (the default; Go's was TOML) or TOML, without Go's `yaml`, `--lang` and `--printZero` |
+| `devMode forceSyncStatic ignoreVendorPaths renderSegments printMemoryUsage profile-* trace`, the build's `watch/w` | not supported (clap usage error) |
+| commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env`, `release`, `config mounts`, and cobra's `completion` and `help` | not supported (`--help` prints the help); `config` prints neohugo's resolved configuration model (`neohugo_config::Config`: snake_case fields, one entry per site under `sites`, the merged user keys lower-cased under `raw`) as JSON (the default; Go's was TOML) or TOML, not Go's lower-cased Hugo keys of one language (`baseurl`, `publishdir`, …), and without Go's `yaml`, `--lang` and `--printZero` |
 
 ## `templates check`
 
@@ -160,7 +175,10 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `build::testsite_matches_go` | `sites.py`'s testsite with `sites/testsite/layouts`, built by the binary with compare.sh's command line (`--clock … -d …`, no command) and with `build --source … --destination … --cleanDestinationDir -q`: **55/55 files byte-identical** to `crates/build/tests/it/testsite-go.txtar` |
 | `build::flags_and_environment` | every configuration flag in both spellings, `HUGO_TITLE`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_BASEURL`, `-M` writes nothing |
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
-| `cli::version_help_and_usage_errors` | `version`, `--help`, usage errors exit 2 |
+| `cli::version_help_and_usage_errors` | `version` and `--version` print the line of `version::BuildInfo::CURRENT`, `--help`, usage errors exit 2 |
+| `cli::version_line_has_the_go_format` | the Go format with and without commit, date and vendor; Go's os/arch names for the five release targets; the version is the package's |
+| `cli::hugo_flags_are_accepted` | the Go build's logging and housekeeping flags: accepted, a warning for each one neohugo does not act on, none for the others; `--logLevel` and `--noBuildLock` on every command; an unknown level, `config --gc` and `-v` exit 2 |
+| `cli::no_times_and_no_chmod_reach_the_static_copy` | `--noTimes`/`--noChmod` (both spellings): the static copy keeps or leaves the source's modification time and permissions (Unix) |
 | `cli::command_first_moves_the_command_before_the_flags` | flags before the command (cobra's order): the command moved to the front, values kept, everything else left for clap |
 | `cli::persistent_flags_anywhere` | the Go build's persistent flags before the command and on `config`, `templates check` and `version`; a flag the command does not take is still a usage error |
 | `server::server_starts_and_serves` | `serve -p 0` with camelCase flags: the start report (environment `development`, memory, watching, built), the page with the LiveReload script and `--noHTTPCache` headers, nothing on disk |

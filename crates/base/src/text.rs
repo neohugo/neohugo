@@ -4,6 +4,8 @@
 //! are the *simple* (one character to one character) mappings, which is what Hugo's rules are
 //! defined over.
 
+use std::borrow::Cow;
+
 use unicode_normalization::UnicodeNormalization;
 use unicode_properties::{GeneralCategory, GeneralCategoryGroup, UnicodeGeneralCategory};
 
@@ -85,6 +87,16 @@ pub fn to_lower(s: &str) -> String {
 #[must_use]
 pub fn to_upper(s: &str) -> String {
     s.chars().map(upper_char).collect()
+}
+
+/// `s` in Unicode normalisation form C (`e` + U+0301 → `é`), borrowed when it already is.
+#[must_use]
+pub fn nfc(s: &str) -> Cow<'_, str> {
+    if unicode_normalization::is_nfc(s) {
+        Cow::Borrowed(s)
+    } else {
+        Cow::Owned(s.nfc().collect())
+    }
 }
 
 /// Removes non-spacing marks (`Mn`) after canonical decomposition and recomposes: `é` → `e`,

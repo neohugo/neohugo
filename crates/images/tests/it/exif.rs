@@ -74,13 +74,17 @@ fn dates_and_positions_match_the_exif_oracle() {
     let (mut tag_total, mut tag_found) = (0usize, 0usize);
     let mut failures = Vec::new();
     let mut missing = std::collections::BTreeMap::new();
+    let mut unavailable = Vec::new();
     for c in doc["cases"].as_array().expect("cases") {
         let src = c["src"].as_str().expect("src");
         let bytes = match c.get("b") {
             Some(b) => base64(b.as_str().expect("b")),
             None => match source_path(src) {
                 Some(p) => std::fs::read(p).expect("read"),
-                None => continue,
+                None => {
+                    unavailable.push(src);
+                    continue;
+                }
             },
         };
         for (name, s) in &configs {
@@ -151,6 +155,11 @@ fn dates_and_positions_match_the_exif_oracle() {
             .collect::<Vec<_>>()
             .join("\n")
     );
+    assert!(
+        unavailable.is_empty(),
+        "oracle sources not found: {unavailable:?}"
+    );
+    assert!(compared >= 2_440, "only {compared} cases compared");
     assert!(
         with_data > 50,
         "only {with_data} cases with a date or position"

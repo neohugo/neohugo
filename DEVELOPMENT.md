@@ -52,6 +52,7 @@ testdata/corpus/            corpora: seeksnack bodies and front matter, dates, m
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
 testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids);
                             goroot/: Go's image test data the image oracles read
+                            old-port/: five more of them, from be02933a
 testdata/COUNTS.json        per fixture: old path, record and value counts at conversion
 sites/<site>/               the Tera layouts (and assets) of the test sites; sites/docs/patches/
 tools/neohugo/              the harness (compare.sh, structdiff.py, manifest.py, selftest.py,
@@ -82,8 +83,8 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
   export CARGO_TARGET_DIR=/home/user/neohugo/target   # shared by all worktrees
   export CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
   ```
-- **Build commands:** only `cargo test -p <crate>` (plus `-p` of direct dependants after an API
-  change). Never `cargo check`, `clippy` or `doc` in the edit–test loop; never `--workspace`;
+- **Build commands:** only `cargo test -p neohugo-<crate>` (`crates/cli` is package `neohugo`;
+  plus `-p` of direct dependants after an API change). Never `cargo check`, `clippy` or `doc` in the edit–test loop; never `--workspace`;
   `--release` only for measurements and packaging (since T70); never `cargo clean` (`cargo clean -p X` only when coordinated).
   `cargo fetch`/`cargo metadata` use `--target x86_64-unknown-linux-gnu` /
   `--filter-platform x86_64-unknown-linux-gnu`. Builds run offline after T00.
@@ -112,8 +113,8 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 
 | What | Command |
 |---|---|
-| per crate | `cargo test -p <crate>` (from your worktree's root) |
-| phase end | `cargo clippy -p <crate> -- -D warnings` per crate of the phase; `cargo fmt --check`; `tools/neohugo/licence-check.sh` |
+| per crate | `cargo test -p neohugo-<crate>` (`crates/cli` is package `neohugo`; from your worktree's root) |
+| phase end | `cargo clippy -p neohugo-<crate> -- -D warnings` per crate of the phase; `cargo fmt --check`; `tools/neohugo/licence-check.sh` |
 | graph | `cargo metadata --format-version 1 --filter-platform x86_64-unknown-linux-gnu` |
 | disk | `tools/neohugo/disk.sh` |
 | fixtures | `tools/neohugo/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
@@ -132,7 +133,7 @@ same ref cancels the older one, except on tags.
 
 | Job | Runner | Steps |
 |---|---|---|
-| Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; `tools/neohugo/selftest.py`; on a tag, the tag must be `v<version of [workspace.package]>` |
+| Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; `tools/neohugo/selftest.py`; `tools/rust-port/i01/sites.py patches --check`; on a tag, the tag must be `v<version of [workspace.package]>` |
 | Test | ubuntu-24.04 | `cargo test --workspace --locked --no-fail-fast` with the tools below; the job summary lists every test that printed `SKIPPED`, and any such test fails the job |
 | Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>` with the version variables (below); `neohugo version`; a tiny site built, whose sitemap, RSS and `robots.txt` (embedded templates) must have no CR; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-<triple>` |
 | Release | ubuntu-24.04 | tags only, after the other three: the GitHub release (below) |
@@ -195,9 +196,9 @@ all of them, and its Test job fails when a test prints `SKIPPED`:
 | `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
 | `neohugo`: `gate_a_r`, `gate_a_d2` (`tools/neohugo/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`NEOHUGO_NODE_MODULES`, else `tools/neohugo/node.sh path`) and esbuild (`NEOHUGO_ESBUILD_BINARY`, else the main checkout's `tools/esbuild/bin/esbuild`) | the runner's `python3` and `bash`; the three rows above |
 
-`neohugo-images`' `sizes_match_the_process_oracle` compares 13,089 cases (at least 13,000 must
-compare), 2,043 of them from Go's own image test data in `testdata/upstream/goroot/`; five
-sources that only a newer Go has are not in the repository (`crates/images/README.md`). Python
+`neohugo-images`' `sizes_match_the_process_oracle` compares all 13,250 cases, 2,204 of them from
+Go's own image test data in `testdata/upstream/goroot/` and `testdata/upstream/old-port/`
+(`crates/images/README.md`); a source that cannot be found fails it. Python
 is needed only by the gate tests and the tools (`licence-check.sh`, `selftest.py`, `notices.py`,
 `package.py` (Python 3.11 or later), and `tools/rust-port/i01/sites.py` for the ignored
 real-site tests that read `NEOHUGO_SITES`). Not needed by `cargo test`: dart-sass (grass
@@ -211,6 +212,7 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 tools/neohugo/licence-check.sh
 python3 tools/neohugo/selftest.py
+python3 tools/rust-port/i01/sites.py patches --check
 N=$(tools/neohugo/node.sh path)   # once: tools/neohugo/node.sh && tools/esbuild/install.sh
 NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
 NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \

@@ -3,8 +3,9 @@
 //!
 //! As in the Go build (cobra), flags may come before the command ([`command_first`]), and the Go
 //! build's persistent flags (`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`,
-//! `--clock`, `-q`, `-M`) are accepted by every command (`global`); the commands that do not use
-//! one ignore it.
+//! `--clock`, `-q`, `-M`, `--logLevel`, `--noBuildLock`) are accepted by every command
+//! (`global`); the commands that do not use one ignore it. The Go build's logging and
+//! housekeeping flags are accepted too ([`HugoFlags`]).
 
 use std::ffi::OsString;
 use std::path::PathBuf;
@@ -126,10 +127,102 @@ pub struct BuildArgs {
     /// Prints only warnings and errors.
     #[arg(short = 'q', long, global = true)]
     pub quiet: bool,
+    #[command(flatten)]
+    pub hugo: HugoFlags,
+}
+
+/// Flags of the Go build that only change its logging or housekeeping, accepted so that its
+/// command lines keep working (hidden from `--help`). `--logLevel warn` (Go's default),
+/// `--noBuildLock` (neohugo writes no lock file) and `--printPathWarnings` (target collisions are
+/// always warnings) are what neohugo does anyway; the others are ignored with a warning
+/// ([`HugoFlags::ignored`]).
+#[derive(Clone, Debug, Default, Args)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "one field per command-line flag, as clap reads them"
+)]
+pub struct HugoFlags {
+    /// Go's log level (`debug`, `info`, `warn`, `error`); neohugo prints warnings and errors at
+    /// every level.
+    #[arg(
+        long,
+        alias = "logLevel",
+        value_name = "LEVEL",
+        value_parser = parse_log_level,
+        global = true,
+        hide = true
+    )]
+    pub log_level: Option<String>,
+    /// Go wrote no `.hugo_build.lock`; neohugo never writes one.
+    #[arg(long, alias = "noBuildLock", global = true, hide = true)]
+    pub no_build_lock: bool,
+    /// Go removed unused cache files after the build.
+    #[arg(long, hide = true)]
+    pub gc: bool,
+    /// Go printed missing translations.
+    #[arg(long, alias = "printI18nWarnings", hide = true)]
+    pub print_i18n_warnings: bool,
+    /// Go printed duplicate target paths; neohugo always does.
+    #[arg(long, alias = "printPathWarnings", hide = true)]
+    pub print_path_warnings: bool,
+    /// Go printed the templates no page used.
+    #[arg(long, alias = "printUnusedTemplates", hide = true)]
+    pub print_unused_templates: bool,
+    /// Go printed template execution metrics.
+    #[arg(long, alias = "templateMetrics", hide = true)]
+    pub template_metrics: bool,
+    /// Go added improvement hints to `--templateMetrics`.
+    #[arg(long, alias = "templateMetricsHints", hide = true)]
+    pub template_metrics_hints: bool,
+}
+
+impl HugoFlags {
+    /// The flags given that neohugo does not act on, each with what Go did.
+    #[must_use]
+    pub fn ignored(&self) -> Vec<String> {
+        let mut out = Vec::new();
+        if let Some(level) = self.log_level.as_deref().filter(|l| *l != "warn") {
+            out.push(format!(
+                "--logLevel {level} is ignored: neohugo prints warnings and errors at every log level"
+            ));
+        }
+        for (given, flag, what) in [
+            (self.gc, "--gc", "remove unused cache files after the build"),
+            (
+                self.print_i18n_warnings,
+                "--printI18nWarnings",
+                "print missing translations",
+            ),
+            (
+                self.print_unused_templates,
+                "--printUnusedTemplates",
+                "print unused templates",
+            ),
+            (
+                self.template_metrics,
+                "--templateMetrics",
+                "print template metrics",
+            ),
+            (
+                self.template_metrics_hints,
+                "--templateMetricsHints",
+                "print template metrics",
+            ),
+        ] {
+            if given {
+                out.push(format!("{flag} is ignored: neohugo does not {what}"));
+            }
+        }
+        out
+    }
 }
 
 /// Where a build writes.
 #[derive(Clone, Debug, Default, Args)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "one field per command-line flag, as clap reads them"
+)]
 pub struct OutputArgs {
     /// The publish directory, relative to the source.
     #[arg(short = 'd', long, value_name = "DIR", global = true)]
@@ -140,6 +233,12 @@ pub struct OutputArgs {
     /// Renders into memory only (a dry run: nothing is written; what `server` does by default).
     #[arg(short = 'M', long, alias = "renderToMemory", global = true)]
     pub render_to_memory: bool,
+    /// Does not copy the static files' modification times (config `noTimes`).
+    #[arg(long, alias = "noTimes")]
+    pub no_times: bool,
+    /// Does not copy the static files' permissions (config `noChmod`).
+    #[arg(long, alias = "noChmod")]
+    pub no_chmod: bool,
 }
 
 /// `server` (alias `serve`): `build`'s flags and the server's.
@@ -339,6 +438,15 @@ fn has_long(a: &Arg, name: &str) -> bool {
 
 fn has_short(a: &Arg, c: char) -> bool {
     a.get_short() == Some(c) || a.get_all_short_aliases().is_some_and(|v| v.contains(&c))
+}
+
+/// A log level as Go's `--logLevel` reads it (any case; `warning` is `warn`).
+fn parse_log_level(s: &str) -> Result<String, String> {
+    match s.to_ascii_lowercase().as_str() {
+        "warn" | "warning" => Ok("warn".to_owned()),
+        l @ ("debug" | "info" | "error") => Ok(l.to_owned()),
+        _ => Err("must be one of debug, info, warn or error".to_owned()),
+    }
 }
 
 fn parse_clock(s: &str) -> Result<jiff::Timestamp, String> {

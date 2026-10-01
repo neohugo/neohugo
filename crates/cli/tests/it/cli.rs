@@ -1,9 +1,12 @@
-//! The command line itself: `version`, `--help`, usage errors, flags before the command, `config`.
+//! The command line itself: `version`, `--help`, usage errors, flags before the command, the Go
+//! build's logging and housekeeping flags, `config`.
 
 use std::ffi::OsString;
 
+use ::neohugo::Cli;
 use ::neohugo::args::command_first;
 use ::neohugo::version::BuildInfo;
+use clap::Parser as _;
 
 use crate::{neohugo, site_from, stderr, stdout};
 
@@ -232,4 +235,112 @@ fn persistent_flags_anywhere() {
         assert_eq!(o.status.code(), Some(2), "{args:?}");
         assert!(stderr(&o).contains("--minify"), "{args:?}: {}", stderr(&o));
     }
+}
+
+/// The Go build's logging and housekeeping flags are accepted (`args::HugoFlags`); those neohugo
+/// does not act on give a warning.
+#[test]
+fn hugo_flags_are_accepted() {
+    let s = site_from("-- hugo.toml --\ntitle = \"T\"\n");
+    let o = neohugo(
+        s.path(),
+        &[
+            "--gc",
+            "--minify",
+            "--logLevel",
+            "info",
+            "--noBuildLock",
+            "--printI18nWarnings",
+            "--printPathWarnings",
+            "--printUnusedTemplates",
+            "--templateMetrics",
+            "--templateMetricsHints",
+        ],
+        &[],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let err = stderr(&o);
+    for flag in [
+        "--gc ",
+        "--logLevel info ",
+        "--printI18nWarnings ",
+        "--printUnusedTemplates ",
+        "--templateMetrics ",
+        "--templateMetricsHints ",
+    ] {
+        assert!(
+            err.contains(&format!("WARN  [ignored-flag]: {flag}is ignored")),
+            "{flag}: {err}"
+        );
+    }
+    for flag in ["--noBuildLock", "--printPathWarnings", "--minify"] {
+        assert!(!err.contains(flag), "{flag}: {err}");
+    }
+    // What neohugo does anyway: no warning.
+    let o = neohugo(
+        s.path(),
+        &[
+            "build",
+            "--logLevel",
+            "WARNING",
+            "--noBuildLock",
+            "--printPathWarnings",
+        ],
+        &[],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    assert!(!stderr(&o).contains("ignored-flag"), "{}", stderr(&o));
+    // `--logLevel` and `--noBuildLock` were persistent flags: every command takes them.
+    let o = neohugo(
+        s.path(),
+        &["config", "--logLevel", "error", "--noBuildLock"],
+        &[],
+    );
+    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
+    let server = [
+        "neohugo",
+        "--gc",
+        "server",
+        "--noTimes",
+        "--printI18nWarnings",
+    ];
+    let args = command_first(server.iter().map(OsString::from).collect());
+    assert!(Cli::try_parse_from(args).is_ok(), "{server:?}");
+    // An unknown level, and a build flag of a command that does not build.
+    for bad in [&["--logLevel", "loud"][..], &["config", "--gc"], &["-v"]] {
+        let o = neohugo(s.path(), bad, &[]);
+        assert_eq!(o.status.code(), Some(2), "{bad:?}: {}", stderr(&o));
+    }
+}
+
+/// `--noTimes` and `--noChmod` (config `noTimes`, `noChmod`): the static copy leaves the copies'
+/// modification times and permissions alone.
+#[cfg(unix)]
+#[test]
+fn no_times_and_no_chmod_reach_the_static_copy() {
+    use std::os::unix::fs::PermissionsExt;
+    use std::time::{Duration, SystemTime};
+
+    let s = site_from("-- hugo.toml --\ntitle = \"T\"\n-- static/a.txt --\nhi\n");
+    let src = s.path().join("static/a.txt");
+    let old = SystemTime::UNIX_EPOCH + Duration::from_secs(978_307_200);
+    std::fs::File::options()
+        .write(true)
+        .open(&src)
+        .and_then(|f| f.set_modified(old))
+        .expect("set mtime");
+    std::fs::set_permissions(&src, std::fs::Permissions::from_mode(0o604)).expect("chmod");
+    let copied = |args: &[&str]| {
+        let _ = std::fs::remove_dir_all(s.path().join("public"));
+        let o = neohugo(s.path(), args, &[]);
+        assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
+        let m = std::fs::metadata(s.path().join("public/a.txt")).expect("copied");
+        (
+            m.modified().expect("mtime") == old,
+            m.permissions().mode() & 0o777 == 0o604,
+        )
+    };
+    assert_eq!(copied(&["build"]), (true, true));
+    assert_eq!(copied(&["build", "--noTimes", "--noChmod"]), (false, false));
+    assert_eq!(copied(&["build", "--no-times"]), (false, true));
 }

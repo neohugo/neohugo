@@ -1,6 +1,8 @@
 //! The union file view of each component.
 
+use std::borrow::Cow;
 use std::cmp::Reverse;
+use std::ffi::OsString;
 use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
@@ -181,19 +183,20 @@ impl Vfs {
         out: &mut Vec<FileRef>,
     ) -> Result<(), VfsError> {
         let follow = !stack.is_empty();
-        let mut entries = Vec::new();
+        let mut entries: Vec<(String, OsString, fs::FileType)> = Vec::new();
         for e in fs::read_dir(dir).map_err(|e| VfsError::io(dir, e))? {
             let e = e.map_err(|e| VfsError::io(dir, e))?;
             let ft = e.file_type().map_err(|err| VfsError::io(e.path(), err))?;
-            let name = e
-                .file_name()
-                .into_string()
-                .map_err(|_| VfsError::NonUtf8 { path: e.path() })?;
-            entries.push((name, ft));
+            let os_name = e.file_name();
+            let name = os_name
+                .to_str()
+                .map(|n| entry_name(n, cfg!(target_os = "macos")).into_owned())
+                .ok_or_else(|| VfsError::NonUtf8 { path: e.path() })?;
+            entries.push((name, os_name, ft));
         }
         entries.sort_by(|a, b| a.0.cmp(&b.0));
-        for (name, ft) in entries {
-            let abs = dir.join(&name);
+        for (name, os_name, ft) in entries {
+            let abs = dir.join(&os_name);
             let (is_dir, is_file) = if !ft.is_symlink() {
                 (ft.is_dir(), ft.is_file())
             } else if follow {
@@ -286,6 +289,19 @@ impl Vfs {
     }
 }
 
+/// The name of a directory entry as the build uses it (in [`FileRef::rel`], so in paths, URLs
+/// and keys, and for the ignore rules and filters): NFC-normalised when `nfc` (on macOS), as
+/// Hugo's `normalizeFilename` does on darwin, where HFS+ stores names decomposed (NFD) and APFS
+/// keeps the form they were created in. [`FileRef::abs`] keeps the name the OS returned, so the
+/// file is read, and matched with the watcher's events, by it.
+fn entry_name(name: &str, nfc: bool) -> Cow<'_, str> {
+    if nfc {
+        neohugo_base::text::nfc(name)
+    } else {
+        Cow::Borrowed(name)
+    }
+}
+
 fn file_ref(m: &Mount, idx: u16, rel: String, abs: PathBuf) -> FileRef {
     FileRef {
         component: m.component,
@@ -314,5 +330,19 @@ fn join_rel(sub: &str, rest: &str) -> String {
         rest.to_owned()
     } else {
         format!("{sub}/{rest}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::entry_name;
+
+    #[test]
+    fn entry_names_are_nfc_on_macos_only() {
+        let nfd = "cafe\u{301}/Cafe\u{301}.md";
+        assert_eq!(entry_name(nfd, true), "caf\u{e9}/Caf\u{e9}.md");
+        assert_eq!(entry_name(nfd, false), nfd);
+        assert_eq!(entry_name("caf\u{e9}.md", true), "caf\u{e9}.md");
+        assert_eq!(entry_name("plain.md", true), "plain.md");
     }
 }

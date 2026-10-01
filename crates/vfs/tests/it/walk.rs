@@ -355,6 +355,25 @@ fn ignore_rules_per_component() {
     assert!(vfs.open(Component::Content, "a.md").is_some());
 }
 
+/// On macOS file names are NFC-normalised, as Hugo's are on darwin; the file is still read by
+/// the name it has on disk.
+#[test]
+fn file_names_are_nfc_on_macos() {
+    let p = Project::new(&[
+        ("hugo.toml", ""),
+        ("content/cafe\u{301}/Cafe\u{301}.md", ""),
+    ]);
+    let files = p.vfs().walk(Component::Content).unwrap();
+    let want = if cfg!(target_os = "macos") {
+        "caf\u{e9}/Caf\u{e9}.md"
+    } else {
+        "cafe\u{301}/Cafe\u{301}.md"
+    };
+    assert_eq!(files.len(), 1);
+    assert_eq!(files[0].rel, want);
+    assert!(files[0].abs.is_file(), "{}", files[0].abs.display());
+}
+
 #[cfg(unix)]
 #[test]
 fn symlinks_below_a_mount_are_skipped() {

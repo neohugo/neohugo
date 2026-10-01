@@ -1,5 +1,5 @@
 #!/bin/sh
-# Checks the licences of every package in the Rust workspace's dependency graph against the
+# Checks the licences of every package in the workspace's dependency graph against the
 # policy in deny.toml (docs/rust-port/REWRITE_PLAN.md §5). Python stdlib only.
 #
 #   tools/neohugo/licence-check.sh [-v]

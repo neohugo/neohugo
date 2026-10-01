@@ -106,7 +106,7 @@ Environment (every checkout and worktree shares one target directory):
 ```sh
 export CARGO_TARGET_DIR=/home/user/neohugo/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
 cargo build --release --offline --locked -p neohugo      # → $CARGO_TARGET_DIR/release/neohugo
-cargo test -p <crate> --offline --locked                  # the edit–test loop
+cargo test -p neohugo-<crate> --offline --locked          # the edit–test loop (cli: -p neohugo)
 ```
 
 The full check CI runs (workspace-wide; not for the edit–test loop):
@@ -295,7 +295,8 @@ tests read them, with counts):
 - **pageparser**: a summary divider at the start of a page without front matter is a divider;
   JSON integers stay integers; YAML 1.2; TOML leap seconds stay strings; closing tags must name
   their shortcode; unclosed inline shortcodes are errors; Org front matter not decoded.
-- **vfs**: normalised `original` names; no NFC normalisation (Linux); byte-ordered walks.
+- **vfs**: normalised `original` names; on macOS NFC names in `rel` but the OS's name in
+  `abs` (Hugo normalises both); byte-ordered walks.
 - **page**: attribute expansion in place; Unix-second dates in UTC; bad cascade globs are
   errors; Markdown and HTML content only (no content adapters); one menu entry per menu name.
 - **site**: segment-wise taxonomy prefixes; bundle files belong to their owner; `ref` from a
@@ -363,7 +364,9 @@ that comments and READMEs cite.
   (`rust/crates/highlight/tests/data/oracle/` at `44529028`), and the Go workflows `ci.yml`
   (Go's; the current `ci.yml` is the renamed `rust.yml`, below; Go's ran its tests on
   `ubuntu-latest` and `windows-latest`, the current one tests on Linux only, §8),
-  `release.yml`, `benchmark.yml`, `golangci-lint.yml`, `image.yml`. `pull-docs.sh` (a `git
+  `release.yml`, `benchmark.yml`, `golangci-lint.yml`, `image.yml`, and `.github/stale.yml`
+  (the Probot stale bot's configuration, with other labels and periods than the
+  `workflows/stale.yml` that manages issues). `pull-docs.sh` (a `git
   subtree pull` of `docs/` from neohugo/neohugoDocs) is gone too: `docs/` is a frozen test
   fixture now and is no longer pulled. `docs/go.mod`, `docs/go.sum` and `docs/hugo.work` stay:
   they belong to the docs site, which stays byte-identical (only `docs/rust-port/` changes).
@@ -374,10 +377,12 @@ that comments and READMEs cite.
   the same for the testsite). The image oracles read five more Go-tree images and
   `snap/local/logo.png` from byte-identical copies (`crates/images/tests/it/common.rs`). The
   `NEOHUGO_GOROOT` hook for Go's own image test data is gone: the 80 files of it the image
-  oracles read (Go 1.24.7's) are in `testdata/upstream/goroot/src/image/`, so the process
-  oracle compares 13,089 cases again (13,087 equal, two accepted corrupt-PNG differences), as
-  CI did at `44529028` with Go installed, and the EXIF oracle 2,415; five sources only a newer
-  Go has are not included.
+  oracles read (Go 1.24.7's) are in `testdata/upstream/goroot/src/image/`, and the five Go
+  1.24.7 does not have (four Go 1.27.1 JPEGs and `image/png`'s example gopher) are the old
+  port's copies from `be02933a` in `testdata/upstream/old-port/`. So the process oracle
+  compares all 13,250 cases (13,248 equal, two accepted corrupt-PNG differences; CI at
+  `44529028` with Go 1.24.7 compared 13,089) and the EXIF oracle 2,440; both fail when a
+  source is missing.
 - **esbuild:** `tools/neohugo/node/package.json` pins `esbuild` 0.25.6 (the version the Go build
   linked); `tools/neohugo/node.sh` installs it with the other node tools, and
   `tools/esbuild/install.sh` copies its platform binary to `tools/esbuild/bin/esbuild` and checks
@@ -418,9 +423,20 @@ that comments and READMEs cite.
   `neohugo <version>`); the Go commands the Rust command line does not have (`env`, which also
   printed the version line, `new`, `mod`, `deploy`, `list`, `gen`, `convert`, `import`,
   `release`, `server trust`, `config mounts`, cobra's `completion` and `help`), Hugo's flags it
-  does not list (`crates/cli/README.md`; e.g. `--gc`, `--logLevel`, the build's `-w`/`--watch`)
-  and the "Start building sites …" banner with the version line; `config`'s TOML default and its
-  `--format yaml`, `--lang` and `--printZero` (the Rust `config` prints JSON or TOML); `server`
+  does not list (`crates/cli/README.md`; e.g. `--enableGitInfo`, `--contentDir`,
+  `--disableKinds`, `--panicOnWarning`, the build's `-w`/`--watch`; the logging and
+  housekeeping flags `--gc`, `--logLevel`, `--noBuildLock`, `--printI18nWarnings`,
+  `--printPathWarnings`, `--printUnusedTemplates`, `--templateMetrics` and
+  `--templateMetricsHints` are accepted, with a warning for those neohugo does not act on, and
+  `--noTimes`/`--noChmod` work), the "Start building sites …" banner with the version line, and
+  Go's per-language statistics table after a build (Pages, Paginator pages, Non-page files,
+  Static files, Processed images, Aliases, Cleaned): neohugo prints one line, `pages N | files N
+  (aliases N) | resources N | processed images N | static files N`, then `Total in N ms`;
+  `config`'s output: Go printed one language's configuration with Hugo's keys lower-cased
+  (`baseurl`, `publishdir`, …), as TOML by default or YAML/JSON, with `--lang` and
+  `--printZero`; the Rust `config` prints neohugo's resolved configuration model (snake_case
+  fields, one entry per site under `sites`, the merged user keys lower-cased under `raw`) as JSON
+  or TOML, so a script that reads its output must change; `server`
   rendering to disk by default: the Go server wrote the publish directory and served it
   (`-M`/`--renderToMemory`: memory), the Rust one renders into memory unless `--render-to-disk`
   (a neohugo flag, not the Go build's) is given, and `-d` needs that flag; the commit and date
@@ -428,7 +444,7 @@ that comments and READMEs cite.
   the exit code 1 of usage errors (they exit with 2) and Go's `Error: …` prefix (clap prints
   `error: …`, a failed build `ERROR …`). As in Go, flags may come before the command and every
   command takes the persistent flags (`-s`, `-d`, `-e`, `--config`, `--configDir`, `--themesDir`,
-  `--clock`, `--quiet`, `-M`; `crates/cli/README.md`). New: a `--version` flag, printing the
+  `--clock`, `--quiet`, `-M`, `--logLevel`, `--noBuildLock`; `crates/cli/README.md`). New: a `--version` flag, printing the
   `version` line. The Docker images and the docs deploy are below; `snap/snapcraft.yaml` and
   `hugoreleaser.yaml` were in the tree at `44529028`, but no workflow published them.
 

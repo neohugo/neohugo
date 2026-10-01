@@ -48,7 +48,7 @@ pub fn hugo(cfg: HugoCfg) -> Options<'static> {
 }
 
 /// The plain goldmark instances of the seeksnack corpus (`tools/go-oracle/goldmark` at
-/// 44529028).
+/// `be02933a`, `go-parity-final`).
 pub fn goldmark(cfg: &str) -> Option<Options<'static>> {
     let mut o = Options::default();
     match cfg {

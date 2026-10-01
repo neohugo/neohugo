@@ -96,11 +96,13 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
   `oracle/images/config` (all match, bar the documented rules below), `[imaging]` decoding,
   colours, formats, typed kwargs.
 * `process`: result sizes against `oracle/images/process` — every spec, filter chain and
-  seeksnack template chain the oracle ran: **13087/13089**, the two differences being corrupt
-  PNGs (below). 80 sources are Go's own image test data (Go 1.24.7's, in
-  `testdata/upstream/goroot/src/image/`); five more that only a newer Go has are not in the
-  repository, so their cases are not compared. The small synthetic results are processed too
-  (4100), and their pixels have the planned size.
+  seeksnack template chain the oracle ran: **13248/13250**, the two differences being corrupt
+  PNGs (below). 85 sources are Go's own image test data: 80 files of Go 1.24.7 in
+  `testdata/upstream/goroot/src/image/`, and five Go 1.24.7 does not have (four JPEGs of Go
+  1.27.1's `image/testdata` and the gopher of `image/png`'s `example_test.go`) as the old port
+  stored them, in `testdata/upstream/old-port/` (`be02933a`). Every source is available (the
+  test fails otherwise). The small synthetic results are processed too (4100), and their pixels
+  have the planned size.
 * `psnr`: the 20 Go-processed images of `golden/images/manifest.json` (T01) and 45 of Hugo's
   own golden images (`testdata/upstream/resources/images/testdata/images_golden`), all
   ≥ 30 dB: JPEG results reach 40–57 dB since the encoder is Go's, within 1.5 % of Go's sizes (the table printed with
@@ -127,7 +129,8 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
 * `filters`: every variant from template maps on opaque, transparent and JPEG inputs; pixels of
   the geometry and compositing filters; alpha edges.
 * `queue`: names, identity, chains, publishing only wanted results, the cache, WebP, all formats.
-* `exif`: date and position against `oracle/images/exif` (every real image matches).
+* `exif`: date and position against `oracle/images/exif` (every real image matches; 2440
+  cases, all sources available).
 
 The T01 manifest format (`testdata/golden/images/manifest.json`):
 

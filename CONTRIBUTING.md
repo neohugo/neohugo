@@ -53,7 +53,7 @@ Hugo has become a fully featured static site generator, so any new functionality
 
 If it is of some complexity, the contributor is expected to maintain and support the new feature in the future (answer questions on the forum, fix any bugs etc.).
 
-Any non-trivial code change needs to update an open [issue](https://github.com/neohugo/neohugo/issues). A non-trivial code change without an issue reference with one of the labels `bug` or `enhancement` will not be merged.
+Any non-trivial code change needs to update an open [issue](https://github.com/neohugo/neohugo/issues). A non-trivial code change without an issue reference with one of the labels `type: bug` or `type: feature` (the labels the issue templates apply) will not be merged.
 
 A new third-party crate goes into `[workspace.dependencies]` of `Cargo.toml` (members
 never add their own `features =`) and must pass `tools/neohugo/licence-check.sh`, which allows

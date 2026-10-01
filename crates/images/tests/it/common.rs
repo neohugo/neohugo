@@ -31,8 +31,8 @@ pub fn expected_diffs(section: &str) -> BTreeMap<String, String> {
 
 /// The file of an oracle source id (`file:<path as the oracle saw it>`), when available. The
 /// oracle's sources from Go's own image test data (`crates/go-*/tests/fixtures/gotestdata/`) are
-/// in `testdata/upstream/goroot/src/image/` (Go 1.24.7's files); five that only a newer Go has
-/// are not.
+/// in `testdata/upstream/goroot/src/image/` (Go 1.24.7's files); the five Go 1.24.7 does not have
+/// are the old port's copies in `testdata/upstream/old-port/` (`be02933a`).
 pub fn source_path(id: &str) -> Option<PathBuf> {
     let rel = id.strip_prefix("file:")?;
     let map = [
@@ -49,6 +49,14 @@ pub fn source_path(id: &str) -> Option<PathBuf> {
             "testdata/upstream/goroot/src/image/png/testdata/",
         ),
         (
+            "crates/go-image/tests/fixtures/gotestdata/",
+            "testdata/upstream/old-port/go-image/",
+        ),
+        (
+            "crates/go-png/tests/fixtures/gotestdata/",
+            "testdata/upstream/old-port/go-png/",
+        ),
+        (
             "crates/go-image/tests/fixtures/site/",
             "testdata/site-assets/site/",
         ),
@@ -61,10 +69,18 @@ pub fn source_path(id: &str) -> Option<PathBuf> {
             "testdata/site-assets/repo/",
         ),
     ];
+    let mut mapped = false;
     for (from, to) in map {
         if let Some(rest) = rel.strip_prefix(from) {
-            return Some(repo_file(to).join(rest)).filter(|p| p.is_file());
+            let path = repo_file(to).join(rest);
+            if path.is_file() {
+                return Some(path);
+            }
+            mapped = true;
         }
+    }
+    if mapped {
+        return None;
     }
     // Files of the Go tree (44529028) with a byte-identical twin in the repository.
     let twins = [
