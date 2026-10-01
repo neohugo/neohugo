@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Structural comparison of two builds of one site (docs/rust-port/REWRITE_PLAN.md §7.2): a
-reference (the Go build, or its committed golden data) against a candidate (the Rust build, or
-another Go build), level by level and per file, plus the structure oracle; then the ratchet
+reference (the Go build's committed golden data) against a candidate (the Rust build), level by
+level and per file, plus the structure oracle; then the ratchet
 (rust/testdata/baselines/<site>.json, tools/neohugo/changes/<task>.md). Python stdlib only.
 
 Usage:
@@ -54,7 +54,7 @@ fingerprint. A change must be listed in the changes file of the running task
 difference fails the run (exit 1). --update writes the baseline with the listed changes applied
 (plus new keys that are `ok`, and keys gone from both sides); unlisted changes keep their old
 baseline entry. --report-only always exits 0. Without --baseline the run fails on any
-difference (the Go-vs-Go mode of compare.sh).
+difference.
 """
 import argparse
 import collections
@@ -931,7 +931,7 @@ def main():
         c.add_argument(f"--{side}-unmin")
         c.add_argument(f"--{side}-structure")
         c.add_argument(f"--{side}-project")
-    c.add_argument("--ref-name", default="go")
+    c.add_argument("--ref-name", default="golden")
     c.add_argument("--cand-name", default="rust")
     c.add_argument("--collision-dir", action="append", default=[])
     c.add_argument("--json")

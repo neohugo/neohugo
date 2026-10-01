@@ -29,7 +29,8 @@ Sites:
 --overlay makes the input of the Rust build: the same site with its layouts replaced by the Tera
 layouts of the overlay directory, the overlay's assets copied over, and for docs the variant's
 Tera patch files (rust/sites/docs/patches/<variant>/) layered on top (REWRITE_PLAN.md §7.4).
-The Go build always builds the site without an overlay (tools/neohugo/oracle.sh).
+The Go build that wrote the golden data built the site without an overlay
+(tools/neohugo/oracle.sh, frozen at 44529028).
 """
 import argparse
 import gzip
@@ -509,7 +510,7 @@ def make_errors(dir_):
 # ---------------------------------------------------------------------------------------------
 # mini: the e2e oracle's small en/th site (rust/testdata/oracle/commands/e2e/mini.txtar). Its
 # one GetRemote call is served from a golden getresource entry stored under the file cache key
-# of the URL it requests (as tools/go-oracle/nh-commands/e2e does).
+# of the URL it requests (as tools/go-oracle/nh-commands/e2e did, frozen at 44529028).
 
 MINI_TXTAR = os.path.join(TESTDATA, "oracle", "commands", "e2e", "mini.txtar")
 MINI_CACHE = [("10426788187073209306", "17211370855584179129")]  # (golden entry, file cache key)
@@ -532,8 +533,8 @@ def mini_cache(dir_):
 # ---------------------------------------------------------------------------------------------
 # images: the recipes of rust/testdata/golden/images/manifest.json (the golden images of the
 # PSNR gate of T41) as a site whose home page runs every recipe with Go's image processing and
-# prints `<golden name> <RelPermalink>` per line (tools/neohugo/oracle.sh copies the published
-# files into rust/testdata/golden/images).
+# prints `<golden name> <RelPermalink>` per line (tools/neohugo/oracle.sh, frozen at 44529028,
+# copied the published files into rust/testdata/golden/images).
 
 IMAGES_MANIFEST = os.path.join(TESTDATA, "golden", "images", "manifest.json")
 

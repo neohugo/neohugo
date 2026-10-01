@@ -7,8 +7,8 @@ Usage:
   fixtures2json.py t00 <old-crates-dir> <rust/testdata-dir>
                                          # the one-off T00 move (see T00_MAP); writes COUNTS.json
 
-Re-run `convert <dir> <dir>` after regenerating an oracle: the Go oracles still write the typed
-formats below, and conversion is idempotent.
+The Go oracles (tools/go-oracle, frozen at 44529028) wrote the typed formats below; re-run
+`convert <dir> <dir>` after regenerating an oracle there (conversion is idempotent).
 
 The neohugo schema
 ------------------

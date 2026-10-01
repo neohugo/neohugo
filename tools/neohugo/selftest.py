@@ -21,18 +21,15 @@ output against that baseline is an unlisted improvement, which does not fail.
 
 Usage: selftest.py [--go-out DIR [--project DIR]] [--keep]
 
-The Go output: --go-out (a publish directory, --project its site directory), else a Go build of
-the seeksnack reconstruction (Thai paths, processed images, feeds) with tools/neohugo/compare.sh
-when the Go binaries exist (tools/neohugo/oracle.sh install), else Go's testsite output
-(rust/crates/build/tests/it/testsite-go.txtar) with a Thai page and a PNG added (the testsite has
-neither). Python stdlib only; everything happens in a temporary directory.
+The Go output: --go-out (a publish directory, --project its site directory), else Go's testsite
+output (rust/crates/build/tests/it/testsite-go.txtar) with a Thai page and a PNG added (the
+testsite has neither). Python stdlib only; everything happens in a temporary directory.
 """
 import argparse
 import os
 import re
 import shutil
 import struct
-import subprocess
 import sys
 import tempfile
 import urllib.parse
@@ -98,23 +95,6 @@ def mkdirs(path):
 def write(path, text):
     with open(mkdirs(path), "w", encoding="utf-8", newline="") as fh:
         fh.write(text)
-
-
-def go_seeksnack(work):
-    """A Go build of the seeksnack reconstruction through compare.sh (KEEP=1)."""
-    env = dict(os.environ, KEEP="1", NEOHUGO_COMPARE_WORK=work)
-    subprocess.run([os.path.join(HERE, "compare.sh"), "seeksnack", "--ref", "golden", "--cand", "go"],
-                   env=env, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    w = os.path.join(work, "seeksnack")
-    return (os.path.join(w, "cand-unminified", "out"), os.path.join(w, "cand-unminified", "seeksnack"),
-            os.path.join(w, "cand.structure.json"))
-
-
-def go_binaries():
-    common = subprocess.run(["git", "-C", HERE, "rev-parse", "--path-format=absolute", "--git-common-dir"],
-                            capture_output=True, text=True).stdout.strip()
-    bindir = os.environ.get("NEOHUGO_TOOLS_BIN") or os.path.join(os.path.dirname(common), "tools", "neohugo", "bin")
-    return all(os.access(os.path.join(bindir, b), os.X_OK) for b in ("neohugo", "neohugo-structure"))
 
 
 # ---------------------------------------------------------------------------------------------
@@ -491,13 +471,8 @@ def main():
     a = ap.parse_args()
     tmp = tempfile.mkdtemp(prefix="neohugo-selftest.")
     try:
-        structure = None
         if a.go_out:
             src, project, site = a.go_out, a.project, "go-out"
-        elif go_binaries():
-            src, project, structure_file = go_seeksnack(os.path.join(tmp, "compare"))
-            structure = sd.read_json(structure_file)
-            site = "seeksnack (Go build)"
         else:
             src, site = os.path.join(tmp, "testsite"), "testsite (Go output + Thai page + PNG)"
             testsite_output(src)
@@ -506,7 +481,7 @@ def main():
             write(os.path.join(project, "hugo.toml"), 'baseURL = "https://example.org/"\n')
         base = os.path.join(tmp, "base")
         shutil.copytree(src, base)
-        run = Run("selftest", project, structure)
+        run = Run("selftest", project, None)
         print(f"selftest.py: Go output of {site}: {len(mf.walk(base))} files")
         failures = 0
         ident = diffs(run.compare(base, base))
