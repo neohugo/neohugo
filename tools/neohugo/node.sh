@@ -1,11 +1,12 @@
 #!/bin/sh
 # Node tooling of the target sites (docs/rust-port/REWRITE_PLAN.md §7.2, D8): installs the node
-# modules pinned by tools/neohugo/node/package-lock.json, which the Go and the Rust builds of
-# the sites run or import:
+# modules pinned by tools/neohugo/node/package-lock.json, which the builds of the sites and the
+# tests run or import:
 #   - @tailwindcss/cli, tailwindcss, @tailwindcss/typography: css.TailwindCSS of docs-reduced;
 #   - alpinejs, @alpinejs/{focus,persist}, @hotwired/turbo: js.Build imports of docs-reduced;
 #   - postcss, postcss-cli: css.PostCSS of the seeksnack reconstruction;
-#   - @babel/cli, @babel/core: the real-tool Babel test of neohugo-resources (js.Babel).
+#   - @babel/cli, @babel/core: the real-tool Babel test of neohugo-resources (js.Babel);
+#   - esbuild: js.Build via neohugo-esbuild (tools/esbuild/install.sh copies its binary).
 # CI (.github/workflows/rust.yml) runs this script and points NEOHUGO_{POSTCSS,TAILWINDCSS,BABEL}_BIN
 # and NEOHUGO_NODE_MODULES into the result.
 #
@@ -14,9 +15,9 @@
 #   tools/neohugo/node.sh path        print the node_modules directory
 #
 # The directory is $NEOHUGO_NODE_MODULES, else tools/neohugo/node_modules of the main checkout
-# (all worktrees share it; gitignored). A build uses it as oracle.sh does: a `node_modules`
-# symlink in the site directory (Hugo looks up `node_modules/.bin/<tool>` in the project and
-# esbuild resolves imports there) and `node_modules/.bin` on PATH.
+# (all worktrees share it; gitignored). A build uses it through a `node_modules` symlink in the
+# site directory (Hugo looks up `node_modules/.bin/<tool>` in the project and esbuild resolves
+# imports there) and `node_modules/.bin` on PATH.
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -65,7 +66,7 @@ install)
 	done
 	echo "node.sh: installed into $target ($(du -sh "$target" | cut -f1)):"
 	for pkg in @tailwindcss/cli tailwindcss @tailwindcss/typography alpinejs @alpinejs/focus \
-		@alpinejs/persist @hotwired/turbo postcss postcss-cli @babel/cli @babel/core; do
+		@alpinejs/persist @hotwired/turbo postcss postcss-cli @babel/cli @babel/core esbuild; do
 		echo "  $pkg $(node -p "require('$target/$pkg/package.json').version")"
 	done
 	;;

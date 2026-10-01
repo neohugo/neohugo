@@ -123,7 +123,9 @@ fn check(p: &Project, fixture: &str, cases: usize) {
 fn have_esbuild(test: &str) -> bool {
     let found = esbuild_binary().is_file();
     if !found {
-        eprintln!("SKIPPED {test}: no esbuild binary (tools/esbuild/build.sh)");
+        eprintln!(
+            "SKIPPED {test}: no esbuild binary (tools/neohugo/node.sh && tools/esbuild/install.sh)"
+        );
     }
     found
 }

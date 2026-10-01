@@ -17,9 +17,6 @@ on:
       - "tools/esbuild/**"
       - "tools/neohugo/**"
       - "tools/rust-port/**"
-      # tools/esbuild/build.sh builds the esbuild that go.mod pins.
-      - "go.mod"
-      - "go.sum"
       # Repository files the Rust tests read; the fixtures record many of them by hash.
       - "docs/**"
       - "hugolib/testsite/**"
@@ -34,8 +31,6 @@ on:
       - "tools/esbuild/**"
       - "tools/neohugo/**"
       - "tools/rust-port/**"
-      - "go.mod"
-      - "go.sum"
       - "docs/**"
       - "hugolib/testsite/**"
       - "resources/testdata/**"
@@ -127,80 +122,15 @@ jobs:
           workspaces: rust
           save-if: ${{ env.SAVE_CACHE }}
 
-      # Go, the release tools/esbuild/build.sh names: it builds esbuild, and its image test data
-      # (NEOHUGO_GOROOT) adds ~2,200 cases to neohugo-images' process oracle.
-      - name: esbuild and Go versions
-        id: esbuild
-        run: |
-          esbuild=$(awk '$1 == "github.com/evanw/esbuild" { print $2 }' go.mod)
-          go=$(sed -n 's/.*GOTOOLCHAIN:-go\([0-9][0-9.]*\)}.*/\1/p' tools/esbuild/build.sh)
-          if ! [[ $esbuild =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ && $go =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]]; then
-            echo "::error::cannot read the esbuild version from go.mod ('$esbuild') or the Go release from tools/esbuild/build.sh ('$go')"
-            exit 1
-          fi
-          echo "esbuild=$esbuild" >>"$GITHUB_OUTPUT"
-          echo "go=$go" >>"$GITHUB_OUTPUT"
-
-      - name: Set up Go ${{ steps.esbuild.outputs.go }}
-        uses: actions/setup-go@v6
-        with:
-          go-version: ${{ steps.esbuild.outputs.go }}
-          # Its cache key would be the Go workflows' own; esbuild is cached below instead.
-          cache: false
-
-      - name: Go image test data
-        env:
-          GOTOOLCHAIN: local
-        run: echo "NEOHUGO_GOROOT=$(go env GOROOT)" >>"$GITHUB_ENV"
-
-      # esbuild for the js_build tests (neohugo-esbuild, neohugo-resources), which skip
-      # without it: build.sh builds the version go.mod pins from the Go module proxy (checked
-      # against go.sum), as a local build does.
-      - name: Restore esbuild
-        id: esbuild-cache
-        uses: actions/cache/restore@v4
-        with:
-          path: tools/esbuild/bin/esbuild
-          key: esbuild-${{ runner.os }}-${{ runner.arch }}-${{ steps.esbuild.outputs.esbuild }}-go${{ steps.esbuild.outputs.go }}-${{ hashFiles('tools/esbuild/build.sh') }}
-
-      - name: Build esbuild
-        if: steps.esbuild-cache.outputs.cache-hit != 'true'
-        env:
-          GOTOOLCHAIN: local
-          GOPROXY: https://proxy.golang.org
-        run: tools/esbuild/build.sh
-
-      - name: Save esbuild
-        if: steps.esbuild-cache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: tools/esbuild/bin/esbuild
-          key: ${{ steps.esbuild-cache.outputs.cache-primary-key }}
-
-      - name: Use esbuild
-        env:
-          WANT: ${{ steps.esbuild.outputs.esbuild }}
-        run: |
-          got=$(tools/esbuild/bin/esbuild --version)
-          if [ "v$got" != "$WANT" ]; then
-            echo "::error::tools/esbuild/bin/esbuild is $got, go.mod pins $WANT"
-            exit 1
-          fi
-          echo "NEOHUGO_ESBUILD_BINARY=$GITHUB_WORKSPACE/tools/esbuild/bin/esbuild" >>"$GITHUB_ENV"
-
       # node on PATH runs the fake-tool tests (small node scripts standing in for PostCSS,
-      # Tailwind and Babel). tools/neohugo/node.sh, once it exists, installs the real tools
-      # (pinned npm ci) for the real-tool tests, which skip without NEOHUGO_*_BIN.
+      # Tailwind and Babel). tools/neohugo/node.sh installs the real tools and esbuild (pinned
+      # npm ci) for the real-tool and js_build tests, which skip without them.
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
       - name: Node tools
         run: |
-          if [ ! -f tools/neohugo/node.sh ]; then
-            echo "::notice::tools/neohugo/node.sh is not in this tree: the PostCSS, Tailwind and Babel real-tool tests skip"
-            exit 0
-          fi
           tools/neohugo/node.sh
           for dir in tools/neohugo/node_modules tools/neohugo/node/node_modules; do
             [ -d "$dir/.bin" ] || continue
@@ -216,6 +146,15 @@ jobs:
             exit 0
           done
           echo "::warning::tools/neohugo/node.sh ran but left no node_modules/.bin under tools/neohugo"
+
+      # esbuild for the js_build tests (neohugo-esbuild, neohugo-resources, the gates), which
+      # skip without it, so a failure here fails the job: install.sh copies the binary of the
+      # esbuild package node.sh installed and checks it against the pin in
+      # tools/neohugo/node/package.json.
+      - name: esbuild
+        run: |
+          tools/esbuild/install.sh
+          echo "NEOHUGO_ESBUILD_BINARY=$GITHUB_WORKSPACE/tools/esbuild/bin/esbuild" >>"$GITHUB_ENV"
 
       # --show-output keeps each passing test's report (parity counts, SKIPPED notes) in the log.
       - name: cargo test

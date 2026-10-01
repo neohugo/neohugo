@@ -105,7 +105,7 @@ cargo test -p <crate> --offline --locked                  # the edit–test loop
 The full check CI runs (workspace-wide; not for the edit–test loop):
 
 ```sh
-N=/home/user/neohugo/tools/neohugo/node_modules            # tools/neohugo/node.sh installs it
+N=/home/user/neohugo/tools/neohugo/node_modules            # tools/neohugo/node.sh && tools/esbuild/install.sh
 NEOHUGO_ESBUILD_BINARY=/home/user/neohugo/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
 NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
 NEOHUGO_BABEL_BIN=$N/.bin/babel \

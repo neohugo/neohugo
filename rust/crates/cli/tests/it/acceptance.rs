@@ -21,7 +21,7 @@ fn runs(program: &str) -> bool {
 }
 
 /// The main checkout of the repository (a worktree's shared git directory's parent), where
-/// `tools/esbuild/build.sh` puts its binary.
+/// `tools/esbuild/install.sh` puts its binary.
 fn main_checkout(repo: &Path) -> Option<PathBuf> {
     let out = Command::new("git")
         .arg("-C")
@@ -70,7 +70,7 @@ fn tools(gate: &str, repo: &Path, bins: &[&str]) -> Option<(PathBuf, PathBuf)> {
         .unwrap_or_default();
     if !esbuild.is_file() {
         return skip(format!(
-            "no esbuild binary at {} (set NEOHUGO_ESBUILD_BINARY or run tools/esbuild/build.sh)",
+            "no esbuild binary at {} (set NEOHUGO_ESBUILD_BINARY or run tools/neohugo/node.sh && tools/esbuild/install.sh)",
             esbuild.display()
         ));
     }

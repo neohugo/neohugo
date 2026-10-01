@@ -1,8 +1,8 @@
 //! Integration tests of `neohugo-esbuild` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 //!
 //! Tests that run esbuild use `$NEOHUGO_ESBUILD_BINARY`, else the repository's
-//! `tools/esbuild/bin/esbuild` (built by `tools/esbuild/build.sh`); without a binary they print
-//! `SKIPPED` and pass.
+//! `tools/esbuild/bin/esbuild` (installed by `tools/esbuild/install.sh`); without a binary they
+//! print `SKIPPED` and pass.
 
 mod jsbuild;
 mod options;
@@ -29,7 +29,7 @@ fn esbuild_binary(test: &str) -> Option<PathBuf> {
         Some(path)
     } else {
         eprintln!(
-            "SKIPPED {test}: no esbuild binary at {} (set {BINARY_ENV} or run tools/esbuild/build.sh)",
+            "SKIPPED {test}: no esbuild binary at {} (set {BINARY_ENV} or run tools/neohugo/node.sh && tools/esbuild/install.sh)",
             path.display()
         );
         None

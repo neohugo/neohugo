@@ -7,7 +7,7 @@
 //!   ([`Assets`]) before `node_modules`, with `@params` and external/linked source maps.
 //!
 //! The binary is named by `$NEOHUGO_ESBUILD_BINARY`, by default `tools/esbuild/bin/esbuild`
-//! (built by `tools/esbuild/build.sh`), see [`binary_path`].
+//! (installed by `tools/esbuild/install.sh`), see [`binary_path`].
 
 #![forbid(unsafe_code)]
 
@@ -32,8 +32,8 @@ pub use sourcemap::file_url;
 /// The environment variable naming the esbuild binary.
 pub const BINARY_ENV: &str = "NEOHUGO_ESBUILD_BINARY";
 
-/// The binary used when [`BINARY_ENV`] is unset: the pinned build of `tools/esbuild/build.sh`,
-/// relative to the current directory (the repository root).
+/// The binary used when [`BINARY_ENV`] is unset: the pinned build that `tools/esbuild/install.sh`
+/// installs, relative to the current directory (the repository root).
 pub const DEFAULT_BINARY: &str = "tools/esbuild/bin/esbuild";
 
 /// The esbuild binary: `$NEOHUGO_ESBUILD_BINARY` when set and not empty, else

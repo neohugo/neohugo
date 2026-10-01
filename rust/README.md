@@ -86,11 +86,11 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 keeps its own workflows (`ci.yml`, `release.yml`, …).
 
 **When it runs.** On pushes to `main` and `rust-port` and on pull requests that touch
-`rust/**`, `tools/{esbuild,neohugo,rust-port}/**`, `go.mod`/`go.sum` (the esbuild pin), the
-repository files the tests read (`docs/**`, `hugolib/testsite/**`, `resources/testdata/**`,
-`resources/images/testdata/**`; the fixtures record many of them by hash), `LICENSE` or the
-workflow itself; on every `rust-v*` tag; and by hand (`workflow_dispatch`). A newer run on the
-same ref cancels the older one, except on tags.
+`rust/**`, `tools/{esbuild,neohugo,rust-port}/**`, the repository files the tests read
+(`docs/**`, `hugolib/testsite/**`, `resources/testdata/**`, `resources/images/testdata/**`; the
+fixtures record many of them by hash), `LICENSE` or the workflow itself; on every `rust-v*` tag;
+and by hand (`workflow_dispatch`). A newer run on the same ref cancels the older one, except on
+tags.
 
 | Job | Runner | Steps |
 |---|---|---|
@@ -125,14 +125,14 @@ look for a toolchain named `1.94.1` and try to download it. Add one (and drop `R
 once every environment can install toolchains.
 
 **Tools the tests use.** Without its tool a test prints `SKIPPED …` and passes (or, for Go's
-test data, compares fewer cases), so CI provides all of them:
+test data, compares fewer cases), so CI provides all of them but Go's test data:
 
 | Tests | Tool | In CI |
 |---|---|---|
-| `neohugo-esbuild`: `jsbuild_synth`, `jsbuild_docs`, `build_errors_are_messages`, `inline_source_map`, `concurrent_builds_share_one_service`, `plugin_callbacks`, `version_ping_and_build_round_trip`; `neohugo-resources`: `js_build_docs`, `js_build_t16site` and the js_build half of `execute_as_template_with_tera` (silent) | esbuild: `NEOHUGO_ESBUILD_BINARY`, else `tools/esbuild/bin/esbuild` | `tools/esbuild/build.sh` with Go from `actions/setup-go` (`GOTOOLCHAIN=local`, `GOPROXY=https://proxy.golang.org`): the version `go.mod` pins, verified against `go.sum`, like a local build. Cached per esbuild version, Go release and `build.sh` |
+| `neohugo-esbuild`: `jsbuild_synth`, `jsbuild_docs`, `build_errors_are_messages`, `inline_source_map`, `concurrent_builds_share_one_service`, `plugin_callbacks`, `version_ping_and_build_round_trip`; `neohugo-resources`: `js_build_docs`, `js_build_t16site` and the js_build half of `execute_as_template_with_tera` (silent) | esbuild: `NEOHUGO_ESBUILD_BINARY`, else `tools/esbuild/bin/esbuild` | `tools/esbuild/install.sh` after `tools/neohugo/node.sh`, like a local install: the binary of the npm package `tools/neohugo/node/package.json` pins, checked with `--version`; a failure fails the job |
 | `neohugo-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_reconstruction_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
-| `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh` when the tree has it; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
-| `neohugo-images`: `sizes_match_the_process_oracle` (13,218 cases with the data, 11,046 without) | Go's image test data: `NEOHUGO_GOROOT` (or `GOROOT`) | `go env GOROOT` of the same Go |
+| `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
+| `neohugo-images`: `sizes_match_the_process_oracle` (13,218 cases with the data, 11,046 without) | Go's image test data: `NEOHUGO_GOROOT` (or `GOROOT`) | not set: 11,046 cases (at least 10,000 must compare) |
 
 Not needed by `cargo test`: Python (only `tools/neohugo/licence-check.sh`, `notices.py` and `package.py`, and
 `tools/rust-port/i01/sites.py` for the ignored real-site tests that read `NEOHUGO_SITES`),
@@ -148,7 +148,6 @@ cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 ../tools/neohugo/licence-check.sh
 NEOHUGO_ESBUILD_BINARY=$PWD/../tools/esbuild/bin/esbuild \
-NEOHUGO_GOROOT=$(GOTOOLCHAIN=go1.27.1 go env GOROOT) \
   cargo test --workspace --locked --offline --no-fail-fast -- --show-output
 cargo build --release --locked --offline -p neohugo --target x86_64-unknown-linux-gnu \
   --target-dir <scratch>/target                  # never the shared target dir
