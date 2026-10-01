@@ -3,8 +3,8 @@
 //! `rust/sites/<site>/` must equal the ones Go chose (with Go's legacy names normalised to
 //! v0.146 names by T01's normaliser).
 //!
-//! The dumps come from T01 (`tools/go-oracle/structure/`), which has not run yet; until
-//! `rust/testdata/golden/<site>/structure.json[.gz]` exists the test prints why it skips.
+//! The dumps come from T01 (`tools/go-oracle/structure/`, frozen at 44529028); without
+//! `rust/testdata/golden/<site>/structure.json[.gz]` the test prints why it skips.
 //! **Expected schema** (T01 adapts either its dump or this reader):
 //!
 //! ```json

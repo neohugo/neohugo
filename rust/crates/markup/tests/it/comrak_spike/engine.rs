@@ -47,7 +47,8 @@ pub fn hugo(cfg: HugoCfg) -> Options<'static> {
     o
 }
 
-/// The plain goldmark instances of the seeksnack corpus (`tools/go-oracle/goldmark`).
+/// The plain goldmark instances of the seeksnack corpus (`tools/go-oracle/goldmark` at
+/// 44529028).
 pub fn goldmark(cfg: &str) -> Option<Options<'static>> {
     let mut o = Options::default();
     match cfg {

@@ -150,9 +150,11 @@ the 2,284 docs items ≈ 1.9 s.
 | `hugo-docs-html.json.gz` | per docs item (`key` = FNV-1a of `lang\0code\0options-JSON`): FNV-1a of Hugo's HTML with the docs config |
 | `hugo-html.json` | the option matrix with Hugo's HTML (`golden.rs`) |
 | `solarized-dark{,.omit-empty}.css` | `WriteCSS` of Chroma's HTML formatter (`--omitEmpty` = `WithClasses`) |
-| `oracle/main.go.txt`, `oracle/regen.py` | the Go oracle (Hugo's `markup/highlight` + Chroma v2.19.0) and the script that writes all of the above and `src/data/chroma-lexers.tsv` |
+| `oracle/main.go.txt`, `oracle/regen.py` (at 44529028) | the Go oracle (Hugo's `markup/highlight` + Chroma v2.19.0) and the script that writes all of the above and `src/data/chroma-lexers.tsv` |
 
-Regenerate (Go ≥ 1.24 with the module cache of this repository's `go.mod`, offline):
+Regenerate in a worktree of 44529028, which has the Go tree and the oracle (`git worktree add
+<dir> 44529028`; Go ≥ 1.24 with the module cache of its `go.mod`, offline): run this from its
+root, then copy the fixtures above (oracle/ aside) and `src/data/chroma-lexers.tsv` here.
 
 ```sh
 W=$(mktemp -d); mkdir $W/oracle; cp rust/crates/highlight/tests/data/oracle/main.go.txt $W/oracle/main.go

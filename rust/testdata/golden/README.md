@@ -4,8 +4,10 @@ What the Go neohugo produces for the target sites, as the **structural oracle** 
 rewrite (`docs/rust-port/REWRITE_PLAN.md` §6.4, §7.2, §7.3). Output bytes do not have to match:
 the Rust side is compared file set, URLs, templates, links, text and assets, level by level.
 
-Everything here is written by `tools/neohugo/oracle.sh` (never by hand, except the image recipes
-of `images/manifest.json`):
+Everything here was written by `tools/neohugo/oracle.sh` (never by hand, except the image recipes
+of `images/manifest.json`) and is frozen: the Go tree and oracle.sh are at 44529028. To
+regenerate, run this in a worktree of that commit (`git worktree add <dir> 44529028`) and copy
+the results here:
 
 ```sh
 tools/neohugo/node.sh              # the pinned node modules (once; network)
@@ -61,8 +63,9 @@ entry per line.
 
 ## `structure.json` (schema `neohugo-structure/1`)
 
-Written by `tools/go-oracle/structure` (the neohugo command line built with recording hooks,
-`go build -overlay`): what the Go build did, per (language, page, output format). Read by
+Written by `tools/go-oracle/structure` at 44529028 (the neohugo command line built with
+recording hooks, `go build -overlay`): what the Go build did, per (language, page, output
+format). Read by
 `crates/layouts/tests/it/structure.rs` (T30: `config`, `records[].template/baseof`),
 `crates/site/tests/it/golden.rs` (T23b: targets, permalinks, resources),
 `crates/nav/tests/it/structure.rs` (T24: `aliases`) and the parity tests.
@@ -217,16 +220,16 @@ runs over the Rust output):
 `{"golden": "<file in images/>", "source": "<path from the repository root>", "steps":
 [{"spec": "<processing spec>"} | {"filters": [<neohugo_images::ImageFilter JSON>]}]}` (each step
 applies to the previous result; filter `image` paths are relative to the repository root; no
-per-recipe `imaging`, all use the default `[imaging]`). `oracle.sh images` writes the recipes as a
-Go site (`sites.py make images`: `.Process` for a spec, `images.Filter` with the `images.*`
-functions for filters), builds it with the Go binary and copies each result here under its
-`golden` name.
+per-recipe `imaging`, all use the default `[imaging]`). `oracle.sh images` (44529028) writes the
+recipes as a Go site (`sites.py make images`: `.Process` for a spec, `images.Filter` with the
+`images.*` functions for filters), builds it with the Go binary and copies each result here
+under its `golden` name.
 
 ## Docs patch variants: `tools/rust-port/i01/patches.json`
 
 Not in this directory: `sites.py patches` writes it next to `sites.py` from its `DOCS_REMOVE`,
 `DOCS_REPLACE` and `DOCS_WRITE` lists, and `sites.py patches --check` (which `oracle.sh sites`
-runs before the docs labels) asserts that it is current and that the Tera patch files of
+ran before the docs labels) asserts that it is current and that the Tera patch files of
 `rust/sites/docs/patches/<variant>/` correspond 1:1 to its layout entries. Schema
 `neohugo-docs-patches/1`: `variants` (`["i01", "reduced"]`) and `patches`, in application order,
 each `{"op": "remove" | "replace" | "write", "file": "<path in the site>", "old"/"new"

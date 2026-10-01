@@ -10,6 +10,7 @@ public/
 # Rust rewrite (docs/rust-port/REWRITE_PLAN.md §6.1)
 /rust/target/
 /rust/target-*/
+/tools/neohugo/bin/
 /tools/neohugo/node_modules/
 # Test data is stored verbatim, whatever the rules above match.
 !/rust/testdata/**

@@ -7,7 +7,7 @@ use serde::Deserialize;
 use super::super::comrak_spike::normalize::{Fold, normalize};
 use super::{HugoCfg, Row, options, print, render_with, text};
 
-/// The Go oracle's `deepDocs` (tools/go-oracle/nh-markup/convert).
+/// The Go oracle's `deepDocs` (tools/go-oracle/nh-markup/convert at 44529028).
 fn deep_docs() -> Vec<String> {
     vec![
         "> ".repeat(3000) + "deep *quote*\n",

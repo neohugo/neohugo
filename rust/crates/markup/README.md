@@ -304,7 +304,7 @@ NEOHUGO_GOLDMARK_EMOJI_TSV=/path/goldmark-emoji.tsv cargo test ...   # enable th
 ```
 
 The emoji table (`shortname<TAB>hex code points`) comes from goldmark-emoji v1.0.6 (the version
-in the repository's `go.mod`), resolved for every `:name:` in the docs:
+in the repository's `go.mod` at 44529028), resolved for every `:name:` in the docs:
 
 ```go
 // go run . < names.txt > goldmark-emoji.tsv   (module requiring github.com/yuin/goldmark-emoji v1.0.6)
