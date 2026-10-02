@@ -433,7 +433,7 @@
 "host-and-deploy/deploy-with-hugo-deploy/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "host-and-deploy/deploy-with-rclone/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "host-and-deploy/deploy-with-rsync/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
-"host-and-deploy/host-on-21yunbox/index.html": {"L1": "ok", "L2": "ok", "L3": {"class": "engine-difference", "fp": "b99948f89cef", "reason": "a pipe table on lazy continuation lines of a list item stays paragraph text in comrak (as in cmark-gfm/GitHub); goldmark turns the paragraph into a table", "status": "diff", "task": "T65"}},
+"host-and-deploy/host-on-21yunbox/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "host-and-deploy/host-on-aws-amplify/amplify-step-05.png": {"L1": "ok", "L4": "ok"},
 "host-and-deploy/host-on-aws-amplify/amplify-step-06.png": {"L1": "ok", "L4": "ok"},
 "host-and-deploy/host-on-aws-amplify/amplify-step-07.png": {"L1": "ok", "L4": "ok"},

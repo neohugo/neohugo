@@ -25,9 +25,9 @@ defaults:
 
 env:
   # The toolchain CI builds with: the one the workspace is developed with. Cargo.toml's
-  # rust-version (1.94) is the MSRV. A newer clippy brings new lints that -D warnings turns into
+  # rust-version (1.96, what rolldown's oxc needs) is the MSRV. A newer clippy brings new lints that -D warnings turns into
   # failures, so this moves only on purpose (DEVELOPMENT.md, "CI and releases").
-  RUST_TOOLCHAIN: "1.94.1"
+  RUST_TOOLCHAIN: "1.96.0"
   CARGO_TERM_COLOR: always
   CARGO_NET_RETRY: "10"
   RUSTUP_MAX_RETRIES: "10"
@@ -98,8 +98,7 @@ jobs:
 
       # node on PATH runs the fake-tool tests (small node scripts standing in for PostCSS,
       # Tailwind and Babel). tools/neohugo/node.sh (pinned npm ci) installs the real tools for
-      # the real-tool tests and the esbuild package the next step copies the binary from; a
-      # failure fails the job.
+      # the real-tool tests; a failure fails the job.
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
@@ -114,15 +113,6 @@ jobs:
             [ -x "$bin" ] || { echo "::error::tools/neohugo/node.sh installed no $bin"; exit 1; }
             echo "${tool#*:}=$bin" >>"$GITHUB_ENV"
           done
-
-      # esbuild for the js_build tests (neohugo-esbuild, neohugo-resources, the gates), which
-      # skip without it, so a failure here fails the job: install.sh copies the binary of the
-      # esbuild package node.sh installed and checks it against the pin in
-      # tools/neohugo/node/package.json.
-      - name: esbuild
-        run: |
-          tools/esbuild/install.sh
-          echo "NEOHUGO_ESBUILD_BINARY=$GITHUB_WORKSPACE/tools/esbuild/bin/esbuild" >>"$GITHUB_ENV"
 
       # --show-output keeps each passing test's report (parity counts, SKIPPED notes) in the log.
       - name: cargo test

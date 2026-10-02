@@ -8,7 +8,8 @@
 //! a template and [`kwarg_findings`] checks them against the spec.
 //!
 //! Template sets: one per site under `sites/<site>/` (its `layouts/**` by relative name,
-//! `assets/**` as `assets/<rel>`) and one more per docs patch variant (`patches/<variant>/**`
+//! `assets/**` as `assets/<rel>`, its content adapters `content/**/_content.html` as
+//! `content/<rel>`) and one more per docs patch variant (`patches/<variant>/**`
 //! overlaid on the site by path), each plus the embedded templates of
 //! `crates/layouts/embedded/**` (as `_embedded/<rel>`, with an empty stub for every
 //! `spec::EMBEDDED_TEMPLATES` name not yet written).
@@ -97,6 +98,11 @@ pub fn template_sets() -> io::Result<Vec<TemplateSet>> {
         let label = file_name(&site);
         let mut base = read_tree(&site.join("layouts"), "")?;
         base.extend(read_tree(&site.join("assets"), "assets/")?);
+        base.extend(
+            read_tree(&site.join("content"), "content/")?
+                .into_iter()
+                .filter(|t| t.name.ends_with("/_content.html")),
+        );
         for variant in sorted_dirs(&site.join("patches"))? {
             let mut templates = base.clone();
             for patch in read_tree(&variant, "")? {

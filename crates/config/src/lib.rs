@@ -3,12 +3,12 @@
 //! One `Value`-tree pipeline, then typed structs:
 //!
 //! 1. **Bootstrap**: the environment and the config directory come from [`CliOverrides`] and
-//!    `HUGO_ENVIRONMENT`/`HUGO_ENV`.
+//!    `NEOHUGO_ENVIRONMENT`.
 //! 2. **Sources**: the project file (the first of `neohugo.toml`, `neohugo.yaml`,
-//!    `neohugo.yml`, `neohugo.json`, then Hugo's `hugo.*` and `config.*`; a warning names the
-//!    others when several exist; or the explicit list), then `config/_default/**` and
-//!    `config/<environment>/**` (file names place their content: `neohugo.*`, `hugo.*` and
-//!    `config.*` at the root, `params.toml` under `params`, `menus.en.toml` under
+//!    `neohugo.yml`, `neohugo.json`, then `config.*`; Hugo's `hugo.*` is not read; a warning
+//!    names the others when several exist; or the explicit list), then `config/_default/**` and
+//!    `config/<environment>/**` (file names place their content: `neohugo.*` and `config.*` at
+//!    the root, `params.toml` under `params`, `menus.en.toml` under
 //!    `languages.en.menus`).
 //! 3. **Normalise** each tree ([`tree::normalize_keys`]) and migrate legacy keys
 //!    ([`tree::migrate_legacy_keys`]).
@@ -138,11 +138,11 @@ pub struct LoadOptions {
     /// The project directory (`--source`).
     pub source: PathBuf,
     /// `--config` files, relative to `source`; the first has the highest precedence. Empty:
-    /// the first of `neohugo.toml`, `neohugo.yaml`, `neohugo.yml`, `neohugo.json`, `hugo.*`,
-    /// `config.*` ([`config_file_names`]).
+    /// the first of `neohugo.toml`, `neohugo.yaml`, `neohugo.yml`, `neohugo.json`, `config.*`
+    /// ([`config_file_names`]).
     pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
-    /// The process environment: `HUGO_*` overrides, and `HOME`, `XDG_CACHE_HOME`, `TMPDIR`
+    /// The process environment: `NEOHUGO_*` overrides, and `HOME`, `XDG_CACHE_HOME`, `TMPDIR`
     /// and `USER` for the default cache directory.
     pub env: Vec<(String, String)>,
 }
@@ -258,8 +258,7 @@ impl<'a> Loader<'a> {
             .cli
             .environment
             .clone()
-            .or_else(|| self.env("HUGO_ENVIRONMENT").map(str::to_owned))
-            .or_else(|| self.env("HUGO_ENV").map(str::to_owned))
+            .or_else(|| self.env(env::ENVIRONMENT).map(str::to_owned))
             .filter(|e| !e.is_empty())
             .unwrap_or_else(|| "production".to_owned());
 
@@ -287,14 +286,14 @@ impl<'a> Loader<'a> {
         let mut root = self.sources.merged();
         self.migrate(&mut root);
         tree::merge_deep(&mut root, &tree::normalize_keys(&self.o.cli.to_tree()));
-        let hugo_env: Vec<(String, String)> = self
+        let overrides: Vec<(String, String)> = self
             .o
             .env
             .iter()
-            .filter(|(k, _)| k.starts_with("HUGO"))
+            .filter(|(k, _)| k.starts_with(env::PREFIX))
             .cloned()
             .collect();
-        env::apply(&mut root, &hugo_env);
+        env::apply(&mut root, &overrides);
         let mut root = tree::normalize_keys(&root);
 
         // Step 4, then: the themes (found and read) and their configuration below the
@@ -724,8 +723,8 @@ impl<'a> Loader<'a> {
         })
     }
 
-    /// `cacheDir`, else `$XDG_CACHE_HOME/hugo_cache` (or `$HOME/.cache/hugo_cache`) when it can
-    /// exist, else `$TMPDIR/hugo_cache_$USER`.
+    /// `cacheDir`, else `$XDG_CACHE_HOME/neohugo_cache` (or `$HOME/.cache/neohugo_cache`) when it can
+    /// exist, else `$TMPDIR/neohugo_cache_$USER`.
     fn cache_dir(&self, t: &Map) -> PathBuf {
         if let Some(dir) = t
             .get("cachedir")
@@ -741,7 +740,7 @@ impl<'a> Loader<'a> {
             .map(PathBuf::from)
             .or_else(|| self.env("HOME").map(|h| Path::new(h).join(".cache")));
         if let Some(base) = user_cache {
-            let candidate = base.join("hugo_cache");
+            let candidate = base.join("neohugo_cache");
             let creatable = candidate
                 .ancestors()
                 .find(|a| a.exists())
@@ -755,8 +754,8 @@ impl<'a> Loader<'a> {
             .filter(|s| !s.is_empty())
             .map_or_else(std::env::temp_dir, PathBuf::from);
         match self.env("USER").filter(|s| !s.is_empty()) {
-            Some(user) => tmp.join(format!("hugo_cache_{user}")),
-            None => tmp.join("hugo_cache"),
+            Some(user) => tmp.join(format!("neohugo_cache_{user}")),
+            None => tmp.join("neohugo_cache"),
         }
     }
 }

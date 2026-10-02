@@ -4,11 +4,11 @@
 //! | Transform | Implementation | Target |
 //! |---|---|---|
 //! | [`Transform::Minify`] | `neohugo-minify` by media type (no minifier: an error) | `.min` before the extension |
-//! | [`Transform::ToCss`] | grass (dart-sass semantics); imports through the assets view, `includePaths`, `hugo:vars` | `targetPath`, else `.css` |
+//! | [`Transform::ToCss`] | grass (dart-sass semantics); imports through the assets view, `includePaths`, `neohugo:vars` | `targetPath`, else `.css` |
 //! | [`Transform::PostCss`] | the `postcss` CLI (`postcss-cli`), optional `@import` inlining | unchanged |
 //! | [`Transform::TailwindCss`] | the `tailwindcss` CLI (v4), `@import` inlining unless disabled | unchanged |
 //! | [`Transform::Babel`] | the `babel` CLI (`@babel/cli`) | unchanged |
-//! | [`Transform::JsBuild`] | esbuild through `neohugo-esbuild` | `targetPath`, else `.js` |
+//! | [`Transform::JsBuild`] | rolldown through `neohugo-jsbuild` | `targetPath`, else `.js` |
 //! | [`Transform::Fingerprint`] | the store (T40) | `.<hex digest>` before the extension |
 //!
 //! **Laziness.** [`ResourceStore::transform`] registers the result at once with its final
@@ -17,7 +17,7 @@
 //! `fingerprint` depends on the content for its link: over a computed resource it is computed
 //! at once; over a pending one it is pending too, its record provisional (the source's link,
 //! [`PublishPolicy::Never`]) until computed. So a chain ending in
-//! [`ResourceStore::post_process`] runs in build phase E5, after `hugo_stats.json` exists,
+//! [`ResourceStore::post_process`] runs in build phase E5, after `neohugo_stats.json` exists,
 //! as long as nobody asks for its content or its fingerprinted link earlier (the crate README
 //! says how template functions build views of pending results).
 //!
@@ -25,8 +25,8 @@
 //! `<project>/node_modules/.bin`, then the extra `node_modules` directories, then `PATH`),
 //! must be allowed by `security.exec.allow`, run with the project directory as working
 //! directory and an environment of the allowed variables (`security.exec.osEnv`) plus
-//! `NODE_PATH`, `PWD`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_PUBLISHDIR` and `HUGO_FILE_<NAME>`
-//! for each file in `assets/_jsconfig`. At most `min(4, cpus)` run at once. A missing tool is
+//! `NODE_PATH`, `PWD`, `NEOHUGO_ENVIRONMENT`, `NEOHUGO_PUBLISHDIR` and `NEOHUGO_FILE_<NAME>`
+//! for each file in `assets/_jsconfig` (Hugo's `HUGO_*` names are not set). At most `min(4, cpus)` run at once. A missing tool is
 //! [`PipeError::ToolNotFound`], naming the binary.
 
 mod assets;
@@ -38,6 +38,7 @@ mod minify;
 mod postcss;
 mod postprocess;
 mod sass;
+mod sass_imports;
 mod tailwind;
 mod template;
 
@@ -51,7 +52,7 @@ use neohugo_base::paths::{self, OutputPath, UrlPath};
 use neohugo_base::{ResourceId, Value};
 use neohugo_config::global::SecurityPolicy;
 use neohugo_config::{Config, MediaType};
-use neohugo_esbuild::{JsBuildError, JsBuildOptions, JsBuilder, OptionsError, Service};
+use neohugo_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, OptionsError};
 use neohugo_minify::{Minifier, MinifyError};
 use serde_json::Value as Json;
 
@@ -167,7 +168,7 @@ pub enum PipeError {
     /// A configuration file named by an option does not exist.
     #[error("{tool} config {name:?} not found")]
     ConfigNotFound { tool: &'static str, name: String },
-    /// A Sass compilation error at a position (`hugo:vars` for the variables sheet).
+    /// A Sass compilation error at a position (`neohugo:vars` for the variables sheet).
     #[error("{file}:{line}:{column}: {message}")]
     Sass {
         file: String,
@@ -185,9 +186,6 @@ pub enum PipeError {
         line: usize,
         path: String,
     },
-    /// The esbuild service could not be started.
-    #[error("esbuild: {0}")]
-    Esbuild(String),
     #[error(transparent)]
     JsBuild(#[from] JsBuildError),
     #[error(transparent)]
@@ -208,15 +206,16 @@ pub enum PipeError {
     },
 }
 
-/// Everything the pipes need from the build: directories, the environment, the tools, esbuild
-/// and the minifier. One per build, shared by the store.
+/// Everything the pipes need from the build: directories, the environment, the tools, the
+/// `js_build` bundler and the minifier. One per build, shared by the store.
 pub struct TransformEnv {
     /// The project directory: the working directory of the tools, the base of `includePaths`,
-    /// of config files and of esbuild's `node_modules` lookups.
+    /// of config files and of `js_build`'s `node_modules` lookups.
     pub project_dir: PathBuf,
-    /// The absolute publish directory (`HUGO_PUBLISHDIR`, esbuild's output directory).
+    /// The absolute publish directory (`NEOHUGO_PUBLISHDIR`, what `js_build` source maps are
+    /// relative to).
     pub publish_dir: PathBuf,
-    /// `HUGO_ENVIRONMENT` (`production`, `development`).
+    /// `NEOHUGO_ENVIRONMENT` (`production`, `development`).
     pub environment: String,
     /// `security.exec.allow` and `security.exec.osEnv`.
     pub security: SecurityPolicy,
@@ -224,9 +223,7 @@ pub struct TransformEnv {
     pub os_env: Vec<(String, String)>,
     pub tools: ToolPaths,
     pub minifier: Arc<Minifier>,
-    /// The esbuild binary (started on first use as a `--service`).
-    pub esbuild_binary: PathBuf,
-    esbuild: OnceLock<Result<JsBuilder, String>>,
+    js_builder: OnceLock<JsBuilder>,
     slots: exec::Slots,
 }
 
@@ -237,15 +234,13 @@ impl std::fmt::Debug for TransformEnv {
             .field("publish_dir", &self.publish_dir)
             .field("environment", &self.environment)
             .field("tools", &self.tools)
-            .field("esbuild_binary", &self.esbuild_binary)
             .finish_non_exhaustive()
     }
 }
 
 impl Default for TransformEnv {
     /// The current directory as project, `public` in it, `production`, the default security
-    /// policy, no inherited environment, [`ToolPaths::from_env`] and
-    /// [`neohugo_esbuild::binary_path`].
+    /// policy, no inherited environment and [`ToolPaths::from_env`].
     fn default() -> Self {
         let project_dir = std::env::current_dir().unwrap_or_default();
         Self::new(
@@ -269,15 +264,15 @@ impl TransformEnv {
             os_env: Vec::new(),
             tools: ToolPaths::from_env(),
             minifier: Arc::new(Minifier::default()),
-            esbuild_binary: neohugo_esbuild::binary_path(),
-            esbuild: OnceLock::new(),
+            js_builder: OnceLock::new(),
             slots: exec::Slots::default(),
         }
     }
 
     /// The environment of a loaded project: its directories, environment name, security
     /// policy and minifier configuration, the process environment, [`ToolPaths::from_env`].
-    /// An invalid `[minify]` table gives the default minifier (the publisher reports it).
+    /// An invalid `[minify]` table gives the default minifier, an invalid browserslist
+    /// configuration no CSS targets (the publisher reports both).
     #[must_use]
     pub fn from_config(cfg: &Config) -> Self {
         let publish_dir = cfg.project_dir.join(&cfg.dirs.publish);
@@ -290,31 +285,25 @@ impl TransformEnv {
         env.os_env = std::env::vars_os()
             .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)))
             .collect();
-        env.minifier = Arc::new(Minifier::new(&cfg.minify).unwrap_or_default());
+        let browsers = neohugo_minify::project_browsers(&cfg.project_dir, &cfg.environment);
+        env.minifier = Arc::new(
+            Minifier::new(&cfg.minify)
+                .unwrap_or_default()
+                .with_browsers(browsers.ok().flatten()),
+        );
         env
     }
 
-    /// The `js_build` builder, starting the esbuild service on first use.
-    fn js_builder(&self) -> Result<&JsBuilder, PipeError> {
-        self.esbuild
-            .get_or_init(|| {
-                Service::start(&self.esbuild_binary)
-                    .map(|s| {
-                        let tsconfig = ["tsconfig.json", "jsconfig.json"]
-                            .into_iter()
-                            .map(|n| self.project_dir.join(n))
-                            .find(|p| p.is_file());
-                        JsBuilder::new(
-                            Arc::new(s),
-                            self.project_dir.clone(),
-                            self.publish_dir.clone(),
-                        )
-                        .with_tsconfig(tsconfig)
-                    })
-                    .map_err(|e| format!("{} ({})", e, self.esbuild_binary.display()))
-            })
-            .as_ref()
-            .map_err(|e| PipeError::Esbuild(e.clone()))
+    /// The `js_build` builder, with the project's `tsconfig.json` (else `jsconfig.json`).
+    fn js_builder(&self) -> &JsBuilder {
+        self.js_builder.get_or_init(|| {
+            let tsconfig = ["tsconfig.json", "jsconfig.json"]
+                .into_iter()
+                .map(|n| self.project_dir.join(n))
+                .find(|p| p.is_file());
+            JsBuilder::new(self.project_dir.clone(), self.publish_dir.clone())
+                .with_tsconfig(tsconfig)
+        })
     }
 }
 

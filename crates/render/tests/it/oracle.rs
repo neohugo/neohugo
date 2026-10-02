@@ -203,7 +203,7 @@ fn run(fixture: &str, layouts: &[(&str, &str)]) -> Tally {
         neohugo_testkit::fixture::oracle(&format!("oracle/hugolib/content/{fixture}.json.gz"));
     let site = &fx["site"];
     let mut files = vec![(
-        "hugo.toml".to_owned(),
+        "neohugo.toml".to_owned(),
         site["toml"].as_str().expect("toml").to_owned(),
     )];
     for f in site["files"].as_array().expect("files") {

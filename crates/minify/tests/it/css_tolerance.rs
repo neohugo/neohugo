@@ -33,9 +33,9 @@ fn docs_tailwind_source() {
         "@media screen(md){.px-main{padding-left:max(env(safe-area-inset-left), 2rem);\
          padding-right:max(env(safe-area-inset-right), 2rem)}}",
         "@media screen(lg){.px-main{",
-        // Accepted rules around them: minified by lightningcss.
+        // Accepted rules around them: minified by lightningcss (declarations kept as written).
         "html{scroll-padding-top:100px}",
-        ".footnote-backref,.footnote-ref{padding-left:.0625em;text-decoration:none}",
+        ".footnote-backref,.footnote-ref{text-decoration:none;padding-left:.0625em}",
         "@import \"tailwindcss\";@plugin \"@tailwindcss/typography\";",
         "body{@apply antialiased font-sans text-black dark:text-gray-100;}",
     ] {
@@ -85,14 +85,15 @@ fn rejected_rules_pass_through() {
 /// tolerant path (`imports-missing.css`, `@import` after a rule, was an error before).
 #[test]
 fn oracle_site_css() {
+    let mut failures = Vec::new();
     for (file, want) in [
         (
             "resource-transformers/t16site/assets/css/plain.css",
-            ".plain{color:red}.two{color:#00f;margin:0}",
+            ".plain{color:red}.two{margin:0;color:#00f}",
         ),
         (
             "resource-transformers/t16site/assets/css/broken.css",
-            ".ok,.broken{color:red}",
+            ".ok{color:red}.broken{color:red}",
         ),
         (
             "resource-transformers/t16site/assets/css/imports-missing.css",
@@ -122,13 +123,13 @@ fn oracle_site_css() {
         ),
         (
             "resource-transformers/site/assets/css/a.css",
-            "body{color:red;margin:.5em}",
+            "body{margin:.5em;color:red}",
         ),
         (
             "resource-transformers/site/assets/css/b.css",
-            ".b{background:url(\"data:image/svg+xml;charset=utf-8,%3Csvg \
+            ".b{padding:10px 0;background:url(\"data:image/svg+xml;charset=utf-8,%3Csvg \
              xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M 1 1 L 2 \
-             2'/%3E%3C/svg%3E\");padding:10px 0}",
+             2'/%3E%3C/svg%3E\")}",
         ),
         (
             "resources/site/assets/css/a.css",
@@ -142,8 +143,12 @@ fn oracle_site_css() {
     ] {
         let path = testdata(&format!("oracle/{file}"));
         let input = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{e}"));
-        assert_eq!(min(&input), want, "{file}");
+        let got = min(&input);
+        if got != want {
+            failures.push(format!("{file}: {got:?}"));
+        }
     }
+    assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
 /// Many rejected rules: each rule is tried once on its own, so the cost stays linear.
@@ -158,13 +163,39 @@ fn many_rejected_rules() {
         "@media screen(md){.a{color:red}}.b{color:#00f}".repeat(2000)
     );
     assert!(start.elapsed().as_secs() < 30, "{:?}", start.elapsed());
-    // Accepted one by one, rejected together: the `@import` after a rule, amid others.
+    // Accepted one by one, rejected together: the `@import` after a rule, amid others. Rules
+    // are not merged (that is the source's business, as for Go's minifier).
     assert_eq!(
         min(&format!(
             "{}@import 'x.css';{}",
             ".a{top:0px}".repeat(50),
             ".b{top:0px}".repeat(50)
         )),
-        format!(".a{{top:0}}@import 'x.css';.b{{top:0}}")
+        format!(
+            "{}@import 'x.css';{}",
+            ".a{top:0}".repeat(50),
+            ".b{top:0}".repeat(50)
+        )
+    );
+}
+
+/// Fallback declarations survive: a standard value followed by a `-webkit-` one that browsers
+/// reject (`circle at …` is not legacy `-webkit-radial-gradient` syntax), as in seeksnack's
+/// Instagram icon. Merging them into the last one left the icon without a background.
+#[test]
+fn fallback_declarations_are_kept() {
+    let out = min(
+        ".i{background:radial-gradient(circle at 30% 107%,#fdf497 0%,#285aeb 90%);\
+         background:-webkit-radial-gradient(circle at 30% 107%,#fdf497 0%,#285aeb 90%)}",
+    );
+    assert!(
+        out.contains("background:radial-gradient(")
+            && out.contains("background:-webkit-radial-gradient("),
+        "{out}"
+    );
+    let out = min(".c{color:#123456;color:color(display-p3 .1 .2 .3)}");
+    assert!(
+        out.contains("color:#123456") && out.contains("color:color(display-p3"),
+        "{out}"
     );
 }

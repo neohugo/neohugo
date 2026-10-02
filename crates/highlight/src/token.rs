@@ -2,7 +2,8 @@
 //!
 //! The numbering, names and classes are Chroma's (`types.go`, v2.19.0, MIT): styles are keyed
 //! by these names, the class of a type without its own class is its parent's, and the CSS of
-//! a style is written in numeric order.
+//! a style is written in numeric order. `None` ([`TokenType::NoHighlight`], no highlighting),
+//! `Ignore` (dropped by the lexer) and `EOFType` (Chroma's end-of-stream marker) have no class.
 
 macro_rules! token_types {
     ($($variant:ident = $n:literal, $name:literal, $class:expr;)*) => {
@@ -66,6 +67,9 @@ token_types! {
     CodeLine = -10, "CodeLine", Some("cl");
     Error = -11, "Error", Some("err");
     Other = -12, "Other", Some("x");
+    NoHighlight = -13, "None", None;
+    Ignore = -14, "Ignore", None;
+    EOFType = 0, "EOFType", None;
     Keyword = 1000, "Keyword", Some("k");
     KeywordConstant = 1001, "KeywordConstant", Some("kc");
     KeywordDeclaration = 1002, "KeywordDeclaration", Some("kd");
@@ -175,7 +179,8 @@ impl TokenType {
         Self::from_number(p)
     }
 
-    /// Chroma's `Category` (`n / 1000 * 1000`); `None` for the negative (structural) types.
+    /// Chroma's `Category` (`n / 1000 * 1000`): `EOFType` (0) for the negative (structural)
+    /// types.
     #[must_use]
     pub fn category(self) -> Option<Self> {
         Self::from_number(self.number() / 1000 * 1000)
@@ -229,7 +234,8 @@ mod tests {
         );
         assert_eq!(TokenType::LiteralNumber.parent(), Some(TokenType::Literal));
         assert_eq!(TokenType::Literal.parent(), None);
-        assert_eq!(TokenType::Background.category(), None);
+        // Chroma's `Category` of a structural type is 0 (`EOFType`), which has no style.
+        assert_eq!(TokenType::Background.category(), Some(TokenType::EOFType));
         assert_eq!(
             TokenType::from_name("LineTableTD"),
             Some(TokenType::LineTableTd)

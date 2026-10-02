@@ -16,13 +16,21 @@ fn write_case(root: &Path, files: &serde_json::Map<String, J>) {
     let site = root.join("site");
     fs::create_dir_all(&site).unwrap();
     let root_str = root.to_str().unwrap();
+    // Go's `hugo.*` configuration files and `package.hugo.json` are neohugo's `neohugo.*` and
+    // `package.neohugo.json`.
     for (name, content) in files {
-        let p = site.join(name);
+        let name = name.replace("package.hugo.json", "package.neohugo.json");
+        let p = site.join(neohugo_testkit::fixture::neohugo_path(&name));
         if name.ends_with('/') {
             fs::create_dir_all(&p).unwrap();
         } else {
             fs::create_dir_all(p.parent().unwrap()).unwrap();
-            let text = content.as_str().unwrap().replace("$ROOT", root_str);
+            // Go's `hugo_stats.json` is neohugo's `neohugo_stats.json`.
+            let text = content
+                .as_str()
+                .unwrap()
+                .replace("$ROOT", root_str)
+                .replace("hugo_stats.json", "neohugo_stats.json");
             fs::write(&p, text).unwrap();
         }
     }
@@ -48,14 +56,21 @@ fn dump(m: &Mount, root: &str) -> J {
 
 /// The JS config mounts are compared as a set (Go lists them in directory order).
 fn split(mounts: Vec<J>) -> (Vec<J>, Vec<String>) {
-    let (mut js, rest): (Vec<J>, Vec<J>) = mounts.into_iter().partition(|m| {
+    let (js, rest): (Vec<J>, Vec<J>) = mounts.into_iter().partition(|m| {
         m["target"]
             .as_str()
             .unwrap()
             .starts_with("assets/_jsconfig")
     });
-    js.sort_by_key(ToString::to_string);
-    (rest, js.iter().map(ToString::to_string).collect())
+    let mut js: Vec<String> = js.iter().map(canonical).collect();
+    js.sort();
+    (rest, js)
+}
+
+/// A mount as JSON text with sorted keys (serde_json's `Map` keeps insertion order in this
+/// workspace, see neohugo-funcs' determinism test).
+fn canonical(m: &J) -> String {
+    serde_json::to_string(&neohugo_base::Value::from_json(m.clone())).unwrap()
 }
 
 /// Loads the case written below `root` and sets up its mounts.
@@ -100,10 +115,13 @@ fn mounts_match_go() {
             .filter(|m| m.module == Module::Project)
             .map(|m| dump(m, root_str))
             .collect();
-        let want: Vec<J> = c["result"]["modules"][0]["mounts"]
-            .as_array()
-            .unwrap()
-            .clone();
+        let want: Vec<J> = serde_json::from_str(
+            &c["result"]["modules"][0]["mounts"]
+                .to_string()
+                .replace("hugo_stats.json", "neohugo_stats.json")
+                .replace("package.hugo.json", "package.neohugo.json"),
+        )
+        .unwrap();
         let (ours, ours_js) = split(ours);
         let (want, want_js) = split(want);
         assert_eq!(ours, want, "{name}");

@@ -35,7 +35,12 @@ pub struct Duplicate {
 pub struct Discovery {
     /// Pages and resources, sorted by key, then language.
     pub files: Vec<ContentFile>,
-    /// Files dropped because another file has the same key and language.
+    /// Content adapters (`_content.html`, `_content.gotmpl`), sorted by key (their directory),
+    /// then language. They are no pages: an adapter shares its directory with the section's
+    /// `_index.md` (Hugo keeps them in a tree of their own).
+    pub adapters: Vec<ContentFile>,
+    /// Files dropped because another file has the same key and language (for adapters:
+    /// another adapter).
     pub duplicates: Vec<Duplicate>,
 }
 
@@ -51,7 +56,9 @@ impl Vfs {
     ///   kept: a bundle index before a single page (`foo/_index.md` before `foo.md`), then the
     ///   higher-ranked suffix (`md` before `html`), the earlier mount, a language named in the
     ///   file name before the mount's language, and the path. The others are reported as
-    ///   [`Duplicate`]s.
+    ///   [`Duplicate`]s;
+    /// - content adapters go to [`Discovery::adapters`], one per directory and language (the
+    ///   first by the same order).
     ///
     /// # Errors
     /// See [`Vfs::walk`].
@@ -99,22 +106,27 @@ impl Vfs {
                 .cmp(&(&b.info.key, !b.info.kind.is_page(), b.lang))
                 .then_with(|| self.precedence(a).cmp(&self.precedence(b)))
         });
+        let (adapters, files): (Vec<ContentFile>, Vec<ContentFile>) = files
+            .into_iter()
+            .partition(|f| f.info.kind == BundleKind::ContentAdapter);
         let mut out = Discovery::default();
-        for f in files {
-            match out.files.last() {
-                Some(k)
-                    if k.info.key == f.info.key
-                        && k.lang == f.lang
-                        && k.info.kind.is_page() == f.info.kind.is_page() =>
-                {
-                    out.duplicates.push(Duplicate {
-                        key: f.info.key.clone(),
-                        lang: f.lang,
-                        kept: k.file.abs.clone(),
-                        dropped: f.file.abs,
-                    });
+        for (list, all) in [(&mut out.files, files), (&mut out.adapters, adapters)] {
+            for f in all {
+                match list.last() {
+                    Some(k)
+                        if k.info.key == f.info.key
+                            && k.lang == f.lang
+                            && k.info.kind.is_page() == f.info.kind.is_page() =>
+                    {
+                        out.duplicates.push(Duplicate {
+                            key: f.info.key.clone(),
+                            lang: f.lang,
+                            kept: k.file.abs.clone(),
+                            dropped: f.file.abs,
+                        });
+                    }
+                    _ => list.push(f),
                 }
-                _ => out.files.push(f),
             }
         }
         Ok(out)

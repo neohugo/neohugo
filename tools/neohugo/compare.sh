@@ -4,11 +4,11 @@
 # data) through tools/neohugo/structdiff.py, level by level (L1-L4, the structure oracle, A7),
 # and applies the ratchet (testdata/baselines/<label>.json).
 #
-#   tools/neohugo/compare.sh <site> [--docs-patches i01|reduced] [--ref golden]
+#   tools/neohugo/compare.sh <site> [--docs-patches i01|reduced|live] [--ref golden]
 #                            [--task ID]... [--update] [--report-only] [--show N]
 #
-# Sites: testsite, seeksnack, docs-i01, docs-reduced (`docs --docs-patches <variant>` is the same
-# as `docs-<variant>`).
+# Sites: testsite, seeksnack, docs-i01, docs-reduced, docs-live (`docs --docs-patches <variant>`
+# is the same as `docs-<variant>`).
 #
 # Sides:
 #   --ref golden   the reference, the only one: the committed golden data of
@@ -20,12 +20,18 @@
 # The candidate builds each pass from a freshly generated site, from the site directory, with
 #   <binary> --clock 2026-09-27T12:00:00Z [--minify] -d <out>
 # (the minified pass gives L1 and L4, the unminified pass L1, L2 and L3) in the clean
-# environment of the golden builds: HOME and HUGO_CACHEDIR in the work directory (the site's
-# golden GetRemote entries, `sites.py cache`), TZ=UTC, HUGO_NUMWORKERMULTIPLIER=1, every proxy
+# environment of the golden builds: HOME and NEOHUGO_CACHEDIR (the Go builds: HUGO_CACHEDIR,
+# with HUGO_NUMWORKERMULTIPLIER=1) in the work directory (the site's golden GetRemote entries,
+# `sites.py cache`), TZ=UTC, every proxy
 # variable pointing at a refusing port (outbound HTTP disabled), the node modules of
 # tools/neohugo/node.sh as a `node_modules` symlink in the site plus `node_modules/.bin` on PATH,
-# NEOHUGO_NODE_MODULES and NEOHUGO_ESBUILD_BINARY. Manifests come from tools/neohugo/manifest.py
+# and NEOHUGO_NODE_MODULES. Manifests come from tools/neohugo/manifest.py
 # (the candidate's with --full-text, for the A7 similarity of the worst pages).
+#
+# docs-live (gate A-D3) is the docs site as neohugo.github.io publishes it, and its golden data is
+# the published site (testdata/golden/README.md): one unminified pass (the site is published
+# unminified) giving L1-L4, no structure dump, the clock of the published build
+# (2025-10-13T15:00:00Z), and the GetRemote responses of that day from `sites.py cache`.
 #
 # Ratchet: --task names the changes files (tools/neohugo/changes/<ID>.md) that list this task's
 # changes; an unlisted new difference fails; --update writes the baseline for the listed changes;
@@ -37,8 +43,6 @@
 #   NEOHUGO_BINARY          the neohugo binary (default: `cargo build --offline --locked -p
 #                           neohugo`, then a copy of target/debug/neohugo in the work dir)
 #   NEOHUGO_NODE_MODULES    the node modules (default: see tools/neohugo/node.sh)
-#   NEOHUGO_ESBUILD_BINARY  esbuild for the Rust build (default: tools/esbuild/bin/esbuild of the
-#                           main checkout)
 #   NEOHUGO_TASK            default for --task
 # The report and structdiff.json stay in the work directory (<work>/<label>/); everything else
 # there is deleted unless KEEP=1.
@@ -56,10 +60,6 @@ log() { echo "compare.sh: $*" >&2; }
 usage() {
 	sed -n '2,/^set -euo/p' "$0" | sed -e '$d' -e 's/^# \{0,1\}//' >&2
 	exit 2
-}
-
-main_checkout() {
-	dirname "$(git -C "$HERE" rev-parse --path-format=absolute --git-common-dir)"
 }
 
 site= variant= ref=golden update= report_only= show=40
@@ -82,18 +82,23 @@ done
 
 case $site in
 docs) label=docs-${variant:-i01} ;;
-docs-i01 | docs-reduced)
+docs-i01 | docs-reduced | docs-live)
 	[ -z "$variant" ] || [ "docs-$variant" = "$site" ] || { log "$site contradicts --docs-patches $variant"; exit 2; }
 	label=$site ;;
 testsite | seeksnack)
 	[ -z "$variant" ] || { log "--docs-patches applies to docs only"; exit 2; }
 	label=$site ;;
-*) log "unknown site $site (testsite, seeksnack, docs-i01, docs-reduced)"; exit 2 ;;
+*) log "unknown site $site (testsite, seeksnack, docs-i01, docs-reduced, docs-live)"; exit 2 ;;
 esac
+# docs-live: the published site's one unminified pass (L1-L4), its clock, no structure dump.
+passes="minified unminified" unmin_levels=L1,L2,L3 structure_dump=1
+if [ "$label" = docs-live ]; then
+	passes=unminified unmin_levels=L1,L2,L3,L4 structure_dump=
+	CLOCK=2025-10-13T15:00:00Z
+fi
 overlay=$ROOT/sites/${label%%-*}
 
 NODE_MODULES=${NEOHUGO_NODE_MODULES:-$("$HERE/node.sh" path)}
-ESBUILD=${NEOHUGO_ESBUILD_BINARY:-$(main_checkout)/tools/esbuild/bin/esbuild}
 GOLDEN=$ROOT/testdata/golden/$label
 BASELINE=$ROOT/testdata/baselines/$label.json
 WORK_ROOT=${NEOHUGO_COMPARE_WORK:-${TMPDIR:-/tmp}/neohugo-compare}
@@ -143,8 +148,8 @@ build() {
 		PATH="$NODE_MODULES/.bin:$node_dir:/usr/local/bin:/usr/bin:/bin"
 		HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9
 		http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 all_proxy=http://127.0.0.1:9
-		NO_PROXY= no_proxy= HUGO_CACHEDIR="$dir/cache" HUGO_NUMWORKERMULTIPLIER=1
-		NEOHUGO_NODE_MODULES="$NODE_MODULES" NEOHUGO_ESBUILD_BINARY="$ESBUILD")
+		NO_PROXY= no_proxy= NEOHUGO_CACHEDIR="$dir/cache"
+		NEOHUGO_NODE_MODULES="$NODE_MODULES")
 	[ -n "$structure" ] && env+=(NEOHUGO_STRUCTURE_OUT="$structure")
 	local start end
 	start=$(date +%s)
@@ -162,14 +167,14 @@ build() {
 # <name>_unmin, <name>_structure to the manifest and dump files.
 side() {
 	local name=$1
-	for pass in minified unminified; do
-		local dir=$W/$name-$pass args=() levels=L1,L2,L3 full=() structure=
+	for pass in $passes; do
+		local dir=$W/$name-$pass args=() levels=$unmin_levels full=() structure=
 		if [ $pass = minified ]; then
 			args=(--minify)
 			levels=L1,L4
 		else
 			full=(--full-text)
-			structure=$W/$name.structure.json
+			[ -n "$structure_dump" ] && structure=$W/$name.structure.json
 		fi
 		build "$dir" "$structure" "${args[@]}"
 		python3 "$MANIFEST_PY" extract "$dir/out" --project "$dir/$label" --site "$label" \
@@ -187,10 +192,11 @@ ref_unmin=$GOLDEN/manifest.unminified.json
 ref_structure=$GOLDEN/structure.json
 side cand
 
-args=(compare --site "$label" --show "$show"
-	--ref-name golden --ref-min "$ref_min" --ref-unmin "$ref_unmin" --ref-structure "$ref_structure"
-	--cand-name rust --cand-min "$cand_min" --cand-unmin "$cand_unmin" --cand-structure "$cand_structure"
+args=(compare --site "$label" --show "$show" --ref-name golden --ref-unmin "$ref_unmin"
+	--cand-name rust --cand-unmin "$cand_unmin"
 	--json "$W/structdiff.json" --report "$W/report.txt" --baseline "$BASELINE")
+case " $passes " in *" minified "*) args+=(--ref-min "$ref_min" --cand-min "$cand_min") ;; esac
+[ -n "$structure_dump" ] && args+=(--ref-structure "$ref_structure" --cand-structure "$cand_structure")
 for t in "${tasks[@]}"; do args+=(--task "$t"); done
 [ -n "$update" ] && args+=(--update)
 [ -n "$report_only" ] && args+=(--report-only)

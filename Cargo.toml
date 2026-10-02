@@ -11,7 +11,7 @@ members = ["crates/*"]
 version = "0.149.0-DEV"
 edition = "2024"
 license = "Apache-2.0"
-rust-version = "1.94" # local rustc 1.94.1; resolver 3 picks MSRV-compatible versions
+rust-version = "1.96" # rolldown's oxc needs 1.96; resolver 3 picks MSRV-compatible versions
 repository = "https://github.com/neohugo/neohugo"
 publish = false
 
@@ -56,10 +56,6 @@ opt-level = 3
 opt-level = 3
 [profile.dev.package.libwebp-sys] # the C build reads this crate's opt-level, not webp's
 opt-level = 3
-[profile.dev.package.syntect]
-opt-level = 3
-[profile.dev.package.fancy-regex]
-opt-level = 3
 [profile.dev.package.grass]
 opt-level = 3
 # minify-html's parser `debug_assert`s that a raw-text element's end tag has its name, which
@@ -82,7 +78,7 @@ neohugo-markup = { path = "crates/markup" }
 neohugo-highlight = { path = "crates/highlight" }
 neohugo-minify = { path = "crates/minify" }
 neohugo-images = { path = "crates/images" }
-neohugo-esbuild = { path = "crates/esbuild" }
+neohugo-jsbuild = { path = "crates/jsbuild" }
 neohugo-resources = { path = "crates/resources" }
 neohugo-layouts = { path = "crates/layouts" }
 neohugo-funcs = { path = "crates/funcs" }
@@ -98,7 +94,10 @@ neohugo-migrate = { path = "crates/migrate" }
 
 # ── data formats ──
 serde = { version = "1.0.229", features = ["derive", "rc", "alloc"] }
-serde_json = "1.0.151" # default Map = BTreeMap; a test asserts no dep enables preserve_order
+# rolldown turns on `preserve_order` (Map keeps insertion order) and `arbitrary_precision`
+# (numbers keep their text) for every build it is part of; the workspace-hack turns them on
+# for every member, so tests see what the binary does. Code must not rely on Map order.
+serde_json = "1.0.151"
 toml = "1.1.6"         # decode via toml::Table → base::Value
 serde-saphyr = "1.3"   # YAML 1.2; fallback serde_norway 0.9
 csv = "1.3"
@@ -116,8 +115,6 @@ tera-contrib = { version = "0.3", default-features = false, features = ["regex",
 
 # ── markdown & text ──
 comrak = { version = "0.55", default-features = false, features = ["attributes", "shortcodes"] }
-syntect = { version = "5.3", default-features = false, features = ["default-fancy"] }
-two-face = { version = "0.5.2", default-features = false, features = ["syntect-default-fancy"] }
 regex = "1.13"
 aho-corasick = "1.1"
 html5gum = "0.8.4"
@@ -126,8 +123,9 @@ unicode-segmentation = "1.12"
 unicode-properties = { version = "0.1", features = ["general-category"] }
 percent-encoding = "2.3.2"
 url = "2.5"
-pulldown-latex = "0.8" # SHOULD (A-D2): to_math → MathML
-svgbob = "0.7.6"       # SHOULD (A-D2): diagrams_goat (Apache-2.0)
+# to_math: KaTeX in QuickJS-ng (MIT; C, built by cc). `parallel`: Send + Sync runtimes, pooled
+# across render threads.
+rquickjs = { version = "0.14", default-features = false, features = ["std", "parallel"] }
 emojis = "0.8"         # emojify (T31); already locked through comrak `shortcodes`
 
 # ── time & locale (ICU4X, Unicode-3.0) ──
@@ -149,12 +147,23 @@ filetime = "0.2"
 # ── css / js / html output ──
 grass = { version = "0.13.4", default-features = false, features = ["random"] }
 minify-html = "0.18.1"
-lightningcss = { version = "1.0.0-alpha.72", default-features = false }
+lightningcss = { version = "1.0.0-alpha.72", default-features = false, features = ["browserslist"] }
+browserslist-rs = "0.19" # the project's browserslist configuration → lightningcss targets
 oxc_minifier = "0.95" # lockstep with minify-html's oxc
 oxc_allocator = "0.95" # the oxc pipeline around oxc_minifier (T26), same lockstep
 oxc_parser = "0.95"
 oxc_codegen = "0.95"
 oxc_span = "0.95"
+# js_build: the rolldown bundler and the oxc it pins (the `oxc` umbrella crate, so the 0.95
+# crates above keep their names). Exact pins: rolldown's Rust API has no semver promise and
+# every release moves oxc.
+rolldown = "=1.2.12"
+rolldown_common = "=1.2.12"
+rolldown_error = "=1.2.12"
+rolldown_plugin = "=1.2.12"
+rolldown_sourcemap = "=1.2.12"
+oxc = { version = "=0.152.0", features = ["codegen", "semantic", "ast_visit", "transformer"] }
+oxc_sourcemap = "=9.0.0"
 quick-xml = "0.42"    # XML/SVG minifier tokens (T26); already locked through plist
 
 # ── images ──
@@ -167,7 +176,6 @@ ab_glyph = "0.2.32" # images.Text (T72a)
 qrcode = { version = "0.14", default-features = false } # images.QR (T72a)
 color_quant = "2"
 kmeans_colors = "0.7.1"
-smartcrop2 = "0.4" # COULD
 
 # ── hashing ──
 sha2 = "0.11"
@@ -210,6 +218,8 @@ either = { version = "1", default-features = false, features = ["std", "use_std"
 fastrand = { version = "2", features = ["alloc", "std"] }
 getrandom = { version = "0.3", default-features = false, features = ["std"] }
 hashbrown = { version = "0.16", default-features = false, features = ["allocator-api2", "default-hasher", "inline-more"] }
+# 0.17: indexmap's (no features), rquickjs-core's (default features; `math`)
+hashbrown-0-17 = { package = "hashbrown", version = "0.17" }
 icu_locale_core = { version = "2", default-features = false, features = ["alloc", "zerovec"] }
 icu_provider = { version = "2", default-features = false, features = ["alloc", "baked", "sync"] } # sync: Send + Sync ICU formatters (T12)
 itertools = { version = "0.14", features = ["use_alloc", "use_std"] }

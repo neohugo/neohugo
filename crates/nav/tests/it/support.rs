@@ -415,7 +415,7 @@ impl NavModel for DumpSite {
     }
 }
 
-/// A project directory with `hugo.json` = `config` and the given files.
+/// A project directory with `neohugo.json` = `config` and the given files.
 pub struct Project {
     pub _tmp: tempfile::TempDir,
     pub cfg: Arc<Config>,
@@ -428,16 +428,16 @@ impl Project {
         let tmp = tempfile::tempdir().expect("tempdir");
         let dir = tmp.path().join("site");
         fs::create_dir_all(&dir).expect("mkdir");
-        fs::write(dir.join("hugo.json"), config.to_string()).expect("write");
+        fs::write(dir.join("neohugo.json"), config.to_string()).expect("write");
         Self::try_at(tmp, &dir)
     }
 
-    /// A recorded site (`hugo.toml` and its files).
+    /// A recorded site (`neohugo.toml` and its files).
     pub fn recorded(site: &J) -> Self {
         let tmp = tempfile::tempdir().expect("tempdir");
         let dir = tmp.path().join(s(&site["name"]));
         fs::create_dir_all(&dir).expect("mkdir");
-        fs::write(dir.join("hugo.toml"), s(&site["toml"])).expect("write");
+        fs::write(dir.join("neohugo.toml"), s(&site["toml"])).expect("write");
         for f in site["files"].as_array().expect("files") {
             let fp = dir.join(s(&f["path"]));
             fs::create_dir_all(fp.parent().expect("parent")).expect("mkdir");

@@ -165,7 +165,7 @@ fn run_fixture(p: &Project, fx: &J) -> (usize, Vec<String>, BTreeMap<String, Str
                 // Same file and line (`file:line:col` in both), or both a decode error.
                 let want_at = w
                     .split('"')
-                    .find(|s| s.starts_with("$SITE/") || s.starts_with("hugo:vars"))
+                    .find(|s| s.starts_with("$SITE/") || s.starts_with("neohugo:vars"))
                     .map(|s| p.site(s));
                 let want_file_line = want_at
                     .as_deref()
@@ -232,7 +232,7 @@ fn tocss_reconstruction_scss() {
     let site = tmp.path().join("site");
     std::fs::create_dir_all(&site).unwrap();
     std::fs::write(
-        site.join("hugo.toml"),
+        site.join("neohugo.toml"),
         "baseURL = \"https://example.org/\"\n",
     )
     .unwrap();
@@ -333,4 +333,77 @@ fn txtar_files(text: &str) -> Vec<(String, String)> {
         }
     }
     files
+}
+
+#[test]
+fn tocss_explicit_extension_imports_use_the_load_paths() {
+    // grass looks for `@import "x.scss"` only next to the importing file; dart-sass (Hugo) also
+    // searches the load paths. The entry sits at the assets root (as an `execute_as_template`
+    // target does), the files are in an `includePaths` directory, and `_base.scss` imports a
+    // sibling that resolves only relative to its own place.
+    let site = super::mini_site(&[
+        ("neohugo.toml", "baseURL = \"https://example.org/\"\n"),
+        (
+            "vendor/kit/parts/_base.scss",
+            "@import \"colors\";\n$pad: 4px;\n",
+        ),
+        ("vendor/kit/parts/_colors.scss", "$c: #123456;\n"),
+        ("vendor/kit/_mixins.scss", "@mixin box { margin: 1px; }\n"),
+        ("vendor/kit/_theme.scss", ".theme { v: plain; }\n"),
+        (
+            "vendor/kit/_theme.import.scss",
+            ".theme { v: import-only; }\n",
+        ),
+        ("assets/scss/_local.scss", ".local { v: assets; }\n"),
+        ("vendor/kit/_local.scss", ".local { v: include-path; }\n"),
+    ]);
+    let p = project(site.path(), |_| {});
+    let compile = |name: &str, src: &str| {
+        let id = p
+            .store
+            .from_string(name, src, &neohugo_resources::CallSite::in_lang(p.lang()))
+            .unwrap();
+        let opts = ToCssOptions::from_json(&serde_json::json!({
+            "includePaths": ["vendor/kit"],
+            "outputStyle": "compressed"
+        }))
+        .unwrap();
+        let out = p.store.transform(id, Transform::ToCss(opts)).unwrap();
+        String::from_utf8(p.store.content(out).unwrap().to_vec()).unwrap()
+    };
+
+    let css = compile(
+        "style.seeksnack.css",
+        "@use \"mixins.scss\" as m;\n@import \"parts/base.scss\";\n@import \"theme.scss\";\n\
+         .a { color: $c; padding: $pad; @include m.box; }\n",
+    );
+    assert!(
+        css.contains(".a{color:#123456;padding:4px;margin:1px}"),
+        "{css}"
+    );
+    assert!(css.contains(".theme{v:import-only}"), "{css}");
+
+    // A file next to the importer wins over the load paths, as before.
+    let css = compile("scss/page.scss", "@import \"local.scss\";\n");
+    assert!(css.contains(".local{v:assets}"), "{css}");
+
+    // The indented syntax, with an unquoted URL.
+    let css = compile("style.sass", "@import parts/base.scss\n.b\n  color: $c\n");
+    assert!(css.contains(".b{color:#123456}"), "{css}");
+
+    // Still an error when no load path has the file.
+    let id = p
+        .store
+        .from_string(
+            "missing.scss",
+            "@import \"nowhere.scss\";\n",
+            &neohugo_resources::CallSite::in_lang(p.lang()),
+        )
+        .unwrap();
+    let out = p
+        .store
+        .transform(id, Transform::ToCss(ToCssOptions::default()))
+        .unwrap();
+    let err = p.store.realize(out).unwrap_err().to_string();
+    assert!(err.contains("Can't find stylesheet to import"), "{err}");
 }

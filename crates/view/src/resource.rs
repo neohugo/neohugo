@@ -11,15 +11,17 @@
 //! [`post_processed_view`] is the view of an explicit `post_process`: every field that is only
 //! known in E5 is a placeholder.
 
+use std::sync::Arc;
+
 use neohugo_base::{PageId, ResourceId, Value};
 use neohugo_config::media::MediaType;
 use neohugo_page::ResourceMetaRule;
 use neohugo_resources::meta::ResourceMeta;
 use neohugo_resources::{
-    Body, BundleResource, Origin, PpField, PublishPolicy, Resource, ResourceError, ResourceKind,
-    ResourceStore, Transform,
+    AdapterResource, Body, BundleResource, Origin, PpField, PublishPolicy, Resource, ResourceError,
+    ResourceKind, ResourceStore, Transform,
 };
-use neohugo_site::Model;
+use neohugo_site::{AddedBody, AddedContent, AddedResource, Model};
 
 use crate::cache::ViewError;
 use crate::views::{MediaTypeView, ResourceDataView, ResourceView, params_value};
@@ -148,17 +150,27 @@ pub fn page_resources(
                     || format!("/{}", br.key.parent().unwrap_or_default().as_str()),
                     |b| b.link.to_string(),
                 );
-                store.register_bundle(&BundleResource {
-                    lang: br.lang,
-                    file: br.file.abs.clone(),
-                    name: br.name.clone(),
-                    dir,
-                    policy: match (br.page, br.publish) {
-                        (Some(_), _) => PublishPolicy::Never,
-                        (None, true) => PublishPolicy::Eager,
-                        (None, false) => PublishPolicy::OnReference,
-                    },
-                })
+                let policy = match (br.page, br.publish) {
+                    (Some(_), _) => PublishPolicy::Never,
+                    (None, true) => PublishPolicy::Eager,
+                    (None, false) => PublishPolicy::OnReference,
+                };
+                match &br.adapter {
+                    Some(a) => store.register_adapter_resource(&adapter_resource(
+                        a,
+                        br.lang,
+                        br.name.clone(),
+                        dir,
+                        policy,
+                    )),
+                    None => store.register_bundle(&BundleResource {
+                        lang: br.lang,
+                        file: br.file.abs.clone(),
+                        name: br.name.clone(),
+                        dir,
+                        policy,
+                    }),
+                }
             });
             match br.page {
                 Some(q) => pages.push(page_resource(model, store, sid, q, &meta)),
@@ -180,6 +192,49 @@ pub fn page_resources(
         out.push(files);
     }
     Ok(out)
+}
+
+/// The store's description of a resource a content adapter added, named `name` below the
+/// link directory `dir` of its page.
+fn adapter_resource(
+    a: &AddedResource,
+    lang: neohugo_base::LangIdx,
+    name: String,
+    dir: String,
+    policy: PublishPolicy,
+) -> AdapterResource {
+    let (body, media_type, place) = match &a.content {
+        AddedContent::Text { text, media_type } => (
+            Body::Bytes(Arc::from(text.as_bytes())),
+            media_type.clone(),
+            None,
+        ),
+        AddedContent::Resource {
+            body,
+            media_type,
+            target,
+            link,
+        } => (
+            match body {
+                AddedBody::File(p) => Body::File(p.clone()),
+                AddedBody::Bytes(b) => Body::Bytes(Arc::clone(b)),
+            },
+            Some(media_type.clone()),
+            Some((target.clone(), link.clone())),
+        ),
+    };
+    AdapterResource {
+        lang,
+        body,
+        media_type,
+        name,
+        dir,
+        place,
+        display_name: a.name.clone(),
+        title: a.title.clone(),
+        params: a.params.clone(),
+        policy,
+    }
 }
 
 /// A bundled content page as a resource of its bundle: its title and params, `resources`

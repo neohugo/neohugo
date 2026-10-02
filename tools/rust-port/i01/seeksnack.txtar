@@ -10,12 +10,12 @@ minify -> fingerprint -> PostProcess, js.Build, Concat, ExecuteAsTemplate, image
 with a watermark overlay, webp, RSS, sitemap, robots, JSON output.
 -- postcss.config.js --
 // A tiny purge step (like seeksnack's purgecss): drops rules whose classes are all missing from
-// ./hugo_stats.json, so the CSS depends on the stats of this build.
+// ./neohugo_stats.json, so the CSS depends on the stats of this build.
 const fs = require('fs');
 const purge = () => ({
   postcssPlugin: 'purge-lite',
   Once(root) {
-    const stats = JSON.parse(fs.readFileSync('./hugo_stats.json', 'utf8')).htmlElements;
+    const stats = JSON.parse(fs.readFileSync('./neohugo_stats.json', 'utf8')).htmlElements;
     const keep = new Set([...(stats.classes || []), ...(stats.tags || [])]);
     root.walkRules((rule) => {
       const classes = (rule.selector.match(/\.[A-Za-z][A-Za-z0-9_-]*/g) || []).map((c) => c.slice(1));
@@ -23,7 +23,7 @@ const purge = () => ({
         rule.remove();
       }
     });
-    root.append({ text: 'env: ' + process.env.HUGO_ENVIRONMENT });
+    root.append({ text: 'env: ' + process.env.NEOHUGO_ENVIRONMENT });
   },
 });
 purge.postcss = true;

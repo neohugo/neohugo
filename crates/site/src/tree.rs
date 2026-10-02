@@ -124,6 +124,7 @@ pub(crate) fn place(cfg: &Config, capture: Capture) -> Result<Assembly, ModelErr
         pages,
         resources,
         diagnostics,
+        ..
     } = capture;
     let mut out = Assembly {
         trees: vec![BTreeMap::new(); cfg.sites.len()],

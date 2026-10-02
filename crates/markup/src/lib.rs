@@ -2,12 +2,12 @@
 //! TOC and fragments, summaries, word count, the [`Hooks`] and [`Highlighter`] traits and
 //! source-context spans (REWRITE_PLAN.md §2.4).
 //!
-//! [`render`] parses the expanded Markdown of a page, runs Hugo's passes (heading and
-//! definition-term ids, heading and block attributes, goldmark's definition lists,
-//! passthrough, linkify, typographer, dropped comments) and renders HTML the way Hugo's
-//! goldmark setup does, calling the render hooks post-order. [`fragments`] is the parse-only
-//! variant for the fragments memo stage. The crate `README.md` records the engine decision
-//! and the accepted differences from Hugo.
+//! [`render`] parses the expanded Markdown of a page, runs Hugo's passes (goldmark's pipe
+//! tables and definition lists, heading and definition-term ids, heading and block
+//! attributes, the context markers of includes, passthrough, linkify, typographer, dropped
+//! comments) and renders HTML the way Hugo's goldmark setup does, calling the render hooks
+//! post-order. [`fragments`] is the parse-only variant for the fragments memo stage. The
+//! crate `README.md` records the engine decision and the accepted differences from Hugo.
 
 #![forbid(unsafe_code)]
 
@@ -36,7 +36,10 @@ pub use options::{
     CodeFences, Delimiters, Extensions, LineBreaks, LinkifyProtocol, MarkdownOptions, RawHtml,
     StandaloneImages, TagStyle, TocOptions, Typographer,
 };
-pub use source::{ExpandedMarkdown, SourceContexts};
+pub use source::{
+    CONTEXT_CLOSE, CONTEXT_OPEN, ExpandedMarkdown, SourceContexts, strip_context_markers,
+    wrap_context,
+};
 pub use text::Summary;
 pub use toc::{Fragments, Heading, Toc};
 

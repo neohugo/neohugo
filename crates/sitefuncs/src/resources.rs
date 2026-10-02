@@ -1,15 +1,17 @@
 //! Resources: assets, remote resources, named targets, the pipes, `resource_content`,
-//! `publish`, `post_process`, `execute_as_template`, and `unmarshal`.
+//! `publish`, `post_process`, `execute_as_template`, `purge_css`, and `unmarshal`.
 //!
 //! Every result is a resource view (`neohugo_view::resource_view`); transforms are lazy (the
 //! store computes them on `.Content` or when publishing), and a view whose links are only
 //! known in phase E5 carries post-process placeholders.
 
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::{Arc, OnceLock, Weak};
 
 use neohugo_base::diag::{Diagnostic, Diagnostics};
 use neohugo_base::{PageId, ResourceId};
 use neohugo_layouts::Templates;
+use neohugo_minify::{CssPurges, MinifyError, PurgeOptions, PurgePlan};
 use neohugo_resources::pipes::has_placeholder;
 use neohugo_resources::pipes::{
     BabelOptions, JsBuildSpec, PostCssOptions, TailwindOptions, ToCssOptions,
@@ -92,6 +94,13 @@ pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
             views: Arc::clone(&h.views),
             store: Arc::clone(&h.store),
             templates: Arc::clone(&h.templates),
+        },
+    );
+    r.filter(
+        "purge_css",
+        PurgeCss {
+            store: Arc::clone(&h.store),
+            purges: Arc::clone(&h.css_purges),
         },
     );
     r.filter(
@@ -215,7 +224,7 @@ impl SiteFunction for GetRemote {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 enum Pipe {
     Fingerprint,
     Minify,
@@ -272,6 +281,12 @@ impl SiteFilter for PipeFilter {
             .store
             .transform(id, t)
             .map_err(|e| chain(self.name, e))?;
+        // A pending `fingerprint` is computed now, so its links are final and the page is
+        // written at once instead of being held until E5 with placeholder links; only a chain
+        // that waits for E5 (PostCSS, Tailwind, images) keeps the placeholders.
+        if self.pipe == Pipe::Fingerprint && !self.store.waits_for_e5(out) {
+            self.store.realize(out).map_err(|e| chain(self.name, e))?;
+        }
         Ok(view_value(&self.store, out))
     }
 }
@@ -365,22 +380,15 @@ struct Executor<'a> {
 }
 
 impl TemplateExecutor for Executor<'_> {
-    fn execute(
-        &self,
-        _name: &str,
-        source: &str,
-        data: &serde_json::Value,
-    ) -> Result<String, String> {
-        let mut ctx = self.context.clone();
-        ctx.insert_value("data", Value::from_serializable(data));
+    fn execute(&self, _name: &str, source: &str) -> Result<String, String> {
         self.tera
-            .render_str(source, &ctx, self.autoescape)
+            .render_str(source, &self.context, self.autoescape)
             .map_err(|e| e.to_string())
     }
 }
 
 /// `r | execute_as_template(target=, data=?)`: the asset's text rendered as a Tera template
-/// with `data`, `site`, `hugo` and `__nh`, as a resource at `target` (escaped when `target` is
+/// with `data`, `site`, `neohugo` and `__nh`, as a resource at `target` (escaped when `target` is
 /// HTML, XML or SVG).
 struct ExecuteAsTemplate {
     views: Arc<ViewCache>,
@@ -396,7 +404,7 @@ impl SiteFilter for ExecuteAsTemplate {
         let data = kw.get::<Value>("data")?.unwrap_or_else(Value::none);
         let t = templates(&self.templates, name)?;
         let mut context = tera::Context::new();
-        for key in ["site", "hugo"] {
+        for key in ["site", "neohugo"] {
             if let Some(v) = st.get::<Value>(key)? {
                 context.insert_value(key, v);
             }
@@ -404,6 +412,9 @@ impl SiteFilter for ExecuteAsTemplate {
         if let Some(s) = scope(st)? {
             context.insert_value(SCOPE_KEY, s.child().to_value());
         }
+        // The value itself, not a copy through JSON: a page as `data` is a large value, and the
+        // asset is executed for every page that calls this.
+        context.insert_value("data", data);
         let exec = Executor {
             tera: t.tera(),
             context,
@@ -413,15 +424,103 @@ impl SiteFilter for ExecuteAsTemplate {
         };
         let out = self
             .store
-            .execute_as_template(
-                id,
-                target,
-                &to_json(&data),
-                &exec,
-                &call_site(&self.views, st)?,
-            )
+            .execute_as_template(id, target, &exec, &call_site(&self.views, st)?)
             .map_err(|e| chain(format!("{name}(target=\"{target}\")"), e))?;
         Ok(view_value(&self.store, out))
+    }
+}
+
+/// `css | purge_css(safelist=, greedy=, blocklist=, content=, variables=, important=)`: a
+/// placeholder the publisher replaces, in each page, with the rules of `css` (a resource or a
+/// string) that page uses (`neohugo_minify::purge`). The plan is compiled once per input and
+/// options.
+struct PurgeCss {
+    store: Arc<ResourceStore>,
+    purges: Arc<CssPurges>,
+}
+
+/// A text `purge_css` reads: a resource's content (read when the plan is compiled) or a string.
+#[derive(Hash)]
+enum PurgeText {
+    Resource(u32),
+    Text(String),
+}
+
+impl PurgeCss {
+    fn source(&self, v: &Value, what: &str) -> TeraResult<PurgeText> {
+        if v.as_str().is_some() {
+            return Ok(PurgeText::Text(text(v, what)?));
+        }
+        if is_post_processed(v) {
+            return Err(msg(format!(
+                "{what}: a post-processed resource has no content before every page is rendered"
+            )));
+        }
+        Ok(PurgeText::Resource(
+            resource_id(&self.store, v, what)?.raw(),
+        ))
+    }
+
+    fn read(&self, t: &PurgeText) -> Result<String, MinifyError> {
+        match t {
+            PurgeText::Text(s) => Ok(s.clone()),
+            PurgeText::Resource(raw) => {
+                let id = ResourceId::from_raw(*raw);
+                let bytes = self
+                    .store
+                    .content(id)
+                    .map_err(|e| MinifyError::Purge(e.to_string()))?;
+                String::from_utf8(bytes.to_vec()).map_err(|_| {
+                    MinifyError::Purge(format!("{} is not text", self.store.resource(id).name))
+                })
+            }
+        }
+    }
+}
+
+impl SiteFilter for PurgeCss {
+    fn call(&self, v: Value, kw: &Kwargs, _: &State) -> TeraResult<Value> {
+        let name = "purge_css";
+        let strings = |key: &str| -> TeraResult<Vec<String>> {
+            match kw.get::<Value>(key)? {
+                Some(v) if !v.is_none() => list(&v, &format!("{name}: {key}"))?
+                    .iter()
+                    .map(|s| text(s, &format!("{name}: {key}")))
+                    .collect(),
+                _ => Ok(Vec::new()),
+            }
+        };
+        let options = PurgeOptions {
+            safelist: strings("safelist")?,
+            greedy: strings("greedy")?,
+            blocklist: strings("blocklist")?,
+            variables: kw.get::<bool>("variables")?.unwrap_or(false),
+            drop_important: !kw.get::<bool>("important")?.unwrap_or(true),
+        };
+        let css = self.source(&v, name)?;
+        let content = match kw.get::<Value>("content")? {
+            Some(c) if !c.is_none() => list(&c, &format!("{name}: content"))?
+                .iter()
+                .map(|item| self.source(item, &format!("{name}: content")))
+                .collect::<TeraResult<Vec<_>>>()?,
+            _ => Vec::new(),
+        };
+        let mut key = DefaultHasher::new();
+        (&options, &css, &content).hash(&mut key);
+        let placeholder = self
+            .purges
+            .placeholder(key.finish(), || {
+                let css = self.read(&css)?;
+                let content = content
+                    .iter()
+                    .map(|t| self.read(t))
+                    .collect::<Result<Vec<_>, _>>()?;
+                let content: Vec<&str> = content.iter().map(String::as_str).collect();
+                let targets = self.store.config().transforms.minifier.css_targets();
+                PurgePlan::compile(&css, &options, &content, targets)
+            })
+            .map_err(msg)?;
+        Ok(Value::safe_string(&placeholder))
     }
 }
 

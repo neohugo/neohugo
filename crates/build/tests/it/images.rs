@@ -24,7 +24,7 @@ fn referenced_images_are_processed_and_published() {
         &site,
         &[
             (
-                "hugo.toml".to_owned(),
+                "neohugo.toml".to_owned(),
                 "baseURL = \"https://example.org/\"\ntitle = \"Images\"\n".to_owned(),
             ),
             ("layouts/single.html".to_owned(), SINGLE.to_owned()),

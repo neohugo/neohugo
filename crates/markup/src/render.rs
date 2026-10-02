@@ -188,22 +188,9 @@ impl<'r, 'a> Renderer<'r, 'a> {
         doc.extra(n).map_or(&[], |e| e.attrs.as_slice())
     }
 
-    /// A paragraph written without `<p>`: goldmark's text blocks (tight list items, the first
-    /// paragraph of a tight definition, terms, block images).
+    /// A paragraph written without `<p>`: goldmark's text blocks.
     fn text_block(&self, p: Node<'_>) -> bool {
-        if matches!(self.doc.role(p), Some(Role::TextBlock)) {
-            return true;
-        }
-        let Some(parent) = p.parent() else {
-            return false;
-        };
-        match &parent.data().value {
-            NodeValue::DescriptionTerm => true,
-            NodeValue::Item(_) | NodeValue::TaskItem(_) => parent
-                .parent()
-                .is_some_and(|l| matches!(&l.data().value, NodeValue::List(list) if list.tight)),
-            _ => false,
-        }
+        self.doc.text_block(p)
     }
 
     fn checkbox(&mut self, item: Node<'_>) {
@@ -396,8 +383,14 @@ impl<'r, 'a> Renderer<'r, 'a> {
                 Ok(Walk::Done)
             }
             NodeValue::ShortCode(sc) => {
+                // goldmark-emoji's `Entity` rendering (v1.0.6 `renderEmoji`): the zero-width
+                // joiner by name.
                 for c in sc.emoji.chars() {
-                    self.out.push_str(&format!("&#x{:x};", u32::from(c)));
+                    if c == '\u{200d}' {
+                        self.out.push_str("&zwj;");
+                    } else {
+                        self.out.push_str(&format!("&#x{:x};", u32::from(c)));
+                    }
                 }
                 Ok(Walk::Done)
             }
@@ -784,14 +777,17 @@ impl<'r, 'a> Renderer<'r, 'a> {
                     inner,
                     attributes: Map::new(),
                 };
-                let html = self
-                    .call(HookKind::Passthrough, n, |h, env| h.passthrough(env, &ctx))?
-                    .unwrap_or(raw);
-                self.out.push_str(&html);
+                let hooked =
+                    self.call(HookKind::Passthrough, n, |h, env| h.passthrough(env, &ctx))?;
                 let block_level = n
                     .parent()
                     .is_some_and(|p| !p.data().value.contains_inlines());
-                if kind == PassthroughKind::Block && block_level {
+                // Hugo (`markup/goldmark/passthrough`, `renderPassthroughBlock`) writes a hook's
+                // output as it is: the next block follows without a newline. Without a hook
+                // the source of a block ends its line.
+                let newline = kind == PassthroughKind::Block && block_level && hooked.is_none();
+                self.out.push_str(&hooked.unwrap_or(raw));
+                if newline {
                     self.out.push('\n');
                 }
             }

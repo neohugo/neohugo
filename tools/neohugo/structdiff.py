@@ -13,7 +13,7 @@ Usage:
   structdiff.py changes [--changes DIR]      # validate every changes/<task>.md
 
 M is a manifest (tools/neohugo/manifest.py; `.json` or `.json.gz`) or a publish directory,
-which is extracted with manifest.py (its project directory, for hugo_stats.json, static/ and the
+which is extracted with manifest.py (its project directory, for neohugo_stats.json, static/ and the
 base URLs, is --ref-project/--cand-project). The minified pass gives L1 and L4, the unminified
 pass L1, L2 and L3; S is the structure dump (testdata/golden/README.md). Every comparison
 reads both sides through the same extractor, with the §7.2 normalisations:
@@ -28,10 +28,11 @@ reads both sides through the same extractor, with the §7.2 normalisations:
       the extractor. Link integrity: an internal link (or alias target) of the candidate that
       resolves to none of its files is a difference unless the reference's is dangling too.
   L3  HTML: the visible text (entities decoded, typographic characters mapped to ASCII,
-      whitespace collapsed; compared by hash) and the heading-ID list; hugo_stats.json: its
+      whitespace collapsed; compared by hash) and the heading-ID list; neohugo_stats.json: its
       tag, class and id sets.
   L4  images: (width, height, format); files of static/: bytes (sha256); CSS/JS: non-empty and
-      referenced (as the reference's are).
+      referenced (as the reference's are). From the minified pass; when neither side has one and
+      both unminified manifests were extracted with L4 (a site published unminified), from those.
   S   per (lang, page, kind, format): target, relPermalink, permalink, template and baseof (the
       v0.146 names; an embedded template is marked as such), written, pagers; per alias file
       (front matter and the language redirect) and per page/1 alias: kind and permalink; per
@@ -554,9 +555,17 @@ def compare(site, ref, cand, extra_collision_dirs=()):
     else:
         notes.append("L2, L3: no unminified pass on both sides")
 
-    # L4: the minified pass.
+    # L4: the minified pass; a site published unminified (docs-live: one pass, its manifests
+    # extracted with L4) has it in the unminified pass.
+    l4 = None
     if ref.min is not None and cand.min is not None:
-        rg, cg = by_norm(ref.min), by_norm(cand.min)
+        l4 = (ref.min, cand.min)
+    elif (ref.min is None and cand.min is None and ref.unmin is not None and cand.unmin is not None
+          and "L4" in ref.unmin.get("levels", []) and "L4" in cand.unmin.get("levels", [])):
+        l4 = (ref.unmin, cand.unmin)
+        notes.append("L4: from the unminified pass (no minified pass on both sides)")
+    if l4 is not None:
+        rg, cg = by_norm(l4[0]), by_norm(l4[1])
         for n in sorted(set(rg) & set(cg)):
             static = any(e.get("static") for e in rg[n])
             rp = sorted((l4_payload(e, static) for e in rg[n] if l4_payload(e, static) is not None), key=canon)

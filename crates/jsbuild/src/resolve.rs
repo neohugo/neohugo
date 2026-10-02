@@ -1,5 +1,5 @@
 //! Hugo's import resolution for `js.Build`: imports are looked up in the assets filesystem
-//! before esbuild's own resolver sees them, and `@params` yields the build's params.
+//! before the bundler's own resolver sees them.
 //!
 //! An import path is resolved as an asset when the importer is the entry script or itself an
 //! asset (a file under one of the assets mounts): relative imports are resolved against the
@@ -7,21 +7,11 @@
 //! tries, in order: the path with `.js`, `.ts`, `.tsx`, `.jsx` appended; for an `index` import
 //! the `index.esm.*` variants; the path itself (a directory gives its `index.*`, then
 //! `index.esm.*`); and for a `.js` import the same path without `.js`. Anything not found is
-//! left to esbuild (which looks in `node_modules`).
+//! left to the bundler (which looks in `node_modules`).
 
-use std::cell::RefCell;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-
-use crate::options::{JsBuildOptions, Loader};
-use crate::service::{CallbackError, Hook, LoadArgs, Loaded, Plugin, ResolveArgs, Resolved};
-
-/// The esbuild namespace of modules resolved as assets.
-pub const NS_HUGO_IMPORT: &str = "ns-hugo-imp";
-/// The esbuild namespace of the `@params` module.
-pub const NS_HUGO_PARAMS: &str = "ns-hugo-params";
-/// The name esbuild gives the entry script.
-pub(crate) const STDIN: &str = "<stdin>";
+use std::sync::{Arc, Mutex};
 
 /// The extensions tried for an import without one, in order.
 const EXTENSIONS: [&str; 4] = [".js", ".ts", ".tsx", ".jsx"];
@@ -34,8 +24,9 @@ pub enum AssetEntry {
     Dir,
 }
 
-/// The assets filesystem, as seen by the import resolver.
-pub trait Assets {
+/// The assets filesystem, as seen by the import resolver. Builds run on the bundler's threads,
+/// so the view is shared (`Send + Sync`).
+pub trait Assets: Send + Sync {
     /// The entry at a `/`-separated path relative to the assets root (no leading `/`).
     fn entry(&self, path: &str) -> Option<AssetEntry>;
 
@@ -147,132 +138,42 @@ pub fn resolve_component(imp: &str, entry: impl Fn(&str) -> Option<AssetEntry>) 
 }
 
 /// [`resolve_component`] over [`Assets`], memoized per import path for one build.
-pub(crate) struct ComponentResolver<'a> {
-    assets: &'a dyn Assets,
-    cache: RefCell<HashMap<String, Option<PathBuf>>>,
+pub(crate) struct ComponentResolver {
+    assets: Arc<dyn Assets>,
+    cache: Mutex<HashMap<String, Option<PathBuf>>>,
 }
 
-impl<'a> ComponentResolver<'a> {
-    pub(crate) fn new(assets: &'a dyn Assets) -> Self {
+impl ComponentResolver {
+    pub(crate) fn new(assets: Arc<dyn Assets>) -> Self {
         Self {
             assets,
-            cache: RefCell::default(),
+            cache: Mutex::default(),
         }
     }
 
     pub(crate) fn resolve(&self, imp: &str) -> Option<PathBuf> {
-        if let Some(hit) = self.cache.borrow().get(imp) {
+        if let Some(hit) = lock(&self.cache).get(imp) {
             return hit.clone();
         }
         let found = resolve_component(imp, |p| self.assets.entry(p));
-        self.cache
-            .borrow_mut()
-            .insert(imp.to_owned(), found.clone());
+        lock(&self.cache).insert(imp.to_owned(), found.clone());
         found
     }
 
-    pub(crate) fn assets(&self) -> &'a dyn Assets {
-        self.assets
+    pub(crate) fn assets(&self) -> &dyn Assets {
+        &*self.assets
     }
 }
 
-/// What the Hugo plugins need for one build.
-pub(crate) struct PluginContext<'a> {
-    pub(crate) resolver: ComponentResolver<'a>,
-    pub(crate) options: &'a JsBuildOptions,
-    /// The entry script's directory in the assets (`.` at the root).
-    pub(crate) source_dir: String,
-    /// Where modules loaded as assets resolve their `node_modules` imports.
-    pub(crate) resolve_dir: String,
-    /// The JSON text of `@params`.
-    pub(crate) params: Vec<u8>,
+impl std::fmt::Debug for ComponentResolver {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ComponentResolver").finish_non_exhaustive()
+    }
 }
 
-/// The `hugo-import-resolver` and `hugo-params-plugin` plugins.
-pub(crate) fn hugo_plugins<'a>(ctx: &'a PluginContext<'a>) -> Vec<Plugin<'a>> {
-    let resolve_import = move |args: &ResolveArgs| -> Result<Option<Resolved>, CallbackError> {
-        let (mut imp, shimmed) = match ctx.options.shims.get(&args.path) {
-            Some(shim) => (shim.clone(), true),
-            None => (args.path.clone(), false),
-        };
-        if ctx.options.externals.contains(&imp) {
-            return Ok(Some(Resolved::External { path: imp }));
-        }
-        let rel_dir = if args.importer == STDIN {
-            ctx.source_dir.clone()
-        } else {
-            match ctx.resolver.assets().assets_path(Path::new(&args.importer)) {
-                Some(p) => dir(&p).to_owned(),
-                None if shimmed => ctx.source_dir.clone(),
-                // An import from outside the assets (node_modules): esbuild's job.
-                None => return Ok(None),
-            }
-        };
-        if !rel_dir.is_empty() && imp.starts_with('.') {
-            imp = join(&rel_dir, &imp);
-        }
-        Ok(ctx.resolver.resolve(&imp).map(|file| Resolved::Module {
-            path: file.to_string_lossy().into_owned(),
-            namespace: Some(NS_HUGO_IMPORT.to_owned()),
-        }))
-    };
-    let load_import = move |args: &LoadArgs| -> Result<Option<Loaded>, CallbackError> {
-        let contents =
-            std::fs::read(&args.path).map_err(|e| format!("cannot read {}: {e}", args.path))?;
-        Ok(Some(Loaded {
-            contents,
-            // Imports of assets resolve node_modules from the project, not the asset's dir.
-            resolve_dir: Some(ctx.resolve_dir.clone()),
-            loader: Some(ctx.options.loader_for(&args.path)),
-        }))
-    };
-    let resolve_params = |args: &ResolveArgs| -> Result<Option<Resolved>, CallbackError> {
-        let path = if args.path == "@params/config" {
-            args.path.clone()
-        } else {
-            args.importer.clone()
-        };
-        Ok(Some(Resolved::Module {
-            path,
-            namespace: Some(NS_HUGO_PARAMS.to_owned()),
-        }))
-    };
-    let load_params = move |_: &LoadArgs| -> Result<Option<Loaded>, CallbackError> {
-        Ok(Some(Loaded {
-            contents: ctx.params.clone(),
-            resolve_dir: None,
-            loader: Some(Loader::Json),
-        }))
-    };
-
-    vec![
-        Plugin {
-            name: "hugo-import-resolver".to_owned(),
-            on_resolve: vec![Hook {
-                filter: ".*".to_owned(),
-                namespace: None,
-                callback: Box::new(resolve_import),
-            }],
-            on_load: vec![Hook {
-                filter: ".*".to_owned(),
-                namespace: Some(NS_HUGO_IMPORT.to_owned()),
-                callback: Box::new(load_import),
-            }],
-        },
-        Plugin {
-            name: "hugo-params-plugin".to_owned(),
-            on_resolve: vec![Hook {
-                filter: "^@params(/config)?$".to_owned(),
-                namespace: None,
-                callback: Box::new(resolve_params),
-            }],
-            on_load: vec![Hook {
-                filter: ".*".to_owned(),
-                namespace: Some(NS_HUGO_PARAMS.to_owned()),
-                callback: Box::new(load_params),
-            }],
-        },
-    ]
+/// A poisoned memo is still a valid memo.
+fn lock<T>(m: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    m.lock().unwrap_or_else(std::sync::PoisonError::into_inner)
 }
 
 /// The directory of a `/`-separated path (`.` for a bare name).

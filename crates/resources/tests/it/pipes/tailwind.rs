@@ -1,11 +1,11 @@
 //! `tailwind_css` on the docs site's `assets/css/styles.css` (used in place): the CLI runs in
 //! the project directory with `--input=- --cwd <project>`; the asset `@import`s
 //! (`components/all.css` and its `./content.css` …) are inlined from the assets view, while
-//! `@import "tailwindcss"`, `@plugin` and `@source "hugo_stats.json"` are left to the CLI.
+//! `@import "tailwindcss"`, `@plugin` and `@source "hugo_stats.json"` (the frozen docs fixture names Go's file) are left to the CLI.
 //!
 //! With a fake `tailwindcss` (node) the input and arguments are checked; with the real CLI
 //! (`NEOHUGO_TAILWINDCSS_BIN`, plugins through `NEOHUGO_NODE_MODULES`) the docs CSS compiles
-//! and holds classes the docs' `hugo_stats.json` names.
+//! and holds classes the docs' (Go's) `hugo_stats.json` names.
 
 use neohugo_resources::Transform;
 use neohugo_resources::pipes::{TailwindOptions, ToolPaths};
@@ -84,7 +84,7 @@ fn tailwind_docs_styles_real_tool() {
         .transform(src, Transform::TailwindCss(TailwindOptions::default()))
         .unwrap();
     let css = String::from_utf8(p.store.content(id).unwrap().to_vec()).unwrap();
-    // Utilities the docs' hugo_stats.json names, and the typography plugin's `prose`.
+    // Utilities the docs' hugo_stats.json (Go's) names, and the typography plugin's `prose`.
     assert!(css.contains(".prose"), "no typography plugin output");
     assert!(css.contains("--color-primary"), "no theme variables");
     assert!(!css.contains("@import"), "imports left");

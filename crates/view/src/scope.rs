@@ -20,6 +20,9 @@ pub enum Phase {
     Layout,
     /// `defer` templates (E5).
     Deferred,
+    /// Content adapters (`_content.html`), run before the model exists: they see the Meta
+    /// generation of a model of the content files.
+    Adapter,
 }
 
 /// Which content rendering a page value carries: the HTML one, or the one made with the
@@ -61,6 +64,10 @@ pub struct RenderScope {
     pub depth: u16,
     /// The memo cells being computed, outermost first (cycle detection).
     pub chain: Vec<(PageId, Stage)>,
+    /// Phase [`Phase::Adapter`]: the content adapter run the render belongs to (`add_page`
+    /// and the adapter's store find their run by it).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub adapter: Option<u32>,
 }
 
 impl RenderScope {
@@ -78,6 +85,7 @@ impl RenderScope {
             txn: None,
             depth: 0,
             chain: Vec::new(),
+            adapter: None,
         }
     }
 

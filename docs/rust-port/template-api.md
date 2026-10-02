@@ -9,22 +9,23 @@ Templates are Tera 2.4.0 ([REWRITE_PLAN.md](REWRITE_PLAN.md) §4). Kind codes: `
 
 | Render | Top-level names |
 |---|---|
-| Layout job | `page`, `site`, `hugo`, `lang`, `output_format`, `__nh` |
-| Shortcode | `page`, `site`, `hugo`, `lang`, `shortcode`, `inner`, `inner_deindent`, `__nh` |
-| Render hook | `page`, `page_inner`, `site`, `hugo`, `lang`, `__nh`, plus the hook's fields, flattened (below) |
-| `partial(name=…, …)` | `page`, `site`, `hugo`, `lang`, `output_format`, `__nh`, plus the call's kwargs as top-level names |
-| Component | only its declared arguments; `@page`, `@site`, `@hugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope) |
-| `defer` template | `data`, `site`, `hugo`, `__nh` |
-| `execute_as_template` | `data`, `site`, `hugo`, `__nh` |
-| Alias | `permalink`, `page`, `site`, `hugo` |
-| Sitemap, robots, 404 | `page`, `site`, `hugo`, `lang`, `__nh` |
-| Sitemapindex | `page`, `site`, `hugo`, `lang`, `__nh`, `sites` |
+| Layout job | `page`, `site`, `neohugo`, `lang`, `output_format`, `__nh` |
+| Shortcode | `page`, `site`, `neohugo`, `lang`, `shortcode`, `inner`, `inner_deindent`, `__nh` |
+| Render hook | `page`, `page_inner`, `site`, `neohugo`, `lang`, `__nh`, plus the hook's fields, flattened (below) |
+| `partial(name=…, …)` | `page`, `site`, `neohugo`, `lang`, `output_format`, `__nh`, plus the call's kwargs as top-level names |
+| Component | only its declared arguments; `@page`, `@site`, `@neohugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope) |
+| `defer` template | `data`, `site`, `neohugo`, `__nh` |
+| `execute_as_template` | `data`, `site`, `neohugo`, `__nh` |
+| Alias | `permalink`, `page`, `site`, `neohugo` |
+| Sitemap, robots, 404 | `page`, `site`, `neohugo`, `lang`, `__nh` |
+| Sitemapindex | `page`, `site`, `neohugo`, `lang`, `__nh`, `sites` |
+| Content adapter (`content/**/_content.html`) | `site`, `neohugo`, `lang`, `__nh`, `site` has no page lists (`home`, `pages`, `regular_pages`, `all_pages`, `sections`, `main_sections`, `taxonomies`, `menus`): the model is not built yet |
 
 | Name | Meaning |
 |---|---|
 | `page` | the full page value of the Full generation |
 | `site` | `SiteView` of the current language |
-| `hugo` | `HugoView`: version, environment, generator |
+| `neohugo` | `NeohugoView`: version, environment, generator |
 | `lang` | the language code of the page |
 | `output_format` | `OutputFormatView` being rendered |
 | `__nh` | the render scope (`RenderScope`); read by site-bound functions |
@@ -66,7 +67,7 @@ Flattened render-hook fields:
 | `.GetTerms "tags"` | `page.terms.tags` |
 | `.Data.Singular/Plural/Term/Terms` | `page.taxonomy.singular/plural/terms`, `page.term.term` |
 | `.OutputFormats.Get "rss"`, `.AlternativeOutputFormats`, `.MediaType` | `page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type` |
-| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `hugo.version` (`"0.149.0-DEV"`), `hugo.environment`, `hugo.is_production`, `hugo.is_development`, `hugo.is_server`, `hugo.generator` |
+| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `neohugo.version` (`"0.149.0-DEV"`), `neohugo.environment`, `neohugo.is_production`, `neohugo.is_development`, `neohugo.is_server`, `neohugo.generator` |
 | `.Site.ServerPort` | `site.server_port` (the base URL's port, 0 without one) |
 | `.Site.Config.Privacy.*` | `site.config.privacy.*` |
 | `.Data.Integrity`, `.Width`, `.Height` | `r.data.integrity`, `r.width`, `r.height` |
@@ -134,8 +135,11 @@ Flattened render-hook fields:
 | `param(key=, page=?)` | fn (s) | both |  | `.Param` | The page param `key` (a dotted path), else the site param. (key: string, page: page) |
 | `paginator()` | fn (s) | layout |  | `.Paginator` | The pager of the current (page, format) over its default list. Recorded: the first call wins. |
 | `paginate(pages=, size=?)` | fn (s) | layout |  | `.Paginate` | The pager over `pages`. A re-call with another list or size is an error naming both positions. (pages: array, size: int) |
-| `store_set(key=, value=, page=?)` | fn (s) | both |  | `.Store.Set` | Sets `key` in the page store (content-phase writes are buffered per transaction). Prints nothing. (key: string, value: any, page: page) |
-| `store_get(key=, page=?)` | fn (s) | both |  | `.Store.Get` | Reads `key` from the page store, or none. (key: string, page: page) |
+| `store_set(key=, value=, page=?)` | fn (s) | both |  | `.Store.Set` | Sets `key` in the page store (content-phase writes are buffered per transaction); in a content adapter without `page=`, in the adapter's store, which its runs for every language share. Prints nothing. (key: string, value: any, page: page) |
+| `store_get(key=, page=?)` | fn (s) | both |  | `.Store.Get` | Reads `key` from the page store (in a content adapter without `page=`: the adapter's store), or none. (key: string, page: page) |
+| `add_page(page=)` | fn (s) | adapter |  | `.AddPage (content adapter)` | Adds the page `page` describes to the adapter's directory: `path` (relative, required but for `kind: home`), `kind` (default `page`), `title`, `content` (`{mediaType, value}`, default Markdown), `dates` (`{date, lastmod, publishDate, expiryDate}`), `params`, `build`, `cascade`, `outputs` and the other front matter fields (not `lang`, `content.markup`). A path added again replaces the earlier page. Prints nothing. (page: map) |
+| `add_resource(resource=)` | fn (s) | adapter |  | `.AddResource (content adapter)` | Adds the page resource `resource` describes: `path` (relative to the adapter's directory, required), `content` (`{mediaType, value}`: a string, or a resource, which keeps its own URL), `name`, `title`, `params`. A path added again replaces the earlier resource. Prints nothing. (resource: map) |
+| `enable_all_languages()` | fn (s) | adapter |  | `.EnableAllLanguages (content adapter)` | Runs the adapter for every language, not only its own (the runs share the adapter's store). Prints nothing. |
 | `page_content(page=)` | fn (s) | both | yes | `.Content (another page`, `content phase)` | The rendered content of `page`; memoised and cycle-checked. (page: page) |
 | `page_summary(page=)` | fn (s) | both | yes | `.Summary (content phase)` | The summary of `page`. (page: page) |
 | `page_plain(page=)` | fn (s) | both |  | `.Plain (content phase)` | The content of `page` as plain text. (page: page) |
@@ -197,7 +201,7 @@ Flattened render-hook fields:
 | `x \| markdownify` | F (s) | both | yes | `markdownify` | Renders Markdown with the current page's hooks; a single paragraph is unwrapped. |
 | `x \| render_string(display=?, page=?)` | F (s) | both | yes | `.RenderString` | Renders Markdown with `page`'s hooks; `display="block"` keeps the paragraph. (display: string, page: page) |
 | `x \| highlight(lang=, options=?)` | F (s) | both | yes | `highlight`, `transform.Highlight` | Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration). (lang: string, options: any) |
-| `x \| to_math(display=?, optional=?)` | F | both | yes | `transform.ToMath (+ try)` | LaTeX to MathML (SHOULD; feature `math`). A construct it cannot parse (invalid LaTeX, mhchem) is an error; with `optional=true` a warning (id `to_math`) and an in-place `<merror>`. (display: bool, optional: bool) |
+| `x \| to_math(options=?, optional=?)` | F | both | yes | `transform.ToMath (+ try)` | LaTeX to MathML and/or HTML with KaTeX 0.16.22 and mhchem, as Hugo renders it (SHOULD; feature `math`). `options`: KaTeX's `output` (`mathml` default, `html`, `htmlAndMathml`), `displayMode`, `leqno`, `fleqn`, `errorColor`, `macros`, `minRuleThickness`, `throwOnError` (default true), `strict` (`error` default, `ignore`, `warn`: warnings). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` it is a warning (id `to_math`) and the result none. (options: map, optional: bool) |
 | `diagrams_goat(text=)` | fn | both |  | `diagrams.Goat` | `{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`). (text: string) |
 | `x \| format_number(precision=?)` | F | both |  | `lang.FormatNumber`, `printf "%.1f"` | The number with `precision` decimals in the format of the render's `lang`. (precision: int) |
 | `x \| filesize_format(binary=?)` | tc | both |  |  | Human file size (`binary` units by default). (binary: bool) |
@@ -282,9 +286,10 @@ Flattened render-hook fields:
 | `x \| postcss(options=?)` | F (s) | both |  | `postCSS`, `css.PostCSS` | Runs PostCSS. (options: map) |
 | `x \| tailwind(options=?)` | F (s) | both |  | `css.TailwindCSS` | Runs the Tailwind CLI. (options: map) |
 | `x \| babel(options=?)` | F (s) | both |  | `babel`, `js.Babel` | Runs Babel. (options: map) |
-| `x \| js_build(options=?)` | F (s) | both |  | `js.Build` | Bundles with esbuild. (options: map) |
+| `x \| js_build(options=?)` | F (s) | both |  | `js.Build` | Bundles with rolldown. (options: map) |
 | `x \| execute_as_template(target=, data=?)` | F (s) | both |  | `resources.ExecuteAsTemplate` | Renders the asset as a Tera template with `data`, published at `target`. (target: string, data: any) |
 | `x \| post_process` | F (s) | both |  | `resources.PostProcess` | Defers the resource's fields until all pages are rendered. |
+| `x \| purge_css(safelist=?, greedy=?, blocklist=?, content=?, variables=?, important=?)` | F (s) | both | yes | `PurgeCSS (PostCSS)` | A placeholder that each page's published output replaces with the rules of the CSS (a resource or string) that page uses: the tags, classes and ids of its elements, the words of its `<script>` elements. `safelist` names (or `/regex/`) count as used; `greedy` keeps any selector whose text contains the string or matches the `/regex/`; `blocklist` names drop their selectors; `content` resources or strings (scripts that add classes) count their words as used on every page; `variables=true` drops custom properties nothing kept references; `important=false` drops `!important`. Printed compactly for the project's browserslist targets. E.g. `<style>{{ css \| purge_css(content=[js]) }}</style>`. (safelist: array, greedy: array, blocklist: array, content: array, variables: bool, important: bool) |
 
 ## Images
 
@@ -378,7 +383,7 @@ Flattened render-hook fields:
 
 - `define`/`block` in children → `{% extends "baseof.html" %}` plus `{% block %}`; delete blocks the parent does not define.
 - Partials → include, component or `partial()`; component calls pass arguments as `name={expr}`, `name="literal"` or the shorthand `name`.
-- `try` → `optional=true` on `get_remote` and `to_math`, or a `none` check.
+- `try` → `optional=true` on `get_remote` and `to_math` (none on an error), or a `none` check.
 
 **Formatting**
 

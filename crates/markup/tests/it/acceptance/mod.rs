@@ -5,6 +5,7 @@
 //! Each test prints its table (`cargo test -p neohugo-markup --test it acceptance --
 //! --nocapture`) and asserts floors at the measured values.
 
+mod compat;
 mod context;
 mod deep;
 mod docs;

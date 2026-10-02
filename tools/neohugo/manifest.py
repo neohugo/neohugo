@@ -8,8 +8,9 @@ Usage:
   manifest.py summary <manifest>...
 
 `extract` writes the manifest of every file below <publish-dir>, plus the project directory's
-hugo_stats.json (Hugo writes it next to the config, not into publishDir) as `project:hugo_stats.json`.
-The base URLs default to the site config (`baseURL` of <project>/hugo.toml and of its
+neohugo_stats.json (written next to the config, not into publishDir) as `project:hugo_stats.json`,
+the key of the Go build's hugo_stats.json in the golden manifests.
+The base URLs default to the site config (`baseURL` of <project>/neohugo.toml and of its
 languages). A file name ending in `.gz` is written gzipped (deterministically). The schema is
 documented in testdata/golden/README.md; in short, per file:
 
@@ -22,7 +23,7 @@ documented in testdata/golden/README.md; in short, per file:
       fragment kept) with the L1 normalisation applied to the path;
   L3  HTML: the visible text (sha256, length, words; the text itself with --full-text; a tag
       boundary is a space, except a `span`'s inside `pre`/`code`, so highlighter token spans do
-      not split words) and the heading ids; hugo_stats.json: its tag, class and id sets;
+      not split words) and the heading ids; neohugo_stats.json: its tag, class and id sets;
   L4  size and sha256 of every file, `static` for files copied from static/; images: width,
       height and format from the file header; CSS/JS: non-empty and referenced by an HTML page.
 
@@ -45,7 +46,9 @@ import urllib.parse
 SCHEMA = "neohugo-manifest/1"
 LEVELS = ("L1", "L2", "L3", "L4")
 PROJECT_PREFIX = "project:"
-PROJECT_FILES = ("hugo_stats.json",)
+# The project files read, with the manifest key each is recorded under: neohugo's stats file is
+# compared with the Go build's hugo_stats.json of the golden data.
+PROJECT_FILES = (("neohugo_stats.json", "hugo_stats.json"),)
 
 HU_RE = re.compile(r"_hu_[0-9a-f]+")
 FINGERPRINT_RE = re.compile(r"\.[0-9a-f]{16,64}(?=\.)")
@@ -310,8 +313,8 @@ def json_structure(v, at, keys, urls, urls_obj, page):
 
 
 def site_config(project):
-    """The base URLs of a site directory's hugo.toml (and of its languages)."""
-    fn = os.path.join(project, "hugo.toml")
+    """The base URLs of a site directory's neohugo.toml (and of its languages)."""
+    fn = os.path.join(project, "neohugo.toml")
     if not os.path.exists(fn):
         return []
     with open(fn, "rb") as fh:
@@ -340,9 +343,9 @@ def extract(publish, project, bases, levels, full_text):
     urls = Urls(bases)
     sources = {rel: os.path.join(publish, rel) for rel in walk(publish)}
     if project:
-        for f in PROJECT_FILES:
+        for f, key in PROJECT_FILES:
             if os.path.isfile(os.path.join(project, f)):
-                sources[PROJECT_PREFIX + f] = os.path.join(project, f)
+                sources[PROJECT_PREFIX + key] = os.path.join(project, f)
     static_dir = os.path.join(project, "static") if project else None
     files = {}
     referenced = set()

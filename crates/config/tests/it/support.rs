@@ -27,8 +27,11 @@ impl Site {
     }
 
     /// Replaces `$ROOT` in an oracle string.
+    /// An oracle path or value: `$ROOT` expanded, and Go's default cache directory names
+    /// (`hugo_cache`, `hugo_cache_<user>`) as neohugo names them.
     pub fn expand(&self, s: &str) -> String {
         s.replace("$ROOT", &self.root().to_string_lossy())
+            .replace("/hugo_cache", "/neohugo_cache")
     }
 }
 
@@ -43,8 +46,9 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
     let expand = |s: &str| s.replace("$ROOT", &root.to_string_lossy());
     let dir = root.join(site_dir);
     std::fs::create_dir_all(&dir).expect("site dir");
+    // Go's `hugo.*` configuration files are neohugo's `neohugo.*`.
     for (name, content) in case["files"].as_object().expect("files") {
-        let path = dir.join(name);
+        let path = dir.join(neohugo_testkit::fixture::neohugo_path(name));
         if name.ends_with('/') {
             std::fs::create_dir_all(&path).expect("dir");
         } else {
@@ -52,10 +56,19 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
             std::fs::write(&path, expand(content.as_str().expect("text"))).expect("write");
         }
     }
+    // The oracle recorded Go's `HUGO*` variables; neohugo reads the same settings as `NEOHUGO*`
+    // (and no `HUGO*` variable).
+    let neo = |k: &str| {
+        if k.starts_with("HUGO") {
+            format!("NEO{k}")
+        } else {
+            k.to_owned()
+        }
+    };
     let mut env: Vec<(String, String)> = Vec::new();
     if let Some(p) = case["procEnv"].as_object() {
         for (k, v) in p {
-            env.push((k.clone(), expand(v.as_str().unwrap_or_default())));
+            env.push((neo(k), expand(v.as_str().unwrap_or_default())));
         }
     }
     for e in case["environ"].as_array().into_iter().flatten() {
@@ -63,11 +76,11 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
         if let Some((k, v)) = e.split_once('=')
             && k != "NEOHUGO_ORACLE"
         {
-            env.push((k.to_owned(), expand(v)));
+            env.push((neo(k), expand(v)));
         }
     }
-    // The oracle passes "production" when no environment was chosen; `HUGO_ENVIRONMENT`
-    // then decides.
+    // The oracle passes "production" when no environment was chosen; `NEOHUGO_ENVIRONMENT`
+    // (Go: `HUGO_ENVIRONMENT`) then decides.
     let mut cli = CliOverrides {
         environment: case["environment"]
             .as_str()
@@ -272,7 +285,7 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
             "enableinlineshortcodes": c.security.inline_shortcodes
                 == neohugo_config::global::InlineShortcodes::Enabled,
             "exec": {"allow": wl(&c.security.exec_allow), "osenv": wl(&c.security.exec_os_env)},
-            "funcs": {"getenv": wl(&c.security.getenv)},
+            "funcs": {"getenv": getenv_as_go(&c.security.getenv)},
             "http": {"urls": wl(&c.security.http_urls), "methods": wl(&c.security.http_methods),
                      "mediatypes": wl(&c.security.http_media_types)},
         }),
@@ -417,6 +430,19 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
 }
 
 /// A whitelist as configured: `"none"` or the patterns.
+/// `security.funcs.getenv` as Go spells it: neohugo's default `^NEOHUGO_` is Go's `^HUGO_`
+/// renamed.
+fn getenv_as_go(w: &neohugo_config::global::Whitelist) -> J {
+    match wl(w) {
+        J::Array(p) => J::Array(
+            p.into_iter()
+                .map(|p| if p == "^NEOHUGO_" { json!("^HUGO_") } else { p })
+                .collect(),
+        ),
+        other => other,
+    }
+}
+
 fn wl(w: &neohugo_config::global::Whitelist) -> J {
     match w.patterns() {
         [one] if one.eq_ignore_ascii_case("none") => json!("none"),

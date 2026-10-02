@@ -93,9 +93,9 @@ fn version_line_has_the_go_format() {
 #[test]
 fn config_prints_the_resolved_configuration() {
     let s = site_from(
-        "-- hugo.toml --\nbaseURL = \"https://e.org/\"\ntitle = \"T\"\n-- config/production/params.toml --\ncolor = \"red\"\n",
+        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\ntitle = \"T\"\n-- config/production/params.toml --\ncolor = \"red\"\n",
     );
-    let o = neohugo(s.path(), &["config"], &[("HUGO_PARAMS_SIZE", "9")]);
+    let o = neohugo(s.path(), &["config"], &[("NEOHUGO_PARAMS_SIZE", "9")]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("json");
     assert_eq!(v["environment"], "production");
@@ -227,7 +227,7 @@ fn command_first_moves_the_command_before_the_flags() {
 /// flags (`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`).
 #[test]
 fn persistent_flags_anywhere() {
-    let s = site_from("-- hugo.toml --\ntitle = \"T\"\n");
+    let s = site_from("-- neohugo.toml --\ntitle = \"T\"\n");
     let o = neohugo(s.path(), &["-s", ".", "-e", "staging", "config"], &[]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("json");
@@ -246,7 +246,7 @@ fn persistent_flags_anywhere() {
         ][..],
         &[
             "--config",
-            "hugo.toml",
+            "neohugo.toml",
             "--config-dir",
             "config",
             "templates",
@@ -271,7 +271,7 @@ fn persistent_flags_anywhere() {
 /// does not act on give a warning.
 #[test]
 fn hugo_flags_are_accepted() {
-    let s = site_from("-- hugo.toml --\ntitle = \"T\"\n");
+    let s = site_from("-- neohugo.toml --\ntitle = \"T\"\n");
     let o = neohugo(
         s.path(),
         &[
@@ -411,7 +411,7 @@ fn no_times_and_no_chmod_reach_the_static_copy() {
     use std::os::unix::fs::PermissionsExt;
     use std::time::{Duration, SystemTime};
 
-    let s = site_from("-- hugo.toml --\ntitle = \"T\"\n-- static/a.txt --\nhi\n");
+    let s = site_from("-- neohugo.toml --\ntitle = \"T\"\n-- static/a.txt --\nhi\n");
     let src = s.path().join("static/a.txt");
     let old = SystemTime::UNIX_EPOCH + Duration::from_secs(978_307_200);
     std::fs::File::options()

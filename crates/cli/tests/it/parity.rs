@@ -3,11 +3,11 @@
 //!
 //! The gate lives here, not in `neohugo-build`, because only this crate's tests can run the
 //! binary (`CARGO_BIN_EXE_neohugo`): the command line, the disk sink, the static copy and
-//! `hugo_stats.json` in the project directory are part of what is compared.
+//! `neohugo_stats.json` in the project directory are part of what is compared.
 //!
 //! - **L1** paths: the file set, after §7.2's normalisation, equals Go's 55 files in `public`
-//!   plus `hugo_stats.json` in the project directory (56; the reference holds the 55 of
-//!   `public`, Go writes `hugo_stats.json` next to `hugo.toml`).
+//!   plus `neohugo_stats.json` in the project directory (56; the reference holds the 55 of
+//!   `public`, Go writes `neohugo_stats.json` next to `neohugo.toml`).
 //! - **L2** links: per HTML file the `<title>`, `<link rel=canonical|alternate>` and the set of
 //!   internal `href`/`src`/`srcset` URLs (percent-decoded); the alias → target map; the
 //!   `<link>`/`<loc>`/`<guid>` lists of RSS and sitemaps; the URL leaves of JSON; link
@@ -16,7 +16,7 @@
 //!   every file is checked as well; it implies the rest while it holds.
 //! - **L3** text: per HTML file the visible text (tags, comments, `script` and `style`
 //!   removed, entities decoded, typographic characters mapped to ASCII, whitespace collapsed)
-//!   and the heading-ID list; `hugo_stats.json` tag, class and id sets equal the collector's
+//!   and the heading-ID list; `neohugo_stats.json` tag, class and id sets equal the collector's
 //!   (`neohugo-publish`, checked against Go's collector by `oracle/publisher/collector`) over
 //!   Go's HTML files.
 //! - **Structure oracle**: the build's own dump (`NEOHUGO_STRUCTURE_OUT`, `neohugo-build`'s
@@ -31,7 +31,7 @@
 //! differ only when the ratchet's baseline (`testdata/baselines/testsite.json`, T03)
 //! accepts it (`accepted-deviation`); it accepts none.
 //!
-//! The full output tree (every file's content, `hugo_stats.json` included) is an insta
+//! The full output tree (every file's content, `neohugo_stats.json` included) is an insta
 //! snapshot: `snapshots/it__parity__testsite_output.snap`.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -60,7 +60,7 @@ fn go_public() -> BTreeMap<String, Vec<u8>> {
         .collect()
 }
 
-/// The testsite built by the binary: `public` and `hugo_stats.json`.
+/// The testsite built by the binary: `public` and `neohugo_stats.json`.
 struct Built {
     _tmp: tempfile::TempDir,
     public: BTreeMap<String, Vec<u8>>,
@@ -82,8 +82,8 @@ fn build_testsite() -> Built {
     );
     assert!(o.status.success(), "{}", stderr(&o));
     let public = tree(&site.join("public"));
-    let stats =
-        std::fs::read_to_string(site.join("hugo_stats.json")).expect("hugo_stats.json written");
+    let stats = std::fs::read_to_string(site.join("neohugo_stats.json"))
+        .expect("neohugo_stats.json written");
     let structure = neohugo_testkit::fixture::read_json(&dump).expect("the structure dump");
     Built {
         _tmp: tmp,
@@ -578,7 +578,8 @@ fn testsite_gate_a_t() {
     let built = build_testsite();
     let ours = &built.public;
 
-    // L1: 55 files in `public` plus `hugo_stats.json` in the project directory.
+    // L1: 55 files in `public` plus the stats file in the project directory (Go's
+    // `hugo_stats.json`, neohugo's `neohugo_stats.json`; one entry for both).
     let norm = |m: &BTreeMap<String, Vec<u8>>| -> Vec<String> {
         let mut v: Vec<String> = m.keys().map(|k| normalize_path(k)).collect();
         v.push("../hugo_stats.json".to_owned());
@@ -655,7 +656,7 @@ fn testsite_gate_a_t() {
         "L3: text differs"
     );
 
-    // L3: `hugo_stats.json` sets equal the collector's over Go's HTML files.
+    // L3: `neohugo_stats.json` sets equal the collector's over Go's HTML files.
     let mut go_elements = HtmlElements::default();
     for (_, v) in go.iter().filter(|(k, _)| k.ends_with(".html")) {
         go_elements.add_html(&String::from_utf8_lossy(v));
@@ -664,22 +665,22 @@ fn testsite_gate_a_t() {
     let set = |key: &str| -> BTreeSet<String> {
         stats["htmlElements"][key]
             .as_array()
-            .unwrap_or_else(|| panic!("hugo_stats.json: no {key}"))
+            .unwrap_or_else(|| panic!("neohugo_stats.json: no {key}"))
             .iter()
             .map(|v| v.as_str().expect("string").to_owned())
             .collect()
     };
-    assert_eq!(set("tags"), go_elements.tags, "hugo_stats.json tags");
+    assert_eq!(set("tags"), go_elements.tags, "neohugo_stats.json tags");
     assert_eq!(
         set("classes"),
         go_elements.classes,
-        "hugo_stats.json classes"
+        "neohugo_stats.json classes"
     );
-    assert_eq!(set("ids"), go_elements.ids, "hugo_stats.json ids");
+    assert_eq!(set("ids"), go_elements.ids, "neohugo_stats.json ids");
 
     println!(
         "A-T: L1 {}/56 paths; L2 {}/55 files byte-identical, links equal, {} aliases, {} dangling \
-         links (all dangling in Go's output too); L3 {} HTML pages equal, hugo_stats.json sets equal \
+         links (all dangling in Go's output too); L3 {} HTML pages equal, neohugo_stats.json sets equal \
          ({} tags, {} classes, {} ids); structure oracle below",
         got.len(),
         go.len() - differ.len(),
@@ -725,7 +726,7 @@ fn testsite_gate_a_t() {
         .iter()
         .map(|(k, v)| (format!("public/{k}"), v.as_slice()))
         .collect();
-    files.push(("hugo_stats.json".to_owned(), built.stats.as_bytes()));
+    files.push(("neohugo_stats.json".to_owned(), built.stats.as_bytes()));
     files.sort();
     for (name, bytes) in files {
         snap.push_str(&format!("-- {name} --\n"));

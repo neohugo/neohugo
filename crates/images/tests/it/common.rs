@@ -473,6 +473,15 @@ impl Sink for MemorySink {
     fn exists(&self, path: &OutputPath) -> bool {
         self.files.lock().expect("sink lock").contains_key(path)
     }
+
+    fn read(&self, path: &OutputPath) -> std::io::Result<Vec<u8>> {
+        self.files
+            .lock()
+            .expect("sink lock")
+            .get(path)
+            .cloned()
+            .ok_or_else(|| std::io::ErrorKind::NotFound.into())
+    }
 }
 
 /// Writes `bytes` to `dir/name` and returns the path.

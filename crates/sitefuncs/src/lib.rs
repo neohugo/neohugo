@@ -1,5 +1,5 @@
 //! Site-bound Tera functions as small handle structs (REWRITE_PLAN.md §1.2, §2.6, §4.2–4.6):
-//! every `neohugo_funcs::spec::FUNCS` entry marked site-bound (70 names), registered by
+//! every `neohugo_funcs::spec::FUNCS` entry marked site-bound (73 names), registered by
 //! [`register`].
 //!
 //! Each function is a struct that holds only the `Arc`s it needs (`GetPage { views }`,
@@ -25,6 +25,7 @@
 //! | `defer` | [`neohugo_view::DeferredRegistry`]; returns `__nh_defer_<key>__` |
 //! | `related` | [`RelatedCache`]: one index per candidate list |
 //! | resources, images | `ResourceStore` (lazy transforms, post-process placeholders), `ImageQueue` |
+//! | `add_page`, `add_resource`, `enable_all_languages`, the adapter's store | [`ContentAdapters`]: the runs of content adapters (phase `Adapter`, the run in `__nh.adapter`) |
 //!
 //! **Content seam.** `page_content` and friends, `markdownify`, `render_string`,
 //! `render_shortcodes`, `resource_content` of a bundled page and `partial()` call the render
@@ -38,6 +39,7 @@
 
 #![forbid(unsafe_code)]
 
+mod adapters;
 mod call;
 mod content;
 mod images;
@@ -63,6 +65,8 @@ use neohugo_nav::{Menus, NavError, RelatedIndex};
 use neohugo_resources::ResourceStore;
 use neohugo_site::Model;
 use neohugo_view::{ContentRenderer, DeferredRegistry, PageStores, PaginationRecorder, ViewCache};
+
+pub use adapters::{AdapterRun, ContentAdapters};
 
 /// A cached `partial_cached` result: the rendered text, or the partial's `return_value`.
 #[derive(Clone, Debug, PartialEq)]
@@ -162,6 +166,8 @@ pub struct Handles {
     pub stores: Arc<PageStores>,
     pub pagination: Arc<PaginationRecorder>,
     pub deferred: Arc<DeferredRegistry>,
+    /// The `purge_css` plans; the publisher replaces their placeholders per page.
+    pub css_purges: Arc<neohugo_minify::CssPurges>,
     pub menus: Arc<Menus>,
     pub related: Arc<RelatedCache>,
     pub i18n: Arc<Translations>,
@@ -178,12 +184,15 @@ pub struct Handles {
     pub frames: Arc<Frames>,
     /// `partial_cached` results by (name, variant key).
     pub partial_cache: Arc<DashMap<(String, String), PartialResult>>,
+    /// The runs of content adapters (only a session that runs adapters starts any).
+    pub adapters: Arc<ContentAdapters>,
 }
 
 /// Registers every site-bound function, filter and test of `neohugo_funcs::spec::FUNCS` on
 /// `t` (call it after `neohugo_funcs::register_pure`, before templates are added).
 pub fn register(t: &mut tera::Tera, h: &Handles) {
     let mut r = call::Registrar::new(t);
+    adapters::register(&mut r, h);
     pages::register(&mut r, h);
     lists::register(&mut r, h);
     pagination::register(&mut r, h);

@@ -47,6 +47,10 @@ impl Sink for DiskSink {
     fn exists(&self, path: &OutputPath) -> bool {
         self.file_path(path).is_file()
     }
+
+    fn read(&self, path: &OutputPath) -> io::Result<Vec<u8>> {
+        fs::read(self.file_path(path))
+    }
 }
 
 /// Keeps published files in memory. Concurrent writers are fine; a second write of a path
@@ -118,5 +122,12 @@ impl Sink for MemorySink {
 
     fn exists(&self, path: &OutputPath) -> bool {
         self.files.contains_key(path)
+    }
+
+    fn read(&self, path: &OutputPath) -> io::Result<Vec<u8>> {
+        self.files
+            .get(path)
+            .map(|e| e.value().to_vec())
+            .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, path.to_string()))
     }
 }

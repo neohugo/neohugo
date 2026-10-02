@@ -1,16 +1,22 @@
 //! The publisher: every rendered output goes through [`Publisher::emit`].
 //!
 //! The steps of `emit` (REWRITE_PLAN.md §3.4):
+//! 0. `purge_css` placeholders (`__nh_purge_<n>__`) are replaced by the CSS this output uses
+//!    ([`neohugo_minify::CssPurges`]): the tags, classes and ids of its elements, the words of
+//!    its scripts and the custom properties it mentions ([`page_names`]);
 //! 1. `canonifyURLs` / `relativeURLs` rewrite (always for RSS, for HTML outputs when
 //!    configured; a held output is rewritten again after [`Publisher::patch_held`] inserted its
 //!    replacements, so post-processed links follow the site's URL style);
 //! 2. the LiveReload script (`serve` only; HTML outputs that are not alias redirects, as in
 //!    Hugo);
-//! 3. `hugo_stats.json` collection (HTML outputs);
+//! 3. `neohugo_stats.json` collection (HTML outputs);
 //! 4. URL-token extraction;
 //! 5. an output holding a deferred placeholder (`__nh_defer_<key>__`, `__nh_pp_<id>_<field>__`)
-//!    is held in memory until [`Publisher::patch_held`]; any other output is minified (when
-//!    `minifyOutput` is set and the media type has a minifier) and written.
+//!    is held until [`Publisher::patch_held`]: its text is written to the sink as it is (to its
+//!    file in a disk build, as Hugo's post-processing does, so held pages take no memory however
+//!    many there are) and only its path is kept; `patch_held` reads it back, patches, minifies
+//!    and writes it again. Any other output is minified (when `minifyOutput` is set and the
+//!    media type has a minifier) and written.
 //!
 //! An empty output writes no file. A minifier failure writes the output unminified and records
 //! a warning.
@@ -27,11 +33,12 @@ use neohugo_base::{FormatId, IdVec, LangIdx, MediaTypeId, Sink};
 use neohugo_config::global::BuildStats;
 use neohugo_config::site::LinkOutput;
 use neohugo_config::{Config, MediaTypes, OutputFormats};
-use neohugo_minify::Minifier;
+use neohugo_minify::purge::{self, PageNames};
+use neohugo_minify::{CssPurges, Minifier};
 use rayon::prelude::*;
 
 use crate::canonify::{Quoting, UrlRewriter};
-use crate::stats::{HugoStats, StatsCollector};
+use crate::stats::{HtmlElements, NeohugoStats, StatsCollector};
 use crate::tokens::UrlTokens;
 use crate::{PublishError, livereload};
 
@@ -96,7 +103,7 @@ impl PublishSettings {
     /// The settings of a configuration (no LiveReload).
     ///
     /// # Errors
-    /// An invalid `[minify.tdewolff]` option.
+    /// An invalid `[minify.tdewolff]` option or browserslist configuration.
     pub fn from_config(cfg: &Config) -> Result<Self, PublishError> {
         let mut sites = IdVec::with_capacity(cfg.sites.len());
         for s in &cfg.sites {
@@ -108,7 +115,8 @@ impl PublishSettings {
             });
         }
         let minifier = if cfg.minify.minify_output {
-            Some(Minifier::new(&cfg.minify)?)
+            let browsers = neohugo_minify::project_browsers(&cfg.project_dir, &cfg.environment)?;
+            Some(Minifier::new(&cfg.minify)?.with_browsers(browsers))
         } else {
             None
         };
@@ -132,10 +140,9 @@ pub enum Emitted {
     Empty,
 }
 
-/// An output waiting for its placeholders.
+/// An output waiting for its placeholders; its unpatched text is in the sink at its path.
 #[derive(Debug)]
 struct Held {
-    text: String,
     media_type: MediaTypeId,
     format: FormatId,
     lang: LangIdx,
@@ -150,6 +157,8 @@ pub struct Publisher {
     stats: StatsCollector,
     tokens: Mutex<UrlTokens>,
     held: Mutex<BTreeMap<OutputPath, Held>>,
+    /// The `purge_css` plans whose placeholders the outputs hold.
+    css_purges: Option<Arc<CssPurges>>,
     diagnostics: Arc<Diagnostics>,
     written: AtomicUsize,
 }
@@ -185,9 +194,25 @@ impl Publisher {
             settings,
             tokens: Mutex::new(UrlTokens::new()),
             held: Mutex::new(BTreeMap::new()),
+            css_purges: None,
             diagnostics,
             written: AtomicUsize::new(0),
         }
+    }
+
+    /// Resolves the placeholders of `purges` (the render session's `purge_css` plans).
+    #[must_use]
+    pub fn with_css_purges(mut self, purges: Arc<CssPurges>) -> Self {
+        self.css_purges = Some(purges);
+        self
+    }
+
+    /// `text` with its `purge_css` placeholders replaced by the CSS it uses.
+    fn purge(&self, text: String) -> Result<String, PublishError> {
+        let Some(purges) = &self.css_purges else {
+            return Ok(text);
+        };
+        Ok(purges.resolve(&text, || page_names(&text))?.unwrap_or(text))
     }
 
     /// Publishes a rendered output.
@@ -206,7 +231,8 @@ impl Publisher {
             .get(o.lang)
             .ok_or(PublishError::UnknownLanguage(o.lang))?;
 
-        let mut text = self.rewrite(o.text, &o.path, o.format, links);
+        let text = self.purge(o.text)?;
+        let mut text = self.rewrite(text, &o.path, o.format, links);
         if is_html
             && !o.alias
             && let Some(Some(script)) = self.livereload_scripts.get(o.lang)
@@ -220,10 +246,15 @@ impl Publisher {
         self.add_tokens(&text, Some(&o.path));
 
         if has_placeholder(&text) {
+            self.sink
+                .write(&o.path, text.as_bytes())
+                .map_err(|source| PublishError::Write {
+                    path: o.path.clone(),
+                    source,
+                })?;
             lock(&self.held).insert(
                 o.path,
                 Held {
-                    text,
                     media_type: format.media_type,
                     format: o.format,
                     lang: o.lang,
@@ -309,12 +340,13 @@ impl Publisher {
         lock(&self.held).keys().cloned().collect()
     }
 
-    /// Replaces the placeholders of the held outputs (`repl`: placeholder → text), extracts
-    /// their URL tokens again, then minifies and writes them. Call it outside any render.
+    /// Reads the held outputs back from the sink, replaces their placeholders (`repl`:
+    /// placeholder → text), extracts their URL tokens again, then minifies and writes them. Call
+    /// it outside any render.
     ///
     /// # Errors
-    /// A placeholder `repl` does not cover (the output is not written), or a failing sink; the
-    /// first error in path order is returned.
+    /// A placeholder `repl` does not cover (the output keeps its unpatched text), or a failing
+    /// sink; the first error in path order is returned.
     pub fn patch_held(&self, repl: &BTreeMap<String, String>) -> Result<usize, PublishError> {
         let held = std::mem::take(&mut *lock(&self.held));
         let (keys, values): (Vec<&str>, Vec<&str>) =
@@ -326,7 +358,14 @@ impl Publisher {
         let results: Vec<Result<(), PublishError>> = held
             .into_par_iter()
             .map(|(path, h)| {
-                let text = replacer.replace_all(&h.text, &values);
+                let bytes = self.sink.read(&path).map_err(|source| PublishError::Read {
+                    path: path.clone(),
+                    source,
+                })?;
+                let held = String::from_utf8(bytes)
+                    .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned());
+                let text = self.purge(replacer.replace_all(&held, &values))?;
+                drop(held);
                 // The links of post-processed resources arrive only now: rewrite again (the
                 // rewrite leaves URLs it already rewrote alone).
                 let text = match self.settings.sites.get(h.lang) {
@@ -357,9 +396,9 @@ impl Publisher {
         lock(&self.tokens).clone()
     }
 
-    /// The `hugo_stats.json` content collected so far.
+    /// The `neohugo_stats.json` content collected so far.
     #[must_use]
-    pub fn stats(&self) -> HugoStats {
+    pub fn stats(&self) -> NeohugoStats {
         self.stats.stats()
     }
 
@@ -374,6 +413,46 @@ impl Publisher {
     pub fn written(&self) -> usize {
         self.written.load(Ordering::Relaxed)
     }
+}
+
+/// The names an output uses, for `purge_css`: the tags, classes and ids of its elements (as
+/// `neohugo_stats.json` records them), the words of its `<script>` elements (inline scripts and
+/// templates such as `type="x-tmpl-mustache"` name classes too), and every custom property it
+/// mentions (`style="color: var(--x)"`).
+#[must_use]
+pub fn page_names(html: &str) -> PageNames {
+    let e = HtmlElements::collect(html);
+    let mut words: std::collections::BTreeSet<String> = purge::words(html)
+        .filter(|w| w.starts_with("--") && w.len() > 2)
+        .map(str::to_owned)
+        .collect();
+    for script in script_texts(html) {
+        words.extend(purge::words(script).map(str::to_owned));
+    }
+    PageNames {
+        tags: e.tags,
+        classes: e.classes,
+        ids: e.ids,
+        words,
+    }
+}
+
+/// The contents of the `<script>` elements of `html`.
+fn script_texts(html: &str) -> Vec<&str> {
+    let lower = html.to_ascii_lowercase();
+    let mut found = Vec::new();
+    let mut at = 0;
+    while let Some(open) = lower[at..].find("<script").map(|i| at + i) {
+        let Some(start) = lower[open..].find('>').map(|i| open + i + 1) else {
+            break;
+        };
+        let end = lower[start..]
+            .find("</script")
+            .map_or(html.len(), |i| start + i);
+        found.push(&html[start..end]);
+        at = end;
+    }
+    found
 }
 
 fn has_placeholder(text: &str) -> bool {

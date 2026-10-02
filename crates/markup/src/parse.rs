@@ -8,16 +8,16 @@ use comrak::{Arena, Options, parse_document};
 use crate::attributes;
 use crate::doc::Doc;
 use crate::passes::blocks::{self, BlockAttrLine, Passthrough};
-use crate::passes::{ids, inline};
+use crate::passes::{contexts, ids, inline, tables};
 use crate::source::{ExpandedMarkdown, Lines, Prepared};
 use crate::{Extensions, MarkdownOptions, MarkupError, RawHtml, StandaloneImages};
 
 /// comrak's options for `o`: parsing only; Hugo's typography, linkify, attributes, alerts
-/// and math are passes of this crate.
+/// and math are passes of this crate, and so are tables (goldmark makes them of paragraphs,
+/// [`crate::passes::tables`]).
 pub(crate) fn comrak_options(o: &MarkdownOptions) -> Options<'static> {
     let e = o.extensions;
     let mut c = Options::default();
-    c.extension.table = e.contains(Extensions::TABLES);
     c.extension.strikethrough = e.contains(Extensions::STRIKETHROUGH);
     c.extension.tasklist = e.contains(Extensions::TASKLISTS);
     c.extension.description_lists = e.contains(Extensions::DEFINITION_LISTS);
@@ -38,7 +38,11 @@ pub(crate) fn parse<'a>(
     let root = parse_document(arena, &prep.prepared.text, &copts);
     let mut doc = Doc::new(arena, root, prep.prepared, std::sync::Arc::clone(md.file));
     let e = o.extensions;
-    blocks::fix_link_ref_lines(&doc);
+    blocks::fix_link_ref_lines(&doc, doc.root);
+    if e.contains(Extensions::TABLES) {
+        tables::tables(&mut doc, &copts);
+    }
+    blocks::link_reference_blocks(&mut doc, e.contains(Extensions::FOOTNOTES));
     if o.raw_html == RawHtml::Omit {
         blocks::drop_comments(&doc);
     }
@@ -55,11 +59,9 @@ pub(crate) fn parse<'a>(
     if e.contains(Extensions::DEFINITION_LISTS) {
         blocks::definition_lists(&mut doc);
     }
+    contexts::contexts(&mut doc);
     if o.standalone_images == StandaloneImages::Block {
         blocks::block_images(&mut doc);
-    }
-    if e.contains(Extensions::TABLES) {
-        blocks::padded_cells(&mut doc);
     }
     inline::run(
         &mut doc,

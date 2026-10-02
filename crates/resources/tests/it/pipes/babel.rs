@@ -27,7 +27,7 @@ fs.writeFileSync(out, code);
 
 const SITE: [(&str, &str); 3] = [
     (
-        "hugo.toml",
+        "neohugo.toml",
         "baseURL = \"https://example.org/\"\n[security.exec]\nallow = ['^babel$']\n",
     ),
     ("babel.config.js", "module.exports = {};\n"),

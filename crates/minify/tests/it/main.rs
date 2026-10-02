@@ -4,3 +4,4 @@ mod corpus;
 mod css_tolerance;
 mod formats;
 mod options;
+mod targets;

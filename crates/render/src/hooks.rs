@@ -85,7 +85,7 @@ impl TeraHooks<'_> {
         ctx.insert_value("page", generation.full(env.page));
         ctx.insert_value("page_inner", generation.full(env.inner_page));
         ctx.insert_value("site", generation.sites[self.page.lang].clone());
-        ctx.insert_value("hugo", s.hugo().clone());
+        ctx.insert_value("neohugo", s.neohugo().clone());
         ctx.insert("lang", &s.model().config.sites[self.page.lang].language.key);
         ctx.insert_value(SCOPE_KEY, self.scope.child().to_value());
         fields(&mut ctx);

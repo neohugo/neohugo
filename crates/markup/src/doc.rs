@@ -49,6 +49,8 @@ pub(crate) enum Role {
     PaddedCell,
     /// A definition written as tight (`<dd>` directly followed by content).
     TightDetails,
+    /// A context marker around an included page's text (an empty `Raw` node).
+    Context,
 }
 
 /// Per-node data added by passes.
@@ -114,6 +116,24 @@ impl<'a> Doc<'a> {
             .alloc(AstNode::new(RefCell::new(Ast::new_with_sourcepos(
                 value, sourcepos,
             ))))
+    }
+
+    /// Whether paragraph `p` is written without `<p>` (goldmark's text blocks: tight list
+    /// items, the first paragraph of a tight definition, terms, block images).
+    pub(crate) fn text_block(&self, p: Node<'_>) -> bool {
+        if matches!(self.role(p), Some(Role::TextBlock)) {
+            return true;
+        }
+        let Some(parent) = p.parent() else {
+            return false;
+        };
+        match &parent.data().value {
+            NodeValue::DescriptionTerm => true,
+            NodeValue::Item(_) | NodeValue::TaskItem(_) => parent
+                .parent()
+                .is_some_and(|l| matches!(&l.data().value, NodeValue::List(list) if list.tight)),
+            _ => false,
+        }
     }
 
     /// Offset in the parsed text where `n` starts.

@@ -301,13 +301,16 @@ fn inject_generated() {
     let home = tempfile::tempdir().unwrap();
     let s = store(&synth_dir(), home.path());
     let l = lang(0);
-    assert_eq!(s.get_asset(l, "hugo_stats.json").unwrap(), None);
+    assert_eq!(s.get_asset(l, "neohugo_stats.json").unwrap(), None);
     let txt = s.get_asset(l, "txt/hello.txt").unwrap().unwrap();
     let before = s.content(txt).unwrap();
 
-    s.inject_generated("hugo_stats.json", Arc::from(&b"{\"htmlElements\":{}}"[..]));
+    s.inject_generated(
+        "neohugo_stats.json",
+        Arc::from(&b"{\"htmlElements\":{}}"[..]),
+    );
     s.inject_generated("/txt/hello.txt", Arc::from(&b"fresh"[..]));
-    let stats = s.get_asset(l, "hugo_stats.json").unwrap().unwrap();
+    let stats = s.get_asset(l, "neohugo_stats.json").unwrap().unwrap();
     assert_eq!(&*s.content(stats).unwrap(), b"{\"htmlElements\":{}}");
     assert_eq!(s.resource(stats).media_type_string(), "application/json");
     assert!(matches!(s.resource(stats).body, Body::Generated(_)));
@@ -315,7 +318,7 @@ fn inject_generated() {
     assert_eq!(&*s.content(txt).unwrap(), b"fresh");
     assert_ne!(before, s.content(txt).unwrap());
     assert!(s.find_assets(l, "*.json").unwrap().contains(&stats));
-    s.inject_generated("hugo_stats.json", Arc::from(&b"{}"[..]));
+    s.inject_generated("neohugo_stats.json", Arc::from(&b"{}"[..]));
     assert_eq!(&*s.content(stats).unwrap(), b"{}");
 }
 
@@ -380,8 +383,8 @@ fn multihost_assets() {
     let site = tmp.path().join("site");
     std::fs::create_dir_all(site.join("assets/images")).unwrap();
     std::fs::copy(
-        neohugo_testkit::fixture::testdata("oracle/resources/site-multihost/hugo.toml"),
-        site.join("hugo.toml"),
+        neohugo_testkit::fixture::testdata("oracle/resources/site-multihost/neohugo.toml"),
+        site.join("neohugo.toml"),
     )
     .unwrap();
     std::fs::copy(

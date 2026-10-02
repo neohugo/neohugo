@@ -1,23 +1,20 @@
-//! `diagrams_goat` (feature `goat`): ASCII diagrams to SVG with svgbob.
+//! `diagrams_goat` (feature `goat`): ASCII diagrams to SVG, as Hugo's `diagrams.Goat`
+//! (`tpl/diagrams/goat.go`) with GoAT, the Go port of Markdeep's diagrams.
 //!
-//! Hugo's `diagrams.Goat` uses GoAT; svgbob reads the same ASCII-art conventions (lines, arrows,
-//! corners, dots, text) and draws an equivalent picture. The SVG bytes differ from Go's (an
-//! allowed difference, REWRITE_PLAN.md §7.3); the geometry does not: a character cell is 8×16
-//! pixels and the size is GoAT's, one cell of margin more than the text.
-//!
-//! The drawing is styled by a `<style>` scoped to the `svgbob` class of the group that holds
-//! it, in `currentColor` (as GoAT draws), so a page's text colour applies.
+//! [`canvas`] and [`svg`] port bep/goat v0.5.0 (the version Hugo uses; MIT,
+//! `THIRD_PARTY/goat/LICENSE`), so the SVG is byte-identical to Hugo's: one `<path>` per line
+//! segment and corner, a `<polygon>` per arrow head, a `<circle>` per dot and one `<text>` per
+//! character of text, in GoAT's order. A character cell is 8×16 pixels; the size is one column
+//! and half a row of margin more than the diagram.
 
-use std::fmt::Write as _;
+mod canvas;
+mod svg;
 
 use super::Registrar;
 use super::value::text;
-use svgbob::{CellBuffer, Node, Settings};
 use tera::{Map, Value};
 
-/// GoAT's cell size in pixels.
-const CELL_WIDTH: usize = 8;
-const CELL_HEIGHT: usize = 16;
+use canvas::Canvas;
 
 pub(super) fn register(r: &mut Registrar<'_>) {
     r.function("diagrams_goat", |kw, _| {
@@ -32,10 +29,10 @@ pub(super) fn register(r: &mut Registrar<'_>) {
     });
 }
 
-/// A rendered diagram.
+/// A rendered diagram (Go's `goat.SVG`).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GoatSvg {
-    /// The SVG content (without the `<svg>` element).
+    /// The SVG content (without the `<svg>` element): one `<g>` element and a line break.
     pub inner: String,
     /// Width and height in pixels.
     pub width: usize,
@@ -43,68 +40,31 @@ pub struct GoatSvg {
 }
 
 impl GoatSvg {
-    /// A complete `<svg>` element, as Hugo's `.Wrapped`.
+    /// A complete `<svg>` element, as Hugo's `.Wrapped` (Go's `SVG.String`).
     #[must_use]
     pub fn wrapped(&self) -> String {
         format!(
-            "<svg xmlns='http://www.w3.org/2000/svg' version='1.1' height='{}' width='{}' \
-             font-family='Menlo,Lucida Console,monospace'>\n{}</svg>\n",
+            "<svg class='diagram' xmlns='http://www.w3.org/2000/svg' version='1.1' height='{}' \
+             width='{}' font-family='Menlo,Lucida Console,monospace'>\n{}</svg>\n",
             self.height, self.width, self.inner
         )
     }
 }
 
-/// The SVG of the ASCII diagram `text`.
+/// The SVG of the ASCII diagram `text` (Go's `goat.BuildSVG`): `(columns + 1) × 8` pixels
+/// wide and `rows × 16 + 9` high.
 ///
 /// # Errors
-/// When svgbob fails on the input (it panics on some degenerate shapes).
+/// When the diagram has more than about 134 million rows or columns (its pixel coordinates
+/// would not fit an `i32`).
 pub fn goat(text: &str) -> Result<GoatSvg, String> {
-    // Tabs as GoAT reads them: one cell each is too narrow, svgbob expects spaces.
-    let text = text.replace('\t', "    ");
-    let lines: Vec<&str> = text.lines().collect();
-    let columns = lines.iter().map(|l| l.chars().count()).max().unwrap_or(0);
-    let width = (columns + 1) * CELL_WIDTH;
-    let height = (lines.len() + 1) * CELL_HEIGHT;
-
-    let settings = Settings {
-        font_size: 14,
-        font_family: "Menlo,Lucida Console,monospace".into(),
-        fill_color: "currentColor".into(),
-        background: "white".into(),
-        stroke_color: "currentColor".into(),
-        stroke_width: 2.0,
-        scale: 8.0,
-        include_backdrop: false,
-        include_styles: true,
-        include_defs: true,
-    };
-    let rendered = std::panic::catch_unwind(|| {
-        let buffer = CellBuffer::from(text.as_str());
-        let (node, _, _): (Node<()>, f32, f32) = buffer.get_node_with_size(&settings);
-        node.render_to_string()
-    })
-    .map_err(|_| "diagrams_goat: the diagram could not be drawn".to_owned())?;
-    // The children of svgbob's `<svg>` element.
-    let body = rendered
-        .find('>')
-        .map(|start| &rendered[start + 1..])
-        .and_then(|rest| rest.strip_suffix("</svg>"))
-        .unwrap_or_default();
-    let mut inner = String::with_capacity(body.len() + 64);
-    // svgbob centres a character in its cell, GoAT on the cell's corner with an offset of one
-    // cell: half a cell of offset gives the same position.
-    let _ = write!(
-        inner,
-        "<g class='svgbob' transform='translate({},{})'>",
-        CELL_WIDTH / 2,
-        CELL_HEIGHT / 2
-    );
-    inner.push_str(body);
-    inner.push_str("</g>\n");
+    let canvas =
+        Canvas::new(text).ok_or_else(|| "diagrams_goat: the diagram is too large".to_owned())?;
+    let size = |n: i32| usize::try_from(n).unwrap_or_default();
     Ok(GoatSvg {
-        inner,
-        width,
-        height,
+        inner: svg::body(&canvas),
+        width: (size(canvas.width) + 1) * 8,
+        height: size(canvas.height) * 16 + 8 + 1,
     })
 }
 
@@ -115,20 +75,37 @@ mod tests {
     #[test]
     fn size_and_structure() {
         let svg = goat("+--+\n|  |-->\n+--+").unwrap();
-        assert_eq!((svg.width, svg.height), (8 * 8, 4 * 16));
-        assert!(svg.inner.starts_with("<g class='svgbob'"), "{}", svg.inner);
-        assert!(svg.inner.ends_with("</g>\n"));
-        assert!(svg.inner.contains("<style"));
-        assert!(!svg.inner.contains("<svg"));
+        assert_eq!((svg.width, svg.height), (8 * 8, 3 * 16 + 9));
         assert!(
-            svg.wrapped()
-                .starts_with("<svg xmlns='http://www.w3.org/2000/svg'")
+            svg.inner.starts_with("<g transform='translate(8,16)'>\n"),
+            "{}",
+            svg.inner
         );
+        assert!(svg.inner.ends_with("</g>\n"));
+        assert!(!svg.inner.contains("<svg"));
+        assert!(svg.wrapped().starts_with(
+            "<svg class='diagram' xmlns='http://www.w3.org/2000/svg' version='1.1' height='57' \
+             width='64' font-family='Menlo,Lucida Console,monospace'>\n<g "
+        ));
     }
 
     #[test]
     fn empty() {
         let svg = goat("").unwrap();
-        assert_eq!((svg.width, svg.height), (8, 16));
+        assert_eq!((svg.width, svg.height), (8, 9));
+        assert_eq!(svg.inner, "<g transform='translate(8,16)'>\n</g>\n");
+    }
+
+    /// One `<text>` per character, escaped as GoAT escapes (`&`, `<`, `>` only).
+    #[test]
+    fn text_characters() {
+        let svg = goat("a&b'c").unwrap();
+        let texts: Vec<&str> = svg
+            .inner
+            .lines()
+            .filter_map(|l| l.strip_suffix("</text>"))
+            .filter_map(|l| l.rsplit_once('>').map(|(_, t)| t))
+            .collect();
+        assert_eq!(texts, ["a", "&amp;", "b", "'", "c"]);
     }
 }

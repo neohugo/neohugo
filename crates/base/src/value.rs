@@ -542,7 +542,34 @@ impl<'de> Visitor<'de> for ValueVisitor {
     }
 
     fn visit_map<A: MapAccess<'de>>(self, access: A) -> Result<Value, A::Error> {
-        read_map(access).map(Value::map)
+        let m = read_map(access)?;
+        // serde_json with `arbitrary_precision` (which rolldown turns on) passes a number as a
+        // map holding its text under this key.
+        if m.len() == 1
+            && let Some(Value::String(text)) = m.get(JSON_NUMBER_TOKEN)
+        {
+            return Ok(json_number(text));
+        }
+        Ok(Value::map(m))
+    }
+}
+
+/// The key serde_json's `arbitrary_precision` numbers deserialize under.
+const JSON_NUMBER_TOKEN: &str = "$serde_json::private::Number";
+
+/// A JSON number's text as [`ValueVisitor`] reads numbers: an integer that fits `i64`, else a
+/// float.
+#[expect(
+    clippy::cast_precision_loss,
+    reason = "beyond i64 only a float can hold it"
+)]
+fn json_number(text: &str) -> Value {
+    if let Ok(i) = text.parse::<i64>() {
+        Value::Int(i)
+    } else if let Ok(u) = text.parse::<u64>() {
+        Value::Float(u as f64)
+    } else {
+        Value::Float(text.parse().unwrap_or(f64::NAN))
     }
 }
 

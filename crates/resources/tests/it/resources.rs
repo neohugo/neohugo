@@ -50,6 +50,11 @@ fn run(name: &str, dir: &Path) -> usize {
     let records = fx["records"].as_array().unwrap();
     let mut links = Vec::new();
     for (i, rc) in records.iter().enumerate() {
+        // Go mounted Hugo's `package.hugo.json` in `assets/_jsconfig`; neohugo mounts
+        // `package.neohugo.json` (the docs fixture has only Hugo's file).
+        if rc["where"] == "_jsconfig/package.hugo.json" {
+            continue;
+        }
         let what = format!("{name}[{i}] {} {}", rc["where"], rc["rd"]["nameOriginal"]);
         let lang = LangIdx::from_index(usize::try_from(rc["lang"].as_u64().unwrap()).unwrap());
         let rd = &rc["rd"];
@@ -96,12 +101,16 @@ fn run(name: &str, dir: &Path) -> usize {
     store
         .publish(links.iter().map(String::as_str), &sink)
         .unwrap();
+    let mut want_published = fx["published"].clone();
+    if let Some(w) = want_published.as_object_mut() {
+        w.remove("_jsconfig/package.hugo.json");
+    }
     failures.extend(diff(
         &format!("{name} published"),
-        &fx["published"],
+        &want_published,
         &sink.files(),
     ));
-    if let (Some(w), Some(g)) = (fx["published"].as_object(), sink.files().as_object()) {
+    if let (Some(w), Some(g)) = (want_published.as_object(), sink.files().as_object()) {
         for k in g.keys().filter(|k| !w.contains_key(*k)) {
             failures.push(format!("{name} published: unexpected {k}"));
         }

@@ -59,8 +59,10 @@ pub(crate) fn rewrite_extends(src: &str, base: &str) -> Option<String> {
 
 /// The first Go-template marker outside `{% raw %}` blocks and comments: `{{ .`, `{{ $`,
 /// `{{ end }}`, `{{/*`, or an action keyword (`{{ define`, `{{ range`, `{{ with`, `{{ if`,
-/// `{{ else`, `{{ block`, `{{ template`, `{{ partial`), with its 1-based line.
-pub(crate) fn go_marker(src: &str) -> Option<(usize, String)> {
+/// `{{ else`, `{{ block`, `{{ template`, `{{ partial`), with its 1-based line. Layouts with one
+/// are refused ([`crate::IssueKind::GoTemplate`]); so are content adapters (neohugo-build).
+#[must_use]
+pub fn go_marker(src: &str) -> Option<(usize, String)> {
     const KEYWORDS: [&str; 8] = [
         "define", "range", "with", "if", "else", "block", "template", "partial",
     ];

@@ -306,8 +306,8 @@ const EXPECTED: &[(&str, &str, &str)] = &[
     (
         "build-postprocess",
         "js/main.js",
-        "the Go layout bundles `js/main.js` with `js.Build` (esbuild), which the offline tests \
-         do not run; the conversion leaves the call out",
+        "the Go layout bundles `js/main.js` with `js.Build`; the conversion, made when the \
+         offline tests had no bundler, leaves the call out",
     ),
     (
         "build-postprocess",
@@ -379,7 +379,7 @@ pub(crate) fn write_site(name: &str, dir: &std::path::Path) -> J {
             1,
         );
     }
-    let mut files = vec![("hugo.toml".to_owned(), toml)];
+    let mut files = vec![("neohugo.toml".to_owned(), toml)];
     for file in site["files"].as_array().expect("files") {
         let path = file["path"].as_str().expect("path");
         if path.starts_with("layouts/") {

@@ -1,5 +1,6 @@
 // A dependency-free PostCSS config: one inline plugin that shows what the child process
-// sees (HUGO_ENVIRONMENT, the cwd, NODE_ENV which Hugo filters out) and rewrites a declaration.
+// sees (NEOHUGO_ENVIRONMENT, the cwd, NODE_ENV which neohugo filters out) and rewrites a
+// declaration. (The Go oracle ran it reading HUGO_ENVIRONMENT and HUGO_FILE_*.)
 module.exports = {
   plugins: [
     {
@@ -11,9 +12,9 @@ module.exports = {
       },
       OnceExit(root) {
         root.append({
-          text: "env=" + process.env.HUGO_ENVIRONMENT + " node_env=" + (process.env.NODE_ENV || "-") +
+          text: "env=" + process.env.NEOHUGO_ENVIRONMENT + " node_env=" + (process.env.NODE_ENV || "-") +
             " cwd=" + require("path").basename(process.cwd()) +
-            " files=" + Object.keys(process.env).filter((k) => k.startsWith("HUGO_FILE_")).sort().join(","),
+            " files=" + Object.keys(process.env).filter((k) => k.startsWith("NEOHUGO_FILE_")).sort().join(","),
         });
       },
     },

@@ -1,7 +1,7 @@
 The files added to a copy of hugolib/testsite (testdata/upstream/hugolib/testsite) by
 tools/rust-port/i01/sites.py (the config and layouts of the nh-publisher site oracle's canonify
 variant, plus a few pages).
--- hugo.toml --
+-- neohugo.toml --
 baseURL = "https://example.org/"
 title = "Testsite"
 canonifyURLs = true

@@ -36,6 +36,8 @@ pub enum PhaseAvail {
     Content,
     /// Layout jobs, `partial()`, `defer` and `execute_as_template` only.
     Layout,
+    /// Content adapters (`_content.html`) and the partials they call only.
+    Adapter,
     Both,
 }
 
@@ -377,9 +379,15 @@ pub const FUNCS: &[FuncSpec] = &[
         .site().only(P::Layout),
     func(G::Pages, "paginate", ".Paginate", "The pager over `pages`. A re-call with another list or size is an error naming both positions.")
         .args(&[req("pages", A::Array), opt("size", A::Int)]).site().only(P::Layout),
-    func(G::Pages, "store_set", ".Store.Set", "Sets `key` in the page store (content-phase writes are buffered per transaction). Prints nothing.")
+    func(G::Pages, "store_set", ".Store.Set", "Sets `key` in the page store (content-phase writes are buffered per transaction); in a content adapter without `page=`, in the adapter's store, which its runs for every language share. Prints nothing.")
         .args(&[req("key", A::String), req("value", A::Any), PAGE_OPT]).site(),
-    func(G::Pages, "store_get", ".Store.Get", "Reads `key` from the page store, or none.").args(&[req("key", A::String), PAGE_OPT]).site(),
+    func(G::Pages, "store_get", ".Store.Get", "Reads `key` from the page store (in a content adapter without `page=`: the adapter's store), or none.").args(&[req("key", A::String), PAGE_OPT]).site(),
+    func(G::Pages, "add_page", ".AddPage (content adapter)", "Adds the page `page` describes to the adapter's directory: `path` (relative, required but for `kind: home`), `kind` (default `page`), `title`, `content` (`{mediaType, value}`, default Markdown), `dates` (`{date, lastmod, publishDate, expiryDate}`), `params`, `build`, `cascade`, `outputs` and the other front matter fields (not `lang`, `content.markup`). A path added again replaces the earlier page. Prints nothing.")
+        .args(&[req("page", A::Map)]).site().only(P::Adapter),
+    func(G::Pages, "add_resource", ".AddResource (content adapter)", "Adds the page resource `resource` describes: `path` (relative to the adapter's directory, required), `content` (`{mediaType, value}`: a string, or a resource, which keeps its own URL), `name`, `title`, `params`. A path added again replaces the earlier resource. Prints nothing.")
+        .args(&[req("resource", A::Map)]).site().only(P::Adapter),
+    func(G::Pages, "enable_all_languages", ".EnableAllLanguages (content adapter)", "Runs the adapter for every language, not only its own (the runs share the adapter's store). Prints nothing.")
+        .site().only(P::Adapter),
     func(G::Pages, "page_content", ".Content (another page, content phase)", "The rendered content of `page`; memoised and cycle-checked.")
         .args(&[PAGE_REQ]).site().safe(),
     func(G::Pages, "page_summary", ".Summary (content phase)", "The summary of `page`.").args(&[PAGE_REQ]).site().safe(),
@@ -446,7 +454,7 @@ pub const FUNCS: &[FuncSpec] = &[
         .args(&[opt("display", A::String), PAGE_OPT]).site().safe(),
     filter(G::Strings, "highlight", "highlight, transform.Highlight", "Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration).")
         .args(&[req("lang", A::String), opt("options", A::Any)]).site().safe(),
-    filter(G::Strings, "to_math", "transform.ToMath (+ try)", "LaTeX to MathML (SHOULD; feature `math`). A construct it cannot parse (invalid LaTeX, mhchem) is an error; with `optional=true` a warning (id `to_math`) and an in-place `<merror>`.").args(&[opt("display", A::Bool), opt("optional", A::Bool)]).safe(),
+    filter(G::Strings, "to_math", "transform.ToMath (+ try)", "LaTeX to MathML and/or HTML with KaTeX 0.16.22 and mhchem, as Hugo renders it (SHOULD; feature `math`). `options`: KaTeX's `output` (`mathml` default, `html`, `htmlAndMathml`), `displayMode`, `leqno`, `fleqn`, `errorColor`, `macros`, `minRuleThickness`, `throwOnError` (default true), `strict` (`error` default, `ignore`, `warn`: warnings). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` it is a warning (id `to_math`) and the result none.").args(&[opt("options", A::Map), opt("optional", A::Bool)]).safe(),
     func(G::Strings, "diagrams_goat", "diagrams.Goat", "`{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`).")
         .args(&[req("text", A::String)]),
     filter(G::Strings, "format_number", "lang.FormatNumber, printf \"%.1f\"", "The number with `precision` decimals in the format of the render's `lang`.")
@@ -518,10 +526,12 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Resources, "postcss", "postCSS, css.PostCSS", "Runs PostCSS.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "tailwind", "css.TailwindCSS", "Runs the Tailwind CLI.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "babel", "babel, js.Babel", "Runs Babel.").args(PIPE_OPTIONS).site(),
-    filter(G::Resources, "js_build", "js.Build", "Bundles with esbuild.").args(PIPE_OPTIONS).site(),
+    filter(G::Resources, "js_build", "js.Build", "Bundles with rolldown.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "execute_as_template", "resources.ExecuteAsTemplate", "Renders the asset as a Tera template with `data`, published at `target`.")
         .args(&[req("target", A::String), opt("data", A::Any)]).site(),
     filter(G::Resources, "post_process", "resources.PostProcess", "Defers the resource's fields until all pages are rendered.").site(),
+    filter(G::Resources, "purge_css", "PurgeCSS (PostCSS)", "A placeholder that each page's published output replaces with the rules of the CSS (a resource or string) that page uses: the tags, classes and ids of its elements, the words of its `<script>` elements. `safelist` names (or `/regex/`) count as used; `greedy` keeps any selector whose text contains the string or matches the `/regex/`; `blocklist` names drop their selectors; `content` resources or strings (scripts that add classes) count their words as used on every page; `variables=true` drops custom properties nothing kept references; `important=false` drops `!important`. Printed compactly for the project's browserslist targets. E.g. `<style>{{ css | purge_css(content=[js]) }}</style>`.")
+        .args(&[opt("safelist", A::Array), opt("greedy", A::Array), opt("blocklist", A::Array), opt("content", A::Array), opt("variables", A::Bool), opt("important", A::Bool)]).site().safe(),
     // ── images ──
     filter(G::Images, "resize", ".Resize", "Resizes to `width` and/or `height` (or a Hugo `spec`).").args(IMAGE_ARGS).site(),
     filter(G::Images, "fill", ".Fill", "Crops and resizes to fill `width`×`height` at `anchor`.").args(IMAGE_ARGS).site(),
@@ -584,6 +594,7 @@ pub enum RenderRole {
     Alias,
     Standalone,
     SitemapIndex,
+    ContentAdapter,
 }
 
 /// One top-level name of a render context.
@@ -608,7 +619,7 @@ const fn cn(name: &'static str, doc: &'static str) -> ContextName {
 }
 
 const SITE: ContextName = cn("site", "`SiteView` of the current language");
-const HUGO: ContextName = cn("hugo", "`HugoView`: version, environment, generator");
+const NEOHUGO: ContextName = cn("neohugo", "`NeohugoView`: version, environment, generator");
 const LANG: ContextName = cn("lang", "the language code of the page");
 const OUTPUT_FORMAT: ContextName = cn("output_format", "`OutputFormatView` being rendered");
 const NH: ContextName = cn(
@@ -625,7 +636,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the full page value of the Full generation"),
             SITE,
-            HUGO,
+            NEOHUGO,
             LANG,
             OUTPUT_FORMAT,
             NH,
@@ -641,7 +652,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
                 "the full page value of the Meta generation: relations yes, content fields no",
             ),
             SITE,
-            HUGO,
+            NEOHUGO,
             LANG,
             cn(
                 "shortcode",
@@ -666,7 +677,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
                 "the page whose source holds the hooked node (differs inside `render_shortcodes`)",
             ),
             SITE,
-            HUGO,
+            NEOHUGO,
             LANG,
             NH,
         ],
@@ -678,7 +689,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the caller's page"),
             SITE,
-            HUGO,
+            NEOHUGO,
             LANG,
             OUTPUT_FORMAT,
             cn(
@@ -692,7 +703,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         role: RenderRole::Component,
         title: "Component",
         names: &[],
-        note: "only its declared arguments; `@page`, `@site`, `@hugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope)",
+        note: "only its declared arguments; `@page`, `@site`, `@neohugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope)",
     },
     ContextSpec {
         role: RenderRole::Deferred,
@@ -700,7 +711,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             DATA,
             SITE,
-            HUGO,
+            NEOHUGO,
             cn("__nh", "the render scope, phase `Deferred`"),
         ],
         note: "",
@@ -708,7 +719,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
     ContextSpec {
         role: RenderRole::ExecuteAsTemplate,
         title: "`execute_as_template`",
-        names: &[DATA, SITE, HUGO, NH],
+        names: &[DATA, SITE, NEOHUGO, NH],
         note: "",
     },
     ContextSpec {
@@ -718,7 +729,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
             cn("permalink", "the target URL"),
             cn("page", "the target page (link value)"),
             SITE,
-            HUGO,
+            NEOHUGO,
         ],
         note: "",
     },
@@ -728,7 +739,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the standalone page; its `pages` is `site.pages`"),
             SITE,
-            HUGO,
+            NEOHUGO,
             LANG,
             NH,
         ],
@@ -740,12 +751,23 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the standalone page"),
             SITE,
-            HUGO,
+            NEOHUGO,
             LANG,
             NH,
             cn("sites", "`[{language, sitemap_abs_url, last_mod}]`"),
         ],
         note: "",
+    },
+    ContextSpec {
+        role: RenderRole::ContentAdapter,
+        title: "Content adapter (`content/**/_content.html`)",
+        names: &[
+            SITE,
+            NEOHUGO,
+            cn("lang", "the language the adapter runs for"),
+            cn("__nh", "the render scope, phase `Adapter`"),
+        ],
+        note: "`site` has no page lists (`home`, `pages`, `regular_pages`, `all_pages`, `sections`, `main_sections`, `taxonomies`, `menus`): the model is not built yet",
     },
 ];
 
@@ -858,7 +880,7 @@ pub const SYNTAX: &[SyntaxRule] = &[
     ),
     syn(
         "`hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator`",
-        "`hugo.version` (`\"0.149.0-DEV\"`), `hugo.environment`, `hugo.is_production`, `hugo.is_development`, `hugo.is_server`, `hugo.generator`",
+        "`neohugo.version` (`\"0.149.0-DEV\"`), `neohugo.environment`, `neohugo.is_production`, `neohugo.is_development`, `neohugo.is_server`, `neohugo.generator`",
     ),
     syn(
         "`.Site.ServerPort`",
@@ -922,7 +944,7 @@ pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
         &[
             "`define`/`block` in children → `{% extends \"baseof.html\" %}` plus `{% block %}`; delete blocks the parent does not define.",
             "Partials → include, component or `partial()`; component calls pass arguments as `name={expr}`, `name=\"literal\"` or the shorthand `name`.",
-            "`try` → `optional=true` on `get_remote` and `to_math`, or a `none` check.",
+            "`try` → `optional=true` on `get_remote` and `to_math` (none on an error), or a `none` check.",
         ],
     ),
     (
@@ -1017,6 +1039,7 @@ fn phase_str(p: PhaseAvail) -> &'static str {
         PhaseAvail::Both => "both",
         PhaseAvail::Content => "content",
         PhaseAvail::Layout => "layout",
+        PhaseAvail::Adapter => "adapter",
     }
 }
 

@@ -5,6 +5,8 @@
 //! - [`capture_overrides`] reads front matter `kind`/`lang`/`path` before a page enters its
 //!   content tree; [`Cascade`] hands front matter down the tree; [`meta_from_params`] decodes
 //!   the reserved keys into [`PageMeta`] and resolves the dates with a [`DateResolver`].
+//! - [`AdapterPage`] and [`meta_from_adapter`] do the same for the maps a content adapter
+//!   passes to `add_page`.
 //! - [`Markup::detect`] picks the content renderer.
 //! - [`PermalinkPatterns`] compiles `[permalinks]`; [`target_paths`] gives a page's output
 //!   file and link in one format, [`links`] its `.RelPermalink` and `.Permalink`.
@@ -13,6 +15,7 @@
 
 #![forbid(unsafe_code)]
 
+mod adapter;
 mod build;
 mod cascade;
 mod dates;
@@ -26,6 +29,7 @@ mod sort;
 mod title;
 mod value;
 
+pub use adapter::{AdapterPage, meta_from_adapter};
 pub use build::{BuildPolicy, ListMode, RenderMode};
 pub use cascade::{Cascade, CascadeRule, CascadeTarget, MatchCtx};
 pub use dates::{DateOutcome, DateResolver, Dates, FileCtx};

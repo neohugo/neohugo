@@ -3,83 +3,20 @@
 //!
 //! The rules (entry syntax, inheritance, synthesised line colours, CSS properties and their
 //! compression) are Chroma's (`style.go`, `colour.go`, `formatters/html/html.go`, v2.19.0,
-//! MIT), rewritten; the style files in `src/styles/` are Chroma's, verbatim.
+//! MIT), rewritten; the styles in `src/styles/` are Chroma's style files, converted to Rust
+//! (crate README, "Lexer and style files").
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
 use crate::token::TokenType;
 
-/// The style files bundled with the crate (Chroma v2.19.0 `styles/*.xml`).
-const STYLE_FILES: &[&str] = &[
-    include_str!("styles/abap.xml"),
-    include_str!("styles/algol.xml"),
-    include_str!("styles/algol_nu.xml"),
-    include_str!("styles/arduino.xml"),
-    include_str!("styles/autumn.xml"),
-    include_str!("styles/average.xml"),
-    include_str!("styles/base16-snazzy.xml"),
-    include_str!("styles/borland.xml"),
-    include_str!("styles/bw.xml"),
-    include_str!("styles/catppuccin-frappe.xml"),
-    include_str!("styles/catppuccin-latte.xml"),
-    include_str!("styles/catppuccin-macchiato.xml"),
-    include_str!("styles/catppuccin-mocha.xml"),
-    include_str!("styles/colorful.xml"),
-    include_str!("styles/doom-one.xml"),
-    include_str!("styles/doom-one2.xml"),
-    include_str!("styles/dracula.xml"),
-    include_str!("styles/emacs.xml"),
-    include_str!("styles/evergarden.xml"),
-    include_str!("styles/friendly.xml"),
-    include_str!("styles/fruity.xml"),
-    include_str!("styles/github-dark.xml"),
-    include_str!("styles/github.xml"),
-    include_str!("styles/gruvbox-light.xml"),
-    include_str!("styles/gruvbox.xml"),
-    include_str!("styles/hr_high_contrast.xml"),
-    include_str!("styles/hrdark.xml"),
-    include_str!("styles/igor.xml"),
-    include_str!("styles/lovelace.xml"),
-    include_str!("styles/manni.xml"),
-    include_str!("styles/modus-operandi.xml"),
-    include_str!("styles/modus-vivendi.xml"),
-    include_str!("styles/monokai.xml"),
-    include_str!("styles/monokailight.xml"),
-    include_str!("styles/murphy.xml"),
-    include_str!("styles/native.xml"),
-    include_str!("styles/nord.xml"),
-    include_str!("styles/nordic.xml"),
-    include_str!("styles/onedark.xml"),
-    include_str!("styles/onesenterprise.xml"),
-    include_str!("styles/paraiso-dark.xml"),
-    include_str!("styles/paraiso-light.xml"),
-    include_str!("styles/pastie.xml"),
-    include_str!("styles/perldoc.xml"),
-    include_str!("styles/pygments.xml"),
-    include_str!("styles/rainbow_dash.xml"),
-    include_str!("styles/rose-pine-dawn.xml"),
-    include_str!("styles/rose-pine-moon.xml"),
-    include_str!("styles/rose-pine.xml"),
-    include_str!("styles/rpgle.xml"),
-    include_str!("styles/rrt.xml"),
-    include_str!("styles/solarized-dark.xml"),
-    include_str!("styles/solarized-dark256.xml"),
-    include_str!("styles/solarized-light.xml"),
-    include_str!("styles/swapoff.xml"),
-    include_str!("styles/tango.xml"),
-    include_str!("styles/tokyonight-day.xml"),
-    include_str!("styles/tokyonight-moon.xml"),
-    include_str!("styles/tokyonight-night.xml"),
-    include_str!("styles/tokyonight-storm.xml"),
-    include_str!("styles/trac.xml"),
-    include_str!("styles/vim.xml"),
-    include_str!("styles/vs.xml"),
-    include_str!("styles/vulcan.xml"),
-    include_str!("styles/witchhazel.xml"),
-    include_str!("styles/xcode-dark.xml"),
-    include_str!("styles/xcode.xml"),
-];
+/// A style (`src/styles/`, Chroma's style files converted): its name and its entries in Chroma's
+/// syntax (`bold #rrggbb bg:#rrggbb`).
+pub(crate) struct StyleDef {
+    pub name: &'static str,
+    pub entries: &'static [(TokenType, &'static str)],
+}
 
 /// The style Chroma falls back to for an unknown name.
 pub const FALLBACK_STYLE: &str = "swapoff";
@@ -305,20 +242,14 @@ pub struct Style {
 }
 
 impl Style {
-    /// Parses a Chroma style file (`<style name="…"><entry type="…" style="…"/>…</style>`).
-    fn parse_xml(xml: &str) -> Result<Self, String> {
-        let name = attr(xml.split_once("<style").ok_or("no <style>")?.1, "name")
-            .ok_or("style without a name")?;
+    /// A style from its definition.
+    fn from_def(def: &StyleDef) -> Result<Self, String> {
         let mut entries = BTreeMap::new();
-        for element in xml.split("<entry").skip(1) {
-            let element = element.split_once('>').map_or(element, |(e, _)| e);
-            let ty = attr(element, "type").ok_or("entry without a type")?;
-            let ty = TokenType::from_name(ty).ok_or_else(|| format!("unknown token type {ty}"))?;
-            let entry = StyleEntry::parse(attr(element, "style").unwrap_or(""))?;
-            entries.insert(ty, entry);
+        for (ty, style) in def.entries {
+            entries.insert(*ty, StyleEntry::parse(style)?);
         }
         Ok(Self {
-            name: name.to_owned(),
+            name: def.name.to_owned(),
             entries,
         })
     }
@@ -361,36 +292,21 @@ impl Style {
     }
 }
 
-/// The value of attribute `name="…"` in an XML start tag.
-fn attr<'a>(tag: &'a str, name: &str) -> Option<&'a str> {
-    let mut rest = tag;
-    loop {
-        let at = rest.find(name)?;
-        let before = rest[..at].chars().next_back();
-        rest = &rest[at + name.len()..];
-        if before.is_some_and(char::is_whitespace)
-            && let Some(v) = rest.strip_prefix("=\"")
-        {
-            return v.split_once('"').map(|(v, _)| v);
-        }
-    }
-}
-
 /// Every bundled style, by name.
 #[derive(Debug)]
 pub struct Styles(BTreeMap<String, Style>);
 
 impl Styles {
-    /// Parses the bundled style files.
+    /// The bundled styles.
     ///
     /// # Panics
-    /// When a bundled file is malformed (checked by the crate's tests).
+    /// When a bundled entry is malformed (checked by the crate's tests).
     #[must_use]
     pub fn bundled() -> Self {
-        let styles = STYLE_FILES
+        let styles = crate::styles::STYLES
             .iter()
-            .map(|xml| {
-                let s = Style::parse_xml(xml).unwrap_or_else(|e| panic!("bundled style: {e}"));
+            .map(|def| {
+                let s = Style::from_def(def).unwrap_or_else(|e| panic!("bundled style: {e}"));
                 (s.name.clone(), s)
             })
             .collect();
@@ -572,7 +488,8 @@ mod tests {
     #[test]
     fn every_bundled_style_parses() {
         let styles = Styles::bundled();
-        assert_eq!(styles.names().count(), STYLE_FILES.len());
+        assert_eq!(styles.names().count(), crate::styles::STYLES.len());
+        assert_eq!(crate::styles::STYLES.len(), 67);
         assert!(styles.get("solarized-dark").is_some());
         assert_eq!(styles.fallback().name, FALLBACK_STYLE);
     }

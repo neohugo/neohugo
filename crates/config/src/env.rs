@@ -1,6 +1,7 @@
-//! `HUGO_*` environment overrides: `HUGO_TITLE=x` sets `title`, `HUGO_PARAMS_API_KEY=k` sets
-//! `params.api.key`. The character after `HUGO` is the key delimiter, so
-//! `HUGOxPARAMSxAPI_KEY=k` sets `params.api_key`.
+//! `NEOHUGO_*` environment overrides: `NEOHUGO_TITLE=x` sets `title`,
+//! `NEOHUGO_PARAMS_API_KEY=k` sets `params.api.key`. The character after `NEOHUGO` is the key
+//! delimiter, so `NEOHUGOxPARAMSxAPI_KEY=k` sets `params.api_key`. Hugo's `HUGO_*` variables are
+//! not read, and neohugo's own settings ([`RESERVED`]) are not overrides.
 //!
 //! Each value is parsed into the type of the value it overrides: a boolean, a number, a list
 //! (`["a", "b"]`) or a table (JSON or TOML); when it does not parse as that type it stays a
@@ -12,13 +13,39 @@ use neohugo_base::{Map, Value};
 
 use crate::tree;
 
-/// Applies every `HUGO*` variable of `env` to `root` (keys lower-case).
+/// The prefix of the override variables (and of every variable neohugo reads).
+pub const PREFIX: &str = "NEOHUGO";
+
+/// The variable that chooses the build environment when `--environment` is not given.
+pub const ENVIRONMENT: &str = "NEOHUGO_ENVIRONMENT";
+
+/// neohugo's own settings and the build and test harness's variables: not configuration
+/// overrides, although they carry the prefix.
+pub const RESERVED: &[&str] = &[
+    "NEOHUGO_BABEL_BIN",
+    "NEOHUGO_BINARY",
+    "NEOHUGO_BUILD_COMMIT",
+    "NEOHUGO_BUILD_DATE",
+    "NEOHUGO_COMPARE_WORK",
+    "NEOHUGO_NODE_MODULES",
+    "NEOHUGO_POSTCSS_BIN",
+    "NEOHUGO_REPO_DIR",
+    "NEOHUGO_SITES",
+    "NEOHUGO_STRUCTURE_OUT",
+    "NEOHUGO_TAILWINDCSS_BIN",
+    "NEOHUGO_TARGET_LIMIT_MB",
+    "NEOHUGO_TASK",
+    "NEOHUGO_TIMINGS",
+    "NEOHUGO_VENDOR_INFO",
+];
+
+/// Applies every `NEOHUGO*` override variable of `env` to `root` (keys lower-case).
 pub fn apply(root: &mut Map, env: &[(String, String)]) {
     let mut vars: Vec<(Vec<String>, &str)> = env
         .iter()
         .filter_map(|(k, v)| Some((key_path(k)?, v.as_str())))
         .collect();
-    // Shorter paths first, so `HUGO_PARAMS` is merged before `HUGO_PARAMS_X` refines it.
+    // Shorter paths first, so `NEOHUGO_PARAMS` is merged before `NEOHUGO_PARAMS_X` refines it.
     vars.sort_by(|a, b| a.0.len().cmp(&b.0.len()).then_with(|| a.0.cmp(&b.0)));
     for (path, raw) in vars {
         let segs: Vec<&str> = path.iter().map(String::as_str).collect();
@@ -39,7 +66,10 @@ pub fn apply(root: &mut Map, env: &[(String, String)]) {
 /// The lower-case key path of an override variable, or `None` when `name` is not one.
 #[must_use]
 pub fn key_path(name: &str) -> Option<Vec<String>> {
-    let rest = name.strip_prefix("HUGO")?;
+    if RESERVED.contains(&name) {
+        return None;
+    }
+    let rest = name.strip_prefix(PREFIX)?;
     let mut chars = rest.chars();
     let delim = chars.next()?;
     let key = chars.as_str();

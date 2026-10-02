@@ -25,6 +25,7 @@ either.workspace = true
 fastrand.workspace = true
 getrandom.workspace = true
 hashbrown.workspace = true
+hashbrown-0-17.workspace = true
 icu_locale_core.workspace = true
 icu_provider.workspace = true
 indexmap.workspace = true
@@ -40,6 +41,7 @@ regex-automata.workspace = true
 regex-syntax.workspace = true
 serde.workspace = true
 serde_core.workspace = true
+serde_json = { workspace = true, features = ["arbitrary_precision", "preserve_order"] }
 simd-adler32.workspace = true
 smallvec.workspace = true
 stable_deref_trait.workspace = true

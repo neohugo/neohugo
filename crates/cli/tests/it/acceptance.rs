@@ -3,8 +3,7 @@
 //! `structdiff.json` (REWRITE_PLAN.md §7.2, §7.3). The Go binaries are not needed.
 //!
 //! The sites' asset pipelines need the node tools (`tools/neohugo/node.sh`,
-//! `NEOHUGO_NODE_MODULES`) and esbuild (`NEOHUGO_ESBUILD_BINARY`, or `tools/esbuild/bin/esbuild`
-//! of the main checkout); without them, or without `python3`, `bash` and `node`, [`compare`]
+//! `NEOHUGO_NODE_MODULES`); without them, or without `python3`, `bash` and `node`, [`compare`]
 //! prints `SKIPPED` and returns `None`.
 
 use std::path::{Path, PathBuf};
@@ -20,22 +19,9 @@ fn runs(program: &str) -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
-/// The main checkout of the repository (a worktree's shared git directory's parent), where
-/// `tools/esbuild/install.sh` puts its binary.
-fn main_checkout(repo: &Path) -> Option<PathBuf> {
-    let out = Command::new("git")
-        .arg("-C")
-        .arg(repo)
-        .args(["rev-parse", "--path-format=absolute", "--git-common-dir"])
-        .output()
-        .ok()?;
-    let dir = String::from_utf8(out.stdout).ok()?;
-    Path::new(dir.trim()).parent().map(Path::to_path_buf)
-}
-
-/// The node modules (with every one of `bins` in `.bin`) and the esbuild binary, or `None`
-/// (printing `SKIPPED <gate>`).
-fn tools(gate: &str, repo: &Path, bins: &[&str]) -> Option<(PathBuf, PathBuf)> {
+/// The node modules (with every one of `bins` in `.bin`), or `None` (printing
+/// `SKIPPED <gate>`).
+fn tools(gate: &str, repo: &Path, bins: &[&str]) -> Option<PathBuf> {
     let skip = |why: String| {
         eprintln!("SKIPPED {gate}: {why}");
         None
@@ -64,17 +50,7 @@ fn tools(gate: &str, repo: &Path, bins: &[&str]) -> Option<(PathBuf, PathBuf)> {
             node_modules.display()
         ));
     }
-    let esbuild = std::env::var_os("NEOHUGO_ESBUILD_BINARY")
-        .map(PathBuf::from)
-        .or_else(|| main_checkout(repo).map(|m| m.join("tools/esbuild/bin/esbuild")))
-        .unwrap_or_default();
-    if !esbuild.is_file() {
-        return skip(format!(
-            "no esbuild binary at {} (set NEOHUGO_ESBUILD_BINARY or run tools/neohugo/node.sh && tools/esbuild/install.sh)",
-            esbuild.display()
-        ));
-    }
-    Some((node_modules, esbuild))
+    Some(node_modules)
 }
 
 /// Runs `compare.sh <label> --ref golden` (ratchet against `testdata/baselines/<label>.json`)
@@ -84,7 +60,7 @@ fn tools(gate: &str, repo: &Path, bins: &[&str]) -> Option<(PathBuf, PathBuf)> {
 /// When compare.sh fails (an unlisted difference, or a build error), or its output is missing.
 pub fn compare(gate: &str, label: &str, node_bins: &[&str]) -> Option<serde_json::Value> {
     let repo = repo_dir().canonicalize().expect("repository root");
-    let (node_modules, esbuild) = tools(gate, &repo, node_bins)?;
+    let node_modules = tools(gate, &repo, node_bins)?;
     let work = tempfile::tempdir().expect("tempdir");
     let out = Command::new("bash")
         .arg(repo.join("tools/neohugo/compare.sh"))
@@ -92,7 +68,6 @@ pub fn compare(gate: &str, label: &str, node_bins: &[&str]) -> Option<serde_json
         .env("NEOHUGO_BINARY", env!("CARGO_BIN_EXE_neohugo"))
         .env("NEOHUGO_COMPARE_WORK", work.path())
         .env("NEOHUGO_NODE_MODULES", &node_modules)
-        .env("NEOHUGO_ESBUILD_BINARY", &esbuild)
         .env_remove("NEOHUGO_TASK")
         .env_remove("KEEP")
         .output()
@@ -114,7 +89,12 @@ pub fn compare(gate: &str, label: &str, node_bins: &[&str]) -> Option<serde_json
 
 /// L1 of both passes: `files` matched, none missing or extra.
 pub fn assert_l1(d: &serde_json::Value, files: u64) {
-    for pass in ["minified", "unminified"] {
+    assert_l1_passes(d, &["minified", "unminified"], files);
+}
+
+/// L1 of each of `passes`: `files` matched, none missing or extra.
+pub fn assert_l1_passes(d: &serde_json::Value, passes: &[&str], files: u64) {
+    for pass in passes {
         let p = &d["passes"][pass];
         assert_eq!(
             (

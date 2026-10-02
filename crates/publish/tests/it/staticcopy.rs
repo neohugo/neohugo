@@ -11,7 +11,7 @@ use std::path::Path;
 use neohugo_config::{LoadOptions, load};
 use neohugo_publish::{StaticSyncOptions, sync_static_dir};
 use neohugo_testkit::fixture::oracle;
-use neohugo_vfs::Vfs;
+use neohugo_vfs::{NFC_NAMES, Vfs, entry_name};
 use serde::Deserialize;
 
 use crate::support::Tally;
@@ -85,8 +85,9 @@ fn set_mtime(p: &Path, t: i64) {
 fn build(site: &Path, entries: &[Entry], base_time: i64) {
     fs::create_dir_all(site).unwrap();
     let mut times: Vec<(std::path::PathBuf, i64)> = Vec::new();
+    // Go's `hugo.*` configuration files are neohugo's `neohugo.*`.
     for e in entries {
-        let p = site.join(&e.path);
+        let p = site.join(neohugo_testkit::fixture::neohugo_path(&e.path));
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).unwrap();
         }
@@ -114,7 +115,7 @@ fn build(site: &Path, entries: &[Entry], base_time: i64) {
     // Directories (deepest first) after their content.
     let mut dirs: BTreeSet<std::path::PathBuf> = BTreeSet::new();
     for e in entries {
-        let mut p = site.join(&e.path);
+        let mut p = site.join(neohugo_testkit::fixture::neohugo_path(&e.path));
         while let Some(parent) = p.parent() {
             if parent == site {
                 break;
@@ -245,9 +246,14 @@ fn staticcopy_oracle() {
             .into_iter()
             .map(|n| (n.path.clone(), n))
             .collect();
-        let want: BTreeMap<&str, &Node> = want_tree.iter().map(|n| (n.path.as_str(), n)).collect();
+        // Go recorded the oracle on Linux; on macOS the static files are published under the
+        // NFC form of their names, as Hugo publishes them there.
+        let want: BTreeMap<String, &Node> = want_tree
+            .iter()
+            .map(|n| (entry_name(&n.path, NFC_NAMES).into_owned(), n))
+            .collect();
         for (path, w) in &want {
-            match got.get(*path) {
+            match got.get(path) {
                 Some(g) if same(w, g) => t.pass(),
                 None if w.kind == "dir"
                     && !want.keys().any(|p| p.starts_with(&format!("{path}/"))) =>
@@ -258,7 +264,7 @@ fn staticcopy_oracle() {
             }
         }
         for path in got.keys() {
-            if !want.contains_key(path.as_str()) {
+            if !want.contains_key(path) {
                 t.fail(|| format!("{} {path}: not in the oracle", case.name));
             }
         }

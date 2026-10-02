@@ -67,6 +67,13 @@ pub enum RenderError {
         #[source]
         source: Box<tera::Error>,
     },
+    /// A content adapter (`_content.html`) failed.
+    #[error("content adapter {path}: {source}")]
+    Adapter {
+        path: String,
+        #[source]
+        source: Box<tera::Error>,
+    },
     /// A job for a format the page is not rendered in.
     #[error("page {page} has no output in format {format}")]
     NoOutput { page: PageId, format: FormatId },

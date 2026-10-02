@@ -26,13 +26,13 @@ pub(crate) fn options(a: &ServerArgs) -> anyhow::Result<Result<ServeOptions, Str
         ));
     }
     let mut request = build::request(&a.build)?;
-    // The server's environment is `development` unless the flag or HUGO_ENV* say otherwise.
+    // The server's environment is `development` unless the flag or NEOHUGO_ENVIRONMENT say
+    // otherwise.
     request.cli.environment = request
         .cli
         .environment
         .clone()
-        .or_else(|| env_var("HUGO_ENVIRONMENT"))
-        .or_else(|| env_var("HUGO_ENV"))
+        .or_else(|| env_var(neohugo_config::env::ENVIRONMENT))
         .or_else(|| Some("development".to_owned()));
     Ok(Ok(ServeOptions {
         build: request,

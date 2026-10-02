@@ -135,3 +135,23 @@ fn inlines_after_link_reference_definitions() {
         ]
     );
 }
+
+/// Cells of a table goldmark makes of lazy continuation lines are parsed apart from the page;
+/// their inlines keep their lines and columns, so spans and positions still apply.
+#[test]
+fn table_cells_keep_positions() {
+    let rows = "  | [c](b) | ![i](p.png) |\n";
+    let md = format!("1. Intro [a](x):\n  | h | [t](y) |\n  |---|---|\n{rows}\nAfter [z](w)\n");
+    let got = pages(&md, vec![(span(&md, rows), P7)]);
+    assert_eq!(
+        got,
+        vec![
+            ("link", "x".to_owned(), PAGE, 1),
+            ("link", "y".to_owned(), PAGE, 2),
+            ("link", "b".to_owned(), P7, 4),
+            ("image", "p.png".to_owned(), P7, 4),
+            ("table", String::new(), PAGE, 2),
+            ("link", "w".to_owned(), PAGE, 6),
+        ]
+    );
+}

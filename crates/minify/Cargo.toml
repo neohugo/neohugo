@@ -24,17 +24,20 @@ neohugo-base.workspace = true
 neohugo-config.workspace = true
 minify-html.workspace = true
 lightningcss.workspace = true
+browserslist-rs.workspace = true
 oxc_allocator.workspace = true
 oxc_codegen.workspace = true
 oxc_minifier.workspace = true
 oxc_parser.workspace = true
 oxc_span.workspace = true
 quick-xml.workspace = true
+regex.workspace = true
+serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
+tempfile.workspace = true
 neohugo-testkit.workspace = true
 serde.workspace = true
-serde_json.workspace = true
 html5gum.workspace = true
 roxmltree.workspace = true

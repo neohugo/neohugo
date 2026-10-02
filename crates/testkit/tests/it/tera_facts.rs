@@ -3,13 +3,14 @@
 //! Each test names the tera-2.4.0 source that implements the behaviour; the same facts are
 //! recorded in `docs/rust-port/template-api.md` ("Tera facts").
 
-use tera::{Context, Tera, Value};
+use neohugo_testkit::tera_value;
+use tera::{Context, Tera};
 
 fn ctx() -> Context {
     let mut c = Context::new();
     c.insert(
         "page",
-        &Value::from_serializable(&serde_json::json!({
+        &tera_value(&serde_json::json!({
             "title": "T",
             "params": { "a": { "b": 1 }, "flag": false },
             "parent": null,
@@ -17,7 +18,7 @@ fn ctx() -> Context {
     );
     c.insert(
         "__nh",
-        &Value::from_serializable(&serde_json::json!({ "page": 7, "depth": 0 })),
+        &tera_value(&serde_json::json!({ "page": 7, "depth": 0 })),
     );
     c
 }

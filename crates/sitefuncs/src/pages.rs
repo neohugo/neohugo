@@ -4,14 +4,14 @@ use std::sync::Arc;
 
 use neohugo_base::PageId;
 use neohugo_nav::{MenuEntry, Menus, RelatedQuery};
-use neohugo_view::{PageStores, ViewCache};
+use neohugo_view::{PageStores, Phase, ViewCache};
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::call::{
     Registrar, SiteFilter, SiteFunction, chain, field, generation, lang_by_key, list, msg, page_id,
     page_ids, page_scope, scope, text, to_data,
 };
-use crate::{Handles, RelatedCache};
+use crate::{ContentAdapters, Handles, RelatedCache};
 
 pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
     r.function(
@@ -50,6 +50,7 @@ pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
         StoreSet {
             views: Arc::clone(&h.views),
             stores: Arc::clone(&h.stores),
+            adapters: Arc::clone(&h.adapters),
         },
     );
     r.function(
@@ -57,6 +58,7 @@ pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
         StoreGet {
             views: Arc::clone(&h.views),
             stores: Arc::clone(&h.stores),
+            adapters: Arc::clone(&h.adapters),
         },
     );
     r.function(
@@ -216,31 +218,54 @@ impl SiteFunction for Param {
     }
 }
 
-/// `store_set(key=, value=, page=?)`: prints nothing.
+/// The content adapter run whose store a `store_*` call without `page=` uses (Hugo's `.Store`
+/// of a `_content.gotmpl`).
+fn adapter_store_run(st: &State, kw: &Kwargs) -> TeraResult<Option<u32>> {
+    if kw.get::<Value>("page")?.is_some() {
+        return Ok(None);
+    }
+    Ok(scope(st)?.and_then(|s| (s.phase == Phase::Adapter).then_some(s.adapter).flatten()))
+}
+
+/// `store_set(key=, value=, page=?)`: prints nothing. In a content adapter without `page=`,
+/// the adapter's store.
 struct StoreSet {
     views: Arc<ViewCache>,
     stores: Arc<PageStores>,
+    adapters: Arc<ContentAdapters>,
 }
 
 impl SiteFunction for StoreSet {
     fn call(&self, kw: &Kwargs, st: &State) -> TeraResult<Value> {
         let key = kw.must_get::<&str>("key")?;
         let value = kw.must_get::<Value>("value")?;
+        if let Some(run) = adapter_store_run(st, kw)? {
+            self.adapters.store_set(run, key, value)?;
+            return Ok(Value::from(""));
+        }
         let s = page_scope(&self.views, st, kw, "store_set")?;
         self.stores.set(s.txn, s.page, key, value);
         Ok(Value::from(""))
     }
 }
 
-/// `store_get(key=, page=?)`: the stored value, or none.
+/// `store_get(key=, page=?)`: the stored value, or none. In a content adapter without
+/// `page=`, the adapter's store.
 struct StoreGet {
     views: Arc<ViewCache>,
     stores: Arc<PageStores>,
+    adapters: Arc<ContentAdapters>,
 }
 
 impl SiteFunction for StoreGet {
     fn call(&self, kw: &Kwargs, st: &State) -> TeraResult<Value> {
         let key = kw.must_get::<&str>("key")?;
+        if let Some(run) = adapter_store_run(st, kw)? {
+            return Ok(self
+                .adapters
+                .store_get(run, key)?
+                .unwrap_or_else(Value::none));
+        }
         let s = page_scope(&self.views, st, kw, "store_get")?;
         Ok(self
             .stores

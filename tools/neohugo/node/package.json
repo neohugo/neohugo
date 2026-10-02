@@ -2,7 +2,7 @@
   "name": "neohugo-node-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Node modules the builds of the target sites and the tests need, esbuild's binary included (tools/neohugo/node.sh, tools/esbuild/install.sh; docs/rust-port/REWRITE_PLAN.md §7.2). Versions follow docs/package.json; esbuild is the version the Go build linked (go.mod at 44529028).",
+  "description": "Node modules the builds of the target sites and the tests need (tools/neohugo/node.sh; docs/rust-port/REWRITE_PLAN.md §7.2). Versions follow docs/package.json.",
   "license": "Apache-2.0",
   "dependencies": {
     "@alpinejs/focus": "3.14.9",
@@ -13,7 +13,6 @@
     "@tailwindcss/cli": "4.1.18",
     "@tailwindcss/typography": "0.5.20",
     "alpinejs": "3.14.9",
-    "esbuild": "0.25.6",
     "postcss": "8.5.28",
     "postcss-cli": "11.0.1",
     "tailwindcss": "4.1.18"

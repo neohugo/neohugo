@@ -22,7 +22,7 @@
 //!   through `ureq`, and an importer of caches Hugo wrote (see [`remote`]).
 //!
 //! - [`pipes`]: the transforms beyond `fingerprint` (`minify`, `to_css` with grass, PostCSS,
-//!   Tailwind and Babel as external tools, `js_build` with esbuild), computed lazily;
+//!   Tailwind and Babel as external tools, `js_build` with rolldown), computed lazily;
 //!   `post_process` placeholders; `execute_as_template` (the template engine is a seam).
 
 #![forbid(unsafe_code)]
@@ -38,6 +38,6 @@ pub use pipes::{PipeError, PostProcessId, PpField, TemplateExecutor, Transform, 
 pub use publish::PublishStats;
 pub use remote::{RemoteConfig, RemoteError, RemoteOptions, cache_key, hugo_keys};
 pub use store::{
-    Body, BundleResource, CallSite, HashAlgo, LangTarget, Origin, PublishPolicy, QrOptions,
-    Resource, ResourceError, ResourceKind, ResourceStore, StoreConfig, qr_target,
+    AdapterResource, Body, BundleResource, CallSite, HashAlgo, LangTarget, Origin, PublishPolicy,
+    QrOptions, Resource, ResourceError, ResourceKind, ResourceStore, StoreConfig, qr_target,
 };

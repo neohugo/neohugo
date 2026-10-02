@@ -1,4 +1,4 @@
-//! The T24 build-oracle sites (`hugolib/assemble/*`): each site's `hugo.toml` loads, its
+//! The T24 build-oracle sites (`hugolib/assemble/*`): each site's `neohugo.toml` loads, its
 //! languages come in Go's order, and the formats of its enabled content kinds are Go's `.Site`
 //! render formats (in order), less the formats that only pages' front matter `outputs` add.
 //! A summary of each loaded configuration is kept as an insta snapshot.
@@ -32,7 +32,7 @@ fn load_toml(toml: &str) -> (tempfile::TempDir, Config) {
     let tmp = tempfile::tempdir().expect("temp dir");
     let dir = tmp.path().join("site");
     std::fs::create_dir_all(&dir).expect("dir");
-    std::fs::write(dir.join("hugo.toml"), toml).expect("write");
+    std::fs::write(dir.join("neohugo.toml"), toml).expect("write");
     let options = LoadOptions {
         source: dir,
         env: vec![(
@@ -62,6 +62,13 @@ fn render_formats(c: &Config, s: &neohugo_config::SiteConfig) -> Vec<String> {
 }
 
 /// A summary of the typed configuration for the snapshot (no paths).
+/// [`summary`] as snapshots record it: numbers as numbers, keys sorted (serializing a
+/// `serde_json::Value` into YAML does neither once rolldown turns on serde_json's
+/// `arbitrary_precision` and `preserve_order`).
+pub fn snapshot(c: &Config) -> neohugo_base::Value {
+    neohugo_base::Value::from_json(summary(c))
+}
+
 pub fn summary(c: &Config) -> J {
     json!({
         "environment": c.environment,
@@ -128,7 +135,7 @@ fn t24_sites() {
             }
         }
         neohugo_testkit::snapshot::settings().bind(|| {
-            insta::assert_yaml_snapshot!(format!("t24-{name}"), summary(&c));
+            insta::assert_yaml_snapshot!(format!("t24-{name}"), snapshot(&c));
         });
     }
     eprintln!(

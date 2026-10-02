@@ -12,6 +12,9 @@ pub fn render(src: &ExpandedMarkdown, o: &MarkdownOptions, h: &dyn Hooks, hl: Op
 pub fn fragments(src: &ExpandedMarkdown, o: &MarkdownOptions) -> Result<Fragments, MarkupError>;  // parse only, no hooks
 pub struct ExpandedMarkdown<'a> { text, page: PageId, contexts: &SourceContexts, file: &Arc<Path> }
 pub struct SourceContexts(pub Vec<(Range<usize>, PageId)>);       // innermost span → HookEnv::inner_page
+pub fn wrap_context(md) -> (String, Range<usize>);  // hugocontext.Wrap: CONTEXT_OPEN line, md, CONTEXT_CLOSE line
+pub fn strip_context_markers(s) -> Cow<str>;        // the marker lines removed (includes outside Markdown)
+pub const CONTEXT_OPEN: &str, CONTEXT_CLOSE: &str;  // "{{NHCTXO}}" / "{{NHCTXC}}"
 pub trait Hooks: Sync { link, image, heading, code_block, blockquote, table, passthrough }  // all default to HookOut::Default
 pub struct HookEnv { page, inner_page, ordinal /* per kind, call order */, position }
 pub struct HighlightOptions { options, attributes, ordinal /* the fence's code block ordinal */ }
@@ -32,15 +35,45 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
 1. **Prepare** (only when needed): a first comrak parse finds code and raw HTML; outside them
    block-attribute lines are blanked (same length, positions unchanged) and passthrough spans
    replaced by `NHPT<n>X` tokens; an edit list maps parsed offsets back to the expanded source.
-2. **Parse** with comrak (`table`, `strikethrough`, `tasklist`, `description_lists`,
-   `footnotes`, `shortcodes` per options; `escaped_char_spans`; everything Hugo owns is off).
-3. **Passes** (`src/passes`): the link-reference-definition sourcepos fix; HTML comments dropped
-   under `RawHtml::Omit`; passthrough nodes; `<…>` autolinks marked; block attributes
+2. **Parse** with comrak (`strikethrough`, `tasklist`, `description_lists`, `footnotes`,
+   `shortcodes` per options; `escaped_char_spans`; everything Hugo owns is off, **tables too**).
+3. **Passes** (`src/passes`): the link-reference-definition sourcepos fix (paragraphs and
+   setext headings); **goldmark's pipe tables** (`tables.rs`, a port of goldmark v1.7.12
+   `extension/table.go`: a paragraph transformer — a delimiter line among a paragraph's lines,
+   lazy continuation lines included, makes the lines from the one before it a table; a short
+   header is padded, a long one means no table and stops the search; body rows are truncated
+   or padded (padding without alignment); the lines before the header stay the paragraph,
+   with their own inlines cut at the header row (parsed again on their own when an inline
+   runs into it; hard line breaks kept, the last line's break dropped); a task item's `[ ]` is header text when the table starts on the item's first
+   line; goldmark's escaped pipes (unescaped in code spans only: an autolink keeps the
+   backslash); a list that only a blank line before such a table made loose is tight again
+   (the table node has no blank line before it). goldmark's **`RequireParagraph` retry**
+   (`tables/retry.rs`, `parser.go` `openBlocks`): a setext underline or the `:` of a list's
+   first definition closes and transforms the paragraph before it; when a table takes all of
+   it, the line is parsed again as a block that cannot continue a paragraph (`---` a thematic
+   break, `-` an empty list item, `===` and `: x` paragraphs), otherwise the heading or term
+   keeps the lines before the header and follows the table. The cells' inlines come from
+   comrak: the tables are rebuilt as canonical GFM tables, one cell per goldmark cell, in a
+   synthetic document followed by the page with its delimiter rows defused (for its reference
+   and footnote definitions, even one right before a table), and grafted with positions
+   mapped back; a table whose synthetic parse does not have the expected shape keeps
+   its paragraph, and only it); **an empty
+   text block for each paragraph of link reference definitions** (goldmark's
+   `linkReferenceParagraphTransformer` keeps one; comrak drops the paragraph; footnote
+   definitions leave none); HTML comments
+   become empty nodes under `RawHtml::Omit` (Hugo writes nothing, but they stay siblings);
+   passthrough nodes; `<…>` autolinks marked; block attributes
    (applied to the block the line follows, goldmark's rules: no blank line before, never a
    fenced code block, container depth from the `>` markers); heading attributes (Hugo's
    grammar, `src/attributes.rs`); goldmark definition lists (one term per line, per-`<dd>`
-   tightness, only the first paragraph unwrapped, lists split at link reference
-   definitions); block images; padded table cells; **linkify and typographer in one
+   tightness, only the first paragraph child unwrapped, lists split at link reference
+   definitions); **context markers** (`contexts.rs`, Hugo's `hugocontext`: the
+   `wrap_context` lines around an included page's text are parsed as ordinary lines, so they
+   shape the blocks — a marker paragraph ends a definition list, a closing marker continues a
+   paragraph lazily — then each marker becomes an empty node that takes the newline after it,
+   a paragraph holding only a marker is replaced by it and the soft line break before a marker
+   in a paragraph goes, except in goldmark's text blocks, which keep it: `…text\n</dd>`); block
+   images; **linkify and typographer in one
    left-to-right scan** (goldmark interleaves them: a converted quote lets a link start, a
    link swallows the quote after it); heading and definition-term ids (Hugo's `TextPlain`
    with its first-child quirk, raw source text for entities/escapes, `base::anchor`
@@ -60,29 +93,36 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
 | heading ids, docs corpus (convert oracle, all 6 configurations) | 1654/1654 per configuration; pages 895/895…897/897 |
 | definition-term ids (`autoDefinitionTermID`, cfgs ascii, noattr) | 842/842 |
 | heading ids, seeksnack | spec §7 examples (Thai, first-child quirk, entities, dedupe, setext) 16/16; the adversarial seeksnack headings of both oracles 100%; the seeksnack corpus has no Hugo-id oracle (its `hugo-autoid` instance uses goldmark's own ids from raw lines) |
-| hook invocations (hooks oracle, 1357 conversions) | 1350/1357 identical sequences (≥ 99.4%) |
-| hook fields, after typographer normalisation | 57850/57929 (99.86%); `PageInner` 11231/11271 |
+| hook invocations (hooks oracle, 1357 conversions) | 1352/1357 identical sequences (≥ 99.6%) |
+| hook fields, after typographer normalisation | 57975/58019 (99.92%; `IsBlock` 358/362, `TBody` 220/230: the dropped marker rows); `PageInner` 11249/11289 |
 | TOC (tree, identifiers, 5 × `ToHTML`), all configurations | 995/995 each; `fragments()` equals `render().fragments` on every document |
 | seeksnack bodies, normalised HTML | 251/251 for goldmark `unsafe`, `all`, `hugo`, `hugo-autoid`; 240/251 for plain `default` (see deviations) |
-| docs pages, normalised HTML | default 870/875, seeksnack 871/877, ascii 871/877, blackfriday 872/875, noattr 870/875, cjk 540/877 |
+| docs pages, normalised HTML | default 873/875, seeksnack 875/877, ascii 875/877, blackfriday 875/875, noattr 873/875, cjk 540/877 (the 2: typographer, below) |
+| goldmark structure (`acceptance::compat`): tables (lazy lines, padding, rows, escaped pipes, tightness, task items, lines before a header, a setext underline or definition after a table, several tables), context markers, reference-definition text blocks, comments | 53/53 documents of `tests/data/compat/compat.json` byte-equal to Hugo's goldmark converter at 44529028 (the marker row of one dropped); the expectations are written by `tests/data/compat/mdcompat.go.txt` (recipe in its header) |
 | `CodeFences::Plain` | testsite fence byte-equal; first 20 docs pages with fences 20/20; all 2036 docs `<pre>` blocks byte-equal |
 | passes | deflist ids, alert title/sign, block attributes, passthrough, emoji, linkify: `acceptance::passes` |
 | context spans | `acceptance::context`: includes, nesting (innermost wins) and inlines after link reference definitions |
 
 ### Accepted deviations
 
-- **Hugo's textual context markers** (`{{__hugo_ctx pid=N}}`) are not interpreted; spans come
-  from `SourceContexts`. Hugo keeps the last context for what follows an include (the
-  oracle's `Outro` link and blocks whose content contains the closing marker); spans do not
-  leak. These account for the 40 `PageInner` and most `IsBlock`/`TBody` field differences.
+- **Hugo's context markers** shape the blocks (see the pipeline) but do not carry the page:
+  spans come from `SourceContexts`. Hugo keeps the last context for what follows an include
+  (the oracle's `Outro` link and blocks whose content contains the closing marker); spans do
+  not leak. These account for the 40 `PageInner` differences.
+- **The closing context marker after an include that ends with a table** is a row of empty
+  cells in Hugo (goldmark's table transformer takes the marker line as a body row; the docs'
+  `functions/resources/getmatch`, `match`, `methods/page/resources`); the row is dropped here.
+  These are the 10 `TBody` differences of the hooks oracle.
+- **A context marker inside code** is removed (Hugo would print `{{__hugo_ctx…}}` there), and
+  a URL right before an include ends there (Hugo's linkify takes `{{__hugo_ctx` into it).
+  Like Hugo's, the markers start with `{` and end with `}`, so emphasis next to an include
+  flanks the same way.
+- **Tables**: the container prefixes of a task item's lines use its list's marker width
+  (comrak keeps no width per task item; no docs page has a table in a task item).
 - **A fence whose language has no hook and no highlighter** renders as plain
   `<pre><code class="language-x">`; Hugo fails the page ("no code renderer found").
 - **HTML comments** are dropped under `RawHtml::Omit` (Hugo's behaviour); the plain goldmark
   `default` corpus instance writes `<!-- raw HTML omitted -->` instead (11 seeksnack bodies).
-- **Structural goldmark quirks not reproduced** (3 docs pages): a table delimiter row with
-  more cells than the header (`functions/images/QR.md`), a table as a lazy continuation line
-  in a list item (`host-on-21yunbox.md`), list tightness with a blank line before an
-  indented table (`host-on-codeberg-pages.md`).
 - **Typographer**: goldmark's rules are ported; 2 docs pages still differ on a closing `'`
   at the end of a line inside a paragraph (goldmark's choice there depends on state this
   port does not model).
@@ -97,7 +137,8 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
 - **Code-block options** are always split from attributes (Chroma's option names, keys as
   written); Hugo does the same for its default highlighter.
 - **Tables**: the embedded template writes attribute values as text (the oracle's replica
-  prints `s:`-typed dumps).
+  prints `s:`-typed dumps). Table, row and cell positions are the trimmed source ranges of
+  goldmark's rows and cells (goldmark's own nodes have none).
 - **`TocOptions::end`** is `Option<u8>` (`None` = Hugo's `-1`); `fragments()` returns a
   `Result` (attribute errors); `ExpandedMarkdown` carries the content file for positions;
   `MarkdownOptions` has the extra enums above and `heading_ids: Option<Style>` (`None` =

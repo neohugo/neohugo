@@ -23,11 +23,11 @@ fn fnv(b: &[u8]) -> String {
     format!("{h:016x}")
 }
 
-/// Writes the recorded site (`hugo.toml` and its files; repository files must still have their
+/// Writes the recorded site (`neohugo.toml` and its files; repository files must still have their
 /// recorded hash) into `dir`.
 fn write_site(site: &J, dir: &Path) {
     fs::create_dir_all(dir).unwrap();
-    fs::write(dir.join("hugo.toml"), site["toml"].as_str().unwrap()).unwrap();
+    fs::write(dir.join("neohugo.toml"), site["toml"].as_str().unwrap()).unwrap();
     for f in site["files"].as_array().unwrap() {
         let p = f["path"].as_str().unwrap();
         let content = if let Some(r) = f["repo"].as_str() {

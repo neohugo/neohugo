@@ -29,7 +29,7 @@ One Markdown list item per entry; every other line (headings, prose) is free tex
 
 `- <site> <levels> `<key>` <class>: <reason>`
 
-- `<site>`: the label (`testsite`, `seeksnack`, `docs-i01`, `docs-reduced`).
+- `<site>`: the label (`testsite`, `seeksnack`, `docs-i01`, `docs-reduced`, `docs-live`).
 - `<levels>`: one or more of `L1`, `L2`, `L3`, `L4`, `S`, comma-separated.
 - `<key>`: what changed, in backticks: a file (its path below `publishDir` after the L1
   normalisation, e.g. `images/x_hu_H.jpg`; `project:hugo_stats.json`; `dir/**` for a collapsed

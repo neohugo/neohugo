@@ -104,7 +104,7 @@ fn testsite_overlay_is_clean() {
 #[test]
 fn deny_warnings() {
     let s = crate::site_from(
-        "-- hugo.toml --\nbaseURL = \"https://e.org/\"\ndisableKinds = [\"taxonomy\", \"term\"]\n-- layouts/home.html --\n{% if page.params.x == none %}x{% endif %}\n",
+        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\ndisableKinds = [\"taxonomy\", \"term\"]\n-- layouts/home.html --\n{% if page.params.x == none %}x{% endif %}\n",
     );
     let o = neohugo(s.path(), &["templates", "check"], &[]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));

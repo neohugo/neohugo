@@ -55,7 +55,8 @@ pub const LEGACY_KEYS: &[(&str, &str)] = &[
     ("paginate", "pagination.pagerSize"),
     ("paginatePath", "pagination.path"),
     ("rssLimit", "services.rss.limit"),
-    ("writeStats", "build.buildStats.enable"),
+    // Go (`DecodeBuildConfig`): `[build] writeStats` was a bool up to v0.115.0.
+    ("build.writeStats", "build.buildStats.enable"),
     ("ignoreErrors", "ignoreLogs"),
     (
         "footnoteReturnLinkContents",
@@ -102,7 +103,7 @@ pub fn migrate_legacy_keys(m: &mut Map) -> Vec<Migration> {
             }
             continue;
         }
-        let Some(mut v) = m.remove(&from_l) else {
+        let Some(mut v) = remove_path(m, &from_l) else {
             continue;
         };
         if to.is_empty() {
@@ -140,6 +141,17 @@ pub fn migrate_legacy_keys(m: &mut Map) -> Vec<Migration> {
         });
     }
     done
+}
+
+/// Removes the value at a dotted path of lower-case keys.
+fn remove_path(m: &mut Map, dotted: &str) -> Option<Value> {
+    match dotted.split_once('.') {
+        None => m.remove(dotted),
+        Some((first, rest)) => match m.get_mut(first)? {
+            Value::Map(child) => remove_path(Arc::make_mut(child), rest),
+            _ => None,
+        },
+    }
 }
 
 /// The value at a dotted path of lower-case keys.

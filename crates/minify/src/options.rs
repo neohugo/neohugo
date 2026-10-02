@@ -85,11 +85,17 @@ impl Default for HtmlOptions {
 pub struct CssOptions {
     /// Avoid colour syntax newer than CSS 2/3 (hex alpha, space-separated `rgb()`).
     pub keep_css2: bool,
+    /// The browsers to prefix and lower for (the project's browserslist configuration,
+    /// [`crate::project_browsers`]); `None`: declarations are kept as written.
+    pub browsers: Option<lightningcss::targets::Browsers>,
 }
 
 impl Default for CssOptions {
     fn default() -> Self {
-        Self { keep_css2: true }
+        Self {
+            keep_css2: true,
+            browsers: None,
+        }
     }
 }
 

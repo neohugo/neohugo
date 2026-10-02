@@ -1,5 +1,5 @@
 //! `Publisher::emit` end to end: canonify per format, minify dispatch, empty outputs, held
-//! outputs and `patch_held`, URL tokens, stats, and the `hugo_stats.json` format against the
+//! outputs and `patch_held`, URL tokens, stats, and the `neohugo_stats.json` format against the
 //! golden files.
 
 use std::collections::BTreeMap;
@@ -11,8 +11,8 @@ use neohugo_base::{FormatId, Idx, LangIdx, Sink};
 use neohugo_config::global::BuildStats;
 use neohugo_config::{Config, LoadOptions, load};
 use neohugo_publish::{
-    DiskSink, Emitted, HtmlElements, HugoStats, MemorySink, Output, PublishError, PublishSettings,
-    Publisher,
+    DiskSink, Emitted, HtmlElements, MemorySink, NeohugoStats, Output, PublishError,
+    PublishSettings, Publisher,
 };
 use rayon::prelude::*;
 
@@ -23,7 +23,7 @@ struct Site {
 
 fn site(toml: &str) -> Site {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("hugo.toml"), toml).unwrap();
+    std::fs::write(dir.path().join("neohugo.toml"), toml).unwrap();
     let cfg = load(&LoadOptions {
         source: dir.path().to_owned(),
         env: vec![(
@@ -212,7 +212,9 @@ fn held_outputs_are_patched_and_rescanned() {
         .unwrap(),
         Emitted::Held
     );
-    assert!(sink.is_empty());
+    // Held outputs wait in the sink, unpatched and not minified; only their paths are kept.
+    assert_eq!(sink.text("/index.html").unwrap(), page);
+    assert_eq!(p.written(), 0);
     assert_eq!(p.held().len(), 2);
     assert!(!p.url_tokens().contains("/css/styles.min.css"));
 
@@ -268,7 +270,50 @@ fn unresolved_placeholder_is_an_error() {
         }
         other => panic!("{other:?}"),
     }
-    assert!(sink.is_empty());
+    assert_eq!(sink.text("/index.html").unwrap(), "a __nh_defer_x__ b");
+    assert_eq!(p.written(), 0);
+}
+
+/// A disk build: the held page waits in its file and is patched there.
+#[test]
+fn held_outputs_wait_on_disk() {
+    let s = site(
+        "baseURL = 'https://example.org/'
+minify = true
+",
+    );
+    let out = tempfile::tempdir().unwrap();
+    let p = Publisher::new(
+        PublishSettings::from_config(&s.cfg).unwrap(),
+        Arc::new(DiskSink::new(out.path())),
+        Arc::new(Diagnostics::new(Vec::<String>::new())),
+    );
+    let page = "<html><head>__nh_pp_1_content__</head><body>  <p>x</p>  </body></html>";
+    assert_eq!(
+        p.emit(output(&s, "/a/index.html", "html", page)).unwrap(),
+        Emitted::Held
+    );
+    let file = out.path().join("a/index.html");
+    assert_eq!(std::fs::read_to_string(&file).unwrap(), page);
+    let repl = BTreeMap::from([(
+        "__nh_pp_1_content__".to_owned(),
+        "<style>p{color:red}</style>".to_owned(),
+    )]);
+    assert_eq!(p.patch_held(&repl).unwrap(), 1);
+    let html = std::fs::read_to_string(&file).unwrap();
+    assert!(
+        html.contains("<style>p{color:red}</style>")
+            && !html.contains("__nh_")
+            && !html.contains("  <p>"),
+        "{html}"
+    );
+    // A held file removed before the deferred wave is an error naming it.
+    p.emit(output(&s, "/b/index.html", "html", page)).unwrap();
+    std::fs::remove_file(out.path().join("b/index.html")).unwrap();
+    match p.patch_held(&repl) {
+        Err(PublishError::Read { path, .. }) => assert_eq!(path.as_str(), "/b/index.html"),
+        other => panic!("{other:?}"),
+    }
 }
 
 #[test]
@@ -358,7 +403,7 @@ fn concurrent_emits_are_deterministic() {
     assert_eq!(run(1), run(4));
 }
 
-/// `hugo_stats.json` is written exactly as Hugo writes it: the golden files of the seeksnack
+/// `neohugo_stats.json` is written exactly as Hugo writes it: the golden files of the seeksnack
 /// and docs builds round-trip byte for byte.
 #[test]
 fn golden_stats_format() {
@@ -385,7 +430,7 @@ fn golden_stats_format() {
             disable_classes: list("classes").is_none(),
             disable_ids: list("ids").is_none(),
         };
-        assert_eq!(HugoStats::new(found, &conf).to_json(), text, "{file}");
+        assert_eq!(NeohugoStats::new(found, &conf).to_json(), text, "{file}");
     }
 }
 
@@ -411,4 +456,61 @@ fn disk_sink_creates_directories() {
         b"m"
     );
     assert_eq!(mem.get("a/b/index.html").as_deref(), Some(&b"m"[..]));
+}
+
+/// `purge_css` placeholders: each page gets the rules it uses (its elements, the words of its
+/// scripts, the custom properties it mentions), resolved before the page is held or written.
+#[test]
+fn css_purged_per_page() {
+    use neohugo_minify::{CssPurges, Minifier, PurgeOptions, PurgePlan};
+    let s = site("baseURL = 'https://example.org/'\n");
+    let purges = Arc::new(CssPurges::default());
+    let sink = Arc::new(MemorySink::new());
+    let p = Publisher::new(
+        PublishSettings::from_config(&s.cfg).unwrap(),
+        Arc::clone(&sink) as Arc<dyn Sink>,
+        Arc::new(Diagnostics::new(Vec::<String>::new())),
+    )
+    .with_css_purges(Arc::clone(&purges));
+    let css = ":root{--a:red;--b:blue}.nav{color:var(--a)}.card{color:#123}.shown{x:1}\
+               .tpl{y:2}#main{z:3}table{w:4}";
+    let options = PurgeOptions {
+        variables: true,
+        ..PurgeOptions::default()
+    };
+    let ph = purges
+        .placeholder(1, || {
+            PurgePlan::compile(css, &options, &[], Minifier::default().css_targets())
+        })
+        .unwrap();
+    let page =
+        |body: &str| format!("<html><head><style>{ph}</style></head><body>{body}</body></html>");
+    p.emit(output(
+        &s,
+        "/a/index.html",
+        "html",
+        &page("<nav class=nav></nav>"),
+    ))
+    .unwrap();
+    p.emit(output(
+        &s,
+        "/b/index.html",
+        "html",
+        &page(
+            "<div id=main class=card style=\"color:var(--b)\"></div>\
+             <script>el.classList.add('shown')</script>\
+             <script type=x-tmpl-mustache><p class=\"tpl\">{{x}}</p></script>",
+        ),
+    ))
+    .unwrap();
+    let style = |path: &str| {
+        let html = sink.text(path).unwrap();
+        let start = html.find("<style>").unwrap() + 7;
+        html[start..html.find("</style>").unwrap()].to_owned()
+    };
+    assert_eq!(style("/a/index.html"), ":root{--a:red}.nav{color:var(--a)}");
+    assert_eq!(
+        style("/b/index.html"),
+        ":root{--b:blue}.card{color:#123}.shown{x:1}.tpl{y:2}#main{z:3}"
+    );
 }

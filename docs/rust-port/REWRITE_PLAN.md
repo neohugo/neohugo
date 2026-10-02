@@ -182,7 +182,7 @@ rust/
     highlight/   neohugo-highlight   syntect + two-face, Chroma class map, inline styles, fence options, CSS    [heavy]
     minify/      neohugo-minify      minify-html / lightningcss / oxc / JSON / XML                           [heavy]
     images/      neohugo-images      ImageSpec, ops, filters, codecs, deferred queue, cache                  [heavy]
-    esbuild/     neohugo-esbuild     esbuild --service client (kept from nh-esbuild), js.Build options
+    jsbuild/     neohugo-jsbuild     js.Build in process with rolldown (2026-10-02; T14 built it as the esbuild --service client neohugo-esbuild)
     resources/   neohugo-resources   ResourceStore, bundles/assets/remote, transforms, pipes, URL-token resolution
     layouts/     neohugo-layouts     template scan (v0.146 names), Hugo lookup scorer, baseof variants, escaping, Tera loading
       embedded/                      Hugo's embedded templates rewritten in Tera (include_str!)
@@ -1123,7 +1123,7 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
 - Tokens are resolved in E6 against `url → ResourceId`, using both `rel_permalink` and `permalink`.
 
 **Held outputs.**
-- Outputs that contain `__nh_defer_<key>__` or `__nh_pp_<id>_<field>__` placeholders are held in memory until E5; everything else is written immediately.
+- Outputs that contain `__nh_defer_<key>__` or `__nh_pp_<id>_<field>__` placeholders are held until E5 (written to the sink unpatched and patched there, so they take no memory); everything else is written immediately.
 - A `post_process` resource view carries one placeholder per field: `content`, `rel_permalink`, `permalink`, `data.integrity`, `media_type`. `resource_content` returns the content placeholder.
 - After patching, tokens are extracted again, so the PostProcess CSS URL is seen.
 - Memory is bounded by the placeholder-bearing pages: about 50 MB for docs (all its HTML, because baseof has the deferred block), and a small set for seeksnack.
@@ -1365,7 +1365,7 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 | `markdownify`, `.RenderString (dict "display" "block")` | `markdownify`, `render_string(display=?, page=?)` (uses that page's hooks) | F (s) | D S R |
 | `plainify`, `emojify` | `plainify` (html5gum), `emojify` | F | D R |
 | `highlight`, `transform.Highlight` | `highlight(lang=, options=?)` (syntect; Chroma classes or inline styles per `noClasses`; `hl_inline`) | F | D |
-| `transform.ToMath` (+ `try`) | `to_math(display=?, optional=?)` (pulldown-latex → MathML; SHOULD, feature `math`). A construct it cannot parse (invalid LaTeX, or mhchem, which KaTeX has) is an error; with `optional=true` a warning (id `to_math`, as `get_remote`) and an in-place `<merror>` | F | D |
+| `transform.ToMath` (+ `try`) | `to_math(options=?, optional=?)` (KaTeX 0.16.22 with mhchem in QuickJS, rquickjs: Hugo's markup byte for byte; Hugo's defaults and `KatexOptions`; SHOULD, feature `math`). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` a warning (id `to_math`, as `get_remote`) and none | F | D |
 | `diagrams.Goat` | `diagrams_goat(text=)` → `{inner (safe SVG), width, height, wrapped}` (svgbob; SHOULD, T66) | F | D |
 | `base64Encode/Decode`, `md5`, `sha1`, `sha256`, `hash.FNV32a`, `hash.XxHash` | `base64_encode`/`base64_decode` (tc), `md5`, `sha1`, `sha256`, `fnv32a`, `xxhash` | tc/F | D |
 | `now` | `now()` (honours `--clock`) | fn | all |
@@ -1516,7 +1516,7 @@ unicode-segmentation  = "1.12"
 unicode-properties    = { version = "0.1", features = ["general-category"] }   # (verify) sanitize by general category
 percent-encoding = "2.3.2"
 url          = "2.5"
-pulldown-latex = "0.8"                         # SHOULD (A-D2): to_math → MathML
+rquickjs     = { version = "0.14", default-features = false, features = ["std", "parallel"] }  # SHOULD (A-D2): to_math → KaTeX (QuickJS-ng, MIT)
 svgbob       = "0.7.6"                         # SHOULD (A-D2): diagrams_goat (Apache-2.0)
 # time & locale (ICU4X, Unicode-3.0)
 jiff         = { version = "0.2.37", features = ["serde"] }
@@ -1606,7 +1606,7 @@ dhat         = "0.3"                           # T33 allocation measurement (it 
 | syntect dumps | `highlight` |
 | ICU data | `locale` |
 | axum, tokio | `serve` |
-| svgbob, pulldown-latex | `funcs`, behind features `goat` and `math` |
+| svgbob, rquickjs (QuickJS, C) | `funcs`, behind features `goat` and `math` |
 
 ---
 
@@ -1919,6 +1919,7 @@ Sizes are Rust src + tests unless noted.
 | **T71** | neohugo-serve | `crates/serve`, `cli` (serve) | T36 | memory sink; `/livereload.js` + `/livereload` WebSocket on the same port; notify debounce 1 s; full rebuild; static-only copy; edit → reload ≤ 2 s on testsite. **State:** `neohugo-rs server` (alias `serve`; `build`'s flags plus `-p --bind --append-port --disable-live-reload --live-reload-port -N --render-to-disk --no-http-cache -w --poll`, camelCase aliases; environment `development`). Memory sink per build, swapped in when the build succeeds (the last good build stays on failure, errors printed with positions); `--render-to-disk` serves the publish directory. Base URLs rewritten to the listener (Hugo's `fixURL`, one listener per language of a multihost site); the LiveReload script in every HTML page but aliases (`neohugo-publish`, only for `server`: A-T stays 55/55); Hugo's `livereload.min.js` (MIT, `THIRD_PARTY/livereload`). Go file-server semantics (index, redirects, types from the media types, byte ranges), the `404.html` of the path's language with status 404. notify + notify-debouncer-full, 1 s (or `--poll`) over the project's and themes' mounts and configuration (their config files and `config/` dirs, any `neohugo.*`/`hugo.*`/`config.*` appearing in the project or a theme): config → reload + rebuild; site → full rebuild; static only → changed files copied, no build; reload commands by Hugo's fast-render rules on the output diff (CSS in place, one path, full, none; `--navigateToChanged`). Tests: `neohugo-serve` 6 unit + 15 `it` (testsite included), `neohugo` `server::*` 3, `neohugo-build` `skeleton::testsite_for_the_server`. Testsite, debug build: content edit → reload 1.54–2.03 s (typically 1.6–1.8 s: the 1 s debounce plus a ≈0.5–0.8 s rebuild, 92 % of which is `neohugo_highlight::Highlight::new` rebuilding syntect's syntax set in every `Session::new`; caching it in `neohugo-highlight` would give ≈1.1 s), static 1.0–1.1 s. Since then the syntax set is cached per process, and T70 links it at compile time and set `hugo.IsServer`/`site.ServerPort`. Open: the browser error page, `[server]` headers/redirects, fast render, TLS, `--openBrowser` | 1.5k |
 | **T72** | COULD features | per-feature crates (fix-task locks) | T65 | Each item lifts one patch and keeps A-D2 green: <ul><li>`images.Text` (`{op:"text"}`), `qr_code`, Dither, smartcrop (**T72a** implemented the first three in `images`/`resources`/`sitefuncs`; the docs patches are not lifted yet)</li><li>Chroma style gallery</li><li>`:git` lastmod</li><li>content adapters as a `_content.html` Tera template calling `add_page`</li><li>Org front matter</li></ul> | 3k |
 | **T73** | neohugo-migrate + real seeksnack | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(neohugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
+| **T74** | docs-live: the published docs site (A-D3) | `sites/docs/**`, `tools/{docs,neohugo,rust-port}/**`, `testdata/golden/docs-live/`, baselines; engine items in `build`/`site`/`page`/`sitefuncs` (content adapters), `funcs` (KaTeX, GoAT), `images` (smartcrop), `markup`/`render` (goldmark tables, shortcode indentation), `highlight` (Chroma port) | T66, T72a | A-D3: the docs without patches against the published site (neohugo/neohugo.github.io at a1928152) — L1, L2, L4 equal on every file, A7 1.0. **State:** passed (`gate_a_d3`): L1 2373/2373, L2 776/776, L3 769/770 (Go's stats tokenizer reading `<?xml`/`<=` as tags), L4 873/873, A7 1.0; A-D1 and A-D2 reach A7 1.0 too (their math, GoAT and table entries `bug-fixed`); `tools/docs/build.sh` builds and serves the site | – |
 
 ### 8.3 Schedule (four lanes) and critical path
 

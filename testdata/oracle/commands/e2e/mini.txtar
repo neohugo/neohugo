@@ -4,7 +4,7 @@ templates.Defer, GetRemote from the file cache + transform.Unmarshal, and resour
 that do not depend on floating point or external tools (minify, fingerprint, Concat,
 ExecuteAsTemplate, FromString, PostProcess). The full sites (images, LibSass, esbuild,
 PostCSS) are compared by tools/rust-port/i01/compare.sh.
--- hugo.toml --
+-- neohugo.toml --
 baseURL = "https://example.org/"
 title = "Mini"
 canonifyURLs = true

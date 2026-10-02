@@ -8,7 +8,20 @@
 //! ([`rescue`]): the body of a conditional group rule (`@media`, `@supports`, …) and the
 //! declarations of a style rule are minified on their own where possible, and whatever is left is
 //! only stripped of comments and redundant whitespace ([`fallback`]).
+//!
+//! Without browser targets lightningcss only parses and prints compactly, and declarations and
+//! rules stay as written (as Go's minifier keeps them). With targets (the project's browserslist
+//! configuration, [`crate::project_browsers`]) its `minify` pass also runs: it adds the vendor
+//! prefixes and lowers the syntax those browsers need (autoprefixer's job) and merges rules and
+//! declarations. That pass keeps only the last of two declarations of one property, assuming every
+//! browser supports every value it parses, which drops hand-written fallbacks such as a standard
+//! `radial-gradient(circle at …)` followed by a `-webkit-radial-gradient` browsers reject. So a
+//! style rule declaring a property twice is not merged: it counts as rejected and is rescued as
+//! written, while the rules around it are minified with the targets.
 
+use lightningcss::declaration::DeclarationBlock;
+use lightningcss::properties::PropertyId;
+use lightningcss::rules::{CssRule, CssRuleList};
 use lightningcss::stylesheet::{MinifyOptions, ParserOptions, PrinterOptions, StyleSheet};
 use lightningcss::targets::{Features, Targets};
 
@@ -33,23 +46,22 @@ fn whole(o: &CssOptions, input: &str) -> Option<String> {
     Some(out)
 }
 
+/// One lightningcss pass over `input`; `None` if lightningcss rejects it, or, with browser
+/// targets, if a style rule in it declares a property twice (see the module documentation).
 fn pass(o: &CssOptions, input: &str) -> Option<String> {
-    let targets = Targets {
-        browsers: None,
-        include: if o.keep_css2 {
-            Features::HexAlphaColors | Features::SpaceSeparatedColorNotation
-        } else {
-            Features::empty()
-        },
-        exclude: Features::empty(),
-    };
+    let targets = targets(o);
     let mut sheet = StyleSheet::parse(input, ParserOptions::default()).ok()?;
-    sheet
-        .minify(MinifyOptions {
-            targets,
-            ..MinifyOptions::default()
-        })
-        .ok()?;
+    if o.browsers.is_some() {
+        if has_fallbacks(&sheet.rules) {
+            return None;
+        }
+        sheet
+            .minify(MinifyOptions {
+                targets,
+                ..MinifyOptions::default()
+            })
+            .ok()?;
+    }
     let printed = sheet
         .to_css(PrinterOptions {
             minify: true,
@@ -58,6 +70,49 @@ fn pass(o: &CssOptions, input: &str) -> Option<String> {
         })
         .ok()?;
     Some(printed.code)
+}
+
+/// The lightningcss targets of `o`: its browsers, and CSS 2/3 colour syntax with `keep_css2`.
+pub(crate) fn targets(o: &CssOptions) -> Targets {
+    Targets {
+        browsers: o.browsers,
+        include: if o.keep_css2 {
+            Features::HexAlphaColors | Features::SpaceSeparatedColorNotation
+        } else {
+            Features::empty()
+        },
+        exclude: Features::empty(),
+    }
+}
+
+/// Whether a style rule of `rules` (or of a group or nested rule) declares a property twice.
+fn has_fallbacks<R>(rules: &CssRuleList<'_, R>) -> bool {
+    rules.0.iter().any(|rule| match rule {
+        CssRule::Style(r) => declares_twice(&r.declarations) || has_fallbacks(&r.rules),
+        CssRule::Media(r) => has_fallbacks(&r.rules),
+        CssRule::Supports(r) => has_fallbacks(&r.rules),
+        CssRule::Container(r) => has_fallbacks(&r.rules),
+        CssRule::LayerBlock(r) => has_fallbacks(&r.rules),
+        CssRule::MozDocument(r) => has_fallbacks(&r.rules),
+        CssRule::Scope(r) => has_fallbacks(&r.rules),
+        CssRule::StartingStyle(r) => has_fallbacks(&r.rules),
+        CssRule::Nesting(r) => {
+            declares_twice(&r.style.declarations) || has_fallbacks(&r.style.rules)
+        }
+        _ => false,
+    })
+}
+
+fn declares_twice(block: &DeclarationBlock<'_>) -> bool {
+    [&block.declarations, &block.important_declarations]
+        .into_iter()
+        .any(|decls| {
+            let ids: Vec<PropertyId<'_>> = decls
+                .iter()
+                .map(lightningcss::properties::Property::property_id)
+                .collect();
+            ids.iter().enumerate().any(|(i, id)| ids[..i].contains(id))
+        })
 }
 
 /// A style sheet lightningcss rejects: each top-level rule is tried on its own, runs of accepted
@@ -258,7 +313,7 @@ fn closer(c: u8) -> Option<u8> {
 
 /// The top-level rules of a style sheet as byte ranges that cover it: a rule ends after the `}`
 /// of its block or, for an at-rule, after its `;`. Comments and whitespace go with the next rule.
-fn split(s: &str) -> Vec<(usize, usize)> {
+pub(crate) fn split(s: &str) -> Vec<(usize, usize)> {
     let b = s.as_bytes();
     let mut chunks = Vec::new();
     let (mut start, mut i) = (0, 0);

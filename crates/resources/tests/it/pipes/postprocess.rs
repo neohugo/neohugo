@@ -5,7 +5,7 @@
 //!   replacement equal Go's.
 //! - The reconstruction's CSS chain (`to_css | post_css | minify | fingerprint |
 //!   post_process`, head.html): nothing runs until the placeholders are resolved, so PostCSS
-//!   reads the `hugo_stats.json` written after rendering (E4). With a fake PostCSS that reports
+//!   reads the `neohugo_stats.json` written after rendering (E4). With a fake PostCSS that reports
 //!   the stats it read; with postcss-cli (`NEOHUGO_POSTCSS_BIN`) the reconstruction's own
 //!   purge configuration drops the unused rules.
 
@@ -145,7 +145,7 @@ fn reconstruction(extra: &[(&str, &str)]) -> tempfile::TempDir {
         .filter(|(n, _)| n.starts_with("assets/scss/") || n == "postcss.config.js")
         .map(|(n, b)| (n.as_str(), b.as_str()))
         .collect();
-    wanted.push(("hugo.toml", "baseURL = \"https://example.org/\"\n"));
+    wanted.push(("neohugo.toml", "baseURL = \"https://example.org/\"\n"));
     wanted.extend_from_slice(extra);
     mini_site(&wanted)
 }
@@ -189,7 +189,7 @@ fn render_and_resolve(p: &Project, stats: &str) -> (String, String, String, MemS
     // Nothing ran yet: the fingerprint's record is provisional.
     assert!(matches!(p.store.resource(fp).body, Body::Pending));
     assert_eq!(p.tool_calls(), "");
-    std::fs::write(p.dir.join("hugo_stats.json"), stats).unwrap();
+    std::fs::write(p.dir.join("neohugo_stats.json"), stats).unwrap();
     let html = p.store.resolve_post_process(&head).unwrap().unwrap();
     let r = p.store.resource(fp);
     let body = String::from_utf8(p.store.content(fp).unwrap().to_vec()).unwrap();
@@ -218,12 +218,12 @@ fn post_process_reconstruction_chain_fake_postcss() {
     if !have_node("post_process_reconstruction_chain_fake_postcss") {
         return;
     }
-    // Reads ./hugo_stats.json like the purge plugin (fails without it) and reports it in a rule.
+    // Reads ./neohugo_stats.json like the purge plugin (fails without it) and reports it in a rule.
     let script = r"
 const fs = require('fs'), path = require('path');
 fs.appendFileSync(path.join(process.env.HOME, 'tool-calls.log'), 'postcss\n');
 const css = fs.readFileSync(0, 'utf8');
-const stats = JSON.parse(fs.readFileSync('./hugo_stats.json', 'utf8')).htmlElements;
+const stats = JSON.parse(fs.readFileSync('./neohugo_stats.json', 'utf8')).htmlElements;
 process.stdout.write(css + '.stats-seen{content:' + JSON.stringify(stats.classes.join(' ')) + '}');
 ";
     let site = reconstruction(&[]);

@@ -27,7 +27,7 @@ fn html(s: &crate::support::Site, path: &str) -> String {
 #[test]
 fn shortcode_semantics() {
     let s = site(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         (
             "content/sc.md",
             "---\ntitle: SC\n---\n{{< types 42 -7 3.5 true false \"42\" `raw` 0x10 1e3 >}}\n\n{{< types a=1 b=\"x\" c=true >}}\n\n{{< p >}} {{< p \"only\" >}} {{< p x=\"named\" >}}\n\n{{% outer %}}A {{< mid >}}B {{% leaf %}}*c*{{% /leaf %}}{{< /mid >}}{{% /outer %}}\n\n{{% md %}}**md**{{% /md %}} {{< md >}}**raw**{{< /md >}}\n\n{{</* esc \"x\" */>}} {{%/* esc */%}}\n\n  {{< multi >}}\n\n{{< greet.inline >}}Hi {{ page.title }} {{ shortcode.ordinal }}{{< /greet.inline >}} {{< greet.inline />}}\n",
@@ -90,7 +90,7 @@ fn shortcode_semantics() {
 #[test]
 fn includes_renumber_placeholders_and_set_page_inner() {
     let s = site(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         (
             "content/a.md",
             "---\ntitle: A\n---\n{{< badge a1 >}} [own](x)\n\n{{% include \"/b\" %}}\n\n{{< badge a2 >}}\n",
@@ -133,12 +133,76 @@ fn includes_renumber_placeholders_and_set_page_inner() {
     assert_eq!(src.markdown, "<b>b1</b> [from b](y) <b>b2</b>\n");
 }
 
+/// Hugo's handling of `{{% %}}` includes on a Markdown page: the included text sits between
+/// context marker lines (`hugocontext.Wrap`) and an indented call indents every further line
+/// of its output, the included text included. So an indented include stays in its definition,
+/// an include ends the definition list before it, and a definition or tight list item that an
+/// include ends keeps goldmark's newline before its end tag (expected: Hugo's goldmark
+/// converter at 44529028 on the same Markdown).
+#[test]
+fn includes_are_wrapped_and_indented() {
+    let s = site(&[
+        ("neohugo.toml", CONFIG),
+        (
+            "content/a.md",
+            "---\ntitle: A\n---\nterm\n: Intro.\n  {{% include \"/b\" %}}\n\n  After.\n\nformat\n: Format.\n\n{{% include \"/c\" %}}\n",
+        ),
+        (
+            "content/b.md",
+            "---\ntitle: B\n---\n\nIncluded *text*.\n\n- one\n- two\n",
+        ),
+        ("content/c.md", "---\ntitle: C\n---\n\nparams\n: Params.\n"),
+        (
+            "layouts/_shortcodes/include.html",
+            "{{ render_shortcodes(page=get_page(path=shortcode | arg(index=0))) }}",
+        ),
+    ]);
+    assert_eq!(
+        html(&s, "/a"),
+        "<dl>\n<dt>term</dt>\n<dd>Intro.\n\n<p>Included <em>text</em>.</p>\n<ul>\n<li>one</li>\n<li>two\n</li>\n</ul>\n<p>After.</p>\n</dd>\n<dt>format</dt>\n<dd>Format.</dd>\n</dl>\n<dl>\n<dt>params</dt>\n<dd>Params.\n</dd>\n</dl>\n"
+    );
+}
+
+/// The indentation of includes of a page with `{{< >}}` output, as Hugo does it: a `{{% %}}`
+/// call (and a call nested in one) runs before Markdown, where the included page's `{{< >}}`
+/// outputs are still placeholders, so only the included text is indented; a `{{< >}}` call
+/// (and a call nested in one) runs after Markdown with those outputs in place, so they are
+/// indented with it. Expected: the Go build at 44529028 on the same site (its templates in Go
+/// syntax).
+#[test]
+fn includes_indent_like_hugo() {
+    let s = site(&[
+        ("neohugo.toml", CONFIG),
+        (
+            "content/a.md",
+            "---\ntitle: A\n---\n- item\n\n  {{< include \"/b\" >}}\n\n  {{% include \"/b\" %}}\n\n{{< outer >}}\n  {{< include \"/b\" >}}\n{{< /outer >}}\n\n{{% outer %}}\n  {{< include \"/b\" >}}\n{{% /outer %}}\n\n{{% outer %}}\n  {{% include \"/b\" %}}\n{{% /outer %}}\n",
+        ),
+        (
+            "content/b.md",
+            "---\ntitle: B\n---\nline1\n{{< multi >}}\nline2\n",
+        ),
+        (
+            "layouts/_shortcodes/include.html",
+            "{{ render_shortcodes(page=get_page(path=shortcode | arg(index=0))) }}\n",
+        ),
+        ("layouts/_shortcodes/multi.html", "<div>\nx\n</div>\n"),
+        (
+            "layouts/_shortcodes/outer.html",
+            "<section>\n{{ inner }}</section>\n",
+        ),
+    ]);
+    assert_eq!(
+        html(&s, "/a"),
+        "<ul>\n<li>\n<p>item</p>\nline1\n  <div>\n  x\n  </div>\n  \n  line2\n  \n\n<p>line1\n<div>\nx\n</div>\n\nline2</p>\n</li>\n</ul>\n<section>\n\n  line1\n  <div>\n  x\n  </div>\n  \n  line2\n  \n\n</section>\n\n<section>\n<p>line1\n<div>\nx\n</div>\n\nline2</p>\n</section>\n<section>\n<p>line1\n<div>\nx\n</div>\n\nline2</p>\n</section>\n"
+    );
+}
+
 /// A content cycle through two pages is an error that names both files; memo cells never
 /// block, so it does not hang.
 #[test]
 fn cycles_are_errors() {
     let s = site(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         ("content/a.md", "---\ntitle: A\n---\n{{< show \"/b\" >}}\n"),
         ("content/b.md", "---\ntitle: B\n---\n{{< show \"/a\" >}}\n"),
         (
@@ -154,7 +218,7 @@ fn cycles_are_errors() {
     assert!(err.contains("a.md") && err.contains("b.md"), "{err}");
     // A page's own TOC from its shortcode is not a cycle (fragments without the calls).
     let s = site(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         (
             "content/t.md",
             "---\ntitle: T\n---\n## One\n\n{{< toc >}}\n\n## Two\n",
@@ -172,7 +236,7 @@ fn cycles_are_errors() {
 #[test]
 fn two_threads_never_deadlock_and_commit_once() {
     let files: Vec<(String, String)> = [
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         (
             "content/a.md",
             "---\ntitle: A\n---\n## In A\n\n{{< sync >}}{{< count >}}{{< toc \"/b\" >}}\n",
@@ -248,7 +312,7 @@ fn two_threads_never_deadlock_and_commit_once() {
 #[test]
 fn store_writes_follow_the_winner() {
     let s = site(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         ("content/w.md", "---\ntitle: W\n---\n{{< w >}}\n"),
         (
             "layouts/_shortcodes/w.html",
@@ -279,7 +343,7 @@ fn store_writes_follow_the_winner() {
 fn json_variant_through_a_layout_job() {
     let s = site(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "baseURL = \"https://example.org/\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\", \"404\", \"home\"]\n[outputs]\npage = [\"html\", \"json\"]\n",
         ),
         (
@@ -318,7 +382,7 @@ fn json_variant_through_a_layout_job() {
 #[test]
 fn c1_renders_bundled_pages_and_html_content() {
     let s = site(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         ("content/b/index.md", "---\ntitle: B\n---\nOwner.\n"),
         (
             "content/b/sub.md",
@@ -363,7 +427,7 @@ fn c1_renders_bundled_pages_and_html_content() {
 #[test]
 fn toc_of_html_content_is_empty() {
     let s = site(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         (
             "content/h.html",
             "---\ntitle: H\n---\n<h2 id=\"x\">X</h2>\n<p>Body</p>\n",

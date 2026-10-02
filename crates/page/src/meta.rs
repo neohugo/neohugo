@@ -321,7 +321,10 @@ pub fn meta_from_params(mut params: Params, ctx: &MetaCtx<'_>) -> Result<PageMet
     })
 }
 
-fn decode_sitemap(v: Option<&Value>, site: &SitemapConfig) -> Result<SitemapConfig, PageError> {
+pub(crate) fn decode_sitemap(
+    v: Option<&Value>,
+    site: &SitemapConfig,
+) -> Result<SitemapConfig, PageError> {
     let mut out = site.clone();
     let Some(v) = v else {
         return Ok(out);
@@ -384,7 +387,7 @@ fn decode_resources(v: &Value) -> Result<Vec<ResourceMetaRule>, PageError> {
 
 /// `menu: main` (or a number: `menu: 42`), `menus: [main, footer]`, or
 /// `menus: {main: {weight: 10, parent: docs}}`.
-fn decode_menus(v: Option<&Value>) -> Result<Vec<PageMenuEntry>, PageError> {
+pub(crate) fn decode_menus(v: Option<&Value>) -> Result<Vec<PageMenuEntry>, PageError> {
     let entry = |menu: &str| PageMenuEntry {
         menu: menu.to_owned(),
         ..PageMenuEntry::default()

@@ -8,28 +8,54 @@
 use fast_image_resize::{self as fir, FilterType, ResizeAlg, ResizeOptions, Resizer};
 use image::{DynamicImage, Rgba, Rgba32FImage, RgbaImage, imageops};
 
+use crate::codec::Decoded;
 use crate::color::Color;
 use crate::error::ImageError;
 use crate::filter::{ImageFilter, PaddingSpec};
-use crate::plan::{InputRef, Size, Step, sin_cos};
-use crate::spec::Resample;
+use crate::plan::{InputRef, Size, Step, cover_size, crop_rect, sin_cos};
+use crate::smartcrop::{self, Rect};
+use crate::spec::{Action, Anchor, Resample};
 use crate::{dither, text};
 
 /// Loads the pixels of an image a step reads (overlay, mask).
 pub(crate) type LoadInput<'a> = dyn Fn(&InputRef) -> Result<RgbaImage, ImageError> + 'a;
 
-/// Runs `steps` on `img`.
+/// The regions of the smart crops among `steps`, in order, found on the operation's source
+/// `src` (Hugo analyses the source whatever steps come before).
+pub(crate) fn smart_regions(src: &Decoded, steps: &[Step]) -> Vec<Rect> {
+    steps
+        .iter()
+        .filter_map(|s| match s {
+            Step::SmartCrop { target, filter, .. } => {
+                Some(smartcrop::find(&src.source(), target.0, target.1, *filter))
+            }
+            _ => None,
+        })
+        .collect()
+}
+
+/// Runs `steps` on `img`; `regions` are the smart crops' regions ([`smart_regions`]).
 pub(crate) fn run(
     mut img: RgbaImage,
     steps: &[Step],
     load: &LoadInput<'_>,
+    regions: &[Rect],
 ) -> Result<RgbaImage, ImageError> {
+    let mut regions = regions.iter();
     for step in steps {
         img = match step {
             Step::Rotate { degrees, size } => rotate(&img, *degrees, *size),
             Step::Resize { size, filter } => resize(&img, *size, *filter)?,
             Step::Crop { x, y, size } => {
                 imageops::crop_imm(&img, *x, *y, size.0, size.1).to_image()
+            }
+            Step::SmartCrop {
+                action,
+                target,
+                filter,
+            } => {
+                let region = regions.next().copied().unwrap_or_default();
+                smart_crop(&img, region, *action, *target, *filter)?
             }
             Step::Orient(o) => orient(img, *o),
             Step::Adjust(f) => adjust(img, f),
@@ -188,6 +214,49 @@ pub(crate) fn resize(
 
 // ---------------------------------------------------------------------------------------
 // Geometry
+
+/// Hugo's smart crop or fill once the region is known: `gift.Crop(region)`, then
+/// `gift.Resize` to the target (fill) or `gift.CropToSize` at the centre (crop).
+///
+/// Nothing is left of an empty region (no candidate, or none scoring above −1): a fill then
+/// fills at the centre anchor instead (`gift.ResizeToFill`, as Hugo's `processOptions` in
+/// `resources/image.go` does for issue 7955); a crop would be empty, which planning rejects
+/// when it can tell ([`crate::plan`]) and this rejects otherwise.
+fn smart_crop(
+    img: &RgbaImage,
+    region: Rect,
+    action: Action,
+    target: Size,
+    filter: Resample,
+) -> Result<RgbaImage, ImageError> {
+    let kept = region.intersect(Rect::of_size(img.dimensions()));
+    let (w, h) = kept.size();
+    if w == 0 || h == 0 {
+        if action == Action::Fill {
+            let cover = resize(img, cover_size(img.dimensions(), target), filter)?;
+            let (x, y, size) = crop_rect(cover.dimensions(), target, Anchor::Center);
+            return Ok(imageops::crop_imm(&cover, x, y, size.0, size.1).to_image());
+        }
+        return Err(ImageError::filter(
+            "smart crop",
+            format!(
+                "the smart anchor keeps nothing of the image for {}x{} (the result would be \
+                 empty); use another anchor",
+                target.0, target.1
+            ),
+        ));
+    }
+    let (x, y) = (
+        u32::try_from(kept.x0).unwrap_or(0),
+        u32::try_from(kept.y0).unwrap_or(0),
+    );
+    let cropped = imageops::crop_imm(img, x, y, w, h).to_image();
+    if action == Action::Fill {
+        return resize(&cropped, target, filter);
+    }
+    let (x, y, size) = crop_rect((w, h), target, Anchor::Center);
+    Ok(imageops::crop_imm(&cropped, x, y, size.0, size.1).to_image())
+}
 
 /// Rotates counter-clockwise onto a transparent canvas of `size` (nearest neighbour for
 /// angles that are not multiples of 90°).

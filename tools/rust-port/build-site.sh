@@ -7,12 +7,12 @@
 # - --clock pins `now` (the copyright year appears in the output).
 # - HUGO_NUMWORKERMULTIPLIER=1 makes the Go build deterministic (13 taxonomy
 #   terms collide on the same URL; the last one in tree order wins).
-# - HUGO_CACHEDIR points at the checked-in GetRemote (YouTube API) cache so
-#   the build is offline and reproducible.
+# - NEOHUGO_CACHEDIR (this tree's neohugo; the Go build reads HUGO_CACHEDIR)
+#   points at the checked-in GetRemote (YouTube API) cache so the build is
+#   offline and reproducible.
 # - The resources/ directory must not exist: the golden is a cold-cache build.
-# - esbuild 0.25.6 is needed for js.Build; neohugo looks for it via
-#   NEOHUGO_ESBUILD_BINARY (install with
-#   `tools/neohugo/node.sh && tools/esbuild/install.sh`).
+# - This tree's neohugo bundles js.Build in process; the Go build at 44529028
+#   linked esbuild 0.25.6 in.
 set -euo pipefail
 
 BIN=${1:?neohugo binary}
@@ -23,5 +23,6 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 [ "$(basename "$SITE")" = seeksnack ] || { echo "site dir must be named seeksnack" >&2; exit 1; }
 rm -rf "$SITE/resources" "$OUT"
 cd "$SITE"
-HUGO_CACHEDIR="$HERE/testdata/hugo_cache" HUGO_NUMWORKERMULTIPLIER=1 \
+NEOHUGO_CACHEDIR="$HERE/testdata/hugo_cache" \
+  HUGO_CACHEDIR="$HERE/testdata/hugo_cache" HUGO_NUMWORKERMULTIPLIER=1 \
   "$BIN" --minify --clock 2026-09-27T12:00:00Z -d "$OUT"

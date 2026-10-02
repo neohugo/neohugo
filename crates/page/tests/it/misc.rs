@@ -3,11 +3,13 @@
 //! template-side `NamedPageMetaValue`, belong to `neohugo-config` and `neohugo-view`.
 
 use jiff::tz::TimeZone;
+use neohugo_base::paths::ContentKey;
 use neohugo_base::{Map, PageKind, Params, Value};
 use neohugo_config::sections::SitemapConfig;
 use neohugo_config::{MediaTypes, OutputFormats};
 use neohugo_page::{
-    Cascade, CascadeTarget, Cjk, DateResolver, Markup, MatchCtx, MetaCtx, meta_from_params,
+    AdapterPage, Cascade, CascadeTarget, Cjk, DateResolver, Markup, MatchCtx, MetaCtx,
+    meta_from_params,
 };
 use serde_json::{Value as J, json};
 
@@ -104,8 +106,7 @@ fn check_page_config(t: &mut Tally, c: &J, formats: &OutputFormats, types: &Medi
     let i = &c["in"];
     let want = &c["want"];
     if i["pagesFromData"] == true {
-        // Content adapters (`_content.gotmpl`) are not supported.
-        t.accept("content-adapter");
+        check_adapter_page_config(t, c, types);
         return;
     }
     let mut m = match value(&i["params"]) {
@@ -163,6 +164,35 @@ fn check_page_config(t: &mut Tally, c: &J, formats: &OutputFormats, types: &Medi
                     "pageConfig {i}: got {:?} {outputs:?}, want {want}",
                     meta.markup
                 )
+            });
+        }
+    }
+}
+
+/// A page a content adapter adds (`PageConfig.Init(true)` and `CompileForPagesFromDataPre`):
+/// the map's kind, path, lang and content markup, from an adapter at the content root.
+fn check_adapter_page_config(t: &mut Tally, c: &J, types: &MediaTypes) {
+    let i = &c["in"];
+    let want = &c["want"];
+    let want_err = want.get("initErr").is_some() || want.get("compileErr").is_some();
+    let map = json!({
+        "kind": i["kind"],
+        "path": i["path"],
+        "lang": i["lang"],
+        "content": { "markup": i["markup"], "mediaType": i["mediaType"] },
+    });
+    let Value::Map(m) = value(&map) else {
+        panic!("a map");
+    };
+    let got = AdapterPage::decode(&Params::fold(&m), &ContentKey::home(), types);
+    match got {
+        Err(e) => t.check(want_err, || format!("pageConfig {i}: {e}, want {want}")),
+        Ok(p) => {
+            let ok = !want_err
+                && p.path == s(&want["path"])
+                && Some(p.markup) == markup_of_type(&want["contentMediaType"]["type"]);
+            t.check(ok, || {
+                format!("pageConfig {i}: got {} {:?}, want {want}", p.path, p.markup)
             });
         }
     }

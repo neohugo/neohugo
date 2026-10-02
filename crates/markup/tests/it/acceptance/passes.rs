@@ -195,7 +195,8 @@ fn passthrough_math() {
     );
     assert_eq!(
         out,
-        "<p>Inline <math>a_1 * b_2</math> and <code>\\(code\\)</code>.</p>\n<math>\nx^2 *y* \\\\\nz\n</math>\n<math>\\frac{1}{2}</math>\n<pre><code>$$no$$\n</code></pre>\n"
+        // a block hook's output is followed by the next block directly, as in Hugo
+        "<p>Inline <math>a_1 * b_2</math> and <code>\\(code\\)</code>.</p>\n<math>\nx^2 *y* \\\\\nz\n</math><math>\\frac{1}{2}</math><pre><code>$$no$$\n</code></pre>\n"
     );
     // Without a hook the source is written as is.
     assert!(

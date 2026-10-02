@@ -76,13 +76,13 @@ fn overlay_site(dir: &Path) {
     }
     // Markdown attributes on blocks, and standalone images as blocks (so the image hook gets
     // `attributes`); the testsite's own content is not affected.
-    let cfg = dir.join("hugo.toml");
-    let mut toml = fs::read_to_string(&cfg).expect("hugo.toml");
+    let cfg = dir.join("neohugo.toml");
+    let mut toml = fs::read_to_string(&cfg).expect("neohugo.toml");
     toml.push_str(
         "timeout = \"5s\"\n[markup.goldmark.parser]\nwrapStandAloneImageWithinParagraph = false\n\
          [markup.goldmark.parser.attribute]\nblock = true\n",
     );
-    fs::write(&cfg, toml).expect("write hugo.toml");
+    fs::write(&cfg, toml).expect("write neohugo.toml");
     let cache = dir.join("resources/_gen/getresource");
     fs::create_dir_all(&cache).expect("mkdir cache");
     for (url, body) in REMOTE {
@@ -107,7 +107,7 @@ fn build(privacy: &str) -> (tempfile::TempDir, std::path::PathBuf, String) {
     overlay_site(&site);
     fs::write(site.join("config/_default/privacy.toml"), privacy).expect("privacy.toml");
     let o = neohugo(&site, &["--clock", "2026-01-01T00:00:00Z"], NO_NETWORK);
-    let err = stderr(&o).replace(&site.display().to_string(), "[site]");
+    let err = crate::redact_site(&stderr(&o), &site);
     assert!(o.status.success(), "{err}");
     (tmp, site, err)
 }
@@ -187,7 +187,7 @@ fn embedded_templates_simple_and_disabled() {
 fn embedded_template_errors() {
     let site = site_from(
         r#"
--- hugo.toml --
+-- neohugo.toml --
 baseURL = "https://example.org/"
 disableKinds = ["taxonomy", "term", "rss", "sitemap", "robots", "404", "section"]
 [services.googleAnalytics]
@@ -238,7 +238,7 @@ title: qr
         NO_NETWORK,
     );
     assert_eq!(o.status.code(), Some(1));
-    let err = stderr(&o).replace(&site.path().display().to_string(), "[site]");
+    let err = crate::redact_site(&stderr(&o), site.path());
     // One line per diagnostic, in the order the pages were rendered (parallel): sorted.
     let mut lines: Vec<&str> = err.lines().collect();
     lines.sort_unstable();
@@ -248,13 +248,15 @@ title: qr
     });
 }
 
-/// The goat code block hook (`diagrams_goat`, svgbob; feature `goat` of the default build):
-/// a `viewBox` of GoAT's size, or the `width`/`height` attributes instead, and the `class`.
+/// The goat code block hook (`diagrams_goat`, the GoAT port; feature `goat` of the default
+/// build) writes Hugo's markup byte for byte: a `viewBox` of GoAT's size, or the
+/// `width`/`height` attributes instead, the `class`, and GoAT's SVG (the expected bytes are Go's
+/// `diagrams.Goat` output for these diagrams).
 #[test]
 fn goat_code_block() {
     let site = site_from(
         r#"
--- hugo.toml --
+-- neohugo.toml --
 baseURL = "https://example.org/"
 disableKinds = ["taxonomy", "term", "rss", "sitemap", "robotstxt", "404", "section", "home"]
 -- layouts/single.html --
@@ -277,21 +279,43 @@ title: p
     let o = neohugo(site.path(), &["--quiet"], NO_NETWORK);
     assert!(o.status.success(), "{}", stderr(&o));
     let page = read(site.path(), "p/index.html");
-    assert!(
-        page.contains(r#"<div class="goat svg-container ">"#),
-        "{page}"
+    // The hook's lines (as Hugo's template writes them, blank-but-indented lines included)
+    // around GoAT's `<g>` element.
+    let hook = |class: &str, size: &[&str], g: &[&str]| {
+        let mut lines = vec![
+            String::new(),
+            format!(r#"<div class="goat svg-container {class}">"#),
+            "  ".to_owned(),
+            "    <svg".to_owned(),
+            r#"      xmlns="http://www.w3.org/2000/svg""#.to_owned(),
+            r#"      font-family="Menlo,Lucida Console,monospace""#.to_owned(),
+            "      ".to_owned(),
+        ];
+        lines.extend(size.iter().map(|l| (*l).to_owned()));
+        lines.push("      >".to_owned());
+        lines.push("      <g transform='translate(8,16)'>".to_owned());
+        lines.extend(g.iter().map(|l| (*l).to_owned()));
+        lines.extend(["</g>", "", "    </svg>", "  ", "</div>", ""].map(str::to_owned));
+        lines.join("\n")
+    };
+    let first = hook(
+        "",
+        &[r#"        viewBox="0 0 40 57""#],
+        &[
+            "<path d='M 0,0 L 24,0' fill='none' stroke='currentColor'></path>",
+            "<path d='M 24,0 L 24,32' fill='none' stroke='currentColor'></path>",
+            "<polygon points='32.000000,32.000000 20.000000,26.400000 20.000000,37.599998' \
+             fill='currentColor' transform='rotate(90.000000, 24.000000, 32.000000)'></polygon>",
+            "<circle cx='0' cy='0' r='6' stroke='currentColor' fill='currentColor'></circle>",
+        ],
     );
-    assert!(page.contains(r#"viewBox="0 0 40 64""#), "{page}");
-    assert!(
-        page.contains(r#"<div class="goat svg-container c">"#),
-        "{page}"
+    let second = hook(
+        "c",
+        &[r#"        width="100""#, "        "],
+        &["<path d='M -4,-8 L 4,8' fill='none' stroke='currentColor'></path>"],
     );
-    assert!(page.contains(r#"width="100""#), "{page}");
-    assert!(!page.contains(r#"viewBox="0 0 16 32""#), "{page}");
-    assert!(
-        page.contains("<g class='svgbob' transform='translate(4,8)'>"),
-        "{page}"
-    );
+    assert!(page.contains(&first), "{page}");
+    assert!(page.contains(&second), "{page}");
 }
 
 /// The `qr` shortcode renders what Hugo's `TestQRShortcode` asserts (names, sizes and
@@ -300,7 +324,7 @@ title: p
 fn qr_shortcode_equals_hugo_s() {
     let site = site_from(
         r#"
--- hugo.toml --
+-- neohugo.toml --
 baseURL = "https://example.org/"
 disableKinds = ['page','rss','section','sitemap','taxonomy','term']
 -- layouts/home.html --

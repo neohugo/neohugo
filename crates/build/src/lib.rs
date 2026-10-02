@@ -6,12 +6,13 @@
 //! | Phase | What | Where |
 //! |---|---|---|
 //! | A1–B6 | configuration, mounts, discovery, parsing, the site model | `config`, `vfs`, `site` |
+//! | A4b | content adapters (`_content.html`), with a session of the content files' model; the model again with what they added | `adapters` |
 //! | B7 | layout scan and selection; `Session::new` loads Tera once (site functions, i18n) | `layouts`, `render` |
 //! | C1, D | content of every page in every hook variant, then the frozen views | `render` (render pool) |
 //! | E1 | static files into the sink (rendered outputs win conflicts) | `publish` |
 //! | E2 | wave 1: one sub-wave per language, in language order | `waves` (render pool) |
 //! | E3 | wave 2: pagers 2..N, `page/1/` aliases, the language redirect | `waves` |
-//! | E4 | `hugo_stats.json`: the project directory and its asset mounts | `deferred` |
+//! | E4 | `neohugo_stats.json`: the project directory and its asset mounts | `deferred` |
 //! | E5 | `defer(...)` templates once per key, post-process fields → `patch_held` | `deferred` (render pool) |
 //! | E6 | resources named by URL tokens (and eager bundle files), processed images | `publish_resources` |
 //! | E7 | sorted, de-duplicated diagnostics; errors fail the build | `build` |
@@ -29,6 +30,7 @@
 
 #![forbid(unsafe_code)]
 
+mod adapters;
 mod deferred;
 mod structure;
 mod waves;
@@ -51,7 +53,7 @@ use neohugo_publish::{
 };
 use neohugo_render::{JobOrder, Project, RenderError, RenderOptions, Session};
 use neohugo_resources::ResourceError;
-use neohugo_site::{LoadModelOptions, Model, ModelError};
+use neohugo_site::{Added, LoadModelOptions, Model, ModelError};
 use neohugo_vfs::{Vfs, VfsError};
 
 /// Where the outputs go.
@@ -90,7 +92,7 @@ pub struct BuildRequest {
     /// `neohugo server`: put the LiveReload script into the HTML pages (not into `build`'s
     /// output).
     pub live_reload: Option<LiveReload>,
-    /// `neohugo server`: `hugo.is_server` is true.
+    /// `neohugo server`: `neohugo.is_server` is true.
     pub server: bool,
 }
 
@@ -174,13 +176,13 @@ pub struct BuildReport {
     pub model: Option<Arc<Model>>,
 }
 
-/// The process environment the configuration reads: `HUGO_*` overrides, and `HOME`,
+/// The process environment the configuration reads: `NEOHUGO_*` overrides, and `HOME`,
 /// `XDG_CACHE_HOME`, `TMPDIR` and `USER` for the default cache directory.
 #[must_use]
 pub fn process_env() -> Vec<(String, String)> {
     std::env::vars()
         .filter(|(k, _)| {
-            k.starts_with("HUGO_")
+            k.starts_with(neohugo_config::env::PREFIX)
                 || matches!(k.as_str(), "HOME" | "XDG_CACHE_HOME" | "TMPDIR" | "USER")
         })
         .collect()
@@ -270,18 +272,43 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     let vfs = Arc::new(Vfs::new(&cfg)?);
     let clock = r.clock.map_or_else(Clock::system, Clock);
     let pool = RenderPool::new(r.threads)?;
-    let model = pool.run(|| {
-        neohugo_site::load_model(
-            Arc::clone(&cfg),
-            &vfs,
-            &LoadModelOptions::from_config(&cfg, clock),
-        )
-    })?;
+    let render_options = RenderOptions {
+        clock,
+        server: r.server,
+    };
+    let model_options = LoadModelOptions::from_config(&cfg, clock);
+    let captured = pool.run(|| neohugo_site::capture_content(&cfg, &vfs))?;
+    // A4b: content adapters need the layouts (partials) before the model.
+    let mut layouts = None;
+    let mut adapter_diags = Vec::new();
+    let model = if captured.adapters().is_empty() {
+        pool.run(|| {
+            neohugo_site::assemble(Arc::clone(&cfg), captured, Added::default(), &model_options)
+        })?
+    } else {
+        let project = Project {
+            vfs: Arc::clone(&vfs),
+            layouts: Arc::clone(layouts.insert(Arc::new(LayoutStore::scan(&vfs, &cfg)?))),
+        };
+        let (model, diags) = adapters::assemble_with_adapters(
+            &cfg,
+            &project,
+            captured,
+            &model_options,
+            &render_options,
+            &pool,
+        )?;
+        adapter_diags = diags;
+        model
+    };
     let model_diags = model.diagnostics.clone();
     laps.lap(&mut report, "model");
 
     // B7, C0.
-    let layouts = Arc::new(LayoutStore::scan(&vfs, &cfg)?);
+    let layouts = match layouts {
+        Some(l) => l,
+        None => Arc::new(LayoutStore::scan(&vfs, &cfg)?),
+    };
     let session = pool.run(|| {
         Session::new(
             Project {
@@ -289,14 +316,17 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
                 layouts,
             },
             Arc::new(model),
-            &RenderOptions {
-                clock,
-                server: r.server,
-            },
+            &render_options,
         )
     })?;
     // The configuration's notices (deprecated keys, ignored configuration files) first.
-    for d in cfg.diagnostics.iter().cloned().chain(model_diags) {
+    for d in cfg
+        .diagnostics
+        .iter()
+        .cloned()
+        .chain(model_diags)
+        .chain(adapter_diags)
+    {
         session.diagnostics().push(d);
     }
     report.pages = session.model().pages.len();
@@ -338,7 +368,8 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
         settings,
         Arc::clone(&sink),
         Arc::clone(session.diagnostics()),
-    );
+    )
+    .with_css_purges(Arc::clone(&session.handles().css_purges));
     laps.lap(&mut report, "static");
 
     // E2 (language sub-waves in order), E3.

@@ -3,7 +3,7 @@
 //!
 //! A post-processed resource gets a [`PostProcessId`] (per resource, from 1); each of its
 //! fields ([`PpField`]) is written as `__nh_pp_<id>_<field>__`. Outputs holding placeholders
-//! are held; in E5, after `hugo_stats.json` exists, [`ResourceStore::resolve_post_process`]
+//! are held; in E5, after `neohugo_stats.json` exists, [`ResourceStore::resolve_post_process`]
 //! computes the resource (its pending transforms run now) and replaces the placeholders with
 //! the field values (verbatim: content is not escaped, links are final).
 

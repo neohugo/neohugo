@@ -28,7 +28,7 @@ use neohugo_view::{
 
 pub const FILES: &[(&str, &str)] = &[
     (
-        "hugo.toml",
+        "neohugo.toml",
         r#"baseURL = "https://example.org/sub/"
 title = "Funcs"
 defaultContentLanguage = "en"
@@ -318,6 +318,7 @@ fn build(dir: tempfile::TempDir) -> Site {
         stores: Arc::new(PageStores::new(model.pages.len())),
         pagination: Arc::new(PaginationRecorder::default()),
         deferred: Arc::new(DeferredRegistry::default()),
+        css_purges: Arc::default(),
         menus,
         related: Arc::new(RelatedCache::default()),
         i18n,
@@ -327,6 +328,7 @@ fn build(dir: tempfile::TempDir) -> Site {
         templates: Arc::new(OnceLock::new()),
         frames: Arc::new(Frames::default()),
         partial_cache: Arc::new(DashMap::new()),
+        adapters: Arc::default(),
     };
     let layouts = Arc::new(LayoutStore::scan(&vfs, &cfg).expect("layouts"));
     let pure = Arc::new(PureEnv::new("en"));

@@ -58,7 +58,6 @@ sites/<site>/               the Tera layouts (and assets) of the test sites; sit
 tools/neohugo/              the harness (compare.sh, structdiff.py, manifest.py, selftest.py,
                             changes/), node.sh, licence-check.sh, notices.py, package.py, disk.sh,
                             fixtures2json.py
-tools/esbuild/install.sh    esbuild for js_build (tools/esbuild/bin/esbuild)
 tools/rust-port/            i01/sites.py (every test site), patches.json and the site txtars; the
                             GetRemote cache and the real seeksnack record (its README.md)
 docs/                       Hugo's documentation site, a test site the tests record by hash (keep
@@ -118,7 +117,8 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 | graph | `cargo metadata --format-version 1 --filter-platform x86_64-unknown-linux-gnu` |
 | disk | `tools/neohugo/disk.sh` |
 | fixtures | `tools/neohugo/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
-| acceptance | `tools/neohugo/compare.sh <site> [--docs-patches i01\|reduced] [KEEP=1]` (T03) |
+| acceptance | `tools/neohugo/compare.sh <site> [--docs-patches i01\|reduced\|live] [KEEP=1]` (T03) |
+| docs site | `tools/docs/build.sh [-o <dir>] [--serve]`: https://neohugo.github.io/ built with neohugo (`docs/` + the Tera overlay `sites/docs`, the docs' own node modules; gate A-D3 compares it with the published site) |
 | templates | `neohugo templates check -s <site-dir>` (T37) |
 | CI, locally | see "CI and releases" below (workspace-wide: not for the edit–test loop) |
 
@@ -178,23 +178,26 @@ text printed once. A linked crate that ships no licence file gets the MIT text w
 its licences, or a reference to the Apache-2.0 text another linked crate ships when Apache-2.0
 is; any other such crate fails the step, so it is noticed before a release.
 
-**Toolchain.** CI installs `RUST_TOOLCHAIN` (1.94.1, the toolchain the workspace is developed
-with) through rustup; `rust-version = "1.94"` in `Cargo.toml` stays the MSRV. A newer clippy
-brings new lints, which `-D warnings` turns into failures, so the pin moves in a commit of its
-own that also fixes the new findings. There is deliberately no `rust-toolchain.toml`: the
-agents' offline rustup has only `stable` (which is 1.94.1), and a pinned channel makes rustup
-look for a toolchain named `1.94.1` and try to download it. Add one (and drop `RUST_TOOLCHAIN`)
-once every environment can install toolchains.
+**Toolchain.** CI installs `RUST_TOOLCHAIN` (1.96.0, the toolchain the workspace is developed
+with) through rustup; `rust-version = "1.96"` in `Cargo.toml` stays the MSRV, set by rolldown's
+oxc (1.96 for oxc 0.152). rolldown and the oxc it pins are exact pins (`=`): their Rust API has
+no semver promise and each release moves oxc, which in turn raises its MSRV every few
+releases, so a rolldown upgrade is its own change that also moves `rust-version` and
+`RUST_TOOLCHAIN` when needed. A newer clippy brings new lints, which `-D warnings` turns into
+failures, so the pin moves in a commit of its own that also fixes the new findings. There is
+deliberately no `rust-toolchain.toml`: a pinned channel makes rustup look for a toolchain named
+after it and try to download it in environments that cannot. Add one (and drop
+`RUST_TOOLCHAIN`) once every environment can install toolchains.
 
 **Tools the tests use.** Without its tool a test prints `SKIPPED …` and passes, so CI provides
 all of them, and its Test job fails when a test prints `SKIPPED`:
 
 | Tests | Tool | In CI |
 |---|---|---|
-| `neohugo-esbuild`: `jsbuild_synth`, `jsbuild_docs`, `build_errors_are_messages`, `inline_source_map`, `concurrent_builds_share_one_service`, `plugin_callbacks`, `version_ping_and_build_round_trip`; `neohugo-resources`: `js_build_docs`, `js_build_t16site` and the js_build half of `execute_as_template_with_tera` (silent) | esbuild: `NEOHUGO_ESBUILD_BINARY`, else `tools/esbuild/bin/esbuild` | `tools/esbuild/install.sh` after `tools/neohugo/node.sh`, like a local install: the binary of the npm package `tools/neohugo/node/package.json` pins, checked with `--version`; a failure fails the job |
+| `neohugo-jsbuild`: `jsbuild_synth`, `jsbuild_docs` and the `build::` tests that run scripts (the oracle's and neohugo's bundles run side by side, compared by what they do) | `node` on `PATH` | `actions/setup-node`, Node 22 |
 | `neohugo-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_reconstruction_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
 | `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
-| `neohugo`: `gate_a_r`, `gate_a_d2` (`tools/neohugo/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`NEOHUGO_NODE_MODULES`, else `tools/neohugo/node.sh path`) and esbuild (`NEOHUGO_ESBUILD_BINARY`, else the main checkout's `tools/esbuild/bin/esbuild`) | the runner's `python3` and `bash`; the three rows above |
+| `neohugo`: `gate_a_r`, `gate_a_d2` (`tools/neohugo/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`NEOHUGO_NODE_MODULES`, else `tools/neohugo/node.sh path`) | the runner's `python3` and `bash`; the rows above |
 
 `neohugo-images`' `sizes_match_the_process_oracle` compares all 13,250 cases, 2,204 of them from
 Go's own image test data in `testdata/upstream/goroot/` and `testdata/upstream/old-port/`
@@ -213,8 +216,8 @@ cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 tools/neohugo/licence-check.sh
 python3 tools/neohugo/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
-N=$(tools/neohugo/node.sh path)   # once: tools/neohugo/node.sh && tools/esbuild/install.sh
-NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
+N=$(tools/neohugo/node.sh path)   # once: tools/neohugo/node.sh
+NEOHUGO_NODE_MODULES=$N \
 NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
 NEOHUGO_BABEL_BIN=$N/.bin/babel \
   cargo test --workspace --locked --offline --no-fail-fast -- --show-output
@@ -261,15 +264,18 @@ fields only, with a reviewed `expected_diffs.toml` per crate.
 ## Optional features
 
 `neohugo-funcs` compiles two SHOULD template functions only with a feature: `to_math` (`math`,
-pulldown-latex) and `diagrams_goat` (`goat`, svgbob and its geometry crates). Without it the
-name is registered as a stub that fails when called. The `neohugo` crate (the `neohugo`
-binary) turns both on by default (`default = ["goat", "math"]`), so the release build and CI's
-`-p neohugo` builds render the documentation site's formulas and diagrams (gate A-D2, T66);
-`--no-default-features` leaves them out. Their cost (T66): 53 more packages in `neohugo`'s
-normal dependency tree (nalgebra, parry2d, sauron, futures, …; all licences pass
-`licence-check.sh`, which always checks `--all-features`) and about 1.4 MB (1.5 %) of a
-stripped debug binary. A test of `neohugo-funcs`
-alone builds without them unless `--features goat,math` is given (`tests/it/{math,goat}.rs`).
+KaTeX 0.16.22 with mhchem run in QuickJS-ng through rquickjs, as Hugo runs it;
+`crates/funcs/README.md`) and `diagrams_goat` (`goat`, the port of GoAT in `src/pure/goat/`).
+Without it the name is registered as a stub that fails when called. The `neohugo` crate (the
+`neohugo` binary) turns both on by default (`default = ["goat", "math"]`), so the release build and
+CI's `-p neohugo` builds render the documentation site's formulas and diagrams (gate A-D2, T66);
+`--no-default-features` leaves them out. Their cost: `goat` has no dependencies (the GoAT port
+replaced svgbob and its geometry crates, nalgebra, parry2d, sauron, futures, …); `math` brings
+rquickjs, rquickjs-core and rquickjs-sys (MIT), whose build script compiles QuickJS-ng's C
+sources with the platform's compiler (`cc`, as libwebp-sys does; rquickjs-sys ships bindings for
+the five release targets, so no bindgen or libclang), and about 1.45 MB (2.9 %) of the stripped
+release binary (QuickJS and the 310 KB of KaTeX JavaScript). A test of `neohugo-funcs` alone
+builds without them unless `--features goat,math` is given (`tests/it/{math,goat}.rs`).
 
 ## Feature unification
 
@@ -290,3 +296,14 @@ the hack with the union. Deliberately left out (heavy, or used by one lane only)
 compiled data (`icu_normalizer`, `icu_properties`, `icu_calendar`, `icu_time`), `phf`, `rand`,
 `getrandom` 0.2/0.4, `hashbrown` 0.14, `http`, `httparse`, `tracing-core`, and host-only
 proc-macro dependencies (`syn`).
+
+**serde_json.** rolldown and oxc_resolver turn on serde_json's `preserve_order` (a `Map` keeps
+insertion order; package.json `exports` depend on it) and rolldown_common its
+`arbitrary_precision` (numbers keep their text), in every build `neohugo-jsbuild` is part of —
+the binary included. The hack turns both on for every member, so every test runs with what the
+binary does (`neohugo-funcs`' `determinism` test fails when they are off). Two rules follow:
+never rely on the order of a `serde_json::Map` (convert to `neohugo_base::Value`, whose maps
+are sorted, before output; tests compare JSON as values or through that conversion), and never
+hand a `serde_json::Value` with numbers to another format's serializer (Tera, YAML, TOML): its
+numbers serialize as a private one-entry map. `neohugo_base::Value`'s deserializer reads such
+a map back as the number, and `neohugo_testkit::tera_value` converts JSON for template tests.

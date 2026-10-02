@@ -2,8 +2,9 @@
 //! asset path of a real file.
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 
-use neohugo_esbuild::{AssetEntry, Assets};
+use neohugo_jsbuild::{AssetEntry, Assets};
 use neohugo_vfs::{Component, Vfs};
 
 /// The assets component of a store's [`Vfs`] (empty without one).
@@ -68,16 +69,26 @@ impl<'a> AssetsView<'a> {
     }
 }
 
-impl Assets for AssetsView<'_> {
+impl AssetsView<'_> {
     fn entry(&self, path: &str) -> Option<AssetEntry> {
         if let Some(f) = self.file(path) {
             return Some(AssetEntry::File(f));
         }
         self.is_dir(path).then_some(AssetEntry::Dir)
     }
+}
+
+/// The [`AssetsView`] of a shared [`Vfs`]: `js_build` resolves imports on the bundler's
+/// threads, so it needs a view it can keep.
+pub(super) struct SharedAssets(pub(super) Option<Arc<Vfs>>);
+
+impl Assets for SharedAssets {
+    fn entry(&self, path: &str) -> Option<AssetEntry> {
+        AssetsView::new(self.0.as_deref()).entry(path)
+    }
 
     fn assets_path(&self, filename: &Path) -> Option<String> {
-        self.asset_path(filename)
+        AssetsView::new(self.0.as_deref()).asset_path(filename)
     }
 }
 

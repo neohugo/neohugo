@@ -150,7 +150,7 @@ fn data_reconstruction_keys_with_slashes() {
     let dir = tmp.path().join("seeksnack");
     std::fs::create_dir_all(dir.join("data")).unwrap();
     std::fs::write(
-        dir.join("hugo.toml"),
+        dir.join("neohugo.toml"),
         "baseURL = \"https://example.org/\"\n",
     )
     .unwrap();

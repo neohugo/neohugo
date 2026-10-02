@@ -88,7 +88,7 @@ pub enum PublishPolicy {
 pub enum Body {
     File(PathBuf),
     Bytes(Arc<[u8]>),
-    /// Bytes the build produced for an asset path (`hugo_stats.json`, see
+    /// Bytes the build produced for an asset path (`neohugo_stats.json`, see
     /// [`ResourceStore::inject_generated`]).
     Generated(Arc<[u8]>),
     /// A processed image; the pixels come from the [`ImageQueue`].
@@ -330,8 +330,8 @@ pub struct StoreConfig {
     /// Processed images; `None` gives a store that cannot publish or read them.
     pub images: Option<Arc<ImageQueue>>,
     pub remote: RemoteConfig,
-    /// What the pipes need: the project and publish directories, external tools, esbuild,
-    /// the minifier.
+    /// What the pipes need: the project and publish directories, external tools, the
+    /// `js_build` bundler, the minifier.
     pub transforms: Arc<TransformEnv>,
 }
 
@@ -376,6 +376,29 @@ pub struct BundleResource {
     pub name: String,
     /// The owning page's link directory, unescaped (`/blog/bundle1`, `/fr/blog/b`).
     pub dir: String,
+    pub policy: PublishPolicy,
+}
+
+/// A page resource a content adapter added (`add_resource`; Hugo's `ResourceConfig`).
+#[derive(Clone, Debug)]
+pub struct AdapterResource {
+    pub lang: LangIdx,
+    /// Its bytes: text the adapter gave, or the body of the resource it passed.
+    pub body: Body,
+    /// `content.mediaType`, else the media type of the resource it passed (`None`: from the
+    /// name's extension).
+    pub media_type: Option<String>,
+    /// The path below the owning page (`sub/data.yaml`) and the page's link directory, as for
+    /// a bundle file ([`BundleResource`]).
+    pub name: String,
+    pub dir: String,
+    /// A resource the adapter passed keeps its own file and link (Hugo publishes it relative
+    /// to the site root); `None`: below the page.
+    pub place: Option<(OutputPath, UrlPath)>,
+    /// `name`, `title` and `params` of the map (`None`: the name below the page, the name).
+    pub display_name: Option<String>,
+    pub title: Option<String>,
+    pub params: Params,
     pub policy: PublishPolicy,
 }
 
@@ -744,7 +767,7 @@ impl ResourceStore {
     }
 
     /// Makes `bytes` the content of the asset at `asset_path` for the rest of the build (build
-    /// phase E4 writes `hugo_stats.json` this way). An asset already registered at that path
+    /// phase E4 writes `neohugo_stats.json` this way). An asset already registered at that path
     /// reads the new bytes; resources derived from it before the call keep what they read.
     pub fn inject_generated(&self, asset_path: &str, bytes: Arc<[u8]>) {
         let rel = paths::clean(&format!("/{asset_path}"));
@@ -793,6 +816,45 @@ impl ResourceStore {
             Ok(id) => id,
             Err(never) => match never {},
         }
+    }
+
+    /// A page resource a content adapter added: like [`register_bundle`](Self::register_bundle)
+    /// (target and link below the page's directory, or the passed resource's own place), with
+    /// the adapter's name, title and params. Every call makes a new resource (two adapter
+    /// resources may share a passed resource's place).
+    pub fn register_adapter_resource(&self, r: &AdapterResource) -> ResourceId {
+        let name = r.name.trim_start_matches('/');
+        let (target, link) = match &r.place {
+            Some((target, link)) => (target.clone(), link.clone()),
+            None => {
+                let link = paths::join(&["/", &r.dir, name]);
+                let target =
+                    OutputPath::new(&format!("{}{link}", self.lang_target(r.lang).target_prefix));
+                (target, UrlPath::new(&link))
+            }
+        };
+        let types = &self.cfg.media_types;
+        let media_type = r
+            .media_type
+            .as_deref()
+            .and_then(|t| types.by_type(t))
+            .map_or_else(|| self.media_type_of(name), |id| types.get(id).clone());
+        let display = r.display_name.clone().unwrap_or_else(|| name.to_owned());
+        self.push(NewResource {
+            origin: Origin::Bundle { lang: r.lang },
+            media_type,
+            title: r.title.clone().unwrap_or_else(|| display.clone()),
+            name_normalized: Some(normalize_name(name)),
+            name: display,
+            params: r.params.clone(),
+            data: Map::new(),
+            lang: r.lang,
+            target,
+            link,
+            body: r.body.clone(),
+            policy: r.policy,
+            kind: None,
+        })
     }
 
     // ── named targets ───────────────────────────────────────────────────────────────────────
@@ -1008,6 +1070,37 @@ impl ResourceStore {
     pub fn transform(&self, id: ResourceId, t: Transform) -> Result<ResourceId, ResourceError> {
         self.transforms
             .get_or_try((id, t.clone()), || pipes::start(self, id, t))
+    }
+
+    /// Whether computing `id` waits for phase E5: its chain runs PostCSS or Tailwind (which
+    /// read `neohugo_stats.json`, written once every page is rendered) or processes an image
+    /// (images are processed in E6, outside the renders). Any other pending `fingerprint` is
+    /// computed when the template asks for it, as Hugo computes it when its links are read.
+    #[must_use]
+    pub fn waits_for_e5(&self, id: ResourceId) -> bool {
+        let mut id = id;
+        loop {
+            let r = self.resource(id);
+            match &r.origin {
+                Origin::Transformed { from, transform } => {
+                    if matches!(
+                        **transform,
+                        Transform::PostCss(_) | Transform::TailwindCss(_)
+                    ) {
+                        return true;
+                    }
+                    id = *from;
+                }
+                Origin::Meta { from } => id = *from,
+                Origin::Image { .. } => return true,
+                Origin::Asset { .. }
+                | Origin::Bundle { .. }
+                | Origin::Remote { .. }
+                | Origin::Named => {
+                    return matches!(r.body, Body::PendingImage(_));
+                }
+            }
+        }
     }
 
     /// Resource `id` with a pending transform computed (see [`crate::pipes`]); `id` keeps its

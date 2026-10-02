@@ -139,7 +139,7 @@ fn testsite_matches_go() {
 }
 
 const FLAGS_SITE: &str = r#"
--- hugo.toml --
+-- neohugo.toml --
 baseURL = "https://example.org/"
 title = "Config title"
 disableKinds = ["taxonomy", "term", "rss", "sitemap", "robots", "404"]
@@ -163,7 +163,7 @@ title: Expired
 expiryDate: 2020-01-01
 ---
 -- layouts/home.html --
-{{ site.title }}|{{ hugo.environment }}|{{ site.base_url }}|{{ now() | date(format="%Y") }}|{% for p in site.regular_pages | sort_by(attribute="title") %}{{ p.title }},{% endfor %}
+{{ site.title }}|{{ neohugo.environment }}|{{ site.base_url }}|{{ now() | date(format="%Y") }}|{% for p in site.regular_pages | sort_by(attribute="title") %}{{ p.title }},{% endfor %}
 -- layouts/single.html --
 {{ page.title }}
 "#;
@@ -206,15 +206,34 @@ fn flags_and_environment() {
     }
     assert!(run(&["-e", "staging"], &[]).contains("|staging|"));
     assert!(run(&["--environment", "staging"], &[]).contains("|staging|"));
-    // `HUGO_*` environment: configuration keys and the environment (`-e` wins over
-    // `HUGO_ENV`; other keys follow neohugo-config's order, file < directory < flags < env).
+    // `NEOHUGO_*` environment: configuration keys and the environment (`-e` wins over
+    // `NEOHUGO_ENVIRONMENT`; other keys follow neohugo-config's order, file < directory <
+    // flags < env).
     let env = run(
         &[],
-        &[("HUGO_TITLE", "Env title"), ("HUGO_ENVIRONMENT", "env")],
+        &[
+            ("NEOHUGO_TITLE", "Env title"),
+            ("NEOHUGO_ENVIRONMENT", "env"),
+        ],
     );
     assert!(env.starts_with("Env title|env|"), "{env}");
-    assert!(run(&["-e", "flag"], &[("HUGO_ENV", "env")]).contains("|flag|"));
-    assert!(run(&[], &[("HUGO_BASEURL", "https://env.org/")]).contains("|https://env.org/|"));
+    assert!(run(&["-e", "flag"], &[("NEOHUGO_ENVIRONMENT", "env")]).contains("|flag|"));
+    assert!(run(&[], &[("NEOHUGO_BASEURL", "https://env.org/")]).contains("|https://env.org/|"));
+    // Hugo's `HUGO_*` variables are not read.
+    let hugo = run(
+        &[],
+        &[
+            ("HUGO_TITLE", "Hugo title"),
+            ("HUGO_ENVIRONMENT", "hugo"),
+            ("HUGO_ENV", "hugo"),
+            ("HUGO_BASEURL", "https://hugo.org/"),
+        ],
+    );
+    assert!(
+        !hugo.contains("Hugo title") && !hugo.contains("|hugo|"),
+        "{hugo}"
+    );
+    assert!(!hugo.contains("https://hugo.org/"), "{hugo}");
 
     // `--minify` / `-M` (`--renderToMemory`): nothing is written.
     fs::remove_dir_all(s.path().join("public")).expect("rm public");
@@ -271,7 +290,7 @@ fn explicit_false_overrides_the_configuration() {
 #[test]
 fn errors_are_reported_with_positions() {
     let s = site_from(
-        "-- hugo.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n<p>\n{{ page.params.nope.deeper }}\n</p>\n",
+        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n<p>\n{{ page.params.nope.deeper }}\n</p>\n",
     );
     let o = neohugo(s.path(), &["-M"], &[]);
     assert_eq!(o.status.code(), Some(1));
@@ -281,7 +300,7 @@ fn errors_are_reported_with_positions() {
     assert!(err.contains("{{ page.params.nope.deeper }}"), "{err}");
 
     let s = site_from(
-        "-- hugo.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n{{ page.title }}{% if %}\n",
+        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n{{ page.title }}{% if %}\n",
     );
     let o = neohugo(s.path(), &["-M"], &[]);
     assert_eq!(o.status.code(), Some(1));
@@ -289,7 +308,7 @@ fn errors_are_reported_with_positions() {
 
     // Diagnostics (here a `throw`-free error: a missing shortcode) are listed, then counted.
     let s = site_from(
-        "-- hugo.toml --\nbaseURL = \"https://e.org/\"\n-- content/_index.md --\n---\ntitle: H\n---\n{{< nope >}}\n-- layouts/home.html --\n{{ page.content }}\n",
+        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\n-- content/_index.md --\n---\ntitle: H\n---\n{{< nope >}}\n-- layouts/home.html --\n{{ page.content }}\n",
     );
     let o = neohugo(s.path(), &["-M"], &[]);
     assert_eq!(o.status.code(), Some(1));

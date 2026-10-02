@@ -55,6 +55,17 @@ pub fn site(name: &str) -> tempfile::TempDir {
     tmp
 }
 
+/// `text` with the directory `dir` written as `[site]`: its resolved path first (neohugo
+/// reports resolved paths, and macOS's temporary directory, `/var/…`, resolves to
+/// `/private/var/…`), then the path as given.
+pub fn redact_site(text: &str, dir: &Path) -> String {
+    let given = dir.display().to_string();
+    let resolved = dir
+        .canonicalize()
+        .map_or_else(|_| given.clone(), |p| p.display().to_string());
+    text.replace(&resolved, "[site]").replace(&given, "[site]")
+}
+
 /// A site from txtar text.
 pub fn site_from(text: &str) -> tempfile::TempDir {
     let tmp = tempfile::tempdir().expect("tempdir");

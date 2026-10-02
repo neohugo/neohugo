@@ -8,7 +8,8 @@ use neohugo_base::paths::ContentKey;
 use neohugo_base::{IdVec, Idx, LangIdx, PageKind, Params, Value};
 use neohugo_config::Config;
 use neohugo_page::{
-    Cascade, Cjk, DateResolver, FileCtx, MatchCtx, MetaCtx, PageMeta, meta_from_params,
+    Cascade, Cjk, DateResolver, FileCtx, MatchCtx, MetaCtx, PageMeta, meta_from_adapter,
+    meta_from_params,
 };
 use rayon::prelude::*;
 
@@ -57,18 +58,15 @@ pub(crate) fn metas(
             } else {
                 &Cascade::default()
             };
-            let mut params = p.page.params.clone();
-            apply_cascade(
-                &cascades[p.page.lang].in_force(&p.key, own),
-                &MatchCtx {
-                    kind: p.kind,
-                    path: &p.key.to_path(),
-                    lang: &site.language.key,
-                    environment: &cfg.environment,
-                },
-                &mut params,
-            );
+            let cascade = cascades[p.page.lang].in_force(&p.key, own);
+            let match_ctx = MatchCtx {
+                kind: p.kind,
+                path: &p.key.to_path(),
+                lang: &site.language.key,
+                environment: &cfg.environment,
+            };
             let src = &p.page.source;
+            let adapter = p.page.adapter.as_deref();
             let ctx = MetaCtx {
                 kind: p.kind,
                 formats: &cfg.output_formats,
@@ -79,15 +77,44 @@ pub(crate) fn metas(
                 } else {
                     Cjk::No
                 },
-                ext: &src.file_info.ext,
+                // An adapter page has no file of its own: no extension, no file dates.
+                ext: if adapter.is_some() {
+                    ""
+                } else {
+                    &src.file_info.ext
+                },
                 dates: &resolvers[p.page.lang],
-                file: Some(FileCtx {
+                file: adapter.is_none().then(|| FileCtx {
                     base_filename: src.base_filename(),
                     mod_time: src.mod_time,
                     git_author_date: None,
                 }),
                 time_zone: &site.language.time_zone,
             };
+            if let Some(adapter) = adapter {
+                // The cascade's fields fill the `add_page` map, its params the params.
+                let mut fields = adapter.fields.clone();
+                let mut params = Params::default();
+                if !cascade.is_empty() {
+                    cascade.apply_split(&match_ctx, &mut fields, &mut params);
+                }
+                let mut meta = meta_from_adapter(adapter, &fields, params, &ctx).map_err(|e| {
+                    ModelError::Adapter {
+                        path: src.file.abs.clone(),
+                        message: format!("page {:?}: {e}", p.key.to_path()),
+                    }
+                })?;
+                if meta.cjk == Cjk::Detect {
+                    meta.cjk = if src.body().chars().any(is_cjk) {
+                        Cjk::Yes
+                    } else {
+                        Cjk::No
+                    };
+                }
+                return Ok(meta);
+            }
+            let mut params = p.page.params.clone();
+            apply_cascade(&cascade, &match_ctx, &mut params);
             let mut meta = meta_from_params(params, &ctx).map_err(|source| ModelError::Page {
                 path: src.file.abs.clone(),
                 source,

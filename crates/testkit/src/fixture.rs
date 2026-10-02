@@ -103,6 +103,37 @@ pub const UPSTREAM: [&str; 5] = [
 /// (after `44529028`); frozen fixtures still name files below it (`rust/testdata/...`).
 pub const LEGACY_WORKSPACE: &str = "rust";
 
+/// The path a site file the Go oracles recorded has in a neohugo site: a configuration file
+/// named `hugo.<ext>` (the project's, a configuration directory's or a theme's) is
+/// `neohugo.<ext>`, as neohugo reads no `hugo.*` file. Files below a component directory
+/// (`content/hugo.toml` is a page) keep their names.
+#[must_use]
+pub fn neohugo_path(rel: &str) -> String {
+    const COMPONENTS: [&str; 7] = [
+        "content",
+        "data",
+        "assets",
+        "static",
+        "i18n",
+        "layouts",
+        "archetypes",
+    ];
+    let (dir, name) = rel.rsplit_once('/').unwrap_or(("", rel));
+    let Some(ext) = name.strip_prefix("hugo.") else {
+        return rel.to_owned();
+    };
+    if !matches!(ext, "toml" | "yaml" | "yml" | "json")
+        || dir.split('/').any(|seg| COMPONENTS.contains(&seg))
+    {
+        return rel.to_owned();
+    }
+    if dir.is_empty() {
+        format!("neohugo.{ext}")
+    } else {
+        format!("{dir}/neohugo.{ext}")
+    }
+}
+
 /// A file or directory of the checkout by its repository-relative path as the fixtures name it
 /// (`repo` and `file:` ids keep the Go tree's paths): under one of [`UPSTREAM`] it is in
 /// `testdata/upstream`; a path below [`LEGACY_WORKSPACE`] is that path without the prefix;

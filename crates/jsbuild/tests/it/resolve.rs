@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 
-use neohugo_esbuild::{AssetEntry, Assets, MountedDirs, resolve_component};
+use neohugo_jsbuild::{AssetEntry, Assets, MountedDirs, resolve_component};
 
 /// An in-memory assets tree: files map to `/real/<path>`, directories are implied.
 fn resolve(files: &[&str], imp: &str) -> Option<String> {

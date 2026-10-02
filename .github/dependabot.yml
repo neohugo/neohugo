@@ -5,9 +5,9 @@
 version: 2
 updates:
   # One grouped pull request for the patch bumps and one for the minor bumps, so that a minor
-  # bump of a 0.x crate (a breaking change for Cargo: comrak 0.55 to 0.56, two-face, tera-contrib,
+  # bump of a 0.x crate (a breaking change for Cargo: comrak 0.55 to 0.56, tera-contrib,
   # ...) does not hold back the patch and security fixes. Several crates shape the output the
-  # parity gates compare with the Go build's golden data (comrak, syntect, two-face, minify-html,
+  # parity gates compare with the Go build's golden data (comrak, minify-html,
   # lightningcss, oxc, grass, image, webp, ...): each group must pass the gates of CI's Test job
   # like any change, and a bump that changes a gate's differences needs an entry in
   # tools/neohugo/changes/ (see its README).

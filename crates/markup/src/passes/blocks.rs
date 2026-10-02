@@ -1,5 +1,5 @@
 //! Structural passes: sourcepos repair, dropped comments, block and heading attributes,
-//! goldmark's definition lists, block images, padded table cells, autolinks and passthrough.
+//! goldmark's definition lists, block images, autolinks and passthrough.
 
 use comrak::nodes::{NodeValue, Sourcepos};
 use neohugo_base::Value;
@@ -9,15 +9,25 @@ use crate::attributes::{self, Attr, Owner};
 use crate::doc::{Doc, Node, Role};
 use crate::{MarkupError, PassthroughKind};
 
-/// comrak reports the inlines of a paragraph that began with link reference definitions on
-/// lines relative to the paragraph start; move them down by the removed lines.
-pub(crate) fn fix_link_ref_lines(doc: &Doc<'_>) {
-    for p in doc.root.descendants() {
-        if !matches!(p.data().value, NodeValue::Paragraph) {
-            continue;
+/// comrak reports the inlines of a paragraph (or setext heading) that began with link
+/// reference definitions on lines relative to the paragraph start; move them down by the
+/// removed lines (in `root`).
+pub(crate) fn fix_link_ref_lines(doc: &Doc<'_>, root: Node<'_>) {
+    for p in root.descendants() {
+        let mut sp = p.data().sourcepos;
+        match &p.data().value {
+            NodeValue::Paragraph => {}
+            // The text ends on the line before the underline.
+            NodeValue::Heading(h) if h.setext => sp.end.line -= 1,
+            _ => continue,
         }
-        let sp = p.data().sourcepos;
-        if !doc.line(sp.start.line).trim_start().starts_with('[') {
+        // The paragraph starts after its containers' markers (`> [a]: /x`, `- [a]: /x`).
+        if !doc
+            .src
+            .text
+            .get(doc.start(p)..)
+            .is_some_and(|t| t.starts_with('['))
+        {
             continue;
         }
         let Some(last) = p
@@ -40,20 +50,146 @@ pub(crate) fn fix_link_ref_lines(doc: &Doc<'_>) {
     }
 }
 
-/// Hugo drops HTML comments when raw HTML is omitted.
+/// Hugo writes nothing for an HTML comment when raw HTML is omitted
+/// (`hugoContextRenderer.renderHTMLBlock`, `renderRawHTML`); the node stays a sibling (a
+/// text block before it ends with a newline, a list item starting with it gets one after
+/// `<li>`), so it becomes an empty `Raw` node.
 pub(crate) fn drop_comments(doc: &Doc<'_>) {
-    let comments: Vec<_> = doc
-        .root
-        .descendants()
-        .filter(|n| match &n.data().value {
+    for n in doc.root.descendants() {
+        let mut d = n.data_mut();
+        let comment = match &d.value {
             NodeValue::HtmlBlock(b) => b.literal.trim_start().starts_with("<!--"),
             NodeValue::HtmlInline(h) => h.starts_with("<!--"),
             _ => false,
+        };
+        if comment {
+            d.value = NodeValue::Raw(String::new());
+        }
+    }
+}
+
+/// goldmark replaces a paragraph made only of link reference definitions by an empty text
+/// block (`linkReferenceParagraphTransformer`), which still counts as a sibling: a text block
+/// before it ends with a newline, a list item starting with it gets no newline after `<li>`,
+/// and it is not the first paragraph of a definition. comrak drops such paragraphs, so an
+/// empty text-block paragraph goes where their lines are: the non-blank lines of a container
+/// that no child covers (a container's first line holds its marker and is left out).
+///
+/// Footnote definitions leave nothing behind in either (goldmark's footnote transformer
+/// removes them; comrak moves the referenced ones to the end and drops the others), so their
+/// lines count as covered (`footnotes`: the extension is on).
+pub(crate) fn link_reference_blocks(doc: &mut Doc<'_>, footnotes: bool) {
+    let containers: Vec<_> = doc
+        .root
+        .descendants()
+        .filter(|n| {
+            matches!(
+                n.data().value,
+                NodeValue::Document
+                    | NodeValue::BlockQuote
+                    | NodeValue::Item(_)
+                    | NodeValue::TaskItem(_)
+                    | NodeValue::DescriptionDetails
+                    | NodeValue::FootnoteDefinition(_)
+            )
         })
         .collect();
-    for n in comments {
-        n.detach();
+    let definitions: Vec<_> = containers
+        .iter()
+        .filter(|n| matches!(n.data().value, NodeValue::FootnoteDefinition(_)))
+        .map(|n| {
+            let sp = n.data().sourcepos;
+            sp.start.line..=sp.end.line
+        })
+        .collect();
+    let mut created = Vec::new();
+    for c in containers {
+        let sp = c.data().sourcepos;
+        let (first, last) = if matches!(c.data().value, NodeValue::Document) {
+            (1, doc.src.lines.count())
+        } else {
+            (sp.start.line + 1, sp.end.line)
+        };
+        if last < first {
+            continue;
+        }
+        let quotes = c
+            .ancestors()
+            .filter(|a| matches!(a.data().value, NodeValue::BlockQuote))
+            .count();
+        let content = |line: usize| {
+            let mut l = doc.line(line);
+            for _ in 0..quotes {
+                let t = l.trim_start_matches(' ');
+                match t.strip_prefix('>') {
+                    Some(rest) if l.len() - t.len() <= 3 => l = rest,
+                    _ => break,
+                }
+            }
+            l
+        };
+        let blank = |line: usize| content(line).trim().is_empty();
+        let children: Vec<_> = c.children().collect();
+        // Children are not always in line order (a moved footnote definition, a table put
+        // before the setext heading it came from).
+        let mut covered = vec![false; last + 1 - first];
+        let lines = children
+            .iter()
+            .map(|n| {
+                let sp = n.data().sourcepos;
+                sp.start.line..=sp.end.line
+            })
+            .chain(definitions.iter().cloned());
+        for r in lines {
+            for line in r {
+                if let Some(c) = line.checked_sub(first).and_then(|i| covered.get_mut(i)) {
+                    *c = true;
+                }
+            }
+        }
+        let open = |line: usize| !covered[line - first] && !blank(line);
+        let mut line = first;
+        while line <= last {
+            if !open(line) {
+                line += 1;
+                continue;
+            }
+            let run = line;
+            while line <= last && open(line) {
+                line += 1;
+            }
+            // An unreferenced footnote definition (and its lazy lines) comrak dropped.
+            if footnotes && is_footnote_definition(content(run)) {
+                continue;
+            }
+            let p = doc.node(NodeValue::Paragraph, Sourcepos::from((run, 1, line - 1, 1)));
+            match children
+                .iter()
+                .find(|n| n.data().sourcepos.start.line >= line)
+            {
+                Some(n) => n.insert_before(p),
+                None => c.append(p),
+            }
+            created.push(p);
+        }
     }
+    for p in created {
+        doc.set_role(p, Role::TextBlock);
+    }
+}
+
+/// Whether `line` starts a footnote definition (comrak's `footnote_definition` scanner:
+/// `[^label]:` with no whitespace in the label).
+fn is_footnote_definition(line: &str) -> bool {
+    let t = line.trim_start_matches([' ', '\t']);
+    let Some(rest) = t.strip_prefix("[^") else {
+        return false;
+    };
+    let label = rest
+        .bytes()
+        .take_while(|b| !matches!(b, b']' | b' ' | b'\t' | b'\r' | b'\n' | 0))
+        .count();
+    label > 0 && rest[label..].starts_with("]:")
 }
 
 /// A block-attribute line, blanked before parsing.
@@ -177,8 +313,9 @@ pub(crate) fn heading_attributes(doc: &mut Doc<'_>) -> Result<(), MarkupError> {
 
 /// Definition lists with goldmark's semantics: one term per line, per-definition tightness
 /// from the blank line before its `:`, only the first paragraph of a tight definition
-/// unwrapped, and a list ends where a non-blank line without nodes (a link reference
-/// definition) separates two items.
+/// unwrapped (goldmark's `definitionDescriptionParser.Close` stops after replacing the first
+/// paragraph child, whatever blocks come before it), and a list ends where a non-blank line
+/// without nodes (a link reference definition) separates two items.
 pub(crate) fn definition_lists(doc: &mut Doc<'_>) {
     let lists: Vec<_> = doc
         .root
@@ -207,10 +344,10 @@ pub(crate) fn definition_lists(doc: &mut Doc<'_>) {
             continue;
         }
         doc.set_role(d, Role::TightDetails);
-        if let Some(p) = d
-            .first_child()
-            .filter(|p| matches!(p.data().value, NodeValue::Paragraph))
-        {
+        if let Some(p) = d.children().find(|p| {
+            matches!(p.data().value, NodeValue::Paragraph)
+                && !matches!(doc.role(p), Some(Role::TextBlock))
+        }) {
             doc.set_role(p, Role::TextBlock);
         }
     }
@@ -312,28 +449,6 @@ pub(crate) fn block_images(doc: &mut Doc<'_>) {
             extra.attrs = attrs;
         }
         doc.set_role(p, Role::TextBlock);
-    }
-}
-
-/// Marks table cells comrak added to complete a short row (Hugo gives them no alignment).
-pub(crate) fn padded_cells(doc: &mut Doc<'_>) {
-    let cells: Vec<_> = doc
-        .root
-        .descendants()
-        .filter(|n| matches!(n.data().value, NodeValue::TableCell) && n.first_child().is_none())
-        .collect();
-    for c in cells {
-        let sp = c.data().sourcepos;
-        let line = doc.line(sp.start.line);
-        let at = line
-            .as_bytes()
-            .get(sp.start.column.saturating_sub(1))
-            .copied();
-        // goldmark drops an empty last cell before the closing pipe (`a||`) and pads the row.
-        let dropped_last = c.next_sibling().is_none() && line.trim_end().ends_with("||");
-        if (sp.start == sp.end && matches!(at, None | Some(b'|'))) || dropped_last {
-            doc.set_role(c, Role::PaddedCell);
-        }
     }
 }
 

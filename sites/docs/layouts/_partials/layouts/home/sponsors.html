@@ -3,7 +3,7 @@
   placement (`home`, `footer`) in the tracking parameters.
   Called as `{{ <sponsors gtag="footer" /> }}`.
 -#}
-{%- component sponsors(gtag=none, container_class=none, @site, @hugo, @__nh) %}
+{%- component sponsors(gtag=none, container_class=none, @site, @neohugo, @__nh) %}
 {% set gtag = gtag | default_if_empty(value="unknown") %}
 {% set is_footer = gtag == "footer" %}
 {% set utm_source = "hugofooter" if is_footer else "hugohome" %}
@@ -31,7 +31,7 @@
           <a
             href="{{ url }}"
             title="{{ banner.title | default_if_empty(value=banner.name) }}"
-            {% if hugo.is_production %}
+            {% if neohugo.is_production %}
               onclick="trackOutboundLink({{ "'" ~ gtag_id ~ "', '" ~ url ~ "'" }});"
             {% endif %}
             class="group inline-block w-full h-full shadow-md dark:shadow-gray-600"

@@ -3,7 +3,7 @@
 "patches": [
 {"file": "content/en/news/_content.gotmpl", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "GetRemote of GitHub releases (a content adapter)"},
 {"file": "content/en/functions/images/Text.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "GetRemote of a font (images.Text)"},
-{"file": "hugo_stats.json", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "written by the build"},
+{"file": "hugo_stats.json", "op": "remove", "tera": null, "variants": ["i01", "reduced", "live"], "why": "written by the build (the Go build's, committed in docs/)"},
 {"file": "content/en/shortcodes/qr.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "images.QR (COULD, T72)"},
 {"file": "content/en/functions/images/QR.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "images.QR (COULD, T72)"},
 {"file": "content/en/functions/images/Dither.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "images.Dither (COULD, T72)"},
@@ -14,9 +14,9 @@
 {"file": "assets/js/main.js", "new": "const Alpine = { plugin() {}, data() {}, store() {}, magic() {}, start() {}, directive() {} };", "old": "import Alpine from 'alpinejs';", "op": "replace", "tera": null, "variants": ["i01"], "why": "no node modules (Alpine.js)"},
 {"file": "assets/js/main.js", "new": "const persist = {};\nconst focus = {};", "old": "import persist from '@alpinejs/persist';\nimport focus from '@alpinejs/focus';", "op": "replace", "tera": null, "variants": ["i01"], "why": "no node modules (Alpine.js plugins)"},
 {"file": "assets/js/turbo.js", "new": "window.Turbo = { session: {} };", "old": "import * as Turbo from '@hotwired/turbo';", "op": "replace", "tera": null, "variants": ["i01"], "why": "no node modules (Turbo)"},
-{"file": "hugo.toml", "new": "[markup.goldmark.extensions.passthrough]\n        enable = false", "old": "[markup.goldmark.extensions.passthrough]\n        enable = true", "op": "replace", "tera": null, "variants": ["i01"], "why": "no goldmark passthrough"},
-{"file": "hugo.toml", "new": "enableEmoji            = false", "old": "enableEmoji            = true", "op": "replace", "tera": null, "variants": ["i01"], "why": "no goldmark emoji"},
-{"file": "hugo.toml", "new": "  [markup.highlight]\n    codeFences         = false\n", "old": "  [markup.highlight]\n", "op": "replace", "tera": null, "variants": ["i01"], "why": "no Chroma: code fences are rendered as plain <pre><code>"},
+{"file": "neohugo.toml", "new": "[markup.goldmark.extensions.passthrough]\n        enable = false", "old": "[markup.goldmark.extensions.passthrough]\n        enable = true", "op": "replace", "tera": null, "variants": ["i01"], "why": "no goldmark passthrough"},
+{"file": "neohugo.toml", "new": "enableEmoji            = false", "old": "enableEmoji            = true", "op": "replace", "tera": null, "variants": ["i01"], "why": "no goldmark emoji"},
+{"file": "neohugo.toml", "new": "  [markup.highlight]\n    codeFences         = false\n", "old": "  [markup.highlight]\n", "op": "replace", "tera": null, "variants": ["i01"], "why": "no Chroma: code fences are rendered as plain <pre><code>"},
 {"file": "layouts/_partials/opengraph/get-featured-image.html", "new": "images.Filter (images.Grayscale)", "old": "images.Filter (images.Text $text $textOptions)", "op": "replace", "tera": "layouts/_partials/opengraph/get-featured-image.html", "variants": ["i01", "reduced"], "why": "images.Text (COULD, T72)"},
 {"file": "layouts/_partials/layouts/header/qr.html", "new": "(resources.Get \"/opengraph/gohugoio-card-base-1.png\").Resize \"64x\"", "old": "images.QR $.page.Permalink (dict \"targetDir\" \"images/qr\")", "op": "replace", "tera": "layouts/_partials/layouts/header/qr.html", "variants": ["i01", "reduced"], "why": "images.QR (COULD, T72)"},
 {"file": "layouts/_partials/layouts/hooks/body-main-start.html", "new": "(resources.Get \"/opengraph/gohugoio-card-base-1.png\").Resize \"48x\"", "old": "images.QR .Permalink (dict \"targetDir\" \"images/qr\")", "op": "replace", "tera": "layouts/_partials/layouts/hooks/body-main-start.html", "variants": ["i01", "reduced"], "why": "images.QR (COULD, T72)"},
@@ -29,5 +29,5 @@
 {"content": "{{ return dict \"html_url\" \"https://github.com/gohugoio/hugo\" \"stargazers_url\" \"https://api.github.com/repos/gohugoio/hugo/stargazers\" \"watchers_count\" 1234.0 \"stargazers_count\" 76543.0 \"forks_count\" 7890.0 \"contributors_url\" \"https://api.github.com/repos/gohugoio/hugo/contributors\" \"releases_url\" \"https://api.github.com/repos/gohugoio/hugo/releases{/id}\" }}", "file": "layouts/_partials/helpers/funcs/get-github-info.html", "op": "write", "tera": "layouts/_partials/helpers/funcs/get-github-info.html", "variants": ["i01", "reduced"], "why": "GetRemote of the GitHub API"}
 ],
 "schema": "neohugo-docs-patches/1",
-"variants": ["i01", "reduced"]
+"variants": ["i01", "reduced", "live"]
 }

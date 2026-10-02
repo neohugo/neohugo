@@ -2,22 +2,23 @@
 //! path. The template engine is the render layer's; this module defines the seam.
 
 use neohugo_base::ResourceId;
-use serde_json::Value as Json;
 
 use super::{PipeError, text};
 use crate::store::{CallSite, ResourceError, ResourceStore};
 
-/// Executes template source text (implemented by the render layer with Tera).
+/// Executes template source text (implemented by the render layer with Tera). The executor
+/// holds the template's context (the call's `data` among it) in the render layer's own values,
+/// so a page passed as `data` is not converted for every call.
 pub trait TemplateExecutor {
-    /// Executes `source` as a template named `name` with `data` as its context.
+    /// Executes `source` as a template named `name` with the executor's context.
     ///
     /// # Errors
     /// A template that does not parse or fails to execute (the message is reported).
-    fn execute(&self, name: &str, source: &str, data: &Json) -> Result<String, String>;
+    fn execute(&self, name: &str, source: &str) -> Result<String, String>;
 }
 
 impl ResourceStore {
-    /// `resources.ExecuteAsTemplate`: the content of `id` executed with `data`, as a resource
+    /// `resources.ExecuteAsTemplate`: the content of `id` executed by `executor`, as a resource
     /// at `target` (a named target: see [`ResourceStore::from_template_output`] for its
     /// identity; the media type comes from the target).
     ///
@@ -27,7 +28,6 @@ impl ResourceStore {
         &self,
         id: ResourceId,
         target: &str,
-        data: &Json,
         executor: &dyn TemplateExecutor,
         call: &CallSite,
     ) -> Result<ResourceId, ResourceError> {
@@ -40,7 +40,7 @@ impl ResourceStore {
         let content = self.content(id)?;
         let source = text(&content).map_err(fail)?;
         let output = executor
-            .execute(r.link.as_str().trim_start_matches('/'), source, data)
+            .execute(r.link.as_str().trim_start_matches('/'), source)
             .map_err(|e| fail(PipeError::Template(e)))?;
         self.from_template_output(target, output, call)
     }

@@ -16,7 +16,7 @@ fn tokens_in_every_form() {
     fs::create_dir_all(site.join("content/b/herrs-salt-&-vinegar")).unwrap();
     fs::create_dir_all(site.join("assets/css")).unwrap();
     fs::write(
-        site.join("hugo.toml"),
+        site.join("neohugo.toml"),
         "baseURL = \"https://seeksnack.example/sub/\"\n",
     )
     .unwrap();

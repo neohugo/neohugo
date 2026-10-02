@@ -8,6 +8,7 @@ crate holds no page store; `neohugo-site` calls it while it assembles the model.
 |---|---|
 | Capture overrides | `capture_overrides(&Params) -> CaptureOverrides { kind, lang, path: Option<ContentKey> }` |
 | Cascade | `Cascade::decode(&Value)`, `Cascade::from_config(&[CascadeConfig])`, `Cascade::inherit(parent, own)`, `Cascade::apply(&MatchCtx, &mut Params)`; `CascadeTarget::new(kind, path, lang, env)` (Hugo globs via `base::glob`), `matches`, `path_looks_like_file` |
+| Content adapters | `AdapterPage::decode(&Params, base: &ContentKey, &MediaTypes)` (an `add_page` map: kind as written, path (one leading `/` removed, joined to the adapter's directory, lower case, spaces → `-`, not trimmed), content media type and value, cascade; `source_path()` = `/<path>/index.<suffix>` or `_index`), `meta_from_adapter(&AdapterPage, fields, params, &MetaCtx) -> PageMeta`, `Cascade::apply_split`, `DateResolver::adapter_dates` (the given dates, then the four `[frontmatter]` chains in turn over them; Hugo's `pagesfromdata` and the `IsFromContentAdapter` paths of `pagemeta`) |
 | Front matter | `meta_from_params(Params, &MetaCtx) -> PageMeta` (reserved keys typed, including the legacy `_build` (wins over `build`, as in Hugo) and the undocumented `published: <bool>` (`!draft` when `draft` is unset); normalised values written back to params; `params:` merged last; dates resolved) |
 | Dates | `DateResolver::{new, from_site, resolve(&mut Params, Option<&FileCtx>, &TimeZone)} -> DateOutcome { dates, slug, unparsable }` |
 | Build | `BuildPolicy { list: ListMode, render: RenderMode, publish_resources }`, `BuildPolicy::decode`, `.headless()` |
@@ -33,7 +34,7 @@ of `expected_diffs.toml` with its exact count:
 | frontmatter config decode (`config::decode_front_matter`) | 14 | 100 % | – |
 | build options | 15 | 100 % | – |
 | cascade decode / match | 18 / 144 | 100 % / 87.5 % | 18 `bad-glob-rejected` |
-| markup detection / page config | 26 / 21 | 57.7 % / 71.4 % | 12 `markup-not-supported`, 5 `content-adapter` |
+| markup detection / page config (incl. 5 content-adapter configs) | 26 / 21 | 57.7 % / 95.2 % | 12 `markup-not-supported` |
 | default sort (`SortByDefault`, every current site) | 617 | 100 % | – |
 | source paths (`SourcePath::from_path_info` over the vfs parser) | 1,798 | 100 % | – |
 
@@ -46,7 +47,22 @@ Overall 190,534 checks, 99.80 % exact, no unexplained difference.
   place. They differ only when a title or slug contains text such as `:slug` (no fixture case).
 - **Unix-second dates** are UTC, not the process's local zone.
 - **Cascade globs that do not compile** are errors (Go ignores or panics).
-- **Only Markdown and HTML** content; content adapters are not supported.
+- **Only Markdown and HTML** content (also for content adapters' `content.mediaType`).
+- **Content adapter maps** are decoded leniently where Hugo's `mapstructure.WeakDecode` would
+  fail: `dates` also take date strings and Unix seconds besides date values (Tera has no time
+  type: `to_date` gives `{rfc3339, unix}`, which is read); the messages are neohugo's. A
+  `kind` that is not one of `page`, `home`, `section`, `taxonomy`, `term` as written (Hugo
+  does not fold its case or map `taxonomyTerm` here, unlike front matter) is an error: Hugo
+  adds a page of that kind that has no output format and is listed only in `site.Pages`,
+  `site.AllPages` and `GetPage`, which neohugo's page kinds cannot hold.
+  Otherwise Hugo's rules: no reserved keys or dates in `.Params`, no `_build`, `headless`,
+  `published`, `menu` or `resources`, the `slug` as given (no `-` trimmed), sitemap settings
+  from zero (an adapter page in the sitemap has `<priority>0</priority>`, as in Hugo; the view
+  gives an integral priority as an integer), and the dates of
+  `createContentAdapterDatesHandler`: the given dates, then the date, lastmod, publishDate and
+  expiryDate chains in turn, each over the dates the earlier ones left (with the default
+  `[frontmatter]`, `dates.lastmod` alone gives all three dates). Checked against the Go binary
+  for 8 `[frontmatter]` configurations × 10 date maps.
 - **Page links are URL paths.** `TargetPaths::link` is escaped when written (`%XX` escapes are
   kept, as Go's `EscapedPath` keeps them); a front matter `url` with a query gets `%3F`.
 - **Resource output directories are clean paths** (`/th/section`, not `/th/section/`).

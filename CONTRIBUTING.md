@@ -1,13 +1,15 @@
-# Contributing to Hugo
+# Contributing to neohugo
 
-We welcome contributions to Hugo of any kind including documentation, themes,
-organization, tutorials, blog posts, bug reports, issues, feature requests,
-feature implementations, pull requests, answering questions on the forum,
-helping to manage issues, etc.
+We welcome contributions to neohugo of any kind, including documentation, bug reports,
+issues, feature requests, feature implementations, pull requests, answering questions in the
+discussions, helping to manage issues, etc.
 
-The Hugo community and maintainers are [very active](https://github.com/gohugoio/hugo/pulse/monthly) and helpful, and the project benefits greatly from this activity. We created a [step by step guide](https://gohugo.io/tutorials/how-to-contribute-to-hugo/) if you're unfamiliar with GitHub or contributing to open source projects in general.
+neohugo began as a fork of [Hugo](https://github.com/gohugoio/hugo) and is now a separate
+project written in Rust; it is not affiliated with the Hugo project ([README](README.md#relationship-to-hugo)).
+GitHub's guide to [contributing to a project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project)
+helps if you're unfamiliar with GitHub or contributing to open source projects in general.
 
-*Note that `docs/` in this repository is a copy of Hugo's documentation that the tests read byte for byte; only `docs/rust-port/` belongs to neohugo. For **only** documentation-related pull requests / issues please refer to the [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
+*Note that `docs/` in this repository is a copy of Hugo's documentation that the tests read byte for byte; only `docs/rust-port/` belongs to neohugo. Changes to Hugo's documentation itself belong in Hugo's [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
 
 *Changes to the codebase **and** related documentation, e.g. for a new feature, should still use a single pull request.*
 
@@ -44,14 +46,14 @@ Defects of Hugo itself, its documentation or its themes site go to Hugo's tracke
 
 ## Code Contribution
 
-Hugo has become a fully featured static site generator, so any new functionality must:
+neohugo is a fully featured static site generator, so any new functionality must:
 
 * be useful to many.
-* fit naturally into _what Hugo does best._
+* fit naturally into what neohugo does: build Hugo-style sites fast.
 * strive not to break existing sites.
 * close or update an open [issue](https://github.com/neohugo/neohugo/issues)
 
-If it is of some complexity, the contributor is expected to maintain and support the new feature in the future (answer questions on the forum, fix any bugs etc.).
+If it is of some complexity, the contributor is expected to maintain and support the new feature in the future (answer questions in the discussions, fix any bugs etc.).
 
 Any non-trivial code change needs to update an open [issue](https://github.com/neohugo/neohugo/issues). A non-trivial code change without an issue reference with one of the labels `type: bug` or `type: feature` (the labels the issue templates apply) will not be merged.
 
@@ -65,17 +67,17 @@ Zola 0.22 and later (EUPL-1.2) must not be opened or copied.
 
 ## Submitting Patches
 
-The Hugo project welcomes all contributors and contributions regardless of skill or experience level. If you are interested in helping with the project, we will help you with your contribution.
+The neohugo project welcomes all contributors and contributions regardless of skill or experience level. If you are interested in helping with the project, we will help you with your contribution.
 
 ### Code Contribution Guidelines
 
-Because we want to create the best possible product for our users and the best contribution experience for our developers, we have a set of guidelines which ensure that all contributions are acceptable. The guidelines are not intended as a filter or barrier to participation. If you are unfamiliar with the contribution process, the Hugo team will help you and teach you how to bring your contribution in accordance with the guidelines.
+Because we want to create the best possible product for our users and the best contribution experience for our developers, we have a set of guidelines which ensure that all contributions are acceptable. The guidelines are not intended as a filter or barrier to participation. If you are unfamiliar with the contribution process, the neohugo maintainers will help you and teach you how to bring your contribution in accordance with the guidelines.
 
 To make the contribution process as seamless as possible, we ask for the following:
 
 * Go ahead and fork the project and make your changes.  We encourage pull requests to allow for review and discussion of code changes.
 * When you’re ready to create a pull request, be sure to:
-    * Sign the [CLA](https://cla-assistant.io/gohugoio/hugo).
+    * Make sure you may contribute the code under the [Apache License 2.0](LICENSE): by submitting a pull request you license your contribution under it (section 5 of the licence). Hugo's CLA does not apply to neohugo. Code or data copied from another project needs its `PROVENANCE.md` row (above).
     * Have test cases for the new code. If you have questions about how to do this, please ask in your pull request.
     * Run `cargo fmt --all`.
     * Add documentation if you are adding new features or changing functionality: the crate's `README.md`, and for template functions their entry in `crates/funcs/src/spec.rs`, which generates `docs/rust-port/template-api.md`. Leave `docs/` outside `docs/rust-port/` unchanged: the tests record its files by hash.
@@ -111,14 +113,14 @@ funcs: Add custom index function
 Add a custom index template function that deviates from the stdlib simply by not
 returning an "index out of range" error if an array, slice or string index is
 out of range.  Instead, we just return nil values.  This should help make the
-new default function more useful for Hugo users.
+new default function more useful for neohugo users.
 
 Fixes #1949
 ```
 
 ###  Fetching the Sources From GitHub
 
-Neohugo is the Cargo workspace at the repository root. Building it needs Rust 1.94 or later (`rust-version` in `Cargo.toml`; CI uses 1.94.1) and a C compiler. Clone the repository:
+Neohugo is the Cargo workspace at the repository root. Building it needs Rust 1.96 or later (`rust-version` in `Cargo.toml`; CI uses 1.96.0) and a C compiler. Clone the repository:
 
 ```bash
 mkdir $HOME/src
@@ -185,12 +187,12 @@ python3 tools/neohugo/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
 ```
 
-Some tests need external tools: Node.js, the pinned PostCSS, Tailwind CSS and Babel, and esbuild. Without them a test prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install the tools once (network) and point the tests at them:
+Some tests need external tools: Node.js and the pinned PostCSS, Tailwind CSS and Babel. Without them a test prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install the tools once (network) and point the tests at them:
 
 ```bash
-tools/neohugo/node.sh && tools/esbuild/install.sh
+tools/neohugo/node.sh
 N=$(tools/neohugo/node.sh path)
-export NEOHUGO_ESBUILD_BINARY=$PWD/tools/esbuild/bin/esbuild NEOHUGO_NODE_MODULES=$N \
+export NEOHUGO_NODE_MODULES=$N \
   NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss NEOHUGO_BABEL_BIN=$N/.bin/babel
 ```
 

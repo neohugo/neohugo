@@ -55,4 +55,9 @@ pub trait Sink: Send + Sync {
     fn write(&self, path: &OutputPath, bytes: &[u8]) -> std::io::Result<()>;
     /// Whether a file was written at `path`.
     fn exists(&self, path: &OutputPath) -> bool;
+    /// The bytes last written at `path`.
+    ///
+    /// # Errors
+    /// No file at `path`, or I/O errors of the destination.
+    fn read(&self, path: &OutputPath) -> std::io::Result<Vec<u8>>;
 }

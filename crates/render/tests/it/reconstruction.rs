@@ -58,7 +58,7 @@ const ABOUT: &str = "---\ntitle: \"About\"\ndate: 2020-01-02T03:04:05.678Z\ntype
 fn r_shortcodes_on_r_pages() {
     let mut files: Vec<(&str, &str)> = vec![
         (
-            "hugo.toml",
+            "neohugo.toml",
             "baseURL = \"https://seeksnack.com/\"\ntitle = \"SeekSnack\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\", \"404\"]\n[markup.goldmark.renderer]\nunsafe = true\n",
         ),
         ("content/about.md", ABOUT),

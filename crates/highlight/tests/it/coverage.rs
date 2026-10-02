@@ -1,10 +1,9 @@
-//! Docs corpus acceptance (T25): every piece of code the docs highlight renders, the classes
-//! written are Chroma's, the token types agree with Chroma's (`tests/data/chroma-tokens.json.gz`)
-//! and the HTML is compared with Hugo's (`tests/data/hugo-docs-html.json.gz`, hashes); see the
-//! crate README for how the fixtures are made.
+//! Docs corpus acceptance: every piece of code the docs highlight renders, the classes written
+//! are Chroma's, the token classes are Chroma's (`tests/data/chroma-tokens.json.gz`) and the HTML
+//! is Hugo's, byte for byte (`tests/data/hugo-docs-html.json.gz`, hashes); see the crate README
+//! for how the fixtures are made.
 //!
 //! `NEOHUGO_HL_PAIRS=1` prints the most frequent class differences per lexer;
-//! `NEOHUGO_HL_SHOW=<lexer>:<class>` prints our scopes where Chroma writes that class;
 //! `NEOHUGO_HL_OURS=<file>` writes our HTML per item (JSON) for comparing with Hugo's.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -30,7 +29,7 @@ struct Html {
     hash: String,
 }
 
-/// The docs site's `[markup.highlight]` (docs/hugo.toml).
+/// The docs site's `[markup.highlight]` (docs/neohugo.toml).
 fn docs_config() -> HighlightConfig {
     HighlightConfig {
         line_numbers_in_table: false,
@@ -44,20 +43,6 @@ fn docs_config() -> HighlightConfig {
 fn fixture<T: serde::de::DeserializeOwned>(name: &str) -> T {
     read_json(&repo_dir().join("crates/highlight/tests/data").join(name))
         .unwrap_or_else(|e| panic!("{name}: {e}"))
-}
-
-/// `NEOHUGO_HL_SCOPES=<lang>|<code>`: prints the scopes of `code` (for studying the map).
-#[test]
-fn print_scopes() {
-    let Ok(arg) = std::env::var("NEOHUGO_HL_SCOPES") else {
-        return;
-    };
-    let (lang, code) = arg.split_once('|').expect("lang|code");
-    let code = code.replace("\\n", "\n");
-    let hl = Highlight::new(&docs_config());
-    for (scopes, text) in hl.scopes(&code, lang) {
-        println!("{text:?}\n    {scopes}");
-    }
 }
 
 /// `NEOHUGO_HL_DUMP=<file>`: writes the corpus as the oracle's input (README).
@@ -131,7 +116,7 @@ fn pct(n: usize, d: usize) -> f64 {
 type Pairs = BTreeMap<(String, String, String), usize>;
 
 /// Per character: Chroma's class against ours.
-fn compare(ours: &[(TokenType, &str)], o: &Tokens, pairs: &mut Pairs) -> Tally {
+fn compare(ours: &[(TokenType, String)], o: &Tokens, pairs: &mut Pairs) -> Tally {
     let theirs = o
         .runs
         .iter()
@@ -199,7 +184,6 @@ fn docs_corpus() {
     let mut by_lexer: BTreeMap<String, Tally> = BTreeMap::new();
     let mut total = Tally::default();
     let mut pairs = Pairs::new();
-    let mut shown = BTreeSet::new();
     let (mut known, mut identical, mut compared) = (0, 0, 0);
     let mut unknown: BTreeMap<&str, usize> = BTreeMap::new();
     let mut by_source: BTreeMap<String, usize> = BTreeMap::new();
@@ -237,9 +221,6 @@ fn docs_corpus() {
         let t = compare(&ours, o, &mut pairs);
         by_lexer.entry(o.lexer.clone()).or_default().add(&t);
         total.add(&t);
-        if let Ok(show) = std::env::var("NEOHUGO_HL_SHOW") {
-            show_scopes(&hl, item, o, &show, &mut shown);
-        }
     }
 
     if let Some(path) = std::env::var_os("NEOHUGO_HL_OURS") {
@@ -271,16 +252,13 @@ fn docs_corpus() {
     assert_eq!(known + unknown.values().sum::<usize>(), items.len());
     assert!(items.len() > 2200, "corpus: {}", items.len());
     assert!(unknown.values().sum::<usize>() <= 1, "{unknown:?}");
-    // Floors just under the measured values (README), so a regression fails.
+    // Hugo's HTML, byte for byte, and Chroma's token classes, character for character.
     assert!(
-        compared > 2200 && identical * 100 >= compared * 95,
+        compared > 2200 && identical == compared,
         "{identical}/{compared}"
     );
-    assert!(pct(total.classified, total.chars) >= 99.5);
-    assert!(pct(total.same_family, total.chars) >= 99.0);
-    assert!(pct(total.same_class, total.chars) >= 99.0);
-    let go = &by_lexer["Go HTML Template"];
-    assert!(pct(go.same_class, go.chars) >= 99.5);
+    assert_eq!(total.classified, total.chars);
+    assert_eq!(total.same_class, total.chars);
 }
 
 /// Wrapper classes Hugo writes around Chroma's output.
@@ -294,28 +272,4 @@ fn classes_in(html: &str) -> impl Iterator<Item = &str> {
         .skip(1)
         .filter_map(|s| s.split_once('"'))
         .flat_map(|(v, _)| v.split_whitespace())
-}
-
-/// `NEOHUGO_HL_SHOW=<lexer>:<chroma class>`: our scopes where Chroma writes that class.
-fn show_scopes(hl: &Highlight, item: &Item, o: &Tokens, show: &str, shown: &mut BTreeSet<String>) {
-    let Some((lexer, theirs)) = show.split_once(':') else {
-        return;
-    };
-    if o.lexer != lexer || shown.len() > 60 {
-        return;
-    }
-    let chroma: Vec<&str> = o
-        .runs
-        .iter()
-        .flat_map(|(c, n)| std::iter::repeat_n(c.as_str(), *n))
-        .collect();
-    let mut at = 0;
-    for (scopes, text) in hl.scopes(&item.code, &item.lang) {
-        let n = text.chars().count();
-        let window = &chroma[at.min(chroma.len())..(at + n).min(chroma.len())];
-        at += n;
-        if window.contains(&theirs) && !text.trim().is_empty() && shown.insert(scopes.clone()) {
-            println!("[{}] {text:?}\n    {scopes}", item.file);
-        }
-    }
 }

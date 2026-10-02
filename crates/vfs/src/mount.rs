@@ -143,11 +143,11 @@ fn path_str(p: &Path) -> String {
 }
 
 /// Root files that are mounted to `assets/_jsconfig/<name>` unless a mount targets that
-/// directory: `package.json`, `package.hugo.json` and names containing
+/// directory: `package.json`, `package.neohugo.json` and names containing
 /// `(babel|postcss|tailwind).config.js`.
 fn is_js_config_file(name: &str) -> bool {
     name == "package.json"
-        || name == "package.hugo.json"
+        || name == "package.neohugo.json"
         || ["babel", "postcss", "tailwind"]
             .iter()
             .any(|t| name.contains(&format!("{t}.config.js")))
@@ -158,7 +158,7 @@ pub(crate) fn mounts(cfg: &Config) -> Result<Vec<Mount>, VfsError> {
     let project = cfg.project_dir.as_path();
     let mut drafts: Vec<Draft> = Vec::new();
 
-    // Configured mounts; a missing source is skipped, except `hugo_stats.json`, which the build
+    // Configured mounts; a missing source is skipped, except `neohugo_stats.json`, which the build
     // writes.
     for (index, m) in cfg.mounts.iter().enumerate() {
         let d = Draft::configured(project, m);
@@ -168,7 +168,7 @@ pub(crate) fn mounts(cfg: &Config) -> Result<Vec<Mount>, VfsError> {
                 target: m.target.clone(),
             });
         }
-        if d.abs.exists() || d.source.ends_with("hugo_stats.json") {
+        if d.abs.exists() || d.source.ends_with(neohugo_config::global::STATS_FILE) {
             drafts.push(d);
         }
     }
@@ -276,7 +276,7 @@ fn theme_mounts(theme: &Theme) -> Result<Vec<Draft>, VfsError> {
                         target: m.target.clone(),
                     });
                 }
-                if d.abs.exists() || d.source.ends_with("hugo_stats.json") {
+                if d.abs.exists() || d.source.ends_with(neohugo_config::global::STATS_FILE) {
                     out.push(d);
                 }
             }

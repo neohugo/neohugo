@@ -117,7 +117,10 @@ impl Default for BuildConfig {
     }
 }
 
-/// `[build.buildStats]`: what `hugo_stats.json` records.
+/// The file `[build.buildStats]` writes in the project directory (Hugo's `hugo_stats.json`).
+pub const STATS_FILE: &str = "neohugo_stats.json";
+
+/// `[build.buildStats]`: what [`STATS_FILE`] records.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 #[expect(
@@ -383,7 +386,7 @@ impl Default for SecurityPolicy {
             exec_os_env: Whitelist::new(&[
                 r"(?i)^((HTTPS?|NO)_PROXY|PATH(EXT)?|APPDATA|TE?MP|TERM|GO\w+|(XDG_CONFIG_)?HOME|USERPROFILE|SSH_AUTH_SOCK|DISPLAY|LANG|SYSTEMDRIVE)$",
             ]),
-            getenv: Whitelist::new(&["^HUGO_", "^CI$"]),
+            getenv: Whitelist::new(&["^NEOHUGO_", "^CI$"]),
             http_urls: Whitelist::new(&[".*"]),
             http_methods: Whitelist::new(&["(?i)GET|POST"]),
             http_media_types: Whitelist::new(&[]),

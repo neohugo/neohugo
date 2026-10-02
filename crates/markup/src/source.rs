@@ -27,6 +27,55 @@ impl SourceContexts {
     }
 }
 
+/// The line that opens an included page's text in an expanded source (Hugo's
+/// `{{__hugo_ctx pid=N}}`, `markup/goldmark/hugocontext`).
+///
+/// Like Hugo's, the markers start with `{` and end with `}`, so emphasis delimiters next to
+/// an include flank the same way; no comrak syntax, attribute, typographer or linkify rule
+/// reads them.
+pub const CONTEXT_OPEN: &str = "{{NHCTXO}}";
+/// The line that closes an included page's text (Hugo's `{{__hugo_ctx/}}`).
+pub const CONTEXT_CLOSE: &str = "{{NHCTXC}}";
+
+/// An included page's Markdown between context marker lines, as Hugo's `hugocontext.Wrap`
+/// wraps what `.RenderShortcodes` returns to a `{{% %}}` call of a Markdown page.
+///
+/// Goldmark parses the markers as ordinary lines (a marker line can start a paragraph, be a
+/// lazy continuation line or a table row), so they shape the blocks around an include; the
+/// renderer drops them (see the crate README). Returns the wrapped text and the range of
+/// `md` in it.
+#[must_use]
+pub fn wrap_context(md: &str) -> (String, Range<usize>) {
+    let mut s = String::with_capacity(md.len() + 2 * CONTEXT_OPEN.len() + 3);
+    s.push_str(CONTEXT_OPEN);
+    s.push('\n');
+    let start = s.len();
+    s.push_str(md);
+    let end = s.len();
+    // goldmark needs the closing marker on a line of its own.
+    if !md.is_empty() && !md.ends_with('\n') {
+        s.push('\n');
+    }
+    s.push_str(CONTEXT_CLOSE);
+    s.push('\n');
+    (s, start..end)
+}
+
+/// `s` without context marker lines (an included source printed outside Markdown; Hugo's
+/// `hugocontext` strips them from raw HTML blocks the same way).
+#[must_use]
+pub fn strip_context_markers(s: &str) -> std::borrow::Cow<'_, str> {
+    if !s.contains(CONTEXT_OPEN) && !s.contains(CONTEXT_CLOSE) {
+        return std::borrow::Cow::Borrowed(s);
+    }
+    std::borrow::Cow::Owned(
+        s.replace(&format!("{CONTEXT_OPEN}\n"), "")
+            .replace(&format!("{CONTEXT_CLOSE}\n"), "")
+            .replace(CONTEXT_OPEN, "")
+            .replace(CONTEXT_CLOSE, ""),
+    )
+}
+
 /// A page's Markdown after shortcode expansion.
 #[derive(Clone, Copy, Debug)]
 pub struct ExpandedMarkdown<'a> {
@@ -57,6 +106,11 @@ impl Lines {
         let mut v = vec![0];
         v.extend(s.match_indices('\n').map(|(i, _)| i + 1));
         Self(v)
+    }
+
+    /// The number of lines.
+    pub(crate) fn count(&self) -> usize {
+        self.0.len()
     }
 
     /// The byte offset of a 1-based line and byte column (clamped to `len`).

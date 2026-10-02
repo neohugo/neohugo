@@ -11,7 +11,7 @@ use std::sync::Mutex;
 use neohugo_base::{Map, PageId, Value};
 use neohugo_markup::{
     BlockquoteCtx, Cell, CodeBlockCtx, ExpandedMarkdown, HeadingCtx, HookEnv, HookError, HookOut,
-    Hooks, ImageCtx, LinkCtx, SourceContexts, TableCtx, render,
+    Hooks, ImageCtx, LinkCtx, SourceContexts, TableCtx, render, wrap_context,
 };
 use neohugo_testkit::fixture::{GoString, oracle};
 use serde::Deserialize;
@@ -310,19 +310,17 @@ fn norm(field: &str, v: &str) -> String {
     s
 }
 
-/// The oracle's wrapped document without Hugo's textual context markers: the original
-/// source becomes a context span of page 7 (page 9 of the oracle has no page, so it is not
-/// a span).
+/// The oracle's wrapped document (`hugocontext.Wrap` of the source as page 7, then of a
+/// fixed document as page 9) with this crate's context markers: the original source becomes
+/// a context span of page 7 (page 9 of the oracle has no page, so it is not a span).
 fn wrapped(src: &str) -> (String, Range<usize>) {
     let mut s = String::from("Intro *text*\n\n");
-    let start = s.len();
-    s.push_str(src);
-    if !src.is_empty() && !src.ends_with('\n') {
-        s.push('\n');
-    }
-    let end = s.len();
-    s.push_str("\nOutro [l](x)\n\n## Nil lookup\n\n![i](n.png)\n");
-    (s, start..end)
+    let (w, inner) = wrap_context(src);
+    let span = s.len() + inner.start..s.len() + inner.end;
+    s.push_str(&w);
+    s.push_str("\nOutro [l](x)\n\n");
+    s.push_str(&wrap_context("## Nil lookup\n\n![i](n.png)\n").0);
+    (s, span)
 }
 
 const COMPARED: &[&str] = &[

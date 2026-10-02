@@ -67,10 +67,17 @@ pub fn fixture_site(name: &str) -> PathBuf {
 }
 
 fn copy_tree(from: &Path, to: &Path) {
+    copy_tree_except(from, to, &[]);
+}
+
+fn copy_tree_except(from: &Path, to: &Path, skip: &[&str]) {
     std::fs::create_dir_all(to).unwrap();
     for e in std::fs::read_dir(from).unwrap() {
         let e = e.unwrap();
         let name = e.file_name();
+        if skip.iter().any(|s| name == *s) {
+            continue;
+        }
         // The fixture's node_modules is stored as _node_modules (it is gitignored otherwise).
         let target = if name == "_node_modules" {
             "node_modules".into()
@@ -78,7 +85,7 @@ fn copy_tree(from: &Path, to: &Path) {
             name
         };
         if e.file_type().unwrap().is_dir() {
-            copy_tree(&e.path(), &to.join(target));
+            copy_tree_except(&e.path(), &to.join(target), &[]);
         } else {
             std::fs::copy(e.path(), to.join(target)).unwrap();
         }
@@ -94,6 +101,15 @@ pub fn project(src: &Path, edit: impl FnOnce(&mut TransformEnv)) -> Project {
     in_dir(tmp, dir, edit)
 }
 
+/// A copy of `src` as `<tmp>/site` without its top-level entries named in `skip` (a local
+/// build's `public/`, `node_modules/`), with `edit` applied to its environment.
+pub fn project_except(src: &Path, skip: &[&str], edit: impl FnOnce(&mut TransformEnv)) -> Project {
+    let tmp = tempfile::tempdir().unwrap();
+    let dir = tmp.path().canonicalize().unwrap().join("site");
+    copy_tree_except(src, &dir, skip);
+    in_dir(tmp, dir, edit)
+}
+
 /// A store over the site at `dir` itself (not copied; its tools must not write into it).
 pub fn project_in_place(dir: &Path, edit: impl FnOnce(&mut TransformEnv)) -> Project {
     in_dir(
@@ -103,7 +119,7 @@ pub fn project_in_place(dir: &Path, edit: impl FnOnce(&mut TransformEnv)) -> Pro
     )
 }
 
-/// A small site in a temporary directory: `hugo.toml` and the given files.
+/// A small site in a temporary directory: `neohugo.toml` and the given files.
 pub fn mini_site(files: &[(&str, &str)]) -> tempfile::TempDir {
     let tmp = tempfile::tempdir().unwrap();
     for (name, body) in files {
@@ -135,7 +151,6 @@ fn in_dir(tmp: tempfile::TempDir, dir: PathBuf, edit: impl FnOnce(&mut Transform
     env.tools = ToolPaths::default();
     env.os_env.retain(|(k, _)| k != "HOME");
     env.os_env.push(("HOME".into(), home.display().to_string()));
-    env.esbuild_binary = esbuild_binary();
     edit(&mut env);
     let store = ResourceStore::new(StoreConfig {
         transforms: Arc::new(env),
@@ -147,16 +162,6 @@ fn in_dir(tmp: tempfile::TempDir, dir: PathBuf, edit: impl FnOnce(&mut Transform
         store,
         _tmp: tmp,
     }
-}
-
-/// The esbuild binary of the repository (`NEOHUGO_ESBUILD_BINARY` or `tools/esbuild/bin`).
-pub fn esbuild_binary() -> PathBuf {
-    std::env::var_os(neohugo_esbuild::BINARY_ENV)
-        .filter(|v| !v.is_empty())
-        .map_or_else(
-            || crate::support::repo_dir().join(neohugo_esbuild::DEFAULT_BINARY),
-            PathBuf::from,
-        )
 }
 
 /// A real tool named by its environment variable, or `None` (printing `SKIPPED`).

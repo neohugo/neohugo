@@ -39,10 +39,10 @@ runtime = [
     "dep:emojis",
     "dep:toml",
 ]
-# `to_math` (LaTeX → MathML).
-math = ["runtime", "dep:pulldown-latex"]
-# `diagrams_goat` (ASCII diagrams to SVG with svgbob).
-goat = ["runtime", "dep:svgbob"]
+# `to_math` (LaTeX → MathML and HTML with KaTeX in QuickJS).
+math = ["runtime", "dep:rquickjs", "dep:serde_json"]
+# `diagrams_goat` (ASCII diagrams to SVG: a port of GoAT, `src/pure/goat/`; no dependencies).
+goat = ["runtime"]
 
 [dependencies]
 neohugo-workspace-hack.workspace = true
@@ -59,8 +59,8 @@ xxhash-rust = { workspace = true, optional = true }
 html5gum = { workspace = true, optional = true }
 emojis = { workspace = true, optional = true }
 toml = { workspace = true, optional = true }
-pulldown-latex = { workspace = true, optional = true }
-svgbob = { workspace = true, optional = true }
+rquickjs = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true }
 
 [dev-dependencies]
 neohugo-testkit.workspace = true

@@ -14,7 +14,7 @@
 //!   project's `module.replacements` (`"old -> new, …"`, a string or a list) renames
 //!   `[[module.imports]]` paths. A theme of a theme must stay below `themesDir` unless its path
 //!   was replaced. Hugo Modules are not downloaded: an import that is not found is an error.
-//! - **Configuration.** The first of `neohugo.*`, `hugo.*`, `config.*` in the theme's
+//! - **Configuration.** The first of `neohugo.*`, `config.*` in the theme's
 //!   directory, then its `config/_default/**` and `config/<environment>/**`, read like the
 //!   project's; `theme.toml` (theme-site metadata) is not configuration.
 //! - **Mounts.** The importer's `[[module.imports.mounts]]`, else the theme's own
@@ -418,7 +418,7 @@ impl Vendor {
     }
 }
 
-/// A theme's configuration files: the first of `neohugo.*`, `hugo.*`, `config.*` in `dir`,
+/// A theme's configuration files: the first of `neohugo.*`, `config.*` in `dir`,
 /// then `config/_default/**` and `config/<environment>/**`.
 fn read_config(
     dir: &Path,

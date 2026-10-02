@@ -1,13 +1,14 @@
-//! Code highlighting with syntect and two-face, emitting Chroma class names (or inline styles),
-//! fence options and style CSS (REWRITE_PLAN.md §2.1, decision D1).
+//! Code highlighting identical to Hugo's: Chroma's lexers, its HTML formatter and styles,
+//! inside Hugo's wrappers (REWRITE_PLAN.md §2.1, decision D1).
 //!
 //! Hugo highlights with Chroma; sites style its output with Chroma class names (`.chroma .k`)
-//! or rely on its inline styles. This crate tokenises with syntect (two-face's syntaxes plus
-//! its own Go template syntaxes), maps each token's scopes to a Chroma token type
-//! ([`scope::RULES`]), and writes the HTML Hugo writes: Chroma's line structure, line numbers,
-//! highlighted lines, classes or inline styles from Chroma's own style definitions, inside
-//! Hugo's wrappers. Whether a language is known at all is Chroma's decision (its lexer table),
-//! as in Hugo.
+//! or rely on its inline styles. This crate is a port of Chroma v2.19.0: its regex lexer engine
+//! and every lexer it ships (`chroma`: the XML lexers converted to Rust data, the Go-written
+//! ones ported), on a port of the .NET regex dialect those
+//! lexers are written in (`regexp2`); Chroma's HTML formatter (line structure, line numbers,
+//! highlighted lines, classes or inline styles from Chroma's own style definitions) inside
+//! Hugo's wrappers. Which lexer a language names is Chroma's decision (`lexers.Get`), as in
+//! Hugo.
 //!
 //! [`Highlight`] implements [`neohugo_markup::Highlighter`] for code fences and serves the
 //! `highlight` template function ([`Highlight::highlight_with`]) and style sheets
@@ -15,11 +16,13 @@
 
 #![forbid(unsafe_code)]
 
+mod chroma;
 mod html;
 mod lexers;
 mod options;
-pub mod scope;
+mod regexp2;
 mod style;
+mod styles;
 mod token;
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -29,17 +32,14 @@ use neohugo_base::Map;
 use neohugo_base::diag::Diagnostic;
 use neohugo_config::markup::HighlightConfig;
 use neohugo_markup::{HighlightOptions, Highlighter, HookError};
-use syntect::parsing::{ParseState, Scope, ScopeStack, SyntaxReference};
-use syntect::util::LinesWithEndings;
 
-pub use lexers::{Lexer, Whitespace};
+pub use lexers::Lexer;
 pub use options::{CodeLayout, LineNumberLayout, Options, OptionsError, Styling};
 pub use style::{CssMode, FALLBACK_STYLE};
 pub use token::TokenType;
 
 use crate::html::Block;
 use crate::lexers::Languages;
-use crate::scope::{Classifier, ScopeMap};
 use crate::style::{CssSettings, Style, Styles};
 
 /// Why highlighting failed.
@@ -65,14 +65,13 @@ pub enum OptionsArg<'a> {
 }
 
 /// A token: its Chroma type and its text.
-pub type Token<'a> = (TokenType, &'a str);
+pub type Token = (TokenType, String);
 
-/// The syntaxes, Chroma's lexer table, the scope rules and the bundled styles. They do not
-/// depend on the site and loading the syntaxes is most of the cost of a [`Highlight`], so they
-/// are loaded once per process and shared (the server makes a `Highlight` for every rebuild).
+/// Chroma's lexers and the bundled styles. They do not depend on the site, so they are loaded
+/// once per process and shared (the server makes a `Highlight` for every rebuild); a lexer
+/// compiles its rules the first time it is used.
 struct Tables {
     languages: Languages,
-    scopes: ScopeMap,
     styles: Styles,
 }
 
@@ -80,15 +79,13 @@ fn tables() -> &'static Tables {
     static TABLES: OnceLock<Tables> = OnceLock::new();
     TABLES.get_or_init(|| Tables {
         languages: Languages::load(),
-        scopes: ScopeMap::new(),
         styles: Styles::bundled(),
     })
 }
 
-/// The highlighter: syntaxes, Chroma's lexer table and styles, and the site's defaults.
+/// The highlighter: Chroma's lexers and styles, and the site's defaults.
 pub struct Highlight {
     languages: &'static Languages,
-    scopes: &'static ScopeMap,
     styles: &'static Styles,
     defaults: Options,
     /// Style names that fell back to [`FALLBACK_STYLE`], for [`Highlight::diagnostics`].
@@ -105,13 +102,12 @@ impl std::fmt::Debug for Highlight {
 
 impl Highlight {
     /// A highlighter with the site's `[markup.highlight]` settings. The first one in a process
-    /// loads the syntaxes; later ones share them.
+    /// loads the lexer table; later ones share it.
     #[must_use]
     pub fn new(config: &HighlightConfig) -> Self {
         let tables = tables();
         Self {
             languages: &tables.languages,
-            scopes: &tables.scopes,
             styles: &tables.styles,
             defaults: Options::from_config(config),
             fallbacks: Mutex::new(BTreeSet::new()),
@@ -127,7 +123,7 @@ impl Highlight {
     /// Whether `lang` names a language Chroma knows (Hugo's `transform.CanHighlight`).
     #[must_use]
     pub fn can_highlight(&self, lang: &str) -> bool {
-        self.languages.lexer(lang).is_some()
+        self.languages.get(lang).is_some()
     }
 
     /// The Chroma lexer `lang` names.
@@ -136,10 +132,9 @@ impl Highlight {
         self.languages.lexer(lang)
     }
 
-    /// Every Chroma lexer with the name of the syntect syntax that tokenises it (`None`:
-    /// plain text).
-    pub fn lexer_syntaxes(&self) -> impl Iterator<Item = (&'static str, Option<&str>)> {
-        self.languages.mapping()
+    /// The names of every Chroma lexer, in Chroma's registration order.
+    pub fn lexer_names(&self) -> impl Iterator<Item = &'static str> {
+        self.languages.names()
     }
 
     /// The names of the bundled Chroma styles.
@@ -168,7 +163,7 @@ impl Highlight {
     }
 
     /// The HTML of `code` in `lang` with options `o`; `attributes` are a fence's attributes
-    /// for the wrapping `<div>`.
+    /// for the wrapping `<div>` (Hugo's `highlight`).
     #[must_use]
     pub fn highlight(
         &self,
@@ -177,20 +172,19 @@ impl Highlight {
         o: &Options,
         attributes: Option<&Map>,
     ) -> String {
-        let code = code.replace("\r\n", "\n");
-        let (lang, syntax, whitespace) = match self.languages.lexer(lang) {
-            Some(lexer) => (
-                lang.to_owned(),
-                self.languages.syntax(lexer),
-                lexer.whitespace(),
-            ),
-            None if o.guess_syntax => {
-                let (lang, syntax) = self.languages.guess(&code);
-                (lang, syntax, Whitespace::Text)
-            }
-            None => return html::plain(&code, lang, o.layout),
+        let mut lang = lang.to_owned();
+        let mut lexer = (!lang.is_empty())
+            .then(|| self.languages.get(&lang))
+            .flatten();
+        if lexer.is_none() && o.guess_syntax {
+            let guessed = self.languages.analyse(code);
+            lang = guessed.name().to_lowercase();
+            lexer = Some(guessed);
+        }
+        let Some(lexer) = lexer else {
+            return html::plain(code, &lang, o.layout);
         };
-        let tokens = self.tokenise(&code, syntax, whitespace);
+        let tokens = lexer.tokens(code);
         let style = self.style(&o.style);
         let inline = match o.styling {
             Styling::Inline => style::inline_map(
@@ -203,6 +197,8 @@ impl Highlight {
             ),
             Styling::Classes => BTreeMap::new(),
         };
+        let tokens: Vec<(TokenType, &str)> =
+            tokens.iter().map(|t| (t.ty, t.value.as_str())).collect();
         Block {
             lang: &lang,
             options: o,
@@ -212,12 +208,18 @@ impl Highlight {
         .format(&tokens)
     }
 
-    /// The tokens of `code` in `lang` (`None` when Chroma has no lexer for `lang`); plain
-    /// text is one [`TokenType::Text`] token.
+    /// The tokens of `code` in `lang` as Chroma's coalesced token stream (`None` when Chroma
+    /// has no lexer for `lang`).
     #[must_use]
-    pub fn tokens<'c>(&self, code: &'c str, lang: &str) -> Option<Vec<Token<'c>>> {
-        let lexer = self.languages.lexer(lang)?;
-        Some(self.tokenise(code, self.languages.syntax(lexer), lexer.whitespace()))
+    pub fn tokens(&self, code: &str, lang: &str) -> Option<Vec<Token>> {
+        let lexer = self.languages.get(lang)?;
+        Some(
+            lexer
+                .tokens(code)
+                .into_iter()
+                .map(|t| (t.ty, t.value))
+                .collect(),
+        )
     }
 
     /// A style sheet for the Chroma style `style` (`hugo gen chromastyles`).
@@ -258,119 +260,6 @@ impl Highlight {
             self.styles.fallback()
         })
     }
-
-    /// Tokenises `code` with `syntax` (plain text without one) and coalesces equal types.
-    fn tokenise<'c>(
-        &self,
-        code: &'c str,
-        syntax: Option<&SyntaxReference>,
-        whitespace: Whitespace,
-    ) -> Vec<Token<'c>> {
-        let Some(syntax) = syntax else {
-            return vec![(TokenType::Text, code)];
-        };
-        // (type, start, end) in `code`, coalesced like Chroma's `Coalesce`.
-        let mut spans: Vec<(TokenType, usize, usize)> = Vec::new();
-        let mut push = |t: TokenType, start: usize, end: usize| match spans.last_mut() {
-            Some((last, s, e)) if *last == t && *e == start && *e - *s < 8192 => *e = end,
-            _ => spans.push((t, start, end)),
-        };
-        let mut classifier = Classifier::new(self.scopes);
-        self.scan(code, syntax, |stack, start, end| {
-            let t = stack.map_or(TokenType::Text, |s| classifier.classify(s));
-            if t != TokenType::Text || whitespace == Whitespace::Text {
-                push(t, start, end);
-                return;
-            }
-            // Runs of whitespace in plain text are whitespace tokens.
-            let text = &code[start..end];
-            let mut run_start = start;
-            let mut run_ws = None;
-            for (i, c) in text.char_indices() {
-                let ws = c.is_whitespace();
-                if run_ws.is_some_and(|w| w != ws) {
-                    let t = if ws {
-                        TokenType::Text
-                    } else {
-                        TokenType::TextWhitespace
-                    };
-                    push(t, run_start, start + i);
-                    run_start = start + i;
-                }
-                run_ws = Some(ws);
-            }
-            let t = if run_ws == Some(true) {
-                TokenType::TextWhitespace
-            } else {
-                TokenType::Text
-            };
-            push(t, run_start, end);
-        });
-        spans
-            .into_iter()
-            .map(|(t, start, end)| (t, &code[start..end]))
-            .collect()
-    }
-
-    /// The scope stacks of `code` in `lang`, for studying the scope map: `(scopes, text)`.
-    #[doc(hidden)]
-    #[must_use]
-    pub fn scopes<'c>(&self, code: &'c str, lang: &str) -> Vec<(String, &'c str)> {
-        let Some(syntax) = self
-            .languages
-            .lexer(lang)
-            .and_then(|l| self.languages.syntax(l))
-        else {
-            return Vec::new();
-        };
-        let mut out = Vec::new();
-        self.scan(code, syntax, |stack, start, end| {
-            let names = stack.map_or_else(String::new, |s| {
-                s.iter()
-                    .map(|x| x.build_string())
-                    .collect::<Vec<_>>()
-                    .join(" ")
-            });
-            out.push((names, &code[start..end]));
-        });
-        out
-    }
-
-    /// Calls `f` with the scope stack of every non-empty run of `code`, in order (`None`: the
-    /// rest of the code after a parse error).
-    fn scan(
-        &self,
-        code: &str,
-        syntax: &SyntaxReference,
-        mut f: impl FnMut(Option<&[Scope]>, usize, usize),
-    ) {
-        let syntaxes = &self.languages.syntaxes;
-        let mut state = ParseState::new(syntax);
-        let mut stack = ScopeStack::new();
-        let mut offset = 0;
-        for line in LinesWithEndings::from(code) {
-            let Ok(ops) = state.parse_line(line, syntaxes) else {
-                f(None, offset, code.len());
-                return;
-            };
-            let mut pos = 0;
-            for (at, op) in ops {
-                let at = at.min(line.len());
-                if at > pos {
-                    f(Some(stack.as_slice()), offset + pos, offset + at);
-                    pos = at;
-                }
-                if stack.apply(&op).is_err() {
-                    f(None, offset + pos, code.len());
-                    return;
-                }
-            }
-            if pos < line.len() {
-                f(Some(stack.as_slice()), offset + pos, offset + line.len());
-            }
-            offset += line.len();
-        }
-    }
 }
 
 impl Highlighter for Highlight {
@@ -407,7 +296,6 @@ mod tests {
         let a = Highlight::new(&HighlightConfig::default());
         let b = Highlight::new(&HighlightConfig::default());
         assert!(std::ptr::eq(a.languages, b.languages));
-        assert!(std::ptr::eq(a.scopes, b.scopes));
         assert!(std::ptr::eq(a.styles, b.styles));
         // Only the tables are shared: the fallback notices stay per highlighter.
         a.fallbacks.lock().unwrap().insert("x".into());

@@ -111,7 +111,7 @@ fn agrees(h: &Harness, got: &Result<Value, String>, want: &Want) -> bool {
 fn eval(h: &Harness, c: &Case) -> Result<Value, String> {
     let mut ctx = Context::new();
     ctx.insert("lang", &c.lang);
-    let input = Value::from_serializable(&c.input);
+    let input = neohugo_testkit::tera_value(&c.input);
     let input = match input.as_str() {
         Some(s) if c.input_safe => Value::safe_string(s),
         _ => input,
@@ -119,7 +119,7 @@ fn eval(h: &Harness, c: &Case) -> Result<Value, String> {
     ctx.insert_value("__in", input);
     let mut args = Vec::new();
     for (k, v) in &c.kwargs {
-        ctx.insert_value(format!("__kw_{k}"), Value::from_serializable(v));
+        ctx.insert_value(format!("__kw_{k}"), neohugo_testkit::tera_value(v));
         args.push(format!("{k}=__kw_{k}"));
     }
     let call = format!("{}({})", c.f, args.join(", "));

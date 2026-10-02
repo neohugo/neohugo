@@ -224,7 +224,7 @@ fn repo_files_of_the_go_tree() {
         testdata("upstream/resources/testdata/exif/orientation6.jpg")
     );
     for rel in [
-        "docs/hugo.toml",
+        "docs/neohugo.toml",
         "hugolib/testdata/fruits.json",
         "resources/testdata2/a.png",
         "Cargo.toml",

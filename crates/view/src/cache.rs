@@ -866,11 +866,12 @@ impl ViewCache {
             .unwrap_or_default()
     }
 
-    /// The generation a render in `phase` with variant `v` sees: Meta in the content phase,
-    /// else the Full generation of `v` (of `Html` when `v` has none; Meta before phase D).
+    /// The generation a render in `phase` with variant `v` sees: Meta in the content phase and
+    /// in content adapters, else the Full generation of `v` (of `Html` when `v` has none; Meta
+    /// before phase D).
     #[must_use]
     pub fn generation(&self, phase: Phase, v: HookVariant) -> &ViewGeneration {
-        if phase == Phase::Content {
+        if matches!(phase, Phase::Content | Phase::Adapter) {
             return &self.meta;
         }
         let Some(full) = self.full.get() else {

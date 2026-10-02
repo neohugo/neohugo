@@ -11,9 +11,10 @@ use neohugo_base::{Map, Value};
 use crate::error::ConfigError;
 use crate::tree;
 
-/// The base names of a configuration file, in lookup order: `neohugo`, then Hugo's `hugo` and
-/// `config`. In a configuration directory each of them places its content at the root.
-pub const CONFIG_BASE_NAMES: [&str; 3] = ["neohugo", "hugo", "config"];
+/// The base names of a configuration file, in lookup order: `neohugo`, then `config`. In a
+/// configuration directory each of them places its content at the root. Hugo's `hugo.*` is
+/// not read.
+pub const CONFIG_BASE_NAMES: [&str; 2] = ["neohugo", "config"];
 
 /// The configuration file extensions, in lookup order.
 pub const CONFIG_EXTENSIONS: [&str; 4] = ["toml", "yaml", "yml", "json"];
@@ -37,7 +38,7 @@ pub fn find_config_file(dir: &Path) -> (Option<PathBuf>, Option<Diagnostic>) {
     let path = dir.join(&used);
     let warning = (!ignored.is_empty()).then(|| {
         Diagnostic::warning(format!(
-            "using {used}; ignoring {} (the first of neohugo.*, hugo.*, config.* is read)",
+            "using {used}; ignoring {} (the first of neohugo.*, config.* is read)",
             ignored.join(", ")
         ))
         .with_id("config-file-ignored")
@@ -370,7 +371,7 @@ pub fn project_files(
 }
 
 /// The files of one configuration directory (`config/_default`, `config/production`), in
-/// path order, each placed by its file name: `neohugo.*`/`hugo.*`/`config.*` at the root,
+/// path order, each placed by its file name: `neohugo.*`/`config.*` at the root,
 /// `params.en.*` under `languages.en.params`, `menus.en.*` under `languages.en.menus`, any
 /// other `name.*` under `name`.
 pub fn dir_files(dir: &Path) -> Result<Vec<Source>, ConfigError> {

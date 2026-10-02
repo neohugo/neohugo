@@ -6,18 +6,40 @@ translations, bundle resources, page references).
 
 | Piece | API |
 |---|---|
-| Entry point | `load_model(Arc<Config>, &Vfs, &LoadModelOptions { clock, content: ContentFilter }) -> Result<Model, ModelError>`; `LoadModelOptions::from_config(&cfg, clock)` |
+| Entry point | `load_model(Arc<Config>, &Vfs, &LoadModelOptions { clock, content: ContentFilter }) -> Result<Model, ModelError>` (no content adapters run); `LoadModelOptions::from_config(&cfg, clock)` |
+| Content adapters | `capture_content(&Config, &Vfs) -> Captured` (phase A4; `Captured::adapters() -> &[ContentAdapter { file, info, lang }]`), then `assemble(Arc<Config>, Captured, Added { pages: Vec<AddedPage { adapter, lang, page: Arc<AdapterPage> }>, resources: Vec<AddedResource { adapter, lang, path, name, title, params, content: AddedContent::{Text, Resource} }> }, &LoadModelOptions)`; neohugo-build runs the adapters in between |
 | Model | `Model { config, pages: IdVec<PageId, Page>, sites: IdVec<LangIdx, SiteModel>, bundle_resources: IdVec<ResourceId, BundleResource>, data: Arc<Map>, diagnostics }`; `page(id)`, `bundle_owner(id)`, `page_name(id)` (`.Name`), `is_ancestor(a, b)`, `pager_paths(id, format, "/page/2")` |
 | Page | `id, lang, kind, role: PageRole, key: ContentKey, source: Option<SourceFile>, path_info: PathInfo, meta: PageMeta`; T23b: `title, link_title, section, type, taxonomy: Option<TaxonomyIdx>, term: Option<TermIdx>, standalone: Option<FormatId>, formats: Vec<FormatId>, urls: Vec<PageUrl { format, paths: TargetPaths, links: Option<Links> }>, parent, ancestors, current_section, first_section, pages, regular_pages, sections, translations (= .AllTranslations), terms: Vec<(TaxonomyIdx, TermIdx)>, resources: Vec<ResourceId>`; `path()` (`.Path`), `name()`, `listed(ListScope::{Local, Global})`, `linked()`, `rendered()`, `url(format)`, `links()`, `dir_key()` |
 | SiteModel | `lang, tree: SiteTree, resources: BTreeMap<ContentKey, ResourceId>, cascade`; T23b: `home, pages, regular_pages (.Site.Pages/.RegularPages), regular_pages_local (regular pages listed locally, default order: `.RegularPagesRecursive` of home and sections), taxonomies: IdVec<TaxonomyIdx, Taxonomy>, main_sections, last_mod, permalinks: PermalinkPatterns` |
 | Taxonomies | `Taxonomy { def, page: Option<PageId>, terms: IdVec<TermIdx, Term> }` (terms by key), `listed_terms(&Model)` (`.Site.Taxonomies`: listed terms with members); `Term { key, term (.Data.Term), page, members: Vec<WeightedPage { page, weight, ordinal }> }` (weight, then default order) |
-| BundleResource | `key, lang, file, info, page`; T23b: `copy_of` (a `duplicateResourceFiles` copy), `owner`, `name` (as written below the owner), `name_normalized`, `target_base: Option<ResourceBase>`, `publish`; `target()`, `link()`. Feeds `neohugo_resources::BundleResource { lang, file: file.abs, name, dir: target_base.link, policy: publish ? Eager : OnReference }` |
+| BundleResource | `key, lang, file, info, page, adapter: Option<Arc<AddedResource>>`; T23b: `copy_of` (a `duplicateResourceFiles` copy), `owner`, `name` (as written below the owner), `name_normalized`, `target_base: Option<ResourceBase>`, `publish`; `target()`, `link()`. Feeds `neohugo_resources::BundleResource { lang, file: file.abs, name, dir: target_base.link, policy: publish ? Eager : OnReference }` |
 | References | `get_page(lang, ref, from)` (`.GetPage`), `site_get_page(lang, &[args])` (legacy kind-first `.Site.GetPage`), `ref_page(lang, ref, from)`, `ref_link(lang, &RefArgs { path, lang, output_format }, from, RefLink::{Permalink, RelPermalink})` → `Result<_, RefError>` (the caller maps errors to `refLinks`) |
 | Trees | `SiteTree::{get, insert, remove, longest_prefix, descendants, iter}` (segment-wise) |
 | Cascade | `CascadeIndex::{new, add_branch, received(key), in_force(key, own), branches}`; `meta::cascaded_params(cfg, index, lang, kind, key)` |
 | Data | `data::load(&Vfs) -> Result<Data { map, diagnostics }, DataError>` |
 
 ## Phases
+
+0. **Content adapters** (`_content.html`; Hugo's `_content.gotmpl`). Capture lists them
+   (`Captured::adapters`; a `.gotmpl` adapter is `ModelError::GoContentAdapter`, with the hint
+   to port it to Tera); neohugo-build renders them with a model of the content files and
+   [`assemble`] adds what they added. Each `add_page` map becomes a captured page after the
+   files, with the adapter as its file (`.File`, `IsContentAdapter`), the path
+   `/<path>/index.<suffix>` (`_index` for branch kinds), no front matter and `content.value` as
+   its body; its meta is `neohugo_page::meta_from_adapter` with the cascade's fields filling the
+   map and its params the params (Hugo's `setMetaPost` for adapter pages). Each `add_resource`
+   map becomes a bundle resource at its path, owned like a file; its bytes and metadata come
+   from the adapter (`BundleResource::adapter`).
+
+   Duplicates: a key (or resource path) a content file and an adapter both claim is the
+   file's; one two adapters claim is the later adapter's, in the earlier one's place; both are
+   `duplicate-content-path` (`duplicate-resource-path`) warnings, found through maps of
+   (language, key), so assembling n added pages and resources takes linear time. A path one
+   adapter run adds twice is already its last `add_page` (see neohugo-sitefuncs). This is
+   Hugo's last insert in the order of one collector worker, which queues a directory's
+   adapters before its files and subdirectories; with several workers Hugo's result depends
+   on scheduling. One case differs from that order: a `../` path onto a key that a file in an
+   ancestor's (or an earlier sibling's) directory holds stays the file's here.
 
 1. **Capture** (A4; rayon over files): `Vfs::discover_content` (its duplicates become
    `duplicate-content-path` warnings), read, `split_front_matter`, `decode_front_matter`,

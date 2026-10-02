@@ -9,7 +9,7 @@
 //! and resource URLs) without a difference, L2 on every file, A7 ≥ 0.95 and a clean ratchet
 //! (every remaining difference is a baseline entry with the same fingerprint).
 //!
-//! The site's PostCSS step and `js_build` need the node tools and esbuild; without them the
+//! The site's PostCSS step and `js_build` need the node tools; without them the
 //! test prints `SKIPPED` and passes ([`crate::acceptance`]). The Go binaries are not needed.
 
 use crate::acceptance;

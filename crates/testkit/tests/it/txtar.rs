@@ -53,7 +53,7 @@ fn mini_site() {
     );
     assert_eq!(a.files.len(), 30);
     assert!(
-        a.get("hugo.toml")
+        a.get("neohugo.toml")
             .unwrap()
             .starts_with("baseURL = \"https://example.org/\"\n")
     );

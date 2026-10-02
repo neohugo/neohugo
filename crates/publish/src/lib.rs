@@ -1,11 +1,12 @@
-//! Publishing: sinks, canonify, minify dispatch, `hugo_stats.json`, URL-token extraction, held
+//! Publishing: sinks, canonify, minify dispatch, `neohugo_stats.json`, URL-token extraction, held
 //! outputs and the static sync (docs/rust-port/REWRITE_PLAN.md §2.6, §3.4).
 //!
 //! - [`DiskSink`] and [`MemorySink`] implement [`neohugo_base::Sink`].
 //! - [`Publisher::emit`] takes every rendered [`Output`]: canonify / relative URLs
 //!   ([`canonify`]), LiveReload script, [`StatsCollector`], [`UrlTokens`], then either holds it
-//!   (deferred placeholders, patched by [`Publisher::patch_held`]) or minifies and writes it.
-//! - [`HugoStats`] is the content of `hugo_stats.json`.
+//!   (deferred placeholders: written unpatched, patched in the sink by
+//!   [`Publisher::patch_held`]) or minifies and writes it.
+//! - [`NeohugoStats`] is the content of `neohugo_stats.json`.
 //! - [`UrlTokens`] are handed to the resource store by `neohugo-build` (the store takes any
 //!   iterator of `&str`, so it does not depend on this crate).
 //! - [`sync_static_dir`] / [`sync_static`] copy the static mounts (phase E1).
@@ -26,10 +27,12 @@ use neohugo_base::LangIdx;
 use neohugo_base::paths::OutputPath;
 
 pub use canonify::{Quoting, UrlRewriter};
-pub use publisher::{Emitted, Output, PLACEHOLDER_PREFIXES, PublishSettings, Publisher, SiteLinks};
+pub use publisher::{
+    Emitted, Output, PLACEHOLDER_PREFIXES, PublishSettings, Publisher, SiteLinks, page_names,
+};
 pub use sink::{DiskSink, MemorySink};
 pub use static_sync::{StaticSyncOptions, sync_static, sync_static_dir};
-pub use stats::{HtmlElements, HugoStats, StatsCollector, StatsLists};
+pub use stats::{HtmlElements, NeohugoStats, StatsCollector, StatsLists};
 pub use tokens::UrlTokens;
 
 /// A publishing failure.
@@ -38,6 +41,12 @@ pub use tokens::UrlTokens;
 pub enum PublishError {
     #[error("writing {path}: {source}")]
     Write {
+        path: OutputPath,
+        source: std::io::Error,
+    },
+    /// A held output could not be read back from the sink.
+    #[error("reading {path}: {source}")]
+    Read {
         path: OutputPath,
         source: std::io::Error,
     },

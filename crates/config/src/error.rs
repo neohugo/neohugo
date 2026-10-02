@@ -17,7 +17,7 @@ pub enum ConfigError {
         source: std::io::Error,
     },
     /// Neither a configuration file nor a configuration directory was found.
-    #[error("no configuration file (neohugo.toml, neohugo.yaml, neohugo.json, or Hugo's hugo.* or config.*) or config directory in {}", dir.display())]
+    #[error("no configuration file (neohugo.toml, neohugo.yaml, neohugo.json, or config.*) or config directory in {}", dir.display())]
     NotFound { dir: PathBuf },
     /// A theme (`theme`, `[[module.imports]]`) is not in the themes directory, in the project's
     /// `_vendor` directory or at the absolute path given.

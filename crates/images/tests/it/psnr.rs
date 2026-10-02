@@ -213,8 +213,8 @@ fn golden_images_from_t01() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Hugo's own golden images and their recipes (images_golden_integration_test.go). The
-/// smart-anchor results are not compared (content-aware crop is a COULD feature).
+/// Hugo's own golden images and their recipes (images_golden_integration_test.go), the
+/// smart-anchor crops and fills included.
 fn hugo_golden_recipes() -> Vec<Recipe> {
     let sunset = "resources/testdata/sunset.jpg";
     let gopher = "resources/testdata/gopher-hero8.png";
@@ -392,6 +392,16 @@ fn hugo_golden_recipes() -> Vec<Recipe> {
     }
     for (name, source, spec) in [
         (
+            "process/misc/crop-500x200-smart.jpg",
+            sunset,
+            "crop 500x200 smart",
+        ),
+        (
+            "process/misc/fill-500x200-smart.jpg",
+            sunset,
+            "fill 500x200 smart",
+        ),
+        (
             "process/misc/fit-500x200-smart.jpg",
             sunset,
             "fit 500x200 smart",
@@ -424,10 +434,17 @@ fn hugo_golden_recipes() -> Vec<Recipe> {
             "fill 90x120 right",
         ),
         ("methods/fit-sunsetjpg-200x200.jpg", sunset, "fit 200x200"),
+        // `.Crop "200x200"`: the default anchor, smart.
+        ("methods/crop-sunsetjpg-200x200.jpg", sunset, "crop 200x200"),
         (
             "methods/crop-sunsetjpg-350x400-center.jpg",
             sunset,
             "crop 350x400 center",
+        ),
+        (
+            "methods/crop-sunsetjpg-350x400-smart.jpg",
+            sunset,
+            "crop 350x400 smart",
         ),
         (
             "methods/crop-sunsetjpg-350x400-center-r90.jpg",

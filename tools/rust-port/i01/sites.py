@@ -6,17 +6,18 @@ Usage:
   sites.py make <site> <dir> [--docs-patches i01|reduced] [--overlay sites/<site>]
                                     # <dir> must not exist; for seeksnack and mini its basename
                                     # must be the site's name (it keys the GetRemote cache)
-  sites.py cache <site> <dir>       # the HUGO_CACHEDIR contents the site needs (may be empty)
+  sites.py cache <site> <dir>       # the NEOHUGO_CACHEDIR contents the site needs (may be empty;
+                                    # its <site> directory: the site dir's basename must be <site>)
   sites.py patches [--check]        # write patches.json / check it and the Tera patch files
 
 Sites:
   docs          this repository's docs/ site, patched to build offline; --docs-patches picks the
-                variant (i01, the default, or reduced; DOCS_* below, patches.json); docs-i01
-                and docs-reduced name the variants too
+                variant (i01, the default, reduced, or live: unpatched; DOCS_* below,
+                patches.json); docs-i01, docs-reduced and docs-live name the variants too
   testsite      Hugo's hugolib/testsite (testdata/upstream) plus a small config and layouts
                 (testsite.txtar)
   seeksnack     the reconstructed seeksnack config (testdata/oracle/allconfig/load/
-                seeksnack/hugo.toml) with the synthetic en/th content tree of the nh-hugolib
+                seeksnack/neohugo.toml) with the synthetic en/th content tree of the nh-hugolib
                 oracles (read from testdata/oracle/hugolib/build/seeksnack.json.gz) and
                 the layouts/assets/i18n/data of seeksnack.txtar; its GetRemote calls are served
                 from the 51 golden getresource cache entries
@@ -27,8 +28,10 @@ Sites:
   t24-<name>    the T24 build-oracle sites (testdata/oracle/hugolib/build/<name>.json.gz)
 
 --overlay makes the input of the Rust build: the same site with its layouts replaced by the Tera
-layouts of the overlay directory, the overlay's assets copied over, and for docs the variant's
-Tera patch files (sites/docs/patches/<variant>/) layered on top (REWRITE_PLAN.md §7.4).
+layouts of the overlay directory, the overlay's assets copied over, its content adapters
+(content/**/_content.html) replacing the site's Go-template ones (_content.gotmpl; an adapter
+whose Go original the patches removed is not copied), and for docs the variant's Tera patch files
+(sites/docs/patches/<variant>/, if it has any) layered on top (REWRITE_PLAN.md §7.4).
 The Go build that wrote the golden data built the site without an overlay
 (tools/neohugo/oracle.sh, frozen at 44529028).
 """
@@ -36,6 +39,7 @@ import argparse
 import gzip
 import json
 import os
+import re
 import shutil
 import sys
 
@@ -45,6 +49,9 @@ TESTDATA = os.path.join(ROOT, "testdata")
 BUILD_FX = os.path.join(TESTDATA, "oracle", "hugolib", "build")
 GOLDEN_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache", "seeksnack",
                             "filecache", "getresource")
+# The GetRemote responses of the published docs build (2025-10-13), by cache key: docs-live's.
+DOCS_LIVE_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache", "docs-live",
+                               "filecache", "getresource")
 GETREMOTE_FX = os.path.join(TESTDATA, "oracle", "resource-transformers", "getremote",
                             "getremote.json.gz")
 # Hugo's test data by its Go-tree path, as the fixtures record it, moved to
@@ -71,6 +78,32 @@ def edit(dir_, rel, old, new):
         sys.exit(f"{rel}: {old!r} found {s.count(old)} times")
     with open(fn, "w", encoding="utf-8", newline="") as fh:
         fh.write(s.replace(old, new, 1))
+
+
+def as_neohugo_site(dir_):
+    """A Hugo site made a neohugo site: its `hugo.*` configuration file named `neohugo.*`, the
+    stats file its configuration and stylesheets read named `neohugo_stats.json`, and the
+    `security.funcs.getenv` pattern of Hugo's variables (`^HUGO_`) made neohugo's (`^NEOHUGO_`):
+    neohugo reads no Hugo names."""
+    for ext in ("toml", "yaml", "yml", "json"):
+        fn = os.path.join(dir_, "hugo." + ext)
+        if os.path.exists(fn):
+            os.rename(fn, os.path.join(dir_, "neohugo." + ext))
+    stats = re.compile(r"(?<![\w.])hugo_stats(\\\\)?\.json")
+    candidates = [os.path.join(dir_, "neohugo." + e) for e in ("toml", "yaml", "yml", "json")]
+    for root, _, names in os.walk(os.path.join(dir_, "assets")):
+        candidates += [os.path.join(root, n) for n in names if n.endswith(".css")]
+    for fn in candidates:
+        if not os.path.isfile(fn):
+            continue
+        with open(fn, encoding="utf-8", newline="") as fh:
+            text = fh.read()
+        new = stats.sub(lambda m: "neohugo_stats" + (m.group(1) or "") + ".json", text)
+        if os.path.basename(fn).startswith("neohugo."):
+            new = re.sub(r"""(['"])\^HUGO_""", r"\1^NEOHUGO_", new)
+        if new != text:
+            with open(fn, "w", encoding="utf-8", newline="") as fh:
+                fh.write(new)
 
 
 def copy_tree(src, dst, skip=("public", "resources", "node_modules")):
@@ -116,7 +149,11 @@ def read_txtar(path):
 #   i01      the I01 site: offline, no Chroma, passthrough, emoji, Tailwind or node modules
 #            (acceptance gate A-D1);
 #   reduced  offline, with Chroma highlighting, passthrough, emoji, remarshal, Tailwind and the
-#            real Alpine/Turbo imports (node.sh modules; gate A-D2).
+#            real Alpine/Turbo imports (node.sh modules; gate A-D2);
+#   live     the docs site as neohugo.github.io publishes it: no patches (only the committed
+#            hugo_stats.json goes, the build writes it), so GetRemote, images.Text, QR, Dither,
+#            smartcrop, the x shortcode, the style gallery and the news content adapter all run
+#            (gate A-D3: the golden data is the published site, testdata/golden/docs-live/).
 # The Go build always builds these Go-template patches. A patch of a file below layouts/ has a
 # Tera counterpart at sites/docs/patches/<variant>/<same path> for every variant it belongs
 # to (`sites.py patches --check` asserts the 1:1 correspondence); all other patches change the
@@ -124,13 +161,14 @@ def read_txtar(path):
 
 I01 = "i01"
 REDUCED = "reduced"
-DOCS_VARIANTS = (I01, REDUCED)
-BOTH = DOCS_VARIANTS
+LIVE = "live"
+DOCS_VARIANTS = (I01, REDUCED, LIVE)
+BOTH = (I01, REDUCED)
 
 DOCS_REMOVE = [  # (file, variants, why)
     ("content/en/news/_content.gotmpl", BOTH, "GetRemote of GitHub releases (a content adapter)"),
     ("content/en/functions/images/Text.md", BOTH, "GetRemote of a font (images.Text)"),
-    ("hugo_stats.json", BOTH, "written by the build"),
+    ("hugo_stats.json", DOCS_VARIANTS, "written by the build (the Go build's, committed in docs/)"),
     # COULD features (T72): images.QR (rsc.io/qr), images.Dither.
     ("content/en/shortcodes/qr.md", BOTH, "images.QR (COULD, T72)"),
     ("content/en/functions/images/QR.md", BOTH, "images.QR (COULD, T72)"),
@@ -153,12 +191,12 @@ DOCS_REPLACE = [  # (file, old, new, variants, why)
      "const persist = {};\nconst focus = {};", (I01,), "no node modules (Alpine.js plugins)"),
     ("assets/js/turbo.js", "import * as Turbo from '@hotwired/turbo';", "window.Turbo = { session: {} };",
      (I01,), "no node modules (Turbo)"),
-    ("hugo.toml", "[markup.goldmark.extensions.passthrough]\n        enable = true",
+    ("neohugo.toml", "[markup.goldmark.extensions.passthrough]\n        enable = true",
      "[markup.goldmark.extensions.passthrough]\n        enable = false", (I01,),
      "no goldmark passthrough"),
-    ("hugo.toml", "enableEmoji            = true", "enableEmoji            = false", (I01,),
+    ("neohugo.toml", "enableEmoji            = true", "enableEmoji            = false", (I01,),
      "no goldmark emoji"),
-    ("hugo.toml", "  [markup.highlight]\n", "  [markup.highlight]\n    codeFences         = false\n",
+    ("neohugo.toml", "  [markup.highlight]\n", "  [markup.highlight]\n    codeFences         = false\n",
      (I01,), "no Chroma: code fences are rendered as plain <pre><code>"),
     # images.Text (a font rasterizer) and images.QR (rsc.io/qr) are COULD features (T72):
     # replaced with other image processing so the pipelines still run.
@@ -275,6 +313,7 @@ def make_docs(dir_, variant=I01):
     if variant not in DOCS_VARIANTS:
         sys.exit(f"unknown docs patch variant {variant!r} (one of {', '.join(DOCS_VARIANTS)})")
     copy_tree(os.path.join(ROOT, "docs"), dir_)
+    as_neohugo_site(dir_)
     for p in docs_patches()["patches"]:
         if variant not in p["variants"]:
             continue
@@ -307,7 +346,7 @@ def fixture_site(name):
 
 def write_fixture_site(site, dir_):
     os.makedirs(dir_)
-    write(dir_, "hugo.toml", site["toml"])
+    write(dir_, "neohugo.toml", site["toml"])
     for f in site["files"]:
         if f.get("repo"):
             with open(repo_file(f["repo"]), "rb") as fh:
@@ -442,6 +481,20 @@ def seeksnack_cache(dir_):
         shutil.copyfile(os.path.join(GOLDEN_CACHE, e["entry"]), os.path.join(gdir, e["fileCacheKey"]))
 
 
+def docs_live_cache(dir_):
+    """The GetRemote responses the published docs build got on 2025-10-13 (README.md next to them):
+    `<key>` files as they are, `<key>.gz` (the large ones) decompressed."""
+    gdir = os.path.join(dir_, "docs-live", "filecache", "getresource")
+    os.makedirs(gdir, exist_ok=True)
+    for name in sorted(os.listdir(DOCS_LIVE_CACHE)):
+        src = os.path.join(DOCS_LIVE_CACHE, name)
+        if name.endswith(".gz"):
+            with gzip.open(src, "rb") as fh, open(os.path.join(gdir, name[:-3]), "wb") as out:
+                shutil.copyfileobj(fh, out)
+        elif re.fullmatch(r"[0-9a-f]+", name):
+            shutil.copyfile(src, os.path.join(gdir, name))
+
+
 PROBE_FX = os.path.join(TESTDATA, "oracle", "tplimpl", "probe", "probe.json.gz")
 
 PROBE_CONFIG = """baseURL = "https://example.org/"
@@ -503,7 +556,7 @@ def make_probe(dir_):
         if "{{ .Title | js }}" in v:
             v = v.replace("{{ .Title | js }}", "JS-NAMESPACE")
         write(dir_, k, v)
-    write(dir_, "hugo.toml", PROBE_CONFIG)
+    write(dir_, "neohugo.toml", PROBE_CONFIG)
     write(dir_, "content/_index.md", PROBE_HOME)
 
 
@@ -614,7 +667,7 @@ def make_images(dir_):
                 fs = " ".join(f"({filter_call(f)})" for f in step["filters"])
                 lines.append("{{- $r = $r | images.Filter (slice " + fs + ") }}")
         lines.append(r["golden"] + " {{ $r.RelPermalink }}")
-    write(dir_, "hugo.toml", 'baseURL = "https://example.org/"\n'
+    write(dir_, "neohugo.toml", 'baseURL = "https://example.org/"\n'
           'disableKinds = ["page", "section", "taxonomy", "term", "rss", "sitemap", "robotsTXT", "404"]\n'
           '[outputs]\nhome = ["html"]\n')
     write(dir_, "layouts/home.html", "\n".join(lines) + "\n")
@@ -634,11 +687,24 @@ def apply_overlay(dir_, overlay, variant=None):
     shutil.copytree(os.path.join(overlay, "layouts"), os.path.join(dir_, "layouts"))
     if os.path.isdir(os.path.join(overlay, "assets")):
         shutil.copytree(os.path.join(overlay, "assets"), os.path.join(dir_, "assets"), dirs_exist_ok=True)
+    content = os.path.join(overlay, "content")
+    for d, _, fs in os.walk(content):
+        for f in fs:
+            rel = os.path.relpath(os.path.join(d, f), content)
+            dst = os.path.join(dir_, "content", rel)
+            if f == "_content.html":
+                gotmpl = os.path.join(os.path.dirname(dst), "_content.gotmpl")
+                if not os.path.exists(gotmpl):
+                    continue  # the patches removed the Go adapter: the variant has none
+                os.remove(gotmpl)
+            os.makedirs(os.path.dirname(dst), exist_ok=True)
+            shutil.copyfile(os.path.join(d, f), dst)
     if variant is not None:
         vdir = os.path.join(overlay, "patches", variant)
-        if not os.path.isdir(vdir):
+        if os.path.isdir(vdir):
+            shutil.copytree(vdir, dir_, dirs_exist_ok=True)
+        elif any(p["tera"] and variant in p["variants"] for p in docs_patches()["patches"]):
             sys.exit(f"{overlay} has no patches/{variant}")
-        shutil.copytree(vdir, dir_, dirs_exist_ok=True)
 
 
 SITES = {"docs": make_docs, "testsite": make_testsite, "seeksnack": make_seeksnack,
@@ -697,7 +763,9 @@ def main():
     dir_ = a.dir
     if a.cmd == "cache":
         os.makedirs(dir_, exist_ok=True)
-        if name in CACHES:
+        if name == "docs" and variant == LIVE:
+            docs_live_cache(dir_)
+        elif name in CACHES:
             CACHES[name](dir_)
         return
     if os.path.exists(dir_):

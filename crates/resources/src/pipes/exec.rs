@@ -221,11 +221,10 @@ fn environment(store: &ResourceStore, env: &TransformEnv) -> Vec<(String, String
         .unwrap_or_default();
     set(&mut vars, "NODE_PATH", node_path);
     set(&mut vars, "PWD", env.project_dir.display().to_string());
-    set(&mut vars, "HUGO_ENVIRONMENT", env.environment.clone());
-    set(&mut vars, "HUGO_ENV", env.environment.clone());
+    set(&mut vars, "NEOHUGO_ENVIRONMENT", env.environment.clone());
     set(
         &mut vars,
-        "HUGO_PUBLISHDIR",
+        "NEOHUGO_PUBLISHDIR",
         env.publish_dir.display().to_string(),
     );
     if let Some(vfs) = &store.cfg.vfs {
@@ -235,7 +234,7 @@ fn environment(store: &ResourceStore, env: &TransformEnv) -> Vec<(String, String
             };
             if m.abs.is_file() {
                 let key = format!(
-                    "HUGO_FILE_{}",
+                    "NEOHUGO_FILE_{}",
                     name.to_ascii_uppercase().replace(['.', '-'], "_")
                 );
                 if !vars.iter().any(|(k, _)| *k == key) {

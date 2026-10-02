@@ -234,8 +234,22 @@ pub struct GitInfoView {
 #[derive(Clone, Debug, Serialize)]
 pub struct SitemapView {
     pub change_freq: String,
+    /// An integer when it is integral, so that it prints as Go prints a `float64` (`0`, `1`,
+    /// `0.5`; Tera prints the float `0.0` as `0.0`).
+    #[serde(serialize_with = "go_float")]
     pub priority: f64,
     pub disable: bool,
+}
+
+/// Serialises `f` as an integer when it is integral (and exactly representable), else as a
+/// float: Tera then prints it as Go's `%v` does (`strconv.FormatFloat(f, 'g', -1, 64)` for the
+/// values a template meets).
+fn go_float<S: serde::Serializer>(f: &f64, s: S) -> Result<S::Ok, S::Error> {
+    if f.fract() == 0.0 && f.abs() < 9.0e15 {
+        s.serialize_i64(*f as i64)
+    } else {
+        s.serialize_f64(*f)
+    }
 }
 
 /// The content fields of a page value in a Full generation (inserted into its summary map).
@@ -634,9 +648,9 @@ pub struct ShortcodeView {
     pub position: String,
 }
 
-/// `hugo`.
+/// `neohugo`: the version and the build environment.
 #[derive(Clone, Debug, Serialize)]
-pub struct HugoView {
+pub struct NeohugoView {
     pub version: &'static str,
     pub neohugo_version: &'static str,
     pub environment: String,
@@ -646,8 +660,8 @@ pub struct HugoView {
     pub generator: tera::Value,
 }
 
-impl HugoView {
-    /// `server`: the build runs in `neohugo server` (`hugo.IsServer`).
+impl NeohugoView {
+    /// `server`: the build runs in `neohugo server` (`neohugo.is_server`).
     #[must_use]
     pub fn new(cfg: &Config, server: bool) -> Self {
         Self {
@@ -657,9 +671,10 @@ impl HugoView {
             is_production: cfg.environment == "production",
             is_development: cfg.environment == "development",
             is_server: server,
-            generator: tera::Value::safe_string(
-                r#"<meta name="generator" content="Hugo 0.149.0-DEV">"#,
-            ),
+            generator: tera::Value::safe_string(&format!(
+                r#"<meta name="generator" content="neohugo {}">"#,
+                env!("CARGO_PKG_VERSION")
+            )),
         }
     }
 }

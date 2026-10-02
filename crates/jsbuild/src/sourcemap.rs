@@ -1,34 +1,27 @@
-//! Source maps written as files (`sourceMap: external | linked`): esbuild names sources by
-//! module path; the published map names them by `file://` URL so browsers find them.
+//! Source maps of `js.Build`: the bundler names sources by path relative to the output
+//! directory; the published map names them by `file://` URL so browsers find them.
 
 use std::path::Path;
 
 use serde_json::Value as Json;
 
-use crate::resolve::{NS_HUGO_IMPORT, STDIN, clean};
+use crate::resolve::clean;
 
-/// Rewrites the `sources` of an esbuild source map:
-/// - `<stdin>` becomes the URL of `stdin_file` (the entry script's real file) when known;
-/// - `ns-hugo-imp:<abs path>` (a module resolved as an asset) becomes the URL of that file;
-/// - other plain paths are relative to `out_dir` and become the URL of the file they name;
-/// - anything else (`ns-hugo-params:…`) is kept, so `sources` stays aligned with
-///   `sourcesContent`.
+/// Rewrites the `sources` of a source map: paths (relative to `out_dir`) become the URL of the
+/// file they name; anything with a scheme is kept, so `sources` stays aligned with
+/// `sourcesContent`.
 ///
 /// The map is re-written with its five standard fields (`version`, `sources`,
 /// `sourcesContent`, `mappings`, `names`).
 ///
 /// # Errors
 /// When the map is not JSON.
-pub(crate) fn fix_sources(
-    map: &[u8],
-    stdin_file: Option<&Path>,
-    out_dir: &Path,
-) -> Result<Vec<u8>, serde_json::Error> {
-    let mut sm: Json = serde_json::from_slice(map)?;
+pub(crate) fn fix_sources(map: &str, out_dir: &Path) -> Result<Vec<u8>, serde_json::Error> {
+    let mut sm: Json = serde_json::from_str(map)?;
     if let Some(Json::Array(sources)) = sm.get_mut("sources") {
         for s in sources.iter_mut() {
             if let Json::String(src) = s
-                && let Some(url) = source_url(src, stdin_file, out_dir)
+                && let Some(url) = source_url(src, out_dir)
             {
                 *src = url;
             }
@@ -51,17 +44,8 @@ pub(crate) fn fix_sources(
     Ok(out.into_bytes())
 }
 
-fn source_url(src: &str, stdin_file: Option<&Path>, out_dir: &Path) -> Option<String> {
-    if src == STDIN {
-        return stdin_file.map(file_url);
-    }
-    if let Some(path) = src
-        .strip_prefix(NS_HUGO_IMPORT)
-        .and_then(|s| s.strip_prefix(':'))
-    {
-        return Some(file_url(Path::new(path)));
-    }
-    if src.starts_with("ns-hugo") || src.contains(':') {
+fn source_url(src: &str, out_dir: &Path) -> Option<String> {
+    if src.contains(':') && !Path::new(src).is_absolute() {
         return None;
     }
     let joined = out_dir.join(src);

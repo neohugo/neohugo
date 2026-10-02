@@ -46,7 +46,7 @@ const LAYOUT: &str = "<main>{{ page.content }}</main>";
 fn site() -> Vec<(String, String)> {
     [
         (
-            "hugo.toml",
+            "neohugo.toml",
             "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n[markup.goldmark.renderer]\nunsafe = true\n",
         ),
         ("layouts/single.html", LAYOUT),
@@ -179,15 +179,15 @@ fn docs_cross_page_shortcodes() {
     assert!(report.collisions.is_empty());
 }
 
-/// `@hugo` is an implicit component argument like `@site` (the docs `linkcss`, `linkjs` and
+/// `@neohugo` is an implicit component argument like `@site` (the docs `linkcss`, `linkjs` and
 /// `sponsors` components): Tera looks it up in the caller's scope, and every render that can
-/// call a component (layout job, `partial()`, shortcode, render hook) has `hugo`.
+/// call a component (layout job, `partial()`, shortcode, render hook) has `neohugo`.
 #[test]
-fn components_take_hugo_implicitly() {
-    let comp = "{% component env(label, @hugo, @site) %}{{ label }}={{ hugo.environment }}/{{ site.title }}{% endcomponent env %}";
+fn components_take_neohugo_implicitly() {
+    let comp = "{% component env(label, @neohugo, @site) %}{{ label }}={{ neohugo.environment }}/{{ site.title }}{% endcomponent env %}";
     let files: Vec<(String, String)> = [
         (
-            "hugo.toml",
+            "neohugo.toml",
             "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\", \"section\"]\n",
         ),
         ("layouts/_partials/env.html", comp),
@@ -241,7 +241,7 @@ fn docs_glossary() {
     .expect("glossary.html");
     let files: Vec<(String, String)> = [
         (
-            "hugo.toml",
+            "neohugo.toml",
             concat!(
                 "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\n",
                 "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n",

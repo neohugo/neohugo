@@ -26,6 +26,7 @@ neohugo-config.workspace = true
 neohugo-view.workspace = true
 neohugo-funcs.workspace = true
 neohugo-resources.workspace = true
+neohugo-minify.workspace = true
 neohugo-locale.workspace = true
 neohugo-site.workspace = true
 neohugo-page.workspace = true

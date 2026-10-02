@@ -104,9 +104,9 @@ fn derive(env: &LayoutEnv, info: &PathInfo) -> Result<Classified, String> {
         d => &d[1..],
     };
     let first = path[1..].split('/').next().unwrap_or_default();
-    if matches!(first, "_hugo" | "_server") && path[1..].contains('/') {
+    if matches!(first, "_neohugo" | "_server") && path[1..].contains('/') {
         return Err(format!(
-            "`{first}/` is reserved for Hugo's internal templates"
+            "`{first}/` is reserved for neohugo's internal templates"
         ));
     }
 

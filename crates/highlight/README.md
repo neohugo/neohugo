@@ -1,10 +1,13 @@
 # neohugo-highlight
 
-Code highlighting for neohugo (T25; REWRITE_PLAN.md §1.1 decision D1, §2.1): syntect 5.3 with
-two-face's syntaxes tokenises, a scope map turns syntect scopes into **Chroma token types**, and
-the HTML is the HTML Hugo writes with Chroma: the same wrappers, line structure, line numbers,
-highlighted lines, **Chroma class names** or **inline styles** computed from **Chroma's own style
-files**. Sites keep their Chroma style sheets (the docs' `chroma.css`), and
+Code highlighting for neohugo (T25; REWRITE_PLAN.md §1.1 decision D1, §2.1): a port of
+[Chroma](https://github.com/alecthomas/chroma) v2.19.0, the highlighter Hugo uses. Chroma's
+lexers (its XML definitions converted to Rust data, its Go-written lexers ported) run on a
+port of Chroma's
+regex-lexer engine and of the .NET regex dialect they are written in (regexp2); the tokens go
+through Chroma's HTML formatter (line structure, line numbers, highlighted lines, **Chroma class
+names** or **inline styles** from **Chroma's own style files**) inside Hugo's wrappers. The output
+is Hugo's, byte for byte. Sites keep their Chroma style sheets (the docs' `chroma.css`), and
 `hugo gen chromastyles` output can be reproduced ([`Highlight::css`]).
 
 ## API
@@ -12,15 +15,15 @@ files**. Sites keep their Chroma style sheets (the docs' `chroma.css`), and
 ```rust
 pub struct Highlight;                                     // Send + Sync; build once per build
 impl Highlight {
-    pub fn new(&HighlightConfig) -> Self;                 // [markup.highlight]; first call loads the syntaxes (~85 ms dev)
+    pub fn new(&HighlightConfig) -> Self;                 // [markup.highlight]; first call registers the lexers (~7 ms dev)
     pub fn highlight_with(&self, code, lang, OptionsArg) -> Result<String, HighlightError>; // `highlight` function
     pub fn highlight(&self, code, lang, &Options, attributes: Option<&Map>) -> String;
     pub fn css(&self, style, CssMode) -> Result<String, HighlightError>;  // gen chromastyles
     pub fn can_highlight(&self, lang) -> bool;            // transform.CanHighlight
-    pub fn tokens(&self, code, lang) -> Option<Vec<(TokenType, &str)>>;
+    pub fn tokens(&self, code, lang) -> Option<Vec<(TokenType, String)>>; // Chroma's coalesced tokens
     pub fn diagnostics(&self) -> Vec<Diagnostic>;         // unknown style names (fallback warnings)
     pub fn defaults(&self) -> &Options; pub fn lexer(&self, lang) -> Option<Lexer>;
-    pub fn style_names(&self); pub fn lexer_syntaxes(&self);
+    pub fn style_names(&self); pub fn lexer_names(&self); // Chroma's styles; lexers in registration order
 }
 impl neohugo_markup::Highlighter for Highlight { .. }     // fences no code-block hook handles
 pub enum OptionsArg<'a> { None, Str(&'a str), Map(&'a Map) }   // "linenos=table,hl_lines=2" or a dict
@@ -29,9 +32,8 @@ pub struct Options { style, styling: Styling, line_nos, line_number_layout: Line
                      layout: CodeLayout, tab_width, guess_syntax, wrapper_class }
 impl Options { from_config, apply_str, apply_map, highlight_ranges }
 pub enum Styling { Classes, Inline }  LineNumberLayout { Table, Inline }  CodeLayout { Block, Inline }
-pub enum TokenType { .. }  // Chroma's types: number, name, class(), parent(), category()
+pub enum TokenType { .. }  // Chroma's types: name, number, class(), parent(), category()
 pub enum CssMode { AllClasses, OmitEmpty }
-pub mod scope { pub const RULES; pub const NESTED; pub enum Rule { Type, Whole, Defer } }
 ```
 
 Options follow Hugo: the site's `[markup.highlight]`, then a fence's `{…}` options (keys
@@ -43,104 +45,188 @@ page's code block count), as Hugo does; the function has no prefix. Invalid valu
 
 ## How it works
 
-- **Languages** (`src/lexers.rs`). Whether a language is known is Chroma's decision:
-  `src/data/chroma-lexers.tsv` is Chroma v2.19.0's `lexers.Get` result for every lexer name,
-  alias (case-insensitive) and file extension/name (exact). Unknown languages render as Hugo
-  does (`<pre tabindex="0"><code class="language-x" data-lang="x">`, no wrapper). A known lexer
-  is tokenised by the syntect syntax found by name, alias, then extension (overrides in
-  `SYNTAX_OVERRIDES`, including 8 lexers whose extensions would pick an unrelated grammar);
-  lexers without one (e.g. Terminfo, PowerShell) are plain text inside Chroma's structure,
-  like Chroma's `plaintext`. 116 of Chroma's 270 lexers have a grammar.
-- **Go templates** (`src/syntaxes/`, original, MIT). `Go Template` (`go-template`,
-  `go-text-template`, `*.gotmpl`) follows Chroma's `go_template` lexer rule by rule (including
-  its quirk that numbers are names); `Go HTML Template` (`go-html-template`) is HTML with the
-  template actions and comments injected everywhere (`with_prototype`), like Chroma's
-  delegating lexer. 1,313 of the 2,284 docs items are `go-html-template`.
-- **Scopes → token types** (`src/scope.rs`). A stack is read innermost first; the longest
-  matching prefix decides, language-specific rules (`prefix @lang`, matching the scope's last
-  atom) outrank generic ones. `Defer` scopes (string quotes, `$`, entity punctuation) take the
-  outer type; `Whole` scopes (comments, doctypes, HTML attribute values) give their type to
-  everything inside; `NESTED` rules make CSS/JS inside `style`/`on…` attributes one string, as
-  Chroma does. YAML whitespace outside tokens becomes `w` tokens (Chroma's YAML lexer).
-- **Styles** (`src/style.rs`, `src/styles/*.xml`). All 67 Chroma v2.19.0 style files, verbatim,
-  with Chroma's inheritance (`Background`, `Text`, category, sub-category, `noinherit`), its
-  synthesised line-number and line-highlight colours, its CSS properties and compression.
+- **Regex dialect** (`src/regexp2/`): Chroma compiles every rule with dlclark/regexp2, a port of
+  .NET's engine, and which match a rule finds decides the tokens. `parser.rs` and
+  `charclass.rs` port regexp2's parser and character classes (capture numbering with named
+  groups after numbered ones, inline options and `x`-mode comments, literal `{` that is no
+  quantifier, `\<` a literal unless it names a group, class subtraction `[a-z-[aeiou]]`, Unicode
+  `\w` `\s` `\d` `\p{L}`, .NET's lower-case table under `i`). `vm.rs` runs the tree with an explicit
+  backtracking stack (no recursion) and regexp2's rules: alternatives in order, `*`/`+` loops
+  ending on an empty iteration (`Branchmark`), counted loops (`Branchcount`), lazy variants,
+  atomic look-around that keeps a positive body's captures, look-behind of any length matched
+  right to left, back-references, `\G`. A first-character filter skips rules that cannot
+  start at the position.
+- **Lexer engine** (`src/chroma/`): Chroma's `RegexLexer` — rules compiled as
+  `\G(?flags)(?:pattern)`, `include` expanded and `combined` states created at compile time
+  (lazily, on a lexer's first use), the state machine (first matching rule wins; an unmatched
+  character is an `Error` token; an unmatched newline outside the start state resets the stack;
+  `EnsureNL`, `EnsureLF`), the emitters (`token`, `bygroups`, `using`, `usingself`,
+  `usingbygroup`) and mutators (`push`, `pop`, `#pop`, `mutators`), `Ignore` tokens dropped,
+  `Coalesce`; tokens are produced eagerly, an `EOF` marker standing for an iterator's early
+  end (HTTP's `Content-Type` body): `Coalesce` ends a run there and reads on, a consumer of a
+  nested iterator (the iterator stack, `Concaterator`) stops, as in Chroma;
+  `DelegatingLexer` (template languages in HTML), `TypeRemappingLexer`; the
+  registry (`lexers.Get`: name, alias, then `filename.<lang>` and `<lang>` against the file
+  name patterns by priority, Go's `filepath.Match`; `MatchMimeType`; `Analyse` for
+  `guessSyntax`, Chroma's `fallback` lexer when nothing scores). The file name part of a
+  lookup is cached per name, as Hugo's `chromalexers.Get` caches `lexers.Get`: a language no
+  lexer knows (`output`, `console`) tries every pattern once per process, not once per fence.
+  The state stack is a persistent list (`stack.rs`): the zero-width-loop guard (deviations)
+  and Haxe's pre-processor copy it in O(1).
+- **Lexers**: `src/chroma/lexers/*.rs` are Chroma's 255 XML lexers, converted to Rust (Lexer
+  and style files; `lexers/mod.rs` lists them in Chroma's registration order, `defs.rs` has the
+  types). Chroma's lexers written in Go are in `src/chroma/golexers/exported/*.rs`, exported
+  from Chroma's Go code in its XML format and converted (Fixtures); `golexers.rs` ports their
+  Go functions (the Go lexer's raw strings lexed as Go text templates, HTTP's header/body
+  emitters and its `Content-Type` sub-lexer, reStructuredText's code blocks, Haxe's
+  pre-processor mutator), wraps them like Chroma (Go HTML templates, Markdown, PHTML and Svelte
+  delegate to HTML; Common Lisp and Emacs Lisp remap words, `golexers/lisp.rs`) and sets the
+  Go, DNS, MySQL and Zed analysers. 270 lexers, registered in Chroma's order (its XML lexers by
+  file name, then the Go ones in Go's initialisation order, replacing lexers of the same name
+  in place).
+- **Styles** (`src/style.rs`, `src/styles/*.rs`). All 67 Chroma v2.19.0 style files,
+  converted to Rust like the lexers, with Chroma's inheritance (`Background`, `Text`, category,
+  sub-category, `noinherit`), its synthesised line-number and line-highlight colours, its CSS
+  properties and compression.
 - **HTML** (`src/html.rs`): Chroma's formatter (lines split after `\n`, `line`/`cl` spans,
   `ln` inline or the `lntable` layout, `hl` lines, `lnlinks` anchors, `style` attributes with
   sub-category/category fallback) inside Hugo's wrappers (`<div class="{wrapperClass} {class}"
   attrs>`, `<pre tabindex="0">`, `<code class="language-x" data-lang="x">`, `hl_inline`'s
   `<code class="code-inline language-x">`). Fences get a final newline (Hugo's code block
-  renderer); the function does not.
+  renderer); the function does not. Code without a lexer is escaped as is (Hugo's plain
+  `<pre><code>`).
 
-## Acceptance (T25 row of §8.2)
+## Acceptance
 
 `cargo test -p neohugo-highlight --test it -- --nocapture` prints the tables.
 
 | criterion | result |
 |---|---|
-| all docs fences highlight | **2,284/2,284** items render: 1,996 fences (goat fences excluded: they go to the goat hook), 285 `code-toggle` bodies (in the format they are written in), 2 `highlight` and 1 `hl` shortcodes; 2,283 have a Chroma lexer and get Hugo's highlighted structure, 1 (`texts`, a typo) stays plain exactly as in Hugo |
-| **byte-identical to Hugo** (docs config: `noClasses=false`, `solarized-dark`, `lineNumbersInTable=false`, wrapper `highlight not-prose`; hashes of Hugo's `transform.Highlight` output) | **2,205/2,284 (96.5%)**; floor 95% |
-| classes ⊆ Chroma's | every `class` written is in Chroma's `StandardTypes` (or Hugo's wrapper classes); asserted on every item |
-| token coverage (non-whitespace characters Chroma classifies, 181,725) | **99.8%** get a class; **99.5%** the same family (keyword/name/string/number/…); **99.4%** the same class. Floors 99.5 / 99.0 / 99.0 |
-| `go-html-template` | own syntax; 132,849 characters, **100.0%** same class (floor 99.5) |
+| all docs fences highlight | **2,284/2,284** items render: 1,996 fences (goat fences go to the goat hook), 285 `code-toggle` bodies (in the format they are written in), 2 `highlight` and 1 `hl` shortcodes; 2,283 have a Chroma lexer, 1 (`texts`, a typo) stays plain exactly as in Hugo |
+| **byte-identical to Hugo** (docs config: `noClasses=false`, `solarized-dark`, `lineNumbersInTable=false`, wrapper `highlight not-prose`; hashes of Hugo's `transform.Highlight` output) | **2,284/2,284** (asserted) |
+| token classes (non-whitespace characters Chroma classifies, 181,725) | **100.0%** the same class, every lexer (asserted) |
+| Chroma's own lexer test suite (`lexers/testdata`, 298 inputs, `*.expected` tokens) | **296/298** token streams identical; the 2 Raku inputs differ (not ported) |
+| `guessSyntax` (Chroma's `lexers.Analyse` over those inputs and its analysis inputs, 305) | **305/305** pick the same lexer |
+| lexer lookup (`src/data/chroma-lexers.tsv`: `lexers.Get` of every name, alias and file pattern) | every entry |
+| every lexer compiles | 270/270 (and the 269 lexer files) |
 | solarized-dark CSS | byte-identical to `hugo gen chromastyles --style=solarized-dark`, with and without `--omitEmpty` |
 | inline styles (`noClasses`), `hl_inline`, `lineNumbersInTable`, `linenos`, `hl_lines`, `linenostart`, `anchorlinenos`, `lineanchors`, `tabWidth`, `wrapperClass`, styles | option matrix (5 inputs × 19 option sets: known/plain/unknown/no language) **95/95 byte-identical** to Hugo |
-| Chroma style names → styles, with a fallback warning | every Chroma style is bundled (the docs use `solarized-dark`, `emacs`, Hugo's default `monokai`); an unknown name falls back to Chroma's `swapoff` (as Hugo) and is reported once by `diagnostics()` |
+| docs site (live-check against neohugo.github.io) | all 3,543 `<pre>` blocks and 3,514 wrappers/inline code byte-identical, including the style gallery (67 styles × 6 languages, inline styles) |
+| Chroma style names → styles, with a fallback warning | every Chroma style is bundled; an unknown name falls back to Chroma's `swapoff` (as Hugo) and is reported once by `diagnostics()` |
 
-Per lexer (docs corpus, characters Chroma classifies):
+Speed: `Highlight::new` ≈ 3 ms (dev; it registers the 270 lexers from their static data; a
+lexer builds and compiles its rules on first use); the 2,284 docs items ≈ 0.6 s in a dev
+build (syntect took 1.9 s); the docs site builds in ≈ 1.35 s release (≈ 1.9 s with
+syntect). Tokenising is linear in the input, deep stacks included (release, tokens only;
+Chroma v2.19.0 in parentheses): Sass 100 KB ≈ 40 ms (≈ 200 ms), 1 MB ≈ 340 ms (1.8 s); Haxe
+`(`×12,000 `)`×12,000 16 ms (65 ms); Metal 1 MB 330 ms (1.4 s); Racket 40 KB of nested lines
+22 ms (100 ms). An unknown fence language costs one file name lookup (≈ 0.3 ms) per name and
+process: a 50-page site with 2,000 `output` fences builds in ≈ 20–60 ms. What is slow in
+Chroma itself stays slow, though not slower: regex backtracking over a 40 KB identifier
+(Makefile 24 s, Chroma 67 s), Svelte's lexer, quadratic in Chroma too (30 KB 0.34 s, Chroma
+1.3 s).
 
-| lexer | chars | classified % | same family % | same class % |
-|---|---|---|---|---|
-| Go HTML Template | 132,849 | 100.0 | 100.0 | 100.0 |
-| TOML | 28,583 | 100.0 | 100.0 | 99.9 |
-| YAML | 11,247 | 100.0 | 99.4 | 99.4 |
-| JavaScript | 1,938 | 100.0 | 94.1 | 91.5 |
-| JSON | 1,480 | 100.0 | 99.9 | 99.4 |
-| Bash | 1,469 | 96.9 | 96.5 | 95.9 |
-| XML | 1,389 | 100.0 | 100.0 | 100.0 |
-| TypeScript | 1,228 | 80.5 | 78.5 | 69.9 |
-| CSS | 558 | 92.8 | 78.9 | 69.5 |
-| Diff | 218 | 100.0 | 93.1 | 69.3 |
-| Go | 196 | 100.0 | 99.0 | 99.0 |
-| CSV / SCSS / Go Template / react / Terminfo | 178 / 57 / 108 / 141 / 86 | 100 / 98.2 / 100 / 100 / 0 | 98.3 / 98.2 / 100 / 39.7 / 0 | 98.3 / 98.2 / 100 / 36.2 / 0 |
+Size: the release binary is ≈ 2.1 MB smaller than with the XML (65.0 MB against 67.1 MB,
+stripped, macOS arm64), ≈ 0.6 MB larger than with syntect (it was ≈ 2.7 MB larger). The Rust
+data holds each pattern and name once; the XML was 2.0 MB of text (lexers 1.9 MB, styles
+0.13 MB), and the 255 lexers were in the binary twice (their table was a `const` used in two
+places).
 
-Speed (dev profile, syntect at opt-level 3): the first `Highlight::new` of a process ≈ 85 ms
-(`build.rs` links two-face's syntaxes and the Go template syntaxes into one set at compile time
-and the binary loads its dump lazily; linking it at run time took ≈ 0.45 s in release, T70),
-the 2,284 docs items ≈ 1.9 s.
+## Lexer and style files
+
+Chroma keeps its lexers and styles as XML (`lexers/embedded/*.xml`, `styles/*.xml`); the crate
+keeps them as Rust, one file each, converted from that XML by `tests/it/xml2rust.rs`:
+`src/chroma/lexers/<name>.rs`, `src/chroma/golexers/exported/<name>.rs` (Chroma's Go lexers)
+and `src/styles/<name>.rs`, each directory's `mod.rs` listing them in Chroma's order (its file
+names, bytewise: the lexers' registration order). They are `static` data, compiled like the rest
+of the crate: nothing is parsed at run time, a misspelt token type does not compile, and neither
+does a rule with two emitters or two mutators (the builders below assert it). The conversion is
+exact: every lexer's configuration and rules, and every style, equal what the XML gave (checked
+against the crate's former XML reader, by the acceptance tests and by a differential run of
+5,119 inputs). The XML's comments are Rust comments. A file whose name is no Rust identifier
+gets one (`c#.xml` → `csharp.rs`, `c++.xml` → `cpp.rs`, `-` → `_`); `file` keeps Chroma's
+name.
+
+A lexer (the builders and types are in `src/chroma/defs.rs`):
+
+```rust
+#[rustfmt::skip]
+pub(crate) static LEXER: LexerDef = LexerDef {
+    file: "go_template",                   // Chroma's file name
+    config: ConfigDef {                    // Chroma's `Config`
+        name: "Go Template",
+        aliases: &["go-template"],
+        filenames: &["*.gotmpl", "*.go.tmpl"],
+        // also alias_filenames, mime_types, case_insensitive, dot_all, not_multiline,
+        // ensure_nl, priority, analyse (`Some(AnalyseDef { first, regexes: &[(r"…", 1.0)] })`)
+        ..ConfigDef::EMPTY
+    },
+    states: &[
+        ("template", &[
+            rule(r"[-]?}}").token(T::CommentPreproc).pop(1),
+            rule(r#""(\\\\|\\"|[^"])*""#).token(T::LiteralString),
+            include("expression"),
+        ]),
+        // …
+    ],
+};
+```
+
+- A rule: `rule(r"…")`, the .NET regex as written (`rule("")`: the empty pattern), then at
+  most one emitter and one mutator; `include("state")` is a rule standing for that state's
+  rules. Patterns are raw strings (`r"…"`, or `r#"…"#` when they hold `"`); the one holding a
+  control character (U+0085) is an escaped string.
+- Emitters: `.token(T::Type)`; `.groups(&[T::A, T::B])` (one token type per group);
+  `.bygroups(&[E::Token(T::A), E::UsingSelf("state"), E::Nil])` (one emitter per group,
+  `E::Nil`: the group emits nothing); `.using("Lexer")`; `.using_self("state")`;
+  `.using_by_group(name_group, code_group, &[E::Token(T::A), …])`; `.emit_func("name")` (a Go
+  function, ported in `golexers.rs`).
+- Mutators: `.push(&["state"])` (several states; `"#pop"` pops; `&[]` pushes the current state
+  again); `.pop(1)`; `.include("state")`; `.combined(&["a", "b"])`;
+  `.mutators(&[M::Push(&["a"]), M::Pop(1)])`; `.mutator_func("name")`.
+
+A style (`src/styles/<name>.rs`): `static STYLE: StyleDef`, its `name` and its `entries` from
+token types to Chroma's entry syntax (`(T::Keyword, "bold #0000ff")`,
+`(T::Background, "bg:#ffffff")`).
+
+The files are the source: edit them like any code. To move to another Chroma version, convert
+its files (directories relative to the repository root; the converter rewrites the files and
+`mod.rs`; a file Chroma removed is deleted by hand), then update the Go lexers (Fixtures), the
+fixtures and the acceptance numbers:
+
+```sh
+C=$(go env GOMODCACHE)/github.com/alecthomas/chroma/v2@v2.19.0
+NEOHUGO_HL_XML2RUST=$C/lexers/embedded:crates/highlight/src/chroma/lexers \
+  cargo test -p neohugo-highlight --test it xml_to_rust
+NEOHUGO_HL_XML2RUST=$C/styles:crates/highlight/src/styles \
+  cargo test -p neohugo-highlight --test it xml_to_rust
+```
 
 ## Accepted deviations
 
-- **Tokens come from TextMate grammars, not Chroma's lexers.** Where a grammar and a Chroma
-  lexer disagree the span structure differs (allowed at L3, §7): shell numbers after `=`,
-  JavaScript's `from`, TypeScript and CSS details, Diff headers; languages without a grammar in
-  two-face (Terminfo, PowerShell, …) are plain text. The plan's risk 7.
-- **Styles are Chroma's style files, not syntect themes** (the plan says "style names →
-  themes"): the token types are already Chroma's, so Chroma's own definitions give Hugo's exact
-  colours and every Chroma style name works; two-face's themes are unused. The "fallback
-  warning" is for names Chroma does not have either (Hugo falls back silently).
+- **Raku** is registered with its configuration and plain-text rules: Chroma's Raku lexer is Go
+  code that rewrites the lexer's compiled rules while it runs (and uses named-group emitters);
+  it is not ported. Raku code renders in Chroma's structure as one text token.
+- **Chroma panics** (a push to an unknown state, `using` an unknown lexer, popping more states
+  than the stack holds, `usingbygroup` with the wrong number of emitters) become `Error`
+  tokens or an empty stack instead; none of Chroma's lexers reaches them on its test suite.
+- **Chroma loops forever** where zero-width matches bring the lexer back to a configuration
+  (state stack, Haxe's pre-processor stack) it already had at the same position, e.g.
+  JSONata's catch-all `[a-zA-Z0-9_]*` before `é`, Jungle's `(?=\S)` push and default pop
+  before `"` (Hugo's build hangs). The port undoes those matches and treats the position as
+  matched by no rule (an `Error` character, or the newline reset); the same past 1,024
+  configurations at one position (a stack growing without bound). The guard is not free but
+  costs O(1) per zero-width match (it keeps the configurations, which share the persistent
+  stacks' nodes, in a hash set); copying the stacks instead made deep inputs quadratic (Sass
+  100 KB 2.2 s, Haxe `(`×12,000 `)`×12,000 28 s).
+- **Regex limits**: `\p{…}` knows Unicode general categories (Go's `unicode.Categories`), not
+  scripts or properties, and balancing groups (`(?<a-b>…)`) are refused; no Chroma lexer uses
+  either. Categories come from Unicode 17 (`unicode-properties`), Go's from Unicode 15. A match
+  gives up after 50 M steps where regexp2 gives up after 250 ms (Chroma then treats the rule as
+  not matching).
+- **Haxe's pre-processor stack** copies the state stack where Go keeps a slice that can alias it.
 - **Fence attributes** are written in key order (markup's attribute `Map` is sorted; Hugo keeps
   source order), and the `class` value is escaped (Hugo writes it raw).
-- **`guessSyntax`** uses syntect's first-line detection instead of Chroma's analysers; the
-  guessed language name is the syntect syntax name, lower-cased.
-- **Multi-line tokens**: a Go template string or comment spanning lines, and an HTML attribute
-  value holding a template action, are tokenised per line by syntect; the output agrees with
-  Chroma on the docs corpus, but a grammar whose constructs need look-ahead across lines can
-  split differently.
-
-## Plan issues
-
-- Chroma's licence and data (styles, lexer table) live in the crate (`src/styles/COPYING`,
-  PROVENANCE rows); a `THIRD_PARTY/chroma/` entry would match the other assets (this task could
-  only edit `THIRD_PARTY/two-face/`).
-- The "~3,900 docs fences" of the plan counts `code-toggle` three times (YAML, TOML, JSON after
-  `transform.Remarshal`); this crate cannot remarshal, so each body is highlighted once in its
-  own format (2,284 items).
-- **Shared target dir**: cargo's metadata hash of a workspace crate does not depend on the
-  worktree path, so an artifact built from another worktree's newer sources looks fresh here
-  (this task hit neohugo-config built by the concurrent F1 fix-up). Running with
-  `--config 'profile.dev.debug="limited"'` gives the workspace crates their own artifacts (the
-  registry crates keep the `package."*"` profile and are shared); `DEVELOPMENT.md` should say so.
 
 ## Fixtures (`tests/data/`)
 
@@ -150,13 +236,14 @@ the 2,284 docs items ≈ 1.9 s.
 | `hugo-docs-html.json.gz` | per docs item (`key` = FNV-1a of `lang\0code\0options-JSON`): FNV-1a of Hugo's HTML with the docs config |
 | `hugo-html.json` | the option matrix with Hugo's HTML (`golden.rs`) |
 | `solarized-dark{,.omit-empty}.css` | `WriteCSS` of Chroma's HTML formatter (`--omitEmpty` = `WithClasses`) |
-| `oracle/main.go.txt`, `oracle/regen.py` (at 44529028) | the Go oracle (Hugo's `markup/highlight` + Chroma v2.19.0) and the script that writes all of the above and `src/data/chroma-lexers.tsv` |
+| `chroma-testdata.json.gz` | Chroma's lexer test suite: each `lexers/testdata` input, its lexer, the FNV-1a of Chroma's `*.expected` tokens (`type\0text\0…`) and the lexer Chroma's `Analyse` picks (`lexers.rs`) |
+| `oracle/chroma.go.txt`, `oracle/chroma_testdata.py`, `oracle/export.go.txt` | the Chroma oracle (tokens, `Analyse`, registration order), the script that writes `chroma-testdata.json.gz`, and the exporter of the Go lexers' rules (Chroma XML, converted to `src/chroma/golexers/exported/`) |
 
-Regenerate in a worktree of 44529028, which has the Go tree and the oracle (`git worktree add
-<dir> 44529028`; Go ≥ 1.24 with the module cache of its `go.mod`, offline): run this from its
-root (the Cargo workspace is `rust/` there), then copy the fixtures above (oracle/ aside) from
-its `rust/crates/highlight/tests/data/` and its `rust/crates/highlight/src/data/chroma-lexers.tsv`
-to the same paths below `crates/highlight/` here.
+The first four (and `src/data/chroma-lexers.tsv`) come from Hugo's `markup/highlight` with Chroma
+v2.19.0, by the oracle at commit 44529028: in a worktree of it (`git worktree add <dir>
+44529028`; Go ≥ 1.24 with the module cache of its `go.mod`, offline), from its root (the Cargo
+workspace is `rust/` there), then copy `rust/crates/highlight/tests/data/*` (oracle/ aside) and
+`rust/crates/highlight/src/data/chroma-lexers.tsv` to the same paths below `crates/highlight/`:
 
 ```sh
 W=$(mktemp -d); mkdir $W/oracle; cp rust/crates/highlight/tests/data/oracle/main.go.txt $W/oracle/main.go
@@ -171,8 +258,23 @@ EOF
 python3 rust/crates/highlight/tests/data/oracle/regen.py $W/oracle/oracle $W
 ```
 
-Study aids: `NEOHUGO_HL_PAIRS=1` (most frequent class differences per lexer),
-`NEOHUGO_HL_SHOW='<lexer>:<class>'` (our scopes where Chroma writes that class),
-`NEOHUGO_HL_SCOPES='<lang>|<code>'` (`print_scopes`), `NEOHUGO_HL_OURS=<file>` (our HTML per
-item), `NEOHUGO_HL_LEXERS=1` (lexer → grammar table), all with
+The Chroma oracle and the exporter need only Chroma (Go ≥ 1.22, the module cache):
+
+```sh
+C=$(go env GOMODCACHE)/github.com/alecthomas/chroma/v2@v2.19.0; D=crates/highlight/tests/data
+O=$(mktemp -d); cp $D/oracle/chroma.go.txt $O/main.go; mkdir $O/export; cp $D/oracle/export.go.txt $O/export/main.go
+printf 'module gochroma\ngo 1.22\nrequire (\n\tgithub.com/alecthomas/chroma/v2 v2.19.0\n\tgithub.com/dlclark/regexp2 v1.11.5\n)\n' > $O/go.mod
+(cd $O && GOFLAGS=-mod=mod GOPROXY=off go build -o chroma . && GOFLAGS=-mod=mod GOPROXY=off go build -o export ./export)
+python3 $D/oracle/chroma_testdata.py $C $O/cases.jsonl
+$O/chroma analyse < $O/cases.jsonl > $O/analyse.txt
+python3 $D/oracle/chroma_testdata.py $C $O/cases.jsonl $O/analyse.txt $D/chroma-testdata.json.gz
+$O/export $O/golexers   # then the rename export.go.txt describes, and convert:
+NEOHUGO_HL_XML2RUST=$O/golexers:crates/highlight/src/chroma/golexers/exported \
+  cargo test -p neohugo-highlight --test it xml_to_rust
+```
+
+Study aids: `NEOHUGO_HL_PAIRS=1` (most frequent class differences per lexer, `docs_corpus`),
+`NEOHUGO_HL_OURS=<file>` (our HTML per docs item), `NEOHUGO_HL_TOKENS=<in>:<out>` (our tokens
+per JSON line `{lang, code}`, in the format of the oracle's `tokens`, `write_tokens`),
+`NEOHUGO_HL_LEXERS=1` (the lexers in registration order, `print_lexers`), all with
 `cargo test -p neohugo-highlight --test it <test> -- --nocapture`.

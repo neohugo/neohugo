@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 
-use neohugo_esbuild::{
+use neohugo_jsbuild::{
     DropKind, Format, JsBuildOptions, Jsx, Loader, OptionsError, Platform, SourceMap, Target,
 };
 use serde_json::json;

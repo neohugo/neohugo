@@ -68,11 +68,9 @@ fn go_color(c: &J) -> Color {
         .collect();
     let a = rgba[3];
     let un = |v: u64| {
-        if a == 0 {
-            0
-        } else {
-            u8::try_from(((v * 0xffff / a) >> 8).min(255)).expect("u8")
-        }
+        (v * 0xffff)
+            .checked_div(a)
+            .map_or(0, |x| u8::try_from((x >> 8).min(255)).expect("u8"))
     };
     Color([
         un(rgba[0]),

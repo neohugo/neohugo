@@ -21,7 +21,7 @@ type RendererSlot = Arc<OnceLock<Weak<dyn ContentRenderer>>>;
 type TemplatesSlot = Arc<OnceLock<Weak<Templates>>>;
 
 /// The context names a partial inherits from its caller.
-const INHERITED: [&str; 5] = ["page", "site", "hugo", "lang", "output_format"];
+const INHERITED: [&str; 5] = ["page", "site", "neohugo", "lang", "output_format"];
 
 pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
     let partial = || Partial {

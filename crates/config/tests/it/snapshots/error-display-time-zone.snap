@@ -2,4 +2,4 @@
 source: crates/config/tests/it/api.rs
 expression: shown
 ---
-$ROOT/site/hugo.toml:2:1: languages.en.timeZone: unknown time zone "Mars/Olympus": failed to find time zone `Mars/Olympus` in time zone database
+$ROOT/site/neohugo.toml:2:1: languages.en.timeZone: unknown time zone "Mars/Olympus": failed to find time zone `Mars/Olympus` in time zone database

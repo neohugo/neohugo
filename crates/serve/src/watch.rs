@@ -4,12 +4,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Component as PathComponent, Path, PathBuf};
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, PoisonError, RwLock};
 use std::time::Duration;
 
 use neohugo_config::Config;
 use neohugo_vfs::{Component, Vfs};
-use notify::event::{EventKind, MetadataKind, ModifyKind, RenameMode};
-use notify::{PollWatcher, RecommendedWatcher, RecursiveMode};
+use notify::event::{EventKind, MetadataKind, ModifyKind, RemoveKind, RenameMode};
+use notify::{Event, EventHandler, PollWatcher, RecommendedWatcher, RecursiveMode, WatcherKind};
 use notify_debouncer_full::{
     DebounceEventResult, DebouncedEvent, Debouncer, NoCache, RecommendedCache, new_debouncer_opt,
 };
@@ -144,8 +145,99 @@ impl WatchSet {
 
 /// The file watcher: the platform's notifications or polling, debounced.
 pub(crate) enum Watcher {
-    Native(Debouncer<RecommendedWatcher, RecommendedCache>),
+    Native(Debouncer<NativeWatcher, RecommendedCache>),
     Poll(Debouncer<PollWatcher, NoCache>),
+}
+
+/// The paths a watched path resolves to, and the watched path: (resolved, watched).
+type Aliases = Arc<RwLock<Vec<(PathBuf, PathBuf)>>>;
+
+/// The platform's watcher, its events put in terms of what was watched before the debouncer
+/// sees them.
+///
+/// - macOS (FSEvents) reports events under a watched directory's resolved path (`/private/var/…`
+///   for `/var/…`, a symlink's target), which no mount or configuration path starts with: they
+///   are mapped back to the watched path.
+/// - FSEvents repeats a file's earlier changes with a later one: a removal arrives as "created,
+///   removed, modified". The debouncer drops the creation together with the removal (a file that
+///   came and went), and the modification of a file that is gone then looks like an editor's
+///   temporary file, so the removal was lost. On macOS an event (but a rename) for a path that
+///   no longer exists is a removal.
+pub(crate) struct NativeWatcher {
+    inner: RecommendedWatcher,
+    aliases: Aliases,
+}
+
+impl notify::Watcher for NativeWatcher {
+    fn new<F: EventHandler>(mut handler: F, config: notify::Config) -> notify::Result<Self> {
+        let aliases = Aliases::default();
+        let map = Arc::clone(&aliases);
+        let inner = <RecommendedWatcher as notify::Watcher>::new(
+            move |r: notify::Result<Event>| handler.handle_event(r.map(|e| as_watched(e, &map))),
+            config,
+        )?;
+        Ok(Self { inner, aliases })
+    }
+
+    fn watch(&mut self, path: &Path, mode: RecursiveMode) -> notify::Result<()> {
+        notify::Watcher::watch(&mut self.inner, path, mode)?;
+        if let Ok(resolved) = path.canonicalize()
+            && resolved != path
+        {
+            write(&self.aliases).push((resolved, path.to_path_buf()));
+        }
+        Ok(())
+    }
+
+    fn unwatch(&mut self, path: &Path) -> notify::Result<()> {
+        write(&self.aliases).retain(|(_, watched)| watched != path);
+        notify::Watcher::unwatch(&mut self.inner, path)
+    }
+
+    fn configure(&mut self, option: notify::Config) -> notify::Result<bool> {
+        notify::Watcher::configure(&mut self.inner, option)
+    }
+
+    fn kind() -> WatcherKind {
+        <RecommendedWatcher as notify::Watcher>::kind()
+    }
+}
+
+/// `e` with its paths under the watched paths they resolve from, and on macOS an event on a
+/// path that is gone made a removal (see [`NativeWatcher`]).
+fn as_watched(mut e: Event, aliases: &RwLock<Vec<(PathBuf, PathBuf)>>) -> Event {
+    let aliases = aliases.read().unwrap_or_else(PoisonError::into_inner);
+    for path in &mut e.paths {
+        // The most specific watched path the event's path resolves under.
+        let alias = aliases
+            .iter()
+            .filter(|(resolved, _)| path.starts_with(resolved))
+            .max_by_key(|(resolved, _)| resolved.as_os_str().len());
+        if let Some((resolved, watched)) = alias
+            && let Ok(rest) = path.strip_prefix(resolved)
+        {
+            *path = watched.join(rest);
+        }
+    }
+    if cfg!(target_os = "macos") && gone(&e) {
+        e.kind = EventKind::Remove(RemoveKind::Any);
+    }
+    e
+}
+
+/// A creation or modification of one path that does not exist (renames are the debouncer's).
+fn gone(e: &Event) -> bool {
+    matches!(
+        e.kind,
+        EventKind::Create(_)
+            | EventKind::Modify(
+                ModifyKind::Any | ModifyKind::Data(_) | ModifyKind::Metadata(_) | ModifyKind::Other
+            )
+    ) && matches!(e.paths.as_slice(), [path] if !path.exists())
+}
+
+fn write<T>(lock: &RwLock<T>) -> std::sync::RwLockWriteGuard<'_, T> {
+    lock.write().unwrap_or_else(PoisonError::into_inner)
 }
 
 impl Watcher {
@@ -298,7 +390,7 @@ struct WatchedMount {
 pub(crate) struct Classifier {
     mounts: Vec<WatchedMount>,
     config: ConfigPlaces,
-    /// `hugo_stats.json`, which the build itself writes.
+    /// `neohugo_stats.json`, which the build itself writes.
     stats_file: PathBuf,
 }
 
@@ -316,7 +408,7 @@ impl Classifier {
                 })
                 .collect(),
             config,
-            stats_file: cfg.project_dir.join("hugo_stats.json"),
+            stats_file: cfg.project_dir.join(neohugo_config::global::STATS_FILE),
         }
     }
 
@@ -421,9 +513,76 @@ mod tests {
     use super::*;
 
     #[test]
+    fn events_are_mapped_to_the_watched_paths() {
+        let aliases = RwLock::new(vec![
+            (PathBuf::from("/private/var/t"), PathBuf::from("/var/t")),
+            (
+                PathBuf::from("/private/var/t/site/static"),
+                PathBuf::from("/var/t/site/static"),
+            ),
+            (
+                PathBuf::from("/real/theme"),
+                PathBuf::from("/var/t/themes/x"),
+            ),
+        ]);
+        let event = |path: &str| {
+            Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::Any))).add_path(path.into())
+        };
+        let mapped = |path: &str| as_watched(event(path), &aliases).paths;
+        assert_eq!(
+            mapped("/private/var/t/site/content/a.md"),
+            [PathBuf::from("/var/t/site/content/a.md")]
+        );
+        assert_eq!(
+            mapped("/private/var/t/site/static/b.css"),
+            [PathBuf::from("/var/t/site/static/b.css")]
+        );
+        assert_eq!(
+            mapped("/real/theme/layouts/home.html"),
+            [PathBuf::from("/var/t/themes/x/layouts/home.html")]
+        );
+        // Paths no alias holds stay as they are (and `/private/var/tt` is not under `/private/var/t`).
+        assert_eq!(mapped("/elsewhere/x"), [PathBuf::from("/elsewhere/x")]);
+        assert_eq!(
+            mapped("/private/var/tt/x"),
+            [PathBuf::from("/private/var/tt/x")]
+        );
+    }
+
+    #[test]
+    fn events_on_gone_paths_are_removals_on_macos() {
+        let aliases = RwLock::new(Vec::new());
+        let gone_path = std::env::temp_dir().join(format!("neohugo-gone-{}", std::process::id()));
+        for kind in [
+            EventKind::Create(notify::event::CreateKind::File),
+            EventKind::Modify(ModifyKind::Data(notify::event::DataChange::Content)),
+        ] {
+            let e = as_watched(Event::new(kind).add_path(gone_path.clone()), &aliases);
+            let want = if cfg!(target_os = "macos") {
+                EventKind::Remove(RemoveKind::Any)
+            } else {
+                kind
+            };
+            assert_eq!(e.kind, want);
+        }
+        // An existing path keeps its event, and a rename is left to the debouncer.
+        let here = std::env::temp_dir();
+        let created = EventKind::Create(notify::event::CreateKind::Folder);
+        assert_eq!(
+            as_watched(Event::new(created).add_path(here), &aliases).kind,
+            created
+        );
+        let renamed = EventKind::Modify(ModifyKind::Name(RenameMode::From));
+        assert_eq!(
+            as_watched(Event::new(renamed).add_path(gone_path), &aliases).kind,
+            renamed
+        );
+    }
+
+    #[test]
     fn ignored_names() {
         for name in [
-            ".hugo.toml.swp",
+            ".neohugo.toml.swp",
             "one.md~",
             "4913",
             "#one.md#",

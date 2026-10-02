@@ -261,7 +261,7 @@ fn run_group(name: &str) -> GroupResult {
                 if SNAPSHOT_CASES.contains(&case_name) {
                     let name = case_name.replace('/', "-");
                     neohugo_testkit::snapshot::settings().bind(|| {
-                        insta::assert_yaml_snapshot!(name, crate::sites::summary(c));
+                        insta::assert_yaml_snapshot!(name, crate::sites::snapshot(c));
                     });
                 }
             }

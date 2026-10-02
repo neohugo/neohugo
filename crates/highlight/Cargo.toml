@@ -1,6 +1,6 @@
 [package]
 name = "neohugo-highlight"
-description = "Code highlighting with syntect and two-face, emitting Chroma class names (or inline styles), fence options and style CSS"
+description = "Code highlighting with a port of Chroma (its lexers, regex dialect, HTML formatter and styles): Chroma class names or inline styles, fence options and style CSS"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -23,18 +23,14 @@ neohugo-workspace-hack.workspace = true
 neohugo-base.workspace = true
 neohugo-config.workspace = true
 neohugo-markup.workspace = true
-syntect.workspace = true
-two-face.workspace = true
 thiserror.workspace = true
-
-[build-dependencies]
-# build.rs links two-face's syntaxes and the crate's own into one dumped set (T70).
-syntect.workspace = true
-two-face.workspace = true
+unicode-properties.workspace = true
 
 [dev-dependencies]
 # Acceptance harness (tests/it): the docs fences are read through neohugo-markup, the Chroma
 # oracle fixtures are gzipped JSON.
 neohugo-testkit.workspace = true
+# The converter of Chroma's XML lexers and styles to Rust (tests/it/xml2rust.rs).
+quick-xml.workspace = true
 serde.workspace = true
 serde_json.workspace = true

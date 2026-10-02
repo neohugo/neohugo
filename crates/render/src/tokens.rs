@@ -105,10 +105,11 @@ pub(crate) fn swap(html: &str, outputs: &[Arc<str>]) -> String {
     out
 }
 
-/// A source with its placeholders replaced by their outputs (no paragraph unwrapping): what
-/// an include is outside Markdown.
+/// A source with its placeholders replaced by their outputs (no paragraph unwrapping) and
+/// without the context markers of its own includes: what an include is outside Markdown.
 pub(crate) fn resolve(src: &ExpandedSource) -> String {
-    replace(&src.markdown, PLACEHOLDER, |n| {
+    let text = neohugo_markup::strip_context_markers(&src.markdown);
+    replace(&text, PLACEHOLDER, |n| {
         usize::try_from(n)
             .ok()
             .and_then(|n| src.placeholders.get(n))

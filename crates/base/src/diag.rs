@@ -173,6 +173,32 @@ impl Diagnostics {
             .push(d);
     }
 
+    /// The number of diagnostics recorded so far (a mark for [`since`](Self::since)).
+    #[must_use]
+    pub fn len(&self) -> usize {
+        self.items
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .len()
+    }
+
+    /// Whether nothing was recorded.
+    #[must_use]
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
+    /// The diagnostics recorded after the first `mark` ones, in recording order.
+    #[must_use]
+    pub fn since(&self, mark: usize) -> Vec<Diagnostic> {
+        self.items
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .get(mark..)
+            .map(<[Diagnostic]>::to_vec)
+            .unwrap_or_default()
+    }
+
     /// Whether any error was recorded.
     #[must_use]
     pub fn has_errors(&self) -> bool {

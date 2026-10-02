@@ -9,9 +9,9 @@ use std::time::Duration;
 
 use crate::{neohugo, site_from, stderr};
 
-const SITE: &str = "-- hugo.toml --\nbaseURL = \"https://example.org/\"\ntitle = \"Srv\"\n\
+const SITE: &str = "-- neohugo.toml --\nbaseURL = \"https://example.org/\"\ntitle = \"Srv\"\n\
 disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\"]\n\
--- layouts/home.html --\n<html><head></head><body>{{ site.title }} {{ hugo.environment }}</body></html>\n\
+-- layouts/home.html --\n<html><head></head><body>{{ site.title }} {{ neohugo.environment }}</body></html>\n\
 -- content/_index.md --\n---\ntitle: Home\n---\n";
 
 /// The running binary and the lines of its standard output.

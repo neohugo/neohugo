@@ -4,7 +4,11 @@
 //!
 //! 1. **Capture** (A4, parallel over files): discovery through the `Vfs`, front matter split and
 //!    decoded into folded [`Params`], the capture overrides `kind`, `lang` and `path`, the page's
-//!    own `cascade`. `data::load` builds `.Site.Data` alongside.
+//!    own `cascade`. `data::load` builds `.Site.Data` alongside. Content adapters
+//!    (`_content.html`) are listed, not run: [`capture_content`] returns the [`Captured`]
+//!    content, the caller runs the adapters (neohugo-build renders them with a model of the
+//!    files alone) and [`assemble`] builds the model with the pages and resources they
+//!    [`Added`]. [`load_model`] is both steps without adapters.
 //! 2. **Tree** (B1): every page gets its language, key and kind (home, section, taxonomy, term
 //!    or page) and enters its language's [`SiteTree`]; content files inside leaf bundles are
 //!    [`PageRole::Bundled`] pages, other bundle files [`BundleResource`]s. Keys claimed twice keep
@@ -39,7 +43,8 @@ mod translations;
 mod tree;
 mod urls;
 
-use std::collections::BTreeMap;
+use std::collections::hash_map::Entry;
+use std::collections::{BTreeMap, HashMap};
 use std::path::PathBuf;
 use std::sync::Arc;
 
@@ -52,12 +57,12 @@ use neohugo_base::{
 };
 use neohugo_config::{Config, ContentFilter};
 use neohugo_page::{
-    Dates, Links, ListMode, PageError, PageMeta, PermalinkPatterns, RenderMode, ResourceBase,
-    TargetPaths,
+    AdapterPage, Dates, Links, ListMode, PageError, PageMeta, PermalinkPatterns, RenderMode,
+    ResourceBase, TargetPaths,
 };
 use neohugo_vfs::{FileRef, PathInfo, PathParser, Vfs, VfsError};
 
-pub use capture::SourceFile;
+pub use capture::{ContentAdapter, SourceFile};
 pub use cascade::CascadeIndex;
 pub use data::{Data, DataError};
 pub use refs::{RefArgs, RefError, RefLink};
@@ -292,6 +297,9 @@ pub struct BundleResource {
     /// Published with the owner (the owner is rendered and publishes its resources); else only
     /// when referenced.
     pub publish: bool,
+    /// A resource a content adapter added (`file` is then the adapter): its content, name,
+    /// title and params.
+    pub adapter: Option<Arc<AddedResource>>,
 }
 
 impl BundleResource {
@@ -309,6 +317,7 @@ impl BundleResource {
             name_normalized: String::new(),
             target_base: None,
             publish: false,
+            adapter: None,
         }
     }
 
@@ -461,8 +470,18 @@ pub enum ModelError {
         #[source]
         source: PageError,
     },
-    #[error("{0}: content adapters (_content.gotmpl) are not supported")]
-    ContentAdapter(PathBuf),
+    /// A Go-template content adapter (`_content.gotmpl`).
+    #[error(
+        "{0}: content adapters are Tera templates in neohugo: port this Go template to \
+         `_content.html` in the same directory (`add_page(page={{…}})`, \
+         `add_resource(resource={{…}})`, `store_set`, `enable_all_languages()`; \
+         https://github.com/neohugo/neohugo/blob/main/docs/rust-port/template-api.md gives \
+         Hugo's functions with their Tera names)"
+    )]
+    GoContentAdapter(PathBuf),
+    /// A page or resource a content adapter added that cannot be placed.
+    #[error("{path}: {message}")]
+    Adapter { path: PathBuf, message: String },
     #[error("{path}: no taxonomy is configured for {key:?}")]
     NoTaxonomy { path: PathBuf, key: String },
     #[error("site cascade: {0}")]
@@ -496,17 +515,202 @@ pub(crate) struct Removed {
     pub dates: Dates,
 }
 
-/// Builds the model of `cfg`'s project (see the crate docs).
+/// The content and data of a project, read and decoded (phase A4), before the model is
+/// assembled; content adapters are listed, not run.
+#[derive(Clone, Debug)]
+pub struct Captured {
+    capture: capture::Capture,
+    data: Data,
+}
+
+impl Captured {
+    /// The content adapters (`_content.html`), by directory, then language.
+    #[must_use]
+    pub fn adapters(&self) -> &[ContentAdapter] {
+        &self.capture.adapters
+    }
+}
+
+/// What content adapters added: their pages and page resources, in the order they were
+/// added.
+#[derive(Clone, Debug, Default)]
+pub struct Added {
+    pub pages: Vec<AddedPage>,
+    pub resources: Vec<AddedResource>,
+}
+
+/// A page an adapter added with `add_page`.
+#[derive(Clone, Debug)]
+pub struct AddedPage {
+    /// The adapter (an index into [`Captured::adapters`]).
+    pub adapter: usize,
+    /// The language the adapter ran for.
+    pub lang: LangIdx,
+    pub page: Arc<AdapterPage>,
+}
+
+/// A page resource an adapter added with `add_resource` (Hugo's `ResourceConfig`).
+#[derive(Clone, Debug)]
+pub struct AddedResource {
+    /// The adapter (an index into [`Captured::adapters`]).
+    pub adapter: usize,
+    /// The language the adapter ran for.
+    pub lang: LangIdx,
+    /// The resource's path below the content root, normalised, without a leading slash
+    /// (`news/p1/cover.jpg`): it belongs to the page at the longest key above it.
+    pub path: String,
+    /// `name` (`None`: the path below the page).
+    pub name: Option<String>,
+    /// `title` (`None`: the name).
+    pub title: Option<String>,
+    pub params: Params,
+    pub content: AddedContent,
+}
+
+/// The content of a resource an adapter added.
+#[derive(Clone, Debug)]
+pub enum AddedContent {
+    /// A string `content.value`, of `content.mediaType` (`None`: the type of the path's
+    /// extension); published below its page like a bundle file.
+    Text {
+        text: Arc<str>,
+        media_type: Option<String>,
+    },
+    /// A resource the adapter got (`get_asset`, `get_remote`, …): Hugo uses the resource itself,
+    /// so it keeps its own file and link (relative to the site root, not to the page).
+    Resource {
+        body: AddedBody,
+        media_type: String,
+        target: OutputPath,
+        link: UrlPath,
+    },
+}
+
+/// Where the bytes of an added resource are.
+#[derive(Clone, Debug)]
+pub enum AddedBody {
+    File(PathBuf),
+    Bytes(Arc<[u8]>),
+}
+
+/// Reads the content and data of `cfg`'s project (phase A4, see the crate docs).
 ///
 /// # Errors
-/// A content or data file that cannot be read or decoded, invalid front matter (reserved keys
-/// of the wrong shape, a bad cascade or date configuration), a content adapter, a taxonomy
-/// kind without a taxonomy, a `[permalinks]` pattern that does not parse, or a URL that cannot
-/// be made.
+/// A content or data file that cannot be read or decoded, front matter capture overrides of
+/// the wrong shape, or a Go-template content adapter (`_content.gotmpl`).
+pub fn capture_content(cfg: &Config, vfs: &Vfs) -> Result<Captured, ModelError> {
+    let (captured, data) = rayon::join(|| capture::capture(cfg, vfs), || data::load(vfs));
+    Ok(Captured {
+        capture: captured?,
+        data: data?,
+    })
+}
+
+/// Builds the model of `cfg`'s project from content without running its content adapters
+/// ([`capture_content`], then [`assemble`] with nothing [`Added`]).
+///
+/// # Errors
+/// See [`capture_content`] and [`assemble`].
 pub fn load_model(cfg: Arc<Config>, vfs: &Vfs, o: &LoadModelOptions) -> Result<Model, ModelError> {
-    let (captured, data) = rayon::join(|| capture::capture(&cfg, vfs), || data::load(vfs));
-    let assembly = tree::place(&cfg, captured?)?;
-    let data = data?;
+    let captured = capture_content(&cfg, vfs)?;
+    assemble(cfg, captured, Added::default(), o)
+}
+
+/// Builds the model from captured content and the pages content adapters added: the added
+/// pages go after the content files (a file wins a key both claim, with a warning).
+///
+/// A key (or resource path) both a content file and an adapter claim is the file's; one two
+/// adapters claim is the later adapter's, in the place of the earlier one's (both with a
+/// warning). This is Hugo's order with one collector worker (`hugolib/pages_capture.go`
+/// `collectDirDir` queues a directory's adapters before its files and its subdirectories, and
+/// `content_map.go` `insertPageWithLock`/`insertResourceWithLock` keep the last insert); with
+/// several workers Hugo's result depends on scheduling.
+///
+/// # Errors
+/// Invalid front matter (reserved keys of the wrong shape, a bad cascade or date
+/// configuration), a page an adapter added that cannot be placed, a taxonomy kind without a
+/// taxonomy, a `[permalinks]` pattern that does not parse, or a URL that cannot be made.
+pub fn assemble(
+    cfg: Arc<Config>,
+    captured: Captured,
+    added: Added,
+    o: &LoadModelOptions,
+) -> Result<Model, ModelError> {
+    let Captured {
+        capture: mut captured,
+        data,
+    } = captured;
+    if !added.pages.is_empty() || !added.resources.is_empty() {
+        let parser = PathParser::from_config(&cfg);
+        // (language, key) → place in `captured.pages` of the adapter pages added so far.
+        let mut page_at: HashMap<(LangIdx, ContentKey), usize> = HashMap::new();
+        for a in added.pages {
+            let adapter = &captured.adapters[a.adapter];
+            let page = capture::adapter_page(adapter, a.lang, a.page, &parser)?;
+            // A file claiming the key wins in `tree::place`; an earlier adapter's page is
+            // replaced (one adapter's repeats are already its last `add_page`).
+            match page_at.entry((page.lang, page.source.info.key.clone())) {
+                Entry::Occupied(at) => {
+                    let earlier = &mut captured.pages[*at.get()];
+                    captured.diagnostics.push(later_adapter_wins(
+                        "content",
+                        &page.source.info.key,
+                        &page.source.file.abs,
+                        &earlier.source.file.abs,
+                    ));
+                    *earlier = page;
+                }
+                Entry::Vacant(at) => {
+                    at.insert(captured.pages.len());
+                    captured.pages.push(page);
+                }
+            }
+        }
+        // (language, key) → place in `captured.resources`: the first file of a key, then the
+        // adapter resources.
+        let mut resource_at: HashMap<(LangIdx, ContentKey), usize> = HashMap::new();
+        if !added.resources.is_empty() {
+            for (i, f) in captured.resources.iter().enumerate() {
+                resource_at.entry((f.lang, f.info.key.clone())).or_insert(i);
+            }
+        }
+        for a in added.resources {
+            let adapter = &captured.adapters[a.adapter];
+            let r = capture::adapter_resource(adapter, a, &parser)?;
+            let taken = match resource_at.entry((r.lang, r.info.key.clone())) {
+                Entry::Occupied(at) => Some(&mut captured.resources[*at.get()]),
+                Entry::Vacant(at) => {
+                    at.insert(captured.resources.len());
+                    None
+                }
+            };
+            match taken {
+                Some(f) if f.adapter.is_none() => {
+                    captured.diagnostics.push(
+                        Diagnostic::warning(format!(
+                            "duplicate resource path {:?}: {} is used, the resource {} adds \
+                             is ignored",
+                            r.info.key.to_path(),
+                            f.file.abs.display(),
+                            r.file.abs.display()
+                        ))
+                        .with_id("duplicate-resource-path"),
+                    );
+                }
+                Some(f) => {
+                    captured.diagnostics.push(later_adapter_wins(
+                        "resource",
+                        &r.info.key,
+                        &r.file.abs,
+                        &f.file.abs,
+                    ));
+                    *f = r;
+                }
+                None => captured.resources.push(r),
+            }
+        }
+    }
+    let assembly = tree::place(&cfg, captured)?;
     let cascades = meta::cascade_indexes(&cfg, &assembly)?;
     let (metas, meta_diags) = meta::metas(&cfg, &assembly, &cascades)?;
 
@@ -606,7 +810,9 @@ pub fn load_model(cfg: Arc<Config>, vfs: &Vfs, o: &LoadModelOptions) -> Result<M
             continue;
         }
         let key = r.info.key.clone();
-        let rid = bundle_resources.push(BundleResource::new(key.clone(), r.lang, r.file, r.info));
+        let mut br = BundleResource::new(key.clone(), r.lang, r.file, r.info);
+        br.adapter = r.adapter;
+        let rid = bundle_resources.push(br);
         sites[r.lang].resources.insert(key, rid);
     }
 
@@ -623,4 +829,22 @@ pub fn load_model(cfg: Arc<Config>, vfs: &Vfs, o: &LoadModelOptions) -> Result<M
     };
     nodes::assemble(&mut model, o, &removed)?;
     Ok(model)
+}
+
+/// The warning for a page or resource path (`what`: `content`, `resource`) two content
+/// adapters add: the one that runs `later` replaces the `earlier` one's.
+fn later_adapter_wins(
+    what: &str,
+    key: &ContentKey,
+    later: &std::path::Path,
+    earlier: &std::path::Path,
+) -> Diagnostic {
+    Diagnostic::warning(format!(
+        "duplicate {what} path {:?}: {} is used, {} is ignored (of two content adapters, the \
+         one that runs later wins)",
+        key.to_path(),
+        later.display(),
+        earlier.display()
+    ))
+    .with_id(format!("duplicate-{what}-path"))
 }

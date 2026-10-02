@@ -1,9 +1,9 @@
-//! Phases E4 and E5 (REWRITE_PLAN.md §3.1, §3.4): `hugo_stats.json`, then the deferred wave.
+//! Phases E4 and E5 (REWRITE_PLAN.md §3.1, §3.4): `neohugo_stats.json`, then the deferred wave.
 //!
 //! - **E4.** With `[build.buildStats] enable`, the merged stats are written to the project
 //!   directory (only when changed; external tools such as PostCSS purge and Tailwind read it
 //!   from there, as with Hugo) and injected into the resource store at the asset path of
-//!   every assets mount of that file (docs: `notwatching/hugo_stats.json`), so templates of
+//!   every assets mount of that file (docs: `notwatching/neohugo_stats.json`), so templates of
 //!   E5 read this build's stats.
 //! - **E5.** Every `defer(...)` key registered by waves 1 and 2 renders its template once (in
 //!   parallel over keys); every post-process placeholder handed out so far is resolved (its
@@ -50,7 +50,11 @@ pub(crate) fn write_stats(
         return Ok(());
     }
     let stats = publisher.stats();
-    let path = session.model().config.project_dir.join("hugo_stats.json");
+    let path = session
+        .model()
+        .config
+        .project_dir
+        .join(neohugo_config::global::STATS_FILE);
     stats
         .write_if_changed(&path)
         .map_err(|source| PublishError::Io {

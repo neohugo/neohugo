@@ -97,7 +97,7 @@ const PAGER: &str = r#"{%- set pager = paginator() %}{% if pager.total_pages > 1
 const VIDEO: &str = r#"{%- set url = "https://www.googleapis.com/youtube/v3/videos?key=API_KEY&part=snippet,contentDetails,statistics&id=" ~ page.params.video %}
 {%- set r = get_remote(url=url, optional=true) %}{% if r %}{% set d = r | unmarshal %}{% for v in d["items"] %}<div class="video" data-id="{{ v.id }}">{{ v.snippet.title }} ({{ v.statistics.viewCount }} views, {{ v.contentDetails.duration }})</div>{% endfor %}{% endif -%}"#;
 
-const FOOTER: &str = r#"<footer class="deferred">{{ site.regular_pages | length }} pages, {{ hugo.environment }}</footer>"#;
+const FOOTER: &str = r#"<footer class="deferred">{{ site.regular_pages | length }} pages, {{ neohugo.environment }}</footer>"#;
 
 const HEADING: &str =
     r##"<h{{ level }} id="{{ anchor }}">{{ text }}<a href="#{{ anchor }}">#</a></h{{ level }}>"##;
@@ -261,9 +261,9 @@ fn mini_matches_the_go_tree() {
     // Go writes the Thai site's `FromString` last (a later language overwrites the file); here
     // the earlier language's resource is the one published (REWRITE_PLAN.md §3.5).
     assert!(text("gen/info.txt").starts_with("Mini "));
-    // hugo_stats.json in the project directory (collected before the deferred output is
+    // neohugo_stats.json in the project directory (collected before the deferred output is
     // inserted, as in Go).
-    let stats = fs::read_to_string(tmp.path().join("site/hugo_stats.json")).expect("stats");
+    let stats = fs::read_to_string(tmp.path().join("site/neohugo_stats.json")).expect("stats");
     assert!(
         stats.contains("\"note\"") && !stats.contains("\"deferred\""),
         "{stats}"

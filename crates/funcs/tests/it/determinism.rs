@@ -1,18 +1,32 @@
-//! Map outputs are sorted, and serde_json keeps its sorted `Map` (REWRITE_PLAN.md §8.2, T31).
+//! Map outputs are sorted, whatever serde_json's `Map` keeps (REWRITE_PLAN.md §8.2, T31).
 
 use tera::{Context, Value};
 
 use crate::support::Harness;
 
-/// No dependency of this test build enables `serde_json/preserve_order` (feature unification
-/// would make `serde_json::Map` an insertion-ordered map and change every JSON output).
+/// rolldown turns on serde_json's `preserve_order` and `arbitrary_precision` in every build it
+/// is part of, and the workspace-hack turns them on for every member, so this test build has
+/// them as the binary does. neohugo must not rely on `serde_json::Map`'s order: its own values
+/// sort their keys.
 #[test]
-fn serde_json_map_is_sorted() {
+fn serde_json_has_the_binarys_features() {
+    // Only `arbitrary_precision` keeps a number beyond f64 instead of failing.
+    assert!(
+        serde_json::from_str::<serde_json::Value>("1e999").is_ok(),
+        "serde_json/arbitrary_precision is off: drop it from the workspace-hack"
+    );
     let mut m = serde_json::Map::new();
     m.insert("b".into(), serde_json::Value::Null);
     m.insert("a".into(), serde_json::Value::Null);
     let keys: Vec<&str> = m.keys().map(String::as_str).collect();
-    assert_eq!(keys, ["a", "b"], "serde_json/preserve_order is enabled");
+    assert_eq!(
+        keys,
+        ["b", "a"],
+        "serde_json/preserve_order is off: drop it from the workspace-hack"
+    );
+    let v = neohugo_base::Value::from_json(serde_json::Value::Object(m));
+    let sorted: Vec<&str> = v.as_map().expect("a map").keys().collect();
+    assert_eq!(sorted, ["a", "b"]);
 }
 
 fn keys(v: &Value) -> Vec<String> {

@@ -78,7 +78,7 @@ pub struct ProjectArgs {
     #[arg(long, alias = "configDir", value_name = "DIR", global = true)]
     pub config_dir: Option<PathBuf>,
     /// The build environment (default `production`, `development` for `server`;
-    /// `HUGO_ENVIRONMENT`, `HUGO_ENV`).
+    /// `NEOHUGO_ENVIRONMENT`).
     #[arg(short = 'e', long, value_name = "ENV", global = true)]
     pub environment: Option<String>,
     /// The site's base URL.

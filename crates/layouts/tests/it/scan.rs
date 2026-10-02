@@ -93,7 +93,7 @@ fn legacy(to: &str) -> IssueKind {
 #[test]
 fn legacy_names_are_refused_with_the_new_name() {
     let p = Project::new(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         ("layouts/_default/single.html", "x"),
         ("layouts/_default/_markup/render-link.html", "x"),
         ("layouts/partials/head/meta.html", "x"),
@@ -143,7 +143,7 @@ fn legacy_names_are_refused_with_the_new_name() {
 #[test]
 fn go_templates_are_refused_with_their_line() {
     let p = Project::new(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         ("layouts/single.html", "<p>\n{{ .Title }}</p>"),
         ("layouts/list.html", "{{ define \"main\" }}x{% endblock %}"),
         (
@@ -184,10 +184,10 @@ fn go_templates_are_refused_with_their_line() {
 #[test]
 fn unknown_names_are_refused() {
     let p = Project::new(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         ("layouts/_markup/link.html", "x"),
         ("layouts/_markup/render-footnote.html", "x"),
-        ("layouts/_hugo/x.html", "x"),
+        ("layouts/_neohugo/x.html", "x"),
         ("layouts/notes.unknownsuffix", "x"),
         ("layouts/.hidden.html", "{{ .x }}"),
         ("layouts/backup.html~", "{{ .x }}"),
@@ -197,9 +197,9 @@ fn unknown_names_are_refused() {
     assert_eq!(
         files,
         [
-            "_hugo/x.html",
             "_markup/link.html",
             "_markup/render-footnote.html",
+            "_neohugo/x.html",
             "notes.unknownsuffix"
         ]
     );
@@ -212,7 +212,7 @@ fn unknown_names_are_refused() {
 #[test]
 fn roles_descriptors_and_theme_prefixes() {
     let p = Project::new(&[
-        ("hugo.toml", CONFIG),
+        ("neohugo.toml", CONFIG),
         ("layouts/baseof.html", "{% block main %}{% endblock %}"),
         ("layouts/docs/baseof.list.html", "x"),
         ("layouts/home.th.html", "x"),
@@ -357,7 +357,7 @@ fn roles_descriptors_and_theme_prefixes() {
 
 #[test]
 fn from_sources_without_a_project() {
-    let p = Project::new(&[("hugo.toml", CONFIG)]);
+    let p = Project::new(&[("neohugo.toml", CONFIG)]);
     let env = LayoutEnv::from_config(&p.config());
     let store = LayoutStore::from_sources(
         env,

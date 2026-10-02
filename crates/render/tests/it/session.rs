@@ -14,7 +14,7 @@ use neohugo_vfs::Vfs;
 
 const FILES: &[(&str, &str)] = &[
     (
-        "hugo.toml",
+        "neohugo.toml",
         "baseURL = \"https://example.org/\"\ntitle = \"Mini\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n[pagination]\npagerSize = 1\n",
     ),
     ("content/_index.md", "---\ntitle: Home\n---\n"),
@@ -138,9 +138,9 @@ fn partial_return_values_and_getenv_policy() {
     let tmp = tempfile::tempdir().expect("tempdir");
     write_site(tmp.path());
     let dir = tmp.path();
-    let cfg = fs::read_to_string(dir.join("hugo.toml")).expect("config");
+    let cfg = fs::read_to_string(dir.join("neohugo.toml")).expect("config");
     fs::write(
-        dir.join("hugo.toml"),
+        dir.join("neohugo.toml"),
         format!("{cfg}[security.funcs]\ngetenv = ['^PATH$']\n"),
     )
     .expect("write");

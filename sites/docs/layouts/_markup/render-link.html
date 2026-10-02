@@ -46,7 +46,7 @@ error level is not "ignore" (Go computed them and discarded the result).
 
 {#- Verify minimum required version. #}
 {%- set min_hugo_version = "0.141.0" %}
-{%- if hugo.version is not version_at_least(version=min_hugo_version) %}
+{%- if neohugo.version is not version_at_least(version=min_hugo_version) %}
   {{- log_error(message="The \"" ~ render_hook_name ~ "\" render hook requires Hugo v" ~ min_hugo_version ~ " or later.") }}
 {%- endif %}
 
@@ -158,7 +158,7 @@ error level is not "ignore" (Go computed them and discarded the result).
 {%- if broken %}
   {%- if error_level == "warning" %}
     {{- log_warn(message=msg) }}
-    {%- if highlight_broken_links and hugo.is_development %}
+    {%- if highlight_broken_links and neohugo.is_development %}
       {%- set attrs = attrs | merge(with={"class": "broken"}) %}
     {%- endif %}
   {%- elif error_level == "error" %}

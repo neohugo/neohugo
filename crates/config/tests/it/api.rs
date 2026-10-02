@@ -63,7 +63,6 @@ title = "SeekSnack"
 paginate = 12
 paginatePath = "seite"
 rssLimit = 10
-writeStats = true
 ignoreErrors = ["error-remote-getjson"]
 footnoteReturnLinkContents = "↩"
 pygmentsStyle = "dracula"
@@ -90,6 +89,9 @@ enableDNT = true
 [services.twitter]
 disableInlineCSS = true
 
+[build]
+writeStats = true
+
 [languages.en]
 weight = 1
 [languages.th]
@@ -101,7 +103,7 @@ description = "ไดอารี่"
 
 #[test]
 fn legacy_keys() {
-    let p = Project::new(&[("hugo.toml", LEGACY)]);
+    let p = Project::new(&[("neohugo.toml", LEGACY)]);
     let c = p.ok();
     let en = c.site("en").expect("en");
     let th = c.site("th").expect("th");
@@ -149,7 +151,10 @@ fn legacy_keys() {
 
 #[test]
 fn legacy_keys_lose_to_current_keys() {
-    let p = Project::new(&[("hugo.toml", "paginate = 3\n[pagination]\npagerSize = 7\n")]);
+    let p = Project::new(&[(
+        "neohugo.toml",
+        "paginate = 3\n[pagination]\npagerSize = 7\n",
+    )]);
     assert_eq!(p.ok().default_site().pagination.pager_size, 7);
 }
 
@@ -168,23 +173,31 @@ unsafe = false
 
 #[test]
 fn env_typing() {
-    let p = Project::new(&[("hugo.toml", ENV_BASE)]);
+    let p = Project::new(&[("neohugo.toml", ENV_BASE)]);
     let c = p
         .load(
             CliOverrides::default(),
             &[
-                ("HUGO_PARAMS_COUNT", "42"),
-                ("HUGO_PARAMS_RATIO", "2.25"),
-                ("HUGO_PARAMS_FLAG", "true"),
-                ("HUGO_PARAMS_LIST", r#"["x", "y"]"#),
-                ("HUGO_PARAMS_NESTED_NEW", "added"),
-                ("HUGOxPARAMSxUNDER_SCORE", "kept"),
-                ("HUGO_MARKUP_GOLDMARK_RENDERER_UNSAFE", "true"),
-                ("HUGO_TAXONOMIES", r#"{"tag": "tags", "series": "series"}"#),
-                ("HUGO_PAGINATION_PAGERSIZE", "7"),
-                ("HUGO_DISABLEKINDS", "taxonomy, term"),
-                ("HUGO_", "ignored"),
-                ("NOT_HUGO_TITLE", "ignored"),
+                ("NEOHUGO_PARAMS_COUNT", "42"),
+                ("NEOHUGO_PARAMS_RATIO", "2.25"),
+                ("NEOHUGO_PARAMS_FLAG", "true"),
+                ("NEOHUGO_PARAMS_LIST", r#"["x", "y"]"#),
+                ("NEOHUGO_PARAMS_NESTED_NEW", "added"),
+                ("NEOHUGOxPARAMSxUNDER_SCORE", "kept"),
+                ("NEOHUGO_MARKUP_GOLDMARK_RENDERER_UNSAFE", "true"),
+                (
+                    "NEOHUGO_TAXONOMIES",
+                    r#"{"tag": "tags", "series": "series"}"#,
+                ),
+                ("NEOHUGO_PAGINATION_PAGERSIZE", "7"),
+                ("NEOHUGO_DISABLEKINDS", "taxonomy, term"),
+                ("NEOHUGO_", "ignored"),
+                ("NOT_NEOHUGO_TITLE", "ignored"),
+                // Hugo's names are not read; neohugo's own settings are not overrides.
+                ("HUGO_TITLE", "ignored"),
+                ("HUGO_PARAMS_COUNT", "1"),
+                ("NEOHUGO_NODE_MODULES", "/opt/node_modules"),
+                ("NEOHUGO_TIMINGS", "1"),
             ],
         )
         .unwrap_or_else(|e| panic!("{e}"));
@@ -206,11 +219,12 @@ fn env_typing() {
     assert!(
         s.disable_kinds.contains(PageKind::Taxonomy) && s.disable_kinds.contains(PageKind::Term)
     );
+    assert!(c.raw.get("node").is_none() && c.raw.get("timings").is_none());
     assert_eq!(s.title, "file");
 
     // A value that does not parse as the overridden type stays a string.
     let c = p
-        .load(CliOverrides::default(), &[("HUGO_PARAMS_COUNT", "many")])
+        .load(CliOverrides::default(), &[("NEOHUGO_PARAMS_COUNT", "many")])
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(
         c.default_site().params.get("count"),
@@ -222,11 +236,11 @@ fn env_typing() {
 fn cli_overrides_and_precedence() {
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "baseURL = \"https://file.example/\"\ntitle = \"file\"\n",
         ),
         ("config/_default/params.toml", "from = \"dir\"\n"),
-        ("config/staging/hugo.toml", "title = \"staging\"\n"),
+        ("config/staging/neohugo.toml", "title = \"staging\"\n"),
     ]);
     let cli = CliOverrides {
         base_url: Some("https://cli.example/".into()),
@@ -253,13 +267,16 @@ fn cli_overrides_and_precedence() {
 
     // The environment overrides the CLI.
     let c = p
-        .load(cli, &[("HUGO_BASEURL", "https://env.example/")])
+        .load(cli, &[("NEOHUGO_BASEURL", "https://env.example/")])
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(c.default_site().base_url.as_str(), "https://env.example/");
 
-    // Without --environment, HUGO_ENVIRONMENT chooses the directory.
+    // Without --environment, NEOHUGO_ENVIRONMENT chooses the directory.
     let c = p
-        .load(CliOverrides::default(), &[("HUGO_ENVIRONMENT", "staging")])
+        .load(
+            CliOverrides::default(),
+            &[("NEOHUGO_ENVIRONMENT", "staging")],
+        )
         .unwrap_or_else(|e| panic!("{e}"));
     assert_eq!(c.environment, "staging");
     assert_eq!(c.default_site().title, "staging");
@@ -269,7 +286,7 @@ fn cli_overrides_and_precedence() {
 #[test]
 fn caches_resolve_placeholders() {
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         r#"
 cacheDir = "/var/cache/nh"
 [caches.images]
@@ -311,17 +328,17 @@ maxAge = 0
         Path::new("/var/cache/nh/modules/filecache/modules")
     );
 
-    // Default cache directory: $XDG_CACHE_HOME/hugo_cache.
-    let p = Project::new(&[("hugo.toml", "title = \"x\"\n")]);
+    // Default cache directory: $XDG_CACHE_HOME/neohugo_cache.
+    let p = Project::new(&[("neohugo.toml", "title = \"x\"\n")]);
     let c = p.ok();
-    assert_eq!(c.cache_dir, p.tmp.path().join("xdg/hugo_cache"));
+    assert_eq!(c.cache_dir, p.tmp.path().join("xdg/neohugo_cache"));
     assert_eq!(
         c.caches.get("misc").expect("misc").path,
-        p.tmp.path().join("xdg/hugo_cache/site/filecache/misc")
+        p.tmp.path().join("xdg/neohugo_cache/site/filecache/misc")
     );
 
     // A cache directory that does not resolve to an absolute path is an error.
-    let p = Project::new(&[("hugo.toml", "[caches.misc]\ndir = \":project/misc\"\n")]);
+    let p = Project::new(&[("neohugo.toml", "[caches.misc]\ndir = \":project/misc\"\n")]);
     let e = p
         .load(CliOverrides::default(), &[])
         .expect_err("relative cache dir");
@@ -331,7 +348,7 @@ maxAge = 0
 #[test]
 fn privacy() {
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         r#"
 [privacy.youtube]
 privacyEnhanced = true
@@ -356,7 +373,7 @@ disable = true
     assert!(pr.instagram.simple);
     assert!(pr.disqus.disable);
     assert_eq!(
-        Project::new(&[("hugo.toml", "")]).ok().privacy,
+        Project::new(&[("neohugo.toml", "")]).ok().privacy,
         Default::default()
     );
 }
@@ -377,26 +394,26 @@ fn position(e: &ConfigError) -> (String, u32, u32) {
 #[test]
 fn error_positions() {
     // TOML syntax.
-    let p = Project::new(&[("hugo.toml", "title = \"x\"\n[params\nfoo = 1\n")]);
+    let p = Project::new(&[("neohugo.toml", "title = \"x\"\n[params\nfoo = 1\n")]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("syntax");
     assert!(matches!(e, ConfigError::Syntax { .. }));
-    assert_eq!(position(&e), ("hugo.toml".into(), 2, 8));
+    assert_eq!(position(&e), ("neohugo.toml".into(), 2, 8));
 
     // YAML syntax.
-    let p = Project::new(&[("hugo.yaml", "title: x\nparams: [a\n")]);
+    let p = Project::new(&[("neohugo.yaml", "title: x\nparams: [a\n")]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("syntax");
     assert!(matches!(e, ConfigError::Syntax { .. }));
-    assert_eq!(position(&e).0, "hugo.yaml");
+    assert_eq!(position(&e).0, "neohugo.yaml");
     assert!(position(&e).1 >= 2, "{e}");
 
     // JSON syntax.
-    let p = Project::new(&[("hugo.json", "{\n  \"title\": }\n")]);
+    let p = Project::new(&[("neohugo.json", "{\n  \"title\": }\n")]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("syntax");
-    assert_eq!(position(&e), ("hugo.json".into(), 2, 12));
+    assert_eq!(position(&e), ("neohugo.json".into(), 2, 12));
 
     // A value of the wrong type points at its key, in the file that set it.
     let p = Project::new(&[
-        ("hugo.toml", "title = \"x\"\n"),
+        ("neohugo.toml", "title = \"x\"\n"),
         (
             "config/_default/markup.toml",
             "[goldmark]\n[goldmark.parser]\nautoHeadingIDType = \"nope\"\n",
@@ -411,11 +428,11 @@ fn error_positions() {
 
     // In a language table.
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         "[languages.en]\nweight = 1\n[languages.th]\nweight = 2\n[languages.th.pagination]\npagerSize = \"many\"\n",
     )]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("typed");
-    assert_eq!(position(&e), ("hugo.toml".into(), 6, 1));
+    assert_eq!(position(&e), ("neohugo.toml".into(), 6, 1));
     assert!(
         e.to_string().contains("languages.th.pagination.pagerSize"),
         "{e}"
@@ -423,22 +440,25 @@ fn error_positions() {
 
     // An array element.
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         "[[related.indices]]\nname = \"a\"\n[[related.indices]]\nname = \"b\"\ntype = \"nope\"\n",
     )]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("typed");
-    assert_eq!(position(&e), ("hugo.toml".into(), 5, 1));
+    assert_eq!(position(&e), ("neohugo.toml".into(), 5, 1));
 
     // Language errors.
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         "defaultContentLanguage = \"fr\"\n[languages.en]\n",
     )]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("language");
-    assert_eq!(position(&e), ("hugo.toml".into(), 1, 1));
-    let p = Project::new(&[("hugo.toml", "[languages.en]\ntimeZone = \"Mars/Olympus\"\n")]);
+    assert_eq!(position(&e), ("neohugo.toml".into(), 1, 1));
+    let p = Project::new(&[(
+        "neohugo.toml",
+        "[languages.en]\ntimeZone = \"Mars/Olympus\"\n",
+    )]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("time zone");
-    assert_eq!(position(&e), ("hugo.toml".into(), 2, 1));
+    assert_eq!(position(&e), ("neohugo.toml".into(), 2, 1));
 
     let shown = e
         .to_string()
@@ -451,7 +471,7 @@ fn error_positions() {
 #[test]
 fn languages_and_urls() {
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         r#"
 defaultContentLanguage = "th"
 defaultContentLanguageInSubdir = true
@@ -489,13 +509,13 @@ weight = 4
 fn toc_end_level_and_permalink_errors() {
     // `endLevel = -1` is no end level; other levels are levels.
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         "[markup.tableOfContents]\nstartLevel = 1\nendLevel = -1\n",
     )]);
     let c = p.ok();
     let toc = &c.default_site().markup.table_of_contents;
     assert_eq!((toc.start_level, toc.end_level), (1, None));
-    let p = Project::new(&[("hugo.toml", "[markup.tableOfContents]\nendLevel = 4\n")]);
+    let p = Project::new(&[("neohugo.toml", "[markup.tableOfContents]\nendLevel = 4\n")]);
     assert_eq!(
         p.ok().default_site().markup.table_of_contents.end_level,
         Some(4)
@@ -504,24 +524,24 @@ fn toc_end_level_and_permalink_errors() {
         neohugo_config::markup::TocConfig::default().end_level,
         Some(3)
     );
-    let p = Project::new(&[("hugo.toml", "[markup.tableOfContents]\nendLevel = -2\n")]);
+    let p = Project::new(&[("neohugo.toml", "[markup.tableOfContents]\nendLevel = -2\n")]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("end level");
-    assert_eq!(position(&e), ("hugo.toml".into(), 2, 1));
+    assert_eq!(position(&e), ("neohugo.toml".into(), 2, 1));
 
     // Permalinks for a kind that has none, or a pattern that is not a string.
-    let p = Project::new(&[("hugo.toml", "[permalinks.home]\na = \"/a/\"\n")]);
+    let p = Project::new(&[("neohugo.toml", "[permalinks.home]\na = \"/a/\"\n")]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("home");
-    assert_eq!(position(&e).0, "hugo.toml");
+    assert_eq!(position(&e).0, "neohugo.toml");
     assert!(e.to_string().contains("permalinks.home"), "{e}");
-    let p = Project::new(&[("hugo.toml", "[permalinks]\nposts = 42\n")]);
+    let p = Project::new(&[("neohugo.toml", "[permalinks]\nposts = 42\n")]);
     let e = p.load(CliOverrides::default(), &[]).expect_err("pattern");
-    assert_eq!(position(&e), ("hugo.toml".into(), 2, 1));
+    assert_eq!(position(&e), ("neohugo.toml".into(), 2, 1));
 }
 
 #[test]
 fn menus_section_pages_menu_and_language_redirect() {
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         r#"
 sectionPagesMenu = "main"
 disableDefaultLanguageRedirect = true
@@ -553,7 +573,7 @@ sectionPagesMenu = "sections"
         ("1", "3")
     );
 
-    let c = Project::new(&[("hugo.toml", "title = \"x\"\n")]).ok();
+    let c = Project::new(&[("neohugo.toml", "title = \"x\"\n")]).ok();
     assert_eq!(
         c.default_language_redirect,
         neohugo_config::RedirectPolicy::Write
@@ -562,7 +582,7 @@ sectionPagesMenu = "sections"
 
     // An empty `[related]` is the empty configuration (Hugo's site loader: the table is
     // set, and not empty to `related.DecodeConfig` because of its merge-strategy key).
-    let c = Project::new(&[("hugo.toml", "[related]\n")]).ok();
+    let c = Project::new(&[("neohugo.toml", "[related]\n")]).ok();
     assert!(c.default_site().related.indices.is_empty());
     assert_eq!(c.default_site().related.threshold, 0);
 
@@ -573,7 +593,7 @@ sectionPagesMenu = "sections"
         "menus = \"main\"\n",
         "[related]\nthreshold = 80\n[[related.indices]]\nname = \"tags\"\ncardinalityThreshold = 101\n",
     ] {
-        let p = Project::new(&[("hugo.toml", bad)]);
+        let p = Project::new(&[("neohugo.toml", bad)]);
         assert!(p.load(CliOverrides::default(), &[]).is_err(), "{bad}");
     }
 }

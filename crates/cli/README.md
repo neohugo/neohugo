@@ -38,9 +38,9 @@ it into the flag (true) or drops it (false, the default).
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
 | `-s`, `--source DIR` | | all | project directory (default: the working directory) |
-| `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `neohugo.{toml,yaml,yml,json}`, `hugo.*`, `config.*` (a warning names the others when several exist) |
+| `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `neohugo.{toml,yaml,yml,json}`, `config.*` (a warning names the others when several exist) |
 | `--config-dir DIR` | `--configDir` | all | `CliOverrides::config_dir` |
-| `-e`, `--environment ENV` | | all | wins over `HUGO_ENVIRONMENT` / `HUGO_ENV` (default `production`; `development` for `server`) |
+| `-e`, `--environment ENV` | | all | wins over `NEOHUGO_ENVIRONMENT` (default `production`; `development` for `server`) |
 | `-b`, `--base-url URL` | `--baseURL`, `--baseUrl` | all | `baseURL` |
 | `-t`, `--theme A,B` | | all | `theme` |
 | `--themes-dir DIR` | `--themesDir` | all | `themesDir` |
@@ -75,7 +75,7 @@ printed at every log level).
 
 Hugo's development server (`neohugo-serve`, whose README has the details): `build`'s flags
 (`-s`, `--config`, `-e`, `-b`, `-D -E -F`, `--minify`, `--clock`, `--threads`, `-q`, …; the
-same `BuildArgs`), the environment `development` unless `-e`, `HUGO_ENVIRONMENT` or `HUGO_ENV`
+same `BuildArgs`), the environment `development` unless `-e` or `NEOHUGO_ENVIRONMENT`
 says otherwise, and:
 
 | Flag | Alias | Effect |
@@ -102,11 +102,12 @@ build failure (`ERROR build failed: …`, the last good build is still served) o
 to reload config: …`. A first build that fails exits with 1 and the build's report; a port
 that cannot be opened or a configuration that does not load exits with 1.
 
-**Environment.** The process's `HUGO_*` variables (`HUGO_TITLE`, `HUGO_PARAMS_X`,
-`HUGO_BASEURL`, `HUGO_CACHEDIR`, `HUGO_ENVIRONMENT`/`HUGO_ENV`, …) plus `HOME`,
+**Environment.** The process's `NEOHUGO*` variables (`NEOHUGO_TITLE`, `NEOHUGO_PARAMS_X`,
+`NEOHUGO_BASEURL`, `NEOHUGO_CACHEDIR`, `NEOHUGO_ENVIRONMENT`, …; Hugo's `HUGO_*` are not
+read, and neohugo's own settings such as `NEOHUGO_NODE_MODULES` are not overrides) plus `HOME`,
 `XDG_CACHE_HOME`, `TMPDIR`, `USER` go to `neohugo_config::load`
 (`neohugo_build::process_env`); precedence is neohugo-config's (file < config dir < flags <
-environment; `-e` wins over `HUGO_ENV*`).
+environment; `-e` wins over `NEOHUGO_ENVIRONMENT`).
 
 **Exit codes** (`Exit`): 0 success; 1 build errors, check errors (or warnings with
 `--deny-warnings`), or a project that does not load; 2 usage errors (clap, printed as
@@ -127,7 +128,7 @@ message carries Tera's `--> <template>:<line>:<col>` snippet. A successful build
 | `source/s destination/d environment/e theme/t themesDir baseURL/b cacheDir ignoreCache buildDrafts/D buildFuture/F buildExpired/E clock config configDir cleanDestinationDir renderToMemory/M minify quiet` | the flags above (kebab-case + the camelCase alias) |
 | `noTimes noChmod` | the flags above |
 | `logLevel noBuildLock gc printPathWarnings printI18nWarnings printUnusedTemplates templateMetrics templateMetricsHints` | accepted (`HugoFlags`, above); a warning for those neohugo does not act on |
-| `contentDir/c layoutDir/l disableKinds enableGitInfo panicOnWarning` | configuration keys (file or `HUGO_*`), not flags |
+| `contentDir/c layoutDir/l disableKinds enableGitInfo panicOnWarning` | configuration keys (file or `NEOHUGO_*`), not flags |
 | `server`: `port/p bind appendPort disableLiveReload liveReloadPort navigateToChanged/N noHTTPCache watch/w poll renderToDisk disableFastRender disableBrowserError` | the `server` flags above (T71) |
 | `server`: `tlsCertFile tlsKeyFile tlsAuto openBrowser/O pprof renderStaticToDisk forceSyncStatic`, command `server trust` | not supported (clap usage error) |
 | `devMode forceSyncStatic ignoreVendorPaths renderSegments printMemoryUsage profile-* trace`, the build's `watch/w` | not supported (clap usage error) |
@@ -178,10 +179,10 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `embedded::embedded_templates` | the embedded templates rendered against testsite views (test-only overlay `tests/it/embedded-overlay.txtar`, see below): snapshots `hooks`, `shortcodes`, `bundle`, `featured`, `section_page1`, `section_page2` |
 | `embedded::embedded_templates_simple_and_disabled` | `privacy.{vimeo,x,instagram}.simple` (snapshot `shortcodes_simple`) and every service disabled |
 | `embedded::embedded_template_errors` | argument errors and warnings of the embedded templates (snapshot `errors`) |
-| `embedded::goat_code_block` | the goat code block hook: `viewBox` of GoAT's size, `width`/`class` attributes, the svgbob drawing |
+| `embedded::goat_code_block` | the goat code block hook, byte-identical to Hugo's output (Go's `diagrams.Goat` bytes): `viewBox` of GoAT's size, `width`/`class` attributes, GoAT's SVG |
 | `embedded::qr_shortcode_equals_hugo_s` | the `qr` shortcode against Hugo's `TestQRShortcode`: image names, sizes and attributes; images published |
 | `build::testsite_matches_go` | `sites.py`'s testsite with `sites/testsite/layouts`, built by the binary with compare.sh's command line (`--clock … -d …`, no command) and with `build --source … --destination … --cleanDestinationDir -q`: **55/55 files byte-identical** to `crates/build/tests/it/testsite-go.txtar` |
-| `build::flags_and_environment` | every configuration flag in both spellings, `HUGO_TITLE`, `HUGO_ENVIRONMENT`, `HUGO_ENV`, `HUGO_BASEURL`, `-M` writes nothing |
+| `build::flags_and_environment` | every configuration flag in both spellings, `NEOHUGO_TITLE`, `NEOHUGO_ENVIRONMENT`, `NEOHUGO_BASEURL`, Hugo's `HUGO_*` ignored, `-M` writes nothing |
 | `build::explicit_false_overrides_the_configuration` | `-D=false`, `--buildFuture=f` and `--cleanDestinationDir=false` against `buildDrafts`, `buildFuture` and `cleanDestinationDir = true` in the configuration: drafts and future pages left out, a stale file kept |
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
 | `cli::version_help_and_usage_errors` | `version` and `--version` print the line of `version::BuildInfo::CURRENT`, `--help`, usage errors exit 2 |
@@ -193,7 +194,7 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `server::server_starts_and_serves` | `serve -p 0` with camelCase flags: the start report (environment `development`, memory, watching, built), the page with the LiveReload script and `--noHTTPCache` headers, nothing on disk |
 | `server::server_renders_to_disk_without_live_reload` | `--render-to-disk --disable-live-reload --watch=false -e staging`: `public/` written and served, no script, no watching |
 | `server::server_start_errors` | a first build that fails exits 1 with the build's report; `-d` without `--render-to-disk`, `--render-to-disk -M`, bad `--poll`/`--port`/`--watch` exit 2; every server flag in `--help` |
-| `cli::config_prints_the_resolved_configuration` | JSON / TOML, config dir, `HUGO_PARAMS_*`, flags |
+| `cli::config_prints_the_resolved_configuration` | JSON / TOML, config dir, `NEOHUGO_PARAMS_*`, flags |
 | `check::bad_layouts_report_every_rule` | `tests/it/bad-layouts.txtar`: each rule once at its position, nothing else, exit 1 |
 | `check::testsite_overlay_is_clean` | the testsite overlay: 0 errors, 0 warnings; 35 (page, format) rows with `--coverage full` |
 | `check::deny_warnings` | exit 1 on warnings with `--deny-warnings` |
@@ -223,7 +224,7 @@ hooks are byte-identical to Go's output in A-T.
 | `_shortcodes/{vimeo,x}.html` simple/oEmbed failure | two warnings (`get_remote`'s and the shortcode's); Go writes one with the error appended | accepted deviation |
 | `_markup/render-table.html` | the Tera file is not executed (the native writer is); it stays for lookup and precedence | accepted deviation (performance, same output) |
 | `_shortcodes/highlight.html` | Chroma span structure not reviewed token by token | accepted deviation (§7.3 allowed: highlight spans) |
-| `_markup/render-codeblock-goat.html` | `diagrams_goat` draws with svgbob (features `goat`, on by default): same size and `viewBox` as GoAT, other SVG bytes (a scoped `<style>`, whole-word `<text>`) | accepted deviation (§7.3 allowed: goat SVG bytes; T66) |
+| `_markup/render-codeblock-goat.html` | `diagrams_goat` drew with svgbob (T66: other SVG bytes, a scoped `<style>`, whole-word `<text>`) and the template trimmed Go's blank lines; now a port of GoAT v0.5.0 (feature `goat`, on by default) and Go's whitespace: the hook's output equals Hugo's byte for byte (`goat_code_block`; the docs' GoAT pages) | bug fixed |
 | `_shortcodes/qr.html` | argument checks equal Go's messages; images named and sized as Go's (`qr_shortcode_equals_hugo_s`), their bytes equal Go's (`neohugo-images` QR tests) | none |
 | figure, instagram (body byte-equal to Go's `render-instagram`), x, param, ref, relref, opengraph, twitter_cards, schema, `_funcs/get-page-images`, render-link, render-image | none | – |
 

@@ -42,7 +42,7 @@ fn options_of(v: Option<&J>) -> Option<Map> {
 fn offline_store(tmp: &Path, import: &Path) -> ResourceStore {
     let site = tmp.join("site");
     fs::create_dir_all(&site).unwrap();
-    fs::write(site.join("hugo.toml"), SECURITY).unwrap();
+    fs::write(site.join("neohugo.toml"), SECURITY).unwrap();
     let cfg = config(&site, &tmp.join("home"));
     let mut sc = StoreConfig::from_config(&cfg, None, None);
     sc.remote.cache_dir = Some(tmp.join("cache/getresource"));

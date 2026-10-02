@@ -1,3 +1,5 @@
+//! Gates A-D2 and A-D3 (docs-live, [`gate_a_d3`]).
+//!
 //! Gate A-D2 (REWRITE_PLAN.md §7.3, T66): the Hugo documentation site with the `reduced` docs
 //! patches, built by the `neohugo` binary against the committed golden data of the Go build
 //! (`testdata/golden/docs-reduced/`) through the acceptance harness:
@@ -8,11 +10,12 @@
 //! The reduced variant keeps Chroma highlighting (with `hl` inline/`noClasses` and
 //! `shortcodes/highlight.md`), GoAT diagrams (`diagrams_goat`), emoji, passthrough with
 //! `to_math`, `remarshal` in `code-toggle`, Tailwind through `defer` and the real Alpine/Turbo
-//! `js_build`. The gate: L1 889/889 in both passes (888 in `public` plus `hugo_stats.json`),
-//! the structure oracle and L2 on every file, L4 on every asset, and a clean ratchet (the L3
-//! differences are the baseline's: the math and goat pages `accepted-deviation`).
+//! `js_build`. The gate: L1 889/889 in both passes (888 in `public` plus `neohugo_stats.json`),
+//! the structure oracle and L2 on every file, L4 on every asset, every page's visible text (A7
+//! 1.0; the one L3 difference is `hugo_stats.json`, Go's tokenizer reading `<?xml` and `<=` as
+//! tags) and a clean ratchet.
 //!
-//! Tailwind and `js_build` need the node tools and esbuild; without them the test prints
+//! Tailwind and `js_build` need the node tools; without them the test prints
 //! `SKIPPED` and passes ([`crate::acceptance`]). The Go binaries are not needed. The binary
 //! must have the default features `goat` and `math`.
 
@@ -26,5 +29,32 @@ fn gate_a_d2() {
     acceptance::assert_l1(&d, 889);
     acceptance::assert_equal(&d, &["L1", "L2", "L4", "S"]);
     let a7 = d["a7"]["ratio"].as_f64().expect("A7 ratio");
-    assert!(a7 >= 0.98, "A7 {a7} < 0.98");
+    assert!(
+        (a7 - 1.0).abs() < f64::EPSILON,
+        "A7 {a7}: a page's visible text differs"
+    );
+}
+
+/// Gate A-D3: the documentation site as https://neohugo.github.io/ publishes it — `docs-live`,
+/// `docs/` without patches (GetRemote, `images.Text`, QR codes, Dither, smart crops, the `x`
+/// shortcode, the style gallery and the news content adapter all run) — against the published
+/// site itself: `testdata/golden/docs-live/` is the manifest of neohugo/neohugo.github.io at
+/// a1928152, the Go neohugo build of 2025-10-13 (testdata/golden/README.md). One unminified
+/// pass (the site is published unminified) at that build's clock, its GetRemote responses
+/// from `sites.py cache docs-live`. The gate: L1 2373/2373 (2372 published files plus
+/// `neohugo_stats.json`), L2 and L4 on every file, every page's visible text (A7 1.0; the one L3
+/// difference is the stats file, Go's tokenizer reading `<?xml` and `<=` as tags) and a clean
+/// ratchet (`testdata/baselines/docs-live.json`).
+#[test]
+fn gate_a_d3() {
+    let Some(d) = acceptance::compare("gate_a_d3", "docs-live", &["tailwindcss"]) else {
+        return;
+    };
+    acceptance::assert_l1_passes(&d, &["unminified"], 2373);
+    acceptance::assert_equal(&d, &["L1", "L2", "L4"]);
+    let a7 = d["a7"]["ratio"].as_f64().expect("A7 ratio");
+    assert!(
+        (a7 - 1.0).abs() < f64::EPSILON,
+        "A7 {a7}: a page's visible text differs"
+    );
 }

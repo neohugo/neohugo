@@ -245,6 +245,16 @@ impl Cascade {
         }
     }
 
+    /// [`apply`](Self::apply) for a page a content adapter added, whose fields and params are
+    /// apart (Hugo's `setMetaPost`): the rules' fields fill `fields` (the `add_page` map), their
+    /// params fill `params`.
+    pub fn apply_split(&self, m: &MatchCtx<'_>, fields: &mut Params, params: &mut Params) {
+        for rule in self.0.iter().filter(|r| r.target.matches(m)) {
+            fill_shallow(fields, &rule.fields);
+            fill_shallow(params, &rule.params);
+        }
+    }
+
     /// The rules, strongest first.
     #[must_use]
     pub fn rules(&self) -> &[CascadeRule] {

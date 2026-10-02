@@ -75,6 +75,7 @@ pub(crate) fn get_or_compute<T: Clone>(
         txn: Some(txn),
         depth: scope.depth,
         chain,
+        adapter: scope.adapter,
     };
     match f(&child) {
         Ok(v) => {

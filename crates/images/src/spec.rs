@@ -43,7 +43,8 @@ named_enum! {
         BottomLeft = "bottomleft",
         Bottom = "bottom",
         BottomRight = "bottomright",
-        /// Content-aware in Hugo; processed as [`Anchor::Center`] here (README, deviations).
+        /// Content-aware: Hugo's smart crop (muesli/smartcrop; the crate README). Placed as
+        /// [`Anchor::Center`] by [`Anchor::offset`], which planning does not use for it.
         Smart = "smart",
     }
 }

@@ -4,8 +4,10 @@ Image processing for neohugo (REWRITE_PLAN.md §2.1, §2.4, tasks T41 and T72a):
 specs, operations and filters (text and dithering included), codecs, the deferred image queue and
 its file cache, EXIF metadata, and QR code images. Hugo's semantics are the reference; Go's pixel
 arithmetic is not reproduced (the goal is PSNR ≥ 30 dB against Go-processed images and exact
-result sizes, not byte parity) — except for QR codes, whose PNG bytes equal Go's, and the JPEG
-encoder, a port of Go's (bytes equal Go's for the same pixels but for rare DCT roundings).
+result sizes, not byte parity) — except for QR codes, whose PNG bytes equal Go's, the JPEG
+encoder, a port of Go's (bytes equal Go's for the same pixels but for rare DCT roundings), and
+the smart crop analysis, which picks Go's region exactly (it ports smartcrop, gift's resize and
+Go's JPEG decoder for that).
 
 ## API
 
@@ -23,7 +25,7 @@ encoder, a port of Go's (bytes equal Go's for the same pixels but for rare DCT r
 | `Enqueued` | `id`, `file_name` (`<stem>_hu_<16 hex>.<ext>`), `width`, `height`, `format`. |
 | `ImageCache` | `[caches.images]`: `ImageCache::from_config(&FileCache)`; entries are read while younger than `maxAge` (never with `maxAge = 0` / `--ignoreCache`). |
 | `exif::read`, `exif::orientation`, `Exif` | `.Exif`: date (`DateTimeOriginal`, wall clock), position, tags filtered by `[imaging.exif]`. |
-| `resize_size`, `fit_size`, `cover_size`, `crop_rect`, `smart_region`, `rotated_size` | The size maths, public for callers that need a size without queueing. |
+| `resize_size`, `fit_size`, `cover_size`, `crop_rect`, `rotated_size` | The size maths, public for callers that need a size without queueing. |
 | `jpeg::encode`, `jpeg::Pixels`, `jpeg::YCbCr` | Go's `jpeg.Encode`: RGB(A), grey or planar YCbCr pixels at a quality (1–100, clamped) → baseline JPEG, 4:2:0 or one grey component. |
 
 ## Pipeline
@@ -39,6 +41,29 @@ filters or the `[imaging]` defaults gives other digits. A chain (`B.Resize` of a
 decoded from its parent's encoded bytes, as in Hugo.
 
 `process`/`encoded` decode with `image`, run the steps and encode:
+
+* the `smart` anchor (the default of crop and fill; `smartcrop.rs`, `gift.rs`, `jpegdec.rs`):
+  Hugo's smart crop, ported so that the region is Go's for every image. Hugo analyses the
+  operation's *source* (before a rotation, and before the other filters of an `images.Filter`
+  chain): muesli/smartcrop v0.3.0 downscales it so that its shorter side is 400 pixels (gift's
+  resize with the spec's filter, through Hugo's resizer: the width truncates, the height is
+  rounded up), detects edges, skin and saturation, scores every region with the target's aspect
+  ratio at 100 % and 90 % of the largest size every 8 pixels (by the detail inside, weighted
+  towards the centre and the thirds, and outside), and scales the best one back. A fill crops
+  that region and resizes it to the target; a crop crops it and keeps its centre at the target
+  size (`gift.CropToSize`), so a crop is the centre of the best region. The analysis reads the
+  source as gift reads Go's image types: 8-bit and 16-bit PNG channels, palettes through
+  `color.Color`, and JPEGs decoded by a port of Go 1.25's `image/jpeg` reader (luma and chroma
+  planes, gift's own conversion with the nearest chroma sample; its planes equal Go's byte for
+  byte), because the `image` crate's decoder is a level or two away from Go's and that moves the
+  region. gift's resize (float32 weights and pixels, the 16-bit temporary of a two-pass
+  resize, the result type Hugo's `doFilter` picks, `toRGBA`'s premultiplication) and
+  smartcrop's float64 scoring follow Go's evaluation order without fused multiply-adds (Go on
+  amd64). Planning knows a fill's size (the target); a crop's size is the target clipped to
+  the region, which is pixel-dependent only when the candidates' sizes differ (a target about
+  the size of the source): the region is then found while planning, from the decoded source;
+* the region of the crop and the resize after it then go through the pipeline below, so their
+  pixels are, like every resize here, close to Go's but not equal;
 
 * resizing: `fast_image_resize`, alpha-premultiplied (no dark fringes), with Hugo's fifteen
   kernels — Box, Linear (bilinear), Lanczos (Lanczos3) are the crate's own; CatmullRom,
@@ -92,6 +117,16 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
 
 ## Tests (`cargo test -p neohugo-images`)
 
+* `smartcrop` (unit tests): the regions Go picks (`testdata/oracle/images/smartcrop/regions.json.gz`,
+  1975 cases: the docs' images, Hugo's and Go's test images and the seeksnack images — JPEGs of
+  every subsampling, progressive, with restart intervals, RGB, CMYK and grey; PNGs of every
+  colour type and depth; a GIF — at 19 targets each with the default box filter, and at four
+  targets with each of the 15 filters on four sources): all equal; every region is one of the
+  candidates planning sizes crops with. `jpegdec`: Go 1.25's decoding of the repository's 122
+  JPEGs (`jpeg.json.gz`, the FNV-1a hash of every plane, or Go's error): all equal. The oracle
+  was a Go program: Hugo's `smartCrop` and resizer (44529028) over smartcrop v0.3.0, gift
+  v1.2.1, x/image v0.28.0, `image.Decode`, built with Go 1.25.0 for amd64 (the arm64 build's
+  fused multiply-adds gave the same regions).
 * `spec`: the grammar against the 2376 `DecodeImageConfig` cases of
   `oracle/images/config` (all match, bar the documented rules below), `[imaging]` decoding,
   colours, formats, typed kwargs.
@@ -103,9 +138,9 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
   stored them, in `testdata/upstream/old-port/` (`be02933a`). Every source is available (the
   test fails otherwise). The small synthetic results are processed too (4100), and their pixels
   have the planned size.
-* `psnr`: the 20 Go-processed images of `golden/images/manifest.json` (T01) and 45 of Hugo's
-  own golden images (`testdata/upstream/resources/images/testdata/images_golden`), all
-  ≥ 30 dB: JPEG results reach 40–57 dB since the encoder is Go's, within 1.5 % of Go's sizes (the table printed with
+* `psnr`: the 20 Go-processed images of `golden/images/manifest.json` (T01) and 49 of Hugo's
+  own golden images (`testdata/upstream/resources/images/testdata/images_golden`, the four
+  smart crops and fills at 47–64 dB), all ≥ 30 dB: JPEG results reach 40–57 dB since the encoder is Go's, within 1.5 % of Go's sizes (the table printed with
   `--nocapture` gives both sizes); the text goldens 47–50 dB (glyph placement is pixel-exact, a
   one-pixel shift gives 28.5 dB) and `dither-default` 33.8 dB through the low-pass below.
   Also the small oracle outputs stored in full. A recipe with a `dither` filter is compared after a 7×7 box blur of
@@ -159,8 +194,14 @@ Also in `expected_diffs.toml`, which the tests read.
   encodes its decoded YCbCr planes directly).
 * **Names**: `<stem>_hu_<xxh3>.<ext>`, not Hugo's hashes; they depend on content and plan only
   (Hugo's warm/cold-cache naming difference does not exist here).
-* **Smart anchor**: the region *size* of Hugo's smart crop is reproduced exactly (so sizes
-  match); its *position* is the centre, not content-aware (smartcrop is a COULD feature, T72).
+* **Smart anchor**: the region is Go's (above). Not reproduced: a JPEG Go 1.25 cannot
+  decode (four Go 1.27 test images with other chroma subsamplings) is analysed from the
+  `image` crate's pixels (Hugo fails on it); a WebP, BMP or TIFF source is analysed from
+  its 8-bit pixels as `*image.NRGBA` (`*image.RGBA` when opaque true-colour), not from
+  x/image's planes or types; the kernels' `sin`, `cos` and `exp` are the platform's, not
+  Go's (rounded to float32 they agree but for a last-bit tie); a source whose every
+  candidate scores −1 or less (a target's aspect ratio dozens of times the source's) is an
+  error here (Go crops nothing).
 * **Spec grammar**: unknown tokens (`bogus`, `1234`) and negative sizes are errors (Hugo ignores
   them or fails later); extensions are case-insensitive and the dot is optional; `#rgba` and
   `#rrggbbaa` are CSS (non-premultiplied) colours.
@@ -198,4 +239,3 @@ Also in `expected_diffs.toml`, which the tests read.
 ## Not ported yet
 
 * `.Colors` (`image_colors`): planned with `color_quant`/`kmeans_colors`, kept in Cargo.toml.
-* Content-aware smart crop: COULD (T72).

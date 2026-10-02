@@ -116,7 +116,7 @@ impl ProjectArgs {
         }
     }
 
-    /// What `neohugo_config::load` needs, with the process's `HUGO_*` environment.
+    /// What `neohugo_config::load` needs, with the process's `NEOHUGO_*` environment.
     fn load_options(&self) -> anyhow::Result<LoadOptions> {
         Ok(LoadOptions {
             source: self.source_dir()?,

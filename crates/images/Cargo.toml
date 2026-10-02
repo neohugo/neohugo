@@ -36,12 +36,11 @@ xxhash-rust.workspace = true
 # The text filter's glyphs and QR code symbols (T72a).
 ab_glyph.workspace = true
 qrcode.workspace = true
-# Planned (T00), not used yet; kept so that Cargo.lock keeps them: smartcrop2 (smart anchor) is
-# a COULD feature (T72); color_quant and kmeans_colors are for `.Colors` (README, "Not ported
-# yet").
+# Planned (T00), not used yet; kept so that Cargo.lock keeps them: color_quant and
+# kmeans_colors are for `.Colors` (README, "Not ported yet"). The smart anchor is a port of
+# muesli/smartcrop (`smartcrop.rs`), not the planned smartcrop2 crate.
 color_quant.workspace = true
 kmeans_colors.workspace = true
-smartcrop2.workspace = true
 
 [dev-dependencies]
 neohugo-testkit.workspace = true

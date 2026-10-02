@@ -5,9 +5,9 @@
 //!   contents exactly (cases through `to_css` normalised, see `tocss.rs`), errors by kind.
 //! - Always (with `node`), the cases run with a fake `postcss` that applies the fixture
 //!   config's declaration rewrite (`color: red` → `#f00`) and appends the comment the config
-//!   appends (`env`, `node_env`, `cwd`, the `HUGO_FILE_*` variables); contents are compared
+//!   appends (`env`, `node_env`, `cwd`, the `NEOHUGO_FILE_*` variables); contents are compared
 //!   with the oracle normalised, the comment exactly. That checks the argument list, the
-//!   working directory, the environment (Hugo's variables set, `NODE_ENV` filtered out) and
+//!   working directory, the environment (neohugo's variables set, `NODE_ENV` filtered out) and
 //!   `@import` inlining against Go without postcss installed.
 
 use std::collections::BTreeMap;
@@ -27,8 +27,8 @@ const args = process.argv.slice(2);
 fs.appendFileSync(path.join(process.env.HOME, 'tool-calls.log'), JSON.stringify({tool: 'postcss', args, cwd: process.cwd()}) + '\n');
 let css = fs.readFileSync(0, 'utf8');
 css = css.replace(/(color:\s*)red\b/g, '$1#f00');
-const files = Object.keys(process.env).filter((k) => k.startsWith('HUGO_FILE_')).sort().join(',');
-process.stdout.write(css + '/* env=' + process.env.HUGO_ENVIRONMENT + ' node_env=' +
+const files = Object.keys(process.env).filter((k) => k.startsWith('NEOHUGO_FILE_')).sort().join(',');
+process.stdout.write(css + '/* env=' + process.env.NEOHUGO_ENVIRONMENT + ' node_env=' +
   (process.env.NODE_ENV || 'development') + ' cwd=' + path.basename(process.cwd()) +
   ' files=' + files + ' */\n');
 ";
@@ -70,7 +70,12 @@ fn run(p: &Project, fx: &J, real: bool) -> (usize, Vec<String>) {
         match (got, want.get("contentErr").and_then(J::as_str)) {
             (Ok(id), None) => {
                 let css = String::from_utf8(p.store.content(id).unwrap().to_vec()).unwrap();
-                let w = want["content"].as_str().unwrap();
+                // Go set `HUGO_FILE_*`; neohugo sets the same files as `NEOHUGO_FILE_*`.
+                let w = want["content"]
+                    .as_str()
+                    .unwrap()
+                    .replace("HUGO_FILE_", "NEOHUGO_FILE_");
+                let w = w.as_str();
                 let (wb, wc) = split_comment(w);
                 let (gb, gc) = split_comment(&css);
                 let same = if via_sass {

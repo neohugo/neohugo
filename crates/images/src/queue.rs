@@ -2,7 +2,8 @@
 //!
 //! [`ImageQueue::enqueue`] plans an operation from metadata only and returns its final name
 //! and size at once, so templates can print `.Width` and `.RelPermalink` without decoding
-//! pixels. The pixels are produced later, in parallel and outside any render, by
+//! pixels (a smart crop whose size depends on its region is the exception: it analyses the
+//! source while planning). The pixels are produced later, in parallel and outside any render, by
 //! [`ImageQueue::process`] (build phase E6), or on demand by [`ImageQueue::encoded`].
 
 use std::collections::BTreeMap;
@@ -24,8 +25,9 @@ use crate::filter::{ImageFilter, ImageInput};
 use crate::font::{FontData, FontId};
 use crate::format::ImageFormat;
 use crate::pixels;
-use crate::plan::{InputInfo, InputRef, Plan};
+use crate::plan::{InputInfo, InputRef, Plan, Step};
 use crate::settings::Imaging;
+use crate::smartcrop;
 use crate::spec::ImageSpec;
 use crate::text::FontInput;
 
@@ -325,6 +327,10 @@ impl ImageQueue {
             &self.imaging,
             &mut |i| self.input_ref(i),
             &mut |f| self.font(f),
+            &mut |target, filter| {
+                let src = self.pixels(input, true)?;
+                Ok(smartcrop::find(&src.source(), target.0, target.1, filter))
+            },
         )?;
         let hash = xxh3_64(format!("{identity:016x}|{}", plan.key()).as_bytes());
         let format = plan.encode.format;
@@ -389,17 +395,18 @@ impl ImageQueue {
         self.len() == 0
     }
 
-    /// Decoded pixels of an input.
-    fn pixels(&self, input: &ImageInput) -> Result<codec::Decoded, ImageError> {
+    /// Decoded pixels of an input; with `analysis`, also as the smart crop analysis reads
+    /// them ([`codec::decode`]).
+    fn pixels(&self, input: &ImageInput, analysis: bool) -> Result<codec::Decoded, ImageError> {
         match input {
             ImageInput::File(p) => {
                 let bytes = fs::read(p).map_err(|e| ImageError::io(p, e))?;
-                codec::decode(&bytes, &p.display().to_string())
+                codec::decode(&bytes, &p.display().to_string(), analysis)
             }
             ImageInput::Op(id) => {
                 let op = self.op(*id)?;
                 let bytes = self.encoded(*id)?;
-                codec::decode(&bytes, &op.out.file_name)
+                codec::decode(&bytes, &op.out.file_name, analysis)
             }
         }
     }
@@ -418,9 +425,15 @@ impl ImageQueue {
         let bytes: Arc<[u8]> = if let Some(bytes) = cached {
             bytes.into()
         } else {
-            let src = self.pixels(&op.input)?;
-            let load = |r: &InputRef| self.pixels(&r.input).map(|d| d.image);
-            let img = pixels::run(src.image, &op.plan.steps, &load)?;
+            let smart = op
+                .plan
+                .steps
+                .iter()
+                .any(|s| matches!(s, Step::SmartCrop { .. }));
+            let src = self.pixels(&op.input, smart)?;
+            let load = |r: &InputRef| self.pixels(&r.input, false).map(|d| d.image);
+            let regions = pixels::smart_regions(&src, &op.plan.steps);
+            let img = pixels::run(src.image, &op.plan.steps, &load, &regions)?;
             let bytes = codec::encode(img, src.gray, &op.plan.encode)?;
             if let Some(cache) = &self.cache {
                 cache.write(&op.out.file_name, &bytes)?;

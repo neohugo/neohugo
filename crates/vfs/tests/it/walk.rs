@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 use neohugo_base::{Idx, LangIdx};
 use neohugo_config::{Config, LoadOptions, load};
-use neohugo_vfs::{BundleKind, Component, FileRef, Module, PathParser, Vfs};
+use neohugo_vfs::{BundleKind, Component, FileRef, Module, Parsed, PathParser, Vfs};
 
 struct Project {
     _tmp: tempfile::TempDir,
@@ -67,7 +67,7 @@ fn pairs(v: &[(&str, &str)]) -> Vec<(String, String)> {
 }
 
 const THEMED: &[(&str, &str)] = &[
-    ("hugo.toml", "theme = [\"t1\", \"t2\"]\n"),
+    ("neohugo.toml", "theme = [\"t1\", \"t2\"]\n"),
     ("layouts/single.html", "p"),
     ("layouts/_partials/head.html", "p"),
     ("themes/t1/layouts/single.html", "t1"),
@@ -141,7 +141,7 @@ fn project_before_themes_first_wins() {
 #[test]
 fn missing_theme_is_an_error() {
     // The configuration finds the themes (it reads their configuration).
-    let p = Project::new(&[("hugo.toml", "theme = \"nope\"\n")]);
+    let p = Project::new(&[("neohugo.toml", "theme = \"nope\"\n")]);
     let e = load(&LoadOptions {
         source: p.dir.clone(),
         ..LoadOptions::default()
@@ -177,7 +177,7 @@ fn theme_mounts_and_nested_themes() {
              [[module.imports]]\npath = \"x\"\nnoMounts = true\n",
         ),
         // `a` imports `c`: a, c, b (depth first); `A` is `a` again.
-        ("themes/a/hugo.toml", "theme = \"c\"\n"),
+        ("themes/a/neohugo.toml", "theme = \"c\"\n"),
         ("themes/a/layouts/single.html", "a"),
         ("themes/a/package.json", "{}"),
         ("themes/b/layouts/single.html", "b"),
@@ -221,7 +221,7 @@ fn theme_mounts_and_nested_themes() {
             "theme = \"t\"\n[languages.en]\nweight = 1\n[languages.nn]\nweight = 2\n",
         ),
         (
-            "themes/t/hugo.toml",
+            "themes/t/neohugo.toml",
             "[[module.mounts]]\nsource = \"content/nn\"\ntarget = \"content\"\nlang = \"nn\"\n\
              [[module.mounts]]\nsource = \"missing\"\ntarget = \"static\"\n",
         ),
@@ -240,7 +240,7 @@ fn theme_mounts_and_nested_themes() {
 fn content_is_merged_per_language() {
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "defaultContentLanguage = \"en\"\n\
              [languages.en]\nweight = 1\n\
              [languages.th]\nweight = 2\ncontentDir = \"content_th\"\n\
@@ -276,11 +276,11 @@ fn content_is_merged_per_language() {
 fn mounts_below_a_component_and_single_files() {
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "[[module.mounts]]\nsource = \"assets\"\ntarget = \"assets\"\n\
              [[module.mounts]]\nsource = \"node_modules/lib\"\ntarget = \"assets/vendor/lib\"\n\
-             [[module.mounts]]\nsource = \"hugo_stats.json\"\n\
-             target = \"assets/notwatching/hugo_stats.json\"\n",
+             [[module.mounts]]\nsource = \"neohugo_stats.json\"\n\
+             target = \"assets/notwatching/neohugo_stats.json\"\n",
         ),
         ("assets/main.css", ""),
         ("node_modules/lib/dist/lib.js", ""),
@@ -303,17 +303,17 @@ fn mounts_below_a_component_and_single_files() {
         Some("node_modules/lib/dist/lib.js")
     );
     assert_eq!(open("vendor/lib"), None);
-    // The build writes hugo_stats.json later: the mount exists, the file not yet.
+    // The build writes neohugo_stats.json later: the mount exists, the file not yet.
     assert!(
         vfs.mounts()
             .iter()
-            .any(|m| m.target == "assets/notwatching/hugo_stats.json")
+            .any(|m| m.target == "assets/notwatching/neohugo_stats.json")
     );
-    assert_eq!(open("notwatching/hugo_stats.json"), None);
-    fs::write(p.dir.join("hugo_stats.json"), "{}").unwrap();
+    assert_eq!(open("notwatching/neohugo_stats.json"), None);
+    fs::write(p.dir.join("neohugo_stats.json"), "{}").unwrap();
     assert_eq!(
-        open("notwatching/hugo_stats.json").as_deref(),
-        Some("hugo_stats.json")
+        open("notwatching/neohugo_stats.json").as_deref(),
+        Some("neohugo_stats.json")
     );
 }
 
@@ -321,7 +321,7 @@ fn mounts_below_a_component_and_single_files() {
 fn ignore_rules_per_component() {
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "ignoreFiles = [\"\\\\.draft\\\\.md$\", \"/private/\"]\n",
         ),
         ("content/a.md", ""),
@@ -360,7 +360,7 @@ fn ignore_rules_per_component() {
 #[test]
 fn file_names_are_nfc_on_macos() {
     let p = Project::new(&[
-        ("hugo.toml", ""),
+        ("neohugo.toml", ""),
         ("content/cafe\u{301}/Cafe\u{301}.md", ""),
     ]);
     let files = p.vfs().walk(Component::Content).unwrap();
@@ -378,7 +378,7 @@ fn file_names_are_nfc_on_macos() {
 #[test]
 fn symlinks_below_a_mount_are_skipped() {
     let p = Project::new(&[
-        ("hugo.toml", ""),
+        ("neohugo.toml", ""),
         ("content/a.md", ""),
         ("outside/b.md", ""),
     ]);
@@ -397,7 +397,7 @@ fn symlinks_below_a_mount_are_skipped() {
 fn static_later_mount_wins_within_a_module() {
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "theme = \"t\"\n\
              [[module.mounts]]\nsource = \"static\"\ntarget = \"static\"\n\
              [[module.mounts]]\nsource = \"static2\"\ntarget = \"static\"\n",
@@ -436,7 +436,7 @@ fn static_later_mount_wins_within_a_module() {
 fn static_follows_symlinks() {
     use std::os::unix::fs::symlink;
     let p = Project::new(&[
-        ("hugo.toml", ""),
+        ("neohugo.toml", ""),
         ("static/real.txt", ""),
         ("outside/o.txt", ""),
         ("outside/dir/d.txt", ""),
@@ -469,7 +469,7 @@ fn static_follows_symlinks() {
 fn include_and_exclude_files() {
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\n\
              excludeFiles = [\"**/drafts/**\", \"*.tmp\"]\n\
              [[module.mounts]]\nsource = \"docs\"\ntarget = \"content/docs\"\n\
@@ -502,7 +502,7 @@ fn disabled_and_unknown_mount_languages() {
                  [languages.en]\nweight = 1\n[languages.fr]\nweight = 2\n";
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             &format!(
                 "{langs}[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\n\
                  [[module.mounts]]\nsource = \"content_fr\"\ntarget = \"content\"\nlang = \"fr\"\n"
@@ -527,7 +527,7 @@ fn disabled_and_unknown_mount_languages() {
     assert_eq!(keys, ["a"]);
 
     let p = Project::new(&[(
-        "hugo.toml",
+        "neohugo.toml",
         "[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\nlang = \"xx\"\n",
     )]);
     fs::create_dir_all(p.dir.join("content")).unwrap();
@@ -573,7 +573,7 @@ fn leaf_bundles_and_duplicates() {
     use BundleKind::{Branch, ContentResource, Leaf, Resource, Single};
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "defaultContentLanguage = \"en\"\n[languages.en]\nweight = 1\n\
              [languages.th]\nweight = 2\n",
         ),
@@ -629,7 +629,7 @@ fn leaf_bundles_and_duplicates() {
 #[test]
 fn a_leaf_bundle_at_the_root_owns_everything() {
     let p = Project::new(&[
-        ("hugo.toml", ""),
+        ("neohugo.toml", ""),
         ("content/index.md", ""),
         ("content/a.md", ""),
         ("content/s/_index.md", ""),
@@ -650,7 +650,7 @@ fn a_leaf_bundle_at_the_root_owns_everything() {
 fn default_mounts_follow_the_dirs() {
     let p = Project::new(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "contentDir = \"c\"\nstaticDir = [\"s1\", \"s2\"]\n",
         ),
         ("c/a.md", ""),
@@ -711,4 +711,75 @@ fn discover_sites() {
             walked.join(", ")
         );
     }
+}
+
+/// Content adapters (`_content.html`, Hugo's `_content.gotmpl`) are listed apart from the
+/// pages: they share their directory with the section's `_index.md`, one per directory and
+/// language; a disabled language's adapter is dropped. `_content.html` is an adapter only in
+/// the content component.
+#[test]
+fn content_adapters_are_apart() {
+    let p = Project::new(&[
+        (
+            "neohugo.toml",
+            "defaultContentLanguage = \"en\"\n[languages.en]\nweight = 1\n\
+             [languages.th]\nweight = 2\n[languages.fr]\nweight = 3\ndisabled = true\n",
+        ),
+        ("content/news/_index.md", ""),
+        ("content/news/_content.html", ""),
+        ("content/news/_content.gotmpl", ""),
+        ("content/news/_content.th.html", ""),
+        ("content/news/_content.fr.html", ""),
+        ("content/_content.html", ""),
+        ("content/docs/_content.md", ""),
+    ]);
+    let cfg = p.config();
+    let found = p
+        .vfs()
+        .discover_content(&PathParser::from_config(&cfg))
+        .unwrap();
+    let adapters: Vec<(&str, &str, &str)> = found
+        .adapters
+        .iter()
+        .map(|f| {
+            assert_eq!(f.info.kind, BundleKind::ContentAdapter);
+            (
+                f.file.rel.as_str(),
+                f.info.key.as_str(),
+                cfg.sites[f.lang].language.key.as_str(),
+            )
+        })
+        .collect();
+    assert_eq!(
+        adapters,
+        [
+            ("_content.html", "", "en"),
+            ("news/_content.html", "news", "en"),
+            ("news/_content.th.html", "news", "th"),
+        ]
+    );
+    let dropped: Vec<PathBuf> = found
+        .duplicates
+        .iter()
+        .map(|d| d.dropped.strip_prefix(&p.dir).unwrap().to_path_buf())
+        .collect();
+    assert_eq!(dropped, [PathBuf::from("content/news/_content.gotmpl")]);
+    let pages: Vec<(&str, BundleKind)> = found
+        .files
+        .iter()
+        .map(|f| (f.file.rel.as_str(), f.info.kind))
+        .collect();
+    assert_eq!(
+        pages,
+        [
+            ("docs/_content.md", BundleKind::Single),
+            ("news/_index.md", BundleKind::Branch)
+        ]
+    );
+
+    let parser = PathParser::from_config(&cfg);
+    let Parsed::File(layout) = parser.parse(Component::Layouts, "_content.html") else {
+        panic!("a file");
+    };
+    assert_ne!(layout.kind, BundleKind::ContentAdapter);
 }

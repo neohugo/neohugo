@@ -65,23 +65,14 @@ fn solarized_dark_css() {
     assert_eq!(hl.style_names().count(), 67);
 }
 
-/// `NEOHUGO_HL_LEXERS=1`: prints every Chroma lexer and the syntax standing in for it.
+/// `NEOHUGO_HL_LEXERS=1`: prints every Chroma lexer, in Chroma's registration order.
 #[test]
-fn print_lexer_syntaxes() {
+fn print_lexers() {
     if std::env::var_os("NEOHUGO_HL_LEXERS").is_none() {
         return;
     }
     let hl = Highlight::new(&HighlightConfig::default());
-    for (lexer, syntax) in hl.lexer_syntaxes() {
-        println!("{lexer}\t{}", syntax.unwrap_or("-"));
-    }
-}
-
-/// `NEOHUGO_HL_ACK=<file>`: writes two-face's acknowledgements (`THIRD_PARTY/two-face/`).
-#[test]
-fn write_acknowledgements() {
-    if let Some(path) = std::env::var_os("NEOHUGO_HL_ACK") {
-        let md = two_face::acknowledgement::listing().to_md();
-        std::fs::write(path, md.replace("\r\n", "\n")).expect("write");
+    for name in hl.lexer_names() {
+        println!("{name}");
     }
 }

@@ -1,0 +1,93 @@
+#!/usr/bin/env bash
+# Builds the documentation site https://neohugo.github.io/ with neohugo: docs/ with the Tera
+# overlay sites/docs (`sites.py make docs-live`, no patches) and the docs site's own node modules
+# (`npm ci` of docs/package.json with tools/docs/package-lock.json: docs/ ignores its lock file, and
+# this one resolves to the versions the published site was built with), the way the
+# Go release workflow built it (`npm install && neohugo` in docs/: no --minify, the production
+# environment, network access for GetRemote: GitHub stars and releases, X posts, a font).
+# Gate A-D3 (crates/cli/tests/it/docs.rs) compares this site with the published one.
+#
+#   tools/docs/build.sh [-o <dir>] [--serve] [-- <neohugo args>...]
+#
+#   -o <dir>   the publish directory (default: <work>/public); emptied first
+#   --serve    run `neohugo server` on the generated site instead of building it (live reload;
+#              edits go to the generated site in <work>, not to docs/ or sites/docs)
+#   -- ...     further arguments for neohugo (e.g. --minify, -b <baseURL>, -p 1314)
+#
+# Environment:
+#   NEOHUGO_BINARY          neohugo (default: target/release/neohugo, built with
+#                           `cargo build --release --locked -p neohugo` when missing)
+#   NEOHUGO_DOCS_WORK       work directory, outside the repository (default:
+#                           ${TMPDIR:-/tmp}/neohugo-docs): the generated site (rewritten on every
+#                           run), the node modules (kept per lock file hash), public/
+#   NEOHUGO_GH_TOKEN        optional GitHub token for the GitHub API requests
+set -euo pipefail
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+ROOT=$(cd "$HERE/../.." && pwd)
+log() { echo "build.sh: $*" >&2; }
+usage() {
+	sed -n '2,/^set -euo/p' "$0" | sed -e '$d' -e 's/^# \{0,1\}//' >&2
+	exit 2
+}
+
+out= serve=
+extra=()
+while [ $# -gt 0 ]; do
+	case $1 in
+	-o) out=$2; shift 2 ;;
+	--serve) serve=1; shift ;;
+	--) shift; extra=("$@"); break ;;
+	-h | --help) usage ;;
+	*) log "unknown argument $1"; usage ;;
+	esac
+done
+
+WORK=${NEOHUGO_DOCS_WORK:-${TMPDIR:-/tmp}/neohugo-docs}
+case "$WORK" in "$ROOT" | "$ROOT"/*) log "the work directory must be outside the repository"; exit 2 ;; esac
+mkdir -p "$WORK"
+WORK=$(cd "$WORK" && pwd)
+out=${out:-$WORK/public}
+
+BIN=${NEOHUGO_BINARY:-}
+if [ -z "$BIN" ]; then
+	target=${CARGO_TARGET_DIR:-$ROOT/target}
+	case $target in /*) ;; *) target=$ROOT/$target ;; esac
+	BIN=$target/release/neohugo
+	if [ ! -x "$BIN" ]; then
+		log "building neohugo (cargo build --release --locked -p neohugo)"
+		(cd "$ROOT" && cargo build --release --locked -p neohugo >&2)
+	fi
+fi
+command -v npm >/dev/null || { log "npm is needed (the docs site's Tailwind CSS, Alpine.js and Turbo)"; exit 1; }
+
+# The site: docs/ unpatched with the Tera overlay.
+site=$WORK/docs-live
+rm -rf "$site"
+python3 "$ROOT/tools/rust-port/i01/sites.py" make docs-live "$site" --overlay "$ROOT/sites/docs" >/dev/null
+
+# The docs site's node modules, installed once per lock file.
+lock=$HERE/package-lock.json
+lock_hash=$(python3 -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest()[:16])' "$lock")
+npm_dir=$WORK/npm-$lock_hash
+if [ ! -d "$npm_dir/node_modules" ]; then
+	log "installing the docs node modules (npm ci, tools/docs/package-lock.json)"
+	rm -rf "$npm_dir.tmp"
+	mkdir -p "$npm_dir.tmp"
+	cp "$ROOT/docs/package.json" "$lock" "$npm_dir.tmp/"
+	(cd "$npm_dir.tmp" && npm ci --no-audit --no-fund --loglevel=error >&2)
+	rm -rf "$npm_dir"
+	mv "$npm_dir.tmp" "$npm_dir"
+fi
+ln -s "$npm_dir/node_modules" "$site/node_modules"
+
+export PATH="$npm_dir/node_modules/.bin:$PATH"
+export NEOHUGO_NODE_MODULES=$npm_dir/node_modules
+
+cd "$site"
+if [ -n "$serve" ]; then
+	exec "$BIN" server "${extra[@]}"
+fi
+rm -rf "$out"
+"$BIN" -d "$out" "${extra[@]}"
+log "published to $out"

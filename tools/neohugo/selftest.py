@@ -478,7 +478,7 @@ def main():
             testsite_output(src)
             # The project directory only gives the extractor the base URL.
             project = os.path.join(tmp, "testsite-project")
-            write(os.path.join(project, "hugo.toml"), 'baseURL = "https://example.org/"\n')
+            write(os.path.join(project, "neohugo.toml"), 'baseURL = "https://example.org/"\n')
         base = os.path.join(tmp, "base")
         shutil.copytree(src, base)
         run = Run("selftest", project, None)

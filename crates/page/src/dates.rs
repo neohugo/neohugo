@@ -27,7 +27,7 @@ impl Dates {
         }
     }
 
-    fn set(&mut self, field: DateField, z: Zoned) {
+    pub(crate) fn set(&mut self, field: DateField, z: Zoned) {
         let slot = match field {
             DateField::Date => &mut self.date,
             DateField::Lastmod => &mut self.lastmod,
@@ -90,6 +90,12 @@ impl DateResolver {
             })
             .collect();
         Self { chains }
+    }
+
+    /// The source chain of each date field, in the order date, lastmod, publishDate,
+    /// expiryDate.
+    pub(crate) fn chains(&self) -> &[(DateField, Vec<DateSource>)] {
+        &self.chains
     }
 
     /// The resolver of a site's `[frontmatter]` configuration.
@@ -167,7 +173,7 @@ fn utc(t: Timestamp) -> Zoned {
 }
 
 /// A front matter value as a date: date strings in Hugo's layouts, TOML dates, Unix seconds.
-fn to_date(v: &Value, tz: &TimeZone) -> Option<Zoned> {
+pub(crate) fn to_date(v: &Value, tz: &TimeZone) -> Option<Zoned> {
     match v {
         Value::String(s) => neohugo_base::parse_date(s, tz).ok(),
         Value::Date(Date::Local(dt)) => dt.to_zoned(tz.clone()).ok(),

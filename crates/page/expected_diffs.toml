@@ -47,7 +47,3 @@ as unsupported.
 [page-config.markup-not-supported]
 count = 1
 reason = "As markup.markup-not-supported (an `.adoc` content file)."
-
-[page-config.content-adapter]
-count = 5
-reason = "Content adapters (`_content.gotmpl`, pages from data) are not supported (REWRITE_PLAN)."

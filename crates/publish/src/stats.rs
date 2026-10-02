@@ -1,4 +1,4 @@
-//! `hugo_stats.json`: the tags, classes and ids used by the HTML outputs (`[build.buildStats]`),
+//! `neohugo_stats.json`: the tags, classes and ids used by the HTML outputs (`[build.buildStats]`),
 //! read by CSS purgers (PostCSS purge, Tailwind's `@source`).
 //!
 //! Every start tag of an HTML output is recorded with its `class` and `id` values. The content
@@ -201,24 +201,24 @@ impl StatsCollector {
 
     /// The collected elements, with the disabled lists left out.
     #[must_use]
-    pub fn stats(&self) -> HugoStats {
+    pub fn stats(&self) -> NeohugoStats {
         let found = self
             .found
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone();
-        HugoStats::new(found, &self.config)
+        NeohugoStats::new(found, &self.config)
     }
 }
 
-/// The content of `hugo_stats.json`.
+/// The content of `neohugo_stats.json`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
-pub struct HugoStats {
+pub struct NeohugoStats {
     #[serde(rename = "htmlElements")]
     pub html_elements: StatsLists,
 }
 
-/// The sorted lists of `hugo_stats.json`; a disabled or empty list is `null`.
+/// The sorted lists of `neohugo_stats.json`; a disabled or empty list is `null`.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct StatsLists {
     pub tags: Option<Vec<String>>,
@@ -226,7 +226,7 @@ pub struct StatsLists {
     pub ids: Option<Vec<String>>,
 }
 
-impl HugoStats {
+impl NeohugoStats {
     /// The stats of `found` as configured.
     #[must_use]
     pub fn new(found: HtmlElements, config: &BuildStats) -> Self {

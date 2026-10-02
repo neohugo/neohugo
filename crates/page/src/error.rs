@@ -44,6 +44,9 @@ pub enum PageError {
     /// A cascade target `kind` glob that matches no page kind.
     #[error("cascade target kind {0:?} matches no page kind")]
     CascadeKind(String),
+    /// An `add_page` map of a content adapter that cannot place a page.
+    #[error("{0}")]
+    Adapter(String),
     /// A link that is not a URL reference (a `url` with a broken `%` escape).
     #[error("page link {link:?}: {source}")]
     Link {

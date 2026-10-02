@@ -56,10 +56,18 @@ pub fn synth_site(tmp: &Path) -> PathBuf {
 /// The repository root.
 pub use neohugo_testkit::fixture::repo_dir;
 
-/// The configuration of the project at `dir`, with a private home (cache) directory.
+/// The configuration of the project at `dir`, with a private home (cache) directory. A frozen
+/// Hugo fixture read in place (the repository's `docs/`) has a `hugo.toml` neohugo does not look
+/// for: it is named explicitly, as `--config hugo.toml` would.
 pub fn config(dir: &Path, home: &Path) -> Config {
+    let hugo_site = !dir.join("neohugo.toml").exists() && dir.join("hugo.toml").exists();
     load(&LoadOptions {
         source: dir.to_owned(),
+        config_files: if hugo_site {
+            vec!["hugo.toml".into()]
+        } else {
+            Vec::new()
+        },
         env: vec![("HOME".into(), home.to_str().unwrap().into())],
         ..LoadOptions::default()
     })
@@ -102,6 +110,15 @@ impl Sink for MemSink {
 
     fn exists(&self, path: &OutputPath) -> bool {
         self.0.lock().unwrap().contains_key(path.relative())
+    }
+
+    fn read(&self, path: &OutputPath) -> std::io::Result<Vec<u8>> {
+        self.0
+            .lock()
+            .unwrap()
+            .get(path.relative())
+            .cloned()
+            .ok_or_else(|| std::io::ErrorKind::NotFound.into())
     }
 }
 

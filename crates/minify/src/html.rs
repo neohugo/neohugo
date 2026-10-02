@@ -34,5 +34,60 @@ pub(crate) fn minify(
         cfg.minify_js = false;
         out = minify_html::minify(&out, &cfg);
     }
-    String::from_utf8(out).map_err(|_| MinifyError::HtmlEncoding)
+    let out = String::from_utf8(out).map_err(|_| MinifyError::HtmlEncoding)?;
+    Ok(collapse_titles(&out))
+}
+
+/// `html` with the whitespace of every `<title>` collapsed and trimmed, as Go's minifier writes
+/// it (a title is text; browsers and search engines read it that way). minify-html keeps the
+/// layout's line breaks and indentation there.
+fn collapse_titles(html: &str) -> String {
+    let lower = html.to_ascii_lowercase();
+    let mut out = String::with_capacity(html.len());
+    let mut at = 0;
+    while let Some(open) = lower[at..].find("<title").map(|i| at + i) {
+        let after = lower.as_bytes().get(open + 6).copied();
+        let Some(gt) = (matches!(after, Some(b'>' | b' ' | b'\t' | b'\n' | b'\r' | b'\x0c')))
+            .then(|| lower[open..].find('>'))
+            .flatten()
+            .map(|i| open + i + 1)
+        else {
+            out.push_str(&html[at..open + 6]);
+            at = open + 6;
+            continue;
+        };
+        let Some(close) = lower[gt..].find("</title").map(|i| gt + i) else {
+            break;
+        };
+        out.push_str(&html[at..gt]);
+        out.push_str(
+            &html[gt..close]
+                .split_ascii_whitespace()
+                .collect::<Vec<_>>()
+                .join(" "),
+        );
+        at = close;
+    }
+    out.push_str(&html[at..]);
+    out
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collapse_titles;
+
+    #[test]
+    fn titles_are_collapsed() {
+        assert_eq!(
+            collapse_titles("<head><title>\n   Snack  Diary ·\n SeekSnack\n </title></head>"),
+            "<head><title>Snack Diary · SeekSnack</title></head>"
+        );
+        assert_eq!(
+            collapse_titles(
+                "<title lang=th> ไทย  ก </title><titles>x  y</titles><svg><title>a\nb</title></svg>"
+            ),
+            "<title lang=th>ไทย ก</title><titles>x  y</titles><svg><title>a b</title></svg>"
+        );
+        assert_eq!(collapse_titles("<title>unclosed  x"), "<title>unclosed  x");
+    }
 }

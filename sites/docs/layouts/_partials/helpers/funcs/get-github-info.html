@@ -6,7 +6,7 @@
 {%- set url = "https://api.github.com/repos/gohugoio/hugo" %}
 {%- set cache_key = url ~ (now() | date(format="%Y-%m-%d")) %}
 {%- set headers = {} %}
-{%- set token = get_env(name="HUGO_GH_TOKEN") %}
+{%- set token = get_env(name="NEOHUGO_GH_TOKEN") %}
 {%- if token %}
   {%- set headers = {"Authorization": "Bearer " ~ token} %}
 {%- endif %}

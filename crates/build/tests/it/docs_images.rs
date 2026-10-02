@@ -56,7 +56,7 @@ fn docs_text_and_qr_layouts_render() {
     let dir = tmp.path().join("docs");
     let mut files: Vec<(String, String)> = [
         (
-            "hugo.toml",
+            "neohugo.toml",
             "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n",
         ),
         ("layouts/single.html", LAYOUT),

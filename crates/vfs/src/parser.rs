@@ -13,8 +13,9 @@
 //!   names. Any other identifier stays part of the name (`v1.2.3.md` is `v1.2.3`).
 //! - **Bundle kind** (content and archetypes with a content suffix): `index` is a leaf bundle,
 //!   `_index` a branch bundle, anything else a single page. `_content.gotmpl` is a content
-//!   adapter. Files inside a leaf bundle are made resources by discovery
-//!   ([`PathInfo::into_bundled`]).
+//!   adapter, and so is `_content.html` in the content component: neohugo's adapters are Tera
+//!   templates (Hugo would read that file as an HTML page). Files inside a leaf bundle are made
+//!   resources by discovery ([`PathInfo::into_bundled`]).
 //! - **Key.** A page's key drops the extension, the language and the `index`/`_index` element;
 //!   a resource keeps its extension (`blog/post/cover.jpg`, `blog/post/notes.md`).
 
@@ -36,7 +37,7 @@ pub enum BundleKind {
     Leaf,
     /// A branch bundle's index: `posts/_index.md`.
     Branch,
-    /// A content adapter (`_content.gotmpl`).
+    /// A content adapter: `_content.html` (a Tera template), or Hugo's `_content.gotmpl`.
     ContentAdapter,
     /// A content file inside a leaf bundle (other than the bundle's own index).
     ContentResource,
@@ -377,7 +378,10 @@ impl PathParser {
                 && self.content_suffixes.contains(&ext);
             if last.start > container_high {
                 let stem = normalize_key(&shape.s[container_high..last.start - 1]);
-                if is_content {
+                if stem == "_content" && c == Component::Content && ext == "html" {
+                    // neohugo's content adapter (a Tera template), not an HTML page.
+                    sc.ty = Ty::ContentData;
+                } else if is_content {
                     sc.ty = match stem.as_str() {
                         "index" => Ty::Leaf,
                         "_index" => Ty::Branch,

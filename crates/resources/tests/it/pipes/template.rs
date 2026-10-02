@@ -9,14 +9,14 @@ use neohugo_resources::pipes::JsBuildSpec;
 use neohugo_resources::{CallSite, PipeError, ResourceError, TemplateExecutor, Transform};
 use serde_json::{Value as J, json};
 
-use super::{esbuild_binary, mini_site, project};
+use super::{mini_site, project};
 
-/// Tera, as the render layer runs asset templates.
-struct Tera;
+/// Tera with a call's data as the context, as the render layer runs asset templates.
+struct Tera(J);
 
 impl TemplateExecutor for Tera {
-    fn execute(&self, name: &str, source: &str, data: &J) -> Result<String, String> {
-        let ctx = tera::Context::from_serialize(data).map_err(|e| e.to_string())?;
+    fn execute(&self, name: &str, source: &str) -> Result<String, String> {
+        let ctx = tera::Context::from_serialize(&self.0).map_err(|e| e.to_string())?;
         tera::Tera::one_off(source, &ctx, false).map_err(|e| format!("{name}: {e}"))
     }
 }
@@ -44,7 +44,7 @@ fn call(lang: usize, line: u32) -> CallSite {
 fn execute_as_template_with_tera() {
     let site = mini_site(&[
         (
-            "hugo.toml",
+            "neohugo.toml",
             "baseURL = \"https://example.org/\"\ndefaultContentLanguage = \"en\"\n[languages.en]\nweight = 1\n[languages.th]\nweight = 2\n",
         ),
         ("assets/ts/search.ts", SEARCH_TS),
@@ -53,9 +53,9 @@ fn execute_as_template_with_tera() {
     let p = project(site.path(), |_| {});
     let s = &p.store;
     let src = p.asset("ts/search.ts");
-    let data = json!({"api": "https://api.seeksnack.com"});
+    let data = Tera(json!({"api": "https://api.seeksnack.com"}));
     let id = s
-        .execute_as_template(src, "ts/search.ts", &data, &Tera, &call(0, 3))
+        .execute_as_template(src, "ts/search.ts", &data, &call(0, 3))
         .unwrap();
     let out = String::from_utf8(s.content(id).unwrap().to_vec()).unwrap();
     assert!(
@@ -67,19 +67,19 @@ fn execute_as_template_with_tera() {
     assert_eq!(r.rel_permalink, "/ts/search.ts");
     // Same output: the same resource; a later language gets the first language's.
     assert_eq!(
-        s.execute_as_template(src, "ts/search.ts", &data, &Tera, &call(0, 9))
+        s.execute_as_template(src, "ts/search.ts", &data, &call(0, 9))
             .unwrap(),
         id
     );
-    let other = json!({"api": "https://other.example"});
+    let other = Tera(json!({"api": "https://other.example"}));
     assert_eq!(
-        s.execute_as_template(src, "ts/search.ts", &other, &Tera, &call(1, 3))
+        s.execute_as_template(src, "ts/search.ts", &other, &call(1, 3))
             .unwrap(),
         id
     );
     // Other data in the same language: a conflict naming both call sites.
     let err = s
-        .execute_as_template(src, "ts/search.ts", &other, &Tera, &call(0, 12))
+        .execute_as_template(src, "ts/search.ts", &other, &call(0, 12))
         .unwrap_err();
     let ResourceError::TargetConflict { first, second, .. } = &err else {
         panic!("{err}");
@@ -88,7 +88,7 @@ fn execute_as_template_with_tera() {
     assert_eq!(second.position.as_ref().unwrap().line, 12);
     // A failing template names the asset.
     let err = s
-        .execute_as_template(p.asset("ts/bad.ts"), "ts/bad.ts", &data, &Tera, &call(0, 4))
+        .execute_as_template(p.asset("ts/bad.ts"), "ts/bad.ts", &data, &call(0, 4))
         .unwrap_err();
     assert!(
         matches!(&err, ResourceError::Pipe { transform: "execute_as_template", source, .. }
@@ -96,15 +96,13 @@ fn execute_as_template_with_tera() {
         "{err}"
     );
     // The executed script builds.
-    if esbuild_binary().is_file() {
-        let js = s
-            .transform(
-                id,
-                Transform::JsBuild(JsBuildSpec::from_json(&json!({"target": "es2015"})).unwrap()),
-            )
-            .unwrap();
-        let code = String::from_utf8(s.content(js).unwrap().to_vec()).unwrap();
-        assert!(code.contains("https://api.seeksnack.com"), "{code}");
-        assert_eq!(s.resource(js).rel_permalink, "/ts/search.js");
-    }
+    let js = s
+        .transform(
+            id,
+            Transform::JsBuild(JsBuildSpec::from_json(&json!({"target": "es2015"})).unwrap()),
+        )
+        .unwrap();
+    let code = String::from_utf8(s.content(js).unwrap().to_vec()).unwrap();
+    assert!(code.contains("https://api.seeksnack.com"), "{code}");
+    assert_eq!(s.resource(js).rel_permalink, "/ts/search.js");
 }

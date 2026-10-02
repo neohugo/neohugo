@@ -2,6 +2,7 @@
 source: crates/config/tests/it/api.rs
 expression: notices
 ---
+- "config: build.writeStats is deprecated; use build.buildStats.enable"
 - "config: disqusShortname is deprecated; use services.disqus.shortname"
 - "config: footnoteReturnLinkContents is deprecated; use markup.goldmark.extensions.footnote.backlinkHTML"
 - "config: googleAnalytics is deprecated; use services.googleAnalytics.id"
@@ -18,4 +19,3 @@ expression: notices
 - "config: pygmentsUseClasses is deprecated; use markup.highlight.noClasses"
 - "config: rssLimit is deprecated; use services.rss.limit"
 - "config: services.twitter.disableinlinecss is deprecated; use services.x.disableinlinecss"
-- "config: writeStats is deprecated; use build.buildStats.enable"

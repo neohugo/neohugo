@@ -37,7 +37,7 @@ notAlternative = true
 "#;
 
 fn env() -> LayoutEnv {
-    LayoutEnv::from_config(&Project::new(&[("hugo.toml", CONFIG)]).config())
+    LayoutEnv::from_config(&Project::new(&[("neohugo.toml", CONFIG)]).config())
 }
 
 fn user(rel: &str, source: &str) -> LayoutSource {

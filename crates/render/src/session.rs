@@ -20,7 +20,7 @@ use neohugo_resources::{ResourceStore, StoreConfig};
 use neohugo_site::{Model, Page, PageUrl};
 use neohugo_sitefuncs::Handles;
 use neohugo_vfs::Vfs;
-use neohugo_view::views::HugoView;
+use neohugo_view::views::NeohugoView;
 use neohugo_view::{
     ContentError, ContentRenderer, Contents, Deferred, DeferredRegistry, ExpandedSource,
     HookVariant, NavSite, PageStores, PaginationRecorder, Phase, RenderScope, RenderStringOptions,
@@ -46,7 +46,7 @@ pub struct Project {
 pub struct RenderOptions {
     /// `now()` and the build's "now" (`--clock`).
     pub clock: Clock,
-    /// The build runs in `neohugo server` (`hugo.is_server`).
+    /// The build runs in `neohugo server` (`neohugo.is_server`).
     pub server: bool,
 }
 
@@ -89,7 +89,7 @@ pub struct Session {
     inclusions: Inclusions,
     /// Phase C1's result, frozen into the views in phase D.
     contents: OnceLock<BTreeMap<HookVariant, Contents>>,
-    hugo: tera::Value,
+    neohugo: tera::Value,
     diagnostics: Arc<Diagnostics>,
 }
 
@@ -101,6 +101,19 @@ impl std::fmt::Debug for Session {
             .finish_non_exhaustive()
     }
 }
+
+/// The keys of `site` a content adapter does not see: the page lists, which Hugo's adapters
+/// cannot read either ("cannot be called before the site is fully initialized").
+const ADAPTER_HIDDEN_SITE_KEYS: [&str; 8] = [
+    "home",
+    "pages",
+    "regular_pages",
+    "all_pages",
+    "sections",
+    "main_sections",
+    "taxonomies",
+    "menus",
+];
 
 /// The pure-function environment of a model.
 fn pure_env(model: &Model, o: &RenderOptions, diagnostics: &Arc<Diagnostics>) -> PureEnv {
@@ -295,6 +308,7 @@ impl Session {
             stores: Arc::new(PageStores::new(model.pages.len())),
             pagination: Arc::clone(&pagination),
             deferred: Arc::new(DeferredRegistry::default()),
+            css_purges: Arc::default(),
             menus: Arc::clone(views.menus()),
             related: Arc::new(neohugo_sitefuncs::RelatedCache::default()),
             i18n: translations,
@@ -304,6 +318,7 @@ impl Session {
             templates: Arc::clone(&templates_slot),
             frames: Arc::default(),
             partial_cache: Arc::default(),
+            adapters: Arc::default(),
         };
 
         let pure = Arc::new(pure_env(&model, o, &diagnostics));
@@ -314,7 +329,7 @@ impl Session {
             extra(t, &handles);
         })?;
         let session = Arc::new(Self {
-            hugo: tera::Value::from_serializable(&HugoView::new(&model.config, o.server)),
+            neohugo: tera::Value::from_serializable(&NeohugoView::new(&model.config, o.server)),
             cells: ContentStore::new(model.pages.len(), &variants),
             markdown: cfg.sites.iter().map(content::markdown_options).collect(),
             embedded_hooks: cfg
@@ -513,7 +528,7 @@ impl Session {
     }
 
     /// Phase E5: renders the template of a `defer(...)` call registered under `key`, with
-    /// `data`, `site` (the default language's), `hugo` and a scope in phase `Deferred`.
+    /// `data`, `site` (the default language's), `neohugo` and a scope in phase `Deferred`.
     ///
     /// # Errors
     /// [`RenderError::Phase`] before [`freeze_views`](Self::freeze_views), or
@@ -532,7 +547,7 @@ impl Session {
         let mut ctx = tera::Context::new();
         ctx.insert_value("data", d.data.clone());
         ctx.insert_value("site", generation.sites[lang].clone());
-        ctx.insert_value("hugo", self.hugo.clone());
+        ctx.insert_value("neohugo", self.neohugo.clone());
         ctx.insert_value(SCOPE_KEY, scope.to_value());
         self.templates
             .tera()
@@ -540,6 +555,54 @@ impl Session {
             .map_err(|source| RenderError::Deferred {
                 key: key.to_owned(),
                 template: d.template.to_string(),
+                source: Box::new(source),
+            })
+    }
+
+    /// Runs a content adapter: renders `source`, the Tera template of the `_content.html` at
+    /// `path`, for language `lang` as run `run` of [`Handles::adapters`] (which collects what
+    /// it adds); the output is discarded. The context has `site` (the language's, without the
+    /// page lists: Hugo's site is not built yet either), `neohugo`, `lang` and a scope in phase
+    /// `Adapter` on the language's home page, so site functions and partials work on the
+    /// session's model (the content files).
+    ///
+    /// # Errors
+    /// [`RenderError::Adapter`] when the template does not parse or fails.
+    pub fn render_adapter(
+        &self,
+        path: &str,
+        source: &str,
+        lang: LangIdx,
+        run: u32,
+    ) -> Result<(), RenderError> {
+        let home = self.model.sites[lang].home;
+        let scope = RenderScope {
+            phase: Phase::Adapter,
+            adapter: Some(run),
+            ..RenderScope::layout(home, lang, self.html_format, None)
+        };
+        let generation = self.views.generation(Phase::Adapter, HookVariant::Html);
+        let site: tera::Map = generation.sites[lang]
+            .clone()
+            .into_map()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|(k, _)| {
+                !k.as_str()
+                    .is_some_and(|k| ADAPTER_HIDDEN_SITE_KEYS.contains(&k))
+            })
+            .collect();
+        let mut ctx = tera::Context::new();
+        ctx.insert_value("site", tera::Value::from(site));
+        ctx.insert_value("neohugo", self.neohugo.clone());
+        ctx.insert("lang", &self.model.config.sites[lang].language.key);
+        ctx.insert_value(SCOPE_KEY, scope.to_value());
+        self.templates
+            .tera()
+            .render_str(source, &ctx, false)
+            .map(drop)
+            .map_err(|source| RenderError::Adapter {
+                path: path.to_owned(),
                 source: Box::new(source),
             })
     }
@@ -598,7 +661,7 @@ impl Session {
         let mut ctx = tera::Context::new();
         ctx.insert_value("page", full);
         ctx.insert_value("site", generation.sites[p.lang].clone());
-        ctx.insert_value("hugo", self.hugo.clone());
+        ctx.insert_value("neohugo", self.neohugo.clone());
         ctx.insert("lang", &cfg.sites[p.lang].language.key);
         ctx.insert_value("output_format", output_format);
         if p.kind == PageKind::SitemapIndex {
@@ -654,7 +717,7 @@ impl Session {
             page.map_or_else(tera::Value::none, |p| generation.links[p].clone()),
         );
         ctx.insert_value("site", generation.sites[lang].clone());
-        ctx.insert_value("hugo", self.hugo.clone());
+        ctx.insert_value("neohugo", self.neohugo.clone());
         let text = self
             .templates
             .tera()
@@ -806,8 +869,8 @@ impl Session {
         &self.templates
     }
 
-    pub(crate) fn hugo(&self) -> &tera::Value {
-        &self.hugo
+    pub(crate) fn neohugo(&self) -> &tera::Value {
+        &self.neohugo
     }
 
     pub(crate) fn stores(&self) -> &PageStores {

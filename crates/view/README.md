@@ -45,6 +45,9 @@ impl ViewGeneration {
   google_analytics.id, disqus.shortname, instagram|x|twitter.disable_inline_css}`,
   `privacy.<disqus|google_analytics|instagram|twitter|vimeo|x|youtube>.{disable, simple,
   enable_dnt, respect_do_not_track, privacy_enhanced}` (every switch for every service).
+- `sitemap.priority` is an integer when it is integral (`0`, `1`, `-1`), else a float: Tera
+  prints the float `0.0` as `0.0`, Go's `{{ .Sitemap.Priority }}` as `0` (the embedded
+  `sitemap.xml` prints it).
 - `alternative_output_formats` is the list of output formats other than the page's primary
   one (a full value is per page, not per rendered format; templates that need "other than the
   current" compare with `output_format.name`).
@@ -52,6 +55,8 @@ impl ViewGeneration {
 ## Resources
 
 `page_resources(&Model, &ResourceStore)` registers every bundle file of the model in the store
+(a resource a content adapter added through `ResourceStore::register_adapter_resource`, with its
+bytes, name, title and params)
 (publish policy from the model: eager, on reference; bundled content pages `Never`) and
 applies the page's `resources` front matter (`apply_meta`; files re-sorted by type and name
 when renamed, bundled pages after them as `page` resources with `page_id`). `resource_view(store,
@@ -61,7 +66,8 @@ id)` is the value of any store resource; `post_processed_view(store, id)` of `po
 media type are final, so its view is built without computing it. A `fingerprint` of a pending
 resource has provisional links and no integrity: its view carries `__nh_pp_<n>_<field>__`
 placeholders for `rel_permalink`, `permalink` and `data.integrity` (`ResourceStore::post_process`),
-so the output is held and patched in E5 (Hugo's laziness; seeksnack's PostCSS purge). `width`
+so the output is held and patched in E5 (Hugo's laziness; a PostCSS purge). The `fingerprint`
+filter computes the others at the call (`ResourceStore::waits_for_e5`), so their views are final. `width`
 and `height` are known for every image (`ResourceStore::image_size`): a processed image's
 planned size, else the size in the source's header (read once per file, no pixels decoded);
 none for other resources and undecodable images.
@@ -72,7 +78,10 @@ Frozen by T38 and kept: `SCOPE_KEY`, `MAX_DEPTH`, `Phase`, `HookVariant`, `Stage
 `RenderScope { page, lang, format, pager, phase, variant, frame, txn, depth, chain }` with
 `layout`, `from_state`, `child`, `too_deep`, `to_value`, and the `ContentRenderer` trait
 (`content`, `fragments`, `render_shortcodes`, `render_markdown`, `render_template`). No
-thread-locals: the scope is the context value `__nh`.
+thread-locals: the scope is the context value `__nh`. Content adapters (`_content.html`) added
+`Phase::Adapter` (it sees the Meta generation, like the content phase) and
+`RenderScope::adapter: Option<u32>`, the adapter run of such a render (not serialised when
+`None`).
 
 | Type | API |
 |---|---|

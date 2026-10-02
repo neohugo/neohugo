@@ -4,3 +4,6 @@ mod corpus;
 mod coverage;
 mod fence;
 mod golden;
+mod lexers;
+mod oracle;
+mod xml2rust;

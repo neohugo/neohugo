@@ -1,7 +1,10 @@
 //! Phase A4: read every content file of the discovery, split and decode its front matter, and
-//! read the capture overrides (`kind`, `lang`, `path`) and the page's own `cascade`.
+//! read the capture overrides (`kind`, `lang`, `path`) and the page's own `cascade`; list the
+//! content adapters (`_content.html`).
 //!
-//! Files are read in parallel; the result keeps the discovery order (key, then language).
+//! Files are read in parallel; the result keeps the discovery order (key, then language). The
+//! pages content adapters add are captured from their `add_page` maps ([`adapter_page`]) and go
+//! after the files.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -10,12 +13,12 @@ use jiff::Timestamp;
 use neohugo_base::diag::Diagnostic;
 use neohugo_base::{LangIdx, PageKind, Params, Value};
 use neohugo_config::Config;
-use neohugo_page::{Cascade, capture_overrides};
+use neohugo_page::{AdapterPage, Cascade, capture_overrides};
 use neohugo_pageparser::{FrontMatterFormat, decode_front_matter, split_front_matter};
 use neohugo_vfs::{BundleKind, Component, ContentFile, FileRef, Parsed, PathInfo, PathParser, Vfs};
 use rayon::prelude::*;
 
-use crate::ModelError;
+use crate::{AddedResource, ModelError};
 
 /// The content file a page was read from.
 #[derive(Clone, Debug)]
@@ -63,21 +66,38 @@ pub(crate) struct CapturedPage {
     pub params: Params,
     /// The page's own `cascade`.
     pub cascade: Cascade,
+    /// A page a content adapter added: its `add_page` map (its fields are read with
+    /// [`neohugo_page::meta_from_adapter`], not as front matter).
+    pub adapter: Option<Arc<AdapterPage>>,
 }
 
-/// A bundle resource file that is not content (images, data, …).
+/// A content adapter: a `_content.html` Tera template that adds pages and resources to its
+/// directory when the model is built (Hugo's `_content.gotmpl`).
+#[derive(Clone, Debug)]
+pub struct ContentAdapter {
+    pub file: FileRef,
+    pub info: PathInfo,
+    /// The language it runs for first: the file name's, else the mount's, else the default
+    /// language.
+    pub lang: LangIdx,
+}
+
+/// A bundle resource file that is not content (images, data, …), or a resource a content
+/// adapter added (then `file` is the adapter).
 #[derive(Clone, Debug)]
 pub(crate) struct CapturedResource {
     pub lang: LangIdx,
     pub file: FileRef,
     pub info: PathInfo,
+    pub adapter: Option<Arc<AddedResource>>,
 }
 
 /// The output of phase A4.
-#[derive(Debug, Default)]
+#[derive(Clone, Debug, Default)]
 pub(crate) struct Capture {
     pub pages: Vec<CapturedPage>,
     pub resources: Vec<CapturedResource>,
+    pub adapters: Vec<ContentAdapter>,
     pub diagnostics: Vec<Diagnostic>,
 }
 
@@ -102,11 +122,15 @@ pub(crate) fn capture(cfg: &Config, vfs: &Vfs) -> Result<Capture, ModelError> {
         .files
         .into_iter()
         .partition(|f| f.info.kind.is_content());
-    if let Some(f) = content
-        .iter()
-        .find(|f| f.info.kind == BundleKind::ContentAdapter)
-    {
-        return Err(ModelError::ContentAdapter(f.file.abs.clone()));
+    for f in discovery.adapters {
+        if f.info.ext != "html" {
+            return Err(ModelError::GoContentAdapter(f.file.abs));
+        }
+        out.adapters.push(ContentAdapter {
+            file: f.file,
+            info: f.info,
+            lang: f.lang,
+        });
     }
     out.resources = resources
         .into_iter()
@@ -114,6 +138,7 @@ pub(crate) fn capture(cfg: &Config, vfs: &Vfs) -> Result<Capture, ModelError> {
             lang: f.lang,
             file: f.file,
             info: f.info,
+            adapter: None,
         })
         .collect();
 
@@ -198,6 +223,75 @@ fn read_page(f: ContentFile, parser: &PathParser) -> Result<CapturedPage, ModelE
         },
         params,
         cascade,
+        adapter: None,
+    })
+}
+
+/// The resource an adapter added with `add_resource`: a bundle resource at its path (the
+/// page at the longest key above it owns it).
+pub(crate) fn adapter_resource(
+    adapter: &ContentAdapter,
+    added: AddedResource,
+    parser: &PathParser,
+) -> Result<CapturedResource, ModelError> {
+    let info = match parser.parse(Component::Content, &format!("/{}", added.path)) {
+        Parsed::File(info) => info.into_bundled(),
+        Parsed::DisabledLanguage => {
+            return Err(ModelError::Adapter {
+                path: adapter.file.abs.clone(),
+                message: format!(
+                    "resource {:?}: the path names a disabled language",
+                    added.path
+                ),
+            });
+        }
+    };
+    Ok(CapturedResource {
+        lang: added.lang,
+        file: adapter.file.clone(),
+        info,
+        adapter: Some(Arc::new(added)),
+    })
+}
+
+/// The page `adapter` added in `lang` with an `add_page` map: Hugo gives it the adapter's file
+/// (`.File` is the adapter) and the path `/<path>/index.<suffix>` (`_index` for branch kinds),
+/// so it is a bundle named after its last path element.
+pub(crate) fn adapter_page(
+    adapter: &ContentAdapter,
+    lang: LangIdx,
+    page: Arc<AdapterPage>,
+    parser: &PathParser,
+) -> Result<CapturedPage, ModelError> {
+    let path = page.source_path();
+    let info = match parser.parse(Component::Content, &path) {
+        Parsed::File(info) if info.kind.is_page() => *info,
+        _ => {
+            return Err(ModelError::Page {
+                path: adapter.file.abs.clone(),
+                source: neohugo_page::PageError::Field {
+                    key: "path".to_owned(),
+                    message: format!("{:?} is not a content path", page.path),
+                },
+            });
+        }
+    };
+    Ok(CapturedPage {
+        lang,
+        kind: Some(page.kind),
+        bundled: false,
+        source: SourceFile {
+            file: adapter.file.clone(),
+            file_info: adapter.info.clone(),
+            info,
+            front_matter: None,
+            text: Arc::from(page.content.as_str()),
+            body_offset: 0,
+            mod_time: None,
+        },
+        params: page.fields.clone(),
+        cascade: page.cascade.clone(),
+        adapter: Some(page),
     })
 }
 

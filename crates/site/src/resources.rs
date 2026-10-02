@@ -83,10 +83,17 @@ fn resource_type(m: &Model, r: &BundleResource) -> String {
     if r.page.is_some() {
         return "page".to_owned();
     }
-    m.config.media_types.by_suffix(&r.info.ext).map_or_else(
-        || "application".to_owned(),
-        |id| m.config.media_types.get(id).main.clone(),
-    )
+    let types = &m.config.media_types;
+    if let Some(mt) = r.adapter.as_deref().and_then(|a| match &a.content {
+        crate::AddedContent::Text { media_type, .. } => media_type.as_deref(),
+        crate::AddedContent::Resource { media_type, .. } => Some(media_type.as_str()),
+    }) && let Some(id) = types.by_type(mt)
+    {
+        return types.get(id).main.clone();
+    }
+    types
+        .by_suffix(&r.info.ext)
+        .map_or_else(|| "application".to_owned(), |id| types.get(id).main.clone())
 }
 
 /// Sets owners, names and targets of every bundle file, and `.Resources` of every page.

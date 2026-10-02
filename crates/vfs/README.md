@@ -5,12 +5,12 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 
 | API | What |
 |---|---|
-| `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped, except `hugo_stats.json`), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then the mounts of each theme of `Config::themes` (see Themes); duplicates (source, target, lang) dropped per module |
+| `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped, except `neohugo_stats.json`), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then the mounts of each theme of `Config::themes` (see Themes); duplicates (source, target, lang) dropped per module |
 | `Vfs::mounts`, `mounts_of` | the mounts in precedence order (project, then the themes in `Config::themes` order: the `theme` list and `[[module.imports]]`, each theme's own themes after it) |
 | `Vfs::walk(c)` | the union view of a component, sorted by path (bytes) then mount precedence: first mount wins (content: per mount language; data and i18n keep every file; static: the last mount of the first module, see Rules) |
 | `Vfs::open(c, rel)` | the winning file at `rel`, same rules as `walk` |
 | `PathParser::from_config`, `parse(c, rel)` | `PathInfo` (key, path, name, section, ext, language, output format, `BundleKind`, layout parts, original spelling) or `Parsed::DisabledLanguage` |
-| `Vfs::discover_content(&PathParser)` | phase A3: content files with path info and resolved language; leaf bundles demote their other files to resources; duplicate (key, language) pairs settled (`Discovery::duplicates`) |
+| `Vfs::discover_content(&PathParser)` | phase A3: content files with path info and resolved language; leaf bundles demote their other files to resources; duplicate (key, language) pairs settled (`Discovery::duplicates`); content adapters apart (`Discovery::adapters`) |
 
 ## Rules
 
@@ -48,6 +48,12 @@ Mounts → one union file view per component, walkers, ignore rules and the path
   module, bundle files first, suffix descending (`md` before `html`), key, mount, a language in
   the file name first, path. Everything below it becomes a resource except the index files of
   other languages in the bundle directory itself.
+- **Content adapters** (`_content.html`, neohugo's Tera adapters, and Hugo's `_content.gotmpl`,
+  which `neohugo-site` refuses with a hint) are `BundleKind::ContentAdapter` keyed by their
+  directory, but no pages: discovery lists them in `Discovery::adapters` (one per directory and
+  language, the others reported as duplicates), so an adapter and the section's `_index.md`
+  coexist (Hugo keeps adapters in a tree of their own). `_content.html` is an adapter only in
+  the content component (Hugo would read it as an HTML page; no oracle case has one).
 - **Duplicates** (same key, language and page/resource tree): the kept file is the first by
   bundle index before single page (`foo/_index.md` before `foo.md`), `_index` before `index`,
   suffix descending, mount, file-name language, path. Hugo gets the same winners from its walk
@@ -89,7 +95,7 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 | Keys with an empty segment or a trailing slash (162 checks) | Go's `Base()` of `a//`, `/tags//_index.md` or a page file named `.md` keeps the slashes; `ContentKey` has neither. Walks never produce such paths (no empty segments; content names starting with `.` are ignored). |
 | Go `TypeShortcode` outside layouts is `BundleKind::Resource` (144 cases) | A non-content file below `/_shortcodes/` in another component; Go treats it exactly like `TypeFile`. |
 | Not modelled: `Container`, `ContainerDir`, `Identifiers`, `NameNoExt`, `NameNoLang`, `PathNoLang`, `PathBeforeLangAndOutputFormatAndExt`, `BaseReTyped`, `IdentifierBase`, `TrimLeadingSlash`, `ForType`, `PathRel`, `BaseRel` | Go conveniences; callers derive what they need from `key`, `path` and `dir()`. |
-| A missing `hugo_stats.json` mount source is kept but not created | Hugo creates the empty file; here the build writes it (E4) and `walk`/`open` see it once it exists. |
+| A missing `neohugo_stats.json` mount source is kept but not created | Hugo creates the empty file; here the build writes it (E4) and `walk`/`open` see it once it exists. |
 | On macOS `abs` keeps the name the OS returned; only `rel` is NFC | Hugo normalises its absolute file names too. Reading by the OS's name also works on file systems that do not normalise names, and keeps the server's watcher events (which carry the OS's names) matching `abs`. |
 | `walk` returns a `Vec` in byte order, not Hugo's `ReadDir` order | Order only affected Hugo's insertion ids; the trees are keyed. |
 | Discovery is sequential | The plan's `par_iter` over mounts is not needed: the docs site (1,000 files) walks in milliseconds. |

@@ -1,9 +1,11 @@
 //! Hugo's passes over comrak's tree, run between parsing and rendering.
 
 pub(crate) mod blocks;
+pub(crate) mod contexts;
 pub(crate) mod ids;
 pub(crate) mod inline;
 pub(crate) mod linkify;
+pub(crate) mod tables;
 pub(crate) mod typographer;
 
 use std::ops::Range;

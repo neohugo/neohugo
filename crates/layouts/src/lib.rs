@@ -38,6 +38,7 @@ pub use load::{Selections, Templates, load};
 pub use lookup::{HookQuery, LayoutQuery, Selection, ShortcodeMiss, ShortcodeQuery};
 pub use name::{HookKind, Origin, StandaloneKind, TemplateName, TemplateRole};
 pub use score::Score;
+pub use source::go_marker;
 pub use store::{LayoutSource, LayoutStore, TemplateInfo};
 
 /// The Tera fallback prefix of the embedded templates (the same as

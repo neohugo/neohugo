@@ -1,4 +1,4 @@
-//! The `hugo_stats.json` collector against the Go oracle `publisher/collector`
+//! The `neohugo_stats.json` collector against the Go oracle `publisher/collector`
 //! (`htmlElementsCollector`): single element strings, whole documents (per document and per
 //! group through one collector) and multi-write streams, under five `buildStats`
 //! configurations.
@@ -6,7 +6,7 @@
 use std::collections::BTreeMap;
 
 use neohugo_config::global::BuildStats;
-use neohugo_publish::{HtmlElements, HugoStats, StatsLists};
+use neohugo_publish::{HtmlElements, NeohugoStats, StatsLists};
 use neohugo_testkit::fixture::{GoString, oracle_lines};
 use serde::Deserialize;
 
@@ -77,7 +77,7 @@ fn text(s: &GoString) -> (String, bool) {
 }
 
 fn stats(html: &str, c: &BuildStats) -> StatsLists {
-    HugoStats::new(HtmlElements::collect(html), c).html_elements
+    NeohugoStats::new(HtmlElements::collect(html), c).html_elements
 }
 
 /// The accepted class of a difference: the Go collector feeds each element string alone to
@@ -162,7 +162,7 @@ fn repeats_attribute(lower: &str) -> bool {
     })
 }
 
-/// A list as `hugo_stats.json` has it: sorted, without duplicates, `None` when empty.
+/// A list as `neohugo_stats.json` has it: sorted, without duplicates, `None` when empty.
 fn sorted(v: Option<Vec<String>>) -> Option<Vec<String>> {
     let mut v = v?;
     v.sort();
@@ -231,7 +231,7 @@ fn collector_oracle() {
                         for d in docs {
                             found.add_html(d);
                         }
-                        let got = HugoStats::new(found, &c).html_elements;
+                        let got = NeohugoStats::new(found, &c).html_elements;
                         let t = families.entry("group").or_default();
                         if got == want {
                             t.pass();

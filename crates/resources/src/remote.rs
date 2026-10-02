@@ -670,71 +670,148 @@ fn from_content(types: &MediaTypes, hints: &[String], content: &[u8]) -> Option<
     }
 }
 
-/// The essence of the content type the bytes look like (a subset of the WHATWG sniffing
-/// rules: markup, the image and archive signatures, PDF, and text versus binary).
+/// The essence of the content type the bytes look like: Go's `http.DetectContentType` (the
+/// WHATWG sniffing rules), its signature table in order, on the first 512 bytes.
 fn sniff(b: &[u8]) -> &'static str {
-    const SIGS: &[(&[u8], &str)] = &[
-        (b"%PDF-", "application/pdf"),
-        (b"\x89PNG\r\n\x1a\n", "image/png"),
-        (b"\xff\xd8\xff", "image/jpeg"),
-        (b"GIF87a", "image/gif"),
-        (b"GIF89a", "image/gif"),
-        (b"BM", "image/bmp"),
-        (b"\x00\x00\x01\x00", "image/x-icon"),
-        (b"\x1f\x8b\x08", "application/x-gzip"),
-        (b"PK\x03\x04", "application/zip"),
-        (b"\xef\xbb\xbf", "text/plain"),
-        (b"\xfe\xff", "text/plain"),
-        (b"\xff\xfe", "text/plain"),
-    ];
-    const HTML: &[&str] = &[
-        "<!DOCTYPE HTML",
-        "<HTML",
-        "<HEAD",
-        "<SCRIPT",
-        "<IFRAME",
-        "<H1",
-        "<DIV",
-        "<FONT",
-        "<TABLE",
-        "<A",
-        "<STYLE",
-        "<TITLE",
-        "<B",
-        "<BODY",
-        "<BR",
-        "<P",
-        "<!--",
+    /// `pat` where the bytes masked with `mask` equal it (`None`: every bit counts).
+    enum Sig {
+        Html(&'static [u8]),
+        Exact(&'static [u8], &'static str),
+        Masked(&'static [u8], Option<&'static [u8]>, bool, &'static str),
+        Mp4,
+    }
+    use Sig::{Exact, Html, Masked, Mp4};
+    const SIGS: &[Sig] = &[
+        Html(b"<!DOCTYPE HTML"),
+        Html(b"<HTML"),
+        Html(b"<HEAD"),
+        Html(b"<SCRIPT"),
+        Html(b"<IFRAME"),
+        Html(b"<H1"),
+        Html(b"<DIV"),
+        Html(b"<FONT"),
+        Html(b"<TABLE"),
+        Html(b"<A"),
+        Html(b"<STYLE"),
+        Html(b"<TITLE"),
+        Html(b"<B"),
+        Html(b"<BODY"),
+        Html(b"<BR"),
+        Html(b"<P"),
+        Html(b"<!--"),
+        Masked(b"<?xml", None, true, "text/xml"),
+        Exact(b"%PDF-", "application/pdf"),
+        Exact(b"%!PS-Adobe-", "application/postscript"),
+        Masked(b"\xfe\xff\x00\x00", Some(b"\xff\xff\x00\x00"), false, "text/plain"),
+        Masked(b"\xff\xfe\x00\x00", Some(b"\xff\xff\x00\x00"), false, "text/plain"),
+        Masked(b"\xef\xbb\xbf\x00", Some(b"\xff\xff\xff\x00"), false, "text/plain"),
+        Exact(b"\x00\x00\x01\x00", "image/x-icon"),
+        Exact(b"\x00\x00\x02\x00", "image/x-icon"),
+        Exact(b"BM", "image/bmp"),
+        Exact(b"GIF87a", "image/gif"),
+        Exact(b"GIF89a", "image/gif"),
+        Masked(
+            b"RIFF\x00\x00\x00\x00WEBPVP",
+            Some(b"\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff\xff\xff"),
+            false,
+            "image/webp",
+        ),
+        Exact(b"\x89PNG\r\n\x1a\n", "image/png"),
+        Exact(b"\xff\xd8\xff", "image/jpeg"),
+        Masked(
+            b"FORM\x00\x00\x00\x00AIFF",
+            Some(b"\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff"),
+            false,
+            "audio/aiff",
+        ),
+        Masked(b"ID3", None, false, "audio/mpeg"),
+        Masked(b"OggS\x00", None, false, "application/ogg"),
+        Masked(b"MThd\x00\x00\x00\x06", None, false, "audio/midi"),
+        Masked(
+            b"RIFF\x00\x00\x00\x00AVI ",
+            Some(b"\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff"),
+            false,
+            "video/avi",
+        ),
+        Masked(
+            b"RIFF\x00\x00\x00\x00WAVE",
+            Some(b"\xff\xff\xff\xff\x00\x00\x00\x00\xff\xff\xff\xff"),
+            false,
+            "audio/wave",
+        ),
+        Mp4,
+        Exact(b"\x1a\x45\xdf\xa3", "video/webm"),
+        // 34 bytes of anything, then "LP".
+        Masked(
+            b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00LP",
+            Some(b"\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xff\xff"),
+            false,
+            "application/vnd.ms-fontobject",
+        ),
+        Exact(b"\x00\x01\x00\x00", "font/ttf"),
+        Exact(b"OTTO", "font/otf"),
+        Exact(b"ttcf", "font/collection"),
+        Exact(b"wOFF", "font/woff"),
+        Exact(b"wOF2", "font/woff2"),
+        Exact(b"\x1f\x8b\x08", "application/x-gzip"),
+        Exact(b"PK\x03\x04", "application/zip"),
+        Exact(b"Rar!\x1a\x07\x00", "application/x-rar-compressed"),
+        Exact(b"Rar!\x1a\x07\x01\x00", "application/x-rar-compressed"),
+        Exact(b"\x00asm", "application/wasm"),
     ];
     let b = &b[..b.len().min(512)];
-    if b.len() >= 12 && &b[..4] == b"RIFF" && &b[8..12] == b"WEBP" {
-        return "image/webp";
-    }
-    if let Some((_, t)) = SIGS.iter().find(|(s, _)| b.starts_with(s)) {
-        return t;
-    }
-    let trimmed = &b[b
+    let ws = b
         .iter()
         .position(|c| !matches!(c, b'\t' | b'\n' | b'\x0c' | b'\r' | b' '))
-        .unwrap_or(b.len())..];
-    for sig in HTML {
-        let s = sig.as_bytes();
-        if trimmed.len() > s.len()
-            && trimmed[..s.len()].eq_ignore_ascii_case(s)
-            && matches!(trimmed[s.len()], b' ' | b'>')
-        {
-            return "text/html";
+        .unwrap_or(b.len());
+    let masked = |data: &[u8], pat: &[u8], mask: Option<&[u8]>| {
+        data.len() >= pat.len()
+            && pat
+                .iter()
+                .enumerate()
+                .all(|(i, &p)| data[i] & mask.map_or(0xff, |m| m[i]) == p)
+    };
+    for sig in SIGS {
+        let hit = match *sig {
+            Html(s) => {
+                let d = &b[ws..];
+                d.len() > s.len()
+                    && d[..s.len()].eq_ignore_ascii_case(s)
+                    && matches!(d[s.len()], b' ' | b'>')
+            }
+            Exact(s, _) => b.starts_with(s),
+            Masked(pat, mask, skip_ws, _) => masked(if skip_ws { &b[ws..] } else { b }, pat, mask),
+            Mp4 => is_mp4(b),
+        };
+        if hit {
+            return match *sig {
+                Html(_) => "text/html",
+                Mp4 => "video/mp4",
+                Exact(_, t) | Masked(_, _, _, t) => t,
+            };
         }
     }
-    if trimmed.starts_with(b"<?xml") {
-        return "text/xml";
-    }
-    if b.iter()
+    if b[ws..]
+        .iter()
         .any(|&c| matches!(c, 0x00..=0x08 | 0x0b | 0x0e..=0x1a | 0x1c..=0x1f))
     {
         return "application/octet-stream";
     }
     "text/plain"
+}
+
+/// Go's MP4 signature: an `ftyp` box whose brands include `mp4`.
+fn is_mp4(b: &[u8]) -> bool {
+    if b.len() < 12 {
+        return false;
+    }
+    let size = u32::from_be_bytes([b[0], b[1], b[2], b[3]]) as usize;
+    if b.len() < size || !size.is_multiple_of(4) || &b[4..8] != b"ftyp" {
+        return false;
+    }
+    (8..size)
+        .step_by(4)
+        .any(|st| st != 12 && b.get(st..st + 3) == Some(b"mp4".as_slice()))
 }
 
 /// The `filename` of a `Content-Disposition` header (`filename*` in RFC 2231/5987 form
@@ -856,5 +933,16 @@ mod tests {
         assert_eq!(sniff(b"<?xml version=\"1.0\"?>"), "text/xml");
         assert_eq!(sniff(b"\x89PNG\r\n\x1a\n...."), "image/png");
         assert_eq!(sniff(b"\x00\x01\x02"), "application/octet-stream");
+        assert_eq!(sniff(b"\x00\x01\x00\x00\x00\x12\x01\x00"), "font/ttf");
+        assert_eq!(sniff(b"wOF2\x00\x01\x00\x00"), "font/woff2");
+        assert_eq!(sniff(b"OTTO\x00\x0b"), "font/otf");
+        assert_eq!(sniff(b"RIFF\x10\x00\x00\x00WEBPVP8 "), "image/webp");
+        assert_eq!(sniff(b"RIFF\x10\x00\x00\x00WAVEfmt "), "audio/wave");
+        assert_eq!(
+            sniff(b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom"),
+            "video/mp4"
+        );
+        assert_eq!(sniff(b"\x00asm\x01\x00\x00\x00"), "application/wasm");
+        assert_eq!(sniff(b"\xef\xbb\xbfhello"), "text/plain");
     }
 }

@@ -11,6 +11,8 @@ mod encoding;
 #[cfg(feature = "goat")]
 mod goat;
 mod html;
+#[cfg(feature = "math")]
+mod katex;
 mod marshal;
 #[cfg(feature = "math")]
 mod math;
@@ -128,9 +130,9 @@ impl EnvAllowlist {
 }
 
 impl Default for EnvAllowlist {
-    /// Hugo's default policy: `^HUGO_` and `^CI$`.
+    /// The default policy: `^NEOHUGO_` and `^CI$` (Hugo's `^HUGO_` is not allowed).
     fn default() -> Self {
-        Self::new(["^HUGO_", "^CI$"]).expect("valid patterns")
+        Self::new(["^NEOHUGO_", "^CI$"]).expect("valid patterns")
     }
 }
 

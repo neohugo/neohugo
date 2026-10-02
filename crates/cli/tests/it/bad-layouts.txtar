@@ -1,5 +1,5 @@
 A site whose layouts break every `templates check` rule once (tests/it/check.rs).
--- hugo.toml --
+-- neohugo.toml --
 baseURL = "https://example.org/"
 title = "Bad"
 -- content/_index.md --

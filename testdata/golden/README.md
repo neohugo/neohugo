@@ -34,6 +34,7 @@ ones the Rust tests use.
 | `docs-i01` | `docs/` with `--docs-patches i01` | **888** = 887 in `public` + `hugo_stats.json` | manifests, structure |
 | `docs-reduced` | `docs/` with `--docs-patches reduced` | **889** = 888 in `public` + `hugo_stats.json` | manifests, structure |
 | `mini` | `testdata/oracle/commands/e2e/mini.txtar` | – | structure |
+| `docs-live` | `docs/` with `--docs-patches live` (no patches) | **2373** = 2372 published + `hugo_stats.json` | the unminified manifest of the **published site** (below) |
 
 Hugo writes `hugo_stats.json` into the project directory (next to `hugo.toml`), not into
 `publishDir`; the manifests list it as `project:hugo_stats.json` and count it, as the old port's
@@ -43,6 +44,35 @@ harness did (it copied the file into the output tree). A count without it is one
 `docs-reduced` has one page more than `docs-i01`: `content/en/shortcodes/highlight.md` is removed
 only in i01. The docs patch entries of both variants are `tools/rust-port/i01/patches.json`
 (below).
+
+## `docs-live`: the published documentation site
+
+Not written by oracle.sh: `docs-live/manifest.unminified.json.gz` is the manifest of the site
+https://neohugo.github.io/ as published — the repository neohugo/neohugo.github.io at
+`a1928152d8320bfa4db9b363298d038c9841f4a1` ("Update v0.148.2", 2025-10-13T15:05:28Z), which the
+Go release workflow wrote with `npm install && neohugo` in `docs/` (Hugo 0.149.0-DEV, no
+`--minify`, the production environment, network access) — from the same `docs/` content this
+repository has. Gate A-D3 (`crates/cli/tests/it/docs.rs`, `compare.sh docs-live`) compares the
+Rust build of `docs/` without patches with it. To regenerate (the published files are frozen
+at that commit; the manifest only changes with manifest.py):
+
+```sh
+git clone https://github.com/neohugo/neohugo.github.io <pub>
+git -C <pub> checkout a1928152d8320bfa4db9b363298d038c9841f4a1 && rm -rf <pub>/.git
+python3 tools/rust-port/i01/sites.py make docs-live <proj>/docs-live    # base URL, static/
+cp docs/hugo_stats.json <proj>/docs-live/neohugo_stats.json             # the Go build's stats
+python3 tools/neohugo/manifest.py extract <pub> --project <proj>/docs-live --levels L1,L2,L3,L4 \
+  --site docs-live --pass unminified --full-text -o testdata/golden/docs-live/manifest.unminified.json.gz
+```
+
+It differs from the other labels: one pass (the site is published unminified), extracted with
+L4 (structdiff takes L4 from the unminified pass when neither side has a minified one) and with
+the full text (`--full-text`, so reports show the word hunks against the reference); no
+structure dump (the published site has none). The project file `hugo_stats.json` is
+`docs/hugo_stats.json`, the stats file the Go docs build wrote and committed with that content.
+The candidate builds at the clock of the published build, `2025-10-13T15:00:00Z` (13 deprecated
+pages have an `expiryDate` between then and today), with the GetRemote responses of that day
+(`sites.py cache docs-live`, `tools/rust-port/testdata/hugo_cache/docs-live/README.md`).
 
 ## How the Go builds run
 
@@ -236,7 +266,8 @@ Not in this directory: `sites.py patches` writes it next to `sites.py` from its 
 `DOCS_REPLACE` and `DOCS_WRITE` lists, and `sites.py patches --check` (which `oracle.sh sites`
 ran before the docs labels) asserts that it is current and that the Tera patch files of
 `sites/docs/patches/<variant>/` correspond 1:1 to its layout entries. Schema
-`neohugo-docs-patches/1`: `variants` (`["i01", "reduced"]`) and `patches`, in application order,
+`neohugo-docs-patches/1`: `variants` (`["i01", "reduced", "live"]`; `live` has no patches but the
+removal of the committed `hugo_stats.json`) and `patches`, in application order,
 each `{"op": "remove" | "replace" | "write", "file": "<path in the site>", "old"/"new"
 (replace), "content" (write), "variants": [...], "why": "...", "tera": "<path below
 sites/docs/patches/<variant>/>" | null}`. A patch of a file below `layouts/` has a Tera

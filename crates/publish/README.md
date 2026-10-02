@@ -1,18 +1,19 @@
 # neohugo-publish
 
-Sinks, canonify, minify dispatch, `hugo_stats.json`, URL-token extraction, held outputs and the
+Sinks, canonify, minify dispatch, `neohugo_stats.json`, URL-token extraction, held outputs and the
 static sync (REWRITE_PLAN.md §2.6, §3.4; phases E1, E2 output, E4 and the `patch_held` half of
 E5).
 
 | API | What |
 |---|---|
-| `DiskSink { root }`, `MemorySink { files: DashMap<OutputPath, Arc<[u8]>> }` | `base::Sink`; the disk sink creates parent directories and truncates; the memory sink has `get`, `text`, `paths` (sorted) and `write_to(dir)` |
+| `DiskSink { root }`, `MemorySink { files: DashMap<OutputPath, Arc<[u8]>> }` | `base::Sink` (`write`, `exists`, `read`); the disk sink creates parent directories and truncates; the memory sink has `get`, `text`, `paths` (sorted) and `write_to(dir)` |
 | `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`, LiveReload URL: `None` here, set by `neohugo-build` for `serve`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]` |
 | `Publisher::new(settings, Arc<dyn Sink>, Arc<Diagnostics>)` | shared by the render workers (`Send + Sync`) |
-| `Publisher::emit(Output { path, text, format, lang, alias })` | canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Hugo; `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present, else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
-| `Publisher::patch_held(&BTreeMap<placeholder, text>)` | replaces the placeholders of every held output, rewrites its URLs again (canonify / relative), extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
+| `Publisher::with_css_purges(Arc<CssPurges>)`, `page_names(html)` | `purge_css` placeholders (`__nh_purge_<n>__`) are replaced first in `emit` (and in `patch_held`) by the CSS the output uses: `page_names` gives the tags, classes and ids of its elements, the words of its `<script>` elements and every `--name` it mentions |
+| `Publisher::emit(Output { path, text, format, lang, alias })` | `purge_css` placeholders → canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Hugo; `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present (the text is written to the sink unpatched and unminified, only the path is kept), else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
+| `Publisher::patch_held(&BTreeMap<placeholder, text>)` | reads every held output back from the sink (`PublishError::Read` if it is gone), replaces its placeholders, rewrites its URLs again (canonify / relative), extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
 | `Publisher::add_tokens_from(text)`, `url_tokens()` | `execute_as_template` results; the sorted `UrlTokens` so far |
-| `Publisher::stats() -> HugoStats`, `HugoStats::{to_json, write_if_changed}` | `hugo_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
+| `Publisher::stats() -> NeohugoStats`, `NeohugoStats::{to_json, write_if_changed}` | `neohugo_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
 | `UrlRewriter::{absolute, relative, new}.rewrite(bytes, Quoting)` | the canonify rewriter (also `rewrite_str`); `canonify::dotted_path_to_root` |
 | `HtmlElements::collect(html)`, `StatsCollector` | the tags, classes and ids of HTML |
 | `UrlTokens::{extract, iter, contains}` | URL-shaped words after decoding HTML references and JSON escapes (srcset lists, unquoted attributes, `./` / `../` resolved against the output) |
@@ -38,7 +39,9 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   `class` and `*transition*` attribute words, and Vue/Alpine `:class` bindings (object keys, or
   single-quoted words). The content of `pre`, `textarea`, `script` and `style` is skipped.
   Collected before minification.
-- **Held outputs**: the plan's placeholder prefixes (`PLACEHOLDER_PREFIXES`). Replacement text
+- **Held outputs**: the plan's placeholder prefixes (`PLACEHOLDER_PREFIXES`). A held output waits
+  in the sink at its own path, as Hugo's post-processing writes its files before patching them,
+  so held pages cost no memory (seeksnack, where every page is held: 386 MB → 234 MB). Replacement text
   is inserted into the canonified output, the result is rewritten once more (T36: the links of
   a pending `fingerprint` are post-process placeholders until E5, and Go canonifies them; the
   rewrite leaves already rewritten URLs alone), then minified with the page.
@@ -59,7 +62,7 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   difference classified in `expected_diffs.toml`, 0 unexplained). The 3,022 `closed` records test Go's private `isClosedByTag`
   and have no counterpart.
 - **golden stats** — `tools/rust-port/golden/hugo_stats.json` (seeksnack) and
-  `docs/hugo_stats.json` round-trip byte for byte through `HugoStats::to_json` (format,
+  `docs/hugo_stats.json` round-trip byte for byte through `NeohugoStats::to_json` (format,
   sorting, `null`). Scanning the golden HTML itself would need the Go build's output trees,
   which are not in the repository (`testdata/golden/` holds manifests).
 - **static sync** — `oracle/commands/staticcopy/staticcopy.json.gz`: 12 cases, 179 checks

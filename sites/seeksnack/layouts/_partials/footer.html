@@ -2,5 +2,5 @@
   {% if site.params.footer.logo %}{% set logo = get_asset(path=site.params.footer.logo) %}{% if logo %}{% set s = logo | resize(width=35, height=35) %}<img src="{{ s.rel_permalink }}" alt="logo">{% endif %}{% endif %}
   {% for s in site.params.footer.socialmedia %}<a class="social {{ s.type }}" href="{{ s.link }}" title="{{ s.name | humanize }}"><i class="{{ s.icon }}"></i></a>{% endfor %}
   {% for k, col in site.params.footer.quicklinks | sort_keys %}<div class="col-{{ k }}"><h4>{{ col.title }}</h4>{% for l in col.links %}<a href="{{ l.link | rel_lang_url }}">{{ l.text }}</a>{% endfor %}</div>{% endfor %}
-  <p>&copy; {{ site.params.yearcreate }}-{{ now() | date(format="%Y") }} {{ site.params.company }} · {{ hugo.environment }} · {{ site.regular_pages | length }}</p>
+  <p>&copy; {{ site.params.yearcreate }}-{{ now() | date(format="%Y") }} {{ site.params.company }} · {{ neohugo.environment }} · {{ site.regular_pages | length }}</p>
 </footer>

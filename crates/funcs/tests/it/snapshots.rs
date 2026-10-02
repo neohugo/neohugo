@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 
 use neohugo_funcs::{NOT_COMPILED, pure_specs};
+use neohugo_testkit::tera_value;
 use serde_json::json;
 use tera::Context;
 
@@ -285,7 +286,7 @@ const EXAMPLES: &[(&str, &str)] = &[
     // system
     (
         "get_env",
-        "[{{ get_env(name='HUGO_NEOHUGO_FUNCS_TEST_UNSET') }}]",
+        "[{{ get_env(name='NEOHUGO_FUNCS_TEST_UNSET') }}]",
     ),
     (
         "read_file",
@@ -310,31 +311,35 @@ const EXAMPLES: &[(&str, &str)] = &[
 fn context() -> Context {
     let mut ctx = Context::new();
     ctx.insert("lang", "en");
-    ctx.insert("data", &json!({"a": {"b": ["x", "y"]}}));
+    ctx.insert_value("data", tera_value(&json!({"a": {"b": ["x", "y"]}})));
     let date = |rfc3339: &str, unix: i64| json!({"rfc3339": rfc3339, "unix": unix});
-    ctx.insert(
+    ctx.insert_value(
         "pages",
-        &json!([
+        tera_value(&json!([
             {"id": 1, "kind": "page", "title": "Zebra", "date": date("2024-01-02T00:00:00+00:00", 1_704_153_600), "params": {"weight": 3}},
             {"id": 2, "kind": "page", "title": "apple", "date": date("2024-03-01T00:00:00+07:00", 1_709_226_000), "params": {"weight": 1}},
             {"id": 3, "kind": "page", "title": "Äpfel", "date": date("2023-12-31T00:00:00+00:00", 1_703_980_800), "params": {"weight": 2}},
-        ]),
+        ])),
     );
-    ctx.insert(
+    ctx.insert_value(
         "resources",
-        &json!([
+        tera_value(&json!([
             {"__rid": 1, "name": "img/a.jpg", "resource_type": "image"},
             {"__rid": 2, "name": "img/b.png", "resource_type": "image"},
             {"__rid": 3, "name": "notes/index.md", "resource_type": "page"},
-        ]),
+        ])),
     );
-    ctx.insert(
+    ctx.insert_value(
         "positional",
-        &json!({"name": "sc", "args": ["a", "b"], "params": {}, "is_named_params": false}),
+        tera_value(
+            &json!({"name": "sc", "args": ["a", "b"], "params": {}, "is_named_params": false}),
+        ),
     );
-    ctx.insert(
+    ctx.insert_value(
         "named",
-        &json!({"name": "sc", "args": [], "params": {"src": "x.png"}, "is_named_params": true}),
+        tera_value(
+            &json!({"name": "sc", "args": [], "params": {"src": "x.png"}, "is_named_params": true}),
+        ),
     );
     ctx
 }

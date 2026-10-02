@@ -26,14 +26,18 @@ impl Session {
     pub fn templates(&self) -> &Templates; // + model, views, diagnostics, order, wave1, wave2
     /// T36: the file a job writes without rendering it (`None`: it writes nothing).
     pub fn target(&self, job: &Job) -> Result<Option<OutputPath>, RenderError>;
-    /// T36, phase E5: a `defer(...)` template with `data`, `site`, `hugo`, `__nh` (phase Deferred).
+    /// T36, phase E5: a `defer(...)` template with `data`, `site`, `neohugo`, `__nh` (phase Deferred).
     pub fn render_deferred(&self, key: &str, d: &Deferred) -> Result<String, RenderError>;
+    /// Content adapters: renders a `_content.html` source for `lang` as run `run` of
+    /// `Handles::adapters` (phase Adapter; `site` without its page lists, `neohugo`, `lang`).
+    pub fn render_adapter(&self, path: &str, source: &str, lang: LangIdx, run: u32) -> Result<(), RenderError>;
     pub fn handles(&self) -> &Handles; // T36: the store, image queue, deferred registry, … for E4–E6
 }
 impl ContentRenderer for Session { content, fragments, render_shortcodes, render_markdown, render_template }
 pub mod summary { manual, auto, plain, counts, unwrap_paragraph, Split, DIVIDER, DIVIDER_SOURCE }
 pub enum RenderError { …, Content { page, source: Box<ContentError> } /* T34 */,
-                       I18n, Vfs, Io, Deferred { key, template, source } /* T36 */ }
+                       I18n, Vfs, Io, Deferred { key, template, source } /* T36 */,
+                       Adapter { path, source } }
 ```
 
 `Session::new` follows §2.6: the renderer slot (`Arc<OnceLock<Weak<dyn ContentRenderer>>>`) is
@@ -60,7 +64,7 @@ for F uses `Format(F)` if it exists):
 1. **Expand** (`shortcode.rs`): `neohugo_pageparser::parse_body` with the template store as
    `InnerOracle` (`uses_variable(tpl, "inner" | "inner_deindent")`), then every call is run
    through its Tera template (looked up with the variant's format, so `fmt.rss.xml` serves the
-   RSS variant) with `page` (Meta full value), `site`, `hugo`, `lang`, `shortcode`
+   RSS variant) with `page` (Meta full value), `site`, `neohugo`, `lang`, `shortcode`
    (`ShortcodeView`: typed `args`, `params` list or map, `is_named_params`, `ordinal` per
    nesting level, `parent`, `position` — `"file:line:col"`, quoted as Go's `.Position` prints),
    `inner` / `inner_deindent` (safe) and `__nh`. Render hooks get `position` in the same form.
@@ -69,7 +73,8 @@ for F uses `Format(F)` if it exists):
      is raw; a nested `{{% %}}` inner is rendered as Markdown (a one-line inner loses its
      `<p>`). `$_hugo_config` v1 is not reproduced (D5).
    - A call without inner content whose tag is indented gets the indentation on its further
-     output lines (Hugo); `inner_deindent` removes the call's indentation from inner lines.
+     output lines, included sources inserted first (Hugo indents the template's result);
+     `inner_deindent` removes the call's indentation from inner lines.
    - Inline shortcodes (`security.enableInlineShortcodes`): the body is a Tera template
      (`render_str`), reused by later self-closed calls; disabled, they print nothing.
    - The summary divider becomes its own paragraph (`summary::DIVIDER_SOURCE`).
@@ -80,7 +85,7 @@ for F uses `Format(F)` if it exists):
 3. **Render**: comrak through `neohugo_markup::render` with `TeraHooks` (`hooks.rs`), HTML
    content passed through. Hooks: `_markup/render-<kind>[-<variant>]` of the variant's format,
    else the HTML format's; the embedded table hook is left to markup's native output; context
-   `page`, `page_inner` (from the source-context spans), `site`, `hugo`, `lang`, `__nh` and the
+   `page`, `page_inner` (from the source-context spans), `site`, `neohugo`, `lang`, `__nh` and the
    `HOOK_FIELDS` flattened (`text` and cell texts safe; `alert_sign` as `+`/`-`/``). Under
    `CodeFences::Hooked`, a fence no hook handles goes to `neohugo_highlight::Highlight`
    (built per language at its first fence).
@@ -114,9 +119,17 @@ site function prints as is (safe):
 - in the **content phase** it is an inclusion token `NHRS<n>X`. The expanding page replaces it
   in `{{% %}}` output by q's expanded Markdown, **appends q's placeholders to its own table and
   renumbers** q's tokens, shifts q's context spans and adds a span for the included text (so
-  hooks there get `page_inner = q`). In `{{< >}}` output, hook output or `markdownify` input it
-  becomes q's text with q's placeholders resolved.
-- elsewhere (layouts) it is q's source with the shortcode outputs in place.
+  hooks there get `page_inner = q`). On a Markdown page the included text sits between the
+  context marker lines of `neohugo_markup::wrap_context` (Hugo's `hugocontext.Wrap`, which
+  `.RenderShortcodes` applies inside goldmark): they end a definition list before an include,
+  keep an indented include inside its container and leave goldmark's newline before
+  `</dd>`/`</li>` after an include ending in a tight item, as in Hugo. A call nested in a
+  `{{% %}}` call gets q's text the same way (Hugo renders the whole call before Markdown) but
+  no span. In `{{< >}}` output (and a call nested in one), hook output or `markdownify` input it
+  becomes q's text with q's placeholders resolved (and no markers): Hugo renders a `{{< >}}`
+  call after Markdown, with q's `{{< >}}` outputs in place, so an indented call indents them
+  too, while in `{{% %}}` output they stay placeholders and keep their lines.
+- elsewhere (layouts) it is q's source with the shortcode outputs in place (no markers).
 
 ## Tests (`cargo test -p neohugo-render -- --nocapture`)
 
@@ -129,6 +142,7 @@ The suites run with **test doubles** of the T35 functions they need (`tests/it/f
 |---|---|
 | shortcode semantics on R's edge pages | content oracle `seeksnack` (R's edge pages: `about.md` and the koala bundle with every shortcode form, escapes, Thai params, v1, `%` vs `<`, nesting, indentation, `ref`/`relref`, HTML page, bundled pages, JSON table hook): **921/924 values equal, 3 accepted**; `reconstruction::r_shortcodes_on_r_pages`: R's own shortcodes (txtar) converted to Tera (`R_SHORTCODES`) over R's pages (`parent`, `name`, `modalImage`, ordinal, `page`); `engine::shortcode_semantics`: param typing, `arg` defaults and styles, ordinal/parent/grandparent, `%` vs `<`, escapes, indentation, inline shortcodes; content oracle `shortcodes` (p00–p19 syntax matrix): **276/280, 4 accepted** |
 | per-page placeholder renumbering through `render_shortcodes` | `engine::includes_renumber_placeholders_and_set_page_inner` (A's `{{< >}}` before and after an include of B, B's own placeholders) |
+| `{{% %}}` includes as in Hugo: context markers, indentation after the include | `engine::includes_are_wrapped_and_indented` (an indented include in a definition, an include after a definition list, includes ending in a tight list item and a tight definition): byte-equal to Hugo's goldmark converter at 44529028 on the same Markdown; `engine::includes_indent_like_hugo` (indented `{{< >}}` and `{{% %}}` includes of a page with multi-line `{{< >}}` output, top-level and nested in `{{< >}}` and `{{% %}}` calls): byte-equal to the Go build at 44529028 on the same site |
 | `page_inner` spans | the same test: a link hook prints `page_inner.title` and `page.title` for A's own and B's included links |
 | cross-page memo: cycle test, forced two-thread no-deadlock test | `engine::cycles_are_errors` (A ↔ B through `page_content`: an error naming both files; own-page TOC is not a cycle); `engine::two_threads_never_deadlock_and_commit_once` (a `Barrier` in a shortcode holds two threads inside A's and B's computations while each needs the other's fragments; both finish, with a 60 s watchdog) |
 | buffered store writes committed once | the same test with both threads computing A: pointer-equal results, a counter written from the shortcode is 1; `engine::store_writes_follow_the_winner` (nothing before C1, committed after, layout writes direct) |
@@ -156,6 +170,10 @@ follows the cut. The manual divider grows to its paragraph (walking back over wh
 
 ## Notes and limits
 
+- An include nested in another call's inner content has no context span (the enclosing
+  template can put its inner content anywhere): hooks in it see the including page as
+  `page_inner`. Hugo's markers carry the page there. An include in `{{% %}}` output nested in
+  a `{{< >}}` call has no markers either (Hugo prints its `{{__hugo_ctx}}` lines as text).
 - Store writes of a page are made once per variant computation (each variant's cell commits
   its own transaction): a counter incremented by a shortcode counts the variants.
 - C1 renders every page with a content file, also pages with `build.render = never`; a content

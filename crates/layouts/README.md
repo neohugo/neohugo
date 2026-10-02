@@ -15,6 +15,7 @@ the review table in its README).
 | `LayoutStore::select(&LayoutQuery)` | layout + base of a (page, format): `Selection { layout, base, render_as }` |
 | `LayoutStore::hook(&HookQuery)`, `shortcode(&ShortcodeQuery)`, `partial(name)`, `has_shortcode` | the other lookups; `ShortcodeMiss::{NotFound, Incompatible}` |
 | `load(Arc<LayoutStore>, &Selections, register)` | Tera: fallback prefixes `_theme1/ … _embedded/`, `autoescape_on([.html, .htm, .xml, .svg])`, `register(&mut tera)`, then one `add_raw_templates` with every template, the escaping aliases and the `L@@B` variants the selections need |
+| `go_marker(src)` | the first Go-template marker of a source and its line (the `GoTemplate` refusal; neohugo-build checks content adapters with it) |
 | `Templates::{tera, store, select, shortcode, shortcode_query, hook, partial, uses_variable}` | the loaded instance; `uses_variable` asks Tera's `get_template_variables` (template, parents, includes), memoised |
 
 ## Rules
@@ -29,7 +30,7 @@ the review table in its README).
   `partials/` → `_partials/`, `shortcodes/` → `_shortcodes/`, `<id>-baseof.<ext>` →
   `baseof.<id>.<ext>`, `taxonomy/list.*` and `term/term.*` → `term.*`, a layout named `index`
   → `home`. **Refused** (`UnknownName`): `_markup/` files not named `render-<known kind>`,
-  `_hugo/` and `_server/`, suffixes with no output format or media type, two files with the same
+  `_neohugo/` (reserved) and `_server/`, suffixes with no output format or media type, two files with the same
   Tera name. **Refused** (`GoTemplate`, with the line): `{{ .`, `{{ $`, `{{ end }}`, `{{/*`,
   `{{ define|range|with|if|else|block|template|partial …` outside `{% raw %}` and comments; the
   message points to `neohugo templates check` and to `docs/rust-port/template-api.md` by its

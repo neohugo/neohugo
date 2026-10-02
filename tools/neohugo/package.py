@@ -16,7 +16,7 @@ darwin or windows, <arch> amd64 or arm64. Writes
                                                           and `shasum -a 256 -c` read it
 
 The archive holds, at its root as the Go releases do, the binary, the repository's README.md,
-LICENSE, PROVENANCE.md, THIRD_PARTY/ and, when given, <notices> as THIRD_PARTY_NOTICES.txt (the
+LICENSE, NOTICE (the Apache-2.0 attribution notices), PROVENANCE.md, THIRD_PARTY/ and, when given, <notices> as THIRD_PARTY_NOTICES.txt (the
 licences of the linked crates, written by notices.py). Entries are sorted, owned by root and
 dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the same archive.
 
@@ -86,6 +86,7 @@ def entries(binary, notices=None):
         (binary.name, binary, 0o755),
         ("README.md", ROOT / "README.md", 0o644),
         ("LICENSE", ROOT / "LICENSE", 0o644),
+        ("NOTICE", ROOT / "NOTICE", 0o644),
         ("PROVENANCE.md", ROOT / "PROVENANCE.md", 0o644),
     ]
     if notices is not None:

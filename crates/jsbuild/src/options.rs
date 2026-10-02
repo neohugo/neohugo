@@ -27,7 +27,7 @@ pub enum OptionsError {
     /// An enumerated option has an unknown value.
     #[error("js.Build option {option:?}: unsupported value {value:?}")]
     Value { option: &'static str, value: String },
-    /// The `none` loader, which esbuild's service interface cannot express.
+    /// The `none` loader, which the bundler has no equivalent of.
     #[error("js.Build loader \"none\" (for {extension:?}) is not supported")]
     NoneLoader { extension: String },
     /// A define key containing `=`.
@@ -38,8 +38,8 @@ pub enum OptionsError {
     LoaderExtension(String),
 }
 
-/// Declares a `Copy` enum of esbuild option values with its esbuild spelling and accepted
-/// spellings (matched case-insensitively).
+/// Declares a `Copy` enum of option values with its canonical spelling and accepted spellings
+/// (matched case-insensitively).
 macro_rules! option_enum {
     ($(#[$m:meta])* $name:ident, $option:literal {
         $($(#[$vm:meta])* $variant:ident => $cli:literal $(| $alias:literal)*),+ $(,)?
@@ -49,7 +49,7 @@ macro_rules! option_enum {
         pub enum $name { $($(#[$vm])* $variant),+ }
 
         impl $name {
-            /// The esbuild command-line spelling.
+            /// The canonical spelling (esbuild's).
             #[must_use]
             pub const fn as_str(self) -> &'static str {
                 match self { $(Self::$variant => $cli),+ }
@@ -139,7 +139,7 @@ option_enum!(
 );
 
 option_enum!(
-    /// An esbuild loader (`loaders` values, and the loader of the entry script).
+    /// A loader (`loaders` values, and the loader of the entry script), as esbuild names them.
     Loader, "loaders" {
         Base64 => "base64",
         Binary => "binary",
@@ -208,7 +208,7 @@ pub struct JsBuildOptions {
     pub externals: Vec<String>,
     /// Asset paths (relative to the assets root) injected into every module.
     pub inject: Vec<String>,
-    /// `--define` replacements: identifier → JavaScript expression text.
+    /// Replacements: identifier → JavaScript expression text.
     pub defines: BTreeMap<String, String>,
     pub drop: Option<DropKind>,
     /// Import path → asset path it is replaced with.
@@ -303,7 +303,7 @@ impl JsBuildOptions {
                 "jsximportsource" => {
                     o.jsx_import_source = non_empty(string("JSXImportSource", v)?);
                 }
-                // `avoidTDZ` is accepted and ignored, like Hugo does since esbuild handles it.
+                // `avoidTDZ` is accepted and ignored, like Hugo does.
                 _ => {}
             }
         }

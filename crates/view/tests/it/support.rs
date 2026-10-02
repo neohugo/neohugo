@@ -14,7 +14,7 @@ use neohugo_view::{Contents, HookVariant, NavSite, RenderedContent, ViewCache, V
 
 pub const FILES: &[(&str, &str)] = &[
     (
-        "hugo.toml",
+        "neohugo.toml",
         r#"baseURL = "https://example.org/"
 title = "Views"
 copyright = "(c) Views"

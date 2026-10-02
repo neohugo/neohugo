@@ -66,9 +66,9 @@ out) recursively, a mounted file through its directory, the configuration direct
 project's `--configDir` and each theme's `config/`) recursively, and, not recursively, the
 directories of the configuration files `Config::config_files` lists (the project's and its
 themes') and the project's and each theme's directory. **Configuration** is any of those
-files, anything below a configuration directory, and a `neohugo.*`, `hugo.*` or `config.*`
-file in the project's or a theme's directory (so a new `neohugo.toml` next to `hugo.toml`
-is a configuration change, and wins).
+files, anything below a configuration directory, and a `neohugo.*` or `config.*` file in the
+project's or a theme's directory (so a new `neohugo.toml` next to `config.toml` is a
+configuration change, and wins).
 notify's native watcher (inotify, FSEvents, …) or its poller (`--poll 700ms`; a number is
 milliseconds; the poller compares contents, because notify keeps modification times in
 whole seconds), debounced by notify-debouncer-full: an event is delivered 1 s after it
@@ -76,11 +76,17 @@ happened (100 ms ticks); batches that arrive during a build are handled together
 batch the watch set is computed again, so a component directory created while serving (a
 first `static/` or `assets/`, seen through the project directory's watch) is watched from
 then on, and one removed and created again is watched anew (Hugo misses both).
+Before the debouncer sees them, the native watcher's events are put in the watched paths'
+terms (`NativeWatcher`): macOS's FSEvents reports a watched directory's resolved path
+(`/private/var/…` for `/var/…`, a symlink's target), which no mount starts with; and FSEvents
+repeats a file's earlier flags with a later event, so a removal arrives as "created, removed,
+modified", which the debouncer would drop as a file that came and went. On macOS an event
+(but a rename) on a path that no longer exists is therefore a removal.
 
 **Ignored**: editors' temporary and backup files (Hugo's list: `~`, `.swp`, `.swx`, `.bck`,
 `.tmp`, `4913`, `.goutputstream*`, JetBrains `___jb_*___`, `.sb-*`, `#…`, `.#…`), names
 starting with `.`, anything below `.git`, `node_modules` or `bower_components` inside a
-mount, the project's `hugo_stats.json` (the build writes it), permission and time changes,
+mount, the project's `neohugo_stats.json` (the build writes it), permission and time changes,
 opening, reading and closing (a write is seen as a modification), and files created or
 written that are gone again.
 
@@ -127,6 +133,7 @@ harmless for memory builds.
 | unit: `livereload::{messages,origins}` | reload/navigate JSON, Hugo's origin check |
 | unit: `http::{ranges,paths}` | byte ranges, path cleaning and decoding, navigation detection |
 | unit: `watch::ignored_names` | editors' temporary files |
+| unit: `watch::events_are_mapped_to_the_watched_paths`, `watch::events_on_gone_paths_are_removals_on_macos` | resolved paths mapped back (the most specific watched path), creations and writes of gone paths as removals on macOS |
 | `serve::serves_the_site` | pages with the script after `<head>`, directory and `index.html` redirects, an alias without the script, static and asset files and their types, the 404 page for navigations and the plain 404 otherwise, `livereload.js`, the WebSocket handshake, a foreign `Origin` refused, `HEAD`, byte ranges |
 | `serve::content_change_rebuilds_and_reloads` | edit → full reload → the new page; the removed alias is gone; 2 builds |
 | `serve::static_change_copies_without_a_rebuild` | a static edit, a removal and a new file: the path reloaded, the file served or gone, still 1 build |
@@ -139,9 +146,9 @@ harmless for memory builds.
 | `serve::multihost_sites_get_a_listener_each` | two listeners, each language's base URL with its port, its script and 404 page, a WebSocket each |
 | `serve::per_language_404_pages` | `/nn/…` → `nn/404.html`, other misses → `404.html` |
 | `serve::a_new_static_directory_is_watched` | a site without `static/`: the new directory's file is copied, and a second edit inside it is seen (no build) |
-| `serve::theme_and_new_config_files_are_watched` | a theme's layout (→ its one changed page) and its `hugo.toml` (→ reloaded configuration), then a new `neohugo.toml` over `hugo.toml` |
+| `serve::theme_and_new_config_files_are_watched` | a theme's layout (→ its one changed page) and its `neohugo.toml` (→ reloaded configuration), then a new `neohugo.toml` over `hugo.toml` |
 | `serve::polling_watcher` | `--poll 100ms` picks up an edit |
-| `serve::hugo_is_server_and_site_server_port` | `hugo.is_server` true and `site.server_port` the listener's port in the server (`BuildRequest::server`, T70); `false` and 0 in a `build` of the same site |
+| `serve::neohugo_is_server_and_site_server_port` | `neohugo.is_server` true and `site.server_port` the listener's port in the server (`BuildRequest::server`, T70); `false` and 0 in a `build` of the same site |
 | `testsite::testsite_is_served_and_reloads` | the testsite: pages of both languages and formats with the canonified server URLs, no script in JSON and aliases, static, types, both 404 pages, then edit → reload **measured**: 3 content edits, 1 layout edit, 1 static edit (no build) |
 
 Measured on the testsite (debug build; 4 CPUs shared with other builds):
@@ -156,5 +163,7 @@ That is the 1 s debounce, up to one 100 ms tick, and the rebuild. Before the cac
 on a testsite build found **92 % of the rebuild (≈0.52–0.76 s in the debug build) in
 `neohugo_highlight::Highlight::new`** (`Languages::load` → syntect `SyntaxSetBuilder::build`,
 which dumps, deflates and reloads the syntax set), on every build, although the testsite
-highlights nothing. `neohugo-highlight` now loads its syntaxes, scope rules and styles once per
-process and every `Highlight` shares them, so a rebuild after the first costs tens of ms.
+highlights nothing. `neohugo-highlight` now loads its lexers and styles once per process and
+every `Highlight` shares them, so a rebuild after the first costs tens of ms (since the Chroma
+port replaced syntect, `Highlight::new` reads the lexer configurations, ≈7 ms in a dev build,
+and a lexer compiles its rules on first use).

@@ -1,6 +1,8 @@
 //! Planning: a spec and a filter chain become concrete [`Step`]s with the size of every
-//! intermediate result, from the source's metadata alone (no pixels are decoded).
+//! intermediate result, from the source's metadata alone (no pixels are decoded, but for the
+//! rare smart crop whose result's size depends on its region: [`Plan::smart_crop`]).
 
+use std::collections::BTreeSet;
 use std::fmt;
 
 use crate::color::Color;
@@ -10,6 +12,7 @@ use crate::filter::{ImageFilter, ImageInput, PaddingSpec};
 use crate::font::FontData;
 use crate::format::ImageFormat;
 use crate::settings::Imaging;
+use crate::smartcrop::{self, Rect};
 use crate::spec::{Action, Anchor, Hint, ImageSpec, Resample, ResolvedSpec};
 use crate::text::{FontInput, TextSpec};
 
@@ -48,6 +51,17 @@ pub(crate) enum Step {
         x: u32,
         y: u32,
         size: Size,
+    },
+    /// A crop or fill to `target` at the `smart` anchor (`smartcrop.rs`): keep the region
+    /// Hugo's smart crop finds on the operation's source for `target` and `filter`
+    /// (intersected with the image), then resize it to `target` (fill) or keep its centre at
+    /// `target` (crop). The region depends on the source's pixels, so it is found when the
+    /// steps run. A fill whose region is empty fills at the centre anchor instead (Hugo's
+    /// fallback, [`Plan::smart_crop`]).
+    SmartCrop {
+        action: Action,
+        target: Size,
+        filter: Resample,
     },
     /// Apply an EXIF orientation (2–8).
     Orient(u8),
@@ -99,6 +113,11 @@ pub(crate) struct InputInfo {
     /// The EXIF orientation (1–8) when the input is a file that has one.
     pub orientation: Option<u8>,
 }
+
+/// Finds the region of a smart crop to a target size with a resample filter on the
+/// operation's source (`smartcrop::find`), for [`Plan::new`] when the result's size depends
+/// on it.
+pub(crate) type ResolveSmart<'a> = dyn FnMut(Size, Resample) -> Result<Rect, ImageError> + 'a;
 
 /// Rounds half up like the resize maths of Hugo (`int(x + 0.5)` on non-negative values).
 fn round_half_up(x: f64) -> u32 {
@@ -169,21 +188,15 @@ pub fn crop_rect(src: Size, (w, h): Size, anchor: Anchor) -> (u32, u32, Size) {
     (x0, y0, (x1 - x0, y1 - y0))
 }
 
-/// The region a smart crop to `w`×`h` keeps: the target size when the image covers it, else
-/// the largest region with the target's aspect ratio (Hugo's smart crop only ever picks a
-/// region of that size; where it is placed is content-aware in Hugo and centred here).
-#[must_use]
-pub fn smart_region((sw, sh): Size, (w, h): Size) -> Size {
-    let scale = (f64::from(sw) / f64::from(w)).min(f64::from(sh) / f64::from(h));
-    if scale >= 1.0 {
-        return (w, h);
+/// The size of a smart crop to `target` that keeps `region` of an image of `size`: gift
+/// crops the region (intersected with the image), then crops its centre to the target
+/// (`CropToSize` at the centre anchor); nothing is left of an empty region.
+fn smart_crop_size(region: Rect, size: Size, target: Size) -> Size {
+    let kept = region.intersect(Rect::of_size(size)).size();
+    if kept.0 == 0 || kept.1 == 0 {
+        return (0, 0);
     }
-    let side = |v: u32| {
-        let s = (f64::from(v) * scale).floor();
-        let s = s as u32;
-        s.max(1)
-    };
-    (side(w), side(h))
+    crop_rect(kept, target, Anchor::Center).2
 }
 
 /// Sine and cosine of `degrees`, exact for multiples of 90.
@@ -247,7 +260,9 @@ impl Plan {
     /// The steps of `spec` and `filters` applied to an input.
     ///
     /// `resolve_input` gives the identity of the images overlay and mask filters read,
-    /// `resolve_font` the font of a text filter (`None`: the default font).
+    /// `resolve_font` the font of a text filter (`None`: the default font), `resolve_smart`
+    /// the region of a smart crop whose result's size depends on it (rare: see
+    /// [`Plan::smart_crop`]).
     pub(crate) fn new(
         input: &InputInfo,
         spec: Option<&ImageSpec>,
@@ -255,6 +270,7 @@ impl Plan {
         imaging: &Imaging,
         resolve_input: &mut dyn FnMut(&ImageInput) -> Result<InputRef, ImageError>,
         resolve_font: &mut dyn FnMut(Option<&FontInput>) -> Result<FontData, ImageError>,
+        resolve_smart: &mut ResolveSmart<'_>,
     ) -> Result<Self, ImageError> {
         let mut encode = Encode {
             format: input.format,
@@ -278,13 +294,21 @@ impl Plan {
         };
         if let Some(spec) = spec {
             merge(spec);
-            plan.push_spec(&spec.resolve(imaging, input.format))?;
+            plan.push_spec(
+                &spec.resolve(imaging, input.format),
+                input.size,
+                resolve_smart,
+            )?;
         }
         for f in filters {
             match f {
                 ImageFilter::Process { spec } => {
                     merge(spec);
-                    plan.push_spec(&spec.resolve(imaging, input.format))?;
+                    plan.push_spec(
+                        &spec.resolve(imaging, input.format),
+                        input.size,
+                        resolve_smart,
+                    )?;
                 }
                 ImageFilter::AutoOrient => {
                     if let Some(o @ 2..=8) = input.orientation {
@@ -364,7 +388,14 @@ impl Plan {
         Ok(plan)
     }
 
-    fn push_spec(&mut self, spec: &ResolvedSpec) -> Result<(), ImageError> {
+    /// Adds the steps of `spec`; `source` is the size of the operation's source, which smart
+    /// crops analyse.
+    fn push_spec(
+        &mut self,
+        spec: &ResolvedSpec,
+        source: Size,
+        resolve_smart: &mut ResolveSmart<'_>,
+    ) -> Result<(), ImageError> {
         if spec.rotate != 0 {
             let size = rotated_size(self.size, spec.rotate);
             self.steps.push(Step::Rotate {
@@ -383,6 +414,9 @@ impl Plan {
                 self.resize(resize_size(src, spec.width, spec.height), spec.filter);
             }
             Action::Fit => self.resize(fit_size(src, boxed()), spec.filter),
+            Action::Fill | Action::Crop if spec.anchor == Anchor::Smart => {
+                self.smart_crop(action, boxed(), spec.filter, source, resolve_smart)?;
+            }
             Action::Fill => {
                 let target = boxed();
                 self.resize(cover_size(src, target), spec.filter);
@@ -406,12 +440,57 @@ impl Plan {
         self.size = size;
     }
 
-    fn crop(&mut self, target: Size, anchor: Anchor) {
-        let target = if anchor == Anchor::Smart {
-            smart_region(self.size, target)
-        } else {
+    /// A smart crop or fill (Hugo's `FiltersFromConfig`: `gift.Crop` of the region, then
+    /// `gift.Resize` or `gift.CropToSize` at the centre).
+    ///
+    /// A fill always ends at the target size: when the region is empty (smartcrop has no
+    /// candidate, or none scores above −1), Hugo fills again at the centre anchor
+    /// (`processOptions` in `resources/image.go`, issue 7955), and so does the step
+    /// ([`crate::pixels`]). A crop ends at the target size clipped to the region, and the
+    /// regions smartcrop can pick for a source differ by a pixel or so after scaling back from
+    /// its analysis, so when they would give different sizes (a target about the size of the
+    /// source) the region is found here, from the pixels. A crop with no candidate is empty
+    /// (Hugo writes an empty image; an error here).
+    fn smart_crop(
+        &mut self,
+        action: Action,
+        target: Size,
+        filter: Resample,
+        source: Size,
+        resolve_smart: &mut ResolveSmart<'_>,
+    ) -> Result<(), ImageError> {
+        let size = if action == Action::Fill {
             target
+        } else {
+            let sizes: BTreeSet<Size> = smartcrop::candidates(source, target.0, target.1)
+                .into_iter()
+                .map(|r| smart_crop_size(r, self.size, target))
+                .collect();
+            match sizes.first() {
+                Some(&only) if sizes.len() == 1 => only,
+                _ => smart_crop_size(resolve_smart(target, filter)?, self.size, target),
+            }
         };
+        if size.0 == 0 || size.1 == 0 {
+            return Err(ImageError::spec(
+                format!("{action}"),
+                format!(
+                    "the smart anchor keeps nothing of {}x{} for {}x{} (the result would be \
+                     empty); use another anchor",
+                    source.0, source.1, target.0, target.1
+                ),
+            ));
+        }
+        self.steps.push(Step::SmartCrop {
+            action,
+            target,
+            filter,
+        });
+        self.size = size;
+        Ok(())
+    }
+
+    fn crop(&mut self, target: Size, anchor: Anchor) {
         let (x, y, size) = crop_rect(self.size, target, anchor);
         if size != self.size {
             self.steps.push(Step::Crop { x, y, size });

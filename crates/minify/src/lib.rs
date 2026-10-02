@@ -22,6 +22,8 @@ mod html;
 mod js;
 mod json;
 pub mod options;
+pub mod purge;
+mod targets;
 mod xml;
 
 use std::borrow::Cow;
@@ -31,6 +33,8 @@ use neohugo_config::MinifyConfig;
 pub use json::JsonErrorKind;
 pub use neohugo_config::global::MinifyTarget;
 pub use options::{DecodedOptions, IgnoredOption, Options};
+pub use purge::{CssPurges, PURGE_PREFIX, PageNames, PurgeOptions, PurgePlan};
+pub use targets::project_browsers;
 
 /// A minification failure: invalid input, or an invalid option.
 #[derive(Debug, thiserror::Error)]
@@ -46,6 +50,11 @@ pub enum MinifyError {
     Xml { offset: u64, message: String },
     #[error("the HTML minifier produced invalid UTF-8")]
     HtmlEncoding,
+    #[error("browserslist: {0}")]
+    Browserslist(String),
+    /// `purge_css`: CSS lightningcss rejects, an invalid pattern, an unknown placeholder.
+    #[error("purge_css: {0}")]
+    Purge(String),
 }
 
 /// The output type a media type is minified as, if any (Hugo's registration): `text/html`,
@@ -101,6 +110,21 @@ impl Minifier {
             disabled: disabled.to_vec(),
             ignored: Vec::new(),
         }
+    }
+
+    /// The minifier with CSS browser targets ([`project_browsers`]): stand-alone CSS gets the
+    /// vendor prefixes and the syntax those browsers need.
+    #[must_use]
+    pub fn with_browsers(mut self, browsers: Option<lightningcss::targets::Browsers>) -> Self {
+        self.options.css.browsers = browsers;
+        self
+    }
+
+    /// The lightningcss targets CSS is printed for (browsers, `keepCSS2`), for printers outside
+    /// this crate's minifier such as `purge_css`.
+    #[must_use]
+    pub fn css_targets(&self) -> lightningcss::targets::Targets {
+        css::targets(&self.options.css)
     }
 
     /// The effective options.
