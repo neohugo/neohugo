@@ -469,7 +469,7 @@ def main():
     ap.add_argument("--project")
     ap.add_argument("--keep", action="store_true")
     a = ap.parse_args()
-    tmp = tempfile.mkdtemp(prefix="neohugo-selftest.")
+    tmp = tempfile.mkdtemp(prefix="ssg-selftest.")
     try:
         if a.go_out:
             src, project, site = a.go_out, a.project, "go-out"
@@ -478,7 +478,7 @@ def main():
             testsite_output(src)
             # The project directory only gives the extractor the base URL.
             project = os.path.join(tmp, "testsite-project")
-            write(os.path.join(project, "neohugo.toml"), 'baseURL = "https://example.org/"\n')
+            write(os.path.join(project, "config.toml"), 'baseURL = "https://example.org/"\n')
         base = os.path.join(tmp, "base")
         shutil.copytree(src, base)
         run = Run("selftest", project, None)

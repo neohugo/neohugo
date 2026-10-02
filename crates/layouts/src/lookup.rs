@@ -2,10 +2,10 @@
 
 use std::sync::Arc;
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{FormatId, LangIdx, PageKind};
-use neohugo_config::output::Escaping;
-use neohugo_vfs::{Component, Parsed};
+use ssg_base::paths::ContentKey;
+use ssg_base::{FormatId, LangIdx, PageKind};
+use ssg_config::output::Escaping;
+use ssg_vfs::{Component, Parsed};
 
 use crate::classify::main_kind;
 use crate::env::{EmbeddedHooks, HookUse};

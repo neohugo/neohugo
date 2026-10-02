@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds the documentation site https://neohugo.github.io/ with neohugo: docs/ with the Tera
+# Builds the documentation site https://getfugo.github.io/ with the binary: docs/ with the Tera
 # overlay sites/docs (`sites.py make docs-live`, no patches) and the docs site's own node modules
 # (`npm ci` of docs/package.json with tools/docs/package-lock.json: docs/ ignores its lock file, and
 # this one resolves to the versions the published site was built with), the way the
@@ -7,20 +7,20 @@
 # environment, network access for GetRemote: GitHub stars and releases, X posts, a font).
 # Gate A-D3 (crates/cli/tests/it/docs.rs) compares this site with the published one.
 #
-#   tools/docs/build.sh [-o <dir>] [--serve] [-- <neohugo args>...]
+#   tools/docs/build.sh [-o <dir>] [--serve] [-- <binary args>...]
 #
 #   -o <dir>   the publish directory (default: <work>/public); emptied first
-#   --serve    run `neohugo server` on the generated site instead of building it (live reload;
+#   --serve    run the `server` command on the generated site instead of building it (live reload;
 #              edits go to the generated site in <work>, not to docs/ or sites/docs)
-#   -- ...     further arguments for neohugo (e.g. --minify, -b <baseURL>, -p 1314)
+#   -- ...     further arguments for the binary (e.g. --minify, -b <baseURL>, -p 1314)
 #
 # Environment:
-#   NEOHUGO_BINARY          neohugo (default: target/release/neohugo, built with
-#                           `cargo build --release --locked -p neohugo` when missing)
-#   NEOHUGO_DOCS_WORK       work directory, outside the repository (default:
-#                           ${TMPDIR:-/tmp}/neohugo-docs): the generated site (rewritten on every
+#   FUGO_BINARY          the binary (default: target/release/<name>, built with
+#                           `cargo build --release --locked -p ssg-cli` when missing)
+#   FUGO_DOCS_WORK       work directory, outside the repository (default:
+#                           ${TMPDIR:-/tmp}/ssg-docs): the generated site (rewritten on every
 #                           run), the node modules (kept per lock file hash), public/
-#   NEOHUGO_GH_TOKEN        optional GitHub token for the GitHub API requests
+#   FUGO_GH_TOKEN        optional GitHub token for the GitHub API requests
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -43,20 +43,22 @@ while [ $# -gt 0 ]; do
 	esac
 done
 
-WORK=${NEOHUGO_DOCS_WORK:-${TMPDIR:-/tmp}/neohugo-docs}
+WORK=${FUGO_DOCS_WORK:-${TMPDIR:-/tmp}/ssg-docs}
 case "$WORK" in "$ROOT" | "$ROOT"/*) log "the work directory must be outside the repository"; exit 2 ;; esac
 mkdir -p "$WORK"
 WORK=$(cd "$WORK" && pwd)
 out=${out:-$WORK/public}
 
-BIN=${NEOHUGO_BINARY:-}
+BIN=${FUGO_BINARY:-}
 if [ -z "$BIN" ]; then
 	target=${CARGO_TARGET_DIR:-$ROOT/target}
 	case $target in /*) ;; *) target=$ROOT/$target ;; esac
-	BIN=$target/release/neohugo
+	# The binary's name: `[[bin]] name` of crates/cli/Cargo.toml.
+	name=$(awk -F'"' '/^\[\[bin\]\]/ { b = 1 } b && /^name/ { print $2; exit }' "$ROOT/crates/cli/Cargo.toml")
+	BIN=$target/release/$name
 	if [ ! -x "$BIN" ]; then
-		log "building neohugo (cargo build --release --locked -p neohugo)"
-		(cd "$ROOT" && cargo build --release --locked -p neohugo >&2)
+		log "building $name (cargo build --release --locked -p ssg-cli)"
+		(cd "$ROOT" && cargo build --release --locked -p ssg-cli >&2)
 	fi
 fi
 command -v npm >/dev/null || { log "npm is needed (the docs site's Tailwind CSS, Alpine.js and Turbo)"; exit 1; }
@@ -82,7 +84,7 @@ fi
 ln -s "$npm_dir/node_modules" "$site/node_modules"
 
 export PATH="$npm_dir/node_modules/.bin:$PATH"
-export NEOHUGO_NODE_MODULES=$npm_dir/node_modules
+export FUGO_NODE_MODULES=$npm_dir/node_modules
 
 cd "$site"
 if [ -n "$serve" ]; then

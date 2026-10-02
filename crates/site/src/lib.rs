@@ -6,7 +6,7 @@
 //!    decoded into folded [`Params`], the capture overrides `kind`, `lang` and `path`, the page's
 //!    own `cascade`. `data::load` builds `.Site.Data` alongside. Content adapters
 //!    (`_content.html`) are listed, not run: [`capture_content`] returns the [`Captured`]
-//!    content, the caller runs the adapters (neohugo-build renders them with a model of the
+//!    content, the caller runs the adapters (ssg-build renders them with a model of the
 //!    files alone) and [`assemble`] builds the model with the pages and resources they
 //!    [`Added`]. [`load_model`] is both steps without adapters.
 //! 2. **Tree** (B1): every page gets its language, key and kind (home, section, taxonomy, term
@@ -14,7 +14,7 @@
 //!    [`PageRole::Bundled`] pages, other bundle files [`BundleResource`]s. Keys claimed twice keep
 //!    the first file, with a warning.
 //! 3. **Cascade → meta → dates → filter** (B2): the cascade handed down each tree
-//!    ([`CascadeIndex`]), then [`neohugo_page::meta_from_params`] with the language's date
+//!    ([`CascadeIndex`]), then [`ssg_page::meta_from_params`] with the language's date
 //!    sources and time zone (parallel over pages), then drafts, future and expired content
 //!    against the build clock.
 //! 4. **Nodes** (B3, `nodes`): the pages Hugo makes itself: missing taxonomy pages, root
@@ -49,18 +49,18 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use jiff::Zoned;
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::paths::{self, ContentKey};
-use neohugo_base::{
+use ssg_base::diag::Diagnostic;
+use ssg_base::paths::{self, ContentKey};
+use ssg_base::{
     Clock, FormatId, IdVec, LangIdx, Map, OutputPath, PageId, PageKind, Params, ResourceId,
     TaxonomyIdx, TermIdx, UrlPath,
 };
-use neohugo_config::{Config, ContentFilter};
-use neohugo_page::{
+use ssg_config::{Config, ContentFilter};
+use ssg_page::{
     AdapterPage, Dates, Links, ListMode, PageError, PageMeta, PermalinkPatterns, RenderMode,
     ResourceBase, TargetPaths,
 };
-use neohugo_vfs::{FileRef, PathInfo, PathParser, Vfs, VfsError};
+use ssg_vfs::{FileRef, PathInfo, PathParser, Vfs, VfsError};
 
 pub use capture::{ContentAdapter, SourceFile};
 pub use cascade::CascadeIndex;
@@ -472,10 +472,10 @@ pub enum ModelError {
     },
     /// A Go-template content adapter (`_content.gotmpl`).
     #[error(
-        "{0}: content adapters are Tera templates in neohugo: port this Go template to \
+        "{0}: content adapters are Tera templates: port this Go template to \
          `_content.html` in the same directory (`add_page(page={{…}})`, \
          `add_resource(resource={{…}})`, `store_set`, `enable_all_languages()`; \
-         https://github.com/neohugo/neohugo/blob/main/docs/rust-port/template-api.md gives \
+         https://github.com/getfugo/fugo/blob/main/docs/rust-port/template-api.md gives \
          Hugo's functions with their Tera names)"
     )]
     GoContentAdapter(PathBuf),
@@ -755,7 +755,7 @@ pub fn assemble(
         .into_iter()
         .enumerate()
         .map(|(i, cascade)| SiteModel {
-            lang: <LangIdx as neohugo_base::Idx>::from_index(i),
+            lang: <LangIdx as ssg_base::Idx>::from_index(i),
             tree: SiteTree::default(),
             resources: BTreeMap::new(),
             cascade,

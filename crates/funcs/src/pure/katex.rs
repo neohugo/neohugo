@@ -2,7 +2,7 @@
 //!
 //! Hugo's `transform.ToMath` runs KaTeX 0.16.22 with its mhchem extension in QuickJS
 //! (`internal/warpc`: the bundle `js/renderkatex.bundle.js` compiled by Javy, run on wazero by
-//! a pool of instances, one JSON message per formula). neohugo runs the same KaTeX release (the
+//! a pool of instances, one JSON message per formula). This port runs the same KaTeX release (the
 //! npm package's `dist/katex.min.js` and `dist/contrib/mhchem.min.js`, `assets/katex/`) in
 //! QuickJS-ng through rquickjs, natively, with the same messages: `assets/katex/render.js` is
 //! the entry point, rewritten from Hugo's `renderkatex.js` and `common.js` (this repository at

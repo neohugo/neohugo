@@ -1,15 +1,13 @@
-//! `js.Build` behaviour beyond the oracle: what neohugo adds to rolldown to behave like esbuild
+//! `js.Build` behaviour beyond the oracle: what this port adds to rolldown to behave like esbuild
 //! (externals in IIFE output, `NODE_ENV`, `inject`, JSX `preserve`, CSS imports, diagnostics),
 //! source map modes, and builds from a thread pool.
 
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use neohugo_jsbuild::{
-    JsBuildError, JsBuildOptions, JsBuildOutput, JsBuilder, MountedDirs, Source,
-};
 use rayon::prelude::*;
 use serde_json::{Value as Json, json};
+use ssg_jsbuild::{JsBuildError, JsBuildOptions, JsBuildOutput, JsBuilder, MountedDirs, Source};
 
 /// A site with `files` (paths relative to the site) and its assets mounted at the root.
 struct Site {
@@ -225,7 +223,7 @@ fn source_map_modes() {
             ),
         ],
     );
-    let lib_url = neohugo_jsbuild::file_url(&s.root.join("assets/js/lib.js"));
+    let lib_url = ssg_jsbuild::file_url(&s.root.join("assets/js/lib.js"));
 
     let linked = s
         .build(
@@ -303,7 +301,7 @@ fn builds_from_a_thread_pool() {
         ],
     );
     let want = s.code("js/main.js", &json!({"minify": true}));
-    // One and two threads, as neohugo's render pool can have: every build blocks its thread
+    // One and two threads, as our render pool can have: every build blocks its thread
     // until done, under a lock like the store's.
     for threads in [1, 2] {
         let pool = rayon::ThreadPoolBuilder::new()

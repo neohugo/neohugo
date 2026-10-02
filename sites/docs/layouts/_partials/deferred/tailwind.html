@@ -6,7 +6,7 @@
 {%- set r = get_asset(path="css/styles.css") %}
 {%- if r %}
   {%- if data.tailwind %}
-    {%- set css = r | tailwind(options={"minify": not neohugo.is_development}) %}
+    {%- set css = r | tailwind(options={"minify": not build.is_development}) %}
   {%- else %}
     {%- set css = r | minify %}
   {%- endif %}

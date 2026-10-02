@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use neohugo_base::Value;
+use ssg_base::Value;
 
 /// A duration string that could not be parsed.
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]

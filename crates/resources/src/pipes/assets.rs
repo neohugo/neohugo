@@ -4,8 +4,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_jsbuild::{AssetEntry, Assets};
-use neohugo_vfs::{Component, Vfs};
+use ssg_jsbuild::{AssetEntry, Assets};
+use ssg_vfs::{Component, Vfs};
 
 /// The assets component of a store's [`Vfs`] (empty without one).
 #[derive(Clone, Copy)]
@@ -94,6 +94,6 @@ impl Assets for SharedAssets {
 
 /// `rel` cleaned, without leading or trailing `/` (`""` for the root).
 pub(super) fn clean(rel: &str) -> String {
-    let c = neohugo_base::paths::clean(&format!("/{}", rel.replace('\\', "/")));
+    let c = ssg_base::paths::clean(&format!("/{}", rel.replace('\\', "/")));
     c.trim_matches('/').to_owned()
 }

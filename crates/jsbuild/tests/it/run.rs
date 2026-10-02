@@ -77,7 +77,7 @@ function recorder(name) {
     construct(_, args) { out(`new ${name}(${args.map((a) => show(a)).join(', ')})`); return recorder(`new ${name}`); },
   });
 }
-globalThis.__neohugoRecorder = recorder;
+globalThis.__ssgRecorder = recorder;
 const rec = {};
 for (const m of ['log', 'info', 'warn', 'error', 'debug']) {
   rec[m] = (...a) => out(`console.${m}(${a.map((x) => show(x)).join(', ')})`);
@@ -116,7 +116,7 @@ export async function resolve(spec, ctx, next) {
 export async function load(url, ctx, next) {
   if (!url.startsWith('stub:')) return next(url, ctx);
   const { spec, names } = JSON.parse(decodeURIComponent(url.slice(5)));
-  const lines = ['const r = globalThis.__neohugoRecorder(' + JSON.stringify('import:' + spec) + ');', 'export default r;'];
+  const lines = ['const r = globalThis.__ssgRecorder(' + JSON.stringify('import:' + spec) + ');', 'export default r;'];
   for (const n of names) lines.push('export const ' + n + ' = r[' + JSON.stringify(n) + '];');
   return { format: 'module', source: lines.join('\\n'), shortCircuit: true };
 }`;

@@ -1,8 +1,8 @@
 //! External tools: a missing tool is an error naming the binary; `security.exec.allow` is
 //! enforced; tools run in the project directory with Hugo's environment.
 
-use neohugo_resources::pipes::{BabelOptions, PostCssOptions, TailwindOptions};
-use neohugo_resources::{PipeError, ResourceError, Transform};
+use ssg_resources::pipes::{BabelOptions, PostCssOptions, TailwindOptions};
+use ssg_resources::{PipeError, ResourceError, Transform};
 
 use super::{fake_tool, have_node, mini_site, project};
 
@@ -17,7 +17,7 @@ fn pipe_error(e: &ResourceError) -> &PipeError {
 fn a_missing_tool_is_an_error_naming_the_binary() {
     let site = mini_site(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.org/\"\n[security.exec]\nallow = ['^postcss$', '^tailwindcss$', '^babel$']\n",
         ),
         ("assets/css/a.css", ".a { color: red; }\n"),
@@ -31,19 +31,19 @@ fn a_missing_tool_is_an_error_naming_the_binary() {
             css,
             Transform::PostCss(PostCssOptions::default()),
             "postcss",
-            "NEOHUGO_POSTCSS_BIN",
+            "FUGO_POSTCSS_BIN",
         ),
         (
             css,
             Transform::TailwindCss(TailwindOptions::default()),
             "tailwindcss",
-            "NEOHUGO_TAILWINDCSS_BIN",
+            "FUGO_TAILWINDCSS_BIN",
         ),
         (
             js,
             Transform::Babel(BabelOptions::default()),
             "babel",
-            "NEOHUGO_BABEL_BIN",
+            "FUGO_BABEL_BIN",
         ),
     ] {
         let id = p.store.transform(src, t).unwrap();
@@ -77,7 +77,7 @@ fn a_missing_tool_is_an_error_naming_the_binary() {
 fn exec_allow_is_enforced() {
     // Babel is not in Hugo's default allow list; a site must allow it.
     let site = mini_site(&[
-        ("neohugo.toml", "baseURL = \"https://example.org/\"\n"),
+        ("config.toml", "baseURL = \"https://example.org/\"\n"),
         ("assets/js/a.js", "export const a = 1;\n"),
     ]);
     let p = project(site.path(), |_| {});
@@ -101,14 +101,14 @@ fn tools_get_hugo_environment() {
         return;
     }
     let site = mini_site(&[
-        ("neohugo.toml", "baseURL = \"https://example.org/\"\n"),
+        ("config.toml", "baseURL = \"https://example.org/\"\n"),
         ("package.json", "{}\n"),
         ("postcss.config.js", "module.exports = {};\n"),
         ("assets/css/a.css", ".a { color: red; }\n"),
     ]);
     let tmp = tempfile::tempdir().unwrap();
     let script = r"
-const keys = ['NODE_PATH', 'PWD', 'NEOHUGO_ENVIRONMENT', 'NEOHUGO_PUBLISHDIR', 'NEOHUGO_FILE_PACKAGE_JSON', 'NEOHUGO_FILE_POSTCSS_CONFIG_JS', 'HUGO_ENVIRONMENT', 'HUGO_ENV', 'HUGO_PUBLISHDIR', 'HUGO_FILE_PACKAGE_JSON', 'HUGO_FILE_POSTCSS_CONFIG_JS', 'SECRET_TOKEN'];
+const keys = ['NODE_PATH', 'PWD', 'FUGO_ENVIRONMENT', 'FUGO_PUBLISHDIR', 'FUGO_FILE_PACKAGE_JSON', 'FUGO_FILE_POSTCSS_CONFIG_JS', 'HUGO_ENVIRONMENT', 'HUGO_ENV', 'HUGO_PUBLISHDIR', 'HUGO_FILE_PACKAGE_JSON', 'HUGO_FILE_POSTCSS_CONFIG_JS', 'SECRET_TOKEN'];
 require('fs').readFileSync(0);
 process.stdout.write(JSON.stringify({cwd: process.cwd(), env: Object.fromEntries(keys.map((k) => [k, process.env[k] || null]))}));
 ";
@@ -137,14 +137,14 @@ process.stdout.write(JSON.stringify({cwd: process.cwd(), env: Object.fromEntries
     // no node_modules and one tools directory is missing.
     assert_eq!(env["NODE_PATH"], extra.display().to_string().as_str());
     assert_eq!(env["PWD"], dir.as_str());
-    assert_eq!(env["NEOHUGO_ENVIRONMENT"], "staging");
-    assert_eq!(env["NEOHUGO_PUBLISHDIR"], format!("{dir}/public").as_str());
+    assert_eq!(env["FUGO_ENVIRONMENT"], "staging");
+    assert_eq!(env["FUGO_PUBLISHDIR"], format!("{dir}/public").as_str());
     assert_eq!(
-        env["NEOHUGO_FILE_PACKAGE_JSON"],
+        env["FUGO_FILE_PACKAGE_JSON"],
         format!("{dir}/package.json").as_str()
     );
     assert_eq!(
-        env["NEOHUGO_FILE_POSTCSS_CONFIG_JS"],
+        env["FUGO_FILE_POSTCSS_CONFIG_JS"],
         format!("{dir}/postcss.config.js").as_str()
     );
     // Hugo's names are not set.

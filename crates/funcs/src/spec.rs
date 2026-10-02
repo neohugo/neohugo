@@ -1,10 +1,10 @@
-//! The template API as data: every filter, function and test a neohugo template may call
+//! The template API as data: every filter, function and test a template may call
 //! ([`FUNCS`]), the top-level names of every render context ([`CONTEXTS`], [`HOOK_FIELDS`]), the
 //! Hugo constructs that became Tera syntax ([`SYNTAX`]), the conversion rules
 //! ([`CONVERSION_RULES`]) and the embedded templates ([`EMBEDDED_TEMPLATES`]).
 //!
 //! This module is the single source of truth (REWRITE_PLAN.md §4.6): `docs/rust-port/template-api.md`
-//! is generated from it by [`template_api_markdown`] and checked by neohugo-testkit's contract
+//! is generated from it by [`template_api_markdown`] and checked by ssg-testkit's contract
 //! test, and `register_placeholders` registers a kwargs-checking stub for every entry. It depends
 //! on nothing, so it is available without the crate's `runtime` feature.
 
@@ -21,12 +21,12 @@ pub enum NameKind {
 /// Who implements a name.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub enum Source {
-    /// A Tera 2.4.0 built-in; neohugo never overrides one.
+    /// A Tera 2.4.0 built-in; never overridden.
     Builtin,
     /// tera-contrib 0.3, registered by `register_pure`.
     Contrib,
-    /// neohugo: `neohugo-funcs` when pure, `neohugo-sitefuncs` when site-bound.
-    Neohugo,
+    /// This workspace: `ssg-funcs` when pure, `ssg-sitefuncs` when site-bound.
+    Native,
 }
 
 /// The render phases in which a name is available (REWRITE_PLAN.md §4.4).
@@ -51,9 +51,9 @@ pub enum ArgType {
     Bool,
     Array,
     Map,
-    /// A page value (summary, link or full); read through `neohugo_funcs::PageArg`.
+    /// A page value (summary, link or full); read through `ssg_funcs::PageArg`.
     Page,
-    /// A resource view; read through `neohugo_funcs::ResourceArg`.
+    /// A resource view; read through `ssg_funcs::ResourceArg`.
     Resource,
 }
 
@@ -149,7 +149,7 @@ pub struct FuncSpec {
     pub phase: PhaseAvail,
     /// The output is marked safe (never autoescaped).
     pub safe: bool,
-    /// Needs the site model or the render scope `__nh` (neohugo-sitefuncs).
+    /// Needs the site model or the render scope `__nh` (ssg-sitefuncs).
     pub site_bound: bool,
     pub group: Group,
     /// The Hugo functions or methods this replaces ("" when it has no Hugo counterpart).
@@ -164,9 +164,9 @@ impl FuncSpec {
         let base = match (self.source, self.kind) {
             (Source::Builtin, _) => "bi",
             (Source::Contrib, _) => "tc",
-            (Source::Neohugo, NameKind::Filter) => "F",
-            (Source::Neohugo, NameKind::Function) => "fn",
-            (Source::Neohugo, NameKind::Test) => "T",
+            (Source::Native, NameKind::Filter) => "F",
+            (Source::Native, NameKind::Function) => "fn",
+            (Source::Native, NameKind::Test) => "T",
         };
         if self.site_bound {
             format!("{base} (s)")
@@ -220,7 +220,7 @@ impl FuncSpec {
         Self {
             name,
             kind,
-            source: Source::Neohugo,
+            source: Source::Native,
             kwargs: &[],
             rest_kwargs: false,
             phase: PhaseAvail::Both,
@@ -619,7 +619,7 @@ const fn cn(name: &'static str, doc: &'static str) -> ContextName {
 }
 
 const SITE: ContextName = cn("site", "`SiteView` of the current language");
-const NEOHUGO: ContextName = cn("neohugo", "`NeohugoView`: version, environment, generator");
+const BUILD: ContextName = cn("build", "`BuildView`: version, environment, generator");
 const LANG: ContextName = cn("lang", "the language code of the page");
 const OUTPUT_FORMAT: ContextName = cn("output_format", "`OutputFormatView` being rendered");
 const NH: ContextName = cn(
@@ -636,7 +636,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the full page value of the Full generation"),
             SITE,
-            NEOHUGO,
+            BUILD,
             LANG,
             OUTPUT_FORMAT,
             NH,
@@ -652,7 +652,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
                 "the full page value of the Meta generation: relations yes, content fields no",
             ),
             SITE,
-            NEOHUGO,
+            BUILD,
             LANG,
             cn(
                 "shortcode",
@@ -677,7 +677,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
                 "the page whose source holds the hooked node (differs inside `render_shortcodes`)",
             ),
             SITE,
-            NEOHUGO,
+            BUILD,
             LANG,
             NH,
         ],
@@ -689,7 +689,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the caller's page"),
             SITE,
-            NEOHUGO,
+            BUILD,
             LANG,
             OUTPUT_FORMAT,
             cn(
@@ -703,7 +703,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         role: RenderRole::Component,
         title: "Component",
         names: &[],
-        note: "only its declared arguments; `@page`, `@site`, `@neohugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope)",
+        note: "only its declared arguments; `@page`, `@site`, `@build`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope)",
     },
     ContextSpec {
         role: RenderRole::Deferred,
@@ -711,7 +711,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             DATA,
             SITE,
-            NEOHUGO,
+            BUILD,
             cn("__nh", "the render scope, phase `Deferred`"),
         ],
         note: "",
@@ -719,7 +719,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
     ContextSpec {
         role: RenderRole::ExecuteAsTemplate,
         title: "`execute_as_template`",
-        names: &[DATA, SITE, NEOHUGO, NH],
+        names: &[DATA, SITE, BUILD, NH],
         note: "",
     },
     ContextSpec {
@@ -729,7 +729,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
             cn("permalink", "the target URL"),
             cn("page", "the target page (link value)"),
             SITE,
-            NEOHUGO,
+            BUILD,
         ],
         note: "",
     },
@@ -739,7 +739,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the standalone page; its `pages` is `site.pages`"),
             SITE,
-            NEOHUGO,
+            BUILD,
             LANG,
             NH,
         ],
@@ -751,7 +751,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         names: &[
             cn("page", "the standalone page"),
             SITE,
-            NEOHUGO,
+            BUILD,
             LANG,
             NH,
             cn("sites", "`[{language, sitemap_abs_url, last_mod}]`"),
@@ -763,7 +763,7 @@ pub const CONTEXTS: &[ContextSpec] = &[
         title: "Content adapter (`content/**/_content.html`)",
         names: &[
             SITE,
-            NEOHUGO,
+            BUILD,
             cn("lang", "the language the adapter runs for"),
             cn("__nh", "the render scope, phase `Adapter`"),
         ],
@@ -880,7 +880,7 @@ pub const SYNTAX: &[SyntaxRule] = &[
     ),
     syn(
         "`hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator`",
-        "`neohugo.version` (`\"0.149.0-DEV\"`), `neohugo.environment`, `neohugo.is_production`, `neohugo.is_development`, `neohugo.is_server`, `neohugo.generator`",
+        "`build.version` (`\"0.149.0-DEV\"`), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator`",
     ),
     syn(
         "`.Site.ServerPort`",
@@ -902,7 +902,7 @@ pub const SYNTAX: &[SyntaxRule] = &[
     syn("`debug.Timer`", "removed"),
 ];
 
-/// REWRITE_PLAN.md §4.7, applied by hand when converting layouts (and by `neohugo-migrate`).
+/// REWRITE_PLAN.md §4.7, applied by hand when converting layouts (and by `ssg-migrate`).
 pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
     (
         "Names and paths",
@@ -983,7 +983,7 @@ pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
     ),
 ];
 
-/// The embedded templates neohugo provides (T32), by v0.146 name. They are loaded under
+/// The embedded templates this port provides (T32), by v0.146 name. They are loaded under
 /// [`EMBEDDED_PREFIX`], a Tera fallback prefix, so user and theme templates of the same name win.
 pub const EMBEDDED_TEMPLATES: &[&str] = &[
     "_markup/render-codeblock-goat.html",
@@ -1018,7 +1018,7 @@ pub const EMBEDDED_TEMPLATES: &[&str] = &[
 pub const EMBEDDED_PREFIX: &str = "_embedded/";
 
 /// Tera 2.4.0 behaviours the template model relies on, verified by T02 against the source and by
-/// the `tera_facts` tests of neohugo-testkit.
+/// the `tera_facts` tests of ssg-testkit.
 pub const TERA_FACTS: &[&str] = &[
     "`__nh` is an ordinary identifier (a leading `_` is allowed) and `@__nh` a valid implicit component argument, resolved through the callers' scopes; a component that does not declare it cannot see it.",
     "Component call arguments are `name={expr}`, `name=\"literal\"` or the shorthand `name`; `name=expr` is a syntax error.",
@@ -1052,16 +1052,16 @@ pub fn template_api_markdown() -> String {
 }
 
 fn write_markdown(w: &mut String) -> std::fmt::Result {
-    writeln!(w, "# neohugo template API\n")?;
+    writeln!(w, "# Template API\n")?;
     writeln!(
         w,
-        "<!-- GENERATED from neohugo_funcs::spec (crates/funcs/src/spec.rs); do not edit.\n     \
-         Regenerate: INSTA_UPDATE=always cargo test -p neohugo-testkit contract -->\n"
+        "<!-- GENERATED from ssg_funcs::spec (crates/funcs/src/spec.rs); do not edit.\n     \
+         Regenerate: INSTA_UPDATE=always cargo test -p ssg-testkit contract -->\n"
     )?;
     writeln!(
         w,
         "Templates are Tera 2.4.0 ([REWRITE_PLAN.md](REWRITE_PLAN.md) §4). Kind codes: `bi` Tera \
-         built-in, `tc` tera-contrib, `F` neohugo filter, `fn` neohugo function, `T` neohugo \
+         built-in, `tc` tera-contrib, `F` native filter, `fn` native function, `T` native \
          test; `(s)` site-bound (needs the site model or the render scope). Phase: `both`, or \
          the only phase the name works in. `=?` marks an optional kwarg, `…` any further kwargs.\n"
     )?;
@@ -1158,7 +1158,7 @@ fn write_markdown(w: &mut String) -> std::fmt::Result {
     writeln!(
         w,
         "\n## Tera facts\n\nVerified against the tera 2.4.0 source and by the `tera_facts` tests of \
-         neohugo-testkit.\n"
+         ssg-testkit.\n"
     )?;
     for f in TERA_FACTS {
         writeln!(w, "- {f}")?;

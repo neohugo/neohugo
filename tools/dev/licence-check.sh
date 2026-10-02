@@ -2,7 +2,7 @@
 # Checks the licences of every package in the workspace's dependency graph against the
 # policy in deny.toml (docs/rust-port/REWRITE_PLAN.md §5). Python stdlib only.
 #
-#   tools/neohugo/licence-check.sh [-v]
+#   tools/dev/licence-check.sh [-v]
 #
 # The graph is `cargo metadata --filter-platform x86_64-unknown-linux-gnu --all-features`
 # (normal, build and dev dependencies). Each package's `license` field is evaluated as an SPDX

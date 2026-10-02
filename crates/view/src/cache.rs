@@ -25,13 +25,13 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
-use neohugo_base::{FormatId, IdVec, Idx, LangIdx, PageId, PageKind, ResourceId, TaxonomyIdx};
-use neohugo_config::output::{Escaping, Listing};
-use neohugo_nav::{MenuEntry, Menus};
-use neohugo_resources::{ResourceError, ResourceStore};
-use neohugo_site::{Model, PageRole};
 use rayon::prelude::*;
 use serde::Serialize;
+use ssg_base::{FormatId, IdVec, Idx, LangIdx, PageId, PageKind, ResourceId, TaxonomyIdx};
+use ssg_config::output::{Escaping, Listing};
+use ssg_nav::{MenuEntry, Menus};
+use ssg_resources::{ResourceError, ResourceStore};
+use ssg_site::{Model, PageRole};
 
 use crate::content::{ContentError, ContentRenderer, RenderedContent};
 use crate::nav::{NavSite, bundle_type};
@@ -52,7 +52,7 @@ pub struct ViewInputs {
     pub model: Arc<Model>,
     /// Bundle files are registered here; resource values carry its ids.
     pub store: Arc<ResourceStore>,
-    /// `site.menus` (`neohugo_nav::build_menus` over [`NavSite`]).
+    /// `site.menus` (`ssg_nav::build_menus` over [`NavSite`]).
     pub menus: Arc<Menus>,
 }
 
@@ -141,7 +141,7 @@ fn page_link(model: &Model, id: PageId) -> PageLink {
     }
 }
 
-fn file_view(p: &neohugo_site::Page) -> Option<FileView> {
+fn file_view(p: &ssg_site::Page) -> Option<FileView> {
     let src = p.source.as_ref()?;
     let rel = &src.file.rel;
     let (dir, file) = rel
@@ -168,14 +168,14 @@ fn file_view(p: &neohugo_site::Page) -> Option<FileView> {
         base_file_name: base.to_owned(),
         content_base_name: src.file_info.original.name.clone(),
         unique_id,
-        is_content_adapter: src.file_info.kind == neohugo_vfs::BundleKind::ContentAdapter,
+        is_content_adapter: src.file_info.kind == ssg_vfs::BundleKind::ContentAdapter,
     })
 }
 
 fn output_formats(
     model: &Model,
     media_types: &IdVec<FormatId, tera::Value>,
-    p: &neohugo_site::Page,
+    p: &ssg_site::Page,
 ) -> tera::Value {
     let cfg = &model.config;
     let mut m = tera::Map::with_capacity(p.urls.len());
@@ -241,7 +241,7 @@ struct Interner {
 }
 
 impl Interner {
-    fn sitemap(&self, s: &neohugo_config::sections::SitemapConfig) -> tera::Value {
+    fn sitemap(&self, s: &ssg_config::sections::SitemapConfig) -> tera::Value {
         let mut all = self
             .sitemaps
             .lock()
@@ -265,7 +265,7 @@ impl Interner {
 }
 
 /// The four dates of a page; equal instants share one value.
-fn dates(d: &neohugo_page::Dates) -> [tera::Value; 4] {
+fn dates(d: &ssg_page::Dates) -> [tera::Value; 4] {
     let all = [&d.date, &d.lastmod, &d.publish_date, &d.expiry_date];
     let mut out: [tera::Value; 4] = std::array::from_fn(|_| tera::Value::none());
     for i in 0..4 {
@@ -425,7 +425,7 @@ impl Shared {
             .flat_map(|s| s.pages.iter().copied())
             .collect();
         let all_languages = tera::Value::from(languages.as_slice());
-        let data = neohugo_base::Value::Map(Arc::clone(&model.data)).to_tera();
+        let data = ssg_base::Value::Map(Arc::clone(&model.data)).to_tera();
         let configs = cfg
             .sites
             .iter()
@@ -494,7 +494,7 @@ impl Default for ContentMemo {
         Self {
             maps: std::sync::Mutex::default(),
             no_fragments: tera::Value::from_serializable(&FragmentsView::new(
-                &neohugo_markup::Fragments::default(),
+                &ssg_markup::Fragments::default(),
             )),
         }
     }
@@ -888,7 +888,7 @@ impl ViewCache {
         &self.shared.model
     }
 
-    /// The model as `neohugo-nav` reads it (aliases, pagination lists, related content).
+    /// The model as `ssg-nav` reads it (aliases, pagination lists, related content).
     #[must_use]
     pub fn nav(&self) -> &NavSite {
         &self.shared.nav

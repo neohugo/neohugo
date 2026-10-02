@@ -1,5 +1,5 @@
-# Licence policy of the neohugo Rust workspace (docs/rust-port/REWRITE_PLAN.md §5), in cargo-deny
-# format. tools/neohugo/licence-check.sh evaluates it (SPDX expressions, Python stdlib) at T00
+# Licence policy of the Rust workspace (docs/rust-port/REWRITE_PLAN.md §5), in cargo-deny
+# format. tools/dev/licence-check.sh evaluates it (SPDX expressions, Python stdlib) at T00
 # and at every phase end; `cargo deny check licenses bans` can replace the script later without
 # redefining the policy.
 

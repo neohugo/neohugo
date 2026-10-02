@@ -1,14 +1,14 @@
-//! The `neohugo_stats.json` collector against the Go oracle `publisher/collector`
+//! The `build_stats.json` collector against the Go oracle `publisher/collector`
 //! (`htmlElementsCollector`): single element strings, whole documents (per document and per
 //! group through one collector) and multi-write streams, under five `buildStats`
 //! configurations.
 
 use std::collections::BTreeMap;
 
-use neohugo_config::global::BuildStats;
-use neohugo_publish::{HtmlElements, NeohugoStats, StatsLists};
-use neohugo_testkit::fixture::{GoString, oracle_lines};
 use serde::Deserialize;
+use ssg_config::global::BuildStats;
+use ssg_publish::{HtmlElements, StatsFile, StatsLists};
+use ssg_testkit::fixture::{GoString, oracle_lines};
 
 use crate::support::{Tally, show};
 
@@ -77,7 +77,7 @@ fn text(s: &GoString) -> (String, bool) {
 }
 
 fn stats(html: &str, c: &BuildStats) -> StatsLists {
-    NeohugoStats::new(HtmlElements::collect(html), c).html_elements
+    StatsFile::new(HtmlElements::collect(html), c).html_elements
 }
 
 /// The accepted class of a difference: the Go collector feeds each element string alone to
@@ -162,7 +162,7 @@ fn repeats_attribute(lower: &str) -> bool {
     })
 }
 
-/// A list as `neohugo_stats.json` has it: sorted, without duplicates, `None` when empty.
+/// A list as `build_stats.json` has it: sorted, without duplicates, `None` when empty.
 fn sorted(v: Option<Vec<String>>) -> Option<Vec<String>> {
     let mut v = v?;
     v.sort();
@@ -231,7 +231,7 @@ fn collector_oracle() {
                         for d in docs {
                             found.add_html(d);
                         }
-                        let got = NeohugoStats::new(found, &c).html_elements;
+                        let got = StatsFile::new(found, &c).html_elements;
                         let t = families.entry("group").or_default();
                         if got == want {
                             t.pass();
@@ -300,9 +300,9 @@ fn collector_oracle() {
     }
 }
 
-/// `NEOHUGO_SAMPLES=<family>:<class>` prints the differences of one class.
+/// `FUGO_SAMPLES=<family>:<class>` prints the differences of one class.
 fn debug_sample(family: &str, class: &str, html: &str, got: &StatsLists, want: &StatsLists) {
-    if std::env::var("NEOHUGO_SAMPLES").is_ok_and(|v| v == format!("{family}:{class}")) {
+    if std::env::var("FUGO_SAMPLES").is_ok_and(|v| v == format!("{family}:{class}")) {
         eprintln!("{html:?}\n    got  {got:?}\n    want {want:?}");
     }
 }

@@ -3,11 +3,11 @@
 
 use std::cmp::Ordering;
 
-use neohugo_base::Collate;
-use neohugo_locale::{Collator, Locale};
+use ssg_base::Collate;
+use ssg_locale::{Collator, Locale};
 
 fn site_strings() -> Vec<String> {
-    let path = neohugo_testkit::fixture::testdata("corpus/collate/site-strings.hex");
+    let path = ssg_testkit::fixture::testdata("corpus/collate/site-strings.hex");
     let text = std::fs::read_to_string(&path).unwrap();
     text.lines()
         .filter(|l| !l.is_empty())

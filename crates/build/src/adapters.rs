@@ -9,16 +9,16 @@
 //! `enable_all_languages()`, once for every other language in language order; its runs share
 //! its store. Adapters run one after the other in discovery order (directory, then language),
 //! so the added pages and their ids do not depend on the thread count, and of two adapters
-//! that add one path the later one wins (`neohugo_site::assemble`). The model is then
+//! that add one path the later one wins (`ssg_site::assemble`). The model is then
 //! assembled again with the added pages and resources, and what the adapters logged is
 //! reported with the build.
 
 use std::sync::Arc;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_config::Config;
-use neohugo_render::{Project, RenderOptions, Session};
-use neohugo_site::{Added, Captured, LoadModelOptions, Model, ModelError};
+use ssg_base::diag::Diagnostic;
+use ssg_config::Config;
+use ssg_render::{Project, RenderOptions, Session};
+use ssg_site::{Added, Captured, LoadModelOptions, Model, ModelError};
 
 use crate::{BuildError, RenderPool};
 
@@ -32,9 +32,8 @@ pub(crate) fn assemble_with_adapters(
     render: &RenderOptions,
     pool: &RenderPool,
 ) -> Result<(Model, Vec<Diagnostic>), BuildError> {
-    let files = pool.run(|| {
-        neohugo_site::assemble(Arc::clone(cfg), captured.clone(), Added::default(), opts)
-    })?;
+    let files =
+        pool.run(|| ssg_site::assemble(Arc::clone(cfg), captured.clone(), Added::default(), opts))?;
     let session = pool.run(|| Session::new(project.clone(), Arc::new(files), render))?;
     let mark = session.diagnostics().len();
     let runs = Arc::clone(&session.handles().adapters);
@@ -45,13 +44,13 @@ pub(crate) fn assemble_with_adapters(
             path: path.clone(),
             source,
         })?;
-        if let Some((line, marker)) = neohugo_layouts::go_marker(&source) {
+        if let Some((line, marker)) = ssg_layouts::go_marker(&source) {
             return Err(ModelError::Adapter {
                 path: path.clone(),
                 message: format!(
                     "line {line}: Go template syntax `{marker}`: content adapters are Tera \
                      templates; convert the file (`add_page(page={{…}})`, \
-                     https://github.com/neohugo/neohugo/blob/main/docs/rust-port/template-api.md \
+                     https://github.com/getfugo/fugo/blob/main/docs/rust-port/template-api.md \
                      gives Hugo's functions with their Tera names)"
                 ),
             }
@@ -77,6 +76,6 @@ pub(crate) fn assemble_with_adapters(
     }
     let diagnostics = session.diagnostics().since(mark);
     drop(session);
-    let model = pool.run(|| neohugo_site::assemble(Arc::clone(cfg), captured, added, opts))?;
+    let model = pool.run(|| ssg_site::assemble(Arc::clone(cfg), captured, added, opts))?;
     Ok((model, diagnostics))
 }

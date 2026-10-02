@@ -1,14 +1,14 @@
 //! `register` covers every site-bound `spec::FUNCS` entry, checks kwargs against the spec and
 //! takes safety from it.
 
-use neohugo_funcs::spec::{self, NameKind};
+use ssg_funcs::spec::{self, NameKind};
 
 use crate::support;
 
 /// The signatures T34 builds against (REWRITE_PLAN.md §2.6) stay as frozen.
 #[test]
 fn register_signature_is_frozen() {
-    let f: fn(&mut tera::Tera, &neohugo_sitefuncs::Handles) = neohugo_sitefuncs::register;
+    let f: fn(&mut tera::Tera, &ssg_sitefuncs::Handles) = ssg_sitefuncs::register;
     let _ = f;
 }
 
@@ -29,7 +29,7 @@ fn every_site_bound_entry_is_registered_and_nothing_else() {
 
     // Only sitefuncs: Tera validates every name when a template is added.
     let mut only = tera::Tera::default();
-    neohugo_sitefuncs::register(&mut only, &site.handles);
+    ssg_sitefuncs::register(&mut only, &site.handles);
     let mut missing = Vec::new();
     for f in &site_bound {
         if only
@@ -45,7 +45,7 @@ fn every_site_bound_entry_is_registered_and_nothing_else() {
     let mut extra = Vec::new();
     for f in spec::FUNCS
         .iter()
-        .filter(|f| !f.site_bound && f.source == spec::Source::Neohugo)
+        .filter(|f| !f.site_bound && f.source == spec::Source::Native)
     {
         if only
             .add_raw_template(&format!("p_{}", f.name), &call_of(f.name, f.kind))

@@ -1,20 +1,20 @@
 //! Oracle: the alias plan against the alias files of Hugo's builds
 //! (`oracle/hugolib/build/*`: every redirect Hugo wrote, with its page, language and format).
 //!
-//! The site is loaded with `neohugo-site` (T23a: pages, front matter `aliases`, build options,
+//! The site is loaded with `ssg-site` (T23a: pages, front matter `aliases`, build options,
 //! drafts); the pages' output formats and links, which T23b adds to the model, come from the
 //! recorded renders of the same build. `page/1` redirects depend on what templates paginate
 //! and are checked in `pagination.rs`.
 
 use std::collections::BTreeMap;
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{Clock, FormatId, Idx, LangIdx, OutputPath, PageId, PageKind, UrlPath};
-use neohugo_config::Config;
-use neohugo_nav::{AliasKind, AliasPlan, NavModel, PageFacts, Rendering, alias_plan, alias_target};
-use neohugo_page::{Dates, ListMode, RenderMode, ResourceBase, TargetPaths};
-use neohugo_site::{LoadModelOptions, Model, PageRole, load_model};
 use serde_json::Value as J;
+use ssg_base::paths::ContentKey;
+use ssg_base::{Clock, FormatId, Idx, LangIdx, OutputPath, PageId, PageKind, UrlPath};
+use ssg_config::Config;
+use ssg_nav::{AliasKind, AliasPlan, NavModel, PageFacts, Rendering, alias_plan, alias_target};
+use ssg_page::{Dates, ListMode, RenderMode, ResourceBase, TargetPaths};
+use ssg_site::{LoadModelOptions, Model, PageRole, load_model};
 
 use crate::support::{Project, Tally, family, fixture, s};
 
@@ -39,7 +39,7 @@ fn target_paths(permalink: &str, base: &str) -> TargetPaths {
     let dir = if let Some(d) = link.strip_suffix('/') {
         d.to_owned()
     } else {
-        neohugo_base::paths::trim_ext(&link).to_owned()
+        ssg_base::paths::trim_ext(&link).to_owned()
     };
     TargetPaths {
         target: OutputPath::new(""),
@@ -263,7 +263,7 @@ fn plan_rows(fx: &J) -> Option<Result<PlanRows, String>> {
     let project = Project::recorded(&fx["site"]);
     let cfg = project.cfg.clone();
     let want = expected(fx, &cfg);
-    let vfs = neohugo_vfs::Vfs::new(&cfg).expect("vfs");
+    let vfs = ssg_vfs::Vfs::new(&cfg).expect("vfs");
     let clock = Clock("2026-09-01T00:00:00Z".parse().expect("clock"));
     let model = load_model(
         cfg.clone(),

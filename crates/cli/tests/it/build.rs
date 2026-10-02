@@ -5,10 +5,10 @@ use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use neohugo_testkit::fixture::{repo_dir, repo_file};
-use neohugo_testkit::txtar::Archive;
+use ssg_testkit::fixture::{repo_dir, repo_file};
+use ssg_testkit::txtar::Archive;
 
-use crate::{neohugo, site_from, stderr, stdout};
+use crate::{binary, site_from, stderr, stdout};
 
 fn copy_tree(from: &Path, to: &Path) {
     fs::create_dir_all(to).expect("mkdir");
@@ -49,7 +49,7 @@ fn write_txtar(archive: &str, to: &Path) {
 }
 
 /// The testsite as `sites.py make testsite` writes it, with the Tera layouts of
-/// `sites/testsite/layouts` (as neohugo-build's skeleton test builds it).
+/// `sites/testsite/layouts` (as ssg-build's skeleton test builds it).
 pub fn testsite(dir: &Path) {
     let root = repo_dir();
     copy_tree(&repo_file("hugolib/testsite"), dir);
@@ -99,7 +99,7 @@ fn testsite_matches_go() {
         .collect();
     assert_eq!(want.len(), 55);
 
-    let o = neohugo(
+    let o = binary(
         &site,
         &["--clock", "2026-01-01T00:00:00Z", "-d", "../out1"],
         &[],
@@ -119,7 +119,7 @@ fn testsite_matches_go() {
     // The same with `build`, `--source`, `--destination` and `--cleanDestinationDir`; a stale
     // file in the publish directory stays (only static files are synchronised) and `-q` prints
     // nothing on success.
-    let o = neohugo(
+    let o = binary(
         tmp.path(),
         &[
             "build",
@@ -139,7 +139,7 @@ fn testsite_matches_go() {
 }
 
 const FLAGS_SITE: &str = r#"
--- neohugo.toml --
+-- config.toml --
 baseURL = "https://example.org/"
 title = "Config title"
 disableKinds = ["taxonomy", "term", "rss", "sitemap", "robots", "404"]
@@ -163,7 +163,7 @@ title: Expired
 expiryDate: 2020-01-01
 ---
 -- layouts/home.html --
-{{ site.title }}|{{ neohugo.environment }}|{{ site.base_url }}|{{ now() | date(format="%Y") }}|{% for p in site.regular_pages | sort_by(attribute="title") %}{{ p.title }},{% endfor %}
+{{ site.title }}|{{ build.environment }}|{{ site.base_url }}|{{ now() | date(format="%Y") }}|{% for p in site.regular_pages | sort_by(attribute="title") %}{{ p.title }},{% endfor %}
 -- layouts/single.html --
 {{ page.title }}
 "#;
@@ -180,7 +180,7 @@ fn flags_and_environment() {
     let run = |args: &[&str], env: &[(&str, &str)]| {
         let mut a = clock.to_vec();
         a.extend_from_slice(args);
-        let o = neohugo(s.path(), &a, env);
+        let o = binary(s.path(), &a, env);
         assert!(o.status.success(), "{args:?}: {}", stderr(&o));
         home(s.path())
     };
@@ -206,19 +206,16 @@ fn flags_and_environment() {
     }
     assert!(run(&["-e", "staging"], &[]).contains("|staging|"));
     assert!(run(&["--environment", "staging"], &[]).contains("|staging|"));
-    // `NEOHUGO_*` environment: configuration keys and the environment (`-e` wins over
-    // `NEOHUGO_ENVIRONMENT`; other keys follow neohugo-config's order, file < directory <
+    // `FUGO_*` environment: configuration keys and the environment (`-e` wins over
+    // `FUGO_ENVIRONMENT`; other keys follow ssg-config's order, file < directory <
     // flags < env).
     let env = run(
         &[],
-        &[
-            ("NEOHUGO_TITLE", "Env title"),
-            ("NEOHUGO_ENVIRONMENT", "env"),
-        ],
+        &[("FUGO_TITLE", "Env title"), ("FUGO_ENVIRONMENT", "env")],
     );
     assert!(env.starts_with("Env title|env|"), "{env}");
-    assert!(run(&["-e", "flag"], &[("NEOHUGO_ENVIRONMENT", "env")]).contains("|flag|"));
-    assert!(run(&[], &[("NEOHUGO_BASEURL", "https://env.org/")]).contains("|https://env.org/|"));
+    assert!(run(&["-e", "flag"], &[("FUGO_ENVIRONMENT", "env")]).contains("|flag|"));
+    assert!(run(&[], &[("FUGO_BASEURL", "https://env.org/")]).contains("|https://env.org/|"));
     // Hugo's `HUGO_*` variables are not read.
     let hugo = run(
         &[],
@@ -238,7 +235,7 @@ fn flags_and_environment() {
     // `--minify` / `-M` (`--renderToMemory`): nothing is written.
     fs::remove_dir_all(s.path().join("public")).expect("rm public");
     for flag in ["-M", "--render-to-memory", "--renderToMemory"] {
-        let o = neohugo(s.path(), &[flag, "--minify"], &[]);
+        let o = binary(s.path(), &[flag, "--minify"], &[]);
         assert!(o.status.success(), "{}", stderr(&o));
         assert!(!s.path().join("public").exists(), "{flag}");
     }
@@ -261,7 +258,7 @@ fn explicit_false_overrides_the_configuration() {
         fs::write(&stale, "stale\n").expect("write stale");
         let mut a = vec!["--clock", "2026-06-01T00:00:00Z"];
         a.extend_from_slice(args);
-        let o = neohugo(s.path(), &a, &[]);
+        let o = binary(s.path(), &a, &[]);
         assert!(o.status.success(), "{args:?}: {}", stderr(&o));
         (home(s.path()), stale.exists())
     };
@@ -290,9 +287,9 @@ fn explicit_false_overrides_the_configuration() {
 #[test]
 fn errors_are_reported_with_positions() {
     let s = site_from(
-        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n<p>\n{{ page.params.nope.deeper }}\n</p>\n",
+        "-- config.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n<p>\n{{ page.params.nope.deeper }}\n</p>\n",
     );
-    let o = neohugo(s.path(), &["-M"], &[]);
+    let o = binary(s.path(), &["-M"], &[]);
     assert_eq!(o.status.code(), Some(1));
     let err = stderr(&o);
     assert!(err.starts_with("ERROR build failed: "), "{err}");
@@ -300,24 +297,24 @@ fn errors_are_reported_with_positions() {
     assert!(err.contains("{{ page.params.nope.deeper }}"), "{err}");
 
     let s = site_from(
-        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n{{ page.title }}{% if %}\n",
+        "-- config.toml --\nbaseURL = \"https://e.org/\"\n-- layouts/home.html --\n{{ page.title }}{% if %}\n",
     );
-    let o = neohugo(s.path(), &["-M"], &[]);
+    let o = binary(s.path(), &["-M"], &[]);
     assert_eq!(o.status.code(), Some(1));
     assert!(stderr(&o).contains("home.html:1:23"), "{}", stderr(&o));
 
     // Diagnostics (here a `throw`-free error: a missing shortcode) are listed, then counted.
     let s = site_from(
-        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\n-- content/_index.md --\n---\ntitle: H\n---\n{{< nope >}}\n-- layouts/home.html --\n{{ page.content }}\n",
+        "-- config.toml --\nbaseURL = \"https://e.org/\"\n-- content/_index.md --\n---\ntitle: H\n---\n{{< nope >}}\n-- layouts/home.html --\n{{ page.content }}\n",
     );
-    let o = neohugo(s.path(), &["-M"], &[]);
+    let o = binary(s.path(), &["-M"], &[]);
     assert_eq!(o.status.code(), Some(1));
     let err = stderr(&o);
     assert!(err.contains("ERROR"), "{err}");
     assert!(err.contains("nope"), "{err}");
 
     // A project that does not load.
-    let o = neohugo(s.path(), &["-s", "missing", "-M"], &[]);
+    let o = binary(s.path(), &["-s", "missing", "-M"], &[]);
     assert_eq!(o.status.code(), Some(1));
     assert!(
         stderr(&o).contains("no configuration file"),

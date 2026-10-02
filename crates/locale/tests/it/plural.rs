@@ -5,9 +5,9 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_locale::{PluralCount, PluralForm, PluralRules};
 use serde::Deserialize;
 use serde_json::Value as J;
+use ssg_locale::{PluralCount, PluralForm, PluralRules};
 
 use crate::common::expected_diffs;
 
@@ -43,7 +43,7 @@ fn count_of(v: &J) -> Option<PluralCount> {
 
 #[test]
 fn plural_rules_oracle() {
-    let fixture: Fixture = neohugo_testkit::fixture::oracle("oracle/i18n/plural/plural.json.gz");
+    let fixture: Fixture = ssg_testkit::fixture::oracle("oracle/i18n/plural/plural.json.gz");
     let listed = expected_diffs().plural;
     let (mut compared, mut agreed) = (0usize, 0usize);
     let mut differing: BTreeMap<&str, Vec<String>> = BTreeMap::new();

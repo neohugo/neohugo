@@ -22,11 +22,11 @@
 use std::path::{Path, PathBuf};
 
 use image::{Rgba, RgbaImage};
-use neohugo_config::ImagingConfig;
-use neohugo_images::{ImageFilter, ImageInput, ImageQueue, ImageSpec, Imaging};
-use neohugo_testkit::fixture::{oracle, repo_file, testdata};
 use serde::Deserialize;
 use serde_json::{Value as J, json};
+use ssg_config::ImagingConfig;
+use ssg_images::{ImageFilter, ImageInput, ImageQueue, ImageSpec, Imaging};
+use ssg_testkit::fixture::{oracle, repo_file, testdata};
 
 use crate::common::{decode, expected_diffs, psnr, synth, write_file};
 
@@ -128,7 +128,7 @@ fn run(recipe: &Recipe, golden_dir: &Path) -> Result<Compared, String> {
         ));
     }
     if Some(e.format)
-        != neohugo_images::ImageFormat::from_extension(
+        != ssg_images::ImageFormat::from_extension(
             Path::new(&recipe.golden)
                 .extension()
                 .and_then(|x| x.to_str())

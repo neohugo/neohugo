@@ -12,9 +12,9 @@ use std::collections::BTreeMap;
 use std::fmt;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use neohugo_base::diag::Position;
-use neohugo_base::{FormatId, PageId};
-use neohugo_nav::{Pagination, PaginationItems};
+use ssg_base::diag::Position;
+use ssg_base::{FormatId, PageId};
+use ssg_nav::{Pagination, PaginationItems};
 
 /// A recorded pagination and where it was first asked for.
 #[derive(Clone, Debug, PartialEq)]
@@ -42,11 +42,11 @@ impl Recorded {
         match self.pagination.items() {
             PaginationItems::Pages(_) => self.pagination.pages_of(&pager).to_vec(),
             PaginationItems::Groups(groups) => match &pager.slice {
-                neohugo_nav::PagerSlice::Groups(slices) => slices
+                ssg_nav::PagerSlice::Groups(slices) => slices
                     .iter()
                     .flat_map(|s| groups[s.group].pages[s.range.clone()].iter().copied())
                     .collect(),
-                neohugo_nav::PagerSlice::Pages(r) => groups
+                ssg_nav::PagerSlice::Pages(r) => groups
                     .iter()
                     .flat_map(|g| g.pages.iter().copied())
                     .skip(r.start)

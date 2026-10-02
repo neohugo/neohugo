@@ -3,7 +3,7 @@
 //! Each test names the tera-2.4.0 source that implements the behaviour; the same facts are
 //! recorded in `docs/rust-port/template-api.md` ("Tera facts").
 
-use neohugo_testkit::tera_value;
+use ssg_testkit::tera_value;
 use tera::{Context, Tera};
 
 fn ctx() -> Context {

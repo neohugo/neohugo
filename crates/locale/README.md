@@ -1,7 +1,7 @@
-# neohugo-locale
+# ssg-locale
 
 Everything language-dependent, on ICU4X 2.3 compiled data (CLDR 48.2.1, Unicode-3.0, see
-`THIRD_PARTY/cldr/`). Depends only on `neohugo-base` (REWRITE_PLAN §2.3).
+`THIRD_PARTY/cldr/`). Depends only on `ssg-base` (REWRITE_PLAN §2.3).
 
 ## API
 
@@ -56,13 +56,13 @@ instead of `config::Language` for the same reason.
 
 Checked: tera-contrib 0.3's `date(locale=, format=)` formats through
 `FixedCalendarDateTimeNames<Gregorian>`, so it does produce Gregorian Thai month names. It is still
-**not** the neohugo `date` filter: with a `locale` it accepts only UTS-35 patterns and rejects
+**not** the fugo `date` filter: with a `locale` it accepts only UTS-35 patterns and rejects
 strftime (`%B`), it has no `style=` (`:date_long`), and it cannot default the locale to the
-current page language (site-bound). neohugo registers its own `date` on `format_date`
+current page language (site-bound). fugo registers its own `date` on `format_date`
 (`funcs`/`sitefuncs`, T31/T35), and the `date` feature of tera-contrib can be dropped from the
 workspace (it pulls `jiff-icu`, `icu_calendar`, `icu_time` into `funcs` for nothing).
 
-## Acceptance evidence (`cargo test -p neohugo-locale`)
+## Acceptance evidence (`cargo test -p ssg-locale`)
 
 | Test | Result |
 |---|---|

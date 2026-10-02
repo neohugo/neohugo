@@ -10,8 +10,8 @@
 use std::sync::{Arc, OnceLock, Weak};
 
 use dashmap::DashMap;
-use neohugo_layouts::Templates;
-use neohugo_view::{ContentRenderer, Deferred, DeferredRegistry, MAX_DEPTH, Phase, SCOPE_KEY};
+use ssg_layouts::Templates;
+use ssg_view::{ContentRenderer, Deferred, DeferredRegistry, MAX_DEPTH, Phase, SCOPE_KEY};
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::call::{Registrar, SiteFunction, chain, msg, need_scope, renderer, templates, to_json};
@@ -21,7 +21,7 @@ type RendererSlot = Arc<OnceLock<Weak<dyn ContentRenderer>>>;
 type TemplatesSlot = Arc<OnceLock<Weak<Templates>>>;
 
 /// The context names a partial inherits from its caller.
-const INHERITED: [&str; 5] = ["page", "site", "neohugo", "lang", "output_format"];
+const INHERITED: [&str; 5] = ["page", "site", "build", "lang", "output_format"];
 
 pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
     let partial = || Partial {

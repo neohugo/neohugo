@@ -7,11 +7,11 @@
 //! (`taxonomy`). Made pages get the cascade in force at their key and go through the build
 //! filter like content pages (a switched-off node stays for the structure).
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{FormatId, LangIdx, PageId, PageKind};
-use neohugo_config::Config;
-use neohugo_page::{Cjk, DateResolver, MetaCtx, meta_from_params};
-use neohugo_vfs::{Component, Parsed, PathInfo, PathParser};
+use ssg_base::paths::ContentKey;
+use ssg_base::{FormatId, LangIdx, PageId, PageKind};
+use ssg_config::Config;
+use ssg_page::{Cjk, DateResolver, MetaCtx, meta_from_params};
+use ssg_vfs::{Component, Parsed, PathInfo, PathParser};
 
 use crate::filter::{self, Verdict};
 use crate::refs::RefIndex;
@@ -209,7 +209,7 @@ impl Maker<'_> {
                 PageKind::RobotsTxt,
                 "_robots",
                 "robots",
-                first && site.robots_txt == neohugo_config::site::RobotsPolicy::Enabled,
+                first && site.robots_txt == ssg_config::site::RobotsPolicy::Enabled,
             ),
             (PageKind::Sitemap, "_sitemap", "sitemap", sitemaps),
             (
@@ -259,7 +259,7 @@ pub(crate) fn standalone_base_name(
             if name.is_empty() {
                 f.base_name.clone()
             } else {
-                neohugo_base::paths::filename(name).to_owned()
+                ssg_base::paths::filename(name).to_owned()
             }
         }
         _ => f.base_name.clone(),

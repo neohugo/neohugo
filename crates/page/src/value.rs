@@ -2,7 +2,7 @@
 
 use std::sync::Arc;
 
-use neohugo_base::Value;
+use ssg_base::Value;
 
 /// A description of the shape of `v`, for error messages.
 pub(crate) fn kind(v: &Value) -> &'static str {

@@ -2,9 +2,9 @@
 
 use std::sync::Arc;
 
-use neohugo_base::PageId;
-use neohugo_nav::{MenuEntry, Menus, RelatedQuery};
-use neohugo_view::{PageStores, Phase, ViewCache};
+use ssg_base::PageId;
+use ssg_nav::{MenuEntry, Menus, RelatedQuery};
+use ssg_view::{PageStores, Phase, ViewCache};
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::call::{
@@ -214,7 +214,7 @@ impl SiteFunction for Param {
             .or_else(|| p.params().get_path(&key))
             .or_else(|| site.get(&key))
             .or_else(|| site.get_path(&key));
-        Ok(found.map_or_else(Value::none, neohugo_base::Value::to_tera))
+        Ok(found.map_or_else(Value::none, ssg_base::Value::to_tera))
     }
 }
 
@@ -319,8 +319,8 @@ fn menu_entry(views: &ViewCache, v: &Value) -> TeraResult<MenuEntry> {
             .and_then(Value::as_str)
             .map(str::to_owned),
         params: match to_data(field(v, "params").unwrap_or(&Value::none())) {
-            neohugo_base::Value::Map(m) => neohugo_base::Params::fold(&m),
-            _ => neohugo_base::Params::default(),
+            ssg_base::Value::Map(m) => ssg_base::Params::fold(&m),
+            _ => ssg_base::Params::default(),
         },
         children,
         ..MenuEntry::default()

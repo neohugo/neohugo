@@ -10,7 +10,7 @@
 //! - `quick-reference` (another section's children with their `.Content` and descriptions as a
 //!   definition list): `page_content` of other pages from inside a `{{% %}}` shortcode.
 
-use neohugo_build::{BuildRequest, SinkKind, build};
+use ssg_build::{BuildRequest, SinkKind, build};
 
 use crate::support::write_files;
 
@@ -46,7 +46,7 @@ const LAYOUT: &str = "<main>{{ page.content }}</main>";
 fn site() -> Vec<(String, String)> {
     [
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n[markup.goldmark.renderer]\nunsafe = true\n",
         ),
         ("layouts/single.html", LAYOUT),
@@ -179,15 +179,15 @@ fn docs_cross_page_shortcodes() {
     assert!(report.collisions.is_empty());
 }
 
-/// `@neohugo` is an implicit component argument like `@site` (the docs `linkcss`, `linkjs` and
+/// `@build` is an implicit component argument like `@site` (the docs `linkcss`, `linkjs` and
 /// `sponsors` components): Tera looks it up in the caller's scope, and every render that can
-/// call a component (layout job, `partial()`, shortcode, render hook) has `neohugo`.
+/// call a component (layout job, `partial()`, shortcode, render hook) has `build`.
 #[test]
-fn components_take_neohugo_implicitly() {
-    let comp = "{% component env(label, @neohugo, @site) %}{{ label }}={{ neohugo.environment }}/{{ site.title }}{% endcomponent env %}";
+fn components_take_build_implicitly() {
+    let comp = "{% component env(label, @build, @site) %}{{ label }}={{ build.environment }}/{{ site.title }}{% endcomponent env %}";
     let files: Vec<(String, String)> = [
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\", \"section\"]\n",
         ),
         ("layouts/_partials/env.html", comp),
@@ -236,12 +236,12 @@ fn components_take_neohugo_implicitly() {
 #[test]
 fn docs_glossary() {
     let glossary = std::fs::read_to_string(
-        neohugo_testkit::fixture::repo_dir().join("sites/docs/layouts/_shortcodes/glossary.html"),
+        ssg_testkit::fixture::repo_dir().join("sites/docs/layouts/_shortcodes/glossary.html"),
     )
     .expect("glossary.html");
     let files: Vec<(String, String)> = [
         (
-            "neohugo.toml",
+            "config.toml",
             concat!(
                 "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\n",
                 "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n",

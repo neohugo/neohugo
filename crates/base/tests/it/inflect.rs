@@ -1,8 +1,8 @@
 //! `inflect` and `title` against the `common/flect` and `common/prose` oracles.
 
-use neohugo_base::inflect::{self, CustomInflections, Inflector};
-use neohugo_base::title::{self, Style};
 use serde_json::Value as J;
+use ssg_base::inflect::{self, CustomInflections, Inflector};
+use ssg_base::title::{self, Style};
 
 use crate::support::{Tally, fixture, text};
 

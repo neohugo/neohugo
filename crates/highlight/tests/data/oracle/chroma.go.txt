@@ -1,4 +1,4 @@
-// The Chroma oracle of neohugo-highlight (crate README, "Fixtures"): Chroma v2.19.0 itself.
+// The Chroma oracle of ssg-highlight (crate README, "Fixtures"): Chroma v2.19.0 itself.
 //
 //	chroma order             the registered lexers, in registration order
 //	chroma analyse < in      per JSON line {lang, code}: the name of lexers.Analyse(code), or ""

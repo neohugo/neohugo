@@ -6,7 +6,7 @@ Usage:
   sites.py make <site> <dir> [--docs-patches i01|reduced] [--overlay sites/<site>]
                                     # <dir> must not exist; for seeksnack and mini its basename
                                     # must be the site's name (it keys the GetRemote cache)
-  sites.py cache <site> <dir>       # the NEOHUGO_CACHEDIR contents the site needs (may be empty;
+  sites.py cache <site> <dir>       # the FUGO_CACHEDIR contents the site needs (may be empty;
                                     # its <site> directory: the site dir's basename must be <site>)
   sites.py patches [--check]        # write patches.json / check it and the Tera patch files
 
@@ -17,7 +17,7 @@ Sites:
   testsite      Hugo's hugolib/testsite (testdata/upstream) plus a small config and layouts
                 (testsite.txtar)
   seeksnack     the reconstructed seeksnack config (testdata/oracle/allconfig/load/
-                seeksnack/neohugo.toml) with the synthetic en/th content tree of the nh-hugolib
+                seeksnack/config.toml) with the synthetic en/th content tree of the nh-hugolib
                 oracles (read from testdata/oracle/hugolib/build/seeksnack.json.gz) and
                 the layouts/assets/i18n/data of seeksnack.txtar; its GetRemote calls are served
                 from the 51 golden getresource cache entries
@@ -33,7 +33,7 @@ layouts of the overlay directory, the overlay's assets copied over, its content 
 whose Go original the patches removed is not copied), and for docs the variant's Tera patch files
 (sites/docs/patches/<variant>/, if it has any) layered on top (REWRITE_PLAN.md §7.4).
 The Go build that wrote the golden data built the site without an overlay
-(tools/neohugo/oracle.sh, frozen at 44529028).
+(tools/dev/oracle.sh, frozen at 44529028).
 """
 import argparse
 import gzip
@@ -55,7 +55,7 @@ DOCS_LIVE_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cac
 GETREMOTE_FX = os.path.join(TESTDATA, "oracle", "resource-transformers", "getremote",
                             "getremote.json.gz")
 # Hugo's test data by its Go-tree path, as the fixtures record it, moved to
-# testdata/upstream (the sites use only these; neohugo_testkit::fixture::UPSTREAM lists all).
+# testdata/upstream (the sites use only these; ssg_testkit::fixture::UPSTREAM lists all).
 UPSTREAM = ("hugolib/testsite",)
 # The workspace's directory until it moved to the repository root; paths recorded below it
 # (golden/images/manifest.json) name the same files at the root.
@@ -80,17 +80,17 @@ def edit(dir_, rel, old, new):
         fh.write(s.replace(old, new, 1))
 
 
-def as_neohugo_site(dir_):
-    """A Hugo site made a neohugo site: its `hugo.*` configuration file named `neohugo.*`, the
-    stats file its configuration and stylesheets read named `neohugo_stats.json`, and the
-    `security.funcs.getenv` pattern of Hugo's variables (`^HUGO_`) made neohugo's (`^NEOHUGO_`):
-    neohugo reads no Hugo names."""
+def as_local_site(dir_):
+    """A Hugo site made a local site: its `hugo.*` configuration file named `config.*`, the
+    stats file its configuration and stylesheets read named `build_stats.json`, and the
+    `security.funcs.getenv` pattern of Hugo's variables (`^HUGO_`) made our (`^FUGO_`):
+    This port reads no Hugo names."""
     for ext in ("toml", "yaml", "yml", "json"):
         fn = os.path.join(dir_, "hugo." + ext)
         if os.path.exists(fn):
-            os.rename(fn, os.path.join(dir_, "neohugo." + ext))
+            os.rename(fn, os.path.join(dir_, "config." + ext))
     stats = re.compile(r"(?<![\w.])hugo_stats(\\\\)?\.json")
-    candidates = [os.path.join(dir_, "neohugo." + e) for e in ("toml", "yaml", "yml", "json")]
+    candidates = [os.path.join(dir_, "config." + e) for e in ("toml", "yaml", "yml", "json")]
     for root, _, names in os.walk(os.path.join(dir_, "assets")):
         candidates += [os.path.join(root, n) for n in names if n.endswith(".css")]
     for fn in candidates:
@@ -98,9 +98,9 @@ def as_neohugo_site(dir_):
             continue
         with open(fn, encoding="utf-8", newline="") as fh:
             text = fh.read()
-        new = stats.sub(lambda m: "neohugo_stats" + (m.group(1) or "") + ".json", text)
-        if os.path.basename(fn).startswith("neohugo."):
-            new = re.sub(r"""(['"])\^HUGO_""", r"\1^NEOHUGO_", new)
+        new = stats.sub(lambda m: "build_stats" + (m.group(1) or "") + ".json", text)
+        if os.path.basename(fn).startswith("config."):
+            new = re.sub(r"""(['"])\^HUGO_""", r"\1^FUGO_", new)
         if new != text:
             with open(fn, "w", encoding="utf-8", newline="") as fh:
                 fh.write(new)
@@ -115,7 +115,7 @@ def copy_tree(src, dst, skip=("public", "resources", "node_modules")):
 
 
 def repo_file(rel):
-    """A repository file by the path the fixtures record (neohugo_testkit::fixture::repo_file)."""
+    """A repository file by the path the fixtures record (ssg_testkit::fixture::repo_file)."""
     upstream = any(rel == p or rel.startswith(p + "/") for p in UPSTREAM)
     if not upstream and rel.startswith(LEGACY_WORKSPACE):
         rel = rel[len(LEGACY_WORKSPACE):]
@@ -150,7 +150,7 @@ def read_txtar(path):
 #            (acceptance gate A-D1);
 #   reduced  offline, with Chroma highlighting, passthrough, emoji, remarshal, Tailwind and the
 #            real Alpine/Turbo imports (node.sh modules; gate A-D2);
-#   live     the docs site as neohugo.github.io publishes it: no patches (only the committed
+#   live     the docs site as getfugo.github.io publishes it: no patches (only the committed
 #            hugo_stats.json goes, the build writes it), so GetRemote, images.Text, QR, Dither,
 #            smartcrop, the x shortcode, the style gallery and the news content adapter all run
 #            (gate A-D3: the golden data is the published site, testdata/golden/docs-live/).
@@ -178,7 +178,7 @@ DOCS_REMOVE = [  # (file, variants, why)
     ("content/en/quick-reference/syntax-highlighting-styles.md", BOTH,
      "the Chroma style gallery (T72)"),
     # The embedded x shortcode calls GetRemote (publish.x.com oEmbed): the Go build fetches it
-    # when the machine has network access, neohugo never does.
+    # when the machine has network access, this port never does.
     ("content/en/shortcodes/x.md", BOTH, "the embedded x shortcode calls GetRemote (oEmbed)"),
 ]
 
@@ -191,12 +191,12 @@ DOCS_REPLACE = [  # (file, old, new, variants, why)
      "const persist = {};\nconst focus = {};", (I01,), "no node modules (Alpine.js plugins)"),
     ("assets/js/turbo.js", "import * as Turbo from '@hotwired/turbo';", "window.Turbo = { session: {} };",
      (I01,), "no node modules (Turbo)"),
-    ("neohugo.toml", "[markup.goldmark.extensions.passthrough]\n        enable = true",
+    ("config.toml", "[markup.goldmark.extensions.passthrough]\n        enable = true",
      "[markup.goldmark.extensions.passthrough]\n        enable = false", (I01,),
      "no goldmark passthrough"),
-    ("neohugo.toml", "enableEmoji            = true", "enableEmoji            = false", (I01,),
+    ("config.toml", "enableEmoji            = true", "enableEmoji            = false", (I01,),
      "no goldmark emoji"),
-    ("neohugo.toml", "  [markup.highlight]\n", "  [markup.highlight]\n    codeFences         = false\n",
+    ("config.toml", "  [markup.highlight]\n", "  [markup.highlight]\n    codeFences         = false\n",
      (I01,), "no Chroma: code fences are rendered as plain <pre><code>"),
     # images.Text (a font rasterizer) and images.QR (rsc.io/qr) are COULD features (T72):
     # replaced with other image processing so the pipelines still run.
@@ -267,7 +267,7 @@ def docs_patches():
     for file, content, variants, why in DOCS_WRITE:
         add("write", file, variants, why, content=content)
     return {
-        "schema": "neohugo-docs-patches/1",
+        "schema": "ssg-docs-patches/1",
         "about": "Written by tools/rust-port/i01/sites.py (`sites.py patches`) from its DOCS_REMOVE, "
                  "DOCS_REPLACE and DOCS_WRITE lists: the edits of the docs site per variant. `tera` is "
                  "the file below sites/docs/patches/<variant>/ that mirrors a layout patch in the "
@@ -313,7 +313,7 @@ def make_docs(dir_, variant=I01):
     if variant not in DOCS_VARIANTS:
         sys.exit(f"unknown docs patch variant {variant!r} (one of {', '.join(DOCS_VARIANTS)})")
     copy_tree(os.path.join(ROOT, "docs"), dir_)
-    as_neohugo_site(dir_)
+    as_local_site(dir_)
     for p in docs_patches()["patches"]:
         if variant not in p["variants"]:
             continue
@@ -346,7 +346,7 @@ def fixture_site(name):
 
 def write_fixture_site(site, dir_):
     os.makedirs(dir_)
-    write(dir_, "neohugo.toml", site["toml"])
+    write(dir_, "config.toml", site["toml"])
     for f in site["files"]:
         if f.get("repo"):
             with open(repo_file(f["repo"]), "rb") as fh:
@@ -556,7 +556,7 @@ def make_probe(dir_):
         if "{{ .Title | js }}" in v:
             v = v.replace("{{ .Title | js }}", "JS-NAMESPACE")
         write(dir_, k, v)
-    write(dir_, "neohugo.toml", PROBE_CONFIG)
+    write(dir_, "config.toml", PROBE_CONFIG)
     write(dir_, "content/_index.md", PROBE_HOME)
 
 
@@ -591,12 +591,12 @@ def mini_cache(dir_):
 # ---------------------------------------------------------------------------------------------
 # images: the recipes of testdata/golden/images/manifest.json (the golden images of the
 # PSNR gate of T41) as a site whose home page runs every recipe with Go's image processing and
-# prints `<golden name> <RelPermalink>` per line (tools/neohugo/oracle.sh, frozen at 44529028,
+# prints `<golden name> <RelPermalink>` per line (tools/dev/oracle.sh, frozen at 44529028,
 # copied the published files into testdata/golden/images).
 
 IMAGES_MANIFEST = os.path.join(TESTDATA, "golden", "images", "manifest.json")
 
-# The filters of the recipes (the JSON of neohugo_images::ImageFilter) as Go template calls: the
+# The filters of the recipes (the JSON of ssg_images::ImageFilter) as Go template calls: the
 # images.* function and the keys of its arguments.
 _FILTER_ARGS = {
     "brightness": ("Brightness", ["percentage"]),
@@ -667,7 +667,7 @@ def make_images(dir_):
                 fs = " ".join(f"({filter_call(f)})" for f in step["filters"])
                 lines.append("{{- $r = $r | images.Filter (slice " + fs + ") }}")
         lines.append(r["golden"] + " {{ $r.RelPermalink }}")
-    write(dir_, "neohugo.toml", 'baseURL = "https://example.org/"\n'
+    write(dir_, "config.toml", 'baseURL = "https://example.org/"\n'
           'disableKinds = ["page", "section", "taxonomy", "term", "rss", "sitemap", "robotsTXT", "404"]\n'
           '[outputs]\nhome = ["html"]\n')
     write(dir_, "layouts/home.html", "\n".join(lines) + "\n")
@@ -780,7 +780,7 @@ def main():
         site = fixture_site(name[4:])
         if name == "t24-docs":
             # t24-docs keeps code fences as plain <pre><code> (codeFences = false), as its T24
-            # build-oracle comparison was set up before neohugo had a highlighter.
+            # build-oracle comparison was set up before this port had a highlighter.
             old = "  [markup.highlight]\n"
             if site["toml"].count(old) != 1:
                 sys.exit("t24-docs: highlight anchor not found")

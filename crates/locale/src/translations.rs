@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use neohugo_base::{IdVec, LangIdx, Value};
+use ssg_base::{IdVec, LangIdx, Value};
 
 use crate::error::{I18nError, MessageProblem, TranslateError};
 use crate::files::{MessageFile, MessageSource};

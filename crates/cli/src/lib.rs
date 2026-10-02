@@ -1,4 +1,4 @@
-//! The `neohugo` command line (REWRITE_PLAN.md §2.1, §4.8, §7.5): `build` (also the command
+//! The command line (REWRITE_PLAN.md §2.1, §4.8, §7.5): `build` (also the command
 //! line without a command), `server` (alias `serve`), `templates check`, `config` and
 //! `version`.
 //!
@@ -18,8 +18,8 @@ pub mod version;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_config::{CliOverrides, LoadOptions};
+use ssg_base::diag::Diagnostic;
+use ssg_config::{CliOverrides, LoadOptions};
 
 pub use args::Cli;
 use args::{Command, ProjectArgs, TemplatesCommand};
@@ -69,7 +69,7 @@ pub fn run(cli: Cli) -> Exit {
     })
 }
 
-/// Warns about the Go build's flags given that neohugo accepts but does not act on
+/// Warns about the Go build's flags given that this port accepts but does not act on
 /// ([`args::HugoFlags::ignored`]).
 fn warn_ignored(cli: &Cli) {
     let command = match &cli.command {
@@ -116,13 +116,13 @@ impl ProjectArgs {
         }
     }
 
-    /// What `neohugo_config::load` needs, with the process's `NEOHUGO_*` environment.
+    /// What `ssg_config::load` needs, with the process's `FUGO_*` environment.
     fn load_options(&self) -> anyhow::Result<LoadOptions> {
         Ok(LoadOptions {
             source: self.source_dir()?,
             config_files: self.config.clone(),
             cli: self.overrides(),
-            env: neohugo_build::process_env(),
+            env: ssg_build::process_env(),
         })
     }
 }

@@ -61,6 +61,6 @@
 },
 "levels": ["L1", "L2", "L3"],
 "pass": "unminified",
-"schema": "neohugo-manifest/1",
+"schema": "ssg-manifest/1",
 "site": "testsite"
 }

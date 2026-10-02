@@ -3,7 +3,7 @@
 
 use std::sync::Arc;
 
-use neohugo_base::{Map, Params, Value};
+use ssg_base::{Map, Params, Value};
 
 /// Lower-cases keys at every map level except inside arrays, renames `menu` to `menus`
 /// (at the root and in each language) and drops the reserved `internal` table.

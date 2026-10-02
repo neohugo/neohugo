@@ -21,11 +21,11 @@ use std::cmp::Ordering;
 use std::ops::Index;
 
 use jiff::{Timestamp, Zoned};
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{IdVec, LangIdx, PageId, PageKind};
-use neohugo_config::Config;
-use neohugo_locale::Collator;
-use neohugo_page::{Dates, SortKey, default_title};
+use ssg_base::paths::ContentKey;
+use ssg_base::{IdVec, LangIdx, PageId, PageKind};
+use ssg_config::Config;
+use ssg_locale::Collator;
+use ssg_page::{Dates, SortKey, default_title};
 
 use crate::tree::PageRole;
 use crate::{ListScope, LoadModelOptions, Model, Removed};
@@ -71,7 +71,7 @@ pub(crate) fn default_order(
             weight0,
         }
     };
-    neohugo_page::default_order(&key(a, a_weight0), &key(b, b_weight0), c)
+    ssg_page::default_order(&key(a, a_weight0), &key(b, b_weight0), c)
 }
 
 /// Sorts page ids in the default order.

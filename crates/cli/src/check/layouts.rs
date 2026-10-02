@@ -5,15 +5,15 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use anyhow::Context as _;
-use neohugo_base::diag::{Diagnostic, Position};
-use neohugo_config::Config;
-use neohugo_funcs::scan::{self, Tok};
-use neohugo_funcs::spec::{CONTEXTS, HOOK_FIELDS, RenderRole};
-use neohugo_layouts::{
+use ssg_base::diag::{Diagnostic, Position};
+use ssg_config::Config;
+use ssg_funcs::scan::{self, Tok};
+use ssg_funcs::spec::{CONTEXTS, HOOK_FIELDS, RenderRole};
+use ssg_layouts::{
     IssueKind, LayoutEnv, LayoutIssue, LayoutSource, LayoutStore, Origin, Selections,
     StandaloneKind, TemplateError, TemplateRole, Templates,
 };
-use neohugo_vfs::{Component, Module, Vfs};
+use ssg_vfs::{Component, Module, Vfs};
 
 use super::{CheckFile, display_path};
 
@@ -44,7 +44,7 @@ fn read_sources(vfs: &Vfs) -> anyhow::Result<Vec<LayoutSource>> {
         });
     }
     sources.extend(
-        neohugo_layouts::embedded::TEMPLATES
+        ssg_layouts::embedded::TEMPLATES
             .iter()
             .map(|(rel, src)| LayoutSource {
                 rel: (*rel).to_owned(),
@@ -231,8 +231,8 @@ pub(crate) fn load(
                 return None;
             }
         };
-        let e = match neohugo_layouts::load(reloaded, &Selections::new(), &|t| {
-            neohugo_funcs::register_placeholders(t);
+        let e = match ssg_layouts::load(reloaded, &Selections::new(), &|t| {
+            ssg_funcs::register_placeholders(t);
         }) {
             Ok(t) => return Some(t),
             Err(TemplateError::Tera(e)) => e,

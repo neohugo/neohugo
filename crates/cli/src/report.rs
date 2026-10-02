@@ -3,8 +3,8 @@
 
 use std::io::{self, Write};
 
-use neohugo_base::diag::{Diagnostic, Severity};
-use neohugo_build::BuildError;
+use ssg_base::diag::{Diagnostic, Severity};
+use ssg_build::BuildError;
 
 /// The label of a severity (Hugo's log levels).
 fn label(s: Severity) -> &'static str {

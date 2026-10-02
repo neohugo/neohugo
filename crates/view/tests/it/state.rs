@@ -4,10 +4,10 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::diag::Position;
-use neohugo_base::{FormatId, PageId};
-use neohugo_nav::{Pagination, PaginationItems};
-use neohugo_view::{Deferred, DeferredRegistry, PageStores, PaginationRecorder};
+use ssg_base::diag::Position;
+use ssg_base::{FormatId, PageId};
+use ssg_nav::{Pagination, PaginationItems};
+use ssg_view::{Deferred, DeferredRegistry, PageStores, PaginationRecorder};
 
 fn pages(n: u32) -> PaginationItems {
     PaginationItems::Pages((0..n).map(PageId::from_raw).collect())

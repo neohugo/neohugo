@@ -1,10 +1,10 @@
 //! The minifier options and their mapping from Hugo's `[minify.tdewolff]` table.
 //!
-//! Hugo configures the Go minifier (tdewolff/minify) per output type. neohugo minifies with
+//! Hugo configures the Go minifier (tdewolff/minify) per output type. This port minifies with
 //! minify-html, lightningcss, oxc and its own JSON and XML minifiers, so only the options with an
 //! equivalent are honoured. Keys are matched case-insensitively, as Hugo's config loader does.
 //!
-//! | `[minify.tdewolff]` key | default | neohugo |
+//! | `[minify.tdewolff]` key | default | this port |
 //! |---|---|---|
 //! | `html.keepComments` | `false` | honoured: keep every comment |
 //! | `html.keepSpecialComments` | `true` | honoured: keep SSI comments (`<!--#…-->`); minify-html does not keep conditional comments |
@@ -24,10 +24,10 @@
 //! | `xml.keepWhitespace` | `false` | honoured |
 //!
 //! `disableCSS`, `disableHTML`, `disableJS`, `disableJSON`, `disableSVG` and `disableXML` are
-//! decoded by `neohugo-config` ([`neohugo_config::MinifyConfig::disabled`]); a disabled type is
+//! decoded by `ssg-config` ([`ssg_config::MinifyConfig::disabled`]); a disabled type is
 //! passed through untouched, and HTML then also leaves its inline `<style>`/`<script>` alone.
 
-use neohugo_base::{Map, Value};
+use ssg_base::{Map, Value};
 
 use crate::MinifyError;
 
@@ -149,7 +149,7 @@ pub struct Options {
 /// Why a configured `[minify.tdewolff]` key has no effect.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum IgnoreReason {
-    /// A tdewolff option with no equivalent in neohugo's minifiers.
+    /// A tdewolff option with no equivalent here's minifiers.
     NoEquivalent,
     /// A key tdewolff does not know either.
     Unknown,

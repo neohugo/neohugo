@@ -2,9 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::anchor::{self, Style};
-use neohugo_base::url::{self, Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
 use serde_json::Value as J;
+use ssg_base::anchor::{self, Style};
+use ssg_base::url::{self, Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
 
 use crate::support::{Tally, fixture, text};
 
@@ -108,7 +108,7 @@ fn pathspec_oracle() {
                 });
                 continue;
             }
-            // Markup detection and TrimShortHTML belong to neohugo-page / neohugo-markup.
+            // Markup detection and TrimShortHTML belong to ssg-page / ssg-markup.
             Some(_) => continue,
             None => {}
         }

@@ -894,6 +894,6 @@
 },
 "levels": ["L1", "L4"],
 "pass": "minified",
-"schema": "neohugo-manifest/1",
+"schema": "ssg-manifest/1",
 "site": "docs-reduced"
 }

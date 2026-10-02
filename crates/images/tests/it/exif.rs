@@ -3,11 +3,11 @@
 
 use std::collections::BTreeSet;
 
-use neohugo_base::Date;
-use neohugo_config::ImagingConfig;
-use neohugo_images::{ExifSettings, Imaging, exif};
-use neohugo_testkit::fixture::{oracle, repo_file};
 use serde_json::{Value as J, json};
+use ssg_base::Date;
+use ssg_config::ImagingConfig;
+use ssg_images::{ExifSettings, Imaging, exif};
+use ssg_testkit::fixture::{oracle, repo_file};
 
 use crate::common::source_path;
 

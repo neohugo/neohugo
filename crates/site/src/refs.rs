@@ -17,10 +17,10 @@ use std::path::{Path, PathBuf};
 
 use std::sync::Arc;
 
-use neohugo_base::paths::{self, ContentKey};
-use neohugo_base::url::{self, Component};
-use neohugo_base::{IdVec, LangIdx, PageId, PageKind};
-use neohugo_vfs::{BundleKind, FileRef, Parsed, PathParser};
+use ssg_base::paths::{self, ContentKey};
+use ssg_base::url::{self, Component};
+use ssg_base::{IdVec, LangIdx, PageId, PageKind};
+use ssg_vfs::{BundleKind, FileRef, Parsed, PathParser};
 
 use crate::Model;
 
@@ -113,7 +113,7 @@ impl RefIndex {
 
     /// The key and name of a content path.
     fn parse(&self, rel: &str) -> Option<(ContentKey, String)> {
-        match self.parser.parse(neohugo_vfs::Component::Content, rel) {
+        match self.parser.parse(ssg_vfs::Component::Content, rel) {
             Parsed::File(info) => Some((info.key.clone(), info.name.clone())),
             Parsed::DisabledLanguage => None,
         }
@@ -233,7 +233,7 @@ impl Model {
                 Some(name) => self
                     .config
                     .output_formats
-                    .by_name(&neohugo_base::text::to_lower(name))
+                    .by_name(&ssg_base::text::to_lower(name))
                     .and_then(|f| p.url(f))
                     .filter(|u| u.links.is_some())
                     .ok_or_else(|| RefError::NoFormat {

@@ -9,9 +9,9 @@ use std::collections::BTreeMap;
 
 use jiff::Zoned;
 use jiff::civil::Weekday;
-use neohugo_base::PageKind;
-use neohugo_base::url::SiteUrls;
-use neohugo_config::sections::Permalinks;
+use ssg_base::PageKind;
+use ssg_base::url::SiteUrls;
+use ssg_config::sections::Permalinks;
 
 use crate::{GoLayout, PageError};
 
@@ -183,7 +183,7 @@ impl PermalinkPattern {
                         pattern: self.source(),
                         slice: format!("{s:?}"),
                     })?;
-                neohugo_base::paths::join(picked)
+                ssg_base::paths::join(picked)
             }
             Attr::Title => urlize(c.title),
             Attr::Slug => slug_or(urlize(c.title)),
@@ -229,7 +229,7 @@ fn filename(c: &PermalinkCtx<'_>) -> String {
     let name = match f.translation_base_name {
         "index" => {
             let dir = f.dir.strip_suffix('/').unwrap_or(f.dir);
-            neohugo_base::paths::split(dir).1
+            ssg_base::paths::split(dir).1
         }
         "_index" => return String::new(),
         n => n,
@@ -363,7 +363,7 @@ impl PermalinkPatterns {
     /// The first pattern that does not parse.
     pub fn compile(config: &Permalinks) -> Result<Self, PageError> {
         let mut out: BTreeMap<PageKind, BTreeMap<String, PermalinkPattern>> = BTreeMap::new();
-        for kind in neohugo_config::sections::PERMALINK_KINDS {
+        for kind in ssg_config::sections::PERMALINK_KINDS {
             let Some(patterns) = config.of_kind(kind) else {
                 continue;
             };

@@ -1,7 +1,0 @@
-{%- set snacks = [p for p in site.regular_pages if p.params.type == "snacks"] | sort_by(attribute="date", reverse=true) %}
-{%- set pages = snacks[:site.params.carousel.totalshow] %}
-<div class="carousel">
-{%- for p in pages %}
-  <div class="slide" data-index="{{ loop.index }}"><a href="{{ p.rel_permalink }}">{{ p.title }}</a></div>
-{%- endfor %}
-</div>

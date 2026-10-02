@@ -8,13 +8,13 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::diag::{Diagnostic, Position};
-use neohugo_base::{Clock, PageKind};
-use neohugo_config::Config;
-use neohugo_layouts::{EmbeddedHooks, HookKind, HookQuery, LayoutStore, ShortcodeQuery};
-use neohugo_pageparser::{Delim, TokenKind};
-use neohugo_site::{LoadModelOptions, Page};
-use neohugo_vfs::Vfs;
+use ssg_base::diag::{Diagnostic, Position};
+use ssg_base::{Clock, PageKind};
+use ssg_config::Config;
+use ssg_layouts::{EmbeddedHooks, HookKind, HookQuery, LayoutStore, ShortcodeQuery};
+use ssg_pageparser::{Delim, TokenKind};
+use ssg_site::{LoadModelOptions, Page};
+use ssg_vfs::Vfs;
 
 use super::display_path;
 use crate::args::Coverage;
@@ -104,7 +104,7 @@ pub(crate) fn run(
 ) -> Option<CoverageReport> {
     let root = cfg.project_dir.clone();
     let clock = clock.map_or_else(Clock::system, Clock);
-    let model = match neohugo_site::load_model(
+    let model = match ssg_site::load_model(
         Arc::clone(cfg),
         vfs,
         &LoadModelOptions::from_config(cfg, clock),
@@ -126,15 +126,15 @@ pub(crate) fn run(
         hooks: BTreeMap::new(),
     };
     for p in &model.pages {
-        let path = neohugo_render::lookup_path(p);
+        let path = ssg_render::lookup_path(p);
         let label = page_label(cfg, p);
         let file = p
             .source
             .as_ref()
             .map(|s| Arc::<Path>::from(display_path(&root, &s.file.abs)));
-        for f in neohugo_render::rendered_formats(p) {
+        for f in ssg_render::rendered_formats(p) {
             let chosen = store
-                .select(&neohugo_render::layout_query(p, &path, f))
+                .select(&ssg_render::layout_query(p, &path, f))
                 .map(|s| {
                     (
                         s.layout.to_string(),
@@ -169,7 +169,7 @@ pub(crate) fn run(
         };
         let body = src.body();
         // Shortcodes.
-        if let Ok(tokens) = neohugo_pageparser::lex(body) {
+        if let Ok(tokens) = ssg_pageparser::lex(body) {
             for w in tokens.windows(2) {
                 let (TokenKind::LeftDelim(delim), TokenKind::Name) = (&w[0].kind, &w[1].kind)
                 else {
@@ -187,10 +187,8 @@ pub(crate) fn run(
                 let key = match found {
                     Ok(t) => Ok(t.to_string()),
                     Err(miss) => {
-                        let (line, col) = neohugo_pageparser::line_col(
-                            &src.text,
-                            src.body_offset + w[1].span.start,
-                        );
+                        let (line, col) =
+                            ssg_pageparser::line_col(&src.text, src.body_offset + w[1].span.start);
                         let mut d = Diagnostic::error(format!("{miss} (in {label})"))
                             .with_id("no-shortcode");
                         if let Some(file) = &file {

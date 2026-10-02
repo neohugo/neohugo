@@ -10,7 +10,7 @@
 //! attribute holder converts them: names lower-cased, `on*` event handlers dropped, arrays
 //! turned into 0-based `[from, to]` line ranges (`hl_lines=[2, "4-5"]`).
 
-use neohugo_base::{Map, Value};
+use ssg_base::{Map, Value};
 
 /// A parsed attribute value.
 #[derive(Clone, Debug, PartialEq)]

@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use exif::{Field, In, Reader, Tag, Value as ExifValue};
 use jiff::civil::DateTime;
-use neohugo_base::{Date, Value};
+use ssg_base::{Date, Value};
 
 use crate::settings::{ExifPart, ExifSettings};
 

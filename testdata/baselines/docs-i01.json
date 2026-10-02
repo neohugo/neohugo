@@ -856,7 +856,7 @@
 "troubleshooting/logging/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "troubleshooting/performance/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"}
 },
-"schema": "neohugo-baseline/1",
+"schema": "ssg-baseline/1",
 "site": "docs-i01",
 "structure": {
 "page en / home": {"S": "ok"},

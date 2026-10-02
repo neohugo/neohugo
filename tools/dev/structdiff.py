@@ -2,7 +2,7 @@
 """Structural comparison of two builds of one site (docs/rust-port/REWRITE_PLAN.md §7.2): a
 reference (the Go build's committed golden data) against a candidate (the Rust build), level by
 level and per file, plus the structure oracle; then the ratchet
-(testdata/baselines/<site>.json, tools/neohugo/changes/<task>.md). Python stdlib only.
+(testdata/baselines/<site>.json, tools/dev/changes/<task>.md). Python stdlib only.
 
 Usage:
   structdiff.py compare --site LABEL
@@ -12,8 +12,8 @@ Usage:
         [--baseline FILE [--task ID]... [--changes DIR] [--update] [--report-only]]
   structdiff.py changes [--changes DIR]      # validate every changes/<task>.md
 
-M is a manifest (tools/neohugo/manifest.py; `.json` or `.json.gz`) or a publish directory,
-which is extracted with manifest.py (its project directory, for neohugo_stats.json, static/ and the
+M is a manifest (tools/dev/manifest.py; `.json` or `.json.gz`) or a publish directory,
+which is extracted with manifest.py (its project directory, for build_stats.json, static/ and the
 base URLs, is --ref-project/--cand-project). The minified pass gives L1 and L4, the unminified
 pass L1, L2 and L3; S is the structure dump (testdata/golden/README.md). Every comparison
 reads both sides through the same extractor, with the §7.2 normalisations:
@@ -28,7 +28,7 @@ reads both sides through the same extractor, with the §7.2 normalisations:
       the extractor. Link integrity: an internal link (or alias target) of the candidate that
       resolves to none of its files is a difference unless the reference's is dangling too.
   L3  HTML: the visible text (entities decoded, typographic characters mapped to ASCII,
-      whitespace collapsed; compared by hash) and the heading-ID list; neohugo_stats.json: its
+      whitespace collapsed; compared by hash) and the heading-ID list; build_stats.json: its
       tag, class and id sets.
   L4  images: (width, height, format); files of static/: bytes (sha256); CSS/JS: non-empty and
       referenced (as the reference's are). From the minified pass; when neither side has one and
@@ -51,7 +51,7 @@ difference classes, the worst pages and the differences; --json writes all of it
 
 Ratchet (with --baseline): each (key, level) is compared with the baseline's status and
 fingerprint. A change must be listed in the changes file of the running task
-(tools/neohugo/changes/<task>.md, --task; format in its README.md); an unlisted new or changed
+(tools/dev/changes/<task>.md, --task; format in its README.md); an unlisted new or changed
 difference fails the run (exit 1). --update writes the baseline with the listed changes applied
 (plus new keys that are `ok`, and keys gone from both sides); unlisted changes keep their old
 baseline entry. --report-only always exits 0. Without --baseline the run fails on any
@@ -75,8 +75,8 @@ sys.dont_write_bytecode = True  # the sibling modules below: no __pycache__ in t
 import manifest as mf  # noqa: E402
 
 
-SCHEMA = "neohugo-structdiff/1"
-BASELINE_SCHEMA = "neohugo-baseline/1"
+SCHEMA = "ssg-structdiff/1"
+BASELINE_SCHEMA = "ssg-baseline/1"
 LEVELS = ("L1", "L2", "L3", "L4", "S")
 CLASSES = ("engine-difference", "bug-fixed", "accepted-deviation")
 CHANGES_DIR = os.path.join(HERE, "changes")

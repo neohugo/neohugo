@@ -10,9 +10,9 @@
 
 use std::fs;
 
-use neohugo_build::{BuildRequest, SinkKind, build};
-use neohugo_resources::{QrOptions, qr_target};
-use neohugo_testkit::fixture::repo_dir;
+use ssg_build::{BuildRequest, SinkKind, build};
+use ssg_resources::{QrOptions, qr_target};
+use ssg_testkit::fixture::repo_dir;
 
 use crate::support::write_files;
 
@@ -56,7 +56,7 @@ fn docs_text_and_qr_layouts_render() {
     let dir = tmp.path().join("docs");
     let mut files: Vec<(String, String)> = [
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.org/\"\ntitle = \"Docs\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n",
         ),
         ("layouts/single.html", LAYOUT),

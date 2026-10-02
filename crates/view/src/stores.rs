@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError, RwLock};
 
-use neohugo_base::{IdVec, PageId, TxnId};
+use ssg_base::{IdVec, PageId, TxnId};
 
 /// A buffered page-store write: page, key, value.
 type Write = (PageId, String, tera::Value);

@@ -4,7 +4,7 @@
 //! T01's `structure` oracle) against the model of the same site.
 //!
 //! The site itself comes from `tools/rust-port/i01/sites.py make <site> <dir>`: set
-//! `NEOHUGO_SITES=<dir>[:<dir>…]` (the directory's name is the site's name). Without the
+//! `FUGO_SITES=<dir>[:<dir>…]` (the directory's name is the site's name). Without the
 //! dump or the site the test says why it skips.
 //!
 //! **Schema** (the reader of T30, `crates/layouts/tests/it/structure.rs`, reads the same file;
@@ -26,10 +26,10 @@
 
 use std::path::{Path, PathBuf};
 
-use neohugo_base::UrlPath;
-use neohugo_site::{Model, Page};
-use neohugo_testkit::fixture::{read_json, repo_dir};
 use serde_json::Value as J;
+use ssg_base::UrlPath;
+use ssg_site::{Model, Page};
+use ssg_testkit::fixture::{read_json, repo_dir};
 
 use crate::structure::Tally;
 use crate::support::Site;
@@ -154,7 +154,7 @@ pub fn check(label: &str, dir: &Path, dump: &Path, t: &mut Tally) {
 
 #[test]
 fn structure_oracle_targets_permalinks_resources() {
-    let dirs = std::env::var("NEOHUGO_SITES").unwrap_or_default();
+    let dirs = std::env::var("FUGO_SITES").unwrap_or_default();
     let mut t = Tally::default();
     let mut checked = 0;
     for dir in dirs.split(':').filter(|d| !d.is_empty()) {
@@ -173,7 +173,7 @@ fn structure_oracle_targets_permalinks_resources() {
     }
     if checked == 0 {
         eprintln!(
-            "structure oracle: no site checked (needs NEOHUGO_SITES=<dir made by sites.py> and \
+            "structure oracle: no site checked (needs FUGO_SITES=<dir made by sites.py> and \
              testdata/golden/<site>/structure.json[.gz])"
         );
     }

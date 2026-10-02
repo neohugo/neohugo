@@ -24,10 +24,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_base::PageKind;
-use neohugo_base::paths::ContentKey;
-use neohugo_layouts::{LayoutQuery, LayoutSource, LayoutStore, Origin, TemplateName};
 use serde_json::Value as J;
+use ssg_base::PageKind;
+use ssg_base::paths::ContentKey;
+use ssg_layouts::{LayoutQuery, LayoutSource, LayoutStore, Origin, TemplateName};
 
 use crate::oracle::env_of;
 
@@ -61,9 +61,7 @@ fn read_layouts(dir: &Path, below: &str, out: &mut Vec<(String, PathBuf)>) {
 /// The plain name of a template, without the theme or embedded prefix.
 fn plain(n: &TemplateName) -> String {
     let s = n.as_str();
-    let s = s
-        .strip_prefix(neohugo_layouts::EMBEDDED_PREFIX)
-        .unwrap_or(s);
+    let s = s.strip_prefix(ssg_layouts::EMBEDDED_PREFIX).unwrap_or(s);
     match s.strip_prefix("_theme") {
         Some(rest) => rest.split_once('/').map_or(s, |(_, r)| r).to_owned(),
         None => s.to_owned(),
@@ -71,7 +69,7 @@ fn plain(n: &TemplateName) -> String {
 }
 
 fn check(label: &str, dump: &Path, layout_dirs: &[PathBuf]) {
-    let doc: J = neohugo_testkit::fixture::read_json(dump).unwrap_or_else(|e| panic!("{e}"));
+    let doc: J = ssg_testkit::fixture::read_json(dump).unwrap_or_else(|e| panic!("{e}"));
     let (env, langs) = env_of(&doc["config"]);
     let mut files = std::collections::BTreeMap::new();
     for d in layout_dirs {
@@ -90,7 +88,7 @@ fn check(label: &str, dump: &Path, layout_dirs: &[PathBuf]) {
         })
         .collect();
     sources.extend(
-        neohugo_layouts::embedded::TEMPLATES
+        ssg_layouts::embedded::TEMPLATES
             .iter()
             .map(|(rel, src)| LayoutSource {
                 rel: (*rel).to_owned(),
@@ -151,7 +149,7 @@ fn check(label: &str, dump: &Path, layout_dirs: &[PathBuf]) {
 
 #[test]
 fn structure_oracle_template_and_baseof() {
-    let root = neohugo_testkit::fixture::repo_dir();
+    let root = ssg_testkit::fixture::repo_dir();
     let golden = root.join("testdata/golden");
     let sites = root.join("sites");
     let mut checked = 0;
@@ -194,7 +192,7 @@ fn structure_oracle_template_and_baseof() {
 /// configuration of the tplimpl oracle).
 #[test]
 fn structure_reader_self_test() {
-    let root = neohugo_testkit::fixture::repo_dir();
+    let root = ssg_testkit::fixture::repo_dir();
     let store_fx: J = crate::oracle::fixture("store", "testsite");
     let dump = serde_json::json!({
         "config": store_fx["config"],

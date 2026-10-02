@@ -1,1 +1,0 @@
-<table class="md-table">{% for row in thead %}<tr>{% for c in row %}<th{% if c.alignment != "none" %} class="a-{{ c.alignment }}"{% endif %}>{{ c.text }}</th>{% endfor %}</tr>{% endfor %}{% for row in tbody %}<tr>{% for c in row %}<td>{{ c.text }}</td>{% endfor %}</tr>{% endfor %}</table>

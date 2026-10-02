@@ -1,10 +1,10 @@
-//! The T24 build-oracle sites (`hugolib/assemble/*`): each site's `neohugo.toml` loads, its
+//! The T24 build-oracle sites (`hugolib/assemble/*`): each site's `config.toml` loads, its
 //! languages come in Go's order, and the formats of its enabled content kinds are Go's `.Site`
 //! render formats (in order), less the formats that only pages' front matter `outputs` add.
 //! A summary of each loaded configuration is kept as an insta snapshot.
 
-use neohugo_config::{Config, LoadOptions};
 use serde_json::{Value as J, json};
+use ssg_config::{Config, LoadOptions};
 
 use crate::support::fixture;
 
@@ -32,7 +32,7 @@ fn load_toml(toml: &str) -> (tempfile::TempDir, Config) {
     let tmp = tempfile::tempdir().expect("temp dir");
     let dir = tmp.path().join("site");
     std::fs::create_dir_all(&dir).expect("dir");
-    std::fs::write(dir.join("neohugo.toml"), toml).expect("write");
+    std::fs::write(dir.join("config.toml"), toml).expect("write");
     let options = LoadOptions {
         source: dir,
         env: vec![(
@@ -41,13 +41,13 @@ fn load_toml(toml: &str) -> (tempfile::TempDir, Config) {
         )],
         ..LoadOptions::default()
     };
-    let c = neohugo_config::load(&options).unwrap_or_else(|e| panic!("{e}"));
+    let c = ssg_config::load(&options).unwrap_or_else(|e| panic!("{e}"));
     (tmp, c)
 }
 
 /// The formats pages of the site render in: the formats of the enabled content kinds, in
 /// render order.
-fn render_formats(c: &Config, s: &neohugo_config::SiteConfig) -> Vec<String> {
+fn render_formats(c: &Config, s: &ssg_config::SiteConfig) -> Vec<String> {
     let mut ids: Vec<_> = s
         .outputs
         .iter()
@@ -65,8 +65,8 @@ fn render_formats(c: &Config, s: &neohugo_config::SiteConfig) -> Vec<String> {
 /// [`summary`] as snapshots record it: numbers as numbers, keys sorted (serializing a
 /// `serde_json::Value` into YAML does neither once rolldown turns on serde_json's
 /// `arbitrary_precision` and `preserve_order`).
-pub fn snapshot(c: &Config) -> neohugo_base::Value {
-    neohugo_base::Value::from_json(summary(c))
+pub fn snapshot(c: &Config) -> ssg_base::Value {
+    ssg_base::Value::from_json(summary(c))
 }
 
 pub fn summary(c: &Config) -> J {
@@ -92,7 +92,7 @@ pub fn summary(c: &Config) -> J {
                 .map(|(k, ids)| (k.as_str().to_owned(),
                     J::from(ids.iter().map(|&id| c.output_formats.get(id).name.clone()).collect::<Vec<_>>())))
                 .collect::<serde_json::Map<_, _>>(),
-            "disableKinds": s.disable_kinds.iter().map(neohugo_base::PageKind::as_str).collect::<Vec<_>>(),
+            "disableKinds": s.disable_kinds.iter().map(ssg_base::PageKind::as_str).collect::<Vec<_>>(),
             "taxonomies": s.taxonomies.iter().map(|t| format!("{}={}", t.singular, t.plural)).collect::<Vec<_>>(),
             "permalinks": s.permalinks,
             "pagination": s.pagination,
@@ -134,7 +134,7 @@ fn t24_sites() {
                 exact += 1;
             }
         }
-        neohugo_testkit::snapshot::settings().bind(|| {
+        ssg_testkit::snapshot::settings().bind(|| {
             insta::assert_yaml_snapshot!(format!("t24-{name}"), snapshot(&c));
         });
     }

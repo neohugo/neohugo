@@ -13,7 +13,7 @@
 //!   names. Any other identifier stays part of the name (`v1.2.3.md` is `v1.2.3`).
 //! - **Bundle kind** (content and archetypes with a content suffix): `index` is a leaf bundle,
 //!   `_index` a branch bundle, anything else a single page. `_content.gotmpl` is a content
-//!   adapter, and so is `_content.html` in the content component: neohugo's adapters are Tera
+//!   adapter, and so is `_content.html` in the content component: our adapters are Tera
 //!   templates (Hugo would read that file as an HTML page). Files inside a leaf bundle are made
 //!   resources by discovery ([`PathInfo::into_bundled`]).
 //! - **Key.** A page's key drops the extension, the language and the `index`/`_index` element;
@@ -22,9 +22,9 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::ops::Range;
 
-use neohugo_base::paths::{ContentKey, normalize_key};
-use neohugo_base::{FormatId, LangIdx, PageKind};
-use neohugo_config::Config;
+use ssg_base::paths::{ContentKey, normalize_key};
+use ssg_base::{FormatId, LangIdx, PageKind};
+use ssg_config::Config;
 
 use crate::Component;
 
@@ -379,7 +379,7 @@ impl PathParser {
             if last.start > container_high {
                 let stem = normalize_key(&shape.s[container_high..last.start - 1]);
                 if stem == "_content" && c == Component::Content && ext == "html" {
-                    // neohugo's content adapter (a Tera template), not an HTML page.
+                    // our content adapter (a Tera template), not an HTML page.
                     sc.ty = Ty::ContentData;
                 } else if is_content {
                     sc.ty = match stem.as_str() {

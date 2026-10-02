@@ -7,8 +7,8 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use neohugo_build::{BuildRequest, SinkKind, build};
-use neohugo_publish::MemorySink;
+use ssg_build::{BuildRequest, SinkKind, build};
+use ssg_publish::MemorySink;
 
 use crate::edges::write_site;
 use crate::mini::build_mini;

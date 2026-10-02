@@ -1,6 +1,6 @@
 A site whose build fails: the error texts (file positions of template errors in a baseof block,
 a page layout, a partial, a shortcode and a render hook) must be Go's.
--- neohugo.toml --
+-- config.toml --
 baseURL = "https://example.org/"
 title = "Errors"
 disableKinds = ["rss", "sitemap", "taxonomy", "term"]

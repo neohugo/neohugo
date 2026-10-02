@@ -1,6 +1,6 @@
-# neohugo-highlight
+# ssg-highlight
 
-Code highlighting for neohugo (T25; REWRITE_PLAN.md §1.1 decision D1, §2.1): a port of
+Code highlighting for fugo (T25; REWRITE_PLAN.md §1.1 decision D1, §2.1): a port of
 [Chroma](https://github.com/alecthomas/chroma) v2.19.0, the highlighter Hugo uses. Chroma's
 lexers (its XML definitions converted to Rust data, its Go-written lexers ported) run on a
 port of Chroma's
@@ -25,7 +25,7 @@ impl Highlight {
     pub fn defaults(&self) -> &Options; pub fn lexer(&self, lang) -> Option<Lexer>;
     pub fn style_names(&self); pub fn lexer_names(&self); // Chroma's styles; lexers in registration order
 }
-impl neohugo_markup::Highlighter for Highlight { .. }     // fences no code-block hook handles
+impl ssg_markup::Highlighter for Highlight { .. }     // fences no code-block hook handles
 pub enum OptionsArg<'a> { None, Str(&'a str), Map(&'a Map) }   // "linenos=table,hl_lines=2" or a dict
 pub struct Options { style, styling: Styling, line_nos, line_number_layout: LineNumberLayout,
                      anchor_line_nos, line_anchors, line_no_start, hl_lines, hl_ranges,
@@ -98,7 +98,7 @@ page's code block count), as Hugo does; the function has no prefix. Invalid valu
 
 ## Acceptance
 
-`cargo test -p neohugo-highlight --test it -- --nocapture` prints the tables.
+`cargo test -p ssg-highlight --test it -- --nocapture` prints the tables.
 
 | criterion | result |
 |---|---|
@@ -111,7 +111,7 @@ page's code block count), as Hugo does; the function has no prefix. Invalid valu
 | every lexer compiles | 270/270 (and the 269 lexer files) |
 | solarized-dark CSS | byte-identical to `hugo gen chromastyles --style=solarized-dark`, with and without `--omitEmpty` |
 | inline styles (`noClasses`), `hl_inline`, `lineNumbersInTable`, `linenos`, `hl_lines`, `linenostart`, `anchorlinenos`, `lineanchors`, `tabWidth`, `wrapperClass`, styles | option matrix (5 inputs × 19 option sets: known/plain/unknown/no language) **95/95 byte-identical** to Hugo |
-| docs site (live-check against neohugo.github.io) | all 3,543 `<pre>` blocks and 3,514 wrappers/inline code byte-identical, including the style gallery (67 styles × 6 languages, inline styles) |
+| docs site (live-check against getfugo.github.io) | all 3,543 `<pre>` blocks and 3,514 wrappers/inline code byte-identical, including the style gallery (67 styles × 6 languages, inline styles) |
 | Chroma style names → styles, with a fallback warning | every Chroma style is bundled; an unknown name falls back to Chroma's `swapoff` (as Hugo) and is reported once by `diagnostics()` |
 
 Speed: `Highlight::new` ≈ 3 ms (dev; it registers the 270 lexers from their static data; a
@@ -196,10 +196,10 @@ fixtures and the acceptance numbers:
 
 ```sh
 C=$(go env GOMODCACHE)/github.com/alecthomas/chroma/v2@v2.19.0
-NEOHUGO_HL_XML2RUST=$C/lexers/embedded:crates/highlight/src/chroma/lexers \
-  cargo test -p neohugo-highlight --test it xml_to_rust
-NEOHUGO_HL_XML2RUST=$C/styles:crates/highlight/src/styles \
-  cargo test -p neohugo-highlight --test it xml_to_rust
+FUGO_HL_XML2RUST=$C/lexers/embedded:crates/highlight/src/chroma/lexers \
+  cargo test -p ssg-highlight --test it xml_to_rust
+FUGO_HL_XML2RUST=$C/styles:crates/highlight/src/styles \
+  cargo test -p ssg-highlight --test it xml_to_rust
 ```
 
 ## Accepted deviations
@@ -254,7 +254,7 @@ require github.com/neohugo/neohugo v0.0.0
 replace github.com/neohugo/neohugo => $PWD
 EOF
 (cd $W/oracle && GOFLAGS=-mod=mod GOPROXY=off go build -o oracle .)
-(cd rust && NEOHUGO_HL_DUMP=$W/corpus.json cargo test -p neohugo-highlight --test it dump_corpus)
+(cd rust && FUGO_HL_DUMP=$W/corpus.json cargo test -p ssg-highlight --test it dump_corpus)
 python3 rust/crates/highlight/tests/data/oracle/regen.py $W/oracle/oracle $W
 ```
 
@@ -269,12 +269,12 @@ python3 $D/oracle/chroma_testdata.py $C $O/cases.jsonl
 $O/chroma analyse < $O/cases.jsonl > $O/analyse.txt
 python3 $D/oracle/chroma_testdata.py $C $O/cases.jsonl $O/analyse.txt $D/chroma-testdata.json.gz
 $O/export $O/golexers   # then the rename export.go.txt describes, and convert:
-NEOHUGO_HL_XML2RUST=$O/golexers:crates/highlight/src/chroma/golexers/exported \
-  cargo test -p neohugo-highlight --test it xml_to_rust
+FUGO_HL_XML2RUST=$O/golexers:crates/highlight/src/chroma/golexers/exported \
+  cargo test -p ssg-highlight --test it xml_to_rust
 ```
 
-Study aids: `NEOHUGO_HL_PAIRS=1` (most frequent class differences per lexer, `docs_corpus`),
-`NEOHUGO_HL_OURS=<file>` (our HTML per docs item), `NEOHUGO_HL_TOKENS=<in>:<out>` (our tokens
+Study aids: `FUGO_HL_PAIRS=1` (most frequent class differences per lexer, `docs_corpus`),
+`FUGO_HL_OURS=<file>` (our HTML per docs item), `FUGO_HL_TOKENS=<in>:<out>` (our tokens
 per JSON line `{lang, code}`, in the format of the oracle's `tokens`, `write_tokens`),
-`NEOHUGO_HL_LEXERS=1` (the lexers in registration order, `print_lexers`), all with
-`cargo test -p neohugo-highlight --test it <test> -- --nocapture`.
+`FUGO_HL_LEXERS=1` (the lexers in registration order, `print_lexers`), all with
+`cargo test -p ssg-highlight --test it <test> -- --nocapture`.

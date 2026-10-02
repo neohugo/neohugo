@@ -18,7 +18,7 @@ use rolldown_plugin::Plugin as _;
 use crate::executor;
 use crate::lower::es5;
 use crate::options::{DropKind, Format, JsBuildOptions, Jsx, Loader, Platform, SourceMap, Target};
-use crate::plugin::{self, BuildContext, ContextParts, NeohugoPlugin};
+use crate::plugin::{self, BuildContext, ContextParts, SitePlugin};
 use crate::resolve::{AssetEntry, Assets, ComponentResolver, dir};
 use crate::sourcemap;
 
@@ -132,7 +132,7 @@ impl JsBuilder {
 
     /// Bundles `source` with `options`.
     ///
-    /// Blocks until the build is done (see the executor's notes): call it from neohugo's render
+    /// Blocks until the build is done (see the executor's notes): call it from our render
     /// pool or a plain thread, not from a worker of rayon's global pool.
     ///
     /// # Errors
@@ -457,7 +457,7 @@ async fn bundle(
     options: BundlerOptions,
     ctx: &Arc<BuildContext>,
 ) -> Result<Built, Vec<Diagnostic>> {
-    let plugin = NeohugoPlugin::new_shared(NeohugoPlugin {
+    let plugin = SitePlugin::new_shared(SitePlugin {
         ctx: Arc::clone(ctx),
     });
     let mut bundler =

@@ -1,14 +1,14 @@
 Test-only overlay of the testsite (REWRITE_PLAN.md §7.1, T60): content, configuration and
 layouts that call every embedded template. Written over the testsite by tests/it/embedded.rs,
 which also writes the PNG files, the getresource cache entries of the x and vimeo oEmbed
-requests, and the markup settings into neohugo.toml (codeFences, block attributes, standalone
+requests, and the markup settings into config.toml (codeFences, block attributes, standalone
 images), and config/_default/privacy.toml per variant.
 The shared testsite, and so Go's reference build, stays as it is.
 -- config/_default/params.toml --
 description = "Site <b>description</b> & more"
 images = ["/img/site.png"]
 [social]
-twitter = "neohugo"
+twitter = "example"
 facebook_app_id = "12345"
 -- config/_default/services.toml --
 [googleAnalytics]

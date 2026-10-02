@@ -4,7 +4,7 @@ use serde_json::Value as J;
 
 /// Reads a fixture under `testdata` as raw JSON.
 pub fn fixture(rel: &str) -> J {
-    neohugo_testkit::fixture::oracle(rel)
+    ssg_testkit::fixture::oracle(rel)
 }
 
 /// A fixture string: `None` for a `{"$nh:bytes": …}` value (not UTF-8, cannot be a `&str`).

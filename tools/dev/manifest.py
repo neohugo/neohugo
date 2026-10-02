@@ -8,9 +8,9 @@ Usage:
   manifest.py summary <manifest>...
 
 `extract` writes the manifest of every file below <publish-dir>, plus the project directory's
-neohugo_stats.json (written next to the config, not into publishDir) as `project:hugo_stats.json`,
+build_stats.json (written next to the config, not into publishDir) as `project:hugo_stats.json`,
 the key of the Go build's hugo_stats.json in the golden manifests.
-The base URLs default to the site config (`baseURL` of <project>/neohugo.toml and of its
+The base URLs default to the site config (`baseURL` of <project>/config.toml and of its
 languages). A file name ending in `.gz` is written gzipped (deterministically). The schema is
 documented in testdata/golden/README.md; in short, per file:
 
@@ -23,7 +23,7 @@ documented in testdata/golden/README.md; in short, per file:
       fragment kept) with the L1 normalisation applied to the path;
   L3  HTML: the visible text (sha256, length, words; the text itself with --full-text; a tag
       boundary is a space, except a `span`'s inside `pre`/`code`, so highlighter token spans do
-      not split words) and the heading ids; neohugo_stats.json: its tag, class and id sets;
+      not split words) and the heading ids; build_stats.json: its tag, class and id sets;
   L4  size and sha256 of every file, `static` for files copied from static/; images: width,
       height and format from the file header; CSS/JS: non-empty and referenced by an HTML page.
 
@@ -43,12 +43,12 @@ import tomllib
 import unicodedata
 import urllib.parse
 
-SCHEMA = "neohugo-manifest/1"
+SCHEMA = "ssg-manifest/1"
 LEVELS = ("L1", "L2", "L3", "L4")
 PROJECT_PREFIX = "project:"
-# The project files read, with the manifest key each is recorded under: neohugo's stats file is
+# The project files read, with the manifest key each is recorded under: our stats file is
 # compared with the Go build's hugo_stats.json of the golden data.
-PROJECT_FILES = (("neohugo_stats.json", "hugo_stats.json"),)
+PROJECT_FILES = (("build_stats.json", "hugo_stats.json"),)
 
 HU_RE = re.compile(r"_hu_[0-9a-f]+")
 FINGERPRINT_RE = re.compile(r"\.[0-9a-f]{16,64}(?=\.)")
@@ -313,8 +313,8 @@ def json_structure(v, at, keys, urls, urls_obj, page):
 
 
 def site_config(project):
-    """The base URLs of a site directory's neohugo.toml (and of its languages)."""
-    fn = os.path.join(project, "neohugo.toml")
+    """The base URLs of a site directory's config.toml (and of its languages)."""
+    fn = os.path.join(project, "config.toml")
     if not os.path.exists(fn):
         return []
     with open(fn, "rb") as fh:
@@ -450,7 +450,7 @@ def read_manifest(path):
 
 def summary(path):
     doc = read_manifest(path)
-    if doc.get("schema", "").startswith("neohugo-structure/"):
+    if doc.get("schema", "").startswith("ssg-structure/"):
         written = sum(1 for r in doc["records"] if r.get("written", True))
         return (f"{os.path.basename(path)}: {len(doc['records'])} (page, format) records ({written} "
                 f"written), {len(doc['aliases'])} aliases, {len(doc['pagerAliases'])} page/1 aliases, "

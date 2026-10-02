@@ -1,6 +1,6 @@
 //! Which renderer a page's content goes through.
 
-use neohugo_config::MediaTypes;
+use ssg_config::MediaTypes;
 
 use crate::PageError;
 

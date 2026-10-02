@@ -12,7 +12,7 @@ use std::collections::HashSet;
 use std::fmt;
 use std::ops::Range;
 
-use neohugo_base::text::{is_digit, is_letter};
+use ssg_base::text::{is_digit, is_letter};
 
 use crate::token::{Delim, FrontMatterFormat, Quoting, Token, TokenKind};
 

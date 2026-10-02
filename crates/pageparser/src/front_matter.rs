@@ -1,6 +1,6 @@
 //! Front matter: splitting it off a content file and decoding it into folded [`Params`].
 
-use neohugo_base::{Map, Params, Value};
+use ssg_base::{Map, Params, Value};
 
 use crate::lexer::{LexError, lex_intro};
 use crate::token::FrontMatterFormat;
@@ -38,7 +38,7 @@ pub enum DecodeError {
     #[error("invalid {format} front matter: {source}")]
     Syntax {
         format: FrontMatterFormat,
-        source: neohugo_base::value::DecodeError,
+        source: ssg_base::value::DecodeError,
     },
     #[error("{format} front matter is not a map")]
     NotAMap { format: FrontMatterFormat },
@@ -48,7 +48,7 @@ pub enum DecodeError {
 
 /// Decodes front matter into a case-preserving map (an empty or `null` document is an empty
 /// map). YAML is YAML 1.2 (`yes` is a string) with timestamps kept as strings; TOML dates
-/// are [`neohugo_base::Date`]s; JSON integers stay integers.
+/// are [`ssg_base::Date`]s; JSON integers stay integers.
 ///
 /// # Errors
 /// Invalid syntax, a document that is not a map, or Org front matter.

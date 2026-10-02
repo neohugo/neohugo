@@ -4,8 +4,8 @@
 
 use std::fs;
 
-use neohugo_build::{BuildError, BuildReport, BuildRequest, SinkKind, build};
-use neohugo_config::CliOverrides;
+use ssg_build::{BuildError, BuildReport, BuildRequest, SinkKind, build};
+use ssg_config::CliOverrides;
 
 use crate::support::write_files;
 
@@ -126,7 +126,7 @@ const BASIC_ADAPTER: &str = r#"{%- set pixel = get_asset(path="a/pixel.png") %}
 fn basic_files(draft: &str) -> Vec<(&'static str, String)> {
     vec![
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\nbaseURL = \"https://example.com\"\n".to_owned(),
         ),
         ("assets/a/pixel.png", String::new()),
@@ -236,7 +236,7 @@ fn draft_pages_are_left_out() {
 fn page_without_content() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\nbaseURL = \"https://example.com\"\n",
         ),
         (
@@ -281,7 +281,7 @@ fn add_page_errors() {
     ] {
         let adapter = format!("{{{{ add_page(page={page}) }}}}");
         let (_tmp, r) = try_build(&[
-            ("neohugo.toml", "baseURL = \"https://example.com\"\n"),
+            ("config.toml", "baseURL = \"https://example.com\"\n"),
             ("layouts/single.html", "single"),
             ("layouts/list.html", "list"),
             ("content/docs/_content.html", &adapter),
@@ -310,7 +310,7 @@ fn anyhow_chain(e: &dyn std::error::Error) -> String {
 #[test]
 fn site_lists_and_functions_outside_adapters() {
     let (_tmp, r) = try_build(&[
-        ("neohugo.toml", "baseURL = \"https://example.com\"\n"),
+        ("config.toml", "baseURL = \"https://example.com\"\n"),
         ("layouts/single.html", "single"),
         ("layouts/list.html", "list"),
         (
@@ -322,7 +322,7 @@ fn site_lists_and_functions_outside_adapters() {
     assert!(e.contains("regular_pages"), "{e}");
 
     let (_tmp, r) = try_build(&[
-        ("neohugo.toml", "baseURL = \"https://example.com\"\n"),
+        ("config.toml", "baseURL = \"https://example.com\"\n"),
         (
             "layouts/home.html",
             "{{ add_page(page={\"path\": \"x\"}) }}",
@@ -337,7 +337,7 @@ fn site_lists_and_functions_outside_adapters() {
 #[test]
 fn go_template_adapters_are_refused() {
     let (_tmp, r) = try_build(&[
-        ("neohugo.toml", "baseURL = \"https://example.com\"\n"),
+        ("config.toml", "baseURL = \"https://example.com\"\n"),
         ("layouts/list.html", "list"),
         (
             "content/docs/_content.gotmpl",
@@ -349,7 +349,7 @@ fn go_template_adapters_are_refused() {
     assert!(e.contains("_content.html"), "{e}");
 
     let (_tmp, r) = try_build(&[
-        ("neohugo.toml", "baseURL = \"https://example.com\"\n"),
+        ("config.toml", "baseURL = \"https://example.com\"\n"),
         ("layouts/list.html", "list"),
         (
             "content/docs/_content.html",
@@ -371,7 +371,7 @@ fn adapter_per_language() {
              [languages.fr]\nweight = 2\ntitle = \"Titre\"\ndisabled = {disabled}\n"
         );
         let (_tmp, r) = build_ok(&[
-            ("neohugo.toml", &config),
+            ("config.toml", &config),
             (
                 "layouts/single.html",
                 "Single: {{ page.title }}|{{ page.content }}|",
@@ -405,7 +405,7 @@ fn enable_all_languages_and_the_store() {
              [languages.fr]\ntitle = \"Titre\"\nweight = 2\ndisabled = {disabled}\n"
         );
         let (_tmp, r) = build_ok(&[
-            ("neohugo.toml", &config),
+            ("config.toml", &config),
             ("i18n/en.yaml", "title: Title\n"),
             ("i18n/fr.yaml", "title: Titre\n"),
             (
@@ -444,7 +444,7 @@ fn enable_all_languages_and_the_store() {
 #[test]
 fn default_page_sort() {
     let (_tmp, r) = build_ok(&[
-        ("neohugo.toml", "defaultContentLanguage = \"en\"\n"),
+        ("config.toml", "defaultContentLanguage = \"en\"\n"),
         (
             "layouts/home.html",
             "{% for p in site.regular_pages %}{{ p.rel_permalink }}|{% endfor %}",
@@ -476,7 +476,7 @@ fn default_page_sort() {
 fn cascade() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\nbaseURL = \"https://example.com\"\n",
         ),
         (
@@ -497,7 +497,7 @@ fn cascade() {
     );
 
     let (_tmp, r) = build_ok(&[
-        ("neohugo.toml", "disableLiveReload = true\n"),
+        ("config.toml", "disableLiveReload = true\n"),
         (
             "content/_index.md",
             "---\ncascade:\n  - title: foo\n    target:\n      path: \"**\"\n---\n",
@@ -528,7 +528,7 @@ fn cascade() {
 fn build_options() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\nbaseURL = \"https://example.com\"\n",
         ),
         ("layouts/single.html", "|Title: {{ page.title }}|"),
@@ -549,7 +549,7 @@ fn build_options() {
 fn paths_with_dots_and_param_case() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = ['home','section','rss','sitemap','taxonomy','term']\n",
         ),
         (
@@ -577,7 +577,7 @@ fn paths_with_dots_and_param_case() {
 fn paths_as_hugo_joins_them() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\nbaseURL = \"https://example.com/\"\n",
         ),
         ("content/books/_index.md", "---\ntitle: Books\n---\n"),
@@ -611,7 +611,7 @@ fn paths_as_hugo_joins_them() {
 fn resource_media_type() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\nbaseURL = \"https://example.com\"\n",
         ),
         (
@@ -638,7 +638,7 @@ fn resource_media_type() {
 fn menus() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = ['rss','section','sitemap','taxonomy','term']\n\
              [menus]\n[[menus.main]]\nname = \"Main\"\n[[menus.footer]]\nname = \"Footer\"\n",
         ),
@@ -669,7 +669,7 @@ fn menus() {
 fn summary_divider() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = ['home','rss','section','sitemap','taxonomy','term']\n[markup.goldmark.renderer]\nunsafe = true\n",
         ),
         (
@@ -692,7 +692,7 @@ fn summary_divider() {
 fn outputs() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = ['home','rss','section','sitemap','taxonomy','term']\n[outputs]\npage = ['html','json']\n",
         ),
         ("layouts/page.html", "html: {{ page.title }}"),
@@ -720,7 +720,7 @@ fn outputs() {
 
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = ['page','home','sitemap','taxonomy','term']\n\
              [[cascade]]\noutputs = ['html','json']\n[cascade.target]\npath = '{/s2,/s4}'\n",
         ),
@@ -762,7 +762,7 @@ fn outputs() {
 fn home_page() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\nbaseURL = \"https://example.com\"\n",
         ),
         ("layouts/all.html", "{{ page.kind }}: {{ page.title }}|"),
@@ -781,7 +781,7 @@ fn home_page() {
 fn listed_but_not_rendered() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.org/\"\n\
              [frontmatter]\ndate = ['date']\npublishDate = ['publishdate', 'date']\n\
              lastmod = [':git', 'lastmod', 'publishdate', 'date']\n\
@@ -849,7 +849,7 @@ fn listed_but_not_rendered() {
 fn slugs_priorities_dates_and_paths_added_twice() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.com/\"\n\
              disableKinds = [\"taxonomy\", \"term\", \"rss\", \"section\"]\n",
         ),
@@ -901,7 +901,7 @@ fn slugs_priorities_dates_and_paths_added_twice() {
 fn two_adapters_on_one_path() {
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.com/\"\n\
              disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n",
         ),
@@ -987,7 +987,7 @@ fn many_pages_and_resources() {
     );
     let (_tmp, r) = build_ok(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.com/\"\n\
              disableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n",
         ),

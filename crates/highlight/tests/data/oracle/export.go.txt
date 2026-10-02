@@ -1,4 +1,4 @@
-// The exporter of neohugo-highlight's `src/chroma/golexers/exported/` (crate README): writes the
+// The exporter of ssg-highlight's `src/chroma/golexers/exported/` (crate README): writes the
 // configuration and rules of Chroma v2.19.0's lexers written in Go as Chroma XML (serialise.go's
 // format), with <emitfunc name=…/>, <mutatorfunc name=…/> for Go functions and <nil/> for a
 // nil emitter in bygroups; Raku gets its configuration and plain-text rules.
@@ -7,7 +7,7 @@
 //
 // Then rename the Go lexer's `UsingLexer.func1` emitter to `goTextTemplateString`
 // (`sed -i 's/UsingLexer.func1/goTextTemplateString/' <dir>/go.xml`) and convert the files to
-// Rust (`NEOHUGO_HL_XML2RUST=<dir>:crates/highlight/src/chroma/golexers/exported`, crate
+// Rust (`FUGO_HL_XML2RUST=<dir>:crates/highlight/src/chroma/golexers/exported`, crate
 // README). Build it like chroma.go.txt.
 package main
 

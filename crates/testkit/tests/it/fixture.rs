@@ -4,13 +4,13 @@
 use std::collections::BTreeMap;
 use std::fs;
 
-use neohugo_testkit::fixture::{
-    self, Counts, FixtureError, GoString, Layout, Tag, UPSTREAM, counts, oracle, oracle_lines,
-    read_values, records, repo_dir, repo_file, testdata,
-};
 use pretty_assertions::assert_eq;
 use serde::Deserialize;
 use serde_json::{Value, json};
+use ssg_testkit::fixture::{
+    self, Counts, FixtureError, GoString, Layout, Tag, UPSTREAM, counts, oracle, oracle_lines,
+    read_values, records, repo_dir, repo_file, testdata,
+};
 
 fn counted(rel: &str) -> Counts {
     counts()
@@ -158,7 +158,7 @@ fn common_flect_document() {
     assert_eq!(snack["pluralize"], "snacks");
 }
 
-// ── the neohugo schema ──
+// ── the fixture schema ──
 
 #[test]
 fn tags() {
@@ -224,7 +224,7 @@ fn repo_files_of_the_go_tree() {
         testdata("upstream/resources/testdata/exif/orientation6.jpg")
     );
     for rel in [
-        "docs/neohugo.toml",
+        "docs/config.toml",
         "hugolib/testdata/fruits.json",
         "resources/testdata2/a.png",
         "Cargo.toml",

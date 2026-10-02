@@ -1,6 +1,6 @@
 //! The `es5` target of `js.Build`, which Rolldown cannot build (it starts at ES2015).
 //!
-//! neohugo bundles with Rolldown at `es2015` and adds two steps around it:
+//! This port bundles with Rolldown at `es2015` and adds two steps around it:
 //!
 //! - [`check_es5`], for every module as loaded (before Rolldown's own transform): the errors
 //!   esbuild 0.25 reports for `--target=es5`, with its texts and positions. esbuild lowers some

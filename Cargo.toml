@@ -1,4 +1,4 @@
-# The neohugo Rust workspace (docs/rust-port/REWRITE_PLAN.md §2).
+# The Rust workspace (docs/rust-port/REWRITE_PLAN.md §2).
 #
 # Every third-party dependency and its features are declared here and only here; member
 # manifests use `<dep>.workspace = true` and never add `features =` (§2.2).
@@ -12,7 +12,7 @@ version = "0.149.0-DEV"
 edition = "2024"
 license = "Apache-2.0"
 rust-version = "1.96" # rolldown's oxc needs 1.96; resolver 3 picks MSRV-compatible versions
-repository = "https://github.com/neohugo/neohugo"
+repository = "https://github.com/getfugo/fugo"
 publish = false
 
 [workspace.lints.rust]
@@ -65,32 +65,32 @@ debug-assertions = false
 
 [workspace.dependencies]
 # ── workspace members ──
-neohugo-workspace-hack = { path = "crates/workspace-hack" }
-neohugo-base = { path = "crates/base" }
-neohugo-config = { path = "crates/config" }
-neohugo-vfs = { path = "crates/vfs" }
-neohugo-pageparser = { path = "crates/pageparser" }
-neohugo-locale = { path = "crates/locale" }
-neohugo-page = { path = "crates/page" }
-neohugo-site = { path = "crates/site" }
-neohugo-nav = { path = "crates/nav" }
-neohugo-markup = { path = "crates/markup" }
-neohugo-highlight = { path = "crates/highlight" }
-neohugo-minify = { path = "crates/minify" }
-neohugo-images = { path = "crates/images" }
-neohugo-jsbuild = { path = "crates/jsbuild" }
-neohugo-resources = { path = "crates/resources" }
-neohugo-layouts = { path = "crates/layouts" }
-neohugo-funcs = { path = "crates/funcs" }
-neohugo-view = { path = "crates/view" }
-neohugo-sitefuncs = { path = "crates/sitefuncs" }
-neohugo-render = { path = "crates/render" }
-neohugo-publish = { path = "crates/publish" }
-neohugo-build = { path = "crates/build" }
-neohugo = { path = "crates/cli" }
-neohugo-serve = { path = "crates/serve" }
-neohugo-testkit = { path = "crates/testkit" }
-neohugo-migrate = { path = "crates/migrate" }
+ssg-workspace-hack = { path = "crates/workspace-hack" }
+ssg-base = { path = "crates/base" }
+ssg-config = { path = "crates/config" }
+ssg-vfs = { path = "crates/vfs" }
+ssg-pageparser = { path = "crates/pageparser" }
+ssg-locale = { path = "crates/locale" }
+ssg-page = { path = "crates/page" }
+ssg-site = { path = "crates/site" }
+ssg-nav = { path = "crates/nav" }
+ssg-markup = { path = "crates/markup" }
+ssg-highlight = { path = "crates/highlight" }
+ssg-minify = { path = "crates/minify" }
+ssg-images = { path = "crates/images" }
+ssg-jsbuild = { path = "crates/jsbuild" }
+ssg-resources = { path = "crates/resources" }
+ssg-layouts = { path = "crates/layouts" }
+ssg-funcs = { path = "crates/funcs" }
+ssg-view = { path = "crates/view" }
+ssg-sitefuncs = { path = "crates/sitefuncs" }
+ssg-render = { path = "crates/render" }
+ssg-publish = { path = "crates/publish" }
+ssg-build = { path = "crates/build" }
+ssg-cli = { path = "crates/cli" }
+ssg-serve = { path = "crates/serve" }
+ssg-testkit = { path = "crates/testkit" }
+ssg-migrate = { path = "crates/migrate" }
 
 # ── data formats ──
 serde = { version = "1.0.229", features = ["derive", "rc", "alloc"] }
@@ -109,7 +109,7 @@ flate2 = "1"           # gzip of the plain-JSON fixtures (testkit); not in the p
 
 # ── templates ──
 tera = { version = "=2.4.0", features = ["no_fmt", "fast_hash", "preserve_order"] }
-# No `date`: neohugo registers its own `date` on neohugo-locale (T12, T31); tera-contrib's would
+# No `date`: this port registers its own `date` on ssg-locale (T12, T31); tera-contrib's would
 # pull jiff-icu, icu_calendar and icu_time into funcs.
 tera-contrib = { version = "0.3", default-features = false, features = ["regex", "urlencode", "base64", "filesize_format"] }
 
@@ -202,7 +202,7 @@ notify-debouncer-full = "0.7"
 axum = { version = "0.8.9", default-features = false, features = ["http1", "tokio", "ws"] }
 tokio = { version = "1.53", default-features = false, features = ["rt", "net", "fs", "time", "sync"] }
 # serve tests only: the LiveReload WebSocket client (locked through axum `ws`; the features
-# tokio-tungstenite enables, so that `-p neohugo` and `-p neohugo-serve` share its build)
+# tokio-tungstenite enables, so that `-p ssg-cli` and `-p ssg-serve` share its build)
 tungstenite = { version = "0.29", default-features = false, features = ["handshake"] }
 
 # ── dev ──

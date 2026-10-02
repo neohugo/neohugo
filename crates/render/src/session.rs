@@ -5,28 +5,28 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Arc, OnceLock, Weak};
 
-use neohugo_base::diag::{Diagnostic, Diagnostics};
-use neohugo_base::paths::{ContentKey, OutputPath};
-use neohugo_base::{Clock, FormatId, IdVec, Idx, LangIdx, PageId, PageKind};
-use neohugo_funcs::{EnvAllowlist, Locales, PureEnv, register_placeholders, register_pure};
-use neohugo_highlight::Highlight;
-use neohugo_images::{ImageCache, ImageQueue, Imaging};
-use neohugo_layouts::{
+use rayon::prelude::*;
+use ssg_base::diag::{Diagnostic, Diagnostics};
+use ssg_base::paths::{ContentKey, OutputPath};
+use ssg_base::{Clock, FormatId, IdVec, Idx, LangIdx, PageId, PageKind};
+use ssg_funcs::{EnvAllowlist, Locales, PureEnv, register_placeholders, register_pure};
+use ssg_highlight::Highlight;
+use ssg_images::{ImageCache, ImageQueue, Imaging};
+use ssg_layouts::{
     EmbeddedHooks, LayoutQuery, LayoutStore, Origin, Selection, Selections, StandaloneKind,
     TemplateName, TemplateRole, Templates,
 };
-use neohugo_markup::{Fragments, MarkdownOptions};
-use neohugo_resources::{ResourceStore, StoreConfig};
-use neohugo_site::{Model, Page, PageUrl};
-use neohugo_sitefuncs::Handles;
-use neohugo_vfs::Vfs;
-use neohugo_view::views::NeohugoView;
-use neohugo_view::{
+use ssg_markup::{Fragments, MarkdownOptions};
+use ssg_resources::{ResourceStore, StoreConfig};
+use ssg_site::{Model, Page, PageUrl};
+use ssg_sitefuncs::Handles;
+use ssg_vfs::Vfs;
+use ssg_view::views::BuildView;
+use ssg_view::{
     ContentError, ContentRenderer, Contents, Deferred, DeferredRegistry, ExpandedSource,
     HookVariant, NavSite, PageStores, PaginationRecorder, Phase, RenderScope, RenderStringOptions,
     RenderedContent, SCOPE_KEY, ViewCache, ViewInputs, page_target,
 };
-use rayon::prelude::*;
 
 use crate::job::{AliasPlan, Job, JobOrder, Output};
 use crate::memo::ContentStore;
@@ -46,7 +46,7 @@ pub struct Project {
 pub struct RenderOptions {
     /// `now()` and the build's "now" (`--clock`).
     pub clock: Clock,
-    /// The build runs in `neohugo server` (`neohugo.is_server`).
+    /// The build runs in the `server` command (`build.is_server`).
     pub server: bool,
 }
 
@@ -71,7 +71,7 @@ pub struct Session {
     /// What the site functions hold (their `Arc`s are the session's named mutable state).
     handles: Handles,
     selections: BTreeMap<(PageId, FormatId), Selection>,
-    /// Front matter alias files per language (`neohugo_nav::page_aliases`).
+    /// Front matter alias files per language (`ssg_nav::page_aliases`).
     aliases: IdVec<LangIdx, Vec<AliasPlan>>,
     /// The hook variants content is rendered in: `Html`, then `Format(F)` for every format F
     /// with a `_markup/*.<F>.*` hook.
@@ -89,7 +89,7 @@ pub struct Session {
     inclusions: Inclusions,
     /// Phase C1's result, frozen into the views in phase D.
     contents: OnceLock<BTreeMap<HookVariant, Contents>>,
-    neohugo: tera::Value,
+    build_info: tera::Value,
     diagnostics: Arc<Diagnostics>,
 }
 
@@ -151,7 +151,7 @@ fn outputs(p: &Page) -> impl Iterator<Item = &PageUrl> {
 }
 
 /// The output formats page `p` is rendered in (none unless it is written), the primary first:
-/// the (page, format) pairs that get a layout job (`neohugo templates check` lists their
+/// the (page, format) pairs that get a layout job (`templates check` lists their
 /// lookups).
 pub fn rendered_formats(p: &Page) -> impl Iterator<Item = FormatId> + '_ {
     outputs(p).map(|u| u.format)
@@ -199,7 +199,7 @@ fn is_standalone(kind: PageKind) -> bool {
 
 impl Session {
     /// Loads the templates and prepares the views of `model`, in the plan's order: the renderer
-    /// slot is created empty → the site functions are registered (`neohugo_sitefuncs::register`
+    /// slot is created empty → the site functions are registered (`ssg_sitefuncs::register`
     /// after the pure functions) → the layouts are loaded (validating every template) →
     /// `Arc::new(Session)` → the slot is set to the session.
     ///
@@ -249,7 +249,7 @@ impl Session {
         )));
         let translations = Arc::new(i18n::load(&project.vfs, cfg)?);
         let (menus, menu_diagnostics) =
-            neohugo_nav::build_menus(&NavSite::new(Arc::clone(&model)), &model.config);
+            ssg_nav::build_menus(&NavSite::new(Arc::clone(&model)), &model.config);
         for d in menu_diagnostics {
             diagnostics.push(d);
         }
@@ -263,7 +263,7 @@ impl Session {
             .config
             .sites
             .ids()
-            .map(|l| neohugo_nav::page_aliases(views.nav(), &model.config, l))
+            .map(|l| ssg_nav::page_aliases(views.nav(), &model.config, l))
             .collect::<Result<_, _>>()?;
 
         let mut selections = BTreeMap::new();
@@ -310,7 +310,7 @@ impl Session {
             deferred: Arc::new(DeferredRegistry::default()),
             css_purges: Arc::default(),
             menus: Arc::clone(views.menus()),
-            related: Arc::new(neohugo_sitefuncs::RelatedCache::default()),
+            related: Arc::new(ssg_sitefuncs::RelatedCache::default()),
             i18n: translations,
             diagnostics: Arc::clone(&diagnostics),
             highlight: Arc::clone(&highlight),
@@ -322,14 +322,14 @@ impl Session {
         };
 
         let pure = Arc::new(pure_env(&model, o, &diagnostics));
-        let templates = neohugo_layouts::load(Arc::clone(&project.layouts), &sel, &|t| {
+        let templates = ssg_layouts::load(Arc::clone(&project.layouts), &sel, &|t| {
             register_placeholders(t);
             register_pure(t, &pure);
-            neohugo_sitefuncs::register(t, &handles);
+            ssg_sitefuncs::register(t, &handles);
             extra(t, &handles);
         })?;
         let session = Arc::new(Self {
-            neohugo: tera::Value::from_serializable(&NeohugoView::new(&model.config, o.server)),
+            build_info: tera::Value::from_serializable(&BuildView::new(&model.config, o.server)),
             cells: ContentStore::new(model.pages.len(), &variants),
             markdown: cfg.sites.iter().map(content::markdown_options).collect(),
             embedded_hooks: cfg
@@ -528,7 +528,7 @@ impl Session {
     }
 
     /// Phase E5: renders the template of a `defer(...)` call registered under `key`, with
-    /// `data`, `site` (the default language's), `neohugo` and a scope in phase `Deferred`.
+    /// `data`, `site` (the default language's), `build` and a scope in phase `Deferred`.
     ///
     /// # Errors
     /// [`RenderError::Phase`] before [`freeze_views`](Self::freeze_views), or
@@ -547,7 +547,7 @@ impl Session {
         let mut ctx = tera::Context::new();
         ctx.insert_value("data", d.data.clone());
         ctx.insert_value("site", generation.sites[lang].clone());
-        ctx.insert_value("neohugo", self.neohugo.clone());
+        ctx.insert_value("build", self.build_info.clone());
         ctx.insert_value(SCOPE_KEY, scope.to_value());
         self.templates
             .tera()
@@ -562,7 +562,7 @@ impl Session {
     /// Runs a content adapter: renders `source`, the Tera template of the `_content.html` at
     /// `path`, for language `lang` as run `run` of [`Handles::adapters`] (which collects what
     /// it adds); the output is discarded. The context has `site` (the language's, without the
-    /// page lists: Hugo's site is not built yet either), `neohugo`, `lang` and a scope in phase
+    /// page lists: Hugo's site is not built yet either), `build`, `lang` and a scope in phase
     /// `Adapter` on the language's home page, so site functions and partials work on the
     /// session's model (the content files).
     ///
@@ -594,7 +594,7 @@ impl Session {
             .collect();
         let mut ctx = tera::Context::new();
         ctx.insert_value("site", tera::Value::from(site));
-        ctx.insert_value("neohugo", self.neohugo.clone());
+        ctx.insert_value("build", self.build_info.clone());
         ctx.insert("lang", &self.model.config.sites[lang].language.key);
         ctx.insert_value(SCOPE_KEY, scope.to_value());
         self.templates
@@ -661,7 +661,7 @@ impl Session {
         let mut ctx = tera::Context::new();
         ctx.insert_value("page", full);
         ctx.insert_value("site", generation.sites[p.lang].clone());
-        ctx.insert_value("neohugo", self.neohugo.clone());
+        ctx.insert_value("build", self.build_info.clone());
         ctx.insert("lang", &cfg.sites[p.lang].language.key);
         ctx.insert_value("output_format", output_format);
         if p.kind == PageKind::SitemapIndex {
@@ -717,7 +717,7 @@ impl Session {
             page.map_or_else(tera::Value::none, |p| generation.links[p].clone()),
         );
         ctx.insert_value("site", generation.sites[lang].clone());
-        ctx.insert_value("neohugo", self.neohugo.clone());
+        ctx.insert_value("build", self.build_info.clone());
         let text = self
             .templates
             .tera()
@@ -809,18 +809,18 @@ impl Session {
 
     /// The layout chosen for page `page` in `format` in [`new`](Self::new) (the template and
     /// base template its [`Job::Page`] or [`Job::Standalone`] renders); `None`: no layout, the
-    /// job renders nothing. The structure dump of `neohugo-build` records it.
+    /// job renders nothing. The structure dump of `ssg-build` records it.
     #[must_use]
     pub fn selection(&self, page: PageId, format: FormatId) -> Option<&Selection> {
         self.selections.get(&(page, format))
     }
 
-    /// The redirect to the default language's home page (`neohugo_nav::language_redirect`:
+    /// The redirect to the default language's home page (`ssg_nav::language_redirect`:
     /// `/en/` → `/`, or `/` → `/en/` with `defaultContentLanguageInSubdir`), when the home page
     /// has that output: what [`Job::LanguageRedirect`] renders.
     #[must_use]
     pub fn language_redirect(&self) -> Option<AliasPlan> {
-        let a = neohugo_nav::language_redirect(self.views.nav(), &self.model.config)?;
+        let a = ssg_nav::language_redirect(self.views.nav(), &self.model.config)?;
         outputs(&self.model.pages[a.to])
             .any(|o| o.format == a.format)
             .then_some(a)
@@ -869,8 +869,8 @@ impl Session {
         &self.templates
     }
 
-    pub(crate) fn neohugo(&self) -> &tera::Value {
-        &self.neohugo
+    pub(crate) fn build_info(&self) -> &tera::Value {
+        &self.build_info
     }
 
     pub(crate) fn stores(&self) -> &PageStores {
@@ -991,7 +991,7 @@ impl ContentRenderer for Session {
         child.frame = s.frame;
         if child.too_deep() {
             return Err(ContentError::TooDeep {
-                limit: neohugo_view::MAX_DEPTH,
+                limit: ssg_view::MAX_DEPTH,
             });
         }
         ctx.insert_value(SCOPE_KEY, child.to_value());

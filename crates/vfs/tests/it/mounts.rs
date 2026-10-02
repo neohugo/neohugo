@@ -6,31 +6,31 @@
 use std::fs;
 use std::path::Path;
 
-use neohugo_config::{LoadOptions, load};
-use neohugo_testkit::fixture::oracle;
-use neohugo_vfs::{Module, Mount, Vfs};
 use serde_json::{Value as J, json};
+use ssg_config::{LoadOptions, load};
+use ssg_testkit::fixture::oracle;
+use ssg_vfs::{Module, Mount, Vfs};
 
 /// Writes the case's files (`name/` is a directory) below `root/site`.
 fn write_case(root: &Path, files: &serde_json::Map<String, J>) {
     let site = root.join("site");
     fs::create_dir_all(&site).unwrap();
     let root_str = root.to_str().unwrap();
-    // Go's `hugo.*` configuration files and `package.hugo.json` are neohugo's `neohugo.*` and
-    // `package.neohugo.json`.
+    // Go's `hugo.*` configuration files and `package.hugo.json` are our `config.*` and
+    // `package.config.json`.
     for (name, content) in files {
-        let name = name.replace("package.hugo.json", "package.neohugo.json");
-        let p = site.join(neohugo_testkit::fixture::neohugo_path(&name));
+        let name = name.replace("package.hugo.json", "package.config.json");
+        let p = site.join(ssg_testkit::fixture::local_path(&name));
         if name.ends_with('/') {
             fs::create_dir_all(&p).unwrap();
         } else {
             fs::create_dir_all(p.parent().unwrap()).unwrap();
-            // Go's `hugo_stats.json` is neohugo's `neohugo_stats.json`.
+            // Go's `hugo_stats.json` is our `build_stats.json`.
             let text = content
                 .as_str()
                 .unwrap()
                 .replace("$ROOT", root_str)
-                .replace("hugo_stats.json", "neohugo_stats.json");
+                .replace("hugo_stats.json", "build_stats.json");
             fs::write(&p, text).unwrap();
         }
     }
@@ -68,9 +68,9 @@ fn split(mounts: Vec<J>) -> (Vec<J>, Vec<String>) {
 }
 
 /// A mount as JSON text with sorted keys (serde_json's `Map` keeps insertion order in this
-/// workspace, see neohugo-funcs' determinism test).
+/// workspace, see ssg-funcs' determinism test).
 fn canonical(m: &J) -> String {
-    serde_json::to_string(&neohugo_base::Value::from_json(m.clone())).unwrap()
+    serde_json::to_string(&ssg_base::Value::from_json(m.clone())).unwrap()
 }
 
 /// Loads the case written below `root` and sets up its mounts.
@@ -118,8 +118,8 @@ fn mounts_match_go() {
         let want: Vec<J> = serde_json::from_str(
             &c["result"]["modules"][0]["mounts"]
                 .to_string()
-                .replace("hugo_stats.json", "neohugo_stats.json")
-                .replace("package.hugo.json", "package.neohugo.json"),
+                .replace("hugo_stats.json", "build_stats.json")
+                .replace("package.hugo.json", "package.config.json"),
         )
         .unwrap();
         let (ours, ours_js) = split(ours);

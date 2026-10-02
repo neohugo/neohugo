@@ -1,4 +1,4 @@
-//! Integration tests of `neohugo-funcs` (the crate's single test binary, REWRITE_PLAN.md §2.2).
+//! Integration tests of `ssg-funcs` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 
 #[cfg(feature = "runtime")]
 mod support;

@@ -1,26 +1,26 @@
 //! Resources: assets, remote resources, named targets, the pipes, `resource_content`,
 //! `publish`, `post_process`, `execute_as_template`, `purge_css`, and `unmarshal`.
 //!
-//! Every result is a resource view (`neohugo_view::resource_view`); transforms are lazy (the
+//! Every result is a resource view (`ssg_view::resource_view`); transforms are lazy (the
 //! store computes them on `.Content` or when publishing), and a view whose links are only
 //! known in phase E5 carries post-process placeholders.
 
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::sync::{Arc, OnceLock, Weak};
 
-use neohugo_base::diag::{Diagnostic, Diagnostics};
-use neohugo_base::{PageId, ResourceId};
-use neohugo_layouts::Templates;
-use neohugo_minify::{CssPurges, MinifyError, PurgeOptions, PurgePlan};
-use neohugo_resources::pipes::has_placeholder;
-use neohugo_resources::pipes::{
+use ssg_base::diag::{Diagnostic, Diagnostics};
+use ssg_base::{PageId, ResourceId};
+use ssg_layouts::Templates;
+use ssg_minify::{CssPurges, MinifyError, PurgeOptions, PurgePlan};
+use ssg_resources::pipes::has_placeholder;
+use ssg_resources::pipes::{
     BabelOptions, JsBuildSpec, PostCssOptions, TailwindOptions, ToCssOptions,
 };
-use neohugo_resources::{
+use ssg_resources::{
     CallSite, HashAlgo, PipeError, PpField, RemoteOptions, ResourceStore, TemplateExecutor,
     Transform,
 };
-use neohugo_view::{ContentRenderer, SCOPE_KEY, ViewCache, post_processed_view, resource_view};
+use ssg_view::{ContentRenderer, SCOPE_KEY, ViewCache, post_processed_view, resource_view};
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;
@@ -388,7 +388,7 @@ impl TemplateExecutor for Executor<'_> {
 }
 
 /// `r | execute_as_template(target=, data=?)`: the asset's text rendered as a Tera template
-/// with `data`, `site`, `neohugo` and `__nh`, as a resource at `target` (escaped when `target` is
+/// with `data`, `site`, `build` and `__nh`, as a resource at `target` (escaped when `target` is
 /// HTML, XML or SVG).
 struct ExecuteAsTemplate {
     views: Arc<ViewCache>,
@@ -404,7 +404,7 @@ impl SiteFilter for ExecuteAsTemplate {
         let data = kw.get::<Value>("data")?.unwrap_or_else(Value::none);
         let t = templates(&self.templates, name)?;
         let mut context = tera::Context::new();
-        for key in ["site", "neohugo"] {
+        for key in ["site", "build"] {
             if let Some(v) = st.get::<Value>(key)? {
                 context.insert_value(key, v);
             }
@@ -418,7 +418,7 @@ impl SiteFilter for ExecuteAsTemplate {
         let exec = Executor {
             tera: t.tera(),
             context,
-            autoescape: neohugo_layouts::AUTOESCAPE_SUFFIXES
+            autoescape: ssg_layouts::AUTOESCAPE_SUFFIXES
                 .iter()
                 .any(|s| target.ends_with(s)),
         };
@@ -432,7 +432,7 @@ impl SiteFilter for ExecuteAsTemplate {
 
 /// `css | purge_css(safelist=, greedy=, blocklist=, content=, variables=, important=)`: a
 /// placeholder the publisher replaces, in each page, with the rules of `css` (a resource or a
-/// string) that page uses (`neohugo_minify::purge`). The plan is compiled once per input and
+/// string) that page uses (`ssg_minify::purge`). The plan is compiled once per input and
 /// options.
 struct PurgeCss {
     store: Arc<ResourceStore>,
@@ -573,8 +573,8 @@ impl Format {
         })
     }
 
-    fn decode(self, s: &str) -> Result<neohugo_base::Value, String> {
-        use neohugo_base::Value as Data;
+    fn decode(self, s: &str) -> Result<ssg_base::Value, String> {
+        use ssg_base::Value as Data;
         match self {
             Self::Json => Data::from_json_str(s).map_err(|e| e.to_string()),
             Self::Toml => Data::from_toml_str(s).map_err(|e| e.to_string()),
@@ -586,8 +586,8 @@ impl Format {
 }
 
 /// CSV (comma separated, rows of any length) as a list of lists of strings.
-fn csv_rows(text: &str) -> Result<neohugo_base::Value, csv::Error> {
-    use neohugo_base::Value as Data;
+fn csv_rows(text: &str) -> Result<ssg_base::Value, csv::Error> {
+    use ssg_base::Value as Data;
     let mut reader = csv::ReaderBuilder::new()
         .has_headers(false)
         .flexible(true)
@@ -601,14 +601,14 @@ fn csv_rows(text: &str) -> Result<neohugo_base::Value, csv::Error> {
 
 /// An XML document as the value of its root element (attributes as `-name`, text beside
 /// children or attributes as `#text`, repeated elements as lists), as `site.data` reads XML.
-fn xml_root(text: &str) -> Result<neohugo_base::Value, roxmltree::Error> {
+fn xml_root(text: &str) -> Result<ssg_base::Value, roxmltree::Error> {
     let doc = roxmltree::Document::parse(text)?;
     Ok(xml_element(doc.root_element()))
 }
 
-fn xml_element(e: roxmltree::Node<'_, '_>) -> neohugo_base::Value {
-    use neohugo_base::Value as Data;
-    let mut m = neohugo_base::Map::new();
+fn xml_element(e: roxmltree::Node<'_, '_>) -> ssg_base::Value {
+    use ssg_base::Value as Data;
+    let mut m = ssg_base::Map::new();
     for a in e.attributes() {
         m.insert(format!("-{}", a.name()), Data::string(a.value()));
     }

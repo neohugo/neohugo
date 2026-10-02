@@ -1,8 +1,8 @@
-# neohugo-page
+# ssg-page
 
 Per-page rules (REWRITE_PLAN.md §2.4, phases B2 and B4): typed front matter, dates, build
 policy, cascade, target paths and permalinks, the default sort order and default titles. The
-crate holds no page store; `neohugo-site` calls it while it assembles the model.
+crate holds no page store; `ssg-site` calls it while it assembles the model.
 
 | Piece | API |
 |---|---|
@@ -21,8 +21,8 @@ crate holds no page store; `neohugo-site` calls it while it assembles the model.
 ## Acceptance (tests/it)
 
 The oracle tests replay `testdata/oracle/page/{paths,permalinks,frontmatter,misc,collections}`
-(the per-page families; `menus`, `pagination` and `related` are `neohugo-nav`'s, `summary` is
-`neohugo-markup`'s) and print pass rates. Every difference is either exact or a reviewed class
+(the per-page families; `menus`, `pagination` and `related` are `ssg-nav`'s, `summary` is
+`ssg-markup`'s) and print pass rates. Every difference is either exact or a reviewed class
 of `expected_diffs.toml` with its exact count:
 
 | Family | Checks | Exact | Accepted |
@@ -50,11 +50,11 @@ Overall 190,534 checks, 99.80 % exact, no unexplained difference.
 - **Only Markdown and HTML** content (also for content adapters' `content.mediaType`).
 - **Content adapter maps** are decoded leniently where Hugo's `mapstructure.WeakDecode` would
   fail: `dates` also take date strings and Unix seconds besides date values (Tera has no time
-  type: `to_date` gives `{rfc3339, unix}`, which is read); the messages are neohugo's. A
+  type: `to_date` gives `{rfc3339, unix}`, which is read); the messages are fugo's. A
   `kind` that is not one of `page`, `home`, `section`, `taxonomy`, `term` as written (Hugo
   does not fold its case or map `taxonomyTerm` here, unlike front matter) is an error: Hugo
   adds a page of that kind that has no output format and is listed only in `site.Pages`,
-  `site.AllPages` and `GetPage`, which neohugo's page kinds cannot hold.
+  `site.AllPages` and `GetPage`, which fugo's page kinds cannot hold.
   Otherwise Hugo's rules: no reserved keys or dates in `.Params`, no `_build`, `headless`,
   `published`, `menu` or `resources`, the `slug` as given (no `-` trimmed), sitemap settings
   from zero (an adapter page in the sitemap has `<priority>0</priority>`, as in Hugo; the view

@@ -1,6 +1,6 @@
 //! comrak option sets that mirror each oracle configuration as closely as comrak allows.
 //!
-//! Native only: no neohugo pass runs here, so every difference the report shows is either
+//! Native only: no pass of ours runs here, so every difference the report shows is either
 //! a comrak gap (a custom pass for T22) or a renderer difference the normaliser folds.
 
 use comrak::nodes::NodeValue;

@@ -7,8 +7,8 @@ use std::sync::Arc;
 
 use comrak::Arena;
 use comrak::nodes::{Ast, AstNode, LineColumn, NodeValue, Sourcepos};
-use neohugo_base::Value;
-use neohugo_base::diag::Position;
+use ssg_base::Value;
+use ssg_base::diag::Position;
 
 use crate::PassthroughKind;
 use crate::source::Prepared;

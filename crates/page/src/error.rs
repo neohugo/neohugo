@@ -1,7 +1,7 @@
 //! The errors of the per-page rules.
 
-use neohugo_base::glob::GlobError;
-use neohugo_base::url::UrlError;
+use ssg_base::glob::GlobError;
+use ssg_base::url::UrlError;
 
 /// A page whose front matter, cascade, permalink pattern or URL cannot be used.
 #[derive(Debug, thiserror::Error)]

@@ -10,7 +10,7 @@
 //! Hugo's wrappers. Which lexer a language names is Chroma's decision (`lexers.Get`), as in
 //! Hugo.
 //!
-//! [`Highlight`] implements [`neohugo_markup::Highlighter`] for code fences and serves the
+//! [`Highlight`] implements [`ssg_markup::Highlighter`] for code fences and serves the
 //! `highlight` template function ([`Highlight::highlight_with`]) and style sheets
 //! ([`Highlight::css`]).
 
@@ -28,10 +28,10 @@ mod token;
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::{Mutex, OnceLock, PoisonError};
 
-use neohugo_base::Map;
-use neohugo_base::diag::Diagnostic;
-use neohugo_config::markup::HighlightConfig;
-use neohugo_markup::{HighlightOptions, Highlighter, HookError};
+use ssg_base::Map;
+use ssg_base::diag::Diagnostic;
+use ssg_config::markup::HighlightConfig;
+use ssg_markup::{HighlightOptions, Highlighter, HookError};
 
 pub use lexers::Lexer;
 pub use options::{CodeLayout, LineNumberLayout, Options, OptionsError, Styling};

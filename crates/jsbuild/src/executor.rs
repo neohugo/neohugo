@@ -1,12 +1,12 @@
 //! Runs rolldown's async builds for synchronous callers.
 //!
 //! A build is a task on a process-wide tokio runtime; the caller blocks on a channel until it
-//! is done. The caller must not do anything else while it waits: neohugo realizes a resource
+//! is done. The caller must not do anything else while it waits: this port realizes a resource
 //! under that resource's lock, and a waiting thread that ran other work (such as
 //! `rayon::yield_now`) could take the same lock again and deadlock.
 //!
 //! rolldown parallelizes on the global rayon pool and waits for it inside a build. A caller on
-//! a global-pool worker therefore takes a thread the build may need; neohugo calls from its own
+//! a global-pool worker therefore takes a thread the build may need; this port calls from its own
 //! render pool, never from the global one.
 
 use std::future::Future;
@@ -20,7 +20,7 @@ static RUNTIME: LazyLock<Result<Runtime, String>> = LazyLock::new(|| {
     let threads = std::thread::available_parallelism().map_or(1, |n| n.get().min(4));
     Builder::new_multi_thread()
         .worker_threads(threads)
-        .thread_name("neohugo-jsbuild")
+        .thread_name("ssg-jsbuild")
         .enable_all()
         .build()
         .map_err(|e| e.to_string())

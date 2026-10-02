@@ -3,11 +3,11 @@
 //! output a named target (same data: the same resource; other data in the same language: a
 //! conflict naming both calls; in a later language: the first language's), then `js_build`.
 
-use neohugo_base::diag::Position;
-use neohugo_base::{Idx as _, LangIdx};
-use neohugo_resources::pipes::JsBuildSpec;
-use neohugo_resources::{CallSite, PipeError, ResourceError, TemplateExecutor, Transform};
 use serde_json::{Value as J, json};
+use ssg_base::diag::Position;
+use ssg_base::{Idx as _, LangIdx};
+use ssg_resources::pipes::JsBuildSpec;
+use ssg_resources::{CallSite, PipeError, ResourceError, TemplateExecutor, Transform};
 
 use super::{mini_site, project};
 
@@ -44,7 +44,7 @@ fn call(lang: usize, line: u32) -> CallSite {
 fn execute_as_template_with_tera() {
     let site = mini_site(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.org/\"\ndefaultContentLanguage = \"en\"\n[languages.en]\nweight = 1\n[languages.th]\nweight = 2\n",
         ),
         ("assets/ts/search.ts", SEARCH_TS),

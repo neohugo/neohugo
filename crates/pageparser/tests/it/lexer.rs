@@ -2,12 +2,12 @@
 //! the three configurations the oracle records (page, body only, no summary divider), by kind
 //! and byte range, plus the typed values of arguments.
 
-use neohugo_pageparser::{
+use serde_json::Value as J;
+use ssg_pageparser::{
     Delim, FrontMatterFormat, LexOptions, Quoting, Scalar, Start, SummaryDivider, Token, TokenKind,
     lex, lex_with, split_front_matter,
 };
-use neohugo_testkit::fixture::{GoString, Tag};
-use serde_json::Value as J;
+use ssg_testkit::fixture::{GoString, Tag};
 
 use crate::support::{Tally, page_cases};
 

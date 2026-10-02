@@ -10,10 +10,10 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::Path;
 
-use neohugo_base::{Idx as _, LangIdx, Value};
-use neohugo_locale::{Args, I18nError, MessageFile, MessageProblem, TranslationsBuilder};
 use serde::Deserialize;
 use serde_json::Value as J;
+use ssg_base::{Idx as _, LangIdx, Value};
+use ssg_locale::{Args, I18nError, MessageFile, MessageProblem, TranslationsBuilder};
 
 use crate::common::{expected_diffs, value_of};
 
@@ -111,7 +111,7 @@ fn i18n_files<'a>(
 }
 
 struct Loaded {
-    translations: neohugo_locale::Translations,
+    translations: ssg_locale::Translations,
     /// Keys dropped because their message uses unsupported syntax.
     unsupported: BTreeSet<String>,
 }
@@ -153,8 +153,7 @@ fn load(site: &Site, cfg: &SiteConfig) -> Result<Loaded, I18nError> {
 
 #[test]
 fn translate_oracle() {
-    let fixture: Fixture =
-        neohugo_testkit::fixture::oracle("oracle/i18n/translate/translate.json.gz");
+    let fixture: Fixture = ssg_testkit::fixture::oracle("oracle/i18n/translate/translate.json.gz");
     let diffs = expected_diffs().translate;
     let (mut compared, mut agreed, mut accepted) = (0usize, 0usize, 0usize);
     let mut skipped: BTreeMap<&str, usize> = BTreeMap::new();
@@ -282,8 +281,7 @@ fn classify(arg: &Value, argtype: &str, got: &str, want: &str) -> Option<&'stati
 
 #[test]
 fn go_load_errors_are_load_errors() {
-    let fixture: Fixture =
-        neohugo_testkit::fixture::oracle("oracle/i18n/translate/translate.json.gz");
+    let fixture: Fixture = ssg_testkit::fixture::oracle("oracle/i18n/translate/translate.json.gz");
     for site in fixture.cases.iter().filter(|s| s.err.is_some()) {
         let cfg = site_config(&site.toml);
         let err = load(site, &cfg).err();

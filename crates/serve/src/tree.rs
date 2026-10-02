@@ -9,10 +9,10 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use axum::body::Bytes;
-use neohugo_base::Sink;
-use neohugo_base::paths::OutputPath;
-use neohugo_config::Config;
-use neohugo_publish::{DiskSink, MemorySink};
+use ssg_base::Sink;
+use ssg_base::paths::OutputPath;
+use ssg_config::Config;
+use ssg_publish::{DiskSink, MemorySink};
 
 /// The files being served.
 #[derive(Clone, Debug)]

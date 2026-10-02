@@ -3,8 +3,8 @@
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use neohugo_base::Clock;
-use neohugo_funcs::{Locales, PureEnv, register_pure};
+use ssg_base::Clock;
+use ssg_funcs::{Locales, PureEnv, register_pure};
 use tera::{Context, Kwargs, State, Tera, Value};
 
 /// The crate directory (`crates/funcs`).

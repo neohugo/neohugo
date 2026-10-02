@@ -468,11 +468,7 @@ impl Walk {
                 // Deduplicated when the module runs, against the other modules' strings.
                 needs_join = true;
                 let parts: Vec<String> = parts.iter().map(part_js).collect();
-                format!(
-                    "__neohugo_compose({}, [{}])",
-                    js_string(&own),
-                    parts.join(", ")
-                )
+                format!("__ssg_compose({}, [{}])", js_string(&own), parts.join(", "))
             } else {
                 let mut names: Vec<&str> = parts
                     .iter()
@@ -521,7 +517,7 @@ impl Walk {
 }
 
 /// Joins class strings like esbuild's `composes`: each name once, `own` last.
-const COMPOSE_JS: &str = r#"function __neohugo_compose(own, parts) {
+const COMPOSE_JS: &str = r#"function __ssg_compose(own, parts) {
   var seen = Object.create(null), out = [], i, j, names;
   seen[own] = true;
   for (i = 0; i < parts.length; i++) {
@@ -838,14 +834,11 @@ mod tests {
              import { \"my-y\" as i1 } from \"./b.module.css\";\n"
         ));
         assert!(
-            out.contains("var c0 = __neohugo_compose(\"a_a\", [i0, i1, \"a_c\"]);"),
+            out.contains("var c0 = __ssg_compose(\"a_a\", [i0, i1, \"a_c\"]);"),
             "{out}"
         );
         assert!(out.contains("var c2 = \"a_d\";"), "{out}");
-        assert!(
-            out.contains("function __neohugo_compose(own, parts)"),
-            "{out}"
-        );
+        assert!(out.contains("function __ssg_compose(own, parts)"), "{out}");
     }
 
     #[test]

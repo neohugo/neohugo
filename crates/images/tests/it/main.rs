@@ -1,4 +1,4 @@
-//! Integration tests of `neohugo-images` (the crate's single test binary, REWRITE_PLAN.md §2.2).
+//! Integration tests of `ssg-images` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 
 mod common;
 mod exif;

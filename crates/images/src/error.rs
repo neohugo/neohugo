@@ -3,7 +3,7 @@
 use std::io;
 use std::path::PathBuf;
 
-use neohugo_base::ImageOpId;
+use ssg_base::ImageOpId;
 
 use crate::font::FontId;
 use crate::format::ImageFormat;

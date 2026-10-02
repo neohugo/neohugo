@@ -6,17 +6,17 @@
 //! Also the acceptance sites of T23a: the docs data files (D), nested JSON directories, and the
 //! seeksnack reconstruction's `comments.json`, whose keys hold `/` (R).
 
-use neohugo_base::diag::Severity;
-use neohugo_base::{Map, Value};
-use neohugo_site::data::{self, Data};
-use neohugo_testkit::fixture::{oracle, repo_dir};
-use neohugo_testkit::txtar::Archive;
 use serde_json::Value as J;
+use ssg_base::diag::Severity;
+use ssg_base::{Map, Value};
+use ssg_site::data::{self, Data};
+use ssg_testkit::fixture::{oracle, repo_dir};
+use ssg_testkit::txtar::Archive;
 
 use crate::expected;
 use crate::support::{Site, all_diffs, to_json};
 
-fn load(site: &J) -> Result<Data, neohugo_site::DataError> {
+fn load(site: &J) -> Result<Data, ssg_site::DataError> {
     let s = Site::new(site);
     data::load(&s.vfs)
 }
@@ -150,7 +150,7 @@ fn data_reconstruction_keys_with_slashes() {
     let dir = tmp.path().join("seeksnack");
     std::fs::create_dir_all(dir.join("data")).unwrap();
     std::fs::write(
-        dir.join("neohugo.toml"),
+        dir.join("config.toml"),
         "baseURL = \"https://example.org/\"\n",
     )
     .unwrap();

@@ -13,11 +13,11 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use neohugo_base::paths::{self, OutputPath};
-use neohugo_base::{IdVec, Idx, LangIdx, Sink, Value};
-use neohugo_config::Config;
-use neohugo_vfs::{Component, FileRef, NFC_NAMES, Vfs, entry_name};
 use rayon::prelude::*;
+use ssg_base::paths::{self, OutputPath};
+use ssg_base::{IdVec, Idx, LangIdx, Sink, Value};
+use ssg_config::Config;
+use ssg_vfs::{Component, FileRef, NFC_NAMES, Vfs, entry_name};
 
 use crate::PublishError;
 

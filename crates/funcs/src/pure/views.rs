@@ -1,7 +1,7 @@
 //! Filters over view values: resource lists (`get_resource`, `find_resource`,
 //! `find_resources`, `by_type`) and shortcode arguments (`arg`).
 
-use neohugo_base::glob::{self, GlobOpts};
+use ssg_base::glob::{self, GlobOpts};
 use tera::{Kwargs, TeraResult, Value};
 
 use super::Registrar;

@@ -1,5 +1,5 @@
 //! Site-bound Tera functions as small handle structs (REWRITE_PLAN.md §1.2, §2.6, §4.2–4.6):
-//! every `neohugo_funcs::spec::FUNCS` entry marked site-bound (73 names), registered by
+//! every `ssg_funcs::spec::FUNCS` entry marked site-bound (73 names), registered by
 //! [`register`].
 //!
 //! Each function is a struct that holds only the `Arc`s it needs (`GetPage { views }`,
@@ -7,7 +7,7 @@
 //! its kwargs against the spec entry and takes its safety from it.
 //!
 //! **Render scope.** Functions read the render position from the context value `__nh`
-//! ([`neohugo_view::RenderScope::from_state`]); there are no thread-locals.
+//! ([`ssg_view::RenderScope::from_state`]); there are no thread-locals.
 //! - Page-relative functions (`get_page`, `ref`, `param`, `store_*`, `i18n`, `page_content`, …)
 //!   also take `page=`: the scope's page, language and format are then that page's (primary
 //!   format). Without `page=` and without a scope (a component that did not declare `@__nh`)
@@ -18,11 +18,11 @@
 //!
 //! | Function | State |
 //! |---|---|
-//! | `paginator`, `paginate` | [`neohugo_view::PaginationRecorder`]: first call per (page, format) records, an equal re-call reuses, another list or size is an error naming both call positions; pager `__nh.pager` (wave 2), also inside `partial()` (the child scope keeps the pager) |
-//! | `store_set`, `store_get` | [`neohugo_view::PageStores`] (content-phase writes buffered in `__nh.txn`) |
+//! | `paginator`, `paginate` | [`ssg_view::PaginationRecorder`]: first call per (page, format) records, an equal re-call reuses, another list or size is an error naming both call positions; pager `__nh.pager` (wave 2), also inside `partial()` (the child scope keeps the pager) |
+//! | `store_set`, `store_get` | [`ssg_view::PageStores`] (content-phase writes buffered in `__nh.txn`) |
 //! | `partial`, `return_value` | [`Frames`]: each `partial()` call allocates a frame, `return_value` writes it |
 //! | `partial_cached` | `Handles::partial_cache`, the whole [`PartialResult`] per (name, key) |
-//! | `defer` | [`neohugo_view::DeferredRegistry`]; returns `__nh_defer_<key>__` |
+//! | `defer` | [`ssg_view::DeferredRegistry`]; returns `__nh_defer_<key>__` |
 //! | `related` | [`RelatedCache`]: one index per candidate list |
 //! | resources, images | `ResourceStore` (lazy transforms, post-process placeholders), `ImageQueue` |
 //! | `add_page`, `add_resource`, `enable_all_languages`, the adapter's store | [`ContentAdapters`]: the runs of content adapters (phase `Adapter`, the run in `__nh.adapter`) |
@@ -55,16 +55,16 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError, Weak};
 
 use dashmap::DashMap;
-use neohugo_base::diag::Diagnostics;
-use neohugo_base::{FrameId, LangIdx, PageId};
-use neohugo_highlight::Highlight;
-use neohugo_images::ImageQueue;
-use neohugo_layouts::{TemplateName, Templates};
-use neohugo_locale::Translations;
-use neohugo_nav::{Menus, NavError, RelatedIndex};
-use neohugo_resources::ResourceStore;
-use neohugo_site::Model;
-use neohugo_view::{ContentRenderer, DeferredRegistry, PageStores, PaginationRecorder, ViewCache};
+use ssg_base::diag::Diagnostics;
+use ssg_base::{FrameId, LangIdx, PageId};
+use ssg_highlight::Highlight;
+use ssg_images::ImageQueue;
+use ssg_layouts::{TemplateName, Templates};
+use ssg_locale::Translations;
+use ssg_nav::{Menus, NavError, RelatedIndex};
+use ssg_resources::ResourceStore;
+use ssg_site::Model;
+use ssg_view::{ContentRenderer, DeferredRegistry, PageStores, PaginationRecorder, ViewCache};
 
 pub use adapters::{AdapterRun, ContentAdapters};
 
@@ -167,7 +167,7 @@ pub struct Handles {
     pub pagination: Arc<PaginationRecorder>,
     pub deferred: Arc<DeferredRegistry>,
     /// The `purge_css` plans; the publisher replaces their placeholders per page.
-    pub css_purges: Arc<neohugo_minify::CssPurges>,
+    pub css_purges: Arc<ssg_minify::CssPurges>,
     pub menus: Arc<Menus>,
     pub related: Arc<RelatedCache>,
     pub i18n: Arc<Translations>,
@@ -188,8 +188,8 @@ pub struct Handles {
     pub adapters: Arc<ContentAdapters>,
 }
 
-/// Registers every site-bound function, filter and test of `neohugo_funcs::spec::FUNCS` on
-/// `t` (call it after `neohugo_funcs::register_pure`, before templates are added).
+/// Registers every site-bound function, filter and test of `ssg_funcs::spec::FUNCS` on
+/// `t` (call it after `ssg_funcs::register_pure`, before templates are added).
 pub fn register(t: &mut tera::Tera, h: &Handles) {
     let mut r = call::Registrar::new(t);
     adapters::register(&mut r, h);

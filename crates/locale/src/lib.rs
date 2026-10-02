@@ -1,6 +1,6 @@
-//! Language-dependent behaviour of neohugo, on ICU4X compiled data (CLDR, Unicode-3.0):
+//! Language-dependent behaviour, on ICU4X compiled data (CLDR, Unicode-3.0):
 //!
-//! - [`Locale`]: one language's collation ([`base::Collate`](neohugo_base::Collate)), plural
+//! - [`Locale`]: one language's collation ([`base::Collate`](ssg_base::Collate)), plural
 //!   rules, number format and date names;
 //! - [`Translations`]: the i18n bundles (`i18n/*.{toml,yaml,yml,json}`) with Hugo's message file
 //!   layouts, and the restricted message evaluator: a message is text with `{{ . }}` and

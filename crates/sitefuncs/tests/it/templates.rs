@@ -1,7 +1,7 @@
 //! `partial`, frames and `return_value`, `partial_cached`, `template_exists`, `defer`.
 
-use neohugo_base::PageKind;
-use neohugo_view::Phase;
+use ssg_base::PageKind;
+use ssg_view::Phase;
 
 use crate::support;
 

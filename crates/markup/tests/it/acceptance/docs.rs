@@ -3,8 +3,8 @@
 
 use std::sync::LazyLock;
 
-use neohugo_markup::{Heading, NoHooks, TocOptions};
 use regex::Regex;
+use ssg_markup::{Heading, NoHooks, TocOptions};
 
 use super::super::comrak_spike::normalize::{Fold, normalize};
 use super::{

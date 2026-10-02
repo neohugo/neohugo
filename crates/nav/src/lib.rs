@@ -9,7 +9,7 @@
 //! - [`Pagination`] splits a page list (or page groups) into [`Pager`]s; [`pager_paths`] gives
 //!   pager N's file and link, [`pager_alias`] the `page/1/` redirect, and
 //!   [`default_pagination_list`] what `paginator()` paginates. The first call per page and
-//!   format is recorded by the render session (`neohugo-view`), not here.
+//!   format is recorded by the render session (`ssg-view`), not here.
 //! - [`RelatedIndex`] is the inverted index of `[related]` over an explicit candidate list,
 //!   searched with a [`RelatedQuery`].
 //! - [`alias_plan`] lists the redirect files of front matter aliases and the main-language

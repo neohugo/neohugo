@@ -1,5 +1,5 @@
 //! The conversion lints (REWRITE_PLAN.md §4.7, §4.8), read from the tokens of each template's
-//! tags (`neohugo_funcs::scan`, the contract test's tokenizer).
+//! tags (`ssg_funcs::scan`, the contract test's tokenizer).
 //!
 //! | id | severity | what |
 //! |---|---|---|
@@ -16,10 +16,10 @@
 
 use std::collections::BTreeSet;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_funcs::scan::{self, Tag, TagKind, Tok};
-use neohugo_funcs::spec::FUNCS;
-use neohugo_layouts::{LayoutStore, TemplateRole};
+use ssg_base::diag::Diagnostic;
+use ssg_funcs::scan::{self, Tag, TagKind, Tok};
+use ssg_funcs::spec::FUNCS;
+use ssg_layouts::{LayoutStore, TemplateRole};
 
 use super::CheckFile;
 
@@ -27,7 +27,7 @@ use super::CheckFile;
 pub(crate) const EXPLAINS_SYNTAX: &[&str] = &["call-attribute", "nested-close"];
 
 /// The content fields of a page value, absent from the Meta generation that shortcodes and
-/// render hooks see (`neohugo_view::ContentView`).
+/// render hooks see (`ssg_view::ContentView`).
 const CONTENT_FIELDS: &[&str] = &[
     "content",
     "summary",

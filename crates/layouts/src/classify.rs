@@ -3,9 +3,9 @@
 
 use std::sync::Arc;
 
-use neohugo_base::PageKind;
-use neohugo_config::output::Escaping;
-use neohugo_vfs::{Component, LayoutRole, Parsed, PathInfo};
+use ssg_base::PageKind;
+use ssg_config::output::Escaping;
+use ssg_vfs::{Component, LayoutRole, Parsed, PathInfo};
 
 use crate::env::LayoutEnv;
 use crate::error::IssueKind;
@@ -104,10 +104,8 @@ fn derive(env: &LayoutEnv, info: &PathInfo) -> Result<Classified, String> {
         d => &d[1..],
     };
     let first = path[1..].split('/').next().unwrap_or_default();
-    if matches!(first, "_neohugo" | "_server") && path[1..].contains('/') {
-        return Err(format!(
-            "`{first}/` is reserved for neohugo's internal templates"
-        ));
+    if matches!(first, "_internal" | "_server") && path[1..].contains('/') {
+        return Err(format!("`{first}/` is reserved for internal templates"));
     }
 
     let (media, escaping) = env.resolve(info.format, &info.ext);

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Acceptance comparison of one site (docs/rust-port/REWRITE_PLAN.md §7.2, §7.3): builds the
 # candidate (the Rust build), compares it with the reference (the Go build's committed golden
-# data) through tools/neohugo/structdiff.py, level by level (L1-L4, the structure oracle, A7),
+# data) through tools/dev/structdiff.py, level by level (L1-L4, the structure oracle, A7),
 # and applies the ratchet (testdata/baselines/<label>.json).
 #
-#   tools/neohugo/compare.sh <site> [--docs-patches i01|reduced|live] [--ref golden]
+#   tools/dev/compare.sh <site> [--docs-patches i01|reduced|live] [--ref golden]
 #                            [--task ID]... [--update] [--report-only] [--show N]
 #
 # Sites: testsite, seeksnack, docs-i01, docs-reduced, docs-live (`docs --docs-patches <variant>`
@@ -14,36 +14,36 @@
 #   --ref golden   the reference, the only one: the committed golden data of
 #                  testdata/golden/<label> (manifests of both passes and the structure dump;
 #                  T01's oracle.sh wrote them with the Go build, frozen at 44529028)
-#   candidate      neohugo: the site from `sites.py make <label> --overlay sites/<site>`;
-#                  its structure dump comes from the unminified build (NEOHUGO_STRUCTURE_OUT)
+#   candidate      this port: the site from `sites.py make <label> --overlay sites/<site>`;
+#                  its structure dump comes from the unminified build (FUGO_STRUCTURE_OUT)
 #
 # The candidate builds each pass from a freshly generated site, from the site directory, with
 #   <binary> --clock 2026-09-27T12:00:00Z [--minify] -d <out>
 # (the minified pass gives L1 and L4, the unminified pass L1, L2 and L3) in the clean
-# environment of the golden builds: HOME and NEOHUGO_CACHEDIR (the Go builds: HUGO_CACHEDIR,
+# environment of the golden builds: HOME and FUGO_CACHEDIR (the Go builds: HUGO_CACHEDIR,
 # with HUGO_NUMWORKERMULTIPLIER=1) in the work directory (the site's golden GetRemote entries,
 # `sites.py cache`), TZ=UTC, every proxy
 # variable pointing at a refusing port (outbound HTTP disabled), the node modules of
-# tools/neohugo/node.sh as a `node_modules` symlink in the site plus `node_modules/.bin` on PATH,
-# and NEOHUGO_NODE_MODULES. Manifests come from tools/neohugo/manifest.py
+# tools/dev/node.sh as a `node_modules` symlink in the site plus `node_modules/.bin` on PATH,
+# and FUGO_NODE_MODULES. Manifests come from tools/dev/manifest.py
 # (the candidate's with --full-text, for the A7 similarity of the worst pages).
 #
-# docs-live (gate A-D3) is the docs site as neohugo.github.io publishes it, and its golden data is
+# docs-live (gate A-D3) is the docs site as getfugo.github.io publishes it, and its golden data is
 # the published site (testdata/golden/README.md): one unminified pass (the site is published
 # unminified) giving L1-L4, no structure dump, the clock of the published build
 # (2025-10-13T15:00:00Z), and the GetRemote responses of that day from `sites.py cache`.
 #
-# Ratchet: --task names the changes files (tools/neohugo/changes/<ID>.md) that list this task's
+# Ratchet: --task names the changes files (tools/dev/changes/<ID>.md) that list this task's
 # changes; an unlisted new difference fails; --update writes the baseline for the listed changes;
 # --report-only never fails. Without a baseline file every difference is new.
 #
 # Environment:
 #   KEEP=1                  keep the sites, outputs, manifests and logs of the work directory
-#   NEOHUGO_COMPARE_WORK    work directory (default: $TMPDIR/neohugo-compare), outside the repo
-#   NEOHUGO_BINARY          the neohugo binary (default: `cargo build --offline --locked -p
-#                           neohugo`, then a copy of target/debug/neohugo in the work dir)
-#   NEOHUGO_NODE_MODULES    the node modules (default: see tools/neohugo/node.sh)
-#   NEOHUGO_TASK            default for --task
+#   FUGO_COMPARE_WORK    work directory (default: $TMPDIR/ssg-compare), outside the repo
+#   FUGO_BINARY          the binary (default: `cargo build --offline --locked -p
+#                           ssg-cli`, then a copy of target/debug/<name> in the work dir)
+#   FUGO_NODE_MODULES    the node modules (default: see tools/dev/node.sh)
+#   FUGO_TASK            default for --task
 # The report and structdiff.json stay in the work directory (<work>/<label>/); everything else
 # there is deleted unless KEEP=1.
 set -euo pipefail
@@ -64,7 +64,7 @@ usage() {
 
 site= variant= ref=golden update= report_only= show=40
 tasks=()
-[ -n "${NEOHUGO_TASK:-}" ] && tasks+=("$NEOHUGO_TASK")
+[ -n "${FUGO_TASK:-}" ] && tasks+=("$FUGO_TASK")
 while [ $# -gt 0 ]; do
 	case $1 in
 	--docs-patches) variant=$2; shift 2 ;;
@@ -98,16 +98,16 @@ if [ "$label" = docs-live ]; then
 fi
 overlay=$ROOT/sites/${label%%-*}
 
-NODE_MODULES=${NEOHUGO_NODE_MODULES:-$("$HERE/node.sh" path)}
+NODE_MODULES=${FUGO_NODE_MODULES:-$("$HERE/node.sh" path)}
 GOLDEN=$ROOT/testdata/golden/$label
 BASELINE=$ROOT/testdata/baselines/$label.json
-WORK_ROOT=${NEOHUGO_COMPARE_WORK:-${TMPDIR:-/tmp}/neohugo-compare}
+WORK_ROOT=${FUGO_COMPARE_WORK:-${TMPDIR:-/tmp}/ssg-compare}
 W=$WORK_ROOT/$label
 case "$WORK_ROOT" in "$ROOT" | "$ROOT"/*) log "the work directory must be outside the repository"; exit 2 ;; esac
 
 [ "$ref" = golden ] || { log "--ref golden (the only reference)"; exit 2; }
 [ -d "$GOLDEN" ] || { log "no golden data at $GOLDEN"; exit 2; }
-[ -d "$NODE_MODULES" ] || log "warning: no node modules at $NODE_MODULES (tools/neohugo/node.sh)"
+[ -d "$NODE_MODULES" ] || log "warning: no node modules at $NODE_MODULES (tools/dev/node.sh)"
 
 rm -rf "$W"
 mkdir -p "$W"
@@ -117,22 +117,25 @@ cleanup() {
 }
 trap cleanup EXIT
 
-neohugo_binary() {
-	if [ -n "${NEOHUGO_BINARY:-}" ]; then
-		echo "$NEOHUGO_BINARY"
+program_binary() {
+	if [ -n "${FUGO_BINARY:-}" ]; then
+		echo "$FUGO_BINARY"
 		return
 	fi
-	log "building neohugo (cargo build --offline --locked -p neohugo)"
-	(cd "$ROOT" && cargo build --offline --locked -q -p neohugo --bin neohugo >&2)
+	# The binary's name: `[[bin]] name` of crates/cli/Cargo.toml.
+	local name
+	name=$(awk -F'"' '/^\[\[bin\]\]/ { b = 1 } b && /^name/ { print $2; exit }' "$ROOT/crates/cli/Cargo.toml")
+	log "building $name (cargo build --offline --locked -p ssg-cli)"
+	(cd "$ROOT" && cargo build --offline --locked -q -p ssg-cli --bin "$name" >&2)
 	local target=${CARGO_TARGET_DIR:-$ROOT/target}
 	case $target in /*) ;; *) target=$ROOT/$target ;; esac
 	# A copy: the target directory is shared, another build may replace the file.
 	mkdir -p "$W/bin"
-	cp "$target/debug/neohugo" "$W/bin/neohugo"
-	echo "$W/bin/neohugo"
+	cp "$target/debug/$name" "$W/bin/$name"
+	echo "$W/bin/$name"
 }
 
-# build <dir> <structure-out|""> [args…]: a fresh site in <dir>/<label>, built by neohugo into
+# build <dir> <structure-out|""> [args…]: a fresh site in <dir>/<label>, built by this port into
 # <dir>/out; the log goes to <dir>/log.
 build() {
 	local dir=$1 structure=$2
@@ -148,9 +151,9 @@ build() {
 		PATH="$NODE_MODULES/.bin:$node_dir:/usr/local/bin:/usr/bin:/bin"
 		HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9
 		http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 all_proxy=http://127.0.0.1:9
-		NO_PROXY= no_proxy= NEOHUGO_CACHEDIR="$dir/cache"
-		NEOHUGO_NODE_MODULES="$NODE_MODULES")
-	[ -n "$structure" ] && env+=(NEOHUGO_STRUCTURE_OUT="$structure")
+		NO_PROXY= no_proxy= FUGO_CACHEDIR="$dir/cache"
+		FUGO_NODE_MODULES="$NODE_MODULES")
+	[ -n "$structure" ] && env+=(FUGO_STRUCTURE_OUT="$structure")
 	local start end
 	start=$(date +%s)
 	if ! (cd "$dir/$label" && env -i "${env[@]}" "$BIN" --clock "$CLOCK" "$@" -d "$dir/out" >"$dir/log" 2>&1); then
@@ -186,7 +189,7 @@ side() {
 	eval "${name}_structure=\$W/\$name.structure.json"
 }
 
-BIN=$(neohugo_binary)
+BIN=$(program_binary)
 ref_min=$GOLDEN/manifest.minified.json
 ref_unmin=$GOLDEN/manifest.unminified.json
 ref_structure=$GOLDEN/structure.json

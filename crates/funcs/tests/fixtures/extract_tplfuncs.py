@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Extracts the old port's nh-tplfuncs Go-oracle cases that map onto neohugo-funcs filters into
+"""Extracts the old port's nh-tplfuncs Go-oracle cases that map onto ssg-funcs filters into
 one JSONL fixture, tests/fixtures/tplfuncs.jsonl.gz (read by tests/it/oracle.rs).
 
 Usage (from the repository root; Python stdlib only): extract `crates/nh-tplfuncs` of the tag
@@ -12,10 +12,10 @@ The output is byte-for-byte reproducible (gzip without a timestamp, sorted cases
 
 Each output line: {"fam", "f", "input", "input_safe", "kwargs", "lang", "want", "src"}, where
 want is {"ok": value, "safe": bool} or {"err": go_message}. Values are plain JSON: Go dates
-become {"rfc3339", "unix"}, pages become view-like maps with an `id`. Cases with no neohugo
+become {"rfc3339", "unix"}, pages become view-like maps with an `id`. Cases with no native
 counterpart are skipped: Go-only argument types (float32, named types, typed nils, structs,
 bytes), invalid UTF-8, NaN/Inf, time.Time printed as text, Go panics and reflection errors, and
-output formats neohugo does not have (XML, CSV).
+output formats this port does not have (XML, CSV).
 """
 import datetime
 import gzip
@@ -86,7 +86,7 @@ def conv(v):
     if t in INT_TYPES:
         return int(v["v"])
     if t == "float32":
-        raise Skip("float32: no neohugo counterpart")
+        raise Skip("float32: no native counterpart")
     if t == "float64":
         f = struct.unpack(">d", bytes.fromhex(v["v"]))[0]
         if math.isnan(f) or math.isinf(f):
@@ -154,7 +154,7 @@ def has_time(v):
     return False
 
 
-# Families where a Go time.Time argument is only printed (cast to a string, JSON): neohugo dates
+# Families where a Go time.Time argument is only printed (cast to a string, JSON): this port dates
 # are `{rfc3339, unix}` maps, so these cases have no counterpart.
 TEXT_FAMILIES = {"jsonify", "plainify", "hash", "strings", "html_escape", "html_unescape",
                  "emojify", "humanize", "inflect", "delimit", "urlize", "anchorize", "title_case",
@@ -186,7 +186,7 @@ def emit(fam, f, input_v, kwargs, r, src, lang="en", input_safe=False, raw_input
 
 
 def has_named(v):
-    """Go named types (`hstring.HTML`, `json.Number`): no neohugo counterpart."""
+    """Go named types (`hstring.HTML`, `json.Number`): no native counterpart."""
     if isinstance(v, dict):
         if v.get("t") == "named":
             return True
@@ -250,7 +250,7 @@ for file in ["sort.json.gz", "coll_Sort.json.gz", "pages_sort.json.gz", "scalar_
                 continue
             k = key.strip(".")
             if k and k != "value" and has_time(seq):
-                continue  # Go dates have no attributes; neohugo dates are maps
+                continue  # Go dates have no attributes; this port dates are maps
             if k == "value" and seq.get("items") is not None:
                 k = ""
             if has_pages(seq) and k:

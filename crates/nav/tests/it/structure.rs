@@ -30,7 +30,7 @@ fn dump_path(dir: &Path) -> Option<PathBuf> {
 
 /// The alias rows of a structure dump, sorted.
 fn dump_rows(dump: &Path) -> Vec<Row> {
-    let doc: J = neohugo_testkit::fixture::read_json(dump).unwrap_or_else(|e| panic!("{e}"));
+    let doc: J = ssg_testkit::fixture::read_json(dump).unwrap_or_else(|e| panic!("{e}"));
     let mut rows: Vec<Row> = doc["aliases"]
         .as_array()
         .map_or(&[][..], Vec::as_slice)
@@ -71,7 +71,7 @@ fn diff(got: &[Row], want: &[Row]) -> Vec<String> {
 
 #[test]
 fn structure_oracle_aliases() {
-    let golden = neohugo_testkit::fixture::repo_dir().join("testdata/golden");
+    let golden = ssg_testkit::fixture::repo_dir().join("testdata/golden");
     // The site labels: the directories (testdata/golden also holds its README.md).
     let mut sites: Vec<PathBuf> = fs::read_dir(&golden)
         .map(|rd| {

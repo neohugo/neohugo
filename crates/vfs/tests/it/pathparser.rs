@@ -4,13 +4,13 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::paths::{ContentKey, normalize_key};
-use neohugo_base::{FormatId, Idx, LangIdx, PageKind};
-use neohugo_testkit::fixture::oracle;
-use neohugo_vfs::{
+use serde_json::{Value as J, json};
+use ssg_base::paths::{ContentKey, normalize_key};
+use ssg_base::{FormatId, Idx, LangIdx, PageKind};
+use ssg_testkit::fixture::oracle;
+use ssg_vfs::{
     BundleKind, Component, FormatSpec, LayoutRole, Parsed, PathInfo, PathParser, PathParserSpec,
 };
-use serde_json::{Value as J, json};
 
 /// A fixture parser, rebuilt from the answers Go's callbacks gave.
 struct Fx {

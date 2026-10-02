@@ -6,13 +6,13 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::PageKind;
-use neohugo_base::paths::ContentKey;
-use neohugo_layouts::{
+use serde_json::Value as J;
+use ssg_base::PageKind;
+use ssg_base::paths::ContentKey;
+use ssg_layouts::{
     EmbeddedHooks, HookKind, HookQuery, HookUse, LayoutQuery, ShortcodeMiss, ShortcodeQuery,
     TemplateName,
 };
-use serde_json::Value as J;
 
 use crate::oracle::{self, GoDesc, Site};
 

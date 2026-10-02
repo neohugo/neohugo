@@ -3,7 +3,7 @@
 
 /// The workspace's snapshot settings: maps sorted, and snapshot names without the module prefix.
 ///
-/// Bind them around a test body: `neohugo_testkit::snapshot::settings().bind(|| { ... })`.
+/// Bind them around a test body: `ssg_testkit::snapshot::settings().bind(|| { ... })`.
 #[must_use]
 pub fn settings() -> insta::Settings {
     let mut s = insta::Settings::clone_current();

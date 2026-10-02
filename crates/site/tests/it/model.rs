@@ -1,11 +1,11 @@
 //! The T23a acceptance cases by name, the tree and cascade helpers, and real sites.
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{Idx, LangIdx, PageKind, Value};
-use neohugo_page::{Cascade, ListMode, RenderMode};
-use neohugo_site::{CascadeIndex, Model, PageRole, SiteTree};
-use neohugo_testkit::fixture::oracle;
 use serde_json::Value as J;
+use ssg_base::paths::ContentKey;
+use ssg_base::{Idx, LangIdx, PageKind, Value};
+use ssg_page::{Cascade, ListMode, RenderMode};
+use ssg_site::{CascadeIndex, Model, PageRole, SiteTree};
+use ssg_testkit::fixture::oracle;
 
 use crate::support::Site;
 
@@ -116,7 +116,7 @@ fn cascade_down_the_tree() {
 #[test]
 fn site_tree_segments() {
     let mut t = SiteTree::default();
-    let id = |i: usize| <neohugo_base::PageId as Idx>::from_index(i);
+    let id = |i: usize| <ssg_base::PageId as Idx>::from_index(i);
     assert!(t.insert(key(""), id(0)));
     assert!(t.insert(key("blog"), id(1)));
     assert!(t.insert(key("blog/post"), id(2)));
@@ -167,11 +167,11 @@ fn deterministic() {
 }
 
 /// Real sites written by `tools/rust-port/i01/sites.py make <site> <dir>`: set
-/// `NEOHUGO_SITES=<dir>[:<dir>…]` and run with `--ignored`.
+/// `FUGO_SITES=<dir>[:<dir>…]` and run with `--ignored`.
 #[test]
-#[ignore = "needs sites written by sites.py (NEOHUGO_SITES)"]
+#[ignore = "needs sites written by sites.py (FUGO_SITES)"]
 fn real_sites() {
-    let dirs = std::env::var("NEOHUGO_SITES").expect("NEOHUGO_SITES");
+    let dirs = std::env::var("FUGO_SITES").expect("FUGO_SITES");
     for dir in dirs.split(':') {
         let tmp = tempfile::tempdir().unwrap();
         let site = Site::at(tmp, dir.into());

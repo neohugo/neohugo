@@ -1,7 +1,0 @@
-<nav class="breadcrumb">{{ <breadcrumbnav p1={page} p2={page} /> }}</nav>
-{#- The trail from the home page down to `p1` (full page values); `p2` is the current page. #}
-{% component breadcrumbnav(p1, p2, @site, @__nh) %}
-{%- if p1.parent %}{{ <breadcrumbnav p1={p1.parent | deref} p2={p2} /> }}
-{%- elif not p1.is_home %}{{ <breadcrumbnav p1={site.home | deref} p2={p2} /> }}{% endif -%}
-<a class="{% if p1.id == p2.id %}active{% endif %}" href="{{ p1.rel_permalink }}">{% if p1.is_home %}{{ i18n(key="home") }}{% else %}{{ p1.link_title }}{% endif %}{% if p1.taxonomy?.singular == "company" or p1.term?.singular == "company" %} (company){% endif %}</a>
-{% endcomponent breadcrumbnav %}

@@ -1,11 +1,11 @@
 //! The spec grammar and `[imaging]` decoding against the `nh-images/config` oracle.
 
-use neohugo_config::ImagingConfig;
-use neohugo_images::{
+use serde_json::{Value as J, json};
+use ssg_config::ImagingConfig;
+use ssg_images::{
     Action, Anchor, Color, Hint, ImageError, ImageFormat, ImageSpec, Imaging, Resample,
 };
-use neohugo_testkit::fixture::oracle;
-use serde_json::{Value as J, json};
+use ssg_testkit::fixture::oracle;
 
 fn cases() -> Vec<J> {
     let doc: J = oracle("oracle/images/config/config.json.gz");

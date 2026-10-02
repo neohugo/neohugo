@@ -4,15 +4,15 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use neohugo_base::{FormatId, Idx, PageId, PageKind};
-use neohugo_markup::Fragments;
-use neohugo_nav::{Pagination, PaginationItems};
-use neohugo_resources::{CallSite, HashAlgo, Transform};
-use neohugo_view::views::{
+use ssg_base::{FormatId, Idx, PageId, PageKind};
+use ssg_markup::Fragments;
+use ssg_nav::{Pagination, PaginationItems};
+use ssg_resources::{CallSite, HashAlgo, Transform};
+use ssg_view::views::{
     CONTENT_KEYS, MENU_ENTRY_KEYS, PAGE_LINK_KEYS, PAGE_RELATION_KEYS, PAGE_SUMMARY_KEYS,
     PAGER_KEYS, RESOURCE_KEYS, SITE_KEYS,
 };
-use neohugo_view::{
+use ssg_view::{
     ContentError, ContentRenderer, ExpandedSource, HookVariant, PaginationRecorder, Phase,
     RenderScope, RenderStringOptions, RenderedContent, pager_view, post_processed_view,
     resource_view,
@@ -55,7 +55,7 @@ fn generations_and_variants() {
     assert!(s.views.is_frozen());
     assert_eq!(s.views.variants(), [HookVariant::Html, json]);
     let html = s.views.generation(Phase::Layout, HookVariant::Html);
-    let content = |g: &neohugo_view::ViewGeneration| {
+    let content = |g: &ssg_view::ViewGeneration| {
         get(&g.full(one), "content")
             .as_str()
             .expect("string")
@@ -150,7 +150,7 @@ fn every_documented_key_for_every_kind() {
         print_keys(&menu[0], &sorted(&[MENU_ENTRY_KEYS]));
     }
     // site.config: the snake-case fields of the embedded templates.
-    let cfg = get(&g.sites[neohugo_base::LangIdx::from_index(0)], "config");
+    let cfg = get(&g.sites[ssg_base::LangIdx::from_index(0)], "config");
     let t = |path: &str| -> String {
         let mut tera = tera::Tera::default();
         tera.add_raw_template("t", &format!("{{{{ c.{path} }}}}"))
@@ -220,7 +220,7 @@ fn lists_share_summaries() {
     let s = load(FILES);
     freeze(&s);
     let g = s.views.generation(Phase::Layout, HookVariant::Html);
-    let en = neohugo_base::LangIdx::from_index(0);
+    let en = ssg_base::LangIdx::from_index(0);
     let site = &g.sites[en];
     // Every list element is the generation's summary of that page (one allocation).
     let id = |v: &tera::Value| {
@@ -271,7 +271,7 @@ fn lists_share_summaries() {
     }
     assert!(same(
         get(site, "data"),
-        get(&g.sites[neohugo_base::LangIdx::from_index(1)], "data")
+        get(&g.sites[ssg_base::LangIdx::from_index(1)], "data")
     ));
     assert!(checked > 20, "{checked}");
 }
@@ -345,7 +345,7 @@ fn relations_and_site_values() {
     assert_eq!(str_of(get(&a, "term"), "key"), "a");
     assert!(get(&a, "taxonomy").is_none());
 
-    let en = &g.sites[neohugo_base::LangIdx::from_index(0)];
+    let en = &g.sites[ssg_base::LangIdx::from_index(0)];
     assert_eq!(str_of(en, "language_code"), "en");
     assert_eq!(str_of(get(en, "language"), "name"), "English");
     assert_eq!(get(en, "languages").as_array().map(<[_]>::len), Some(2));
@@ -363,7 +363,7 @@ fn relations_and_site_values() {
     assert_eq!(str_of(child, "name"), "One");
     assert!(get(child, "pre").is_safe());
     assert_eq!(get(&main[0], "has_children").as_bool(), Some(true));
-    let fr = &g.sites[neohugo_base::LangIdx::from_index(1)];
+    let fr = &g.sites[ssg_base::LangIdx::from_index(1)];
     assert_eq!(titles(get(fr, "regular_pages")), ["Un"]);
     assert_eq!(
         get(fr, "all_pages").as_array().map(<[_]>::len),
@@ -391,7 +391,7 @@ fn resource_values() {
     assert_eq!(field(&rs[0], "resource_type"), "image");
     assert_eq!(field(get(&rs[0], "media_type"), "type"), "image/png");
     let rid = |r: &tera::Value| {
-        neohugo_base::ResourceId::from_raw(
+        ssg_base::ResourceId::from_raw(
             u32::try_from(get(r, "__rid").as_u64().expect("rid")).expect("u32"),
         )
     };
@@ -424,7 +424,7 @@ fn resource_values() {
     );
 
     // A fingerprint of a pending result: placeholders for the links and the integrity.
-    let call = CallSite::in_lang(neohugo_base::LangIdx::from_index(0));
+    let call = CallSite::in_lang(ssg_base::LangIdx::from_index(0));
     let css = s
         .store
         .from_string("css/a.css", "body { color: red }", &call)
@@ -518,7 +518,7 @@ fn regular_pages_recursive_lists_local_pages() {
     );
     let home = g.full(page(m, PageKind::Home, "/", 0));
     let all = titles(get(&home, "regular_pages_recursive"));
-    let site: Vec<String> = m.sites[neohugo_base::LangIdx::from_index(0)]
+    let site: Vec<String> = m.sites[ssg_base::LangIdx::from_index(0)]
         .regular_pages
         .iter()
         .map(|&q| m.pages[q].title.clone())
@@ -537,7 +537,7 @@ fn unprocessed_image_sizes() {
         std::fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
         std::fs::write(path, text).expect("write");
     }
-    let png = neohugo_testkit::fixture::repo_file("resources/testdata/gopher-hero8.png");
+    let png = ssg_testkit::fixture::repo_file("resources/testdata/gopher-hero8.png");
     std::fs::copy(png, dir.path().join("content/posts/bundle/img.png")).expect("copy");
     std::fs::write(
         dir.path().join("content/posts/bundle/bad.jpg"),
@@ -567,7 +567,7 @@ fn unprocessed_image_sizes() {
 }
 
 /// A renderer that knows only the content of pages with a file.
-struct Fake(Arc<neohugo_site::Model>);
+struct Fake(Arc<ssg_site::Model>);
 
 impl ContentRenderer for Fake {
     fn content(
@@ -610,7 +610,7 @@ impl ContentRenderer for Fake {
 
     fn render_template(
         &self,
-        _: &neohugo_layouts::TemplateName,
+        _: &ssg_layouts::TemplateName,
         _: tera::Context,
         _: &RenderScope,
     ) -> Result<String, ContentError> {
@@ -645,7 +645,7 @@ fn view_snapshots() {
     freeze(&s);
     let m = &s.model;
     let g = s.views.generation(Phase::Layout, HookVariant::Html);
-    let en = neohugo_base::LangIdx::from_index(0);
+    let en = ssg_base::LangIdx::from_index(0);
     let mut site = g.sites[en].as_map().cloned().expect("site");
     // Lists of summaries are covered by the page snapshots; keep the ids.
     for k in ["pages", "regular_pages", "all_pages", "sections"] {
@@ -662,7 +662,7 @@ fn view_snapshots() {
         get(get(&g.sites[en], "home"), "path").clone(),
     );
     site.insert("taxonomies".into(), tera::Value::none());
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         insta::assert_yaml_snapshot!("site_en", tera::Value::from(site));
         insta::assert_yaml_snapshot!(
             "page_bundle_full",

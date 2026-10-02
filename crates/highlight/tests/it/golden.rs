@@ -3,10 +3,10 @@
 //! inline, highlighted lines, anchors, inline code, classes vs inline styles, styles and the
 //! fallback style, languages Chroma does not know.
 
-use neohugo_config::markup::HighlightConfig;
-use neohugo_highlight::{CssMode, Highlight, OptionsArg};
-use neohugo_testkit::fixture::{read_json, repo_dir};
 use serde::Deserialize;
+use ssg_config::markup::HighlightConfig;
+use ssg_highlight::{CssMode, Highlight, OptionsArg};
+use ssg_testkit::fixture::{read_json, repo_dir};
 
 #[derive(Deserialize)]
 struct Case {
@@ -65,10 +65,10 @@ fn solarized_dark_css() {
     assert_eq!(hl.style_names().count(), 67);
 }
 
-/// `NEOHUGO_HL_LEXERS=1`: prints every Chroma lexer, in Chroma's registration order.
+/// `FUGO_HL_LEXERS=1`: prints every Chroma lexer, in Chroma's registration order.
 #[test]
 fn print_lexers() {
-    if std::env::var_os("NEOHUGO_HL_LEXERS").is_none() {
+    if std::env::var_os("FUGO_HL_LEXERS").is_none() {
         return;
     }
     let hl = Highlight::new(&HighlightConfig::default());

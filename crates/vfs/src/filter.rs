@@ -3,9 +3,9 @@
 
 use std::path::Path;
 
-use neohugo_base::glob::{self, Glob, GlobError, GlobOpts};
-use neohugo_base::paths;
 use regex::Regex;
+use ssg_base::glob::{self, Glob, GlobError, GlobOpts};
+use ssg_base::paths;
 
 use crate::Component;
 use crate::vfs::{NFC_NAMES, entry_name};

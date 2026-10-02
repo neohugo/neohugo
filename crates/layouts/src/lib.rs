@@ -2,7 +2,7 @@
 //! Hugo's lookup scorer, base template resolution, escaping by output format and loading into
 //! one Tera instance.
 //!
-//! - [`LayoutStore::scan`] reads the layouts component of the [`Vfs`](neohugo_vfs::Vfs) (the
+//! - [`LayoutStore::scan`] reads the layouts component of the [`Vfs`](ssg_vfs::Vfs) (the
 //!   project, then the themes) plus the embedded templates, classifies every file by its
 //!   v0.146 name ([`TemplateRole`]) and refuses legacy names (`_default/`, `partials/`,
 //!   `shortcodes/`, `taxonomy/list`, `term/term`, `X-baseof`, `index`) with the name to use, and
@@ -42,7 +42,7 @@ pub use source::go_marker;
 pub use store::{LayoutSource, LayoutStore, TemplateInfo};
 
 /// The Tera fallback prefix of the embedded templates (the same as
-/// `neohugo_funcs::spec::EMBEDDED_PREFIX`).
+/// `ssg_funcs::spec::EMBEDDED_PREFIX`).
 pub const EMBEDDED_PREFIX: &str = "_embedded/";
 
 /// The name suffixes Tera autoescapes (§4.5); formats decide through alias names.

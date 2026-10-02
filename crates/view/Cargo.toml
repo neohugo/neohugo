@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-view"
+name = "ssg-view"
 description = "Views"
 version.workspace = true
 edition.workspace = true
@@ -20,16 +20,16 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-page.workspace = true
-neohugo-site.workspace = true
-neohugo-markup.workspace = true
-neohugo-layouts.workspace = true
-neohugo-nav.workspace = true
-neohugo-resources.workspace = true
-neohugo-vfs.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-page.workspace = true
+ssg-site.workspace = true
+ssg-markup.workspace = true
+ssg-layouts.workspace = true
+ssg-nav.workspace = true
+ssg-resources.workspace = true
+ssg-vfs.workspace = true
 tera.workspace = true
 serde.workspace = true
 jiff.workspace = true
@@ -39,6 +39,6 @@ rayon.workspace = true
 
 [dev-dependencies]
 dhat.workspace = true # T33 allocation measurement (it binary only)
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 insta.workspace = true
 tempfile.workspace = true

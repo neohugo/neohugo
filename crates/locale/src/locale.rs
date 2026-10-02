@@ -7,7 +7,7 @@ use icu_datetime::fieldsets::enums::DateFieldSet;
 use icu_datetime::preferences::CalendarAlgorithm;
 use icu_datetime::{DateTimeFormatter, DateTimeFormatterPreferences};
 use icu_decimal::{DecimalFormatter, DecimalFormatterPreferences};
-use neohugo_base::Collate;
+use ssg_base::Collate;
 
 use crate::collate::Collator;
 use crate::date::{self, DateStyle, NameWidth, Names};

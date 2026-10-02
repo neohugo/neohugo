@@ -17,7 +17,7 @@ expression: "read(&site, \"embedded/index.html\")"
   <meta name="twitter:image" content="https://example.org/img/site.png">
   <meta name="twitter:title" content="Embedded">
   <meta name="twitter:description" content="Site description &amp; more">
-  <meta name="twitter:site" content="@neohugo">
+  <meta name="twitter:site" content="@example">
 
 
   <meta itemprop="name" content="Embedded">

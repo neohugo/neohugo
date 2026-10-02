@@ -1,11 +1,11 @@
 //! Typed front matter: the reserved keys of a page, decoded once from its folded params.
 
 use jiff::tz::TimeZone;
-use neohugo_base::glob::{self, Glob, GlobOpts};
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{FormatId, PageKind, Params, Value};
-use neohugo_config::sections::SitemapConfig;
-use neohugo_config::{MediaTypes, OutputFormats};
+use ssg_base::glob::{self, Glob, GlobOpts};
+use ssg_base::paths::ContentKey;
+use ssg_base::{FormatId, PageKind, Params, Value};
+use ssg_config::sections::SitemapConfig;
+use ssg_config::{MediaTypes, OutputFormats};
 
 use crate::build::BuildPolicy;
 use crate::cascade::Cascade;

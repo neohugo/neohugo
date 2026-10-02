@@ -24,16 +24,16 @@
 
 
     <div class="hidden 2xl:block ml-8 text-xs text-gray-400 dark:text-gray-400">
-      {% if neohugo.version %}
+      {% if build.version %}
 
         Built with Hugo
-        {% if "-DEV" in neohugo.version %}
-          v{{ neohugo.version }}
+        {% if "-DEV" in build.version %}
+          v{{ build.version }}
         {% else %}
           <a
             class="text-blue-600 hover:text-blue-500 ml-1"
-            href="https://github.com/gohugoio/hugo/releases/tag/v{{ neohugo.version }}"
-            >v{{ neohugo.version }}</a
+            href="https://github.com/gohugoio/hugo/releases/tag/v{{ build.version }}"
+            >v{{ build.version }}</a
           >
         {% endif %}
       {% endif %}

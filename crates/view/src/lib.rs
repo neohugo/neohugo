@@ -7,7 +7,7 @@
 //! - [`views`]: the view structs and their documented keys.
 //! - Resource values ([`resource_view`], [`post_processed_view`]) and pager values
 //!   ([`pager_view`]).
-//! - [`NavSite`]: the site model as `neohugo-nav` reads it (menus, aliases, pagination lists,
+//! - [`NavSite`]: the site model as `ssg-nav` reads it (menus, aliases, pagination lists,
 //!   related content).
 //! - Render state: [`RenderScope`] (carried as `__nh`; no thread-locals), the
 //!   [`ContentRenderer`] callback, [`PageStores`], [`PaginationRecorder`],

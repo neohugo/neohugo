@@ -1,4 +1,4 @@
-//! TC39 decorators (the Stage 3 proposal) lowered for neohugo's Rolldown-based `js.Build`.
+//! TC39 decorators (the Stage 3 proposal) lowered for our Rolldown-based `js.Build`.
 //!
 //! Rolldown pins oxc 0.152, whose transformer lowers only TypeScript's legacy
 //! `experimentalDecorators` and prints standard decorators verbatim. [`lower_decorators`] runs in
@@ -84,7 +84,7 @@ use super::{LowerError, Lowered};
 /// The ES module the lowered code imports its helpers from (the caller serves it as a virtual
 /// module under the `helpers_specifier` given to [`lower_decorators`]). It uses no syntax newer
 /// than ES2015 (arrow functions, shorthand properties, computed accessor names).
-pub const DECORATOR_HELPERS: &str = r#"// Decorator helpers of neohugo's js.Build, ported from esbuild v0.25.6
+pub const DECORATOR_HELPERS: &str = r#"// Decorator helpers of js.Build, ported from esbuild v0.25.6
 // (internal/runtime/runtime.go, https://github.com/evanw/esbuild).
 //
 // MIT License

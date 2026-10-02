@@ -14,9 +14,9 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{LangIdx, PageId, ResourceId};
-use neohugo_page::Markup;
+use ssg_base::paths::ContentKey;
+use ssg_base::{LangIdx, PageId, ResourceId};
+use ssg_page::Markup;
 
 use crate::relations::{Collators, default_order};
 use crate::tree::PageRole;

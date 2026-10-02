@@ -1,13 +1,13 @@
-//! Code fences through neohugo-markup's `Highlighter` seam: fence options, attributes on the
+//! Code fences through ssg-markup's `Highlighter` seam: fence options, attributes on the
 //! wrapper, the trailing newline Hugo's code block renderer adds, errors.
 
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::PageId;
-use neohugo_config::markup::HighlightConfig;
-use neohugo_highlight::{Highlight, OptionsArg};
-use neohugo_markup::{ExpandedMarkdown, MarkdownOptions, NoHooks, SourceContexts, render};
+use ssg_base::PageId;
+use ssg_config::markup::HighlightConfig;
+use ssg_highlight::{Highlight, OptionsArg};
+use ssg_markup::{ExpandedMarkdown, MarkdownOptions, NoHooks, SourceContexts, render};
 
 fn classes() -> Highlight {
     Highlight::new(&HighlightConfig {

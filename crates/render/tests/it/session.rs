@@ -5,16 +5,16 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::{Clock, LangIdx, PageKind};
-use neohugo_config::LoadOptions;
-use neohugo_layouts::LayoutStore;
-use neohugo_render::{Job, Project, RenderError, RenderOptions, Session};
-use neohugo_site::LoadModelOptions;
-use neohugo_vfs::Vfs;
+use ssg_base::{Clock, LangIdx, PageKind};
+use ssg_config::LoadOptions;
+use ssg_layouts::LayoutStore;
+use ssg_render::{Job, Project, RenderError, RenderOptions, Session};
+use ssg_site::LoadModelOptions;
+use ssg_vfs::Vfs;
 
 const FILES: &[(&str, &str)] = &[
     (
-        "neohugo.toml",
+        "config.toml",
         "baseURL = \"https://example.org/\"\ntitle = \"Mini\"\ndisableKinds = [\"taxonomy\", \"term\", \"rss\", \"sitemap\"]\n[pagination]\npagerSize = 1\n",
     ),
     ("content/_index.md", "---\ntitle: Home\n---\n"),
@@ -43,17 +43,17 @@ fn write_site(dir: &Path) {
 
 fn session(dir: &Path) -> Arc<Session> {
     let cfg = Arc::new(
-        neohugo_config::load(&LoadOptions {
+        ssg_config::load(&LoadOptions {
             source: dir.to_path_buf(),
             config_files: Vec::new(),
-            cli: neohugo_config::CliOverrides::default(),
+            cli: ssg_config::CliOverrides::default(),
             env: Vec::new(),
         })
         .expect("config"),
     );
     let vfs = Arc::new(Vfs::new(&cfg).expect("vfs"));
     let clock = Clock("2026-01-01T00:00:00Z".parse().expect("clock"));
-    let model = neohugo_site::load_model(
+    let model = ssg_site::load_model(
         Arc::clone(&cfg),
         &vfs,
         &LoadModelOptions::from_config(&cfg, clock),
@@ -138,9 +138,9 @@ fn partial_return_values_and_getenv_policy() {
     let tmp = tempfile::tempdir().expect("tempdir");
     write_site(tmp.path());
     let dir = tmp.path();
-    let cfg = fs::read_to_string(dir.join("neohugo.toml")).expect("config");
+    let cfg = fs::read_to_string(dir.join("config.toml")).expect("config");
     fs::write(
-        dir.join("neohugo.toml"),
+        dir.join("config.toml"),
         format!("{cfg}[security.funcs]\ngetenv = ['^PATH$']\n"),
     )
     .expect("write");

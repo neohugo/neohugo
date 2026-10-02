@@ -89,5 +89,5 @@
 {"baseof":"","format":"rss","kind":"taxonomy","lang":"nn","layout":"","path":"/tags","permalink":"https://example.org/nn/tags/index.xml","relPermalink":"/nn/tags/index.xml","target":"/nn/tags/index.xml","template":"rss.xml","templateFile":"_embedded/rss.xml"}
 ],
 "resources": [],
-"schema": "neohugo-structure/1"
+"schema": "ssg-structure/1"
 }

@@ -2,8 +2,8 @@
 //! explicit value `__nh` in every Tera context. There are no thread-locals; site functions read
 //! it back with [`RenderScope::from_state`].
 
-use neohugo_base::{FormatId, FrameId, LangIdx, PageId, TxnId};
 use serde::{Deserialize, Serialize};
+use ssg_base::{FormatId, FrameId, LangIdx, PageId, TxnId};
 
 /// The context key of the scope in every render (`__nh`).
 pub const SCOPE_KEY: &str = "__nh";

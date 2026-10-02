@@ -1,12 +1,12 @@
-//! The JPEG encoder (`neohugo_images::jpeg`, Go's `image/jpeg` writer) against bytes Go wrote
+//! The JPEG encoder (`ssg_images::jpeg`, Go's `image/jpeg` writer) against bytes Go wrote
 //! for exactly known pixels (`oracle/images/process`, Go 1.27.1), and properties of its output.
 
 use std::collections::BTreeMap;
 
-use neohugo_images::jpeg::{self, Pixels};
-use neohugo_images::{ImageInput, ImageQueue, ImageSpec, Imaging};
-use neohugo_testkit::fixture::oracle;
 use serde_json::Value as J;
+use ssg_images::jpeg::{self, Pixels};
+use ssg_images::{ImageInput, ImageQueue, ImageSpec, Imaging};
+use ssg_testkit::fixture::oracle;
 
 use crate::common::{decode, expected_diffs, pix, psnr, sha256_hex, synth, write_file};
 

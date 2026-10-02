@@ -3,7 +3,7 @@
 //! publishing by URL token (docs/rust-port/REWRITE_PLAN.md §2.4, §3.4, task T40).
 //!
 //! - [`ResourceStore`] owns every resource of a build in an arena indexed by
-//!   [`ResourceId`](neohugo_base::ResourceId). Resources are immutable ([`Resource`]); a
+//!   [`ResourceId`](ssg_base::ResourceId). Resources are immutable ([`Resource`]); a
 //!   transform, a metadata override or a processed image is a new resource.
 //! - Identity: assets memoize on their path (per language on multihost sites), transforms on
 //!   `(source, transform)`, and resources that *name* a target path (`from_string`, `concat`,
@@ -16,7 +16,7 @@
 //!   [`PublishPolicy::Eager`], and every other resource whose permalink or relative permalink
 //!   appears among the URL tokens the publisher extracted (raw, HTML- or JSON-escaped, or
 //!   percent-encoded forms), or that the `publish` filter marked. Processed images go to the
-//!   [`ImageQueue`](neohugo_images::ImageQueue).
+//!   [`ImageQueue`](ssg_images::ImageQueue).
 //! - [`ResourceStore::get_remote`]: `resources.GetRemote` over the `[caches.getresource]` file
 //!   cache (entries are raw HTTP responses), with `[security.http]` checks, network fetches
 //!   through `ureq`, and an importer of caches Hugo wrote (see [`remote`]).

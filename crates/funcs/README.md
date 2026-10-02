@@ -1,4 +1,4 @@
-# neohugo-funcs
+# ssg-funcs
 
 The template API (REWRITE_PLAN.md §4.6, §4.8): `spec.rs`, the single source of truth for every
 Tera name (`spec::FUNCS`, the render contexts, `spec::EMBEDDED_TEMPLATES`; it generates
@@ -21,7 +21,7 @@ pure filters, functions and tests with the build-wide `PureEnv`, plus the tera-c
   serde_json.
 - `goat`: `diagrams_goat` (svgbob).
 
-The `neohugo` binary turns `math` and `goat` on (DEVELOPMENT.md, "Optional features").
+The `fugo` binary turns `math` and `goat` on (DEVELOPMENT.md, "Optional features").
 
 ## `to_math` (feature `math`)
 
@@ -33,7 +33,7 @@ release Hugo bundles, run in QuickJS as Hugo runs it.
   point, is Hugo's `renderkatex.js` and `common.js` with one JSON message in
   (`{"expression", "options"}`, Go's `warpc.KatexInput`) and one out (`{output, warnings}` or
   `{err}`). Hugo runs the bundle as Javy-compiled WebAssembly (QuickJS 2024-01-13 through
-  rquickjs 0.6) on wazero; neohugo runs it natively in QuickJS-ng through rquickjs 0.14
+  rquickjs 0.6) on wazero; fugo runs it natively in QuickJS-ng through rquickjs 0.14
   (MIT). An engine (about 25 ms to create, 2 MiB of heap, limited to 128 MiB) renders one
   formula at a time; idle engines wait in a process-wide pool, so render threads share them
   (Hugo: a pool of 8). KaTeX keeps no state between formulas but caches.
@@ -51,7 +51,7 @@ release Hugo bundles, run in QuickJS as Hugo runs it.
   (`to_math: katex: LaTeX-incompatible input …`).
 - **Cache.** The formulas of a build are kept by message (Hugo's `cacheMath`): one render and
   one report of the warnings per distinct formula and options. Hugo also keeps them in the file
-  cache (`tomath/`); neohugo renders them again in the next build (0.1–1 ms each).
+  cache (`tomath/`); fugo renders them again in the next build (0.1–1 ms each).
 
 ### to_math fixture
 
@@ -62,14 +62,14 @@ The cases (`tests/fixtures/tomath-oracle/cases.js`): KaTeX's screenshotter corpu
 render math and with the defaults, every formula of `docs/content` (its passthrough
 delimiters), mhchem's manual, the options, errors, `strict` modes and weak decoding.
 Regenerate with Go and the module cache of `go.mod` at `44529028`, and node with
-`tools/neohugo/node.sh` installed (`yaml`):
+`tools/dev/node.sh` installed (`yaml`):
 
 ```sh
 T=$(mktemp -d); git archive 44529028 | tar -x -C $T/
 mkdir -p $T/nhoracle/tomath && cp crates/funcs/tests/fixtures/tomath-oracle/main.go.txt $T/nhoracle/tomath/main.go
 (cd $T && GOFLAGS=-mod=mod go build -o oracle ./nhoracle/tomath)
 curl -sLo $T/ss_data.yaml https://raw.githubusercontent.com/KaTeX/KaTeX/v0.16.22/test/screenshotter/ss_data.yaml
-NODE_PATH=tools/neohugo/node_modules node crates/funcs/tests/fixtures/tomath-oracle/cases.js \
+NODE_PATH=tools/dev/node_modules node crates/funcs/tests/fixtures/tomath-oracle/cases.js \
   $T/ss_data.yaml docs/content | $T/oracle | python3 -c 'import gzip, sys; \
   sys.stdout.buffer.write(gzip.compress(sys.stdin.buffer.read(), 9, mtime=0))' \
   >crates/funcs/tests/fixtures/tomath.jsonl.gz
@@ -77,14 +77,14 @@ NODE_PATH=tools/neohugo/node_modules node crates/funcs/tests/fixtures/tomath-ora
 
 ### Accepted deviations
 
-- The messages of options that cannot be decoded are neohugo's (``to_math: option
+- The messages of options that cannot be decoded are fugo's (``to_math: option
   `displayMode`: cannot parse "yes" as a boolean``), not mapstructure's; KaTeX's messages are
   KaTeX's.
 - A key that matches two fields case-insensitively is decided by map order (Go: random).
   Case-insensitive matching is ASCII (Go's `strings.EqualFold` also folds e.g. `ſ` to `s`).
 - `minRuleThickness` NaN or infinite is an error before KaTeX runs (Go's JSON encoder fails on
   it).
-- No file cache across builds (above); in `neohugo server` the warnings of a formula are
+- No file cache across builds (above); in `fugo server` the warnings of a formula are
   reported in every build (Hugo: once per process).
 - Engine limits differ (QuickJS-ng's 1 MiB stack and the 128 MiB heap limit against Hugo's
   32 MiB WebAssembly memory): a pathologically nested formula may fail at another depth.

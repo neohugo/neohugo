@@ -1,19 +1,19 @@
-# neohugo-publish
+# ssg-publish
 
-Sinks, canonify, minify dispatch, `neohugo_stats.json`, URL-token extraction, held outputs and the
+Sinks, canonify, minify dispatch, `build_stats.json`, URL-token extraction, held outputs and the
 static sync (REWRITE_PLAN.md §2.6, §3.4; phases E1, E2 output, E4 and the `patch_held` half of
 E5).
 
 | API | What |
 |---|---|
 | `DiskSink { root }`, `MemorySink { files: DashMap<OutputPath, Arc<[u8]>> }` | `base::Sink` (`write`, `exists`, `read`); the disk sink creates parent directories and truncates; the memory sink has `get`, `text`, `paths` (sorted) and `write_to(dir)` |
-| `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`, LiveReload URL: `None` here, set by `neohugo-build` for `serve`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]` |
+| `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`, LiveReload URL: `None` here, set by `ssg-build` for `serve`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]` |
 | `Publisher::new(settings, Arc<dyn Sink>, Arc<Diagnostics>)` | shared by the render workers (`Send + Sync`) |
 | `Publisher::with_css_purges(Arc<CssPurges>)`, `page_names(html)` | `purge_css` placeholders (`__nh_purge_<n>__`) are replaced first in `emit` (and in `patch_held`) by the CSS the output uses: `page_names` gives the tags, classes and ids of its elements, the words of its `<script>` elements and every `--name` it mentions |
 | `Publisher::emit(Output { path, text, format, lang, alias })` | `purge_css` placeholders → canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Hugo; `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present (the text is written to the sink unpatched and unminified, only the path is kept), else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
 | `Publisher::patch_held(&BTreeMap<placeholder, text>)` | reads every held output back from the sink (`PublishError::Read` if it is gone), replaces its placeholders, rewrites its URLs again (canonify / relative), extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
 | `Publisher::add_tokens_from(text)`, `url_tokens()` | `execute_as_template` results; the sorted `UrlTokens` so far |
-| `Publisher::stats() -> NeohugoStats`, `NeohugoStats::{to_json, write_if_changed}` | `neohugo_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
+| `Publisher::stats() -> StatsFile`, `StatsFile::{to_json, write_if_changed}` | `build_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
 | `UrlRewriter::{absolute, relative, new}.rewrite(bytes, Quoting)` | the canonify rewriter (also `rewrite_str`); `canonify::dotted_path_to_root` |
 | `HtmlElements::collect(html)`, `StatsCollector` | the tags, classes and ids of HTML |
 | `UrlTokens::{extract, iter, contains}` | URL-shaped words after decoding HTML references and JSON escapes (srcset lists, unquoted attributes, `./` / `../` resolved against the output) |
@@ -22,8 +22,8 @@ E5).
 | `StaticSyncOptions::target(&FileRef)` | the publish path of a static file (below its language directory on a multihost site); `serve` copies single changed files with it |
 | `livereload::{script, inject}` | the LiveReload `<script>` placed at the start of the head |
 
-**URL-token seam.** `neohugo-resources` does not depend on this crate (§2.3). The store's
-`publish` takes any `IntoIterator<Item = &str>`; `neohugo-build` passes `publisher.url_tokens().iter()`
+**URL-token seam.** `ssg-resources` does not depend on this crate (§2.3). The store's
+`publish` takes any `IntoIterator<Item = &str>`; `ssg-build` passes `publisher.url_tokens().iter()`
 (or `&UrlTokens`, which is `IntoIterator<Item = &str>`). Tokens are decoded but not
 canonicalised: the store reduces them (percent-decoding, host, query) to its own URL index.
 
@@ -48,7 +48,7 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
 
 ## Acceptance evidence
 
-`cargo test -p neohugo-publish` (lib 6, it 19):
+`cargo test -p ssg-publish` (lib 6, it 19):
 
 - **canonify** — `oracle/transform/absurl/cases.jsonl.gz`: 94,180 cases, 93,178 exact, 1,002
   accepted in 3 Go-quirk classes (below), 0 unexplained; the upstream `absurlreplacer_test.go`
@@ -62,7 +62,7 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   difference classified in `expected_diffs.toml`, 0 unexplained). The 3,022 `closed` records test Go's private `isClosedByTag`
   and have no counterpart.
 - **golden stats** — `tools/rust-port/golden/hugo_stats.json` (seeksnack) and
-  `docs/hugo_stats.json` round-trip byte for byte through `NeohugoStats::to_json` (format,
+  `docs/hugo_stats.json` round-trip byte for byte through `StatsFile::to_json` (format,
   sorting, `null`). Scanning the golden HTML itself would need the Go build's output trees,
   which are not in the repository (`testdata/golden/` holds manifests).
 - **static sync** — `oracle/commands/staticcopy/staticcopy.json.gz`: 12 cases, 179 checks
@@ -86,7 +86,7 @@ All counted in `expected_diffs.toml` (a changed count fails the tests):
 | absurl | `go-panic` 93, `leading-candidate` 855 (Go's prefix positions start at 0, so a document starting with `/x` gets the base written up to 4 times), `prefix-inside-rewrite` 54 (stale positions jump back into written input) |
 | inject | `generator-tag-never-injected` 14 |
 | collector-* | x/net/html tree-builder and Go-scanner artefacts: markup declarations as tags, table/head/frame elements dropped in a body context, `<prefix>`-style raw-text skips, quotes tracked across tags, repeated attributes, Unicode tag names, NUL and numeric references, characters split across writes, invalid UTF-8 |
-| staticcopy | `shadowed-files-counted` 1 (Hugo counts a path once per static mount of one module holding it; neohugo counts published files), `empty-dirs-not-copied` 6, `missing-static-dir` 1 |
+| staticcopy | `shadowed-files-counted` 1 (Hugo counts a path once per static mount of one module holding it; fugo counts published files), `empty-dirs-not-copied` 6, `missing-static-dir` 1 |
 
 Not implemented here: `Output` carries no `JobOrder` (that type lives in `render`, which this
 crate does not depend on; collisions are ordered by `build`).

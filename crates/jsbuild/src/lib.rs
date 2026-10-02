@@ -1,4 +1,4 @@
-//! `js.Build` for neohugo: bundles a script asset in process with rolldown.
+//! `js.Build` for this port: bundles a script asset in process with rolldown.
 //!
 //! - [`JsBuildOptions`]: the typed `js.Build` options, decoded from the template's map.
 //! - [`JsBuilder`]: `js.Build` itself: bundles an asset, resolving imports in the assets

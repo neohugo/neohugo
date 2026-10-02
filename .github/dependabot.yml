@@ -1,5 +1,5 @@
 # See https://docs.github.com/en/github/administering-a-repository/configuration-options-for-dependency-updates#package-ecosystem
-# No npm entry: the versions in tools/neohugo/node are parity pins (the tools the golden data was
+# No npm entry: the versions in tools/dev/node are parity pins (the tools the golden data was
 # built with), not dependencies to keep current. No entry for docs/ either: its go.mod and
 # package.json belong to the docs site, whose files the test fixtures record by hash.
 version: 2
@@ -10,7 +10,7 @@ updates:
   # parity gates compare with the Go build's golden data (comrak, minify-html,
   # lightningcss, oxc, grass, image, webp, ...): each group must pass the gates of CI's Test job
   # like any change, and a bump that changes a gate's differences needs an entry in
-  # tools/neohugo/changes/ (see its README).
+  # tools/dev/changes/ (see its README).
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:

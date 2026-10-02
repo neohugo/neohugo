@@ -25,22 +25,22 @@
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
 
-use neohugo_base::{FormatId, Idx, LangIdx, Value};
-use neohugo_config::output::Escaping;
-use neohugo_config::{MediaTypes, OutputFormats};
-use neohugo_layouts::{
+use serde_json::Value as J;
+use ssg_base::{FormatId, Idx, LangIdx, Value};
+use ssg_config::output::Escaping;
+use ssg_config::{MediaTypes, OutputFormats};
+use ssg_layouts::{
     EmbeddedHooks, HookUse, IssueKind, LayoutEnv, LayoutSource, LayoutStore, Origin, TemplateError,
     TemplateRole,
 };
-use neohugo_vfs::{FormatSpec, PathParser, PathParserSpec};
-use serde_json::Value as J;
+use ssg_vfs::{FormatSpec, PathParser, PathParserSpec};
 
 /// The named sites of the oracle (the integration archives come from `integration.json.gz`).
 pub const SITES: &[&str] = &["docs", "testsite", "legacy", "modern", "themes"];
 
 /// Reads a fixture of `topic` (`store`, `lookup`) for a named site.
 pub fn fixture(topic: &str, site: &str) -> J {
-    neohugo_testkit::fixture::oracle(&format!("oracle/tplimpl/{topic}/{site}.json.gz"))
+    ssg_testkit::fixture::oracle(&format!("oracle/tplimpl/{topic}/{site}.json.gz"))
 }
 
 /// The integration archives' fixtures of `topic`, by site name (pool references resolved).
@@ -145,7 +145,7 @@ fn to_value(j: J) -> Value {
     serde_json::from_value(j).unwrap()
 }
 
-fn map(j: J) -> neohugo_base::Map {
+fn map(j: J) -> ssg_base::Map {
     match to_value(j) {
         Value::Map(m) => (*m).clone(),
         other => panic!("not a map: {other:?}"),
@@ -420,7 +420,7 @@ impl Site {
     }
 }
 
-fn media_string(env: &LayoutEnv, m: neohugo_base::MediaTypeId) -> String {
+fn media_string(env: &LayoutEnv, m: ssg_base::MediaTypeId) -> String {
     env.media_types().get(m).type_string()
 }
 

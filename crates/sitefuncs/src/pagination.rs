@@ -9,9 +9,9 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::diag::Position;
-use neohugo_nav::{PageGroup, Pagination, PaginationItems, default_pagination_list};
-use neohugo_view::{
+use ssg_base::diag::Position;
+use ssg_nav::{PageGroup, Pagination, PaginationItems, default_pagination_list};
+use ssg_view::{
     PaginationRecorder, Phase, Recorded, RenderScope, ViewCache, pager_url, pager_view,
 };
 use tera::{Kwargs, State, TeraResult, Value};
@@ -78,13 +78,13 @@ impl Paginate {
     fn custom_pagination(&self, kw: &Kwargs, s: &RenderScope) -> TeraResult<Pagination> {
         let model = self.views.model();
         let pages = kw.must_get::<Value>("pages")?;
-        let size_arg: Vec<neohugo_base::Value> = kw
+        let size_arg: Vec<ssg_base::Value> = kw
             .get::<Value>("size")?
             .filter(|v| !v.is_none())
             .map(|v| vec![to_data(&v)])
             .unwrap_or_default();
         let configured = model.config.sites[s.lang].pagination.pager_size;
-        let size = neohugo_nav::resolve_pager_size(&size_arg, configured)
+        let size = ssg_nav::resolve_pager_size(&size_arg, configured)
             .map_err(|e| chain("paginate(size=)", e))?;
         let grouped = pages
             .as_array()

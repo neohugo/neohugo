@@ -2,12 +2,12 @@
 //! `common/neohugo/version.go` at 44529028):
 //!
 //! ```text
-//! neohugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]
+//! <name> v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]
 //! ```
 //!
 //! `<version>` is [`VERSION`](crate::VERSION). The commit, the date and the vendor are set at
-//! build time by `NEOHUGO_BUILD_COMMIT` (Go: `vcs.revision`), `NEOHUGO_BUILD_DATE` (Go: `vcs.time`,
-//! the commit's time in UTC, RFC 3339) and `NEOHUGO_VENDOR_INFO` (the releases: `neohugo`, as the
+//! build time by `FUGO_BUILD_COMMIT` (Go: `vcs.revision`), `FUGO_BUILD_DATE` (Go: `vcs.time`,
+//! the commit's time in UTC, RFC 3339) and `FUGO_VENDOR_INFO` (the releases: the program's name, as the
 //! Go releases' ldflags set it); CI's release builds set all three. `<os>/<arch>` are Go's names
 //! of the target (`linux`, `darwin`, `windows`; `amd64`, `arm64`).
 
@@ -35,17 +35,17 @@ impl BuildInfo<'static> {
     /// This binary's.
     pub const CURRENT: Self = Self {
         version: crate::VERSION,
-        commit: non_empty(option_env!("NEOHUGO_BUILD_COMMIT")),
+        commit: non_empty(option_env!(ssg_base::env_var!("BUILD_COMMIT"))),
         os: GO_OS,
         arch: GO_ARCH,
-        date: non_empty(option_env!("NEOHUGO_BUILD_DATE")),
-        vendor: non_empty(option_env!("NEOHUGO_VENDOR_INFO")),
+        date: non_empty(option_env!(ssg_base::env_var!("BUILD_DATE"))),
+        vendor: non_empty(option_env!(ssg_base::env_var!("VENDOR_INFO"))),
     };
 }
 
 impl fmt::Display for BuildInfo<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "neohugo v{}", self.version)?;
+        write!(f, "{} v{}", ssg_base::APP_NAME, self.version)?;
         if let Some(commit) = self.commit {
             write!(f, "-{commit}")?;
         }

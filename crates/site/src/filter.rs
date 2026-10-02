@@ -4,8 +4,8 @@
 //! language, except home, section and taxonomy pages: they keep the tree's structure and are
 //! only switched off (neither listed nor rendered, resources not published).
 
-use neohugo_base::PageKind;
-use neohugo_page::{BuildPolicy, ListMode, PageMeta, RenderMode};
+use ssg_base::PageKind;
+use ssg_page::{BuildPolicy, ListMode, PageMeta, RenderMode};
 
 use crate::LoadModelOptions;
 

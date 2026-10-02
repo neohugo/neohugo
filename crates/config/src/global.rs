@@ -5,8 +5,8 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use neohugo_base::{Map, Value};
 use serde::{Deserialize, Serialize};
+use ssg_base::{Map, Value};
 
 use crate::duration::{self, SignedDuration};
 use crate::error::ConfigError;
@@ -118,7 +118,7 @@ impl Default for BuildConfig {
 }
 
 /// The file `[build.buildStats]` writes in the project directory (Hugo's `hugo_stats.json`).
-pub const STATS_FILE: &str = "neohugo_stats.json";
+pub const STATS_FILE: &str = "build_stats.json";
 
 /// `[build.buildStats]`: what [`STATS_FILE`] records.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
@@ -386,7 +386,7 @@ impl Default for SecurityPolicy {
             exec_os_env: Whitelist::new(&[
                 r"(?i)^((HTTPS?|NO)_PROXY|PATH(EXT)?|APPDATA|TE?MP|TERM|GO\w+|(XDG_CONFIG_)?HOME|USERPROFILE|SSH_AUTH_SOCK|DISPLAY|LANG|SYSTEMDRIVE)$",
             ]),
-            getenv: Whitelist::new(&["^NEOHUGO_", "^CI$"]),
+            getenv: Whitelist::new(&[concat!("^", ssg_base::env_var!("")), "^CI$"]),
             http_urls: Whitelist::new(&[".*"]),
             http_methods: Whitelist::new(&["(?i)GET|POST"]),
             http_media_types: Whitelist::new(&[]),

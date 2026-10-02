@@ -1,8 +1,8 @@
 //! The site-wide `[imaging]` settings, typed.
 
-use neohugo_base::Value;
-use neohugo_config::ImagingConfig;
 use regex::Regex;
+use ssg_base::Value;
+use ssg_config::ImagingConfig;
 
 use crate::color::Color;
 use crate::error::ImageError;
@@ -89,7 +89,7 @@ fn fields_regex(key: &'static str, expr: &str) -> Result<Option<Regex>, ImageErr
 }
 
 impl ExifSettings {
-    fn from_map(m: &neohugo_base::Map) -> Result<Self, ImageError> {
+    fn from_map(m: &ssg_base::Map) -> Result<Self, ImageError> {
         let get = |name: &str| {
             m.iter()
                 .find(|(k, _)| k.eq_ignore_ascii_case(name))

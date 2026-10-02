@@ -8,10 +8,10 @@
 //! per hook format.
 //! Frozen by T38: [`Job`], [`JobOrder`], [`Output`] and
 //! `Session::{new, render_content, freeze_views, render_job}`. The site functions are
-//! `neohugo_sitefuncs::register`'s (T35); `neohugo-build` (T36) runs the phases, with the jobs
+//! `ssg_sitefuncs::register`'s (T35); `ssg-build` (T36) runs the phases, with the jobs
 //! of [`Session::wave1`] / [`Session::wave2`], the targets of [`Session::target`] and the
 //! deferred templates of [`Session::render_deferred`]. The lookup inputs [`lookup_path`],
-//! [`layout_query`] and [`rendered_formats`] are public for `neohugo templates check` (T37),
+//! [`layout_query`] and [`rendered_formats`] are public for `templates check` (T37),
 //! so its coverage runs exactly the build's lookups.
 
 #![forbid(unsafe_code)]
@@ -26,7 +26,7 @@ mod shortcode;
 pub mod summary;
 mod tokens;
 
-use neohugo_base::{FormatId, PageId};
+use ssg_base::{FormatId, PageId};
 
 pub use job::{AliasPlan, Job, JobOrder, Output};
 pub use session::{Project, RenderOptions, Session, layout_query, lookup_path, rendered_formats};
@@ -36,16 +36,16 @@ pub use session::{Project, RenderOptions, Session, layout_query, lookup_path, re
 pub enum RenderError {
     /// A pager's file or link could not be made.
     #[error(transparent)]
-    Target(Box<neohugo_view::TargetError>),
+    Target(Box<ssg_view::TargetError>),
     /// The views could not be built.
     #[error(transparent)]
-    View(Box<neohugo_view::ViewError>),
+    View(Box<ssg_view::ViewError>),
     /// The alias plan could not be made.
     #[error(transparent)]
-    Nav(Box<neohugo_nav::NavError>),
+    Nav(Box<ssg_nav::NavError>),
     /// The templates did not load.
     #[error(transparent)]
-    Template(#[from] neohugo_layouts::TemplateError),
+    Template(#[from] ssg_layouts::TemplateError),
     /// Markdown failed.
     #[error("{}: {message}", file.display())]
     Markup {
@@ -57,7 +57,7 @@ pub enum RenderError {
     Content {
         page: String,
         #[source]
-        source: Box<neohugo_view::ContentError>,
+        source: Box<ssg_view::ContentError>,
     },
     /// A template failed.
     #[error("{template} ({page}): {source}")]
@@ -82,10 +82,10 @@ pub enum RenderError {
     Phase(&'static str),
     /// An i18n file does not load.
     #[error(transparent)]
-    I18n(Box<neohugo_locale::I18nError>),
+    I18n(Box<ssg_locale::I18nError>),
     /// A component directory cannot be read.
     #[error(transparent)]
-    Vfs(Box<neohugo_vfs::VfsError>),
+    Vfs(Box<ssg_vfs::VfsError>),
     /// A file cannot be read.
     #[error("{}: {source}", path.display())]
     Io {
@@ -103,26 +103,26 @@ pub enum RenderError {
     },
 }
 
-impl From<neohugo_vfs::VfsError> for RenderError {
-    fn from(e: neohugo_vfs::VfsError) -> Self {
+impl From<ssg_vfs::VfsError> for RenderError {
+    fn from(e: ssg_vfs::VfsError) -> Self {
         Self::Vfs(Box::new(e))
     }
 }
 
-impl From<neohugo_view::TargetError> for RenderError {
-    fn from(e: neohugo_view::TargetError) -> Self {
+impl From<ssg_view::TargetError> for RenderError {
+    fn from(e: ssg_view::TargetError) -> Self {
         Self::Target(Box::new(e))
     }
 }
 
-impl From<neohugo_view::ViewError> for RenderError {
-    fn from(e: neohugo_view::ViewError) -> Self {
+impl From<ssg_view::ViewError> for RenderError {
+    fn from(e: ssg_view::ViewError) -> Self {
         Self::View(Box::new(e))
     }
 }
 
-impl From<neohugo_nav::NavError> for RenderError {
-    fn from(e: neohugo_nav::NavError) -> Self {
+impl From<ssg_nav::NavError> for RenderError {
+    fn from(e: ssg_nav::NavError) -> Self {
         Self::Nav(Box::new(e))
     }
 }

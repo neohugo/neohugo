@@ -1,13 +1,13 @@
 //! The summary oracle (`testdata/oracle/page/summary`): Hugo's summary of the rendered
 //! HTML of every page of the Go builds and of variants (other word counts, CJK, dividers), plus
-//! 6,000 adversarial calls, against [`neohugo_render::summary`]. Markdown and HTML content
-//! only (AsciiDoc, RST, Pandoc and Org are external markups neohugo does not render).
+//! 6,000 adversarial calls, against [`ssg_render::summary`]. Markdown and HTML content
+//! only (AsciiDoc, RST, Pandoc and Org are external markups this port does not render).
 //!
 //! Compared: `.Summary`, `.Content` and `.Truncated`. Long strings are compared by SHA-256.
 
-use neohugo_render::summary::{self, Split};
 use serde_json::Value as J;
 use sha2::{Digest, Sha256};
+use ssg_render::summary::{self, Split};
 
 fn digest(s: &str) -> J {
     if s.len() <= 160 {
@@ -25,8 +25,7 @@ fn summary_oracle() {
     let mut skipped = 0;
     let mut unexpected = Vec::new();
     for file in ["build", "adversarial"] {
-        let fx: J =
-            neohugo_testkit::fixture::oracle(&format!("oracle/page/summary/{file}.json.gz"));
+        let fx: J = ssg_testkit::fixture::oracle(&format!("oracle/page/summary/{file}.json.gz"));
         let types: Vec<String> = fx["types"]
             .as_array()
             .expect("types")

@@ -1,8 +1,8 @@
 //! Highlighting options: the site's `[markup.highlight]` defaults, overridden per call by a
 //! fence's `{…}` options or by the `highlight` function's option string or map.
 
-use neohugo_base::{Map, Value};
-use neohugo_config::markup::HighlightConfig;
+use ssg_base::{Map, Value};
+use ssg_config::markup::HighlightConfig;
 
 /// How token colours reach the page.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]

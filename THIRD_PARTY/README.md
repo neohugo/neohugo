@@ -1,17 +1,17 @@
 # Third-party material cargo cannot see
 
-`tools/neohugo/licence-check.sh` checks every crate in the dependency graph. The material below
+`tools/dev/licence-check.sh` checks every crate in the dependency graph. The material below
 is not a crate licence of its own (data bundled inside a crate, files we embed), so its licence
 texts and sources are kept here (REWRITE_PLAN.md §5). Each entry names the task that adds it.
 
 | Directory | Material | Licence | Added by |
 |---|---|---|---|
-| `hugo/` | Hugo (gohugoio/hugo, forked as neohugo): the embedded templates rewritten in Tera (`crates/layouts/embedded/`) derive from Hugo's `tpl/tplimpl/embedded/templates` (this repository at commit `44529028`) | Apache-2.0 (`hugo/LICENSE`) | T00 (licence), T32 (templates) |
+| `hugo/` | Hugo (gohugoio/hugo, forked as fugo): the embedded templates rewritten in Tera (`crates/layouts/embedded/`) derive from Hugo's `tpl/tplimpl/embedded/templates` (this repository at commit `44529028`) | Apache-2.0 (`hugo/LICENSE`) | T00 (licence), T32 (templates) |
 | `chroma/` | Chroma v2.19.0 (alecthomas/chroma), the highlighter Hugo uses: its XML lexers and styles bundled in `crates/highlight` (converted to Rust data), the rules of its Go-written lexers exported to its XML format (converted likewise), and its engine rewritten; most lexers and styles derive from Pygments | MIT (`chroma/COPYING`); BSD-2-Clause (Pygments, `chroma/LICENSE-PYGMENTS`) | T25 (styles), highlight port (lexers, engine) |
 | `regexp2/` | regexp2 v1.11.5 (dlclark/regexp2), the .NET-dialect regex engine Chroma's lexers are written for, ported in `crates/highlight/src/regexp2/` (parser, character classes, backtracking rules); regexp2 ports .NET's regex engine (dotnet/corefx) | MIT (`regexp2/LICENSE`; .NET: `regexp2/ATTRIB`) | highlight port |
 | `cldr/` | Unicode CLDR 48.2.1 data compiled into the ICU4X 2.3 data crates (collation, plurals, numbers, dates) used by `crates/locale` | Unicode-3.0 (`cldr/LICENSE`) | T12 |
 | `emoji/` | Emoji data compiled in by the `emojis` crate 0.8.2 (used by `emojify` and comrak's `shortcodes`): Unicode 17.0 emoji data and GitHub gemoji v4.1.0 short codes | Unicode-3.0 (`emoji/LICENSE-UNICODE`), MIT (`emoji/LICENSE-GEMOJI`) | T22 (entry), T70 (directory) |
-| `livereload/` | `livereload.min.js` served by `neohugo server` (`crates/serve/assets/`): livereload-js 4.0.2 with core-js 2.6.12 modules, and Hugo's LiveReload plugin, as Hugo bundles them | MIT (`livereload/LICENSE`: livereload-js, core-js); Apache-2.0 (the plugin, `hugo/LICENSE`) | T71 |
+| `livereload/` | `livereload.min.js` served by `fugo server` (`crates/serve/assets/`): livereload-js 4.0.2 with core-js 2.6.12 modules, and Hugo's LiveReload plugin, as Hugo bundles them | MIT (`livereload/LICENSE`: livereload-js, core-js); Apache-2.0 (the plugin, `hugo/LICENSE`) | T71 |
 | `flect/` | Inflection word lists and rules from gobuffalo/flect v1.0.3, transcribed into `crates/base/src/inflect.rs` | MIT (`flect/LICENSE`) | T10 |
 | `prose/` | Title-case word lists and rules from jdkato/prose v1.2.1, transcribed into `crates/base/src/title.rs` | MIT (`prose/LICENSE`) | T10 |
 | `gofont/` | `Go-Regular.ttf`, the default font of the text filter (the font Hugo embeds, `golang.org/x/image/font/gofont` v0.28.0), embedded by `crates/images/src/font.rs` | BSD-3-Clause, Bigelow & Holmes (`gofont/LICENSE`, the `ttfs/README` that ships with the font) | T72a |

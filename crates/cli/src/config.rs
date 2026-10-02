@@ -7,7 +7,7 @@ use crate::Exit;
 use crate::args::{ConfigArgs, ConfigFormat};
 
 pub(crate) fn run(a: &ConfigArgs) -> anyhow::Result<Exit> {
-    let cfg = neohugo_config::load(&a.project.load_options()?)?;
+    let cfg = ssg_config::load(&a.project.load_options()?)?;
     let text = match a.format {
         ConfigFormat::Json => serde_json::to_string_pretty(&cfg)?,
         ConfigFormat::Toml => toml::to_string(&cfg).context("the configuration as TOML")?,

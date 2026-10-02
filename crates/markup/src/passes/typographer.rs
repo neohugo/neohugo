@@ -2,7 +2,7 @@
 //! decided from the characters around each quote (CommonMark flanking rules plus goldmark's
 //! apostrophe cases). Unclosed-quote counters are per block.
 
-use neohugo_base::text;
+use ssg_base::text;
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory};
 
 use crate::Typographer;

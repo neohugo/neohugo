@@ -1373,8 +1373,8 @@ fn idct(src: &mut Block) {
 
 #[cfg(test)]
 mod tests {
-    use neohugo_testkit::fixture::{oracle, repo_dir};
     use serde::Deserialize;
+    use ssg_testkit::fixture::{oracle, repo_dir};
 
     use super::*;
 

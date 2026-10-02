@@ -1,4 +1,4 @@
-//! Plain-JSON oracle fixtures (`testdata`, neohugo schema).
+//! Plain-JSON oracle fixtures (`testdata`, this port schema).
 //!
 //! Fixtures are JSON documents (`.json`) or one JSON record per line (`.jsonl`), gzipped when
 //! the name ends in `.gz`. Tests deserialise them into `#[derive(Deserialize)]` structs and
@@ -68,10 +68,10 @@ impl Layout {
 /// Resolved at run time: every worktree shares one cargo target dir and reuses the same
 /// artifacts, so a path baked in with `env!` could point into another (possibly removed)
 /// checkout. Cargo sets `CARGO_MANIFEST_DIR` for the test binary of the crate under test, and
-/// every crate lives at `crates/<name>`. `NEOHUGO_REPO_DIR` overrides both.
+/// every crate lives at `crates/<name>`. `FUGO_REPO_DIR` overrides both.
 #[must_use]
 pub fn repo_dir() -> PathBuf {
-    std::env::var_os("NEOHUGO_REPO_DIR")
+    std::env::var_os(ssg_base::env_var!("REPO_DIR"))
         .map(PathBuf::from)
         .or_else(|| std::env::var_os("CARGO_MANIFEST_DIR").map(|d| PathBuf::from(d).join("../..")))
         .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
@@ -103,12 +103,12 @@ pub const UPSTREAM: [&str; 5] = [
 /// (after `44529028`); frozen fixtures still name files below it (`rust/testdata/...`).
 pub const LEGACY_WORKSPACE: &str = "rust";
 
-/// The path a site file the Go oracles recorded has in a neohugo site: a configuration file
+/// The path a site file the Go oracles recorded has in a local site: a configuration file
 /// named `hugo.<ext>` (the project's, a configuration directory's or a theme's) is
-/// `neohugo.<ext>`, as neohugo reads no `hugo.*` file. Files below a component directory
+/// `config.<ext>`, as no `hugo.*` file is read. Files below a component directory
 /// (`content/hugo.toml` is a page) keep their names.
 #[must_use]
-pub fn neohugo_path(rel: &str) -> String {
+pub fn local_path(rel: &str) -> String {
     const COMPONENTS: [&str; 7] = [
         "content",
         "data",
@@ -128,9 +128,9 @@ pub fn neohugo_path(rel: &str) -> String {
         return rel.to_owned();
     }
     if dir.is_empty() {
-        format!("neohugo.{ext}")
+        format!("config.{ext}")
     } else {
-        format!("{dir}/neohugo.{ext}")
+        format!("{dir}/config.{ext}")
     }
 }
 
@@ -231,7 +231,7 @@ pub fn oracle_lines<T: DeserializeOwned>(rel: &str) -> Vec<T> {
     read_jsonl(&testdata(rel)).unwrap_or_else(|e| panic!("{e}"))
 }
 
-/// The record count of a fixture, as `tools/neohugo/fixtures2json.py` defines it: the number of
+/// The record count of a fixture, as `tools/dev/fixtures2json.py` defines it: the number of
 /// lines of a JSONL file, the length of a top-level array, or for a top-level object the sum
 /// over its members of their length (arrays and objects) or 1.
 #[must_use]
@@ -323,7 +323,7 @@ fn decode_hex(hex: &str) -> Option<Vec<u8>> {
         .collect()
 }
 
-/// A Go value that plain JSON cannot express, as the neohugo schema tags it.
+/// A Go value that plain JSON cannot express, as the fixture schema tags it.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum Tag<'a> {
     /// `{"$nh:time": "2006-01-02T15:04:05.999999999+07:00[Asia/Bangkok]"}`: an RFC 9557

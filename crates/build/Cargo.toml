@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-build"
+name = "ssg-build"
 description = "Build orchestration"
 version.workspace = true
 edition.workspace = true
@@ -20,24 +20,24 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-vfs.workspace = true
-neohugo-site.workspace = true
-neohugo-layouts.workspace = true
-neohugo-render.workspace = true
-neohugo-publish.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-vfs.workspace = true
+ssg-site.workspace = true
+ssg-layouts.workspace = true
+ssg-render.workspace = true
+ssg-publish.workspace = true
 # Phases E4–E6: `hugo_stats.json` injected as an asset, post-process placeholders, resource and
 # image publishing (the image queue and the highlighter are reached through the session's
-# `Handles`, so `neohugo-images` and `neohugo-highlight` need no edge of their own).
-neohugo-resources.workspace = true
+# `Handles`, so `ssg-images` and `ssg-highlight` need no edge of their own).
+ssg-resources.workspace = true
 jiff.workspace = true
 rayon.workspace = true
 thiserror.workspace = true
-# The structure dump (`NEOHUGO_STRUCTURE_OUT`, `structure.rs`).
+# The structure dump (`FUGO_STRUCTURE_OUT`, `structure.rs`).
 serde_json.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 tempfile.workspace = true

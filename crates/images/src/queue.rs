@@ -12,10 +12,10 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::{Duration, SystemTime};
 
-use neohugo_base::paths::OutputPath;
-use neohugo_base::{ImageOpId, Sink};
-use neohugo_config::global::{FileCache, MaxAge};
 use rayon::prelude::*;
+use ssg_base::paths::OutputPath;
+use ssg_base::{ImageOpId, Sink};
+use ssg_config::global::{FileCache, MaxAge};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::codec;

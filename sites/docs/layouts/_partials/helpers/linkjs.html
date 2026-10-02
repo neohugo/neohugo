@@ -3,8 +3,8 @@
   with `attributes` rendered by `render_attributes` (helpers/linkcss.html).
   Called as `{{ <linkjs r={r} attributes={attrs} /> }}`.
 -#}
-{%- component linkjs(r, attributes={}, @neohugo, @__nh) %}
-{%- if neohugo.is_development %}
+{%- component linkjs(r, attributes={}, @build, @__nh) %}
+{%- if build.is_development %}
   <script
     src="{{ r.rel_permalink }}"
     {{ <render_attributes attributes={attributes} /> }}></script>

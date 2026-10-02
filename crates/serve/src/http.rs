@@ -11,7 +11,7 @@ use axum::extract::{FromRequestParts, Request, State};
 use axum::http::request::Parts;
 use axum::http::{HeaderMap, HeaderValue, StatusCode, header};
 use axum::response::{IntoResponse, Response};
-use neohugo_base::url::{Component, unescape};
+use ssg_base::url::{Component, unescape};
 
 use crate::tree::{Host, Served};
 use crate::{HttpCache, Shared, livereload};

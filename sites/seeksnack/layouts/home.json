@@ -1,9 +1,0 @@
-{#- The snack index. The thumbnails look in the home page's resources (`$.Resources` in Go). -#}
-{%- set snacks = [p for p in site.regular_pages if p.params.type == "snacks"] | sort_by(attribute="date") -%}
-{%- set_global items = [] -%}
-{%- for p in snacks -%}
-{%- set item = {"title": p.title, "url": p.permalink, "date": p.date | date(format="%Y-%m-%d"), "summary": p.summary | plainify, "plain": p.plain | truncate_html(length=60)} -%}
-{%- if p.params.image %}{% set r = page.resources | get_resource(name=p.params.image) %}{% if r %}{% set t = r | fill(width=64, height=64, anchor="center") %}{% set item = item | merge(with={"thumb": t.rel_permalink}) %}{% endif %}{% endif -%}
-{%- set_global items = items | append(value=item) -%}
-{%- endfor -%}
-{{- {"lang": page.lang, "items": items, "home": page.title} | jsonify(indent=" ") -}}

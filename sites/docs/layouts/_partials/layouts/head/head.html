@@ -1,7 +1,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-{{ neohugo.generator }}
+{{ build.generator }}
 
-{% if neohugo.is_production %}
+{% if build.is_production %}
   <meta name="robots" content="index, follow" />
 {% else %}
   <meta name="robots" content="noindex, nofollow" />
@@ -34,6 +34,6 @@
 {% include "_partials/schema.html" %}
 {% include "_partials/twitter_cards.html" %}
 
-{% if neohugo.is_production %}
+{% if build.is_production %}
   {% include "_partials/helpers/gtag.html" %}
 {% endif %}

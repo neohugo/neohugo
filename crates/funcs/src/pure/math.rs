@@ -10,8 +10,8 @@
 use std::collections::{BTreeMap, HashMap};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use neohugo_base::diag::Diagnostic;
 use serde_json::{Map as JsonMap, Value as Json, json};
+use ssg_base::diag::Diagnostic;
 use tera::Value;
 
 use super::value::{entries, text};

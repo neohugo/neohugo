@@ -1,8 +1,8 @@
 //! Deeply nested documents (the `deep` part of the convert oracle) render on a small stack.
 
-use neohugo_markup::NoHooks;
-use neohugo_testkit::fixture::{GoString, oracle};
 use serde::Deserialize;
+use ssg_markup::NoHooks;
+use ssg_testkit::fixture::{GoString, oracle};
 
 use super::super::comrak_spike::normalize::{Fold, normalize};
 use super::{HugoCfg, Row, options, print, render_with, text};

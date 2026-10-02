@@ -3,32 +3,34 @@
 
 use std::ffi::OsString;
 
-use ::neohugo::Cli;
-use ::neohugo::args::command_first;
-use ::neohugo::version::BuildInfo;
+use ::ssg_cli::Cli;
+use ::ssg_cli::args::command_first;
+use ::ssg_cli::version::BuildInfo;
 use clap::Parser as _;
 
-use crate::{neohugo, site_from, stderr, stdout};
+use ssg_base::APP_NAME;
+
+use crate::{binary, site_from, stderr, stdout};
 
 #[test]
 fn version_help_and_usage_errors() {
     let dir = tempfile::tempdir().expect("tempdir");
-    let o = neohugo(dir.path(), &["version"], &[]);
+    let o = binary(dir.path(), &["version"], &[]);
     assert_eq!(o.status.code(), Some(0));
     let line = format!("{}\n", BuildInfo::CURRENT);
     assert_eq!(stdout(&o), line);
-    let prefix = format!("neohugo v{}", env!("CARGO_PKG_VERSION"));
+    let prefix = format!("{APP_NAME} v{}", env!("CARGO_PKG_VERSION"));
     assert!(line.starts_with(&prefix), "{line}");
     assert!(line.contains(" BuildDate="), "{line}");
-    let o = neohugo(dir.path(), &["--version"], &[]);
+    let o = binary(dir.path(), &["--version"], &[]);
     assert_eq!(o.status.code(), Some(0));
     assert_eq!(stdout(&o), line);
-    let o = neohugo(dir.path(), &["--help"], &[]);
+    let o = binary(dir.path(), &["--help"], &[]);
     assert_eq!(o.status.code(), Some(0));
     for cmd in ["build", "server", "templates", "config", "version"] {
         assert!(stdout(&o).contains(cmd), "{cmd}: {}", stdout(&o));
     }
-    let o = neohugo(dir.path(), &["templates", "check", "--help"], &[]);
+    let o = binary(dir.path(), &["templates", "check", "--help"], &[]);
     assert!(stdout(&o).contains("--coverage"), "{}", stdout(&o));
     for bad in [
         &["--nope"][..],
@@ -37,7 +39,7 @@ fn version_help_and_usage_errors() {
         &["templates", "check", "--coverage", "some"],
         &["config", "--format", "xml"],
     ] {
-        let o = neohugo(dir.path(), bad, &[]);
+        let o = binary(dir.path(), bad, &[]);
         assert_eq!(o.status.code(), Some(2), "{bad:?}");
         assert!(stderr(&o).contains("error"), "{bad:?}: {}", stderr(&o));
     }
@@ -56,17 +58,19 @@ fn version_line_has_the_go_format() {
     };
     assert_eq!(
         info.to_string(),
-        "neohugo v0.150.0 linux/amd64 BuildDate=unknown"
+        format!("{APP_NAME} v0.150.0 linux/amd64 BuildDate=unknown")
     );
     info.commit = Some("0123456789abcdef0123456789abcdef01234567");
     info.os = "darwin";
     info.arch = "arm64";
     info.date = Some("2026-10-01T12:34:56Z");
-    info.vendor = Some("neohugo");
+    info.vendor = Some(APP_NAME);
     assert_eq!(
         info.to_string(),
-        "neohugo v0.150.0-0123456789abcdef0123456789abcdef01234567 darwin/arm64 \
-         BuildDate=2026-10-01T12:34:56Z VendorInfo=neohugo"
+        format!(
+            "{APP_NAME} v0.150.0-0123456789abcdef0123456789abcdef01234567 darwin/arm64 \
+             BuildDate=2026-10-01T12:34:56Z VendorInfo={APP_NAME}"
+        )
     );
 
     // Go's GOOS/GOARCH names of the release targets.
@@ -93,9 +97,9 @@ fn version_line_has_the_go_format() {
 #[test]
 fn config_prints_the_resolved_configuration() {
     let s = site_from(
-        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\ntitle = \"T\"\n-- config/production/params.toml --\ncolor = \"red\"\n",
+        "-- config.toml --\nbaseURL = \"https://e.org/\"\ntitle = \"T\"\n-- config/production/params.toml --\ncolor = \"red\"\n",
     );
-    let o = neohugo(s.path(), &["config"], &[("NEOHUGO_PARAMS_SIZE", "9")]);
+    let o = binary(s.path(), &["config"], &[("FUGO_PARAMS_SIZE", "9")]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("json");
     assert_eq!(v["environment"], "production");
@@ -105,7 +109,7 @@ fn config_prints_the_resolved_configuration() {
     assert!(text.contains("\"color\": \"red\""), "{text}");
     assert!(text.contains("\"size\": \"9\""), "{text}");
 
-    let o = neohugo(
+    let o = binary(
         s.path(),
         &["config", "-e", "dev", "--base-url", "https://b.org/"],
         &[],
@@ -114,7 +118,7 @@ fn config_prints_the_resolved_configuration() {
     assert!(text.contains("https://b.org/"), "{text}");
     assert!(!text.contains("\"color\""), "{text}");
 
-    let o = neohugo(s.path(), &["config", "--format", "toml"], &[]);
+    let o = binary(s.path(), &["config", "--format", "toml"], &[]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert!(
         stdout(&o).contains("environment = \"production\""),
@@ -135,16 +139,16 @@ fn command_first_moves_the_command_before_the_flags() {
     };
     for (given, want) in [
         (
-            &["neohugo", "-s", "site", "server", "-D"][..],
-            &["neohugo", "server", "-s", "site", "-D"][..],
+            &[APP_NAME, "-s", "site", "server", "-D"][..],
+            &[APP_NAME, "server", "-s", "site", "-D"][..],
         ),
         (
-            &["neohugo", "--environment=production", "--minify", "build"],
-            &["neohugo", "build", "--environment=production", "--minify"],
+            &[APP_NAME, "--environment=production", "--minify", "build"],
+            &[APP_NAME, "build", "--environment=production", "--minify"],
         ),
         (
             &[
-                "neohugo",
+                APP_NAME,
                 "-e",
                 "production",
                 "templates",
@@ -153,7 +157,7 @@ fn command_first_moves_the_command_before_the_flags() {
                 "check",
             ],
             &[
-                "neohugo",
+                APP_NAME,
                 "templates",
                 "check",
                 "-e",
@@ -164,29 +168,29 @@ fn command_first_moves_the_command_before_the_flags() {
         ),
         // Short clusters: a short that takes a value takes the rest or the next argument.
         (
-            &["neohugo", "-DEs", "server", "config"],
-            &["neohugo", "config", "-DEs", "server"],
+            &[APP_NAME, "-DEs", "server", "config"],
+            &[APP_NAME, "config", "-DEs", "server"],
         ),
         (
-            &["neohugo", "-sserver", "config"],
-            &["neohugo", "config", "-sserver"],
+            &[APP_NAME, "-sserver", "config"],
+            &[APP_NAME, "config", "-sserver"],
         ),
         // `=` ends a cluster: what follows is a value, not shorts (`t` and `e` take values).
         (
-            &["neohugo", "-D=t", "-E=True", "server"],
-            &["neohugo", "server", "-D=t", "-E=True"],
+            &[APP_NAME, "-D=t", "-E=True", "server"],
+            &[APP_NAME, "server", "-D=t", "-E=True"],
         ),
         // A flag of a command (`server`'s `--port`) keeps its value too.
         (
-            &["neohugo", "--port", "1314", "serve"],
-            &["neohugo", "serve", "--port", "1314"],
+            &[APP_NAME, "--port", "1314", "serve"],
+            &[APP_NAME, "serve", "--port", "1314"],
         ),
         // pflag's explicit values of the boolean flags that set no configuration key: `=true` is
         // the flag, `=false` none. The others (`-D`, `--minify`, `--watch`, …) take `=BOOL`
         // themselves.
         (
             &[
-                "neohugo",
+                APP_NAME,
                 "--gc=true",
                 "server",
                 "-M=false",
@@ -196,7 +200,7 @@ fn command_first_moves_the_command_before_the_flags() {
                 "--watch=false",
             ],
             &[
-                "neohugo",
+                APP_NAME,
                 "server",
                 "--gc",
                 "--quiet",
@@ -211,13 +215,13 @@ fn command_first_moves_the_command_before_the_flags() {
     // Unchanged: a value that names a command, `=`-only values, no command, `--`, an unknown
     // command, a command after a command without subcommands.
     for args in [
-        &["neohugo", "-e", "server"][..],
-        &["neohugo", "server", "--append-port", "false"],
-        &["neohugo", "-s", "site", "-D"],
-        &["neohugo", "--", "server"],
-        &["neohugo", "-s", "site", "nope"],
-        &["neohugo", "build", "--minify", "server"],
-        &["neohugo", "--minify=maybe", "-e=x"],
+        &[APP_NAME, "-e", "server"][..],
+        &[APP_NAME, "server", "--append-port", "false"],
+        &[APP_NAME, "-s", "site", "-D"],
+        &[APP_NAME, "--", "server"],
+        &[APP_NAME, "-s", "site", "nope"],
+        &[APP_NAME, "build", "--minify", "server"],
+        &[APP_NAME, "--minify=maybe", "-e=x"],
     ] {
         assert_eq!(first(args), args, "{args:?}");
     }
@@ -227,8 +231,8 @@ fn command_first_moves_the_command_before_the_flags() {
 /// flags (`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`).
 #[test]
 fn persistent_flags_anywhere() {
-    let s = site_from("-- neohugo.toml --\ntitle = \"T\"\n");
-    let o = neohugo(s.path(), &["-s", ".", "-e", "staging", "config"], &[]);
+    let s = site_from("-- config.toml --\ntitle = \"T\"\n");
+    let o = binary(s.path(), &["-s", ".", "-e", "staging", "config"], &[]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("json");
     assert_eq!(v["environment"], "staging");
@@ -246,7 +250,7 @@ fn persistent_flags_anywhere() {
         ][..],
         &[
             "--config",
-            "neohugo.toml",
+            "config.toml",
             "--config-dir",
             "config",
             "templates",
@@ -256,23 +260,23 @@ fn persistent_flags_anywhere() {
         ],
         &["-q", "version", "-s", ".", "--themes-dir", "themes"],
     ] {
-        let o = neohugo(s.path(), args, &[]);
+        let o = binary(s.path(), args, &[]);
         assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
     }
     // A flag the command does not take is still an error, before the command or after it.
     for args in [&["--minify", "version"][..], &["version", "--minify"]] {
-        let o = neohugo(s.path(), args, &[]);
+        let o = binary(s.path(), args, &[]);
         assert_eq!(o.status.code(), Some(2), "{args:?}");
         assert!(stderr(&o).contains("--minify"), "{args:?}: {}", stderr(&o));
     }
 }
 
-/// The Go build's logging and housekeeping flags are accepted (`args::HugoFlags`); those neohugo
+/// The Go build's logging and housekeeping flags are accepted (`args::HugoFlags`); those this port
 /// does not act on give a warning.
 #[test]
 fn hugo_flags_are_accepted() {
-    let s = site_from("-- neohugo.toml --\ntitle = \"T\"\n");
-    let o = neohugo(
+    let s = site_from("-- config.toml --\ntitle = \"T\"\n");
+    let o = binary(
         s.path(),
         &[
             "--gc",
@@ -306,8 +310,8 @@ fn hugo_flags_are_accepted() {
     for flag in ["--noBuildLock", "--printPathWarnings", "--minify"] {
         assert!(!err.contains(flag), "{flag}: {err}");
     }
-    // What neohugo does anyway: no warning.
-    let o = neohugo(
+    // What this port does anyway: no warning.
+    let o = binary(
         s.path(),
         &[
             "build",
@@ -321,14 +325,14 @@ fn hugo_flags_are_accepted() {
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     assert!(!stderr(&o).contains("ignored-flag"), "{}", stderr(&o));
     // `--logLevel` and `--noBuildLock` were persistent flags: every command takes them.
-    let o = neohugo(
+    let o = binary(
         s.path(),
         &["config", "--logLevel", "error", "--noBuildLock"],
         &[],
     );
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let server = [
-        "neohugo",
+        APP_NAME,
         "--gc",
         "server",
         "--noTimes",
@@ -337,7 +341,7 @@ fn hugo_flags_are_accepted() {
     let args = command_first(server.iter().map(OsString::from).collect());
     assert!(Cli::try_parse_from(args).is_ok(), "{server:?}");
     // Explicit values of boolean flags (pflag), and the empty level (Go's default).
-    let o = neohugo(
+    let o = binary(
         s.path(),
         &[
             "--gc=false",
@@ -358,7 +362,7 @@ fn hugo_flags_are_accepted() {
         Cli::try_parse_from(&args).unwrap_or_else(|e| panic!("{args:?}: {e}"))
     };
     let cli = parse(&[
-        "neohugo",
+        APP_NAME,
         "-DE=f",
         "--buildFuture=FALSE",
         "--minify=0",
@@ -384,13 +388,13 @@ fn hugo_flags_are_accepted() {
         (b.output.no_times, b.output.no_chmod),
         (Some(true), Some(true))
     );
-    let cli = parse(&["neohugo"]);
+    let cli = parse(&[APP_NAME]);
     assert_eq!(
         (cli.build.project.include.build_drafts, cli.build.minify),
         (None, None)
     );
-    let Some(::neohugo::args::Command::Server(server)) =
-        parse(&["neohugo", "server", "--watch=0", "--appendPort=F", "-DEF"]).command
+    let Some(::ssg_cli::args::Command::Server(server)) =
+        parse(&[APP_NAME, "server", "--watch=0", "--appendPort=F", "-DEF"]).command
     else {
         panic!("server");
     };
@@ -398,7 +402,7 @@ fn hugo_flags_are_accepted() {
     assert_eq!(server.build.project.include.build_future, Some(true));
     // An unknown level, and a build flag of a command that does not build.
     for bad in [&["--logLevel", "loud"][..], &["config", "--gc"], &["-v"]] {
-        let o = neohugo(s.path(), bad, &[]);
+        let o = binary(s.path(), bad, &[]);
         assert_eq!(o.status.code(), Some(2), "{bad:?}: {}", stderr(&o));
     }
 }
@@ -411,7 +415,7 @@ fn no_times_and_no_chmod_reach_the_static_copy() {
     use std::os::unix::fs::PermissionsExt;
     use std::time::{Duration, SystemTime};
 
-    let s = site_from("-- neohugo.toml --\ntitle = \"T\"\n-- static/a.txt --\nhi\n");
+    let s = site_from("-- config.toml --\ntitle = \"T\"\n-- static/a.txt --\nhi\n");
     let src = s.path().join("static/a.txt");
     let old = SystemTime::UNIX_EPOCH + Duration::from_secs(978_307_200);
     std::fs::File::options()
@@ -422,7 +426,7 @@ fn no_times_and_no_chmod_reach_the_static_copy() {
     std::fs::set_permissions(&src, std::fs::Permissions::from_mode(0o604)).expect("chmod");
     let copied = |args: &[&str]| {
         let _ = std::fs::remove_dir_all(s.path().join("public"));
-        let o = neohugo(s.path(), args, &[]);
+        let o = binary(s.path(), args, &[]);
         assert_eq!(o.status.code(), Some(0), "{args:?}: {}", stderr(&o));
         let m = std::fs::metadata(s.path().join("public/a.txt")).expect("copied");
         (

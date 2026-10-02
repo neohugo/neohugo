@@ -4,8 +4,8 @@
 use std::ops::Range;
 use std::sync::Mutex;
 
-use neohugo_base::PageId;
-use neohugo_markup::{
+use ssg_base::PageId;
+use ssg_markup::{
     BlockquoteCtx, CodeBlockCtx, ExpandedMarkdown, HeadingCtx, HookEnv, HookError, HookOut, Hooks,
     LinkCtx, MarkdownOptions, SourceContexts, TableCtx, render,
 };

@@ -1,6 +1,6 @@
-# neohugo-markup
+# ssg-markup
 
-Markdown for neohugo: comrak behind an engine-neutral API (REWRITE_PLAN.md §2.4), plus
+Markdown for fugo: comrak behind an engine-neutral API (REWRITE_PLAN.md §2.4), plus
 Hugo's passes. The first part of this file describes the crate (T22); the second records the
 **T04 comrak spike** that chose the engine.
 
@@ -25,7 +25,7 @@ MarkdownOptions::from_config(&MarkupConfig, enable_emoji)
 ```
 
 Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `TableCtx`,
-`PassthroughCtx`) are `Serialize` with the field names of `neohugo_funcs::spec::HOOK_FIELDS`
+`PassthroughCtx`) are `Serialize` with the field names of `ssg_funcs::spec::HOOK_FIELDS`
 (`ordinal` and `position` come from `HookEnv`). Enums replace Hugo's strings:
 `BlockquoteKind`, `AlertSign`, `Alignment`, `PassthroughKind`, and in the options `RawHtml`,
 `CodeFences`, `LineBreaks`, `TagStyle`, `StandaloneImages`, `LinkifyProtocol`.
@@ -86,7 +86,7 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
    length on entry and takes what follows on exit. Hook destinations and titles are the
    source text (as Hugo passes them).
 
-### Acceptance (T22 row of §8.2), `cargo test -p neohugo-markup --test it acceptance -- --nocapture`
+### Acceptance (T22 row of §8.2), `cargo test -p ssg-markup --test it acceptance -- --nocapture`
 
 | criterion | result |
 |---|---|
@@ -147,7 +147,7 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
 
 ### Plan issues
 
-- `neohugo-config`'s `TocConfig::end_level` is `u8`, so Hugo's `endLevel = -1` (cfg
+- `ssg-config`'s `TocConfig::end_level` is `u8`, so Hugo's `endLevel = -1` (cfg
   `blackfriday` of the oracle) cannot be decoded; `TocOptions::from` maps a present value to
   `Some`. A config fix task should make it signed (or optional).
 - No Hugo-rendered seeksnack HTML with Hugo heading ids exists under `testdata` (the
@@ -165,7 +165,7 @@ and this task had no network. Nothing measured below calls for it.
 Reasons:
 
 1. **Block structure and inline parsing already match goldmark on the corpora.** Natively,
-   with no neohugo pass, 862/959 docs pages and 251/251 seeksnack bodies (plain goldmark
+   with no fugo pass, 862/959 docs pages and 251/251 seeksnack bodies (plain goldmark
    configurations; 249/251 with Hugo's extensions) are equal after normalisation. Once the
    differences owned by passes that T22 writes anyway are folded (Hugo's comment dropping,
    typography, footnote markup), **925/959** docs pages are equal; the remaining 34 are listed
@@ -332,15 +332,15 @@ replaced by `NodeValue::Raw`.
 - The oracles cover no configuration with passthrough or `enableEmoji`, so those two verdicts
   rest on the spec and on goldmark-emoji's table, not on Hugo HTML.
 - comrak upgrades: the harness asserts floors at the measured values, so a regression fails
-  `cargo test -p neohugo-markup`.
+  `cargo test -p ssg-markup`.
 
 ## Re-running the harness
 
 ```sh
 export CARGO_TARGET_DIR=<main checkout>/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
-cargo test --offline -p neohugo-markup --test it comrak_spike -- --nocapture   # ~30 s, prints the tables
-NEOHUGO_SPIKE_SHOW='definition lists' cargo test ...   # print differing items of one row (label substring)
-NEOHUGO_GOLDMARK_EMOJI_TSV=/path/goldmark-emoji.tsv cargo test ...   # enable the emoji comparison
+cargo test --offline -p ssg-markup --test it comrak_spike -- --nocapture   # ~30 s, prints the tables
+FUGO_SPIKE_SHOW='definition lists' cargo test ...   # print differing items of one row (label substring)
+FUGO_GOLDMARK_EMOJI_TSV=/path/goldmark-emoji.tsv cargo test ...   # enable the emoji comparison
 ```
 
 The emoji table (`shortname<TAB>hex code points`) comes from goldmark-emoji v1.0.6 (the version

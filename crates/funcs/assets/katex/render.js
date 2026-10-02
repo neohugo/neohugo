@@ -1,4 +1,4 @@
-// The entry point of neohugo's `to_math` (crates/funcs/src/pure/katex.rs), evaluated after
+// The entry point of our `to_math` (crates/funcs/src/pure/katex.rs), evaluated after
 // katex.min.js and mhchem.min.js. Rewritten from Hugo's internal/warpc/js/renderkatex.js and
 // the console and error handling of internal/warpc/js/common.js (this repository at commit
 // 44529028; Apache-2.0): one JSON message in ({expression, options}, as Go encodes

@@ -10,13 +10,13 @@ use std::path::Path;
 use std::sync::Arc;
 
 use jiff::Timestamp;
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::{LangIdx, PageKind, Params, Value};
-use neohugo_config::Config;
-use neohugo_page::{AdapterPage, Cascade, capture_overrides};
-use neohugo_pageparser::{FrontMatterFormat, decode_front_matter, split_front_matter};
-use neohugo_vfs::{BundleKind, Component, ContentFile, FileRef, Parsed, PathInfo, PathParser, Vfs};
 use rayon::prelude::*;
+use ssg_base::diag::Diagnostic;
+use ssg_base::{LangIdx, PageKind, Params, Value};
+use ssg_config::Config;
+use ssg_page::{AdapterPage, Cascade, capture_overrides};
+use ssg_pageparser::{FrontMatterFormat, decode_front_matter, split_front_matter};
+use ssg_vfs::{BundleKind, Component, ContentFile, FileRef, Parsed, PathInfo, PathParser, Vfs};
 
 use crate::{AddedResource, ModelError};
 
@@ -67,7 +67,7 @@ pub(crate) struct CapturedPage {
     /// The page's own `cascade`.
     pub cascade: Cascade,
     /// A page a content adapter added: its `add_page` map (its fields are read with
-    /// [`neohugo_page::meta_from_adapter`], not as front matter).
+    /// [`ssg_page::meta_from_adapter`], not as front matter).
     pub adapter: Option<Arc<AdapterPage>>,
 }
 
@@ -269,7 +269,7 @@ pub(crate) fn adapter_page(
         _ => {
             return Err(ModelError::Page {
                 path: adapter.file.abs.clone(),
-                source: neohugo_page::PageError::Field {
+                source: ssg_page::PageError::Field {
                     key: "path".to_owned(),
                     message: format!("{:?} is not a content path", page.path),
                 },
@@ -304,7 +304,7 @@ fn moved_path(
     parser: &PathParser,
     abs: &Path,
 ) -> Result<PathInfo, ModelError> {
-    let has_ext = !neohugo_base::paths::ext(neohugo_base::paths::base(path)).is_empty();
+    let has_ext = !ssg_base::paths::ext(ssg_base::paths::base(path)).is_empty();
     let full = if has_ext {
         path.to_owned()
     } else {
@@ -317,7 +317,7 @@ fn moved_path(
         Parsed::File(info) if info.kind.is_page() => Ok(*info),
         _ => Err(ModelError::Page {
             path: abs.to_owned(),
-            source: neohugo_page::PageError::Field {
+            source: ssg_page::PageError::Field {
                 key: "path".to_owned(),
                 message: format!("{path:?} is not a content path"),
             },

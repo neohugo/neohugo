@@ -1,2 +1,0 @@
-{% set snacks = [p for p in site.regular_pages if p.params.type == "snacks"] | sort_by(attribute="date", reverse=true) %}{% for p in snacks[:3] %}{{ p.permalink }}
-{% endfor %}

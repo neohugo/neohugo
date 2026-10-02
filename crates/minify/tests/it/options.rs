@@ -2,12 +2,10 @@
 
 use std::sync::Arc;
 
-use neohugo_base::{Map, Value};
-use neohugo_config::MinifyConfig;
-use neohugo_minify::options::{
-    HtmlComments, IgnoreReason, TemplateSyntax, XmlComments, XmlWhitespace,
-};
-use neohugo_minify::{IgnoredOption, Minifier, MinifyError, MinifyTarget, Options};
+use ssg_base::{Map, Value};
+use ssg_config::MinifyConfig;
+use ssg_minify::options::{HtmlComments, IgnoreReason, TemplateSyntax, XmlComments, XmlWhitespace};
+use ssg_minify::{IgnoredOption, Minifier, MinifyError, MinifyTarget, Options};
 
 fn table(entries: &[(&str, &[(&str, Value)])]) -> Map {
     let mut m = Map::new();

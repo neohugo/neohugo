@@ -1,4 +1,5 @@
-//! Shared vocabulary of the neohugo rewrite (docs/rust-port/REWRITE_PLAN.md §2.4): typed ids and
+//! Shared vocabulary of the workspace (docs/rust-port/REWRITE_PLAN.md §2.4): the program's name
+//! ([`APP_NAME`], [`env_var!`]), typed ids and
 //! [`IdVec`], [`PageKind`]/[`KindSet`], [`Value`]/[`Map`]/[`Params`]/[`Date`], the path
 //! newtypes, URLs, anchors, inflection and title case, globs, date parsing, diagnostics,
 //! [`Collate`] and [`Sink`].
@@ -29,8 +30,42 @@ pub use paths::{ContentKey, OutputPath, Permalink, TermKey, UrlPath};
 pub use time::{Clock, DateError, parse_date};
 pub use value::{Date, Map, Value};
 
+/// The program's name, as a literal (the one place it is written in the source code besides the
+/// binary's name in `crates/cli/Cargo.toml`): the version line, the generator tag, the cache
+/// directory and the prefix of the environment variables come from it.
+#[macro_export]
+macro_rules! app_name {
+    () => {
+        "fugo"
+    };
+}
+
+/// The prefix of the environment variables the program reads and sets: [`APP_NAME`] in upper
+/// case (a test checks it).
+#[macro_export]
+macro_rules! env_prefix {
+    () => {
+        "FUGO"
+    };
+}
+
+/// The name of an environment variable of the program: `env_var!("ENVIRONMENT")` is
+/// `<PREFIX>_ENVIRONMENT`, a `&'static str`.
+#[macro_export]
+macro_rules! env_var {
+    ($name:literal) => {
+        concat!($crate::env_prefix!(), "_", $name)
+    };
+}
+
+/// The program's name ([`app_name!`]).
+pub const APP_NAME: &str = app_name!();
+
+/// The prefix of the program's environment variables ([`env_prefix!`]), without the `_`.
+pub const ENV_PREFIX: &str = env_prefix!();
+
 /// Compares strings in a language's collation order (implemented with ICU in
-/// `neohugo-locale`).
+/// `ssg-locale`).
 pub trait Collate: Send + Sync {
     /// The collation order of `a` and `b`.
     fn compare(&self, a: &str, b: &str) -> std::cmp::Ordering;
@@ -60,4 +95,16 @@ pub trait Sink: Send + Sync {
     /// # Errors
     /// No file at `path`, or I/O errors of the destination.
     fn read(&self, path: &OutputPath) -> std::io::Result<Vec<u8>>;
+}
+
+#[cfg(test)]
+mod name_tests {
+    #[test]
+    fn env_prefix_is_the_upper_case_name() {
+        assert_eq!(super::ENV_PREFIX, super::APP_NAME.to_uppercase());
+        assert_eq!(
+            env_var!("ENVIRONMENT"),
+            format!("{}_ENVIRONMENT", super::ENV_PREFIX)
+        );
+    }
 }

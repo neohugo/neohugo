@@ -2,7 +2,7 @@
 //! Full generations (`Html` and a format variant) for every page, every documented key, list
 //! sharing, and the heap the views keep compared with the model's (dhat).
 //!
-//! `NEOHUGO_SITES=<dir>[:<dir>…] cargo test -p neohugo-view real_sites -- --ignored
+//! `FUGO_SITES=<dir>[:<dir>…] cargo test -p ssg-view real_sites -- --ignored
 //! --nocapture` (alone: the heap is measured process-wide). A directory named `docs` must keep
 //! its views below twice the model's heap.
 
@@ -10,12 +10,12 @@ use std::collections::BTreeMap;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::{IdVec, PageId};
-use neohugo_config::site::EmojiPolicy;
-use neohugo_markup::{ExpandedMarkdown, MarkdownOptions, NoHooks, SourceContexts, text};
-use neohugo_site::Model;
-use neohugo_view::views::{CONTENT_KEYS, PAGE_RELATION_KEYS, PAGE_SUMMARY_KEYS};
-use neohugo_view::{Contents, HookVariant, Phase, RenderedContent};
+use ssg_base::{IdVec, PageId};
+use ssg_config::site::EmojiPolicy;
+use ssg_markup::{ExpandedMarkdown, MarkdownOptions, NoHooks, SourceContexts, text};
+use ssg_site::Model;
+use ssg_view::views::{CONTENT_KEYS, PAGE_RELATION_KEYS, PAGE_SUMMARY_KEYS};
+use ssg_view::{Contents, HookVariant, Phase, RenderedContent};
 
 use crate::support::{get, has_content, keys, load_model, same, views_of};
 
@@ -40,7 +40,7 @@ fn render_contents(m: &Model) -> Contents {
             let o = MarkdownOptions::from_config(&site.markup, site.emoji == EmojiPolicy::Enabled);
             let file: Arc<Path> = Arc::from(src.file.abs.as_path());
             let contexts = SourceContexts::default();
-            let r = neohugo_markup::render(
+            let r = ssg_markup::render(
                 &ExpandedMarkdown {
                     text: src.body(),
                     page: p.id,
@@ -211,9 +211,9 @@ fn check_site(dir: &Path) {
 }
 
 #[test]
-#[ignore = "needs sites written by sites.py (NEOHUGO_SITES)"]
+#[ignore = "needs sites written by sites.py (FUGO_SITES)"]
 fn real_sites() {
-    let dirs = std::env::var("NEOHUGO_SITES").expect("NEOHUGO_SITES");
+    let dirs = std::env::var("FUGO_SITES").expect("FUGO_SITES");
     let _profiler = dhat::Profiler::builder().testing().build();
     for d in dirs.split(':').filter(|d| !d.is_empty()) {
         check_site(Path::new(d));

@@ -4,8 +4,8 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_resources::Transform;
-use neohugo_resources::pipes::BabelOptions;
+use ssg_resources::Transform;
+use ssg_resources::pipes::BabelOptions;
 
 use super::{fake_tool, have_node, mini_site, project, real_tool};
 use crate::support::MemSink;
@@ -27,7 +27,7 @@ fs.writeFileSync(out, code);
 
 const SITE: [(&str, &str); 3] = [
     (
-        "neohugo.toml",
+        "config.toml",
         "baseURL = \"https://example.org/\"\n[security.exec]\nallow = ['^babel$']\n",
     ),
     ("babel.config.js", "module.exports = {};\n"),
@@ -78,7 +78,7 @@ fn babel_fake_tool() {
         .filter(|e| {
             e.file_name()
                 .to_string_lossy()
-                .starts_with(&format!("neohugo-babel-{}-", std::process::id()))
+                .starts_with(&format!("ssg-babel-{}-", std::process::id()))
         })
         .collect();
     assert!(leftovers.is_empty(), "{leftovers:?}");
@@ -86,7 +86,7 @@ fn babel_fake_tool() {
 
 #[test]
 fn babel_real_tool() {
-    let Some(bin) = real_tool("NEOHUGO_BABEL_BIN", "babel_real_tool") else {
+    let Some(bin) = real_tool("FUGO_BABEL_BIN", "babel_real_tool") else {
         return;
     };
     let site = mini_site(&SITE);

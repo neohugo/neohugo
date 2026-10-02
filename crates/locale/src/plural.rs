@@ -4,7 +4,7 @@ use std::fmt;
 
 use icu_decimal::input::Decimal;
 use icu_plurals::{PluralCategory, PluralOperands, PluralRulesPreferences};
-use neohugo_base::Value;
+use ssg_base::Value;
 
 use crate::tag;
 

@@ -1,4 +1,4 @@
-//! The configuration file names (`neohugo.*` before Hugo's `hugo.*` and `config.*`) and the
+//! The configuration file names (`config.*` before Hugo's `hugo.*` and `config.*`) and the
 //! themes: finding them (theme lists, themes of themes, `[[module.imports]]`, `_vendor`,
 //! replacements) and merging their configuration below the project's with Hugo's `_merge`
 //! rules. Tests named after a Go test port its cases with its expected values; the others
@@ -6,10 +6,10 @@
 
 use std::path::{Path, PathBuf};
 
-use neohugo_base::{Map, PageKind, Value};
-use neohugo_config::merge::{MergeStrategy, merge_themes};
-use neohugo_config::theme::path_key;
-use neohugo_config::{Config, ConfigError, LoadOptions, ThemeMounts, load};
+use ssg_base::{Map, PageKind, Value};
+use ssg_config::merge::{MergeStrategy, merge_themes};
+use ssg_config::theme::path_key;
+use ssg_config::{Config, ConfigError, LoadOptions, ThemeMounts, load};
 
 /// A project in a temporary directory (`site/`), loaded with an optional `--config` list.
 struct Project {
@@ -81,24 +81,23 @@ fn warnings(c: &Config, id: &str) -> Vec<String> {
 // ───────────── configuration file names ─────────────
 
 #[test]
-fn neohugo_toml_comes_first() {
+fn config_extensions_in_lookup_order() {
+    // toml, yaml, yml, json: the first that exists is read, the others are named in a warning.
     let p = Project::new(&[
-        ("neohugo.toml", "title = \"neohugo\"\n"),
-        ("config.yaml", "title: config\n"),
+        ("config.toml", "title = \"toml\"\n"),
+        ("config.yaml", "title: yaml\n"),
     ]);
     let c = p.ok();
-    assert_eq!(c.default_site().title, "neohugo");
+    assert_eq!(c.default_site().title, "toml");
     let files: Vec<String> = c.config_files.iter().map(|f| p.rel(f)).collect();
-    assert_eq!(files, ["neohugo.toml"]);
+    assert_eq!(files, ["config.toml"]);
     let w = warnings(&c, "config-file-ignored");
     assert_eq!(w.len(), 1, "{w:?}");
     assert!(
-        w[0].contains("neohugo.toml: using neohugo.toml; ignoring config.yaml"),
+        w[0].contains("config.toml: using config.toml; ignoring config.yaml"),
         "{}",
         w[0]
     );
-
-    // Then config.*; the extensions in the order toml, yaml, yml, json.
     let p = Project::new(&[
         ("config.json", "{\"title\": \"config.json\"}"),
         ("config.yaml", "title: config.yaml\n"),
@@ -107,18 +106,16 @@ fn neohugo_toml_comes_first() {
     assert_eq!(c.default_site().title, "config.yaml");
     assert!(warnings(&c, "config-file-ignored")[0].contains("ignoring config.json"));
     let p = Project::new(&[
-        ("neohugo.json", "{\"title\": \"json\"}"),
-        ("neohugo.yml", "title: yml\n"),
+        ("config.json", "{\"title\": \"json\"}"),
+        ("config.yml", "title: yml\n"),
     ]);
     assert_eq!(p.ok().default_site().title, "yml");
 
     // One file: no warning.
-    let p = Project::new(&[("neohugo.yaml", "title: only\n")]);
+    let p = Project::new(&[("config.yaml", "title: only\n")]);
     let c = p.ok();
     assert_eq!(c.default_site().title, "only");
     assert!(warnings(&c, "config-file-ignored").is_empty());
-    let p = Project::new(&[("config.toml", "title = \"legacy\"\n")]);
-    assert_eq!(p.ok().default_site().title, "legacy");
 }
 
 /// Hugo's `hugo.*` is not a configuration file: neither read nor named in warnings, and in a
@@ -126,22 +123,17 @@ fn neohugo_toml_comes_first() {
 #[test]
 fn hugo_toml_is_not_read() {
     let p = Project::new(&[
-        ("neohugo.toml", "title = \"neohugo\"\n"),
+        ("config.toml", "title = \"config\"\n"),
         ("hugo.toml", "title = \"hugo\"\n"),
     ]);
     let c = p.ok();
-    assert_eq!(c.default_site().title, "neohugo");
+    assert_eq!(c.default_site().title, "config");
     assert!(warnings(&c, "config-file-ignored").is_empty());
-    let p = Project::new(&[
-        ("hugo.toml", "title = \"hugo\"\n"),
-        ("config.toml", "title = \"config\"\n"),
-    ]);
-    assert_eq!(p.ok().default_site().title, "config");
     let p = Project::new(&[("hugo.toml", "title = \"hugo\"\n")]);
     let e = p.load().expect_err("hugo.toml alone is no configuration");
     assert!(matches!(e, ConfigError::NotFound { .. }), "{e}");
     let p = Project::new(&[
-        ("neohugo.toml", "title = \"t\"\n"),
+        ("config.toml", "title = \"t\"\n"),
         ("config/_default/hugo.toml", "title = \"hugo\"\n"),
     ]);
     let c = p.ok();
@@ -152,7 +144,7 @@ fn hugo_toml_is_not_read() {
 #[test]
 fn explicit_config_files_are_unchanged() {
     let p = Project::new(&[
-        ("neohugo.toml", "title = \"neohugo\"\n"),
+        ("config.toml", "title = \"config\"\n"),
         ("site.toml", "title = \"site\"\n[params]\nfrom = \"site\"\n"),
         ("extra.toml", "[params]\nextra = true\nfrom = \"extra\"\n"),
     ]);
@@ -169,29 +161,29 @@ fn explicit_config_files_are_unchanged() {
 }
 
 #[test]
-fn neohugo_in_the_config_directory_is_a_root_file() {
+fn config_in_the_config_directory_is_a_root_file() {
     let p = Project::new(&[
-        ("config/_default/neohugo.toml", "title = \"dir\"\n"),
+        ("config/_default/config.toml", "title = \"dir\"\n"),
         ("config/_default/params.toml", "p = 1\n"),
         (
-            "config/production/neohugo.toml",
+            "config/production/config.toml",
             "[params]\nq = 2\n[languages.en]\nweight = 1\n",
         ),
     ]);
     let c = p.ok();
     assert_eq!(c.default_site().title, "dir");
     assert_eq!(params(&c), toml("p = 1\nq = 2\n"));
-    assert!(c.raw.get("neohugo").is_none());
+    assert!(c.raw.get("config").is_none());
 }
 
 #[test]
-fn no_configuration_names_neohugo_toml() {
+fn no_configuration_names_config_toml() {
     let p = Project::new(&[("content/_index.md", "")]);
     let e = p.load().expect_err("no configuration");
     assert!(matches!(e, ConfigError::NotFound { .. }), "{e}");
     let msg = e.to_string();
     assert!(
-        msg.contains("neohugo.toml") && msg.contains("config.*") && !msg.contains(" hugo."),
+        msg.contains("config.toml") && !msg.contains(" hugo."),
         "{msg}"
     );
 }
@@ -199,28 +191,34 @@ fn no_configuration_names_neohugo_toml() {
 #[test]
 fn theme_configuration_file_names() {
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n"),
-        ("themes/t/neohugo.toml", "[params]\nfrom = \"neohugo\"\n"),
+        ("config.toml", "theme = \"t\"\n"),
         (
             "themes/t/config.toml",
             "[params]\nfrom = \"config\"\nconfigOnly = 1\n",
+        ),
+        (
+            "themes/t/config.yaml",
+            "params:\n  from: yaml\n  yamlOnly: 1\n",
         ),
         (
             "themes/t/hugo.toml",
             "[params]\nfrom = \"hugo\"\nhugoOnly = 1\n",
         ),
         (
-            "themes/t/config/_default/neohugo.yaml",
+            "themes/t/config/_default/config.yaml",
             "params:\n  dir: 1\n",
         ),
     ]);
     let c = p.ok();
-    assert_eq!(params(&c), toml("from = \"neohugo\"\ndir = 1\n"));
+    assert_eq!(
+        params(&c),
+        toml("from = \"config\"\nconfigonly = 1\ndir = 1\n")
+    );
     assert_eq!(c.themes[0].config_files.len(), 2);
     let w = warnings(&c, "config-file-ignored");
     assert_eq!(w.len(), 1, "{w:?}");
     assert!(
-        w[0].contains("themes/t/neohugo.toml: using neohugo.toml; ignoring config.toml"),
+        w[0].contains("themes/t/config.toml: using config.toml; ignoring config.yaml"),
         "{}",
         w[0]
     );
@@ -229,9 +227,9 @@ fn theme_configuration_file_names() {
     assert_eq!(
         files,
         [
-            "themes/t/neohugo.toml",
-            "themes/t/config/_default/neohugo.yaml",
-            "neohugo.toml"
+            "themes/t/config.toml",
+            "themes/t/config/_default/config.yaml",
+            "config.toml"
         ]
     );
 }
@@ -347,8 +345,8 @@ name = "menu-theme"
 
 fn with_theme(main: &str, theme: &str) -> Config {
     Project::new(&[
-        ("neohugo.toml", main),
-        ("themes/test-theme/neohugo.toml", theme),
+        ("config.toml", main),
+        ("themes/test-theme/config.toml", theme),
     ])
     .ok()
 }
@@ -479,16 +477,16 @@ fn load_config_from_themes_sitemap_by_root_strategy() {
 }
 
 /// `TestLoadConfigFromThemeDir`: the theme's `config/_default` and `config/production` over
-/// its `neohugo.toml`; the project's `config/config.toml` is not a configuration file.
+/// its `config.toml`; the project's `config/config.toml` is not a configuration file.
 #[test]
 fn load_config_from_theme_dir() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = \"test-theme\"\n\n[params]\nm1 = \"mv1\"\n",
         ),
         (
-            "themes/test-theme/neohugo.toml",
+            "themes/test-theme/config.toml",
             "[params]\nt1 = \"tv1\"\nt2 = \"tv2\"\n",
         ),
         ("config/config.toml", "[params]\nm2 = \"mv2\"\n"),
@@ -513,7 +511,7 @@ fn load_config_from_theme_dir() {
 fn load_config_theme_language() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             r#"
 baseURL = "https://example.com"
 defaultContentLanguage = "en"
@@ -528,7 +526,7 @@ weight = 2
 "#,
         ),
         (
-            "themes/mytheme/neohugo.toml",
+            "themes/mytheme/config.toml",
             r#"
 [params]
 p1 = "p1base"
@@ -554,20 +552,20 @@ title = "Svensk Title Theme"
 }
 
 /// `config/allconfig` `TestMergeDeep`: the root's `_merge = "deep"` over two themes, the second
-/// configured in its `config/_default/neohugo.toml`.
+/// configured in its `config/_default/config.toml`.
 #[test]
 fn merge_deep() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.com\"\ntheme = [\"theme1\", \"theme2\"]\n_merge = \"deep\"\n",
         ),
         (
-            "themes/theme1/neohugo.toml",
+            "themes/theme1/config.toml",
             "[sitemap]\nfilename = 'mysitemap.xml'\n[services]\n[services.googleAnalytics]\nid = 'foo bar'\n[taxonomies]\n  foo = 'bars'\n",
         ),
         (
-            "themes/theme2/config/_default/neohugo.toml",
+            "themes/theme2/config/_default/config.toml",
             "[taxonomies]\n  bar = 'baz'\n",
         ),
     ]);
@@ -591,11 +589,11 @@ fn merge_deep() {
 fn merge_deep_build_stats_theme() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.com\"\n_merge = \"deep\"\ntheme = [\"theme1\"]\n",
         ),
         (
-            "themes/theme1/neohugo.toml",
+            "themes/theme1/config.toml",
             "title = \"Theme 1\"\n[build]\n[build.buildStats]\ndisableIDs = true\nenable     = true\n",
         ),
     ]);
@@ -606,11 +604,11 @@ fn merge_deep_build_stats_theme() {
     // `TestMergeDeepBuildStats`: the same with `[[module.imports]]` and the project's title.
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "baseURL = \"https://example.com\"\ntitle = \"Theme 1\"\n_merge = \"deep\"\n[module]\n[module.hugoVersion]\n[[module.imports]]\npath = \"theme1\"\n",
         ),
         (
-            "themes/theme1/neohugo.toml",
+            "themes/theme1/config.toml",
             "[build]\n[build.buildStats]\ndisableIDs = true\nenable     = true\n",
         ),
     ]);
@@ -626,11 +624,11 @@ fn merge_deep_build_stats_theme() {
 fn config_output_format_defined_in_theme() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = \"mytheme\"\n[outputFormats]\n[outputFormats.myotherformat]\nbaseName = 'myotherindex'\nmediaType = 'text/html'\n[outputs]\n  home = ['myformat']\n",
         ),
         (
-            "themes/mytheme/neohugo.toml",
+            "themes/mytheme/config.toml",
             "[outputFormats]\n[outputFormats.myformat]\nbaseName = 'myindex'\nmediaType = 'text/html'\n",
         ),
     ]);
@@ -653,7 +651,7 @@ fn config_output_format_defined_in_theme() {
 #[test]
 fn load_config_modules() {
     let mut files = vec![(
-        "neohugo.toml",
+        "config.toml",
         "[module]\n[[module.imports]]\npath=\"n1\"\n[[module.imports]]\npath=\"n4\"\n",
     )];
     files.extend([
@@ -696,7 +694,7 @@ fn load_config_modules() {
 fn imports_then_theme() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = [\"b\", \"c\"]\n\n[module]\n[[module.imports]]\npath=\"a\"\n",
         ),
         ("themes/a/layouts/a.html", ""),
@@ -706,7 +704,7 @@ fn imports_then_theme() {
     let paths: Vec<String> = p.ok().themes.into_iter().map(|t| t.path).collect();
     assert_eq!(paths, ["a", "b", "c"]);
     let p = Project::new(&[
-        ("neohugo.toml", "theme = [\"a\", \"b\"]\n"),
+        ("config.toml", "theme = [\"a\", \"b\"]\n"),
         ("themes/a/layouts/a.html", ""),
         ("themes/b/layouts/b.html", ""),
     ]);
@@ -724,12 +722,12 @@ fn module_replacements() {
     ] {
         let p = Project::new(&[
             (
-                "neohugo.toml",
+                "config.toml",
                 &format!(
                     "[module]\n{replacements}\n[[module.imports]]\npath=\"github.com/bep/mycomponent\"\n"
                 ),
             ),
-            ("themes/c/neohugo.toml", "[params]\nfromC = true\n"),
+            ("themes/c/config.toml", "[params]\nfromC = true\n"),
         ]);
         let c = p.ok();
         assert_eq!(c.themes.len(), 1, "{replacements}");
@@ -739,7 +737,7 @@ fn module_replacements() {
     }
     // Not "old -> new".
     let p = Project::new(&[(
-        "neohugo.toml",
+        "config.toml",
         "[module]\nreplacements = [\"github.com/a/b\"]\n",
     )]);
     let e = p.load().expect_err("invalid replacement");
@@ -766,15 +764,15 @@ fn import_path_identity() {
 fn theme_list_precedence() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = [\"a\", \"b\"]\n[params]\nmine = 1\n",
         ),
         (
-            "themes/a/neohugo.toml",
+            "themes/a/config.toml",
             "[params]\nx = \"a\"\n[params.deep]\nfromA = 1\n",
         ),
         (
-            "themes/b/neohugo.toml",
+            "themes/b/config.toml",
             "[params]\nx = \"b\"\ny = \"b\"\n[params.deep]\nfromA = 2\nfromB = 2\n",
         ),
     ]);
@@ -790,15 +788,15 @@ fn theme_list_precedence() {
 fn merge_strategy_written_in_a_theme() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = [\"a\", \"b\"]\n[params.own]\nkept = 1\n",
         ),
         (
-            "themes/a/neohugo.toml",
+            "themes/a/config.toml",
             "[params.locked]\n_merge = \"none\"\nfromA = 1\n[params.own]\n_merge = \"none\"\nfromA = 1\n",
         ),
         (
-            "themes/b/neohugo.toml",
+            "themes/b/config.toml",
             "[params.locked]\nfromB = 2\n[params.own]\nfromB = 2\n",
         ),
     ]);
@@ -839,10 +837,10 @@ url = "/e/"
     // values not merged.
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = \"t\"\n[[menus.main]]\nname = \"Mine\"\nurl = \"/\"\n[languages.en]\nweight = 1\n[[languages.en.menus.side]]\nname = \"MySide\"\nurl = \"/ms/\"\n",
         ),
-        ("themes/t/neohugo.toml", theme),
+        ("themes/t/config.toml", theme),
     ]);
     let c = p.ok();
     let s = c.default_site();
@@ -869,10 +867,10 @@ url = "/e/"
     // `_merge` in the project opens (or closes) a table.
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = \"t\"\n[taxonomies]\n_merge = \"deep\"\ntag = \"tags\"\n[permalinks]\n_merge = \"deep\"\n[outputs]\n_merge = \"shallow\"\n[menus]\n_merge = \"none\"\n[[menus.main]]\nname = \"Mine\"\nurl = \"/\"\n",
         ),
-        ("themes/t/neohugo.toml", theme),
+        ("themes/t/config.toml", theme),
     ]);
     let c = p.ok();
     let s = c.default_site();
@@ -895,8 +893,8 @@ url = "/e/"
 
     // `_merge = "none"` at the root: nothing from the theme.
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n_merge = \"none\"\n"),
-        ("themes/t/neohugo.toml", theme),
+        ("config.toml", "theme = \"t\"\n_merge = \"none\"\n"),
+        ("themes/t/config.toml", theme),
     ]);
     let c = p.ok();
     assert!(c.default_site().params.is_empty());
@@ -909,8 +907,8 @@ url = "/e/"
 fn languages_from_a_theme() {
     let theme = "[languages.en]\ntitle = \"Theme EN\"\n[languages.en.params]\nfromTheme = true\n[languages.fr]\nweight = 2\ntitle = \"Thème\"\n[languages.fr.params]\nfr = true\n";
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n"),
-        ("themes/t/neohugo.toml", theme),
+        ("config.toml", "theme = \"t\"\n"),
+        ("themes/t/config.toml", theme),
     ]);
     let c = p.ok();
     let langs: Vec<&str> = c.sites.iter().map(|s| s.language.key.as_str()).collect();
@@ -924,11 +922,8 @@ fn languages_from_a_theme() {
 
     // A project language takes the theme's params for it; the list stays the project's.
     let p = Project::new(&[
-        (
-            "neohugo.toml",
-            "theme = \"t\"\n[languages.en]\nweight = 1\n",
-        ),
-        ("themes/t/neohugo.toml", theme),
+        ("config.toml", "theme = \"t\"\n[languages.en]\nweight = 1\n"),
+        ("themes/t/config.toml", theme),
     ]);
     let c = p.ok();
     assert_eq!(c.sites.len(), 1);
@@ -940,8 +935,8 @@ fn languages_from_a_theme() {
 
     // No languages anywhere: the implicit language is not a configured language.
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n"),
-        ("themes/t/neohugo.toml", "[params]\np = 1\n"),
+        ("config.toml", "theme = \"t\"\n"),
+        ("themes/t/config.toml", "[params]\np = 1\n"),
     ]);
     let c = p.ok();
     assert!(c.raw.get("languages").is_none());
@@ -952,9 +947,9 @@ fn languages_from_a_theme() {
 #[test]
 fn theme_only_settings() {
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n_merge = \"deep\"\n"),
+        ("config.toml", "theme = \"t\"\n_merge = \"deep\"\n"),
         (
-            "themes/t/neohugo.toml",
+            "themes/t/config.toml",
             "themesDir = \"elsewhere\"\ntheme = \"u\"\n[[module.mounts]]\nsource = \"layouts\"\ntarget = \"layouts\"\n[[module.imports]]\npath = \"u\"\n[params]\np = 1\n",
         ),
         ("themes/t/layouts/x.html", ""),
@@ -986,7 +981,7 @@ fn the_merge_on_trees() {
     };
     let mut root: Map = (*project).clone();
     merge_themes(&mut root, [&*theme]);
-    let strip = |v: &Value| neohugo_config::tree::strip_merge(v);
+    let strip = |v: &Value| ssg_config::tree::strip_merge(v);
     assert_eq!(
         strip(&Value::map(root)),
         toml("[params]\na = 1\nc = 3\n[params.sub]\nb = 1\n[markup.goldmark]\nx = 1\n")
@@ -1019,7 +1014,7 @@ fn the_merge_on_trees() {
 fn theme_mounts_and_import_options() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "[[module.imports]]\npath = \"noconf\"\nignoreConfig = true\n\
              [[module.imports]]\npath = \"noimports\"\nignoreImports = true\n\
              [[module.imports]]\npath = \"nomounts\"\nnoMounts = true\n\
@@ -1029,17 +1024,17 @@ fn theme_mounts_and_import_options() {
              [[module.imports]]\npath = \"own\"\n",
         ),
         (
-            "themes/noconf/neohugo.toml",
+            "themes/noconf/config.toml",
             "theme = \"deep\"\n[params]\nignored = true\n",
         ),
-        ("themes/noimports/neohugo.toml", "theme = \"deep\"\n"),
+        ("themes/noimports/config.toml", "theme = \"deep\"\n"),
         (
-            "themes/nomounts/neohugo.toml",
+            "themes/nomounts/config.toml",
             "[params]\nfromNomounts = true\n",
         ),
         ("themes/withmounts/src/x.css", ""),
         (
-            "themes/own/neohugo.toml",
+            "themes/own/config.toml",
             "[[module.mounts]]\nsource = \"files\"\ntarget = \"static\"\n",
         ),
     ]);
@@ -1050,10 +1045,10 @@ fn theme_mounts_and_import_options() {
         .map(|t| (t.path.as_str(), &t.mounts))
         .collect();
     let configured = |source: &str, target: &str| {
-        ThemeMounts::Configured(vec![neohugo_config::MountConfig {
+        ThemeMounts::Configured(vec![ssg_config::MountConfig {
             source: source.into(),
             target: target.into(),
-            ..neohugo_config::MountConfig::default()
+            ..ssg_config::MountConfig::default()
         }])
     };
     assert_eq!(
@@ -1068,7 +1063,7 @@ fn theme_mounts_and_import_options() {
     );
     assert!(c.themes[0].config_files.is_empty());
     assert_eq!(params(&c), toml("fromnomounts = true\n"));
-    // `neohugo config` prints the themes (JSON and TOML).
+    // `config` prints the themes (JSON and TOML).
     let json = serde_json::to_value(&c).expect("json");
     assert_eq!(
         json["themes"][3]["mounts"]["Configured"][0]["source"],
@@ -1079,16 +1074,16 @@ fn theme_mounts_and_import_options() {
 
 #[test]
 fn themes_that_are_not_found() {
-    let p = Project::new(&[("neohugo.toml", "theme = \"nothere\"\n")]);
+    let p = Project::new(&[("config.toml", "theme = \"nothere\"\n")]);
     let e = p.load().expect_err("missing");
     assert!(matches!(e, ConfigError::ThemeNotFound { .. }), "{e}");
     assert!(e.to_string().contains("themes/nothere"), "{e}");
 
     // A theme of a theme outside themesDir; the project itself may import any path.
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"a\"\n"),
+        ("config.toml", "theme = \"a\"\n"),
         (
-            "themes/a/neohugo.toml",
+            "themes/a/config.toml",
             "[[module.imports]]\npath = \"../../x\"\n",
         ),
         ("x/layouts/x.html", ""),
@@ -1099,19 +1094,19 @@ fn themes_that_are_not_found() {
         "{e}"
     );
     let p = Project::new(&[
-        ("neohugo.toml", "[[module.imports]]\npath = \"../shared\"\n"),
-        ("shared/neohugo.toml", "[params]\nshared = true\n"),
+        ("config.toml", "[[module.imports]]\npath = \"../shared\"\n"),
+        ("shared/config.toml", "[params]\nshared = true\n"),
     ]);
     assert_eq!(params(&p.ok()), toml("shared = true\n"));
 
     // `themesDir` from the project.
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "themesDir = \"../shared-themes\"\ntheme = \"t\"\n",
         ),
         (
-            "../shared-themes/t/neohugo.toml",
+            "../shared-themes/t/config.toml",
             "[params]\nshared = true\n",
         ),
     ]);
@@ -1123,7 +1118,7 @@ fn themes_that_are_not_found() {
 fn vendored_themes() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "[[module.imports]]\npath = \"github.com/me/vtheme\"\n",
         ),
         (
@@ -1131,7 +1126,7 @@ fn vendored_themes() {
             "# github.com/me/vtheme v1.2.3\n# github.com/me/other v0.1.0\n",
         ),
         (
-            "_vendor/github.com/me/vtheme/neohugo.toml",
+            "_vendor/github.com/me/vtheme/config.toml",
             "[params]\nvendored = true\n[[module.imports]]\npath = \"github.com/me/other\"\n",
         ),
         ("_vendor/github.com/me/other/assets/a.css", ""),
@@ -1154,7 +1149,7 @@ fn vendored_themes() {
     // `ignoreVendorPaths`: looked up in the themes directory instead (and not found there).
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "ignoreVendorPaths = \"github.com/me/*\"\n[[module.imports]]\npath = \"github.com/me/vtheme\"\n",
         ),
         ("_vendor/modules.txt", "# github.com/me/vtheme v1.2.3\n"),
@@ -1164,7 +1159,7 @@ fn vendored_themes() {
 
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "[[module.imports]]\npath = \"github.com/me/vtheme\"\n",
         ),
         ("_vendor/modules.txt", "# github.com/me/vtheme\n"),
@@ -1177,31 +1172,31 @@ fn vendored_themes() {
 #[test]
 fn errors_in_theme_configuration() {
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n"),
-        ("themes/t/neohugo.toml", "[params\nbroken = 1\n"),
+        ("config.toml", "theme = \"t\"\n"),
+        ("themes/t/config.toml", "[params\nbroken = 1\n"),
     ]);
     let e = p.load().expect_err("syntax");
     let pos = e.position().expect("position");
-    assert!(pos.file.ends_with("themes/t/neohugo.toml"), "{e}");
+    assert!(pos.file.ends_with("themes/t/config.toml"), "{e}");
 
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n"),
+        ("config.toml", "theme = \"t\"\n"),
         (
-            "themes/t/neohugo.toml",
+            "themes/t/config.toml",
             "\n[outputFormats.bad]\nmediaType = \"text/nope\"\n",
         ),
     ]);
     let e = p.load().expect_err("unknown media type");
     let pos = e.position().expect("position");
     assert!(
-        pos.file.ends_with("themes/t/neohugo.toml") && pos.line > 0,
+        pos.file.ends_with("themes/t/config.toml") && pos.line > 0,
         "{e}"
     );
 
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"t\"\n"),
+        ("config.toml", "theme = \"t\"\n"),
         (
-            "themes/t/neohugo.toml",
+            "themes/t/config.toml",
             "[[module.mounts]]\nsource = \"x\"\ntarget = \"nowhere\"\n",
         ),
     ]);
@@ -1209,7 +1204,7 @@ fn errors_in_theme_configuration() {
     assert!(e.to_string().contains("module.mounts[0].target"), "{e}");
     assert!(
         e.position()
-            .is_some_and(|p| p.file.ends_with("themes/t/neohugo.toml")),
+            .is_some_and(|p| p.file.ends_with("themes/t/config.toml")),
         "{e}"
     );
 }

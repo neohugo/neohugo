@@ -7,13 +7,13 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, PoisonError, RwLock};
 use std::time::Duration;
 
-use neohugo_config::Config;
-use neohugo_vfs::{Component, Vfs};
 use notify::event::{EventKind, MetadataKind, ModifyKind, RemoveKind, RenameMode};
 use notify::{Event, EventHandler, PollWatcher, RecommendedWatcher, RecursiveMode, WatcherKind};
 use notify_debouncer_full::{
     DebounceEventResult, DebouncedEvent, Debouncer, NoCache, RecommendedCache, new_debouncer_opt,
 };
+use ssg_config::Config;
+use ssg_vfs::{Component, Vfs};
 
 use crate::ServeError;
 
@@ -31,7 +31,7 @@ pub(crate) enum Message {
 
 /// Where configuration lives: the files it was read from (the project's and its themes'),
 /// the configuration directories (the project's `--configDir` and each theme's `config/`),
-/// and the directories whose `neohugo.*`, `hugo.*` or `config.*` file is configuration even
+/// and the directories whose `config.*`, `hugo.*` or `config.*` file is configuration even
 /// when it did not exist yet (the project's and each theme's).
 #[derive(Clone, Debug)]
 pub(crate) struct ConfigPlaces {
@@ -53,7 +53,7 @@ impl ConfigPlaces {
             files: cfg.config_files.iter().cloned().collect(),
             dirs,
             homes,
-            names: neohugo_config::config_file_names().collect(),
+            names: ssg_config::config_file_names().collect(),
         }
     }
 
@@ -390,7 +390,7 @@ struct WatchedMount {
 pub(crate) struct Classifier {
     mounts: Vec<WatchedMount>,
     config: ConfigPlaces,
-    /// `neohugo_stats.json`, which the build itself writes.
+    /// `build_stats.json`, which the build itself writes.
     stats_file: PathBuf,
 }
 
@@ -408,7 +408,7 @@ impl Classifier {
                 })
                 .collect(),
             config,
-            stats_file: cfg.project_dir.join(neohugo_config::global::STATS_FILE),
+            stats_file: cfg.project_dir.join(ssg_config::global::STATS_FILE),
         }
     }
 
@@ -552,7 +552,7 @@ mod tests {
     #[test]
     fn events_on_gone_paths_are_removals_on_macos() {
         let aliases = RwLock::new(Vec::new());
-        let gone_path = std::env::temp_dir().join(format!("neohugo-gone-{}", std::process::id()));
+        let gone_path = std::env::temp_dir().join(format!("ssg-gone-{}", std::process::id()));
         for kind in [
             EventKind::Create(notify::event::CreateKind::File),
             EventKind::Modify(ModifyKind::Data(notify::event::DataChange::Content)),
@@ -582,7 +582,7 @@ mod tests {
     #[test]
     fn ignored_names() {
         for name in [
-            ".neohugo.toml.swp",
+            ".config.toml.swp",
             "one.md~",
             "4913",
             "#one.md#",

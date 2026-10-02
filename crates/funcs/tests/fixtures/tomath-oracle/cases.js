@@ -2,7 +2,7 @@
 // fixture"): one JSON line {"expression", "options"} per case on stdout, `options` the second
 // argument of Hugo's transform.ToMath (null: none).
 //
-//   NODE_PATH=tools/neohugo/node_modules node cases.js <ss_data.yaml> <docs/content> >cases.jsonl
+//   NODE_PATH=tools/dev/node_modules node cases.js <ss_data.yaml> <docs/content> >cases.jsonl
 //
 // ss_data.yaml is KaTeX's screenshotter corpus at the release Hugo bundles,
 // https://raw.githubusercontent.com/KaTeX/KaTeX/v0.16.22/test/screenshotter/ss_data.yaml.

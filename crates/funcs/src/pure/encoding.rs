@@ -3,7 +3,7 @@
 use std::fmt::Write as _;
 
 use md5::Digest as _;
-use neohugo_base::Value as Data;
+use ssg_base::Value as Data;
 use tera::{Kwargs, TeraResult, Value};
 
 use super::value::{entries, text};

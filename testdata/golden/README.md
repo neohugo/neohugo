@@ -4,23 +4,23 @@ What the Go neohugo produced for the target sites, as the **structural oracle** 
 rewrite (`docs/rust-port/REWRITE_PLAN.md` §6.4, §7.2, §7.3). Output bytes do not have to match:
 the Rust side is compared file set, URLs, templates, links, text and assets, level by level.
 
-Everything here was written by `tools/neohugo/oracle.sh` (never by hand, except the image recipes
+Everything here was written by `tools/dev/oracle.sh` (never by hand, except the image recipes
 of `images/manifest.json`) and is frozen: the Go tree and oracle.sh are at 44529028. To
 regenerate, run this in a worktree of that commit (`git worktree add <dir> 44529028`) and copy
-the results, which it writes to its `rust/testdata/golden/` (or `$NEOHUGO_GOLDEN`), here:
+the results, which it writes to its `rust/testdata/golden/` (or `$FUGO_GOLDEN`), here:
 
 ```sh
-export NEOHUGO_NODE_MODULES=$PWD/tools/neohugo/node_modules   # this worktree's own (below)
-tools/neohugo/node.sh              # the pinned node modules (once; network)
-tools/neohugo/oracle.sh install    # the Go binaries (once; Go + module cache)
-tools/neohugo/oracle.sh sites      # manifests + structure dumps of every label below
-tools/neohugo/oracle.sh images     # the golden images
-tools/neohugo/oracle.sh check      # regenerate into a temporary directory and diff (idempotency)
+export FUGO_NODE_MODULES=$PWD/tools/dev/node_modules   # this worktree's own (below)
+tools/dev/node.sh              # the pinned node modules (once; network)
+tools/dev/oracle.sh install    # the Go binaries (once; Go + module cache)
+tools/dev/oracle.sh sites      # manifests + structure dumps of every label below
+tools/dev/oracle.sh images     # the golden images
+tools/dev/oracle.sh check      # regenerate into a temporary directory and diff (idempotency)
 ```
 
 At that commit the binaries (`neohugo`, `neohugo-structure`) and the node modules live,
-gitignored, in `tools/neohugo/{bin,node_modules}` of the **main checkout**, so every worktree
-shares them; `NEOHUGO_TOOLS_BIN` and `NEOHUGO_NODE_MODULES` override the locations (`oracle.sh
+gitignored, in `tools/dev/{bin,node_modules}` of the **main checkout**, so every worktree
+shares them; `FUGO_TOOLS_BIN` and `FUGO_NODE_MODULES` override the locations (`oracle.sh
 bin`, `node.sh path` print them). Its lock file has no esbuild, and its `node.sh` replaces the
 modules of another lock, so it gets a directory of its own: the main checkout's modules stay the
 ones the Rust tests use.
@@ -48,7 +48,7 @@ only in i01. The docs patch entries of both variants are `tools/rust-port/i01/pa
 ## `docs-live`: the published documentation site
 
 Not written by oracle.sh: `docs-live/manifest.unminified.json.gz` is the manifest of the site
-https://neohugo.github.io/ as published — the repository neohugo/neohugo.github.io at
+https://getfugo.github.io/ as published — the repository neohugo/neohugo.github.io at
 `a1928152d8320bfa4db9b363298d038c9841f4a1` ("Update v0.148.2", 2025-10-13T15:05:28Z), which the
 Go release workflow wrote with `npm install && neohugo` in `docs/` (Hugo 0.149.0-DEV, no
 `--minify`, the production environment, network access) — from the same `docs/` content this
@@ -60,8 +60,8 @@ at that commit; the manifest only changes with manifest.py):
 git clone https://github.com/neohugo/neohugo.github.io <pub>
 git -C <pub> checkout a1928152d8320bfa4db9b363298d038c9841f4a1 && rm -rf <pub>/.git
 python3 tools/rust-port/i01/sites.py make docs-live <proj>/docs-live    # base URL, static/
-cp docs/hugo_stats.json <proj>/docs-live/neohugo_stats.json             # the Go build's stats
-python3 tools/neohugo/manifest.py extract <pub> --project <proj>/docs-live --levels L1,L2,L3,L4 \
+cp docs/hugo_stats.json <proj>/docs-live/build_stats.json             # the Go build's stats
+python3 tools/dev/manifest.py extract <pub> --project <proj>/docs-live --levels L1,L2,L3,L4 \
   --site docs-live --pass unminified --full-text -o testdata/golden/docs-live/manifest.unminified.json.gz
 ```
 
@@ -91,10 +91,10 @@ node modules as a `node_modules` symlink in the site plus `node_modules/.bin` on
 | structure | – (the overlaid binary) | `<label>/structure.json[.gz]` | – |
 
 A file over 256 KiB is stored gzipped (deterministically: no name, mtime 0); readers accept both
-names (`neohugo_testkit::fixture::read_json` does). JSON everywhere has sorted keys and one
+names (`ssg_testkit::fixture::read_json` does). JSON everywhere has sorted keys and one
 entry per line.
 
-## `structure.json` (schema `neohugo-structure/1`)
+## `structure.json` (schema `ssg-structure/1`)
 
 Written by `tools/go-oracle/structure` at 44529028 (the neohugo command line built with
 recording hooks, `go build -overlay`): what the Go build did, per (language, page, output
@@ -128,7 +128,7 @@ format). Read by
 "resources": [ {"lang": "en", "name": "sub/nested.txt", "path": "/biscuit/koalas-march-chocolate",
                 "relPermalink": "/biscuit/koalas-march-chocolate/sub/nested.txt",
                 "target": "/biscuit/koalas-march-chocolate/sub/nested.txt"} ],
-"schema": "neohugo-structure/1"
+"schema": "ssg-structure/1"
 }
 ```
 
@@ -193,9 +193,9 @@ format). Read by
 - **`config`**: what the template store depends on, as `oracle/tplimpl/store/*.json.gz` dumps
   it, plus `baseURLs` (per language).
 
-## `manifest.<pass>.json` (schema `neohugo-manifest/1`)
+## `manifest.<pass>.json` (schema `ssg-manifest/1`)
 
-Written by `tools/neohugo/manifest.py extract` over the output directory (the same extractor
+Written by `tools/dev/manifest.py extract` over the output directory (the same extractor
 runs over the Rust output):
 
 ```json
@@ -212,7 +212,7 @@ runs over the Rust output):
 },
 "levels": ["L1", "L2", "L3"],
 "pass": "unminified",
-"schema": "neohugo-manifest/1",
+"schema": "ssg-manifest/1",
 "site": "testsite"
 }
 ```
@@ -251,11 +251,11 @@ runs over the Rust output):
 `images/manifest.json` holds the 20 recipes of the PSNR gate (T41,
 `crates/images/tests/it/psnr.rs`), the image operations the target sites run: an array of
 `{"golden": "<file in images/>", "source": "<path from the repository root>", "steps":
-[{"spec": "<processing spec>"} | {"filters": [<neohugo_images::ImageFilter JSON>]}]}` (each step
+[{"spec": "<processing spec>"} | {"filters": [<ssg_images::ImageFilter JSON>]}]}` (each step
 applies to the previous result; filter `image` paths are relative to the repository root; no
 per-recipe `imaging`, all use the default `[imaging]`). Paths recorded below `rust/` (where the
 workspace was until it moved to the root) are read without that prefix (`repo_file` of
-`neohugo_testkit::fixture` and of `sites.py`). `oracle.sh images` (44529028) writes the
+`ssg_testkit::fixture` and of `sites.py`). `oracle.sh images` (44529028) writes the
 recipes as a Go site (`sites.py make images`: `.Process` for a spec, `images.Filter` with the
 `images.*` functions for filters), builds it with the Go binary and copies each result here
 under its `golden` name.
@@ -266,7 +266,7 @@ Not in this directory: `sites.py patches` writes it next to `sites.py` from its 
 `DOCS_REPLACE` and `DOCS_WRITE` lists, and `sites.py patches --check` (which `oracle.sh sites`
 ran before the docs labels) asserts that it is current and that the Tera patch files of
 `sites/docs/patches/<variant>/` correspond 1:1 to its layout entries. Schema
-`neohugo-docs-patches/1`: `variants` (`["i01", "reduced", "live"]`; `live` has no patches but the
+`ssg-docs-patches/1`: `variants` (`["i01", "reduced", "live"]`; `live` has no patches but the
 removal of the committed `hugo_stats.json`) and `patches`, in application order,
 each `{"op": "remove" | "replace" | "write", "file": "<path in the site>", "old"/"new"
 (replace), "content" (write), "variants": [...], "why": "...", "tera": "<path below

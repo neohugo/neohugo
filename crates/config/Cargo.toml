@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-config"
+name = "ssg-config"
 description = "The Value-tree configuration pipeline (normalise, migrate legacy keys, merge, per-language merge) and the typed Config"
 version.workspace = true
 edition.workspace = true
@@ -19,8 +19,8 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
 serde.workspace = true
 toml.workspace = true
 jiff.workspace = true
@@ -28,7 +28,7 @@ regex.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 serde_json.workspace = true
 insta.workspace = true
 tempfile.workspace = true

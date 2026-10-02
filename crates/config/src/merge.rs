@@ -35,7 +35,7 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use neohugo_base::{Map, Value};
+use ssg_base::{Map, Value};
 
 use crate::de;
 

@@ -8,11 +8,11 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_base::{Idx, LangIdx, PageId, PageKind};
-use neohugo_page::{ListMode, RenderMode};
-use neohugo_site::{Model, Page, PageRole, RefError};
-use neohugo_testkit::fixture::oracle;
 use serde_json::{Value as J, json};
+use ssg_base::{Idx, LangIdx, PageId, PageKind};
+use ssg_page::{ListMode, RenderMode};
+use ssg_site::{Model, Page, PageRole, RefError};
+use ssg_testkit::fixture::oracle;
 
 use crate::expected;
 use crate::support::{Site, diff, time_json, to_json};
@@ -223,7 +223,7 @@ fn check_pages(name: &str, m: &Model, ix: &Index<'_>, dev: &BTreeSet<String>, t:
             eq(
                 t,
                 "params (made pages)",
-                to_json(&neohugo_base::Value::map(p.meta.params.as_map().clone())),
+                to_json(&ssg_base::Value::map(p.meta.params.as_map().clone())),
                 &g["params"],
             );
             eq(t, "build (made pages)", build_json(p), &g["build"]);
@@ -299,7 +299,7 @@ fn check_pages(name: &str, m: &Model, ix: &Index<'_>, dev: &BTreeSet<String>, t:
             if let Some(g2) = got_out.get(f) {
                 let mut w = (*w).clone();
                 // Output paths are clean: Hugo's `/th/section/` resource directory is
-                // `/th/section` (neohugo-page's accepted deviation).
+                // `/th/section` (ssg-page's accepted deviation).
                 if let Some(J::String(d)) = w.get_mut("subTarget")
                     && d.len() > 1
                     && d.ends_with('/')
@@ -318,7 +318,7 @@ fn check_pages(name: &str, m: &Model, ix: &Index<'_>, dev: &BTreeSet<String>, t:
                 let f = cfg.output_formats.get(u.format);
                 // Hugo's `rel` (a view detail): `canonical` for a page's only format when it is
                 // a built-in one.
-                let builtin = neohugo_config::OutputFormats::builtin(&cfg.media_types)
+                let builtin = ssg_config::OutputFormats::builtin(&cfg.media_types)
                     .by_name(&f.name)
                     .is_some();
                 let rel = if p.urls.len() == 1 && builtin {
@@ -458,7 +458,7 @@ fn check_site(
                     .map(|wp| json!({"p": ix.go_ref(wp.page), "w": wp.weight}))
                     .collect(),
             );
-            e.insert(neohugo_base::text::to_lower(&term.term), list);
+            e.insert(ssg_base::text::to_lower(&term.term), list);
         }
     }
     let mut want_tax: BTreeMap<String, BTreeMap<String, J>> = BTreeMap::new();
@@ -595,8 +595,7 @@ fn check_site(
                     None => (
                         r.name_normalized.clone(),
                         r.link().map_or_else(String::new, |l| {
-                            neohugo_base::UrlPath::new(&urls.prepend_base_path(l.as_str()))
-                                .escaped()
+                            ssg_base::UrlPath::new(&urls.prepend_base_path(l.as_str())).escaped()
                         }),
                     ),
                 }

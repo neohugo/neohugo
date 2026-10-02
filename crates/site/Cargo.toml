@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-site"
+name = "ssg-site"
 description = "Capture and assembly into the Model"
 version.workspace = true
 edition.workspace = true
@@ -19,13 +19,13 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-page.workspace = true
-neohugo-pageparser.workspace = true
-neohugo-vfs.workspace = true
-neohugo-locale.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-page.workspace = true
+ssg-pageparser.workspace = true
+ssg-vfs.workspace = true
+ssg-locale.workspace = true
 csv.workspace = true
 roxmltree.workspace = true
 jiff.workspace = true
@@ -33,6 +33,6 @@ rayon.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true

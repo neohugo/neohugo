@@ -1,9 +1,9 @@
 //! `cascade`: front matter a page hands down to itself and its descendants, filtered by
 //! kind, path, language and environment globs.
 
-use neohugo_base::glob::{self, Glob, GlobOpts};
-use neohugo_base::{PageKind, Params, Value};
-use neohugo_config::sections::CascadeConfig;
+use ssg_base::glob::{self, Glob, GlobOpts};
+use ssg_base::{PageKind, Params, Value};
+use ssg_config::sections::CascadeConfig;
 
 use crate::PageError;
 use crate::value;
@@ -106,7 +106,7 @@ impl CascadeTarget {
     pub fn path_looks_like_file(&self) -> bool {
         self.path
             .as_ref()
-            .is_some_and(|p| !neohugo_base::paths::ext(&p.source).is_empty())
+            .is_some_and(|p| !ssg_base::paths::ext(&p.source).is_empty())
     }
 
     /// The globs as written: kind, path (lower case), lang, environment (empty when unset).

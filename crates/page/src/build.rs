@@ -1,7 +1,7 @@
 //! Front matter `build` (and the legacy `headless`): whether a page is listed, rendered and
 //! publishes its resources.
 
-use neohugo_base::Value;
+use ssg_base::Value;
 
 use crate::PageError;
 use crate::value;

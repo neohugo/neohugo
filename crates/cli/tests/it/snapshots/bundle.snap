@@ -27,7 +27,7 @@ expression: "read(&site, \"embedded/bundle/index.html\")"
   <meta name="twitter:image" content="https://example.org/embedded/bundle/other.png">
   <meta name="twitter:title" content="Bundle">
   <meta name="twitter:description" content="A bundle with images.">
-  <meta name="twitter:site" content="@neohugo">
+  <meta name="twitter:site" content="@example">
 
 
   <meta itemprop="name" content="Bundle">

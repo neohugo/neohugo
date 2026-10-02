@@ -3,8 +3,8 @@
 
 use std::path::PathBuf;
 
-use neohugo_base::ImageOpId;
 use serde::{Deserialize, Serialize};
+use ssg_base::ImageOpId;
 
 use crate::color::Color;
 use crate::dither::DitherSpec;

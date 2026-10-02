@@ -1,9 +1,9 @@
-//! Integration tests of `neohugo-page` (the crate's single test binary, REWRITE_PLAN.md §2.2).
+//! Integration tests of `ssg-page` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 //!
 //! The oracle tests replay the Go fixtures under `testdata/oracle/page/` that concern
 //! single pages (target paths, permalinks, dates, cascade, markup, build options, the default
 //! sort order) and print their pass rates; menus, pagination and related content are
-//! `neohugo-nav`'s.
+//! `ssg-nav`'s.
 
 mod collections;
 mod frontmatter;

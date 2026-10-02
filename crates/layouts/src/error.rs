@@ -3,8 +3,8 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use neohugo_base::diag::Position;
-use neohugo_vfs::VfsError;
+use ssg_base::diag::Position;
+use ssg_vfs::VfsError;
 
 /// Why the layouts cannot be used.
 #[derive(Debug, thiserror::Error)]
@@ -69,15 +69,17 @@ impl fmt::Display for IssueKind {
             Self::LegacyName { rename } => write!(
                 f,
                 "legacy layout name; rename it to {rename} (Hugo v0.146 layout names are required; \
-                 `neohugo templates check` lists every legacy name)"
+                 `{} templates check` lists every legacy name)",
+                ssg_base::APP_NAME
             ),
             Self::UnknownName { reason } => f.write_str(reason),
             Self::GoTemplate { marker } => write!(
                 f,
                 "Go template syntax `{marker}`: layouts must be Tera templates; run \
-                 `neohugo templates check` and convert the file \
-                 (https://github.com/neohugo/neohugo/blob/main/docs/rust-port/template-api.md \
-                 gives Hugo's functions with their Tera names)"
+                 `{} templates check` and convert the file \
+                 (https://github.com/getfugo/fugo/blob/main/docs/rust-port/template-api.md \
+                 gives Hugo's functions with their Tera names)",
+                ssg_base::APP_NAME
             ),
         }
     }

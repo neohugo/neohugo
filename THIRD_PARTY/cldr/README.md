@@ -1,12 +1,12 @@
 # Unicode CLDR data (via ICU4X compiled data)
 
-`neohugo-locale` formats, collates and pluralizes with ICU4X 2.3 and its compiled data crates.
+`ssg-locale` formats, collates and pluralizes with ICU4X 2.3 and its compiled data crates.
 Those crates embed data generated from the Unicode Common Locale Data Repository (CLDR) and ICU;
 they are ordinary crates in `Cargo.lock` (licence `Unicode-3.0`, allowed in `deny.toml`), and
-this directory keeps the licence text with the neohugo sources as well, since the data ends up in
-the `neohugo` binary.
+this directory keeps the licence text with the fugo sources as well, since the data ends up in
+the `fugo` binary.
 
-| Crate (version) | Data used by neohugo |
+| Crate (version) | Data used by fugo |
 |---|---|
 | `icu_collator_data` 2.3.0 | root collation and language tailorings |
 | `icu_plurals_data` 2.3.0 | cardinal plural rules |
@@ -21,4 +21,4 @@ Source: <https://github.com/unicode-org/icu4x>, data generated (per the crates' 
 Licence: Unicode License v3 (`Unicode-3.0`), [`LICENSE`](LICENSE), copied verbatim from
 `icu_plurals_data-2.3.0/LICENSE` (identical in every data crate above).
 
-Added by T12 (neohugo-locale).
+Added by T12 (ssg-locale).

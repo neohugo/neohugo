@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use neohugo_base::value::DecodeError;
+use ssg_base::value::DecodeError;
 
 use crate::message::{EvalError, SyntaxError};
 use crate::plural::PluralForm;

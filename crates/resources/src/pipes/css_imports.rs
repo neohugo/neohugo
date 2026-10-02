@@ -69,8 +69,7 @@ impl<'a> Inliner<'a> {
 
     /// `content`, the file at asset path `path`, with its imports inlined.
     pub(super) fn inline(&mut self, content: &str, path: &str) -> Result<String, PipeError> {
-        let dir =
-            neohugo_base::paths::dir(&format!("/{}", path.trim_start_matches('/'))).to_owned();
+        let dir = ssg_base::paths::dir(&format!("/{}", path.trim_start_matches('/'))).to_owned();
         let mut out = String::with_capacity(content.len());
         for (i, line) in content.split_inclusive('\n').enumerate() {
             let stmt = line.trim();
@@ -78,7 +77,7 @@ impl<'a> Inliner<'a> {
                 out.push_str(line);
                 continue;
             };
-            let rel = neohugo_base::paths::join(&[dir.as_str(), import]);
+            let rel = ssg_base::paths::join(&[dir.as_str(), import]);
             let Some(file) = self.view.file(&rel) else {
                 if self.missing == Missing::Keep {
                     out.push_str(line);

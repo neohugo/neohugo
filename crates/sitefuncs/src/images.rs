@@ -4,11 +4,11 @@
 
 use std::sync::Arc;
 
-use neohugo_images::{
+use ssg_images::{
     Action, Anchor, ImageFilter, ImageFormat, ImageQueue, ImageSpec, QrLevel, Resample,
 };
-use neohugo_resources::{QrOptions, ResourceStore};
-use neohugo_view::ViewCache;
+use ssg_resources::{QrOptions, ResourceStore};
+use ssg_view::ViewCache;
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;
@@ -265,18 +265,18 @@ impl SiteFilter for Exif {
     fn call(&self, v: Value, _: &Kwargs, _: &State) -> TeraResult<Value> {
         let id = resource_id(&self.store, &v, "exif")?;
         let bytes = self.store.content(id).map_err(|e| chain("exif", e))?;
-        let Some(x) = neohugo_images::exif::read(&bytes, &self.images.imaging().exif) else {
+        let Some(x) = ssg_images::exif::read(&bytes, &self.images.imaging().exif) else {
             return Ok(Value::none());
         };
         let (lat, long) = x.lat_long.map_or((Value::none(), Value::none()), |(a, b)| {
             (Value::from(a), Value::from(b))
         });
-        let tags = neohugo_base::Value::map(x.tags.into_iter().collect());
+        let tags = ssg_base::Value::map(x.tags.into_iter().collect());
         Ok(map_value([
             (
                 "date",
                 x.date
-                    .map_or_else(Value::none, |d| neohugo_base::Value::Date(d).to_tera()),
+                    .map_or_else(Value::none, |d| ssg_base::Value::Date(d).to_tera()),
             ),
             ("lat", lat),
             ("long", long),
@@ -337,10 +337,7 @@ struct NotImplemented(&'static str);
 
 impl NotImplemented {
     fn fail(&self) -> tera::Error {
-        msg(format!(
-            "`{}` is not implemented in this build of neohugo",
-            self.0
-        ))
+        msg(format!("`{}` is not implemented in this build", self.0))
     }
 }
 

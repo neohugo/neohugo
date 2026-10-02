@@ -2,9 +2,9 @@
 //! filters, and transparent edges.
 
 use image::{Rgba, RgbaImage};
-use neohugo_images::{ImageFilter, ImageFormat, ImageInput, ImageQueue, ImageSpec, Imaging};
-use neohugo_testkit::fixture::repo_file;
 use serde_json::json;
+use ssg_images::{ImageFilter, ImageFormat, ImageInput, ImageQueue, ImageSpec, Imaging};
+use ssg_testkit::fixture::repo_file;
 
 use crate::common::{decode, png, write_file};
 

@@ -3,15 +3,15 @@
 //! The cascade indexes are built by one walk per language in tree order; the per-page work
 //! (applying the cascade, [`meta_from_params`], resolving dates) runs in parallel.
 
-use neohugo_base::diag::{Diagnostic, Position};
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{IdVec, Idx, LangIdx, PageKind, Params, Value};
-use neohugo_config::Config;
-use neohugo_page::{
+use rayon::prelude::*;
+use ssg_base::diag::{Diagnostic, Position};
+use ssg_base::paths::ContentKey;
+use ssg_base::{IdVec, Idx, LangIdx, PageKind, Params, Value};
+use ssg_config::Config;
+use ssg_page::{
     Cascade, Cjk, DateResolver, FileCtx, MatchCtx, MetaCtx, PageMeta, meta_from_adapter,
     meta_from_params,
 };
-use rayon::prelude::*;
 
 use crate::ModelError;
 use crate::cascade::CascadeIndex;

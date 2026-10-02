@@ -24,7 +24,7 @@
 
 use std::sync::Arc;
 
-use neohugo_base::{FormatId, LangIdx, MediaTypeId, PageKind};
+use ssg_base::{FormatId, LangIdx, MediaTypeId, PageKind};
 
 use crate::HookKind;
 

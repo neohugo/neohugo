@@ -1,13 +1,13 @@
-//! Publishing: sinks, canonify, minify dispatch, `neohugo_stats.json`, URL-token extraction, held
+//! Publishing: sinks, canonify, minify dispatch, `build_stats.json`, URL-token extraction, held
 //! outputs and the static sync (docs/rust-port/REWRITE_PLAN.md §2.6, §3.4).
 //!
-//! - [`DiskSink`] and [`MemorySink`] implement [`neohugo_base::Sink`].
+//! - [`DiskSink`] and [`MemorySink`] implement [`ssg_base::Sink`].
 //! - [`Publisher::emit`] takes every rendered [`Output`]: canonify / relative URLs
 //!   ([`canonify`]), LiveReload script, [`StatsCollector`], [`UrlTokens`], then either holds it
 //!   (deferred placeholders: written unpatched, patched in the sink by
 //!   [`Publisher::patch_held`]) or minifies and writes it.
-//! - [`NeohugoStats`] is the content of `neohugo_stats.json`.
-//! - [`UrlTokens`] are handed to the resource store by `neohugo-build` (the store takes any
+//! - [`StatsFile`] is the content of `build_stats.json`.
+//! - [`UrlTokens`] are handed to the resource store by `ssg-build` (the store takes any
 //!   iterator of `&str`, so it does not depend on this crate).
 //! - [`sync_static_dir`] / [`sync_static`] copy the static mounts (phase E1).
 
@@ -23,8 +23,8 @@ mod tokens;
 
 use std::path::{Path, PathBuf};
 
-use neohugo_base::LangIdx;
-use neohugo_base::paths::OutputPath;
+use ssg_base::LangIdx;
+use ssg_base::paths::OutputPath;
 
 pub use canonify::{Quoting, UrlRewriter};
 pub use publisher::{
@@ -32,7 +32,7 @@ pub use publisher::{
 };
 pub use sink::{DiskSink, MemorySink};
 pub use static_sync::{StaticSyncOptions, sync_static, sync_static_dir};
-pub use stats::{HtmlElements, NeohugoStats, StatsCollector, StatsLists};
+pub use stats::{HtmlElements, StatsCollector, StatsFile, StatsLists};
 pub use tokens::UrlTokens;
 
 /// A publishing failure.
@@ -65,9 +65,9 @@ pub enum PublishError {
     #[error("output of language {0:?}, which is not configured")]
     UnknownLanguage(LangIdx),
     #[error(transparent)]
-    Minify(#[from] neohugo_minify::MinifyError),
+    Minify(#[from] ssg_minify::MinifyError),
     #[error(transparent)]
-    Vfs(#[from] neohugo_vfs::VfsError),
+    Vfs(#[from] ssg_vfs::VfsError),
 }
 
 impl PublishError {

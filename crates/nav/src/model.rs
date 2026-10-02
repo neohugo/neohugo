@@ -1,11 +1,11 @@
-//! The seam between `neohugo-nav` and the site model: [`NavModel`] is what menus, pagination,
+//! The seam between `ssg-nav` and the site model: [`NavModel`] is what menus, pagination,
 //! related content and the alias plan read about pages.
 //!
 //! The site `Model` implements it once its URLs and relations exist (T23b); the oracle tests
 //! implement it over the page dumps of the Go fixtures.
 
-use neohugo_base::{FormatId, LangIdx, PageId, PageKind, Params};
-use neohugo_page::{Dates, ListMode, PageMenuEntry, TargetPaths};
+use ssg_base::{FormatId, LangIdx, PageId, PageKind, Params};
+use ssg_page::{Dates, ListMode, PageMenuEntry, TargetPaths};
 
 /// Whether a page is written to disk (and so can be the target of an alias).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -16,7 +16,7 @@ pub enum Rendering {
     NotRendered,
 }
 
-/// What `neohugo-nav` reads about one page (all values final: after cascade, default titles
+/// What `ssg-nav` reads about one page (all values final: after cascade, default titles
 /// and URLs).
 #[derive(Clone, Copy, Debug)]
 pub struct PageFacts<'a> {
@@ -57,7 +57,7 @@ pub struct PageFacts<'a> {
     pub list: ListMode,
 }
 
-/// The site model as `neohugo-nav` sees it.
+/// The site model as `ssg-nav` sees it.
 pub trait NavModel {
     /// The page `id`.
     fn page(&self, id: PageId) -> PageFacts<'_>;

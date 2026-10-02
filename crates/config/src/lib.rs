@@ -1,13 +1,13 @@
-//! The configuration of a neohugo project (docs/rust-port/REWRITE_PLAN.md §2.4, §3.1 A1).
+//! The configuration of a project (docs/rust-port/REWRITE_PLAN.md §2.4, §3.1 A1).
 //!
 //! One `Value`-tree pipeline, then typed structs:
 //!
 //! 1. **Bootstrap**: the environment and the config directory come from [`CliOverrides`] and
-//!    `NEOHUGO_ENVIRONMENT`.
-//! 2. **Sources**: the project file (the first of `neohugo.toml`, `neohugo.yaml`,
-//!    `neohugo.yml`, `neohugo.json`, then `config.*`; Hugo's `hugo.*` is not read; a warning
+//!    `FUGO_ENVIRONMENT`.
+//! 2. **Sources**: the project file (the first of `config.toml`, `config.yaml`,
+//!    `config.yml`, `config.json`, then `config.*`; Hugo's `hugo.*` is not read; a warning
 //!    names the others when several exist; or the explicit list), then `config/_default/**` and
-//!    `config/<environment>/**` (file names place their content: `neohugo.*` and `config.*` at
+//!    `config/<environment>/**` (file names place their content: `config.*` and `config.*` at
 //!    the root, `params.toml` under `params`, `menus.en.toml` under
 //!    `languages.en.menus`).
 //! 3. **Normalise** each tree ([`tree::normalize_keys`]) and migrate legacy keys
@@ -42,9 +42,9 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::Duration;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::{IdVec, Idx, LangIdx, Map, Params, Value};
 use serde::Serialize;
+use ssg_base::diag::Diagnostic;
+use ssg_base::{IdVec, Idx, LangIdx, Map, Params, Value};
 
 pub use error::ConfigError;
 pub use global::{
@@ -138,11 +138,11 @@ pub struct LoadOptions {
     /// The project directory (`--source`).
     pub source: PathBuf,
     /// `--config` files, relative to `source`; the first has the highest precedence. Empty:
-    /// the first of `neohugo.toml`, `neohugo.yaml`, `neohugo.yml`, `neohugo.json`, `config.*`
+    /// the first of `config.toml`, `config.yaml`, `config.yml`, `config.json`, `config.*`
     /// ([`config_file_names`]).
     pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
-    /// The process environment: `NEOHUGO_*` overrides, and `HOME`, `XDG_CACHE_HOME`, `TMPDIR`
+    /// The process environment: `FUGO_*` overrides, and `HOME`, `XDG_CACHE_HOME`, `TMPDIR`
     /// and `USER` for the default cache directory.
     pub env: Vec<(String, String)>,
 }
@@ -723,8 +723,8 @@ impl<'a> Loader<'a> {
         })
     }
 
-    /// `cacheDir`, else `$XDG_CACHE_HOME/neohugo_cache` (or `$HOME/.cache/neohugo_cache`) when it can
-    /// exist, else `$TMPDIR/neohugo_cache_$USER`.
+    /// `cacheDir`, else `$XDG_CACHE_HOME/<name>_cache` (or `$HOME/.cache/<name>_cache`) when it can
+    /// exist, else `$TMPDIR/<name>_cache_$USER`.
     fn cache_dir(&self, t: &Map) -> PathBuf {
         if let Some(dir) = t
             .get("cachedir")
@@ -740,7 +740,7 @@ impl<'a> Loader<'a> {
             .map(PathBuf::from)
             .or_else(|| self.env("HOME").map(|h| Path::new(h).join(".cache")));
         if let Some(base) = user_cache {
-            let candidate = base.join("neohugo_cache");
+            let candidate = base.join(format!("{}_cache", ssg_base::APP_NAME));
             let creatable = candidate
                 .ancestors()
                 .find(|a| a.exists())
@@ -754,8 +754,8 @@ impl<'a> Loader<'a> {
             .filter(|s| !s.is_empty())
             .map_or_else(std::env::temp_dir, PathBuf::from);
         match self.env("USER").filter(|s| !s.is_empty()) {
-            Some(user) => tmp.join(format!("neohugo_cache_{user}")),
-            None => tmp.join("neohugo_cache"),
+            Some(user) => tmp.join(format!("{}_cache_{user}", ssg_base::APP_NAME)),
+            None => tmp.join(format!("{}_cache", ssg_base::APP_NAME)),
         }
     }
 }

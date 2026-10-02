@@ -1,4 +1,4 @@
-# neohugo-build
+# ssg-build
 
 Build orchestration (REWRITE_PLAN.md §2.6, §3). **State: T36** (the full §3 pipeline on T38's
 entry point).
@@ -14,7 +14,7 @@ pub struct BuildRequest { pub source: PathBuf, pub destination: Option<PathBuf>,
                           pub live_reload: Option<LiveReload> /* T71: the server's script */ }
 pub struct LiveReload { pub port: Option<u16> /* --liveReloadPort */ }  // url(&BaseUrl) -> UrlRef
 pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError>;
-pub fn process_env() -> Vec<(String, String)>; // T37: NEOHUGO*, HOME, XDG_CACHE_HOME, TMPDIR, USER (the CLI's config loads too)
+pub fn process_env() -> Vec<(String, String)>; // T37: FUGO*, HOME, XDG_CACHE_HOME, TMPDIR, USER (the CLI's config loads too)
 pub enum BuildError { Config, Vfs, Model, Template, Render, Publish, Resource, Pool, Diagnostics(Vec<Diagnostic>) }
 pub struct Collision { pub path: OutputPath, pub winner: JobOrder, pub loser: JobOrder }
 pub struct BuildReport { pub pages, pub outputs, pub aliases, pub resources, pub images, pub static_files: usize,
@@ -23,7 +23,7 @@ pub struct BuildReport { pub pages, pub outputs, pub aliases, pub resources, pub
                          pub model: Option<Arc<Model>> /* T71: the rendered model (file → page) */ }
 ```
 
-**`neohugo server` (T71).** The server loads the configuration itself (once per
+**`fugo server` (T71).** The server loads the configuration itself (once per
 configuration change) with every language's base URL pointed at its listener and passes it as
 `config` (then `source`, `config_files`, `cli` and `destination` are not read). With
 `live_reload`, every language's `SiteLinks::livereload` is its base URL (the port replaced by
@@ -39,15 +39,15 @@ start).
 
 | Phase | What |
 |---|---|
-| A1–B6 | `config::load` (process `NEOHUGO_*` env) → `Vfs::new` → `site::capture_content` → `site::assemble` |
-| A4b | content adapters (`src/adapters.rs`, only when the content has `_content.html` files): the layouts are scanned first, a `Session` of the content files' model renders each adapter (`Session::render_adapter`) for its language, then for the other languages when it called `enable_all_languages()`, one after the other in discovery order; `site::assemble` again with the pages and resources they added; the diagnostics of their runs join the build's. A `_content.html` with Go-template syntax is an error with a hint (`neohugo_layouts::go_marker`), a `_content.gotmpl` too (`site`) |
+| A1–B6 | `config::load` (process `FUGO_*` env) → `Vfs::new` → `site::capture_content` → `site::assemble` |
+| A4b | content adapters (`src/adapters.rs`, only when the content has `_content.html` files): the layouts are scanned first, a `Session` of the content files' model renders each adapter (`Session::render_adapter`) for its language, then for the other languages when it called `enable_all_languages()`, one after the other in discovery order; `site::assemble` again with the pages and resources they added; the diagnostics of their runs join the build's. A `_content.html` with Go-template syntax is an error with a hint (`ssg_layouts::go_marker`), a `_content.gotmpl` too (`site`) |
 | B7, C0 | `LayoutStore::scan` → `Session::new` (site functions, i18n files, views, selections) |
 | C1, D | `render_content` (every page, every hook variant) → `freeze_views` |
 | E1 | static files: `sync_static_dir` on disk (`noTimes`, `noChmod`, `cleanDestinationDir`, multihost language directories), `sync_static` into memory |
 | E2 | wave 1, **one sub-wave per language in language order** (`Session::wave1`) |
 | E3 | wave 2 (`Session::wave2`): pagers 2..N and `page/1/` aliases of the paginations wave 1 recorded, the language redirect |
-| E4 | `neohugo_stats.json` (with `[build.buildStats] enable`): written to the project directory when changed (memory builds too, as Hugo's server does), and injected into the resource store at the asset path of every assets mount of that file (docs: `notwatching/hugo_stats.json`) |
-| E5 | every `defer(...)` key rendered once (`Session::render_deferred`, in parallel over keys; `data`, `site`, `neohugo`, `__nh` in phase `Deferred`); every post-process placeholder resolved (pending transforms run now, after the stats exist; placeholders inside deferred output too) → `Publisher::patch_held` (read back from the sink, rewrite again, URL tokens again, minify, write) |
+| E4 | `build_stats.json` (with `[build.buildStats] enable`): written to the project directory when changed (memory builds too, as Hugo's server does), and injected into the resource store at the asset path of every assets mount of that file (docs: `notwatching/hugo_stats.json`) |
+| E5 | every `defer(...)` key rendered once (`Session::render_deferred`, in parallel over keys; `data`, `site`, `fugo`, `__nh` in phase `Deferred`); every post-process placeholder resolved (pending transforms run now, after the stats exist; placeholders inside deferred output too) → `Publisher::patch_held` (read back from the sink, rewrite again, URL tokens again, minify, write) |
 | E6 | URL tokens of `execute_as_template` results added, then `ResourceStore::publish(tokens)`: eager bundle files, `publish`ed resources, every resource named by a token; processed images through the image queue (`[caches.images]`) |
 | E7 | sorted, de-duplicated diagnostics; errors fail the build (`BuildError::Diagnostics`) — after every file was written, as Go's build does |
 
@@ -66,7 +66,7 @@ own targets in wave 2).
 **Publishing.** Each winning output goes to `Publisher::emit` from its render worker; errors are
 reported in job order.
 
-## Tests (`cargo test -p neohugo-build -- --nocapture`)
+## Tests (`cargo test -p ssg-build -- --nocapture`)
 
 | Test | What | Result |
 |---|---|---|
@@ -74,11 +74,11 @@ reported in job order.
 | `skeleton::testsite_{l1,bytes,contents}` | `sites.py make testsite` with `sites/testsite/layouts` vs Go's `public/` (`tests/it/testsite-go.txtar`) | **55/55 files, 55/55 byte-identical** |
 | `skeleton::testsite_for_the_server` | the testsite with a caller-loaded configuration (base URL `http://localhost:1313/`) and `live_reload` | the script right after `<head>` (after `<html>` in the 404 page) of every HTML page, none in aliases, `page/1/`, the language redirect, RSS and JSON; canonified links on the server URL; `model` set |
 | `mini::mini_matches_the_go_tree` | the e2e `mini.txtar` site (en/th, hooks, shortcodes, pagination, taxonomies, menus, i18n, data, related, aliases, `defer`, `GetRemote` from the file cache + `unmarshal`, minify, fingerprint, Concat, ExecuteAsTemplate, FromString, PostProcess), Go layouts converted to Tera in the test, `--minify --clock`, vs the Go tree of `e2e.json.gz` | **53/53 files** (fingerprints normalised); no placeholder left, deferred footer everywhere, post-processed CSS linked and published, stats in the project directory |
-| `edges::edge_trees_match_the_go_file_lists` | the 25 build oracles of `oracle/hugolib/build` (all but `build-errors`): cascade, i18n, multihost, ugly, taxonomy permalinks, aliases, collisions, custom alias template, disabled kinds/aliases/redirect, post-processing, stats, content dirs, Thai/punctuated paths, headless and build options, `content`/`seeksnack`/`shortcodes` (with `neohugo-render`'s shortcode and hook conversions), `docs` (948 pages, stub layouts) — disk builds vs the files Go wrote, and whether errors are reported | **2451/2451 files** over 25 sites; 2 accepted differences (below) |
+| `edges::edge_trees_match_the_go_file_lists` | the 25 build oracles of `oracle/hugolib/build` (all but `build-errors`): cascade, i18n, multihost, ugly, taxonomy permalinks, aliases, collisions, custom alias template, disabled kinds/aliases/redirect, post-processing, stats, content dirs, Thai/punctuated paths, headless and build options, `content`/`seeksnack`/`shortcodes` (with `ssg-render`'s shortcode and hook conversions), `docs` (948 pages, stub layouts) — disk builds vs the files Go wrote, and whether errors are reported | **2451/2451 files** over 25 sites; 2 accepted differences (below) |
 | `docs_shortcodes::docs_cross_page_shortcodes` | docs' `include`, `glossary-term` and `quick-reference` converted to Tera on a docs-shaped site | renumbered placeholders around an include, `page_inner` of included links, a never-rendered glossary term, other sections' `.Content` and descriptions as a definition list |
 | `images::referenced_images_are_processed_and_published` | a bundle image resized twice, one result printed | only the printed operation processed (through `resources/_gen/images`) and published; the bundle file published eagerly |
 | `determinism::output_does_not_depend_on_threads` | A-DET: `mini`, `build-collide`, `asm-taxo`, `build-aliases` with 1, 8 and 8 threads | identical trees and collision lists |
-| `smoke::smoke` (ignored) | `NEOHUGO_SITES=<dir>[:…]` builds real site directories and prints the report | — |
+| `smoke::smoke` (ignored) | `FUGO_SITES=<dir>[:…]` builds real site directories and prints the report | — |
 
 Accepted differences of the edge trees (`EXPECTED` in `tests/it/edges.rs`):
 `build-postprocess` `js/main.js` (the conversion, made when the offline tests had no bundler, leaves out `js.Build`) and

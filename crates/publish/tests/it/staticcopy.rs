@@ -8,11 +8,11 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
-use neohugo_config::{LoadOptions, load};
-use neohugo_publish::{StaticSyncOptions, sync_static_dir};
-use neohugo_testkit::fixture::oracle;
-use neohugo_vfs::{NFC_NAMES, Vfs, entry_name};
 use serde::Deserialize;
+use ssg_config::{LoadOptions, load};
+use ssg_publish::{StaticSyncOptions, sync_static_dir};
+use ssg_testkit::fixture::oracle;
+use ssg_vfs::{NFC_NAMES, Vfs, entry_name};
 
 use crate::support::Tally;
 
@@ -85,9 +85,9 @@ fn set_mtime(p: &Path, t: i64) {
 fn build(site: &Path, entries: &[Entry], base_time: i64) {
     fs::create_dir_all(site).unwrap();
     let mut times: Vec<(std::path::PathBuf, i64)> = Vec::new();
-    // Go's `hugo.*` configuration files are neohugo's `neohugo.*`.
+    // Go's `hugo.*` configuration files are our `config.*`.
     for e in entries {
-        let p = site.join(neohugo_testkit::fixture::neohugo_path(&e.path));
+        let p = site.join(ssg_testkit::fixture::local_path(&e.path));
         if let Some(parent) = p.parent() {
             fs::create_dir_all(parent).unwrap();
         }
@@ -115,7 +115,7 @@ fn build(site: &Path, entries: &[Entry], base_time: i64) {
     // Directories (deepest first) after their content.
     let mut dirs: BTreeSet<std::path::PathBuf> = BTreeSet::new();
     for e in entries {
-        let mut p = site.join(neohugo_testkit::fixture::neohugo_path(&e.path));
+        let mut p = site.join(ssg_testkit::fixture::local_path(&e.path));
         while let Some(parent) = p.parent() {
             if parent == site {
                 break;
@@ -291,20 +291,17 @@ fn static_into_memory() {
     })
     .unwrap();
     let vfs = Vfs::new(&cfg).unwrap();
-    let sink = neohugo_publish::MemorySink::new();
+    let sink = ssg_publish::MemorySink::new();
     let mut options = StaticSyncOptions::from_config(&cfg);
-    assert_eq!(
-        neohugo_publish::sync_static(&vfs, &sink, &options).unwrap(),
-        18
-    );
+    assert_eq!(ssg_publish::sync_static(&vfs, &sink, &options).unwrap(), 18);
     assert_eq!(sink.text("/ไทย/หน้า.html").as_deref(), Some("<p>ไทย</p>\n"));
     assert!(sink.get("/.hidden/secret.txt").is_some());
 
-    let mut dirs = neohugo_base::IdVec::with_capacity(1);
+    let mut dirs = ssg_base::IdVec::with_capacity(1);
     dirs.push("en".to_owned());
     options.language_dirs = Some(dirs);
-    let sink = neohugo_publish::MemorySink::new();
-    neohugo_publish::sync_static(&vfs, &sink, &options).unwrap();
+    let sink = ssg_publish::MemorySink::new();
+    ssg_publish::sync_static(&vfs, &sink, &options).unwrap();
     assert_eq!(
         sink.text("/en/robots.txt").as_deref(),
         Some("User-agent: *\n")

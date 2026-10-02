@@ -2,7 +2,7 @@
 //! goldmark's definition lists, block images, autolinks and passthrough.
 
 use comrak::nodes::{NodeValue, Sourcepos};
-use neohugo_base::Value;
+use ssg_base::Value;
 
 use super::{Piece, fill_text, split_text, texts};
 use crate::attributes::{self, Attr, Owner};

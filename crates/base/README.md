@@ -1,4 +1,4 @@
-# neohugo-base
+# ssg-base
 
 The shared vocabulary of the rewrite (docs/rust-port/REWRITE_PLAN.md §2.4). Every other crate
 depends on it; it depends only on light crates (serde, serde_json, toml, serde-saphyr, jiff,
@@ -23,7 +23,7 @@ tera for `to_tera`, regex, unicode-properties, unicode-normalization, thiserror)
 
 ## Oracle acceptance (T10)
 
-`cargo test -p neohugo-base -- --nocapture` prints the tallies. "Not applicable" counts cases
+`cargo test -p ssg-base -- --nocapture` prints the tallies. "Not applicable" counts cases
 the Rust API cannot express (Go strings that are not UTF-8, argument values outside the Rust
 parameter type, configurations Hugo never uses); they are not checks.
 

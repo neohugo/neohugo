@@ -1,12 +1,12 @@
 //! CSS imported from scripts against esbuild 0.25.6 (`fixtures/css-esbuild.json`): what an
 //! entry importing CSS files sees (each import's default export and namespace, printed as JSON
 //! by the bundle under node) must be what it saw when esbuild bundled it, key order included;
-//! and the inputs neohugo deliberately rejects (see `css.rs`) must be errors.
+//! and the inputs this port deliberately rejects (see `css.rs`) must be errors.
 
 use std::sync::Arc;
 
-use neohugo_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, MountedDirs, Source};
 use serde_json::{Value as Json, json};
+use ssg_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, MountedDirs, Source};
 
 fn fixture() -> Json {
     let path = concat!(
@@ -108,7 +108,7 @@ fn css_imports_see_what_esbuild_gave() {
         let want = case["esbuild"].as_str().unwrap();
         if !out.status.success() || got != want {
             failures.push(format!(
-                "{name}:\n  esbuild: {want}\n  neohugo: {got}{}",
+                "{name}:\n  esbuild: {want}\n  ours: {got}{}",
                 String::from_utf8_lossy(&out.stderr)
             ));
         }
@@ -117,7 +117,7 @@ fn css_imports_see_what_esbuild_gave() {
 }
 
 #[test]
-fn css_inputs_neohugo_rejects() {
+fn css_inputs_we_reject() {
     let fx = fixture();
     for case in fx["errors"].as_array().unwrap() {
         let name = case["name"].as_str().unwrap();

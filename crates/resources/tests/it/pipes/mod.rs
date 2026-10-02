@@ -2,8 +2,8 @@
 //! directory, with a store whose [`TransformEnv`] the test controls: no inherited tool paths,
 //! the process environment (for `PATH`), and fake or real tools as the test decides.
 //!
-//! Tests that need a real node tool read its binary from `NEOHUGO_POSTCSS_BIN`,
-//! `NEOHUGO_TAILWINDCSS_BIN` or `NEOHUGO_BABEL_BIN` and print `SKIPPED` without it; tests with
+//! Tests that need a real node tool read its binary from `FUGO_POSTCSS_BIN`,
+//! `FUGO_TAILWINDCSS_BIN` or `FUGO_BABEL_BIN` and print `SKIPPED` without it; tests with
 //! fake tools (small node scripts) need `node` on `PATH` and print `SKIPPED` without it.
 
 mod babel;
@@ -20,11 +20,11 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_base::{Idx as _, LangIdx, ResourceId};
-use neohugo_resources::pipes::ToolPaths;
-use neohugo_resources::{ResourceStore, StoreConfig, TransformEnv};
-use neohugo_vfs::Vfs;
 use serde_json::Value as J;
+use ssg_base::{Idx as _, LangIdx, ResourceId};
+use ssg_resources::pipes::ToolPaths;
+use ssg_resources::{ResourceStore, StoreConfig, TransformEnv};
+use ssg_vfs::Vfs;
 
 use crate::support::config;
 
@@ -63,7 +63,7 @@ impl Project {
 
 /// The resource-transformers fixture directory `name` (`t16site`).
 pub fn fixture_site(name: &str) -> PathBuf {
-    neohugo_testkit::fixture::testdata("oracle/resource-transformers").join(name)
+    ssg_testkit::fixture::testdata("oracle/resource-transformers").join(name)
 }
 
 fn copy_tree(from: &Path, to: &Path) {
@@ -119,7 +119,7 @@ pub fn project_in_place(dir: &Path, edit: impl FnOnce(&mut TransformEnv)) -> Pro
     )
 }
 
-/// A small site in a temporary directory: `neohugo.toml` and the given files.
+/// A small site in a temporary directory: `config.toml` and the given files.
 pub fn mini_site(files: &[(&str, &str)]) -> tempfile::TempDir {
     let tmp = tempfile::tempdir().unwrap();
     for (name, body) in files {
@@ -170,7 +170,7 @@ pub fn real_tool(var: &str, test: &str) -> Option<PathBuf> {
         Some(p) => Some(PathBuf::from(p)),
         None => {
             eprintln!(
-                "SKIPPED {test}: {var} is not set (install the node tools with tools/neohugo/node.sh)"
+                "SKIPPED {test}: {var} is not set (install the node tools with tools/dev/node.sh)"
             );
             None
         }
@@ -205,8 +205,8 @@ pub fn run_steps(
     case: &J,
     done: &BTreeMap<String, ResourceId>,
 ) -> Result<ResourceId, (usize, String)> {
-    use neohugo_resources::pipes::{JsBuildSpec, PostCssOptions, ToCssOptions};
-    use neohugo_resources::{CallSite, HashAlgo, Transform};
+    use ssg_resources::pipes::{JsBuildSpec, PostCssOptions, ToCssOptions};
+    use ssg_resources::{CallSite, HashAlgo, Transform};
     let s = &p.store;
     let mut id = None;
     for (i, step) in case["steps"].as_array().unwrap().iter().enumerate() {

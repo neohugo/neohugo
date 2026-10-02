@@ -1,6 +1,6 @@
 //! Hugo's structure hash, for names that must equal the Go build's: `hashing.HashString` /
 //! `HashStringHex` hash values with gohugoio/hashstructure v0.5.0 and xxHash64. Only the value
-//! kinds neohugo names things with are covered: strings, integers, floats, booleans, nil,
+//! kinds this port names things with are covered: strings, integers, floats, booleans, nil,
 //! lists, maps and flat structs.
 //!
 //! The rules (hashstructure's walker): a string or a number is the xxHash64 of its bytes
@@ -9,7 +9,7 @@
 //! starts from the hash of its type name and, for each exported field, XORs
 //! `ordered(name, value)` and hashes the result.
 
-use neohugo_base::{Map, Value};
+use ssg_base::{Map, Value};
 use xxhash_rust::xxh64::xxh64;
 
 /// xxHash64 with seed 0.

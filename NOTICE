@@ -1,14 +1,14 @@
-neohugo
-Copyright The neohugo Authors.
+fugo (formerly neohugo)
+Copyright The fugo Authors.
 
 Licensed under the Apache License, Version 2.0 (LICENSE).
 
-neohugo began as a fork of Hugo (https://github.com/gohugoio/hugo). Versions 0.148.2 and
-earlier were Hugo's Go code with neohugo's changes; version 0.149 and later are a rewrite in
-Rust that includes material derived from Hugo: templates rewritten from Hugo's embedded
-templates (Go templates to Tera), Hugo's LiveReload plugin, behaviour transcribed from Hugo's
-Go sources, and Hugo's test data and documentation used as test fixtures. PROVENANCE.md lists
-each such file, its source and how it was changed.
+fugo began as a fork of Hugo (https://github.com/gohugoio/hugo), named neohugo. Versions
+0.148.2 and earlier were Hugo's Go code with neohugo's changes; version 0.149 and later are a
+rewrite in Rust that includes material derived from Hugo: templates rewritten from Hugo's
+embedded templates (Go templates to Tera), Hugo's LiveReload plugin, behaviour transcribed from
+Hugo's Go sources, and Hugo's test data and documentation used as test fixtures. PROVENANCE.md
+lists each such file, its source and how it was changed.
 
 Hugo
 Copyright The Hugo Authors.
@@ -18,5 +18,5 @@ Other third-party material is listed in PROVENANCE.md and THIRD_PARTY/README.md,
 licences in THIRD_PARTY/. The THIRD_PARTY_NOTICES.txt of each release archive holds the
 licences of the Rust crates linked into that binary.
 
-The Hugo name and logos belong to their owners. neohugo is not affiliated with, sponsored by
-or endorsed by the Hugo project.
+The Hugo name and logos belong to their owners. fugo is not affiliated with, sponsored by or
+endorsed by the Hugo project.

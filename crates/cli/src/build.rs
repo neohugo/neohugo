@@ -1,8 +1,8 @@
-//! `build`: flags → [`BuildRequest`] → [`neohugo_build::build`] → the report.
+//! `build`: flags → [`BuildRequest`] → [`ssg_build::build`] → the report.
 
 use std::time::Duration;
 
-use neohugo_build::{BuildReport, BuildRequest, SinkKind};
+use ssg_build::{BuildReport, BuildRequest, SinkKind};
 
 use crate::Exit;
 use crate::args::BuildArgs;
@@ -35,7 +35,7 @@ pub(crate) fn request(a: &BuildArgs) -> anyhow::Result<BuildRequest> {
 }
 
 pub(crate) fn run(a: &BuildArgs) -> anyhow::Result<Exit> {
-    match neohugo_build::build(request(a)?) {
+    match ssg_build::build(request(a)?) {
         Ok(r) => {
             report::diagnostics(&r.diagnostics);
             if !a.quiet {
@@ -43,7 +43,7 @@ pub(crate) fn run(a: &BuildArgs) -> anyhow::Result<Exit> {
                 let total: Duration = r.timings.iter().map(|(_, d)| *d).sum();
                 println!("Total in {} ms", total.as_millis());
             }
-            if std::env::var_os("NEOHUGO_TIMINGS").is_some() {
+            if std::env::var_os(ssg_base::env_var!("TIMINGS")).is_some() {
                 print_timings(&r);
             }
             Ok(Exit::Success)
@@ -55,7 +55,7 @@ pub(crate) fn run(a: &BuildArgs) -> anyhow::Result<Exit> {
     }
 }
 
-/// The build's phase timings on stderr (`NEOHUGO_TIMINGS` set; for profiling, T70).
+/// The build's phase timings on stderr (`FUGO_TIMINGS` set; for profiling, T70).
 fn print_timings(r: &BuildReport) {
     let phases: Vec<String> = r
         .timings

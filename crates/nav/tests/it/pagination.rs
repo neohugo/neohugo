@@ -4,16 +4,16 @@
 
 use std::sync::Arc;
 
-use neohugo_base::url::SiteUrls;
-use neohugo_base::{PageId, PageKind, Value};
-use neohugo_config::OutputFormat;
-use neohugo_config::sections::PaginationConfig;
-use neohugo_nav::{
+use serde_json::{Value as J, json};
+use ssg_base::url::SiteUrls;
+use ssg_base::{PageId, PageKind, Value};
+use ssg_config::OutputFormat;
+use ssg_config::sections::PaginationConfig;
+use ssg_nav::{
     PageGroup, PagerSlice, Pagination, PaginationItems, pager_alias, pager_paths,
     resolve_pager_size,
 };
-use neohugo_page::{LangPrefix, UrlInputs, links};
-use serde_json::{Value as J, json};
+use ssg_page::{LangPrefix, UrlInputs, links};
 
 use crate::support::{
     OraclePath, Tally, family, fixture, idx, oracle_paths, output_format, page_id, s, site_urls,
@@ -79,7 +79,7 @@ fn render(p: &Pagination, url: &dyn Fn(usize) -> String) -> J {
                     let pages: Vec<usize> = p
                         .pages_of(pg)
                         .iter()
-                        .map(|id| neohugo_base::Idx::index(*id))
+                        .map(|id| ssg_base::Idx::index(*id))
                         .collect();
                     (
                         if pages.is_empty() {
@@ -97,7 +97,7 @@ fn render(p: &Pagination, url: &dyn Fn(usize) -> String) -> J {
                             let g = &groups[sl.group];
                             let pages: Vec<usize> = g.pages[sl.range.clone()]
                                 .iter()
-                                .map(|id| neohugo_base::Idx::index(*id))
+                                .map(|id| ssg_base::Idx::index(*id))
                                 .collect();
                             json!({ "key": crate::support::to_json(&g.key), "pages": pages })
                         })

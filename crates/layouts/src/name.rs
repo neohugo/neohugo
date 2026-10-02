@@ -4,7 +4,7 @@ use std::fmt;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use neohugo_base::PageKind;
+use ssg_base::PageKind;
 
 /// A Tera template name. Only this crate constructs names: a user template's is its path in the
 /// layouts component (`docs/list.html`), a theme's is prefixed with `_theme<N>/` and an

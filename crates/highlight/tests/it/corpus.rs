@@ -1,6 +1,6 @@
 //! The docs corpus: every piece of code the docs site highlights.
 //!
-//! - fenced code blocks of `docs/content/**/*.md`, read through neohugo-markup, with the
+//! - fenced code blocks of `docs/content/**/*.md`, read through ssg-markup, with the
 //!   language the docs `render-codeblock` hook passes to `transform.Highlight` (`html` and
 //!   `gotmpl` → `go-html-template`, `md` → `text`, else the `file` attribute's extension or
 //!   `text`) and the fence's options; `goat` fences go to the goat hook instead;
@@ -12,13 +12,13 @@
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use neohugo_base::id::PageId;
-use neohugo_base::{Map, Value};
-use neohugo_markup::{
+use ssg_base::id::PageId;
+use ssg_base::{Map, Value};
+use ssg_markup::{
     CodeBlockCtx, ExpandedMarkdown, HookEnv, HookError, HookOut, Hooks, MarkdownOptions,
     SourceContexts,
 };
-use neohugo_testkit::fixture::repo_dir;
+use ssg_testkit::fixture::repo_dir;
 
 /// Where a piece of code comes from.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -252,7 +252,7 @@ pub fn load() -> Vec<Item> {
             contexts: &contexts,
             file: &file,
         };
-        neohugo_markup::render(&input, &options, &fences, None)
+        ssg_markup::render(&input, &options, &fences, None)
             .unwrap_or_else(|e| panic!("{rel}: {e}"));
         for ctx in fences.0.into_inner().unwrap_or_default() {
             if ctx.lang == "goat" {

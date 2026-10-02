@@ -21,7 +21,7 @@ use crate::support::Harness;
 
 /// The fixture directory.
 fn fixtures() -> std::path::PathBuf {
-    neohugo_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/goat")
+    ssg_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/goat")
 }
 
 /// The diagram of `text`: (inner, wrapped, width, height).
@@ -117,7 +117,7 @@ fn collect(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
 /// Every docs diagram: the size and the `.Wrapped` bytes of Hugo's `diagrams.Goat`.
 #[test]
 fn every_docs_diagram_as_hugo() {
-    let root = neohugo_testkit::fixture::repo_dir();
+    let root = ssg_testkit::fixture::repo_dir();
     let mut diagrams = Vec::new();
     collect(&root, &root.join("docs/content"), &mut diagrams);
     let expected: BTreeMap<String, (u64, u64, String)> =
@@ -161,7 +161,7 @@ fn diagram() {
             &Context::new(),
         )
         .expect("renders");
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         insta::assert_snapshot!("diagrams_goat", out);
     });
 }

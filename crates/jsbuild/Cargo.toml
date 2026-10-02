@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-jsbuild"
+name = "ssg-jsbuild"
 description = "js.Build: bundles scripts in process with rolldown"
 version.workspace = true
 edition.workspace = true
@@ -19,7 +19,7 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
+ssg-workspace-hack.workspace = true
 rolldown.workspace = true
 rolldown_common.workspace = true
 rolldown_error.workspace = true
@@ -35,5 +35,5 @@ serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 rayon.workspace = true

@@ -3,8 +3,8 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::{FormatId, KindSet, Map, PageKind, Params, Value};
 use serde::{Deserialize, Serialize};
+use ssg_base::{FormatId, KindSet, Map, PageKind, Params, Value};
 
 use crate::error::ConfigError;
 use crate::output::OutputFormats;

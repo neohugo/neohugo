@@ -5,8 +5,8 @@
 
 use std::collections::BTreeSet;
 
-use neohugo_base::diag::Severity;
 use serde::Deserialize;
+use ssg_base::diag::Severity;
 use tera::Context;
 
 use crate::support::{Harness, env};
@@ -19,14 +19,14 @@ struct Case {
     options: Option<serde_json::Value>,
     output: String,
     warnings: Vec<String>,
-    /// Go's error; `decode: …` for options mapstructure could not decode (neohugo's messages
+    /// Go's error; `decode: …` for options mapstructure could not decode (our messages
     /// differ).
     err: String,
 }
 
 fn cases() -> Vec<Case> {
-    neohugo_testkit::fixture::read_jsonl(
-        &neohugo_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/tomath.jsonl.gz"),
+    ssg_testkit::fixture::read_jsonl(
+        &ssg_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/tomath.jsonl.gz"),
     )
     .expect("tests/fixtures/tomath.jsonl.gz")
 }
@@ -73,7 +73,10 @@ fn matches_go() {
                 warned += usize::from(!want.is_empty());
             }
             Err(e) => {
-                assert!(!case.err.is_empty(), "{what}: Go rendered it, neohugo: {e}");
+                assert!(
+                    !case.err.is_empty(),
+                    "{what}: Go rendered it, this port: {e}"
+                );
                 if let Some(go) = case.err.strip_prefix("decode: ") {
                     assert!(e.contains("to_math: option"), "{what}: {e} (Go: {go})");
                 } else {
@@ -94,7 +97,7 @@ fn matches_go() {
 #[test]
 fn renders_every_docs_formula() {
     let re = regex::Regex::new(r"(?s)\$\$(.+?)\$\$|\\\[(.+?)\\\]|\\\((.+?)\\\)").expect("valid");
-    let docs = neohugo_testkit::fixture::repo_dir().join("docs/content");
+    let docs = ssg_testkit::fixture::repo_dir().join("docs/content");
     let mut formulas = BTreeSet::new();
     let mut dirs = vec![docs];
     while let Some(dir) = dirs.pop() {
@@ -169,7 +172,7 @@ fn inline_and_block() {
             &ctx,
         )
         .unwrap();
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         insta::assert_yaml_snapshot!("to_math", [inline, block, both]);
     });
 }

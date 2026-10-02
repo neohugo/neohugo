@@ -4,10 +4,10 @@
 
 use std::collections::BTreeSet;
 
-use neohugo_base::paths::{clean, join};
-use neohugo_base::{FormatId, LangIdx, OutputPath, PageId};
-use neohugo_config::Config;
-use neohugo_config::site::{AliasPolicy, RedirectPolicy};
+use ssg_base::paths::{clean, join};
+use ssg_base::{FormatId, LangIdx, OutputPath, PageId};
+use ssg_config::Config;
+use ssg_config::site::{AliasPolicy, RedirectPolicy};
 
 use crate::NavError;
 use crate::model::{NavModel, Rendering};

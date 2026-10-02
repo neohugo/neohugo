@@ -4,12 +4,12 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::url::{LinkStyle, SiteUrls, add_context_root};
-use neohugo_base::{IdVec, LangIdx, PageId, PageKind, Params, text};
-use neohugo_config::Config;
-use neohugo_config::sections::MenuEntryConfig;
-use neohugo_page::ListMode;
+use ssg_base::diag::Diagnostic;
+use ssg_base::url::{LinkStyle, SiteUrls, add_context_root};
+use ssg_base::{IdVec, LangIdx, PageId, PageKind, Params, text};
+use ssg_config::Config;
+use ssg_config::sections::MenuEntryConfig;
+use ssg_page::ListMode;
 
 use crate::model::{NavModel, PageFacts};
 

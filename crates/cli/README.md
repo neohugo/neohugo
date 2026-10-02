@@ -1,29 +1,29 @@
-# neohugo (the `neohugo` binary)
+# fugo (the `fugo` binary)
 
 The command line (REWRITE_PLAN.md §2.1, §4.8, §7.5). **State: T37; T60's A-T gate and
 embedded-template snapshots run through it; `server` (T71).** clap derive; `anyhow` only
 here.
 
 ```
-neohugo [build flags]                 # no command: build (as `hugo`)
-neohugo build [build flags]
-neohugo server [build flags] [server flags]   # alias `serve`; neohugo-serve
-neohugo templates check [project flags] [--coverage summary|full|none] [--deny-warnings]
-neohugo config [project flags] [--format json|toml]
-neohugo version                       # also --version
+fugo [build flags]                 # no command: build (as `hugo`)
+fugo build [build flags]
+fugo server [build flags] [server flags]   # alias `serve`; ssg-serve
+fugo templates check [project flags] [--coverage summary|full|none] [--deny-warnings]
+fugo config [project flags] [--format json|toml]
+fugo version                       # also --version
 ```
 
-`version` prints the Go build's line (`src/version.rs`): `neohugo v<version>[-<commit>]
+`version` prints the Go build's line (`src/version.rs`): `fugo v<version>[-<commit>]
 <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]`, with Go's os/arch names and the
-commit, date and vendor of the build-time variables `NEOHUGO_BUILD_COMMIT`, `NEOHUGO_BUILD_DATE`
-and `NEOHUGO_VENDOR_INFO` (set by CI's release builds).
+commit, date and vendor of the build-time variables `FUGO_BUILD_COMMIT`, `FUGO_BUILD_DATE`
+and `FUGO_VENDOR_INFO` (set by CI's release builds).
 
 ## Flags
 
 Kebab-case, with Hugo's camelCase spelling as an alias. As in the Go build (cobra), flags may
 come before the command: `args::command_first` moves the command to the front before clap
-parses, so `neohugo -s site server` is `neohugo server -s site` (a flag keeps its value:
-`neohugo -e server` builds with the environment `server`). The Go build's persistent flags,
+parses, so `fugo -s site server` is `fugo server -s site` (a flag keeps its value:
+`fugo -e server` builds with the environment `server`). The Go build's persistent flags,
 `-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`,
 `--log-level` and `--no-build-lock`, are clap `global` flags: every command accepts them, and
 one that does not use a flag ignores it (`version -s x`, `config -q -d out`), as Go did. A
@@ -38,9 +38,9 @@ it into the flag (true) or drops it (false, the default).
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
 | `-s`, `--source DIR` | | all | project directory (default: the working directory) |
-| `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `neohugo.{toml,yaml,yml,json}`, `config.*` (a warning names the others when several exist) |
+| `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `fugo.{toml,yaml,yml,json}`, `config.*` (a warning names the others when several exist) |
 | `--config-dir DIR` | `--configDir` | all | `CliOverrides::config_dir` |
-| `-e`, `--environment ENV` | | all | wins over `NEOHUGO_ENVIRONMENT` (default `production`; `development` for `server`) |
+| `-e`, `--environment ENV` | | all | wins over `FUGO_ENVIRONMENT` (default `production`; `development` for `server`) |
 | `-b`, `--base-url URL` | `--baseURL`, `--baseUrl` | all | `baseURL` |
 | `-t`, `--theme A,B` | | all | `theme` |
 | `--themes-dir DIR` | `--themesDir` | all | `themesDir` |
@@ -66,16 +66,16 @@ another is a usage error),
 `--no-build-lock` (`--noBuildLock`; every command), and for build and server `--gc`,
 `--print-i18n-warnings`, `--print-path-warnings`, `--print-unused-templates`,
 `--template-metrics` and `--template-metrics-hints` (camelCase aliases). `--logLevel warn`,
-`--noBuildLock` (neohugo writes no lock file) and `--printPathWarnings` (target collisions are
-always warnings) are what neohugo does anyway; each of the others prints
+`--noBuildLock` (fugo writes no lock file) and `--printPathWarnings` (target collisions are
+always warnings) are what fugo does anyway; each of the others prints
 `WARN  [ignored-flag]: <flag> is ignored: …` and changes nothing (warnings and errors are
 printed at every log level).
 
 ### `server` (alias `serve`)
 
-Hugo's development server (`neohugo-serve`, whose README has the details): `build`'s flags
+Hugo's development server (`ssg-serve`, whose README has the details): `build`'s flags
 (`-s`, `--config`, `-e`, `-b`, `-D -E -F`, `--minify`, `--clock`, `--threads`, `-q`, …; the
-same `BuildArgs`), the environment `development` unless `-e` or `NEOHUGO_ENVIRONMENT`
+same `BuildArgs`), the environment `development` unless `-e` or `FUGO_ENVIRONMENT`
 says otherwise, and:
 
 | Flag | Alias | Effect |
@@ -86,7 +86,7 @@ says otherwise, and:
 | `--disable-live-reload` | `--disableLiveReload` | no LiveReload script, `livereload.js` or WebSocket |
 | `--live-reload-port PORT` | `--liveReloadPort` | the port in the LiveReload script (e.g. 443 behind a proxy) |
 | `-N`, `--navigate-to-changed` | `--navigateToChanged` | the browsers go to the page whose content changed |
-| `--render-to-disk` | `--renderToDisk` | build into the publish directory (`-d`, `publishDir`) and serve it from there; without it the site is built into memory and `-d` is a usage error (`-M` is the default and conflicts with it). A neohugo flag, not one of the Go build's: its server rendered to disk by default and `-M`/`--renderToMemory` into memory (README.md, "Upgrading from the Go build") |
+| `--render-to-disk` | `--renderToDisk` | build into the publish directory (`-d`, `publishDir`) and serve it from there; without it the site is built into memory and `-d` is a usage error (`-M` is the default and conflicts with it). A fugo flag, not one of the Go build's: its server rendered to disk by default and `-M`/`--renderToMemory` into memory (README.md, "Upgrading from the Go build") |
 | `--no-http-cache` | `--noHTTPCache` | `Cache-Control: no-store, …` and `Pragma: no-cache` |
 | `-w`, `--watch[=BOOL]` | | watch and rebuild (default true; `--watch=false` builds once) |
 | `--poll INTERVAL` | | poll for changes (`700ms`, `1s`, or milliseconds) instead of file notifications |
@@ -102,12 +102,12 @@ build failure (`ERROR build failed: …`, the last good build is still served) o
 to reload config: …`. A first build that fails exits with 1 and the build's report; a port
 that cannot be opened or a configuration that does not load exits with 1.
 
-**Environment.** The process's `NEOHUGO*` variables (`NEOHUGO_TITLE`, `NEOHUGO_PARAMS_X`,
-`NEOHUGO_BASEURL`, `NEOHUGO_CACHEDIR`, `NEOHUGO_ENVIRONMENT`, …; Hugo's `HUGO_*` are not
-read, and neohugo's own settings such as `NEOHUGO_NODE_MODULES` are not overrides) plus `HOME`,
-`XDG_CACHE_HOME`, `TMPDIR`, `USER` go to `neohugo_config::load`
-(`neohugo_build::process_env`); precedence is neohugo-config's (file < config dir < flags <
-environment; `-e` wins over `NEOHUGO_ENVIRONMENT`).
+**Environment.** The process's `FUGO*` variables (`FUGO_TITLE`, `FUGO_PARAMS_X`,
+`FUGO_BASEURL`, `FUGO_CACHEDIR`, `FUGO_ENVIRONMENT`, …; Hugo's `HUGO_*` are not
+read, and fugo's own settings such as `FUGO_NODE_MODULES` are not overrides) plus `HOME`,
+`XDG_CACHE_HOME`, `TMPDIR`, `USER` go to `ssg_config::load`
+(`ssg_build::process_env`); precedence is ssg-config's (file < config dir < flags <
+environment; `-e` wins over `FUGO_ENVIRONMENT`).
 
 **Exit codes** (`Exit`): 0 success; 1 build errors, check errors (or warnings with
 `--deny-warnings`), or a project that does not load; 2 usage errors (clap, printed as
@@ -127,12 +127,12 @@ message carries Tera's `--> <template>:<line>:<col>` snippet. A successful build
 |---|---|
 | `source/s destination/d environment/e theme/t themesDir baseURL/b cacheDir ignoreCache buildDrafts/D buildFuture/F buildExpired/E clock config configDir cleanDestinationDir renderToMemory/M minify quiet` | the flags above (kebab-case + the camelCase alias) |
 | `noTimes noChmod` | the flags above |
-| `logLevel noBuildLock gc printPathWarnings printI18nWarnings printUnusedTemplates templateMetrics templateMetricsHints` | accepted (`HugoFlags`, above); a warning for those neohugo does not act on |
-| `contentDir/c layoutDir/l disableKinds enableGitInfo panicOnWarning` | configuration keys (file or `NEOHUGO_*`), not flags |
+| `logLevel noBuildLock gc printPathWarnings printI18nWarnings printUnusedTemplates templateMetrics templateMetricsHints` | accepted (`HugoFlags`, above); a warning for those fugo does not act on |
+| `contentDir/c layoutDir/l disableKinds enableGitInfo panicOnWarning` | configuration keys (file or `FUGO_*`), not flags |
 | `server`: `port/p bind appendPort disableLiveReload liveReloadPort navigateToChanged/N noHTTPCache watch/w poll renderToDisk disableFastRender disableBrowserError` | the `server` flags above (T71) |
 | `server`: `tlsCertFile tlsKeyFile tlsAuto openBrowser/O pprof renderStaticToDisk forceSyncStatic`, command `server trust` | not supported (clap usage error) |
 | `devMode forceSyncStatic ignoreVendorPaths renderSegments printMemoryUsage profile-* trace`, the build's `watch/w` | not supported (clap usage error) |
-| commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env`, `release`, `config mounts`, and cobra's `completion` and `help` | not supported (`--help` prints the help); `config` prints neohugo's resolved configuration model (`neohugo_config::Config`: snake_case fields, one entry per site under `sites`, the merged user keys lower-cased under `raw`) as JSON (the default; Go's was TOML) or TOML, not Go's lower-cased Hugo keys of one language (`baseurl`, `publishdir`, …), and without Go's `yaml`, `--lang` and `--printZero` |
+| commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env`, `release`, `config mounts`, and cobra's `completion` and `help` | not supported (`--help` prints the help); `config` prints fugo's resolved configuration model (`ssg_config::Config`: snake_case fields, one entry per site under `sites`, the merged user keys lower-cased under `raw`) as JSON (the default; Go's was TOML) or TOML, not Go's lower-cased Hugo keys of one language (`baseurl`, `publishdir`, …), and without Go's `yaml`, `--lang` and `--printZero` |
 
 ## `templates check`
 
@@ -140,10 +140,10 @@ Loads the project (configuration, mounts, layouts of the project, its themes and
 set) and reports every problem at once, sorted by file and line; the embedded templates are
 loaded but not linted.
 
-1. **Scan** (`neohugo_layouts`): `legacy-name`, `unknown-name`, `go-template` (with the line).
+1. **Scan** (`ssg_layouts`): `legacy-name`, `unknown-name`, `go-template` (with the line).
    The files are left out and the check goes on.
 2. **Tera.** Each template parsed alone (`tera-syntax`: Tera stops at the first syntax error),
-   then all loaded as the build loads them (`neohugo_layouts::load`) against the
+   then all loaded as the build loads them (`ssg_layouts::load`) against the
    `spec::FUNCS` placeholders: `tera-name` (unknown filters, functions, tests, components,
    include targets, blocks), `tera-load` (missing parents, cycles). Templates with errors are
    loaded empty and the load repeated, so the rest is still checked.
@@ -151,7 +151,7 @@ loaded but not linted.
    parents, includes) outside `spec::CONTEXTS` for the role (layout job, alias, standalone,
    sitemapindex, shortcode, render hook + `HOOK_FIELDS`). Partials and components are skipped
    (kwargs, arguments).
-4. **Lints** (`src/check/lint.rs`, on the tokenizer `neohugo_funcs::scan` shared with the
+4. **Lints** (`src/check/lint.rs`, on the tokenizer `ssg_funcs::scan` shared with the
    contract test): `kwarg` (unknown/missing kwargs), `legacy-literal` (`include`/`extends`
    literals with `_default/`, `partials/`, `shortcodes/` or upper case), `unknown-partial`,
    `call-attribute` (`.`/`?.` after a call or a parenthesised expression), `nested-close`
@@ -169,11 +169,11 @@ loaded but not linted.
 
 Output: a header line, the diagnostics, the coverage listing, `N error(s), M warning(s)`.
 
-## Tests (`cargo test -p neohugo`)
+## Tests (`cargo test -p ssg-cli`)
 
 | Test | What |
 |---|---|
-| `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 56/56 (55 in `public` + `hugo_stats.json`; the reference has 55 because Go writes `hugo_stats.json` next to `hugo.toml`); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; `hugo_stats.json` tag/class/id sets equal the `neohugo-publish` collector (checked against Go's by `oracle/publisher/collector`) over Go's HTML. Accepted-deviation lists per level: empty. Structure oracle: the build's structure dump against `testdata/golden/testsite/structure.json` (Go's, frozen at `44529028`), every fact equal (the baseline `testdata/baselines/testsite.json` accepts none). Full output tree: `snapshots/testsite_output.snap` |
+| `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 56/56 (55 in `public` + `hugo_stats.json`; the reference has 55 because Go writes `hugo_stats.json` next to `hugo.toml`); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; `hugo_stats.json` tag/class/id sets equal the `ssg-publish` collector (checked against Go's by `oracle/publisher/collector`) over Go's HTML. Accepted-deviation lists per level: empty. Structure oracle: the build's structure dump against `testdata/golden/testsite/structure.json` (Go's, frozen at `44529028`), every fact equal (the baseline `testdata/baselines/testsite.json` accepts none). Full output tree: `snapshots/testsite_output.snap` |
 | `parity::parity_helpers` | the scanner, normalisations and text extraction of the gate |
 | `docs::gate_a_d2` | **gate A-D2** (§7.3, T66): `compare.sh docs-reduced --ref golden` with this binary (Chroma, goat, emoji, math, remarshal, Tailwind via `defer`, Alpine/Turbo `js_build`): L1 889/889 in both passes, L2, L4 and the structure oracle equal everywhere, A7 ≥ 0.98, clean ratchet (`testdata/baselines/docs-reduced.json`); `SKIPPED` without the node tools/esbuild (shared with `reconstruction::gate_a_r` in `tests/it/acceptance.rs`) |
 | `embedded::embedded_templates` | the embedded templates rendered against testsite views (test-only overlay `tests/it/embedded-overlay.txtar`, see below): snapshots `hooks`, `shortcodes`, `bundle`, `featured`, `section_page1`, `section_page2` |
@@ -182,19 +182,19 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `embedded::goat_code_block` | the goat code block hook, byte-identical to Hugo's output (Go's `diagrams.Goat` bytes): `viewBox` of GoAT's size, `width`/`class` attributes, GoAT's SVG |
 | `embedded::qr_shortcode_equals_hugo_s` | the `qr` shortcode against Hugo's `TestQRShortcode`: image names, sizes and attributes; images published |
 | `build::testsite_matches_go` | `sites.py`'s testsite with `sites/testsite/layouts`, built by the binary with compare.sh's command line (`--clock … -d …`, no command) and with `build --source … --destination … --cleanDestinationDir -q`: **55/55 files byte-identical** to `crates/build/tests/it/testsite-go.txtar` |
-| `build::flags_and_environment` | every configuration flag in both spellings, `NEOHUGO_TITLE`, `NEOHUGO_ENVIRONMENT`, `NEOHUGO_BASEURL`, Hugo's `HUGO_*` ignored, `-M` writes nothing |
+| `build::flags_and_environment` | every configuration flag in both spellings, `FUGO_TITLE`, `FUGO_ENVIRONMENT`, `FUGO_BASEURL`, Hugo's `HUGO_*` ignored, `-M` writes nothing |
 | `build::explicit_false_overrides_the_configuration` | `-D=false`, `--buildFuture=f` and `--cleanDestinationDir=false` against `buildDrafts`, `buildFuture` and `cleanDestinationDir = true` in the configuration: drafts and future pages left out, a stale file kept |
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
 | `cli::version_help_and_usage_errors` | `version` and `--version` print the line of `version::BuildInfo::CURRENT`, `--help`, usage errors exit 2 |
 | `cli::version_line_has_the_go_format` | the Go format with and without commit, date and vendor; Go's os/arch names for the five release targets; the version is the package's |
-| `cli::hugo_flags_are_accepted` | the Go build's logging and housekeeping flags: accepted, a warning for each one neohugo does not act on, none for the others; `--logLevel` and `--noBuildLock` on every command; an unknown level, `config --gc` and `-v` exit 2; explicit values with Go's `ParseBool` spellings (`-DE=f`, `--watch=0`, `--appendPort=F`, …) parsed into the flags' `Option<bool>` |
+| `cli::hugo_flags_are_accepted` | the Go build's logging and housekeeping flags: accepted, a warning for each one fugo does not act on, none for the others; `--logLevel` and `--noBuildLock` on every command; an unknown level, `config --gc` and `-v` exit 2; explicit values with Go's `ParseBool` spellings (`-DE=f`, `--watch=0`, `--appendPort=F`, …) parsed into the flags' `Option<bool>` |
 | `cli::no_times_and_no_chmod_reach_the_static_copy` | `--noTimes`/`--noChmod` (both spellings): the static copy keeps or leaves the source's modification time and permissions (Unix) |
 | `cli::command_first_moves_the_command_before_the_flags` | flags before the command (cobra's order): the command moved to the front, values kept (also after `=` in a short cluster), `=BOOL` of the `SetTrue` flags rewritten, everything else left for clap |
 | `cli::persistent_flags_anywhere` | the Go build's persistent flags before the command and on `config`, `templates check` and `version`; a flag the command does not take is still a usage error |
 | `server::server_starts_and_serves` | `serve -p 0` with camelCase flags: the start report (environment `development`, memory, watching, built), the page with the LiveReload script and `--noHTTPCache` headers, nothing on disk |
 | `server::server_renders_to_disk_without_live_reload` | `--render-to-disk --disable-live-reload --watch=false -e staging`: `public/` written and served, no script, no watching |
 | `server::server_start_errors` | a first build that fails exits 1 with the build's report; `-d` without `--render-to-disk`, `--render-to-disk -M`, bad `--poll`/`--port`/`--watch` exit 2; every server flag in `--help` |
-| `cli::config_prints_the_resolved_configuration` | JSON / TOML, config dir, `NEOHUGO_PARAMS_*`, flags |
+| `cli::config_prints_the_resolved_configuration` | JSON / TOML, config dir, `FUGO_PARAMS_*`, flags |
 | `check::bad_layouts_report_every_rule` | `tests/it/bad-layouts.txtar`: each rule once at its position, nothing else, exit 1 |
 | `check::testsite_overlay_is_clean` | the testsite overlay: 0 errors, 0 warnings; 35 (page, format) rows with `--coverage full` |
 | `check::deny_warnings` | exit 1 on warnings with `--deny-warnings` |
@@ -216,8 +216,8 @@ hooks are byte-identical to Go's output in A-T.
 | `_shortcodes/details.html` | no newline before `<details`; Go's `{{- /* Render. */}}` keeps it | bug fixed |
 | `_shortcodes/youtube.html` | no final newline; Go's template ends with one after `{{- end }}` | bug fixed |
 | `_shortcodes/vimeo.html` | player: no `\n      ` before `<div` and no final newline; simple: a newline before `<div class="s_video_simple…">` that Go trims; simple-mode id errors used the player's wording | bug fixed |
-| `_markup/render-table.html` (written natively by `neohugo-markup`, whose output is this template's) | attributes in source order (Go ranges the map in key order), falsy values written, `'` unescaped and `"` as `&quot;` (Go: `transform.HTMLEscape` + `%q`: `&#39;`, `&#34;`) | bug fixed in `neohugo-markup` |
-| every shortcode/hook error (`instagram`, `qr`, `vimeo`, `x`, `youtube`, `param`) | `shortcode.position` / hook `position` unquoted; Go's `text.Position` prints `"file:line:col"` | bug fixed in `neohugo-render` |
+| `_markup/render-table.html` (written natively by `ssg-markup`, whose output is this template's) | attributes in source order (Go ranges the map in key order), falsy values written, `'` unescaped and `"` as `&quot;` (Go: `transform.HTMLEscape` + `%q`: `&#39;`, `&#34;`) | bug fixed in `ssg-markup` |
+| every shortcode/hook error (`instagram`, `qr`, `vimeo`, `x`, `youtube`, `param`) | `shortcode.position` / hook `position` unquoted; Go's `text.Position` prints `"file:line:col"` | bug fixed in `ssg-render` |
 | all (Tera autoescape, §4.5) | `"` → `&quot;` (Go `&#34;`), `+` not escaped (Go `&#43;`), no contextual JS/URL escaping; seen in vimeo simple `alt`, hook attributes | accepted deviation (engine; equal after entity decoding, L3) |
 | `_partials/pagination.html` | `format=` kwarg instead of a map with `page`; the invalid-format message names no map | accepted deviation (Tera API) |
 | `_partials/opengraph.html`, `_funcs/get-page-images.html` | a string `audio`, `videos` or `images` param is a one-element list; Go's `first N` on a string gives a substring and `range` fails the build | accepted deviation (lenient where Go errors) |
@@ -225,7 +225,7 @@ hooks are byte-identical to Go's output in A-T.
 | `_markup/render-table.html` | the Tera file is not executed (the native writer is); it stays for lookup and precedence | accepted deviation (performance, same output) |
 | `_shortcodes/highlight.html` | Chroma span structure not reviewed token by token | accepted deviation (§7.3 allowed: highlight spans) |
 | `_markup/render-codeblock-goat.html` | `diagrams_goat` drew with svgbob (T66: other SVG bytes, a scoped `<style>`, whole-word `<text>`) and the template trimmed Go's blank lines; now a port of GoAT v0.5.0 (feature `goat`, on by default) and Go's whitespace: the hook's output equals Hugo's byte for byte (`goat_code_block`; the docs' GoAT pages) | bug fixed |
-| `_shortcodes/qr.html` | argument checks equal Go's messages; images named and sized as Go's (`qr_shortcode_equals_hugo_s`), their bytes equal Go's (`neohugo-images` QR tests) | none |
+| `_shortcodes/qr.html` | argument checks equal Go's messages; images named and sized as Go's (`qr_shortcode_equals_hugo_s`), their bytes equal Go's (`ssg-images` QR tests) | none |
 | figure, instagram (body byte-equal to Go's `render-instagram`), x, param, ref, relref, opengraph, twitter_cards, schema, `_funcs/get-page-images`, render-link, render-image | none | – |
 
 `.Summary` and `.WordCount` values the partials print are the engine's and are not reviewed here.

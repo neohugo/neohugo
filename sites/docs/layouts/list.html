@@ -61,7 +61,7 @@
               {{ (p.params.description or p.summary) | plainify | safe }}
             {% endif %}
           </p>
-          {% if neohugo.is_development and site.params.debug?.display_page_metadata %}
+          {% if build.is_development and site.params.debug?.display_page_metadata %}
             {{ <list_item_metadata p={p} /> }}
           {% endif %}
         </a>

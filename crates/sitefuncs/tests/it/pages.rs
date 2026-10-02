@@ -1,8 +1,8 @@
 //! `get_page`, `deref`, `get_terms`, `related`, `param`, the page store, menus; components via
 //! `page=` and via `@__nh`.
 
-use neohugo_base::PageKind;
-use neohugo_view::Phase;
+use ssg_base::PageKind;
+use ssg_view::Phase;
 
 use crate::support;
 

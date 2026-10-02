@@ -8,13 +8,13 @@ use std::collections::BTreeMap;
 use std::ops::Range;
 use std::sync::Mutex;
 
-use neohugo_base::{Map, PageId, Value};
-use neohugo_markup::{
+use serde::Deserialize;
+use ssg_base::{Map, PageId, Value};
+use ssg_markup::{
     BlockquoteCtx, Cell, CodeBlockCtx, ExpandedMarkdown, HeadingCtx, HookEnv, HookError, HookOut,
     Hooks, ImageCtx, LinkCtx, SourceContexts, TableCtx, render, wrap_context,
 };
-use neohugo_testkit::fixture::{GoString, oracle};
-use serde::Deserialize;
+use ssg_testkit::fixture::{GoString, oracle};
 
 use super::{HugoCfg, PAGE, Row, file, options, print, show, text};
 
@@ -235,8 +235,8 @@ impl Hooks for Recorder {
         ctx: &BlockquoteCtx,
     ) -> std::result::Result<HookOut, HookError> {
         let kind = match ctx.kind {
-            neohugo_markup::BlockquoteKind::Regular => "regular",
-            neohugo_markup::BlockquoteKind::Alert => "alert",
+            ssg_markup::BlockquoteKind::Regular => "regular",
+            ssg_markup::BlockquoteKind::Alert => "alert",
         };
         let seq = self.record(
             "blockquote",

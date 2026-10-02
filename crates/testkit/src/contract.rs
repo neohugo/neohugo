@@ -1,10 +1,10 @@
 //! The template contract (REWRITE_PLAN.md §4.1 item 3, §4.8): every converted template must load
-//! into a Tera instance that knows exactly the names of `neohugo_funcs::spec::FUNCS`, and every
+//! into a Tera instance that knows exactly the names of `ssg_funcs::spec::FUNCS`, and every
 //! call must use declared kwargs.
 //!
 //! Tera validates names (filters, functions, tests, components, include targets, blocks) when
 //! templates are added, but kwargs only when a call runs. [`scan_calls`] (the tokenizer of
-//! `neohugo_funcs::scan`, shared with `neohugo templates check`) therefore reads the calls of
+//! `ssg_funcs::scan`, shared with `templates check`) therefore reads the calls of
 //! a template and [`kwarg_findings`] checks them against the spec.
 //!
 //! Template sets: one per site under `sites/<site>/` (its `layouts/**` by relative name,
@@ -19,8 +19,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub use neohugo_funcs::scan::{Call, scan_calls};
-use neohugo_funcs::spec;
+pub use ssg_funcs::scan::{Call, scan_calls};
+use ssg_funcs::spec;
 use tera::Tera;
 
 use crate::fixture::repo_dir;
@@ -69,7 +69,7 @@ pub fn template_api_path() -> PathBuf {
 pub fn contract_instance(templates: &[TemplateSource]) -> Result<Tera, tera::Error> {
     let mut tera = Tera::default();
     tera.set_fallback_prefixes([spec::EMBEDDED_PREFIX])?;
-    neohugo_funcs::register_placeholders(&mut tera);
+    ssg_funcs::register_placeholders(&mut tera);
     let stubs: Vec<(String, &str)> = spec::EMBEDDED_TEMPLATES
         .iter()
         .map(|name| format!("{}{name}", spec::EMBEDDED_PREFIX))
@@ -139,7 +139,7 @@ pub fn template_sets() -> io::Result<Vec<TemplateSet>> {
 /// without a required one. Names unknown to `FUNCS` are left to Tera's own validation.
 #[must_use]
 pub fn kwarg_findings(t: &TemplateSource) -> Vec<Finding> {
-    neohugo_funcs::scan::kwarg_errors(&t.source)
+    ssg_funcs::scan::kwarg_errors(&t.source)
         .into_iter()
         .map(|(call, message)| Finding {
             path: t.path.clone(),

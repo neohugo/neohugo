@@ -4,17 +4,16 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_base::diag::{Diagnostic, Position};
-use neohugo_base::value::DecodeError;
-use neohugo_base::{Map, Value};
+use ssg_base::diag::{Diagnostic, Position};
+use ssg_base::value::DecodeError;
+use ssg_base::{Map, Value};
 
 use crate::error::ConfigError;
 use crate::tree;
 
-/// The base names of a configuration file, in lookup order: `neohugo`, then `config`. In a
-/// configuration directory each of them places its content at the root. Hugo's `hugo.*` is
-/// not read.
-pub const CONFIG_BASE_NAMES: [&str; 2] = ["neohugo", "config"];
+/// The base names of a configuration file: `config`. In a configuration directory it places its
+/// content at the root. Hugo's `hugo.*` is not read.
+pub const CONFIG_BASE_NAMES: [&str; 1] = ["config"];
 
 /// The configuration file extensions, in lookup order.
 pub const CONFIG_EXTENSIONS: [&str; 4] = ["toml", "yaml", "yml", "json"];
@@ -38,7 +37,8 @@ pub fn find_config_file(dir: &Path) -> (Option<PathBuf>, Option<Diagnostic>) {
     let path = dir.join(&used);
     let warning = (!ignored.is_empty()).then(|| {
         Diagnostic::warning(format!(
-            "using {used}; ignoring {} (the first of neohugo.*, config.* is read)",
+            "using {used}; ignoring {} (the first of config.toml, config.yaml, config.yml and \
+             config.json is read)",
             ignored.join(", ")
         ))
         .with_id("config-file-ignored")
@@ -371,7 +371,7 @@ pub fn project_files(
 }
 
 /// The files of one configuration directory (`config/_default`, `config/production`), in
-/// path order, each placed by its file name: `neohugo.*`/`config.*` at the root,
+/// path order, each placed by its file name: `config.*` at the root,
 /// `params.en.*` under `languages.en.params`, `menus.en.*` under `languages.en.menus`, any
 /// other `name.*` under `name`.
 pub fn dir_files(dir: &Path) -> Result<Vec<Source>, ConfigError> {

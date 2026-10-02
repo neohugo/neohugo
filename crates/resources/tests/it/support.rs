@@ -5,17 +5,17 @@ use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
-use neohugo_base::Sink;
-use neohugo_base::paths::OutputPath;
-use neohugo_config::{Config, LoadOptions, load};
-use neohugo_resources::{Resource, ResourceStore, StoreConfig, TransformEnv};
-use neohugo_vfs::Vfs;
 use serde_json::{Value as J, json};
 use sha2::{Digest, Sha256};
+use ssg_base::Sink;
+use ssg_base::paths::OutputPath;
+use ssg_config::{Config, LoadOptions, load};
+use ssg_resources::{Resource, ResourceStore, StoreConfig, TransformEnv};
+use ssg_vfs::Vfs;
 
 /// The Go oracles' synthetic site (`testdata/oracle/resources/site`).
 pub fn synth_dir() -> PathBuf {
-    neohugo_testkit::fixture::testdata("oracle/resources/site")
+    ssg_testkit::fixture::testdata("oracle/resources/site")
 }
 
 fn copy_dir(from: &Path, to: &Path) {
@@ -38,7 +38,7 @@ pub fn synth_site(tmp: &Path) -> PathBuf {
     rule("resources", "fixture_json");
     let dir = tmp.join("site");
     copy_dir(&synth_dir(), &dir);
-    let fx: J = neohugo_testkit::fixture::oracle("oracle/resources/resources/synth.json.gz");
+    let fx: J = ssg_testkit::fixture::oracle("oracle/resources/resources/synth.json.gz");
     for r in fx["records"].as_array().unwrap() {
         let (Some(file), Some(content)) = (r["rd"]["file"].as_str(), r["base"]["content"].as_str())
         else {
@@ -54,13 +54,13 @@ pub fn synth_site(tmp: &Path) -> PathBuf {
 }
 
 /// The repository root.
-pub use neohugo_testkit::fixture::repo_dir;
+pub use ssg_testkit::fixture::repo_dir;
 
 /// The configuration of the project at `dir`, with a private home (cache) directory. A frozen
-/// Hugo fixture read in place (the repository's `docs/`) has a `hugo.toml` neohugo does not look
+/// Hugo fixture read in place (the repository's `docs/`) has a `hugo.toml` this port does not look
 /// for: it is named explicitly, as `--config hugo.toml` would.
 pub fn config(dir: &Path, home: &Path) -> Config {
-    let hugo_site = !dir.join("neohugo.toml").exists() && dir.join("hugo.toml").exists();
+    let hugo_site = !dir.join("config.toml").exists() && dir.join("hugo.toml").exists();
     load(&LoadOptions {
         source: dir.to_owned(),
         config_files: if hugo_site {
@@ -82,7 +82,7 @@ pub fn store(dir: &Path, home: &Path) -> ResourceStore {
 }
 
 /// A store as [`store`] whose external tools (PostCSS, Tailwind, Babel) are never found: no
-/// `NEOHUGO_*_BIN` / `NEOHUGO_NODE_MODULES` directories and no `PATH`, like the Go oracle runs
+/// `FUGO_*_BIN` / `FUGO_NODE_MODULES` directories and no `PATH`, like the Go oracle runs
 /// that had none of them (their `na:` chains), whatever this machine or CI has installed.
 pub fn store_without_tools(dir: &Path, home: &Path) -> ResourceStore {
     let cfg = config(dir, home);

@@ -2,11 +2,11 @@
 
 use std::sync::Arc;
 
-use neohugo_base::{FormatId, Idx, LangIdx, MediaTypeId};
-use neohugo_config::markup::UseEmbedded;
-use neohugo_config::output::Escaping;
-use neohugo_config::{Config, MediaTypes, OutputFormats, SiteConfig};
-use neohugo_vfs::PathParser;
+use ssg_base::{FormatId, Idx, LangIdx, MediaTypeId};
+use ssg_config::markup::UseEmbedded;
+use ssg_config::output::Escaping;
+use ssg_config::{Config, MediaTypes, OutputFormats, SiteConfig};
+use ssg_vfs::PathParser;
 
 /// The project facts the layout store depends on: the path parser (languages and output
 /// formats in file names), the output formats and media types, and the default output format.

@@ -1,9 +1,0 @@
-<header class="site-header">
-  <a class="logo" href="{{ "/" | abs_lang_url }}">{% set logo = get_asset(path=site.params.header.logo) %}{% if logo %}<img src="{{ logo.rel_permalink }}" width="{{ logo.width }}" alt="logo">{% endif %}{{ site.title }}</a>
-  <nav class="nav-main">
-  {%- for e in site.menus.main or [] %}
-    <a class="{% if is_menu_current(menu="main", entry=e) %}active{% elif has_menu_current(menu="main", entry=e) %}parent{% endif %}" href="{{ e.url | rel_lang_url }}">{{ e.name }}{% if e.weight %}<i>{{ e.weight }}</i>{% endif %}</a>
-  {%- endfor %}
-  </nav>
-  <nav class="langs">{% for l in site.languages %}<span data-lang="{{ l.lang }}">{{ l.name }}</span>{% endfor %}</nav>
-</header>

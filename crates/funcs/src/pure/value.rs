@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use neohugo_base::Collate;
+use ssg_base::Collate;
 use tera::value::Key;
 use tera::{Map, TeraResult, Value};
 

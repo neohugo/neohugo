@@ -1,15 +1,15 @@
 //! `js_build` through the store against the `jsbuild` oracle (Hugo's `js.Build` on t16site,
 //! 62 cases, and on the docs site's scripts, 6 cases): asset → (concat) → `js_build` →
-//! (`fingerprint`). neohugo bundles with rolldown, so scripts differ from esbuild's bytes
-//! (neohugo-jsbuild's tests compare what they do); here media types, data and links must be
+//! (`fingerprint`). This port bundles with rolldown, so scripts differ from esbuild's bytes
+//! (ssg-jsbuild's tests compare what they do); here media types, data and links must be
 //! Hugo's, with fingerprints and `Data.Integrity` of the same form, and errors must be errors
 //! at the same file and line. Published files: the script and, for external and linked source
 //! maps, the map next to it.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_base::ResourceId;
 use serde_json::Value as J;
+use ssg_base::ResourceId;
 
 use super::{Project, data, fixture_site, project, project_except, run_steps};
 use crate::support::MemSink;
@@ -40,7 +40,7 @@ fn split_integrity(mut data: J) -> (J, Option<String>) {
 }
 
 fn run(p: &Project, fixture: &str) -> (usize, usize, Vec<String>) {
-    let fx: J = neohugo_testkit::fixture::oracle(fixture);
+    let fx: J = ssg_testkit::fixture::oracle(fixture);
     let mut done: BTreeMap<String, ResourceId> = BTreeMap::new();
     let mut failures = Vec::new();
     let (mut built, mut errors) = (0, 0);

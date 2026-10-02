@@ -1,8 +1,8 @@
 //! `time::parse_date` against the date layouts of the `common/cast` oracle.
 
 use jiff::tz::{Offset, TimeZone};
-use neohugo_base::time::parse_date;
 use serde_json::Value as J;
+use ssg_base::time::parse_date;
 
 use crate::support::{Tally, fixture};
 

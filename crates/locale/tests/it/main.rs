@@ -1,4 +1,4 @@
-//! Integration tests of `neohugo-locale` (the crate's single test binary, REWRITE_PLAN.md §2.2).
+//! Integration tests of `ssg-locale` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 
 mod collate;
 mod common;

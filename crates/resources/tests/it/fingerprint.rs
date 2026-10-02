@@ -10,9 +10,9 @@
 
 use std::str::FromStr;
 
-use neohugo_base::{Idx, LangIdx, ResourceId};
-use neohugo_resources::{CallSite, HashAlgo, ResourceError, ResourceStore, Transform};
 use serde_json::Value as J;
+use ssg_base::{Idx, LangIdx, ResourceId};
+use ssg_resources::{CallSite, HashAlgo, ResourceError, ResourceStore, Transform};
 
 use crate::support::{MemSink, diff, rec, rule, store, synth_site, want};
 
@@ -38,7 +38,7 @@ fn apply(
 
 #[test]
 fn fingerprint_and_copy() {
-    let fx: J = neohugo_testkit::fixture::oracle("oracle/resources/transform/transform.json.gz");
+    let fx: J = ssg_testkit::fixture::oracle("oracle/resources/transform/transform.json.gz");
     let home = tempfile::tempdir().unwrap();
     let store = store(&synth_site(home.path()), home.path());
     let lang = LangIdx::from_index(0);

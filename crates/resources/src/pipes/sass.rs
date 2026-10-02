@@ -11,7 +11,7 @@
 //! absolute path of the file dart-sass finds when that is not the file grass would find
 //! (`sass_imports`); grass loads an absolute path as is, and the file's own relative imports
 //! resolve against its real place.
-//! `@import "neohugo:vars"` reads a stylesheet of the `vars` option. Plain CSS imports
+//! `@import "build:vars"` reads a stylesheet of the `vars` option. Plain CSS imports
 //! (`@import "x.css"`, `url(…)`, media queries) stay in the output.
 
 use std::collections::BTreeMap;
@@ -25,9 +25,9 @@ use super::{Output, PipeError, bad, opt_bool, opt_string, opt_strings, option_en
 use crate::store::{Resource, ResourceStore};
 
 /// The virtual directory the assets view is mounted at for the compiler.
-const ROOT: &str = "/@neohugo-assets";
-/// The file name `@import "neohugo:vars"` resolves to.
-const VARS_FILE: &str = "neohugo:vars.scss";
+const ROOT: &str = "/@ssg-assets";
+/// The file name `@import "build:vars"` resolves to.
+const VARS_FILE: &str = "build:vars.scss";
 
 /// `outputStyle`. grass writes `expanded` and `compressed`; `nested` (LibSass's default) and
 /// `compact` are written expanded.
@@ -112,7 +112,7 @@ pub struct ToCssOptions {
     pub output_style: OutputStyle,
     /// `includePaths`, relative to the project directory.
     pub include_paths: Vec<String>,
-    /// `vars`: the `neohugo:vars` stylesheet (names without `$`).
+    /// `vars`: the `build:vars` stylesheet (names without `$`).
     pub vars: BTreeMap<String, SassVar>,
     /// `precision` (accepted; grass always writes up to 10 decimals).
     pub precision: Option<u32>,
@@ -164,7 +164,7 @@ impl ToCssOptions {
         Ok(o)
     }
 
-    /// The `neohugo:vars` stylesheet.
+    /// The `build:vars` stylesheet.
     fn vars_sheet(&self) -> String {
         self.vars
             .iter()
@@ -221,7 +221,7 @@ fn is_css_value(s: &str) -> bool {
             .all(|b| b.is_ascii_alphabetic() || b == b'%' || b == b'-')
 }
 
-/// grass's file system: the virtual assets root, the entry, `neohugo:vars`, and real files.
+/// grass's file system: the virtual assets root, the entry, `build:vars`, and real files.
 #[derive(Debug)]
 struct SassFs<'a> {
     view: Assets<'a>,
@@ -373,7 +373,7 @@ pub(super) fn run(
             p.to_path_buf()
         } else {
             env.project_dir
-                .join(neohugo_base::paths::clean(&format!("/{ip}")).trim_start_matches('/'))
+                .join(ssg_base::paths::clean(&format!("/{ip}")).trim_start_matches('/'))
         };
         if p.is_dir() {
             load_paths.push(p);
@@ -427,7 +427,7 @@ fn real_name(view: &AssetsView<'_>, entry: &Path, src: &Resource, name: &str) ->
             .map_or_else(|| src.name.clone(), |f| f.display().to_string());
     }
     if p.file_name().is_some_and(|n| n == VARS_FILE) {
-        return "neohugo:vars".to_owned();
+        return "build:vars".to_owned();
     }
     match virtual_rel(p) {
         Some(rel) => view.file(&rel).map_or(rel, |f| f.display().to_string()),

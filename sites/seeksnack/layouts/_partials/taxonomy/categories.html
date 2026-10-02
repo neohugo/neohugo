@@ -1,9 +1,0 @@
-{#- `value`: a category, a list of them, or a list holding lists. #}
-{% component categories(value, @__nh) %}
-{%- if value %}
-{%- set cats = value if value is array else [value] %}
-<div class="tag-list tax-category">
-{%- for c in cats %}{% if c is array %}{% for d in c %}<a href="{{ ("/categories/" ~ (d | urlize | lower) ~ "/") | rel_lang_url }}">{{ d | humanize }}</a>{% endfor %}{% else %}<a href="{{ ("/categories/" ~ (c | urlize | lower) ~ "/") | rel_lang_url }}">{{ c | humanize }}</a>{% endif %}{% endfor %}
-</div>
-{%- endif %}
-{% endcomponent categories %}

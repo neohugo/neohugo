@@ -4,7 +4,7 @@
 use std::io;
 use std::net::TcpListener;
 
-use neohugo_base::url::{UrlError, UrlRef};
+use ssg_base::url::{UrlError, UrlRef};
 
 use crate::{Event, Port, Reporter, ServeError};
 

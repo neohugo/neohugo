@@ -1,5 +1,5 @@
 //! Placeholder registrations for every [`spec::FUNCS`] entry that Tera does not provide itself,
-//! for the contract instance (neohugo-testkit) and `templates check` (REWRITE_PLAN.md §4.1, §4.8).
+//! for the contract instance (ssg-testkit) and `templates check` (REWRITE_PLAN.md §4.1, §4.8).
 //!
 //! A placeholder checks its kwargs against the spec when called (unknown, or a required one
 //! missing) and otherwise does nothing: a filter returns its input, a function none, a test false.

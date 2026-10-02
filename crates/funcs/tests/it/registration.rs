@@ -1,8 +1,8 @@
 //! `register_pure` registers exactly the pure entries of `spec::FUNCS` (and the tera-contrib
 //! subset), and checks kwargs against the spec.
 
-use neohugo_funcs::spec::{self, FuncSpec, NameKind, Source};
-use neohugo_funcs::{NOT_COMPILED, pure_specs};
+use ssg_funcs::spec::{self, FuncSpec, NameKind, Source};
+use ssg_funcs::{NOT_COMPILED, pure_specs};
 use tera::Context;
 
 use crate::support::Harness;

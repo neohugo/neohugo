@@ -2,7 +2,7 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_testkit::fixture::GoString;
+use ssg_testkit::fixture::GoString;
 
 /// Pass/fail counts of one fixture family.
 #[derive(Default)]
@@ -82,7 +82,7 @@ impl Tally {
 
 /// The reviewed deviation counts of a family.
 pub fn expected_diffs(family: &str) -> BTreeMap<String, usize> {
-    let path = neohugo_testkit::fixture::repo_dir().join("crates/publish/expected_diffs.toml");
+    let path = ssg_testkit::fixture::repo_dir().join("crates/publish/expected_diffs.toml");
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let doc: toml::Table = toml::from_str(&text).expect("expected_diffs.toml");
     let Some(classes) = doc.get(family).and_then(toml::Value::as_table) else {

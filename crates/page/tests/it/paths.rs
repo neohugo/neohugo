@@ -1,11 +1,11 @@
 //! Oracle: target paths, links and permalinks of every (page, format) descriptor Hugo's builds
 //! of the reference sites created, plus adversarial variants (`oracle/page/paths/*`).
 
-use neohugo_base::url::PathCase;
-use neohugo_base::{FormatId, Idx, LangIdx, PageKind};
-use neohugo_page::{LangPrefix, SourcePath, UrlInputs, links, target_paths};
-use neohugo_vfs::{Component, FormatSpec, Parsed, PathParser, PathParserSpec};
 use serde_json::{Value as J, json};
+use ssg_base::url::PathCase;
+use ssg_base::{FormatId, Idx, LangIdx, PageKind};
+use ssg_page::{LangPrefix, SourcePath, UrlInputs, links, target_paths};
+use ssg_vfs::{Component, FormatSpec, Parsed, PathParser, PathParserSpec};
 
 use crate::support::{Tally, family, fixture, idx, oracle_paths, output_format, s, site_urls};
 
@@ -71,8 +71,8 @@ fn got(c: &J, cx: &Ctx) -> J {
 }
 
 struct Ctx {
-    urls: Vec<neohugo_base::url::SiteUrls>,
-    formats: Vec<(neohugo_config::OutputFormat, String)>,
+    urls: Vec<ssg_base::url::SiteUrls>,
+    formats: Vec<(ssg_config::OutputFormat, String)>,
     paths: Vec<crate::support::OraclePath>,
 }
 

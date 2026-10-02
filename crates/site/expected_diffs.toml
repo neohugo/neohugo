@@ -1,4 +1,4 @@
-# Reviewed deviations of neohugo-site from the Go oracles (docs/rust-port/REWRITE_PLAN.md §1.2).
+# Reviewed deviations of ssg-site from the Go oracles (docs/rust-port/REWRITE_PLAN.md §1.2).
 # Each entry names the fixtures it applies to and the page or value path that differs; the tests
 # in tests/it skip exactly these paths.
 
@@ -29,7 +29,7 @@ detail, §1.2)."""
 class = "accepted-deviation"
 fixtures = ["data/data-basic", "data/data-theme"]
 path = "/numbers/localtime"
-reason = """A TOML local time without a date (`07:32:00`) is a string in neohugo-base's Value (no
+reason = """A TOML local time without a date (`07:32:00`) is a string in ssg-base's Value (no
 date a template can use); go-toml keeps it as a LocalTime."""
 
 # Difference classes of the structure tests (T23b): each is counted over every fixture of the

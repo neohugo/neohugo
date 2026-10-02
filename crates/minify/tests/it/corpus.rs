@@ -14,7 +14,7 @@
 //! - `testdata/oracle/hugolib/build/*.json.gz`: the unminified HTML outputs of the build oracle.
 //! - `testdata/corpus/minify/*.tsv`: the tdewolff site corpora (seeksnack sources, the golden
 //!   unminified build, the recorded nested calls). The repository holds only their manifests
-//!   (path, sizes, Go digest); the files are run when `NEOHUGO_MINIFY_CORPUS` names a directory
+//!   (path, sizes, Go digest); the files are run when `FUGO_MINIFY_CORPUS` names a directory
 //!   with `pristine/<path>`, `golden-nominify/<path>` and `corpus2/<kind>/<id>.in`.
 
 use std::collections::BTreeMap;
@@ -22,10 +22,10 @@ use std::fmt::Write as _;
 use std::panic::{AssertUnwindSafe, catch_unwind};
 use std::path::{Path, PathBuf};
 
-use neohugo_minify::{Minifier, MinifyTarget, Options};
-use neohugo_testkit::fixture::{read_json, read_jsonl, repo_dir, testdata};
 use serde::Deserialize;
 use serde_json::Value as Json;
+use ssg_minify::{Minifier, MinifyTarget, Options};
+use ssg_testkit::fixture::{read_json, read_jsonl, repo_dir, testdata};
 
 struct Input {
     from: String,
@@ -227,7 +227,7 @@ fn run(m: &Minifier, inputs: &[Input]) -> Report {
             }
             Ok(Err(e)) => {
                 t.rejected += 1;
-                if std::env::var_os("NEOHUGO_MINIFY_SHOW_REJECTED").is_some() {
+                if std::env::var_os("FUGO_MINIFY_SHOW_REJECTED").is_some() {
                     note(t, "rejected", e.to_string());
                 }
                 continue;
@@ -460,11 +460,11 @@ fn non_default_options_on_fixture_inputs() {
     let mut o = Options::default();
     o.html.keep_end_tags = false;
     o.html.keep_document_tags = false;
-    o.html.comments = neohugo_minify::options::HtmlComments::KeepAll;
+    o.html.comments = ssg_minify::options::HtmlComments::KeepAll;
     o.css.keep_css2 = false;
     o.js.keep_var_names = true;
-    o.svg.comments = neohugo_minify::options::XmlComments::Keep;
-    o.xml.whitespace = neohugo_minify::options::XmlWhitespace::Keep;
+    o.svg.comments = ssg_minify::options::XmlComments::Keep;
+    o.xml.whitespace = ssg_minify::options::XmlWhitespace::Keep;
     let inputs: Vec<Input> = salvaged()
         .into_iter()
         .filter(|i| i.from == "upstream" || i.from == "literals")
@@ -515,7 +515,7 @@ const MANIFESTS: [(&str, usize); 6] = [
 /// The site corpora: the manifests are intact; the files run when present.
 #[test]
 fn tdewolff_site_corpora() {
-    let root = std::env::var_os("NEOHUGO_MINIFY_CORPUS").map(PathBuf::from);
+    let root = std::env::var_os("FUGO_MINIFY_CORPUS").map(PathBuf::from);
     let mut inputs = Vec::new();
     let mut missing = 0;
     for (file, rows) in MANIFESTS {
@@ -564,7 +564,7 @@ fn tdewolff_site_corpora() {
         }
     }
     match root {
-        None => eprintln!("NEOHUGO_MINIFY_CORPUS is not set: manifests checked, files not run"),
+        None => eprintln!("FUGO_MINIFY_CORPUS is not set: manifests checked, files not run"),
         Some(root) => {
             eprintln!(
                 "{}: {} files, {missing} missing",

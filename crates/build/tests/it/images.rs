@@ -5,9 +5,9 @@
 
 use std::fs;
 
-use neohugo_build::{BuildRequest, SinkKind, build};
-use neohugo_config::CliOverrides;
-use neohugo_testkit::fixture::testdata;
+use ssg_build::{BuildRequest, SinkKind, build};
+use ssg_config::CliOverrides;
+use ssg_testkit::fixture::testdata;
 
 use crate::support::{files_below, write_files};
 
@@ -24,7 +24,7 @@ fn referenced_images_are_processed_and_published() {
         &site,
         &[
             (
-                "neohugo.toml".to_owned(),
+                "config.toml".to_owned(),
                 "baseURL = \"https://example.org/\"\ntitle = \"Images\"\n".to_owned(),
             ),
             ("layouts/single.html".to_owned(), SINGLE.to_owned()),

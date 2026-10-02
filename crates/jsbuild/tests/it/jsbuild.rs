@@ -3,11 +3,11 @@
 //! the docs site's scripts (6 cases).
 //!
 //! A case gets an asset (or concatenates earlier cases' results), then optionally runs
-//! `js.Build` and fingerprints. neohugo bundles with rolldown, so the bytes differ; what must
+//! `js.Build` and fingerprints. This port bundles with rolldown, so the bytes differ; what must
 //! match is what the scripts do. Each built script and the oracle's run under node with
 //! recording stand-ins for the browser (`run::trace`), and the two traces must be equal. The
 //! modules bundled (esbuild's `// <module>` comments, rolldown's `//#region` ones) must be among
-//! the oracle's files (rolldown leaves out modules it inlined). Errors must be at the same position; errors whose wording neohugo keeps from
+//! the oracle's files (rolldown leaves out modules it inlined). Errors must be at the same position; errors whose wording this port keeps from
 //! esbuild (unresolved imports, the es5 target) must have the same text too.
 //!
 //! External/linked source maps must name every bundled file by URL, with the file's contents,
@@ -17,11 +17,11 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_jsbuild::{
+use serde_json::Value as Json;
+use ssg_jsbuild::{
     JsBuildError, JsBuildOptions, JsBuildOutput, JsBuilder, MountedDirs, OptionsError, Source,
 };
-use neohugo_testkit::fixture::oracle;
-use serde_json::Value as Json;
+use ssg_testkit::fixture::oracle;
 
 /// What a case produced.
 enum Outcome {
@@ -38,7 +38,7 @@ struct Site {
 }
 
 /// The fixture's site: t16site is copied (its `_node_modules` becomes `node_modules`, mounted
-/// at `assets/vendor` as its neohugo.toml says); of the docs site only `assets/` is copied, so a
+/// at `assets/vendor` as its config.toml says); of the docs site only `assets/` is copied, so a
 /// local `docs/node_modules` (gitignored) cannot resolve what the oracle could not.
 fn site(fixture_dir: &str) -> Site {
     if fixture_dir == "docs" {
@@ -51,7 +51,7 @@ fn site(fixture_dir: &str) -> Site {
         return Site { root, assets };
     }
     let name = Path::new(fixture_dir).file_name().unwrap();
-    let src = neohugo_testkit::fixture::testdata("oracle/resource-transformers").join(name);
+    let src = ssg_testkit::fixture::testdata("oracle/resource-transformers").join(name);
     let root = crate::scratch("jsbuild-site")
         .canonicalize()
         .unwrap()
@@ -207,7 +207,7 @@ fn modules(code: &str, site: &str, entry: &[String]) -> BTreeSet<String> {
             }
             let m = l.strip_prefix("// ")?;
             (m == "<stdin>"
-                || m.starts_with("ns-neohugo")
+                || m.starts_with("ns-ssg")
                 || m.starts_with("node_modules/")
                 || m.starts_with("assets/")
                 || m.starts_with("../"))
@@ -215,10 +215,10 @@ fn modules(code: &str, site: &str, entry: &[String]) -> BTreeSet<String> {
         })
         .filter_map(|m| {
             // Virtual modules: `@params`, rolldown's runtime and helpers.
-            if m.starts_with("ns-neohugo-params") || m.starts_with('\0') || m.starts_with("\\0") {
+            if m.starts_with("ns-ssg-params") || m.starts_with('\0') || m.starts_with("\\0") {
                 return None;
             }
-            let m = m.strip_prefix("ns-neohugo-imp:").unwrap_or(&m).to_owned();
+            let m = m.strip_prefix("ns-ssg-imp:").unwrap_or(&m).to_owned();
             let m = m
                 .strip_prefix(site)
                 .map_or(m.as_str(), |r| r.trim_start_matches('/'))
@@ -252,7 +252,7 @@ fn expected_error(err: &str) -> (Option<(String, u32, u32)>, String) {
 fn check_error(outcome: &Outcome, want: &str, site: &str) -> Result<(), String> {
     let (pos, msg) = expected_error(&want.replace("$SITE", site));
     let quoted = msg.split('"').nth(1).map(str::to_owned).unwrap_or_default();
-    // The wording neohugo keeps from esbuild.
+    // The wording this port keeps from esbuild.
     let same_text =
         msg.starts_with("Could not resolve") || msg.contains("configured target environment");
     let ok = match outcome {
@@ -403,7 +403,7 @@ impl Checker<'_> {
             .as_str()
             .unwrap()
             .replace("$SITE", site)
-            .replace("ns-hugo-", "ns-neohugo-");
+            .replace("ns-hugo-", "ns-ssg-");
         let (code, out) = match outcome {
             Outcome::Built(out) => (String::from_utf8(out.code.clone()).unwrap(), out),
             Outcome::Raw(b) => {
@@ -432,7 +432,7 @@ impl Checker<'_> {
         let got_trace = crate::run::trace(
             self.node,
             &self.dir,
-            &format!("{name}-neohugo"),
+            &format!("{name}-ours"),
             code.as_bytes(),
             &format,
         );
@@ -474,7 +474,7 @@ impl Checker<'_> {
                 .as_str()
                 .unwrap()
                 .replace("$SITE", site)
-                .replace("ns-hugo-", "ns-neohugo-");
+                .replace("ns-hugo-", "ns-ssg-");
             if let Some(script) = path.strip_suffix(".map") {
                 if script != out.target_path {
                     return Err(format!("map at {path}, target {}", out.target_path));

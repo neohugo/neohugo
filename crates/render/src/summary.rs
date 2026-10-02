@@ -165,7 +165,7 @@ fn word_weight(w: &str, cjk: bool) -> usize {
         return 0;
     }
     if cjk {
-        let plain = neohugo_markup::text::strip_html(w);
+        let plain = ssg_markup::text::strip_html(w);
         let chars = plain.chars().count();
         if chars != plain.len() {
             return chars;
@@ -194,7 +194,7 @@ fn is_html_token(w: &str) -> bool {
 /// newlines, other newlines spaces), runs of white space kept as their first character.
 #[must_use]
 pub fn plain(html: &str) -> String {
-    let stripped = neohugo_markup::text::strip_html(html);
+    let stripped = ssg_markup::text::strip_html(html);
     let mut out = String::with_capacity(stripped.len());
     let mut was_space = false;
     for c in stripped.chars() {
@@ -210,7 +210,7 @@ pub fn plain(html: &str) -> String {
 /// Hugo's `.WordCount`, `.FuzzyWordCount` and `.ReadingTime` of `plain`.
 #[must_use]
 pub fn counts(plain: &str, cjk: bool) -> (usize, usize, usize) {
-    let words = neohugo_markup::text::word_count(plain, cjk);
+    let words = ssg_markup::text::word_count(plain, cjk);
     let fuzzy = (words + 100) / 100 * 100;
     let reading = if cjk {
         words.div_ceil(501)

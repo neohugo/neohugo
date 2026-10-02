@@ -4,7 +4,7 @@
 use std::fmt;
 use std::path::PathBuf;
 
-use neohugo_base::diag::Position;
+use ssg_base::diag::Position;
 
 /// Why the configuration could not be loaded.
 #[derive(Debug, thiserror::Error)]
@@ -17,11 +17,11 @@ pub enum ConfigError {
         source: std::io::Error,
     },
     /// Neither a configuration file nor a configuration directory was found.
-    #[error("no configuration file (neohugo.toml, neohugo.yaml, neohugo.json, or config.*) or config directory in {}", dir.display())]
+    #[error("no configuration file (config.toml, config.yaml, config.yml or config.json) or config directory in {}", dir.display())]
     NotFound { dir: PathBuf },
     /// A theme (`theme`, `[[module.imports]]`) is not in the themes directory, in the project's
     /// `_vendor` directory or at the absolute path given.
-    #[error("theme {name:?} not found: {} does not exist (neohugo reads themes from themesDir, _vendor or an absolute path; Hugo Modules are not downloaded)", dir.display())]
+    #[error("theme {name:?} not found: {} does not exist (themes are read from themesDir, _vendor or an absolute path; Hugo Modules are not downloaded)", dir.display())]
     ThemeNotFound { name: String, dir: PathBuf },
     /// A theme of a theme is imported with an absolute path or a path outside the themes
     /// directory.

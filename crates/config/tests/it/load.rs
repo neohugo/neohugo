@@ -7,8 +7,8 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_config::Config;
 use serde_json::Value as J;
+use ssg_config::Config;
 
 use crate::support::{Site, Tally, dump, fixture, materialize, strip};
 
@@ -19,7 +19,7 @@ struct ExpectedDiffs {
 }
 
 fn expected_diffs() -> BTreeMap<String, String> {
-    let path = neohugo_testkit::fixture::repo_dir().join("crates/config/expected_diffs.toml");
+    let path = ssg_testkit::fixture::repo_dir().join("crates/config/expected_diffs.toml");
     let text = std::fs::read_to_string(&path).unwrap_or_default();
     let d: ExpectedDiffs = toml::from_str(&text).expect("expected_diffs.toml");
     d.load
@@ -108,7 +108,7 @@ fn compare(site: &Site, c: &Config, want: &J, tally: &mut Tally, case: &str) {
             ),
             (
                 "rtl",
-                J::from(s.language.direction == neohugo_config::Direction::Rtl),
+                J::from(s.language.direction == ssg_config::Direction::Rtl),
                 J::from(lang["languageDirection"].as_str() == Some("rtl")),
             ),
         ];
@@ -247,7 +247,7 @@ fn run_group(name: &str) -> GroupResult {
                 continue;
             }
         };
-        let result = neohugo_config::load(&site.options);
+        let result = ssg_config::load(&site.options);
         let want = &row["result"];
         let want_err = want.get("err").and_then(J::as_str);
         match (&result, want_err) {
@@ -260,7 +260,7 @@ fn run_group(name: &str) -> GroupResult {
                 compare(&site, c, want, &mut out.tally, case_name);
                 if SNAPSHOT_CASES.contains(&case_name) {
                     let name = case_name.replace('/', "-");
-                    neohugo_testkit::snapshot::settings().bind(|| {
+                    ssg_testkit::snapshot::settings().bind(|| {
                         insta::assert_yaml_snapshot!(name, crate::sites::snapshot(c));
                     });
                 }

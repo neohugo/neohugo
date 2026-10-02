@@ -8,10 +8,10 @@ use std::cmp::Ordering;
 use std::sync::Arc;
 
 use jiff::Zoned;
-use neohugo_base::{Collate, IdVec, Idx, LangIdx, PageId};
-use neohugo_locale::Collator;
-use neohugo_page::{SortKey, default_order};
-use neohugo_view::ViewCache;
+use ssg_base::{Collate, IdVec, Idx, LangIdx, PageId};
+use ssg_locale::Collator;
+use ssg_page::{SortKey, default_order};
+use ssg_view::ViewCache;
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;
@@ -122,7 +122,7 @@ fn seconds(d: Option<&Zoned>) -> i64 {
 }
 
 /// What Hugo's default order reads from a page.
-fn sort_key(p: &neohugo_site::Page) -> SortKey<'_> {
+fn sort_key(p: &ssg_site::Page) -> SortKey<'_> {
     SortKey {
         weight: p.meta.weight,
         date: p.meta.dates.date.as_ref(),

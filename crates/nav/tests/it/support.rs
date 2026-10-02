@@ -8,17 +8,17 @@ use std::sync::Arc;
 
 use jiff::Zoned;
 use jiff::tz::{Offset, TimeZone};
-use neohugo_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
-use neohugo_base::{FormatId, Idx, LangIdx, Map, MediaTypeId, PageId, PageKind, Params, Value};
-use neohugo_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
-use neohugo_config::{Config, LoadOptions, OutputFormat, SitemapConfig};
-use neohugo_nav::{NavModel, PageFacts, Rendering};
-use neohugo_page::{
+use serde_json::Value as J;
+use ssg_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
+use ssg_base::{FormatId, Idx, LangIdx, Map, MediaTypeId, PageId, PageKind, Params, Value};
+use ssg_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
+use ssg_config::{Config, LoadOptions, OutputFormat, SitemapConfig};
+use ssg_nav::{NavModel, PageFacts, Rendering};
+use ssg_page::{
     Cjk, DateResolver, Dates, ListMode, MetaCtx, PageMenuEntry, PathShape, SourcePath, TargetPaths,
     meta_from_params,
 };
-use neohugo_testkit::fixture::{Tag, oracle, repo_dir, repo_file};
-use serde_json::Value as J;
+use ssg_testkit::fixture::{Tag, oracle, repo_dir, repo_file};
 
 /// A fixture under `testdata/oracle/`.
 pub fn fixture(rel: &str) -> J {
@@ -27,7 +27,7 @@ pub fn fixture(rel: &str) -> J {
 
 /// The files of a fixture family (`page/menus`), without the ones in `skip`.
 pub fn family(dir: &str, skip: &[&str]) -> Vec<String> {
-    let path = neohugo_testkit::fixture::testdata(&format!("oracle/{dir}"));
+    let path = ssg_testkit::fixture::testdata(&format!("oracle/{dir}"));
     let mut names: Vec<String> = fs::read_dir(&path)
         .unwrap_or_else(|e| panic!("{}: {e}", path.display()))
         .map(|e| {
@@ -98,7 +98,7 @@ pub fn zoned(v: &J) -> Option<Zoned> {
 pub fn value(v: &J) -> Value {
     if let Some(tag) = Tag::of(v) {
         return match tag {
-            Tag::Time(t) => Value::Date(neohugo_base::Date::Zoned(parse_time(t))),
+            Tag::Time(t) => Value::Date(ssg_base::Date::Zoned(parse_time(t))),
             Tag::Float(f) => Value::Float(f),
             other => panic!("unexpected tag {other:?}"),
         };
@@ -219,7 +219,7 @@ pub fn oracle_paths(entries: &J) -> Vec<OraclePath> {
 /// The front matter menus of a page's params, decoded the way the page model does.
 ///
 /// # Errors
-/// What `neohugo-page` rejects.
+/// What `ssg-page` rejects.
 pub fn page_menus(params: &Params) -> Result<Vec<PageMenuEntry>, String> {
     let mut only = Map::new();
     for key in ["menus", "menu"] {
@@ -230,8 +230,8 @@ pub fn page_menus(params: &Params) -> Result<Vec<PageMenuEntry>, String> {
     if only.is_empty() {
         return Ok(Vec::new());
     }
-    let types = neohugo_config::MediaTypes::default();
-    let formats = neohugo_config::OutputFormats::builtin(&types);
+    let types = ssg_config::MediaTypes::default();
+    let formats = ssg_config::OutputFormats::builtin(&types);
     let resolver = DateResolver::new(&[]);
     let ctx = MetaCtx {
         kind: PageKind::Page,
@@ -415,7 +415,7 @@ impl NavModel for DumpSite {
     }
 }
 
-/// A project directory with `neohugo.json` = `config` and the given files.
+/// A project directory with `config.json` = `config` and the given files.
 pub struct Project {
     pub _tmp: tempfile::TempDir,
     pub cfg: Arc<Config>,
@@ -428,16 +428,16 @@ impl Project {
         let tmp = tempfile::tempdir().expect("tempdir");
         let dir = tmp.path().join("site");
         fs::create_dir_all(&dir).expect("mkdir");
-        fs::write(dir.join("neohugo.json"), config.to_string()).expect("write");
+        fs::write(dir.join("config.json"), config.to_string()).expect("write");
         Self::try_at(tmp, &dir)
     }
 
-    /// A recorded site (`neohugo.toml` and its files).
+    /// A recorded site (`config.toml` and its files).
     pub fn recorded(site: &J) -> Self {
         let tmp = tempfile::tempdir().expect("tempdir");
         let dir = tmp.path().join(s(&site["name"]));
         fs::create_dir_all(&dir).expect("mkdir");
-        fs::write(dir.join("neohugo.toml"), s(&site["toml"])).expect("write");
+        fs::write(dir.join("config.toml"), s(&site["toml"])).expect("write");
         for f in site["files"].as_array().expect("files") {
             let fp = dir.join(s(&f["path"]));
             fs::create_dir_all(fp.parent().expect("parent")).expect("mkdir");
@@ -456,7 +456,7 @@ impl Project {
 
     fn try_at(tmp: tempfile::TempDir, dir: &Path) -> Result<Self, String> {
         let home = tmp.path().join("home");
-        let cfg = neohugo_config::load(&LoadOptions {
+        let cfg = ssg_config::load(&LoadOptions {
             source: dir.to_path_buf(),
             env: vec![("HOME".into(), home.to_string_lossy().into_owned())],
             ..LoadOptions::default()
@@ -574,10 +574,10 @@ pub fn to_json(v: &Value) -> J {
         Value::Int(i) => J::from(*i),
         Value::Float(f) => J::from(*f),
         Value::String(s) => J::from(&**s),
-        Value::Date(neohugo_base::Date::Zoned(z)) => {
+        Value::Date(ssg_base::Date::Zoned(z)) => {
             serde_json::json!({ "$nh:time": z.timestamp().to_string() })
         }
-        Value::Date(neohugo_base::Date::Local(dt)) => {
+        Value::Date(ssg_base::Date::Local(dt)) => {
             serde_json::json!({ "$nh:local": dt.to_string() })
         }
         Value::Array(a) => J::Array(a.iter().map(to_json).collect()),

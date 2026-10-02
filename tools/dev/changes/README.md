@@ -1,18 +1,18 @@
-# Ratchet changes (`tools/neohugo/changes/<task-id>.md`)
+# Ratchet changes (`tools/dev/changes/<task-id>.md`)
 
-The acceptance comparison (`tools/neohugo/compare.sh`, `tools/neohugo/structdiff.py`;
+The acceptance comparison (`tools/dev/compare.sh`, `tools/dev/structdiff.py`;
 docs/rust-port/REWRITE_PLAN.md §7.2) compares the Rust build of a site with the golden data of the
 Go build (`testdata/golden/`, frozen at `44529028`), file by file and level by level, and
 checks the result against the site's **baseline** (`testdata/baselines/<label>.json`). A task
 may change the baseline only by listing every change in its own changes file,
-`tools/neohugo/changes/<task-id>.md`, with exactly one triage class and a one-line reason. **An
+`tools/dev/changes/<task-id>.md`, with exactly one triage class and a one-line reason. **An
 unlisted new or changed difference fails the run.**
 
 ```sh
-tools/neohugo/compare.sh seeksnack --task T62            # compare; fails on unlisted changes
-tools/neohugo/compare.sh seeksnack --task T62 --update   # also write the baseline (listed changes)
-tools/neohugo/compare.sh seeksnack --report-only         # the numbers, never fails
-tools/neohugo/structdiff.py changes                      # validate every changes file
+tools/dev/compare.sh seeksnack --task T62            # compare; fails on unlisted changes
+tools/dev/compare.sh seeksnack --task T62 --update   # also write the baseline (listed changes)
+tools/dev/compare.sh seeksnack --report-only         # the numbers, never fails
+tools/dev/structdiff.py changes                      # validate every changes file
 ```
 
 ## Entries
@@ -52,7 +52,7 @@ is an error. An entry that matches no change is reported as unused.
 
 ## The baseline
 
-`testdata/baselines/<label>.json` (schema `neohugo-baseline/1`; gzipped when over 256 KiB):
+`testdata/baselines/<label>.json` (schema `ssg-baseline/1`; gzipped when over 256 KiB):
 per file (`files`) and per structure fact (`structure`), per level, the status of the last
 accepted run: `"ok"`, or `{"status": "diff" | "missing" | "extra", "fp": "<diff fingerprint>",
 "class": "…", "task": "…", "reason": "…"}` with the class, task and reason of the entry that

@@ -1,26 +1,26 @@
 //! Oracle: menus (`oracle/page/menus/*`, Hugo's `menu_test.go` sites, docs and a nested
-//! multilingual site). The configured menus are decoded by `neohugo-config` from the recorded
-//! `menus` tables, the pages' own entries by `neohugo-page` from their front matter; then the
+//! multilingual site). The configured menus are decoded by `ssg-config` from the recorded
+//! `menus` tables, the pages' own entries by `ssg-page` from their front matter; then the
 //! assembled menus (tree, order, names, titles, URLs, weights, parents, params), the pages' own
 //! entries, `IsMenuCurrent`/`HasMenuCurrent` for every page and entry, and the menu sorts must
 //! equal Hugo's.
 
 use std::collections::BTreeMap;
 
-use neohugo_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
-use neohugo_base::{Idx, LangIdx, PageId, Params};
-use neohugo_config::sections::MenuEntryConfig;
-use neohugo_nav::{
+use serde_json::{Value as J, json};
+use ssg_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
+use ssg_base::{Idx, LangIdx, PageId, Params};
+use ssg_config::sections::MenuEntryConfig;
+use ssg_nav::{
     MenuEntry, MenuOptions, NavModel, SiteMenus, build_site_menus, compare_names, menu_order,
     page_menu_entries,
 };
-use serde_json::{Value as J, json};
 
 use crate::support::{
     DumpSite, Project, Tally, family, fixture, idx, page_id, page_menus, s, value,
 };
 
-/// The configured entries of a `menus` table, as `neohugo-config` decodes them.
+/// The configured entries of a `menus` table, as `ssg-config` decodes them.
 fn config_entries(menus: &J) -> Result<Vec<MenuEntryConfig>, String> {
     let menus = if menus.is_null() {
         json!({})

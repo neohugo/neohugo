@@ -1,31 +1,31 @@
-# neohugo template API
+# Template API
 
-<!-- GENERATED from neohugo_funcs::spec (crates/funcs/src/spec.rs); do not edit.
-     Regenerate: INSTA_UPDATE=always cargo test -p neohugo-testkit contract -->
+<!-- GENERATED from ssg_funcs::spec (crates/funcs/src/spec.rs); do not edit.
+     Regenerate: INSTA_UPDATE=always cargo test -p ssg-testkit contract -->
 
-Templates are Tera 2.4.0 ([REWRITE_PLAN.md](REWRITE_PLAN.md) §4). Kind codes: `bi` Tera built-in, `tc` tera-contrib, `F` neohugo filter, `fn` neohugo function, `T` neohugo test; `(s)` site-bound (needs the site model or the render scope). Phase: `both`, or the only phase the name works in. `=?` marks an optional kwarg, `…` any further kwargs.
+Templates are Tera 2.4.0 ([REWRITE_PLAN.md](REWRITE_PLAN.md) §4). Kind codes: `bi` Tera built-in, `tc` tera-contrib, `F` native filter, `fn` native function, `T` native test; `(s)` site-bound (needs the site model or the render scope). Phase: `both`, or the only phase the name works in. `=?` marks an optional kwarg, `…` any further kwargs.
 
 ## Render contexts
 
 | Render | Top-level names |
 |---|---|
-| Layout job | `page`, `site`, `neohugo`, `lang`, `output_format`, `__nh` |
-| Shortcode | `page`, `site`, `neohugo`, `lang`, `shortcode`, `inner`, `inner_deindent`, `__nh` |
-| Render hook | `page`, `page_inner`, `site`, `neohugo`, `lang`, `__nh`, plus the hook's fields, flattened (below) |
-| `partial(name=…, …)` | `page`, `site`, `neohugo`, `lang`, `output_format`, `__nh`, plus the call's kwargs as top-level names |
-| Component | only its declared arguments; `@page`, `@site`, `@neohugo`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope) |
-| `defer` template | `data`, `site`, `neohugo`, `__nh` |
-| `execute_as_template` | `data`, `site`, `neohugo`, `__nh` |
-| Alias | `permalink`, `page`, `site`, `neohugo` |
-| Sitemap, robots, 404 | `page`, `site`, `neohugo`, `lang`, `__nh` |
-| Sitemapindex | `page`, `site`, `neohugo`, `lang`, `__nh`, `sites` |
-| Content adapter (`content/**/_content.html`) | `site`, `neohugo`, `lang`, `__nh`, `site` has no page lists (`home`, `pages`, `regular_pages`, `all_pages`, `sections`, `main_sections`, `taxonomies`, `menus`): the model is not built yet |
+| Layout job | `page`, `site`, `build`, `lang`, `output_format`, `__nh` |
+| Shortcode | `page`, `site`, `build`, `lang`, `shortcode`, `inner`, `inner_deindent`, `__nh` |
+| Render hook | `page`, `page_inner`, `site`, `build`, `lang`, `__nh`, plus the hook's fields, flattened (below) |
+| `partial(name=…, …)` | `page`, `site`, `build`, `lang`, `output_format`, `__nh`, plus the call's kwargs as top-level names |
+| Component | only its declared arguments; `@page`, `@site`, `@build`, `@lang` and `@__nh` may be declared as implicit arguments (looked up in the caller's scope) |
+| `defer` template | `data`, `site`, `build`, `__nh` |
+| `execute_as_template` | `data`, `site`, `build`, `__nh` |
+| Alias | `permalink`, `page`, `site`, `build` |
+| Sitemap, robots, 404 | `page`, `site`, `build`, `lang`, `__nh` |
+| Sitemapindex | `page`, `site`, `build`, `lang`, `__nh`, `sites` |
+| Content adapter (`content/**/_content.html`) | `site`, `build`, `lang`, `__nh`, `site` has no page lists (`home`, `pages`, `regular_pages`, `all_pages`, `sections`, `main_sections`, `taxonomies`, `menus`): the model is not built yet |
 
 | Name | Meaning |
 |---|---|
 | `page` | the full page value of the Full generation |
 | `site` | `SiteView` of the current language |
-| `neohugo` | `NeohugoView`: version, environment, generator |
+| `build` | `BuildView`: version, environment, generator |
 | `lang` | the language code of the page |
 | `output_format` | `OutputFormatView` being rendered |
 | `__nh` | the render scope (`RenderScope`); read by site-bound functions |
@@ -67,7 +67,7 @@ Flattened render-hook fields:
 | `.GetTerms "tags"` | `page.terms.tags` |
 | `.Data.Singular/Plural/Term/Terms` | `page.taxonomy.singular/plural/terms`, `page.term.term` |
 | `.OutputFormats.Get "rss"`, `.AlternativeOutputFormats`, `.MediaType` | `page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type` |
-| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `neohugo.version` (`"0.149.0-DEV"`), `neohugo.environment`, `neohugo.is_production`, `neohugo.is_development`, `neohugo.is_server`, `neohugo.generator` |
+| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `build.version` (`"0.149.0-DEV"`), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator` |
 | `.Site.ServerPort` | `site.server_port` (the base URL's port, 0 without one) |
 | `.Site.Config.Privacy.*` | `site.config.privacy.*` |
 | `.Data.Integrity`, `.Width`, `.Height` | `r.data.integrity`, `r.width`, `r.height` |
@@ -444,7 +444,7 @@ Loaded under the fallback prefix `_embedded/`; a user or theme template of the s
 
 ## Tera facts
 
-Verified against the tera 2.4.0 source and by the `tera_facts` tests of neohugo-testkit.
+Verified against the tera 2.4.0 source and by the `tera_facts` tests of ssg-testkit.
 
 - `__nh` is an ordinary identifier (a leading `_` is allowed) and `@__nh` a valid implicit component argument, resolved through the callers' scopes; a component that does not declare it cannot see it.
 - Component call arguments are `name={expr}`, `name="literal"` or the shorthand `name`; `name=expr` is a syntax error.

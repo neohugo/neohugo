@@ -4,9 +4,9 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use neohugo_locale::MessageFile;
 use serde::Deserialize;
 use serde_json::Value as J;
+use ssg_locale::MessageFile;
 
 use crate::common::expected_diffs;
 
@@ -58,7 +58,7 @@ fn our_messages(file: &MessageFile) -> Messages {
 
 #[test]
 fn message_file_layouts_oracle() {
-    let fixture: Fixture = neohugo_testkit::fixture::oracle("oracle/i18n/parse/parse.json.gz");
+    let fixture: Fixture = ssg_testkit::fixture::oracle("oracle/i18n/parse/parse.json.gz");
     let listed = expected_diffs().parse.cases;
     let mut failures = Vec::new();
     let mut agreed = 0;

@@ -1,4 +1,4 @@
-//! Integration tests of `neohugo-sitefuncs` (the crate's single test binary, REWRITE_PLAN.md §2.2).
+//! Integration tests of `ssg-sitefuncs` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 
 mod adapters;
 mod content;

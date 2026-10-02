@@ -5,8 +5,8 @@ use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::sync::{Arc, PoisonError, RwLock};
 
-use neohugo_base::url::SiteUrls;
-use neohugo_base::{anchor, inflect, title};
+use ssg_base::url::SiteUrls;
+use ssg_base::{anchor, inflect, title};
 use tera::{Kwargs, TeraResult, Value};
 
 use super::value::{same_safety, text};

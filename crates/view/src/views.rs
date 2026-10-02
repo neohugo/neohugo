@@ -10,11 +10,11 @@
 //! (`.Site.MainSections`); menu entries have `key_name` and `parent`.
 
 use jiff::Zoned;
-use neohugo_base::{PageKind, Params, Value};
-use neohugo_config::Config;
-use neohugo_config::media::MediaType;
-use neohugo_config::site::SiteConfig;
 use serde::Serialize;
+use ssg_base::{PageKind, Params, Value};
+use ssg_config::Config;
+use ssg_config::media::MediaType;
+use ssg_config::site::SiteConfig;
 
 use crate::content::RenderedContent;
 
@@ -301,7 +301,7 @@ pub struct FragmentsView {
 
 impl FragmentsView {
     #[must_use]
-    pub fn new(f: &neohugo_markup::Fragments) -> Self {
+    pub fn new(f: &ssg_markup::Fragments) -> Self {
         Self {
             headings: f.headings.iter().map(HeadingView::new).collect(),
             identifiers: f.identifiers.clone(),
@@ -319,7 +319,7 @@ pub struct HeadingView {
 }
 
 impl HeadingView {
-    fn new(h: &neohugo_markup::Heading) -> Self {
+    fn new(h: &ssg_markup::Heading) -> Self {
         Self {
             id: h.id.clone(),
             level: h.level,
@@ -510,8 +510,8 @@ impl LanguageView {
             name: l.name.clone(),
             code: l.code.clone(),
             direction: match l.direction {
-                neohugo_config::site::Direction::Ltr => "ltr",
-                neohugo_config::site::Direction::Rtl => "rtl",
+                ssg_config::site::Direction::Ltr => "ltr",
+                ssg_config::site::Direction::Rtl => "rtl",
             }
             .to_owned(),
             weight: l.weight,
@@ -648,11 +648,11 @@ pub struct ShortcodeView {
     pub position: String,
 }
 
-/// `neohugo`: the version and the build environment.
+/// `build`: the version and the build environment.
 #[derive(Clone, Debug, Serialize)]
-pub struct NeohugoView {
+pub struct BuildView {
     pub version: &'static str,
-    pub neohugo_version: &'static str,
+    pub app_version: &'static str,
     pub environment: String,
     pub is_production: bool,
     pub is_development: bool,
@@ -660,19 +660,20 @@ pub struct NeohugoView {
     pub generator: tera::Value,
 }
 
-impl NeohugoView {
-    /// `server`: the build runs in `neohugo server` (`neohugo.is_server`).
+impl BuildView {
+    /// `server`: the build runs in the `server` command (`build.is_server`).
     #[must_use]
     pub fn new(cfg: &Config, server: bool) -> Self {
         Self {
             version: "0.149.0-DEV",
-            neohugo_version: env!("CARGO_PKG_VERSION"),
+            app_version: env!("CARGO_PKG_VERSION"),
             environment: cfg.environment.clone(),
             is_production: cfg.environment == "production",
             is_development: cfg.environment == "development",
             is_server: server,
             generator: tera::Value::safe_string(&format!(
-                r#"<meta name="generator" content="neohugo {}">"#,
+                r#"<meta name="generator" content="{} {}">"#,
+                ssg_base::APP_NAME,
                 env!("CARGO_PKG_VERSION")
             )),
         }
@@ -745,7 +746,7 @@ impl SiteConfigView {
     pub fn new(cfg: &Config, site: &SiteConfig) -> Self {
         let s = &site.services;
         let p = &cfg.privacy;
-        let x = |v: &neohugo_config::global::XPrivacy| PrivacyServiceView {
+        let x = |v: &ssg_config::global::XPrivacy| PrivacyServiceView {
             disable: v.disable,
             simple: v.simple,
             enable_dnt: v.enable_dnt,

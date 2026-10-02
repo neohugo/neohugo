@@ -3,9 +3,9 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use neohugo_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
-use neohugo_base::{IdVec, KindSet, LangIdx, Map, PageKind, Params, TaxonomyIdx, Value, title};
 use serde::{Deserialize, Serialize};
+use ssg_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
+use ssg_base::{IdVec, KindSet, LangIdx, Map, PageKind, Params, TaxonomyIdx, Value, title};
 
 use crate::error::ConfigError;
 use crate::markup::{MarkupConfig, UseEmbedded};
@@ -324,7 +324,7 @@ pub(crate) struct SiteContext<'a> {
     pub use_embedded: UseEmbedded,
     /// The default related-content indices include `tags` (the project has a `tag` taxonomy).
     pub default_has_tags: bool,
-    pub diagnostics: &'a mut Vec<neohugo_base::diag::Diagnostic>,
+    pub diagnostics: &'a mut Vec<ssg_base::diag::Diagnostic>,
 }
 
 pub(crate) fn decode_site(tree: &Map, cx: SiteContext<'_>) -> Result<SiteConfig, ConfigError> {
@@ -541,7 +541,7 @@ pub(crate) fn decode_site(tree: &Map, cx: SiteContext<'_>) -> Result<SiteConfig,
 /// reported and ignored.
 fn disabled_kinds(
     v: Option<&Value>,
-    diagnostics: &mut Vec<neohugo_base::diag::Diagnostic>,
+    diagnostics: &mut Vec<ssg_base::diag::Diagnostic>,
 ) -> (KindSet, bool) {
     let mut set = KindSet::EMPTY;
     let mut rss = false;
@@ -556,7 +556,7 @@ fn disabled_kinds(
         }
         if lower == "taxonomyterm" {
             diagnostics.push(
-                neohugo_base::diag::Diagnostic::warning(
+                ssg_base::diag::Diagnostic::warning(
                     "disableKinds: the kind \"taxonomyTerm\" is deprecated; use \"taxonomy\"",
                 )
                 .with_id("deprecated-disablekinds-taxonomyterm"),
@@ -564,7 +564,7 @@ fn disabled_kinds(
         }
         match PageKind::parse(&lower) {
             Some(k) => set.insert(k),
-            None => diagnostics.push(neohugo_base::diag::Diagnostic::warning(format!(
+            None => diagnostics.push(ssg_base::diag::Diagnostic::warning(format!(
                 "disableKinds: unknown kind {item:?}"
             ))),
         }

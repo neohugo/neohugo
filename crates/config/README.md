@@ -1,4 +1,4 @@
-# neohugo-config
+# ssg-config
 
 The configuration of a project (docs/rust-port/REWRITE_PLAN.md §2.4, §3.1 A1): one
 `Value`-tree pipeline, then typed serde structs whose `Default` holds Hugo's defaults.
@@ -8,21 +8,21 @@ LoadOptions { source, config_files, cli: CliOverrides, env }
   └─ load() ─► Config { sites: IdVec<LangIdx, SiteConfig>, output_formats, media_types, … }
 ```
 
-1. **Bootstrap**: environment = `--environment` → `NEOHUGO_ENVIRONMENT` → `production`;
+1. **Bootstrap**: environment = `--environment` → `FUGO_ENVIRONMENT` → `production`;
    config directory = `--configDir` or `config`.
-2. **Sources** (`source`): the project file, the first that exists of `neohugo.toml`,
-   `neohugo.yaml`, `neohugo.yml`, `neohugo.json`, then `config.*` (same extension order;
+2. **Sources** (`source`): the project file, the first that exists of `config.toml`,
+   `config.yaml`, `config.yml`, `config.json`, then `config.*` (same extension order;
    `config_file_names()`; Hugo's `hugo.*` is not read). When several exist, the first is read and a
    warning (`config-file-ignored`, at the file read) names the others. Or the `--config`
    list (unchanged: first file wins, `custom` finds `custom.toml`…). Then `config/_default/**`
-   and `config/<env>/**` in path order. A file's name places it: `neohugo.*` and `config.*` at
+   and `config/<env>/**` in path order. A file's name places it: `fugo.*` and `config.*` at
    the root (`hugo.*` is an ordinary file, under `hugo`), `params.en.toml` under `languages.en.params`, `menus.en.toml` (or
    `menu.en.toml`) under `languages.en.menus`, `name.toml` under `name`.
 3. **Normalise** (`tree::normalize_keys`: lower-case keys except inside arrays, `menu` →
    `menus`, drop `internal`) and **migrate legacy keys** (`tree::LEGACY_KEYS`, applied at the
    root and in each language table; a current key wins; each migration is a deprecation
    `Diagnostic`).
-4. **Merge once**: file < `_default` < `<env>` < CLI (`CliOverrides::to_tree`) < `NEOHUGO_*`
+4. **Merge once**: file < `_default` < `<env>` < CLI (`CliOverrides::to_tree`) < `FUGO_*`
    (`env`). `disableKinds`/`disableLanguages` strings are split on commas and white space.
    `_merge = "none"` in a table makes it replace instead of merge (a later file's `_merge`
    wins over an earlier one's).
@@ -59,10 +59,10 @@ LoadOptions { source, config_files, cli: CliOverrides, env }
   list) renames `[[module.imports]]` paths (not `theme` names, as in Hugo). A theme's own
   imports must stay below `themesDir` unless replaced. An import that is not found is an
   error (`ConfigError::ThemeNotFound`): Hugo Modules are not downloaded.
-- Configuration: the first of `neohugo.*`, `config.*` in the theme's directory
+- Configuration: the first of `fugo.*`, `config.*` in the theme's directory
   (with the same warning), then its `config/_default/**` and `config/<environment>/**`,
   assembled like the project's. `theme.toml` is theme-site metadata, not configuration.
-- Mounts (`Theme::mounts`, used by `neohugo-vfs`): the importer's `[[module.imports.mounts]]`,
+- Mounts (`Theme::mounts`, used by `ssg-vfs`): the importer's `[[module.imports.mounts]]`,
   else the theme's own `[[module.mounts]]` (sources relative to the theme's directory), else
   `ThemeMounts::Components` (each component directory it has, plus its JS config files);
   `noMounts` gives `ThemeMounts::None`. Mount targets are validated here, located in the file
@@ -109,7 +109,7 @@ one.
 | item | what |
 |---|---|
 | `load(&LoadOptions) -> Result<Config, ConfigError>` | the pipeline |
-| `LoadOptions` | `source`, `config_files`, `cli`, `env` (the process environment: `NEOHUGO*` plus `HOME`, `XDG_CACHE_HOME`, `TMPDIR`, `USER`) |
+| `LoadOptions` | `source`, `config_files`, `cli`, `env` (the process environment: `FUGO*` plus `HOME`, `XDG_CACHE_HOME`, `TMPDIR`, `USER`) |
 | `CliOverrides` | typed CLI layer (`base_url`, `environment`, `destination`, `minify`, `build_drafts/future/expired`, `cache_dir`, `themes_dir`, `theme`, `ignore_cache`, `config_dir`, `no_times`, `no_chmod`); `to_tree()` |
 | `Config` | `project_dir`, `environment`, `config_files` (the themes' then the project's, lowest precedence first), `sites`, `disabled_languages`, `multihost`, `default_language_in_subdir`, `output_formats: Arc<OutputFormats>`, `media_types: Arc<MediaTypes>`, `content_types`, `default_output_format`, `dirs`, `cache_dir`, `mounts`, `themes: Vec<Theme>`, `build`, `caches`, `security`, `privacy`, `imaging`, `minify`, `content: ContentFilter`, `timeout`, `ignore_files`, `ignore_logs`, `enable_git_info`, `raw: Params`, `diagnostics` (deprecations, ignored configuration files; the build reports them); `default_site()`, `site(key)` |
 | `Theme` / `ThemeMounts` (`theme`) | a theme in precedence order: `path`, `dir`, `owner`, `config_files`, `mounts` (`Components`, `Configured(Vec<MountConfig>)`, `None`), `vendored`; `theme::path_key` |
@@ -124,14 +124,14 @@ one.
 
 ## Acceptance (T13)
 
-`cargo test -p neohugo-config -- --nocapture` prints the tallies.
+`cargo test -p ssg-config -- --nocapture` prints the tallies.
 
 | bullet | evidence |
 |---|---|
 | `nh-allconfig/load` values for docs, testsite, reconstruction | `load::acceptance_sites` (strict, no accepted differences): `repo/docs`, `repo/docs-development`, `repo/testsite` 294/294 checks, `seeksnack/{config,build,build-env-development}` 426/426. Each case compares the language order, multihost, timeout, compiled cache directories, per-language facts (baseURL, prefix, name, weight, title, time zone, direction), kind outputs, disabled kinds, and 57 keys of Go's per-language `hugo config` dump (zero values ignored; `[minify.tdewolff]` defaults belong to the minify crate) |
 | … and t24 sites | `sites::t24_sites`: the 17 `hugolib/assemble` sites load; languages equal Go's for all; the formats of the enabled kinds equal Go's `.Site` render formats for 25 of 26 site languages (`asm-taxo` adds `json` in page front matter, which the site config cannot know; the check is "a subsequence of Go's") |
 | other `load` groups (coverage) | `load::other_groups`: basic 2738/2747, configdir 1015/1015, env 2051/2054, languages 2287/2290, merge 1777/1780, mounts 1045/1045, sections 3128/3139, themes 1135/1136; every difference is listed in `expected_diffs.toml` with its reason (a configured media type's `delimiter`, which Go's dump shows as written, is compared as decoded) |
-| themes (C1) | the `merge/*` and `themes/*` groups above compare every merged value of Go's per-language dumps (params, language params, menus, output formats, media types, taxonomies, languages, …); `themes::*` ports `hugolib/config_test.go` (`TestLoadConfigFromThemes` default/shallow/no params/sitemap by root strategy, `TestLoadConfigFromThemeDir`, `TestLoadConfigThemeLanguage`, `TestLoadConfigModules`, `TestConfigOutputFormatDefinedInTheme`), `config/allconfig` (`TestMergeDeep`, `TestMergeDeepBuildStats*`) and `modules` (`TestDecodeConfig*`, `TestPathKey`) with their expected values, plus the lookup order, the rules above and error positions in theme files; `neohugo-vfs` `mounts::theme_mounts_match_go` compares the 30 themes of the oracle cases (order, directory, vendoring, owner, mounts) |
+| themes (C1) | the `merge/*` and `themes/*` groups above compare every merged value of Go's per-language dumps (params, language params, menus, output formats, media types, taxonomies, languages, …); `themes::*` ports `hugolib/config_test.go` (`TestLoadConfigFromThemes` default/shallow/no params/sitemap by root strategy, `TestLoadConfigFromThemeDir`, `TestLoadConfigThemeLanguage`, `TestLoadConfigModules`, `TestConfigOutputFormatDefinedInTheme`), `config/allconfig` (`TestMergeDeep`, `TestMergeDeepBuildStats*`) and `modules` (`TestDecodeConfig*`, `TestPathKey`) with their expected values, plus the lookup order, the rules above and error positions in theme files; `ssg-vfs` `mounts::theme_mounts_match_go` compares the 30 themes of the oracle cases (order, directory, vendoring, owner, mounts) |
 | media tables equal | `media::builtin_media_tables`: the 41 built-in types (field by field, sorted: main, sub, mime suffix, suffixes, delimiter, first/full suffix) and the 6 default content types equal Go's; `media::output_formats`: the 15 built-in output formats in render order, every field |
 | `[mediaTypes]`/`[outputFormats]` decoding | DecodeTypes 1165/1410 equal, DecodeConfig 1203/1530 equal; named cases that differ are listed in `tests/it/media.rs` with reasons; generated cases are tallied by category (see deviation 8) |
 | legacy-key table on a synthetic S-style config | `api::legacy_keys`: a seeksnack-style config written with every legacy key (root and language level) decodes to the current settings; the deprecation notices are an insta snapshot |
@@ -156,7 +156,7 @@ one.
      themes, which then hides a theme's `languages.X.languageCode` under a `deep` merge; that
      step is not reproduced.
 2. **Project-wide settings come from the default language.** Go keeps imaging, media types and
-   output formats per language; neohugo has one of each per project (the default language's).
+   output formats per language; fugo has one of each per project (the default language's).
    Per-language `contentDir` and `staticDir` are kept (`SiteConfig::content_dir`, `static_dirs`).
 3. **Untyped sections**: `deployment` (`hugo deploy` is not ported), `segments`, `httpCache`,
    `server`, `module` workspace/hugoVersion and `[minify.tdewolff]` stay in `Config::raw`;
@@ -164,31 +164,31 @@ one.
    `module.replacements` are read and checked by the theme step). Resample filter names are
    the images crate's (T41).
 4. **Errors instead of silently ignored values**: a `[caches]` entry that is not a table,
-   `NEOHUGO_SITEMAP=weekly` (a table expected), an output format without a media type, a missing
+   `FUGO_SITEMAP=weekly` (a table expected), an output format without a media type, a missing
    `--config` file, no configuration at all (Go leaves that check to the CLI), invalid media
    type keys (`/`, `text/`).
-5. **Lists in `NEOHUGO_*`** written as `['a']` are parsed as lists (Go keeps the literal string as
+5. **Lists in `FUGO_*`** written as `['a']` are parsed as lists (Go keeps the literal string as
    one pattern); a number of seconds written as a string is a valid `maxAge`.
 6. **`disableLanguages` inside a language table** is ignored (a root-only setting; Go applies
    the default language's merged value).
-7. **The cache directory is never created while loading**: `$XDG_CACHE_HOME/neohugo_cache` (or
-   `$HOME/.cache/neohugo_cache`; Go: `hugo_cache`) is used when its first existing ancestor is a
-   directory, else `$TMPDIR/neohugo_cache_$USER`. A relative `cacheDir` (or `:project/…`) is an error, as in Go.
+7. **The cache directory is never created while loading**: `$XDG_CACHE_HOME/fugo_cache` (or
+   `$HOME/.cache/fugo_cache`; Go: `hugo_cache`) is used when its first existing ancestor is a
+   directory, else `$TMPDIR/fugo_cache_$USER`. A relative `cacheDir` (or `:project/…`) is an error, as in Go.
 8. **No mapstructure weak decoding of struct fields**: a media type entry can set only
    `suffixes` and `delimiter` (not `mainType`, `subType`, `type`, `firstSuffix`,
    `suffixesCSV`), an output format's name is its key, non-string suffixes and fractional
    weights are rejected, and keys are normalised before decoding (so `RSS` and `rss` collide).
    These account for all differences of the generated `media` cases.
 9. `--clock` is not configuration (the CLI parses it into `base::Clock`).
-10. **neohugo's names instead of Hugo's**: no `hugo.*` configuration file (the oracle cases'
-   are replayed as `neohugo.*`, `neohugo_testkit::fixture::neohugo_path`); `build.writeStats` (the
+10. **fugo's names instead of Hugo's**: no `hugo.*` configuration file (the oracle cases'
+   are replayed as `fugo.*`, `ssg_testkit::fixture::local_path`); `build.writeStats` (the
    legacy key under `[build]`, as Go reads it) migrated to `build.buildStats.enable`, whose file
-   is `neohugo_stats.json` (`global::STATS_FILE`). **`NEOHUGO_*` instead of `HUGO_*`**: the overrides (`env::PREFIX`; `NEOHUGO_TITLE`,
-   `NEOHUGOxPARAMSxAPI_KEY`), the environment (`NEOHUGO_ENVIRONMENT` only; Go also read
-   `HUGO_ENV`) and the default `security.funcs.getenv` (`^NEOHUGO_`, `^CI$`). Hugo's `HUGO_*`
-   variables are not read. neohugo's own settings and the harness's variables
-   (`env::RESERVED`: `NEOHUGO_NODE_MODULES`, `NEOHUGO_TIMINGS`, …) are not overrides. The
-   oracle cases recorded Go's names; the tests replay them as `NEOHUGO*`.
+   is `build_stats.json` (`global::STATS_FILE`). **`FUGO_*` instead of `HUGO_*`**: the overrides (`env::PREFIX`; `FUGO_TITLE`,
+   `FUGOxPARAMSxAPI_KEY`), the environment (`FUGO_ENVIRONMENT` only; Go also read
+   `HUGO_ENV`) and the default `security.funcs.getenv` (`^FUGO_`, `^CI$`). Hugo's `HUGO_*`
+   variables are not read. fugo's own settings and the harness's variables
+   (`env::RESERVED`: `FUGO_NODE_MODULES`, `FUGO_TIMINGS`, …) are not overrides. The
+   oracle cases recorded Go's names; the tests replay them as `FUGO*`.
 
 ## Notes for later tasks
 

@@ -1,9 +1,9 @@
 //! Render hooks: the [`Hooks`] trait, the context each hook receives, and the
 //! [`Highlighter`] seam for fenced code no hook handles.
 
-use neohugo_base::diag::Position;
-use neohugo_base::{Map, PageId};
 use serde::Serialize;
+use ssg_base::diag::Position;
+use ssg_base::{Map, PageId};
 
 /// A hook or highlighter failure, reported by [`crate::render`] with the node's position.
 #[derive(Debug, thiserror::Error)]
@@ -256,7 +256,7 @@ pub struct HighlightOptions {
     pub ordinal: u32,
 }
 
-/// Highlights fenced code that no code-block hook handled (implemented by `neohugo-highlight`).
+/// Highlights fenced code that no code-block hook handled (implemented by `ssg-highlight`).
 pub trait Highlighter: Send + Sync {
     /// The HTML of `code` in language `lang`.
     ///

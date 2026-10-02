@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-layouts"
+name = "ssg-layouts"
 description = "Layout templates"
 version.workspace = true
 edition.workspace = true
@@ -22,18 +22,18 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-vfs.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-vfs.workspace = true
 tera.workspace = true
 thiserror.workspace = true
-serde.workspace = true # neohugo_base::define_id! derives serde traits
+serde.workspace = true # ssg_base::define_id! derives serde traits
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 # Only `spec` and `register_placeholders` (a path dependency, so default features can be off:
 # see crates/testkit/Cargo.toml).
-neohugo-funcs = { path = "../funcs", default-features = false }
+ssg-funcs = { path = "../funcs", default-features = false }
 serde_json.workspace = true
 tempfile.workspace = true

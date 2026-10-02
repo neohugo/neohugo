@@ -3,8 +3,8 @@
 use std::collections::{BTreeSet, HashMap};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{FormatId, LangIdx, PageKind};
+use ssg_base::paths::ContentKey;
+use ssg_base::{FormatId, LangIdx, PageKind};
 
 use crate::env::EmbeddedHooks;
 use crate::error::TemplateError;

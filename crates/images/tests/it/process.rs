@@ -4,13 +4,13 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use neohugo_base::ImageOpId;
-use neohugo_images::{
+use serde_json::Value as J;
+use ssg_base::ImageOpId;
+use ssg_images::{
     Anchor, Color, Enqueued, ImageError, ImageFilter, ImageInput, ImageQueue, ImageSpec, Imaging,
     PaddingSpec, Resample,
 };
-use neohugo_testkit::fixture::{oracle, repo_file};
-use serde_json::Value as J;
+use ssg_testkit::fixture::{oracle, repo_file};
 
 use crate::common::{decode, expected_diffs, source_path, synth, write_file};
 

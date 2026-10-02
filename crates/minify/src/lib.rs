@@ -28,12 +28,12 @@ mod xml;
 
 use std::borrow::Cow;
 
-use neohugo_config::MinifyConfig;
+use ssg_config::MinifyConfig;
 
 pub use json::JsonErrorKind;
-pub use neohugo_config::global::MinifyTarget;
 pub use options::{DecodedOptions, IgnoredOption, Options};
 pub use purge::{CssPurges, PURGE_PREFIX, PageNames, PurgeOptions, PurgePlan};
+pub use ssg_config::global::MinifyTarget;
 pub use targets::project_browsers;
 
 /// A minification failure: invalid input, or an invalid option.

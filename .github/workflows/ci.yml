@@ -1,4 +1,4 @@
-# CI and releases of neohugo (the Cargo workspace at the repository root, the neohugo binary):
+# CI and releases (the Cargo workspace at the repository root, the binary of crates/cli):
 # the repository's only build, test and release workflow. DEVELOPMENT.md, "CI and releases",
 # says what runs when, how to cut a release and how to reproduce these jobs locally.
 name: CI
@@ -6,7 +6,7 @@ name: CI
 on:
   push:
     branches: [main, rust-port]
-    # Releases of neohugo: v<workspace version>, e.g. v0.149.0.
+    # Releases: v<workspace version>, e.g. v0.149.0.
     tags: ["v[0-9]*"]
   pull_request:
   workflow_dispatch:
@@ -24,6 +24,10 @@ defaults:
     shell: bash
 
 env:
+  # The program's name: the binary's (`[[bin]] name` in crates/cli/Cargo.toml) and the first word
+  # of its version line, which the smoke test checks; the archives and the release are named
+  # after it.
+  APP_NAME: fugo
   # The toolchain CI builds with: the one the workspace is developed with. Cargo.toml's
   # rust-version (1.96, what rolldown's oxc needs) is the MSRV. A newer clippy brings new lints that -D warnings turns into
   # failures, so this moves only on purpose (DEVELOPMENT.md, "CI and releases").
@@ -68,12 +72,12 @@ jobs:
         run: cargo clippy --workspace --all-targets --locked -- -D warnings
 
       - name: Licence check
-        run: tools/neohugo/licence-check.sh
+        run: tools/dev/licence-check.sh
 
       # structdiff's self-test (§7.2): perturbations of Go's testsite output must be classified
       # correctly, and the ratchet must reject unlisted differences.
       - name: structdiff self-test
-        run: python3 tools/neohugo/selftest.py
+        run: python3 tools/dev/selftest.py
 
       # sites.py's docs patches must match patches.json, and the Tera patch files the layout
       # patches 1:1 (no cargo test checks this).
@@ -97,7 +101,7 @@ jobs:
           save-if: ${{ env.SAVE_CACHE }}
 
       # node on PATH runs the fake-tool tests (small node scripts standing in for PostCSS,
-      # Tailwind and Babel). tools/neohugo/node.sh (pinned npm ci) installs the real tools for
+      # Tailwind and Babel). tools/dev/node.sh (pinned npm ci) installs the real tools for
       # the real-tool tests; a failure fails the job.
       - uses: actions/setup-node@v4
         with:
@@ -105,12 +109,12 @@ jobs:
 
       - name: Node tools
         run: |
-          tools/neohugo/node.sh
-          dir=$(tools/neohugo/node.sh path)
-          echo "NEOHUGO_NODE_MODULES=$dir" >>"$GITHUB_ENV"
-          for tool in postcss:NEOHUGO_POSTCSS_BIN tailwindcss:NEOHUGO_TAILWINDCSS_BIN babel:NEOHUGO_BABEL_BIN; do
+          tools/dev/node.sh
+          dir=$(tools/dev/node.sh path)
+          echo "FUGO_NODE_MODULES=$dir" >>"$GITHUB_ENV"
+          for tool in postcss:FUGO_POSTCSS_BIN tailwindcss:FUGO_TAILWINDCSS_BIN babel:FUGO_BABEL_BIN; do
             bin=$dir/.bin/${tool%%:*}
-            [ -x "$bin" ] || { echo "::error::tools/neohugo/node.sh installed no $bin"; exit 1; }
+            [ -x "$bin" ] || { echo "::error::tools/dev/node.sh installed no $bin"; exit 1; }
             echo "${tool#*:}=$bin" >>"$GITHUB_ENV"
           done
 
@@ -173,14 +177,13 @@ jobs:
             exe: .exe
     env:
       TARGET: ${{ matrix.target }}
-      BINARY: target/${{ matrix.target }}/release/neohugo${{ matrix.exe }}
-      # The static MSVC runtime (cc builds the C code with /MT to match): neohugo.exe then
+      EXE: ${{ matrix.exe }}
+      # The static MSVC runtime (cc builds the C code with /MT to match): the .exe then
       # needs no Visual C++ redistributable. Applies to that target only.
       CARGO_TARGET_X86_64_PC_WINDOWS_MSVC_RUSTFLAGS: -C target-feature=+crt-static
-      # `neohugo version` (crates/cli/src/version.rs) names the commit and the vendor, as the Go
+      # `<binary> version` (crates/cli/src/version.rs) names the commit and the vendor, as the Go
       # releases did (the vendor was their ldflags' vendorInfo); the Version step adds the date.
-      NEOHUGO_BUILD_COMMIT: ${{ github.sha }}
-      NEOHUGO_VENDOR_INFO: neohugo
+      FUGO_BUILD_COMMIT: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
 
@@ -215,19 +218,22 @@ jobs:
       - name: Version
         run: |
           date=$(python -c 'import datetime, sys; sys.stdout.write(datetime.datetime.fromtimestamp(int(sys.argv[1]), datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))' "$(git log -1 --format=%ct)")
-          echo "NEOHUGO_BUILD_DATE=$date" >>"$GITHUB_ENV"
+          echo "FUGO_BUILD_DATE=$date" >>"$GITHUB_ENV"
+          # The vendor and the binary's path, from the name (a job's env cannot read env.APP_NAME).
+          echo "FUGO_VENDOR_INFO=$APP_NAME" >>"$GITHUB_ENV"
+          echo "BINARY=target/$TARGET/release/$APP_NAME$EXE" >>"$GITHUB_ENV"
 
       - name: cargo build --release
-        run: cargo build --release --locked -p neohugo --target "$TARGET"
+        run: cargo build --release --locked -p ssg-cli --target "$TARGET"
 
       - name: Smoke test
         run: |
           line=$("$BINARY" version)
           echo "$line"
           case $line in
-            "neohugo v"*"-$NEOHUGO_BUILD_COMMIT "*" BuildDate=$NEOHUGO_BUILD_DATE VendorInfo=$NEOHUGO_VENDOR_INFO") ;;
+            "$APP_NAME v"*"-$FUGO_BUILD_COMMIT "*" BuildDate=$FUGO_BUILD_DATE VendorInfo=$FUGO_VENDOR_INFO") ;;
             *)
-              echo "::error::\`neohugo version\` does not print 'neohugo v<version>-$NEOHUGO_BUILD_COMMIT <os>/<arch> BuildDate=$NEOHUGO_BUILD_DATE VendorInfo=$NEOHUGO_VENDOR_INFO'"
+              echo "::error::\`$APP_NAME version\` does not print '$APP_NAME v<version>-$FUGO_BUILD_COMMIT <os>/<arch> BuildDate=$FUGO_BUILD_DATE VendorInfo=$FUGO_VENDOR_INFO'"
               exit 1
               ;;
           esac
@@ -238,7 +244,7 @@ jobs:
           # sitemap, RSS and robots.txt they write have no CR, as on Linux and in the Go releases.
           site=target/eol-site
           mkdir -p "$site/content"
-          printf 'baseURL = "https://example.org/"\nenableRobotsTXT = true\n' >"$site/hugo.toml"
+          printf 'baseURL = "https://example.org/"\nenableRobotsTXT = true\n' >"$site/config.toml"
           printf -- '---\ntitle: Home\n---\n' >"$site/content/_index.md"
           "$BINARY" -s "$site" -q
           python -c 'import pathlib, sys; cr = [p for p in sys.argv[1:] if b"\r" in pathlib.Path(p).read_bytes()]; cr and print(f"::error::CR line endings in {cr}"); sys.exit(1 if cr else 0)' \
@@ -248,16 +254,16 @@ jobs:
       # Apache-2.0 ask for them in binary distributions); it fails if a linked crate ships no
       # licence file and is neither MIT nor Apache-2.0 (those get the MIT text, or a reference
       # to the Apache-2.0 text another linked crate ships). package.py writes
-      # neohugo_<version>_<os>-<arch>.tar.gz (.zip for Windows) and its .sha256, after checking
-      # that `neohugo version` prints v<version of Cargo.toml>-$NEOHUGO_BUILD_COMMIT.
+      # <name>_<version>_<os>-<arch>.tar.gz (.zip for Windows) and its .sha256, after checking
+      # that `<binary> version` prints v<version of Cargo.toml>-$FUGO_BUILD_COMMIT.
       - name: Package
         run: |
-          python tools/neohugo/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
-          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) python tools/neohugo/package.py "$BINARY" "$TARGET" dist "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
+          python tools/dev/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
+          SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) python tools/dev/package.py "$BINARY" "$TARGET" dist "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: neohugo-${{ matrix.target }}
+          name: ${{ env.APP_NAME }}-${{ matrix.target }}
           path: dist/*
           if-no-files-found: error
           overwrite: true
@@ -274,12 +280,12 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          pattern: neohugo-*
+          pattern: ${{ env.APP_NAME }}-*
           path: dist
           merge-multiple: true
 
       # The assets of the Go releases: the five archives and goreleaser's checksums file,
-      # neohugo_<version>_checksums.txt ("<sha256>  <archive>" per archive). The build jobs'
+      # <name>_<version>_checksums.txt ("<sha256>  <archive>" per archive). The build jobs'
       # .sha256 files check the artifacts' transfer and make that file; they are not published.
       - name: Checksums
         working-directory: dist
@@ -289,16 +295,16 @@ jobs:
           ls -l
           version=${TAG#v}
           shopt -s nullglob
-          archives=(neohugo_"$version"_*.tar.gz neohugo_"$version"_*.zip)
+          archives=("$APP_NAME"_"$version"_*.tar.gz "$APP_NAME"_"$version"_*.zip)
           sums=(*.sha256)
           if [ "${#archives[@]}" -ne 5 ] || [ "${#sums[@]}" -ne 5 ]; then
             echo "::error::expected 5 archives of $version and their .sha256 files, found ${#archives[@]} and ${#sums[@]}"
             exit 1
           fi
           sha256sum -c "${sums[@]}"
-          LC_ALL=C sort -k 2 "${sums[@]}" >"neohugo_${version}_checksums.txt"
+          LC_ALL=C sort -k 2 "${sums[@]}" >"${APP_NAME}_${version}_checksums.txt"
           rm "${sums[@]}"
-          cat "neohugo_${version}_checksums.txt"
+          cat "${APP_NAME}_${version}_checksums.txt"
 
       # Idempotent: a re-run replaces the assets of the release an earlier run created, and
       # publishes it if that run stopped before (gh creates the release as a draft, uploads the
@@ -333,10 +339,10 @@ jobs:
             exit 0
           fi
           {
-            echo "neohugo $version, built from $GITHUB_SHA."
+            echo "$APP_NAME $version, built from $GITHUB_SHA."
             echo
-            echo "Each archive holds the \`neohugo\` binary, \`README.md\`, \`LICENSE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
-            echo "Check a download with \`sha256sum -c neohugo_${version}_checksums.txt --ignore-missing\` (on macOS: \`shasum -a 256 -c neohugo_${version}_checksums.txt --ignore-missing\`)."
+            echo "Each archive holds the \`$APP_NAME\` binary, \`README.md\`, \`LICENSE\`, \`NOTICE\`, \`THIRD_PARTY_NOTICES.txt\` (the licences of the linked crates), \`PROVENANCE.md\` and \`THIRD_PARTY/\`."
+            echo "Check a download with \`sha256sum -c ${APP_NAME}_${version}_checksums.txt --ignore-missing\` (on macOS: \`shasum -a 256 -c ${APP_NAME}_${version}_checksums.txt --ignore-missing\`)."
           } >"$RUNNER_TEMP/notes.md"
           gh release create "$TAG" dist/* --verify-tag "${latest[@]}" \
-            --title "neohugo $version" --notes-file "$RUNNER_TEMP/notes.md"
+            --title "$APP_NAME $version" --notes-file "$RUNNER_TEMP/notes.md"

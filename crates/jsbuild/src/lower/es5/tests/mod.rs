@@ -63,7 +63,7 @@ fn node() -> bool {
 fn scratch(name: &str) -> PathBuf {
     static N: AtomicUsize = AtomicUsize::new(0);
     let dir = std::env::temp_dir().join(format!(
-        "neohugo-jsbuild-es5-{}-{name}-{}",
+        "ssg-jsbuild-es5-{}-{name}-{}",
         std::process::id(),
         N.fetch_add(1, Ordering::Relaxed)
     ));

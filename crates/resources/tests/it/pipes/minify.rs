@@ -3,14 +3,14 @@
 //! chains through tools Go's oracle did not have (`na:postcss`, `na:babel`, `na:tocss`).
 //!
 //! Links, names, titles and media types must equal Go's; content equals Go's where
-//! neohugo-minify writes tdewolff's bytes, and is otherwise accepted when it is a fixed point
+//! ssg-minify writes tdewolff's bytes, and is otherwise accepted when it is a fixed point
 //! of the minifier (README: minified bytes differ from tdewolff's); a fingerprint after a
 //! minify then names other bytes, so only its shape is checked. Tool chains are errors that
 //! name the tool; `to_css` is built in (grass), so `na:tocss` is not an error here.
 
-use neohugo_base::{Idx as _, LangIdx};
-use neohugo_resources::{HashAlgo, PipeError, ResourceError, Transform};
 use serde_json::Value as J;
+use ssg_base::{Idx as _, LangIdx};
+use ssg_resources::{HashAlgo, PipeError, ResourceError, Transform};
 use std::str::FromStr as _;
 
 use crate::support::{rule, store_without_tools, synth_site};
@@ -19,7 +19,7 @@ use crate::support::{rule, store_without_tools, synth_site};
 fn minify_chains() {
     rule("transform", "minify_bytes");
     rule("transform", "tocss_builtin");
-    let fx: J = neohugo_testkit::fixture::oracle("oracle/resources/transform/transform.json.gz");
+    let fx: J = ssg_testkit::fixture::oracle("oracle/resources/transform/transform.json.gz");
     let home = tempfile::tempdir().unwrap();
     // Go's oracle ran without PostCSS and Babel (`na:` chains): so does this comparison, even
     // where the real tools are installed (the real-tool tests in tools.rs use them).

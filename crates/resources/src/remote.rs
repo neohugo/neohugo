@@ -23,11 +23,11 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
-use neohugo_base::paths::{self, UrlPath};
-use neohugo_base::url::{Component, UrlRef, unescape};
-use neohugo_base::{LangIdx, Map, Params, ResourceId, Value, text};
-use neohugo_config::global::{MaxAge, SecurityPolicy, Whitelist};
-use neohugo_config::{Config, MediaType, MediaTypes};
+use ssg_base::paths::{self, UrlPath};
+use ssg_base::url::{Component, UrlRef, unescape};
+use ssg_base::{LangIdx, Map, Params, ResourceId, Value, text};
+use ssg_config::global::{MaxAge, SecurityPolicy, Whitelist};
+use ssg_config::{Config, MediaType, MediaTypes};
 use xxhash_rust::xxh3::xxh3_128;
 
 use crate::gohash;
@@ -847,7 +847,7 @@ fn fetch(url: &str, o: &RemoteOptions, timeout: Duration) -> Result<Response, Re
     let config = ureq::Agent::config_builder()
         .http_status_as_error(false)
         .timeout_global(Some(timeout))
-        .user_agent("neohugo")
+        .user_agent(ssg_base::APP_NAME)
         .build();
     let agent = ureq::Agent::new_with_config(config);
     let mut b = ureq::http::Request::builder()

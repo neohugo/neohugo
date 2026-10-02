@@ -2,14 +2,14 @@
 //!
 //! The steps of `emit` (REWRITE_PLAN.md §3.4):
 //! 0. `purge_css` placeholders (`__nh_purge_<n>__`) are replaced by the CSS this output uses
-//!    ([`neohugo_minify::CssPurges`]): the tags, classes and ids of its elements, the words of
+//!    ([`ssg_minify::CssPurges`]): the tags, classes and ids of its elements, the words of
 //!    its scripts and the custom properties it mentions ([`page_names`]);
 //! 1. `canonifyURLs` / `relativeURLs` rewrite (always for RSS, for HTML outputs when
 //!    configured; a held output is rewritten again after [`Publisher::patch_held`] inserted its
 //!    replacements, so post-processed links follow the site's URL style);
 //! 2. the LiveReload script (`serve` only; HTML outputs that are not alias redirects, as in
 //!    Hugo);
-//! 3. `neohugo_stats.json` collection (HTML outputs);
+//! 3. `build_stats.json` collection (HTML outputs);
 //! 4. URL-token extraction;
 //! 5. an output holding a deferred placeholder (`__nh_defer_<key>__`, `__nh_pp_<id>_<field>__`)
 //!    is held until [`Publisher::patch_held`]: its text is written to the sink as it is (to its
@@ -26,19 +26,19 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use aho_corasick::{AhoCorasick, MatchKind};
-use neohugo_base::diag::{Diagnostic, Diagnostics};
-use neohugo_base::paths::OutputPath;
-use neohugo_base::url::{LinkStyle, UrlRef};
-use neohugo_base::{FormatId, IdVec, LangIdx, MediaTypeId, Sink};
-use neohugo_config::global::BuildStats;
-use neohugo_config::site::LinkOutput;
-use neohugo_config::{Config, MediaTypes, OutputFormats};
-use neohugo_minify::purge::{self, PageNames};
-use neohugo_minify::{CssPurges, Minifier};
 use rayon::prelude::*;
+use ssg_base::diag::{Diagnostic, Diagnostics};
+use ssg_base::paths::OutputPath;
+use ssg_base::url::{LinkStyle, UrlRef};
+use ssg_base::{FormatId, IdVec, LangIdx, MediaTypeId, Sink};
+use ssg_config::global::BuildStats;
+use ssg_config::site::LinkOutput;
+use ssg_config::{Config, MediaTypes, OutputFormats};
+use ssg_minify::purge::{self, PageNames};
+use ssg_minify::{CssPurges, Minifier};
 
 use crate::canonify::{Quoting, UrlRewriter};
-use crate::stats::{HtmlElements, NeohugoStats, StatsCollector};
+use crate::stats::{HtmlElements, StatsCollector, StatsFile};
 use crate::tokens::UrlTokens;
 use crate::{PublishError, livereload};
 
@@ -115,7 +115,7 @@ impl PublishSettings {
             });
         }
         let minifier = if cfg.minify.minify_output {
-            let browsers = neohugo_minify::project_browsers(&cfg.project_dir, &cfg.environment)?;
+            let browsers = ssg_minify::project_browsers(&cfg.project_dir, &cfg.environment)?;
             Some(Minifier::new(&cfg.minify)?.with_browsers(browsers))
         } else {
             None
@@ -396,9 +396,9 @@ impl Publisher {
         lock(&self.tokens).clone()
     }
 
-    /// The `neohugo_stats.json` content collected so far.
+    /// The `build_stats.json` content collected so far.
     #[must_use]
-    pub fn stats(&self) -> NeohugoStats {
+    pub fn stats(&self) -> StatsFile {
         self.stats.stats()
     }
 
@@ -416,7 +416,7 @@ impl Publisher {
 }
 
 /// The names an output uses, for `purge_css`: the tags, classes and ids of its elements (as
-/// `neohugo_stats.json` records them), the words of its `<script>` elements (inline scripts and
+/// `build_stats.json` records them), the words of its `<script>` elements (inline scripts and
 /// templates such as `type="x-tmpl-mustache"` name classes too), and every custom property it
 /// mentions (`style="color: var(--x)"`).
 #[must_use]

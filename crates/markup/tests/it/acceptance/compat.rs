@@ -13,11 +13,9 @@
 
 use std::path::Path;
 
-use neohugo_markup::{
-    CodeBlockCtx, HookEnv, HookError, HookOut, Hooks, MarkdownOptions, wrap_context,
-};
-use neohugo_testkit::fixture::read_json;
 use serde::Deserialize;
+use ssg_markup::{CodeBlockCtx, HookEnv, HookError, HookOut, Hooks, MarkdownOptions, wrap_context};
+use ssg_testkit::fixture::read_json;
 
 use super::render_with;
 

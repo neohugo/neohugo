@@ -5,9 +5,9 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::PageKind;
-use neohugo_base::paths::ContentKey;
-use neohugo_layouts::{
+use ssg_base::PageKind;
+use ssg_base::paths::ContentKey;
+use ssg_layouts::{
     LayoutEnv, LayoutQuery, LayoutSource, LayoutStore, Origin, Selections, TemplateError,
     Templates, load,
 };
@@ -37,7 +37,7 @@ notAlternative = true
 "#;
 
 fn env() -> LayoutEnv {
-    LayoutEnv::from_config(&Project::new(&[("neohugo.toml", CONFIG)]).config())
+    LayoutEnv::from_config(&Project::new(&[("config.toml", CONFIG)]).config())
 }
 
 fn user(rel: &str, source: &str) -> LayoutSource {
@@ -238,7 +238,7 @@ fn uses_variable_follows_includes_and_parents() {
     assert!(!t.uses_variable(&n("list.html"), "inner"));
     // Lookups through the loaded instance.
     let html = s.env().formats().by_name("html").unwrap();
-    let lang = neohugo_base::Idx::from_index(0);
+    let lang = ssg_base::Idx::from_index(0);
     let key = ContentKey::from_source("blog/p");
     assert_eq!(
         t.shortcode("Box", &key, html, lang).unwrap().as_str(),
@@ -293,7 +293,7 @@ fn read_tree(root: &Path, below: &str, out: &mut Vec<(String, String)>) {
 /// template API and empty stubs for the embedded templates T32 has not written yet.
 #[test]
 fn converted_site_layouts_load() {
-    let sites = neohugo_testkit::fixture::repo_dir().join("sites");
+    let sites = ssg_testkit::fixture::repo_dir().join("sites");
     let mut dirs: Vec<_> = fs::read_dir(&sites)
         .unwrap()
         .map(|e| e.unwrap().path())
@@ -312,8 +312,8 @@ fn converted_site_layouts_load() {
                 source: src.clone(),
             })
             .collect();
-        for name in neohugo_funcs::spec::EMBEDDED_TEMPLATES {
-            if !neohugo_layouts::embedded::TEMPLATES
+        for name in ssg_funcs::spec::EMBEDDED_TEMPLATES {
+            if !ssg_layouts::embedded::TEMPLATES
                 .iter()
                 .any(|(n, _)| n == name)
             {
@@ -321,14 +321,14 @@ fn converted_site_layouts_load() {
             }
         }
         sources.extend(
-            neohugo_layouts::embedded::TEMPLATES
+            ssg_layouts::embedded::TEMPLATES
                 .iter()
                 .map(|(n, s)| embedded(n, s)),
         );
         let s = LayoutStore::from_sources(env(), sources)
             .unwrap_or_else(|e| panic!("{}: {e}", dir.display()));
         load(Arc::new(s), &Selections::new(), &|t| {
-            neohugo_funcs::register_placeholders(t);
+            ssg_funcs::register_placeholders(t);
         })
         .unwrap_or_else(|e| panic!("{}: {e:?}", dir.display()));
     }

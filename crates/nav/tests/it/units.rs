@@ -3,14 +3,14 @@
 
 use std::sync::Arc;
 
-use neohugo_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
-use neohugo_base::{Idx, LangIdx, PageId, PageKind, Params, Value};
-use neohugo_config::sections::MenuEntryConfig;
-use neohugo_nav::{
+use ssg_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
+use ssg_base::{Idx, LangIdx, PageId, PageKind, Params, Value};
+use ssg_config::sections::MenuEntryConfig;
+use ssg_nav::{
     MenuOptions, NavModel, PageFacts, PageGroup, PagerSlice, Pagination, PaginationItems,
     Rendering, build_site_menus, default_pagination_list,
 };
-use neohugo_page::{Dates, ListMode};
+use ssg_page::{Dates, ListMode};
 
 /// Five pages: home, section, taxonomy, term, 404; each list is distinct.
 struct Toy {

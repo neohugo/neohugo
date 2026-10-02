@@ -1,5 +1,5 @@
 {
-  "about": "CSS imported from js.Build scripts: what the entry prints (default export and namespace of each import, as JSON) when esbuild 0.25.6 bundles it (--bundle --format=esm --platform=node, the case's loaders) and node runs it; and the inputs neohugo deliberately rejects. Recorded from esbuild 0.25.6 for neohugo-jsbuild's tests (tests/it/css.rs).",
+  "about": "CSS imported from js.Build scripts: what the entry prints (default export and namespace of each import, as JSON) when esbuild 0.25.6 bundles it (--bundle --format=esm --platform=node, the case's loaders) and node runs it; and the inputs this port deliberately rejects. Recorded from esbuild 0.25.6 for ssg-jsbuild's tests (tests/it/css.rs).",
   "cases": [
     {
       "esbuild": "{\"a.module.css\":{\"default\":{\"btn\":\"a_btn\",\"my-class\":\"a_my-class\",\"main\":\"a_main\",\"icon\":\"a_icon\",\"default\":\"a_default\",\"1x\":\"a_1x\",\"a:b\":\"a_a:b\",\"x\":\"a_x\",\"y\":\"a_y\",\"z\":\"a_z\",\"w\":\"a_w\",\"v\":\"a_v\",\"é\":\"a_é\"},\"ns\":[[\"1x\",\"a_1x\"],[\"__proto__\",\"a___proto__\"],[\"a:b\",\"a_a:b\"],[\"btn\",\"a_btn\"],[\"default\",true],[\"icon\",\"a_icon\"],[\"main\",\"a_main\"],[\"my-class\",\"a_my-class\"],[\"v\",\"a_v\"],[\"w\",\"a_w\"],[\"x\",\"a_x\"],[\"y\",\"a_y\"],[\"z\",\"a_z\"],[\"é\",\"a_é\"]]}}",

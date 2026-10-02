@@ -8,11 +8,11 @@
 use std::collections::BTreeMap;
 use std::ops::Bound;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{Idx, PageId, PageKind};
-use neohugo_config::{Config, SiteConfig};
-use neohugo_vfs::BundleKind;
+use ssg_base::diag::Diagnostic;
+use ssg_base::paths::ContentKey;
+use ssg_base::{Idx, PageId, PageKind};
+use ssg_config::{Config, SiteConfig};
+use ssg_vfs::BundleKind;
 
 use crate::ModelError;
 use crate::capture::{Capture, CapturedPage, CapturedResource};

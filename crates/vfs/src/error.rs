@@ -2,7 +2,7 @@
 
 use std::path::PathBuf;
 
-use neohugo_base::glob::GlobError;
+use ssg_base::glob::GlobError;
 
 /// Why the mounts cannot be set up or a walk failed.
 #[derive(Debug, thiserror::Error)]

@@ -1,12 +1,12 @@
-# Developing neohugo
+# Developing fugo
 
-neohugo is the Cargo workspace at the repository root: an idiomatic Rust rewrite of Hugo's site
+fugo is the Cargo workspace at the repository root: an idiomatic Rust rewrite of Hugo's site
 and page model with Tera 2 templates. The plan, binding for every task and review, is
 [`docs/rust-port/REWRITE_PLAN.md`](docs/rust-port/REWRITE_PLAN.md); §1.2 "What Rust style means
 here" is the review checklist. Its paths below `rust/` and the binary name `neohugo-rs` predate
 the move to the root and the drop-in names (HANDOFF §9): read `rust/<path>` as `<path>`
 (`rust/README.md` is this file, `rust/docs/template-api.md` is
-`docs/rust-port/template-api.md`) and `neohugo-rs` as `neohugo`; where the plan differs from
+`docs/rust-port/template-api.md`) and `neohugo-rs` as `fugo`; where the plan differs from
 this file or HANDOFF on paths and names, they win. The current state (crate map, commands,
 gates, deviations, open items) is [`docs/rust-port/HANDOFF.md`](docs/rust-port/HANDOFF.md).
 
@@ -15,7 +15,7 @@ crates, and its byte-exact Go oracles) was deleted in T00. It is recoverable at 
 tagged `go-parity-final` in the local repository (the tag is not on GitHub):
 `git show go-parity-final:crates/<crate>/<path>`. Salvage rules, not code, from it (§6.2).
 
-**The Go implementation** (Hugo's Go tree, `tools/go-oracle`, `tools/neohugo/oracle.sh` and the
+**The Go implementation** (Hugo's Go tree, `tools/go-oracle`, `tools/dev/oracle.sh` and the
 Go workflows) was removed after commit `44529028`. What it generated is frozen:
 `testdata/oracle/`, `testdata/golden/`, `crates/build/tests/it/testsite-go.txtar`,
 `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`,
@@ -23,7 +23,7 @@ Go workflows) was removed after commit `44529028`. What it generated is frozen:
 outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv`
 (PROVENANCE.md). To regenerate the data of `44529028`, run the old recipe in a worktree of it
 (`git worktree add <dir> 44529028`) and copy the result back: `testdata/golden/README.md`,
-`crates/highlight/README.md`, the docstring of `tools/neohugo/fixtures2json.py`; `docs.yaml` is
+`crates/highlight/README.md`, the docstring of `tools/dev/fixtures2json.py`; `docs.yaml` is
 written by the Go binary's `gen docshelper`.
 Hugo's test data that the tests read is in `testdata/upstream/`, at its Go-tree path. Go-tree
 paths in comments and READMEs (`resources/images/text.go`, `tpl/tplimpl/embedded/templates/`, …)
@@ -32,7 +32,7 @@ name files of that commit: `git show 44529028:<path>`.
 **The workspace moved to the repository root** after the Go implementation was removed; until
 then it was `rust/` (at `44529028` as well: `git show 44529028:rust/<path>`). Ids recorded
 before the move keep the prefix (the sources of `testdata/golden/images/manifest.json`, e.g.
-`rust/testdata/site-assets/…`); `neohugo_testkit::fixture::repo_file` and `sites.py`'s
+`rust/testdata/site-assets/…`); `ssg_testkit::fixture::repo_file` and `sites.py`'s
 `repo_file` resolve them at the root. The move commit (`7e58cfce`) also rewrote nearly every
 line of `PROVENANCE.md`, so git does not see that rename: its history before the move is
 `git log -- rust/PROVENANCE.md`.
@@ -45,9 +45,9 @@ clippy.toml deny.toml       thread_local ban; licence policy
 PROVENANCE.md THIRD_PARTY/  every non-original file; licences cargo cannot see
 crates/<name>/              the product crates of §2.1 (T00 wrote stubs with the real
                             dependency edges of §2.3), testkit (dev), workspace-hack (internal)
-testdata/oracle/<area>/     Go-oracle fixtures as plain JSON (neohugo schema, below; frozen)
+testdata/oracle/<area>/     Go-oracle fixtures as plain JSON (fugo schema, below; frozen)
 testdata/golden/<label>/    the Go build's manifests, structure dumps and images (frozen)
-testdata/baselines/         the ratchet's baselines (tools/neohugo/changes/README.md)
+testdata/baselines/         the ratchet's baselines (tools/dev/changes/README.md)
 testdata/corpus/            corpora: seeksnack bodies and front matter, dates, minifier, Thai strings
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
 testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids);
@@ -55,7 +55,7 @@ testdata/upstream/          Hugo's test data the tests read, at its Go-tree path
                             old-port/: five more of them, from be02933a
 testdata/COUNTS.json        per fixture: old path, record and value counts at conversion
 sites/<site>/               the Tera layouts (and assets) of the test sites; sites/docs/patches/
-tools/neohugo/              the harness (compare.sh, structdiff.py, manifest.py, selftest.py,
+tools/dev/              the harness (compare.sh, structdiff.py, manifest.py, selftest.py,
                             changes/), node.sh, licence-check.sh, notices.py, package.py, disk.sh,
                             fixtures2json.py
 tools/rust-port/            i01/sites.py (every test site), patches.json and the site txtars; the
@@ -68,7 +68,7 @@ docs/                       Hugo's documentation site, a test site the tests rec
 Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs`
 (`autotests = false`); `view`, `sitefuncs`, `render`, `build` and `cli` also set
 `[lib] test = false`. Members never add third-party `features =`; every member depends on
-`neohugo-workspace-hack`. Each stub lists its *planned* third-party dependencies so that
+`ssg-workspace-hack`. Each stub lists its *planned* third-party dependencies so that
 `Cargo.lock` pins them; the owning task adjusts the list.
 
 ## Rules for agents (§8.1)
@@ -82,7 +82,7 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
   export CARGO_TARGET_DIR=<main checkout>/target   # shared by all worktrees
   export CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
   ```
-- **Build commands:** only `cargo test -p neohugo-<crate>` (`crates/cli` is package `neohugo`;
+- **Build commands:** only `cargo test -p fugo-<crate>` (`crates/cli` is package `fugo`;
   plus `-p` of direct dependants after an API change). Never `cargo check`, `clippy` or `doc` in the edit–test loop; never `--workspace`;
   `--release` only for measurements and packaging (since T70); never `cargo clean` (`cargo clean -p X` only when coordinated).
   `cargo fetch`/`cargo metadata` use `--target x86_64-unknown-linux-gnu` /
@@ -92,8 +92,8 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
   artifact when its source mtimes look older. Before a final test run (and when a result looks
   impossible), `touch` the sources of the crates you test, e.g.
   `find crates/<name> -name '*.rs' -exec touch {} +`. Read data paths at run time with
-  `neohugo_testkit::fixture::{repo_dir, testdata}`, never with `env!("CARGO_MANIFEST_DIR")`.
-- **Disk:** `tools/neohugo/disk.sh` fails above 8 GB of `target` (`NEOHUGO_TARGET_LIMIT_MB`) or below 2 GB free (raised from the plan's 2.5 GB once ~20 GB became free).
+  `ssg_testkit::fixture::{repo_dir, testdata}`, never with `env!("CARGO_MANIFEST_DIR")`.
+- **Disk:** `tools/dev/disk.sh` fails above 8 GB of `target` (`FUGO_TARGET_LIMIT_MB`) or below 2 GB free (raised from the plan's 2.5 GB once ~20 GB became free).
   Every task reports `du -sh "$CARGO_TARGET_DIR"` and `df -h /` when it ends.
 - **Clean room:** never open Zola ≥ 0.22 source (EUPL-1.2). Copied files go through
   `PROVENANCE.md` first.
@@ -112,14 +112,14 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 
 | What | Command |
 |---|---|
-| per crate | `cargo test -p neohugo-<crate>` (`crates/cli` is package `neohugo`; from your worktree's root) |
-| phase end | `cargo clippy -p neohugo-<crate> -- -D warnings` per crate of the phase; `cargo fmt --check`; `tools/neohugo/licence-check.sh` |
+| per crate | `cargo test -p fugo-<crate>` (`crates/cli` is package `fugo`; from your worktree's root) |
+| phase end | `cargo clippy -p fugo-<crate> -- -D warnings` per crate of the phase; `cargo fmt --check`; `tools/dev/licence-check.sh` |
 | graph | `cargo metadata --format-version 1 --filter-platform x86_64-unknown-linux-gnu` |
-| disk | `tools/neohugo/disk.sh` |
-| fixtures | `tools/neohugo/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
-| acceptance | `tools/neohugo/compare.sh <site> [--docs-patches i01\|reduced\|live] [KEEP=1]` (T03) |
-| docs site | `tools/docs/build.sh [-o <dir>] [--serve]`: https://neohugo.github.io/ built with neohugo (`docs/` + the Tera overlay `sites/docs`, the docs' own node modules; gate A-D3 compares it with the published site) |
-| templates | `neohugo templates check -s <site-dir>` (T37) |
+| disk | `tools/dev/disk.sh` |
+| fixtures | `tools/dev/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
+| acceptance | `tools/dev/compare.sh <site> [--docs-patches i01\|reduced\|live] [KEEP=1]` (T03) |
+| docs site | `tools/docs/build.sh [-o <dir>] [--serve]`: https://getfugo.github.io/ built with fugo (`docs/` + the Tera overlay `sites/docs`, the docs' own node modules; gate A-D3 compares it with the published site) |
+| templates | `fugo templates check -s <site-dir>` (T37) |
 | CI, locally | see "CI and releases" below (workspace-wide: not for the edit–test loop) |
 
 ## CI and releases
@@ -133,9 +133,9 @@ same ref cancels the older one, except on tags.
 
 | Job | Runner | Steps |
 |---|---|---|
-| Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/neohugo/licence-check.sh`; `tools/neohugo/selftest.py`; `tools/rust-port/i01/sites.py patches --check`; on a tag, the tag must be `v<version of [workspace.package]>` |
+| Lint | ubuntu-24.04 | `cargo fmt --all --check`; `cargo clippy --workspace --all-targets --locked -- -D warnings`; `tools/dev/licence-check.sh`; `tools/dev/selftest.py`; `tools/rust-port/i01/sites.py patches --check`; on a tag, the tag must be `v<version of [workspace.package]>` |
 | Test | ubuntu-24.04 | `cargo test --workspace --locked --no-fail-fast` with the tools below; the job summary lists every test that printed `SKIPPED`, and any such test fails the job |
-| Build | one native runner per target | `cargo build --release --locked -p neohugo --target <triple>` with the version variables (below); `neohugo version`; a tiny site built, whose sitemap, RSS and `robots.txt` (embedded templates) must have no CR; `tools/neohugo/notices.py` (licences of the linked crates); `tools/neohugo/package.py` → artifact `neohugo-<triple>` |
+| Build | one native runner per target | `cargo build --release --locked -p ssg-cli --target <triple>` with the version variables (below); `fugo version`; a tiny site built, whose sitemap, RSS and `robots.txt` (embedded templates) must have no CR; `tools/dev/notices.py` (licences of the linked crates); `tools/dev/package.py` → artifact `fugo-<triple>` |
 | Release | ubuntu-24.04 | tags only, after the other three: the GitHub release (below) |
 
 The tests run on Linux only; the macOS and Windows binaries get the release build and its smoke
@@ -158,22 +158,22 @@ it needs no Visual C++ redistributable. Text files are checked out with LF on ev
 archives ship have LF on Windows too, as the Go releases (cross-built on Linux) had.
 
 The release is a drop-in replacement for the Go releases (`.goreleaser.yml` at `44529028`):
-the binary is `neohugo` (`neohugo.exe`), and an archive is named as theirs,
-`neohugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows; `<os>` `linux`, `darwin` or
+the binary is `fugo` (`fugo.exe`), and an archive is named as theirs,
+`fugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows; `<os>` `linux`, `darwin` or
 `windows`, `<arch>` `amd64` or `arm64`). It holds, at its root, the binary, `README.md` and
 `LICENSE` (as the Go archives did) and `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and
-`THIRD_PARTY/`; the build job writes a `.sha256` next to it. `neohugo version` prints the Go
-format, `neohugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]`
-(`crates/cli/src/version.rs`): the build job sets `NEOHUGO_BUILD_COMMIT` (the commit),
-`NEOHUGO_BUILD_DATE` (its time in UTC, RFC 3339) and `NEOHUGO_VENDOR_INFO=neohugo` for the
+`THIRD_PARTY/`; the build job writes a `.sha256` next to it. `fugo version` prints the Go
+format, `fugo v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]`
+(`crates/cli/src/version.rs`): the build job sets `FUGO_BUILD_COMMIT` (the commit),
+`FUGO_BUILD_DATE` (its time in UTC, RFC 3339) and `FUGO_VENDOR_INFO=fugo` for the
 build, and the smoke test checks the line; without them (a local build) the line has no commit,
 `BuildDate=unknown` and no vendor. `package.py` takes the version from `Cargo.toml` and checks
-that `neohugo version` prints exactly `v<version>`, followed by `-$NEOHUGO_BUILD_COMMIT` when
+that `fugo version` prints exactly `v<version>`, followed by `-$FUGO_BUILD_COMMIT` when
 that is set (else by a hex commit or nothing).
 
-`THIRD_PARTY_NOTICES.txt` is written by `tools/neohugo/notices.py <triple> <file>`: the licence
-and notice files of every crate linked into `neohugo` for that target (the normal-dependency
-closure of `neohugo` without proc macros; vendored C libraries such as libwebp included), each
+`THIRD_PARTY_NOTICES.txt` is written by `tools/dev/notices.py <triple> <file>`: the licence
+and notice files of every crate linked into `fugo` for that target (the normal-dependency
+closure of `fugo` without proc macros; vendored C libraries such as libwebp included), each
 text printed once. A linked crate that ships no licence file gets the MIT text when MIT is one of
 its licences, or a reference to the Apache-2.0 text another linked crate ships when Apache-2.0
 is; any other such crate fails the step, so it is noticed before a release.
@@ -194,17 +194,17 @@ all of them, and its Test job fails when a test prints `SKIPPED`:
 
 | Tests | Tool | In CI |
 |---|---|---|
-| `neohugo-jsbuild`: `jsbuild_synth`, `jsbuild_docs` and the `build::` tests that run scripts (the oracle's and neohugo's bundles run side by side, compared by what they do) | `node` on `PATH` | `actions/setup-node`, Node 22 |
-| `neohugo-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_reconstruction_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
-| `neohugo-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN`, `NEOHUGO_BABEL_BIN` (plugins: `NEOHUGO_NODE_MODULES`) | `tools/neohugo/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/neohugo/` |
-| `neohugo`: `gate_a_r`, `gate_a_d2` (`tools/neohugo/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`NEOHUGO_NODE_MODULES`, else `tools/neohugo/node.sh path`) | the runner's `python3` and `bash`; the rows above |
+| `ssg-jsbuild`: `jsbuild_synth`, `jsbuild_docs` and the `build::` tests that run scripts (the oracle's and fugo's bundles run side by side, compared by what they do) | `node` on `PATH` | `actions/setup-node`, Node 22 |
+| `ssg-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_reconstruction_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
+| `ssg-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `FUGO_POSTCSS_BIN`, `FUGO_TAILWINDCSS_BIN`, `FUGO_BABEL_BIN` (plugins: `FUGO_NODE_MODULES`) | `tools/dev/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/dev/` |
+| `fugo`: `gate_a_r`, `gate_a_d2` (`tools/dev/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`FUGO_NODE_MODULES`, else `tools/dev/node.sh path`) | the runner's `python3` and `bash`; the rows above |
 
-`neohugo-images`' `sizes_match_the_process_oracle` compares all 13,250 cases, 2,204 of them from
+`ssg-images`' `sizes_match_the_process_oracle` compares all 13,250 cases, 2,204 of them from
 Go's own image test data in `testdata/upstream/goroot/` and `testdata/upstream/old-port/`
 (`crates/images/README.md`); a source that cannot be found fails it. Python
 is needed only by the gate tests and the tools (`licence-check.sh`, `selftest.py`, `notices.py`,
 `package.py` (Python 3.11 or later), and `tools/rust-port/i01/sites.py` for the ignored
-real-site tests that read `NEOHUGO_SITES`). Not needed by `cargo test`: dart-sass (grass
+real-site tests that read `FUGO_SITES`). Not needed by `cargo test`: dart-sass (grass
 compiles Sass in process) and the network (`get_remote` tests read caches with the network off).
 
 **Reproduce CI locally** (from the repository root, offline; `touch` the sources first, see the
@@ -213,18 +213,18 @@ shared-target note above):
 ```sh
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked --offline -- -D warnings
-tools/neohugo/licence-check.sh
-python3 tools/neohugo/selftest.py
+tools/dev/licence-check.sh
+python3 tools/dev/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
-N=$(tools/neohugo/node.sh path)   # once: tools/neohugo/node.sh
-NEOHUGO_NODE_MODULES=$N \
-NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
-NEOHUGO_BABEL_BIN=$N/.bin/babel \
+N=$(tools/dev/node.sh path)   # once: tools/dev/node.sh
+FUGO_NODE_MODULES=$N \
+FUGO_POSTCSS_BIN=$N/.bin/postcss FUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
+FUGO_BABEL_BIN=$N/.bin/babel \
   cargo test --workspace --locked --offline --no-fail-fast -- --show-output
-cargo build --release --locked --offline -p neohugo --target x86_64-unknown-linux-gnu \
+cargo build --release --locked --offline -p ssg-cli --target x86_64-unknown-linux-gnu \
   --target-dir <scratch>/target                  # never the shared target dir
-python3 tools/neohugo/notices.py x86_64-unknown-linux-gnu <scratch>/THIRD_PARTY_NOTICES.txt
-python3 tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/release/neohugo \
+python3 tools/dev/notices.py x86_64-unknown-linux-gnu <scratch>/THIRD_PARTY_NOTICES.txt
+python3 tools/dev/package.py <scratch>/target/x86_64-unknown-linux-gnu/release/fugo \
   x86_64-unknown-linux-gnu <scratch>/dist <scratch>/THIRD_PARTY_NOTICES.txt
 ```
 
@@ -233,8 +233,8 @@ python3 tools/neohugo/package.py <scratch>/target/x86_64-unknown-linux-gnu/relea
    it.
 2. Tag that commit and push the tag: `git tag v0.149.0 <commit>`, `git push origin v0.149.0`.
 3. The workflow checks the tag against the version, runs lint, test and the five builds, then
-   creates the GitHub release `v<version>`, titled `neohugo <version>`, with the five archives
-   and `neohugo_<version>_checksums.txt` (`<sha256>  <archive>` per archive, the checksums file
+   creates the GitHub release `v<version>`, titled `fugo <version>`, with the five archives
+   and `fugo_<version>_checksums.txt` (`<sha256>  <archive>` per archive, the checksums file
    of the Go releases; the `.sha256` files of the build jobs are checked and joined into it).
    A version with a `-` (e.g. `0.150.0-rc.1`) makes a pre-release, never latest; any other
    release is marked latest only if no published release has a higher version, so a patch
@@ -250,31 +250,31 @@ them, and pull requests restore their base branch's. A cold test job builds abou
 `target/` (1.8 GB of it test executables, 0.8 GB of which debug info: `debug =
 "line-tables-only"` of the dev profile already applies), well within the runner's disk.
 
-## Test data: the neohugo schema
+## Test data: the fugo schema
 
 Fixtures are JSON documents (`.json`) or JSON lines (`.jsonl`), gzipped when named `.gz`.
 The Go oracles' type tags are unwrapped into plain JSON; Go values plain JSON cannot hold are
 single-key objects: `{"$nh:time": "<RFC 9557>"}`, `{"$nh:local": "<TOML local date/time>"}`,
 `{"$nh:bytes": "<hex>"}` (not UTF-8), `{"$nh:float": "NaN"|"+Inf"|"-Inf"}`,
 `{"$nh:keys": [..]}`, `{"$nh:len": n}`. Other objects with a `"t"` key are oracle records.
-The full description is the docstring of `tools/neohugo/fixtures2json.py`; read fixtures with
-`neohugo_testkit::fixture` (`oracle`, `oracle_lines`, `Tag`, `GoString`) and compare semantic
+The full description is the docstring of `tools/dev/fixtures2json.py`; read fixtures with
+`ssg_testkit::fixture` (`oracle`, `oracle_lines`, `Tag`, `GoString`) and compare semantic
 fields only, with a reviewed `expected_diffs.toml` per crate.
 
 ## Optional features
 
-`neohugo-funcs` compiles two SHOULD template functions only with a feature: `to_math` (`math`,
+`ssg-funcs` compiles two SHOULD template functions only with a feature: `to_math` (`math`,
 KaTeX 0.16.22 with mhchem run in QuickJS-ng through rquickjs, as Hugo runs it;
 `crates/funcs/README.md`) and `diagrams_goat` (`goat`, the port of GoAT in `src/pure/goat/`).
-Without it the name is registered as a stub that fails when called. The `neohugo` crate (the
-`neohugo` binary) turns both on by default (`default = ["goat", "math"]`), so the release build and
-CI's `-p neohugo` builds render the documentation site's formulas and diagrams (gate A-D2, T66);
+Without it the name is registered as a stub that fails when called. The `fugo` crate (the
+`fugo` binary) turns both on by default (`default = ["goat", "math"]`), so the release build and
+CI's `-p ssg-cli` builds render the documentation site's formulas and diagrams (gate A-D2, T66);
 `--no-default-features` leaves them out. Their cost: `goat` has no dependencies (the GoAT port
 replaced svgbob and its geometry crates, nalgebra, parry2d, sauron, futures, …); `math` brings
 rquickjs, rquickjs-core and rquickjs-sys (MIT), whose build script compiles QuickJS-ng's C
 sources with the platform's compiler (`cc`, as libwebp-sys does; rquickjs-sys ships bindings for
 the five release targets, so no bindgen or libclang), and about 1.45 MB (2.9 %) of the stripped
-release binary (QuickJS and the 310 KB of KaTeX JavaScript). A test of `neohugo-funcs` alone
+release binary (QuickJS and the 310 KB of KaTeX JavaScript). A test of `ssg-funcs` alone
 builds without them unless `--features goat,math` is given (`tests/it/{math,goat}.rs`).
 
 ## Feature unification
@@ -299,11 +299,11 @@ proc-macro dependencies (`syn`).
 
 **serde_json.** rolldown and oxc_resolver turn on serde_json's `preserve_order` (a `Map` keeps
 insertion order; package.json `exports` depend on it) and rolldown_common its
-`arbitrary_precision` (numbers keep their text), in every build `neohugo-jsbuild` is part of —
+`arbitrary_precision` (numbers keep their text), in every build `ssg-jsbuild` is part of —
 the binary included. The hack turns both on for every member, so every test runs with what the
-binary does (`neohugo-funcs`' `determinism` test fails when they are off). Two rules follow:
-never rely on the order of a `serde_json::Map` (convert to `neohugo_base::Value`, whose maps
+binary does (`ssg-funcs`' `determinism` test fails when they are off). Two rules follow:
+never rely on the order of a `serde_json::Map` (convert to `ssg_base::Value`, whose maps
 are sorted, before output; tests compare JSON as values or through that conversion), and never
 hand a `serde_json::Value` with numbers to another format's serializer (Tera, YAML, TOML): its
-numbers serialize as a private one-entry map. `neohugo_base::Value`'s deserializer reads such
-a map back as the number, and `neohugo_testkit::tera_value` converts JSON for template tests.
+numbers serialize as a private one-entry map. `ssg_base::Value`'s deserializer reads such
+a map back as the number, and `ssg_testkit::tera_value` converts JSON for template tests.

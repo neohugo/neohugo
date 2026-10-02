@@ -6,12 +6,12 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::PathBuf;
 
-use neohugo_funcs::spec::{self, NameKind, Source};
-use neohugo_testkit::contract::{
+use pretty_assertions::assert_eq;
+use ssg_funcs::spec::{self, NameKind, Source};
+use ssg_testkit::contract::{
     Call, TemplateSource, contract_instance, kwarg_findings, scan_calls, template_api_path,
     template_sets,
 };
-use pretty_assertions::assert_eq;
 use tera::Tera;
 
 fn tpl(name: &str, source: &str) -> TemplateSource {
@@ -154,7 +154,7 @@ fn scanner_reads_calls() {
 }
 
 /// `FUNCS` is well-formed: one entry per (name, kind); unique kwarg names; built-ins are exactly
-/// the names a bare Tera knows (neohugo never overrides one); the §4.2 scope names are present.
+/// the names a bare Tera knows (this port never overrides one); the §4.2 scope names are present.
 #[test]
 fn funcs_spec_is_consistent() {
     let mut seen = BTreeSet::new();
@@ -186,7 +186,7 @@ fn funcs_spec_is_consistent() {
         spec::FUNCS
             .iter()
             .filter(|f| f.site_bound)
-            .all(|f| f.source == Source::Neohugo)
+            .all(|f| f.source == Source::Native)
     );
     for role_names in spec::CONTEXTS.iter().filter(|c| !c.names.is_empty()) {
         assert!(
@@ -218,7 +218,7 @@ fn template_api_md_matches_spec() {
     let have = fs::read_to_string(&path).unwrap_or_default();
     assert!(
         have == want,
-        "{} is stale; regenerate with INSTA_UPDATE=always cargo test -p neohugo-testkit contract",
+        "{} is stale; regenerate with INSTA_UPDATE=always cargo test -p ssg-testkit contract",
         path.display()
     );
 }

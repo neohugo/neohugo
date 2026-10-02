@@ -2,8 +2,8 @@
 
 use std::borrow::Cow;
 
-use neohugo_minify::options::{HtmlComments, TemplateSyntax, XmlComments, XmlWhitespace};
-use neohugo_minify::{JsonErrorKind, Minifier, MinifyError, MinifyTarget, Options, target_for};
+use ssg_minify::options::{HtmlComments, TemplateSyntax, XmlComments, XmlWhitespace};
+use ssg_minify::{JsonErrorKind, Minifier, MinifyError, MinifyTarget, Options, target_for};
 
 fn min(target: MinifyTarget, input: &str) -> String {
     Minifier::default()

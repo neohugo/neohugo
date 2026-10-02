@@ -6,16 +6,16 @@
 //! cases are tallied, and their mismatches must fall into the reviewed categories of
 //! [`classify`].
 
-use neohugo_base::{Map, Value};
-use neohugo_config::media::{BUILTIN, DEFAULT_CONTENT_TYPES};
-use neohugo_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
-use neohugo_config::{MediaTypes, OutputFormats, tree};
 use serde_json::{Value as J, json};
+use ssg_base::{Map, Value};
+use ssg_config::media::{BUILTIN, DEFAULT_CONTENT_TYPES};
+use ssg_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
+use ssg_config::{MediaTypes, OutputFormats, tree};
 
 use crate::support::fixture;
 
 /// Named cases whose Go result depends on mapstructure's weak decoding of struct fields that
-/// neohugo does not have (a media type entry may only set `suffixes` and `delimiter`; an
+/// This port does not have (a media type entry may only set `suffixes` and `delimiter`; an
 /// output format entry cannot set its name), or on a configuration map that is not
 /// normalised first (`viaProvider: false` with upper-case keys).
 const NAMED_DEVIATIONS: &[(&str, &str)] = &[
@@ -43,7 +43,7 @@ const NAMED_DEVIATIONS: &[(&str, &str)] = &[
     ("value-nil", "an output format needs a media type"),
 ];
 
-fn media_json(t: &neohugo_config::MediaType) -> J {
+fn media_json(t: &ssg_config::MediaType) -> J {
     json!({"type": t.to_string(), "suffixes": t.suffixes.join(","), "delimiter": t.delimiter})
 }
 
@@ -135,8 +135,8 @@ fn classify(input: &J, go_err: bool) -> Option<&'static str> {
         .as_object()
         .is_some_and(|o| o.keys().any(|k| k.chars().any(char::is_uppercase)));
     if go_err {
-        // Go rejects what neohugo decodes: weakly-typed struct fields Go cannot convert.
-        return Some("go rejects a field value neohugo ignores or converts");
+        // Go rejects what this port decodes: weakly-typed struct fields Go cannot convert.
+        return Some("go rejects a field value this port ignores or converts");
     }
     if lower_keys {
         return Some("keys are normalised before decoding");
@@ -303,7 +303,7 @@ fn output_formats() {
 
 fn classify_format(input: &J, go_err: bool) -> &'static str {
     if go_err {
-        return "go rejects a field value neohugo ignores or converts";
+        return "go rejects a field value this port ignores or converts";
     }
     let upper = input
         .as_object()
@@ -311,5 +311,5 @@ fn classify_format(input: &J, go_err: bool) -> &'static str {
     if upper {
         return "keys are normalised before decoding";
     }
-    "a field value neohugo rejects (weak decoding)"
+    "a field value this port rejects (weak decoding)"
 }

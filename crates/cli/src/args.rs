@@ -22,12 +22,12 @@ use clap::{
     Arg, ArgAction, Args, Command as ClapCommand, CommandFactory, Parser, Subcommand, ValueEnum,
 };
 
-/// neohugo: builds a Hugo site with Tera layouts.
+/// Builds a Hugo site with Tera layouts.
 #[derive(Debug, Parser)]
 #[command(
-    name = "neohugo",
+    name = ssg_base::app_name!(),
     // `--version` prints the name and this: the line of `version`.
-    version = crate::version::line().strip_prefix("neohugo ").unwrap_or_default(),
+    version = crate::version::line().strip_prefix(concat!(ssg_base::app_name!(), " ")).unwrap_or_default(),
     about,
     args_conflicts_with_subcommands = true,
     disable_help_subcommand = true
@@ -71,14 +71,14 @@ pub struct ProjectArgs {
     #[arg(short = 's', long, value_name = "DIR", global = true)]
     pub source: Option<PathBuf>,
     /// Configuration files, relative to the source (comma-separated; the first wins). Default:
-    /// the first of neohugo.{toml,yaml,yml,json}, hugo.*, config.*.
+    /// the first of `config.{toml,yaml,yml,json}`, hugo.*, config.*.
     #[arg(long, value_name = "FILES", value_delimiter = ',', global = true)]
     pub config: Vec<PathBuf>,
     /// The configuration directory (default `config`).
     #[arg(long, alias = "configDir", value_name = "DIR", global = true)]
     pub config_dir: Option<PathBuf>,
     /// The build environment (default `production`, `development` for `server`;
-    /// `NEOHUGO_ENVIRONMENT`).
+    /// `FUGO_ENVIRONMENT`).
     #[arg(short = 'e', long, value_name = "ENV", global = true)]
     pub environment: Option<String>,
     /// The site's base URL.
@@ -188,8 +188,8 @@ pub struct BuildArgs {
 
 /// Flags of the Go build that only change its logging or housekeeping, accepted so that its
 /// command lines keep working (hidden from `--help`). `--logLevel warn` (Go's default),
-/// `--noBuildLock` (neohugo writes no lock file) and `--printPathWarnings` (target collisions are
-/// always warnings) are what neohugo does anyway; the others are ignored with a warning
+/// `--noBuildLock` (this port writes no lock file) and `--printPathWarnings` (target collisions are
+/// always warnings) are what this port does anyway; the others are ignored with a warning
 /// ([`HugoFlags::ignored`]).
 #[derive(Clone, Debug, Default, Args)]
 #[expect(
@@ -197,7 +197,7 @@ pub struct BuildArgs {
     reason = "one field per command-line flag, as clap reads them"
 )]
 pub struct HugoFlags {
-    /// Go's log level (`debug`, `info`, `warn`, `error`); neohugo prints warnings and errors at
+    /// Go's log level (`debug`, `info`, `warn`, `error`); this port prints warnings and errors at
     /// every level.
     #[arg(
         long,
@@ -208,7 +208,7 @@ pub struct HugoFlags {
         hide = true
     )]
     pub log_level: Option<String>,
-    /// Go wrote no `.hugo_build.lock`; neohugo never writes one.
+    /// Go wrote no `.hugo_build.lock`; this port never writes one.
     #[arg(long, alias = "noBuildLock", global = true, hide = true)]
     pub no_build_lock: bool,
     /// Go removed unused cache files after the build.
@@ -217,7 +217,7 @@ pub struct HugoFlags {
     /// Go printed missing translations.
     #[arg(long, alias = "printI18nWarnings", hide = true)]
     pub print_i18n_warnings: bool,
-    /// Go printed duplicate target paths; neohugo always does.
+    /// Go printed duplicate target paths; this port always does.
     #[arg(long, alias = "printPathWarnings", hide = true)]
     pub print_path_warnings: bool,
     /// Go printed the templates no page used.
@@ -232,13 +232,13 @@ pub struct HugoFlags {
 }
 
 impl HugoFlags {
-    /// The flags given that neohugo does not act on, each with what Go did.
+    /// The flags given that this port does not act on, each with what Go did.
     #[must_use]
     pub fn ignored(&self) -> Vec<String> {
         let mut out = Vec::new();
         if let Some(level) = self.log_level.as_deref().filter(|l| *l != "warn") {
             out.push(format!(
-                "--logLevel {level} is ignored: neohugo prints warnings and errors at every log level"
+                "--logLevel {level} is ignored: warnings and errors are printed at every log level"
             ));
         }
         for (given, flag, what) in [
@@ -265,7 +265,7 @@ impl HugoFlags {
             ),
         ] {
             if given {
-                out.push(format!("{flag} is ignored: neohugo does not {what}"));
+                out.push(format!("{flag} is ignored: this program does not {what}"));
             }
         }
         out
@@ -461,9 +461,9 @@ pub enum ConfigFormat {
 
 /// The arguments (the program name first) with the command moved before the flags. The Go
 /// build's command line (cobra) finds the command wherever it is among the arguments and reads
-/// every flag as the command's, so `neohugo -s site server` is `neohugo server -s site` and
-/// `neohugo -e production templates check` is `neohugo templates check -e production`. A
-/// flag's value stays with it (`neohugo -e server` builds with the environment `server`);
+/// every flag as the command's, so `<bin> -s site server` is `<bin> server -s site` and
+/// `<bin> -e production templates check` is `<bin> templates check -e production`. A
+/// flag's value stays with it (`<bin> -e server` builds with the environment `server`);
 /// anything this does not recognise is left where it is, for clap to report.
 ///
 /// A boolean flag with an explicit value, which cobra (pflag) takes and clap's `SetTrue` flags
@@ -595,7 +595,7 @@ fn parse_clock(s: &str) -> Result<jiff::Timestamp, String> {
 fn parse_poll(s: &str) -> Result<Duration, String> {
     let d = match s.trim().parse::<u64>() {
         Ok(ms) => Duration::from_millis(ms),
-        Err(_) => neohugo_config::duration::parse(s)
+        Err(_) => ssg_config::duration::parse(s)
             .ok()
             .filter(|d| !d.negative)
             .map(|d| d.duration)

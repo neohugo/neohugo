@@ -4,8 +4,8 @@
   `linkjs`: ` k="v"`, or ` k` when the value is empty, keys sorted).
   Called as `{{ <linkcss r={r} /> }}`.
 -#}
-{%- component linkcss(r, attributes={}, @neohugo, @__nh) %}
-{%- if neohugo.is_development %}
+{%- component linkcss(r, attributes={}, @build, @__nh) %}
+{%- if build.is_development %}
   <link
     rel="stylesheet"
     href="{{ r.rel_permalink }}"

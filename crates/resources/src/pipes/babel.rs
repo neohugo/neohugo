@@ -122,7 +122,7 @@ pub(super) fn run(
     // One realization per resource at a time: the store, the process and the resource name
     // the file uniquely.
     let out_file: PathBuf = std::env::temp_dir().join(format!(
-        "neohugo-babel-{}-{:x}-{}.js",
+        "ssg-babel-{}-{:x}-{}.js",
         std::process::id(),
         std::ptr::from_ref(store) as usize,
         this.id.raw()
@@ -158,7 +158,7 @@ pub(super) fn run(
     let _ = std::fs::remove_file(&map_file);
     let mut code = result?;
     if let Some(m) = &map {
-        let name = neohugo_base::paths::base(this.link.as_str());
+        let name = ssg_base::paths::base(this.link.as_str());
         code = relink(&code, &format!("{name}.map"));
         return Ok(Output {
             bytes: code,

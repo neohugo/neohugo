@@ -100,5 +100,5 @@
 {"baseof":"","format":"rss","kind":"term","lang":"th","layout":"","path":"/tags/โก","permalink":"https://example.org/th/tags/%E0%B9%82%E0%B8%81/index.xml","relPermalink":"/th/tags/%E0%B9%82%E0%B8%81/index.xml","target":"/th/tags/โก/index.xml","template":"rss.xml","templateFile":"_embedded/rss.xml"}
 ],
 "resources": [],
-"schema": "neohugo-structure/1"
+"schema": "ssg-structure/1"
 }

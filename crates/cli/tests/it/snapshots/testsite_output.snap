@@ -2,7 +2,7 @@
 source: crates/cli/tests/it/parity.rs
 expression: snap
 ---
--- neohugo_stats.json --
+-- build_stats.json --
 {
   "htmlElements": {
     "tags": [

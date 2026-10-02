@@ -478,8 +478,8 @@ impl Analysed {
 mod tests {
     use std::collections::BTreeMap;
 
-    use neohugo_testkit::fixture::{oracle, repo_dir};
     use serde::Deserialize;
+    use ssg_testkit::fixture::{oracle, repo_dir};
 
     use super::*;
     use crate::codec;

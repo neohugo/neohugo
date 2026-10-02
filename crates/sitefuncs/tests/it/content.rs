@@ -1,7 +1,7 @@
 //! Content through the render session, `markdownify`, `render_string`, `highlight`.
 
-use neohugo_base::PageKind;
-use neohugo_view::{Phase, Stage};
+use ssg_base::PageKind;
+use ssg_view::{Phase, Stage};
 
 use crate::support;
 

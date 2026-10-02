@@ -2,20 +2,20 @@
 //!
 //! The formats are the front matter `outputs`, else the site's formats of the page's kind (a
 //! standalone page has its own format; a page that is not rendered keeps only the first). For
-//! each format, [`neohugo_page::target_paths`] gets the page's path, current section, name
+//! each format, [`ssg_page::target_paths`] gets the page's path, current section, name
 //! (slug, else the standalone format's base name, else the path's name), language prefixes,
 //! front matter `url` (expanded when it holds a `:` attribute) and expanded `[permalinks]`
-//! pattern; [`neohugo_page::links`] makes `.RelPermalink` and `.Permalink` of pages that have
+//! pattern; [`ssg_page::links`] makes `.RelPermalink` and `.Permalink` of pages that have
 //! a link. [`Model::pager_paths`] gives the same for a pager (`/page/2`).
 
-use neohugo_base::url::{self, Component, PathCase, SiteUrls};
-use neohugo_base::{FormatId, PageId, PageKind, paths};
-use neohugo_config::Config;
-use neohugo_page::{
+use rayon::prelude::*;
+use ssg_base::url::{self, Component, PathCase, SiteUrls};
+use ssg_base::{FormatId, PageId, PageKind, paths};
+use ssg_config::Config;
+use ssg_page::{
     LangPrefix, Links, PageError, PermalinkCtx, PermalinkFile, PermalinkPattern, PermalinkPatterns,
     SourcePath, TargetPaths, UrlInputs, links, target_paths,
 };
-use rayon::prelude::*;
 
 use crate::nodes::standalone_base_name;
 use crate::tree::PageRole;

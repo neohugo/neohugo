@@ -6,8 +6,8 @@
 
 use std::collections::BTreeSet;
 
-use neohugo_testkit::fixture::{oracle, testdata};
 use serde_json::Value as J;
+use ssg_testkit::fixture::{oracle, testdata};
 
 use crate::structure::Tally;
 use crate::support::Site;
@@ -57,8 +57,7 @@ fn check(name: &str, t: &mut Tally) {
         .collect();
     let mut got = BTreeSet::new();
     for p in &m.pages {
-        if !p.rendered() || p.role != neohugo_site::PageRole::Standalone || dev.contains(&p.path())
-        {
+        if !p.rendered() || p.role != ssg_site::PageRole::Standalone || dev.contains(&p.path()) {
             continue;
         }
         let lang = &m.config.sites[p.lang].language.key;

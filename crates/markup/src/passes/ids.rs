@@ -2,7 +2,7 @@
 //! terms.
 
 use comrak::nodes::NodeValue;
-use neohugo_base::anchor::{self, Deduper};
+use ssg_base::anchor::{self, Deduper};
 
 use crate::doc::{Doc, Node, Role};
 use crate::{Extensions, MarkdownOptions};

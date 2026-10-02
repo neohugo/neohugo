@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-funcs"
+name = "ssg-funcs"
 description = "The template API"
 version.workspace = true
 edition.workspace = true
@@ -20,14 +20,14 @@ workspace = true
 
 [features]
 # `runtime` (default) is everything but the spec: `register_pure` with the pure filter, function
-# and test implementations and their dependencies (ICU data through neohugo-locale). Without it
+# and test implementations and their dependencies (ICU data through ssg-locale). Without it
 # the crate is `spec` (dependency-free data) plus `register_placeholders` (needs only tera),
-# which is all neohugo-testkit's contract test uses; testkit therefore depends on this crate with
+# which is all ssg-testkit's contract test uses; testkit therefore depends on this crate with
 # `default-features = false` and a test of testkit alone never builds ICU data (T02).
 default = ["runtime"]
 runtime = [
-    "dep:neohugo-base",
-    "dep:neohugo-locale",
+    "dep:ssg-base",
+    "dep:ssg-locale",
     "dep:tera-contrib",
     "dep:jiff",
     "dep:regex",
@@ -45,10 +45,10 @@ math = ["runtime", "dep:rquickjs", "dep:serde_json"]
 goat = ["runtime"]
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
+ssg-workspace-hack.workspace = true
 tera.workspace = true
-neohugo-base = { workspace = true, optional = true }
-neohugo-locale = { workspace = true, optional = true }
+ssg-base = { workspace = true, optional = true }
+ssg-locale = { workspace = true, optional = true }
 tera-contrib = { workspace = true, optional = true }
 jiff = { workspace = true, optional = true }
 regex = { workspace = true, optional = true }
@@ -63,7 +63,7 @@ rquickjs = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 insta.workspace = true

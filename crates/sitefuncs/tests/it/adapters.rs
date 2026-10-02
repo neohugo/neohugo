@@ -1,11 +1,11 @@
 //! Content adapters: `add_page`, `add_resource`, `enable_all_languages` and the adapter's store
 //! in a render of phase `Adapter`; none of them outside one.
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{LangIdx, PageKind};
-use neohugo_page::Markup;
-use neohugo_site::AddedContent;
-use neohugo_view::{Phase, RenderScope};
+use ssg_base::paths::ContentKey;
+use ssg_base::{LangIdx, PageKind};
+use ssg_page::Markup;
+use ssg_site::AddedContent;
+use ssg_view::{Phase, RenderScope};
 
 use crate::support;
 
@@ -125,7 +125,7 @@ fn a_path_added_again_replaces() {
     );
     assert_eq!(
         r.pages[0].page.fields.get("title"),
-        Some(&neohugo_base::Value::string("two"))
+        Some(&ssg_base::Value::string("two"))
     );
     assert_eq!(r.resources.len(), 1);
     assert!(matches!(&r.resources[0].content, AddedContent::Text { text, .. } if &**text == "2"));

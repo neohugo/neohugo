@@ -1,14 +1,14 @@
 //! `[markup]`: the Markdown renderer, highlighting and table of contents settings.
 
-use neohugo_base::anchor;
-use neohugo_base::{Map, Value};
 use serde::{Deserialize, Deserializer, Serialize};
+use ssg_base::anchor;
+use ssg_base::{Map, Value};
 
 /// `[markup]`.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct MarkupConfig {
-    /// `goldmark` (the only handler neohugo implements).
+    /// `goldmark` (the only handler this port implements).
     pub default_markdown_handler: String,
     pub goldmark: GoldmarkConfig,
     pub highlight: HighlightConfig,

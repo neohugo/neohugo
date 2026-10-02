@@ -1,8 +1,8 @@
-//! T22 acceptance (REWRITE_PLAN.md §8.2): `neohugo-markup` against the Go oracles of
+//! T22 acceptance (REWRITE_PLAN.md §8.2): `ssg-markup` against the Go oracles of
 //! `testdata/oracle/markup/{convert,hooks}` (Hugo's goldmark setup on the docs corpus and
 //! adversarial documents) and the goldmark corpus of the 251 seeksnack bodies.
 //!
-//! Each test prints its table (`cargo test -p neohugo-markup --test it acceptance --
+//! Each test prints its table (`cargo test -p ssg-markup --test it acceptance --
 //! --nocapture`) and asserts floors at the measured values.
 
 mod compat;
@@ -17,15 +17,15 @@ mod seeksnack;
 use std::path::Path;
 use std::sync::{Arc, LazyLock};
 
-use neohugo_base::PageId;
-use neohugo_base::anchor::Style;
-use neohugo_markup::{
+use serde::Deserialize;
+use ssg_base::PageId;
+use ssg_base::anchor::Style;
+use ssg_markup::{
     CodeFences, ExpandedMarkdown, Extensions, Hooks, LineBreaks, LinkifyProtocol, MarkdownOptions,
     NoHooks, RawHtml, RenderedMarkdown, SourceContexts, StandaloneImages, TagStyle, TocOptions,
     Typographer, render,
 };
-use neohugo_testkit::fixture::{GoString, oracle};
-use serde::Deserialize;
+use ssg_testkit::fixture::{GoString, oracle};
 
 pub use super::comrak_spike::corpus::HugoCfg;
 
@@ -100,7 +100,7 @@ pub fn render_with(md: &str, o: &MarkdownOptions, hooks: &dyn Hooks) -> Rendered
 }
 
 /// The parse-only fragments.
-pub fn fragments_of(md: &str, o: &MarkdownOptions) -> neohugo_markup::Fragments {
+pub fn fragments_of(md: &str, o: &MarkdownOptions) -> ssg_markup::Fragments {
     let contexts = SourceContexts::default();
     let file = file();
     let src = ExpandedMarkdown {
@@ -109,7 +109,7 @@ pub fn fragments_of(md: &str, o: &MarkdownOptions) -> neohugo_markup::Fragments 
         contexts: &contexts,
         file: &file,
     };
-    neohugo_markup::fragments(&src, o).unwrap_or_else(|e| panic!("fragments: {e}"))
+    ssg_markup::fragments(&src, o).unwrap_or_else(|e| panic!("fragments: {e}"))
 }
 
 /// Renders without hooks.
@@ -145,9 +145,9 @@ pub fn text(s: &GoString) -> String {
     String::from_utf8_lossy(&s.0).into_owned()
 }
 
-/// `NEOHUGO_T22_SHOW=<label substring>` prints differences of that row.
+/// `FUGO_T22_SHOW=<label substring>` prints differences of that row.
 pub fn show(label: &str, name: &str, want: &str, got: &str) {
-    let Ok(filter) = std::env::var("NEOHUGO_T22_SHOW") else {
+    let Ok(filter) = std::env::var("FUGO_T22_SHOW") else {
         return;
     };
     if filter.is_empty() || !label.contains(&filter) || want == got {

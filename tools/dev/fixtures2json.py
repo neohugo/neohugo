@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Converts Go-oracle fixtures to plain JSON with the neohugo schema (Python stdlib only).
+"""Converts Go-oracle fixtures to plain JSON with the fixture schema (Python stdlib only).
 
 Usage:
   fixtures2json.py convert <src> <dst>   # a file or a directory tree; <dst> may equal <src> (in place)
@@ -10,7 +10,7 @@ Usage:
 The Go oracles (tools/go-oracle, frozen at 44529028) wrote the typed formats below; re-run
 `convert <dir> <dir>` after regenerating an oracle there (conversion is idempotent).
 
-The neohugo schema
+The fixture schema
 ------------------
 Every file keeps its name and compression (`.json`, `.json.gz`, `.jsonl`, `.jsonl.gz`; gzip is
 written with mtime 0, so re-runs are byte-identical). Files that are not JSON are copied verbatim.

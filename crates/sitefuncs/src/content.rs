@@ -3,10 +3,10 @@
 
 use std::sync::{Arc, OnceLock, Weak};
 
-use neohugo_highlight::{Highlight, OptionsArg};
-use neohugo_markup::{MarkdownOptions, Toc};
-use neohugo_view::views::FragmentsView;
-use neohugo_view::{
+use ssg_highlight::{Highlight, OptionsArg};
+use ssg_markup::{MarkdownOptions, Toc};
+use ssg_view::views::FragmentsView;
+use ssg_view::{
     ContentRenderer, ExpandedSource, Phase, RenderScope, RenderStringOptions, ViewCache,
 };
 use tera::{Kwargs, State, TeraResult, Value};
@@ -172,7 +172,7 @@ impl SiteFilter for Markdown {
         if child.too_deep() {
             return Err(msg(format!(
                 "{name}: render nesting deeper than {}",
-                neohugo_view::MAX_DEPTH
+                ssg_view::MAX_DEPTH
             )));
         }
         let display_block = match kw.get::<&str>("display")? {
@@ -209,7 +209,7 @@ impl SiteFilter for HighlightFilter {
             Some(o) if o.is_none() => OptionsArg::None,
             Some(o) if o.as_str().is_some() => OptionsArg::Str(o.as_str().unwrap_or_default()),
             Some(o) => match to_data(o) {
-                neohugo_base::Value::Map(m) => {
+                ssg_base::Value::Map(m) => {
                     map = m;
                     OptionsArg::Map(&map)
                 }

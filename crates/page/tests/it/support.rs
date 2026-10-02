@@ -6,13 +6,13 @@ use std::sync::Arc;
 
 use jiff::Zoned;
 use jiff::tz::{Offset, TimeZone};
-use neohugo_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
-use neohugo_base::{Date, Map, MediaTypeId, Value};
-use neohugo_config::OutputFormat;
-use neohugo_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
-use neohugo_page::{PathShape, SourcePath};
-use neohugo_testkit::fixture::{Tag, oracle};
 use serde_json::Value as J;
+use ssg_base::url::{Accents, BaseUrl, LinkStyle, PathCase, SiteUrls};
+use ssg_base::{Date, Map, MediaTypeId, Value};
+use ssg_config::OutputFormat;
+use ssg_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
+use ssg_page::{PathShape, SourcePath};
+use ssg_testkit::fixture::{Tag, oracle};
 
 /// A fixture under `testdata/oracle/page/`.
 pub fn fixture(rel: &str) -> J {
@@ -21,7 +21,7 @@ pub fn fixture(rel: &str) -> J {
 
 /// The files of a fixture family, without the ones in `skip`.
 pub fn family(dir: &str, skip: &[&str]) -> Vec<String> {
-    let path = neohugo_testkit::fixture::testdata(&format!("oracle/page/{dir}"));
+    let path = ssg_testkit::fixture::testdata(&format!("oracle/page/{dir}"));
     let mut names: Vec<String> = std::fs::read_dir(&path)
         .unwrap_or_else(|e| panic!("{}: {e}", path.display()))
         .map(|e| {
@@ -166,7 +166,7 @@ pub fn output_format(f: &J) -> (OutputFormat, String) {
     };
     let format = OutputFormat {
         name: s(&f["name"]).to_owned(),
-        media_type: <MediaTypeId as neohugo_base::Idx>::from_index(0),
+        media_type: <MediaTypeId as ssg_base::Idx>::from_index(0),
         base_name: s(&f["baseName"]).to_owned(),
         path: s(&f["path"]).to_owned(),
         rel: s(&f["rel"]).to_owned(),
@@ -311,7 +311,7 @@ impl Tally {
 
 /// The reviewed deviation counts of a family (`crates/page/expected_diffs.toml`).
 fn expected_diffs(family: &str) -> BTreeMap<String, usize> {
-    let path = neohugo_testkit::fixture::repo_dir().join("crates/page/expected_diffs.toml");
+    let path = ssg_testkit::fixture::repo_dir().join("crates/page/expected_diffs.toml");
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     let doc = Value::from_toml_str(&text).expect("expected_diffs.toml");
     let Some(classes) = doc

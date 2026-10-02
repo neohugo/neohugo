@@ -18,9 +18,9 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::{Map, Value};
-use neohugo_vfs::{Component, FileRef, Module, Vfs, VfsError};
+use ssg_base::diag::Diagnostic;
+use ssg_base::{Map, Value};
+use ssg_vfs::{Component, FileRef, Module, Vfs, VfsError};
 
 /// A data file that could not be loaded.
 #[derive(Debug, thiserror::Error)]

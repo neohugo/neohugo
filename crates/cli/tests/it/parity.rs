@@ -1,13 +1,13 @@
-//! Gate A-T (REWRITE_PLAN.md §7.3, T60): the testsite built by the `neohugo` binary against
+//! Gate A-T (REWRITE_PLAN.md §7.3, T60): the testsite built by the binary against
 //! the Go build of the same site (`crates/build/tests/it/testsite-go.txtar`).
 //!
-//! The gate lives here, not in `neohugo-build`, because only this crate's tests can run the
-//! binary (`CARGO_BIN_EXE_neohugo`): the command line, the disk sink, the static copy and
-//! `neohugo_stats.json` in the project directory are part of what is compared.
+//! The gate lives here, not in `ssg-build`, because only this crate's tests can run the
+//! binary (`CARGO_BIN_EXE_fugo`): the command line, the disk sink, the static copy and
+//! `build_stats.json` in the project directory are part of what is compared.
 //!
 //! - **L1** paths: the file set, after §7.2's normalisation, equals Go's 55 files in `public`
-//!   plus `neohugo_stats.json` in the project directory (56; the reference holds the 55 of
-//!   `public`, Go writes `neohugo_stats.json` next to `neohugo.toml`).
+//!   plus `build_stats.json` in the project directory (56; the reference holds the 55 of
+//!   `public`, Go writes `build_stats.json` next to `config.toml`).
 //! - **L2** links: per HTML file the `<title>`, `<link rel=canonical|alternate>` and the set of
 //!   internal `href`/`src`/`srcset` URLs (percent-decoded); the alias → target map; the
 //!   `<link>`/`<loc>`/`<guid>` lists of RSS and sitemaps; the URL leaves of JSON; link
@@ -16,12 +16,12 @@
 //!   every file is checked as well; it implies the rest while it holds.
 //! - **L3** text: per HTML file the visible text (tags, comments, `script` and `style`
 //!   removed, entities decoded, typographic characters mapped to ASCII, whitespace collapsed)
-//!   and the heading-ID list; `neohugo_stats.json` tag, class and id sets equal the collector's
-//!   (`neohugo-publish`, checked against Go's collector by `oracle/publisher/collector`) over
+//!   and the heading-ID list; `build_stats.json` tag, class and id sets equal the collector's
+//!   (`ssg-publish`, checked against Go's collector by `oracle/publisher/collector`) over
 //!   Go's HTML files.
-//! - **Structure oracle**: the build's own dump (`NEOHUGO_STRUCTURE_OUT`, `neohugo-build`'s
+//! - **Structure oracle**: the build's own dump (`FUGO_STRUCTURE_OUT`, `ssg-build`'s
 //!   `structure.rs`) against Go's (`testdata/golden/testsite/structure.json`, T01), with
-//!   the facts `tools/neohugo/structdiff.py` compares: per (lang, page, kind, format) the
+//!   the facts `tools/dev/structdiff.py` compares: per (lang, page, kind, format) the
 //!   target, `.RelPermalink`, `.Permalink`, template and base template (an embedded one marked
 //!   as such), `written` and `pagers`; per alias file and `page/1/` alias the page, format,
 //!   kind and permalink; per bundle resource the link, file and `publish`; per page its output
@@ -31,17 +31,17 @@
 //! differ only when the ratchet's baseline (`testdata/baselines/testsite.json`, T03)
 //! accepts it (`accepted-deviation`); it accepts none.
 //!
-//! The full output tree (every file's content, `neohugo_stats.json` included) is an insta
+//! The full output tree (every file's content, `build_stats.json` included) is an insta
 //! snapshot: `snapshots/it__parity__testsite_output.snap`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_publish::HtmlElements;
-use neohugo_testkit::fixture::repo_dir;
-use neohugo_testkit::txtar::Archive;
+use ssg_publish::HtmlElements;
+use ssg_testkit::fixture::repo_dir;
+use ssg_testkit::txtar::Archive;
 
 use crate::build::{testsite, tree};
-use crate::{neohugo, stderr};
+use crate::{binary, stderr};
 
 /// Files of the Go build whose bytes may differ, with the reason (L2 bytes).
 const ACCEPTED_BYTE_DIFFS: &[(&str, &str)] = &[];
@@ -60,7 +60,7 @@ fn go_public() -> BTreeMap<String, Vec<u8>> {
         .collect()
 }
 
-/// The testsite built by the binary: `public` and `neohugo_stats.json`.
+/// The testsite built by the binary: `public` and `build_stats.json`.
 struct Built {
     _tmp: tempfile::TempDir,
     public: BTreeMap<String, Vec<u8>>,
@@ -75,16 +75,16 @@ fn build_testsite() -> Built {
     testsite(&site);
     let dump = tmp.path().join("structure.json");
     let dump_env = dump.to_string_lossy().into_owned();
-    let o = neohugo(
+    let o = binary(
         &site,
         &["--clock", "2026-01-01T00:00:00Z"],
-        &[(neohugo_build::STRUCTURE_ENV, dump_env.as_str())],
+        &[(ssg_build::STRUCTURE_ENV, dump_env.as_str())],
     );
     assert!(o.status.success(), "{}", stderr(&o));
     let public = tree(&site.join("public"));
-    let stats = std::fs::read_to_string(site.join("neohugo_stats.json"))
-        .expect("neohugo_stats.json written");
-    let structure = neohugo_testkit::fixture::read_json(&dump).expect("the structure dump");
+    let stats =
+        std::fs::read_to_string(site.join("build_stats.json")).expect("build_stats.json written");
+    let structure = ssg_testkit::fixture::read_json(&dump).expect("the structure dump");
     Built {
         _tmp: tmp,
         public,
@@ -486,7 +486,7 @@ fn template_id(r: &serde_json::Value, name: &str, file: &str) -> String {
 }
 
 /// Every compared fact of a structure dump by key (the keys and fields of
-/// `tools/neohugo/structdiff.py`'s `structure_items`).
+/// `tools/dev/structdiff.py`'s `structure_items`).
 fn structure_facts(doc: &serde_json::Value) -> BTreeMap<String, serde_json::Value> {
     let s = |v: &serde_json::Value, k: &str| v[k].as_str().unwrap_or_default().to_owned();
     let rows = |k: &str| doc[k].as_array().cloned().unwrap_or_default();
@@ -555,7 +555,7 @@ fn structure_facts(doc: &serde_json::Value) -> BTreeMap<String, serde_json::Valu
 fn accepted_structure() -> BTreeSet<String> {
     let path = repo_dir().join("testdata/baselines/testsite.json");
     let doc: serde_json::Value =
-        neohugo_testkit::fixture::read_json(&path).unwrap_or_else(|e| panic!("{e}"));
+        ssg_testkit::fixture::read_json(&path).unwrap_or_else(|e| panic!("{e}"));
     doc["structure"]
         .as_object()
         .into_iter()
@@ -579,7 +579,7 @@ fn testsite_gate_a_t() {
     let ours = &built.public;
 
     // L1: 55 files in `public` plus the stats file in the project directory (Go's
-    // `hugo_stats.json`, neohugo's `neohugo_stats.json`; one entry for both).
+    // `hugo_stats.json`, our `build_stats.json`; one entry for both).
     let norm = |m: &BTreeMap<String, Vec<u8>>| -> Vec<String> {
         let mut v: Vec<String> = m.keys().map(|k| normalize_path(k)).collect();
         v.push("../hugo_stats.json".to_owned());
@@ -656,7 +656,7 @@ fn testsite_gate_a_t() {
         "L3: text differs"
     );
 
-    // L3: `neohugo_stats.json` sets equal the collector's over Go's HTML files.
+    // L3: `build_stats.json` sets equal the collector's over Go's HTML files.
     let mut go_elements = HtmlElements::default();
     for (_, v) in go.iter().filter(|(k, _)| k.ends_with(".html")) {
         go_elements.add_html(&String::from_utf8_lossy(v));
@@ -665,22 +665,22 @@ fn testsite_gate_a_t() {
     let set = |key: &str| -> BTreeSet<String> {
         stats["htmlElements"][key]
             .as_array()
-            .unwrap_or_else(|| panic!("neohugo_stats.json: no {key}"))
+            .unwrap_or_else(|| panic!("build_stats.json: no {key}"))
             .iter()
             .map(|v| v.as_str().expect("string").to_owned())
             .collect()
     };
-    assert_eq!(set("tags"), go_elements.tags, "neohugo_stats.json tags");
+    assert_eq!(set("tags"), go_elements.tags, "build_stats.json tags");
     assert_eq!(
         set("classes"),
         go_elements.classes,
-        "neohugo_stats.json classes"
+        "build_stats.json classes"
     );
-    assert_eq!(set("ids"), go_elements.ids, "neohugo_stats.json ids");
+    assert_eq!(set("ids"), go_elements.ids, "build_stats.json ids");
 
     println!(
         "A-T: L1 {}/56 paths; L2 {}/55 files byte-identical, links equal, {} aliases, {} dangling \
-         links (all dangling in Go's output too); L3 {} HTML pages equal, neohugo_stats.json sets equal \
+         links (all dangling in Go's output too); L3 {} HTML pages equal, build_stats.json sets equal \
          ({} tags, {} classes, {} ids); structure oracle below",
         got.len(),
         go.len() - differ.len(),
@@ -693,7 +693,7 @@ fn testsite_gate_a_t() {
     );
 
     // Structure oracle: the build's dump against Go's.
-    let golden = neohugo_testkit::fixture::read_json(
+    let golden = ssg_testkit::fixture::read_json(
         &repo_dir().join("testdata/golden/testsite/structure.json"),
     )
     .expect("golden structure dump");
@@ -726,7 +726,7 @@ fn testsite_gate_a_t() {
         .iter()
         .map(|(k, v)| (format!("public/{k}"), v.as_slice()))
         .collect();
-    files.push(("neohugo_stats.json".to_owned(), built.stats.as_bytes()));
+    files.push(("build_stats.json".to_owned(), built.stats.as_bytes()));
     files.sort();
     for (name, bytes) in files {
         snap.push_str(&format!("-- {name} --\n"));
@@ -735,7 +735,7 @@ fn testsite_gate_a_t() {
             snap.push('\n');
         }
     }
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         insta::assert_snapshot!("testsite_output", snap);
     });
 }

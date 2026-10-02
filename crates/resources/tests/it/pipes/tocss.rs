@@ -10,9 +10,9 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_resources::pipes::ToCssOptions;
-use neohugo_resources::{ResourceError, Transform};
 use serde_json::Value as J;
+use ssg_resources::pipes::ToCssOptions;
+use ssg_resources::{ResourceError, Transform};
 
 use super::{Project, fixture_site, project, run_steps};
 use crate::support::expected_diffs;
@@ -165,7 +165,7 @@ fn run_fixture(p: &Project, fx: &J) -> (usize, Vec<String>, BTreeMap<String, Str
                 // Same file and line (`file:line:col` in both), or both a decode error.
                 let want_at = w
                     .split('"')
-                    .find(|s| s.starts_with("$SITE/") || s.starts_with("neohugo:vars"))
+                    .find(|s| s.starts_with("$SITE/") || s.starts_with("build:vars"))
                     .map(|s| p.site(s));
                 let want_file_line = want_at
                     .as_deref()
@@ -197,8 +197,7 @@ fn run_fixture(p: &Project, fx: &J) -> (usize, Vec<String>, BTreeMap<String, Str
 
 #[test]
 fn tocss_oracle() {
-    let fx: J =
-        neohugo_testkit::fixture::oracle("oracle/resource-transformers/tocss/synth.json.gz");
+    let fx: J = ssg_testkit::fixture::oracle("oracle/resource-transformers/tocss/synth.json.gz");
     let p = project(&fixture_site("t16site"), |_| {});
     let (equal, failures, deviations) = run_fixture(&p, &fx);
     let accepted = expected_diffs()["tocss"].as_table().unwrap().clone();
@@ -232,7 +231,7 @@ fn tocss_reconstruction_scss() {
     let site = tmp.path().join("site");
     std::fs::create_dir_all(&site).unwrap();
     std::fs::write(
-        site.join("neohugo.toml"),
+        site.join("config.toml"),
         "baseURL = \"https://example.org/\"\n",
     )
     .unwrap();
@@ -279,7 +278,7 @@ fn tocss_reconstruction_scss() {
         .from_string(
             "scss/div.scss",
             "$a: 10px; .x { font: 12px/1.5 serif; w: 100% / 3; h: $a / 2; m: math-div(1, 2); }",
-            &neohugo_resources::CallSite::in_lang(p.lang()),
+            &ssg_resources::CallSite::in_lang(p.lang()),
         )
         .unwrap();
     let t = Transform::ToCss(
@@ -342,7 +341,7 @@ fn tocss_explicit_extension_imports_use_the_load_paths() {
     // target does), the files are in an `includePaths` directory, and `_base.scss` imports a
     // sibling that resolves only relative to its own place.
     let site = super::mini_site(&[
-        ("neohugo.toml", "baseURL = \"https://example.org/\"\n"),
+        ("config.toml", "baseURL = \"https://example.org/\"\n"),
         (
             "vendor/kit/parts/_base.scss",
             "@import \"colors\";\n$pad: 4px;\n",
@@ -361,7 +360,7 @@ fn tocss_explicit_extension_imports_use_the_load_paths() {
     let compile = |name: &str, src: &str| {
         let id = p
             .store
-            .from_string(name, src, &neohugo_resources::CallSite::in_lang(p.lang()))
+            .from_string(name, src, &ssg_resources::CallSite::in_lang(p.lang()))
             .unwrap();
         let opts = ToCssOptions::from_json(&serde_json::json!({
             "includePaths": ["vendor/kit"],
@@ -397,7 +396,7 @@ fn tocss_explicit_extension_imports_use_the_load_paths() {
         .from_string(
             "missing.scss",
             "@import \"nowhere.scss\";\n",
-            &neohugo_resources::CallSite::in_lang(p.lang()),
+            &ssg_resources::CallSite::in_lang(p.lang()),
         )
         .unwrap();
     let out = p

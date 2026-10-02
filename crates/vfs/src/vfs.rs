@@ -7,8 +7,8 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-use neohugo_base::{Idx, LangIdx};
-use neohugo_config::Config;
+use ssg_base::{Idx, LangIdx};
+use ssg_config::Config;
 
 use crate::filter::IgnoreRules;
 use crate::mount::{self, Module, Mount};
@@ -302,7 +302,7 @@ pub const NFC_NAMES: bool = cfg!(target_os = "macos");
 #[must_use]
 pub fn entry_name(name: &str, nfc: bool) -> Cow<'_, str> {
     if nfc {
-        neohugo_base::text::nfc(name)
+        ssg_base::text::nfc(name)
     } else {
         Cow::Borrowed(name)
     }

@@ -1,9 +1,9 @@
-# neohugo-view
+# ssg-view
 
 Views and render state (REWRITE_PLAN.md §2.5). **State: T33.** The views are built directly
-from `neohugo_site::Model`, `neohugo-nav` (menus, aliases, pagination lists), `neohugo-resources`
-(resource values) and the content the `ContentRenderer` produces (`neohugo_markup` outputs).
-The render-state types are final; `neohugo_sitefuncs::{Handles, register}` is the frozen stub
+from `ssg_site::Model`, `ssg-nav` (menus, aliases, pagination lists), `ssg-resources`
+(resource values) and the content the `ContentRenderer` produces (`ssg_markup` outputs).
+The render-state types are final; `ssg_sitefuncs::{Handles, register}` is the frozen stub
 T34 builds against.
 
 ## View cache
@@ -85,13 +85,13 @@ thread-locals: the scope is the context value `__nh`. Content adapters (`_conten
 
 | Type | API |
 |---|---|
-| `PaginationRecorder` | `paginator(page, format, at, make) -> Arc<Recorded>` (first call records), `paginate(page, format, at, Pagination) -> Result<Arc<Recorded>, PaginationConflict>` (equal: reuse; else both positions), `get`, `recorded()`; `Recorded { pagination: Arc<neohugo_nav::Pagination>, first_call: Option<Position> }`, `total_pages()` (≥ 1), `page(n)` |
+| `PaginationRecorder` | `paginator(page, format, at, make) -> Arc<Recorded>` (first call records), `paginate(page, format, at, Pagination) -> Result<Arc<Recorded>, PaginationConflict>` (equal: reuse; else both positions), `get`, `recorded()`; `Recorded { pagination: Arc<ssg_nav::Pagination>, first_call: Option<Position> }`, `total_pages()` (≥ 1), `page(n)` |
 | `PageStores` | `new(pages)`, `begin() -> TxnId`, `set(txn, page, key, value)` (buffered in a transaction, else direct), `get(txn, page, key)` (own writes first), `commit(txn)`, `discard(txn)` |
 | `DeferredRegistry` | `register(key, Deferred { template, data })` (first wins), `entries()` |
 | Pagers | `pager_view(&ViewGeneration, &Recorded, n, url) -> PagerView`, `pager_url(model, page, format, n)`, `page_target(model, page, format, pager) -> (TargetPaths, Links)` |
-| `NavSite` | `neohugo_nav::NavModel` over the model (menus, `page_aliases`, `default_pagination_list`, related index) |
+| `NavSite` | `ssg_nav::NavModel` over the model (menus, `page_aliases`, `default_pagination_list`, related index) |
 
-## Tests (`cargo test -p neohugo-view`)
+## Tests (`cargo test -p ssg-view`)
 
 - `views`: a bilingual site with every kind (home, section, page, leaf bundle with resources
   and a bundled page, taxonomy, term, 404, sitemap, sitemap index, robots.txt): Meta and Full
@@ -102,7 +102,7 @@ thread-locals: the scope is the context value `__nh`. Content adapters (`_conten
   snapshots (`tests/it/snapshots`).
 - `state`: pagination recorder (first call, identical re-call, conflict with both positions),
   page-store transactions, deferred registry. `scope`: the scope through a Tera render.
-- `memory::real_sites` (ignored): `NEOHUGO_SITES=<dir>[:<dir>…] cargo test -p neohugo-view
+- `memory::real_sites` (ignored): `FUGO_SITES=<dir>[:<dir>…] cargo test -p ssg-view
   real_sites -- --ignored --nocapture` with sites from `tools/rust-port/i01/sites.py make`:
   every page's full value in the Meta and two Full generations has every key, lists share
   summaries, and dhat measures the heap kept. Last run:

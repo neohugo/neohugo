@@ -1,13 +1,13 @@
 //! Unit tests of the typed front matter, the cascade, titles and permalink patterns.
 
 use jiff::tz::TimeZone;
-use neohugo_base::paths::ContentKey;
-use neohugo_base::url::SiteUrls;
-use neohugo_base::{Map, PageKind, Params, Value};
-use neohugo_config::sections::SitemapConfig;
-use neohugo_config::site::TitleConfig;
-use neohugo_config::{DateField, DateSource, MediaTypes, OutputFormats};
-use neohugo_page::{
+use ssg_base::paths::ContentKey;
+use ssg_base::url::SiteUrls;
+use ssg_base::{Map, PageKind, Params, Value};
+use ssg_config::sections::SitemapConfig;
+use ssg_config::site::TitleConfig;
+use ssg_config::{DateField, DateSource, MediaTypes, OutputFormats};
+use ssg_page::{
     Cascade, Cjk, DateResolver, FileCtx, GoLayout, ListMode, Markup, MarkupSource, MatchCtx,
     MetaCtx, PageError, PermalinkCtx, PermalinkPattern, RenderMode, capture_overrides,
     default_title, format_go_layout, meta_from_params,
@@ -476,7 +476,7 @@ fn go_layouts_format() {
 /// over the four date fields (Hugo's `createContentAdapterDatesHandler`).
 #[test]
 fn adapter_pages() {
-    use neohugo_page::{AdapterPage, meta_from_adapter};
+    use ssg_page::{AdapterPage, meta_from_adapter};
 
     let site = Site::new();
     let map = params(
@@ -632,8 +632,8 @@ fn adapter_pages() {
 /// given (Hugo trims `-` from front matter slugs only).
 #[test]
 fn adapter_dates_follow_the_chains_in_turn() {
-    use neohugo_config::decode_front_matter;
-    use neohugo_page::{AdapterPage, meta_from_adapter};
+    use ssg_config::decode_front_matter;
+    use ssg_page::{AdapterPage, meta_from_adapter};
 
     let ymd = |z: Option<&jiff::Zoned>| z.map(|z| z.strftime("%Y-%m-%d").to_string());
     let run = |frontmatter: &str, map: &str| {

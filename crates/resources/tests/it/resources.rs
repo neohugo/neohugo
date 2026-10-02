@@ -11,11 +11,11 @@
 
 use std::path::{Path, PathBuf};
 
-use neohugo_base::{Idx, LangIdx, Value};
-use neohugo_resources::meta::ResourceMeta;
-use neohugo_resources::{BundleResource, PublishPolicy, ResourceStore};
-use neohugo_testkit::fixture::repo_file;
 use serde_json::Value as J;
+use ssg_base::{Idx, LangIdx, Value};
+use ssg_resources::meta::ResourceMeta;
+use ssg_resources::{BundleResource, PublishPolicy, ResourceStore};
+use ssg_testkit::fixture::repo_file;
 
 use crate::support::{MemSink, diff, rec, repo_dir, rule, store, synth_site, want};
 
@@ -42,16 +42,15 @@ fn metadata(v: &J) -> ResourceMeta {
 fn run(name: &str, dir: &Path) -> usize {
     rule("resources", "shared_params");
     rule("resources", "key_and_size");
-    let fx: J =
-        neohugo_testkit::fixture::oracle(&format!("oracle/resources/resources/{name}.json.gz"));
+    let fx: J = ssg_testkit::fixture::oracle(&format!("oracle/resources/resources/{name}.json.gz"));
     let home = tempfile::tempdir().unwrap();
     let store: ResourceStore = store(dir, home.path());
     let mut failures = Vec::new();
     let records = fx["records"].as_array().unwrap();
     let mut links = Vec::new();
     for (i, rc) in records.iter().enumerate() {
-        // Go mounted Hugo's `package.hugo.json` in `assets/_jsconfig`; neohugo mounts
-        // `package.neohugo.json` (the docs fixture has only Hugo's file).
+        // Go mounted Hugo's `package.hugo.json` in `assets/_jsconfig`; this port mounts
+        // `package.config.json` (the docs fixture has only Hugo's file).
         if rc["where"] == "_jsconfig/package.hugo.json" {
             continue;
         }

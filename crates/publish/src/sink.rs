@@ -7,8 +7,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use dashmap::DashMap;
-use neohugo_base::Sink;
-use neohugo_base::paths::OutputPath;
+use ssg_base::Sink;
+use ssg_base::paths::OutputPath;
 
 /// Writes files below a directory, creating parent directories as needed. A file is always
 /// truncated and rewritten (modes follow the process umask).

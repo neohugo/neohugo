@@ -1,6 +1,6 @@
 [package]
-name = "neohugo-serve"
-description = "neohugo server (T71)"
+name = "ssg-serve"
+description = "The development server (T71)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -19,13 +19,13 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-vfs.workspace = true
-neohugo-site.workspace = true
-neohugo-publish.workspace = true
-neohugo-build.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-vfs.workspace = true
+ssg-site.workspace = true
+ssg-publish.workspace = true
+ssg-build.workspace = true
 axum.workspace = true
 tokio.workspace = true
 notify.workspace = true
@@ -35,7 +35,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 tempfile.workspace = true
 # The LiveReload client of the tests (blocking; already locked through axum's `ws`).
 tungstenite.workspace = true

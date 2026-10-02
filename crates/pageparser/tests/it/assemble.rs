@@ -2,11 +2,11 @@
 
 use std::collections::BTreeSet;
 
-use neohugo_pageparser::{
+use pretty_assertions::assert_eq;
+use ssg_pageparser::{
     Body, Closing, Delim, InnerUse, ParseError, Scalar, Segment, ShortcodeArgs, ShortcodeCall,
     TokenKind, assemble, lex, parse_body, split_front_matter,
 };
-use pretty_assertions::assert_eq;
 
 use crate::support::{Tally, page_cases};
 
@@ -216,7 +216,7 @@ fn content_files_assemble() {
                 continue;
             }
             // The name after the `/` of a closing tag, or the name of a self-closing tag.
-            let is_name = |t: &&neohugo_pageparser::Token| {
+            let is_name = |t: &&ssg_pageparser::Token| {
                 matches!(t.kind, TokenKind::Name | TokenKind::InlineName)
             };
             let name = tokens

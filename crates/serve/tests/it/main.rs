@@ -1,4 +1,4 @@
-//! Integration tests of `neohugo-serve` (the crate's single test binary, REWRITE_PLAN.md §2.2):
+//! Integration tests of `ssg-serve` (the crate's single test binary, REWRITE_PLAN.md §2.2):
 //! servers on free ports over temporary copies of small sites and of the testsite, driven with
 //! a plain HTTP/1.1 client and a LiveReload WebSocket client.
 
@@ -11,10 +11,10 @@ use std::path::Path;
 use std::sync::{Arc, Mutex, PoisonError};
 use std::time::{Duration, Instant};
 
-use neohugo_build::BuildRequest;
-use neohugo_config::CliOverrides;
-use neohugo_serve::{Event, Port, Reporter, ServeOptions, Server};
-use neohugo_testkit::txtar::Archive;
+use ssg_build::BuildRequest;
+use ssg_config::CliOverrides;
+use ssg_serve::{Event, Port, Reporter, ServeOptions, Server};
+use ssg_testkit::txtar::Archive;
 
 /// How long anything may take before a test gives up (builds of a debug binary on a busy
 /// machine included); the edit → reload times themselves are printed.

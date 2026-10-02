@@ -3,15 +3,15 @@
 
 use std::path::{Path, PathBuf};
 
-use neohugo_config::global::MaxAge;
-use neohugo_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
-use neohugo_config::site::UglyUrls;
-use neohugo_config::{CliOverrides, Config, LoadOptions, SiteConfig};
 use serde_json::{Map as JMap, Value as J, json};
+use ssg_config::global::MaxAge;
+use ssg_config::output::{Escaping, LinkPolicy, Listing, Placement, UglyPolicy};
+use ssg_config::site::UglyUrls;
+use ssg_config::{CliOverrides, Config, LoadOptions, SiteConfig};
 
 /// Reads a fixture under `testdata` as raw JSON.
 pub fn fixture(rel: &str) -> J {
-    neohugo_testkit::fixture::oracle(rel)
+    ssg_testkit::fixture::oracle(rel)
 }
 
 /// An oracle case recreated in a temporary directory.
@@ -28,10 +28,10 @@ impl Site {
 
     /// Replaces `$ROOT` in an oracle string.
     /// An oracle path or value: `$ROOT` expanded, and Go's default cache directory names
-    /// (`hugo_cache`, `hugo_cache_<user>`) as neohugo names them.
+    /// (`hugo_cache`, `hugo_cache_<user>`) as this port names them.
     pub fn expand(&self, s: &str) -> String {
         s.replace("$ROOT", &self.root().to_string_lossy())
-            .replace("/hugo_cache", "/neohugo_cache")
+            .replace("/hugo_cache", &format!("/{}_cache", ssg_base::APP_NAME))
     }
 }
 
@@ -46,9 +46,9 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
     let expand = |s: &str| s.replace("$ROOT", &root.to_string_lossy());
     let dir = root.join(site_dir);
     std::fs::create_dir_all(&dir).expect("site dir");
-    // Go's `hugo.*` configuration files are neohugo's `neohugo.*`.
+    // Go's `hugo.*` configuration files are our `config.*`.
     for (name, content) in case["files"].as_object().expect("files") {
-        let path = dir.join(neohugo_testkit::fixture::neohugo_path(name));
+        let path = dir.join(ssg_testkit::fixture::local_path(name));
         if name.ends_with('/') {
             std::fs::create_dir_all(&path).expect("dir");
         } else {
@@ -56,14 +56,11 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
             std::fs::write(&path, expand(content.as_str().expect("text"))).expect("write");
         }
     }
-    // The oracle recorded Go's `HUGO*` variables; neohugo reads the same settings as `NEOHUGO*`
-    // (and no `HUGO*` variable).
-    let neo = |k: &str| {
-        if k.starts_with("HUGO") {
-            format!("NEO{k}")
-        } else {
-            k.to_owned()
-        }
+    // The oracle recorded Go's `HUGO*` variables; the same settings are read with the program's
+    // prefix (`ssg_base::ENV_PREFIX`), and no `HUGO*` variable is.
+    let neo = |k: &str| match k.strip_prefix("HUGO") {
+        Some(rest) => format!("{}{rest}", ssg_base::ENV_PREFIX),
+        None => k.to_owned(),
     };
     let mut env: Vec<(String, String)> = Vec::new();
     if let Some(p) = case["procEnv"].as_object() {
@@ -74,12 +71,12 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
     for e in case["environ"].as_array().into_iter().flatten() {
         let e = e.as_str().unwrap_or_default();
         if let Some((k, v)) = e.split_once('=')
-            && k != "NEOHUGO_ORACLE"
+            && k != "FUGO_ORACLE"
         {
             env.push((neo(k), expand(v)));
         }
     }
-    // The oracle passes "production" when no environment was chosen; `NEOHUGO_ENVIRONMENT`
+    // The oracle passes "production" when no environment was chosen; `FUGO_ENVIRONMENT`
     // (Go: `HUGO_ENVIRONMENT`) then decides.
     let mut cli = CliOverrides {
         environment: case["environment"]
@@ -149,7 +146,7 @@ pub fn strip(v: &J) -> Option<J> {
     }
 }
 
-fn map(m: &neohugo_base::Map) -> J {
+fn map(m: &ssg_base::Map) -> J {
     serde_json::to_value(m).expect("json")
 }
 
@@ -233,7 +230,7 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
     put(
         "permalinks",
         J::Object(
-            neohugo_config::sections::PERMALINK_KINDS
+            ssg_config::sections::PERMALINK_KINDS
                 .iter()
                 .map(|&k| {
                     (
@@ -283,7 +280,7 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
         "security",
         json!({
             "enableinlineshortcodes": c.security.inline_shortcodes
-                == neohugo_config::global::InlineShortcodes::Enabled,
+                == ssg_config::global::InlineShortcodes::Enabled,
             "exec": {"allow": wl(&c.security.exec_allow), "osenv": wl(&c.security.exec_os_env)},
             "funcs": {"getenv": getenv_as_go(&c.security.getenv)},
             "http": {"urls": wl(&c.security.http_urls), "methods": wl(&c.security.http_methods),
@@ -353,31 +350,31 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
     put("capitalizelisttitles", json!(s.titles.capitalize));
     put(
         "disablealiases",
-        json!(s.aliases == neohugo_config::site::AliasPolicy::Disabled),
+        json!(s.aliases == ssg_config::site::AliasPolicy::Disabled),
     );
     put(
         "enableemoji",
-        json!(s.emoji == neohugo_config::site::EmojiPolicy::Enabled),
+        json!(s.emoji == ssg_config::site::EmojiPolicy::Enabled),
     );
     put(
         "enablerobotstxt",
-        json!(s.robots_txt == neohugo_config::site::RobotsPolicy::Enabled),
+        json!(s.robots_txt == ssg_config::site::RobotsPolicy::Enabled),
     );
     put(
         "canonifyurls",
-        json!(s.urls.link_style == neohugo_base::url::LinkStyle::Canonify),
+        json!(s.urls.link_style == ssg_base::url::LinkStyle::Canonify),
     );
     put(
         "relativeurls",
-        json!(s.urls.output == neohugo_config::site::LinkOutput::Relative),
+        json!(s.urls.output == ssg_config::site::LinkOutput::Relative),
     );
     put(
         "removepathaccents",
-        json!(s.urls.accents == neohugo_base::url::Accents::Remove),
+        json!(s.urls.accents == ssg_base::url::Accents::Remove),
     );
     put(
         "disablepathtolower",
-        json!(s.urls.path_case == neohugo_base::url::PathCase::Preserve),
+        json!(s.urls.path_case == ssg_base::url::PathCase::Preserve),
     );
     put(
         "uglyurls",
@@ -391,8 +388,8 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
     put(
         "reflinkserrorlevel",
         json!(match s.ref_links.level {
-            neohugo_config::site::RefLinksLevel::Error => "",
-            neohugo_config::site::RefLinksLevel::Warning => "WARNING",
+            ssg_config::site::RefLinksLevel::Error => "",
+            ssg_config::site::RefLinksLevel::Warning => "WARNING",
         }),
     );
     put("reflinksnotfoundurl", json!(s.ref_links.not_found_url));
@@ -430,20 +427,20 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
 }
 
 /// A whitelist as configured: `"none"` or the patterns.
-/// `security.funcs.getenv` as Go spells it: neohugo's default `^NEOHUGO_` is Go's `^HUGO_`
+/// `security.funcs.getenv` as Go spells it: our default `^FUGO_` is Go's `^HUGO_`
 /// renamed.
-fn getenv_as_go(w: &neohugo_config::global::Whitelist) -> J {
+fn getenv_as_go(w: &ssg_config::global::Whitelist) -> J {
     match wl(w) {
         J::Array(p) => J::Array(
             p.into_iter()
-                .map(|p| if p == "^NEOHUGO_" { json!("^HUGO_") } else { p })
+                .map(|p| if p == "^FUGO_" { json!("^HUGO_") } else { p })
                 .collect(),
         ),
         other => other,
     }
 }
 
-fn wl(w: &neohugo_config::global::Whitelist) -> J {
+fn wl(w: &ssg_config::global::Whitelist) -> J {
     match w.patterns() {
         [one] if one.eq_ignore_ascii_case("none") => json!("none"),
         p => json!(p),
@@ -456,7 +453,7 @@ fn markup(s: &SiteConfig) -> J {
     let e = &g.extensions;
     let t = &e.typographer;
     let h = &m.highlight;
-    let toggle = |x: &neohugo_config::markup::Toggle| json!({"enable": x.enable});
+    let toggle = |x: &ssg_config::markup::Toggle| json!({"enable": x.enable});
     json!({
         "defaultmarkdownhandler": m.default_markdown_handler,
         "asciidocext": serde_json::to_value(&m.asciidoc_ext).expect("json"),

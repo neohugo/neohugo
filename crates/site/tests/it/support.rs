@@ -6,12 +6,12 @@ use std::sync::Arc;
 
 use jiff::Zoned;
 use jiff::tz::Offset;
-use neohugo_base::{Clock, Date, Value};
-use neohugo_config::{Config, LoadOptions, load};
-use neohugo_site::{LoadModelOptions, Model, ModelError, load_model};
-use neohugo_testkit::fixture::{Tag, repo_file};
-use neohugo_vfs::Vfs;
 use serde_json::{Value as J, json};
+use ssg_base::{Clock, Date, Value};
+use ssg_config::{Config, LoadOptions, load};
+use ssg_site::{LoadModelOptions, Model, ModelError, load_model};
+use ssg_testkit::fixture::{Tag, repo_file};
+use ssg_vfs::Vfs;
 
 /// FNV-1a 64 as 16 hex digits (the oracle's hash of repository files).
 fn fnv(b: &[u8]) -> String {
@@ -23,11 +23,11 @@ fn fnv(b: &[u8]) -> String {
     format!("{h:016x}")
 }
 
-/// Writes the recorded site (`neohugo.toml` and its files; repository files must still have their
+/// Writes the recorded site (`config.toml` and its files; repository files must still have their
 /// recorded hash) into `dir`.
 pub fn write_site(site: &J, dir: &Path) {
     fs::create_dir_all(dir).unwrap();
-    fs::write(dir.join("neohugo.toml"), site["toml"].as_str().unwrap()).unwrap();
+    fs::write(dir.join("config.toml"), site["toml"].as_str().unwrap()).unwrap();
     for f in site["files"].as_array().unwrap() {
         let p = f["path"].as_str().unwrap();
         let content = if let Some(r) = f["repo"].as_str() {

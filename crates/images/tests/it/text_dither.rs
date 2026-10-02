@@ -3,12 +3,12 @@
 use std::collections::BTreeSet;
 
 use image::{Rgba, RgbaImage};
-use neohugo_images::{
+use serde_json::json;
+use ssg_images::{
     Color, DitherMethod, DitherSpec, FontInput, ImageError, ImageFilter, ImageInput, ImageQueue,
     Imaging, TextSpec,
 };
-use neohugo_testkit::fixture::repo_file;
-use serde_json::json;
+use ssg_testkit::fixture::repo_file;
 
 use crate::common::{decode, expected_diffs, png, write_file};
 

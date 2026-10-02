@@ -1,9 +1,9 @@
 //! Pager values (`paginator()`, `paginate()`) and the files and links of a page's pagers.
 
-use neohugo_base::{FormatId, PageId};
-use neohugo_nav::{PagerSlice, PaginationItems};
-use neohugo_page::{Links, TargetPaths, links};
-use neohugo_site::{Model, ModelError};
+use ssg_base::{FormatId, PageId};
+use ssg_nav::{PagerSlice, PaginationItems};
+use ssg_page::{Links, TargetPaths, links};
+use ssg_site::{Model, ModelError};
 
 use crate::cache::ViewGeneration;
 use crate::pagination::Recorded;
@@ -17,7 +17,7 @@ pub enum TargetError {
         path: String,
         format: String,
         #[source]
-        source: neohugo_page::PageError,
+        source: ssg_page::PageError,
     },
     #[error("{path} has no output in format {format}")]
     NoOutput { path: String, format: String },

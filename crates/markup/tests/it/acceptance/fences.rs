@@ -1,8 +1,8 @@
 //! `CodeFences::Plain` against Go: the convert oracle's `cjk` configuration renders fences
 //! with `codeFences = false`, i.e. goldmark's own `<pre><code class="language-x">`.
 
-use neohugo_base::Value;
-use neohugo_markup::{
+use ssg_base::Value;
+use ssg_markup::{
     CodeFences, ExpandedMarkdown, HighlightOptions, Highlighter, HookError, MarkdownOptions,
     NoHooks, SourceContexts, render,
 };

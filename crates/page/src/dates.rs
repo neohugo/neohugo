@@ -3,8 +3,8 @@
 
 use jiff::tz::{Offset, TimeZone};
 use jiff::{Timestamp, Zoned};
-use neohugo_base::{Date, Params, Value};
-use neohugo_config::{DateField, DateSource, SiteConfig};
+use ssg_base::{Date, Params, Value};
+use ssg_config::{DateField, DateSource, SiteConfig};
 
 /// The dates of a page; `None` is Hugo's zero date.
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -175,7 +175,7 @@ fn utc(t: Timestamp) -> Zoned {
 /// A front matter value as a date: date strings in Hugo's layouts, TOML dates, Unix seconds.
 pub(crate) fn to_date(v: &Value, tz: &TimeZone) -> Option<Zoned> {
     match v {
-        Value::String(s) => neohugo_base::parse_date(s, tz).ok(),
+        Value::String(s) => ssg_base::parse_date(s, tz).ok(),
         Value::Date(Date::Local(dt)) => dt.to_zoned(tz.clone()).ok(),
         Value::Date(Date::Zoned(z)) if same_zone(z.time_zone(), tz) => Some(z.clone()),
         Value::Date(Date::Zoned(z)) => Some(to_second_fixed(z)),
@@ -206,16 +206,16 @@ fn to_second_fixed(z: &Zoned) -> Zoned {
 /// `:filename`: a `YYYY-MM-DD` or `YYYY-MM-DD-HH-MM-SS` prefix (any one character between the
 /// date and the time) and the slug after it, trimmed of ` `, `-` and `_`.
 fn date_and_slug(base_filename: &str, tz: &TimeZone) -> Option<(Zoned, String)> {
-    let name = neohugo_base::paths::file_and_ext(base_filename).0;
+    let name = ssg_base::paths::file_and_ext(base_filename).0;
     let trim = |s: &str| s.trim_matches([' ', '-', '_']).to_owned();
     if let (Some(date), Some(time), Some(rest)) = (name.get(..10), name.get(11..19), name.get(19..))
     {
         let s = format!("{date}T{}", time.replace('-', ":"));
-        if let Ok(z) = neohugo_base::parse_date(&s, tz) {
+        if let Ok(z) = ssg_base::parse_date(&s, tz) {
             return Some((z, trim(rest)));
         }
     }
     let (date, rest) = (name.get(..10)?, name.get(10..)?);
-    let z = neohugo_base::parse_date(date, tz).ok()?;
+    let z = ssg_base::parse_date(date, tz).ok()?;
     Some((z, trim(rest)))
 }

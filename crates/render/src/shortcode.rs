@@ -13,7 +13,7 @@
 //!   `{{% %}}` output (and the output of calls nested in a `{{% %}}` call) they are replaced by
 //!   the included source with its placeholders renumbered into this page's table and a context
 //!   span for the included page (top-level calls only). On a Markdown page the source is
-//!   wrapped in context marker lines (`neohugo_markup::wrap_context`, Hugo's `hugocontext.Wrap`
+//!   wrapped in context marker lines (`ssg_markup::wrap_context`, Hugo's `hugocontext.Wrap`
 //!   of `.RenderShortcodes` inside goldmark): they shape the blocks around the include the way
 //!   Hugo's markers do. In a `{{< >}}` call's output the included source has its placeholders
 //!   resolved, before the call's indentation, as Hugo renders those calls after Markdown.
@@ -23,17 +23,17 @@ use std::ops::Range;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::PageId;
-use neohugo_config::global::InlineShortcodes;
-use neohugo_layouts::{ShortcodeMiss, ShortcodeQuery, TemplateName};
-use neohugo_markup::{SourceContexts, strip_context_markers, wrap_context};
-use neohugo_page::Markup;
-use neohugo_pageparser::{
+use ssg_base::PageId;
+use ssg_config::global::InlineShortcodes;
+use ssg_layouts::{ShortcodeMiss, ShortcodeQuery, TemplateName};
+use ssg_markup::{SourceContexts, strip_context_markers, wrap_context};
+use ssg_page::Markup;
+use ssg_pageparser::{
     Body, Closing, Delim, InnerUse, Scalar, Segment, ShortcodeArgs, ShortcodeCall,
 };
-use neohugo_site::Page;
-use neohugo_view::views::ShortcodeView;
-use neohugo_view::{ContentError, ExpandedSource, RenderScope, RenderStringOptions, SCOPE_KEY};
+use ssg_site::Page;
+use ssg_view::views::ShortcodeView;
+use ssg_view::{ContentError, ExpandedSource, RenderScope, RenderStringOptions, SCOPE_KEY};
 
 use crate::session::Session;
 use crate::summary::DIVIDER_SOURCE;
@@ -110,8 +110,8 @@ pub(crate) struct Expander<'s> {
     pub text: &'s str,
     pub body_offset: usize,
     /// The shortcode lookup path (the page's key with its type as first segment).
-    pub path: &'s neohugo_base::paths::ContentKey,
-    pub format: neohugo_base::FormatId,
+    pub path: &'s ssg_base::paths::ContentKey,
+    pub format: ssg_base::FormatId,
     /// The scope of the expansion's computation.
     pub scope: &'s RenderScope,
     out: String,
@@ -135,8 +135,8 @@ impl<'s> Expander<'s> {
         file: &'s Arc<Path>,
         text: &'s str,
         body_offset: usize,
-        path: &'s neohugo_base::paths::ContentKey,
-        format: neohugo_base::FormatId,
+        path: &'s ssg_base::paths::ContentKey,
+        format: ssg_base::FormatId,
         scope: &'s RenderScope,
     ) -> Self {
         Self {
@@ -157,7 +157,7 @@ impl<'s> Expander<'s> {
     }
 
     fn position(&self, span: &Range<usize>) -> String {
-        let (line, col) = neohugo_pageparser::line_col(self.text, self.body_offset + span.start);
+        let (line, col) = ssg_pageparser::line_col(self.text, self.body_offset + span.start);
         format!("{}:{line}:{col}", self.file.display())
     }
 
@@ -421,7 +421,7 @@ impl<'s> Expander<'s> {
         let mut ctx = tera::Context::new();
         ctx.insert_value("page", generation.full(self.page.id));
         ctx.insert_value("site", generation.sites[self.page.lang].clone());
-        ctx.insert_value("neohugo", s.neohugo().clone());
+        ctx.insert_value("build", s.build_info().clone());
         ctx.insert("lang", &s.model().config.sites[self.page.lang].language.key);
         ctx.insert_value("shortcode", tera::Value::from_serializable(view));
         ctx.insert_value("inner", tera::Value::safe_string(inner));
@@ -438,7 +438,7 @@ impl<'s> Expander<'s> {
     ) -> Result<String, ContentError> {
         if self.scope.child().too_deep() {
             return Err(ContentError::TooDeep {
-                limit: neohugo_view::MAX_DEPTH,
+                limit: ssg_view::MAX_DEPTH,
             });
         }
         self.session

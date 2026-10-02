@@ -9,15 +9,15 @@
 //! `docs` is the docs content tree (948 pages) with stub layouts and shortcodes.
 //!
 //! `content`, `seeksnack` and `shortcodes` use the shortcode and hook conversions of
-//! `neohugo-render`'s content oracles. Not here: `build-errors` (a failing build;
-//! `neohugo-cli`'s error report).
+//! `ssg-render`'s content oracles. Not here: `build-errors` (a failing build;
+//! `ssg-cli`'s error report).
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_base::diag::Severity;
-use neohugo_build::{BuildError, BuildRequest, SinkKind, build};
-use neohugo_testkit::fixture::{oracle, repo_file};
 use serde_json::Value as J;
+use ssg_base::diag::Severity;
+use ssg_build::{BuildError, BuildRequest, SinkKind, build};
+use ssg_testkit::fixture::{oracle, repo_file};
 
 use crate::support::{files_below, normalize_fingerprints, write_files};
 
@@ -173,7 +173,7 @@ fn layouts(name: &str) -> Vec<(&'static str, String)> {
     all.into_iter().collect()
 }
 
-// The shortcode and hook conversions of `neohugo-render`'s content oracles (`tests/it/oracle.rs`
+// The shortcode and hook conversions of `ssg-render`'s content oracles (`tests/it/oracle.rs`
 // there), for the build fixtures of the same sites.
 
 /// `{"head":…,"body":…}` of a table, cells as `"<alignment>:<text>"` (Hugo's `printf "%s:%s"`,
@@ -379,7 +379,7 @@ pub(crate) fn write_site(name: &str, dir: &std::path::Path) -> J {
             1,
         );
     }
-    let mut files = vec![("neohugo.toml".to_owned(), toml)];
+    let mut files = vec![("config.toml".to_owned(), toml)];
     for file in site["files"].as_array().expect("files") {
         let path = file["path"].as_str().expect("path");
         if path.starts_with("layouts/") {
@@ -447,7 +447,7 @@ fn check(name: &str) -> Outcome {
             if !r.collisions.is_empty() {
                 println!("{name}: {} collisions", r.collisions.len());
             }
-            if std::env::var_os("NEOHUGO_T36_TIMINGS").is_some() {
+            if std::env::var_os("FUGO_T36_TIMINGS").is_some() {
                 println!("{name}: {:?}", r.timings);
             }
             Vec::new()

@@ -7,7 +7,7 @@
 
 use std::fmt::{self, Write as _};
 
-use neohugo_base::Value;
+use ssg_base::Value;
 
 use crate::plural::PluralCount;
 

@@ -16,13 +16,13 @@ use std::collections::HashMap;
 use std::collections::hash_map::Entry;
 use std::sync::{Arc, Mutex, PoisonError};
 
-use neohugo_base::diag::{Diagnostic, Diagnostics};
-use neohugo_base::paths::{self, ContentKey};
-use neohugo_base::{LangIdx, Params};
-use neohugo_page::AdapterPage;
-use neohugo_resources::{Body, ResourceStore};
-use neohugo_site::{AddedBody, AddedContent, AddedPage, AddedResource};
-use neohugo_view::{Phase, RenderScope, ViewCache};
+use ssg_base::diag::{Diagnostic, Diagnostics};
+use ssg_base::paths::{self, ContentKey};
+use ssg_base::{LangIdx, Params};
+use ssg_page::AdapterPage;
+use ssg_resources::{Body, ResourceStore};
+use ssg_site::{AddedBody, AddedContent, AddedPage, AddedResource};
+use ssg_view::{Phase, RenderScope, ViewCache};
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;
@@ -31,7 +31,7 @@ use crate::call::{Registrar, SiteFunction, field, msg, need_scope, resource_id, 
 /// One execution of a content adapter for one language, and what it added.
 #[derive(Clone, Debug)]
 pub struct AdapterRun {
-    /// The adapter (an index into `neohugo_site::Captured::adapters`).
+    /// The adapter (an index into `ssg_site::Captured::adapters`).
     pub adapter: usize,
     pub lang: LangIdx,
     /// The adapter's directory: paths of added pages and resources are relative to it.
@@ -174,7 +174,7 @@ pub(crate) fn adapter_run(s: &RenderScope, name: &str) -> TeraResult<u32> {
 /// A map argument as folded params.
 fn map_arg(v: &Value, what: &str) -> TeraResult<Params> {
     match to_data(v) {
-        neohugo_base::Value::Map(m) => Ok(Params::fold(&m)),
+        ssg_base::Value::Map(m) => Ok(Params::fold(&m)),
         _ => Err(msg(format!("{what}: expected a map, got {}", v.name()))),
     }
 }
@@ -284,7 +284,7 @@ impl AddResource {
         let what = "add_resource";
         let map = map_arg(v, "add_resource(resource=)")?;
         let string = |m: &Params, key: &str| -> TeraResult<Option<String>> {
-            use neohugo_base::Value as V;
+            use ssg_base::Value as V;
             match m.get(key) {
                 None | Some(V::Null) => Ok(None),
                 Some(V::String(s)) => Ok(Some(s.to_string())),
@@ -302,8 +302,8 @@ impl AddResource {
         let joined = paths::join(&["/", &dir.to_path(), &path]);
         let path = paths::normalize_key(joined.trim_start_matches('/'));
         let params = match map.get("params") {
-            None | Some(neohugo_base::Value::Null) => Params::default(),
-            Some(neohugo_base::Value::Map(m)) => Params::fold(m),
+            None | Some(ssg_base::Value::Null) => Params::default(),
+            Some(ssg_base::Value::Map(m)) => Params::fold(m),
             Some(_) => return Err(msg(format!("{what}: `params` must be a map"))),
         };
         // The content as the template passed it: a resource value is not data.

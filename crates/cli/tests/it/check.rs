@@ -1,13 +1,13 @@
 //! `templates check` (REWRITE_PLAN.md §4.8).
 
 use crate::build::testsite;
-use crate::{neohugo, site, stdout};
+use crate::{binary, site, stdout};
 
 /// Every rule fires once on `bad-layouts.txtar`, at its position, and the check fails.
 #[test]
 fn bad_layouts_report_every_rule() {
     let s = site("bad-layouts.txtar");
-    let o = neohugo(s.path(), &["templates", "check"], &[]);
+    let o = binary(s.path(), &["templates", "check"], &[]);
     let out = stdout(&o);
     assert_eq!(o.status.code(), Some(1), "{out}");
     let expected = [
@@ -72,7 +72,7 @@ fn testsite_overlay_is_clean() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let site = tmp.path().join("testsite");
     testsite(&site);
-    let o = neohugo(tmp.path(), &["templates", "check", "-s", "testsite"], &[]);
+    let o = binary(tmp.path(), &["templates", "check", "-s", "testsite"], &[]);
     let out = stdout(&o);
     assert_eq!(o.status.code(), Some(0), "{out}");
     assert!(out.ends_with("0 error(s), 0 warning(s)\n"), "{out}");
@@ -82,7 +82,7 @@ fn testsite_overlay_is_clean() {
     );
     assert!(out.contains("  single.html: 7\n"), "{out}");
 
-    let o = neohugo(
+    let o = binary(
         tmp.path(),
         &["templates", "check", "-s", "testsite", "--coverage", "full"],
         &[],
@@ -92,7 +92,7 @@ fn testsite_overlay_is_clean() {
     assert_eq!(rows, 35, "{out}");
     assert!(out.contains("  en home / [html] → list.html\n"), "{out}");
 
-    let o = neohugo(
+    let o = binary(
         tmp.path(),
         &["templates", "check", "-s", "testsite", "--coverage", "none"],
         &[],
@@ -104,15 +104,15 @@ fn testsite_overlay_is_clean() {
 #[test]
 fn deny_warnings() {
     let s = crate::site_from(
-        "-- neohugo.toml --\nbaseURL = \"https://e.org/\"\ndisableKinds = [\"taxonomy\", \"term\"]\n-- layouts/home.html --\n{% if page.params.x == none %}x{% endif %}\n",
+        "-- config.toml --\nbaseURL = \"https://e.org/\"\ndisableKinds = [\"taxonomy\", \"term\"]\n-- layouts/home.html --\n{% if page.params.x == none %}x{% endif %}\n",
     );
-    let o = neohugo(s.path(), &["templates", "check"], &[]);
+    let o = binary(s.path(), &["templates", "check"], &[]);
     assert_eq!(o.status.code(), Some(0), "{}", stdout(&o));
     assert!(
         stdout(&o).ends_with("0 error(s), 1 warning(s)\n"),
         "{}",
         stdout(&o)
     );
-    let o = neohugo(s.path(), &["templates", "check", "--deny-warnings"], &[]);
+    let o = binary(s.path(), &["templates", "check", "--deny-warnings"], &[]);
     assert_eq!(o.status.code(), Some(1), "{}", stdout(&o));
 }

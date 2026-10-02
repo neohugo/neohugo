@@ -10,9 +10,9 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::FormatId;
-use neohugo_view::{ContentRenderer, HookVariant, RenderedContent};
 use serde_json::Value as J;
+use ssg_base::FormatId;
+use ssg_view::{ContentRenderer, HookVariant, RenderedContent};
 
 use crate::support::{Site, content_scope, session_in, write};
 
@@ -199,11 +199,10 @@ struct Tally {
 }
 
 fn run(fixture: &str, layouts: &[(&str, &str)]) -> Tally {
-    let fx: J =
-        neohugo_testkit::fixture::oracle(&format!("oracle/hugolib/content/{fixture}.json.gz"));
+    let fx: J = ssg_testkit::fixture::oracle(&format!("oracle/hugolib/content/{fixture}.json.gz"));
     let site = &fx["site"];
     let mut files = vec![(
-        "neohugo.toml".to_owned(),
+        "config.toml".to_owned(),
         site["toml"].as_str().expect("toml").to_owned(),
     )];
     for f in site["files"].as_array().expect("files") {

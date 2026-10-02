@@ -1,14 +1,14 @@
-# neohugo-render
+# ssg-render
 
 The render session (REWRITE_PLAN.md §2.6, §3.2–3.4, §4.2–4.4). **State: T34** (the content
-engine) **+ T36 wiring**: the site functions are T35's `neohugo_sitefuncs::register` (the T38
-stubs are gone), and `neohugo-build` runs the phases with the jobs of `wave1`/`wave2`, the
+engine) **+ T36 wiring**: the site functions are T35's `ssg_sitefuncs::register` (the T38
+stubs are gone), and `ssg-build` runs the phases with the jobs of `wave1`/`wave2`, the
 targets of `target` and the deferred templates of `render_deferred`.
 
 ## API
 
 ```rust
-pub use neohugo_nav::AliasPlan;
+pub use ssg_nav::AliasPlan;
 pub enum Job { Alias(AliasPlan), Page { page, format }, Pager { page, format, number },
                PagerAlias { page, format }, Standalone { page, format }, LanguageRedirect }
 pub struct JobOrder { lang, format_rank, key_rank, sub }        // new(), lang()
@@ -26,10 +26,10 @@ impl Session {
     pub fn templates(&self) -> &Templates; // + model, views, diagnostics, order, wave1, wave2
     /// T36: the file a job writes without rendering it (`None`: it writes nothing).
     pub fn target(&self, job: &Job) -> Result<Option<OutputPath>, RenderError>;
-    /// T36, phase E5: a `defer(...)` template with `data`, `site`, `neohugo`, `__nh` (phase Deferred).
+    /// T36, phase E5: a `defer(...)` template with `data`, `site`, `fugo`, `__nh` (phase Deferred).
     pub fn render_deferred(&self, key: &str, d: &Deferred) -> Result<String, RenderError>;
     /// Content adapters: renders a `_content.html` source for `lang` as run `run` of
-    /// `Handles::adapters` (phase Adapter; `site` without its page lists, `neohugo`, `lang`).
+    /// `Handles::adapters` (phase Adapter; `site` without its page lists, `fugo`, `lang`).
     pub fn render_adapter(&self, path: &str, source: &str, lang: LangIdx, run: u32) -> Result<(), RenderError>;
     pub fn handles(&self) -> &Handles; // T36: the store, image queue, deferred registry, … for E4–E6
 }
@@ -46,13 +46,13 @@ recorder, deferred registry, frames, partial cache, related cache; **one `ImageQ
 `[caches.images]` file cache, shared with `StoreConfig::from_config`**; **the translations of
 every i18n file** of the project and its themes, lowest precedence first; **one `Highlight`**,
 also used for the fences of every language whose `[markup.highlight]` is the default site's) →
-`register_placeholders`, `register_pure`, `neohugo_sitefuncs::register`, `extra` →
+`register_placeholders`, `register_pure`, `ssg_sitefuncs::register`, `extra` →
 `layouts::load` → `Arc::new(Session)` → the templates slot and the renderer slot are set.
 
 **Jobs (T36).** `wave1(lang)`: front matter aliases, pages × formats, standalone pages
 (robots.txt and the sitemap index with the first language). `wave2()`: from the recorded
 paginations the `page/1/` aliases (HTML formats, unless `pagination.disableAliases`) and pagers
-2..N, then the language redirect of `neohugo_nav::language_redirect` (`/en/` → `/`, or `/` →
+2..N, then the language redirect of `ssg_nav::language_redirect` (`/en/` → `/`, or `/` →
 `/en/` with `defaultContentLanguageInSubdir`; none with `disableDefaultLanguageRedirect`).
 
 ## Content phase (C1)
@@ -61,10 +61,10 @@ Per page with a content file (bundled content pages included) and per **hook var
 (`Html`, plus `Format(F)` for each output format F with a `_markup/*.<F>.*` hook; a layout job
 for F uses `Format(F)` if it exists):
 
-1. **Expand** (`shortcode.rs`): `neohugo_pageparser::parse_body` with the template store as
+1. **Expand** (`shortcode.rs`): `ssg_pageparser::parse_body` with the template store as
    `InnerOracle` (`uses_variable(tpl, "inner" | "inner_deindent")`), then every call is run
    through its Tera template (looked up with the variant's format, so `fmt.rss.xml` serves the
-   RSS variant) with `page` (Meta full value), `site`, `neohugo`, `lang`, `shortcode`
+   RSS variant) with `page` (Meta full value), `site`, `fugo`, `lang`, `shortcode`
    (`ShortcodeView`: typed `args`, `params` list or map, `is_named_params`, `ordinal` per
    nesting level, `parent`, `position` — `"file:line:col"`, quoted as Go's `.Position` prints),
    `inner` / `inner_deindent` (safe) and `__nh`. Render hooks get `position` in the same form.
@@ -78,16 +78,16 @@ for F uses `Format(F)` if it exists):
    - Inline shortcodes (`security.enableInlineShortcodes`): the body is a Tera template
      (`render_str`), reused by later self-closed calls; disabled, they print nothing.
    - The summary divider becomes its own paragraph (`summary::DIVIDER_SOURCE`).
-2. **Fragments** (its own memo stage): `neohugo_markup::fragments` of the `Html` expansion,
+2. **Fragments** (its own memo stage): `ssg_markup::fragments` of the `Html` expansion,
    parse only, no hooks. A page's own fragments asked while its shortcodes run (a TOC
    shortcode) are parsed from the body with the calls left out and are not memoised, so
    `{{< toc >}}` on its own page is not a cycle.
-3. **Render**: comrak through `neohugo_markup::render` with `TeraHooks` (`hooks.rs`), HTML
+3. **Render**: comrak through `ssg_markup::render` with `TeraHooks` (`hooks.rs`), HTML
    content passed through. Hooks: `_markup/render-<kind>[-<variant>]` of the variant's format,
    else the HTML format's; the embedded table hook is left to markup's native output; context
-   `page`, `page_inner` (from the source-context spans), `site`, `neohugo`, `lang`, `__nh` and the
+   `page`, `page_inner` (from the source-context spans), `site`, `fugo`, `lang`, `__nh` and the
    `HOOK_FIELDS` flattened (`text` and cell texts safe; `alert_sign` as `+`/`-`/``). Under
-   `CodeFences::Hooked`, a fence no hook handles goes to `neohugo_highlight::Highlight`
+   `CodeFences::Hooked`, a fence no hook handles goes to `ssg_highlight::Highlight`
    (built per language at its first fence).
 4. **Swap and derive**: placeholders swapped (a `<p>` holding only a placeholder is removed),
    in the HTML, the TOC and the fragments; summary (manual divider, else front matter
@@ -120,7 +120,7 @@ site function prints as is (safe):
   in `{{% %}}` output by q's expanded Markdown, **appends q's placeholders to its own table and
   renumbers** q's tokens, shifts q's context spans and adds a span for the included text (so
   hooks there get `page_inner = q`). On a Markdown page the included text sits between the
-  context marker lines of `neohugo_markup::wrap_context` (Hugo's `hugocontext.Wrap`, which
+  context marker lines of `ssg_markup::wrap_context` (Hugo's `hugocontext.Wrap`, which
   `.RenderShortcodes` applies inside goldmark): they end a definition list before an include,
   keep an indented include inside its container and leave goldmark's newline before
   `</dd>`/`</li>` after an include ending in a tight item, as in Hugo. A call nested in a
@@ -131,7 +131,7 @@ site function prints as is (safe):
   too, while in `{{% %}}` output they stay placeholders and keep their lines.
 - elsewhere (layouts) it is q's source with the shortcode outputs in place (no markers).
 
-## Tests (`cargo test -p neohugo-render -- --nocapture`)
+## Tests (`cargo test -p ssg-render -- --nocapture`)
 
 The suites run with **test doubles** of the T35 functions they need (`tests/it/fakes.rs`:
 `markdownify`, `page_content`, `page_toc`, `render_shortcodes`, `store_set`/`store_get`,
@@ -150,7 +150,7 @@ The suites run with **test doubles** of the T35 functions they need (`tests/it/f
 | HTML content; bundled content resources | oracle pages `/posts/markup-html`, `/posts/html-page`, `/blog/html-page` (shortcodes, divider, auto summary in HTML) and `/bundle/sub.md`, `…/sub/index.md`, `…/notes.md` (bundled pages); `engine::c1_renders_bundled_pages_and_html_content` (C1 → frozen Full value) |
 | summary oracle | `summary::summary_oracle`: `oracle/page/summary/{build,adversarial}` (Hugo's summary of the rendered HTML of every page of the Go builds, variants and 6,000 adversarial calls): **11,537/11,537** Markdown/HTML cases equal (`.Summary`, `.Content`, `.Truncated`); 7,196 cases of external markups (AsciiDoc, RST, Pandoc, Org), non-UTF-8 input or Go panics not applicable |
 
-`skeleton::testsite_bytes` of `neohugo-build` stays **55/55 byte-identical**.
+`skeleton::testsite_bytes` of `ssg-build` stays **55/55 byte-identical**.
 
 ### Accepted differences (reviewed in `tests/it/oracle.rs`)
 

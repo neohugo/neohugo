@@ -4,10 +4,10 @@
 //! subset.
 //!
 //! [`scan`] tokenizes template tags for the static checks Tera does not make (kwargs, the lints
-//! of `neohugo templates check`).
+//! of `templates check`).
 //!
 //! `spec` and `scan` have no dependencies and `register_placeholders` needs only tera, so all are available
-//! with `default-features = false` (neohugo-testkit's contract test uses that; REWRITE_PLAN.md §4.8).
+//! with `default-features = false` (ssg-testkit's contract test uses that; REWRITE_PLAN.md §4.8).
 //!
 //! # Attaching the functions to a Tera instance
 //!
@@ -15,7 +15,7 @@
 //!
 //! 1. [`register_pure`] with a [`PureEnv`] (clock, time zone, site languages, title and anchor
 //!    styles, path options, diagnostics sink, `security` rules) — every pure `FUNCS` entry;
-//! 2. `neohugo_sitefuncs::register` — every site-bound entry. A later registration under the same
+//! 2. `ssg_sitefuncs::register` — every site-bound entry. A later registration under the same
 //!    name replaces an earlier one, so sitefuncs may also refine a pure entry.
 //!
 //! The contract instance calls [`register_placeholders`] instead.

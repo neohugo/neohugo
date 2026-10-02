@@ -1,7 +1,7 @@
 //! Pagination recorded at call time (REWRITE_PLAN.md §3.3).
 
-use neohugo_base::PageKind;
-use neohugo_view::Phase;
+use ssg_base::PageKind;
+use ssg_view::Phase;
 
 use crate::support;
 

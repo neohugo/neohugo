@@ -1,7 +1,7 @@
 //! URL filters, `ref`/`rel_ref`, `i18n`.
 
-use neohugo_base::PageKind;
-use neohugo_base::diag::Severity;
+use ssg_base::PageKind;
+use ssg_base::diag::Severity;
 
 use crate::support;
 

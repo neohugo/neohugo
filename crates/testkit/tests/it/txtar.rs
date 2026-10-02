@@ -2,9 +2,9 @@
 
 use std::fs;
 
-use neohugo_testkit::fixture::{repo_dir, testdata};
-use neohugo_testkit::txtar::{Archive, File};
 use pretty_assertions::assert_eq;
+use ssg_testkit::fixture::{repo_dir, testdata};
+use ssg_testkit::txtar::{Archive, File};
 
 fn file(name: &str, data: &str) -> File {
     File {
@@ -53,7 +53,7 @@ fn mini_site() {
     );
     assert_eq!(a.files.len(), 30);
     assert!(
-        a.get("neohugo.toml")
+        a.get("config.toml")
             .unwrap()
             .starts_with("baseURL = \"https://example.org/\"\n")
     );

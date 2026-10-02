@@ -3,12 +3,12 @@
 
 use std::sync::Arc;
 
-use neohugo_base::LangIdx;
-use neohugo_base::diag::{Diagnostic, Diagnostics};
-use neohugo_config::site::RefLinksLevel;
-use neohugo_locale::{Args, PluralCount, Translations};
-use neohugo_site::{RefArgs, RefLink};
-use neohugo_view::ViewCache;
+use ssg_base::LangIdx;
+use ssg_base::diag::{Diagnostic, Diagnostics};
+use ssg_config::site::RefLinksLevel;
+use ssg_locale::{Args, PluralCount, Translations};
+use ssg_site::{RefArgs, RefLink};
+use ssg_view::ViewCache;
 use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;

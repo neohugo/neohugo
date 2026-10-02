@@ -1,8 +1,8 @@
-# neohugo-nav
+# ssg-nav
 
 Menus, pagination arithmetic and pager URLs, the related-content index and the alias plan
 (REWRITE_PLAN.md §2.4, §3.3). The crate holds no state: the render session records the first
-`paginator()`/`paginate()` call per (page, format) (`neohugo-view`) and caches related indices
+`paginator()`/`paginate()` call per (page, format) (`ssg-view`) and caches related indices
 per candidate list.
 
 Everything reads the site through the `NavModel` trait (final titles, links, relations, the
@@ -36,16 +36,16 @@ tables Hugo's configuration loader never produces):
 | Family | Checks | Exact | Accepted |
 |---|---|---|---|
 | menus (assembled trees, page entries, IsMenuCurrent/HasMenuCurrent, sorts) | 1,927 | 100 % | – |
-| menus config decode (neohugo-config over `decode.json.gz`) | 9 | 88.9 % | 1 `config-menu-name-folded` (oracle artifact) |
+| menus config decode (ssg-config over `decode.json.gz`) | 9 | 88.9 % | 1 `config-menu-name-folded` (oracle artifact) |
 | pagination (every build paginator, other sizes, groups, pager URLs) | 1,516 | 100 % | – |
 | pager-size option | 15 | 100 % | – |
 | related (Related, option maps, Add, Search, SearchNamed) | 13,672 | 100 % | – |
-| related config decode (neohugo-config) | 15 | 93.3 % | 1 `config-related-empty-accepted` (oracle artifact) |
+| related config decode (ssg-config) | 15 | 93.3 % | 1 `config-related-empty-accepted` (oracle artifact) |
 | aliases (front matter + main-language redirect of the 25 Go builds that wrote redirects) | 60 | 100 % | – |
 
 Not this crate's (skipped, counted): 24 pagination and 156 related cases that test template
 argument conversion (a string or mixed list as `paginate`'s pages, an option map with a
-non-page `document`), which belong to `neohugo-sitefuncs`.
+non-page `document`), which belong to `ssg-sitefuncs`.
 
 **Pending.** The `NavModel` implementation of the site `Model` (T23b); until then the alias test
 takes the pages' output formats and links from the recorded renders, and `pageRef`s resolve by

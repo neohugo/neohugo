@@ -4,13 +4,13 @@
 use std::fmt::Display;
 use std::sync::{Arc, OnceLock, Weak};
 
-use neohugo_base::{FormatId, Idx, LangIdx, PageId, ResourceId};
-use neohugo_funcs::check_kwargs;
-use neohugo_funcs::spec::{self, FuncSpec, NameKind};
-use neohugo_layouts::Templates;
-use neohugo_resources::ResourceStore;
-use neohugo_site::Model;
-use neohugo_view::{ContentRenderer, RenderScope, SCOPE_KEY, ViewCache, ViewGeneration};
+use ssg_base::{FormatId, Idx, LangIdx, PageId, ResourceId};
+use ssg_funcs::check_kwargs;
+use ssg_funcs::spec::{self, FuncSpec, NameKind};
+use ssg_layouts::Templates;
+use ssg_resources::ResourceStore;
+use ssg_site::Model;
+use ssg_view::{ContentRenderer, RenderScope, SCOPE_KEY, ViewCache, ViewGeneration};
 use tera::value::Key;
 use tera::{Kwargs, State, Tera, TeraResult, Value};
 
@@ -211,7 +211,7 @@ pub(crate) fn lang_by_key(model: &Model, key: &str) -> Option<LangIdx> {
 pub(crate) fn generation<'v>(views: &'v ViewCache, s: Option<&RenderScope>) -> &'v ViewGeneration {
     match s {
         Some(s) => views.generation(s.phase, s.variant),
-        None => views.generation(neohugo_view::Phase::Layout, neohugo_view::HookVariant::Html),
+        None => views.generation(ssg_view::Phase::Layout, ssg_view::HookVariant::Html),
     }
 }
 
@@ -300,17 +300,17 @@ pub(crate) fn to_json(v: &Value) -> serde_json::Value {
 }
 
 /// A template value as a data value.
-pub(crate) fn to_data(v: &Value) -> neohugo_base::Value {
-    neohugo_base::Value::from_json(to_json(v))
+pub(crate) fn to_data(v: &Value) -> ssg_base::Value {
+    ssg_base::Value::from_json(to_json(v))
 }
 
 /// A data map from a template map value (`None` for none or undefined).
-pub(crate) fn to_data_map(v: Option<&Value>, what: &str) -> TeraResult<Option<neohugo_base::Map>> {
+pub(crate) fn to_data_map(v: Option<&Value>, what: &str) -> TeraResult<Option<ssg_base::Map>> {
     match v {
         None => Ok(None),
         Some(v) if v.is_none() || v.is_undefined() => Ok(None),
         Some(v) => match to_data(v) {
-            neohugo_base::Value::Map(m) => Ok(Some((*m).clone())),
+            ssg_base::Value::Map(m) => Ok(Some((*m).clone())),
             _ => Err(msg(format!("{what}: expected a map, got {}", v.name()))),
         },
     }

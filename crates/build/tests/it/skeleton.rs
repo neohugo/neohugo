@@ -7,13 +7,13 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::url::BaseUrl;
-use neohugo_build::{BuildRequest, LiveReload, SinkKind, build};
-use neohugo_testkit::fixture::{repo_dir, repo_file};
-use neohugo_testkit::txtar::Archive;
+use ssg_base::url::BaseUrl;
+use ssg_build::{BuildRequest, LiveReload, SinkKind, build};
+use ssg_testkit::fixture::{repo_dir, repo_file};
+use ssg_testkit::txtar::Archive;
 
 /// Every file of the Go build of the same site (`hugo -d public`), 55 files; Go's 56th file is
-/// `neohugo_stats.json` in the project directory, which a memory build does not write.
+/// `build_stats.json` in the project directory, which a memory build does not write.
 fn go_build() -> Archive {
     let path = repo_dir().join("crates/build/tests/it/testsite-go.txtar");
     Archive::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
@@ -71,7 +71,7 @@ fn testsite(dir: &Path) {
     copy_tree(&root.join("sites/testsite/layouts"), &dir.join("layouts"));
 }
 
-fn build_testsite() -> (tempfile::TempDir, neohugo_build::BuildReport) {
+fn build_testsite() -> (tempfile::TempDir, ssg_build::BuildReport) {
     let tmp = tempfile::tempdir().expect("tempdir");
     let site = tmp.path().join("testsite");
     testsite(&site);
@@ -98,7 +98,7 @@ fn testsite_l1() {
     let missing: Vec<&String> = want.difference(&got).collect();
     let extra: Vec<&String> = got.difference(&want).collect();
     println!(
-        "L1 testsite: {} files (Go {} + neohugo_stats.json); {} equal, missing {missing:?}, extra {extra:?}",
+        "L1 testsite: {} files (Go {} + build_stats.json); {} equal, missing {missing:?}, extra {extra:?}",
         got.len(),
         want.len(),
         got.intersection(&want).count()
@@ -110,8 +110,8 @@ fn testsite_l1() {
     for d in &report.diagnostics {
         println!("diagnostic: {d:?}");
     }
-    // For a manual diff against the Go build: NEOHUGO_T38_OUT=<dir>.
-    if let Some(dir) = std::env::var_os("NEOHUGO_T38_OUT") {
+    // For a manual diff against the Go build: FUGO_T38_OUT=<dir>.
+    if let Some(dir) = std::env::var_os("FUGO_T38_OUT") {
         mem.write_to(Path::new(&dir))
             .expect("write the memory sink");
     }
@@ -141,7 +141,7 @@ fn testsite_bytes() {
     let known: Vec<&str> = KNOWN_BYTE_DIFFS.iter().map(|(p, _)| *p).collect();
     assert_eq!(
         differ, known,
-        "files whose bytes differ from Go's (NEOHUGO_T38_OUT=<dir> writes ours for a diff)"
+        "files whose bytes differ from Go's (FUGO_T38_OUT=<dir> writes ours for a diff)"
     );
 }
 
@@ -214,16 +214,16 @@ fn testsite_contents() {
     assert!(text("css/site.css").contains('{'));
 }
 
-/// `neohugo server`'s request: a configuration loaded by the caller with the base URLs
+/// The `server` command's request: a configuration loaded by the caller with the base URLs
 /// pointed at the server, and the LiveReload script in every HTML page but the aliases.
 #[test]
 fn testsite_for_the_server() {
     let tmp = tempfile::tempdir().expect("tempdir");
     let site = tmp.path().join("testsite");
     testsite(&site);
-    let mut cfg = neohugo_config::load(&neohugo_config::LoadOptions {
+    let mut cfg = ssg_config::load(&ssg_config::LoadOptions {
         source: site,
-        ..neohugo_config::LoadOptions::default()
+        ..ssg_config::LoadOptions::default()
     })
     .expect("config");
     for s in cfg.sites.iter_mut() {

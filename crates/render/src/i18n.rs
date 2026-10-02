@@ -2,9 +2,9 @@
 
 use std::cmp::Reverse;
 
-use neohugo_config::Config;
-use neohugo_locale::{Translations, TranslationsBuilder};
-use neohugo_vfs::{Component, Vfs};
+use ssg_config::Config;
+use ssg_locale::{Translations, TranslationsBuilder};
+use ssg_vfs::{Component, Vfs};
 
 use crate::RenderError;
 

@@ -9,9 +9,9 @@
 use std::collections::BTreeMap;
 use std::sync::{Arc, OnceLock};
 
-use neohugo_base::{IdVec, PageId};
-use neohugo_markup::Fragments;
-use neohugo_view::{
+use ssg_base::{IdVec, PageId};
+use ssg_markup::Fragments;
+use ssg_view::{
     ContentError, ExpandedSource, HookVariant, PageStores, Phase, RenderScope, RenderedContent,
     Stage,
 };
@@ -97,8 +97,8 @@ pub(crate) fn get_or_compute<T: Clone>(
 /// The language, format and hook variant of a computation's scope.
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct Place {
-    pub lang: neohugo_base::LangIdx,
-    pub format: neohugo_base::FormatId,
+    pub lang: ssg_base::LangIdx,
+    pub format: ssg_base::FormatId,
     pub variant: HookVariant,
 }
 

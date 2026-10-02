@@ -4,12 +4,12 @@
 //! link to it, and where its bundle resources go. [`links`] turns the link into
 //! `.RelPermalink` and `.Permalink`.
 
-use neohugo_base::PageKind;
-use neohugo_base::paths::{self, ContentKey, OutputPath, Permalink, UrlPath};
-use neohugo_base::url::{self, Component, PathCase, SiteUrls};
-use neohugo_config::OutputFormat;
-use neohugo_config::output::{Placement, UglyPolicy};
-use neohugo_vfs::PathInfo;
+use ssg_base::PageKind;
+use ssg_base::paths::{self, ContentKey, OutputPath, Permalink, UrlPath};
+use ssg_base::url::{self, Component, PathCase, SiteUrls};
+use ssg_config::OutputFormat;
+use ssg_config::output::{Placement, UglyPolicy};
+use ssg_vfs::PathInfo;
 
 use crate::PageError;
 

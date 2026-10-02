@@ -5,16 +5,16 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::{Clock, IdVec, PageId, PageKind};
-use neohugo_config::LoadOptions;
-use neohugo_resources::{ResourceStore, StoreConfig};
-use neohugo_site::{LoadModelOptions, Model, PageRole};
-use neohugo_vfs::Vfs;
-use neohugo_view::{Contents, HookVariant, NavSite, RenderedContent, ViewCache, ViewInputs};
+use ssg_base::{Clock, IdVec, PageId, PageKind};
+use ssg_config::LoadOptions;
+use ssg_resources::{ResourceStore, StoreConfig};
+use ssg_site::{LoadModelOptions, Model, PageRole};
+use ssg_vfs::Vfs;
+use ssg_view::{Contents, HookVariant, NavSite, RenderedContent, ViewCache, ViewInputs};
 
 pub const FILES: &[(&str, &str)] = &[
     (
-        "neohugo.toml",
+        "config.toml",
         r#"baseURL = "https://example.org/"
 title = "Views"
 copyright = "(c) Views"
@@ -125,17 +125,17 @@ pub fn load_dir(dir: &Path) -> (Arc<Model>, Arc<ResourceStore>, ViewCache) {
 /// The model of the site in `dir` (clock 2026-01-01).
 pub fn load_model(dir: &Path) -> Model {
     let cfg = Arc::new(
-        neohugo_config::load(&LoadOptions {
+        ssg_config::load(&LoadOptions {
             source: dir.to_path_buf(),
             config_files: Vec::new(),
-            cli: neohugo_config::CliOverrides::default(),
+            cli: ssg_config::CliOverrides::default(),
             env: Vec::new(),
         })
         .expect("config"),
     );
     let vfs = Vfs::new(&cfg).expect("vfs");
     let clock = Clock("2026-01-01T00:00:00Z".parse().expect("clock"));
-    neohugo_site::load_model(
+    ssg_site::load_model(
         Arc::clone(&cfg),
         &vfs,
         &LoadModelOptions::from_config(&cfg, clock),
@@ -150,7 +150,7 @@ pub fn views_of(model: &Arc<Model>) -> (Arc<ResourceStore>, ViewCache) {
         None,
         None,
     )));
-    let (menus, _) = neohugo_nav::build_menus(&NavSite::new(Arc::clone(model)), &model.config);
+    let (menus, _) = ssg_nav::build_menus(&NavSite::new(Arc::clone(model)), &model.config);
     let views = ViewCache::new(ViewInputs {
         model: Arc::clone(model),
         store: Arc::clone(&store),
@@ -206,7 +206,7 @@ pub fn freeze(s: &Site) -> HookVariant {
 pub fn page(m: &Model, kind: PageKind, path: &str, lang: usize) -> PageId {
     m.pages
         .iter()
-        .find(|p| p.kind == kind && p.path() == path && neohugo_base::Idx::index(p.lang) == lang)
+        .find(|p| p.kind == kind && p.path() == path && ssg_base::Idx::index(p.lang) == lang)
         .unwrap_or_else(|| panic!("no {kind:?} page {path} ({lang})"))
         .id
 }

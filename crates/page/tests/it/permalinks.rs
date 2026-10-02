@@ -3,11 +3,11 @@
 //! (`oracle/page/permalinks/*`); and the decoding of `[permalinks]` tables
 //! (`oracle/page/permalinks/decode.json.gz`).
 
-use neohugo_base::PageKind;
-use neohugo_config::Permalinks;
-use neohugo_config::sections::PERMALINK_KINDS;
-use neohugo_page::{PermalinkCtx, PermalinkFile, PermalinkPattern, PermalinkPatterns};
 use serde_json::{Value as J, json};
+use ssg_base::PageKind;
+use ssg_config::Permalinks;
+use ssg_config::sections::PERMALINK_KINDS;
+use ssg_page::{PermalinkCtx, PermalinkFile, PermalinkPattern, PermalinkPatterns};
 
 use crate::support::{Tally, family, fixture, idx, oracle_paths, s, site_urls, value, zoned};
 

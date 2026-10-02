@@ -5,8 +5,8 @@ use std::cmp::Reverse;
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::PathBuf;
 
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{Idx, LangIdx};
+use ssg_base::paths::ContentKey;
+use ssg_base::{Idx, LangIdx};
 
 use crate::mount::Module;
 use crate::parser::{BundleKind, Parsed, PathInfo, PathParser};

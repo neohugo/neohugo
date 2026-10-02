@@ -1,12 +1,12 @@
-//! The testsite (as `neohugo-build`'s skeleton test assembles it) served, edited and
-//! reloaded; the edit → reload times are printed (`cargo test -p neohugo-serve -- --nocapture
+//! The testsite (as `ssg-build`'s skeleton test assembles it) served, edited and
+//! reloaded; the edit → reload times are printed (`cargo test -p ssg-serve -- --nocapture
 //! testsite`).
 
 use std::fs;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
-use neohugo_testkit::fixture::{repo_dir, repo_file};
+use ssg_testkit::fixture::{repo_dir, repo_file};
 
 use crate::{LiveReload, get, serve, write};
 

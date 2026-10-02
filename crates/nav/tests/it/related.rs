@@ -3,10 +3,10 @@
 //! and searches with five more configurations (documents, index subsets, fragments with and
 //! without the heading filter, named keyword lists, cardinality thresholds, date patterns).
 
-use neohugo_base::{Idx, LangIdx, PageId, Value};
-use neohugo_config::sections::{RelatedConfig, RelatedIndex as IndexConfig, RelatedIndexKind};
-use neohugo_nav::{NavError, NavModel, Related, RelatedIndex, RelatedQuery, related};
 use serde_json::{Value as J, json};
+use ssg_base::{Idx, LangIdx, PageId, Value};
+use ssg_config::sections::{RelatedConfig, RelatedIndex as IndexConfig, RelatedIndexKind};
+use ssg_nav::{NavError, NavModel, Related, RelatedIndex, RelatedQuery, related};
 
 use crate::support::{DumpSite, Project, Tally, family, fixture, idx, page_id, s, strings, value};
 

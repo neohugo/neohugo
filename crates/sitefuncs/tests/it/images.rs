@@ -1,7 +1,7 @@
 //! Image operations are queued: names and sizes are known at once; QR codes.
 
-use neohugo_base::ResourceId;
-use neohugo_testkit::fixture::repo_dir;
+use ssg_base::ResourceId;
+use ssg_testkit::fixture::repo_dir;
 
 use crate::support;
 
@@ -118,7 +118,7 @@ fn text_and_dither_filters() {
         "{out}"
     );
     let png = site.store.content(rid(parts[2])).expect("processed");
-    let (size, _) = neohugo_images::probe(&png, "result").expect("png");
+    let (size, _) = ssg_images::probe(&png, "result").expect("png");
     assert_eq!(size, (128, 128));
     // The default font with the same options: another image.
     let default_font = r(&format!(
@@ -208,7 +208,7 @@ fn qr_codes_have_hugo_s_names_and_bytes() {
     let png = site.store.content(rid(parts[3])).expect("qr");
     assert_eq!(
         &*png,
-        &neohugo_images::qr_png(url, neohugo_images::QrLevel::High, 4).expect("qr")[..]
+        &ssg_images::qr_png(url, ssg_images::QrLevel::High, 4).expect("qr")[..]
     );
     // One resource per name.
     assert_eq!(

@@ -4,10 +4,10 @@
 //! tokens; and for every input, the lexer `guessSyntax` picks against Chroma's
 //! `lexers.Analyse`.
 
-use neohugo_config::markup::HighlightConfig;
-use neohugo_highlight::{Highlight, OptionsArg};
-use neohugo_testkit::fixture::{read_json, repo_dir};
 use serde::Deserialize;
+use ssg_config::markup::HighlightConfig;
+use ssg_highlight::{Highlight, OptionsArg};
+use ssg_testkit::fixture::{read_json, repo_dir};
 
 use crate::corpus::fnv;
 

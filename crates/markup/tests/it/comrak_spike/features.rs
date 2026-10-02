@@ -156,9 +156,9 @@ fn element_row(c: &DocsCorpus, cfg: HugoCfg, tag: &str, label: &str, o: &Options
     .note(format!("pages all-equal {pages_ok}/{pages}"))
 }
 
-/// `NEOHUGO_SPIKE_SHOW=<feature label substring>` prints the differing items of that feature.
+/// `FUGO_SPIKE_SHOW=<feature label substring>` prints the differing items of that feature.
 pub fn show(label: &str, page: &str, want: &[String], got: &[String]) {
-    let Ok(filter) = std::env::var("NEOHUGO_SPIKE_SHOW") else {
+    let Ok(filter) = std::env::var("FUGO_SPIKE_SHOW") else {
         return;
     };
     if filter.is_empty() || !label.contains(&filter) {
@@ -793,7 +793,7 @@ pub fn emoji(c: &DocsCorpus, goldmark_emoji: Option<&BTreeMap<String, String>>) 
         Some(_) => row.note(format!(
             "goldmark-emoji resolves {goldmark_hits}; same result {agree}/{candidates}; e.g. differ {disagree:?}"
         )),
-        None => row.note("goldmark-emoji table not given (NEOHUGO_GOLDMARK_EMOJI_TSV)".into()),
+        None => row.note("goldmark-emoji table not given (FUGO_GOLDMARK_EMOJI_TSV)".into()),
     }
 }
 

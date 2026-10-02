@@ -2859,577 +2859,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "neohugo"
-version = "0.149.0-DEV"
-dependencies = [
- "anyhow",
- "clap 4.6.7",
- "insta",
- "jiff",
- "neohugo-base",
- "neohugo-build",
- "neohugo-config",
- "neohugo-funcs",
- "neohugo-layouts",
- "neohugo-pageparser",
- "neohugo-publish",
- "neohugo-render",
- "neohugo-resources",
- "neohugo-serve",
- "neohugo-site",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "serde_json",
- "tempfile",
- "tera",
- "toml",
-]
-
-[[package]]
-name = "neohugo-base"
-version = "0.149.0-DEV"
-dependencies = [
- "jiff",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "pretty_assertions",
- "regex",
- "serde",
- "serde-saphyr",
- "serde_json",
- "tera",
- "thiserror 2.0.21",
- "toml",
- "unicode-normalization",
- "unicode-properties",
-]
-
-[[package]]
-name = "neohugo-build"
-version = "0.149.0-DEV"
-dependencies = [
- "jiff",
- "neohugo-base",
- "neohugo-config",
- "neohugo-layouts",
- "neohugo-publish",
- "neohugo-render",
- "neohugo-resources",
- "neohugo-site",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "rayon",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-config"
-version = "0.149.0-DEV"
-dependencies = [
- "insta",
- "jiff",
- "neohugo-base",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "regex",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "toml",
-]
-
-[[package]]
-name = "neohugo-funcs"
-version = "0.149.0-DEV"
-dependencies = [
- "emojis",
- "html5gum",
- "insta",
- "jiff",
- "md-5",
- "neohugo-base",
- "neohugo-locale",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "pretty_assertions",
- "regex",
- "rquickjs",
- "serde",
- "serde_json",
- "sha1 0.11.0",
- "sha2",
- "tera",
- "tera-contrib",
- "toml",
- "xxhash-rust",
-]
-
-[[package]]
-name = "neohugo-highlight"
-version = "0.149.0-DEV"
-dependencies = [
- "neohugo-base",
- "neohugo-config",
- "neohugo-markup",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "quick-xml",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "unicode-properties",
-]
-
-[[package]]
-name = "neohugo-images"
-version = "0.149.0-DEV"
-dependencies = [
- "ab_glyph",
- "color_quant 2.0.0",
- "fast_image_resize",
- "image",
- "imageproc",
- "jiff",
- "kamadak-exif",
- "kmeans_colors",
- "neohugo-base",
- "neohugo-config",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "qrcode",
- "rayon",
- "regex",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "toml",
- "webp",
- "xxhash-rust",
-]
-
-[[package]]
-name = "neohugo-jsbuild"
-version = "0.149.0-DEV"
-dependencies = [
- "anyhow",
- "base64 0.23.1",
- "lightningcss",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "oxc",
- "oxc_sourcemap 9.0.0",
- "rayon",
- "rolldown",
- "rolldown_common",
- "rolldown_error",
- "rolldown_plugin",
- "rolldown_sourcemap",
- "serde_json",
- "thiserror 2.0.21",
- "tokio",
-]
-
-[[package]]
-name = "neohugo-layouts"
-version = "0.149.0-DEV"
-dependencies = [
- "neohugo-base",
- "neohugo-config",
- "neohugo-funcs",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "serde",
- "serde_json",
- "tempfile",
- "tera",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-locale"
-version = "0.149.0-DEV"
-dependencies = [
- "icu_collator",
- "icu_datetime",
- "icu_decimal",
- "icu_locale_core",
- "icu_plurals",
- "jiff",
- "neohugo-base",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "pretty_assertions",
- "regex",
- "serde",
- "serde_json",
- "thiserror 2.0.21",
- "toml",
- "writeable",
-]
-
-[[package]]
-name = "neohugo-markup"
-version = "0.149.0-DEV"
-dependencies = [
- "bitflags 2.13.2",
- "comrak",
- "flate2",
- "html5gum",
- "neohugo-base",
- "neohugo-config",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "regex",
- "serde",
- "thiserror 2.0.21",
- "unicode-properties",
-]
-
-[[package]]
-name = "neohugo-migrate"
-version = "0.149.0-DEV"
-dependencies = [
- "neohugo-base",
- "neohugo-workspace-hack",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-minify"
-version = "0.149.0-DEV"
-dependencies = [
- "browserslist-rs",
- "html5gum",
- "lightningcss",
- "minify-html",
- "neohugo-base",
- "neohugo-config",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "oxc_allocator 0.95.0",
- "oxc_codegen 0.95.0",
- "oxc_minifier 0.95.0",
- "oxc_parser 0.95.0",
- "oxc_span 0.95.0",
- "quick-xml",
- "regex",
- "roxmltree",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-nav"
-version = "0.149.0-DEV"
-dependencies = [
- "jiff",
- "neohugo-base",
- "neohugo-config",
- "neohugo-page",
- "neohugo-site",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-page"
-version = "0.149.0-DEV"
-dependencies = [
- "jiff",
- "neohugo-base",
- "neohugo-config",
- "neohugo-locale",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "serde_json",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-pageparser"
-version = "0.149.0-DEV"
-dependencies = [
- "jiff",
- "memchr",
- "neohugo-base",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "pretty_assertions",
- "serde_json",
- "thiserror 2.0.21",
- "toml",
-]
-
-[[package]]
-name = "neohugo-publish"
-version = "0.149.0-DEV"
-dependencies = [
- "aho-corasick",
- "dashmap 6.2.1",
- "filetime",
- "html5gum",
- "memchr",
- "neohugo-base",
- "neohugo-config",
- "neohugo-minify",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "rayon",
- "serde",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "toml",
-]
-
-[[package]]
-name = "neohugo-render"
-version = "0.149.0-DEV"
-dependencies = [
- "dashmap 6.2.1",
- "neohugo-base",
- "neohugo-config",
- "neohugo-funcs",
- "neohugo-highlight",
- "neohugo-images",
- "neohugo-layouts",
- "neohugo-locale",
- "neohugo-markup",
- "neohugo-nav",
- "neohugo-page",
- "neohugo-pageparser",
- "neohugo-resources",
- "neohugo-site",
- "neohugo-sitefuncs",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-view",
- "neohugo-workspace-hack",
- "rayon",
- "serde_json",
- "sha2",
- "tempfile",
- "tera",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-resources"
-version = "0.149.0-DEV"
-dependencies = [
- "base64 0.23.1",
- "grass",
- "md-5",
- "mime_guess",
- "neohugo-base",
- "neohugo-config",
- "neohugo-images",
- "neohugo-jsbuild",
- "neohugo-minify",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "serde_json",
- "sha2",
- "tempfile",
- "tera",
- "thiserror 2.0.21",
- "toml",
- "ureq",
- "xxhash-rust",
-]
-
-[[package]]
-name = "neohugo-serve"
-version = "0.149.0-DEV"
-dependencies = [
- "axum",
- "mime_guess",
- "neohugo-base",
- "neohugo-build",
- "neohugo-config",
- "neohugo-publish",
- "neohugo-site",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "notify",
- "notify-debouncer-full",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
- "tokio",
- "tungstenite",
-]
-
-[[package]]
-name = "neohugo-site"
-version = "0.149.0-DEV"
-dependencies = [
- "csv",
- "jiff",
- "neohugo-base",
- "neohugo-config",
- "neohugo-locale",
- "neohugo-page",
- "neohugo-pageparser",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "rayon",
- "roxmltree",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-sitefuncs"
-version = "0.149.0-DEV"
-dependencies = [
- "csv",
- "dashmap 6.2.1",
- "jiff",
- "neohugo-base",
- "neohugo-config",
- "neohugo-funcs",
- "neohugo-highlight",
- "neohugo-images",
- "neohugo-layouts",
- "neohugo-locale",
- "neohugo-markup",
- "neohugo-minify",
- "neohugo-nav",
- "neohugo-page",
- "neohugo-resources",
- "neohugo-site",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-view",
- "neohugo-workspace-hack",
- "roxmltree",
- "serde_json",
- "tempfile",
- "tera",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-testkit"
-version = "0.149.0-DEV"
-dependencies = [
- "flate2",
- "insta",
- "neohugo-base",
- "neohugo-funcs",
- "neohugo-workspace-hack",
- "pretty_assertions",
- "serde",
- "serde_json",
- "tempfile",
- "tera",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-vfs"
-version = "0.149.0-DEV"
-dependencies = [
- "neohugo-base",
- "neohugo-config",
- "neohugo-testkit",
- "neohugo-workspace-hack",
- "regex",
- "serde_json",
- "tempfile",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-view"
-version = "0.149.0-DEV"
-dependencies = [
- "dhat",
- "insta",
- "jiff",
- "md-5",
- "neohugo-base",
- "neohugo-config",
- "neohugo-layouts",
- "neohugo-markup",
- "neohugo-nav",
- "neohugo-page",
- "neohugo-resources",
- "neohugo-site",
- "neohugo-testkit",
- "neohugo-vfs",
- "neohugo-workspace-hack",
- "rayon",
- "serde",
- "tempfile",
- "tera",
- "thiserror 2.0.21",
-]
-
-[[package]]
-name = "neohugo-workspace-hack"
-version = "0.149.0-DEV"
-dependencies = [
- "aho-corasick",
- "allocator-api2",
- "anstyle",
- "bitflags 2.13.2",
- "crc32fast",
- "either",
- "fastrand",
- "getrandom 0.3.4",
- "hashbrown 0.16.1",
- "hashbrown 0.17.1",
- "icu_locale_core",
- "icu_provider",
- "indexmap",
- "itertools 0.14.0",
- "libc",
- "litemap",
- "log",
- "memchr",
- "num-traits",
- "once_cell",
- "potential_utf",
- "regex-automata",
- "regex-syntax",
- "serde",
- "serde_core",
- "serde_json",
- "simd-adler32",
- "smallvec",
- "stable_deref_trait",
- "tinystr",
- "typenum",
- "writeable",
- "yoke",
- "zerocopy",
- "zerofrom",
- "zerotrie",
- "zerovec",
-]
-
-[[package]]
 name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6250,6 +5679,577 @@ checksum = "c3d1e2c7f27f8d4cb10542a02c49005dbd6e93095799d6f3be745fae9f8fedd4"
 dependencies = [
  "libc",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "ssg-base"
+version = "0.149.0-DEV"
+dependencies = [
+ "jiff",
+ "pretty_assertions",
+ "regex",
+ "serde",
+ "serde-saphyr",
+ "serde_json",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "tera",
+ "thiserror 2.0.21",
+ "toml",
+ "unicode-normalization",
+ "unicode-properties",
+]
+
+[[package]]
+name = "ssg-build"
+version = "0.149.0-DEV"
+dependencies = [
+ "jiff",
+ "rayon",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-layouts",
+ "ssg-publish",
+ "ssg-render",
+ "ssg-resources",
+ "ssg-site",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-cli"
+version = "0.149.0-DEV"
+dependencies = [
+ "anyhow",
+ "clap 4.6.7",
+ "insta",
+ "jiff",
+ "serde_json",
+ "ssg-base",
+ "ssg-build",
+ "ssg-config",
+ "ssg-funcs",
+ "ssg-layouts",
+ "ssg-pageparser",
+ "ssg-publish",
+ "ssg-render",
+ "ssg-resources",
+ "ssg-serve",
+ "ssg-site",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "tera",
+ "toml",
+]
+
+[[package]]
+name = "ssg-config"
+version = "0.149.0-DEV"
+dependencies = [
+ "insta",
+ "jiff",
+ "regex",
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
+name = "ssg-funcs"
+version = "0.149.0-DEV"
+dependencies = [
+ "emojis",
+ "html5gum",
+ "insta",
+ "jiff",
+ "md-5",
+ "pretty_assertions",
+ "regex",
+ "rquickjs",
+ "serde",
+ "serde_json",
+ "sha1 0.11.0",
+ "sha2",
+ "ssg-base",
+ "ssg-locale",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "tera",
+ "tera-contrib",
+ "toml",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "ssg-highlight"
+version = "0.149.0-DEV"
+dependencies = [
+ "quick-xml",
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-markup",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "thiserror 2.0.21",
+ "unicode-properties",
+]
+
+[[package]]
+name = "ssg-images"
+version = "0.149.0-DEV"
+dependencies = [
+ "ab_glyph",
+ "color_quant 2.0.0",
+ "fast_image_resize",
+ "image",
+ "imageproc",
+ "jiff",
+ "kamadak-exif",
+ "kmeans_colors",
+ "qrcode",
+ "rayon",
+ "regex",
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+ "toml",
+ "webp",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "ssg-jsbuild"
+version = "0.149.0-DEV"
+dependencies = [
+ "anyhow",
+ "base64 0.23.1",
+ "lightningcss",
+ "oxc",
+ "oxc_sourcemap 9.0.0",
+ "rayon",
+ "rolldown",
+ "rolldown_common",
+ "rolldown_error",
+ "rolldown_plugin",
+ "rolldown_sourcemap",
+ "serde_json",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "thiserror 2.0.21",
+ "tokio",
+]
+
+[[package]]
+name = "ssg-layouts"
+version = "0.149.0-DEV"
+dependencies = [
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-funcs",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-locale"
+version = "0.149.0-DEV"
+dependencies = [
+ "icu_collator",
+ "icu_datetime",
+ "icu_decimal",
+ "icu_locale_core",
+ "icu_plurals",
+ "jiff",
+ "pretty_assertions",
+ "regex",
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "thiserror 2.0.21",
+ "toml",
+ "writeable",
+]
+
+[[package]]
+name = "ssg-markup"
+version = "0.149.0-DEV"
+dependencies = [
+ "bitflags 2.13.2",
+ "comrak",
+ "flate2",
+ "html5gum",
+ "regex",
+ "serde",
+ "ssg-base",
+ "ssg-config",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "thiserror 2.0.21",
+ "unicode-properties",
+]
+
+[[package]]
+name = "ssg-migrate"
+version = "0.149.0-DEV"
+dependencies = [
+ "ssg-base",
+ "ssg-workspace-hack",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-minify"
+version = "0.149.0-DEV"
+dependencies = [
+ "browserslist-rs",
+ "html5gum",
+ "lightningcss",
+ "minify-html",
+ "oxc_allocator 0.95.0",
+ "oxc_codegen 0.95.0",
+ "oxc_minifier 0.95.0",
+ "oxc_parser 0.95.0",
+ "oxc_span 0.95.0",
+ "quick-xml",
+ "regex",
+ "roxmltree",
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-nav"
+version = "0.149.0-DEV"
+dependencies = [
+ "jiff",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-page",
+ "ssg-site",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-page"
+version = "0.149.0-DEV"
+dependencies = [
+ "jiff",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-locale",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-pageparser"
+version = "0.149.0-DEV"
+dependencies = [
+ "jiff",
+ "memchr",
+ "pretty_assertions",
+ "serde_json",
+ "ssg-base",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
+name = "ssg-publish"
+version = "0.149.0-DEV"
+dependencies = [
+ "aho-corasick",
+ "dashmap 6.2.1",
+ "filetime",
+ "html5gum",
+ "memchr",
+ "rayon",
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-minify",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+ "toml",
+]
+
+[[package]]
+name = "ssg-render"
+version = "0.149.0-DEV"
+dependencies = [
+ "dashmap 6.2.1",
+ "rayon",
+ "serde_json",
+ "sha2",
+ "ssg-base",
+ "ssg-config",
+ "ssg-funcs",
+ "ssg-highlight",
+ "ssg-images",
+ "ssg-layouts",
+ "ssg-locale",
+ "ssg-markup",
+ "ssg-nav",
+ "ssg-page",
+ "ssg-pageparser",
+ "ssg-resources",
+ "ssg-site",
+ "ssg-sitefuncs",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-view",
+ "ssg-workspace-hack",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-resources"
+version = "0.149.0-DEV"
+dependencies = [
+ "base64 0.23.1",
+ "grass",
+ "md-5",
+ "mime_guess",
+ "serde_json",
+ "sha2",
+ "ssg-base",
+ "ssg-config",
+ "ssg-images",
+ "ssg-jsbuild",
+ "ssg-minify",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.21",
+ "toml",
+ "ureq",
+ "xxhash-rust",
+]
+
+[[package]]
+name = "ssg-serve"
+version = "0.149.0-DEV"
+dependencies = [
+ "axum",
+ "mime_guess",
+ "notify",
+ "notify-debouncer-full",
+ "serde_json",
+ "ssg-base",
+ "ssg-build",
+ "ssg-config",
+ "ssg-publish",
+ "ssg-site",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+ "tokio",
+ "tungstenite",
+]
+
+[[package]]
+name = "ssg-site"
+version = "0.149.0-DEV"
+dependencies = [
+ "csv",
+ "jiff",
+ "rayon",
+ "roxmltree",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-locale",
+ "ssg-page",
+ "ssg-pageparser",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-sitefuncs"
+version = "0.149.0-DEV"
+dependencies = [
+ "csv",
+ "dashmap 6.2.1",
+ "jiff",
+ "roxmltree",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-funcs",
+ "ssg-highlight",
+ "ssg-images",
+ "ssg-layouts",
+ "ssg-locale",
+ "ssg-markup",
+ "ssg-minify",
+ "ssg-nav",
+ "ssg-page",
+ "ssg-resources",
+ "ssg-site",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-view",
+ "ssg-workspace-hack",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-testkit"
+version = "0.149.0-DEV"
+dependencies = [
+ "flate2",
+ "insta",
+ "pretty_assertions",
+ "serde",
+ "serde_json",
+ "ssg-base",
+ "ssg-funcs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-vfs"
+version = "0.149.0-DEV"
+dependencies = [
+ "regex",
+ "serde_json",
+ "ssg-base",
+ "ssg-config",
+ "ssg-testkit",
+ "ssg-workspace-hack",
+ "tempfile",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-view"
+version = "0.149.0-DEV"
+dependencies = [
+ "dhat",
+ "insta",
+ "jiff",
+ "md-5",
+ "rayon",
+ "serde",
+ "ssg-base",
+ "ssg-config",
+ "ssg-layouts",
+ "ssg-markup",
+ "ssg-nav",
+ "ssg-page",
+ "ssg-resources",
+ "ssg-site",
+ "ssg-testkit",
+ "ssg-vfs",
+ "ssg-workspace-hack",
+ "tempfile",
+ "tera",
+ "thiserror 2.0.21",
+]
+
+[[package]]
+name = "ssg-workspace-hack"
+version = "0.149.0-DEV"
+dependencies = [
+ "aho-corasick",
+ "allocator-api2",
+ "anstyle",
+ "bitflags 2.13.2",
+ "crc32fast",
+ "either",
+ "fastrand",
+ "getrandom 0.3.4",
+ "hashbrown 0.16.1",
+ "hashbrown 0.17.1",
+ "icu_locale_core",
+ "icu_provider",
+ "indexmap",
+ "itertools 0.14.0",
+ "libc",
+ "litemap",
+ "log",
+ "memchr",
+ "num-traits",
+ "once_cell",
+ "potential_utf",
+ "regex-automata",
+ "regex-syntax",
+ "serde",
+ "serde_core",
+ "serde_json",
+ "simd-adler32",
+ "smallvec",
+ "stable_deref_trait",
+ "tinystr",
+ "typenum",
+ "writeable",
+ "yoke",
+ "zerocopy",
+ "zerofrom",
+ "zerotrie",
+ "zerovec",
 ]
 
 [[package]]

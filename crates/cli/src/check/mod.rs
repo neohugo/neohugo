@@ -24,9 +24,9 @@ use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_base::diag::{Diagnostic, Position, Severity};
-use neohugo_layouts::{LayoutStore, TemplateRole};
-use neohugo_vfs::Vfs;
+use ssg_base::diag::{Diagnostic, Position, Severity};
+use ssg_layouts::{LayoutStore, TemplateRole};
+use ssg_vfs::Vfs;
 
 use crate::Exit;
 use crate::args::{CheckArgs, Coverage};
@@ -45,7 +45,7 @@ pub(crate) struct CheckFile {
 impl CheckFile {
     /// The position of byte `offset` of the source.
     pub fn at(&self, offset: usize) -> Position {
-        let (line, col) = neohugo_funcs::scan::line_col(&self.source, offset);
+        let (line, col) = ssg_funcs::scan::line_col(&self.source, offset);
         Position {
             file: Arc::clone(&self.file),
             line: u32::try_from(line).unwrap_or(u32::MAX),
@@ -69,7 +69,7 @@ pub(crate) fn display_path(root: &Path, p: &Path) -> PathBuf {
         .map_or_else(|_| p.to_owned(), Path::to_owned)
 }
 
-/// The files the check reads: user and theme templates (the embedded ones are neohugo's).
+/// The files the check reads: user and theme templates (the embedded ones are our).
 fn check_files(store: &LayoutStore, root: &Path) -> Vec<CheckFile> {
     store
         .templates()
@@ -88,7 +88,7 @@ fn check_files(store: &LayoutStore, root: &Path) -> Vec<CheckFile> {
 pub(crate) fn run(a: &CheckArgs) -> anyhow::Result<Exit> {
     let opts = a.project.load_options()?;
     let root = opts.source.clone();
-    let cfg = Arc::new(neohugo_config::load(&opts)?);
+    let cfg = Arc::new(ssg_config::load(&opts)?);
     let vfs = Vfs::new(&cfg)?;
 
     let mut diags = Vec::new();

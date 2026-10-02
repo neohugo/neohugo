@@ -1,15 +1,15 @@
-# Contributing to neohugo
+# Contributing to fugo
 
-We welcome contributions to neohugo of any kind, including documentation, bug reports,
+We welcome contributions to fugo of any kind, including documentation, bug reports,
 issues, feature requests, feature implementations, pull requests, answering questions in the
 discussions, helping to manage issues, etc.
 
-neohugo began as a fork of [Hugo](https://github.com/gohugoio/hugo) and is now a separate
+fugo began as a fork of [Hugo](https://github.com/gohugoio/hugo) and is now a separate
 project written in Rust; it is not affiliated with the Hugo project ([README](README.md#relationship-to-hugo)).
 GitHub's guide to [contributing to a project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project)
 helps if you're unfamiliar with GitHub or contributing to open source projects in general.
 
-*Note that `docs/` in this repository is a copy of Hugo's documentation that the tests read byte for byte; only `docs/rust-port/` belongs to neohugo. Changes to Hugo's documentation itself belong in Hugo's [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
+*Note that `docs/` in this repository is a copy of Hugo's documentation that the tests read byte for byte; only `docs/rust-port/` belongs to fugo. Changes to Hugo's documentation itself belong in Hugo's [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
 
 *Changes to the codebase **and** related documentation, e.g. for a new feature, should still use a single pull request.*
 
@@ -25,18 +25,18 @@ helps if you're unfamiliar with GitHub or contributing to open source projects i
 
 ## Asking Support Questions
 
-Ask questions about neohugo in the [discussions](https://github.com/neohugo/neohugo/discussions)
+Ask questions about fugo in the [discussions](https://github.com/getfugo/fugo/discussions)
 of this repository; questions about Hugo itself belong in Hugo's
 [discussion forum](https://discourse.gohugo.io).
 Please don't use the GitHub issue tracker to ask questions.
 
 ## Reporting Issues
 
-If you believe you have found a defect in neohugo, use the
-[issue tracker](https://github.com/neohugo/neohugo/issues) of this repository to report
+If you believe you have found a defect in fugo, use the
+[issue tracker](https://github.com/getfugo/fugo/issues) of this repository to report
 the problem. If you're not sure if it's a bug or not,
-start by asking in the [discussion forum](https://github.com/neohugo/neohugo/discussions).
-When reporting the issue, please provide the version of neohugo in use (`neohugo
+start by asking in the [discussion forum](https://github.com/getfugo/fugo/discussions).
+When reporting the issue, please provide the version of fugo in use (`fugo
 version`), your operating system, and whether Hugo behaves differently on the same site.
 Defects of Hugo itself, its documentation or its themes site go to Hugo's trackers:
 
@@ -46,19 +46,19 @@ Defects of Hugo itself, its documentation or its themes site go to Hugo's tracke
 
 ## Code Contribution
 
-neohugo is a fully featured static site generator, so any new functionality must:
+fugo is a fully featured static site generator, so any new functionality must:
 
 * be useful to many.
-* fit naturally into what neohugo does: build Hugo-style sites fast.
+* fit naturally into what fugo does: build Hugo-style sites fast.
 * strive not to break existing sites.
-* close or update an open [issue](https://github.com/neohugo/neohugo/issues)
+* close or update an open [issue](https://github.com/getfugo/fugo/issues)
 
 If it is of some complexity, the contributor is expected to maintain and support the new feature in the future (answer questions in the discussions, fix any bugs etc.).
 
-Any non-trivial code change needs to update an open [issue](https://github.com/neohugo/neohugo/issues). A non-trivial code change without an issue reference with one of the labels `type: bug` or `type: feature` (the labels the issue templates apply) will not be merged.
+Any non-trivial code change needs to update an open [issue](https://github.com/getfugo/fugo/issues). A non-trivial code change without an issue reference with one of the labels `type: bug` or `type: feature` (the labels the issue templates apply) will not be merged.
 
 A new third-party crate goes into `[workspace.dependencies]` of `Cargo.toml` (members
-never add their own `features =`) and must pass `tools/neohugo/licence-check.sh`, which allows
+never add their own `features =`) and must pass `tools/dev/licence-check.sh`, which allows
 only the licences of `deny.toml`. Code or data taken from another project needs a row in
 `PROVENANCE.md` first (and its licence in `THIRD_PARTY/` when cargo cannot see it);
 Zola 0.22 and later (EUPL-1.2) must not be opened or copied.
@@ -67,21 +67,21 @@ Zola 0.22 and later (EUPL-1.2) must not be opened or copied.
 
 ## Submitting Patches
 
-The neohugo project welcomes all contributors and contributions regardless of skill or experience level. If you are interested in helping with the project, we will help you with your contribution.
+The fugo project welcomes all contributors and contributions regardless of skill or experience level. If you are interested in helping with the project, we will help you with your contribution.
 
 ### Code Contribution Guidelines
 
-Because we want to create the best possible product for our users and the best contribution experience for our developers, we have a set of guidelines which ensure that all contributions are acceptable. The guidelines are not intended as a filter or barrier to participation. If you are unfamiliar with the contribution process, the neohugo maintainers will help you and teach you how to bring your contribution in accordance with the guidelines.
+Because we want to create the best possible product for our users and the best contribution experience for our developers, we have a set of guidelines which ensure that all contributions are acceptable. The guidelines are not intended as a filter or barrier to participation. If you are unfamiliar with the contribution process, the fugo maintainers will help you and teach you how to bring your contribution in accordance with the guidelines.
 
 To make the contribution process as seamless as possible, we ask for the following:
 
 * Go ahead and fork the project and make your changes.  We encourage pull requests to allow for review and discussion of code changes.
 * When you’re ready to create a pull request, be sure to:
-    * Make sure you may contribute the code under the [Apache License 2.0](LICENSE): by submitting a pull request you license your contribution under it (section 5 of the licence). Hugo's CLA does not apply to neohugo. Code or data copied from another project needs its `PROVENANCE.md` row (above).
+    * Make sure you may contribute the code under the [Apache License 2.0](LICENSE): by submitting a pull request you license your contribution under it (section 5 of the licence). Hugo's CLA does not apply to fugo. Code or data copied from another project needs its `PROVENANCE.md` row (above).
     * Have test cases for the new code. If you have questions about how to do this, please ask in your pull request.
     * Run `cargo fmt --all`.
     * Add documentation if you are adding new features or changing functionality: the crate's `README.md`, and for template functions their entry in `crates/funcs/src/spec.rs`, which generates `docs/rust-port/template-api.md`. Leave `docs/` outside `docs/rust-port/` unchanged: the tests record its files by hash.
-    * Record any change of a parity difference (a test site's output against Hugo's) in the ratchet: the baselines in `testdata/baselines/` change only through an entry in `tools/neohugo/changes/<task>.md` (`tools/neohugo/changes/README.md`; `DEVELOPMENT.md`).
+    * Record any change of a parity difference (a test site's output against Hugo's) in the ratchet: the baselines in `testdata/baselines/` change only through an entry in `tools/dev/changes/<task>.md` (`tools/dev/changes/README.md`; `DEVELOPMENT.md`).
     * Squash your commits into a single commit. `git rebase -i`. It’s okay to force update your pull request with `git push -f`.
     * Ensure that the checks under [Building and Testing Your Changes](#building-and-testing-your-changes) succeed. The CI workflow (`.github/workflows/ci.yml`) runs them on every pull request and fails the build if one fails.
     * Follow the **Git Commit Message Guidelines** below.
@@ -95,7 +95,7 @@ the most important part being that each commit message should have a title/subje
 Most title/subjects should have a lower-cased prefix with a colon and one whitespace. The prefix can be:
 
 * The name of the crate where (most of) the changes are made, as its directory in `crates/` names it (e.g. `images: Add the dither filter`)
-* For a change outside `crates`, the area: `CI` (`.github/workflows`), `harness` (`tools/neohugo`), `sites.py`, `provenance`, `docs`.
+* For a change outside `crates`, the area: `CI` (`.github/workflows`), `harness` (`tools/dev`), `sites.py`, `provenance`, `docs`.
 * If this commit touches several crates with a common functional topic, use that as a prefix, e.g. `errors: Resolve correct line numbers`)
 * If this commit touches many crates without a common functional topic, prefix with `all:` (e.g. `all: Apply the clippy lints of Rust 1.95`)
 * If this is a documentation update, prefix with `docs:`.
@@ -113,23 +113,23 @@ funcs: Add custom index function
 Add a custom index template function that deviates from the stdlib simply by not
 returning an "index out of range" error if an array, slice or string index is
 out of range.  Instead, we just return nil values.  This should help make the
-new default function more useful for neohugo users.
+new default function more useful for fugo users.
 
 Fixes #1949
 ```
 
 ###  Fetching the Sources From GitHub
 
-Neohugo is the Cargo workspace at the repository root. Building it needs Rust 1.96 or later (`rust-version` in `Cargo.toml`; CI uses 1.96.0) and a C compiler. Clone the repository:
+Fugo is the Cargo workspace at the repository root. Building it needs Rust 1.96 or later (`rust-version` in `Cargo.toml`; CI uses 1.96.0) and a C compiler. Clone the repository:
 
 ```bash
 mkdir $HOME/src
 cd $HOME/src
-git clone https://github.com/neohugo/neohugo.git
-cd neohugo
+git clone https://github.com/getfugo/fugo.git
+cd fugo
 ```
 
-Now, to make a change to neohugo's source:
+Now, to make a change to fugo's source:
 
 1. Create a new branch for your changes (the branch name is arbitrary):
 
@@ -143,12 +143,12 @@ Now, to make a change to neohugo's source:
     git commit -a -v
     ```
 
-1. Fork neohugo in GitHub.
+1. Fork fugo in GitHub.
 
 1. Add your fork as a new remote (the remote name, "fork" in this example, is arbitrary):
 
     ```bash
-    git remote add fork git@github.com:USERNAME/neohugo.git
+    git remote add fork git@github.com:USERNAME/fugo.git
     ```
 
 1. Push the changes to your new remote:
@@ -164,16 +164,16 @@ Now, to make a change to neohugo's source:
 `DEVELOPMENT.md` describes the workspace (layout, commands, CI and releases) and
 `docs/rust-port/HANDOFF.md` the crates, the parity gates and the deviations from Hugo.
 
-To build neohugo (`target/release/neohugo`):
+To build fugo (`target/release/fugo`):
 
 ```bash
-cargo build --release --locked -p neohugo
+cargo build --release --locked -p ssg-cli
 ```
 
-To run the tests of the crate you are working on (package `neohugo-<crate>`; `crates/cli` is package `neohugo`):
+To run the tests of the crate you are working on (package `fugo-<crate>`; `crates/cli` is package `fugo`):
 
 ```bash
-cargo test -p neohugo-<crate>
+cargo test -p fugo-<crate>
 ```
 
 The checks of the CI workflow, from the repository root (the last one checks the docs patches of `tools/rust-port/i01/patches.json` against `sites/docs/patches/`):
@@ -182,18 +182,18 @@ The checks of the CI workflow, from the repository root (the last one checks the
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --locked -- -D warnings
 cargo test --workspace --locked --no-fail-fast -- --show-output
-tools/neohugo/licence-check.sh
-python3 tools/neohugo/selftest.py
+tools/dev/licence-check.sh
+python3 tools/dev/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
 ```
 
 Some tests need external tools: Node.js and the pinned PostCSS, Tailwind CSS and Babel. Without them a test prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install the tools once (network) and point the tests at them:
 
 ```bash
-tools/neohugo/node.sh
-N=$(tools/neohugo/node.sh path)
-export NEOHUGO_NODE_MODULES=$N \
-  NEOHUGO_POSTCSS_BIN=$N/.bin/postcss NEOHUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss NEOHUGO_BABEL_BIN=$N/.bin/babel
+tools/dev/node.sh
+N=$(tools/dev/node.sh path)
+export FUGO_NODE_MODULES=$N \
+  FUGO_POSTCSS_BIN=$N/.bin/postcss FUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss FUGO_BABEL_BIN=$N/.bin/babel
 ```
 
-The tests compare neohugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar`, `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`, `crates/funcs/tests/fixtures/remarshal/go.txt`, and `docs/data/docs.yaml` (written by the Go binary's `gen docshelper`). It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. The same holds for the Go outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv` (`PROVENANCE.md`). To regenerate the data of `44529028`, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/neohugo/fixtures2json.py`) and copy the result back.
+The tests compare fugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar`, `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`, `crates/funcs/tests/fixtures/remarshal/go.txt`, and `docs/data/docs.yaml` (written by the Go binary's `gen docshelper`). It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. The same holds for the Go outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv` (`PROVENANCE.md`). To regenerate the data of `44529028`, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/dev/fixtures2json.py`) and copy the result back.

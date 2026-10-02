@@ -1,5 +1,5 @@
 //! The converter of Chroma's XML lexers and styles to the crate's Rust files (crate README,
-//! "Lexer and style files"): `NEOHUGO_HL_XML2RUST=<xml dir>:<rust dir>` writes
+//! "Lexer and style files"): `FUGO_HL_XML2RUST=<xml dir>:<rust dir>` writes
 //! `<rust dir>/<name>.rs` for every `<xml dir>/<name>.xml` (all `<lexer>`s or all `<style>`s)
 //! and `<rust dir>/mod.rs`, which lists them in Chroma's order (relative directories are
 //! relative to the repository root; `rustfmt` formats `mod.rs`).
@@ -11,13 +11,13 @@
 use std::fmt::Write as _;
 use std::path::Path;
 
-use neohugo_highlight::TokenType;
-use neohugo_testkit::fixture::repo_dir;
 use quick_xml::events::{BytesStart, Event};
+use ssg_highlight::TokenType;
+use ssg_testkit::fixture::repo_dir;
 
 #[test]
 fn xml_to_rust() {
-    let Ok(arg) = std::env::var("NEOHUGO_HL_XML2RUST") else {
+    let Ok(arg) = std::env::var("FUGO_HL_XML2RUST") else {
         return;
     };
     let (from, to) = arg.split_once(':').expect("<xml dir>:<rust dir>");

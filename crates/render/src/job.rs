@@ -1,14 +1,14 @@
 //! Render jobs and their outputs (REWRITE_PLAN.md §2.6, §3.3). Frozen by T38.
 
-use neohugo_base::paths::OutputPath;
-use neohugo_base::{FormatId, LangIdx, PageId};
-pub use neohugo_nav::AliasPlan;
+use ssg_base::paths::OutputPath;
+use ssg_base::{FormatId, LangIdx, PageId};
+pub use ssg_nav::AliasPlan;
 
 /// One unit of phase E work; [`Session::render_job`](crate::Session::render_job) turns it into
 /// outputs without I/O.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Job {
-    /// A front matter alias (`neohugo-nav`'s plan; its `kind` is `FrontMatter`).
+    /// A front matter alias (`ssg-nav`'s plan; its `kind` is `FrontMatter`).
     Alias(AliasPlan),
     /// A page in one format (pager 1 when the render paginates).
     Page { page: PageId, format: FormatId },
@@ -22,7 +22,7 @@ pub enum Job {
     PagerAlias { page: PageId, format: FormatId },
     /// 404, sitemap, sitemap index, robots.txt.
     Standalone { page: PageId, format: FormatId },
-    /// The default language's redirect (`neohugo_nav::language_redirect`): `/<default
+    /// The default language's redirect (`ssg_nav::language_redirect`): `/<default
     /// language>/` → the site root, or `/` → `/<default language>/` when the default language
     /// is in a subdirectory.
     LanguageRedirect,
@@ -56,7 +56,7 @@ impl JobOrder {
     }
 }
 
-/// A rendered file, before publishing (`neohugo-build` hands it to the publisher).
+/// A rendered file, before publishing (`ssg-build` hands it to the publisher).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Output {
     /// The file under `publishDir`.

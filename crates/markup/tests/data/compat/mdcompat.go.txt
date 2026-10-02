@@ -1,4 +1,4 @@
-// The goldmark-structure oracle of neohugo-markup (crate README, "Tests";
+// The goldmark-structure oracle of ssg-markup (crate README, "Tests";
 // tests/it/acceptance/compat.rs): Hugo's goldmark converter as the Go build had it at commit
 // 44529028, which is what the published documentation site was built with.
 //

@@ -1,7 +1,8 @@
-//! `NEOHUGO_*` environment overrides: `NEOHUGO_TITLE=x` sets `title`,
-//! `NEOHUGO_PARAMS_API_KEY=k` sets `params.api.key`. The character after `NEOHUGO` is the key
-//! delimiter, so `NEOHUGOxPARAMSxAPI_KEY=k` sets `params.api_key`. Hugo's `HUGO_*` variables are
-//! not read, and neohugo's own settings ([`RESERVED`]) are not overrides.
+//! Environment overrides, `<PREFIX>_*` ([`PREFIX`], `ssg_base::ENV_PREFIX`; `FUGO`):
+//! `FUGO_TITLE=x` sets `title`, `FUGO_PARAMS_API_KEY=k` sets `params.api.key`. The character
+//! after the prefix is the key delimiter, so `FUGOxPARAMSxAPI_KEY=k` sets `params.api_key`.
+//! Hugo's `HUGO_*` variables are not read, and the program's own settings ([`RESERVED`]) are not
+//! overrides.
 //!
 //! Each value is parsed into the type of the value it overrides: a boolean, a number, a list
 //! (`["a", "b"]`) or a table (JSON or TOML); when it does not parse as that type it stays a
@@ -9,43 +10,43 @@
 
 use std::sync::Arc;
 
-use neohugo_base::{Map, Value};
+use ssg_base::{Map, Value};
 
 use crate::tree;
 
-/// The prefix of the override variables (and of every variable neohugo reads).
-pub const PREFIX: &str = "NEOHUGO";
+/// The prefix of the override variables (and of every variable the program reads).
+pub const PREFIX: &str = ssg_base::ENV_PREFIX;
 
 /// The variable that chooses the build environment when `--environment` is not given.
-pub const ENVIRONMENT: &str = "NEOHUGO_ENVIRONMENT";
+pub const ENVIRONMENT: &str = ssg_base::env_var!("ENVIRONMENT");
 
-/// neohugo's own settings and the build and test harness's variables: not configuration
+/// The program's own settings and the build and test harness's variables: not configuration
 /// overrides, although they carry the prefix.
 pub const RESERVED: &[&str] = &[
-    "NEOHUGO_BABEL_BIN",
-    "NEOHUGO_BINARY",
-    "NEOHUGO_BUILD_COMMIT",
-    "NEOHUGO_BUILD_DATE",
-    "NEOHUGO_COMPARE_WORK",
-    "NEOHUGO_NODE_MODULES",
-    "NEOHUGO_POSTCSS_BIN",
-    "NEOHUGO_REPO_DIR",
-    "NEOHUGO_SITES",
-    "NEOHUGO_STRUCTURE_OUT",
-    "NEOHUGO_TAILWINDCSS_BIN",
-    "NEOHUGO_TARGET_LIMIT_MB",
-    "NEOHUGO_TASK",
-    "NEOHUGO_TIMINGS",
-    "NEOHUGO_VENDOR_INFO",
+    ssg_base::env_var!("BABEL_BIN"),
+    ssg_base::env_var!("BINARY"),
+    ssg_base::env_var!("BUILD_COMMIT"),
+    ssg_base::env_var!("BUILD_DATE"),
+    ssg_base::env_var!("COMPARE_WORK"),
+    ssg_base::env_var!("NODE_MODULES"),
+    ssg_base::env_var!("POSTCSS_BIN"),
+    ssg_base::env_var!("REPO_DIR"),
+    ssg_base::env_var!("SITES"),
+    ssg_base::env_var!("STRUCTURE_OUT"),
+    ssg_base::env_var!("TAILWINDCSS_BIN"),
+    ssg_base::env_var!("TARGET_LIMIT_MB"),
+    ssg_base::env_var!("TASK"),
+    ssg_base::env_var!("TIMINGS"),
+    ssg_base::env_var!("VENDOR_INFO"),
 ];
 
-/// Applies every `NEOHUGO*` override variable of `env` to `root` (keys lower-case).
+/// Applies every `<PREFIX>*` override variable of `env` to `root` (keys lower-case).
 pub fn apply(root: &mut Map, env: &[(String, String)]) {
     let mut vars: Vec<(Vec<String>, &str)> = env
         .iter()
         .filter_map(|(k, v)| Some((key_path(k)?, v.as_str())))
         .collect();
-    // Shorter paths first, so `NEOHUGO_PARAMS` is merged before `NEOHUGO_PARAMS_X` refines it.
+    // Shorter paths first, so `FUGO_PARAMS` is merged before `FUGO_PARAMS_X` refines it.
     vars.sort_by(|a, b| a.0.len().cmp(&b.0.len()).then_with(|| a.0.cmp(&b.0)));
     for (path, raw) in vars {
         let segs: Vec<&str> = path.iter().map(String::as_str).collect();

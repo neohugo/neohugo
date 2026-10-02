@@ -1,10 +1,10 @@
-# neohugo-layouts
+# ssg-layouts
 
 Layout templates (REWRITE_PLAN.md §4.1, §4.3, §4.5): the scan of Hugo v0.146 layout names,
 Hugo's lookup scorer, base template resolution, escaping by output format and loading into one
 Tera instance. The embedded templates (`embedded/**`) are T32's; the build script
 (`src/build.rs`) lists whatever is there for `include_str!`. T60 renders them against testsite
-views through the binary and reviews them against Go's (`neohugo` crate: `tests/it/embedded.rs`,
+views through the binary and reviews them against Go's (`fugo` crate: `tests/it/embedded.rs`,
 the review table in its README).
 
 | API | What |
@@ -15,7 +15,7 @@ the review table in its README).
 | `LayoutStore::select(&LayoutQuery)` | layout + base of a (page, format): `Selection { layout, base, render_as }` |
 | `LayoutStore::hook(&HookQuery)`, `shortcode(&ShortcodeQuery)`, `partial(name)`, `has_shortcode` | the other lookups; `ShortcodeMiss::{NotFound, Incompatible}` |
 | `load(Arc<LayoutStore>, &Selections, register)` | Tera: fallback prefixes `_theme1/ … _embedded/`, `autoescape_on([.html, .htm, .xml, .svg])`, `register(&mut tera)`, then one `add_raw_templates` with every template, the escaping aliases and the `L@@B` variants the selections need |
-| `go_marker(src)` | the first Go-template marker of a source and its line (the `GoTemplate` refusal; neohugo-build checks content adapters with it) |
+| `go_marker(src)` | the first Go-template marker of a source and its line (the `GoTemplate` refusal; ssg-build checks content adapters with it) |
 | `Templates::{tera, store, select, shortcode, shortcode_query, hook, partial, uses_variable}` | the loaded instance; `uses_variable` asks Tera's `get_template_variables` (template, parents, includes), memoised |
 
 ## Rules
@@ -30,10 +30,10 @@ the review table in its README).
   `partials/` → `_partials/`, `shortcodes/` → `_shortcodes/`, `<id>-baseof.<ext>` →
   `baseof.<id>.<ext>`, `taxonomy/list.*` and `term/term.*` → `term.*`, a layout named `index`
   → `home`. **Refused** (`UnknownName`): `_markup/` files not named `render-<known kind>`,
-  `_neohugo/` (reserved) and `_server/`, suffixes with no output format or media type, two files with the same
+  `_internal/` (reserved) and `_server/`, suffixes with no output format or media type, two files with the same
   Tera name. **Refused** (`GoTemplate`, with the line): `{{ .`, `{{ $`, `{{ end }}`, `{{/*`,
   `{{ define|range|with|if|else|block|template|partial …` outside `{% raw %}` and comments; the
-  message points to `neohugo templates check` and to `docs/rust-port/template-api.md` by its
+  message points to `fugo templates check` and to `docs/rust-port/template-api.md` by its
   URL on GitHub's `main` (a release archive does not ship it; the migrate tool, T73, is a
   stub).
 - **Descriptor.** Kind, layout, language and format come from the file name (Vfs
@@ -67,7 +67,7 @@ the review table in its README).
 
 ## Acceptance evidence
 
-`cargo test -p neohugo-layouts` (20 integration tests, 2 unit tests):
+`cargo test -p ssg-layouts` (20 integration tests, 2 unit tests):
 
 - `lookup_*`: `oracle/tplimpl/lookup` replayed on the normalised `oracle/tplimpl/store` trees
   (below): **327,192 of 327,192 lookups give Go's winner** (docs 16,314; testsite 11,389;
@@ -102,7 +102,7 @@ a suffix, and entries whose spelling is a refused legacy name (Go keeps `term/te
 
 | What | Why |
 |---|---|
-| Only v0.146 names; legacy ones are errors | §4.1: the legacy → new mapping lives in T01's normaliser and `neohugo-migrate` |
+| Only v0.146 names; legacy ones are errors | §4.1: the legacy → new mapping lives in T01's normaliser and `ssg-migrate` |
 | `index.*` refused (→ `home.*`) | not in §4.1's list, but Go maps it silently; a v0.146 site would otherwise lose its home template without notice |
 | `taxonomy/<singular>.html` and `taxonomy/<singular>.terms.html` are ordinary layouts of type `taxonomy` | §4.1 lists only `taxonomy/list` and `term/term`; the other old spellings are valid v0.146 names |
 | `Score` is not `Ord` | Hugo's chooser is not a total order (a closer template wins despite a lower `w1`); `Best::offer` implements it |

@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-vfs"
+name = "ssg-vfs"
 description = "Mounts → one union file view per component, walkers, ignore rules and the PathParser (file → language, output format, bundle kind, content key)"
 version.workspace = true
 edition.workspace = true
@@ -19,13 +19,13 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
 regex.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 serde_json.workspace = true
 tempfile.workspace = true

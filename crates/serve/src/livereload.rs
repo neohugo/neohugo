@@ -39,7 +39,7 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use axum::http::HeaderMap;
 use axum::http::header::{HOST, ORIGIN};
-use neohugo_base::url::UrlRef;
+use ssg_base::url::UrlRef;
 use tokio::sync::{broadcast, watch};
 
 /// `livereload.js`, served at `<base path>livereload.js`.
@@ -49,7 +49,11 @@ pub(crate) const SCRIPT: &str = include_str!("../assets/livereload.min.js");
 pub(crate) const SCRIPT_TYPE: &str = "text/javascript";
 
 /// The answer to the browser's `hello`.
-const HELLO: &str = r#"{"command":"hello","protocols":["http://livereload.com/protocols/official-7"],"serverName":"neohugo"}"#;
+const HELLO: &str = concat!(
+    r#"{"command":"hello","protocols":["http://livereload.com/protocols/official-7"],"serverName":""#,
+    ssg_base::app_name!(),
+    r#""}"#
+);
 
 /// The prefix of a path that the Hugo plugin of `livereload.js` navigates to.
 const NAVIGATE_PREFIX: &str = "__hugo_navigate";

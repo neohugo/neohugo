@@ -3,7 +3,7 @@
 //! Equal output means "the same element tree and the same text", not the same bytes:
 //! entities are decoded, attributes sorted, whitespace collapsed outside `<pre>` and dropped
 //! next to block tags, XHTML self-closing slashes ignored. Differences that belong to Hugo's
-//! own renderers and are re-implemented by `neohugo-markup` anyway are folded too:
+//! own renderers and are re-implemented by `ssg-markup` anyway are folded too:
 //! highlighted code (Chroma's `div.highlight`) and plain `<pre><code>` both become
 //! `<pre lang="…">text</pre>`, `align="x"` becomes `style="text-align: x"`, and ids on
 //! `h1`–`h6`/`dt` are dropped when the caller asks (auto ids are a custom pass, T22).

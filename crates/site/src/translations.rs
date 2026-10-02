@@ -8,9 +8,9 @@
 use std::cmp::Ordering;
 use std::collections::BTreeMap;
 
-use neohugo_base::PageId;
-use neohugo_base::paths::ContentKey;
-use neohugo_base::text;
+use ssg_base::PageId;
+use ssg_base::paths::ContentKey;
+use ssg_base::text;
 
 use crate::Model;
 use crate::tree::PageRole;

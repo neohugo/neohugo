@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-resources"
+name = "ssg-resources"
 description = "The ResourceStore"
 version.workspace = true
 edition.workspace = true
@@ -19,13 +19,13 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-vfs.workspace = true
-neohugo-images.workspace = true
-neohugo-minify.workspace = true
-neohugo-jsbuild.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-vfs.workspace = true
+ssg-images.workspace = true
+ssg-minify.workspace = true
+ssg-jsbuild.workspace = true
 grass.workspace = true
 ureq.workspace = true
 sha2.workspace = true
@@ -37,7 +37,7 @@ serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 # execute_as_template's executor in tests (the render layer runs Tera)
 tera.workspace = true
 tempfile.workspace = true

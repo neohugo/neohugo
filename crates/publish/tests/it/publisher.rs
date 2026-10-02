@@ -1,20 +1,20 @@
 //! `Publisher::emit` end to end: canonify per format, minify dispatch, empty outputs, held
-//! outputs and `patch_held`, URL tokens, stats, and the `neohugo_stats.json` format against the
+//! outputs and `patch_held`, URL tokens, stats, and the `build_stats.json` format against the
 //! golden files.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use neohugo_base::diag::Diagnostics;
-use neohugo_base::paths::OutputPath;
-use neohugo_base::{FormatId, Idx, LangIdx, Sink};
-use neohugo_config::global::BuildStats;
-use neohugo_config::{Config, LoadOptions, load};
-use neohugo_publish::{
-    DiskSink, Emitted, HtmlElements, MemorySink, NeohugoStats, Output, PublishError,
-    PublishSettings, Publisher,
-};
 use rayon::prelude::*;
+use ssg_base::diag::Diagnostics;
+use ssg_base::paths::OutputPath;
+use ssg_base::{FormatId, Idx, LangIdx, Sink};
+use ssg_config::global::BuildStats;
+use ssg_config::{Config, LoadOptions, load};
+use ssg_publish::{
+    DiskSink, Emitted, HtmlElements, MemorySink, Output, PublishError, PublishSettings, Publisher,
+    StatsFile,
+};
 
 struct Site {
     _dir: tempfile::TempDir,
@@ -23,7 +23,7 @@ struct Site {
 
 fn site(toml: &str) -> Site {
     let dir = tempfile::tempdir().unwrap();
-    std::fs::write(dir.path().join("neohugo.toml"), toml).unwrap();
+    std::fs::write(dir.path().join("config.toml"), toml).unwrap();
     let cfg = load(&LoadOptions {
         source: dir.path().to_owned(),
         env: vec![(
@@ -135,7 +135,7 @@ fn livereload_script_per_language() {
     ));
     let mut settings = PublishSettings::from_config(&s.cfg).unwrap();
     assert!(settings.sites.iter().all(|l| l.livereload.is_none()));
-    let url = neohugo_base::url::UrlRef::parse("http://localhost:1313/docs/").unwrap();
+    let url = ssg_base::url::UrlRef::parse("http://localhost:1313/docs/").unwrap();
     settings.sites.iter_mut().next().unwrap().livereload = Some(url);
     let sink = Arc::new(MemorySink::new());
     let diags = Arc::new(Diagnostics::new(Vec::<String>::new()));
@@ -403,11 +403,11 @@ fn concurrent_emits_are_deterministic() {
     assert_eq!(run(1), run(4));
 }
 
-/// `neohugo_stats.json` is written exactly as Hugo writes it: the golden files of the seeksnack
+/// `build_stats.json` is written exactly as Hugo writes it: the golden files of the seeksnack
 /// and docs builds round-trip byte for byte.
 #[test]
 fn golden_stats_format() {
-    let repo = neohugo_testkit::fixture::repo_dir();
+    let repo = ssg_testkit::fixture::repo_dir();
     for file in [
         "tools/rust-port/golden/hugo_stats.json",
         "docs/hugo_stats.json",
@@ -430,7 +430,7 @@ fn golden_stats_format() {
             disable_classes: list("classes").is_none(),
             disable_ids: list("ids").is_none(),
         };
-        assert_eq!(NeohugoStats::new(found, &conf).to_json(), text, "{file}");
+        assert_eq!(StatsFile::new(found, &conf).to_json(), text, "{file}");
     }
 }
 
@@ -462,7 +462,7 @@ fn disk_sink_creates_directories() {
 /// scripts, the custom properties it mentions), resolved before the page is held or written.
 #[test]
 fn css_purged_per_page() {
-    use neohugo_minify::{CssPurges, Minifier, PurgeOptions, PurgePlan};
+    use ssg_minify::{CssPurges, Minifier, PurgeOptions, PurgePlan};
     let s = site("baseURL = 'https://example.org/'\n");
     let purges = Arc::new(CssPurges::default());
     let sink = Arc::new(MemorySink::new());

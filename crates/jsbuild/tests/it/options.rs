@@ -1,9 +1,9 @@
 use std::collections::BTreeMap;
 
-use neohugo_jsbuild::{
+use serde_json::json;
+use ssg_jsbuild::{
     DropKind, Format, JsBuildOptions, Jsx, Loader, OptionsError, Platform, SourceMap, Target,
 };
-use serde_json::json;
 
 fn decode(v: &serde_json::Value) -> Result<JsBuildOptions, OptionsError> {
     JsBuildOptions::from_json(v)

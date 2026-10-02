@@ -1,14 +1,14 @@
-# Reviewed differences between neohugo-locale and the Go oracles (testdata/oracle).
+# Reviewed differences between ssg-locale and the Go oracles (testdata/oracle).
 # Every entry says why the difference is accepted. The tests fail on unlisted differences and on
 # stale entries.
 
 [translate]
-# Go argument types with no neohugo value counterpart: Go treats them through its type switch
+# Go argument types with no native value counterpart: Go treats them through its type switch
 # (template.HTML is not a count, time.Month is an int, method sets are called).
 go_only_argtypes = [
     "template.HTML",
     "time.Month",
-    # Go structs: neohugo passes maps (views), and a missing struct field is a Go execution
+    # Go structs: this port passes maps (views), and a missing struct field is a Go execution
     # error where a missing map key prints `<no value>`.
     "main.countField",
     "*main.countField",
@@ -18,14 +18,14 @@ go_only_argtypes = [
     "*main.countMethod",
 ]
 # Messages using Go template actions (`if`, `with`, `printf`, `.Count.Foo` stays supported):
-# neohugo's evaluator rejects them at load time with file and key (REWRITE_PLAN §1.1, §2.4).
+# our evaluator rejects them at load time with file and key (REWRITE_PLAN §1.1, §2.4).
 unsupported_syntax = ["badparse", "withif", "hour"]
 
 [translate.rules]
-print-collection = "`{{ . }}` on a map or list argument: Go prints `map[Count:1]` / `[1]` (fmt syntax); neohugo reports an evaluation error and renders nothing (no Go value printing)."
-scalar-count-field = "`{{ .Count }}` with a float, numeric-string or unsigned argument: Go only wraps signed integers as a count and fails on the rest; neohugo treats every numeric argument as its own `.Count`."
-bool-count = "A boolean argument (or `Count: true`): Go's cast turns true into the count 1 (form `one`); neohugo does not take booleans as counts."
-exponent-count = "A count string in exponent notation (`1e3`): Go accepts it as numeric and then fails to parse it (renders nothing); neohugo does not take it as a count (form `other`)."
+print-collection = "`{{ . }}` on a map or list argument: Go prints `map[Count:1]` / `[1]` (fmt syntax); this port reports an evaluation error and renders nothing (no Go value printing)."
+scalar-count-field = "`{{ .Count }}` with a float, numeric-string or unsigned argument: Go only wraps signed integers as a count and fails on the rest; this port treats every numeric argument as its own `.Count`."
+bool-count = "A boolean argument (or `Count: true`): Go's cast turns true into the count 1 (form `one`); this port does not take booleans as counts."
+exponent-count = "A count string in exponent notation (`1e3`): Go accepts it as numeric and then fails to parse it (renders nothing); this port does not take it as a count (form `other`)."
 
 [translate.accepted]
 "plurals fr allforms int 1000000" = "Newer CLDR gave French a `many` form for multiples of a million (`1 000 000 de …`); go-i18n's older tables say `other`."
@@ -36,7 +36,7 @@ exponent-count = "A count string in exponent notation (`1e3`): Go accepts it as 
 "art oc oc string \"1\"" = "As `art oc readingTime int 1`."
 "gotest-known-language-missing-plural-false oc oc int 1" = "As `art oc readingTime int 1`."
 "gotest-known-language-missing-plural-true oc oc int 1" = "As `art oc readingTime int 1`."
-"art klingon readingTime int 1" = "`klingon` is not a CLDR language: neohugo uses the root plural rules (`other`); go-i18n used the English rules for unknown languages."
+"art klingon readingTime int 1" = "`klingon` is not a CLDR language: this port uses the root plural rules (`other`); go-i18n used the English rules for unknown languages."
 "art klingon readingTime string \"1\"" = "As `art klingon readingTime int 1`."
 "art x1 readingTime int 1" = "As `art klingon readingTime int 1` (`x1` falls back to the default language `klingon`)."
 "art x1 readingTime string \"1\"" = "As `art x1 readingTime int 1`."
@@ -44,7 +44,7 @@ exponent-count = "A count string in exponent notation (`1e3`): Go accepts it as 
 "art a1 readingTime string \"1\"" = "As `art a1 readingTime int 1`."
 "art a2 readingTime int 1" = "As `art a1 readingTime int 1`."
 "art a2 readingTime string \"1\"" = "As `art a1 readingTime int 1`."
-"regions pt m <nil> null" = "Go's language matcher sends `pt` to the `pt-BR` bundle even though a `pt` file exists (x/text treats Brazilian as the default Portuguese); neohugo uses the exact bundle `pt`."
+"regions pt m <nil> null" = "Go's language matcher sends `pt` to the `pt-BR` bundle even though a `pt` file exists (x/text treats Brazilian as the default Portuguese); this port uses the exact bundle `pt`."
 
 [plural]
 # Locales for which ICU4X's compiled data has no plural rules (they are below the CLDR coverage
@@ -84,16 +84,16 @@ ro = "Romanian `few` now also covers 101, 1001, 1000001, …"
 
 [parse]
 [parse.cases]
-22 = "A list of strings under `a`: go-i18n gives each the key `a.` (the last wins); neohugo the key `a`."
-33 = "An array of tables without ids under `x`: go-i18n keys them `x.`; neohugo `x` (the last wins)."
-58 = "`other: [a]` is a list, so `x` is a namespace: go-i18n keys the entry `x.other.`, neohugo `x.other`."
-42 = "A YAML integer key: go-i18n rejects it; neohugo's YAML decoding writes keys as strings (`1`)."
+22 = "A list of strings under `a`: go-i18n gives each the key `a.` (the last wins); this port the key `a`."
+33 = "An array of tables without ids under `x`: go-i18n keys them `x.`; this port `x` (the last wins)."
+58 = "`other: [a]` is a list, so `x` is a namespace: go-i18n keys the entry `x.other.`, this port `x.other`."
+42 = "A YAML integer key: go-i18n rejects it; our YAML decoding writes keys as strings (`1`)."
 43 = "As case 42, nested."
 44 = "As case 42, inside a message."
-61 = "As case 42, inside a `translation` map (neohugo reads it as a namespace entry)."
-64 = "An empty YAML document (`---`) is an empty file for neohugo; go-i18n rejects the null document."
+61 = "As case 42, inside a `translation` map (this port reads it as a namespace entry)."
+64 = "An empty YAML document (`---`) is an empty file for this port; go-i18n rejects the null document."
 65 = "As case 64 (`~`)."
 71 = "As case 64 (JSON `null`)."
-122 = "`en.all.toml`: go-i18n takes the tag from the last dot segment (`all`); neohugo requires the file name to be a language code and rejects it."
-137 = "`.toml` (no language): go-i18n uses `und`; neohugo rejects the file name."
-140 = "`en.TOML`: neohugo matches the extension case-insensitively; go-i18n has no unmarshaler for `TOML`."
+122 = "`en.all.toml`: go-i18n takes the tag from the last dot segment (`all`); this port requires the file name to be a language code and rejects it."
+137 = "`.toml` (no language): go-i18n uses `und`; this port rejects the file name."
+140 = "`en.TOML`: this port matches the extension case-insensitively; go-i18n has no unmarshaler for `TOML`."

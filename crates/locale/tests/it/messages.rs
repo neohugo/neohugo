@@ -3,13 +3,13 @@
 
 use std::path::Path;
 
-use neohugo_base::{Idx as _, LangIdx, Map, Value};
-use neohugo_locale::{
+use pretty_assertions::assert_eq;
+use ssg_base::{Idx as _, LangIdx, Map, Value};
+use ssg_locale::{
     Args, EvalError, I18nError, MessageProblem, NO_VALUE, Piece, PluralCount, Template,
     TranslateError, Translation, Translations, TranslationsBuilder,
 };
-use neohugo_testkit::txtar::Archive;
-use pretty_assertions::assert_eq;
+use ssg_testkit::txtar::Archive;
 
 fn map(entries: &[(&str, Value)]) -> Value {
     let mut m = Map::new();
@@ -21,7 +21,7 @@ fn map(entries: &[(&str, Value)]) -> Value {
 
 /// en and th from `tools/rust-port/i01/seeksnack.txtar` (the R site).
 fn seeksnack() -> Translations {
-    let path = neohugo_testkit::fixture::repo_dir().join("tools/rust-port/i01/seeksnack.txtar");
+    let path = ssg_testkit::fixture::repo_dir().join("tools/rust-port/i01/seeksnack.txtar");
     let archive = Archive::read(&path).unwrap();
     let mut b = TranslationsBuilder::new("en");
     for name in ["i18n/en.toml", "i18n/th.toml"] {
@@ -301,6 +301,6 @@ fn later_files_override_and_parents_are_used() {
 fn shared_across_threads() {
     fn send_sync<T: Send + Sync>() {}
     send_sync::<Translations>();
-    send_sync::<neohugo_locale::Locale>();
-    send_sync::<neohugo_locale::Collator>();
+    send_sync::<ssg_locale::Locale>();
+    send_sync::<ssg_locale::Collator>();
 }

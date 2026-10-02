@@ -12,12 +12,12 @@
 //! | E1 | static files into the sink (rendered outputs win conflicts) | `publish` |
 //! | E2 | wave 1: one sub-wave per language, in language order | `waves` (render pool) |
 //! | E3 | wave 2: pagers 2..N, `page/1/` aliases, the language redirect | `waves` |
-//! | E4 | `neohugo_stats.json`: the project directory and its asset mounts | `deferred` |
+//! | E4 | `build_stats.json`: the project directory and its asset mounts | `deferred` |
 //! | E5 | `defer(...)` templates once per key, post-process fields → `patch_held` | `deferred` (render pool) |
 //! | E6 | resources named by URL tokens (and eager bundle files), processed images | `publish_resources` |
 //! | E7 | sorted, de-duplicated diagnostics; errors fail the build | `build` |
 //!
-//! **Structure dump.** With [`STRUCTURE_ENV`] (`NEOHUGO_STRUCTURE_OUT=<file>`) set, the waves
+//! **Structure dump.** With [`STRUCTURE_ENV`] (`FUGO_STRUCTURE_OUT=<file>`) set, the waves
 //! record every job and a successful build writes the Go structure oracle's dump of what it
 //! did (`structure`); without it nothing is recorded.
 //!
@@ -41,20 +41,20 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::paths::OutputPath;
-use neohugo_base::url::{BaseUrl, UrlRef};
-use neohugo_base::{Clock, Idx, LangIdx, Sink};
-use neohugo_config::{CliOverrides, Config, ConfigError, LoadOptions};
-use neohugo_layouts::{LayoutStore, TemplateError};
-use neohugo_publish::{
+use ssg_base::diag::Diagnostic;
+use ssg_base::paths::OutputPath;
+use ssg_base::url::{BaseUrl, UrlRef};
+use ssg_base::{Clock, Idx, LangIdx, Sink};
+use ssg_config::{CliOverrides, Config, ConfigError, LoadOptions};
+use ssg_layouts::{LayoutStore, TemplateError};
+use ssg_publish::{
     DiskSink, MemorySink, PublishError, PublishSettings, Publisher, StaticSyncOptions, sync_static,
     sync_static_dir,
 };
-use neohugo_render::{JobOrder, Project, RenderError, RenderOptions, Session};
-use neohugo_resources::ResourceError;
-use neohugo_site::{Added, LoadModelOptions, Model, ModelError};
-use neohugo_vfs::{Vfs, VfsError};
+use ssg_render::{JobOrder, Project, RenderError, RenderOptions, Session};
+use ssg_resources::ResourceError;
+use ssg_site::{Added, LoadModelOptions, Model, ModelError};
+use ssg_vfs::{Vfs, VfsError};
 
 /// Where the outputs go.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -74,7 +74,7 @@ pub struct BuildRequest {
     /// The publish directory (`--destination`); relative to `source`.
     pub destination: Option<PathBuf>,
     /// `--config` files, relative to `source`, the first with the highest precedence (empty:
-    /// the first of `neohugo.*`, `hugo.*`, `config.*`).
+    /// the first of `config.*`, `hugo.*`, `config.*`).
     pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
     /// The build's "now" (`--clock`; `None`: the system clock).
@@ -86,17 +86,17 @@ pub struct BuildRequest {
     /// output does not depend on it.
     pub threads: Option<usize>,
     /// A configuration the caller loaded, used instead of loading one from `source`,
-    /// `config_files`, `cli`, `destination` and the process environment (`neohugo server`
+    /// `config_files`, `cli`, `destination` and the process environment (the `server` command
     /// loads it once per configuration change and points the base URLs at itself).
     pub config: Option<Arc<Config>>,
-    /// `neohugo server`: put the LiveReload script into the HTML pages (not into `build`'s
+    /// The `server` command: put the LiveReload script into the HTML pages (not into `build`'s
     /// output).
     pub live_reload: Option<LiveReload>,
-    /// `neohugo server`: `neohugo.is_server` is true.
+    /// The `server` command: `build.is_server` is true.
     pub server: bool,
 }
 
-/// The LiveReload script of `neohugo server` (T71): every HTML page except alias
+/// The LiveReload script of the `server` command (T71): every HTML page except alias
 /// redirects loads `livereload.js` from its language's base URL, which the script also
 /// connects to (Hugo's `livereloadinject`).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -172,17 +172,17 @@ pub struct BuildReport {
     /// The files of a [`SinkKind::Memory`] build (static files included).
     pub memory: Option<Arc<MemorySink>>,
     /// The site model that was rendered (pages, their content files and links), for callers
-    /// that map files to pages (`neohugo server --navigateToChanged`).
+    /// that map files to pages (`server --navigateToChanged`).
     pub model: Option<Arc<Model>>,
 }
 
-/// The process environment the configuration reads: `NEOHUGO_*` overrides, and `HOME`,
+/// The process environment the configuration reads: `FUGO_*` overrides, and `HOME`,
 /// `XDG_CACHE_HOME`, `TMPDIR` and `USER` for the default cache directory.
 #[must_use]
 pub fn process_env() -> Vec<(String, String)> {
     std::env::vars()
         .filter(|(k, _)| {
-            k.starts_with(neohugo_config::env::PREFIX)
+            k.starts_with(ssg_config::env::PREFIX)
                 || matches!(k.as_str(), "HOME" | "XDG_CACHE_HOME" | "TMPDIR" | "USER")
         })
         .collect()
@@ -197,7 +197,7 @@ impl RenderPool {
         rayon::ThreadPoolBuilder::new()
             .num_threads(threads.unwrap_or(0))
             .stack_size(16 << 20)
-            .thread_name(|i| format!("neohugo-render-{i}"))
+            .thread_name(|i| format!("ssg-render-{i}"))
             .build()
             .map(Self)
             .map_err(|e| BuildError::Pool(e.to_string()))
@@ -261,7 +261,7 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
             if let Some(d) = &r.destination {
                 cli.destination = Some(d.clone());
             }
-            Arc::new(neohugo_config::load(&LoadOptions {
+            Arc::new(ssg_config::load(&LoadOptions {
                 source: r.source.clone(),
                 config_files: r.config_files,
                 cli,
@@ -277,13 +277,13 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
         server: r.server,
     };
     let model_options = LoadModelOptions::from_config(&cfg, clock);
-    let captured = pool.run(|| neohugo_site::capture_content(&cfg, &vfs))?;
+    let captured = pool.run(|| ssg_site::capture_content(&cfg, &vfs))?;
     // A4b: content adapters need the layouts (partials) before the model.
     let mut layouts = None;
     let mut adapter_diags = Vec::new();
     let model = if captured.adapters().is_empty() {
         pool.run(|| {
-            neohugo_site::assemble(Arc::clone(&cfg), captured, Added::default(), &model_options)
+            ssg_site::assemble(Arc::clone(&cfg), captured, Added::default(), &model_options)
         })?
     } else {
         let project = Project {

@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-migrate"
+name = "ssg-migrate"
 description = "(COULD, T73) Converts Go-template layouts to Tera, renames legacy layout files and translates printf/where"
 version.workspace = true
 edition.workspace = true
@@ -19,7 +19,7 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
 # planned third-party dependencies (T00); the owning task adjusts them
 thiserror.workspace = true

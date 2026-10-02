@@ -8,10 +8,10 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_base::{Idx, LangIdx, Value};
-use neohugo_site::{Model, PageRole};
-use neohugo_testkit::fixture::oracle;
 use serde_json::{Value as J, json};
+use ssg_base::{Idx, LangIdx, Value};
+use ssg_site::{Model, PageRole};
+use ssg_testkit::fixture::oracle;
 
 use crate::expected;
 use crate::support::{Site, diff, to_json};
@@ -116,7 +116,7 @@ fn got(site: &Site, m: &Model) -> (BTreeSet<PageRec>, BTreeSet<ResRec>) {
 }
 
 /// A page's own cascade as the oracle writes it.
-fn cascade_json(c: &neohugo_page::Cascade) -> J {
+fn cascade_json(c: &ssg_page::Cascade) -> J {
     J::Array(
         c.rules()
             .iter()
@@ -155,7 +155,7 @@ fn check(name: &str) -> usize {
     );
 
     // Overrides and own cascades, per page with a file.
-    let by_file: BTreeMap<(usize, String), &neohugo_site::Page> = m
+    let by_file: BTreeMap<(usize, String), &ssg_site::Page> = m
         .pages
         .iter()
         .filter_map(|p| {

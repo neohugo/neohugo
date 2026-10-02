@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-workspace-hack"
+name = "ssg-workspace-hack"
 description = "Internal: unifies the features of light shared dependencies across all members"
 version.workspace = true
 edition.workspace = true

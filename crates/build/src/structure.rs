@@ -1,7 +1,7 @@
-//! The structure dump (REWRITE_PLAN.md §6.4, §7.2): with `NEOHUGO_STRUCTURE_OUT=<file>` in the
+//! The structure dump (REWRITE_PLAN.md §6.4, §7.2): with `FUGO_STRUCTURE_OUT=<file>` in the
 //! environment, [`build`](crate::build) writes what it did in the schema of the Go structure
-//! oracle (`neohugo-structure/1`, `testdata/golden/README.md`), which
-//! `tools/neohugo/structdiff.py` and `neohugo`'s parity test compare with Go's dump of the same
+//! oracle (`ssg-structure/1`, `testdata/golden/README.md`), which
+//! `tools/dev/structdiff.py` and our parity test compare with Go's dump of the same
 //! site. Without the variable nothing is recorded.
 //!
 //! - `records`: every page and standalone job of wave 1 (pager 1 of a paginated page) per
@@ -30,20 +30,20 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
-use neohugo_base::{FormatId, PageId};
-use neohugo_layouts::{Origin, TemplateName, TemplateRole};
-use neohugo_publish::PublishError;
-use neohugo_render::{Job, RenderError, Session};
-use neohugo_site::PageRole;
 use serde_json::{Map, Value, json};
+use ssg_base::{FormatId, PageId};
+use ssg_layouts::{Origin, TemplateName, TemplateRole};
+use ssg_publish::PublishError;
+use ssg_render::{Job, RenderError, Session};
+use ssg_site::PageRole;
 
 use crate::BuildError;
 
 /// The environment variable naming the dump file.
-pub const ENV: &str = "NEOHUGO_STRUCTURE_OUT";
+pub const ENV: &str = ssg_base::env_var!("STRUCTURE_OUT");
 
 /// The schema of the dump (the Go oracle's).
-const SCHEMA: &str = "neohugo-structure/1";
+const SCHEMA: &str = "ssg-structure/1";
 
 /// What an alias file is.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -161,7 +161,7 @@ impl Recorder {
                 p.meta.layout.clone().unwrap_or_default().into(),
             );
             // Only when the front matter `type` replaced the first segment (as Go writes it).
-            let lookup = neohugo_render::lookup_path(p);
+            let lookup = ssg_render::lookup_path(p);
             if lookup != p.key {
                 r.insert("lookupPath".into(), lookup.to_path().into());
             }
@@ -278,8 +278,7 @@ impl Recorder {
                     "relPermalink".into(),
                     b.link()
                         .map(|l| {
-                            neohugo_base::UrlPath::new(&urls.prepend_base_path(l.as_str()))
-                                .escaped()
+                            ssg_base::UrlPath::new(&urls.prepend_base_path(l.as_str())).escaped()
                         })
                         .unwrap_or_default()
                         .into(),
@@ -364,7 +363,7 @@ impl Recorder {
 fn plain_name(n: &TemplateName) -> String {
     let s = n.as_str();
     let s = s.split_once("@@").map_or(s, |(l, _)| l);
-    if let Some(rest) = s.strip_prefix(neohugo_layouts::EMBEDDED_PREFIX) {
+    if let Some(rest) = s.strip_prefix(ssg_layouts::EMBEDDED_PREFIX) {
         return rest.to_owned();
     }
     match s.strip_prefix("_theme") {
@@ -374,14 +373,14 @@ fn plain_name(n: &TemplateName) -> String {
 }
 
 /// The name of a chosen template and its file (`_embedded/<name>` for an embedded one).
-fn names(store: &neohugo_layouts::LayoutStore, n: &TemplateName) -> (String, String) {
+fn names(store: &ssg_layouts::LayoutStore, n: &TemplateName) -> (String, String) {
     let plain = plain_name(n);
     let embedded = store.get(n).map_or_else(
-        || n.as_str().starts_with(neohugo_layouts::EMBEDDED_PREFIX),
+        || n.as_str().starts_with(ssg_layouts::EMBEDDED_PREFIX),
         |t| t.origin == Origin::Embedded,
     );
     let file = if embedded {
-        format!("{}{plain}", neohugo_layouts::EMBEDDED_PREFIX)
+        format!("{}{plain}", ssg_layouts::EMBEDDED_PREFIX)
     } else {
         plain.clone()
     };

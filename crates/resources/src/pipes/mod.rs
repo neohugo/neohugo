@@ -3,12 +3,12 @@
 //!
 //! | Transform | Implementation | Target |
 //! |---|---|---|
-//! | [`Transform::Minify`] | `neohugo-minify` by media type (no minifier: an error) | `.min` before the extension |
-//! | [`Transform::ToCss`] | grass (dart-sass semantics); imports through the assets view, `includePaths`, `neohugo:vars` | `targetPath`, else `.css` |
+//! | [`Transform::Minify`] | `ssg-minify` by media type (no minifier: an error) | `.min` before the extension |
+//! | [`Transform::ToCss`] | grass (dart-sass semantics); imports through the assets view, `includePaths`, `build:vars` | `targetPath`, else `.css` |
 //! | [`Transform::PostCss`] | the `postcss` CLI (`postcss-cli`), optional `@import` inlining | unchanged |
 //! | [`Transform::TailwindCss`] | the `tailwindcss` CLI (v4), `@import` inlining unless disabled | unchanged |
 //! | [`Transform::Babel`] | the `babel` CLI (`@babel/cli`) | unchanged |
-//! | [`Transform::JsBuild`] | rolldown through `neohugo-jsbuild` | `targetPath`, else `.js` |
+//! | [`Transform::JsBuild`] | rolldown through `ssg-jsbuild` | `targetPath`, else `.js` |
 //! | [`Transform::Fingerprint`] | the store (T40) | `.<hex digest>` before the extension |
 //!
 //! **Laziness.** [`ResourceStore::transform`] registers the result at once with its final
@@ -17,7 +17,7 @@
 //! `fingerprint` depends on the content for its link: over a computed resource it is computed
 //! at once; over a pending one it is pending too, its record provisional (the source's link,
 //! [`PublishPolicy::Never`]) until computed. So a chain ending in
-//! [`ResourceStore::post_process`] runs in build phase E5, after `neohugo_stats.json` exists,
+//! [`ResourceStore::post_process`] runs in build phase E5, after `build_stats.json` exists,
 //! as long as nobody asks for its content or its fingerprinted link earlier (the crate README
 //! says how template functions build views of pending results).
 //!
@@ -25,7 +25,7 @@
 //! `<project>/node_modules/.bin`, then the extra `node_modules` directories, then `PATH`),
 //! must be allowed by `security.exec.allow`, run with the project directory as working
 //! directory and an environment of the allowed variables (`security.exec.osEnv`) plus
-//! `NODE_PATH`, `PWD`, `NEOHUGO_ENVIRONMENT`, `NEOHUGO_PUBLISHDIR` and `NEOHUGO_FILE_<NAME>`
+//! `NODE_PATH`, `PWD`, `FUGO_ENVIRONMENT`, `FUGO_PUBLISHDIR` and `FUGO_FILE_<NAME>`
 //! for each file in `assets/_jsconfig` (Hugo's `HUGO_*` names are not set). At most `min(4, cpus)` run at once. A missing tool is
 //! [`PipeError::ToolNotFound`], naming the binary.
 
@@ -48,13 +48,13 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, OnceLock};
 
 use base64::Engine as _;
-use neohugo_base::paths::{self, OutputPath, UrlPath};
-use neohugo_base::{ResourceId, Value};
-use neohugo_config::global::SecurityPolicy;
-use neohugo_config::{Config, MediaType};
-use neohugo_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, OptionsError};
-use neohugo_minify::{Minifier, MinifyError};
 use serde_json::Value as Json;
+use ssg_base::paths::{self, OutputPath, UrlPath};
+use ssg_base::{ResourceId, Value};
+use ssg_config::global::SecurityPolicy;
+use ssg_config::{Config, MediaType};
+use ssg_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, OptionsError};
+use ssg_minify::{Minifier, MinifyError};
 
 use crate::store::{
     Body, HashAlgo, NewResource, Origin, PublishPolicy, Resource, ResourceError, ResourceStore,
@@ -142,7 +142,7 @@ pub enum PipeError {
     JsOptions(#[from] OptionsError),
     /// An external tool is not installed where [`ToolPaths`] looks.
     #[error(
-        "the {tool} binary was not found (looked in {searched}); install the node tools with tools/neohugo/node.sh or set {env}"
+        "the {tool} binary was not found (looked in {searched}); install the node tools with tools/dev/node.sh or set {env}"
     )]
     ToolNotFound {
         tool: &'static str,
@@ -168,7 +168,7 @@ pub enum PipeError {
     /// A configuration file named by an option does not exist.
     #[error("{tool} config {name:?} not found")]
     ConfigNotFound { tool: &'static str, name: String },
-    /// A Sass compilation error at a position (`neohugo:vars` for the variables sheet).
+    /// A Sass compilation error at a position (`build:vars` for the variables sheet).
     #[error("{file}:{line}:{column}: {message}")]
     Sass {
         file: String,
@@ -212,10 +212,10 @@ pub struct TransformEnv {
     /// The project directory: the working directory of the tools, the base of `includePaths`,
     /// of config files and of `js_build`'s `node_modules` lookups.
     pub project_dir: PathBuf,
-    /// The absolute publish directory (`NEOHUGO_PUBLISHDIR`, what `js_build` source maps are
+    /// The absolute publish directory (`FUGO_PUBLISHDIR`, what `js_build` source maps are
     /// relative to).
     pub publish_dir: PathBuf,
-    /// `NEOHUGO_ENVIRONMENT` (`production`, `development`).
+    /// `FUGO_ENVIRONMENT` (`production`, `development`).
     pub environment: String,
     /// `security.exec.allow` and `security.exec.osEnv`.
     pub security: SecurityPolicy,
@@ -285,7 +285,7 @@ impl TransformEnv {
         env.os_env = std::env::vars_os()
             .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)))
             .collect();
-        let browsers = neohugo_minify::project_browsers(&cfg.project_dir, &cfg.environment);
+        let browsers = ssg_minify::project_browsers(&cfg.project_dir, &cfg.environment);
         env.minifier = Arc::new(
             Minifier::new(&cfg.minify)
                 .unwrap_or_default()
@@ -511,8 +511,8 @@ pub(crate) fn realize(
             name: map_link.clone(),
             name_normalized: None,
             title: map_link.clone(),
-            params: neohugo_base::Params::default(),
-            data: neohugo_base::Map::new(),
+            params: ssg_base::Params::default(),
+            data: ssg_base::Map::new(),
             lang: r.lang,
             target: OutputPath::new(&format!("{}.map", r.target.as_str())),
             link: UrlPath::new(&map_link),

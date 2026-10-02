@@ -1,4 +1,4 @@
-//! Integration tests of `neohugo-nav` (the crate's single test binary, REWRITE_PLAN.md §2.2).
+//! Integration tests of `ssg-nav` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 //!
 //! The oracle tests replay the Go fixtures of menus, pagination and related content under
 //! `testdata/oracle/page/`, and the alias files of the Go builds under

@@ -10,8 +10,8 @@ use std::path::Path;
 use std::sync::{Arc, LazyLock};
 
 use comrak::nodes::{ListType, NodeValue, TableAlignment};
-use neohugo_base::{Map, PageId};
 use regex::Regex;
+use ssg_base::{Map, PageId};
 
 use crate::attributes::{self, Owner};
 use crate::doc::{Doc, Node, Role};
@@ -183,7 +183,7 @@ impl<'r, 'a> Renderer<'r, 'a> {
         }
     }
 
-    fn attrs_of(&self, n: Node<'_>) -> &'r [(String, neohugo_base::Value)] {
+    fn attrs_of(&self, n: Node<'_>) -> &'r [(String, ssg_base::Value)] {
         let doc: &'r Doc<'a> = self.doc;
         doc.extra(n).map_or(&[], |e| e.attrs.as_slice())
     }
@@ -484,7 +484,7 @@ impl<'r, 'a> Renderer<'r, 'a> {
         if self.hooks.is_some() {
             let mut map = attributes::to_map(&attrs);
             if let Some(id) = &id {
-                map.insert("id", neohugo_base::Value::string(id));
+                map.insert("id", ssg_base::Value::string(id));
             }
             let ctx = HeadingCtx {
                 level,
@@ -678,11 +678,11 @@ impl<'r, 'a> Renderer<'r, 'a> {
         self.out.push_str("<table");
         for (k, v) in ctx.attributes.iter() {
             let falsy = match v {
-                neohugo_base::Value::Null => true,
-                neohugo_base::Value::Bool(b) => !b,
-                neohugo_base::Value::Int(i) => *i == 0,
-                neohugo_base::Value::Float(f) => *f == 0.0,
-                neohugo_base::Value::String(s) => s.is_empty(),
+                ssg_base::Value::Null => true,
+                ssg_base::Value::Bool(b) => !b,
+                ssg_base::Value::Int(i) => *i == 0,
+                ssg_base::Value::Float(f) => *f == 0.0,
+                ssg_base::Value::String(s) => s.is_empty(),
                 _ => false,
             };
             if falsy {

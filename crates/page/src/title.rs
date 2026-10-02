@@ -1,7 +1,7 @@
 //! Titles of pages without a `title`.
 
-use neohugo_base::{PageKind, inflect, title};
-use neohugo_config::site::TitleConfig;
+use ssg_base::{PageKind, inflect, title};
+use ssg_config::site::TitleConfig;
 
 /// The title of a page that has no file and no `title` (pages backed by a file keep an empty
 /// title). `raw` is the site title for the home page, the directory name as written for a

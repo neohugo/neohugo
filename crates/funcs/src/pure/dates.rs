@@ -7,8 +7,8 @@ use std::sync::Arc;
 
 use jiff::Zoned;
 use jiff::tz::TimeZone;
-use neohugo_base::parse_date;
-use neohugo_locale::{DatePattern, DateStyle, format_date, format_number};
+use ssg_base::parse_date;
+use ssg_locale::{DatePattern, DateStyle, format_date, format_number};
 use tera::value::Key;
 use tera::{Kwargs, State, TeraResult, Value};
 

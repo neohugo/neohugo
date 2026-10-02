@@ -1,6 +1,6 @@
-# neohugo-images
+# ssg-images
 
-Image processing for neohugo (REWRITE_PLAN.md §2.1, §2.4, tasks T41 and T72a): processing
+Image processing for fugo (REWRITE_PLAN.md §2.1, §2.4, tasks T41 and T72a): processing
 specs, operations and filters (text and dithering included), codecs, the deferred image queue and
 its file cache, EXIF metadata, and QR code images. Hugo's semantics are the reference; Go's pixel
 arithmetic is not reproduced (the goal is PSNR ≥ 30 dB against Go-processed images and exact
@@ -18,9 +18,9 @@ Go's JPEG decoder for that).
 | `ImageFilter` | Every Hugo filter, deserialized from template maps (`{"op": "overlay", "image": …, "x": 10, "y": 10}`), including `Process { spec }`, `Padding(PaddingSpec)`, `Overlay`, `Mask`, `Opacity`, `AutoOrient`, `Text(TextSpec)`, `Dither(DitherSpec)` and the colour filters. |
 | `TextSpec`, `AlignX`, `AlignY`, `FontInput`, `FontId` | `images.Text`: `text`, `color` (white), `size` (20), `x`/`y` (10), `alignx`/`aligny`, `linespacing` (2), `font` (Go Regular, else a font file or bytes registered with `ImageQueue::add_font`; an integer id in maps). Hugo's option names in any case, plus `line_spacing`, `align_x`, `align_y`; numbers may be strings, `x`/`y`/`linespacing` truncate like `cast.ToInt`. |
 | `DitherSpec`, `DitherMethod` | `images.Dither`: `colors` (≥ 2; black and white), `method` (Hugo's 29 names, `floydsteinberg`), `serpentine` (true), `strength` (1.0). |
-| `qr_png`, `qr_modules`, `QrLevel`, `QrModules` | `images.QR`: the PNG of a QR code, byte-identical to Hugo's (`rsc.io/qr`); the symbol's modules. Naming and publishing are `neohugo-resources`' (`ResourceStore::qr_code`). |
+| `qr_png`, `qr_modules`, `QrLevel`, `QrModules` | `images.QR`: the PNG of a QR code, byte-identical to Hugo's (`rsc.io/qr`); the symbol's modules. Naming and publishing are `ssg-resources`' (`ResourceStore::qr_code`). |
 | `ImageInput` | What an operation or an overlay/mask reads: `File(path)` or `Op(ImageOpId)` (a string or an integer in template maps). |
-| `Imaging` | `[imaging]` typed: `Imaging::from_config(&neohugo_config::ImagingConfig)`. |
+| `Imaging` | `[imaging]` typed: `Imaging::from_config(&ssg_config::ImagingConfig)`. |
 | `ImageQueue` | `new(imaging, cache)`; `enqueue(input, spec, filters) -> Enqueued` (metadata only: name, size, format, at once); `process(&BTreeMap<OutputPath, ImageOpId>, &dyn Sink)` (rayon, build phase E6); `encoded(id)` (on demand); `get`, `len`; `add_font(bytes) -> FontId` (fonts of text filters, validated, by content). |
 | `Enqueued` | `id`, `file_name` (`<stem>_hu_<16 hex>.<ext>`), `width`, `height`, `format`. |
 | `ImageCache` | `[caches.images]`: `ImageCache::from_config(&FileCache)`; entries are read while younger than `maxAge` (never with `maxAge = 0` / `--ignoreCache`). |
@@ -115,7 +115,7 @@ holds it, always mask pattern 0 — and written by a port of `rsc.io/qr`'s PNG w
 grey, a `tEXt` chunk, one fixed-Huffman deflate block). Module layout and bytes equal Go's: the
 tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
 
-## Tests (`cargo test -p neohugo-images`)
+## Tests (`cargo test -p ssg-images`)
 
 * `smartcrop` (unit tests): the regions Go picks (`testdata/oracle/images/smartcrop/regions.json.gz`,
   1975 cases: the docs' images, Hugo's and Go's test images and the seeksnack images — JPEGs of

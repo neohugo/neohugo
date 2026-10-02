@@ -4,7 +4,7 @@
     <title>Hugo News</title>
     <description>Recent news about Hugo, a static site generator written in Go, optimized for speed and designed for flexibility.</description>
     <link>{{ page.permalink }}</link>
-    <generator>Hugo {{ neohugo.version }}</generator>
+    <generator>Hugo {{ build.version }}</generator>
     <language>{{ site.language_code or site.lang }}</language>
     {%- if site.copyright %}
       <copyright>{{ site.copyright }}</copyright>

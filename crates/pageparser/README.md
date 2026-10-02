@@ -1,8 +1,8 @@
-# neohugo-pageparser
+# ssg-pageparser
 
 Content files (docs/rust-port/REWRITE_PLAN.md §2.1, §2.4, §3.2, task T11): front matter split
 and decode, the summary divider, and the shortcode lexer (`lex` + `assemble`). Depends on
-`neohugo-base` (`Value`, `Map`, `Params`, general categories), `memchr` and `thiserror`.
+`ssg-base` (`Value`, `Map`, `Params`, general categories), `memchr` and `thiserror`.
 
 | item | what it does |
 |---|---|
@@ -29,7 +29,7 @@ always take inner content. `ordinal` counts per nesting level.
 
 ## Oracle acceptance (T11)
 
-`cargo test -p neohugo-pageparser -- --nocapture` prints the tallies. The fixture is
+`cargo test -p ssg-pageparser -- --nocapture` prints the tallies. The fixture is
 `testdata/oracle/parser/pageparser/pages.json.gz` (Hugo's `ParseBytes` in three
 configurations and `ParseFrontMatterAndContent` over docs, testsite, skeletons, the lexer's
 own test strings, 218 seeksnack front matters, hand-written shapes and 4,000 random soups).

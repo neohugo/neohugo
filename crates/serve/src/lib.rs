@@ -1,4 +1,4 @@
-//! `neohugo server` (REWRITE_PLAN.md T71): Hugo's development server.
+//! The `server` command (REWRITE_PLAN.md T71): Hugo's development server.
 //!
 //! [`Server::start`] loads the configuration, opens the listeners (one per language of a
 //! multihost site), points every language's base URL at its listener (Hugo's `fixURL`),
@@ -38,10 +38,10 @@ use std::thread::{self, JoinHandle};
 use std::time::Duration;
 
 use axum::Router;
-use neohugo_base::url::UrlError;
-use neohugo_build::{BuildError, BuildReport, BuildRequest};
-use neohugo_config::ConfigError;
-use neohugo_vfs::VfsError;
+use ssg_base::url::UrlError;
+use ssg_build::{BuildError, BuildReport, BuildRequest};
+use ssg_config::ConfigError;
+use ssg_vfs::VfsError;
 use tokio::sync::{broadcast, watch as signal};
 
 use crate::rebuild::Rebuilder;
@@ -363,7 +363,7 @@ impl Server {
         if let Some(w) = watcher {
             server.watch = Some(
                 thread::Builder::new()
-                    .name("neohugo-watch".to_owned())
+                    .name("ssg-watch".to_owned())
                     .spawn(move || rebuilder.run(&loop_rx, w))
                     .map_err(ServeError::Runtime)?,
             );
@@ -440,7 +440,7 @@ fn spawn_http(
         .build()
         .map_err(ServeError::Runtime)?;
     thread::Builder::new()
-        .name("neohugo-http".to_owned())
+        .name("ssg-http".to_owned())
         .spawn(move || {
             runtime.block_on(async move {
                 let mut servers = tokio::task::JoinSet::new();

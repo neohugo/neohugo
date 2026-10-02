@@ -7,9 +7,9 @@
 
 use std::sync::Arc;
 
-use neohugo_base::PageId;
-use neohugo_layouts::TemplateName;
-use neohugo_markup::{Fragments, SourceContexts};
+use ssg_base::PageId;
+use ssg_layouts::TemplateName;
+use ssg_markup::{Fragments, SourceContexts};
 
 use crate::scope::{HookVariant, RenderScope};
 

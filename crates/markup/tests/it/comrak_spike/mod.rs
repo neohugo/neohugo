@@ -2,8 +2,8 @@
 //! bodies, measured per feature against normalised goldmark (Hugo) HTML.
 //!
 //! Re-run and print the table:
-//! `cargo test -p neohugo-markup --test it comrak_spike -- --nocapture`
-//! (optionally with `NEOHUGO_GOLDMARK_EMOJI_TSV=<shortcode\tcodepoints file>`, see the crate README).
+//! `cargo test -p ssg-markup --test it comrak_spike -- --nocapture`
+//! (optionally with `FUGO_GOLDMARK_EMOJI_TSV=<shortcode\tcodepoints file>`, see the crate README).
 //! The assertions are floors at the measured values, so a comrak upgrade that regresses a
 //! feature fails here.
 
@@ -59,7 +59,7 @@ fn table(title: &str, rows: &[Row]) -> String {
 
 /// `shortcode<TAB>hex codepoints separated by spaces`, one per line.
 fn goldmark_emoji() -> Option<BTreeMap<String, String>> {
-    let path = std::env::var_os("NEOHUGO_GOLDMARK_EMOJI_TSV")?;
+    let path = std::env::var_os("FUGO_GOLDMARK_EMOJI_TSV")?;
     let text = std::fs::read_to_string(&path).ok()?;
     let table = text
         .lines()

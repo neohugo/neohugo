@@ -13,10 +13,10 @@ Please include as much of the information requested below as possible.
 If you have an issue that can be shown visually, please provide a screenshot or GIF of the problem as well.
 -->
 
-**What version of neohugo are you using (`neohugo version`)?**
+**What version of fugo are you using (`fugo version`)?**
 
 <pre>
-$ neohugo version
+$ fugo version
 
 </pre>
 
@@ -24,7 +24,7 @@ $ neohugo version
 
 **Does Hugo behave differently on the same site?**
 <!--
-neohugo aims at Hugo's output for the same content and configuration (its layouts are Tera templates, not Go templates). Describe what Hugo (which version?) does with the same site, or say that you have not checked.
+fugo aims at Hugo's output for the same content and configuration (its layouts are Tera templates, not Go templates). Describe what Hugo (which version?) does with the same site, or say that you have not checked.
 If Hugo has the same defect, please also report it at https://github.com/gohugoio/hugo/.
 -->
 
@@ -32,7 +32,7 @@ If Hugo has the same defect, please also report it at https://github.com/gohugoi
 <!--
 Steps to reproduce the behavior. For example:
 1. Create file '...'
-2. Run neohugo '....'
+2. Run fugo '....'
 3. See error at '....'
 -->
 

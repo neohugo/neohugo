@@ -26,13 +26,13 @@ use std::sync::Arc;
 use std::sync::mpsc::Receiver;
 use std::time::{Duration, Instant};
 
-use neohugo_base::url::{BaseUrl, UrlRef};
-use neohugo_build::{BuildError, BuildReport, BuildRequest, LiveReload, SinkKind};
-use neohugo_config::{Config, LoadOptions};
-use neohugo_publish::{MemorySink, StaticSyncOptions};
-use neohugo_vfs::{Component, Vfs, VfsError};
 use notify::EventKind;
 use notify_debouncer_full::DebouncedEvent;
+use ssg_base::url::{BaseUrl, UrlRef};
+use ssg_build::{BuildError, BuildReport, BuildRequest, LiveReload, SinkKind};
+use ssg_config::{Config, LoadOptions};
+use ssg_publish::{MemorySink, StaticSyncOptions};
+use ssg_vfs::{Component, Vfs, VfsError};
 
 use crate::address::server_base_url;
 use crate::tree::{Served, Tree, publish_dir};
@@ -138,7 +138,7 @@ impl Rebuilder {
     }
 
     fn build(&self) -> Result<BuildReport, BuildError> {
-        neohugo_build::build(BuildRequest {
+        ssg_build::build(BuildRequest {
             config: Some(Arc::clone(&self.cfg)),
             sink: match self.target {
                 Target::Memory => SinkKind::Memory,
@@ -507,17 +507,17 @@ fn point_at_server(
     Ok(())
 }
 
-/// The configuration of a request, as `neohugo_build::build` would load it.
+/// The configuration of a request, as `ssg_build::build` would load it.
 pub(crate) fn load(r: &BuildRequest) -> Result<Config, ServeError> {
     let mut cli = r.cli.clone();
     if let Some(d) = &r.destination {
         cli.destination = Some(d.clone());
     }
-    Ok(neohugo_config::load(&LoadOptions {
+    Ok(ssg_config::load(&LoadOptions {
         source: r.source.clone(),
         config_files: r.config_files.clone(),
         cli,
-        env: neohugo_build::process_env(),
+        env: ssg_build::process_env(),
     })?)
 }
 

@@ -2,7 +2,7 @@
 //! document's head, after an optional doctype, `<html>` and `<head>` start tag (and any white
 //! space, comments or processing instructions between them).
 
-use neohugo_base::url::UrlRef;
+use ssg_base::url::UrlRef;
 
 /// The `<script>` element loading `livereload.js` from the server at `base` (its path and
 /// port are used).

@@ -5,10 +5,10 @@ use std::num::NonZeroUsize;
 use std::ops::Range;
 use std::sync::Arc;
 
-use neohugo_base::{OutputPath, PageId, PageKind, Value};
-use neohugo_config::OutputFormat;
-use neohugo_config::sections::PaginationConfig;
-use neohugo_page::{PageError, TargetPaths, UrlInputs, target_paths};
+use ssg_base::{OutputPath, PageId, PageKind, Value};
+use ssg_config::OutputFormat;
+use ssg_config::sections::PaginationConfig;
+use ssg_page::{PageError, TargetPaths, UrlInputs, target_paths};
 
 use crate::NavError;
 use crate::model::NavModel;

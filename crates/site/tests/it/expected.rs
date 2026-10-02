@@ -2,8 +2,8 @@
 
 use std::collections::BTreeSet;
 
-use neohugo_base::Value;
-use neohugo_testkit::fixture::repo_dir;
+use ssg_base::Value;
+use ssg_testkit::fixture::repo_dir;
 
 /// The `path`s listed for `fixture` (`capture/edge-tree`, `assemble/edge-tree`, `data/…`).
 fn paths(fixture: &str) -> BTreeSet<String> {

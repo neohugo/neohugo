@@ -1,8 +1,8 @@
 //! QR codes against Hugo's: the golden images of `tpl/images/images_integration_test.go`
 //! (`TestImagesGoldenFuncs`) byte for byte, and the content hashes `TestQR` asserts.
 
-use neohugo_images::{QrLevel, qr_modules, qr_png};
-use neohugo_testkit::fixture::repo_file;
+use ssg_images::{QrLevel, qr_modules, qr_png};
+use ssg_testkit::fixture::repo_file;
 use xxhash_rust::xxh64::xxh64;
 
 /// `images.QR "https://gohugo.io"` with the options of `TestImagesGoldenFuncs`.
@@ -52,9 +52,9 @@ fn sizes() {
     assert_eq!(side("https://gohugo.io", QrLevel::High, 4), 148);
     assert_eq!(side("https://gohugo.io\"", QrLevel::Medium, 4), 132);
     let png = qr_png("https://gohugo.io", QrLevel::High, 4).expect("qr");
-    let (size, format) = neohugo_images::probe(&png, "qr").expect("probe");
+    let (size, format) = ssg_images::probe(&png, "qr").expect("probe");
     assert_eq!(size, (148, 148));
-    assert_eq!(format, neohugo_images::ImageFormat::Png);
+    assert_eq!(format, ssg_images::ImageFormat::Png);
 }
 
 #[test]

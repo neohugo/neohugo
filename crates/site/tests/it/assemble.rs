@@ -9,12 +9,12 @@
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_base::Idx;
-use neohugo_base::diag::Severity;
-use neohugo_page::{ListMode, Markup, PageMeta, RenderMode};
-use neohugo_site::{Model, Page, PageRole};
-use neohugo_testkit::fixture::oracle;
 use serde_json::{Value as J, json};
+use ssg_base::Idx;
+use ssg_base::diag::Severity;
+use ssg_page::{ListMode, Markup, PageMeta, RenderMode};
+use ssg_site::{Model, Page, PageRole};
+use ssg_testkit::fixture::oracle;
 
 use crate::expected;
 use crate::support::{Site, diff, time_json, to_json};
@@ -46,8 +46,8 @@ fn cascade_json(m: &Model, p: &Page) -> J {
             .map(|r| {
                 let [kind, path, lang, environment] = r.target.sources();
                 json!({
-                    "fields": to_json(&neohugo_base::Value::map(r.fields.as_map().clone())),
-                    "params": to_json(&neohugo_base::Value::map(r.params.as_map().clone())),
+                    "fields": to_json(&ssg_base::Value::map(r.fields.as_map().clone())),
+                    "params": to_json(&ssg_base::Value::map(r.params.as_map().clone())),
                     "target": {"environment": environment, "kind": kind, "lang": lang, "path": path},
                 })
             })
@@ -62,7 +62,7 @@ fn fields(m: &Model, p: &Page, w: &J) -> Vec<(&'static str, J, J)> {
     let mut out = vec![
         (
             "params",
-            to_json(&neohugo_base::Value::map(meta.params.as_map().clone())),
+            to_json(&ssg_base::Value::map(meta.params.as_map().clone())),
             w["params"].clone(),
         ),
         ("build", build_json(meta), w["build"].clone()),

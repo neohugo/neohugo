@@ -1,6 +1,6 @@
 //! HTML and URL escaping as goldmark writes it.
 
-use neohugo_base::Value;
+use ssg_base::Value;
 
 /// Escapes `& < > "` (text and attribute values).
 pub(crate) fn html(out: &mut String, s: &str) {

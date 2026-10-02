@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-testkit"
+name = "ssg-testkit"
 description = "Dev-only test support: plain-JSON oracle fixtures, txtar sites, insta settings"
 version.workspace = true
 edition.workspace = true
@@ -19,13 +19,13 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
+ssg-workspace-hack.workspace = true
 # The contract test needs only `spec` and `register_placeholders`. `default-features = false`
-# drops funcs' `runtime` feature (ICU data via neohugo-locale and tera-contrib `date`), so
-# `cargo test -p neohugo-testkit` builds nothing of funcs beyond tera. A path dependency, because
+# drops funcs' `runtime` feature (ICU data via ssg-locale and tera-contrib `date`), so
+# `cargo test -p ssg-testkit` builds nothing of funcs beyond tera. A path dependency, because
 # an inherited (`workspace = true`) one cannot turn default features off in edition 2024.
-neohugo-funcs = { path = "../funcs", default-features = false }
-neohugo-base.workspace = true
+ssg-funcs = { path = "../funcs", default-features = false }
+ssg-base.workspace = true
 tera.workspace = true
 serde.workspace = true
 serde_json.workspace = true

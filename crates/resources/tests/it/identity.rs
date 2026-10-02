@@ -6,17 +6,17 @@ use std::path::PathBuf;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use neohugo_base::diag::Position;
-use neohugo_base::url::BaseUrl;
-use neohugo_base::{Idx, LangIdx, Value};
-use neohugo_config::MediaTypes;
-use neohugo_images::{ImageQueue, ImageSpec, Imaging, QrLevel};
-use neohugo_resources::meta::ResourceMeta;
-use neohugo_resources::{
+use ssg_base::diag::Position;
+use ssg_base::url::BaseUrl;
+use ssg_base::{Idx, LangIdx, Value};
+use ssg_config::MediaTypes;
+use ssg_images::{ImageQueue, ImageSpec, Imaging, QrLevel};
+use ssg_resources::meta::ResourceMeta;
+use ssg_resources::{
     Body, CallSite, HashAlgo, LangTarget, PublishPolicy, QrOptions, RemoteConfig, ResourceError,
     ResourceKind, ResourceStore, StoreConfig, Transform, qr_target,
 };
-use neohugo_vfs::Vfs;
+use ssg_vfs::Vfs;
 
 use crate::support::{MemSink, config, store, synth_dir};
 
@@ -77,7 +77,7 @@ fn qr_codes() {
     assert_eq!(r.kind, ResourceKind::Image);
     assert_eq!(r.policy, PublishPolicy::OnReference);
     assert_eq!(s.image_size(&r), Some((132, 132)));
-    let png = neohugo_images::qr_png(url, QrLevel::Medium, 4).unwrap();
+    let png = ssg_images::qr_png(url, QrLevel::Medium, 4).unwrap();
     assert_eq!(&*s.content(a).unwrap(), &png[..]);
     // Another call site or language: the same resource.
     assert_eq!(
@@ -301,16 +301,13 @@ fn inject_generated() {
     let home = tempfile::tempdir().unwrap();
     let s = store(&synth_dir(), home.path());
     let l = lang(0);
-    assert_eq!(s.get_asset(l, "neohugo_stats.json").unwrap(), None);
+    assert_eq!(s.get_asset(l, "build_stats.json").unwrap(), None);
     let txt = s.get_asset(l, "txt/hello.txt").unwrap().unwrap();
     let before = s.content(txt).unwrap();
 
-    s.inject_generated(
-        "neohugo_stats.json",
-        Arc::from(&b"{\"htmlElements\":{}}"[..]),
-    );
+    s.inject_generated("build_stats.json", Arc::from(&b"{\"htmlElements\":{}}"[..]));
     s.inject_generated("/txt/hello.txt", Arc::from(&b"fresh"[..]));
-    let stats = s.get_asset(l, "neohugo_stats.json").unwrap().unwrap();
+    let stats = s.get_asset(l, "build_stats.json").unwrap().unwrap();
     assert_eq!(&*s.content(stats).unwrap(), b"{\"htmlElements\":{}}");
     assert_eq!(s.resource(stats).media_type_string(), "application/json");
     assert!(matches!(s.resource(stats).body, Body::Generated(_)));
@@ -318,7 +315,7 @@ fn inject_generated() {
     assert_eq!(&*s.content(txt).unwrap(), b"fresh");
     assert_ne!(before, s.content(txt).unwrap());
     assert!(s.find_assets(l, "*.json").unwrap().contains(&stats));
-    s.inject_generated("neohugo_stats.json", Arc::from(&b"{}"[..]));
+    s.inject_generated("build_stats.json", Arc::from(&b"{}"[..]));
     assert_eq!(&*s.content(stats).unwrap(), b"{}");
 }
 
@@ -377,14 +374,13 @@ fn image_seam() {
 /// under the language's directory, linked from the language's host.
 #[test]
 fn multihost_assets() {
-    let fx: serde_json::Value =
-        neohugo_testkit::fixture::oracle("oracle/resources/keys/keys.json.gz");
+    let fx: serde_json::Value = ssg_testkit::fixture::oracle("oracle/resources/keys/keys.json.gz");
     let tmp = tempfile::tempdir().unwrap();
     let site = tmp.path().join("site");
     std::fs::create_dir_all(site.join("assets/images")).unwrap();
     std::fs::copy(
-        neohugo_testkit::fixture::testdata("oracle/resources/site-multihost/neohugo.toml"),
-        site.join("neohugo.toml"),
+        ssg_testkit::fixture::testdata("oracle/resources/site-multihost/config.toml"),
+        site.join("config.toml"),
     )
     .unwrap();
     std::fs::copy(

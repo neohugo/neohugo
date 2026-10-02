@@ -1,7 +1,7 @@
 //! URLs and paths: `parse_url`, `join_url`, `urldecode`, the `path_*` filters and `path_join`.
 
-use neohugo_base::paths;
-use neohugo_base::url::{self, Component, UrlRef};
+use ssg_base::paths;
+use ssg_base::url::{self, Component, UrlRef};
 use tera::{Kwargs, TeraResult, Value};
 
 use super::Registrar;

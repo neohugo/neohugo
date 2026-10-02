@@ -7,10 +7,10 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::{Idx, LangIdx, PageId, PageKind, text};
-use neohugo_site::{ListScope, Model, RefArgs, RefLink};
-use neohugo_testkit::fixture::oracle;
 use serde_json::{Value as J, json};
+use ssg_base::{Idx, LangIdx, PageId, PageKind, text};
+use ssg_site::{ListScope, Model, RefArgs, RefLink};
+use ssg_testkit::fixture::oracle;
 
 use crate::structure::Tally;
 use crate::support::{Site, diff, time_json};
@@ -259,10 +259,10 @@ fn site_call(m: &Model, ix: &Ix, lang: LangIdx, method: &str, args: &J) -> Optio
         "MainSections" => json!(site.main_sections),
         "AllPages" => {
             let mut all: Vec<PageId> = m.sites.iter().flat_map(|s| s.pages.clone()).collect();
-            let c = neohugo_locale::Collator::for_language(&m.config.sites[lang].language.key);
+            let c = ssg_locale::Collator::for_language(&m.config.sites[lang].language.key);
             let key = |id: PageId| {
                 let p = m.page(id);
-                neohugo_page::SortKey {
+                ssg_page::SortKey {
                     weight: p.meta.weight,
                     date: p.meta.dates.date.as_ref(),
                     link_title: &p.link_title,
@@ -271,7 +271,7 @@ fn site_call(m: &Model, ix: &Ix, lang: LangIdx, method: &str, args: &J) -> Optio
                     weight0: None,
                 }
             };
-            all.sort_by(|a, b| neohugo_page::default_order(&key(*a), &key(*b), &c));
+            all.sort_by(|a, b| ssg_page::default_order(&key(*a), &key(*b), &c));
             ix.pages(&all)
         }
         "Taxonomies" => {
@@ -364,7 +364,7 @@ fn check(name: &str, t: &mut Tally) {
             if d.is_some()
                 && check == "ref/relref"
                 && w == json!("")
-                && m.page(id).role != neohugo_site::PageRole::Standalone
+                && m.page(id).role != ssg_site::PageRole::Standalone
             {
                 // Hugo's bundled pages have no working site: their refs are all empty.
                 t.accept(check, "ref-from-bundled-page");

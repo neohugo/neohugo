@@ -1,4 +1,4 @@
-//! The site [`Model`] as `neohugo-nav` reads it ([`NavModel`]): menus, the alias plan, the
+//! The site [`Model`] as `ssg-nav` reads it ([`NavModel`]): menus, the alias plan, the
 //! default pagination list and the related index all go through [`NavSite`].
 //!
 //! The facts `PageFacts` borrows that the model does not store in that shape (the outputs as
@@ -6,11 +6,11 @@
 
 use std::sync::Arc;
 
-use neohugo_base::{FormatId, IdVec, LangIdx, PageId};
-use neohugo_nav::{NavModel, PageFacts, Rendering};
-use neohugo_page::TargetPaths;
-use neohugo_site::{Model, PageRole};
-use neohugo_vfs::BundleKind;
+use ssg_base::{FormatId, IdVec, LangIdx, PageId};
+use ssg_nav::{NavModel, PageFacts, Rendering};
+use ssg_page::TargetPaths;
+use ssg_site::{Model, PageRole};
+use ssg_vfs::BundleKind;
 
 /// What [`NavSite`] precomputes per page.
 #[derive(Debug)]
@@ -29,7 +29,7 @@ pub struct NavSite {
 }
 
 /// `leaf`, `branch` or empty: the bundle type of a page's file.
-pub(crate) fn bundle_type(p: &neohugo_site::Page) -> &'static str {
+pub(crate) fn bundle_type(p: &ssg_site::Page) -> &'static str {
     if p.source.is_none() || p.role != PageRole::Standalone {
         return "";
     }

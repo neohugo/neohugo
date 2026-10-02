@@ -3,7 +3,7 @@
 use std::cmp::Ordering;
 
 use jiff::Zoned;
-use neohugo_base::Collate;
+use ssg_base::Collate;
 
 /// Unix seconds of Hugo's zero date, the date of pages without one (it sorts last).
 const ZERO_DATE_SECONDS: i64 = -62_135_596_800;

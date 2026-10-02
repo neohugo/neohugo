@@ -1,4 +1,4 @@
-//! The embedded templates (`neohugo-layouts/embedded/**`, T32) rendered against testsite views
+//! The embedded templates (`ssg-layouts/embedded/**`, T32) rendered against testsite views
 //! through the binary (REWRITE_PLAN.md §7.1, T60), as insta snapshots reviewed against Go's
 //! templates (`tpl/tplimpl/embedded/templates/**`).
 //!
@@ -17,11 +17,11 @@
 use std::fs;
 use std::path::Path;
 
-use neohugo_resources::{RemoteOptions, cache_key};
-use neohugo_testkit::txtar::Archive;
+use ssg_resources::{RemoteOptions, cache_key};
+use ssg_testkit::txtar::Archive;
 
 use crate::build::testsite;
-use crate::{fixture, neohugo, site_from, stderr};
+use crate::{binary, fixture, site_from, stderr};
 
 /// A 1×1 RGB PNG.
 const PNG: &[u8] = &[
@@ -76,13 +76,13 @@ fn overlay_site(dir: &Path) {
     }
     // Markdown attributes on blocks, and standalone images as blocks (so the image hook gets
     // `attributes`); the testsite's own content is not affected.
-    let cfg = dir.join("neohugo.toml");
-    let mut toml = fs::read_to_string(&cfg).expect("neohugo.toml");
+    let cfg = dir.join("config.toml");
+    let mut toml = fs::read_to_string(&cfg).expect("config.toml");
     toml.push_str(
         "timeout = \"5s\"\n[markup.goldmark.parser]\nwrapStandAloneImageWithinParagraph = false\n\
          [markup.goldmark.parser.attribute]\nblock = true\n",
     );
-    fs::write(&cfg, toml).expect("write neohugo.toml");
+    fs::write(&cfg, toml).expect("write config.toml");
     let cache = dir.join("resources/_gen/getresource");
     fs::create_dir_all(&cache).expect("mkdir cache");
     for (url, body) in REMOTE {
@@ -106,7 +106,7 @@ fn build(privacy: &str) -> (tempfile::TempDir, std::path::PathBuf, String) {
     let site = tmp.path().join("testsite");
     overlay_site(&site);
     fs::write(site.join("config/_default/privacy.toml"), privacy).expect("privacy.toml");
-    let o = neohugo(&site, &["--clock", "2026-01-01T00:00:00Z"], NO_NETWORK);
+    let o = binary(&site, &["--clock", "2026-01-01T00:00:00Z"], NO_NETWORK);
     let err = crate::redact_site(&stderr(&o), &site);
     assert!(o.status.success(), "{err}");
     (tmp, site, err)
@@ -120,7 +120,7 @@ const PRIVACY: &str =
 fn embedded_templates() {
     let (_tmp, site, warnings) = build(PRIVACY);
     assert_eq!(warnings, "", "no warnings");
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         // Render hooks: link, image (block with attributes), table; partials of a page.
         insta::assert_snapshot!("hooks", read(&site, "embedded/hooks/index.html"));
         // Shortcodes: figure, details, highlight, youtube, vimeo, instagram, x, param, ref,
@@ -157,7 +157,7 @@ fn embedded_templates_simple_and_disabled() {
     // Instagram's markup is the default variant's (snapshotted above); only the script goes.
     let (head, tail) = page.split_at(from);
     let tail = &tail[tail.find("</blockquote>").expect("end") + "</blockquote>".len()..];
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         insta::assert_snapshot!(
             "shortcodes_simple",
             format!("{head}[instagram blockquote]{tail}")
@@ -187,7 +187,7 @@ fn embedded_templates_simple_and_disabled() {
 fn embedded_template_errors() {
     let site = site_from(
         r#"
--- neohugo.toml --
+-- config.toml --
 baseURL = "https://example.org/"
 disableKinds = ["taxonomy", "term", "rss", "sitemap", "robots", "404", "section"]
 [services.googleAnalytics]
@@ -232,7 +232,7 @@ title: qr
 {{< qr level="huge" scale=1 />}}
 "#,
     );
-    let o = neohugo(
+    let o = binary(
         site.path(),
         &["-M", "--clock", "2026-01-01T00:00:00Z"],
         NO_NETWORK,
@@ -243,7 +243,7 @@ title: qr
     let mut lines: Vec<&str> = err.lines().collect();
     lines.sort_unstable();
 
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         insta::assert_snapshot!("errors", lines.join("\n"));
     });
 }
@@ -256,7 +256,7 @@ title: qr
 fn goat_code_block() {
     let site = site_from(
         r#"
--- neohugo.toml --
+-- config.toml --
 baseURL = "https://example.org/"
 disableKinds = ["taxonomy", "term", "rss", "sitemap", "robotstxt", "404", "section", "home"]
 -- layouts/single.html --
@@ -276,7 +276,7 @@ title: p
 ```
 "#,
     );
-    let o = neohugo(site.path(), &["--quiet"], NO_NETWORK);
+    let o = binary(site.path(), &["--quiet"], NO_NETWORK);
     assert!(o.status.success(), "{}", stderr(&o));
     let page = read(site.path(), "p/index.html");
     // The hook's lines (as Hugo's template writes them, blank-but-indented lines included)
@@ -324,7 +324,7 @@ title: p
 fn qr_shortcode_equals_hugo_s() {
     let site = site_from(
         r#"
--- neohugo.toml --
+-- config.toml --
 baseURL = "https://example.org/"
 disableKinds = ['page','rss','section','sitemap','taxonomy','term']
 -- layouts/home.html --
@@ -349,7 +349,7 @@ https://gohugo.io"
 {{< /qr >}}
 "#,
     );
-    let o = neohugo(
+    let o = binary(
         site.path(),
         &["--clock", "2026-01-01T00:00:00Z"],
         NO_NETWORK,

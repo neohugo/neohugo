@@ -4,7 +4,7 @@
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use neohugo_serve::{
+use ssg_serve::{
     ChangeKind, Event, HttpCache, LiveReloadOptions, Port, Reporter, ServeError, ServeOptions,
     Server, Target, Watch,
 };
@@ -26,13 +26,13 @@ pub(crate) fn options(a: &ServerArgs) -> anyhow::Result<Result<ServeOptions, Str
         ));
     }
     let mut request = build::request(&a.build)?;
-    // The server's environment is `development` unless the flag or NEOHUGO_ENVIRONMENT say
+    // The server's environment is `development` unless the flag or FUGO_ENVIRONMENT say
     // otherwise.
     request.cli.environment = request
         .cli
         .environment
         .clone()
-        .or_else(|| env_var(neohugo_config::env::ENVIRONMENT))
+        .or_else(|| env_var(ssg_config::env::ENVIRONMENT))
         .or_else(|| Some("development".to_owned()));
     Ok(Ok(ServeOptions {
         build: request,

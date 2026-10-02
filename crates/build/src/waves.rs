@@ -19,12 +19,12 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::paths::OutputPath;
-use neohugo_base::{FormatId, PageId};
-use neohugo_publish::{Emitted, Publisher};
-use neohugo_render::{Job, JobOrder, Session};
 use rayon::prelude::*;
+use ssg_base::diag::Diagnostic;
+use ssg_base::paths::OutputPath;
+use ssg_base::{FormatId, PageId};
+use ssg_publish::{Emitted, Publisher};
+use ssg_render::{Job, JobOrder, Session};
 
 use crate::structure::Recorder;
 use crate::{BuildError, BuildReport, Collision, RenderPool};
@@ -183,7 +183,7 @@ pub(crate) fn run(
                 let mut published = 0;
                 let alias = Class::of(p.job) == Class::Alias;
                 for o in outputs {
-                    let emitted = publisher.emit(neohugo_publish::Output {
+                    let emitted = publisher.emit(ssg_publish::Output {
                         path: o.path,
                         text: o.text,
                         format: o.format,

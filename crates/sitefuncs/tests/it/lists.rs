@@ -1,6 +1,6 @@
 //! Page orders and groupings; taxonomy term orders.
 
-use neohugo_base::PageKind;
+use ssg_base::PageKind;
 
 use crate::support;
 

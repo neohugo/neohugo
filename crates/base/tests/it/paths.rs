@@ -1,10 +1,10 @@
 //! `paths` and the URL string helpers against the `common/paths/strings` oracle, plus the
 //! path newtypes.
 
-use neohugo_base::paths;
-use neohugo_base::url::{self, BaseUrl};
-use neohugo_base::{ContentKey, OutputPath, Permalink, TermKey, UrlPath};
 use serde_json::Value as J;
+use ssg_base::paths;
+use ssg_base::url::{self, BaseUrl};
+use ssg_base::{ContentKey, OutputPath, Permalink, TermKey, UrlPath};
 
 use crate::support::{Tally, fixture, text};
 

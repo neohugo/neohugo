@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-render"
+name = "ssg-render"
 description = "The render Session"
 version.workspace = true
 edition.workspace = true
@@ -20,27 +20,27 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-vfs.workspace = true
-neohugo-site.workspace = true
-neohugo-page.workspace = true
-neohugo-view.workspace = true
-neohugo-layouts.workspace = true
-neohugo-funcs.workspace = true
-neohugo-markup.workspace = true
-# `AliasPlan` is neohugo-nav's (T24).
-neohugo-nav.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-vfs.workspace = true
+ssg-site.workspace = true
+ssg-page.workspace = true
+ssg-view.workspace = true
+ssg-layouts.workspace = true
+ssg-funcs.workspace = true
+ssg-markup.workspace = true
+# `AliasPlan` is ssg-nav's (T24).
+ssg-nav.workspace = true
 # The resource store the views register bundle files in (T33).
-neohugo-resources.workspace = true
+ssg-resources.workspace = true
 # T34: shortcodes (the lexer and assembler), the site functions (`Handles`, `register`; T35
 # fills them), code fences no hook handles, and what `Handles` holds.
-neohugo-pageparser.workspace = true
-neohugo-sitefuncs.workspace = true
-neohugo-highlight.workspace = true
-neohugo-images.workspace = true
-neohugo-locale.workspace = true
+ssg-pageparser.workspace = true
+ssg-sitefuncs.workspace = true
+ssg-highlight.workspace = true
+ssg-images.workspace = true
+ssg-locale.workspace = true
 dashmap.workspace = true
 tera.workspace = true
 rayon.workspace = true
@@ -48,6 +48,6 @@ thiserror.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 serde_json.workspace = true
 sha2.workspace = true

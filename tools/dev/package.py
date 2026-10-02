@@ -1,27 +1,28 @@
 #!/usr/bin/env python3
-"""Packages a release build of neohugo for one target (Python 3.11 or later, stdlib only).
+"""Packages a release build of the program for one target (Python 3.11 or later, stdlib only).
 
 Usage:
   package.py <binary> <target> <out-dir> [<notices>]
 
-<version> is `version` in [workspace.package] of Cargo.toml; `<binary> version` must print
-"neohugo v<version>[-<commit>] …" (a smoke test): the version exactly, then the commit the
-binary names, which is $NEOHUGO_BUILD_COMMIT when that is set (as in CI) and otherwise any hex
+<version> is `version` in [workspace.package] of Cargo.toml and <name> the binary's name
+(`[[bin]] name` in crates/cli/Cargo.toml); `<binary> version` must print
+"<name> v<version>[-<commit>] …" (a smoke test): the version exactly, then the commit the
+binary names, which is $FUGO_BUILD_COMMIT when that is set (as in CI) and otherwise any hex
 commit or none. <target> is a Rust target triple, named in the archive as the Go releases name
 it (goreleaser's "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}" at 44529028): <os> linux,
 darwin or windows, <arch> amd64 or arm64. Writes
 
-  <out-dir>/neohugo_<version>_<os>-<arch>.tar.gz          (.zip for Windows)
-  <out-dir>/neohugo_<version>_<os>-<arch>.tar.gz.sha256   "<sha256>  <archive>", as `sha256sum -c`
+  <out-dir>/<name>_<version>_<os>-<arch>.tar.gz          (.zip for Windows)
+  <out-dir>/<name>_<version>_<os>-<arch>.tar.gz.sha256   "<sha256>  <archive>", as `sha256sum -c`
                                                           and `shasum -a 256 -c` read it
 
 The archive holds, at its root as the Go releases do, the binary, the repository's README.md,
-LICENSE, NOTICE (the Apache-2.0 attribution notices), PROVENANCE.md, THIRD_PARTY/ and, when given, <notices> as THIRD_PARTY_NOTICES.txt (the
-licences of the linked crates, written by notices.py). Entries are sorted, owned by root and
+LICENSE, NOTICE (the Apache-2.0 attribution notices), PROVENANCE.md, THIRD_PARTY/ and, when
+given, <notices> as THIRD_PARTY_NOTICES.txt (the licences of the linked crates, written by notices.py). Entries are sorted, owned by root and
 dated SOURCE_DATE_EPOCH (default: now), so the same binary gives the same archive.
 
 .github/workflows/ci.yml runs it for every release target; the release job checks the .sha256
-files and joins them into neohugo_<version>_checksums.txt, the checksums file of the Go releases
+files and joins them into <name>_<version>_checksums.txt, the checksums file of the Go releases
 (DEVELOPMENT.md, "CI and releases").
 """
 import gzip
@@ -49,15 +50,21 @@ def workspace_version():
         return tomllib.load(f)["workspace"]["package"]["version"]
 
 
+def app_name():
+    """The binary's name: `[[bin]] name` of crates/cli/Cargo.toml."""
+    with open(ROOT / "crates" / "cli" / "Cargo.toml", "rb") as f:
+        return tomllib.load(f)["bin"][0]["name"]
+
+
 def check_binary(binary, version):
-    """`<binary> version` must print the version line of `version` (and of $NEOHUGO_BUILD_COMMIT
+    """`<binary> version` must print the version line of `version` (and of $FUGO_BUILD_COMMIT
     when set); returns the line."""
     out = subprocess.run([str(binary), "version"], capture_output=True, text=True,
                          encoding="utf-8", check=True)
     words = out.stdout.split()
-    token = words[1] if len(words) > 1 and words[0] == "neohugo" else None
+    token = words[1] if len(words) > 1 and words[0] == app_name() else None
     want = f"v{version}"
-    commit = os.environ.get("NEOHUGO_BUILD_COMMIT")
+    commit = os.environ.get("FUGO_BUILD_COMMIT")
     if commit:
         ok = token == f"{want}-{commit}"
         want = f"{want}-{commit}"
@@ -67,7 +74,7 @@ def check_binary(binary, version):
         want = f"{want}[-<commit>]"
     if not ok:
         sys.exit(f"package.py: `{binary} version` printed {out.stdout!r}, "
-                 f"not 'neohugo {want} …' (the version of Cargo.toml)")
+                 f"not '{app_name()} {want} …' (the version of Cargo.toml)")
     return out.stdout.strip()
 
 
@@ -147,7 +154,7 @@ def main(argv):
     version = workspace_version()
     line = check_binary(binary, version)
     ext = "zip" if "windows" in target else "tar.gz"
-    archive = out / f"neohugo_{version}_{go_platform(target)}.{ext}"
+    archive = out / f"{app_name()}_{version}_{go_platform(target)}.{ext}"
     mtime = int(os.environ.get("SOURCE_DATE_EPOCH") or time.time())
     out.mkdir(parents=True, exist_ok=True)
     items = entries(binary, notices)

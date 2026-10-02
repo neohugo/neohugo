@@ -12,9 +12,9 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 use std::sync::Arc;
 
-use neohugo_base::paths::OutputPath;
-use neohugo_base::url::{Component, unescape};
-use neohugo_base::{Idx as _, ImageOpId, ResourceId, Sink};
+use ssg_base::paths::OutputPath;
+use ssg_base::url::{Component, unescape};
+use ssg_base::{Idx as _, ImageOpId, ResourceId, Sink};
 
 use crate::store::{Body, PublishPolicy, Resource, ResourceError, ResourceStore, lock};
 
@@ -174,7 +174,7 @@ impl ResourceStore {
     /// [`PublishPolicy::Eager`], resources marked with
     /// [`mark_published`](Self::mark_published), and resources named by one of `tokens`
     /// (except [`PublishPolicy::Never`]). Targets are written once, in path order; processed
-    /// images are produced by the [`ImageQueue`](neohugo_images::ImageQueue) (in parallel).
+    /// images are produced by the [`ImageQueue`](ssg_images::ImageQueue) (in parallel).
     /// Call it outside any render; calling it again publishes only what is new.
     ///
     /// # Errors

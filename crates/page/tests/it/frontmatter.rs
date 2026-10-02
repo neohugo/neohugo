@@ -3,12 +3,12 @@
 //! `[frontmatter]` and `build` option decoding (`oracle/page/frontmatter/*`).
 
 use jiff::{SignedDuration, Timestamp};
-use neohugo_base::{Date, Params, Value};
-use neohugo_config::{DateField, DateSource, decode_front_matter};
-use neohugo_page::{BuildPolicy, DateResolver, FileCtx, ListMode, RenderMode};
 use serde_json::{Map as JMap, Value as J, json};
+use ssg_base::{Date, Params, Value};
+use ssg_config::{DateField, DateSource, decode_front_matter};
+use ssg_page::{BuildPolicy, DateResolver, FileCtx, ListMode, RenderMode};
 
-use neohugo_testkit::fixture::Tag;
+use ssg_testkit::fixture::Tag;
 
 use crate::support::{Tally, family, fixture, parse_time, render_time, s, time_zone, value, zoned};
 
@@ -179,7 +179,7 @@ fn front_matter_config_decodes_like_hugo() {
         }
         let config = match value(&c["in"]) {
             Value::Map(m) => (*m).clone(),
-            Value::Null => neohugo_base::Map::new(),
+            Value::Null => ssg_base::Map::new(),
             other => panic!("not a table: {other:?}"),
         };
         let got: JMap<String, J> = decode_front_matter(&config)

@@ -2,8 +2,8 @@
 //! accepted rules are still minified, rejected ones keep their text without comments and
 //! redundant whitespace.
 
-use neohugo_minify::{Minifier, MinifyTarget};
-use neohugo_testkit::fixture::{repo_dir, testdata};
+use ssg_minify::{Minifier, MinifyTarget};
+use ssg_testkit::fixture::{repo_dir, testdata};
 
 /// Minifies `input` and checks that the result is a fixed point.
 fn min(input: &str) -> String {

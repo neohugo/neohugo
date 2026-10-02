@@ -1,14 +1,14 @@
-//! A project built with a theme (`neohugo-config`'s theme merge, `neohugo-vfs`'s theme
+//! A project built with a theme (`ssg-config`'s theme merge, `ssg-vfs`'s theme
 //! mounts): the theme's params, menus and output format take effect below the project's
-//! configuration, from `neohugo.toml` (a `config.toml` next to it is ignored with a warning).
+//! configuration, from `config.toml` (a `config.yaml` next to it is ignored with a warning).
 
-use neohugo_build::{BuildRequest, SinkKind, build};
+use ssg_build::{BuildRequest, SinkKind, build};
 
 use crate::support::write_files;
 
 const FILES: &[(&str, &str)] = &[
     (
-        "neohugo.toml",
+        "config.toml",
         r#"baseURL = "https://example.org/"
 title = "Project"
 theme = "demo"
@@ -19,9 +19,9 @@ greeting = "Hello from the project"
 home = ["html", "searchindex"]
 "#,
     ),
-    ("config.toml", "title = \"Ignored\"\n"),
+    ("config.yaml", "title: Ignored\n"),
     (
-        "themes/demo/neohugo.toml",
+        "themes/demo/config.toml",
         r#"title = "Theme title (a root value: not merged)"
 [params]
 greeting = "Hello from the theme"
@@ -94,7 +94,7 @@ fn theme_params_menus_and_output_format() {
     );
     assert_eq!(text("about/index.html"), "<h1>About</h1><p>About us.</p>\n");
 
-    // neohugo.toml is read; the config.toml next to it is reported.
+    // config.toml is read; the config.yaml next to it is reported.
     let warnings: Vec<String> = report
         .diagnostics
         .iter()
@@ -103,7 +103,7 @@ fn theme_params_menus_and_output_format() {
         .collect();
     assert_eq!(warnings.len(), 1, "{:?}", report.diagnostics);
     assert!(
-        warnings[0].contains("using neohugo.toml; ignoring config.toml"),
+        warnings[0].contains("using config.toml; ignoring config.yaml"),
         "{}",
         warnings[0]
     );

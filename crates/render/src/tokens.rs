@@ -10,8 +10,8 @@ use std::ops::Range;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, PoisonError};
 
-use neohugo_base::PageId;
-use neohugo_view::ExpandedSource;
+use ssg_base::PageId;
+use ssg_view::ExpandedSource;
 
 /// The prefix of a placeholder token.
 pub(crate) const PLACEHOLDER: &str = "NHSC";
@@ -108,7 +108,7 @@ pub(crate) fn swap(html: &str, outputs: &[Arc<str>]) -> String {
 /// A source with its placeholders replaced by their outputs (no paragraph unwrapping) and
 /// without the context markers of its own includes: what an include is outside Markdown.
 pub(crate) fn resolve(src: &ExpandedSource) -> String {
-    let text = neohugo_markup::strip_context_markers(&src.markdown);
+    let text = ssg_markup::strip_context_markers(&src.markdown);
     replace(&text, PLACEHOLDER, |n| {
         usize::try_from(n)
             .ok()

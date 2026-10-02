@@ -10,11 +10,11 @@ use std::collections::BTreeSet;
 use std::fs;
 use std::path::Path;
 
-use neohugo_build::{BuildReport, BuildRequest, SinkKind, build};
-use neohugo_config::CliOverrides;
-use neohugo_testkit::fixture::oracle;
-use neohugo_testkit::txtar::Archive;
 use serde_json::Value as J;
+use ssg_build::{BuildReport, BuildRequest, SinkKind, build};
+use ssg_config::CliOverrides;
+use ssg_testkit::fixture::oracle;
+use ssg_testkit::txtar::Archive;
 
 use crate::support::{normalize_fingerprints, write_files};
 
@@ -97,7 +97,7 @@ const PAGER: &str = r#"{%- set pager = paginator() %}{% if pager.total_pages > 1
 const VIDEO: &str = r#"{%- set url = "https://www.googleapis.com/youtube/v3/videos?key=API_KEY&part=snippet,contentDetails,statistics&id=" ~ page.params.video %}
 {%- set r = get_remote(url=url, optional=true) %}{% if r %}{% set d = r | unmarshal %}{% for v in d["items"] %}<div class="video" data-id="{{ v.id }}">{{ v.snippet.title }} ({{ v.statistics.viewCount }} views, {{ v.contentDetails.duration }})</div>{% endfor %}{% endif -%}"#;
 
-const FOOTER: &str = r#"<footer class="deferred">{{ site.regular_pages | length }} pages, {{ neohugo.environment }}</footer>"#;
+const FOOTER: &str = r#"<footer class="deferred">{{ site.regular_pages | length }} pages, {{ build.environment }}</footer>"#;
 
 const HEADING: &str =
     r##"<h{{ level }} id="{{ anchor }}">{{ text }}<a href="#{{ anchor }}">#</a></h{{ level }}>"##;
@@ -147,7 +147,7 @@ pub(crate) fn build_mini(threads: Option<usize>) -> (tempfile::TempDir, BuildRep
     let case = case();
     let tmp = tempfile::tempdir().expect("tempdir");
     let site = tmp.path().join("site");
-    let archive = Archive::read(&neohugo_testkit::fixture::testdata(
+    let archive = Archive::read(&ssg_testkit::fixture::testdata(
         "oracle/commands/e2e/mini.txtar",
     ))
     .expect("mini.txtar");
@@ -219,7 +219,7 @@ fn mini_matches_the_go_tree() {
     for d in &report.diagnostics {
         println!("diagnostic: {d:?}");
     }
-    if let Some(dir) = std::env::var_os("NEOHUGO_T36_OUT") {
+    if let Some(dir) = std::env::var_os("FUGO_T36_OUT") {
         mem.write_to(Path::new(&dir)).expect("write");
     }
     assert_eq!(got, want, "file list differs from the Go build's");
@@ -261,9 +261,9 @@ fn mini_matches_the_go_tree() {
     // Go writes the Thai site's `FromString` last (a later language overwrites the file); here
     // the earlier language's resource is the one published (REWRITE_PLAN.md §3.5).
     assert!(text("gen/info.txt").starts_with("Mini "));
-    // neohugo_stats.json in the project directory (collected before the deferred output is
+    // build_stats.json in the project directory (collected before the deferred output is
     // inserted, as in Go).
-    let stats = fs::read_to_string(tmp.path().join("site/neohugo_stats.json")).expect("stats");
+    let stats = fs::read_to_string(tmp.path().join("site/build_stats.json")).expect("stats");
     assert!(
         stats.contains("\"note\"") && !stats.contains("\"deferred\""),
         "{stats}"

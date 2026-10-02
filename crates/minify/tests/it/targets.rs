@@ -1,7 +1,7 @@
 //! CSS with browser targets from a browserslist configuration: prefixes added and syntax lowered
 //! for the targets, hand-written fallbacks kept as written.
 
-use neohugo_minify::{Minifier, MinifyTarget, project_browsers};
+use ssg_minify::{Minifier, MinifyTarget, project_browsers};
 
 /// A minifier with the targets of `queries` (a `.browserslistrc`).
 fn minifier(queries: &str) -> Minifier {

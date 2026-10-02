@@ -9,10 +9,10 @@ use image::{
     DynamicImage, ExtendedColorType, ImageBuffer, ImageEncoder, Luma, Rgb, Rgba, RgbaImage,
     codecs::png::PngEncoder,
 };
-use neohugo_base::Sink;
-use neohugo_base::paths::OutputPath;
-use neohugo_images::jpeg;
-use neohugo_testkit::fixture::{repo_dir, repo_file};
+use ssg_base::Sink;
+use ssg_base::paths::OutputPath;
+use ssg_images::jpeg;
+use ssg_testkit::fixture::{repo_dir, repo_file};
 
 /// One table of `crates/images/expected_diffs.toml`: case or rule → reason.
 pub fn expected_diffs(section: &str) -> BTreeMap<String, String> {
@@ -199,7 +199,7 @@ fn synth_seed(kind: &str, w: u32, h: u32) -> u64 {
 
 /// The encoded synthetic source `gen:<kind>:<w>x<h>:<png|jpg>`. PNG sources decode to the
 /// oracle's pixels exactly; JPEG sources (`ycbcr444`, `ycbcr420`) are Go's bytes, encoded
-/// from the same planes at q90 with the port of Go's encoder (`neohugo_images::jpeg`).
+/// from the same planes at q90 with the port of Go's encoder (`ssg_images::jpeg`).
 pub fn synth(id: &str) -> Option<Vec<u8>> {
     let mut parts = id.strip_prefix("gen:")?.split(':');
     let kind = parts.next()?;

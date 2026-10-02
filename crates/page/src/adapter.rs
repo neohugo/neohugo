@@ -23,11 +23,11 @@
 //!   four as the earlier chains left them (aliases, custom keys and `:` sources skipped).
 
 use jiff::tz::TimeZone;
-use neohugo_base::paths::{self, ContentKey};
-use neohugo_base::{PageKind, Params, Value};
-use neohugo_config::MediaTypes;
-use neohugo_config::sections::SitemapConfig;
-use neohugo_config::{DateField, DateSource};
+use ssg_base::paths::{self, ContentKey};
+use ssg_base::{PageKind, Params, Value};
+use ssg_config::MediaTypes;
+use ssg_config::sections::SitemapConfig;
+use ssg_config::{DateField, DateSource};
 
 use crate::build::BuildPolicy;
 use crate::cascade::Cascade;

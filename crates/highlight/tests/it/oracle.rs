@@ -1,16 +1,16 @@
-//! Study aid for comparing with Chroma: `NEOHUGO_HL_TOKENS=<in>:<out>` reads JSON lines
+//! Study aid for comparing with Chroma: `FUGO_HL_TOKENS=<in>:<out>` reads JSON lines
 //! `{"lang": …, "code": …}` and writes, per line, the coalesced tokens as `[[type, text], …]`
 //! (`null` when Chroma has no lexer for the language) — the format of the Go oracle's `tokens`
 //! command (crate README).
 
 use std::io::{BufRead, Write};
 
-use neohugo_config::markup::HighlightConfig;
-use neohugo_highlight::Highlight;
+use ssg_config::markup::HighlightConfig;
+use ssg_highlight::Highlight;
 
 #[test]
 fn write_tokens() {
-    let Ok(arg) = std::env::var("NEOHUGO_HL_TOKENS") else {
+    let Ok(arg) = std::env::var("FUGO_HL_TOKENS") else {
         return;
     };
     let (input, output) = arg.split_once(':').expect("<in>:<out>");

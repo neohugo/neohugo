@@ -7,8 +7,8 @@ use std::path::Path;
 use std::sync::Arc;
 
 use comrak::nodes::LineColumn;
-use neohugo_base::PageId;
-use neohugo_base::diag::Position;
+use ssg_base::PageId;
+use ssg_base::diag::Position;
 
 /// Byte ranges of the expanded source that came from another page (`render_shortcodes`
 /// includes). Spans nest; the innermost span containing a node decides its `inner_page`.

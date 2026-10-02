@@ -1,8 +1,8 @@
 {
-  "name": "neohugo-node-tools",
+  "name": "ssg-node-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Node modules the builds of the target sites and the tests need (tools/neohugo/node.sh; docs/rust-port/REWRITE_PLAN.md §7.2). Versions follow docs/package.json.",
+  "description": "Node modules the builds of the target sites and the tests need (tools/dev/node.sh; docs/rust-port/REWRITE_PLAN.md §7.2). Versions follow docs/package.json.",
   "license": "Apache-2.0",
   "dependencies": {
     "@alpinejs/focus": "3.14.9",

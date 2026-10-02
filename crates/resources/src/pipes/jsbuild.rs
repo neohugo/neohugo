@@ -1,9 +1,9 @@
-//! `js_build`: rolldown through `neohugo-jsbuild`, imports resolved in the assets view before
+//! `js_build`: rolldown through `ssg-jsbuild`, imports resolved in the assets view before
 //! `node_modules`.
 
 use std::sync::Arc;
 
-use neohugo_jsbuild::{JsBuildOptions, Source};
+use ssg_jsbuild::{JsBuildOptions, Source};
 
 use super::assets::SharedAssets;
 use super::{Output, PipeError, TransformEnv};

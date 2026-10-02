@@ -12,11 +12,11 @@
 
 use std::fmt;
 
-use neohugo_base::{Map, Value};
 use serde::de::{
     self, DeserializeOwned, DeserializeSeed, EnumAccess, IntoDeserializer, MapAccess, SeqAccess,
     VariantAccess, Visitor,
 };
+use ssg_base::{Map, Value};
 
 /// A value that does not fit its typed field, with the dotted key path from the root of the
 /// decoded tree.

@@ -9,7 +9,7 @@
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use neohugo_base::{Map, Value};
+use ssg_base::{Map, Value};
 
 use crate::options::{CodeLayout, LineNumberLayout, Options, Styling};
 use crate::token::TokenType;

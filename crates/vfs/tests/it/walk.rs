@@ -4,9 +4,9 @@
 use std::fs;
 use std::path::{Path, PathBuf};
 
-use neohugo_base::{Idx, LangIdx};
-use neohugo_config::{Config, LoadOptions, load};
-use neohugo_vfs::{BundleKind, Component, FileRef, Module, Parsed, PathParser, Vfs};
+use ssg_base::{Idx, LangIdx};
+use ssg_config::{Config, LoadOptions, load};
+use ssg_vfs::{BundleKind, Component, FileRef, Module, Parsed, PathParser, Vfs};
 
 struct Project {
     _tmp: tempfile::TempDir,
@@ -67,7 +67,7 @@ fn pairs(v: &[(&str, &str)]) -> Vec<(String, String)> {
 }
 
 const THEMED: &[(&str, &str)] = &[
-    ("neohugo.toml", "theme = [\"t1\", \"t2\"]\n"),
+    ("config.toml", "theme = [\"t1\", \"t2\"]\n"),
     ("layouts/single.html", "p"),
     ("layouts/_partials/head.html", "p"),
     ("themes/t1/layouts/single.html", "t1"),
@@ -141,26 +141,26 @@ fn project_before_themes_first_wins() {
 #[test]
 fn missing_theme_is_an_error() {
     // The configuration finds the themes (it reads their configuration).
-    let p = Project::new(&[("neohugo.toml", "theme = \"nope\"\n")]);
+    let p = Project::new(&[("config.toml", "theme = \"nope\"\n")]);
     let e = load(&LoadOptions {
         source: p.dir.clone(),
         ..LoadOptions::default()
     })
     .expect_err("missing theme");
     assert!(
-        matches!(e, neohugo_config::ConfigError::ThemeNotFound { .. }),
+        matches!(e, ssg_config::ConfigError::ThemeNotFound { .. }),
         "{e}"
     );
     // A theme directory removed after loading.
     let p = Project::new(&[
-        ("neohugo.toml", "theme = \"gone\"\n"),
+        ("config.toml", "theme = \"gone\"\n"),
         ("themes/gone/layouts/x.html", ""),
     ]);
     let cfg = p.config();
     fs::remove_dir_all(p.dir.join("themes/gone")).unwrap();
     assert!(matches!(
         Vfs::new(&cfg),
-        Err(neohugo_vfs::VfsError::ThemeNotFound { .. })
+        Err(ssg_vfs::VfsError::ThemeNotFound { .. })
     ));
 }
 
@@ -170,14 +170,14 @@ fn missing_theme_is_an_error() {
 fn theme_mounts_and_nested_themes() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = [\"a\", \"b\", \"A\"]\n\
              [[module.imports]]\npath = \"m\"\n\
              [[module.imports.mounts]]\nsource = \"src\"\ntarget = \"assets/m\"\n\
              [[module.imports]]\npath = \"x\"\nnoMounts = true\n",
         ),
         // `a` imports `c`: a, c, b (depth first); `A` is `a` again.
-        ("themes/a/neohugo.toml", "theme = \"c\"\n"),
+        ("themes/a/config.toml", "theme = \"c\"\n"),
         ("themes/a/layouts/single.html", "a"),
         ("themes/a/package.json", "{}"),
         ("themes/b/layouts/single.html", "b"),
@@ -217,11 +217,11 @@ fn theme_mounts_and_nested_themes() {
     // A theme's own mounts, with a language.
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = \"t\"\n[languages.en]\nweight = 1\n[languages.nn]\nweight = 2\n",
         ),
         (
-            "themes/t/neohugo.toml",
+            "themes/t/config.toml",
             "[[module.mounts]]\nsource = \"content/nn\"\ntarget = \"content\"\nlang = \"nn\"\n\
              [[module.mounts]]\nsource = \"missing\"\ntarget = \"static\"\n",
         ),
@@ -240,7 +240,7 @@ fn theme_mounts_and_nested_themes() {
 fn content_is_merged_per_language() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "defaultContentLanguage = \"en\"\n\
              [languages.en]\nweight = 1\n\
              [languages.th]\nweight = 2\ncontentDir = \"content_th\"\n\
@@ -276,11 +276,11 @@ fn content_is_merged_per_language() {
 fn mounts_below_a_component_and_single_files() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "[[module.mounts]]\nsource = \"assets\"\ntarget = \"assets\"\n\
              [[module.mounts]]\nsource = \"node_modules/lib\"\ntarget = \"assets/vendor/lib\"\n\
-             [[module.mounts]]\nsource = \"neohugo_stats.json\"\n\
-             target = \"assets/notwatching/neohugo_stats.json\"\n",
+             [[module.mounts]]\nsource = \"build_stats.json\"\n\
+             target = \"assets/notwatching/build_stats.json\"\n",
         ),
         ("assets/main.css", ""),
         ("node_modules/lib/dist/lib.js", ""),
@@ -303,17 +303,17 @@ fn mounts_below_a_component_and_single_files() {
         Some("node_modules/lib/dist/lib.js")
     );
     assert_eq!(open("vendor/lib"), None);
-    // The build writes neohugo_stats.json later: the mount exists, the file not yet.
+    // The build writes build_stats.json later: the mount exists, the file not yet.
     assert!(
         vfs.mounts()
             .iter()
-            .any(|m| m.target == "assets/notwatching/neohugo_stats.json")
+            .any(|m| m.target == "assets/notwatching/build_stats.json")
     );
-    assert_eq!(open("notwatching/neohugo_stats.json"), None);
-    fs::write(p.dir.join("neohugo_stats.json"), "{}").unwrap();
+    assert_eq!(open("notwatching/build_stats.json"), None);
+    fs::write(p.dir.join("build_stats.json"), "{}").unwrap();
     assert_eq!(
-        open("notwatching/neohugo_stats.json").as_deref(),
-        Some("neohugo_stats.json")
+        open("notwatching/build_stats.json").as_deref(),
+        Some("build_stats.json")
     );
 }
 
@@ -321,7 +321,7 @@ fn mounts_below_a_component_and_single_files() {
 fn ignore_rules_per_component() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "ignoreFiles = [\"\\\\.draft\\\\.md$\", \"/private/\"]\n",
         ),
         ("content/a.md", ""),
@@ -360,7 +360,7 @@ fn ignore_rules_per_component() {
 #[test]
 fn file_names_are_nfc_on_macos() {
     let p = Project::new(&[
-        ("neohugo.toml", ""),
+        ("config.toml", ""),
         ("content/cafe\u{301}/Cafe\u{301}.md", ""),
     ]);
     let files = p.vfs().walk(Component::Content).unwrap();
@@ -378,7 +378,7 @@ fn file_names_are_nfc_on_macos() {
 #[test]
 fn symlinks_below_a_mount_are_skipped() {
     let p = Project::new(&[
-        ("neohugo.toml", ""),
+        ("config.toml", ""),
         ("content/a.md", ""),
         ("outside/b.md", ""),
     ]);
@@ -397,7 +397,7 @@ fn symlinks_below_a_mount_are_skipped() {
 fn static_later_mount_wins_within_a_module() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "theme = \"t\"\n\
              [[module.mounts]]\nsource = \"static\"\ntarget = \"static\"\n\
              [[module.mounts]]\nsource = \"static2\"\ntarget = \"static\"\n",
@@ -436,7 +436,7 @@ fn static_later_mount_wins_within_a_module() {
 fn static_follows_symlinks() {
     use std::os::unix::fs::symlink;
     let p = Project::new(&[
-        ("neohugo.toml", ""),
+        ("config.toml", ""),
         ("static/real.txt", ""),
         ("outside/o.txt", ""),
         ("outside/dir/d.txt", ""),
@@ -469,7 +469,7 @@ fn static_follows_symlinks() {
 fn include_and_exclude_files() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\n\
              excludeFiles = [\"**/drafts/**\", \"*.tmp\"]\n\
              [[module.mounts]]\nsource = \"docs\"\ntarget = \"content/docs\"\n\
@@ -502,7 +502,7 @@ fn disabled_and_unknown_mount_languages() {
                  [languages.en]\nweight = 1\n[languages.fr]\nweight = 2\n";
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             &format!(
                 "{langs}[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\n\
                  [[module.mounts]]\nsource = \"content_fr\"\ntarget = \"content\"\nlang = \"fr\"\n"
@@ -514,7 +514,7 @@ fn disabled_and_unknown_mount_languages() {
     ]);
     let vfs = p.vfs();
     let cfg = p.config();
-    assert!(vfs.mounts().iter().any(neohugo_vfs::Mount::is_disabled));
+    assert!(vfs.mounts().iter().any(ssg_vfs::Mount::is_disabled));
     // The disabled mount contributes nothing; a disabled language in the name drops the file.
     assert_eq!(
         p.walk(&vfs, Component::Content),
@@ -527,7 +527,7 @@ fn disabled_and_unknown_mount_languages() {
     assert_eq!(keys, ["a"]);
 
     let p = Project::new(&[(
-        "neohugo.toml",
+        "config.toml",
         "[[module.mounts]]\nsource = \"content\"\ntarget = \"content\"\nlang = \"xx\"\n",
     )]);
     fs::create_dir_all(p.dir.join("content")).unwrap();
@@ -573,7 +573,7 @@ fn leaf_bundles_and_duplicates() {
     use BundleKind::{Branch, ContentResource, Leaf, Resource, Single};
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "defaultContentLanguage = \"en\"\n[languages.en]\nweight = 1\n\
              [languages.th]\nweight = 2\n",
         ),
@@ -629,7 +629,7 @@ fn leaf_bundles_and_duplicates() {
 #[test]
 fn a_leaf_bundle_at_the_root_owns_everything() {
     let p = Project::new(&[
-        ("neohugo.toml", ""),
+        ("config.toml", ""),
         ("content/index.md", ""),
         ("content/a.md", ""),
         ("content/s/_index.md", ""),
@@ -650,7 +650,7 @@ fn a_leaf_bundle_at_the_root_owns_everything() {
 fn default_mounts_follow_the_dirs() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "contentDir = \"c\"\nstaticDir = [\"s1\", \"s2\"]\n",
         ),
         ("c/a.md", ""),
@@ -675,12 +675,12 @@ fn default_mounts_follow_the_dirs() {
     assert!(vfs.mounts().iter().all(|m| m.abs.starts_with(dir)));
 }
 
-/// Discovery on whole sites: `NEOHUGO_VFS_SITES=<dir>:<dir> cargo test -p neohugo-vfs --
+/// Discovery on whole sites: `FUGO_VFS_SITES=<dir>:<dir> cargo test -p ssg-vfs --
 /// --ignored discover_sites` (sites from `tools/rust-port/i01/sites.py make <site> <dir>`).
 #[test]
-#[ignore = "needs NEOHUGO_VFS_SITES"]
+#[ignore = "needs FUGO_VFS_SITES"]
 fn discover_sites() {
-    let dirs = std::env::var("NEOHUGO_VFS_SITES").expect("NEOHUGO_VFS_SITES");
+    let dirs = std::env::var("FUGO_VFS_SITES").expect("FUGO_VFS_SITES");
     for dir in dirs.split(':') {
         let cfg = load(&LoadOptions {
             source: PathBuf::from(dir),
@@ -721,7 +721,7 @@ fn discover_sites() {
 fn content_adapters_are_apart() {
     let p = Project::new(&[
         (
-            "neohugo.toml",
+            "config.toml",
             "defaultContentLanguage = \"en\"\n[languages.en]\nweight = 1\n\
              [languages.th]\nweight = 2\n[languages.fr]\nweight = 3\ndisabled = true\n",
         ),

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::sync::{Condvar, Mutex, PoisonError};
 
-use neohugo_vfs::Component;
+use ssg_vfs::Component;
 
 use super::{PipeError, TransformEnv};
 use crate::store::ResourceStore;
@@ -38,9 +38,9 @@ impl Tool {
     #[must_use]
     pub const fn env_var(self) -> &'static str {
         match self {
-            Self::PostCss => "NEOHUGO_POSTCSS_BIN",
-            Self::TailwindCss => "NEOHUGO_TAILWINDCSS_BIN",
-            Self::Babel => "NEOHUGO_BABEL_BIN",
+            Self::PostCss => ssg_base::env_var!("POSTCSS_BIN"),
+            Self::TailwindCss => ssg_base::env_var!("TAILWINDCSS_BIN"),
+            Self::Babel => ssg_base::env_var!("BABEL_BIN"),
         }
     }
 }
@@ -52,14 +52,14 @@ pub struct ToolPaths {
     pub tailwindcss: Option<PathBuf>,
     pub babel: Option<PathBuf>,
     /// `node_modules` directories searched after the project's own (their `.bin`), e.g.
-    /// `tools/neohugo/node_modules` installed by `tools/neohugo/node.sh`. Also added to
+    /// `tools/dev/node_modules` installed by `tools/dev/node.sh`. Also added to
     /// `NODE_PATH` when they exist.
     pub node_modules: Vec<PathBuf>,
 }
 
 impl ToolPaths {
-    /// Explicit binaries from `NEOHUGO_POSTCSS_BIN`, `NEOHUGO_TAILWINDCSS_BIN` and
-    /// `NEOHUGO_BABEL_BIN`, and `node_modules` directories from `NEOHUGO_NODE_MODULES`
+    /// Explicit binaries from `FUGO_POSTCSS_BIN`, `FUGO_TAILWINDCSS_BIN` and
+    /// `FUGO_BABEL_BIN`, and `node_modules` directories from `FUGO_NODE_MODULES`
     /// (a path list).
     #[must_use]
     pub fn from_env() -> Self {
@@ -72,7 +72,7 @@ impl ToolPaths {
             postcss: var(Tool::PostCss.env_var()),
             tailwindcss: var(Tool::TailwindCss.env_var()),
             babel: var(Tool::Babel.env_var()),
-            node_modules: std::env::var_os("NEOHUGO_NODE_MODULES")
+            node_modules: std::env::var_os(ssg_base::env_var!("NODE_MODULES"))
                 .map(|v| std::env::split_paths(&v).collect())
                 .unwrap_or_default(),
         }
@@ -176,7 +176,7 @@ pub(super) fn config_file(
     if p.is_absolute() {
         return p.is_file().then(|| p.to_owned());
     }
-    let clean = neohugo_base::paths::clean(&format!("/{}", name.replace('\\', "/")));
+    let clean = ssg_base::paths::clean(&format!("/{}", name.replace('\\', "/")));
     let clean = clean.trim_start_matches('/');
     store
         .cfg
@@ -221,10 +221,14 @@ fn environment(store: &ResourceStore, env: &TransformEnv) -> Vec<(String, String
         .unwrap_or_default();
     set(&mut vars, "NODE_PATH", node_path);
     set(&mut vars, "PWD", env.project_dir.display().to_string());
-    set(&mut vars, "NEOHUGO_ENVIRONMENT", env.environment.clone());
     set(
         &mut vars,
-        "NEOHUGO_PUBLISHDIR",
+        ssg_base::env_var!("ENVIRONMENT"),
+        env.environment.clone(),
+    );
+    set(
+        &mut vars,
+        ssg_base::env_var!("PUBLISHDIR"),
         env.publish_dir.display().to_string(),
     );
     if let Some(vfs) = &store.cfg.vfs {
@@ -234,7 +238,7 @@ fn environment(store: &ResourceStore, env: &TransformEnv) -> Vec<(String, String
             };
             if m.abs.is_file() {
                 let key = format!(
-                    "NEOHUGO_FILE_{}",
+                    concat!(ssg_base::env_var!("FILE_"), "{}"),
                     name.to_ascii_uppercase().replace(['.', '-'], "_")
                 );
                 if !vars.iter().any(|(k, _)| *k == key) {

@@ -25,7 +25,7 @@ mod toc;
 
 use comrak::Arena;
 use comrak::nodes::NodeValue;
-use neohugo_base::diag::Position;
+use ssg_base::diag::Position;
 
 pub use hooks::{
     AlertSign, Alignment, BlockquoteCtx, BlockquoteKind, Cell, CodeBlockCtx, HeadingCtx,

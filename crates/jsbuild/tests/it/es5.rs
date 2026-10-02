@@ -6,8 +6,8 @@
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, MountedDirs, Source};
 use serde_json::json;
+use ssg_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, MountedDirs, Source};
 
 const FIXTURES: &[(&str, &str)] = &[
     ("basic", "main.js"),

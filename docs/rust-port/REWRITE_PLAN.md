@@ -37,8 +37,8 @@
 | Old port | T00 tags the current byte-identical state as `go-parity-final`. It converts the engine-neutral fixtures to plain JSON, moves them to `rust/testdata/`, and deletes `crates/` completely, ignored `target/` directories included. Later tasks read salvage material with `git show go-parity-final:crates/...`. |
 | Oracle | The Go build of the same `sites.py` inputs is the structural oracle. It gives the same files, URLs, aliases, feeds, chosen templates and resource URLs. Output bytes no longer have to match. |
 | Templates | `tera = "=2.4.0"` with features `no_fmt`, `fast_hash`, `preserve_order`; `fast_escape` is not used. <ul><li>Layouts, and assets processed with `execute_as_template`, are hand-converted into `rust/sites/<site>/`.</li><li>The engine accepts **only Hugo v0.146 (new-style) layout names**.</li><li>Content files keep Hugo's shortcode syntax and never go through Tera.</li><li>i18n files keep Hugo's `{{ .Field }}` placeholders, read by a restricted evaluator (not a template engine).</li></ul> |
-| Template API | Tera-native: operators, list comprehensions with `if`, `~`, map and array literals, components. There is no Go `printf`, `where` or `Scratch` clone. The single source of truth is the Rust table `neohugo_funcs::spec::FUNCS`. `rust/docs/template-api.md` is generated from it and snapshot-checked. |
-| Markdown | comrak 0.55 behind an engine-neutral `neohugo-markup` API. The T04 spike runs it over all 959 docs files and all 251 seeksnack bodies before the API is frozen. pulldown-cmark is the fallback behind the same API. |
+| Template API | Tera-native: operators, list comprehensions with `if`, `~`, map and array literals, components. There is no Go `printf`, `where` or `Scratch` clone. The single source of truth is the Rust table `ssg_funcs::spec::FUNCS`. `rust/docs/template-api.md` is generated from it and snapshot-checked. |
+| Markdown | comrak 0.55 behind an engine-neutral `ssg-markup` API. The T04 spike runs it over all 959 docs files and all 251 seeksnack bodies before the API is frozen. pulldown-cmark is the fallback behind the same API. |
 | Highlighting | syntect 5.3 + two-face, emitting Chroma class names (and inline styles for `noClasses`). Not giallo, which is EUPL-1.2 (D1). |
 | Data model | An arena of `Page` values in `IdVec<PageId, Page>`, with one `BTreeMap<ContentKey, PageId>` tree per language. URLs are computed after cascade. Every path flavour is a newtype. Data files and nested values use a case-preserving `Map`; front matter, config and language params use the case-folded `Params`. |
 | Views | Values are pre-serialised once and shared through `Arc` as `tera::Value`. Relation lists hold **summary** values; `deref` and `get_page` return full values. There is a Meta generation (content phase) and one Full generation per hook variant. All generations are frozen in `OnceLock`s before any layout renders. |
@@ -48,7 +48,7 @@
 | Publishing | Bundle resources are published eagerly. Every other resource is published when its URL appears in a rendered template output, matched after decoding HTML and JSON escapes, or when the `publish` filter is applied. There is no scan of plain CSS or JS. |
 | Verification | <ul><li>A walking skeleton in round 7.</li><li>A Go **structure oracle**: per (page, format) the template and baseof, targets, permalinks and resource URLs.</li><li>A stdlib-only Python `structdiff` with levels L1–L4, a minified and an unminified pass, and a ratchet baseline with triage classes.</li><li>Two docs patch variants, mirrored 1:1 in Go and Tera.</li></ul> |
 | Agent isolation | One git worktree per agent. All worktrees share `CARGO_TARGET_DIR=rust/target`. Only green commits are merged. |
-| Licence | neohugo stays Apache-2.0. The policy lives in `rust/deny.toml` (cargo-deny format) and is evaluated as SPDX expressions by `tools/neohugo/licence-check.sh`. No EUPL, GPL or AGPL. Zola 0.22 and later is a design reference only (D2). |
+| Licence | neohugo stays Apache-2.0. The policy lives in `rust/deny.toml` (cargo-deny format) and is evaluated as SPDX expressions by `tools/dev/licence-check.sh`. No EUPL, GPL or AGPL. Zola 0.22 and later is a design reference only (D2). |
 
 ### 1.2 What "Rust style" means here (binding for every task and review)
 
@@ -78,7 +78,7 @@
 - There is no service locator.
 
 **Errors**
-- Every library crate uses `thiserror` enums, including `neohugo-build` (`BuildError`). `anyhow` is used only in `cli`.
+- Every library crate uses `thiserror` enums, including `ssg-build` (`BuildError`). `anyhow` is used only in `cli`.
 - Site functions wrap causes with `tera::Error::chain`.
 - Diagnostics carry a `Position`. They are aggregated, de-duplicated and sorted before they are reported.
 - We never reproduce Go error texts.
@@ -168,34 +168,34 @@ rust/
   README.md                 # agent rules (§8.1), lanes, worktrees, how to run acceptance
   PROVENANCE.md             # every non-original file: source, commit, licence, verbatim|modified|rewritten
   THIRD_PARTY/              # Hugo Apache-2.0 (embedded templates), asset licences cargo cannot see (two-face syntaxes/themes, CLDR, emoji data, livereload.js)
-  docs/template-api.md      # GENERATED from neohugo_funcs::spec::FUNCS + context tables; insta-checked
+  docs/template-api.md      # GENERATED from ssg_funcs::spec::FUNCS + context tables; insta-checked
   crates/
-    base/        neohugo-base        ids+IdVec, PageKind/KindSet, Value/Map/Params/Date, path newtypes, anchors, inflect/title, globs, time, diag, Collate, Sink
-    config/      neohugo-config      Value-tree config pipeline, per-language SiteConfig, output formats, media types, security, caches, privacy
-    vfs/         neohugo-vfs         mounts → union file view, walkers, ignore rules, PathParser
-    pageparser/  neohugo-pageparser  front matter split+decode, summary divider, shortcode lexer (lex + assemble)
-    locale/      neohugo-locale      ICU collation, plural rules, i18n bundles + message evaluator, numbers, localized dates
-    page/        neohugo-page        per-page rules: meta, dates, build policy, cascade, target paths/permalinks, sort, titles
-    site/        neohugo-site        capture + assembly → Model: trees, kinds, taxonomies, translations, relations, resources, data, get_page/ref
-    nav/         neohugo-nav         menus, pagination arithmetic + pager URLs, related index, alias plan
-    markup/      neohugo-markup      comrak + Hugo passes: anchors, TOC/fragments, summary, word count, Hooks trait, context spans
-    highlight/   neohugo-highlight   syntect + two-face, Chroma class map, inline styles, fence options, CSS    [heavy]
-    minify/      neohugo-minify      minify-html / lightningcss / oxc / JSON / XML                           [heavy]
-    images/      neohugo-images      ImageSpec, ops, filters, codecs, deferred queue, cache                  [heavy]
-    jsbuild/     neohugo-jsbuild     js.Build in process with rolldown (2026-10-02; T14 built it as the esbuild --service client neohugo-esbuild)
-    resources/   neohugo-resources   ResourceStore, bundles/assets/remote, transforms, pipes, URL-token resolution
-    layouts/     neohugo-layouts     template scan (v0.146 names), Hugo lookup scorer, baseof variants, escaping, Tera loading
+    base/        ssg-base        ids+IdVec, PageKind/KindSet, Value/Map/Params/Date, path newtypes, anchors, inflect/title, globs, time, diag, Collate, Sink
+    config/      ssg-config      Value-tree config pipeline, per-language SiteConfig, output formats, media types, security, caches, privacy
+    vfs/         ssg-vfs         mounts → union file view, walkers, ignore rules, PathParser
+    pageparser/  ssg-pageparser  front matter split+decode, summary divider, shortcode lexer (lex + assemble)
+    locale/      ssg-locale      ICU collation, plural rules, i18n bundles + message evaluator, numbers, localized dates
+    page/        ssg-page        per-page rules: meta, dates, build policy, cascade, target paths/permalinks, sort, titles
+    site/        ssg-site        capture + assembly → Model: trees, kinds, taxonomies, translations, relations, resources, data, get_page/ref
+    nav/         ssg-nav         menus, pagination arithmetic + pager URLs, related index, alias plan
+    markup/      ssg-markup      comrak + Hugo passes: anchors, TOC/fragments, summary, word count, Hooks trait, context spans
+    highlight/   ssg-highlight   syntect + two-face, Chroma class map, inline styles, fence options, CSS    [heavy]
+    minify/      ssg-minify      minify-html / lightningcss / oxc / JSON / XML                           [heavy]
+    images/      ssg-images      ImageSpec, ops, filters, codecs, deferred queue, cache                  [heavy]
+    jsbuild/     ssg-jsbuild     js.Build in process with rolldown (2026-10-02; T14 built it as the esbuild --service client neohugo-esbuild)
+    resources/   ssg-resources   ResourceStore, bundles/assets/remote, transforms, pipes, URL-token resolution
+    layouts/     ssg-layouts     template scan (v0.146 names), Hugo lookup scorer, baseof variants, escaping, Tera loading
       embedded/                      Hugo's embedded templates rewritten in Tera (include_str!)
-    funcs/       neohugo-funcs       spec::FUNCS (source of truth) + pure Tera filters/functions/tests + tera-contrib subset
-    view/        neohugo-view        view structs, ViewCache, render-state types (RenderScope, PageStores, PaginationRecorder, DeferredRegistry), ContentRenderer trait
-    sitefuncs/   neohugo-sitefuncs   site-bound Tera functions as handle structs (get_page, ref, i18n, assets, images, paginate, partial…)
-    render/      neohugo-render      Session: content phase (shortcodes, hooks), layout jobs, memo cells; implements ContentRenderer
-    publish/     neohugo-publish     sinks, canonify, minify dispatch, hugo_stats, URL-token extraction, held outputs, static sync
-    build/       neohugo-build       orchestration: phases, language sub-waves, pager wave, deferred wave, resource/image publish, report
+    funcs/       ssg-funcs       spec::FUNCS (source of truth) + pure Tera filters/functions/tests + tera-contrib subset
+    view/        ssg-view        view structs, ViewCache, render-state types (RenderScope, PageStores, PaginationRecorder, DeferredRegistry), ContentRenderer trait
+    sitefuncs/   ssg-sitefuncs   site-bound Tera functions as handle structs (get_page, ref, i18n, assets, images, paginate, partial…)
+    render/      ssg-render      Session: content phase (shortcodes, hooks), layout jobs, memo cells; implements ContentRenderer
+    publish/     ssg-publish     sinks, canonify, minify dispatch, hugo_stats, URL-token extraction, held outputs, static sync
+    build/       ssg-build       orchestration: phases, language sub-waves, pager wave, deferred wave, resource/image publish, report
     cli/         neohugo (bin)       clap CLI: build, templates check, config, version; binary neohugo-rs
-    serve/       neohugo-serve       (T71) axum + livereload + notify, memory sink
-    testkit/     neohugo-testkit     (dev) plain-JSON fixture reader, txtar sites, insta settings, contract test
-    migrate/     neohugo-migrate     (COULD, T73) Go template → Tera converter, legacy file renames, printf/where translation
+    serve/       ssg-serve       (T71) axum + livereload + notify, memory sink
+    testkit/     ssg-testkit     (dev) plain-JSON fixture reader, txtar sites, insta settings, contract test
+    migrate/     ssg-migrate     (COULD, T73) Go template → Tera converter, legacy file renames, printf/where translation
     workspace-hack/                  (internal) union features of light shared deps; every member depends on it
   sites/<site>/                      testsite | seeksnack | docs
     layouts/**                       Tera overlay, v0.146 names, lower-case
@@ -207,7 +207,7 @@ rust/
     site-assets/…        jpg/png inputs sites.py needs
     golden/<site>/       Go manifests (L1–L4) + structure-oracle dumps; golden/images/ (20 Go-processed images for PSNR)
     baselines/<site>.json  ratchet baselines
-tools/neohugo/
+tools/dev/
   oracle.sh  compare.sh  node.sh     native Go build; Go vs Rust per site (two passes, HTTP disabled); pinned npm ci
   node/package.json  node/package-lock.json
   manifest.py  structdiff.py  selftest.py  fixtures2json.py   Python stdlib only
@@ -262,7 +262,7 @@ opt-level = 3
 - `autotests = false` with a single `[[test]] name = "it" path = "tests/it/main.rs"`.
 - `view`, `sitefuncs`, `render`, `build` and `cli` also set `[lib] test = false`. Their tests live only in `tests/it`, so they have one test binary each; each of these binaries links the heavy graph.
 - No third-party `features =` in member manifests.
-- Every member depends on `neohugo-workspace-hack`.
+- Every member depends on `ssg-workspace-hack`.
 
 **Feature unification.** Cargo unifies features per invocation, over the selected packages only. So `-p a` and `-p b` would otherwise build light shared dependencies (serde, regex, memchr, indexmap, hashbrown, smallvec, …) with different feature sets, giving duplicate artifacts.
 - T00 writes `crates/workspace-hack` by hand. It depends on those light shared dependencies with the union of their features, checked with `cargo tree -e features -i <dep>`.
@@ -307,7 +307,7 @@ cli ── build, serve        serve ── build (+ its config, vfs, site, publ
 The signatures below are illustrative. Names, ownership and crate boundaries are binding; field sets may still grow.
 
 ```rust
-// ───────────── neohugo-base ─────────────
+// ───────────── ssg-base ─────────────
 pub mod id {
     pub trait Idx: Copy + Ord + std::hash::Hash { fn index(self) -> usize; fn from_index(i: usize) -> Self; }
     // defined by one macro: PageId(u32), LangIdx(u8), FormatId(u8), MediaTypeId(u16), ResourceId(u32),
@@ -384,7 +384,7 @@ pub trait Sink: Send + Sync {
 ```
 
 ```rust
-// ───────────── neohugo-config ─────────────
+// ───────────── ssg-config ─────────────
 /// Typed CLI layer; serialises into the "flags" layer of the pipeline (§3.1 A1).
 #[derive(Serialize, Default)] pub struct CliOverrides { pub base_url: Option<String>, pub environment: Option<String>,
     pub destination: Option<PathBuf>, pub minify: Option<bool>, pub build_drafts: Option<bool>,
@@ -431,7 +431,7 @@ pub struct MediaType { pub main: String, pub sub: String, pub suffixes: Vec<Stri
 ```
 
 ```rust
-// ───────────── neohugo-vfs ─────────────
+// ───────────── ssg-vfs ─────────────
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Component { Content, Layouts, Assets, Data, I18n, Static, Archetypes }
 pub struct Vfs { /* per component: ordered mounts (project, then themes); first match wins */ }
@@ -449,7 +449,7 @@ impl PathParser<'_> { pub fn parse(&self, c: Component, rel: &str) -> Parsed; }
 ```
 
 ```rust
-// ───────────── neohugo-pageparser ─────────────
+// ───────────── ssg-pageparser ─────────────
 pub enum FrontMatterFormat { Yaml, Toml, Json /* Org: COULD */ }
 pub struct Split<'a> { pub front_matter: Option<(FrontMatterFormat, &'a str)>, pub body: &'a str, pub body_offset: usize }
 pub fn split_front_matter(src: &str) -> Result<Split<'_>, ParseError>;        // BOM, CRLF, leading blank lines
@@ -471,7 +471,7 @@ pub enum Scalar { String(String), Int(i64), Float(f64), Bool(bool) }   // "0.125
 ```
 
 ```rust
-// ───────────── neohugo-locale ─────────────
+// ───────────── ssg-locale ─────────────
 pub struct Locale { /* icu_collator + icu_plurals per language */ }   // impl base::Collate
 /// A message is parsed once into pieces. Only `{{ . }}`, `{{ .Field }}` (incl. `.Count`) and the
 /// `{{-`/`-}}` trim markers are accepted; anything else is a load error with file and key.
@@ -488,7 +488,7 @@ pub fn format_date(d: &jiff::Zoned, p: DatePattern, lang: &Language) -> String; 
 ```
 
 ```rust
-// ───────────── neohugo-page ─────────────
+// ───────────── ssg-page ─────────────
 #[derive(Clone, Copy, Default)] pub enum ListMode { #[default] Always, Never, Local }
 #[derive(Clone, Copy, Default)] pub enum RenderMode { #[default] Always, Never, Link }
 #[derive(Clone, Copy)] pub struct BuildPolicy { pub list: ListMode, pub render: RenderMode, pub publish_resources: bool }
@@ -537,7 +537,7 @@ pub fn default_title(kind: PageKind, raw: &str, cfg: &TitleConfig) -> String;
 ```
 
 ```rust
-// ───────────── neohugo-site ─────────────
+// ───────────── ssg-site ─────────────
 pub enum PageRole { Standalone, BundledResource { owner: PageId } }   // bundled: rendered content, no output
 pub struct Page {
     pub id: PageId, pub lang: LangIdx, pub kind: PageKind, pub role: PageRole,
@@ -590,7 +590,7 @@ pub fn load_model(cfg: Arc<Config>, vfs: &Vfs, collate: &IdVec<LangIdx, Arc<dyn 
 ```
 
 ```rust
-// ───────────── neohugo-nav ─────────────
+// ───────────── ssg-nav ─────────────
 pub struct Menus(pub IdVec<LangIdx, BTreeMap<String, Vec<MenuEntry>>>);
 pub struct MenuEntry { pub identifier: String, pub name: String, pub title: String, pub url: String,
                        pub page: Option<PageId>, pub weight: i32, pub parent: Option<String>, pub pre: String,
@@ -610,7 +610,7 @@ pub fn alias_plan(m: &Model) -> Vec<AliasPlan>;
 ```
 
 ```rust
-// ───────────── neohugo-markup ─────────────
+// ───────────── ssg-markup ─────────────
 bitflags! { pub struct Extensions: u32 { TABLES; FOOTNOTES; DEFINITION_LISTS; DEFINITION_TERM_IDS; STRIKETHROUGH;
     TASKLISTS; LINKIFY; HEADING_ATTRIBUTES; BLOCK_ATTRIBUTES; ALERTS; EMOJI; } }
 pub enum RawHtml { Omit, Pass }                 // goldmark `unsafe`
@@ -668,7 +668,7 @@ pub mod text { pub fn strip_html(html: &str) -> String; pub fn word_count(plain:
 ```
 
 ```rust
-// ───────────── neohugo-resources / images / esbuild ─────────────
+// ───────────── ssg-resources / images / esbuild ─────────────
 pub enum ResourceKind { Image, Page(PageId), Text, Other }
 pub enum PublishPolicy { Eager /* bundle, publishResources */, OnReference, Never }
 pub struct Resource {
@@ -728,7 +728,7 @@ impl Service { pub fn start(binary: &Path) -> Result<Self, EsbuildError>;   // v
 ```
 
 ```rust
-// ───────────── neohugo-layouts ─────────────
+// ───────────── ssg-layouts ─────────────
 pub enum StandaloneKind { NotFound, Sitemap, SitemapIndex, RobotsTxt, Alias }
 pub enum HookKind { Link, Image, Heading, CodeBlock, Blockquote, Table, Passthrough }
 /// What a layout file IS, resolved at scan time from v0.146 names; unknown identifiers are load errors.
@@ -767,7 +767,7 @@ impl Templates {
                 embedded: EmbeddedHooks) -> Option<TemplateName>;
 }
 
-// ───────────── neohugo-funcs ─────────────
+// ───────────── ssg-funcs ─────────────
 pub enum NameKind { Filter, Function, Test }
 pub enum PhaseAvail { Content, Layout, Both }
 pub struct Kwarg { pub name: &'static str, pub ty: &'static str, pub required: bool }
@@ -784,7 +784,7 @@ pub fn register_placeholders(t: &mut tera::Tera);                // every FUNCS 
 pub fn arg<T: DeserializeOwned>(v: &tera::Value, what: &str) -> tera::TeraResult<T>;
 ```
 
-### 2.5 Views and render state (neohugo-view)
+### 2.5 Views and render state (ssg-view)
 
 **Serialisation.** Views derive `Serialize` and are converted once with `tera::Value::from_serializable`. Nested `tera::Value` fields pass through as `Arc` clones.
 
@@ -921,7 +921,7 @@ impl ViewCache { pub fn generation(&self, phase: Phase, v: HookVariant) -> &View
 ### 2.6 Render pipeline API
 
 ```rust
-// ───────────── neohugo-sitefuncs ─────────────
+// ───────────── ssg-sitefuncs ─────────────
 /// Everything site functions need; each function struct clones only its own Arcs.
 pub struct Handles { pub model: Arc<Model>, pub views: Arc<ViewCache>, pub store: Arc<ResourceStore>, pub images: Arc<ImageQueue>,
                      pub stores: Arc<PageStores>, pub pagination: Arc<PaginationRecorder>, pub deferred: Arc<DeferredRegistry>,
@@ -930,7 +930,7 @@ pub struct Handles { pub model: Arc<Model>, pub views: Arc<ViewCache>, pub store
                      pub frames: Arc<DashMap<FrameId, Value>>, pub partial_cache: Arc<DashMap<(String, String), PartialResult>> }
 pub fn register(t: &mut tera::Tera, h: &Handles);
 
-// ───────────── neohugo-render ─────────────
+// ───────────── ssg-render ─────────────
 pub struct Session { /* Arc<Model>, Arc<Templates>, Arc<ViewCache>, ContentStore, Handles, render_pool, Diagnostics */ }
 impl Session {
     /// renderer slot created empty → sitefuncs::register → layouts::load (fallible) → Arc::new(Session) → slot.set(weak)
@@ -959,7 +959,7 @@ pub enum Job {
 }
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord)] pub struct JobOrder { lang: LangIdx, format_rank: u8, key_rank: u32, sub: u8 }
 
-// ───────────── neohugo-publish ─────────────
+// ───────────── ssg-publish ─────────────
 pub struct DiskSink { pub root: PathBuf }                      // impl base::Sink
 pub struct MemorySink { pub files: DashMap<OutputPath, Arc<[u8]>> }
 pub struct Output { pub path: OutputPath, pub bytes: Vec<u8>, pub media: MediaTypeId, pub format: FormatId,
@@ -977,7 +977,7 @@ impl Publisher {
 }
 pub fn sync_static(vfs: &Vfs, sink: &dyn Sink) -> Result<usize, PublishError>;
 
-// ───────────── neohugo-build ─────────────
+// ───────────── ssg-build ─────────────
 pub struct BuildRequest { pub source: PathBuf, pub destination: Option<PathBuf>, pub cli: CliOverrides,
                           pub clock: Option<jiff::Timestamp>, pub sink: SinkKind, pub clean_destination: bool }
 pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError>;
@@ -1041,7 +1041,7 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 4. **Deep-merge once**, in this precedence: defaults < file < dir < CLI < env.
    - Env is applied once. Each value is parsed into the variant of the value it overrides.
    - `disableKinds` and `disableLanguages` are split on commas and whitespace.
-   - **Themes** below the project (Hugo's module collection and `_merge` semantics; `neohugo-config` README "Themes"):
+   - **Themes** below the project (Hugo's module collection and `_merge` semantics; `ssg-config` README "Themes"):
      - found in import order, depth first: `[[module.imports]]`, then `theme = [...]`, then each theme's own imports after it (`theme = ["a", "b"]` with `a` importing `c`: a, c, b; the first wins); in `themesDir`, `_vendor` (`modules.txt`) or at an absolute path; `module.replacements`, `ignoreConfig`, `ignoreImports`, `noMounts`, `disable`; Hugo Modules are not downloaded;
      - each theme's config: the first of `neohugo.*`, `hugo.*`, `config.*` in its directory, then its `config/_default/**` and `config/<env>/**`;
      - merged theme by theme: the project's values win; a theme adds only keys the project lacks, as the `_merge` strategy of the project's table allows (`params` deep, `menus`/`outputFormats`/`mediaTypes` shallow, other root keys none unless the root sets `_merge`; `languages.X.params` deep, `languages.X.menus` shallow; inherited below); root values that are not tables only with a `deep` root; a theme's `theme`, `module` and `themesDir` are never merged.
@@ -1163,7 +1163,7 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
    - It accepts **only v0.146 names**: `_partials/`, `_shortcodes/`, `_markup/render-<kind>[-<variant>][.<fmt>].<ext>`, `baseof[.<kind>|.<layout>].html`, `home|section|taxonomy|term|single|list|all|<layout>[.<lang>][.<fmt>].<ext>`, `404.html`, `rss.xml`, `sitemap.xml`, `robots.txt`, `alias.html`, with directory path scopes.
    - Legacy names (`_default/`, `partials/`, `shortcodes/`, `taxonomy/list`, `term/term`, `X-baseof`) are load errors with a rename hint.
    - Names are lower-cased.
-   - The legacy → new mapping exists only in the T01 structure-oracle normaliser and in `neohugo-migrate`.
+   - The legacy → new mapping exists only in the T01 structure-oracle normaliser and in `ssg-migrate`.
 2. **One Tera instance per build**, built inside `Session::new`:
    - `tera.set_fallback_prefixes(["_theme1/", …, "_embedded/"])` is called **before** any template is added. User templates are unprefixed and win. The page scorer knows each template's origin and does not rely on the fallback.
    - `sitefuncs::register`, `funcs::register_pure` and the tera-contrib subset are registered before templates are added, because Tera 2 validates every name when a template is added. Site functions hold `Arc<OnceLock<Weak<dyn ContentRenderer>>>`; the slot is filled after the `Session` `Arc` exists.
@@ -1291,7 +1291,7 @@ The docs `quick-reference` shortcode reads `.Content` of child sections, and bec
 
 ### 4.6 Function, filter and test catalogue
 
-Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated from it.
+Frozen as `ssg_funcs::spec::FUNCS` by T02. `template-api.md` is generated from it.
 
 **Kind codes:**
 
@@ -1303,7 +1303,7 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 | F | our filter |
 | fn | our function |
 | T | test |
-| (s) | site-bound (neohugo-sitefuncs); everything else is pure (neohugo-funcs) |
+| (s) | site-bound (ssg-sitefuncs); everything else is pure (ssg-funcs) |
 
 **Naming.**
 - Tera built-ins are never overridden.
@@ -1405,7 +1405,7 @@ Frozen as `neohugo_funcs::spec::FUNCS` by T02. `template-api.md` is generated fr
 
 **Tera strings.** Tera 2.4 string literals know only the escapes `\n` `\t` `\r` `\"` `\'` `\/` `\\`; any other escape (`"\u{a0}"`, `"\s"`) is a syntax error. Write other characters literally (a U+00A0 character for Go's `printf "%c" 160`) and double the backslashes of regular expressions (`regex_replace(pattern="^\\s+", …)`).
 
-**tera-contrib** supplies `regex_replace`, `urlencode`, `base64`, `filesizeformat` and `matching`. Its `date` filter is used only if T12 confirms that it produces Gregorian Thai month names (`th-u-ca-gregory`); otherwise neohugo-locale registers `date` itself. `shuffle` is not registered, because no target site uses it and it needs the `rand` feature.
+**tera-contrib** supplies `regex_replace`, `urlencode`, `base64`, `filesizeformat` and `matching`. Its `date` filter is used only if T12 confirms that it produces Gregorian Thai month names (`th-u-ca-gregory`); otherwise ssg-locale registers `date` itself. `shuffle` is not registered, because no target site uses it and it needs the `rand` feature.
 
 ### 4.7 Conversion rules
 
@@ -1465,7 +1465,7 @@ These rules are generated into `template-api.md`. They are applied by hand; the 
 
 ### 4.8 Template tooling
 
-**Contract test** (`neohugo-testkit::contract`, T02).
+**Contract test** (`ssg-testkit::contract`, T02).
 - It builds the contract instance from `spec::FUNCS` placeholders plus stubs for `spec::EMBEDDED_TEMPLATES`, then parses every template under `rust/sites/**/{layouts,assets,patches}` and `crates/layouts/embedded/**`.
 - A second test snapshots `template-api.md` against `FUNCS`.
 - So layout conversion can start as soon as T02 lands.
@@ -1490,7 +1490,7 @@ Versions are from crates.io as of 2026-09-29. `(verify)` marks feature names or 
 
 ```toml
 [workspace.dependencies]
-neohugo-workspace-hack = { path = "crates/workspace-hack" }
+ssg-workspace-hack = { path = "crates/workspace-hack" }
 # data formats
 serde        = { version = "1.0.229", features = ["derive", "rc"] }
 serde_json   = "1.0.151"                       # default Map = BTreeMap; a test asserts no dep enables preserve_order
@@ -1578,7 +1578,7 @@ dhat         = "0.3"                           # T33 allocation measurement (it 
 
 **External binaries**, run through `security.exec`:
 - `esbuild` over the `--service` protocol. Its version is read from `esbuild --version`; it is pinned by `tools/esbuild/build.sh`.
-- `postcss-cli` and the `@tailwindcss/cli` v4 CLI, installed by `tools/neohugo/node.sh` from a committed lockfile into `tools/neohugo/node_modules`. Both the Go and Rust builds use it.
+- `postcss-cli` and the `@tailwindcss/cli` v4 CLI, installed by `tools/dev/node.sh` from a committed lockfile into `tools/dev/node_modules`. Both the Go and Rust builds use it.
 - An optional `sass` (Dart Sass) binary, used when `transpiler = "dartsass"` is set.
 
 **Not used:**
@@ -1590,7 +1590,7 @@ dhat         = "0.3"                           # T33 allocation measurement (it 
 - any Zola ≥ 0.22 source.
 
 **Licence policy** (`rust/deny.toml`, cargo-deny format).
-- `tools/neohugo/licence-check.sh` evaluates **SPDX expressions** from `cargo metadata --filter-platform x86_64-unknown-linux-gnu`, using Python stdlib.
+- `tools/dev/licence-check.sh` evaluates **SPDX expressions** from `cargo metadata --filter-platform x86_64-unknown-linux-gnu`, using Python stdlib.
 - Allowlist: MIT, Apache-2.0, BSD-2-Clause, BSD-3-Clause, ISC, Zlib, CC0-1.0, Unlicense, BSL-1.0, Unicode-3.0, CDLA-Permissive-2.0 (webpki roots), MPL-2.0 (lightningcss/cssparser, file-level copyleft).
 - An `OR` expression passes if any branch passes. So `MIT OR Apache-2.0 OR LGPL-2.1-or-later` (r-efi) passes; `Apache-2.0 AND ISC` (ring) needs both.
 - Bans: any EUPL, GPL or AGPL-only expression, plus the crates giallo, imagequant, zenwebp and nom-exif.
@@ -1615,11 +1615,11 @@ dhat         = "0.3"                           # T33 allocation measurement (it 
 ### 6.1 T00 order of operations
 
 1. `git tag go-parity-final` on the I01 byte-identical state.
-2. Move the retained fixtures and corpora (§6.3) to `rust/testdata/`. Convert them to plain JSON with the neohugo schema using `tools/neohugo/fixtures2json.py` (stdlib; unwraps the `goval`/`tval` type tags; re-run after any oracle regeneration). Update `sites.py` paths.
+2. Move the retained fixtures and corpora (§6.3) to `rust/testdata/`. Convert them to plain JSON with the neohugo schema using `tools/dev/fixtures2json.py` (stdlib; unwraps the `goval`/`tval` type tags; re-run after any oracle regeneration). Update `sites.py` paths.
 3. Move `crates/TERA_PLAN.md` to `docs/rust-port/TERA_PLAN.md`, with a header pointing to this plan.
 4. `git rm -r crates/`, then `rm -rf crates/`. The second command also removes the ignored `crates/*/target` directories (`go-png/target` alone is 257 MB). Together they free 423 MB.
 5. Delete the byte-exact Go oracle directories (§6.4).
-6. Add `rust/target/`, `tools/neohugo/bin/` and `tools/neohugo/node_modules/` to `.gitignore`.
+6. Add `rust/target/`, `tools/dev/bin/` and `tools/dev/node_modules/` to `.gitignore`.
 
 From then on, salvage uses `git show go-parity-final:crates/<crate>/<path>`. No legacy code remains in the working tree.
 
@@ -1725,7 +1725,7 @@ It also dumps each site's layout file list with normalised names, which T30 uses
    Hashes, timestamps and versions are redacted. Snapshots are reviewed with `INSTA_UPDATE=always` plus `git diff`.
 4. **Robustness corpora.** All 959 docs files and all 251 seeksnack bodies render without a panic, with idempotent heading IDs.
 5. **Contract test and `templates check`** (§4.8).
-6. **Site integration tests** (`neohugo-build/tests/it/sites.rs`).
+6. **Site integration tests** (`ssg-build/tests/it/sites.rs`).
    - Built into a `MemorySink` and compared with the structure oracle: `mini.txtar`, the testsite, the seeksnack reconstruction and the edge-tree txtar sites.
    - Edge cases covered: cascade, i18n, aliases, term collisions, headless, `build` options, Thai paths, FM overrides, HTML content, Unicode shortcode params.
    - Docs is built only by the acceptance script.
@@ -1733,13 +1733,13 @@ It also dumps each site's layout file list with normalised names, which T30 uses
 
 ### 7.2 Harness: manifests, structdiff, ratchet
 
-All of this is Python stdlib under `tools/neohugo/`; there is no pip dependency.
+All of this is Python stdlib under `tools/dev/`; there is no pip dependency.
 
 - **One extractor for both sides.** `manifest.py` runs over the Go output and the Rust output alike. It uses `html.parser`, `xml.etree` and `json`, and reads PNG/JPEG/WebP headers for dimensions.
 - **Two passes per site:**
   - The **minified** pass (I01 flags `--minify --clock 2026-09-27T12:00:00Z`) is used for L1 and L4.
   - The **unminified** pass is used for L2 and L3.
-- **Build environment.** Both builds run with outbound HTTP disabled (proxy variables pointed at a refusing port) and with `tools/neohugo/node_modules` on the path. `compare.sh` deletes outputs unless `KEEP=1`.
+- **Build environment.** Both builds run with outbound HTTP disabled (proxy variables pointed at a refusing port) and with `tools/dev/node_modules` on the path. `compare.sh` deletes outputs unless `KEEP=1`.
 - **Levels:**
 
 | Level | Checks |
@@ -1751,7 +1751,7 @@ All of this is Python stdlib under `tools/neohugo/`; there is no pip dependency.
 
 - **Ratchet.**
   - `rust/testdata/baselines/<site>.json` stores each file's per-level status and a diff fingerprint.
-  - A task may add or change entries only by listing them in `tools/neohugo/changes/<task-id>.md`, each with one triage class (`engine-difference`, `bug-fixed` or `accepted-deviation`) and a one-line reason.
+  - A task may add or change entries only by listing them in `tools/dev/changes/<task-id>.md`, each with one triage class (`engine-difference`, `bug-fixed` or `accepted-deviation`) and a one-line reason.
   - An unlisted new diff fails the run. Baselines are reviewed at every phase end.
 - **Self-test** (`selftest.py`): synthetic perturbations of the Go output, each checked for the right classification:
   - drop a file;
@@ -1783,7 +1783,7 @@ All of this is Python stdlib under `tools/neohugo/`; there is no pip dependency.
 
 | Gate | Site | Criterion |
 |---|---|---|
-| **A-T** | hugolib/testsite + `testsite.txtar` | L1 56/56 (Go's 55 files in `public`, the reference `neohugo-build/tests/it/testsite-go.txtar`, plus `hugo_stats.json`, which Go writes to the project directory and the reference does not hold) plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); `hugo_stats.json` sets equal |
+| **A-T** | hugolib/testsite + `testsite.txtar` | L1 56/56 (Go's 55 files in `public`, the reference `ssg-build/tests/it/testsite-go.txtar`, plus `hugo_stats.json`, which Go writes to the project directory and the reference does not hold) plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); `hugo_stats.json` sets equal |
 | **A-R** | seeksnack reconstruction | L1 713/713 (712 files in `public` plus `hugo_stats.json` in the project directory; T61's count of 712 is `public` alone) plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
 | **A-D1** | docs, `--docs-patches i01` | L1 888/888 (887 in `public` plus `hugo_stats.json`) plus structure oracle; L2 all; heading-ID lists equal on every page; A7 ≥ 0.90 with a clean ratchet. Fences are plain `<pre><code>` (`codeFences = false`). |
 | **A-D2** | docs, `--docs-patches reduced` | Working: <ul><li>Chroma-class highlighting (incl. `hl` inline/noClasses and `highlight.md`);</li><li>goat diagrams (`diagrams_goat`);</li><li>emoji;</li><li>passthrough + `to_math`;</li><li>`remarshal` in `code-toggle`;</li><li>Tailwind through `defer`;</li><li>real Alpine/Turbo `js_build`.</li></ul> L1 equal to the Go build with the same patches (889: 888 in `public` plus `hugo_stats.json`; `shortcodes/highlight.md` is kept); L2 all. Math and goat pages are `accepted-deviation` at L3. |
@@ -1825,8 +1825,8 @@ Each converted file is reviewed against §4.7 and the contract test. Faithfulnes
 ### 7.5 Commands
 
 - Per crate: `cargo test -p <crate>`, run in the agent's own worktree.
-- Phase end only: `cargo clippy -p <crate>` for each crate of the phase, and `tools/neohugo/licence-check.sh`.
-- Acceptance: `tools/neohugo/compare.sh <site> [--docs-patches i01|reduced] [KEEP=1]`.
+- Phase end only: `cargo clippy -p <crate>` for each crate of the phase, and `tools/dev/licence-check.sh`.
+- Acceptance: `tools/dev/compare.sh <site> [--docs-patches i01|reduced] [KEEP=1]`.
 - Templates: `neohugo-rs templates check -s <site-dir>`.
 
 ---
@@ -1840,7 +1840,7 @@ Each converted file is reviewed against §4.7 and the contract test. Faithfulnes
 - Every worktree sets `CARGO_TARGET_DIR=/home/user/neohugo/rust/target`. Registry artifacts are shared. Workspace crates compile per worktree path; they are small.
 - An agent never compiles another agent's half-edited crate. Only green commits are merged into `rust-port`, and a task rebases before merging.
 - **Crate lock.** At most one agent edits a given crate at a time.
-  - Parity tasks own only `rust/sites/**`, `rust/testdata/baselines/**` and `tools/neohugo/changes/**`.
+  - Parity tasks own only `rust/sites/**`, `rust/testdata/baselines/**` and `tools/dev/changes/**`.
   - A bug found in a crate becomes a short **fix task** that takes that crate's lock.
 
 **Build commands.**
@@ -1859,11 +1859,11 @@ Each converted file is reviewed against §4.7 and the contract test. Faithfulnes
 | worktrees | ~0.3 GB |
 | site outputs (transient) | ~0.3 GB |
 
-`tools/neohugo/disk.sh` fails if `rust/target` exceeds 2.5 GB **or** `df` reports less than 700 MB free. Every task reports `du -sh rust/target` and `df -h /` when it ends.
+`tools/dev/disk.sh` fails if `rust/target` exceeds 2.5 GB **or** `df` reports less than 700 MB free. Every task reports `du -sh rust/target` and `df -h /` when it ends.
 
 **Network.** T00 needs network for `cargo fetch`, and T01 for `npm ci` and GOPROXY (D8). Builds and tests afterwards run offline.
 
-**Go.** T01 builds the native Go binary and the `structure` oracle once, keeps the binaries under `tools/neohugo/bin/` (gitignored), then runs `go clean -cache -modcache`.
+**Go.** T01 builds the native Go binary and the `structure` oracle once, keeps the binaries under `tools/dev/bin/` (gitignored), then runs `go clean -cache -modcache`.
 
 **Clean room.**
 - Implementing agents never open Zola ≥ 0.22 source; `scratchpad/zola-ref` is taken out of agents' reach at T00.
@@ -1877,48 +1877,48 @@ Sizes are Rust src + tests unless noted.
 
 | ID | Title | Owns | Depends on | Acceptance | Size |
 |---|---|---|---|---|---|
-| **T00** | Bootstrap | `rust/{Cargo.toml,Cargo.lock,.cargo,clippy.toml,deny.toml,README.md,PROVENANCE.md,THIRD_PARTY/}`; stub crates with **real dependency edges**; `crates/workspace-hack`; `crates/testkit`; `rust/testdata/{oracle,corpus,site-assets}`; `tools/neohugo/{licence-check.sh,disk.sh,fixtures2json.py}`; `sites.py` fixture paths; `.gitignore`; TERA_PLAN move; deletion of `crates/` and obsolete oracles | – | <ul><li>`go-parity-final` exists</li><li>`sites.py` produces site inputs with the same file hashes as before</li><li>`cargo metadata --filter-platform …` resolves the acyclic graph</li><li>fixtures converted (record counts match)</li><li>`cargo test -p neohugo-testkit` green (plain-JSON reader on 3 families, txtar)</li><li>(verify) items pinned in `Cargo.lock`</li><li>feature unification checked with `cargo tree -e features`</li><li>licence check passes on SPDX</li><li>`rust/target` < 400 MB</li></ul> | 1.8k |
-| **T01** | Go oracle, patch variants, node tooling | `tools/neohugo/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count; every count includes the project directory's `hugo_stats.json`)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> **State:** `rust/testdata/golden/` (schemas in its README): manifests and structure dumps of testsite, seeksnack, docs-i01, docs-reduced (56/713/888/889 files) and the structure dump of mini; `tools/rust-port/i01/patches.json` (26 entries); the Go binaries and the node modules live in the main checkout's `tools/neohugo/{bin,node_modules}` (`NEOHUGO_TOOLS_BIN`, `NEOHUGO_NODE_MODULES`) | 0.5k Go + 1.1k Py |
+| **T00** | Bootstrap | `rust/{Cargo.toml,Cargo.lock,.cargo,clippy.toml,deny.toml,README.md,PROVENANCE.md,THIRD_PARTY/}`; stub crates with **real dependency edges**; `crates/workspace-hack`; `crates/testkit`; `rust/testdata/{oracle,corpus,site-assets}`; `tools/dev/{licence-check.sh,disk.sh,fixtures2json.py}`; `sites.py` fixture paths; `.gitignore`; TERA_PLAN move; deletion of `crates/` and obsolete oracles | – | <ul><li>`go-parity-final` exists</li><li>`sites.py` produces site inputs with the same file hashes as before</li><li>`cargo metadata --filter-platform …` resolves the acyclic graph</li><li>fixtures converted (record counts match)</li><li>`cargo test -p ssg-testkit` green (plain-JSON reader on 3 families, txtar)</li><li>(verify) items pinned in `Cargo.lock`</li><li>feature unification checked with `cargo tree -e features`</li><li>licence check passes on SPDX</li><li>`rust/target` < 400 MB</li></ul> | 1.8k |
+| **T01** | Go oracle, patch variants, node tooling | `tools/dev/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count; every count includes the project directory's `hugo_stats.json`)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> **State:** `rust/testdata/golden/` (schemas in its README): manifests and structure dumps of testsite, seeksnack, docs-i01, docs-reduced (56/713/888/889 files) and the structure dump of mini; `tools/rust-port/i01/patches.json` (26 entries); the Go binaries and the node modules live in the main checkout's `tools/dev/{bin,node_modules}` (`FUGO_TOOLS_BIN`, `FUGO_NODE_MODULES`) | 0.5k Go + 1.1k Py |
 | **T02** | Template contract + testsite layouts | `crates/funcs/src/spec.rs` (then handed to T31), `rust/docs/template-api.md` (generated), `rust/sites/testsite/**`, `crates/testkit/src/contract.rs` | T00 | <ul><li>every §4.2 context and §4.6 name in `FUNCS` with kwargs, kind, phase, safety, site-bound flag and Hugo origin</li><li>`EMBEDDED_TEMPLATES` list</li><li>Tera facts verified and recorded: `@__nh` as an implicit name, `==` with an undefined final segment, `split`/`nth` kwargs, `?.`</li><li>5 testsite layouts converted; contract test clean</li><li>`template-api.md` snapshot equals `FUNCS`</li></ul> | 1.0k + doc |
-| **T03** | structdiff, ratchet, self-test | `tools/neohugo/{structdiff.py,compare.sh,selftest.py,changes/}`, `rust/testdata/baselines/` | T01 | <ul><li>Go vs Go gives 0 diffs on 3 sites, both passes</li><li>self-test classifies all 8 perturbations correctly</li><li>an unlisted diff fails</li><li>`KEEP=1` keeps outputs</li></ul> | 1.5k Py |
+| **T03** | structdiff, ratchet, self-test | `tools/dev/{structdiff.py,compare.sh,selftest.py,changes/}`, `rust/testdata/baselines/` | T01 | <ul><li>Go vs Go gives 0 diffs on 3 sites, both passes</li><li>self-test classifies all 8 perturbations correctly</li><li>an unlisted diff fails</li><li>`KEEP=1` keeps outputs</li></ul> | 1.5k Py |
 | **T04** | comrak spike | `crates/markup` (spike; released before T22) | T00 | <ul><li>all 959 docs files and 251 seeksnack bodies run</li><li>per-feature verdict against normalised goldmark HTML: tight deflists (840), heading attrs, block attrs, fence attrs, math delimiters, alerts, emoji, linkify, typographer, raw HTML, `codeFences` plain</li><li>`sourcepos` accuracy for inline nodes</li><li>engine decision and list of custom passes in the crate README</li></ul> | 0.4k |
-| **T10** | neohugo-base | `crates/base` | T00 | <ul><li>`nh-common/{paths,urls}` and `nh-helpers/pathspec` 100%</li><li>flect/prose oracle 100% on the corpus and every S/R section and taxonomy name (pluralize, singularize, humanize, ordinalize, AP/Chicago/Go title case; crates evaluated first)</li><li>cast date formats; gobwas glob cases via globset</li><li>`docs.yaml` round-trips with `baseURL` and `Name` intact; R `ingredients_percentage` keeps `Name`/`Value`</li><li>Params folding; `IdVec`; path newtypes</li></ul> | 3.6k |
-| **T11** | neohugo-pageparser | `crates/pageparser` | T10 | <ul><li>`lex()` equals 141,869 items over 5,540 pages (kinds + byte ranges)</li><li>`assemble` tests with `InnerUse`</li><li>218/218 seeksnack front matters decode (`expected_diffs`)</li></ul> | 2.4k |
-| **T12** | neohugo-locale | `crates/locale` | T10 | <ul><li>translate fixtures ≥ 99%</li><li>message evaluator on R's `welcome`/`reviews`/`comments`; unsupported syntax is an error with file and key</li><li>collation sanity on `site-strings`</li><li>Gregorian `th` month names; locales oracle (`expected_diffs`)</li><li>decides on tera-contrib `date`</li></ul> | 2.0k |
-| **T13** | neohugo-config | `crates/config` | T10 | <ul><li>`nh-allconfig/load` values for docs, testsite, reconstruction and t24 sites</li><li>media tables equal</li><li>legacy-key table on a synthetic S-style config</li><li>env typing; `CliOverrides`</li><li>`[caches]` with `:cacheDir`/`:project`; privacy</li><li>error spans; insta snapshots</li></ul> | 3.5k |
+| **T10** | ssg-base | `crates/base` | T00 | <ul><li>`nh-common/{paths,urls}` and `nh-helpers/pathspec` 100%</li><li>flect/prose oracle 100% on the corpus and every S/R section and taxonomy name (pluralize, singularize, humanize, ordinalize, AP/Chicago/Go title case; crates evaluated first)</li><li>cast date formats; gobwas glob cases via globset</li><li>`docs.yaml` round-trips with `baseURL` and `Name` intact; R `ingredients_percentage` keeps `Name`/`Value`</li><li>Params folding; `IdVec`; path newtypes</li></ul> | 3.6k |
+| **T11** | ssg-pageparser | `crates/pageparser` | T10 | <ul><li>`lex()` equals 141,869 items over 5,540 pages (kinds + byte ranges)</li><li>`assemble` tests with `InnerUse`</li><li>218/218 seeksnack front matters decode (`expected_diffs`)</li></ul> | 2.4k |
+| **T12** | ssg-locale | `crates/locale` | T10 | <ul><li>translate fixtures ≥ 99%</li><li>message evaluator on R's `welcome`/`reviews`/`comments`; unsupported syntax is an error with file and key</li><li>collation sanity on `site-strings`</li><li>Gregorian `th` month names; locales oracle (`expected_diffs`)</li><li>decides on tera-contrib `date`</li></ul> | 2.0k |
+| **T13** | ssg-config | `crates/config` | T10 | <ul><li>`nh-allconfig/load` values for docs, testsite, reconstruction and t24 sites</li><li>media tables equal</li><li>legacy-key table on a synthetic S-style config</li><li>env typing; `CliOverrides`</li><li>`[caches]` with `:cacheDir`/`:project`; privacy</li><li>error spans; insta snapshots</li></ul> | 3.5k |
 | **T14** | neohugo-esbuild | `crates/esbuild` | T00 | <ul><li>`service/*` restored from the tag, std-only, version read at runtime</li><li>ping/build round trip</li><li>68 `jsbuild` cases produce the same module sets</li></ul> | 2.2k (1.3k moved) |
-| **T20** | neohugo-vfs | `crates/vfs` | T13 | <ul><li>path-parser oracle 100%</li><li>(file → lang, bundle kind, key) equal to `nh-hugolib/capture` for 3 sites</li><li>mount precedence tests</li></ul> | 1.8k |
-| **T21** | neohugo-page | `crates/page` | T13, T20 | <ul><li>`nh-page` fixtures ≥ 99%</li><li>cascade matcher</li><li>Go-layout permalink tokens → strftime</li><li>`capture_overrides`; `Markup` detection</li></ul> | 3.9k |
-| **T22** | neohugo-markup | `crates/markup` | T13, T04 | <ul><li>heading IDs 100% on the docs and seeksnack corpora</li><li>hook invocations and fields ≥ 98% after typographer normalisation</li><li>TOC equal; normalised HTML on ≥ 245/251</li><li>passes: deflist IDs, alert title/sign, block attrs, passthrough, emoji, linkify</li><li>`CodeFences::Plain` equals Go on the testsite fence and 20 A-D1 fences</li><li>context spans give the correct `inner_page`</li></ul> | 4.3k |
+| **T20** | ssg-vfs | `crates/vfs` | T13 | <ul><li>path-parser oracle 100%</li><li>(file → lang, bundle kind, key) equal to `nh-hugolib/capture` for 3 sites</li><li>mount precedence tests</li></ul> | 1.8k |
+| **T21** | ssg-page | `crates/page` | T13, T20 | <ul><li>`nh-page` fixtures ≥ 99%</li><li>cascade matcher</li><li>Go-layout permalink tokens → strftime</li><li>`capture_overrides`; `Markup` detection</li></ul> | 3.9k |
+| **T22** | ssg-markup | `crates/markup` | T13, T04 | <ul><li>heading IDs 100% on the docs and seeksnack corpora</li><li>hook invocations and fields ≥ 98% after typographer normalisation</li><li>TOC equal; normalised HTML on ≥ 245/251</li><li>passes: deflist IDs, alert title/sign, block attrs, passthrough, emoji, linkify</li><li>`CodeFences::Plain` equals Go on the testsite fence and 20 A-D1 fences</li><li>context spans give the correct `inner_page`</li></ul> | 4.3k |
 | **T23a** | site: capture + meta | `crates/site/src/{capture,tree,cascade,meta,filter,data}.rs` | T11, T12, T21 | <ul><li>capture/assemble fixtures 100%: page set per language, kinds, bundle roles, FM overrides (R `kind-override`, `lang-override` with `lang: TH`, `path-override`), duplicates, drafts/future/expired, cascade</li><li>`data::load` for D (5 files), S (nested JSON), R (`/` in keys), case preserved</li></ul> | 2.4k |
 | **T23b** | site: nodes, URLs, relations | `crates/site/src/{nodes,urls,relations,taxonomy,translations,resources,refs}.rs` | T23a | <ul><li>site fixtures 100%: auto nodes, collections, term members, node dates, translations</li><li>**structure oracle: targets and permalinks per (page, format), resource URLs per (page, name)**</li><li>ref/get_page cases</li><li>segment-aware prefix lookup matches on all oracle sites (else `accepted-deviation`)</li></ul> | 2.6k |
-| **T24** | neohugo-nav | `crates/nav` | T23a (types; pageRef tests after T23b merges) | <ul><li>`nh-page` menus, pagination and related fixtures ≥ 99%</li><li>`related` with an explicit candidate list</li><li>alias plan equals structure-oracle aliases</li></ul> | 2.1k |
-| **T25** | neohugo-highlight | `crates/highlight` | T10, T22 | <ul><li>all ~3,900 docs fences highlight</li><li>`go-html-template` syntax (own MIT `.sublime-syntax`, or an alias)</li><li>classes ⊆ Chroma's, ≥ 90% token coverage</li><li>solarized-dark CSS</li><li>inline-style mode (`noClasses`), `hl_inline`, `lineNumbersInTable`, `linenos`, `hl_lines`</li><li>Chroma style names used by the docs layouts → themes, with a fallback warning</li></ul> | 1.8k |
-| **T26** | neohugo-minify | `crates/minify` | T13 | <ul><li>tdewolff corpora: no crash, idempotent, output re-parses</li><li>`[minify]` mapping documented</li></ul> | 0.7k |
-| **T30** | neohugo-layouts | `crates/layouts/src` | T20, T02 | <ul><li>`nh-tplimpl/lookup` (normalised): same winner 100%</li><li>**structure oracle: template and baseof equal for every (page, format) of the 3 sites** (scorer over T01's normalised lists)</li><li>legacy names rejected with hints</li><li>baseof variants, fallback prefixes, escaping by format, Go-marker detection, `uses_variable` after load</li></ul> | 3.0k |
-| **T31** | neohugo-funcs | `crates/funcs` | T10, T12, T02 | <ul><li>every pure `FUNCS` entry registered and snapshot-tested</li><li>agreement with `nh-tplfuncs` cases ≥ 95% (`sort_by`, set operations, `truncate_html`, humanize, urlize, plainify, jsonify, remarshal, `html_escape` on safe input, `default_if_empty`, `pad_*`)</li><li>`to_math` (feature `math`) renders all ~50 docs formulas</li><li>map outputs sorted; no dependency enables `serde_json/preserve_order`</li></ul> | 4.8k |
+| **T24** | ssg-nav | `crates/nav` | T23a (types; pageRef tests after T23b merges) | <ul><li>`nh-page` menus, pagination and related fixtures ≥ 99%</li><li>`related` with an explicit candidate list</li><li>alias plan equals structure-oracle aliases</li></ul> | 2.1k |
+| **T25** | ssg-highlight | `crates/highlight` | T10, T22 | <ul><li>all ~3,900 docs fences highlight</li><li>`go-html-template` syntax (own MIT `.sublime-syntax`, or an alias)</li><li>classes ⊆ Chroma's, ≥ 90% token coverage</li><li>solarized-dark CSS</li><li>inline-style mode (`noClasses`), `hl_inline`, `lineNumbersInTable`, `linenos`, `hl_lines`</li><li>Chroma style names used by the docs layouts → themes, with a fallback warning</li></ul> | 1.8k |
+| **T26** | ssg-minify | `crates/minify` | T13 | <ul><li>tdewolff corpora: no crash, idempotent, output re-parses</li><li>`[minify]` mapping documented</li></ul> | 0.7k |
+| **T30** | ssg-layouts | `crates/layouts/src` | T20, T02 | <ul><li>`nh-tplimpl/lookup` (normalised): same winner 100%</li><li>**structure oracle: template and baseof equal for every (page, format) of the 3 sites** (scorer over T01's normalised lists)</li><li>legacy names rejected with hints</li><li>baseof variants, fallback prefixes, escaping by format, Go-marker detection, `uses_variable` after load</li></ul> | 3.0k |
+| **T31** | ssg-funcs | `crates/funcs` | T10, T12, T02 | <ul><li>every pure `FUNCS` entry registered and snapshot-tested</li><li>agreement with `nh-tplfuncs` cases ≥ 95% (`sort_by`, set operations, `truncate_html`, humanize, urlize, plainify, jsonify, remarshal, `html_escape` on safe input, `default_if_empty`, `pad_*`)</li><li>`to_math` (feature `math`) renders all ~50 docs formulas</li><li>map outputs sorted; no dependency enables `serde_json/preserve_order`</li></ul> | 4.8k |
 | **T32** | Embedded templates in Tera | `crates/layouts/embedded/**` | T30, T31 | <ul><li>rss, sitemap, sitemapindex, robots, alias</li><li>render-link/image/table/codeblock-goat</li><li>opengraph, twitter_cards, schema, pagination, google_analytics, `_funcs/get-page-images`</li><li>shortcodes figure, details, highlight, youtube, vimeo, instagram, x, qr, param, ref, relref</li><li>**parse-only** against the contract instance; rendering snapshots in T60</li></ul> | 1.2k Tera |
 | **T38** | Walking skeleton (throwaway glue) | initial `crates/{view,render,build}` | T21, T22, T30, T50, T02 | <ul><li>builds the testsite into a `MemorySink` using a flat interim model and stub site functions</li><li>L1 reported (not a gate)</li><li>`Job`/`Output`/`Session`/`RenderScope` signatures frozen</li></ul> | 0.8k |
-| **T40** | neohugo-resources core | `crates/resources/src/{lib,store,meta,publish,remote}.rs` | T20, T26 | <ul><li>metadata matching and Get/GetMatch/Match/ByType vs `nh-resources`</li><li>fingerprint and SRI equal to Go</li><li>target-path identity: earlier language wins; conflicting inputs within a language raise an error</li><li>URL-token resolution incl. escaped forms and `&`/`'` in paths</li><li>`get_remote` with `[caches.getresource]` plus a key importer replaying the 51 cached YouTube responses</li><li>`inject_generated`</li></ul> | 2.8k |
-| **T41** | neohugo-images | `crates/images` | T13 | <ul><li>spec grammar and typed kwargs; dimensions 100% vs `nh-images/{config,process}`</li><li>PSNR ≥ 30 dB vs the 20 golden images; PNG alpha edges correct</li><li>**every `ImageFilter` variant except Text and Dither** (incl. Mask, Padding, Opacity, Overlay, AutoOrient, colour filters), with dimension parity</li><li>WebP q75 photo + sharp YUV</li><li>JPEG as Go's `image/jpeg` writes it (4:2:0, its tables; F9)</li><li>`[caches.images]`</li></ul> | 4.0k |
+| **T40** | ssg-resources core | `crates/resources/src/{lib,store,meta,publish,remote}.rs` | T20, T26 | <ul><li>metadata matching and Get/GetMatch/Match/ByType vs `nh-resources`</li><li>fingerprint and SRI equal to Go</li><li>target-path identity: earlier language wins; conflicting inputs within a language raise an error</li><li>URL-token resolution incl. escaped forms and `&`/`'` in paths</li><li>`get_remote` with `[caches.getresource]` plus a key importer replaying the 51 cached YouTube responses</li><li>`inject_generated`</li></ul> | 2.8k |
+| **T41** | ssg-images | `crates/images` | T13 | <ul><li>spec grammar and typed kwargs; dimensions 100% vs `nh-images/{config,process}`</li><li>PSNR ≥ 30 dB vs the 20 golden images; PNG alpha edges correct</li><li>**every `ImageFilter` variant except Text and Dither** (incl. Mask, Padding, Opacity, Overlay, AutoOrient, colour filters), with dimension parity</li><li>WebP q75 photo + sharp YUV</li><li>JPEG as Go's `image/jpeg` writes it (4:2:0, its tables; F9)</li><li>`[caches.images]`</li></ul> | 4.0k |
 | **T42** | Resource pipes | `crates/resources/src/pipes/**` | T40, T14 | <ul><li>`to_css` compiles the reconstruction SCSS (slash division checked)</li><li>PostCSS with node.sh modules (R purge)</li><li>Tailwind compiles docs `styles.css` (cwd = project; `@import` via Vfs; `@source "hugo_stats.json"`; `@plugin` from node_modules)</li><li>Babel spawn; `js_build` through T14</li><li>`post_process` per-field placeholders (R `head.html`); `execute_as_template` on Tera assets</li><li>a missing tool is an error naming the binary</li></ul> | 2.5k |
-| **T50** | neohugo-publish | `crates/publish` | T13, T26 | <ul><li>canonify: 100% of `nh-transform/absurl`</li><li>stats collector: 100% of `nh-publisher/collector` and golden stats</li><li>static-sync oracle</li><li>held outputs patched and re-scanned</li><li>URL-token extraction (entities, JSON escapes, srcset)</li></ul> | 2.2k |
-| **T33** | neohugo-view | `crates/view` | T23b, T24, T40, T22, T38 | <ul><li>Meta generation and Full generation per variant for 3 sites</li><li>Arc sharing (pointer equality in lists)</li><li>docs views allocate < 2× the Model (dhat in `it`)</li><li>every documented key printed for every kind</li><li>insta views</li><li>render-state types and `ContentRenderer` final; `sitefuncs::register` signature stub frozen</li></ul> | 2.6k |
-| **T34** | neohugo-render | `crates/render` | T33, T30, T31, T11, T22 (sitefuncs at T33's frozen stub) | <ul><li>shortcode semantics on R's edge pages: param typing, `inner`, `%` vs `<`, nesting, ordinal, parent, escapes, `arg` filter</li><li>per-page placeholder renumbering through `render_shortcodes`</li><li>`page_inner` spans</li><li>cross-page memo: cycle test and forced two-thread no-deadlock test</li><li>buffered store writes committed once</li><li>hooks via Tera; JSON variant</li><li>HTML content; bundled content resources</li><li>summary oracle</li></ul> | 3.4k |
-| **T35** | neohugo-sitefuncs | `crates/sitefuncs` | T33, T40, T41, T42, T12 | <ul><li>every site-bound `FUNCS` entry</li><li>get_page/ref/rel_ref cases</li><li>pagination recorder: first call, identical reuse, conflict error with both positions, pager N in wave 2 incl. inside `partial()`</li><li>frames: nested `return_value`; `partial_cached` caches values</li><li>defer; store; i18n; deref; components via `page=` and via `@__nh`</li><li>`get_remote` error and `optional`</li></ul> | 3.0k |
-| **T36** | neohugo-build | `crates/build` | T34, T35, T50 | <ul><li>full §3 pipeline: language sub-waves, wave 2, deferred wave, URL-token publishing, images</li><li>mini, testsite and edge trees in memory match the structure oracle</li><li>docs cross-page shortcode cases (`include`, `glossary-term`, `quick-reference`)</li><li>A-DET; collisions logged</li></ul> | 2.6k |
+| **T50** | ssg-publish | `crates/publish` | T13, T26 | <ul><li>canonify: 100% of `nh-transform/absurl`</li><li>stats collector: 100% of `nh-publisher/collector` and golden stats</li><li>static-sync oracle</li><li>held outputs patched and re-scanned</li><li>URL-token extraction (entities, JSON escapes, srcset)</li></ul> | 2.2k |
+| **T33** | ssg-view | `crates/view` | T23b, T24, T40, T22, T38 | <ul><li>Meta generation and Full generation per variant for 3 sites</li><li>Arc sharing (pointer equality in lists)</li><li>docs views allocate < 2× the Model (dhat in `it`)</li><li>every documented key printed for every kind</li><li>insta views</li><li>render-state types and `ContentRenderer` final; `sitefuncs::register` signature stub frozen</li></ul> | 2.6k |
+| **T34** | ssg-render | `crates/render` | T33, T30, T31, T11, T22 (sitefuncs at T33's frozen stub) | <ul><li>shortcode semantics on R's edge pages: param typing, `inner`, `%` vs `<`, nesting, ordinal, parent, escapes, `arg` filter</li><li>per-page placeholder renumbering through `render_shortcodes`</li><li>`page_inner` spans</li><li>cross-page memo: cycle test and forced two-thread no-deadlock test</li><li>buffered store writes committed once</li><li>hooks via Tera; JSON variant</li><li>HTML content; bundled content resources</li><li>summary oracle</li></ul> | 3.4k |
+| **T35** | ssg-sitefuncs | `crates/sitefuncs` | T33, T40, T41, T42, T12 | <ul><li>every site-bound `FUNCS` entry</li><li>get_page/ref/rel_ref cases</li><li>pagination recorder: first call, identical reuse, conflict error with both positions, pager N in wave 2 incl. inside `partial()`</li><li>frames: nested `return_value`; `partial_cached` caches values</li><li>defer; store; i18n; deref; components via `page=` and via `@__nh`</li><li>`get_remote` error and `optional`</li></ul> | 3.0k |
+| **T36** | ssg-build | `crates/build` | T34, T35, T50 | <ul><li>full §3 pipeline: language sub-waves, wave 2, deferred wave, URL-token publishing, images</li><li>mini, testsite and edge trees in memory match the structure oracle</li><li>docs cross-page shortcode cases (`include`, `glossary-term`, `quick-reference`)</li><li>A-DET; collisions logged</li></ul> | 2.6k |
 | **T37** | CLI + `templates check` | `crates/cli` | T36 | <ul><li>kebab-case flags with camelCase aliases (`--clean-destination-dir` / `--cleanDestinationDir`, `-s -d -b -e --minify --clock -D -E -F`)</li><li>`HUGO_*` env</li><li>error report with positions; exit codes</li><li>`templates check` (§4.8) on 3 overlays</li><li>`nh-commands/cli` mapping</li></ul> | 1.4k |
 | **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed. **State:** `neohugo/tests/it/parity.rs` runs A-T through the binary: L1 56/56, L2 55/55 byte-identical (links, aliases, feeds, JSON URLs; dangling links only where Go's are), L3 every page, `hugo_stats.json` sets equal the oracle-checked collector over Go's HTML (Go's file itself is not in the reference); the structure oracle waits for T01 (TODO in the test). Embedded snapshots and their review table: `neohugo/tests/it/embedded.rs`, `crates/cli/README.md`; goat renders since T66 (`qr_code` since T72a) | fixes |
 | **T61** | Reconstruction layouts + assets in Tera | `rust/sites/seeksnack/**` | T02 (`FUNCS` final after T35) | contract test clean; v0.146 names; TS assets converted; redundant `.Paginate` dropped; §4.7 review | ~0.9k Tera |
 | **T62** | Reconstruction parity | `rust/sites/seeksnack/**`, baselines | T60, T61, T41, T42 | A-R | fixes |
 | **T63** | docs layouts A | `rust/sites/docs/layouts/{top-level,_partials/**}`, `patches/{i01,reduced}/` for baseof, get-featured-image, qr, body-main-start, get-github-info | T02 | contract test clean for the base and both variants; patch files 1:1 with `patches.json` | ~2.3k Tera |
 | **T64** | docs layouts B | `rust/sites/docs/layouts/{_shortcodes,_markup}/**`, `patches/i01/` for render-codeblock, hl, code-toggle | T02 | contract test clean; §4.4 rules (`quick-reference` → `page_content`); Scratch rewrites in `datatable` and `root-configuration-keys` | ~1.3k Tera |
-| **T65** | docs parity (A-D1) | `rust/sites/docs/**`, baselines | T60, T63, T64, T41, T42, T14, T35 | A-D1. **State:** passed (`compare.sh docs-i01 --task T65`): L1 888/888 in both passes, S 1728/1728, L2 756/756, L3 748/750 with heading IDs equal on every page, L4 100/100, A7 0.9987; the two ratchet entries are `engine-difference` (a table on lazy list-item lines, `hugo_stats.json` tags `?xml`/`=`; `tools/neohugo/changes/T65.md`). The Go GitHub stub now holds floats (golden docs-i01/docs-reduced regenerated) | fixes |
-| **T66** | docs A-D2 | `diagrams_goat` in `funcs` (fix-task lock), markup/highlight/resources fix tasks, docs overlay | T65, T25, T42, T31 | A-D2 | **State:** passed (`compare.sh docs-reduced --task T66`; committed as `neohugo/tests/it/docs.rs::gate_a_d2`): L1 889/889 in both passes, S 1730/1730, L2 757/757, L3 743/751, L4 100/100, A7 0.9907; ratchet entries: the three goat and three math pages and `hugo_stats.json` `accepted-deviation`, 21yunbox `engine-difference` (`tools/neohugo/changes/T66.md`). `diagrams_goat` uses svgbob (GoAT's size and `viewBox`); `neohugo` enables the `goat` and `math` features by default; `remarshal` YAML/TOML byte-equal to Go's on a fixture (yaml.v2 quoting and key order, go-toml literal strings, bare dates); the harness ignores code token spans (golden docs-reduced unminified manifest regenerated) | ~1k + fixes |
-| **T70** | Cleanup, audit, A-P | `docs/rust-port/`, `tools/rust-port/`, `PROVENANCE.md` | T62, T65 | HANDOFF rewritten; specs marked "byte-parity sections obsolete"; licence and provenance audit; A-P measured (release) **State:** done. [`HANDOFF.md`](HANDOFF.md) rewritten (crate map, commands, gates, CI/CD, deviations, open items, PR summary); the old port's HANDOFF, TERA_PLAN and HUGO_LAYER_CRITIQUE moved to `docs/rust-port/archive/`, every spec carries the "byte-parity sections obsolete" banner, `tools/rust-port/i01/{compare.sh,diff.py}` removed, `tools/rust-port/README.md` says what is in use. **A-P** (release, 4 CPUs, medians of 5–6 runs, HANDOFF §5): docs-reduced cold 3.29 s vs Go 3.99 s (0.82×), warm 3.26 s vs 3.51 s (0.93×), peak RSS 384 MB; testsite 0.071 vs 0.099 s; seeksnack 0.62 vs 2.40 s cold. Fix: `neohugo-highlight` links its syntax set in `build.rs` (it was 0.45 s of every process: testsite 0.50 → 0.064 s, docs 3.83 → 3.29 s); `NEOHUGO_TIMINGS=1` prints phase timings. Audit: licence check and `notices.py` pass; `THIRD_PARTY/emoji/` added (listed but missing), PROVENANCE rows for `rust/sites/**`, `testsite-go.txtar`, `testdata/golden/**`; no Zola or unattributed copied code. Follow-up from T71: `hugo.is_server`/`site.server_port` set in the server (`BuildRequest::server`) | 0.3k |
-| **T71** | neohugo-serve | `crates/serve`, `cli` (serve) | T36 | memory sink; `/livereload.js` + `/livereload` WebSocket on the same port; notify debounce 1 s; full rebuild; static-only copy; edit → reload ≤ 2 s on testsite. **State:** `neohugo-rs server` (alias `serve`; `build`'s flags plus `-p --bind --append-port --disable-live-reload --live-reload-port -N --render-to-disk --no-http-cache -w --poll`, camelCase aliases; environment `development`). Memory sink per build, swapped in when the build succeeds (the last good build stays on failure, errors printed with positions); `--render-to-disk` serves the publish directory. Base URLs rewritten to the listener (Hugo's `fixURL`, one listener per language of a multihost site); the LiveReload script in every HTML page but aliases (`neohugo-publish`, only for `server`: A-T stays 55/55); Hugo's `livereload.min.js` (MIT, `THIRD_PARTY/livereload`). Go file-server semantics (index, redirects, types from the media types, byte ranges), the `404.html` of the path's language with status 404. notify + notify-debouncer-full, 1 s (or `--poll`) over the project's and themes' mounts and configuration (their config files and `config/` dirs, any `neohugo.*`/`hugo.*`/`config.*` appearing in the project or a theme): config → reload + rebuild; site → full rebuild; static only → changed files copied, no build; reload commands by Hugo's fast-render rules on the output diff (CSS in place, one path, full, none; `--navigateToChanged`). Tests: `neohugo-serve` 6 unit + 15 `it` (testsite included), `neohugo` `server::*` 3, `neohugo-build` `skeleton::testsite_for_the_server`. Testsite, debug build: content edit → reload 1.54–2.03 s (typically 1.6–1.8 s: the 1 s debounce plus a ≈0.5–0.8 s rebuild, 92 % of which is `neohugo_highlight::Highlight::new` rebuilding syntect's syntax set in every `Session::new`; caching it in `neohugo-highlight` would give ≈1.1 s), static 1.0–1.1 s. Since then the syntax set is cached per process, and T70 links it at compile time and set `hugo.IsServer`/`site.ServerPort`. Open: the browser error page, `[server]` headers/redirects, fast render, TLS, `--openBrowser` | 1.5k |
+| **T65** | docs parity (A-D1) | `rust/sites/docs/**`, baselines | T60, T63, T64, T41, T42, T14, T35 | A-D1. **State:** passed (`compare.sh docs-i01 --task T65`): L1 888/888 in both passes, S 1728/1728, L2 756/756, L3 748/750 with heading IDs equal on every page, L4 100/100, A7 0.9987; the two ratchet entries are `engine-difference` (a table on lazy list-item lines, `hugo_stats.json` tags `?xml`/`=`; `tools/dev/changes/T65.md`). The Go GitHub stub now holds floats (golden docs-i01/docs-reduced regenerated) | fixes |
+| **T66** | docs A-D2 | `diagrams_goat` in `funcs` (fix-task lock), markup/highlight/resources fix tasks, docs overlay | T65, T25, T42, T31 | A-D2 | **State:** passed (`compare.sh docs-reduced --task T66`; committed as `neohugo/tests/it/docs.rs::gate_a_d2`): L1 889/889 in both passes, S 1730/1730, L2 757/757, L3 743/751, L4 100/100, A7 0.9907; ratchet entries: the three goat and three math pages and `hugo_stats.json` `accepted-deviation`, 21yunbox `engine-difference` (`tools/dev/changes/T66.md`). `diagrams_goat` uses svgbob (GoAT's size and `viewBox`); `neohugo` enables the `goat` and `math` features by default; `remarshal` YAML/TOML byte-equal to Go's on a fixture (yaml.v2 quoting and key order, go-toml literal strings, bare dates); the harness ignores code token spans (golden docs-reduced unminified manifest regenerated) | ~1k + fixes |
+| **T70** | Cleanup, audit, A-P | `docs/rust-port/`, `tools/rust-port/`, `PROVENANCE.md` | T62, T65 | HANDOFF rewritten; specs marked "byte-parity sections obsolete"; licence and provenance audit; A-P measured (release) **State:** done. [`HANDOFF.md`](HANDOFF.md) rewritten (crate map, commands, gates, CI/CD, deviations, open items, PR summary); the old port's HANDOFF, TERA_PLAN and HUGO_LAYER_CRITIQUE moved to `docs/rust-port/archive/`, every spec carries the "byte-parity sections obsolete" banner, `tools/rust-port/i01/{compare.sh,diff.py}` removed, `tools/rust-port/README.md` says what is in use. **A-P** (release, 4 CPUs, medians of 5–6 runs, HANDOFF §5): docs-reduced cold 3.29 s vs Go 3.99 s (0.82×), warm 3.26 s vs 3.51 s (0.93×), peak RSS 384 MB; testsite 0.071 vs 0.099 s; seeksnack 0.62 vs 2.40 s cold. Fix: `ssg-highlight` links its syntax set in `build.rs` (it was 0.45 s of every process: testsite 0.50 → 0.064 s, docs 3.83 → 3.29 s); `FUGO_TIMINGS=1` prints phase timings. Audit: licence check and `notices.py` pass; `THIRD_PARTY/emoji/` added (listed but missing), PROVENANCE rows for `rust/sites/**`, `testsite-go.txtar`, `testdata/golden/**`; no Zola or unattributed copied code. Follow-up from T71: `hugo.is_server`/`site.server_port` set in the server (`BuildRequest::server`) | 0.3k |
+| **T71** | ssg-serve | `crates/serve`, `cli` (serve) | T36 | memory sink; `/livereload.js` + `/livereload` WebSocket on the same port; notify debounce 1 s; full rebuild; static-only copy; edit → reload ≤ 2 s on testsite. **State:** `neohugo-rs server` (alias `serve`; `build`'s flags plus `-p --bind --append-port --disable-live-reload --live-reload-port -N --render-to-disk --no-http-cache -w --poll`, camelCase aliases; environment `development`). Memory sink per build, swapped in when the build succeeds (the last good build stays on failure, errors printed with positions); `--render-to-disk` serves the publish directory. Base URLs rewritten to the listener (Hugo's `fixURL`, one listener per language of a multihost site); the LiveReload script in every HTML page but aliases (`ssg-publish`, only for `server`: A-T stays 55/55); Hugo's `livereload.min.js` (MIT, `THIRD_PARTY/livereload`). Go file-server semantics (index, redirects, types from the media types, byte ranges), the `404.html` of the path's language with status 404. notify + notify-debouncer-full, 1 s (or `--poll`) over the project's and themes' mounts and configuration (their config files and `config/` dirs, any `neohugo.*`/`hugo.*`/`config.*` appearing in the project or a theme): config → reload + rebuild; site → full rebuild; static only → changed files copied, no build; reload commands by Hugo's fast-render rules on the output diff (CSS in place, one path, full, none; `--navigateToChanged`). Tests: `ssg-serve` 6 unit + 15 `it` (testsite included), `neohugo` `server::*` 3, `ssg-build` `skeleton::testsite_for_the_server`. Testsite, debug build: content edit → reload 1.54–2.03 s (typically 1.6–1.8 s: the 1 s debounce plus a ≈0.5–0.8 s rebuild, 92 % of which is `ssg_highlight::Highlight::new` rebuilding syntect's syntax set in every `Session::new`; caching it in `ssg-highlight` would give ≈1.1 s), static 1.0–1.1 s. Since then the syntax set is cached per process, and T70 links it at compile time and set `hugo.IsServer`/`site.ServerPort`. Open: the browser error page, `[server]` headers/redirects, fast render, TLS, `--openBrowser` | 1.5k |
 | **T72** | COULD features | per-feature crates (fix-task locks) | T65 | Each item lifts one patch and keeps A-D2 green: <ul><li>`images.Text` (`{op:"text"}`), `qr_code`, Dither, smartcrop (**T72a** implemented the first three in `images`/`resources`/`sitefuncs`; the docs patches are not lifted yet)</li><li>Chroma style gallery</li><li>`:git` lastmod</li><li>content adapters as a `_content.html` Tera template calling `add_page`</li><li>Org front matter</li></ul> | 3k |
-| **T73** | neohugo-migrate + real seeksnack | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(neohugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
+| **T73** | ssg-migrate + real seeksnack | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(neohugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
 | **T74** | docs-live: the published docs site (A-D3) | `sites/docs/**`, `tools/{docs,neohugo,rust-port}/**`, `testdata/golden/docs-live/`, baselines; engine items in `build`/`site`/`page`/`sitefuncs` (content adapters), `funcs` (KaTeX, GoAT), `images` (smartcrop), `markup`/`render` (goldmark tables, shortcode indentation), `highlight` (Chroma port) | T66, T72a | A-D3: the docs without patches against the published site (neohugo/neohugo.github.io at a1928152) — L1, L2, L4 equal on every file, A7 1.0. **State:** passed (`gate_a_d3`): L1 2373/2373, L2 776/776, L3 769/770 (Go's stats tokenizer reading `<?xml`/`<=` as tags), L4 873/873, A7 1.0; A-D1 and A-D2 reach A7 1.0 too (their math, GoAT and table entries `bug-fixed`); `tools/docs/build.sh` builds and serves the site | – |
 
 ### 8.3 Schedule (four lanes) and critical path
@@ -1994,34 +1994,34 @@ Sizes are Rust src + tests unless noted.
 
 | Crate | src | tests | Notes |
 |---|---:|---:|---|
-| neohugo-base | 2,800 | 900 | ids, paths, anchors, inflect/title data |
-| neohugo-config | 2,800 | 700 | Value-tree pipeline + typed structs |
-| neohugo-vfs | 1,400 | 400 | |
-| neohugo-pageparser | 1,900 | 500 | |
-| neohugo-locale | 1,600 | 400 | incl. message evaluator |
-| neohugo-page | 3,000 | 900 | |
-| neohugo-site | 3,900 | 1,100 | T23a + T23b, incl. data loading |
-| neohugo-nav | 1,600 | 500 | |
-| neohugo-markup | 3,300 | 1,000 | custom passes, context spans |
-| neohugo-highlight | 1,400 | 400 | scope map, inline styles, Go-template syntax |
-| neohugo-minify | 500 | 200 | |
-| neohugo-resources | 4,000 | 1,300 | core 2.2k + pipes 1.8k |
+| ssg-base | 2,800 | 900 | ids, paths, anchors, inflect/title data |
+| ssg-config | 2,800 | 700 | Value-tree pipeline + typed structs |
+| ssg-vfs | 1,400 | 400 | |
+| ssg-pageparser | 1,900 | 500 | |
+| ssg-locale | 1,600 | 400 | incl. message evaluator |
+| ssg-page | 3,000 | 900 | |
+| ssg-site | 3,900 | 1,100 | T23a + T23b, incl. data loading |
+| ssg-nav | 1,600 | 500 | |
+| ssg-markup | 3,300 | 1,000 | custom passes, context spans |
+| ssg-highlight | 1,400 | 400 | scope map, inline styles, Go-template syntax |
+| ssg-minify | 500 | 200 | |
+| ssg-resources | 4,000 | 1,300 | core 2.2k + pipes 1.8k |
 | neohugo-esbuild | 1,800 | 400 | 1.3k restored unchanged |
-| neohugo-images | 3,200 | 800 | |
-| neohugo-layouts | 2,300 | 700 | + ~1,200 embedded Tera lines |
-| neohugo-funcs | 3,600 | 1,200 | incl. `FUNCS` spec |
-| neohugo-view | 2,000 | 600 | views + render-state types |
-| neohugo-sitefuncs | 2,400 | 600 | |
-| neohugo-render | 2,700 | 700 | |
-| neohugo-publish | 1,600 | 600 | |
-| neohugo-build | 2,000 | 600 | incl. site integration tests |
+| ssg-images | 3,200 | 800 | |
+| ssg-layouts | 2,300 | 700 | + ~1,200 embedded Tera lines |
+| ssg-funcs | 3,600 | 1,200 | incl. `FUNCS` spec |
+| ssg-view | 2,000 | 600 | views + render-state types |
+| ssg-sitefuncs | 2,400 | 600 | |
+| ssg-render | 2,700 | 700 | |
+| ssg-publish | 1,600 | 600 | |
+| ssg-build | 2,000 | 600 | incl. site integration tests |
 | neohugo (cli + templates check) | 1,100 | 300 | |
-| neohugo-testkit | 1,000 | – | dev only |
+| ssg-testkit | 1,000 | – | dev only |
 | **Core total** | **≈ 55,900** | **≈ 14,900** | about 71k lines, roughly 1/6 of the old tree (337,648 src + 106,631 tests + 111k vendored C/C++) |
 | Walking-skeleton glue (T38, replaced) | 600 | 200 | throwaway |
-| neohugo-serve (T71) | 1,500 | 300 | |
+| ssg-serve (T71) | 1,500 | 300 | |
 | COULD features (T72) | 3,000 | 700 | |
-| neohugo-migrate (T73) | 2,500 | 500 | |
+| ssg-migrate (T73) | 2,500 | 500 | |
 | Harness (Python) + `structure` oracle (Go) | ~2,700 Py + ~500 Go | – | |
 | Tera: testsite / reconstruction / docs / real seeksnack | ~100 / ~900 / ~3,600 / ~900 | – | template lines |
 

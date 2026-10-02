@@ -1,8 +1,8 @@
-//! Rendering options, and their derivation from `[markup]` (`neohugo_config::MarkupConfig`).
+//! Rendering options, and their derivation from `[markup]` (`ssg_config::MarkupConfig`).
 
 use bitflags::bitflags;
-use neohugo_base::anchor;
-use neohugo_config::markup::{MarkupConfig, TocConfig};
+use ssg_base::anchor;
+use ssg_config::markup::{MarkupConfig, TocConfig};
 
 bitflags! {
     /// Markdown extensions (goldmark's `[markup.goldmark.extensions]` and `parser` switches).
@@ -119,12 +119,12 @@ pub struct Typographer {
 
 impl Default for Typographer {
     fn default() -> Self {
-        Self::from(&neohugo_config::markup::Typographer::default())
+        Self::from(&ssg_config::markup::Typographer::default())
     }
 }
 
-impl From<&neohugo_config::markup::Typographer> for Typographer {
-    fn from(t: &neohugo_config::markup::Typographer) -> Self {
+impl From<&ssg_config::markup::Typographer> for Typographer {
+    fn from(t: &ssg_config::markup::Typographer) -> Self {
         Self {
             left_single_quote: t.left_single_quote.clone(),
             right_single_quote: t.right_single_quote.clone(),

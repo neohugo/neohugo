@@ -4,13 +4,13 @@
 //! `NH_ORACLE_FAMILY=<family>` lists every disagreement of one family.
 //!
 //! A case agrees when both sides fail (error texts are never compared), or both succeed with the
-//! same value: numbers compare numerically, and where Go returns `template.HTML` but neohugo a
-//! plain string (neohugo returns text and leaves escaping to autoescape), the text may equal Go's
+//! same value: numbers compare numerically, and where Go returns `template.HTML` but this port a
+//! plain string (this port returns text and leaves escaping to autoescape), the text may equal Go's
 //! HTML as is, once escaped, or Go's HTML with its character references decoded (the same
 //! page either way).
 //!
-//! The extraction skips what has no neohugo counterpart: Go-only argument types (float32, named
-//! types, typed nils, structs, bytes), `time.Time` printed as text (neohugo dates are
+//! The extraction skips what has no native counterpart: Go-only argument types (float32, named
+//! types, typed nils, structs, bytes), `time.Time` printed as text (this port dates are
 //! `{rfc3339, unix}` maps), Go panics and reflection errors, XML and CSV output.
 
 use std::collections::BTreeMap;
@@ -63,7 +63,7 @@ fn escape(s: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-/// The text of Go's HTML (character references decoded, with neohugo's `html_unescape`).
+/// The text of Go's HTML (character references decoded, with our `html_unescape`).
 fn unescape(h: &Harness, s: &str) -> String {
     let mut ctx = Context::new();
     ctx.insert("s", s);
@@ -111,7 +111,7 @@ fn agrees(h: &Harness, got: &Result<Value, String>, want: &Want) -> bool {
 fn eval(h: &Harness, c: &Case) -> Result<Value, String> {
     let mut ctx = Context::new();
     ctx.insert("lang", &c.lang);
-    let input = neohugo_testkit::tera_value(&c.input);
+    let input = ssg_testkit::tera_value(&c.input);
     let input = match input.as_str() {
         Some(s) if c.input_safe => Value::safe_string(s),
         _ => input,
@@ -119,7 +119,7 @@ fn eval(h: &Harness, c: &Case) -> Result<Value, String> {
     ctx.insert_value("__in", input);
     let mut args = Vec::new();
     for (k, v) in &c.kwargs {
-        ctx.insert_value(format!("__kw_{k}"), neohugo_testkit::tera_value(v));
+        ctx.insert_value(format!("__kw_{k}"), ssg_testkit::tera_value(v));
         args.push(format!("{k}=__kw_{k}"));
     }
     let call = format!("{}({})", c.f, args.join(", "));
@@ -134,8 +134,8 @@ fn eval(h: &Harness, c: &Case) -> Result<Value, String> {
 
 #[test]
 fn tplfuncs_agreement() {
-    let cases: Vec<Case> = neohugo_testkit::fixture::read_jsonl(
-        &neohugo_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/tplfuncs.jsonl.gz"),
+    let cases: Vec<Case> = ssg_testkit::fixture::read_jsonl(
+        &ssg_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/tplfuncs.jsonl.gz"),
     )
     .expect("fixture");
     let h = Harness::new();

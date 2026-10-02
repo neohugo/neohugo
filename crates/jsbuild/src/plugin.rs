@@ -25,16 +25,16 @@ use crate::options::Loader;
 use crate::resolve::{ComponentResolver, dir, join};
 
 /// The plugin's name in rolldown's diagnostics.
-pub(crate) const PLUGIN_NAME: &str = "neohugo-import-resolver";
+pub(crate) const PLUGIN_NAME: &str = "ssg-import-resolver";
 /// The specifier of the entry script; it resolves to [`BuildContext::entry_id`].
-pub(crate) const ENTRY: &str = "neohugo:entry";
+pub(crate) const ENTRY: &str = "ssg:entry";
 /// The specifier the entry imports the `inject` files through (see [`BuildContext::new`]).
-const INJECT: &str = "neohugo:inject";
+const INJECT: &str = "ssg:inject";
 /// The specifier lowered decorators import their helpers from.
-const DECORATOR_HELPERS: &str = "neohugo:decorators";
-const PARAMS_ID: &str = "\0neohugo-params";
-const INJECT_ID: &str = "\0neohugo-inject";
-const DECORATOR_HELPERS_ID: &str = "\0neohugo-decorators";
+const DECORATOR_HELPERS: &str = "ssg:decorators";
+const PARAMS_ID: &str = "\0ssg-params";
+const INJECT_ID: &str = "\0ssg-inject";
+const DECORATOR_HELPERS_ID: &str = "\0ssg-decorators";
 
 /// What the plugin knows about one build.
 #[derive(Debug)]
@@ -195,13 +195,13 @@ impl BuildContext {
     }
 }
 
-/// The `neohugo-import-resolver` plugin.
+/// The `ssg-import-resolver` plugin.
 #[derive(Debug)]
-pub(crate) struct NeohugoPlugin {
+pub(crate) struct SitePlugin {
     pub(crate) ctx: std::sync::Arc<BuildContext>,
 }
 
-impl Plugin for NeohugoPlugin {
+impl Plugin for SitePlugin {
     fn name(&self) -> Cow<'static, str> {
         Cow::Borrowed(PLUGIN_NAME)
     }
@@ -269,7 +269,7 @@ impl Plugin for NeohugoPlugin {
         }
         // Not an asset: the original path, from the project directory (esbuild's resolveDir
         // for the entry and for modules loaded as assets).
-        let from = ctx.working_dir.join("__neohugo_importer__.js");
+        let from = ctx.working_dir.join("__ssg_importer__.js");
         match pctx
             .resolve(args.specifier, Some(&from.to_string_lossy()), None)
             .await?

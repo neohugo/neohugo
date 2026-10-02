@@ -2,9 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_funcs::{NOT_COMPILED, pure_specs};
-use neohugo_testkit::tera_value;
 use serde_json::json;
+use ssg_funcs::{NOT_COMPILED, pure_specs};
+use ssg_testkit::tera_value;
 use tera::Context;
 
 use crate::support::Harness;
@@ -213,13 +213,13 @@ const EXAMPLES: &[(&str, &str)] = &[
     ("urlencode", "{{ 'a b/c?d' | urlencode }}"),
     ("urlencode_strict", "{{ 'a b/c?d' | urlencode_strict }}"),
     ("urldecode", "{{ 'a%20b+c' | urldecode }}"),
-    ("b64_encode", "{{ 'neohugo' | b64_encode }}"),
+    ("b64_encode", "{{ 'example' | b64_encode }}"),
     ("b64_decode", "{{ 'bmVvaHVnbw==' | b64_decode }}"),
-    ("md5", "{{ 'neohugo' | md5 }}"),
-    ("sha1", "{{ 'neohugo' | sha1 }}"),
-    ("sha256", "{{ 'neohugo' | sha256 }}"),
-    ("fnv32a", "{{ 'neohugo' | fnv32a }}"),
-    ("xxhash", "{{ 'neohugo' | xxhash }}"),
+    ("md5", "{{ 'example' | md5 }}"),
+    ("sha1", "{{ 'example' | sha1 }}"),
+    ("sha256", "{{ 'example' | sha256 }}"),
+    ("fnv32a", "{{ 'example' | fnv32a }}"),
+    ("xxhash", "{{ 'example' | xxhash }}"),
     // urls
     (
         "parse_url",
@@ -284,10 +284,7 @@ const EXAMPLES: &[(&str, &str)] = &[
         "{{ named | arg(name='src') }} {{ named | arg(index=0) is none }}",
     ),
     // system
-    (
-        "get_env",
-        "[{{ get_env(name='NEOHUGO_FUNCS_TEST_UNSET') }}]",
-    ),
+    ("get_env", "[{{ get_env(name='FUGO_FUNCS_TEST_UNSET') }}]"),
     (
         "read_file",
         "{{ read_file(path='tests/fixtures/hello.txt') }}",
@@ -375,7 +372,7 @@ fn examples() {
             (*label, rendered)
         })
         .collect();
-    neohugo_testkit::snapshot::settings().bind(|| {
+    ssg_testkit::snapshot::settings().bind(|| {
         insta::assert_yaml_snapshot!("examples", out);
     });
 }

@@ -7,8 +7,8 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::paths::ContentKey;
-use neohugo_page::Cascade;
+use ssg_base::paths::ContentKey;
+use ssg_page::Cascade;
 
 /// The cascades handed down in one language's tree.
 #[derive(Clone, Debug, Default, PartialEq)]

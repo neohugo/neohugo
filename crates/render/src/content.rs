@@ -9,16 +9,16 @@
 use std::path::Path;
 use std::sync::{Arc, OnceLock};
 
-use neohugo_base::PageId;
-use neohugo_config::site::{EmojiPolicy, SiteConfig};
-use neohugo_highlight::Highlight;
-use neohugo_markup::{
+use ssg_base::PageId;
+use ssg_config::site::{EmojiPolicy, SiteConfig};
+use ssg_highlight::Highlight;
+use ssg_markup::{
     CodeFences, ExpandedMarkdown, Fragments, Heading, HighlightOptions, Highlighter, HookError,
     MarkdownOptions, SourceContexts,
 };
-use neohugo_page::{Cjk, Markup};
-use neohugo_site::{Page, SourceFile};
-use neohugo_view::{
+use ssg_page::{Cjk, Markup};
+use ssg_site::{Page, SourceFile};
+use ssg_view::{
     ContentError, ExpandedSource, HookVariant, RenderScope, RenderStringOptions, RenderedContent,
     Stage,
 };
@@ -52,12 +52,12 @@ impl Highlighter for LazyHighlight<'_> {
 
 /// `body` with its shortcode calls removed (the lexer's text only).
 fn unexpanded(body: &str) -> String {
-    let Ok(tokens) = neohugo_pageparser::lex(body) else {
+    let Ok(tokens) = ssg_pageparser::lex(body) else {
         return body.to_owned();
     };
     tokens
         .iter()
-        .filter(|t| t.kind == neohugo_pageparser::TokenKind::Text)
+        .filter(|t| t.kind == ssg_pageparser::TokenKind::Text)
         .map(|t| t.text(body))
         .collect()
 }
@@ -157,10 +157,10 @@ impl Session {
             scope.format,
             scope,
         );
-        let body = neohugo_pageparser::parse_body(src.body(), &|name: &str| ex.inner_use(name))
+        let body = ssg_pageparser::parse_body(src.body(), &|name: &str| ex.inner_use(name))
             .map_err(|e| {
                 let (line, col) =
-                    neohugo_pageparser::line_col(&src.text, src.body_offset + e.span().start);
+                    ssg_pageparser::line_col(&src.text, src.body_offset + e.span().start);
                 ContentError::Render(format!("{}:{line}:{col}: {e}", file.display()))
             })?;
         ex.run(&body)
@@ -193,7 +193,7 @@ impl Session {
                 }
                 let expanded = self.expanded(id, HookVariant::Html, child)?;
                 let file = file_of(src);
-                let mut f = neohugo_markup::fragments(
+                let mut f = ssg_markup::fragments(
                     &ExpandedMarkdown {
                         text: &expanded.markdown,
                         page: id,
@@ -217,7 +217,7 @@ impl Session {
     ) -> Result<Fragments, ContentError> {
         let file = file_of(src);
         let text = unexpanded(src.body());
-        neohugo_markup::fragments(
+        ssg_markup::fragments(
             &ExpandedMarkdown {
                 text: &text,
                 page: page.id,
@@ -278,7 +278,7 @@ impl Session {
                 };
                 let hl: Option<&dyn Highlighter> =
                     (o.code_fences == CodeFences::Hooked).then_some(&hl);
-                let r = neohugo_markup::render(
+                let r = ssg_markup::render(
                     &ExpandedMarkdown {
                         text: &expanded.markdown,
                         page: page.id,
@@ -369,7 +369,7 @@ impl Session {
         };
         let hl: Option<&dyn Highlighter> = (opts.code_fences == CodeFences::Hooked).then_some(&hl);
         let contexts = SourceContexts::default();
-        let r = neohugo_markup::render(
+        let r = ssg_markup::render(
             &ExpandedMarkdown {
                 text: md,
                 page: page.id,
@@ -397,7 +397,7 @@ impl Session {
         scope: &RenderScope,
     ) -> Result<Arc<ExpandedSource>, ContentError> {
         let src = self.expanded(id, scope.variant, scope)?;
-        let markdown = if scope.phase == neohugo_view::Phase::Content {
+        let markdown = if scope.phase == ssg_view::Phase::Content {
             self.inclusions().token(id, Arc::clone(&src))
         } else {
             tokens::resolve(&src)

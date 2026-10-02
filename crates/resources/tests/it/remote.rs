@@ -18,10 +18,10 @@
 use std::fs;
 use std::path::Path;
 
-use neohugo_base::{Idx, LangIdx, Map, Value};
-use neohugo_resources::{RemoteOptions, ResourceStore, StoreConfig, hugo_keys};
-use neohugo_testkit::fixture::testdata;
 use serde_json::{Value as J, json};
+use ssg_base::{Idx, LangIdx, Map, Value};
+use ssg_resources::{RemoteOptions, ResourceStore, StoreConfig, hugo_keys};
+use ssg_testkit::fixture::testdata;
 
 use crate::support::{config, json_doc, repo_dir, sha};
 
@@ -42,7 +42,7 @@ fn options_of(v: Option<&J>) -> Option<Map> {
 fn offline_store(tmp: &Path, import: &Path) -> ResourceStore {
     let site = tmp.join("site");
     fs::create_dir_all(&site).unwrap();
-    fs::write(site.join("neohugo.toml"), SECURITY).unwrap();
+    fs::write(site.join("config.toml"), SECURITY).unwrap();
     let cfg = config(&site, &tmp.join("home"));
     let mut sc = StoreConfig::from_config(&cfg, None, None);
     sc.remote.cache_dir = Some(tmp.join("cache/getresource"));
@@ -52,7 +52,7 @@ fn offline_store(tmp: &Path, import: &Path) -> ResourceStore {
 }
 
 /// The oracle's record of a remote resource, for comparison.
-fn rec(store: &ResourceStore, id: neohugo_base::ResourceId, want: &J) -> J {
+fn rec(store: &ResourceStore, id: ssg_base::ResourceId, want: &J) -> J {
     let r = store.resource(id);
     let b = store.content(id).unwrap();
     let mut o = json!({
@@ -103,9 +103,8 @@ fn compare(what: &str, want: &J, got: &J, failures: &mut Vec<String>) {
 
 #[test]
 fn hugo_cache_names() {
-    let fx: J = neohugo_testkit::fixture::oracle(
-        "oracle/resource-transformers/getremote/getremote.json.gz",
-    );
+    let fx: J =
+        ssg_testkit::fixture::oracle("oracle/resource-transformers/getremote/getremote.json.gz");
     let calls = fx["calls"].as_array().unwrap();
     let mut n = 0;
     for k in fx["keys"].as_array().unwrap() {
@@ -122,9 +121,8 @@ fn hugo_cache_names() {
 
 #[test]
 fn oracle_calls_from_hugo_cache() {
-    let fx: J = neohugo_testkit::fixture::oracle(
-        "oracle/resource-transformers/getremote/getremote.json.gz",
-    );
+    let fx: J =
+        ssg_testkit::fixture::oracle("oracle/resource-transformers/getremote/getremote.json.gz");
     let tmp = tempfile::tempdir().unwrap();
     let store = offline_store(
         tmp.path(),
@@ -196,9 +194,8 @@ fn oracle_calls_from_hugo_cache() {
 
 #[test]
 fn seeksnack_youtube_responses() {
-    let fx: J = neohugo_testkit::fixture::oracle(
-        "oracle/resource-transformers/getremote/getremote.json.gz",
-    );
+    let fx: J =
+        ssg_testkit::fixture::oracle("oracle/resource-transformers/getremote/getremote.json.gz");
     let golden =
         repo_dir().join("tools/rust-port/testdata/hugo_cache/seeksnack/filecache/getresource");
     let tmp = tempfile::tempdir().unwrap();

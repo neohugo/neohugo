@@ -2,12 +2,12 @@
 
 use std::fs;
 
-use neohugo_serve::{HttpCache, LiveReloadOptions, Target, Watch};
+use ssg_serve::{HttpCache, LiveReloadOptions, Target, Watch};
 
 use crate::{LiveReload, PATIENCE, get, request, serve, site, write};
 
 const SITE: &str = r#"
--- neohugo.toml --
+-- config.toml --
 baseURL = "https://example.org/"
 title = "Serve"
 disableKinds = ["taxonomy", "term", "sitemap", "rss", "robotsTXT"]
@@ -292,7 +292,7 @@ fn config_change_reloads_the_configuration() {
     let (server, events) = serve(dir.path(), |_| {});
     let addr = server.local_addrs()[0];
     let mut lr = LiveReload::connect(addr, "/livereload");
-    let config = dir.path().join("neohugo.toml");
+    let config = dir.path().join("config.toml");
     let text = fs::read_to_string(&config).expect("config");
     write(
         &config,
@@ -410,7 +410,7 @@ fn base_path_caching_and_no_live_reload() {
 #[test]
 fn multihost_sites_get_a_listener_each() {
     let dir = site(concat!(
-        "-- neohugo.toml --\n",
+        "-- config.toml --\n",
         "defaultContentLanguage = \"en\"\n",
         "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\"]\n",
         "[languages.en]\nbaseURL = \"https://en.example.org/\"\ntitle = \"English\"\nweight = 1\n",
@@ -452,7 +452,7 @@ fn multihost_sites_get_a_listener_each() {
 #[test]
 fn per_language_404_pages() {
     let dir = site(concat!(
-        "-- neohugo.toml --\n",
+        "-- config.toml --\n",
         "baseURL = \"https://example.org/\"\n",
         "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\"]\n",
         "[languages.en]\nweight = 1\n[languages.nn]\nweight = 2\n",
@@ -504,7 +504,7 @@ fn a_new_static_directory_is_watched() {
     server.shutdown();
 }
 
-/// A theme's layouts and configuration are watched; a `neohugo.toml` created next to
+/// A theme's layouts and configuration are watched; a `config.toml` created next to
 /// `config.toml` is a configuration change (and wins).
 #[test]
 fn theme_and_new_config_files_are_watched() {
@@ -512,7 +512,7 @@ fn theme_and_new_config_files_are_watched() {
         "-- config.toml --\n",
         "baseURL = \"https://example.org/\"\ntitle = \"Hugo\"\ntheme = \"t\"\n",
         "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\", \"404\"]\n",
-        "-- themes/t/neohugo.toml --\n[params]\ncolor = \"red\"\n",
+        "-- themes/t/config.toml --\n[params]\ncolor = \"red\"\n",
         "-- themes/t/layouts/home.html --\n",
         "<html><head></head><body>{{ site.title }} {{ site.params.color }}</body></html>\n",
         "-- content/_index.md --\n---\ntitle: Home\n---\n",
@@ -530,7 +530,7 @@ fn theme_and_new_config_files_are_watched() {
     assert!(get(addr, "/", &[]).text().contains("theme Hugo red"));
 
     write(
-        &dir.path().join("themes/t/neohugo.toml"),
+        &dir.path().join("themes/t/config.toml"),
         "[params]\ncolor = \"blue\"\n",
     );
     assert!(lr.expect().contains(r#""path":"/x.js""#));
@@ -538,7 +538,7 @@ fn theme_and_new_config_files_are_watched() {
 
     let text = fs::read_to_string(dir.path().join("config.toml")).expect("config.toml");
     write(
-        &dir.path().join("neohugo.toml"),
+        &dir.path().join("config.toml"),
         &text.replace("title = \"Hugo\"", "title = \"Neo\""),
     );
     assert!(lr.expect().contains(r#""path":"/x.js""#));
@@ -566,16 +566,16 @@ fn polling_watcher() {
     server.shutdown();
 }
 
-/// `neohugo.is_server` is true and `site.server_port` is the listener's port in the server
+/// `build.is_server` is true and `site.server_port` is the listener's port in the server
 /// (T70); a `build` of the same site has `false` and its base URL's port (none: 0).
 #[test]
-fn neohugo_is_server_and_site_server_port() {
+fn build_is_server_and_site_server_port() {
     let dir = site(concat!(
-        "-- neohugo.toml --\n",
+        "-- config.toml --\n",
         "baseURL = \"https://example.org/\"\n",
         "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\", \"404\"]\n",
         "-- layouts/home.html --\n",
-        "<html><head></head><body>server={{ neohugo.is_server }} port={{ site.server_port }}</body></html>\n",
+        "<html><head></head><body>server={{ build.is_server }} port={{ site.server_port }}</body></html>\n",
     ));
     let (server, _events) = serve(dir.path(), |o| o.watch = Watch::Off);
     let addr = server.local_addrs()[0];
@@ -584,10 +584,10 @@ fn neohugo_is_server_and_site_server_port() {
     assert!(home.contains(&want), "{home}");
     server.shutdown();
 
-    let report = neohugo_build::build(neohugo_build::BuildRequest {
+    let report = ssg_build::build(ssg_build::BuildRequest {
         source: dir.path().to_owned(),
-        sink: neohugo_build::SinkKind::Memory,
-        ..neohugo_build::BuildRequest::default()
+        sink: ssg_build::SinkKind::Memory,
+        ..ssg_build::BuildRequest::default()
     })
     .expect("build");
     let memory = report.memory.expect("memory sink");

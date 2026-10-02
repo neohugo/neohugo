@@ -1,7 +1,7 @@
 //! `execute_as_template`: a resource's content executed as a template, published at a target
 //! path. The template engine is the render layer's; this module defines the seam.
 
-use neohugo_base::ResourceId;
+use ssg_base::ResourceId;
 
 use super::{PipeError, text};
 use crate::store::{CallSite, ResourceError, ResourceStore};

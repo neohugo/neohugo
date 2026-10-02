@@ -1,16 +1,16 @@
-//! Manual smoke builds of real sites (ignored): `NEOHUGO_SITES=<dir>[:<dir>…] cargo test -p
-//! neohugo-build smoke -- --ignored --nocapture` with directories from
+//! Manual smoke builds of real sites (ignored): `FUGO_SITES=<dir>[:<dir>…] cargo test -p
+//! ssg-build smoke -- --ignored --nocapture` with directories from
 //! `tools/rust-port/i01/sites.py make <site> <dir>` (Tera layouts copied over for the sites
 //! that have them in `sites/<site>`). Prints the report or the error of each build.
 
 use std::path::PathBuf;
 
-use neohugo_build::{BuildError, BuildRequest, SinkKind, build};
+use ssg_build::{BuildError, BuildRequest, SinkKind, build};
 
 #[test]
-#[ignore = "needs NEOHUGO_SITES"]
+#[ignore = "needs FUGO_SITES"]
 fn smoke() {
-    let Some(sites) = std::env::var_os("NEOHUGO_SITES") else {
+    let Some(sites) = std::env::var_os("FUGO_SITES") else {
         return;
     };
     for dir in std::env::split_paths(&sites) {

@@ -3,15 +3,15 @@
 //! is Hugo's, byte for byte (`tests/data/hugo-docs-html.json.gz`, hashes); see the crate README
 //! for how the fixtures are made.
 //!
-//! `NEOHUGO_HL_PAIRS=1` prints the most frequent class differences per lexer;
-//! `NEOHUGO_HL_OURS=<file>` writes our HTML per item (JSON) for comparing with Hugo's.
+//! `FUGO_HL_PAIRS=1` prints the most frequent class differences per lexer;
+//! `FUGO_HL_OURS=<file>` writes our HTML per item (JSON) for comparing with Hugo's.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use neohugo_config::markup::HighlightConfig;
-use neohugo_highlight::{Highlight, OptionsArg, TokenType};
-use neohugo_testkit::fixture::{read_json, repo_dir};
 use serde::Deserialize;
+use ssg_config::markup::HighlightConfig;
+use ssg_highlight::{Highlight, OptionsArg, TokenType};
+use ssg_testkit::fixture::{read_json, repo_dir};
 
 use crate::corpus::{self, Item, Opts};
 
@@ -29,7 +29,7 @@ struct Html {
     hash: String,
 }
 
-/// The docs site's `[markup.highlight]` (docs/neohugo.toml).
+/// The docs site's `[markup.highlight]` (docs/config.toml).
 fn docs_config() -> HighlightConfig {
     HighlightConfig {
         line_numbers_in_table: false,
@@ -45,10 +45,10 @@ fn fixture<T: serde::de::DeserializeOwned>(name: &str) -> T {
         .unwrap_or_else(|e| panic!("{name}: {e}"))
 }
 
-/// `NEOHUGO_HL_DUMP=<file>`: writes the corpus as the oracle's input (README).
+/// `FUGO_HL_DUMP=<file>`: writes the corpus as the oracle's input (README).
 #[test]
 fn dump_corpus() {
-    let Some(path) = std::env::var_os("NEOHUGO_HL_DUMP") else {
+    let Some(path) = std::env::var_os("FUGO_HL_DUMP") else {
         return;
     };
     let items: Vec<_> = corpus::load()
@@ -223,7 +223,7 @@ fn docs_corpus() {
         total.add(&t);
     }
 
-    if let Some(path) = std::env::var_os("NEOHUGO_HL_OURS") {
+    if let Some(path) = std::env::var_os("FUGO_HL_OURS") {
         std::fs::write(path, serde_json::to_string(&ours_html).expect("json")).expect("write");
     }
     println!("items {} {by_source:?}", items.len());
@@ -240,7 +240,7 @@ fn docs_corpus() {
             pct(t.same_class, t.chars)
         );
     }
-    if std::env::var_os("NEOHUGO_HL_PAIRS").is_some() {
+    if std::env::var_os("FUGO_HL_PAIRS").is_some() {
         let mut pairs: Vec<_> = pairs.into_iter().collect();
         pairs.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
         for ((lexer, theirs, mine), n) in pairs.iter().take(60) {

@@ -1,9 +1,9 @@
 # GetRemote responses of the published docs build (docs-live)
 
 `sites.py cache docs-live <dir>` copies these into `<dir>/docs-live/filecache/getresource/`
-(a `.gz` file decompressed), the `NEOHUGO_CACHEDIR` of gate A-D3 (`compare.sh docs-live`), whose
-build runs without network access. Each file is a cached response as neohugo stores it (an HTTP
-response: status line, headers, blank line, body) under its cache key, the hash neohugo derives
+(a `.gz` file decompressed), the `FUGO_CACHEDIR` of gate A-D3 (`compare.sh docs-live`), whose
+build runs without network access. Each file is a cached response as fugo stores it (an HTTP
+response: status line, headers, blank line, body) under its cache key, the hash fugo derives
 from the URL and the request options. They are the responses the published site
 (neohugo/neohugo.github.io at a1928152, built 2025-10-13; `testdata/golden/README.md`) was built
 with, recorded on 2026-10-01 and normalised: only the status line, `Date` (set to the build's

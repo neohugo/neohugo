@@ -6,7 +6,7 @@ use crate::support::Harness;
 
 /// rolldown turns on serde_json's `preserve_order` and `arbitrary_precision` in every build it
 /// is part of, and the workspace-hack turns them on for every member, so this test build has
-/// them as the binary does. neohugo must not rely on `serde_json::Map`'s order: its own values
+/// them as the binary does. This port must not rely on `serde_json::Map`'s order: its own values
 /// sort their keys.
 #[test]
 fn serde_json_has_the_binarys_features() {
@@ -24,7 +24,7 @@ fn serde_json_has_the_binarys_features() {
         ["b", "a"],
         "serde_json/preserve_order is off: drop it from the workspace-hack"
     );
-    let v = neohugo_base::Value::from_json(serde_json::Value::Object(m));
+    let v = ssg_base::Value::from_json(serde_json::Value::Object(m));
     let sorted: Vec<&str> = v.as_map().expect("a map").keys().collect();
     assert_eq!(sorted, ["a", "b"]);
 }

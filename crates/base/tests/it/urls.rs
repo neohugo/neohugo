@@ -1,7 +1,7 @@
 //! `url::BaseUrl` and `url::UrlRef` against the `common/urls` oracle.
 
-use neohugo_base::url::{BaseUrl, UrlError};
 use serde_json::{Value as J, json};
+use ssg_base::url::{BaseUrl, UrlError};
 
 use crate::support::{Tally, fixture, text};
 

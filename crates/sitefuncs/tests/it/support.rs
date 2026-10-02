@@ -7,20 +7,20 @@ use std::path::Path;
 use std::sync::{Arc, OnceLock, Weak};
 
 use dashmap::DashMap;
-use neohugo_base::diag::Diagnostics;
-use neohugo_base::{Clock, FormatId, Idx, PageId, PageKind};
-use neohugo_config::LoadOptions;
-use neohugo_funcs::{PureEnv, register_pure};
-use neohugo_highlight::Highlight;
-use neohugo_images::{ImageQueue, Imaging};
-use neohugo_layouts::{LayoutStore, Selections, TemplateName, Templates};
-use neohugo_locale::TranslationsBuilder;
-use neohugo_markup::Fragments;
-use neohugo_resources::{ResourceStore, StoreConfig};
-use neohugo_site::{LoadModelOptions, Model};
-use neohugo_sitefuncs::{Frames, Handles, RelatedCache};
-use neohugo_vfs::Vfs;
-use neohugo_view::{
+use ssg_base::diag::Diagnostics;
+use ssg_base::{Clock, FormatId, Idx, PageId, PageKind};
+use ssg_config::LoadOptions;
+use ssg_funcs::{PureEnv, register_pure};
+use ssg_highlight::Highlight;
+use ssg_images::{ImageQueue, Imaging};
+use ssg_layouts::{LayoutStore, Selections, TemplateName, Templates};
+use ssg_locale::TranslationsBuilder;
+use ssg_markup::Fragments;
+use ssg_resources::{ResourceStore, StoreConfig};
+use ssg_site::{LoadModelOptions, Model};
+use ssg_sitefuncs::{Frames, Handles, RelatedCache};
+use ssg_vfs::Vfs;
+use ssg_view::{
     ContentError, ContentRenderer, DeferredRegistry, ExpandedSource, HookVariant, NavSite,
     PageStores, PaginationRecorder, RenderScope, RenderStringOptions, RenderedContent, SCOPE_KEY,
     Stage, ViewCache, ViewInputs,
@@ -28,7 +28,7 @@ use neohugo_view::{
 
 pub const FILES: &[(&str, &str)] = &[
     (
-        "neohugo.toml",
+        "config.toml",
         r#"baseURL = "https://example.org/sub/"
 title = "Funcs"
 defaultContentLanguage = "en"
@@ -262,9 +262,8 @@ pub fn load_copying(extra: &[(&str, &str)], copies: &[(&str, &Path)]) -> Site {
         fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
         fs::copy(from, path).expect("copy");
     }
-    let png = neohugo_testkit::fixture::testdata(
-        "site-assets/golden/mstile-70x70_hu_80634bc5fec9785.png",
-    );
+    let png =
+        ssg_testkit::fixture::testdata("site-assets/golden/mstile-70x70_hu_80634bc5fec9785.png");
     fs::copy(&png, dir.path().join("content/posts/bundle/pic.png")).expect("copy png");
     fs::create_dir_all(dir.path().join("assets/img")).expect("mkdir");
     fs::copy(&png, dir.path().join("assets/img/logo.png")).expect("copy png");
@@ -273,10 +272,10 @@ pub fn load_copying(extra: &[(&str, &str)], copies: &[(&str, &Path)]) -> Site {
 
 fn build(dir: tempfile::TempDir) -> Site {
     let cfg = Arc::new(
-        neohugo_config::load(&LoadOptions {
+        ssg_config::load(&LoadOptions {
             source: dir.path().to_path_buf(),
             config_files: Vec::new(),
-            cli: neohugo_config::CliOverrides::default(),
+            cli: ssg_config::CliOverrides::default(),
             env: Vec::new(),
         })
         .expect("config"),
@@ -284,7 +283,7 @@ fn build(dir: tempfile::TempDir) -> Site {
     let vfs = Arc::new(Vfs::new(&cfg).expect("vfs"));
     let clock = Clock("2026-01-01T00:00:00Z".parse().expect("clock"));
     let model = Arc::new(
-        neohugo_site::load_model(
+        ssg_site::load_model(
             Arc::clone(&cfg),
             &vfs,
             &LoadModelOptions::from_config(&cfg, clock),
@@ -296,7 +295,7 @@ fn build(dir: tempfile::TempDir) -> Site {
     sc.remote.network = false;
     sc.remote.cache_dir = None;
     let store = Arc::new(ResourceStore::new(sc));
-    let (menus, _) = neohugo_nav::build_menus(&NavSite::new(Arc::clone(&model)), &cfg);
+    let (menus, _) = ssg_nav::build_menus(&NavSite::new(Arc::clone(&model)), &cfg);
     let menus = Arc::new(menus);
     let views = Arc::new(
         ViewCache::new(ViewInputs {
@@ -333,9 +332,9 @@ fn build(dir: tempfile::TempDir) -> Site {
     let layouts = Arc::new(LayoutStore::scan(&vfs, &cfg).expect("layouts"));
     let pure = Arc::new(PureEnv::new("en"));
     let templates = Arc::new(
-        neohugo_layouts::load(layouts, &Selections::new(), &|t| {
+        ssg_layouts::load(layouts, &Selections::new(), &|t| {
             register_pure(t, &pure);
-            neohugo_sitefuncs::register(t, &handles);
+            ssg_sitefuncs::register(t, &handles);
         })
         .expect("templates"),
     );

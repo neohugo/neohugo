@@ -8,15 +8,15 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, PoisonError, RwLock};
 
 use md5::Md5;
-use neohugo_base::diag::Position;
-use neohugo_base::glob::{self, GlobError, GlobOpts};
-use neohugo_base::paths::{self, OutputPath, Permalink, UrlPath};
-use neohugo_base::url::BaseUrl;
-use neohugo_base::{IdVec, Idx, ImageOpId, LangIdx, Map, PageId, Params, ResourceId, Value};
-use neohugo_config::{Config, MediaType, MediaTypes};
-use neohugo_images::{Enqueued, ImageError, ImageFormat, ImageInput, ImageQueue, QrLevel};
-use neohugo_vfs::{Component, Vfs, VfsError};
 use sha2::{Digest, Sha256, Sha384, Sha512};
+use ssg_base::diag::Position;
+use ssg_base::glob::{self, GlobError, GlobOpts};
+use ssg_base::paths::{self, OutputPath, Permalink, UrlPath};
+use ssg_base::url::BaseUrl;
+use ssg_base::{IdVec, Idx, ImageOpId, LangIdx, Map, PageId, Params, ResourceId, Value};
+use ssg_config::{Config, MediaType, MediaTypes};
+use ssg_images::{Enqueued, ImageError, ImageFormat, ImageInput, ImageQueue, QrLevel};
+use ssg_vfs::{Component, Vfs, VfsError};
 use xxhash_rust::xxh3::xxh3_64;
 
 use crate::gohash;
@@ -88,7 +88,7 @@ pub enum PublishPolicy {
 pub enum Body {
     File(PathBuf),
     Bytes(Arc<[u8]>),
-    /// Bytes the build produced for an asset path (`neohugo_stats.json`, see
+    /// Bytes the build produced for an asset path (`build_stats.json`, see
     /// [`ResourceStore::inject_generated`]).
     Generated(Arc<[u8]>),
     /// A processed image; the pixels come from the [`ImageQueue`].
@@ -767,7 +767,7 @@ impl ResourceStore {
     }
 
     /// Makes `bytes` the content of the asset at `asset_path` for the rest of the build (build
-    /// phase E4 writes `neohugo_stats.json` this way). An asset already registered at that path
+    /// phase E4 writes `build_stats.json` this way). An asset already registered at that path
     /// reads the new bytes; resources derived from it before the call keep what they read.
     pub fn inject_generated(&self, asset_path: &str, bytes: Arc<[u8]>) {
         let rel = paths::clean(&format!("/{asset_path}"));
@@ -1037,7 +1037,7 @@ impl ResourceStore {
         })
     }
 
-    /// `images.QR`: the PNG of the QR code of `text` (see [`neohugo_images::qr_png`], equal to
+    /// `images.QR`: the PNG of the QR code of `text` (see [`ssg_images::qr_png`], equal to
     /// Hugo's bytes), published at [`qr_target`] — Hugo's name, so its URLs are the Go build's.
     ///
     /// # Errors
@@ -1053,7 +1053,7 @@ impl ResourceStore {
         // The name hashes every input: the same name is the same image.
         let input = xxh3_64(target.as_bytes());
         self.claim(&target, input, call, |out, link| {
-            let png = neohugo_images::qr_png(text, options.level, options.scale)?;
+            let png = ssg_images::qr_png(text, options.level, options.scale)?;
             Ok(self.named(call.lang, out, link, Body::Bytes(png.into())))
         })
     }
@@ -1073,7 +1073,7 @@ impl ResourceStore {
     }
 
     /// Whether computing `id` waits for phase E5: its chain runs PostCSS or Tailwind (which
-    /// read `neohugo_stats.json`, written once every page is rendered) or processes an image
+    /// read `build_stats.json`, written once every page is rendered) or processes an image
     /// (images are processed in E6, outside the renders). Any other pending `fingerprint` is
     /// computed when the template asks for it, as Hugo computes it when its links are read.
     #[must_use]
@@ -1189,11 +1189,11 @@ impl ResourceStore {
                 if let Some(size) = lock(&self.sizes).get(p) {
                     return *size;
                 }
-                let size = neohugo_images::probe_file(p).ok().map(|(s, _)| s);
+                let size = ssg_images::probe_file(p).ok().map(|(s, _)| s);
                 *lock(&self.sizes).entry(p.clone()).or_insert(size)
             }
             Body::Bytes(b) | Body::Generated(b) => {
-                neohugo_images::probe(b, &r.name).ok().map(|(s, _)| s)
+                ssg_images::probe(b, &r.name).ok().map(|(s, _)| s)
             }
             Body::Pending => None,
         }
@@ -1300,7 +1300,7 @@ fn well_known_media_type(ext: &str) -> Option<MediaType> {
 /// A resource name for case-insensitive lookups: lower case, spaces as dashes.
 #[must_use]
 pub(crate) fn normalize_name(name: &str) -> String {
-    neohugo_base::text::to_lower(name).replace(' ', "-")
+    ssg_base::text::to_lower(name).replace(' ', "-")
 }
 
 /// `ident` inserted before the extension of the last path element (`/a/b.css` + `.min` →

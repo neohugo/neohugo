@@ -57,7 +57,7 @@
 "tags/page/1/index.html": {"L1": "ok", "L2": "ok"},
 "tags/page/2/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"}
 },
-"schema": "neohugo-baseline/1",
+"schema": "ssg-baseline/1",
 "site": "testsite",
 "structure": {
 "alias /en/index.html   html": {"S": "ok"},

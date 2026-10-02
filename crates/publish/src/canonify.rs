@@ -19,8 +19,8 @@ use std::borrow::Cow;
 use std::sync::LazyLock;
 
 use aho_corasick::{AhoCorasick, Input};
-use neohugo_base::paths::OutputPath;
-use neohugo_base::url::UrlRef;
+use ssg_base::paths::OutputPath;
+use ssg_base::url::UrlRef;
 
 /// The quote spelling of an output.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -6,7 +6,7 @@ use std::fmt;
 
 use icu_collator::options::CollatorOptions;
 use icu_collator::{CollatorBorrowed, CollatorPreferences};
-use neohugo_base::Collate;
+use ssg_base::Collate;
 
 use crate::tag;
 

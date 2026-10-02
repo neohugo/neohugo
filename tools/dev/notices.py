@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Writes the third-party licence notices for a release build of neohugo (Python stdlib only).
+"""Writes the third-party licence notices for a release build (Python stdlib only).
 
 Usage:
   notices.py <target> <out-file>
 
-The notices cover every package linked into `neohugo` for <target>: the normal-dependency
-closure of the `neohugo` package in `cargo metadata --filter-platform <target>`. Build and dev
+The notices cover every package linked into the binary for <target>: the normal-dependency
+closure of the `ssg-cli` package in `cargo metadata --filter-platform <target>`. Build and dev
 dependencies are not linked into the binary, and neither are proc-macro packages (they run in
 the compiler), so the walk does not enter them. For each package the file lists its name,
 version, licence expression, authors and where its source is, followed by the licence and notice
@@ -121,18 +121,20 @@ def main(argv):
         cwd=ROOT, capture_output=True, check=True).stdout.decode("utf-8"))
     packages = {p["id"]: p for p in meta["packages"]}
     members = set(meta["workspace_members"])
-    ids = sorted((i for i in closure(meta, "neohugo") if i not in members),
+    app = next(t["name"] for p in meta["packages"] if p["name"] == "ssg-cli"
+               for t in p["targets"] if "bin" in t["kind"])
+    ids = sorted((i for i in closure(meta, "ssg-cli") if i not in members),
                  key=lambda i: (packages[i]["name"], packages[i]["version"]))
 
     missing = []
     printed = {}  # licence text -> "<package> <version>, <file>" that printed it
     parts = [
-        "Third-party software in neohugo\n",
-        "===============================\n\n",
-        f"neohugo for {target} links the {len(ids)} packages below. Their licence and notice\n",
+        f"Third-party software in {app}\n",
+        "=" * len(f"Third-party software in {app}") + "\n\n",
+        f"{app} for {target} links the {len(ids)} packages below. Their licence and notice\n",
         "files follow each entry. The source code of every package is available from\n",
         "https://crates.io/crates/<name>/<version> and from the repository listed with it.\n",
-        "Files copied into the neohugo source tree (data, fonts, scripts) are listed in\n",
+        "Files copied into the source tree (data, fonts, scripts) are listed in\n",
         "PROVENANCE.md, with their licences in THIRD_PARTY/.\n",
     ]
     for pid in ids:

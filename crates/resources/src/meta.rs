@@ -10,8 +10,8 @@
 
 use std::sync::Arc;
 
-use neohugo_base::glob::{self, Glob, GlobError, GlobOpts};
-use neohugo_base::{Params, ResourceId, Value, text};
+use ssg_base::glob::{self, Glob, GlobError, GlobOpts};
+use ssg_base::{Params, ResourceId, Value, text};
 
 use crate::store::{Resource, ResourceError, ResourceStore};
 

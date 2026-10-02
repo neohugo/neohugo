@@ -23,7 +23,7 @@ const TEMPLATE: &str = "
 
 #[test]
 fn equals_go() {
-    let dir = neohugo_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/remarshal");
+    let dir = ssg_testkit::fixture::repo_dir().join("crates/funcs/tests/fixtures/remarshal");
     let read = |f: &str| std::fs::read_to_string(dir.join(f)).expect("fixture");
     let mut ctx = Context::new();
     ctx.insert("a", &read("a.toml"));

@@ -1,8 +1,8 @@
 //! Assets, remote resources, named targets, pipes, content, publishing, post-processing,
 //! `execute_as_template`, `unmarshal`.
 
-use neohugo_base::PageKind;
-use neohugo_base::diag::Severity;
+use ssg_base::PageKind;
+use ssg_base::diag::Severity;
 
 use crate::support;
 

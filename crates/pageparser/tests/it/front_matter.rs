@@ -2,12 +2,12 @@
 //! (`parser/pageparser/pages.json.gz`), with the 218 seeksnack front matters as the acceptance
 //! set.
 
-use neohugo_base::{Date, Map, Value};
-use neohugo_pageparser::{
+use serde_json::Value as J;
+use ssg_base::{Date, Map, Value};
+use ssg_pageparser::{
     FrontMatterFormat, decode_front_matter, decode_front_matter_map, split_front_matter,
 };
-use neohugo_testkit::fixture::Tag;
-use serde_json::Value as J;
+use ssg_testkit::fixture::Tag;
 
 use crate::support::{Tally, expected_diffs, page_cases};
 
@@ -20,7 +20,7 @@ enum Numbers {
     ByValue,
 }
 
-/// Whether our value equals Go's (plain JSON with neohugo tags). Go integers beyond `i64`
+/// Whether our value equals Go's (plain JSON with this port tags). Go integers beyond `i64`
 /// are compared as floats (base's rule for them).
 fn same(ours: &Value, go: &J, numbers: Numbers) -> bool {
     if let Some(tag) = Tag::of(go) {

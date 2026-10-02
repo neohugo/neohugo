@@ -12,7 +12,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-use neohugo_base::Value;
+use ssg_base::Value;
 
 use crate::error::{I18nError, MessageProblem};
 use crate::plural::PluralForm;
@@ -167,7 +167,7 @@ impl Reader<'_> {
     }
 
     /// A message map at `id`.
-    fn message(&mut self, id: &str, map: &neohugo_base::Map) -> Result<(), I18nError> {
+    fn message(&mut self, id: &str, map: &ssg_base::Map) -> Result<(), I18nError> {
         let mut m = MessageSource {
             id: id.to_owned(),
             ..MessageSource::default()
@@ -214,7 +214,7 @@ impl Reader<'_> {
     }
 
     /// An element of the list layout: `{id, translation}` under the namespace `prefix`.
-    fn list_message(&mut self, prefix: &str, map: &neohugo_base::Map) -> Result<(), I18nError> {
+    fn list_message(&mut self, prefix: &str, map: &ssg_base::Map) -> Result<(), I18nError> {
         let id = match map.get("id") {
             Some(Value::String(s)) if prefix.is_empty() => s.to_string(),
             Some(Value::String(s)) => format!("{prefix}.{s}"),
@@ -248,7 +248,7 @@ impl Reader<'_> {
     fn forms(
         &self,
         id: &str,
-        map: &neohugo_base::Map,
+        map: &ssg_base::Map,
         out: &mut BTreeMap<PluralForm, String>,
     ) -> Result<(), I18nError> {
         for (k, v) in map.iter() {
@@ -275,7 +275,7 @@ impl Reader<'_> {
 }
 
 /// Whether a map is a message: a reserved key (exact spelling) with a string value.
-fn is_message(map: &neohugo_base::Map) -> bool {
+fn is_message(map: &ssg_base::Map) -> bool {
     map.iter().any(|(k, v)| {
         matches!(v, Value::String(_))
             && (MESSAGE_KEYS.contains(&k) || k == "leftDelim" || k == "rightDelim")

@@ -4,7 +4,7 @@
 
 use std::sync::Mutex;
 
-use neohugo_markup::{
+use ssg_markup::{
     AlertSign, BlockquoteCtx, BlockquoteKind, Delimiters, Extensions, HookEnv, HookError, HookOut,
     Hooks, LinkCtx, LinkifyProtocol, MarkdownOptions, PassthroughCtx, PassthroughKind,
 };
@@ -39,10 +39,10 @@ impl Hooks for Capture {
 #[test]
 fn seeksnack_heading_ids() {
     let md = "### **Snack Jack - Sour Cream Flavor (Green Pea Snack)**\n\n### รสชาติ\n\n### สแน็คแจ๊ค รสดั้งเดิม (ขนมถั่วลั่นเตาอบกรอบ)\n\n### Squidy - Seasoned Roller Squid Hot&Spicy\n\n### White Koala's March (Chocolate Filling )\n\n### Pocky Cookies & Cream taste ( Chocolate biscuit stick) Glico brand ([Thai Glico 50th anniversaries](https://www.glico.com/th/en/article/thaiglico-50th/))\n\n## **Strong *em* more** tail\n\n## ![alt *x*](img.png \"T\") img\n\n## &amp; &copy; entity\n\n## Ünïcödé İstanbul ǅ\n\n## 🍫\n\n## Dup\n\n## Dup\n\n## dup-1\n\nSetext line one\nline two\n===\n\n### Edit layouts/_default/index.JSON\n";
-    let got = render_with(md, &options(HugoCfg::Seeksnack), &neohugo_markup::NoHooks);
+    let got = render_with(md, &options(HugoCfg::Seeksnack), &ssg_markup::NoHooks);
     let mut ids = got.fragments.identifiers.clone();
     let order: Vec<String> = {
-        fn walk(h: &[neohugo_markup::Heading], out: &mut Vec<String>) {
+        fn walk(h: &[ssg_markup::Heading], out: &mut Vec<String>) {
             for x in h {
                 if !x.id.is_empty() {
                     out.push(x.id.clone());

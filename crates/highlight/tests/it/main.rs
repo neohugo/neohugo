@@ -1,4 +1,4 @@
-//! Integration tests of `neohugo-highlight` (the crate's single test binary, REWRITE_PLAN.md §2.2).
+//! Integration tests of `ssg-highlight` (the crate's single test binary, REWRITE_PLAN.md §2.2).
 
 mod corpus;
 mod coverage;

@@ -7,12 +7,12 @@ use std::ops::Range;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::diag::Position;
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{FormatId, IdVec, LangIdx, MediaTypeId, PageKind};
-use neohugo_config::Config;
-use neohugo_config::output::Escaping;
-use neohugo_vfs::{Component, Module, Vfs};
+use ssg_base::diag::Position;
+use ssg_base::paths::ContentKey;
+use ssg_base::{FormatId, IdVec, LangIdx, MediaTypeId, PageKind};
+use ssg_config::Config;
+use ssg_config::output::Escaping;
+use ssg_vfs::{Component, Module, Vfs};
 
 use crate::classify::{Classified, Outcome, classify};
 use crate::env::LayoutEnv;
@@ -21,7 +21,7 @@ use crate::name::{HookKind, Origin, TemplateName, TemplateRole};
 use crate::score::{self, Category, Desc};
 use crate::source;
 
-neohugo_base::define_id!(
+ssg_base::define_id!(
     /// A template of the store.
     pub(crate) Tid(u32)
 );

@@ -1,5 +1,0 @@
-{%- if page.params.ingredients_percentage %}
-<table class="nutrition">
-{%- for i in page.params.ingredients_percentage %}<tr><td>{{ i.Name }}</td><td>{% if i.Value %}{{ i.Value }}%{% else %}–{% endif %}</td></tr>{% endfor %}
-</table>
-{%- endif %}

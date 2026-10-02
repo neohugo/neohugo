@@ -4,8 +4,8 @@
 
 use std::fs;
 
-use neohugo_base::{Idx, LangIdx};
-use neohugo_resources::{BundleResource, PublishPolicy};
+use ssg_base::{Idx, LangIdx};
+use ssg_resources::{BundleResource, PublishPolicy};
 
 use crate::support::{MemSink, store};
 
@@ -16,7 +16,7 @@ fn tokens_in_every_form() {
     fs::create_dir_all(site.join("content/b/herrs-salt-&-vinegar")).unwrap();
     fs::create_dir_all(site.join("assets/css")).unwrap();
     fs::write(
-        site.join("neohugo.toml"),
+        site.join("config.toml"),
         "baseURL = \"https://seeksnack.example/sub/\"\n",
     )
     .unwrap();

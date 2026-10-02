@@ -1,12 +1,12 @@
 //! `Value`, `Map`, `Params`, `Date`, ids and kinds.
 
-use neohugo_base::{
+use pretty_assertions::assert_eq;
+use ssg_base::{
     Date, FormatId, IdVec, Idx, KindSet, LangIdx, Map, PageId, PageKind, Params, Value,
 };
-use pretty_assertions::assert_eq;
 
 fn docs_yaml() -> String {
-    let path = neohugo_testkit::fixture::repo_dir().join("docs/data/docs.yaml");
+    let path = ssg_testkit::fixture::repo_dir().join("docs/data/docs.yaml");
     std::fs::read_to_string(path).expect("docs/data/docs.yaml")
 }
 
@@ -192,7 +192,7 @@ fn id_overflow_panics() {
 
 #[test]
 fn diagnostics_are_sorted_and_deduplicated() {
-    use neohugo_base::diag::{Diagnostic, Diagnostics, Severity};
+    use ssg_base::diag::{Diagnostic, Diagnostics, Severity};
     let d = Diagnostics::new(["Ignored-ID"]);
     d.push(Diagnostic::warning("b"));
     d.push(Diagnostic::error("a").with_id("dup"));

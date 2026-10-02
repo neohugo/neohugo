@@ -13,15 +13,15 @@
 
 use std::sync::Arc;
 
-use neohugo_base::{PageId, ResourceId, Value};
-use neohugo_config::media::MediaType;
-use neohugo_page::ResourceMetaRule;
-use neohugo_resources::meta::ResourceMeta;
-use neohugo_resources::{
+use ssg_base::{PageId, ResourceId, Value};
+use ssg_config::media::MediaType;
+use ssg_page::ResourceMetaRule;
+use ssg_resources::meta::ResourceMeta;
+use ssg_resources::{
     AdapterResource, Body, BundleResource, Origin, PpField, PublishPolicy, Resource, ResourceError,
     ResourceKind, ResourceStore, Transform,
 };
-use neohugo_site::{AddedBody, AddedContent, AddedResource, Model};
+use ssg_site::{AddedBody, AddedContent, AddedResource, Model};
 
 use crate::cache::ViewError;
 use crate::views::{MediaTypeView, ResourceDataView, ResourceView, params_value};
@@ -87,7 +87,7 @@ pub fn post_processed_view(store: &ResourceStore, id: ResourceId) -> ResourceVie
     v
 }
 
-/// The `resources` front matter of a page in `neohugo-resources`' form.
+/// The `resources` front matter of a page in `ssg-resources`' form.
 fn resource_meta(rules: &[ResourceMetaRule]) -> Result<ResourceMeta, ResourceError> {
     if rules.is_empty() {
         return Ok(ResourceMeta::default());
@@ -95,7 +95,7 @@ fn resource_meta(rules: &[ResourceMetaRule]) -> Result<ResourceMeta, ResourceErr
     let items = rules
         .iter()
         .map(|r| {
-            let mut m = neohugo_base::Map::new();
+            let mut m = ssg_base::Map::new();
             m.insert("src", Value::string(&r.src));
             if let Some(n) = &r.name {
                 m.insert("name", Value::string(n));
@@ -145,7 +145,7 @@ pub fn page_resources(
         let mut pages = Vec::new();
         for &mid in &p.resources {
             let br = &model.bundle_resources[mid];
-            let sid = *registered[neohugo_base::Idx::index(mid)].get_or_insert_with(|| {
+            let sid = *registered[ssg_base::Idx::index(mid)].get_or_insert_with(|| {
                 let dir = br.target_base.as_ref().map_or_else(
                     || format!("/{}", br.key.parent().unwrap_or_default().as_str()),
                     |b| b.link.to_string(),
@@ -198,7 +198,7 @@ pub fn page_resources(
 /// link directory `dir` of its page.
 fn adapter_resource(
     a: &AddedResource,
-    lang: neohugo_base::LangIdx,
+    lang: ssg_base::LangIdx,
     name: String,
     dir: String,
     policy: PublishPolicy,

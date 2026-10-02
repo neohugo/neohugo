@@ -3,10 +3,10 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_locale::{DatePattern, DateStyle, Locale, NameWidth, format_date, format_number};
 use pretty_assertions::assert_eq;
 use serde::Deserialize;
 use serde_json::Value as J;
+use ssg_locale::{DatePattern, DateStyle, Locale, NameWidth, format_date, format_number};
 
 use crate::common::expected_diffs;
 
@@ -25,7 +25,7 @@ struct Zone {
 }
 
 fn fixture() -> Fixture {
-    neohugo_testkit::fixture::oracle("oracle/common/locales/locales.json")
+    ssg_testkit::fixture::oracle("oracle/common/locales/locales.json")
 }
 
 fn time_zone(z: &Zone) -> jiff::tz::TimeZone {
@@ -158,7 +158,7 @@ fn numbers() {
     for case in fixture().cases.iter().filter(|c| c["kind"] == "number") {
         let bits = u64::from_str_radix(case["n"].as_str().unwrap(), 16).unwrap();
         let n = f64::from_bits(bits);
-        // gohugoio/locales prints infinities as `+,Inf`; neohugo does not format them
+        // gohugoio/locales prints infinities as `+,Inf`; this port does not format them
         if !n.is_finite() {
             continue;
         }

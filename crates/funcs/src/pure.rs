@@ -26,10 +26,10 @@ use std::collections::BTreeMap;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use neohugo_base::diag::Diagnostics;
-use neohugo_base::url::{Accents, PathCase};
-use neohugo_base::{Clock, anchor, title};
-use neohugo_locale::Locale;
+use ssg_base::diag::Diagnostics;
+use ssg_base::url::{Accents, PathCase};
+use ssg_base::{Clock, anchor, title};
+use ssg_locale::Locale;
 use tera::{Filter, Function, Kwargs, State, Tera, TeraResult, Test, Value};
 
 use crate::check_kwargs;
@@ -130,9 +130,9 @@ impl EnvAllowlist {
 }
 
 impl Default for EnvAllowlist {
-    /// The default policy: `^NEOHUGO_` and `^CI$` (Hugo's `^HUGO_` is not allowed).
+    /// The default policy: `^FUGO_` and `^CI$` (Hugo's `^HUGO_` is not allowed).
     fn default() -> Self {
-        Self::new(["^NEOHUGO_", "^CI$"]).expect("valid patterns")
+        Self::new([concat!("^", ssg_base::env_var!("")), "^CI$"]).expect("valid patterns")
     }
 }
 
@@ -208,7 +208,7 @@ pub fn register_pure(tera: &mut Tera, env: &Arc<PureEnv>) {
 }
 
 /// The tera-contrib names of the spec, one by one (its `regex` module also has `striptags` and
-/// `spaceless`, which neohugo does not use).
+/// `spaceless`, which this port does not use).
 fn contrib(r: &mut Registrar<'_>) {
     use tera_contrib::{base64, filesize_format, regex, urlencode};
     r.raw_filter("regex_replace", regex::RegexReplace::default());
@@ -358,7 +358,7 @@ impl Registrar<'_> {
             .unwrap_or_else(|| panic!("`{name}` is not in spec::FUNCS"));
         let message = move || {
             tera::Error::message(format!(
-                "`{name}` is not available in this build of neohugo (feature not compiled in)"
+                "`{name}` is not available in this build (feature not compiled in)"
             ))
         };
         match spec.kind {

@@ -5,8 +5,8 @@
 use std::collections::BTreeMap;
 use std::io::Read;
 
-use neohugo_testkit::fixture::{GoString, oracle, testdata};
 use serde::Deserialize;
+use ssg_testkit::fixture::{GoString, oracle, testdata};
 
 /// Hugo markup configurations of the convert oracle, in fixture order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]

@@ -1,5 +1,5 @@
 //! `server` through the binary: it starts, serves and reports; its flags and their usage
-//! errors. What the server does on changes is tested in `neohugo-serve`.
+//! errors. What the server does on changes is tested in `ssg-serve`.
 
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
@@ -7,11 +7,11 @@ use std::process::{Child, Command, Stdio};
 use std::sync::mpsc;
 use std::time::Duration;
 
-use crate::{neohugo, site_from, stderr};
+use crate::{binary, site_from, stderr};
 
-const SITE: &str = "-- neohugo.toml --\nbaseURL = \"https://example.org/\"\ntitle = \"Srv\"\n\
+const SITE: &str = "-- config.toml --\nbaseURL = \"https://example.org/\"\ntitle = \"Srv\"\n\
 disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\"]\n\
--- layouts/home.html --\n<html><head></head><body>{{ site.title }} {{ neohugo.environment }}</body></html>\n\
+-- layouts/home.html --\n<html><head></head><body>{{ site.title }} {{ build.environment }}</body></html>\n\
 -- content/_index.md --\n---\ntitle: Home\n---\n";
 
 /// The running binary and the lines of its standard output.
@@ -22,7 +22,7 @@ struct Running {
 
 impl Running {
     fn start(dir: &std::path::Path, args: &[&str]) -> Self {
-        let mut child = Command::new(env!("CARGO_BIN_EXE_neohugo"))
+        let mut child = Command::new(env!("CARGO_BIN_EXE_fugo"))
             .current_dir(dir)
             .args(args)
             .env_clear()
@@ -31,7 +31,7 @@ impl Running {
             .stdout(Stdio::piped())
             .stderr(Stdio::piped())
             .spawn()
-            .expect("run neohugo");
+            .expect("run the binary");
         let out = child.stdout.take().expect("stdout");
         let (tx, lines) = mpsc::channel();
         std::thread::spawn(move || {
@@ -165,7 +165,7 @@ fn server_renders_to_disk_without_live_reload() {
 fn server_start_errors() {
     // A first build that fails ends the server with the build's report.
     let s = site_from(&SITE.replace("{{ site.title }}", "{{ site.title "));
-    let o = neohugo(s.path(), &["server", "-p", "0"], &[]);
+    let o = binary(s.path(), &["server", "-p", "0"], &[]);
     assert_eq!(o.status.code(), Some(1), "{}", stderr(&o));
     assert!(stderr(&o).contains("ERROR build failed"), "{}", stderr(&o));
     assert!(stderr(&o).contains("home.html"), "{}", stderr(&o));
@@ -177,11 +177,11 @@ fn server_start_errors() {
         &["server", "--port", "http"],
         &["server", "--watch", "maybe"],
     ] {
-        let o = neohugo(s.path(), bad, &[]);
+        let o = binary(s.path(), bad, &[]);
         assert_eq!(o.status.code(), Some(2), "{bad:?}: {}", stderr(&o));
         assert!(stderr(&o).contains("error"), "{bad:?}: {}", stderr(&o));
     }
-    let o = neohugo(s.path(), &["server", "--help"], &[]);
+    let o = binary(s.path(), &["server", "--help"], &[]);
     let help = crate::stdout(&o);
     for flag in [
         "--port",

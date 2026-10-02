@@ -1,5 +1,5 @@
 [package]
-name = "neohugo-page"
+name = "ssg-page"
 description = "Per-page rules"
 version.workspace = true
 edition.workspace = true
@@ -19,15 +19,15 @@ path = "tests/it/main.rs"
 workspace = true
 
 [dependencies]
-neohugo-workspace-hack.workspace = true
-neohugo-base.workspace = true
-neohugo-config.workspace = true
-neohugo-vfs.workspace = true
+ssg-workspace-hack.workspace = true
+ssg-base.workspace = true
+ssg-config.workspace = true
+ssg-vfs.workspace = true
 jiff.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
-neohugo-testkit.workspace = true
+ssg-testkit.workspace = true
 # The oracle of the default sort order compares titles with the site language's collator.
-neohugo-locale.workspace = true
+ssg-locale.workspace = true
 serde_json.workspace = true

@@ -1,16 +1,16 @@
 //! Test doubles of the T35 site functions the content engine calls back through
-//! (`neohugo_sitefuncs::register` is still the frozen stub): each is a few lines over the
+//! (`ssg_sitefuncs::register` is still the frozen stub): each is a few lines over the
 //! `Handles` and the `ContentRenderer`, just enough for the content-phase suites. They are
 //! registered with `Session::with_functions` and replaced by the real functions once T35
 //! lands.
 
 use std::sync::Arc;
 
-use neohugo_base::PageId;
-use neohugo_markup::{MarkdownOptions, Toc};
-use neohugo_site::{RefArgs, RefLink};
-use neohugo_sitefuncs::Handles;
-use neohugo_view::{ContentRenderer, RenderScope, RenderStringOptions};
+use ssg_base::PageId;
+use ssg_markup::{MarkdownOptions, Toc};
+use ssg_site::{RefArgs, RefLink};
+use ssg_sitefuncs::Handles;
+use ssg_view::{ContentRenderer, RenderScope, RenderStringOptions};
 use tera::{Kwargs, State, TeraResult, Value};
 
 fn scope(st: &State) -> TeraResult<RenderScope> {

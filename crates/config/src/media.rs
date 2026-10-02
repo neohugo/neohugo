@@ -2,8 +2,8 @@
 
 use std::fmt;
 
-use neohugo_base::{IdVec, Map, MediaTypeId, Value};
 use serde::Serialize;
+use ssg_base::{IdVec, Map, MediaTypeId, Value};
 
 use crate::de;
 use crate::error::ConfigError;

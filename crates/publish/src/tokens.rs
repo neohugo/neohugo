@@ -12,12 +12,12 @@
 //! starting with `./` or `../` (from `relativeURLs`) are resolved against the output's
 //! directory.
 //!
-//! The resolution against resource URLs lives in `neohugo-resources`, which does not depend on
-//! this crate: `neohugo-build` hands [`UrlTokens::iter`] to the resource store.
+//! The resolution against resource URLs lives in `ssg-resources`, which does not depend on
+//! this crate: `ssg-build` hands [`UrlTokens::iter`] to the resource store.
 
 use std::collections::BTreeSet;
 
-use neohugo_base::paths::{self, OutputPath};
+use ssg_base::paths::{self, OutputPath};
 
 /// The longest token kept (longer words are not URLs of published files).
 const MAX_TOKEN: usize = 2048;

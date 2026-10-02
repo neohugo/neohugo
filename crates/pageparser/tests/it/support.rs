@@ -6,7 +6,7 @@ use serde_json::Value as J;
 
 /// `crates/pageparser/expected_diffs.toml`: section → case id → reason.
 pub fn expected_diffs() -> BTreeMap<String, BTreeMap<String, String>> {
-    let path = neohugo_testkit::fixture::repo_dir().join("crates/pageparser/expected_diffs.toml");
+    let path = ssg_testkit::fixture::repo_dir().join("crates/pageparser/expected_diffs.toml");
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{path:?}: {e}"));
     toml::from_str(&text).unwrap_or_else(|e| panic!("{path:?}: {e}"))
 }
@@ -14,7 +14,7 @@ pub fn expected_diffs() -> BTreeMap<String, BTreeMap<String, String>> {
 /// The cases of `parser/pageparser/pages.json.gz` with unique ids: the input name, plus
 /// `#<n>` (its ordinal among inputs of the same name) when the name repeats (`test`, `shape`).
 pub fn page_cases() -> Vec<(String, J)> {
-    let doc: J = neohugo_testkit::fixture::oracle("oracle/parser/pageparser/pages.json.gz");
+    let doc: J = ssg_testkit::fixture::oracle("oracle/parser/pageparser/pages.json.gz");
     let J::Array(cases) = doc["cases"].clone() else {
         panic!("pages.json.gz: no cases")
     };

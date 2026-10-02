@@ -1,7 +1,7 @@
 //! Output formats: the built-in table and `[outputFormats]`.
 
-use neohugo_base::{FormatId, IdVec, Map, MediaTypeId, Value};
 use serde::{Deserialize, Serialize};
+use ssg_base::{FormatId, IdVec, Map, MediaTypeId, Value};
 
 use crate::de;
 use crate::error::ConfigError;

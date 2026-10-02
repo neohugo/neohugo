@@ -4,7 +4,7 @@
 //! The smart crop (`smartcrop.rs`) analyses a downscaled copy of the source, and the crop it
 //! picks depends on every value of that copy: the processing pipeline's own resizer
 //! (`fast_image_resize`, `pixels.rs`) is close to gift's but not equal, so the analysis uses
-//! this port instead. It has Hugo's resample kernels (`resources/images/resampling.go`, and
+//! This port instead. It has Hugo's resample kernels (`resources/images/resampling.go`, and
 //! gift's nearest-neighbour, box, linear and Lanczos kernels; `config.go` `imageFilters`),
 //! gift's float32 pixel getters and setters for each of Go's image types, its weights, its
 //! two-pass resize through a 16-bit temporary image, and Hugo's choice of the result's type

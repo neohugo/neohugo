@@ -9,11 +9,11 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::diag::Diagnostic;
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{IdVec, LangIdx, PageId, PageKind, TaxonomyIdx, TermIdx, Value};
-use neohugo_config::SiteConfig;
-use neohugo_config::sections::TaxonomyDef;
+use ssg_base::diag::Diagnostic;
+use ssg_base::paths::ContentKey;
+use ssg_base::{IdVec, LangIdx, PageId, PageKind, TaxonomyIdx, TermIdx, Value};
+use ssg_config::SiteConfig;
+use ssg_config::sections::TaxonomyDef;
 
 use crate::nodes::Maker;
 use crate::relations::{self, Collators};

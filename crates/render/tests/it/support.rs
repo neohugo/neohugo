@@ -4,14 +4,14 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-use neohugo_base::{Clock, Idx, LangIdx, PageId};
-use neohugo_config::LoadOptions;
-use neohugo_layouts::LayoutStore;
-use neohugo_render::{Project, RenderOptions, Session};
-use neohugo_site::LoadModelOptions;
-use neohugo_sitefuncs::Handles;
-use neohugo_vfs::Vfs;
-use neohugo_view::{HookVariant, Phase, RenderScope};
+use ssg_base::{Clock, Idx, LangIdx, PageId};
+use ssg_config::LoadOptions;
+use ssg_layouts::LayoutStore;
+use ssg_render::{Project, RenderOptions, Session};
+use ssg_site::LoadModelOptions;
+use ssg_sitefuncs::Handles;
+use ssg_vfs::Vfs;
+use ssg_view::{HookVariant, Phase, RenderScope};
 
 /// A site on disk and its session.
 pub struct Site {
@@ -35,17 +35,17 @@ pub fn write(files: &[(String, String)]) -> tempfile::TempDir {
 /// The session of the site in `dir`, with the site-function doubles and `extra`.
 pub fn session_in(dir: &Path, extra: &dyn Fn(&mut tera::Tera, &Handles)) -> Arc<Session> {
     let cfg = Arc::new(
-        neohugo_config::load(&LoadOptions {
+        ssg_config::load(&LoadOptions {
             source: dir.to_path_buf(),
             config_files: Vec::new(),
-            cli: neohugo_config::CliOverrides::default(),
+            cli: ssg_config::CliOverrides::default(),
             env: Vec::new(),
         })
         .expect("config"),
     );
     let vfs = Arc::new(Vfs::new(&cfg).expect("vfs"));
     let clock = Clock("2026-01-01T00:00:00Z".parse().expect("clock"));
-    let model = neohugo_site::load_model(
+    let model = ssg_site::load_model(
         Arc::clone(&cfg),
         &vfs,
         &LoadModelOptions::from_config(&cfg, clock),
@@ -86,7 +86,7 @@ impl Site {
             .iter()
             .find(|p| p.path() == path && p.lang == LangIdx::from_index(lang))
             .unwrap_or_else(|| {
-                let all: Vec<String> = m.pages.iter().map(neohugo_site::Page::path).collect();
+                let all: Vec<String> = m.pages.iter().map(ssg_site::Page::path).collect();
                 panic!("no page {path} in {all:?}")
             })
             .id
@@ -100,7 +100,7 @@ pub fn content_scope(s: &Session, p: PageId, v: HookVariant) -> RenderScope {
         .formats
         .first()
         .copied()
-        .unwrap_or(neohugo_base::FormatId::from_raw(0));
+        .unwrap_or(ssg_base::FormatId::from_raw(0));
     RenderScope {
         phase: Phase::Content,
         variant: v,

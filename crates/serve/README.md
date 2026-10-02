@@ -1,8 +1,8 @@
-# neohugo-serve
+# ssg-serve
 
-`neohugo server` (REWRITE_PLAN.md T71): Hugo's development server. axum 0.8 (HTTP/1 and
+`fugo server` (REWRITE_PLAN.md T71): Hugo's development server. axum 0.8 (HTTP/1 and
 the LiveReload WebSocket on one port) on a current-thread tokio runtime, notify 8 with
-notify-debouncer-full 0.7 (1 s debounce), full rebuilds through `neohugo_build::build`.
+notify-debouncer-full 0.7 (1 s debounce), full rebuilds through `ssg_build::build`.
 **State: T71.**
 
 ```rust
@@ -10,7 +10,7 @@ pub struct ServeOptions { pub build: BuildRequest /* project + build flags */, p
                           pub port: Port, pub append_port: bool, pub live_reload: Option<LiveReloadOptions>,
                           pub target: Target, pub watch: Watch, pub http_cache: HttpCache }
 pub enum Port { Exact(u16) /* --port; 0: any free port */, Preferred(u16) /* 1313, else a free one */ }
-pub enum Target { Memory /* default */, Disk /* --renderToDisk, neohugo's flag */ }
+pub enum Target { Memory /* default */, Disk /* --renderToDisk, fugo's flag */ }
 pub enum Watch { Off /* --watch=false */, Native, Poll(Duration) /* --poll */ }
 pub enum HttpCache { Default, Disabled /* --noHTTPCache */ }
 pub struct LiveReloadOptions { pub port: Option<u16> /* --liveReloadPort */, pub navigate_to_changed: bool }
@@ -32,7 +32,7 @@ pub struct Server;  // start(&ServeOptions, &Arc<dyn Reporter>) -> Result<Server
    The rewritten configuration goes to the build (`BuildRequest::config`), and the build's
    `LiveReload` puts `<script src="<base path>/livereload.js?mindelay=10&v=2&port=<port>&path=<base
    path>/livereload" data-no-instant defer>` at the start of the head of every HTML page (not
-   alias redirects; `neohugo-publish`); `--liveReloadPort` changes the port in it.
+   alias redirects; `ssg-publish`); `--liveReloadPort` changes the port in it.
 4. The watcher starts (before the first build, so nothing changed during it is lost), then the
    first build; if it fails the server does not start (as Hugo).
 5. The HTTP thread serves; the watch thread handles changes.
@@ -55,7 +55,7 @@ A multihost site's listener serves its language's directory (`en/`), with that l
 max-age=0` and `Pragma: no-cache`. Files come from the memory sink of the last successful
 build (swapped in whole: a failing build leaves it in place), or with `--renderToDisk` from
 the publish directory (written in place by each build, so a failing build can leave some
-files new). `--renderToDisk` is neohugo's flag, not one of the Go build's: the Go server
+files new). `--renderToDisk` is fugo's flag, not one of the Go build's: the Go server
 rendered to disk by default and into memory with `-M`/`--renderToMemory`.
 
 ## Watching and rebuilding (`src/watch.rs`, `src/rebuild.rs`)
@@ -66,8 +66,8 @@ out) recursively, a mounted file through its directory, the configuration direct
 project's `--configDir` and each theme's `config/`) recursively, and, not recursively, the
 directories of the configuration files `Config::config_files` lists (the project's and its
 themes') and the project's and each theme's directory. **Configuration** is any of those
-files, anything below a configuration directory, and a `neohugo.*` or `config.*` file in the
-project's or a theme's directory (so a new `neohugo.toml` next to `config.toml` is a
+files, anything below a configuration directory, and a `fugo.*` or `config.*` file in the
+project's or a theme's directory (so a new `config.toml` next to `config.toml` is a
 configuration change, and wins).
 notify's native watcher (inotify, FSEvents, …) or its poller (`--poll 700ms`; a number is
 milliseconds; the poller compares contents, because notify keeps modification times in
@@ -86,7 +86,7 @@ modified", which the debouncer would drop as a file that came and went. On macOS
 **Ignored**: editors' temporary and backup files (Hugo's list: `~`, `.swp`, `.swx`, `.bck`,
 `.tmp`, `4913`, `.goutputstream*`, JetBrains `___jb_*___`, `.sb-*`, `#…`, `.#…`), names
 starting with `.`, anything below `.git`, `node_modules` or `bower_components` inside a
-mount, the project's `neohugo_stats.json` (the build writes it), permission and time changes,
+mount, the project's `build_stats.json` (the build writes it), permission and time changes,
 opening, reading and closing (a write is seen as a modification), and files created or
 written that are gone again.
 
@@ -98,7 +98,7 @@ written that are gone again.
 
 A full reload is Hugo's `{"command":"reload","path":"/x.js","originalPath":"","liveCSS":true,
 "liveImg":true}`; the hello answer is `{"command":"hello","protocols":
-["http://livereload.com/protocols/official-7"],"serverName":"neohugo"}`.
+["http://livereload.com/protocols/official-7"],"serverName":"fugo"}`.
 
 `Server::shutdown` stops the watch thread (after a build in progress) and the HTTP server
 (graceful: open requests finish, WebSockets get a close frame). The CLI has no signal
@@ -121,11 +121,11 @@ harmless for memory builds.
 - A busy default port falls back to a free port on `--bind` (Hugo listens on all interfaces
   then). Directory listings are not served (Hugo's `filesOnlyFs` lists nothing either; a
   directory without `index.html` is a miss).
-- The WebSocket answers `serverName` `neohugo`. One byte range per request (Go serves
+- The WebSocket answers `serverName` `fugo`. One byte range per request (Go serves
   multipart ranges); no `Last-Modified`/`ETag`.
 - The polling watcher reads the watched files at every interval (see above).
 
-## Tests (`cargo test -p neohugo-serve -- --nocapture`)
+## Tests (`cargo test -p ssg-serve -- --nocapture`)
 
 | Test | What |
 |---|---|
@@ -146,24 +146,24 @@ harmless for memory builds.
 | `serve::multihost_sites_get_a_listener_each` | two listeners, each language's base URL with its port, its script and 404 page, a WebSocket each |
 | `serve::per_language_404_pages` | `/nn/…` → `nn/404.html`, other misses → `404.html` |
 | `serve::a_new_static_directory_is_watched` | a site without `static/`: the new directory's file is copied, and a second edit inside it is seen (no build) |
-| `serve::theme_and_new_config_files_are_watched` | a theme's layout (→ its one changed page) and its `neohugo.toml` (→ reloaded configuration), then a new `neohugo.toml` over `hugo.toml` |
+| `serve::theme_and_new_config_files_are_watched` | a theme's layout (→ its one changed page) and its `config.toml` (→ reloaded configuration), then a new `config.toml` over `hugo.toml` |
 | `serve::polling_watcher` | `--poll 100ms` picks up an edit |
-| `serve::neohugo_is_server_and_site_server_port` | `neohugo.is_server` true and `site.server_port` the listener's port in the server (`BuildRequest::server`, T70); `false` and 0 in a `build` of the same site |
+| `serve::build_is_server_and_site_server_port` | `build.is_server` true and `site.server_port` the listener's port in the server (`BuildRequest::server`, T70); `false` and 0 in a `build` of the same site |
 | `testsite::testsite_is_served_and_reloads` | the testsite: pages of both languages and formats with the canonified server URLs, no script in JSON and aliases, static, types, both 404 pages, then edit → reload **measured**: 3 content edits, 1 layout edit, 1 static edit (no build) |
 
 Measured on the testsite (debug build; 4 CPUs shared with other builds):
 
 | Run | content edit → reload | layout edit | static edit (no build) |
 |---|---|---|---|
-| `neohugo server`, alone (3 sessions, 13 content and 9 static edits) | 1.54–1.84 s, one 2.17 s while the machine was compiling | – | 1.00–1.14 s |
+| `fugo server`, alone (3 sessions, 13 content and 9 static edits) | 1.54–1.84 s, one 2.17 s while the machine was compiling | – | 1.00–1.14 s |
 | `testsite_is_served_and_reloads` (8 runs, 6 of them next to the other tests) | 1.54–2.03 s (23 of 24 ≤ 2 s) | 1.55–1.69 s | 1.01–1.07 s |
 | the same test after the highlighter cache (below) | 1.09–1.11 s | 1.11 s | 1.06 s |
 
 That is the 1 s debounce, up to one 100 ms tick, and the rebuild. Before the cache, callgrind
 on a testsite build found **92 % of the rebuild (≈0.52–0.76 s in the debug build) in
-`neohugo_highlight::Highlight::new`** (`Languages::load` → syntect `SyntaxSetBuilder::build`,
+`ssg_highlight::Highlight::new`** (`Languages::load` → syntect `SyntaxSetBuilder::build`,
 which dumps, deflates and reloads the syntax set), on every build, although the testsite
-highlights nothing. `neohugo-highlight` now loads its lexers and styles once per process and
+highlights nothing. `ssg-highlight` now loads its lexers and styles once per process and
 every `Highlight` shares them, so a rebuild after the first costs tens of ms (since the Chroma
 port replaced syntect, `Highlight::new` reads the lexer configurations, ≈7 ms in a dev build,
 and a lexer compiles its rules on first use).

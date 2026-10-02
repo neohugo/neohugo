@@ -1,4 +1,4 @@
-# neohugo-site
+# ssg-site
 
 Capture, assembly and structure of the `Model` (REWRITE_PLAN.md §2.4, phases A4–B5): T23a
 (capture, tree, cascade, meta, filter) and T23b (made pages, URLs, relations, taxonomies,
@@ -7,12 +7,12 @@ translations, bundle resources, page references).
 | Piece | API |
 |---|---|
 | Entry point | `load_model(Arc<Config>, &Vfs, &LoadModelOptions { clock, content: ContentFilter }) -> Result<Model, ModelError>` (no content adapters run); `LoadModelOptions::from_config(&cfg, clock)` |
-| Content adapters | `capture_content(&Config, &Vfs) -> Captured` (phase A4; `Captured::adapters() -> &[ContentAdapter { file, info, lang }]`), then `assemble(Arc<Config>, Captured, Added { pages: Vec<AddedPage { adapter, lang, page: Arc<AdapterPage> }>, resources: Vec<AddedResource { adapter, lang, path, name, title, params, content: AddedContent::{Text, Resource} }> }, &LoadModelOptions)`; neohugo-build runs the adapters in between |
+| Content adapters | `capture_content(&Config, &Vfs) -> Captured` (phase A4; `Captured::adapters() -> &[ContentAdapter { file, info, lang }]`), then `assemble(Arc<Config>, Captured, Added { pages: Vec<AddedPage { adapter, lang, page: Arc<AdapterPage> }>, resources: Vec<AddedResource { adapter, lang, path, name, title, params, content: AddedContent::{Text, Resource} }> }, &LoadModelOptions)`; ssg-build runs the adapters in between |
 | Model | `Model { config, pages: IdVec<PageId, Page>, sites: IdVec<LangIdx, SiteModel>, bundle_resources: IdVec<ResourceId, BundleResource>, data: Arc<Map>, diagnostics }`; `page(id)`, `bundle_owner(id)`, `page_name(id)` (`.Name`), `is_ancestor(a, b)`, `pager_paths(id, format, "/page/2")` |
 | Page | `id, lang, kind, role: PageRole, key: ContentKey, source: Option<SourceFile>, path_info: PathInfo, meta: PageMeta`; T23b: `title, link_title, section, type, taxonomy: Option<TaxonomyIdx>, term: Option<TermIdx>, standalone: Option<FormatId>, formats: Vec<FormatId>, urls: Vec<PageUrl { format, paths: TargetPaths, links: Option<Links> }>, parent, ancestors, current_section, first_section, pages, regular_pages, sections, translations (= .AllTranslations), terms: Vec<(TaxonomyIdx, TermIdx)>, resources: Vec<ResourceId>`; `path()` (`.Path`), `name()`, `listed(ListScope::{Local, Global})`, `linked()`, `rendered()`, `url(format)`, `links()`, `dir_key()` |
 | SiteModel | `lang, tree: SiteTree, resources: BTreeMap<ContentKey, ResourceId>, cascade`; T23b: `home, pages, regular_pages (.Site.Pages/.RegularPages), regular_pages_local (regular pages listed locally, default order: `.RegularPagesRecursive` of home and sections), taxonomies: IdVec<TaxonomyIdx, Taxonomy>, main_sections, last_mod, permalinks: PermalinkPatterns` |
 | Taxonomies | `Taxonomy { def, page: Option<PageId>, terms: IdVec<TermIdx, Term> }` (terms by key), `listed_terms(&Model)` (`.Site.Taxonomies`: listed terms with members); `Term { key, term (.Data.Term), page, members: Vec<WeightedPage { page, weight, ordinal }> }` (weight, then default order) |
-| BundleResource | `key, lang, file, info, page, adapter: Option<Arc<AddedResource>>`; T23b: `copy_of` (a `duplicateResourceFiles` copy), `owner`, `name` (as written below the owner), `name_normalized`, `target_base: Option<ResourceBase>`, `publish`; `target()`, `link()`. Feeds `neohugo_resources::BundleResource { lang, file: file.abs, name, dir: target_base.link, policy: publish ? Eager : OnReference }` |
+| BundleResource | `key, lang, file, info, page, adapter: Option<Arc<AddedResource>>`; T23b: `copy_of` (a `duplicateResourceFiles` copy), `owner`, `name` (as written below the owner), `name_normalized`, `target_base: Option<ResourceBase>`, `publish`; `target()`, `link()`. Feeds `ssg_resources::BundleResource { lang, file: file.abs, name, dir: target_base.link, policy: publish ? Eager : OnReference }` |
 | References | `get_page(lang, ref, from)` (`.GetPage`), `site_get_page(lang, &[args])` (legacy kind-first `.Site.GetPage`), `ref_page(lang, ref, from)`, `ref_link(lang, &RefArgs { path, lang, output_format }, from, RefLink::{Permalink, RelPermalink})` → `Result<_, RefError>` (the caller maps errors to `refLinks`) |
 | Trees | `SiteTree::{get, insert, remove, longest_prefix, descendants, iter}` (segment-wise) |
 | Cascade | `CascadeIndex::{new, add_branch, received(key), in_force(key, own), branches}`; `meta::cascaded_params(cfg, index, lang, kind, key)` |
@@ -22,11 +22,11 @@ translations, bundle resources, page references).
 
 0. **Content adapters** (`_content.html`; Hugo's `_content.gotmpl`). Capture lists them
    (`Captured::adapters`; a `.gotmpl` adapter is `ModelError::GoContentAdapter`, with the hint
-   to port it to Tera); neohugo-build renders them with a model of the content files and
+   to port it to Tera); ssg-build renders them with a model of the content files and
    [`assemble`] adds what they added. Each `add_page` map becomes a captured page after the
    files, with the adapter as its file (`.File`, `IsContentAdapter`), the path
    `/<path>/index.<suffix>` (`_index` for branch kinds), no front matter and `content.value` as
-   its body; its meta is `neohugo_page::meta_from_adapter` with the cascade's fields filling the
+   its body; its meta is `ssg_page::meta_from_adapter` with the cascade's fields filling the
    map and its params the params (Hugo's `setMetaPost` for adapter pages). Each `add_resource`
    map becomes a bundle resource at its path, owned like a file; its bytes and metadata come
    from the adapter (`BundleResource::adapter`).
@@ -35,7 +35,7 @@ translations, bundle resources, page references).
    file's; one two adapters claim is the later adapter's, in the earlier one's place; both are
    `duplicate-content-path` (`duplicate-resource-path`) warnings, found through maps of
    (language, key), so assembling n added pages and resources takes linear time. A path one
-   adapter run adds twice is already its last `add_page` (see neohugo-sitefuncs). This is
+   adapter run adds twice is already its last `add_page` (see ssg-sitefuncs). This is
    Hugo's last insert in the order of one collector worker, which queues a directory's
    adapters before its files and subdirectories; with several workers Hugo's result depends
    on scheduling. One case differs from that order: a `../` path onto a key that a file in an
@@ -86,7 +86,7 @@ translations, bundle resources, page references).
    path is not its key: sitemaps have none). Language weight, date, link title, file.
 8. **URLs** (`urls.rs`, rayon over pages): formats (front matter `outputs`, else the kind's;
    the standalone format; only the first for pages not rendered); per format
-   `neohugo_page::target_paths` (current section, slug/standalone base name/name, language
+   `ssg_page::target_paths` (current section, slug/standalone base name/name, language
    prefixes — multihost writes to `/<lang>`, sitemaps are always in their language's directory
    on multilingual sites —, front matter `url` expanded when it holds `:` attributes, the
    `[permalinks]` pattern of the kind and section) and `links` for pages with a link.
@@ -98,7 +98,7 @@ translations, bundle resources, page references).
    of a page: the files its key owns, in its language else the first language that has the
    file (bundled pages only in their own language), plus a `translationKey`'s translations'
    files; files by media main type then name, then bundled pages in the default order. Front
-   matter `resources` metadata is applied by `neohugo-resources` (`ResourceStore::apply_meta`),
+   matter `resources` metadata is applied by `ssg-resources` (`ResourceStore::apply_meta`),
    which then re-sorts by the new names.
 10. **References** (`refs.rs`): `.GetPage`/`ref` as semantics §12.4 (`.md` added to references
     without an extension, relative to the page asking — a branch's own directory, else its
@@ -110,7 +110,7 @@ so the model is the same for any number of threads.
 
 ## Acceptance (tests/it)
 
-`cargo test -p neohugo-site -- --nocapture` prints the tallies. Every difference is exact or a
+`cargo test -p ssg-site -- --nocapture` prints the tallies. Every difference is exact or a
 reviewed class of `expected_diffs.toml` (`[[class]]`, exact counts).
 
 | Test | Fixtures | Result |
@@ -120,9 +120,9 @@ reviewed class of `expected_diffs.toml` (`[[class]]`, exact counts).
 | `structure` | `oracle/hugolib/assemble/*` (17 sites, 1,461 pages) | 52,928 / 52,932 checks exact, 4 accepted: page set incl. every made page (1,460), title/link title/type/section/term (1,461 each), dates of every page (1,461), params and build of made pages (212), parent/current/first section (1,436 each), `.Sections` (349), rendered formats (1,436), **target file, link and resource directory per (page, format) (1,515)**, **`.OutputFormats` rel/permalinks (1,436)**, `.Pages`/`.RegularPages` per node (2,869), site pages/regular pages/home/lastmod/main sections (26 languages each), taxonomy terms and weighted members (110), `.GetTerms` (41), `.Site.GetPage` (11,317) and page-relative `GetPage`/ref lookups (2 × 10,052), **bundle resource URLs per (page, name) (61)** |
 | `calls` | `oracle/hugolib/site/*` (19 sites; recorded template calls) | 68,153 / 68,427 exact, 274 accepted: translations (2,600), relations (3,250), lists (1,950), links and output formats (1,950), dates (2,600), names and kinds (7,150), `.Eq`/`.IsAncestor`/`.IsDescendant`/`.InSection` (12,436), page `.GetPage` (4,707), `.GetTerms` (1,882), **`ref`/`relref`/`RefFrom`/`RelRefFrom` (27,820)**, site lists/taxonomies/lastmod/main sections (261), `.Site.GetPage` (1,821) |
 | `build` | `oracle/hugolib/build/*` (26 sites incl. the 9 build-* sites) | every (language, page, format) Hugo rendered is rendered here (1,647), its target is a file Hugo wrote (1,642 non-empty), pagers 2..N via `Model::pager_paths` are files Hugo wrote (344) |
-| `golden` | `testdata/golden/<site>/structure.json[.gz]` + `NEOHUGO_SITES` | the structure oracle gate (targets and permalinks per (page, format), resource URLs per (page, name)); skips with a message without the dump (the golden data is frozen at 44529028) or the site; a self-test runs the reader |
+| `golden` | `testdata/golden/<site>/structure.json[.gz]` + `FUGO_SITES` | the structure oracle gate (targets and permalinks per (page, format), resource URLs per (page, name)); skips with a message without the dump (the golden data is frozen at 44529028) or the site; a self-test runs the reader |
 | `data`, `model` | as T23a | |
-| `real_sites` (ignored) | `sites.py make docs\|testsite\|seeksnack` | `NEOHUGO_SITES=<dir>:… cargo test -p neohugo-site real_sites -- --ignored --nocapture`: page counts, made pages, terms, outputs, shared target files (seeksnack: exactly Hugo's 3 term collisions, `lay's`/`lays`, `ins-322(i)`/`ins-322i`) |
+| `real_sites` (ignored) | `sites.py make docs\|testsite\|seeksnack` | `FUGO_SITES=<dir>:… cargo test -p ssg-site real_sites -- --ignored --nocapture`: page counts, made pages, terms, outputs, shared target files (seeksnack: exactly Hugo's 3 term collisions, `lay's`/`lays`, `ins-322(i)`/`ins-322i`) |
 
 **Segment-aware prefix lookup**: every ancestor lookup (parent, sections, owners, lists, node
 dates, cascades) is segment-wise; on all 17 + 19 + 26 oracle sites it gives Hugo's result

@@ -2,9 +2,9 @@
 //! absURLInXML replacers: upstream tables, the output-publishing spec vectors, a prefix ×
 //! quote × value × suffix grid and random documents).
 
-use neohugo_publish::{Quoting, UrlRewriter};
-use neohugo_testkit::fixture::{GoString, oracle_lines};
 use serde::Deserialize;
+use ssg_publish::{Quoting, UrlRewriter};
+use ssg_testkit::fixture::{GoString, oracle_lines};
 
 use crate::support::{Tally, show};
 

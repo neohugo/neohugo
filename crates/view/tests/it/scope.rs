@@ -1,8 +1,8 @@
 //! The render scope travels through Tera contexts as `__nh` and is read back by functions;
 //! `child` and the depth limit.
 
-use neohugo_base::{FormatId, FrameId, LangIdx, PageId};
-use neohugo_view::{HookVariant, Phase, RenderScope, SCOPE_KEY, Stage};
+use ssg_base::{FormatId, FrameId, LangIdx, PageId};
+use ssg_view::{HookVariant, Phase, RenderScope, SCOPE_KEY, Stage};
 
 fn scope() -> RenderScope {
     let mut s = RenderScope::layout(
@@ -61,6 +61,6 @@ fn child_scope() {
     assert_eq!(c.frame, None);
     assert!(!c.too_deep());
     let mut deep = s;
-    deep.depth = neohugo_view::MAX_DEPTH;
+    deep.depth = ssg_view::MAX_DEPTH;
     assert!(deep.child().too_deep());
 }

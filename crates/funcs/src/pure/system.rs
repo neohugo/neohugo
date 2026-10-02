@@ -4,7 +4,7 @@
 use std::path::{Component, Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_base::diag::Diagnostic;
+use ssg_base::diag::Diagnostic;
 use tera::{Kwargs, TeraResult, Value};
 
 use super::{PureEnv, Registrar};

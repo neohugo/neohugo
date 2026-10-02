@@ -1,4 +1,4 @@
-# Reviewed differences between neohugo-config and the Go oracle (allconfig/load).
+# Reviewed differences between ssg-config and the Go oracle (allconfig/load).
 # Keys: a case name (every difference of that case) or the first line of one difference.
 # The acceptance cases (repo/*, seeksnack/*) must not appear here. See README.md, "Accepted
 # deviations", for the reasoning behind each group.
@@ -10,7 +10,7 @@
 "env/module-workspace-missing" = "no Hugo Modules: module.workspace is not checked"
 
 # (2) Project-wide settings come from the default language. Go keeps imaging, media types and
-#     output formats per language; neohugo has one table of each per project.
+#     output formats per language; this port has one table of each per project.
 "languages/per-language-sections [en] imaging:" = "imaging is project-wide"
 "merge/imaging-root-and-lang" = "imaging is project-wide"
 "merge/lang-mediatypes" = "media types and output formats are project-wide"
@@ -32,7 +32,7 @@
 "basic/filename-missing" = "a missing --config file is an error (Go falls back to defaults)"
 "basic/clock-invalid" = "--clock is not configuration (base::Clock, parsed by the CLI)"
 "basic/cache-dir-no-xdg" = "the cache directory is not created while loading; the oracle's XDG_CACHE_HOME parent was not a directory, which the fixture does not record"
-"env/decoder-not-map" = "NEOHUGO_SITEMAP=weekly (Go: HUGO_SITEMAP) is an error (a table is expected); Go ignores it"
+"env/decoder-not-map" = "FUGO_SITEMAP=weekly (Go: HUGO_SITEMAP) is an error (a table is expected); Go ignores it"
 "env/security [en] security:" = "HUGO_* lists written as ['a'] are parsed as lists; Go keeps the literal string as one pattern"
 "languages/lang-overrides-root-scalars" = "disableLanguages inside a language table is ignored (a root-only setting)"
 "sections/caches-invalid-maxage" = "maxAge accepts a number of seconds written as a string"

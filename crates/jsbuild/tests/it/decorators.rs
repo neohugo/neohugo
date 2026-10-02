@@ -6,8 +6,8 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use neohugo_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, MountedDirs, Source};
 use serde_json::{Value as Json, json};
+use ssg_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, MountedDirs, Source};
 
 /// Builds `entry` (with its sibling `files`) in a fresh site and returns the bundle's path.
 fn build(

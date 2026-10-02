@@ -4,9 +4,9 @@
 //! (`ByTitle`, `GroupBy`, …) are template functions.
 
 use jiff::Zoned;
-use neohugo_locale::Collator;
-use neohugo_page::{SortKey, default_order};
 use serde_json::Value as J;
+use ssg_locale::Collator;
+use ssg_page::{SortKey, default_order};
 
 use crate::support::{Tally, family, fixture, idx, s, zoned};
 

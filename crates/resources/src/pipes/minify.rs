@@ -1,4 +1,4 @@
-//! `minify`: the configured minifier of the resource's media type (`neohugo-minify`). A media
+//! `minify`: the configured minifier of the resource's media type (`ssg-minify`). A media
 //! type without a minifier (text, images, unknown) is an error, as in Hugo. A leading byte
 //! order mark (dart-sass writes one before non-ASCII compressed CSS) is kept in front of the
 //! minified text.
@@ -8,7 +8,7 @@ use crate::store::Resource;
 
 pub(super) fn run(env: &TransformEnv, r: &Resource, input: &[u8]) -> Result<Output, PipeError> {
     let media_type = r.media_type_string();
-    let Some(target) = neohugo_minify::target_for(&media_type) else {
+    let Some(target) = ssg_minify::target_for(&media_type) else {
         return Err(PipeError::NoMinifier(media_type));
     };
     let text = text(input)?;

@@ -4,13 +4,13 @@ use std::collections::BTreeMap;
 use std::time::Duration;
 
 use image::{Rgba, RgbaImage};
-use neohugo_base::paths::OutputPath;
-use neohugo_config::global::MaxAge;
-use neohugo_images::{
+use ssg_base::paths::OutputPath;
+use ssg_config::global::MaxAge;
+use ssg_images::{
     Hint, ImageCache, ImageError, ImageFilter, ImageFormat, ImageInput, ImageQueue, ImageSpec,
     Imaging,
 };
-use neohugo_testkit::fixture::repo_file;
+use ssg_testkit::fixture::repo_file;
 
 use crate::common::{MemorySink, decode, png, psnr, write_file};
 
@@ -88,7 +88,7 @@ fn names_are_stable_and_content_addressed() {
 
     // The site defaults are part of the identity.
     let lanczos = Imaging {
-        resample: neohugo_images::Resample::Lanczos,
+        resample: ssg_images::Resample::Lanczos,
         ..Imaging::default()
     };
     let q2 = ImageQueue::new(lanczos, None);
@@ -101,7 +101,7 @@ fn names_are_stable_and_content_addressed() {
 #[test]
 fn unknown_and_bad_inputs_are_errors() {
     let q = ImageQueue::new(Imaging::default(), None);
-    let id = neohugo_base::ImageOpId::from_raw(42);
+    let id = ssg_base::ImageOpId::from_raw(42);
     assert!(matches!(
         q.enqueue(&ImageInput::Op(id), None, &[]),
         Err(ImageError::UnknownOp(_))
@@ -211,7 +211,7 @@ fn cache_is_read_while_fresh() {
 
 #[test]
 fn cache_dir_comes_from_caches_images() {
-    let file_cache = neohugo_config::global::FileCache {
+    let file_cache = ssg_config::global::FileCache {
         dir: ":resourceDir/_gen".to_owned(),
         max_age: MaxAge::Forever,
         path: "/site/resources/_gen/images".into(),

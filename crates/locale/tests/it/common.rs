@@ -2,9 +2,9 @@
 
 use std::collections::BTreeMap;
 
-use neohugo_base::{Map, Value};
 use serde::Deserialize;
 use serde_json::Value as J;
+use ssg_base::{Map, Value};
 
 /// `crates/locale/expected_diffs.toml`.
 #[derive(Debug, Deserialize)]
@@ -17,7 +17,7 @@ pub struct ExpectedDiffs {
 
 #[derive(Debug, Deserialize)]
 pub struct TranslateDiffs {
-    /// Go argument types with no neohugo counterpart (not compared).
+    /// Go argument types with no native counterpart (not compared).
     pub go_only_argtypes: Vec<String>,
     /// Keys whose messages use syntax outside `{{ . }}` / `{{ .Field }}` (load errors here).
     pub unsupported_syntax: Vec<String>,
@@ -48,12 +48,12 @@ pub struct ParseDiffs {
 }
 
 pub fn expected_diffs() -> ExpectedDiffs {
-    let path = neohugo_testkit::fixture::repo_dir().join("crates/locale/expected_diffs.toml");
+    let path = ssg_testkit::fixture::repo_dir().join("crates/locale/expected_diffs.toml");
     let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
     toml::from_str(&text).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
 }
 
-/// A fixture argument as a neohugo value: JSON numbers follow the Go type (`argtype`), Go
+/// A fixture argument as a native value: JSON numbers follow the Go type (`argtype`), Go
 /// structs and `maps.Params` become maps, `template.HTML` a string.
 pub fn value_of(arg: &J, argtype: &str) -> Value {
     match arg {

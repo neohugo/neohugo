@@ -4,11 +4,11 @@
 //! `@import "tailwindcss"`, `@plugin` and `@source "hugo_stats.json"` (the frozen docs fixture names Go's file) are left to the CLI.
 //!
 //! With a fake `tailwindcss` (node) the input and arguments are checked; with the real CLI
-//! (`NEOHUGO_TAILWINDCSS_BIN`, plugins through `NEOHUGO_NODE_MODULES`) the docs CSS compiles
+//! (`FUGO_TAILWINDCSS_BIN`, plugins through `FUGO_NODE_MODULES`) the docs CSS compiles
 //! and holds classes the docs' (Go's) `hugo_stats.json` names.
 
-use neohugo_resources::Transform;
-use neohugo_resources::pipes::{TailwindOptions, ToolPaths};
+use ssg_resources::Transform;
+use ssg_resources::pipes::{TailwindOptions, ToolPaths};
 
 use super::{fake_tool, have_node, project_in_place, real_tool};
 
@@ -69,7 +69,7 @@ fn tailwind_docs_styles_fake_tool() {
 
 #[test]
 fn tailwind_docs_styles_real_tool() {
-    let Some(bin) = real_tool("NEOHUGO_TAILWINDCSS_BIN", "tailwind_docs_styles_real_tool") else {
+    let Some(bin) = real_tool("FUGO_TAILWINDCSS_BIN", "tailwind_docs_styles_real_tool") else {
         return;
     };
     let p = project_in_place(&docs(), |env| {

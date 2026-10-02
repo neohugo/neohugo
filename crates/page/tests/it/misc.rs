@@ -1,17 +1,17 @@
 //! Oracle: cascade decoding and matching, markup detection and page configuration
 //! (`oracle/page/misc/misc.json.gz`). Output format construction and lookup, and the
-//! template-side `NamedPageMetaValue`, belong to `neohugo-config` and `neohugo-view`.
+//! template-side `NamedPageMetaValue`, belong to `ssg-config` and `ssg-view`.
 
 use jiff::tz::TimeZone;
-use neohugo_base::paths::ContentKey;
-use neohugo_base::{Map, PageKind, Params, Value};
-use neohugo_config::sections::SitemapConfig;
-use neohugo_config::{MediaTypes, OutputFormats};
-use neohugo_page::{
+use serde_json::{Value as J, json};
+use ssg_base::paths::ContentKey;
+use ssg_base::{Map, PageKind, Params, Value};
+use ssg_config::sections::SitemapConfig;
+use ssg_config::{MediaTypes, OutputFormats};
+use ssg_page::{
     AdapterPage, Cascade, CascadeTarget, Cjk, DateResolver, Markup, MatchCtx, MetaCtx,
     meta_from_params,
 };
-use serde_json::{Value as J, json};
 
 use crate::support::{Tally, fixture, s, value};
 

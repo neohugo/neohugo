@@ -6,8 +6,8 @@
 use std::collections::{BTreeMap, BTreeSet, HashMap};
 
 use jiff::Zoned;
-use neohugo_base::{PageId, Value, text};
-use neohugo_config::sections::{RelatedConfig, RelatedIndex as IndexConfig, RelatedIndexKind};
+use ssg_base::{PageId, Value, text};
+use ssg_config::sections::{RelatedConfig, RelatedIndex as IndexConfig, RelatedIndexKind};
 
 use crate::NavError;
 use crate::model::{NavModel, PageFacts};
@@ -74,7 +74,7 @@ fn date_keyword(d: Option<&Zoned>, pattern: &str) -> String {
             .expect("year 1 is in range");
         &zero
     };
-    neohugo_page::format_go_layout(d, layout)
+    ssg_page::format_go_layout(d, layout)
 }
 
 fn text_keyword(cfg: &IndexConfig, s: &str) -> Keyword {
@@ -114,8 +114,8 @@ fn value_keywords(cfg: &IndexConfig, v: &Value) -> Result<Vec<Keyword>, NavError
             .collect(),
         Value::Date(d) => {
             let z = match d {
-                neohugo_base::Date::Zoned(z) => z.clone(),
-                neohugo_base::Date::Local(dt) => dt
+                ssg_base::Date::Zoned(z) => z.clone(),
+                ssg_base::Date::Local(dt) => dt
                     .to_zoned(jiff::tz::TimeZone::UTC)
                     .map_err(|_| unsupported("date"))?,
             };

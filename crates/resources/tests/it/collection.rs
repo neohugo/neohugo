@@ -3,8 +3,8 @@
 //! `nh-resource` fixture: 445 cases over 5 resource sets, incl. names with spaces, Thai and
 //! accented letters, `./` names and invalid globs).
 
-use neohugo_resources::meta::{self, Named};
 use serde_json::{Value as J, json};
+use ssg_resources::meta::{self, Named};
 
 struct TestRes {
     name: String,

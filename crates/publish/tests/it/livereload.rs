@@ -1,9 +1,9 @@
 //! The LiveReload script injection against the Go oracle `transform/absurl/inject`.
 
-use neohugo_base::url::UrlRef;
-use neohugo_publish::livereload;
-use neohugo_testkit::fixture::{GoString, oracle_lines};
 use serde::Deserialize;
+use ssg_base::url::UrlRef;
+use ssg_publish::livereload;
+use ssg_testkit::fixture::{GoString, oracle_lines};
 
 use crate::support::{Tally, show};
 
@@ -34,7 +34,7 @@ fn inject_oracle() {
                     )
                 });
             }
-            // neohugo never adds the generator <meta> tag (output-publishing §0.4).
+            // This port never adds the generator <meta> tag (output-publishing §0.4).
             ("generator", _) if c.out != c.input => t.accept("generator-tag-never-injected"),
             ("generator", _) => t.pass(),
             _ => panic!("unknown record {}", c.t),
