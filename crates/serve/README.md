@@ -66,9 +66,9 @@ out) recursively, a mounted file through its directory, the configuration direct
 project's `--configDir` and each theme's `config/`) recursively, and, not recursively, the
 directories of the configuration files `Config::config_files` lists (the project's and its
 themes') and the project's and each theme's directory. **Configuration** is any of those
-files, anything below a configuration directory, and a `fugo.*` or `config.*` file in the
-project's or a theme's directory (so a new `config.toml` next to `config.toml` is a
-configuration change, and wins).
+files, anything below a configuration directory, and a `config.*` file in the project's or a
+theme's directory (so a new `config.toml` next to a `config.yaml` is a configuration change,
+and wins).
 notify's native watcher (inotify, FSEvents, …) or its poller (`--poll 700ms`; a number is
 milliseconds; the poller compares contents, because notify keeps modification times in
 whole seconds), debounced by notify-debouncer-full: an event is delivered 1 s after it

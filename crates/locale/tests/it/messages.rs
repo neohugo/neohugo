@@ -9,7 +9,6 @@ use ssg_locale::{
     Args, EvalError, I18nError, MessageProblem, NO_VALUE, Piece, PluralCount, Template,
     TranslateError, Translation, Translations, TranslationsBuilder,
 };
-use ssg_testkit::txtar::Archive;
 
 fn map(entries: &[(&str, Value)]) -> Value {
     let mut m = Map::new();
@@ -19,14 +18,43 @@ fn map(entries: &[(&str, Value)]) -> Value {
     Value::map(m)
 }
 
-/// en and th from `tools/rust-port/i01/seeksnack.txtar` (the R site).
-fn seeksnack() -> Translations {
-    let path = ssg_testkit::fixture::repo_dir().join("tools/rust-port/i01/seeksnack.txtar");
-    let archive = Archive::read(&path).unwrap();
+/// An English and a Thai translation file of a review site.
+const EN: &str = r#"review = "Review"
+latest = "Latest snacks"
+home = "Home"
+related = "Related snacks"
+rating = "Rating"
+notFound = "Page not found"
+welcome = "Welcome to {{ .Name }}"
+[words]
+one = "word"
+other = "words"
+[reviews]
+one = "{{ .Count }} review"
+other = "{{ .Count }} reviews"
+[comments]
+one = "One comment"
+other = "{{ .Count }} comments"
+"#;
+const TH: &str = r#"review = "รีวิว"
+latest = "ขนมล่าสุด"
+home = "หน้าแรก"
+related = "ขนมที่เกี่ยวข้อง"
+rating = "คะแนน"
+welcome = "ยินดีต้อนรับสู่ {{ .Name }}"
+[words]
+other = "คำ"
+[reviews]
+other = "{{ .Count }} รีวิว"
+[comments]
+other = "{{ .Count }} ความคิดเห็น"
+"#;
+
+/// en and th of a review site.
+fn review_site() -> Translations {
     let mut b = TranslationsBuilder::new("en");
-    for name in ["i18n/en.toml", "i18n/th.toml"] {
-        b.add_file(Path::new(name), archive.get(name).unwrap())
-            .unwrap();
+    for (name, text) in [("i18n/en.toml", EN), ("i18n/th.toml", TH)] {
+        b.add_file(Path::new(name), text).unwrap();
     }
     b.build(["en", "th"])
 }
@@ -36,14 +64,14 @@ fn lang(i: usize) -> LangIdx {
 }
 
 #[test]
-fn seeksnack_welcome_reviews_comments() {
-    let t = seeksnack();
+fn welcome_reviews_comments() {
+    let t = review_site();
     let (en, th) = (lang(0), lang(1));
-    let site = map(&[("Name", Value::string("Seeksnack"))]);
+    let site = map(&[("Name", Value::string("Snacks"))]);
     let tr = |l, key: &str, arg: &Value| t.translate(l, key, &Args::from_value(arg)).unwrap();
     // {{ i18n "welcome" (dict "Name" .Site.Title) }}
-    assert_eq!(tr(en, "welcome", &site), "Welcome to Seeksnack");
-    assert_eq!(tr(th, "welcome", &site), "ยินดีต้อนรับสู่ Seeksnack");
+    assert_eq!(tr(en, "welcome", &site), "Welcome to Snacks");
+    assert_eq!(tr(th, "welcome", &site), "ยินดีต้อนรับสู่ Snacks");
     // {{ i18n "reviews" 1 }} / {{ i18n "reviews" 5 }}
     assert_eq!(tr(en, "reviews", &Value::Int(1)), "1 review");
     assert_eq!(tr(en, "reviews", &Value::Int(5)), "5 reviews");
@@ -66,7 +94,7 @@ fn seeksnack_welcome_reviews_comments() {
 
 #[test]
 fn the_tera_api_passes_count_and_data_separately() {
-    let t = seeksnack();
+    let t = review_site();
     // i18n(key="reviews", count=1)
     let one = Args {
         count: Some(PluralCount::from_int(1)),

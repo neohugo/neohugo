@@ -163,7 +163,7 @@ fn dates_match_hugo() {
             }
         }
     }
-    assert!(replays > 16_000, "{replays} replays");
+    assert!(replays > 13_000, "{replays} replays");
     t.finish("frontmatter-dates");
 }
 

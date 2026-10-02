@@ -221,11 +221,6 @@ fn assemble_testsite() {
 }
 
 #[test]
-fn assemble_seeksnack() {
-    assert!(check("seeksnack") >= 40);
-}
-
-#[test]
 fn assemble_docs() {
     assert!(check("docs") >= 900);
 }

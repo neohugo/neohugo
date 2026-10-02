@@ -1,5 +1,5 @@
-//! T04 comrak spike: native comrak 0.55 over the 959 docs bodies and the 251 seeksnack
-//! bodies, measured per feature against normalised goldmark (Hugo) HTML.
+//! T04 comrak spike: native comrak 0.55 over the 959 docs bodies, measured per feature against
+//! normalised goldmark (Hugo) HTML.
 //!
 //! Re-run and print the table:
 //! `cargo test -p ssg-markup --test it comrak_spike -- --nocapture`
@@ -86,19 +86,14 @@ fn floor(rows: &[Row], feature: &str, min: usize) {
 #[test]
 fn comrak_spike() {
     let docs = corpus::docs();
-    let seeksnack = corpus::seeksnack();
     assert_eq!(docs.docs.len(), 959, "docs bodies");
-    assert_eq!(seeksnack.len(), 251, "seeksnack bodies");
 
     let mut whole: Vec<Row> = HugoCfg::ALL
         .iter()
         .map(|&c| features::overall_docs(&docs, c))
         .collect();
     whole.push(features::residual_docs(&docs, HugoCfg::Default));
-    whole.push(features::residual_docs(&docs, HugoCfg::Seeksnack));
-    for cfg in ["default", "unsafe", "all", "hugo", "hugo-autoid"] {
-        whole.push(features::overall_seeksnack(&seeksnack, cfg));
-    }
+    whole.push(features::residual_docs(&docs, HugoCfg::Site));
 
     let mut feat = features::deflists(&docs);
     feat.push(features::heading_attributes(&docs));
@@ -112,19 +107,14 @@ fn comrak_spike() {
     feat.extend(features::raw_html(&docs));
     feat.push(features::plain_fences(&docs));
 
-    let mut all_bodies = docs.docs.clone();
-    all_bodies.extend(seeksnack.iter().map(|d| (d.name.clone(), d.md.clone())));
-    let pos = sourcepos::check(&all_bodies, &engine::hugo(HugoCfg::Default));
+    let pos = sourcepos::check(&docs.docs, &engine::hugo(HugoCfg::Default));
 
     println!("{}", table("Whole documents (normalised)", &whole));
     println!(
         "{}",
         table("Features (native comrak, no custom pass)", &feat)
     );
-    println!(
-        "{}",
-        table("Inline sourcepos (docs + seeksnack, cfg default)", &pos)
-    );
+    println!("{}", table("Inline sourcepos (docs, cfg default)", &pos));
 
     // Floors at the values measured by T04 (comrak 0.55.0); see the crate README.
     floor(&whole, "docs, whole page, cfg default", 862);
@@ -133,8 +123,6 @@ fn comrak_spike() {
         "docs, whole page, cfg default, after pass-owned folds",
         925,
     );
-    floor(&whole, "seeksnack, whole body, goldmark default", 251);
-    floor(&whole, "seeksnack, whole body, goldmark hugo", 249);
     floor(&feat, "definition details", 866);
     floor(&feat, "heading attributes {#id .class k=v}", 11);
     floor(&feat, "fence language (info word 1)", 2006);
@@ -147,10 +135,10 @@ fn comrak_spike() {
     );
     floor(&feat, "raw HTML passed (unsafe=true)", 22);
     floor(&feat, "typographer (quotes, dashes, ellipsis)", 3533);
-    floor(&pos, "sourcepos link (paragraph)", 1663);
-    floor(&pos, "sourcepos link (table)", 2087);
-    floor(&pos, "sourcepos image (paragraph)", 556);
-    floor(&pos, "sourcepos text", 23237);
+    floor(&pos, "sourcepos link (paragraph)", 1586);
+    floor(&pos, "sourcepos link (table)", 2045);
+    floor(&pos, "sourcepos image (paragraph)", 31);
+    floor(&pos, "sourcepos text", 19597);
     for r in pos
         .iter()
         .filter(|r| !r.feature.contains("after link ref defs"))

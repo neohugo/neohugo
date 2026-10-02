@@ -116,7 +116,7 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
 14. **§7.2 misstates term titles.** The row "`.Title` = first value" is wrong. `.Title` is AP-title-case of the *last* `m.term`; `.Name` is the first value (CM §7.3).
 
 15. **The §11.2 end-to-end command will fail as written.**
-    - It omits `NEOHUGO_ESBUILD_BINARY`. seeksnack has no esbuild in `node_modules`, and there is none on PATH.
+    - It omits `NEOHUGO_ESBUILD_BINARY`. The private site has no esbuild in `node_modules`, and there is none on PATH.
     - The only binary is in scratch (`work/resources-pipeline/esbuild/...`), which is not durable.
     - Fix: add the variable and pin the binary somewhere permanent (T16/I01).
 

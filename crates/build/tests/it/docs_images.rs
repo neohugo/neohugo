@@ -83,7 +83,7 @@ fn docs_text_and_qr_layouts_render() {
         files.push((format!("layouts/{rel}"), text));
     }
     write_files(&dir, &files);
-    let opengraph = repo_dir().join("docs/assets/opengraph");
+    let opengraph = ssg_testkit::fixture::hugo_docs().join("assets/opengraph");
     fs::create_dir_all(dir.join("assets/opengraph")).expect("mkdir");
     for name in ["gohugoio-card-base-1.png", "mulish-black.ttf"] {
         fs::copy(

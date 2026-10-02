@@ -1,6 +1,5 @@
 //! `canonifyURLs` and `relativeURLs`: root-relative URLs in rendered output are rewritten to
-//! absolute (or dot-relative) ones before the output is minified
-//! (docs/rust-port/specs/output-publishing.md §3).
+//! absolute (or dot-relative) ones before the output is minified.
 //!
 //! A candidate is the text right after one of `src=`, `href=`, `url=`, `action=` or `srcset=`
 //! (case-sensitive substring matches, so `data-src=` and `content="0; url=/x"` count too):
@@ -287,14 +286,14 @@ mod tests {
 
     #[test]
     fn spec_vectors() {
-        let b = "https://seeksnack.com/";
+        let b = "https://shop.example/";
         assert_eq!(
             rw(b, r#"<a href="/about">"#),
-            r#"<a href="https://seeksnack.com/about">"#
+            r#"<a href="https://shop.example/about">"#
         );
         assert_eq!(
             rw(b, "<a href=/about>"),
-            "<a href=https://seeksnack.com/about>"
+            "<a href=https://shop.example/about>"
         );
         assert_eq!(
             rw(b, r#"<a href="//cdn.x/a.js">"#),
@@ -302,7 +301,7 @@ mod tests {
         );
         assert_eq!(
             rw(b, r#"<img srcset="/a.png 1x,  https://x/b.png   2x">"#),
-            r#"<img srcset="https://seeksnack.com/a.png 1x, https://x/b.png 2x">"#
+            r#"<img srcset="https://shop.example/a.png 1x, https://x/b.png 2x">"#
         );
         assert_eq!(rw(b, "<img srcset=/a.png>"), "<img srcset=/a.png>");
         assert_eq!(rw(b, r#"<a HREF="/x">"#), r#"<a HREF="/x">"#);

@@ -27,7 +27,7 @@ pub fn hugo(cfg: HugoCfg) -> Options<'static> {
     let mut o = hugo_defaults();
     match cfg {
         HugoCfg::Default => {}
-        HugoCfg::Seeksnack | HugoCfg::Ascii => o.render.r#unsafe = true,
+        HugoCfg::Site | HugoCfg::Ascii => o.render.r#unsafe = true,
         HugoCfg::Blackfriday => {
             o.render.hardbreaks = true;
             o.parse.smart = false;
@@ -45,27 +45,6 @@ pub fn hugo(cfg: HugoCfg) -> Options<'static> {
         HugoCfg::Noattr => o.extension.header_attributes = false,
     }
     o
-}
-
-/// The plain goldmark instances of the seeksnack corpus (`tools/go-oracle/goldmark` at
-/// `be02933a`, `go-parity-final`).
-pub fn goldmark(cfg: &str) -> Option<Options<'static>> {
-    let mut o = Options::default();
-    match cfg {
-        "default" => {}
-        "unsafe" => o.render.r#unsafe = true,
-        "all" => {
-            o.extension.header_attributes = true;
-            o.render.r#unsafe = true;
-            o.render.hardbreaks = true;
-        }
-        "hugo" | "hugo-autoid" => {
-            o = hugo_defaults();
-            o.render.r#unsafe = true;
-        }
-        _ => return None,
-    }
-    Some(o)
 }
 
 pub fn to_html(md: &str, o: &Options<'_>) -> String {

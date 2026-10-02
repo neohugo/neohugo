@@ -162,11 +162,11 @@ fn css() {
 #[test]
 fn js() {
     let gtag = "window.dataLayer = window.dataLayer || [];\n function gtag(){dataLayer.push(arguments);}\n \
-                gtag('js', new Date());\n\n gtag('config', 'UA-149754145-1');";
+                gtag('js', new Date());\n\n gtag('config', 'UA-000000000-1');";
     assert_eq!(
         min(MinifyTarget::Js, gtag),
         "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments)}\
-         gtag(`js`,new Date),gtag(`config`,`UA-149754145-1`);"
+         gtag(`js`,new Date),gtag(`config`,`UA-000000000-1`);"
     );
     let local =
         "function f(input){ let longName = input * 2; return longName + g(longName); }\nf(1);";

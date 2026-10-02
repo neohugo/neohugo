@@ -1,4 +1,4 @@
-//! Behaviour tests of the pipeline: the legacy-key table on a synthetic seeksnack-style
+//! Behaviour tests of the pipeline: the legacy-key table on a synthetic real-site-style
 //! configuration, `HUGO_*` typing, `CliOverrides`, `[caches]` placeholders, `[privacy]`, and
 //! error positions.
 
@@ -56,10 +56,10 @@ impl Project {
     }
 }
 
-/// A seeksnack-style configuration written with every legacy key the pipeline migrates.
+/// A real-site-style configuration written with every legacy key the pipeline migrates.
 const LEGACY: &str = r#"
-baseURL = "https://seeksnack.example/"
-title = "SeekSnack"
+baseURL = "https://snacks.example/"
+title = "Snacks"
 paginate = 12
 paginatePath = "seite"
 rssLimit = 10
@@ -69,7 +69,7 @@ pygmentsStyle = "dracula"
 pygmentsCodeFences = false
 pygmentsCodefencesGuessSyntax = true
 pygmentsUseClasses = true
-disqusShortname = "seeksnack"
+disqusShortname = "snacks"
 googleAnalytics = "G-LEGACY"
 minify = true
 logI18nWarnings = true
@@ -125,7 +125,7 @@ fn legacy_keys() {
         !en.markup.highlight.no_classes,
         "pygmentsUseClasses = true means CSS classes"
     );
-    assert_eq!(en.services.disqus.shortname, "seeksnack");
+    assert_eq!(en.services.disqus.shortname, "snacks");
     assert_eq!(en.services.google_analytics.id, "G-LEGACY");
     assert!(c.minify.minify_output);
     assert_eq!(

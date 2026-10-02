@@ -1374,7 +1374,7 @@ fn idct(src: &mut Block) {
 #[cfg(test)]
 mod tests {
     use serde::Deserialize;
-    use ssg_testkit::fixture::{oracle, repo_dir};
+    use ssg_testkit::fixture::{oracle, repo_file};
 
     use super::*;
 
@@ -1404,10 +1404,10 @@ mod tests {
     #[test]
     fn planes_equal_go_s() {
         let fx: Planes = oracle("oracle/images/smartcrop/jpeg.json.gz");
-        assert_eq!(fx.cases.len(), 122);
+        assert_eq!(fx.cases.len(), 107);
         let mut failures = Vec::new();
         for c in &fx.cases {
-            let path = repo_dir().join(&c.src);
+            let path = repo_file(&c.src);
             let bytes = std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
             let (got, err) = match decode(&bytes) {
                 Err(e) => (Vec::new(), Some(e.to_string())),

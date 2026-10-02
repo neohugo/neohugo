@@ -1,6 +1,5 @@
 //! Front matter decoding against Hugo's `ParseFrontMatterAndContent`
-//! (`parser/pageparser/pages.json.gz`), with the 218 seeksnack front matters as the acceptance
-//! set.
+//! (`parser/pageparser/pages.json.gz`).
 
 use serde_json::Value as J;
 use ssg_base::{Date, Map, Value};
@@ -79,17 +78,11 @@ fn front_matter_decodes_like_hugo() {
     let diffs = expected_diffs();
     let accepted = &diffs["front_matter"];
     let json_numbers = &diffs["front_matter_rules"]["json_numbers"];
-    let mut seeksnack = Tally::new("pageparser/seeksnack front matter");
-    let mut others = Tally::new("pageparser/front matter (docs, tests, shapes, soups)");
+    let mut tally = Tally::new("pageparser/front matter (docs, tests, shapes, soups)");
     for (id, c) in page_cases() {
         let fm = &c["fm"];
         let Some(format) = fm["format"].as_str().and_then(format_of) else {
             continue;
-        };
-        let tally = if id.starts_with("seeksnack:") {
-            &mut seeksnack
-        } else {
-            &mut others
         };
         let Some(src) = c["src"].as_str() else {
             tally.skipped += 1;
@@ -132,10 +125,7 @@ fn front_matter_decodes_like_hugo() {
             });
         }
     }
-    let total = seeksnack.checks;
-    seeksnack.finish();
-    assert_eq!(total, 218, "every seeksnack front matter checked");
-    others.finish();
+    tally.finish();
 }
 
 /// The number of distinct lower-cased top-level keys.

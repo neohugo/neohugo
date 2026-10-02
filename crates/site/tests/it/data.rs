@@ -3,15 +3,13 @@
 //! subdirectories over files), the dropped values (warnings) and the rejected files (errors),
 //! and the load errors. Numbers compare by value (Go decodes every JSON number as a float).
 //!
-//! Also the acceptance sites of T23a: the docs data files (D), nested JSON directories, and the
-//! seeksnack reconstruction's `comments.json`, whose keys hold `/` (R).
+//! Also the acceptance sites of T23a: the docs data files (D) and nested JSON directories.
 
 use serde_json::Value as J;
+use ssg_base::Value;
 use ssg_base::diag::Severity;
-use ssg_base::{Map, Value};
 use ssg_site::data::{self, Data};
-use ssg_testkit::fixture::{oracle, repo_dir};
-use ssg_testkit::txtar::Archive;
+use ssg_testkit::fixture::oracle;
 
 use crate::expected;
 use crate::support::{Site, all_diffs, to_json};
@@ -136,34 +134,4 @@ fn data_nested_json() {
             .unwrap()["Key"],
         Value::string("Value")
     );
-}
-
-/// R: the seeksnack reconstruction's `data/comments.json`, keyed by page paths with `/`.
-#[test]
-fn data_reconstruction_keys_with_slashes() {
-    let archive = Archive::read(&repo_dir().join("tools/rust-port/i01/seeksnack.txtar"))
-        .expect("seeksnack.txtar");
-    let comments = archive
-        .get("data/comments.json")
-        .expect("data/comments.json");
-    let tmp = tempfile::tempdir().unwrap();
-    let dir = tmp.path().join("seeksnack");
-    std::fs::create_dir_all(dir.join("data")).unwrap();
-    std::fs::write(
-        dir.join("config.toml"),
-        "baseURL = \"https://example.org/\"\n",
-    )
-    .unwrap();
-    std::fs::write(dir.join("data/comments.json"), comments).unwrap();
-    let site = Site::at(tmp, dir);
-    let d = data::load(&site.vfs).unwrap();
-    let c: &Map = d.map["comments"].as_map().unwrap();
-    let keys: Vec<&str> = c.keys().collect();
-    assert_eq!(
-        keys,
-        ["snacks/lays-rock-prawn", "th/snacks/lays-rock-prawn"],
-        "keys with / are kept, not nested"
-    );
-    let first = &c["snacks/lays-rock-prawn"].as_array().unwrap()[0];
-    assert_eq!(first.as_map().unwrap()["name"], Value::string("Nok"));
 }

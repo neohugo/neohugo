@@ -68,7 +68,7 @@ in Hugo; the `/tagsfoo` deviation above)."""
 [[class]]
 test = "calls"
 id = "ref-from-bundled-page"
-count = 257
+count = 205
 reason = """`ref`/`relref` called on a bundled page (a content file inside a leaf bundle): Hugo's
 bundled pages have no working site (`.Sites` panics), so every ref returns `""`. Here refs
 resolve from a bundled page like from any page."""

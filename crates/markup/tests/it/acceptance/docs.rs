@@ -209,7 +209,7 @@ fn whole_pages() {
     };
     // Floors at the measured values; the residual pages are listed in the crate README.
     floor("cfg default", 870);
-    floor("cfg seeksnack", 871);
+    floor("cfg site", 871);
     floor("cfg ascii", 871);
     floor("cfg blackfriday", 872);
     floor("cfg cjk", 540);

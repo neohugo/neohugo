@@ -44,7 +44,7 @@ fn deep_nesting_on_a_small_stack() {
     let got = std::thread::Builder::new()
         .stack_size(2 << 20)
         .spawn(|| {
-            let o = options(HugoCfg::Seeksnack);
+            let o = options(HugoCfg::Site);
             deep_docs()
                 .iter()
                 .map(|d| render_with(d, &o, &NoHooks).html)

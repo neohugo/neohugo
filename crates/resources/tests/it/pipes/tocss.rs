@@ -1,5 +1,5 @@
 //! `to_css` against the `tocss` oracle (Hugo's LibSass `toCSS` on t16site, 31 cases) and on
-//! the seeksnack reconstruction's SCSS.
+//! a small fixture stylesheet (`tests/fixtures/styles.txtar`).
 //!
 //! grass follows dart-sass, not LibSass: output styles `nested` and `compact` are written
 //! expanded, numbers get up to 10 decimals (`precision` has no effect), and there are no
@@ -219,12 +219,12 @@ fn tocss_oracle() {
 }
 
 #[test]
-fn tocss_reconstruction_scss() {
-    // The seeksnack reconstruction's SCSS (tools/rust-port/i01/seeksnack.txtar): a variables
+fn tocss_styles_scss() {
+    // The SCSS of tests/fixtures/styles.txtar: a variables
     // partial, a component in a subdirectory, darken/mix/lighten, @each, and the slash division
     // `$gutter / 2`, which dart-sass semantics compute (6px), where plain CSS `a / b` stays.
     let txtar = std::fs::read_to_string(
-        crate::support::repo_dir().join("tools/rust-port/i01/seeksnack.txtar"),
+        crate::support::repo_dir().join("crates/resources/tests/fixtures/styles.txtar"),
     )
     .unwrap();
     let tmp = tempfile::tempdir().unwrap();
@@ -257,7 +257,7 @@ fn tocss_reconstruction_scss() {
     let css = String::from_utf8(p.store.content(css_id).unwrap().to_vec()).unwrap();
     assert!(css.contains(".pagination li{padding:6px}"), "{css}");
     assert!(
-        css.contains("body{font-family:\"Sarabun\",Helvetica,sans-serif;color:#a55318;"),
+        css.contains("body{font-family:\"Inter\",Helvetica,sans-serif;color:#a55318;"),
         "{css}"
     );
     assert!(
@@ -270,7 +270,7 @@ fn tocss_reconstruction_scss() {
         "{css}"
     );
     assert_eq!(p.store.resource(css_id).rel_permalink, "/scss/website.css");
-    eprintln!("tocss: reconstruction SCSS compiled ({} bytes)", css.len());
+    eprintln!("tocss: fixture SCSS compiled ({} bytes)", css.len());
 
     // Plain CSS slash-separated values are kept; a division of variables is computed.
     let div = p
@@ -372,7 +372,7 @@ fn tocss_explicit_extension_imports_use_the_load_paths() {
     };
 
     let css = compile(
-        "style.seeksnack.css",
+        "style.site.css",
         "@use \"mixins.scss\" as m;\n@import \"parts/base.scss\";\n@import \"theme.scss\";\n\
          .a { color: $c; padding: $pad; @include m.box; }\n",
     );

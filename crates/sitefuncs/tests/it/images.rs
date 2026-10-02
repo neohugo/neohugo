@@ -1,7 +1,6 @@
 //! Image operations are queued: names and sizes are known at once; QR codes.
 
 use ssg_base::ResourceId;
-use ssg_testkit::fixture::repo_dir;
 
 use crate::support;
 
@@ -101,7 +100,7 @@ const FONT: &str = r#"get_asset(path="fonts/mulish.ttf")"#;
 
 #[test]
 fn text_and_dither_filters() {
-    let mulish = repo_dir().join("docs/assets/opengraph/mulish-black.ttf");
+    let mulish = ssg_testkit::fixture::hugo_docs().join("assets/opengraph/mulish-black.ttf");
     let site = support::load_copying(&[], &[("assets/fonts/mulish.ttf", &mulish)]);
     let s = site.home_scope();
     let r = |src: &str| site.render(src, &s);

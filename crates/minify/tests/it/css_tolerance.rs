@@ -3,7 +3,7 @@
 //! redundant whitespace.
 
 use ssg_minify::{Minifier, MinifyTarget};
-use ssg_testkit::fixture::{repo_dir, testdata};
+use ssg_testkit::fixture::testdata;
 
 /// Minifies `input` and checks that the result is a fixed point.
 fn min(input: &str) -> String {
@@ -24,7 +24,7 @@ fn min(input: &str) -> String {
 /// rejects `screen(md)` as a media query, which failed the docs build.
 #[test]
 fn docs_tailwind_source() {
-    let path = repo_dir().join("docs/assets/css/styles.css");
+    let path = ssg_testkit::fixture::hugo_docs().join("assets/css/styles.css");
     let input = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{e}"));
     assert!(input.contains("@media screen(md) {"), "fixture changed");
     let out = min(&input);
@@ -180,7 +180,7 @@ fn many_rejected_rules() {
 }
 
 /// Fallback declarations survive: a standard value followed by a `-webkit-` one that browsers
-/// reject (`circle at …` is not legacy `-webkit-radial-gradient` syntax), as in seeksnack's
+/// reject (`circle at …` is not legacy `-webkit-radial-gradient` syntax), as in a site's
 /// Instagram icon. Merging them into the last one left the icon without a background.
 #[test]
 fn fallback_declarations_are_kept() {

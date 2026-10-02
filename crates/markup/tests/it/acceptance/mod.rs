@@ -1,6 +1,6 @@
 //! T22 acceptance (REWRITE_PLAN.md §8.2): `ssg-markup` against the Go oracles of
 //! `testdata/oracle/markup/{convert,hooks}` (Hugo's goldmark setup on the docs corpus and
-//! adversarial documents) and the goldmark corpus of the 251 seeksnack bodies.
+//! adversarial documents).
 //!
 //! Each test prints its table (`cargo test -p ssg-markup --test it acceptance --
 //! --nocapture`) and asserts floors at the measured values.
@@ -12,7 +12,6 @@ mod docs;
 mod fences;
 mod hooks;
 mod passes;
-mod seeksnack;
 
 use std::path::Path;
 use std::sync::{Arc, LazyLock};
@@ -34,7 +33,7 @@ pub fn options(cfg: HugoCfg) -> MarkdownOptions {
     let mut o = MarkdownOptions::default();
     match cfg {
         HugoCfg::Default => {}
-        HugoCfg::Seeksnack => o.raw_html = RawHtml::Pass,
+        HugoCfg::Site => o.raw_html = RawHtml::Pass,
         HugoCfg::Ascii => {
             o.raw_html = RawHtml::Pass;
             o.heading_ids = Some(Style::GithubAscii);

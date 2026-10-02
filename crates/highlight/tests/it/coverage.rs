@@ -29,7 +29,7 @@ struct Html {
     hash: String,
 }
 
-/// The docs site's `[markup.highlight]` (docs/config.toml).
+/// The docs site's `[markup.highlight]` (testdata/hugo-docs/hugo.toml).
 fn docs_config() -> HighlightConfig {
     HighlightConfig {
         line_numbers_in_table: false,

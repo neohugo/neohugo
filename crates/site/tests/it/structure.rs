@@ -18,7 +18,7 @@ use crate::expected;
 use crate::support::{Site, diff, time_json, to_json};
 
 /// The oracle sites.
-pub const SITES: [&str; 17] = [
+pub const SITES: [&str; 16] = [
     "asm-build",
     "asm-cascade",
     "asm-flags",
@@ -32,7 +32,6 @@ pub const SITES: [&str; 17] = [
     "edge-tree",
     "homeleaf",
     "nokinds",
-    "seeksnack",
     "shortcodes",
     "synthetic",
     "testsite",

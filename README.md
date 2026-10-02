@@ -48,9 +48,9 @@ Fugo's fast asset pipelines include:
 - Sass processing &ndash; Transpile Sass to CSS, bundle, tree shake, minify, create source maps, perform SRI hashing, and integrate with PostCSS
 - Tailwind CSS processing &ndash; Compile Tailwind CSS utility classes into standard CSS, bundle, tree shake, optimize, minify, perform SRI hashing, and integrate with PostCSS
 
-Fugo reads Hugo's project layout and configuration keys from `config.toml` (or `config.toml`; Hugo's `hugo.toml` is not read), and its own names throughout: the `fugo` template object, `FUGO_*` environment variables and `build_stats.json`. Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates; [Upgrading from the Go build](#upgrading-from-the-go-build) says what else changed with v0.149. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
+Fugo reads Hugo's project layout and configuration keys from `config.toml` (or `config.yaml`, `config.yml`, `config.json`; Hugo's `hugo.toml` is not read), and its own names throughout: the `build` template object, `FUGO_*` environment variables and `build_stats.json`. Its templates are Tera 2 with Hugo's v0.146 layout names instead of Go templates; [Upgrading from the Go build](#upgrading-from-the-go-build) says what else changed with v0.149. The known differences from Hugo are listed in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
 
-Hugo's [documentation][hugo documentation] describes the concepts fugo shares with Hugo (content organization, front matter, taxonomies, configuration keys); where fugo differs, the documents listed under [Documentation](#documentation) apply.
+fugo's documentation is the site in [`docs/`](docs/), built with fugo: getting started, content management, templates, asset pipelines, configuration, a generated reference of every template function, object and command, and a guide for [coming from Hugo](docs/content/coming-from-hugo/). See [Documentation](#documentation).
 
 Minified CSS (`--minify`, `resources.Minify`) is prepared for the browsers of the project's [browserslist](https://github.com/browserslist/browserslist#queries) configuration (`.browserslistrc`, a `browserslist` file or the `browserslist` key of `package.json`; the section named like the environment applies, else the default queries): vendor prefixes those browsers need are added, newer syntax they lack is lowered and prefixes none of them needs are removed, as autoprefixer does, so PostCSS is not needed for that. A style rule declaring a property twice (a value and its fallback) is kept as written. Without a browserslist configuration, prefixes stay as written.
 
@@ -86,7 +86,7 @@ v0.149 replaces the Go neohugo, under a new name. What a site or a script may ha
 - **[Hugo Modules]** are not downloaded: themes come from the themes directory, `_vendor` or an absolute path.
 - **`js.Build` bundles in process with [rolldown](https://rolldown.rs)** (the Go build linked esbuild 0.25.6): nothing to install, and the options are the same. Scripts behave as before, but their bytes differ, so fingerprinted names, `Data.Integrity` and source maps change. Other visible differences: the IIFE wrapper is `(function() { … })();`; legal comments stay where they are instead of moving to the end; error texts are rolldown's, except unresolved imports (`Could not resolve "x"`) and the `es5` target's errors, which keep esbuild's wording and positions. As with esbuild, TC39 decorators are lowered, `target: es5` checks and lowers the bundle, and CSS imported from scripts is dropped (`local-css` modules give their class names). Sass is compiled in process with dart-sass semantics, whatever `transpiler` says.
 - The Docker images (`neohugo/neohugo`, `ghcr.io/neohugo/neohugo`) are no longer updated; they stay at the last Go build.
-- The website [getfugo.github.io](https://getfugo.github.io), with its documentation and installation guide, is no longer redeployed on release tags; it documents the Go build. fugo builds the same site from `docs/` with `tools/docs/build.sh` (Tera layouts in `sites/docs`), and gate A-D3 checks every page of that build against the published one.
+- The website [getfugo.github.io](https://getfugo.github.io) is no longer redeployed on release tags, and until it is redeployed from `docs/` it documents the Go build. fugo's documentation is now `docs/`, a site with its own theme built by fugo (`tools/docs/build.sh`). The Go build's documentation, Hugo's documentation site, is kept as the test fixture `testdata/hugo-docs/`: `tools/hugo-docs/build.sh` builds it with fugo (Tera layouts in `sites/docs`), and gate A-D3 checks every page of that build against the published one.
 
 ## Build from source
 
@@ -115,11 +115,12 @@ Sass and `js.Build` run in process. The other asset pipelines run external tools
 
 ## Documentation
 
+- [docs/](docs/): fugo's documentation site. Build it with `tools/docs/build.sh` (or preview it with `fugo server -s docs`); `docs/content/` is readable as Markdown too.
 - [crates/cli/README.md](crates/cli/README.md): the commands and flags.
 - [docs/rust-port/template-api.md](docs/rust-port/template-api.md): every template function, filter and test, with Hugo's name for each and how Go-template idioms translate.
 - [Upgrading from the Go build](#upgrading-from-the-go-build), above, and the known differences from Hugo in [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md#7-known-deviations-from-hugo).
-- The website [getfugo.github.io](https://getfugo.github.io), which documents the Go build (v0.148.2 and earlier).
-- Hugo's [documentation][hugo documentation], for the concepts fugo shares with Hugo. Report problems with fugo, or with how it differs from these pages, to fugo's [issue tracker], not to the Hugo project.
+- The website [getfugo.github.io](https://getfugo.github.io), which documents the Go build (v0.148.2 and earlier) until it is redeployed from `docs/`.
+- Hugo's [documentation][hugo documentation], for more on the concepts fugo shares with Hugo. Report problems with fugo, or with how it differs from these pages, to fugo's [issue tracker], not to the Hugo project.
 
 ## Support
 

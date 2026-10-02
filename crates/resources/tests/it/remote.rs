@@ -4,10 +4,7 @@
 //! - Hugo's cache names (`hugo_keys`) of the oracle's 48 key vectors;
 //! - the oracle's calls replayed from the 32 cache entries Hugo wrote (imported on demand into
 //!   this crate's cache under its own names): links, names, media types, `.Data`, content, and
-//!   errors (security policy, status, options, URLs, media type, missing entries offline);
-//! - the 51 cached YouTube responses of the golden seeksnack build
-//!   (`tools/rust-port/testdata/hugo_cache/seeksnack/filecache/getresource`), stored under the
-//!   Hugo names of the synthetic URLs `sites.py` uses, read through the importer.
+//!   errors (security policy, status, options, URLs, media type, missing entries offline).
 //!
 //! Accepted deviations (README): `echo-post-upper` (the same request as `echo-post` with
 //! upper-case option names) is one request here, so it gets `echo-post`'s resource; `head`
@@ -23,7 +20,7 @@ use ssg_base::{Idx, LangIdx, Map, Value};
 use ssg_resources::{RemoteOptions, ResourceStore, StoreConfig, hugo_keys};
 use ssg_testkit::fixture::testdata;
 
-use crate::support::{config, json_doc, repo_dir, sha};
+use crate::support::{config, json_doc, sha};
 
 const SECURITY: &str = r#"baseURL = "https://example.org/sub/"
 [security.http]
@@ -190,44 +187,4 @@ fn oracle_calls_from_hugo_cache() {
         .unwrap()
         .count();
     assert_eq!(imported, 31);
-}
-
-#[test]
-fn seeksnack_youtube_responses() {
-    let fx: J =
-        ssg_testkit::fixture::oracle("oracle/resource-transformers/getremote/getremote.json.gz");
-    let golden =
-        repo_dir().join("tools/rust-port/testdata/hugo_cache/seeksnack/filecache/getresource");
-    let tmp = tempfile::tempdir().unwrap();
-    // The Hugo cache `sites.py cache seeksnack` writes: golden entries under the Hugo names of
-    // the synthetic URLs.
-    let hugo = tmp.path().join("hugo/seeksnack/filecache/getresource");
-    fs::create_dir_all(&hugo).unwrap();
-    let entries = fx["seeksnack"].as_array().unwrap();
-    for e in entries {
-        fs::copy(
-            golden.join(e["entry"].as_str().unwrap()),
-            hugo.join(e["fileCacheKey"].as_str().unwrap()),
-        )
-        .unwrap();
-    }
-    let store = offline_store(tmp.path(), &hugo);
-    let mut failures = Vec::new();
-    for e in entries {
-        let url = e["args"][0].as_str().unwrap();
-        assert_eq!(hugo_keys(url, None).0, e["fileCacheKey"].as_str().unwrap());
-        let id = store
-            .get_remote(LangIdx::from_index(0), url, &RemoteOptions::default())
-            .unwrap_or_else(|err| panic!("{url}: {err}"))
-            .unwrap();
-        let w = want(&e["result"]["res"], &[]);
-        compare(
-            e["entry"].as_str().unwrap(),
-            &w,
-            &rec(&store, id, &w),
-            &mut failures,
-        );
-    }
-    assert!(failures.is_empty(), "{}", failures.join("\n"));
-    assert_eq!(entries.len(), 51);
 }

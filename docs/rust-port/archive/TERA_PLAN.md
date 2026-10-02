@@ -156,7 +156,7 @@ The Go build stays the oracle for everything that is not layout output:
    opengraph, twitter cards, schema, pagination, google analytics) in Tera.
 5. **Convert the test sites:** this repo's `docs/layouts` (76 files), `hugolib/testsite`,
    the I01 small sites; compare per §6.
-6. **seeksnack:** convert its layouts in the seeksnack repository (needs that repo attached
+6. **The private site:** convert its layouts in its repository (needs that repo attached
    to the session), build with Tera, compare per §6; then default `templateEngine` to `tera`.
 7. **Remove the Go template path:** gotemplate, the Go-reflection parts of nh-tplfuncs and
    nh-tplimpl's gotemplate parsing, once phase 6 passes.

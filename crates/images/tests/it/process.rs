@@ -1,4 +1,4 @@
-//! Result sizes against the `nh-images/process` oracle: every spec, filter and seeksnack
+//! Result sizes against the `nh-images/process` oracle: every spec, filter and real-site
 //! chain the oracle ran, on every source that is available here.
 
 use std::collections::BTreeMap;
@@ -315,5 +315,5 @@ fn sizes_match_the_process_oracle() {
         r.failures.join("\n")
     );
     assert_eq!(r.missing_sources, 0, "oracle sources not found");
-    assert!(r.compared >= 13_250, "only {} cases compared", r.compared);
+    assert!(r.compared >= 12_264, "only {} cases compared", r.compared);
 }

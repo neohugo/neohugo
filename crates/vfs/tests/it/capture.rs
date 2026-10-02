@@ -235,11 +235,6 @@ fn capture_testsite() {
 }
 
 #[test]
-fn capture_seeksnack() {
-    assert!(check("seeksnack") >= 50);
-}
-
-#[test]
 fn capture_docs() {
     assert!(check("docs") >= 900);
 }

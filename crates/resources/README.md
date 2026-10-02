@@ -51,7 +51,7 @@ typed and decoded from the template's map with `from_json` (keys case-insensitiv
   media type and `Body::Pending`; the work runs on `realize`, `content` or publishing. A
   `fingerprint` of a pending resource is pending too (provisional record: the source's link,
   `PublishPolicy::Never`) — so `to_css | post_css | minify | fingerprint | post_process`
-  (seeksnack's head.html) runs in E5, after `build_stats.json` exists. Failures are not
+  (a site's head) runs in E5, after `build_stats.json` exists. Failures are not
   memoized.
 - **For the template layer (T35).** A view of a pending result can be built without computing
   it: its links, name and media type are final (`.Content` computes). Only a pending
@@ -112,8 +112,8 @@ batch.
 - **Importer**: on a miss, the entry Hugo would have written for the call (named by
   `hugo_keys`, Hugo's hashstructure/xxHash64 of `[url, options]` or of `key`) is looked up in
   the cache directory itself and in `RemoteConfig::import_dirs`, and copied under this crate's
-  name. A `HUGO_CACHEDIR` filled by the Go build (the 51 golden YouTube responses of seeksnack,
-  via `sites.py cache`) is thereby replayed offline.
+  name. A `HUGO_CACHEDIR` filled by the Go build (via `sites.py cache`) is thereby replayed
+  offline.
 - Only then, if `RemoteConfig::network`, the URL is fetched with `ureq` (no retries); the
   response is cached unless it is a redirect or `maxAge` is 0.
 - Security: `security.http.urls` and `.methods` are checked; a `Content-Type` matching

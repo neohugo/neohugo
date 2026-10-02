@@ -1,6 +1,6 @@
 # Reviewed differences between ssg-config and the Go oracle (allconfig/load).
 # Keys: a case name (every difference of that case) or the first line of one difference.
-# The acceptance cases (repo/*, seeksnack/*) must not appear here. See README.md, "Accepted
+# The acceptance cases (repo/*) must not appear here. See README.md, "Accepted
 # deviations", for the reasoning behind each group.
 
 [load]

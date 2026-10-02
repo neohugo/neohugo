@@ -8,7 +8,7 @@
 //!
 //! `docs` is the docs content tree (948 pages) with stub layouts and shortcodes.
 //!
-//! `content`, `seeksnack` and `shortcodes` use the shortcode and hook conversions of
+//! `content` and `shortcodes` use the shortcode and hook conversions of
 //! `ssg-render`'s content oracles. Not here: `build-errors` (a failing build;
 //! `ssg-cli`'s error report).
 
@@ -158,7 +158,6 @@ fn layouts(name: &str) -> Vec<(&'static str, String)> {
             ]);
             v
         }
-        "seeksnack" => SEEKSNACK_LAYOUTS.to_vec(),
         "shortcodes" => SHORTCODES_LAYOUTS.to_vec(),
         _ => Vec::new(),
     };
@@ -238,45 +237,6 @@ const CONTENT_LAYOUTS: &[(&str, &str)] = &[
     ("layouts/_shortcodes/v1.html", "<em>{{ inner }}</em>"),
 ];
 
-const SEEKSNACK_LAYOUTS: &[(&str, &str)] = &[
-    (
-        "layouts/_markup/render-image.html",
-        r#"<img src="{{ destination | safe }}" alt="{{ text }}"{% if title %} title="{{ title }}"{% endif %}>"#,
-    ),
-    ("layouts/_markup/render-table.json.json", JSON_TABLE),
-    ("layouts/_shortcodes/Mixed.html", "mixed"),
-    (
-        "layouts/_shortcodes/badge.html",
-        r#"<span>{{ shortcode | arg(index=0, default="") }}{% set b = shortcode | arg(index=1, default="") %}{% if b %}-{{ b }}{% endif %}</span>"#,
-    ),
-    (
-        "layouts/_shortcodes/box.html",
-        r#"<div class="box {{ shortcode | arg(name="class", default="") }}">{{ inner | markdownify }}</div>"#,
-    ),
-    ("layouts/_shortcodes/empty.html", "{{- inner -}}"),
-    (
-        "layouts/_shortcodes/img.html",
-        r#"<img src="{{ shortcode | arg(name="src", default="") }}" alt="{{ shortcode | arg(name="alt", default="") }}" width="{{ shortcode | arg(name="width", default="") }}">"#,
-    ),
-    (
-        "layouts/_shortcodes/nested.html",
-        "<section>{{ inner }}</section>",
-    ),
-    (
-        "layouts/_shortcodes/note.html",
-        r#"<div class="note">{{ inner }}</div>"#,
-    ),
-    (
-        "layouts/_shortcodes/quote.html",
-        "<blockquote>{{ inner }}</blockquote>",
-    ),
-    (
-        "layouts/_shortcodes/thai.html",
-        r#"{{ shortcode | arg(name="คำ", default="") }}"#,
-    ),
-    ("layouts/_shortcodes/v1.html", "<em>{{ inner }}</em>"),
-];
-
 const SHORTCODES_LAYOUTS: &[(&str, &str)] = &[
     (
         "layouts/_shortcodes/inner.html",
@@ -341,7 +301,6 @@ const SITES: &[&str] = &[
     "edge-tree",
     "homeleaf",
     "nokinds",
-    "seeksnack",
     "shortcodes",
     "synthetic",
     "testsite",

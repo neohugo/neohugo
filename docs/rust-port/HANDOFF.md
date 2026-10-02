@@ -18,20 +18,19 @@ outputs are frozen as golden data, §9), and outputs are compared structurally.
 
 - **Gates passed** (REWRITE_PLAN.md §7.3; each against the Go neohugo's build of the same site):
   - A-T, the testsite: L1 56/56, L2 and L3 equal on every page, structure oracle equal.
-  - A-R, the seeksnack reconstruction: L1 713/713, L2 427/427, structure 673/673, A7 1.0.
   - A-D1, the Hugo docs with the `i01` patches: L1 888/888, L2 756/756, L3 749/750, A7 1.0.
   - A-D2, the Hugo docs with the `reduced` patches (Chroma-class highlighting, GoAT diagrams,
     emoji, math, Tailwind, the real Alpine/Turbo `js_build`): L1 889/889, L2 757/757, L3
     750/751, A7 1.0.
-  - A-D3, the docs **without patches against the published site** https://getfugo.github.io/
-    (the Go build of 2025-10-13; T74): L1 2373/2373, L2 776/776, L3 769/770, L4 873/873, A7
+  - A-D3, the Hugo docs (`testdata/hugo-docs`) **without patches against the published site**
+    (neohugo.github.io at a1928152, the Go build of 2025-10-13; T74): L1 2373/2373, L2 776/776, L3 769/770, L4 873/873, A7
     1.0 — every page's visible text equals the published one (the one L3 difference is Go's
-    stats tokenizer reading `<?xml`/`<=` as tags). `tools/docs/build.sh` builds the site.
+    stats tokenizer reading `<?xml`/`<=` as tags). `tools/hugo-docs/build.sh` builds the site.
   - A-DET: identical output with 1 and 8 threads and across runs.
 - **A-P, performance** (T70; release build, 4 CPUs, medians of 5–6 runs): the docs site builds
   cold in 3.29 s against Go's 3.99 s (0.82×; goal ≤ 1.5×), warm in 3.26 s against 3.51 s
-  (0.93×; goal ≤ 1.0×), peak RSS 384 MB (goal ≤ 1 GB). The testsite and the seeksnack
-  reconstruction are faster than Go as well (§5).
+  (0.93×; goal ≤ 1.0×), peak RSS 384 MB (goal ≤ 1 GB). The testsite is faster than Go as
+  well (§5).
 - **Commands:** `fugo build` (also with no command), `server` (live reload, memory or
   disk), `templates check`, `config`, `version`.
 - **CI/CD:** `.github/workflows/ci.yml`, the only build workflow (fmt, clippy `-D warnings`,
@@ -40,7 +39,7 @@ outputs are frozen as golden data, §9), and outputs are compared structurally.
 - **Go removed** (2026-10-01): the Go implementation, its tools and its workflows are gone; what
   it generated is frozen at commit `44529028` (§9).
 - **Known deviations** from Hugo are listed and classified (§7); none is silent.
-- **Open:** real seeksnack (A-S, needs the private repository) and the migrate tool (T73), the
+- **Open:** the migrate tool (T73), the
   remaining COULD features (T72: `:git` lastmod, Org front matter), server extras (§8).
 
 ## 1. What exists
@@ -49,7 +48,7 @@ outputs are frozen as golden data, §9), and outputs are compared structurally.
 Cargo.toml, Cargo.lock      the Cargo workspace at the repository root (26 crates), with
                             DEVELOPMENT.md, PROVENANCE.md, THIRD_PARTY/, deny.toml
 crates/<name>/              one crate each; README.md per crate (API, state, accepted deviations)
-sites/<site>/               the Tera layouts of the test sites (testsite, seeksnack, docs + patches)
+sites/<site>/               the Tera layouts of the test sites (testsite, docs + patches)
 testdata/                   Go-oracle fixtures (oracle/), corpora, golden Go-build data (golden/),
                             Hugo's test data (upstream/), the ratchet baselines (baselines/)
 tools/dev/              harness: compare.sh, structdiff.py, manifest.py, selftest.py,
@@ -58,9 +57,8 @@ tools/dev/              harness: compare.sh, structdiff.py, manifest.py, selftes
 tools/rust-port/i01/        sites.py (generates every test site), patches.json, site txtars
 .github/workflows/ci.yml    CI and releases of fugo
 docs/rust-port/             this file, template-api.md (the template API, generated from
-                            crates/funcs/src/spec.rs), REWRITE_PLAN.md, specs/ (research of the
-                            old port, "byte-parity sections obsolete"), archive/ (the old port's
-                            docs)
+                            crates/funcs/src/spec.rs), REWRITE_PLAN.md, archive/ (the old
+                            port's docs)
 ```
 
 The old byte-for-byte port (the root `crates/` of `be02933a`, not today's crates; line-by-line
@@ -109,7 +107,7 @@ Environment (every checkout and worktree shares one target directory):
 ```sh
 export CARGO_TARGET_DIR=<main checkout>/target CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
 cargo build --release --offline --locked -p ssg-cli      # → $CARGO_TARGET_DIR/release/fugo
-cargo test -p fugo-<crate> --offline --locked          # the edit–test loop (cli: -p ssg-cli)
+cargo test -p ssg-<crate> --offline --locked           # the edit–test loop (cli: -p ssg-cli)
 ```
 
 The full check CI runs (workspace-wide; not for the edit–test loop):
@@ -119,7 +117,7 @@ N=$PWD/tools/dev/node_modules                         # tools/dev/node.sh
 FUGO_NODE_MODULES=$N \
 FUGO_POSTCSS_BIN=$N/.bin/postcss FUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
 FUGO_BABEL_BIN=$N/.bin/babel \
-  cargo test --workspace --offline --locked               # includes the gate tests A-T, A-R, A-D2
+  cargo test --workspace --offline --locked               # includes the gate tests A-T, A-D2, A-D3
 cargo fmt --all --check
 cargo clippy --workspace --all-targets --offline --locked -- -D warnings
 tools/dev/licence-check.sh
@@ -145,13 +143,13 @@ fugo version
 
 `FUGO_TIMINGS=1` prints the build's phase timings on stderr (T70).
 
-**Configuration.** The project file is the first of `fugo.{toml,yaml,yml,json}`,
-`config.*` (a warning names the others when several exist; Hugo's `hugo.*` is not read), plus
+**Configuration.** The project file is the first of `config.{toml,yaml,yml,json}` (a warning
+names the others when several exist; Hugo's `hugo.*` is not read), plus
 `config/` dirs and `FUGO_*` variables, merged with themes as Hugo does
 (`crates/config/README.md`).
 
 **`fugo`, not `hugo`** (2026-10-01). Every name that was Hugo's is fugo's, with no
-fallback: the configuration file `fugo.*` (no `hugo.*`), the stats file `build_stats.json`
+fallback: the configuration file `config.*` (no `hugo.*`), the stats file `build_stats.json`
 (`[build.buildStats]`; the legacy `[build] writeStats` is migrated), the default cache directory
 `neohugo_cache`, the generator meta `fugo <version>`, `@import "build:vars"` in Sass,
 `package.config.json` among the JS config files, the reserved layouts directory `_internal/`
@@ -194,12 +192,10 @@ fails (`tools/dev/changes/README.md`).
 | Gate | Site (label) | How it runs | State |
 |---|---|---|---|
 | A-T | testsite | `cargo test -p ssg-cli --test it parity` (`testsite_gate_a_t`; in-process comparison with the Go build's output `crates/build/tests/it/testsite-go.txtar` and the structure oracle); also `compare.sh testsite` | passed (T60, T03) |
-| A-R | seeksnack (reconstruction) | `cargo test -p ssg-cli --test it reconstruction` (`gate_a_r`: `compare.sh seeksnack --ref golden`) | passed (T62) |
 | A-D1 | docs-i01 | `tools/dev/compare.sh docs-i01` (not a committed test) | passed (T65) |
 | A-D2 | docs-reduced | `cargo test -p ssg-cli --test it docs` (`gate_a_d2`: `compare.sh docs-reduced --ref golden`) | passed (T66; every page equal since T74) |
 | A-D3 | docs-live | `cargo test -p ssg-cli --test it docs` (`gate_a_d3`: `compare.sh docs-live --ref golden`; the golden data is the published site, testdata/golden/README.md) | passed (T74) |
 | A-DET | mini, edge trees | `cargo test -p ssg-build --test it determinism` | passed (T36) |
-| A-S | real seeksnack | needs the private repository (`tools/rust-port/prepare-site.sh`); the path set of `tools/rust-port/golden/canonical.sha256` after L1 normalisation | open (T73) |
 | A-P | docs (release) | §5 | goals met (T70) |
 
 The gate tests need python3, bash, node and the node tools (else `SKIPPED`).
@@ -240,8 +236,6 @@ running.
 | | warm | 3.51 s (3.47–4.81) | 3.26 s (3.09–4.51) | **0.93** (goal ≤ 1.0) | 290 / 359 MB (max 365) |
 | testsite (55 files) | cold | 0.099 s (0.085–0.124) | 0.071 s (0.064–0.080) | 0.71 | 71 / 44 MB |
 | | warm | 0.090 s (0.083–0.101) | 0.068 s (0.064–0.077) | 0.75 | 71 / 43 MB |
-| seeksnack reconstruction (712 files) | cold | 2.40 s (2.37–2.46) | 0.62 s (0.60–0.71) | 0.26 | 115 / 74 MB |
-| | warm | 0.61 s (0.60–0.68) | 0.57 s (0.50–0.61) | 0.93 | 108 / 64 MB |
 
 Go n=5, Rust n=5 (docs n=6); the single slow outliers (≈ 4.5 s) of both sides were other
 activity on the shared machine. Before T70's fix the Rust docs build took 3.83 s cold and
@@ -292,7 +286,7 @@ published resources are published on reference; no `#ZgotmplZ`; YAML 1.2 (`yes` 
 string); deterministic winners for URL collisions; newer CLDR collation; no `$_hugo_config`
 v1 shortcodes; segment-aware prefix lookup; target-path assets: earlier language wins; site
 functions inside components need `page=` or `@__nh`; `build.version` is `0.149.0-DEV`; the
-template object is `fugo` and the environment variables are `FUGO_*` (below).
+template object is `build` and the environment variables are `FUGO_*` (below).
 
 Allowed output differences (REWRITE_PLAN.md §7.3): minifier bytes, highlight span structure,
 typographic characters vs entities, CSS/JS bundle bytes, term-collision winners, the order of
@@ -302,7 +296,6 @@ Per site (the ratchet's changes files, `tools/dev/changes/`):
 
 | Site | Entry | Class |
 |---|---|---|
-| seeksnack | `hugo_stats.json`: the classes of a lone `<th>` are recorded (Go's tokenizer drops them) | engine-difference (T62) |
 | docs-i01, docs-reduced, docs-live | `hugo_stats.json`: `<?xml` and `<=` are not tags | engine-difference (T65, T66, T74) |
 
 The earlier docs entries (a table on lazy list-item lines, the GoAT pages drawn by svgbob, the
@@ -357,8 +350,7 @@ tests read them, with counts):
 
 ## 8. Open items
 
-- **T73**: `ssg-migrate` (Go-template → Tera converter, stub today) and gate **A-S** on the
-  real seeksnack (needs the private repository attached; `tools/rust-port/prepare-site.sh`).
+- **T73**: `ssg-migrate` (Go-template → Tera converter, stub today).
 - **T72** (COULD): `:git` lastmod; Org front matter. (T74 did smartcrop, the Chroma style
   gallery and content adapters; the docs-live variant runs `images.Text`, `qr_code` and Dither
   unpatched. The i01/reduced patches stay as they are: they define A-D1 and A-D2.)
@@ -401,9 +393,10 @@ that comments and READMEs cite.
   (the Probot stale bot's configuration, with other labels and periods than the
   `workflows/stale.yml` that manages issues) is not Go's and stays, for the maintainers to
   decide on. `pull-docs.sh` (a `git
-  subtree pull` of `docs/` from neohugo/neohugoDocs) is gone too: `docs/` is a frozen test
-  fixture now and is no longer pulled. `docs/go.mod`, `docs/go.sum` and `docs/hugo.work` stay:
-  they belong to the docs site, which stays byte-identical (only `docs/rust-port/` changes).
+  subtree pull` of `docs/` from neohugo/neohugoDocs) is gone too: Hugo's docs are a frozen test
+  fixture now and are no longer pulled; they moved to `testdata/hugo-docs/` (with their `go.mod`,
+  `go.sum` and `hugo.work`, byte-identical) when `docs/` became fugo's own documentation
+  (2026-10-02).
 - **Test data moved:** Hugo's test data the tests read is in `testdata/upstream/` at its
   Go-tree path (`hugolib/testsite`, `resources/testdata`, `resources/images/testdata`,
   `tpl/images/testdata`, `media/testdata/fake.png`; 90 files). Fixture ids keep the old paths;
@@ -414,8 +407,8 @@ that comments and READMEs cite.
   oracles read (Go 1.24.7's) are in `testdata/upstream/goroot/src/image/`, and the five Go
   1.24.7 does not have (four Go 1.27.1 JPEGs and `image/png`'s example gopher) are the old
   port's copies from `be02933a` in `testdata/upstream/old-port/`. So the process oracle
-  compares all 13,250 cases (13,248 equal, two accepted corrupt-PNG differences; CI at
-  `44529028` with Go 1.24.7 compared 13,089) and the EXIF oracle 2,440; both fail when a
+  compares all 12,264 cases (12,262 equal, two accepted corrupt-PNG differences; CI at
+  `44529028` with Go 1.24.7 compared 13,089) and the EXIF oracle 2,335; both fail when a
   source is missing.
 - **`js_build` in process (2026-10-02):** `js_build` bundles with rolldown 1.2.12 in process
   (crate `ssg-jsbuild`, which replaced the esbuild `--service` client `neohugo-esbuild`), so
@@ -445,7 +438,7 @@ that comments and READMEs cite.
   `crates/build/tests/it/testsite-go.txtar`, the highlight fixtures
   (`crates/highlight/tests/data/`) and lexer table
   (`crates/highlight/src/data/chroma-lexers.tsv`), `crates/funcs/tests/fixtures/remarshal/go.txt`
-  and `docs/data/docs.yaml`; so do the Go outputs the old port recorded at `be02933a`, such as
+  and `testdata/hugo-docs/data/docs.yaml`; so do the Go outputs the old port recorded at `be02933a`, such as
   `testdata/corpus/minify/*.tsv` (PROVENANCE.md). To regenerate, run the old recipe in a
   worktree of `44529028` and copy the result back (`testdata/golden/README.md`,
   `crates/highlight/README.md`, `tools/dev/fixtures2json.py`). `compare.sh` takes only
@@ -522,7 +515,7 @@ Follow-ups outside the repository:
   "x.scss"`) through the load paths as dart-sass does; the template object `hugo` and the
   `HUGO_*` environment variables renamed to `neohugo` and `NEOHUGO_*`, without fallback, and
   every other Hugo name (config file, stats file, cache dir, generator, …) made neohugo's (§2);
-  the real seeksnack site ported to Tera and served (gate A-S's site, outside the repository).
+  the owner's real site ported to Tera and served (outside the repository).
   Engine fixes found there: `[build] writeStats` was not migrated (no stats file, so PostCSS
   purged the whole stylesheet); CSS minification no longer runs lightningcss's merging pass,
   which dropped fallback declarations (`background: radial-gradient(…); background:
@@ -532,19 +525,19 @@ Follow-ups outside the repository:
   lightningcss targets, so minified CSS gets the prefixes and lowering autoprefixer would add;
   rules declaring a property twice are rescued as written. `execute_as_template` passes `data`
   to the template as the Tera value it is (the `TemplateExecutor` holds the context) instead of
-  converting it to JSON and back on every call: seeksnack's development head, which executes
+  converting it to JSON and back on every call: the owner's site's development head, which executes
   its stylesheet with `data=page` on every page, built in 12.4 s with 3.1 GB, now 1.8 s with
   220 MB. Held outputs (pages waiting for `post_process` / `defer` placeholders) are written to
   the sink unpatched and patched there in E5 (`Sink::read`), as Hugo's post-processing does,
-  instead of being kept in memory: seeksnack's production build, where the inlined
+  instead of being kept in memory: the owner's site's production build, where the inlined
   post-processed stylesheet holds every page, went from 386 MB to 234 MB, output unchanged.
   `purge_css` (neohugo's own, no Hugo equivalent; `crates/minify/src/purge.rs`): a CSS
   resource cut down per page to the rules that page uses, PurgeCSS-style options (`safelist`,
   `greedy`, `blocklist`, `content`, `variables`, `important`), compiled once (each selector and
   declaration printed for the browserslist targets) and resolved by the publisher from the
   page's own HTML; no stats file, no PostCSS, no held pages. A pending `fingerprint` is
-  computed at the call unless its chain waits for E5 (PostCSS, Tailwind, images). seeksnack
-  now uses `to_css | minify | purge_css` (PostCSS, PurgeCSS, cssnano and `writeStats` removed):
+  computed at the call unless its chain waits for E5 (PostCSS, Tailwind, images). The owner's
+  site now uses `to_css | minify | purge_css` (PostCSS, PurgeCSS, cssnano and `writeStats` removed):
   median inline CSS 54 KB → 38 KB, all HTML −17 % (−14 % gzipped), screenshots of six page
   types identical except the carousel indicators, whose attribute-selector rule PurgeCSS had
   dropped.
@@ -556,7 +549,8 @@ Follow-ups outside the repository:
   (`tools/rust-port/testdata/hugo_cache/docs-live/`): L1 2373/2373, L2 776/776, L4 873/873,
   A7 1.0 (the one L3 difference is Go's stats tokenizer reading `<?xml`/`<=` as tags), every
   highlighted code block and the style gallery byte-identical. `tools/docs/build.sh [--serve]`
-  builds (or serves) the site with the docs' node modules (`tools/docs/package-lock.json`, the
+  (now `tools/hugo-docs/build.sh`) builds (or serves) the site with the docs' node modules
+  (`tools/docs/package-lock.json`, now `tools/hugo-docs/package-lock.json`, the
   versions the published JS bundles were built with). Engine work: `get_remote` sniffs media
   types with Go's whole table; content adapters as Tera `_content.html` (`add_page`,
   `add_resource`, `enable_all_languages`; the news adapter ported); `to_math` runs KaTeX 0.16.22
@@ -578,5 +572,19 @@ Follow-ups outside the repository:
   reserved layouts directory `_internal/`, `package.project.json`, internal ids `ssg-*`, the
   data schemas `ssg-structure/1`, `ssg-manifest/1`, `ssg-baseline/1`, `ssg-docs-patches/1`.
   Comments say "this port" or "native" where they said neohugo. Historical documents
-  (`archive/`, `specs/`, the ratchet records in `tools/dev/changes/`, and this history) keep the
+  (`archive/`, the ratchet records in `tools/dev/changes/`, and this history) keep the
   names they had.
+- 2026-10-02: **the owner's private site removed from the repository** (the leaked YouTube API
+  key it carried was redacted from the whole history of `rust-port`, force-pushed; older commits
+  still hold the rest of its data): the reconstruction site and gate A-R with their golden data,
+  baseline and GetRemote cache; the golden-build tooling (`tools/rust-port/{prepare-site,
+  build-site}.sh`, `compare.py`, `golden/`); the site's Go-oracle fixtures; the goldmark, YAML,
+  time, minify and collation corpora made from its pages; its images and the oracle cases that
+  used them; the research specs (`docs/rust-port/specs/`, which analysed its templates); the
+  CLI oracle's cases run in its configuration (`oracle/commands/cli`), the minifier corpus's
+  fuzz rows (mutations of its pages) and inline scripts, and the flect results of its name.
+  Synthetic fixtures that used its name as a label or base URL now say `seasample`,
+  `snack.example` or `site`; the CSS chain tests use `crates/resources/tests/fixtures/styles.txtar`;
+  three images of the synthetic resources site were replaced by generated ones (their
+  content-derived expectations updated); the mini e2e case's YouTube response has neutral
+  text. Gate A-S (the real site) is no longer a repository gate.

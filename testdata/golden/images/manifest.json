@@ -1,10 +1,5 @@
 [
-{"golden": "seeksnack-koala-resize-320x-overlay.jpg", "source": "rust/testdata/site-assets/site/assets_images_categories_biscuit-stick.jpg", "steps": [{"spec": "resize 320x"}, {"filters": [{"op": "overlay", "image": "rust/testdata/site-assets/repo/fuzzy-cirlcle.png", "x": 0, "y": 0}]}]},
-{"golden": "seeksnack-koala-resize-160x-webp-q70.webp", "source": "rust/testdata/site-assets/site/assets_images_categories_biscuit-stick.jpg", "steps": [{"spec": "resize 160x webp q70"}]},
-{"golden": "seeksnack-koala-fill-64x64-center.jpg", "source": "rust/testdata/site-assets/site/assets_images_categories_biscuit-stick.jpg", "steps": [{"spec": "fill 64x64 Center"}]},
-{"golden": "seeksnack-combos-fill-120x90-center.jpg", "source": "rust/testdata/site-assets/site/content_pretzels_combos-pizzeria-pretzel_combos-pipr.jpg", "steps": [{"spec": "fill 120x90 Center"}]},
-{"golden": "seeksnack-logo-resize-48x48.png", "source": "rust/testdata/site-assets/golden/frito-lay_hu_8f37120362e997d1.png", "steps": [{"spec": "resize 48x48"}]},
-{"golden": "seeksnack-watermark-opacity-0.5.png", "source": "rust/testdata/site-assets/repo/fuzzy-cirlcle.png", "steps": [{"filters": [{"op": "opacity", "opacity": 0.5}]}]},
+{"golden": "repo-watermark-opacity-0.5.png", "source": "rust/testdata/site-assets/repo/fuzzy-cirlcle.png", "steps": [{"filters": [{"op": "opacity", "opacity": 0.5}]}]},
 {"golden": "docs-sunset-resize-480x.jpg", "source": "docs/content/en/content-management/image-processing/sunset.jpg", "steps": [{"spec": "resize 480x"}]},
 {"golden": "docs-sunset-fill-120x150-left.jpg", "source": "docs/content/en/content-management/image-processing/sunset.jpg", "steps": [{"spec": "fill 120x150 left"}]},
 {"golden": "docs-sunset-fit-120x120.jpg", "source": "docs/content/en/content-management/image-processing/sunset.jpg", "steps": [{"spec": "fit 120x120"}]},

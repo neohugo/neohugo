@@ -9,7 +9,7 @@ project written in Rust; it is not affiliated with the Hugo project ([README](RE
 GitHub's guide to [contributing to a project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project)
 helps if you're unfamiliar with GitHub or contributing to open source projects in general.
 
-*Note that `docs/` in this repository is a copy of Hugo's documentation that the tests read byte for byte; only `docs/rust-port/` belongs to fugo. Changes to Hugo's documentation itself belong in Hugo's [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
+*`docs/` is fugo's documentation site ([getfugo.github.io](https://getfugo.github.io)), built with fugo; `docs/rust-port/` holds the notes of the Rust rewrite. `testdata/hugo-docs/` is a copy of Hugo's documentation that the tests read byte for byte: changes to Hugo's documentation belong in Hugo's [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
 
 *Changes to the codebase **and** related documentation, e.g. for a new feature, should still use a single pull request.*
 
@@ -170,10 +170,10 @@ To build fugo (`target/release/fugo`):
 cargo build --release --locked -p ssg-cli
 ```
 
-To run the tests of the crate you are working on (package `fugo-<crate>`; `crates/cli` is package `fugo`):
+To run the tests of the crate you are working on (package `ssg-<crate>`; `crates/cli` is package `ssg-cli`, which builds the binary `fugo`):
 
 ```bash
-cargo test -p fugo-<crate>
+cargo test -p ssg-<crate>
 ```
 
 The checks of the CI workflow, from the repository root (the last one checks the docs patches of `tools/rust-port/i01/patches.json` against `sites/docs/patches/`):

@@ -41,7 +41,7 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   Collected before minification.
 - **Held outputs**: the plan's placeholder prefixes (`PLACEHOLDER_PREFIXES`). A held output waits
   in the sink at its own path, as Hugo's post-processing writes its files before patching them,
-  so held pages cost no memory (seeksnack, where every page is held: 386 MB → 234 MB). Replacement text
+  so held pages cost no memory (on a site where every page is held: 386 MB → 234 MB). Replacement text
   is inserted into the canonified output, the result is rewritten once more (T36: the links of
   a pending `fingerprint` are post-process placeholders until E5, and Go canonifies them; the
   rewrite leaves already rewritten URLs alone), then minified with the page.
@@ -61,8 +61,7 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   documents 2,288/4,000; multi-write streams 765/1,260; groups 7/25 (56,488 checks, every
   difference classified in `expected_diffs.toml`, 0 unexplained). The 3,022 `closed` records test Go's private `isClosedByTag`
   and have no counterpart.
-- **golden stats** — `tools/rust-port/golden/hugo_stats.json` (seeksnack) and
-  `docs/hugo_stats.json` round-trip byte for byte through `StatsFile::to_json` (format,
+- **golden stats** — `testdata/hugo-docs/hugo_stats.json` round-trips byte for byte through `StatsFile::to_json` (format,
   sorting, `null`). Scanning the golden HTML itself would need the Go build's output trees,
   which are not in the repository (`testdata/golden/` holds manifests).
 - **static sync** — `oracle/commands/staticcopy/staticcopy.json.gz`: 12 cases, 179 checks

@@ -195,8 +195,8 @@ fn prose_corpus_oracle() {
     t.finish();
 }
 
-/// Section and taxonomy names of the seeksnack (S) and reconstruction (R) sites that the
-/// oracle corpora do not contain; expectations derived by hand from the rules.
+/// Section and taxonomy names of a snack review site that the oracle corpora do not contain;
+/// expectations derived by hand from the rules.
 #[test]
 fn site_names() {
     let ap = |s: &str| title::title_case(s, Style::Ap);

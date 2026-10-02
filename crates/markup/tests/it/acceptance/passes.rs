@@ -34,12 +34,12 @@ impl Hooks for Capture {
     }
 }
 
-/// The heading ids of docs/rust-port/specs/markdown.md §7, verified there against the Go
-/// build of seeksnack (Thai headings, the first-child quirk, entities, dedupe, setext).
+/// Heading ids by Hugo's rules (cases once verified against Hugo's Go build, with neutral
+/// wording): Thai headings, the first-child quirk, entities, dedupe, setext.
 #[test]
-fn seeksnack_heading_ids() {
-    let md = "### **Snack Jack - Sour Cream Flavor (Green Pea Snack)**\n\n### รสชาติ\n\n### สแน็คแจ๊ค รสดั้งเดิม (ขนมถั่วลั่นเตาอบกรอบ)\n\n### Squidy - Seasoned Roller Squid Hot&Spicy\n\n### White Koala's March (Chocolate Filling )\n\n### Pocky Cookies & Cream taste ( Chocolate biscuit stick) Glico brand ([Thai Glico 50th anniversaries](https://www.glico.com/th/en/article/thaiglico-50th/))\n\n## **Strong *em* more** tail\n\n## ![alt *x*](img.png \"T\") img\n\n## &amp; &copy; entity\n\n## Ünïcödé İstanbul ǅ\n\n## 🍫\n\n## Dup\n\n## Dup\n\n## dup-1\n\nSetext line one\nline two\n===\n\n### Edit layouts/_default/index.JSON\n";
-    let got = render_with(md, &options(HugoCfg::Seeksnack), &ssg_markup::NoHooks);
+fn heading_ids() {
+    let md = "### **Sample Item - Sour Cream Flavor (Green Pea Style)**\n\n### รสชาติ\n\n### ขนมทดสอบ รสดั้งเดิม (ขนมอบกรอบ)\n\n### Sample - Seasoned Roller Snack Hot&Spicy\n\n### White Bear's Biscuit (Chocolate Filling )\n\n### Stick Cookies & Cream taste ( Chocolate biscuit stick) Example brand ([Example 50th anniversaries](https://example.com/50th/))\n\n## **Strong *em* more** tail\n\n## ![alt *x*](img.png \"T\") img\n\n## &amp; &copy; entity\n\n## Ünïcödé İstanbul ǅ\n\n## 🍫\n\n## Dup\n\n## Dup\n\n## dup-1\n\nSetext line one\nline two\n===\n\n### Edit layouts/_default/index.JSON\n";
+    let got = render_with(md, &options(HugoCfg::Site), &ssg_markup::NoHooks);
     let mut ids = got.fragments.identifiers.clone();
     let order: Vec<String> = {
         fn walk(h: &[ssg_markup::Heading], out: &mut Vec<String>) {
@@ -55,12 +55,12 @@ fn seeksnack_heading_ids() {
         v
     };
     let want = [
-        "snack-jack---sour-cream-flavor-green-pea-snack",
+        "sample-item---sour-cream-flavor-green-pea-style",
         "รสชาต",
-        "สแนคแจค-รสดงเดม-ขนมถวลนเตาอบกรอบ",
-        "squidy---seasoned-roller-squid-hotspicy",
-        "white-koalas-march-chocolate-filling-",
-        "pocky-cookies--cream-taste--chocolate-biscuit-stick-glico-brand-thai-glico-50th-anniversaries",
+        "ขนมทดสอบ-รสดงเดม-ขนมอบกรอบ",
+        "sample---seasoned-roller-snack-hotspicy",
+        "white-bears-biscuit-chocolate-filling-",
+        "stick-cookies--cream-taste--chocolate-biscuit-stick-example-brand-example-50th-anniversaries",
         "strong--tail",
         "alt--img",
         "--entity",

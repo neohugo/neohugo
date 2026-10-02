@@ -14,9 +14,8 @@ use crate::tag;
 ///
 /// CLDR 24 gave Thai `[reorder Thai]` and `alternate=shifted`: Thai sorts before Latin and
 /// spaces and punctuation are ignored. Hugo (x/text, CLDR 23) sorts a Thai site's mixed lists
-/// Latin first, and the root order reproduces its order for every string of the reference
-/// sites (docs/rust-port/specs/i18n-lang-misc.md §4), once PAIYANNOI is placed as Hugo places
-/// it ([`Tailoring::PaiyannoiAsPunctuation`]).
+/// Latin first, and the root order reproduces its order for the strings of the reference
+/// sites, once PAIYANNOI is placed as Hugo places it ([`Tailoring::PaiyannoiAsPunctuation`]).
 const ROOT_ORDER: &[&str] = &["th"];
 
 /// THAI CHARACTER PAIYANNOI (U+0E2F), the abbreviation mark (`กรุงเทพฯ`).

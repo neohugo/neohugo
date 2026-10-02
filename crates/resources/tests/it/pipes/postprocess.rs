@@ -3,11 +3,11 @@
 //! - Against the `transform` oracle's post-processed resources (`resources.PostProcess` of
 //!   14 assets' `fingerprint` chains): content, links, integrity and media type after
 //!   replacement equal Go's.
-//! - The reconstruction's CSS chain (`to_css | post_css | minify | fingerprint |
-//!   post_process`, head.html): nothing runs until the placeholders are resolved, so PostCSS
-//!   reads the `build_stats.json` written after rendering (E4). With a fake PostCSS that reports
-//!   the stats it read; with postcss-cli (`FUGO_POSTCSS_BIN`) the reconstruction's own
-//!   purge configuration drops the unused rules.
+//! - A CSS chain (`to_css | post_css | minify | fingerprint | post_process`, as a site's head
+//!   writes it) on `tests/fixtures/styles.txtar`: nothing runs until the placeholders are
+//!   resolved, so PostCSS reads the `build_stats.json` written after rendering (E4). With a fake
+//!   PostCSS that reports the stats it read; with postcss-cli (`FUGO_POSTCSS_BIN`) the
+//!   fixture's purge configuration drops the unused rules.
 
 use std::str::FromStr as _;
 
@@ -122,10 +122,10 @@ fn post_process_oracle() {
     eprintln!("post_process: {compared} fields equal to Go's after replacement");
 }
 
-/// The reconstruction's SCSS and PostCSS config (tools/rust-port/i01/seeksnack.txtar).
-fn reconstruction(extra: &[(&str, &str)]) -> tempfile::TempDir {
+/// The SCSS and PostCSS config of `tests/fixtures/styles.txtar`.
+fn styles(extra: &[(&str, &str)]) -> tempfile::TempDir {
     let txtar = std::fs::read_to_string(
-        crate::support::repo_dir().join("tools/rust-port/i01/seeksnack.txtar"),
+        crate::support::repo_dir().join("crates/resources/tests/fixtures/styles.txtar"),
     )
     .unwrap();
     let mut files: Vec<(String, String)> = Vec::new();
@@ -150,7 +150,7 @@ fn reconstruction(extra: &[(&str, &str)]) -> tempfile::TempDir {
     mini_site(&wanted)
 }
 
-/// The head.html chain; returns the post-process placeholders of content, link, integrity.
+/// The head's CSS chain; returns the post-process placeholders of content, link, integrity.
 fn head_chain(p: &Project) -> (ssg_base::ResourceId, [String; 3]) {
     let s = &p.store;
     let src = p.asset("scss/website.scss");
@@ -214,8 +214,8 @@ const STATS: &str =
     r#"{"htmlElements":{"tags":["body","li"],"classes":["card","pagination"],"ids":[]}}"#;
 
 #[test]
-fn post_process_reconstruction_chain_fake_postcss() {
-    if !have_node("post_process_reconstruction_chain_fake_postcss") {
+fn post_process_css_chain_fake_postcss() {
+    if !have_node("post_process_css_chain_fake_postcss") {
         return;
     }
     // Reads ./build_stats.json like the purge plugin (fails without it) and reports it in a rule.
@@ -226,7 +226,7 @@ const css = fs.readFileSync(0, 'utf8');
 const stats = JSON.parse(fs.readFileSync('./build_stats.json', 'utf8')).htmlElements;
 process.stdout.write(css + '.stats-seen{content:' + JSON.stringify(stats.classes.join(' ')) + '}');
 ";
-    let site = reconstruction(&[]);
+    let site = styles(&[]);
     let tmp = tempfile::tempdir().unwrap();
     let bin = fake_tool(tmp.path(), "postcss", script);
     let p = project(site.path(), |env| env.tools.postcss = Some(bin));
@@ -245,14 +245,11 @@ process.stdout.write(css + '.stats-seen{content:' + JSON.stringify(stats.classes
 }
 
 #[test]
-fn post_process_reconstruction_chain_real_postcss() {
-    let Some(bin) = real_tool(
-        "FUGO_POSTCSS_BIN",
-        "post_process_reconstruction_chain_real_postcss",
-    ) else {
+fn post_process_css_chain_real_postcss() {
+    let Some(bin) = real_tool("FUGO_POSTCSS_BIN", "post_process_css_chain_real_postcss") else {
         return;
     };
-    let site = reconstruction(&[]);
+    let site = styles(&[]);
     let p = project(site.path(), |env| env.tools.postcss = Some(bin));
     let (_, body, _, _) = render_and_resolve(&p, STATS);
     // purge-lite keeps rules with a used class, drops the others, and appends the environment.

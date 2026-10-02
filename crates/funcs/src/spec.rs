@@ -540,7 +540,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Images, "process", ".Process", "Any of the above per `spec` (or the typed kwargs).").args(IMAGE_ARGS).site(),
     filter(G::Images, "image_filter", "images.Filter, .Filter, images.Text, images.Dither", "Applies `filters`, a list of `{\"op\": …}` maps, one per Hugo `images.*` filter: `brightness`, `color_balance`, `colorize`, `contrast`, `gamma`, `gaussian_blur`, `grayscale`, `hue`, `invert`, `saturation`, `sepia`, `sigmoid`, `unsharp_mask`, `pixelate`, `opacity`, `padding`, `overlay` and `mask` (`image`: a resource), `auto_orient`, `text` (`text`, `color`, `size`, `x`, `y`, `alignx`, `aligny`, `linespacing`, `font`: a font resource), `dither` (`colors`, `method`, `serpentine`, `strength`), `process` (`spec`). E.g. `img | image_filter(filters=[{\"op\": \"text\", \"text\": page.title, \"size\": 40}, {\"op\": \"dither\"}])`.").args(&[req("filters", A::Array)]).site(),
     filter(G::Images, "exif", ".Exif", "EXIF data of an image, or none.").site(),
-    filter(G::Images, "image_colors", ".Colors", "Dominant colours as hex strings.").site(),
+    filter(G::Images, "image_colors", ".Colors", "Not implemented yet: calling it is an error (Hugo's `.Colors` gives the dominant colours as hex strings).").site(),
     func(G::Images, "qr_code", "images.QR", "A PNG image resource of the QR code of `text`, with Hugo's bytes and name (`<target_dir>/qr_<hash>.png`): `level` low, medium (default), quartile or high; `scale` pixels per module (at least 2, default 4). E.g. `qr_code(text=page.permalink, target_dir=\"images/qr\")`.")
         .args(&[req("text", A::String), opt("level", A::String), opt("scale", A::Int), opt("target_dir", A::String)]).site(),
     // ── templates ──
@@ -1041,6 +1041,186 @@ fn phase_str(p: PhaseAvail) -> &'static str {
         PhaseAvail::Layout => "layout",
         PhaseAvail::Adapter => "adapter",
     }
+}
+
+/// `docs/data/template_api.json`, the template reference of the documentation site, generated
+/// from the tables of this module (schema `ssg-template-api/1`): the groups, every name with its
+/// signature, keyword arguments and phase, the render contexts, the hook fields, and Hugo's
+/// constructs with their Tera replacements.
+#[must_use]
+pub fn template_api_json() -> String {
+    let mut w = String::new();
+    write_json(&mut w).expect("writing to a String cannot fail");
+    w
+}
+
+/// A JSON string literal.
+fn js(s: &str) -> String {
+    let mut out = String::with_capacity(s.len() + 2);
+    out.push('"');
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => {
+                let _ = write!(out, "\\u{:04x}", c as u32);
+            }
+            c => out.push(c),
+        }
+    }
+    out.push('"');
+    out
+}
+
+fn js_list<'a>(items: impl IntoIterator<Item = &'a str>) -> String {
+    let items: Vec<String> = items.into_iter().map(js).collect();
+    format!("[{}]", items.join(", "))
+}
+
+const fn group_id(g: Group) -> &'static str {
+    match g {
+        Group::Logic => "logic",
+        Group::Collections => "collections",
+        Group::Pages => "pages",
+        Group::Strings => "strings",
+        Group::Encoding => "encoding",
+        Group::Urls => "urls",
+        Group::Dates => "dates",
+        Group::Locale => "language",
+        Group::Resources => "resources",
+        Group::Images => "images",
+        Group::Templates => "templates",
+        Group::System => "system",
+        Group::Tests => "tests",
+    }
+}
+
+fn write_json(w: &mut String) -> std::fmt::Result {
+    writeln!(w, "{{\n\"schema\": \"ssg-template-api/1\",")?;
+    writeln!(
+        w,
+        "\"about\": \"GENERATED from ssg_funcs::spec (crates/funcs/src/spec.rs); do not edit. Regenerate: INSTA_UPDATE=always cargo test -p ssg-testkit contract\","
+    )?;
+    let groups: Vec<String> = Group::ALL
+        .iter()
+        .map(|g| {
+            format!(
+                "{{\"id\": {}, \"title\": {}}}",
+                js(group_id(*g)),
+                js(g.title())
+            )
+        })
+        .collect();
+    writeln!(w, "\"groups\": [\n{}\n],", groups.join(",\n"))?;
+    let funcs: Vec<String> = FUNCS
+        .iter()
+        .map(|f| {
+            let kind = match f.kind {
+                NameKind::Filter => "filter",
+                NameKind::Function => "function",
+                NameKind::Test => "test",
+            };
+            let source = match f.source {
+                Source::Builtin => "builtin",
+                Source::Contrib => "contrib",
+                Source::Native => "native",
+            };
+            let kwargs: Vec<String> = f
+                .kwargs
+                .iter()
+                .map(|k| {
+                    format!(
+                        "{{\"name\": {}, \"type\": {}, \"required\": {}}}",
+                        js(k.name),
+                        js(k.ty.as_str()),
+                        k.required
+                    )
+                })
+                .collect();
+            let hugo = f.hugo.split(", ").filter(|h| !h.is_empty());
+            format!(
+                "{{\"name\": {}, \"kind\": {}, \"group\": {}, \"signature\": {}, \"kwargs\": [{}], \"rest_kwargs\": {}, \"phase\": {}, \"safe\": {}, \"site_bound\": {}, \"source\": {}, \"hugo\": {}, \"doc\": {}}}",
+                js(f.name),
+                js(kind),
+                js(group_id(f.group)),
+                js(&f.signature()),
+                kwargs.join(", "),
+                f.rest_kwargs,
+                js(phase_str(f.phase)),
+                f.safe,
+                f.site_bound,
+                js(source),
+                js_list(hugo),
+                js(f.doc)
+            )
+        })
+        .collect();
+    writeln!(w, "\"funcs\": [\n{}\n],", funcs.join(",\n"))?;
+    let contexts: Vec<String> = CONTEXTS
+        .iter()
+        .map(|c| {
+            format!(
+                "{{\"title\": {}, \"names\": {}, \"note\": {}}}",
+                js(c.title),
+                js_list(c.names.iter().map(|n| n.name)),
+                js(c.note)
+            )
+        })
+        .collect();
+    writeln!(w, "\"contexts\": [\n{}\n],", contexts.join(",\n"))?;
+    let mut seen: Vec<&str> = Vec::new();
+    let mut names = Vec::new();
+    for n in CONTEXTS.iter().flat_map(|c| c.names) {
+        if !seen.contains(&n.name) {
+            seen.push(n.name);
+            names.push(format!(
+                "{{\"name\": {}, \"doc\": {}}}",
+                js(n.name),
+                js(n.doc)
+            ));
+        }
+    }
+    writeln!(w, "\"context_names\": [\n{}\n],", names.join(",\n"))?;
+    let hooks: Vec<String> = HOOK_FIELDS
+        .iter()
+        .map(|(hook, fields)| {
+            format!(
+                "{{\"hook\": {}, \"fields\": {}}}",
+                js(hook),
+                js_list(fields.iter().copied())
+            )
+        })
+        .collect();
+    writeln!(w, "\"hook_fields\": [\n{}\n],", hooks.join(",\n"))?;
+    let syntax: Vec<String> = SYNTAX
+        .iter()
+        .map(|r| format!("{{\"hugo\": {}, \"tera\": {}}}", js(r.hugo), js(r.tera)))
+        .collect();
+    writeln!(w, "\"syntax\": [\n{}\n],", syntax.join(",\n"))?;
+    let rules: Vec<String> = CONVERSION_RULES
+        .iter()
+        .map(|(title, rules)| {
+            format!(
+                "{{\"title\": {}, \"rules\": {}}}",
+                js(title),
+                js_list(rules.iter().copied())
+            )
+        })
+        .collect();
+    writeln!(w, "\"conversion_rules\": [\n{}\n],", rules.join(",\n"))?;
+    writeln!(
+        w,
+        "\"embedded_templates\": {},",
+        js_list(EMBEDDED_TEMPLATES.iter().copied())
+    )?;
+    writeln!(
+        w,
+        "\"tera_facts\": {}\n}}",
+        js_list(TERA_FACTS.iter().copied())
+    )
 }
 
 /// `docs/rust-port/template-api.md`, generated from the tables of this module.

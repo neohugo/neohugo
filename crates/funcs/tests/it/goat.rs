@@ -89,8 +89,9 @@ fn stable_output() {
     }
 }
 
-/// The ```` ```goat ```` code blocks of the Markdown files below `dir`, as `(<path from the
-/// repository root>#<n>, Hugo's .Inner)`.
+/// The ```` ```goat ```` code blocks of the Markdown files below `dir`, as `(docs/<path from
+/// root>#<n>, Hugo's .Inner)` (`root` is Hugo's documentation site, which the fixture names
+/// `docs/`).
 fn collect(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
     let re = regex::Regex::new(r"(?ms)^```goat[^\n]*\n(.*?)^```").expect("valid");
     let mut entries: Vec<_> = std::fs::read_dir(dir)
@@ -108,7 +109,7 @@ fn collect(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
             let rel = rel.to_string_lossy().replace('\\', "/");
             for (n, caps) in re.captures_iter(&text).enumerate() {
                 let inner = caps[1].trim_end_matches(['\r', '\n']);
-                out.push((format!("{rel}#{n}"), inner.to_owned()));
+                out.push((format!("docs/{rel}#{n}"), inner.to_owned()));
             }
         }
     }
@@ -117,9 +118,9 @@ fn collect(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
 /// Every docs diagram: the size and the `.Wrapped` bytes of Hugo's `diagrams.Goat`.
 #[test]
 fn every_docs_diagram_as_hugo() {
-    let root = ssg_testkit::fixture::repo_dir();
+    let root = ssg_testkit::fixture::hugo_docs();
     let mut diagrams = Vec::new();
-    collect(&root, &root.join("docs/content"), &mut diagrams);
+    collect(&root, &root.join("content"), &mut diagrams);
     let expected: BTreeMap<String, (u64, u64, String)> =
         std::fs::read_to_string(fixtures().join("docs.tsv"))
             .expect("docs.tsv")

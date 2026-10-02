@@ -396,14 +396,8 @@ T00_MAP = [
     *[(f"nh-common/tests/fixtures/{d}", f"oracle/common/{d}")
       for d in ("paths", "urls", "flect", "prose", "locales", "cast", "glob")],
     # corpus/: inputs without Go types
-    ("goldmark/tests/fixtures/corpus.gmf.gz", "corpus/goldmark/corpus.gmf.gz"),
-    ("goldmark/tests/fixtures/corpus-ext.gmf.gz", "corpus/goldmark/corpus-ext.gmf.gz"),
-    ("go-yaml/tests/fixtures/seeksnack-fm.fixture.gz", "corpus/yaml/seeksnack-fm.fixture.gz"),
     ("go-time/tests/fixtures/format.txt.gz", "corpus/time/format.txt.gz"),
-    ("go-time/tests/fixtures/seeksnack.txt.gz", "corpus/time/seeksnack.txt.gz"),
-    ("tdewolff-minify/tests/fixtures/corpus", "corpus/minify"),
     ("xtext-collate/tests/fixtures/enum-thai.txt", "corpus/collate/enum-thai.txt"),
-    ("xtext-collate/tests/fixtures/site-strings.hex", "corpus/collate/site-strings.hex"),
     # site-assets/: images sites.py and the image oracles read
     ("go-image/tests/fixtures/site", "site-assets/site"),
     ("go-png/tests/fixtures/repo", "site-assets/repo"),

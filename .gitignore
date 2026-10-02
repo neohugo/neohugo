@@ -1,4 +1,6 @@
 docs/public*
+# The documentation site's processed images (`fugo server -s docs`)
+/docs/resources/
 /.idea
 nohup.out
 *.swp

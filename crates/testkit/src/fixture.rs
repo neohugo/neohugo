@@ -103,6 +103,22 @@ pub const UPSTREAM: [&str; 5] = [
 /// (after `44529028`); frozen fixtures still name files below it (`rust/testdata/...`).
 pub const LEGACY_WORKSPACE: &str = "rust";
 
+/// Hugo's documentation site (Hugo's docs repository, as this repository's Go tree had it in
+/// `docs/`): a frozen fixture of the docs gates (`tools/rust-port/i01/sites.py`) and of the tests
+/// that read its content, config and assets. It moved here when `docs/` became this project's own
+/// documentation; fixtures still name its files `docs/...` (see [`repo_file`]).
+pub const HUGO_DOCS: &str = "testdata/hugo-docs";
+
+/// The directory the fixtures name Hugo's documentation site by (see [`HUGO_DOCS`]); its
+/// `rust-port/` subdirectory is not part of it.
+pub const LEGACY_HUGO_DOCS: &str = "docs";
+
+/// [`HUGO_DOCS`] of the checkout.
+#[must_use]
+pub fn hugo_docs() -> PathBuf {
+    repo_dir().join(HUGO_DOCS)
+}
+
 /// The path a site file the Go oracles recorded has in a local site: a configuration file
 /// named `hugo.<ext>` (the project's, a configuration directory's or a theme's) is
 /// `config.<ext>`, as no `hugo.*` file is read. Files below a component directory
@@ -136,13 +152,18 @@ pub fn local_path(rel: &str) -> String {
 
 /// A file or directory of the checkout by its repository-relative path as the fixtures name it
 /// (`repo` and `file:` ids keep the Go tree's paths): under one of [`UPSTREAM`] it is in
-/// `testdata/upstream`; a path below [`LEGACY_WORKSPACE`] is that path without the prefix;
+/// `testdata/upstream`; below [`LEGACY_HUGO_DOCS`] (but not `docs/rust-port`) it is in
+/// [`HUGO_DOCS`]; a path below [`LEGACY_WORKSPACE`] is that path without the prefix;
 /// anything else is at `<rel>` from the repository root (see [`repo_dir`]).
 #[must_use]
 pub fn repo_file(rel: &str) -> PathBuf {
     let path = Path::new(rel);
     if UPSTREAM.iter().any(|p| path.starts_with(p)) {
         testdata("upstream").join(rel)
+    } else if let Ok(rest) = path.strip_prefix(LEGACY_HUGO_DOCS)
+        && !rest.starts_with("rust-port")
+    {
+        hugo_docs().join(rest)
     } else {
         repo_dir().join(path.strip_prefix(LEGACY_WORKSPACE).unwrap_or(path))
     }

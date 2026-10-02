@@ -1,6 +1,6 @@
-//! The docs corpus: every piece of code the docs site highlights.
+//! The docs corpus: every piece of code Hugo's documentation site highlights.
 //!
-//! - fenced code blocks of `docs/content/**/*.md`, read through ssg-markup, with the
+//! - fenced code blocks of `testdata/hugo-docs/content/**/*.md`, read through ssg-markup, with the
 //!   language the docs `render-codeblock` hook passes to `transform.Highlight` (`html` and
 //!   `gotmpl` → `go-html-template`, `md` → `text`, else the `file` attribute's extension or
 //!   `text`) and the fence's options; `goat` fences go to the goat hook instead;
@@ -18,7 +18,6 @@ use ssg_markup::{
     CodeBlockCtx, ExpandedMarkdown, HookEnv, HookError, HookOut, Hooks, MarkdownOptions,
     SourceContexts,
 };
-use ssg_testkit::fixture::repo_dir;
 
 /// Where a piece of code comes from.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -100,9 +99,9 @@ impl Hooks for Fences {
     }
 }
 
-/// `docs/content` of the checkout.
+/// The content of Hugo's documentation site (`testdata/hugo-docs/content`).
 pub fn docs_content() -> PathBuf {
-    repo_dir().join("docs/content")
+    ssg_testkit::fixture::hugo_docs().join("content")
 }
 
 fn markdown_files(dir: &Path, out: &mut Vec<PathBuf>) {

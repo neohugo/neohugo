@@ -1,6 +1,6 @@
 //! Pixel parity: PSNR against images processed by Go Hugo.
 //!
-//! * `testdata/golden/images/` (T01): the 20 Go-processed images of the acceptance gate
+//! * `testdata/golden/images/` (T01): the 15 Go-processed images of the acceptance gate
 //!   (≥ 30 dB each), described by `manifest.json` (format below), frozen at 44529028 (nothing
 //!   regenerates them). Skipped with a note if they are missing.
 //! * Interim: Hugo's own golden images (`images_golden` in
@@ -195,7 +195,7 @@ fn golden_images_from_t01() {
     let manifest = dir.join("manifest.json");
     if !manifest.is_file() {
         eprintln!(
-            "SKIPPED: {} is missing: the 20 Go-processed golden images (T01) are frozen at \
+            "SKIPPED: {} is missing: the 15 Go-processed golden images (T01) are frozen at \
              44529028, restore them from git (the interim PSNR checks below cover Hugo's own \
              golden images)",
             manifest.display()
@@ -205,8 +205,8 @@ fn golden_images_from_t01() {
     let recipes: Vec<Recipe> = serde_json::from_slice(&std::fs::read(&manifest).expect("manifest"))
         .expect("manifest.json");
     assert!(
-        recipes.len() >= 20,
-        "{} golden images, expected 20",
+        recipes.len() >= 15,
+        "{} golden images, expected 15",
         recipes.len()
     );
     let failures = run_all(&recipes, &dir, "T01 golden images");

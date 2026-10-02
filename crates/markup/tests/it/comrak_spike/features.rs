@@ -6,8 +6,8 @@ use comrak::nodes::{AstNode, NodeValue};
 use comrak::{Arena, Options, parse_document};
 
 use super::Row;
-use super::corpus::{DocsCorpus, HugoCfg, SeeksnackDoc};
-use super::engine::{goldmark, hugo, to_html, to_html_passes};
+use super::corpus::{DocsCorpus, HugoCfg};
+use super::engine::{hugo, to_html, to_html_passes};
 use super::normalize::{Fold, Tok, elements, multiset_matches, normalize, tokens};
 
 const FOLD: Fold = Fold {
@@ -77,28 +77,6 @@ pub fn overall_docs(c: &DocsCorpus, cfg: HugoCfg) -> Row {
         })
         .count();
     Row::new(label, "pages", matched, c.docs.len())
-}
-
-pub fn overall_seeksnack(s: &[SeeksnackDoc], cfg: &str) -> Row {
-    let o = goldmark(cfg).unwrap_or_else(|| panic!("unknown corpus configuration {cfg}"));
-    let mut total = 0;
-    let mut matched = 0;
-    for d in s {
-        let Some((_, html)) = d.html.iter().find(|(c, _)| c == cfg) else {
-            continue;
-        };
-        total += 1;
-        let label = format!("seeksnack, whole body, goldmark {cfg}");
-        let (want, got) = (normalize(html, FOLD), normalize(&to_html(&d.md, &o), FOLD));
-        show_first_difference(&label, &d.name, &want, &got);
-        matched += usize::from(want == got);
-    }
-    Row::new(
-        format!("seeksnack, whole body, goldmark {cfg}"),
-        "bodies",
-        matched,
-        total,
-    )
 }
 
 /// Whole pages once the differences owned by planned passes are folded away: HTML comments
@@ -409,8 +387,8 @@ fn text_of(html: &str) -> String {
 // ───────────────────────────── fenced code ─────────────────────────────
 
 pub fn fences(c: &DocsCorpus) -> Vec<Row> {
-    let o = hugo(HugoCfg::Seeksnack);
-    let mut with_attrs = hugo(HugoCfg::Seeksnack);
+    let o = hugo(HugoCfg::Site);
+    let mut with_attrs = hugo(HugoCfg::Site);
     with_attrs.extension.fenced_code_attributes = true;
     let (mut total, mut lang_ok, mut inner_ok) = (0, 0, 0);
     let (mut attr_total, mut attr_ranges, mut attr_comrak_ok) = (0, 0, 0);
@@ -678,7 +656,7 @@ fn math_text(md: &str, o: &Options<'_>) -> String {
 // ───────────────────────────── alerts ─────────────────────────────
 
 pub fn alerts(c: &DocsCorpus) -> Vec<Row> {
-    let mut o = hugo(HugoCfg::Seeksnack);
+    let mut o = hugo(HugoCfg::Site);
     o.extension.alerts = true;
     let (mut alert_total, mut alert_ok, mut regular_total, mut regular_ok) = (0, 0, 0, 0);
     let (mut titled, mut signed) = (0, 0);
@@ -949,7 +927,7 @@ const MARKDOWN_TAGS: &[&str] = &[
 
 pub fn raw_html(c: &DocsCorpus) -> Vec<Row> {
     let safe = hugo(HugoCfg::Default);
-    let open = hugo(HugoCfg::Seeksnack);
+    let open = hugo(HugoCfg::Site);
     let (mut omitted, mut omitted_ok, mut raw, mut raw_ok) = (0, 0, 0, 0);
     let comments = |html: &str| -> Vec<String> {
         tokens(html, FOLD)
@@ -976,7 +954,7 @@ pub fn raw_html(c: &DocsCorpus) -> Vec<Row> {
             omitted += want.len();
             omitted_ok += multiset_matches(&want, &comments(&to_html(md, &safe)));
         }
-        let want = raw_tags(&html[HugoCfg::Seeksnack as usize]);
+        let want = raw_tags(&html[HugoCfg::Site as usize]);
         if !want.is_empty() {
             raw += want.len();
             raw_ok += multiset_matches(&want, &raw_tags(&to_html(md, &open)));

@@ -1,5 +1,5 @@
 //! Publishing: eager bundles, URL tokens in every escaped form (paths with `&` and `'` like the
-//! reconstruction's `herrs-salt-&-vinegar` and `Lay's` bundles), absolute and
+//! real-site-like `herrs-salt-&-vinegar` and `Lay's` bundles), absolute and
 //! protocol-relative tokens, the `publish` filter, `Never`, and repeated publishing.
 
 use std::fs;
@@ -17,7 +17,7 @@ fn tokens_in_every_form() {
     fs::create_dir_all(site.join("assets/css")).unwrap();
     fs::write(
         site.join("config.toml"),
-        "baseURL = \"https://seeksnack.example/sub/\"\n",
+        "baseURL = \"https://shop.example/sub/\"\n",
     )
     .unwrap();
     fs::write(site.join("assets/css/a b.css"), "a{}").unwrap();
@@ -74,8 +74,8 @@ fn tokens_in_every_form() {
         // JSON (a search index), escaped by the JSON encoder.
         "\\/sub\\/b\\/herrs-salt-\\u0026-vinegar\\/plain.txt",
         // Absolute, percent-encoded differently, with a query.
-        "https://seeksnack.example/sub/b/herrs-salt-%26-vinegar/abs.txt?v=2",
-        "//seeksnack.example/sub/b/herrs-salt-&-vinegar/proto.txt#x",
+        "https://shop.example/sub/b/herrs-salt-%26-vinegar/abs.txt?v=2",
+        "//shop.example/sub/b/herrs-salt-&-vinegar/proto.txt#x",
         "/sub/css/a%20b.css",
         "/sub/b/herrs-salt-&-vinegar/never.txt",
         // Not resources.

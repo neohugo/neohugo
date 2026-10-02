@@ -1,8 +1,7 @@
 //! The `allconfig/load` oracle: site trees recreated on disk, loaded, and compared with Go's
 //! decoded configuration (per-language `hugo config` dumps, compiled values, language list).
 //!
-//! Required at 100%: `repo/docs`, `repo/docs-development`, `repo/testsite` and the three
-//! `seeksnack` (reconstruction) cases. The other groups are run for coverage; their
+//! Required at 100%: `repo/docs`, `repo/docs-development` and `repo/testsite`. The other groups are run for coverage; their
 //! differences must be listed in `expected_diffs.toml` with a reason.
 
 use std::collections::BTreeMap;
@@ -216,7 +215,7 @@ fn compare(site: &Site, c: &Config, want: &J, tally: &mut Tally, case: &str) {
 }
 
 /// Cases whose typed configuration is also kept as an insta snapshot.
-const SNAPSHOT_CASES: &[&str] = &["repo/docs", "repo/testsite", "seeksnack/build"];
+const SNAPSHOT_CASES: &[&str] = &["repo/docs", "repo/testsite"];
 
 struct GroupResult {
     cases: usize,
@@ -226,11 +225,7 @@ struct GroupResult {
 
 fn run_group(name: &str) -> GroupResult {
     let fx = fixture(&format!("oracle/allconfig/load/{name}.json.gz"));
-    let site_dir = if name == "seeksnack" {
-        "seeksnack"
-    } else {
-        "site"
-    };
+    let site_dir = "site";
     let mut out = GroupResult {
         cases: 0,
         not_applicable: Vec::new(),
@@ -308,10 +303,10 @@ fn check_groups(groups: &[&str], strict: bool) {
     );
 }
 
-/// The acceptance sites: the docs and testsite projects and the seeksnack reconstruction.
+/// The acceptance sites: the docs and testsite projects.
 #[test]
 fn acceptance_sites() {
-    check_groups(&["repo", "seeksnack"], true);
+    check_groups(&["repo"], true);
 }
 
 #[test]

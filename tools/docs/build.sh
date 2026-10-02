@@ -1,26 +1,22 @@
 #!/usr/bin/env bash
-# Builds the documentation site https://getfugo.github.io/ with the binary: docs/ with the Tera
-# overlay sites/docs (`sites.py make docs-live`, no patches) and the docs site's own node modules
-# (`npm ci` of docs/package.json with tools/docs/package-lock.json: docs/ ignores its lock file, and
-# this one resolves to the versions the published site was built with), the way the
-# Go release workflow built it (`npm install && neohugo` in docs/: no --minify, the production
-# environment, network access for GetRemote: GitHub stars and releases, X posts, a font).
-# Gate A-D3 (crates/cli/tests/it/docs.rs) compares this site with the published one.
+# Builds fugo's documentation site, https://getfugo.github.io/, from docs/ with the binary. The
+# site needs no node tools and no network: Sass and the script are compiled in process. The
+# processed images and the caches go to the work directory, so nothing is written into docs/.
+# The test `docs_site` (crates/cli/tests/it/docs_site.rs) builds it the same way and fails on
+# warnings.
 #
 #   tools/docs/build.sh [-o <dir>] [--serve] [-- <binary args>...]
 #
 #   -o <dir>   the publish directory (default: <work>/public); emptied first
-#   --serve    run the `server` command on the generated site instead of building it (live reload;
-#              edits go to the generated site in <work>, not to docs/ or sites/docs)
+#   --serve    run the `server` command instead (live reload of edits in docs/)
 #   -- ...     further arguments for the binary (e.g. --minify, -b <baseURL>, -p 1314)
 #
 # Environment:
 #   FUGO_BINARY          the binary (default: target/release/<name>, built with
 #                           `cargo build --release --locked -p ssg-cli` when missing)
 #   FUGO_DOCS_WORK       work directory, outside the repository (default:
-#                           ${TMPDIR:-/tmp}/ssg-docs): the generated site (rewritten on every
-#                           run), the node modules (kept per lock file hash), public/
-#   FUGO_GH_TOKEN        optional GitHub token for the GitHub API requests
+#                           ${TMPDIR:-/tmp}/ssg-docs): public/, resources/ (processed images)
+#                           and cache/
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -61,35 +57,13 @@ if [ -z "$BIN" ]; then
 		(cd "$ROOT" && cargo build --release --locked -p ssg-cli >&2)
 	fi
 fi
-command -v npm >/dev/null || { log "npm is needed (the docs site's Tailwind CSS, Alpine.js and Turbo)"; exit 1; }
 
-# The site: docs/ unpatched with the Tera overlay.
-site=$WORK/docs-live
-rm -rf "$site"
-python3 "$ROOT/tools/rust-port/i01/sites.py" make docs-live "$site" --overlay "$ROOT/sites/docs" >/dev/null
-
-# The docs site's node modules, installed once per lock file.
-lock=$HERE/package-lock.json
-lock_hash=$(python3 -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest()[:16])' "$lock")
-npm_dir=$WORK/npm-$lock_hash
-if [ ! -d "$npm_dir/node_modules" ]; then
-	log "installing the docs node modules (npm ci, tools/docs/package-lock.json)"
-	rm -rf "$npm_dir.tmp"
-	mkdir -p "$npm_dir.tmp"
-	cp "$ROOT/docs/package.json" "$lock" "$npm_dir.tmp/"
-	(cd "$npm_dir.tmp" && npm ci --no-audit --no-fund --loglevel=error >&2)
-	rm -rf "$npm_dir"
-	mv "$npm_dir.tmp" "$npm_dir"
-fi
-ln -s "$npm_dir/node_modules" "$site/node_modules"
-
-export PATH="$npm_dir/node_modules/.bin:$PATH"
-export FUGO_NODE_MODULES=$npm_dir/node_modules
-
-cd "$site"
+# `resourceDir` through its environment override: processed images outside docs/.
+export FUGO_RESOURCEDIR=$WORK/resources
+args=(-s "$ROOT/docs" --cache-dir "$WORK/cache")
 if [ -n "$serve" ]; then
-	exec "$BIN" server "${extra[@]}"
+	exec "$BIN" server "${args[@]}" ${extra[@]+"${extra[@]}"}
 fi
 rm -rf "$out"
-"$BIN" -d "$out" "${extra[@]}"
+"$BIN" build "${args[@]}" -d "$out" ${extra[@]+"${extra[@]}"}
 log "published to $out"

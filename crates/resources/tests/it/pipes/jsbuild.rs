@@ -139,7 +139,7 @@ fn js_build_docs() {
     // A copy without a local build's output and node modules (gitignored): the oracle's
     // `main-unresolved` case needs `alpinejs` not to resolve.
     let p = project_except(
-        &crate::support::repo_dir().join("docs"),
+        &crate::support::repo_dir().join("testdata/hugo-docs"),
         &["node_modules", "public", "resources"],
         |_| {},
     );

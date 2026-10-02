@@ -1,18 +1,16 @@
-//! The two inputs: the 959 docs bodies of the `markup/convert` and `markup/hooks` oracles
-//! (Hugo's goldmark converter, six configurations), and the 251 seeksnack bodies of the
-//! goldmark corpus (`corpus/goldmark/corpus{,-ext}.gmf.gz`, plain goldmark instances).
+//! The input: the 959 docs bodies of the `markup/convert` and `markup/hooks` oracles (Hugo's
+//! goldmark converter, six configurations).
 
 use std::collections::BTreeMap;
-use std::io::Read;
 
 use serde::Deserialize;
-use ssg_testkit::fixture::{GoString, oracle, testdata};
+use ssg_testkit::fixture::{GoString, oracle};
 
 /// Hugo markup configurations of the convert oracle, in fixture order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum HugoCfg {
     Default,
-    Seeksnack,
+    Site,
     Ascii,
     Blackfriday,
     Cjk,
@@ -22,7 +20,7 @@ pub enum HugoCfg {
 impl HugoCfg {
     pub const ALL: [Self; 6] = [
         Self::Default,
-        Self::Seeksnack,
+        Self::Site,
         Self::Ascii,
         Self::Blackfriday,
         Self::Cjk,
@@ -32,7 +30,7 @@ impl HugoCfg {
     pub fn name(self) -> &'static str {
         match self {
             Self::Default => "default",
-            Self::Seeksnack => "seeksnack",
+            Self::Site => "site",
             Self::Ascii => "ascii",
             Self::Blackfriday => "blackfriday",
             Self::Cjk => "cjk",
@@ -46,7 +44,7 @@ pub struct DocsCorpus {
     pub docs: Vec<(String, String)>,
     /// Hugo's HTML per `[doc][cfg]`.
     pub html: Vec<[String; 6]>,
-    /// Decoded hook records of the `seeksnack` configuration, per doc.
+    /// Decoded hook records of the `site` configuration, per doc.
     pub hooks: Vec<Vec<HookRecord>>,
 }
 
@@ -114,12 +112,12 @@ pub fn docs() -> DocsCorpus {
     let hooks_fixture: Hooks = oracle("oracle/markup/hooks/hooks.json.gz");
     let mut hooks: Vec<Vec<HookRecord>> = (0..convert.docs.len()).map(|_| Vec::new()).collect();
     for r in hooks_fixture.results {
-        let seeksnack = r.cfg == 1
+        let site = r.cfg == 1
             && convert
                 .docs
                 .get(r.doc)
                 .is_some_and(|d| d.name == hooks_fixture.docs[r.doc].name);
-        if seeksnack {
+        if site {
             hooks[r.doc] = r
                 .records
                 .unwrap_or_default()
@@ -165,70 +163,4 @@ fn record(s: &str) -> HookRecord {
         kind: fields.remove("kind").unwrap_or_default(),
         fields,
     }
-}
-
-/// One seeksnack body with goldmark's output per corpus configuration.
-pub struct SeeksnackDoc {
-    pub name: String,
-    pub md: String,
-    /// `(goldmark configuration, html)`.
-    pub html: Vec<(String, String)>,
-}
-
-pub fn seeksnack() -> Vec<SeeksnackDoc> {
-    let mut by_name: BTreeMap<String, SeeksnackDoc> = BTreeMap::new();
-    for file in [
-        "corpus/goldmark/corpus.gmf.gz",
-        "corpus/goldmark/corpus-ext.gmf.gz",
-    ] {
-        for (path, fields) in gmf(&gunzip(file)) {
-            // `corpus-full/*` carries front matter; `corpus/<cfg>/<name>` is the body.
-            let Some(rest) = path.strip_prefix("corpus/") else {
-                continue;
-            };
-            let Some((cfg, name)) = rest.split_once('/') else {
-                continue;
-            };
-            let md = fields.get("md").cloned().unwrap_or_default();
-            let html = fields.get("html").cloned().unwrap_or_default();
-            let doc = by_name
-                .entry(name.to_owned())
-                .or_insert_with(|| SeeksnackDoc {
-                    name: name.to_owned(),
-                    md,
-                    html: Vec::new(),
-                });
-            doc.html.push((cfg.to_owned(), html));
-        }
-    }
-    by_name.into_values().collect()
-}
-
-fn gunzip(rel: &str) -> String {
-    let raw = std::fs::read(testdata(rel)).unwrap_or_else(|e| panic!("{rel}: {e}"));
-    let mut out = String::new();
-    flate2::read::GzDecoder::new(raw.as_slice())
-        .read_to_string(&mut out)
-        .unwrap_or_else(|e| panic!("{rel}: {e}"));
-    out
-}
-
-/// `=== <path>` records of `<field> <byte len>\n<bytes>\n` fields.
-fn gmf(text: &str) -> Vec<(String, BTreeMap<String, String>)> {
-    let mut out = Vec::new();
-    let mut rest = text;
-    while let Some(tail) = rest.strip_prefix("=== ") {
-        let (path, mut body) = tail.split_once('\n').unwrap_or((tail, ""));
-        let mut fields = BTreeMap::new();
-        while !body.is_empty() && !body.starts_with("=== ") {
-            let (head, tail) = body.split_once('\n').unwrap_or((body, ""));
-            let (name, len) = head.split_once(' ').unwrap_or((head, "0"));
-            let len: usize = len.parse().unwrap_or(0);
-            fields.insert(name.to_owned(), tail[..len].to_owned());
-            body = tail[len..].strip_prefix('\n').unwrap_or(&tail[len..]);
-        }
-        out.push((path.to_owned(), fields));
-        rest = body;
-    }
-    out
 }

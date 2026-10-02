@@ -78,7 +78,7 @@ the review table in its README).
 - `structure_oracle_template_and_baseof`: compares template + baseof for every (page, format)
   of `testdata/golden/<site>[-<variant>]/structure.json[.gz]` against the converted
   layouts of `sites/<site>`; a label without a dump is skipped with a message (the golden
-  data, frozen at 44529028, has dumps for testsite, seeksnack, docs-i01, docs-reduced and
+  data, frozen at 44529028, has dumps for testsite, docs-i01, docs-reduced and
   mini; schema in `tests/it/structure.rs`); `structure_reader_self_test` exercises the reader.
 - `scan`: legacy names with hints, Go markers with lines, unknown names, roles, descriptors,
   theme prefixes and shadowing, all through `Vfs` + `Config`.

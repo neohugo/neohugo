@@ -9,9 +9,9 @@ may change the baseline only by listing every change in its own changes file,
 unlisted new or changed difference fails the run.**
 
 ```sh
-tools/dev/compare.sh seeksnack --task T62            # compare; fails on unlisted changes
-tools/dev/compare.sh seeksnack --task T62 --update   # also write the baseline (listed changes)
-tools/dev/compare.sh seeksnack --report-only         # the numbers, never fails
+tools/dev/compare.sh docs-reduced --task T66            # compare; fails on unlisted changes
+tools/dev/compare.sh docs-reduced --task T66 --update   # also write the baseline (listed changes)
+tools/dev/compare.sh docs-reduced --report-only         # the numbers, never fails
 tools/dev/structdiff.py changes                      # validate every changes file
 ```
 
@@ -20,16 +20,16 @@ tools/dev/structdiff.py changes                      # validate every changes fi
 One Markdown list item per entry; every other line (headings, prose) is free text:
 
 ```markdown
-# T62: reconstruction parity
+# T66: docs parity
 
-- seeksnack L3 `tags/lays/index.html` accepted-deviation: the collision winner is the later term (D5)
-- seeksnack L3,L2 `blog/*/index.html` engine-difference: dates of undated pages are empty, not Go's year 1
-- seeksnack S `record en /about page html` bug-fixed: the `seo` type's layout was not looked up
+- docs-reduced L3 `tags/foo/index.html` accepted-deviation: the collision winner is the later term (D5)
+- docs-reduced L3,L2 `blog/*/index.html` engine-difference: dates of undated pages are empty, not Go's year 1
+- docs-reduced S `record en /about page html` bug-fixed: the `seo` type's layout was not looked up
 ```
 
 `- <site> <levels> `<key>` <class>: <reason>`
 
-- `<site>`: the label (`testsite`, `seeksnack`, `docs-i01`, `docs-reduced`, `docs-live`).
+- `<site>`: the label (`testsite`, `docs-i01`, `docs-reduced`, `docs-live`).
 - `<levels>`: one or more of `L1`, `L2`, `L3`, `L4`, `S`, comma-separated.
 - `<key>`: what changed, in backticks: a file (its path below `publishDir` after the L1
   normalisation, e.g. `images/x_hu_H.jpg`; `project:hugo_stats.json`; `dir/**` for a collapsed

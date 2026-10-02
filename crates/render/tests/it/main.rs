@@ -3,7 +3,6 @@
 mod engine;
 mod fakes;
 mod oracle;
-mod reconstruction;
 mod session;
 mod summary;
 mod support;

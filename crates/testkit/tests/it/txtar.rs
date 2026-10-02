@@ -69,7 +69,7 @@ fn mini_site() {
 #[test]
 fn i01_archives_parse_like_sites_py() {
     // tools/rust-port/i01/*.txtar are read by sites.py's read_txtar; the file sets agree.
-    for name in ["testsite", "seeksnack", "errors"] {
+    for name in ["testsite", "errors"] {
         let path = repo_dir()
             .join("tools/rust-port/i01")
             .join(format!("{name}.txtar"));

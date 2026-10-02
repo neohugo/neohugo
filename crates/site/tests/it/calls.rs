@@ -15,7 +15,7 @@ use ssg_testkit::fixture::oracle;
 use crate::structure::Tally;
 use crate::support::{Site, diff, time_json};
 
-const SITES: [&str; 19] = [
+const SITES: [&str; 18] = [
     "asm-build",
     "asm-cascade",
     "asm-flags",
@@ -29,7 +29,6 @@ const SITES: [&str; 19] = [
     "edge-tree",
     "homeleaf",
     "nokinds",
-    "seeksnack",
     "shortcodes",
     "site-menus",
     "site-refs",

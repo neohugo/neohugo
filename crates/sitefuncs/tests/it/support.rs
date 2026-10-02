@@ -262,8 +262,7 @@ pub fn load_copying(extra: &[(&str, &str)], copies: &[(&str, &Path)]) -> Site {
         fs::create_dir_all(path.parent().expect("parent")).expect("mkdir");
         fs::copy(from, path).expect("copy");
     }
-    let png =
-        ssg_testkit::fixture::testdata("site-assets/golden/mstile-70x70_hu_80634bc5fec9785.png");
+    let png = ssg_testkit::fixture::testdata("site-assets/generated/square-128.png");
     fs::copy(&png, dir.path().join("content/posts/bundle/pic.png")).expect("copy png");
     fs::create_dir_all(dir.path().join("assets/img")).expect("mkdir");
     fs::copy(&png, dir.path().join("assets/img/logo.png")).expect("copy png");

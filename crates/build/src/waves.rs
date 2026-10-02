@@ -10,7 +10,7 @@
 //!
 //! Losing jobs are still rendered, but their outputs are dropped: rendering is pure except for
 //! what it records (the first `paginator()` call, `defer` keys), and Go renders every page,
-//! so a losing list page still gets its pagers (seeksnack's colliding term directories, a page
+//! so a losing list page still gets its pagers (colliding term directories, a page
 //! whose `url` is `/`), which then compete for their own targets in wave 2.
 //!
 //! The jobs render on the render pool; each winning output goes straight to

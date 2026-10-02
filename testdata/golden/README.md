@@ -30,16 +30,14 @@ ones the Rust tests use.
 | Label | Site (`tools/rust-port/i01/sites.py make <label> <dir>`) | Files (L1) | Golden files |
 |---|---|---:|---|
 | `testsite` | `testdata/upstream/hugolib/testsite` + `testsite.txtar` | **56** = 55 in `public` + `hugo_stats.json` | manifests, structure |
-| `seeksnack` | the seeksnack reconstruction | **713** = 712 in `public` + `hugo_stats.json` | manifests, structure |
-| `docs-i01` | `docs/` with `--docs-patches i01` | **888** = 887 in `public` + `hugo_stats.json` | manifests, structure |
-| `docs-reduced` | `docs/` with `--docs-patches reduced` | **889** = 888 in `public` + `hugo_stats.json` | manifests, structure |
+| `docs-i01` | `testdata/hugo-docs/` (Hugo's docs) with `--docs-patches i01` | **888** = 887 in `public` + `hugo_stats.json` | manifests, structure |
+| `docs-reduced` | `testdata/hugo-docs/` with `--docs-patches reduced` | **889** = 888 in `public` + `hugo_stats.json` | manifests, structure |
 | `mini` | `testdata/oracle/commands/e2e/mini.txtar` | – | structure |
-| `docs-live` | `docs/` with `--docs-patches live` (no patches) | **2373** = 2372 published + `hugo_stats.json` | the unminified manifest of the **published site** (below) |
+| `docs-live` | `testdata/hugo-docs/` with `--docs-patches live` (no patches) | **2373** = 2372 published + `hugo_stats.json` | the unminified manifest of the **published site** (below) |
 
 Hugo writes `hugo_stats.json` into the project directory (next to `hugo.toml`), not into
 `publishDir`; the manifests list it as `project:hugo_stats.json` and count it, as the old port's
-harness did (it copied the file into the output tree). A count without it is one less (T61's
-712 for the reconstruction is the `public` count).
+harness did (it copied the file into the output tree). A count without it is one less.
 
 `docs-reduced` has one page more than `docs-i01`: `content/en/shortcodes/highlight.md` is removed
 only in i01. The docs patch entries of both variants are `tools/rust-port/i01/patches.json`
@@ -50,17 +48,17 @@ only in i01. The docs patch entries of both variants are `tools/rust-port/i01/pa
 Not written by oracle.sh: `docs-live/manifest.unminified.json.gz` is the manifest of the site
 https://getfugo.github.io/ as published — the repository neohugo/neohugo.github.io at
 `a1928152d8320bfa4db9b363298d038c9841f4a1` ("Update v0.148.2", 2025-10-13T15:05:28Z), which the
-Go release workflow wrote with `npm install && neohugo` in `docs/` (Hugo 0.149.0-DEV, no
-`--minify`, the production environment, network access) — from the same `docs/` content this
+Go release workflow wrote with `npm install && neohugo` in the docs (Hugo 0.149.0-DEV, no
+`--minify`, the production environment, network access) — from the same Hugo docs content this
 repository has. Gate A-D3 (`crates/cli/tests/it/docs.rs`, `compare.sh docs-live`) compares the
-Rust build of `docs/` without patches with it. To regenerate (the published files are frozen
+Rust build of those docs (`testdata/hugo-docs/`, the Go tree's `docs/`) without patches with it. To regenerate (the published files are frozen
 at that commit; the manifest only changes with manifest.py):
 
 ```sh
 git clone https://github.com/neohugo/neohugo.github.io <pub>
 git -C <pub> checkout a1928152d8320bfa4db9b363298d038c9841f4a1 && rm -rf <pub>/.git
 python3 tools/rust-port/i01/sites.py make docs-live <proj>/docs-live    # base URL, static/
-cp docs/hugo_stats.json <proj>/docs-live/build_stats.json             # the Go build's stats
+cp testdata/hugo-docs/hugo_stats.json <proj>/docs-live/build_stats.json             # the Go build's stats
 python3 tools/dev/manifest.py extract <pub> --project <proj>/docs-live --levels L1,L2,L3,L4 \
   --site docs-live --pass unminified --full-text -o testdata/golden/docs-live/manifest.unminified.json.gz
 ```
@@ -69,7 +67,7 @@ It differs from the other labels: one pass (the site is published unminified), e
 L4 (structdiff takes L4 from the unminified pass when neither side has a minified one) and with
 the full text (`--full-text`, so reports show the word hunks against the reference); no
 structure dump (the published site has none). The project file `hugo_stats.json` is
-`docs/hugo_stats.json`, the stats file the Go docs build wrote and committed with that content.
+`testdata/hugo-docs/hugo_stats.json`, the stats file the Go docs build wrote and committed with that content.
 The candidate builds at the clock of the published build, `2025-10-13T15:00:00Z` (13 deprecated
 pages have an `expiryDate` between then and today), with the GetRemote responses of that day
 (`sites.py cache docs-live`, `tools/rust-port/testdata/hugo_cache/docs-live/README.md`).
@@ -142,7 +140,7 @@ format). Read by
     `layout`: the front matter `layout` (`""`: none).
   - `lookupPath`: only when it differs from `path`: the path Go's template lookup walks, the
     page path with its first segment replaced by the front matter `type`
-    (`PathInfo().BaseReTyped(type)`, e.g. `/seo` for seeksnack's `/about` with `type: seo`).
+    (`PathInfo().BaseReTyped(type)`, e.g. `/seo` for a page `/about` with `type: seo`).
   - `template` / `baseof`: the layout and base template Go chose, as **normalised Hugo v0.146
     names** relative to `layouts/` (`""`: none; a (page, format) with no template is recorded
     with `template: ""` and `written: false`). Normalisation: the store's own conversion of
@@ -156,7 +154,7 @@ format). Read by
     plain names (`rss.xml`, `sitemap.xml`, `robots.txt`, …).
   - `templateFile` / `baseofFile`: only when it differs from the name: the file the template
     came from, relative to `layouts/` (original case; `_embedded/<name>` for an embedded
-    template). E.g. seeksnack's term pages: `template: "term.html"`,
+    template). E.g. the term pages of a site with a legacy `term/term.html`: `template: "term.html"`,
     `templateFile: "term/term.html"`; mini's term pages use `_default/taxonomy.html` through
     its legacy term mapping, which replaces the store entry of `_default/term.html`.
   - `target`: the file below `publishDir`, leading slash (`TargetFilename`, language directory

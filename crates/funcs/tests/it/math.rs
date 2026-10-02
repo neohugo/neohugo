@@ -97,7 +97,7 @@ fn matches_go() {
 #[test]
 fn renders_every_docs_formula() {
     let re = regex::Regex::new(r"(?s)\$\$(.+?)\$\$|\\\[(.+?)\\\]|\\\((.+?)\\\)").expect("valid");
-    let docs = ssg_testkit::fixture::repo_dir().join("docs/content");
+    let docs = ssg_testkit::fixture::hugo_docs().join("content");
     let mut formulas = BTreeSet::new();
     let mut dirs = vec![docs];
     while let Some(dir) = dirs.pop() {

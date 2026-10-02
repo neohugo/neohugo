@@ -296,7 +296,7 @@ fn every_format_encodes() {
     }
 }
 
-/// Identical bytes in two bundles under different names (seeksnack `s00.jpg` and
+/// Identical bytes in two bundles under different names (`s00.jpg` and
 /// `s15.jpg`): each result is named after its own source, whichever is queued first, and
 /// only the hash digits (content + operation, as in Go) are shared.
 #[test]

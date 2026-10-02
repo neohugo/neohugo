@@ -84,7 +84,7 @@ fn go_color(c: &J) -> Color {
 fn imaging(name: &str) -> Imaging {
     let mut i = Imaging::default();
     match name {
-        "defaults" | "seeksnack" | "quality0" => {}
+        "defaults" | "site" | "quality0" => {}
         "topleft-lanczos-q90" => {
             i.anchor = Anchor::TopLeft;
             i.resample = Resample::Lanczos;

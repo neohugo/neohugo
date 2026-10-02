@@ -42,3 +42,4 @@ dhat.workspace = true # T33 allocation measurement (it binary only)
 ssg-testkit.workspace = true
 insta.workspace = true
 tempfile.workspace = true
+toml.workspace = true

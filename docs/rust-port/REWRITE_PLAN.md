@@ -4,6 +4,8 @@
 
 **Since the Go removal** (after `44529028`, 2026-10-01) the Cargo workspace is the repository root and the binary is `neohugo` ([DEVELOPMENT.md](../../DEVELOPMENT.md), [HANDOFF.md §9](HANDOFF.md#9-without-go-2026-10-01)). The `rust/…` paths, `rust/target` and `neohugo-rs` below are the layout this plan was written for: read `rust/<path>` as `<path>` (`rust/README.md` is now `DEVELOPMENT.md`, `rust/docs/template-api.md` is `docs/rust-port/template-api.md`) and `neohugo-rs` as `neohugo`. Where they differ, DEVELOPMENT.md and HANDOFF.md win.
 
+**Since the private site was removed** (2026-10-02) the repository no longer holds the owner's private site: its reconstruction (R, gate A-R), gate A-S, its corpora and golden data, and the old port's specs (`docs/rust-port/specs/`) are gone. The plan calls it "the private site" and keeps its tasks as written; [HANDOFF.md](HANDOFF.md) has the current gates.
+
 **What it replaces.**
 - `crates/TERA_PLAN.md`. T00 moved that file to `docs/rust-port/` with a pointer to this plan (T70 archived it: `docs/rust-port/archive/TERA_PLAN.md`).
 - The byte-parity rules in `crates/README.md`.
@@ -15,7 +17,7 @@
 - **Disk.** 4.5 GB free. `crates/` takes 423 MB, `~/go/pkg/mod` takes 2.2 GB. The working tree without `crates/` and `.git` is 55 MB.
 - **Docs layouts.** `docs/layouts` has 76 files and 3,372 lines. `docs/layouts/_shortcodes/quick-reference.html` prints `.Content` of other pages.
 - **Version.** The fork is `0.149.0-DEV` (`common/neohugo/version_current.go`).
-- **Seeksnack reconstruction.** It has `_default/_markup/render-table.json.json`, and its home, list, term and 404 layouts call `.Paginator`.
+- **Private-site reconstruction.** It has `_default/_markup/render-table.json.json`, and its home, list, term and 404 layouts call `.Paginator`.
 - **Tera 2.4.0 behaviour:**
   - A list comprehension accepts a single `if` clause (`parser.rs` `parse_list_comprehension`).
   - `starting_with` and `ending_with` take `pat=` (`tests.rs:147-158`).
@@ -38,7 +40,7 @@
 | Oracle | The Go build of the same `sites.py` inputs is the structural oracle. It gives the same files, URLs, aliases, feeds, chosen templates and resource URLs. Output bytes no longer have to match. |
 | Templates | `tera = "=2.4.0"` with features `no_fmt`, `fast_hash`, `preserve_order`; `fast_escape` is not used. <ul><li>Layouts, and assets processed with `execute_as_template`, are hand-converted into `rust/sites/<site>/`.</li><li>The engine accepts **only Hugo v0.146 (new-style) layout names**.</li><li>Content files keep Hugo's shortcode syntax and never go through Tera.</li><li>i18n files keep Hugo's `{{ .Field }}` placeholders, read by a restricted evaluator (not a template engine).</li></ul> |
 | Template API | Tera-native: operators, list comprehensions with `if`, `~`, map and array literals, components. There is no Go `printf`, `where` or `Scratch` clone. The single source of truth is the Rust table `ssg_funcs::spec::FUNCS`. `rust/docs/template-api.md` is generated from it and snapshot-checked. |
-| Markdown | comrak 0.55 behind an engine-neutral `ssg-markup` API. The T04 spike runs it over all 959 docs files and all 251 seeksnack bodies before the API is frozen. pulldown-cmark is the fallback behind the same API. |
+| Markdown | comrak 0.55 behind an engine-neutral `ssg-markup` API. The T04 spike runs it over all 959 docs files and all 251 private-site bodies before the API is frozen. pulldown-cmark is the fallback behind the same API. |
 | Highlighting | syntect 5.3 + two-face, emitting Chroma class names (and inline styles for `noClasses`). Not giallo, which is EUPL-1.2 (D1). |
 | Data model | An arena of `Page` values in `IdVec<PageId, Page>`, with one `BTreeMap<ContentKey, PageId>` tree per language. URLs are computed after cascade. Every path flavour is a newtype. Data files and nested values use a case-preserving `Map`; front matter, config and language params use the case-folded `Params`. |
 | Views | Values are pre-serialised once and shared through `Arc` as `tera::Value`. Relation lists hold **summary** values; `deref` and `get_page` return full values. There is a Meta generation (content phase) and one Full generation per hook variant. All generations are frozen in `OnceLock`s before any layout renders. |
@@ -102,7 +104,7 @@
 - Heavy dependencies isolated in leaf crates.
 - `cargo fmt` everywhere; clippy (`all` + the reviewed pedantic subset) once per phase.
 
-**Go is reference only.** Go files, the old port, `docs/rust-port/specs/*.md` and the oracles are read for rules and test cases. Every task review checks:
+**Go is reference only.** Go files, the old port, its specs and the oracles are read for rules and test cases. Every task review checks:
 1. no Go-order emulation;
 2. no `interface{}`-style or stringly-typed plumbing;
 3. no Go method tables;
@@ -197,13 +199,13 @@ rust/
     testkit/     ssg-testkit     (dev) plain-JSON fixture reader, txtar sites, insta settings, contract test
     migrate/     ssg-migrate     (COULD, T73) Go template → Tera converter, legacy file renames, printf/where translation
     workspace-hack/                  (internal) union features of light shared deps; every member depends on it
-  sites/<site>/                      testsite | seeksnack | docs
+  sites/<site>/                      testsite | <private site> | docs
     layouts/**                       Tera overlay, v0.146 names, lower-case
     assets/**                        only assets used with execute_as_template (Tera)
     patches/{i01,reduced}/**         docs only: variant files mirroring sites.py layout patches 1:1
   testdata/
     oracle/<area>/…      engine-neutral fixtures moved in T00, converted to plain JSON (neohugo schema)
-    corpus/…             seeksnack md bodies + front matters, collation strings, minifier corpus, date corpus
+    corpus/…             private-site md bodies + front matters, collation strings, minifier corpus, date corpus
     site-assets/…        jpg/png inputs sites.py needs
     golden/<site>/       Go manifests (L1–L4) + structure-oracle dumps; golden/images/ (20 Go-processed images for PSNR)
     baselines/<site>.json  ratchet baselines
@@ -1017,7 +1019,7 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 | E2 | **Wave 1** | build, render, publish | **One sub-wave per language, in language order.** Each sub-wave renders aliases, then pages × formats (pager 1), then standalone pages. Pagination calls are recorded. Every output goes through `Publisher::emit`. | `jobs.par_iter()` within a sub-wave |
 | E3 | **Wave 2** | build | Pagers 2..N from the recorder, `page/1/` aliases (HTML formats only), language redirect | `par_iter` |
 | E4 | **Stats** | publish, resources | Merge per-thread sets → `hugo_stats.json`, sorted, honouring `disableIDs`. Write it to the project root (as Hugo does; external tools read it from disk) and `inject_generated` it for its mounted asset path. | reduce |
-| E5 | **Deferred wave** | build, resources | Render each `defer(...)` template once per key (docs: Tailwind). Realise `post_process` fields (seeksnack PostCSS purge reads the stats). This gives a replacement map → `patch_held`, which re-extracts URL tokens, then minify and write. | `par_iter` over deferred keys |
+| E5 | **Deferred wave** | build, resources | Render each `defer(...)` template once per key (docs: Tailwind). Realise `post_process` fields (the private site's PostCSS purge reads the stats). This gives a replacement map → `patch_held`, which re-extracts URL tokens, then minify and write. | `par_iter` over deferred keys |
 | E6 | **Publish resources and images** | resources, images | Eager bundle resources, plus every resource whose URL is in `UrlTokens`, plus explicit `publish`. Only referenced image ops are processed, into `[caches.images]`, then copied. No scan of plain CSS/JS text. | **`par_iter`** (outside any render) |
 | E7 | **Report** | build, cli | Sorted, de-duplicated diagnostics; errors fail the build | – |
 
@@ -1100,16 +1102,16 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
   | `paginate` with the same ids and size | the stored pagination |
   | `paginate` with a different list or size | error naming both positions |
 
-  The seeksnack conversion drops the redundant second `.Paginate (sort …)`.
+  The private site's conversion drops the redundant second `.Paginate (sort …)`.
 - Wave 2 renders pagers 2..N with `__nh.pager = N`. The same calls, including calls inside `partial()`, return pager N.
-- A template that never calls either function produces no pager pages. This covers seeksnack's conditional paginator use and its paginated 404 page.
+- A template that never calls either function produces no pager pages. This covers the private site's conditional paginator use and its paginated 404 page.
 
 **Autoescape** follows the output format (§4.5).
 
 **Ordering and collisions.**
 - Jobs are ordered by `JobOrder` (language, format rank, tree key).
 - Target collisions are resolved **before** rendering: a page beats an alias, and among pages the later `JobOrder` wins, with a warning.
-- Go picks a nondeterministic winner for seeksnack's 13 colliding term directories. Ours is stable and listed in the ratchet as `accepted-deviation`.
+- Go picks a nondeterministic winner for the private site's 13 colliding term directories. Ours is stable and listed in the ratchet as `accepted-deviation`.
 
 ### 3.4 Publishing, placeholders and the deferred wave
 
@@ -1126,7 +1128,7 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
 - Outputs that contain `__nh_defer_<key>__` or `__nh_pp_<id>_<field>__` placeholders are held until E5 (written to the sink unpatched and patched there, so they take no memory); everything else is written immediately.
 - A `post_process` resource view carries one placeholder per field: `content`, `rel_permalink`, `permalink`, `data.integrity`, `media_type`. `resource_content` returns the content placeholder.
 - After patching, tokens are extracted again, so the PostProcess CSS URL is seen.
-- Memory is bounded by the placeholder-bearing pages: about 50 MB for docs (all its HTML, because baseof has the deferred block), and a small set for seeksnack.
+- Memory is bounded by the placeholder-bearing pages: about 50 MB for docs (all its HTML, because baseof has the deferred block), and a small set for the private site.
 
 **Order inside `emit`:**
 1. canonify / relative-URL rewrite;
@@ -1241,7 +1243,7 @@ Flattened hook fields, per hook:
 - `partial_cached(name=, key=, …)` memoises the full `PartialResult` (string or value) on (name, key).
 - `set_global` inside an include is discarded by Tera, so values flow out of partials only through `partial()` + `return_value`.
 
-**Components** are global and can recurse, which suits docs `render-toc-level`/`docs-explorer-section` and seeksnack `breadcrumbnav`. They are hygienic: see the scope rules in §4.2.
+**Components** are global and can recurse, which suits docs `render-toc-level`/`docs-explorer-section` and the private site's `breadcrumbnav`. They are hygienic: see the scope rules in §4.2.
 
 **Shortcodes.**
 - `_shortcodes/<name>.html` (and `.md` / `.txt`) are ordinary Tera templates, looked up with path scope, output format and language.
@@ -1310,7 +1312,7 @@ Frozen as `ssg_funcs::spec::FUNCS` by T02. `template-api.md` is generated from i
 - Names follow Tera/Zola verb_noun style.
 - Hugo concept names stay (`ref`, `rel_ref`, `abs_url`, `paginate`, `i18n`, `by_*`).
 
-**Sites:** D = docs, S = real seeksnack, R = reconstruction, T = testsite.
+**Sites:** D = docs, S = the real private site, R = its reconstruction, T = testsite.
 
 | Hugo | neohugo Tera | Kind | Sites |
 |---|---|---|---|
@@ -1653,7 +1655,7 @@ From then on, salvage uses `git show go-parity-final:crates/<crate>/<path>`. No 
 ### 6.3 Fixtures and corpora moved in T00 (to `rust/testdata/`, converted to plain JSON)
 
 **Needed by `sites.py`:**
-- `nh-allconfig/tests/fixtures/load/seeksnack/hugo.toml`
+- `nh-allconfig/tests/fixtures/load/<private site>/hugo.toml`
 - `nh-hugolib/tests/fixtures/build/*.json.gz`
 - `nh-resource-transformers/tests/fixtures/getremote/getremote.json.gz`
 - `go-image/tests/fixtures/site/*.jpg`
@@ -1672,9 +1674,9 @@ From then on, salvage uses `git show go-parity-final:crates/<crate>/<path>`. No 
 - the xtext-collate Thai corpora
 
 **Corpora** (`testdata/corpus/`):
-- `goldmark/corpus{,-ext}.gmf.gz` (251 seeksnack bodies)
-- `go-yaml/seeksnack-fm.fixture.gz` (218 front matters)
-- `go-time/{format,seeksnack}.txt.gz`
+- `goldmark/corpus{,-ext}.gmf.gz` (251 private-site bodies)
+- `go-yaml/<private site>-fm.fixture.gz` (218 front matters)
+- `go-time/{format,<private site>}.txt.gz`
 - `tdewolff-minify/corpus/*`
 - `golden/hugo_stats.json` (stays under `tools/rust-port/golden`)
 
@@ -1716,17 +1718,17 @@ It also dumps each site's layout file list with normalised names, which T30 uses
 3. **insta snapshots:**
    - config decodes of the three sites;
    - the layout-lookup table per site;
-   - markdown for about 150 curated docs and seeksnack bodies plus an adversarial set (html, toc, fragments, hook-call log with `page_inner`);
+   - markdown for about 150 curated docs and private-site bodies plus an adversarial set (html, toc, fragments, hook-call log with `page_inner`);
    - function outputs;
    - `template-api.md` against `FUNCS`;
    - embedded templates rendered against testsite views (in T60: `neohugo/tests/it/embedded.rs`, a test-only overlay of the testsite);
    - the full testsite output tree (56 files: 55 in `public` plus `hugo_stats.json`; `neohugo/tests/it/snapshots/testsite_output.snap`).
 
    Hashes, timestamps and versions are redacted. Snapshots are reviewed with `INSTA_UPDATE=always` plus `git diff`.
-4. **Robustness corpora.** All 959 docs files and all 251 seeksnack bodies render without a panic, with idempotent heading IDs.
+4. **Robustness corpora.** All 959 docs files and all 251 private-site bodies render without a panic, with idempotent heading IDs.
 5. **Contract test and `templates check`** (§4.8).
 6. **Site integration tests** (`ssg-build/tests/it/sites.rs`).
-   - Built into a `MemorySink` and compared with the structure oracle: `mini.txtar`, the testsite, the seeksnack reconstruction and the edge-tree txtar sites.
+   - Built into a `MemorySink` and compared with the structure oracle: `mini.txtar`, the testsite, the private-site reconstruction and the edge-tree txtar sites.
    - Edge cases covered: cascade, i18n, aliases, term collisions, headless, `build` options, Thai paths, FM overrides, HTML content, Unicode shortcode params.
    - Docs is built only by the acceptance script.
 7. **Determinism** (from T36): identical output-tree hash for `RAYON_NUM_THREADS=1` vs `=8`, and for two runs at `=8`.
@@ -1784,10 +1786,10 @@ All of this is Python stdlib under `tools/dev/`; there is no pip dependency.
 | Gate | Site | Criterion |
 |---|---|---|
 | **A-T** | hugolib/testsite + `testsite.txtar` | L1 56/56 (Go's 55 files in `public`, the reference `ssg-build/tests/it/testsite-go.txtar`, plus `hugo_stats.json`, which Go writes to the project directory and the reference does not hold) plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); `hugo_stats.json` sets equal |
-| **A-R** | seeksnack reconstruction | L1 713/713 (712 files in `public` plus `hugo_stats.json` in the project directory; T61's count of 712 is `public` alone) plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
+| **A-R** | private-site reconstruction | L1 713/713 (712 files in `public` plus `hugo_stats.json` in the project directory; T61's count of 712 is `public` alone) plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
 | **A-D1** | docs, `--docs-patches i01` | L1 888/888 (887 in `public` plus `hugo_stats.json`) plus structure oracle; L2 all; heading-ID lists equal on every page; A7 ≥ 0.90 with a clean ratchet. Fences are plain `<pre><code>` (`codeFences = false`). |
 | **A-D2** | docs, `--docs-patches reduced` | Working: <ul><li>Chroma-class highlighting (incl. `hl` inline/noClasses and `highlight.md`);</li><li>goat diagrams (`diagrams_goat`);</li><li>emoji;</li><li>passthrough + `to_math`;</li><li>`remarshal` in `code-toggle`;</li><li>Tailwind through `defer`;</li><li>real Alpine/Turbo `js_build`.</li></ul> L1 equal to the Go build with the same patches (889: 888 in `public` plus `hugo_stats.json`; `shortcodes/highlight.md` is kept); L2 all. Math and goat pages are `accepted-deviation` at L3. |
-| **A-S** | real seeksnack (needs the private repo, D6) | L1 path set equals `tools/rust-port/golden/canonical.sha256` (6,943 paths, normalised); static files byte-equal; L2 on 100 sampled pages |
+| **A-S** | real private site (needs the private repo, D6) | L1 path set equals `tools/rust-port/golden/canonical.sha256` (6,943 paths, normalised); static files byte-equal; L2 on 100 sampled pages |
 | **A-DET** | all sites | byte-identical across `RAYON_NUM_THREADS=1/8` and across repeated runs |
 | **A-P** | performance (goals, not gates) | **Release profile**, measured in T70 after `cargo clean` of the dev artifacts, with no agents active: docs cold build ≤ 1.5× the Go time on this machine, warm (image cache) ≤ 1.0×, peak RSS ≤ 1 GB |
 
@@ -1804,7 +1806,7 @@ All of this is Python stdlib under `tools/dev/`; there is no pip dependency.
 
 ### 7.4 Converting the target sites' templates
 
-- The Tera files live in `rust/sites/<site>/{layouts,assets,patches}` with **v0.146 names**. The seeksnack reconstruction's legacy files are renamed; the structure oracle already normalises the Go side.
+- The Tera files live in `rust/sites/<site>/{layouts,assets,patches}` with **v0.146 names**. The private-site reconstruction's legacy files are renamed; the structure oracle already normalises the Go side.
 - `sites.py --overlay rust/sites/<site> [--docs-patches i01|reduced]` generates each site as today, then:
   - replaces `layouts/`;
   - overlays `assets/` files (Tera versions of template-processed assets);
@@ -1815,10 +1817,10 @@ All of this is Python stdlib under `tools/dev/`; there is no pip dependency.
 | Site | Files | Tera lines (est.) |
 |---|---|---|
 | testsite | 5 | ~100 |
-| seeksnack reconstruction | 46 layouts + ~3 TS assets | ~900 |
+| private-site reconstruction | 46 layouts + ~3 TS assets | ~900 |
 | docs | 76 (44 partials, 23 shortcodes, 5 hooks, 7 top-level) + 11 patch files (2 variants) | ~3,600 |
 | embedded (used ones only) | ~30 | ~1,200 |
-| real seeksnack | 58 | ~900 (private repo, T73) |
+| real private site | 58 | ~900 (private repo, T73) |
 
 Each converted file is reviewed against §4.7 and the contract test. Faithfulness is measured with L2/L3 per page, and the worst 20 pages are reviewed in every parity task.
 
@@ -1878,18 +1880,18 @@ Sizes are Rust src + tests unless noted.
 | ID | Title | Owns | Depends on | Acceptance | Size |
 |---|---|---|---|---|---|
 | **T00** | Bootstrap | `rust/{Cargo.toml,Cargo.lock,.cargo,clippy.toml,deny.toml,README.md,PROVENANCE.md,THIRD_PARTY/}`; stub crates with **real dependency edges**; `crates/workspace-hack`; `crates/testkit`; `rust/testdata/{oracle,corpus,site-assets}`; `tools/dev/{licence-check.sh,disk.sh,fixtures2json.py}`; `sites.py` fixture paths; `.gitignore`; TERA_PLAN move; deletion of `crates/` and obsolete oracles | – | <ul><li>`go-parity-final` exists</li><li>`sites.py` produces site inputs with the same file hashes as before</li><li>`cargo metadata --filter-platform …` resolves the acyclic graph</li><li>fixtures converted (record counts match)</li><li>`cargo test -p ssg-testkit` green (plain-JSON reader on 3 families, txtar)</li><li>(verify) items pinned in `Cargo.lock`</li><li>feature unification checked with `cargo tree -e features`</li><li>licence check passes on SPDX</li><li>`rust/target` < 400 MB</li></ul> | 1.8k |
-| **T01** | Go oracle, patch variants, node tooling | `tools/dev/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count; every count includes the project directory's `hugo_stats.json`)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> **State:** `rust/testdata/golden/` (schemas in its README): manifests and structure dumps of testsite, seeksnack, docs-i01, docs-reduced (56/713/888/889 files) and the structure dump of mini; `tools/rust-port/i01/patches.json` (26 entries); the Go binaries and the node modules live in the main checkout's `tools/dev/{bin,node_modules}` (`FUGO_TOOLS_BIN`, `FUGO_NODE_MODULES`) | 0.5k Go + 1.1k Py |
+| **T01** | Go oracle, patch variants, node tooling | `tools/dev/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count; every count includes the project directory's `hugo_stats.json`)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> **State:** `rust/testdata/golden/` (schemas in its README): manifests and structure dumps of testsite, the private-site reconstruction, docs-i01, docs-reduced (56/713/888/889 files) and the structure dump of mini; `tools/rust-port/i01/patches.json` (26 entries); the Go binaries and the node modules live in the main checkout's `tools/dev/{bin,node_modules}` (`FUGO_TOOLS_BIN`, `FUGO_NODE_MODULES`) | 0.5k Go + 1.1k Py |
 | **T02** | Template contract + testsite layouts | `crates/funcs/src/spec.rs` (then handed to T31), `rust/docs/template-api.md` (generated), `rust/sites/testsite/**`, `crates/testkit/src/contract.rs` | T00 | <ul><li>every §4.2 context and §4.6 name in `FUNCS` with kwargs, kind, phase, safety, site-bound flag and Hugo origin</li><li>`EMBEDDED_TEMPLATES` list</li><li>Tera facts verified and recorded: `@__nh` as an implicit name, `==` with an undefined final segment, `split`/`nth` kwargs, `?.`</li><li>5 testsite layouts converted; contract test clean</li><li>`template-api.md` snapshot equals `FUNCS`</li></ul> | 1.0k + doc |
 | **T03** | structdiff, ratchet, self-test | `tools/dev/{structdiff.py,compare.sh,selftest.py,changes/}`, `rust/testdata/baselines/` | T01 | <ul><li>Go vs Go gives 0 diffs on 3 sites, both passes</li><li>self-test classifies all 8 perturbations correctly</li><li>an unlisted diff fails</li><li>`KEEP=1` keeps outputs</li></ul> | 1.5k Py |
-| **T04** | comrak spike | `crates/markup` (spike; released before T22) | T00 | <ul><li>all 959 docs files and 251 seeksnack bodies run</li><li>per-feature verdict against normalised goldmark HTML: tight deflists (840), heading attrs, block attrs, fence attrs, math delimiters, alerts, emoji, linkify, typographer, raw HTML, `codeFences` plain</li><li>`sourcepos` accuracy for inline nodes</li><li>engine decision and list of custom passes in the crate README</li></ul> | 0.4k |
+| **T04** | comrak spike | `crates/markup` (spike; released before T22) | T00 | <ul><li>all 959 docs files and 251 private-site bodies run</li><li>per-feature verdict against normalised goldmark HTML: tight deflists (840), heading attrs, block attrs, fence attrs, math delimiters, alerts, emoji, linkify, typographer, raw HTML, `codeFences` plain</li><li>`sourcepos` accuracy for inline nodes</li><li>engine decision and list of custom passes in the crate README</li></ul> | 0.4k |
 | **T10** | ssg-base | `crates/base` | T00 | <ul><li>`nh-common/{paths,urls}` and `nh-helpers/pathspec` 100%</li><li>flect/prose oracle 100% on the corpus and every S/R section and taxonomy name (pluralize, singularize, humanize, ordinalize, AP/Chicago/Go title case; crates evaluated first)</li><li>cast date formats; gobwas glob cases via globset</li><li>`docs.yaml` round-trips with `baseURL` and `Name` intact; R `ingredients_percentage` keeps `Name`/`Value`</li><li>Params folding; `IdVec`; path newtypes</li></ul> | 3.6k |
-| **T11** | ssg-pageparser | `crates/pageparser` | T10 | <ul><li>`lex()` equals 141,869 items over 5,540 pages (kinds + byte ranges)</li><li>`assemble` tests with `InnerUse`</li><li>218/218 seeksnack front matters decode (`expected_diffs`)</li></ul> | 2.4k |
+| **T11** | ssg-pageparser | `crates/pageparser` | T10 | <ul><li>`lex()` equals 141,869 items over 5,540 pages (kinds + byte ranges)</li><li>`assemble` tests with `InnerUse`</li><li>218/218 private-site front matters decode (`expected_diffs`)</li></ul> | 2.4k |
 | **T12** | ssg-locale | `crates/locale` | T10 | <ul><li>translate fixtures ≥ 99%</li><li>message evaluator on R's `welcome`/`reviews`/`comments`; unsupported syntax is an error with file and key</li><li>collation sanity on `site-strings`</li><li>Gregorian `th` month names; locales oracle (`expected_diffs`)</li><li>decides on tera-contrib `date`</li></ul> | 2.0k |
 | **T13** | ssg-config | `crates/config` | T10 | <ul><li>`nh-allconfig/load` values for docs, testsite, reconstruction and t24 sites</li><li>media tables equal</li><li>legacy-key table on a synthetic S-style config</li><li>env typing; `CliOverrides`</li><li>`[caches]` with `:cacheDir`/`:project`; privacy</li><li>error spans; insta snapshots</li></ul> | 3.5k |
 | **T14** | neohugo-esbuild | `crates/esbuild` | T00 | <ul><li>`service/*` restored from the tag, std-only, version read at runtime</li><li>ping/build round trip</li><li>68 `jsbuild` cases produce the same module sets</li></ul> | 2.2k (1.3k moved) |
 | **T20** | ssg-vfs | `crates/vfs` | T13 | <ul><li>path-parser oracle 100%</li><li>(file → lang, bundle kind, key) equal to `nh-hugolib/capture` for 3 sites</li><li>mount precedence tests</li></ul> | 1.8k |
 | **T21** | ssg-page | `crates/page` | T13, T20 | <ul><li>`nh-page` fixtures ≥ 99%</li><li>cascade matcher</li><li>Go-layout permalink tokens → strftime</li><li>`capture_overrides`; `Markup` detection</li></ul> | 3.9k |
-| **T22** | ssg-markup | `crates/markup` | T13, T04 | <ul><li>heading IDs 100% on the docs and seeksnack corpora</li><li>hook invocations and fields ≥ 98% after typographer normalisation</li><li>TOC equal; normalised HTML on ≥ 245/251</li><li>passes: deflist IDs, alert title/sign, block attrs, passthrough, emoji, linkify</li><li>`CodeFences::Plain` equals Go on the testsite fence and 20 A-D1 fences</li><li>context spans give the correct `inner_page`</li></ul> | 4.3k |
+| **T22** | ssg-markup | `crates/markup` | T13, T04 | <ul><li>heading IDs 100% on the docs and private-site corpora</li><li>hook invocations and fields ≥ 98% after typographer normalisation</li><li>TOC equal; normalised HTML on ≥ 245/251</li><li>passes: deflist IDs, alert title/sign, block attrs, passthrough, emoji, linkify</li><li>`CodeFences::Plain` equals Go on the testsite fence and 20 A-D1 fences</li><li>context spans give the correct `inner_page`</li></ul> | 4.3k |
 | **T23a** | site: capture + meta | `crates/site/src/{capture,tree,cascade,meta,filter,data}.rs` | T11, T12, T21 | <ul><li>capture/assemble fixtures 100%: page set per language, kinds, bundle roles, FM overrides (R `kind-override`, `lang-override` with `lang: TH`, `path-override`), duplicates, drafts/future/expired, cascade</li><li>`data::load` for D (5 files), S (nested JSON), R (`/` in keys), case preserved</li></ul> | 2.4k |
 | **T23b** | site: nodes, URLs, relations | `crates/site/src/{nodes,urls,relations,taxonomy,translations,resources,refs}.rs` | T23a | <ul><li>site fixtures 100%: auto nodes, collections, term members, node dates, translations</li><li>**structure oracle: targets and permalinks per (page, format), resource URLs per (page, name)**</li><li>ref/get_page cases</li><li>segment-aware prefix lookup matches on all oracle sites (else `accepted-deviation`)</li></ul> | 2.6k |
 | **T24** | ssg-nav | `crates/nav` | T23a (types; pageRef tests after T23b merges) | <ul><li>`nh-page` menus, pagination and related fixtures ≥ 99%</li><li>`related` with an explicit candidate list</li><li>alias plan equals structure-oracle aliases</li></ul> | 2.1k |
@@ -1909,16 +1911,16 @@ Sizes are Rust src + tests unless noted.
 | **T36** | ssg-build | `crates/build` | T34, T35, T50 | <ul><li>full §3 pipeline: language sub-waves, wave 2, deferred wave, URL-token publishing, images</li><li>mini, testsite and edge trees in memory match the structure oracle</li><li>docs cross-page shortcode cases (`include`, `glossary-term`, `quick-reference`)</li><li>A-DET; collisions logged</li></ul> | 2.6k |
 | **T37** | CLI + `templates check` | `crates/cli` | T36 | <ul><li>kebab-case flags with camelCase aliases (`--clean-destination-dir` / `--cleanDestinationDir`, `-s -d -b -e --minify --clock -D -E -F`)</li><li>`HUGO_*` env</li><li>error report with positions; exit codes</li><li>`templates check` (§4.8) on 3 overlays</li><li>`nh-commands/cli` mapping</li></ul> | 1.4k |
 | **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed. **State:** `neohugo/tests/it/parity.rs` runs A-T through the binary: L1 56/56, L2 55/55 byte-identical (links, aliases, feeds, JSON URLs; dangling links only where Go's are), L3 every page, `hugo_stats.json` sets equal the oracle-checked collector over Go's HTML (Go's file itself is not in the reference); the structure oracle waits for T01 (TODO in the test). Embedded snapshots and their review table: `neohugo/tests/it/embedded.rs`, `crates/cli/README.md`; goat renders since T66 (`qr_code` since T72a) | fixes |
-| **T61** | Reconstruction layouts + assets in Tera | `rust/sites/seeksnack/**` | T02 (`FUNCS` final after T35) | contract test clean; v0.146 names; TS assets converted; redundant `.Paginate` dropped; §4.7 review | ~0.9k Tera |
-| **T62** | Reconstruction parity | `rust/sites/seeksnack/**`, baselines | T60, T61, T41, T42 | A-R | fixes |
+| **T61** | Reconstruction layouts + assets in Tera | `rust/sites/<private site>/**` | T02 (`FUNCS` final after T35) | contract test clean; v0.146 names; TS assets converted; redundant `.Paginate` dropped; §4.7 review | ~0.9k Tera |
+| **T62** | Reconstruction parity | `rust/sites/<private site>/**`, baselines | T60, T61, T41, T42 | A-R | fixes |
 | **T63** | docs layouts A | `rust/sites/docs/layouts/{top-level,_partials/**}`, `patches/{i01,reduced}/` for baseof, get-featured-image, qr, body-main-start, get-github-info | T02 | contract test clean for the base and both variants; patch files 1:1 with `patches.json` | ~2.3k Tera |
 | **T64** | docs layouts B | `rust/sites/docs/layouts/{_shortcodes,_markup}/**`, `patches/i01/` for render-codeblock, hl, code-toggle | T02 | contract test clean; §4.4 rules (`quick-reference` → `page_content`); Scratch rewrites in `datatable` and `root-configuration-keys` | ~1.3k Tera |
 | **T65** | docs parity (A-D1) | `rust/sites/docs/**`, baselines | T60, T63, T64, T41, T42, T14, T35 | A-D1. **State:** passed (`compare.sh docs-i01 --task T65`): L1 888/888 in both passes, S 1728/1728, L2 756/756, L3 748/750 with heading IDs equal on every page, L4 100/100, A7 0.9987; the two ratchet entries are `engine-difference` (a table on lazy list-item lines, `hugo_stats.json` tags `?xml`/`=`; `tools/dev/changes/T65.md`). The Go GitHub stub now holds floats (golden docs-i01/docs-reduced regenerated) | fixes |
 | **T66** | docs A-D2 | `diagrams_goat` in `funcs` (fix-task lock), markup/highlight/resources fix tasks, docs overlay | T65, T25, T42, T31 | A-D2 | **State:** passed (`compare.sh docs-reduced --task T66`; committed as `neohugo/tests/it/docs.rs::gate_a_d2`): L1 889/889 in both passes, S 1730/1730, L2 757/757, L3 743/751, L4 100/100, A7 0.9907; ratchet entries: the three goat and three math pages and `hugo_stats.json` `accepted-deviation`, 21yunbox `engine-difference` (`tools/dev/changes/T66.md`). `diagrams_goat` uses svgbob (GoAT's size and `viewBox`); `neohugo` enables the `goat` and `math` features by default; `remarshal` YAML/TOML byte-equal to Go's on a fixture (yaml.v2 quoting and key order, go-toml literal strings, bare dates); the harness ignores code token spans (golden docs-reduced unminified manifest regenerated) | ~1k + fixes |
-| **T70** | Cleanup, audit, A-P | `docs/rust-port/`, `tools/rust-port/`, `PROVENANCE.md` | T62, T65 | HANDOFF rewritten; specs marked "byte-parity sections obsolete"; licence and provenance audit; A-P measured (release) **State:** done. [`HANDOFF.md`](HANDOFF.md) rewritten (crate map, commands, gates, CI/CD, deviations, open items, PR summary); the old port's HANDOFF, TERA_PLAN and HUGO_LAYER_CRITIQUE moved to `docs/rust-port/archive/`, every spec carries the "byte-parity sections obsolete" banner, `tools/rust-port/i01/{compare.sh,diff.py}` removed, `tools/rust-port/README.md` says what is in use. **A-P** (release, 4 CPUs, medians of 5–6 runs, HANDOFF §5): docs-reduced cold 3.29 s vs Go 3.99 s (0.82×), warm 3.26 s vs 3.51 s (0.93×), peak RSS 384 MB; testsite 0.071 vs 0.099 s; seeksnack 0.62 vs 2.40 s cold. Fix: `ssg-highlight` links its syntax set in `build.rs` (it was 0.45 s of every process: testsite 0.50 → 0.064 s, docs 3.83 → 3.29 s); `FUGO_TIMINGS=1` prints phase timings. Audit: licence check and `notices.py` pass; `THIRD_PARTY/emoji/` added (listed but missing), PROVENANCE rows for `rust/sites/**`, `testsite-go.txtar`, `testdata/golden/**`; no Zola or unattributed copied code. Follow-up from T71: `hugo.is_server`/`site.server_port` set in the server (`BuildRequest::server`) | 0.3k |
+| **T70** | Cleanup, audit, A-P | `docs/rust-port/`, `tools/rust-port/`, `PROVENANCE.md` | T62, T65 | HANDOFF rewritten; specs marked "byte-parity sections obsolete"; licence and provenance audit; A-P measured (release) **State:** done. [`HANDOFF.md`](HANDOFF.md) rewritten (crate map, commands, gates, CI/CD, deviations, open items, PR summary); the old port's HANDOFF, TERA_PLAN and HUGO_LAYER_CRITIQUE moved to `docs/rust-port/archive/`, every spec carries the "byte-parity sections obsolete" banner, `tools/rust-port/i01/{compare.sh,diff.py}` removed, `tools/rust-port/README.md` says what is in use. **A-P** (release, 4 CPUs, medians of 5–6 runs, HANDOFF §5): docs-reduced cold 3.29 s vs Go 3.99 s (0.82×), warm 3.26 s vs 3.51 s (0.93×), peak RSS 384 MB; testsite 0.071 vs 0.099 s; private-site reconstruction 0.62 vs 2.40 s cold. Fix: `ssg-highlight` links its syntax set in `build.rs` (it was 0.45 s of every process: testsite 0.50 → 0.064 s, docs 3.83 → 3.29 s); `FUGO_TIMINGS=1` prints phase timings. Audit: licence check and `notices.py` pass; `THIRD_PARTY/emoji/` added (listed but missing), PROVENANCE rows for `rust/sites/**`, `testsite-go.txtar`, `testdata/golden/**`; no Zola or unattributed copied code. Follow-up from T71: `hugo.is_server`/`site.server_port` set in the server (`BuildRequest::server`) | 0.3k |
 | **T71** | ssg-serve | `crates/serve`, `cli` (serve) | T36 | memory sink; `/livereload.js` + `/livereload` WebSocket on the same port; notify debounce 1 s; full rebuild; static-only copy; edit → reload ≤ 2 s on testsite. **State:** `neohugo-rs server` (alias `serve`; `build`'s flags plus `-p --bind --append-port --disable-live-reload --live-reload-port -N --render-to-disk --no-http-cache -w --poll`, camelCase aliases; environment `development`). Memory sink per build, swapped in when the build succeeds (the last good build stays on failure, errors printed with positions); `--render-to-disk` serves the publish directory. Base URLs rewritten to the listener (Hugo's `fixURL`, one listener per language of a multihost site); the LiveReload script in every HTML page but aliases (`ssg-publish`, only for `server`: A-T stays 55/55); Hugo's `livereload.min.js` (MIT, `THIRD_PARTY/livereload`). Go file-server semantics (index, redirects, types from the media types, byte ranges), the `404.html` of the path's language with status 404. notify + notify-debouncer-full, 1 s (or `--poll`) over the project's and themes' mounts and configuration (their config files and `config/` dirs, any `neohugo.*`/`hugo.*`/`config.*` appearing in the project or a theme): config → reload + rebuild; site → full rebuild; static only → changed files copied, no build; reload commands by Hugo's fast-render rules on the output diff (CSS in place, one path, full, none; `--navigateToChanged`). Tests: `ssg-serve` 6 unit + 15 `it` (testsite included), `neohugo` `server::*` 3, `ssg-build` `skeleton::testsite_for_the_server`. Testsite, debug build: content edit → reload 1.54–2.03 s (typically 1.6–1.8 s: the 1 s debounce plus a ≈0.5–0.8 s rebuild, 92 % of which is `ssg_highlight::Highlight::new` rebuilding syntect's syntax set in every `Session::new`; caching it in `ssg-highlight` would give ≈1.1 s), static 1.0–1.1 s. Since then the syntax set is cached per process, and T70 links it at compile time and set `hugo.IsServer`/`site.ServerPort`. Open: the browser error page, `[server]` headers/redirects, fast render, TLS, `--openBrowser` | 1.5k |
 | **T72** | COULD features | per-feature crates (fix-task locks) | T65 | Each item lifts one patch and keeps A-D2 green: <ul><li>`images.Text` (`{op:"text"}`), `qr_code`, Dither, smartcrop (**T72a** implemented the first three in `images`/`resources`/`sitefuncs`; the docs patches are not lifted yet)</li><li>Chroma style gallery</li><li>`:git` lastmod</li><li>content adapters as a `_content.html` Tera template calling `add_page`</li><li>Org front matter</li></ul> | 3k |
-| **T73** | ssg-migrate + real seeksnack | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(neohugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
+| **T73** | ssg-migrate + real private site | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(neohugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
 | **T74** | docs-live: the published docs site (A-D3) | `sites/docs/**`, `tools/{docs,neohugo,rust-port}/**`, `testdata/golden/docs-live/`, baselines; engine items in `build`/`site`/`page`/`sitefuncs` (content adapters), `funcs` (KaTeX, GoAT), `images` (smartcrop), `markup`/`render` (goldmark tables, shortcode indentation), `highlight` (Chroma port) | T66, T72a | A-D3: the docs without patches against the published site (neohugo/neohugo.github.io at a1928152) — L1, L2, L4 equal on every file, A7 1.0. **State:** passed (`gate_a_d3`): L1 2373/2373, L2 776/776, L3 769/770 (Go's stats tokenizer reading `<?xml`/`<=` as tags), L4 873/873, A7 1.0; A-D1 and A-D2 reach A7 1.0 too (their math, GoAT and table entries `bug-fixed`); `tools/docs/build.sh` builds and serves the site | – |
 
 ### 8.3 Schedule (four lanes) and critical path
@@ -1966,7 +1968,7 @@ Sizes are Rust src + tests unless noted.
 | # | Risk | Impact | Mitigation |
 |---|---|---|---|
 | 1 | Late end-to-end signal; semantic drift found late | high | Oracle-fixture gates in every crate; structure-oracle gates in T23b and T30; walking skeleton in round 7; contract test from round 2 |
-| 2 | Re-deriving Hugo semantics loses subtle rules | high | Salvage rule by rule from `go-parity-final`, each with the fixture that covers it; specs in `docs/rust-port/specs`; reviewed `expected_diffs.toml` |
+| 2 | Re-deriving Hugo semantics loses subtle rules | high | Salvage rule by rule from `go-parity-final`, each with the fixture that covers it; the old port's specs; reviewed `expected_diffs.toml` |
 | 3 | Tera 2 strictness (undefined values, keyword-only arguments, literal includes, hygienic components, no return values) and a young engine | high | <ul><li>views emit every key</li><li>the `or`/`?.` idioms</li><li>explicit `__nh` scope plus `page=`</li><li>`partial`/`return_value` frames</li><li>all names registered before load</li><li>`templates check` lints</li><li>pin `=2.4.0`; fix upstream (MIT)</li><li>minijinja is the documented escape hatch (costs a re-conversion)</li></ul> |
 | 4 | Plain-data views: memory, depth, cross-page access | medium | Summary lists + `deref`; lazy full values; `page_content` functions with a precise error; dhat measurement in T33 |
 | 5 | Concurrency: cycles, deadlocks, duplicated side effects | high | <ul><li>never-blocking memo cells</li><li>chain-based cycle detection in the scope</li><li>fragments as a separate stage</li><li>buffered store writes committed by the winner</li><li>no DashMap guard held while rendering</li><li>no parallel work inside renders</li><li>forced two-thread tests</li></ul> |
@@ -1985,7 +1987,7 @@ Sizes are Rust src + tests unless noted.
 | 18 | Salvage turns into transliteration | medium | Legacy removed from the tree; `git show` only for rules; §1.2 checklist; clippy at phase end; filters built on ecosystem ops |
 | 19 | Semantic drift from dependencies (YAML 1.2 vs 1.1, CLDR, ICU dates) | low | 218-front-matter corpus; locales oracle; collation and plural allowlists |
 | 20 | External tools and network (esbuild, node, Tailwind, GetRemote) | medium | Pinned esbuild build script; node.sh lockfile; offline GetRemote cache with key importer; both builds run with HTTP disabled; clear errors naming missing binaries |
-| 21 | Private seeksnack repo unavailable | medium | A-R is the blocking gate; A-S runs when the repo is attached (D6) |
+| 21 | Private site repo unavailable | medium | A-R is the blocking gate; A-S runs when the repo is attached (D6) |
 | 22 | Scope creep toward all of Hugo | medium | MUST/SHOULD/COULD from the feature inventory drive the task list; COULD only in T72 |
 
 ---
@@ -2023,7 +2025,7 @@ Sizes are Rust src + tests unless noted.
 | COULD features (T72) | 3,000 | 700 | |
 | ssg-migrate (T73) | 2,500 | 500 | |
 | Harness (Python) + `structure` oracle (Go) | ~2,700 Py + ~500 Go | – | |
-| Tera: testsite / reconstruction / docs / real seeksnack | ~100 / ~900 / ~3,600 / ~900 | – | template lines |
+| Tera: testsite / reconstruction / docs / real private site | ~100 / ~900 / ~3,600 / ~900 | – | template lines |
 
 **Throughput.** About 40 tasks of 0.4–4.8k lines across four lanes, in about 13 rounds to A-D1, 14 to A-D2, then the COULD tail. The main uncertainty is the parity rounds (T60, T62, T65); budget one to two extra rounds of fix tasks for them.
 
@@ -2055,7 +2057,7 @@ The plan proceeds with the stated default unless you say otherwise.
   - `hugo.version` reports `0.149.0-DEV`.
 
   **Default:** accept.
-- **D6. Real seeksnack.** Attach the private repository for gate A-S and T73, or accept the reconstruction (A-R) as the final seeksnack gate. **Default:** A-R blocks; A-S runs when the repository is available.
+- **D6. Real private site.** Attach the private repository for gate A-S and T73, or accept the reconstruction (A-R) as the final gate for that site. **Default:** A-R blocks; A-S runs when the repository is available.
 - **D7. Scope beyond the three sites.** Whether `server` (T71) and the COULD features (T72) belong in this effort. **Default:** after A-D2, in the listed order; T71 may run in spare lane capacity from round 11.
 - **D8. Network access.** Network is needed in T00 (`cargo fetch`) and T01 (`npm ci` for node tooling, GOPROXY for the Go oracle). **Default:** yes; everything afterwards runs offline.
 

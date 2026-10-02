@@ -38,7 +38,7 @@ it into the flag (true) or drops it (false, the default).
 | Flag | Alias | Commands | Effect |
 |---|---|---|---|
 | `-s`, `--source DIR` | | all | project directory (default: the working directory) |
-| `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `fugo.{toml,yaml,yml,json}`, `config.*` (a warning names the others when several exist) |
+| `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `config.{toml,yaml,yml,json}` (a warning names the others when several exist) |
 | `--config-dir DIR` | `--configDir` | all | `CliOverrides::config_dir` |
 | `-e`, `--environment ENV` | | all | wins over `FUGO_ENVIRONMENT` (default `production`; `development` for `server`) |
 | `-b`, `--base-url URL` | `--baseURL`, `--baseUrl` | all | `baseURL` |
@@ -175,7 +175,7 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 |---|---|
 | `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 56/56 (55 in `public` + `hugo_stats.json`; the reference has 55 because Go writes `hugo_stats.json` next to `hugo.toml`); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; `hugo_stats.json` tag/class/id sets equal the `ssg-publish` collector (checked against Go's by `oracle/publisher/collector`) over Go's HTML. Accepted-deviation lists per level: empty. Structure oracle: the build's structure dump against `testdata/golden/testsite/structure.json` (Go's, frozen at `44529028`), every fact equal (the baseline `testdata/baselines/testsite.json` accepts none). Full output tree: `snapshots/testsite_output.snap` |
 | `parity::parity_helpers` | the scanner, normalisations and text extraction of the gate |
-| `docs::gate_a_d2` | **gate A-D2** (§7.3, T66): `compare.sh docs-reduced --ref golden` with this binary (Chroma, goat, emoji, math, remarshal, Tailwind via `defer`, Alpine/Turbo `js_build`): L1 889/889 in both passes, L2, L4 and the structure oracle equal everywhere, A7 ≥ 0.98, clean ratchet (`testdata/baselines/docs-reduced.json`); `SKIPPED` without the node tools/esbuild (shared with `reconstruction::gate_a_r` in `tests/it/acceptance.rs`) |
+| `docs::gate_a_d2` | **gate A-D2** (§7.3, T66): `compare.sh docs-reduced --ref golden` with this binary (Chroma, goat, emoji, math, remarshal, Tailwind via `defer`, Alpine/Turbo `js_build`): L1 889/889 in both passes, L2, L4 and the structure oracle equal everywhere, A7 ≥ 0.98, clean ratchet (`testdata/baselines/docs-reduced.json`); `SKIPPED` without the node tools/esbuild (`tests/it/acceptance.rs`) |
 | `embedded::embedded_templates` | the embedded templates rendered against testsite views (test-only overlay `tests/it/embedded-overlay.txtar`, see below): snapshots `hooks`, `shortcodes`, `bundle`, `featured`, `section_page1`, `section_page2` |
 | `embedded::embedded_templates_simple_and_disabled` | `privacy.{vimeo,x,instagram}.simple` (snapshot `shortcodes_simple`) and every service disabled |
 | `embedded::embedded_template_errors` | argument errors and warnings of the embedded templates (snapshot `errors`) |

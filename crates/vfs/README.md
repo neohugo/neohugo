@@ -74,9 +74,9 @@ Mounts → one union file view per component, walkers, ignore rules and the path
   error); `theme_mounts_match_go`: the 30 themes of `oracle/allconfig/load/{themes,merge}`
   (order, directory, `_vendor` version, importer, mounts incl. JS config files) equal Go's
   modules, and the cases Go fails fail.
-- `capture`: `oracle/hugolib/capture/{testsite,seeksnack,docs}` — (file, key, language, kind)
+- `capture`: `oracle/hugolib/capture/{testsite,docs}` — (file, key, language, kind)
   for every file in Hugo's page and resource trees, plus name, section, extension and original
-  base of every page: testsite 2, seeksnack 56, docs 1,011 files equal. Also contentdir,
+  base of every page: testsite 2, docs 1,011 files equal. Also contentdir,
   edge-tree, homeleaf, nokinds, shortcodes, synthetic.
 - `walk`: nested themes and import options (`theme_mounts_and_nested_themes`), a missing theme
   (a configuration error; a theme directory removed after loading: `VfsError::ThemeNotFound`),

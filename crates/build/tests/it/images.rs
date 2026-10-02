@@ -36,7 +36,7 @@ fn referenced_images_are_processed_and_published() {
         ],
     );
     fs::copy(
-        testdata("site-assets/site/content_cookies_alices-pineapple-pastry_600x200.jpg"),
+        testdata("site-assets/generated/banner-600x200.jpg"),
         site.join("content/p/pic.jpg"),
     )
     .expect("copy the image");

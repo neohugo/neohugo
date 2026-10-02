@@ -4,23 +4,19 @@
 Usage:
   sites.py list
   sites.py make <site> <dir> [--docs-patches i01|reduced] [--overlay sites/<site>]
-                                    # <dir> must not exist; for seeksnack and mini its basename
-                                    # must be the site's name (it keys the GetRemote cache)
+                                    # <dir> must not exist; for mini its basename must be the
+                                    # site's name (it keys the GetRemote cache)
   sites.py cache <site> <dir>       # the FUGO_CACHEDIR contents the site needs (may be empty;
                                     # its <site> directory: the site dir's basename must be <site>)
   sites.py patches [--check]        # write patches.json / check it and the Tera patch files
 
 Sites:
-  docs          this repository's docs/ site, patched to build offline; --docs-patches picks the
+  docs          Hugo's documentation site (testdata/hugo-docs, the Go tree's docs/), patched to
+                build offline; --docs-patches picks the
                 variant (i01, the default, reduced, or live: unpatched; DOCS_* below,
                 patches.json); docs-i01, docs-reduced and docs-live name the variants too
   testsite      Hugo's hugolib/testsite (testdata/upstream) plus a small config and layouts
                 (testsite.txtar)
-  seeksnack     the reconstructed seeksnack config (testdata/oracle/allconfig/load/
-                seeksnack/config.toml) with the synthetic en/th content tree of the nh-hugolib
-                oracles (read from testdata/oracle/hugolib/build/seeksnack.json.gz) and
-                the layouts/assets/i18n/data of seeksnack.txtar; its GetRemote calls are served
-                from the 51 golden getresource cache entries
   mini          the e2e oracle's small en/th site (testdata/oracle/commands/e2e/mini.txtar)
   images        the golden image recipes (testdata/golden/images/manifest.json) as a site
   errors        a failing build (errors.txtar): the error texts must be Go's
@@ -46,14 +42,13 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 TESTDATA = os.path.join(ROOT, "testdata")
+# Hugo's documentation site (the Go tree's docs/): a frozen fixture since docs/ became this
+# project's own documentation; fixtures still name its files docs/... (repo_file).
+HUGO_DOCS = os.path.join(TESTDATA, "hugo-docs")
 BUILD_FX = os.path.join(TESTDATA, "oracle", "hugolib", "build")
-GOLDEN_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache", "seeksnack",
-                            "filecache", "getresource")
 # The GetRemote responses of the published docs build (2025-10-13), by cache key: docs-live's.
 DOCS_LIVE_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache", "docs-live",
                                "filecache", "getresource")
-GETREMOTE_FX = os.path.join(TESTDATA, "oracle", "resource-transformers", "getremote",
-                            "getremote.json.gz")
 # Hugo's test data by its Go-tree path, as the fixtures record it, moved to
 # testdata/upstream (the sites use only these; ssg_testkit::fixture::UPSTREAM lists all).
 UPSTREAM = ("hugolib/testsite",)
@@ -117,6 +112,8 @@ def copy_tree(src, dst, skip=("public", "resources", "node_modules")):
 def repo_file(rel):
     """A repository file by the path the fixtures record (ssg_testkit::fixture::repo_file)."""
     upstream = any(rel == p or rel.startswith(p + "/") for p in UPSTREAM)
+    if not upstream and (rel + "/").startswith("docs/") and not rel.startswith("docs/rust-port"):
+        return os.path.join(HUGO_DOCS, *rel.split("/")[1:])
     if not upstream and rel.startswith(LEGACY_WORKSPACE):
         rel = rel[len(LEGACY_WORKSPACE):]
     return os.path.join(os.path.join(TESTDATA, "upstream") if upstream else ROOT, *rel.split("/"))
@@ -144,7 +141,7 @@ def read_txtar(path):
 
 
 # ---------------------------------------------------------------------------------------------
-# docs/: the offline patch variants (docs/rust-port/REWRITE_PLAN.md §7.3). Every entry names the
+# Hugo's docs (testdata/hugo-docs): the offline patch variants (docs/rust-port/REWRITE_PLAN.md §7.3). Every entry names the
 # variants it belongs to:
 #   i01      the I01 site: offline, no Chroma, passthrough, emoji, Tailwind or node modules
 #            (acceptance gate A-D1);
@@ -168,7 +165,7 @@ BOTH = (I01, REDUCED)
 DOCS_REMOVE = [  # (file, variants, why)
     ("content/en/news/_content.gotmpl", BOTH, "GetRemote of GitHub releases (a content adapter)"),
     ("content/en/functions/images/Text.md", BOTH, "GetRemote of a font (images.Text)"),
-    ("hugo_stats.json", DOCS_VARIANTS, "written by the build (the Go build's, committed in docs/)"),
+    ("hugo_stats.json", DOCS_VARIANTS, "written by the build (the Go build's, committed with the site)"),
     # COULD features (T72): images.QR (rsc.io/qr), images.Dither.
     ("content/en/shortcodes/qr.md", BOTH, "images.QR (COULD, T72)"),
     ("content/en/functions/images/QR.md", BOTH, "images.QR (COULD, T72)"),
@@ -312,7 +309,7 @@ def check_patches():
 def make_docs(dir_, variant=I01):
     if variant not in DOCS_VARIANTS:
         sys.exit(f"unknown docs patch variant {variant!r} (one of {', '.join(DOCS_VARIANTS)})")
-    copy_tree(os.path.join(ROOT, "docs"), dir_)
+    copy_tree(HUGO_DOCS, dir_)
     as_local_site(dir_)
     for p in docs_patches()["patches"]:
         if variant not in p["variants"]:
@@ -357,128 +354,6 @@ def write_fixture_site(site, dir_):
 
 def t24_names():
     return sorted(n[:-len(".json.gz")] for n in os.listdir(BUILD_FX) if n.endswith(".json.gz"))
-
-
-# ---------------------------------------------------------------------------------------------
-# seeksnack.
-
-def make_seeksnack(dir_):
-    if os.path.basename(os.path.normpath(dir_)) != "seeksnack":
-        sys.exit("the seeksnack site dir must be named seeksnack (it keys the GetRemote cache)")
-    site = fixture_site("seeksnack")
-    # The synthetic content tree, without the capture shortcodes (seeksnack.txtar has its own).
-    site["files"] = [f for f in site["files"] if not f["path"].startswith("layouts/")]
-    write_fixture_site(site, dir_)
-    for k, v in read_txtar(os.path.join(HERE, "seeksnack.txtar")).items():
-        write(dir_, k, v)
-    # Real images from the repository's fixtures (the synthetic tree's image files are not images).
-    for rel, src in SEEKSNACK_IMAGES.items():
-        with open(os.path.join(ROOT, *src.split("/")), "rb") as fh:
-            write(dir_, rel, fh.read())
-    for rel, content in generated_snacks().items():
-        write(dir_, rel, content)
-
-
-# Generated snack pages: every golden getresource entry not used by seeksnack.txtar gets a page
-# whose youtube_video is that entry, so all 51 cached responses are read through GetRemote; the
-# pages fill the paginators (pagerSize 12) and the taxonomies, including terms that collide on
-# one URL like the golden build's ("Lay's"/"Lays", "INS 322(i)"/"ins-322i", case variants).
-_CATEGORIES = ["potato-chips", "biscuit", "seafood", "candy", "bread-pan", "pretzels", "cookies"]
-_BRANDS = ["Lay's", "Lays", "Lotte", "Pringles", "Le Pan", "Tao Kae Noi", "Glico", "Meiji"]
-_COMPANIES = ["Frito Lay", "Thai Lotte Co., Ltd.", "Kellogg", "Le Pan Bakery", "Ezaki Glico Co., Ltd."]
-_COUNTRIES = ["Thailand", "Japan", "USA", "Korea", "Malaysia"]
-_INGREDIENTS = ["INS 322(i)", "ins-322i", "Potato", "Sugar", "INS 124", "Palm Oil", "Salt", "Wheat Flour"]
-_TAGS = ["crispy", "Crispy", "sweet", "spicy", "Seaweed", "Chocolate", "Party", "Lay's", "Lays"]
-_TH_TAGS = ["กรอบ", "หวาน", "เผ็ด", "สาหร่าย", "ปาร์ตี้", "คริสปี้พาย"]
-_JPGS = ["assets_images_categories_almonds.jpg", "assets_images_categories_biscuit-stick.jpg",
-         "assets_images_categories_candy-shell.jpg", "assets_images_ingredients_chocolate.jpg",
-         "content_companies_hanami-foods-co-ltd_hanamifoods.jpg"]
-_USED_IDS = {"10426788187073209306", "10921459942904219419", "11152450411989392523"}
-
-
-def generated_snacks():
-    with gzip.open(GETREMOTE_FX, "rt", encoding="utf-8") as fh:
-        ids = [e["entry"] for e in json.load(fh)["seeksnack"] if e["entry"] not in _USED_IDS]
-    files = {}
-    for i, vid in enumerate(ids):
-        pick = lambda xs, n=1, off=0: [xs[(i * 7 + off + k * 3) % len(xs)] for k in range(n)]  # noqa: E731
-        slug = f"snack-{i:02d}"
-        img = f"s{i:02d}.jpg"
-        day = 1 + (i * 5) % 28
-        month = 1 + (i * 3) % 12
-        year = 2019 + i % 4
-        fm = [
-            "---",
-            f'title: "Snack {i:02d} {pick(_BRANDS)[0]} {pick(_CATEGORIES)[0]}"',
-            f"date: {year}-{month:02d}-{day:02d}T{(i * 3) % 24:02d}:15:00Z",
-            "type: snacks",
-            f"image: {img}",
-            f'youtube_video: "{vid}"',
-            f"categories: {json.dumps(pick(_CATEGORIES, 1 + i % 2))}",
-            f"brands: {json.dumps(pick(_BRANDS, 1, 1))}",
-            f"companies: {json.dumps(pick(_COMPANIES, 1 + i % 2, 2))}",
-            f"countries: {json.dumps(pick(_COUNTRIES, 1, 3))}",
-            f"ingredients: {json.dumps(pick(_INGREDIENTS, 2 + i % 3, 4))}",
-            f"tags: {json.dumps(pick(_TAGS, 1 + i % 3, 5), ensure_ascii=False)}",
-            f"rating: {{taste: {1 + i % 5}, smell: {(i % 9) / 2}}}",
-        ]
-        if i % 4 == 0:
-            fm.append(f'when_seen: "2020-{month:02d}-{day:02d}"')
-        if i % 6 == 0:
-            fm.append(f'aliases: ["/old/{slug}/"]')
-        if i % 5 == 0:
-            fm.append("weight: " + str(10 - i % 10))
-        fm.append("---")
-        body = (f"## Review {i}\n\nA *snack* review with ![pack]({img}) and a "
-                f"[link](/snacks/snack-{(i + 1) % len(ids):02d}/).\n\n<!--more-->\n\n"
-                f"### Details\n\n" + "More words. " * (5 + i % 40) + "\n")
-        files[f"content/snacks/{slug}/index.md"] = "\n".join(fm) + "\n" + body
-        with open(os.path.join(TESTDATA, "site-assets", "site",
-                               _JPGS[i % len(_JPGS)]), "rb") as fh:
-            files[f"content/snacks/{slug}/{img}"] = fh.read()
-        if i % 3 == 0:
-            th = ["---", f'title: "ขนม {i:02d}"', f"date: {year}-{month:02d}-{day:02d}T00:00:00Z",
-                  "type: snacks", f"image: {img}", f'youtube_video: "{vid}"',
-                  f"categories: {json.dumps(pick(_CATEGORIES))}",
-                  f"tags: {json.dumps(pick(_TH_TAGS, 2), ensure_ascii=False)}", "---"]
-            files[f"content/snacks/{slug}/index.th.md"] = "\n".join(th) + f"\nรีวิวขนม {i} ![ห่อ]({img})\n"
-    return files
-
-
-_SITE_JPG = "testdata/site-assets/site/"
-_REPO_PNG = "testdata/site-assets/repo/"
-_GOLDEN_PNG = "testdata/site-assets/golden/"
-SEEKSNACK_IMAGES = {
-    "content/biscuit/koalas-march-chocolate/koala.jpg": _SITE_JPG + "assets_images_categories_biscuit-stick.jpg",
-    "content/biscuit/koalas-march-chocolate/koala_pack.jpg": _SITE_JPG + "assets_images_categories_almonds.jpg",
-    "content/potato-chips/wise-chili-olé-chili-&-spice-flavor-potato-chips/olé.jpg":
-        _SITE_JPG + "content_potato-crisps_pringles-paprika_pringles-paprika.jpg",
-    "content/companies/Berli-Jucker-Foods-Ltd.Berli-Jucker-PLC/logo.png":
-        _GOLDEN_PNG + "berli-jucker-foods-ltd.berli-jucker-plc_hu_9745137e13631ab1.png",
-    "content/companies/le-pan-bakery/logo.png": _GOLDEN_PNG + "frito-lay_hu_8f37120362e997d1.png",
-    "content/ingredients/ins-124/ins124.jpg": _SITE_JPG + "assets_images_ingredients_chocolate.jpg",
-    "content/ขนม/ข้าวเกรียบ/รูป.jpg": _SITE_JPG + "content_pretzels_combos-pizzeria-pretzel_combos-pipr.jpg",
-    "content/snacks/lays-rock-prawn/prawn.jpg": _SITE_JPG + "content_potato-crisps_pringles-paprika_pringles-paprika.jpg",
-    "content/snacks/koala/koala.jpg": _SITE_JPG + "assets_images_categories_candy-shell.jpg",
-    "content/snacks/pringles-paprika/pringles.jpg": _SITE_JPG + "content_cookies_alices-pineapple-pastry_600x200.jpg",
-    "content/snacks/combos/combos.jpg": _SITE_JPG + "content_pretzels_combos-pizzeria-pretzel_combos-pipr.jpg",
-    "content/snacks/taro-bread/taro.jpg": _SITE_JPG + "content_bread-pan_taro-custard-filled-panbread_lepan_cake_taro-preview-.jpg",
-    "assets/images/watermark.png": _REPO_PNG + "fuzzy-cirlcle.png",
-    "assets/images/favicon/favicon-16x16.png": _REPO_PNG + "favicon-16x16.png",
-    "assets/images/favicon/favicon-32x32.png": _REPO_PNG + "android-chrome-72x72.png",
-    "assets/images/favicon/mstile-70x70.png": _GOLDEN_PNG + "mstile-70x70_hu_80634bc5fec9785.png",
-    "assets/images/favicon/mstile-150x150.png": _REPO_PNG + "apple-touch-icon.png",
-}
-
-
-def seeksnack_cache(dir_):
-    """The golden getresource entries under the keys of the synthetic URLs the layouts use."""
-    with gzip.open(GETREMOTE_FX, "rt", encoding="utf-8") as fh:
-        entries = json.load(fh)["seeksnack"]
-    gdir = os.path.join(dir_, "seeksnack", "filecache", "getresource")
-    os.makedirs(gdir, exist_ok=True)
-    for e in entries:
-        shutil.copyfile(os.path.join(GOLDEN_CACHE, e["entry"]), os.path.join(gdir, e["fileCacheKey"]))
 
 
 def docs_live_cache(dir_):
@@ -567,11 +442,11 @@ def make_errors(dir_):
 
 # ---------------------------------------------------------------------------------------------
 # mini: the e2e oracle's small en/th site (testdata/oracle/commands/e2e/mini.txtar). Its
-# one GetRemote call is served from a golden getresource entry stored under the file cache key
-# of the URL it requests (as tools/go-oracle/nh-commands/e2e did, frozen at 44529028).
+# one GetRemote call is served from the getresource entry the oracle recorded with the case
+# (e2e.json.gz, `_cache/site/filecache/getresource/<key>`).
 
 MINI_TXTAR = os.path.join(TESTDATA, "oracle", "commands", "e2e", "mini.txtar")
-MINI_CACHE = [("10426788187073209306", "17211370855584179129")]  # (golden entry, file cache key)
+E2E_FX = os.path.join(TESTDATA, "oracle", "commands", "e2e", "e2e.json.gz")
 
 
 def make_mini(dir_):
@@ -584,8 +459,13 @@ def make_mini(dir_):
 def mini_cache(dir_):
     gdir = os.path.join(dir_, "mini", "filecache", "getresource")
     os.makedirs(gdir, exist_ok=True)
-    for entry, key in MINI_CACHE:
-        shutil.copyfile(os.path.join(GOLDEN_CACHE, entry), os.path.join(gdir, key))
+    with gzip.open(E2E_FX, "rt", encoding="utf-8") as fh:
+        case = next(c for c in json.load(fh)["cases"] if c["name"] == "mini")
+    prefix = "_cache/site/filecache/getresource/"
+    for name, content in case["files"].items():
+        if name.startswith(prefix):
+            with open(os.path.join(gdir, name[len(prefix):]), "w", encoding="utf-8", newline="") as fh:
+                fh.write(content)
 
 
 # ---------------------------------------------------------------------------------------------
@@ -707,9 +587,8 @@ def apply_overlay(dir_, overlay, variant=None):
             sys.exit(f"{overlay} has no patches/{variant}")
 
 
-SITES = {"docs": make_docs, "testsite": make_testsite, "seeksnack": make_seeksnack,
-         "mini": make_mini, "images": make_images, "errors": make_errors, "probe": make_probe}
-CACHES = {"seeksnack": seeksnack_cache, "mini": mini_cache}
+SITES = {"docs": make_docs, "testsite": make_testsite, "mini": make_mini, "images": make_images, "errors": make_errors, "probe": make_probe}
+CACHES = {"mini": mini_cache}
 
 
 def site_and_variant(name, variant):

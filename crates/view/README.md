@@ -110,7 +110,6 @@ thread-locals: the scope is the context value `__nh`. Content adapters (`_conten
 | Site | Pages | Model kept | Views kept (Meta + Full, job values) | + every full value cached | worst (3 generations, all cached) |
 |---|---|---|---|---|---|
 | testsite | 23 | 0.38 MB | 0.33 MB (0.86×) | 1.22× | 2.09× |
-| seeksnack | 198 | 2.07 MB | 3.16 MB (1.53×) | 2.12× | 3.59× |
 | docs | 948 | 9.49 MB | 17.6 MB (**1.85×**, asserted < 2×) | 2.42× | 3.80× |
 
 The views copy the content strings (Tera 2 builds string values from `&str` only):

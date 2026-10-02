@@ -11,11 +11,11 @@ LoadOptions { source, config_files, cli: CliOverrides, env }
 1. **Bootstrap**: environment = `--environment` → `FUGO_ENVIRONMENT` → `production`;
    config directory = `--configDir` or `config`.
 2. **Sources** (`source`): the project file, the first that exists of `config.toml`,
-   `config.yaml`, `config.yml`, `config.json`, then `config.*` (same extension order;
-   `config_file_names()`; Hugo's `hugo.*` is not read). When several exist, the first is read and a
+   `config.yaml`, `config.yml`, `config.json` (`config_file_names()`; Hugo's `hugo.*` is not
+   read). When several exist, the first is read and a
    warning (`config-file-ignored`, at the file read) names the others. Or the `--config`
    list (unchanged: first file wins, `custom` finds `custom.toml`…). Then `config/_default/**`
-   and `config/<env>/**` in path order. A file's name places it: `fugo.*` and `config.*` at
+   and `config/<env>/**` in path order. A file's name places it: `config.*` at
    the root (`hugo.*` is an ordinary file, under `hugo`), `params.en.toml` under `languages.en.params`, `menus.en.toml` (or
    `menu.en.toml`) under `languages.en.menus`, `name.toml` under `name`.
 3. **Normalise** (`tree::normalize_keys`: lower-case keys except inside arrays, `menu` →
@@ -59,7 +59,7 @@ LoadOptions { source, config_files, cli: CliOverrides, env }
   list) renames `[[module.imports]]` paths (not `theme` names, as in Hugo). A theme's own
   imports must stay below `themesDir` unless replaced. An import that is not found is an
   error (`ConfigError::ThemeNotFound`): Hugo Modules are not downloaded.
-- Configuration: the first of `fugo.*`, `config.*` in the theme's directory
+- Configuration: the first of `config.*` in the theme's directory
   (with the same warning), then its `config/_default/**` and `config/<environment>/**`,
   assembled like the project's. `theme.toml` is theme-site metadata, not configuration.
 - Mounts (`Theme::mounts`, used by `ssg-vfs`): the importer's `[[module.imports.mounts]]`,
@@ -128,17 +128,17 @@ one.
 
 | bullet | evidence |
 |---|---|
-| `nh-allconfig/load` values for docs, testsite, reconstruction | `load::acceptance_sites` (strict, no accepted differences): `repo/docs`, `repo/docs-development`, `repo/testsite` 294/294 checks, `seeksnack/{config,build,build-env-development}` 426/426. Each case compares the language order, multihost, timeout, compiled cache directories, per-language facts (baseURL, prefix, name, weight, title, time zone, direction), kind outputs, disabled kinds, and 57 keys of Go's per-language `hugo config` dump (zero values ignored; `[minify.tdewolff]` defaults belong to the minify crate) |
+| `nh-allconfig/load` values for docs and testsite | `load::acceptance_sites` (strict, no accepted differences): `repo/docs`, `repo/docs-development`, `repo/testsite` 294/294 checks. Each case compares the language order, multihost, timeout, compiled cache directories, per-language facts (baseURL, prefix, name, weight, title, time zone, direction), kind outputs, disabled kinds, and 57 keys of Go's per-language `hugo config` dump (zero values ignored; `[minify.tdewolff]` defaults belong to the minify crate) |
 | … and t24 sites | `sites::t24_sites`: the 17 `hugolib/assemble` sites load; languages equal Go's for all; the formats of the enabled kinds equal Go's `.Site` render formats for 25 of 26 site languages (`asm-taxo` adds `json` in page front matter, which the site config cannot know; the check is "a subsequence of Go's") |
 | other `load` groups (coverage) | `load::other_groups`: basic 2738/2747, configdir 1015/1015, env 2051/2054, languages 2287/2290, merge 1777/1780, mounts 1045/1045, sections 3128/3139, themes 1135/1136; every difference is listed in `expected_diffs.toml` with its reason (a configured media type's `delimiter`, which Go's dump shows as written, is compared as decoded) |
 | themes (C1) | the `merge/*` and `themes/*` groups above compare every merged value of Go's per-language dumps (params, language params, menus, output formats, media types, taxonomies, languages, …); `themes::*` ports `hugolib/config_test.go` (`TestLoadConfigFromThemes` default/shallow/no params/sitemap by root strategy, `TestLoadConfigFromThemeDir`, `TestLoadConfigThemeLanguage`, `TestLoadConfigModules`, `TestConfigOutputFormatDefinedInTheme`), `config/allconfig` (`TestMergeDeep`, `TestMergeDeepBuildStats*`) and `modules` (`TestDecodeConfig*`, `TestPathKey`) with their expected values, plus the lookup order, the rules above and error positions in theme files; `ssg-vfs` `mounts::theme_mounts_match_go` compares the 30 themes of the oracle cases (order, directory, vendoring, owner, mounts) |
 | media tables equal | `media::builtin_media_tables`: the 41 built-in types (field by field, sorted: main, sub, mime suffix, suffixes, delimiter, first/full suffix) and the 6 default content types equal Go's; `media::output_formats`: the 15 built-in output formats in render order, every field |
 | `[mediaTypes]`/`[outputFormats]` decoding | DecodeTypes 1165/1410 equal, DecodeConfig 1203/1530 equal; named cases that differ are listed in `tests/it/media.rs` with reasons; generated cases are tallied by category (see deviation 8) |
-| legacy-key table on a synthetic S-style config | `api::legacy_keys`: a seeksnack-style config written with every legacy key (root and language level) decodes to the current settings; the deprecation notices are an insta snapshot |
+| legacy-key table on a synthetic real-site-style config | `api::legacy_keys`: a real-site-style config written with every legacy key (root and language level) decodes to the current settings; the deprecation notices are an insta snapshot |
 | env typing; `CliOverrides` | `api::env_typing` (int, float, bool, JSON list, nested new keys, custom delimiter, JSON table, disableKinds splitting, unparsable value stays a string); `api::cli_overrides_and_precedence` (file < dir < env dir < CLI < env; `HUGO_ENVIRONMENT`) |
 | `[caches]` with `:cacheDir`/`:project`; privacy | `api::caches_resolve_placeholders`, `api::privacy`, plus the oracle's `cachesCompiled` and `privacy` in every load case |
 | error spans | `api::error_positions`: TOML, YAML and JSON syntax errors; typed errors in a config-dir file, in a language table, in an array element; language errors — each with file, line and column |
-| insta snapshots | `tests/it/snapshots/`: typed summaries of docs, testsite, seeksnack and the 17 t24 sites; deprecation notices; an error display |
+| insta snapshots | `tests/it/snapshots/`: typed summaries of docs, testsite and the 16 t24 sites; deprecation notices; an error display |
 
 ## Accepted deviations
 
@@ -181,7 +181,7 @@ one.
    These account for all differences of the generated `media` cases.
 9. `--clock` is not configuration (the CLI parses it into `base::Clock`).
 10. **fugo's names instead of Hugo's**: no `hugo.*` configuration file (the oracle cases'
-   are replayed as `fugo.*`, `ssg_testkit::fixture::local_path`); `build.writeStats` (the
+   are replayed as `config.*`, `ssg_testkit::fixture::local_path`); `build.writeStats` (the
    legacy key under `[build]`, as Go reads it) migrated to `build.buildStats.enable`, whose file
    is `build_stats.json` (`global::STATS_FILE`). **`FUGO_*` instead of `HUGO_*`**: the overrides (`env::PREFIX`; `FUGO_TITLE`,
    `FUGOxPARAMSxAPI_KEY`), the environment (`FUGO_ENVIRONMENT` only; Go also read

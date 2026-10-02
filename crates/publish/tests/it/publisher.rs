@@ -403,35 +403,31 @@ fn concurrent_emits_are_deterministic() {
     assert_eq!(run(1), run(4));
 }
 
-/// `build_stats.json` is written exactly as Hugo writes it: the golden files of the seeksnack
-/// and docs builds round-trip byte for byte.
+/// `build_stats.json` is written exactly as Hugo writes it: the golden file of the docs build
+/// round-trips byte for byte.
 #[test]
 fn golden_stats_format() {
     let repo = ssg_testkit::fixture::repo_dir();
-    for file in [
-        "tools/rust-port/golden/hugo_stats.json",
-        "docs/hugo_stats.json",
-    ] {
-        let text = std::fs::read_to_string(repo.join(file)).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&text).unwrap();
-        let list = |k: &str| -> Option<Vec<String>> {
-            v["htmlElements"][k]
-                .as_array()
-                .map(|a| a.iter().map(|s| s.as_str().unwrap().to_owned()).collect())
-        };
-        let found = HtmlElements {
-            tags: list("tags").unwrap_or_default().into_iter().collect(),
-            classes: list("classes").unwrap_or_default().into_iter().collect(),
-            ids: list("ids").unwrap_or_default().into_iter().collect(),
-        };
-        let conf = BuildStats {
-            enable: true,
-            disable_tags: list("tags").is_none(),
-            disable_classes: list("classes").is_none(),
-            disable_ids: list("ids").is_none(),
-        };
-        assert_eq!(StatsFile::new(found, &conf).to_json(), text, "{file}");
-    }
+    let file = "testdata/hugo-docs/hugo_stats.json";
+    let text = std::fs::read_to_string(repo.join(file)).unwrap();
+    let v: serde_json::Value = serde_json::from_str(&text).unwrap();
+    let list = |k: &str| -> Option<Vec<String>> {
+        v["htmlElements"][k]
+            .as_array()
+            .map(|a| a.iter().map(|s| s.as_str().unwrap().to_owned()).collect())
+    };
+    let found = HtmlElements {
+        tags: list("tags").unwrap_or_default().into_iter().collect(),
+        classes: list("classes").unwrap_or_default().into_iter().collect(),
+        ids: list("ids").unwrap_or_default().into_iter().collect(),
+    };
+    let conf = BuildStats {
+        enable: true,
+        disable_tags: list("tags").is_none(),
+        disable_classes: list("classes").is_none(),
+        disable_ids: list("ids").is_none(),
+    };
+    assert_eq!(StatsFile::new(found, &conf).to_json(), text, "{file}");
 }
 
 #[test]

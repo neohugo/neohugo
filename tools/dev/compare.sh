@@ -7,7 +7,7 @@
 #   tools/dev/compare.sh <site> [--docs-patches i01|reduced|live] [--ref golden]
 #                            [--task ID]... [--update] [--report-only] [--show N]
 #
-# Sites: testsite, seeksnack, docs-i01, docs-reduced, docs-live (`docs --docs-patches <variant>`
+# Sites: testsite, docs-i01, docs-reduced, docs-live (`docs --docs-patches <variant>`
 # is the same as `docs-<variant>`).
 #
 # Sides:
@@ -85,10 +85,10 @@ docs) label=docs-${variant:-i01} ;;
 docs-i01 | docs-reduced | docs-live)
 	[ -z "$variant" ] || [ "docs-$variant" = "$site" ] || { log "$site contradicts --docs-patches $variant"; exit 2; }
 	label=$site ;;
-testsite | seeksnack)
+testsite)
 	[ -z "$variant" ] || { log "--docs-patches applies to docs only"; exit 2; }
 	label=$site ;;
-*) log "unknown site $site (testsite, seeksnack, docs-i01, docs-reduced, docs-live)"; exit 2 ;;
+*) log "unknown site $site (testsite, docs-i01, docs-reduced, docs-live)"; exit 2 ;;
 esac
 # docs-live: the published site's one unminified pass (L1-L4), its clock, no structure dump.
 passes="minified unminified" unmin_levels=L1,L2,L3 structure_dump=1

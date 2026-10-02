@@ -1,24 +1,109 @@
-//! Collation sanity on the 2,802 strings the reference sites sort (`corpus/collate/site-strings.hex`:
-//! titles, taxonomy terms, ingredients, in English and Thai).
+//! Collation sanity on a few thousand generated titles in English and Thai (accents, case,
+//! digits, punctuation, Thai vowels and tone marks), like the titles and terms a site sorts.
 
 use std::cmp::Ordering;
 
 use ssg_base::Collate;
 use ssg_locale::{Collator, Locale};
 
+/// English and Thai words (Thai leading vowels, tone and vowel marks; no PAIYANNOI, which Thai
+/// sorts apart) combined into distinct titles.
 fn site_strings() -> Vec<String> {
-    let path = ssg_testkit::fixture::testdata("corpus/collate/site-strings.hex");
-    let text = std::fs::read_to_string(&path).unwrap();
-    text.lines()
-        .filter(|l| !l.is_empty())
-        .filter_map(|hex| {
-            let bytes: Vec<u8> = (0..hex.len())
-                .step_by(2)
-                .map(|i| u8::from_str_radix(&hex[i..i + 2], 16).unwrap())
-                .collect();
-            String::from_utf8(bytes).ok()
-        })
-        .collect()
+    const EN: [&str; 40] = [
+        "Almond",
+        "apple",
+        "Apricot",
+        "bagel",
+        "Banana",
+        "biscuit",
+        "Brownie",
+        "butter",
+        "Caramel",
+        "cashew",
+        "Cheese",
+        "chili",
+        "Chocolate",
+        "cookie",
+        "Cracker",
+        "crème",
+        "Croissant",
+        "Éclair",
+        "garlic",
+        "Ginger",
+        "honey",
+        "Jasmine",
+        "lemon",
+        "Mango",
+        "matcha",
+        "Noodle",
+        "nougat",
+        "Oat",
+        "paprika",
+        "Peanut",
+        "pretzel",
+        "Rice",
+        "seaweed",
+        "Sesame",
+        "sugar",
+        "Taro",
+        "toffee",
+        "Vanilla",
+        "wafer",
+        "Yuzu",
+    ];
+    const TH: [&str; 40] = [
+        "กล้วย",
+        "ขนม",
+        "ข้าว",
+        "ข้าวเหนียว",
+        "คุกกี้",
+        "เค้ก",
+        "งา",
+        "จิ๊กซอว์",
+        "ช็อกโกแลต",
+        "ซอส",
+        "ถั่ว",
+        "ทุเรียน",
+        "น้ำตาล",
+        "น้ำผึ้ง",
+        "เนย",
+        "ใบเตย",
+        "ปลา",
+        "ปาร์ตี้",
+        "เผือก",
+        "เผ็ด",
+        "พริก",
+        "มะพร้าว",
+        "มะม่วง",
+        "มันฝรั่ง",
+        "ไมโล",
+        "รสชาติ",
+        "ลำไย",
+        "สตรอว์เบอร์รี",
+        "สาหร่าย",
+        "หมู",
+        "หวาน",
+        "เห็ด",
+        "แอปเปิ้ล",
+        "อัลมอนด์",
+        "ไอศกรีม",
+        "เกลือ",
+        "แครกเกอร์",
+        "โกโก้",
+        "ไข่",
+        "ฮาโลวีน",
+    ];
+    let mut v = Vec::new();
+    for (i, en) in EN.iter().enumerate() {
+        for (j, th) in TH.iter().enumerate() {
+            v.push(format!("{en} {th}"));
+            v.push(format!("{th} {en}"));
+            if (i + j) % 7 == 0 {
+                v.push(format!("{en}-{} ({th})", i * 40 + j));
+            }
+        }
+    }
+    v
 }
 
 fn sorted(c: &dyn Collate, strings: &[String]) -> Vec<String> {

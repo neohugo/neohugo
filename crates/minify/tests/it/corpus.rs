@@ -5,17 +5,15 @@
 //! - `tests/fixtures/tdewolff-inputs.jsonl.gz`: the unique UTF-8 inputs of the old port's
 //!   tdewolff fixtures (`git show go-parity-final:crates/tdewolff-minify/tests/fixtures/…`):
 //!   `upstream` (tdewolff's own `_test.go` tables, without `TestCSSInline` and the number
-//!   helpers), `literals`, `structured` (every third row) and `fuzz`, without rows that pass
+//!   helpers), `literals` and `structured` (every third row), without rows that pass
 //!   media-type parameters; and the JS inputs of `crates/tdewolff-minify-js/tests/fixtures`:
 //!   `grammar` (every eighth), `adversarial` and `repo` (inputs up to 16 KiB), `literals`.
+//!   The `fuzz` rows (mutations of the owner's private site) and that site's inline scripts
+//!   were removed.
 //!   Records: `{"from", "kind", "input"}`.
 //! - `testdata/oracle/commands/e2e/e2e.json.gz`: the Go `--minify` output trees of the e2e sites
 //!   (HTML, XML, JSON and CSS already minified by tdewolff).
 //! - `testdata/oracle/hugolib/build/*.json.gz`: the unminified HTML outputs of the build oracle.
-//! - `testdata/corpus/minify/*.tsv`: the tdewolff site corpora (seeksnack sources, the golden
-//!   unminified build, the recorded nested calls). The repository holds only their manifests
-//!   (path, sizes, Go digest); the files are run when `FUGO_MINIFY_CORPUS` names a directory
-//!   with `pristine/<path>`, `golden-nominify/<path>` and `corpus2/<kind>/<id>.in`.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -436,7 +434,7 @@ fn assert_clean(report: &Report) {
 #[test]
 fn tdewolff_fixture_inputs() {
     let inputs = salvaged();
-    assert!(inputs.len() > 11_000, "{} inputs", inputs.len());
+    assert!(inputs.len() > 6_000, "{} inputs", inputs.len());
     assert_clean(&run(&Minifier::default(), &inputs));
 }
 
@@ -470,108 +468,4 @@ fn non_default_options_on_fixture_inputs() {
         .filter(|i| i.from == "upstream" || i.from == "literals")
         .collect();
     assert_clean(&run(&Minifier::with_options(o, &[]), &inputs));
-}
-
-/// One manifest row: path or id, params, Go input and output size, Go digest, Go error.
-struct Row {
-    name: String,
-    params: String,
-    len_in: usize,
-}
-
-fn manifest(file: &str) -> Vec<Row> {
-    let path = testdata(&format!("corpus/minify/{file}"));
-    let text = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
-    text.lines()
-        .filter(|l| !l.starts_with('#'))
-        .map(|l| {
-            let cols: Vec<&str> = l.split('\t').collect();
-            assert!(cols.len() >= 5, "{file}: {l}");
-            let sizes = if file.starts_with("corpus2") { 2 } else { 1 };
-            Row {
-                name: cols[0].to_owned(),
-                params: if sizes == 2 {
-                    cols[1].to_owned()
-                } else {
-                    "-".to_owned()
-                },
-                len_in: cols[sizes]
-                    .parse()
-                    .unwrap_or_else(|_| panic!("{file}: {l}")),
-            }
-        })
-        .collect()
-}
-
-const MANIFESTS: [(&str, usize); 6] = [
-    ("pristine.tsv", 2672),
-    ("golden-nominify.tsv", 4910),
-    ("corpus2-css.tsv", 3),
-    ("corpus2-css-resource.tsv", 1),
-    ("corpus2-json.tsv", 1719),
-    ("corpus2-svg.tsv", 4),
-];
-
-/// The site corpora: the manifests are intact; the files run when present.
-#[test]
-fn tdewolff_site_corpora() {
-    let root = std::env::var_os("FUGO_MINIFY_CORPUS").map(PathBuf::from);
-    let mut inputs = Vec::new();
-    let mut missing = 0;
-    for (file, rows) in MANIFESTS {
-        let manifest = manifest(file);
-        assert_eq!(manifest.len(), rows, "{file}");
-        let Some(root) = &root else { continue };
-        for row in manifest {
-            let (path, kind) = match file.strip_prefix("corpus2-") {
-                Some(k) => {
-                    let k = k.trim_end_matches(".tsv");
-                    let kind = match k {
-                        "json" => MinifyTarget::Json,
-                        "svg" => MinifyTarget::Svg,
-                        _ => MinifyTarget::Css,
-                    };
-                    (
-                        root.join("corpus2")
-                            .join(k)
-                            .join(format!("{}.in", row.name)),
-                        kind,
-                    )
-                }
-                None => {
-                    let dir = file.trim_end_matches(".tsv");
-                    let Some(kind) = kind_of_path(&row.name.replace(".scss", ".css")) else {
-                        continue;
-                    };
-                    (root.join(dir).join(&row.name), kind)
-                }
-            };
-            // Style attributes (`inline=1`) are minified inside HTML, not stand-alone.
-            if row.params.contains("inline=1") {
-                continue;
-            }
-            match std::fs::read_to_string(&path) {
-                Ok(input) => {
-                    assert_eq!(input.len(), row.len_in, "{}", path.display());
-                    inputs.push(Input {
-                        from: file.trim_end_matches(".tsv").to_owned(),
-                        kind,
-                        input,
-                    });
-                }
-                Err(_) => missing += 1,
-            }
-        }
-    }
-    match root {
-        None => eprintln!("FUGO_MINIFY_CORPUS is not set: manifests checked, files not run"),
-        Some(root) => {
-            eprintln!(
-                "{}: {} files, {missing} missing",
-                root.display(),
-                inputs.len()
-            );
-            assert_clean(&run(&Minifier::default(), &inputs));
-        }
-    }
 }

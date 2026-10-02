@@ -29,7 +29,7 @@ multihost: false
 security:
   inlineShortcodes: disabled
 sites:
-  - baseURL: "https://seeksnack.com/"
+  - baseURL: "https://snack.example/"
     cascade: 0
     code: en
     disableKinds: []
@@ -84,7 +84,7 @@ sites:
     ugly: never
     urlPrefix: ""
     weight: 1
-  - baseURL: "https://seeksnack.com/"
+  - baseURL: "https://snack.example/"
     cascade: 0
     code: th
     disableKinds: []

@@ -8,8 +8,8 @@ use pretty_assertions::assert_eq;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use ssg_testkit::fixture::{
-    self, Counts, FixtureError, GoString, Layout, Tag, UPSTREAM, counts, oracle, oracle_lines,
-    read_values, records, repo_dir, repo_file, testdata,
+    self, Counts, FixtureError, GoString, Layout, Tag, UPSTREAM, counts, hugo_docs, oracle,
+    oracle_lines, read_values, records, repo_dir, repo_file, testdata,
 };
 
 fn counted(rel: &str) -> Counts {
@@ -54,7 +54,7 @@ fn hugolib_build_sites() {
         .map(|e| e.unwrap().file_name().into_string().unwrap())
         .collect();
     names.sort();
-    assert_eq!(names.len(), 26);
+    assert_eq!(names.len(), 25);
     for name in &names {
         let rel = format!("oracle/hugolib/build/{name}");
         let fx: BuildFixture = oracle(&rel);
@@ -69,14 +69,6 @@ fn hugolib_build_sites() {
         }
         assert_records(&rel);
     }
-    let seeksnack: BuildFixture = oracle("oracle/hugolib/build/seeksnack.json.gz");
-    assert!(
-        seeksnack
-            .site
-            .files
-            .iter()
-            .any(|f| f.path == "content/ขนม/_index.th.md")
-    );
 }
 
 // ── family 2: oracle/transform/absurl, gzipped JSONL ──
@@ -101,7 +93,7 @@ fn transform_absurl_lines() {
     assert_eq!(cases.len(), counted(rel).records);
     assert!(cases.iter().all(|c| matches!(c.k.as_str(), "html" | "xml")));
     assert!(cases.iter().all(|c| c.out.is_some() != c.panic.is_some()));
-    assert_eq!(cases.iter().filter(|c| c.panic.is_some()).count(), 93);
+    assert_eq!(cases.iter().filter(|c| c.panic.is_some()).count(), 90);
     let first = &cases[0];
     assert_eq!(first.p, "https://example.org/");
     assert!(
@@ -224,7 +216,7 @@ fn repo_files_of_the_go_tree() {
         testdata("upstream/resources/testdata/exif/orientation6.jpg")
     );
     for rel in [
-        "docs/config.toml",
+        "docsite/config.toml",
         "hugolib/testdata/fruits.json",
         "resources/testdata2/a.png",
         "Cargo.toml",
@@ -235,6 +227,22 @@ fn repo_files_of_the_go_tree() {
     for p in UPSTREAM {
         assert!(repo_file(p).exists(), "{p}");
     }
+}
+
+/// Ids naming Hugo's documentation site as the Go tree had it (`docs/...`) are in
+/// `testdata/hugo-docs`; `docs/rust-port`, this repository's own notes, stays.
+#[test]
+fn repo_files_of_the_hugo_docs() {
+    assert_eq!(
+        repo_file("docs/content/en/_index.md"),
+        hugo_docs().join("content/en/_index.md")
+    );
+    assert!(repo_file("docs/assets/images/logos/logo-512x512.png").is_file());
+    assert!(repo_file("docs/hugo.toml").is_file());
+    assert_eq!(
+        repo_file("docs/rust-port/HANDOFF.md"),
+        repo_dir().join("docs/rust-port/HANDOFF.md")
+    );
 }
 
 /// Ids recorded while the workspace was `rust/` (e.g. the sources of
@@ -254,7 +262,7 @@ fn repo_files_of_the_legacy_workspace() {
 #[test]
 fn every_fixture_matches_counts_json() {
     let all = counts();
-    assert_eq!(all.len(), 255);
+    assert_eq!(all.len(), 238);
     for (rel, c) in &all {
         assert!(c.from.starts_with("crates/"), "{rel}");
         assert_records(rel);

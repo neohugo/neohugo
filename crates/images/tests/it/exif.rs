@@ -159,7 +159,7 @@ fn dates_and_positions_match_the_exif_oracle() {
         unavailable.is_empty(),
         "oracle sources not found: {unavailable:?}"
     );
-    assert!(compared >= 2_440, "only {compared} cases compared");
+    assert!(compared >= 2_335, "only {compared} cases compared");
     assert!(
         with_data > 50,
         "only {with_data} cases with a date or position"

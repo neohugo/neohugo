@@ -19,7 +19,7 @@ tagged `go-parity-final` in the local repository (the tag is not on GitHub):
 Go workflows) was removed after commit `44529028`. What it generated is frozen:
 `testdata/oracle/`, `testdata/golden/`, `crates/build/tests/it/testsite-go.txtar`,
 `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`,
-`crates/funcs/tests/fixtures/remarshal/go.txt` and `docs/data/docs.yaml`, as well as the Go
+`crates/funcs/tests/fixtures/remarshal/go.txt` and `testdata/hugo-docs/data/docs.yaml`, as well as the Go
 outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv`
 (PROVENANCE.md). To regenerate the data of `44529028`, run the old recipe in a worktree of it
 (`git worktree add <dir> 44529028`) and copy the result back: `testdata/golden/README.md`,
@@ -48,7 +48,7 @@ crates/<name>/              the product crates of §2.1 (T00 wrote stubs with th
 testdata/oracle/<area>/     Go-oracle fixtures as plain JSON (fugo schema, below; frozen)
 testdata/golden/<label>/    the Go build's manifests, structure dumps and images (frozen)
 testdata/baselines/         the ratchet's baselines (tools/dev/changes/README.md)
-testdata/corpus/            corpora: seeksnack bodies and front matter, dates, minifier, Thai strings
+testdata/corpus/            corpora: date formats, Thai strings
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
 testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids);
                             goroot/: Go's image test data the image oracles read
@@ -59,7 +59,7 @@ tools/dev/              the harness (compare.sh, structdiff.py, manifest.py, sel
                             changes/), node.sh, licence-check.sh, notices.py, package.py, disk.sh,
                             fixtures2json.py
 tools/rust-port/            i01/sites.py (every test site), patches.json and the site txtars; the
-                            GetRemote cache and the real seeksnack record (its README.md)
+                            docs-live GetRemote cache (its README.md)
 docs/                       Hugo's documentation site, a test site the tests record by hash (keep
                             it unchanged); docs/rust-port/: the plan, the handoff, template-api.md
 .github/workflows/ci.yml    CI and releases (below)
@@ -82,7 +82,7 @@ Member crates: `[lib] doctest = false`; one integration binary `tests/it/main.rs
   export CARGO_TARGET_DIR=<main checkout>/target   # shared by all worktrees
   export CARGO_BUILD_JOBS=4 CARGO_INCREMENTAL=0
   ```
-- **Build commands:** only `cargo test -p fugo-<crate>` (`crates/cli` is package `fugo`;
+- **Build commands:** only `cargo test -p ssg-<crate>` (`crates/cli` is package `ssg-cli`;
   plus `-p` of direct dependants after an API change). Never `cargo check`, `clippy` or `doc` in the edit–test loop; never `--workspace`;
   `--release` only for measurements and packaging (since T70); never `cargo clean` (`cargo clean -p X` only when coordinated).
   `cargo fetch`/`cargo metadata` use `--target x86_64-unknown-linux-gnu` /
@@ -112,13 +112,14 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 
 | What | Command |
 |---|---|
-| per crate | `cargo test -p fugo-<crate>` (`crates/cli` is package `fugo`; from your worktree's root) |
-| phase end | `cargo clippy -p fugo-<crate> -- -D warnings` per crate of the phase; `cargo fmt --check`; `tools/dev/licence-check.sh` |
+| per crate | `cargo test -p ssg-<crate>` (`crates/cli` is package `ssg-cli`, binary `fugo`; from your worktree's root) |
+| phase end | `cargo clippy -p ssg-<crate> -- -D warnings` per crate of the phase; `cargo fmt --check`; `tools/dev/licence-check.sh` |
 | graph | `cargo metadata --format-version 1 --filter-platform x86_64-unknown-linux-gnu` |
 | disk | `tools/dev/disk.sh` |
 | fixtures | `tools/dev/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
 | acceptance | `tools/dev/compare.sh <site> [--docs-patches i01\|reduced\|live] [KEEP=1]` (T03) |
-| docs site | `tools/docs/build.sh [-o <dir>] [--serve]`: https://getfugo.github.io/ built with fugo (`docs/` + the Tera overlay `sites/docs`, the docs' own node modules; gate A-D3 compares it with the published site) |
+| docs site | `tools/docs/build.sh [-o <dir>] [--serve]`: fugo's documentation, `docs/` (its own Tera theme; no node tools); `cargo test -p ssg-cli docs_site` builds it and fails on any warning (broken links included). The reference data in `docs/data/` is generated: `INSTA_UPDATE=always cargo test -p ssg-testkit contract` (`template_api.json`) and `-p ssg-cli docs_data` (`commands.json`) |
+| Hugo docs | `tools/hugo-docs/build.sh [-o <dir>] [--serve]`: Hugo's documentation (`testdata/hugo-docs` + the Tera overlay `sites/docs`, its own node modules), as neohugo.github.io published it; gate A-D3 compares it with the published site |
 | templates | `fugo templates check -s <site-dir>` (T37) |
 | CI, locally | see "CI and releases" below (workspace-wide: not for the edit–test loop) |
 
@@ -195,11 +196,11 @@ all of them, and its Test job fails when a test prints `SKIPPED`:
 | Tests | Tool | In CI |
 |---|---|---|
 | `ssg-jsbuild`: `jsbuild_synth`, `jsbuild_docs` and the `build::` tests that run scripts (the oracle's and fugo's bundles run side by side, compared by what they do) | `node` on `PATH` | `actions/setup-node`, Node 22 |
-| `ssg-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_reconstruction_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
-| `ssg-resources`: `postcss_oracle_real_tool`, `post_process_reconstruction_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `FUGO_POSTCSS_BIN`, `FUGO_TAILWINDCSS_BIN`, `FUGO_BABEL_BIN` (plugins: `FUGO_NODE_MODULES`) | `tools/dev/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/dev/` |
-| `fugo`: `gate_a_r`, `gate_a_d2` (`tools/dev/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`FUGO_NODE_MODULES`, else `tools/dev/node.sh path`) | the runner's `python3` and `bash`; the rows above |
+| `ssg-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_css_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
+| `ssg-resources`: `postcss_oracle_real_tool`, `post_process_css_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `FUGO_POSTCSS_BIN`, `FUGO_TAILWINDCSS_BIN`, `FUGO_BABEL_BIN` (plugins: `FUGO_NODE_MODULES`) | `tools/dev/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/dev/` |
+| `fugo`: `gate_a_d2` (`tools/dev/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`FUGO_NODE_MODULES`, else `tools/dev/node.sh path`) | the runner's `python3` and `bash`; the rows above |
 
-`ssg-images`' `sizes_match_the_process_oracle` compares all 13,250 cases, 2,204 of them from
+`ssg-images`' `sizes_match_the_process_oracle` compares all 12,264 cases, 2,204 of them from
 Go's own image test data in `testdata/upstream/goroot/` and `testdata/upstream/old-port/`
 (`crates/images/README.md`); a source that cannot be found fails it. Python
 is needed only by the gate tests and the tools (`licence-check.sh`, `selftest.py`, `notices.py`,

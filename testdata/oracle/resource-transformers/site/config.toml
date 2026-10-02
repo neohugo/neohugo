@@ -9,7 +9,7 @@ timeout = "1s"
 [params]
   api = "https://api.example.org"
   [params.comment]
-    apipro = "https://api.seeksnack.example"
+    apipro = "https://api.seasample.example"
 
 [security]
   [security.http]

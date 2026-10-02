@@ -118,11 +118,11 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
 ## Tests (`cargo test -p ssg-images`)
 
 * `smartcrop` (unit tests): the regions Go picks (`testdata/oracle/images/smartcrop/regions.json.gz`,
-  1975 cases: the docs' images, Hugo's and Go's test images and the seeksnack images — JPEGs of
+  1576 cases: the docs' images and Hugo's and Go's test images — JPEGs of
   every subsampling, progressive, with restart intervals, RGB, CMYK and grey; PNGs of every
   colour type and depth; a GIF — at 19 targets each with the default box filter, and at four
   targets with each of the 15 filters on four sources): all equal; every region is one of the
-  candidates planning sizes crops with. `jpegdec`: Go 1.25's decoding of the repository's 122
+  candidates planning sizes crops with. `jpegdec`: Go 1.25's decoding of the repository's 107
   JPEGs (`jpeg.json.gz`, the FNV-1a hash of every plane, or Go's error): all equal. The oracle
   was a Go program: Hugo's `smartCrop` and resizer (44529028) over smartcrop v0.3.0, gift
   v1.2.1, x/image v0.28.0, `image.Decode`, built with Go 1.25.0 for amd64 (the arm64 build's
@@ -131,7 +131,8 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
   `oracle/images/config` (all match, bar the documented rules below), `[imaging]` decoding,
   colours, formats, typed kwargs.
 * `process`: result sizes against `oracle/images/process` — every spec, filter chain and
-  seeksnack template chain the oracle ran: **13248/13250**, the two differences being corrupt
+  real-site template chain the oracle ran (the cases on the owner's site images removed,
+  12,264 left), the two differences being corrupt
   PNGs (below). 85 sources are Go's own image test data: 80 files of Go 1.24.7 in
   `testdata/upstream/goroot/src/image/`, and five Go 1.24.7 does not have (four JPEGs of Go
   1.27.1's `image/testdata` and the gopher of `image/png`'s `example_test.go`) as the old port
@@ -164,7 +165,7 @@ tests compare against Hugo's golden QR images and `TestQR`'s content hashes.
 * `filters`: every variant from template maps on opaque, transparent and JPEG inputs; pixels of
   the geometry and compositing filters; alpha edges.
 * `queue`: names, identity, chains, publishing only wanted results, the cache, WebP, all formats.
-* `exif`: date and position against `oracle/images/exif` (every real image matches; 2440
+* `exif`: date and position against `oracle/images/exif` (every real image matches; 2335
   cases, all sources available).
 
 The T01 manifest format (`testdata/golden/images/manifest.json`):

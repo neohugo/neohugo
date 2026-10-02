@@ -44,7 +44,7 @@ fn site(fixture_dir: &str) -> Site {
     if fixture_dir == "docs" {
         let root = crate::scratch("jsbuild-docs").join("site");
         copy_tree(
-            &crate::repo_root().join("docs/assets"),
+            &crate::repo_root().join("testdata/hugo-docs/assets"),
             &root.join("assets"),
         );
         let assets = MountedDirs::new().mount(root.join("assets"), "");

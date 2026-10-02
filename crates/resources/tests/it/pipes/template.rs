@@ -1,4 +1,4 @@
-//! `execute_as_template` on Tera assets (the reconstruction's `ts/search.ts`, written with Tera
+//! `execute_as_template` on Tera assets (a `ts/search.ts`, written with Tera
 //! syntax as `sites/<site>/assets` hold them): the seam executed by a Tera executor, the
 //! output a named target (same data: the same resource; other data in the same language: a
 //! conflict naming both calls; in a later language: the first language's), then `js_build`.
@@ -53,13 +53,13 @@ fn execute_as_template_with_tera() {
     let p = project(site.path(), |_| {});
     let s = &p.store;
     let src = p.asset("ts/search.ts");
-    let data = Tera(json!({"api": "https://api.seeksnack.com"}));
+    let data = Tera(json!({"api": "https://api.example.com"}));
     let id = s
         .execute_as_template(src, "ts/search.ts", &data, &call(0, 3))
         .unwrap();
     let out = String::from_utf8(s.content(id).unwrap().to_vec()).unwrap();
     assert!(
-        out.contains(r#"const api: string = "https://api.seeksnack.com";"#),
+        out.contains(r#"const api: string = "https://api.example.com";"#),
         "{out}"
     );
     let r = s.resource(id);
@@ -103,6 +103,6 @@ fn execute_as_template_with_tera() {
         )
         .unwrap();
     let code = String::from_utf8(s.content(js).unwrap().to_vec()).unwrap();
-    assert!(code.contains("https://api.seeksnack.com"), "{code}");
+    assert!(code.contains("https://api.example.com"), "{code}");
     assert_eq!(s.resource(js).rel_permalink, "/ts/search.js");
 }

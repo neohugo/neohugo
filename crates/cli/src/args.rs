@@ -71,7 +71,7 @@ pub struct ProjectArgs {
     #[arg(short = 's', long, value_name = "DIR", global = true)]
     pub source: Option<PathBuf>,
     /// Configuration files, relative to the source (comma-separated; the first wins). Default:
-    /// the first of `config.{toml,yaml,yml,json}`, hugo.*, config.*.
+    /// the first of `config.{toml,yaml,yml,json}`.
     #[arg(long, value_name = "FILES", value_delimiter = ',', global = true)]
     pub config: Vec<PathBuf>,
     /// The configuration directory (default `config`).

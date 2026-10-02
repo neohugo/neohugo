@@ -7,14 +7,14 @@
 # ── transform/absurl/cases.jsonl.gz (canonifyURLs / relativeURLs) ──
 
 [absurl.go-panic]
-count = 93
+count = 90
 reason = """
 Inputs on which Go's replacer panics (a slice bounds error after its position moves backwards,
 e.g. a document starting with `"/x"`). This port rewrites them like any other input.
 """
 
 [absurl.leading-candidate]
-count = 855
+count = 819
 reason = """
 Documents that start with a root-relative URL (`/x`, `"/x`, `&#34;/x`). Go's replacer
 initialises the next position of every prefix to 0 instead of "not searched yet", so position 0
@@ -24,7 +24,7 @@ with `<!doctype` or `<?xml`, so real outputs never hit this.
 """
 
 [absurl.prefix-inside-rewrite]
-count = 54
+count = 53
 reason = """
 A prefix occurring inside a rewritten `srcset` list (`srcset="/a.png?href=/b 1x"`). Go keeps a
 stale next position for that prefix and jumps back into input it has already written,
@@ -38,7 +38,7 @@ count = 14
 reason = """
 Go's `metainject.HugoGenerator` transformer adds `<meta name="generator">` to the home page
 only when `disableHugoGeneratorInject` is set (this port inverted the flag), which no site does;
-the port has no generator injection (docs/rust-port/specs/output-publishing.md §0.4).
+the port has no generator injection.
 """
 
 # ── commands/staticcopy/staticcopy.json.gz (static sync; one check per case count and per

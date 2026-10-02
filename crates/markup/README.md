@@ -92,12 +92,11 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
 |---|---|
 | heading ids, docs corpus (convert oracle, all 6 configurations) | 1654/1654 per configuration; pages 895/895…897/897 |
 | definition-term ids (`autoDefinitionTermID`, cfgs ascii, noattr) | 842/842 |
-| heading ids, seeksnack | spec §7 examples (Thai, first-child quirk, entities, dedupe, setext) 16/16; the adversarial seeksnack headings of both oracles 100%; the seeksnack corpus has no Hugo-id oracle (its `hugo-autoid` instance uses goldmark's own ids from raw lines) |
+| heading ids, Hugo's rules | Thai, first-child quirk, entities, dedupe, setext: 16/16 (`acceptance::passes::heading_ids`); the adversarial headings of both oracles 100% |
 | hook invocations (hooks oracle, 1357 conversions) | 1352/1357 identical sequences (≥ 99.6%) |
 | hook fields, after typographer normalisation | 57975/58019 (99.92%; `IsBlock` 358/362, `TBody` 220/230: the dropped marker rows); `PageInner` 11249/11289 |
 | TOC (tree, identifiers, 5 × `ToHTML`), all configurations | 995/995 each; `fragments()` equals `render().fragments` on every document |
-| seeksnack bodies, normalised HTML | 251/251 for goldmark `unsafe`, `all`, `hugo`, `hugo-autoid`; 240/251 for plain `default` (see deviations) |
-| docs pages, normalised HTML | default 873/875, seeksnack 875/877, ascii 875/877, blackfriday 875/875, noattr 873/875, cjk 540/877 (the 2: typographer, below) |
+| docs pages, normalised HTML | default 873/875, site 875/877, ascii 875/877, blackfriday 875/875, noattr 873/875, cjk 540/877 (the 2: typographer, below) |
 | goldmark structure (`acceptance::compat`): tables (lazy lines, padding, rows, escaped pipes, tightness, task items, lines before a header, a setext underline or definition after a table, several tables), context markers, reference-definition text blocks, comments | 53/53 documents of `tests/data/compat/compat.json` byte-equal to Hugo's goldmark converter at 44529028 (the marker row of one dropped); the expectations are written by `tests/data/compat/mdcompat.go.txt` (recipe in its header) |
 | `CodeFences::Plain` | testsite fence byte-equal; first 20 docs pages with fences 20/20; all 2036 docs `<pre>` blocks byte-equal |
 | passes | deflist ids, alert title/sign, block attributes, passthrough, emoji, linkify: `acceptance::passes` |
@@ -122,7 +121,7 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
 - **A fence whose language has no hook and no highlighter** renders as plain
   `<pre><code class="language-x">`; Hugo fails the page ("no code renderer found").
 - **HTML comments** are dropped under `RawHtml::Omit` (Hugo's behaviour); the plain goldmark
-  `default` corpus instance writes `<!-- raw HTML omitted -->` instead (11 seeksnack bodies).
+  `default` instance writes `<!-- raw HTML omitted -->` instead.
 - **Typographer**: goldmark's rules are ported; 2 docs pages still differ on a closing `'`
   at the end of a line inside a paragraph (goldmark's choice there depends on state this
   port does not model).
@@ -150,10 +149,6 @@ Contexts (`LinkCtx`/`ImageCtx`, `HeadingCtx`, `CodeBlockCtx`, `BlockquoteCtx`, `
 - `ssg-config`'s `TocConfig::end_level` is `u8`, so Hugo's `endLevel = -1` (cfg
   `blackfriday` of the oracle) cannot be decoded; `TocOptions::from` maps a present value to
   `Some`. A config fix task should make it signed (or optional).
-- No Hugo-rendered seeksnack HTML with Hugo heading ids exists under `testdata` (the
-  goldmark corpus uses goldmark's own id generator), so "heading IDs 100% on seeksnack" is
-  evidenced by the spec examples and the adversarial documents only; the golden site (T01)
-  will give the full check.
 
 ## T04 spike: decision
 
@@ -165,8 +160,7 @@ and this task had no network. Nothing measured below calls for it.
 Reasons:
 
 1. **Block structure and inline parsing already match goldmark on the corpora.** Natively,
-   with no fugo pass, 862/959 docs pages and 251/251 seeksnack bodies (plain goldmark
-   configurations; 249/251 with Hugo's extensions) are equal after normalisation. Once the
+   with no fugo pass, 862/959 docs pages are equal after normalisation. Once the
    differences owned by passes that T22 writes anyway are folded (Hugo's comment dropping,
    typography, footnote markup), **925/959** docs pages are equal; the remaining 34 are listed
    under "residual differences" and each maps to a pass or an accepted quirk.
@@ -187,11 +181,9 @@ Reasons:
 
 ## Measurements
 
-Inputs: the 959 `docs/content` bodies of `testdata/oracle/markup/convert` (Hugo's goldmark
+Inputs: the 959 `docs/content` (now `testdata/hugo-docs/content`) bodies of `testdata/oracle/markup/convert` (Hugo's goldmark
 converter, six markup configurations, with a stub highlighter) and `markup/hooks` (hook
-contexts, `seeksnack` configuration), and the 251 seeksnack bodies of
-`testdata/corpus/goldmark/corpus{,-ext}.gmf.gz` (plain goldmark instances `default`,
-`unsafe`, `all`, `hugo`, `hugo-autoid`). comrak runs natively with the options closest to
+contexts, `site` configuration). comrak runs natively with the options closest to
 each configuration (`tests/it/comrak_spike/engine.rs`).
 
 Normalisation (`normalize.rs`): entities decoded, attributes sorted, whitespace collapsed
@@ -205,15 +197,13 @@ dropped (auto ids are a pass). Feature rows compare the feature's own elements, 
 | input | matched / total |
 |---|---|
 | docs, cfg `default` (unsafe off, typographer, linkify, deflist, footnote, `attribute.title`) | 862 / 959 |
-| docs, cfg `seeksnack` (same, unsafe on) | 870 / 959 |
+| docs, cfg `site` (same, unsafe on) | 870 / 959 |
 | docs, cfg `ascii` (github-ascii ids, `attribute.block`, dt ids, image not wrapped) | 864 / 959 |
 | docs, cfg `blackfriday` (xhtml, hardWraps, no typographer) | 897 / 959 |
 | docs, cfg `cjk` (CJK line breaks, escaped space, custom typographer quotes — not in comrak) | 452 / 959 |
 | docs, cfg `noattr` | 861 / 959 |
 | docs, cfg `default`, after pass-owned folds | **925 / 959** |
-| docs, cfg `seeksnack`, after pass-owned folds | **925 / 959** |
-| seeksnack, goldmark `default` / `unsafe` / `all` | 251 / 251 each |
-| seeksnack, goldmark `hugo` / `hugo-autoid` | 249 / 251 (both: an unbalanced `"`, typographer) |
+| docs, cfg `site`, after pass-owned folds | **925 / 959** |
 
 ### Per feature (native comrak, no pass)
 
@@ -240,14 +230,14 @@ dropped (auto ids are a pass). Feature rows compare the feature's own elements, 
 | raw HTML passed (`unsafe = true`) | 22 / 22 tags/comments | OK |
 | `codeFences = false`, byte-exact `<pre>` | 2036 / 2036 | OK: `CodeFences::Plain` = comrak's default code block |
 
-### `sourcepos` of inline nodes (docs + seeksnack)
+### `sourcepos` of inline nodes (docs)
 
 | node | exact |
 |---|---|
-| link: paragraph / list / table / deflist / blockquote / heading / footnote | 1663/1663, 708/708, 2087/2087, 498/498, 181/181, 4/4, 5/5 |
-| image | 556 / 556 |
-| code span, emphasis, raw inline HTML | 7609/7609, 1054/1054, 58/58 |
-| text (no escapes/entities/typography) | 23237 / 23237 |
+| link: paragraph / list / table / deflist / blockquote / footnote | 1586/1586, 552/552, 2045/2045, 498/498, 180/180, 5/5 |
+| image | 31 / 31 |
+| code span, emphasis, raw inline HTML | 7606/7606, 478/478, 8/8 |
+| text (no escapes/entities/typography) | 19597 / 19597 |
 | **inlines of a paragraph that began with link reference definitions** | links 0 / 15, text 20 / 81 |
 
 Columns are UTF-8 byte columns (1-based, end inclusive), so `line_start[line-1] + col - 1` is
@@ -302,7 +292,7 @@ replaced by `NodeValue::Raw`.
    (what the oracle shows).
 8. **Typographer (goldmark rules)**: `parse.smart` off and goldmark's typographer over text
    nodes (spec §8.4, per-block quote counters, configurable substitutions incl. empty ones,
-   entity output). Needed for seeksnack byte parity (the 2 bodies) and the 63 docs pages
+   entity output). Needed for the 63 docs pages
    whose substitution sequence differs.
 9. **Linkify (goldmark rules)**: `extension.autolink` off and goldmark's linkify over text
    nodes (spec §8.5): trigger characters, trailing-punctuation trimming, `linkifyProtocol`
@@ -328,7 +318,7 @@ replaced by `NodeValue::Raw`.
   `[A-Za-z0-9-_:.%]`, no commas or arrays); it matched all 11 docs headings, but Hugo's
   grammar should be the one T22 applies (re-parse the heading's trailing `{…}`).
 - Typographer and linkify passes are ports of goldmark heuristics (spec §8.4–8.5); without
-  them seeksnack is 249/251 and 63 docs pages differ in quotes.
+  them 63 docs pages differ in quotes.
 - The oracles cover no configuration with passthrough or `enableEmoji`, so those two verdicts
   rest on the spec and on goldmark-emoji's table, not on Hugo HTML.
 - comrak upgrades: the harness asserts floors at the measured values, so a regression fails
@@ -354,4 +344,4 @@ for sc := bufio.NewScanner(os.Stdin); sc.Scan(); {
 }
 ```
 
-with `names.txt` from `grep -rhoE ':[a-z0-9_+-]+:' docs/content --include=*.md | tr -d : | sort -u`.
+with `names.txt` from `grep -rhoE ':[a-z0-9_+-]+:' testdata/hugo-docs/content --include=*.md | tr -d : | sort -u`.

@@ -4,7 +4,7 @@
 # tests run or import:
 #   - @tailwindcss/cli, tailwindcss, @tailwindcss/typography: css.TailwindCSS of docs-reduced;
 #   - alpinejs, @alpinejs/{focus,persist}, @hotwired/turbo: js.Build imports of docs-reduced;
-#   - postcss, postcss-cli: css.PostCSS of the seeksnack reconstruction;
+#   - postcss, postcss-cli: css.PostCSS of ssg-resources' CSS chain tests;
 #   - @babel/cli, @babel/core: the real-tool Babel test of ssg-resources (js.Babel).
 # CI (.github/workflows/ci.yml) runs this script and points FUGO_{POSTCSS,TAILWINDCSS,BABEL}_BIN
 # and FUGO_NODE_MODULES into the result.

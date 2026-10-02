@@ -188,7 +188,7 @@ fn inline_shortcodes() {
     assert_eq!(call(&body.segments[2]).closing, Closing::SelfClosed);
 }
 
-/// Every Hugo content file of the oracle (docs, testsite, skeletons, seeksnack) whose body
+/// Every Hugo content file of the oracle (docs, testsite, skeletons) whose body
 /// lexes assembles, with an oracle that says a shortcode uses `inner` when the file closes or
 /// self-closes it; the calls' spans nest and the text reassembles the source.
 #[test]
@@ -196,7 +196,7 @@ fn content_files_assemble() {
     let mut tally = Tally::new("pageparser/assemble content files");
     let mut calls = 0;
     for (id, c) in page_cases() {
-        if !(id.starts_with("file:") || id.starts_with("seeksnack:")) {
+        if !id.starts_with("file:") {
             continue;
         }
         let Some(src) = c["src"].as_str() else {

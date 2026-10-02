@@ -205,6 +205,30 @@ fn funcs_spec_is_consistent() {
     );
 }
 
+/// `docs/data/template_api.json`, the documentation site's template reference, equals the spec.
+/// `INSTA_UPDATE=always` rewrites it (reviewed with `git diff`).
+#[test]
+fn docs_template_api_json_matches_spec() {
+    let path = ssg_testkit::fixture::repo_dir().join("docs/data/template_api.json");
+    let want = spec::template_api_json();
+    if std::env::var("INSTA_UPDATE").is_ok_and(|v| v == "always") {
+        fs::create_dir_all(path.parent().unwrap()).unwrap();
+        fs::write(&path, &want).unwrap();
+    }
+    let have = fs::read_to_string(&path).unwrap_or_default();
+    assert!(
+        have == want,
+        "{} is stale; regenerate with INSTA_UPDATE=always cargo test -p ssg-testkit contract",
+        path.display()
+    );
+    let v: serde_json::Value = serde_json::from_str(&want).expect("valid JSON");
+    assert_eq!(
+        v["funcs"].as_array().map(Vec::len),
+        Some(spec::FUNCS.len()),
+        "every name"
+    );
+}
+
 /// `docs/rust-port/template-api.md` equals the spec. `INSTA_UPDATE=always` rewrites it (reviewed with
 /// `git diff`, like every snapshot of the workspace).
 #[test]

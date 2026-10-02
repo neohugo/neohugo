@@ -5,7 +5,7 @@
 # other difference fails. Keys: [<family>.<class>].
 
 [paths.url-query-or-escape]
-count = 272
+count = 236
 reason = """
 A front matter `url` with a query (`/q?x=1`). Hugo keeps the query in `.RelPermalink`;
 This port keeps page links as URL paths (`UrlPath`) and escapes them when writing, so `?`
@@ -22,7 +22,7 @@ table is an ordinary `[permalinks.page]` table to this port.
 """
 
 [frontmatter-dates.unix-seconds-in-utc]
-count = 70
+count = 48
 reason = """
 A front matter date given as Unix seconds (`date: 1136214245`) is placed in UTC. Go places it
 in the process's local zone, which the oracle ran as a nameless zero offset (`+00:00`); the

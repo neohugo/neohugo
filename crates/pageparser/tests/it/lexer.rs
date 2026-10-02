@@ -203,8 +203,8 @@ fn lexer_items_match_hugo() {
         "pageparser/lex: {items} Hugo items over {} inputs",
         cases.len()
     );
-    assert_eq!(items, 141_869);
-    assert_eq!(cases.len(), 5_540);
+    assert_eq!(items, 135_326);
+    assert_eq!(cases.len(), 5_322);
     tally.finish();
     typed.finish();
 }

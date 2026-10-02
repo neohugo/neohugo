@@ -20,7 +20,7 @@ process.stdout.write(fs.readFileSync(0, 'utf8'));
 ";
 
 fn docs() -> std::path::PathBuf {
-    crate::support::repo_dir().join("docs")
+    crate::support::repo_dir().join("testdata/hugo-docs")
 }
 
 #[test]

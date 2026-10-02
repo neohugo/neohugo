@@ -1,8 +1,8 @@
 //! The content oracles of `testdata/oracle/hugolib/content`: Hugo's `.Content`,
 //! `.Summary`, `.Truncated`, `.Plain`, `.WordCount`, `.FuzzyWordCount` and `.ReadingTime` of
 //! every page per (site, output format), for the `content` site (shortcodes, hooks, summaries,
-//! CJK, HTML content, a bundled content page, a JSON table hook, an RSS heading hook), R's
-//! edge pages (`seeksnack`) and the shortcode syntax matrix (`shortcodes`).
+//! CJK, HTML content, a bundled content page, a JSON table hook, an RSS heading hook) and the
+//! shortcode syntax matrix (`shortcodes`).
 //!
 //! The Go layouts of the fixtures are replaced by their Tera conversions below; content files
 //! keep Hugo's shortcode syntax (the one inline shortcode body is Tera, as inline shortcode
@@ -78,45 +78,6 @@ const CONTENT_LAYOUTS: &[(&str, &str)] = &[
     ("layouts/_shortcodes/v1.html", "<em>{{ inner }}</em>"),
 ];
 
-const SEEKSNACK_LAYOUTS: &[(&str, &str)] = &[
-    (
-        "layouts/_markup/render-image.html",
-        r#"<img src="{{ destination | safe }}" alt="{{ text }}"{% if title %} title="{{ title }}"{% endif %}>"#,
-    ),
-    ("layouts/_markup/render-table.json.json", JSON_TABLE),
-    ("layouts/_shortcodes/Mixed.html", "mixed"),
-    (
-        "layouts/_shortcodes/badge.html",
-        r#"<span>{{ shortcode | arg(index=0, default="") }}{% set b = shortcode | arg(index=1, default="") %}{% if b %}-{{ b }}{% endif %}</span>"#,
-    ),
-    (
-        "layouts/_shortcodes/box.html",
-        r#"<div class="box {{ shortcode | arg(name="class", default="") }}">{{ inner | markdownify }}</div>"#,
-    ),
-    ("layouts/_shortcodes/empty.html", "{{- inner -}}"),
-    (
-        "layouts/_shortcodes/img.html",
-        r#"<img src="{{ shortcode | arg(name="src", default="") }}" alt="{{ shortcode | arg(name="alt", default="") }}" width="{{ shortcode | arg(name="width", default="") }}">"#,
-    ),
-    (
-        "layouts/_shortcodes/nested.html",
-        "<section>{{ inner }}</section>",
-    ),
-    (
-        "layouts/_shortcodes/note.html",
-        r#"<div class="note">{{ inner }}</div>"#,
-    ),
-    (
-        "layouts/_shortcodes/quote.html",
-        "<blockquote>{{ inner }}</blockquote>",
-    ),
-    (
-        "layouts/_shortcodes/thai.html",
-        r#"{{ shortcode | arg(name="คำ", default="") }}"#,
-    ),
-    ("layouts/_shortcodes/v1.html", "<em>{{ inner }}</em>"),
-];
-
 const SHORTCODES_LAYOUTS: &[(&str, &str)] = &[
     (
         "layouts/_shortcodes/inner.html",
@@ -148,14 +109,6 @@ const EXPECTED: &[(&str, &str, &str, &str, &str, &str)] = &[
         "a divider as the first text of a body is a divider (pageparser `divider_at_start`): \
          the summary is manual and empty, so truncated; Hugo reads it as text after its \
          front matter lexer and reports a front matter summary",
-    ),
-    (
-        "seeksnack",
-        "en",
-        "/blog/summary-lead",
-        "*",
-        "truncated",
-        "the same divider as the first text of a body (`divider_at_start`)",
     ),
     (
         "shortcodes",
@@ -301,7 +254,6 @@ fn content_oracles() {
     let mut table = BTreeMap::new();
     for (fixture, layouts) in [
         ("content", CONTENT_LAYOUTS),
-        ("seeksnack", SEEKSNACK_LAYOUTS),
         ("shortcodes", SHORTCODES_LAYOUTS),
     ] {
         let t = run(fixture, layouts);

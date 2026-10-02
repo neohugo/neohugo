@@ -133,6 +133,6 @@ fn synth() {
 
 #[test]
 fn docs() {
-    let n = run("docs", &repo_dir().join("docs"));
+    let n = run("docs", &repo_dir().join("testdata/hugo-docs"));
     assert_eq!(n, 89);
 }

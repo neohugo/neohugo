@@ -32,17 +32,16 @@ always take inner content. `ordinal` counts per nesting level.
 `cargo test -p ssg-pageparser -- --nocapture` prints the tallies. The fixture is
 `testdata/oracle/parser/pageparser/pages.json.gz` (Hugo's `ParseBytes` in three
 configurations and `ParseFrontMatterAndContent` over docs, testsite, skeletons, the lexer's
-own test strings, 218 seeksnack front matters, hand-written shapes and 4,000 random soups).
+own test strings, hand-written shapes and 4,000 random soups).
 
 | check | result |
 |---|---|
-| lexer items, kinds + byte ranges (+ `isString`, escape segments), 3 configurations × 5,540 inputs, errors and EOF included | **141,869 / 141,869** (plus 16,620 item-count checks) |
-| typed arguments (`ValTyped` of params and values) | 10,514 / 10,514 |
-| `split_front_matter`: format and body offset | 4,506 / 4,506 (1,034 inputs not UTF-8: not applicable) |
-| `lex(body)` after the split = page lexer after the front matter | 4,193 + 23 accepted (rule `divider_at_start`) / 4,216 |
-| **seeksnack front matter decode** (value and Go type, or error) | **218 / 218** (216 values, 2 archetype templates that fail in both) |
-| other front matter decode (docs, tests, shapes, soups) | 2,034 + 31 accepted / 2,065 (Org and non-UTF-8: not applicable) |
-| `assemble` of every docs/testsite/skeleton/seeksnack body that lexes | 1,198 / 1,198 files, 1,022 calls |
+| lexer items, kinds + byte ranges (+ `isString`, escape segments), 3 configurations × 5,322 inputs, errors and EOF included | **135,326 / 135,326** (plus 15,966 item-count checks) |
+| typed arguments (`ValTyped` of params and values) | 9,206 / 9,206 |
+| `split_front_matter`: format and body offset | 4,288 / 4,288 (1,034 inputs not UTF-8: not applicable) |
+| `lex(body)` after the split = page lexer after the front matter | 3,975 + 23 accepted (rule `divider_at_start`) / 3,998 |
+| front matter decode (docs, tests, shapes, soups) | 2,034 + 31 accepted / 2,065 (Org and non-UTF-8: not applicable) |
+| `assemble` of every docs/testsite/skeleton body that lexes | 980 / 980 files, 804 calls |
 
 The lexer works on bytes (Go decodes invalid UTF-8 as U+FFFD, one byte each; so does ours),
 so non-UTF-8 inputs are checked too. Error texts are our own (§1.2); only error kinds and
@@ -62,8 +61,7 @@ Reviewed in `expected_diffs.toml`; each is checked by the test, by rule or by ca
 3. **YAML 1.2** (D5; `shape#0`, `shape#3`): `yes` stays a string, `017` is decimal, integers
    beyond `i64` become floats, and `.inf`/`.nan` are rejected by `base::Value::from_yaml_str`
    (serde-saphyr's default `reject_non_finite_typeless_float`), which fails that document.
-   `: bad` is a map with the empty key (`shape#21`); yaml.v2 rejects it. None of this occurs in
-   the seeksnack front matter.
+   `: bad` is a map with the empty key (`shape#21`); yaml.v2 rejects it.
 4. **TOML** (`shape#1`, `shape#4`): go-toml parses `6.626e-34` one ulp off; a leap second
    (`23:59:60`) stays a string (Go normalises it to the next minute).
 5. **Stricter closing tags**: a closing tag must name the shortcode it closes. Hugo's lexer

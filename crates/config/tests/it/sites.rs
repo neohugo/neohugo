@@ -22,7 +22,6 @@ const SITES: &[&str] = &[
     "edge-tree",
     "homeleaf",
     "nokinds",
-    "seeksnack",
     "shortcodes",
     "synthetic",
     "testsite",

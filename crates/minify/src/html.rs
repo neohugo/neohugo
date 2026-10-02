@@ -79,8 +79,8 @@ mod tests {
     #[test]
     fn titles_are_collapsed() {
         assert_eq!(
-            collapse_titles("<head><title>\n   Snack  Diary ·\n SeekSnack\n </title></head>"),
-            "<head><title>Snack Diary · SeekSnack</title></head>"
+            collapse_titles("<head><title>\n   Snack  Diary ·\n Example\n </title></head>"),
+            "<head><title>Snack Diary · Example</title></head>"
         );
         assert_eq!(
             collapse_titles(

@@ -1,4 +1,5 @@
-//! Gates A-D2 and A-D3 (docs-live, [`gate_a_d3`]).
+//! Gates A-D2 and A-D3 (docs-live, [`gate_a_d3`]): Hugo's documentation site, the test fixture
+//! `testdata/hugo-docs`. fugo's own documentation, `docs/`, is checked by [`crate::docs_site`].
 //!
 //! Gate A-D2 (REWRITE_PLAN.md §7.3, T66): the Hugo documentation site with the `reduced` docs
 //! patches, built by the binary against the committed golden data of the Go build
@@ -35,10 +36,10 @@ fn gate_a_d2() {
     );
 }
 
-/// Gate A-D3: the documentation site as https://getfugo.github.io/ publishes it — `docs-live`,
-/// `docs/` without patches (GetRemote, `images.Text`, QR codes, Dither, smart crops, the `x`
-/// shortcode, the style gallery and the news content adapter all run) — against the published
-/// site itself: `testdata/golden/docs-live/` is the manifest of neohugo/neohugo.github.io at
+/// Gate A-D3: Hugo's documentation site as https://neohugo.github.io/ published it —
+/// `docs-live`, `testdata/hugo-docs` without patches (GetRemote, `images.Text`, QR codes,
+/// Dither, smart crops, the `x` shortcode, the style gallery and the news content adapter all
+/// run; `tools/hugo-docs/build.sh` builds it) — against the published site itself: `testdata/golden/docs-live/` is the manifest of neohugo/neohugo.github.io at
 /// a1928152, the Go neohugo build of 2025-10-13 (testdata/golden/README.md). One unminified
 /// pass (the site is published unminified) at that build's clock, its GetRemote responses
 /// from `sites.py cache docs-live`. The gate: L1 2373/2373 (2372 published files plus

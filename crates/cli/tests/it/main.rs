@@ -6,9 +6,10 @@ mod build;
 mod check;
 mod cli;
 mod docs;
+mod docs_data;
+mod docs_site;
 mod embedded;
 mod parity;
-mod reconstruction;
 mod server;
 
 use std::path::{Path, PathBuf};

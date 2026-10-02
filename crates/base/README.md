@@ -59,7 +59,7 @@ offline registry of this workspace (network use was not approved for T10), so th
 run against the oracle; from their documented rules none can reach 100%: `pluralizer` (a port
 of pluralize.js) and `cruet` (Rails' inflector) have other irregular/uncountable lists and
 suffix rules than flect, and neither splits words or upper-cases acronyms the way flect does
-(`humanize("SeekSnack")` is `"SEEK Snack"` in Hugo); `titlecase` implements John Gruber's rules,
+(`humanize("api_key")` is `"API key"` in Hugo); `titlecase` implements John Gruber's rules,
 not AP/Chicago as jdkato/prose implements them. So `inflect` and `title` carry their own data
 tables: flect v1.0.3's dictionary, suffix rules and acronym list, and prose v1.2.1's small-word
 and preposition lists (both MIT; see *Provenance* below). The algorithms are written from the

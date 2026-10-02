@@ -636,7 +636,7 @@ mod tests {
     #[test]
     fn gpos_kerning_of_a_real_font() {
         // The docs' opengraph font (Mulish Black): GPOS pair adjustments, no kern table.
-        let path = ssg_testkit::fixture::repo_dir().join("docs/assets/opengraph/mulish-black.ttf");
+        let path = ssg_testkit::fixture::hugo_docs().join("assets/opengraph/mulish-black.ttf");
         let bytes = std::fs::read(&path).expect("mulish-black.ttf");
         let face = Face::new(&bytes, 70.0, "mulish").expect("face");
         let Kerning::Gpos(tables) = &face.kerning else {

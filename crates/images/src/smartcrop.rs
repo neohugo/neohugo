@@ -479,7 +479,7 @@ mod tests {
     use std::collections::BTreeMap;
 
     use serde::Deserialize;
-    use ssg_testkit::fixture::{oracle, repo_dir};
+    use ssg_testkit::fixture::{oracle, repo_file};
 
     use super::*;
     use crate::codec;
@@ -499,20 +499,20 @@ mod tests {
     }
 
     /// The regions Go's smart crop picks (`testdata/oracle/images/smartcrop/regions.json.gz`)
-    /// for the docs' images, Hugo's and Go's test images and the seeksnack images (JPEG of
+    /// for the docs' images, Hugo's and Go's test images (JPEG of
     /// every subsampling, progressive, restart intervals, RGB, CMYK and grey; PNG of every
     /// colour type and depth; GIF), at 19 targets each with the default box filter, and at
     /// four targets with each of the 15 filters on four sources: all equal.
     #[test]
     fn regions_equal_go_s() {
         let fx: Regions = oracle("oracle/images/smartcrop/regions.json.gz");
-        assert_eq!(fx.cases.len(), 1975);
+        assert_eq!(fx.cases.len(), 1576);
         let mut sources: BTreeMap<&str, codec::Decoded> = BTreeMap::new();
         let mut analysed: BTreeMap<(&str, Resample), Analysed> = BTreeMap::new();
         let mut failures = Vec::new();
         for c in &fx.cases {
             let src = sources.entry(&c.src).or_insert_with(|| {
-                let path = repo_dir().join(&c.src);
+                let path = repo_file(&c.src);
                 let bytes =
                     std::fs::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()));
                 codec::decode(&bytes, &c.src, true).expect("the oracle decoded it")
@@ -541,7 +541,7 @@ mod tests {
     fn candidates_hold_the_regions() {
         let fx: Regions = oracle("oracle/images/smartcrop/regions.json.gz");
         for c in fx.cases.iter().filter(|c| c.filter == Resample::Box) {
-            let path = repo_dir().join(&c.src);
+            let path = repo_file(&c.src);
             let size = crate::probe_file(&path).expect("probe").0;
             let [x0, y0, x1, y1] = c.rect;
             assert!(
