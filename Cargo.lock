@@ -6759,7 +6759,7 @@ dependencies = [
  "minify-html",
  "oxc_allocator 0.95.0",
  "oxc_codegen 0.95.0",
- "oxc_minifier 0.95.0",
+ "oxc_minifier 0.152.0",
  "oxc_parser 0.95.0",
  "oxc_span 0.95.0",
  "quick-xml",
