@@ -39,7 +39,7 @@ jobs:
       contents: read
       packages: write # push to ghcr.io
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # The release (the tag given, else the latest release) and the tags it moves: <version>
       # always; <major>.<minor>, <major> and latest when no published release of that line, or
