@@ -1,5 +1,5 @@
 //! What the server serves: the files of the last good build (memory, or the publish directory
-//! with `--renderToDisk`), where each listener's site starts, and the media types of the
+//! with `--render-to-disk`), where each listener's site starts, and the media types of the
 //! files.
 
 use std::collections::HashMap;
@@ -20,7 +20,7 @@ pub(crate) enum Tree {
     /// A memory build's sink: replaced as a whole after each successful build; static-only
     /// changes are written into it.
     Memory(Arc<MemorySink>),
-    /// The publish directory (`--renderToDisk`).
+    /// The publish directory (`--render-to-disk`).
     Disk(PathBuf),
 }
 

@@ -99,15 +99,7 @@ fn server_starts_and_serves() {
     // `serve` is the alias; the camelCase spellings are accepted.
     let run = Running::start(
         s.path(),
-        &[
-            "serve",
-            "-p",
-            "0",
-            "--noHTTPCache",
-            "--disableFastRender",
-            "--disableBrowserError",
-            "--appendPort=true",
-        ],
+        &["serve", "-p", "0", "--noHTTPCache", "--appendPort=true"],
     );
     let lines = run.until("Web Server is available at ");
     let text = lines.join("\n");

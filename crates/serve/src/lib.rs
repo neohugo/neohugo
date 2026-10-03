@@ -6,7 +6,7 @@
 //!
 //! - **Builds** go into memory by default ([`Target::Memory`]; a new sink per build, swapped
 //!   in whole when the build succeeds) or into the publish directory ([`Target::Disk`],
-//!   `--renderToDisk`), with the LiveReload script in every HTML page.
+//!   `--render-to-disk`), with the LiveReload script in every HTML page.
 //! - **HTTP** (`http.rs`, `tree.rs`): the files of the last good build, `index.html` for
 //!   directories, Go's `http.FileServer` redirects, content types from the site's media types,
 //!   single byte ranges, and for a missing page the `404.html` of the path's language with
@@ -54,7 +54,7 @@ pub enum Target {
     /// Memory: each build goes into a new sink, served once the build succeeds.
     #[default]
     Memory,
-    /// The publish directory (`--renderToDisk`), written in place by each build.
+    /// The publish directory (`--render-to-disk`), written in place by each build.
     Disk,
 }
 

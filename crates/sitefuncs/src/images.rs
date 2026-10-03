@@ -13,8 +13,8 @@ use tera::{Kwargs, State, TeraResult, Value};
 
 use crate::Handles;
 use crate::call::{
-    Registrar, SiteFilter, SiteFunction, chain, field, list, map_value, msg, resource_id, text,
-    to_json,
+    Registrar, SiteFilter, SiteFunction, chain, field, kwarg, list, map_value, msg, resource_id,
+    text, to_json,
 };
 use crate::resources::{call_site, view_value};
 
@@ -97,7 +97,7 @@ fn parsed<T: std::str::FromStr<Err = String>>(
     key: &str,
     name: &str,
 ) -> TeraResult<Option<T>> {
-    kw.get::<&str>(key)?
+    kwarg::<&str>(kw, key, name)?
         .map(|s| {
             s.parse::<T>()
                 .map_err(|e| msg(format!("{name}({key}=): {e}")))
@@ -106,7 +106,7 @@ fn parsed<T: std::str::FromStr<Err = String>>(
 }
 
 fn dimension(kw: &Kwargs, key: &str, name: &str) -> TeraResult<Option<u32>> {
-    kw.get::<i64>(key)?
+    kwarg::<i64>(kw, key, name)?
         .map(|n| {
             u32::try_from(n)
                 .ok()
@@ -117,15 +117,16 @@ fn dimension(kw: &Kwargs, key: &str, name: &str) -> TeraResult<Option<u32>> {
 }
 
 impl Process {
+    /// The spec string completed by the kwargs, checked once complete (a `spec=` without the
+    /// size that `width=` and `height=` give is fine).
     fn spec(&self, kw: &Kwargs) -> TeraResult<ImageSpec> {
         let name = self.name;
-        let mut spec = match kw.get::<&str>("spec")? {
+        let mut spec = match kwarg::<&str>(kw, "spec", name)? {
             // The filter's action goes first, so a spec that names another one overrides it.
-            Some(s) => match self.action {
+            Some(s) => ImageSpec::parse_options(&match self.action {
                 Some(a) => format!("{} {s}", a.name()),
                 None => s.to_owned(),
-            }
-            .parse::<ImageSpec>()
+            })
             .map_err(|e| chain(format!("{name}(spec=\"{s}\")"), e))?,
             None => ImageSpec::default(),
         };
@@ -143,13 +144,13 @@ impl Process {
         if let Some(h) = dimension(kw, "height", name)? {
             spec.height = Some(h);
         }
-        if let Some(f) = kw.get::<&str>("format")? {
+        if let Some(f) = kwarg::<&str>(kw, "format", name)? {
             spec.format = Some(
                 ImageFormat::from_extension(f)
                     .ok_or_else(|| msg(format!("{name}(format=\"{f}\"): unknown image format")))?,
             );
         }
-        if let Some(q) = kw.get::<i64>("quality")? {
+        if let Some(q) = kwarg::<i64>(kw, "quality", name)? {
             spec.quality = Some(
                 u8::try_from(q)
                     .ok()
@@ -163,7 +164,7 @@ impl Process {
         if let Some(a) = parsed::<Anchor>(kw, "anchor", name)? {
             spec.anchor = Some(a);
         }
-        Ok(spec)
+        spec.validate().map_err(|e| chain(name, e))
     }
 }
 

@@ -12,7 +12,7 @@ use ssg_locale::{DatePattern, DateStyle, format_date, format_number};
 use tera::value::Key;
 use tera::{Kwargs, State, TeraResult, Value};
 
-use super::value::{sorted_map, text};
+use super::value::{chain, sorted_map, text};
 use super::{PureEnv, Registrar};
 
 pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
@@ -73,7 +73,7 @@ fn to_zoned(v: &Value, tz: &TimeZone) -> TeraResult<Zoned> {
     }
     if let Some(secs) = v.as_i64() {
         let ts = jiff::Timestamp::from_second(secs)
-            .map_err(|e| tera::Error::chain(format!("{secs} is not a Unix time"), e))?;
+            .map_err(|e| chain(format!("{secs} is not a Unix time"), e))?;
         return Ok(ts.to_zoned(tz.clone()));
     }
     if let Some(s) = v.as_str() {
@@ -86,7 +86,7 @@ fn to_zoned(v: &Value, tz: &TimeZone) -> TeraResult<Zoned> {
 }
 
 fn parse(s: &str, tz: &TimeZone) -> TeraResult<Zoned> {
-    parse_date(s.trim(), tz).map_err(|e| tera::Error::chain(format!("`{s}` is not a date"), e))
+    parse_date(s.trim(), tz).map_err(|e| chain(format!("`{s}` is not a date"), e))
 }
 
 /// `date(format=)` (strftime) or `date(style=)` (`short`, `medium`, `long`, `full`). A style is
@@ -103,7 +103,7 @@ fn date(v: &Value, kw: &Kwargs, st: &State, env: &PureEnv) -> TeraResult<Value> 
         (Some(f), None) if locale.is_none() => {
             return jiff::fmt::strtime::format(f.as_bytes(), &d)
                 .map(Value::from)
-                .map_err(|e| tera::Error::chain(format!("date: bad strftime format `{f}`"), e));
+                .map_err(|e| chain(format!("date: bad strftime format `{f}`"), e));
         }
         (Some(f), None) => DatePattern::Strftime(f),
         (None, Some(s)) => DatePattern::Style(style(s)?),
@@ -120,7 +120,7 @@ fn date(v: &Value, kw: &Kwargs, st: &State, env: &PureEnv) -> TeraResult<Value> 
     };
     format_date(&d, pattern, &locale)
         .map(Value::from)
-        .map_err(|e| tera::Error::chain("date", e))
+        .map_err(|e| chain("date", e))
 }
 
 fn style(s: &str) -> TeraResult<DateStyle> {

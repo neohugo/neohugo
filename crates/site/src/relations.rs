@@ -128,6 +128,14 @@ pub(crate) fn names(m: &mut Model) {
     }
 }
 
+/// Whether `id` is the taxonomy page or a term page of a hierarchical taxonomy.
+fn hierarchical(m: &Model, id: PageId) -> bool {
+    let p = &m.pages[id];
+    matches!(p.kind, PageKind::Taxonomy | PageKind::Term)
+        && p.taxonomy
+            .is_some_and(|t| m.sites[p.lang].taxonomies[t].def.hierarchical)
+}
+
 /// The first page at or above `key` (segment-wise) in `lang`'s tree that satisfies `pred`.
 fn at_or_above(
     m: &Model,
@@ -198,11 +206,17 @@ pub(crate) fn tree(m: &mut Model) {
         if p.kind == PageKind::Page || p.role != PageRole::Standalone {
             continue;
         }
+        // The nodes of a hierarchical taxonomy have their child terms.
+        let child_kind = if hierarchical(m, id) {
+            PageKind::Term
+        } else {
+            PageKind::Section
+        };
         let sections: Vec<PageId> = in_section(m, p.lang, &p.key)
             .into_iter()
             .filter(|&c| {
                 let c = &m.pages[c];
-                c.kind == PageKind::Section && c.listed(ListScope::Local) && c.parent == Some(id)
+                c.kind == child_kind && c.listed(ListScope::Local) && c.parent == Some(id)
             })
             .collect();
         m.pages[id].sections = sections;
@@ -433,10 +447,12 @@ pub(crate) fn lists(m: &mut Model) {
                             .collect(),
                     )
                 }
+                // A hierarchical taxonomy lists its top-level terms.
                 PageKind::Taxonomy => (
                     tree.descendants(key)
                         .map(|(_, q)| q)
                         .filter(|q| local(q) && kind_is(q, PageKind::Term))
+                        .filter(|q| !hierarchical(m, id) || m.pages[*q].parent == Some(id))
                         .collect(),
                     in_section(m, lang, key)
                         .into_iter()

@@ -61,6 +61,29 @@ fn resize_fill_fit_crop_process() {
         .try_render("{{ get_asset(path=\"css/a.css\") | resize(width=10) }}", &s)
         .expect_err("not an image");
     assert!(e.to_string().contains("not an image"), "{e}");
+    // The kwargs complete the spec string before it is checked.
+    assert_eq!(
+        r(&format!(
+            "{{% set i = {logo} | fill(spec=\"webp q80\", width=20, height=10) %}}{{{{ i.width }}}}x{{{{ i.height }}}}|{{{{ i.media_type.type }}}}"
+        )),
+        "20x10|image/webp"
+    );
+    let e = site
+        .try_render(&format!("{{{{ {logo} | fill(width=10) }}}}"), &s)
+        .expect_err("no height");
+    assert!(e.to_string().contains("need a width and a height"), "{e}");
+    // A kwarg of the wrong type names the filter and the kwarg.
+    let e = site
+        .try_render(&format!("{{{{ {logo} | resize(width=\"10\") }}}}"), &s)
+        .expect_err("string width");
+    assert!(e.to_string().contains("resize(width=)"), "{e}");
+    let e = site
+        .try_render(
+            &format!("{{{{ {logo} | resize(width=10, format=\"webp\", height=17000) }}}}"),
+            &s,
+        )
+        .expect_err("too large for WebP");
+    assert!(e.to_string().contains("at most 16383x16383"), "{e}");
 }
 
 #[test]
@@ -217,6 +240,19 @@ fn qr_codes_have_go_s_names_and_bytes() {
         )),
         "true"
     );
+    // A QR code (bytes, not a file) can be processed like any image: the result keeps its
+    // name's stem, beside it; it can be an overlay too.
+    let out = r(&format!(
+        r#"{{% set q = qr_code(text="{url}") %}}{{% set i = q | resize(width=20, format="webp") %}}{{{{ i.rel_permalink }}}} {{{{ i.width }}}}x{{{{ i.height }}}}"#
+    ));
+    assert!(
+        out.starts_with("/sub/qr_924bf7d80a564b23_hu_") && out.ends_with(".webp 20x20"),
+        "{out}"
+    );
+    let out = r(&format!(
+        r#"{{% set q = qr_code(text="{url}") %}}{{% set i = get_asset(path="img/logo.png") | image_filter(filters=[{{"op": "overlay", "image": q, "x": 0, "y": 0}}]) %}}{{{{ i.rel_permalink }}}}"#
+    ));
+    assert!(out.starts_with("/sub/img/logo_hu_"), "{out}");
     for (bad, why) in [
         (r#"qr_code(text="")"#, "empty"),
         (

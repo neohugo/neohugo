@@ -372,7 +372,7 @@ fn navigate_to_the_changed_page() {
     server.shutdown();
 }
 
-/// `--renderToDisk`: the build writes the publish directory and the server reads it;
+/// `--render-to-disk`: the build writes the publish directory and the server reads it;
 /// static changes are copied there.
 #[test]
 fn render_to_disk() {

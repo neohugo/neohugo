@@ -198,7 +198,7 @@ fn command_first_moves_the_command_before_the_flags() {
         (
             &[
                 APP_NAME,
-                "--gc=true",
+                "--navigate-to-changed=true",
                 "server",
                 "-M=false",
                 "--quiet=1",
@@ -209,7 +209,7 @@ fn command_first_moves_the_command_before_the_flags() {
             &[
                 APP_NAME,
                 "server",
-                "--gc",
+                "--navigate-to-changed",
                 "--quiet",
                 "-D=false",
                 "--minify=0",
@@ -278,89 +278,48 @@ fn persistent_flags_anywhere() {
     }
 }
 
-/// The Go build's logging and housekeeping flags are accepted (`args::CompatFlags`); those this
-/// port does not act on give a warning.
+/// The Go build's logging and housekeeping flags, and the server flags that changed nothing, are
+/// usage errors; so are the camelCase spellings no Go command line used.
 #[test]
-fn compat_flags_are_accepted() {
+fn removed_flags_are_usage_errors() {
     let s = site_from("-- config.toml --\ntitle = \"T\"\n");
-    let o = binary(
-        s.path(),
-        &[
-            "--gc",
-            "--minify",
-            "--logLevel",
-            "info",
-            "--noBuildLock",
-            "--printI18nWarnings",
-            "--printPathWarnings",
-            "--printUnusedTemplates",
-            "--templateMetrics",
-            "--templateMetricsHints",
-        ],
-        &[],
-    );
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let err = stderr(&o);
-    for flag in [
-        "--gc ",
-        "--logLevel info ",
-        "--printI18nWarnings ",
-        "--printUnusedTemplates ",
-        "--templateMetrics ",
-        "--templateMetricsHints ",
+    for bad in [
+        &["--gc"][..],
+        &["--logLevel", "info"],
+        &["--log-level", "warn"],
+        &["--noBuildLock"],
+        &["config", "--noBuildLock"],
+        &["--printI18nWarnings"],
+        &["--printPathWarnings"],
+        &["--printUnusedTemplates"],
+        &["--templateMetrics"],
+        &["--templateMetricsHints"],
+        &["--baseUrl", "https://example.org/"],
+        &["server", "--disableFastRender"],
+        &["server", "--disableBrowserError"],
+        &["server", "--renderToDisk"],
+        &["server", "--noHttpCache"],
+        &["-v"],
     ] {
-        assert!(
-            err.contains(&format!("WARN  [ignored-flag]: {flag}is ignored")),
-            "{flag}: {err}"
-        );
+        let o = binary(s.path(), bad, &[]);
+        assert_eq!(o.status.code(), Some(2), "{bad:?}: {}", stderr(&o));
     }
-    for flag in ["--noBuildLock", "--printPathWarnings", "--minify"] {
-        assert!(!err.contains(flag), "{flag}: {err}");
+    // The Go spellings that stay.
+    for args in [
+        &[APP_NAME, "--baseURL", "https://example.org/"][..],
+        &[APP_NAME, "server", "--noHTTPCache", "--render-to-disk"],
+    ] {
+        let parsed = Cli::try_parse_from(command_first(args.iter().map(OsString::from).collect()));
+        assert!(parsed.is_ok(), "{args:?}");
     }
-    // What this port does anyway: no warning.
-    let o = binary(
-        s.path(),
-        &[
-            "build",
-            "--logLevel",
-            "WARNING",
-            "--noBuildLock",
-            "--printPathWarnings",
-        ],
-        &[],
-    );
+}
+
+/// Boolean flags take pflag's explicit values.
+#[test]
+fn explicit_boolean_values() {
+    let s = site_from("-- config.toml --\ntitle = \"T\"\n");
+    let o = binary(s.path(), &["--minify=true", "--quiet=TRUE"], &[]);
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert!(!stderr(&o).contains("ignored-flag"), "{}", stderr(&o));
-    // `--logLevel` and `--noBuildLock` were persistent flags: every command takes them.
-    let o = binary(
-        s.path(),
-        &["config", "--logLevel", "error", "--noBuildLock"],
-        &[],
-    );
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    let server = [
-        APP_NAME,
-        "--gc",
-        "server",
-        "--noTimes",
-        "--printI18nWarnings",
-    ];
-    let args = command_first(server.iter().map(OsString::from).collect());
-    assert!(Cli::try_parse_from(args).is_ok(), "{server:?}");
-    // Explicit values of boolean flags (pflag), and the empty level (Go's default).
-    let o = binary(
-        s.path(),
-        &[
-            "--gc=false",
-            "--minify=true",
-            "--quiet=TRUE",
-            "--logLevel",
-            "",
-        ],
-        &[],
-    );
-    assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
-    assert!(!stderr(&o).contains("ignored-flag"), "{}", stderr(&o));
     assert!(!stdout(&o).contains("Total in"), "{}", stdout(&o));
     // The flags that take `=BOOL` themselves read it with Go's `strconv.ParseBool` spellings;
     // `=false` is kept (it overrides the configuration).
@@ -407,11 +366,9 @@ fn compat_flags_are_accepted() {
     };
     assert!(!server.watch.watch && !server.listen.append_port);
     assert_eq!(server.build.project.include.build_future, Some(true));
-    // An unknown level, and a build flag of a command that does not build.
-    for bad in [&["--logLevel", "loud"][..], &["config", "--gc"], &["-v"]] {
-        let o = binary(s.path(), bad, &[]);
-        assert_eq!(o.status.code(), Some(2), "{bad:?}: {}", stderr(&o));
-    }
+    // A build flag of a command that does not build.
+    let o = binary(s.path(), &["config", "--minify"], &[]);
+    assert_eq!(o.status.code(), Some(2), "{}", stderr(&o));
 }
 
 /// `--noTimes` and `--noChmod` (config `noTimes`, `noChmod`): the static copy leaves the copies'

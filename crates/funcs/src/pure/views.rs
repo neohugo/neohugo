@@ -5,7 +5,7 @@ use ssg_base::glob::{self, GlobOpts};
 use tera::{Kwargs, TeraResult, Value};
 
 use super::Registrar;
-use super::value::{array, get};
+use super::value::{array, chain, get};
 
 pub(super) fn register(r: &mut Registrar<'_>) {
     r.filter("get_resource", |v, kw, _| {
@@ -60,7 +60,7 @@ fn field<'v>(v: &'v Value, name: &str) -> Option<&'v str> {
 
 fn compile(pattern: &str) -> TeraResult<glob::Glob> {
     glob::compile(pattern, GlobOpts::default())
-        .map_err(|e| tera::Error::chain(format!("invalid glob `{pattern}`"), e))
+        .map_err(|e| chain(format!("invalid glob `{pattern}`"), e))
 }
 
 /// Go's `.Get` on a shortcode value: by position (`index`) for positional arguments, by

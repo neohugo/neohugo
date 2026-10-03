@@ -41,6 +41,9 @@ pub enum ImageError {
     /// An operation id this queue never handed out.
     #[error("unknown image operation {0}")]
     UnknownOp(ImageOpId),
+    /// An image in memory this queue was never given (`ImageQueue::add_memory`).
+    #[error("{0}: unknown image in memory")]
+    UnknownMemory(String),
     /// The EXIF data of a source could not be read.
     #[error("{what}: cannot read EXIF data: {reason}")]
     Exif { what: String, reason: String },
@@ -53,6 +56,17 @@ pub enum ImageError {
     /// A QR code that cannot be made.
     #[error("QR code: {0}")]
     Qr(String),
+    /// Processing the image of a published file failed (after the templates ran, so no
+    /// template position): the file, its planned size and format, and what it was made from.
+    #[error("processing {target} ({width}x{height} {format} from {input}): {source}")]
+    Process {
+        target: String,
+        width: u32,
+        height: u32,
+        format: ImageFormat,
+        input: String,
+        source: Box<ImageError>,
+    },
 }
 
 impl ImageError {

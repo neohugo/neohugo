@@ -43,8 +43,10 @@ Server settings
   no fast render); no TLS, `--openBrowser` or `--pprof`.
 
 Some flags
-: The Go implementation's logging and housekeeping flags (`--gc`, `--printI18nWarnings`,
-  `--printUnusedTemplates`, `--templateMetrics`, …) are accepted and ignored, with a warning.
+: The Go implementation's logging and housekeeping flags (`--gc`, `--logLevel`,
+  `--noBuildLock`, `--printI18nWarnings`, `--printPathWarnings`, `--printUnusedTemplates`,
+  `--templateMetrics`, `--templateMetricsHints`) and the server's `--disableFastRender` and
+  `--disableBrowserError` are usage errors: remove them from your command lines.
 
 ## Different by design
 

@@ -184,8 +184,53 @@ impl ImageSpec {
         }
     }
 
+    /// Parses the options of a spec string without [`validate`](Self::validate): for a spec
+    /// that other options complete (`fill(spec="webp", width=300, height=200)`).
+    ///
+    /// # Errors
+    /// An option that is not valid.
+    pub fn parse_options(s: &str) -> Result<Self, ImageError> {
+        let mut spec = Self::default();
+        for token in s.split_whitespace() {
+            let t = token.to_ascii_lowercase();
+            if let Ok(a) = t.parse() {
+                spec.action = Some(a);
+            } else if let Ok(a) = t.parse() {
+                spec.anchor = Some(a);
+            } else if let Ok(f) = t.parse() {
+                spec.filter = Some(f);
+            } else if let Ok(h) = t.parse() {
+                spec.hint = Some(h);
+            } else if t.starts_with('#') {
+                spec.background = Some(t.parse()?);
+            } else if let Some(q) = t.strip_prefix('q') {
+                let q: u8 = q
+                    .parse()
+                    .ok()
+                    .filter(|q| (1..=100).contains(q))
+                    .ok_or_else(|| ImageError::spec(s, format!("quality {q:?} is not 1–100")))?;
+                spec.quality = Some(q);
+            } else if let Some(r) = t.strip_prefix('r') {
+                let r = r
+                    .parse()
+                    .map_err(|_| ImageError::spec(s, format!("rotation {r:?} is not degrees")))?;
+                spec.rotate = Some(r);
+            } else if t.contains('x') {
+                (spec.width, spec.height) = Self::parse_dimensions(s, &t)?;
+            } else if let Some(f) = ImageFormat::from_extension(&t) {
+                spec.format = Some(f);
+            } else {
+                return Err(ImageError::spec(s, format!("unknown option {token:?}")));
+            }
+        }
+        Ok(spec)
+    }
+
     /// Checks that the size options fit the action.
-    fn validate(self) -> Result<Self, ImageError> {
+    ///
+    /// # Errors
+    /// A size the action cannot use (a fill without a height, …).
+    pub fn validate(self) -> Result<Self, ImageError> {
         let (w, h) = (self.width.is_some(), self.height.is_some());
         let reason = match self.action {
             Some(Action::Resize) if !w && !h => "resize needs a width or a height",
@@ -223,40 +268,7 @@ impl FromStr for ImageSpec {
     type Err = ImageError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let mut spec = Self::default();
-        for token in s.split_whitespace() {
-            let t = token.to_ascii_lowercase();
-            if let Ok(a) = t.parse() {
-                spec.action = Some(a);
-            } else if let Ok(a) = t.parse() {
-                spec.anchor = Some(a);
-            } else if let Ok(f) = t.parse() {
-                spec.filter = Some(f);
-            } else if let Ok(h) = t.parse() {
-                spec.hint = Some(h);
-            } else if t.starts_with('#') {
-                spec.background = Some(t.parse()?);
-            } else if let Some(q) = t.strip_prefix('q') {
-                let q: u8 = q
-                    .parse()
-                    .ok()
-                    .filter(|q| (1..=100).contains(q))
-                    .ok_or_else(|| ImageError::spec(s, format!("quality {q:?} is not 1–100")))?;
-                spec.quality = Some(q);
-            } else if let Some(r) = t.strip_prefix('r') {
-                let r = r
-                    .parse()
-                    .map_err(|_| ImageError::spec(s, format!("rotation {r:?} is not degrees")))?;
-                spec.rotate = Some(r);
-            } else if t.contains('x') {
-                (spec.width, spec.height) = Self::parse_dimensions(s, &t)?;
-            } else if let Some(f) = ImageFormat::from_extension(&t) {
-                spec.format = Some(f);
-            } else {
-                return Err(ImageError::spec(s, format!("unknown option {token:?}")));
-            }
-        }
-        spec.validate()
+        Self::parse_options(s)?.validate()
     }
 }
 

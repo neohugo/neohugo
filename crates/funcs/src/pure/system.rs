@@ -7,6 +7,7 @@ use std::sync::Arc;
 use ssg_base::diag::Diagnostic;
 use tera::{Kwargs, TeraResult, Value};
 
+use super::value::chain;
 use super::{PureEnv, Registrar};
 
 pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
@@ -47,7 +48,7 @@ pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
         let path = project_path(&e, kw)?;
         std::fs::read_to_string(&path)
             .map(Value::from)
-            .map_err(|err| tera::Error::chain(format!("read_file `{}`", path.display()), err))
+            .map_err(|err| chain(format!("read_file `{}`", path.display()), err))
     });
     let e = Arc::clone(env);
     r.function("file_exists", move |kw, _| {

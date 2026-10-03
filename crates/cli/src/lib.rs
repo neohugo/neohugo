@@ -20,7 +20,6 @@ pub mod version;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use ssg_base::diag::Diagnostic;
 use ssg_config::{CliOverrides, LoadOptions};
 
 pub use args::Cli;
@@ -54,7 +53,6 @@ impl From<Exit> for ExitCode {
 /// Runs a parsed command line.
 #[must_use]
 pub fn run(cli: Cli) -> Exit {
-    warn_ignored(&cli);
     let result = match cli.command {
         None => build::run(&cli.build),
         Some(Command::Build(b)) => build::run(&b),
@@ -70,26 +68,6 @@ pub fn run(cli: Cli) -> Exit {
         report::fatal(&e);
         Exit::Failure
     })
-}
-
-/// Warns about the Go build's flags given that this port accepts but does not act on
-/// ([`args::CompatFlags::ignored`]).
-fn warn_ignored(cli: &Cli) {
-    let command = match &cli.command {
-        Some(Command::Build(b)) => Some(&b.compat),
-        Some(Command::Server(s)) => Some(&s.build.compat),
-        _ => None,
-    };
-    let mut warnings: Vec<Diagnostic> = Vec::new();
-    for message in std::iter::once(&cli.build.compat)
-        .chain(command)
-        .flat_map(args::CompatFlags::ignored)
-    {
-        if !warnings.iter().any(|w| w.message == message) {
-            warnings.push(Diagnostic::warning(message).with_id("ignored-flag"));
-        }
-    }
-    report::diagnostics(&warnings);
 }
 
 impl ProjectArgs {

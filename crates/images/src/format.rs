@@ -94,6 +94,17 @@ impl ImageFormat {
         matches!(self, Self::Jpeg | Self::Webp)
     }
 
+    /// The largest width or height the format can store, when an image can reach it (WebP's
+    /// 14-bit sizes, the 16-bit ones of JPEG and GIF).
+    #[must_use]
+    pub const fn max_side(self) -> Option<u32> {
+        match self {
+            Self::Webp => Some(16383),
+            Self::Jpeg | Self::Gif => Some(65535),
+            Self::Png | Self::Tiff | Self::Bmp => None,
+        }
+    }
+
     pub(crate) fn from_codec(f: image::ImageFormat) -> Option<Self> {
         Some(match f {
             image::ImageFormat::Jpeg => Self::Jpeg,

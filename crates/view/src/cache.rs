@@ -562,7 +562,7 @@ impl ViewGeneration {
                     .map(|t| {
                         t.listed_terms(model)
                             .map(|(_, term)| {
-                                let key = term.key.segments().last().unwrap_or_default().to_owned();
+                                let key = t.key_of(term);
                                 let pages: Vec<PageId> =
                                     term.members.iter().map(|w| w.page).collect();
                                 let v = TermEntryView {
@@ -706,7 +706,7 @@ impl ViewGeneration {
                 Some(TermView {
                     name: p.name().to_owned(),
                     term: term.term.clone(),
-                    key: term.key.segments().last().unwrap_or_default().to_owned(),
+                    key: tx.key_of(term),
                     singular: tx.def.singular.clone(),
                     plural: tx.def.plural.clone(),
                 })

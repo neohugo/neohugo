@@ -377,19 +377,18 @@ pub(crate) fn decode_site(tree: &Map, cx: SiteContext<'_>) -> Result<SiteConfig,
             .map(|(s, p)| TaxonomyDef {
                 singular: s.to_owned(),
                 plural: p.to_owned(),
+                hierarchical: false,
             })
             .collect(),
-        Some(Value::Map(m)) => m
-            .iter()
-            .filter(|(k, _)| *k != "_merge")
-            .filter_map(|(k, v)| {
-                let plural = crate::de::weak_string(v)?;
-                (!plural.is_empty()).then(|| TaxonomyDef {
-                    singular: k.to_owned(),
-                    plural,
-                })
-            })
-            .collect(),
+        Some(Value::Map(m)) => {
+            let mut defs = IdVec::new();
+            for (k, v) in m.iter().filter(|(k, _)| *k != "_merge") {
+                if let Some(def) = taxonomy_def(k, v)? {
+                    defs.push(def);
+                }
+            }
+            defs
+        }
         Some(_) => return Err(ConfigError::invalid("taxonomies", "expected a table")),
     };
 
@@ -535,6 +534,43 @@ pub(crate) fn decode_site(tree: &Map, cx: SiteContext<'_>) -> Result<SiteConfig,
         main_sections,
         has_cjk_language: raw.has_cjk_language,
     })
+}
+
+/// One entry of `[taxonomies]`: `tag = "tags"` or `[taxonomies.tag]` with `plural` and
+/// `hierarchical`; `None` for an empty plural (the taxonomy is switched off).
+fn taxonomy_def(singular: &str, v: &Value) -> Result<Option<TaxonomyDef>, ConfigError> {
+    let (plural, hierarchical) = match v {
+        Value::Map(t) => {
+            let key = |k: &str| format!("taxonomies.{singular}.{k}");
+            if let Some(other) = t
+                .keys()
+                .find(|k| !matches!(*k, "plural" | "hierarchical" | "_merge"))
+            {
+                return Err(ConfigError::invalid(key(other), "unknown key"));
+            }
+            let plural = match t.get("plural") {
+                None => String::new(),
+                Some(p) => crate::de::weak_string(p)
+                    .ok_or_else(|| ConfigError::invalid(key("plural"), "expected a string"))?,
+            };
+            let hierarchical = match t.get("hierarchical") {
+                None => false,
+                Some(h) => crate::de::weak_bool(h).ok_or_else(|| {
+                    ConfigError::invalid(key("hierarchical"), "expected a boolean")
+                })?,
+            };
+            (plural, hierarchical)
+        }
+        other => match crate::de::weak_string(other) {
+            Some(p) => (p, false),
+            None => return Ok(None),
+        },
+    };
+    Ok((!plural.is_empty()).then(|| TaxonomyDef {
+        singular: singular.to_owned(),
+        plural,
+        hierarchical,
+    }))
 }
 
 /// `disableKinds`: the disabled page kinds, and whether `rss` is disabled. Unknown kinds are

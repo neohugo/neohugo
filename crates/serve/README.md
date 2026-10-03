@@ -10,7 +10,7 @@ pub struct ServeOptions { pub build: BuildRequest /* project + build flags */, p
                           pub port: Port, pub append_port: bool, pub live_reload: Option<LiveReloadOptions>,
                           pub target: Target, pub watch: Watch, pub http_cache: HttpCache }
 pub enum Port { Exact(u16) /* --port; 0: any free port */, Preferred(u16) /* 1313, else a free one */ }
-pub enum Target { Memory /* default */, Disk /* --renderToDisk, fugo's flag */ }
+pub enum Target { Memory /* default */, Disk /* --render-to-disk, fugo's flag */ }
 pub enum Watch { Off /* --watch=false */, Native, Poll(Duration) /* --poll */ }
 pub enum HttpCache { Default, Disabled /* --noHTTPCache */ }
 pub struct LiveReloadOptions { pub port: Option<u16> /* --liveReloadPort */, pub navigate_to_changed: bool }
@@ -53,9 +53,9 @@ pub struct Server;  // start(&ServeOptions, &Arc<dyn Reporter>) -> Result<Server
 A multihost site's listener serves its language's directory (`en/`), with that language's
 404 page. `--noHTTPCache` adds `Cache-Control: no-store, no-cache, must-revalidate,
 max-age=0` and `Pragma: no-cache`. Files come from the memory sink of the last successful
-build (swapped in whole: a failing build leaves it in place), or with `--renderToDisk` from
+build (swapped in whole: a failing build leaves it in place), or with `--render-to-disk` from
 the publish directory (written in place by each build, so a failing build can leave some
-files new). `--renderToDisk` is fugo's flag, not one of the Go build's: the Go server
+files new). `--render-to-disk` is fugo's flag, not one of the Go build's: the Go server
 rendered to disk by default and into memory with `-M`/`--renderToMemory`.
 
 ## Watching and rebuilding (`src/watch.rs`, `src/rebuild.rs`)
@@ -97,7 +97,7 @@ written that are gone again.
 | A batch with | Does | Then sends |
 |---|---|---|
 | configuration (above) | reloads the configuration (and the watch set), rebuilds everything; a configuration that does not load pauses everything else until it loads (as in Go); a site that becomes or stops being multihost needs a restart | a full reload |
-| content, layouts, assets, data, i18n, archetypes (or lost events) | a full rebuild into a new memory sink, served when it succeeds; a failure is reported with positions (as `build` reports) and the last good build stays | Go's fast-render rules on the files that changed against the last good build (source maps left out): none, nothing; content changed, a full reload, or with `--navigateToChanged` the bundled plugin's navigate prefix (`NAVIGATE_PREFIX` in `src/livereload.rs`) followed by the page path, with the page's server port in `overrideURL`; one other file, that path; stylesheets only, each stylesheet (applied in place by livereload.js); else a full reload, then the stylesheets after 200 ms. `--renderToDisk` builds are not compared: a full reload |
+| content, layouts, assets, data, i18n, archetypes (or lost events) | a full rebuild into a new memory sink, served when it succeeds; a failure is reported with positions (as `build` reports) and the last good build stays | Go's fast-render rules on the files that changed against the last good build (source maps left out): none, nothing; content changed, a full reload, or with `--navigateToChanged` the bundled plugin's navigate prefix (`NAVIGATE_PREFIX` in `src/livereload.rs`) followed by the page path, with the page's server port in `overrideURL`; one other file, that path; stylesheets only, each stylesheet (applied in place by livereload.js); else a full reload, then the stylesheets after 200 ms. `--render-to-disk` builds are not compared: a full reload |
 | static files only | no build: the static mounts are listed again, each file below a changed path is copied into the served tree (memory, or the publish directory), a file no static directory has any more is removed. Files whose bytes did not change are left alone. As in Go, a static file wins over a rendered file of the same path until the next build | one changed file: its path (a stylesheet or image is updated in place); several: a full reload; none: nothing |
 
 A full reload is Go's `{"command":"reload","path":"/x.js","originalPath":"","liveCSS":true,
@@ -111,17 +111,18 @@ harmless for memory builds.
 
 ## Deviations from the Go implementation
 
-- Every change is a full rebuild (Go's `--disableFastRender` without the partial rebuilds):
+- Every change is a full rebuild (as with Go's `--disableFastRender`, without the partial
+  rebuilds):
   no fast render mode, no `RecentlyTouched` page list; the fast-render reload rules are applied
   to what the rebuild changed.
-- No error page in the browser (`--disableBrowserError`'s behaviour is the only one): a failing
+- No error page in the browser (as with Go's `--disableBrowserError`): a failing
   build is printed and the browser keeps the last good page (no reload is sent).
 - `[server]` `headers` and `redirects` are not read; the default 404 redirect is built in, per
   language.
 - The site's `404.html` is chosen per language directory (Go: `/404.html` unless configured).
 - No TLS (`--tlsCertFile`, `--tlsKeyFile`, `--tlsAuto`, `trust`), `--openBrowser`, `--pprof`,
-  `--renderStaticToDisk`, `--forceSyncStatic` (clap usage errors); `--disableFastRender` and
-  `--disableBrowserError` are accepted and change nothing.
+  `--renderStaticToDisk`, `--forceSyncStatic`, `--disableFastRender` and
+  `--disableBrowserError` (clap usage errors).
 - A busy default port falls back to a free port on `--bind` (Go listens on all interfaces
   then). Directory listings are not served (Go's `filesOnlyFs` lists nothing either; a
   directory without `index.html` is a miss).

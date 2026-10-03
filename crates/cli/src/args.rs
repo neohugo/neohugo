@@ -3,9 +3,9 @@
 //!
 //! As in the Go build (cobra), flags may come before the command ([`command_first`]), and the Go
 //! build's persistent flags (`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`,
-//! `--clock`, `-q`, `-M`, `--logLevel`, `--noBuildLock`) are accepted by every command
-//! (`global`); the commands that do not use one ignore it. The Go build's logging and
-//! housekeeping flags are accepted too ([`CompatFlags`]).
+//! `--clock`, `-q`, `-M`) are accepted by every command (`global`); the commands that do not
+//! use one ignore it. The Go build's logging and housekeeping flags (`--gc`, `--logLevel`, …)
+//! are not: they are usage errors.
 //!
 //! A boolean flag takes pflag's explicit value (`--minify=false`, `-D=1`, with Go's
 //! `strconv.ParseBool` spellings, `parse_bool`). The flags that set a configuration key
@@ -82,7 +82,7 @@ pub struct ProjectArgs {
     #[arg(short = 'e', long, value_name = "ENV", global = true)]
     pub environment: Option<String>,
     /// The site's base URL.
-    #[arg(short = 'b', long, aliases = ["baseURL", "baseUrl"], value_name = "URL")]
+    #[arg(short = 'b', long, alias = "baseURL", value_name = "URL")]
     pub base_url: Option<String>,
     /// Themes to use (comma-separated).
     #[arg(short = 't', long, value_delimiter = ',', value_name = "THEMES")]
@@ -182,94 +182,6 @@ pub struct BuildArgs {
     /// Prints only warnings and errors.
     #[arg(short = 'q', long, global = true)]
     pub quiet: bool,
-    #[command(flatten)]
-    pub compat: CompatFlags,
-}
-
-/// Flags of the Go build that only change its logging or housekeeping, accepted so that its
-/// command lines keep working (hidden from `--help`). `--logLevel warn` (Go's default),
-/// `--noBuildLock` (this port writes no lock file) and `--printPathWarnings` (target collisions are
-/// always warnings) are what this port does anyway; the others are ignored with a warning
-/// ([`CompatFlags::ignored`]).
-#[derive(Clone, Debug, Default, Args)]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "one field per command-line flag, as clap reads them"
-)]
-pub struct CompatFlags {
-    /// Go's log level (`debug`, `info`, `warn`, `error`); this port prints warnings and errors at
-    /// every level.
-    #[arg(
-        long,
-        alias = "logLevel",
-        value_name = "LEVEL",
-        value_parser = parse_log_level,
-        global = true,
-        hide = true
-    )]
-    pub log_level: Option<String>,
-    /// Go wrote no build lock file; this port never writes one.
-    #[arg(long, alias = "noBuildLock", global = true, hide = true)]
-    pub no_build_lock: bool,
-    /// Go removed unused cache files after the build.
-    #[arg(long, hide = true)]
-    pub gc: bool,
-    /// Go printed missing translations.
-    #[arg(long, alias = "printI18nWarnings", hide = true)]
-    pub print_i18n_warnings: bool,
-    /// Go printed duplicate target paths; this port always does.
-    #[arg(long, alias = "printPathWarnings", hide = true)]
-    pub print_path_warnings: bool,
-    /// Go printed the templates no page used.
-    #[arg(long, alias = "printUnusedTemplates", hide = true)]
-    pub print_unused_templates: bool,
-    /// Go printed template execution metrics.
-    #[arg(long, alias = "templateMetrics", hide = true)]
-    pub template_metrics: bool,
-    /// Go added improvement hints to `--templateMetrics`.
-    #[arg(long, alias = "templateMetricsHints", hide = true)]
-    pub template_metrics_hints: bool,
-}
-
-impl CompatFlags {
-    /// The flags given that this port does not act on, each with what Go did.
-    #[must_use]
-    pub fn ignored(&self) -> Vec<String> {
-        let mut out = Vec::new();
-        if let Some(level) = self.log_level.as_deref().filter(|l| *l != "warn") {
-            out.push(format!(
-                "--logLevel {level} is ignored: warnings and errors are printed at every log level"
-            ));
-        }
-        for (given, flag, what) in [
-            (self.gc, "--gc", "remove unused cache files after the build"),
-            (
-                self.print_i18n_warnings,
-                "--printI18nWarnings",
-                "print missing translations",
-            ),
-            (
-                self.print_unused_templates,
-                "--printUnusedTemplates",
-                "print unused templates",
-            ),
-            (
-                self.template_metrics,
-                "--templateMetrics",
-                "print template metrics",
-            ),
-            (
-                self.template_metrics_hints,
-                "--templateMetricsHints",
-                "print template metrics",
-            ),
-        ] {
-            if given {
-                out.push(format!("{flag} is ignored: this program does not {what}"));
-            }
-        }
-        out
-    }
 }
 
 /// Where a build writes.
@@ -373,10 +285,6 @@ pub struct LiveReloadArgs {
     /// Sends the browsers to the page whose content file changed.
     #[arg(short = 'N', long, alias = "navigateToChanged")]
     pub navigate_to_changed: bool,
-    /// Accepted for Go's command lines: build errors are only printed, never shown in the
-    /// browser.
-    #[arg(long, alias = "disableBrowserError", hide = true)]
-    pub disable_browser_error: bool,
 }
 
 /// What is served from where.
@@ -385,10 +293,10 @@ pub struct LiveReloadArgs {
 pub struct ServingArgs {
     /// Builds into the publish directory (`--destination`) and serves it from there, instead of
     /// memory.
-    #[arg(long, alias = "renderToDisk", conflicts_with = "render_to_memory")]
+    #[arg(long, conflicts_with = "render_to_memory")]
     pub render_to_disk: bool,
     /// Sends headers that keep browsers from caching (`Cache-Control: no-store`, …).
-    #[arg(long, aliases = ["noHTTPCache", "noHttpCache"])]
+    #[arg(long, alias = "noHTTPCache")]
     pub no_http_cache: bool,
 }
 
@@ -413,9 +321,6 @@ pub struct WatchArgs {
     /// a number is milliseconds). Polling reads the watched files each time.
     #[arg(long, value_name = "INTERVAL", value_parser = parse_poll)]
     pub poll: Option<Duration>,
-    /// Accepted for Go's command lines: every rebuild is a full rebuild.
-    #[arg(long, alias = "disableFastRender", hide = true)]
-    pub disable_fast_render: bool,
 }
 
 /// `templates check`.
@@ -467,9 +372,9 @@ pub enum ConfigFormat {
 /// anything this does not recognise is left where it is, for clap to report.
 ///
 /// A boolean flag with an explicit value, which cobra (pflag) takes and clap's `SetTrue` flags
-/// do not, is rewritten: `--gc=true` (or `1`, `t`, `TRUE`, … as Go's `strconv.ParseBool` reads
-/// it) becomes `--gc`, and `--gc=false` (`0`, `f`, `FALSE`, …) is dropped. Only flags that set
-/// no configuration key are `SetTrue` (logging, housekeeping, `--quiet`, `-M`, the server's), so
+/// do not, is rewritten: `--quiet=true` (or `1`, `t`, `TRUE`, … as Go's `strconv.ParseBool`
+/// reads it) becomes `--quiet`, and `--quiet=false` (`0`, `f`, `FALSE`, …) is dropped. Only flags
+/// that set no configuration key are `SetTrue` (`--quiet`, `-M`, the server's), so
 /// a dropped `=false` is the default; the others take the value themselves (`parse_bool`).
 #[must_use]
 pub fn command_first(mut args: Vec<OsString>) -> Vec<OsString> {
@@ -530,7 +435,7 @@ fn takes_value(cmd: &ClapCommand, is: &dyn Fn(&Arg) -> bool) -> bool {
 }
 
 /// A boolean flag (`ArgAction::SetTrue`) given with an explicit value, as pflag reads it
-/// (`--gc=false`, `--quiet=true`, `-M=1`): the flag without the value, and the value.
+/// (`--quiet=true`, `-M=1`): the flag without the value, and the value.
 /// `None` for anything else, an unknown value included (clap reports it).
 fn explicit_bool(root: &ClapCommand, arg: &str) -> Option<(String, bool)> {
     let (flag, value) = arg.split_once('=')?;
@@ -573,16 +478,6 @@ fn has_long(a: &Arg, name: &str) -> bool {
 
 fn has_short(a: &Arg, c: char) -> bool {
     a.get_short() == Some(c) || a.get_all_short_aliases().is_some_and(|v| v.contains(&c))
-}
-
-/// A log level as Go's `--logLevel` reads it (any case; `warning` and the empty string, Go's
-/// default, are `warn`).
-fn parse_log_level(s: &str) -> Result<String, String> {
-    match s.to_ascii_lowercase().as_str() {
-        "" | "warn" | "warning" => Ok("warn".to_owned()),
-        l @ ("debug" | "info" | "error") => Ok(l.to_owned()),
-        _ => Err("must be one of debug, info, warn or error".to_owned()),
-    }
 }
 
 fn parse_clock(s: &str) -> Result<jiff::Timestamp, String> {

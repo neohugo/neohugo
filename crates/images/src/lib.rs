@@ -39,7 +39,7 @@ pub use color::Color;
 pub use dither::{DitherMethod, DitherSpec};
 pub use error::ImageError;
 pub use exif::Exif;
-pub use filter::{ImageFilter, ImageInput, MAX_PADDING, PaddingSpec};
+pub use filter::{ImageFilter, ImageInput, MAX_PADDING, MemoryImage, PaddingSpec};
 pub use font::FontId;
 pub use format::ImageFormat;
 pub use plan::{Size, cover_size, crop_rect, fit_size, resize_size, rotated_size};

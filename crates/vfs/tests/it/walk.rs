@@ -433,6 +433,45 @@ fn static_later_mount_wins_within_a_module() {
     );
 }
 
+/// Multihost: a static mount without a language (a configured one, a theme's) serves every
+/// language, as Go copies it to every language's directory; a language's own mount still
+/// wins for that language.
+#[test]
+fn multihost_static_without_language_serves_every_language() {
+    let p = Project::new(&[
+        (
+            "config.toml",
+            "theme = \"t\"\n\
+             [languages.en]\nbaseURL = \"https://en.example.org/\"\nweight = 1\n\
+             [languages.fr]\nbaseURL = \"https://fr.example.org/\"\nweight = 2\n\
+             [[module.mounts]]\nsource = \"static\"\ntarget = \"static\"\n\
+             [[module.mounts]]\nsource = \"static_fr\"\ntarget = \"static\"\nlang = \"fr\"\n",
+        ),
+        ("static/a.txt", ""),
+        ("static_fr/a.txt", ""),
+        ("themes/t/static/t.txt", ""),
+        ("themes/t/layouts/x.html", ""),
+    ]);
+    let vfs = p.vfs();
+    let files: Vec<(String, Option<usize>, String)> = vfs
+        .walk(Component::Static)
+        .unwrap()
+        .iter()
+        .map(|f| (f.rel.clone(), f.mount_lang.map(Idx::index), p.origin(f)))
+        .collect();
+    let want =
+        |rel: &str, lang: usize, origin: &str| (rel.to_owned(), Some(lang), origin.to_owned());
+    assert_eq!(
+        files,
+        [
+            want("a.txt", 1, "static_fr/a.txt"),
+            want("a.txt", 0, "static/a.txt"),
+            want("t.txt", 0, "themes/t/static/t.txt"),
+            want("t.txt", 1, "themes/t/static/t.txt"),
+        ]
+    );
+}
+
 #[cfg(unix)]
 #[test]
 fn static_follows_symlinks() {

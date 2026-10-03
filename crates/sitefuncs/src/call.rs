@@ -12,7 +12,7 @@ use ssg_resources::ResourceStore;
 use ssg_site::Model;
 use ssg_view::{ContentRenderer, RenderScope, SCOPE_KEY, ViewCache, ViewGeneration};
 use tera::value::Key;
-use tera::{Kwargs, State, Tera, TeraResult, Value};
+use tera::{ArgFromValue, ErrorKind, Kwargs, State, Tera, TeraResult, Value};
 
 /// A site-bound function: kwargs and the render state.
 pub(crate) trait SiteFunction: Send + Sync + 'static {
@@ -41,7 +41,9 @@ impl<T> Checked<T> {
 impl<T: SiteFunction> tera::Function<TeraResult<Value>> for Checked<T> {
     fn call(&self, kwargs: Kwargs, state: &State) -> TeraResult<Value> {
         self.check(&kwargs)?;
-        self.f.call(&kwargs, state)
+        self.f
+            .call(&kwargs, state)
+            .map_err(|e| named(self.spec.name, e))
     }
 
     fn is_safe(&self) -> bool {
@@ -55,7 +57,10 @@ struct CheckedFilter<T>(Checked<T>);
 impl<T: SiteFilter> tera::Filter<Value, TeraResult<Value>> for CheckedFilter<T> {
     fn call(&self, value: Value, kwargs: Kwargs, state: &State) -> TeraResult<Value> {
         self.0.check(&kwargs)?;
-        self.0.f.call(value, &kwargs, state)
+        self.0
+            .f
+            .call(value, &kwargs, state)
+            .map_err(|e| named(self.0.spec.name, e))
     }
 
     fn is_safe(&self) -> bool {
@@ -108,6 +113,28 @@ where
 
 pub(crate) fn msg(m: impl Display) -> tera::Error {
     tera::Error::message(m)
+}
+
+/// Tera's own argument errors (a kwarg of the wrong type, a missing or out-of-range one) name
+/// neither the function nor the argument, and Tera points a filter's at its input: they get
+/// the function's name, as a message (which Tera points at the call).
+fn named(name: &str, e: tera::Error) -> tera::Error {
+    match e.kind() {
+        ErrorKind::InvalidArgument { .. }
+        | ErrorKind::MissingArgument { .. }
+        | ErrorKind::OutOfRangeArgument { .. } => msg(format!("{name}: {e}")),
+        _ => e,
+    }
+}
+
+/// Kwarg `key` of function `name` as a `T` (`None` when absent); a value of another type is
+/// an error that names the function and the kwarg.
+pub(crate) fn kwarg<'k, T>(kw: &'k Kwargs, key: &'k str, name: &str) -> TeraResult<Option<T>>
+where
+    T: ArgFromValue<'k, Output = T>,
+{
+    kw.get::<T>(key)
+        .map_err(|e| msg(format!("{name}({key}=): {e}")))
 }
 
 fn no_scope(name: &str) -> tera::Error {

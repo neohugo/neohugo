@@ -12,13 +12,24 @@ use crate::error::ImageError;
 use crate::spec::ImageSpec;
 use crate::text::TextSpec;
 
-/// An image a filter or an operation reads: a source file, or the result of a queued
-/// operation. In template maps a string is a file path and an integer an operation id.
+/// An image a filter or an operation reads: a source file, an image the queue holds in memory
+/// ([`ImageQueue::add_memory`](crate::ImageQueue::add_memory): a remote resource, a QR code),
+/// or the result of a queued operation. In template maps a string is a file path, an integer
+/// an operation id and `{"memory": …, "name": …}` an image in memory.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum ImageInput {
     Op(ImageOpId),
     File(PathBuf),
+    Memory(MemoryImage),
+}
+
+/// An image the queue holds in memory: the xxh3 of its bytes, and its file name (whose stem
+/// the processed images keep, as for a file).
+#[derive(Clone, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct MemoryImage {
+    pub memory: u64,
+    pub name: String,
 }
 
 /// One filter of a filter chain. Colour filters work on non-premultiplied 8-bit channels

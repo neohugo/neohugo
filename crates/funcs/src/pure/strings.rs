@@ -9,7 +9,7 @@ use ssg_base::url::SiteUrls;
 use ssg_base::{anchor, inflect, title};
 use tera::{Kwargs, TeraResult, Value};
 
-use super::value::{same_safety, text};
+use super::value::{chain, same_safety, text};
 use super::{PureEnv, Registrar};
 
 pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
@@ -208,7 +208,7 @@ impl RegexCache {
             return Ok(re.clone());
         }
         let re = regex::Regex::new(pattern)
-            .map_err(|e| tera::Error::chain(format!("invalid regex `{pattern}`"), e))?;
+            .map_err(|e| chain(format!("invalid regex `{pattern}`"), e))?;
         self.0
             .write()
             .unwrap_or_else(PoisonError::into_inner)

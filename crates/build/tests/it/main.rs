@@ -10,4 +10,5 @@ mod mini;
 mod skeleton;
 mod smoke;
 mod support;
+mod taxonomy_tree;
 mod themes;

@@ -385,6 +385,18 @@ impl Plan {
         encode.quality = merged.quality.unwrap_or(imaging.quality);
         encode.hint = merged.hint.unwrap_or(imaging.hint);
         encode.background = merged.background;
+        // Checked here rather than by the encoder, so that the template call gets the error.
+        if let Some(max) = encode.format.max_side()
+            && (plan.size.0 > max || plan.size.1 > max)
+        {
+            return Err(ImageError::Encode {
+                format: encode.format,
+                reason: format!(
+                    "the result would be {}x{} pixels; {} images are at most {max}x{max}",
+                    plan.size.0, plan.size.1, encode.format
+                ),
+            });
+        }
         plan.encode = encode;
         Ok(plan)
     }

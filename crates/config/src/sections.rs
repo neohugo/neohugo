@@ -9,11 +9,16 @@ use ssg_base::{FormatId, KindSet, Map, PageKind, Params, Value};
 use crate::error::ConfigError;
 use crate::output::OutputFormats;
 
-/// A taxonomy: `tag = "tags"`.
+/// A taxonomy: `tag = "tags"`, or the table `[taxonomies.tag]` with `plural` and
+/// `hierarchical`.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct TaxonomyDef {
     pub singular: String,
     pub plural: String,
+    /// The terms form a tree: a `/` in a term nests it, every term above a term exists, and a
+    /// term lists the pages of the terms below it.
+    #[serde(skip_serializing_if = "std::ops::Not::not")]
+    pub hierarchical: bool,
 }
 
 /// The output formats each page kind is rendered in (disabled kinds have none).

@@ -11,7 +11,7 @@ translations, bundle resources, page references).
 | Model | `Model { config, pages: IdVec<PageId, Page>, sites: IdVec<LangIdx, SiteModel>, bundle_resources: IdVec<ResourceId, BundleResource>, data: Arc<Map>, diagnostics }`; `page(id)`, `bundle_owner(id)`, `page_name(id)` (`.Name`), `is_ancestor(a, b)`, `pager_paths(id, format, "/page/2")` |
 | Page | `id, lang, kind, role: PageRole, key: ContentKey, source: Option<SourceFile>, path_info: PathInfo, meta: PageMeta`; T23b: `title, link_title, section, type, taxonomy: Option<TaxonomyIdx>, term: Option<TermIdx>, standalone: Option<FormatId>, formats: Vec<FormatId>, urls: Vec<PageUrl { format, paths: TargetPaths, links: Option<Links> }>, parent, ancestors, current_section, first_section, pages, regular_pages, sections, translations (= .AllTranslations), terms: Vec<(TaxonomyIdx, TermIdx)>, resources: Vec<ResourceId>`; `path()` (`.Path`), `name()`, `listed(ListScope::{Local, Global})`, `linked()`, `rendered()`, `url(format)`, `links()`, `dir_key()` |
 | SiteModel | `lang, tree: SiteTree, resources: BTreeMap<ContentKey, ResourceId>, cascade`; T23b: `home, pages, regular_pages (.Site.Pages/.RegularPages), regular_pages_local (regular pages listed locally, default order: `.RegularPagesRecursive` of home and sections), taxonomies: IdVec<TaxonomyIdx, Taxonomy>, main_sections, last_mod, permalinks: PermalinkPatterns` |
-| Taxonomies | `Taxonomy { def, page: Option<PageId>, terms: IdVec<TermIdx, Term> }` (terms by key), `listed_terms(&Model)` (`.Site.Taxonomies`: listed terms with members); `Term { key, term (.Data.Term), page, members: Vec<WeightedPage { page, weight, ordinal }> }` (weight, then default order) |
+| Taxonomies | `Taxonomy { def, page: Option<PageId>, terms: IdVec<TermIdx, Term> }` (terms by key), `listed_terms(&Model)` (`.Site.Taxonomies`: listed terms with members); `Term { key, term (.Data.Term), page, members: Vec<WeightedPage { page, weight, ordinal }>, parent, children }` (weight, then default order; hierarchical: members include the terms below), `key_of(&Term)` |
 | BundleResource | `key, lang, file, info, page, adapter: Option<Arc<AddedResource>>`; T23b: `copy_of` (a `duplicateResourceFiles` copy), `owner`, `name` (as written below the owner), `name_normalized`, `target_base: Option<ResourceBase>`, `publish`; `target()`, `link()`. Feeds `ssg_resources::BundleResource { lang, file: file.abs, name, dir: target_base.link, policy: publish ? Eager : OnReference }` |
 | References | `get_page(lang, ref, from)` (`.GetPage`), `site_get_page(lang, &[args])` (legacy kind-first `.Site.GetPage`), `ref_page(lang, ref, from)`, `ref_link(lang, &RefArgs { path, lang, output_format }, from, RefLink::{Permalink, RelPermalink})` → `Result<_, RefError>` (the caller maps errors to `refLinks`) |
 | Trees | `SiteTree::{get, insert, remove, longest_prefix, descendants, iter}` (segment-wise) |
@@ -69,7 +69,13 @@ translations, bundle resources, page references).
    read as a content path (lower case, spaces → `-`, `/` nests); the page at that key is the
    term page, made when missing (unless a content term page there was removed by the filter).
    `.Data.Term` is the last value; the weight is `<plural>_weight` (a warning when it is not
-   an integer).
+   an integer). A **hierarchical** taxonomy (fugo's own, `[taxonomies.<singular>]
+   hierarchical = true`): a value without `/` that is no top-level term names the one known
+   term ending in it (term pages and the paths pages write; several: warning
+   `taxonomy-ambiguous-term`, top-level); every term above a term is made (named from the
+   written path); terms get `parent`/`children` and list the members of the terms below
+   (smallest weight); `.Data.Term` is the last segment; template keys are paths below the
+   taxonomy (`Taxonomy::key_of`); `.GetTerms` keeps the named terms.
 6. **Relations** (`relations.rs`): titles (a page without a file: site title, pluralised and
    title-cased section name, taxonomy plural, term, `404 Page not found`), link titles,
    sections, types; `.Parent` (nearest branch page above; a bundled page's bundle),
@@ -78,7 +84,8 @@ translations, bundle resources, page references).
    publish date below it, terms excepted; then term and taxonomy pages without dates take their
    terms' and members' dates; `.Site.Lastmod`); the **lists** in the default order with the
    language's collator (home/section: pages and sections directly in it; taxonomy: its terms
-   at all levels; term: its members, weighted; standalone pages: the site's pages);
+   at all levels, a hierarchical one its top-level terms, which with child terms are also its
+   and its terms' `.Sections`; term: its members, weighted; standalone pages: the site's pages);
    `.Site.MainSections` (configured, else the root section with the most regular pages, the
    first by name on a tie).
 7. **Translations** (`translations.rs`): a `translationKey` groups pages of any language;

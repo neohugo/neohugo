@@ -8,7 +8,8 @@
 
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock, PoisonError};
 use std::time::{Duration, SystemTime};
 
@@ -21,7 +22,7 @@ use xxhash_rust::xxh3::xxh3_64;
 use crate::codec;
 use crate::error::ImageError;
 use crate::exif;
-use crate::filter::{ImageFilter, ImageInput};
+use crate::filter::{ImageFilter, ImageInput, MemoryImage};
 use crate::font::{FontData, FontId};
 use crate::format::ImageFormat;
 use crate::pixels;
@@ -66,32 +67,49 @@ impl ImageCache {
         self.dir.join(file_name)
     }
 
+    /// Whether the cache has `file_name`, not older than the maximum age.
+    fn has(&self, file_name: &str) -> bool {
+        let Ok(meta) = fs::metadata(self.path(file_name)) else {
+            return false;
+        };
+        match self.max_age {
+            MaxAge::Forever => meta.is_file(),
+            MaxAge::For(age) if age == Duration::ZERO => false,
+            MaxAge::For(age) => meta.modified().is_ok_and(|modified| {
+                SystemTime::now()
+                    .duration_since(modified)
+                    .unwrap_or_default()
+                    <= age
+            }),
+        }
+    }
+
     /// The cached bytes, when present and not older than the maximum age.
     fn read(&self, file_name: &str) -> Option<Vec<u8>> {
-        let path = self.path(file_name);
-        match self.max_age {
-            MaxAge::Forever => {}
-            MaxAge::For(age) if age == Duration::ZERO => return None,
-            MaxAge::For(age) => {
-                let modified = fs::metadata(&path).and_then(|m| m.modified()).ok()?;
-                let elapsed = SystemTime::now()
-                    .duration_since(modified)
-                    .unwrap_or_default();
-                if elapsed > age {
-                    return None;
-                }
-            }
+        if !self.has(file_name) {
+            return None;
         }
-        fs::read(path).ok()
+        fs::read(self.path(file_name)).ok()
     }
 
     fn write(&self, file_name: &str, bytes: &[u8]) -> Result<(), ImageError> {
+        /// Makes the temporary names of one process unique.
+        static TMP: AtomicU64 = AtomicU64::new(0);
         fs::create_dir_all(&self.dir).map_err(|e| ImageError::io(&self.dir, e))?;
         let path = self.path(file_name);
-        // Write then rename, so a concurrent reader never sees a partial file.
-        let tmp = self.dir.join(format!(".{file_name}.tmp"));
+        // Write then rename, so a concurrent reader never sees a partial file. The temporary
+        // name is the writer's own: two writers of one name (two builds sharing the cache)
+        // must not write into one temporary file and rename it from under each other.
+        let tmp = self.dir.join(format!(
+            ".{file_name}.{}-{}.tmp",
+            std::process::id(),
+            TMP.fetch_add(1, Ordering::Relaxed)
+        ));
         fs::write(&tmp, bytes).map_err(|e| ImageError::io(&tmp, e))?;
-        fs::rename(&tmp, &path).map_err(|e| ImageError::io(&path, e))
+        fs::rename(&tmp, &path).map_err(|e| {
+            let _ = fs::remove_file(&tmp);
+            ImageError::io(&path, e)
+        })
     }
 }
 
@@ -124,12 +142,32 @@ struct Op {
     orientation: Option<u8>,
 }
 
+impl Op {
+    /// The operations whose results this one reads: its input, the images of its overlays and
+    /// masks.
+    fn reads(&self) -> impl Iterator<Item = ImageOpId> + '_ {
+        let steps = self.plan.steps.iter().filter_map(|s| match s {
+            Step::Overlay { image, .. } | Step::Mask { image } => Some(&image.input),
+            _ => None,
+        });
+        std::iter::once(&self.input)
+            .chain(steps)
+            .filter_map(|i| match i {
+                ImageInput::Op(id) => Some(*id),
+                ImageInput::File(_) | ImageInput::Memory(_) => None,
+            })
+    }
+}
+
 /// Queued image operations, shared by every render of a build.
 pub struct ImageQueue {
     imaging: Imaging,
     cache: Option<ImageCache>,
     ops: Mutex<BTreeMap<ImageOpId, Arc<Op>>>,
-    sources: Mutex<BTreeMap<PathBuf, Arc<SourceMeta>>>,
+    /// Sources (files and images in memory) by input.
+    sources: Mutex<BTreeMap<ImageInput, Arc<SourceMeta>>>,
+    /// The bytes of the images in memory, by their xxh3.
+    memory: Mutex<BTreeMap<u64, Arc<[u8]>>>,
     results: Mutex<BTreeMap<u64, SharedResult>>,
     /// Fonts of text filters, by content.
     fonts: Mutex<BTreeMap<FontId, FontData>>,
@@ -151,6 +189,7 @@ impl ImageQueue {
             cache,
             ops: Mutex::new(BTreeMap::new()),
             sources: Mutex::new(BTreeMap::new()),
+            memory: Mutex::new(BTreeMap::new()),
             results: Mutex::new(BTreeMap::new()),
             fonts: Mutex::new(BTreeMap::new()),
             font_files: Mutex::new(BTreeMap::new()),
@@ -172,23 +211,62 @@ impl ImageQueue {
             .ok_or(ImageError::UnknownOp(id))
     }
 
-    /// The metadata of a source file (read once per path).
-    fn source(&self, path: &Path) -> Result<Arc<SourceMeta>, ImageError> {
+    /// Holds an image that is not a file (a remote resource, a QR code, …) for processing: the
+    /// input that reads it. `name` is its file name, whose stem the processed images keep.
+    /// Adding the same bytes again keeps one copy.
+    #[must_use]
+    pub fn add_memory(&self, name: &str, bytes: Arc<[u8]>) -> ImageInput {
+        let memory = xxh3_64(&bytes);
+        self.memory
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .entry(memory)
+            .or_insert(bytes);
+        ImageInput::Memory(MemoryImage {
+            memory,
+            name: name.to_owned(),
+        })
+    }
+
+    /// The bytes of a source (a file or an image in memory), what errors call it, and its file
+    /// name.
+    fn source_bytes(&self, input: &ImageInput) -> Result<(Arc<[u8]>, String, String), ImageError> {
+        match input {
+            ImageInput::File(path) => {
+                let bytes = fs::read(path).map_err(|e| ImageError::io(path, e))?;
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                Ok((bytes.into(), path.display().to_string(), name))
+            }
+            ImageInput::Memory(m) => {
+                let bytes = self
+                    .memory
+                    .lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .get(&m.memory)
+                    .cloned()
+                    .ok_or_else(|| ImageError::UnknownMemory(m.name.clone()))?;
+                let name = m.name.rsplit('/').next().unwrap_or_default().to_owned();
+                Ok((bytes, m.name.clone(), name))
+            }
+            ImageInput::Op(id) => Err(ImageError::UnknownOp(*id)),
+        }
+    }
+
+    /// The metadata of a source, a file or an image in memory (read once per input).
+    fn source(&self, input: &ImageInput) -> Result<Arc<SourceMeta>, ImageError> {
         if let Some(m) = self
             .sources
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .get(path)
+            .get(input)
         {
             return Ok(Arc::clone(m));
         }
-        let bytes = fs::read(path).map_err(|e| ImageError::io(path, e))?;
-        let what = path.display().to_string();
+        let (bytes, what, name) = self.source_bytes(input)?;
         let (size, format) = codec::probe(&bytes, &what)?;
-        let name = path
-            .file_name()
-            .map(|n| n.to_string_lossy())
-            .unwrap_or_default();
         let (stem, ext) = match name.rfind('.') {
             Some(i) if i > 0 => (&name[..i], &name[i..]),
             _ => (&*name, ""),
@@ -206,7 +284,7 @@ impl ImageQueue {
         self.sources
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
-            .insert(path.to_owned(), Arc::clone(&meta));
+            .insert(input.clone(), Arc::clone(&meta));
         Ok(meta)
     }
 
@@ -277,7 +355,7 @@ impl ImageQueue {
 
     fn input_ref(&self, input: &ImageInput) -> Result<InputRef, ImageError> {
         let identity = match input {
-            ImageInput::File(p) => self.source(p)?.hash,
+            ImageInput::File(_) | ImageInput::Memory(_) => self.source(input)?.hash,
             ImageInput::Op(id) => self.op(*id)?.digest,
         };
         Ok(InputRef {
@@ -300,8 +378,8 @@ impl ImageQueue {
         filters: &[ImageFilter],
     ) -> Result<Enqueued, ImageError> {
         let (info, identity, stem, ext) = match input {
-            ImageInput::File(p) => {
-                let m = self.source(p)?;
+            ImageInput::File(_) | ImageInput::Memory(_) => {
+                let m = self.source(input)?;
                 let info = InputInfo {
                     size: m.info.size,
                     format: m.info.format,
@@ -399,9 +477,9 @@ impl ImageQueue {
     /// them ([`codec::decode`]).
     fn pixels(&self, input: &ImageInput, analysis: bool) -> Result<codec::Decoded, ImageError> {
         match input {
-            ImageInput::File(p) => {
-                let bytes = fs::read(p).map_err(|e| ImageError::io(p, e))?;
-                codec::decode(&bytes, &p.display().to_string(), analysis)
+            ImageInput::File(_) | ImageInput::Memory(_) => {
+                let (bytes, what, _) = self.source_bytes(input)?;
+                codec::decode(&bytes, &what, analysis)
             }
             ImageInput::Op(id) => {
                 let op = self.op(*id)?;
@@ -443,6 +521,76 @@ impl ImageQueue {
         Ok(Arc::clone(op.result.get_or_init(|| bytes)))
     }
 
+    /// Error `e` of operation `id` with the file it was processed for and what it read.
+    fn for_target(&self, target: &OutputPath, id: ImageOpId, e: ImageError) -> ImageError {
+        let Ok(op) = self.op(id) else {
+            return e;
+        };
+        let input = match &op.input {
+            ImageInput::File(p) => p.display().to_string(),
+            ImageInput::Memory(m) => m.name.clone(),
+            ImageInput::Op(i) => self.get(*i).map_or_else(|| i.to_string(), |e| e.file_name),
+        };
+        ImageError::Process {
+            target: target.to_string(),
+            width: op.out.width,
+            height: op.out.height,
+            format: op.out.format,
+            input,
+            source: Box::new(e),
+        }
+    }
+
+    /// What [`process`](Self::process) computes for `ids`, in stages: each stage in parallel,
+    /// after the stages of the operations it reads. Operations that differ only in their name
+    /// share their pixels, so one of each digest is processed. The operations the wanted ones
+    /// read are processed first (unless the wanted one has a result already): two
+    /// operations that read one unprocessed operation would otherwise both process it.
+    fn stages(&self, ids: &[ImageOpId]) -> Vec<Vec<ImageOpId>> {
+        let mut stage_of: BTreeMap<ImageOpId, usize> = BTreeMap::new();
+        for &id in ids {
+            self.stage(id, &mut stage_of);
+        }
+        let mut firsts: BTreeMap<u64, (usize, ImageOpId)> = BTreeMap::new();
+        for (&id, &stage) in &stage_of {
+            if let Ok(op) = self.op(id) {
+                firsts.entry(op.digest).or_insert((stage, id));
+            }
+        }
+        let mut stages: Vec<Vec<ImageOpId>> = Vec::new();
+        for (stage, id) in firsts.into_values() {
+            if stages.len() <= stage {
+                stages.resize_with(stage + 1, Vec::new);
+            }
+            stages[stage].push(id);
+        }
+        stages
+    }
+
+    /// The stage of operation `id` (recorded in `stage_of` with the operations it reads): 0
+    /// when it reads no operation or has a result already (in this build or in the file
+    /// cache), else one more than the latest stage of the operations it reads.
+    fn stage(&self, id: ImageOpId, stage_of: &mut BTreeMap<ImageOpId, usize>) -> usize {
+        if let Some(&s) = stage_of.get(&id) {
+            return s;
+        }
+        let mut s = 0;
+        if let Ok(op) = self.op(id) {
+            let done = op.result.get().is_some()
+                || self
+                    .cache
+                    .as_ref()
+                    .is_some_and(|c| c.has(&op.out.file_name));
+            if !done {
+                for input in op.reads() {
+                    s = s.max(self.stage(input, stage_of) + 1);
+                }
+            }
+        }
+        stage_of.insert(id, s);
+        s
+    }
+
     /// Processes the wanted operations in parallel and writes each result to its target.
     /// Must be called outside any render (build phase E6).
     ///
@@ -457,22 +605,12 @@ impl ImageQueue {
         let mut ids: Vec<ImageOpId> = wanted.values().copied().collect();
         ids.sort_unstable();
         ids.dedup();
-        // Operations that differ only in their name share their pixels: process one of each
-        // first, so the others find the shared result.
-        let mut firsts: BTreeMap<u64, ImageOpId> = BTreeMap::new();
-        for id in &ids {
-            if let Ok(op) = self.op(*id) {
-                firsts.entry(op.digest).or_insert(*id);
-            }
-        }
-        firsts
-            .into_values()
-            .collect::<Vec<_>>()
-            .into_par_iter()
-            .for_each(|id| {
+        for stage in self.stages(&ids) {
+            stage.into_par_iter().for_each(|id| {
                 // Errors are reported below, in target order.
                 let _ = self.encoded(id);
             });
+        }
         let mut results: BTreeMap<ImageOpId, Result<Arc<[u8]>, ImageError>> = ids
             .into_par_iter()
             .map(|id| (id, self.encoded(id)))
@@ -483,7 +621,7 @@ impl ImageQueue {
             if let Some(Err(_)) = results.get(id)
                 && let Some(Err(e)) = results.remove(id)
             {
-                return Err(e);
+                return Err(self.for_target(target, *id, e));
             }
             if let Some(Ok(bytes)) = results.get(id) {
                 sink.write(target, bytes)
@@ -491,5 +629,80 @@ impl ImageQueue {
             }
         }
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use ssg_testkit::fixture::repo_file;
+
+    use super::*;
+
+    fn spec(s: &str) -> ImageSpec {
+        s.parse().expect("spec")
+    }
+
+    fn photo() -> ImageInput {
+        ImageInput::File(repo_file("resources/testdata/sunset.jpg"))
+    }
+
+    fn sorted(mut ids: Vec<ImageOpId>) -> Vec<ImageOpId> {
+        ids.sort_unstable();
+        ids
+    }
+
+    /// Two operations reading one unprocessed operation: it is processed in an earlier stage,
+    /// once, as is an overlay's image.
+    #[test]
+    fn stages_process_what_is_read_first_and_once() {
+        let q = ImageQueue::new(Imaging::default(), None);
+        let crop = q
+            .enqueue(&photo(), Some(&spec("crop 200x200")), &[])
+            .expect("crop");
+        let small = q
+            .enqueue(&ImageInput::Op(crop.id), Some(&spec("resize 50x")), &[])
+            .expect("small");
+        let large = q
+            .enqueue(&ImageInput::Op(crop.id), Some(&spec("resize 100x")), &[])
+            .expect("large");
+        let mark = q
+            .enqueue(&photo(), Some(&spec("resize 20x")), &[])
+            .expect("mark");
+        let marked = q
+            .enqueue(
+                &ImageInput::Op(large.id),
+                None,
+                &[ImageFilter::Overlay {
+                    image: ImageInput::Op(mark.id),
+                    x: 0,
+                    y: 0,
+                }],
+            )
+            .expect("marked");
+        let stages = q.stages(&[small.id, marked.id]);
+        assert_eq!(stages.len(), 3, "{stages:?}");
+        assert_eq!(sorted(stages[0].clone()), sorted(vec![crop.id, mark.id]));
+        assert_eq!(sorted(stages[1].clone()), sorted(vec![small.id, large.id]));
+        assert_eq!(stages[2], [marked.id]);
+    }
+
+    /// A result in the file cache is read from there: what it reads is not processed.
+    #[test]
+    fn stages_skip_what_a_cached_result_reads() {
+        let dir = tempfile::tempdir().expect("tempdir");
+        let cache = ImageCache {
+            dir: dir.path().to_owned(),
+            max_age: MaxAge::Forever,
+        };
+        let q = ImageQueue::new(Imaging::default(), Some(cache));
+        let crop = q
+            .enqueue(&photo(), Some(&spec("crop 200x200")), &[])
+            .expect("crop");
+        let small = q
+            .enqueue(&ImageInput::Op(crop.id), Some(&spec("resize 50x")), &[])
+            .expect("small");
+        assert_eq!(q.stages(&[small.id]), [vec![crop.id], vec![small.id]]);
+        fs::write(dir.path().join(&small.file_name), b"cached").expect("write");
+        assert_eq!(q.stages(&[small.id]), [vec![small.id]]);
     }
 }

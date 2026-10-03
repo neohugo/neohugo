@@ -485,10 +485,10 @@ that comments and READMEs cite.
   printed the version line, `new`, `mod`, `deploy`, `list`, `gen`, `convert`, `import`,
   `release`, `server trust`, `config mounts`, cobra's `completion` and `help`), the Go program's flags it
   does not list (`crates/cli/README.md`; e.g. `--enableGitInfo`, `--contentDir`,
-  `--disableKinds`, `--panicOnWarning`, the build's `-w`/`--watch`; the logging and
+  `--disableKinds`, `--panicOnWarning`, the build's `-w`/`--watch`, the logging and
   housekeeping flags `--gc`, `--logLevel`, `--noBuildLock`, `--printI18nWarnings`,
   `--printPathWarnings`, `--printUnusedTemplates`, `--templateMetrics` and
-  `--templateMetricsHints` are accepted, with a warning for those fugo does not act on, and
+  `--templateMetricsHints`, and the server's `--disableFastRender` and `--disableBrowserError`;
   `--noTimes`/`--noChmod` work), the "Start building sites …" banner with the version line, and
   Go's per-language statistics table after a build (Pages, Paginator pages, Non-page files,
   Static files, Processed images, Aliases, Cleaned): fugo prints one line, `pages N | files N
@@ -505,7 +505,7 @@ that comments and READMEs cite.
   the exit code 1 of usage errors (they exit with 2) and Go's `Error: …` prefix (clap prints
   `error: …`, a failed build `ERROR …`). As in Go, flags may come before the command and every
   command takes the persistent flags (`-s`, `-d`, `-e`, `--config`, `--configDir`, `--themesDir`,
-  `--clock`, `--quiet`, `-M`, `--logLevel`, `--noBuildLock`; `crates/cli/README.md`). New: a `--version` flag, printing the
+  `--clock`, `--quiet`, `-M`; `crates/cli/README.md`). New: a `--version` flag, printing the
   `version` line. The Docker images and the docs deploy are below; `snap/snapcraft.yaml` and
   the upstream release tool's configuration were in the tree at `44529028`, but no workflow published them.
 

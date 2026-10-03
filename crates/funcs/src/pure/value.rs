@@ -31,6 +31,15 @@ pub fn text<'v>(v: &'v Value, what: &str) -> TeraResult<Cow<'v, str>> {
     )))
 }
 
+/// An error with a cause: the cause's text is in the message (Tera prints only the message,
+/// and drops the cause when it reports a function's error).
+pub fn chain<E>(what: impl std::fmt::Display, e: E) -> tera::Error
+where
+    E: std::error::Error + Send + Sync + 'static,
+{
+    tera::Error::chain(format!("{what}: {e}"), e)
+}
+
 /// A string value with the safety of `like`.
 pub fn same_safety(like: &Value, s: String) -> Value {
     if like.is_safe() {

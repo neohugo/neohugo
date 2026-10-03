@@ -5,7 +5,7 @@ use ssg_base::url::{self, Component, UrlRef};
 use tera::{Kwargs, TeraResult, Value};
 
 use super::Registrar;
-use super::value::{array, sorted_map, text};
+use super::value::{array, chain, sorted_map, text};
 
 pub(super) fn register(r: &mut Registrar<'_>) {
     r.filter("parse_url", |v, _, _| parse_url(&text(&v, "parse_url")?));
@@ -13,7 +13,7 @@ pub(super) fn register(r: &mut Registrar<'_>) {
     r.filter("urldecode", |v, _, _| {
         let s = text(&v, "urldecode")?;
         let bytes = url::unescape(&s, Component::QueryComponent)
-            .map_err(|e| tera::Error::chain(format!("urldecode `{s}`"), e))?;
+            .map_err(|e| chain(format!("urldecode `{s}`"), e))?;
         String::from_utf8(bytes)
             .map(Value::from)
             .map_err(|_| tera::Error::message(format!("urldecode: `{s}` is not UTF-8")))
@@ -58,7 +58,7 @@ fn string_parts(kw: &Kwargs, what: &str) -> TeraResult<Vec<String>> {
 }
 
 fn parse_error(s: &str, e: url::UrlError) -> tera::Error {
-    tera::Error::chain(format!("`{s}` is not a URL"), e)
+    chain(format!("`{s}` is not a URL"), e)
 }
 
 /// `{scheme, host, path, fragment, query, is_absolute, string}` (path and fragment decoded).

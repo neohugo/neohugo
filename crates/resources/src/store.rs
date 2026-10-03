@@ -1103,7 +1103,10 @@ impl ResourceStore {
         }
     }
 
-    /// What the [`ImageQueue`] reads for image resource `id`: its file or its operation.
+    /// What the [`ImageQueue`] reads for image resource `id`: its file, its operation, or its
+    /// bytes (a remote image, a QR code, …), which the queue then holds under the name of the
+    /// resource's file. `None` for other resources, a transform not computed yet, or a store
+    /// without a queue.
     #[must_use]
     pub fn image_input(&self, id: ResourceId) -> Option<ImageInput> {
         let r = self.resource(id);
@@ -1113,7 +1116,12 @@ impl ResourceStore {
         match &r.body {
             Body::File(p) => Some(ImageInput::File(p.clone())),
             Body::PendingImage(op) => Some(ImageInput::Op(*op)),
-            Body::Bytes(_) | Body::Pending => None,
+            Body::Bytes(b) => self
+                .cfg
+                .images
+                .as_ref()
+                .map(|q| q.add_memory(paths::base(r.target.as_str()), Arc::clone(b))),
+            Body::Pending => None,
         }
     }
 

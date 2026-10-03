@@ -48,6 +48,8 @@ pub struct Vfs {
     mounts: Vec<Mount>,
     ignore: IgnoreRules,
     multihost: bool,
+    /// The number of languages (each one's static files are copied apart when multihost).
+    languages: usize,
 }
 
 impl Vfs {
@@ -67,6 +69,7 @@ impl Vfs {
             mounts: mount::mounts(cfg)?,
             ignore,
             multihost: cfg.multihost,
+            languages: cfg.sites.len(),
         })
     }
 
@@ -103,7 +106,9 @@ impl Vfs {
     /// copies the mounts one after the other), and the project still wins over the themes.
     /// Symbolic links below a static mount root are followed (a dangling link is skipped, and
     /// so is a link to a directory it is inside of); for every other component they are
-    /// skipped.
+    /// skipped. On a multihost site every static file has a language: the file of a mount
+    /// without one is listed once per language, as Go copies such a mount to every
+    /// language's directory.
     ///
     /// # Errors
     /// A directory that cannot be read, or a file name that is not UTF-8.
@@ -128,6 +133,21 @@ impl Vfs {
                 }
                 self.walk_dir(m, idx, &m.abs, "", &mut stack, &mut files)?;
             }
+        }
+        if c == Component::Static && self.multihost {
+            files = files
+                .into_iter()
+                .flat_map(|f| {
+                    let langs: Vec<LangIdx> = match f.mount_lang {
+                        Some(l) => vec![l],
+                        None => (0..self.languages).map(LangIdx::from_index).collect(),
+                    };
+                    langs.into_iter().map(move |l| FileRef {
+                        mount_lang: Some(l),
+                        ..f.clone()
+                    })
+                })
+                .collect();
         }
         // A stable sort: for one path the files are in mount order, or `rank` order for static.
         if c == Component::Static {

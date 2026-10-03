@@ -17,7 +17,7 @@
 //! the last good build): nothing changed, no reload; content changed, a full reload (or, with
 //! `--navigateToChanged`, a navigation to the changed page); one other file changed, a reload
 //! of that path; only stylesheets changed, each is reloaded in place; else a full reload. A
-//! configuration change always reloads fully; `--renderToDisk` builds are not compared, so
+//! configuration change always reloads fully; `--render-to-disk` builds are not compared, so
 //! they always reload fully. One static file reloads that path, several reload fully.
 
 use std::collections::{BTreeMap, BTreeSet};

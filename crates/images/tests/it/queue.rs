@@ -353,3 +353,61 @@ fn identical_bytes_keep_their_own_names() {
         "the digits hash content and operation"
     );
 }
+
+/// An image held in memory (a remote resource, a QR code) is processed like a file: its name
+/// gives the result's stem, and the same bytes under the same name are the same operation as
+/// the file's.
+#[test]
+fn images_in_memory_are_processed() {
+    let q = ImageQueue::new(Imaging::default(), None);
+    let ImageInput::File(path) = photo() else {
+        unreachable!("a file")
+    };
+    let bytes: std::sync::Arc<[u8]> = std::fs::read(&path).expect("read").into();
+    let memory = q.add_memory("remote/sunset.jpg", bytes);
+    assert!(matches!(memory, ImageInput::Memory(_)), "{memory:?}");
+    let from_memory = q
+        .enqueue(&memory, Some(&spec("fill 60x40 webp")), &[])
+        .expect("memory");
+    let from_file = q
+        .enqueue(&photo(), Some(&spec("fill 60x40 webp")), &[])
+        .expect("file");
+    assert!(
+        from_memory.file_name.starts_with("sunset_hu_"),
+        "{}",
+        from_memory.file_name
+    );
+    assert_eq!(from_memory, from_file);
+    // An overlay in memory, through the template layer's JSON form.
+    let json = serde_json::to_value(&memory).expect("json");
+    let overlay: ImageFilter =
+        serde_json::from_value(serde_json::json!({"op": "overlay", "image": json, "x": 1, "y": 1}))
+            .expect("filter");
+    let marked = q
+        .enqueue(&photo(), Some(&spec("resize 90x")), &[overlay])
+        .expect("marked");
+    let sink = MemorySink::default();
+    let wanted: BTreeMap<OutputPath, _> = [
+        (OutputPath::new(&from_memory.file_name), from_memory.id),
+        (OutputPath::new(&marked.file_name), marked.id),
+    ]
+    .into_iter()
+    .collect();
+    q.process(&wanted, &sink).expect("process");
+    let files = sink.files.lock().expect("lock");
+    assert_eq!(
+        decode(&files[&OutputPath::new(&from_memory.file_name)]).dimensions(),
+        (60, 40)
+    );
+    assert_eq!(
+        decode(&files[&OutputPath::new(&marked.file_name)]).width(),
+        90
+    );
+    // Bytes the queue was never given.
+    let unknown = ImageInput::Memory(ssg_images::MemoryImage {
+        memory: 1,
+        name: "gone.png".into(),
+    });
+    let e = q.enqueue(&unknown, None, &[]).expect_err("unknown");
+    assert!(matches!(e, ImageError::UnknownMemory(_)), "{e}");
+}

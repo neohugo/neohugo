@@ -31,15 +31,15 @@ Kebab-case, with Go's camelCase spelling as an alias. As in the Go build (cobra)
 come before the command: `args::command_first` moves the command to the front before clap
 parses, so `fugo -s site server` is `fugo server -s site` (a flag keeps its value:
 `fugo -e server` builds with the environment `server`). The Go build's persistent flags,
-`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q`, `-M`,
-`--log-level` and `--no-build-lock`, are clap `global` flags: every command accepts them, and
+`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`, `--clock`, `-q` and `-M`,
+are clap `global` flags: every command accepts them, and
 one that does not use a flag ignores it (`version -s x`, `config -q -d out`), as Go did. A
 boolean flag also takes pflag's explicit value, with Go's `strconv.ParseBool` spellings (`1`,
 `t`, `T`, `TRUE`, `true`, `True`; `0`, `f`, `F`, `FALSE`, `false`, `False`). The flags that set
 a configuration key (`-D`, `-E`, `-F`, `--ignore-cache`, `--clean-destination-dir`, `--minify`,
 `--no-times`, `--no-chmod`, shown as `[=BOOL]` below) and the server's `-w`/`--watch` and
 `--append-port` read it themselves, so `-D=false` overrides `buildDrafts = true` in the
-configuration, as in Go; for the others (`--gc=false`, `-q=1`, `-M=false`) `command_first` turns
+configuration, as in Go; for the others (`-q=1`, `-M=false`) `command_first` turns
 it into the flag (true) or drops it (false, the default).
 
 | Flag | Alias | Commands | Effect |
@@ -48,7 +48,7 @@ it into the flag (true) or drops it (false, the default).
 | `--config A,B` | | all | configuration files, relative to the source, first wins; default: the first of `config.{toml,yaml,yml,json}` (a warning names the others when several exist) |
 | `--config-dir DIR` | `--configDir` | all | `CliOverrides::config_dir` |
 | `-e`, `--environment ENV` | | all | the environment (default `production`; `development` for `server`); picks `.env.<ENV>` |
-| `-b`, `--base-url URL` | `--baseURL`, `--baseUrl` | all | `baseURL` |
+| `-b`, `--base-url URL` | `--baseURL` | all | `baseURL` |
 | `-t`, `--theme A,B` | | all | `theme` |
 | `--themes-dir DIR` | `--themesDir` | all | `themesDir` |
 | `--cache-dir DIR` | `--cacheDir` | all | `cacheDir` |
@@ -66,17 +66,10 @@ it into the flag (true) or drops it (false, the default).
 | `--no-times[=BOOL]` | `--noTimes` | build, server | `noTimes`: the static copy does not copy modification times |
 | `--no-chmod[=BOOL]` | `--noChmod` | build, server | `noChmod`: the static copy does not copy permissions |
 
-The Go build's logging and housekeeping flags are accepted so that its command lines keep
-working (`args::CompatFlags`, hidden from `--help`): `--log-level LEVEL` (`--logLevel`; every
-command; `debug`, `info`, `warn`/`warning` or `error` in any case, empty for `warn` as in Go,
-another is a usage error),
-`--no-build-lock` (`--noBuildLock`; every command), and for build and server `--gc`,
-`--print-i18n-warnings`, `--print-path-warnings`, `--print-unused-templates`,
-`--template-metrics` and `--template-metrics-hints` (camelCase aliases). `--logLevel warn`,
-`--noBuildLock` (fugo writes no lock file) and `--printPathWarnings` (target collisions are
-always warnings) are what fugo does anyway; each of the others prints
-`WARN  [ignored-flag]: <flag> is ignored: …` and changes nothing (warnings and errors are
-printed at every log level).
+The Go build's logging and housekeeping flags (`--logLevel`, `--noBuildLock`, `--gc`,
+`--printI18nWarnings`, `--printPathWarnings`, `--printUnusedTemplates`, `--templateMetrics`,
+`--templateMetricsHints`) are usage errors: fugo prints warnings and errors at every level,
+writes no lock file, always warns about target collisions, and has none of the others.
 
 ### `server` (alias `serve`)
 
@@ -92,11 +85,13 @@ same `BuildArgs`), the environment `development` unless `-e` says otherwise, and
 | `--disable-live-reload` | `--disableLiveReload` | no LiveReload script, `livereload.js` or WebSocket |
 | `--live-reload-port PORT` | `--liveReloadPort` | the port in the LiveReload script (e.g. 443 behind a proxy) |
 | `-N`, `--navigate-to-changed` | `--navigateToChanged` | the browsers go to the page whose content changed |
-| `--render-to-disk` | `--renderToDisk` | build into the publish directory (`-d`, `publishDir`) and serve it from there; without it the site is built into memory and `-d` is a usage error (`-M` is the default and conflicts with it). A fugo flag, not one of the Go build's: its server rendered to disk by default and `-M`/`--renderToMemory` into memory (README.md, "Upgrading from the Go build") |
+| `--render-to-disk` | | build into the publish directory (`-d`, `publishDir`) and serve it from there; without it the site is built into memory and `-d` is a usage error (`-M` is the default and conflicts with it). A fugo flag, not one of the Go build's: its server rendered to disk by default and `-M`/`--renderToMemory` into memory (README.md, "Upgrading from the Go build") |
 | `--no-http-cache` | `--noHTTPCache` | `Cache-Control: no-store, …` and `Pragma: no-cache` |
 | `-w`, `--watch[=BOOL]` | | watch and rebuild (default true; `--watch=false` builds once) |
 | `--poll INTERVAL` | | poll for changes (`700ms`, `1s`, or milliseconds) instead of file notifications |
-| `--disable-fast-render`, `--disable-browser-error` | camelCase | accepted, change nothing (every rebuild is full; errors are never shown in the browser) |
+
+The Go server's `--disableFastRender` and `--disableBrowserError` are usage errors: every
+rebuild is a full rebuild, and errors are printed, never shown in the browser.
 
 Output (stdout; errors and warnings on stderr as `build` prints them): `Environment:
 "development"`, `Serving pages from memory|disk`, `Watching for changes in <dirs>`, `Watching
@@ -132,9 +127,10 @@ message carries Tera's `--> <template>:<line>:<col>` snippet. A successful build
 |---|---|
 | `source/s destination/d environment/e theme/t themesDir baseURL/b cacheDir ignoreCache buildDrafts/D buildFuture/F buildExpired/E clock config configDir cleanDestinationDir renderToMemory/M minify quiet` | the flags above (kebab-case + the camelCase alias) |
 | `noTimes noChmod` | the flags above |
-| `logLevel noBuildLock gc printPathWarnings printI18nWarnings printUnusedTemplates templateMetrics templateMetricsHints` | accepted (`CompatFlags`, above); a warning for those fugo does not act on |
+| `logLevel noBuildLock gc printPathWarnings printI18nWarnings printUnusedTemplates templateMetrics templateMetricsHints` | not supported (clap usage error, above) |
 | `contentDir/c layoutDir/l disableKinds enableGitInfo panicOnWarning` | configuration keys (file or `FUGO_*`), not flags |
-| `server`: `port/p bind appendPort disableLiveReload liveReloadPort navigateToChanged/N noHTTPCache watch/w poll renderToDisk disableFastRender disableBrowserError` | the `server` flags above (T71) |
+| `server`: `port/p bind appendPort disableLiveReload liveReloadPort navigateToChanged/N noHTTPCache watch/w poll renderToDisk` | the `server` flags above (T71; `renderToDisk` is `--render-to-disk`) |
+| `server`: `disableFastRender disableBrowserError` | not supported (clap usage error) |
 | `server`: `tlsCertFile tlsKeyFile tlsAuto openBrowser/O pprof renderStaticToDisk forceSyncStatic`, command `server trust` | not supported (clap usage error) |
 | `devMode forceSyncStatic ignoreVendorPaths renderSegments printMemoryUsage profile-* trace`, the build's `watch/w` | not supported (clap usage error) |
 | commands `new`, `mod`, `deploy`, `gen`, `list`, `convert`, `import`, `env`, `release`, `config mounts`, and cobra's `completion` and `help` | not supported (`--help` prints the help); `config` prints fugo's resolved configuration model (`ssg_config::Config`: snake_case fields, one entry per site under `sites`, the merged user keys lower-cased under `raw`) as JSON (the default; Go's was TOML) or TOML, not Go's lower-cased keys of one language (`baseurl`, `publishdir`, …), and without Go's `yaml`, `--lang` and `--printZero` |
@@ -193,7 +189,8 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 | `build::errors_are_reported_with_positions` | render and syntax errors with `file:line:col` and snippet, diagnostics, a missing project: exit 1 |
 | `cli::version_help_and_usage_errors` | `version` and `--version` print the line of `version::BuildInfo::CURRENT`, `--help`, usage errors exit 2 |
 | `cli::version_line_has_the_go_format` | the Go format with and without commit, date and vendor; Go's os/arch names for the five release targets; the version is the package's |
-| `cli::compat_flags_are_accepted` | the Go build's logging and housekeeping flags: accepted, a warning for each one fugo does not act on, none for the others; `--logLevel` and `--noBuildLock` on every command; an unknown level, `config --gc` and `-v` exit 2; explicit values with Go's `ParseBool` spellings (`-DE=f`, `--watch=0`, `--appendPort=F`, …) parsed into the flags' `Option<bool>` |
+| `cli::removed_flags_are_usage_errors` | the Go build's logging and housekeeping flags, `--disableFastRender`, `--disableBrowserError` and the camelCase spellings no Go command line used (`--baseUrl`, `--renderToDisk`, `--noHttpCache`) exit 2; `--baseURL` and `--noHTTPCache` stay |
+| `cli::explicit_boolean_values` | explicit values with Go's `ParseBool` spellings (`-DE=f`, `--watch=0`, `--appendPort=F`, …) parsed into the flags' `Option<bool>`; `--quiet=TRUE`; `config --minify` exits 2 |
 | `cli::no_times_and_no_chmod_reach_the_static_copy` | `--noTimes`/`--noChmod` (both spellings): the static copy keeps or leaves the source's modification time and permissions (Unix) |
 | `cli::command_first_moves_the_command_before_the_flags` | flags before the command (cobra's order): the command moved to the front, values kept (also after `=` in a short cluster), `=BOOL` of the `SetTrue` flags rewritten, everything else left for clap |
 | `cli::persistent_flags_anywhere` | the Go build's persistent flags before the command and on `config`, `templates check` and `version`; a flag the command does not take is still a usage error |
