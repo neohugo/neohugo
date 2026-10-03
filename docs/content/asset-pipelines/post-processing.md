@@ -4,8 +4,8 @@ description: Delay a resource or a piece of a template until every page is rende
 weight: 90
 ---
 
-Some steps need the whole site: compiling Tailwind against every page's classes, or listing
-what every page used. Two tools delay work until all pages are rendered.
+Some steps need the whole site, such as listing what every page used. Two tools delay work until
+all pages are rendered.
 
 ## post_process
 
@@ -13,13 +13,11 @@ what every page used. Two tools delay work until all pages are rendered.
 last page:
 
 ```html
-{% set css = get_asset(path="css/main.css") | tailwind | minify | fingerprint | post_process %}
+{% set css = get_asset(path="css/main.css") | minify | fingerprint | post_process %}
 <link rel="stylesheet" href="{{ css.rel_permalink }}" integrity="{{ css.data.integrity }}">
 ```
 
-A chain with `tailwind` and `build_stats.json` (see [Tailwind CSS](/asset-pipelines/tailwind-css/))
-gets every page's classes this way. To ship each page only the rules it uses, see
-[`purge_css`](/asset-pipelines/purge-css/).
+To ship each page only the CSS rules it uses, see [`purge_css`](/asset-pipelines/purge-css/).
 
 ## defer
 
@@ -32,7 +30,7 @@ gets every page's classes this way. To ship each page only the rules it uses, se
 ```
 
 ```html {title="layouts/_partials/deferred-css.html"}
-{%- set css = get_asset(path="css/main.css") | tailwind | fingerprint -%}
+{%- set css = get_asset(path="css/main.css") | minify | fingerprint -%}
 <link rel="stylesheet" href="{{ css.rel_permalink }}">
 ```
 

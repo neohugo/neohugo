@@ -279,21 +279,25 @@ fn mounts_below_a_component_and_single_files() {
             "config.toml",
             "[[module.mounts]]\nsource = \"assets\"\ntarget = \"assets\"\n\
              [[module.mounts]]\nsource = \"node_modules/lib\"\ntarget = \"assets/vendor/lib\"\n\
-             [[module.mounts]]\nsource = \"build_stats.json\"\n\
-             target = \"assets/notwatching/build_stats.json\"\n",
+             [[module.mounts]]\nsource = \"generated.json\"\n\
+             target = \"assets/notwatching/generated.json\"\n\
+             [[module.mounts]]\nsource = \"missing.json\"\ntarget = \"assets/missing.json\"\n",
         ),
         ("assets/main.css", ""),
+        ("generated.json", "{}"),
         ("node_modules/lib/dist/lib.js", ""),
         ("package.json", "{}"),
         ("tailwind.config.js", ""),
+        ("package.config.json", "{}"),
     ]);
     let vfs = p.vfs();
     assert_eq!(
         p.walk(&vfs, Component::Assets),
         pairs(&[
+            ("_jsconfig/package.config.json", "package.config.json"),
             ("_jsconfig/package.json", "package.json"),
-            ("_jsconfig/tailwind.config.js", "tailwind.config.js"),
             ("main.css", "assets/main.css"),
+            ("notwatching/generated.json", "generated.json"),
             ("vendor/lib/dist/lib.js", "node_modules/lib/dist/lib.js"),
         ])
     );
@@ -303,17 +307,15 @@ fn mounts_below_a_component_and_single_files() {
         Some("node_modules/lib/dist/lib.js")
     );
     assert_eq!(open("vendor/lib"), None);
-    // The build writes build_stats.json later: the mount exists, the file not yet.
-    assert!(
-        vfs.mounts()
-            .iter()
-            .any(|m| m.target == "assets/notwatching/build_stats.json")
-    );
-    assert_eq!(open("notwatching/build_stats.json"), None);
-    fs::write(p.dir.join("build_stats.json"), "{}").unwrap();
+    // A single file mounts like a directory; a missing source is skipped.
     assert_eq!(
-        open("notwatching/build_stats.json").as_deref(),
-        Some("build_stats.json")
+        open("notwatching/generated.json").as_deref(),
+        Some("generated.json")
+    );
+    assert!(
+        !vfs.mounts()
+            .iter()
+            .any(|m| m.target == "assets/missing.json")
     );
 }
 

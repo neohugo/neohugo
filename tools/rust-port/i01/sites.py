@@ -82,25 +82,20 @@ def edit(dir_, rel, old, new):
 
 def as_local_site(dir_):
     """A site of the Go program made a local site: its configuration file (`<GO_NAME>.*`) named
-    `config.*`, the stats file its configuration and stylesheets read (GO_STATS_FILE) named
-    `build_stats.json`, and the `security.funcs.getenv` pattern of the Go program's variables
-    (`^<GO_ENV_PREFIX>`) made ours (`^FUGO_`): this port reads none of the Go program's names."""
+    `config.*`, and the `security.funcs.getenv` pattern of the Go program's variables
+    (`^<GO_ENV_PREFIX>`) made ours (`^FUGO_`): this port reads none of the Go program's names.
+    (The Go build's stats file, GO_STATS_FILE, keeps its name: this port neither reads nor
+    writes it.)"""
     for ext in ("toml", "yaml", "yml", "json"):
         fn = os.path.join(dir_, GO_NAME + "." + ext)
         if os.path.exists(fn):
             os.rename(fn, os.path.join(dir_, "config." + ext))
-    stats = re.compile(r"(?<![\w.])" + re.escape(GO_STATS_FILE[:-len(".json")]) + r"(\\\\)?\.json")
-    candidates = [os.path.join(dir_, "config." + e) for e in ("toml", "yaml", "yml", "json")]
-    for root, _, names in os.walk(os.path.join(dir_, "assets")):
-        candidates += [os.path.join(root, n) for n in names if n.endswith(".css")]
-    for fn in candidates:
+    for fn in [os.path.join(dir_, "config." + e) for e in ("toml", "yaml", "yml", "json")]:
         if not os.path.isfile(fn):
             continue
         with open(fn, encoding="utf-8", newline="") as fh:
             text = fh.read()
-        new = stats.sub(lambda m: "build_stats" + (m.group(1) or "") + ".json", text)
-        if os.path.basename(fn).startswith("config."):
-            new = re.sub(r"""(['"])\^""" + GO_ENV_PREFIX, r"\1^FUGO_", new)
+        new = re.sub(r"""(['"])\^""" + GO_ENV_PREFIX, r"\1^FUGO_", text)
         if new != text:
             with open(fn, "w", encoding="utf-8", newline="") as fh:
                 fh.write(new)
@@ -150,10 +145,11 @@ def read_txtar(path):
 # (docs/rust-port/REWRITE_PLAN.md §7.3). Every entry names the variants it belongs to:
 #   i01      the I01 site: offline, no Chroma, passthrough, emoji, Tailwind or node modules
 #            (acceptance gate A-D1);
-#   reduced  offline, with Chroma highlighting, passthrough, emoji, remarshal, Tailwind and the
+#   reduced  offline, with Chroma highlighting, passthrough, emoji, remarshal, Tailwind (this
+#            port publishes the stylesheet Tailwind built, sites/docs/assets/css) and the
 #            real Alpine/Turbo imports (node.sh modules; gate A-D2);
 #   live     the docs site as getfugo.github.io publishes it: no patches (only the committed
-#            stats file of the Go build goes, the build writes it), so GetRemote, images.Text, QR, Dither,
+#            stats file of the Go build goes), so GetRemote, images.Text, QR, Dither,
 #            smartcrop, the x shortcode, the style gallery and the news content adapter all run
 #            (gate A-D3: the golden data is the published site, testdata/golden/docs-live/).
 # The Go build always builds these Go-template patches. A patch of a file below layouts/ has a
@@ -170,7 +166,7 @@ BOTH = (I01, REDUCED)
 DOCS_REMOVE = [  # (file, variants, why)
     ("content/en/news/_content.gotmpl", BOTH, "GetRemote of GitHub releases (a content adapter)"),
     ("content/en/functions/images/Text.md", BOTH, "GetRemote of a font (images.Text)"),
-    (GO_STATS_FILE, DOCS_VARIANTS, "written by the build (the Go build's, committed with the site)"),
+    (GO_STATS_FILE, DOCS_VARIANTS, "the Go build's stats file (committed with the site)"),
     # COULD features (T72): images.QR (rsc.io/qr), images.Dither.
     ("content/en/shortcodes/qr.md", BOTH, "images.QR (COULD, T72)"),
     ("content/en/functions/images/QR.md", BOTH, "images.QR (COULD, T72)"),

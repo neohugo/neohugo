@@ -25,7 +25,7 @@ fn call_of(name: &str, kind: NameKind) -> String {
 fn every_site_bound_entry_is_registered_and_nothing_else() {
     let site = support::load();
     let site_bound: Vec<_> = spec::FUNCS.iter().filter(|f| f.site_bound).collect();
-    assert_eq!(site_bound.len(), 73, "site-bound FUNCS entries");
+    assert_eq!(site_bound.len(), 71, "site-bound FUNCS entries");
 
     // Only sitefuncs: Tera validates every name when a template is added.
     let mut only = tera::Tera::default();

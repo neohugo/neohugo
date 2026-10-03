@@ -22,6 +22,12 @@ Commands
   implementation's `new`, `mod`, `deploy`, `gen`, `list`, `env`, `convert` and `import` commands
   do not exist.
 
+Node.js tools
+: No PostCSS, Babel or Tailwind CSS pipeline, and no build stats file (`buildStats`): fugo runs
+  no programs. `minify` adds vendor prefixes, `js_build` compiles TypeScript and JSX for the
+  browser targets, `purge_css` purges per page, and Tailwind's own CLI runs next to fugo (see
+  [Tailwind CSS](/asset-pipelines/tailwind-css/)).
+
 Git information
 : `page.git_info` is always none and `:git` dates give nothing: fugo does not read Git history.
 
@@ -51,10 +57,9 @@ Some flags
 - Imaging settings, media types and output formats are per project, not per language.
 - Settings that the Go implementation ignores silently (a `[caches]` entry that is not a table, an output format
   without a media type) are errors.
-- `build.version` is fugo's version, and the stats file is `build_stats.json`.
+- `build.version` is fugo's version.
 - Settings and the environment are not read from environment variables: `--environment` chooses
-  the environment, and the tools come from `package.json`
-  ([npm packages](/asset-pipelines/npm-packages/)). Secrets that templates read go in the
+  the environment. Secrets that templates read go in the
   [`.env` files](/configuration/introduction/#the-env-file).
 
 ## Expected output differences

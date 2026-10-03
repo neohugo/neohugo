@@ -30,11 +30,11 @@ filetime.workspace = true
 html5gum.workspace = true
 memchr.workspace = true
 rayon.workspace = true
-serde.workspace = true
-serde_json.workspace = true
 thiserror.workspace = true
 
 [dev-dependencies]
 ssg-testkit.workspace = true
+serde.workspace = true
+serde_json.workspace = true
 tempfile.workspace = true
 toml.workspace = true

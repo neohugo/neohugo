@@ -1,6 +1,6 @@
 ---
 title: Asset pipelines
-description: Compile Sass, bundle JavaScript, fingerprint, minify and purge CSS, and run Tailwind or Babel — from templates, at build time.
+description: Compile Sass, bundle JavaScript, fingerprint, minify and purge CSS — from templates, at build time, in process.
 weight: 50
 ---
 
@@ -24,11 +24,10 @@ then. Results are cached for the build and, for images and remote files, on disk
 | [Fingerprinting and minification](/asset-pipelines/fingerprint-minify/) | `fingerprint`, `minify` | in process |
 | [Unused CSS](/asset-pipelines/purge-css/) | `purge_css` | in process |
 | [Bundling and generated files](/asset-pipelines/concat-and-templates/) | `concat_assets`, `asset_from_string`, `execute_as_template` | in process |
-| [Tailwind CSS](/asset-pipelines/tailwind-css/) | `tailwind` | the Tailwind CLI package, on the built-in JavaScript runtime |
-| [Babel](/asset-pipelines/babel/) | `babel` | the Babel CLI package, on the built-in JavaScript runtime |
 | [Post-processing](/asset-pipelines/post-processing/) | `post_process`, `defer` | after every page |
 
-Images have their own page: [Image processing](/content-management/image-processing/).
+fugo runs no Node.js tools. To use [Tailwind CSS](/asset-pipelines/tailwind-css/), run its CLI
+next to fugo. Images have their own page: [Image processing](/content-management/image-processing/).
 
 ## Finding assets
 

@@ -2,9 +2,9 @@
 //! test's binary against the committed golden data of the Go build, and the parsed
 //! `structdiff.json` (REWRITE_PLAN.md §7.2, §7.3). The Go binaries are not needed.
 //!
-//! The sites' asset pipelines need the node tools (`tools/dev/node.sh`, which compare.sh links
-//! into each site as its `node_modules`); without them, or without `python3`, `bash` and
-//! `node`, [`compare`] prints `SKIPPED` and returns `None`.
+//! The sites' scripts import node modules (`tools/dev/node.sh`, which compare.sh links into each
+//! site as its `node_modules`); without them, or without `python3` and `bash`, [`compare`]
+//! prints `SKIPPED` and returns `None`.
 
 use std::process::Command;
 
@@ -18,25 +18,22 @@ fn runs(program: &str) -> bool {
         .is_ok_and(|o| o.status.success())
 }
 
-/// Whether the tools are there (the node modules of `tools/dev/node.sh` with every one of
-/// `bins` in `.bin`); `None` prints `SKIPPED <gate>`.
-fn tools(gate: &str, bins: &[&str]) -> Option<()> {
+/// Whether the tools are there (the node modules `tools/dev/node.sh` installs); `None` prints
+/// `SKIPPED <gate>`.
+fn tools(gate: &str) -> Option<()> {
     let skip = |why: String| {
         eprintln!("SKIPPED {gate}: {why}");
         None
     };
-    if !runs("python3") || !runs("bash") || !runs("node") {
-        return skip("python3, bash and node are needed on PATH".to_owned());
+    if !runs("python3") || !runs("bash") {
+        return skip("python3 and bash are needed on PATH".to_owned());
     }
     let Some(node_modules) = ssg_testkit::fixture::node_tools() else {
         return skip("tools/dev/node.sh does not run".to_owned());
     };
-    if let Some(bin) = bins
-        .iter()
-        .find(|b| !node_modules.join(".bin").join(b).exists())
-    {
+    if !node_modules.join(".lock-sha256").is_file() {
         return skip(format!(
-            "no {bin} in {} (run tools/dev/node.sh)",
+            "no node modules in {} (run tools/dev/node.sh)",
             node_modules.display()
         ));
     }
@@ -48,8 +45,8 @@ fn tools(gate: &str, bins: &[&str]) -> Option<()> {
 ///
 /// # Panics
 /// When compare.sh fails (an unlisted difference, or a build error), or its output is missing.
-pub fn compare(gate: &str, label: &str, node_bins: &[&str]) -> Option<serde_json::Value> {
-    tools(gate, node_bins)?;
+pub fn compare(gate: &str, label: &str) -> Option<serde_json::Value> {
+    tools(gate)?;
     let repo = repo_dir().canonicalize().expect("repository root");
     let work = tempfile::tempdir().expect("tempdir");
     let out = Command::new("bash")

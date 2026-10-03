@@ -32,7 +32,7 @@ binary `fugo` is the package `ssg-cli`.
 | `layouts`, `render`, `view` | template lookup, Tera rendering, the values templates see |
 | `funcs`, `sitefuncs` | template functions (`spec.rs` declares every one) |
 | `resources`, `images`, `jsbuild`, `minify` | asset pipelines |
-| `npm` | installing `package.json`; Tailwind and Babel on the embedded JavaScript runtime (Deno's) |
+| `npm` | installing `package.json` (Deno's npm installer) |
 | `publish`, `serve` | writing files, the development server |
 | `locale`, `nav`, `base` | languages, menus and pagination, shared types |
 | `testkit` | fixtures, the contract tests, a local npm registry |

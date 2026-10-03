@@ -114,7 +114,6 @@ fn legacy_keys() {
         "a legacy key inside a language table"
     );
     assert_eq!(en.services.rss.limit, 10);
-    assert!(c.build.build_stats.enable);
     assert_eq!(c.ignore_logs, ["error-remote-getjson"]);
     assert_eq!(en.markup.goldmark.extensions.footnote.backlink_html, "↩");
     assert!(en.markup.goldmark.extensions.footnote.enable);

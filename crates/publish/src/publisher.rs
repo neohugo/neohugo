@@ -9,9 +9,8 @@
 //!    replacements, so post-processed links follow the site's URL style);
 //! 2. the LiveReload script (`serve` only; HTML outputs that are not alias redirects, as in
 //!    Go);
-//! 3. `build_stats.json` collection (HTML outputs);
-//! 4. URL-token extraction;
-//! 5. an output holding a deferred placeholder (`__nh_defer_<key>__`, `__nh_pp_<id>_<field>__`)
+//! 3. URL-token extraction;
+//! 4. an output holding a deferred placeholder (`__nh_defer_<key>__`, `__nh_pp_<id>_<field>__`)
 //!    is held until [`Publisher::patch_held`]: its text is written to the sink as it is (to its
 //!    file in a disk build, as Go's post-processing does, so held pages take no memory however
 //!    many there are) and only its path is kept; `patch_held` reads it back, patches, minifies
@@ -31,14 +30,13 @@ use ssg_base::diag::{Diagnostic, Diagnostics};
 use ssg_base::paths::OutputPath;
 use ssg_base::url::{LinkStyle, UrlRef};
 use ssg_base::{FormatId, IdVec, LangIdx, MediaTypeId, Sink};
-use ssg_config::global::BuildStats;
 use ssg_config::site::LinkOutput;
 use ssg_config::{Config, MediaTypes, OutputFormats};
 use ssg_minify::purge::{self, PageNames};
 use ssg_minify::{CssPurges, Minifier};
 
 use crate::canonify::{Quoting, UrlRewriter};
-use crate::stats::{HtmlElements, StatsCollector, StatsFile};
+use crate::elements::HtmlElements;
 use crate::tokens::UrlTokens;
 use crate::{PublishError, livereload};
 
@@ -96,7 +94,6 @@ pub struct PublishSettings {
     pub media_types: Arc<MediaTypes>,
     /// `Some` with `minifyOutput`.
     pub minifier: Option<Minifier>,
-    pub build_stats: BuildStats,
 }
 
 impl PublishSettings {
@@ -125,7 +122,6 @@ impl PublishSettings {
             formats: Arc::clone(&cfg.output_formats),
             media_types: Arc::clone(&cfg.media_types),
             minifier,
-            build_stats: cfg.build.build_stats.clone(),
         })
     }
 }
@@ -154,7 +150,6 @@ pub struct Publisher {
     settings: PublishSettings,
     /// Per language: the LiveReload `<script>` element, when the language has a server.
     livereload_scripts: IdVec<LangIdx, Option<String>>,
-    stats: StatsCollector,
     tokens: Mutex<UrlTokens>,
     held: Mutex<BTreeMap<OutputPath, Held>>,
     /// The `purge_css` plans whose placeholders the outputs hold.
@@ -190,7 +185,6 @@ impl Publisher {
         Self {
             sink,
             livereload_scripts,
-            stats: StatsCollector::new(settings.build_stats.clone()),
             settings,
             tokens: Mutex::new(UrlTokens::new()),
             held: Mutex::new(BTreeMap::new()),
@@ -239,9 +233,6 @@ impl Publisher {
         {
             text = String::from_utf8(livereload::inject(text.as_bytes(), script))
                 .unwrap_or_else(|e| String::from_utf8_lossy(e.as_bytes()).into_owned());
-        }
-        if is_html {
-            self.stats.add(&text);
         }
         self.add_tokens(&text, Some(&o.path));
 
@@ -396,18 +387,6 @@ impl Publisher {
         lock(&self.tokens).clone()
     }
 
-    /// The `build_stats.json` content collected so far.
-    #[must_use]
-    pub fn stats(&self) -> StatsFile {
-        self.stats.stats()
-    }
-
-    /// Whether `[build.buildStats] enable` is set.
-    #[must_use]
-    pub fn stats_enabled(&self) -> bool {
-        self.stats.is_enabled()
-    }
-
     /// Files written so far.
     #[must_use]
     pub fn written(&self) -> usize {
@@ -415,8 +394,8 @@ impl Publisher {
     }
 }
 
-/// The names an output uses, for `purge_css`: the tags, classes and ids of its elements (as
-/// `build_stats.json` records them), the words of its `<script>` elements (inline scripts and
+/// The names an output uses, for `purge_css`: the tags, classes and ids of its elements
+/// ([`HtmlElements`]), the words of its `<script>` elements (inline scripts and
 /// templates such as `type="x-tmpl-mustache"` name classes too), and every custom property it
 /// mentions (`style="color: var(--x)"`).
 #[must_use]

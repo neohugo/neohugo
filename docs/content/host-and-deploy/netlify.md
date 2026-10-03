@@ -10,14 +10,14 @@ Add `netlify.toml` to the project, then create a site from the repository in Net
 [build]
   publish = "public"
   command = """
-    V=0.149.0 && \
+    V=1.0.0 && \
     curl -sL https://github.com/getfugo/fugo/releases/download/v$V/fugo_${V}_linux-amd64.tar.gz | tar -xz fugo && \
     ./fugo build --minify --base-url "$URL/"
   """
 
 [context.deploy-preview]
   command = """
-    V=0.149.0 && \
+    V=1.0.0 && \
     curl -sL https://github.com/getfugo/fugo/releases/download/v$V/fugo_${V}_linux-amd64.tar.gz | tar -xz fugo && \
     ./fugo build --build-drafts --build-future --base-url "$DEPLOY_PRIME_URL/"
   """

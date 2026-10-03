@@ -3,15 +3,15 @@
 The `ResourceStore` of a build (REWRITE_PLAN.md §2.1, §2.4, §3.4; tasks T40 and T42): bundle,
 asset, remote and named-target resources, front matter `resources` metadata and the
 `Resources` lookups, publishing by URL token, and the pipes (`src/pipes/`, T42): `fingerprint`,
-`minify`, `to_css` (grass), Tailwind and Babel (external node tools), `js_build`
-(rolldown, in process), `post_process` placeholders and `execute_as_template`.
+`minify`, `to_css` (grass), `js_build` (rolldown), `post_process` placeholders and
+`execute_as_template`. Every pipe runs in process; nothing runs an external program.
 
 ## API
 
 | Item | What it is |
 |---|---|
 | `ResourceStore::new(StoreConfig)` | `StoreConfig::from_config(&Config, Option<Arc<Vfs>>, Option<Arc<ImageQueue>>)`: per-language base URL and target prefix (`/<lang>` on multihost sites), media types, the assets view, the image queue, `RemoteConfig`. |
-| `Resource` | Immutable: `id`, `kind` (`Image` = processable raster, `Page`, `Text`, `Other`), `origin`, `media_type` (empty when the extension is unknown), `name`, `name_normalized`, `title`, `params`, `data`, `lang`, `target: OutputPath`, `link: UrlPath` (unescaped, without base path), `rel_permalink` (escaped, with the base path), `permalink`, `body` (`File`, `Bytes`, `Generated`, `PendingImage`), `policy` (`Eager`, `OnReference`, `Never`). `resource_type()`, `media_type_string()`, `integrity()`. |
+| `Resource` | Immutable: `id`, `kind` (`Image` = processable raster, `Page`, `Text`, `Other`), `origin`, `media_type` (empty when the extension is unknown), `name`, `name_normalized`, `title`, `params`, `data`, `lang`, `target: OutputPath`, `link: UrlPath` (unescaped, without base path), `rel_permalink` (escaped, with the base path), `permalink`, `body` (`File`, `Bytes`, `PendingImage`, `Pending`), `policy` (`Eager`, `OnReference`, `Never`). `resource_type()`, `media_type_string()`, `integrity()`. |
 | `resource(id)`, `resources()`, `content(id)` | Lookup; `.Content` (reads the file, or asks the image queue). |
 | `get_asset(lang, path)`, `find_assets(lang, glob)`, `find_asset` | `resources.Get` / `Match` / `GetMatch` over the assets view. Assets are one resource per path (per language on multihost sites). |
 | `register_bundle(&BundleResource)` | A page bundle file (`lang`, `file`, `name` relative to the bundle, link `dir`, `policy`); one resource per target. |
@@ -25,7 +25,6 @@ asset, remote and named-target resources, front matter `resources` metadata and 
 | `meta::ResourceMeta::parse(&Value)`, `apply_meta(id, &meta)` | Front matter `resources` metadata; a new resource (same target and content) only when name, title or params change. |
 | `meta::{get, get_match, matches, by_type}` over `impl Named` | `.Resources.Get/GetMatch/Match/ByType` (bundle pages implement `Named` too). |
 | `image_input(id)`, `register_image(from, &Enqueued)`, `image_size(&Resource)` | The seam to `ssg-images`: what `ImageQueue::enqueue` reads, the resource of a queued operation (sibling target `<stem>_hu_<hash>.<ext>` named after its own source, `Body::PendingImage`), and `.Width`/`.Height` (planned size of a processed image, else the source's header, cached per file). The store never decodes pixels. |
-| `inject_generated(asset_path, bytes)` | Build phase E4: `build_stats.json` (or any asset path) now reads these bytes; already registered assets at that path see them too. |
 | `mark_published(id)` | The `publish` filter. |
 | `publish(tokens, &dyn Sink) -> PublishStats` | See below. `resolve_token(token)` for diagnostics. |
 | `get_remote(lang, url, &RemoteOptions)` | `resources.GetRemote`; `Ok(None)` for a 404. `RemoteOptions::from_map(Option<&Map>)`; `RemoteError`; `cache_key`, `go_keys`. |
@@ -33,8 +32,8 @@ asset, remote and named-target resources, front matter `resources` metadata and 
 ## Pipes (T42)
 
 `StoreConfig::transforms` is the build's `TransformEnv` (`TransformEnv::from_config`: project and
-publish directories, the build environment, `[security]`, `[minify]`, the process environment,
-`ToolPaths::from_env`, the `js_build` builder made on first use). Options are
+publish directories, the build environment, `[minify]`, the `js_build` builder made on first
+use). Options are
 typed and decoded from the template's map with `from_json` (keys case-insensitive, as Go's).
 
 | `Transform` | Options | Implementation | Result |
@@ -42,38 +41,21 @@ typed and decoded from the template's map with `from_json` (keys case-insensitiv
 | `Fingerprint(HashAlgo)` | | sha/md5 digest | `.<hex>` before the extension, `Data.Integrity` |
 | `Minify` | | `ssg-minify` by media type (HTML, CSS, JS, JSON, SVG, XML; others are an error, as in Go) | `.min` before the extension |
 | `ToCss(ToCssOptions)` | `targetPath`, `outputStyle`, `includePaths`, `vars` (`SassVar`), `precision`, `enableSourceMap` | grass; imports through the assets view (entry at its asset path in a virtual root), then `includePaths` relative to the project; `@import "build:vars"`; URLs with an explicit `.scss`/`.sass` extension, which grass looks up only next to the importer, resolved as dart-sass does (the load paths too, import-only files first) by rewriting them to the found file's absolute path (`pipes::sass_imports`) | `targetPath` or `.css`, `text/css` |
-| `TailwindCss(TailwindOptions)` | `minify`, `optimize`, `disableInlineImports`, `skipInlineImportsNotFound` | `tailwindcss --input=- --cwd <project> [--minify] [--optimize]`; asset `@import`s inlined first (`tailwindcss` imports stay) | same target |
-| `Babel(BabelOptions)` | `config`, `minified`, `noComments`, `verbose`, `noBabelrc` (`BabelFlag`), `compact`, `sourceMap` | `babel --config-file <file> … --filename=<path> --out-file=<tmp>`, script on stdin | same target; external map published as `<target>.map` |
 | `JsBuild(JsBuildSpec)` | `ssg_jsbuild::JsBuildOptions` | `ssg_jsbuild::JsBuilder` (rolldown in process), assets resolved through a shared assets view (`SharedAssets`) | `targetPath` or `.js`, `text/javascript`; external/linked map as `<target>.map` |
 
 - **Laziness.** `transform` registers the result at once with its final target, link and
   media type and `Body::Pending`; the work runs on `realize`, `content` or publishing. A
   `fingerprint` of a pending resource is pending too (provisional record: the source's link,
-  `PublishPolicy::Never`) — so `to_css | tailwind | minify | fingerprint | post_process`
-  (a site's head) runs in E5, after `build_stats.json` exists. Failures are not
-  memoized.
+  `PublishPolicy::Never`) — so `to_css | minify | fingerprint | post_process` (a site's head)
+  runs in E5. Failures are not memoized.
 - **For the template layer (T35).** A view of a pending result can be built without computing
   it: its links, name and media type are final (`.Content` computes). Only a pending
   `fingerprint` has provisional links and no integrity: either realize it at the call (errors
   surface there, but a chain into `post_process` then runs before E5), or give those fields
   post-process placeholders (`post_process(id)`), which keeps Go's laziness at the cost of
   holding the output until E5. The `fingerprint` filter realizes it at the call unless
-  `waits_for_e5(id)`: the chain runs Tailwind (which reads `build_stats.json`,
-  written after every page) or processes an image; only those keep the placeholders, so a
-  fingerprinted JS bundle no longer holds every page.
-- **Tools.** `ToolPaths`: `<project>/node_modules`, then each extra `node_modules` of
-  `ToolPaths::node_modules` (tests only; `ToolPaths::of_process` has none); never `PATH`. In a
-  `node_modules`, the tool's package (`Tool::package`) runs through the runner
-  (`set_package_runner`: the binary, with its embedded JavaScript runtime, `ssg-npm`) when
-  there is one, else its `.bin/<name>`. Nothing found: `PipeError::ToolNotFound` naming the
-  binary and the package to add to `package.json`.
-  `security.exec.allow` must accept the binary's name (`PipeError::ExecDenied`; Go's default list
-  has no `babel`). The tool runs in the project directory with only the `security.exec.osEnv`
-  variables plus `NODE_PATH` (those of `<project>/node_modules` and the extra directories that
-  exist — Tailwind 4 reads `NODE_PATH` as one directory — else `<project>/node_modules`; then
-  `$NODE_PATH`), `PWD`, `FUGO_PUBLISHDIR` and `FUGO_FILE_<NAME>` per
-  `assets/_jsconfig` file (the Go program's environment variables are not set); at most
-  `min(4, cpus)` at once. No `npx` (no network).
+  `waits_for_e5(id)`: the chain processes an image (images are processed in E6); only those
+  keep the placeholders, so a fingerprinted CSS or JS file does not hold every page.
 - **Errors** are `ResourceError::Pipe { resource, transform, source: PipeError }`; Sass errors
   carry the real file (or `build:vars`), line and column.
 
@@ -134,12 +116,10 @@ Listed with their reasons in `expected_diffs.toml` (the tests read it):
   written unquoted (Go fails on it); `transpiler = "dartsass"` also compiles with grass.
 - **Minified bytes** are ssg-minify's (lightningcss, oxc, minify-html), not tdewolff's, so a
   fingerprint after `minify` names other bytes.
-- **CSS `@import` inlining** takes the quoted path of `@import "x.css"; /* comment */` (Go keeps
-  the comment in the path); errors of the tool are reported in the inlined input (Go maps them
-  back to the imported file). Imports of `tailwindcss` are left to the tool.
 - **`to_css` is always available** (built in); Go's "feature not available" cases do not apply.
-- The tools get `min(4, cpus)` slots and a fixed working directory (the project); Go runs them
-  in the process's working directory.
+- PostCSS, Babel and Tailwind CSS (`css.PostCSS`, `js.Babel`, `css.TailwindCSS`) are not
+  pipes: this port runs no external programs (`minify` adds vendor prefixes, `js_build` lowers
+  for the browser targets, `purge_css` purges per page).
 - Front matter params are not written into a shared base resource (Go's aliasing makes a
   translation see the other language's params).
 - `resources.Copy` of a different source to an already copied target in the same language is
@@ -160,13 +140,10 @@ Listed with their reasons in `expected_diffs.toml` (the tests read it):
 | `resources::{synth,docs}` | `oracle/resources/resources` (assets, bundles, metadata, publishing) | 43 + 89 records, 34 + 89 published files |
 | `fingerprint` | `oracle/resources/transform` (fingerprint chains, SRI, copy) | 144 equal to Go, 28 sha1 errors, 52 copy conflicts |
 | `remote` | `oracle/resource-transformers/getremote` (key vectors, 48 calls from the Go build's cache, 51 YouTube entries) | 48 + 48 + 51 |
-| `identity`, `publish` | — | named targets, concat, metadata, `inject_generated`, image seam, multihost, token forms |
+| `identity`, `publish` | — | named targets, concat, metadata, image seam, multihost, token forms |
 | `identity::qr_codes`, `gohash` unit test | Go's `TestQR` (8 option maps: file names; bytes via `ssg-images`) | names, bytes, sizes, identity, publishing, multihost |
 | `pipes::tocss` | `oracle/resource-transformers/tocss` (LibSass on t16site) + the reconstruction's SCSS | 31: 16 equal (normalised), 15 accepted; reconstruction compiled, slash division checked; explicit-extension `@import`/`@use` found in `includePaths` (relative imports of the found file, import-only files, the indented syntax) |
 | `pipes::jsbuild` | `oracle/resource-transformers/jsbuild` (t16site, docs) | 62 + 6: media types, data, links (fingerprints normalised), `Data.Integrity`'s algorithm, errors at Go's positions, published files; what the scripts do is compared in `ssg-jsbuild` |
-| `pipes::minify` | `oracle/resources/transform` minify chains | 112 chains: 48 Go's bytes, 16 fixed points, 48 errors for types without minifier; 56 missing-tool errors |
-| `pipes::postprocess` | `oracle/resources/transform` post-processed resources + a head's CSS chain | 65 fields equal to Go's; the chain runs in E5 (a fake Tailwind reads the stats file) |
-| `pipes::tailwind`, `pipes::babel`, `pipes::tools`, `pipes::template` | — | docs `styles.css` (fake CLI in a `node_modules/.bin`; real from `tools/dev/node.sh path`), Babel arguments and source map, missing tools, `exec.allow`, the tools' environment, `execute_as_template` with Tera |
-
-Tests that need a node tool skip (printing `SKIPPED`) without `FUGO_*_BIN`; the fake-tool
-tests need `node` on `PATH`.
+| `pipes::minify` | `oracle/resources/transform` minify chains | 112 chains: 48 Go's bytes, 16 fixed points, 48 errors for types without minifier; 56 PostCSS or Babel chains not applicable |
+| `pipes::postprocess` | `oracle/resources/transform` post-processed resources | 65 fields equal to Go's |
+| `pipes::template` | — | `execute_as_template` with Tera |

@@ -1,6 +1,7 @@
 The files added to a copy of testsite (testdata/upstream/testsite) by
 tools/rust-port/i01/sites.py (the config and layouts of the nh-publisher site oracle's canonify
-variant, plus a few pages).
+variant, plus a few pages). The config's `[build.buildStats]` went with the stats file (T75): the
+Go build of this site wrote one next to its config, which the golden data still records.
 -- config.toml --
 baseURL = "https://example.org/"
 title = "Testsite"
@@ -22,8 +23,6 @@ codeFences = false
 [outputs]
 home = ["html", "rss", "json"]
 section = ["html", "rss"]
-[build.buildStats]
-enable = true
 [pagination]
 pagerSize = 2
 -- layouts/_partials/page.html --

@@ -26,8 +26,9 @@ use ssg_config::{CliOverrides, LoadOptions};
 pub use args::Cli;
 use args::{Command, ProjectArgs, TemplatesCommand};
 
-/// The version (`[workspace.package]` of `Cargo.toml`): the `v<version>` of [`version::line`].
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+/// The version ([`ssg_base::VERSION`]: the release tag's, else the workspace's): the
+/// `v<version>` of [`version::line`].
+pub const VERSION: &str = ssg_base::VERSION;
 
 /// How a command ended.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

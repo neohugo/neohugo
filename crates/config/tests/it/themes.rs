@@ -590,7 +590,8 @@ fn merge_deep() {
     assert_eq!(s.services.google_analytics.id, "foo bar");
 }
 
-/// `TestMergeDeepBuildStatsTheme`: with the root `deep`, the theme's `title` and `[build]`.
+/// `TestMergeDeepBuildStatsTheme`: with the root `deep`, the theme's `title` and `[build]`
+/// (Go's test sets `[build.buildStats]`, which is gone here; `useResourceCacheWhen` stands in).
 #[test]
 fn merge_deep_build_stats_theme() {
     let p = Project::new(&[
@@ -600,13 +601,13 @@ fn merge_deep_build_stats_theme() {
         ),
         (
             "themes/theme1/config.toml",
-            "title = \"Theme 1\"\n[build]\n[build.buildStats]\ndisableIDs = true\nenable     = true\n",
+            "title = \"Theme 1\"\n[build]\nuseResourceCacheWhen = \"always\"\n",
         ),
     ]);
     let c = p.ok();
     assert_eq!(c.default_site().title, "Theme 1");
     assert_eq!(c.themes.len(), 1);
-    assert!(c.build.build_stats.enable);
+    assert_eq!(c.build.use_resource_cache_when, "always");
     // `TestMergeDeepBuildStats`: the same with `[[module.imports]]` and the project's title.
     let p = Project::new(&[
         (
@@ -615,13 +616,13 @@ fn merge_deep_build_stats_theme() {
         ),
         (
             "themes/theme1/config.toml",
-            "[build]\n[build.buildStats]\ndisableIDs = true\nenable     = true\n",
+            "[build]\nuseResourceCacheWhen = \"always\"\n",
         ),
     ]);
     let c = p.ok();
     assert_eq!(c.default_site().title, "Theme 1");
     assert_eq!(c.themes.len(), 1);
-    assert!(c.build.build_stats.enable);
+    assert_eq!(c.build.use_resource_cache_when, "always");
 }
 
 /// `TestConfigOutputFormatDefinedInTheme`: the project's `outputs` name a format only the

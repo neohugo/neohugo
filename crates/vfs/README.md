@@ -5,7 +5,7 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 
 | API | What |
 |---|---|
-| `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped, except `build_stats.json`), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then the mounts of each theme of `Config::themes` (see Themes); duplicates (source, target, lang) dropped per module |
+| `Vfs::new(&Config)` | the effective mounts: `[[module.mounts]]` (missing sources skipped), default mounts for unconfigured components (content per language from `languages.X.contentDir`, static per `staticDir*`, with the language only on multihost sites), the root JS config files → `assets/_jsconfig/`, then the mounts of each theme of `Config::themes` (see Themes); duplicates (source, target, lang) dropped per module |
 | `Vfs::mounts`, `mounts_of` | the mounts in precedence order (project, then the themes in `Config::themes` order: the `theme` list and `[[module.imports]]`, each theme's own themes after it) |
 | `Vfs::walk(c)` | the union view of a component, sorted by path (bytes) then mount precedence: first mount wins (content: per mount language; data and i18n keep every file; static: the last mount of the first module, see Rules) |
 | `Vfs::open(c, rel)` | the winning file at `rel`, same rules as `walk` |
@@ -95,7 +95,7 @@ Mounts → one union file view per component, walkers, ignore rules and the path
 | Keys with an empty segment or a trailing slash (162 checks) | Go's `Base()` of `a//`, `/tags//_index.md` or a page file named `.md` keeps the slashes; `ContentKey` has neither. Walks never produce such paths (no empty segments; content names starting with `.` are ignored). |
 | Go `TypeShortcode` outside layouts is `BundleKind::Resource` (144 cases) | A non-content file below `/_shortcodes/` in another component; Go treats it exactly like `TypeFile`. |
 | Not modelled: `Container`, `ContainerDir`, `Identifiers`, `NameNoExt`, `NameNoLang`, `PathNoLang`, `PathBeforeLangAndOutputFormatAndExt`, `BaseReTyped`, `IdentifierBase`, `TrimLeadingSlash`, `ForType`, `PathRel`, `BaseRel` | Go conveniences; callers derive what they need from `key`, `path` and `dir()`. |
-| A missing `build_stats.json` mount source is kept but not created | Go creates the empty file; here the build writes it (E4) and `walk`/`open` see it once it exists. |
+| A missing mount source of the Go build's stats file is skipped like any other | Go keeps it and creates the empty file, which it writes later; this port writes no stats file. |
 | On macOS `abs` keeps the name the OS returned; only `rel` is NFC | Go normalises its absolute file names too. Reading by the OS's name also works on file systems that do not normalise names, and keeps the server's watcher events (which carry the OS's names) matching `abs`. |
 | `walk` returns a `Vec` in byte order, not Go's `ReadDir` order | Order only affected Go's insertion ids; the trees are keyed. |
 | Discovery is sequential | The plan's `par_iter` over mounts is not needed: the docs site (1,000 files) walks in milliseconds. |

@@ -1,66 +1,38 @@
 ---
 title: Tailwind CSS
-description: Build Tailwind CSS 4 with the tailwind filter, using the classes your pages actually use.
+description: Run Tailwind's own CLI next to fugo and publish the stylesheet it writes as an asset.
 weight: 70
 ---
 
-`tailwind` runs the [Tailwind CSS](https://tailwindcss.com/) 4 CLI on a CSS resource. Add it to
-`package.json`; fugo installs it when it builds and runs it without Node.js (see
-[npm packages](/asset-pipelines/npm-packages/)):
-
-```json {title="package.json"}
-{ "devDependencies": { "tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0" } }
-```
-
-{{< code-toggle file=config >}}
-[build.buildStats]
-  enable = true
-{{< /code-toggle >}}
-
-With `buildStats` on, fugo writes `build_stats.json` — the tags, classes and ids of every page —
-in the project directory. Tailwind scans it for classes:
+fugo does not run Tailwind CSS. Run Tailwind's CLI next to fugo (the
+[standalone binary](https://tailwindcss.com/blog/standalone-cli), or `npx @tailwindcss/cli`), and
+publish the stylesheet it writes like any other asset:
 
 ```css {title="assets/css/main.css"}
 @import "tailwindcss";
-@source "build_stats.json";
 ```
 
-Build the stylesheet after every page is rendered, with [`defer`](/asset-pipelines/post-processing/#defer),
-so it holds exactly the classes the site uses:
-
-```html {title="layouts/baseof.html"}
-<head>
-  {{ defer(template="_partials/css.html", key="css") }}
-</head>
+```sh
+tailwindcss -i assets/css/main.css -o assets/css/site.css --watch &
+fugo server
 ```
+
+Tailwind finds the classes in your layouts and content itself. It skips the files your
+`.gitignore` lists, such as `public/`; name other places with `@source`.
 
 ```html {title="layouts/_partials/css.html"}
-{%- set css = get_asset(path="css/main.css") | tailwind(options={"minify": build.is_production}) -%}
-{%- if build.is_production %}{% set css = css | fingerprint %}{% endif -%}
-<link rel="stylesheet" href="{{ css.rel_permalink }}">
+{%- set css = get_asset(path="css/site.css") | minify | fingerprint -%}
+<link rel="stylesheet" href="{{ css.rel_permalink }}" integrity="{{ css.data.integrity }}">
 ```
 
-## Options
+When Tailwind rewrites `assets/css/site.css`, `fugo server` rebuilds and reloads the page. For a
+release, run Tailwind once before the build:
 
-`minify`
-: Minify the CSS.
+```sh
+tailwindcss -i assets/css/main.css -o assets/css/site.css
+fugo build --minify
+```
 
-`optimize`
-: Optimize without minifying.
-
-`disableInlineImports`
-: Leave `@import`s of assets to Tailwind. By default fugo inlines them first (imports of
-  `tailwindcss` itself stay).
-
-`skipInlineImportsNotFound`
-: Keep imports fugo cannot find instead of failing.
-
-## Finding the tool
-
-fugo runs the `@tailwindcss/cli` package from the project's `node_modules` with its built-in
-JavaScript runtime. To use another version, change it in `package.json`. A `tailwindcss` program
-on your `PATH`, such as the standalone Tailwind binary, is not used.
-
-Plugins (`@plugin "@tailwindcss/typography"`) load from the project's `node_modules`. Tailwind
-runs in the project directory, with the environment that `[security.exec] osEnv` allows. Its
-name must match `[security.exec] allow`, which it does by default.
+`minify` adds the vendor prefixes your [browserslist](/asset-pipelines/fingerprint-minify/) needs.
+Tailwind writes only the classes it found, so [`purge_css`](/asset-pipelines/purge-css/) is
+optional.

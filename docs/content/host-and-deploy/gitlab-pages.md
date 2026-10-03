@@ -8,7 +8,7 @@ weight: 20
 pages:
   image: debian:stable-slim
   variables:
-    V: "0.149.0"
+    V: "1.0.0"
   before_script:
     - apt-get update && apt-get install -y --no-install-recommends ca-certificates curl
     - curl -sL "https://github.com/getfugo/fugo/releases/download/v$V/fugo_${V}_linux-amd64.tar.gz" | tar -xz fugo

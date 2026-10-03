@@ -3,7 +3,7 @@
 "patches": [
 {"file": "content/en/news/_content.gotmpl", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "GetRemote of GitHub releases (a content adapter)"},
 {"file": "content/en/functions/images/Text.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "GetRemote of a font (images.Text)"},
-{"file": "hugo_stats.json", "op": "remove", "tera": null, "variants": ["i01", "reduced", "live"], "why": "written by the build (the Go build's, committed with the site)"},
+{"file": "hugo_stats.json", "op": "remove", "tera": null, "variants": ["i01", "reduced", "live"], "why": "the Go build's stats file (committed with the site)"},
 {"file": "content/en/shortcodes/qr.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "images.QR (COULD, T72)"},
 {"file": "content/en/functions/images/QR.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "images.QR (COULD, T72)"},
 {"file": "content/en/functions/images/Dither.md", "op": "remove", "tera": null, "variants": ["i01", "reduced"], "why": "images.Dither (COULD, T72)"},

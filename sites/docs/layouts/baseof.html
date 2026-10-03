@@ -14,7 +14,7 @@
     </style>
 
     {% include "_partials/layouts/head/head-js.html" %}
-    {#- Tailwind runs after every page is rendered (it reads the build stats). #}
+    {#- The stylesheet comes after every page is rendered, where the Go build ran Tailwind. #}
     {{ defer(template="_partials/deferred/tailwind.html", key="global", data={"tailwind": true}) }}
     {% if store_get(key="hasMath") %}
       <link

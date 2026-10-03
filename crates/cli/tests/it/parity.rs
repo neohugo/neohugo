@@ -2,12 +2,11 @@
 //! the Go build of the same site (`crates/build/tests/it/testsite-go.txtar`).
 //!
 //! The gate lives here, not in `ssg-build`, because only this crate's tests can run the
-//! binary (`CARGO_BIN_EXE_fugo`): the command line, the disk sink, the static copy and
-//! `build_stats.json` in the project directory are part of what is compared.
+//! binary (`CARGO_BIN_EXE_fugo`): the command line, the disk sink and the static copy are part
+//! of what is compared.
 //!
 //! - **L1** paths: the file set, after §7.2's normalisation, equals Go's 55 files in `public`
-//!   plus `build_stats.json` in the project directory (56; the reference holds the 55 of
-//!   `public`, Go writes `build_stats.json` next to `config.toml`).
+//!   (Go also writes its stats file next to its configuration; this port writes none).
 //! - **L2** links: per HTML file the `<title>`, `<link rel=canonical|alternate>` and the set of
 //!   internal `href`/`src`/`srcset` URLs (percent-decoded); the alias → target map; the
 //!   `<link>`/`<loc>`/`<guid>` lists of RSS and sitemaps; the URL leaves of JSON; link
@@ -16,9 +15,7 @@
 //!   every file is checked as well; it implies the rest while it holds.
 //! - **L3** text: per HTML file the visible text (tags, comments, `script` and `style`
 //!   removed, entities decoded, typographic characters mapped to ASCII, whitespace collapsed)
-//!   and the heading-ID list; `build_stats.json` tag, class and id sets equal the collector's
-//!   (`ssg-publish`, checked against Go's collector by `oracle/publisher/collector`) over
-//!   Go's HTML files.
+//!   and the heading-ID list.
 //! - **Structure oracle**: the build's own dump (`FUGO_STRUCTURE_OUT`, `ssg-build`'s
 //!   `structure.rs`) against Go's (`testdata/golden/testsite/structure.json`, T01), with
 //!   the facts `tools/dev/structdiff.py` compares: per (lang, page, kind, format) the
@@ -31,12 +28,10 @@
 //! differ only when the ratchet's baseline (`testdata/baselines/testsite.json`, T03)
 //! accepts it (`accepted-deviation`); it accepts none.
 //!
-//! The full output tree (every file's content, `build_stats.json` included) is an insta
-//! snapshot: `snapshots/it__parity__testsite_output.snap`.
+//! The full output tree (every file's content) is an insta snapshot: `snapshots/it__parity__testsite_output.snap`.
 
 use std::collections::{BTreeMap, BTreeSet};
 
-use ssg_publish::HtmlElements;
 use ssg_testkit::fixture::{go_output_as_built_here, repo_dir};
 use ssg_testkit::txtar::Archive;
 
@@ -60,11 +55,10 @@ fn go_public() -> BTreeMap<String, Vec<u8>> {
         .collect()
 }
 
-/// The testsite built by the binary: `public` and `build_stats.json`.
+/// The testsite built by the binary: `public`.
 struct Built {
     _tmp: tempfile::TempDir,
     public: BTreeMap<String, Vec<u8>>,
-    stats: String,
     /// The structure dump of the build.
     structure: serde_json::Value,
 }
@@ -82,13 +76,10 @@ fn build_testsite() -> Built {
     );
     assert!(o.status.success(), "{}", stderr(&o));
     let public = tree(&site.join("public"));
-    let stats =
-        std::fs::read_to_string(site.join("build_stats.json")).expect("build_stats.json written");
     let structure = ssg_testkit::fixture::read_json(&dump).expect("the structure dump");
     Built {
         _tmp: tmp,
         public,
-        stats,
         structure,
     }
 }
@@ -578,16 +569,14 @@ fn testsite_gate_a_t() {
     let built = build_testsite();
     let ours = &built.public;
 
-    // L1: 55 files in `public` plus the stats file in the project directory (the Go build's
-    // stats file, our `build_stats.json`; one entry for both).
+    // L1: the 55 files of `public`.
     let norm = |m: &BTreeMap<String, Vec<u8>>| -> Vec<String> {
         let mut v: Vec<String> = m.keys().map(|k| normalize_path(k)).collect();
-        v.push("../build_stats.json".to_owned());
         v.sort();
         v
     };
     let (want, got) = (norm(&go), norm(ours));
-    assert_eq!(got.len(), 56);
+    assert_eq!(got.len(), 55);
     assert_eq!(got, want, "L1: the file multiset differs from Go's");
 
     // L2, bytes.
@@ -656,40 +645,14 @@ fn testsite_gate_a_t() {
         "L3: text differs"
     );
 
-    // L3: `build_stats.json` sets equal the collector's over Go's HTML files.
-    let mut go_elements = HtmlElements::default();
-    for (_, v) in go.iter().filter(|(k, _)| k.ends_with(".html")) {
-        go_elements.add_html(&String::from_utf8_lossy(v));
-    }
-    let stats: serde_json::Value = serde_json::from_str(&built.stats).expect("stats JSON");
-    let set = |key: &str| -> BTreeSet<String> {
-        stats["htmlElements"][key]
-            .as_array()
-            .unwrap_or_else(|| panic!("build_stats.json: no {key}"))
-            .iter()
-            .map(|v| v.as_str().expect("string").to_owned())
-            .collect()
-    };
-    assert_eq!(set("tags"), go_elements.tags, "build_stats.json tags");
-    assert_eq!(
-        set("classes"),
-        go_elements.classes,
-        "build_stats.json classes"
-    );
-    assert_eq!(set("ids"), go_elements.ids, "build_stats.json ids");
-
     println!(
-        "A-T: L1 {}/56 paths; L2 {}/55 files byte-identical, links equal, {} aliases, {} dangling \
-         links (all dangling in Go's output too); L3 {} HTML pages equal, build_stats.json sets equal \
-         ({} tags, {} classes, {} ids); structure oracle below",
+        "A-T: L1 {}/55 paths; L2 {}/55 files byte-identical, links equal, {} aliases, {} dangling \
+         links (all dangling in Go's output too); L3 {} HTML pages equal; structure oracle below",
         got.len(),
         go.len() - differ.len(),
         aliases,
         d_ours.len(),
         go.keys().filter(|k| k.ends_with(".html")).count() - text_diffs.len(),
-        go_elements.tags.len(),
-        go_elements.classes.len(),
-        go_elements.ids.len(),
     );
 
     // Structure oracle: the build's dump against Go's.
@@ -726,7 +689,6 @@ fn testsite_gate_a_t() {
         .iter()
         .map(|(k, v)| (format!("public/{k}"), v.as_slice()))
         .collect();
-    files.push(("build_stats.json".to_owned(), built.stats.as_bytes()));
     files.sort();
     for (name, bytes) in files {
         snap.push_str(&format!("-- {name} --\n"));

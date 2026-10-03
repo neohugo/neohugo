@@ -1564,7 +1564,6 @@
 "news/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "news/index.xml": {"L1": "ok", "L2": "ok"},
 "opengraph/gohugoio-card-base-1_hu_H.png": {"L1": "ok", "L4": "ok"},
-"project:hugo_stats.json": {"L1": "ok", "L3": {"class": "engine-difference", "fp": "31d16bf3a535", "reason": "Go's stats tokenizer reads `<?xml` and `<=` as tags `?xml` and `=` (as T65); every other tag and class equals", "status": "diff", "task": "T74"}},
 "quick-reference/emojis/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "quick-reference/functions/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "quick-reference/glossary/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},

@@ -13,8 +13,9 @@ Usage:
   structdiff.py changes [--changes DIR]      # validate every changes/<task>.md
 
 M is a manifest (tools/dev/manifest.py; `.json` or `.json.gz`) or a publish directory,
-which is extracted with manifest.py (its project directory, for build_stats.json, static/ and the
-base URLs, is --ref-project/--cand-project). The minified pass gives L1 and L4, the unminified
+which is extracted with manifest.py (its project directory, for static/ and the base URLs, is
+--ref-project/--cand-project); the `project:` entries of a manifest file (the Go build's stats
+file, written next to its configuration) are left out, as this port writes no such file. The minified pass gives L1 and L4, the unminified
 pass L1, L2 and L3; S is the structure dump (testdata/golden/README.md). Every comparison
 reads both sides through the same extractor, with the §7.2 normalisations:
 
@@ -28,8 +29,7 @@ reads both sides through the same extractor, with the §7.2 normalisations:
       the extractor. Link integrity: an internal link (or alias target) of the candidate that
       resolves to none of its files is a difference unless the reference's is dangling too.
   L3  HTML: the visible text (entities decoded, typographic characters mapped to ASCII,
-      whitespace collapsed; compared by hash) and the heading-ID list; build_stats.json: its
-      tag, class and id sets.
+      whitespace collapsed; compared by hash) and the heading-ID list.
   L4  images: (width, height, format); files of static/: bytes (sha256); CSS/JS: non-empty and
       referenced (as the reference's are). From the minified pass; when neither side has one and
       both unminified manifests were extracted with L4 (a site published unminified), from those.
@@ -110,7 +110,13 @@ def load_manifest(src, project, site, pass_, full_text=True):
         files = mf.extract(src, project, bases, set(levels), full_text)
         return {"schema": mf.SCHEMA, "site": site, "pass": pass_, "levels": levels,
                 "baseURLs": bases, "count": len(files), "files": files}
-    return read_json(existing(src))
+    doc = read_json(existing(src))
+    files = doc.get("files")
+    if isinstance(files, dict):
+        for k in [k for k in files if k.startswith(mf.PROJECT_PREFIX)]:
+            del files[k]
+            doc["count"] -= 1
+    return doc
 
 
 class Side:
@@ -283,12 +289,6 @@ def l3_diff(r, c, rtext, ctext):
             rs, cs = set(r["ids"]), set(c["ids"])
             parts.append(f"ids -{short(sorted(rs - cs))} +{short(sorted(cs - rs))}"
                          if rs != cs else "ids in another order")
-    else:
-        for k in ("tags", "classes", "ids"):
-            if r.get(k) != c.get(k):
-                cls.append(f"L3 stats {k}")
-                rs, cs = set(r.get(k) or []), set(c.get(k) or [])
-                parts.append(f"{k} -{short(sorted(rs - cs))} +{short(sorted(cs - rs))}")
     return cls, "; ".join(parts)
 
 

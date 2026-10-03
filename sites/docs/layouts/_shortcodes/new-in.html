@@ -24,7 +24,7 @@ button will be hidden if any of the following conditions is true:
 
 {%- set version = shortcode | arg(index=0, default="") | str | trim_start_chars(chars="vV") %}
 {%- if version %}
-  {%- set current = build.version | split(pat=".") %}
+  {%- set current = "0.149.0-DEV" | split(pat=".") %}{# the recorded Go build's version #}
   {%- set given = version | split(pat=".") %}
   {%- set major_version_diff = (current[0] | int) - (given[0] | int) %}
   {%- set minor_version_diff = (current[1] | int) - (given[1] | int) %}

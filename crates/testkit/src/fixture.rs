@@ -77,8 +77,8 @@ pub fn repo_dir() -> PathBuf {
         .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
 }
 
-/// The `node_modules` that `tools/dev/node.sh` installs the test tools into (Tailwind, Babel,
-/// Alpine.js, Turbo): `tools/dev/node_modules` of the main checkout, which every worktree
+/// The `node_modules` that `tools/dev/node.sh` installs the sites' packages into (Alpine.js,
+/// Turbo): `tools/dev/node_modules` of the main checkout, which every worktree
 /// shares. `None` when the script does not run; the directory may not exist yet.
 #[must_use]
 pub fn node_tools() -> Option<PathBuf> {

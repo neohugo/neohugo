@@ -2,17 +2,12 @@
   "name": "ssg-node-tools",
   "version": "1.0.0",
   "private": true,
-  "description": "Node modules the builds of the target sites and the tests need (tools/dev/node.sh; docs/rust-port/REWRITE_PLAN.md \u00a77.2). Versions follow docs/package.json.",
+  "description": "Node modules the scripts of the target sites import (tools/dev/node.sh; docs/rust-port/REWRITE_PLAN.md \u00a77.2). Versions follow docs/package.json.",
   "license": "Apache-2.0",
   "dependencies": {
     "@alpinejs/focus": "3.14.9",
     "@alpinejs/persist": "3.14.9",
-    "@babel/cli": "7.29.7",
-    "@babel/core": "7.29.7",
     "@hotwired/turbo": "8.0.23",
-    "@tailwindcss/cli": "4.1.18",
-    "@tailwindcss/typography": "0.5.20",
-    "alpinejs": "3.14.9",
-    "tailwindcss": "4.1.18"
+    "alpinejs": "3.14.9"
   }
 }

@@ -301,7 +301,7 @@ const EXAMPLES: &[(&str, &str)] = &[
     ),
     (
         "version_at_least",
-        "{{ '0.149.0-DEV' is version_at_least(version='0.148.2') }} {{ '0.149.0-DEV' is version_at_least(version='0.149.0') }} {{ '0.149.0' is version_at_least(version='0.149.0-DEV') }}",
+        "{{ '1.0.0-DEV' is version_at_least(version='0.148.2') }} {{ '1.0.0-DEV' is version_at_least(version='1.0.0') }} {{ '1.0.0' is version_at_least(version='1.0.0-DEV') }}",
     ),
 ];
 

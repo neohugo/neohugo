@@ -143,14 +143,9 @@ fn path_str(p: &Path) -> String {
 }
 
 /// Root files that are mounted to `assets/_jsconfig/<name>` unless a mount targets that
-/// directory: `package.json`, `package.config.json` and names containing
-/// `(babel|tailwind).config.js`.
+/// directory: `package.json` and `package.config.json`.
 fn is_js_config_file(name: &str) -> bool {
-    name == "package.json"
-        || name == "package.config.json"
-        || ["babel", "tailwind"]
-            .iter()
-            .any(|t| name.contains(&format!("{t}.config.js")))
+    name == "package.json" || name == "package.config.json"
 }
 
 /// The effective mounts of `cfg`, in precedence order.
@@ -158,8 +153,7 @@ pub(crate) fn mounts(cfg: &Config) -> Result<Vec<Mount>, VfsError> {
     let project = cfg.project_dir.as_path();
     let mut drafts: Vec<Draft> = Vec::new();
 
-    // Configured mounts; a missing source is skipped, except `build_stats.json`, which the build
-    // writes.
+    // Configured mounts; a missing source is skipped.
     for (index, m) in cfg.mounts.iter().enumerate() {
         let d = Draft::configured(project, m);
         if d.component().is_none() {
@@ -168,7 +162,7 @@ pub(crate) fn mounts(cfg: &Config) -> Result<Vec<Mount>, VfsError> {
                 target: m.target.clone(),
             });
         }
-        if d.abs.exists() || d.source.ends_with(ssg_config::global::STATS_FILE) {
+        if d.abs.exists() {
             drafts.push(d);
         }
     }
@@ -276,7 +270,7 @@ fn theme_mounts(theme: &Theme) -> Result<Vec<Draft>, VfsError> {
                         target: m.target.clone(),
                     });
                 }
-                if d.abs.exists() || d.source.ends_with(ssg_config::global::STATS_FILE) {
+                if d.abs.exists() {
                     out.push(d);
                 }
             }

@@ -13,7 +13,7 @@ use ssg_config::MediaTypes;
 use ssg_images::{ImageQueue, ImageSpec, Imaging, QrLevel};
 use ssg_resources::meta::ResourceMeta;
 use ssg_resources::{
-    Body, CallSite, HashAlgo, LangTarget, PublishPolicy, QrOptions, RemoteConfig, ResourceError,
+    CallSite, HashAlgo, LangTarget, PublishPolicy, QrOptions, RemoteConfig, ResourceError,
     ResourceKind, ResourceStore, StoreConfig, Transform, qr_target,
 };
 use ssg_vfs::Vfs;
@@ -295,29 +295,6 @@ fn transforms_and_metadata_are_memoized() {
             .map(|id| s.resource(id).name.clone()),
         Some("/css/a.css".to_owned())
     );
-}
-
-#[test]
-fn inject_generated() {
-    let home = tempfile::tempdir().unwrap();
-    let s = store(&synth_dir(), home.path());
-    let l = lang(0);
-    assert_eq!(s.get_asset(l, "build_stats.json").unwrap(), None);
-    let txt = s.get_asset(l, "txt/hello.txt").unwrap().unwrap();
-    let before = s.content(txt).unwrap();
-
-    s.inject_generated("build_stats.json", Arc::from(&b"{\"htmlElements\":{}}"[..]));
-    s.inject_generated("/txt/hello.txt", Arc::from(&b"fresh"[..]));
-    let stats = s.get_asset(l, "build_stats.json").unwrap().unwrap();
-    assert_eq!(&*s.content(stats).unwrap(), b"{\"htmlElements\":{}}");
-    assert_eq!(s.resource(stats).media_type_string(), "application/json");
-    assert!(matches!(s.resource(stats).body, Body::Generated(_)));
-    assert_eq!(s.get_asset(l, "txt/hello.txt").unwrap(), Some(txt));
-    assert_eq!(&*s.content(txt).unwrap(), b"fresh");
-    assert_ne!(before, s.content(txt).unwrap());
-    assert!(s.find_assets(l, "*.json").unwrap().contains(&stats));
-    s.inject_generated("build_stats.json", Arc::from(&b"{}"[..]));
-    assert_eq!(&*s.content(stats).unwrap(), b"{}");
 }
 
 #[test]

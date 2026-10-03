@@ -95,7 +95,6 @@ impl Dirs {
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct BuildConfig {
-    pub build_stats: BuildStats,
     pub cache_busters: Vec<CacheBuster>,
     /// `fallback` (default), `always` or `never`.
     pub use_resource_cache_when: String,
@@ -106,34 +105,11 @@ pub struct BuildConfig {
 impl Default for BuildConfig {
     fn default() -> Self {
         Self {
-            build_stats: BuildStats::default(),
-            cache_busters: vec![CacheBuster {
-                source: r"tailwind\.config\.js".to_owned(),
-                target: "(css|styles|scss|sass)".to_owned(),
-            }],
+            cache_busters: Vec::new(),
             use_resource_cache_when: "fallback".to_owned(),
             no_js_config_in_assets: false,
         }
     }
-}
-
-/// The file `[build.buildStats]` writes in the project directory (in place of the Go build's
-/// stats file).
-pub const STATS_FILE: &str = "build_stats.json";
-
-/// `[build.buildStats]`: what [`STATS_FILE`] records.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
-#[serde(default, rename_all = "camelCase")]
-#[expect(
-    clippy::struct_excessive_bools,
-    reason = "one switch per recorded attribute, as configured"
-)]
-pub struct BuildStats {
-    pub enable: bool,
-    pub disable_tags: bool,
-    pub disable_classes: bool,
-    #[serde(rename = "disableIDs")]
-    pub disable_ids: bool,
 }
 
 /// A cache buster: when a file matching `source` changes, resources matching `target` are
@@ -376,13 +352,7 @@ pub enum InlineShortcodes {
 impl Default for SecurityPolicy {
     fn default() -> Self {
         Self {
-            exec_allow: Whitelist::new(&[
-                "^(dart-)?sass(-embedded)?$",
-                "^go$",
-                "^git$",
-                "^npx$",
-                "^tailwindcss$",
-            ]),
+            exec_allow: Whitelist::new(&["^(dart-)?sass(-embedded)?$", "^go$", "^git$", "^npx$"]),
             exec_os_env: Whitelist::new(&[
                 r"(?i)^((HTTPS?|NO)_PROXY|PATH(EXT)?|APPDATA|TE?MP|TERM|GO\w+|(XDG_CONFIG_)?HOME|USERPROFILE|SSH_AUTH_SOCK|DISPLAY|LANG|SYSTEMDRIVE)$",
             ]),

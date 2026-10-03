@@ -63,7 +63,7 @@ if [ -z "$BIN" ]; then
 		(cd "$ROOT" && cargo build --release --locked -p ssg-cli >&2)
 	fi
 fi
-command -v npm >/dev/null || { log "npm is needed (the docs site's Tailwind CSS, Alpine.js and Turbo)"; exit 1; }
+command -v npm >/dev/null || { log "npm is needed (the docs site's Alpine.js and Turbo)"; exit 1; }
 
 # The site: testdata/legacy-docs unpatched with the Tera overlay.
 site=$WORK/docs-live

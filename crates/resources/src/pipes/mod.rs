@@ -5,8 +5,6 @@
 //! |---|---|---|
 //! | [`Transform::Minify`] | `ssg-minify` by media type (no minifier: an error) | `.min` before the extension |
 //! | [`Transform::ToCss`] | grass (dart-sass semantics); imports through the assets view, `includePaths`, `build:vars` | `targetPath`, else `.css` |
-//! | [`Transform::TailwindCss`] | the `tailwindcss` CLI (v4), `@import` inlining unless disabled | unchanged |
-//! | [`Transform::Babel`] | the `babel` CLI (`@babel/cli`) | unchanged |
 //! | [`Transform::JsBuild`] | rolldown through `ssg-jsbuild` | `targetPath`, else `.js` |
 //! | [`Transform::Fingerprint`] | the store (T40) | `.<hex digest>` before the extension |
 //!
@@ -16,31 +14,17 @@
 //! `fingerprint` depends on the content for its link: over a computed resource it is computed
 //! at once; over a pending one it is pending too, its record provisional (the source's link,
 //! [`PublishPolicy::Never`]) until computed. So a chain ending in
-//! [`ResourceStore::post_process`] runs in build phase E5, after `build_stats.json` exists,
-//! as long as nobody asks for its content or its fingerprinted link earlier (the crate README
-//! says how template functions build views of pending results).
-//!
-//! **External tools** ([`Tool`]) are looked up in [`ToolPaths`] (`<project>/node_modules`,
-//! then the extra `node_modules` directories; never `PATH`): in a
-//! `node_modules`, the tool's npm package runs with the binary's embedded JavaScript runtime
-//! when it has one ([`set_package_runner`]), else its `.bin` entry (Node.js). Tools
-//! must be allowed by `security.exec.allow`, run with the project directory as working
-//! directory and an environment of the allowed variables (`security.exec.osEnv`) plus
-//! `NODE_PATH`, `PWD`, `FUGO_PUBLISHDIR` and `FUGO_FILE_<NAME>`
-//! for each file in `assets/_jsconfig` (the Go program's environment variables are not set). At
-//! most `min(4, cpus)` run at once. A missing tool is [`PipeError::ToolNotFound`], naming the
-//! binary.
+//! [`ResourceStore::post_process`] runs in build phase E5, as long as nobody asks for its
+//! content or its fingerprinted link earlier (the crate README says how template functions
+//! build views of pending results). Every transform runs in process: there are no external
+//! tools.
 
 mod assets;
-mod babel;
-mod css_imports;
-mod exec;
 mod jsbuild;
 mod minify;
 mod postprocess;
 mod sass;
 mod sass_imports;
-mod tailwind;
 mod template;
 
 use std::collections::{BTreeMap, HashMap};
@@ -52,7 +36,6 @@ use base64::Engine as _;
 use serde_json::Value as Json;
 use ssg_base::paths::{self, OutputPath, UrlPath};
 use ssg_base::{ResourceId, Value};
-use ssg_config::global::SecurityPolicy;
 use ssg_config::{Config, MediaType};
 use ssg_jsbuild::{JsBuildError, JsBuildOptions, JsBuilder, OptionsError};
 use ssg_minify::{Minifier, MinifyError};
@@ -62,12 +45,8 @@ use crate::store::{
     add_identifier, kind_of, lock,
 };
 
-pub use babel::{BabelFlag, BabelOptions, BabelSourceMap};
-pub use css_imports::InlineImports;
-pub use exec::{Tool, ToolPaths, set_package_runner};
 pub use postprocess::{PostProcessId, PpField, has_placeholder};
 pub use sass::{OutputStyle, SassVar, ToCssOptions};
-pub use tailwind::TailwindOptions;
 pub use template::TemplateExecutor;
 
 /// A transform of one resource into another (see the module table).
@@ -80,10 +59,6 @@ pub enum Transform {
     Minify,
     /// `to_css` (`css.Sass`, `toCSS`).
     ToCss(ToCssOptions),
-    /// `tailwind_css` (`css.TailwindCSS`).
-    TailwindCss(TailwindOptions),
-    /// `babel` (`js.Babel`).
-    Babel(BabelOptions),
     /// `js_build` (`js.Build`); boxed, as its options are much larger than the others'.
     JsBuild(Box<JsBuildSpec>),
 }
@@ -96,8 +71,6 @@ impl Transform {
             Self::Fingerprint(_) => "fingerprint",
             Self::Minify => "minify",
             Self::ToCss(_) => "to_css",
-            Self::TailwindCss(_) => "tailwind_css",
-            Self::Babel(_) => "babel",
             Self::JsBuild(_) => "js_build",
         }
     }
@@ -137,35 +110,6 @@ pub enum PipeError {
     Option { option: String, reason: String },
     #[error(transparent)]
     JsOptions(#[from] OptionsError),
-    /// An external tool is not installed where [`ToolPaths`] looks.
-    #[error(
-        "the {tool} binary was not found (looked in {searched}); add {package} to the devDependencies of package.json"
-    )]
-    ToolNotFound {
-        tool: &'static str,
-        /// The npm package of the tool ([`Tool::package`]).
-        package: &'static str,
-        searched: String,
-    },
-    /// `security.exec.allow` does not allow the tool.
-    #[error("running {tool} is not allowed by security.exec.allow")]
-    ExecDenied { tool: &'static str },
-    #[error("starting {tool} ({path}): {source}")]
-    Spawn {
-        tool: &'static str,
-        path: PathBuf,
-        source: std::io::Error,
-    },
-    /// The tool exited unsuccessfully.
-    #[error("{tool} failed ({status}):\n{stderr}")]
-    ToolFailed {
-        tool: &'static str,
-        status: String,
-        stderr: String,
-    },
-    /// A configuration file named by an option does not exist.
-    #[error("{tool} config {name:?} not found")]
-    ConfigNotFound { tool: &'static str, name: String },
     /// A Sass compilation error at a position (`build:vars` for the variables sheet).
     #[error("{file}:{line}:{column}: {message}")]
     Sass {
@@ -207,22 +151,15 @@ pub enum PipeError {
 /// Everything the pipes need from the build: directories, the environment, the tools, the
 /// `js_build` bundler and the minifier. One per build, shared by the store.
 pub struct TransformEnv {
-    /// The project directory: the working directory of the tools, the base of `includePaths`,
-    /// of config files and of `js_build`'s `node_modules` lookups.
+    /// The project directory: the base of `includePaths` and of `js_build`'s `node_modules`
+    /// lookups.
     pub project_dir: PathBuf,
-    /// The absolute publish directory (`FUGO_PUBLISHDIR`, what `js_build` source maps are
-    /// relative to).
+    /// The absolute publish directory (what `js_build` source maps are relative to).
     pub publish_dir: PathBuf,
     /// The build environment (`production`, `development`).
     pub environment: String,
-    /// `security.exec.allow` and `security.exec.osEnv`.
-    pub security: SecurityPolicy,
-    /// The process environment the tools may inherit (filtered by `osEnv`).
-    pub os_env: Vec<(String, String)>,
-    pub tools: ToolPaths,
     pub minifier: Arc<Minifier>,
     js_builder: OnceLock<JsBuilder>,
-    slots: exec::Slots,
 }
 
 impl std::fmt::Debug for TransformEnv {
@@ -231,14 +168,13 @@ impl std::fmt::Debug for TransformEnv {
             .field("project_dir", &self.project_dir)
             .field("publish_dir", &self.publish_dir)
             .field("environment", &self.environment)
-            .field("tools", &self.tools)
             .finish_non_exhaustive()
     }
 }
 
 impl Default for TransformEnv {
-    /// The current directory as project, `public` in it, `production`, the default security
-    /// policy, no inherited environment and [`ToolPaths::of_process`].
+    /// The current directory as project, `public` in it, `production` and the default
+    /// minifier.
     fn default() -> Self {
         let project_dir = std::env::current_dir().unwrap_or_default();
         Self::new(
@@ -258,17 +194,13 @@ impl TransformEnv {
             project_dir,
             publish_dir,
             environment,
-            security: SecurityPolicy::default(),
-            os_env: Vec::new(),
-            tools: ToolPaths::of_process(),
             minifier: Arc::new(Minifier::default()),
             js_builder: OnceLock::new(),
-            slots: exec::Slots::default(),
         }
     }
 
-    /// The environment of a loaded project: its directories, environment name, security
-    /// policy and minifier configuration, the process environment, [`ToolPaths::of_process`].
+    /// The environment of a loaded project: its directories, environment name and minifier
+    /// configuration.
     /// An invalid `[minify]` table gives the default minifier, an invalid browserslist
     /// configuration no CSS targets (the publisher reports both).
     #[must_use]
@@ -279,10 +211,6 @@ impl TransformEnv {
             publish_dir,
             cfg.environment.clone(),
         );
-        env.security = cfg.security.clone();
-        env.os_env = std::env::vars_os()
-            .filter_map(|(k, v)| Some((k.into_string().ok()?, v.into_string().ok()?)))
-            .collect();
         let browsers = ssg_minify::project_browsers(&cfg.project_dir, &cfg.environment);
         env.minifier = Arc::new(
             Minifier::new(&cfg.minify)
@@ -374,12 +302,6 @@ pub(crate) fn start(
                 PublishPolicy::OnReference,
             )
         }
-        Transform::TailwindCss(_) | Transform::Babel(_) => (
-            src.link.as_str().to_owned(),
-            src.target.clone(),
-            src.media_type.clone(),
-            PublishPolicy::OnReference,
-        ),
     };
     let fingerprint_now =
         matches!(t, Transform::Fingerprint(_)) && !matches!(src.body, Body::Pending);
@@ -496,8 +418,6 @@ pub(crate) fn realize(
         }
         Transform::Minify => minify::run(&env, &r, &input).map_err(fail)?,
         Transform::ToCss(o) => sass::run(store, &src, o, &input).map_err(fail)?,
-        Transform::TailwindCss(o) => tailwind::run(store, &env, &src, o, &input).map_err(fail)?,
-        Transform::Babel(o) => babel::run(store, &env, &src, &r, o, &input).map_err(fail)?,
         Transform::JsBuild(o) => jsbuild::run(store, &env, &src, &o.0, &input).map_err(fail)?,
     };
     if let Some(map) = out.source_map {

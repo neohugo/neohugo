@@ -1,21 +1,19 @@
 # ssg-publish
 
-Sinks, canonify, minify dispatch, `build_stats.json`, URL-token extraction, held outputs and the
-static sync (REWRITE_PLAN.md §2.6, §3.4; phases E1, E2 output, E4 and the `patch_held` half of
-E5).
+Sinks, canonify, minify dispatch, URL-token extraction, held outputs and the static sync
+(REWRITE_PLAN.md §2.6, §3.4; phases E1, E2 output and the `patch_held` half of E5).
 
 | API | What |
 |---|---|
 | `DiskSink { root }`, `MemorySink { files: DashMap<OutputPath, Arc<[u8]>> }` | `base::Sink` (`write`, `exists`, `read`); the disk sink creates parent directories and truncates; the memory sink has `get`, `text`, `paths` (sorted) and `write_to(dir)` |
-| `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`, LiveReload URL: `None` here, set by `ssg-build` for `serve`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]` |
+| `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`, LiveReload URL: `None` here, set by `ssg-build` for `serve`), output formats and media types, the `Minifier` when `minifyOutput` is set |
 | `Publisher::new(settings, Arc<dyn Sink>, Arc<Diagnostics>)` | shared by the render workers (`Send + Sync`) |
 | `Publisher::with_css_purges(Arc<CssPurges>)`, `page_names(html)` | `purge_css` placeholders (`__nh_purge_<n>__`) are replaced first in `emit` (and in `patch_held`) by the CSS the output uses: `page_names` gives the tags, classes and ids of its elements, the words of its `<script>` elements and every `--name` it mentions |
-| `Publisher::emit(Output { path, text, format, lang, alias })` | `purge_css` placeholders → canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Go; `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present (the text is written to the sink unpatched and unminified, only the path is kept), else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
+| `Publisher::emit(Output { path, text, format, lang, alias })` | `purge_css` placeholders → canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Go; `serve`) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present (the text is written to the sink unpatched and unminified, only the path is kept), else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
 | `Publisher::patch_held(&BTreeMap<placeholder, text>)` | reads every held output back from the sink (`PublishError::Read` if it is gone), replaces its placeholders, rewrites its URLs again (canonify / relative), extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
 | `Publisher::add_tokens_from(text)`, `url_tokens()` | `execute_as_template` results; the sorted `UrlTokens` so far |
-| `Publisher::stats() -> StatsFile`, `StatsFile::{to_json, write_if_changed}` | `build_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
 | `UrlRewriter::{absolute, relative, new}.rewrite(bytes, Quoting)` | the canonify rewriter (also `rewrite_str`); `canonify::dotted_path_to_root` |
-| `HtmlElements::collect(html)`, `StatsCollector` | the tags, classes and ids of HTML |
+| `HtmlElements::collect(html)` | the tags, classes and ids of HTML (what `page_names` starts from) |
 | `UrlTokens::{extract, iter, contains}` | URL-shaped words after decoding HTML references and JSON escapes (srcset lists, unquoted attributes, `./` / `../` resolved against the output) |
 | `sync_static_dir(&Vfs, root, &StaticSyncOptions)` | phase E1 on disk: rewrite only changed files, copy permissions and modification times (`noChmod`, `noTimes`), `cleanDestinationDir` (keeps `.`-directories; on macOS the names it lists are NFC-normalised before they are compared with the static files'), multihost language directories; returns the file count |
 | `sync_static(&Vfs, &dyn Sink, &StaticSyncOptions)` | the same files into any sink (memory builds) |
@@ -35,10 +33,10 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   2000 bytes up to the closing quote; every root-relative candidate is rewritten and white
   space collapses to single spaces). The prefix's own path (`docs/`) is dropped when the URL
   repeats it. HTML quotes are `"` `'`, RSS quotes `&#34;` `&#39;`. Aliases are HTML outputs.
-- **Stats** (`stats.rs`): html5gum tokens; every start tag (lower-cased), `id` values,
+- **HTML elements** (`elements.rs`, for `purge_css`): html5gum tokens; every start tag (lower-cased), `id` values,
   `class` and `*transition*` attribute words, and Vue/Alpine `:class` bindings (object keys, or
   single-quoted words). The content of `pre`, `textarea`, `script` and `style` is skipped.
-  Collected before minification.
+  Scanned before minification.
 - **Held outputs**: the plan's placeholder prefixes (`PLACEHOLDER_PREFIXES`). A held output waits
   in the sink at its own path, as Go's post-processing writes its files before patching them, so
   held pages cost no memory (on a site where every page is held: 386 MB → 234 MB). Replacement
@@ -48,23 +46,20 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
 
 ## Acceptance evidence
 
-`cargo test -p ssg-publish` (lib 6, it 19):
+`cargo test -p ssg-publish` (lib 7, it 19):
 
 - **canonify** — `oracle/transform/absurl/cases.jsonl.gz`: 94,180 cases, 93,178 exact, 1,002
   accepted in 3 Go-quirk classes (below), 0 unexplained; the upstream `absurlreplacer_test.go`
   tables exact.
 - **LiveReload** — `oracle/transform/absurl/inject.jsonl.gz`: 175/175 livereload records
   exact; 14 generator-tag records accepted (never injected), 11 equal.
-- **stats collector** — `oracle/publisher/collector/collector.jsonl.gz`: the upstream
+- **HTML elements** — `oracle/publisher/collector/collector.jsonl.gz` (Go's collector, which
+  wrote the Go build's stats file; this port writes none, `HtmlElements` feeds `purge_css`): the upstream
   `TestClassCollector` documents 170/170 exact; html5lib documents 1,662/1,708; hand-written
   documents 185/265; element strings 28,673/36,795; element documents 8,527/12,265; random
   documents 2,288/4,000; multi-write streams 765/1,260; groups 7/25 (56,488 checks, every
   difference classified in `expected_diffs.toml`, 0 unexplained). The 3,022 `closed` records test Go's private `isClosedByTag`
   and have no counterpart.
-- **golden stats** — the legacy docs site's Go build stats file
-  (`testdata/legacy-docs/hugo_stats.json`) round-trips byte for byte through
-  `StatsFile::to_json` (format, sorting, `null`). Scanning the golden HTML itself would need the
-  Go build's output trees, which are not in the repository (`testdata/golden/` holds manifests).
 - **static sync** — `oracle/commands/staticcopy/staticcopy.json.gz`: 12 cases, 179 checks
   (count + every entry's bytes, mode, mtime), 171 exact, 8 accepted, 0 unexplained (later
   static mounts of a module win and symbolic links are followed, both in `Vfs::walk`);
@@ -73,8 +68,7 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   JSON never), `relativeURLs`, minify dispatch (HTML, JSON, `text/plain` untouched, invalid
   JSON published with a warning), empty outputs, held outputs patched then re-scanned (the
   PostProcess URL becomes a token) and minified, unresolved placeholders, URL tokens (entities,
-  JSON escapes, srcset, `&`/`'` paths), stats of HTML outputs only, identical tokens/stats/paths
-  with 1 and 4 threads, disk and memory sinks, the LiveReload script per language (HTML pages
+  JSON escapes, srcset, `&`/`'` paths), identical tokens and paths with 1 and 4 threads, disk and memory sinks, the LiveReload script per language (HTML pages
   only; not aliases, RSS, or a language without a LiveReload URL).
 
 ## Accepted deviations

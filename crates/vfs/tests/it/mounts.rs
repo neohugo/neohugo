@@ -17,6 +17,17 @@ use ssg_vfs::{Module, Mount, Vfs};
 const GO_JS_PACKAGE: &str = "package.hugo.json";
 const GO_STATS: &str = "hugo_stats.json";
 
+/// Whether Go kept this mount only because it writes the stats file: it kept a mount of a
+/// missing stats file, which this port (writing no such file) skips like any missing source.
+fn go_stats_placeholder(m: &J, root: &str) -> bool {
+    let source = m["source"]
+        .as_str()
+        .unwrap_or_default()
+        .replace("$ROOT", root);
+    let path = Path::new(root).join("site").join(&source);
+    source.ends_with(GO_STATS) && !path.exists()
+}
+
 fn write_case(root: &Path, files: &serde_json::Map<String, J>) {
     let site = root.join("site");
     fs::create_dir_all(&site).unwrap();
@@ -30,12 +41,7 @@ fn write_case(root: &Path, files: &serde_json::Map<String, J>) {
             fs::create_dir_all(&p).unwrap();
         } else {
             fs::create_dir_all(p.parent().unwrap()).unwrap();
-            // The Go build's stats file is our `build_stats.json`.
-            let text = content
-                .as_str()
-                .unwrap()
-                .replace("$ROOT", root_str)
-                .replace(GO_STATS, "build_stats.json");
+            let text = content.as_str().unwrap().replace("$ROOT", root_str);
             fs::write(&p, text).unwrap();
         }
     }
@@ -120,18 +126,26 @@ fn mounts_match_go() {
             .filter(|m| m.module == Module::Project)
             .map(|m| dump(m, root_str))
             .collect();
-        let want: Vec<J> = serde_json::from_str(
+        let mut want: Vec<J> = serde_json::from_str(
             &c["result"]["modules"][0]["mounts"]
                 .to_string()
-                .replace(GO_STATS, "build_stats.json")
                 .replace(GO_JS_PACKAGE, "package.config.json"),
         )
         .unwrap();
+        want.retain(|m| !go_stats_placeholder(m, root_str));
         let (ours, ours_js) = split(ours);
         let (want, mut want_js) = split(want);
-        // The Go program also mounted `postcss.config.js` by default; this port has no PostCSS
-        // (a site's own mount of it stays).
-        want_js.retain(|m| !m.contains(r#""target":"assets/_jsconfig/postcss.config.js""#));
+        // The Go program also mounted the PostCSS, Babel and Tailwind configuration files by
+        // default; this port runs none of those tools (a site's own mount of them stays).
+        want_js.retain(|m| {
+            let m: J = serde_json::from_str(m).unwrap();
+            let source = m["source"].as_str().unwrap_or_default();
+            let default_mount = m["target"] == format!("assets/_jsconfig/{source}").as_str();
+            !(default_mount
+                && ["postcss", "babel", "tailwind"]
+                    .iter()
+                    .any(|t| source.contains(&format!("{t}.config.js"))))
+        });
         assert_eq!(ours, want, "{name}");
         assert_eq!(ours_js, want_js, "{name}: JS config mounts");
         checked += 1;

@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use ssg_base::Sink;
 use ssg_base::paths::OutputPath;
 use ssg_config::{Config, LoadOptions, load};
-use ssg_resources::{Resource, ResourceStore, StoreConfig, TransformEnv};
+use ssg_resources::{Resource, ResourceStore, StoreConfig};
 use ssg_vfs::Vfs;
 
 /// The Go oracles' synthetic site (`testdata/oracle/resources/site`).
@@ -83,20 +83,6 @@ pub fn store(dir: &Path, home: &Path) -> ResourceStore {
     let cfg = config(dir, home);
     let vfs = Arc::new(Vfs::new(&cfg).unwrap());
     ResourceStore::new(StoreConfig::from_config(&cfg, Some(vfs), None))
-}
-
-/// A store as [`store`] whose external tools (Tailwind, Babel) are never found: no extra
-/// `node_modules` and no `PATH`, like the Go oracle runs
-/// that had none of them (their `na:` chains), whatever this machine or CI has installed.
-pub fn store_without_tools(dir: &Path, home: &Path) -> ResourceStore {
-    let cfg = config(dir, home);
-    let vfs = Arc::new(Vfs::new(&cfg).unwrap());
-    let mut sc = StoreConfig::from_config(&cfg, Some(vfs), None);
-    let mut env = TransformEnv::from_config(&cfg);
-    env.tools = Default::default();
-    env.os_env.retain(|(k, _)| k != "PATH");
-    sc.transforms = Arc::new(env);
-    ResourceStore::new(sc)
 }
 
 /// A sink that keeps what is written.

@@ -197,9 +197,7 @@ all of them, and its Test job fails when a test prints `SKIPPED`:
 | Tests | Tool | In CI |
 |---|---|---|
 | `ssg-jsbuild`: `jsbuild_synth`, `jsbuild_docs` and the `build::` tests that run scripts (the oracle's and fugo's bundles run side by side, compared by what they do) | `node` on `PATH` | `actions/setup-node`, Node 22 |
-| `ssg-resources`: `babel_fake_tool`, `post_process_css_chain_fake_tailwind`, `tailwind_docs_styles_fake_tool`, `tools_get_fugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
-| `ssg-resources`: `tailwind_docs_styles_real_tool`, `babel_real_tool` | `node` on `PATH`; `.bin/tailwindcss` and `.bin/babel` in the `node_modules` of `tools/dev/node.sh path` (the test binary has no embedded runtime, so the `.bin` entries run with Node.js) | `tools/dev/node.sh` |
-| `fugo`: `gate_a_d2` (`tools/dev/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules of `tools/dev/node.sh`, which compare.sh links into each site and whose Tailwind the binary runs on its embedded runtime | the runner's `python3` and `bash`; the rows above |
+| `fugo`: `gate_a_d2`, `gate_a_d3` (`tools/dev/compare.sh … --ref golden`) | `python3` and `bash` on `PATH`; the node modules of `tools/dev/node.sh` (Alpine.js, Turbo), which compare.sh links into each site for `js_build` | the runner's `python3` and `bash`; `tools/dev/node.sh` |
 
 `ssg-npm`'s tests and `fugo`'s `npm::` tests need no tool and no network: `ssg_testkit::registry`
 serves their packages on `127.0.0.1`.
@@ -230,17 +228,34 @@ python3 tools/dev/package.py <scratch>/target/x86_64-unknown-linux-gnu/release/f
   x86_64-unknown-linux-gnu <scratch>/dist <scratch>/THIRD_PARTY_NOTICES.txt
 ```
 
-**Cutting a release.**
-1. Set `version` in `[workspace.package]` of `Cargo.toml` (e.g. `0.149.0`); commit and merge
-   it.
-2. Tag that commit and push the tag: `git tag v0.149.0 <commit>`, `git push origin v0.149.0`.
-3. The workflow checks the tag against the version, runs lint, test and the five builds, then
-   creates the GitHub release `v<version>`, titled `fugo <version>`, with the five archives
-   and `fugo_<version>_checksums.txt` (`<sha256>  <archive>` per archive, the checksums file
-   of the Go releases; the `.sha256` files of the build jobs are checked and joined into it).
-   A version with a `-` (e.g. `0.150.0-rc.1`) makes a pre-release, never latest; any other
-   release is marked latest only if no published release has a higher version, so a patch
-   release of an older line does not take latest from a newer one.
+**Cutting a release.** The version comes from the git tag: a release is the tag
+`v<major>.<minor>.<patch>[-<pre-release>]`, and nothing in the repository is edited for it.
+`version` in `[workspace.package]` of `Cargo.toml` (`0.0.0-DEV`) is only the version of builds
+not made from a tag. The repository also holds the Go fork's tags (`v0.1.0` … `v0.148.2`);
+fugo's start at `v1.0.0`, and the v0.x tags never count.
+1. Run the **Bump version** workflow (`.github/workflows/bump.yml`; Actions → Bump version →
+   Run workflow, or `gh workflow run bump.yml --ref main -f version_bump=minor`) on the branch
+   to release, with `version_bump` `major`, `minor` or `patch`. It takes the latest release tag
+   (`tools/dev/version.py next`; pre-releases do not count), bumps that part (`v1.4.2` → major
+   `v2.0.0`, minor `v1.5.0`, patch `v1.4.3`; `v1.0.0` when there is no release yet), tags the
+   branch head and starts CI on the tag. A tag pushed with the workflow's token starts no
+   workflow by itself, so it dispatches `ci.yml` with the tag as ref. The workflow must be on
+   the default branch to appear in the Actions tab. A tag pushed by hand (`git tag v1.2.3
+   <commit>`, `git push origin v1.2.3`; also for a pre-release such as `v1.3.0-rc.1`) starts CI
+   the same way.
+2. CI on the tag: Lint checks that the tag is a release tag (`tools/dev/version.py tag`), the
+   five builds compile with `FUGO_BUILD_VERSION=<version>` (read at compile time by
+   `ssg_base::VERSION`: `fugo version`, `build.version`, the generator tag) and `package.py`
+   names the archives after it. After lint, test and the builds pass, the Release job creates
+   the GitHub release `v<version>`, titled `fugo <version>`, with the five archives and
+   `fugo_<version>_checksums.txt` (`<sha256>  <archive>` per archive, the checksums file of the
+   Go releases; the `.sha256` files of the build jobs are checked and joined into it). A
+   version with a `-` (e.g. `1.3.0-rc.1`) makes a pre-release, never latest; any other release
+   is marked latest only if no published release has a higher version, so a patch release of
+   an older line does not take latest from a newer one.
+
+A local build gets a release's version the same way: `FUGO_BUILD_VERSION=1.2.3 cargo build
+--release --locked -p ssg-cli`.
 
 Re-running the workflow (or its failed jobs) for a tag replaces the assets of the release an
 earlier run created, and publishes it if that run stopped before (`gh release create` makes a
@@ -279,25 +294,14 @@ the five release targets, so no bindgen or libclang), and about 1.45 MB (2.9 %) 
 release binary (QuickJS and the 310 KB of KaTeX JavaScript). A test of `ssg-funcs` alone
 builds without them unless `--features goat,math` is given (`tests/it/{math,goat}.rs`).
 
-`ssg-cli` also turns on `npm` by default (`crates/npm/README.md`). `build` and `server` install
-the project's `package.json`, and the Tailwind and Babel pipes run their npm packages on Deno's
-runtime instead of Node.js. Its cost:
-
-- `Cargo.lock` grows from 705 to 1,238 packages: Deno's crates pinned exactly as one release, V8,
-  swc (`deno_ast`), wgpu, rusqlite, aws-lc-rs and their dependencies. The licence check needs
-  two exceptions (`deny.toml`), and `notices.py` prints three standard texts from
-  `THIRD_PARTY/spdx/`.
-- A debug build of the binary grows by about 9 GB of `target/`. The release binary grows from
-  65 MB to 179 MB stripped (macOS arm64; 228 MB unstripped). A cold debug build of the binary takes a few
-  minutes more.
-- V8 comes as a prebuilt static library, which `v8`'s build script downloads from the rusty_v8
-  GitHub releases (about 150 MB per profile and target). A build without the network fails
-  unless `RUSTY_V8_ARCHIVE` names a local copy of `librusty_v8_release_<target>.a.gz`.
-- On macOS, the debug link prints the warning `__eh_frame section too large`, which is harmless.
-
-For an edit–test loop that does not touch npm packages, `cargo test -p ssg-cli
---no-default-features --features goat,math` builds without the runtime. That binary runs the
-tools from `node_modules/.bin` with Node.js, as before.
+`ssg-cli` also turns on `npm` by default (`crates/npm/README.md`): `build` and `server` install
+the project's `package.json` with Deno's npm installer, without Node.js. Nothing runs the
+packages' programs (fugo has no JavaScript runtime besides `math`'s QuickJS). Its cost: 78 more
+crates in the binary's graph (636 instead of 558: Deno's installer crates, pinned exactly as one
+release, and their dependencies) and about 6 MB (9 %) of the stripped release binary (71.0 MB
+instead of 64.8 MB, macOS arm64). `cargo test -p ssg-cli --no-default-features --features
+goat,math` builds without it; that binary installs nothing, and a site installs its
+`node_modules` itself.
 
 ## Feature unification
 

@@ -775,7 +775,6 @@
 "news/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "news/index.xml": {"L1": "ok", "L2": "ok"},
 "opengraph/gohugoio-card-base-1_hu_H.png": {"L1": "ok", "L4": "ok"},
-"project:hugo_stats.json": {"L1": "ok", "L3": {"class": "engine-difference", "fp": "036128d5da05", "reason": "the HTML tokenizer reads `<?xml …?>` as a bogus comment and `<=` in text as text; Go's scanner records them as the tags `?xml` and `=`", "status": "diff", "task": "T65"}},
 "quick-reference/emojis/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "quick-reference/functions/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "quick-reference/glossary/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},

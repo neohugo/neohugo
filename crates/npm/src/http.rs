@@ -27,11 +27,7 @@ impl Http {
             .http_status_as_error(false)
             .timeout_connect(Some(Duration::from_secs(30)))
             .timeout_global(Some(Duration::from_secs(600)))
-            .user_agent(concat!(
-                ssg_base::app_name!(),
-                "/",
-                env!("CARGO_PKG_VERSION")
-            ))
+            .user_agent(format!("{}/{}", ssg_base::APP_NAME, ssg_base::VERSION))
             .build()
             .new_agent();
         Self { agent }

@@ -4,8 +4,9 @@
 Usage:
   package.py <binary> <target> <out-dir> [<notices>]
 
-<version> is `version` in [workspace.package] of Cargo.toml and <name> the binary's name
-(`[[bin]] name` in crates/cli/Cargo.toml); `<binary> version` must print
+<version> is $FUGO_BUILD_VERSION when that is set (CI's release builds: the tag's version,
+tools/dev/version.py), else `version` in [workspace.package] of Cargo.toml; <name> is the
+binary's name (`[[bin]] name` in crates/cli/Cargo.toml); `<binary> version` must print
 "<name> v<version>[-<commit>] …" (a smoke test): the version exactly, then the commit the
 binary names, which is $FUGO_BUILD_COMMIT when that is set (as in CI) and otherwise any hex
 commit or none. <target> is a Rust target triple, named in the archive as the Go releases name
@@ -44,8 +45,11 @@ GO_OS = {"linux": "linux", "darwin": "darwin", "windows": "windows"}
 GO_ARCH = {"x86_64": "amd64", "aarch64": "arm64"}
 
 
-def workspace_version():
-    """`version` of [workspace.package] in Cargo.toml."""
+def build_version():
+    """$FUGO_BUILD_VERSION (the version the binary was built with), else `version` of
+    [workspace.package] in Cargo.toml."""
+    if os.environ.get("FUGO_BUILD_VERSION"):
+        return os.environ["FUGO_BUILD_VERSION"]
     with open(ROOT / "Cargo.toml", "rb") as f:
         return tomllib.load(f)["workspace"]["package"]["version"]
 
@@ -74,7 +78,7 @@ def check_binary(binary, version):
         want = f"{want}[-<commit>]"
     if not ok:
         sys.exit(f"package.py: `{binary} version` printed {out.stdout!r}, "
-                 f"not '{app_name()} {want} …' (the version of Cargo.toml)")
+                 f"not '{app_name()} {want} …' ($FUGO_BUILD_VERSION, else the version of Cargo.toml)")
     return out.stdout.strip()
 
 
@@ -151,7 +155,7 @@ def main(argv):
         sys.exit(__doc__)
     binary, target, out = Path(argv[1]), argv[2], Path(argv[3])
     notices = Path(argv[4]) if len(argv) == 5 else None
-    version = workspace_version()
+    version = build_version()
     line = check_binary(binary, version)
     ext = "zip" if "windows" in target else "tar.gz"
     archive = out / f"{app_name()}_{version}_{go_platform(target)}.{ext}"

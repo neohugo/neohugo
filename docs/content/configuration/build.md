@@ -1,26 +1,19 @@
 ---
 title: Build and minify
-description: Record the classes and tags pages use, and configure HTML, CSS and JavaScript minification.
+description: The build table, and HTML, CSS and JavaScript minification.
 weight: 100
 ---
 
 ## Build
 
-{{< code-toggle file=config >}}
-[build]
-  [build.buildStats]
-    enable = true
-    disableTags = false
-    disableClasses = false
-    disableIDs = false
-{{< /code-toggle >}}
+`[build]` is accepted for compatibility. `cacheBusters`, `useResourceCacheWhen` and
+`noJSConfigInAssets` are checked and have no effect: fugo always runs a pipeline's steps, and
+writes no `jsconfig.json`.
 
-`buildStats`
-: Write `build_stats.json` in the project directory: the HTML tags, classes and ids of every
-  page, for [Tailwind CSS](/asset-pipelines/tailwind-css/) or PurgeCSS.
-
-`useResourceCacheWhen` and `noJSConfigInAssets` are accepted for compatibility and have no
-effect: fugo always runs the tools a pipeline names, and writes no `jsconfig.json`.
+`buildStats` (and the older `writeStats`) is no longer supported, and a warning says so: fugo
+writes no file of the classes and tags pages use. [`purge_css`](/asset-pipelines/purge-css/)
+reads each page itself, and [Tailwind CSS](/asset-pipelines/tailwind-css/) finds the classes in
+your layouts.
 
 ## Minify
 

@@ -16,13 +16,9 @@ fugo version                       # also --version
 **npm packages** (feature `npm`, on by default; `crates/npm/README.md`): `build` and `server`
 install the project's `package.json` into `node_modules` before they read the project, through
 `ssg_build::BuildRequest::prepare` (`src/npm.rs`). They print `Installed the npm packages of
-package.json in N ms` when they installed something. `main` sets the binary as the runner of
-the Tailwind and Babel pipes (`ssg_resources::pipes::set_package_runner`). It handles the hidden
-child-process command `fugo __run-package <node_modules> <package> <bin> [args…]` before clap,
-so that command's arguments pass through untouched. `build.rs` exports the N-API symbols that
-native addons link to (`deno_napi::print_linker_flags`, with the binary's name read from
-`[[bin]]`). `--no-default-features --features goat,math` builds without the feature: no install,
-no runtime, and the tools run from `node_modules/.bin` with Node.js.
+package.json in N ms` when they installed something. Nothing runs the packages' programs.
+`--no-default-features --features goat,math` builds without the feature: the site installs its
+`node_modules` itself.
 
 `version` prints the Go build's line (`src/version.rs`): `fugo v<version>[-<commit>]
 <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]`, with Go's os/arch names and the
@@ -182,9 +178,10 @@ Output: a header line, the diagnostics, the coverage listing, `N error(s), M war
 
 | Test | What |
 |---|---|
-| `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 56/56 (55 in `public` + `build_stats.json`; the reference has 55 because Go writes its stats file next to its configuration file); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; `build_stats.json` tag/class/id sets equal the `ssg-publish` collector (checked against Go's by `oracle/publisher/collector`) over Go's HTML. Accepted-deviation lists per level: empty. Structure oracle: the build's structure dump against `testdata/golden/testsite/structure.json` (Go's, frozen at `44529028`), every fact equal (the baseline `testdata/baselines/testsite.json` accepts none). Full output tree: `snapshots/testsite_output.snap` |
+| `parity::testsite_gate_a_t` | **gate A-T** (§7.3): the testsite built by the binary against Go's `testsite-go.txtar`. L1 55/55 (Go's stats file, next to its configuration file, is not compared); L2 55/55 byte-identical, plus the §7.2 link checks (title, canonical/alternate, internal `href`/`src`/`srcset`, 15 aliases, feed `<link>`/`<loc>`/`<guid>`, JSON URL leaves, link integrity: the 10 dangling links are dangling in Go's output too); L3 visible text and heading IDs of every page; Accepted-deviation lists per level: empty. Structure oracle: the build's structure dump against `testdata/golden/testsite/structure.json` (Go's, frozen at `44529028`), every fact equal (the baseline `testdata/baselines/testsite.json` accepts none). Full output tree: `snapshots/testsite_output.snap` |
 | `parity::parity_helpers` | the scanner, normalisations and text extraction of the gate |
-| `docs::gate_a_d2` | **gate A-D2** (§7.3, T66): `compare.sh docs-reduced --ref golden` with this binary (Chroma, goat, emoji, math, remarshal, Tailwind via `defer`, Alpine/Turbo `js_build`): L1 889/889 in both passes, L2, L4 and the structure oracle equal everywhere, A7 ≥ 0.98, clean ratchet (`testdata/baselines/docs-reduced.json`); `SKIPPED` without the node tools/esbuild (`tests/it/acceptance.rs`) |
+| `docs::gate_a_d2` | **gate A-D2** (§7.3, T66): `compare.sh docs-reduced --ref golden` with this binary (Chroma, goat, emoji, math, remarshal, the recorded Tailwind CSS via `defer`, Alpine/Turbo `js_build`): L1 888/888 in both passes, L2, L4 and the structure oracle equal everywhere, A7 1.0, clean ratchet (`testdata/baselines/docs-reduced.json`); `SKIPPED` without the node modules of `tools/dev/node.sh` (`tests/it/acceptance.rs`) |
+| `docs::gate_a_d3` | **gate A-D3**: `compare.sh docs-live --ref golden`, the legacy docs site without patches against the published site: L1 2372/2372, L2 and L4 equal everywhere, A7 1.0, clean ratchet (`testdata/baselines/docs-live.json`); skipped as A-D2 |
 | `embedded::embedded_templates` | the embedded templates rendered against testsite views (test-only overlay `tests/it/embedded-overlay.txtar`, see below): snapshots `hooks`, `shortcodes`, `bundle`, `featured`, `section_page1`, `section_page2` |
 | `embedded::embedded_templates_simple_and_disabled` | `privacy.{vimeo,x,instagram}.simple` (snapshot `shortcodes_simple`) and every service disabled |
 | `embedded::embedded_template_errors` | argument errors and warnings of the embedded templates (snapshot `errors`) |

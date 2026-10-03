@@ -1,10 +1,7 @@
 #!/bin/sh
 # Node tooling of the target sites (docs/rust-port/REWRITE_PLAN.md §7.2, D8): installs the node
-# modules pinned by tools/dev/node/package-lock.json, which the builds of the sites and the
-# tests run or import:
-#   - @tailwindcss/cli, tailwindcss, @tailwindcss/typography: css.TailwindCSS of docs-reduced;
-#   - alpinejs, @alpinejs/{focus,persist}, @hotwired/turbo: js.Build imports of docs-reduced;
-#   - @babel/cli, @babel/core: the real-tool Babel test of ssg-resources (js.Babel).
+# modules pinned by tools/dev/node/package-lock.json, which the scripts of the sites import:
+#   - alpinejs, @alpinejs/{focus,persist}, @hotwired/turbo: js_build imports of the docs sites;
 # CI (.github/workflows/ci.yml) runs this script; the tests find the result with `path`
 # (ssg_testkit::fixture::node_tools).
 #
@@ -13,9 +10,8 @@
 #   tools/dev/node.sh path        print the node_modules directory
 #
 # The directory is tools/dev/node_modules of the main checkout (all worktrees share it;
-# gitignored). A build uses it through a `node_modules` symlink in the site directory (the build
-# runs the tools' packages from the project's `node_modules`, and js.Build resolves imports
-# there).
+# gitignored). A build uses it through a `node_modules` symlink in the site directory (js_build
+# resolves imports there).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
@@ -55,12 +51,8 @@ install)
 	echo "$want" >"$stage/node_modules/.lock-sha256"
 	rm -rf "$target"
 	mv "$stage/node_modules" "$target"
-	for bin in tailwindcss babel; do
-		[ -x "$target/.bin/$bin" ] || { echo "node.sh: $target/.bin/$bin missing" >&2; exit 1; }
-	done
 	echo "node.sh: installed into $target ($(du -sh "$target" | cut -f1)):"
-	for pkg in @tailwindcss/cli tailwindcss @tailwindcss/typography alpinejs @alpinejs/focus \
-		@alpinejs/persist @hotwired/turbo @babel/cli @babel/core; do
+	for pkg in alpinejs @alpinejs/focus @alpinejs/persist @hotwired/turbo; do
 		echo "  $pkg $(node -p "require('$target/$pkg/package.json').version")"
 	done
 	;;

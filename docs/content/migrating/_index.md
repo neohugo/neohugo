@@ -30,7 +30,7 @@ fugo renders [Tera](https://keats.github.io/tera/), not Go templates.
 | A configuration file named after the generator | `config.toml` (or `config.yaml`, `config.yml`, `config.json`) is the configuration file |
 | Settings from environment variables | Settings come from files and flags only; secrets that templates read go in the [`.env` file](/configuration/introduction/#the-env-file) |
 | A template object named after the generator | fugo's `build` object holds the version and environment (`build.version`, `build.is_production`) |
-| A build stats file named after the generator | `build_stats.json` |
+| A build stats file for Tailwind CSS (`buildStats`) | none: [Tailwind's CLI](/asset-pipelines/tailwind-css/) finds the classes itself |
 | The generator's build and server commands | `fugo` (or `fugo build`) / `fugo server` |
 | Older layout names (`_default/`, `partials/`) | refused, with the new name |
 

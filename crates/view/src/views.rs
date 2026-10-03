@@ -653,8 +653,8 @@ pub struct ShortcodeView {
 pub struct BuildView {
     /// The program's name (`build.name`), e.g. for a feed's `<generator>`.
     pub name: &'static str,
+    /// The program's version (`build.version`).
     pub version: &'static str,
-    pub app_version: &'static str,
     pub environment: String,
     pub is_production: bool,
     pub is_development: bool,
@@ -668,8 +668,7 @@ impl BuildView {
     pub fn new(cfg: &Config, server: bool) -> Self {
         Self {
             name: ssg_base::APP_NAME,
-            version: "0.149.0-DEV",
-            app_version: env!("CARGO_PKG_VERSION"),
+            version: ssg_base::VERSION,
             environment: cfg.environment.clone(),
             is_production: cfg.environment == "production",
             is_development: cfg.environment == "development",
@@ -677,7 +676,7 @@ impl BuildView {
             generator: tera::Value::safe_string(&format!(
                 r#"<meta name="generator" content="{} {}">"#,
                 ssg_base::APP_NAME,
-                env!("CARGO_PKG_VERSION")
+                ssg_base::VERSION
             )),
         }
     }

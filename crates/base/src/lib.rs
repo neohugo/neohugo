@@ -64,10 +64,13 @@ pub const APP_NAME: &str = app_name!();
 /// The prefix of the program's environment variables ([`env_prefix!`]), without the `_`.
 pub const ENV_PREFIX: &str = env_prefix!();
 
-/// The hidden command of the binary's child processes that run an npm package's program
-/// (`ssg-npm`, spawned by `ssg-resources`' tool pipes): `<binary> __run-package <node_modules>
-/// <package> <bin> [args…]`.
-pub const RUN_PACKAGE_COMMAND: &str = "__run-package";
+/// The program's version: `<PREFIX>_BUILD_VERSION` at compile time when it is set and not
+/// empty (CI sets it from the release tag, `v<version>`; `tools/dev/version.py`), else the
+/// workspace's `version`, which is that of builds not made from a tag (`0.0.0-DEV`).
+pub const VERSION: &str = match option_env!(env_var!("BUILD_VERSION")) {
+    Some(v) if !v.is_empty() => v,
+    _ => env!("CARGO_PKG_VERSION"),
+};
 
 /// Compares strings in a language's collation order (implemented with ICU in
 /// `ssg-locale`).

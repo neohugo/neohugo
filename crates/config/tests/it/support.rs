@@ -439,39 +439,31 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
     d
 }
 
-/// This port has no PostCSS: its defaults drop the Go program's `postcss` entries, which the
-/// recorded dumps still have.
-const GO_POSTCSS_ALLOW: &str = "^postcss$";
-const GO_CACHE_BUSTER_SOURCE: &str = r"(postcss|tailwind)\.config\.js";
+/// This port runs no external CSS tools (PostCSS, Tailwind): its defaults drop the Go
+/// program's entries for them, which the recorded dumps still have.
+const GO_TOOL_ALLOW: [&str; 2] = ["^postcss$", "^tailwindcss$"];
+const GO_CACHE_BUSTER: (&str, &str) = (r"(postcss|tailwind)\.config\.js", "(css|styles|scss|sass)");
 
-/// `security.exec.allow` as Go has it: the default list with the Go program's `^postcss$`
-/// before `^tailwindcss$`.
+/// `security.exec.allow` as Go has it: the default list with the Go program's tool entries
+/// appended.
 fn exec_allow_as_go(w: &ssg_config::global::Whitelist) -> J {
     match wl(w) {
         J::Array(mut p)
             if J::Array(p.clone()) == wl(&ssg_config::SecurityPolicy::default().exec_allow) =>
         {
-            let at = p
-                .iter()
-                .position(|v| v == "^tailwindcss$")
-                .unwrap_or(p.len());
-            p.insert(at, json!(GO_POSTCSS_ALLOW));
+            p.extend(GO_TOOL_ALLOW.map(|t| json!(t)));
             J::Array(p)
         }
         ours => ours,
     }
 }
 
-/// `[build]` as Go has it: the default cache buster also watches the Go program's
-/// `postcss.config.js`.
+/// `[build]` as Go has it: the default cache busters are the Go program's one for the tools'
+/// configuration files (this port's default has none).
 fn build_as_go(b: &ssg_config::BuildConfig) -> J {
     let mut v = serde_json::to_value(b).expect("json");
-    let default = ssg_config::BuildConfig::default();
-    if b.cache_busters == default.cache_busters
-        && let Some(J::Array(busters)) = v.get_mut("cacheBusters")
-        && let Some(first) = busters.first_mut()
-    {
-        first["source"] = json!(GO_CACHE_BUSTER_SOURCE);
+    if b.cache_busters.is_empty() {
+        v["cacheBusters"] = json!([{"source": GO_CACHE_BUSTER.0, "target": GO_CACHE_BUSTER.1}]);
     }
     v
 }

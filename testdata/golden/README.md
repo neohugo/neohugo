@@ -37,10 +37,10 @@ ones the Rust tests use.
 | `docs-live` | `testdata/legacy-docs/` with `--docs-patches live` (no patches) | **2373** = 2372 published + the stats file | the unminified manifest of the **published site** (below) |
 
 The Go build writes its stats file into the project directory (next to its configuration file),
-not into `publishDir`; the manifests list it under a `project:` key, the Go build's file name
-(`GO_STATS_KEY` of `tools/dev/manifest.py`, which records the Rust build's `build_stats.json`
-under the same key), and count it, as the old port's harness did (it copied the file into the
-output tree). A count without it is one less.
+not into `publishDir`; the manifests list it under a `project:` key, the Go build's file name,
+and count it, as the old port's harness did (it copied the file into the output tree). A count
+without it is one less. Since T75 fugo writes no stats file, and `tools/dev/structdiff.py`
+leaves the `project:` entries out: the gates compare 55, 887, 888 and 2372 files.
 
 `docs-reduced` has one page more than `docs-i01`: `content/en/shortcodes/highlight.md` is removed
 only in i01. The docs patch entries of both variants are `tools/rust-port/i01/patches.json`

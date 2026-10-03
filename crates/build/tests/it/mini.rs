@@ -8,7 +8,6 @@
 //! tree (`e2e.json.gz`, case `mini`).
 
 use std::collections::BTreeSet;
-use std::fs;
 use std::path::Path;
 
 use serde_json::Value as J;
@@ -189,7 +188,7 @@ pub(crate) fn build_mini(threads: Option<usize>) -> (tempfile::TempDir, BuildRep
 #[test]
 fn mini_matches_the_go_tree() {
     let case = case();
-    let (tmp, report) = build_mini(None);
+    let (_tmp, report) = build_mini(None);
     let mem = report.memory.as_ref().expect("memory sink");
     let want: BTreeSet<String> = case["result"]["tree"]
         .as_object()
@@ -262,11 +261,13 @@ fn mini_matches_the_go_tree() {
     // Go writes the Thai site's `FromString` last (a later language overwrites the file); here
     // the earlier language's resource is the one published (REWRITE_PLAN.md §3.5).
     assert!(text("gen/info.txt").starts_with("Mini "));
-    // build_stats.json in the project directory (collected before the deferred output is
-    // inserted, as in Go).
-    let stats = fs::read_to_string(tmp.path().join("site/build_stats.json")).expect("stats");
+    // The site's `[build.buildStats]` is reported, and no stats file is written.
     assert!(
-        stats.contains("\"note\"") && !stats.contains("\"deferred\""),
-        "{stats}"
+        report
+            .diagnostics
+            .iter()
+            .any(|d| d.id.as_deref() == Some("deprecated-config-build.buildstats")),
+        "{:?}",
+        report.diagnostics
     );
 }

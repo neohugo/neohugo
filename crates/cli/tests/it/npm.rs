@@ -1,7 +1,7 @@
 //! The `npm` feature through the binary: a build installs the packages of `package.json`
-//! (from the registry of `.npmrc`, a local one here) and the Tailwind pipe runs its package
-//! with the embedded JavaScript runtime, without Node.js on `PATH`; the server installs again
-//! when `package.json` changes.
+//! (from the registry of `.npmrc`, a local one here) without Node.js on `PATH`, and `js_build`
+//! bundles what the site imports from them; the server installs again when `package.json`
+//! changes.
 
 use std::path::Path;
 
@@ -17,28 +17,23 @@ const NO_NODE: (&str, &str) = ("PATH", "/usr/bin:/bin");
 const SITE: &str = "-- config.toml --\nbaseURL = \"https://example.org/\"\ntitle = \"Npm\"\n\
 disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\"]\n\
 -- layouts/home.html --\n<html><head>\
-{%- set css = get_asset(path=\"css/main.css\") | tailwind | fingerprint -%}\
-<link rel=\"stylesheet\" href=\"{{ css.rel_permalink }}\"></head><body></body></html>\n\
--- assets/css/main.css --\n.a { color: red; }\n";
+{%- set js = get_asset(path=\"js/main.js\") | js_build | fingerprint -%}\
+<script src=\"{{ js.rel_permalink }}\"></script></head><body></body></html>\n\
+-- assets/js/main.js --\nimport greet from 'greet';\ndocument.title = greet('npm');\n";
 
-/// A stand-in for `@tailwindcss/cli`: a CommonJS program that writes a banner (from its
-/// dependency, with its arguments) and the CSS of its standard input.
+/// `greet` (CommonJS, with a dependency) and `extra`.
 fn packages() -> Vec<Package> {
     vec![
-        Package::new("banner", "1.0.0")
+        Package::new("punctuation", "1.0.0")
             .field("main", json!("index.js"))
+            .file("index.js", "module.exports = '!';\n"),
+        Package::new("greet", "1.0.0")
+            .field("main", json!("index.js"))
+            .field("dependencies", json!({ "punctuation": "^1.0.0" }))
             .file(
                 "index.js",
-                "module.exports = (args) => `/* fake tailwind ${args.join(' ')} */\\n`;\n",
-            ),
-        Package::new("@tailwindcss/cli", "4.1.0")
-            .field("bin", json!({ "tailwindcss": "dist/index.js" }))
-            .field("dependencies", json!({ "banner": "^1.0.0" }))
-            .file(
-                "dist/index.js",
-                "#!/usr/bin/env node\nconst banner = require('banner');\n\
-                 const css = require('node:fs').readFileSync(0, 'utf8');\n\
-                 process.stdout.write(banner(process.argv.slice(2)) + css);\n",
+                "const mark = require('punctuation');\n\
+                 module.exports = (name) => 'greetings from ' + name + mark;\n",
             ),
         Package::new("extra", "1.0.0").file("index.js", "module.exports = 1;\n"),
     ]
@@ -54,26 +49,22 @@ fn write_project(dir: &Path, registry: &str, dependencies: &serde_json::Value) {
     std::fs::write(dir.join(".npmrc"), format!("registry={registry}\n")).expect(".npmrc");
 }
 
-/// The published stylesheet (`css/main.<hash>.css`).
-fn stylesheet(site: &Path) -> String {
-    let dir = site.join("public/css");
+/// The published bundle (`js/main.<hash>.js`).
+fn bundle(site: &Path) -> String {
+    let dir = site.join("public/js");
     let file = std::fs::read_dir(&dir)
-        .expect("public/css")
+        .expect("public/js")
         .flatten()
         .find(|e| e.file_name().to_string_lossy().starts_with("main."))
-        .expect("main.*.css");
-    std::fs::read_to_string(file.path()).expect("read css")
+        .expect("main.*.js");
+    std::fs::read_to_string(file.path()).expect("read js")
 }
 
 #[test]
-fn a_build_installs_package_json_and_runs_tailwind_without_node() {
+fn a_build_installs_package_json_without_node() {
     let registry = Registry::start(&packages());
     let s = site_from(SITE);
-    write_project(
-        s.path(),
-        registry.url(),
-        &json!({ "@tailwindcss/cli": "^4.1.0" }),
-    );
+    write_project(s.path(), registry.url(), &json!({ "greet": "^1.0.0" }));
 
     let out = binary(s.path(), &["build"], &[NO_NODE]);
     assert!(out.status.success(), "{}", stderr(&out));
@@ -82,13 +73,10 @@ fn a_build_installs_package_json_and_runs_tailwind_without_node() {
         "{}",
         stdout(&out)
     );
-    let css = stylesheet(s.path());
-    assert!(
-        css.starts_with("/* fake tailwind --input=- --cwd "),
-        "{css}"
-    );
-    assert!(css.contains(".a { color: red; }"), "{css}");
+    let js = bundle(s.path());
+    assert!(js.contains("greetings from "), "{js}");
     assert!(s.path().join("npm.lock").is_file());
+    assert!(s.path().join("node_modules/punctuation/index.js").is_file());
 
     // Installed already: nothing fetched, nothing printed.
     let requests = registry.requests().len();
@@ -105,24 +93,20 @@ fn a_registry_that_cannot_be_reached_fails_the_build() {
     write_project(
         s.path(),
         "http://127.0.0.1:9/",
-        &json!({ "@tailwindcss/cli": "^4.1.0" }),
+        &json!({ "greet": "^1.0.0" }),
     );
     let out = binary(s.path(), &["build"], &[NO_NODE]);
     assert!(!out.status.success());
     let err = stderr(&out);
     assert!(err.contains("installing the npm packages of "), "{err}");
-    assert!(err.contains("@tailwindcss/cli"), "{err}");
+    assert!(err.contains("greet"), "{err}");
 }
 
 #[test]
 fn the_server_installs_again_when_package_json_changes() {
     let registry = Registry::start(&packages());
     let s = site_from(SITE);
-    write_project(
-        s.path(),
-        registry.url(),
-        &json!({ "@tailwindcss/cli": "^4.1.0" }),
-    );
+    write_project(s.path(), registry.url(), &json!({ "greet": "^1.0.0" }));
     let run = Running::start(s.path(), &["server", "-p", "0"]);
     let started = run.until("Web Server is available at ").join("\n");
     assert!(started.contains("Installed the npm packages"), "{started}");
@@ -131,7 +115,7 @@ fn the_server_installs_again_when_package_json_changes() {
     write_project(
         s.path(),
         registry.url(),
-        &json!({ "@tailwindcss/cli": "^4.1.0", "extra": "^1.0.0" }),
+        &json!({ "greet": "^1.0.0", "extra": "^1.0.0" }),
     );
     run.until("Installed the npm packages");
     assert!(s.path().join("node_modules/extra/index.js").is_file());

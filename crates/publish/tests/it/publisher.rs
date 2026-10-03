@@ -1,6 +1,5 @@
 //! `Publisher::emit` end to end: canonify per format, minify dispatch, empty outputs, held
-//! outputs and `patch_held`, URL tokens, stats, and the `build_stats.json` format against the
-//! golden files.
+//! outputs and `patch_held`, and URL tokens.
 
 use std::collections::BTreeMap;
 use std::sync::Arc;
@@ -9,11 +8,9 @@ use rayon::prelude::*;
 use ssg_base::diag::Diagnostics;
 use ssg_base::paths::OutputPath;
 use ssg_base::{FormatId, Idx, LangIdx, Sink};
-use ssg_config::global::BuildStats;
 use ssg_config::{Config, LoadOptions, load};
 use ssg_publish::{
-    DiskSink, Emitted, HtmlElements, MemorySink, Output, PublishError, PublishSettings, Publisher,
-    StatsFile,
+    DiskSink, Emitted, MemorySink, Output, PublishError, PublishSettings, Publisher,
 };
 
 struct Site {
@@ -352,32 +349,10 @@ fn url_tokens_of_outputs() {
     }
 }
 
-#[test]
-fn stats_from_html_outputs_only() {
-    let s = site(
-        "baseURL = 'https://example.org/'\n[build.buildStats]\nenable = true\ndisableIDs = true\n",
-    );
-    let (p, _, _) = publisher(&s);
-    p.emit(output(
-        &s,
-        "/index.html",
-        "html",
-        r#"<div class="a b" id="x"><span class=c>"#,
-    ))
-    .unwrap();
-    p.emit(output(&s, "/index.xml", "rss", r#"<item class="rss"/>"#))
-        .unwrap();
-    let stats = p.stats();
-    assert_eq!(
-        stats.to_json(),
-        "{\n  \"htmlElements\": {\n    \"tags\": [\n      \"div\",\n      \"span\"\n    ],\n    \"classes\": [\n      \"a\",\n      \"b\",\n      \"c\"\n    ],\n    \"ids\": null\n  }\n}\n"
-    );
-}
-
-/// Concurrent emits give the same tokens and stats as sequential ones.
+/// Concurrent emits give the same tokens as sequential ones.
 #[test]
 fn concurrent_emits_are_deterministic() {
-    let s = site("baseURL = 'https://example.org/'\n[build.buildStats]\nenable = true\n");
+    let s = site("baseURL = 'https://example.org/'\n");
     let pages: Vec<String> = (0..200)
         .map(|i| {
             format!(
@@ -398,36 +373,9 @@ fn concurrent_emits_are_deterministic() {
                     .unwrap();
             });
         });
-        (p.url_tokens(), p.stats(), sink.paths())
+        (p.url_tokens(), sink.paths())
     };
     assert_eq!(run(1), run(4));
-}
-
-/// `build_stats.json` is written exactly as the Go build writes its stats file: the golden file
-/// of the legacy docs site's build round-trips byte for byte.
-#[test]
-fn golden_stats_format() {
-    let repo = ssg_testkit::fixture::repo_dir();
-    let file = "testdata/legacy-docs/hugo_stats.json";
-    let text = std::fs::read_to_string(repo.join(file)).unwrap();
-    let v: serde_json::Value = serde_json::from_str(&text).unwrap();
-    let list = |k: &str| -> Option<Vec<String>> {
-        v["htmlElements"][k]
-            .as_array()
-            .map(|a| a.iter().map(|s| s.as_str().unwrap().to_owned()).collect())
-    };
-    let found = HtmlElements {
-        tags: list("tags").unwrap_or_default().into_iter().collect(),
-        classes: list("classes").unwrap_or_default().into_iter().collect(),
-        ids: list("ids").unwrap_or_default().into_iter().collect(),
-    };
-    let conf = BuildStats {
-        enable: true,
-        disable_tags: list("tags").is_none(),
-        disable_classes: list("classes").is_none(),
-        disable_ids: list("ids").is_none(),
-    };
-    assert_eq!(StatsFile::new(found, &conf).to_json(), text, "{file}");
 }
 
 #[test]

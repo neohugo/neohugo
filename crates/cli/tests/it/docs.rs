@@ -10,13 +10,12 @@
 //!
 //! The reduced variant keeps Chroma highlighting (with `hl` inline/`noClasses` and
 //! `shortcodes/highlight.md`), GoAT diagrams (`diagrams_goat`), emoji, passthrough with
-//! `to_math`, `remarshal` in `code-toggle`, Tailwind through `defer` and the real Alpine/Turbo
-//! `js_build`. The gate: L1 889/889 in both passes (888 in `public` plus `build_stats.json`),
-//! the structure oracle and L2 on every file, L4 on every asset, every page's visible text (A7
-//! 1.0; the one L3 difference is the Go build's stats file, Go's tokenizer reading `<?xml` and
-//! `<=` as tags) and a clean ratchet.
+//! `to_math`, `remarshal` in `code-toggle`, the recorded Tailwind CSS through `defer`
+//! (`sites/docs/assets/css/styles.tailwind.css`) and the real Alpine/Turbo `js_build`. The
+//! gate: L1 888/888 in both passes, the structure oracle and L2 on every file, L4 on every
+//! asset, every page's visible text (A7 1.0) and a clean ratchet.
 //!
-//! Tailwind and `js_build` need the node tools; without them the test prints
+//! `js_build` imports the node modules of `tools/dev/node.sh`; without them the test prints
 //! `SKIPPED` and passes ([`crate::acceptance`]). The Go binaries are not needed. The binary
 //! must have the default features `goat` and `math`.
 
@@ -24,10 +23,10 @@ use crate::acceptance;
 
 #[test]
 fn gate_a_d2() {
-    let Some(d) = acceptance::compare("gate_a_d2", "docs-reduced", &["tailwindcss"]) else {
+    let Some(d) = acceptance::compare("gate_a_d2", "docs-reduced") else {
         return;
     };
-    acceptance::assert_l1(&d, 889);
+    acceptance::assert_l1(&d, 888);
     acceptance::assert_equal(&d, &["L1", "L2", "L4", "S"]);
     let a7 = d["a7"]["ratio"].as_f64().expect("A7 ratio");
     assert!(
@@ -43,16 +42,14 @@ fn gate_a_d2() {
 /// `testdata/golden/docs-live/` is the manifest of the published site's repository at a1928152,
 /// the Go build of 2025-10-13 (testdata/golden/README.md). One unminified
 /// pass (the site is published unminified) at that build's clock, its GetRemote responses
-/// from `sites.py cache docs-live`. The gate: L1 2373/2373 (2372 published files plus
-/// `build_stats.json`), L2 and L4 on every file, every page's visible text (A7 1.0; the one L3
-/// difference is the stats file, Go's tokenizer reading `<?xml` and `<=` as tags) and a clean
-/// ratchet (`testdata/baselines/docs-live.json`).
+/// from `sites.py cache docs-live`. The gate: L1 2372/2372, L2 and L4 on every file, every
+/// page's visible text (A7 1.0) and a clean ratchet (`testdata/baselines/docs-live.json`).
 #[test]
 fn gate_a_d3() {
-    let Some(d) = acceptance::compare("gate_a_d3", "docs-live", &["tailwindcss"]) else {
+    let Some(d) = acceptance::compare("gate_a_d3", "docs-live") else {
         return;
     };
-    acceptance::assert_l1_passes(&d, &["unminified"], 2373);
+    acceptance::assert_l1_passes(&d, &["unminified"], 2372);
     acceptance::assert_equal(&d, &["L1", "L2", "L4"]);
     let a7 = d["a7"]["ratio"].as_f64().expect("A7 ratio");
     assert!(

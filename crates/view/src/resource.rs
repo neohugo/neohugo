@@ -7,7 +7,7 @@
 //! integrity yet. Its view carries post-process placeholders for `rel_permalink`,
 //! `permalink` and `data.integrity` (the resource is registered with
 //! [`ResourceStore::post_process`]), which keeps Go's laziness: the output is held and
-//! patched in phase E5 (T42's recommendation; Tailwind reading the stats file needs it).
+//! patched in phase E5 (T42's recommendation).
 //! [`post_processed_view`] is the view of an explicit `post_process`: every field that is only
 //! known in E5 is a placeholder.
 

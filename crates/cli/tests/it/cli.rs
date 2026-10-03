@@ -19,7 +19,7 @@ fn version_help_and_usage_errors() {
     assert_eq!(o.status.code(), Some(0));
     let line = format!("{}\n", BuildInfo::CURRENT);
     assert_eq!(stdout(&o), line);
-    let prefix = format!("{APP_NAME} v{}", env!("CARGO_PKG_VERSION"));
+    let prefix = format!("{APP_NAME} v{}", ssg_base::VERSION);
     assert!(line.starts_with(&prefix), "{line}");
     assert!(line.contains(" BuildDate="), "{line}");
     let o = binary(dir.path(), &["--version"], &[]);
@@ -91,7 +91,7 @@ fn version_line_has_the_go_format() {
     if let Some(os_arch) = expected {
         assert_eq!((current.os, current.arch), os_arch);
     }
-    assert_eq!(current.version, env!("CARGO_PKG_VERSION"));
+    assert_eq!(current.version, ssg_base::VERSION);
 }
 
 #[test]

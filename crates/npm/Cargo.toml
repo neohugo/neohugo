@@ -1,6 +1,6 @@
 [package]
 name = "ssg-npm"
-description = "The project's npm packages: installs package.json into node_modules and runs their programs (Deno's installer and runtime)"
+description = "The project's npm packages: installs package.json into node_modules (Deno's installer)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -21,18 +21,12 @@ workspace = true
 [dependencies]
 ssg-workspace-hack.workspace = true
 ssg-base.workspace = true
-deno_core.workspace = true
-deno_runtime.workspace = true
-deno_lib.workspace = true
-deno_snapshots.workspace = true
 deno_resolver.workspace = true
 node_resolver.workspace = true
 deno_npm_installer.workspace = true
 deno_npm_cache.workspace = true
 deno_npmrc.workspace = true
 deno_config.workspace = true
-deno_media_type.workspace = true
-deno_path_util.workspace = true
 deno_error.workspace = true
 sys_traits.workspace = true
 async-trait.workspace = true
@@ -44,11 +38,6 @@ sha2.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 anyhow.workspace = true
-
-[build-dependencies]
-# The V8 snapshot (deno_snapshots' build script) runs deno_runtime in the host graph, where
-# nothing else selects deno_core's `v8` feature: this edge does (its default features).
-deno_core.workspace = true
 
 [dev-dependencies]
 ssg-testkit.workspace = true

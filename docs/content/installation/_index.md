@@ -26,7 +26,7 @@ download against the checksums published with the release, then put the binary o
 ### Linux
 
 ```sh
-VERSION=0.149.0   # the release you want
+VERSION=1.0.0   # the release you want
 curl -LO https://github.com/getfugo/fugo/releases/download/v$VERSION/fugo_${VERSION}_linux-amd64.tar.gz
 curl -LO https://github.com/getfugo/fugo/releases/download/v$VERSION/fugo_${VERSION}_checksums.txt
 sha256sum -c fugo_${VERSION}_checksums.txt --ignore-missing
@@ -37,7 +37,7 @@ sudo install fugo /usr/local/bin/
 ### macOS
 
 ```sh
-VERSION=0.149.0
+VERSION=1.0.0
 curl -LO https://github.com/getfugo/fugo/releases/download/v$VERSION/fugo_${VERSION}_darwin-arm64.tar.gz
 curl -LO https://github.com/getfugo/fugo/releases/download/v$VERSION/fugo_${VERSION}_checksums.txt
 shasum -a 256 -c fugo_${VERSION}_checksums.txt --ignore-missing
@@ -55,7 +55,7 @@ directory to your `Path` (Settings › System › About › Advanced system sett
 Variables). In PowerShell:
 
 ```powershell
-Get-FileHash .\fugo_0.149.0_windows-amd64.zip -Algorithm SHA256
+Get-FileHash .\fugo_1.0.0_windows-amd64.zip -Algorithm SHA256
 ```
 
 Compare the hash with the line for the `.zip` in the checksums file.
@@ -67,7 +67,7 @@ fugo version
 ```
 
 ```text
-fugo v0.149.0 linux/amd64 BuildDate=…
+fugo v1.0.0 linux/amd64 BuildDate=…
 ```
 
 ## Build from source
@@ -86,15 +86,7 @@ workspace and its tests.
 
 ## npm packages
 
-You do not need Node.js or npm. List the npm packages a site uses in `package.json`. fugo
-installs them when it builds, and runs Tailwind and Babel with its built-in JavaScript runtime:
-
-| Pipeline | Add to `devDependencies` |
-|---|---|
-| [`tailwind`](/asset-pipelines/tailwind-css/) | `tailwindcss`, `@tailwindcss/cli` |
-| [`babel`](/asset-pipelines/babel/) | `@babel/core`, `@babel/cli` |
-
-See [npm packages](/asset-pipelines/npm-packages/). The JavaScript runtime makes the binary
-larger. `cargo build --release --locked -p ssg-cli --no-default-features --features goat,math`
-builds fugo without it. That build runs Tailwind and Babel with Node.js from an installed
-`node_modules`.
+You do not need Node.js or npm. List the npm packages a site imports in `package.json`, and fugo
+installs them when it builds; see [npm packages](/asset-pipelines/npm-packages/).
+`cargo build --release --locked -p ssg-cli --no-default-features --features goat,math` builds
+fugo without the installer; that build uses a `node_modules` you installed yourself.

@@ -1,5 +1,4 @@
-//! `build_stats.json`: the tags, classes and ids used by the HTML outputs (`[build.buildStats]`),
-//! read by external CSS tools (Tailwind's `@source`).
+//! The tags, classes and ids an HTML output uses, which `purge_css` keeps ([`crate::page_names`]).
 //!
 //! Every start tag of an HTML output is recorded with its `class` and `id` values. The content
 //! of `pre`, `textarea`, `script` and `style` elements is skipped (highlighted code and inline
@@ -9,11 +8,8 @@
 //! (`{ 'active': on }`) and every single-quoted word.
 
 use std::collections::BTreeSet;
-use std::sync::Mutex;
 
 use html5gum::{State, Token, Tokenizer};
-use serde::Serialize;
-use ssg_config::global::BuildStats;
 
 /// The tags, classes and ids of some HTML.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
@@ -161,110 +157,6 @@ fn class_binding(value: &str) -> Vec<String> {
         quoted.next();
     }
     classes
-}
-
-/// Collects [`HtmlElements`] from the HTML outputs of a build; shared by the render workers.
-#[derive(Debug)]
-pub struct StatsCollector {
-    config: BuildStats,
-    found: Mutex<HtmlElements>,
-}
-
-impl StatsCollector {
-    /// A collector for `[build.buildStats]`; it collects nothing unless `enable` is set.
-    #[must_use]
-    pub fn new(config: BuildStats) -> Self {
-        Self {
-            config,
-            found: Mutex::new(HtmlElements::default()),
-        }
-    }
-
-    /// Whether outputs are scanned.
-    #[must_use]
-    pub fn is_enabled(&self) -> bool {
-        self.config.enable
-    }
-
-    /// Scans an HTML output (the parsing happens outside the lock).
-    pub fn add(&self, html: &str) {
-        if self.config.enable {
-            let found = HtmlElements::collect(html);
-            if !found.is_empty() {
-                self.found
-                    .lock()
-                    .unwrap_or_else(std::sync::PoisonError::into_inner)
-                    .merge(found);
-            }
-        }
-    }
-
-    /// The collected elements, with the disabled lists left out.
-    #[must_use]
-    pub fn stats(&self) -> StatsFile {
-        let found = self
-            .found
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone();
-        StatsFile::new(found, &self.config)
-    }
-}
-
-/// The content of `build_stats.json`.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
-pub struct StatsFile {
-    #[serde(rename = "htmlElements")]
-    pub html_elements: StatsLists,
-}
-
-/// The sorted lists of `build_stats.json`; a disabled or empty list is `null`.
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
-pub struct StatsLists {
-    pub tags: Option<Vec<String>>,
-    pub classes: Option<Vec<String>>,
-    pub ids: Option<Vec<String>>,
-}
-
-impl StatsFile {
-    /// The stats of `found` as configured.
-    #[must_use]
-    pub fn new(found: HtmlElements, config: &BuildStats) -> Self {
-        let list = |set: BTreeSet<String>, disabled: bool| {
-            (!disabled && !set.is_empty()).then(|| set.into_iter().collect())
-        };
-        Self {
-            html_elements: StatsLists {
-                tags: list(found.tags, config.disable_tags),
-                classes: list(found.classes, config.disable_classes),
-                ids: list(found.ids, config.disable_ids),
-            },
-        }
-    }
-
-    /// The file's bytes: JSON indented by two spaces, with a final newline.
-    #[must_use]
-    pub fn to_json(&self) -> String {
-        let mut s = serde_json::to_string_pretty(self).unwrap_or_default();
-        s.push('\n');
-        // JSON allows these raw, but JavaScript string literals did not; Go escapes them.
-        s.replace('\u{2028}', "\\u2028")
-            .replace('\u{2029}', "\\u2029")
-    }
-
-    /// Writes the file unless it already has this content (so file watchers of external
-    /// tools do not fire for nothing). Returns whether it wrote.
-    ///
-    /// # Errors
-    /// I/O errors.
-    pub fn write_if_changed(&self, path: &std::path::Path) -> std::io::Result<bool> {
-        let json = self.to_json();
-        if std::fs::read(path).is_ok_and(|old| old == json.as_bytes()) {
-            return Ok(false);
-        }
-        std::fs::write(path, json)?;
-        Ok(true)
-    }
 }
 
 #[cfg(test)]

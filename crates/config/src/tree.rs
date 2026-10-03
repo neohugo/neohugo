@@ -55,8 +55,10 @@ pub const LEGACY_KEYS: &[(&str, &str)] = &[
     ("paginate", "pagination.pagerSize"),
     ("paginatePath", "pagination.path"),
     ("rssLimit", "services.rss.limit"),
-    // Go (`DecodeBuildConfig`): `[build] writeStats` was a bool up to v0.115.0.
-    ("build.writeStats", "build.buildStats.enable"),
+    // The Go build's stats file (`[build] writeStats`, then `[build.buildStats]`), which
+    // external CSS tools read; `purge_css` scans each page itself.
+    ("build.writeStats", ""),
+    ("build.buildStats", ""),
     ("ignoreErrors", "ignoreLogs"),
     (
         "footnoteReturnLinkContents",

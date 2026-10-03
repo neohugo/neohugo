@@ -12,7 +12,7 @@ with [Tera](https://keats.github.io/tera/) templates, in a single binary.
 
 fugo began as a fork of another static site generator, written in Go. Versions up to 0.148 were
 that Go code with the fork's changes, released under the project's former name. From version
-0.149, fugo is a rewrite in Rust: the site model, Markdown rendering, Chroma's highlighter,
+1.0.0, fugo is a rewrite in Rust: the site model, Markdown rendering, Chroma's highlighter,
 image processing and the development server were rewritten and tested against the Go
 implementation's output, page by page, until its documentation site and other sites built the
 same.

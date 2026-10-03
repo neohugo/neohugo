@@ -184,9 +184,9 @@ one.
    These account for all differences of the generated `media` cases.
 9. `--clock` is not configuration (the CLI parses it into `base::Clock`).
 10. **fugo's names instead of Go's**: no configuration file with the Go program's name (the
-   oracle cases' are replayed as `config.*`, `ssg_testkit::fixture::local_path`); `build.writeStats` (the
-   legacy key under `[build]`, as Go reads it) migrated to `build.buildStats.enable`, whose file
-   is `build_stats.json` (`global::STATS_FILE`). **No environment variable** chooses the
+   oracle cases' are replayed as `config.*`, `ssg_testkit::fixture::local_path`); no stats file:
+   `build.writeStats` and `build.buildStats` are "no longer supported" warnings (`tree.rs`), and
+   the comparisons leave Go's `buildStats` out. **No environment variable** chooses the
    environment or a setting (oracle cases that do are not applicable); the default
    `security.funcs.getenv` is `^FUGO_`, `^CI$`.
 11. **The project's `.env` files** (`env_file`, not in Go): `.env`, then

@@ -6,6 +6,8 @@
 
 **Since the private site was removed** (2026-10-02) the repository no longer holds the owner's private site: its reconstruction (R, gate A-R), gate A-S, its corpora and golden data, and the old port's specs (`docs/rust-port/specs/`) are gone. The plan calls it "the private site" and keeps its tasks as written; [HANDOFF.md](HANDOFF.md) has the current gates.
 
+**Since the asset pipeline became Rust only** (T75, 2026-10-03) there is no Tailwind, PostCSS or Babel pipe, no embedded JavaScript runtime and no stats file (`StatsFile`, phase E4): the plan's tasks and gates keep them as written; [HANDOFF.md](HANDOFF.md) has what exists.
+
 **What it replaces.**
 - `crates/TERA_PLAN.md`. T00 moved that file to `docs/rust-port/` with a pointer to this plan (T70 archived it: `docs/rust-port/archive/TERA_PLAN.md`).
 - The byte-parity rules in `crates/README.md`.

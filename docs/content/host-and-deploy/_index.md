@@ -18,7 +18,7 @@ Hosts build sites on Linux machines without fugo installed, so the build first d
 release:
 
 ```sh
-V=0.149.0
+V=1.0.0
 curl -sL https://github.com/getfugo/fugo/releases/download/v$V/fugo_${V}_linux-amd64.tar.gz | tar -xz fugo
 ./fugo build --minify
 ```

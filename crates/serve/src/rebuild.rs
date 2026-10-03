@@ -474,7 +474,7 @@ impl Rebuilder {
 fn watching(cfg: &Config, vfs: &Vfs, config_dir: &Path) -> (Classifier, WatchSet) {
     let places = ConfigPlaces::new(cfg, config_dir);
     let set = WatchSet::new(vfs, &places);
-    (Classifier::new(cfg, vfs, places), set)
+    (Classifier::new(vfs, places), set)
 }
 
 /// Every language's base URL becomes the server's (Go's `fixURL`): the language's listener

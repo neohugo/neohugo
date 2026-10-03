@@ -6,7 +6,9 @@ name: CI
 on:
   push:
     branches: [main, rust-port]
-    # Releases: v<workspace version>, e.g. v0.149.0.
+    # Releases: v<version>, e.g. v1.0.0 (tools/dev/version.py). The version comes from the tag;
+    # bump.yml makes the tag and starts this workflow on it (workflow_dispatch with the tag as
+    # ref), and a tag pushed by hand starts it too.
     tags: ["v[0-9]*"]
   pull_request:
   workflow_dispatch:
@@ -52,14 +54,13 @@ jobs:
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt --no-self-update
           rustup default "$RUST_TOOLCHAIN"
 
-      - name: Release tag matches the workspace version
+      - name: Release tag is a version
         if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          version=$(python3 -c 'import tomllib; print(tomllib.load(open("Cargo.toml", "rb"))["workspace"]["package"]["version"])')
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::tag $GITHUB_REF_NAME does not match the workspace version $version in Cargo.toml (expected v$version)"
+          python3 tools/dev/version.py tag "$GITHUB_REF_NAME" || {
+            echo "::error::tag $GITHUB_REF_NAME is not a release tag (v<major>.<minor>.<patch>[-<pre-release>], v1.0.0 or later)"
             exit 1
-          fi
+          }
 
       - name: cargo fmt
         run: cargo fmt --all --check
@@ -100,20 +101,17 @@ jobs:
         with:
           save-if: ${{ env.SAVE_CACHE }}
 
-      # node on PATH runs the fake-tool tests (small node scripts standing in for Tailwind and
-      # Babel). tools/dev/node.sh (pinned npm ci) installs the real tools for
-      # the real-tool tests; a failure fails the job.
+      # node on PATH runs the ssg-jsbuild tests' scripts (the oracle's and fugo's bundles side by
+      # side). tools/dev/node.sh (pinned npm ci) installs the modules the docs gates' scripts
+      # import (Alpine.js, Turbo); a failure fails the job.
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: Node tools
+      - name: Node modules
         run: |
           tools/dev/node.sh
-          dir=$(tools/dev/node.sh path)
-          for tool in tailwindcss babel; do
-            [ -x "$dir/.bin/$tool" ] || { echo "::error::tools/dev/node.sh installed no $dir/.bin/$tool"; exit 1; }
-          done
+          tools/dev/node.sh check
 
       # --show-output keeps each passing test's report (parity counts, SKIPPED notes) in the log.
       - name: cargo test
@@ -212,8 +210,13 @@ jobs:
 
       # BuildDate: the commit's time in UTC, RFC 3339 (Go's vcs.time). sys.stdout.write, not
       # print: Python on Windows ends a printed line with CRLF, which $(…) would keep the CR of.
+      # A release tag v<version> gives the version (FUGO_BUILD_VERSION, read at compile time by
+      # ssg_base::VERSION; the Lint job checks the tag); other builds have Cargo.toml's.
       - name: Version
         run: |
+          case $GITHUB_REF in
+            refs/tags/v*) echo "FUGO_BUILD_VERSION=${GITHUB_REF_NAME#v}" >>"$GITHUB_ENV" ;;
+          esac
           date=$(python -c 'import datetime, sys; sys.stdout.write(datetime.datetime.fromtimestamp(int(sys.argv[1]), datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))' "$(git log -1 --format=%ct)")
           echo "FUGO_BUILD_DATE=$date" >>"$GITHUB_ENV"
           # The vendor and the binary's path, from the name (a job's env cannot read env.APP_NAME).
@@ -252,7 +255,8 @@ jobs:
       # licence file and is neither MIT nor Apache-2.0 (those get the MIT text, or a reference
       # to the Apache-2.0 text another linked crate ships). package.py writes
       # <name>_<version>_<os>-<arch>.tar.gz (.zip for Windows) and its .sha256, after checking
-      # that `<binary> version` prints v<version of Cargo.toml>-$FUGO_BUILD_COMMIT.
+      # that `<binary> version` prints v<version>-$FUGO_BUILD_COMMIT (the version:
+      # $FUGO_BUILD_VERSION, else Cargo.toml's).
       - name: Package
         run: |
           python tools/dev/notices.py "$TARGET" "$RUNNER_TEMP/THIRD_PARTY_NOTICES.txt"

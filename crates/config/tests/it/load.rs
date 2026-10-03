@@ -180,6 +180,10 @@ fn compare(site: &Site, c: &Config, want: &J, tally: &mut Tally, case: &str) {
         if let Some(m) = theirs.get_mut("minify").and_then(J::as_object_mut) {
             m.remove("tdewolff");
         }
+        // The Go build's stats file (`[build.buildStats]`) is not written here.
+        if let Some(b) = theirs.get_mut("build").and_then(J::as_object_mut) {
+            b.remove("buildstats");
+        }
         // The deprecated `enableDefault` is compared through `useEmbedded`.
         for hook in ["image", "link"] {
             if let Some(h) = theirs.pointer_mut(&format!("/markup/goldmark/renderhooks/{hook}"))

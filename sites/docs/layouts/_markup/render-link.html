@@ -46,7 +46,7 @@ error level is not "ignore" (Go computed them and discarded the result).
 
 {#- Verify minimum required version. #}
 {%- set min_hugo_version = "0.141.0" %}
-{%- if build.version is not version_at_least(version=min_hugo_version) %}
+{%- if "0.149.0-DEV" is not version_at_least(version=min_hugo_version) %}{# the recorded Go build's version #}
   {{- log_error(message="The \"" ~ render_hook_name ~ "\" render hook requires Hugo v" ~ min_hugo_version ~ " or later.") }}
 {%- endif %}
 

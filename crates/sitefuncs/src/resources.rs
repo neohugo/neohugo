@@ -13,7 +13,7 @@ use ssg_base::{PageId, ResourceId};
 use ssg_layouts::Templates;
 use ssg_minify::{CssPurges, MinifyError, PurgeOptions, PurgePlan};
 use ssg_resources::pipes::has_placeholder;
-use ssg_resources::pipes::{BabelOptions, JsBuildSpec, TailwindOptions, ToCssOptions};
+use ssg_resources::pipes::{JsBuildSpec, ToCssOptions};
 use ssg_resources::{
     CallSite, HashAlgo, PipeError, PpField, RemoteOptions, ResourceStore, TemplateExecutor,
     Transform,
@@ -52,8 +52,6 @@ pub(crate) fn register(r: &mut Registrar<'_>, h: &Handles) {
         ("fingerprint", Pipe::Fingerprint),
         ("minify", Pipe::Minify),
         ("to_css", Pipe::ToCss),
-        ("tailwind", Pipe::Tailwind),
-        ("babel", Pipe::Babel),
         ("js_build", Pipe::JsBuild),
     ] {
         r.filter(
@@ -226,12 +224,10 @@ enum Pipe {
     Fingerprint,
     Minify,
     ToCss,
-    Tailwind,
-    Babel,
     JsBuild,
 }
 
-/// `fingerprint(algo=?)`, `minify`, `to_css(options=?)`, `tailwind`, `babel`, `js_build`: the
+/// `fingerprint(algo=?)`, `minify`, `to_css(options=?)`, `js_build`: the
 /// transformed resource (computed lazily by the store).
 struct PipeFilter {
     store: Arc<ResourceStore>,
@@ -257,10 +253,6 @@ impl PipeFilter {
             }
             Pipe::Minify => Transform::Minify,
             Pipe::ToCss => Transform::ToCss(ToCssOptions::from_json(&options()?).map_err(opt)?),
-            Pipe::Tailwind => {
-                Transform::TailwindCss(TailwindOptions::from_json(&options()?).map_err(opt)?)
-            }
-            Pipe::Babel => Transform::Babel(BabelOptions::from_json(&options()?).map_err(opt)?),
             Pipe::JsBuild => {
                 Transform::JsBuild(Box::new(JsBuildSpec::from_json(&options()?).map_err(opt)?))
             }
@@ -278,7 +270,7 @@ impl SiteFilter for PipeFilter {
             .map_err(|e| chain(self.name, e))?;
         // A pending `fingerprint` is computed now, so its links are final and the page is
         // written at once instead of being held until E5 with placeholder links; only a chain
-        // that waits for E5 (Tailwind, images) keeps the placeholders.
+        // that waits for E5 (images) keeps the placeholders.
         if self.pipe == Pipe::Fingerprint && !self.store.waits_for_e5(out) {
             self.store.realize(out).map_err(|e| chain(self.name, e))?;
         }

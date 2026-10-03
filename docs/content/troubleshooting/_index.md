@@ -66,16 +66,6 @@ WARN  no layout for taxonomy page /tags in format html
 No template matches the page. Add one (`taxonomy.html`, or `list.html` for every list page),
 or turn the kind off: `disableKinds = ["taxonomy", "term"]`.
 
-### A program is not found
-
-```text
-tailwind_css: the tailwindcss binary was not found (looked in …); add @tailwindcss/cli to the devDependencies of package.json
-```
-
-Add the package to `package.json` and build again; fugo installs it (see
-[npm packages](/asset-pipelines/npm-packages/)). If npm, pnpm or yarn manages your
-`node_modules`, install it with that tool instead.
-
 ### npm packages cannot be installed
 
 ```text

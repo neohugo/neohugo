@@ -61,10 +61,6 @@ simply empty.
 `public/`
 : Where `fugo` writes the site. Change it with `-d` or `publishDir`.
 
-`build_stats.json`
-: With `build.buildStats.enable`, the HTML tags, classes and ids the site uses, for tools such
-  as Tailwind CSS and PurgeCSS. Written next to the configuration.
-
 `package.json`, `npm.lock`, `node_modules/`
 : The [npm packages](/asset-pipelines/npm-packages/) the site uses. fugo installs them into
   `node_modules` when it builds, and records their versions in `npm.lock`. Commit

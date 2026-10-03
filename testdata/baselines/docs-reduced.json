@@ -775,7 +775,6 @@
 "news/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "news/index.xml": {"L1": "ok", "L2": "ok"},
 "opengraph/gohugoio-card-base-1_hu_H.png": {"L1": "ok", "L4": "ok"},
-"project:hugo_stats.json": {"L1": "ok", "L3": {"class": "engine-difference", "fp": "494292ba0cb0", "reason": "only Go's reading of `<?xml` and `<=` as tags remains (as T65); the KaTeX and GoAT tags and classes now equal Go's", "status": "diff", "task": "T74"}},
 "quick-reference/emojis/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "quick-reference/functions/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},
 "quick-reference/glossary/index.html": {"L1": "ok", "L2": "ok", "L3": "ok"},

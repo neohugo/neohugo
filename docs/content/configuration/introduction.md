@@ -90,7 +90,6 @@ YOUTUBE_API_KEY=your-key
 - They are not configuration: `fugo config` does not print them, `site.params` does not see
   them, and `FUGO_` names in them are ignored with a warning (`env-file-prefix`; set those in
   the environment).
-- The programs fugo runs (Tailwind, Babel) do not see them.
 - One `NAME=value` per line; `#` starts a comment, `export` in front is accepted, and a value may
   be quoted (`'as written'`, or `"with \n escapes"`). Values are one line, and `${NAME}` is not
   expanded.

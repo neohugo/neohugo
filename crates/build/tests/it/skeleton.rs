@@ -12,8 +12,8 @@ use ssg_build::{BuildRequest, LiveReload, SinkKind, build};
 use ssg_testkit::fixture::{go_output_as_built_here, repo_dir, repo_file};
 use ssg_testkit::txtar::Archive;
 
-/// Every file of the Go build of the same site (built with `-d public`), 55 files; Go's 56th file
-/// is `build_stats.json` in the project directory, which a memory build does not write.
+/// Every file of the Go build of the same site (built with `-d public`), 55 files (Go also wrote
+/// its stats file next to its configuration; fugo writes none).
 fn go_build() -> Archive {
     let path = repo_dir().join("crates/build/tests/it/testsite-go.txtar");
     Archive::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
@@ -98,7 +98,7 @@ fn testsite_l1() {
     let missing: Vec<&String> = want.difference(&got).collect();
     let extra: Vec<&String> = got.difference(&want).collect();
     println!(
-        "L1 testsite: {} files (Go {} + build_stats.json); {} equal, missing {missing:?}, extra {extra:?}",
+        "L1 testsite: {} files (Go {}); {} equal, missing {missing:?}, extra {extra:?}",
         got.len(),
         want.len(),
         got.intersection(&want).count()

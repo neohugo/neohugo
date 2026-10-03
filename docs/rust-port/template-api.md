@@ -67,13 +67,15 @@ Flattened render-hook fields:
 | `.GetTerms "tags"` | `page.terms.tags` |
 | `.Data.Singular/Plural/Term/Terms` | `page.taxonomy.singular/plural/terms`, `page.term.term` |
 | `.OutputFormats.Get "rss"`, `.AlternativeOutputFormats`, `.MediaType` | `page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type` |
-| The site-info object's `Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `build.version` (`"0.149.0-DEV"`), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator` |
+| The site-info object's `Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `build.version` (fugo's version), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator` |
 | `.Site.ServerPort` | `site.server_port` (the base URL's port, 0 without one) |
 | `.Site.Config.Privacy.*` | `site.config.privacy.*` |
 | `.Data.Integrity`, `.Width`, `.Height` | `r.data.integrity`, `r.width`, `r.height` |
 | `partial "x" .` (shares the context) | `{% include "_partials/x.html" %}` |
 | `partial "x" (dict …)` with a literal name | a component defined in `_partials/` (`{% component x(page, sep="/", @lang) %}`), called as `{{ <x page={page} /> }}` |
 | `debug.Timer` | removed |
+| `css.TailwindCSS` | removed: run Tailwind's standalone CLI next to fugo (`tailwindcss -i assets/css/in.css -o assets/css/site.css --watch`) and use its output as an asset |
+| `babel`, `js.Babel` | removed: `js_build` compiles TypeScript and JSX and lowers modern JavaScript for the browser targets |
 | `postCSS`, `css.PostCSS` | removed: `minify` adds vendor prefixes for the site's browserslist and minifies; `purge_css` purges per page |
 
 ## Logic, math and errors
@@ -284,8 +286,6 @@ Flattened render-hook fields:
 | `x \| resource_content` | F (s) | both |  | `.Content (resource)` | The text of a resource; for a bundled content page, its rendered HTML (marked safe). |
 | `x \| publish` | F (s) | both |  | `.Publish` | Publishes the resource and returns it. |
 | `x \| to_css(options=?)` | F (s) | both |  | `toCSS`, `css.Sass` | Sass/SCSS to CSS. (options: map) |
-| `x \| tailwind(options=?)` | F (s) | both |  | `css.TailwindCSS` | Runs the Tailwind CLI. (options: map) |
-| `x \| babel(options=?)` | F (s) | both |  | `babel`, `js.Babel` | Runs Babel. (options: map) |
 | `x \| js_build(options=?)` | F (s) | both |  | `js.Build` | Bundles with rolldown. (options: map) |
 | `x \| execute_as_template(target=, data=?)` | F (s) | both |  | `resources.ExecuteAsTemplate` | Renders the asset as a Tera template with `data`, published at `target`. (target: string, data: any) |
 | `x \| post_process` | F (s) | both |  | `resources.PostProcess` | Defers the resource's fields until all pages are rendered. |

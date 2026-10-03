@@ -21,8 +21,8 @@
 //!   cache (entries are raw HTTP responses), with `[security.http]` checks, network fetches
 //!   through `ureq`, and an importer of caches the Go build wrote (see [`remote`]).
 //!
-//! - [`pipes`]: the transforms beyond `fingerprint` (`minify`, `to_css` with grass, Tailwind
-//!   and Babel as external tools, `js_build` with rolldown), computed lazily;
+//! - [`pipes`]: the transforms beyond `fingerprint` (`minify`, `to_css` with grass, `js_build`
+//!   with rolldown), computed lazily, all in process;
 //!   `post_process` placeholders; `execute_as_template` (the template engine is a seam).
 
 #![forbid(unsafe_code)]

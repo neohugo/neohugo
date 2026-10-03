@@ -29,10 +29,6 @@ confidence-threshold = 0.93
 exceptions = [
     # comrak's dependency; Unicode-DFS-2016 is the permissive predecessor of Unicode-3.0.
     { crate = "finl_unicode", allow = ["Unicode-DFS-2016"] },
-    # deno_runtime's (ssg-npm): the bzip2 licence is BSD-style (notice, no endorsement).
-    { crate = "libbz2-rs-sys", allow = ["bzip2-1.0.6"] },
-    # deno_napi's (ssg-npm): no SPDX field; its LICENSE file is MIT, libuv's MIT after it.
-    { crate = "libuv-sys-lite", allow = ["MIT"] },
 ]
 
 [bans]

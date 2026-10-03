@@ -182,9 +182,7 @@ python3 tools/dev/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
 ```
 
-The first build of `fugo` downloads V8's prebuilt library for its embedded JavaScript runtime (the default `npm` feature; `DEVELOPMENT.md`, "Optional features").
-
-Some tests need external tools: Node.js and the pinned Tailwind CSS and Babel. Without them a test prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install the tools once (network) into `tools/dev/node_modules` of the main checkout, where the tests find them:
+The docs gates need the node modules the legacy docs site imports (Alpine.js, Turbo). Without them a gate prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install them once (network, npm) into `tools/dev/node_modules` of the main checkout, where the tests find them:
 
 ```bash
 tools/dev/node.sh

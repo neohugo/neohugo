@@ -1,19 +1,11 @@
 //! The pipes (T42): shared helpers. A test project is a copy of a fixture site in a temporary
-//! directory, with a store whose [`TransformEnv`] the test controls: no inherited tool paths,
-//! the process environment (for `PATH`), and fake or real tools as the test decides.
-//!
-//! Tests that need a real node tool find it in the `node_modules` that `tools/dev/node.sh`
-//! installs and print `SKIPPED` without it; tests with fake tools (small node
-//! scripts in a `node_modules/.bin`) need `node` on `PATH` and print `SKIPPED` without it.
+//! directory, with a store whose [`TransformEnv`] the test controls.
 
-mod babel;
 mod jsbuild;
 mod minify;
 mod postprocess;
-mod tailwind;
 mod template;
 mod tocss;
-mod tools;
 
 use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
@@ -21,7 +13,6 @@ use std::sync::Arc;
 
 use serde_json::Value as J;
 use ssg_base::{Idx as _, LangIdx, ResourceId};
-use ssg_resources::pipes::ToolPaths;
 use ssg_resources::{ResourceStore, StoreConfig, TransformEnv};
 use ssg_vfs::Vfs;
 
@@ -30,8 +21,6 @@ use crate::support::config;
 /// A copy of a fixture site (or a site used in place) and its store.
 pub struct Project {
     pub dir: PathBuf,
-    /// `HOME` of the tools (fake tools log their calls to `<home>/tool-calls.log`).
-    pub home: PathBuf,
     pub store: ResourceStore,
     _tmp: tempfile::TempDir,
 }
@@ -47,11 +36,6 @@ impl Project {
             .get_asset(self.lang(), path)
             .unwrap()
             .unwrap_or_else(|| panic!("no asset {path}"))
-    }
-
-    /// The calls fake tools logged (one JSON object per line).
-    pub fn tool_calls(&self) -> String {
-        std::fs::read_to_string(self.home.join("tool-calls.log")).unwrap_or_default()
     }
 
     /// `text` with the oracle's `$SITE` replaced by the project directory.
@@ -109,15 +93,6 @@ pub fn project_except(src: &Path, skip: &[&str], edit: impl FnOnce(&mut Transfor
     in_dir(tmp, dir, edit)
 }
 
-/// A store over the site at `dir` itself (not copied; its tools must not write into it).
-pub fn project_in_place(dir: &Path, edit: impl FnOnce(&mut TransformEnv)) -> Project {
-    in_dir(
-        tempfile::tempdir().unwrap(),
-        dir.canonicalize().unwrap(),
-        edit,
-    )
-}
-
 /// A small site in a temporary directory: `config.toml` and the given files.
 pub fn mini_site(files: &[(&str, &str)]) -> tempfile::TempDir {
     let tmp = tempfile::tempdir().unwrap();
@@ -147,9 +122,6 @@ fn in_dir(tmp: tempfile::TempDir, dir: PathBuf, edit: impl FnOnce(&mut Transform
     std::fs::create_dir_all(&home).unwrap();
     let cfg = config(&dir, &home);
     let mut env = TransformEnv::from_config(&cfg);
-    env.tools = ToolPaths::default();
-    env.os_env.retain(|(k, _)| k != "HOME");
-    env.os_env.push(("HOME".into(), home.display().to_string()));
     edit(&mut env);
     let store = ResourceStore::new(StoreConfig {
         transforms: Arc::new(env),
@@ -157,43 +129,9 @@ fn in_dir(tmp: tempfile::TempDir, dir: PathBuf, edit: impl FnOnce(&mut Transform
     });
     Project {
         dir,
-        home,
         store,
         _tmp: tmp,
     }
-}
-
-/// The `node_modules` of `tools/dev/node.sh` when it has the real `bin` in its `.bin`, or
-/// `None` (printing `SKIPPED`).
-pub fn real_tools(bin: &str, test: &str) -> Option<Vec<PathBuf>> {
-    match ssg_testkit::fixture::node_tools() {
-        Some(dir) if dir.join(".bin").join(bin).is_file() => Some(vec![dir]),
-        _ => {
-            eprintln!("SKIPPED {test}: no {bin} (install the node tools with tools/dev/node.sh)");
-            None
-        }
-    }
-}
-
-/// Whether `node` is on `PATH` (fake tools are node scripts); prints `SKIPPED` otherwise.
-pub fn have_node(test: &str) -> bool {
-    let found = std::env::var_os("PATH")
-        .is_some_and(|p| std::env::split_paths(&p).any(|d| d.join("node").is_file()));
-    if !found {
-        eprintln!("SKIPPED {test}: no node on PATH for the fake tools");
-    }
-    found
-}
-
-/// Writes an executable node script `name` into `<node_modules>/.bin`, as a package manager
-/// installs a program (the store finds it through `ToolPaths::node_modules`).
-pub fn fake_tool(node_modules: &Path, name: &str, script: &str) {
-    use std::os::unix::fs::PermissionsExt as _;
-    let bin = node_modules.join(".bin");
-    std::fs::create_dir_all(&bin).unwrap();
-    let path = bin.join(name);
-    std::fs::write(&path, format!("#!/usr/bin/env node\n{script}")).unwrap();
-    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
 }
 
 /// A fixture case's steps run on the store: `get`, `concat` (of earlier cases), `tocss`, `js`,

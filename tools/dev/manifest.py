@@ -7,9 +7,10 @@ Usage:
                       [--site LABEL] [--pass NAME] [--full-text] [-o FILE]
   manifest.py summary <manifest>...
 
-`extract` writes the manifest of every file below <publish-dir>, plus the project directory's
-build_stats.json (written next to the config, not into publishDir) as `project:<GO_STATS_KEY>`,
-the key of the Go build's stats file in the golden manifests.
+`extract` writes the manifest of every file below <publish-dir> (the project directory gives the
+base URLs and static/). The golden manifests of the Go build also record its stats file, written
+next to its configuration, under a `project:` key (PROJECT_PREFIX); this port writes no such
+file, and structdiff.py leaves those entries out.
 The base URLs default to the site config (`baseURL` of <project>/config.toml and of its
 languages). A file name ending in `.gz` is written gzipped (deterministically). The schema is
 documented in testdata/golden/README.md; in short, per file:
@@ -23,7 +24,7 @@ documented in testdata/golden/README.md; in short, per file:
       fragment kept) with the L1 normalisation applied to the path;
   L3  HTML: the visible text (sha256, length, words; the text itself with --full-text; a tag
       boundary is a space, except a `span`'s inside `pre`/`code`, so highlighter token spans do
-      not split words) and the heading ids; build_stats.json: its tag, class and id sets;
+      not split words) and the heading ids;
   L4  size and sha256 of every file, `static` for files copied from static/; images: width,
       height and format from the file header; CSS/JS: non-empty and referenced by an HTML page.
 
@@ -45,13 +46,9 @@ import urllib.parse
 
 SCHEMA = "ssg-manifest/1"
 LEVELS = ("L1", "L2", "L3", "L4")
+# The prefix of the golden manifests' keys for files of the project directory (the Go build's
+# stats file); extract records none.
 PROJECT_PREFIX = "project:"
-# The Go build's stats file name: the key (after PROJECT_PREFIX) the golden manifests record it
-# under. A literal of the recorded data, so it keeps the name the Go program wrote.
-GO_STATS_KEY = "hugo_stats.json"
-# The project files read, with the manifest key each is recorded under: our stats file is
-# compared with the Go build's stats file of the golden data.
-PROJECT_FILES = (("build_stats.json", GO_STATS_KEY),)
 
 HU_RE = re.compile(r"_hu_[0-9a-f]+")
 FINGERPRINT_RE = re.compile(r"\.[0-9a-f]{16,64}(?=\.)")
@@ -71,8 +68,6 @@ def norm_path(p):
 def kind_of(rel):
     name = rel.rsplit("/", 1)[-1]
     ext = os.path.splitext(name)[1].lower()
-    if rel.startswith(PROJECT_PREFIX):
-        return "stats"
     if name in LINES_NAMES:
         return "lines"
     if ext in (".html", ".htm"):
@@ -345,10 +340,6 @@ def walk(root):
 def extract(publish, project, bases, levels, full_text):
     urls = Urls(bases)
     sources = {rel: os.path.join(publish, rel) for rel in walk(publish)}
-    if project:
-        for f, key in PROJECT_FILES:
-            if os.path.isfile(os.path.join(project, f)):
-                sources[PROJECT_PREFIX + key] = os.path.join(project, f)
     static_dir = os.path.join(project, "static") if project else None
     files = {}
     referenced = set()
@@ -400,16 +391,10 @@ def extract(publish, project, bases, levels, full_text):
         elif kind == "lines" and "L2" in levels:
             text = b.decode("utf-8", "replace")
             e["L2"] = {"lines": sorted({" ".join(line.split()) for line in text.splitlines() if line.strip()})}
-        elif kind == "stats" and "L3" in levels:
-            try:
-                st = json.loads(b.decode("utf-8")).get("htmlElements", {})
-            except (UnicodeDecodeError, ValueError, AttributeError):
-                st = {}
-            e["L3"] = {k: sorted(set(st.get(k) or [])) for k in ("tags", "classes", "ids")}
         if "L4" in levels:
             e["size"] = len(b)
             e["sha256"] = hashlib.sha256(b).hexdigest()
-            if static_dir and not rel.startswith(PROJECT_PREFIX) and os.path.isfile(os.path.join(static_dir, rel)):
+            if static_dir and os.path.isfile(os.path.join(static_dir, rel)):
                 e["static"] = True
             if kind == "image":
                 info = image_info(b)

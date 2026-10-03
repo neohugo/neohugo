@@ -518,8 +518,6 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Resources, "resource_content", ".Content (resource)", "The text of a resource; for a bundled content page, its rendered HTML (marked safe).").site(),
     filter(G::Resources, "publish", ".Publish", "Publishes the resource and returns it.").site(),
     filter(G::Resources, "to_css", "toCSS, css.Sass", "Sass/SCSS to CSS.").args(PIPE_OPTIONS).site(),
-    filter(G::Resources, "tailwind", "css.TailwindCSS", "Runs the Tailwind CLI.").args(PIPE_OPTIONS).site(),
-    filter(G::Resources, "babel", "babel, js.Babel", "Runs Babel.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "js_build", "js.Build", "Bundles with rolldown.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "execute_as_template", "resources.ExecuteAsTemplate", "Renders the asset as a Tera template with `data`, published at `target`.")
         .args(&[req("target", A::String), opt("data", A::Any)]).site(),
@@ -875,7 +873,7 @@ pub const SYNTAX: &[SyntaxRule] = &[
     ),
     syn(
         "The site-info object's `Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator`",
-        "`build.version` (`\"0.149.0-DEV\"`), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator`",
+        "`build.version` (fugo's version), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator`",
     ),
     syn(
         "`.Site.ServerPort`",
@@ -895,6 +893,14 @@ pub const SYNTAX: &[SyntaxRule] = &[
         "a component defined in `_partials/` (`{% component x(page, sep=\"/\", @lang) %}`), called as `{{ <x page={page} /> }}`",
     ),
     syn("`debug.Timer`", "removed"),
+    syn(
+        "`css.TailwindCSS`",
+        "removed: run Tailwind's standalone CLI next to fugo (`tailwindcss -i assets/css/in.css -o assets/css/site.css --watch`) and use its output as an asset",
+    ),
+    syn(
+        "`babel`, `js.Babel`",
+        "removed: `js_build` compiles TypeScript and JSX and lowers modern JavaScript for the browser targets",
+    ),
     syn(
         "`postCSS`, `css.PostCSS`",
         "removed: `minify` adds vendor prefixes for the site's browserslist and minifies; `purge_css` purges per page",

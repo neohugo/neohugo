@@ -24,16 +24,16 @@
 
 
     <div class="hidden 2xl:block ml-8 text-xs text-gray-400 dark:text-gray-400">
-      {% if build.version %}
+      {% set recorded_version = "0.149.0-DEV" %}{# the version the recorded Go build printed #}{% if recorded_version %}
 
         Built with Hugo
-        {% if "-DEV" in build.version %}
-          v{{ build.version }}
+        {% if "-DEV" in recorded_version %}
+          v{{ recorded_version }}
         {% else %}
           <a
             class="text-blue-600 hover:text-blue-500 ml-1"
-            href="https://github.com/gohugoio/hugo/releases/tag/v{{ build.version }}"
-            >v{{ build.version }}</a
+            href="https://github.com/gohugoio/hugo/releases/tag/v{{ recorded_version }}"
+            >v{{ recorded_version }}</a
           >
         {% endif %}
       {% endif %}

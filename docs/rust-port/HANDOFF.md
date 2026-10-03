@@ -18,15 +18,17 @@ templates instead of Go templates (decision D4). It is not a byte-for-byte port:
 outputs are frozen as golden data, §9), and outputs are compared structurally.
 
 - **Gates passed** (REWRITE_PLAN.md §7.3; each against the Go version's build of the same site):
-  - A-T, the testsite: L1 56/56, L2 and L3 equal on every page, structure oracle equal.
-  - A-D1, the legacy docs site with the `i01` patches: L1 888/888, L2 756/756, L3 749/750, A7 1.0.
+  - A-T, the testsite: L1 55/55, L2 and L3 equal on every page, structure oracle equal.
+  - A-D1, the legacy docs site with the `i01` patches: L1 887/887, L2 756/756, L3 749/749, A7 1.0.
   - A-D2, the legacy docs site with the `reduced` patches (Chroma-class highlighting, GoAT diagrams,
-    emoji, math, Tailwind, the real Alpine/Turbo `js_build`): L1 889/889, L2 757/757, L3
-    750/751, A7 1.0.
+    emoji, math, the recorded Tailwind CSS, the real Alpine/Turbo `js_build`): L1 888/888, L2
+    757/757, L3 750/750, A7 1.0.
   - A-D3, the legacy docs site (`testdata/legacy-docs`) **without patches against the published
-    site** (getfugo.github.io at a1928152, the Go build of 2025-10-13; T74): L1 2373/2373, L2 776/776, L3 769/770, L4 873/873, A7
-    1.0 — every page's visible text equals the published one (the one L3 difference is Go's
-    stats tokenizer reading `<?xml`/`<=` as tags). `tools/legacy-docs/build.sh` builds the site.
+    site** (getfugo.github.io at a1928152, the Go build of 2025-10-13; T74): L1 2372/2372, L2
+    776/776, L3 769/769, L4 873/873, A7 1.0 — every page's visible text equals the published
+    one. `tools/legacy-docs/build.sh` builds the site.
+  - The Go build's stats file (next to its configuration) is not compared: fugo writes none
+    (T75).
   - A-DET: identical output with 1 and 8 threads and across runs.
 - **A-P, performance** (T70; release build, 4 CPUs, medians of 5–6 runs): the docs site builds
   cold in 3.29 s against Go's 3.99 s (0.82×; goal ≤ 1.5×), warm in 3.26 s against 3.51 s
@@ -87,16 +89,16 @@ Dependencies point down the table (lower crates never depend on higher ones). Li
 | `minify` | `ssg-minify` | output minification (minify-html, lightningcss, oxc) | 1.5k + 1.3k |
 | `images` | `ssg-images` | image processing (resize, fit, fill, crop with Go's smart crop, filters, text, QR, dither, EXIF), the image cache | 6.3k + 3.3k |
 | `jsbuild` | `ssg-jsbuild` | `js_build` in process: rolldown with fugo's plugin (assets-first resolution, `@params`, `inject`, CSS imports), TC39 decorators and the `es5` target | 9.6k + 5.8k |
-| `resources` | `ssg-resources` | the `ResourceStore`: assets, page resources, pipes (Sass via grass, PostCSS, Tailwind, Babel, `js_build`, minify, fingerprint, `execute_as_template`, `post_process`), `get_remote` with its cache | 5.0k + 3.2k |
-| `publish` | `ssg-publish` | sinks, canonify/absolute URLs, URL-token extraction, held outputs, `build_stats.json`, static sync | 1.9k + 1.3k |
+| `resources` | `ssg-resources` | the `ResourceStore`: assets, page resources, pipes, all in process (Sass via grass, `js_build`, minify, fingerprint, `execute_as_template`, `post_process`), `get_remote` with its cache | 5.0k + 3.2k |
+| `publish` | `ssg-publish` | sinks, canonify/absolute URLs, URL-token extraction, held outputs, the HTML elements `purge_css` keeps, static sync | 1.9k + 1.3k |
 | `layouts` | `ssg-layouts` | layout scan and lookup (the Go implementation's v0.146 names and scoring), embedded templates in Tera | 2.4k + 1.7k |
 | `funcs` | `ssg-funcs` | the template API (`spec.rs`, the single source of truth) and the pure functions (with `to_math`: KaTeX in QuickJS; `diagrams_goat`: the bep/goat port) | 4.9k + 1.2k |
-| `view` | `ssg-view` | the serialisable views templates read (`page`, `site`, `fugo`, …) and their caches | 2.8k + 1.3k |
+| `view` | `ssg-view` | the serialisable views templates read (`page`, `site`, `build`, …) and their caches | 2.8k + 1.3k |
 | `sitefuncs` | `ssg-sitefuncs` | site-bound Tera functions (`get_page`, `ref`, `i18n`, resources, images, `paginate`, `partial`, `defer`, …) | 3.0k + 1.9k |
 | `render` | `ssg-render` | the render `Session`: content (shortcodes, hooks), layout jobs, waves | 2.7k + 1.3k |
 | `build` | `ssg-build` | build orchestration (phases B–E7 of REWRITE_PLAN.md §3; content adapters before the model), `BuildRequest`/`BuildReport` | 1.1k + 2.0k |
 | `serve` | `ssg-serve` | `fugo server`: listeners, file serving, LiveReload, watching, rebuilds | 2.4k + 1.0k |
-| `npm` | `ssg-npm` | the project's npm packages: `package.json` installed into `node_modules` before a build (Deno's installer, `npm.lock`), and the Tailwind and Babel packages run on the embedded JavaScript runtime (Deno's runtime with Node compatibility, V8), in a child process `fugo __run-package` | 0.7k + 0.3k |
+| `npm` | `ssg-npm` | the project's npm packages: `package.json` installed into `node_modules` before a build (Deno's installer, `npm.lock`); nothing runs their programs | 0.4k + 0.2k |
 | `cli` | `fugo` | the `fugo` binary (clap); the gate tests live in its `tests/it` | 1.9k + 2.0k |
 | `migrate` | `ssg-migrate` | stub (T73: Go-template → Tera converter) | – |
 | `testkit` | `ssg-testkit` | dev-only: fixture readers, txtar sites, the template contract test, a local npm registry | 0.9k + 0.7k |
@@ -148,24 +150,25 @@ plus `config/` dirs, merged with themes as the Go implementation does
 (`crates/config/README.md`).
 
 **fugo's own names** (2026-10-01). Every name that was the Go program's is fugo's, with no
-fallback: the configuration file `config.*` (not the Go program's name), the stats file
-`build_stats.json` (`[build.buildStats]`; the legacy `[build] writeStats` is migrated), the
+fallback: the configuration file `config.*` (not the Go program's name), the
 default cache directory `fugo_cache`, the generator meta `fugo <version>`, `@import "build:vars"` in Sass,
 `package.config.json` among the JS config files, the reserved layouts directory `_internal/`
 and the ids of `js_build`'s virtual modules (`ssg:entry`, `\0ssg-params`, …). The
 tests replay the Go oracles with these names (`ssg_testkit::fixture::local_path`, the
-harness's `sites.py as_local_site`; the golden manifests' key of the Go build's stats file
-reads `build_stats.json`). Templates read the build's version and environment as
-`fugo` (`build.environment`, `build.is_production`, `build.is_development`,
+harness's `sites.py as_local_site`). Templates read the build's version and environment as
+`build` (`build.environment`, `build.is_production`, `build.is_development`,
 `build.is_server`, `build.version`, `build.generator`; `@build` in components). Every
 environment variable fugo reads or sets is `FUGO_*`: the harness switches
 (`FUGO_TIMINGS`, `FUGO_STRUCTURE_OUT`, …), the
-default `get_env` allowlist (`^FUGO_`) and what external tools get (`FUGO_PUBLISHDIR`,
-`FUGO_FILE_<NAME>`). Settings and the environment never come from the process environment
+default `get_env` allowlist (`^FUGO_`). Settings and the environment never come from the process environment
 (2026-10-03: the `FUGO_TITLE`, `FUGO_PARAMS_X`, `FUGO_CACHEDIR` overrides and
 `FUGO_ENVIRONMENT` were removed; `--environment` chooses the environment, the harness passes
-`--cacheDir`). There is no PostCSS pipeline (2026-10-03): `minify` adds vendor prefixes for the
-browserslist and `purge_css` purges per page. Secrets go in the project's `.env` file (`ssg_config::env_file`):
+`--cacheDir`). **The asset pipeline is Rust only** (2026-10-03, T75): no PostCSS, Babel or
+Tailwind pipe, no stats file (`[build] buildStats`/`writeStats` are "no longer supported"
+warnings), and fugo runs no programs (`[security.exec]` is accepted and has no effect). `minify`
+adds vendor prefixes for the browserslist, `js_build` lowers for the browser targets,
+`purge_css` purges per page, and Tailwind sites run Tailwind's own CLI next to fugo
+(`docs/content/asset-pipelines/tailwind-css.md`). Secrets go in the project's `.env` file (`ssg_config::env_file`):
 templates read its names with `get_env` (no allowlist entry; the process environment wins), it
 is never configuration (`fugo config` does not print it), `FUGO_*` names in it are ignored with a
 warning, and `fugo server` reloads when it changes. Layouts must be Tera with the Go implementation's v0.146 names (`home.html`, `single.html`,
@@ -180,21 +183,11 @@ the platform's optional packages, no install scripts). They lock the versions in
 (Deno's format, seeded from `package-lock.json`) and download into `<cacheDir>/packages`. The
 server installs again when `package.json` changes. A `node_modules` that npm, pnpm or yarn
 wrote, or a link, is left alone. The harness links `tools/dev/node_modules` into its sites, so
-gate builds install nothing.
-
-The Tailwind and Babel pipes run the `@tailwindcss/cli` and `@babel/cli` packages found in a
-`node_modules` with the embedded runtime (Deno's `deno_runtime`, V8, N-API addons), as a child
-process of the binary. `FUGO_TAILWINDCSS_BIN`, `FUGO_BABEL_BIN` and the lookup on `PATH` were
-removed (2026-10-03): the tools come from `package.json`, another version too. So was
-`FUGO_NODE_MODULES`: the harness links `tools/dev/node_modules` into its sites, and the tests
-find it with `tools/dev/node.sh path` (`ssg_testkit::fixture::node_tools`).
-The gates therefore compile the legacy docs site's Tailwind on the embedded runtime, with the
-same bytes as Node. The default feature `npm` of `ssg-cli` carries the whole thing. It makes
-the stripped release binary 179 MB instead of 65 MB (macOS arm64) and downloads V8's prebuilt
-library at the first build (DEVELOPMENT.md "Optional features"). Without the feature, the tools need Node.js and an installed `node_modules`. Deno's
-crates pin some shared dependencies exactly, which holds them back for the whole workspace:
-encoding_rs 0.8.35 (was 0.8.42), rustls 0.23.40 (was 0.23.45), and rand 0.8.5 (was 0.8.8, the
-0.8 line only). They move when the Deno crates move.
+gate builds install nothing; the tests find it with `tools/dev/node.sh path`
+(`ssg_testkit::fixture::node_tools`). Nothing runs the packages' programs: the JavaScript
+runtime that ran Tailwind (Deno's `deno_runtime`, V8) was removed with the Tailwind pipe (T75).
+The default feature `npm` of `ssg-cli` carries the installer: about 6 MB of the stripped release
+binary, 71.0 MB instead of 64.8 MB (macOS arm64; DEVELOPMENT.md "Optional features").
 
 ## 3. Gates and the harness
 
@@ -227,18 +220,20 @@ The gate tests need python3, bash, node and the node tools (else `SKIPPED`).
 
 ## 4. CI/CD
 
-`.github/workflows/ci.yml` is the repository's only build workflow (`stale.yml` manages issues).
+`.github/workflows/ci.yml` is the repository's only build workflow (`bump.yml` cuts releases,
+`stale.yml` manages issues).
 It runs on pushes to `main` and `rust-port`, on every pull request (no path filters), on
 `v[0-9]*` tags and by hand. Jobs: **Lint** (fmt, clippy `-D warnings`, licence check, structdiff
-self-test, `sites.py patches --check`, tag = `v<workspace version>`), **Test** (Linux only, §8: the whole workspace with
-every tool installed by `tools/dev/node.sh`; a test that
+self-test, `sites.py patches --check`, a tag is a release tag), **Test** (Linux only, §8: the
+whole workspace with the node modules of `tools/dev/node.sh`; a test that
 prints `SKIPPED` fails the job), **Build** (release for `x86_64`/`aarch64` Linux,
-`x86_64`/`aarch64` macOS, `x86_64` Windows, with the commit, date and vendor of `fugo
-version`; `notices.py` writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive), **Release**
+`x86_64`/`aarch64` macOS, `x86_64` Windows, with the version (a tag's), commit, date and
+vendor of `fugo version`; `notices.py` writes `THIRD_PARTY_NOTICES.txt`, `package.py` the archive), **Release**
 (tags only: the GitHub release `v<version>` with the five archives and
 `fugo_<version>_checksums.txt`; a version with a `-` makes a pre-release, any other is latest
-only if no release has a higher version). Cutting a release: set `[workspace.package] version`,
-merge, tag `v<version>`, push the tag (DEVELOPMENT.md "CI and releases").
+only if no release has a higher version). Cutting a release: run **Bump version** (`bump.yml`,
+`version_bump` major/minor/patch), which tags the branch head `v<next>` and starts CI on the
+tag; nothing in the repository is edited (DEVELOPMENT.md "CI and releases").
 
 ## 5. Performance (A-P, T70)
 
@@ -270,16 +265,16 @@ activity on the shared machine. Before T70's fix the Rust docs build took 3.83 s
 Where the Rust docs build spends its time (`FUGO_TIMINGS=1`, warm, minified): model 40 ms,
 templates 40 ms, content 630–800 ms (Markdown and highlighting of ~3,900 fences), wave 1
 750–900 ms (888 layouts), deferred 1.4–1.6 s (Tailwind ≈ 0.55 s, then placeholder patching,
-**HTML minification** and writing of every held page), resources 20–190 ms (images). Without
+**HTML minification** and writing of every held page), resources 20–190 ms (images). These
+numbers predate T75, which removed the Tailwind pipe: the docs builds now publish the
+stylesheet Tailwind built, so the deferred phase no longer pays Tailwind's 0.55 s. Without
 `--minify` the deferred phase is ≈ 0.7 s shorter; Go's minifier costs it ≈ 0.25 s. Proposals,
 not done:
 1. HTML minification: `ssg-minify` runs minify-html twice on pages with comments or
    omitted end tags (for idempotence); fold the second pass into one (strip comments before,
    or check whether a second pass can change anything) and minify pages while wave 1 renders
    them when they hold no deferred placeholder.
-2. Start Tailwind (the `defer` templates of `styles.css`) as soon as `build_stats.json` is known
-   instead of after the whole wave; it is an external process and could overlap page patching.
-3. Warm builds gain little because image processing is already cheap (Go saves ≈ 0.5 s warm,
+2. Warm builds gain little because image processing is already cheap (Go saves ≈ 0.5 s warm,
    Rust ≈ 0.15 s); the remaining cost is rendering, so wave-1 profiling (Tera value cloning of
    page views) is the next step if the warm ratio needs to drop further.
 
@@ -310,7 +305,7 @@ rendered before layouts (another page's content inside a shortcode goes through
 published resources are published on reference; no `#ZgotmplZ`; YAML 1.2 (`yes` stays a
 string); deterministic winners for URL collisions; newer CLDR collation; no v1 shortcodes
 (the legacy in-template version declaration); segment-aware prefix lookup; target-path assets: earlier language wins; site
-functions inside components need `page=` or `@__nh`; `build.version` is `0.149.0-DEV`; the
+functions inside components need `page=` or `@__nh`; `build.version` is fugo's version; the
 template object is `build` and the environment variables are `FUGO_*` (below).
 
 Allowed output differences (REWRITE_PLAN.md §7.3): minifier bytes, highlight span structure,
@@ -321,7 +316,7 @@ Per site (the ratchet's changes files, `tools/dev/changes/`):
 
 | Site | Entry | Class |
 |---|---|---|
-| docs-i01, docs-reduced, docs-live | the stats file (`project:*`): `<?xml` and `<=` are not tags | engine-difference (T65, T66, T74) |
+| docs-i01, docs-reduced, docs-live | the Go build's stats file (`project:*`): not compared, fugo writes none (until T75: `<?xml` and `<=` are not tags, engine-difference) | accepted-deviation (T75) |
 
 The earlier docs entries (a table on lazy list-item lines, the GoAT pages drawn by svgbob, the
 math pages as MathML) are `bug-fixed` in T74: goldmark's table transformer, bep/goat and KaTeX
@@ -382,8 +377,7 @@ tests read them, with counts):
   unpatched. The i01/reduced patches stay as they are: they define A-D1 and A-D2.)
 - **Server** (T71 leftovers): the browser error page, `[server]` headers and redirects, fast
   render (partial rebuilds), TLS, `--openBrowser`.
-- **Performance** proposals of §5 (HTML minification, overlapping Tailwind); none is needed for
-  the A-P goals.
+- **Performance** proposals of §5 (HTML minification); none is needed for the A-P goals.
 - **A-D1** runs only through `compare.sh docs-i01`; a committed test like `gate_a_d2` would
   keep it green in CI.
 - `ssg-config`: `TocConfig::end_level` is `u8`, so `endLevel = -1` cannot be decoded
@@ -394,8 +388,7 @@ tests read them, with counts):
 - **Windows tests:** the Test job runs on Linux only, while the Go CI also ran its tests on
   `windows-latest` (`mage -v test`); Windows and macOS get only the release build and its smoke
   test. A Windows leg needs the Unix-only test code gated first: `use std::os::unix` in
-  `crates/publish/tests/it/staticcopy.rs` and in the fake tools of
-  `crates/resources/tests/it/pipes/` (§9).
+  `crates/publish/tests/it/staticcopy.rs` (§9).
 - The follow-ups of the Go removal outside the repository (§9): branch protection, unused
   secrets, the channels frozen at the last Go build.
 
@@ -526,7 +519,7 @@ Follow-ups outside the repository:
 - **Public channels frozen at the last Go build:** the Go version's Docker images (Docker Hub and
   ghcr.io); the documentation site getfugo.github.io (deployed on `v*` tags by
   `release.yml`); and `/releases/latest`, which stays at the Go `v0.148.2` until the first Rust
-  release that is not a pre-release (`v0.149.0`).
+  release that is not a pre-release (`v1.0.0`).
 
 ## 10. History
 
@@ -632,3 +625,33 @@ Follow-ups outside the repository:
   those recorded defaults back). The environment comes from the command (`--environment`;
   `production`, `development` for `server`) and no variable chooses it or reaches the tools;
   `.env.<environment>` is read after `.env` and wins, and `fugo server` reloads on either.
+- 2026-10-03: **no Babel; fugo 1.0.0.** The `babel` filter, its pipe and tests, its docs page
+  and the `@babel/*` node tools are gone (`js_build` compiles TypeScript and JSX and lowers
+  modern JavaScript; a template calling `babel` gets the migration hint); `babel.config.js` is
+  not mounted under `_jsconfig`. The workspace version is `1.0.0-DEV` (releases start at
+  `v1.0.0`: the Go fork's tags `v0.1.0` … `v0.148.2` stay in the repository), `build.version`
+  is fugo's version (`build.app_version` is gone), and the legacy docs site's layouts print the
+  recorded Go build's `0.149.0-DEV` themselves. The object reference no longer appends
+  `(Go: …)` to each field.
+- 2026-10-03: **a Rust-only asset pipeline (T75).** The Tailwind pipe, the tool machinery
+  (tool lookup, `exec`, the tools' configuration-file mounts and cache busters, CSS `@import`
+  inlining for tools), the embedded JavaScript runtime (`deno_runtime`, V8, N-API, the hidden
+  `__run-package` command) and the stats file (`[build.buildStats]`, `build_stats.json`, phase
+  E4, the store's generated assets, the serve watcher's exception) are gone; `[build]
+  buildStats`/`writeStats` are "no longer supported" warnings and `[security.exec]` has no
+  effect. The npm installer stays (`js_build` and Sass read `node_modules`). `HtmlElements`
+  stays for `purge_css`, still checked against Go's collector oracle. The legacy docs site's
+  Tailwind stylesheet is recorded (`sites/docs/assets/css/styles.tailwind.css`) and published
+  by the overlay, so the gates' files are unchanged; the harness leaves the Go build's stats
+  file out (A-T 55, A-D1 887, A-D2 888, A-D3 2372 files; `tools/dev/changes/T75.md`). The
+  release binary went from 227 MB to 87 MB (71 MB stripped), `Cargo.lock` from 1,238 to 780
+  packages, and encoding_rs, rustls and rand are no longer held back. The docs' function pages
+  no longer print each function's Go-template name.
+- 2026-10-03: **versions come from git tags.** A release is the tag `v<major>.<minor>.<patch>`
+  (`tools/dev/version.py`); CI builds it with `FUGO_BUILD_VERSION` (read at compile time by
+  `ssg_base::VERSION`, which `fugo version`, `build.version`, the generator tag and the npm
+  installer's user agent use), and `Cargo.toml`'s version is `0.0.0-DEV`, the version of builds
+  not made from a tag. The **Bump version** workflow (`.github/workflows/bump.yml`,
+  `workflow_dispatch` with `version_bump` major/minor/patch) tags the branch head with the
+  next version (`v1.0.0` first; the Go fork's v0.x tags do not count) and dispatches CI on the
+  tag, whose release job publishes it (DEVELOPMENT.md "CI and releases").

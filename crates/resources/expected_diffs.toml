@@ -11,7 +11,7 @@ fixture_json = "T00's fixture conversion re-serialised the synthetic site's JSON
 [transform]
 # Rules of tests/it/fingerprint.rs (oracle/resources/transform).
 copy_same_target = "`resources.Copy` of a second, different source to a target already copied in the same language is a TargetConflict; Go's transformation cache key ignores the source, so Go silently returns the first asset's copy (and its content)"
-pipes = "minify and the tool pipes (tocss, babel) are T42's; their chains are not run here but in tests/it/pipes/minify.rs"
+pipes = "minify and the tool pipes (tocss) are T42's; their chains are not run here but in tests/it/pipes/minify.rs"
 minify_bytes = "(tests/it/pipes/minify.rs) ssg-minify (minify-html, lightningcss, oxc) does not write tdewolff's bytes; such output must be a fixed point of the minifier, and a fingerprint after it names other bytes (T26)"
 tocss_builtin = "(tests/it/pipes/minify.rs) `to_css` is grass, built in: Go's `na:tocss` (\"this feature is not available\") does not apply"
 

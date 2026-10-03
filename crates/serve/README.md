@@ -90,7 +90,7 @@ modified", which the debouncer would drop as a file that came and went. On macOS
 **Ignored**: editors' temporary and backup files (Go's list: `~`, `.swp`, `.swx`, `.bck`,
 `.tmp`, `4913`, `.goutputstream*`, JetBrains `___jb_*___`, `.sb-*`, `#…`, `.#…`), names
 starting with `.`, anything below `.git`, `node_modules` or `bower_components` inside a
-mount, the project's `build_stats.json` (the build writes it), permission and time changes,
+mount, permission and time changes,
 opening, reading and closing (a write is seen as a modification), and files created or
 written that are gone again.
 

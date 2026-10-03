@@ -88,9 +88,6 @@ pub enum PublishPolicy {
 pub enum Body {
     File(PathBuf),
     Bytes(Arc<[u8]>),
-    /// Bytes the build produced for an asset path (`build_stats.json`, see
-    /// [`ResourceStore::inject_generated`]).
-    Generated(Arc<[u8]>),
     /// A processed image; the pixels come from the [`ImageQueue`].
     PendingImage(ImageOpId),
     /// A transform result not computed yet ([`Origin::Transformed`] names the source and the
@@ -291,7 +288,7 @@ pub enum ResourceError {
     NotAnImage(String),
     #[error("writing {path}: {source}")]
     Write { path: OutputPath, source: io::Error },
-    /// A transform (`to_css`, `tailwind_css`, `js_build`, …) failed.
+    /// A transform (`to_css`, `js_build`, …) failed.
     #[error("{resource}: {transform}: {source}")]
     Pipe {
         resource: String,
@@ -468,7 +465,6 @@ pub struct ResourceStore {
     /// Header sizes of images that are not processed, per source file.
     sizes: Mutex<BTreeMap<PathBuf, Option<(u32, u32)>>>,
     targets: Mutex<BTreeMap<OutputPath, Claim>>,
-    generated: RwLock<BTreeMap<String, Arc<[u8]>>>,
     pub(crate) marked: Mutex<BTreeSet<ResourceId>>,
     /// The results of `execute_as_template`: template output whose URLs publish resources.
     template_outputs: Mutex<BTreeSet<ResourceId>>,
@@ -496,7 +492,6 @@ impl ResourceStore {
             images: Memo::new(),
             sizes: Mutex::new(BTreeMap::new()),
             targets: Mutex::new(BTreeMap::new()),
-            generated: RwLock::new(BTreeMap::new()),
             marked: Mutex::new(BTreeSet::new()),
             template_outputs: Mutex::new(BTreeSet::new()),
             published: Mutex::new(BTreeSet::new()),
@@ -649,26 +644,15 @@ impl ResourceStore {
         if rel.is_empty() {
             return Ok(None);
         }
-        let generated = self
-            .generated
-            .read()
-            .unwrap_or_else(PoisonError::into_inner)
-            .get(rel)
-            .cloned();
-        let body = match generated {
-            Some(b) => Body::Generated(b),
-            None => {
-                let Some(file) = self
-                    .cfg
-                    .vfs
-                    .as_ref()
-                    .and_then(|v| v.open(Component::Assets, rel))
-                else {
-                    return Ok(None);
-                };
-                Body::File(file.abs)
-            }
+        let Some(file) = self
+            .cfg
+            .vfs
+            .as_ref()
+            .and_then(|v| v.open(Component::Assets, rel))
+        else {
+            return Ok(None);
         };
+        let body = Body::File(file.abs);
         let lang = self.global_lang(lang);
         self.assets
             .get_or_try((lang, rel.to_owned()), || {
@@ -735,14 +719,6 @@ impl ResourceStore {
             .filter(|p| g.is_match(p))
             .cloned()
             .collect();
-        paths.extend(
-            self.generated
-                .read()
-                .unwrap_or_else(PoisonError::into_inner)
-                .keys()
-                .filter(|p| g.is_match(p))
-                .cloned(),
-        );
         paths.sort();
         paths.dedup();
         let mut ids = Vec::with_capacity(paths.len());
@@ -764,26 +740,6 @@ impl ResourceStore {
         pattern: &str,
     ) -> Result<Option<ResourceId>, ResourceError> {
         Ok(self.find_assets(lang, pattern)?.into_iter().next())
-    }
-
-    /// Makes `bytes` the content of the asset at `asset_path` for the rest of the build (build
-    /// phase E4 writes `build_stats.json` this way). An asset already registered at that path
-    /// reads the new bytes; resources derived from it before the call keep what they read.
-    pub fn inject_generated(&self, asset_path: &str, bytes: Arc<[u8]>) {
-        let rel = paths::clean(&format!("/{asset_path}"));
-        let rel = rel.trim_start_matches('/').to_owned();
-        let mut arena = self.arena.write().unwrap_or_else(PoisonError::into_inner);
-        for r in arena.iter_mut() {
-            if matches!(&r.origin, Origin::Asset { path } if *path == rel) {
-                let mut updated = Resource::clone(r);
-                updated.body = Body::Generated(Arc::clone(&bytes));
-                *r = Arc::new(updated);
-            }
-        }
-        self.generated
-            .write()
-            .unwrap_or_else(PoisonError::into_inner)
-            .insert(rel, bytes);
     }
 
     // ── bundles ─────────────────────────────────────────────────────────────────────────────
@@ -1072,9 +1028,8 @@ impl ResourceStore {
             .get_or_try((id, t.clone()), || pipes::start(self, id, t))
     }
 
-    /// Whether computing `id` waits for phase E5: its chain runs Tailwind (which reads
-    /// `build_stats.json`, written once every page is rendered) or processes an image
-    /// (images are processed in E6, outside the renders). Any other pending `fingerprint` is
+    /// Whether computing `id` waits for phase E5: its chain processes an image (images are
+    /// processed in E6, outside the renders). Any other pending `fingerprint` is
     /// computed when the template asks for it, as Go computes it when its links are read.
     #[must_use]
     pub fn waits_for_e5(&self, id: ResourceId) -> bool {
@@ -1082,12 +1037,7 @@ impl ResourceStore {
         loop {
             let r = self.resource(id);
             match &r.origin {
-                Origin::Transformed { from, transform } => {
-                    if matches!(**transform, Transform::TailwindCss(_)) {
-                        return true;
-                    }
-                    id = *from;
-                }
+                Origin::Transformed { from, .. } => id = *from,
                 Origin::Meta { from } => id = *from,
                 Origin::Image { .. } => return true,
                 Origin::Asset { .. }
@@ -1163,7 +1113,7 @@ impl ResourceStore {
         match &r.body {
             Body::File(p) => Some(ImageInput::File(p.clone())),
             Body::PendingImage(op) => Some(ImageInput::Op(*op)),
-            Body::Bytes(_) | Body::Generated(_) | Body::Pending => None,
+            Body::Bytes(_) | Body::Pending => None,
         }
     }
 
@@ -1189,9 +1139,7 @@ impl ResourceStore {
                 let size = ssg_images::probe_file(p).ok().map(|(s, _)| s);
                 *lock(&self.sizes).entry(p.clone()).or_insert(size)
             }
-            Body::Bytes(b) | Body::Generated(b) => {
-                ssg_images::probe(b, &r.name).ok().map(|(s, _)| s)
-            }
+            Body::Bytes(b) => ssg_images::probe(b, &r.name).ok().map(|(s, _)| s),
             Body::Pending => None,
         }
     }
@@ -1242,7 +1190,7 @@ impl ResourceStore {
             Body::File(p) => std::fs::read(p)
                 .map(Into::into)
                 .map_err(|e| ResourceError::io(p, e)),
-            Body::Bytes(b) | Body::Generated(b) => Ok(Arc::clone(b)),
+            Body::Bytes(b) => Ok(Arc::clone(b)),
             Body::PendingImage(op) => match &self.cfg.images {
                 Some(q) => Ok(q.encoded(*op)?),
                 None => Err(ResourceError::NotAnImage(r.name.clone())),

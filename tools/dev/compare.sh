@@ -23,8 +23,8 @@
 # environment of the golden builds: HOME and the cache directory in the work directory (the
 # site's golden GetRemote entries, `sites.py cache`), TZ=UTC, every proxy
 # variable pointing at a refusing port (outbound HTTP disabled), and the node modules of
-# tools/dev/node.sh as a `node_modules` symlink in the site (the binary runs Tailwind from it
-# and installs nothing into a link). Manifests come from tools/dev/manifest.py
+# tools/dev/node.sh as a `node_modules` symlink in the site (`js_build` imports from it; the
+# binary installs nothing into a link). Manifests come from tools/dev/manifest.py
 # (the candidate's with --full-text, for the A7 similarity of the worst pages).
 #
 # docs-live (gate A-D3) is the docs site as getfugo.github.io publishes it, and its golden data is
@@ -143,10 +143,8 @@ build() {
 	python3 "$SITES_PY" make "$label" "$dir/$label" --overlay "$overlay" >/dev/null
 	python3 "$SITES_PY" cache "$label" "$dir/cache"
 	ln -s "$NODE_MODULES" "$dir/$label/node_modules"
-	local node_dir
-	node_dir=$(dirname "$(command -v node || echo /usr/bin/node)")
 	local env=(HOME="$dir/home" TZ=UTC LANG=C.UTF-8
-		PATH="$node_dir:/usr/local/bin:/usr/bin:/bin"
+		PATH="/usr/local/bin:/usr/bin:/bin"
 		HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9
 		http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 all_proxy=http://127.0.0.1:9
 		NO_PROXY= no_proxy=)

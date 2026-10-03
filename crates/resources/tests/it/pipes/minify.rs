@@ -1,20 +1,20 @@
 //! `minify` against the `transform` oracle (`oracle/resources/transform`: 14 assets × the
 //! chains `minify`, `minify | fingerprint`, `fingerprint | minify`, `minify | minify`), and the
-//! chains through tools Go's oracle did not have (`na:babel`, `na:tocss`; the `na:postcss`
-//! chains are not applicable: this port has no PostCSS).
+//! chains through tools Go's oracle did not have (`na:tocss`; the `na:postcss` and `na:babel`
+//! chains are not applicable: this port has neither tool).
 //!
 //! Links, names, titles and media types must equal Go's; content equals Go's where
 //! ssg-minify writes tdewolff's bytes, and is otherwise accepted when it is a fixed point
 //! of the minifier (README: minified bytes differ from tdewolff's); a fingerprint after a
-//! minify then names other bytes, so only its shape is checked. Tool chains are errors that
-//! name the tool; `to_css` is built in (grass), so `na:tocss` is not an error here.
+//! minify then names other bytes, so only its shape is checked; `to_css` is built in (grass), so
+//! `na:tocss` is not an error here.
 
 use serde_json::Value as J;
 use ssg_base::{Idx as _, LangIdx};
 use ssg_resources::{HashAlgo, PipeError, ResourceError, Transform};
 use std::str::FromStr as _;
 
-use crate::support::{rule, store_without_tools, synth_site};
+use crate::support::{rule, store, synth_site};
 
 #[test]
 fn minify_chains() {
@@ -22,14 +22,12 @@ fn minify_chains() {
     rule("transform", "tocss_builtin");
     let fx: J = ssg_testkit::fixture::oracle("oracle/resources/transform/transform.json.gz");
     let home = tempfile::tempdir().unwrap();
-    // Go's oracle ran without Babel (`na:` chains): so does this comparison, even where the
-    // real tool is installed (the real-tool tests use it).
-    let store = store_without_tools(&synth_site(home.path()), home.path());
+    let store = store(&synth_site(home.path()), home.path());
     let lang = LangIdx::from_index(0);
     let mut failures = Vec::new();
-    let (mut identical, mut accepted, mut tool_errors, mut builtin) = (0, 0, 0, 0);
+    let (mut identical, mut accepted, mut builtin) = (0, 0, 0);
     let mut no_minifier = 0;
-    let mut no_postcss = 0;
+    let mut no_tool = 0;
     for c in fx["cases"].as_array().unwrap() {
         let chain: Vec<&str> = c["chain"]
             .as_array()
@@ -40,8 +38,8 @@ fn minify_chains() {
         if !chain.iter().any(|s| *s == "minify" || s.starts_with("na:")) {
             continue;
         }
-        if chain.contains(&"na:postcss") {
-            no_postcss += 1;
+        if chain.contains(&"na:postcss") || chain.contains(&"na:babel") {
+            no_tool += 1;
             continue;
         }
         let asset = c["asset"].as_str().unwrap();
@@ -56,27 +54,15 @@ fn minify_chains() {
                     Transform::Minify
                 }
                 ("fingerprint", algo) => Transform::Fingerprint(HashAlgo::from_str(algo).unwrap()),
-                ("na", "babel") => Transform::Babel(Default::default()),
                 ("na", "tocss") => Transform::ToCss(Default::default()),
                 other => panic!("{other:?}"),
             };
-            let tool = matches!(t, Transform::Babel(_));
             let sass = matches!(t, Transform::ToCss(_));
             match store
                 .transform(id, t)
                 .and_then(|n| store.realize(n).map(|_| n))
             {
                 Ok(n) => id = n,
-                Err(ResourceError::Pipe { source, .. }) if tool => {
-                    match *source {
-                        PipeError::ToolNotFound { .. } | PipeError::ExecDenied { .. } => {
-                            tool_errors += 1;
-                        }
-                        other => failures.push(format!("{what}: {other}")),
-                    }
-                    result = Err(());
-                    break;
-                }
                 Err(_) if sass => {
                     // grass may or may not parse the minified asset as SCSS.
                     builtin += 1;
@@ -163,8 +149,12 @@ fn minify_chains() {
         failures.join("\n")
     );
     assert_eq!(identical + accepted + no_minifier, 28 * 4, "minify chains");
-    assert_eq!(no_postcss, 28, "chains through PostCSS (not applicable)");
+    assert_eq!(
+        no_tool,
+        28 + 28,
+        "chains through PostCSS or Babel (not applicable)"
+    );
     eprintln!(
-        "minify: {identical} chains with Go's bytes, {accepted} other minified bytes (fixed points), {no_minifier} errors for types without minifier (as Go), {tool_errors} missing-tool errors, {builtin} to_css runs, {no_postcss} PostCSS chains not applicable"
+        "minify: {identical} chains with Go's bytes, {accepted} other minified bytes (fixed points), {no_minifier} errors for types without minifier (as Go), {builtin} to_css runs, {no_tool} PostCSS or Babel chains not applicable"
     );
 }

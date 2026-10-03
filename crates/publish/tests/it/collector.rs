@@ -1,13 +1,12 @@
-//! The `build_stats.json` collector against the Go oracle `publisher/collector`
-//! (`htmlElementsCollector`): single element strings, whole documents (per document and per
-//! group through one collector) and multi-write streams, under five `buildStats`
-//! configurations.
+//! [`HtmlElements`] (the names `purge_css` keeps) against the Go oracle `publisher/collector`
+//! (`htmlElementsCollector`, which wrote the Go build's stats file): single element strings,
+//! whole documents (per document and per group through one collector) and multi-write streams,
+//! under the oracle's five configurations (each leaves out some of the lists).
 
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
-use ssg_config::global::BuildStats;
-use ssg_publish::{HtmlElements, StatsFile, StatsLists};
+use ssg_publish::HtmlElements;
 use ssg_testkit::fixture::{GoString, oracle_lines};
 
 use crate::support::{Tally, show};
@@ -41,19 +40,45 @@ enum Want {
     Bool(#[allow(dead_code, reason = "only the record type is used")] bool),
 }
 
-fn conf(name: &str) -> BuildStats {
-    let mut c = BuildStats {
-        enable: true,
-        ..BuildStats::default()
-    };
+/// The sorted lists of the Go stats file; a left-out or empty list is `None`.
+#[derive(Debug, PartialEq, Eq)]
+struct StatsLists {
+    tags: Option<Vec<String>>,
+    classes: Option<Vec<String>>,
+    ids: Option<Vec<String>>,
+}
+
+/// The lists an oracle configuration leaves out.
+#[derive(Clone, Copy, Default)]
+struct Disabled {
+    tags: bool,
+    classes: bool,
+    ids: bool,
+}
+
+impl StatsLists {
+    fn new(found: HtmlElements, c: Disabled) -> Self {
+        let list = |set: std::collections::BTreeSet<String>, disabled: bool| {
+            (!disabled && !set.is_empty()).then(|| set.into_iter().collect())
+        };
+        Self {
+            tags: list(found.tags, c.tags),
+            classes: list(found.classes, c.classes),
+            ids: list(found.ids, c.ids),
+        }
+    }
+}
+
+fn conf(name: &str) -> Disabled {
+    let mut c = Disabled::default();
     match name {
         "all" => {}
-        "noids" => c.disable_ids = true,
-        "noclasses" => c.disable_classes = true,
-        "notags" => c.disable_tags = true,
+        "noids" => c.ids = true,
+        "noclasses" => c.classes = true,
+        "notags" => c.tags = true,
         "classesonly" => {
-            c.disable_tags = true;
-            c.disable_ids = true;
+            c.tags = true;
+            c.ids = true;
         }
         _ => panic!("conf {name}"),
     }
@@ -76,8 +101,8 @@ fn text(s: &GoString) -> (String, bool) {
     (lossy.into_owned(), clean)
 }
 
-fn stats(html: &str, c: &BuildStats) -> StatsLists {
-    StatsFile::new(HtmlElements::collect(html), c).html_elements
+fn stats(html: &str, c: Disabled) -> StatsLists {
+    StatsLists::new(HtmlElements::collect(html), c)
 }
 
 /// The accepted class of a difference: the Go collector feeds each element string alone to
@@ -162,7 +187,7 @@ fn repeats_attribute(lower: &str) -> bool {
     })
 }
 
-/// A list as `build_stats.json` has it: sorted, without duplicates, `None` when empty.
+/// A list as the Go stats file has it: sorted, without duplicates, `None` when empty.
 fn sorted(v: Option<Vec<String>>) -> Option<Vec<String>> {
     let mut v = v?;
     v.sort();
@@ -191,7 +216,7 @@ fn collector_oracle() {
                     classes: sorted(strings(r.classes.as_ref())),
                     ids: sorted(strings(r.ids.as_ref())),
                 };
-                let got = stats(&html, &c);
+                let got = stats(&html, c);
                 let t = families.entry("el").or_default();
                 if got == want {
                     t.pass();
@@ -231,7 +256,7 @@ fn collector_oracle() {
                         for d in docs {
                             found.add_html(d);
                         }
-                        let got = StatsFile::new(found, &c).html_elements;
+                        let got = StatsLists::new(found, c);
                         let t = families.entry("group").or_default();
                         if got == want {
                             t.pass();
@@ -252,7 +277,7 @@ fn collector_oracle() {
                         text(&GoString(bytes))
                     }
                 };
-                let got = stats(&html, &c);
+                let got = stats(&html, c);
                 let family = match (r.t.as_str(), r.g.as_deref()) {
                     ("doc", Some("upstream")) => "doc-upstream",
                     ("doc", Some("hand")) => "doc-hand",
@@ -300,9 +325,10 @@ fn collector_oracle() {
     }
 }
 
-/// `FUGO_SAMPLES=<family>:<class>` prints the differences of one class.
+/// `<PREFIX>_SAMPLES=<family>:<class>` prints the differences of one class.
 fn debug_sample(family: &str, class: &str, html: &str, got: &StatsLists, want: &StatsLists) {
-    if std::env::var("FUGO_SAMPLES").is_ok_and(|v| v == format!("{family}:{class}")) {
+    if std::env::var(ssg_base::env_var!("SAMPLES")).is_ok_and(|v| v == format!("{family}:{class}"))
+    {
         eprintln!("{html:?}\n    got  {got:?}\n    want {want:?}");
     }
 }

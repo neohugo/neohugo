@@ -70,7 +70,7 @@ A project without a `static` directory. fsync reports "file does not exist" (whi
 ignores); this port copies nothing and reports zero files.
 """
 
-# ── publisher/collector/collector.jsonl.gz (build_stats.json) ──
+# ── publisher/collector/collector.jsonl.gz (HtmlElements, for purge_css) ──
 #
 # Go's collector cuts the output into element strings with its own quote-tracking scanner and
 # parses each string alone with x/net/html's tree builder in a body context; this port tokenizes

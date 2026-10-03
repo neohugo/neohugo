@@ -1,6 +1,6 @@
 ---
 title: npm packages
-description: List npm packages in package.json; fugo installs them when it builds and runs Tailwind and Babel itself, without Node.js or npm.
+description: List npm packages in package.json; fugo installs them when it builds, without Node.js or npm.
 weight: 60
 ---
 
@@ -9,12 +9,7 @@ Put the npm packages a site needs in `package.json`, next to the configuration f
 ```json {title="package.json"}
 {
   "private": true,
-  "dependencies": { "alpinejs": "^3.14.9" },
-  "devDependencies": {
-    "tailwindcss": "^4.1.0",
-    "@tailwindcss/cli": "^4.1.0",
-    "@tailwindcss/typography": "^0.5.16"
-  }
+  "dependencies": { "alpinejs": "^3.14.9", "bootstrap": "^5.3.3" }
 }
 ```
 
@@ -22,10 +17,9 @@ Put the npm packages a site needs in `package.json`, next to the configuration f
 You do not need Node.js or npm:
 
 - [`js_build`](/asset-pipelines/js-build/) bundles what you import from them;
-- [mounts](/configuration/module/) can use their files (`node_modules/bootstrap/scss`);
-- [`tailwind`](/asset-pipelines/tailwind-css/) and [`babel`](/asset-pipelines/babel/) run the
-  `@tailwindcss/cli` and `@babel/cli` packages with the JavaScript runtime built into fugo.
-  It loads native addons, such as Tailwind's.
+- [mounts](/configuration/module/) can use their files (`node_modules/bootstrap/scss`).
+
+fugo runs none of their programs.
 
 ```text
 Installed the npm packages of package.json in 2102 ms
@@ -39,7 +33,7 @@ installs again when you save `package.json`.
 fugo installs `dependencies`, `devDependencies` and `optionalDependencies`, the way npm lays them
 out: one `node_modules` with every package hoisted as far up as its version allows, and each
 program in `node_modules/.bin`. It installs only the optional packages for your platform, such
-as Tailwind's native addon for your operating system and processor.
+as a native build for your operating system and processor.
 
 Packages come from the npm registry, or from the registry and credentials in the project's
 `.npmrc` or your `~/.npmrc`. Each download is checked against its integrity hash. Downloads are
@@ -69,12 +63,7 @@ fugo manages a `node_modules` it created itself, or one that does not exist yet.
 If you install with your own package manager, fugo uses what you installed. Delete
 `node_modules` to let fugo install it again.
 
-## Finding the tools
-
-fugo runs the `@tailwindcss/cli` and `@babel/cli` packages from the project's `node_modules`
-with its own JavaScript runtime. To use another version of a tool, change it in `package.json`.
-fugo does not use `tailwindcss` or `babel` programs on your `PATH`.
+## Without the installer
 
 A fugo built without the `npm` feature (`cargo build --no-default-features --features
-goat,math`) has no installer and no runtime. It runs the tools from `node_modules/.bin` instead,
-so you need Node.js and an installed `node_modules`.
+goat,math`) installs nothing: install `node_modules` with npm, pnpm or yarn.

@@ -12,7 +12,6 @@
 //! | E1 | static files into the sink (rendered outputs win conflicts) | `publish` |
 //! | E2 | wave 1: one sub-wave per language, in language order | `waves` (render pool) |
 //! | E3 | wave 2: pagers 2..N, `page/1/` aliases, the language redirect | `waves` |
-//! | E4 | `build_stats.json`: the project directory and its asset mounts | `deferred` |
 //! | E5 | `defer(...)` templates once per key, post-process fields → `patch_held` | `deferred` (render pool) |
 //! | E6 | resources named by URL tokens (and eager bundle files), processed images | `publish_resources` |
 //! | E7 | sorted, de-duplicated diagnostics; errors fail the build | `build` |
@@ -418,9 +417,7 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
     report.collisions = written.into_collisions();
     laps.lap(&mut report, "wave 2");
 
-    // E4, E5.
-    deferred::write_stats(&session, &publisher, &vfs)?;
-    laps.lap(&mut report, "stats");
+    // E5 (E4 wrote the Go build's stats file; there is none).
     deferred::run(&session, &publisher, &pool)?;
     laps.lap(&mut report, "deferred");
 

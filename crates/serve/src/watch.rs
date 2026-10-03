@@ -403,12 +403,10 @@ struct WatchedMount {
 pub(crate) struct Classifier {
     mounts: Vec<WatchedMount>,
     config: ConfigPlaces,
-    /// `build_stats.json`, which the build itself writes.
-    stats_file: PathBuf,
 }
 
 impl Classifier {
-    pub(crate) fn new(cfg: &Config, vfs: &Vfs, config: ConfigPlaces) -> Self {
+    pub(crate) fn new(vfs: &Vfs, config: ConfigPlaces) -> Self {
         Self {
             mounts: vfs
                 .mounts()
@@ -421,7 +419,6 @@ impl Classifier {
                 })
                 .collect(),
             config,
-            stats_file: cfg.project_dir.join(ssg_config::global::STATS_FILE),
         }
     }
 
@@ -468,7 +465,7 @@ impl Classifier {
         if self.config.is_file(path) {
             return Some(Kind::Config);
         }
-        if is_ignored(path) || *path == self.stats_file {
+        if is_ignored(path) {
             return None;
         }
         if self.config.contains(path) {
