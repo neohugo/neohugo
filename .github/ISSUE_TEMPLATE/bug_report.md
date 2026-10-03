@@ -13,23 +13,26 @@ Please include as much of the information requested below as possible.
 If you have an issue that can be shown visually, please provide a screenshot or GIF of the problem as well.
 -->
 
-**What version of Hugo are you using (`nhugo version`)?**
+**What version of fugo are you using (`fugo version`)?**
 
 <pre>
-$ nhugo version
+$ fugo version
 
 </pre>
 
 **Does this issue reproduce with the latest release?**
 
-**Does this issue reproduce with the original hugo latest release?**
-<!-- if yes, please go to report https://github.com/gohugoio/hugo/ instead. -->
+**Does the same site build differently with a Go-template generator?**
+<!--
+fugo follows the output of the Go implementation it was rewritten from for the same content and configuration (its layouts are Tera templates, not Go templates). If you also build the site with a Go-template generator, describe what it (which version?) does with the same site, or say that you have not checked.
+Report only fugo issues here.
+-->
 
 **Step to reproduce?**
 <!--
 Steps to reproduce the behavior. For example:
 1. Create file '...'
-2. Run nhugo '....'
+2. Run fugo '....'
 3. See error at '....'
 -->
 

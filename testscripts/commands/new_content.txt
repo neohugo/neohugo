@@ -1,7 +1,0 @@
-neohugo new site myblog
-cd myblog
-neohugo new content --kind post post/first-post.md
-! exists resources
-grep 'draft = true' content/post/first-post.md
-
-

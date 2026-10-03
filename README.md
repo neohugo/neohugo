@@ -1,51 +1,33 @@
-[bep]: https://github.com/bep
-[bugs]: https://github.com/gohugoio/hugo/issues?q=is%3Aopen+is%3Aissue+label%3ABug
-[contributing]: CONTRIBUTING.md
-[create a proposal]: https://github.com/gohugoio/hugo/issues/new?labels=Proposal%2C+NeedsTriage&template=feature_request.md
-[documentation repository]: https://github.com/gohugoio/hugoDocs
-[documentation]: https://gohugo.io/documentation
-[dragonfly bsd, freebsd, netbsd, and openbsd]: https://gohugo.io/installation/bsd
-[features]: https://gohugo.io/about/features/
-[forum]: https://discourse.gohugo.io
-[friends]: https://github.com/gohugoio/hugo/graphs/contributors
-[go]: https://go.dev/
-[hugo modules]: https://gohugo.io/hugo-modules/
-[installation]: https://gohugo.io/installation
-[issue queue]: https://github.com/gohugoio/hugo/issues
-[linux]: https://gohugo.io/installation/linux
-[macos]: https://gohugo.io/installation/macos
-[prebuilt binary]: https://github.com/gohugoio/hugo/releases/latest
-[requesting help]: https://discourse.gohugo.io/t/requesting-help/9132
-[spf13]: https://github.com/spf13
+[discussions]: https://github.com/getfugo/fugo/discussions
+[issue tracker]: https://github.com/getfugo/fugo/issues
+[releases]: https://github.com/getfugo/fugo/releases
+[rust]: https://www.rust-lang.org/
 [static site generator]: https://en.wikipedia.org/wiki/Static_site_generator
-[support]: https://discourse.gohugo.io
-[themes]: https://themes.gohugo.io/
-[website]: https://gohugo.io
-[windows]: https://gohugo.io/installation/windows
 
-what is the different between neohugo vs hugo?
+<p align="center">
+  <img src="brand/logo.png" alt="fugo: an orange cat with goggles in a gear, above the word fugo" width="220">
+</p>
 
-[Neohugo vs Hugo](https://github.com/neohugo/neohugo/wiki/Diff-hugo-neohugo)
+<h3 align="center">The Rust-powered static site generator</h3>
 
+<p align="center">
+  <a href="https://getfugo.github.io">Website</a> ·
+  <a href="https://github.com/getfugo/fugo/discussions">Discussions</a> ·
+  <a href="https://github.com/getfugo/fugo/issues">Issues</a> ·
+  <a href="#installation">Installation</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a> ·
+  <a href="docs/content/migrating/">Migrating</a>
+</p>
 
-[Website](https://neohugo.github.io) |
-[Forum](https://github.com/neohugo/neohugo/discussions) |
-[Documentation](https://neohugo.github.io/getting-started/) |
-[Installation Guide](https://neohugo.github.io/getting-started/installing/) |
-[Contribution Guide](CONTRIBUTING.md)
+<p align="center">
+  <a href="https://github.com/getfugo/fugo/actions/workflows/ci.yml"><img src="https://github.com/getfugo/fugo/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+</p>
 
-[![Go Reference](https://pkg.go.dev/badge/neohugo/neohugo.svg)](https://pkg.go.dev/github.com/neohugo/neohugo)
-![Golangci-lint](https://github.com/neohugo/neohugo/workflows/Golangci-lint/badge.svg)
-![CI](https://github.com/neohugo/neohugo/workflows/CI/badge.svg)
-![Release](https://github.com/neohugo/neohugo/workflows/Release/badge.svg)
-[![Go Report Card](https://goreportcard.com/badge/github.com/neohugo/neohugo)](https://goreportcard.com/report/github.com/neohugo/neohugo)
-
-[Website] | [Installation] | [Documentation] | [Support] | [Contributing] | <a rel="me" href="https://fosstodon.org/@gohugoio">Mastodon</a>
 ## Overview
 
-Hugo is a [static site generator] written in [Go], optimized for speed and designed for flexibility. With its advanced templating system and fast asset pipelines, Hugo renders a complete site in seconds, often less.
+fugo is a [static site generator] written in [Rust]. It began as a fork of another static site generator, written in Go, and was rewritten in Rust ([Origin and attribution](#origin-and-attribution)): it keeps that generator's project layout, content model and configuration keys, and its tests compare its output with the Go implementation's, but its layouts are Tera templates. With its templating system and fast asset pipelines, fugo renders a complete site in seconds, often less.
 
-Due to its flexible framework, multilingual support, and powerful taxonomy system, Hugo is widely used to create:
+With its multilingual support and taxonomy system, fugo suits:
 
 - Corporate, government, nonprofit, education, news, event, and project sites
 - Documentation sites
@@ -54,208 +36,103 @@ Due to its flexible framework, multilingual support, and powerful taxonomy syste
 - Business, professional, and personal blogs
 - Resumes and CVs
 
-Use Hugo's embedded web server during development to instantly see changes to content, structure, behavior, and presentation. Then deploy the site to your host, or push changes to your Git provider for automated builds and deployment.
+Use fugo's built-in web server (`fugo server`) during development to instantly see changes to content, structure, behavior, and presentation. Then deploy the site to your host, or push changes to your Git provider for automated builds and deployment.
 
-Neohugo's fast asset pipelines include:
+Fugo's fast asset pipelines include:
 
 - Image processing &ndash; Convert, resize, crop, rotate, adjust colors, apply filters, overlay text and images, and extract EXIF data
 - JavaScript bundling &ndash; Transpile TypeScript and JSX to JavaScript, bundle, tree shake, minify, create source maps, and perform SRI hashing.
-- Sass processing &ndash; Transpile Sass to CSS, bundle, tree shake, minify, create source maps, perform SRI hashing, and integrate with PostCSS
-- Tailwind CSS processing &ndash; Compile Tailwind CSS utility classes into standard CSS, bundle, tree shake, optimize, minify, perform SRI hashing, and integrate with PostCSS
+- Sass processing &ndash; Transpile Sass to CSS, bundle, tree shake, minify (with vendor prefixes for your browserslist), purge unused rules per page, create source maps, and perform SRI hashing
+- npm packages &ndash; Install the packages of `package.json` for bundling and Sass imports, without Node.js or npm
 
-And with [Hugo Modules], you can share content, assets, data, translations, themes, templates, and configuration with other projects via public or private Git repositories.
+Fugo reads its configuration from `config.toml` (or `config.yaml`, `config.yml`, `config.json`), with the Go build's configuration keys and project layout, and uses its own names throughout: the `build` template object, `config.toml` and `.env` files. Its templates are Tera 2 with the Go build's layout names (those of v0.146 and later) instead of Go templates; [Upgrading from the Go build](#upgrading-from-the-go-build) says what else changed with v1.0.0. The known differences from the Go implementation are listed in §7 of [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md).
 
-See the [features] section of the documentation for a comprehensive summary of Hugo's capabilities.
+fugo's documentation is the site in [`docs/`](docs/), built with fugo: getting started, content management, templates, asset pipelines, configuration, a generated reference of every template function, object and command, and a guide for [migrating from Go templates](docs/content/migrating/). See [Documentation](#documentation).
 
-## Sponsors
+Minified CSS (`--minify`, `resources.Minify`) is prepared for the browsers of the project's [browserslist](https://github.com/browserslist/browserslist#queries) configuration (`.browserslistrc`, a `browserslist` file or the `browserslist` key of `package.json`; the section named like the environment applies, else the default queries): vendor prefixes those browsers need are added, newer syntax they lack is lowered and prefixes none of them needs are removed, as autoprefixer does, so PostCSS is not needed for that. A style rule declaring a property twice (a value and its fallback) is kept as written. Without a browserslist configuration, prefixes stay as written.
 
-<p>&nbsp;</p>
-<p float="left">
-  <a href="https://www.linode.com/?utm_campaign=hugosponsor&utm_medium=banner&utm_source=hugogithub" target="_blank"><img src="https://raw.githubusercontent.com/gohugoio/gohugoioTheme/master/assets/images/sponsors/linode-logo_standard_light_medium.png" width="200" alt="Linode"></a>
-&nbsp;&nbsp;&nbsp;
-  <a href="https://www.jetbrains.com/go/?utm_source=OSS&utm_medium=referral&utm_campaign=hugo" target="_blank"><img src="https://raw.githubusercontent.com/gohugoio/gohugoioTheme/master/assets/images/sponsors/goland.svg" width="200" alt="The complete IDE crafted for professional Go developers."></a>
-</p>
+`purge_css` cuts a stylesheet down, for each page, to the rules that page uses (its elements' tags, classes and ids, the words of its scripts), with PurgeCSS's `safelist`, `greedy`, `blocklist`, `content` and `variables` options: `<style>{{ get_asset(path="main.scss") | to_css | minify | purge_css(content=[get_asset(path="js/main.js")]) }}</style>`. It needs no stats file and no PostCSS, and pages are written as they are rendered. See [template-api.md](docs/rust-port/template-api.md).
 
 ## Installation
 
-Install Hugo from a [prebuilt binary], package manager, or package repository. Please see the installation instructions for your operating system:
+Download the archive for your platform from the [releases] page. Releases are tagged `v<version>`; v1.0.0 and later are the Rust implementation named fugo, v0.148.2 and earlier the former Go implementation, released under the project's former name. The archives are named `fugo_<version>_<os>-<arch>.tar.gz` (`.zip` for Windows; up to v0.148.2 the archives carry the former name), and hold the `fugo` binary, `README.md`, `LICENSE`, `NOTICE`, `THIRD_PARTY_NOTICES.txt`, `PROVENANCE.md` and `THIRD_PARTY/`:
 
-- [macOS]
-- [Linux]
-- [Windows]
-- [DragonFly BSD, FreeBSD, NetBSD, and OpenBSD]
+- `linux-amd64`, `linux-arm64` (glibc 2.35 or later)
+- `darwin-amd64`, `darwin-arm64`
+- `windows-amd64`
+
+Check a download with `sha256sum -c fugo_<version>_checksums.txt --ignore-missing` (on macOS: `shasum -a 256 -c fugo_<version>_checksums.txt --ignore-missing`), then put `fugo` on your `PATH`:
+
+```text
+fugo version
+fugo -s <site>                # build into the publish directory
+fugo server -s <site>         # development server with live reload
+```
+
+The commands and flags (the Go build's, in kebab case, with its camelCase spellings as aliases) are listed in [crates/cli/README.md](crates/cli/README.md).
+
+## Upgrading from the Go build
+
+v1.0.0 replaces the Go build, under a new name and its own version numbers. What a site or a script may have to change:
+
+- **The name is fugo**, and the source code avoids the program's name: the binary is `fugo` (`fugo version` prints `fugo v<version> …`), the release archives are `fugo_<version>_…`, and the repository is [getfugo/fugo](https://github.com/getfugo/fugo). The names a site uses carry no program name: the configuration file is `config.toml` (or `config.yaml`, `config.yml`, `config.json`; no file named after a program is read), the template object is `build` (`build.environment`, `build.is_server`, `build.generator`; it replaces the Go build's objects named after the program), and Sass imports the template's variables as `build:vars`. Settings are not read from environment variables: they come from the configuration files and the command line. The environment comes from `--environment`; secrets for templates go in the project's `.env` files (`get_env`), and `security.funcs.getenv` allows `^FUGO_` by default.
+- **No PostCSS, Babel or Tailwind CSS pipeline, and no stats file** (`css.PostCSS`, `js.Babel`, `css.TailwindCSS`, `[build.buildStats]`): fugo runs no external programs ([External tools](#external-tools)). `[build] buildStats` and `writeStats` print a warning and are ignored; `[security.exec]` is accepted and has no effect.
+
+- **Layouts are Tera 2 templates, not Go templates**, with the layout names of v0.146 and later (`home.html`, `single.html`, `_partials/`, `_shortcodes/`, `_markup/`). A layout with Go template syntax or a legacy name is an error that says what to change. [docs/rust-port/template-api.md](docs/rust-port/template-api.md) lists every function, filter and test with its Go-template name and how Go-template idioms translate; `fugo templates check -s <site>` checks a site's templates against it. Output is escaped by output format (HTML and XML), not by context as in Go's `html/template`: in `<script>` use `jsonify | safe`, in query strings `urlencode`.
+- **Commands and flags:** `build` (also with no command), `server`, `templates check`, `config` and `version`; the Go build's `env`, `new`, `mod`, `deploy`, `list`, `gen`, `convert`, `import`, `release`, `server trust` and `config mounts`, and the `completion` and `help` commands are not available (`--help` prints the help). Of the Go build's flags, those [crates/cli/README.md](crates/cli/README.md) lists are accepted (`--noChmod` and `--noTimes` included); the logging and housekeeping flags (`--gc`, `--logLevel`, `--noBuildLock`, `--printI18nWarnings`, `--printPathWarnings`, `--printUnusedTemplates`, `--templateMetrics`, `--templateMetricsHints`) and the server's `--disableFastRender` and `--disableBrowserError` are not, so drop them from command lines such as `--gc --minify`. Boolean flags take an explicit value as before (`--minify=false`, `--buildDrafts=true`), and `=false` overrides the configuration as before (`-D=false` against `buildDrafts = true`). `--quiet` (also `-q` in fugo) only hides the build summary: warnings and errors are still printed, where the Go build discarded them too. Another, such as `--enableGitInfo`, `--contentDir`, `--disableKinds`, `--panicOnWarning` or the build's `-w`/`--watch`, is an error. As before, flags may come before or after the command (`fugo -s <site> server`), and every command takes the persistent flags (`-s`, `-d`, `-e`, `--config`, `--configDir`, `--themesDir`, `--clock`, `--quiet`, `-M`). A build prints one summary line (`pages … | files … | … | static files …`, then `Total in N ms`) instead of the Go build's per-language statistics table. `config` prints fugo's resolved configuration model (snake_case fields, one entry per site under `sites`, the merged user keys under `raw`), not the Go build's lower-cased keys (`baseurl`, `publishdir`, …), so a script that reads its output must change; it prints JSON by default (the Go build: TOML) and takes `--format json` or `toml`, not `yaml`, `--lang` or `--printZero`. A usage error exits with 2 (the Go build exited with 1 on every error), and error messages start with `error:` (usage) or `ERROR` (build) instead of `Error:`.
+- **`server` renders into memory by default.** The Go build wrote the site to the publish directory and served it from there (`-M`/`--renderToMemory` rendered into memory). For the Go behaviour add `--render-to-disk`, a flag of fugo, not of the Go build; `-d`/`--destination` without it is an error.
+- **Modules** are not downloaded (no `go.mod` resolution): themes and modules come from the themes directory, `_vendor` or an absolute path.
+- **`js.Build` bundles in process with [rolldown](https://rolldown.rs)** (the Go build linked esbuild 0.25.6): nothing to install, and the options are the same. Scripts behave as before, but their bytes differ, so fingerprinted names, `Data.Integrity` and source maps change. Other visible differences: the IIFE wrapper is `(function() { … })();`; legal comments stay where they are instead of moving to the end; error texts are rolldown's, except unresolved imports (`Could not resolve "x"`) and the `es5` target's errors, which keep esbuild's wording and positions. As with esbuild, TC39 decorators are lowered, `target: es5` checks and lowers the bundle, and CSS imported from scripts is dropped (`local-css` modules give their class names). Sass is compiled in process with dart-sass semantics, whatever `transpiler` says.
+- The Docker images of the Go build, published under the former name, are no longer updated; they stay at the last Go build.
+- The website [getfugo.github.io](https://getfugo.github.io) is no longer redeployed on release tags, and until it is redeployed from `docs/` it documents the Go build. fugo's documentation is now `docs/`, a site with its own theme built by fugo (`tools/docs/build.sh`). The Go build's documentation site is kept as the test fixture `testdata/legacy-docs/`: `tools/legacy-docs/build.sh` builds it with fugo (Tera layouts in `sites/docs`), and gate A-D3 checks every page of that build against the published one.
 
 ## Build from source
 
-Prerequisites to build Hugo from source:
+Prerequisites to build fugo from source:
 
-- Go 1.20 or later
-- GCC or another C compiler (for SCSS, WebP, and deploy features)
+- Rust 1.96 or later (`rust-version` in `Cargo.toml`; CI builds with 1.96.0)
+- A C compiler (libwebp and ring are compiled with the `cc` crate)
 
-Build Hugo:
-
-```text
-CGO_ENABLED=1 go install github.com/gohugoio/hugo@latest
-```
-
-To build without CGO (lightweight version without SCSS, WebP, and deploy support):
+Build fugo:
 
 ```text
-go install github.com/gohugoio/hugo@latest
+cargo build --release --locked -p ssg-cli
 ```
+
+The binary is `target/release/fugo`. [DEVELOPMENT.md](DEVELOPMENT.md) describes the workspace, its tests and the CI and release workflow.
+
+## External tools
+
+None: every asset pipeline runs in process, and fugo runs no programs. It installs the npm packages of a project's `package.json` itself, for `js_build` and Sass imports. There is no PostCSS, Babel or Tailwind CSS pipeline: `minify` adds the vendor prefixes for the project's browserslist, `purge_css` purges per page, `js_build` compiles TypeScript and JSX and lowers modern JavaScript for the browser targets, and Tailwind's own CLI runs next to fugo ([docs/content/asset-pipelines/tailwind-css.md](docs/content/asset-pipelines/tailwind-css.md)).
+
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=gohugoio/hugo&type=Timeline)](https://star-history.com/#gohugoio/hugo&Timeline)
+[![Star History Chart](https://api.star-history.com/svg?repos=getfugo/fugo&type=Timeline)](https://star-history.com/#getfugo/fugo&Timeline)
 
 ## Documentation
 
-Hugo's [documentation] includes installation instructions, a quick start guide, conceptual explanations, reference information, and examples.
-
-Please submit documentation issues and pull requests to the [documentation repository].
+- [docs/](docs/): fugo's documentation site. Build it with `tools/docs/build.sh` (or preview it with `fugo server -s docs`); `docs/content/` is readable as Markdown too.
+- [crates/cli/README.md](crates/cli/README.md): the commands and flags.
+- [docs/rust-port/template-api.md](docs/rust-port/template-api.md): every template function, filter and test, with its Go-template name and how Go-template idioms translate.
+- [Upgrading from the Go build](#upgrading-from-the-go-build), above, and the known differences from the Go implementation in §7 of [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md).
+- The website [getfugo.github.io](https://getfugo.github.io), which documents the Go build (v0.148.2 and earlier) until it is redeployed from `docs/`.
 
 ## Support
 
-Please **do not use the issue queue** for questions or troubleshooting. Unless you are certain that your issue is a software defect, use the [forum].
-
-Hugo’s [forum] is an active community of users and developers who answer questions, share knowledge, and provide examples. A quick search of over 20,000 topics will often answer your question. Please be sure to read about [requesting help] before asking your first question.
+Please **do not use the issue tracker** for questions or troubleshooting: ask in fugo's [discussions]. Use the [issue tracker] for defects of fugo and for feature requests. Report only fugo issues here.
 
 ## Contributing
 
-You can contribute to the Hugo project by:
+You can contribute to fugo by answering questions in the [discussions], reporting and fixing bugs, improving the documentation and proposing features. Before you work on a feature, open an issue with the feature request template so that it can be discussed first. The [Contribution Guide](CONTRIBUTING.md) covers the code guidelines, the commit messages and the checks a pull request must pass.
 
-- Answering questions on the [forum]
-- Improving the [documentation]
-- Monitoring the [issue queue]
-- Creating or improving [themes]
-- Squashing [bugs]
+The code is the Cargo workspace at the repository root: [DEVELOPMENT.md](DEVELOPMENT.md) has the layout, the commands and the CI and release workflow, and [docs/rust-port/HANDOFF.md](docs/rust-port/HANDOFF.md) the crate map, the parity gates, the deviations from the Go implementation and the open items.
 
-Please submit documentation issues and pull requests to the [documentation repository].
+## Origin and attribution
 
-If you have an idea for an enhancement or new feature, create a new topic on the [forum] in the "Feature" category. This will help you to:
+fugo began as a fork of another static site generator and was rewritten in Rust: v0.148.2 and earlier were that generator's Go code with the fork's changes, released under the project's former name, and v1.0.0 and later are the Rust rewrite. Parts of fugo derive from the original project, which is licensed under the Apache License 2.0: templates rewritten from its embedded templates, its LiveReload plugin, behaviour transcribed from its Go sources, and its test data and documentation used as test fixtures. Each of these is listed in [PROVENANCE.md](PROVENANCE.md), and [NOTICE](NOTICE) carries the attribution of the derived material.
 
-- Determine if the capability already exists
-- Measure interest
-- Refine the concept
+fugo is developed independently: it is not affiliated with, sponsored by or endorsed by the original project, its maintainers or its sponsors.
 
-If there is sufficient interest, [create a proposal]. Do not submit a pull request until the project lead accepts the proposal.
+## License and dependencies
 
-For a complete guide to contributing to Hugo, see the [Contribution Guide](CONTRIBUTING.md).
-
-## Dependencies
-
-Hugo stands on the shoulders of great open source libraries. Run `hugo env --logLevel info` to display a list of dependencies.
-
-<details>
-<summary>See current dependencies</summary>
-
-```text
-github.com/BurntSushi/locker="v0.0.0-20171006230638-a6e239ea1c69"
-github.com/PuerkitoBio/goquery="v1.10.1"
-github.com/alecthomas/chroma/v2="v2.15.0"
-github.com/andybalholm/cascadia="v1.3.3"
-github.com/armon/go-radix="v1.0.1-0.20221118154546-54df44f2176c"
-github.com/bep/clocks="v0.5.0"
-github.com/bep/debounce="v1.2.0"
-github.com/bep/gitmap="v1.6.0"
-github.com/bep/goat="v0.5.0"
-github.com/bep/godartsass/v2="v2.3.2"
-github.com/bep/golibsass="v1.2.0"
-github.com/bep/gowebp="v0.3.0"
-github.com/bep/imagemeta="v0.8.4"
-github.com/bep/lazycache="v0.7.0"
-github.com/bep/logg="v0.4.0"
-github.com/bep/mclib="v1.20400.20402"
-github.com/bep/overlayfs="v0.9.2"
-github.com/bep/simplecobra="v0.5.0"
-github.com/bep/tmc="v0.5.1"
-github.com/cespare/xxhash/v2="v2.3.0"
-github.com/clbanning/mxj/v2="v2.7.0"
-github.com/cpuguy83/go-md2man/v2="v2.0.4"
-github.com/disintegration/gift="v1.2.1"
-github.com/dlclark/regexp2="v1.11.5"
-github.com/dop251/goja="v0.0.0-20250125213203-5ef83b82af17"
-github.com/evanw/esbuild="v0.24.2"
-github.com/fatih/color="v1.18.0"
-github.com/frankban/quicktest="v1.14.6"
-github.com/fsnotify/fsnotify="v1.8.0"
-github.com/getkin/kin-openapi="v0.129.0"
-github.com/ghodss/yaml="v1.0.0"
-github.com/go-openapi/jsonpointer="v0.21.0"
-github.com/go-openapi/swag="v0.23.0"
-github.com/go-sourcemap/sourcemap="v2.1.4+incompatible"
-github.com/gobuffalo/flect="v1.0.3"
-github.com/gobwas/glob="v0.2.3"
-github.com/gohugoio/go-i18n/v2="v2.1.3-0.20230805085216-e63c13218d0e"
-github.com/gohugoio/hashstructure="v0.5.0"
-github.com/gohugoio/httpcache="v0.7.0"
-github.com/gohugoio/hugo-goldmark-extensions/extras="v0.2.0"
-github.com/gohugoio/hugo-goldmark-extensions/passthrough="v0.3.0"
-github.com/gohugoio/locales="v0.14.0"
-github.com/gohugoio/localescompressed="v1.0.1"
-github.com/golang/freetype="v0.0.0-20170609003504-e2365dfdc4a0"
-github.com/google/go-cmp="v0.6.0"
-github.com/google/pprof="v0.0.0-20250208200701-d0013a598941"
-github.com/gorilla/websocket="v1.5.3"
-github.com/hairyhenderson/go-codeowners="v0.7.0"
-github.com/hashicorp/golang-lru/v2="v2.0.7"
-github.com/jdkato/prose="v1.2.1"
-github.com/josharian/intern="v1.0.0"
-github.com/kr/pretty="v0.3.1"
-github.com/kr/text="v0.2.0"
-github.com/kyokomi/emoji/v2="v2.2.13"
-github.com/lucasb-eyer/go-colorful="v1.2.0"
-github.com/mailru/easyjson="v0.7.7"
-github.com/makeworld-the-better-one/dither/v2="v2.4.0"
-github.com/marekm4/color-extractor="v1.2.1"
-github.com/mattn/go-colorable="v0.1.13"
-github.com/mattn/go-isatty="v0.0.20"
-github.com/mattn/go-runewidth="v0.0.9"
-github.com/mazznoer/csscolorparser="v0.1.5"
-github.com/mitchellh/mapstructure="v1.5.1-0.20231216201459-8508981c8b6c"
-github.com/mohae/deepcopy="v0.0.0-20170929034955-c48cc78d4826"
-github.com/muesli/smartcrop="v0.3.0"
-github.com/niklasfasching/go-org="v1.7.0"
-github.com/oasdiff/yaml3="v0.0.0-20241210130736-a94c01f36349"
-github.com/oasdiff/yaml="v0.0.0-20241210131133-6b86fb107d80"
-github.com/olekukonko/tablewriter="v0.0.5"
-github.com/pbnjay/memory="v0.0.0-20210728143218-7b4eea64cf58"
-github.com/pelletier/go-toml/v2="v2.2.3"
-github.com/perimeterx/marshmallow="v1.1.5"
-github.com/pkg/browser="v0.0.0-20240102092130-5ac0b6a4141c"
-github.com/pkg/errors="v0.9.1"
-github.com/rivo/uniseg="v0.4.7"
-github.com/rogpeppe/go-internal="v1.13.1"
-github.com/russross/blackfriday/v2="v2.1.0"
-github.com/sass/libsass="3.6.6"
-github.com/spf13/afero="v1.11.0"
-github.com/spf13/cast="v1.7.1"
-github.com/spf13/cobra="v1.8.1"
-github.com/spf13/fsync="v0.10.1"
-github.com/spf13/pflag="v1.0.6"
-github.com/tdewolff/minify/v2="v2.20.37"
-github.com/tdewolff/parse/v2="v2.7.15"
-github.com/tetratelabs/wazero="v1.8.2"
-github.com/webmproject/libwebp="v1.3.2"
-github.com/yuin/goldmark-emoji="v1.0.4"
-github.com/yuin/goldmark="v1.7.8"
-go.uber.org/automaxprocs="v1.5.3"
-golang.org/x/crypto="v0.33.0"
-golang.org/x/exp="v0.0.0-20250210185358-939b2ce775ac"
-golang.org/x/image="v0.24.0"
-golang.org/x/mod="v0.23.0"
-golang.org/x/net="v0.35.0"
-golang.org/x/sync="v0.11.0"
-golang.org/x/sys="v0.30.0"
-golang.org/x/text="v0.22.0"
-golang.org/x/tools="v0.30.0"
-golang.org/x/xerrors="v0.0.0-20240903120638-7835f813f4da"
-gonum.org/v1/plot="v0.15.0"
-google.golang.org/protobuf="v1.36.5"
-gopkg.in/yaml.v2="v2.4.0"
-gopkg.in/yaml.v3="v3.0.1"
-oss.terrastruct.com/d2="v0.6.9"
-oss.terrastruct.com/util-go="v0.0.0-20241005222610-44c011a04896"
-rsc.io/qr="v0.2.0"
-software.sslmate.com/src/go-pkcs12="v0.2.0"
-```
-</details>
+fugo is licensed under the [Apache License 2.0](LICENSE); [NOTICE](NOTICE) holds the attribution notices of the work it derives from. It stands on the shoulders of great open source libraries. The Rust crates it uses are declared in [Cargo.toml](Cargo.toml) (`[workspace.dependencies]`, locked by `Cargo.lock`); material taken from other projects is listed in [PROVENANCE.md](PROVENANCE.md), with licences cargo cannot see in [THIRD_PARTY](THIRD_PARTY/README.md). The `THIRD_PARTY_NOTICES.txt` of each release archive holds the licences of the crates linked into that binary.

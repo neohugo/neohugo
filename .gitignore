@@ -1,40 +1,22 @@
-# binary
-/neohugo
-/hugo
-hugo.exe
-neohugo.exe
-
 docs/public*
+# The documentation site's processed images (`fugo server -s docs`)
+/docs/resources/
 /.idea
-hugo.exe
-*.test
-*.prof
 nohup.out
-cover.out
 *.swp
 *.swo
 .DS_Store
 *~
-vendor/*/
-*.bench
-*.debug
-coverage*.out
-
-dock.sh
-
-GoBuilds
-dist
-
-hugolib/hugo_stats.json
-resources/sunset.jpg
-
-vendor
-.hugo_build.lock
-
-tags*
-
-*.test
-imports.*
-dist/
+/dist/
 public/
-.DS_Store
+# Cargo build output (docs/rust-port/REWRITE_PLAN.md §6.1)
+/target/
+/target-*/
+# The Go binaries of tools/dev/oracle.sh (removed after 44529028; testdata/golden/README.md)
+/tools/dev/bin/
+/tools/dev/node_modules/
+# Test data is stored verbatim, whatever the rules above match.
+!/testdata/**
+
+# Python bytecode
+__pycache__/
