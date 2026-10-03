@@ -204,7 +204,7 @@ jobs:
           save-if: ${{ env.SAVE_CACHE }}
 
       # package.py reads Cargo.toml with tomllib (Python 3.11 or later; Ubuntu 22.04 has 3.10).
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
