@@ -6,7 +6,7 @@ use jiff::{Timestamp, Zoned};
 use ssg_base::{Date, Params, Value};
 use ssg_config::{DateField, DateSource, SiteConfig};
 
-/// The dates of a page; `None` is Hugo's zero date.
+/// The dates of a page; `None` is Go's zero date.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct Dates {
     pub date: Option<Zoned>,
@@ -37,7 +37,7 @@ impl Dates {
         *slot = Some(z);
     }
 
-    /// Whether every date is unset (Hugo's `IsAllDatesZero`: such nodes take their dates from
+    /// Whether every date is unset (Go's `IsAllDatesZero`: such nodes take their dates from
     /// their descendants).
     #[must_use]
     pub fn is_empty(&self) -> bool {
@@ -172,7 +172,7 @@ fn utc(t: Timestamp) -> Zoned {
     t.to_zoned(TimeZone::UTC)
 }
 
-/// A front matter value as a date: date strings in Hugo's layouts, TOML dates, Unix seconds.
+/// A front matter value as a date: date strings in Go's layouts, TOML dates, Unix seconds.
 pub(crate) fn to_date(v: &Value, tz: &TimeZone) -> Option<Zoned> {
     match v {
         Value::String(s) => ssg_base::parse_date(s, tz).ok(),
@@ -190,7 +190,7 @@ fn same_zone(a: &TimeZone, b: &TimeZone) -> bool {
     a.iana_name().is_some() && a.iana_name() == b.iana_name()
 }
 
-/// A zoned date in another zone keeps its offset but not its zone rules or sub-seconds (Hugo
+/// A zoned date in another zone keeps its offset but not its zone rules or sub-seconds (Go
 /// re-reads such dates from their RFC 3339 form); offset zero is UTC.
 fn to_second_fixed(z: &Zoned) -> Zoned {
     let ts = Timestamp::from_second(z.timestamp().as_second()).unwrap_or(z.timestamp());

@@ -16,7 +16,9 @@ as libwebp. A text already printed for an earlier package is referenced instead 
 
 A package that ships no licence file but is licensed under MIT (alone or as one choice) gets the
 MIT licence text with the authors from its Cargo.toml; one under Apache-2.0 refers to the
-Apache-2.0 text another linked package ships. Any other package without a licence file
+Apache-2.0 text another linked package ships; one under a licence whose standard text is in
+THIRD_PARTY/spdx/<SPDX id>.txt (BSD-3-Clause, CC0-1.0, BSL-1.0) gets that text, the copyright
+holders being its authors. Any other package without a licence file
 is printed and the script exits with status 1 unless --allow-missing is given, so a new
 dependency like that is noticed. Workspace members are covered by the repository's LICENSE.
 
@@ -29,6 +31,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent.parent
+SPDX_TEXTS = ROOT / "THIRD_PARTY" / "spdx"
 PREFIXES = ("license", "licence", "copying", "notice", "copyright", "unlicense", "authors",
             "patents")
 SKIP_DIRS = {".git", "tests", "test", "benches", "examples", "target", "fuzz"}
@@ -160,6 +163,15 @@ def main(argv):
                 parts.append("\nThe package ships no licence file. It is licensed under Apache-2.0; "
                              f"the licence text is the same as {source}, printed "
                              + ("above" if text in printed else "here") + ".\n")
+                if text not in printed:
+                    printed[text] = source
+                    parts.append("\n" + text)
+            elif spdx := next((t for t in sorted(SPDX_TEXTS.glob("*.txt")) if offers(expr, t.stem)), None):
+                text = spdx.read_text(encoding="utf-8").rstrip() + "\n"
+                source = f"THIRD_PARTY/spdx/{spdx.name}"
+                parts.append(f"\nThe package ships no licence file. It is licensed under {spdx.stem}; "
+                             "the copyright holders being its authors listed above, the licence text "
+                             + (f"is {source}, printed above.\n" if text in printed else "follows.\n"))
                 if text not in printed:
                     printed[text] = source
                     parts.append("\n" + text)

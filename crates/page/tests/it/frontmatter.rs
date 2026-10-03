@@ -1,4 +1,4 @@
-//! Oracle: page dates (Hugo's `HandleDates`) for every page of the reference builds, replayed
+//! Oracle: page dates (Go's `HandleDates`) for every page of the reference builds, replayed
 //! over 8 `[frontmatter]` variants × 3 time zones × with and without a Git date; and the
 //! `[frontmatter]` and `build` option decoding (`oracle/page/frontmatter/*`).
 
@@ -116,7 +116,7 @@ fn judge(t: &mut Tally, got: &J, want: &J, errors_ok: bool, detail: impl FnOnce(
 }
 
 #[test]
-fn dates_match_hugo() {
+fn dates_match_go() {
     let mut t = Tally::default();
     let mut replays = 0;
     for file in family("frontmatter", &["decode.json.gz"]) {
@@ -167,10 +167,10 @@ fn dates_match_hugo() {
     t.finish("frontmatter-dates");
 }
 
-/// `decode_front_matter` gives the date sources Hugo decodes from `[frontmatter]` (defaults,
+/// `decode_front_matter` gives the date sources Go decodes from `[frontmatter]` (defaults,
 /// `:default`, aliases, case, duplicates, scalars and empty lists).
 #[test]
-fn front_matter_config_decodes_like_hugo() {
+fn front_matter_config_decodes_like_go() {
     let fx = fixture("frontmatter/decode.json.gz");
     let mut t = Tally::default();
     for c in fx["cases"].as_array().expect("cases") {
@@ -211,7 +211,7 @@ fn front_matter_config_decodes_like_hugo() {
 }
 
 #[test]
-fn build_options_match_hugo() {
+fn build_options_match_go() {
     let fx = fixture("frontmatter/decode.json.gz");
     let mut t = Tally::default();
     for c in fx["cases"].as_array().expect("cases") {

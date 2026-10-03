@@ -1,4 +1,4 @@
-# Hugo's diagrams.Goat (bep/goat v0.5.0 BuildSVG) of every goat code block of docs/content:
+# The Go implementation's diagrams.Goat (bep/goat v0.5.0 BuildSVG) of every goat code block of docs/content:
 # <file>#<n>, width, height, SHA-256 of .Wrapped (generated; recipe in crates/funcs/tests/it/goat.rs)
 docs/content/en/configuration/http-cache.md#0	128	217	c9553cd70af97b66531e665bb9b8658e137e74e9f42db05077d5e30e4da390fa
 docs/content/en/content-management/diagrams.md#0	680	121	a917ddd61aff859fd84ecc9a58526f7b68a213ff5461de78962dced4b93fd814

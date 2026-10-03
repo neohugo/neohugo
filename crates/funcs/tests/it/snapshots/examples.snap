@@ -6,7 +6,7 @@ anchorize: hello-world creme-brulee
 append: "[1,2,3]"
 arg/index: "b [] d"
 arg/name: x.png true
-b64_decode: neohugo
+b64_decode: fugo
 b64_encode: ZXhhbXBsZQ==
 by_type: "notes/index.md,"
 complement: "[1,3]"

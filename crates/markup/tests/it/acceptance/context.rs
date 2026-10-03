@@ -1,5 +1,5 @@
 //! Context spans: a hook's `inner_page` is the page of the innermost span containing the
-//! node (Hugo `.PageInner` for `render_shortcodes` includes).
+//! node (Go's `.PageInner` for `render_shortcodes` includes).
 
 use std::ops::Range;
 use std::sync::Mutex;
@@ -76,8 +76,8 @@ fn span(md: &str, part: &str) -> Range<usize> {
 const P7: PageId = PageId::from_raw(7);
 const P9: PageId = PageId::from_raw(9);
 
-/// The hooks oracle's `adversarial/hugo-ctx-inline` document, with Hugo's textual context
-/// markers turned into spans.
+/// The hooks oracle's adversarial document with inline context markers, the Go
+/// implementation's textual markers turned into spans.
 #[test]
 fn inner_page_of_included_source() {
     let inside = "Inside **bold** [link](http://x) ![img](i.png)\n";
@@ -90,7 +90,7 @@ fn inner_page_of_included_source() {
             ("link", "http://x".to_owned(), P7, 2),
             ("image", "i.png".to_owned(), P7, 2),
             ("heading", "heading-in-ctx".to_owned(), P9, 5),
-            // Hugo keeps the last context for what follows an include; spans do not leak.
+            // Go keeps the last context for what follows an include; spans do not leak.
             ("link", "x".to_owned(), PAGE, 7),
         ]
     );

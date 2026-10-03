@@ -29,7 +29,7 @@ pub(super) fn register(r: &mut Registrar<'_>) {
     });
 }
 
-/// Escapes `& < > " '` (as `&amp; &lt; &gt; &#34; &#39;`, Hugo's `html`).
+/// Escapes `& < > " '` (as `&amp; &lt; &gt; &#34; &#39;`, the Go templates' `html`).
 pub(super) fn html_escape(s: &str) -> String {
     let mut out = String::with_capacity(s.len() + s.len() / 8);
     for c in s.chars() {
@@ -45,7 +45,7 @@ pub(super) fn html_escape(s: &str) -> String {
     out
 }
 
-/// Hugo's `transform.XMLEscape`: drops the characters XML 1.0 forbids, then escapes as Go's
+/// Go's `transform.XMLEscape`: drops the characters XML 1.0 forbids, then escapes as Go's
 /// `xml.EscapeText` (`& < > " '` as `&amp; &lt; &gt; &#34; &#39;`, tab, newline and CR as
 /// `&#x9; &#xA; &#xD;`).
 pub(super) fn xml_escape(s: &str) -> String {
@@ -85,7 +85,7 @@ pub(super) fn html_unescape(s: &str) -> String {
     out
 }
 
-/// Hugo's `plainify`: the text of an HTML fragment. Tags, comments and the bodies of `script` and
+/// Go's `plainify`: the text of an HTML fragment. Tags, comments and the bodies of `script` and
 /// `style` are removed, `</p>` and
 /// `<br>` become line breaks, other line breaks spaces, and each run of white space is reduced to
 /// its first character. Character references are decoded (the result is text, escaped again
@@ -144,7 +144,7 @@ struct OpenTag<'s> {
     open: bool,
 }
 
-/// Hugo's `truncate`: at most `length` characters of text (tags of a safe input do not count),
+/// Go's `truncate`: at most `length` characters of text (tags of a safe input do not count),
 /// cut at the last word boundary (any character boundary before CJK text), then `ellipsis`
 /// (default ` …`). A safe input keeps its markup valid: the tags left open are closed, and the
 /// result is safe; a plain input stays plain.

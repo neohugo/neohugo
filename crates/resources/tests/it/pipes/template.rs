@@ -99,7 +99,9 @@ fn execute_as_template_with_tera() {
     let js = s
         .transform(
             id,
-            Transform::JsBuild(JsBuildSpec::from_json(&json!({"target": "es2015"})).unwrap()),
+            Transform::JsBuild(Box::new(
+                JsBuildSpec::from_json(&json!({"target": "es2015"})).unwrap(),
+            )),
         )
         .unwrap();
     let code = String::from_utf8(s.content(js).unwrap().to_vec()).unwrap();

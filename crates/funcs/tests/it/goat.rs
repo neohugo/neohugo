@@ -1,13 +1,13 @@
 //! `diagrams_goat` (feature `goat`) against Go: GoAT's own example suite and every GoAT
-//! diagram of the Hugo documentation site, byte for byte.
+//! diagram of the legacy docs site, byte for byte.
 //!
 //! - `tests/fixtures/goat/examples/`: bep/goat v0.5.0 `examples/*.txt` and the `*.svg` its
 //!   `TestExamples` compares with (`BuildAndWriteSVG`: the `<svg>` element without
 //!   `font-family`, around the same body as `.Inner`).
 //! - `tests/fixtures/goat/docs.tsv`: for each ```` ```goat ```` code block of
-//!   `docs/content/**/*.md`, the width, height and SHA-256 of Hugo's `.Wrapped`, generated with
+//!   `docs/content/**/*.md`, the width, height and SHA-256 of Go's `.Wrapped`, generated with
 //!   Go 1.27 and bep/goat v0.5.0 by walking `docs/content` (`filepath.WalkDir`), matching the
-//!   blocks with the regular expression of [`collect`], trimming trailing `\r`/`\n` as Hugo's
+//!   blocks with the regular expression of [`collect`], trimming trailing `\r`/`\n` as Go's
 //!   code block `.Inner` does, and printing `goat.BuildSVG(…)`'s `Width`, `Height` and
 //!   `sha256.Sum256([]byte(svg.String()))`.
 
@@ -90,8 +90,7 @@ fn stable_output() {
 }
 
 /// The ```` ```goat ```` code blocks of the Markdown files below `dir`, as `(docs/<path from
-/// root>#<n>, Hugo's .Inner)` (`root` is Hugo's documentation site, which the fixture names
-/// `docs/`).
+/// root>#<n>, Go's .Inner)` (`root` is the legacy docs site, which the fixture names `docs/`).
 fn collect(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
     let re = regex::Regex::new(r"(?ms)^```goat[^\n]*\n(.*?)^```").expect("valid");
     let mut entries: Vec<_> = std::fs::read_dir(dir)
@@ -115,10 +114,10 @@ fn collect(root: &Path, dir: &Path, out: &mut Vec<(String, String)>) {
     }
 }
 
-/// Every docs diagram: the size and the `.Wrapped` bytes of Hugo's `diagrams.Goat`.
+/// Every docs diagram: the size and the `.Wrapped` bytes of Go's `diagrams.Goat`.
 #[test]
-fn every_docs_diagram_as_hugo() {
-    let root = ssg_testkit::fixture::hugo_docs();
+fn every_docs_diagram_as_go() {
+    let root = ssg_testkit::fixture::legacy_docs();
     let mut diagrams = Vec::new();
     collect(&root, &root.join("content"), &mut diagrams);
     let expected: BTreeMap<String, (u64, u64, String)> =

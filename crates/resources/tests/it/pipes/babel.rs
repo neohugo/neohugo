@@ -7,7 +7,7 @@ use std::collections::BTreeMap;
 use ssg_resources::Transform;
 use ssg_resources::pipes::BabelOptions;
 
-use super::{fake_tool, have_node, mini_site, project, real_tool};
+use super::{fake_tool, have_node, mini_site, project, real_tools};
 use crate::support::MemSink;
 
 /// A fake `@babel/cli`: writes `/* babel */` + the input to `--out-file`, and with
@@ -41,8 +41,9 @@ fn babel_fake_tool() {
     }
     let site = mini_site(&SITE);
     let tmp = tempfile::tempdir().unwrap();
-    let bin = fake_tool(tmp.path(), "babel", FAKE_BABEL);
-    let p = project(site.path(), |env| env.tools.babel = Some(bin));
+    let modules = tmp.path().join("node_modules");
+    fake_tool(&modules, "babel", FAKE_BABEL);
+    let p = project(site.path(), |env| env.tools.node_modules = vec![modules]);
     let src = p.asset("js/app.js");
     let opts = BabelOptions::from_json(&serde_json::json!({
         "sourceMap": "external", "minified": true, "noComments": true, "compact": false
@@ -86,11 +87,11 @@ fn babel_fake_tool() {
 
 #[test]
 fn babel_real_tool() {
-    let Some(bin) = real_tool("FUGO_BABEL_BIN", "babel_real_tool") else {
+    let Some(dirs) = real_tools("babel", "babel_real_tool") else {
         return;
     };
     let site = mini_site(&SITE);
-    let p = project(site.path(), |env| env.tools.babel = Some(bin));
+    let p = project(site.path(), |env| env.tools.node_modules = dirs);
     let src = p.asset("js/app.js");
     let id = p
         .store

@@ -124,7 +124,7 @@ pub struct MediaTypeError(pub String);
 /// The delimiter of every built-in media type.
 pub const DEFAULT_DELIMITER: &str = ".";
 
-/// Hugo's built-in media types and their suffixes.
+/// Go's built-in media types and their suffixes.
 pub const BUILTIN: &[(&str, &[&str])] = &[
     ("text/calendar", &["ics"]),
     ("text/css", &["css"]),

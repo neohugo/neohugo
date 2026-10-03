@@ -75,7 +75,7 @@ impl ContentKey {
         self.0.is_empty()
     }
 
-    /// Hugo's `.Path`: the key with a leading slash (`/` for the home page).
+    /// Go's `.Path`: the key with a leading slash (`/` for the home page).
     #[must_use]
     pub fn to_path(&self) -> String {
         format!("/{}", self.0)
@@ -227,7 +227,7 @@ impl Permalink {
     }
 }
 
-/// Hugo's path sanitiser (`MakePath`): keeps letters, decimal digits, marks, `%XX` escapes and
+/// Go's path sanitiser (`MakePath`): keeps letters, decimal digits, marks, `%XX` escapes and
 /// `. / \ _ # + ~ - @`; drops everything else; a run of white space between kept characters
 /// becomes one `-` (none at the start, none next to an existing `-`).
 #[must_use]

@@ -79,7 +79,7 @@ pub struct PermalinkFile<'a> {
 /// What a pattern reads from a page.
 #[derive(Clone, Copy, Debug)]
 pub struct PermalinkCtx<'a> {
-    /// `.Date`; `None` is Hugo's zero date (`0001-01-01T00:00:00Z`).
+    /// `.Date`; `None` is Go's zero date (`0001-01-01T00:00:00Z`).
     pub date: Option<&'a Zoned>,
     pub title: &'a str,
     pub slug: &'a str,

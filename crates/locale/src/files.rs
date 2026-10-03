@@ -1,4 +1,4 @@
-//! Reading i18n files: TOML, YAML or JSON, in Hugo's message layouts.
+//! Reading i18n files: TOML, YAML or JSON, in the Go implementation's message layouts.
 //!
 //! - flat: `key = "text"`;
 //! - one message per table: `[key]` with `one = …`, `other = …` (and `zero`, `two`, `few`,

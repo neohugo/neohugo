@@ -1,8 +1,9 @@
-//! The minifier options and their mapping from Hugo's `[minify.tdewolff]` table.
+//! The minifier options and their mapping from the Go implementation's `[minify.tdewolff]` table.
 //!
-//! Hugo configures the Go minifier (tdewolff/minify) per output type. This port minifies with
-//! minify-html, lightningcss, oxc and its own JSON and XML minifiers, so only the options with an
-//! equivalent are honoured. Keys are matched case-insensitively, as Hugo's config loader does.
+//! The Go implementation configures its minifier (tdewolff/minify) per output type. This port
+//! minifies with minify-html, lightningcss, oxc and its own JSON and XML minifiers, so only the
+//! options with an equivalent are honoured. Keys are matched case-insensitively, as Go's config
+//! loader does.
 //!
 //! | `[minify.tdewolff]` key | default | this port |
 //! |---|---|---|
@@ -136,7 +137,7 @@ pub struct XmlOptions {
     pub whitespace: XmlWhitespace,
 }
 
-/// All minifier options. [`Default`] is Hugo's default configuration.
+/// All minifier options. [`Default`] is the Go implementation's default configuration.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Options {
     pub html: HtmlOptions,
@@ -171,7 +172,7 @@ pub struct DecodedOptions {
 }
 
 impl Options {
-    /// Decodes Hugo's `[minify.tdewolff]` table (see the module docs for the mapping).
+    /// Decodes the `[minify.tdewolff]` table (see the module docs for the mapping).
     ///
     /// # Errors
     /// [`MinifyError::Option`] for a section that is not a table or a value of the wrong type.

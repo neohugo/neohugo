@@ -110,7 +110,7 @@ fn docs_json(site: &DumpSite, r: &Related) -> J {
     m
 }
 
-/// Whether our error is the one Hugo reported.
+/// Whether our error is the one Go reported.
 fn same_error(got: &NavError, want: &str) -> bool {
     match got {
         NavError::UnknownIndex(n) => want == format!("index {n:?} not found"),
@@ -252,7 +252,7 @@ fn run(file: &str, t: &mut Tally) {
 }
 
 #[test]
-fn related_matches_hugo() {
+fn related_matches_go() {
     let mut t = Tally::default();
     for file in family("page/related", &["decode.json.gz"]) {
         run(&file, &mut t);
@@ -261,7 +261,7 @@ fn related_matches_hugo() {
 }
 
 #[test]
-fn related_config_decodes_like_hugo() {
+fn related_config_decodes_like_go() {
     let mut t = Tally::default();
     let fx = fixture("page/related/decode.json.gz");
     for c in fx["cases"].as_array().expect("cases") {
@@ -275,7 +275,7 @@ fn related_config_decodes_like_hugo() {
         };
         if !ok && got.is_ok() && c["in"].as_object().is_some_and(serde_json::Map::is_empty) {
             // An empty `[related]` table is the empty configuration: in the site's loader,
-            // Hugo's too (allconfig oracle `sections/related-empty`); this oracle calls
+            // Go's too (allconfig oracle `sections/related-empty`); this oracle calls
             // `related.DecodeConfig` on the bare table.
             t.accept("config-related-empty-accepted");
             continue;

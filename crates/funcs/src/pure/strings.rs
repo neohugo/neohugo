@@ -144,7 +144,7 @@ fn anchor_style(s: &str) -> TeraResult<anchor::Style> {
     }
 }
 
-/// Hugo's `substr`: `length` characters from `start`; a negative `start` counts from the end, a
+/// Go's `substr`: `length` characters from `start`; a negative `start` counts from the end, a
 /// negative `length` stops that many characters before the end.
 pub(super) fn substr(s: &str, start: i64, length: Option<i64>) -> String {
     let chars: Vec<char> = s.chars().collect();
@@ -217,8 +217,8 @@ impl RegexCache {
     }
 }
 
-/// A Hugo version: `major.minor.patch`, where a `-DEV` (any pre-release) build ranks below its
-/// release.
+/// A version such as `build.version`: `major.minor.patch`, where a `-DEV` (any pre-release) build
+/// ranks below its release.
 #[derive(PartialEq, Eq)]
 struct Version {
     numbers: [u64; 3],

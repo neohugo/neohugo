@@ -5,11 +5,11 @@
 [spec]
 # Rules of tests/it/spec.rs (Go accepts these; the Rust grammar rejects or reads them
 # differently).
-unknown_tokens = "an unknown spec token (`bogus`, `1234`) is an error; Hugo ignores it silently"
-negative_sizes = "a negative size (`-10x20`) is an error; Hugo accepts it and fails later with an empty image"
+unknown_tokens = "an unknown spec token (`bogus`, `1234`) is an error; Go ignores it silently"
+negative_sizes = "a negative size (`-10x20`) is an error; Go accepts it and fails later with an empty image"
 alpha_hex_colors = "`#rgba` / `#rrggbbaa` are CSS (non-premultiplied) colours; Go stores the digits as premultiplied color.RGBA"
 lenient_extensions = "format extensions are case-insensitive and the dot is optional (`JPG`, `.Png`)"
-config_hint = "an unknown `[imaging] hint` is an error; Hugo accepts any string and then ignores the setting (it always encodes WebP with the photo preset unless the spec names a hint)"
+config_hint = "an unknown `[imaging] hint` is an error; Go accepts any string and then ignores the setting (it always encodes WebP with the photo preset unless the spec names a hint)"
 exif_patterns = "an invalid `[imaging.exif]` field pattern is a configuration error; Go reports it when the first image is decoded"
 
 [process]
@@ -47,7 +47,7 @@ exif_patterns = "an invalid `[imaging.exif]` field pattern is a configuration er
 
 [text]
 # Rules of the text filter (tests/it/text_dither.rs, src/text.rs tests).
-coverage = "glyph coverage is ab_glyph's (outlines not rounded to 1/64 px first) and compositing is floating point, not Go's 16-bit integer arithmetic: edge pixels differ slightly (PSNR 37-41 dB against Hugo's text goldens)"
+coverage = "glyph coverage is ab_glyph's (outlines not rounded to 1/64 px first) and compositing is floating point, not Go's 16-bit integer arithmetic: edge pixels differ slightly (PSNR 37-41 dB against Go's text goldens)"
 strict_options = "unknown option keys, an invalid colour, a size that is not positive or above 10000 px and x/y/linespacing beyond 2^24 px are errors; Go ignores unknown keys and invalid colours, fails later on a bad size and wraps its integers"
 align_case = "alignx/aligny values ignore case; Go accepts lower case only"
 font_identity = "a font is identified by its content hash; Go keys it by the font resource's key"

@@ -9,11 +9,11 @@ use std::sync::Arc;
 
 use ssg_base::url::BaseUrl;
 use ssg_build::{BuildRequest, LiveReload, SinkKind, build};
-use ssg_testkit::fixture::{repo_dir, repo_file};
+use ssg_testkit::fixture::{go_output_as_built_here, repo_dir, repo_file};
 use ssg_testkit::txtar::Archive;
 
-/// Every file of the Go build of the same site (`hugo -d public`), 55 files; Go's 56th file is
-/// `build_stats.json` in the project directory, which a memory build does not write.
+/// Every file of the Go build of the same site (built with `-d public`), 55 files; Go's 56th file
+/// is `build_stats.json` in the project directory, which a memory build does not write.
 fn go_build() -> Archive {
     let path = repo_dir().join("crates/build/tests/it/testsite-go.txtar");
     Archive::read(&path).unwrap_or_else(|e| panic!("{}: {e}", path.display()))
@@ -64,7 +64,7 @@ fn write_txtar(archive: &str, to: &Path) {
 /// layouts of `sites/testsite/layouts`.
 fn testsite(dir: &Path) {
     let root = repo_dir();
-    copy_tree(&repo_file("hugolib/testsite"), dir);
+    copy_tree(&repo_file("testsite"), dir);
     let txtar = fs::read_to_string(root.join("tools/rust-port/i01/testsite.txtar")).expect("txtar");
     write_txtar(&txtar, dir);
     fs::remove_dir_all(dir.join("layouts")).expect("remove Go layouts");
@@ -129,7 +129,7 @@ fn testsite_bytes() {
         .iter()
         .filter(|f| {
             mem.get(&f.name)
-                .is_none_or(|got| *got != *f.data.as_bytes())
+                .is_none_or(|got| *got != *go_output_as_built_here(&f.data).as_bytes())
         })
         .map(|f| f.name.as_str())
         .collect();

@@ -6,22 +6,22 @@ Usage:
   sites.py make <site> <dir> [--docs-patches i01|reduced] [--overlay sites/<site>]
                                     # <dir> must not exist; for mini its basename must be the
                                     # site's name (it keys the GetRemote cache)
-  sites.py cache <site> <dir>       # the FUGO_CACHEDIR contents the site needs (may be empty;
+  sites.py cache <site> <dir>       # the --cacheDir contents the site needs (may be empty;
                                     # its <site> directory: the site dir's basename must be <site>)
   sites.py patches [--check]        # write patches.json / check it and the Tera patch files
 
 Sites:
-  docs          Hugo's documentation site (testdata/hugo-docs, the Go tree's docs/), patched to
+  docs          the legacy docs site (testdata/legacy-docs, the Go tree's docs/), patched to
                 build offline; --docs-patches picks the
                 variant (i01, the default, reduced, or live: unpatched; DOCS_* below,
                 patches.json); docs-i01, docs-reduced and docs-live name the variants too
-  testsite      Hugo's hugolib/testsite (testdata/upstream) plus a small config and layouts
+  testsite      the Go tree's testsite (testdata/upstream) plus a small config and layouts
                 (testsite.txtar)
   mini          the e2e oracle's small en/th site (testdata/oracle/commands/e2e/mini.txtar)
   images        the golden image recipes (testdata/golden/images/manifest.json) as a site
   errors        a failing build (errors.txtar): the error texts must be Go's
   probe         T13's template probe site
-  t24-<name>    the T24 build-oracle sites (testdata/oracle/hugolib/build/<name>.json.gz)
+  t24-<name>    the T24 build-oracle sites (testdata/oracle/sitebuild/build/<name>.json.gz)
 
 --overlay makes the input of the Rust build: the same site with its layouts replaced by the Tera
 layouts of the overlay directory, the overlay's assets copied over, its content adapters
@@ -42,19 +42,24 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.normpath(os.path.join(HERE, "..", "..", ".."))
 TESTDATA = os.path.join(ROOT, "testdata")
-# Hugo's documentation site (the Go tree's docs/): a frozen fixture since docs/ became this
+# The legacy docs site (the Go tree's docs/): a frozen fixture since docs/ became this
 # project's own documentation; fixtures still name its files docs/... (repo_file).
-HUGO_DOCS = os.path.join(TESTDATA, "hugo-docs")
-BUILD_FX = os.path.join(TESTDATA, "oracle", "hugolib", "build")
+LEGACY_DOCS = os.path.join(TESTDATA, "legacy-docs")
+BUILD_FX = os.path.join(TESTDATA, "oracle", "sitebuild", "build")
 # The GetRemote responses of the published docs build (2025-10-13), by cache key: docs-live's.
-DOCS_LIVE_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "hugo_cache", "docs-live",
+DOCS_LIVE_CACHE = os.path.join(ROOT, "tools", "rust-port", "testdata", "getremote-cache", "docs-live",
                                "filecache", "getresource")
-# Hugo's test data by its Go-tree path, as the fixtures record it, moved to
+# The Go tree's test data by its path there, as the fixtures record it, moved to
 # testdata/upstream (the sites use only these; ssg_testkit::fixture::UPSTREAM lists all).
-UPSTREAM = ("hugolib/testsite",)
+UPSTREAM = ("testsite",)
 # The workspace's directory until it moved to the repository root; paths recorded below it
 # (golden/images/manifest.json) name the same files at the root.
 LEGACY_WORKSPACE = "rust/"
+# The Go program's name, written once: the site inputs it wrote or read carry it in their
+# configuration file name, their stats file name and the prefix of their environment variables.
+GO_NAME = "hugo"
+GO_STATS_FILE = GO_NAME + "_stats.json"
+GO_ENV_PREFIX = GO_NAME.upper() + "_"
 
 
 def write(dir_, rel, content):
@@ -76,15 +81,15 @@ def edit(dir_, rel, old, new):
 
 
 def as_local_site(dir_):
-    """A Hugo site made a local site: its `hugo.*` configuration file named `config.*`, the
-    stats file its configuration and stylesheets read named `build_stats.json`, and the
-    `security.funcs.getenv` pattern of Hugo's variables (`^HUGO_`) made our (`^FUGO_`):
-    This port reads no Hugo names."""
+    """A site of the Go program made a local site: its configuration file (`<GO_NAME>.*`) named
+    `config.*`, the stats file its configuration and stylesheets read (GO_STATS_FILE) named
+    `build_stats.json`, and the `security.funcs.getenv` pattern of the Go program's variables
+    (`^<GO_ENV_PREFIX>`) made ours (`^FUGO_`): this port reads none of the Go program's names."""
     for ext in ("toml", "yaml", "yml", "json"):
-        fn = os.path.join(dir_, "hugo." + ext)
+        fn = os.path.join(dir_, GO_NAME + "." + ext)
         if os.path.exists(fn):
             os.rename(fn, os.path.join(dir_, "config." + ext))
-    stats = re.compile(r"(?<![\w.])hugo_stats(\\\\)?\.json")
+    stats = re.compile(r"(?<![\w.])" + re.escape(GO_STATS_FILE[:-len(".json")]) + r"(\\\\)?\.json")
     candidates = [os.path.join(dir_, "config." + e) for e in ("toml", "yaml", "yml", "json")]
     for root, _, names in os.walk(os.path.join(dir_, "assets")):
         candidates += [os.path.join(root, n) for n in names if n.endswith(".css")]
@@ -95,7 +100,7 @@ def as_local_site(dir_):
             text = fh.read()
         new = stats.sub(lambda m: "build_stats" + (m.group(1) or "") + ".json", text)
         if os.path.basename(fn).startswith("config."):
-            new = re.sub(r"""(['"])\^HUGO_""", r"\1^FUGO_", new)
+            new = re.sub(r"""(['"])\^""" + GO_ENV_PREFIX, r"\1^FUGO_", new)
         if new != text:
             with open(fn, "w", encoding="utf-8", newline="") as fh:
                 fh.write(new)
@@ -113,7 +118,7 @@ def repo_file(rel):
     """A repository file by the path the fixtures record (ssg_testkit::fixture::repo_file)."""
     upstream = any(rel == p or rel.startswith(p + "/") for p in UPSTREAM)
     if not upstream and (rel + "/").startswith("docs/") and not rel.startswith("docs/rust-port"):
-        return os.path.join(HUGO_DOCS, *rel.split("/")[1:])
+        return os.path.join(LEGACY_DOCS, *rel.split("/")[1:])
     if not upstream and rel.startswith(LEGACY_WORKSPACE):
         rel = rel[len(LEGACY_WORKSPACE):]
     return os.path.join(os.path.join(TESTDATA, "upstream") if upstream else ROOT, *rel.split("/"))
@@ -141,14 +146,14 @@ def read_txtar(path):
 
 
 # ---------------------------------------------------------------------------------------------
-# Hugo's docs (testdata/hugo-docs): the offline patch variants (docs/rust-port/REWRITE_PLAN.md §7.3). Every entry names the
-# variants it belongs to:
+# The legacy docs site (testdata/legacy-docs): the offline patch variants
+# (docs/rust-port/REWRITE_PLAN.md §7.3). Every entry names the variants it belongs to:
 #   i01      the I01 site: offline, no Chroma, passthrough, emoji, Tailwind or node modules
 #            (acceptance gate A-D1);
 #   reduced  offline, with Chroma highlighting, passthrough, emoji, remarshal, Tailwind and the
 #            real Alpine/Turbo imports (node.sh modules; gate A-D2);
 #   live     the docs site as getfugo.github.io publishes it: no patches (only the committed
-#            hugo_stats.json goes, the build writes it), so GetRemote, images.Text, QR, Dither,
+#            stats file of the Go build goes, the build writes it), so GetRemote, images.Text, QR, Dither,
 #            smartcrop, the x shortcode, the style gallery and the news content adapter all run
 #            (gate A-D3: the golden data is the published site, testdata/golden/docs-live/).
 # The Go build always builds these Go-template patches. A patch of a file below layouts/ has a
@@ -165,7 +170,7 @@ BOTH = (I01, REDUCED)
 DOCS_REMOVE = [  # (file, variants, why)
     ("content/en/news/_content.gotmpl", BOTH, "GetRemote of GitHub releases (a content adapter)"),
     ("content/en/functions/images/Text.md", BOTH, "GetRemote of a font (images.Text)"),
-    ("hugo_stats.json", DOCS_VARIANTS, "written by the build (the Go build's, committed with the site)"),
+    (GO_STATS_FILE, DOCS_VARIANTS, "written by the build (the Go build's, committed with the site)"),
     # COULD features (T72): images.QR (rsc.io/qr), images.Dither.
     ("content/en/shortcodes/qr.md", BOTH, "images.QR (COULD, T72)"),
     ("content/en/functions/images/QR.md", BOTH, "images.QR (COULD, T72)"),
@@ -196,7 +201,8 @@ DOCS_REPLACE = [  # (file, old, new, variants, why)
     ("config.toml", "  [markup.highlight]\n", "  [markup.highlight]\n    codeFences         = false\n",
      (I01,), "no Chroma: code fences are rendered as plain <pre><code>"),
     # images.Text (a font rasterizer) and images.QR (rsc.io/qr) are COULD features (T72):
-    # replaced with other image processing so the pipelines still run.
+    # replaced with other image processing so the pipelines still run (the QR stand-ins resize
+    # the site's own card image, under the file name the legacy docs site gives it).
     ("layouts/_partials/opengraph/get-featured-image.html",
      "images.Filter (images.Text $text $textOptions)", "images.Filter (images.Grayscale)", BOTH,
      "images.Text (COULD, T72)"),
@@ -233,7 +239,8 @@ DOCS_WRITE = [  # (file, content, variants, why)
     # The GitHub API stub holds what `resources.GetRemote | transform.Unmarshal` gives in Go: JSON
     # numbers are float64 (Go prints 76543.0 as 76543; with ints `printf "%0.1fk" (div 76543 1000)`
     # printed "%!f(int64=76)k"). The Tera patch keeps integers: the Rust `unmarshal` gives Int for
-    # integral JSON numbers.
+    # integral JSON numbers. The URLs are the ones the GitHub API gives for the Go implementation's
+    # repository, which the site's pages link to.
     ("layouts/_partials/helpers/funcs/get-github-info.html",
      '{{ return dict "html_url" "https://github.com/gohugoio/hugo" "stargazers_url" '
      '"https://api.github.com/repos/gohugoio/hugo/stargazers" "watchers_count" 1234.0 '
@@ -309,7 +316,7 @@ def check_patches():
 def make_docs(dir_, variant=I01):
     if variant not in DOCS_VARIANTS:
         sys.exit(f"unknown docs patch variant {variant!r} (one of {', '.join(DOCS_VARIANTS)})")
-    copy_tree(HUGO_DOCS, dir_)
+    copy_tree(LEGACY_DOCS, dir_)
     as_local_site(dir_)
     for p in docs_patches()["patches"]:
         if variant not in p["variants"]:
@@ -325,10 +332,10 @@ def make_docs(dir_, variant=I01):
 
 
 # ---------------------------------------------------------------------------------------------
-# hugolib/testsite (T25's cli oracle used it with a small config).
+# testsite (T25's cli oracle used it with a small config).
 
 def make_testsite(dir_):
-    copy_tree(repo_file("hugolib/testsite"), dir_)
+    copy_tree(repo_file("testsite"), dir_)
     for k, v in read_txtar(os.path.join(HERE, "testsite.txtar")).items():
         write(dir_, k, v)
 
@@ -426,8 +433,9 @@ def make_probe(dir_):
         files = json.load(fh)["files"]
     os.makedirs(dir_)
     for k, v in files.items():
-        # With the real func map `js` is Hugo's js namespace: `.Title | js` prints the namespace
-        # struct, which Go prints with its pointer addresses (different in every Go run).
+        # With the real func map `js` is the Go implementation's js namespace: `.Title | js`
+        # prints the namespace struct, which Go prints with its pointer addresses (different in
+        # every Go run).
         if "{{ .Title | js }}" in v:
             v = v.replace("{{ .Title | js }}", "JS-NAMESPACE")
         write(dir_, k, v)

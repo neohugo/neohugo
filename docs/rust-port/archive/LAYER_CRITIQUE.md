@@ -1,20 +1,20 @@
-# Completeness critique of the Hugo-layer design (first pass)
+# Completeness critique of the site-layer design (first pass)
 
 > **Historical (old port).** Paths under `crates/` refer to the byte-parity port that T00 of
 > [`REWRITE_PLAN.md`](../REWRITE_PLAN.md) deleted; it is recoverable with
 > `git show go-parity-final:crates/<path>` (commit `be02933a`, local tag).
 
-Written by an adversarial reviewer of crates/HUGO_LAYER.md, crates/WAVE_B_PLAN.json and the nh-* skeleton. The architect started a revision addressing these points; that revision was interrupted when the local session stopped, so check each point against the current HUGO_LAYER.md before relying on it.
+Written by an adversarial reviewer of the old port's layer design document in `crates/` ("the layer design" below), crates/WAVE_B_PLAN.json and the nh-* skeleton. The architect started a revision addressing these points; that revision was interrupted when the local session stopped, so check each point against the current layer design before relying on it.
 
-**Hugo-layer design review: HUGO_LAYER.md, WAVE_B_PLAN.json and the nh-* skeleton**
+**Site-layer design review: the layer design, WAVE_B_PLAN.json and the nh-* skeleton**
 
-The skeleton compiles and the module ownership is clean, but it compiles only because every Wave A dependency is commented out and all 25 crates carry blanket `#![allow(unused, dead_code, …)]`. The main risks are the unpinned gotemplate contract and hugolib module ownership that runs against the declared task dependencies, so several tasks cannot pass their acceptance tests in the planned order.
+The skeleton compiles and the module ownership is clean, but it compiles only because every Wave A dependency is commented out and all 25 crates carry blanket `#![allow(unused, dead_code, …)]`. The main risks are the unpinned gotemplate contract and site-build module ownership that runs against the declared task dependencies, so several tasks cannot pass their acceptance tests in the planned order.
 
 **What checked out:**
 - **Compile:** `cargo check --offline` passes on all 25 nh-* crates with 0 errors and 0 warnings.
 - **Ownership:** no module is claimed twice, and every `Owner:` line in the skeleton matches the plan.
 - **Cycles:** neither the task graph nor the crate graph (from Cargo.toml) has a cycle.
-- **Go file coverage:** every executed neohugo Go file has a skeleton module, except files that do not need one:
+- **Go file coverage:** every executed Go file of the Go version has a skeleton module, except files that do not need one:
   - the gotemplate fork (a Wave A crate);
   - `lazy/`, `para`/`rungroup` and `bufferpool`;
   - the flag-init code of unused CLI subcommands;
@@ -27,7 +27,7 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
 
 1. **The gotemplate contract is not pinned.**
    - Evidence: `nh-tplimpl/src/engine.rs` uses placeholder types (`Arc<()>`), and `crates/gotemplate` does not exist yet. The "required engine capabilities" are written down only on the consuming side.
-   - Several Hugo semantics must live inside the gotemplate engine and cannot be patched later in `engine.rs`:
+   - Several of the Go implementation's semantics must live inside the gotemplate engine and cannot be patched later in `engine.rs`:
      - Truthiness must go through a hook. Go's `isTrue` is `hreflect.IsTruthfulValue`, which calls `IsZero` on objects, `time.Time` and named maps such as `maps.Params`. `ExecHelper` has no `is_true` method.
      - Methods are looked up before map keys, including on `Value::List`/`Value::Map` named types (through the helper).
      - `and`/`or` return the deciding operand, not a bool.
@@ -38,7 +38,7 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
      - The context value must reach every func and method call, and nested `execute_with_context` calls from inside method calls must work (render hooks, partials, `ExecuteAsTemplate`).
    - Fix: turn the `engine.rs` requirements into a trait or spec that the Wave A gotemplate task implements as its acceptance contract, with T13 as reviewer. Do this now, while that API is still open. Add `ExecHelper::is_true(&Value) -> bool`.
 
-2. **Hugolib module ownership inverts the declared task dependencies.**
+2. **Site-build module ownership inverts the declared task dependencies.**
    - T20 is declared before T21/T22/T23, but its modules call their code:
      - Inserting into the content tree needs `ContentNodeShifter`, `PageTrees` and `newPageMap`, which live in `content_map_page.rs` (T21).
      - `page__new` calls `pageMeta.parseFrontMatter` and `newCachedContent` (`page__content.go:66,129`), which are in T22's `page__content.rs`.
@@ -57,7 +57,7 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
    - **T09** needs T12: `related.DecodeConfig` and `navigation` menu decoding live in nh-page modules owned by T12.
    - **T15 and T18** (tpl namespaces hold `Arc<Deps>`) need a constructible `Deps`, which T23 owns. Fix: T23 ships a `Deps::for_tests(conf, lang)` builder early, or the namespace functions take narrow context structs.
    - **T22** requires `.Content`/`.Plain` to match with the real hooks. `render-image.html` needs `resources.Get`, `Resize`, `images.Overlay`/`Filter`, `path.Ext` and `printf`, so T10, T14, T15, T18 and T19 are all needed. Fix: have a Go oracle record every hook call's output, keyed by (page, hook kind, ordinal, output format), and replay it through a stub `HookRenderer`. Test real hooks in I01.
-   - **T24** requires publish order plus identical `hugo_stats.json` and CSS, which is a full build. T18 is not in its dependencies. Fix: add T18, or narrow T24 to render-loop order with a stub executor and move the full-build checks to I01.
+   - **T24** requires publish order plus identical stats file and CSS, which is a full build. T18 is not in its dependencies. Fix: add T18, or narrow T24 to render-loop order with a stub executor and move the full-build checks to I01.
    - **T13**'s probe-site outputs need `printf`, `eq`, `jsonify`, … from T18/T19. Fix: give T13 a minimal test FuncMap, or move the probe check to I01.
 
 **P1: fidelity gaps that the interfaces cannot express yet**
@@ -85,11 +85,11 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
    - A method that returns a nil interface (`.Parent` on home, `resource.Resource` nil) must become `Invalid`. `jsonLd.html:389` stores `.Parent` in a Scratch and then calls `.Parent` on the `Get` result. With `TypedNil` that call errors ("nil pointer evaluating"); with `Invalid` it quietly yields nothing, as in Go.
    - `.GetPage` on a page that is not found returns `page.NilPage`, which is `(*nopPage)(nil)`: a typed nil whose `IsZero` is true.
    - The value model has no variant for a nil non-empty interface; text/template prints that as `<nil>`, not `<no value>`.
-   - Fix: add an explicit mapping table to HUGO_LAYER §4.7.
+   - Fix: add an explicit mapping table to the layer design's §4.7.
 
 9. **Render hooks get the wrong template context.**
-   - HUGO_LAYER §6.2 and the `HookRendererTemplate` doc say the context is rebuilt with the page set and `in_goldmark()`.
-   - Go passes the caller's context through unchanged (`site.go:1509-1530`). `IsInGoldmark` is set only for `{{% %}}` shortcodes (`shortcode.go:331`). When it is set, `RenderShortcodes` wraps its output in `hugocontext.Wrap` (`page__content.go:1123`), so setting it for hooks is not harmless.
+   - The layer design's §6.2 and the `HookRendererTemplate` doc say the context is rebuilt with the page set and `in_goldmark()`.
+   - Go passes the caller's context through unchanged (`site.go:1509-1530`). `IsInGoldmark` is set only for `{{% %}}` shortcodes (`shortcode.go:331`). When it is set, `RenderShortcodes` wraps its output in the context markers' `Wrap` (`page__content.go:1123`), so setting it for hooks is not harmless.
    - Fix the documentation and the skeleton.
 
 10. **Collation must follow Go per language.**
@@ -98,13 +98,13 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
 
 11. **Processed images must be decoded from encoded bytes.**
     - Evidence: images.md §9.10. Each resize or filter decodes its parent's encoded JPEG/PNG bytes, and the overlay decodes the watermark's encoded PNG. Because Rust never reads `resources/_gen`, T14 must keep an in-memory "file cache" of those encoded bytes and decode from it, never reuse pixels.
-    - This rule is missing from HUGO_LAYER §4.5/§6.6 and from T14's notes.
+    - This rule is missing from the layer design's §4.5/§6.6 and from T14's notes.
     - Fix: add it, plus a T14 test of chained `Resize` → `Filter` through the `ImageResource` API (T10 is only driven by the repro inputs).
 
 12. **Caches must never compute while holding a lock.**
-    - `PageMap.cache_pages1/2`, `HugoSites.cache_pages`, `CachedContent.scopes` and the `shortcode_state` Mutex are plain `Mutex`es.
+    - `PageMap.cache_pages1/2`, the sites struct's `cache_pages`, `CachedContent.scopes` and the `shortcode_state` Mutex are plain `Mutex`es.
     - Content rendering re-enters templates and other page queries. Holding a std `Mutex`, or re-entering a `OnceLock`, would deadlock.
-    - Fix: use the dynacache pattern everywhere (compute outside the lock, first writer wins) and state the rule in HUGO_LAYER.
+    - Fix: use the dynacache pattern everywhere (compute outside the lock, first writer wins) and state the rule in the layer design.
 
 **P2: documentation errors and plan hygiene**
 
@@ -116,7 +116,7 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
 14. **§7.2 misstates term titles.** The row "`.Title` = first value" is wrong. `.Title` is AP-title-case of the *last* `m.term`; `.Name` is the first value (CM §7.3).
 
 15. **The §11.2 end-to-end command will fail as written.**
-    - It omits `NEOHUGO_ESBUILD_BINARY`. The private site has no esbuild in `node_modules`, and there is none on PATH.
+    - It omits the environment variable naming the esbuild binary. The private site has no esbuild in `node_modules`, and there is none on PATH.
     - The only binary is in scratch (`work/resources-pipeline/esbuild/...`), which is not durable.
     - Fix: add the variable and pin the binary somewhere permanent (T16/I01).
 
@@ -143,7 +143,7 @@ The skeleton compiles and the module ownership is clean, but it compiles only be
     - The `resourceAdapter` template method table must include `Slice`. It is Go's `commonResource.Slice` (EX), which is how `slice r1…r5` becomes `resource.Resources`; `resources.Concat` rejects `[]interface{}`. Add a T14 fixture case for it.
 
 Files reviewed and checked (no files were edited):
-- /Users/blackb1rd/git/github/org/neohugo/crates/HUGO_LAYER.md
-- /Users/blackb1rd/git/github/org/neohugo/crates/WAVE_B_PLAN.json
-- /Users/blackb1rd/git/github/org/neohugo/crates/nh-*/
-- cargo check logs: /private/tmp/claude-501/-Users-blackb1rd-git-github-org-neohugo/0835ef6d-534f-4ac6-a7eb-50e9240d6eb1/scratchpad/critic/check-*.log
+- the layer design (`crates/`)
+- `crates/WAVE_B_PLAN.json`
+- `crates/nh-*/`
+- cargo check logs: `critic/check-*.log` in that session's scratch directory (not kept)

@@ -1,4 +1,4 @@
-//! Hugo's template scorer (v0.146 `templatedescriptor.go` semantics, REWRITE_PLAN.md §4.3):
+//! Go's template scorer (v0.146 `templatedescriptor.go` semantics, REWRITE_PLAN.md §4.3):
 //! a template's [`Desc`] is compared with the query's, giving a [`Score`]; [`Best`] keeps the
 //! winner of a walk from the root key down to the query key.
 //!
@@ -74,7 +74,7 @@ pub(crate) enum Category {
     Partial,
 }
 
-/// How well a template matches a query (Hugo's weights). Compared with [`Best::offer`], not by
+/// How well a template matches a query (Go's weights). Compared with [`Best::offer`], not by
 /// a total order: a template closer to the query path can win with a lower `w1`.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Score {

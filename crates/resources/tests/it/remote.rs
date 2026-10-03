@@ -1,9 +1,9 @@
 //! `get_remote` against the `getremote` oracle
 //! (`testdata/oracle/resource-transformers/getremote/getremote.json.gz`), without network:
 //!
-//! - Hugo's cache names (`hugo_keys`) of the oracle's 48 key vectors;
-//! - the oracle's calls replayed from the 32 cache entries Hugo wrote (imported on demand into
-//!   this crate's cache under its own names): links, names, media types, `.Data`, content, and
+//! - the Go build's cache names (`go_keys`) of the oracle's 48 key vectors;
+//! - the oracle's calls replayed from the 32 cache entries the Go build wrote (imported on demand
+//!   into this crate's cache under its own names): links, names, media types, `.Data`, content, and
 //!   errors (security policy, status, options, URLs, media type, missing entries offline).
 //!
 //! Accepted deviations (README): `echo-post-upper` (the same request as `echo-post` with
@@ -17,7 +17,7 @@ use std::path::Path;
 
 use serde_json::{Value as J, json};
 use ssg_base::{Idx, LangIdx, Map, Value};
-use ssg_resources::{RemoteOptions, ResourceStore, StoreConfig, hugo_keys};
+use ssg_resources::{RemoteOptions, ResourceStore, StoreConfig, go_keys};
 use ssg_testkit::fixture::testdata;
 
 use crate::support::{config, json_doc, sha};
@@ -99,7 +99,7 @@ fn compare(what: &str, want: &J, got: &J, failures: &mut Vec<String>) {
 }
 
 #[test]
-fn hugo_cache_names() {
+fn go_cache_names() {
     let fx: J =
         ssg_testkit::fixture::oracle("oracle/resource-transformers/getremote/getremote.json.gz");
     let calls = fx["calls"].as_array().unwrap();
@@ -108,7 +108,7 @@ fn hugo_cache_names() {
         let call = calls.iter().find(|c| c["name"] == k["name"]).unwrap();
         let args = call["args"].as_array().unwrap();
         let url = args[0].as_str().unwrap();
-        let got = hugo_keys(url, options_of(args.get(1)).as_ref());
+        let got = go_keys(url, options_of(args.get(1)).as_ref());
         assert_eq!(got.0, k["userKey"].as_str().unwrap(), "{}", k["name"]);
         assert_eq!(got.1, k["optionsKey"].as_str().unwrap(), "{}", k["name"]);
         n += 1;
@@ -117,7 +117,7 @@ fn hugo_cache_names() {
 }
 
 #[test]
-fn oracle_calls_from_hugo_cache() {
+fn oracle_calls_from_go_cache() {
     let fx: J =
         ssg_testkit::fixture::oracle("oracle/resource-transformers/getremote/getremote.json.gz");
     let tmp = tempfile::tempdir().unwrap();
@@ -181,7 +181,7 @@ fn oracle_calls_from_hugo_cache() {
     );
     assert_eq!((ok, errors, skipped), (33, 15, 3));
     assert_eq!(listed, diffs.len());
-    // 31 of the 32 Hugo entries are imported under this crate's names (`echo-post-upper`
+    // 31 of the 32 entries of the Go build are imported under this crate's names (`echo-post-upper`
     // is `echo-post` here, so its entry is not read).
     let imported = fs::read_dir(tmp.path().join("cache/getresource"))
         .unwrap()

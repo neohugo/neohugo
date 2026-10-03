@@ -1,5 +1,5 @@
 //! `server` (alias `serve`): flags → [`ServeOptions`] → [`Server`], its events printed like
-//! Hugo's server prints them (build errors and warnings as `build` prints them).
+//! Go's server prints them (build errors and warnings as `build` prints them).
 
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -26,13 +26,11 @@ pub(crate) fn options(a: &ServerArgs) -> anyhow::Result<Result<ServeOptions, Str
         ));
     }
     let mut request = build::request(&a.build)?;
-    // The server's environment is `development` unless the flag or FUGO_ENVIRONMENT say
-    // otherwise.
+    // The server's environment is `development` unless `--environment` says otherwise.
     request.cli.environment = request
         .cli
         .environment
         .clone()
-        .or_else(|| env_var(ssg_config::env::ENVIRONMENT))
         .or_else(|| Some("development".to_owned()));
     Ok(Ok(ServeOptions {
         build: request,
@@ -55,10 +53,6 @@ pub(crate) fn options(a: &ServerArgs) -> anyhow::Result<Result<ServeOptions, Str
             HttpCache::Default
         },
     }))
-}
-
-fn env_var(name: &str) -> Option<String> {
-    std::env::var(name).ok().filter(|v| !v.is_empty())
 }
 
 pub(crate) fn run(a: &ServerArgs) -> anyhow::Result<Exit> {
@@ -159,13 +153,13 @@ impl Reporter for Printer {
                 println!("Web Server is available at {url} (bind address {bind})");
             }
             Event::Error { message } => eprintln!("ERROR {message}"),
-            // Hugo logs the LiveReload commands at the info level only.
+            // Go logs the LiveReload commands at the info level only.
             _ => {}
         }
     }
 }
 
-/// Paths with a common parent as `parent/{a,b}` (Hugo's grouping of watched directories).
+/// Paths with a common parent as `parent/{a,b}` (Go's grouping of watched directories).
 fn group(paths: &[PathBuf]) -> String {
     let mut groups: Vec<(PathBuf, Vec<String>)> = Vec::new();
     for p in paths {

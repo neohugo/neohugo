@@ -6,7 +6,7 @@ use std::io::{self, Write};
 use ssg_base::diag::{Diagnostic, Severity};
 use ssg_build::BuildError;
 
-/// The label of a severity (Hugo's log levels).
+/// The label of a severity (Go's log levels).
 fn label(s: Severity) -> &'static str {
     match s {
         Severity::Error => "ERROR",

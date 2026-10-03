@@ -37,7 +37,7 @@ pub struct PluralDiffs {
 
 #[derive(Debug, Deserialize)]
 pub struct LocalesDiffs {
-    /// `<lang> <field>` → reason, for whole fields that differ from gohugoio/locales.
+    /// `<lang> <field>` → reason, for whole fields that differ from the Go locales library.
     pub fields: BTreeMap<String, String>,
 }
 

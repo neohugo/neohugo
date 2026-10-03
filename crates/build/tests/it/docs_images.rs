@@ -30,6 +30,10 @@ const DOCS_LAYOUTS: &[&str] = &[
     "_partials/layouts/blocks/modal.html",
 ];
 
+/// The site card's file name (without `.png`) in the legacy docs site's `assets/opengraph`,
+/// as the docs layouts name it.
+const CARD: &str = "gohugoio-card-base-1";
+
 /// `(width, height)` from a PNG's IHDR chunk.
 fn png_size(bytes: &[u8]) -> (u32, u32) {
     assert_eq!(&bytes[..8], b"\x89PNG\r\n\x1a\n", "a PNG");
@@ -83,9 +87,10 @@ fn docs_text_and_qr_layouts_render() {
         files.push((format!("layouts/{rel}"), text));
     }
     write_files(&dir, &files);
-    let opengraph = ssg_testkit::fixture::hugo_docs().join("assets/opengraph");
+    let opengraph = ssg_testkit::fixture::legacy_docs().join("assets/opengraph");
     fs::create_dir_all(dir.join("assets/opengraph")).expect("mkdir");
-    for name in ["gohugoio-card-base-1.png", "mulish-black.ttf"] {
+    let card_file = format!("{CARD}.png");
+    for name in [card_file.as_str(), "mulish-black.ttf"] {
         fs::copy(
             opengraph.join(name),
             dir.join("assets/opengraph").join(name),
@@ -93,7 +98,7 @@ fn docs_text_and_qr_layouts_render() {
         .expect("copy");
     }
     fs::copy(
-        opengraph.join("gohugoio-card-base-1.png"),
+        opengraph.join(&card_file),
         dir.join("content/news/bundle/cover.png"),
     )
     .expect("copy cover");
@@ -107,7 +112,8 @@ fn docs_text_and_qr_layouts_render() {
     .unwrap_or_else(|e| panic!("docs-like build: {e}"));
     let mem = report.memory.as_ref().expect("memory");
     let text = |p: &str| mem.text(p).unwrap_or_else(|| panic!("no {p}"));
-    let card = fs::read(opengraph.join("gohugoio-card-base-1.png")).expect("card");
+    let card = fs::read(opengraph.join(&card_file)).expect("card");
+    let processed = format!("opengraph/{CARD}_hu_");
     let card_size = png_size(&card);
 
     // The site card with the link title drawn on it, published; another size of text (70)
@@ -124,7 +130,7 @@ fn docs_text_and_qr_layouts_render() {
     };
     let (guide, guide_size) = featured("guide/index.html");
     assert!(
-        guide.starts_with("opengraph/gohugoio-card-base-1_hu_") && guide.ends_with(".png"),
+        guide.starts_with(&processed) && guide.ends_with(".png"),
         "{guide}"
     );
     assert_eq!(guide_size, format!("{}x{}", card_size.0, card_size.1));
@@ -132,17 +138,14 @@ fn docs_text_and_qr_layouts_render() {
     assert_eq!(png_size(&drawn), card_size);
     assert_ne!(&*drawn, &card[..], "text drawn on the card");
     let (long, _) = featured("functions/long/index.html");
-    assert!(
-        long.starts_with("opengraph/gohugoio-card-base-1_hu_"),
-        "{long}"
-    );
+    assert!(long.starts_with(&processed), "{long}");
     assert_ne!(long, guide);
     assert!(mem.get(&long).is_some());
     // A bundle's `*cover*` image is used as it is.
     let (bundle, _) = featured("news/bundle/index.html");
     assert_eq!(bundle, "news/bundle/cover.png");
 
-    // QR codes of the page's permalink in `images/qr`, named as Hugo names them: the header's
+    // QR codes of the page's permalink in `images/qr`, named as Go names them: the header's
     // (in the modal, twice) and the print one of pages and sections.
     for (page, permalink, print) in [
         ("guide/index.html", "https://example.org/guide/", true),

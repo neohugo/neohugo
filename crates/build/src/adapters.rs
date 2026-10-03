@@ -1,8 +1,8 @@
-//! Content adapters (phase A4b; Hugo's `hugolib/content_map.go` `addPagesFromGoTmplFi` and
-//! `hugolib/pagesfromdata/pagesfromgotmpl.go`): every `content/**/_content.html` runs before
+//! Content adapters (phase A4b; the Go implementation's `content_map.go` `addPagesFromGoTmplFi`
+//! and `pagesfromdata/pagesfromgotmpl.go`): every `content/**/_content.html` runs before
 //! the model is built, and the pages and resources it adds join the content files.
 //!
-//! The adapters render with a session of the model of the content files alone (Hugo's site is
+//! The adapters render with a session of the model of the content files alone (Go's site is
 //! "not fully initialized" while they run): its templates, partials and site functions
 //! (`get_remote`, `partial`, `i18n`, …) work, `site` has no page lists. Each adapter runs for
 //! its own language (file name, mount, else the default language), then, when it called
@@ -51,7 +51,7 @@ pub(crate) fn assemble_with_adapters(
                     "line {line}: Go template syntax `{marker}`: content adapters are Tera \
                      templates; convert the file (`add_page(page={{…}})`, \
                      https://github.com/getfugo/fugo/blob/main/docs/rust-port/template-api.md \
-                     gives Hugo's functions with their Tera names)"
+                     gives the Go template functions with their Tera names)"
                 ),
             }
             .into());

@@ -1,4 +1,4 @@
-//! Oracle: pagination (`oracle/page/pagination/*`): every paginator Hugo's builds of the
+//! Oracle: pagination (`oracle/page/pagination/*`): every paginator Go's builds of the
 //! reference sites made (the list, its size, every pager's pages and URL), the same lists
 //! with other pager sizes and as page groups, the error cases, and the pager-size option.
 
@@ -162,7 +162,7 @@ fn inputs<'a>(c: &'a J, cx: &'a Ctx) -> UrlInputs<'a> {
 }
 
 #[test]
-fn pagination_matches_hugo() {
+fn pagination_matches_go() {
     let mut t = Tally::default();
     let mut aliases = 0;
     for file in family("page/pagination", &["resolve.json.gz"]) {
@@ -226,7 +226,7 @@ fn pagination_matches_hugo() {
 }
 
 #[test]
-fn pager_size_option_matches_hugo() {
+fn pager_size_option_matches_go() {
     let mut t = Tally::default();
     let fx = fixture("page/pagination/resolve.json.gz");
     for c in fx["cases"].as_array().expect("cases") {

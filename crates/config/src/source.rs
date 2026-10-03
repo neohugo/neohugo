@@ -12,7 +12,7 @@ use crate::error::ConfigError;
 use crate::tree;
 
 /// The base names of a configuration file: `config`. In a configuration directory it places its
-/// content at the root. Hugo's `hugo.*` is not read.
+/// content at the root. The Go program's configuration file name is not read.
 pub const CONFIG_BASE_NAMES: [&str; 1] = ["config"];
 
 /// The configuration file extensions, in lookup order.

@@ -48,9 +48,9 @@ Flattened render-hook fields:
 | table | `thead` `tbody` `attributes` `ordinal` |
 | passthrough | `type` `inner` `attributes` `ordinal` `position` |
 
-## Syntax that replaces Hugo functions
+## Syntax that replaces Go-template functions
 
-| Hugo | Tera |
+| Go | Tera |
 |---|---|
 | `and` `or` `not` `eq` `ne` `lt` `le` `gt` `ge` | `and` `or` `not` `==` `!=` `<` `<=` `>` `>=`; pages compare by `.id`, pagers by `.page_number`, dates by `.unix` |
 | `cond c a b` | `a if c else b` |
@@ -67,17 +67,18 @@ Flattened render-hook fields:
 | `.GetTerms "tags"` | `page.terms.tags` |
 | `.Data.Singular/Plural/Term/Terms` | `page.taxonomy.singular/plural/terms`, `page.term.term` |
 | `.OutputFormats.Get "rss"`, `.AlternativeOutputFormats`, `.MediaType` | `page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type` |
-| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `build.version` (`"0.149.0-DEV"`), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator` |
+| The site-info object's `Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator` | `build.version` (`"0.149.0-DEV"`), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator` |
 | `.Site.ServerPort` | `site.server_port` (the base URL's port, 0 without one) |
 | `.Site.Config.Privacy.*` | `site.config.privacy.*` |
 | `.Data.Integrity`, `.Width`, `.Height` | `r.data.integrity`, `r.width`, `r.height` |
 | `partial "x" .` (shares the context) | `{% include "_partials/x.html" %}` |
 | `partial "x" (dict …)` with a literal name | a component defined in `_partials/` (`{% component x(page, sep="/", @lang) %}`), called as `{{ <x page={page} /> }}` |
 | `debug.Timer` | removed |
+| `postCSS`, `css.PostCSS` | removed: `minify` adds vendor prefixes for the site's browserslist and minifies; `purge_css` purges per page |
 
 ## Logic, math and errors
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `throw(message=)` | bi | both |  |  | Aborts the render at once with `message`. (message: string) |
 | `log_error(message=)` | fn | both |  | `errorf`, `erroridf` | Records an error with the template position; the build fails when it ends. Prints nothing. (message: string) |
@@ -92,11 +93,11 @@ Flattened render-hook fields:
 
 ## Collections and maps
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `x \| length` | bi | both |  | `len` | Length of a string (characters), array or map. |
-| `x \| default(value=, boolean=?)` | bi | both |  |  | `value` when the input is undefined (only then; `boolean=true` also replaces falsy values). Not Hugo's `default`. (value: any, boolean: bool) |
-| `x \| default_if_empty(value=)` | F | both |  | `default` | Hugo's `default`: `value` when the input is undefined, none, 0, "", or an empty array or map. `false` counts as set. (value: any) |
+| `x \| default(value=, boolean=?)` | bi | both |  |  | `value` when the input is undefined (only then; `boolean=true` also replaces falsy values). Not Go's `default`. (value: any, boolean: bool) |
+| `x \| default_if_empty(value=)` | F | both |  | `default` | Go's `default`: `value` when the input is undefined, none, 0, "", or an empty array or map. `false` counts as set. (value: any) |
 | `x \| get(key=, default=?)` | bi | both |  | `index` | The map entry `key`, else `default`, else an error. (key: string, default: any) |
 | `x \| get_path(path=)` | F | both |  | `index m "a" "b"` | Walks `path` (keys and integer indices); none when a step is missing. (path: array) |
 | `x \| first` | bi | both |  | `index l 0` | The first element, or none. |
@@ -114,19 +115,19 @@ Flattened render-hook fields:
 | `x \| delimit(sep=, last=?)` | F | both |  | `delimit l sep last` | Joins with `sep`, and `last` before the final element. (sep: string, last: string) |
 | `x \| reverse` | bi | both |  | `.Reverse` | Reversed array or string. |
 | `x \| unique` | bi | both |  | `uniq` | Removes duplicates, keeping the first. |
-| `x \| sort(attribute=?)` | bi | both |  |  | Tera's sort (by value, or by `attribute` path); not locale-aware. Use `sort_by` for Hugo's `sort`. (attribute: string) |
+| `x \| sort(attribute=?)` | bi | both |  |  | Tera's sort (by value, or by `attribute` path); not locale-aware. Use `sort_by` for Go's `sort`. (attribute: string) |
 | `x \| group_by(attribute=)` | bi | both |  |  | Tera's grouping by `attribute` path into a map. (attribute: string) |
 | `x \| sort_by(attribute=, reverse=?)` | F | both |  | `sort` | Sorts by `attribute` (a path such as `params.weight`; `""` or `value`: the elements): collation of the render's `lang`, dates as instants, stable. (attribute: string, reverse: bool) |
 | `x \| complement(without=)` | F | both |  | `complement` | Elements not in `without` (pages compared by id). (without: array) |
 | `x \| union(with=)` | F | both |  | `union` | Elements of either array, first occurrence kept (pages by id). (with: array) |
 | `x \| intersect(with=)` | F | both |  | `intersect` | Elements present in both (pages by id). (with: array) |
 | `x \| symdiff(with=)` | F | both |  | `symdiff` | Elements present in exactly one (pages by id). (with: array) |
-| `range(start=?, end=, step_by=?)` | bi | both |  | `seq` | Integers from `start` (default 0) to `end` (exclusive) by `step_by`; Hugo `seq N` is `range(start=1, end=N+1)`. (start: int, end: int, step_by: int) |
+| `range(start=?, end=, step_by=?)` | bi | both |  | `seq` | Integers from `start` (default 0) to `end` (exclusive) by `step_by`; Go's `seq N` is `range(start=1, end=N+1)`. (start: int, end: int, step_by: int) |
 | `querify(params=)` | fn | both |  | `querify` | A URL query string from `params`, keys sorted. (params: map) |
 
 ## Pages, taxonomies, menus and pagination
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `get_page(path=, lang=?, page=?)` | fn (s) | both |  | `site.GetPage`, `.GetPage` | The full value of the page at `path` (relative paths resolve against `page`), or none. (path: string, lang: string, page: page) |
 | `x \| deref` | F (s) | both |  |  | The full value (with relations) of a listed summary page. |
@@ -154,7 +155,7 @@ Flattened render-hook fields:
 | `x \| by_date` | F (s) | both |  | `.ByDate` | Pages by date, oldest first. |
 | `x \| by_publish_date` | F (s) | both |  | `.ByPublishDate` | Pages by publish date. |
 | `x \| by_lastmod` | F (s) | both |  | `.ByLastmod` | Pages by last modification. |
-| `x \| by_weight` | F (s) | both |  | `.ByWeight` | Pages by Hugo's default order (weight, date, link title, path). |
+| `x \| by_weight` | F (s) | both |  | `.ByWeight` | Pages by Go's default page order (weight, date, link title, path). |
 | `x \| group_by_date(format=, attribute=?, order=?)` | F (s) | both |  | `.GroupByDate` | `[{key, pages}]` grouped by the date formatted with `format` (strftime), newest first (`order="asc"`: oldest first); no date is Go's zero date (`0001`). (format: string, attribute: string, order: string) |
 | `x \| group_by_param(param=)` | F (s) | both |  | `.GroupByParam` | `[{key, pages}]` grouped by the page param `param`. (param: string) |
 | `x \| by_count` | F (s) | both |  | `.ByCount` | Taxonomy terms by page count, then lower-cased name in Go's string order. |
@@ -162,12 +163,12 @@ Flattened render-hook fields:
 
 ## Strings
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `x \| lower` | bi | both |  | `lower` | Lower case. |
 | `x \| upper` | bi | both |  | `upper` | Upper case. |
 | `x \| capitalize` | bi | both |  |  | First character upper, the rest lower. |
-| `x \| title` | bi | both |  |  | Tera's naive title case. Hugo's `title` is `title_case`. |
+| `x \| title` | bi | both |  |  | Tera's naive title case. Go's `title` is `title_case`. |
 | `x \| title_case(style=?)` | F | both |  | `title`, `strings.Title` | Title case in `style` (`ap`, `chicago`, `go`, `firstupper`, `none`; default: `titleCaseStyle`). (style: string) |
 | `x \| wordcount` | bi | both |  |  | Tera's word count (whitespace split). |
 | `x \| trim(pat=?)` | bi | both |  | `strings.TrimSpace` | Trims whitespace, or the string `pat` repeatedly. (pat: string) |
@@ -184,36 +185,36 @@ Flattened render-hook fields:
 | `x \| regex_find(pattern=, limit=?)` | F | both |  | `findRE` | Matches of `pattern`, at most `limit`. (pattern: string, limit: int) |
 | `x \| substr(start=, length=?)` | F | both |  | `substr` | `length` characters from `start` (negative counts from the end). (start: int, length: int) |
 | `x \| truncate(length=, end=?)` | bi | both |  |  | Tera's plain-text truncate to `length` characters plus `end`. (length: int, end: string) |
-| `x \| truncate_html(length=, ellipsis=?)` | F | both |  | `truncate` | Hugo's HTML-aware truncate: closes open tags, `ellipsis` default `…`. Keeps the input's safety. (length: int, ellipsis: string) |
+| `x \| truncate_html(length=, ellipsis=?)` | F | both |  | `truncate` | Go's HTML-aware `truncate`: closes open tags, `ellipsis` default `…`. Keeps the input's safety. (length: int, ellipsis: string) |
 | `x \| pad_start(width=)` | F | both |  | `printf "%5s"` | Pads on the left with spaces to `width` characters. (width: int) |
 | `x \| pad_end(width=)` | F | both |  | `printf "%-35s"` | Pads on the right with spaces to `width` characters. (width: int) |
 | `x \| indent(width=?, indentation=?, first=?, blank=?)` | bi | both |  |  | Tera's indent. (width: int, indentation: string, first: bool, blank: bool) |
 | `x \| newlines_to_br` | bi | both |  |  | Replaces line breaks with `<br>`. |
-| `x \| pluralize(singular=?, plural=?)` | bi | both |  |  | Tera's suffix pluralizer for a count (`singular`, `plural`). Hugo's `inflect.Pluralize` is `pluralize_word`. (singular: string, plural: string) |
+| `x \| pluralize(singular=?, plural=?)` | bi | both |  |  | Tera's suffix pluralizer for a count (`singular`, `plural`). Go's `inflect.Pluralize` is `pluralize_word`. (singular: string, plural: string) |
 | `x \| pluralize_word` | F | both |  | `inflect.Pluralize`, `pluralize` | English plural of a word. |
 | `x \| singularize_word` | F | both |  | `inflect.Singularize`, `singularize` | English singular of a word. |
-| `x \| humanize` | F | both |  | `humanize` | Hugo's humanize (`my-first-post` → `My first post`; numbers → ordinals). |
+| `x \| humanize` | F | both |  | `humanize` | Go's `humanize` (`my-first-post` → `My first post`; numbers → ordinals). |
 | `x \| ordinalize` | F | both |  | `humanize (numbers)` | `1` → `1st`. |
-| `x \| urlize` | F | both |  | `urlize` | Hugo's URL-safe path form of a string. |
-| `x \| anchorize(style=?)` | F | both |  | `anchorize` | An anchor id as Hugo generates it; `style` `github` (default), `github-ascii` or `blackfriday`. (style: string) |
+| `x \| urlize` | F | both |  | `urlize` | The URL-safe path form of a string, as Go's `urlize` makes it. |
+| `x \| anchorize(style=?)` | F | both |  | `anchorize` | An anchor id as Go generates it; `style` `github` (default), `github-ascii` or `blackfriday`. (style: string) |
 | `x \| plainify` | F | both |  | `plainify` | Strips HTML tags. |
 | `x \| emojify` | F | both | yes | `emojify` | Replaces `:shortcode:` emoji. |
 | `x \| markdownify` | F (s) | both | yes | `markdownify` | Renders Markdown with the current page's hooks; a single paragraph is unwrapped. |
 | `x \| render_string(display=?, page=?)` | F (s) | both | yes | `.RenderString` | Renders Markdown with `page`'s hooks; `display="block"` keeps the paragraph. (display: string, page: page) |
 | `x \| highlight(lang=, options=?)` | F (s) | both | yes | `highlight`, `transform.Highlight` | Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration). (lang: string, options: any) |
-| `x \| to_math(options=?, optional=?)` | F | both | yes | `transform.ToMath (+ try)` | LaTeX to MathML and/or HTML with KaTeX 0.16.22 and mhchem, as Hugo renders it (SHOULD; feature `math`). `options`: KaTeX's `output` (`mathml` default, `html`, `htmlAndMathml`), `displayMode`, `leqno`, `fleqn`, `errorColor`, `macros`, `minRuleThickness`, `throwOnError` (default true), `strict` (`error` default, `ignore`, `warn`: warnings). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` it is a warning (id `to_math`) and the result none. (options: map, optional: bool) |
+| `x \| to_math(options=?, optional=?)` | F | both | yes | `transform.ToMath (+ try)` | LaTeX to MathML and/or HTML with KaTeX 0.16.22 and mhchem, as Go renders it (SHOULD; feature `math`). `options`: KaTeX's `output` (`mathml` default, `html`, `htmlAndMathml`), `displayMode`, `leqno`, `fleqn`, `errorColor`, `macros`, `minRuleThickness`, `throwOnError` (default true), `strict` (`error` default, `ignore`, `warn`: warnings). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` it is a warning (id `to_math`) and the result none. (options: map, optional: bool) |
 | `diagrams_goat(text=)` | fn | both |  | `diagrams.Goat` | `{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`). (text: string) |
 | `x \| format_number(precision=?)` | F | both |  | `lang.FormatNumber`, `printf "%.1f"` | The number with `precision` decimals in the format of the render's `lang`. (precision: int) |
 | `x \| filesize_format(binary=?)` | tc | both |  |  | Human file size (`binary` units by default). (binary: bool) |
 
 ## Encoding, escaping and hashing
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `x \| safe` | bi | both |  | `safeHTML`, `safeHTMLAttr`, `safeURL`, `safeJS`, `safeCSS` | Marks the value safe. |
-| `x \| escape` | bi | both |  |  | Tera's escape (leaves safe input alone). Hugo's `html` is `html_escape`. |
+| `x \| escape` | bi | both |  |  | Tera's escape (leaves safe input alone). Go's `html` is `html_escape`. |
 | `x \| escape_html` | bi | both |  |  | Tera's HTML escape of a string. |
-| `x \| escape_xml` | bi | both |  |  | Tera's XML escape (`&quot;`, `&apos;`; leaves safe input alone). Hugo's `transform.XMLEscape` is `xml_escape`. |
+| `x \| escape_xml` | bi | both |  |  | Tera's XML escape (`&quot;`, `&apos;`; leaves safe input alone). Go's `transform.XMLEscape` is `xml_escape`. |
 | `x \| xml_escape` | F | both | yes | `transform.XMLEscape` | Drops the characters XML forbids, then escapes `& < > " '`, tab, newline and CR (`&#34; &#39; &#x9; &#xA; &#xD;`, Go's `xml.EscapeText`) even when the input is safe; the result is safe. |
 | `x \| html_escape` | F | both | yes | `html`, `htmlEscape`, `transform.HTMLEscape` | Escapes `& < > " '` even when the input is safe; the result is safe. |
 | `x \| html_unescape` | F | both |  | `htmlUnescape`, `transform.HTMLUnescape` | Decodes HTML entities. |
@@ -233,7 +234,7 @@ Flattened render-hook fields:
 
 ## URLs and paths
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `x \| abs_url` | F (s) | both |  | `absURL` | Absolute URL against `baseURL` (base path kept). |
 | `x \| rel_url` | F (s) | both |  | `relURL` | Root-relative URL with the base path. |
@@ -252,7 +253,7 @@ Flattened render-hook fields:
 
 ## Dates
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `now()` | fn | both |  | `now` | The build time (honours `--clock`) as a date value. |
 | `x \| date(format=?, style=?, locale=?)` | F | both |  | `.Format`, `time.Format`, `dateFormat` | Formats a date with strftime `format` or `style` (`short`, `medium`, `long`, `full`). A style is localized in `locale` (default: the render's `lang`; Thai uses the Gregorian calendar); a `format`'s month and weekday names are English (Go's `.Format`) unless `locale` is given (`time.Format`, `dateFormat`: `locale=lang`). Accepts a date value, a date string or Unix seconds; none prints nothing. (format: string, style: string, locale: string) |
@@ -260,13 +261,13 @@ Flattened render-hook fields:
 
 ## Language
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `i18n(key=, count=?, data=?, page=?)` | fn (s) | both |  | `i18n`, `T` | The translation of `key` in `page`'s language; `count` picks the plural form, `data` fills `{{ .Field }}`. (key: string, count: number, data: any, page: page) |
 
 ## Resources and assets
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `get_asset(path=)` | fn (s) | both |  | `resources.Get` | The asset at `path` under `assets/`, or none. (path: string) |
 | `find_asset(pattern=)` | fn (s) | both |  | `resources.GetMatch` | The first asset matching the glob `pattern`, or none. (pattern: string) |
@@ -283,7 +284,6 @@ Flattened render-hook fields:
 | `x \| resource_content` | F (s) | both |  | `.Content (resource)` | The text of a resource; for a bundled content page, its rendered HTML (marked safe). |
 | `x \| publish` | F (s) | both |  | `.Publish` | Publishes the resource and returns it. |
 | `x \| to_css(options=?)` | F (s) | both |  | `toCSS`, `css.Sass` | Sass/SCSS to CSS. (options: map) |
-| `x \| postcss(options=?)` | F (s) | both |  | `postCSS`, `css.PostCSS` | Runs PostCSS. (options: map) |
 | `x \| tailwind(options=?)` | F (s) | both |  | `css.TailwindCSS` | Runs the Tailwind CLI. (options: map) |
 | `x \| babel(options=?)` | F (s) | both |  | `babel`, `js.Babel` | Runs Babel. (options: map) |
 | `x \| js_build(options=?)` | F (s) | both |  | `js.Build` | Bundles with rolldown. (options: map) |
@@ -293,21 +293,21 @@ Flattened render-hook fields:
 
 ## Images
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
-| `x \| resize(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Resize` | Resizes to `width` and/or `height` (or a Hugo `spec`). (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
+| `x \| resize(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Resize` | Resizes to `width` and/or `height` (or a `spec` string in Go's syntax, e.g. `"600x400 webp q75"`). (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
 | `x \| fill(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Fill` | Crops and resizes to fill `width`×`height` at `anchor`. (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
 | `x \| fit(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Fit` | Downscales to fit `width`×`height`. (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
 | `x \| crop(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Crop` | Crops to `width`×`height` at `anchor`. (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
 | `x \| process(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)` | F (s) | both |  | `.Process` | Any of the above per `spec` (or the typed kwargs). (width: int, height: int, format: string, quality: int, filter: string, anchor: string, spec: string) |
-| `x \| image_filter(filters=)` | F (s) | both |  | `images.Filter`, `.Filter`, `images.Text`, `images.Dither` | Applies `filters`, a list of `{"op": …}` maps, one per Hugo `images.*` filter: `brightness`, `color_balance`, `colorize`, `contrast`, `gamma`, `gaussian_blur`, `grayscale`, `hue`, `invert`, `saturation`, `sepia`, `sigmoid`, `unsharp_mask`, `pixelate`, `opacity`, `padding`, `overlay` and `mask` (`image`: a resource), `auto_orient`, `text` (`text`, `color`, `size`, `x`, `y`, `alignx`, `aligny`, `linespacing`, `font`: a font resource), `dither` (`colors`, `method`, `serpentine`, `strength`), `process` (`spec`). E.g. `img \| image_filter(filters=[{"op": "text", "text": page.title, "size": 40}, {"op": "dither"}])`. (filters: array) |
+| `x \| image_filter(filters=)` | F (s) | both |  | `images.Filter`, `.Filter`, `images.Text`, `images.Dither` | Applies `filters`, a list of `{"op": …}` maps, one per Go `images.*` filter: `brightness`, `color_balance`, `colorize`, `contrast`, `gamma`, `gaussian_blur`, `grayscale`, `hue`, `invert`, `saturation`, `sepia`, `sigmoid`, `unsharp_mask`, `pixelate`, `opacity`, `padding`, `overlay` and `mask` (`image`: a resource), `auto_orient`, `text` (`text`, `color`, `size`, `x`, `y`, `alignx`, `aligny`, `linespacing`, `font`: a font resource), `dither` (`colors`, `method`, `serpentine`, `strength`), `process` (`spec`). E.g. `img \| image_filter(filters=[{"op": "text", "text": page.title, "size": 40}, {"op": "dither"}])`. (filters: array) |
 | `x \| exif` | F (s) | both |  | `.Exif` | EXIF data of an image, or none. |
-| `x \| image_colors` | F (s) | both |  | `.Colors` | Not implemented yet: calling it is an error (Hugo's `.Colors` gives the dominant colours as hex strings). |
-| `qr_code(text=, level=?, scale=?, target_dir=?)` | fn (s) | both |  | `images.QR` | A PNG image resource of the QR code of `text`, with Hugo's bytes and name (`<target_dir>/qr_<hash>.png`): `level` low, medium (default), quartile or high; `scale` pixels per module (at least 2, default 4). E.g. `qr_code(text=page.permalink, target_dir="images/qr")`. (text: string, level: string, scale: int, target_dir: string) |
+| `x \| image_colors` | F (s) | both |  | `.Colors` | Not implemented yet: calling it is an error (Go's `.Colors` gives the dominant colours as hex strings). |
+| `qr_code(text=, level=?, scale=?, target_dir=?)` | fn (s) | both |  | `images.QR` | A PNG image resource of the QR code of `text`, with Go's bytes and name (`<target_dir>/qr_<hash>.png`): `level` low, medium (default), quartile or high; `scale` pixels per module (at least 2, default 4). E.g. `qr_code(text=page.permalink, target_dir="images/qr")`. (text: string, level: string, scale: int, target_dir: string) |
 
 ## Templates
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `super()` | bi | both |  |  | The parent block's content (inside `{% block %}` only). |
 | `partial(name=, …)` | fn (s) | both | yes | `partial (dynamic name or returned value)` | Renders `_partials/<name>` with the kwargs as top-level names; returns its `return_value` or the rendered string. (name: string) |
@@ -319,16 +319,16 @@ Flattened render-hook fields:
 
 ## Environment, files and debugging
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
-| `get_env(name=)` | fn | both |  | `os.Getenv` | An environment variable ("" when unset); `name` must match `security.funcs.getenv`, else an error. (name: string) |
+| `get_env(name=)` | fn | both |  | `os.Getenv` | An environment variable ("" when unset): one the project's `.env` file defines (the process environment wins), or one `security.funcs.getenv` allows; any other name is an error. (name: string) |
 | `read_file(path=)` | fn | both |  | `os.ReadFile` | A file of the project (`security` rules apply). (path: string) |
 | `file_exists(path=)` | fn | both |  | `os.FileExists` | Whether a project file exists. (path: string) |
 | `x \| dump` | F | both |  | `debug.Dump` | Pretty-printed JSON of any value. |
 
 ## Tests
 
-| Call | Kind | Phase | Safe | Hugo | Description |
+| Call | Kind | Phase | Safe | Go | Description |
 |---|---|---|---|---|---|
 | `x is defined` | bi | both |  | `isset` | The value is defined. |
 | `x is undefined` | bi | both |  |  | The value is undefined. |
@@ -348,7 +348,7 @@ Flattened render-hook fields:
 | `x is ending_with(pat=)` | bi | both |  | `strings.HasSuffix` | Ends with `pat`. (pat: string) |
 | `x is containing(pat=)` | bi | both |  | `in`, `strings.Contains` | Contains `pat` (substring, element or key). (pat: any) |
 | `x is matching(pat=)` | tc | both |  | `findRE (as a condition)`, `where … "like"` | Matches the regex `pat`. (pat: string) |
-| `x is version_at_least(version=)` | T | both |  | `hugo.Version comparisons` | A semver at least `version`; a `-DEV` build ranks below its release. (version: string) |
+| `x is version_at_least(version=)` | T | both |  |  | A semver at least `version`; a `-DEV` build ranks below its release. Replaces Go-template comparisons of the site-info object's `Version`. (version: string) |
 
 ## Conversion rules
 
@@ -363,7 +363,7 @@ Flattened render-hook fields:
 
 - Printed params that may be missing → `page.params.x or ""` (printing an undefined value is an error).
 - Nested optional lookups use `?.`: `page.params.a?.b`, `page.parent?.title or ""`.
-- Hugo `default` → `default_if_empty(value=)`. Do not use `or` for bools.
+- Go's `default` → `default_if_empty(value=)`. Do not use `or` for bools.
 - `x == none` is false when `x` is undefined; use `is undefined`, `is none` or truthiness instead.
 
 **Comparisons**
@@ -391,7 +391,7 @@ Flattened render-hook fields:
 - Tera 2.4 strings know only the escapes `\n` `\t` `\r` `\"` `\'` `\/` `\\`: write other characters such as U+00A0 literally (`"\u{a0}"` is an error), and double a regex backslash (`pattern="\\s+"`).
 - Go date layouts → strftime: `"2006-01-02"` → `"%Y-%m-%d"`, `"Jan 2, 2006"` → `"%b %-d, %Y"`. `.Format` stays English; `time.Format` and `dateFormat` localize names, so add `locale=lang`.
 
-**Removed Hugo idioms**
+**Removed Go-template idioms**
 
 - `range .Paginator.Pages` → `{% set pager = paginator() %}{% for p in pager.pages %}`; delete a second `.Paginate` that follows `.Paginator`.
 - `{{ $noop := .WordCount }}` → delete.
@@ -409,7 +409,7 @@ Flattened render-hook fields:
 **Assets and i18n**
 
 - Assets used with `execute_as_template` are Tera templates: `{{ .api }}` → `{{ data.api }}`.
-- i18n files stay Hugo syntax, limited to `{{ . }}` and `{{ .Field }}`.
+- i18n files stay in Go-template syntax, limited to `{{ . }}` and `{{ .Field }}`.
 
 ## Embedded templates
 

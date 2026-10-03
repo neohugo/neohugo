@@ -3,20 +3,19 @@
 //! - Against the `transform` oracle's post-processed resources (`resources.PostProcess` of
 //!   14 assets' `fingerprint` chains): content, links, integrity and media type after
 //!   replacement equal Go's.
-//! - A CSS chain (`to_css | post_css | minify | fingerprint | post_process`, as a site's head
-//!   writes it) on `tests/fixtures/styles.txtar`: nothing runs until the placeholders are
-//!   resolved, so PostCSS reads the `build_stats.json` written after rendering (E4). With a fake
-//!   PostCSS that reports the stats it read; with postcss-cli (`FUGO_POSTCSS_BIN`) the
-//!   fixture's purge configuration drops the unused rules.
+//! - A CSS chain (`to_css | tailwind_css | minify | fingerprint | post_process`, as a site's
+//!   head writes it) on `tests/fixtures/styles.txtar`: nothing runs until the placeholders are
+//!   resolved, so Tailwind reads the `build_stats.json` written after rendering (E4); a fake
+//!   Tailwind reports the stats it read.
 
 use std::str::FromStr as _;
 
 use serde_json::Value as J;
 use ssg_base::{Idx as _, LangIdx};
-use ssg_resources::pipes::{PostCssOptions, ToCssOptions};
+use ssg_resources::pipes::{TailwindOptions, ToCssOptions};
 use ssg_resources::{Body, HashAlgo, PpField, Transform};
 
-use super::{Project, fake_tool, have_node, mini_site, project, real_tool};
+use super::{Project, fake_tool, have_node, mini_site, project};
 use crate::support::{MemSink, sha, store, synth_site};
 
 /// Go's placeholders in `doc` and the values `replaced` holds for them, in order.
@@ -122,7 +121,7 @@ fn post_process_oracle() {
     eprintln!("post_process: {compared} fields equal to Go's after replacement");
 }
 
-/// The SCSS and PostCSS config of `tests/fixtures/styles.txtar`.
+/// The SCSS of `tests/fixtures/styles.txtar`.
 fn styles(extra: &[(&str, &str)]) -> tempfile::TempDir {
     let txtar = std::fs::read_to_string(
         crate::support::repo_dir().join("crates/resources/tests/fixtures/styles.txtar"),
@@ -142,7 +141,7 @@ fn styles(extra: &[(&str, &str)]) -> tempfile::TempDir {
     }
     let mut wanted: Vec<(&str, &str)> = files
         .iter()
-        .filter(|(n, _)| n.starts_with("assets/scss/") || n == "postcss.config.js")
+        .filter(|(n, _)| n.starts_with("assets/scss/"))
         .map(|(n, b)| (n.as_str(), b.as_str()))
         .collect();
     wanted.push(("config.toml", "baseURL = \"https://example.org/\"\n"));
@@ -167,7 +166,7 @@ fn head_chain(p: &Project) -> (ssg_base::ResourceId, [String; 3]) {
         )
         .unwrap();
     let post = s
-        .transform(css, Transform::PostCss(PostCssOptions::default()))
+        .transform(css, Transform::TailwindCss(TailwindOptions::default()))
         .unwrap();
     let min = s.transform(post, Transform::Minify).unwrap();
     let fp = s
@@ -214,47 +213,34 @@ const STATS: &str =
     r#"{"htmlElements":{"tags":["body","li"],"classes":["card","pagination"],"ids":[]}}"#;
 
 #[test]
-fn post_process_css_chain_fake_postcss() {
-    if !have_node("post_process_css_chain_fake_postcss") {
+fn post_process_css_chain_fake_tailwind() {
+    if !have_node("post_process_css_chain_fake_tailwind") {
         return;
     }
-    // Reads ./build_stats.json like the purge plugin (fails without it) and reports it in a rule.
+    // Reads ./build_stats.json like Tailwind's `@source` (fails without it) and reports it in a
+    // rule.
     let script = r"
 const fs = require('fs'), path = require('path');
-fs.appendFileSync(path.join(process.env.HOME, 'tool-calls.log'), 'postcss\n');
+fs.appendFileSync(path.join(process.env.HOME, 'tool-calls.log'), 'tailwindcss\n');
 const css = fs.readFileSync(0, 'utf8');
 const stats = JSON.parse(fs.readFileSync('./build_stats.json', 'utf8')).htmlElements;
 process.stdout.write(css + '.stats-seen{content:' + JSON.stringify(stats.classes.join(' ')) + '}');
 ";
     let site = styles(&[]);
     let tmp = tempfile::tempdir().unwrap();
-    let bin = fake_tool(tmp.path(), "postcss", script);
-    let p = project(site.path(), |env| env.tools.postcss = Some(bin));
+    let modules = tmp.path().join("node_modules");
+    fake_tool(&modules, "tailwindcss", script);
+    let p = project(site.path(), |env| env.tools.node_modules = vec![modules]);
     let (_, body, link, sink) = render_and_resolve(&p, STATS);
     assert!(
         body.contains(r#".stats-seen{content:"card pagination"}"#),
         "{body}"
     );
     assert!(body.contains(".pagination li{padding:6px}"), "{body}");
-    assert_eq!(p.tool_calls(), "postcss\n", "PostCSS ran once, in E5");
+    assert_eq!(p.tool_calls(), "tailwindcss\n", "Tailwind ran once, in E5");
     let files = sink.0.into_inner().unwrap();
     assert_eq!(
         files.keys().collect::<Vec<_>>(),
         [link.trim_start_matches('/')]
     );
-}
-
-#[test]
-fn post_process_css_chain_real_postcss() {
-    let Some(bin) = real_tool("FUGO_POSTCSS_BIN", "post_process_css_chain_real_postcss") else {
-        return;
-    };
-    let site = styles(&[]);
-    let p = project(site.path(), |env| env.tools.postcss = Some(bin));
-    let (_, body, _, _) = render_and_resolve(&p, STATS);
-    // purge-lite keeps rules with a used class, drops the others, and appends the environment.
-    assert!(body.contains(".card"), "{body}");
-    assert!(body.contains(".pagination"), "{body}");
-    assert!(!body.contains("never-used-class"), "{body}");
-    assert!(!body.contains("card-unused"), "{body}");
 }

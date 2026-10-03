@@ -1,13 +1,14 @@
-//! Hugo's context markers (`markup/goldmark/hugocontext/hugocontext.go`): the lines
+//! The Go implementation's context markers (its goldmark context-marker extension under
+//! `markup/goldmark`): the lines
 //! [`crate::wrap_context`] puts around an included page's text.
 //!
 //! goldmark parses a marker as an ordinary line, so it shapes the blocks around an include (a
 //! marker line opens a paragraph that ends a definition list, continues a paragraph lazily,
 //! keeps an indented include inside its container). Then:
 //!
-//! - Hugo's inline parser makes each marker an empty node that also takes the newline after it
-//!   (`hugoContextParser.Parse`);
-//! - Hugo's transformer (`hugoContextTransformer`, priority 10: before the attribute and image
+//! - the extension's inline parser makes each marker an empty node that also takes the newline
+//!   after it;
+//! - the extension's AST transformer (priority 10: before the attribute and image
 //!   transformers) replaces a paragraph that holds only a marker by the marker, and drops the
 //!   soft line break before a marker in a paragraph. Paragraphs goldmark already made text
 //!   blocks (tight list items, the first paragraph of a tight definition) are not paragraphs to
@@ -33,12 +34,12 @@ fn markers(s: &str) -> Vec<std::ops::Range<usize>> {
     out
 }
 
-/// Turns the context markers of `doc` into empty nodes with Hugo's semantics.
+/// Turns the context markers of `doc` into empty nodes with the Go implementation's semantics.
 pub(crate) fn contexts(doc: &mut Doc<'_>) {
     if !doc.src.text.contains(CONTEXT_OPEN) && !doc.src.text.contains(CONTEXT_CLOSE) {
         return;
     }
-    // Inside code and raw HTML a marker is text (Hugo strips it from HTML blocks; a code block
+    // Inside code and raw HTML a marker is text (Go strips it from HTML blocks; a code block
     // would show it, which is not reproduced).
     for n in doc.root.descendants() {
         let mut d = n.data_mut();
@@ -83,7 +84,7 @@ pub(crate) fn contexts(doc: &mut Doc<'_>) {
             next.detach();
         }
     }
-    // hugoContextTransformer.
+    // The Go extension's AST transformer.
     for m in nodes {
         let Some(p) = m.parent() else { continue };
         if !matches!(p.data().value, NodeValue::Paragraph) || doc.text_block(p) {

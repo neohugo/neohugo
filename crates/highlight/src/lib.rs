@@ -1,14 +1,14 @@
-//! Code highlighting identical to Hugo's: Chroma's lexers, its HTML formatter and styles,
-//! inside Hugo's wrappers (REWRITE_PLAN.md §2.1, decision D1).
+//! Code highlighting identical to the Go implementation's: Chroma's lexers, its HTML formatter
+//! and styles, inside the Go implementation's wrappers (REWRITE_PLAN.md §2.1, decision D1).
 //!
-//! Hugo highlights with Chroma; sites style its output with Chroma class names (`.chroma .k`)
-//! or rely on its inline styles. This crate is a port of Chroma v2.19.0: its regex lexer engine
-//! and every lexer it ships (`chroma`: the XML lexers converted to Rust data, the Go-written
-//! ones ported), on a port of the .NET regex dialect those
-//! lexers are written in (`regexp2`); Chroma's HTML formatter (line structure, line numbers,
-//! highlighted lines, classes or inline styles from Chroma's own style definitions) inside
-//! Hugo's wrappers. Which lexer a language names is Chroma's decision (`lexers.Get`), as in
-//! Hugo.
+//! The Go implementation highlights with Chroma; sites style its output with Chroma class names
+//! (`.chroma .k`) or rely on its inline styles. This crate is a port of Chroma v2.19.0: its
+//! regex lexer engine and every lexer it ships (`chroma`: the XML lexers converted to Rust
+//! data, the Go-written ones ported), on a port of the .NET regex dialect those lexers are
+//! written in (`regexp2`); Chroma's HTML formatter (line structure, line numbers, highlighted
+//! lines, classes or inline styles from Chroma's own style definitions) inside the Go
+//! implementation's wrappers. Which lexer a language names is Chroma's decision
+//! (`lexers.Get`), as in Go.
 //!
 //! [`Highlight`] implements [`ssg_markup::Highlighter`] for code fences and serves the
 //! `highlight` template function ([`Highlight::highlight_with`]) and style sheets
@@ -120,7 +120,7 @@ impl Highlight {
         &self.defaults
     }
 
-    /// Whether `lang` names a language Chroma knows (Hugo's `transform.CanHighlight`).
+    /// Whether `lang` names a language Chroma knows (Go's `transform.CanHighlight`).
     #[must_use]
     pub fn can_highlight(&self, lang: &str) -> bool {
         self.languages.get(lang).is_some()
@@ -163,7 +163,7 @@ impl Highlight {
     }
 
     /// The HTML of `code` in `lang` with options `o`; `attributes` are a fence's attributes
-    /// for the wrapping `<div>` (Hugo's `highlight`).
+    /// for the wrapping `<div>` (Go's `highlight`).
     #[must_use]
     pub fn highlight(
         &self,
@@ -222,7 +222,7 @@ impl Highlight {
         )
     }
 
-    /// A style sheet for the Chroma style `style` (`hugo gen chromastyles`).
+    /// A style sheet for the Chroma style `style` (the Go program's `gen chromastyles`).
     ///
     /// # Errors
     /// An unknown style.
@@ -268,11 +268,11 @@ impl Highlighter for Highlight {
     fn highlight(&self, code: &str, lang: &str, o: &HighlightOptions) -> Result<String, HookError> {
         let mut opts = self.defaults.clone();
         opts.apply_map(&o.options).map_err(HookError::new)?;
-        // Without `lineanchors`, line ids are numbered per code block, as in Hugo.
+        // Without `lineanchors`, line ids are numbered per code block, as in Go.
         if opts.line_anchors.is_empty() {
             opts.line_anchors = format!("hl-{}", o.ordinal);
         }
-        // Hugo's code block renderer ends the code with a newline.
+        // Go's code block renderer ends the code with a newline.
         let mut code = code.to_owned();
         if !code.is_empty() && !code.ends_with('\n') {
             code.push('\n');

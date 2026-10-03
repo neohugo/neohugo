@@ -32,8 +32,9 @@ One Markdown list item per entry; every other line (headings, prose) is free tex
 - `<site>`: the label (`testsite`, `docs-i01`, `docs-reduced`, `docs-live`).
 - `<levels>`: one or more of `L1`, `L2`, `L3`, `L4`, `S`, comma-separated.
 - `<key>`: what changed, in backticks: a file (its path below `publishDir` after the L1
-  normalisation, e.g. `images/x_hu_H.jpg`; `project:hugo_stats.json`; `dir/**` for a collapsed
-  collision directory at L1) or a structure fact (`record <lang> <path> <kind> <format>`,
+  normalisation, e.g. `images/x_hu_H.jpg`; `project:<name>` for a project file, the stats file
+  under the Go build's name, `GO_STATS_KEY` of `manifest.py`, which `project:*` matches; `dir/**`
+  for a collapsed collision directory at L1) or a structure fact (`record <lang> <path> <kind> <format>`,
   `alias <file> <lang> <path> <format>`, `pager <file> <lang> <path> <format>`,
   `resource <lang> <path> <name>`, `page <lang> <path> <kind>`), exactly as the report and
   `structdiff.json` print them. Shell-style wildcards (`*`, `?`, `[…]`; `*` also matches `/`)

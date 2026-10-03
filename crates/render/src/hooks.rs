@@ -2,10 +2,10 @@
 //! `ssg_markup::Hooks` with the `_markup/render-<kind>[-<variant>]` templates.
 //!
 //! - A hook for a non-HTML output format falls back to the HTML hook.
-//! - The embedded table hook's output is Hugo's default, which `ssg-markup` writes
+//! - The embedded table hook's output is Go's default, which `ssg-markup` writes
 //!   natively, so only a user or theme table hook is rendered.
 //! - The context holds `page` and `page_inner` (the generation of the render's phase), `site`,
-//!   `hugo`, `lang`, `__nh` and the hook's fields flattened; HTML fields (`text`, cell texts)
+//!   `build`, `lang`, `__nh` and the hook's fields flattened; HTML fields (`text`, cell texts)
 //!   are safe strings.
 
 use ssg_base::FormatId;

@@ -126,7 +126,7 @@ fn relative_urls() {
 }
 
 /// `serve`: each language's HTML pages get the script of its own LiveReload URL; aliases,
-/// non-HTML formats and languages without a URL get none (Hugo's publisher).
+/// non-HTML formats and languages without a URL get none (Go's publisher).
 #[test]
 fn livereload_script_per_language() {
     let s = site(concat!(
@@ -403,12 +403,12 @@ fn concurrent_emits_are_deterministic() {
     assert_eq!(run(1), run(4));
 }
 
-/// `build_stats.json` is written exactly as Hugo writes it: the golden file of the docs build
-/// round-trips byte for byte.
+/// `build_stats.json` is written exactly as the Go build writes its stats file: the golden file
+/// of the legacy docs site's build round-trips byte for byte.
 #[test]
 fn golden_stats_format() {
     let repo = ssg_testkit::fixture::repo_dir();
-    let file = "testdata/hugo-docs/hugo_stats.json";
+    let file = "testdata/legacy-docs/hugo_stats.json";
     let text = std::fs::read_to_string(repo.join(file)).unwrap();
     let v: serde_json::Value = serde_json::from_str(&text).unwrap();
     let list = |k: &str| -> Option<Vec<String>> {

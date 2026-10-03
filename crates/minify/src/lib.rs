@@ -2,12 +2,12 @@
 //!
 //! [`Minifier`] is built once from the `[minify]` configuration and shared (it is `Send + Sync`).
 //! It is used by the publisher (`minifyOutput`, `--minify`) and by the `minify` resource
-//! function. The options and their mapping from Hugo's `[minify.tdewolff]` table are documented
-//! in [`options`].
+//! function. The options and their mapping from the Go implementation's `[minify.tdewolff]`
+//! table are documented in [`options`].
 //!
-//! Output bytes do not match Hugo's Go minifier; the contract is that minification never panics,
-//! is idempotent, and yields output that parses as the same type (checked on the tdewolff
-//! corpora by the crate's tests).
+//! Output bytes do not match the Go implementation's minifier; the contract is that
+//! minification never panics, is idempotent, and yields output that parses as the same type
+//! (checked on the tdewolff corpora by the crate's tests).
 //!
 //! Invalid JavaScript, JSON or XML is an error ([`MinifyError`], with a position); a caller that
 //! wants more leniency publishes the input unchanged on `Err`. CSS never fails, as in tdewolff:
@@ -57,8 +57,8 @@ pub enum MinifyError {
     Purge(String),
 }
 
-/// The output type a media type is minified as, if any (Hugo's registration): `text/html`,
-/// `text/css`, `(application|text)/(x-)?(java|ecma)script`,
+/// The output type a media type is minified as, if any (the Go implementation's registration):
+/// `text/html`, `text/css`, `(application|text)/(x-)?(java|ecma)script`,
 /// `(application|text)/(x-|ld+|manifest+)?json`, `image/svg+xml`, and every other `…/xml` or
 /// `…/…+xml`. Parameters (`; charset=…`) and case are ignored.
 #[must_use]

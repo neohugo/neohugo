@@ -1,5 +1,5 @@
 //! Shared helpers: oracle cases recreated on disk, and a projection of a [`Config`] onto the
-//! shape of the oracle's `hugo config` dumps (lower-case keys, zero values omitted).
+//! shape of the oracle's `config` command dumps (lower-case keys, zero values omitted).
 
 use std::path::{Path, PathBuf};
 
@@ -26,14 +26,19 @@ impl Site {
         self.tmp.path()
     }
 
-    /// Replaces `$ROOT` in an oracle string.
     /// An oracle path or value: `$ROOT` expanded, and Go's default cache directory names
-    /// (`hugo_cache`, `hugo_cache_<user>`) as this port names them.
+    /// ([`GO_CACHE_DIR`], also with `_<user>`) as this port names them.
     pub fn expand(&self, s: &str) -> String {
         s.replace("$ROOT", &self.root().to_string_lossy())
-            .replace("/hugo_cache", &format!("/{}_cache", ssg_base::APP_NAME))
+            .replace(GO_CACHE_DIR, &format!("/{}_cache", ssg_base::APP_NAME))
     }
 }
+
+/// The Go program's default cache directory, as the oracle recorded it.
+const GO_CACHE_DIR: &str = "/hugo_cache";
+
+/// The prefix of the Go program's environment variables, as the oracle recorded them.
+const GO_ENV_PREFIX: &str = "HUGO";
 
 /// Why a case cannot be expressed with this crate's API.
 pub type NotApplicable = &'static str;
@@ -46,7 +51,7 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
     let expand = |s: &str| s.replace("$ROOT", &root.to_string_lossy());
     let dir = root.join(site_dir);
     std::fs::create_dir_all(&dir).expect("site dir");
-    // Go's `hugo.*` configuration files are our `config.*`.
+    // The Go program's configuration files are our `config.*` (`fixture::local_path`).
     for (name, content) in case["files"].as_object().expect("files") {
         let path = dir.join(ssg_testkit::fixture::local_path(name));
         if name.ends_with('/') {
@@ -56,28 +61,36 @@ pub fn materialize(case: &J, site_dir: &str) -> Result<Site, NotApplicable> {
             std::fs::write(&path, expand(content.as_str().expect("text"))).expect("write");
         }
     }
-    // The oracle recorded Go's `HUGO*` variables; the same settings are read with the program's
-    // prefix (`ssg_base::ENV_PREFIX`), and no `HUGO*` variable is.
-    let neo = |k: &str| match k.strip_prefix("HUGO") {
+    // The oracle recorded the Go program's environment variables ([`GO_ENV_PREFIX`]); the same
+    // settings are read with this program's prefix (`ssg_base::ENV_PREFIX`), and none under the
+    // Go names.
+    let renamed = |k: &str| match k.strip_prefix(GO_ENV_PREFIX) {
         Some(rest) => format!("{}{rest}", ssg_base::ENV_PREFIX),
         None => k.to_owned(),
     };
     let mut env: Vec<(String, String)> = Vec::new();
+    let mut vars: Vec<(&str, String)> = Vec::new();
     if let Some(p) = case["procEnv"].as_object() {
         for (k, v) in p {
-            env.push((neo(k), expand(v.as_str().unwrap_or_default())));
+            vars.push((k, expand(v.as_str().unwrap_or_default())));
         }
     }
     for e in case["environ"].as_array().into_iter().flatten() {
-        let e = e.as_str().unwrap_or_default();
-        if let Some((k, v)) = e.split_once('=')
-            && k != "FUGO_ORACLE"
-        {
-            env.push((neo(k), expand(v)));
+        if let Some((k, v)) = e.as_str().unwrap_or_default().split_once('=') {
+            vars.push((k, expand(v)));
         }
     }
-    // The oracle passes "production" when no environment was chosen; `FUGO_ENVIRONMENT`
-    // (Go: `HUGO_ENVIRONMENT`) then decides.
+    for (k, v) in vars {
+        let name = renamed(k);
+        if ssg_config::env::is_read(&name) {
+            env.push((name, v));
+        } else if name.starts_with(ssg_base::ENV_PREFIX) && !name.ends_with("_ORACLE") {
+            // Go read settings from the environment; this port reads files and flags only.
+            return Err("a setting from the environment");
+        }
+    }
+    // The oracle passes "production" when no environment was chosen; Go's environment variable
+    // could then decide (such cases are not applicable: only the flag chooses here).
     let mut cli = CliOverrides {
         environment: case["environment"]
             .as_str()
@@ -281,13 +294,13 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
         json!({
             "enableinlineshortcodes": c.security.inline_shortcodes
                 == ssg_config::global::InlineShortcodes::Enabled,
-            "exec": {"allow": wl(&c.security.exec_allow), "osenv": wl(&c.security.exec_os_env)},
+            "exec": {"allow": exec_allow_as_go(&c.security.exec_allow), "osenv": wl(&c.security.exec_os_env)},
             "funcs": {"getenv": getenv_as_go(&c.security.getenv)},
             "http": {"urls": wl(&c.security.http_urls), "methods": wl(&c.security.http_methods),
                      "mediatypes": wl(&c.security.http_media_types)},
         }),
     );
-    put("build", serde_json::to_value(&c.build).expect("json"));
+    put("build", build_as_go(&c.build));
     put(
         "caches",
         J::Object(
@@ -426,20 +439,63 @@ pub fn dump(c: &Config, s: &SiteConfig) -> JMap<String, J> {
     d
 }
 
-/// A whitelist as configured: `"none"` or the patterns.
-/// `security.funcs.getenv` as Go spells it: our default `^FUGO_` is Go's `^HUGO_`
-/// renamed.
+/// This port has no PostCSS: its defaults drop the Go program's `postcss` entries, which the
+/// recorded dumps still have.
+const GO_POSTCSS_ALLOW: &str = "^postcss$";
+const GO_CACHE_BUSTER_SOURCE: &str = r"(postcss|tailwind)\.config\.js";
+
+/// `security.exec.allow` as Go has it: the default list with the Go program's `^postcss$`
+/// before `^tailwindcss$`.
+fn exec_allow_as_go(w: &ssg_config::global::Whitelist) -> J {
+    match wl(w) {
+        J::Array(mut p)
+            if J::Array(p.clone()) == wl(&ssg_config::SecurityPolicy::default().exec_allow) =>
+        {
+            let at = p
+                .iter()
+                .position(|v| v == "^tailwindcss$")
+                .unwrap_or(p.len());
+            p.insert(at, json!(GO_POSTCSS_ALLOW));
+            J::Array(p)
+        }
+        ours => ours,
+    }
+}
+
+/// `[build]` as Go has it: the default cache buster also watches the Go program's
+/// `postcss.config.js`.
+fn build_as_go(b: &ssg_config::BuildConfig) -> J {
+    let mut v = serde_json::to_value(b).expect("json");
+    let default = ssg_config::BuildConfig::default();
+    if b.cache_busters == default.cache_busters
+        && let Some(J::Array(busters)) = v.get_mut("cacheBusters")
+        && let Some(first) = busters.first_mut()
+    {
+        first["source"] = json!(GO_CACHE_BUSTER_SOURCE);
+    }
+    v
+}
+
+/// `security.funcs.getenv` as Go spells it: our default `^FUGO_` is Go's default (the Go
+/// program's environment variable prefix) renamed.
 fn getenv_as_go(w: &ssg_config::global::Whitelist) -> J {
     match wl(w) {
         J::Array(p) => J::Array(
             p.into_iter()
-                .map(|p| if p == "^FUGO_" { json!("^HUGO_") } else { p })
+                .map(|p| {
+                    if p == "^FUGO_" {
+                        json!(format!("^{GO_ENV_PREFIX}_"))
+                    } else {
+                        p
+                    }
+                })
                 .collect(),
         ),
         other => other,
     }
 }
 
+/// A whitelist as configured: `"none"` or the patterns.
 fn wl(w: &ssg_config::global::Whitelist) -> J {
     match w.patterns() {
         [one] if one.eq_ignore_ascii_case("none") => json!("none"),

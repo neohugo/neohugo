@@ -561,7 +561,7 @@ impl Default for HighlightConfig {
 #[serde(default, rename_all = "camelCase")]
 pub struct TocConfig {
     pub start_level: u8,
-    /// The deepest heading level listed; `None` (Hugo's `endLevel = -1`) lists every level
+    /// The deepest heading level listed; `None` (Go's `endLevel = -1`) lists every level
     /// from `start_level` down.
     #[serde(deserialize_with = "de_end_level", serialize_with = "ser_end_level")]
     pub end_level: Option<u8>,
@@ -591,7 +591,7 @@ fn de_end_level<'de, D: Deserializer<'de>>(d: D) -> Result<Option<u8>, D::Error>
     })
 }
 
-/// Hugo's spelling: `-1` for no end level.
+/// Go's spelling: `-1` for no end level.
 #[expect(
     clippy::ref_option,
     reason = "serde's serialize_with passes the field by reference"

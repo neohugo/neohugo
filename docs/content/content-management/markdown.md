@@ -1,11 +1,11 @@
 ---
 title: Markdown
-description: The Markdown fugo renders — CommonMark with GitHub's extensions, Hugo's attributes, alerts, definition lists and more — and how to configure it.
+description: The Markdown fugo renders — CommonMark with GitHub's extensions, attributes, alerts, definition lists and more — and how to configure it.
 weight: 105
 ---
 
-fugo renders Markdown the way Hugo does with its default renderer, goldmark: CommonMark, plus
-these extensions, all on by default.
+fugo renders Markdown the way goldmark, the Go implementation's default renderer, does:
+CommonMark, plus these extensions, all on by default.
 
 Tables
 : GitHub's pipe tables, with alignment.

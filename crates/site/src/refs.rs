@@ -120,7 +120,7 @@ impl RefIndex {
     }
 }
 
-/// Whether a reference has an extension: a `.` in its last element (Hugo's `HasExt`).
+/// Whether a reference has an extension: a `.` in its last element (Go's `HasExt`).
 fn has_ext(s: &str) -> bool {
     s.rsplit('/').next().unwrap_or(s).contains('.')
 }
@@ -299,7 +299,7 @@ impl Model {
             && !r.starts_with('/')
         {
             let p = &self.pages[ctx];
-            // Hugo's `Dir()`, else its `ContainerDir()` (empty for a bundle at the root).
+            // Go's `Dir()`, else its `ContainerDir()` (empty for a bundle at the root).
             let base_dir =
                 if p.path_info.kind == BundleKind::Branch || (had_ext && r.starts_with("../")) {
                     p.dir_key().to_path()

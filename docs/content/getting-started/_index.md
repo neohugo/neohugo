@@ -5,6 +5,7 @@ weight: 10
 ---
 
 fugo turns a directory of Markdown content and [Tera](https://keats.github.io/tera/) templates
-into a static website. If you have used Hugo, most of it will look familiar: the project layout,
-front matter, sections, taxonomies and configuration keys are Hugo's. Templates are the big
-difference — read [Coming from Hugo](/coming-from-hugo/) when you are ready to move a site.
+into a static website. If you have used a static site generator with Go templates, most of it
+will look familiar: the project layout, front matter, sections, taxonomies and configuration
+keys are the same. Templates are the big difference — read
+[Migrating from Go templates](/migrating/) when you are ready to move a site.

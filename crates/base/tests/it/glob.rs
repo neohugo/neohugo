@@ -1,4 +1,4 @@
-//! `glob` against the `common/glob` oracle (gobwas/glob as Hugo uses it).
+//! `glob` against the `common/glob` oracle (gobwas/glob as the Go implementation uses it).
 
 use std::collections::BTreeSet;
 
@@ -21,7 +21,7 @@ fn gobwas_bugs() -> BTreeSet<String> {
 }
 
 /// The configurations the oracle's `raw` results use, by separator list: only `""` (no
-/// separator) and `"/"` exist in Hugo.
+/// separator) and `"/"` exist in Go.
 fn raw_opts(separators: &str) -> Option<GlobOpts> {
     let separator = match separators {
         "" => Separator::None,
@@ -105,10 +105,11 @@ fn match_oracle() {
         check_bits(
             &mut t,
             &bugs,
-            "hugo",
+            "getGlob",
             pattern,
             GlobOpts::default(),
             &inputs,
+            // The recorded Go data names the `GetGlob` results by the Go program's name.
             &c["hugo"],
         );
         for (sep, want) in separators.iter().zip(c["raw"].as_array().unwrap()) {
@@ -154,7 +155,7 @@ fn compile_oracle() {
 }
 
 #[test]
-fn hugo_patterns() {
+fn go_patterns() {
     let g = |p: &str| glob::compile(p, GlobOpts::default()).unwrap();
     assert!(g("**.json").is_match("a/b/c.JSON"));
     assert!(g("**/_index.md").is_match("a/_index.md"));

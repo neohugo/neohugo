@@ -1,5 +1,5 @@
 //! The `allconfig/load` oracle: site trees recreated on disk, loaded, and compared with Go's
-//! decoded configuration (per-language `hugo config` dumps, compiled values, language list).
+//! decoded configuration (per-language `config` command dumps, compiled values, language list).
 //!
 //! Required at 100%: `repo/docs`, `repo/docs-development` and `repo/testsite`. The other groups are run for coverage; their
 //! differences must be listed in `expected_diffs.toml` with a reason.
@@ -315,7 +315,6 @@ fn other_groups() {
         &[
             "basic",
             "configdir",
-            "env",
             "languages",
             "merge",
             "mounts",

@@ -5,7 +5,6 @@
 //! |---|---|---|
 //! | [`Transform::Minify`] | `ssg-minify` by media type (no minifier: an error) | `.min` before the extension |
 //! | [`Transform::ToCss`] | grass (dart-sass semantics); imports through the assets view, `includePaths`, `build:vars` | `targetPath`, else `.css` |
-//! | [`Transform::PostCss`] | the `postcss` CLI (`postcss-cli`), optional `@import` inlining | unchanged |
 //! | [`Transform::TailwindCss`] | the `tailwindcss` CLI (v4), `@import` inlining unless disabled | unchanged |
 //! | [`Transform::Babel`] | the `babel` CLI (`@babel/cli`) | unchanged |
 //! | [`Transform::JsBuild`] | rolldown through `ssg-jsbuild` | `targetPath`, else `.js` |
@@ -21,13 +20,16 @@
 //! as long as nobody asks for its content or its fingerprinted link earlier (the crate README
 //! says how template functions build views of pending results).
 //!
-//! **External tools** ([`Tool`]) are looked up in [`ToolPaths`] (explicit paths, then
-//! `<project>/node_modules/.bin`, then the extra `node_modules` directories, then `PATH`),
+//! **External tools** ([`Tool`]) are looked up in [`ToolPaths`] (`<project>/node_modules`,
+//! then the extra `node_modules` directories; never `PATH`): in a
+//! `node_modules`, the tool's npm package runs with the binary's embedded JavaScript runtime
+//! when it has one ([`set_package_runner`]), else its `.bin` entry (Node.js). Tools
 //! must be allowed by `security.exec.allow`, run with the project directory as working
 //! directory and an environment of the allowed variables (`security.exec.osEnv`) plus
-//! `NODE_PATH`, `PWD`, `FUGO_ENVIRONMENT`, `FUGO_PUBLISHDIR` and `FUGO_FILE_<NAME>`
-//! for each file in `assets/_jsconfig` (Hugo's `HUGO_*` names are not set). At most `min(4, cpus)` run at once. A missing tool is
-//! [`PipeError::ToolNotFound`], naming the binary.
+//! `NODE_PATH`, `PWD`, `FUGO_PUBLISHDIR` and `FUGO_FILE_<NAME>`
+//! for each file in `assets/_jsconfig` (the Go program's environment variables are not set). At
+//! most `min(4, cpus)` run at once. A missing tool is [`PipeError::ToolNotFound`], naming the
+//! binary.
 
 mod assets;
 mod babel;
@@ -35,7 +37,6 @@ mod css_imports;
 mod exec;
 mod jsbuild;
 mod minify;
-mod postcss;
 mod postprocess;
 mod sass;
 mod sass_imports;
@@ -63,8 +64,7 @@ use crate::store::{
 
 pub use babel::{BabelFlag, BabelOptions, BabelSourceMap};
 pub use css_imports::InlineImports;
-pub use exec::{Tool, ToolPaths};
-pub use postcss::PostCssOptions;
+pub use exec::{Tool, ToolPaths, set_package_runner};
 pub use postprocess::{PostProcessId, PpField, has_placeholder};
 pub use sass::{OutputStyle, SassVar, ToCssOptions};
 pub use tailwind::TailwindOptions;
@@ -80,14 +80,12 @@ pub enum Transform {
     Minify,
     /// `to_css` (`css.Sass`, `toCSS`).
     ToCss(ToCssOptions),
-    /// `post_css` (`css.PostCSS`).
-    PostCss(PostCssOptions),
     /// `tailwind_css` (`css.TailwindCSS`).
     TailwindCss(TailwindOptions),
     /// `babel` (`js.Babel`).
     Babel(BabelOptions),
-    /// `js_build` (`js.Build`).
-    JsBuild(JsBuildSpec),
+    /// `js_build` (`js.Build`); boxed, as its options are much larger than the others'.
+    JsBuild(Box<JsBuildSpec>),
 }
 
 impl Transform {
@@ -98,7 +96,6 @@ impl Transform {
             Self::Fingerprint(_) => "fingerprint",
             Self::Minify => "minify",
             Self::ToCss(_) => "to_css",
-            Self::PostCss(_) => "post_css",
             Self::TailwindCss(_) => "tailwind_css",
             Self::Babel(_) => "babel",
             Self::JsBuild(_) => "js_build",
@@ -142,11 +139,12 @@ pub enum PipeError {
     JsOptions(#[from] OptionsError),
     /// An external tool is not installed where [`ToolPaths`] looks.
     #[error(
-        "the {tool} binary was not found (looked in {searched}); install the node tools with tools/dev/node.sh or set {env}"
+        "the {tool} binary was not found (looked in {searched}); add {package} to the devDependencies of package.json"
     )]
     ToolNotFound {
         tool: &'static str,
-        env: &'static str,
+        /// The npm package of the tool ([`Tool::package`]).
+        package: &'static str,
         searched: String,
     },
     /// `security.exec.allow` does not allow the tool.
@@ -215,7 +213,7 @@ pub struct TransformEnv {
     /// The absolute publish directory (`FUGO_PUBLISHDIR`, what `js_build` source maps are
     /// relative to).
     pub publish_dir: PathBuf,
-    /// `FUGO_ENVIRONMENT` (`production`, `development`).
+    /// The build environment (`production`, `development`).
     pub environment: String,
     /// `security.exec.allow` and `security.exec.osEnv`.
     pub security: SecurityPolicy,
@@ -240,7 +238,7 @@ impl std::fmt::Debug for TransformEnv {
 
 impl Default for TransformEnv {
     /// The current directory as project, `public` in it, `production`, the default security
-    /// policy, no inherited environment and [`ToolPaths::from_env`].
+    /// policy, no inherited environment and [`ToolPaths::of_process`].
     fn default() -> Self {
         let project_dir = std::env::current_dir().unwrap_or_default();
         Self::new(
@@ -262,7 +260,7 @@ impl TransformEnv {
             environment,
             security: SecurityPolicy::default(),
             os_env: Vec::new(),
-            tools: ToolPaths::from_env(),
+            tools: ToolPaths::of_process(),
             minifier: Arc::new(Minifier::default()),
             js_builder: OnceLock::new(),
             slots: exec::Slots::default(),
@@ -270,7 +268,7 @@ impl TransformEnv {
     }
 
     /// The environment of a loaded project: its directories, environment name, security
-    /// policy and minifier configuration, the process environment, [`ToolPaths::from_env`].
+    /// policy and minifier configuration, the process environment, [`ToolPaths::of_process`].
     /// An invalid `[minify]` table gives the default minifier, an invalid browserslist
     /// configuration no CSS targets (the publisher reports both).
     #[must_use]
@@ -376,7 +374,7 @@ pub(crate) fn start(
                 PublishPolicy::OnReference,
             )
         }
-        Transform::PostCss(_) | Transform::TailwindCss(_) | Transform::Babel(_) => (
+        Transform::TailwindCss(_) | Transform::Babel(_) => (
             src.link.as_str().to_owned(),
             src.target.clone(),
             src.media_type.clone(),
@@ -498,7 +496,6 @@ pub(crate) fn realize(
         }
         Transform::Minify => minify::run(&env, &r, &input).map_err(fail)?,
         Transform::ToCss(o) => sass::run(store, &src, o, &input).map_err(fail)?,
-        Transform::PostCss(o) => postcss::run(store, &env, &src, o, &input).map_err(fail)?,
         Transform::TailwindCss(o) => tailwind::run(store, &env, &src, o, &input).map_err(fail)?,
         Transform::Babel(o) => babel::run(store, &env, &src, &r, o, &input).map_err(fail)?,
         Transform::JsBuild(o) => jsbuild::run(store, &env, &src, &o.0, &input).map_err(fail)?,

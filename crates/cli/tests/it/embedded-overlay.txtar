@@ -58,7 +58,7 @@ keywords: [kw1, kw2]
 ---
 Links: [page](/about/ "About title"), [relative](../../posts/one/), [md file](/posts/two.md),
 [fragment](#frag), [page fragment](/about/#sec?x=1), [query](/posts/three/?a=b&c=d#top),
-[resource](bundle/feature.png), [asset](/img/logo.png), [missing](/nope/), [external](https://gohugo.io/x?y=1),
+[resource](bundle/feature.png), [asset](/img/logo.png), [missing](/nope/), [external](https://example.com/x?y=1),
 [mail](mailto:a@example.org), <https://auto.example.org/>, [empty]().
 
 Images: ![alt *text*](/img/logo.png "Img title"), ![plain](https://cdn.example.org/p.png),

@@ -42,8 +42,8 @@ Imports resolve in `assets/` first (themes' and modules' included), then `includ
 a { color: v.$brand; }
 ```
 
-## Differences from Hugo
+## Compatibility
 
-Hugo compiles with LibSass or Dart Sass; fugo's grass follows Dart Sass. Source maps are not
+Go-template generators compile with LibSass or Dart Sass; fugo's grass follows Dart Sass. Source maps are not
 written (`enableSourceMap` is accepted), and `precision` has no effect. `transpiler` is
 accepted and ignored.

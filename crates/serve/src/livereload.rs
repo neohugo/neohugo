@@ -1,16 +1,16 @@
-//! The LiveReload protocol (livereload.com protocol 7), as Hugo's `livereload` package speaks
+//! The LiveReload protocol (livereload.com protocol 7), as Go's `livereload` package speaks
 //! it: the browser loads `livereload.js` and opens a WebSocket to `livereload`; it sends
 //! `hello`, the server answers `hello`, then sends one `reload` command per change.
 //!
 //! - A `reload` whose path is a stylesheet or an image is applied without reloading the page
 //!   (`liveCSS`, `liveImg`); any other path reloads the page. [`force_refresh`] uses `/x.js`.
-//! - [`navigate`] sends Hugo's `__hugo_navigate` prefix, which the Hugo plugin bundled into
-//!   `livereload.js` turns into a navigation (`--navigateToChanged`), with the port of the
-//!   page's server in `overrideURL`.
+//! - [`navigate`] sends the Go implementation's navigate prefix ([`NAVIGATE_PREFIX`]), which
+//!   its plugin bundled into `livereload.js` turns into a navigation (`--navigateToChanged`),
+//!   with the port of the page's server in `overrideURL`.
 //!
-//! `assets/livereload.min.js` is Hugo's `livereload/livereload.min.js`, used verbatim:
-//! livereload-js 4.0.2 (which bundles core-js 2.6.12 modules) and Hugo's
-//! `livereload-hugo-plugin.js`, bundled and minified by esbuild.
+//! `assets/livereload.min.js` is the Go implementation's `livereload/livereload.min.js`, used
+//! verbatim: livereload-js 4.0.2 (which bundles core-js 2.6.12 modules) and the Go
+//! implementation's navigation plugin for it, bundled and minified by esbuild.
 //!
 //! livereload-js: Copyright (c) 2010-2015 Andrey Tarantsov. core-js: Copyright (c) 2014-2020
 //! Denis Pushkarev. Both MIT:
@@ -31,7 +31,7 @@
 //! OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 //! DEALINGS IN THE SOFTWARE.
 //!
-//! (`THIRD_PARTY/livereload/LICENSE`; the Hugo plugin is Apache-2.0,
+//! (`THIRD_PARTY/livereload/LICENSE`; the Go implementation's plugin is Apache-2.0,
 //! `THIRD_PARTY/hugo/LICENSE`.)
 
 use std::sync::Arc;
@@ -45,7 +45,7 @@ use tokio::sync::{broadcast, watch};
 /// `livereload.js`, served at `<base path>livereload.js`.
 pub(crate) const SCRIPT: &str = include_str!("../assets/livereload.min.js");
 
-/// The media type Hugo serves `livereload.js` with.
+/// The media type Go serves `livereload.js` with.
 pub(crate) const SCRIPT_TYPE: &str = "text/javascript";
 
 /// The answer to the browser's `hello`.
@@ -55,8 +55,9 @@ const HELLO: &str = concat!(
     r#""}"#
 );
 
-/// The prefix of a path that the Hugo plugin of `livereload.js` navigates to.
-const NAVIGATE_PREFIX: &str = "__hugo_navigate";
+/// The prefix of a path that the Go implementation's plugin of `livereload.js` navigates to
+/// (the bundled script recognises this exact literal).
+const NAVIGATE_PREFIX: &str = "__ssg_navigate";
 
 /// Reloads `path` in every browser: stylesheets and images in place, the page otherwise.
 pub(crate) fn reload(path: &str) -> String {
@@ -82,7 +83,7 @@ fn reload_message(path: &str, port: Option<u16>) -> String {
     )
 }
 
-/// Hugo's origin check for the WebSocket: no `Origin`, the same host as the request's (or its
+/// Go's origin check for the WebSocket: no `Origin`, the same host as the request's (or its
 /// `X-Forwarded-Host`), or the same host name on another port (a multihost site's other
 /// servers).
 pub(crate) fn origin_allowed(headers: &HeaderMap) -> bool {
@@ -177,7 +178,7 @@ mod tests {
         );
         assert_eq!(
             navigate("/posts/one/", Some(1313)),
-            r#"{"command":"reload","path":"__hugo_navigate/posts/one/","originalPath":"","liveCSS":true,"liveImg":true, "overrideURL": 1313}"#
+            r#"{"command":"reload","path":"__ssg_navigate/posts/one/","originalPath":"","liveCSS":true,"liveImg":true, "overrideURL": 1313}"#
         );
         assert!(reload("/a\"b.css").contains(r#""path":"/a\"b.css""#));
     }

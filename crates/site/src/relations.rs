@@ -1,6 +1,6 @@
 //! Phase B5: names, the tree relations, node dates and the default-sorted lists.
 //!
-//! Every ancestor lookup is segment-wise (`/docs/ab` is not below `/docs/a`), where Hugo's
+//! Every ancestor lookup is segment-wise (`/docs/ab` is not below `/docs/a`), where Go's
 //! radix tree matches characters (an accepted deviation).
 //!
 //! - **Names**: `.Title` (front matter; pages without a file get their kind's default title),
@@ -51,7 +51,7 @@ impl Index<LangIdx> for Collators {
     }
 }
 
-/// Hugo's default page order between `a` and `b` (with their taxonomy weights in a term list).
+/// Go's default page order between `a` and `b` (with their taxonomy weights in a term list).
 pub(crate) fn default_order(
     m: &Model,
     c: &Collator,

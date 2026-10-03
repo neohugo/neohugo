@@ -84,7 +84,7 @@ impl PluralCount {
         Self { text, decimal }
     }
 
-    /// A float count, written with at least one fraction digit (`1.0`, `2.5`), the way Hugo
+    /// A float count, written with at least one fraction digit (`1.0`, `2.5`), the way Go
     /// turns template floats into counts. `None` for NaN and infinities.
     #[must_use]
     pub fn from_f64(f: f64) -> Option<Self> {
@@ -114,7 +114,7 @@ impl PluralCount {
         Some(Self { text, decimal })
     }
 
-    /// The count carried by a template argument, following Hugo: an integer; a float; a
+    /// The count carried by a template argument, following Go: an integer; a float; a
     /// numeric string; or, in a map, the value of its `Count` key (matched ignoring case).
     /// Anything else carries no count (and selects the `other` form).
     #[must_use]
@@ -169,7 +169,7 @@ pub struct PluralRules(icu_plurals::PluralRules);
 
 impl PluralRules {
     /// The CLDR rules of the language `key`. A language CLDR does not know (`klingon`, `x1`)
-    /// gets the root rules: every count is `other` (Hugo used the English rules).
+    /// gets the root rules: every count is `other` (Go used the English rules).
     #[must_use]
     pub fn for_language(key: &str) -> Self {
         let locale = tag::icu_locale(key).unwrap_or(icu_locale_core::Locale::UNKNOWN);

@@ -1,4 +1,4 @@
-//! The watch loop (Hugo's `handleEvents`): each batch of changes becomes a configuration
+//! The watch loop (Go's `handleEvents`): each batch of changes becomes a configuration
 //! reload and full rebuild, a full rebuild, or a copy of the changed static files, followed by
 //! the LiveReload command.
 //!
@@ -10,10 +10,10 @@
 //!
 //! **Static files.** A batch of static files only is copied without a build: the static mounts
 //! are listed again and every file below a changed path is written into the served tree (or
-//! removed when no static directory has it any more), as Hugo's `syncsStaticEvents` does; like
+//! removed when no static directory has it any more), as Go's `syncsStaticEvents` does; like
 //! there, such a file wins over a rendered file of the same path until the next build.
 //!
-//! **Reload** (Hugo's fast render mode logic, on the files the build changed, compared with
+//! **Reload** (Go's fast render mode logic, on the files the build changed, compared with
 //! the last good build): nothing changed, no reload; content changed, a full reload (or, with
 //! `--navigateToChanged`, a navigation to the changed page); one other file changed, a reload
 //! of that path; only stylesheets changed, each is reloaded in place; else a full reload. A
@@ -87,6 +87,7 @@ impl Rebuilder {
             &ports,
             opts.append_port,
         )?;
+        prepare(&opts.build, &cfg)?;
         let vfs = Vfs::new(&cfg)?;
         let (classifier, watch_set) = watching(&cfg, &vfs, &config_dir);
         Ok(Self {
@@ -131,6 +132,7 @@ impl Rebuilder {
             &self.ports,
             self.append_port,
         )?;
+        prepare(&self.request, &cfg)?;
         self.vfs = Vfs::new(&cfg)?;
         (self.classifier, self.watch_set) = watching(&cfg, &self.vfs, &self.config_dir);
         self.cfg = Arc::new(cfg);
@@ -341,7 +343,7 @@ impl Rebuilder {
         }
         if !css.is_empty() {
             if !other.is_empty() {
-                // Let the reloaded pages connect again first (Hugo waits as long).
+                // Let the reloaded pages connect again first (Go waits as long).
                 std::thread::sleep(Duration::from_millis(200));
             }
             for c in css {
@@ -351,7 +353,7 @@ impl Rebuilder {
     }
 
     /// The page of the content file a batch wrote or created (an index file first), with the
-    /// port of its language's server: Hugo's `pickOneWriteOrCreatePath`.
+    /// port of its language's server: Go's `pickOneWriteOrCreatePath`.
     fn changed_page(
         &self,
         changes: &Changes,
@@ -475,7 +477,7 @@ fn watching(cfg: &Config, vfs: &Vfs, config_dir: &Path) -> (Classifier, WatchSet
     (Classifier::new(cfg, vfs, places), set)
 }
 
-/// Every language's base URL becomes the server's (Hugo's `fixURL`): the language's listener
+/// Every language's base URL becomes the server's (Go's `fixURL`): the language's listener
 /// on a multihost site, else the only one.
 fn point_at_server(
     cfg: &mut Config,
@@ -507,6 +509,15 @@ fn point_at_server(
     Ok(())
 }
 
+/// The request's [`BuildRequest::prepare`], on a configuration the server loaded (at the
+/// start and when the configuration or `package.json` changes).
+fn prepare(r: &BuildRequest, cfg: &Config) -> Result<(), ServeError> {
+    match &r.prepare {
+        Some(p) => p.prepare(cfg).map_err(|e| BuildError::Prepare(e).into()),
+        None => Ok(()),
+    }
+}
+
 /// The configuration of a request, as `ssg_build::build` would load it.
 pub(crate) fn load(r: &BuildRequest) -> Result<Config, ServeError> {
     let mut cli = r.cli.clone();
@@ -532,7 +543,7 @@ fn static_files(vfs: &Vfs, cfg: &Config) -> Result<BTreeMap<String, PathBuf>, Vf
 }
 
 /// The files of `new` that `old` does not have or has with other bytes (source maps left
-/// out, as in Hugo's change detector), sorted.
+/// out, as in Go's change detector), sorted.
 fn changed_files(old: &MemorySink, new: &MemorySink) -> Vec<String> {
     let mut changed: Vec<String> = new
         .files

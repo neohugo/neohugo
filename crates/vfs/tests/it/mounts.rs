@@ -12,25 +12,30 @@ use ssg_testkit::fixture::oracle;
 use ssg_vfs::{Module, Mount, Vfs};
 
 /// Writes the case's files (`name/` is a directory) below `root/site`.
+/// The Go program's JS package file and the Go build's stats file, as the recorded Go data names
+/// them.
+const GO_JS_PACKAGE: &str = "package.hugo.json";
+const GO_STATS: &str = "hugo_stats.json";
+
 fn write_case(root: &Path, files: &serde_json::Map<String, J>) {
     let site = root.join("site");
     fs::create_dir_all(&site).unwrap();
     let root_str = root.to_str().unwrap();
-    // Go's `hugo.*` configuration files and `package.hugo.json` are our `config.*` and
-    // `package.config.json`.
+    // The Go program's configuration files and its JS package file (names of the recorded Go
+    // data) are our `config.*` and `package.config.json`.
     for (name, content) in files {
-        let name = name.replace("package.hugo.json", "package.config.json");
+        let name = name.replace(GO_JS_PACKAGE, "package.config.json");
         let p = site.join(ssg_testkit::fixture::local_path(&name));
         if name.ends_with('/') {
             fs::create_dir_all(&p).unwrap();
         } else {
             fs::create_dir_all(p.parent().unwrap()).unwrap();
-            // Go's `hugo_stats.json` is our `build_stats.json`.
+            // The Go build's stats file is our `build_stats.json`.
             let text = content
                 .as_str()
                 .unwrap()
                 .replace("$ROOT", root_str)
-                .replace("hugo_stats.json", "build_stats.json");
+                .replace(GO_STATS, "build_stats.json");
             fs::write(&p, text).unwrap();
         }
     }
@@ -118,12 +123,15 @@ fn mounts_match_go() {
         let want: Vec<J> = serde_json::from_str(
             &c["result"]["modules"][0]["mounts"]
                 .to_string()
-                .replace("hugo_stats.json", "build_stats.json")
-                .replace("package.hugo.json", "package.config.json"),
+                .replace(GO_STATS, "build_stats.json")
+                .replace(GO_JS_PACKAGE, "package.config.json"),
         )
         .unwrap();
         let (ours, ours_js) = split(ours);
-        let (want, want_js) = split(want);
+        let (want, mut want_js) = split(want);
+        // The Go program also mounted `postcss.config.js` by default; this port has no PostCSS
+        // (a site's own mount of it stays).
+        want_js.retain(|m| !m.contains(r#""target":"assets/_jsconfig/postcss.config.js""#));
         assert_eq!(ours, want, "{name}");
         assert_eq!(ours_js, want_js, "{name}: JS config mounts");
         checked += 1;
@@ -146,7 +154,8 @@ fn theme_mounts_match_go() {
         for c in f["cases"].as_array().unwrap() {
             let name = c["case"]["name"].as_str().unwrap();
             if c["case"]["ignoreModuleDoesNotExist"].as_bool() == Some(true) {
-                continue; // `hugo mod` commands only: a missing theme is an error here.
+                // The Go program's module commands only: a missing theme is an error here.
+                continue;
             }
             let tmp = tempfile::tempdir().unwrap();
             let root = tmp.path();

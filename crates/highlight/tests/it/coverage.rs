@@ -1,10 +1,10 @@
 //! Docs corpus acceptance: every piece of code the docs highlight renders, the classes written
 //! are Chroma's, the token classes are Chroma's (`tests/data/chroma-tokens.json.gz`) and the HTML
-//! is Hugo's, byte for byte (`tests/data/hugo-docs-html.json.gz`, hashes); see the crate README
-//! for how the fixtures are made.
+//! is the Go implementation's, byte for byte (`tests/data/legacy-docs-html.json.gz`, hashes);
+//! see the crate README for how the fixtures are made.
 //!
 //! `FUGO_HL_PAIRS=1` prints the most frequent class differences per lexer;
-//! `FUGO_HL_OURS=<file>` writes our HTML per item (JSON) for comparing with Hugo's.
+//! `FUGO_HL_OURS=<file>` writes our HTML per item (JSON) for comparing with the Go output.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -29,7 +29,7 @@ struct Html {
     hash: String,
 }
 
-/// The docs site's `[markup.highlight]` (testdata/hugo-docs/hugo.toml).
+/// The docs site's `[markup.highlight]` (from the legacy docs site's configuration file).
 fn docs_config() -> HighlightConfig {
     HighlightConfig {
         line_numbers_in_table: false,
@@ -174,8 +174,8 @@ fn docs_corpus() {
     );
     let tokens: Vec<Tokens> = fixture("chroma-tokens.json.gz");
     let tokens: BTreeMap<&str, &Tokens> = tokens.iter().map(|o| (o.key.as_str(), o)).collect();
-    let hugo: Vec<Html> = fixture("hugo-docs-html.json.gz");
-    let hugo: BTreeMap<&str, &str> = hugo
+    let go_html: Vec<Html> = fixture("legacy-docs-html.json.gz");
+    let go_html: BTreeMap<&str, &str> = go_html
         .iter()
         .map(|h| (h.key.as_str(), h.hash.as_str()))
         .collect();
@@ -200,13 +200,13 @@ fn docs_corpus() {
         }
         if hl.can_highlight(&item.lang) {
             known += 1;
-            // Hugo's wrapper, not the plain `<pre>` of an unknown language.
+            // Go's wrapper, not the plain `<pre>` of an unknown language.
             assert!(!html.starts_with("<pre"), "{}: {html}", item.file);
         } else {
             *unknown.entry(&item.lang).or_default() += 1;
         }
         ours_html.insert(item.html_key.clone(), html.clone());
-        if let Some(want) = hugo.get(item.html_key.as_str()) {
+        if let Some(want) = go_html.get(item.html_key.as_str()) {
             compared += 1;
             if corpus::fnv(&[&html]) == *want {
                 identical += 1;
@@ -228,7 +228,7 @@ fn docs_corpus() {
     }
     println!("items {} {by_source:?}", items.len());
     println!("known language {known}, unknown {unknown:?}");
-    println!("byte-identical to Hugo: {identical}/{compared}");
+    println!("byte-identical to Go: {identical}/{compared}");
     println!("| lexer | chars | classified % | same family % | same class % |");
     println!("|---|---|---|---|---|");
     for (lexer, t) in by_lexer.iter().chain([(&"all".to_owned(), &total)]) {
@@ -248,11 +248,11 @@ fn docs_corpus() {
         }
     }
 
-    // Everything renders; only languages Chroma does not know stay plain (as in Hugo).
+    // Everything renders; only languages Chroma does not know stay plain (as in Go).
     assert_eq!(known + unknown.values().sum::<usize>(), items.len());
     assert!(items.len() > 2200, "corpus: {}", items.len());
     assert!(unknown.values().sum::<usize>() <= 1, "{unknown:?}");
-    // Hugo's HTML, byte for byte, and Chroma's token classes, character for character.
+    // Go's HTML, byte for byte, and Chroma's token classes, character for character.
     assert!(
         compared > 2200 && identical == compared,
         "{identical}/{compared}"
@@ -261,7 +261,7 @@ fn docs_corpus() {
     assert_eq!(total.same_class, total.chars);
 }
 
-/// Wrapper classes Hugo writes around Chroma's output.
+/// Wrapper classes the Go implementation writes around Chroma's output.
 fn is_wrapper_class(class: &str) -> bool {
     matches!(class, "highlight" | "not-prose" | "code-inline") || class.starts_with("language-")
 }

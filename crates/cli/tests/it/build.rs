@@ -1,11 +1,11 @@
 //! `build` through the binary: the testsite against Go's tree, flags and their camelCase
-//! aliases, `HUGO_*` environment overrides, error reports and exit codes.
+//! aliases, the environment variable that chooses the environment, error reports and exit codes.
 
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::Path;
 
-use ssg_testkit::fixture::{repo_dir, repo_file};
+use ssg_testkit::fixture::{go_output_as_built_here, repo_dir, repo_file};
 use ssg_testkit::txtar::Archive;
 
 use crate::{binary, site_from, stderr, stdout};
@@ -52,7 +52,7 @@ fn write_txtar(archive: &str, to: &Path) {
 /// `sites/testsite/layouts` (as ssg-build's skeleton test builds it).
 pub fn testsite(dir: &Path) {
     let root = repo_dir();
-    copy_tree(&repo_file("hugolib/testsite"), dir);
+    copy_tree(&repo_file("testsite"), dir);
     let txtar = fs::read_to_string(root.join("tools/rust-port/i01/testsite.txtar")).expect("txtar");
     write_txtar(&txtar, dir);
     fs::remove_dir_all(dir.join("layouts")).expect("remove Go layouts");
@@ -95,7 +95,12 @@ fn testsite_matches_go() {
     let want: BTreeMap<String, Vec<u8>> = go
         .files
         .iter()
-        .map(|f| (f.name.clone(), f.data.clone().into_bytes()))
+        .map(|f| {
+            (
+                f.name.clone(),
+                go_output_as_built_here(&f.data).into_bytes(),
+            )
+        })
         .collect();
     assert_eq!(want.len(), 55);
 
@@ -172,7 +177,8 @@ fn home(dir: &Path) -> String {
     fs::read_to_string(dir.join("public/index.html")).expect("public/index.html")
 }
 
-/// Every configuration flag, in kebab-case and in Hugo's camelCase, and `HUGO_*` overrides.
+/// Every configuration flag, in kebab-case and in Go's camelCase, and the environment variables:
+/// the one that chooses the environment is read, those named like settings are not.
 #[test]
 fn flags_and_environment() {
     let s = site_from(FLAGS_SITE);
@@ -206,31 +212,21 @@ fn flags_and_environment() {
     }
     assert!(run(&["-e", "staging"], &[]).contains("|staging|"));
     assert!(run(&["--environment", "staging"], &[]).contains("|staging|"));
-    // `FUGO_*` environment: configuration keys and the environment (`-e` wins over
-    // `FUGO_ENVIRONMENT`; other keys follow ssg-config's order, file < directory <
-    // flags < env).
+    // No environment variable is read: not the environment (only `-e` chooses it), not
+    // variables named like settings.
     let env = run(
         &[],
-        &[("FUGO_TITLE", "Env title"), ("FUGO_ENVIRONMENT", "env")],
-    );
-    assert!(env.starts_with("Env title|env|"), "{env}");
-    assert!(run(&["-e", "flag"], &[("FUGO_ENVIRONMENT", "env")]).contains("|flag|"));
-    assert!(run(&[], &[("FUGO_BASEURL", "https://env.org/")]).contains("|https://env.org/|"));
-    // Hugo's `HUGO_*` variables are not read.
-    let hugo = run(
-        &[],
         &[
-            ("HUGO_TITLE", "Hugo title"),
-            ("HUGO_ENVIRONMENT", "hugo"),
-            ("HUGO_ENV", "hugo"),
-            ("HUGO_BASEURL", "https://hugo.org/"),
+            (ssg_base::env_var!("ENVIRONMENT"), "env"),
+            (ssg_base::env_var!("TITLE"), "Env title"),
+            (ssg_base::env_var!("BASEURL"), "https://env.org/"),
         ],
     );
+    assert!(env.contains("|production|"), "{env}");
     assert!(
-        !hugo.contains("Hugo title") && !hugo.contains("|hugo|"),
-        "{hugo}"
+        !env.contains("Env title") && !env.contains("https://env.org/"),
+        "{env}"
     );
-    assert!(!hugo.contains("https://hugo.org/"), "{hugo}");
 
     // `--minify` / `-M` (`--renderToMemory`): nothing is written.
     fs::remove_dir_all(s.path().join("public")).expect("rm public");

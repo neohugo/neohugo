@@ -1,5 +1,5 @@
-//! Localized dates, always in the Gregorian calendar (`th` is `th-u-ca-gregory`: Hugo's Thai
-//! sites print Gregorian years with Thai month names).
+//! Localized dates, always in the Gregorian calendar (`th` is `th-u-ca-gregory`: Thai sites
+//! built by the Go implementation print Gregorian years with Thai month names).
 
 use icu_datetime::fieldsets::{self, enums::DateFieldSet};
 use icu_datetime::input::Date;
@@ -10,7 +10,7 @@ use writeable::TryWriteable as _;
 
 use crate::locale::Locale;
 
-/// The CLDR date styles (Hugo's `:date_short` … `:date_full`).
+/// The CLDR date styles (Go's `:date_short` … `:date_full`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum DateStyle {
     Short,
@@ -135,7 +135,7 @@ fn localize_strftime(format: &str, date: jiff::civil::Date, locale: &Locale) -> 
 /// The date formatter of a style.
 ///
 /// The medium, long and full styles print the year in full and add no era of their own to
-/// early years (`Jan 1, 1`, Go's zero time, not ICU's `Jan 1, 1 AD`), as Hugo's CLDR patterns
+/// early years (`Jan 1, 1`, Go's zero time, not ICU's `Jan 1, 1 AD`), as Go's CLDR patterns
 /// do; an era the language's pattern has (Thai `ค.ศ.`) stays.
 pub(crate) fn date_formatter(
     prefs: DateTimeFormatterPreferences,

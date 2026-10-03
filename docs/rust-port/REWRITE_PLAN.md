@@ -1,8 +1,8 @@
-# neohugo Rust rewrite plan
+# fugo Rust rewrite plan
 
 **Status.** Final plan, revision 2, dated 2026-09-29. This revision applies the completeness, feasibility and Rust-style reviews. Review points that were rejected, or only partly applied, are listed in §12 "Review notes".
 
-**Since the Go removal** (after `44529028`, 2026-10-01) the Cargo workspace is the repository root and the binary is `neohugo` ([DEVELOPMENT.md](../../DEVELOPMENT.md), [HANDOFF.md §9](HANDOFF.md#9-without-go-2026-10-01)). The `rust/…` paths, `rust/target` and `neohugo-rs` below are the layout this plan was written for: read `rust/<path>` as `<path>` (`rust/README.md` is now `DEVELOPMENT.md`, `rust/docs/template-api.md` is `docs/rust-port/template-api.md`) and `neohugo-rs` as `neohugo`. Where they differ, DEVELOPMENT.md and HANDOFF.md win.
+**Since the Go removal** (after `44529028`, 2026-10-01) the Cargo workspace is the repository root and the binary is `fugo` ([DEVELOPMENT.md](../../DEVELOPMENT.md), [HANDOFF.md §9](HANDOFF.md#9-without-go-2026-10-01)). The `rust/…` paths and `rust/target` below are the layout this plan was written for: read `rust/<path>` as `<path>` (`rust/README.md` is now `DEVELOPMENT.md`, `rust/docs/template-api.md` is `docs/rust-port/template-api.md`). The plan was written under the Go version's names and now uses today's: the binary and the CLI package are `fugo` (when the plan was written, the binary had the Go version's name with an `-rs` suffix, and the CLI crate's directory, today `crates/cli`, had the Go version's name), the template object is `build` (it had the Go program's name), and the code sketches use today's names (`BuildView`, `StatsFile`, `FuncSpec::go`). Where they differ, DEVELOPMENT.md and HANDOFF.md win.
 
 **Since the private site was removed** (2026-10-02) the repository no longer holds the owner's private site: its reconstruction (R, gate A-R), gate A-S, its corpora and golden data, and the old port's specs (`docs/rust-port/specs/`) are gone. The plan calls it "the private site" and keeps its tasks as written; [HANDOFF.md](HANDOFF.md) has the current gates.
 
@@ -11,12 +11,12 @@
 - The byte-parity rules in `crates/README.md`.
 - `docs/rust-port/HANDOFF.md` §4 (T70 rewrote the handoff; the old one is `docs/rust-port/archive/HANDOFF-old-port.md`).
 
-**Repo.** `/home/user/neohugo`, branch `rust-port`.
+**Repo.** A checkout below `/home/user`, branch `rust-port`.
 
 **Facts checked while writing this plan.**
 - **Disk.** 4.5 GB free. `crates/` takes 423 MB, `~/go/pkg/mod` takes 2.2 GB. The working tree without `crates/` and `.git` is 55 MB.
 - **Docs layouts.** `docs/layouts` has 76 files and 3,372 lines. `docs/layouts/_shortcodes/quick-reference.html` prints `.Content` of other pages.
-- **Version.** The fork is `0.149.0-DEV` (`common/neohugo/version_current.go`).
+- **Version.** The fork is `0.149.0-DEV` (the Go tree's `version_current.go`).
 - **Private-site reconstruction.** It has `_default/_markup/render-table.json.json`, and its home, list, term and 404 layouts call `.Paginator`.
 - **Tera 2.4.0 behaviour:**
   - A list comprehension accepts a single `if` clause (`parser.rs` `parse_list_comprehension`).
@@ -35,10 +35,10 @@
 
 | Topic | Decision |
 |---|---|
-| Approach | A new Cargo workspace `rust/` with 22 product crates, a dev-only `testkit`, and an internal `workspace-hack`. Hugo's site and page model is rewritten in idiomatic Rust. We do not fork Zola, and we do not refactor the old crates in place. |
+| Approach | A new Cargo workspace `rust/` with 22 product crates, a dev-only `testkit`, and an internal `workspace-hack`. The Go implementation's site and page model is rewritten in idiomatic Rust. We do not fork Zola, and we do not refactor the old crates in place. |
 | Old port | T00 tags the current byte-identical state as `go-parity-final`. It converts the engine-neutral fixtures to plain JSON, moves them to `rust/testdata/`, and deletes `crates/` completely, ignored `target/` directories included. Later tasks read salvage material with `git show go-parity-final:crates/...`. |
 | Oracle | The Go build of the same `sites.py` inputs is the structural oracle. It gives the same files, URLs, aliases, feeds, chosen templates and resource URLs. Output bytes no longer have to match. |
-| Templates | `tera = "=2.4.0"` with features `no_fmt`, `fast_hash`, `preserve_order`; `fast_escape` is not used. <ul><li>Layouts, and assets processed with `execute_as_template`, are hand-converted into `rust/sites/<site>/`.</li><li>The engine accepts **only Hugo v0.146 (new-style) layout names**.</li><li>Content files keep Hugo's shortcode syntax and never go through Tera.</li><li>i18n files keep Hugo's `{{ .Field }}` placeholders, read by a restricted evaluator (not a template engine).</li></ul> |
+| Templates | `tera = "=2.4.0"` with features `no_fmt`, `fast_hash`, `preserve_order`; `fast_escape` is not used. <ul><li>Layouts, and assets processed with `execute_as_template`, are hand-converted into `rust/sites/<site>/`.</li><li>The engine accepts **only the Go implementation's v0.146 (new-style) layout names**.</li><li>Content files keep the Go implementation's shortcode syntax and never go through Tera.</li><li>i18n files keep the Go implementation's `{{ .Field }}` placeholders, read by a restricted evaluator (not a template engine).</li></ul> |
 | Template API | Tera-native: operators, list comprehensions with `if`, `~`, map and array literals, components. There is no Go `printf`, `where` or `Scratch` clone. The single source of truth is the Rust table `ssg_funcs::spec::FUNCS`. `rust/docs/template-api.md` is generated from it and snapshot-checked. |
 | Markdown | comrak 0.55 behind an engine-neutral `ssg-markup` API. The T04 spike runs it over all 959 docs files and all 251 private-site bodies before the API is frozen. pulldown-cmark is the fallback behind the same API. |
 | Highlighting | syntect 5.3 + two-face, emitting Chroma class names (and inline styles for `noClasses`). Not giallo, which is EUPL-1.2 (D1). |
@@ -50,7 +50,7 @@
 | Publishing | Bundle resources are published eagerly. Every other resource is published when its URL appears in a rendered template output, matched after decoding HTML and JSON escapes, or when the `publish` filter is applied. There is no scan of plain CSS or JS. |
 | Verification | <ul><li>A walking skeleton in round 7.</li><li>A Go **structure oracle**: per (page, format) the template and baseof, targets, permalinks and resource URLs.</li><li>A stdlib-only Python `structdiff` with levels L1–L4, a minified and an unminified pass, and a ratchet baseline with triage classes.</li><li>Two docs patch variants, mirrored 1:1 in Go and Tera.</li></ul> |
 | Agent isolation | One git worktree per agent. All worktrees share `CARGO_TARGET_DIR=rust/target`. Only green commits are merged. |
-| Licence | neohugo stays Apache-2.0. The policy lives in `rust/deny.toml` (cargo-deny format) and is evaluated as SPDX expressions by `tools/dev/licence-check.sh`. No EUPL, GPL or AGPL. Zola 0.22 and later is a design reference only (D2). |
+| Licence | fugo stays Apache-2.0. The policy lives in `rust/deny.toml` (cargo-deny format) and is evaluated as SPDX expressions by `tools/dev/licence-check.sh`. No EUPL, GPL or AGPL. Zola 0.22 and later is a design reference only (D2). |
 
 ### 1.2 What "Rust style" means here (binding for every task and review)
 
@@ -88,7 +88,7 @@
 **Determinism**
 - Determinism comes from sorted collections and explicit tie-breaks.
 - We never emulate Go map order, sort instability or worker-count effects.
-- We never reproduce Hugo quirks that come only from Go implementation details: `sync.Once` pagination, character-level radix prefixes, `$_hugo_config` v1, printf verbs.
+- We never reproduce quirks of the Go implementation that come only from Go details: `sync.Once` pagination, character-level radix prefixes, the v1 shortcode version declaration, printf verbs.
 
 **Config**
 - One `Value`-tree pipeline (normalise → migrate legacy keys → merge once → per-language merge), then typed serde structs with `Default`.
@@ -146,11 +146,11 @@
 
 ### 1.4 Accepted weaknesses
 
-1. **Hugo semantics are re-derived**: cascade, sanitising, taxonomy keys, layout scoring, pagination. Mitigation: salvage from `go-parity-final`, with oracle fixtures from day one.
+1. **The Go implementation's semantics are re-derived**: cascade, sanitising, taxonomy keys, layout scoring, pagination. Mitigation: salvage from `go-parity-final`, with oracle fixtures from day one.
 2. **The first real full build comes in round 10.** The walking skeleton (round 7) and the structure-oracle gates (T23b, T30) give earlier signals.
-3. **Existing Hugo sites do not run unchanged.** Every layout, and every asset used as a template, must be converted to Tera (D4). That is about 5k Tera lines for the three sites, plus about 1.2k lines of embedded templates.
+3. **Existing sites of the Go implementation do not run unchanged.** Every layout, and every asset used as a template, must be converted to Tera (D4). That is about 5k Tera lines for the three sites, plus about 1.2k lines of embedded templates.
 4. **Acceptance is structural, not `cmp`.** It is backed by the ratchet and hard invariants (§7).
-5. **Some Hugo idioms become explicit calls.**
+5. **Some Go-template idioms become explicit calls.**
    - Another page's `.Content` inside a shortcode becomes `page_content(page=…)`.
    - Inside a component, site-bound functions need `page=` or the implicit `@__nh` parameter.
    - A second, conflicting `.Paginate` becomes an error.
@@ -169,7 +169,7 @@ rust/
   deny.toml                 # licence allowlist + bans (cargo-deny format; read by licence-check.sh)
   README.md                 # agent rules (§8.1), lanes, worktrees, how to run acceptance
   PROVENANCE.md             # every non-original file: source, commit, licence, verbatim|modified|rewritten
-  THIRD_PARTY/              # Hugo Apache-2.0 (embedded templates), asset licences cargo cannot see (two-face syntaxes/themes, CLDR, emoji data, livereload.js)
+  THIRD_PARTY/              # the Go implementation's Apache-2.0 licence (embedded templates), asset licences cargo cannot see (two-face syntaxes/themes, CLDR, emoji data, livereload.js)
   docs/template-api.md      # GENERATED from ssg_funcs::spec::FUNCS + context tables; insta-checked
   crates/
     base/        ssg-base        ids+IdVec, PageKind/KindSet, Value/Map/Params/Date, path newtypes, anchors, inflect/title, globs, time, diag, Collate, Sink
@@ -180,21 +180,21 @@ rust/
     page/        ssg-page        per-page rules: meta, dates, build policy, cascade, target paths/permalinks, sort, titles
     site/        ssg-site        capture + assembly → Model: trees, kinds, taxonomies, translations, relations, resources, data, get_page/ref
     nav/         ssg-nav         menus, pagination arithmetic + pager URLs, related index, alias plan
-    markup/      ssg-markup      comrak + Hugo passes: anchors, TOC/fragments, summary, word count, Hooks trait, context spans
+    markup/      ssg-markup      comrak + the Go implementation's passes: anchors, TOC/fragments, summary, word count, Hooks trait, context spans
     highlight/   ssg-highlight   syntect + two-face, Chroma class map, inline styles, fence options, CSS    [heavy]
     minify/      ssg-minify      minify-html / lightningcss / oxc / JSON / XML                           [heavy]
     images/      ssg-images      ImageSpec, ops, filters, codecs, deferred queue, cache                  [heavy]
-    jsbuild/     ssg-jsbuild     js.Build in process with rolldown (2026-10-02; T14 built it as the esbuild --service client neohugo-esbuild)
+    jsbuild/     ssg-jsbuild     js.Build in process with rolldown (2026-10-02; T14 built it as the esbuild --service client crate)
     resources/   ssg-resources   ResourceStore, bundles/assets/remote, transforms, pipes, URL-token resolution
-    layouts/     ssg-layouts     template scan (v0.146 names), Hugo lookup scorer, baseof variants, escaping, Tera loading
-      embedded/                      Hugo's embedded templates rewritten in Tera (include_str!)
+    layouts/     ssg-layouts     template scan (v0.146 names), the Go lookup scorer, baseof variants, escaping, Tera loading
+      embedded/                      the Go implementation's embedded templates rewritten in Tera (include_str!)
     funcs/       ssg-funcs       spec::FUNCS (source of truth) + pure Tera filters/functions/tests + tera-contrib subset
     view/        ssg-view        view structs, ViewCache, render-state types (RenderScope, PageStores, PaginationRecorder, DeferredRegistry), ContentRenderer trait
     sitefuncs/   ssg-sitefuncs   site-bound Tera functions as handle structs (get_page, ref, i18n, assets, images, paginate, partial…)
     render/      ssg-render      Session: content phase (shortcodes, hooks), layout jobs, memo cells; implements ContentRenderer
-    publish/     ssg-publish     sinks, canonify, minify dispatch, hugo_stats, URL-token extraction, held outputs, static sync
+    publish/     ssg-publish     sinks, canonify, minify dispatch, build stats, URL-token extraction, held outputs, static sync
     build/       ssg-build       orchestration: phases, language sub-waves, pager wave, deferred wave, resource/image publish, report
-    cli/         neohugo (bin)       clap CLI: build, templates check, config, version; binary neohugo-rs
+    cli/         fugo (bin)          clap CLI: build, templates check, config, version; binary fugo
     serve/       ssg-serve       (T71) axum + livereload + notify, memory sink
     testkit/     ssg-testkit     (dev) plain-JSON fixture reader, txtar sites, insta settings, contract test
     migrate/     ssg-migrate     (COULD, T73) Go template → Tera converter, legacy file renames, printf/where translation
@@ -204,7 +204,7 @@ rust/
     assets/**                        only assets used with execute_as_template (Tera)
     patches/{i01,reduced}/**         docs only: variant files mirroring sites.py layout patches 1:1
   testdata/
-    oracle/<area>/…      engine-neutral fixtures moved in T00, converted to plain JSON (neohugo schema)
+    oracle/<area>/…      engine-neutral fixtures moved in T00, converted to plain JSON (this project's schema)
     corpus/…             private-site md bodies + front matters, collation strings, minifier corpus, date corpus
     site-assets/…        jpg/png inputs sites.py needs
     golden/<site>/       Go manifests (L1–L4) + structure-oracle dumps; golden/images/ (20 Go-processed images for PSNR)
@@ -220,7 +220,7 @@ tools/go-oracle/structure/           new Go program (T01)
 tools/rust-port/i01/sites.py         kept; gains --overlay <dir> and --docs-patches i01|reduced, emits patches.json
 ```
 
-The binary stays `neohugo-rs`, so the harness scripts keep their names.
+The binary keeps its `-rs` name, so the harness scripts keep their names.
 
 ### 2.2 Cargo configuration (driven by the disk budget, §8.1)
 
@@ -330,7 +330,7 @@ pub enum Value { #[default] Null, Bool(bool), Int(i64), Float(f64), String(Arc<s
 /// Data files, unmarshal results and template dicts keep their keys (`Name`, `baseURL`).
 #[derive(Clone, Debug, Default, PartialEq)] pub struct Map(BTreeMap<Arc<str>, Value>);
 /// Front matter / config / language params. Built only by `Params::fold`, which lower-cases keys
-/// recursively EXCEPT inside arrays (Hugo PrepareParams). Lookup is case-insensitive.
+/// recursively EXCEPT inside arrays (Go's PrepareParams). Lookup is case-insensitive.
 #[derive(Clone, Debug, Default, PartialEq)] pub struct Params(Map);
 impl Params {
     pub fn fold(m: Map) -> Self;
@@ -343,12 +343,12 @@ impl Params {
 #[derive(Clone, Debug, PartialEq)] pub enum Date { Zoned(jiff::Zoned), Local(jiff::civil::DateTime) }
 impl Value {
     pub fn from_toml(v: toml::Value) -> Self;             // toml::Datetime → Date (decode via toml::Table, no private keys)
-    pub fn from_yaml(v: serde_saphyr::Value) -> Self;     // timestamps stay strings (Hugo)
+    pub fn from_yaml(v: serde_saphyr::Value) -> Self;     // timestamps stay strings (Go)
     pub fn from_json(v: serde_json::Value) -> Self;
     pub fn to_tera(&self) -> tera::Value;                 // keeps key case and byte order
 }
 pub struct Clock(pub jiff::Timestamp);                     // --clock
-pub fn parse_date(s: &str, tz: &jiff::tz::TimeZone) -> Result<jiff::Zoned, DateError>; // Hugo's accepted layouts as jiff strptime patterns
+pub fn parse_date(s: &str, tz: &jiff::tz::TimeZone) -> Result<jiff::Zoned, DateError>; // Go's accepted layouts as jiff strptime patterns
 
 pub mod paths {                       // each newtype has ONE constructor; transforms cannot be mixed up
     pub struct ContentKey(Arc<str>);  // tree key == .Path: lower-case, ' '→'-', nothing else; "" = home
@@ -359,7 +359,7 @@ pub mod paths {                       // each newtype has ONE constructor; trans
     pub struct OutputPath(Arc<str>);  // sanitised file path under publishDir: "/posts/one/index.html"
     pub struct UrlPath(Arc<str>);     // unescaped link path "/posts/one/"; .escaped(): RFC 3986 segment set, upper-case hex
     pub struct Permalink(Arc<str>);   // absolute, escaped
-    /// Keeps Unicode general categories L*, Nd, M* plus Hugo's punctuation allowlist (salvaged list);
+    /// Keeps Unicode general categories L*, Nd, M* plus Go's punctuation allowlist (salvaged list);
     /// categories via `unicode-properties` (verify), not Go tables. Keeps Thai.
     pub fn sanitize_segment(s: &str) -> String;
     pub fn urlize(s: &str) -> String;
@@ -392,7 +392,7 @@ pub trait Sink: Send + Sync {
     pub destination: Option<PathBuf>, pub minify: Option<bool>, pub build_drafts: Option<bool>,
     pub build_future: Option<bool>, pub build_expired: Option<bool> }
 pub struct LoadOptions { pub source: PathBuf, pub config_files: Vec<PathBuf>, pub cli: CliOverrides,
-                         pub env: Vec<(String, String)> /* HUGO_* */ }
+                         pub env: Vec<(String, String)> /* the Go program's environment variables */ }
 pub fn load(o: &LoadOptions) -> Result<Config, ConfigError>;   // errors carry toml/saphyr spans
 
 pub struct Config {
@@ -422,9 +422,9 @@ pub enum DateSource { Field(String), Filename, FileModTime, Git }
 pub struct TaxonomyDef { pub singular: String, pub plural: String }
 pub enum UglyPolicy { Inherit, Always, Never }
 pub enum Escaping { Html, Plain }
-pub enum LinkPolicy { Own, UsePrimary }          // Hugo `permalinkable`
+pub enum LinkPolicy { Own, UsePrimary }          // Go `permalinkable`
 pub enum Listing { Alternative, NotAlternative }
-pub enum Placement { LanguageDir, Root }          // Hugo `root`
+pub enum Placement { LanguageDir, Root }          // Go `root`
 pub struct OutputFormat { pub name: String, pub media_type: MediaTypeId, pub base_name: String, pub path: String,
     pub rel: String, pub protocol: String, pub escaping: Escaping, pub is_html: bool, pub ugly: UglyPolicy,
     pub links: LinkPolicy, pub listing: Listing, pub placement: Placement, pub weight: i32 }
@@ -458,7 +458,7 @@ pub fn split_front_matter(src: &str) -> Result<Split<'_>, ParseError>;        //
 pub fn decode_front_matter(f: FrontMatterFormat, text: &str) -> Result<Params, DecodeError>; // Params::fold
 /// Flat token stream, checked against the 141,869-item oracle.
 pub fn lex(body: &str) -> Result<Vec<Token<'_>>, ParseError>;
-/// Hugo's IsInner changes parsing: a shortcode whose template uses `inner` must be closed.
+/// Go's IsInner changes parsing: a shortcode whose template uses `inner` must be closed.
 pub enum InnerUse { Required, Unused, UnknownShortcode }
 pub trait InnerOracle { fn inner_use(&self, shortcode: &str) -> InnerUse; }
 pub fn assemble<'a>(tokens: Vec<Token<'a>>, oracle: &dyn InnerOracle) -> Result<Body<'a>, ParseError>;
@@ -497,7 +497,7 @@ pub fn format_date(d: &jiff::Zoned, p: DatePattern, lang: &Language) -> String; 
 pub enum Markup { Markdown, Html }          // from front matter `markup`, else the content file extension
 #[derive(Clone, Debug, Default)] pub struct Dates { pub date: Option<jiff::Zoned>, pub lastmod: Option<jiff::Zoned>,
                                                     pub publish_date: Option<jiff::Zoned>, pub expiry_date: Option<jiff::Zoned> }
-/// Overrides applied at capture, before tree insertion (Hugo FM `kind`, `lang`, `path`).
+/// Overrides applied at capture, before tree insertion (Go front matter `kind`, `lang`, `path`).
 pub struct CaptureOverrides { pub kind: Option<PageKind>, pub lang: Option<String> /* lower-cased */, pub path: Option<String> }
 pub struct PageMeta {
     pub title: Option<String>, pub link_title: Option<String>, pub description: String, pub summary: Option<String>,
@@ -559,7 +559,7 @@ pub struct SiteModel { pub lang: LangIdx, pub tree: SiteTree, pub home: PageId,
                        pub pages: Vec<PageId>, pub regular_pages: Vec<PageId>,
                        pub taxonomies: IdVec<TaxonomyIdx, Taxonomy>, pub standalone: Standalone,
                        pub last_mod: Option<jiff::Zoned> }
-pub struct SiteTree { by_key: BTreeMap<ContentKey, PageId> }      // byte order == Hugo walk order
+pub struct SiteTree { by_key: BTreeMap<ContentKey, PageId> }      // byte order == Go walk order
 impl SiteTree {
     pub fn get(&self, key: &ContentKey) -> Option<PageId>;
     /// SEGMENT-aware longest prefix + language Dir() retry (not go-radix character level; confirmed by T23b oracle).
@@ -616,7 +616,7 @@ pub fn alias_plan(m: &Model) -> Vec<AliasPlan>;
 bitflags! { pub struct Extensions: u32 { TABLES; FOOTNOTES; DEFINITION_LISTS; DEFINITION_TERM_IDS; STRIKETHROUGH;
     TASKLISTS; LINKIFY; HEADING_ATTRIBUTES; BLOCK_ATTRIBUTES; ALERTS; EMOJI; } }
 pub enum RawHtml { Omit, Pass }                 // goldmark `unsafe`
-pub enum CodeFences { Hooked, Plain }           // Hugo markup.highlight.codeFences: Plain = no hook, no highlighter
+pub enum CodeFences { Hooked, Plain }           // Go markup.highlight.codeFences: Plain = no hook, no highlighter
 pub struct TocOptions { pub start: u8, pub end: u8, pub ordered: bool }
 pub struct MarkdownOptions { pub extensions: Extensions, pub raw_html: RawHtml, pub typographer: Option<Typographer>,
                              pub heading_ids: anchor::Style, pub passthrough: Vec<Delimiters>,
@@ -630,7 +630,7 @@ impl Toc { pub fn to_html(&self, o: &TocOptions) -> String; }
 /// Byte ranges of the expanded source that came from another page (render_shortcodes includes).
 pub struct SourceContexts(pub Vec<(Range<usize>, PageId)>);
 pub struct ExpandedMarkdown<'a> { pub text: &'a str, pub page: PageId, pub contexts: &'a SourceContexts }
-/// `inner_page` = innermost context span containing the node's source position (Hugo `.PageInner`).
+/// `inner_page` = innermost context span containing the node's source position (Go `.PageInner`).
 pub struct HookEnv { pub page: PageId, pub inner_page: PageId, pub ordinal: u32, pub position: Position }
 pub enum HookOut { Default, Html(String) }
 /// Hooks run post-order on the comrak AST: inner hooks first, then the node is replaced by raw HTML.
@@ -678,7 +678,7 @@ pub struct Resource {
     pub params: Params, pub target: OutputPath, pub rel_permalink: UrlPath, pub permalink: Permalink,
     pub body: Body, pub image: Option<ImageMeta>, pub integrity: Option<String>, pub policy: PublishPolicy,
 }
-pub enum Body { File(PathBuf), Bytes(Arc<[u8]>), Generated(Arc<[u8]>) /* e.g. hugo_stats.json from E4 */,
+pub enum Body { File(PathBuf), Bytes(Arc<[u8]>), Generated(Arc<[u8]>) /* e.g. the stats file from E4 */,
                 Derived { from: ResourceId, op: Transform }, PendingImage(ImageOpId),
                 PostProcess(PostProcessId) /* one placeholder per field */ }
 pub enum Transform { Fingerprint(HashAlgo), Minify, ToCss(SassOptions), PostCss(PostCssOptions), Tailwind(TailwindOptions),
@@ -695,7 +695,7 @@ impl ResourceStore {
     pub fn concat(&self, target: &str, items: &[ResourceId], call: CallSite) -> Result<ResourceId, ResourceError>;
     pub fn from_template_output(&self, target: &str, output: String, call: CallSite) -> Result<ResourceId, ResourceError>;
     pub fn get_remote(&self, url: &str, o: &RemoteOptions) -> Result<ResourceId, RemoteError>; // ureq + [caches.getresource]
-    pub fn inject_generated(&self, asset_path: &str, bytes: Arc<[u8]>);        // hugo_stats.json freshness (E4)
+    pub fn inject_generated(&self, asset_path: &str, bytes: Arc<[u8]>);        // stats file freshness (E4)
     pub fn transform(&self, id: ResourceId, t: Transform, env: &TransformEnv) -> Result<ResourceId, ResourceError>;
     pub fn resource(&self, id: ResourceId) -> Arc<Resource>;
     pub fn content(&self, id: ResourceId) -> Result<Arc<[u8]>, ResourceError>;       // realizes the chain
@@ -747,7 +747,7 @@ pub enum Origin { User(PathBuf), Theme(u8, PathBuf), Embedded }
 pub struct TemplateInfo { pub name: TemplateName, pub role: TemplateRole, pub scope: ContentKey,
                           pub lang: Option<LangIdx>, pub format: Option<FormatId>, pub media: Option<MediaTypeId>,
                           pub escaping: Escaping, pub origin: Origin }
-#[derive(PartialEq, Eq, PartialOrd, Ord)] pub struct Score { /* Hugo weights as ordered fields */ }
+#[derive(PartialEq, Eq, PartialOrd, Ord)] pub struct Score { /* Go weights as ordered fields */ }
 pub struct LayoutQuery<'a> { pub path: &'a ContentKey /* first segment replaced by `type` */, pub kind: PageKind,
                              pub layout: Option<&'a str>, pub lang: LangIdx, pub default_lang: bool, pub format: FormatId }
 pub struct Selection { pub layout: TemplateName, pub base: Option<TemplateName>, pub render_as: TemplateName }
@@ -756,7 +756,7 @@ impl LayoutStore {
     /// v0.146 names only; `_default/`, `partials/`, `shortcodes/`, `taxonomy/list`, `term/term`, `X-baseof`
     /// are errors with a rename hint. Names are lower-cased.
     pub fn scan(vfs: &Vfs, cfg: &Config) -> Result<Self, TemplateError>;
-    pub fn select(&self, q: &LayoutQuery) -> Option<Selection>;        // Hugo scorer + baseof
+    pub fn select(&self, q: &LayoutQuery) -> Option<Selection>;        // Go scorer + baseof
 }
 pub struct Templates { tera: tera::Tera, store: Arc<LayoutStore>, uses_inner: HashSet<TemplateName>, /* lookup memos */ }
 /// Fallback prefixes, then `register` (all names), then ONE add_raw_templates call.
@@ -774,7 +774,7 @@ pub enum NameKind { Filter, Function, Test }
 pub enum PhaseAvail { Content, Layout, Both }
 pub struct Kwarg { pub name: &'static str, pub ty: &'static str, pub required: bool }
 pub struct FuncSpec { pub name: &'static str, pub kind: NameKind, pub kwargs: &'static [Kwarg], pub phase: PhaseAvail,
-                      pub safe: bool, pub site_bound: bool, pub hugo: &'static str, pub doc: &'static str }
+                      pub safe: bool, pub site_bound: bool, pub go: &'static str, pub doc: &'static str }
 pub mod spec { pub const FUNCS: &[FuncSpec] = &[/* source of truth; template-api.md is generated from it */];
                pub const EMBEDDED_TEMPLATES: &[&str] = &[/* names T32 provides */]; }
 pub struct FuncsEnv { pub collators: IdVec<LangIdx, Arc<dyn Collate>>, pub security: SecurityPolicy, pub clock: Clock }
@@ -875,7 +875,7 @@ pub struct PageRelations {
 #[derive(Serialize)] pub struct ShortcodeView { pub name: String, pub args: Vec<tera::Value>, pub params: tera::Value,
                                                 pub is_named_params: bool, pub ordinal: u32,
                                                 pub parent: Option<Box<ShortcodeView>>, pub position: String }
-#[derive(Serialize)] pub struct HugoView { pub version: &'static str /* "0.149.0-DEV" */, pub neohugo_version: &'static str,
+#[derive(Serialize)] pub struct BuildView { pub version: &'static str /* "0.149.0-DEV" */, pub app_version: &'static str,
                                            pub environment: String, pub is_production: bool, pub is_development: bool,
                                            pub is_server: bool, pub generator: tera::Value /* safe */ }
 ```
@@ -973,7 +973,7 @@ pub struct Publisher { /* sink, canonify rewriter, minifier, StatsCollector (per
 impl Publisher {
     pub fn emit(&self, o: Output) -> Result<(), PublishError>;  // canonify → stats → tokens → hold if placeholders | minify → write
     pub fn add_tokens_from(&self, text: &str);                  // execute_as_template outputs
-    pub fn stats(&self) -> HugoStats;
+    pub fn stats(&self) -> StatsFile;
     pub fn patch_held(&self, repl: &BTreeMap<String, String>) -> Result<(), PublishError>; // re-extract tokens, minify, write
     pub fn url_tokens(&self) -> UrlTokens;
 }
@@ -1018,16 +1018,16 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 | E1 | **Static copy** | publish | Static mounts → sink. Runs first, so rendered outputs win conflicts. | `par_iter` |
 | E2 | **Wave 1** | build, render, publish | **One sub-wave per language, in language order.** Each sub-wave renders aliases, then pages × formats (pager 1), then standalone pages. Pagination calls are recorded. Every output goes through `Publisher::emit`. | `jobs.par_iter()` within a sub-wave |
 | E3 | **Wave 2** | build | Pagers 2..N from the recorder, `page/1/` aliases (HTML formats only), language redirect | `par_iter` |
-| E4 | **Stats** | publish, resources | Merge per-thread sets → `hugo_stats.json`, sorted, honouring `disableIDs`. Write it to the project root (as Hugo does; external tools read it from disk) and `inject_generated` it for its mounted asset path. | reduce |
+| E4 | **Stats** | publish, resources | Merge per-thread sets → the stats file (`build_stats.json`), sorted, honouring `disableIDs`. Write it to the project root (as the Go implementation does; external tools read it from disk) and `inject_generated` it for its mounted asset path. | reduce |
 | E5 | **Deferred wave** | build, resources | Render each `defer(...)` template once per key (docs: Tailwind). Realise `post_process` fields (the private site's PostCSS purge reads the stats). This gives a replacement map → `patch_held`, which re-extracts URL tokens, then minify and write. | `par_iter` over deferred keys |
 | E6 | **Publish resources and images** | resources, images | Eager bundle resources, plus every resource whose URL is in `UrlTokens`, plus explicit `publish`. Only referenced image ops are processed, into `[caches.images]`, then copied. No scan of plain CSS/JS text. | **`par_iter`** (outside any render) |
 | E7 | **Report** | build, cli | Sorted, de-duplicated diagnostics; errors fail the build | – |
 
 **A1 config pipeline** (rust-style; there is no mapstructure port):
-1. **Bootstrap.** Read `environment`, `source` and `configDir` from `CliOverrides` and `HUGO_*`.
+1. **Bootstrap.** Read `environment`, `source` and `configDir` from `CliOverrides` and the environment variables.
 2. **Load sources into `Value` trees:**
-   - the project's config file: the first that exists of `neohugo.{toml,yaml,yml,json}`, then Hugo's `hugo.*` and `config.*` (compatibility with Hugo sites); when several exist, a warning names the file read and the ones ignored. `--config a,b` lists the files explicitly;
-   - `config/_default/**`, then `config/<env>/**`, with the file-name → key rules of semantics §1.2 (`neohugo.*`, `hugo.*` and `config.*` there are root files).
+   - the project's config file: the first that exists of the project-named `.{toml,yaml,yml,json}` file, then the Go program's name and `config.*` (compatibility with the Go implementation's sites; today only `config.*` is read, HANDOFF.md §2); when several exist, a warning names the file read and the ones ignored. `--config a,b` lists the files explicitly;
+   - `config/_default/**`, then `config/<env>/**`, with the file-name → key rules of semantics §1.2 (the project-named, the Go-program-named and `config.*` files there are root files).
 3. **Normalise every tree.**
    - `normalize_keys`: lower-case keys except inside arrays; `menu`→`menus`; drop `internal`.
    - `migrate_legacy_keys`:
@@ -1043,13 +1043,13 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 4. **Deep-merge once**, in this precedence: defaults < file < dir < CLI < env.
    - Env is applied once. Each value is parsed into the variant of the value it overrides.
    - `disableKinds` and `disableLanguages` are split on commas and whitespace.
-   - **Themes** below the project (Hugo's module collection and `_merge` semantics; `ssg-config` README "Themes"):
-     - found in import order, depth first: `[[module.imports]]`, then `theme = [...]`, then each theme's own imports after it (`theme = ["a", "b"]` with `a` importing `c`: a, c, b; the first wins); in `themesDir`, `_vendor` (`modules.txt`) or at an absolute path; `module.replacements`, `ignoreConfig`, `ignoreImports`, `noMounts`, `disable`; Hugo Modules are not downloaded;
-     - each theme's config: the first of `neohugo.*`, `hugo.*`, `config.*` in its directory, then its `config/_default/**` and `config/<env>/**`;
+   - **Themes** below the project (the Go implementation's module collection and `_merge` semantics; `ssg-config` README "Themes"):
+     - found in import order, depth first: `[[module.imports]]`, then `theme = [...]`, then each theme's own imports after it (`theme = ["a", "b"]` with `a` importing `c`: a, c, b; the first wins); in `themesDir`, `_vendor` (`modules.txt`) or at an absolute path; `module.replacements`, `ignoreConfig`, `ignoreImports`, `noMounts`, `disable`; modules are not downloaded;
+     - each theme's config: the first of the project-named, the Go-program-named and `config.*` files in its directory, then its `config/_default/**` and `config/<env>/**`;
      - merged theme by theme: the project's values win; a theme adds only keys the project lacks, as the `_merge` strategy of the project's table allows (`params` deep, `menus`/`outputFormats`/`mediaTypes` shallow, other root keys none unless the root sets `_merge`; `languages.X.params` deep, `languages.X.menus` shallow; inherited below); root values that are not tables only with a `deep` root; a theme's `theme`, `module` and `themesDir` are never merged.
-     - Deliberate deviations: no Hugo Modules download (a theme that is not found is always an error); a theme's `theme`/`module`/`themesDir`/bootstrap keys never merge (Go merges them under a `deep` root after using the project's); `_merge` values ignore case; a project non-table value where a theme has a table is kept (Go panics).
+     - Deliberate deviations: no module download (a theme that is not found is always an error); a theme's `theme`/`module`/`themesDir`/bootstrap keys never merge (Go merges them under a `deep` root after using the project's); `_merge` values ignore case; a project non-table value where a theme has a table is kept (Go panics).
 5. **Per-language merge.** For each enabled language, merge `languages.X` over the root tree.
-6. **Typed deserialise.** serde into structs with `#[serde(default)]` and `impl Default` holding Hugo's defaults. `[frontmatter]` chains become `Vec<DateSource>` and `outputs` become `Vec<FormatId>`. Errors carry toml/saphyr spans.
+6. **Typed deserialise.** serde into structs with `#[serde(default)]` and `impl Default` holding the Go implementation's defaults. `[frontmatter]` chains become `Vec<DateSource>` and `outputs` become `Vec<FormatId>`. Errors carry toml/saphyr spans.
 
 ### 3.2 Content phase
 
@@ -1063,13 +1063,13 @@ pub struct BuildReport { pub pages: usize, pub outputs: usize, pub aliases: usiz
 - shifts q's context spans;
 - adds a span `(range, q)` for the spliced text.
 
-Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). That is how the docs link hook resolves relative links and resources in `_common/*` snippets. The spans are computed from comrak `sourcepos`; T04 verifies accuracy for inline nodes. No textual markers ever reach the markdown, so `unsafe=false` raw-HTML omission is not affected.
+Markdown hooks inside that range receive `inner_page = q` (Go `.PageInner`). That is how the docs link hook resolves relative links and resources in `_common/*` snippets. The spans are computed from comrak `sourcepos`; T04 verifies accuracy for inline nodes. No textual markers ever reach the markdown, so `unsafe=false` raw-HTML omission is not affected.
 
 **Inner content.**
 - `InnerUse` is known statically from `Templates::uses_variable(tpl, "inner" | "inner_deindent")`, following includes and parents.
 - The inner of the outermost `{{% %}}` is raw.
 - A nested `{{% %}}` has its inner rendered as markdown. A single line loses its `<p>`.
-- `$_hugo_config` v1 semantics are **not** reproduced (D5).
+- The v1 shortcode semantics (the in-template version declaration) are **not** reproduced (D5).
 - `ordinal` counts per nesting level; `parent` is the enclosing call.
 
 **Fragments are their own memo stage.** The docs link hook validates anchors in other pages, so A links to B and B links to A. The fragments stage parses the expanded source and never runs hooks.
@@ -1090,9 +1090,9 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
 
 ### 3.3 Layout jobs and pagination
 
-**Context.** Each job gets `page` (the full value from the variant's generation), `site`, `hugo`, `lang`, `output_format` and `__nh` (§4.2).
+**Context.** Each job gets `page` (the full value from the variant's generation), `site`, `build`, `lang`, `output_format` and `__nh` (§4.2).
 
-**Pagination is recorded at call time** (Hugo semantics §15.1).
+**Pagination is recorded at call time** (semantics spec §15.1).
 - `paginator()` uses the default list (semantics §15.2) and `pagination.pagerSize`. `paginate(pages=, size=?)` uses a custom list.
 - The first call per (page, format) records the `Pagination` and its template position. Later calls behave as follows:
 
@@ -1120,7 +1120,7 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
 **Publishing on reference.** Assets, remote resources, transformed resources and `publishResources=false` bundles are published only when their URL appears in a template output.
 - `Publisher::emit` extracts `UrlTokens` from every output, after decoding HTML entities and JSON escapes. Paths with `&` and `'` (S/R bundles `herrs-salt-&-vinegar…`, `Lay's`) therefore match.
 - `execute_as_template` outputs are scanned too, because they are template output.
-- Plain CSS and JS files are never scanned: Hugo publishes only through template calls.
+- Plain CSS and JS files are never scanned: the Go implementation publishes only through template calls.
 - `publish` forces publication.
 - Tokens are resolved in E6 against `url → ResourceId`, using both `rel_permalink` and `permalink`.
 
@@ -1145,7 +1145,7 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
 - config loading;
 - the stats merge;
 - work within one deferred key;
-- the language order of E2 sub-waves. Target-path-memoised assets depend on it: Hugo renders languages in order, so the earlier language wins.
+- the language order of E2 sub-waves. Target-path-memoised assets depend on it: the Go implementation renders languages in order, so the earlier language wins.
 
 **Rules:**
 - Every parallel stage collects into indexed or sorted collections before any order-dependent step.
@@ -1170,7 +1170,7 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
    - `tera.set_fallback_prefixes(["_theme1/", …, "_embedded/"])` is called **before** any template is added. User templates are unprefixed and win. The page scorer knows each template's origin and does not rely on the fallback.
    - `sitefuncs::register`, `funcs::register_pure` and the tera-contrib subset are registered before templates are added, because Tera 2 validates every name when a template is added. Site functions hold `Arc<OnceLock<Weak<dyn ContentRenderer>>>`; the slot is filled after the `Session` `Arc` exists.
    - A **single** `add_raw_templates` call adds user, theme and embedded templates plus the synthesised baseof variants. It validates syntax, names, inheritance and include cycles.
-   - Go-template markers (`{{ .`, `{{ end }}`, `{{ define`) give an error that points to `neohugo-rs templates check` and the migrate tool.
+   - Go-template markers (`{{ .`, `{{ end }}`, `{{ define`) give an error that points to `fugo templates check` and the migrate tool.
 3. **The contract instance** (T02, testkit, `templates check`) is identical, except that it calls `funcs::register_placeholders` and registers empty stubs for every `spec::EMBEDDED_TEMPLATES` name not yet written.
 4. **Tera features:** `no_fmt`, `fast_hash`, `preserve_order`. Not `fast_escape`, which would stop escaping `'`. `glob_fs` is not used; all loading goes through the Vfs.
 
@@ -1178,15 +1178,15 @@ Markdown hooks inside that range receive `inner_page = q` (Hugo `.PageInner`). T
 
 | Render | Top-level names |
 |---|---|
-| Layout job | `page` (full), `site`, `hugo`, `lang`, `output_format`, `__nh` |
-| Shortcode | `page` (full value of the Meta generation: relations yes, content fields no), `site`, `hugo`, `lang`, `shortcode` (`ShortcodeView`), `inner` (safe), `inner_deindent`, `__nh` |
-| Render hook | `page` and `page_inner` (Meta generation), `site`, `hugo`, `lang`, `__nh`, plus the hook fields **flattened** (below) |
-| `partial(name=…, …)` | the kwargs as top-level names, plus the caller's `page`, `site`, `hugo`, `lang`, `output_format`, and a child `__nh` (same page, format and pager; new frame; depth+1) |
-| Component | only its arguments. Implicit `@page`, `@site`, `@hugo`, `@lang` and `@__nh` may be declared (Tera looks each up by name in the caller's scope; `hugo` is in every render that can call a component). |
-| `defer` template | `data`, `site`, `hugo`, `__nh` (phase `Deferred`) |
-| `execute_as_template` | `data`, `site`, `hugo`, `__nh` |
-| Alias | `permalink`, `page` (link), `site`, `hugo` |
-| Sitemap, robots, 404 | `page` (the standalone page; its `pages` is `site.pages`), `site`, `hugo`, `lang`, `__nh` |
+| Layout job | `page` (full), `site`, `build`, `lang`, `output_format`, `__nh` |
+| Shortcode | `page` (full value of the Meta generation: relations yes, content fields no), `site`, `build`, `lang`, `shortcode` (`ShortcodeView`), `inner` (safe), `inner_deindent`, `__nh` |
+| Render hook | `page` and `page_inner` (Meta generation), `site`, `build`, `lang`, `__nh`, plus the hook fields **flattened** (below) |
+| `partial(name=…, …)` | the kwargs as top-level names, plus the caller's `page`, `site`, `build`, `lang`, `output_format`, and a child `__nh` (same page, format and pager; new frame; depth+1) |
+| Component | only its arguments. Implicit `@page`, `@site`, `@build`, `@lang` and `@__nh` may be declared (Tera looks each up by name in the caller's scope; `build` is in every render that can call a component). |
+| `defer` template | `data`, `site`, `build`, `__nh` (phase `Deferred`) |
+| `execute_as_template` | `data`, `site`, `build`, `__nh` |
+| Alias | `permalink`, `page` (link), `site`, `build` |
+| Sitemap, robots, 404 | `page` (the standalone page; its `pages` is `site.pages`), `site`, `build`, `lang`, `__nh` |
 | Sitemapindex | the same, plus `sites: [{language, sitemap_abs_url, last_mod}]` |
 
 Flattened hook fields, per hook:
@@ -1212,7 +1212,7 @@ Flattened hook fields, per hook:
 
 ### 4.3 Layout lookup, baseof, partials, components, shortcodes, hooks, defer
 
-**Lookup.** A pure, data-driven port of Hugo's scorer (semantics §11.4–11.6) using `TemplateRole` and `Score`.
+**Lookup.** A pure, data-driven port of the Go implementation's scorer (semantics §11.4–11.6) using `TemplateRole` and `Score`.
 - The first path segment is replaced by `type` when `type` differs from the section.
 - Candidates come from walking from the root down to the query path.
 - A user template beats a theme template, which beats an embedded one. Link and image hooks follow `useEmbedded`.
@@ -1220,7 +1220,7 @@ Flattened hook fields, per hook:
 - No match gives a warning and no file; standalone pages are skipped silently.
 
 **Baseof.**
-- A layout that begins with `{% extends "baseof.html" %}` requests Hugo's base resolution.
+- A layout that begins with `{% extends "baseof.html" %}` requests the Go implementation's base resolution.
 - For every (layout L, resolved baseof B) pair where B is not the root `baseof.html`, a variant `TemplateName` `L@@B` is registered with its `extends` literal rewritten to B.
 - The three target sites each have one root baseof, so no variants are created for them.
 - An explicit `{% extends "other.html" %}` is left alone.
@@ -1228,7 +1228,7 @@ Flattened hook fields, per hook:
 
 **Partials** (conversion rule in §4.7):
 
-| Hugo partial | Tera form |
+| Go partial | Tera form |
 |---|---|
 | shares the caller's context (`partial "x" .`) | `{% include "_partials/x.html" %}` |
 | literal name with dict arguments | a **component**, defined in `_partials/` files (`{% component breadcrumbs(page, sep="/", @lang) %}`) and called as `{{ <breadcrumbs page=page /> }}` |
@@ -1247,9 +1247,9 @@ Flattened hook fields, per hook:
 
 **Shortcodes.**
 - `_shortcodes/<name>.html` (and `.md` / `.txt`) are ordinary Tera templates, looked up with path scope, output format and language.
-- Positional arguments are `shortcode.args`, named arguments `shortcode.params`. `shortcode | arg(index=0, default="")` and `shortcode | arg(name="src", default="")` give Hugo's `.Get` with its missing-value rules.
-- Content keeps Hugo's syntax exactly.
-- Shortcodes cannot be components, because Hugo shortcodes take positional arguments.
+- Positional arguments are `shortcode.args`, named arguments `shortcode.params`. `shortcode | arg(index=0, default="")` and `shortcode | arg(name="src", default="")` give Go's `.Get` with its missing-value rules.
+- Content keeps the Go implementation's syntax exactly.
+- Shortcodes cannot be components, because Go-template shortcodes take positional arguments.
 
 **Render hooks.**
 - `TeraHooks` implements `markup::Hooks`: it looks up `_markup/render-<kind>[-<variant>][.<format>].html` and renders it with `page_inner` from `HookEnv`.
@@ -1282,7 +1282,7 @@ The docs `quick-reference` shortcode reads `.Content` of child sections, and bec
 
 **Safe outputs.** Functions and filters that produce HTML are safe: `partial` (HTML mode), components, `markdownify`, `render_string`, `render_shortcodes`, `page_content`, `highlight`, `emojify`, `to_math`, `diagrams_goat`, `jsonify`, `html_escape`. Content, summary, TOC, hook `text` and `inner` are inserted as safe strings.
 
-**`html_escape`** always escapes, even an input marked safe, and returns a safe value. Hugo `html`, `htmlEscape` and `transform.HTMLEscape` map to it; R `rss.xml` `{{ .Summary | html }}` is the case that needs it. Tera's `escape` leaves safe values alone, so it is not used for these.
+**`html_escape`** always escapes, even an input marked safe, and returns a safe value. The Go functions `html`, `htmlEscape` and `transform.HTMLEscape` map to it; R `rss.xml` `{{ .Summary | html }}` is the case that needs it. Tera's `escape` leaves safe values alone, so it is not used for these.
 
 **No contextual escaping.**
 - In `<script>`, use `jsonify | safe`. `jsonify` escapes `<`, `>` and `&` as `\u003c`, `\u003e` and `\u0026`.
@@ -1310,11 +1310,11 @@ Frozen as `ssg_funcs::spec::FUNCS` by T02. `template-api.md` is generated from i
 **Naming.**
 - Tera built-ins are never overridden.
 - Names follow Tera/Zola verb_noun style.
-- Hugo concept names stay (`ref`, `rel_ref`, `abs_url`, `paginate`, `i18n`, `by_*`).
+- The Go implementation's concept names stay (`ref`, `rel_ref`, `abs_url`, `paginate`, `i18n`, `by_*`).
 
 **Sites:** D = docs, S = the real private site, R = its reconstruction, T = testsite.
 
-| Hugo | neohugo Tera | Kind | Sites |
+| Go | fugo Tera | Kind | Sites |
 |---|---|---|---|
 | `and` `or` `not` `eq` `ne` `lt` `le` `gt` `ge` | `and` `or` `not` `==` `!=` `<` `<=` `>` `>=`. Pages compare by `.id`, pagers by `.page_number`, dates by `.unix`. | op | all |
 | `default X v` (bool is always set; 0, "", empty and none are unset) | `v \| default_if_empty(value=X)`; Tera `default(value=)` only for undefined values | F/bi | D S R |
@@ -1350,7 +1350,7 @@ Frozen as `ssg_funcs::spec::FUNCS` by T02. `template-api.md` is generated from i
 | `strings.HasPrefix`/`HasSuffix` | `is starting_with(pat=)`, `is ending_with(pat=)` | T | embedded |
 | `humanize`, ordinalize | `humanize`, `ordinalize` | F | D S R |
 | `inflect.Pluralize`/`Singularize` | `pluralize_word`, `singularize_word` | F | D |
-| `urlize`, `anchorize` | `urlize`, `anchorize(style=?)` (Hugo-exact) | F | D S R |
+| `urlize`, `anchorize` | `urlize`, `anchorize(style=?)` (Go-exact) | F | D S R |
 | `absURL` `relURL` `absLangURL` `relLangURL` | `abs_url` `rel_url` `abs_lang_url` `rel_lang_url` (base path, language prefix, canonify) | F (s) | all |
 | `ref`, `relref` | `ref(path=, lang=?, output_format=?, page=?)`, `rel_ref(…)`; `refLinksErrorLevel` | fn (s) | D S R |
 | `urls.Parse`, `urls.JoinPath` | `parse_url` → `{scheme, host, path, fragment, query, is_absolute, string}`; `join_url(parts=)` | F/fn | D R |
@@ -1367,7 +1367,7 @@ Frozen as `ssg_funcs::spec::FUNCS` by T02. `template-api.md` is generated from i
 | `markdownify`, `.RenderString (dict "display" "block")` | `markdownify`, `render_string(display=?, page=?)` (uses that page's hooks) | F (s) | D S R |
 | `plainify`, `emojify` | `plainify` (html5gum), `emojify` | F | D R |
 | `highlight`, `transform.Highlight` | `highlight(lang=, options=?)` (syntect; Chroma classes or inline styles per `noClasses`; `hl_inline`) | F | D |
-| `transform.ToMath` (+ `try`) | `to_math(options=?, optional=?)` (KaTeX 0.16.22 with mhchem in QuickJS, rquickjs: Hugo's markup byte for byte; Hugo's defaults and `KatexOptions`; SHOULD, feature `math`). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` a warning (id `to_math`, as `get_remote`) and none | F | D |
+| `transform.ToMath` (+ `try`) | `to_math(options=?, optional=?)` (KaTeX 0.16.22 with mhchem in QuickJS, rquickjs: the Go implementation's markup byte for byte; its defaults and `KatexOptions`; SHOULD, feature `math`). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` a warning (id `to_math`, as `get_remote`) and none | F | D |
 | `diagrams.Goat` | `diagrams_goat(text=)` → `{inner (safe SVG), width, height, wrapped}` (svgbob; SHOULD, T66) | F | D |
 | `base64Encode/Decode`, `md5`, `sha1`, `sha256`, `hash.FNV32a`, `hash.XxHash` | `base64_encode`/`base64_decode` (tc), `md5`, `sha1`, `sha256`, `fnv32a`, `xxhash` | tc/F | D |
 | `now` | `now()` (honours `--clock`) | fn | all |
@@ -1383,7 +1383,7 @@ Frozen as `ssg_funcs::spec::FUNCS` by T02. `template-api.md` is generated from i
 | `toCSS`/`css.Sass`, `postCSS`, `css.TailwindCSS`, `babel`, `js.Build`, `resources.ExecuteAsTemplate`, `resources.PostProcess` | `to_css(options=)`, `postcss(options=)`, `tailwind(options=)`, `babel(options=)`, `js_build(options=)`, `execute_as_template(target=, data=)` (the asset is a Tera template), `post_process` | F (s) | D S R |
 | `.Resize` `.Fill` `.Fit` `.Crop` `.Process`, `.Width`, `.Height` | `resize(width=?, height=?, format=?, quality=?, filter=?, anchor=?, spec=?)`, likewise `fill` `fit` `crop` `process`; `r.width`, `r.height` (known immediately) | F (s) | D S R |
 | `images.Filter`, `.Filter`, `images.*` constructors | `image_filter(filters=[{"op": "overlay", "image": logo, "x": 10, "y": 10}, {"op": "grayscale"}])` | F (s) | D S R |
-| `images.Text`, `images.Dither`, `images.QR`, `.Exif`, `.Colors` | `{"op": "text", …}`, `{"op": "dither", …}` (T72a), `qr_code(text=, level=?, scale=?, target_dir=?)` (T72a: Hugo's bytes and name), `exif`, `image_colors` | F/fn (s) | D |
+| `images.Text`, `images.Dither`, `images.QR`, `.Exif`, `.Colors` | `{"op": "text", …}`, `{"op": "dither", …}` (T72a), `qr_code(text=, level=?, scale=?, target_dir=?)` (T72a: Go's bytes and name), `exif`, `image_colors` | F/fn (s) | D |
 | `partial`, `partialCached`, `return`, `templates.Exists`, `templates.Defer` | include / component / `partial(name=, …)`, `partial_cached(name=, key=, …)`, `return_value(value=)`, `template_exists(name=)`, `defer(template=, key=, data=?)` | op/fn (s) | all |
 | `site.GetPage`, `.GetPage` | `get_page(path=, lang=?, page=?)` → full value or `none` | fn (s) | D S R |
 | (full value of a listed page) | `p \| deref` | F (s) | D |
@@ -1397,7 +1397,7 @@ Frozen as `ssg_funcs::spec::FUNCS` by T02. `template-api.md` is generated from i
 | `$tax.ByCount`, `.Alphabetical` | `site.taxonomies.tags \| by_count`, `\| alphabetical` | F (s) | S R |
 | `.Data.Singular/Plural/Term/Terms` | `page.taxonomy.singular/plural/terms`, `page.term.term` | op | S R |
 | `.OutputFormats.Get "rss"`, `.AlternativeOutputFormats`, `.MediaType` | `page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type` | op | D S R |
-| `hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `Generator`; version compare | `hugo.version` (`"0.149.0-DEV"`), `hugo.environment`, …; test `is version_at_least(version=)` (semver; a `-DEV` build ranks below its release; checked against docs `new-in` pages) | op/T | D S R |
+| the Go template object's `Version` / `Environment` / `IsProduction` / `IsDevelopment` / `Generator`; version compare | `build.version` (`"0.149.0-DEV"`), `build.environment`, …; test `is version_at_least(version=)` (semver; a `-DEV` build ranks below its release; checked against docs `new-in` pages) | op/T | D S R |
 | `os.Getenv`, `os.ReadFile`, `os.FileExists` | `get_env(name=)`, `read_file(path=)`, `file_exists(path=)` (security allowlist) | fn | D |
 | `path.Ext`/`Base`/`BaseName`/`Dir`/`Join`/`Clean` | `path_ext` `path_base` `path_base_name` `path_dir` `path_join(parts=)` `path_clean` | F/fn | D S R |
 | `.Site.Config.Privacy.*` | `site.config.privacy.*` | op | embedded |
@@ -1423,7 +1423,7 @@ These rules are generated into `template-api.md`. They are applied by hand; the 
 **Missing values.**
 - Printed params that may be missing → `page.params.x or ""`.
 - Nested optional lookups use `?.`.
-- Hugo `default` → `default_if_empty(value=)`. Do not use `or` for bools.
+- Go `default` → `default_if_empty(value=)`. Do not use `or` for bools.
 
 **Comparisons.**
 - `eq $p $currentSection` → `p.id == current_section.id`. Pagers compare by `page_number`, dates by `.unix`.
@@ -1445,7 +1445,7 @@ These rules are generated into `template-api.md`. They are applied by hand; the 
 - Tera strings know only `\n \t \r \" \' \/ \\`: other characters literally (U+00A0), regex backslashes doubled (`"\\s+"`).
 - Go date layouts → strftime (`"Jan 2, 2006"` → `"%b %-d, %Y"`).
 
-**Removed Hugo idioms.**
+**Removed Go-template idioms.**
 - `range .Paginator.Pages` → `{% for p in paginator().pages %}`. Delete a second `.Paginate` that follows `.Paginator`.
 - `{{ $noop := .WordCount }}` → delete.
 - Another page's `.Content` inside a shortcode → `page_content(page=p)`.
@@ -1457,7 +1457,7 @@ These rules are generated into `template-api.md`. They are applied by hand; the 
 
 **Assets and i18n.**
 - Assets used with `execute_as_template` are Tera templates: `{{ .api }}` → `{{ data.api }}`.
-- i18n files stay Hugo syntax, limited to `{{ . }}` and `{{ .Field }}` (§2.4 locale).
+- i18n files stay in the Go implementation's syntax, limited to `{{ . }}` and `{{ .Field }}` (§2.4 locale).
 
 
 **Tera 2.4 syntax limits found in T35 (binding for every conversion, T60–T66):**
@@ -1472,7 +1472,7 @@ These rules are generated into `template-api.md`. They are applied by hand; the 
 - A second test snapshots `template-api.md` against `FUNCS`.
 - So layout conversion can start as soon as T02 lands.
 
-**`neohugo-rs templates check -s <site>`** (T37):
+**`fugo templates check -s <site>`** (T37):
 1. Loads the layouts and reports parse errors and unknown names, with Tera `ReportError` snippets (file:line:col).
 2. Reports top-level names from `get_template_variables` that are not in the documented context for that template's role.
 3. Lists lookup coverage for every (page, format) query of the site, and every shortcode and hook referenced by the content. It shows the chosen template and baseof, and "no match" rows.
@@ -1597,7 +1597,7 @@ dhat         = "0.3"                           # T33 allocation measurement (it 
 - An `OR` expression passes if any branch passes. So `MIT OR Apache-2.0 OR LGPL-2.1-or-later` (r-efi) passes; `Apache-2.0 AND ISC` (ring) needs both.
 - Bans: any EUPL, GPL or AGPL-only expression, plus the crates giallo, imagequant, zenwebp and nom-exif.
 - The check runs in T00 and at every phase end. `cargo deny check licenses bans` can replace the script later without redefining the policy.
-- Embedded templates (derived from Hugo, Apache-2.0) and non-cargo assets are recorded in `THIRD_PARTY/`: two-face syntaxes and themes, CLDR data, emoji data, livereload.js.
+- Embedded templates (derived from the Go implementation, Apache-2.0) and non-cargo assets are recorded in `THIRD_PARTY/`: two-face syntaxes and themes, CLDR data, emoji data, livereload.js.
 
 **Heavy-dependency isolation:**
 
@@ -1617,7 +1617,7 @@ dhat         = "0.3"                           # T33 allocation measurement (it 
 ### 6.1 T00 order of operations
 
 1. `git tag go-parity-final` on the I01 byte-identical state.
-2. Move the retained fixtures and corpora (§6.3) to `rust/testdata/`. Convert them to plain JSON with the neohugo schema using `tools/dev/fixtures2json.py` (stdlib; unwraps the `goval`/`tval` type tags; re-run after any oracle regeneration). Update `sites.py` paths.
+2. Move the retained fixtures and corpora (§6.3) to `rust/testdata/`. Convert them to plain JSON with this project's schema using `tools/dev/fixtures2json.py` (stdlib; unwraps the `goval`/`tval` type tags; re-run after any oracle regeneration). Update `sites.py` paths.
 3. Move `crates/TERA_PLAN.md` to `docs/rust-port/TERA_PLAN.md`, with a header pointing to this plan.
 4. `git rm -r crates/`, then `rm -rf crates/`. The second command also removes the ignored `crates/*/target` directories (`go-png/target` alone is 257 MB). Together they free 423 MB.
 5. Delete the byte-exact Go oracle directories (§6.4).
@@ -1630,21 +1630,21 @@ From then on, salvage uses `git show go-parity-final:crates/<crate>/<path>`. No 
 | Legacy crate(s) | Fate | Salvaged into (task) |
 |---|---|---|
 | go-value, go-unicode, go-strconv, go-fmt, go-sort, go-path, go-flate, go-html, go-json, go-url, go-image, go-png, go-hashstructure | delete | ecosystem crates (§5) |
-| go-time | delete | Hugo's accepted date formats, expressed as jiff `strptime` patterns → `base` (T10); Go-layout → strftime table → `page::PermalinkPattern` (T21) and `migrate` (T73) |
+| go-time | delete | the Go implementation's accepted date formats, expressed as jiff `strptime` patterns → `base` (T10); Go-layout → strftime table → `page::PermalinkPattern` (T21) and `migrate` (T73) |
 | go-yaml, xtext-collate, goldmark, tdewolff-parse(-js), tdewolff-minify(-js), libwebp-sys, libsass-sys | delete | serde-saphyr, icu_collator, comrak, minify-html/lightningcss/oxc, webp, grass. Their corpora move to `testdata/corpus`. |
-| gift | delete | **No transliteration.** Filters are built on `image::imageops` and `imageproc` (gaussian blur, median, `filter3x3`, rotate; T41 verifies names). Fresh code only for Sigmoid, Colorize, ColorBalance, Sepia, Pixelate (and Dither, COULD). Hugo's 16 resample names map onto fast_image_resize's 7 filters through a documented table, with a warning for approximations. The anchor-point maths → `images` (T41). |
+| gift | delete | **No transliteration.** Filters are built on `image::imageops` and `imageproc` (gaussian blur, median, `filter3x3`, rotate; T41 verifies names). Fresh code only for Sigmoid, Colorize, ColorBalance, Sepia, Pixelate (and Dither, COULD). Go's 16 resample names map onto fast_image_resize's 7 filters through a documented table, with a warning for approximations. The anchor-point maths → `images` (T41). |
 | gotemplate | delete | `parse/{lex,parse,node}.rs` → front end of `migrate` (T73, COULD) |
 | nh-common | delete | `paths/{pathparser,path,url}.rs` rules → `base::paths` + `vfs::PathParser` (T10, T20); `urls`, `kinds`, `htime` → `base` (T10); flect/prose rules → `base::inflect`/`title`, crate or own data tables (T10); `files` classifier → `vfs` (T20) |
-| nh-allconfig, nh-config, nh-langs, nh-media | delete | default values and key names (as `impl Default`), config-dir and env merge rules, legacy-key table, `HUGO_*` mapping, security policy, `hexec`, media and output-format tables → `config` (T13) |
-| nh-hugofs | delete | mount semantics (lang, include/exclude, theme order, `_jsconfig`) → `vfs` (T20) |
+| nh-allconfig, nh-config, nh-langs, nh-media | delete | default values and key names (as `impl Default`), config-dir and env merge rules, legacy-key table, environment-variable mapping, security policy, `hexec`, media and output-format tables → `config` (T13) |
+| the old file-system crate | delete | mount semantics (lang, include/exclude, theme order, `_jsconfig`) → `vfs` (T20) |
 | nh-parser | delete | page lexer rules, re-expressed as `lex` + `assemble` over `&str` → `pageparser` (T11) |
 | nh-i18n | delete | message file formats, count extraction, fallback → `locale` (T12) |
 | nh-page | delete | `page_frontmatter`, `page_matcher`, `permalinks`, `page_paths`, `pages_sort` → `page` (T21); `taxonomy`, `weighted` → `site` (T23b); `menu`, `pagemenus`, `pagination`, `pagegroup`, `related` → `nav` (T24) |
-| nh-hugolib, nh-doctree | delete | capture, assembly, cascade, dates, build options → `site` (T23a); URLs, relations, taxonomies, `Dir()` retry → `site` (T23b); shortcode/summary/content rules → `render` (T34); render order, aliases, stats format, redirects → `build` (T36) |
+| the old site-build crate, nh-doctree | delete | capture, assembly, cascade, dates, build options → `site` (T23a); URLs, relations, taxonomies, `Dir()` retry → `site` (T23b); shortcode/summary/content rules → `render` (T34); render order, aliases, stats format, redirects → `build` (T36) |
 | nh-markup | delete | hook contracts, TOC, autoid (github/github-ascii/blackfriday), attribute parser, alert parse → `markup` (T22), `highlight` (T25) |
 | nh-tplimpl | delete | `templatedescriptor.rs` scoring rules re-expressed as `TemplateRole` + `Score` → `layouts` (T30); embedded list → T32; legacy mapping → T01 normaliser and `migrate` only |
 | nh-tplfuncs | delete | sort-by-key with collator, set operations, HTML-aware truncate, urls, transform, lang, crypto, os policy → `funcs`, `sitefuncs` (T31, T35). Not `where`, `printf` or Scratch. |
-| nh-resource(s), nh-resource-transformers | delete | metadata matching (`src` globs, `:counter`), naming, `integrity.rs` (copied; sha2/md5/base64), bundler, Sass import resolution + `hugo:vars`, PostCSS spawn + inline imports, GetRemote options, postpub per-field placeholders, jsconfig → `resources` (T40, T42) |
+| nh-resource(s), nh-resource-transformers | delete | metadata matching (`src` globs, `:counter`), naming, `integrity.rs` (copied; sha2/md5/base64), bundler, Sass import resolution + the `vars` import (`build:vars` today), PostCSS spawn + inline imports, GetRemote options, postpub per-field placeholders, jsconfig → `resources` (T40, T42) |
 | nh-esbuild | **keep** `service/{protocol,client}.rs` (std only, our own Apache code); salvage `options.rs`, `resolve.rs`, `sourcemap.rs` | `esbuild` (T14) |
 | nh-images | delete | spec grammar (`config.rs`), process semantics, filter-name mapping, overlay/mask/padding/opacity/auto_orient → `images` (T41) |
 | nh-transform, nh-publisher | delete | canonify/relative URL replacers, minify config mapping, stats collector semantics → `publish` (T50) |
@@ -1655,15 +1655,15 @@ From then on, salvage uses `git show go-parity-final:crates/<crate>/<path>`. No 
 ### 6.3 Fixtures and corpora moved in T00 (to `rust/testdata/`, converted to plain JSON)
 
 **Needed by `sites.py`:**
-- `nh-allconfig/tests/fixtures/load/<private site>/hugo.toml`
-- `nh-hugolib/tests/fixtures/build/*.json.gz`
+- `nh-allconfig/tests/fixtures/load/<private site>/` (its configuration file)
+- the old site-build crate's `tests/fixtures/build/*.json.gz`
 - `nh-resource-transformers/tests/fixtures/getremote/getremote.json.gz`
 - `go-image/tests/fixtures/site/*.jpg`
 - `go-png/tests/fixtures/{repo,golden}/*.png`
 - `nh-tplimpl/tests/fixtures/probe/probe.json.gz`
 
 **Oracles** (`testdata/oracle/`):
-- `nh-hugolib/{capture,assemble,content,site,build}`
+- the old site-build crate's `{capture,assemble,content,site,build}`
 - `nh-page/{paths,permalinks,pagination,menus,related,collections,frontmatter,summary,misc}`
 - `nh-tplimpl/{lookup,store}`, `nh-allconfig/load`, `nh-media`
 - `nh-parser/{pageparser,metadecoders}`, `nh-markup/{hooks,autoid,convert}`, `nh-i18n/{plural,translate}`
@@ -1678,14 +1678,14 @@ From then on, salvage uses `git show go-parity-final:crates/<crate>/<path>`. No 
 - `go-yaml/<private site>-fm.fixture.gz` (218 front matters)
 - `go-time/{format,<private site>}.txt.gz`
 - `tdewolff-minify/corpus/*`
-- `golden/hugo_stats.json` (stays under `tools/rust-port/golden`)
+- the golden stats file (stays under `tools/rust-port/golden`)
 
 **How they are used.** Tests deserialise fixtures into `#[derive(Deserialize)]` structs and compare semantic fields only. Each crate keeps a reviewed `expected_diffs.toml` (YAML 1.1 booleans, CLDR collation, and so on).
 
 ### 6.4 Go oracles (`tools/go-oracle/`)
 
 **Kept**, with output re-pointed to `rust/testdata/oracle/` (plus the `fixtures2json.py` step):
-- `nh-hugolib/*`, `nh-page/*`, `nh-tplimpl/lookup`, `nh-allconfig/load`, `nh-media/*`
+- the old site-build crate's fixtures, `nh-page/*`, `nh-tplimpl/lookup`, `nh-allconfig/load`, `nh-media/*`
 - `nh-parser/{pageparser,metadecoders}`, `nh-markup/{hooks,autoid,convert}`, `nh-i18n/*`
 - `nh-resources/*`, `nh-images/{config,process}`, `nh-publisher/collector`, `nh-transform/absurl`
 - `nh-commands/*`, `nh-helpers/pathspec`
@@ -1699,9 +1699,9 @@ These need only native Go; the arm64/qemu requirement ends.
 - `nh-tplimpl/escdump`, `nh-doctree/walkmut`
 - `tools/rust-port/i01/build-go-arm64.sh`
 
-**Added in T01: `structure`.** It builds a site with hugolib and dumps, for every (lang, page, output format):
+**Added in T01: `structure`.** It builds a site with the Go site-build package and dumps, for every (lang, page, output format):
 - kind, path, outputs, target file name, permalink and rel permalink;
-- the **chosen layout template and baseof**, as Hugo's own internal v0.146 descriptor path, so legacy names come out normalised;
+- the **chosen layout template and baseof**, as the Go implementation's own internal v0.146 descriptor path, so legacy names come out normalised;
 - alias targets;
 - (page, resource name) → rel permalink, including shared translation resources.
 
@@ -1721,8 +1721,8 @@ It also dumps each site's layout file list with normalised names, which T30 uses
    - markdown for about 150 curated docs and private-site bodies plus an adversarial set (html, toc, fragments, hook-call log with `page_inner`);
    - function outputs;
    - `template-api.md` against `FUNCS`;
-   - embedded templates rendered against testsite views (in T60: `neohugo/tests/it/embedded.rs`, a test-only overlay of the testsite);
-   - the full testsite output tree (56 files: 55 in `public` plus `hugo_stats.json`; `neohugo/tests/it/snapshots/testsite_output.snap`).
+   - embedded templates rendered against testsite views (in T60: `crates/cli/tests/it/embedded.rs`, a test-only overlay of the testsite);
+   - the full testsite output tree (56 files: 55 in `public` plus the stats file; `crates/cli/tests/it/snapshots/testsite_output.snap`).
 
    Hashes, timestamps and versions are redacted. Snapshots are reviewed with `INSTA_UPDATE=always` plus `git diff`.
 4. **Robustness corpora.** All 959 docs files and all 251 private-site bodies render without a panic, with idempotent heading IDs.
@@ -1748,7 +1748,7 @@ All of this is Python stdlib under `tools/dev/`; there is no pip dependency.
 |---|---|
 | **L1 paths** | Equal multisets of output paths after normalisation: `_hu_[0-9a-f]+` → `_hu_H`; fingerprints `.[0-9a-f]{16,64}.` → `.H.`; the known collision directories collapsed. Plus the structure oracle: per (page, format) the same target, permalink and chosen template; per (page, resource) the same rel permalink. |
 | **L2 links** | HTML: same `<title>`, same `<link rel=canonical\|alternate>`, same set of normalised internal `href`/`src`/`srcset`. **Normalisation percent-decodes and NFC-normalises URL attributes** (Go's html/template percent-encodes non-ASCII; Tera does not). Alias → target map equal (including `page/1/` and `/en/`). RSS/sitemap/sitemapindex: same `<link>`/`<loc>`/`<guid>` lists. JSON: same key structure and URL leaves. `_redirects`/`_headers`: same line sets. **Link integrity:** every internal link in our output resolves to one of our files. |
-| **L3 text** | Visible text after collapsing whitespace, decoding entities and mapping typographic characters to ASCII; a tag boundary separates words except a `span`'s inside `pre`/`code` (highlighter token spans, T66). Heading-ID lists per page. `hugo_stats.json` tag, class and id sets. |
+| **L3 text** | Visible text after collapsing whitespace, decoding entities and mapping typographic characters to ASCII; a tag boundary separates words except a `span`'s inside `pre`/`code` (highlighter token spans, T66). Heading-ID lists per page. The stats file's tag, class and id sets. |
 | **L4 assets** | Images: equal (width, height, format). Static files: byte-equal (sha256). CSS/JS: non-empty and referenced. |
 
 - **Ratchet.**
@@ -1773,7 +1773,7 @@ All of this is Python stdlib under `tools/dev/`; there is no pip dependency.
 
 | `sites.py` entry | i01 | reduced |
 |---|---|---|
-| remove `news/_content.gotmpl`, `shortcodes/x.md` (network), `functions/images/Text.md` (font GetRemote), `hugo_stats.json` | ✓ | ✓ |
+| remove `news/_content.gotmpl`, `shortcodes/x.md` (network), `functions/images/Text.md` (font GetRemote), the committed stats file | ✓ | ✓ |
 | remove `shortcodes/qr.md`, `functions/images/{QR,Dither}.md` (COULD) | ✓ | ✓ |
 | remove `quick-reference/syntax-highlighting-styles.md` (Chroma style gallery) | ✓ | ✓ (T72) |
 | remove `shortcodes/highlight.md` | ✓ | – |
@@ -1785,10 +1785,10 @@ All of this is Python stdlib under `tools/dev/`; there is no pip dependency.
 
 | Gate | Site | Criterion |
 |---|---|---|
-| **A-T** | hugolib/testsite + `testsite.txtar` | L1 56/56 (Go's 55 files in `public`, the reference `ssg-build/tests/it/testsite-go.txtar`, plus `hugo_stats.json`, which Go writes to the project directory and the reference does not hold) plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); `hugo_stats.json` sets equal |
-| **A-R** | private-site reconstruction | L1 713/713 (712 files in `public` plus `hugo_stats.json` in the project directory; T61's count of 712 is `public` alone) plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
-| **A-D1** | docs, `--docs-patches i01` | L1 888/888 (887 in `public` plus `hugo_stats.json`) plus structure oracle; L2 all; heading-ID lists equal on every page; A7 ≥ 0.90 with a clean ratchet. Fences are plain `<pre><code>` (`codeFences = false`). |
-| **A-D2** | docs, `--docs-patches reduced` | Working: <ul><li>Chroma-class highlighting (incl. `hl` inline/noClasses and `highlight.md`);</li><li>goat diagrams (`diagrams_goat`);</li><li>emoji;</li><li>passthrough + `to_math`;</li><li>`remarshal` in `code-toggle`;</li><li>Tailwind through `defer`;</li><li>real Alpine/Turbo `js_build`.</li></ul> L1 equal to the Go build with the same patches (889: 888 in `public` plus `hugo_stats.json`; `shortcodes/highlight.md` is kept); L2 all. Math and goat pages are `accepted-deviation` at L3. |
+| **A-T** | testsite + `testsite.txtar` | L1 56/56 (Go's 55 files in `public`, the reference `ssg-build/tests/it/testsite-go.txtar`, plus the stats file, which Go writes to the project directory and the reference does not hold) plus structure oracle; L2 all; L3 equal on every page (ratchet entries only `accepted-deviation`); stats-file sets equal |
+| **A-R** | private-site reconstruction | L1 713/713 (712 files in `public` plus the stats file in the project directory; T61's count of 712 is `public` alone) plus structure oracle (incl. resource URLs); L2 all; A7 ≥ 0.95 with a clean ratchet. Must include: <ul><li>i18n with messages and Thai dates;</li><li>pagination (incl. 404 paging);</li><li>sitemapindex, the `/en/` redirect, robots;</li><li>the JSON output with `render-table.json.json`;</li><li>Sass via grass;</li><li>PostCSS purge reading stats (node.sh);</li><li>ExecuteAsTemplate TS assets (one file per target);</li><li>PostProcess per-field placeholders;</li><li>FM overrides, HTML content, content resources.</li></ul> R's `v1.html` inner rendering is `accepted-deviation`. |
+| **A-D1** | docs, `--docs-patches i01` | L1 888/888 (887 in `public` plus the stats file) plus structure oracle; L2 all; heading-ID lists equal on every page; A7 ≥ 0.90 with a clean ratchet. Fences are plain `<pre><code>` (`codeFences = false`). |
+| **A-D2** | docs, `--docs-patches reduced` | Working: <ul><li>Chroma-class highlighting (incl. `hl` inline/noClasses and `highlight.md`);</li><li>goat diagrams (`diagrams_goat`);</li><li>emoji;</li><li>passthrough + `to_math`;</li><li>`remarshal` in `code-toggle`;</li><li>Tailwind through `defer`;</li><li>real Alpine/Turbo `js_build`.</li></ul> L1 equal to the Go build with the same patches (889: 888 in `public` plus the stats file; `shortcodes/highlight.md` is kept); L2 all. Math and goat pages are `accepted-deviation` at L3. |
 | **A-S** | real private site (needs the private repo, D6) | L1 path set equals `tools/rust-port/golden/canonical.sha256` (6,943 paths, normalised); static files byte-equal; L2 on 100 sampled pages |
 | **A-DET** | all sites | byte-identical across `RAYON_NUM_THREADS=1/8` and across repeated runs |
 | **A-P** | performance (goals, not gates) | **Release profile**, measured in T70 after `cargo clean` of the dev artifacts, with no agents active: docs cold build ≤ 1.5× the Go time on this machine, warm (image cache) ≤ 1.0×, peak RSS ≤ 1 GB |
@@ -1829,7 +1829,7 @@ Each converted file is reviewed against §4.7 and the contract test. Faithfulnes
 - Per crate: `cargo test -p <crate>`, run in the agent's own worktree.
 - Phase end only: `cargo clippy -p <crate>` for each crate of the phase, and `tools/dev/licence-check.sh`.
 - Acceptance: `tools/dev/compare.sh <site> [--docs-patches i01|reduced] [KEEP=1]`.
-- Templates: `neohugo-rs templates check -s <site-dir>`.
+- Templates: `fugo templates check -s <site-dir>`.
 
 ---
 
@@ -1839,7 +1839,7 @@ Each converted file is reviewed against §4.7 and the contract test. Faithfulnes
 
 **Worktrees.**
 - Each agent works in its own git worktree, `git worktree add ../wt/<task> -b task/<id> rust-port` (about 55 MB each).
-- Every worktree sets `CARGO_TARGET_DIR=/home/user/neohugo/rust/target`. Registry artifacts are shared. Workspace crates compile per worktree path; they are small.
+- Every worktree sets `CARGO_TARGET_DIR=<main checkout>/rust/target`. Registry artifacts are shared. Workspace crates compile per worktree path; they are small.
 - An agent never compiles another agent's half-edited crate. Only green commits are merged into `rust-port`, and a task rebases before merging.
 - **Crate lock.** At most one agent edits a given crate at a time.
   - Parity tasks own only `rust/sites/**`, `rust/testdata/baselines/**` and `tools/dev/changes/**`.
@@ -1880,16 +1880,16 @@ Sizes are Rust src + tests unless noted.
 | ID | Title | Owns | Depends on | Acceptance | Size |
 |---|---|---|---|---|---|
 | **T00** | Bootstrap | `rust/{Cargo.toml,Cargo.lock,.cargo,clippy.toml,deny.toml,README.md,PROVENANCE.md,THIRD_PARTY/}`; stub crates with **real dependency edges**; `crates/workspace-hack`; `crates/testkit`; `rust/testdata/{oracle,corpus,site-assets}`; `tools/dev/{licence-check.sh,disk.sh,fixtures2json.py}`; `sites.py` fixture paths; `.gitignore`; TERA_PLAN move; deletion of `crates/` and obsolete oracles | – | <ul><li>`go-parity-final` exists</li><li>`sites.py` produces site inputs with the same file hashes as before</li><li>`cargo metadata --filter-platform …` resolves the acyclic graph</li><li>fixtures converted (record counts match)</li><li>`cargo test -p ssg-testkit` green (plain-JSON reader on 3 families, txtar)</li><li>(verify) items pinned in `Cargo.lock`</li><li>feature unification checked with `cargo tree -e features`</li><li>licence check passes on SPDX</li><li>`rust/target` < 400 MB</li></ul> | 1.8k |
-| **T01** | Go oracle, patch variants, node tooling | `tools/dev/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count; every count includes the project directory's `hugo_stats.json`)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> **State:** `rust/testdata/golden/` (schemas in its README): manifests and structure dumps of testsite, the private-site reconstruction, docs-i01, docs-reduced (56/713/888/889 files) and the structure dump of mini; `tools/rust-port/i01/patches.json` (26 entries); the Go binaries and the node modules live in the main checkout's `tools/dev/{bin,node_modules}` (`FUGO_TOOLS_BIN`, `FUGO_NODE_MODULES`) | 0.5k Go + 1.1k Py |
-| **T02** | Template contract + testsite layouts | `crates/funcs/src/spec.rs` (then handed to T31), `rust/docs/template-api.md` (generated), `rust/sites/testsite/**`, `crates/testkit/src/contract.rs` | T00 | <ul><li>every §4.2 context and §4.6 name in `FUNCS` with kwargs, kind, phase, safety, site-bound flag and Hugo origin</li><li>`EMBEDDED_TEMPLATES` list</li><li>Tera facts verified and recorded: `@__nh` as an implicit name, `==` with an undefined final segment, `split`/`nth` kwargs, `?.`</li><li>5 testsite layouts converted; contract test clean</li><li>`template-api.md` snapshot equals `FUNCS`</li></ul> | 1.0k + doc |
+| **T01** | Go oracle, patch variants, node tooling | `tools/dev/{oracle.sh,manifest.py,node.sh,node/}`, `tools/go-oracle/structure/`, `rust/testdata/golden/**`, `sites.py` (`--overlay`, `--docs-patches`, `patches.json`) | T00 (sites.py edits only) | <ul><li>testsite, reconstruction, docs-i01 and docs-reduced built natively with HTTP disabled</li><li>manifests committed (56/713/888, plus the reduced count; every count includes the project directory's stats file)</li><li>structure dumps (templates, baseof, targets, permalinks, aliases, resources) for 3 sites + `mini.txtar`; normalised layout lists</li><li>`patches.json` covers every DOCS_* entry</li><li>node.sh installs the pinned modules</li><li>20 Go-processed images in `golden/images`</li><li>Go caches cleaned; idempotent</li></ul> **State:** `rust/testdata/golden/` (schemas in its README): manifests and structure dumps of testsite, the private-site reconstruction, docs-i01, docs-reduced (56/713/888/889 files) and the structure dump of mini; `tools/rust-port/i01/patches.json` (26 entries); the Go binaries and the node modules live in the main checkout's `tools/dev/{bin,node_modules}` (`FUGO_TOOLS_BIN`, `FUGO_NODE_MODULES`) | 0.5k Go + 1.1k Py |
+| **T02** | Template contract + testsite layouts | `crates/funcs/src/spec.rs` (then handed to T31), `rust/docs/template-api.md` (generated), `rust/sites/testsite/**`, `crates/testkit/src/contract.rs` | T00 | <ul><li>every §4.2 context and §4.6 name in `FUNCS` with kwargs, kind, phase, safety, site-bound flag and Go origin</li><li>`EMBEDDED_TEMPLATES` list</li><li>Tera facts verified and recorded: `@__nh` as an implicit name, `==` with an undefined final segment, `split`/`nth` kwargs, `?.`</li><li>5 testsite layouts converted; contract test clean</li><li>`template-api.md` snapshot equals `FUNCS`</li></ul> | 1.0k + doc |
 | **T03** | structdiff, ratchet, self-test | `tools/dev/{structdiff.py,compare.sh,selftest.py,changes/}`, `rust/testdata/baselines/` | T01 | <ul><li>Go vs Go gives 0 diffs on 3 sites, both passes</li><li>self-test classifies all 8 perturbations correctly</li><li>an unlisted diff fails</li><li>`KEEP=1` keeps outputs</li></ul> | 1.5k Py |
 | **T04** | comrak spike | `crates/markup` (spike; released before T22) | T00 | <ul><li>all 959 docs files and 251 private-site bodies run</li><li>per-feature verdict against normalised goldmark HTML: tight deflists (840), heading attrs, block attrs, fence attrs, math delimiters, alerts, emoji, linkify, typographer, raw HTML, `codeFences` plain</li><li>`sourcepos` accuracy for inline nodes</li><li>engine decision and list of custom passes in the crate README</li></ul> | 0.4k |
 | **T10** | ssg-base | `crates/base` | T00 | <ul><li>`nh-common/{paths,urls}` and `nh-helpers/pathspec` 100%</li><li>flect/prose oracle 100% on the corpus and every S/R section and taxonomy name (pluralize, singularize, humanize, ordinalize, AP/Chicago/Go title case; crates evaluated first)</li><li>cast date formats; gobwas glob cases via globset</li><li>`docs.yaml` round-trips with `baseURL` and `Name` intact; R `ingredients_percentage` keeps `Name`/`Value`</li><li>Params folding; `IdVec`; path newtypes</li></ul> | 3.6k |
 | **T11** | ssg-pageparser | `crates/pageparser` | T10 | <ul><li>`lex()` equals 141,869 items over 5,540 pages (kinds + byte ranges)</li><li>`assemble` tests with `InnerUse`</li><li>218/218 private-site front matters decode (`expected_diffs`)</li></ul> | 2.4k |
 | **T12** | ssg-locale | `crates/locale` | T10 | <ul><li>translate fixtures ≥ 99%</li><li>message evaluator on R's `welcome`/`reviews`/`comments`; unsupported syntax is an error with file and key</li><li>collation sanity on `site-strings`</li><li>Gregorian `th` month names; locales oracle (`expected_diffs`)</li><li>decides on tera-contrib `date`</li></ul> | 2.0k |
 | **T13** | ssg-config | `crates/config` | T10 | <ul><li>`nh-allconfig/load` values for docs, testsite, reconstruction and t24 sites</li><li>media tables equal</li><li>legacy-key table on a synthetic S-style config</li><li>env typing; `CliOverrides`</li><li>`[caches]` with `:cacheDir`/`:project`; privacy</li><li>error spans; insta snapshots</li></ul> | 3.5k |
-| **T14** | neohugo-esbuild | `crates/esbuild` | T00 | <ul><li>`service/*` restored from the tag, std-only, version read at runtime</li><li>ping/build round trip</li><li>68 `jsbuild` cases produce the same module sets</li></ul> | 2.2k (1.3k moved) |
-| **T20** | ssg-vfs | `crates/vfs` | T13 | <ul><li>path-parser oracle 100%</li><li>(file → lang, bundle kind, key) equal to `nh-hugolib/capture` for 3 sites</li><li>mount precedence tests</li></ul> | 1.8k |
+| **T14** | esbuild client | `crates/esbuild` | T00 | <ul><li>`service/*` restored from the tag, std-only, version read at runtime</li><li>ping/build round trip</li><li>68 `jsbuild` cases produce the same module sets</li></ul> | 2.2k (1.3k moved) |
+| **T20** | ssg-vfs | `crates/vfs` | T13 | <ul><li>path-parser oracle 100%</li><li>(file → lang, bundle kind, key) equal to the old site-build crate's `capture` fixtures for 3 sites</li><li>mount precedence tests</li></ul> | 1.8k |
 | **T21** | ssg-page | `crates/page` | T13, T20 | <ul><li>`nh-page` fixtures ≥ 99%</li><li>cascade matcher</li><li>Go-layout permalink tokens → strftime</li><li>`capture_overrides`; `Markup` detection</li></ul> | 3.9k |
 | **T22** | ssg-markup | `crates/markup` | T13, T04 | <ul><li>heading IDs 100% on the docs and private-site corpora</li><li>hook invocations and fields ≥ 98% after typographer normalisation</li><li>TOC equal; normalised HTML on ≥ 245/251</li><li>passes: deflist IDs, alert title/sign, block attrs, passthrough, emoji, linkify</li><li>`CodeFences::Plain` equals Go on the testsite fence and 20 A-D1 fences</li><li>context spans give the correct `inner_page`</li></ul> | 4.3k |
 | **T23a** | site: capture + meta | `crates/site/src/{capture,tree,cascade,meta,filter,data}.rs` | T11, T12, T21 | <ul><li>capture/assemble fixtures 100%: page set per language, kinds, bundle roles, FM overrides (R `kind-override`, `lang-override` with `lang: TH`, `path-override`), duplicates, drafts/future/expired, cascade</li><li>`data::load` for D (5 files), S (nested JSON), R (`/` in keys), case preserved</li></ul> | 2.4k |
@@ -1903,25 +1903,25 @@ Sizes are Rust src + tests unless noted.
 | **T38** | Walking skeleton (throwaway glue) | initial `crates/{view,render,build}` | T21, T22, T30, T50, T02 | <ul><li>builds the testsite into a `MemorySink` using a flat interim model and stub site functions</li><li>L1 reported (not a gate)</li><li>`Job`/`Output`/`Session`/`RenderScope` signatures frozen</li></ul> | 0.8k |
 | **T40** | ssg-resources core | `crates/resources/src/{lib,store,meta,publish,remote}.rs` | T20, T26 | <ul><li>metadata matching and Get/GetMatch/Match/ByType vs `nh-resources`</li><li>fingerprint and SRI equal to Go</li><li>target-path identity: earlier language wins; conflicting inputs within a language raise an error</li><li>URL-token resolution incl. escaped forms and `&`/`'` in paths</li><li>`get_remote` with `[caches.getresource]` plus a key importer replaying the 51 cached YouTube responses</li><li>`inject_generated`</li></ul> | 2.8k |
 | **T41** | ssg-images | `crates/images` | T13 | <ul><li>spec grammar and typed kwargs; dimensions 100% vs `nh-images/{config,process}`</li><li>PSNR ≥ 30 dB vs the 20 golden images; PNG alpha edges correct</li><li>**every `ImageFilter` variant except Text and Dither** (incl. Mask, Padding, Opacity, Overlay, AutoOrient, colour filters), with dimension parity</li><li>WebP q75 photo + sharp YUV</li><li>JPEG as Go's `image/jpeg` writes it (4:2:0, its tables; F9)</li><li>`[caches.images]`</li></ul> | 4.0k |
-| **T42** | Resource pipes | `crates/resources/src/pipes/**` | T40, T14 | <ul><li>`to_css` compiles the reconstruction SCSS (slash division checked)</li><li>PostCSS with node.sh modules (R purge)</li><li>Tailwind compiles docs `styles.css` (cwd = project; `@import` via Vfs; `@source "hugo_stats.json"`; `@plugin` from node_modules)</li><li>Babel spawn; `js_build` through T14</li><li>`post_process` per-field placeholders (R `head.html`); `execute_as_template` on Tera assets</li><li>a missing tool is an error naming the binary</li></ul> | 2.5k |
+| **T42** | Resource pipes | `crates/resources/src/pipes/**` | T40, T14 | <ul><li>`to_css` compiles the reconstruction SCSS (slash division checked)</li><li>PostCSS with node.sh modules (R purge)</li><li>Tailwind compiles docs `styles.css` (cwd = project; `@import` via Vfs; `@source` of the stats file; `@plugin` from node_modules)</li><li>Babel spawn; `js_build` through T14</li><li>`post_process` per-field placeholders (R `head.html`); `execute_as_template` on Tera assets</li><li>a missing tool is an error naming the binary</li></ul> | 2.5k |
 | **T50** | ssg-publish | `crates/publish` | T13, T26 | <ul><li>canonify: 100% of `nh-transform/absurl`</li><li>stats collector: 100% of `nh-publisher/collector` and golden stats</li><li>static-sync oracle</li><li>held outputs patched and re-scanned</li><li>URL-token extraction (entities, JSON escapes, srcset)</li></ul> | 2.2k |
 | **T33** | ssg-view | `crates/view` | T23b, T24, T40, T22, T38 | <ul><li>Meta generation and Full generation per variant for 3 sites</li><li>Arc sharing (pointer equality in lists)</li><li>docs views allocate < 2× the Model (dhat in `it`)</li><li>every documented key printed for every kind</li><li>insta views</li><li>render-state types and `ContentRenderer` final; `sitefuncs::register` signature stub frozen</li></ul> | 2.6k |
 | **T34** | ssg-render | `crates/render` | T33, T30, T31, T11, T22 (sitefuncs at T33's frozen stub) | <ul><li>shortcode semantics on R's edge pages: param typing, `inner`, `%` vs `<`, nesting, ordinal, parent, escapes, `arg` filter</li><li>per-page placeholder renumbering through `render_shortcodes`</li><li>`page_inner` spans</li><li>cross-page memo: cycle test and forced two-thread no-deadlock test</li><li>buffered store writes committed once</li><li>hooks via Tera; JSON variant</li><li>HTML content; bundled content resources</li><li>summary oracle</li></ul> | 3.4k |
 | **T35** | ssg-sitefuncs | `crates/sitefuncs` | T33, T40, T41, T42, T12 | <ul><li>every site-bound `FUNCS` entry</li><li>get_page/ref/rel_ref cases</li><li>pagination recorder: first call, identical reuse, conflict error with both positions, pager N in wave 2 incl. inside `partial()`</li><li>frames: nested `return_value`; `partial_cached` caches values</li><li>defer; store; i18n; deref; components via `page=` and via `@__nh`</li><li>`get_remote` error and `optional`</li></ul> | 3.0k |
 | **T36** | ssg-build | `crates/build` | T34, T35, T50 | <ul><li>full §3 pipeline: language sub-waves, wave 2, deferred wave, URL-token publishing, images</li><li>mini, testsite and edge trees in memory match the structure oracle</li><li>docs cross-page shortcode cases (`include`, `glossary-term`, `quick-reference`)</li><li>A-DET; collisions logged</li></ul> | 2.6k |
-| **T37** | CLI + `templates check` | `crates/cli` | T36 | <ul><li>kebab-case flags with camelCase aliases (`--clean-destination-dir` / `--cleanDestinationDir`, `-s -d -b -e --minify --clock -D -E -F`)</li><li>`HUGO_*` env</li><li>error report with positions; exit codes</li><li>`templates check` (§4.8) on 3 overlays</li><li>`nh-commands/cli` mapping</li></ul> | 1.4k |
-| **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed. **State:** `neohugo/tests/it/parity.rs` runs A-T through the binary: L1 56/56, L2 55/55 byte-identical (links, aliases, feeds, JSON URLs; dangling links only where Go's are), L3 every page, `hugo_stats.json` sets equal the oracle-checked collector over Go's HTML (Go's file itself is not in the reference); the structure oracle waits for T01 (TODO in the test). Embedded snapshots and their review table: `neohugo/tests/it/embedded.rs`, `crates/cli/README.md`; goat renders since T66 (`qr_code` since T72a) | fixes |
+| **T37** | CLI + `templates check` | `crates/cli` | T36 | <ul><li>kebab-case flags with camelCase aliases (`--clean-destination-dir` / `--cleanDestinationDir`, `-s -d -b -e --minify --clock -D -E -F`)</li><li>environment variables</li><li>error report with positions; exit codes</li><li>`templates check` (§4.8) on 3 overlays</li><li>`nh-commands/cli` mapping</li></ul> | 1.4k |
+| **T60** | testsite parity | `rust/sites/testsite/**`, baselines, changes | T37, T32, T02 | A-T; embedded-template rendering snapshots reviewed against Go; full-output insta committed. **State:** `crates/cli/tests/it/parity.rs` runs A-T through the binary: L1 56/56, L2 55/55 byte-identical (links, aliases, feeds, JSON URLs; dangling links only where Go's are), L3 every page, the stats file's sets equal the oracle-checked collector over Go's HTML (Go's file itself is not in the reference); the structure oracle waits for T01 (TODO in the test). Embedded snapshots and their review table: `crates/cli/tests/it/embedded.rs`, `crates/cli/README.md`; goat renders since T66 (`qr_code` since T72a) | fixes |
 | **T61** | Reconstruction layouts + assets in Tera | `rust/sites/<private site>/**` | T02 (`FUNCS` final after T35) | contract test clean; v0.146 names; TS assets converted; redundant `.Paginate` dropped; §4.7 review | ~0.9k Tera |
 | **T62** | Reconstruction parity | `rust/sites/<private site>/**`, baselines | T60, T61, T41, T42 | A-R | fixes |
 | **T63** | docs layouts A | `rust/sites/docs/layouts/{top-level,_partials/**}`, `patches/{i01,reduced}/` for baseof, get-featured-image, qr, body-main-start, get-github-info | T02 | contract test clean for the base and both variants; patch files 1:1 with `patches.json` | ~2.3k Tera |
 | **T64** | docs layouts B | `rust/sites/docs/layouts/{_shortcodes,_markup}/**`, `patches/i01/` for render-codeblock, hl, code-toggle | T02 | contract test clean; §4.4 rules (`quick-reference` → `page_content`); Scratch rewrites in `datatable` and `root-configuration-keys` | ~1.3k Tera |
-| **T65** | docs parity (A-D1) | `rust/sites/docs/**`, baselines | T60, T63, T64, T41, T42, T14, T35 | A-D1. **State:** passed (`compare.sh docs-i01 --task T65`): L1 888/888 in both passes, S 1728/1728, L2 756/756, L3 748/750 with heading IDs equal on every page, L4 100/100, A7 0.9987; the two ratchet entries are `engine-difference` (a table on lazy list-item lines, `hugo_stats.json` tags `?xml`/`=`; `tools/dev/changes/T65.md`). The Go GitHub stub now holds floats (golden docs-i01/docs-reduced regenerated) | fixes |
-| **T66** | docs A-D2 | `diagrams_goat` in `funcs` (fix-task lock), markup/highlight/resources fix tasks, docs overlay | T65, T25, T42, T31 | A-D2 | **State:** passed (`compare.sh docs-reduced --task T66`; committed as `neohugo/tests/it/docs.rs::gate_a_d2`): L1 889/889 in both passes, S 1730/1730, L2 757/757, L3 743/751, L4 100/100, A7 0.9907; ratchet entries: the three goat and three math pages and `hugo_stats.json` `accepted-deviation`, 21yunbox `engine-difference` (`tools/dev/changes/T66.md`). `diagrams_goat` uses svgbob (GoAT's size and `viewBox`); `neohugo` enables the `goat` and `math` features by default; `remarshal` YAML/TOML byte-equal to Go's on a fixture (yaml.v2 quoting and key order, go-toml literal strings, bare dates); the harness ignores code token spans (golden docs-reduced unminified manifest regenerated) | ~1k + fixes |
-| **T70** | Cleanup, audit, A-P | `docs/rust-port/`, `tools/rust-port/`, `PROVENANCE.md` | T62, T65 | HANDOFF rewritten; specs marked "byte-parity sections obsolete"; licence and provenance audit; A-P measured (release) **State:** done. [`HANDOFF.md`](HANDOFF.md) rewritten (crate map, commands, gates, CI/CD, deviations, open items, PR summary); the old port's HANDOFF, TERA_PLAN and HUGO_LAYER_CRITIQUE moved to `docs/rust-port/archive/`, every spec carries the "byte-parity sections obsolete" banner, `tools/rust-port/i01/{compare.sh,diff.py}` removed, `tools/rust-port/README.md` says what is in use. **A-P** (release, 4 CPUs, medians of 5–6 runs, HANDOFF §5): docs-reduced cold 3.29 s vs Go 3.99 s (0.82×), warm 3.26 s vs 3.51 s (0.93×), peak RSS 384 MB; testsite 0.071 vs 0.099 s; private-site reconstruction 0.62 vs 2.40 s cold. Fix: `ssg-highlight` links its syntax set in `build.rs` (it was 0.45 s of every process: testsite 0.50 → 0.064 s, docs 3.83 → 3.29 s); `FUGO_TIMINGS=1` prints phase timings. Audit: licence check and `notices.py` pass; `THIRD_PARTY/emoji/` added (listed but missing), PROVENANCE rows for `rust/sites/**`, `testsite-go.txtar`, `testdata/golden/**`; no Zola or unattributed copied code. Follow-up from T71: `hugo.is_server`/`site.server_port` set in the server (`BuildRequest::server`) | 0.3k |
-| **T71** | ssg-serve | `crates/serve`, `cli` (serve) | T36 | memory sink; `/livereload.js` + `/livereload` WebSocket on the same port; notify debounce 1 s; full rebuild; static-only copy; edit → reload ≤ 2 s on testsite. **State:** `neohugo-rs server` (alias `serve`; `build`'s flags plus `-p --bind --append-port --disable-live-reload --live-reload-port -N --render-to-disk --no-http-cache -w --poll`, camelCase aliases; environment `development`). Memory sink per build, swapped in when the build succeeds (the last good build stays on failure, errors printed with positions); `--render-to-disk` serves the publish directory. Base URLs rewritten to the listener (Hugo's `fixURL`, one listener per language of a multihost site); the LiveReload script in every HTML page but aliases (`ssg-publish`, only for `server`: A-T stays 55/55); Hugo's `livereload.min.js` (MIT, `THIRD_PARTY/livereload`). Go file-server semantics (index, redirects, types from the media types, byte ranges), the `404.html` of the path's language with status 404. notify + notify-debouncer-full, 1 s (or `--poll`) over the project's and themes' mounts and configuration (their config files and `config/` dirs, any `neohugo.*`/`hugo.*`/`config.*` appearing in the project or a theme): config → reload + rebuild; site → full rebuild; static only → changed files copied, no build; reload commands by Hugo's fast-render rules on the output diff (CSS in place, one path, full, none; `--navigateToChanged`). Tests: `ssg-serve` 6 unit + 15 `it` (testsite included), `neohugo` `server::*` 3, `ssg-build` `skeleton::testsite_for_the_server`. Testsite, debug build: content edit → reload 1.54–2.03 s (typically 1.6–1.8 s: the 1 s debounce plus a ≈0.5–0.8 s rebuild, 92 % of which is `ssg_highlight::Highlight::new` rebuilding syntect's syntax set in every `Session::new`; caching it in `ssg-highlight` would give ≈1.1 s), static 1.0–1.1 s. Since then the syntax set is cached per process, and T70 links it at compile time and set `hugo.IsServer`/`site.ServerPort`. Open: the browser error page, `[server]` headers/redirects, fast render, TLS, `--openBrowser` | 1.5k |
+| **T65** | docs parity (A-D1) | `rust/sites/docs/**`, baselines | T60, T63, T64, T41, T42, T14, T35 | A-D1. **State:** passed (`compare.sh docs-i01 --task T65`): L1 888/888 in both passes, S 1728/1728, L2 756/756, L3 748/750 with heading IDs equal on every page, L4 100/100, A7 0.9987; the two ratchet entries are `engine-difference` (a table on lazy list-item lines, the stats file's tags `?xml`/`=`; `tools/dev/changes/T65.md`). The Go GitHub stub now holds floats (golden docs-i01/docs-reduced regenerated) | fixes |
+| **T66** | docs A-D2 | `diagrams_goat` in `funcs` (fix-task lock), markup/highlight/resources fix tasks, docs overlay | T65, T25, T42, T31 | A-D2 | **State:** passed (`compare.sh docs-reduced --task T66`; committed as `crates/cli/tests/it/docs.rs::gate_a_d2`): L1 889/889 in both passes, S 1730/1730, L2 757/757, L3 743/751, L4 100/100, A7 0.9907; ratchet entries: the three goat and three math pages and the stats file `accepted-deviation`, 21yunbox `engine-difference` (`tools/dev/changes/T66.md`). `diagrams_goat` uses svgbob (GoAT's size and `viewBox`); the CLI crate enables the `goat` and `math` features by default; `remarshal` YAML/TOML byte-equal to Go's on a fixture (yaml.v2 quoting and key order, go-toml literal strings, bare dates); the harness ignores code token spans (golden docs-reduced unminified manifest regenerated) | ~1k + fixes |
+| **T70** | Cleanup, audit, A-P | `docs/rust-port/`, `tools/rust-port/`, `PROVENANCE.md` | T62, T65 | HANDOFF rewritten; specs marked "byte-parity sections obsolete"; licence and provenance audit; A-P measured (release) **State:** done. [`HANDOFF.md`](HANDOFF.md) rewritten (crate map, commands, gates, CI/CD, deviations, open items, PR summary); the old port's HANDOFF, TERA_PLAN and LAYER_CRITIQUE moved to `docs/rust-port/archive/`, every spec carries the "byte-parity sections obsolete" banner, `tools/rust-port/i01/{compare.sh,diff.py}` removed, `tools/rust-port/README.md` says what is in use. **A-P** (release, 4 CPUs, medians of 5–6 runs, HANDOFF §5): docs-reduced cold 3.29 s vs Go 3.99 s (0.82×), warm 3.26 s vs 3.51 s (0.93×), peak RSS 384 MB; testsite 0.071 vs 0.099 s; private-site reconstruction 0.62 vs 2.40 s cold. Fix: `ssg-highlight` links its syntax set in `build.rs` (it was 0.45 s of every process: testsite 0.50 → 0.064 s, docs 3.83 → 3.29 s); `FUGO_TIMINGS=1` prints phase timings. Audit: licence check and `notices.py` pass; `THIRD_PARTY/emoji/` added (listed but missing), PROVENANCE rows for `rust/sites/**`, `testsite-go.txtar`, `testdata/golden/**`; no Zola or unattributed copied code. Follow-up from T71: `build.is_server`/`site.server_port` set in the server (`BuildRequest::server`) | 0.3k |
+| **T71** | ssg-serve | `crates/serve`, `cli` (serve) | T36 | memory sink; `/livereload.js` + `/livereload` WebSocket on the same port; notify debounce 1 s; full rebuild; static-only copy; edit → reload ≤ 2 s on testsite. **State:** `fugo server` (alias `serve`; `build`'s flags plus `-p --bind --append-port --disable-live-reload --live-reload-port -N --render-to-disk --no-http-cache -w --poll`, camelCase aliases; environment `development`). Memory sink per build, swapped in when the build succeeds (the last good build stays on failure, errors printed with positions); `--render-to-disk` serves the publish directory. Base URLs rewritten to the listener (Go's `fixURL`, one listener per language of a multihost site); the LiveReload script in every HTML page but aliases (`ssg-publish`, only for `server`: A-T stays 55/55); the Go implementation's `livereload.min.js` (MIT, `THIRD_PARTY/livereload`). Go file-server semantics (index, redirects, types from the media types, byte ranges), the `404.html` of the path's language with status 404. notify + notify-debouncer-full, 1 s (or `--poll`) over the project's and themes' mounts and configuration (their config files and `config/` dirs, any project-named, Go-program-named or `config.*` file appearing in the project or a theme): config → reload + rebuild; site → full rebuild; static only → changed files copied, no build; reload commands by the Go implementation's fast-render rules on the output diff (CSS in place, one path, full, none; `--navigateToChanged`). Tests: `ssg-serve` 6 unit + 15 `it` (testsite included), `fugo` `server::*` 3, `ssg-build` `skeleton::testsite_for_the_server`. Testsite, debug build: content edit → reload 1.54–2.03 s (typically 1.6–1.8 s: the 1 s debounce plus a ≈0.5–0.8 s rebuild, 92 % of which is `ssg_highlight::Highlight::new` rebuilding syntect's syntax set in every `Session::new`; caching it in `ssg-highlight` would give ≈1.1 s), static 1.0–1.1 s. Since then the syntax set is cached per process, and T70 links it at compile time and set `build.is_server`/`site.server_port`. Open: the browser error page, `[server]` headers/redirects, fast render, TLS, `--openBrowser` | 1.5k |
 | **T72** | COULD features | per-feature crates (fix-task locks) | T65 | Each item lifts one patch and keeps A-D2 green: <ul><li>`images.Text` (`{op:"text"}`), `qr_code`, Dither, smartcrop (**T72a** implemented the first three in `images`/`resources`/`sitefuncs`; the docs patches are not lifted yet)</li><li>Chroma style gallery</li><li>`:git` lastmod</li><li>content adapters as a `_content.html` Tera template calling `add_page`</li><li>Org front matter</li></ul> | 3k |
-| **T73** | ssg-migrate + real private site | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(neohugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
-| **T74** | docs-live: the published docs site (A-D3) | `sites/docs/**`, `tools/{docs,neohugo,rust-port}/**`, `testdata/golden/docs-live/`, baselines; engine items in `build`/`site`/`page`/`sitefuncs` (content adapters), `funcs` (KaTeX, GoAT), `images` (smartcrop), `markup`/`render` (goldmark tables, shortcode indentation), `highlight` (Chroma port) | T66, T72a | A-D3: the docs without patches against the published site (neohugo/neohugo.github.io at a1928152) — L1, L2, L4 equal on every file, A7 1.0. **State:** passed (`gate_a_d3`): L1 2373/2373, L2 776/776, L3 769/770 (Go's stats tokenizer reading `<?xml`/`<=` as tags), L4 873/873, A7 1.0; A-D1 and A-D2 reach A7 1.0 too (their math, GoAT and table entries `bug-fixed`); `tools/docs/build.sh` builds and serves the site | – |
+| **T73** | ssg-migrate + real private site | `crates/migrate`, private repo branch | T62 | converter emits Tera with `TODO(fugo)` markers, renames legacy files and translates printf/where; after hand fixes ≤ 20% of lines changed on R; A-S | 2.5k + ~0.9k Tera |
+| **T74** | docs-live: the published docs site (A-D3) | `sites/docs/**`, `tools/{legacy-docs,dev,rust-port}/**`, `testdata/golden/docs-live/`, baselines; engine items in `build`/`site`/`page`/`sitefuncs` (content adapters), `funcs` (KaTeX, GoAT), `images` (smartcrop), `markup`/`render` (goldmark tables, shortcode indentation), `highlight` (Chroma port) | T66, T72a | A-D3: the docs without patches against the published site (getfugo/getfugo.github.io at a1928152) — L1, L2, L4 equal on every file, A7 1.0. **State:** passed (`gate_a_d3`): L1 2373/2373, L2 776/776, L3 769/770 (Go's stats tokenizer reading `<?xml`/`<=` as tags), L4 873/873, A7 1.0; A-D1 and A-D2 reach A7 1.0 too (their math, GoAT and table entries `bug-fixed`); `tools/docs/build.sh` builds and serves the site | – |
 
 ### 8.3 Schedule (four lanes) and critical path
 
@@ -1968,7 +1968,7 @@ Sizes are Rust src + tests unless noted.
 | # | Risk | Impact | Mitigation |
 |---|---|---|---|
 | 1 | Late end-to-end signal; semantic drift found late | high | Oracle-fixture gates in every crate; structure-oracle gates in T23b and T30; walking skeleton in round 7; contract test from round 2 |
-| 2 | Re-deriving Hugo semantics loses subtle rules | high | Salvage rule by rule from `go-parity-final`, each with the fixture that covers it; the old port's specs; reviewed `expected_diffs.toml` |
+| 2 | Re-deriving the Go implementation's semantics loses subtle rules | high | Salvage rule by rule from `go-parity-final`, each with the fixture that covers it; the old port's specs; reviewed `expected_diffs.toml` |
 | 3 | Tera 2 strictness (undefined values, keyword-only arguments, literal includes, hygienic components, no return values) and a young engine | high | <ul><li>views emit every key</li><li>the `or`/`?.` idioms</li><li>explicit `__nh` scope plus `page=`</li><li>`partial`/`return_value` frames</li><li>all names registered before load</li><li>`templates check` lints</li><li>pin `=2.4.0`; fix upstream (MIT)</li><li>minijinja is the documented escape hatch (costs a re-conversion)</li></ul> |
 | 4 | Plain-data views: memory, depth, cross-page access | medium | Summary lists + `deref`; lazy full values; `page_content` functions with a precise error; dhat measurement in T33 |
 | 5 | Concurrency: cycles, deadlocks, duplicated side effects | high | <ul><li>never-blocking memo cells</li><li>chain-based cycle detection in the scope</li><li>fragments as a separate stage</li><li>buffered store writes committed by the winner</li><li>no DashMap guard held while rendering</li><li>no parallel work inside renders</li><li>forced two-thread tests</li></ul> |
@@ -1988,7 +1988,7 @@ Sizes are Rust src + tests unless noted.
 | 19 | Semantic drift from dependencies (YAML 1.2 vs 1.1, CLDR, ICU dates) | low | 218-front-matter corpus; locales oracle; collation and plural allowlists |
 | 20 | External tools and network (esbuild, node, Tailwind, GetRemote) | medium | Pinned esbuild build script; node.sh lockfile; offline GetRemote cache with key importer; both builds run with HTTP disabled; clear errors naming missing binaries |
 | 21 | Private site repo unavailable | medium | A-R is the blocking gate; A-S runs when the repo is attached (D6) |
-| 22 | Scope creep toward all of Hugo | medium | MUST/SHOULD/COULD from the feature inventory drive the task list; COULD only in T72 |
+| 22 | Scope creep toward all of the Go implementation | medium | MUST/SHOULD/COULD from the feature inventory drive the task list; COULD only in T72 |
 
 ---
 
@@ -2008,7 +2008,7 @@ Sizes are Rust src + tests unless noted.
 | ssg-highlight | 1,400 | 400 | scope map, inline styles, Go-template syntax |
 | ssg-minify | 500 | 200 | |
 | ssg-resources | 4,000 | 1,300 | core 2.2k + pipes 1.8k |
-| neohugo-esbuild | 1,800 | 400 | 1.3k restored unchanged |
+| esbuild client | 1,800 | 400 | 1.3k restored unchanged |
 | ssg-images | 3,200 | 800 | |
 | ssg-layouts | 2,300 | 700 | + ~1,200 embedded Tera lines |
 | ssg-funcs | 3,600 | 1,200 | incl. `FUNCS` spec |
@@ -2017,7 +2017,7 @@ Sizes are Rust src + tests unless noted.
 | ssg-render | 2,700 | 700 | |
 | ssg-publish | 1,600 | 600 | |
 | ssg-build | 2,000 | 600 | incl. site integration tests |
-| neohugo (cli + templates check) | 1,100 | 300 | |
+| fugo (cli + templates check) | 1,100 | 300 | |
 | ssg-testkit | 1,000 | – | dev only |
 | **Core total** | **≈ 55,900** | **≈ 14,900** | about 71k lines, roughly 1/6 of the old tree (337,648 src + 106,631 tests + 111k vendored C/C++) |
 | Walking-skeleton glue (T38, replaced) | 600 | 200 | throwaway |
@@ -2041,20 +2041,20 @@ The plan proceeds with the stated default unless you say otherwise.
   - **(b) Default:** additionally copy single MIT files from Zola before commit 3c9131db for low-risk infrastructure (serve/livereload/watch classification, fs copy-if-changed, image-queue shape), with `PROVENANCE.md` entries. This needs network access.
   - Code from Zola ≥ 0.22 is never copied.
 - **D3. Delete the old port in T00.** It stays recoverable through the `go-parity-final` tag. **Default:** yes.
-- **D4. Tera-only templates.** neohugo stops accepting Go-template layouts, legacy layout names, and Go-template assets used with `execute_as_template`. Existing Hugo sites convert them (the migrate tool, T73, is optional). Content shortcode syntax and i18n `{{ .Field }}` placeholders stay Hugo's. **Default:** yes.
-- **D5. Accepted deviations from Hugo** (documented in `template-api.md`):
+- **D4. Tera-only templates.** fugo stops accepting Go-template layouts, legacy layout names, and Go-template assets used with `execute_as_template`. Existing sites of the Go implementation convert them (the migrate tool, T73, is optional). Content shortcode syntax and i18n `{{ .Field }}` placeholders stay the Go implementation's. **Default:** yes.
+- **D5. Accepted deviations from the Go implementation** (documented in `template-api.md`):
   - content is rendered before layouts, so another page's content inside a shortcode goes through `page_content`;
-  - pagination is explicit, and a conflicting second `paginate` is an error (Hugo silently ignores it);
+  - pagination is explicit, and a conflicting second `paginate` is an error (Go silently ignores it);
   - lazily published resources are published on reference (URL tokens);
   - no `#ZgotmplZ` sanitising;
   - YAML 1.2 in untyped params (`yes` stays a string);
   - deterministic winners for URL collisions;
   - newer CLDR collation;
-  - `$_hugo_config` v1 shortcode semantics are dropped;
+  - the v1 shortcode semantics (the in-template version declaration) are dropped;
   - prefix lookup is segment-aware;
   - target-path assets: the earlier language wins, and conflicting inputs within one language are an error;
   - site-bound functions inside components need `page=` or `@__nh`;
-  - `hugo.version` reports `0.149.0-DEV`.
+  - `build.version` reports `0.149.0-DEV`.
 
   **Default:** accept.
 - **D6. Real private site.** Attach the private repository for gate A-S and T73, or accept the reconstruction (A-R) as the final gate for that site. **Default:** A-R blocks; A-S runs when the repository is available.
@@ -2068,9 +2068,9 @@ The plan proceeds with the stated default unless you say otherwise.
 These are the review points that were rejected or only partly applied, one line each. Every other blocker, major and minor point from the three reviews was applied as written.
 
 - **Thread-local `RenderFrame` stack** (completeness, feasibility): replaced by the explicit `__nh` scope value (Rust-style review). It covers the same cases (partial, shortcode, hook, defer, wave-2 pager) and stays sound under work-stealing.
-- **Fixpoint rescan of published CSS/JS** (feasibility): rejected. Hugo publishes only through template calls, so we scan template outputs, `execute_as_template` results included, and nothing else.
+- **Fixpoint rescan of published CSS/JS** (feasibility): rejected. The Go implementation publishes only through template calls, so we scan template outputs, `execute_as_template` results included, and nothing else.
 - **Legacy layout-name aliases in the loader** (completeness, feasibility option): rejected. Overlays use v0.146 names, and the legacy mapping lives only in the oracle normaliser and `migrate`.
-- **Keeping `{# hugo:v1 #}` inner semantics** (original draft): dropped per the Rust-style review. R's `v1.html` is an L3 `accepted-deviation` and does not affect the file set.
+- **Keeping v1 inner semantics behind a Tera comment marker** (original draft): dropped per the Rust-style review. R's `v1.html` is an L3 `accepted-deviation` and does not affect the file set.
 - **"A failed GetRemote returns `{err}` and is never a build error"** (completeness): rejected. Errors propagate unless `optional=true`; the converted docs templates use `optional=true`, and both builds run offline.
 - **Chroma style → theme map for the full style gallery** (completeness, option 1): deferred to T72, and the gallery page stays patched in A-D2. `noClasses`, `hl_inline` and `lineNumbersInTable` were accepted into T25.
 - **`resolver.feature-unification = "workspace"`** (feasibility, alternative): the hand-written workspace-hack was chosen, because the option is not known to be stable in cargo 1.94.1. T00 verifies, and we switch if it is stable.

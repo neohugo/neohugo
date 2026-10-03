@@ -1,6 +1,6 @@
 //! The template API as data: every filter, function and test a template may call
 //! ([`FUNCS`]), the top-level names of every render context ([`CONTEXTS`], [`HOOK_FIELDS`]), the
-//! Hugo constructs that became Tera syntax ([`SYNTAX`]), the conversion rules
+//! Go-template constructs that became Tera syntax ([`SYNTAX`]), the conversion rules
 //! ([`CONVERSION_RULES`]) and the embedded templates ([`EMBEDDED_TEMPLATES`]).
 //!
 //! This module is the single source of truth (REWRITE_PLAN.md §4.6): `docs/rust-port/template-api.md`
@@ -152,8 +152,8 @@ pub struct FuncSpec {
     /// Needs the site model or the render scope `__nh` (ssg-sitefuncs).
     pub site_bound: bool,
     pub group: Group,
-    /// The Hugo functions or methods this replaces ("" when it has no Hugo counterpart).
-    pub hugo: &'static str,
+    /// The Go-template functions or methods this replaces ("" when it has no Go counterpart).
+    pub go: &'static str,
     pub doc: &'static str,
 }
 
@@ -214,7 +214,7 @@ impl FuncSpec {
         kind: NameKind,
         group: Group,
         name: &'static str,
-        hugo: &'static str,
+        go: &'static str,
         doc: &'static str,
     ) -> Self {
         Self {
@@ -227,7 +227,7 @@ impl FuncSpec {
             safe: false,
             site_bound: false,
             group,
-            hugo,
+            go,
             doc,
         }
     }
@@ -261,19 +261,14 @@ impl FuncSpec {
     }
 }
 
-const fn filter(
-    group: Group,
-    name: &'static str,
-    hugo: &'static str,
-    doc: &'static str,
-) -> FuncSpec {
-    FuncSpec::new(NameKind::Filter, group, name, hugo, doc)
+const fn filter(group: Group, name: &'static str, go: &'static str, doc: &'static str) -> FuncSpec {
+    FuncSpec::new(NameKind::Filter, group, name, go, doc)
 }
-const fn func(group: Group, name: &'static str, hugo: &'static str, doc: &'static str) -> FuncSpec {
-    FuncSpec::new(NameKind::Function, group, name, hugo, doc)
+const fn func(group: Group, name: &'static str, go: &'static str, doc: &'static str) -> FuncSpec {
+    FuncSpec::new(NameKind::Function, group, name, go, doc)
 }
-const fn test(name: &'static str, hugo: &'static str, doc: &'static str) -> FuncSpec {
-    FuncSpec::new(NameKind::Test, Group::Tests, name, hugo, doc)
+const fn test(name: &'static str, go: &'static str, doc: &'static str) -> FuncSpec {
+    FuncSpec::new(NameKind::Test, Group::Tests, name, go, doc)
 }
 const fn req(name: &'static str, ty: ArgType) -> Kwarg {
     Kwarg {
@@ -333,9 +328,9 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Logic, "str", "string", "Converts to a string.").builtin(),
     // ── collections and maps ──
     filter(G::Collections, "length", "len", "Length of a string (characters), array or map.").builtin(),
-    filter(G::Collections, "default", "", "`value` when the input is undefined (only then; `boolean=true` also replaces falsy values). Not Hugo's `default`.")
+    filter(G::Collections, "default", "", "`value` when the input is undefined (only then; `boolean=true` also replaces falsy values). Not Go's `default`.")
         .args(&[req("value", A::Any), opt("boolean", A::Bool)]).builtin(),
-    filter(G::Collections, "default_if_empty", "default", "Hugo's `default`: `value` when the input is undefined, none, 0, \"\", or an empty array or map. `false` counts as set.")
+    filter(G::Collections, "default_if_empty", "default", "Go's `default`: `value` when the input is undefined, none, 0, \"\", or an empty array or map. `false` counts as set.")
         .args(&[req("value", A::Any)]),
     filter(G::Collections, "get", "index", "The map entry `key`, else `default`, else an error.").args(&[req("key", A::String), opt("default", A::Any)]).builtin(),
     filter(G::Collections, "get_path", "index m \"a\" \"b\"", "Walks `path` (keys and integer indices); none when a step is missing.").args(&[req("path", A::Array)]),
@@ -354,7 +349,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Collections, "delimit", "delimit l sep last", "Joins with `sep`, and `last` before the final element.").args(&[req("sep", A::String), opt("last", A::String)]),
     filter(G::Collections, "reverse", ".Reverse", "Reversed array or string.").builtin(),
     filter(G::Collections, "unique", "uniq", "Removes duplicates, keeping the first.").builtin(),
-    filter(G::Collections, "sort", "", "Tera's sort (by value, or by `attribute` path); not locale-aware. Use `sort_by` for Hugo's `sort`.")
+    filter(G::Collections, "sort", "", "Tera's sort (by value, or by `attribute` path); not locale-aware. Use `sort_by` for Go's `sort`.")
         .args(&[opt("attribute", A::String)]).builtin(),
     filter(G::Collections, "group_by", "", "Tera's grouping by `attribute` path into a map.").args(&[req("attribute", A::String)]).builtin(),
     filter(G::Collections, "sort_by", "sort", "Sorts by `attribute` (a path such as `params.weight`; `\"\"` or `value`: the elements): collation of the render's `lang`, dates as instants, stable.")
@@ -363,7 +358,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Collections, "union", "union", "Elements of either array, first occurrence kept (pages by id).").args(&[req("with", A::Array)]),
     filter(G::Collections, "intersect", "intersect", "Elements present in both (pages by id).").args(&[req("with", A::Array)]),
     filter(G::Collections, "symdiff", "symdiff", "Elements present in exactly one (pages by id).").args(&[req("with", A::Array)]),
-    func(G::Collections, "range", "seq", "Integers from `start` (default 0) to `end` (exclusive) by `step_by`; Hugo `seq N` is `range(start=1, end=N+1)`.")
+    func(G::Collections, "range", "seq", "Integers from `start` (default 0) to `end` (exclusive) by `step_by`; Go's `seq N` is `range(start=1, end=N+1)`.")
         .args(&[opt("start", A::Int), req("end", A::Int), opt("step_by", A::Int)]).builtin(),
     func(G::Collections, "querify", "querify", "A URL query string from `params`, keys sorted.").args(&[req("params", A::Map)]),
     // ── pages, taxonomies, menus, pagination ──
@@ -404,7 +399,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Pages, "by_date", ".ByDate", "Pages by date, oldest first.").site(),
     filter(G::Pages, "by_publish_date", ".ByPublishDate", "Pages by publish date.").site(),
     filter(G::Pages, "by_lastmod", ".ByLastmod", "Pages by last modification.").site(),
-    filter(G::Pages, "by_weight", ".ByWeight", "Pages by Hugo's default order (weight, date, link title, path).").site(),
+    filter(G::Pages, "by_weight", ".ByWeight", "Pages by Go's default page order (weight, date, link title, path).").site(),
     filter(G::Pages, "group_by_date", ".GroupByDate", "`[{key, pages}]` grouped by the date formatted with `format` (strftime), newest first (`order=\"asc\"`: oldest first); no date is Go's zero date (`0001`).")
         .args(&[req("format", A::String), opt("attribute", A::String), opt("order", A::String)]).site(),
     filter(G::Pages, "group_by_param", ".GroupByParam", "`[{key, pages}]` grouped by the page param `param`.").args(&[req("param", A::String)]).site(),
@@ -414,7 +409,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Strings, "lower", "lower", "Lower case.").builtin(),
     filter(G::Strings, "upper", "upper", "Upper case.").builtin(),
     filter(G::Strings, "capitalize", "", "First character upper, the rest lower.").builtin(),
-    filter(G::Strings, "title", "", "Tera's naive title case. Hugo's `title` is `title_case`.").builtin(),
+    filter(G::Strings, "title", "", "Tera's naive title case. Go's `title` is `title_case`.").builtin(),
     filter(G::Strings, "title_case", "title, strings.Title", "Title case in `style` (`ap`, `chicago`, `go`, `firstupper`, `none`; default: `titleCaseStyle`).")
         .args(&[opt("style", A::String)]),
     filter(G::Strings, "wordcount", "", "Tera's word count (whitespace split).").builtin(),
@@ -432,20 +427,20 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Strings, "regex_find", "findRE", "Matches of `pattern`, at most `limit`.").args(&[req("pattern", A::String), opt("limit", A::Int)]),
     filter(G::Strings, "substr", "substr", "`length` characters from `start` (negative counts from the end).").args(&[req("start", A::Int), opt("length", A::Int)]),
     filter(G::Strings, "truncate", "", "Tera's plain-text truncate to `length` characters plus `end`.").args(&[req("length", A::Int), opt("end", A::String)]).builtin(),
-    filter(G::Strings, "truncate_html", "truncate", "Hugo's HTML-aware truncate: closes open tags, `ellipsis` default `…`. Keeps the input's safety.")
+    filter(G::Strings, "truncate_html", "truncate", "Go's HTML-aware `truncate`: closes open tags, `ellipsis` default `…`. Keeps the input's safety.")
         .args(&[req("length", A::Int), opt("ellipsis", A::String)]),
     filter(G::Strings, "pad_start", "printf \"%5s\"", "Pads on the left with spaces to `width` characters.").args(&[req("width", A::Int)]),
     filter(G::Strings, "pad_end", "printf \"%-35s\"", "Pads on the right with spaces to `width` characters.").args(&[req("width", A::Int)]),
     filter(G::Strings, "indent", "", "Tera's indent.").args(&[opt("width", A::Int), opt("indentation", A::String), opt("first", A::Bool), opt("blank", A::Bool)]).builtin(),
     filter(G::Strings, "newlines_to_br", "", "Replaces line breaks with `<br>`.").builtin(),
-    filter(G::Strings, "pluralize", "", "Tera's suffix pluralizer for a count (`singular`, `plural`). Hugo's `inflect.Pluralize` is `pluralize_word`.")
+    filter(G::Strings, "pluralize", "", "Tera's suffix pluralizer for a count (`singular`, `plural`). Go's `inflect.Pluralize` is `pluralize_word`.")
         .args(&[opt("singular", A::String), opt("plural", A::String)]).builtin(),
     filter(G::Strings, "pluralize_word", "inflect.Pluralize, pluralize", "English plural of a word."),
     filter(G::Strings, "singularize_word", "inflect.Singularize, singularize", "English singular of a word."),
-    filter(G::Strings, "humanize", "humanize", "Hugo's humanize (`my-first-post` → `My first post`; numbers → ordinals)."),
+    filter(G::Strings, "humanize", "humanize", "Go's `humanize` (`my-first-post` → `My first post`; numbers → ordinals)."),
     filter(G::Strings, "ordinalize", "humanize (numbers)", "`1` → `1st`."),
-    filter(G::Strings, "urlize", "urlize", "Hugo's URL-safe path form of a string."),
-    filter(G::Strings, "anchorize", "anchorize", "An anchor id as Hugo generates it; `style` `github` (default), `github-ascii` or `blackfriday`.")
+    filter(G::Strings, "urlize", "urlize", "The URL-safe path form of a string, as Go's `urlize` makes it."),
+    filter(G::Strings, "anchorize", "anchorize", "An anchor id as Go generates it; `style` `github` (default), `github-ascii` or `blackfriday`.")
         .args(&[opt("style", A::String)]),
     filter(G::Strings, "plainify", "plainify", "Strips HTML tags."),
     filter(G::Strings, "emojify", "emojify", "Replaces `:shortcode:` emoji.").safe(),
@@ -454,7 +449,7 @@ pub const FUNCS: &[FuncSpec] = &[
         .args(&[opt("display", A::String), PAGE_OPT]).site().safe(),
     filter(G::Strings, "highlight", "highlight, transform.Highlight", "Syntax highlighting of the input as `lang` (Chroma classes, or inline styles per `noClasses`; needs the site's highlight configuration).")
         .args(&[req("lang", A::String), opt("options", A::Any)]).site().safe(),
-    filter(G::Strings, "to_math", "transform.ToMath (+ try)", "LaTeX to MathML and/or HTML with KaTeX 0.16.22 and mhchem, as Hugo renders it (SHOULD; feature `math`). `options`: KaTeX's `output` (`mathml` default, `html`, `htmlAndMathml`), `displayMode`, `leqno`, `fleqn`, `errorColor`, `macros`, `minRuleThickness`, `throwOnError` (default true), `strict` (`error` default, `ignore`, `warn`: warnings). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` it is a warning (id `to_math`) and the result none.").args(&[opt("options", A::Map), opt("optional", A::Bool)]).safe(),
+    filter(G::Strings, "to_math", "transform.ToMath (+ try)", "LaTeX to MathML and/or HTML with KaTeX 0.16.22 and mhchem, as Go renders it (SHOULD; feature `math`). `options`: KaTeX's `output` (`mathml` default, `html`, `htmlAndMathml`), `displayMode`, `leqno`, `fleqn`, `errorColor`, `macros`, `minRuleThickness`, `throwOnError` (default true), `strict` (`error` default, `ignore`, `warn`: warnings). An error (a formula KaTeX rejects, invalid options) fails the render; with `optional=true` it is a warning (id `to_math`) and the result none.").args(&[opt("options", A::Map), opt("optional", A::Bool)]).safe(),
     func(G::Strings, "diagrams_goat", "diagrams.Goat", "`{inner (safe SVG), width, height, wrapped}` for the ASCII diagram `text` (SHOULD; feature `goat`).")
         .args(&[req("text", A::String)]),
     filter(G::Strings, "format_number", "lang.FormatNumber, printf \"%.1f\"", "The number with `precision` decimals in the format of the render's `lang`.")
@@ -462,9 +457,9 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Strings, "filesize_format", "", "Human file size (`binary` units by default).").args(&[opt("binary", A::Bool)]).contrib(),
     // ── encoding, escaping, hashing ──
     filter(G::Encoding, "safe", "safeHTML, safeHTMLAttr, safeURL, safeJS, safeCSS", "Marks the value safe.").builtin(),
-    filter(G::Encoding, "escape", "", "Tera's escape (leaves safe input alone). Hugo's `html` is `html_escape`.").builtin(),
+    filter(G::Encoding, "escape", "", "Tera's escape (leaves safe input alone). Go's `html` is `html_escape`.").builtin(),
     filter(G::Encoding, "escape_html", "", "Tera's HTML escape of a string.").builtin(),
-    filter(G::Encoding, "escape_xml", "", "Tera's XML escape (`&quot;`, `&apos;`; leaves safe input alone). Hugo's `transform.XMLEscape` is `xml_escape`.").builtin(),
+    filter(G::Encoding, "escape_xml", "", "Tera's XML escape (`&quot;`, `&apos;`; leaves safe input alone). Go's `transform.XMLEscape` is `xml_escape`.").builtin(),
     filter(G::Encoding, "xml_escape", "transform.XMLEscape", "Drops the characters XML forbids, then escapes `& < > \" '`, tab, newline and CR (`&#34; &#39; &#x9; &#xA; &#xD;`, Go's `xml.EscapeText`) even when the input is safe; the result is safe.").safe(),
     filter(G::Encoding, "html_escape", "html, htmlEscape, transform.HTMLEscape", "Escapes `& < > \" '` even when the input is safe; the result is safe.").safe(),
     filter(G::Encoding, "html_unescape", "htmlUnescape, transform.HTMLUnescape", "Decodes HTML entities."),
@@ -523,7 +518,6 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Resources, "resource_content", ".Content (resource)", "The text of a resource; for a bundled content page, its rendered HTML (marked safe).").site(),
     filter(G::Resources, "publish", ".Publish", "Publishes the resource and returns it.").site(),
     filter(G::Resources, "to_css", "toCSS, css.Sass", "Sass/SCSS to CSS.").args(PIPE_OPTIONS).site(),
-    filter(G::Resources, "postcss", "postCSS, css.PostCSS", "Runs PostCSS.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "tailwind", "css.TailwindCSS", "Runs the Tailwind CLI.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "babel", "babel, js.Babel", "Runs Babel.").args(PIPE_OPTIONS).site(),
     filter(G::Resources, "js_build", "js.Build", "Bundles with rolldown.").args(PIPE_OPTIONS).site(),
@@ -533,15 +527,15 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Resources, "purge_css", "PurgeCSS (PostCSS)", "A placeholder that each page's published output replaces with the rules of the CSS (a resource or string) that page uses: the tags, classes and ids of its elements, the words of its `<script>` elements. `safelist` names (or `/regex/`) count as used; `greedy` keeps any selector whose text contains the string or matches the `/regex/`; `blocklist` names drop their selectors; `content` resources or strings (scripts that add classes) count their words as used on every page; `variables=true` drops custom properties nothing kept references; `important=false` drops `!important`. Printed compactly for the project's browserslist targets. E.g. `<style>{{ css | purge_css(content=[js]) }}</style>`.")
         .args(&[opt("safelist", A::Array), opt("greedy", A::Array), opt("blocklist", A::Array), opt("content", A::Array), opt("variables", A::Bool), opt("important", A::Bool)]).site().safe(),
     // ── images ──
-    filter(G::Images, "resize", ".Resize", "Resizes to `width` and/or `height` (or a Hugo `spec`).").args(IMAGE_ARGS).site(),
+    filter(G::Images, "resize", ".Resize", "Resizes to `width` and/or `height` (or a `spec` string in Go's syntax, e.g. `\"600x400 webp q75\"`).").args(IMAGE_ARGS).site(),
     filter(G::Images, "fill", ".Fill", "Crops and resizes to fill `width`×`height` at `anchor`.").args(IMAGE_ARGS).site(),
     filter(G::Images, "fit", ".Fit", "Downscales to fit `width`×`height`.").args(IMAGE_ARGS).site(),
     filter(G::Images, "crop", ".Crop", "Crops to `width`×`height` at `anchor`.").args(IMAGE_ARGS).site(),
     filter(G::Images, "process", ".Process", "Any of the above per `spec` (or the typed kwargs).").args(IMAGE_ARGS).site(),
-    filter(G::Images, "image_filter", "images.Filter, .Filter, images.Text, images.Dither", "Applies `filters`, a list of `{\"op\": …}` maps, one per Hugo `images.*` filter: `brightness`, `color_balance`, `colorize`, `contrast`, `gamma`, `gaussian_blur`, `grayscale`, `hue`, `invert`, `saturation`, `sepia`, `sigmoid`, `unsharp_mask`, `pixelate`, `opacity`, `padding`, `overlay` and `mask` (`image`: a resource), `auto_orient`, `text` (`text`, `color`, `size`, `x`, `y`, `alignx`, `aligny`, `linespacing`, `font`: a font resource), `dither` (`colors`, `method`, `serpentine`, `strength`), `process` (`spec`). E.g. `img | image_filter(filters=[{\"op\": \"text\", \"text\": page.title, \"size\": 40}, {\"op\": \"dither\"}])`.").args(&[req("filters", A::Array)]).site(),
+    filter(G::Images, "image_filter", "images.Filter, .Filter, images.Text, images.Dither", "Applies `filters`, a list of `{\"op\": …}` maps, one per Go `images.*` filter: `brightness`, `color_balance`, `colorize`, `contrast`, `gamma`, `gaussian_blur`, `grayscale`, `hue`, `invert`, `saturation`, `sepia`, `sigmoid`, `unsharp_mask`, `pixelate`, `opacity`, `padding`, `overlay` and `mask` (`image`: a resource), `auto_orient`, `text` (`text`, `color`, `size`, `x`, `y`, `alignx`, `aligny`, `linespacing`, `font`: a font resource), `dither` (`colors`, `method`, `serpentine`, `strength`), `process` (`spec`). E.g. `img | image_filter(filters=[{\"op\": \"text\", \"text\": page.title, \"size\": 40}, {\"op\": \"dither\"}])`.").args(&[req("filters", A::Array)]).site(),
     filter(G::Images, "exif", ".Exif", "EXIF data of an image, or none.").site(),
-    filter(G::Images, "image_colors", ".Colors", "Not implemented yet: calling it is an error (Hugo's `.Colors` gives the dominant colours as hex strings).").site(),
-    func(G::Images, "qr_code", "images.QR", "A PNG image resource of the QR code of `text`, with Hugo's bytes and name (`<target_dir>/qr_<hash>.png`): `level` low, medium (default), quartile or high; `scale` pixels per module (at least 2, default 4). E.g. `qr_code(text=page.permalink, target_dir=\"images/qr\")`.")
+    filter(G::Images, "image_colors", ".Colors", "Not implemented yet: calling it is an error (Go's `.Colors` gives the dominant colours as hex strings).").site(),
+    func(G::Images, "qr_code", "images.QR", "A PNG image resource of the QR code of `text`, with Go's bytes and name (`<target_dir>/qr_<hash>.png`): `level` low, medium (default), quartile or high; `scale` pixels per module (at least 2, default 4). E.g. `qr_code(text=page.permalink, target_dir=\"images/qr\")`.")
         .args(&[req("text", A::String), opt("level", A::String), opt("scale", A::Int), opt("target_dir", A::String)]).site(),
     // ── templates ──
     func(G::Templates, "super", "", "The parent block's content (inside `{% block %}` only).").builtin(),
@@ -555,7 +549,7 @@ pub const FUNCS: &[FuncSpec] = &[
     filter(G::Templates, "arg", ".Get (shortcodes)", "A shortcode argument by position `index` or by `name`, else `default`: `shortcode | arg(index=0, default=\"\")`.")
         .args(&[opt("index", A::Int), opt("name", A::String), opt("default", A::Any)]).only(P::Content),
     // ── environment, files, debugging ──
-    func(G::System, "get_env", "os.Getenv", "An environment variable (\"\" when unset); `name` must match `security.funcs.getenv`, else an error.").args(&[req("name", A::String)]),
+    func(G::System, "get_env", "os.Getenv", "An environment variable (\"\" when unset): one the project's `.env` file defines (the process environment wins), or one `security.funcs.getenv` allows; any other name is an error.").args(&[req("name", A::String)]),
     func(G::System, "read_file", "os.ReadFile", "A file of the project (`security` rules apply).").args(&[req("path", A::String)]),
     func(G::System, "file_exists", "os.FileExists", "Whether a project file exists.").args(&[req("path", A::String)]),
     filter(G::System, "dump", "debug.Dump", "Pretty-printed JSON of any value."),
@@ -578,7 +572,7 @@ pub const FUNCS: &[FuncSpec] = &[
     test("ending_with", "strings.HasSuffix", "Ends with `pat`.").args(&[req("pat", A::String)]).builtin(),
     test("containing", "in, strings.Contains", "Contains `pat` (substring, element or key).").args(&[req("pat", A::Any)]).builtin(),
     test("matching", "findRE (as a condition), where … \"like\"", "Matches the regex `pat`.").args(&[req("pat", A::String)]).contrib(),
-    test("version_at_least", "hugo.Version comparisons", "A semver at least `version`; a `-DEV` build ranks below its release.").args(&[req("version", A::String)]),
+    test("version_at_least", "", "A semver at least `version`; a `-DEV` build ranks below its release. Replaces Go-template comparisons of the site-info object's `Version`.").args(&[req("version", A::String)]),
 ];
 
 /// The kinds of render, each with its own set of top-level names (REWRITE_PLAN.md §4.2).
@@ -820,15 +814,16 @@ pub const HOOK_FIELDS: &[(&str, &[&str])] = &[
     ),
 ];
 
-/// A Hugo construct that became Tera syntax (an operator, literal, statement or view field).
+/// A Go-template construct that became Tera syntax (an operator, literal, statement or view
+/// field).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct SyntaxRule {
-    pub hugo: &'static str,
+    pub go: &'static str,
     pub tera: &'static str,
 }
 
-const fn syn(hugo: &'static str, tera: &'static str) -> SyntaxRule {
-    SyntaxRule { hugo, tera }
+const fn syn(go: &'static str, tera: &'static str) -> SyntaxRule {
+    SyntaxRule { go, tera }
 }
 
 /// The `op` rows of REWRITE_PLAN.md §4.6.
@@ -879,7 +874,7 @@ pub const SYNTAX: &[SyntaxRule] = &[
         "`page.output_formats.rss`, `page.alternative_output_formats`, `f.media_type.type`",
     ),
     syn(
-        "`hugo.Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator`",
+        "The site-info object's `Version` / `Environment` / `IsProduction` / `IsDevelopment` / `IsServer` / `Generator`",
         "`build.version` (`\"0.149.0-DEV\"`), `build.environment`, `build.is_production`, `build.is_development`, `build.is_server`, `build.generator`",
     ),
     syn(
@@ -900,6 +895,10 @@ pub const SYNTAX: &[SyntaxRule] = &[
         "a component defined in `_partials/` (`{% component x(page, sep=\"/\", @lang) %}`), called as `{{ <x page={page} /> }}`",
     ),
     syn("`debug.Timer`", "removed"),
+    syn(
+        "`postCSS`, `css.PostCSS`",
+        "removed: `minify` adds vendor prefixes for the site's browserslist and minifies; `purge_css` purges per page",
+    ),
 ];
 
 /// REWRITE_PLAN.md §4.7, applied by hand when converting layouts (and by `ssg-migrate`).
@@ -918,7 +917,7 @@ pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
         &[
             "Printed params that may be missing → `page.params.x or \"\"` (printing an undefined value is an error).",
             "Nested optional lookups use `?.`: `page.params.a?.b`, `page.parent?.title or \"\"`.",
-            "Hugo `default` → `default_if_empty(value=)`. Do not use `or` for bools.",
+            "Go's `default` → `default_if_empty(value=)`. Do not use `or` for bools.",
             "`x == none` is false when `x` is undefined; use `is undefined`, `is none` or truthiness instead.",
         ],
     ),
@@ -956,7 +955,7 @@ pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
         ],
     ),
     (
-        "Removed Hugo idioms",
+        "Removed Go-template idioms",
         &[
             "`range .Paginator.Pages` → `{% set pager = paginator() %}{% for p in pager.pages %}`; delete a second `.Paginate` that follows `.Paginator`.",
             "`{{ $noop := .WordCount }}` → delete.",
@@ -978,7 +977,7 @@ pub const CONVERSION_RULES: &[(&str, &[&str])] = &[
         "Assets and i18n",
         &[
             "Assets used with `execute_as_template` are Tera templates: `{{ .api }}` → `{{ data.api }}`.",
-            "i18n files stay Hugo syntax, limited to `{{ . }}` and `{{ .Field }}`.",
+            "i18n files stay in Go-template syntax, limited to `{{ . }}` and `{{ .Field }}`.",
         ],
     ),
 ];
@@ -1045,8 +1044,8 @@ fn phase_str(p: PhaseAvail) -> &'static str {
 
 /// `docs/data/template_api.json`, the template reference of the documentation site, generated
 /// from the tables of this module (schema `ssg-template-api/1`): the groups, every name with its
-/// signature, keyword arguments and phase, the render contexts, the hook fields, and Hugo's
-/// constructs with their Tera replacements.
+/// signature, keyword arguments and phase, the render contexts, the hook fields, and the
+/// Go-template constructs with their Tera replacements.
 #[must_use]
 pub fn template_api_json() -> String {
     let mut w = String::new();
@@ -1140,9 +1139,9 @@ fn write_json(w: &mut String) -> std::fmt::Result {
                     )
                 })
                 .collect();
-            let hugo = f.hugo.split(", ").filter(|h| !h.is_empty());
+            let go = f.go.split(", ").filter(|g| !g.is_empty());
             format!(
-                "{{\"name\": {}, \"kind\": {}, \"group\": {}, \"signature\": {}, \"kwargs\": [{}], \"rest_kwargs\": {}, \"phase\": {}, \"safe\": {}, \"site_bound\": {}, \"source\": {}, \"hugo\": {}, \"doc\": {}}}",
+                "{{\"name\": {}, \"kind\": {}, \"group\": {}, \"signature\": {}, \"kwargs\": [{}], \"rest_kwargs\": {}, \"phase\": {}, \"safe\": {}, \"site_bound\": {}, \"source\": {}, \"go\": {}, \"doc\": {}}}",
                 js(f.name),
                 js(kind),
                 js(group_id(f.group)),
@@ -1153,7 +1152,7 @@ fn write_json(w: &mut String) -> std::fmt::Result {
                 f.safe,
                 f.site_bound,
                 js(source),
-                js_list(hugo),
+                js_list(go),
                 js(f.doc)
             )
         })
@@ -1197,7 +1196,7 @@ fn write_json(w: &mut String) -> std::fmt::Result {
     writeln!(w, "\"hook_fields\": [\n{}\n],", hooks.join(",\n"))?;
     let syntax: Vec<String> = SYNTAX
         .iter()
-        .map(|r| format!("{{\"hugo\": {}, \"tera\": {}}}", js(r.hugo), js(r.tera)))
+        .map(|r| format!("{{\"go\": {}, \"tera\": {}}}", js(r.go), js(r.tera)))
         .collect();
     writeln!(w, "\"syntax\": [\n{}\n],", syntax.join(",\n"))?;
     let rules: Vec<String> = CONVERSION_RULES
@@ -1276,23 +1275,23 @@ fn write_markdown(w: &mut String) -> std::fmt::Result {
 
     writeln!(
         w,
-        "\n## Syntax that replaces Hugo functions\n\n| Hugo | Tera |\n|---|---|"
+        "\n## Syntax that replaces Go-template functions\n\n| Go | Tera |\n|---|---|"
     )?;
     for s in SYNTAX {
-        writeln!(w, "| {} | {} |", md_cell(s.hugo), md_cell(s.tera))?;
+        writeln!(w, "| {} | {} |", md_cell(s.go), md_cell(s.tera))?;
     }
 
     for group in Group::ALL {
         writeln!(
             w,
-            "\n## {}\n\n| Call | Kind | Phase | Safe | Hugo | Description |\n|---|---|---|---|---|---|",
+            "\n## {}\n\n| Call | Kind | Phase | Safe | Go | Description |\n|---|---|---|---|---|---|",
             group.title()
         )?;
         for f in FUNCS.iter().filter(|f| f.group == group) {
-            let hugo = if f.hugo.is_empty() {
+            let go = if f.go.is_empty() {
                 String::new()
             } else {
-                format!("`{}`", f.hugo.replace(", ", "`, `"))
+                format!("`{}`", f.go.replace(", ", "`, `"))
             };
             let types: Vec<String> = f
                 .kwargs
@@ -1311,7 +1310,7 @@ fn write_markdown(w: &mut String) -> std::fmt::Result {
                 f.code(),
                 phase_str(f.phase),
                 if f.safe { "yes" } else { "" },
-                md_cell(&hugo),
+                md_cell(&go),
                 md_cell(&doc)
             )?;
         }

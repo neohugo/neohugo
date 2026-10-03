@@ -1,13 +1,14 @@
 //! Stand-alone CSS through lightningcss, tolerant of CSS lightningcss rejects.
 //!
-//! Hugo's minifier (tdewolff) never fails on CSS: it minifies what it understands and writes
-//! everything else out as it is (Tailwind sources with `@media screen(md)`, declarations with
-//! stray tokens, `@import` after rules, …). Here a style sheet lightningcss accepts is minified as
-//! a whole. Otherwise it is cut into its top-level rules ([`split`]); each maximal run of rules
-//! lightningcss accepts is minified by lightningcss, and each rule it rejects is rescued
-//! ([`rescue`]): the body of a conditional group rule (`@media`, `@supports`, …) and the
-//! declarations of a style rule are minified on their own where possible, and whatever is left is
-//! only stripped of comments and redundant whitespace ([`fallback`]).
+//! The Go implementation's minifier (tdewolff) never fails on CSS: it minifies what it
+//! understands and writes everything else out as it is (Tailwind sources with
+//! `@media screen(md)`, declarations with stray tokens, `@import` after rules, …). Here a style
+//! sheet lightningcss accepts is minified as a whole. Otherwise it is cut into its top-level
+//! rules ([`split`]); each maximal run of rules lightningcss accepts is minified by
+//! lightningcss, and each rule it rejects is rescued ([`rescue`]): the body of a conditional
+//! group rule (`@media`, `@supports`, …) and the declarations of a style rule are minified on
+//! their own where possible, and whatever is left is only stripped of comments and redundant
+//! whitespace ([`fallback`]).
 //!
 //! Without browser targets lightningcss only parses and prints compactly, and declarations and
 //! rules stay as written (as Go's minifier keeps them). With targets (the project's browserslist
@@ -27,7 +28,7 @@ use lightningcss::targets::{Features, Targets};
 
 use crate::options::CssOptions;
 
-/// Minifies `input`; never fails (as Hugo's minifier).
+/// Minifies `input`; never fails (as the Go implementation's minifier).
 pub(crate) fn minify(o: &CssOptions, input: &str) -> String {
     whole(o, input).unwrap_or_else(|| tolerant(o, input))
 }

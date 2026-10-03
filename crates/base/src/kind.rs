@@ -52,8 +52,8 @@ impl PageKind {
         }
     }
 
-    /// Parses a kind name, ignoring ASCII case. The legacy name `taxonomyTerm` (before Hugo
-    /// 0.73) means [`PageKind::Taxonomy`].
+    /// Parses a kind name, ignoring ASCII case. The legacy name `taxonomyTerm` (before Go
+    /// version 0.73) means [`PageKind::Taxonomy`].
     #[must_use]
     pub fn parse(s: &str) -> Option<Self> {
         let s = s.to_ascii_lowercase();

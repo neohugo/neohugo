@@ -1,4 +1,4 @@
-//! Per-feature measurements: native comrak 0.55 against Hugo's goldmark output.
+//! Per-feature measurements: native comrak 0.55 against the Go implementation's goldmark output.
 
 use std::collections::BTreeMap;
 
@@ -6,8 +6,8 @@ use comrak::nodes::{AstNode, NodeValue};
 use comrak::{Arena, Options, parse_document};
 
 use super::Row;
-use super::corpus::{DocsCorpus, HugoCfg};
-use super::engine::{hugo, to_html, to_html_passes};
+use super::corpus::{DocsCorpus, GoCfg};
+use super::engine::{go_options, to_html, to_html_passes};
 use super::normalize::{Fold, Tok, elements, multiset_matches, normalize, tokens};
 
 const FOLD: Fold = Fold {
@@ -62,8 +62,8 @@ fn verbatim_lines<'a>(root: &'a AstNode<'a>) -> Vec<(usize, usize)> {
 
 // ───────────────────────────── whole documents ─────────────────────────────
 
-pub fn overall_docs(c: &DocsCorpus, cfg: HugoCfg) -> Row {
-    let o = hugo(cfg);
+pub fn overall_docs(c: &DocsCorpus, cfg: GoCfg) -> Row {
+    let o = go_options(cfg);
     let i = cfg as usize;
     let label = format!("docs, whole page, cfg {}", cfg.name());
     let matched = c
@@ -82,8 +82,8 @@ pub fn overall_docs(c: &DocsCorpus, cfg: HugoCfg) -> Row {
 /// Whole pages once the differences owned by planned passes are folded away: HTML comments
 /// dropped under `unsafe = false` (a real pass, run here), typography folded to ASCII and
 /// footnote markup dropped (T22 renders both). What is left is structural.
-pub fn residual_docs(c: &DocsCorpus, cfg: HugoCfg) -> Row {
-    let o = hugo(cfg);
+pub fn residual_docs(c: &DocsCorpus, cfg: GoCfg) -> Row {
+    let o = go_options(cfg);
     let fold = Fold {
         auto_ids: true,
         typography: true,
@@ -110,7 +110,7 @@ pub fn residual_docs(c: &DocsCorpus, cfg: HugoCfg) -> Row {
 }
 
 /// Element-level multiset match of every `<tag>` element, in one configuration.
-fn element_row(c: &DocsCorpus, cfg: HugoCfg, tag: &str, label: &str, o: &Options<'_>) -> Row {
+fn element_row(c: &DocsCorpus, cfg: GoCfg, tag: &str, label: &str, o: &Options<'_>) -> Row {
     let (mut matched, mut total, mut pages, mut pages_ok) = (0, 0, 0, 0);
     for ((name, md), html) in c.docs.iter().zip(&c.html) {
         let want = elements(&tokens(&html[cfg as usize], FOLD), tag);
@@ -172,10 +172,10 @@ fn show_first_difference(label: &str, page: &str, want: &str, got: &str) {
 // ───────────────────────────── definition lists ─────────────────────────────
 
 pub fn deflists(c: &DocsCorpus) -> Vec<Row> {
-    let o = hugo(HugoCfg::Default);
+    let o = go_options(GoCfg::Default);
     let mut rows = vec![
-        element_row(c, HugoCfg::Default, "dl", "definition lists", &o),
-        element_row(c, HugoCfg::Default, "dd", "definition details", &o),
+        element_row(c, GoCfg::Default, "dl", "definition lists", &o),
+        element_row(c, GoCfg::Default, "dd", "definition details", &o),
     ];
     // Tight details: goldmark writes `<dd>text</dd>` without `<p>`.
     let (mut tight, mut tight_ok) = (0, 0);
@@ -226,7 +226,7 @@ fn heading_tags(toks: &[Tok]) -> Vec<(String, String)> {
 }
 
 pub fn heading_attributes(c: &DocsCorpus) -> Row {
-    let o = hugo(HugoCfg::Default);
+    let o = go_options(GoCfg::Default);
     let (mut total, mut matched, mut parsed, mut false_pos) = (0, 0, 0, 0);
     for ((_, md), html) in c.docs.iter().zip(&c.html) {
         let arena = Arena::new();
@@ -319,14 +319,14 @@ fn is_attr_line(line: &str) -> bool {
 }
 
 pub fn block_attributes(c: &DocsCorpus) -> Row {
-    let o = hugo(HugoCfg::Ascii);
+    let o = go_options(GoCfg::Ascii);
     let (mut total, mut goldmark_used, mut comrak_used) = (0, 0, 0);
     let mut after: BTreeMap<&'static str, usize> = BTreeMap::new();
     for ((_, md), html) in c.docs.iter().zip(&c.html) {
         let arena = Arena::new();
         let root = parse_document(&arena, md, &o);
         let verbatim = verbatim_lines(root);
-        let want_text = text_of(&html[HugoCfg::Ascii as usize]);
+        let want_text = text_of(&html[GoCfg::Ascii as usize]);
         let got_text = text_of(&to_html(md, &o));
         for (i, line) in md.lines().enumerate() {
             let n = i + 1;
@@ -387,8 +387,8 @@ fn text_of(html: &str) -> String {
 // ───────────────────────────── fenced code ─────────────────────────────
 
 pub fn fences(c: &DocsCorpus) -> Vec<Row> {
-    let o = hugo(HugoCfg::Site);
-    let mut with_attrs = hugo(HugoCfg::Site);
+    let o = go_options(GoCfg::Site);
+    let mut with_attrs = go_options(GoCfg::Site);
     with_attrs.extension.fenced_code_attributes = true;
     let (mut total, mut lang_ok, mut inner_ok) = (0, 0, 0);
     let (mut attr_total, mut attr_ranges, mut attr_comrak_ok) = (0, 0, 0);
@@ -419,7 +419,7 @@ pub fn fences(c: &DocsCorpus) -> Vec<Row> {
                 .next()
                 .unwrap_or("");
             lang_ok += usize::from(w.fields.get("Type").map(String::as_str) == Some(lang));
-            // Hugo chomps every trailing CR/LF (`htext.Chomp`).
+            // Go chomps every trailing CR/LF (`htext.Chomp`).
             let inner = literal.trim_end_matches(['\r', '\n']);
             let want_inner = w.fields.get("Inner").map_or("", String::as_str);
             inner_ok += usize::from(want_inner == inner);
@@ -452,7 +452,7 @@ pub fn fences(c: &DocsCorpus) -> Vec<Row> {
                 }
             }
             got.sort();
-            // Range values (`hl_lines=[2,"5-7"]`) are typed in Hugo; compare their keys only.
+            // Range values (`hl_lines=[2,"5-7"]`) are typed in Go; compare their keys only.
             let same = got.len() == want.len()
                 && got
                     .iter()
@@ -500,7 +500,7 @@ fn code_blocks<'a>(root: &'a AstNode<'a>) -> Vec<Block> {
     let mut v = Vec::new();
     walk(root, |n| {
         let d = n.data();
-        // Hugo's code-block hook sees fenced blocks only; indented code is rendered directly.
+        // Go's code-block hook sees fenced blocks only; indented code is rendered directly.
         if let NodeValue::CodeBlock(cb) = &d.value
             && cb.fenced
         {
@@ -539,7 +539,7 @@ fn keys(options: Option<&String>, attrs: Option<&String>) -> Vec<(String, Option
 
 // ───────────────────────────── math / passthrough ─────────────────────────────
 
-/// A passthrough span in the source (Hugo docs delimiters).
+/// A passthrough span in the source (the legacy docs site's delimiters).
 struct Span {
     kind: &'static str,
     raw: String,
@@ -554,7 +554,7 @@ const DELIMS: [(&str, &str, &str); 3] = [
 /// Finds delimited spans outside fenced/indented code, HTML blocks and code spans.
 fn passthrough_spans(md: &str) -> Vec<Span> {
     let arena = Arena::new();
-    let o = hugo(HugoCfg::Default);
+    let o = go_options(GoCfg::Default);
     let root = parse_document(&arena, md, &o);
     let verbatim = verbatim_lines(root);
     let lines = Lines::new(md);
@@ -603,8 +603,8 @@ fn passthrough_spans(md: &str) -> Vec<Span> {
 }
 
 pub fn math(c: &DocsCorpus) -> Vec<Row> {
-    let plain = hugo(HugoCfg::Default);
-    let mut dollars = hugo(HugoCfg::Default);
+    let plain = go_options(GoCfg::Default);
+    let mut dollars = go_options(GoCfg::Default);
     dollars.extension.math_dollars = true;
     let mut counts: BTreeMap<&str, (usize, usize, usize)> = BTreeMap::new();
     for (_, md) in &c.docs {
@@ -656,7 +656,7 @@ fn math_text(md: &str, o: &Options<'_>) -> String {
 // ───────────────────────────── alerts ─────────────────────────────
 
 pub fn alerts(c: &DocsCorpus) -> Vec<Row> {
-    let mut o = hugo(HugoCfg::Site);
+    let mut o = go_options(GoCfg::Site);
     o.extension.alerts = true;
     let (mut alert_total, mut alert_ok, mut regular_total, mut regular_ok) = (0, 0, 0, 0);
     let (mut titled, mut signed) = (0, 0);
@@ -722,13 +722,13 @@ pub fn alerts(c: &DocsCorpus) -> Vec<Row> {
 
 /// `:name:` candidates in text nodes (not code), with comrak's shortcode result.
 pub fn emoji(c: &DocsCorpus, goldmark_emoji: Option<&BTreeMap<String, String>>) -> Row {
-    let mut o = hugo(HugoCfg::Default);
+    let mut o = go_options(GoCfg::Default);
     o.extension.shortcodes = true;
     let (mut candidates, mut comrak_hits, mut agree, mut goldmark_hits) = (0, 0, 0, 0);
     let mut disagree = Vec::new();
     for (_, md) in &c.docs {
         let arena = Arena::new();
-        let root = parse_document(&arena, md, &hugo(HugoCfg::Default));
+        let root = parse_document(&arena, md, &go_options(GoCfg::Default));
         let mut names = Vec::new();
         walk(root, |n| {
             if let NodeValue::Text(t) = &n.data().value {
@@ -797,8 +797,8 @@ fn shortcode_candidates(t: &str) -> Vec<String> {
 // ───────────────────────────── linkify, typographer, raw HTML ─────────────────────────────
 
 pub fn links(c: &DocsCorpus) -> Vec<Row> {
-    let o = hugo(HugoCfg::Default);
-    let mut rows = vec![element_row(c, HugoCfg::Default, "a", "links (all <a>)", &o)];
+    let o = go_options(GoCfg::Default);
+    let mut rows = vec![element_row(c, GoCfg::Default, "a", "links (all <a>)", &o)];
     let (mut total, mut ok, mut extra) = (0, 0, 0);
     for ((name, md), html) in c.docs.iter().zip(&c.html) {
         let want: Vec<String> = elements(&tokens(&html[0], FOLD), "a")
@@ -849,7 +849,7 @@ fn is_bare(a: &str) -> bool {
 const SMART: &[char] = &['‘', '’', '“', '”', '–', '—', '…', '«', '»'];
 
 pub fn typographer(c: &DocsCorpus) -> Row {
-    let o = hugo(HugoCfg::Default);
+    let o = go_options(GoCfg::Default);
     let (mut pages, mut pages_ok, mut chars, mut chars_ok) = (0, 0, 0, 0);
     let seq = |html: &str| -> Vec<String> {
         tokens(html, FOLD)
@@ -926,8 +926,8 @@ const MARKDOWN_TAGS: &[&str] = &[
 ];
 
 pub fn raw_html(c: &DocsCorpus) -> Vec<Row> {
-    let safe = hugo(HugoCfg::Default);
-    let open = hugo(HugoCfg::Site);
+    let safe = go_options(GoCfg::Default);
+    let open = go_options(GoCfg::Site);
     let (mut omitted, mut omitted_ok, mut raw, mut raw_ok) = (0, 0, 0, 0);
     let comments = |html: &str| -> Vec<String> {
         tokens(html, FOLD)
@@ -949,12 +949,12 @@ pub fn raw_html(c: &DocsCorpus) -> Vec<Row> {
             .collect()
     };
     for ((_, md), html) in c.docs.iter().zip(&c.html) {
-        let want = comments(&html[HugoCfg::Default as usize]);
+        let want = comments(&html[GoCfg::Default as usize]);
         if !want.is_empty() {
             omitted += want.len();
             omitted_ok += multiset_matches(&want, &comments(&to_html(md, &safe)));
         }
-        let want = raw_tags(&html[HugoCfg::Site as usize]);
+        let want = raw_tags(&html[GoCfg::Site as usize]);
         if !want.is_empty() {
             raw += want.len();
             raw_ok += multiset_matches(&want, &raw_tags(&to_html(md, &open)));
@@ -979,7 +979,7 @@ pub fn raw_html(c: &DocsCorpus) -> Vec<Row> {
 // ───────────────────────────── codeFences = false ─────────────────────────────
 
 pub fn plain_fences(c: &DocsCorpus) -> Row {
-    let o = hugo(HugoCfg::Cjk);
+    let o = go_options(GoCfg::Cjk);
     let pres = |html: &str| -> Vec<String> {
         let mut v = Vec::new();
         let mut rest = html;
@@ -992,7 +992,7 @@ pub fn plain_fences(c: &DocsCorpus) -> Row {
     };
     let (mut total, mut ok) = (0, 0);
     for ((_, md), html) in c.docs.iter().zip(&c.html) {
-        let want = pres(&html[HugoCfg::Cjk as usize]);
+        let want = pres(&html[GoCfg::Cjk as usize]);
         if want.is_empty() {
             continue;
         }

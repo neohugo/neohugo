@@ -76,7 +76,7 @@ cannot see, and pages without a template. Add `--deny-warnings` in CI. See
 ## Environments
 
 The environment is `production` for builds and `development` for the server. Change it with
-`-e staging` or `FUGO_ENVIRONMENT=staging`. Templates read it as `build.environment`
+`-e staging`. Templates read it as `build.environment`
 (`build.is_production`, `build.is_development`), and the configuration directory's
 `config/<environment>/` applies on top of `config/_default/`.
 

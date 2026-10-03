@@ -50,8 +50,8 @@ pub(crate) fn fix_link_ref_lines(doc: &Doc<'_>, root: Node<'_>) {
     }
 }
 
-/// Hugo writes nothing for an HTML comment when raw HTML is omitted
-/// (`hugoContextRenderer.renderHTMLBlock`, `renderRawHTML`); the node stays a sibling (a
+/// The Go implementation writes nothing for an HTML comment when raw HTML is omitted (its
+/// context-marker renderer's `renderHTMLBlock`, `renderRawHTML`); the node stays a sibling (a
 /// text block before it ends with a newline, a list item starting with it gets one after
 /// `<li>`), so it becomes an empty `Raw` node.
 pub(crate) fn drop_comments(doc: &Doc<'_>) {

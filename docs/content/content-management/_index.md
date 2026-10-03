@@ -4,5 +4,5 @@ description: Organize content in sections and bundles, describe it with front ma
 weight: 30
 ---
 
-fugo's content model is Hugo's: the content directory is a tree of pages, each a Markdown or
+In fugo's content model, the content directory is a tree of pages, each a Markdown or
 HTML file with front matter, and the tree decides the site's sections and URLs.

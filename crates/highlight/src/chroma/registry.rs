@@ -32,7 +32,7 @@ pub(crate) struct Registry {
     by_name: HashMap<String, Arc<dyn Lexer>>,
     by_alias: HashMap<String, Arc<dyn Lexer>>,
     /// [`Registry::get`]'s file name lookups, by name: the lexer's index in `lexers`, `None`
-    /// for no lexer. Hugo caches `lexers.Get` per name (`markup/highlight/chromalexers`): a
+    /// for no lexer. Go caches `lexers.Get` per name (`markup/highlight/chromalexers`): a
     /// name that is no lexer's tries every file name pattern, and fences name such languages
     /// often (`output`, `console`, …). Shared by the threads that render.
     by_filename: RwLock<HashMap<String, Option<usize>>>,
@@ -78,7 +78,7 @@ impl Registry {
     }
 
     /// The lexer for a name, alias or file extension (`Get`; the file name part cached per
-    /// name, as Hugo's `chromalexers.Get` caches the whole lookup).
+    /// name, as Go's `chromalexers.Get` caches the whole lookup).
     pub fn get(&self, name: &str) -> Option<&Arc<dyn Lexer>> {
         if let Some(l) = self.by_name.get(name).or_else(|| self.by_alias.get(name)) {
             return Some(l);

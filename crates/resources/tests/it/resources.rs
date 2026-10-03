@@ -19,6 +19,10 @@ use ssg_testkit::fixture::repo_file;
 
 use crate::support::{MemSink, diff, rec, repo_dir, rule, store, synth_site, want};
 
+/// The Go program's JS package file as Go mounted it in `assets/_jsconfig` (the recorded Go
+/// data's name); this port mounts `package.config.json` instead.
+const GO_JS_PACKAGE: &str = "_jsconfig/package.hugo.json";
+
 fn file_of(site: &Path, rel: &str) -> PathBuf {
     match rel.strip_prefix("crates/nh-resources/tests/fixtures/site/") {
         Some(rest) => site.join(rest),
@@ -49,9 +53,8 @@ fn run(name: &str, dir: &Path) -> usize {
     let records = fx["records"].as_array().unwrap();
     let mut links = Vec::new();
     for (i, rc) in records.iter().enumerate() {
-        // Go mounted Hugo's `package.hugo.json` in `assets/_jsconfig`; this port mounts
-        // `package.config.json` (the docs fixture has only Hugo's file).
-        if rc["where"] == "_jsconfig/package.hugo.json" {
+        // The docs fixture has only Go's file, which this port does not mount.
+        if rc["where"] == GO_JS_PACKAGE {
             continue;
         }
         let what = format!("{name}[{i}] {} {}", rc["where"], rc["rd"]["nameOriginal"]);
@@ -102,7 +105,7 @@ fn run(name: &str, dir: &Path) -> usize {
         .unwrap();
     let mut want_published = fx["published"].clone();
     if let Some(w) = want_published.as_object_mut() {
-        w.remove("_jsconfig/package.hugo.json");
+        w.remove(GO_JS_PACKAGE);
     }
     failures.extend(diff(
         &format!("{name} published"),
@@ -133,6 +136,6 @@ fn synth() {
 
 #[test]
 fn docs() {
-    let n = run("docs", &repo_dir().join("testdata/hugo-docs"));
+    let n = run("docs", &repo_dir().join("testdata/legacy-docs"));
     assert_eq!(n, 89);
 }

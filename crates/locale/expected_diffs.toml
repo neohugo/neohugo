@@ -75,11 +75,11 @@ mt = "Maltese gained a `two` form; 2 and 102 were `few`."
 ro = "Romanian `few` now also covers 101, 1001, 1000001, …"
 
 [locales]
-# gohugoio/locales (older CLDR data) against ICU4X 2.3 (CLDR 48), Gregorian calendar.
+# The Go locales library (older CLDR data) against ICU4X 2.3 (CLDR 48), Gregorian calendar.
 [locales.fields]
 "th WeekdayAbbreviated" = "CLDR changed the Thai abbreviated weekdays from `อา.`, `จ.`, … to `อาทิตย์`, `จันทร์`, …; month names and wide weekdays are unchanged."
 "th date_full" = "CLDR's Thai full date now writes the era abbreviated (`ค.ศ.`) instead of `คริสต์ศักราช`."
-"en date_short" = "ICU writes the full year in short dates outside the two-digit window (`8/14/1900`); gohugoio/locales always cuts it to two digits (`8/14/00`)."
+"en date_short" = "ICU writes the full year in short dates outside the two-digit window (`8/14/1900`); the Go locales library always cuts it to two digits (`8/14/00`)."
 "th date_short" = "As `en date_short`."
 
 [parse]

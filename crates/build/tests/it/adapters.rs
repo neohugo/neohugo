@@ -1,5 +1,5 @@
-//! Content adapters (`content/**/_content.html`): Hugo's integration tests of
-//! `hugolib/pagesfromdata/pagesfromgotmpl_integration_test.go` with the adapters and layouts
+//! Content adapters (`content/**/_content.html`): Go's integration tests of
+//! `pagesfromdata/pagesfromgotmpl_integration_test.go` with the adapters and layouts
 //! converted to Tera, built in memory.
 
 use std::fs;
@@ -9,7 +9,7 @@ use ssg_config::CliOverrides;
 
 use crate::support::write_files;
 
-/// `assets/a/pixel.png` of Hugo's test: a 1×1 PNG.
+/// `assets/a/pixel.png` of Go's test: a 1×1 PNG.
 const PIXEL: [u8; 70] = [
     0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
     0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
@@ -276,7 +276,7 @@ fn add_page_errors() {
             r#"{"path": "p1", "content": {"mediaType": "text/nope"} }"#,
             "text/nope",
         ),
-        // Hugo adds a page of kind "Page" that is never rendered.
+        // Go adds a page of kind "Page" that is never rendered.
         (r#"{"path": "p1", "kind": "Page"}"#, "is not one of page"),
     ] {
         let adapter = format!("{{{{ add_page(page={page}) }}}}");
@@ -508,7 +508,7 @@ fn cascade() {
         ),
         (
             "content/_content.html",
-            r#"{%- set content = {"mediaType": "text/markdown", "value": "The _Hunchback of Notre Dame_ was written by Victor Hugo."} %}
+            r#"{%- set content = {"mediaType": "text/markdown", "value": "The _Hunchback of Notre Dame_ was published in 1831."} %}
 {{- add_page(page={"path": "s1", "kind": "page"}) }}
 {{- add_page(page={"path": "s2", "kind": "page", "title": "bar", "content": content}) }}"#,
         ),
@@ -518,7 +518,7 @@ fn cascade() {
         &text(&r, "s2/index.html"),
         &[
             "Title: bar|",
-            "Content: <p>The <em>Hunchback of Notre Dame</em> was written by Victor Hugo.</p>",
+            "Content: <p>The <em>Hunchback of Notre Dame</em> was published in 1831.</p>",
         ],
     );
 }
@@ -570,11 +570,11 @@ fn paths_with_dots_and_param_case() {
     );
 }
 
-/// Paths as Hugo joins them (the output of the Go binary for the same adapter): a page path
+/// Paths as Go joins them (the output of the Go binary for the same adapter): a page path
 /// loses one leading `/`, a resource path none (`path.Join` drops the rest); nothing is
 /// trimmed, and spaces and tabs become `-`.
 #[test]
-fn paths_as_hugo_joins_them() {
+fn paths_as_go_joins_them() {
     let (_tmp, r) = build_ok(&[
         (
             "config.toml",
@@ -840,7 +840,7 @@ fn listed_but_not_rendered() {
     );
 }
 
-/// What Hugo (the Go binary at 44529028) gives for the same adapter: the slug as given
+/// What the Go binary at 44529028 gives for the same adapter: the slug as given
 /// (front matter slugs lose their `-`, adapter slugs do not), the sitemap priority from zero
 /// printed as Go prints a float (`0`, `1`), the dates chained as `[frontmatter]` says, and a
 /// path added twice by one adapter is the last `add_page` (a resource the last
@@ -895,8 +895,8 @@ fn slugs_priorities_dates_and_paths_added_twice() {
 
 /// A path two adapters add is the later adapter's (the adapter of a subdirectory runs after
 /// the one above it), and a path a content file has stays the file's, with warnings: the
-/// Go binary at 44529028 with one collector worker (`HUGO_NUMWORKERMULTIPLIER=1`) gives the
-/// same pages and resources.
+/// Go binary at 44529028 with one collector worker (its worker multiplier variable set to 1)
+/// gives the same pages and resources.
 #[test]
 fn two_adapters_on_one_path() {
     let (_tmp, r) = build_ok(&[
@@ -935,7 +935,7 @@ fn two_adapters_on_one_path() {
          Y from sub|/books/y/|\n"
     );
     assert_eq!(text(&r, "books/x/r.txt"), "books r");
-    // One diagnostic per id is kept (Hugo's `Warnidf`).
+    // One diagnostic per id is kept (Go's `Warnidf`).
     let warnings: Vec<&str> = r
         .diagnostics
         .iter()
@@ -1018,7 +1018,7 @@ fn many_pages_and_resources() {
     // Only the file's page is rendered; the adapter's `p5` (rendered) lost to it.
     assert_eq!(text(&r, "books/p5/index.html"), "t5 from file");
     assert!(!exists(&r, "books/p7/index.html"));
-    // The report keeps one warning per id (Hugo's `Warnidf`).
+    // The report keeps one warning per id (Go's `Warnidf`).
     let warnings: Vec<&str> = r
         .diagnostics
         .iter()

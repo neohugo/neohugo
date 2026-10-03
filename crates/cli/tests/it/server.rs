@@ -15,13 +15,13 @@ disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\"]\n\
 -- content/_index.md --\n---\ntitle: Home\n---\n";
 
 /// The running binary and the lines of its standard output.
-struct Running {
+pub(crate) struct Running {
     child: Child,
     lines: mpsc::Receiver<String>,
 }
 
 impl Running {
-    fn start(dir: &std::path::Path, args: &[&str]) -> Self {
+    pub(crate) fn start(dir: &std::path::Path, args: &[&str]) -> Self {
         let mut child = Command::new(env!("CARGO_BIN_EXE_fugo"))
             .current_dir(dir)
             .args(args)
@@ -46,7 +46,7 @@ impl Running {
     }
 
     /// Output lines up to one starting with `prefix` (which is included).
-    fn until(&self, prefix: &str) -> Vec<String> {
+    pub(crate) fn until(&self, prefix: &str) -> Vec<String> {
         let mut seen = Vec::new();
         loop {
             match self.lines.recv_timeout(Duration::from_secs(60)) {

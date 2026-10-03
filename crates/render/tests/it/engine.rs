@@ -133,11 +133,11 @@ fn includes_renumber_placeholders_and_set_page_inner() {
     assert_eq!(src.markdown, "<b>b1</b> [from b](y) <b>b2</b>\n");
 }
 
-/// Hugo's handling of `{{% %}}` includes on a Markdown page: the included text sits between
-/// context marker lines (`hugocontext.Wrap`) and an indented call indents every further line
+/// Go's handling of `{{% %}}` includes on a Markdown page: the included text sits between
+/// context marker lines (Go's context `Wrap`) and an indented call indents every further line
 /// of its output, the included text included. So an indented include stays in its definition,
 /// an include ends the definition list before it, and a definition or tight list item that an
-/// include ends keeps goldmark's newline before its end tag (expected: Hugo's goldmark
+/// include ends keeps goldmark's newline before its end tag (expected: Go's goldmark
 /// converter at 44529028 on the same Markdown).
 #[test]
 fn includes_are_wrapped_and_indented() {
@@ -163,14 +163,14 @@ fn includes_are_wrapped_and_indented() {
     );
 }
 
-/// The indentation of includes of a page with `{{< >}}` output, as Hugo does it: a `{{% %}}`
+/// The indentation of includes of a page with `{{< >}}` output, as Go does it: a `{{% %}}`
 /// call (and a call nested in one) runs before Markdown, where the included page's `{{< >}}`
 /// outputs are still placeholders, so only the included text is indented; a `{{< >}}` call
 /// (and a call nested in one) runs after Markdown with those outputs in place, so they are
 /// indented with it. Expected: the Go build at 44529028 on the same site (its templates in Go
 /// syntax).
 #[test]
-fn includes_indent_like_hugo() {
+fn includes_indent_like_go() {
     let s = site(&[
         ("config.toml", CONFIG),
         (

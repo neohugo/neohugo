@@ -37,8 +37,8 @@ See [Missing values](/templates/introduction/#missing-values).
 layouts/single.html:1: Go template syntax `{{ .`: layouts must be Tera templates
 ```
 
-The file is a Hugo template. Convert it with the
-[conversion guide](/coming-from-hugo/templates/).
+The file is a Go template. Convert it with the
+[conversion guide](/migrating/templates/).
 
 ### Legacy layout name
 
@@ -55,7 +55,7 @@ ERROR build failed: loading the templates: error: Unknown filter `nosuch`
 ```
 
 Check the name in the [function reference](/reference/functions/): fugo's names are snake
-case, and some Hugo functions are filters (`x | markdownify`) or have new names.
+case, and some Go-template functions are filters (`x | markdownify`) or have new names.
 
 ### No layout for a page
 
@@ -69,19 +69,31 @@ or turn the kind off: `disableKinds = ["taxonomy", "term"]`.
 ### A program is not found
 
 ```text
-post_css: the postcss binary was not found (looked in …); … set FUGO_POSTCSS_BIN
+tailwind_css: the tailwindcss binary was not found (looked in …); add @tailwindcss/cli to the devDependencies of package.json
 ```
 
-Install the tool in the project (`npm install -D postcss postcss-cli`), or point to it; see
-[PostCSS](/asset-pipelines/postcss/#finding-the-tool).
+Add the package to `package.json` and build again; fugo installs it (see
+[npm packages](/asset-pipelines/npm-packages/)). If npm, pnpm or yarn manages your
+`node_modules`, install it with that tool instead.
+
+### npm packages cannot be installed
+
+```text
+installing the npm packages of …/package.json: …
+```
+
+fugo could not reach the registry, or a version in `package.json` does not exist. Check your
+network, proxy and `.npmrc`. A `node_modules` that npm, pnpm or yarn installed is used as it is.
 
 ### Not allowed by security
 
 ```text
-get_env: `HOME` is not allowed by security.funcs.getenv
+get_env: `HOME` is not allowed by security.funcs.getenv (allow it there, or define it in the project's .env file)
 ```
 
-Allow it in [`[security]`](/configuration/security/), if you trust the template.
+Allow it in [`[security]`](/configuration/security/), if you trust the template, or, for a value
+of your own such as an API key, define it in the project's
+[`.env` file](/configuration/introduction/#the-env-file).
 
 ## Debugging templates
 

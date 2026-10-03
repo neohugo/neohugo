@@ -1,26 +1,5 @@
-A small stylesheet and a PostCSS configuration for the CSS pipeline tests (`to_css`,
-`post_css`, `post_process`): Sass partials, a component in a subdirectory, colour functions,
-@each, a slash division, and a purge step that reads the build's stats file.
--- postcss.config.js --
-// A tiny purge step (like PurgeCSS): drops rules whose classes are all missing from
-// ./build_stats.json, so the CSS depends on the stats of this build.
-const fs = require('fs');
-const purge = () => ({
-  postcssPlugin: 'purge-lite',
-  Once(root) {
-    const stats = JSON.parse(fs.readFileSync('./build_stats.json', 'utf8')).htmlElements;
-    const keep = new Set([...(stats.classes || []), ...(stats.tags || [])]);
-    root.walkRules((rule) => {
-      const classes = (rule.selector.match(/\.[A-Za-z][A-Za-z0-9_-]*/g) || []).map((c) => c.slice(1));
-      if (classes.length && !classes.some((c) => keep.has(c))) {
-        rule.remove();
-      }
-    });
-    root.append({ text: 'env: ' + process.env.FUGO_ENVIRONMENT });
-  },
-});
-purge.postcss = true;
-module.exports = { plugins: [purge()] };
+A small stylesheet for the CSS pipeline tests (`to_css`, `post_process`): Sass partials, a
+component in a subdirectory, colour functions, @each and a slash division.
 -- assets/scss/website.scss --
 @import "variables";
 @import "components/card";

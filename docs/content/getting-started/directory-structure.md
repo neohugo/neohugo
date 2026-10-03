@@ -25,7 +25,8 @@ simply empty.
 
 `config.toml`, `config.yaml`, `config.yml`, `config.json`
 : The [configuration](/configuration/). fugo reads the first one that exists, in that order.
-  Hugo's `hugo.toml` is not read: rename it to `config.toml`.
+  Other file names are not read: rename a configuration file named after another generator to
+  `config.toml`.
 
 `config/`
 : Configuration split into files and [environments](/configuration/introduction/#configuration-directory):
@@ -36,7 +37,7 @@ simply empty.
   published at `/posts/hello/`. See [Content organization](/content-management/organization/).
 
 `layouts/`
-: [Templates](/templates/), named after Hugo's layout names: `baseof.html`, `home.html`,
+: [Templates](/templates/), named after what they render: `baseof.html`, `home.html`,
   `single.html`, `list.html`, plus `_partials/`, `_shortcodes/` and `_markup/` (render hooks).
 
 `assets/`
@@ -63,6 +64,11 @@ simply empty.
 `build_stats.json`
 : With `build.buildStats.enable`, the HTML tags, classes and ids the site uses, for tools such
   as Tailwind CSS and PurgeCSS. Written next to the configuration.
+
+`package.json`, `npm.lock`, `node_modules/`
+: The [npm packages](/asset-pipelines/npm-packages/) the site uses. fugo installs them into
+  `node_modules` when it builds, and records their versions in `npm.lock`. Commit
+  `package.json` and `npm.lock`, but not `node_modules`.
 
 ## Mounts
 

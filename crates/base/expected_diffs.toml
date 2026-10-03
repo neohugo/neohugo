@@ -1,8 +1,9 @@
 # Reviewed differences from the Go oracles (REWRITE_PLAN.md §6.3). Read by tests/it.
 
-# gobwas/glob (Hugo's glob library) mis-matches these patterns of testdata/oracle/common/glob/
-# match.json.gz; ssg-base implements the documented glob semantics instead (crate README,
-# "Accepted deviations"). Each entry: pattern, then one input where gobwas answers wrongly.
+# gobwas/glob (the Go implementation's glob library) mis-matches these patterns of
+# testdata/oracle/common/glob/match.json.gz; ssg-base implements the documented glob semantics
+# instead (crate README, "Accepted deviations"). Each entry: pattern, then one input where gobwas
+# answers wrongly.
 [glob]
 # An empty alternative group (`{}`, `{,}`, a trailing `{`) makes gobwas match nothing.
 empty = [

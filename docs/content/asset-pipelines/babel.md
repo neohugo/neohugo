@@ -8,9 +8,12 @@ weight: 80
 [`js_build`](/asset-pipelines/js-build/) already compiles TypeScript and JSX and lowers modern
 syntax (`target`).
 
-```sh
-npm install -D @babel/core @babel/cli @babel/preset-env
+```json {title="package.json"}
+{ "devDependencies": { "@babel/core": "^7.29.0", "@babel/cli": "^7.29.0", "@babel/preset-env": "^7.29.0" } }
 ```
+
+fugo installs these packages when it builds and runs Babel without Node.js (see
+[npm packages](/asset-pipelines/npm-packages/)).
 
 ```json {title="babel.config.json"}
 { "presets": ["@babel/preset-env"] }
@@ -20,7 +23,7 @@ Babel is not in the default list of commands fugo may run, so allow it:
 
 {{< code-toggle file=config >}}
 [security.exec]
-  allow = ["^(dart-)?sass(-embedded)?$", "^go$", "^git$", "^npx$", "^postcss$", "^tailwindcss$", "^babel$"]
+  allow = ["^(dart-)?sass(-embedded)?$", "^go$", "^git$", "^npx$", "^tailwindcss$", "^babel$"]
 {{< /code-toggle >}}
 
 ```html
@@ -44,5 +47,5 @@ Babel is not in the default list of commands fugo may run, so allow it:
 `verbose`
 : Log what Babel does.
 
-Find the tool as for [PostCSS](/asset-pipelines/postcss/#finding-the-tool), or set
-`FUGO_BABEL_BIN`.
+fugo finds Babel the same way as [Tailwind CSS](/asset-pipelines/tailwind-css/#finding-the-tool):
+the `@babel/cli` package in `node_modules`.

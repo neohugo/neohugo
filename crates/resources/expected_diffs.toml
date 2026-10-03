@@ -11,7 +11,7 @@ fixture_json = "T00's fixture conversion re-serialised the synthetic site's JSON
 [transform]
 # Rules of tests/it/fingerprint.rs (oracle/resources/transform).
 copy_same_target = "`resources.Copy` of a second, different source to a target already copied in the same language is a TargetConflict; Go's transformation cache key ignores the source, so Go silently returns the first asset's copy (and its content)"
-pipes = "minify and the tool pipes (postcss, tocss, babel) are T42's; their chains are not run here but in tests/it/pipes/minify.rs"
+pipes = "minify and the tool pipes (tocss, babel) are T42's; their chains are not run here but in tests/it/pipes/minify.rs"
 minify_bytes = "(tests/it/pipes/minify.rs) ssg-minify (minify-html, lightningcss, oxc) does not write tdewolff's bytes; such output must be a fixed point of the minifier, and a fingerprint after it names other bytes (T26)"
 tocss_builtin = "(tests/it/pipes/minify.rs) `to_css` is grass, built in: Go's `na:tocss` (\"this feature is not available\") does not apply"
 
@@ -27,7 +27,7 @@ tocss_builtin = "(tests/it/pipes/minify.rs) `to_css` is grass, built in: Go's `n
 # dart-sass, not LibSass. Each listed case's CSS must still equal LibSass's without those
 # differences (plain CSS @imports dropped, numbers to 3 decimals, escapes as characters,
 # constant calc() simplified, no source map comment); a minified case only checks its link.
-main-nested = "dart-sass semantics: `@import \"plain.css\"` hoisted to the top (LibSass kept it in place, and lost it in compressed output because Hugo hides it in a comment), 10 decimals instead of `precision` (8), `\"\\2192 \"` written as the character; `nested` and `compact` are written expanded"
+main-nested = "dart-sass semantics: `@import \"plain.css\"` hoisted to the top (LibSass kept it in place, and lost it in compressed output because Go hides it in a comment), 10 decimals instead of `precision` (8), `\"\\2192 \"` written as the character; `nested` and `compact` are written expanded"
 main-expanded = "as main-nested"
 main-compact = "as main-nested"
 main-compressed = "as main-nested"
@@ -43,8 +43,3 @@ vars = "dart-sass simplifies `calc(10px + 2px)` from `vars` to `12px`"
 vars-expanded = "as vars"
 err-vars-bool = "a boolean in `vars` is written unquoted (`true`); Go fails only because it formats the bool with %q (`unquote(%!q(bool=true))`)"
 
-[postcss]
-# Cases of tests/it/pipes/postcss.rs (oracle/resource-transformers/postcss).
-err-imports-comment = "`@import \"plain.css\"; /* comment */` is inlined: the path is the quoted string; Go's inliner trims the line and keeps the comment in the path, then fails to find that file"
-err-imports-broken = "(postcss-cli only) postcss's error position is reported in the inlined input; Go maps it back to the imported file (broken.css:2)"
-final = "through to_css and minify: see [tocss] main-final (grass and lightningcss bytes, another fingerprint)"

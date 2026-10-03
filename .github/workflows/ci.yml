@@ -100,8 +100,8 @@ jobs:
         with:
           save-if: ${{ env.SAVE_CACHE }}
 
-      # node on PATH runs the fake-tool tests (small node scripts standing in for PostCSS,
-      # Tailwind and Babel). tools/dev/node.sh (pinned npm ci) installs the real tools for
+      # node on PATH runs the fake-tool tests (small node scripts standing in for Tailwind and
+      # Babel). tools/dev/node.sh (pinned npm ci) installs the real tools for
       # the real-tool tests; a failure fails the job.
       - uses: actions/setup-node@v4
         with:
@@ -111,11 +111,8 @@ jobs:
         run: |
           tools/dev/node.sh
           dir=$(tools/dev/node.sh path)
-          echo "FUGO_NODE_MODULES=$dir" >>"$GITHUB_ENV"
-          for tool in postcss:FUGO_POSTCSS_BIN tailwindcss:FUGO_TAILWINDCSS_BIN babel:FUGO_BABEL_BIN; do
-            bin=$dir/.bin/${tool%%:*}
-            [ -x "$bin" ] || { echo "::error::tools/dev/node.sh installed no $bin"; exit 1; }
-            echo "${tool#*:}=$bin" >>"$GITHUB_ENV"
+          for tool in tailwindcss babel; do
+            [ -x "$dir/.bin/$tool" ] || { echo "::error::tools/dev/node.sh installed no $dir/.bin/$tool"; exit 1; }
           done
 
       # --show-output keeps each passing test's report (parity counts, SKIPPED notes) in the log.

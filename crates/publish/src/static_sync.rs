@@ -1,7 +1,7 @@
 //! Copying the static files (phase E1): the union view of the static mounts is copied to the
 //! publish root before anything is rendered, so rendered outputs win conflicts.
 //!
-//! [`sync_static_dir`] mirrors Hugo's sync of the publish directory: a file is rewritten only
+//! [`sync_static_dir`] mirrors Go's sync of the publish directory: a file is rewritten only
 //! when it is missing or its bytes differ, permissions and modification times are copied from
 //! the source (unless `noChmod` / `noTimes`), and with `cleanDestinationDir` every file of the
 //! publish directory that is not a static file is removed first (directories whose name starts

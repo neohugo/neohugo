@@ -135,7 +135,7 @@ impl Pagination {
                     let end = start + g.pages.len();
                     let (a, b) = (lo.max(start), hi.min(end));
                     if a < b && g.key.is_null() {
-                        // Pages without a group key are one group each (Hugo).
+                        // Pages without a group key are one group each (as in Go).
                         out.extend((a - start..b - start).map(|k| GroupSlice {
                             group: i,
                             range: k..k + 1,

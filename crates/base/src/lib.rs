@@ -49,8 +49,8 @@ macro_rules! env_prefix {
     };
 }
 
-/// The name of an environment variable of the program: `env_var!("ENVIRONMENT")` is
-/// `<PREFIX>_ENVIRONMENT`, a `&'static str`.
+/// The name of an environment variable of the program: `env_var!("TIMINGS")` is
+/// `<PREFIX>_TIMINGS`, a `&'static str`.
 #[macro_export]
 macro_rules! env_var {
     ($name:literal) => {
@@ -63,6 +63,11 @@ pub const APP_NAME: &str = app_name!();
 
 /// The prefix of the program's environment variables ([`env_prefix!`]), without the `_`.
 pub const ENV_PREFIX: &str = env_prefix!();
+
+/// The hidden command of the binary's child processes that run an npm package's program
+/// (`ssg-npm`, spawned by `ssg-resources`' tool pipes): `<binary> __run-package <node_modules>
+/// <package> <bin> [args…]`.
+pub const RUN_PACKAGE_COMMAND: &str = "__run-package";
 
 /// Compares strings in a language's collation order (implemented with ICU in
 /// `ssg-locale`).
@@ -103,8 +108,8 @@ mod name_tests {
     fn env_prefix_is_the_upper_case_name() {
         assert_eq!(super::ENV_PREFIX, super::APP_NAME.to_uppercase());
         assert_eq!(
-            env_var!("ENVIRONMENT"),
-            format!("{}_ENVIRONMENT", super::ENV_PREFIX)
+            env_var!("TIMINGS"),
+            format!("{}_TIMINGS", super::ENV_PREFIX)
         );
     }
 }

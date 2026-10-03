@@ -235,7 +235,7 @@ fn deviation_rules_are_documented() {
 }
 
 #[test]
-fn colors_parse_like_hugo() {
+fn colors_parse_like_go() {
     for c in cases().iter().filter(|c| c["kind"] == "color") {
         let input = c["in"].as_str().expect("in");
         let got = input.parse::<Color>();

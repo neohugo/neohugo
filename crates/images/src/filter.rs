@@ -103,7 +103,7 @@ pub enum ImageFilter {
     },
     /// Applies the EXIF orientation of the source.
     AutoOrient,
-    /// Draws text (`images.Text`), wrapped and aligned as Hugo does.
+    /// Draws text (`images.Text`), wrapped and aligned as the Go implementation does.
     Text(TextSpec),
     /// Reduces the image to a palette by error diffusion or ordered dithering
     /// (`images.Dither`).

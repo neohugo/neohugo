@@ -28,7 +28,8 @@ bitflags! {
 }
 
 impl Default for Extensions {
-    /// Hugo's defaults: everything but definition-term ids, block attributes and emoji.
+    /// The Go implementation's defaults: everything but definition-term ids, block attributes
+    /// and emoji.
     fn default() -> Self {
         Self::all() - Self::DEFINITION_TERM_IDS - Self::BLOCK_ATTRIBUTES - Self::EMOJI
     }
@@ -285,7 +286,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn hugo_defaults() {
+    fn go_defaults() {
         let o = MarkdownOptions::default();
         assert_eq!(
             o.extensions,

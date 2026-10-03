@@ -2,7 +2,7 @@
 //!
 //! The oracle tests replay the Go fixtures of menus, pagination and related content under
 //! `testdata/oracle/page/`, and the alias files of the Go builds under
-//! `testdata/oracle/hugolib/build/`, and print their pass rates.
+//! `testdata/oracle/sitebuild/build/`, and print their pass rates.
 
 mod aliases;
 mod menus;

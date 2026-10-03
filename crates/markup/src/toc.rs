@@ -5,11 +5,11 @@ use serde::Serialize;
 use crate::TocOptions;
 
 /// A heading of the table of contents. Levels a document skips are filled with empty
-/// headings (no id, no title), as Hugo does.
+/// headings (no id, no title), as Go does.
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Heading {
     pub id: String,
-    /// 1–6; 0 for a filler, and (as in Hugo) for a heading without an id.
+    /// 1–6; 0 for a filler, and (as in Go) for a heading without an id.
     pub level: u8,
     /// The title as HTML (rendered without hooks).
     pub html: String,
@@ -24,7 +24,7 @@ impl Heading {
     }
 }
 
-/// The headings of a page (Hugo `.Fragments`).
+/// The headings of a page (Go's `.Fragments`).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Fragments {
     /// The heading tree.
@@ -49,7 +49,7 @@ impl Fragments {
     }
 }
 
-/// The table of contents (Hugo `.TableOfContents`).
+/// The table of contents (Go's `.TableOfContents`).
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize)]
 pub struct Toc {
     pub headings: Vec<Heading>,
@@ -179,7 +179,7 @@ mod tests {
     }
 
     #[test]
-    fn hugo_toc() {
+    fn toc_like_go() {
         let t = Toc {
             headings: tree(vec![(3, h("homebrew", 3))]),
         };

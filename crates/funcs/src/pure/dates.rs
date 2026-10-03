@@ -91,8 +91,8 @@ fn parse(s: &str, tz: &TimeZone) -> TeraResult<Zoned> {
 
 /// `date(format=)` (strftime) or `date(style=)` (`short`, `medium`, `long`, `full`). A style is
 /// always localized, in `locale` or the render's language; the names of a strftime `format`
-/// (`%B %b %h %A %a`) are English, as Go's `Time.Format`, unless `locale` is given (as Hugo's
-/// `time.Format`). A none input prints nothing (zero dates are none).
+/// (`%B %b %h %A %a`) are English, as Go's `Time.Format`, unless `locale` is given (as the Go
+/// templates' `time.Format`). A none input prints nothing (zero dates are none).
 fn date(v: &Value, kw: &Kwargs, st: &State, env: &PureEnv) -> TeraResult<Value> {
     if v.is_none() || v.is_undefined() {
         return Ok(Value::from(""));

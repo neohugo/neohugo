@@ -13,7 +13,7 @@
 //!   Records: `{"from", "kind", "input"}`.
 //! - `testdata/oracle/commands/e2e/e2e.json.gz`: the Go `--minify` output trees of the e2e sites
 //!   (HTML, XML, JSON and CSS already minified by tdewolff).
-//! - `testdata/oracle/hugolib/build/*.json.gz`: the unminified HTML outputs of the build oracle.
+//! - `testdata/oracle/sitebuild/build/*.json.gz`: the unminified HTML outputs of the build oracle.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -108,9 +108,9 @@ fn e2e_outputs() -> Vec<Input> {
     out
 }
 
-/// The unminified HTML outputs recorded by the hugolib build oracle.
+/// The unminified HTML outputs recorded by the Go site-build oracle.
 fn build_outputs() -> Vec<Input> {
-    let dir = testdata("oracle/hugolib/build");
+    let dir = testdata("oracle/sitebuild/build");
     let mut files: Vec<PathBuf> = std::fs::read_dir(&dir)
         .expect("build oracle dir")
         .map(|e| e.expect("entry").path())
@@ -126,7 +126,7 @@ fn build_outputs() -> Vec<Input> {
             };
             if let Some(kind) = kind_of_path(path) {
                 out.push(Input {
-                    from: "hugolib-build".to_owned(),
+                    from: "go-site-build".to_owned(),
                     kind,
                     input: bytes.to_owned(),
                 });

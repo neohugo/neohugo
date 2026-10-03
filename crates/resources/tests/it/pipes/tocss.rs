@@ -1,4 +1,4 @@
-//! `to_css` against the `tocss` oracle (Hugo's LibSass `toCSS` on t16site, 31 cases) and on
+//! `to_css` against the `tocss` oracle (Go's LibSass `toCSS` on t16site, 31 cases) and on
 //! a small fixture stylesheet (`tests/fixtures/styles.txtar`).
 //!
 //! grass follows dart-sass, not LibSass: output styles `nested` and `compact` are written
@@ -59,7 +59,7 @@ pub fn normalise(css: &str) -> String {
 }
 
 /// Normalised CSS without the accepted LibSass differences: plain CSS `@import`s dropped
-/// (dart-sass hoists them to the top; Hugo's LibSass path hides them in a comment, so
+/// (dart-sass hoists them to the top; Go's LibSass path hides them in a comment, so
 /// compressed output loses them), numbers rounded to 3 decimals (LibSass writes `precision`
 /// decimals, dart-sass 10), CSS escapes in strings written as the character, `calc()` of
 /// constants simplified, no source map comment.
@@ -336,7 +336,7 @@ fn txtar_files(text: &str) -> Vec<(String, String)> {
 
 #[test]
 fn tocss_explicit_extension_imports_use_the_load_paths() {
-    // grass looks for `@import "x.scss"` only next to the importing file; dart-sass (Hugo) also
+    // grass looks for `@import "x.scss"` only next to the importing file; dart-sass (Go) also
     // searches the load paths. The entry sits at the assets root (as an `execute_as_template`
     // target does), the files are in an `includePaths` directory, and `_base.scss` imports a
     // sibling that resolves only relative to its own place.

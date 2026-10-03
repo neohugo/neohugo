@@ -1,4 +1,4 @@
-//! The lexer against Hugo's (`parser/pageparser/pages.json.gz`): every item of every input in
+//! The lexer against Go's (`parser/pageparser/pages.json.gz`): every item of every input in
 //! the three configurations the oracle records (page, body only, no summary divider), by kind
 //! and byte range, plus the typed values of arguments.
 
@@ -11,7 +11,7 @@ use ssg_testkit::fixture::{GoString, Tag};
 
 use crate::support::{Tally, page_cases};
 
-/// Hugo's item types (`parser/pageparser/item.go`).
+/// The Go implementation's item types (`parser/pageparser/item.go`).
 const T_ERROR: i64 = 0;
 const T_EOF: i64 = 1;
 
@@ -52,7 +52,7 @@ const CONFIGS: [LexOptions; 3] = [
     },
 ];
 
-/// Hugo's segments of an escaped string: the span split at (and without) every backslash.
+/// Go's segments of an escaped string: the span split at (and without) every backslash.
 fn segments(src: &[u8], t: &Token) -> Vec<(usize, usize)> {
     let mut out = Vec::new();
     let mut k = t.span.start;
@@ -115,7 +115,7 @@ fn same_scalar(ours: &Scalar, go: &J) -> Option<bool> {
 }
 
 #[test]
-fn lexer_items_match_hugo() {
+fn lexer_items_match_go() {
     let mut tally = Tally::new("pageparser/lex items");
     let mut typed = Tally::new("pageparser/typed arguments");
     let mut items = 0_usize;
@@ -155,7 +155,7 @@ fn lexer_items_match_hugo() {
             items += want.len();
             tally.check(got.len() == want.len(), || {
                 format!(
-                    "{id} cfg{ci}: {} items, Hugo {}: {:?}",
+                    "{id} cfg{ci}: {} items, Go {}: {:?}",
                     got.len(),
                     want.len(),
                     lexed
@@ -181,10 +181,7 @@ fn lexer_items_match_hugo() {
                     None => (*ty == w.int(0) && *range == w.range(), format!("{range:?}")),
                 };
                 tally.check(ok, || {
-                    format!(
-                        "{id} cfg{ci} item {i}: got type {ty} {what}, Hugo {:?}",
-                        w.0
-                    )
+                    format!("{id} cfg{ci} item {i}: got type {ty} {what}, Go {:?}", w.0)
                 });
                 if let (Some(t), Ok(s)) = (tok, std::str::from_utf8(src))
                     && t.quoting().is_some()
@@ -200,7 +197,7 @@ fn lexer_items_match_hugo() {
         }
     }
     eprintln!(
-        "pageparser/lex: {items} Hugo items over {} inputs",
+        "pageparser/lex: {items} Go items over {} inputs",
         cases.len()
     );
     assert_eq!(items, 135_326);
@@ -209,10 +206,10 @@ fn lexer_items_match_hugo() {
     typed.finish();
 }
 
-/// `split_front_matter` against Hugo's `ParseFrontMatterAndContent` (format and body offset),
+/// `split_front_matter` against Go's `ParseFrontMatterAndContent` (format and body offset),
 /// and `lex(body)` after it against the page lexer's tokens after the front matter.
 #[test]
-fn split_matches_hugo() {
+fn split_matches_go() {
     let mut split_tally = Tally::new("pageparser/split");
     let mut body_tally = Tally::new("pageparser/body lex after split");
     let diffs = crate::support::expected_diffs();
@@ -236,7 +233,7 @@ fn split_matches_hugo() {
             .map(|s| s.body_offset as u64);
         split_tally.check(
             got_format == want_format && got_offset == fm["content"].as_u64(),
-            || format!("{id}: {got_format} {got_offset:?}, Hugo {fm}"),
+            || format!("{id}: {got_format} {got_offset:?}, Go {fm}"),
         );
 
         // The body lexed alone equals the page lexer after the front matter.

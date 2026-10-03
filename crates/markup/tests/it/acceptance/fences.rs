@@ -7,7 +7,7 @@ use ssg_markup::{
     NoHooks, SourceContexts, render,
 };
 
-use super::{CONVERT, HugoCfg, PAGE, Row, file, html, options, print};
+use super::{CONVERT, GoCfg, PAGE, Row, file, html, options, print};
 
 struct Stub;
 
@@ -92,7 +92,7 @@ fn pres(html: &str) -> Vec<String> {
 
 #[test]
 fn plain_fences_equal_go() {
-    let o = options(HugoCfg::Cjk);
+    let o = options(GoCfg::Cjk);
     assert_eq!(o.code_fences, CodeFences::Plain);
 
     // The testsite's fence (tools/rust-port/i01/testsite.txtar, `content/about.md`), whose
@@ -110,7 +110,7 @@ fn plain_fences_equal_go() {
         .iter()
         .filter(|c| c.name.starts_with("docs/content/"))
     {
-        let Some(want) = &case.html[HugoCfg::Cjk as usize] else {
+        let Some(want) = &case.html[GoCfg::Cjk as usize] else {
             continue;
         };
         let want = pres(want);

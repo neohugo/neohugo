@@ -6,8 +6,8 @@
 //! of a pending resource (`to_css | fingerprint`): its links are provisional and it has no
 //! integrity yet. Its view carries post-process placeholders for `rel_permalink`,
 //! `permalink` and `data.integrity` (the resource is registered with
-//! [`ResourceStore::post_process`]), which keeps Hugo's laziness: the output is held and
-//! patched in phase E5 (T42's recommendation; a PostCSS purge needs it).
+//! [`ResourceStore::post_process`]), which keeps Go's laziness: the output is held and
+//! patched in phase E5 (T42's recommendation; Tailwind reading the stats file needs it).
 //! [`post_processed_view`] is the view of an explicit `post_process`: every field that is only
 //! known in E5 is a placeholder.
 
@@ -239,7 +239,7 @@ fn adapter_resource(
 
 /// A bundled content page as a resource of its bundle: its title and params, `resources`
 /// metadata applied, no links (bundled pages have none), and the media type of every page,
-/// `application/octet-stream` (Hugo's pages are not typed by their content file).
+/// `application/octet-stream` (Go's pages are not typed by their content file).
 fn page_resource(
     model: &Model,
     store: &ResourceStore,

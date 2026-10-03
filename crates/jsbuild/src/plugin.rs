@@ -1,4 +1,4 @@
-//! The rolldown plugin behind `js.Build`: the entry script from memory, Hugo's assets-first
+//! The rolldown plugin behind `js.Build`: the entry script from memory, Go's assets-first
 //! import resolution with shims and externals, `@params`, `inject`, CSS imports, and the
 //! transforms rolldown lacks (the es5 check, TC39 decorators).
 //!
@@ -312,7 +312,7 @@ impl Plugin for SitePlugin {
                 .map_err(|e| ctx.fail(args.id, vec![e]))?;
             (js, ModuleType::Js)
         } else if is_untyped_asset(ctx, args.id) {
-            // Hugo loads an imported asset with an unknown extension as JavaScript.
+            // Go loads an imported asset with an unknown extension as JavaScript.
             let code = std::fs::read_to_string(args.id)?;
             (code, ModuleType::Js)
         } else {

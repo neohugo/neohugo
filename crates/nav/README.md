@@ -29,9 +29,9 @@ the normalised score and threshold use exact integer arithmetic. `page/1` redire
 ## Acceptance (tests/it)
 
 The oracle tests replay `testdata/oracle/page/{menus,pagination,related}` and the alias
-files of `testdata/oracle/hugolib/build/*` and print pass rates; every difference is exact
+files of `testdata/oracle/sitebuild/build/*` and print pass rates; every difference is exact
 or a reviewed class of `expected_diffs.toml` (two oracle cases that call Go's decoders on
-tables Hugo's configuration loader never produces):
+tables Go's configuration loader never produces):
 
 | Family | Checks | Exact | Accepted |
 |---|---|---|---|

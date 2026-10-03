@@ -45,7 +45,7 @@ fn version_help_and_usage_errors() {
     }
 }
 
-/// `version` prints Go's `BuildVersionString` (`common/neohugo/version.go` at 44529028).
+/// `version` prints Go's `BuildVersionString` (its `version.go` at 44529028).
 #[test]
 fn version_line_has_the_go_format() {
     let mut info = BuildInfo {
@@ -99,7 +99,11 @@ fn config_prints_the_resolved_configuration() {
     let s = site_from(
         "-- config.toml --\nbaseURL = \"https://e.org/\"\ntitle = \"T\"\n-- config/production/params.toml --\ncolor = \"red\"\n",
     );
-    let o = binary(s.path(), &["config"], &[("FUGO_PARAMS_SIZE", "9")]);
+    let o = binary(
+        s.path(),
+        &["config"],
+        &[(ssg_base::env_var!("PARAMS_SIZE"), "9")],
+    );
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let v: serde_json::Value = serde_json::from_str(&stdout(&o)).expect("json");
     assert_eq!(v["environment"], "production");
@@ -107,7 +111,10 @@ fn config_prints_the_resolved_configuration() {
     assert_eq!(site["title"], "T", "{site}");
     let text = stdout(&o);
     assert!(text.contains("\"color\": \"red\""), "{text}");
-    assert!(text.contains("\"size\": \"9\""), "{text}");
+    assert!(
+        !text.contains("\"size\""),
+        "an environment variable is not a setting: {text}"
+    );
 
     let o = binary(
         s.path(),
@@ -271,10 +278,10 @@ fn persistent_flags_anywhere() {
     }
 }
 
-/// The Go build's logging and housekeeping flags are accepted (`args::HugoFlags`); those this port
-/// does not act on give a warning.
+/// The Go build's logging and housekeeping flags are accepted (`args::CompatFlags`); those this
+/// port does not act on give a warning.
 #[test]
-fn hugo_flags_are_accepted() {
+fn compat_flags_are_accepted() {
     let s = site_from("-- config.toml --\ntitle = \"T\"\n");
     let o = binary(
         s.path(),

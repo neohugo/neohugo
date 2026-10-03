@@ -100,7 +100,7 @@ const FONT: &str = r#"get_asset(path="fonts/mulish.ttf")"#;
 
 #[test]
 fn text_and_dither_filters() {
-    let mulish = ssg_testkit::fixture::hugo_docs().join("assets/opengraph/mulish-black.ttf");
+    let mulish = ssg_testkit::fixture::legacy_docs().join("assets/opengraph/mulish-black.ttf");
     let site = support::load_copying(&[], &[("assets/fonts/mulish.ttf", &mulish)]);
     let s = site.home_scope();
     let r = |src: &str| site.render(src, &s);
@@ -156,13 +156,14 @@ fn text_and_dither_filters() {
     }
 }
 
-/// `images.QR` names from Hugo's `TestQR` and `TestQRShortcode` (the site's base path is
-/// `/sub`), and Hugo's bytes.
+/// `images.QR` names from the Go implementation's `TestQR` and `TestQRShortcode` (the site's
+/// base path is `/sub`), and Go's bytes.
 #[test]
-fn qr_codes_have_hugo_s_names_and_bytes() {
+fn qr_codes_have_go_s_names_and_bytes() {
     let site = support::load();
     let s = site.home_scope();
     let r = |src: &str| site.render(src, &s);
+    // The text the Go tests encode: the names below are hashes of it.
     let url = "https://gohugo.io";
     for (args, path) in [
         ("", "/sub/qr_924bf7d80a564b23.png"),
@@ -185,7 +186,7 @@ fn qr_codes_have_hugo_s_names_and_bytes() {
             r#", level="high", scale=6, target_dir="foo/bar""#,
             "/sub/foo/bar/qr_14162f02f2b83fff.png",
         ),
-        // Hugo decodes the options weakly: a numeric string is a scale too.
+        // Go decodes the options weakly: a numeric string is a scale too.
         (
             r#", level="low", scale="2""#,
             "/sub/qr_9bf1ce25c5f2c058.png",

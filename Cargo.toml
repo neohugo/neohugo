@@ -91,6 +91,7 @@ ssg-cli = { path = "crates/cli" }
 ssg-serve = { path = "crates/serve" }
 ssg-testkit = { path = "crates/testkit" }
 ssg-migrate = { path = "crates/migrate" }
+ssg-npm = { path = "crates/npm" }
 
 # ── data formats ──
 serde = { version = "1.0.229", features = ["derive", "rc", "alloc"] }
@@ -204,6 +205,28 @@ tokio = { version = "1.53", default-features = false, features = ["rt", "net", "
 # serve tests only: the LiveReload WebSocket client (locked through axum `ws`; the features
 # tokio-tungstenite enables, so that `-p ssg-cli` and `-p ssg-serve` share its build)
 tungstenite = { version = "0.29", default-features = false, features = ["handshake"] }
+
+# ── npm packages and their programs (ssg-npm): Deno's installer and runtime ──
+# Exact pins of one Deno release (the CLI 2.9.7 set): the crates have no semver promise and
+# move together. deno_core's default features select V8; the snapshot crate builds with it.
+deno_core = "=0.412.0"
+deno_runtime = "=0.267.0"
+deno_lib = "=0.77.0"
+deno_snapshots = "=0.74.0"
+deno_napi = "=0.190.0" # build dependency of the binary: exports the N-API symbols addons need
+deno_resolver = { version = "=0.90.0", features = ["deno_ast", "sync"] }
+node_resolver = { version = "=0.97.0", features = ["sync"] }
+deno_npm_installer = "=0.54.0"
+deno_npm_cache = "=0.78.0"
+deno_npmrc = "=0.20.0"
+deno_config = "=0.109.0"
+deno_media_type = "=0.4.0"
+deno_path_util = "=0.6.4"
+deno_error = "=0.7.1"
+sys_traits = { version = "0.1.29", features = ["real"] }
+async-trait = "0.1"
+tar = "0.4" # ssg-npm tests: the packages of the local registry
+rustls = { version = "0.23", default-features = false, features = ["ring", "std"] }
 
 # ── dev ──
 insta = { version = "1", features = ["yaml", "glob", "redactions"] }

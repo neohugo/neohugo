@@ -25,19 +25,19 @@ The `fugo` binary turns `math` and `goat` on (DEVELOPMENT.md, "Optional features
 
 ## `to_math` (feature `math`)
 
-Hugo's `transform.ToMath` with Hugo's output: KaTeX 0.16.22 and its mhchem extension, the
-release Hugo bundles, run in QuickJS as Hugo runs it.
+Go's `transform.ToMath` with Go's output: KaTeX 0.16.22 and its mhchem extension, the release
+the Go implementation bundles, run in QuickJS as Go runs it.
 
 - **Engine** (`src/pure/katex.rs`). `assets/katex/katex.min.js` and `mhchem.min.js` are the npm
   package's dist files (verbatim, `THIRD_PARTY/katex/`); `assets/katex/render.js`, the entry
-  point, is Hugo's `renderkatex.js` and `common.js` with one JSON message in
+  point, is the Go implementation's `renderkatex.js` and `common.js` with one JSON message in
   (`{"expression", "options"}`, Go's `warpc.KatexInput`) and one out (`{output, warnings}` or
-  `{err}`). Hugo runs the bundle as Javy-compiled WebAssembly (QuickJS 2024-01-13 through
+  `{err}`). Go runs the bundle as Javy-compiled WebAssembly (QuickJS 2024-01-13 through
   rquickjs 0.6) on wazero; fugo runs it natively in QuickJS-ng through rquickjs 0.14
   (MIT). An engine (about 25 ms to create, 2 MiB of heap, limited to 128 MiB) renders one
   formula at a time; idle engines wait in a process-wide pool, so render threads share them
-  (Hugo: a pool of 8). KaTeX keeps no state between formulas but caches.
-- **Options** (`src/pure/math.rs`): `to_math(options=?, optional=?)`. Hugo's defaults (output
+  (Go: a pool of 8). KaTeX keeps no state between formulas but caches.
+- **Options** (`src/pure/math.rs`): `to_math(options=?, optional=?)`. Go's defaults (output
   `mathml`, `minRuleThickness` 0.04, `errorColor` `#cc0000`, `throwOnError` true, `strict`
   `error`), then the `options` map decoded as `mapstructure.WeakDecode` decodes it into
   `KatexOptions`: keys match the field names exactly or case-insensitively, unknown keys and
@@ -49,8 +49,8 @@ release Hugo bundles, run in QuickJS as Hugo runs it.
   `try`) it is a warning with id `to_math` and the result is none. `throwOnError: false`
   renders KaTeX's error markup instead. With `strict: "warn"`, KaTeX's warnings are warnings
   (`to_math: katex: LaTeX-incompatible input …`).
-- **Cache.** The formulas of a build are kept by message (Hugo's `cacheMath`): one render and
-  one report of the warnings per distinct formula and options. Hugo also keeps them in the file
+- **Cache.** The formulas of a build are kept by message (Go's `cacheMath`): one render and
+  one report of the warnings per distinct formula and options. Go also keeps them in the file
   cache (`tomath/`); fugo renders them again in the next build (0.1–1 ms each).
 
 ### to_math fixture
@@ -59,8 +59,8 @@ release Hugo bundles, run in QuickJS as Hugo runs it.
 `{"expression", "options", "output", "warnings", "err"}`; `tests/it/math.rs` requires the same
 bytes, warnings and errors (Go's mapstructure messages, `err` = `decode: …`, only as errors).
 The cases (`tests/fixtures/tomath-oracle/cases.js`): KaTeX's screenshotter corpus as the docs
-render math and with the defaults, every formula of `testdata/hugo-docs/content` (its passthrough
-delimiters), mhchem's manual, the options, errors, `strict` modes and weak decoding.
+render math and with the defaults, every formula of `testdata/legacy-docs/content` (its
+passthrough delimiters), mhchem's manual, the options, errors, `strict` modes and weak decoding.
 Regenerate with Go and the module cache of `go.mod` at `44529028`, and node with
 `tools/dev/node.sh` installed (`yaml`):
 
@@ -70,7 +70,7 @@ mkdir -p $T/nhoracle/tomath && cp crates/funcs/tests/fixtures/tomath-oracle/main
 (cd $T && GOFLAGS=-mod=mod go build -o oracle ./nhoracle/tomath)
 curl -sLo $T/ss_data.yaml https://raw.githubusercontent.com/KaTeX/KaTeX/v0.16.22/test/screenshotter/ss_data.yaml
 NODE_PATH=tools/dev/node_modules node crates/funcs/tests/fixtures/tomath-oracle/cases.js \
-  $T/ss_data.yaml testdata/hugo-docs/content | $T/oracle | python3 -c 'import gzip, sys; \
+  $T/ss_data.yaml testdata/legacy-docs/content | $T/oracle | python3 -c 'import gzip, sys; \
   sys.stdout.buffer.write(gzip.compress(sys.stdin.buffer.read(), 9, mtime=0))' \
   >crates/funcs/tests/fixtures/tomath.jsonl.gz
 ```
@@ -85,6 +85,6 @@ NODE_PATH=tools/dev/node_modules node crates/funcs/tests/fixtures/tomath-oracle/
 - `minRuleThickness` NaN or infinite is an error before KaTeX runs (Go's JSON encoder fails on
   it).
 - No file cache across builds (above); in `fugo server` the warnings of a formula are
-  reported in every build (Hugo: once per process).
-- Engine limits differ (QuickJS-ng's 1 MiB stack and the 128 MiB heap limit against Hugo's
+  reported in every build (Go: once per process).
+- Engine limits differ (QuickJS-ng's 1 MiB stack and the 128 MiB heap limit against Go's
   32 MiB WebAssembly memory): a pathologically nested formula may fail at another depth.

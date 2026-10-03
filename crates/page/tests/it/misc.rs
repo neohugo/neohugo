@@ -143,7 +143,7 @@ fn check_page_config(t: &mut Tally, c: &J, formats: &OutputFormats, types: &Medi
             if want_err {
                 t.pass();
             } else if want_markup.is_none() {
-                // AsciiDoc and other external markups: Hugo builds them with external tools.
+                // AsciiDoc and other external markups: Go builds them with external tools.
                 t.accept("markup-not-supported");
             } else {
                 t.fail(|| format!("pageConfig {i}: {e}, want {want}"));
@@ -199,7 +199,7 @@ fn check_adapter_page_config(t: &mut Tally, c: &J, types: &MediaTypes) {
 }
 
 #[test]
-fn misc_matches_hugo() {
+fn misc_matches_go() {
     let fx = fixture("misc/misc.json.gz");
     let types = MediaTypes::decode(&Map::new()).expect("media types");
     let formats = OutputFormats::builtin(&types);

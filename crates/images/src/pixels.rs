@@ -1,8 +1,8 @@
 //! Pixel work: every [`Step`] on a non-premultiplied 8-bit RGBA image.
 //!
-//! Resizing uses `fast_image_resize` (alpha-premultiplied, so transparent edges do not darken)
-//! with Hugo's fifteen kernels; blurs use `imageproc`; rotations by multiples of 90° and
-//! EXIF orientations use `image`. The colour filters, compositing, padding, pixelation and
+//! Resizing uses `fast_image_resize` (alpha-premultiplied, so transparent edges do not darken) with
+//! the Go implementation's fifteen kernels; blurs use `imageproc`; rotations by multiples of 90°
+//! and EXIF orientations use `image`. The colour filters, compositing, padding, pixelation and
 //! arbitrary-angle rotation are written here; text and dithering are in their own modules.
 
 use fast_image_resize::{self as fir, FilterType, ResizeAlg, ResizeOptions, Resizer};
@@ -21,7 +21,7 @@ use crate::{dither, text};
 pub(crate) type LoadInput<'a> = dyn Fn(&InputRef) -> Result<RgbaImage, ImageError> + 'a;
 
 /// The regions of the smart crops among `steps`, in order, found on the operation's source
-/// `src` (Hugo analyses the source whatever steps come before).
+/// `src` (the Go implementation analyses the source whatever steps come before).
 pub(crate) fn smart_regions(src: &Decoded, steps: &[Step]) -> Vec<Rect> {
     steps
         .iter()
@@ -164,9 +164,9 @@ fn cosine(x: f64) -> f64 {
     windowed_sinc(x, |x| (std::f64::consts::FRAC_PI_2 * x / 3.0).cos())
 }
 
-/// The `fast_image_resize` algorithm of a Hugo resample filter. Box, linear, Catmull-Rom,
-/// Mitchell and Lanczos are the crate's own kernels; the others are custom kernels with
-/// Hugo's definitions and supports.
+/// The `fast_image_resize` algorithm of a resample filter of the Go implementation. Box, linear,
+/// Catmull-Rom, Mitchell and Lanczos are the crate's own kernels; the others are custom kernels
+/// with the Go implementation's definitions and supports.
 fn algorithm(filter: Resample) -> ResizeAlg {
     let custom = |name, f: fn(f64) -> f64, support| {
         ResizeAlg::Convolution(FilterType::Custom(
@@ -215,13 +215,13 @@ pub(crate) fn resize(
 // ---------------------------------------------------------------------------------------
 // Geometry
 
-/// Hugo's smart crop or fill once the region is known: `gift.Crop(region)`, then
+/// The Go implementation's smart crop or fill once the region is known: `gift.Crop(region)`, then
 /// `gift.Resize` to the target (fill) or `gift.CropToSize` at the centre (crop).
 ///
-/// Nothing is left of an empty region (no candidate, or none scoring above −1): a fill then
-/// fills at the centre anchor instead (`gift.ResizeToFill`, as Hugo's `processOptions` in
-/// `resources/image.go` does for issue 7955); a crop would be empty, which planning rejects
-/// when it can tell ([`crate::plan`]) and this rejects otherwise.
+/// Nothing is left of an empty region (no candidate, or none scoring above −1): a fill then fills
+/// at the centre anchor instead (`gift.ResizeToFill`, as the Go implementation's `processOptions`
+/// in `resources/image.go` does for issue 7955); a crop would be empty, which planning rejects when
+/// it can tell ([`crate::plan`]) and this rejects otherwise.
 fn smart_crop(
     img: &RgbaImage,
     region: Rect,

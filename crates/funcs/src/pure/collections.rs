@@ -29,7 +29,7 @@ pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
     r.function("min", |kw, _| extreme(kw, Ordering::Less));
 }
 
-/// Whether Hugo's `default` treats `v` as unset: undefined, none, zero numbers, empty strings,
+/// Whether Go's `default` treats `v` as unset: undefined, none, zero numbers, empty strings,
 /// arrays and maps, and zero dates. `false` is set.
 pub(super) fn is_empty(v: &Value) -> bool {
     if v.is_undefined() || v.is_none() {
@@ -275,7 +275,7 @@ fn set_op(v: &Value, kw: &Kwargs, op: SetOp) -> TeraResult<Value> {
     Ok(Value::from(out))
 }
 
-/// Hugo's `sort`: by `attribute` (a dotted path; `""` or `value` sorts by the elements
+/// Go's `sort`: by `attribute` (a dotted path; `""` or `value` sorts by the elements
 /// themselves), collated in the render language, dates as instants, stable; a map's values are
 /// sorted (by key when there is no attribute).
 fn sort_by(v: &Value, kw: &Kwargs, state: &State, env: &PureEnv) -> TeraResult<Value> {

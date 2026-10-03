@@ -62,11 +62,12 @@ fn bare(multihost: bool) -> ResourceStore {
     })
 }
 
-/// `images.QR`: Hugo's names (`TestQR`), Hugo's bytes, one resource per name, published when
+/// `images.QR`: Go's names (`TestQR`), Go's bytes, one resource per name, published when
 /// referenced, per-language targets on multihost sites.
 #[test]
 fn qr_codes() {
     let s = bare(false);
+    // The URL of Go's `TestQR`, which the recorded names and bytes encode.
     let url = "https://gohugo.io";
     let opts = QrOptions::default();
     let a = s.qr_code(url, &opts, &at(0, "layouts/a.html", 1)).unwrap();

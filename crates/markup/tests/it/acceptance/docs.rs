@@ -8,7 +8,7 @@ use ssg_markup::{Heading, NoHooks, TocOptions};
 
 use super::super::comrak_spike::normalize::{Fold, normalize};
 use super::{
-    CONVERT, HugoCfg, Row, TocHeading, fragments_of, options, print, render_with, show, text,
+    CONVERT, GoCfg, Row, TocHeading, fragments_of, options, print, render_with, show, text,
 };
 
 static IDS: LazyLock<Regex> =
@@ -32,7 +32,7 @@ fn ids(html: &str, tag: &str) -> Vec<String> {
 #[test]
 fn heading_and_term_ids() {
     let mut rows = Vec::new();
-    for cfg in HugoCfg::ALL {
+    for cfg in GoCfg::ALL {
         let o = options(cfg);
         let (mut docs, mut ok, mut hs, mut hs_ok, mut dts, mut dts_ok) = (0, 0, 0, 0, 0, 0);
         for case in CONVERT.iter() {
@@ -102,7 +102,7 @@ fn variants(cfg: TocOptions) -> [TocOptions; 5] {
 #[test]
 fn table_of_contents() {
     let mut rows = Vec::new();
-    for cfg in HugoCfg::ALL {
+    for cfg in GoCfg::ALL {
         let o = options(cfg);
         let (mut total, mut tree, mut idents, mut htmls) = (0, 0, 0, 0);
         for case in CONVERT.iter() {
@@ -176,7 +176,7 @@ const FOLD: Fold = Fold {
 #[test]
 fn whole_pages() {
     let mut rows = Vec::new();
-    for cfg in HugoCfg::ALL {
+    for cfg in GoCfg::ALL {
         let o = options(cfg);
         let (mut total, mut ok) = (0, 0);
         for case in CONVERT

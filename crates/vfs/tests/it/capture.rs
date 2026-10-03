@@ -1,7 +1,7 @@
-//! Content discovery against the Go capture oracle `oracle/hugolib/capture/<site>.json.gz`: for
-//! every file that became a page or a resource in Hugo's content trees (`treePages`,
-//! `treeResources` after `HugoSites` creation), the same (file, key, language, bundle kind), and
-//! for pages the same name, section, extension and original base.
+//! Content discovery against the Go capture oracle `oracle/sitebuild/capture/<site>.json.gz`: for
+//! every file that became a page or a resource in the Go implementation's content trees
+//! (`treePages`, `treeResources` once its sites are created), the same (file, key, language,
+//! bundle kind), and for pages the same name, section, extension and original base.
 
 use std::collections::BTreeSet;
 use std::fs;
@@ -142,7 +142,7 @@ fn want(dump: &J, cfg: &Config) -> Want {
 
 /// Checks one site; returns the number of files compared.
 fn check(name: &str) -> usize {
-    let f: J = oracle(&format!("oracle/hugolib/capture/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/capture/{name}.json.gz"));
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path().join(f["site"]["name"].as_str().unwrap());
     write_site(&f["site"], &dir);

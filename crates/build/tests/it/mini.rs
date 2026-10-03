@@ -3,8 +3,9 @@
 //! content, aliases, `templates.Defer`, `GetRemote` from the file cache + `unmarshal`, and
 //! resource pipelines: minify, fingerprint, Concat, ExecuteAsTemplate, FromString,
 //! PostProcess) with its Go layouts converted to Tera below, built into a `MemorySink` with the
-//! oracle's flags (`--minify --clock 2026-09-27T12:00:00Z`, `HUGO_CACHEDIR=site/_cache`) and
-//! compared with the Go build's tree (`e2e.json.gz`, case `mini`).
+//! oracle's flags (`--minify --clock 2026-09-27T12:00:00Z`; the cache directory `site/_cache`,
+//! which the oracle set through the Go program's environment) and compared with the Go build's
+//! tree (`e2e.json.gz`, case `mini`).
 
 use std::collections::BTreeSet;
 use std::fs;

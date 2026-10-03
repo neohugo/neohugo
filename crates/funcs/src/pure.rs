@@ -130,7 +130,8 @@ impl EnvAllowlist {
 }
 
 impl Default for EnvAllowlist {
-    /// The default policy: `^FUGO_` and `^CI$` (Hugo's `^HUGO_` is not allowed).
+    /// The default policy: `^FUGO_` and `^CI$` (the Go program's environment variables are not
+    /// allowed).
     fn default() -> Self {
         Self::new([concat!("^", ssg_base::env_var!("")), "^CI$"]).expect("valid patterns")
     }
@@ -159,11 +160,14 @@ pub struct PureEnv {
     pub project_dir: Option<PathBuf>,
     /// `security.funcs.getenv`.
     pub getenv: EnvAllowlist,
+    /// The project's `.env` variables: `get_env` reads these names whatever `getenv` allows
+    /// (the process environment wins for the same name).
+    pub env_file: Arc<BTreeMap<String, String>>,
 }
 
 impl PureEnv {
     /// Defaults for a site whose only language is `default_language`: system clock, UTC, AP
-    /// title case, GitHub anchors, lower-cased paths with accents kept, Hugo's getenv policy,
+    /// title case, GitHub anchors, lower-cased paths with accents kept, the default getenv policy,
     /// no project directory.
     #[must_use]
     pub fn new(default_language: &str) -> Self {
@@ -178,6 +182,7 @@ impl PureEnv {
             diagnostics: Arc::new(Diagnostics::default()),
             project_dir: None,
             getenv: EnvAllowlist::default(),
+            env_file: Arc::default(),
         }
     }
 }

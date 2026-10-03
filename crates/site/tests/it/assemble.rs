@@ -1,4 +1,4 @@
-//! Assembly against the Go oracle `oracle/hugolib/assemble/<site>.json.gz` (every page after
+//! Assembly against the Go oracle `oracle/sitebuild/assemble/<site>.json.gz` (every page after
 //! `setMetaPost` and the removal of drafts, future and expired content). Compared for every page
 //! with a content file: the page set per language with kinds and bundle roles, the params after
 //! the cascade, build options, draft, the four dates (branch pages without dates of their own
@@ -117,7 +117,7 @@ type Rec = (usize, String, String, String, bool);
 
 /// Checks one site; returns the number of pages compared.
 fn check(name: &str) -> usize {
-    let f: J = oracle(&format!("oracle/hugolib/assemble/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/assemble/{name}.json.gz"));
     let site = Site::new(&f["site"]);
     let m = site.model().unwrap_or_else(|e| panic!("{name}: {e}"));
     let dev = expected::assemble(name);

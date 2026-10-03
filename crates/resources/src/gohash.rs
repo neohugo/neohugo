@@ -1,7 +1,7 @@
-//! Hugo's structure hash, for names that must equal the Go build's: `hashing.HashString` /
-//! `HashStringHex` hash values with gohugoio/hashstructure v0.5.0 and xxHash64. Only the value
-//! kinds this port names things with are covered: strings, integers, floats, booleans, nil,
-//! lists, maps and flat structs.
+//! The Go implementation's structure hash, for names that must equal the Go build's:
+//! `hashing.HashString` / `HashStringHex` hash values with its fork of hashstructure (v0.5.0) and
+//! xxHash64. Only the value kinds this port names things with are covered: strings, integers,
+//! floats, booleans, nil, lists, maps and flat structs.
 //!
 //! The rules (hashstructure's walker): a string or a number is the xxHash64 of its bytes
 //! (numbers little-endian, 8 bytes); a list folds its elements with `ordered(h, e)` from 0; a
@@ -80,10 +80,11 @@ pub(crate) fn value(v: &Value) -> u64 {
 mod tests {
     use super::*;
 
-    /// `hashing.HashStringHex("https://gohugo.io", opts)` of `images.QR` (Hugo's `TestQR`):
-    /// `opts` is the anonymous struct `{Level string; Scale int; TargetDir string}`.
+    /// `hashing.HashStringHex(url, opts)` of `images.QR` for the URL of Go's `TestQR` (kept
+    /// as the recorded Go data has it): `opts` is the anonymous struct
+    /// `{Level string; Scale int; TargetDir string}`.
     #[test]
-    fn qr_names_of_hugo_s_test() {
+    fn qr_names_of_the_go_test() {
         let name = |level: &str, scale: i64, dir: &str| {
             let opts = structure(
                 "",

@@ -33,7 +33,7 @@ with a name like `cover_hu_3f2a9c….jpg`.
 : Runs a spec with any action: `img | process(spec="fill 300x300 webp q80")`.
 
 Every method takes `width`, `height`, `format`, `quality`, `filter`, `anchor` as keyword
-arguments, or one `spec` string in Hugo's syntax:
+arguments, or one `spec` string, as in Go templates:
 
 ```html
 {% set card = img | fill(spec="600x400 webp q75 Lanczos Center") %}

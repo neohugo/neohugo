@@ -1,5 +1,5 @@
 //! The line `version` and `--version` print, in the Go build's format (`BuildVersionString` of
-//! `common/neohugo/version.go` at 44529028):
+//! its `version.go` at 44529028):
 //!
 //! ```text
 //! <name> v<version>[-<commit>] <os>/<arch> BuildDate=<date|unknown>[ VendorInfo=<vendor>]

@@ -1,6 +1,7 @@
-// The to_math oracle (crates/funcs/README.md, "to_math fixture"): Hugo's transform.ToMath
-// without its caches, run in the Go tree of this repository at commit 44529028 (copy this file
-// to <tree>/nhoracle/tomath/main.go). It reads cases.js's lines {"expression", "options"} on
+// The to_math oracle (crates/funcs/README.md, "to_math fixture"): the Go implementation's
+// transform.ToMath without its caches, run in the Go tree of this repository at commit 44529028
+// (copy this file to <tree>/nhoracle/tomath/main.go; the warpc import below is that tree's
+// module path). It reads cases.js's lines {"expression", "options"} on
 // stdin and writes each with Go's answer: {"expression", "options", "output", "warnings",
 // "err"}. The option defaults, mapstructure.WeakDecode, the strict check and the warpc KaTeX
 // dispatcher are ToMath's (tpl/transform/transform.go); a decoding error is "decode: <error>".

@@ -3,7 +3,7 @@
 //! A bundle file belongs to the page at the longest key above it in any language (a file in a
 //! sub-bundle belongs to the sub-bundle). The owner in the file's language names it (its path
 //! below the owner) and places it (below the owner's resource directory in its primary
-//! format); without a page of its language there, the file is not used, as in Hugo. With
+//! format); without a page of its language there, the file is not used, as in Go. With
 //! `duplicateResourceFiles` (or on multihost sites, or for owners whose content is not
 //! Markdown) every translation of the owner gets its own copy of the files it has none of.
 //!
@@ -54,8 +54,8 @@ fn attach(m: &mut Model, rid: ResourceId, owner: PageId) {
         base.push('/');
     }
     let target_base = o.urls.first().and_then(|u| u.paths.resources.clone());
-    // Hugo publishes the bundle files of every page with `publishResources`, rendered or not
-    // (headless bundles included; `hugolib/site_render.go`).
+    // Go publishes the bundle files of every page with `publishResources`, rendered or not
+    // (headless bundles included; `site_render.go`).
     let publish = o.meta.build.publish_resources;
     let owner_key = o.key.clone();
     let r = &mut m.bundle_resources[rid];

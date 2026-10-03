@@ -10,7 +10,7 @@ E5).
 | `PublishSettings::from_config(&Config)` | per-language `SiteLinks` (base URL, `canonifyURLs`, `relativeURLs`, LiveReload URL: `None` here, set by `ssg-build` for `serve`), output formats and media types, the `Minifier` when `minifyOutput` is set, `[build.buildStats]` |
 | `Publisher::new(settings, Arc<dyn Sink>, Arc<Diagnostics>)` | shared by the render workers (`Send + Sync`) |
 | `Publisher::with_css_purges(Arc<CssPurges>)`, `page_names(html)` | `purge_css` placeholders (`__nh_purge_<n>__`) are replaced first in `emit` (and in `patch_held`) by the CSS the output uses: `page_names` gives the tags, classes and ids of its elements, the words of its `<script>` elements and every `--name` it mentions |
-| `Publisher::emit(Output { path, text, format, lang, alias })` | `purge_css` placeholders → canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Hugo; `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present (the text is written to the sink unpatched and unminified, only the path is kept), else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
+| `Publisher::emit(Output { path, text, format, lang, alias })` | `purge_css` placeholders → canonify / relative URLs (RSS always, HTML when configured) → LiveReload script (HTML outputs of a language with a LiveReload URL, not aliases, as in Go; `serve`) → stats (HTML) → URL tokens → hold when a `__nh_defer_` / `__nh_pp_` placeholder is present (the text is written to the sink unpatched and unminified, only the path is kept), else minify by media type and write. Empty text writes nothing (`Emitted::Empty`). A minifier error writes the output unminified with a `minify-output` warning |
 | `Publisher::patch_held(&BTreeMap<placeholder, text>)` | reads every held output back from the sink (`PublishError::Read` if it is gone), replaces its placeholders, rewrites its URLs again (canonify / relative), extracts its URL tokens again, minifies and writes (rayon, outside renders); a placeholder left over is `PublishError::UnresolvedPlaceholder` |
 | `Publisher::add_tokens_from(text)`, `url_tokens()` | `execute_as_template` results; the sorted `UrlTokens` so far |
 | `Publisher::stats() -> StatsFile`, `StatsFile::{to_json, write_if_changed}` | `build_stats.json`: sorted lists, `null` when disabled or empty, two-space JSON with a final newline, written only when changed |
@@ -40,10 +40,10 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   single-quoted words). The content of `pre`, `textarea`, `script` and `style` is skipped.
   Collected before minification.
 - **Held outputs**: the plan's placeholder prefixes (`PLACEHOLDER_PREFIXES`). A held output waits
-  in the sink at its own path, as Hugo's post-processing writes its files before patching them,
-  so held pages cost no memory (on a site where every page is held: 386 MB → 234 MB). Replacement text
-  is inserted into the canonified output, the result is rewritten once more (T36: the links of
-  a pending `fingerprint` are post-process placeholders until E5, and Go canonifies them; the
+  in the sink at its own path, as Go's post-processing writes its files before patching them, so
+  held pages cost no memory (on a site where every page is held: 386 MB → 234 MB). Replacement
+  text is inserted into the canonified output, the result is rewritten once more (T36: the links
+  of a pending `fingerprint` are post-process placeholders until E5, and Go canonifies them; the
   rewrite leaves already rewritten URLs alone), then minified with the page.
 
 ## Acceptance evidence
@@ -61,9 +61,10 @@ canonicalised: the store reduces them (percent-decoding, host, query) to its own
   documents 2,288/4,000; multi-write streams 765/1,260; groups 7/25 (56,488 checks, every
   difference classified in `expected_diffs.toml`, 0 unexplained). The 3,022 `closed` records test Go's private `isClosedByTag`
   and have no counterpart.
-- **golden stats** — `testdata/hugo-docs/hugo_stats.json` round-trips byte for byte through `StatsFile::to_json` (format,
-  sorting, `null`). Scanning the golden HTML itself would need the Go build's output trees,
-  which are not in the repository (`testdata/golden/` holds manifests).
+- **golden stats** — the legacy docs site's Go build stats file
+  (`testdata/legacy-docs/hugo_stats.json`) round-trips byte for byte through
+  `StatsFile::to_json` (format, sorting, `null`). Scanning the golden HTML itself would need the
+  Go build's output trees, which are not in the repository (`testdata/golden/` holds manifests).
 - **static sync** — `oracle/commands/staticcopy/staticcopy.json.gz`: 12 cases, 179 checks
   (count + every entry's bytes, mode, mtime), 171 exact, 8 accepted, 0 unexplained (later
   static mounts of a module win and symbolic links are followed, both in `Vfs::walk`);
@@ -85,7 +86,7 @@ All counted in `expected_diffs.toml` (a changed count fails the tests):
 | absurl | `go-panic` 93, `leading-candidate` 855 (Go's prefix positions start at 0, so a document starting with `/x` gets the base written up to 4 times), `prefix-inside-rewrite` 54 (stale positions jump back into written input) |
 | inject | `generator-tag-never-injected` 14 |
 | collector-* | x/net/html tree-builder and Go-scanner artefacts: markup declarations as tags, table/head/frame elements dropped in a body context, `<prefix>`-style raw-text skips, quotes tracked across tags, repeated attributes, Unicode tag names, NUL and numeric references, characters split across writes, invalid UTF-8 |
-| staticcopy | `shadowed-files-counted` 1 (Hugo counts a path once per static mount of one module holding it; fugo counts published files), `empty-dirs-not-copied` 6, `missing-static-dir` 1 |
+| staticcopy | `shadowed-files-counted` 1 (Go counts a path once per static mount of one module holding it; fugo counts published files), `empty-dirs-not-copied` 6, `missing-static-dir` 1 |
 
 Not implemented here: `Output` carries no `JobOrder` (that type lives in `render`, which this
 crate does not depend on; collisions are ordered by `build`).

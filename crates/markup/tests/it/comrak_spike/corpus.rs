@@ -1,14 +1,14 @@
-//! The input: the 959 docs bodies of the `markup/convert` and `markup/hooks` oracles (Hugo's
-//! goldmark converter, six configurations).
+//! The input: the 959 docs bodies of the `markup/convert` and `markup/hooks` oracles (the Go
+//! implementation's goldmark converter, six configurations).
 
 use std::collections::BTreeMap;
 
 use serde::Deserialize;
 use ssg_testkit::fixture::{GoString, oracle};
 
-/// Hugo markup configurations of the convert oracle, in fixture order.
+/// The Go implementation's markup configurations of the convert oracle, in fixture order.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
-pub enum HugoCfg {
+pub enum GoCfg {
     Default,
     Site,
     Ascii,
@@ -17,7 +17,7 @@ pub enum HugoCfg {
     Noattr,
 }
 
-impl HugoCfg {
+impl GoCfg {
     pub const ALL: [Self; 6] = [
         Self::Default,
         Self::Site,
@@ -42,7 +42,7 @@ impl HugoCfg {
 pub struct DocsCorpus {
     /// `(name, markdown body)` of the 959 `docs/content` files.
     pub docs: Vec<(String, String)>,
-    /// Hugo's HTML per `[doc][cfg]`.
+    /// The Go implementation's HTML per `[doc][cfg]`.
     pub html: Vec<[String; 6]>,
     /// Decoded hook records of the `site` configuration, per doc.
     pub hooks: Vec<Vec<HookRecord>>,

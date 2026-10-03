@@ -5,8 +5,8 @@ and whether to include those pages.
 
 Filters are defined in the data directory, in the file named page_filters. Each
 filter is an array of paths to a file, relative to the root of the content
-directory. Hugo will throw an error if the specified filter does not exist, or
-if any of the pages in the filter do not exist.
+directory. The build fails if the specified filter does not exist, or if any of
+the pages in the filter do not exist.
 
 @param {string} path The path to the section.
 @param {string} [filter=""] The name of filter list.

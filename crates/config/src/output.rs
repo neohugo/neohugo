@@ -29,7 +29,7 @@ pub enum UglyPolicy {
     Never,
 }
 
-/// Whether pages link to this format's own URL (Hugo `permalinkable`).
+/// Whether pages link to this format's own URL (Go's `permalinkable`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum LinkPolicy {
@@ -120,7 +120,7 @@ impl FormatFields {
     }
 }
 
-/// Hugo's built-in output formats: (name, media type, fields).
+/// Go's built-in output formats: (name, media type, fields).
 fn builtin() -> Vec<(&'static str, FormatFields)> {
     let f = FormatFields::builtin;
     vec![

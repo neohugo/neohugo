@@ -1,5 +1,5 @@
-//! Inlining of CSS `@import` statements from the assets view (PostCSS `inlineImports`,
-//! Tailwind by default).
+//! Inlining of CSS `@import` statements from the assets view (Tailwind's, unless its
+//! `disableInlineImports` option is set).
 //!
 //! A line that is only `@import "path";` (optionally followed by a comment) is replaced by
 //! the imported file, itself inlined recursively. The path is relative to the importing

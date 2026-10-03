@@ -7,9 +7,9 @@
 [paths.url-query-or-escape]
 count = 236
 reason = """
-A front matter `url` with a query (`/q?x=1`). Hugo keeps the query in `.RelPermalink`;
+A front matter `url` with a query (`/q?x=1`). Go keeps the query in `.RelPermalink`;
 This port keeps page links as URL paths (`UrlPath`) and escapes them when writing, so `?`
-becomes `%3F`. (Percent escapes such as `/a%20b/` are kept as written, as in Hugo.) Output
+becomes `%3F`. (Percent escapes such as `/a%20b/` are kept as written, as in Go.) Output
 files are identical; only the links of these adversarial URLs differ.
 """
 
@@ -39,7 +39,7 @@ panics when decoding a bad `kind`); this port rejects the cascade entry with an 
 [markup.markup-not-supported]
 count = 11
 reason = """
-AsciiDoc, reStructuredText, Pandoc, Org, plain text and JSON as content markup. Hugo renders
+AsciiDoc, reStructuredText, Pandoc, Org, plain text and JSON as content markup. Go renders
 them with external tools; this port supports Markdown and HTML (`Markup`) and reports the others
 as unsupported.
 """

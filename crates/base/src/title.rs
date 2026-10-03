@@ -1,6 +1,6 @@
 //! Title case (`titleCaseStyle`).
 //!
-//! AP and Chicago are the rules of jdkato/prose v1.2.1 (MIT), Hugo's title converter: every
+//! AP and Chicago are the rules of jdkato/prose v1.2.1 (MIT), Go's title converter: every
 //! word is capitalised except the listed small words (and, for Chicago, prepositions) that are
 //! neither first nor last and follow a space, `-` or `/`. The converter locates each word in a
 //! copy of the input where typographic quotes, dashes and the ellipsis are replaced by ASCII,
@@ -12,7 +12,7 @@ use crate::text;
 /// A title case style.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Style {
-    /// Associated Press (Hugo's default).
+    /// Associated Press (Go's default).
     #[default]
     Ap,
     /// Chicago Manual of Style.

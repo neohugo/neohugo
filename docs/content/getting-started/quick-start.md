@@ -52,7 +52,7 @@ This is my **first** post.
 ## Add templates
 
 fugo does not ship a theme: a site brings its layouts, or a [theme](/configuration/themes/)
-that has them. Templates are [Tera](/templates/introduction/) files with Hugo's layout names.
+that has them. Templates are [Tera](/templates/introduction/) files, named after what they render.
 Start with a base template that every page extends, `layouts/baseof.html`:
 
 ```html {title="layouts/baseof.html"}

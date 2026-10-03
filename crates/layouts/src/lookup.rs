@@ -34,7 +34,7 @@ pub struct LayoutQuery<'a> {
 pub struct Selection {
     /// The layout template.
     pub layout: TemplateName,
-    /// The base template Hugo's base resolution chose, when the layout requests it.
+    /// The base template Go's base resolution chose, when the layout requests it.
     pub base: Option<TemplateName>,
     /// The name to render: the layout's, or the synthesised `<layout>@@<base>` variant when the
     /// base is not what `"baseof.html"` resolves to.
@@ -128,7 +128,7 @@ impl LayoutStore {
         }
     }
 
-    /// The layout (and base template) of a page in an output format: Hugo's scorer over the
+    /// The layout (and base template) of a page in an output format: Go's scorer over the
     /// templates from the root down to the page's path. `None` when no template matches, or
     /// when the layout requests base resolution and no base template fits.
     #[must_use]

@@ -1,8 +1,8 @@
 //! Phases E4 and E5 (REWRITE_PLAN.md §3.1, §3.4): `build_stats.json`, then the deferred wave.
 //!
 //! - **E4.** With `[build.buildStats] enable`, the merged stats are written to the project
-//!   directory (only when changed; external tools such as PostCSS purge and Tailwind read it
-//!   from there, as with Hugo) and injected into the resource store at the asset path of
+//!   directory (only when changed; external tools such as Tailwind read it
+//!   from there, as with Go) and injected into the resource store at the asset path of
 //!   every assets mount of that file (docs: `notwatching/build_stats.json`), so templates of
 //!   E5 read this build's stats.
 //! - **E5.** Every `defer(...)` key registered by waves 1 and 2 renders its template once (in

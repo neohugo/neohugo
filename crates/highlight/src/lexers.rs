@@ -1,5 +1,5 @@
 //! Language lookup: which Chroma lexer a fence's language names (Chroma's `lexers.Get`, as
-//! in Hugo), content analysis for `guessSyntax`, and tokenising with Chroma's coalescing.
+//! in Go), content analysis for `guessSyntax`, and tokenising with Chroma's coalescing.
 
 use std::sync::Arc;
 
@@ -39,7 +39,7 @@ impl<'a> LexerRef<'a> {
         &self.lexer.config().name
     }
 
-    /// Chroma's coalesced tokens of `code` (Hugo's `chroma.Coalesce(lexer).Tokenise(nil, code)`).
+    /// Chroma's coalesced tokens of `code` (Go's `chroma.Coalesce(lexer).Tokenise(nil, code)`).
     pub fn tokens(&self, code: &str) -> Vec<Token> {
         chroma::coalesce(self.lexer.tokenise(self.registry, None, code))
     }
@@ -86,7 +86,7 @@ impl Languages {
         self.get(lang).map(|l| Lexer { name: l.name() })
     }
 
-    /// The lexer whose analyser scores `code` highest, else the fallback (Hugo's
+    /// The lexer whose analyser scores `code` highest, else the fallback (Go's
     /// `lexers.Analyse` + `lexers.Fallback`).
     pub fn analyse(&self, code: &str) -> LexerRef<'_> {
         LexerRef {

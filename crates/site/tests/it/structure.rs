@@ -1,6 +1,6 @@
-//! The structure of the model against the Go oracle `oracle/hugolib/assemble/<site>.json.gz`
-//! (Hugo's pages after assembly, with their outputs, relations, lists, taxonomies, page
-//! lookups and resources): every page Hugo makes, and for every page its names, dates,
+//! The structure of the model against the Go oracle `oracle/sitebuild/assemble/<site>.json.gz`
+//! (Go's pages after assembly, with their outputs, relations, lists, taxonomies, page
+//! lookups and resources): every page Go makes, and for every page its names, dates,
 //! relations, and per format its output file, link, resource directory and permalinks.
 //!
 //! Every difference is exact or falls in a reviewed class of `expected_diffs.toml`
@@ -174,7 +174,7 @@ fn build_json(p: &Page) -> J {
     })
 }
 
-/// `""` for the root and for "none" (as Hugo writes resource directories).
+/// `""` for the root and for "none" (as Go writes resource directories).
 fn dir_str(p: &str) -> &str {
     if p == "/" { "" } else { p }
 }
@@ -297,7 +297,7 @@ fn check_pages(name: &str, m: &Model, ix: &Index<'_>, dev: &BTreeSet<String>, t:
         for (f, w) in &want_out {
             if let Some(g2) = got_out.get(f) {
                 let mut w = (*w).clone();
-                // Output paths are clean: Hugo's `/th/section/` resource directory is
+                // Output paths are clean: Go's `/th/section/` resource directory is
                 // `/th/section` (ssg-page's accepted deviation).
                 if let Some(J::String(d)) = w.get_mut("subTarget")
                     && d.len() > 1
@@ -315,7 +315,7 @@ fn check_pages(name: &str, m: &Model, ix: &Index<'_>, dev: &BTreeSet<String>, t:
             .filter_map(|u| {
                 let l = u.links.as_ref()?;
                 let f = cfg.output_formats.get(u.format);
-                // Hugo's `rel` (a view detail): `canonical` for a page's only format when it is
+                // Go's `rel` (a view detail): `canonical` for a page's only format when it is
                 // a built-in one.
                 let builtin = ssg_config::OutputFormats::builtin(&cfg.media_types)
                     .by_name(&f.name)
@@ -437,7 +437,7 @@ fn check_site(
         }
         if p.kind == PageKind::Term && wp == wr && (gp != wp || gr != wr) && (gp == wp || gr == wr)
         {
-            // Hugo caches a term's `.Pages` and `.RegularPages` under one key: whichever is
+            // Go caches a term's `.Pages` and `.RegularPages` under one key: whichever is
             // asked first answers both.
             t.accept("pages", "term-lists-share-cache");
             continue;
@@ -604,7 +604,7 @@ fn check_site(
         seen.insert(id);
         let p = m.page(id);
         if got != want && got.is_subset(&want) && !p.path_info.kind.is_bundle() {
-            // Hugo gives a single-file page (`leafy.md`) the files of a bundle in the
+            // Go gives a single-file page (`leafy.md`) the files of a bundle in the
             // directory of the same name too (it does not check their owner).
             t.accept("resources", "single-page-takes-sibling-bundle");
             continue;
@@ -613,7 +613,7 @@ fn check_site(
             set.iter().map(|(_, l)| l.clone()).collect()
         };
         if got != want && names(&got) == names(&want) {
-            // Hugo names a file after the first page that walks it (`b/img.jpg` from
+            // Go names a file after the first page that walks it (`b/img.jpg` from
             // `leafy.md`); here after its owner (`img.jpg`).
             t.accept("resources", "resource-named-by-owner");
             continue;
@@ -637,14 +637,14 @@ fn check_site(
 }
 
 fn check(name: &str, t: &mut Tally) {
-    let f: J = oracle(&format!("oracle/hugolib/assemble/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/assemble/{name}.json.gz"));
     let site = Site::new(&f["site"]);
     let m = site.model().unwrap_or_else(|e| panic!("{name}: {e}"));
     let dev = expected::assemble(name);
     let go = f["dump"]["pages"].as_array().unwrap();
     let ix = Index::new(&site, &m, go);
 
-    // The page set: every page Hugo made or read, per language.
+    // The page set: every page Go made or read, per language.
     let want: BTreeSet<(usize, String, String)> = go
         .iter()
         .filter(|g| !dev.contains(s(&g["path"])))

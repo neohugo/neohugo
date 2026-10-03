@@ -1,10 +1,10 @@
 // The to_math cases of tests/fixtures/tomath.jsonl.gz (crates/funcs/README.md, "to_math
 // fixture"): one JSON line {"expression", "options"} per case on stdout, `options` the second
-// argument of Hugo's transform.ToMath (null: none).
+// argument of Go's transform.ToMath (null: none).
 //
 //   NODE_PATH=tools/dev/node_modules node cases.js <ss_data.yaml> <docs/content> >cases.jsonl
 //
-// ss_data.yaml is KaTeX's screenshotter corpus at the release Hugo bundles,
+// ss_data.yaml is KaTeX's screenshotter corpus at the release the Go implementation bundles,
 // https://raw.githubusercontent.com/KaTeX/KaTeX/v0.16.22/test/screenshotter/ss_data.yaml.
 'use strict';
 const fs = require('fs');

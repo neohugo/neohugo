@@ -12,10 +12,10 @@ pub enum Markup {
     Html,
 }
 
-/// Markup identifiers Hugo accepts besides media types and suffixes.
+/// Markup identifiers Go accepts besides media types and suffixes.
 const MARKDOWN_NAMES: &[&str] = &["markdown", "goldmark", "md", "mdown"];
 const HTML_NAMES: &[&str] = &["html", "htm"];
-/// Content types Hugo renders with external tools; not supported here.
+/// Content types Go renders with external tools; not supported here.
 const EXTERNAL_NAMES: &[&str] = &[
     "asciidoc",
     "asciidocext",

@@ -108,7 +108,7 @@ impl Default for BuildConfig {
         Self {
             build_stats: BuildStats::default(),
             cache_busters: vec![CacheBuster {
-                source: r"(postcss|tailwind)\.config\.js".to_owned(),
+                source: r"tailwind\.config\.js".to_owned(),
                 target: "(css|styles|scss|sass)".to_owned(),
             }],
             use_resource_cache_when: "fallback".to_owned(),
@@ -117,7 +117,8 @@ impl Default for BuildConfig {
     }
 }
 
-/// The file `[build.buildStats]` writes in the project directory (Hugo's `hugo_stats.json`).
+/// The file `[build.buildStats]` writes in the project directory (in place of the Go build's
+/// stats file).
 pub const STATS_FILE: &str = "build_stats.json";
 
 /// `[build.buildStats]`: what [`STATS_FILE`] records.
@@ -380,7 +381,6 @@ impl Default for SecurityPolicy {
                 "^go$",
                 "^git$",
                 "^npx$",
-                "^postcss$",
                 "^tailwindcss$",
             ]),
             exec_os_env: Whitelist::new(&[

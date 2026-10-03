@@ -1,5 +1,5 @@
-//! Hugo's import resolution for `js.Build`: imports are looked up in the assets filesystem
-//! before the bundler's own resolver sees them.
+//! The Go implementation's import resolution for `js.Build`: imports are looked up in the assets
+//! filesystem before the bundler's own resolver sees them.
 //!
 //! An import path is resolved as an asset when the importer is the entry script or itself an
 //! asset (a file under one of the assets mounts): relative imports are resolved against the

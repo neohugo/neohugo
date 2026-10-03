@@ -103,7 +103,7 @@ fn equality_with_undefined_final_segment() {
     // Printing an undefined value is an error; `or ""` is the conversion idiom.
     render_err("{{ page.params.missing }}");
     assert_eq!(render("[{{ page.params.missing or \"\" }}]").unwrap(), "[]");
-    // `or` returns a bool for bools, which is why Hugo `default` maps to `default_if_empty`.
+    // `or` returns a bool for bools, which is why Go's `default` maps to `default_if_empty`.
     assert_eq!(render("{{ page.params.flag or true }}").unwrap(), "true");
 }
 

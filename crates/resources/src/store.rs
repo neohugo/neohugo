@@ -23,7 +23,7 @@ use crate::gohash;
 use crate::pipes::{self, PipeError, PipeState, Transform, TransformEnv};
 use crate::remote::{RemoteConfig, RemoteState};
 
-/// The options of `images.QR` (Hugo's defaults: medium, 4, no directory).
+/// The options of `images.QR` (Go's defaults: medium, 4, no directory).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QrOptions {
     pub level: QrLevel,
@@ -43,7 +43,7 @@ impl Default for QrOptions {
     }
 }
 
-/// Hugo's target path of `images.QR text options`: `<targetDir>/qr_<hash>.png`, the hash being
+/// Go's target path of `images.QR text options`: `<targetDir>/qr_<hash>.png`, the hash being
 /// `hashing.HashStringHex(text, opts)` of the decoded options struct
 /// `{Level string; Scale int; TargetDir string}` (hex without leading zeros).
 #[must_use]
@@ -291,7 +291,7 @@ pub enum ResourceError {
     NotAnImage(String),
     #[error("writing {path}: {source}")]
     Write { path: OutputPath, source: io::Error },
-    /// A transform (`to_css`, `post_css`, `js_build`, …) failed.
+    /// A transform (`to_css`, `tailwind_css`, `js_build`, …) failed.
     #[error("{resource}: {transform}: {source}")]
     Pipe {
         resource: String,
@@ -379,7 +379,7 @@ pub struct BundleResource {
     pub policy: PublishPolicy,
 }
 
-/// A page resource a content adapter added (`add_resource`; Hugo's `ResourceConfig`).
+/// A page resource a content adapter added (`add_resource`; Go's `ResourceConfig`).
 #[derive(Clone, Debug)]
 pub struct AdapterResource {
     pub lang: LangIdx,
@@ -392,7 +392,7 @@ pub struct AdapterResource {
     /// a bundle file ([`BundleResource`]).
     pub name: String,
     pub dir: String,
-    /// A resource the adapter passed keeps its own file and link (Hugo publishes it relative
+    /// A resource the adapter passed keeps its own file and link (Go publishes it relative
     /// to the site root); `None`: below the page.
     pub place: Option<(OutputPath, UrlPath)>,
     /// `name`, `title` and `params` of the map (`None`: the name below the page, the name).
@@ -718,7 +718,7 @@ impl ResourceStore {
         Ok(files)
     }
 
-    /// `resources.Match`: the assets whose path matches the glob `pattern` (Hugo's globs, case
+    /// `resources.Match`: the assets whose path matches the glob `pattern` (Go's globs, case
     /// folded, a leading `/` ignored), sorted by path.
     ///
     /// # Errors
@@ -1038,7 +1038,7 @@ impl ResourceStore {
     }
 
     /// `images.QR`: the PNG of the QR code of `text` (see [`ssg_images::qr_png`], equal to
-    /// Hugo's bytes), published at [`qr_target`] — Hugo's name, so its URLs are the Go build's.
+    /// Go's bytes), published at [`qr_target`] — Go's name, so its URLs are the Go build's.
     ///
     /// # Errors
     /// Empty or too long text, a scale below 2, or (never in practice: the name hashes the
@@ -1072,10 +1072,10 @@ impl ResourceStore {
             .get_or_try((id, t.clone()), || pipes::start(self, id, t))
     }
 
-    /// Whether computing `id` waits for phase E5: its chain runs PostCSS or Tailwind (which
-    /// read `build_stats.json`, written once every page is rendered) or processes an image
+    /// Whether computing `id` waits for phase E5: its chain runs Tailwind (which reads
+    /// `build_stats.json`, written once every page is rendered) or processes an image
     /// (images are processed in E6, outside the renders). Any other pending `fingerprint` is
-    /// computed when the template asks for it, as Hugo computes it when its links are read.
+    /// computed when the template asks for it, as Go computes it when its links are read.
     #[must_use]
     pub fn waits_for_e5(&self, id: ResourceId) -> bool {
         let mut id = id;
@@ -1083,10 +1083,7 @@ impl ResourceStore {
             let r = self.resource(id);
             match &r.origin {
                 Origin::Transformed { from, transform } => {
-                    if matches!(
-                        **transform,
-                        Transform::PostCss(_) | Transform::TailwindCss(_)
-                    ) {
+                    if matches!(**transform, Transform::TailwindCss(_)) {
                         return true;
                     }
                     id = *from;

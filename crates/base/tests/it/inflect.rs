@@ -8,7 +8,7 @@ use crate::support::{Tally, fixture, text};
 
 include!("../../../../testdata/oracle/common/flect/upstream_tables.rs");
 
-/// A Go panic (Hugo reports a template error) is recorded as `{"panic": …}`.
+/// A Go panic (Go reports a template error) is recorded as `{"panic": …}`.
 fn is_panic(v: &J) -> bool {
     v.get("panic").is_some()
 }
@@ -33,8 +33,8 @@ fn flect_corpus_oracle() {
         for (name, got) in checks {
             let want = &c[name];
             if is_panic(want) {
-                // Hugo fails on a non-blank string without words; we return a string.
-                t.deviation(|| format!("{name}({s:?}): Hugo fails, we return {got:?}"));
+                // Go fails on a non-blank string without words; we return a string.
+                t.deviation(|| format!("{name}({s:?}): Go fails, we return {got:?}"));
                 continue;
             }
             t.check(*want == got.as_str(), || {
@@ -86,7 +86,7 @@ fn flect_custom_data_oracle() {
             let (op, input) = key.split_once(':').unwrap();
             let got = run(&inflector, op, input);
             if is_panic(want) {
-                t.deviation(|| format!("{name} {op}({input:?}): Hugo fails, we return {got:?}"));
+                t.deviation(|| format!("{name} {op}({input:?}): Go fails, we return {got:?}"));
                 continue;
             }
             t.check(*want == got.as_str(), || {

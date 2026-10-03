@@ -27,18 +27,19 @@ impl SourceContexts {
     }
 }
 
-/// The line that opens an included page's text in an expanded source (Hugo's
-/// `{{__hugo_ctx pid=N}}`, `markup/goldmark/hugocontext`).
+/// The line that opens an included page's text in an expanded source (the Go
+/// implementation's opening context marker, which carries the page id).
 ///
-/// Like Hugo's, the markers start with `{` and end with `}`, so emphasis delimiters next to
+/// Like Go's, the markers start with `{` and end with `}`, so emphasis delimiters next to
 /// an include flank the same way; no comrak syntax, attribute, typographer or linkify rule
 /// reads them.
 pub const CONTEXT_OPEN: &str = "{{NHCTXO}}";
-/// The line that closes an included page's text (Hugo's `{{__hugo_ctx/}}`).
+/// The line that closes an included page's text (the Go implementation's closing context
+/// marker).
 pub const CONTEXT_CLOSE: &str = "{{NHCTXC}}";
 
-/// An included page's Markdown between context marker lines, as Hugo's `hugocontext.Wrap`
-/// wraps what `.RenderShortcodes` returns to a `{{% %}}` call of a Markdown page.
+/// An included page's Markdown between context marker lines, as the Go implementation's
+/// context wrapper wraps what `.RenderShortcodes` returns to a `{{% %}}` call of a Markdown page.
 ///
 /// Goldmark parses the markers as ordinary lines (a marker line can start a paragraph, be a
 /// lazy continuation line or a table row), so they shape the blocks around an include; the
@@ -61,8 +62,8 @@ pub fn wrap_context(md: &str) -> (String, Range<usize>) {
     (s, start..end)
 }
 
-/// `s` without context marker lines (an included source printed outside Markdown; Hugo's
-/// `hugocontext` strips them from raw HTML blocks the same way).
+/// `s` without context marker lines (an included source printed outside Markdown; the Go
+/// implementation's context-marker extension strips them from raw HTML blocks the same way).
 #[must_use]
 pub fn strip_context_markers(s: &str) -> std::borrow::Cow<'_, str> {
     if !s.contains(CONTEXT_OPEN) && !s.contains(CONTEXT_CLOSE) {

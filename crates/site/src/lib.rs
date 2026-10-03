@@ -17,7 +17,7 @@
 //!    ([`CascadeIndex`]), then [`ssg_page::meta_from_params`] with the language's date
 //!    sources and time zone (parallel over pages), then drafts, future and expired content
 //!    against the build clock.
-//! 4. **Nodes** (B3, `nodes`): the pages Hugo makes itself: missing taxonomy pages, root
+//! 4. **Nodes** (B3, `nodes`): the pages Go makes itself: missing taxonomy pages, root
 //!    sections and home page, standalone pages (404, sitemap, sitemap index, robots.txt), and
 //!    term pages with their members (`taxonomy`).
 //! 5. **Relations** (B5, `relations`): titles, sections and types; parents, sections and the
@@ -71,7 +71,7 @@ pub use tree::{PageRole, SiteTree};
 
 use filter::Verdict;
 
-/// A page of the model: a content file, or a page Hugo makes itself (a missing home page, root
+/// A page of the model: a content file, or a page Go makes itself (a missing home page, root
 /// section or taxonomy page, a term page, a standalone page such as `404`).
 #[derive(Clone, Debug)]
 pub struct Page {
@@ -85,7 +85,7 @@ pub struct Page {
     pub key: ContentKey,
     /// `None` for pages without a content file.
     pub source: Option<SourceFile>,
-    /// The page's path: its content file's (after front matter `path`), or the path Hugo gives
+    /// The page's path: its content file's (after front matter `path`), or the path Go gives
     /// a page it makes (`/tags/Blue Sky/_index.md`, `/404.html`). Names, sections, titles and
     /// URLs are read from it.
     pub path_info: PathInfo,
@@ -192,7 +192,7 @@ impl Page {
         &self.meta.params
     }
 
-    /// Hugo's `.Path` (`/posts/one`, `/` for the home page, `/_robots.txt`).
+    /// Go's `.Path` (`/posts/one`, `/` for the home page, `/_robots.txt`).
     #[must_use]
     pub fn path(&self) -> String {
         if self.standalone.is_some() {
@@ -249,7 +249,7 @@ impl Page {
         self.urls.first().and_then(|u| u.links.as_ref())
     }
 
-    /// Hugo's `Dir()` as a key: a bundle's (and a made page's) own key, a single file's
+    /// Go's `Dir()` as a key: a bundle's (and a made page's) own key, a single file's
     /// directory.
     #[must_use]
     pub fn dir_key(&self) -> ContentKey {
@@ -285,7 +285,7 @@ pub struct BundleResource {
     pub copy_of: Option<ResourceId>,
     /// The page that owns the file: in the file's language, the page at the longest key above
     /// it in any language's tree. `None`: that language has no page there (the file is then
-    /// neither published nor listed, as in Hugo).
+    /// neither published nor listed, as in Go).
     pub owner: Option<PageId>,
     /// `.Name` before front matter metadata: the path below the owner as written
     /// (`Sub/Photo.JPG`).
@@ -476,7 +476,7 @@ pub enum ModelError {
          `_content.html` in the same directory (`add_page(page={{…}})`, \
          `add_resource(resource={{…}})`, `store_set`, `enable_all_languages()`; \
          https://github.com/getfugo/fugo/blob/main/docs/rust-port/template-api.md gives \
-         Hugo's functions with their Tera names)"
+         the Go template functions with their Tera names)"
     )]
     GoContentAdapter(PathBuf),
     /// A page or resource a content adapter added that cannot be placed.
@@ -505,7 +505,7 @@ pub enum ModelError {
     Data(#[from] DataError),
 }
 
-/// A page the build filter removed: node dates still count its dates (Hugo aggregates dates
+/// A page the build filter removed: node dates still count its dates (Go aggregates dates
 /// before it removes drafts, future and expired content).
 #[derive(Clone, Debug)]
 pub(crate) struct Removed {
@@ -549,7 +549,7 @@ pub struct AddedPage {
     pub page: Arc<AdapterPage>,
 }
 
-/// A page resource an adapter added with `add_resource` (Hugo's `ResourceConfig`).
+/// A page resource an adapter added with `add_resource` (Go's `ResourceConfig`).
 #[derive(Clone, Debug)]
 pub struct AddedResource {
     /// The adapter (an index into [`Captured::adapters`]).
@@ -576,7 +576,7 @@ pub enum AddedContent {
         text: Arc<str>,
         media_type: Option<String>,
     },
-    /// A resource the adapter got (`get_asset`, `get_remote`, …): Hugo uses the resource itself,
+    /// A resource the adapter got (`get_asset`, `get_remote`, …): Go uses the resource itself,
     /// so it keeps its own file and link (relative to the site root, not to the page).
     Resource {
         body: AddedBody,
@@ -621,10 +621,10 @@ pub fn load_model(cfg: Arc<Config>, vfs: &Vfs, o: &LoadModelOptions) -> Result<M
 ///
 /// A key (or resource path) both a content file and an adapter claim is the file's; one two
 /// adapters claim is the later adapter's, in the place of the earlier one's (both with a
-/// warning). This is Hugo's order with one collector worker (`hugolib/pages_capture.go`
-/// `collectDirDir` queues a directory's adapters before its files and its subdirectories, and
-/// `content_map.go` `insertPageWithLock`/`insertResourceWithLock` keep the last insert); with
-/// several workers Hugo's result depends on scheduling.
+/// warning). This is Go's order with one collector worker (`pages_capture.go` `collectDirDir`
+/// queues a directory's adapters before its files and its subdirectories, and `content_map.go`
+/// `insertPageWithLock`/`insertResourceWithLock` keep the last insert); with several workers
+/// Go's result depends on scheduling.
 ///
 /// # Errors
 /// Invalid front matter (reserved keys of the wrong shape, a bad cascade or date

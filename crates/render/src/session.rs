@@ -102,7 +102,7 @@ impl std::fmt::Debug for Session {
     }
 }
 
-/// The keys of `site` a content adapter does not see: the page lists, which Hugo's adapters
+/// The keys of `site` a content adapter does not see: the page lists, which Go's adapters
 /// cannot read either ("cannot be called before the site is fully initialized").
 const ADAPTER_HIDDEN_SITE_KEYS: [&str; 8] = [
     "home",
@@ -140,6 +140,7 @@ fn pure_env(model: &Model, o: &RenderOptions, diagnostics: &Arc<Diagnostics>) ->
             .filter(|p| !p.is_empty() && !p.eq_ignore_ascii_case("none")),
     )
     .unwrap_or_default();
+    env.env_file = cfg.env_file.vars();
     env
 }
 
@@ -562,7 +563,7 @@ impl Session {
     /// Runs a content adapter: renders `source`, the Tera template of the `_content.html` at
     /// `path`, for language `lang` as run `run` of [`Handles::adapters`] (which collects what
     /// it adds); the output is discarded. The context has `site` (the language's, without the
-    /// page lists: Hugo's site is not built yet either), `build`, `lang` and a scope in phase
+    /// page lists: Go's site is not built yet either), `build`, `lang` and a scope in phase
     /// `Adapter` on the language's home page, so site functions and partials work on the
     /// session's model (the content files).
     ///

@@ -1,6 +1,6 @@
-//! The configuration file names (`config.*` before Hugo's `hugo.*` and `config.*`) and the
-//! themes: finding them (theme lists, themes of themes, `[[module.imports]]`, `_vendor`,
-//! replacements) and merging their configuration below the project's with Hugo's `_merge`
+//! The configuration file names (`config.*`; not the Go program's configuration file name) and
+//! the themes: finding them (theme lists, themes of themes, `[[module.imports]]`, `_vendor`,
+//! replacements) and merging their configuration below the project's with Go's `_merge`
 //! rules. Tests named after a Go test port its cases with its expected values; the others
 //! check the rules the oracle groups `merge/*` and `themes/*` (in `load.rs`) exercise per case.
 
@@ -10,6 +10,7 @@ use ssg_base::{Map, PageKind, Value};
 use ssg_config::merge::{MergeStrategy, merge_themes};
 use ssg_config::theme::path_key;
 use ssg_config::{Config, ConfigError, LoadOptions, ThemeMounts, load};
+use ssg_testkit::fixture::GO_CONFIG_NAME;
 
 /// A project in a temporary directory (`site/`), loaded with an optional `--config` list.
 struct Project {
@@ -118,27 +119,32 @@ fn config_extensions_in_lookup_order() {
     assert!(warnings(&c, "config-file-ignored").is_empty());
 }
 
-/// Hugo's `hugo.*` is not a configuration file: neither read nor named in warnings, and in a
-/// configuration directory an ordinary file that places its keys under `hugo`.
+/// The Go program's configuration file is not a configuration file: neither read nor named in
+/// warnings, and in a configuration directory an ordinary file that places its keys under its
+/// base name.
 #[test]
-fn hugo_toml_is_not_read() {
+fn go_config_file_is_not_read() {
+    let go_file = format!("{GO_CONFIG_NAME}.toml");
     let p = Project::new(&[
         ("config.toml", "title = \"config\"\n"),
-        ("hugo.toml", "title = \"hugo\"\n"),
+        (&go_file, "title = \"go\"\n"),
     ]);
     let c = p.ok();
     assert_eq!(c.default_site().title, "config");
     assert!(warnings(&c, "config-file-ignored").is_empty());
-    let p = Project::new(&[("hugo.toml", "title = \"hugo\"\n")]);
-    let e = p.load().expect_err("hugo.toml alone is no configuration");
+    let p = Project::new(&[(&go_file, "title = \"go\"\n")]);
+    let e = p
+        .load()
+        .expect_err("the Go configuration file alone is no configuration");
     assert!(matches!(e, ConfigError::NotFound { .. }), "{e}");
+    let in_dir = format!("config/_default/{go_file}");
     let p = Project::new(&[
         ("config.toml", "title = \"t\"\n"),
-        ("config/_default/hugo.toml", "title = \"hugo\"\n"),
+        (&in_dir, "title = \"go\"\n"),
     ]);
     let c = p.ok();
     assert_eq!(c.default_site().title, "t");
-    assert!(c.raw.get("hugo").is_some());
+    assert!(c.raw.get(GO_CONFIG_NAME).is_some());
 }
 
 #[test]
@@ -183,7 +189,7 @@ fn no_configuration_names_config_toml() {
     assert!(matches!(e, ConfigError::NotFound { .. }), "{e}");
     let msg = e.to_string();
     assert!(
-        msg.contains("config.toml") && !msg.contains(" hugo."),
+        msg.contains("config.toml") && !msg.contains(&format!(" {GO_CONFIG_NAME}.")),
         "{msg}"
     );
 }
@@ -201,8 +207,8 @@ fn theme_configuration_file_names() {
             "params:\n  from: yaml\n  yamlOnly: 1\n",
         ),
         (
-            "themes/t/hugo.toml",
-            "[params]\nfrom = \"hugo\"\nhugoOnly = 1\n",
+            &format!("themes/t/{GO_CONFIG_NAME}.toml"),
+            "[params]\nfrom = \"go\"\ngoOnly = 1\n",
         ),
         (
             "themes/t/config/_default/config.yaml",
@@ -236,7 +242,7 @@ fn theme_configuration_file_names() {
 
 // ───────────── Go ports ─────────────
 
-/// `hugolib/config_test.go` `TestLoadConfigFromThemes`: the project's and the theme's
+/// Go's `config_test.go` `TestLoadConfigFromThemes`: the project's and the theme's
 /// configuration (the Go test's `mainConfigTemplate` and `themeConfig`).
 const MAIN_CONFIG: &str = r#"
 theme = "test-theme"
@@ -605,7 +611,7 @@ fn merge_deep_build_stats_theme() {
     let p = Project::new(&[
         (
             "config.toml",
-            "baseURL = \"https://example.com\"\ntitle = \"Theme 1\"\n_merge = \"deep\"\n[module]\n[module.hugoVersion]\n[[module.imports]]\npath = \"theme1\"\n",
+            "baseURL = \"https://example.com\"\ntitle = \"Theme 1\"\n_merge = \"deep\"\n[module]\n[[module.imports]]\npath = \"theme1\"\n",
         ),
         (
             "themes/theme1/config.toml",
@@ -657,7 +663,7 @@ fn load_config_modules() {
     files.extend([
         (
             "themes/n1/config.toml",
-            "title = \"Component n1\"\n\n[module]\ndescription = \"Component n1 description\"\n[module.hugoVersion]\nmin = \"0.40.0\"\nmax = \"0.50.0\"\n[[module.imports]]\npath=\"o1\"\n[[module.imports]]\npath=\"n3\"\n",
+            "title = \"Component n1\"\n\n[module]\ndescription = \"Component n1 description\"\n[[module.imports]]\npath=\"o1\"\n[[module.imports]]\npath=\"n3\"\n",
         ),
         ("themes/n2/config.toml", "title = \"Component n2\"\n"),
         ("themes/n3/config.toml", "title = \"Component n3\"\n"),

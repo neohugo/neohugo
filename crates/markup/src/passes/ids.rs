@@ -1,5 +1,5 @@
-//! Plain text of inline content (Hugo's `TextPlain`) and the ids of headings and definition
-//! terms.
+//! Plain text of inline content (the Go implementation's `TextPlain`) and the ids of headings
+//! and definition terms.
 
 use comrak::nodes::NodeValue;
 use ssg_base::anchor::{self, Deduper};
@@ -7,9 +7,9 @@ use ssg_base::anchor::{self, Deduper};
 use crate::doc::{Doc, Node, Role};
 use crate::{Extensions, MarkdownOptions};
 
-/// Hugo's plain text of `n`: each direct child's text, where a container child contributes
-/// only the plain text of its *first* child (so `**a *b* c**` gives `a `); named entity
-/// references resolved.
+/// The Go implementation's plain text of `n`: each direct child's text, where a container
+/// child contributes only the plain text of its *first* child (so `**a *b* c**` gives `a `);
+/// named entity references resolved.
 pub(crate) fn text_plain(doc: &Doc<'_>, n: Node<'_>) -> String {
     let mut s = String::new();
     for c in n.children() {
@@ -194,8 +194,8 @@ mod tests {
     #[test]
     fn entities() {
         assert_eq!(
-            resolve_entities("Hugo&rsquo;s &amp; &#39; &bogus; &"),
-            "Hugo\u{2019}s & &#39; &bogus; &"
+            resolve_entities("It&rsquo;s &amp; &#39; &bogus; &"),
+            "It\u{2019}s & &#39; &bogus; &"
         );
     }
 }

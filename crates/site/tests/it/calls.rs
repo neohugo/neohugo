@@ -1,5 +1,5 @@
 //! The model against the recorded page and site method calls of the Go oracle
-//! `oracle/hugolib/site/<site>.json.gz`: relations (`.Parent`, `.Ancestors`, sections),
+//! `oracle/sitebuild/site/<site>.json.gz`: relations (`.Parent`, `.Ancestors`, sections),
 //! lists, translations, node dates, names, links and output formats, `.GetTerms`, `.GetPage`
 //! (page-relative), `ref`/`relref` from every page, `.IsAncestor`/`.IsDescendant`/
 //! `.InSection`/`.Eq`, and the site's `.Pages`, `.RegularPages`, `.Sections`, `.Home`,
@@ -320,7 +320,7 @@ fn want(v: &J) -> J {
 }
 
 fn check(name: &str, t: &mut Tally) {
-    let f: J = oracle(&format!("oracle/hugolib/site/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/site/{name}.json.gz"));
     let site = Site::new(&f["site"]);
     let m = site.model().unwrap_or_else(|e| panic!("{name}: {e}"));
     let list = f["dump"]["pageList"].as_array().unwrap();
@@ -365,7 +365,7 @@ fn check(name: &str, t: &mut Tally) {
                 && w == json!("")
                 && m.page(id).role != ssg_site::PageRole::Standalone
             {
-                // Hugo's bundled pages have no working site: their refs are all empty.
+                // Go's bundled pages have no working site: their refs are all empty.
                 t.accept(check, "ref-from-bundled-page");
                 continue;
             }
@@ -458,7 +458,7 @@ fn check_name(method: &str) -> &'static str {
 }
 
 #[test]
-fn page_and_site_calls_match_hugo() {
+fn page_and_site_calls_match_go() {
     let mut t = Tally::default();
     for name in SITES {
         check(name, &mut t);

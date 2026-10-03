@@ -18,14 +18,13 @@
 #                  its structure dump comes from the unminified build (FUGO_STRUCTURE_OUT)
 #
 # The candidate builds each pass from a freshly generated site, from the site directory, with
-#   <binary> --clock 2026-09-27T12:00:00Z [--minify] -d <out>
+#   <binary> --clock 2026-09-27T12:00:00Z --cacheDir <cache> [--minify] -d <out>
 # (the minified pass gives L1 and L4, the unminified pass L1, L2 and L3) in the clean
-# environment of the golden builds: HOME and FUGO_CACHEDIR (the Go builds: HUGO_CACHEDIR,
-# with HUGO_NUMWORKERMULTIPLIER=1) in the work directory (the site's golden GetRemote entries,
-# `sites.py cache`), TZ=UTC, every proxy
-# variable pointing at a refusing port (outbound HTTP disabled), the node modules of
-# tools/dev/node.sh as a `node_modules` symlink in the site plus `node_modules/.bin` on PATH,
-# and FUGO_NODE_MODULES. Manifests come from tools/dev/manifest.py
+# environment of the golden builds: HOME and the cache directory in the work directory (the
+# site's golden GetRemote entries, `sites.py cache`), TZ=UTC, every proxy
+# variable pointing at a refusing port (outbound HTTP disabled), and the node modules of
+# tools/dev/node.sh as a `node_modules` symlink in the site (the binary runs Tailwind from it
+# and installs nothing into a link). Manifests come from tools/dev/manifest.py
 # (the candidate's with --full-text, for the A7 similarity of the worst pages).
 #
 # docs-live (gate A-D3) is the docs site as getfugo.github.io publishes it, and its golden data is
@@ -42,7 +41,6 @@
 #   FUGO_COMPARE_WORK    work directory (default: $TMPDIR/ssg-compare), outside the repo
 #   FUGO_BINARY          the binary (default: `cargo build --offline --locked -p
 #                           ssg-cli`, then a copy of target/debug/<name> in the work dir)
-#   FUGO_NODE_MODULES    the node modules (default: see tools/dev/node.sh)
 #   FUGO_TASK            default for --task
 # The report and structdiff.json stay in the work directory (<work>/<label>/); everything else
 # there is deleted unless KEEP=1.
@@ -98,7 +96,7 @@ if [ "$label" = docs-live ]; then
 fi
 overlay=$ROOT/sites/${label%%-*}
 
-NODE_MODULES=${FUGO_NODE_MODULES:-$("$HERE/node.sh" path)}
+NODE_MODULES=$("$HERE/node.sh" path)
 GOLDEN=$ROOT/testdata/golden/$label
 BASELINE=$ROOT/testdata/baselines/$label.json
 WORK_ROOT=${FUGO_COMPARE_WORK:-${TMPDIR:-/tmp}/ssg-compare}
@@ -148,15 +146,14 @@ build() {
 	local node_dir
 	node_dir=$(dirname "$(command -v node || echo /usr/bin/node)")
 	local env=(HOME="$dir/home" TZ=UTC LANG=C.UTF-8
-		PATH="$NODE_MODULES/.bin:$node_dir:/usr/local/bin:/usr/bin:/bin"
+		PATH="$node_dir:/usr/local/bin:/usr/bin:/bin"
 		HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 ALL_PROXY=http://127.0.0.1:9
 		http_proxy=http://127.0.0.1:9 https_proxy=http://127.0.0.1:9 all_proxy=http://127.0.0.1:9
-		NO_PROXY= no_proxy= FUGO_CACHEDIR="$dir/cache"
-		FUGO_NODE_MODULES="$NODE_MODULES")
+		NO_PROXY= no_proxy=)
 	[ -n "$structure" ] && env+=(FUGO_STRUCTURE_OUT="$structure")
 	local start end
 	start=$(date +%s)
-	if ! (cd "$dir/$label" && env -i "${env[@]}" "$BIN" --clock "$CLOCK" "$@" -d "$dir/out" >"$dir/log" 2>&1); then
+	if ! (cd "$dir/$label" && env -i "${env[@]}" "$BIN" --clock "$CLOCK" --cacheDir "$dir/cache" "$@" -d "$dir/out" >"$dir/log" 2>&1); then
 		log "$label: the build failed ($dir/log):"
 		sed -e "s#$dir#\$W#g" "$dir/log" | tail -40 >&2
 		exit 1

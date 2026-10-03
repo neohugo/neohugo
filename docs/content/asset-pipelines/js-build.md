@@ -75,5 +75,5 @@ fetch(params.index);
 
 ## npm packages
 
-`npm install` packages in the project; `js_build` finds them in `node_modules`. Node.js is
-needed only to install them, not to build.
+List them in `package.json`; fugo installs them into `node_modules` when it builds (see
+[npm packages](/asset-pipelines/npm-packages/)), and `js_build` finds them there.

@@ -214,7 +214,7 @@ const EXAMPLES: &[(&str, &str)] = &[
     ("urlencode_strict", "{{ 'a b/c?d' | urlencode_strict }}"),
     ("urldecode", "{{ 'a%20b+c' | urldecode }}"),
     ("b64_encode", "{{ 'example' | b64_encode }}"),
-    ("b64_decode", "{{ 'bmVvaHVnbw==' | b64_decode }}"),
+    ("b64_decode", "{{ 'ZnVnbw==' | b64_decode }}"),
     ("md5", "{{ 'example' | md5 }}"),
     ("sha1", "{{ 'example' | sha1 }}"),
     ("sha256", "{{ 'example' | sha256 }}"),

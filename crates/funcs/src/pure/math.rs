@@ -1,4 +1,4 @@
-//! `to_math` (feature `math`): Hugo's `transform.ToMath`, LaTeX to MathML and HTML with KaTeX
+//! `to_math` (feature `math`): Go's `transform.ToMath`, LaTeX to MathML and HTML with KaTeX
 //! ([`super::katex`]).
 //!
 //! Rewritten from `tpl/transform/transform.go` (`ToMath`) and `internal/warpc/katex.go`
@@ -22,7 +22,7 @@ use super::{PureEnv, Registrar, katex};
 /// warning instead (id `to_math`, as for `get_remote`) and the result none. The warnings of
 /// `strict: "warn"` are warnings.
 ///
-/// Rendered formulas are kept for the build (Hugo's `cacheMath`): the same formula with the
+/// Rendered formulas are kept for the build (Go's `cacheMath`): the same formula with the
 /// same options is rendered once, and its warnings are reported once.
 pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
     let env = Arc::clone(env);
@@ -73,7 +73,7 @@ enum Kind {
     Macros,
 }
 
-/// The fields of Hugo's `warpc.KatexOptions` in their order: the Go name, which an option key
+/// The fields of Go's `warpc.KatexOptions` in their order: the Go name, which an option key
 /// matches exactly or else case-insensitively (mapstructure), and the JSON name KaTeX reads.
 const FIELDS: [(&str, &str, Kind); 9] = [
     ("Output", "output", Kind::String),
@@ -106,7 +106,7 @@ fn input(expression: &str, options: Option<&Value>) -> Result<String, String> {
     Ok(json!({ "expression": expression, "options": options }).to_string())
 }
 
-/// Hugo's defaults with `options` decoded over them, as JSON (`macros` only when not empty,
+/// Go's defaults with `options` decoded over them, as JSON (`macros` only when not empty,
 /// Go's `omitempty`), keys sorted (whether or not serde_json keeps insertion order: its
 /// `preserve_order` feature is on in the binary's graph).
 fn katex_options(options: Option<&Value>) -> Result<JsonMap<String, Json>, String> {

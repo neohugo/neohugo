@@ -1,7 +1,7 @@
 ---
 title: Functions, filters and tests
 linkTitle: Functions
-description: Every name a fugo template can call, grouped by topic, with its keyword arguments and the Hugo function it replaces.
+description: Every name a fugo template can call, grouped by topic, with its keyword arguments and the Go-template function it replaces.
 weight: 10
 ---
 

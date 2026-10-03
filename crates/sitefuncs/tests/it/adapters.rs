@@ -96,7 +96,7 @@ fn adapter_functions_only_in_adapters() {
     }
 }
 
-/// A run that adds a path again replaces what it added there, in place (Hugo inserts into its
+/// A run that adds a path again replaces what it added there, in place (Go inserts into its
 /// trees: the last insert wins), and warns.
 #[test]
 fn a_path_added_again_replaces() {
@@ -155,7 +155,7 @@ fn a_path_added_again_replaces() {
     assert!(site.handles.diagnostics.since(mark).is_empty());
 }
 
-/// Paths are decoded as Hugo does: a page path loses one leading `/` (`PageConfig.Init`), a
+/// Paths are decoded as Go does: a page path loses one leading `/` (`PageConfig.Init`), a
 /// resource path none (`ResourceConfig.Compile`); neither is trimmed (spaces become `-`). A
 /// `kind` must be a content kind as written, in lower case.
 #[test]

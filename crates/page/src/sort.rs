@@ -5,7 +5,7 @@ use std::cmp::Ordering;
 use jiff::Zoned;
 use ssg_base::Collate;
 
-/// Unix seconds of Hugo's zero date, the date of pages without one (it sorts last).
+/// Unix seconds of Go's zero date, the date of pages without one (it sorts last).
 const ZERO_DATE_SECONDS: i64 = -62_135_596_800;
 
 /// What the default order reads from a page.
@@ -30,7 +30,7 @@ impl SortKey<'_> {
     }
 }
 
-/// Hugo's default page order: term ordinal, taxonomy weight, then weight ascending with 0
+/// Go's default page order: term ordinal, taxonomy weight, then weight ascending with 0
 /// last, date descending (to the second), link title in the language's collation, and the
 /// source path in byte order. Use with a stable sort.
 #[must_use]

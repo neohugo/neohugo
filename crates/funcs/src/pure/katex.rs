@@ -1,17 +1,17 @@
 //! KaTeX in QuickJS (feature `math`): the renderer behind `to_math`.
 //!
-//! Hugo's `transform.ToMath` runs KaTeX 0.16.22 with its mhchem extension in QuickJS
+//! Go's `transform.ToMath` runs KaTeX 0.16.22 with its mhchem extension in QuickJS
 //! (`internal/warpc`: the bundle `js/renderkatex.bundle.js` compiled by Javy, run on wazero by
 //! a pool of instances, one JSON message per formula). This port runs the same KaTeX release (the
 //! npm package's `dist/katex.min.js` and `dist/contrib/mhchem.min.js`, `assets/katex/`) in
 //! QuickJS-ng through rquickjs, natively, with the same messages: `assets/katex/render.js` is
-//! the entry point, rewritten from Hugo's `renderkatex.js` and `common.js` (this repository at
-//! commit `44529028`). The output is KaTeX's, byte for byte (`tests/it/math.rs` compares it
-//! with Go's on the formulas of a fixture).
+//! the entry point, rewritten from the Go implementation's `renderkatex.js` and `common.js`
+//! (this repository at commit `44529028`). The output is KaTeX's, byte for byte
+//! (`tests/it/math.rs` compares it with Go's on the formulas of a fixture).
 //!
 //! An engine (a QuickJS runtime with KaTeX loaded, about 25 ms to create) serves one formula at
 //! a time. Idle engines wait in a process-wide pool: a render takes one or creates one, and puts
-//! it back, so there are as many engines as formulas were ever rendered at once (Hugo: 8
+//! it back, so there are as many engines as formulas were ever rendered at once (Go: 8
 //! instances). KaTeX keeps no state between renders but its caches, so which engine renders a
 //! formula does not change the output.
 
@@ -27,7 +27,7 @@ const MHCHEM: &str = include_str!("../../assets/katex/mhchem.min.js");
 const RENDER: &str = include_str!("../../assets/katex/render.js");
 
 /// The memory limit of one engine. Loaded, KaTeX uses about 2 MiB; the limit only stops a
-/// runaway formula (Hugo's instances have 32 MiB of WebAssembly memory).
+/// runaway formula (Go's instances have 32 MiB of WebAssembly memory).
 const MEMORY_LIMIT: usize = 128 << 20;
 
 /// The idle engines.
@@ -40,7 +40,7 @@ pub(super) struct Rendered {
     pub warnings: Vec<String>,
 }
 
-/// Renders the JSON message `input` (`{"expression": …, "options": {…}}`, Hugo's
+/// Renders the JSON message `input` (`{"expression": …, "options": {…}}`, Go's
 /// `warpc.KatexInput`) with `katex.renderToString`.
 ///
 /// # Errors
@@ -99,7 +99,7 @@ impl Engine {
     }
 }
 
-/// Decodes a response of `renderKatex` as Hugo's dispatcher does: a non-empty `err` is the
+/// Decodes a response of `renderKatex` as Go's dispatcher does: a non-empty `err` is the
 /// error; otherwise `output` (empty when missing) and the warnings.
 fn response(json: &str) -> Result<Rendered, String> {
     let value: serde_json::Value = serde_json::from_str(json)

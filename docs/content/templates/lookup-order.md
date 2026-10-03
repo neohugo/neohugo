@@ -1,11 +1,11 @@
 ---
 title: Template lookup order
-description: How fugo chooses the template for each page and output format — by kind, layout, path, language and format — with Hugo v0.146's layout names.
+description: How fugo chooses the template for each page and output format — by kind, layout, path, language and format — and the layout names it knows.
 weight: 20
 ---
 
-fugo picks each page's template the way Hugo v0.146 does: it compares every template's name
-with what the page needs, and the best match wins.
+fugo picks each page's template by comparing every template's name with what the page needs:
+the best match wins.
 
 ## Template names
 
@@ -64,9 +64,9 @@ section.
 
 ## Old names
 
-Names from before Hugo v0.146 are refused, with the name to use: `_default/single.html` →
+Older layout names are refused, with the name to use: `_default/single.html` →
 `single.html`, `partials/` → `_partials/`, `shortcodes/` → `_shortcodes/`, `index.html` →
 `home.html`, `taxonomy/list.html` and `term/term.html` → `term.html`. Templates written in Go's
-template language are refused too; see [Coming from Hugo](/coming-from-hugo/).
+template language are refused too; see [Migrating from Go templates](/migrating/).
 
 `fugo templates check --coverage` shows which template renders each kind of page.

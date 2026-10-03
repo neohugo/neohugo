@@ -1,13 +1,13 @@
-//! Layout templates (REWRITE_PLAN.md §4.1, §4.3, §4.5): the scan of Hugo v0.146 layout names,
-//! Hugo's lookup scorer, base template resolution, escaping by output format and loading into
-//! one Tera instance.
+//! Layout templates (REWRITE_PLAN.md §4.1, §4.3, §4.5): the scan of v0.146 layout names, the Go
+//! implementation's lookup scorer, base template resolution, escaping by output format and
+//! loading into one Tera instance.
 //!
 //! - [`LayoutStore::scan`] reads the layouts component of the [`Vfs`](ssg_vfs::Vfs) (the
 //!   project, then the themes) plus the embedded templates, classifies every file by its
 //!   v0.146 name ([`TemplateRole`]) and refuses legacy names (`_default/`, `partials/`,
 //!   `shortcodes/`, `taxonomy/list`, `term/term`, `X-baseof`, `index`) with the name to use, and
 //!   files with Go-template syntax.
-//! - [`LayoutStore::select`] is Hugo's scorer over the templates from the root down to a
+//! - [`LayoutStore::select`] is Go's scorer over the templates from the root down to a
 //!   page's path, followed by base resolution for layouts that begin with
 //!   `{% extends "baseof.html" %}`; [`LayoutStore::shortcode`], [`LayoutStore::hook`] and
 //!   [`LayoutStore::partial`] look up the other roles.

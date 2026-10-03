@@ -50,7 +50,7 @@ fn docs_site_builds_without_warnings() {
         "reference/functions/strings/replace/index.html",
         "reference/objects/page/index.html",
         "commands/fugo-build/index.html",
-        "coming-from-hugo/templates/index.html",
+        "migrating/templates/index.html",
     ] {
         assert!(public.join(f).is_file(), "{f} was not written");
     }

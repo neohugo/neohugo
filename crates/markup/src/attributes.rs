@@ -1,12 +1,12 @@
-//! Hugo's `{…}` attribute syntax (goldmark's attribute grammar), used after headings, on a
-//! line after a block (`attribute.block`) and in code-fence info strings.
+//! The Go implementation's `{…}` attribute syntax (goldmark's attribute grammar), used after
+//! headings, on a line after a block (`attribute.block`) and in code-fence info strings.
 //!
 //! ```text
 //! attributes := "{" (attribute ","?)* "}"
 //! attribute  := "#" id | "." class | name "=" value
 //! value      := string | number | "true" | "false" | "null" | word | "[" value ("," value)* "]"
 //! ```
-//! Repeated classes are joined with a space. Values become [`Value`]s the way Hugo's
+//! Repeated classes are joined with a space. Values become [`Value`]s the way Go's
 //! attribute holder converts them: names lower-cased, `on*` event handlers dropped, arrays
 //! turned into 0-based `[from, to]` line ranges (`hl_lines=[2, "4-5"]`).
 
@@ -33,7 +33,7 @@ pub(crate) struct Attr {
     pub value: AttrValue,
 }
 
-/// An attribute value Hugo cannot represent (`null`).
+/// An attribute value the Go implementation cannot represent (`null`).
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
 #[error("attribute {name:?}: null values are not supported")]
 pub(crate) struct NullValue {
@@ -159,7 +159,7 @@ impl Parser<'_> {
                 "null" => AttrValue::Null,
                 w => AttrValue::Str(w.to_owned()),
             }),
-            // Objects (`{…}`) are not supported by Hugo's attribute holder either.
+            // Objects (`{…}`) are not supported by Go's attribute holder either.
             _ => None,
         }
     }
@@ -271,7 +271,7 @@ pub(crate) enum Owner {
 /// Attributes converted for templates: `(attributes, options)`, both in source order.
 pub(crate) type Converted = (Vec<(String, Value)>, Vec<(String, Value)>);
 
-/// Converts parsed attributes the way Hugo exposes them to templates.
+/// Converts parsed attributes the way the Go implementation exposes them to templates.
 pub(crate) fn convert(attrs: &[Attr], owner: Owner) -> Result<Converted, NullValue> {
     let mut plain = Vec::new();
     let mut options = Vec::new();

@@ -84,17 +84,17 @@ cargo build --release --locked -p ssg-cli
 The binary is `target/release/fugo`. See [Development](/contribute/development/) for the
 workspace and its tests.
 
-## Optional tools
+## npm packages
 
-Most sites need nothing else. Three asset pipelines run Node.js tools, looked up when a site
-uses them:
+You do not need Node.js or npm. List the npm packages a site uses in `package.json`. fugo
+installs them when it builds, and runs Tailwind and Babel with its built-in JavaScript runtime:
 
-| Pipeline | Tool | Install |
-|---|---|---|
-| [`postcss`](/asset-pipelines/postcss/) | `postcss` (`postcss-cli`) | `npm install -D postcss postcss-cli` |
-| [`tailwind`](/asset-pipelines/tailwind-css/) | `tailwindcss` (`@tailwindcss/cli`) | `npm install -D tailwindcss @tailwindcss/cli` |
-| [`babel`](/asset-pipelines/babel/) | `babel` (`@babel/cli`) | `npm install -D @babel/core @babel/cli` |
+| Pipeline | Add to `devDependencies` |
+|---|---|
+| [`tailwind`](/asset-pipelines/tailwind-css/) | `tailwindcss`, `@tailwindcss/cli` |
+| [`babel`](/asset-pipelines/babel/) | `@babel/core`, `@babel/cli` |
 
-fugo looks for each in the project's `node_modules/.bin`, then in `FUGO_NODE_MODULES`, then on
-your `PATH`; `FUGO_POSTCSS_BIN`, `FUGO_TAILWINDCSS_BIN` and `FUGO_BABEL_BIN` name a binary
-directly.
+See [npm packages](/asset-pipelines/npm-packages/). The JavaScript runtime makes the binary
+larger. `cargo build --release --locked -p ssg-cli --no-default-features --features goat,math`
+builds fugo without it. That build runs Tailwind and Babel with Node.js from an installed
+`node_modules`.

@@ -66,7 +66,7 @@ id)` is the value of any store resource; `post_processed_view(store, id)` of `po
 media type are final, so its view is built without computing it. A `fingerprint` of a pending
 resource has provisional links and no integrity: its view carries `__nh_pp_<n>_<field>__`
 placeholders for `rel_permalink`, `permalink` and `data.integrity` (`ResourceStore::post_process`),
-so the output is held and patched in E5 (Hugo's laziness; a PostCSS purge). The `fingerprint`
+so the output is held and patched in E5 (the Go implementation's laziness; Tailwind reading the stats file). The `fingerprint`
 filter computes the others at the call (`ResourceStore::waits_for_e5`), so their views are final. `width`
 and `height` are known for every image (`ResourceStore::image_size`): a processed image's
 planned size, else the size in the source's header (read once per file, no pixels decoded);

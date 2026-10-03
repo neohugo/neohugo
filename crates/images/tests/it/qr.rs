@@ -1,19 +1,24 @@
-//! QR codes against Hugo's: the golden images of `tpl/images/images_integration_test.go`
-//! (`TestImagesGoldenFuncs`) byte for byte, and the content hashes `TestQR` asserts.
+//! QR codes against the Go implementation's: the golden images of
+//! `tpl/images/images_integration_test.go` (`TestImagesGoldenFuncs`) byte for byte, and the content
+//! hashes `TestQR` asserts.
 
 use ssg_images::{QrLevel, qr_modules, qr_png};
 use ssg_testkit::fixture::repo_file;
 use xxhash_rust::xxh64::xxh64;
 
-/// `images.QR "https://gohugo.io"` with the options of `TestImagesGoldenFuncs`.
+/// The text the Go implementation's QR tests encode (the recorded golden images and hashes are
+/// of it).
+const GO_TEST_URL: &str = "https://gohugo.io";
+
+/// `images.QR GO_TEST_URL` with the options of `TestImagesGoldenFuncs`.
 #[test]
-fn equal_to_hugo_s_golden_images() {
+fn equal_to_the_go_golden_images() {
     let dir = repo_file("tpl/images/testdata/images_golden/funcs");
     for (golden, level, scale) in [
         ("qr-default.png", QrLevel::Medium, 4),
         ("qr-level-high_scale-6.png", QrLevel::High, 6),
     ] {
-        let ours = qr_png("https://gohugo.io", level, scale).expect("qr");
+        let ours = qr_png(GO_TEST_URL, level, scale).expect("qr");
         let go = std::fs::read(dir.join(golden)).expect("golden");
         assert!(
             ours == go,
@@ -24,10 +29,10 @@ fn equal_to_hugo_s_golden_images() {
     }
 }
 
-/// `TestQR`: `{{ .Content | hash.XxHash }}` of `images.QR "https://gohugo.io"` per option map
+/// `TestQR`: `{{ .Content | hash.XxHash }}` of `images.QR GO_TEST_URL` per option map
 /// (level, scale).
 #[test]
-fn equal_to_the_content_hashes_of_hugo_s_test() {
+fn equal_to_the_content_hashes_of_the_go_test() {
     for (level, scale, hash) in [
         (QrLevel::Medium, 4, "6ccacf8056c41475"),
         (QrLevel::Low, 2, "c29338c3d105b156"),
@@ -35,7 +40,7 @@ fn equal_to_the_content_hashes_of_hugo_s_test() {
         (QrLevel::Quartile, 5, "2d15d6dcb861b5da"),
         (QrLevel::High, 6, "113c45f2c091bc4d"),
     ] {
-        let png = qr_png("https://gohugo.io", level, scale).expect("qr");
+        let png = qr_png(GO_TEST_URL, level, scale).expect("qr");
         assert_eq!(
             format!("{:016x}", xxh64(&png, 0)),
             hash,
@@ -44,14 +49,14 @@ fn equal_to_the_content_hashes_of_hugo_s_test() {
     }
 }
 
-/// The sizes Hugo's `qr` shortcode test prints: `(modules + 8) · scale`.
+/// The sizes the Go implementation's `qr` shortcode test prints: `(modules + 8) · scale`.
 #[test]
 fn sizes() {
     let side =
         |text: &str, level, scale: usize| (qr_modules(text, level).expect("qr").size + 8) * scale;
-    assert_eq!(side("https://gohugo.io", QrLevel::High, 4), 148);
-    assert_eq!(side("https://gohugo.io\"", QrLevel::Medium, 4), 132);
-    let png = qr_png("https://gohugo.io", QrLevel::High, 4).expect("qr");
+    assert_eq!(side(GO_TEST_URL, QrLevel::High, 4), 148);
+    assert_eq!(side(&format!("{GO_TEST_URL}\""), QrLevel::Medium, 4), 132);
+    let png = qr_png(GO_TEST_URL, QrLevel::High, 4).expect("qr");
     let (size, format) = ssg_images::probe(&png, "qr").expect("probe");
     assert_eq!(size, (148, 148));
     assert_eq!(format, ssg_images::ImageFormat::Png);

@@ -4,7 +4,7 @@
 use std::io::{Read as _, Write as _};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
-use std::sync::{Condvar, Mutex, PoisonError};
+use std::sync::{Condvar, Mutex, OnceLock, PoisonError};
 
 use ssg_vfs::Component;
 
@@ -14,8 +14,6 @@ use crate::store::ResourceStore;
 /// An external tool of the pipes.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum Tool {
-    /// `postcss` (`postcss-cli`).
-    PostCss,
     /// `tailwindcss` (`@tailwindcss/cli`, v4).
     TailwindCss,
     /// `babel` (`@babel/cli`).
@@ -23,66 +21,54 @@ pub enum Tool {
 }
 
 impl Tool {
-    /// The binary's name (`postcss`), as `security.exec.allow` matches it.
+    /// The binary's name (`tailwindcss`), as `security.exec.allow` matches it.
     #[must_use]
     pub const fn binary(self) -> &'static str {
         match self {
-            Self::PostCss => "postcss",
             Self::TailwindCss => "tailwindcss",
             Self::Babel => "babel",
         }
     }
 
-    /// The environment variable that names the binary explicitly
-    /// ([`ToolPaths::from_env`]).
+    /// The npm package whose program ([`Tool::binary`]) the tool is.
     #[must_use]
-    pub const fn env_var(self) -> &'static str {
+    pub const fn package(self) -> &'static str {
         match self {
-            Self::PostCss => ssg_base::env_var!("POSTCSS_BIN"),
-            Self::TailwindCss => ssg_base::env_var!("TAILWINDCSS_BIN"),
-            Self::Babel => ssg_base::env_var!("BABEL_BIN"),
+            Self::TailwindCss => "@tailwindcss/cli",
+            Self::Babel => "@babel/cli",
         }
     }
 }
 
-/// Where the tools are looked up.
+/// The runner of [`ToolPaths::of_process`] ([`set_package_runner`]).
+static RUNNER: OnceLock<PathBuf> = OnceLock::new();
+
+/// Makes [`ToolPaths::of_process`] run the tools' npm packages with `runner`: the binary itself,
+/// when it embeds the JavaScript runtime (`ssg-npm`). Only the first call counts.
+pub fn set_package_runner(runner: PathBuf) {
+    let _ = RUNNER.set(runner);
+}
+
+/// Where the tools are looked up: the project's `node_modules`, then these.
 #[derive(Clone, Debug, Default)]
 pub struct ToolPaths {
-    pub postcss: Option<PathBuf>,
-    pub tailwindcss: Option<PathBuf>,
-    pub babel: Option<PathBuf>,
-    /// `node_modules` directories searched after the project's own (their `.bin`), e.g.
-    /// `tools/dev/node_modules` installed by `tools/dev/node.sh`. Also added to
-    /// `NODE_PATH` when they exist.
+    /// `node_modules` directories searched after the project's own (tests set them; the
+    /// binary has none). Also added to `NODE_PATH` when they exist.
     pub node_modules: Vec<PathBuf>,
+    /// The program that runs an npm package's program with the embedded JavaScript runtime,
+    /// as `<runner> __run-package <node_modules> <package> <bin> [args…]`
+    /// ([`ssg_base::RUN_PACKAGE_COMMAND`]). Without one, a package's program runs from
+    /// `node_modules/.bin`, which needs Node.js.
+    pub runner: Option<PathBuf>,
 }
 
 impl ToolPaths {
-    /// Explicit binaries from `FUGO_POSTCSS_BIN`, `FUGO_TAILWINDCSS_BIN` and
-    /// `FUGO_BABEL_BIN`, and `node_modules` directories from `FUGO_NODE_MODULES`
-    /// (a path list).
+    /// The process's: no extra `node_modules`, the runner of [`set_package_runner`].
     #[must_use]
-    pub fn from_env() -> Self {
-        let var = |name: &str| {
-            std::env::var_os(name)
-                .filter(|v| !v.is_empty())
-                .map(PathBuf::from)
-        };
+    pub fn of_process() -> Self {
         Self {
-            postcss: var(Tool::PostCss.env_var()),
-            tailwindcss: var(Tool::TailwindCss.env_var()),
-            babel: var(Tool::Babel.env_var()),
-            node_modules: std::env::var_os(ssg_base::env_var!("NODE_MODULES"))
-                .map(|v| std::env::split_paths(&v).collect())
-                .unwrap_or_default(),
-        }
-    }
-
-    fn explicit(&self, tool: Tool) -> Option<&Path> {
-        match tool {
-            Tool::PostCss => self.postcss.as_deref(),
-            Tool::TailwindCss => self.tailwindcss.as_deref(),
-            Tool::Babel => self.babel.as_deref(),
+            node_modules: Vec::new(),
+            runner: RUNNER.get().cloned(),
         }
     }
 }
@@ -126,46 +112,83 @@ impl Drop for SlotGuard<'_> {
     }
 }
 
-/// The binary of `tool`: the explicit path, `<project>/node_modules/.bin/<name>`, each extra
-/// `node_modules/.bin/<name>`, then `PATH` (of the inherited environment).
-pub(super) fn locate(env: &TransformEnv, tool: Tool) -> Result<PathBuf, PipeError> {
+/// How a tool runs.
+#[derive(Debug)]
+pub(super) enum Program {
+    /// A `node_modules/.bin` entry (Node.js runs it).
+    Binary(PathBuf),
+    /// The tool's package in `node_modules`, run by the runner ([`ToolPaths::runner`]).
+    Package {
+        runner: PathBuf,
+        node_modules: PathBuf,
+    },
+}
+
+impl Program {
+    /// The command, without the tool's arguments.
+    fn command(&self, tool: Tool) -> Command {
+        match self {
+            Self::Binary(path) => Command::new(path),
+            Self::Package {
+                runner,
+                node_modules,
+            } => {
+                let mut c = Command::new(runner);
+                c.arg(ssg_base::RUN_PACKAGE_COMMAND)
+                    .arg(node_modules)
+                    .args([tool.package(), tool.binary()]);
+                c
+            }
+        }
+    }
+
+    /// The executable (for errors).
+    fn path(&self) -> &Path {
+        match self {
+            Self::Binary(path) => path,
+            Self::Package { runner, .. } => runner,
+        }
+    }
+}
+
+/// How `tool` runs: in the project's `node_modules` and then in each extra one, the tool's
+/// package with the runner (when there is one) or its `.bin` entry. A program on `PATH` does
+/// not count: the tools come from `package.json`.
+pub(super) fn locate(env: &TransformEnv, tool: Tool) -> Result<Program, PipeError> {
     let name = tool.binary();
-    let mut candidates: Vec<PathBuf> = Vec::new();
-    if let Some(p) = env.tools.explicit(tool) {
-        candidates.push(p.to_owned());
-    }
-    candidates.push(env.project_dir.join("node_modules/.bin").join(name));
-    candidates.extend(
-        env.tools
-            .node_modules
-            .iter()
-            .map(|d| d.join(".bin").join(name)),
-    );
-    if let Some((_, path)) = env.os_env.iter().find(|(k, _)| k == "PATH") {
-        candidates.extend(std::env::split_paths(path).map(|d| d.join(name)));
-    }
-    if let Some(found) = candidates.iter().find(|p| p.is_file()) {
-        return Ok(found.clone());
+    let mut searched: Vec<PathBuf> = Vec::new();
+    for node_modules in std::iter::once(env.project_dir.join("node_modules"))
+        .chain(env.tools.node_modules.iter().cloned())
+    {
+        if let Some(runner) = &env.tools.runner {
+            let package = node_modules.join(tool.package());
+            if package.join("package.json").is_file() {
+                return Ok(Program::Package {
+                    runner: runner.clone(),
+                    node_modules,
+                });
+            }
+            searched.push(package);
+        }
+        let bin = node_modules.join(".bin").join(name);
+        if bin.is_file() {
+            return Ok(Program::Binary(bin));
+        }
+        searched.push(bin);
     }
     Err(PipeError::ToolNotFound {
         tool: name,
-        env: tool.env_var(),
-        searched: candidates
+        package: tool.package(),
+        searched: searched
             .iter()
-            .take(3)
+            .take(4)
             .map(|p| p.display().to_string())
-            .chain(
-                env.os_env
-                    .iter()
-                    .any(|(k, _)| k == "PATH")
-                    .then(|| "PATH".to_owned()),
-            )
             .collect::<Vec<_>>()
             .join(", "),
     })
 }
 
-/// A config file of a tool (`postcss.config.js`): absolute as given, else the project root's
+/// A config file of a tool (`babel.config.js`): absolute as given, else the project root's
 /// file mounted at `assets/_jsconfig/<name>`, else `<project>/<name>`.
 pub(super) fn config_file(
     store: &ResourceStore,
@@ -223,11 +246,6 @@ fn environment(store: &ResourceStore, env: &TransformEnv) -> Vec<(String, String
     set(&mut vars, "PWD", env.project_dir.display().to_string());
     set(
         &mut vars,
-        ssg_base::env_var!("ENVIRONMENT"),
-        env.environment.clone(),
-    );
-    set(
-        &mut vars,
         ssg_base::env_var!("PUBLISHDIR"),
         env.publish_dir.display().to_string(),
     );
@@ -263,15 +281,16 @@ pub(super) fn run(
     if !env.security.exec_allow.accepts(name) {
         return Err(PipeError::ExecDenied { tool: name });
     }
-    let path = locate(env, tool)?;
+    let program = locate(env, tool)?;
     let vars = environment(store, env);
     let _slot = env.slots.acquire();
     let spawn_err = |source| PipeError::Spawn {
         tool: name,
-        path: path.clone(),
+        path: program.path().to_owned(),
         source,
     };
-    let mut child = Command::new(&path)
+    let mut child = program
+        .command(tool)
         .args(args)
         .current_dir(&env.project_dir)
         .env_clear()

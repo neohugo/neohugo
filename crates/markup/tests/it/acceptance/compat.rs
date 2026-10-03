@@ -1,15 +1,15 @@
-//! goldmark structure the docs site depends on, against Hugo's output: pipe tables as a
-//! paragraph transformer (lazy continuation lines, padded headers, rows, escaped pipes, list
-//! tightness, task items, the lines before a header, a setext underline or a definition after a
-//! table), the context markers of `.RenderShortcodes` includes and the empty text blocks of link
-//! reference definitions.
+//! goldmark structure the docs site depends on, against the Go implementation's output: pipe
+//! tables as a paragraph transformer (lazy continuation lines, padded headers, rows, escaped
+//! pipes, list tightness, task items, the lines before a header, a setext underline or a
+//! definition after a table), the context markers of `.RenderShortcodes` includes and the
+//! empty text blocks of link reference definitions.
 //!
 //! The documents and their expected HTML are `tests/data/compat/compat.json`, written by
-//! `tests/data/compat/mdcompat.go.txt` (its header has the recipe): Hugo's goldmark converter
-//! at 44529028 with the markup configuration `default` of the oracles' `mdoracle.Configs` and
-//! the table and code block replicas of `mdoracle.ReplicaRenderers`. `<<WRAP:…:WRAP>>` in a
-//! document is an include: `hugocontext.Wrap`, its further lines indented like an indented
-//! shortcode call.
+//! `tests/data/compat/mdcompat.go.txt` (its header has the recipe): the Go implementation's
+//! goldmark converter at 44529028 with the markup configuration `default` of the oracles'
+//! `mdoracle.Configs` and the table and code block replicas of `mdoracle.ReplicaRenderers`.
+//! `<<WRAP:…:WRAP>>` in a document is an include (wrapped in the Go implementation's context
+//! markers), its further lines indented like an indented shortcode call.
 
 use std::path::Path;
 
@@ -19,7 +19,7 @@ use ssg_testkit::fixture::read_json;
 
 use super::render_with;
 
-/// Hugo's code block replica of the oracle.
+/// The Go implementation's code block replica of the oracle.
 struct Replica;
 
 fn esc(s: &str) -> String {
@@ -65,10 +65,10 @@ fn expand(md: &str) -> String {
     s
 }
 
-/// Hugo's empty row for the closing context marker after a table (not reproduced).
+/// Go's empty row for the closing context marker after a table (not reproduced).
 const MARKER_ROW: &str = "\n      <tr>\n          <td></td>\n          <td></td>\n      </tr>";
 
-/// A document of `compat.json` and Hugo's HTML for it.
+/// A document of `compat.json` and the Go implementation's HTML for it.
 #[derive(Deserialize)]
 struct Case {
     name: String,
@@ -95,5 +95,5 @@ fn goldmark_structure() {
             failed.push(c.name.as_str());
         }
     }
-    assert!(failed.is_empty(), "differ from Hugo: {failed:?}");
+    assert!(failed.is_empty(), "differ from Go: {failed:?}");
 }

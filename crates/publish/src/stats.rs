@@ -1,5 +1,5 @@
 //! `build_stats.json`: the tags, classes and ids used by the HTML outputs (`[build.buildStats]`),
-//! read by CSS purgers (PostCSS purge, Tailwind's `@source`).
+//! read by external CSS tools (Tailwind's `@source`).
 //!
 //! Every start tag of an HTML output is recorded with its `class` and `id` values. The content
 //! of `pre`, `textarea`, `script` and `style` elements is skipped (highlighted code and inline
@@ -63,7 +63,7 @@ impl HtmlElements {
                         // The text ends at the end tag of the tokenizer's own last start tag
                         // (its name, lower-cased ASCII only), so the state switches only when
                         // that is `name`: `<SCRİPT>` is recorded as `script`, but its content is
-                        // not skipped, as with Hugo's `(?i)` match.
+                        // not skipped, as with Go's `(?i)` match.
                         if let Some(state) = text_state.filter(|_| tag.name[..] == *name.as_bytes())
                         {
                             tokenizer.set_state(state);
@@ -247,7 +247,7 @@ impl StatsFile {
     pub fn to_json(&self) -> String {
         let mut s = serde_json::to_string_pretty(self).unwrap_or_default();
         s.push('\n');
-        // JSON allows these raw, but JavaScript string literals did not; Hugo escapes them.
+        // JSON allows these raw, but JavaScript string literals did not; Go escapes them.
         s.replace('\u{2028}', "\\u2028")
             .replace('\u{2029}', "\\u2029")
     }

@@ -37,8 +37,8 @@
     {%- if f.site_bound %}
       {%- set facts = facts | concat(with=["- **Site-bound:** reads the site or the page being rendered; in a component, pass `page=` or declare `@__nh`."]) %}
     {%- endif %}
-    {%- if f.hugo %}
-      {%- set facts = facts | concat(with=["- **Hugo:** " ~ (["`" ~ h ~ "`" for h in f.hugo] | join(sep=", ")) ~ "."]) %}
+    {%- if f.go %}
+      {%- set facts = facts | concat(with=["- **Go template:** " ~ (["`" ~ h ~ "`" for h in f.go] | join(sep=", ")) ~ "."]) %}
     {%- endif %}
     {%- set md = "```text {title=\"Signature\"}\n" ~ f.signature ~ "\n```\n\n" ~ f.doc ~ "\n\n" ~ args ~ "## Details\n\n" ~ (facts | join(sep="\n")) ~ "\n" %}
     {{- add_page(page={

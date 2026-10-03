@@ -1,13 +1,13 @@
-//! Summaries and derived text (Hugo `.Summary`, `.Truncated`, `.Plain`, word counts).
+//! Summaries and derived text (Go's `.Summary`, `.Truncated`, `.Plain`, word counts).
 //!
-//! Hugo cuts summaries from the rendered HTML: at the summary divider (which the content phase
+//! Go cuts summaries from the rendered HTML: at the summary divider (which the content phase
 //! turns into its own paragraph, [`DIVIDER_SOURCE`]), else from the front matter `summary`,
 //! else automatically after whole paragraphs once `summaryLength` words are counted.
 
 use std::ops::Range;
 
 /// The summary divider as the expanded Markdown carries it: its own paragraph, so that the
-/// rendered HTML holds it as `<p>` + [`DIVIDER`] + `</p>` (Hugo does the same).
+/// rendered HTML holds it as `<p>` + [`DIVIDER`] + `</p>` (Go does the same).
 pub const DIVIDER_SOURCE: &str = "\n\nNHSUMMARYDIVIDERX\n\n";
 /// The divider token looked for in the rendered HTML.
 pub const DIVIDER: &str = "NHSUMMARYDIVIDERX";
@@ -111,10 +111,10 @@ fn short_div_before(t: &str) -> Option<usize> {
     (rest.chars().count() <= 1 && !rest.contains('>')).then_some(at)
 }
 
-/// Hugo's automatic summary: whole paragraphs until `words` words are counted. Words that look
+/// Go's automatic summary: whole paragraphs until `words` words are counted. Words that look
 /// like HTML tags or attributes are not counted; with `cjk`, a word of non-ASCII text counts
 /// each character; a paragraph is counted without its last character and with the `>` that ends the
-/// previous one (Hugo's scan).
+/// previous one (Go's scan).
 #[must_use]
 pub fn auto(html: &str, words: usize, cjk: bool) -> Split {
     let whole = |truncated| Split {
@@ -133,7 +133,7 @@ pub fn auto(html: &str, words: usize, cjk: bool) -> Split {
     let mut count = 0;
     let mut at = 0;
     while let Some(i) = html[at..].find(&close) {
-        // Hugo counts the paragraph without its last character: a one-character last word
+        // Go counts the paragraph without its last character: a one-character last word
         // is not a word, and a CJK last word counts one character less.
         let para = &html[at..at + i];
         let counted = para
@@ -152,7 +152,7 @@ pub fn auto(html: &str, words: usize, cjk: bool) -> Split {
                 truncated: end < html.len(),
             };
         }
-        // Hugo resumes at the `>` of this `</p>`, which then sticks to the next paragraph's
+        // Go resumes at the `>` of this `</p>`, which then sticks to the next paragraph's
         // first word (`></blockquote>` counts as a word).
         at = end - 1;
     }
@@ -190,7 +190,7 @@ fn is_html_token(w: &str) -> bool {
         .is_some_and(|(name, v)| letters(name) && v.starts_with(['"', '\'']))
 }
 
-/// Hugo's `.Plain`: the text of `html` without tags (paragraph ends and `<br>` become
+/// Go's `.Plain`: the text of `html` without tags (paragraph ends and `<br>` become
 /// newlines, other newlines spaces), runs of white space kept as their first character.
 #[must_use]
 pub fn plain(html: &str) -> String {
@@ -207,7 +207,7 @@ pub fn plain(html: &str) -> String {
     out
 }
 
-/// Hugo's `.WordCount`, `.FuzzyWordCount` and `.ReadingTime` of `plain`.
+/// Go's `.WordCount`, `.FuzzyWordCount` and `.ReadingTime` of `plain`.
 #[must_use]
 pub fn counts(plain: &str, cjk: bool) -> (usize, usize, usize) {
     let words = ssg_markup::text::word_count(plain, cjk);

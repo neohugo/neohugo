@@ -1,4 +1,4 @@
-//! The static copy against the Go oracle `commands/staticcopy` (Hugo's `copyStatic` with
+//! The static copy against the Go oracle `commands/staticcopy` (Go's `copyStatic` with
 //! spf13/fsync): file bytes, modes and modification times of the publish directory after the
 //! sync, for plain, mounted, themed, symlinked and pre-existing trees and the `noTimes`,
 //! `noChmod` and `cleanDestinationDir` settings.
@@ -85,7 +85,7 @@ fn set_mtime(p: &Path, t: i64) {
 fn build(site: &Path, entries: &[Entry], base_time: i64) {
     fs::create_dir_all(site).unwrap();
     let mut times: Vec<(std::path::PathBuf, i64)> = Vec::new();
-    // Go's `hugo.*` configuration files are our `config.*`.
+    // The Go program's configuration files are our `config.*`.
     for e in entries {
         let p = site.join(ssg_testkit::fixture::local_path(&e.path));
         if let Some(parent) = p.parent() {
@@ -247,7 +247,7 @@ fn staticcopy_oracle() {
             .map(|n| (n.path.clone(), n))
             .collect();
         // Go recorded the oracle on Linux; on macOS the static files are published under the
-        // NFC form of their names, as Hugo publishes them there.
+        // NFC form of their names, as Go publishes them there.
         let want: BTreeMap<String, &Node> = want_tree
             .iter()
             .map(|n| (entry_name(&n.path, NFC_NAMES).into_owned(), n))

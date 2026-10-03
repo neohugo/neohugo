@@ -11,7 +11,7 @@
 it (the file's base name, or the directory name) and the FNV-1a hash of its `*.expected` tokens
 (type and text of each coalesced token, joined by NUL: the hash `tests/it/lexers.rs` computes);
 the inputs of `lexers/testdata/analysis/` are added without tokens. Every case also records the
-lexer Chroma's `lexers.Analyse` picks for its text (Hugo's `guessSyntax`), from the oracle.
+lexer Chroma's `lexers.Analyse` picks for its text (the Go implementation's `guessSyntax`), from the oracle.
 """
 import gzip
 import json

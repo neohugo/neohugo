@@ -15,7 +15,7 @@ use ssg_base::text;
 use crate::Model;
 use crate::tree::PageRole;
 
-/// Hugo's language order of two pages.
+/// Go's language order of two pages.
 fn language_order(m: &Model, a: PageId, b: PageId) -> Ordering {
     let (pa, pb) = (&m.pages[a], &m.pages[b]);
     let (wa, wb) = (

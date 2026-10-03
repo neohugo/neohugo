@@ -13,9 +13,9 @@ use crate::tag;
 /// Languages collated with the root order instead of their CLDR tailoring.
 ///
 /// CLDR 24 gave Thai `[reorder Thai]` and `alternate=shifted`: Thai sorts before Latin and
-/// spaces and punctuation are ignored. Hugo (x/text, CLDR 23) sorts a Thai site's mixed lists
+/// spaces and punctuation are ignored. Go (x/text, CLDR 23) sorts a Thai site's mixed lists
 /// Latin first, and the root order reproduces its order for the strings of the reference
-/// sites, once PAIYANNOI is placed as Hugo places it ([`Tailoring::PaiyannoiAsPunctuation`]).
+/// sites, once PAIYANNOI is placed as Go places it ([`Tailoring::PaiyannoiAsPunctuation`]).
 const ROOT_ORDER: &[&str] = &["th"];
 
 /// THAI CHARACTER PAIYANNOI (U+0E2F), the abbreviation mark (`กรุงเทพฯ`).
@@ -29,7 +29,7 @@ const PAIYANNOI_STAND_IN: &str = "!";
 enum Tailoring {
     None,
     /// Thai: PAIYANNOI sorts as the punctuation mark `!` (before digits and letters), as in
-    /// Hugo's Thai collation (x/text, CLDR 23); the root order has it among the Thai letters.
+    /// Go's Thai collation (x/text, CLDR 23); the root order has it among the Thai letters.
     /// Strings that are equal under this rule are ordered by the untailored order, so distinct
     /// strings stay distinct.
     PaiyannoiAsPunctuation,

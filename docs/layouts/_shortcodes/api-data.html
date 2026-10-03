@@ -23,10 +23,10 @@
 | {{ h.hook | safe }} | {{ (["`" ~ f ~ "`" for f in h.fields] | join(sep=", ")) | safe }} |
 {% endfor %}
 {%- elif table == "syntax" %}
-| Hugo | Tera |
+| Go | Tera |
 |---|---|
 {% for s in api.syntax -%}
-| {{ (s.hugo | replace(from="|", to="\\|")) | safe }} | {{ (s.tera | replace(from="|", to="\\|")) | safe }} |
+| {{ (s.go | replace(from="|", to="\\|")) | safe }} | {{ (s.tera | replace(from="|", to="\\|")) | safe }} |
 {% endfor %}
 {%- elif table == "conversion-rules" %}
 {%- for r in api.conversion_rules %}

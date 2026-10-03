@@ -56,7 +56,7 @@ pub(crate) fn value_text(v: &Value) -> String {
     }
 }
 
-/// Every attribute, as Hugo writes a heading's (`on*` handlers are already gone; values
+/// Every attribute, as Go writes a heading's (`on*` handlers are already gone; values
 /// that are not strings, numbers or booleans are written empty).
 pub(crate) fn all_attrs(out: &mut String, attrs: &[(String, Value)]) {
     for (k, v) in attrs {

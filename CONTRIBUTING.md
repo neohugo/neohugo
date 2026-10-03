@@ -4,12 +4,12 @@ We welcome contributions to fugo of any kind, including documentation, bug repor
 issues, feature requests, feature implementations, pull requests, answering questions in the
 discussions, helping to manage issues, etc.
 
-fugo began as a fork of [Hugo](https://github.com/gohugoio/hugo) and is now a separate
-project written in Rust; it is not affiliated with the Hugo project ([README](README.md#relationship-to-hugo)).
+fugo began as a fork of another static site generator and was rewritten in Rust; see
+[NOTICE](NOTICE) for the attribution of the derived material ([README](README.md#origin-and-attribution)).
 GitHub's guide to [contributing to a project](https://docs.github.com/en/get-started/exploring-projects-on-github/contributing-to-a-project)
 helps if you're unfamiliar with GitHub or contributing to open source projects in general.
 
-*`docs/` is fugo's documentation site ([getfugo.github.io](https://getfugo.github.io)), built with fugo; `docs/rust-port/` holds the notes of the Rust rewrite. `testdata/hugo-docs/` is a copy of Hugo's documentation that the tests read byte for byte: changes to Hugo's documentation belong in Hugo's [hugoDocs](https://github.com/gohugoio/hugoDocs) repository.*
+*`docs/` is fugo's documentation site ([getfugo.github.io](https://getfugo.github.io)), built with fugo; `docs/rust-port/` holds the notes of the Rust rewrite. `testdata/legacy-docs/` is a frozen copy of the Go build's documentation site that the tests read byte for byte: do not edit it.*
 
 *Changes to the codebase **and** related documentation, e.g. for a new feature, should still use a single pull request.*
 
@@ -26,8 +26,7 @@ helps if you're unfamiliar with GitHub or contributing to open source projects i
 ## Asking Support Questions
 
 Ask questions about fugo in the [discussions](https://github.com/getfugo/fugo/discussions)
-of this repository; questions about Hugo itself belong in Hugo's
-[discussion forum](https://discourse.gohugo.io).
+of this repository.
 Please don't use the GitHub issue tracker to ask questions.
 
 ## Reporting Issues
@@ -37,19 +36,15 @@ If you believe you have found a defect in fugo, use the
 the problem. If you're not sure if it's a bug or not,
 start by asking in the [discussion forum](https://github.com/getfugo/fugo/discussions).
 When reporting the issue, please provide the version of fugo in use (`fugo
-version`), your operating system, and whether Hugo behaves differently on the same site.
-Defects of Hugo itself, its documentation or its themes site go to Hugo's trackers:
-
-- [Hugo Issues · gohugoio/hugo](https://github.com/gohugoio/hugo/issues)
-- [Hugo Documentation Issues · gohugoio/hugoDocs](https://github.com/gohugoio/hugoDocs/issues)
-- [Hugo Website Theme Issues · gohugoio/hugoThemesSite](https://github.com/gohugoio/hugoThemesSite/issues)
+version`), your operating system, and, for a site converted from Go templates, whether a
+Go-template generator builds it differently. Report only fugo issues here.
 
 ## Code Contribution
 
 fugo is a fully featured static site generator, so any new functionality must:
 
 * be useful to many.
-* fit naturally into what fugo does: build Hugo-style sites fast.
+* fit naturally into what fugo does: build sites from Markdown content and Tera templates fast.
 * strive not to break existing sites.
 * close or update an open [issue](https://github.com/getfugo/fugo/issues)
 
@@ -77,11 +72,11 @@ To make the contribution process as seamless as possible, we ask for the followi
 
 * Go ahead and fork the project and make your changes.  We encourage pull requests to allow for review and discussion of code changes.
 * When you’re ready to create a pull request, be sure to:
-    * Make sure you may contribute the code under the [Apache License 2.0](LICENSE): by submitting a pull request you license your contribution under it (section 5 of the licence). Hugo's CLA does not apply to fugo. Code or data copied from another project needs its `PROVENANCE.md` row (above).
+    * Make sure you may contribute the code under the [Apache License 2.0](LICENSE): by submitting a pull request you license your contribution under it (section 5 of the licence). There is no separate contributor licence agreement. Code or data copied from another project needs its `PROVENANCE.md` row (above).
     * Have test cases for the new code. If you have questions about how to do this, please ask in your pull request.
     * Run `cargo fmt --all`.
-    * Add documentation if you are adding new features or changing functionality: the crate's `README.md`, and for template functions their entry in `crates/funcs/src/spec.rs`, which generates `docs/rust-port/template-api.md`. Leave `docs/` outside `docs/rust-port/` unchanged: the tests record its files by hash.
-    * Record any change of a parity difference (a test site's output against Hugo's) in the ratchet: the baselines in `testdata/baselines/` change only through an entry in `tools/dev/changes/<task>.md` (`tools/dev/changes/README.md`; `DEVELOPMENT.md`).
+    * Add documentation if you are adding new features or changing functionality: the crate's `README.md`, and for template functions their entry in `crates/funcs/src/spec.rs`, which generates `docs/rust-port/template-api.md` and the function reference of the documentation site (`docs/`). Leave `testdata/legacy-docs/` unchanged: the tests record its files by hash.
+    * Record any change of a parity difference (a test site's output against the Go implementation's) in the ratchet: the baselines in `testdata/baselines/` change only through an entry in `tools/dev/changes/<task>.md` (`tools/dev/changes/README.md`; `DEVELOPMENT.md`).
     * Squash your commits into a single commit. `git rebase -i`. It’s okay to force update your pull request with `git push -f`.
     * Ensure that the checks under [Building and Testing Your Changes](#building-and-testing-your-changes) succeed. The CI workflow (`.github/workflows/ci.yml`) runs them on every pull request and fails the build if one fails.
     * Follow the **Git Commit Message Guidelines** below.
@@ -162,7 +157,7 @@ Now, to make a change to fugo's source:
 ### Building and Testing Your Changes
 
 `DEVELOPMENT.md` describes the workspace (layout, commands, CI and releases) and
-`docs/rust-port/HANDOFF.md` the crates, the parity gates and the deviations from Hugo.
+`docs/rust-port/HANDOFF.md` the crates, the parity gates and the deviations from the Go implementation.
 
 To build fugo (`target/release/fugo`):
 
@@ -187,13 +182,12 @@ python3 tools/dev/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
 ```
 
-Some tests need external tools: Node.js and the pinned PostCSS, Tailwind CSS and Babel. Without them a test prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install the tools once (network) and point the tests at them:
+The first build of `fugo` downloads V8's prebuilt library for its embedded JavaScript runtime (the default `npm` feature; `DEVELOPMENT.md`, "Optional features").
+
+Some tests need external tools: Node.js and the pinned Tailwind CSS and Babel. Without them a test prints `SKIPPED` and passes, so look for `SKIPPED` in the output before trusting a green run. To install the tools once (network) into `tools/dev/node_modules` of the main checkout, where the tests find them:
 
 ```bash
 tools/dev/node.sh
-N=$(tools/dev/node.sh path)
-export FUGO_NODE_MODULES=$N \
-  FUGO_POSTCSS_BIN=$N/.bin/postcss FUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss FUGO_BABEL_BIN=$N/.bin/babel
 ```
 
-The tests compare fugo with Hugo through data the Go implementation generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar`, `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`, `crates/funcs/tests/fixtures/remarshal/go.txt`, and `docs/data/docs.yaml` (written by the Go binary's `gen docshelper`). It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. The same holds for the Go outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv` (`PROVENANCE.md`). To regenerate the data of `44529028`, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/dev/fixtures2json.py`) and copy the result back.
+The tests compare fugo with the Go implementation through data it generated: the oracle fixtures (`testdata/oracle/`), the golden data of the test sites (`testdata/golden/`), `crates/build/tests/it/testsite-go.txtar`, `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`, `crates/funcs/tests/fixtures/remarshal/go.txt`, and `docs/data/docs.yaml` (written by the Go binary's `gen docshelper`). It is frozen at commit `44529028`, the last commit with the Go tree: do not edit it. The same holds for the Go outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv` (`PROVENANCE.md`). To regenerate the data of `44529028`, run the old recipe in a worktree of that commit (`git worktree add <dir> 44529028`; `testdata/golden/README.md`, `crates/highlight/README.md`, `tools/dev/fixtures2json.py`) and copy the result back.

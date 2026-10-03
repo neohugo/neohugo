@@ -5,7 +5,7 @@ use ssg_markup::NoHooks;
 use ssg_testkit::fixture::{GoString, oracle};
 
 use super::super::comrak_spike::normalize::{Fold, normalize};
-use super::{HugoCfg, Row, options, print, render_with, text};
+use super::{GoCfg, Row, options, print, render_with, text};
 
 /// The Go oracle's `deepDocs` (tools/go-oracle/nh-markup/convert at 44529028).
 fn deep_docs() -> Vec<String> {
@@ -44,7 +44,7 @@ fn deep_nesting_on_a_small_stack() {
     let got = std::thread::Builder::new()
         .stack_size(2 << 20)
         .spawn(|| {
-            let o = options(HugoCfg::Site);
+            let o = options(GoCfg::Site);
             deep_docs()
                 .iter()
                 .map(|d| render_with(d, &o, &NoHooks).html)

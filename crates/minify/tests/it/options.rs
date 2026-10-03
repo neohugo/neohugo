@@ -26,7 +26,7 @@ fn strings(items: &[&str]) -> Value {
 }
 
 #[test]
-fn defaults_are_hugos() {
+fn defaults_are_gos() {
     let o = Options::default();
     assert_eq!(o.html.comments, HtmlComments::KeepSpecial);
     assert!(o.html.keep_end_tags && o.html.keep_document_tags && o.html.keep_default_attr_vals);

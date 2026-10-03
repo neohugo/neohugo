@@ -1,6 +1,6 @@
-//! The docs corpus: every piece of code Hugo's documentation site highlights.
+//! The docs corpus: every piece of code the legacy docs site highlights.
 //!
-//! - fenced code blocks of `testdata/hugo-docs/content/**/*.md`, read through ssg-markup, with the
+//! - fenced code blocks of `testdata/legacy-docs/content/**/*.md`, read through ssg-markup, with the
 //!   language the docs `render-codeblock` hook passes to `transform.Highlight` (`html` and
 //!   `gotmpl` → `go-html-template`, `md` → `text`, else the `file` attribute's extension or
 //!   `text`) and the fence's options; `goat` fences go to the goat hook instead;
@@ -99,9 +99,9 @@ impl Hooks for Fences {
     }
 }
 
-/// The content of Hugo's documentation site (`testdata/hugo-docs/content`).
+/// The content of the legacy docs site (`testdata/legacy-docs/content`).
 pub fn docs_content() -> PathBuf {
-    ssg_testkit::fixture::hugo_docs().join("content")
+    ssg_testkit::fixture::legacy_docs().join("content")
 }
 
 fn markdown_files(dir: &Path, out: &mut Vec<PathBuf>) {
@@ -132,7 +132,7 @@ fn body(src: &str) -> &str {
     src
 }
 
-/// Shortcode escapes in examples (`{{</* x */>}}`) as Hugo leaves them after expansion.
+/// Shortcode escapes in examples (`{{</* x */>}}`) as Go leaves them after expansion.
 fn unescape_shortcodes(s: &str) -> String {
     s.replace("{{</*", "{{<")
         .replace("*/>}}", ">}}")

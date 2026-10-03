@@ -1,16 +1,15 @@
-//! The resize of disintegration/gift v1.2.1 as Hugo's smart crop analysis runs it, ported for
-//! identical results (`resize.go`, `pixels.go`, `utils.go`).
+//! The resize of disintegration/gift v1.2.1 as the Go implementation's smart crop analysis runs it,
+//! ported for identical results (`resize.go`, `pixels.go`, `utils.go`).
 //!
-//! The smart crop (`smartcrop.rs`) analyses a downscaled copy of the source, and the crop it
-//! picks depends on every value of that copy: the processing pipeline's own resizer
-//! (`fast_image_resize`, `pixels.rs`) is close to gift's but not equal, so the analysis uses
-//! This port instead. It has Hugo's resample kernels (`resources/images/resampling.go`, and
-//! gift's nearest-neighbour, box, linear and Lanczos kernels; `config.go` `imageFilters`),
-//! gift's float32 pixel getters and setters for each of Go's image types, its weights, its
-//! two-pass resize through a 16-bit temporary image, and Hugo's choice of the result's type
-//! (`doFilter`, `resources/images/image.go`). The arithmetic is float32 in Go's order and
-//! without fused multiply-adds, as Go compiles it for amd64 (the platform of the published
-//! builds).
+//! The smart crop (`smartcrop.rs`) analyses a downscaled copy of the source, and the crop it picks
+//! depends on every value of that copy: the processing pipeline's own resizer (`fast_image_resize`,
+//! `pixels.rs`) is close to gift's but not equal, so the analysis uses this port instead. It has
+//! the Go implementation's resample kernels (`resources/images/resampling.go`, and gift's
+//! nearest-neighbour, box, linear and Lanczos kernels; `config.go` `imageFilters`), gift's float32
+//! pixel getters and setters for each of Go's image types, its weights, its two-pass resize through
+//! a 16-bit temporary image, and the Go implementation's choice of the result's type (`doFilter`,
+//! `resources/images/image.go`). The arithmetic is float32 in Go's order and without fused
+//! multiply-adds, as Go compiles it for amd64 (the platform of the published builds).
 
 use crate::spec::Resample;
 
@@ -31,7 +30,7 @@ const QF16: f32 = 1.0 / 65535.0;
 // Go's image types
 
 /// How Go's decoders hold a decoded image, which decides how gift reads its pixels
-/// (`newPixelGetter`) and the type of a filtered copy (Hugo's `doFilter`).
+/// (`newPixelGetter`) and the type of a filtered copy (the Go implementation's `doFilter`).
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) enum GoType {
     /// `*image.RGBA`: 8-bit true-colour PNGs without transparency, RGB JPEGs (opaque).
@@ -55,8 +54,8 @@ pub(crate) enum GoType {
 }
 
 impl GoType {
-    /// The type of a filtered copy (Hugo's `doFilter`): the source's own for `*image.RGBA`,
-    /// `*image.NRGBA` and `*image.Gray`, else `*image.NRGBA`.
+    /// The type of a filtered copy (the Go implementation's `doFilter`): the source's own for
+    /// `*image.RGBA`, `*image.NRGBA` and `*image.Gray`, else `*image.NRGBA`.
     fn filtered(self) -> DstType {
         match self {
             Self::Rgba => DstType::Rgba,
@@ -365,7 +364,7 @@ struct Kernel {
     kernel: fn(f32) -> f32,
 }
 
-/// `bcspline` (gift's and Hugo's): Mitchell–Netravali's cubic family.
+/// `bcspline` (gift's and the Go implementation's): Mitchell–Netravali's cubic family.
 fn bcspline(x: f32, b: f32, c: f32) -> f32 {
     let x = if x < 0.0 { -x } else { x };
     if x < 1.0 {
@@ -393,12 +392,13 @@ fn sinc(x: f32) -> f32 {
     (px.sin() / px) as f32
 }
 
-/// `math.Pi*float64(x)/3.0`, the argument of the windows of Hugo's sinc filters.
+/// `math.Pi*float64(x)/3.0`, the argument of the windows of the Go implementation's sinc
+/// filters.
 fn third_pi(x: f32) -> f64 {
     std::f64::consts::PI * f64::from(x) / 3.0
 }
 
-/// `abs` then the kernel within `support`, as each of Hugo's kernels starts.
+/// `abs` then the kernel within `support`, as each of the Go implementation's kernels starts.
 fn within(x: f32, support: f32, f: impl Fn(f32) -> f32) -> f32 {
     let x = if x < 0.0 { -x } else { x };
     if x < support { f(x) } else { 0.0 }
@@ -581,8 +581,8 @@ fn resize_nearest(dst: &mut Dst, src: &Input<'_, '_>) {
     }
 }
 
-/// `gift.Resize(width, height, filter)` drawn into the type Hugo's `doFilter` gives a
-/// filtered copy of `src`, returned as smartcrop's `toRGBA` makes it (8-bit,
+/// `gift.Resize(width, height, filter)` drawn into the type the Go implementation's `doFilter`
+/// gives a filtered copy of `src`, returned as smartcrop's `toRGBA` makes it (8-bit,
 /// alpha-premultiplied RGBA). Both sides must be positive.
 pub(crate) fn resize_to_rgba(
     src: &Source<'_>,

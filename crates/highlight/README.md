@@ -1,14 +1,14 @@
 # ssg-highlight
 
 Code highlighting for fugo (T25; REWRITE_PLAN.md §1.1 decision D1, §2.1): a port of
-[Chroma](https://github.com/alecthomas/chroma) v2.19.0, the highlighter Hugo uses. Chroma's
-lexers (its XML definitions converted to Rust data, its Go-written lexers ported) run on a
-port of Chroma's
-regex-lexer engine and of the .NET regex dialect they are written in (regexp2); the tokens go
-through Chroma's HTML formatter (line structure, line numbers, highlighted lines, **Chroma class
-names** or **inline styles** from **Chroma's own style files**) inside Hugo's wrappers. The output
-is Hugo's, byte for byte. Sites keep their Chroma style sheets (the docs' `chroma.css`), and
-`hugo gen chromastyles` output can be reproduced ([`Highlight::css`]).
+[Chroma](https://github.com/alecthomas/chroma) v2.19.0, the highlighter the Go implementation
+uses. Chroma's lexers (its XML definitions converted to Rust data, its Go-written lexers ported)
+run on a port of Chroma's regex-lexer engine and of the .NET regex dialect they are written in
+(regexp2); the tokens go through Chroma's HTML formatter (line structure, line numbers,
+highlighted lines, **Chroma class names** or **inline styles** from **Chroma's own style
+files**) inside the Go implementation's wrappers. The output is the Go implementation's, byte
+for byte. Sites keep their Chroma style sheets (the docs' `chroma.css`), and the output of the
+Go program's `gen chromastyles` command can be reproduced ([`Highlight::css`]).
 
 ## API
 
@@ -36,12 +36,13 @@ pub enum TokenType { .. }  // Chroma's types: name, number, class(), parent(), c
 pub enum CssMode { AllClasses, OmitEmpty }
 ```
 
-Options follow Hugo: the site's `[markup.highlight]`, then a fence's `{…}` options (keys
-case-insensitive, `hl_lines` as markup's 0-based ranges shifted by that map's `linenostart`), or
-the function's option string / map (weakly typed like mapstructure: `"true"`, `1`, `"0x10"`).
-`linenos=table|inline` also picks the layout. A fence without `lineanchors` (site or fence)
-numbers its line ids `hl-<ordinal>-<n>`, the ordinal being `HighlightOptions::ordinal` (the
-page's code block count), as Hugo does; the function has no prefix. Invalid values are errors (`OptionsError`).
+Options follow the Go implementation: the site's `[markup.highlight]`, then a fence's `{…}`
+options (keys case-insensitive, `hl_lines` as markup's 0-based ranges shifted by that map's
+`linenostart`), or the function's option string / map (weakly typed like mapstructure: `"true"`,
+`1`, `"0x10"`). `linenos=table|inline` also picks the layout. A fence without `lineanchors`
+(site or fence) numbers its line ids `hl-<ordinal>-<n>`, the ordinal being
+`HighlightOptions::ordinal` (the page's code block count), as Go does; the function has no
+prefix. Invalid values are errors (`OptionsError`).
 
 ## How it works
 
@@ -69,7 +70,7 @@ page's code block count), as Hugo does; the function has no prefix. Invalid valu
   registry (`lexers.Get`: name, alias, then `filename.<lang>` and `<lang>` against the file
   name patterns by priority, Go's `filepath.Match`; `MatchMimeType`; `Analyse` for
   `guessSyntax`, Chroma's `fallback` lexer when nothing scores). The file name part of a
-  lookup is cached per name, as Hugo's `chromalexers.Get` caches `lexers.Get`: a language no
+  lookup is cached per name, as Go's `chromalexers.Get` caches `lexers.Get`: a language no
   lexer knows (`output`, `console`) tries every pattern once per process, not once per fence.
   The state stack is a persistent list (`stack.rs`): the zero-width-loop guard (deviations)
   and Haxe's pre-processor copy it in O(1).
@@ -90,11 +91,11 @@ page's code block count), as Hugo does; the function has no prefix. Invalid valu
   properties and compression.
 - **HTML** (`src/html.rs`): Chroma's formatter (lines split after `\n`, `line`/`cl` spans,
   `ln` inline or the `lntable` layout, `hl` lines, `lnlinks` anchors, `style` attributes with
-  sub-category/category fallback) inside Hugo's wrappers (`<div class="{wrapperClass} {class}"
-  attrs>`, `<pre tabindex="0">`, `<code class="language-x" data-lang="x">`, `hl_inline`'s
-  `<code class="code-inline language-x">`). Fences get a final newline (Hugo's code block
-  renderer); the function does not. Code without a lexer is escaped as is (Hugo's plain
-  `<pre><code>`).
+  sub-category/category fallback) inside the Go implementation's wrappers (`<div
+  class="{wrapperClass} {class}" attrs>`, `<pre tabindex="0">`, `<code class="language-x"
+  data-lang="x">`, `hl_inline`'s `<code class="code-inline language-x">`). Fences get a final
+  newline (Go's code block renderer); the function does not. Code without a lexer is escaped
+  as is (Go's plain `<pre><code>`).
 
 ## Acceptance
 
@@ -102,17 +103,17 @@ page's code block count), as Hugo does; the function has no prefix. Invalid valu
 
 | criterion | result |
 |---|---|
-| all docs fences highlight | **2,284/2,284** items render: 1,996 fences (goat fences go to the goat hook), 285 `code-toggle` bodies (in the format they are written in), 2 `highlight` and 1 `hl` shortcodes; 2,283 have a Chroma lexer, 1 (`texts`, a typo) stays plain exactly as in Hugo |
-| **byte-identical to Hugo** (docs config: `noClasses=false`, `solarized-dark`, `lineNumbersInTable=false`, wrapper `highlight not-prose`; hashes of Hugo's `transform.Highlight` output) | **2,284/2,284** (asserted) |
+| all docs fences highlight | **2,284/2,284** items render: 1,996 fences (goat fences go to the goat hook), 285 `code-toggle` bodies (in the format they are written in), 2 `highlight` and 1 `hl` shortcodes; 2,283 have a Chroma lexer, 1 (`texts`, a typo) stays plain exactly as in Go |
+| **byte-identical to the Go implementation** (docs config: `noClasses=false`, `solarized-dark`, `lineNumbersInTable=false`, wrapper `highlight not-prose`; hashes of Go's `transform.Highlight` output) | **2,284/2,284** (asserted) |
 | token classes (non-whitespace characters Chroma classifies, 181,725) | **100.0%** the same class, every lexer (asserted) |
 | Chroma's own lexer test suite (`lexers/testdata`, 298 inputs, `*.expected` tokens) | **296/298** token streams identical; the 2 Raku inputs differ (not ported) |
 | `guessSyntax` (Chroma's `lexers.Analyse` over those inputs and its analysis inputs, 305) | **305/305** pick the same lexer |
 | lexer lookup (`src/data/chroma-lexers.tsv`: `lexers.Get` of every name, alias and file pattern) | every entry |
 | every lexer compiles | 270/270 (and the 269 lexer files) |
-| solarized-dark CSS | byte-identical to `hugo gen chromastyles --style=solarized-dark`, with and without `--omitEmpty` |
-| inline styles (`noClasses`), `hl_inline`, `lineNumbersInTable`, `linenos`, `hl_lines`, `linenostart`, `anchorlinenos`, `lineanchors`, `tabWidth`, `wrapperClass`, styles | option matrix (5 inputs × 19 option sets: known/plain/unknown/no language) **95/95 byte-identical** to Hugo |
+| solarized-dark CSS | byte-identical to the Go program's `gen chromastyles --style=solarized-dark`, with and without `--omitEmpty` |
+| inline styles (`noClasses`), `hl_inline`, `lineNumbersInTable`, `linenos`, `hl_lines`, `linenostart`, `anchorlinenos`, `lineanchors`, `tabWidth`, `wrapperClass`, styles | option matrix (5 inputs × 19 option sets: known/plain/unknown/no language) **95/95 byte-identical** to the Go implementation |
 | docs site (live-check against getfugo.github.io) | all 3,543 `<pre>` blocks and 3,514 wrappers/inline code byte-identical, including the style gallery (67 styles × 6 languages, inline styles) |
-| Chroma style names → styles, with a fallback warning | every Chroma style is bundled; an unknown name falls back to Chroma's `swapoff` (as Hugo) and is reported once by `diagnostics()` |
+| Chroma style names → styles, with a fallback warning | every Chroma style is bundled; an unknown name falls back to Chroma's `swapoff` (as in Go) and is reported once by `diagnostics()` |
 
 Speed: `Highlight::new` ≈ 3 ms (dev; it registers the 270 lexers from their static data; a
 lexer builds and compiles its rules on first use); the 2,284 docs items ≈ 0.6 s in a dev
@@ -213,7 +214,7 @@ FUGO_HL_XML2RUST=$C/styles:crates/highlight/src/styles \
 - **Chroma loops forever** where zero-width matches bring the lexer back to a configuration
   (state stack, Haxe's pre-processor stack) it already had at the same position, e.g.
   JSONata's catch-all `[a-zA-Z0-9_]*` before `é`, Jungle's `(?=\S)` push and default pop
-  before `"` (Hugo's build hangs). The port undoes those matches and treats the position as
+  before `"` (the Go build hangs). The port undoes those matches and treats the position as
   matched by no rule (an `Error` character, or the newline reset); the same past 1,024
   configurations at one position (a stack growing without bound). The guard is not free but
   costs O(1) per zero-width match (it keeps the configurations, which share the persistent
@@ -225,33 +226,35 @@ FUGO_HL_XML2RUST=$C/styles:crates/highlight/src/styles \
   gives up after 50 M steps where regexp2 gives up after 250 ms (Chroma then treats the rule as
   not matching).
 - **Haxe's pre-processor stack** copies the state stack where Go keeps a slice that can alias it.
-- **Fence attributes** are written in key order (markup's attribute `Map` is sorted; Hugo keeps
-  source order), and the `class` value is escaped (Hugo writes it raw).
+- **Fence attributes** are written in key order (markup's attribute `Map` is sorted; Go keeps
+  source order), and the `class` value is escaped (Go writes it raw).
 
 ## Fixtures (`tests/data/`)
 
 | file | content |
 |---|---|
 | `chroma-tokens.json.gz` | per docs item (`key` = FNV-1a of `lang\0code`): Chroma's lexer and class runs (`[class, chars]`) |
-| `hugo-docs-html.json.gz` | per docs item (`key` = FNV-1a of `lang\0code\0options-JSON`): FNV-1a of Hugo's HTML with the docs config |
-| `hugo-html.json` | the option matrix with Hugo's HTML (`golden.rs`) |
+| `legacy-docs-html.json.gz` | per docs item (`key` = FNV-1a of `lang\0code\0options-JSON`): FNV-1a of the Go implementation's HTML with the docs config |
+| `go-html.json` | the option matrix with the Go implementation's HTML (`golden.rs`) |
 | `solarized-dark{,.omit-empty}.css` | `WriteCSS` of Chroma's HTML formatter (`--omitEmpty` = `WithClasses`) |
 | `chroma-testdata.json.gz` | Chroma's lexer test suite: each `lexers/testdata` input, its lexer, the FNV-1a of Chroma's `*.expected` tokens (`type\0text\0…`) and the lexer Chroma's `Analyse` picks (`lexers.rs`) |
 | `oracle/chroma.go.txt`, `oracle/chroma_testdata.py`, `oracle/export.go.txt` | the Chroma oracle (tokens, `Analyse`, registration order), the script that writes `chroma-testdata.json.gz`, and the exporter of the Go lexers' rules (Chroma XML, converted to `src/chroma/golexers/exported/`) |
 
-The first four (and `src/data/chroma-lexers.tsv`) come from Hugo's `markup/highlight` with Chroma
-v2.19.0, by the oracle at commit 44529028: in a worktree of it (`git worktree add <dir>
-44529028`; Go ≥ 1.24 with the module cache of its `go.mod`, offline), from its root (the Cargo
-workspace is `rust/` there), then copy `rust/crates/highlight/tests/data/*` (oracle/ aside) and
+The first four (and `src/data/chroma-lexers.tsv`) come from the Go implementation's
+`markup/highlight` with Chroma v2.19.0, by the oracle at commit 44529028: in a worktree of it
+(`git worktree add <dir> 44529028`; Go ≥ 1.24 with the module cache of its `go.mod`, offline),
+from its root (the Cargo workspace is `rust/` there), then copy
+`rust/crates/highlight/tests/data/*` (oracle/ aside) and
 `rust/crates/highlight/src/data/chroma-lexers.tsv` to the same paths below `crates/highlight/`:
 
 ```sh
 W=$(mktemp -d); mkdir $W/oracle; cp rust/crates/highlight/tests/data/oracle/main.go.txt $W/oracle/main.go
+M=$(go list -m)   # the Go module's path
 cp go.sum $W/oracle/ && cat > $W/oracle/go.mod <<EOF
 module t25oracle
 go 1.24
-require github.com/neohugo/neohugo v0.0.0
-replace github.com/neohugo/neohugo => $PWD
+require $M v0.0.0
+replace $M => $PWD
 EOF
 (cd $W/oracle && GOFLAGS=-mod=mod GOPROXY=off go build -o oracle .)
 (cd rust && FUGO_HL_DUMP=$W/corpus.json cargo test -p ssg-highlight --test it dump_corpus)

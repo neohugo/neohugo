@@ -1,4 +1,4 @@
-The files added to a copy of hugolib/testsite (testdata/upstream/hugolib/testsite) by
+The files added to a copy of testsite (testdata/upstream/testsite) by
 tools/rust-port/i01/sites.py (the config and layouts of the nh-publisher site oracle's canonify
 variant, plus a few pages).
 -- config.toml --

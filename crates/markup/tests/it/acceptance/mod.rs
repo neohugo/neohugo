@@ -1,6 +1,6 @@
 //! T22 acceptance (REWRITE_PLAN.md §8.2): `ssg-markup` against the Go oracles of
-//! `testdata/oracle/markup/{convert,hooks}` (Hugo's goldmark setup on the docs corpus and
-//! adversarial documents).
+//! `testdata/oracle/markup/{convert,hooks}` (the Go implementation's goldmark setup on the docs
+//! corpus and adversarial documents).
 //!
 //! Each test prints its table (`cargo test -p ssg-markup --test it acceptance --
 //! --nocapture`) and asserts floors at the measured values.
@@ -26,15 +26,15 @@ use ssg_markup::{
 };
 use ssg_testkit::fixture::{GoString, oracle};
 
-pub use super::comrak_spike::corpus::HugoCfg;
+pub use super::comrak_spike::corpus::GoCfg;
 
 /// The options of an oracle configuration (the TOML of `convert.json.gz` `configs`).
-pub fn options(cfg: HugoCfg) -> MarkdownOptions {
+pub fn options(cfg: GoCfg) -> MarkdownOptions {
     let mut o = MarkdownOptions::default();
     match cfg {
-        HugoCfg::Default => {}
-        HugoCfg::Site => o.raw_html = RawHtml::Pass,
-        HugoCfg::Ascii => {
+        GoCfg::Default => {}
+        GoCfg::Site => o.raw_html = RawHtml::Pass,
+        GoCfg::Ascii => {
             o.raw_html = RawHtml::Pass;
             o.heading_ids = Some(Style::GithubAscii);
             o.extensions |= Extensions::DEFINITION_TERM_IDS | Extensions::BLOCK_ATTRIBUTES;
@@ -45,7 +45,7 @@ pub fn options(cfg: HugoCfg) -> MarkdownOptions {
                 ordered: true,
             };
         }
-        HugoCfg::Blackfriday => {
+        GoCfg::Blackfriday => {
             o.tags = TagStyle::Xhtml;
             o.line_breaks = LineBreaks::Hard;
             o.heading_ids = Some(Style::Blackfriday);
@@ -57,7 +57,7 @@ pub fn options(cfg: HugoCfg) -> MarkdownOptions {
                 ordered: false,
             };
         }
-        HugoCfg::Cjk => {
+        GoCfg::Cjk => {
             o.code_fences = CodeFences::Plain;
             o.raw_html = RawHtml::Pass;
             o.heading_ids = None;
@@ -70,7 +70,7 @@ pub fn options(cfg: HugoCfg) -> MarkdownOptions {
                 ..Typographer::default()
             });
         }
-        HugoCfg::Noattr => {
+        GoCfg::Noattr => {
             o.heading_ids = None;
             o.extensions |= Extensions::DEFINITION_TERM_IDS | Extensions::BLOCK_ATTRIBUTES;
             o.extensions -= Extensions::HEADING_ATTRIBUTES;
@@ -211,7 +211,8 @@ struct Convert {
     results: Vec<ConvertResult>,
 }
 
-/// One document of the convert oracle with Hugo's HTML and TOC per configuration.
+/// One document of the convert oracle with the Go implementation's HTML and TOC per
+/// configuration.
 pub struct ConvertCase {
     pub name: String,
     pub md: String,

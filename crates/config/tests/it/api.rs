@@ -1,11 +1,11 @@
 //! Behaviour tests of the pipeline: the legacy-key table on a synthetic real-site-style
-//! configuration, `HUGO_*` typing, `CliOverrides`, `[caches]` placeholders, `[privacy]`, and
-//! error positions.
+//! configuration, environment variables (never settings), `CliOverrides`, `[caches]`
+//! placeholders, `[privacy]`, and error positions.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
 
-use ssg_base::{PageKind, Value};
+use ssg_base::Value;
 use ssg_config::global::MaxAge;
 use ssg_config::{CliOverrides, Config, ConfigError, LoadOptions, load};
 
@@ -168,62 +168,28 @@ deep = "d"
 unsafe = false
 "#;
 
+/// Settings never come from the environment: variables named like settings change nothing.
 #[test]
-fn env_typing() {
+fn environment_variables_are_not_settings() {
     let p = Project::new(&[("config.toml", ENV_BASE)]);
+    let want = serde_json::to_value(p.ok()).expect("serialize");
     let c = p
         .load(
             CliOverrides::default(),
             &[
-                ("FUGO_PARAMS_COUNT", "42"),
-                ("FUGO_PARAMS_RATIO", "2.25"),
-                ("FUGO_PARAMS_FLAG", "true"),
-                ("FUGO_PARAMS_LIST", r#"["x", "y"]"#),
-                ("FUGO_PARAMS_NESTED_NEW", "added"),
-                ("FUGOxPARAMSxUNDER_SCORE", "kept"),
-                ("FUGO_MARKUP_GOLDMARK_RENDERER_UNSAFE", "true"),
-                ("FUGO_TAXONOMIES", r#"{"tag": "tags", "series": "series"}"#),
-                ("FUGO_PAGINATION_PAGERSIZE", "7"),
-                ("FUGO_DISABLEKINDS", "taxonomy, term"),
-                ("FUGO_", "ignored"),
-                ("NOT_FUGO_TITLE", "ignored"),
-                // Hugo's names are not read; our own settings are not overrides.
-                ("HUGO_TITLE", "ignored"),
-                ("HUGO_PARAMS_COUNT", "1"),
-                ("FUGO_NODE_MODULES", "/opt/node_modules"),
-                ("FUGO_TIMINGS", "1"),
+                (ssg_base::env_var!("TITLE"), "env"),
+                (ssg_base::env_var!("PARAMS_COUNT"), "42"),
+                (ssg_base::env_var!("BASEURL"), "https://env.example/"),
+                (ssg_base::env_var!("CACHEDIR"), "/env-cache"),
+                (
+                    ssg_base::env_var!("MARKUP_GOLDMARK_RENDERER_UNSAFE"),
+                    "true",
+                ),
+                (ssg_base::env_var!("TAXONOMIES"), r#"{"tag": "tags"}"#),
             ],
         )
         .unwrap_or_else(|e| panic!("{e}"));
-    let s = c.default_site();
-    let params = &s.params;
-    assert_eq!(params.get("count"), Some(&Value::Int(42)));
-    assert_eq!(params.get("ratio"), Some(&Value::Float(2.25)));
-    assert_eq!(params.get("flag"), Some(&Value::Bool(true)));
-    assert_eq!(
-        params.get("list"),
-        Some(&Value::array(vec![Value::string("x"), Value::string("y")]))
-    );
-    assert_eq!(params.get_path("nested.new"), Some(&Value::string("added")));
-    assert_eq!(params.get_path("nested.deep"), Some(&Value::string("d")));
-    assert_eq!(params.get("under_score"), Some(&Value::string("kept")));
-    assert!(s.markup.goldmark.renderer.unsafe_html);
-    assert_eq!(s.taxonomies.len(), 2);
-    assert_eq!(s.pagination.pager_size, 7);
-    assert!(
-        s.disable_kinds.contains(PageKind::Taxonomy) && s.disable_kinds.contains(PageKind::Term)
-    );
-    assert!(c.raw.get("node").is_none() && c.raw.get("timings").is_none());
-    assert_eq!(s.title, "file");
-
-    // A value that does not parse as the overridden type stays a string.
-    let c = p
-        .load(CliOverrides::default(), &[("FUGO_PARAMS_COUNT", "many")])
-        .unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(
-        c.default_site().params.get("count"),
-        Some(&Value::string("many"))
-    );
+    assert_eq!(serde_json::to_value(c).expect("serialize"), want);
 }
 
 #[test]
@@ -259,19 +225,24 @@ fn cli_overrides_and_precedence() {
     assert!(c.minify.minify_output);
     assert!(c.content.drafts && c.content.future && !c.content.expired);
 
-    // The environment overrides the CLI.
+    // The environment does not override anything: settings come from files and flags.
     let c = p
-        .load(cli, &[("FUGO_BASEURL", "https://env.example/")])
+        .load(
+            cli,
+            &[(ssg_base::env_var!("BASEURL"), "https://env.example/")],
+        )
         .unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(c.default_site().base_url.as_str(), "https://env.example/");
+    assert_eq!(c.default_site().base_url.as_str(), "https://cli.example/");
 
-    // Without --environment, FUGO_ENVIRONMENT chooses the directory.
+    // Without --environment it is `production`; no environment variable chooses it.
     let c = p
-        .load(CliOverrides::default(), &[("FUGO_ENVIRONMENT", "staging")])
+        .load(
+            CliOverrides::default(),
+            &[(ssg_base::env_var!("ENVIRONMENT"), "staging")],
+        )
         .unwrap_or_else(|e| panic!("{e}"));
-    assert_eq!(c.environment, "staging");
-    assert_eq!(c.default_site().title, "staging");
-    assert_eq!(p.ok().environment, "production");
+    assert_eq!(c.environment, "production");
+    assert_eq!(c.default_site().title, "file");
 }
 
 #[test]
@@ -563,7 +534,7 @@ sectionPagesMenu = "sections"
         c.site("de").expect("de").section_pages_menu.as_deref(),
         Some("sections")
     );
-    // A boolean `pre`/`post` reads as `1`/`0`, as in Hugo.
+    // A boolean `pre`/`post` reads as `1`/`0`, as in Go.
     assert_eq!(
         (en.menus[0].pre.as_str(), en.menus[0].post.as_str()),
         ("1", "3")
@@ -576,7 +547,7 @@ sectionPagesMenu = "sections"
     );
     assert_eq!(c.default_site().section_pages_menu, None);
 
-    // An empty `[related]` is the empty configuration (Hugo's site loader: the table is
+    // An empty `[related]` is the empty configuration (Go's site loader: the table is
     // set, and not empty to `related.DecodeConfig` because of its merge-strategy key).
     let c = Project::new(&[("config.toml", "[related]\n")]).ok();
     assert!(c.default_site().related.indices.is_empty());

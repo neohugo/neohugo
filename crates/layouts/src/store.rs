@@ -55,7 +55,7 @@ pub struct TemplateInfo {
     pub(crate) path: String,
     pub(crate) ids: usize,
     pub(crate) source: Arc<str>,
-    /// The `"baseof.html"` literal of a layout that requests Hugo's base resolution.
+    /// The `"baseof.html"` literal of a layout that requests Go's base resolution.
     pub(crate) extends_baseof: Option<Range<usize>>,
     /// The name to render under when the file suffix escapes differently from the format.
     pub(crate) alias: Option<TemplateName>,
@@ -69,7 +69,7 @@ impl TemplateInfo {
         self.alias.as_ref().unwrap_or(&self.name)
     }
 
-    /// Whether the layout requests Hugo's base resolution (`{% extends "baseof.html" %}`).
+    /// Whether the layout requests Go's base resolution (`{% extends "baseof.html" %}`).
     #[must_use]
     pub fn requests_base(&self) -> bool {
         self.extends_baseof.is_some()

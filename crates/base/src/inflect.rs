@@ -1,6 +1,6 @@
 //! English inflection: `pluralize`, `singularize`, `humanize`, `ordinalize`, `titleize`.
 //!
-//! The rules and word lists are those of gobuffalo/flect v1.0.3 (MIT), which Hugo uses for
+//! The rules and word lists are those of gobuffalo/flect v1.0.3 (MIT), which Go uses for
 //! section titles and the template functions of the same names. No inflection crate matches
 //! them (see the crate README), so the data lives here.
 //!
@@ -346,7 +346,7 @@ impl Inflector {
 
     /// The words of `s` joined by spaces, the first titleized (`potato-chips` →
     /// `Potato chips`). Blank input is returned as it is; so is input without words (`+`),
-    /// where Hugo fails.
+    /// where Go fails.
     #[must_use]
     pub fn humanize(&self, s: &str) -> String {
         if s.trim().is_empty() {

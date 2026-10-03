@@ -144,11 +144,11 @@ fn path_str(p: &Path) -> String {
 
 /// Root files that are mounted to `assets/_jsconfig/<name>` unless a mount targets that
 /// directory: `package.json`, `package.config.json` and names containing
-/// `(babel|postcss|tailwind).config.js`.
+/// `(babel|tailwind).config.js`.
 fn is_js_config_file(name: &str) -> bool {
     name == "package.json"
         || name == "package.config.json"
-        || ["babel", "postcss", "tailwind"]
+        || ["babel", "tailwind"]
             .iter()
             .any(|t| name.contains(&format!("{t}.config.js")))
 }
@@ -267,7 +267,7 @@ fn theme_mounts(theme: &Theme) -> Result<Vec<Draft>, VfsError> {
             let mut out = Vec::new();
             for (index, m) in mounts.iter().enumerate() {
                 let mut m = m.clone();
-                // An absolute source is relative to the theme's directory too (Hugo joins it).
+                // An absolute source is relative to the theme's directory too (Go joins it).
                 m.source = m.source.trim_start_matches(['/', '\\']).to_owned();
                 let d = Draft::configured(dir, &m);
                 if d.component().is_none() {
@@ -298,7 +298,7 @@ fn theme_mounts(theme: &Theme) -> Result<Vec<Draft>, VfsError> {
     Ok(drafts)
 }
 
-/// The order of a theme's default mounts (Hugo's, by name).
+/// The order of a theme's default mounts (Go's, by name).
 const THEME_COMPONENTS: [Component; 7] = [
     Component::Archetypes,
     Component::Assets,

@@ -1,4 +1,4 @@
-//! Watching the project: what is watched (Hugo's watch set), the watcher itself (notify with a
+//! Watching the project: what is watched (Go's watch set), the watcher itself (notify with a
 //! 1 s debounce, or polling), and what a batch of events means for the site.
 
 use std::collections::{BTreeMap, BTreeSet};
@@ -29,10 +29,11 @@ pub(crate) enum Message {
     Shutdown,
 }
 
-/// Where configuration lives: the files it was read from (the project's and its themes'),
-/// the configuration directories (the project's `--configDir` and each theme's `config/`),
-/// and the directories whose `config.*`, `hugo.*` or `config.*` file is configuration even
-/// when it did not exist yet (the project's and each theme's).
+/// Where configuration lives: the files it was read from (the project's and its themes', the
+/// project's `.env` files, and its `package.json`, whose packages are installed when the
+/// configuration loads), the configuration directories (the project's `--configDir` and each
+/// theme's `config/`), and the directories whose `config.*` file is configuration even when it
+/// did not exist yet (the project's and each theme's).
 #[derive(Clone, Debug)]
 pub(crate) struct ConfigPlaces {
     files: BTreeSet<PathBuf>,
@@ -49,12 +50,24 @@ impl ConfigPlaces {
             dirs.push(t.dir.join("config"));
             homes.push(t.dir.clone());
         }
+        let mut files: BTreeSet<PathBuf> = cfg.config_files.iter().cloned().collect();
+        // The `.env` files `get_env` reads, whether or not they exist yet.
+        for name in ssg_config::env_file::file_names(&cfg.environment) {
+            files.insert(cfg.project_dir.join(name));
+        }
+        files.insert(cfg.project_dir.join("package.json"));
         Self {
-            files: cfg.config_files.iter().cloned().collect(),
+            files,
             dirs,
             homes,
             names: ssg_config::config_file_names().collect(),
         }
+    }
+
+    /// Whether `path` is one of the configuration files (named by its path, so a leading `.`
+    /// does not make it an editor's file: the project's `.env`).
+    fn is_file(&self, path: &Path) -> bool {
+        self.files.contains(path)
     }
 
     /// Whether a change of `path` changes the configuration.
@@ -385,7 +398,7 @@ struct WatchedMount {
     watched: bool,
 }
 
-/// Sorts file events into [`Changes`] (Hugo's `handleEvents` filters).
+/// Sorts file events into [`Changes`] (Go's `handleEvents` filters).
 #[derive(Clone, Debug)]
 pub(crate) struct Classifier {
     mounts: Vec<WatchedMount>,
@@ -425,7 +438,7 @@ impl Classifier {
                 // The poll watcher reports a write as a newer modification time.
                 EventKind::Modify(ModifyKind::Metadata(MetadataKind::WriteTime)) => true,
                 // Opening, reading and closing (a write is also a modification), permission or
-                // time changes (Hugo skips chmod events).
+                // time changes (Go skips chmod events).
                 EventKind::Access(_) | EventKind::Modify(ModifyKind::Metadata(_)) => continue,
                 _ => false,
             };
@@ -452,6 +465,9 @@ impl Classifier {
     }
 
     fn kind(&self, path: &Path) -> Option<Kind> {
+        if self.config.is_file(path) {
+            return Some(Kind::Config);
+        }
         if is_ignored(path) || *path == self.stats_file {
             return None;
         }
@@ -465,7 +481,7 @@ impl Classifier {
             .iter()
             .filter(|m| m.watched && path.starts_with(&m.abs))
         {
-            // Hugo skips these directories when it walks the mounts.
+            // Go skips these directories when it walks the mounts.
             let below = path.strip_prefix(&m.abs).unwrap_or(path);
             if below.components().any(|c| {
                 matches!(c, PathComponent::Normal(n)
@@ -489,7 +505,7 @@ impl Classifier {
     }
 }
 
-/// Editors' temporary and backup files, and names Hugo ignores (a leading `.` or `#`, a
+/// Editors' temporary and backup files, and names Go ignores (a leading `.` or `#`, a
 /// trailing `~`).
 fn is_ignored(path: &Path) -> bool {
     let Some(name) = path.file_name().and_then(|n| n.to_str()) else {

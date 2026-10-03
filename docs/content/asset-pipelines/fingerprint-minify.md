@@ -20,7 +20,7 @@ Minified CSS is prepared for the browsers of the project's
 [browserslist](https://github.com/browserslist/browserslist#queries) configuration (a
 `.browserslistrc` or `browserslist` file, or the `browserslist` key of `package.json`): vendor
 prefixes those browsers need are added, newer syntax they lack is lowered, and prefixes none of
-them needs are removed, as autoprefixer does — so you do not need PostCSS for that. Without a
+them needs are removed, as autoprefixer does. Without a
 browserslist configuration, prefixes stay as written.
 
 `fugo build --minify` minifies every rendered page as well, per the `[minify]` configuration;
@@ -47,5 +47,5 @@ Fingerprint in production only, to keep stable names while you work:
 {% if build.is_production %}{% set css = css | fingerprint %}{% endif %}
 ```
 
-Minified bytes differ from Hugo's (other minifiers), so fingerprints of minified files differ
-from Hugo's too.
+Minified bytes differ from the Go implementation's (other minifiers), so fingerprints of
+minified files differ too.

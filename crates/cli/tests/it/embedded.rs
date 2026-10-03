@@ -249,7 +249,7 @@ title: qr
 }
 
 /// The goat code block hook (`diagrams_goat`, the GoAT port; feature `goat` of the default
-/// build) writes Hugo's markup byte for byte: a `viewBox` of GoAT's size, or the
+/// build) writes Go's markup byte for byte: a `viewBox` of GoAT's size, or the
 /// `width`/`height` attributes instead, the `class`, and GoAT's SVG (the expected bytes are Go's
 /// `diagrams.Goat` output for these diagrams).
 #[test]
@@ -279,7 +279,7 @@ title: p
     let o = binary(site.path(), &["--quiet"], NO_NETWORK);
     assert!(o.status.success(), "{}", stderr(&o));
     let page = read(site.path(), "p/index.html");
-    // The hook's lines (as Hugo's template writes them, blank-but-indented lines included)
+    // The hook's lines (as Go's template writes them, blank-but-indented lines included)
     // around GoAT's `<g>` element.
     let hook = |class: &str, size: &[&str], g: &[&str]| {
         let mut lines = vec![
@@ -318,12 +318,15 @@ title: p
     assert!(page.contains(&second), "{page}");
 }
 
-/// The `qr` shortcode renders what Hugo's `TestQRShortcode` asserts (names, sizes and
+/// The text Go's `TestQRShortcode` encodes; the expected image names hash it.
+const QR_TEXT: &str = "https://gohugo.io";
+
+/// The `qr` shortcode renders what Go's `TestQRShortcode` asserts (names, sizes and
 /// attributes), and publishes the images.
 #[test]
-fn qr_shortcode_equals_hugo_s() {
+fn qr_shortcode_equals_go_s() {
     let site = site_from(
-        r#"
+        &r#"
 -- config.toml --
 baseURL = "https://example.org/"
 disableKinds = ['page','rss','section','sitemap','taxonomy','term']
@@ -334,20 +337,21 @@ disableKinds = ['page','rss','section','sitemap','taxonomy','term']
 title: home
 ---
 {{< qr
-	text="https://gohugo.io"
+	text="$TEXT"
 	level="high"
 	scale=4
 	targetDir="codes"
-	alt="QR code linking to https://gohugo.io"
+	alt="QR code linking to $TEXT"
 	class="my-class"
 	id="my-id"
 	title="My Title"
 />}}
 
 {{< qr >}}
-https://gohugo.io"
+$TEXT"
 {{< /qr >}}
-"#,
+"#
+        .replace("$TEXT", QR_TEXT),
     );
     let o = binary(
         site.path(),
@@ -357,10 +361,12 @@ https://gohugo.io"
     assert_eq!(o.status.code(), Some(0), "{}", stderr(&o));
     let html = read(site.path(), "index.html");
     for want in [
-        r#"<img src="/codes/qr_be5d263c2671bcbd.png" width="148" height="148" alt="QR code linking to https://gohugo.io" class="my-class" id="my-id" title="My Title">"#,
-        r#"<img src="/qr_472aab57ec7a6e3d.png" width="132" height="132">"#,
+        format!(
+            r#"<img src="/codes/qr_be5d263c2671bcbd.png" width="148" height="148" alt="QR code linking to {QR_TEXT}" class="my-class" id="my-id" title="My Title">"#
+        ),
+        r#"<img src="/qr_472aab57ec7a6e3d.png" width="132" height="132">"#.to_owned(),
     ] {
-        assert!(html.contains(want), "{want}\nnot in\n{html}");
+        assert!(html.contains(&want), "{want}\nnot in\n{html}");
     }
     for (file, side) in [
         ("codes/qr_be5d263c2671bcbd.png", 148),

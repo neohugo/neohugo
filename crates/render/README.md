@@ -71,9 +71,9 @@ for F uses `Format(F)` if it exists):
    - `{{% %}}` output is spliced into the Markdown; `{{< >}}` output becomes `NHSC<n>X`.
    - Nested calls run first, into the parent's `inner`. The inner of the outermost `{{% %}}`
      is raw; a nested `{{% %}}` inner is rendered as Markdown (a one-line inner loses its
-     `<p>`). `$_hugo_config` v1 is not reproduced (D5).
+     `<p>`). Go's legacy shortcode version 1 is not reproduced (D5).
    - A call without inner content whose tag is indented gets the indentation on its further
-     output lines, included sources inserted first (Hugo indents the template's result);
+     output lines, included sources inserted first (Go indents the template's result);
      `inner_deindent` removes the call's indentation from inner lines.
    - Inline shortcodes (`security.enableInlineShortcodes`): the body is a Tera template
      (`render_str`), reused by later self-closed calls; disabled, they print nothing.
@@ -120,13 +120,13 @@ site function prints as is (safe):
   in `{{% %}}` output by q's expanded Markdown, **appends q's placeholders to its own table and
   renumbers** q's tokens, shifts q's context spans and adds a span for the included text (so
   hooks there get `page_inner = q`). On a Markdown page the included text sits between the
-  context marker lines of `ssg_markup::wrap_context` (Hugo's `hugocontext.Wrap`, which
+  context marker lines of `ssg_markup::wrap_context` (Go's context `Wrap`, which
   `.RenderShortcodes` applies inside goldmark): they end a definition list before an include,
   keep an indented include inside its container and leave goldmark's newline before
-  `</dd>`/`</li>` after an include ending in a tight item, as in Hugo. A call nested in a
-  `{{% %}}` call gets q's text the same way (Hugo renders the whole call before Markdown) but
+  `</dd>`/`</li>` after an include ending in a tight item, as in Go. A call nested in a
+  `{{% %}}` call gets q's text the same way (Go renders the whole call before Markdown) but
   no span. In `{{< >}}` output (and a call nested in one), hook output or `markdownify` input it
-  becomes q's text with q's placeholders resolved (and no markers): Hugo renders a `{{< >}}`
+  becomes q's text with q's placeholders resolved (and no markers): Go renders a `{{< >}}`
   call after Markdown, with q's `{{< >}}` outputs in place, so an indented call indents them
   too, while in `{{% %}}` output they stay placeholders and keep their lines.
 - elsewhere (layouts) it is q's source with the shortcode outputs in place (no markers).
@@ -141,27 +141,27 @@ The suites run with **test doubles** of the T35 functions they need (`tests/it/f
 | Acceptance (T34 row of §8.2) | Evidence |
 |---|---|
 | per-page placeholder renumbering through `render_shortcodes` | `engine::includes_renumber_placeholders_and_set_page_inner` (A's `{{< >}}` before and after an include of B, B's own placeholders) |
-| `{{% %}}` includes as in Hugo: context markers, indentation after the include | `engine::includes_are_wrapped_and_indented` (an indented include in a definition, an include after a definition list, includes ending in a tight list item and a tight definition): byte-equal to Hugo's goldmark converter at 44529028 on the same Markdown; `engine::includes_indent_like_hugo` (indented `{{< >}}` and `{{% %}}` includes of a page with multi-line `{{< >}}` output, top-level and nested in `{{< >}}` and `{{% %}}` calls): byte-equal to the Go build at 44529028 on the same site |
+| `{{% %}}` includes as in Go: context markers, indentation after the include | `engine::includes_are_wrapped_and_indented` (an indented include in a definition, an include after a definition list, includes ending in a tight list item and a tight definition): byte-equal to Go's goldmark converter at 44529028 on the same Markdown; `engine::includes_indent_like_go` (indented `{{< >}}` and `{{% %}}` includes of a page with multi-line `{{< >}}` output, top-level and nested in `{{< >}}` and `{{% %}}` calls): byte-equal to the Go build at 44529028 on the same site |
 | `page_inner` spans | the same test: a link hook prints `page_inner.title` and `page.title` for A's own and B's included links |
 | cross-page memo: cycle test, forced two-thread no-deadlock test | `engine::cycles_are_errors` (A ↔ B through `page_content`: an error naming both files; own-page TOC is not a cycle); `engine::two_threads_never_deadlock_and_commit_once` (a `Barrier` in a shortcode holds two threads inside A's and B's computations while each needs the other's fragments; both finish, with a 60 s watchdog) |
 | buffered store writes committed once | the same test with both threads computing A: pointer-equal results, a counter written from the shortcode is 1; `engine::store_writes_follow_the_winner` (nothing before C1, committed after, layout writes direct) |
 | hooks via Tera; JSON variant | content oracle `content` (blockquote, codeblock, heading, image, link hooks, `render-table.json.json` → `Format(json)`, `render-heading.rss.xml` → `Format(rss)`, `fmt.rss.xml` in the RSS variant): **480/483 equal, 3 accepted**; `engine::json_variant_through_a_layout_job` (a JSON layout job prints the `Format(json)` content) |
 | HTML content; bundled content resources | oracle pages `/posts/markup-html`, `/posts/html-page`, `/blog/html-page` (shortcodes, divider, auto summary in HTML) and `/bundle/sub.md`, `…/sub/index.md`, `…/notes.md` (bundled pages); `engine::c1_renders_bundled_pages_and_html_content` (C1 → frozen Full value) |
-| summary oracle | `summary::summary_oracle`: `oracle/page/summary/{build,adversarial}` (Hugo's summary of the rendered HTML of every page of the Go builds, variants and 6,000 adversarial calls): **11,537/11,537** Markdown/HTML cases equal (`.Summary`, `.Content`, `.Truncated`); 7,196 cases of external markups (AsciiDoc, RST, Pandoc, Org), non-UTF-8 input or Go panics not applicable |
+| summary oracle | `summary::summary_oracle`: `oracle/page/summary/{build,adversarial}` (Go's summary of the rendered HTML of every page of the Go builds, variants and 6,000 adversarial calls): **11,537/11,537** Markdown/HTML cases equal (`.Summary`, `.Content`, `.Truncated`); 7,196 cases of external markups (AsciiDoc, RST, Pandoc, Org), non-UTF-8 input or Go panics not applicable |
 
 `skeleton::testsite_bytes` of `ssg-build` stays **55/55 byte-identical**.
 
 ### Accepted differences (reviewed in `tests/it/oracle.rs`)
 
 - A summary divider as the first text of a body is a divider (pageparser's `divider_at_start`):
-  manual, empty summary, truncated (Hugo: front matter type, not truncated). 2 pages × 3
+  manual, empty summary, truncated (Go: front matter type, not truncated). 2 pages × 3
   formats.
-- `$_hugo_config` version 1 (`legacytag`, p02) is not reproduced (D5): its `{{% %}}` output is
-  Markdown.
+- Go's legacy shortcode version 1 (`legacytag`, p02) is not reproduced (D5): its `{{% %}}`
+  output is Markdown.
 
-### Hugo rules kept
+### Go rules kept
 
-The automatic summary follows Hugo's counting (it decides where real summaries end): words that
+The automatic summary follows Go's counting (it decides where real summaries end): words that
 look like tags or attributes do not count; a paragraph is counted without its last character
 and with the `>` of the previous `</p>`; `.Truncated` is true when anything, even a newline,
 follows the cut. The manual divider grows to its paragraph (walking back over white space and
@@ -171,11 +171,11 @@ follows the cut. The manual divider grows to its paragraph (walking back over wh
 
 - An include nested in another call's inner content has no context span (the enclosing
   template can put its inner content anywhere): hooks in it see the including page as
-  `page_inner`. Hugo's markers carry the page there. An include in `{{% %}}` output nested in
-  a `{{< >}}` call has no markers either (Hugo prints its `{{__hugo_ctx}}` lines as text).
+  `page_inner`. Go's markers carry the page there. An include in `{{% %}}` output nested in
+  a `{{< >}}` call has no markers either (Go prints its context marker lines as text).
 - Store writes of a page are made once per variant computation (each variant's cell commits
   its own transaction): a counter incremented by a shortcode counts the variants.
 - C1 renders every page with a content file, also pages with `build.render = never`; a content
-  error there fails the build where Hugo, rendering lazily, would not notice.
+  error there fails the build where Go, rendering lazily, would not notice.
 - The deferred template of a key renders with the default language's `site` (a `Deferred`
   records no language).

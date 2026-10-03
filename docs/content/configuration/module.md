@@ -67,5 +67,6 @@ An import's `path` is a directory in `themesDir` (`themes/`), in `_vendor/` when
 configuration; `ignoreImports` skips its imports; `noMounts` mounts nothing from it.
 `replacements = "old/path -> ../local/path"` swaps import paths, for local development.
 
-fugo does not download Hugo Modules: there is no `go.mod` resolution. Put modules in `themes/`
-or `_vendor/` (Hugo's `hugo mod vendor` output works), or point to them by path.
+fugo does not download modules: there is no `go.mod` resolution. Put modules in `themes/`
+or `_vendor/` (a vendor directory written by a Go-template generator works), or point to them
+by path.

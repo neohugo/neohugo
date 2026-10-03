@@ -20,14 +20,14 @@ translations, bundle resources, page references).
 
 ## Phases
 
-0. **Content adapters** (`_content.html`; Hugo's `_content.gotmpl`). Capture lists them
+0. **Content adapters** (`_content.html`; Go's `_content.gotmpl`). Capture lists them
    (`Captured::adapters`; a `.gotmpl` adapter is `ModelError::GoContentAdapter`, with the hint
    to port it to Tera); ssg-build renders them with a model of the content files and
    [`assemble`] adds what they added. Each `add_page` map becomes a captured page after the
    files, with the adapter as its file (`.File`, `IsContentAdapter`), the path
    `/<path>/index.<suffix>` (`_index` for branch kinds), no front matter and `content.value` as
    its body; its meta is `ssg_page::meta_from_adapter` with the cascade's fields filling the
-   map and its params the params (Hugo's `setMetaPost` for adapter pages). Each `add_resource`
+   map and its params the params (Go's `setMetaPost` for adapter pages). Each `add_resource`
    map becomes a bundle resource at its path, owned like a file; its bytes and metadata come
    from the adapter (`BundleResource::adapter`).
 
@@ -36,8 +36,8 @@ translations, bundle resources, page references).
    `duplicate-content-path` (`duplicate-resource-path`) warnings, found through maps of
    (language, key), so assembling n added pages and resources takes linear time. A path one
    adapter run adds twice is already its last `add_page` (see ssg-sitefuncs). This is
-   Hugo's last insert in the order of one collector worker, which queues a directory's
-   adapters before its files and subdirectories; with several workers Hugo's result depends
+   Go's last insert in the order of one collector worker, which queues a directory's
+   adapters before its files and subdirectories; with several workers Go's result depends
    on scheduling. One case differs from that order: a `../` path onto a key that a file in an
    ancestor's (or an earlier sibling's) directory holds stays the file's here.
 
@@ -54,11 +54,11 @@ translations, bundle resources, page references).
 3. **Cascade → meta → dates** (B2, pages in parallel), then the **filter**: drafts, future and
    expired content, disabled kinds. Home, section and taxonomy pages stay switched off; other
    pages are removed with the bundle files below them (their dates still count for node dates,
-   as in Hugo, which aggregates before it removes).
-4. **Made pages** (B3, `nodes.rs`), per language in Hugo's order: a taxonomy page per
+   as in Go, which aggregates before it removes).
+4. **Made pages** (B3, `nodes.rs`), per language in Go's order: a taxonomy page per
    configured taxonomy (unless taxonomy and term pages are both disabled); a section page per
    root section that has pages (named as its first page writes it: `/Upper Case/` → *Upper
-   Cases*); the home page; the standalone pages, in the tree under Hugo's keys (`404`,
+   Cases*); the home page; the standalone pages, in the tree under Go's keys (`404`,
    `_robots`, `_sitemap`, `_sitemapindex`; `.Path` `/404`, `/_robots.txt`, …): 404 and a
    sitemap per language, robots.txt and the sitemap index once (default language) unless
    multihost, the index only for multilingual or subdirectory sites. Made pages get the
@@ -115,17 +115,17 @@ reviewed class of `expected_diffs.toml` (`[[class]]`, exact counts).
 
 | Test | Fixtures | Result |
 |---|---|---|
-| `capture` | `oracle/hugolib/capture/*` (9 sites) | per language tree pages and resource trees, page configs, duplicate warnings equal (T23a) |
-| `assemble` | `oracle/hugolib/assemble/*` (17 sites) | every page with a file: 1,248 pages, 19,776 fields equal, including the aggregated dates of content branch pages (T23a + node dates) |
-| `structure` | `oracle/hugolib/assemble/*` (17 sites, 1,461 pages) | 52,928 / 52,932 checks exact, 4 accepted: page set incl. every made page (1,460), title/link title/type/section/term (1,461 each), dates of every page (1,461), params and build of made pages (212), parent/current/first section (1,436 each), `.Sections` (349), rendered formats (1,436), **target file, link and resource directory per (page, format) (1,515)**, **`.OutputFormats` rel/permalinks (1,436)**, `.Pages`/`.RegularPages` per node (2,869), site pages/regular pages/home/lastmod/main sections (26 languages each), taxonomy terms and weighted members (110), `.GetTerms` (41), `.Site.GetPage` (11,317) and page-relative `GetPage`/ref lookups (2 × 10,052), **bundle resource URLs per (page, name) (61)** |
-| `calls` | `oracle/hugolib/site/*` (19 sites; recorded template calls) | 68,153 / 68,427 exact, 274 accepted: translations (2,600), relations (3,250), lists (1,950), links and output formats (1,950), dates (2,600), names and kinds (7,150), `.Eq`/`.IsAncestor`/`.IsDescendant`/`.InSection` (12,436), page `.GetPage` (4,707), `.GetTerms` (1,882), **`ref`/`relref`/`RefFrom`/`RelRefFrom` (27,820)**, site lists/taxonomies/lastmod/main sections (261), `.Site.GetPage` (1,821) |
-| `build` | `oracle/hugolib/build/*` (26 sites incl. the 9 build-* sites) | every (language, page, format) Hugo rendered is rendered here (1,647), its target is a file Hugo wrote (1,642 non-empty), pagers 2..N via `Model::pager_paths` are files Hugo wrote (344) |
+| `capture` | `oracle/sitebuild/capture/*` (9 sites) | per language tree pages and resource trees, page configs, duplicate warnings equal (T23a) |
+| `assemble` | `oracle/sitebuild/assemble/*` (17 sites) | every page with a file: 1,248 pages, 19,776 fields equal, including the aggregated dates of content branch pages (T23a + node dates) |
+| `structure` | `oracle/sitebuild/assemble/*` (17 sites, 1,461 pages) | 52,928 / 52,932 checks exact, 4 accepted: page set incl. every made page (1,460), title/link title/type/section/term (1,461 each), dates of every page (1,461), params and build of made pages (212), parent/current/first section (1,436 each), `.Sections` (349), rendered formats (1,436), **target file, link and resource directory per (page, format) (1,515)**, **`.OutputFormats` rel/permalinks (1,436)**, `.Pages`/`.RegularPages` per node (2,869), site pages/regular pages/home/lastmod/main sections (26 languages each), taxonomy terms and weighted members (110), `.GetTerms` (41), `.Site.GetPage` (11,317) and page-relative `GetPage`/ref lookups (2 × 10,052), **bundle resource URLs per (page, name) (61)** |
+| `calls` | `oracle/sitebuild/site/*` (19 sites; recorded template calls) | 68,153 / 68,427 exact, 274 accepted: translations (2,600), relations (3,250), lists (1,950), links and output formats (1,950), dates (2,600), names and kinds (7,150), `.Eq`/`.IsAncestor`/`.IsDescendant`/`.InSection` (12,436), page `.GetPage` (4,707), `.GetTerms` (1,882), **`ref`/`relref`/`RefFrom`/`RelRefFrom` (27,820)**, site lists/taxonomies/lastmod/main sections (261), `.Site.GetPage` (1,821) |
+| `build` | `oracle/sitebuild/build/*` (26 sites incl. the 9 build-* sites) | every (language, page, format) Go rendered is rendered here (1,647), its target is a file Go wrote (1,642 non-empty), pagers 2..N via `Model::pager_paths` are files Go wrote (344) |
 | `golden` | `testdata/golden/<site>/structure.json[.gz]` + `FUGO_SITES` | the structure oracle gate (targets and permalinks per (page, format), resource URLs per (page, name)); skips with a message without the dump (the golden data is frozen at 44529028) or the site; a self-test runs the reader |
 | `data`, `model` | as T23a | |
 | `real_sites` (ignored) | `sites.py make docs\|testsite` | `FUGO_SITES=<dir>:… cargo test -p ssg-site real_sites -- --ignored --nocapture`: page counts, made pages, terms, outputs, shared target files |
 
 **Segment-aware prefix lookup**: every ancestor lookup (parent, sections, owners, lists, node
-dates, cascades) is segment-wise; on all 17 + 19 + 26 oracle sites it gives Hugo's result
+dates, cascades) is segment-wise; on all 17 + 19 + 26 oracle sites it gives Go's result
 except `/tagsfoo` of edge-tree (below), an accepted deviation.
 
 ## Structure-oracle dump (for T01)
@@ -147,30 +147,30 @@ except `/tagsfoo` of edge-tree (below), an accepted deviation.
                    "relPermalink": "/posts/p1/Cover.JPG", "target": "/posts/p1/Cover.JPG" } ] }
 ```
 
-- One record per (page, format) Hugo renders (pager 1 only; standalone pages once). `path` is
+- One record per (page, format) Go renders (pager 1 only; standalone pages once). `path` is
   the page's `.Path` (`/` for the home page, `/_robots.txt`), `kind` its `.Kind`, `lang` its
   language key, `format` the output format name.
 - `target`: the file under `publishDir` with a leading slash (`targetPaths.TargetFilename`,
   multihost language directory included); `relPermalink`/`permalink`: `.OutputFormats.Get
   <format>` of the page (escaped, as templates print them).
-- `aliases`: every alias file Hugo writes (front matter aliases, `page/1/`, the language
+- `aliases`: every alias file Go writes (front matter aliases, `page/1/`, the language
   redirect) with the page and format it points to (T24's alias plan).
 - `resources`: every bundle file in a page's `.Resources` (bundled pages excepted): `name` is
   `NameNormalized` (the path below the page, lower case), `relPermalink` as templates print it,
   `target` the file under `publishDir`.
 
-## Deviations from Hugo (`expected_diffs.toml`)
+## Deviations from Go (`expected_diffs.toml`)
 
 - **Taxonomy prefix is segment-wise**: `content/tagsfoo/_index.md` is a section, not a term of
-  `tags` (Hugo's go-radix matches characters); edge-tree's home lists and calls that name it.
+  `tags` (Go's go-radix matches characters); edge-tree's home lists and calls that name it.
 - **Bundle files belong to their owner**: a single-file page `leafy.md` does not also list the
   files of the bundle `leafy/b/`, and a file is named below its owner (`img.jpg`), not after
   the first page that walked it (`b/img.jpg`; same URL).
-- **`ref`/`relref` from a bundled page** resolve (Hugo's bundled pages have no working site
+- **`ref`/`relref` from a bundled page** resolve (Go's bundled pages have no working site
   and return `""`).
-- **Lists use the page's own language's collator** (Hugo: the collator of the site being
+- **Lists use the page's own language's collator** (Go: the collator of the site being
   rendered when a list is first computed); a term's `.RegularPages` are its regular members
-  (Hugo caches `.Pages` and `.RegularPages` of a term under one key: whichever is asked first
+  (Go caches `.Pages` and `.RegularPages` of a term under one key: whichever is asked first
   answers both). Neither occurs in the fixtures.
 - **`.Resources` order** is a strict order (files by media main type then name, then bundled
   pages); Go's comparator is not a strict weak order when types differ.

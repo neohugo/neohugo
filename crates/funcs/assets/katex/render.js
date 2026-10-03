@@ -1,11 +1,12 @@
 // The entry point of our `to_math` (crates/funcs/src/pure/katex.rs), evaluated after
-// katex.min.js and mhchem.min.js. Rewritten from Hugo's internal/warpc/js/renderkatex.js and
-// the console and error handling of internal/warpc/js/common.js (this repository at commit
-// 44529028; Apache-2.0): one JSON message in ({expression, options}, as Go encodes
-// warpc.KatexInput), one JSON message out ({output, warnings} or {err}).
+// katex.min.js and mhchem.min.js. Rewritten from the Go implementation's
+// internal/warpc/js/renderkatex.js and the console and error handling of
+// internal/warpc/js/common.js (this repository at commit 44529028; Apache-2.0): one JSON
+// message in ({expression, options}, as Go encodes warpc.KatexInput), one JSON message out
+// ({output, warnings} or {err}).
 
 // KaTeX reports through the console: \message, \show and missing character metrics go to
-// console.log or console.warn, which Hugo's host discards; \errmessage goes to console.error,
+// console.log or console.warn, which Go's host discards; \errmessage goes to console.error,
 // which common.js turns into an error.
 globalThis.console = {
 	log() {},

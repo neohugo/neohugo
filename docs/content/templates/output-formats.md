@@ -68,8 +68,19 @@ its media type.
 `permalinkable`
 : Make `page.permalink` of a page rendered in this format point to this format.
 
-`noUgly`, `ugly`, `root`, `protocol`, `weight`
-: As in Hugo.
+`ugly`, `noUgly`
+: Always use ugly URLs for this format (`/a.xml` instead of `/a/index.xml`), or never,
+  whatever the site's `uglyURLs` says.
+
+`root`
+: Write the files at the publish root, not in a language's directory (`robots.txt`, the
+  sitemap index).
+
+`protocol`
+: Replace the base URL's scheme in this format's links (`webcal://`).
+
+`weight`
+: Render order: formats with a non-zero weight first, by weight, then the others by name.
 
 New media types are defined under `[mediaTypes]`: `[mediaTypes."text/x-hello"] suffixes =
 ["hello"]`.

@@ -16,7 +16,7 @@ pub(crate) fn icu_locale(key: &str) -> Option<IcuLocale> {
 }
 
 /// The ICU locale for formatting in language `key`: the key's locale when CLDR has data for it
-/// (beyond root), English otherwise (`klingon`, `x1`), as Hugo does.
+/// (beyond root), English otherwise (`klingon`, `x1`), as Go does.
 pub(crate) fn cldr_locale(key: &str) -> IcuLocale {
     icu_locale(key)
         .filter(has_cldr_data)

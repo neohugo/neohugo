@@ -1,10 +1,10 @@
-//! The HTML Hugo writes for highlighted code: Chroma's HTML formatter (line spans, line
-//! numbers inline or in a table, highlighted lines, classes or inline styles) inside Hugo's
-//! wrappers (`<div class="highlight">`, `<pre tabindex="0">`, `<code class="language-x"
-//! data-lang="x">`, inline code).
+//! The HTML the Go implementation writes for highlighted code: Chroma's HTML formatter (line
+//! spans, line numbers inline or in a table, highlighted lines, classes or inline styles)
+//! inside the Go implementation's wrappers (`<div class="highlight">`, `<pre tabindex="0">`,
+//! `<code class="language-x" data-lang="x">`, inline code).
 //!
-//! The markup is Chroma's (`formatters/html/html.go`, v2.19.0, MIT) and Hugo's
-//! (`markup/highlight/highlight.go`, Apache-2.0), rewritten.
+//! The markup is Chroma's (`formatters/html/html.go`, v2.19.0, MIT) and the Go
+//! implementation's (`markup/highlight/highlight.go`, Apache-2.0), rewritten.
 
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
@@ -28,7 +28,7 @@ pub(crate) fn escape(out: &mut String, s: &str) {
     }
 }
 
-/// Code without a known lexer: escaped, in Hugo's `<pre><code>` (no `<div>`) or inline code.
+/// Code without a known lexer: escaped, in Go's `<pre><code>` (no `<div>`) or inline code.
 pub(crate) fn plain(code: &str, lang: &str, layout: CodeLayout) -> String {
     let mut out = String::with_capacity(code.len() + 64);
     match layout {
@@ -52,7 +52,7 @@ fn inline_code_start(out: &mut String, lang: &str) {
     out.push_str("\">");
 }
 
-/// Hugo's `WritePreStart`.
+/// Go's `WritePreStart`.
 fn pre_start(out: &mut String, lang: &str, style_attr: &str) {
     out.push_str("<pre tabindex=\"0\"");
     out.push_str(style_attr);
@@ -239,7 +239,7 @@ impl Block<'_> {
         out
     }
 
-    /// Hugo's `writeDivStart`: the wrapper class plus the fence's `class`, then the other
+    /// Go's `writeDivStart`: the wrapper class plus the fence's `class`, then the other
     /// attributes.
     fn div_start(&self, out: &mut String) {
         out.push_str("<div class=\"");

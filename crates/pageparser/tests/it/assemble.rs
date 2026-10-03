@@ -166,7 +166,7 @@ fn summary_divider() {
     assert_eq!(body.summary_divider, Some(2));
     assert_eq!(body.segments[2], Segment::Text("Rest <!--more--> x"));
 
-    // Inside inner content the divider is dropped (Hugo).
+    // Inside inner content the divider is dropped (as in Go).
     let body = parse("{{< outer >}}a<!--more-->b{{< /outer >}}").unwrap();
     assert_eq!(body.summary_divider, None);
     let Closing::Closed { inner, .. } = &call(&body.segments[0]).closing else {
@@ -188,7 +188,7 @@ fn inline_shortcodes() {
     assert_eq!(call(&body.segments[2]).closing, Closing::SelfClosed);
 }
 
-/// Every Hugo content file of the oracle (docs, testsite, skeletons) whose body
+/// Every content file of the oracle (docs, testsite, skeletons) whose body
 /// lexes assembles, with an oracle that says a shortcode uses `inner` when the file closes or
 /// self-closes it; the calls' spans nest and the text reassembles the source.
 #[test]

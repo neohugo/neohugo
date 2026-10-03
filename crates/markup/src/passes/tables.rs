@@ -510,8 +510,8 @@ fn plan<'a>(doc: &Doc<'a>, keep: &HashMap<NodeKey, Keep<'a>>) -> Vec<Planned<'a>
         if let Some(first) = found.before.first_mut() {
             first.start = comrak_start;
         }
-        // Hugo's closing context marker after an include that ends with a table is a row of
-        // empty cells there; it is not reproduced (README, accepted deviations).
+        // The Go implementation's closing context marker after an include that ends with a
+        // table is a row of empty cells there; it is not reproduced (README, accepted deviations).
         found.body.retain(|r| !marker_row(text, r));
         let split = found
             .before

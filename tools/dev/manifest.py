@@ -8,8 +8,8 @@ Usage:
   manifest.py summary <manifest>...
 
 `extract` writes the manifest of every file below <publish-dir>, plus the project directory's
-build_stats.json (written next to the config, not into publishDir) as `project:hugo_stats.json`,
-the key of the Go build's hugo_stats.json in the golden manifests.
+build_stats.json (written next to the config, not into publishDir) as `project:<GO_STATS_KEY>`,
+the key of the Go build's stats file in the golden manifests.
 The base URLs default to the site config (`baseURL` of <project>/config.toml and of its
 languages). A file name ending in `.gz` is written gzipped (deterministically). The schema is
 documented in testdata/golden/README.md; in short, per file:
@@ -46,9 +46,12 @@ import urllib.parse
 SCHEMA = "ssg-manifest/1"
 LEVELS = ("L1", "L2", "L3", "L4")
 PROJECT_PREFIX = "project:"
+# The Go build's stats file name: the key (after PROJECT_PREFIX) the golden manifests record it
+# under. A literal of the recorded data, so it keeps the name the Go program wrote.
+GO_STATS_KEY = "hugo_stats.json"
 # The project files read, with the manifest key each is recorded under: our stats file is
-# compared with the Go build's hugo_stats.json of the golden data.
-PROJECT_FILES = (("build_stats.json", "hugo_stats.json"),)
+# compared with the Go build's stats file of the golden data.
+PROJECT_FILES = (("build_stats.json", GO_STATS_KEY),)
 
 HU_RE = re.compile(r"_hu_[0-9a-f]+")
 FINGERPRINT_RE = re.compile(r"\.[0-9a-f]{16,64}(?=\.)")

@@ -1,4 +1,4 @@
-//! Build script of ssg-layouts: lists `embedded/**` (Hugo's embedded templates rewritten in
+//! Build script of ssg-layouts: lists `embedded/**` (Go's embedded templates rewritten in
 //! Tera, T32) as `include_str!` entries in `$OUT_DIR/embedded.rs`, so adding a template needs no
 //! source change. Paths are relative to `embedded/`, `/`-separated and sorted.
 

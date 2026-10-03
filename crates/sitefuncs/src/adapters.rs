@@ -1,13 +1,13 @@
 //! Content adapters (`content/**/_content.html`, phase `Adapter`): `add_page`, `add_resource`,
-//! `enable_all_languages` and the adapter's store (Hugo's
-//! `hugolib/pagesfromdata/pagesfromgotmpl.go`, `pagesFromDataTemplateContext`).
+//! `enable_all_languages` and the adapter's store (the Go implementation's
+//! `pagesfromdata/pagesfromgotmpl.go`, `pagesFromDataTemplateContext`).
 //!
 //! The build starts one [`AdapterRun`] per execution of an adapter in a language
 //! ([`ContentAdapters::begin`]); the render's scope names it (`__nh.adapter`), so calls inside
-//! partials add to the same run. A map is checked when it is added (Hugo reports these errors
+//! partials add to the same run. A map is checked when it is added (Go reports these errors
 //! at the `AddPage` call): an `add_page` map is decoded with [`AdapterPage::decode`], an
 //! `add_resource` map here. A run that adds a path again replaces what it added there before
-//! (Hugo inserts into its page and resource trees, where the last insert wins), with a warning;
+//! (Go inserts into its page and resource trees, where the last insert wins), with a warning;
 //! a map of the run's paths finds the earlier item, so a run of n calls takes linear time.
 //! The store (`store_set`/`store_get` without `page=`) belongs to the adapter file: its runs
 //! for every language share it.
@@ -179,7 +179,7 @@ fn map_arg(v: &Value, what: &str) -> TeraResult<Params> {
     }
 }
 
-/// The entry `key` of a map value, ignoring case (Hugo's map keys are case-insensitive).
+/// The entry `key` of a map value, ignoring case (Go's map keys are case-insensitive).
 fn field_fold(v: &Value, key: &str) -> Option<Value> {
     let m = v.as_map()?;
     m.iter()
@@ -188,7 +188,7 @@ fn field_fold(v: &Value, key: &str) -> Option<Value> {
 }
 
 /// Adds `item`, whose path is `path`, to `list`, replacing the item with the same path in its
-/// place (Hugo's `InsertIntoValuesDimension`: the last insert of a key wins); `at` maps the
+/// place (Go's `InsertIntoValuesDimension`: the last insert of a key wins); `at` maps the
 /// paths in `list` to their places. A replacement is reported as a `duplicate-<what>-path`
 /// warning (`what`: `content` for pages, `resource`).
 fn insert_or_replace<T>(
@@ -269,9 +269,9 @@ struct AddResource {
 }
 
 impl AddResource {
-    /// The resource of an `add_resource` map (Hugo's `ResourceConfig` with `Validate` and
+    /// The resource of an `add_resource` map (Go's `ResourceConfig` with `Validate` and
     /// `Compile`): `path` joined to `dir` with `path.Join` and normalised (lower case, spaces
-    /// → `-`); an empty `path` is an error (Hugo would put the resource at the adapter's
+    /// → `-`); an empty `path` is an error (Go would put the resource at the adapter's
     /// directory, the key of its section page); a
     /// `content.value` that is a resource keeps that resource's file, link and media type.
     fn decode(

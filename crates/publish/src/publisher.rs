@@ -8,12 +8,12 @@
 //!    configured; a held output is rewritten again after [`Publisher::patch_held`] inserted its
 //!    replacements, so post-processed links follow the site's URL style);
 //! 2. the LiveReload script (`serve` only; HTML outputs that are not alias redirects, as in
-//!    Hugo);
+//!    Go);
 //! 3. `build_stats.json` collection (HTML outputs);
 //! 4. URL-token extraction;
 //! 5. an output holding a deferred placeholder (`__nh_defer_<key>__`, `__nh_pp_<id>_<field>__`)
 //!    is held until [`Publisher::patch_held`]: its text is written to the sink as it is (to its
-//!    file in a disk build, as Hugo's post-processing does, so held pages take no memory however
+//!    file in a disk build, as Go's post-processing does, so held pages take no memory however
 //!    many there are) and only its path is kept; `patch_held` reads it back, patches, minifies
 //!    and writes it again. Any other output is minified (when `minifyOutput` is set and the
 //!    media type has a minifier) and written.
@@ -53,7 +53,7 @@ pub struct Output {
     pub format: FormatId,
     /// The language whose base URL canonifies the output.
     pub lang: LangIdx,
-    /// An alias redirect (front matter alias, `page/1/` alias or language redirect): Hugo
+    /// An alias redirect (front matter alias, `page/1/` alias or language redirect): Go
     /// publishes these without the LiveReload script.
     pub alias: bool,
 }

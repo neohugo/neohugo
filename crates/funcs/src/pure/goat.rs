@@ -1,8 +1,8 @@
-//! `diagrams_goat` (feature `goat`): ASCII diagrams to SVG, as Hugo's `diagrams.Goat`
+//! `diagrams_goat` (feature `goat`): ASCII diagrams to SVG, as Go's `diagrams.Goat`
 //! (`tpl/diagrams/goat.go`) with GoAT, the Go port of Markdeep's diagrams.
 //!
-//! [`canvas`] and [`svg`] port bep/goat v0.5.0 (the version Hugo uses; MIT,
-//! `THIRD_PARTY/goat/LICENSE`), so the SVG is byte-identical to Hugo's: one `<path>` per line
+//! [`canvas`] and [`svg`] port bep/goat v0.5.0 (the version Go uses; MIT,
+//! `THIRD_PARTY/goat/LICENSE`), so the SVG is byte-identical to Go's: one `<path>` per line
 //! segment and corner, a `<polygon>` per arrow head, a `<circle>` per dot and one `<text>` per
 //! character of text, in GoAT's order. A character cell is 8×16 pixels; the size is one column
 //! and half a row of margin more than the diagram.
@@ -40,7 +40,7 @@ pub struct GoatSvg {
 }
 
 impl GoatSvg {
-    /// A complete `<svg>` element, as Hugo's `.Wrapped` (Go's `SVG.String`).
+    /// A complete `<svg>` element, as the Go templates' `.Wrapped` (GoAT's `SVG.String`).
     #[must_use]
     pub fn wrapped(&self) -> String {
         format!(

@@ -6,8 +6,8 @@ use ssg_base::{
 };
 
 fn docs_yaml() -> String {
-    let path = ssg_testkit::fixture::hugo_docs().join("data/docs.yaml");
-    std::fs::read_to_string(path).expect("testdata/hugo-docs/data/docs.yaml")
+    let path = ssg_testkit::fixture::legacy_docs().join("data/docs.yaml");
+    std::fs::read_to_string(path).expect("testdata/legacy-docs/data/docs.yaml")
 }
 
 #[test]

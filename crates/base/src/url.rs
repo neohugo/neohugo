@@ -1,7 +1,7 @@
 //! URL references, percent-escaping and the site's base URL.
 //!
 //! [`UrlRef`] splits a URI reference into scheme, authority, path, query and fragment with the
-//! rules Hugo's URLs are defined by (RFC 3986 syntax, parsed leniently): the path, host and
+//! rules Go's URLs are defined by (RFC 3986 syntax, parsed leniently): the path, host and
 //! fragment are kept percent-decoded; an escaping of the original input is remembered and
 //! reused when it still decodes to the component (so `%2F` survives a round trip), otherwise
 //! the component is escaped with the component's character set ([`Component`]). Hex digits are

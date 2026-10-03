@@ -1,9 +1,9 @@
-//! Oracle: menus (`oracle/page/menus/*`, Hugo's `menu_test.go` sites, docs and a nested
+//! Oracle: menus (`oracle/page/menus/*`, Go's `menu_test.go` sites, docs and a nested
 //! multilingual site). The configured menus are decoded by `ssg-config` from the recorded
 //! `menus` tables, the pages' own entries by `ssg-page` from their front matter; then the
 //! assembled menus (tree, order, names, titles, URLs, weights, parents, params), the pages' own
 //! entries, `IsMenuCurrent`/`HasMenuCurrent` for every page and entry, and the menu sorts must
-//! equal Hugo's.
+//! equal Go's.
 
 use std::collections::BTreeMap;
 
@@ -115,7 +115,7 @@ fn urls_of(site: &DumpSite, lang: LangIdx) -> SiteUrls {
     }
 }
 
-/// The `sectionPagesMenu` of a site: the menu whose entries Hugo made from sections (they have
+/// The `sectionPagesMenu` of a site: the menu whose entries Go made from sections (they have
 /// no menu name).
 fn section_pages_menu(fx: &J, site: usize) -> Option<String> {
     let entries = fx["entries"].as_array().expect("entries");
@@ -351,7 +351,7 @@ fn run(file: &str, t: &mut Tally) {
 }
 
 #[test]
-fn menus_match_hugo() {
+fn menus_match_go() {
     let mut t = Tally::default();
     for file in family("page/menus", &["decode.json.gz"]) {
         run(&file, &mut t);
@@ -360,7 +360,7 @@ fn menus_match_hugo() {
 }
 
 #[test]
-fn menu_config_decodes_like_hugo() {
+fn menu_config_decodes_like_go() {
     let mut t = Tally::default();
     let fx = fixture("page/menus/decode.json.gz");
     for c in fx["cases"].as_array().expect("cases") {
@@ -369,7 +369,7 @@ fn menu_config_decodes_like_hugo() {
         match (&entries, c["res"].get("ok").is_some()) {
             (Ok(e), true) => {
                 // Menu names are configuration keys, which the site's configuration loader
-                // lower-cases (Hugo's too; this oracle calls `navigation.DecodeConfig` on
+                // lower-cases (Go's too; this oracle calls `navigation.DecodeConfig` on
                 // keys as written).
                 let folded = menus.is_some_and(|m| m.keys().any(|k| k.to_lowercase() != *k));
                 if folded {

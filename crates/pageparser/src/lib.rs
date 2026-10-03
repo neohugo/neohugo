@@ -4,8 +4,8 @@
 //! A content file is first split ([`split_front_matter`]) and its front matter decoded
 //! ([`decode_front_matter`]); the body is lexed ([`lex`]) into typed [`Token`]s with byte
 //! ranges and assembled ([`assemble`]) into text and [`ShortcodeCall`]s. Assembling needs to
-//! know which shortcodes use their inner content ([`InnerOracle`]), because Hugo's syntax
-//! depends on it.
+//! know which shortcodes use their inner content ([`InnerOracle`]), because the Go
+//! implementation's syntax depends on it.
 
 #![forbid(unsafe_code)]
 

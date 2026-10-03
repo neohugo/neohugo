@@ -53,11 +53,11 @@ pub(crate) enum Step {
         size: Size,
     },
     /// A crop or fill to `target` at the `smart` anchor (`smartcrop.rs`): keep the region
-    /// Hugo's smart crop finds on the operation's source for `target` and `filter`
+    /// the Go implementation's smart crop finds on the operation's source for `target` and `filter`
     /// (intersected with the image), then resize it to `target` (fill) or keep its centre at
     /// `target` (crop). The region depends on the source's pixels, so it is found when the
-    /// steps run. A fill whose region is empty fills at the centre anchor instead (Hugo's
-    /// fallback, [`Plan::smart_crop`]).
+    /// steps run. A fill whose region is empty fills at the centre anchor instead (the Go
+    /// implementation's fallback, [`Plan::smart_crop`]).
     SmartCrop {
         action: Action,
         target: Size,
@@ -119,7 +119,8 @@ pub(crate) struct InputInfo {
 /// on it.
 pub(crate) type ResolveSmart<'a> = dyn FnMut(Size, Resample) -> Result<Rect, ImageError> + 'a;
 
-/// Rounds half up like the resize maths of Hugo (`int(x + 0.5)` on non-negative values).
+/// Rounds half up like the resize maths of the Go implementation (`int(x + 0.5)` on
+/// non-negative values).
 fn round_half_up(x: f64) -> u32 {
     let r = (x + 0.5).floor();
     if r <= 0.0 {
@@ -440,17 +441,17 @@ impl Plan {
         self.size = size;
     }
 
-    /// A smart crop or fill (Hugo's `FiltersFromConfig`: `gift.Crop` of the region, then
-    /// `gift.Resize` or `gift.CropToSize` at the centre).
+    /// A smart crop or fill (the Go implementation's `FiltersFromConfig`: `gift.Crop` of the
+    /// region, then `gift.Resize` or `gift.CropToSize` at the centre).
     ///
     /// A fill always ends at the target size: when the region is empty (smartcrop has no
-    /// candidate, or none scores above −1), Hugo fills again at the centre anchor
+    /// candidate, or none scores above −1), the Go implementation fills again at the centre anchor
     /// (`processOptions` in `resources/image.go`, issue 7955), and so does the step
     /// ([`crate::pixels`]). A crop ends at the target size clipped to the region, and the
     /// regions smartcrop can pick for a source differ by a pixel or so after scaling back from
     /// its analysis, so when they would give different sizes (a target about the size of the
     /// source) the region is found here, from the pixels. A crop with no candidate is empty
-    /// (Hugo writes an empty image; an error here).
+    /// (the Go implementation writes an empty image; an error here).
     fn smart_crop(
         &mut self,
         action: Action,

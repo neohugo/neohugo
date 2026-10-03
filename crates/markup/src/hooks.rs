@@ -22,7 +22,7 @@ impl HookError {
 pub struct HookEnv {
     /// The page being rendered.
     pub page: PageId,
-    /// The page whose source the node came from (Hugo `.PageInner`): the innermost
+    /// The page whose source the node came from (Go's `.PageInner`): the innermost
     /// [`crate::SourceContexts`] span containing the node, else [`HookEnv::page`].
     pub inner_page: PageId,
     /// Per hook kind, in call order (0-based).
@@ -80,7 +80,7 @@ pub trait Hooks: Sync {
     fn blockquote(&self, _: &HookEnv, _: &BlockquoteCtx) -> Result<HookOut, HookError> {
         Ok(HookOut::Default)
     }
-    /// A table. [`HookOut::Default`] renders Hugo's embedded table template.
+    /// A table. [`HookOut::Default`] renders the Go implementation's embedded table template.
     ///
     /// # Errors
     /// The hook's failure; rendering stops.

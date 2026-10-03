@@ -1,4 +1,4 @@
-//! Where the server listens and the base URLs it builds the site with (Hugo's
+//! Where the server listens and the base URLs it builds the site with (Go's
 //! `createServerPorts` and `fixURL`).
 
 use std::io;
@@ -11,7 +11,7 @@ use crate::{Event, Port, Reporter, ServeError};
 /// The base URL a language is built with when served on `port`: the `--baseURL` flag, else
 /// the configured base URL on `localhost` (over `http`); with `append_port`, the port
 /// replaces the URL's own. A base URL without a host (`/`) gets `//localhost:<port>/`, as in
-/// Hugo.
+/// Go.
 pub(crate) fn server_base_url(
     configured: &str,
     flag: Option<&str>,

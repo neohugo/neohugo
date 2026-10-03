@@ -129,7 +129,7 @@ expression: snap
     <title>Categories on Testsite</title>
     <link>https://example.org/categories/</link>
     <description>Recent content in Categories on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>en</language>
     <atom:link href="https://example.org/categories/index.xml" rel="self" type="application/rss+xml" />
   </channel>
@@ -301,7 +301,7 @@ a { color : red }
     <title>Home on Testsite</title>
     <link>https://example.org/</link>
     <description>Recent content in Home on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>en</language>
     <lastBuildDate>Mon, 04 Jan 2021 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://example.org/index.xml" rel="self" type="application/rss+xml" />
@@ -378,7 +378,7 @@ a { color : red }
     <title>Categories on Testsite</title>
     <link>https://example.org/nn/categories/</link>
     <description>Recent content in Categories on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>nn</language>
     <atom:link href="https://example.org/nn/categories/index.xml" rel="self" type="application/rss+xml" />
   </channel>
@@ -468,7 +468,7 @@ a { color : red }
     <title>Heim on Testsite</title>
     <link>https://example.org/nn/</link>
     <description>Recent content in Heim on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>nn</language>
     <lastBuildDate>Mon, 28 Feb 1972 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://example.org/nn/index.xml" rel="self" type="application/rss+xml" />
@@ -618,7 +618,7 @@ a { color : red }
     <title>Tags on Testsite</title>
     <link>https://example.org/nn/tags/</link>
     <description>Recent content in Tags on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>nn</language>
     <atom:link href="https://example.org/nn/tags/index.xml" rel="self" type="application/rss+xml" />
   </channel>
@@ -770,7 +770,7 @@ a { color : red }
     <title>Posts on Testsite</title>
     <link>https://example.org/posts/</link>
     <description>Recent content in Posts on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>en</language>
     <lastBuildDate>Mon, 04 Jan 2021 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://example.org/posts/index.xml" rel="self" type="application/rss+xml" />
@@ -971,7 +971,7 @@ User-agent: *
     <title>A on Testsite</title>
     <link>https://example.org/tags/a/</link>
     <description>Recent content in A on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>en</language>
     <lastBuildDate>Sat, 02 Jan 2021 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://example.org/tags/a/index.xml" rel="self" type="application/rss+xml" />
@@ -1029,7 +1029,7 @@ User-agent: *
     <title>B on Testsite</title>
     <link>https://example.org/tags/b/</link>
     <description>Recent content in B on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>en</language>
     <lastBuildDate>Sun, 03 Jan 2021 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://example.org/tags/b/index.xml" rel="self" type="application/rss+xml" />
@@ -1094,7 +1094,7 @@ User-agent: *
     <title>C on Testsite</title>
     <link>https://example.org/tags/c/</link>
     <description>Recent content in C on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>en</language>
     <lastBuildDate>Mon, 04 Jan 2021 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://example.org/tags/c/index.xml" rel="self" type="application/rss+xml" />
@@ -1152,7 +1152,7 @@ User-agent: *
     <title>Tags on Testsite</title>
     <link>https://example.org/tags/</link>
     <description>Recent content in Tags on Testsite</description>
-    <generator>Hugo</generator>
+    <generator>fugo</generator>
     <language>en</language>
     <lastBuildDate>Mon, 04 Jan 2021 00:00:00 +0000</lastBuildDate>
     <atom:link href="https://example.org/tags/index.xml" rel="self" type="application/rss+xml" />

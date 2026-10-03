@@ -1,4 +1,4 @@
-//! `data::load` against the Go oracle `oracle/hugolib/data/<case>.json.gz` (`.Site.Data`): the
+//! `data::load` against the Go oracle `oracle/sitebuild/data/<case>.json.gz` (`.Site.Data`): the
 //! tree (keys as written, directory nesting, precedence of the project over themes and of
 //! subdirectories over files), the dropped values (warnings) and the rejected files (errors),
 //! and the load errors. Numbers compare by value (Go decodes every JSON number as a float).
@@ -28,7 +28,7 @@ fn remove(v: &mut J, path: &str) {
 }
 
 fn check(name: &str) {
-    let f: J = oracle(&format!("oracle/hugolib/data/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/data/{name}.json.gz"));
     let log: Vec<&str> = f["log"]
         .as_array()
         .unwrap()
@@ -94,7 +94,7 @@ fn data_oracle_cases() {
 /// CSV is a list of rows (see expected_diffs.toml).
 #[test]
 fn data_csv_rows() {
-    let f: J = oracle("oracle/hugolib/data/data-csv.json.gz");
+    let f: J = oracle("oracle/sitebuild/data/data-csv.json.gz");
     let d = load(&f["site"]).unwrap();
     assert_eq!(
         to_json(&d.map["table"]),
@@ -106,7 +106,7 @@ fn data_csv_rows() {
 #[test]
 fn data_docs() {
     check("data-docs");
-    let f: J = oracle("oracle/hugolib/data/data-docs.json.gz");
+    let f: J = oracle("oracle/sitebuild/data/data-docs.json.gz");
     let d = load(&f["site"]).unwrap();
     let files = f["site"]["files"].as_array().unwrap().len();
     assert_eq!(d.map.len(), files, "one key per docs data file");
@@ -120,7 +120,7 @@ fn data_docs() {
 /// S-style nested JSON directories (`comments/2020/post-1.json`) and case preserved.
 #[test]
 fn data_nested_json() {
-    let f: J = oracle("oracle/hugolib/data/data-basic.json.gz");
+    let f: J = oracle("oracle/sitebuild/data/data-basic.json.gz");
     let d = load(&f["site"]).unwrap();
     let post = d.map["comments"].as_map().unwrap()["2020"]
         .as_map()

@@ -1,16 +1,17 @@
 //! `tailwind_css` on the docs site's `assets/css/styles.css` (used in place): the CLI runs in
 //! the project directory with `--input=- --cwd <project>`; the asset `@import`s
 //! (`components/all.css` and its `./content.css` …) are inlined from the assets view, while
-//! `@import "tailwindcss"`, `@plugin` and `@source "hugo_stats.json"` (the frozen docs fixture names Go's file) are left to the CLI.
+//! `@import "tailwindcss"`, `@plugin` and the `@source` of the Go build's stats file (the frozen
+//! legacy docs site names Go's file) are left to the CLI.
 //!
-//! With a fake `tailwindcss` (node) the input and arguments are checked; with the real CLI
-//! (`FUGO_TAILWINDCSS_BIN`, plugins through `FUGO_NODE_MODULES`) the docs CSS compiles
-//! and holds classes the docs' (Go's) `hugo_stats.json` names.
+//! With a fake `tailwindcss` (node, in a `node_modules/.bin`) the input and arguments are
+//! checked; with the real CLI (the `node_modules` of `tools/dev/node.sh`, with its plugins) the
+//! docs CSS compiles and holds classes the legacy docs site's Go build stats file names.
 
 use ssg_resources::Transform;
 use ssg_resources::pipes::{TailwindOptions, ToolPaths};
 
-use super::{fake_tool, have_node, project_in_place, real_tool};
+use super::{fake_tool, have_node, project_in_place, real_tools};
 
 const FAKE_TAILWIND: &str = r"
 const fs = require('fs'), path = require('path');
@@ -20,7 +21,7 @@ process.stdout.write(fs.readFileSync(0, 'utf8'));
 ";
 
 fn docs() -> std::path::PathBuf {
-    crate::support::repo_dir().join("testdata/hugo-docs")
+    crate::support::repo_dir().join("testdata/legacy-docs")
 }
 
 #[test]
@@ -29,8 +30,9 @@ fn tailwind_docs_styles_fake_tool() {
         return;
     }
     let tmp = tempfile::tempdir().unwrap();
-    let bin = fake_tool(tmp.path(), "tailwindcss", FAKE_TAILWIND);
-    let p = project_in_place(&docs(), |env| env.tools.tailwindcss = Some(bin));
+    let modules = tmp.path().join("node_modules");
+    fake_tool(&modules, "tailwindcss", FAKE_TAILWIND);
+    let p = project_in_place(&docs(), |env| env.tools.node_modules = vec![modules]);
     let src = p.asset("css/styles.css");
     let opts = TailwindOptions::from_json(&serde_json::json!({"minify": true})).unwrap();
     let id = p
@@ -43,6 +45,7 @@ fn tailwind_docs_styles_fake_tool() {
         css.starts_with("@import \"tailwindcss\";\n@plugin \"@tailwindcss/typography\";\n"),
         "{css}"
     );
+    // The `@source` of the Go build's stats file, as the legacy docs site writes it.
     assert!(css.contains("@source \"hugo_stats.json\";"), "{css}");
     assert!(!css.contains("@import \"components/all.css\""), "{css}");
     // Inlined: every component file of all.css.
@@ -69,13 +72,13 @@ fn tailwind_docs_styles_fake_tool() {
 
 #[test]
 fn tailwind_docs_styles_real_tool() {
-    let Some(bin) = real_tool("FUGO_TAILWINDCSS_BIN", "tailwind_docs_styles_real_tool") else {
+    let Some(dirs) = real_tools("tailwindcss", "tailwind_docs_styles_real_tool") else {
         return;
     };
     let p = project_in_place(&docs(), |env| {
         env.tools = ToolPaths {
-            tailwindcss: Some(bin),
-            ..ToolPaths::from_env()
+            node_modules: dirs,
+            ..ToolPaths::default()
         };
     });
     let src = p.asset("css/styles.css");
@@ -84,7 +87,8 @@ fn tailwind_docs_styles_real_tool() {
         .transform(src, Transform::TailwindCss(TailwindOptions::default()))
         .unwrap();
     let css = String::from_utf8(p.store.content(id).unwrap().to_vec()).unwrap();
-    // Utilities the docs' hugo_stats.json (Go's) names, and the typography plugin's `prose`.
+    // Utilities the legacy docs site's Go build stats file names, and the typography plugin's
+    // `prose`.
     assert!(css.contains(".prose"), "no typography plugin output");
     assert!(css.contains("--color-primary"), "no theme variables");
     assert!(!css.contains("@import"), "imports left");

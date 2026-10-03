@@ -1,7 +1,7 @@
-//! `to_math` (feature `math`) against Hugo's `transform.ToMath` (KaTeX 0.16.22 with mhchem).
+//! `to_math` (feature `math`) against Go's `transform.ToMath` (KaTeX 0.16.22 with mhchem).
 //! `tests/fixtures/tomath.jsonl.gz` holds Go's answers for KaTeX's screenshotter corpus, every
-//! formula of the Hugo documentation site (`docs/content`, its passthrough delimiters), mhchem's
-//! manual, KaTeX's options and their weak decoding (crates/funcs/README.md, "to_math fixture").
+//! formula of the legacy docs site (`docs/content`, its passthrough delimiters), mhchem's manual,
+//! KaTeX's options and their weak decoding (crates/funcs/README.md, "to_math fixture").
 
 use std::collections::BTreeSet;
 
@@ -97,7 +97,7 @@ fn matches_go() {
 #[test]
 fn renders_every_docs_formula() {
     let re = regex::Regex::new(r"(?s)\$\$(.+?)\$\$|\\\[(.+?)\\\]|\\\((.+?)\\\)").expect("valid");
-    let docs = ssg_testkit::fixture::hugo_docs().join("content");
+    let docs = ssg_testkit::fixture::legacy_docs().join("content");
     let mut formulas = BTreeSet::new();
     let mut dirs = vec![docs];
     while let Some(dir) = dirs.pop() {
@@ -228,7 +228,7 @@ fn optional_turns_errors_into_warnings() {
     assert!(e.contains("to_math: invalid strict mode"), "{e}");
 }
 
-/// `strict: "warn"` reports KaTeX's warnings once per formula and build (Hugo's cache).
+/// `strict: "warn"` reports KaTeX's warnings once per formula and build (Go's cache).
 #[test]
 fn strict_warnings_once() {
     let env = env();

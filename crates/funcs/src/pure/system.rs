@@ -28,9 +28,16 @@ pub(super) fn register(r: &mut Registrar<'_>, env: &Arc<PureEnv>) {
     let e = Arc::clone(env);
     r.function("get_env", move |kw, _| {
         let name = kw.must_get::<&str>("name")?;
+        // A name the project's `.env` defines is readable; the process environment wins.
+        if let Some(v) = e.env_file.get(name) {
+            return Ok(Value::from(
+                std::env::var(name).unwrap_or_else(|_| v.clone()),
+            ));
+        }
         if !e.getenv.allows(name) {
             return Err(tera::Error::message(format!(
-                "get_env: `{name}` is not allowed by security.funcs.getenv"
+                "get_env: `{name}` is not allowed by security.funcs.getenv (allow it there, or \
+                 define it in the project's .env file)"
             )));
         }
         Ok(Value::from(std::env::var(name).unwrap_or_default()))

@@ -1,4 +1,4 @@
-//! The summary oracle (`testdata/oracle/page/summary`): Hugo's summary of the rendered
+//! The summary oracle (`testdata/oracle/page/summary`): Go's summary of the rendered
 //! HTML of every page of the Go builds and of variants (other word counts, CJK, dividers), plus
 //! 6,000 adversarial calls, against [`ssg_render::summary`]. Markdown and HTML content
 //! only (AsciiDoc, RST, Pandoc and Org are external markups this port does not render).

@@ -47,7 +47,7 @@ impl Page {
 }
 
 #[test]
-fn default_order_matches_hugo() {
+fn default_order_matches_go() {
     let mut t = Tally::default();
     for file in family("collections", &["methods.json.gz"]) {
         let fx = fixture(&format!("collections/{file}"));

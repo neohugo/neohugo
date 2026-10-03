@@ -32,9 +32,10 @@ binary `fugo` is the package `ssg-cli`.
 | `layouts`, `render`, `view` | template lookup, Tera rendering, the values templates see |
 | `funcs`, `sitefuncs` | template functions (`spec.rs` declares every one) |
 | `resources`, `images`, `jsbuild`, `minify` | asset pipelines |
+| `npm` | installing `package.json`; Tailwind and Babel on the embedded JavaScript runtime (Deno's) |
 | `publish`, `serve` | writing files, the development server |
 | `locale`, `nav`, `base` | languages, menus and pagination, shared types |
-| `testkit` | fixtures and the contract tests |
+| `testkit` | fixtures, the contract tests, a local npm registry |
 
 `docs/rust-port/HANDOFF.md` is the map of the code, the parity gates and the known
 deviations; each crate's README describes its API, its tests and its accepted differences.
@@ -48,15 +49,15 @@ cargo clippy --workspace -- -D warnings
 cargo fmt --check
 ```
 
-Many tests compare fugo with Hugo's output, recorded once from Hugo's Go code and kept in
-`testdata/`: Hugo's documentation site (`testdata/hugo-docs/`), test sites, and the outputs of
-Hugo's functions. A change that alters output must say why, in the crate's
+Many tests compare fugo with the Go implementation's output, recorded once from its Go code and
+kept in `testdata/`: its documentation site (`testdata/legacy-docs/`), test sites, and the
+outputs of its functions. A change that alters output must say why, in the crate's
 `expected_diffs.toml` or README.
 
 ## Adding a template function
 
 1. Declare it in `crates/funcs/src/spec.rs`: name, kind, arguments, phase, documentation and
-   the Hugo names it replaces.
+   the Go-template names it replaces.
 2. Implement it in `ssg-funcs` (pure) or `ssg-sitefuncs` (reads the site).
 3. Regenerate the reference data:
    `INSTA_UPDATE=always cargo test -p ssg-testkit contract`. This updates

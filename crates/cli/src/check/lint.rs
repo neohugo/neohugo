@@ -234,7 +234,7 @@ fn map_order(
                 diags.push(
                     Diagnostic::warning(
                         "a template map literal is ranged in insertion order; add `| sort_keys` \
-                         for Hugo's sorted order",
+                         for the sorted order of Go templates",
                     )
                     .with_id("map-order")
                     .at(f.at(*offset)),

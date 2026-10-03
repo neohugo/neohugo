@@ -19,10 +19,10 @@
 //!   [`ImageQueue`](ssg_images::ImageQueue).
 //! - [`ResourceStore::get_remote`]: `resources.GetRemote` over the `[caches.getresource]` file
 //!   cache (entries are raw HTTP responses), with `[security.http]` checks, network fetches
-//!   through `ureq`, and an importer of caches Hugo wrote (see [`remote`]).
+//!   through `ureq`, and an importer of caches the Go build wrote (see [`remote`]).
 //!
-//! - [`pipes`]: the transforms beyond `fingerprint` (`minify`, `to_css` with grass, PostCSS,
-//!   Tailwind and Babel as external tools, `js_build` with rolldown), computed lazily;
+//! - [`pipes`]: the transforms beyond `fingerprint` (`minify`, `to_css` with grass, Tailwind
+//!   and Babel as external tools, `js_build` with rolldown), computed lazily;
 //!   `post_process` placeholders; `execute_as_template` (the template engine is a seam).
 
 #![forbid(unsafe_code)]
@@ -36,7 +36,7 @@ mod store;
 
 pub use pipes::{PipeError, PostProcessId, PpField, TemplateExecutor, Transform, TransformEnv};
 pub use publish::PublishStats;
-pub use remote::{RemoteConfig, RemoteError, RemoteOptions, cache_key, hugo_keys};
+pub use remote::{RemoteConfig, RemoteError, RemoteOptions, cache_key, go_keys};
 pub use store::{
     AdapterResource, Body, BundleResource, CallSite, HashAlgo, LangTarget, Origin, PublishPolicy,
     QrOptions, Resource, ResourceError, ResourceKind, ResourceStore, StoreConfig, qr_target,

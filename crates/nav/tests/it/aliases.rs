@@ -1,5 +1,5 @@
-//! Oracle: the alias plan against the alias files of Hugo's builds
-//! (`oracle/hugolib/build/*`: every redirect Hugo wrote, with its page, language and format).
+//! Oracle: the alias plan against the alias files of Go's builds
+//! (`oracle/sitebuild/build/*`: every redirect Go wrote, with its page, language and format).
 //!
 //! The site is loaded with `ssg-site` (T23a: pages, front matter `aliases`, build options,
 //! drafts); the pages' output formats and links, which T23b adds to the model, come from the
@@ -18,7 +18,7 @@ use ssg_site::{LoadModelOptions, Model, PageRole, load_model};
 
 use crate::support::{Project, Tally, family, fixture, s};
 
-/// The model plus, per page, the output formats and links Hugo rendered.
+/// The model plus, per page, the output formats and links Go rendered.
 struct BuildSite {
     model: Model,
     outputs: Vec<Vec<(FormatId, TargetPaths)>>,
@@ -281,16 +281,16 @@ fn plan_rows(fx: &J) -> Option<Result<PlanRows, String>> {
 
 /// The planned and the Go alias rows of build fixture `file`.
 pub fn build_rows(file: &str) -> (Vec<Row>, Vec<Row>) {
-    let fx = fixture(&format!("hugolib/build/{file}"));
+    let fx = fixture(&format!("sitebuild/build/{file}"));
     plan_rows(&fx).expect("aliases").expect("plan")
 }
 
 #[test]
-fn alias_plan_matches_hugo_builds() {
+fn alias_plan_matches_go_builds() {
     let mut t = Tally::default();
     let mut files = 0;
-    for file in family("hugolib/build", &[]) {
-        let fx = fixture(&format!("hugolib/build/{file}"));
+    for file in family("sitebuild/build", &[]) {
+        let fx = fixture(&format!("sitebuild/build/{file}"));
         let (got, want) = match plan_rows(&fx) {
             None => continue,
             Some(Err(e)) => {

@@ -28,7 +28,7 @@ ssg-site.workspace = true
 ssg-layouts.workspace = true
 ssg-render.workspace = true
 ssg-publish.workspace = true
-# Phases E4–E6: `hugo_stats.json` injected as an asset, post-process placeholders, resource and
+# Phases E4–E6: `build_stats.json` injected as an asset, post-process placeholders, resource and
 # image publishing (the image queue and the highlighter are reached through the session's
 # `Handles`, so `ssg-images` and `ssg-highlight` need no edge of their own).
 ssg-resources.workspace = true

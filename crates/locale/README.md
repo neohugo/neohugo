@@ -9,11 +9,11 @@ Everything language-dependent, on ICU4X 2.3 compiled data (CLDR 48.2.1, Unicode-
 |---|---|
 | `Locale::new(key)` | One site language: collation (`impl base::Collate`), plural rules, number format, month/weekday names and the four date styles. Built once per language, `Send + Sync`. |
 | `Collator::for_language(key)` | The collation alone (`impl base::Collate`). |
-| `PluralRules::for_language(key)`, `PluralCount`, `PluralForm` | CLDR cardinal rules; a count keeps its decimal text (`1` is `one` in English, `1.0` is `other`). `PluralCount::from_value` is Hugo's count extraction (int, float, numeric string, a map's `Count` key). |
+| `PluralRules::for_language(key)`, `PluralCount`, `PluralForm` | CLDR cardinal rules; a count keeps its decimal text (`1` is `one` in English, `1.0` is `other`). `PluralCount::from_value` is the Go implementation's count extraction (int, float, numeric string, a map's `Count` key). |
 | `TranslationsBuilder::new(default_lang).missing_placeholders(b)` → `add_file(path, content)` … → `build(languages)` | Loads i18n files in precedence order (themes first); a later message replaces an earlier one. |
 | `Translations::lookup(lang, key, &Args)` → `Translation::{Found, Fallback, Missing}` | Lookup through the language, its parent tags (`pt-br` → `pt`), then the default language. |
-| `Translations::translate(lang, key, &Args)` | Hugo's `i18n`: the text, the default language's text, or `""`; `[i18n] key` for the latter two with `enableMissingTranslationPlaceholders`. |
-| `Args { count, data }`, `Args::from_value(&Value)` | The Tera call `i18n(key=, count=?, data=?)`, or Hugo's single argument. |
+| `Translations::translate(lang, key, &Args)` | The Go implementation's `i18n`: the text, the default language's text, or `""`; `[i18n] key` for the latter two with `enableMissingTranslationPlaceholders`. |
+| `Args { count, data }`, `Args::from_value(&Value)` | The Tera call `i18n(key=, count=?, data=?)`, or the Go implementation's single argument. |
 | `MessageFile::read(path, content)` | The messages of one file (TOML/YAML/JSON; flat, `[key]` tables, nested namespaces, `[{id, translation}]` lists). |
 | `Template::parse` / `parse_with(left, right)` / `render` | The restricted evaluator. |
 | `format_number(n, precision, &Locale)` | `lang.FormatNumber`. |
@@ -30,21 +30,21 @@ instead of `config::Language` for the same reason.
   actions with optional `{{-`/`-}}` trim markers and the message's own `leftDelim`/`rightDelim`.
   Anything else (`if`, `with`, `printf`, pipes, variables, comments) is an `I18nError::Message`
   at load time naming the file, the key, the plural form and the action.
-- **Values.** A missing map key or missing argument prints `<no value>` (as Hugo does). Floats
-  print as Hugo's templates print them (`0.5`, `2`, `1e+06`). A map or list printed whole is an
-  evaluation error (Hugo prints Go's `map[k:v]` syntax). A numeric argument is its own `.Count`;
-  with only `count=` given, `.` and `.Count` are the count.
+- **Values.** A missing map key or missing argument prints `<no value>` (as Go does). Floats
+  print as the Go implementation's templates print them (`0.5`, `2`, `1e+06`). A map or list
+  printed whole is an evaluation error (the Go implementation prints Go's `map[k:v]` syntax). A
+  numeric argument is its own `.Count`; with only `count=` given, `.` and `.Count` are the count.
 - **Errors at translate time** (`TranslateError`): the selected form and `other` both missing, or
   an argument that does not fit (`.Field` on a number). The caller logs a warning and renders
-  nothing, like Hugo.
+  nothing, like Go.
 - **Plural rules** are ICU4X's CLDR 48 rules for the language key. A key CLDR does not know
-  (`klingon`, `x1`) gets the root rules (`other` for everything); Hugo used the English rules.
+  (`klingon`, `x1`) gets the root rules (`other` for everything); Go used the English rules.
 - **Collation** is the language's CLDR tailoring (tertiary strength, non-ignorable), except Thai,
   which uses the root order: CLDR ≥ 24 gave Thai `[reorder Thai]` + `alternate=shifted`, which
-  would sort a Thai site's mixed lists Thai-first and ignore punctuation; Hugo (x/text, CLDR 23)
+  would sort a Thai site's mixed lists Thai-first and ignore punctuation; Go (x/text, CLDR 23)
   sorts them like the root order, and ICU4X root reproduces x/text on every sortable string of the
   reference sites (spec i18n-lang-misc §4), with one change for Thai: PAIYANNOI (ฯ) sorts as the
-  punctuation mark `!` (before digits and letters), as in Hugo's Thai collation. ICU4X has no
+  punctuation mark `!` (before digits and letters), as in Go's Thai collation. ICU4X has no
   runtime tailoring rules, so the Thai collator compares with ฯ replaced by `!` (strings equal
   that way fall back to the plain order). Accepted deviation D5 (newer CLDR) otherwise.
 - **Dates** always use the Gregorian calendar (`th` is `th-u-ca-gregory`), names in the format
@@ -72,7 +72,7 @@ workspace (it pulls `jiff-icu`, `icu_calendar`, `icu_time` into `funcs` for noth
 | `parse::message_file_layouts_oracle` | 148/161 files as go-i18n; 13 listed |
 | `plural::plural_rules_oracle` | 99.53% on the 138 locales with ICU data; 11 CLDR rule changes and 74 locales without ICU data listed |
 | `collate::*` | 2,801 site strings: consistent total order, no distinct strings equal, `th` = `en` = root, Latin before Thai, Thai leading vowels skipped, Thai ฯ as punctuation |
-| `locales::*` | month/weekday names en and th (Gregorian) equal gohugoio/locales except `th` abbreviated weekdays; date styles 701/701 except listed fields; numbers 845/845 |
+| `locales::*` | month/weekday names en and th (Gregorian) equal the Go implementation's locales library except `th` abbreviated weekdays; date styles 701/701 except listed fields; numbers 845/845 |
 
 Every difference is listed with its reason in [`expected_diffs.toml`](expected_diffs.toml); the
 tests fail on unlisted differences and on stale entries.

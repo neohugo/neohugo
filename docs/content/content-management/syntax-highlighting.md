@@ -5,7 +5,7 @@ weight: 120
 ---
 
 fugo highlights code at build time with a port of [Chroma](https://github.com/alecthomas/chroma)
-v2.19, the highlighter Hugo uses: the same lexers, styles and HTML. No JavaScript runs in the
+v2.19, the Go highlighter: the same lexers, styles and HTML. No JavaScript runs in the
 browser.
 
 ## Code fences

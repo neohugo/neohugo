@@ -37,7 +37,7 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use ssg_publish::HtmlElements;
-use ssg_testkit::fixture::repo_dir;
+use ssg_testkit::fixture::{go_output_as_built_here, repo_dir};
 use ssg_testkit::txtar::Archive;
 
 use crate::build::{testsite, tree};
@@ -56,7 +56,7 @@ fn go_public() -> BTreeMap<String, Vec<u8>> {
         .expect("go tree");
     go.files
         .into_iter()
-        .map(|f| (f.name, f.data.into_bytes()))
+        .map(|f| (f.name, go_output_as_built_here(&f.data).into_bytes()))
         .collect()
 }
 
@@ -578,11 +578,11 @@ fn testsite_gate_a_t() {
     let built = build_testsite();
     let ours = &built.public;
 
-    // L1: 55 files in `public` plus the stats file in the project directory (Go's
-    // `hugo_stats.json`, our `build_stats.json`; one entry for both).
+    // L1: 55 files in `public` plus the stats file in the project directory (the Go build's
+    // stats file, our `build_stats.json`; one entry for both).
     let norm = |m: &BTreeMap<String, Vec<u8>>| -> Vec<String> {
         let mut v: Vec<String> = m.keys().map(|k| normalize_path(k)).collect();
-        v.push("../hugo_stats.json".to_owned());
+        v.push("../build_stats.json".to_owned());
         v.sort();
         v
     };

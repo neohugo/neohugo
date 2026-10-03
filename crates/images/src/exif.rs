@@ -79,8 +79,8 @@ pub fn read(bytes: &[u8], settings: &ExifSettings) -> Option<Exif> {
     })
 }
 
-/// The exiftool name of a tag (the names Hugo templates use), or `None` for tags without a
-/// known name.
+/// The exiftool name of a tag (the names the Go implementation's templates use), or `None` for tags
+/// without a known name.
 fn tag_name(tag: Tag) -> Option<String> {
     let renamed = match tag {
         Tag::DateTime => "ModifyDate",
@@ -113,7 +113,7 @@ fn ascii(field: &Field) -> Option<String> {
     }
 }
 
-/// `YYYY:MM:DD HH:MM:SS` as a wall-clock time (the offset tags are ignored, as in Hugo).
+/// `YYYY:MM:DD HH:MM:SS` as a wall-clock time (the offset tags are ignored, as in Go).
 fn parse_date(field: &Field) -> Option<Date> {
     let text = ascii(field)?;
     DateTime::strptime("%Y:%m:%d %H:%M:%S", &text)
@@ -147,7 +147,7 @@ fn rational(num: i64, denom: i64) -> Value {
 }
 
 /// A tag value: text as a string, one number as a number (rationals as `"n/d"` strings, as
-/// Hugo prints them), several numbers as a space-separated string.
+/// the Go implementation prints them), several numbers as a space-separated string.
 fn to_value(v: &ExifValue) -> Option<Value> {
     fn many<T: ToString>(items: &[T]) -> Value {
         Value::String(Arc::from(

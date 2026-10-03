@@ -34,5 +34,5 @@ XML file fugo writes. `disableHTML`, `disableCSS`, `disableJS`, `disableJSON`, `
   disableXML = true
 {{< /code-toggle >}}
 
-fugo's minifiers are lightningcss (CSS), oxc (JavaScript) and minify-html (HTML). Hugo's
-`[minify.tdewolff]` options are accepted, and only some apply.
+fugo's minifiers are lightningcss (CSS), oxc (JavaScript) and minify-html (HTML). The
+`[minify.tdewolff]` options of Go-template sites are accepted, and only some apply.

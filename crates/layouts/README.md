@@ -1,8 +1,8 @@
 # ssg-layouts
 
-Layout templates (REWRITE_PLAN.md §4.1, §4.3, §4.5): the scan of Hugo v0.146 layout names,
-Hugo's lookup scorer, base template resolution, escaping by output format and loading into one
-Tera instance. The embedded templates (`embedded/**`) are T32's; the build script
+Layout templates (REWRITE_PLAN.md §4.1, §4.3, §4.5): the scan of v0.146 layout names, the Go
+implementation's lookup scorer, base template resolution, escaping by output format and loading
+into one Tera instance. The embedded templates (`embedded/**`) are T32's; the build script
 (`src/build.rs`) lists whatever is there for `include_str!`. T60 renders them against testsite
 views through the binary and reviews them against Go's (`fugo` crate: `tests/it/embedded.rs`,
 the review table in its README).
@@ -44,7 +44,7 @@ the review table in its README).
 - **Duplicates** of (role, key, shortcode name, descriptor): the earliest origin (project,
   theme 1, …, embedded), then the fewest identifiers, then the smallest path is indexed; every
   file is still loaded into Tera under its own (prefixed) name.
-- **Scorer** (`score.rs`): Hugo v0.146's weights and rejections (see the module docs).
+- **Scorer** (`score.rs`): Go v0.146's weights and rejections (see the module docs).
   Candidates are walked from the root key down to the query path; within a key they are
   offered in descriptor order (kind, layout, format and media type names, language, variants);
   the chooser prefers user/theme templates over embedded ones (not for hooks), a closer
@@ -53,7 +53,7 @@ the review table in its README).
   `{% extends "baseof.html" %}` requests it. Its candidates are the base templates whose kind
   fits the layout (`baseof.page` never wraps `list`, other kinds never `single`) and whose
   descriptor matches the layout's; per query, the best candidate on the query path wins (no
-  candidate on the path: no selection, as in Hugo). When the winner is not what the literal
+  candidate on the path: no selection, as in Go). When the winner is not what the literal
   `"baseof.html"` resolves to in Tera, `render_as` is `<layout>@@<base>` and `load` registers
   that variant with the literal rewritten. An explicit `{% extends "other" %}` is left alone.
 - **Hooks.** `useEmbedded` (`EmbeddedHooks`, `HookUse`): `Always` considers only embedded link/
@@ -88,15 +88,15 @@ the review table in its README).
 
 ### Normalisation of the tplimpl fixtures
 
-The fixtures were recorded from sites with legacy names, and Hugo's tree may hold one file under
+The fixtures were recorded from sites with legacy names, and Go's tree may hold one file under
 several keys (its own place plus legacy mappings). Each tree entry of the modelled categories
 (layouts, base templates, hooks, partials, shortcodes; user and embedded) becomes one synthesised
-v0.146 file whose name spells the entry's key and descriptor (`tests/it/oracle.rs`); a layout
-Go wrapped in a base gets `{% extends "baseof.html" %}`. Left out, with the lookups they win:
-`_hugo/` and `_server/` templates, inline partials (`{{ define "partials/x" }}`), files without
-a suffix, and entries whose spelling is a refused legacy name (Go keeps `term/term.html` at
-`term/` too). Grid lookups Go made without a candidate filter are replayed with
-`HookUse::Fallback`.
+v0.146 file whose name spells the entry's key and descriptor (`tests/it/oracle.rs`); a layout Go
+wrapped in a base gets `{% extends "baseof.html" %}`. Left out, with the lookups they win: Go's
+internal templates (its private directory and `_server/`), inline partials
+(`{{ define "partials/x" }}`), files without a suffix, and entries whose spelling is a refused
+legacy name (Go keeps `term/term.html` at `term/` too). Grid lookups Go made without a candidate
+filter are replayed with `HookUse::Fallback`.
 
 ## Accepted deviations
 
@@ -105,10 +105,10 @@ a suffix, and entries whose spelling is a refused legacy name (Go keeps `term/te
 | Only v0.146 names; legacy ones are errors | §4.1: the legacy → new mapping lives in T01's normaliser and `ssg-migrate` |
 | `index.*` refused (→ `home.*`) | not in §4.1's list, but Go maps it silently; a v0.146 site would otherwise lose its home template without notice |
 | `taxonomy/<singular>.html` and `taxonomy/<singular>.terms.html` are ordinary layouts of type `taxonomy` | §4.1 lists only `taxonomy/list` and `term/term`; the other old spellings are valid v0.146 names |
-| `Score` is not `Ord` | Hugo's chooser is not a total order (a closer template wins despite a lower `w1`); `Best::offer` implements it |
-| Base variants are registered for the selections passed to `load` only | a pair nobody renders may fail to load in Tera (a child block its parent lacks) although Hugo would accept it |
-| A user template does not beat a more specific theme template | Hugo's rule (a theme loses only to the same key and descriptor); §4.3's "user beats theme" holds for equal candidates. `lookup_themes` confirms |
-| `partial("x.json")` resolves to `x.html` when that is the partial's only file | Hugo's partial lookup takes the best file of the named partial even when no file fits the format |
-| `LayoutQuery` has `lang: Option<LangIdx>` and `exact_layout` instead of `default_lang: bool` | the default language is `LangIdx` 0; standalone pages have no language; `exact_layout` is Hugo's `LayoutFromUserMustMatch` |
+| `Score` is not `Ord` | Go's chooser is not a total order (a closer template wins despite a lower `w1`); `Best::offer` implements it |
+| Base variants are registered for the selections passed to `load` only | a pair nobody renders may fail to load in Tera (a child block its parent lacks) although Go would accept it |
+| A user template does not beat a more specific theme template | Go's rule (a theme loses only to the same key and descriptor); §4.3's "user beats theme" holds for equal candidates. `lookup_themes` confirms |
+| `partial("x.json")` resolves to `x.html` when that is the partial's only file | Go's partial lookup takes the best file of the named partial even when no file fits the format |
+| `LayoutQuery` has `lang: Option<LangIdx>` and `exact_layout` instead of `default_lang: bool` | the default language is `LangIdx` 0; standalone pages have no language; `exact_layout` is Go's `LayoutFromUserMustMatch` |
 | `Templates::shortcode`/`hook` assume a regular page; `LayoutStore::shortcode`/`hook` take the kind | the kind never changes a hook or shortcode winner in the oracle, but the full query is available |
-| `useEmbedded: always` considers only embedded link/image hooks | Hugo's documented meaning; the oracle has no case that distinguishes it |
+| `useEmbedded: always` considers only embedded link/image hooks | the Go implementation's documented meaning; the oracle has no case that distinguishes it |

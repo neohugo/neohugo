@@ -35,7 +35,7 @@ impl Locale {
     pub fn new(key: &str) -> Self {
         let icu = tag::cldr_locale(key);
         let mut date_prefs = DateTimeFormatterPreferences::from(&icu);
-        // Hugo prints Gregorian dates in every language (Thai defaults to Buddhist in CLDR).
+        // Go prints Gregorian dates in every language (Thai defaults to Buddhist in CLDR).
         date_prefs.calendar_algorithm = Some(CalendarAlgorithm::Gregory);
         let decimal = DecimalFormatter::try_new(
             DecimalFormatterPreferences::from(&icu),

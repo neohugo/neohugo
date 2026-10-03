@@ -3,9 +3,9 @@
 //!
 //! Metadata entries are applied in order: the first matching entry that sets `name` (or
 //! `title`) wins, and every matching entry's `params` are merged over the resource's (later
-//! entries override earlier ones). `src` is a Hugo glob matched case-insensitively against the
+//! entries override earlier ones). `src` is a Go glob matched case-insensitively against the
 //! resource's name. `:counter` in a name or title is the resource's number among the resources
-//! the entry matched; like Hugo, which applies the metadata to one resource at a time, it is
+//! the entry matched; like Go, which applies the metadata to one resource at a time, it is
 //! always `1`.
 
 use std::sync::Arc;

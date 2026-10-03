@@ -83,8 +83,8 @@ fn enqueue(
 }
 
 /// `resize`, `fill`, `fit`, `crop` and `process` with `width=`, `height=`, `format=`,
-/// `quality=`, `filter=`, `anchor=` and/or a Hugo `spec=` string (`"600x400 webp q75"`; the
-/// kwargs win). `process` takes its action from the spec.
+/// `quality=`, `filter=`, `anchor=` and/or a `spec=` string in Go's syntax
+/// (`"600x400 webp q75"`; the kwargs win). `process` takes its action from the spec.
 struct Process {
     store: Arc<ResourceStore>,
     images: Arc<ImageQueue>,
@@ -286,7 +286,7 @@ impl SiteFilter for Exif {
 }
 
 /// `qr_code(text=, level=?, scale=?, target_dir=?)`: a PNG image resource of the QR code of
-/// `text`, published at Hugo's name (`<target_dir>/qr_<hash>.png`) with Hugo's bytes.
+/// `text`, published at Go's name (`<target_dir>/qr_<hash>.png`) with Go's bytes.
 struct QrCode {
     views: Arc<ViewCache>,
     store: Arc<ResourceStore>,
@@ -305,7 +305,7 @@ impl SiteFunction for QrCode {
             })?;
         }
         if let Some(scale) = kw.get::<Value>("scale")? {
-            // An integer, or a string of one (Hugo decodes the options weakly).
+            // An integer, or a string of one (Go decodes the options weakly).
             let n = scale
                 .as_i64()
                 .or_else(|| scale.as_str().and_then(|s| s.trim().parse().ok()));

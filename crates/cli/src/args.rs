@@ -1,11 +1,11 @@
-//! The command line (clap). Flags are kebab-case; Hugo's camelCase spellings are aliases
+//! The command line (clap). Flags are kebab-case; Go's camelCase spellings are aliases
 //! (`--clean-destination-dir` / `--cleanDestinationDir`, `--base-url` / `--baseURL`).
 //!
 //! As in the Go build (cobra), flags may come before the command ([`command_first`]), and the Go
 //! build's persistent flags (`-s`, `-d`, `-e`, `--config`, `--config-dir`, `--themes-dir`,
 //! `--clock`, `-q`, `-M`, `--logLevel`, `--noBuildLock`) are accepted by every command
 //! (`global`); the commands that do not use one ignore it. The Go build's logging and
-//! housekeeping flags are accepted too ([`HugoFlags`]).
+//! housekeeping flags are accepted too ([`CompatFlags`]).
 //!
 //! A boolean flag takes pflag's explicit value (`--minify=false`, `-D=1`, with Go's
 //! `strconv.ParseBool` spellings, `parse_bool`). The flags that set a configuration key
@@ -22,7 +22,7 @@ use clap::{
     Arg, ArgAction, Args, Command as ClapCommand, CommandFactory, Parser, Subcommand, ValueEnum,
 };
 
-/// Builds a Hugo site with Tera layouts.
+/// Builds a site with Tera layouts.
 #[derive(Debug, Parser)]
 #[command(
     name = ssg_base::app_name!(),
@@ -45,7 +45,7 @@ pub enum Command {
     /// Builds the site into the publish directory (the default command).
     Build(BuildArgs),
     /// Builds the site into memory, serves it with live reload, and rebuilds it when files
-    /// change (Hugo's development server; environment `development` by default).
+    /// change (Go's development server; environment `development` by default).
     #[command(alias = "serve")]
     Server(ServerArgs),
     /// Template tooling.
@@ -77,8 +77,8 @@ pub struct ProjectArgs {
     /// The configuration directory (default `config`).
     #[arg(long, alias = "configDir", value_name = "DIR", global = true)]
     pub config_dir: Option<PathBuf>,
-    /// The build environment (default `production`, `development` for `server`;
-    /// `FUGO_ENVIRONMENT`).
+    /// The build environment (default `production`, `development` for `server`); also picks
+    /// the project's `.env.<environment>` file.
     #[arg(short = 'e', long, value_name = "ENV", global = true)]
     pub environment: Option<String>,
     /// The site's base URL.
@@ -183,20 +183,20 @@ pub struct BuildArgs {
     #[arg(short = 'q', long, global = true)]
     pub quiet: bool,
     #[command(flatten)]
-    pub hugo: HugoFlags,
+    pub compat: CompatFlags,
 }
 
 /// Flags of the Go build that only change its logging or housekeeping, accepted so that its
 /// command lines keep working (hidden from `--help`). `--logLevel warn` (Go's default),
 /// `--noBuildLock` (this port writes no lock file) and `--printPathWarnings` (target collisions are
 /// always warnings) are what this port does anyway; the others are ignored with a warning
-/// ([`HugoFlags::ignored`]).
+/// ([`CompatFlags::ignored`]).
 #[derive(Clone, Debug, Default, Args)]
 #[expect(
     clippy::struct_excessive_bools,
     reason = "one field per command-line flag, as clap reads them"
 )]
-pub struct HugoFlags {
+pub struct CompatFlags {
     /// Go's log level (`debug`, `info`, `warn`, `error`); this port prints warnings and errors at
     /// every level.
     #[arg(
@@ -208,7 +208,7 @@ pub struct HugoFlags {
         hide = true
     )]
     pub log_level: Option<String>,
-    /// Go wrote no `.hugo_build.lock`; this port never writes one.
+    /// Go wrote no build lock file; this port never writes one.
     #[arg(long, alias = "noBuildLock", global = true, hide = true)]
     pub no_build_lock: bool,
     /// Go removed unused cache files after the build.
@@ -231,7 +231,7 @@ pub struct HugoFlags {
     pub template_metrics_hints: bool,
 }
 
-impl HugoFlags {
+impl CompatFlags {
     /// The flags given that this port does not act on, each with what Go did.
     #[must_use]
     pub fn ignored(&self) -> Vec<String> {
@@ -373,7 +373,7 @@ pub struct LiveReloadArgs {
     /// Sends the browsers to the page whose content file changed.
     #[arg(short = 'N', long, alias = "navigateToChanged")]
     pub navigate_to_changed: bool,
-    /// Accepted for Hugo's command lines: build errors are only printed, never shown in the
+    /// Accepted for Go's command lines: build errors are only printed, never shown in the
     /// browser.
     #[arg(long, alias = "disableBrowserError", hide = true)]
     pub disable_browser_error: bool,
@@ -413,7 +413,7 @@ pub struct WatchArgs {
     /// a number is milliseconds). Polling reads the watched files each time.
     #[arg(long, value_name = "INTERVAL", value_parser = parse_poll)]
     pub poll: Option<Duration>,
-    /// Accepted for Hugo's command lines: every rebuild is a full rebuild.
+    /// Accepted for Go's command lines: every rebuild is a full rebuild.
     #[arg(long, alias = "disableFastRender", hide = true)]
     pub disable_fast_render: bool,
 }
@@ -590,7 +590,7 @@ fn parse_clock(s: &str) -> Result<jiff::Timestamp, String> {
         .map_err(|e| format!("not an RFC 3339 time with an offset: {e}"))
 }
 
-/// A poll interval: a positive number of milliseconds or a duration (`700ms`, `1s`), as Hugo's
+/// A poll interval: a positive number of milliseconds or a duration (`700ms`, `1s`), as Go's
 /// `--poll` reads it.
 fn parse_poll(s: &str) -> Result<Duration, String> {
     let d = match s.trim().parse::<u64>() {

@@ -175,7 +175,8 @@ impl Loader {
         }
     }
 
-    /// The loader Hugo uses for an imported file with this extension (`.js`), if any.
+    /// The loader the Go implementation uses for an imported file with this extension (`.js`), if
+    /// any.
     #[must_use]
     pub fn from_extension(ext: &str) -> Option<Self> {
         Some(match ext {
@@ -303,14 +304,14 @@ impl JsBuildOptions {
                 "jsximportsource" => {
                     o.jsx_import_source = non_empty(string("JSXImportSource", v)?);
                 }
-                // `avoidTDZ` is accepted and ignored, like Hugo does.
+                // `avoidTDZ` is accepted and ignored, like Go does.
                 _ => {}
             }
         }
         Ok(o)
     }
 
-    /// The loader of an imported file: the user's loader for its extension, else Hugo's
+    /// The loader of an imported file: the user's loader for its extension, else Go's
     /// extension map, else JavaScript.
     #[must_use]
     pub fn loader_for(&self, filename: &str) -> Loader {

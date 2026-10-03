@@ -21,7 +21,7 @@ Token kinds: `ByteOrderMark`, `FrontMatter(format)`, `SummaryDivider`, `Text`, `
 `Token::scalar` types a bare argument (`true`/`false`, `[+-]digits` → `i64`,
 `[+-]digits.digits` → `f64`, else a string; `0.125.0` and `1e3` stay strings).
 
-`InnerUse` (`Required`, `Unused`, `UnknownShortcode`) decides where a call ends, as in Hugo:
+`InnerUse` (`Required`, `Unused`, `UnknownShortcode`) decides where a call ends, as in Go:
 a shortcode that uses `inner` collects its inner content up to its closing tag and must be
 closed or self-closed; one that does not ends at its opening tag's `>}}`, and a closing tag or
 `/>` for it is an error; an unknown shortcode is an error. Inline shortcodes (`name.inline`)
@@ -30,9 +30,9 @@ always take inner content. `ordinal` counts per nesting level.
 ## Oracle acceptance (T11)
 
 `cargo test -p ssg-pageparser -- --nocapture` prints the tallies. The fixture is
-`testdata/oracle/parser/pageparser/pages.json.gz` (Hugo's `ParseBytes` in three
-configurations and `ParseFrontMatterAndContent` over docs, testsite, skeletons, the lexer's
-own test strings, hand-written shapes and 4,000 random soups).
+`testdata/oracle/parser/pageparser/pages.json.gz` (the Go implementation's `ParseBytes` in
+three configurations and `ParseFrontMatterAndContent` over docs, testsite, skeletons, the
+lexer's own test strings, hand-written shapes and 4,000 random soups).
 
 | check | result |
 |---|---|
@@ -53,10 +53,10 @@ Reviewed in `expected_diffs.toml`; each is checked by the test, by rule or by ca
 
 1. **Summary divider at the start of a page without front matter** (`divider_at_start`, 23
    inputs): the body is lexed after `split_front_matter`, so `<!--more-->` as the first
-   non-blank text is a divider. Hugo's page lexer has consumed its `<` while looking for front
+   non-blank text is a divider. Go's page lexer has consumed its `<` while looking for front
    matter and reads it as text — a state-machine artefact (§1.2). The full-page lexer
-   (`lex_with(.., Start::Page)`) still matches Hugo byte for byte.
-2. **JSON numbers** (`json_numbers`, 26 inputs): integers stay `Value::Int`; Hugo decodes every
+   (`lex_with(.., Start::Page)`) still matches Go byte for byte.
+2. **JSON numbers** (`json_numbers`, 26 inputs): integers stay `Value::Int`; Go decodes every
    JSON number as `float64`.
 3. **YAML 1.2** (D5; `shape#0`, `shape#3`): `yes` stays a string, `017` is decimal, integers
    beyond `i64` become floats, and `.inf`/`.nan` are rejected by `base::Value::from_yaml_str`
@@ -64,14 +64,14 @@ Reviewed in `expected_diffs.toml`; each is checked by the test, by rule or by ca
    `: bad` is a map with the empty key (`shape#21`); yaml.v2 rejects it.
 4. **TOML** (`shape#1`, `shape#4`): go-toml parses `6.626e-34` one ulp off; a leap second
    (`23:59:60`) stays a string (Go normalises it to the next minute).
-5. **Stricter closing tags**: a closing tag must name the shortcode it closes. Hugo's lexer
+5. **Stricter closing tags**: a closing tag must name the shortcode it closes. The Go lexer
    only checks that the name was opened somewhere, so `{{< a >}}{{< b >}}{{< /a >}}{{< /a >}}`
-   (both using `inner`) closes `b` with `/a` in Hugo; here it is `MismatchedClose`.
-6. **Unclosed inline shortcodes** are `ParseError::Unclosed`; Hugo swallows the rest of the
+   (both using `inner`) closes `b` with `/a` in Go; here it is `MismatchedClose`.
+6. **Unclosed inline shortcodes** are `ParseError::Unclosed`; Go swallows the rest of the
    page into the inline template.
 7. **Org front matter** is lexed (with the `# more` divider) but not decoded (COULD).
 
-Hugo quirks that *are* kept, because they decide which pages build: a page starting with `-`,
+Go quirks that *are* kept, because they decide which pages build: a page starting with `-`,
 `+` or `{` must hold valid front matter (`- item` as the first line is an error); a shortcode
 closing tag or `/>` for a shortcode that does not use `inner` is an error; a summary divider
 inside a shortcode's inner content is dropped; the first `<!--more-->` only is a divider.
@@ -82,7 +82,7 @@ inside a shortcode's inner content is dropped; the first `<!--more-->` only is a
   the source. This lets the lexer run over bytes that are not UTF-8 (the oracle has 1,034 such
   inputs), and `assemble` takes the source next to the tokens.
 - `Segment::Escaped` is not needed: an escaped shortcode `{{</* x */>}}` is three text segments
-  (`{{<`, ` x `, `>}}`), exactly Hugo's items.
+  (`{{<`, ` x `, `>}}`), exactly the Go implementation's items.
 - `ShortcodeCall` has a byte `span` and no `Position`: this crate does not know the file; the
   caller builds a `base::diag::Position` with `line_col`.
 - `Closing::Closed` also carries the inner content's source range; `ShortcodeCall` has
@@ -92,5 +92,5 @@ inside a shortcode's inner content is dropped; the first `<!--more-->` only is a
 
 ## Provenance
 
-Written from Hugo's `parser/pageparser` behaviour (Apache-2.0) and checked against its oracle;
-no code copied.
+Written from the Go implementation's `parser/pageparser` behaviour (Apache-2.0) and checked
+against its oracle; no code copied.

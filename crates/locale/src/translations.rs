@@ -165,7 +165,7 @@ pub struct Args<'a> {
 }
 
 impl<'a> Args<'a> {
-    /// Hugo's single template argument: it is the data, and its count
+    /// The Go implementation's single template argument: it is the data, and its count
     /// ([`PluralCount::from_value`]) selects the plural form.
     #[must_use]
     pub fn from_value(arg: &'a Value) -> Self {
@@ -231,9 +231,9 @@ impl Translations {
         Ok(Translation::Missing)
     }
 
-    /// Hugo's `i18n`: the translation, the default language's text when the language lacks
-    /// the key, or nothing; with missing-translation placeholders, `[i18n] key` for both of
-    /// the latter.
+    /// The Go implementation's `i18n`: the translation, the default language's text when the
+    /// language lacks the key, or nothing; with missing-translation placeholders, `[i18n] key`
+    /// for both of the latter.
     ///
     /// # Errors
     /// As [`lookup`](Self::lookup).

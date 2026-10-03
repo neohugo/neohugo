@@ -7,9 +7,9 @@ crate holds no page store; `ssg-site` calls it while it assembles the model.
 | Piece | API |
 |---|---|
 | Capture overrides | `capture_overrides(&Params) -> CaptureOverrides { kind, lang, path: Option<ContentKey> }` |
-| Cascade | `Cascade::decode(&Value)`, `Cascade::from_config(&[CascadeConfig])`, `Cascade::inherit(parent, own)`, `Cascade::apply(&MatchCtx, &mut Params)`; `CascadeTarget::new(kind, path, lang, env)` (Hugo globs via `base::glob`), `matches`, `path_looks_like_file` |
-| Content adapters | `AdapterPage::decode(&Params, base: &ContentKey, &MediaTypes)` (an `add_page` map: kind as written, path (one leading `/` removed, joined to the adapter's directory, lower case, spaces → `-`, not trimmed), content media type and value, cascade; `source_path()` = `/<path>/index.<suffix>` or `_index`), `meta_from_adapter(&AdapterPage, fields, params, &MetaCtx) -> PageMeta`, `Cascade::apply_split`, `DateResolver::adapter_dates` (the given dates, then the four `[frontmatter]` chains in turn over them; Hugo's `pagesfromdata` and the `IsFromContentAdapter` paths of `pagemeta`) |
-| Front matter | `meta_from_params(Params, &MetaCtx) -> PageMeta` (reserved keys typed, including the legacy `_build` (wins over `build`, as in Hugo) and the undocumented `published: <bool>` (`!draft` when `draft` is unset); normalised values written back to params; `params:` merged last; dates resolved) |
+| Cascade | `Cascade::decode(&Value)`, `Cascade::from_config(&[CascadeConfig])`, `Cascade::inherit(parent, own)`, `Cascade::apply(&MatchCtx, &mut Params)`; `CascadeTarget::new(kind, path, lang, env)` (Go's globs via `base::glob`), `matches`, `path_looks_like_file` |
+| Content adapters | `AdapterPage::decode(&Params, base: &ContentKey, &MediaTypes)` (an `add_page` map: kind as written, path (one leading `/` removed, joined to the adapter's directory, lower case, spaces → `-`, not trimmed), content media type and value, cascade; `source_path()` = `/<path>/index.<suffix>` or `_index`), `meta_from_adapter(&AdapterPage, fields, params, &MetaCtx) -> PageMeta`, `Cascade::apply_split`, `DateResolver::adapter_dates` (the given dates, then the four `[frontmatter]` chains in turn over them; Go's `pagesfromdata` and the `IsFromContentAdapter` paths of `pagemeta`) |
+| Front matter | `meta_from_params(Params, &MetaCtx) -> PageMeta` (reserved keys typed, including the legacy `_build` (wins over `build`, as in Go) and the undocumented `published: <bool>` (`!draft` when `draft` is unset); normalised values written back to params; `params:` merged last; dates resolved) |
 | Dates | `DateResolver::{new, from_site, resolve(&mut Params, Option<&FileCtx>, &TimeZone)} -> DateOutcome { dates, slug, unparsable }` |
 | Build | `BuildPolicy { list: ListMode, render: RenderMode, publish_resources }`, `BuildPolicy::decode`, `.headless()` |
 | Markup | `Markup::{Markdown, Html}`, `Markup::detect(MarkupSource { media_type, markup, ext }, &MediaTypes)` |
@@ -40,24 +40,24 @@ of `expected_diffs.toml` with its exact count:
 
 Overall 190,534 checks, 99.80 % exact, no unexplained difference.
 
-## Deviations from Hugo (by design)
+## Deviations from Go (by design)
 
-- **Attribute expansion.** Hugo replaces permalink attributes one by one with
+- **Attribute expansion.** Go replaces permalink attributes one by one with
   `strings.Replace(…, 1)` in the partially expanded pattern; here each attribute is expanded in
   place. They differ only when a title or slug contains text such as `:slug` (no fixture case).
 - **Unix-second dates** are UTC, not the process's local zone.
 - **Cascade globs that do not compile** are errors (Go ignores or panics).
 - **Only Markdown and HTML** content (also for content adapters' `content.mediaType`).
-- **Content adapter maps** are decoded leniently where Hugo's `mapstructure.WeakDecode` would
+- **Content adapter maps** are decoded leniently where Go's `mapstructure.WeakDecode` would
   fail: `dates` also take date strings and Unix seconds besides date values (Tera has no time
   type: `to_date` gives `{rfc3339, unix}`, which is read); the messages are fugo's. A
-  `kind` that is not one of `page`, `home`, `section`, `taxonomy`, `term` as written (Hugo
-  does not fold its case or map `taxonomyTerm` here, unlike front matter) is an error: Hugo
+  `kind` that is not one of `page`, `home`, `section`, `taxonomy`, `term` as written (Go
+  does not fold its case or map `taxonomyTerm` here, unlike front matter) is an error: Go
   adds a page of that kind that has no output format and is listed only in `site.Pages`,
   `site.AllPages` and `GetPage`, which fugo's page kinds cannot hold.
-  Otherwise Hugo's rules: no reserved keys or dates in `.Params`, no `_build`, `headless`,
+  Otherwise Go's rules: no reserved keys or dates in `.Params`, no `_build`, `headless`,
   `published`, `menu` or `resources`, the `slug` as given (no `-` trimmed), sitemap settings
-  from zero (an adapter page in the sitemap has `<priority>0</priority>`, as in Hugo; the view
+  from zero (an adapter page in the sitemap has `<priority>0</priority>`, as in Go; the view
   gives an integral priority as an integer), and the dates of
   `createContentAdapterDatesHandler`: the given dates, then the date, lastmod, publishDate and
   expiryDate chains in turn, each over the dates the earlier ones left (with the default

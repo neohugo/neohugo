@@ -1,7 +1,8 @@
 //! JSON: removes insignificant whitespace, keeping member order, strings and numbers verbatim.
 //!
-//! The grammar is checked, with two leniencies Hugo's minifier also has: a trailing comma before
-//! `}` or `]` is accepted (and dropped), and raw control characters inside strings are copied.
+//! The grammar is checked, with two leniencies the Go implementation's minifier also has: a
+//! trailing comma before `}` or `]` is accepted (and dropped), and raw control characters inside
+//! strings are copied.
 //! Whitespace-only input minifies to the empty string.
 
 use crate::MinifyError;

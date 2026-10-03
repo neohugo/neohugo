@@ -43,8 +43,8 @@ named_enum! {
         BottomLeft = "bottomleft",
         Bottom = "bottom",
         BottomRight = "bottomright",
-        /// Content-aware: Hugo's smart crop (muesli/smartcrop; the crate README). Placed as
-        /// [`Anchor::Center`] by [`Anchor::offset`], which planning does not use for it.
+        /// Content-aware: the Go implementation's smart crop (muesli/smartcrop; the crate README).
+        /// Placed as [`Anchor::Center`] by [`Anchor::offset`], which planning does not use for it.
         Smart = "smart",
     }
 }
@@ -61,7 +61,7 @@ named_enum! {
 }
 
 named_enum! {
-    /// The resampling kernel of resizes (Hugo's names).
+    /// The resampling kernel of resizes (the Go implementation's names).
     pub enum Resample ("resample filter") {
         NearestNeighbor = "nearestneighbor",
         Box = "box",

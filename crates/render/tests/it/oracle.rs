@@ -1,11 +1,11 @@
-//! The content oracles of `testdata/oracle/hugolib/content`: Hugo's `.Content`,
+//! The content oracles of `testdata/oracle/sitebuild/content`: Go's `.Content`,
 //! `.Summary`, `.Truncated`, `.Plain`, `.WordCount`, `.FuzzyWordCount` and `.ReadingTime` of
 //! every page per (site, output format), for the `content` site (shortcodes, hooks, summaries,
 //! CJK, HTML content, a bundled content page, a JSON table hook, an RSS heading hook) and the
 //! shortcode syntax matrix (`shortcodes`).
 //!
 //! The Go layouts of the fixtures are replaced by their Tera conversions below; content files
-//! keep Hugo's shortcode syntax (the one inline shortcode body is Tera, as inline shortcode
+//! keep Go's shortcode syntax (the one inline shortcode body is Tera, as inline shortcode
 //! bodies are templates). Differences are listed in [`EXPECTED`] with their reason.
 
 use std::collections::BTreeMap;
@@ -16,7 +16,7 @@ use ssg_view::{ContentRenderer, HookVariant, RenderedContent};
 
 use crate::support::{Site, content_scope, session_in, write};
 
-/// `{"head":…,"body":…}` of a table, cells as `"<alignment>:<text>"` (Hugo's `printf "%s:%s"`,
+/// `{"head":…,"body":…}` of a table, cells as `"<alignment>:<text>"` (Go's `printf "%s:%s"`,
 /// where alignment none prints nothing).
 const JSON_TABLE: &str = r#"{"head":[{% for r in thead %}{% if not loop.first %},{% endif %}[{% for c in r %}{% if not loop.first %},{% endif %}{% if c.alignment == "none" %}{{ (":" ~ c.text) | jsonify }}{% else %}{{ (c.alignment ~ ":" ~ c.text) | jsonify }}{% endif %}{% endfor %}]{% endfor %}],"body":[{% for r in tbody %}{% if not loop.first %},{% endif %}[{% for c in r %}{% if not loop.first %},{% endif %}{% if c.alignment == "none" %}{{ (":" ~ c.text) | jsonify }}{% else %}{{ (c.alignment ~ ":" ~ c.text) | jsonify }}{% endif %}{% endfor %}]{% endfor %}]}"#;
 
@@ -107,7 +107,7 @@ const EXPECTED: &[(&str, &str, &str, &str, &str, &str)] = &[
         "*",
         "truncated",
         "a divider as the first text of a body is a divider (pageparser `divider_at_start`): \
-         the summary is manual and empty, so truncated; Hugo reads it as text after its \
+         the summary is manual and empty, so truncated; Go reads it as text after its \
          front matter lexer and reports a front matter summary",
     ),
     (
@@ -116,7 +116,7 @@ const EXPECTED: &[(&str, &str, &str, &str, &str, &str)] = &[
         "/p02",
         "*",
         "*",
-        "`$_hugo_config` version 1 is not reproduced (D5): `{{% legacytag %}}` output is \
+        "Go's legacy shortcode version 1 is not reproduced (D5): `{{% legacytag %}}` output is \
          Markdown like any `{{% %}}` output",
     ),
 ];
@@ -152,7 +152,8 @@ struct Tally {
 }
 
 fn run(fixture: &str, layouts: &[(&str, &str)]) -> Tally {
-    let fx: J = ssg_testkit::fixture::oracle(&format!("oracle/hugolib/content/{fixture}.json.gz"));
+    let fx: J =
+        ssg_testkit::fixture::oracle(&format!("oracle/sitebuild/content/{fixture}.json.gz"));
     let site = &fx["site"];
     let mut files = vec![(
         "config.toml".to_owned(),

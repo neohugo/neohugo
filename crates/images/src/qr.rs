@@ -1,5 +1,5 @@
-//! QR codes (`images.QR`): the PNG image of a QR code, equal byte for byte to the one Hugo
-//! makes with `rsc.io/qr` v0.2.0.
+//! QR codes (`images.QR`): the PNG image of a QR code, equal byte for byte to the one the Go
+//! implementation makes with `rsc.io/qr` v0.2.0.
 //!
 //! The symbol is built with the `qrcode` crate (ISO/IEC 18004: data bits, Reed–Solomon
 //! blocks, placement, format and version information) under the choices `rsc.io/qr` makes,
@@ -136,7 +136,7 @@ pub fn qr_modules(text: &str, level: QrLevel) -> Result<QrModules, ImageError> {
 }
 
 /// The PNG of the QR code of `text` at `level` with `scale` pixels per module (at least 2),
-/// byte for byte what Hugo writes.
+/// byte for byte what the Go implementation writes.
 ///
 /// # Errors
 /// As [`qr_modules`], a scale below 2, or one so large that a pixel row is longer than a
@@ -396,22 +396,18 @@ fn zlib(m: &QrModules, scale: usize) -> Vec<u8> {
 mod tests {
     use super::*;
 
+    /// The text the Go implementation's QR tests encode (17 bytes).
+    const GO_TEST_URL: &str = "https://gohugo.io";
+
     #[test]
     fn modes_and_versions_are_rsc_s() {
-        // "https://gohugo.io": byte mode, 4 + 8 + 136 = 148 bits: version 2 at M (224 bits),
+        // `GO_TEST_URL`: byte mode, 4 + 8 + 136 = 148 bits: version 2 at M (224 bits),
         // version 3 at H (208 bits).
         assert_eq!(
-            qr_modules("https://gohugo.io", QrLevel::Medium)
-                .expect("M")
-                .size,
+            qr_modules(GO_TEST_URL, QrLevel::Medium).expect("M").size,
             25
         );
-        assert_eq!(
-            qr_modules("https://gohugo.io", QrLevel::High)
-                .expect("H")
-                .size,
-            29
-        );
+        assert_eq!(qr_modules(GO_TEST_URL, QrLevel::High).expect("H").size, 29);
         // 41 digits fit version 1 at L in numeric mode (the most a version 1 symbol holds).
         let digits = "1".repeat(41);
         assert_eq!(qr_modules(&digits, QrLevel::Low).expect("numeric").size, 21);

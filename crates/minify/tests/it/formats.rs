@@ -86,7 +86,7 @@ fn html() {
         "<!doctype html><html lang=en><head><meta charset=utf-8><title>A & B</title></head>\
          <body><p class=x>one two</p><script>console.log(42);</script></body></html>"
     );
-    // Hugo's defaults keep end tags and the document tags.
+    // Go's defaults keep end tags and the document tags.
     assert_eq!(
         min(
             MinifyTarget::Html,
@@ -201,7 +201,7 @@ fn json() {
         ),
         "{\"z\":[1,2.50,-0.5e+10,true,false,null],\"a\":{\"s\":\"x \\\" \\u00e9 y\"},\"e\":{}}"
     );
-    // Hugo's leniencies: trailing commas are dropped, raw control characters kept.
+    // Go's leniencies: trailing commas are dropped, raw control characters kept.
     assert_eq!(
         min(MinifyTarget::Json, "{ \"a\": [1, 2, ], \"b\": \"x\n y\", }"),
         "{\"a\":[1,2],\"b\":\"x\n y\"}"

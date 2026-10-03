@@ -9,7 +9,7 @@ use ssg_config::markup::HighlightConfig;
 pub enum Styling {
     /// Chroma class names (`class="k"`); the page needs a stylesheet ([`crate::Highlight::css`]).
     Classes,
-    /// Inline `style` attributes (`noClasses = true`, Hugo's default).
+    /// Inline `style` attributes (`noClasses = true`, Go's default).
     #[default]
     Inline,
 }
@@ -17,7 +17,7 @@ pub enum Styling {
 /// Where line numbers go when they are on.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum LineNumberLayout {
-    /// A two-column table, so that copying the code leaves the numbers out (Hugo's default).
+    /// A two-column table, so that copying the code leaves the numbers out (Go's default).
     #[default]
     Table,
     /// A span at the start of each line.
@@ -312,7 +312,7 @@ impl Options {
             }
         }
         // `linenos=table|inline` also sets the layout when given before `linenumbersintable`
-        // in the map; Hugo applies both in one decode, where the explicit key wins.
+        // in the map; Go applies both in one decode, where the explicit key wins.
         if let Some((_, o)) = opts.iter().find(|(k, _)| k == "linenumbersintable")
             && !o.value.is_null()
         {
@@ -338,7 +338,7 @@ impl Options {
     }
 }
 
-/// Hugo's `hlLinesToRanges`: space-separated lines and ranges relative to `start`.
+/// Go's `hlLinesToRanges`: space-separated lines and ranges relative to `start`.
 fn parse_hl_lines(s: &str, start: i64) -> Option<Vec<[i64; 2]>> {
     s.split(' ')
         .map(str::trim)

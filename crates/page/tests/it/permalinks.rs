@@ -1,4 +1,4 @@
-//! Oracle: permalink patterns expanded for every page of Hugo's builds of the reference sites,
+//! Oracle: permalink patterns expanded for every page of Go's builds of the reference sites,
 //! with the site's `[permalinks]`, a configuration using every token, and 55 patterns
 //! (`oracle/page/permalinks/*`); and the decoding of `[permalinks]` tables
 //! (`oracle/page/permalinks/decode.json.gz`).
@@ -25,7 +25,7 @@ fn result(r: Result<String, String>) -> J {
     }
 }
 
-/// Hugo replaces attributes one after another with `strings.Replace(…, 1)` in the partially
+/// Go replaces attributes one after another with `strings.Replace(…, 1)` in the partially
 /// expanded pattern; we expand each attribute in place. They differ only when a value holds
 /// text that looks like a later attribute.
 fn is_replace_quirk(pattern: &str) -> bool {
@@ -33,7 +33,7 @@ fn is_replace_quirk(pattern: &str) -> bool {
 }
 
 #[test]
-fn permalinks_match_hugo() {
+fn permalinks_match_go() {
     let mut t = Tally::default();
     for file in family("permalinks", &["decode.json.gz"]) {
         let fx = fixture(&format!("permalinks/{file}"));
@@ -116,11 +116,11 @@ fn permalinks_match_hugo() {
     t.finish("permalinks");
 }
 
-/// `Permalinks::decode` gives the kind → section → pattern tables Hugo decodes (legacy flat
-/// entries apply to pages and terms, section keys keep their case), rejects what Hugo rejects,
+/// `Permalinks::decode` gives the kind → section → pattern tables Go decodes (legacy flat
+/// entries apply to pages and terms, section keys keep their case), rejects what Go rejects,
 /// and `PermalinkPatterns::compile` compiles every decoded table.
 #[test]
-fn permalink_config_decodes_like_hugo() {
+fn permalink_config_decodes_like_go() {
     let fx = fixture("permalinks/decode.json.gz");
     let mut t = Tally::default();
     for c in fx["cases"].as_array().expect("cases") {

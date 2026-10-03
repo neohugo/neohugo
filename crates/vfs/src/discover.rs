@@ -37,7 +37,7 @@ pub struct Discovery {
     pub files: Vec<ContentFile>,
     /// Content adapters (`_content.html`, `_content.gotmpl`), sorted by key (their directory),
     /// then language. They are no pages: an adapter shares its directory with the section's
-    /// `_index.md` (Hugo keeps them in a tree of their own).
+    /// `_index.md` (Go keeps them in a tree of their own).
     pub adapters: Vec<ContentFile>,
     /// Files dropped because another file has the same key and language (for adapters:
     /// another adapter).

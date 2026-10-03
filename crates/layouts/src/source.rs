@@ -1,9 +1,9 @@
 //! Reading template sources without parsing them: the `{% extends "baseof.html" %}` request for
-//! Hugo's base resolution, and Go-template markers.
+//! the Go implementation's base resolution, and Go-template markers.
 
 use std::ops::Range;
 
-/// The literal a layout extends to request Hugo's base template resolution.
+/// The literal a layout extends to request Go's base template resolution.
 pub(crate) const BASEOF: &str = "baseof.html";
 
 /// The byte range of the `"baseof.html"` literal (quotes included) when the template begins

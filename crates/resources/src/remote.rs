@@ -3,17 +3,17 @@
 //! - A request is typed ([`RemoteOptions`]): method, headers, body, `key` and the response
 //!   headers to keep in `.Data.Headers`. Equivalent option maps (key order, key case) are the
 //!   same request; one build fetches a request once.
-//! - Cache entries are raw HTTP responses (status line, headers, blank line, body), the format
-//!   Hugo writes too. An entry is named by [`cache_key`]: the hash of the `key` option when there
-//!   is one (so changing `key` refetches), else of the request.
-//! - **Importer.** When an entry is missing, the store looks for the entry Hugo would have
-//!   written for the same call — named by [`hugo_keys`], Hugo's hash of the URL and the option
+//! - Cache entries are raw HTTP responses (status line, headers, blank line, body), the format the
+//!   Go build writes too. An entry is named by [`cache_key`]: the hash of the `key` option when
+//!   there is one (so changing `key` refetches), else of the request.
+//! - **Importer.** When an entry is missing, the store looks for the entry the Go build would
+//!   have written for the same call — named by [`go_keys`], Go's hash of the URL and the option
 //!   map — in the cache directory itself and in [`RemoteConfig::import_dirs`], and copies it
-//!   under this crate's name. A cache that Hugo filled (`HUGO_CACHEDIR`) is thereby replayed
-//!   without the network.
+//!   under this crate's name. A cache that the Go build filled (the directory of the Go
+//!   program's cache-directory environment variable) is thereby replayed without the network.
 //! - Only then, and only when [`RemoteConfig::network`] allows it, the URL is fetched with
 //!   `ureq`; the response is cached unless it is a redirect or `maxAge` is zero.
-//! - The resource is named like Hugo's (`<file stem>_<Hugo's user key><suffix>`, e.g.
+//! - The resource is named like Go's (`<file stem>_<Go's user key><suffix>`, e.g.
 //!   `/data_13295982728060263486.json`), so its URLs equal the Go build's. A 404 gives no
 //!   resource; any other status outside 2xx is [`RemoteError::Status`].
 
@@ -39,7 +39,7 @@ pub struct RemoteConfig {
     /// The cache directory; `None` disables the file cache.
     pub cache_dir: Option<PathBuf>,
     pub max_age: MaxAge,
-    /// More directories holding caches Hugo wrote (entries named by [`hugo_keys`]).
+    /// More directories holding caches the Go build wrote (entries named by [`go_keys`]).
     pub import_dirs: Vec<PathBuf>,
     /// Whether a missing entry may be fetched from the network.
     pub network: bool,
@@ -128,7 +128,7 @@ pub struct RemoteOptions {
     pub key: Option<String>,
     /// Response headers to keep in `.Data.Headers` (matched ignoring case).
     pub response_headers: Vec<String>,
-    /// The map as given (for Hugo's cache names).
+    /// The map as given (for the Go build's cache names).
     raw: Option<Map>,
 }
 
@@ -258,16 +258,16 @@ pub fn cache_key(url: &str, o: &RemoteOptions) -> String {
     format!("{h:032x}")
 }
 
-// ── Hugo's cache names ───────────────────────────────────────────────────────────────────────
+// ── The Go build's cache names ───────────────────────────────────────────────────────────────
 //
-// Hugo names a getresource entry by the decimal xxHash64 structure hash (`crate::gohash`) of
-// `[url, options]`, or of the `key` option.
+// The Go build names a getresource entry by the decimal xxHash64 structure hash (`crate::gohash`)
+// of `[url, options]`, or of the `key` option.
 
-/// Hugo's `(user key, options key)` of `GetRemote url options`: the options key hashes the URL
+/// Go's `(user key, options key)` of `GetRemote url options`: the options key hashes the URL
 /// and the option map without `key` (its name ignores case); the user key hashes the `key`
 /// option, or is the options key.
 #[must_use]
-pub fn hugo_keys(url: &str, options: Option<&Map>) -> (String, String) {
+pub fn go_keys(url: &str, options: Option<&Map>) -> (String, String) {
     let mut options = options.cloned();
     let key_value = options.as_mut().and_then(|m| {
         let name = m.keys().find(|k| k.eq_ignore_ascii_case("key"))?.to_owned();
@@ -481,8 +481,8 @@ impl ResourceStore {
         parsed: &UrlRef,
         o: &RemoteOptions,
     ) -> Result<Option<ResourceId>, RemoteError> {
-        let (hugo_user_key, _) = hugo_keys(url, o.raw.as_ref());
-        let res = self.cached_response(url, o, &hugo_user_key)?;
+        let (go_user_key, _) = go_keys(url, o.raw.as_ref());
+        let res = self.cached_response(url, o, &go_user_key)?;
         if res.code == 404 {
             return Ok(None);
         }
@@ -519,7 +519,7 @@ impl ResourceStore {
         } else {
             media_type.full_suffix()
         };
-        let link = format!("/{stem}_{hugo_user_key}{suffix}");
+        let link = format!("/{stem}_{go_user_key}{suffix}");
         let data = res.data(&o.response_headers, false);
         Ok(Some(self.push(NewResource {
             origin: Origin::Remote {
@@ -540,12 +540,12 @@ impl ResourceStore {
         })))
     }
 
-    /// The response from the cache, from an imported Hugo entry, or from the network.
+    /// The response from the cache, from an imported entry of the Go build, or from the network.
     fn cached_response(
         &self,
         url: &str,
         o: &RemoteOptions,
-        hugo_user_key: &str,
+        go_user_key: &str,
     ) -> Result<Response, RemoteError> {
         let rc = &self.cfg.remote;
         let ours = rc.cache_dir.as_ref().map(|d| d.join(cache_key(url, o)));
@@ -560,11 +560,11 @@ impl ResourceStore {
         }
         let import_from = rc.cache_dir.iter().chain(&rc.import_dirs);
         for dir in import_from {
-            let hugo = dir.join(hugo_user_key);
-            if !is_fresh(&hugo, rc.max_age) {
+            let go_entry = dir.join(go_user_key);
+            if !is_fresh(&go_entry, rc.max_age) {
                 continue;
             }
-            let bytes = fs::read(&hugo).map_err(|e| cache_error(&hugo, &e))?;
+            let bytes = fs::read(&go_entry).map_err(|e| cache_error(&go_entry, &e))?;
             if let Some(res) = Response::parse(&bytes) {
                 if let Some(p) = &ours {
                     write_entry(p, &bytes)?;

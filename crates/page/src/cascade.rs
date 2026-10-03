@@ -23,7 +23,7 @@ impl PartialEq for Pattern {
 
 impl Eq for Pattern {}
 
-/// Which pages a cascade entry applies to. Every set glob must match (Hugo's globs: case
+/// Which pages a cascade entry applies to. Every set glob must match (Go's globs: case
 /// folded, `/` separated); an empty target matches every page.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CascadeTarget {
@@ -246,7 +246,7 @@ impl Cascade {
     }
 
     /// [`apply`](Self::apply) for a page a content adapter added, whose fields and params are
-    /// apart (Hugo's `setMetaPost`): the rules' fields fill `fields` (the `add_page` map), their
+    /// apart (Go's `setMetaPost`): the rules' fields fill `fields` (the `add_page` map), their
     /// params fill `params`.
     pub fn apply_split(&self, m: &MatchCtx<'_>, fields: &mut Params, params: &mut Params) {
         for rule in self.0.iter().filter(|r| r.target.matches(m)) {

@@ -1,6 +1,6 @@
 ---
 title: Asset pipelines
-description: Compile Sass, bundle JavaScript, fingerprint and minify files, and run PostCSS, Tailwind or Babel — from templates, at build time.
+description: Compile Sass, bundle JavaScript, fingerprint, minify and purge CSS, and run Tailwind or Babel — from templates, at build time.
 weight: 50
 ---
 
@@ -24,9 +24,8 @@ then. Results are cached for the build and, for images and remote files, on disk
 | [Fingerprinting and minification](/asset-pipelines/fingerprint-minify/) | `fingerprint`, `minify` | in process |
 | [Unused CSS](/asset-pipelines/purge-css/) | `purge_css` | in process |
 | [Bundling and generated files](/asset-pipelines/concat-and-templates/) | `concat_assets`, `asset_from_string`, `execute_as_template` | in process |
-| [PostCSS](/asset-pipelines/postcss/) | `postcss` | Node.js tool |
-| [Tailwind CSS](/asset-pipelines/tailwind-css/) | `tailwind` | Tailwind CLI |
-| [Babel](/asset-pipelines/babel/) | `babel` | Node.js tool |
+| [Tailwind CSS](/asset-pipelines/tailwind-css/) | `tailwind` | the Tailwind CLI package, on the built-in JavaScript runtime |
+| [Babel](/asset-pipelines/babel/) | `babel` | the Babel CLI package, on the built-in JavaScript runtime |
 | [Post-processing](/asset-pipelines/post-processing/) | `post_process`, `defer` | after every page |
 
 Images have their own page: [Image processing](/content-management/image-processing/).

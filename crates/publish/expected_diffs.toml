@@ -36,9 +36,9 @@ duplicating bytes (or panicking). This port continues after the rewritten list.
 [inject.generator-tag-never-injected]
 count = 14
 reason = """
-Go's `metainject.HugoGenerator` transformer adds `<meta name="generator">` to the home page
-only when `disableHugoGeneratorInject` is set (this port inverted the flag), which no site does;
-the port has no generator injection.
+Go's `metainject` generator transformer adds `<meta name="generator">` to the home page only
+when its disable-generator-injection setting is set (the Go build inverted the flag), which no
+site does; the port has no generator injection.
 """
 
 # ── commands/staticcopy/staticcopy.json.gz (static sync; one check per case count and per
@@ -47,8 +47,8 @@ the port has no generator injection.
 [staticcopy.shadowed-files-counted]
 count = 1
 reason = """
-The file count of `staticDir = ["static", "static-b"]`, both holding `a.txt`: Hugo reports 3,
-This port 2. Within one module Hugo's root-mapping file system lists a path once per static
+The file count of `staticDir = ["static", "static-b"]`, both holding `a.txt`: Go reports 3,
+This port 2. Within one module Go's root-mapping file system lists a path once per static
 mount holding it, and the sync copies (and counts) each; the later mount's copy is the one
 left (ssg-vfs gives the same winner, so the published files are equal). A directory that
 several modules (project and themes) hold is merged by name first, so there each path counts
@@ -58,7 +58,7 @@ once. This port counts each published file once.
 [staticcopy.empty-dirs-not-copied]
 count = 6
 reason = """
-Empty directories of the static tree (`emptydir/`, `nested/deeper/emptyleaf/`). Hugo's
+Empty directories of the static tree (`emptydir/`, `nested/deeper/emptyleaf/`). Go's
 directory sync creates them; this port copies files (the vfs walk yields files), so a
 directory without files is not created. It has no effect on a served site.
 """
@@ -66,7 +66,7 @@ directory without files is not created. It has no effect on a served site.
 [staticcopy.missing-static-dir]
 count = 1
 reason = """
-A project without a `static` directory. fsync reports "file does not exist" (which Hugo
+A project without a `static` directory. fsync reports "file does not exist" (which Go
 ignores); this port copies nothing and reports zero files.
 """
 

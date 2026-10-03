@@ -4,7 +4,7 @@
 //! - [`JsBuilder`]: `js.Build` itself: bundles an asset, resolving imports in the assets
 //!   ([`Assets`]) before `node_modules`, with `@params` and external/linked source maps.
 //!
-//! rolldown does most of the work. The crate adds what `js.Build` does beyond it: Hugo's
+//! rolldown does most of the work. The crate adds what `js.Build` does beyond it: Go's
 //! assets-first resolution, esbuild's `inject`, external and `NODE_ENV` behaviour, CSS imports
 //! (including `local-css` modules), TC39 decorators, and the `es5` target.
 

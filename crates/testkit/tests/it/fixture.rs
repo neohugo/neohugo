@@ -8,7 +8,7 @@ use pretty_assertions::assert_eq;
 use serde::Deserialize;
 use serde_json::{Value, json};
 use ssg_testkit::fixture::{
-    self, Counts, FixtureError, GoString, Layout, Tag, UPSTREAM, counts, hugo_docs, oracle,
+    self, Counts, FixtureError, GoString, Layout, Tag, UPSTREAM, counts, legacy_docs, oracle,
     oracle_lines, read_values, records, repo_dir, repo_file, testdata,
 };
 
@@ -23,7 +23,7 @@ fn assert_records(rel: &str) {
     assert_eq!(records(layout, &values), counted(rel).records, "{rel}");
 }
 
-// ── family 1: oracle/hugolib/build, one gzipped JSON document per site ──
+// ── family 1: oracle/sitebuild/build, one gzipped JSON document per site ──
 
 #[derive(Deserialize)]
 struct BuildFixture {
@@ -47,8 +47,8 @@ struct SiteFile {
 }
 
 #[test]
-fn hugolib_build_sites() {
-    let dir = testdata("oracle/hugolib/build");
+fn sitebuild_build_sites() {
+    let dir = testdata("oracle/sitebuild/build");
     let mut names: Vec<String> = fs::read_dir(&dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().into_string().unwrap())
@@ -56,7 +56,7 @@ fn hugolib_build_sites() {
     names.sort();
     assert_eq!(names.len(), 25);
     for name in &names {
-        let rel = format!("oracle/hugolib/build/{name}");
+        let rel = format!("oracle/sitebuild/build/{name}");
         let fx: BuildFixture = oracle(&rel);
         assert_eq!(format!("{}.json.gz", fx.site.name), *name);
         assert!(fx.site.toml.contains("baseURL"), "{rel}");
@@ -178,7 +178,7 @@ fn tags() {
 
 #[test]
 fn page_dates_are_tagged_times() {
-    let doc: Value = oracle("oracle/hugolib/assemble/testsite.json.gz");
+    let doc: Value = oracle("oracle/sitebuild/assemble/testsite.json.gz");
     let dates = &doc["dump"]["pages"][0]["dates"];
     assert_eq!(
         Tag::of(&dates["date"]),
@@ -202,22 +202,19 @@ fn errors_name_the_file() {
     assert_eq!(Layout::of(&missing), Some(Layout::Document));
 }
 
-/// Hugo's test data is read from `testdata/upstream` by the path the fixtures record; other
+/// The Go tree's test data is read from `testdata/upstream` by the path the fixtures record; other
 /// paths, and names that only share a prefix, stay at the repository root.
 #[test]
 fn repo_files_of_the_go_tree() {
     let root = repo_dir();
-    assert_eq!(
-        repo_file("hugolib/testsite"),
-        testdata("upstream/hugolib/testsite")
-    );
+    assert_eq!(repo_file("testsite"), testdata("upstream/testsite"));
     assert_eq!(
         repo_file("resources/testdata/exif/orientation6.jpg"),
         testdata("upstream/resources/testdata/exif/orientation6.jpg")
     );
     for rel in [
         "docsite/config.toml",
-        "hugolib/testdata/fruits.json",
+        "testsite2/config.toml",
         "resources/testdata2/a.png",
         "Cargo.toml",
         "rust-port/x",
@@ -229,16 +226,16 @@ fn repo_files_of_the_go_tree() {
     }
 }
 
-/// Ids naming Hugo's documentation site as the Go tree had it (`docs/...`) are in
-/// `testdata/hugo-docs`; `docs/rust-port`, this repository's own notes, stays.
+/// Ids naming the legacy docs site as the Go tree had it (`docs/...`) are in
+/// `testdata/legacy-docs`; `docs/rust-port`, this repository's own notes, stays.
 #[test]
-fn repo_files_of_the_hugo_docs() {
+fn repo_files_of_the_legacy_docs() {
     assert_eq!(
         repo_file("docs/content/en/_index.md"),
-        hugo_docs().join("content/en/_index.md")
+        legacy_docs().join("content/en/_index.md")
     );
     assert!(repo_file("docs/assets/images/logos/logo-512x512.png").is_file());
-    assert!(repo_file("docs/hugo.toml").is_file());
+    assert!(repo_file("docs/go.mod").is_file());
     assert_eq!(
         repo_file("docs/rust-port/HANDOFF.md"),
         repo_dir().join("docs/rust-port/HANDOFF.md")
@@ -262,7 +259,7 @@ fn repo_files_of_the_legacy_workspace() {
 #[test]
 fn every_fixture_matches_counts_json() {
     let all = counts();
-    assert_eq!(all.len(), 238);
+    assert_eq!(all.len(), 236);
     for (rel, c) in &all {
         assert!(c.from.starts_with("crates/"), "{rel}");
         assert_records(rel);

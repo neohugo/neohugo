@@ -2,22 +2,26 @@
 //!
 //! One `Value`-tree pipeline, then typed structs:
 //!
-//! 1. **Bootstrap**: the environment and the config directory come from [`CliOverrides`] and
-//!    `FUGO_ENVIRONMENT`.
+//! 1. **Bootstrap**: the environment and the config directory come from [`CliOverrides`]
+//!    (default environment `production`).
 //! 2. **Sources**: the project file (the first of `config.toml`, `config.yaml`,
-//!    `config.yml`, `config.json`, then `config.*`; Hugo's `hugo.*` is not read; a warning
-//!    names the others when several exist; or the explicit list), then `config/_default/**` and
-//!    `config/<environment>/**` (file names place their content: `config.*` and `config.*` at
-//!    the root, `params.toml` under `params`, `menus.en.toml` under
+//!    `config.yml`, `config.json`, then `config.*`; the Go program's configuration file name is
+//!    not read; a warning names the others when several exist; or the explicit list), then
+//!    `config/_default/**` and `config/<environment>/**` (file names place their content:
+//!    `config.*` at the root, `params.toml` under `params`, `menus.en.toml` under
 //!    `languages.en.menus`).
 //! 3. **Normalise** each tree ([`tree::normalize_keys`]) and migrate legacy keys
 //!    ([`tree::migrate_legacy_keys`]).
-//! 4. **Merge once**: file < directory < CLI < environment ([`env`]); then the themes
+//! 4. **Merge once**: file < directory < CLI (settings never come from the environment,
+//!    [`env`]); then the themes
 //!    ([`theme`]: `theme`, `[[module.imports]]` and their themes) are read and their
-//!    configuration merged below the project's by Hugo's `_merge` rules ([`merge`]).
+//!    configuration merged below the project's by Go's `_merge` rules ([`merge`]).
 //! 5. **Per language**: `languages.X` over the root (`params` merge deeply, `menus`,
 //!    `taxonomies` and `permalinks` replace).
-//! 6. **Typed decode** with serde ([`de`]) into structs whose `Default` holds Hugo's defaults.
+//! 6. **Typed decode** with serde ([`de`]) into structs whose `Default` holds Go's defaults.
+//!
+//! Beside the configuration, never in it: the project's `.env` file ([`env_file`]), the
+//! variables templates read with `get_env`.
 //!
 //! Errors point at the file, line and column the offending value was written on.
 
@@ -26,6 +30,7 @@
 pub mod de;
 pub mod duration;
 pub mod env;
+pub mod env_file;
 mod error;
 pub mod global;
 pub mod markup;
@@ -46,6 +51,7 @@ use serde::Serialize;
 use ssg_base::diag::Diagnostic;
 use ssg_base::{IdVec, Idx, LangIdx, Map, Params, Value};
 
+pub use env_file::EnvFile;
 pub use error::ConfigError;
 pub use global::{
     BuildConfig, CachesConfig, ContentFilter, Dirs, ImagingConfig, MinifyConfig, MountConfig,
@@ -142,8 +148,8 @@ pub struct LoadOptions {
     /// ([`config_file_names`]).
     pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
-    /// The process environment: `FUGO_*` overrides, and `HOME`, `XDG_CACHE_HOME`, `TMPDIR`
-    /// and `USER` for the default cache directory.
+    /// The process environment: `HOME`, `XDG_CACHE_HOME`, `TMPDIR` and `USER` for the default
+    /// cache directory ([`env::is_read`]; other variables are not read).
     pub env: Vec<(String, String)>,
 }
 
@@ -196,6 +202,9 @@ pub struct Config {
     pub enable_git_info: bool,
     /// The merged configuration tree (root level, keys lower case).
     pub raw: Params,
+    /// The project's `.env` variables (for `get_env`; never printed).
+    #[serde(skip)]
+    pub env_file: EnvFile,
     /// Deprecations and other notices found while loading.
     #[serde(skip)]
     pub diagnostics: Vec<Diagnostic>,
@@ -258,7 +267,6 @@ impl<'a> Loader<'a> {
             .cli
             .environment
             .clone()
-            .or_else(|| self.env(env::ENVIRONMENT).map(str::to_owned))
             .filter(|e| !e.is_empty())
             .unwrap_or_else(|| "production".to_owned());
 
@@ -281,19 +289,12 @@ impl<'a> Loader<'a> {
         if self.sources.files.is_empty() {
             return Err(ConfigError::NotFound { dir: project });
         }
+        let env_file = EnvFile::load(&project, &environment, &mut self.diagnostics)?;
 
         // Steps 3 and 4: normalise, migrate, merge.
         let mut root = self.sources.merged();
         self.migrate(&mut root);
         tree::merge_deep(&mut root, &tree::normalize_keys(&self.o.cli.to_tree()));
-        let overrides: Vec<(String, String)> = self
-            .o
-            .env
-            .iter()
-            .filter(|(k, _)| k.starts_with(env::PREFIX))
-            .cloned()
-            .collect();
-        env::apply(&mut root, &overrides);
         let mut root = tree::normalize_keys(&root);
 
         // Step 4, then: the themes (found and read) and their configuration below the
@@ -413,6 +414,7 @@ impl<'a> Loader<'a> {
             ignore_logs: g.ignore_logs,
             enable_git_info: g.enable_git_info,
             raw: Params::fold(&root),
+            env_file,
             diagnostics: self.diagnostics,
         })
     }

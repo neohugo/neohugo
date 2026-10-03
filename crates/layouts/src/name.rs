@@ -180,7 +180,7 @@ pub enum Origin {
     User(PathBuf),
     /// The n-th theme (1-based, as in `_theme<n>/`) and the file's absolute path.
     Theme(u8, PathBuf),
-    /// Hugo's embedded templates rewritten in Tera (`crates/layouts/embedded/`).
+    /// The Go implementation's embedded templates rewritten in Tera (`crates/layouts/embedded/`).
     Embedded,
 }
 

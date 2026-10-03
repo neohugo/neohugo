@@ -98,8 +98,8 @@ impl Vfs {
     /// precedence. The ignore rules and the mounts' file filters are applied. Files hidden by
     /// an earlier mount are left out, except for data and i18n, which keep every file.
     ///
-    /// Static follows Hugo's static copy: of the mounts of one module holding a path the
-    /// *last* wins (Hugo's root-mapping file system opens the last file mount, and its sync
+    /// Static follows Go's static copy: of the mounts of one module holding a path the
+    /// *last* wins (Go's root-mapping file system opens the last file mount, and its sync
     /// copies the mounts one after the other), and the project still wins over the themes.
     /// Symbolic links below a static mount root are followed (a dangling link is skipped, and
     /// so is a link to a directory it is inside of); for every other component they are
@@ -294,7 +294,7 @@ pub const NFC_NAMES: bool = cfg!(target_os = "macos");
 
 /// The name of a directory entry (or a path) as the build uses it (in [`FileRef::rel`], so in
 /// paths, URLs and keys, and for the ignore rules and filters): NFC-normalised when `nfc`
-/// ([`NFC_NAMES`]), as Hugo's `normalizeFilename` does on darwin, where HFS+ stores names
+/// ([`NFC_NAMES`]), as Go's `normalizeFilename` does on darwin, where HFS+ stores names
 /// decomposed (NFD) and APFS keeps the form they were created in. [`FileRef::abs`] keeps the
 /// name the OS returned, so the file is read, and matched with the watcher's events, by it;
 /// what compares names read from the file system with `rel` (the static copy's

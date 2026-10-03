@@ -7,12 +7,15 @@
 //! - [`snapshot`]: the shared insta settings.
 //! - [`contract`]: the template contract (REWRITE_PLAN.md §4.8): converted templates load against
 //!   `ssg_funcs::spec::FUNCS` and call only declared kwargs.
+//! - [`registry`]: a local npm registry (package documents and tarballs over HTTP), for the
+//!   package installer's tests.
 //! - [`tera_value`]: a JSON value as templates see it.
 
 #![forbid(unsafe_code)]
 
 pub mod contract;
 pub mod fixture;
+pub mod registry;
 pub mod snapshot;
 pub mod txtar;
 

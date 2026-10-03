@@ -1,12 +1,12 @@
 ---
 title: Converting templates
-description: How to turn Hugo's Go templates into Tera templates for fugo — a side-by-side table of syntax and functions, and the rules that catch most mistakes.
+description: How to turn Go templates into Tera templates for fugo — a side-by-side table of syntax and functions, and the rules that catch most mistakes.
 weight: 10
 ---
 
-A Hugo template and its fugo version side by side:
+A Go template and its fugo version side by side:
 
-```go-html-template {title="Hugo: layouts/list.html"}
+```go-html-template {title="Go template: layouts/list.html"}
 {{ define "main" }}
   <h1>{{ .Title }}</h1>
   {{ range where .Pages "Params.featured" true }}
@@ -38,7 +38,7 @@ The main changes: the context is named (`page`, `site`) instead of `.`; fields a
 {{% api-data table="syntax" %}}
 
 Every function has its own page in the [function reference](/reference/functions/), with the
-Hugo name it replaces. Every object field lists its Hugo name in the
+Go-template name it replaces. Every object field lists its Go-template name in the
 [object reference](/reference/objects/).
 
 ## Conversion rules

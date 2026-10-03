@@ -1,6 +1,6 @@
 //! The message evaluator: text with `{{ . }}` and `{{ .Field }}` placeholders.
 //!
-//! i18n files keep Hugo's placeholder syntax, but a message is not a template: the only actions
+//! i18n files keep Go's placeholder syntax, but a message is not a template: the only actions
 //! are the dot (`{{ . }}`) and a field path (`{{ .Count }}`, `{{ .Page.Title }}`), optionally
 //! with the trim markers `{{-` and `-}}`. Anything else (`if`, `with`, pipes, functions,
 //! comments) is a [`SyntaxError`] when the file is loaded.
@@ -11,7 +11,7 @@ use ssg_base::Value;
 
 use crate::plural::PluralCount;
 
-/// What a placeholder prints when its value is missing (Hugo prints the same).
+/// What a placeholder prints when its value is missing (Go prints the same).
 pub const NO_VALUE: &str = "<no value>";
 
 /// One piece of a parsed message.
@@ -251,7 +251,7 @@ fn print(out: &mut String, v: &Value) -> Result<(), EvalError> {
     Ok(())
 }
 
-/// A float as Hugo prints it: the shortest round-trip digits, in exponent form (`1e+06`,
+/// A float as Go prints it: the shortest round-trip digits, in exponent form (`1e+06`,
 /// `1.5e-07`) when the decimal exponent is below -4 or at least 6.
 struct Float(f64);
 

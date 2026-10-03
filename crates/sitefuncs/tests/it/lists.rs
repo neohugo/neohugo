@@ -29,7 +29,7 @@ fn page_orders() {
         site.render(&titles("by_lastmod"), &s),
         "Bundle,Two,One,Three"
     );
-    // Hugo's default order: weight (0 last), then date descending.
+    // Go's default page order: weight (0 last), then date descending.
     assert_eq!(
         site.render(&titles("by_weight"), &s),
         "Two,One,Three,Bundle"

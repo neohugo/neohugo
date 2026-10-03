@@ -5,7 +5,7 @@ weight: 140
 ---
 
 fugo renders LaTeX at build time with [KaTeX](https://katex.org/) (0.16.22, with mhchem), as
-Hugo does with `transform.ToMath`: pages get MathML and need no script.
+`transform.ToMath` does in Go templates: pages get MathML and need no script.
 
 ## Keep the math intact
 

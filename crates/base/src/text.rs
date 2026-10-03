@@ -1,7 +1,7 @@
 //! Unicode helpers shared by the path, anchor, inflection and title functions.
 //!
 //! Character classes are Unicode general categories (via `unicode-properties`); case mappings
-//! are the *simple* (one character to one character) mappings, which is what Hugo's rules are
+//! are the *simple* (one character to one character) mappings, which is what Go's rules are
 //! defined over.
 
 use std::borrow::Cow;

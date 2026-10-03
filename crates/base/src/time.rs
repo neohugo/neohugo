@@ -1,4 +1,4 @@
-//! Date strings of front matter and data (Hugo's accepted layouts) and the build clock.
+//! Date strings of front matter and data (Go's accepted layouts) and the build clock.
 //!
 //! [`parse_date`] tries the layouts in order (written here in `strptime` notation; `ZONE` is a
 //! zone abbreviation):
@@ -33,7 +33,7 @@
 //! every layout with seconds. Month and weekday names are English and case-insensitive; the
 //! weekday is not checked against the date. `%p` is `AM` or `PM`. A `ZONE` (`ICT`, `ChST`,
 //! `GMT+7`, `+07`) is recognised but not interpreted: the wall-clock time is placed in `tz`, as
-//! Hugo does. A wall-clock time in a daylight-saving gap or fold resolves to the earlier
+//! Go does. A wall-clock time in a daylight-saving gap or fold resolves to the earlier
 //! instant.
 
 use std::fmt;

@@ -1,4 +1,4 @@
-//! Hugo's passes over comrak's tree, run between parsing and rendering.
+//! The Go implementation's passes over comrak's tree, run between parsing and rendering.
 
 pub(crate) mod blocks;
 pub(crate) mod contexts;

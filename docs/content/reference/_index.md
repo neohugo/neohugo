@@ -8,7 +8,7 @@ The reference is generated from fugo's source code, so it lists exactly what you
 call and read:
 
 - [Functions, filters and tests](/reference/functions/): every name a template can call, with
-  its arguments and the Hugo function it replaces.
+  its arguments and the Go-template function it replaces.
 - [Objects](/reference/objects/): the fields of `page`, `site`, resources, menus, pagers and the
   other values templates read.
 - [Render contexts](/reference/contexts/): the top-level names of each kind of template, and the

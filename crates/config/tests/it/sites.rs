@@ -1,4 +1,4 @@
-//! The T24 build-oracle sites (`hugolib/assemble/*`): each site's `config.toml` loads, its
+//! The T24 build-oracle sites (`sitebuild/assemble/*`): each site's `config.toml` loads, its
 //! languages come in Go's order, and the formats of its enabled content kinds are Go's `.Site`
 //! render formats (in order), less the formats that only pages' front matter `outputs` add.
 //! A summary of each loaded configuration is kept as an insta snapshot.
@@ -108,7 +108,7 @@ pub fn summary(c: &Config) -> J {
 fn t24_sites() {
     let (mut checks, mut exact) = (0, 0);
     for name in SITES {
-        let fx = fixture(&format!("oracle/hugolib/assemble/{name}.json.gz"));
+        let fx = fixture(&format!("oracle/sitebuild/assemble/{name}.json.gz"));
         let (_tmp, c) = load_toml(fx["site"]["toml"].as_str().expect("toml"));
         let sites = fx["dump"]["sites"].as_array().expect("sites");
         let langs: Vec<&str> = c.sites.iter().map(|s| s.language.key.as_str()).collect();

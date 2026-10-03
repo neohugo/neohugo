@@ -1,5 +1,5 @@
-//! The HTML renderer: goldmark's output for every node, Hugo's renderers (blockquotes,
-//! tables, code blocks, footnotes) and the render hooks.
+//! The HTML renderer: goldmark's output for every node, the Go implementation's renderers
+//! (blockquotes, tables, code blocks, footnotes) and the render hooks.
 //!
 //! The walk is iterative (deeply nested blockquotes and lists do not grow the call stack).
 //! Nodes whose hook needs the rendered content record the output length when entered and
@@ -673,7 +673,7 @@ impl<'r, 'a> Renderer<'r, 'a> {
             self.out.push_str(&html);
             return Ok(());
         }
-        // Hugo's embedded table template: `range $k, $v := .Attributes` (key order), falsy
+        // Go's embedded table template: `range $k, $v := .Attributes` (key order), falsy
         // values skipped, `printf " %s=%q" $k ($v | transform.HTMLEscape)`.
         self.out.push_str("<table");
         for (k, v) in ctx.attributes.iter() {
@@ -782,7 +782,7 @@ impl<'r, 'a> Renderer<'r, 'a> {
                 let block_level = n
                     .parent()
                     .is_some_and(|p| !p.data().value.contains_inlines());
-                // Hugo (`markup/goldmark/passthrough`, `renderPassthroughBlock`) writes a hook's
+                // Go (`markup/goldmark/passthrough`, `renderPassthroughBlock`) writes a hook's
                 // output as it is: the next block follows without a newline. Without a hook
                 // the source of a block ends its line.
                 let newline = kind == PassthroughKind::Block && block_level && hooked.is_none();

@@ -1,5 +1,5 @@
 //! T04 comrak spike: native comrak 0.55 over the 959 docs bodies, measured per feature against
-//! normalised goldmark (Hugo) HTML.
+//! normalised goldmark HTML from the Go implementation.
 //!
 //! Re-run and print the table:
 //! `cargo test -p ssg-markup --test it comrak_spike -- --nocapture`
@@ -16,7 +16,7 @@ mod sourcepos;
 use std::collections::BTreeMap;
 use std::fmt::Write as _;
 
-use corpus::HugoCfg;
+use corpus::GoCfg;
 
 pub struct Row {
     feature: String,
@@ -88,12 +88,12 @@ fn comrak_spike() {
     let docs = corpus::docs();
     assert_eq!(docs.docs.len(), 959, "docs bodies");
 
-    let mut whole: Vec<Row> = HugoCfg::ALL
+    let mut whole: Vec<Row> = GoCfg::ALL
         .iter()
         .map(|&c| features::overall_docs(&docs, c))
         .collect();
-    whole.push(features::residual_docs(&docs, HugoCfg::Default));
-    whole.push(features::residual_docs(&docs, HugoCfg::Site));
+    whole.push(features::residual_docs(&docs, GoCfg::Default));
+    whole.push(features::residual_docs(&docs, GoCfg::Site));
 
     let mut feat = features::deflists(&docs);
     feat.push(features::heading_attributes(&docs));
@@ -107,7 +107,7 @@ fn comrak_spike() {
     feat.extend(features::raw_html(&docs));
     feat.push(features::plain_fences(&docs));
 
-    let pos = sourcepos::check(&docs.docs, &engine::hugo(HugoCfg::Default));
+    let pos = sourcepos::check(&docs.docs, &engine::go_options(GoCfg::Default));
 
     println!("{}", table("Whole documents (normalised)", &whole));
     println!(

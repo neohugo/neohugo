@@ -31,7 +31,7 @@
     <title>{% if page.title == site.title %}{{ site.title }}{% else %}{% if page.title %}{{ page.title }} on {% endif %}{{ site.title }}{% endif %}</title>
     <link>{{ page.permalink }}</link>
     <description>Recent content {% if page.title != site.title and page.title %}in {{ page.title }} {% endif %}on {{ site.title }}</description>
-    <generator>Hugo</generator>
+    <generator>{{ build.name }}</generator>
     <language>{{ site.language_code }}</language>
     {%- if author_email %}
     <managingEditor>{{ author_email }}{{ author_suffix }}</managingEditor>

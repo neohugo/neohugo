@@ -63,5 +63,5 @@ End a hook with `{#- -#}` (or `-%}`) so it adds no newline: links and images are
 
 fugo ships hooks that resolve links and images to pages and resources
 (`useEmbedded`, see [Links](/content-management/links/)), and one for GoAT
-[diagrams](/content-management/diagrams/). Without a hook, elements render as Hugo's Markdown
-renderer writes them, and code blocks are [highlighted](/content-management/syntax-highlighting/).
+[diagrams](/content-management/diagrams/). Without a hook, elements render as fugo's
+[Markdown renderer](/content-management/markdown/) writes them, and code blocks are [highlighted](/content-management/syntax-highlighting/).

@@ -1,12 +1,12 @@
 ---
 title: Configuration
-description: Configure a fugo site — the configuration file and directory, environments, environment variables, and every section of settings.
+description: Configure a fugo site — the configuration file and directory, environments, the .env file, and every section of settings.
 weight: 60
 ---
 
 A site's settings live in `config.toml` (or `config.yaml`, `config.yml`, `config.json`) at the
-project root, or in a `config/` directory. They use Hugo's keys, so a Hugo site's settings
-mostly carry over; see [Introduction](/configuration/introduction/) for how they are loaded.
+project root, or in a `config/` directory. Its keys are those of Go-template sites, whose
+settings mostly carry over; see [Introduction](/configuration/introduction/) for how they are loaded.
 
 | Settings | Where they are described |
 |---|---|

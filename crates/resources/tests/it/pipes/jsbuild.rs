@@ -1,8 +1,8 @@
-//! `js_build` through the store against the `jsbuild` oracle (Hugo's `js.Build` on t16site,
+//! `js_build` through the store against the `jsbuild` oracle (Go's `js.Build` on t16site,
 //! 62 cases, and on the docs site's scripts, 6 cases): asset → (concat) → `js_build` →
 //! (`fingerprint`). This port bundles with rolldown, so scripts differ from esbuild's bytes
 //! (ssg-jsbuild's tests compare what they do); here media types, data and links must be
-//! Hugo's, with fingerprints and `Data.Integrity` of the same form, and errors must be errors
+//! Go's, with fingerprints and `Data.Integrity` of the same form, and errors must be errors
 //! at the same file and line. Published files: the script and, for external and linked source
 //! maps, the map next to it.
 
@@ -139,7 +139,7 @@ fn js_build_docs() {
     // A copy without a local build's output and node modules (gitignored): the oracle's
     // `main-unresolved` case needs `alpinejs` not to resolve.
     let p = project_except(
-        &crate::support::repo_dir().join("testdata/hugo-docs"),
+        &crate::support::repo_dir().join("testdata/legacy-docs"),
         &["node_modules", "public", "resources"],
         |_| {},
     );

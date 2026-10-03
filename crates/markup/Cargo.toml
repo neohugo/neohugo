@@ -1,6 +1,6 @@
 [package]
 name = "ssg-markup"
-description = "Markdown through comrak behind an engine-neutral API, plus Hugo's passes"
+description = "Markdown through comrak behind an engine-neutral API, plus the Go implementation's passes"
 version.workspace = true
 edition.workspace = true
 license.workspace = true

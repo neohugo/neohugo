@@ -1,4 +1,4 @@
-//! Hugo's HTML for a matrix of options (`tests/data/hugo-html.json`, from Hugo's
+//! The Go implementation's HTML for a matrix of options (`tests/data/go-html.json`, from its
 //! `markup/highlight` with Chroma v2.19.0; README): wrappers, line numbers in a table or
 //! inline, highlighted lines, anchors, inline code, classes vs inline styles, styles and the
 //! fallback style, languages Chroma does not know.
@@ -17,9 +17,9 @@ struct Case {
 }
 
 #[test]
-fn hugo_html_matrix() {
+fn go_html_matrix() {
     let cases: Vec<Case> =
-        read_json(&repo_dir().join("crates/highlight/tests/data/hugo-html.json")).expect("fixture");
+        read_json(&repo_dir().join("crates/highlight/tests/data/go-html.json")).expect("fixture");
     let hl = Highlight::new(&HighlightConfig::default());
     let mut failures = Vec::new();
     for c in &cases {
@@ -28,13 +28,13 @@ fn hugo_html_matrix() {
             .expect("options");
         if ours != c.html {
             failures.push(format!(
-                "lang {:?} opts {:?}\n--- hugo\n{}\n--- ours\n{}\n",
+                "lang {:?} opts {:?}\n--- go\n{}\n--- ours\n{}\n",
                 c.lang, c.opts, c.html, ours
             ));
         }
     }
     println!(
-        "hugo html: {}/{} equal",
+        "go html: {}/{} equal",
         cases.len() - failures.len(),
         cases.len()
     );
@@ -44,8 +44,8 @@ fn hugo_html_matrix() {
     assert!(diags[0].message.contains("nosuchstyle"));
 }
 
-/// The docs site's style sheet, as `hugo gen chromastyles --style=solarized-dark` writes it
-/// (with and without `--omitEmpty`, minus the generator comment).
+/// The docs site's style sheet, as the Go program's `gen chromastyles --style=solarized-dark`
+/// writes it (with and without `--omitEmpty`, minus the generator comment).
 #[test]
 fn solarized_dark_css() {
     let hl = Highlight::new(&HighlightConfig::default());

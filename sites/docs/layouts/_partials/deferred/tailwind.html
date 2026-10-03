@@ -1,6 +1,6 @@
 {#-
   The site stylesheet, deferred by baseof.html (`defer(key="global")`): rendered once after
-  every page, so Tailwind sees the classes of the whole site. Context: `data`, `site`, `hugo`.
+  every page, so Tailwind sees the classes of the whole site. Context: `data`, `site`, `build`.
   `data.tailwind` is false in the docs patch variant i01 (no Tailwind CLI: `minify` only).
 -#}
 {%- set r = get_asset(path="css/styles.css") %}

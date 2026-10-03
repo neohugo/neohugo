@@ -1,5 +1,6 @@
-//! Localized names, date styles and numbers against gohugoio/locales (`oracle/common/locales`,
-//! en and th). Fields that differ are listed in `expected_diffs.toml` (newer CLDR in ICU4X).
+//! Localized names, date styles and numbers against the Go implementation's locales library
+//! (`oracle/common/locales`, en and th). Fields that differ are listed in `expected_diffs.toml`
+//! (newer CLDR in ICU4X).
 
 use std::collections::BTreeMap;
 
@@ -52,8 +53,8 @@ const WEEKDAYS: [jiff::civil::Weekday; 7] = {
     ]
 };
 
-/// Gregorian month and weekday names, `th` included (Hugo's Thai sites print them with
-/// Gregorian years).
+/// Gregorian month and weekday names, `th` included (Thai sites built by the Go
+/// implementation print them with Gregorian years).
 #[test]
 fn month_and_weekday_names() {
     let listed = expected_diffs().locales.fields;
@@ -110,7 +111,7 @@ fn date_styles() {
         let Ok(ts) = ts else { continue };
         let zone = &zones[usize::try_from(case["zone"].as_u64().unwrap()).unwrap()];
         let zoned = ts.to_zoned(zone.clone());
-        // gohugoio/locales misprints years after 9999, BC years, and the short style's
+        // The Go locales library misprints years after 9999, BC years, and the short style's
         // two-digit year before 1000; early AD years (Go's zero time is year 1) are compared
         // in the other styles
         if !(1..=9999).contains(&zoned.year()) {
@@ -158,7 +159,7 @@ fn numbers() {
     for case in fixture().cases.iter().filter(|c| c["kind"] == "number") {
         let bits = u64::from_str_radix(case["n"].as_str().unwrap(), 16).unwrap();
         let n = f64::from_bits(bits);
-        // gohugoio/locales prints infinities as `+,Inf`; this port does not format them
+        // The Go locales library prints infinities as `+,Inf`; this port does not format them
         if !n.is_finite() {
             continue;
         }

@@ -13,8 +13,8 @@ theme = "my-theme"
 fugo looks for `themes/my-theme` (or `themesDir`). `theme` may be a list: the first wins where
 themes provide the same file. A theme can import other themes with `[[module.imports]]`.
 
-Themes for fugo are written in Tera, with Hugo v0.146 layout names; a Hugo theme's Go templates
-must be converted first (see [Coming from Hugo](/coming-from-hugo/)).
+Themes for fugo are written in Tera, with the current layout names; a theme written in Go
+templates must be converted first (see [Migrating from Go templates](/migrating/)).
 
 ## Overriding a theme
 

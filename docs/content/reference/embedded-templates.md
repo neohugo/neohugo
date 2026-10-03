@@ -5,8 +5,8 @@ weight: 40
 ---
 
 fugo ships a set of templates so that a site works without writing them: the RSS feed, the
-sitemap, `robots.txt`, alias redirects, the default render hooks, Hugo's built-in shortcodes
-and a few partials. They are loaded under the prefix `_embedded/`. A template of your project
+sitemap, `robots.txt`, alias redirects, the default render hooks, the built-in shortcodes
+Go-template sites expect and a few partials. They are loaded under the prefix `_embedded/`. A template of your project
 or theme with the same name wins: to change the sitemap, add `layouts/sitemap.xml`.
 
 {{% api-data table="embedded-templates" %}}

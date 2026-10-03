@@ -153,7 +153,7 @@ fn collation_is_a_consistent_total_order() {
     assert_eq!(equal_pairs, 0, "distinct site strings compare equal");
 }
 
-/// Thai sorts in the root order (as Hugo did with x/text): the same order as English, Latin
+/// Thai sorts in the root order (as Go did with x/text): the same order as English, Latin
 /// before Thai, Thai leading vowels skipped.
 #[test]
 fn thai_uses_the_root_order() {
@@ -177,7 +177,7 @@ fn thai_uses_the_root_order() {
     );
 }
 
-/// Thai sorts PAIYANNOI (ฯ) with the punctuation, before digits and Latin letters, as Hugo's Thai
+/// Thai sorts PAIYANNOI (ฯ) with the punctuation, before digits and Latin letters, as Go's Thai
 /// collation does; other languages keep the root order, where it is a Thai letter.
 #[test]
 fn thai_sorts_paiyannoi_as_punctuation() {

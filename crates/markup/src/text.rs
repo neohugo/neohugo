@@ -8,7 +8,7 @@ pub struct Summary {
     pub truncated: bool,
 }
 
-/// The text of `html` without tags (Hugo `.Plain`): paragraph ends and `<br>` become
+/// The text of `html` without tags (Go's `.Plain`): paragraph ends and `<br>` become
 /// newlines, newlines inside the HTML become spaces; entities stay as written.
 #[must_use]
 pub fn strip_html(html: &str) -> String {
@@ -64,7 +64,7 @@ fn is_cjk(c: char) -> bool {
         | 0xF900..=0xFAFF | 0xFE30..=0xFE4F | 0xFF00..=0xFFEF | 0x20000..=0x2FFFF)
 }
 
-/// Words in `plain` (Hugo `.WordCount`): runs of non-space; with `cjk`, a run containing
+/// Words in `plain` (Go's `.WordCount`): runs of non-space; with `cjk`, a run containing
 /// non-ASCII characters counts each character.
 #[must_use]
 pub fn word_count(plain: &str, cjk: bool) -> usize {
@@ -93,7 +93,7 @@ fn counts_as_word(w: &str, cjk: bool) -> usize {
     1
 }
 
-/// Hugo's automatic summary: whole paragraphs until `words` words are reached.
+/// The Go implementation's automatic summary: whole paragraphs until `words` words are reached.
 #[must_use]
 pub fn auto_summary(html: &str, words: usize, cjk: bool) -> Summary {
     if words == 0 {

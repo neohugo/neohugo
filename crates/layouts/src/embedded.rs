@@ -1,5 +1,6 @@
-//! Hugo's embedded templates rewritten in Tera: the files under `crates/layouts/embedded/`
-//! (T32), listed by the build script. Their Tera names carry [`crate::EMBEDDED_PREFIX`].
+//! The Go implementation's embedded templates rewritten in Tera: the files under
+//! `crates/layouts/embedded/` (T32), listed by the build script. Their Tera names carry
+//! [`crate::EMBEDDED_PREFIX`].
 
 use crate::name::Origin;
 use crate::store::LayoutSource;

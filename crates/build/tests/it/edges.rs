@@ -1,4 +1,4 @@
-//! The edge-tree build oracles `testdata/oracle/hugolib/build/<site>.json.gz` (T24's
+//! The edge-tree build oracles `testdata/oracle/sitebuild/build/<site>.json.gz` (T24's
 //! sites: cascade, i18n, aliases, term collisions, headless and `build` options, multihost,
 //! ugly URLs, Thai and punctuated paths, front matter overrides, stats, post-processing, …)
 //! built into a temporary publish directory with their Go layouts converted to Tera below, and
@@ -175,7 +175,7 @@ fn layouts(name: &str) -> Vec<(&'static str, String)> {
 // The shortcode and hook conversions of `ssg-render`'s content oracles (`tests/it/oracle.rs`
 // there), for the build fixtures of the same sites.
 
-/// `{"head":…,"body":…}` of a table, cells as `"<alignment>:<text>"` (Hugo's `printf "%s:%s"`,
+/// `{"head":…,"body":…}` of a table, cells as `"<alignment>:<text>"` (Go's `printf "%s:%s"`,
 /// where alignment none prints nothing).
 const JSON_TABLE: &str = r#"{"head":[{% for r in thead %}{% if not loop.first %},{% endif %}[{% for c in r %}{% if not loop.first %},{% endif %}{% if c.alignment == "none" %}{{ (":" ~ c.text) | jsonify }}{% else %}{{ (c.alignment ~ ":" ~ c.text) | jsonify }}{% endif %}{% endfor %}]{% endfor %}],"body":[{% for r in tbody %}{% if not loop.first %},{% endif %}[{% for c in r %}{% if not loop.first %},{% endif %}{% if c.alignment == "none" %}{{ (":" ~ c.text) | jsonify }}{% else %}{{ (c.alignment ~ ":" ~ c.text) | jsonify }}{% endif %}{% endfor %}]{% endfor %}]}"#;
 
@@ -326,7 +326,7 @@ fn fnv(b: &[u8]) -> String {
 }
 
 pub(crate) fn write_site(name: &str, dir: &std::path::Path) -> J {
-    let f: J = oracle(&format!("oracle/hugolib/build/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/build/{name}.json.gz"));
     let site = &f["site"];
     let mut toml = site["toml"].as_str().expect("toml").to_owned();
     if name == "docs" {

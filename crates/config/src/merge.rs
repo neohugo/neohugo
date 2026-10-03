@@ -1,5 +1,5 @@
 //! Theme configurations merged into the project's (the end of step 4 of the A1 pipeline),
-//! with Hugo's `_merge` strategies.
+//! with Go's `_merge` strategies.
 //!
 //! The project's values always win: a theme only adds keys the project does not have. Which
 //! keys it may add is decided per table of the project by a [`MergeStrategy`]: the table's
@@ -66,7 +66,7 @@ pub enum MergeStrategy {
 
 impl MergeStrategy {
     /// The strategy `_merge` names: `none`, `shallow` or `deep` (ignoring case); any other
-    /// value means `deep`, as in Hugo.
+    /// value means `deep`, as in Go.
     #[must_use]
     pub fn parse(v: &Value) -> Self {
         match de::weak_string(v)
@@ -204,7 +204,7 @@ impl Merger {
             let mut path: Path = vec![Arc::from(k)];
             match root.get_mut(k) {
                 Some(Value::Map(dst)) => self.merge_table(Arc::make_mut(dst), &mut path, None, src),
-                // The project's value wins (Hugo fails here).
+                // The project's value wins (Go fails here).
                 Some(_) => {}
                 None => {
                     let strategy = MergeStrategy::default_for(&[k], root_strategy);
@@ -246,7 +246,7 @@ pub fn merge_themes<'a>(root: &mut Map, themes: impl IntoIterator<Item = &'a Map
     implicit.remove_unused(root);
 }
 
-/// The tables Hugo's languages step adds to the project before themes are merged: the implicit
+/// The tables Go's languages step adds to the project before themes are merged: the implicit
 /// language of a project without `[languages]` (no strategy of its own), and a `params` table
 /// (`deep`) in every language without one. Those still empty after the merge are removed.
 struct ImplicitLanguages {

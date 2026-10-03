@@ -218,7 +218,7 @@ impl SiteFunction for Param {
     }
 }
 
-/// The content adapter run whose store a `store_*` call without `page=` uses (Hugo's `.Store`
+/// The content adapter run whose store a `store_*` call without `page=` uses (Go's `.Store`
 /// of a `_content.gotmpl`).
 fn adapter_store_run(st: &State, kw: &Kwargs) -> TeraResult<Option<u32>> {
     if kw.get::<Value>("page")?.is_some() {

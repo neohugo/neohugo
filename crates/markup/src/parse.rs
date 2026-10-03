@@ -12,7 +12,7 @@ use crate::passes::{contexts, ids, inline, tables};
 use crate::source::{ExpandedMarkdown, Lines, Prepared};
 use crate::{Extensions, MarkdownOptions, MarkupError, RawHtml, StandaloneImages};
 
-/// comrak's options for `o`: parsing only; Hugo's typography, linkify, attributes, alerts
+/// comrak's options for `o`: parsing only; Go's typography, linkify, attributes, alerts
 /// and math are passes of this crate, and so are tables (goldmark makes them of paragraphs,
 /// [`crate::passes::tables`]).
 pub(crate) fn comrak_options(o: &MarkdownOptions) -> Options<'static> {
@@ -27,7 +27,7 @@ pub(crate) fn comrak_options(o: &MarkdownOptions) -> Options<'static> {
     c
 }
 
-/// Parses `md` and runs Hugo's passes.
+/// Parses `md` and runs the Go implementation's passes.
 pub(crate) fn parse<'a>(
     arena: &'a Arena<'a>,
     md: &ExpandedMarkdown<'_>,

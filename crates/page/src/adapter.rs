@@ -1,10 +1,10 @@
 //! Pages from content adapters: the map a `_content.html` template passes to `add_page`
-//! (Hugo's `hugolib/pagesfromdata/pagesfromgotmpl.go` with the `IsFromContentAdapter` paths of
-//! `resources/page/pagemeta/page_frontmatter.go` and `hugolib/page__meta.go`).
+//! (Go's `pagesfromdata/pagesfromgotmpl.go` with the `IsFromContentAdapter` paths of
+//! `resources/page/pagemeta/page_frontmatter.go` and the site builder's `page__meta.go`).
 //!
 //! An adapter page is configured differently from a page read from a file:
 //!
-//! - **Placing** ([`AdapterPage::decode`], Hugo's `PageConfigEarly` with `Init(true)` and
+//! - **Placing** ([`AdapterPage::decode`], Go's `PageConfigEarly` with `Init(true)` and
 //!   `CompileForPagesFromDataPre`): `kind` (default `page`; one of the five content kinds as
 //!   written, in lower case), `path` (one leading `/` removed, then joined to the adapter's
 //!   directory with `path.Join` and normalised: lower case, spaces → `-`, not trimmed; empty
@@ -12,7 +12,7 @@
 //!   `content` (`mediaType`, default Markdown, and `value`), `cascade` (branch kinds only). `lang`
 //!   and `content.markup` must not be set. The page is then parsed as the content file
 //!   `<path>/index.<suffix>` (`_index.<suffix>` for branch kinds) of its media type.
-//! - **Fields** ([`meta_from_adapter`], Hugo's `PageConfig.Compile` decoding the map): the
+//! - **Fields** ([`meta_from_adapter`], Go's `PageConfig.Compile` decoding the map): the
 //!   reserved front matter fields are read from the map's top level, filled by the cascade's
 //!   fields; `.Params` are the cascade's params with the map's `params` over them (top-level
 //!   keys replaced) and nothing else (no reserved keys, no dates). No `_build`, `headless`,
@@ -72,7 +72,7 @@ impl AdapterPage {
                 })
             })
         };
-        // Hugo decodes `kind` as it is (no case folding, no legacy names, unlike front
+        // Go decodes `kind` as it is (no case folding, no legacy names, unlike front
         // matter's `kinds.GetKindMain`).
         let kind = match string("kind")?.as_str() {
             "" => PageKind::Page,
@@ -81,7 +81,8 @@ impl AdapterPage {
                 .ok_or_else(|| {
                     PageError::Adapter(format!(
                         "`kind` {k:?} is not one of page, home, section, taxonomy, term (in \
-                         lower case; Hugo adds a page of another kind that is never rendered)"
+                         lower case; the Go implementation adds a page of another kind that is \
+                         never rendered)"
                     ))
                 })?,
         };
@@ -274,7 +275,7 @@ pub fn meta_from_adapter(
         link_title: string("linktitle"),
         description: string("description").unwrap_or_default(),
         summary: string("summary"),
-        // As given: Hugo trims the `-` only from front matter slugs (`setMetaPostParams`
+        // As given: Go trims the `-` only from front matter slugs (`setMetaPostParams`
         // returns before that for adapter pages).
         slug: string("slug"),
         url,
@@ -340,7 +341,7 @@ fn adapter_dates_given(m: &Params, tz: &TimeZone) -> Result<Dates, PageError> {
 }
 
 impl DateResolver {
-    /// The dates of an adapter page from the dates its map gives (Hugo's
+    /// The dates of an adapter page from the dates its map gives (Go's
     /// `createContentAdapterDatesHandler`). The given dates are kept; then, one date after the
     /// other in the order date, lastmod, publishDate, expiryDate, the first of its configured
     /// `[frontmatter]` sources that is one of the four date fields and set replaces it. The

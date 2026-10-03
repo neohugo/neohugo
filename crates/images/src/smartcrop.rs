@@ -1,17 +1,17 @@
 //! The `smart` anchor: content-aware cropping, a port of muesli/smartcrop v0.3.0
-//! (`smartcrop.go`, itself after Jonas Wagner's smartcrop.js) with Hugo's adapter
-//! (`resources/images/smartcrop.go` at 44529028) and the filters Hugo builds around it
+//! (`smartcrop.go`, itself after Jonas Wagner's smartcrop.js) with the Go implementation's
+//! adapter (`resources/images/smartcrop.go` at 44529028) and the filters it builds around it
 //! (`FiltersFromConfig`, `resources/images/image.go`).
 //!
-//! Hugo finds the region on the operation's *source* (the decoded input, before rotation and
-//! before the other filters of a chain): smartcrop downscales it so that its shorter side is
-//! 400 pixels (gift's resize with the spec's filter, [`crate::gift`]), scores every
-//! candidate region with the target's aspect ratio (full size and 90 %, every 8 pixels) by
-//! edge, skin and saturation detail weighted towards the centre and the thirds, and scales
-//! the best one back. `fill` then crops that region and resizes it to the target size;
-//! `crop` crops it and keeps its centre at the target size (so a crop is the centre of the
-//! best region, not the region itself). The arithmetic is float64 in Go's order, without
-//! fused multiply-adds (Go's amd64 code), so the chosen region is Go's.
+//! The Go implementation finds the region on the operation's *source* (the decoded input, before
+//! rotation and before the other filters of a chain): smartcrop downscales it so that its shorter
+//! side is 400 pixels (gift's resize with the spec's filter, [`crate::gift`]), scores every
+//! candidate region with the target's aspect ratio (full size and 90 %, every 8 pixels) by edge,
+//! skin and saturation detail weighted towards the centre and the thirds, and scales the best one
+//! back. `fill` then crops that region and resizes it to the target size; `crop` crops it and keeps
+//! its centre at the target size (so a crop is the centre of the best region, not the region
+//! itself). The arithmetic is float64 in Go's order, without fused multiply-adds (Go's amd64 code),
+//! so the chosen region is Go's.
 
 use crate::gift::{self, Source};
 use crate::plan::Size;
@@ -104,8 +104,8 @@ fn chop(x: f64) -> f64 {
     if x < 0.0 { x.ceil() } else { x.floor() }
 }
 
-/// How smartcrop sees a source: its size, the prescale factor and the size of the prescaled
-/// copy it analyses (`FindBestCrop` with Hugo's resizer, `imagingResizer.Resize` and
+/// How smartcrop sees a source: its size, the prescale factor and the size of the prescaled copy it
+/// analyses (`FindBestCrop` with the Go implementation's resizer, `imagingResizer.Resize` and
 /// `calcFactorsNfnt`: the prescaled width truncates, the height is rounded up).
 #[derive(Clone, Copy, Debug, PartialEq)]
 struct Prescale {
@@ -131,7 +131,7 @@ impl Prescale {
     }
 
     /// The end of `FindBestCrop`: a region of the prescaled image in source pixels
-    /// (`Canon` after scaling each coordinate back), intersected with the source (Hugo).
+    /// (`Canon` after scaling each coordinate back), intersected with the source (as in Go).
     fn scale_back(&self, r: Rect) -> Rect {
         let back = |v: i64| chop(v as f64 / self.factor) as i64;
         Rect::new(back(r.x0), back(r.y0), back(r.x1), back(r.y1)).intersect(Rect::new(
@@ -202,8 +202,8 @@ impl Setup {
     }
 }
 
-/// Hugo's early answers (`smartCrop`): the empty rectangle for an empty target or source,
-/// the whole source when it has the target size.
+/// The Go implementation's early answers (`smartCrop`): the empty rectangle for an empty target or
+/// source, the whole source when it has the target size.
 fn trivial((sw, sh): (usize, usize), width: u32, height: u32) -> Option<Rect> {
     if width == 0 || height == 0 || sw == 0 || sh == 0 {
         return Some(Rect::default());
@@ -211,9 +211,9 @@ fn trivial((sw, sh): (usize, usize), width: u32, height: u32) -> Option<Rect> {
     ((sw, sh) == (width as usize, height as usize)).then(|| Rect::new(0, 0, sw as i64, sh as i64))
 }
 
-/// Hugo's `smartCrop`: the region of `src` the `smart` anchor keeps for a `width`×`height`
-/// target with the spec's resample `filter`. Empty when a side is zero (or nothing scores
-/// above −1, which smartcrop leaves as the empty rectangle); the whole image when it already
+/// The Go implementation's `smartCrop`: the region of `src` the `smart` anchor keeps for a
+/// `width`×`height` target with the spec's resample `filter`. Empty when a side is zero (or nothing
+/// scores above −1, which smartcrop leaves as the empty rectangle); the whole image when it already
 /// has the target size.
 pub(crate) fn find(src: &Source<'_>, width: u32, height: u32, filter: Resample) -> Rect {
     match trivial(src.size(), width, height) {
@@ -499,7 +499,7 @@ mod tests {
     }
 
     /// The regions Go's smart crop picks (`testdata/oracle/images/smartcrop/regions.json.gz`)
-    /// for the docs' images, Hugo's and Go's test images (JPEG of
+    /// for the legacy docs site's images, the Go implementation's and Go's test images (JPEG of
     /// every subsampling, progressive, restart intervals, RGB, CMYK and grey; PNG of every
     /// colour type and depth; GIF), at 19 targets each with the default box filter, and at
     /// four targets with each of the 15 filters on four sources: all equal.
@@ -567,8 +567,9 @@ mod tests {
     }
 
     #[test]
-    fn prescale_follows_hugo_s_resizer() {
-        // The docs' sunset: 900×562 → 640×400 (`uint(900·400/562)`, `ceil(562/1.40625)`).
+    fn prescale_follows_the_go_resizer() {
+        // The legacy docs site's sunset: 900×562 → 640×400 (`uint(900·400/562)`,
+        // `ceil(562/1.40625)`).
         let p = Prescale::new((900, 562));
         assert_eq!(p.low, (640, 400));
         let s = Setup::new(&p, 200, 200);

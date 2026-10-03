@@ -1,9 +1,10 @@
 //! The dither filter (`images.Dither`): the image reduced to a palette, by error diffusion or
-//! ordered dithering, with Hugo's options and defaults (`resources/images/filters.go`).
+//! ordered dithering, with the Go implementation's options and defaults
+//! (`resources/images/filters.go`).
 //!
-//! Hugo delegates to `github.com/makeworld-the-better-one/dither/v2` (MPL-2.0). None of its
-//! code is used here: this module implements the published algorithms it names, with the
-//! behaviour its documentation describes:
+//! The Go implementation delegates to `github.com/makeworld-the-better-one/dither/v2` (MPL-2.0).
+//! None of its code is used here: this module implements the published algorithms it names, with
+//! the behaviour its documentation describes:
 //!
 //! * colours are compared in linear RGB (the sRGB transfer function undone, 16-bit scale), by
 //!   squared Euclidean distance weighted by the luminance coefficients 0.2126, 0.7152 and
@@ -29,7 +30,8 @@ use crate::error::ImageError;
 
 named_enum! {
     /// A dithering method: error diffusion (the first fourteen, `floydsteinberg` by default) or
-    /// ordered dithering with a threshold matrix (Hugo's names, case-insensitive).
+    /// ordered dithering with a threshold matrix (the Go implementation's names,
+    /// case-insensitive).
     pub enum DitherMethod ("dithering method") {
         Atkinson = "atkinson",
         Burkes = "burkes",
@@ -105,10 +107,10 @@ impl DitherMethod {
 
 /// The options of the dither filter.
 ///
-/// In template maps (Hugo's option names, any case): `colors` (two or more `#rrggbb` colours;
-/// black and white by default), `method` ([`DitherMethod`], `floydsteinberg` by default),
-/// `serpentine` (error diffusion only; true by default), `strength` (1.0 by default; 0.8 is
-/// less noisy).
+/// In template maps (the Go implementation's option names, any case): `colors` (two or more
+/// `#rrggbb` colours; black and white by default), `method` ([`DitherMethod`], `floydsteinberg` by
+/// default), `serpentine` (error diffusion only; true by default), `strength` (1.0 by default; 0.8
+/// is less noisy).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(try_from = "RawDither")]
 pub struct DitherSpec {
@@ -155,7 +157,7 @@ enum Strength {
     Text(String),
 }
 
-/// The dither filter as written in a template map (`mapstructure` matches Hugo's field names
+/// The dither filter as written in a template map (`mapstructure` matches Go's field names
 /// ignoring case).
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -77,6 +77,20 @@ pub fn repo_dir() -> PathBuf {
         .unwrap_or_else(|| Path::new(env!("CARGO_MANIFEST_DIR")).join("../.."))
 }
 
+/// The `node_modules` that `tools/dev/node.sh` installs the test tools into (Tailwind, Babel,
+/// Alpine.js, Turbo): `tools/dev/node_modules` of the main checkout, which every worktree
+/// shares. `None` when the script does not run; the directory may not exist yet.
+#[must_use]
+pub fn node_tools() -> Option<PathBuf> {
+    let out = std::process::Command::new(repo_dir().join("tools/dev/node.sh"))
+        .arg("path")
+        .output()
+        .ok()
+        .filter(|o| o.status.success())?;
+    let dir = String::from_utf8_lossy(&out.stdout).trim().to_owned();
+    (!dir.is_empty()).then(|| PathBuf::from(dir))
+}
+
 /// `testdata` of the checkout being tested (see [`repo_dir`]).
 #[must_use]
 pub fn testdata_dir() -> PathBuf {
@@ -89,10 +103,10 @@ pub fn testdata(rel: &str) -> PathBuf {
     testdata_dir().join(rel)
 }
 
-/// Hugo's test data that the tests read, by its path in the Go tree; it moved to
+/// The Go tree's test data that the tests read, by its path in that tree; it moved to
 /// `testdata/upstream/<path>` when the Go sources were removed.
 pub const UPSTREAM: [&str; 5] = [
-    "hugolib/testsite",
+    "testsite",
     "media/testdata/fake.png",
     "resources/images/testdata",
     "resources/testdata",
@@ -103,26 +117,50 @@ pub const UPSTREAM: [&str; 5] = [
 /// (after `44529028`); frozen fixtures still name files below it (`rust/testdata/...`).
 pub const LEGACY_WORKSPACE: &str = "rust";
 
-/// Hugo's documentation site (Hugo's docs repository, as this repository's Go tree had it in
-/// `docs/`): a frozen fixture of the docs gates (`tools/rust-port/i01/sites.py`) and of the tests
-/// that read its content, config and assets. It moved here when `docs/` became this project's own
-/// documentation; fixtures still name its files `docs/...` (see [`repo_file`]).
-pub const HUGO_DOCS: &str = "testdata/hugo-docs";
+/// The legacy docs site (the Go implementation's documentation, as this repository's Go tree had
+/// it in `docs/`): a frozen fixture of the docs gates (`tools/rust-port/i01/sites.py`) and of the
+/// tests that read its content, config and assets. It moved here when `docs/` became this
+/// project's own documentation; fixtures still name its files `docs/...` (see [`repo_file`]).
+pub const LEGACY_DOCS: &str = "testdata/legacy-docs";
 
-/// The directory the fixtures name Hugo's documentation site by (see [`HUGO_DOCS`]); its
+/// The directory the fixtures name the legacy docs site by (see [`LEGACY_DOCS`]); its
 /// `rust-port/` subdirectory is not part of it.
-pub const LEGACY_HUGO_DOCS: &str = "docs";
+pub const LEGACY_DOCS_ID: &str = "docs";
 
-/// [`HUGO_DOCS`] of the checkout.
+/// [`LEGACY_DOCS`] of the checkout.
 #[must_use]
-pub fn hugo_docs() -> PathBuf {
-    repo_dir().join(HUGO_DOCS)
+pub fn legacy_docs() -> PathBuf {
+    repo_dir().join(LEGACY_DOCS)
+}
+
+/// The base name of the Go program's configuration file (`<name>.toml`, …) as the oracles
+/// recorded it. fugo reads no file of that name as configuration.
+pub const GO_CONFIG_NAME: &str = "hugo";
+
+/// A file of the Go build's recorded output as this program writes it: the RSS `<generator>`
+/// names the program that built the feed (`build.name`), so the recorded name is replaced with
+/// this program's. Everything else is unchanged.
+#[must_use]
+pub fn go_output_as_built_here(text: &str) -> String {
+    const OPEN: &str = "<generator>";
+    const CLOSE: &str = "</generator>";
+    let mut out = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(i) = rest.find(OPEN) {
+        let after = &rest[i + OPEN.len()..];
+        let Some(j) = after.find(CLOSE) else { break };
+        out.push_str(&rest[..i + OPEN.len()]);
+        out.push_str(ssg_base::APP_NAME);
+        rest = &after[j..];
+    }
+    out.push_str(rest);
+    out
 }
 
 /// The path a site file the Go oracles recorded has in a local site: a configuration file
-/// named `hugo.<ext>` (the project's, a configuration directory's or a theme's) is
-/// `config.<ext>`, as no `hugo.*` file is read. Files below a component directory
-/// (`content/hugo.toml` is a page) keep their names.
+/// named [`GO_CONFIG_NAME`]`.<ext>` (the project's, a configuration directory's or a theme's)
+/// is `config.<ext>`, as no such file is read. Files below a component directory (a page in
+/// `content/` of that name) keep their names.
 #[must_use]
 pub fn local_path(rel: &str) -> String {
     const COMPONENTS: [&str; 7] = [
@@ -135,7 +173,10 @@ pub fn local_path(rel: &str) -> String {
         "archetypes",
     ];
     let (dir, name) = rel.rsplit_once('/').unwrap_or(("", rel));
-    let Some(ext) = name.strip_prefix("hugo.") else {
+    let Some(ext) = name
+        .strip_prefix(GO_CONFIG_NAME)
+        .and_then(|n| n.strip_prefix('.'))
+    else {
         return rel.to_owned();
     };
     if !matches!(ext, "toml" | "yaml" | "yml" | "json")
@@ -152,18 +193,18 @@ pub fn local_path(rel: &str) -> String {
 
 /// A file or directory of the checkout by its repository-relative path as the fixtures name it
 /// (`repo` and `file:` ids keep the Go tree's paths): under one of [`UPSTREAM`] it is in
-/// `testdata/upstream`; below [`LEGACY_HUGO_DOCS`] (but not `docs/rust-port`) it is in
-/// [`HUGO_DOCS`]; a path below [`LEGACY_WORKSPACE`] is that path without the prefix;
+/// `testdata/upstream`; below [`LEGACY_DOCS_ID`] (but not `docs/rust-port`) it is in
+/// [`LEGACY_DOCS`]; a path below [`LEGACY_WORKSPACE`] is that path without the prefix;
 /// anything else is at `<rel>` from the repository root (see [`repo_dir`]).
 #[must_use]
 pub fn repo_file(rel: &str) -> PathBuf {
     let path = Path::new(rel);
     if UPSTREAM.iter().any(|p| path.starts_with(p)) {
         testdata("upstream").join(rel)
-    } else if let Ok(rest) = path.strip_prefix(LEGACY_HUGO_DOCS)
+    } else if let Ok(rest) = path.strip_prefix(LEGACY_DOCS_ID)
         && !rest.starts_with("rust-port")
     {
-        hugo_docs().join(rest)
+        legacy_docs().join(rest)
     } else {
         repo_dir().join(path.strip_prefix(LEGACY_WORKSPACE).unwrap_or(path))
     }

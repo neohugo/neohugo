@@ -1,4 +1,4 @@
-//! The project's themes (Hugo: modules imported with `theme` or `[[module.imports]]`), found
+//! The project's themes (Go: modules imported with `theme` or `[[module.imports]]`), found
 //! and read before their configuration is merged into the project's (the end of step 4 of the
 //! A1 pipeline; the merge is [`crate::merge`]).
 //!
@@ -13,10 +13,10 @@
 //!   of paths never looked up there), else `<themesDir>/<path>`, or the absolute path. The
 //!   project's `module.replacements` (`"old -> new, …"`, a string or a list) renames
 //!   `[[module.imports]]` paths. A theme of a theme must stay below `themesDir` unless its path
-//!   was replaced. Hugo Modules are not downloaded: an import that is not found is an error.
-//! - **Configuration.** The first of `config.*`, `config.*` in the theme's
-//!   directory, then its `config/_default/**` and `config/<environment>/**`, read like the
-//!   project's; `theme.toml` (theme-site metadata) is not configuration.
+//!   was replaced. Remote modules are not downloaded: an import that is not found is an error.
+//! - **Configuration.** The first `config.*` in the theme's directory, then its
+//!   `config/_default/**` and `config/<environment>/**`, read like the project's; `theme.toml`
+//!   (theme-site metadata) is not configuration.
 //! - **Mounts.** The importer's `[[module.imports.mounts]]`, else the theme's own
 //!   `[[module.mounts]]` (sources relative to the theme's directory), else each component
 //!   directory the theme has ([`ThemeMounts`]); the file system layer mounts them after the
@@ -58,7 +58,7 @@ pub struct Theme {
 /// What a theme contributes to the union file view.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub enum ThemeMounts {
-    /// Hugo's default: every component directory the theme has (`layouts`, `static`, …), and
+    /// Go's default: every component directory the theme has (`layouts`, `static`, …), and
     /// its JS config files.
     Components,
     /// The importer's `[[module.imports.mounts]]`, else the theme's own `[[module.mounts]]`;

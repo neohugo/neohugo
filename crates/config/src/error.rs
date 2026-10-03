@@ -21,7 +21,7 @@ pub enum ConfigError {
     NotFound { dir: PathBuf },
     /// A theme (`theme`, `[[module.imports]]`) is not in the themes directory, in the project's
     /// `_vendor` directory or at the absolute path given.
-    #[error("theme {name:?} not found: {} does not exist (themes are read from themesDir, _vendor or an absolute path; Hugo Modules are not downloaded)", dir.display())]
+    #[error("theme {name:?} not found: {} does not exist (themes are read from themesDir, _vendor or an absolute path; remote modules are not downloaded)", dir.display())]
     ThemeNotFound { name: String, dir: PathBuf },
     /// A theme of a theme is imported with an absolute path or a path outside the themes
     /// directory.

@@ -431,10 +431,10 @@ pub(crate) fn inline_map(style: &Style, s: CssSettings) -> BTreeMap<TokenType, S
 /// How [`crate::Highlight::css`] writes a stylesheet.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum CssMode {
-    /// Every class, declarations compressed (`hugo gen chromastyles`).
+    /// Every class, declarations compressed (the Go program's `gen chromastyles`).
     #[default]
     AllClasses,
-    /// Only classes with declarations (`hugo gen chromastyles --omitEmpty`).
+    /// Only classes with declarations (`gen chromastyles --omitEmpty`).
     OmitEmpty,
 }
 

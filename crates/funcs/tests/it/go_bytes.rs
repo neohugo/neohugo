@@ -1,4 +1,4 @@
-//! Byte-for-byte agreement with Hugo where the embedded templates depend on it: `xml_escape`
+//! Byte-for-byte agreement with Go where the embedded templates depend on it: `xml_escape`
 //! (`transform.XMLEscape`, the RSS description) and the English names of `date(format=)`
 //! (Go's `Time.Format`).
 

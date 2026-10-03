@@ -1,6 +1,6 @@
-//! Go's JPEG decoder, for the smart crop analysis: a port of `image/jpeg`'s reader as Go 1.25
-//! has it (`reader.go`, `scan.go`, `huffman.go`, `idct.go`), which Hugo's published builds
-//! decoded sources with.
+//! Go's JPEG decoder, for the smart crop analysis: a port of `image/jpeg`'s reader as Go 1.25 has
+//! it (`reader.go`, `scan.go`, `huffman.go`, `idct.go`), which the Go implementation's published
+//! builds decoded sources with.
 //!
 //! The processing pipeline decodes JPEGs with the `image` crate, whose inverse DCT and chroma
 //! upsampling give pixels a level or two away from Go's. That is invisible in a processed

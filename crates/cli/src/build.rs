@@ -1,8 +1,9 @@
 //! `build`: flags → [`BuildRequest`] → [`ssg_build::build`] → the report.
 
+use std::sync::Arc;
 use std::time::Duration;
 
-use ssg_build::{BuildReport, BuildRequest, SinkKind};
+use ssg_build::{BuildReport, BuildRequest, Prepare, SinkKind};
 
 use crate::Exit;
 use crate::args::BuildArgs;
@@ -31,7 +32,19 @@ pub(crate) fn request(a: &BuildArgs) -> anyhow::Result<BuildRequest> {
         config: None,
         live_reload: None,
         server: false,
+        prepare: prepare(a.quiet),
     })
+}
+
+/// The project's npm packages are installed before the build (`npm` feature).
+#[cfg(feature = "npm")]
+fn prepare(quiet: bool) -> Option<Arc<dyn Prepare>> {
+    Some(Arc::new(crate::npm::Install { quiet }))
+}
+
+#[cfg(not(feature = "npm"))]
+fn prepare(_quiet: bool) -> Option<Arc<dyn Prepare>> {
+    None
 }
 
 pub(crate) fn run(a: &BuildArgs) -> anyhow::Result<Exit> {

@@ -2,14 +2,13 @@
 //! directory, with a store whose [`TransformEnv`] the test controls: no inherited tool paths,
 //! the process environment (for `PATH`), and fake or real tools as the test decides.
 //!
-//! Tests that need a real node tool read its binary from `FUGO_POSTCSS_BIN`,
-//! `FUGO_TAILWINDCSS_BIN` or `FUGO_BABEL_BIN` and print `SKIPPED` without it; tests with
-//! fake tools (small node scripts) need `node` on `PATH` and print `SKIPPED` without it.
+//! Tests that need a real node tool find it in the `node_modules` that `tools/dev/node.sh`
+//! installs and print `SKIPPED` without it; tests with fake tools (small node
+//! scripts in a `node_modules/.bin`) need `node` on `PATH` and print `SKIPPED` without it.
 
 mod babel;
 mod jsbuild;
 mod minify;
-mod postcss;
 mod postprocess;
 mod tailwind;
 mod template;
@@ -92,8 +91,8 @@ fn copy_tree_except(from: &Path, to: &Path, skip: &[&str]) {
     }
 }
 
-/// A copy of `src` as `<tmp>/site` (the PostCSS oracle prints the working directory's
-/// name), with `edit` applied to its environment.
+/// A copy of `src` as `<tmp>/site` (the oracles print the working directory's name), with
+/// `edit` applied to its environment.
 pub fn project(src: &Path, edit: impl FnOnce(&mut TransformEnv)) -> Project {
     let tmp = tempfile::tempdir().unwrap();
     let dir = tmp.path().canonicalize().unwrap().join("site");
@@ -164,14 +163,13 @@ fn in_dir(tmp: tempfile::TempDir, dir: PathBuf, edit: impl FnOnce(&mut Transform
     }
 }
 
-/// A real tool named by its environment variable, or `None` (printing `SKIPPED`).
-pub fn real_tool(var: &str, test: &str) -> Option<PathBuf> {
-    match std::env::var_os(var).filter(|v| !v.is_empty()) {
-        Some(p) => Some(PathBuf::from(p)),
-        None => {
-            eprintln!(
-                "SKIPPED {test}: {var} is not set (install the node tools with tools/dev/node.sh)"
-            );
+/// The `node_modules` of `tools/dev/node.sh` when it has the real `bin` in its `.bin`, or
+/// `None` (printing `SKIPPED`).
+pub fn real_tools(bin: &str, test: &str) -> Option<Vec<PathBuf>> {
+    match ssg_testkit::fixture::node_tools() {
+        Some(dir) if dir.join(".bin").join(bin).is_file() => Some(vec![dir]),
+        _ => {
+            eprintln!("SKIPPED {test}: no {bin} (install the node tools with tools/dev/node.sh)");
             None
         }
     }
@@ -187,25 +185,25 @@ pub fn have_node(test: &str) -> bool {
     found
 }
 
-/// Writes an executable node script `name` into `<dir>/bin` and returns its path.
-pub fn fake_tool(dir: &Path, name: &str, script: &str) -> PathBuf {
+/// Writes an executable node script `name` into `<node_modules>/.bin`, as a package manager
+/// installs a program (the store finds it through `ToolPaths::node_modules`).
+pub fn fake_tool(node_modules: &Path, name: &str, script: &str) {
     use std::os::unix::fs::PermissionsExt as _;
-    let bin = dir.join("fake-bin");
+    let bin = node_modules.join(".bin");
     std::fs::create_dir_all(&bin).unwrap();
     let path = bin.join(name);
     std::fs::write(&path, format!("#!/usr/bin/env node\n{script}")).unwrap();
     std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o755)).unwrap();
-    path
 }
 
-/// A fixture case's steps run on the store: `get`, `concat` (of earlier cases), `tocss`,
-/// `postcss`, `js`, `minify`, `fingerprint`. The error is the failing step's.
+/// A fixture case's steps run on the store: `get`, `concat` (of earlier cases), `tocss`, `js`,
+/// `minify`, `fingerprint`. The error is the failing step's.
 pub fn run_steps(
     p: &Project,
     case: &J,
     done: &BTreeMap<String, ResourceId>,
 ) -> Result<ResourceId, (usize, String)> {
-    use ssg_resources::pipes::{JsBuildSpec, PostCssOptions, ToCssOptions};
+    use ssg_resources::pipes::{JsBuildSpec, ToCssOptions};
     use ssg_resources::{CallSite, HashAlgo, Transform};
     let s = &p.store;
     let mut id = None;
@@ -234,10 +232,9 @@ pub fn run_steps(
             "tocss" => {
                 Transform::ToCss(ToCssOptions::from_json(&step["opts"]).map_err(|e| err(&e))?)
             }
-            "postcss" => {
-                Transform::PostCss(PostCssOptions::from_json(&step["opts"]).map_err(|e| err(&e))?)
-            }
-            "js" => Transform::JsBuild(JsBuildSpec::from_json(&step["opts"]).map_err(|e| err(&e))?),
+            "js" => Transform::JsBuild(Box::new(
+                JsBuildSpec::from_json(&step["opts"]).map_err(|e| err(&e))?,
+            )),
             "minify" => Transform::Minify,
             "fingerprint" => Transform::Fingerprint(HashAlgo::Sha256),
             op => panic!("unknown op {op}"),

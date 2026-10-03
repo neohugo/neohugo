@@ -1,4 +1,4 @@
-//! The YAML and TOML writers of `remarshal`: the output of Hugo's encoders (yaml.v2's emitter
+//! The YAML and TOML writers of `remarshal`: the output of Go's encoders (yaml.v2's emitter
 //! and go-toml v2 with indented tables), so a configuration sample reads the same.
 //!
 //! - Scalars: YAML strings are plain when that reads back as the same string, else single-
@@ -35,7 +35,7 @@ fn marked_date(s: &str) -> Option<(&str, bool)> {
         .or_else(|| s.strip_prefix(OFFSET_DATE).map(|d| (d, true)))
 }
 
-/// The data as Hugo's `remarshal` encodes it: integral floats of maps (not of arrays) become
+/// The data as Go's `remarshal` encodes it: integral floats of maps (not of arrays) become
 /// integers (`applyMarshalTypes`); `plain_dates` turns marked dates back into strings (JSON).
 pub(super) fn prepare(v: &Value, plain_dates: bool) -> Value {
     fn walk(v: &Value, in_map: bool, plain_dates: bool) -> Value {

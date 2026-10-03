@@ -1,12 +1,12 @@
 # Developing fugo
 
-fugo is the Cargo workspace at the repository root: an idiomatic Rust rewrite of Hugo's site
-and page model with Tera 2 templates. The plan, binding for every task and review, is
+fugo is the Cargo workspace at the repository root: an idiomatic Rust rewrite of the Go implementation's
+site and page model, with Tera 2 templates. The plan, binding for every task and review, is
 [`docs/rust-port/REWRITE_PLAN.md`](docs/rust-port/REWRITE_PLAN.md); §1.2 "What Rust style means
-here" is the review checklist. Its paths below `rust/` and the binary name `neohugo-rs` predate
+here" is the review checklist. Its paths below `rust/` and the binary name it uses predate
 the move to the root and the drop-in names (HANDOFF §9): read `rust/<path>` as `<path>`
 (`rust/README.md` is this file, `rust/docs/template-api.md` is
-`docs/rust-port/template-api.md`) and `neohugo-rs` as `fugo`; where the plan differs from
+`docs/rust-port/template-api.md`) and its binary name as `fugo`; where the plan differs from
 this file or HANDOFF on paths and names, they win. The current state (crate map, commands,
 gates, deviations, open items) is [`docs/rust-port/HANDOFF.md`](docs/rust-port/HANDOFF.md).
 
@@ -15,17 +15,17 @@ crates, and its byte-exact Go oracles) was deleted in T00. It is recoverable at 
 tagged `go-parity-final` in the local repository (the tag is not on GitHub):
 `git show go-parity-final:crates/<crate>/<path>`. Salvage rules, not code, from it (§6.2).
 
-**The Go implementation** (Hugo's Go tree, `tools/go-oracle`, `tools/dev/oracle.sh` and the
+**The Go implementation** (the Go tree, `tools/go-oracle`, `tools/dev/oracle.sh` and the
 Go workflows) was removed after commit `44529028`. What it generated is frozen:
 `testdata/oracle/`, `testdata/golden/`, `crates/build/tests/it/testsite-go.txtar`,
 `crates/highlight/tests/data/` with `crates/highlight/src/data/chroma-lexers.tsv`,
-`crates/funcs/tests/fixtures/remarshal/go.txt` and `testdata/hugo-docs/data/docs.yaml`, as well as the Go
+`crates/funcs/tests/fixtures/remarshal/go.txt` and `testdata/legacy-docs/data/docs.yaml`, as well as the Go
 outputs the old port recorded at `be02933a`, such as `testdata/corpus/minify/*.tsv`
 (PROVENANCE.md). To regenerate the data of `44529028`, run the old recipe in a worktree of it
 (`git worktree add <dir> 44529028`) and copy the result back: `testdata/golden/README.md`,
 `crates/highlight/README.md`, the docstring of `tools/dev/fixtures2json.py`; `docs.yaml` is
 written by the Go binary's `gen docshelper`.
-Hugo's test data that the tests read is in `testdata/upstream/`, at its Go-tree path. Go-tree
+The Go tree's test data that the tests read is in `testdata/upstream/`, at its Go-tree path. Go-tree
 paths in comments and READMEs (`resources/images/text.go`, `tpl/tplimpl/embedded/templates/`, …)
 name files of that commit: `git show 44529028:<path>`.
 
@@ -50,7 +50,7 @@ testdata/golden/<label>/    the Go build's manifests, structure dumps and images
 testdata/baselines/         the ratchet's baselines (tools/dev/changes/README.md)
 testdata/corpus/            corpora: date formats, Thai strings
 testdata/site-assets/       the images tools/rust-port/i01/sites.py puts into its sites
-testdata/upstream/          Hugo's test data the tests read, at its Go-tree path (fixture ids);
+testdata/upstream/          the Go tree's test data the tests read, at its path (fixture ids);
                             goroot/: Go's image test data the image oracles read
                             old-port/: five more of them, from be02933a
 testdata/COUNTS.json        per fixture: old path, record and value counts at conversion
@@ -60,8 +60,9 @@ tools/dev/              the harness (compare.sh, structdiff.py, manifest.py, sel
                             fixtures2json.py
 tools/rust-port/            i01/sites.py (every test site), patches.json and the site txtars; the
                             docs-live GetRemote cache (its README.md)
-docs/                       Hugo's documentation site, a test site the tests record by hash (keep
-                            it unchanged); docs/rust-port/: the plan, the handoff, template-api.md
+docs/                       fugo's documentation site (tools/docs/build.sh); docs/rust-port/: the
+                            plan, the handoff, template-api.md
+testdata/legacy-docs/       the Go build's documentation site, a test site (frozen)
 .github/workflows/ci.yml    CI and releases (below)
 ```
 
@@ -119,7 +120,7 @@ ICU data in `locale`, `serve`) stay out of lanes A/B until round 8.
 | fixtures | `tools/dev/fixtures2json.py convert <dir> <dir>` after regenerating a Go oracle (in a worktree of `44529028`) |
 | acceptance | `tools/dev/compare.sh <site> [--docs-patches i01\|reduced\|live] [KEEP=1]` (T03) |
 | docs site | `tools/docs/build.sh [-o <dir>] [--serve]`: fugo's documentation, `docs/` (its own Tera theme; no node tools); `cargo test -p ssg-cli docs_site` builds it and fails on any warning (broken links included). The reference data in `docs/data/` is generated: `INSTA_UPDATE=always cargo test -p ssg-testkit contract` (`template_api.json`) and `-p ssg-cli docs_data` (`commands.json`) |
-| Hugo docs | `tools/hugo-docs/build.sh [-o <dir>] [--serve]`: Hugo's documentation (`testdata/hugo-docs` + the Tera overlay `sites/docs`, its own node modules), as neohugo.github.io published it; gate A-D3 compares it with the published site |
+| legacy docs | `tools/legacy-docs/build.sh [-o <dir>] [--serve]`: the Go build's documentation site (`testdata/legacy-docs` + the Tera overlay `sites/docs`, its own node modules), as the Go build's website published it; gate A-D3 compares it with the published site |
 | templates | `fugo templates check -s <site-dir>` (T37) |
 | CI, locally | see "CI and releases" below (workspace-wide: not for the edit–test loop) |
 
@@ -196,9 +197,12 @@ all of them, and its Test job fails when a test prints `SKIPPED`:
 | Tests | Tool | In CI |
 |---|---|---|
 | `ssg-jsbuild`: `jsbuild_synth`, `jsbuild_docs` and the `build::` tests that run scripts (the oracle's and fugo's bundles run side by side, compared by what they do) | `node` on `PATH` | `actions/setup-node`, Node 22 |
-| `ssg-resources`: `babel_fake_tool`, `postcss_oracle_fake_tool`, `post_process_css_chain_fake_postcss`, `tailwind_docs_styles_fake_tool`, `tools_get_hugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
-| `ssg-resources`: `postcss_oracle_real_tool`, `post_process_css_chain_real_postcss`, `tailwind_docs_styles_real_tool`, `babel_real_tool` | `FUGO_POSTCSS_BIN`, `FUGO_TAILWINDCSS_BIN`, `FUGO_BABEL_BIN` (plugins: `FUGO_NODE_MODULES`) | `tools/dev/node.sh`; the variables point into the `node_modules/.bin` it leaves under `tools/dev/` |
-| `fugo`: `gate_a_d2` (`tools/dev/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules (`FUGO_NODE_MODULES`, else `tools/dev/node.sh path`) | the runner's `python3` and `bash`; the rows above |
+| `ssg-resources`: `babel_fake_tool`, `post_process_css_chain_fake_tailwind`, `tailwind_docs_styles_fake_tool`, `tools_get_fugo_environment` | `node` on `PATH` (the fake tools are node scripts) | `actions/setup-node`, Node 22 |
+| `ssg-resources`: `tailwind_docs_styles_real_tool`, `babel_real_tool` | `node` on `PATH`; `.bin/tailwindcss` and `.bin/babel` in the `node_modules` of `tools/dev/node.sh path` (the test binary has no embedded runtime, so the `.bin` entries run with Node.js) | `tools/dev/node.sh` |
+| `fugo`: `gate_a_d2` (`tools/dev/compare.sh … --ref golden`) | `python3`, `bash` and `node` on `PATH`; the node modules of `tools/dev/node.sh`, which compare.sh links into each site and whose Tailwind the binary runs on its embedded runtime | the runner's `python3` and `bash`; the rows above |
+
+`ssg-npm`'s tests and `fugo`'s `npm::` tests need no tool and no network: `ssg_testkit::registry`
+serves their packages on `127.0.0.1`.
 
 `ssg-images`' `sizes_match_the_process_oracle` compares all 12,264 cases, 2,204 of them from
 Go's own image test data in `testdata/upstream/goroot/` and `testdata/upstream/old-port/`
@@ -217,11 +221,8 @@ cargo clippy --workspace --all-targets --locked --offline -- -D warnings
 tools/dev/licence-check.sh
 python3 tools/dev/selftest.py
 python3 tools/rust-port/i01/sites.py patches --check
-N=$(tools/dev/node.sh path)   # once: tools/dev/node.sh
-FUGO_NODE_MODULES=$N \
-FUGO_POSTCSS_BIN=$N/.bin/postcss FUGO_TAILWINDCSS_BIN=$N/.bin/tailwindcss \
-FUGO_BABEL_BIN=$N/.bin/babel \
-  cargo test --workspace --locked --offline --no-fail-fast -- --show-output
+tools/dev/node.sh check       # once: tools/dev/node.sh
+cargo test --workspace --locked --offline --no-fail-fast -- --show-output
 cargo build --release --locked --offline -p ssg-cli --target x86_64-unknown-linux-gnu \
   --target-dir <scratch>/target                  # never the shared target dir
 python3 tools/dev/notices.py x86_64-unknown-linux-gnu <scratch>/THIRD_PARTY_NOTICES.txt
@@ -265,7 +266,7 @@ fields only, with a reviewed `expected_diffs.toml` per crate.
 ## Optional features
 
 `ssg-funcs` compiles two SHOULD template functions only with a feature: `to_math` (`math`,
-KaTeX 0.16.22 with mhchem run in QuickJS-ng through rquickjs, as Hugo runs it;
+KaTeX 0.16.22 with mhchem run in QuickJS-ng through rquickjs, as the Go implementation runs it;
 `crates/funcs/README.md`) and `diagrams_goat` (`goat`, the port of GoAT in `src/pure/goat/`).
 Without it the name is registered as a stub that fails when called. The `fugo` crate (the
 `fugo` binary) turns both on by default (`default = ["goat", "math"]`), so the release build and
@@ -277,6 +278,26 @@ sources with the platform's compiler (`cc`, as libwebp-sys does; rquickjs-sys sh
 the five release targets, so no bindgen or libclang), and about 1.45 MB (2.9 %) of the stripped
 release binary (QuickJS and the 310 KB of KaTeX JavaScript). A test of `ssg-funcs` alone
 builds without them unless `--features goat,math` is given (`tests/it/{math,goat}.rs`).
+
+`ssg-cli` also turns on `npm` by default (`crates/npm/README.md`). `build` and `server` install
+the project's `package.json`, and the Tailwind and Babel pipes run their npm packages on Deno's
+runtime instead of Node.js. Its cost:
+
+- `Cargo.lock` grows from 705 to 1,238 packages: Deno's crates pinned exactly as one release, V8,
+  swc (`deno_ast`), wgpu, rusqlite, aws-lc-rs and their dependencies. The licence check needs
+  two exceptions (`deny.toml`), and `notices.py` prints three standard texts from
+  `THIRD_PARTY/spdx/`.
+- A debug build of the binary grows by about 9 GB of `target/`. The release binary grows from
+  65 MB to 179 MB stripped (macOS arm64; 228 MB unstripped). A cold debug build of the binary takes a few
+  minutes more.
+- V8 comes as a prebuilt static library, which `v8`'s build script downloads from the rusty_v8
+  GitHub releases (about 150 MB per profile and target). A build without the network fails
+  unless `RUSTY_V8_ARCHIVE` names a local copy of `librusty_v8_release_<target>.a.gz`.
+- On macOS, the debug link prints the warning `__eh_frame section too large`, which is harmless.
+
+For an edit–test loop that does not touch npm packages, `cargo test -p ssg-cli
+--no-default-features --features goat,math` builds without the runtime. That binary runs the
+tools from `node_modules/.bin` with Node.js, as before.
 
 ## Feature unification
 

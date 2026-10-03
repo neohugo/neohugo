@@ -1,5 +1,5 @@
 //! Code fences through ssg-markup's `Highlighter` seam: fence options, attributes on the
-//! wrapper, the trailing newline Hugo's code block renderer adds, errors.
+//! wrapper, the trailing newline Go's code block renderer adds, errors.
 
 use std::path::Path;
 use std::sync::Arc;
@@ -53,7 +53,7 @@ fn fence_options_and_attributes() {
         html.contains("<span class=\"line hl\"><span class=\"cl\"><span class=\"nx\">b</span>"),
         "{html}"
     );
-    // Hugo's code block renderer ends the code with a newline: every line keeps its `\n`.
+    // Go's code block renderer ends the code with a newline: every line keeps its `\n`.
     assert!(
         html.contains("2</span>\n</span></span></code></pre></td></tr></table>"),
         "{html}"
@@ -77,7 +77,7 @@ fn fence_line_anchors_are_numbered_per_code_block() {
               ```go {linenos=inline anchorlinenos=true}\nb\n```\n\n\
               ```go {linenos=inline anchorlinenos=true lineanchors=x}\nc\n```\n";
     let html = markdown(&hl, md).expect("render");
-    // Hugo: `lineanchors` defaults to `hl-<ordinal>` for code blocks.
+    // Go: `lineanchors` defaults to `hl-<ordinal>` for code blocks.
     for id in ["hl-0-1", "hl-1-1", "x-1"] {
         assert!(html.contains(&format!("id=\"{id}\"")), "{id}: {html}");
         assert!(html.contains(&format!("href=\"#{id}\"")), "{id}: {html}");

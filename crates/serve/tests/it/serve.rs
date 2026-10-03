@@ -130,7 +130,7 @@ fn serves_the_site() {
     );
     assert_eq!(js.status, 200);
     assert_eq!(js.header("content-type"), Some("text/javascript"));
-    assert!(js.text().contains("LiveReload") && js.text().contains("__hugo_navigate"));
+    assert!(js.text().contains("LiveReload") && js.text().contains("__ssg_navigate"));
 
     let mut lr = LiveReload::connect(addr, "/livereload");
     assert_eq!(lr.next(std::time::Duration::from_millis(200)), None);
@@ -210,7 +210,7 @@ fn static_change_copies_without_a_rebuild() {
     server.shutdown();
 }
 
-/// Hugo's reload rules on what a rebuild changed: a stylesheet alone is reloaded in place, a
+/// Go's reload rules on what a rebuild changed: a stylesheet alone is reloaded in place, a
 /// single other file by its path, several files fully, nothing not at all.
 #[test]
 fn reloads_follow_what_the_build_changed() {
@@ -316,6 +316,36 @@ fn config_change_reloads_the_configuration() {
     server.shutdown();
 }
 
+/// The project's `.env` files are watched like configuration files: a change reloads the
+/// configuration, and the templates read the new values.
+#[test]
+fn env_file_change_reloads() {
+    let dir = site(concat!(
+        "-- config.toml --\n",
+        "baseURL = \"https://example.org/\"\n",
+        "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\"]\n",
+        "-- layouts/home.html --\n",
+        "<html><body>[{{ get_env(name=\"SERVE_ENV_FILE_GREETING\") }}]</body></html>\n",
+        "-- .env --\n",
+        "SERVE_ENV_FILE_GREETING=hello\n",
+    ));
+    let (server, _events) = serve(dir.path(), |_| {});
+    let addr = server.local_addrs()[0];
+    let mut lr = LiveReload::connect(addr, "/livereload");
+    assert!(get(addr, "/", &[]).text().contains("[hello]"));
+    write(&dir.path().join(".env"), "SERVE_ENV_FILE_GREETING=bye\n");
+    assert!(lr.expect().contains(r#""path":"/x.js""#));
+    assert!(get(addr, "/", &[]).text().contains("[bye]"));
+    // The server's environment is `development`: `.env.development` wins over `.env`.
+    write(
+        &dir.path().join(".env.development"),
+        "SERVE_ENV_FILE_GREETING=dev\n",
+    );
+    assert!(lr.expect().contains(r#""path":"/x.js""#));
+    assert!(get(addr, "/", &[]).text().contains("[dev]"));
+    server.shutdown();
+}
+
 /// `--navigateToChanged`: the browsers go to the changed page, on its server's port.
 #[test]
 fn navigate_to_the_changed_page() {
@@ -335,7 +365,7 @@ fn navigate_to_the_changed_page() {
     assert_eq!(
         lr.expect(),
         format!(
-            r#"{{"command":"reload","path":"__hugo_navigate/posts/one/","originalPath":"","liveCSS":true,"liveImg":true, "overrideURL": {}}}"#,
+            r#"{{"command":"reload","path":"__ssg_navigate/posts/one/","originalPath":"","liveCSS":true,"liveImg":true, "overrideURL": {}}}"#,
             addr.port()
         )
     );
@@ -504,13 +534,13 @@ fn a_new_static_directory_is_watched() {
     server.shutdown();
 }
 
-/// A theme's layouts and configuration are watched; a `config.toml` created next to
-/// `config.toml` is a configuration change (and wins).
+/// A theme's layouts and configuration are watched; an edit of the project's `config.toml` is a
+/// configuration change.
 #[test]
 fn theme_and_new_config_files_are_watched() {
     let dir = site(concat!(
         "-- config.toml --\n",
-        "baseURL = \"https://example.org/\"\ntitle = \"Hugo\"\ntheme = \"t\"\n",
+        "baseURL = \"https://example.org/\"\ntitle = \"Site\"\ntheme = \"t\"\n",
         "disableKinds = [\"taxonomy\", \"term\", \"sitemap\", \"rss\", \"robotsTXT\", \"404\"]\n",
         "-- themes/t/config.toml --\n[params]\ncolor = \"red\"\n",
         "-- themes/t/layouts/home.html --\n",
@@ -520,26 +550,26 @@ fn theme_and_new_config_files_are_watched() {
     let (server, _events) = serve(dir.path(), |_| {});
     let addr = server.local_addrs()[0];
     let mut lr = LiveReload::connect(addr, "/livereload");
-    assert!(get(addr, "/", &[]).text().contains("Hugo red"));
+    assert!(get(addr, "/", &[]).text().contains("Site red"));
 
     write(
         &dir.path().join("themes/t/layouts/home.html"),
         "<html><head></head><body>theme {{ site.title }} {{ site.params.color }}</body></html>\n",
     );
     assert!(lr.expect().contains(r#""path":"/index.html""#));
-    assert!(get(addr, "/", &[]).text().contains("theme Hugo red"));
+    assert!(get(addr, "/", &[]).text().contains("theme Site red"));
 
     write(
         &dir.path().join("themes/t/config.toml"),
         "[params]\ncolor = \"blue\"\n",
     );
     assert!(lr.expect().contains(r#""path":"/x.js""#));
-    assert!(get(addr, "/", &[]).text().contains("theme Hugo blue"));
+    assert!(get(addr, "/", &[]).text().contains("theme Site blue"));
 
     let text = fs::read_to_string(dir.path().join("config.toml")).expect("config.toml");
     write(
         &dir.path().join("config.toml"),
-        &text.replace("title = \"Hugo\"", "title = \"Neo\""),
+        &text.replace("title = \"Site\"", "title = \"Neo\""),
     );
     assert!(lr.expect().contains(r#""path":"/x.js""#));
     assert!(get(addr, "/", &[]).text().contains("theme Neo blue"));

@@ -1,8 +1,8 @@
 //! The Go `i18n` oracle (`oracle/i18n/translate`): 61 sites × their calls.
 //!
-//! Each site's i18n files are selected like Hugo does (theme files first, dot files and
+//! Each site's i18n files are selected like Go does (theme files first, dot files and
 //! `ignoreFiles` skipped), loaded with [`TranslationsBuilder`], and every call is rendered with
-//! [`Translations::translate`] (an error renders as nothing, as in Hugo). Not compared: calls
+//! [`Translations::translate`] (an error renders as nothing, as in Go). Not compared: calls
 //! that crash Go, Go-only argument types, and messages with syntax the evaluator rejects (they
 //! are load errors, checked separately). The rest must agree at ≥ 99%, and every remaining
 //! difference must be listed in `expected_diffs.toml`.

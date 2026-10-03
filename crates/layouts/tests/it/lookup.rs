@@ -1,4 +1,4 @@
-//! Hugo's lookups replayed against the store built from the normalised fixtures (see
+//! Go's lookups replayed against the store built from the normalised fixtures (see
 //! [`crate::oracle`]): every layout, render hook, shortcode and partial lookup Go made while
 //! building the oracle sites, plus Go's grid lookups (every kind × format × front-matter layout
 //! × language). The winner must be the synthesised file of Go's winning entry; for layouts
@@ -271,7 +271,7 @@ fn lookup_themes() {
     check_named("themes");
 }
 
-/// The layout trees of Hugo's `tplimpl` integration tests.
+/// The layout trees of the Go implementation's `tplimpl` integration tests.
 #[test]
 fn lookup_integration() {
     let stores = oracle::integration("store");

@@ -4,10 +4,12 @@ description: Build Tailwind CSS 4 with the tailwind filter, using the classes yo
 weight: 70
 ---
 
-`tailwind` runs the [Tailwind CSS](https://tailwindcss.com/) 4 CLI on a CSS resource:
+`tailwind` runs the [Tailwind CSS](https://tailwindcss.com/) 4 CLI on a CSS resource. Add it to
+`package.json`; fugo installs it when it builds and runs it without Node.js (see
+[npm packages](/asset-pipelines/npm-packages/)):
 
-```sh
-npm install -D tailwindcss @tailwindcss/cli
+```json {title="package.json"}
+{ "devDependencies": { "tailwindcss": "^4.1.0", "@tailwindcss/cli": "^4.1.0" } }
 ```
 
 {{< code-toggle file=config >}}
@@ -55,6 +57,10 @@ so it holds exactly the classes the site uses:
 
 ## Finding the tool
 
-As for [PostCSS](/asset-pipelines/postcss/#finding-the-tool): `node_modules/.bin/tailwindcss`,
-`FUGO_NODE_MODULES`, `PATH`, or `FUGO_TAILWINDCSS_BIN`. The standalone Tailwind binary works
-too.
+fugo runs the `@tailwindcss/cli` package from the project's `node_modules` with its built-in
+JavaScript runtime. To use another version, change it in `package.json`. A `tailwindcss` program
+on your `PATH`, such as the standalone Tailwind binary, is not used.
+
+Plugins (`@plugin "@tailwindcss/typography"`) load from the project's `node_modules`. Tailwind
+runs in the project directory, with the environment that `[security.exec] osEnv` allows. Its
+name must match `[security.exec] allow`, which it does by default.

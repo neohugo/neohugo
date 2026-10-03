@@ -375,8 +375,10 @@ def convert_tree(src, dst):
 # on the source side and to testdata on the destination side. A directory maps recursively.
 
 T00_MAP = [
-    # oracle/<area>: the engine-neutral Go-oracle fixtures (area = old crate name without "nh-")
-    *[(f"nh-hugolib/tests/fixtures/{d}", f"oracle/hugolib/{d}")
+    # oracle/<area>: the engine-neutral Go-oracle fixtures (area = old crate name without "nh-";
+    # the old site-build crate's, named after its Go package, went to oracle/sitebuild). The
+    # source paths are the directory names of the old checkout and stay as it named them.
+    *[(f"nh-hugolib/tests/fixtures/{d}", f"oracle/sitebuild/{d}")
       for d in ("capture", "assemble", "content", "site", "build", "data", "funcnames", "hookrec")],
     ("nh-page/tests/fixtures", "oracle/page"),
     *[(f"nh-tplimpl/tests/fixtures/{d}", f"oracle/tplimpl/{d}") for d in ("lookup", "store", "probe")],

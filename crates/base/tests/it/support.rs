@@ -48,7 +48,7 @@ impl Tally {
     }
 
     /// Records a case that cannot be expressed through the API (a Go string that is not UTF-8,
-    /// a configuration Hugo never uses, an argument outside the parameter type).
+    /// a configuration the Go implementation never uses, an argument outside the parameter type).
     pub fn skip(&mut self, what: impl FnOnce() -> String) {
         self.skipped.push(what());
     }

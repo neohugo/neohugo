@@ -149,9 +149,9 @@ impl Served {
     }
 }
 
-/// `Content-Type` by file suffix: the site's media types (a later type in type order wins a
-/// suffix, `text/*` with `charset=utf-8`), as Hugo registers them with Go's `mime` package,
-/// then the common types of `mime_guess`.
+/// `Content-Type` by file suffix: the site's media types (a later type in type order wins a suffix,
+/// `text/*` with `charset=utf-8`), as the Go implementation registers them with Go's `mime`
+/// package, then the common types of `mime_guess`.
 #[derive(Debug, Default)]
 pub(crate) struct MediaTypes(HashMap<String, String>);
 

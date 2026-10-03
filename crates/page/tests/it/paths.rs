@@ -1,4 +1,4 @@
-//! Oracle: target paths, links and permalinks of every (page, format) descriptor Hugo's builds
+//! Oracle: target paths, links and permalinks of every (page, format) descriptor Go's builds
 //! of the reference sites created, plus adversarial variants (`oracle/page/paths/*`).
 
 use serde_json::{Value as J, json};
@@ -9,7 +9,7 @@ use ssg_vfs::{Component, FormatSpec, Parsed, PathParser, PathParserSpec};
 
 use crate::support::{Tally, family, fixture, idx, oracle_paths, output_format, s, site_urls};
 
-/// `""` for the root and for "no resources" (Hugo writes both as the empty string).
+/// `""` for the root and for "no resources" (Go writes both as the empty string).
 fn dir_str(p: &str) -> &str {
     if p == "/" { "" } else { p }
 }
@@ -101,7 +101,7 @@ fn classify(c: &J, want: &J, got: &J) -> Option<&'static str> {
 }
 
 #[test]
-fn target_paths_match_hugo() {
+fn target_paths_match_go() {
     let mut t = Tally::default();
     let mut from_builds = 0;
     for file in family("paths", &[]) {
@@ -130,7 +130,7 @@ fn target_paths_match_hugo() {
             let same = if want.get("panic").is_some() {
                 got.get("panic").is_some()
             } else {
-                // Output paths are clean: Hugo's `/th/section/` resource directory (a pattern
+                // Output paths are clean: Go's `/th/section/` resource directory (a pattern
                 // that expands to an empty last element) is `/th/section`.
                 let mut want = want.clone();
                 if let Some(J::String(d)) = want.pointer_mut("/ok/subResourceBaseTarget")
@@ -194,10 +194,10 @@ fn parser(fx: &J) -> PathParser {
     })
 }
 
-/// `SourcePath::from_path_info` over the path parser gives the directory, name and shape Hugo
+/// `SourcePath::from_path_info` over the path parser gives the directory, name and shape Go
 /// derived from the same content paths.
 #[test]
-fn source_paths_match_hugo() {
+fn source_paths_match_go() {
     let mut t = Tally::default();
     for file in family("paths", &[]) {
         let fx = fixture(&format!("paths/{file}"));
@@ -219,7 +219,7 @@ fn source_paths_match_hugo() {
             };
             let got = SourcePath::from_path_info(&pi, case);
             let want = &oracle.source;
-            // Hugo's container directory of a branch bundle is not used by any URL.
+            // Go's container directory of a branch bundle is not used by any URL.
             let dir_ok = oracle.is_branch || got.dir == want.dir;
             t.check(
                 dir_ok && got.name == want.name && got.shape == want.shape,

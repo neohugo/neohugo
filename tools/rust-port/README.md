@@ -9,11 +9,11 @@ Site inputs for fugo's acceptance harness. The comparison itself lives in `tools
   `crates/cli/tests/it/` call it, as `tools/dev/oracle.sh` (at `44529028`) did for the golden data.
 - `i01/testsite.txtar`, `i01/errors.txtar`: inputs of the testsite and the error-text site
   (`sites.py make`).
-- `testdata/hugo_cache/docs-live/`: the GetRemote responses of the published docs build
+- `testdata/getremote-cache/docs-live/`: the GetRemote responses of the published docs build
   (its README.md lists them); `sites.py cache docs-live` serves them, and `sites.py cache mini`
   serves the mini site's entry from `testdata/oracle/commands/e2e/e2e.json.gz`.
 
-**Golden data.** The reference of every comparison is what the Go neohugo built, frozen since
+**Golden data.** The reference of every comparison is what the Go version built, frozen since
 the Go implementation was removed after commit `44529028`:
 
 - `testdata/golden/`: the manifests and structure dumps of the testsite and the docs variants,

@@ -1,5 +1,5 @@
 // The goldmark-structure oracle of ssg-markup (crate README, "Tests";
-// tests/it/acceptance/compat.rs): Hugo's goldmark converter as the Go build had it at commit
+// tests/it/acceptance/compat.rs): the Go implementation's goldmark converter as the Go build had it at commit
 // 44529028, which is what the published documentation site was built with.
 //
 // Run it in the Go tree of this repository at that commit, next to the markup oracles whose
@@ -15,12 +15,12 @@
 //
 // Input: the JSON array of compat.json, [{"name", "markdown", "html"}]; "html" is ignored.
 // Output: the same array with "html" set to the HTML of "markdown" rendered with the markup
-// configuration "default" of mdoracle.Configs (Hugo's defaults) and the replica render hooks
+// configuration "default" of mdoracle.Configs (the Go defaults) and the replica render hooks
 // of mdoracle.ReplicaRenderers (the oracles' table and code block renderers). In "markdown",
-// "<<WRAP:text:WRAP>>" stands for an include: it is replaced by hugocontext.Wrap(text) (the
+// "<<WRAP:text:WRAP>>" stands for an include: it is replaced by the Go context wrapper (Wrap(text); the
 // context markers that .RenderShortcodes puts around an included page inside goldmark, page
 // id 7) with every further line indented like the text before it when that is only
-// whitespace, as hugolib indents the output of an indented shortcode call.
+// whitespace, as the Go site builder indents the output of an indented shortcode call.
 package main
 
 import (

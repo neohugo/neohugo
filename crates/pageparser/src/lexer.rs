@@ -4,9 +4,10 @@
 //! including bytes that are not UTF-8 (they decode as U+FFFD, one byte each). Tokens are
 //! kinds plus byte ranges; nothing is copied.
 //!
-//! Hugo's lexer is the behavioural reference: the token boundaries (including the split of a
-//! text run into text and trailing indentation, and the three text pieces of an escaped
-//! shortcode `{{</* x */>}}`) are checked against its 135,326 items in `tests/it/lexer.rs`.
+//! The Go implementation's lexer is the behavioural reference: the token boundaries (including
+//! the split of a text run into text and trailing indentation, and the three text pieces of an
+//! escaped shortcode `{{</* x */>}}`) are checked against its 135,326 items in
+//! `tests/it/lexer.rs`.
 
 use std::collections::HashSet;
 use std::fmt;
@@ -130,7 +131,7 @@ pub struct LexError {
 
 /// The tokens of a source, and the error lexing stopped at. The tokens before the error are
 /// kept; after an [`LexErrorKind::InlineNesting`] error the rest of the source follows as a
-/// text token (Hugo's lexer does the same), so the error belongs before the first token that
+/// text token (the Go lexer does the same), so the error belongs before the first token that
 /// does not end before it.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Lexed {
@@ -236,7 +237,7 @@ struct Lexer<'s> {
     tokens: Vec<Token>,
     /// The divider still to look for.
     divider: Option<&'static [u8]>,
-    // Shortcode state, carried across tags as Hugo does.
+    // Shortcode state, carried across tags as Go does.
     delim: Delim,
     /// Inside an inline shortcode (from its name until its closing tag).
     inline: bool,
@@ -487,7 +488,7 @@ impl<'s> Lexer<'s> {
             if self.at(Delim::Html.left()) || self.at(Delim::Markdown.left()) {
                 if let Err(e) = self.shortcode() {
                     if e.kind == LexErrorKind::InlineNesting {
-                        // Hugo's lexer reads the rest of the source as text after this error.
+                        // The Go lexer reads the rest of the source as text after this error.
                         self.pos = self.src.len();
                         if self.pos > self.start {
                             self.emit_text();

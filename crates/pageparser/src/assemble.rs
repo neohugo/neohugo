@@ -5,7 +5,7 @@ use std::ops::Range;
 use crate::lexer::{LexError, lex};
 use crate::token::{Delim, Scalar, Token, TokenKind};
 
-/// Whether a shortcode's template uses its inner content. Hugo's parse depends on it: a
+/// Whether a shortcode's template uses its inner content. The Go parser depends on it: a
 /// shortcode that uses `inner` collects everything up to its closing tag (and must be closed or
 /// self-closed); one that does not ends at the `>}}` of its opening tag and must not be closed.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -443,7 +443,7 @@ impl<'a, 't> Assembler<'a, 't> {
                     ordinal += 1;
                     inner.push(Segment::Shortcode(nested));
                 }
-                // Hugo drops a divider inside inner content.
+                // Go drops a divider inside inner content.
                 TokenKind::SummaryDivider
                 | TokenKind::ByteOrderMark
                 | TokenKind::FrontMatter(_) => {

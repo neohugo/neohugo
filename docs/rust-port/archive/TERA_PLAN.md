@@ -1,4 +1,4 @@
-# Tera templates on the Hugo page model
+# Tera templates on the Go implementation's page model
 
 > **Superseded.** The current plan is [`REWRITE_PLAN.md`](../REWRITE_PLAN.md) (full idiomatic-Rust
 > rewrite in `rust/`, Tera 2 templates). This file was `crates/TERA_PLAN.md`; T00 moved it here
@@ -9,14 +9,14 @@ Status: superseded by `docs/rust-port/REWRITE_PLAN.md` (full idiomatic-Rust rewr
 
 ## 1. Decision
 
-neohugo keeps Hugo's site model and page generation, and renders layouts with
-[Tera](https://keats.github.io/tera/) (Jinja2-style, the engine Zola uses) instead of Go's
-`text/template` + `html/template`.
+The Go version keeps the Go implementation's site model and page generation, and renders
+layouts with [Tera](https://keats.github.io/tera/) (Jinja2-style, the engine Zola uses) instead
+of Go's `text/template` + `html/template`.
 
-- **Stays Hugo:** content tree, bundles, page kinds, front matter, cascade, permalinks, output
-  formats, pagination, aliases, menus, taxonomies, multilingual, i18n bundles, Hugo Pipes,
-  image processing, goldmark rendering, the `layouts/` directory structure and Hugo's layout
-  lookup order (`TemplateQuery` / `lookup_pages_layout` in nh-tplimpl).
+- **Stays as in Go:** content tree, bundles, page kinds, front matter, cascade, permalinks, output
+  formats, pagination, aliases, menus, taxonomies, multilingual, i18n bundles, asset pipes,
+  image processing, goldmark rendering, the `layouts/` directory structure and the Go
+  implementation's layout lookup order (`TemplateQuery` / `lookup_pages_layout` in nh-tplimpl).
 - **Changes:** the template language, what a template can see (plain data plus functions,
   as in Zola, instead of Go objects with methods) and escaping (Tera's single HTML escaper
   instead of Go's contextual escaper).
@@ -28,33 +28,33 @@ handed to every template without copying. It also has typed components, which fi
 ## 2. What the switch touches
 
 Only five nh-* crates import `gotemplate` (nh-tpl, nh-tplimpl, nh-page, nh-markup, nh-i18n).
-Everything nh-hugolib renders itself (pages, pagers, aliases, render hooks, shortcodes) goes
-through one seam, `nh_hugolib::template_exec::execute` → `TemplateStore::execute_with_context`.
+Everything the site-build crate renders itself (pages, pagers, aliases, render hooks, shortcodes)
+goes through one seam, its `template_exec::execute` → `TemplateStore::execute_with_context`.
 
 | crate | change |
 |---|---|
 | **nh-tera** (new) | Tera instance per site, template loading, the function/filter/test registry, `Value` builders |
 | nh-tplimpl | keep the store, lookup, descriptors and the embedded-template list; parse with Tera; Tera versions of the embedded templates |
 | nh-tpl | engine-neutral `Template` / `TplContext` (drop the gotemplate types from the public API) |
-| nh-hugolib | build the page/site context values; render content before layouts (§4.3) |
+| the site-build crate | build the page/site context values; render content before layouts (§4.3) |
 | nh-tplfuncs | reused as the implementation behind Tera functions and filters; the Go-reflection glue goes |
 | nh-markup, nh-i18n, nh-page | replace their gotemplate imports with nh-tera types |
 | gotemplate, go-value in templates | kept as the `templateEngine = "go"` path until §7 phase 6, then removed |
 
 ## 3. Layout files
 
-The directory structure and lookup order stay Hugo's, including the new-style layout names
+The directory structure and lookup order stay the Go implementation's, including the new-style layout names
 the in-repo `docs/` site already uses (`_partials/`, `_shortcodes/`, `_markup/`).
 
-| Hugo | Tera |
+| Go | Tera |
 |---|---|
-| `baseof.html` + `{{ define "main" }}` | `{% extends "baseof.html" %}` + `{% block main %}`. The store resolves the name `baseof.html` with Hugo's baseof lookup for the page being rendered, so section/type-specific baseof files keep working |
+| `baseof.html` + `{{ define "main" }}` | `{% extends "baseof.html" %}` + `{% block main %}`. The store resolves the name `baseof.html` with the Go implementation's baseof lookup for the page being rendered, so section/type-specific baseof files keep working |
 | `{{ block "x" . }}default{{ end }}` | `{% block x %}default{% endblock %}` |
 | `{{ partial "x.html" . }}` | `{% include "_partials/x.html" %}` (shares the context), or a macro/component when the partial takes arguments (`{{ partial "x" (dict ...) }}`) |
 | `{{ partialCached ... }}` | `{% include %}`; caching becomes an engine concern, not a template feature |
 | `{{ template "_internal/opengraph.html" . }}` | `{% include "_internal/opengraph.html" %}` (embedded, rewritten in Tera) |
 | shortcode `{{ .Get 0 }}`, `.Inner`, `.Page` | `_shortcodes/name.html` rendered with `args` (positional), `params` (named), `inner`, `page`, `site`, `name`, `ordinal`, `parent` |
-| render hooks `_markup/render-link.html` | same file names; context `destination`, `text`, `title`, `plain_text`, `page`, `ordinal`, `attributes` (per hook type, as Hugo's hook context) |
+| render hooks `_markup/render-link.html` | same file names; context `destination`, `text`, `title`, `plain_text`, `page`, `ordinal`, `attributes` (per hook type, as the Go implementation's hook context) |
 | output formats (`index.xml`, `list.json`, …) | same lookup; the file extension picks autoescape (`.html`, `.xml` on; `.json`, `.txt`, `.js` off) |
 
 Mixing engines inside one site is not supported: a site is either all Go templates or all
@@ -69,7 +69,7 @@ Tera templates (`templateEngine` in the site config, default `tera` after phase 
 | `page` | the page being rendered (§4.2) |
 | `site` | `title`, `base_url`, `language` (`lang`, `name`, `direction`, `weight`), `params`, `data`, `menus`, `taxonomies`, `home`, `pages`, `regular_pages`, `sections`, `languages`, `copyright`, `last_mod`, `config` (the exposed subset) |
 | `paginator` | on paginated list pages: `pages`, `page_number`, `total_pages`, `total_items`, `first`, `last`, `prev`, `next`, `has_prev`, `has_next`, `pagers` |
-| `neohugo` | `version`, `environment`, `is_production`, `is_development`, `generator` |
+| the project-named object (today's `build`) | `version`, `environment`, `is_production`, `is_development`, `generator` |
 | `output_format` | `name`, `media_type`, `rel`, `permalink` of the output being rendered |
 
 `section`, `taxonomy` and `term` are aliases of `page` on those kinds, as in Zola.
@@ -99,8 +99,8 @@ Go-style method calls that take arguments become functions or filters:
 
 ### 4.3 Render order
 
-Go Hugo renders content lazily, on the first `.Content` call from a template. With plain data,
-nh-hugolib renders every page's content (markdown, shortcodes, render hooks, summary, TOC)
+The Go implementation renders content lazily, on the first `.Content` call from a template. With
+plain data, the site-build crate renders every page's content (markdown, shortcodes, render hooks, summary, TOC)
 **before** any layout runs, then builds the page values, then renders layouts. Shortcodes and
 hooks only see page data built from front matter and content-independent fields; a
 shortcode that reads another page's `content` is an error, as in Zola.
@@ -115,19 +115,19 @@ Registered by nh-tera, implemented on top of nh-tplfuncs / nh-resources / nh-i18
 - **URLs:** filters `abs_url`, `rel_url`, `abs_lang_url`, `rel_lang_url`, `url_parse`,
   functions `ref(path)`, `rel_ref(path)`, `url_join(parts)`.
 - **Text/content:** filters `markdownify`, `plainify`, `emojify`, `humanize`, `truncate`
-  (Hugo's HTML-aware version), `safe_html`/`safe_css`/`safe_js`/`safe_url` (all = `safe`),
+  (the Go implementation's HTML-aware version), `safe_html`/`safe_css`/`safe_js`/`safe_url` (all = `safe`),
   `jsonify`, `unmarshal`, `highlight(lang, options?)`, `to_math`, `html_escape`,
   `html_unescape`, `urlize`, `anchorize`, `trim`, `title_case`, `pluralize`, `singularize`.
 - **i18n:** function `trans(key, count?, data?)` (alias `i18n`), filter `lang_format_number`,
   `lang_format_date`.
 - **Collections:** Tera's built-ins (`sort`, `group_by`, `filter`, `map`, `first`, `last`,
-  `slice`, `length`, `reverse`, `unique`, `concat`) plus Hugo's `where` with operators,
+  `slice`, `length`, `reverse`, `unique`, `concat`) plus the Go implementation's `where` with operators,
   `sort_by(key, order)`, `after`, `shuffle`, `union`, `intersect`, `complement`, `seq`, `dict`.
 - **Resources pipeline:** filters `minify`, `fingerprint(algo?)`, `to_css(options?)`
   (Sass), `postcss(options?)`, `js_build(options?)`, `resource_concat(name)`,
   `execute_as_template(target, data)`, `resize`, `fill`, `fit`, `crop`, `image_filter(...)`;
   each returns a resource map whose `permalink` publishes the file on use.
-- **Dates/format:** Tera's `date` plus Hugo's `format(layout)` with Go layouts (kept, so
+- **Dates/format:** Tera's `date` plus the Go implementation's `format(layout)` with Go layouts (kept, so
   front matter and config date layouts keep working), `time(value)`, `now()`.
 - **Tests:** `is_page`, `is_section`, `in(list)`, `has_prefix`, `has_suffix`.
 
@@ -137,7 +137,7 @@ The Go build stays the oracle for everything that is not layout output:
 
 1. Same output file set (paths) as the Go build of the same site with equivalent layouts.
 2. Byte-identical files that templates do not produce: static files, processed resources
-   (CSS, JS, images), `hugo_stats.json`, rendered markdown fragments (`page.content`) and
+   (CSS, JS, images), the stats file, rendered markdown fragments (`page.content`) and
    permalinks/URLs.
 3. For layout output: for the in-repo test sites whose layouts are converted 1:1 (§7 phase 5),
    the HTML DOM after whitespace normalisation equals the Go build's, except for listed
@@ -149,12 +149,12 @@ The Go build stays the oracle for everything that is not layout output:
 
 1. **Engine seam.** Engine-neutral `Template`/`TplContext` in nh-tpl; `templateEngine`
    config; nh-tera skeleton; the Go path unchanged and still passing I01.
-2. **Context.** Page/site/paginator value builders in nh-hugolib; render-order change
+2. **Context.** Page/site/paginator value builders in the site-build crate; render-order change
    (content before layouts) behind the Tera engine only.
 3. **Functions and filters** (§5), each with unit tests against the nh-tplfuncs result.
 4. **Shortcodes, render hooks, embedded templates** (RSS, sitemap, robots, alias,
    opengraph, twitter cards, schema, pagination, google analytics) in Tera.
-5. **Convert the test sites:** this repo's `docs/layouts` (76 files), `hugolib/testsite`,
+5. **Convert the test sites:** this repo's `docs/layouts` (76 files), `testsite`,
    the I01 small sites; compare per §6.
 6. **The private site:** convert its layouts in its repository (needs that repo attached
    to the session), build with Tera, compare per §6; then default `templateEngine` to `tera`.

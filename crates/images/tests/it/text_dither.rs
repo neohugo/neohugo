@@ -301,7 +301,7 @@ fn dither_options_change_the_result_deterministically() {
     assert_eq!(
         filter(json!({"op": "dither"})),
         ImageFilter::Dither(DitherSpec::default()),
-        "Hugo's defaults"
+        "Go's defaults"
     );
     let linear = pixels(DitherSpec {
         serpentine: false,
@@ -378,25 +378,25 @@ fn names_follow_the_filter_options() {
         assert_eq!(ext, "jpg", "{n}");
         hex.to_owned()
     };
-    let text = name(json!({"op": "text", "text": "Hugo"}));
+    let text = name(json!({"op": "text", "text": "Fugo"}));
     digits(&text);
     // Equivalent maps plan the same filter: the same name.
     assert_eq!(
         text,
-        name(json!({"op": "text", "text": "Hugo", "size": 20, "x": "10", "COLOR": "#ffffff"}))
+        name(json!({"op": "text", "text": "Fugo", "size": 20, "x": "10", "COLOR": "#ffffff"}))
     );
     let mut names = BTreeSet::new();
     for f in [
-        json!({"op": "text", "text": "Hugo"}),
-        json!({"op": "text", "text": "Hugo!"}),
-        json!({"op": "text", "text": "Hugo", "size": 21}),
-        json!({"op": "text", "text": "Hugo", "x": 11}),
-        json!({"op": "text", "text": "Hugo", "y": 11}),
-        json!({"op": "text", "text": "Hugo", "color": "#000000"}),
-        json!({"op": "text", "text": "Hugo", "alignx": "center"}),
-        json!({"op": "text", "text": "Hugo", "aligny": "bottom"}),
-        json!({"op": "text", "text": "Hugo", "linespacing": 3}),
-        json!({"op": "text", "text": "Hugo", "font": mulish()}),
+        json!({"op": "text", "text": "Fugo"}),
+        json!({"op": "text", "text": "Fugo!"}),
+        json!({"op": "text", "text": "Fugo", "size": 21}),
+        json!({"op": "text", "text": "Fugo", "x": 11}),
+        json!({"op": "text", "text": "Fugo", "y": 11}),
+        json!({"op": "text", "text": "Fugo", "color": "#000000"}),
+        json!({"op": "text", "text": "Fugo", "alignx": "center"}),
+        json!({"op": "text", "text": "Fugo", "aligny": "bottom"}),
+        json!({"op": "text", "text": "Fugo", "linespacing": 3}),
+        json!({"op": "text", "text": "Fugo", "font": mulish()}),
         json!({"op": "dither"}),
         json!({"op": "dither", "method": "stucki"}),
         json!({"op": "dither", "serpentine": false}),

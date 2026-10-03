@@ -273,7 +273,7 @@ fn missing_forms_are_errors() {
 }
 
 #[test]
-fn plural_counts_follow_hugo() {
+fn plural_counts_follow_go() {
     let c = |v: Value| PluralCount::from_value(&v).map(|c| c.to_string());
     assert_eq!(c(Value::Int(3)), Some("3".into()));
     assert_eq!(c(Value::Float(1.0)), Some("1.0".into()));

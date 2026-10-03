@@ -207,7 +207,7 @@ impl Builder {
     }
 }
 
-/// Decides the output file, link and resource directory of a page in one format (Hugo's
+/// Decides the output file, link and resource directory of a page in one format (Go's
 /// `CreateTargetPaths` semantics: pretty URLs `/a/index.html` → `/a/`, ugly URLs `/a.html`,
 /// language prefixes, front matter `url` kept verbatim, every other element sanitised).
 ///

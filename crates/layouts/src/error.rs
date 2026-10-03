@@ -68,7 +68,7 @@ impl fmt::Display for IssueKind {
         match self {
             Self::LegacyName { rename } => write!(
                 f,
-                "legacy layout name; rename it to {rename} (Hugo v0.146 layout names are required; \
+                "legacy layout name; rename it to {rename} (v0.146 layout names are required; \
                  `{} templates check` lists every legacy name)",
                 ssg_base::APP_NAME
             ),
@@ -78,7 +78,7 @@ impl fmt::Display for IssueKind {
                 "Go template syntax `{marker}`: layouts must be Tera templates; run \
                  `{} templates check` and convert the file \
                  (https://github.com/getfugo/fugo/blob/main/docs/rust-port/template-api.md \
-                 gives Hugo's functions with their Tera names)",
+                 gives the Go template functions with their Tera names)",
                 ssg_base::APP_NAME
             ),
         }

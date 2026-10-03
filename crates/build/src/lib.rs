@@ -74,7 +74,7 @@ pub struct BuildRequest {
     /// The publish directory (`--destination`); relative to `source`.
     pub destination: Option<PathBuf>,
     /// `--config` files, relative to `source`, the first with the highest precedence (empty:
-    /// the first of `config.*`, `hugo.*`, `config.*`).
+    /// the first `config.*`).
     pub config_files: Vec<PathBuf>,
     pub cli: CliOverrides,
     /// The build's "now" (`--clock`; `None`: the system clock).
@@ -94,11 +94,24 @@ pub struct BuildRequest {
     pub live_reload: Option<LiveReload>,
     /// The `server` command: `build.is_server` is true.
     pub server: bool,
+    /// Work before the build reads the project's files, when this build loads the
+    /// configuration (`config` is `None`; the `server` command prepares when it loads it).
+    pub prepare: Option<Arc<dyn Prepare>>,
+}
+
+/// Work before a build reads the project's files: the command line installs the project's
+/// npm packages here, so that mounts of `node_modules` find them.
+pub trait Prepare: Send + Sync + std::fmt::Debug {
+    /// Prepares the project of `cfg`.
+    ///
+    /// # Errors
+    /// What failed, as the build's error.
+    fn prepare(&self, cfg: &Config) -> Result<(), String>;
 }
 
 /// The LiveReload script of the `server` command (T71): every HTML page except alias
 /// redirects loads `livereload.js` from its language's base URL, which the script also
-/// connects to (Hugo's `livereloadinject`).
+/// connects to (Go's `livereloadinject`).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct LiveReload {
     /// The port the script connects to instead of the base URL's (`--liveReloadPort`, e.g.
@@ -137,6 +150,9 @@ pub enum BuildError {
     /// The render pool could not be started.
     #[error("render pool: {0}")]
     Pool(String),
+    /// [`BuildRequest::prepare`] failed.
+    #[error("{0}")]
+    Prepare(String),
     #[error("{} errors", .0.len())]
     Diagnostics(Vec<Diagnostic>),
 }
@@ -176,15 +192,12 @@ pub struct BuildReport {
     pub model: Option<Arc<Model>>,
 }
 
-/// The process environment the configuration reads: `FUGO_*` overrides, and `HOME`,
+/// The process environment the configuration reads ([`ssg_config::env::is_read`]): `HOME`,
 /// `XDG_CACHE_HOME`, `TMPDIR` and `USER` for the default cache directory.
 #[must_use]
 pub fn process_env() -> Vec<(String, String)> {
     std::env::vars()
-        .filter(|(k, _)| {
-            k.starts_with(ssg_config::env::PREFIX)
-                || matches!(k.as_str(), "HOME" | "XDG_CACHE_HOME" | "TMPDIR" | "USER")
-        })
+        .filter(|(k, _)| ssg_config::env::is_read(k))
         .collect()
 }
 
@@ -261,12 +274,16 @@ pub fn build(r: BuildRequest) -> Result<BuildReport, BuildError> {
             if let Some(d) = &r.destination {
                 cli.destination = Some(d.clone());
             }
-            Arc::new(ssg_config::load(&LoadOptions {
+            let cfg = ssg_config::load(&LoadOptions {
                 source: r.source.clone(),
                 config_files: r.config_files,
                 cli,
                 env: process_env(),
-            })?)
+            })?;
+            if let Some(p) = &r.prepare {
+                p.prepare(&cfg).map_err(BuildError::Prepare)?;
+            }
+            Arc::new(cfg)
         }
     };
     let vfs = Arc::new(Vfs::new(&cfg)?);

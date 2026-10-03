@@ -33,3 +33,7 @@ one build.
 
 Commit `resources/_gen` (or keep it in your CI cache) so that a fresh checkout does not process
 every image again. Delete it to start over.
+
+The [npm packages](/asset-pipelines/npm-packages/) that fugo downloads are kept in
+`:cacheDir/packages`. Every project shares them, and they have no `maxAge`. Delete the
+directory to download them again.

@@ -285,14 +285,14 @@ fn mounts_below_a_component_and_single_files() {
         ("assets/main.css", ""),
         ("node_modules/lib/dist/lib.js", ""),
         ("package.json", "{}"),
-        ("postcss.config.js", ""),
+        ("tailwind.config.js", ""),
     ]);
     let vfs = p.vfs();
     assert_eq!(
         p.walk(&vfs, Component::Assets),
         pairs(&[
             ("_jsconfig/package.json", "package.json"),
-            ("_jsconfig/postcss.config.js", "postcss.config.js"),
+            ("_jsconfig/tailwind.config.js", "tailwind.config.js"),
             ("main.css", "assets/main.css"),
             ("vendor/lib/dist/lib.js", "node_modules/lib/dist/lib.js"),
         ])
@@ -355,7 +355,7 @@ fn ignore_rules_per_component() {
     assert!(vfs.open(Component::Content, "a.md").is_some());
 }
 
-/// On macOS file names are NFC-normalised, as Hugo's are on darwin; the file is still read by
+/// On macOS file names are NFC-normalised, as Go's are on darwin; the file is still read by
 /// the name it has on disk.
 #[test]
 fn file_names_are_nfc_on_macos() {
@@ -492,7 +492,7 @@ fn include_and_exclude_files() {
         .map(|(r, _)| r)
         .collect();
     // A directory is walked when it matches an inclusion or leads to one (`/`, `/guide`):
-    // `guide/**.md` does not open `guide/deep` (Hugo's rule; `guide/**` would).
+    // `guide/**.md` does not open `guide/deep` (Go's rule; `guide/**` would).
     assert_eq!(rels, ["a.md", "docs/guide/one.md", "s/b.tmp"]);
 }
 
@@ -663,7 +663,7 @@ fn default_mounts_follow_the_dirs() {
         p.walk(&vfs, Component::Content),
         pairs(&[("a.md", "c/a.md")])
     );
-    // Static: the later static dir wins (Hugo's static copy; this test expected `s1/x.txt`
+    // Static: the later static dir wins (Go's static copy; this test expected `s1/x.txt`
     // while the vfs applied first-mount-wins to static too).
     assert_eq!(
         p.walk(&vfs, Component::Static),
@@ -713,7 +713,7 @@ fn discover_sites() {
     }
 }
 
-/// Content adapters (`_content.html`, Hugo's `_content.gotmpl`) are listed apart from the
+/// Content adapters (`_content.html`, Go's `_content.gotmpl`) are listed apart from the
 /// pages: they share their directory with the section's `_index.md`, one per directory and
 /// language; a disabled language's adapter is dropped. `_content.html` is an adapter only in
 /// the content component.

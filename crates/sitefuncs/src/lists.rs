@@ -19,7 +19,7 @@ use crate::call::{
     Registrar, SiteFilter, chain, field, list, map_value, msg, page_id, render_lang, scope,
 };
 
-/// Unix seconds of Hugo's zero date (pages without the date).
+/// Unix seconds of Go's zero date (pages without the date).
 const ZERO_DATE_SECONDS: i64 = -62_135_596_800;
 
 /// The collators of the site languages.
@@ -121,7 +121,7 @@ fn seconds(d: Option<&Zoned>) -> i64 {
     d.map_or(ZERO_DATE_SECONDS, |d| d.timestamp().as_second())
 }
 
-/// What Hugo's default order reads from a page.
+/// What Go's default page order reads from a page.
 fn sort_key(p: &ssg_site::Page) -> SortKey<'_> {
     SortKey {
         weight: p.meta.weight,
@@ -144,7 +144,7 @@ enum By {
 }
 
 /// `by_title`, `by_link_title` (collation), `by_date`, `by_publish_date`, `by_lastmod`
-/// (oldest first), `by_weight` (Hugo's default order).
+/// (oldest first), `by_weight` (Go's default page order).
 struct SortPages {
     views: Arc<ViewCache>,
     collators: Arc<Collators>,

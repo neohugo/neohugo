@@ -4,28 +4,23 @@
 # tests run or import:
 #   - @tailwindcss/cli, tailwindcss, @tailwindcss/typography: css.TailwindCSS of docs-reduced;
 #   - alpinejs, @alpinejs/{focus,persist}, @hotwired/turbo: js.Build imports of docs-reduced;
-#   - postcss, postcss-cli: css.PostCSS of ssg-resources' CSS chain tests;
 #   - @babel/cli, @babel/core: the real-tool Babel test of ssg-resources (js.Babel).
-# CI (.github/workflows/ci.yml) runs this script and points FUGO_{POSTCSS,TAILWINDCSS,BABEL}_BIN
-# and FUGO_NODE_MODULES into the result.
+# CI (.github/workflows/ci.yml) runs this script; the tests find the result with `path`
+# (ssg_testkit::fixture::node_tools).
 #
 #   tools/dev/node.sh [install]   npm ci into the node_modules directory (network)
 #   tools/dev/node.sh check       exit 1 unless the installed modules match the lock file
 #   tools/dev/node.sh path        print the node_modules directory
 #
-# The directory is $FUGO_NODE_MODULES, else tools/dev/node_modules of the main checkout
-# (all worktrees share it; gitignored). A build uses it through a `node_modules` symlink in the
-# site directory (Hugo looks up `node_modules/.bin/<tool>` in the project and js.Build resolves
-# imports there) and `node_modules/.bin` on PATH.
+# The directory is tools/dev/node_modules of the main checkout (all worktrees share it;
+# gitignored). A build uses it through a `node_modules` symlink in the site directory (the build
+# runs the tools' packages from the project's `node_modules`, and js.Build resolves imports
+# there).
 set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
 
 node_modules_dir() {
-	if [ -n "${FUGO_NODE_MODULES:-}" ]; then
-		echo "$FUGO_NODE_MODULES"
-		return
-	fi
 	common=$(git -C "$here" rev-parse --path-format=absolute --git-common-dir)
 	echo "$(dirname "$common")/tools/dev/node_modules"
 }
@@ -60,12 +55,12 @@ install)
 	echo "$want" >"$stage/node_modules/.lock-sha256"
 	rm -rf "$target"
 	mv "$stage/node_modules" "$target"
-	for bin in tailwindcss postcss babel; do
+	for bin in tailwindcss babel; do
 		[ -x "$target/.bin/$bin" ] || { echo "node.sh: $target/.bin/$bin missing" >&2; exit 1; }
 	done
 	echo "node.sh: installed into $target ($(du -sh "$target" | cut -f1)):"
 	for pkg in @tailwindcss/cli tailwindcss @tailwindcss/typography alpinejs @alpinejs/focus \
-		@alpinejs/persist @hotwired/turbo postcss postcss-cli @babel/cli @babel/core; do
+		@alpinejs/persist @hotwired/turbo @babel/cli @babel/core; do
 		echo "  $pkg $(node -p "require('$target/$pkg/package.json').version")"
 	done
 	;;

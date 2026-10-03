@@ -1,9 +1,9 @@
-//! Pixel parity: PSNR against images processed by Go Hugo.
+//! Pixel parity: PSNR against images processed by the Go implementation.
 //!
 //! * `testdata/golden/images/` (T01): the 15 Go-processed images of the acceptance gate
 //!   (≥ 30 dB each), described by `manifest.json` (format below), frozen at 44529028 (nothing
 //!   regenerates them). Skipped with a note if they are missing.
-//! * Interim: Hugo's own golden images (`images_golden` in
+//! * Interim: the Go implementation's own golden images (`images_golden` in
 //!   `testdata/upstream/resources/images/testdata`, written by
 //!   `resources/images/images_golden_integration_test.go`), whose recipes are known.
 //! * Interim: the small outputs of `nh-images/process` stored in full (`bytes.json.gz`).
@@ -196,7 +196,7 @@ fn golden_images_from_t01() {
     if !manifest.is_file() {
         eprintln!(
             "SKIPPED: {} is missing: the 15 Go-processed golden images (T01) are frozen at \
-             44529028, restore them from git (the interim PSNR checks below cover Hugo's own \
+             44529028, restore them from git (the interim PSNR checks below cover Go's own \
              golden images)",
             manifest.display()
         );
@@ -213,9 +213,9 @@ fn golden_images_from_t01() {
     assert!(failures.is_empty(), "{}", failures.join("\n"));
 }
 
-/// Hugo's own golden images and their recipes (images_golden_integration_test.go), the
-/// smart-anchor crops and fills included.
-fn hugo_golden_recipes() -> Vec<Recipe> {
+/// The Go implementation's own golden images and their recipes (images_golden_integration_test.go),
+/// the smart-anchor crops and fills included.
+fn go_golden_recipes() -> Vec<Recipe> {
     let sunset = "resources/testdata/sunset.jpg";
     let gopher = "resources/testdata/gopher-hero8.png";
     let mask = "resources/testdata/mask.png";
@@ -303,6 +303,7 @@ fn hugo_golden_recipes() -> Vec<Recipe> {
         "filters/misc/text.jpg",
         sunset,
         J::Null,
+        // The text of the Go test's golden image.
         misc(
             json!([{"op": "text", "text": "Hugo Rocks!", "color": "#fbfaf5",
             "linespacing": 8, "size": 40, "x": 25, "y": 190}]),
@@ -473,14 +474,14 @@ fn hugo_golden_recipes() -> Vec<Recipe> {
     recipes
 }
 
-fn hugo_golden_dir() -> PathBuf {
+fn go_golden_dir() -> PathBuf {
     repo_file("resources/images/testdata/images_golden")
 }
 
 #[test]
-fn hugo_golden_images_interim() {
-    let recipes = hugo_golden_recipes();
-    let mut failures = run_all(&recipes, &hugo_golden_dir(), "Hugo golden images (interim)");
+fn go_golden_images_interim() {
+    let recipes = go_golden_recipes();
+    let mut failures = run_all(&recipes, &go_golden_dir(), "Go golden images (interim)");
     // The overlay: the gopher resized to x80 drawn at (20, 20) over the x300 sunset.
     let q = ImageQueue::new(Imaging::default(), None);
     let sunset = q
@@ -510,7 +511,7 @@ fn hugo_golden_images_interim() {
         .expect("overlay");
     let ours_bytes = q.encoded(over.id).expect("encode");
     let golden_bytes =
-        std::fs::read(hugo_golden_dir().join("filters/misc/overlay-20-20.jpg")).expect("golden");
+        std::fs::read(go_golden_dir().join("filters/misc/overlay-20-20.jpg")).expect("golden");
     let db = psnr(&decode(&ours_bytes), &decode(&golden_bytes));
     eprintln!(
         "  {db:6.2} dB  {:7} B (Go {:7} B)  filters/misc/overlay-20-20.jpg",
@@ -547,7 +548,7 @@ fn oracle_small_outputs_interim() {
             .iter()
             .any(|k| src.starts_with(&format!("gen:{k}:")));
         if transparent && spec.contains("jpg") {
-            // The oracle encodes without Hugo's flattening onto the background (it calls
+            // The oracle encodes without Go's flattening onto the background (it calls
             // EncodeTo directly), so transparent pixels come out black.
             continue;
         }

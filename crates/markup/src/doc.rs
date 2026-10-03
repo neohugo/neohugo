@@ -1,4 +1,5 @@
-//! The parsed document: comrak's tree plus what Hugo's passes add to its nodes.
+//! The parsed document: comrak's tree plus what the Go implementation's passes add to its
+//! nodes.
 
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -170,7 +171,7 @@ impl<'a> Doc<'a> {
 
 impl Doc<'_> {
     /// The destination and title of an inline link or image as written (escapes and
-    /// character references unresolved), which is what Hugo's hooks see; `None` for
+    /// character references unresolved), which is what Go's hooks see; `None` for
     /// reference links.
     pub(crate) fn raw_link(&self, n: Node<'_>, image: bool) -> Option<(String, String)> {
         let text = &self.src.text;

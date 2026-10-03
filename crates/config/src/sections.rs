@@ -32,7 +32,7 @@ impl KindOutputs {
         self.0.iter().map(|(k, v)| (*k, v.as_slice()))
     }
 
-    /// Decodes `[outputs]` (kind → format names) over Hugo's defaults, removing disabled kinds
+    /// Decodes `[outputs]` (kind → format names) over Go's defaults, removing disabled kinds
     /// and, when the `rss` kind is disabled, the `rss` format.
     pub(crate) fn decode(
         config: &Map,
@@ -284,7 +284,7 @@ impl DateSource {
 
 /// Decodes a `[frontmatter]` table: for each date field (all four, in [`DateField::ALL`]
 /// order), its sources in priority order, without duplicates. Keys and sources ignore case. An
-/// unconfigured field has Hugo's defaults; `:default` stands for them inside a list; naming
+/// unconfigured field has Go's defaults; `:default` stands for them inside a list; naming
 /// `lastmod`, `publishdate` or `expirydate` includes their aliases (`modified`; `pubdate`,
 /// `published`; `unpublishdate`). A scalar is a one-element list; `null` or `[]` is no
 /// sources; unknown keys are ignored.
@@ -370,7 +370,7 @@ pub enum RelatedIndexKind {
 }
 
 impl RelatedConfig {
-    /// Hugo's default: `keywords` (100), `date` (10) and, when there is a `tag` taxonomy,
+    /// Go's default: `keywords` (100), `date` (10) and, when there is a `tag` taxonomy,
     /// `tags` (80); threshold 80.
     #[must_use]
     pub fn default_for(has_tags: bool) -> Self {
@@ -633,7 +633,7 @@ pub(crate) fn decode_menus(config: &Map) -> Result<Vec<MenuEntryConfig>, crate::
 }
 
 /// The text of a menu entry's `pre`/`post`: a scalar as written, a boolean as `1`/`0` (how
-/// Hugo reads a boolean into these string fields), nothing when unset.
+/// Go reads a boolean into these string fields), nothing when unset.
 fn menu_html(v: &Value) -> Option<String> {
     match v {
         Value::Null => Some(String::new()),

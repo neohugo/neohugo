@@ -81,7 +81,7 @@ pub(crate) struct IgnoreRules {
     /// `ignoreFiles`: regular expressions matched against absolute file names.
     patterns: Vec<Regex>,
     /// Whether the regular expressions see the NFC form of the file name ([`NFC_NAMES`]), as
-    /// Hugo matches them against `meta.Filename`, which it normalises on darwin.
+    /// Go matches them against `meta.Filename`, which it normalises on darwin.
     nfc: bool,
 }
 

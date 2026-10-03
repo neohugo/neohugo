@@ -9,6 +9,8 @@ mod docs;
 mod docs_data;
 mod docs_site;
 mod embedded;
+#[cfg(feature = "npm")]
+mod npm;
 mod parity;
 mod server;
 

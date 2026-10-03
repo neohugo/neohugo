@@ -2,7 +2,7 @@
 //! (REWRITE_PLAN.md §4.3).
 //!
 //! `partial(name=, …)` renders `_partials/<name>` through the render session with the kwargs
-//! as top-level names, the caller's `page`, `site`, `hugo`, `lang` and `output_format` (unless
+//! as top-level names, the caller's `page`, `site`, `build`, `lang` and `output_format` (unless
 //! a kwarg of that name is given) and a child `__nh`: same page, format and pager, depth + 1,
 //! and a new frame. `return_value(value=)` inside it writes that frame; the call returns the
 //! frame's value when it was written, else the rendered text.

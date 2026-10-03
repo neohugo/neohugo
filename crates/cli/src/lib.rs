@@ -11,6 +11,8 @@ pub mod args;
 mod build;
 mod check;
 mod config;
+#[cfg(feature = "npm")]
+mod npm;
 mod report;
 mod server;
 pub mod version;
@@ -70,17 +72,17 @@ pub fn run(cli: Cli) -> Exit {
 }
 
 /// Warns about the Go build's flags given that this port accepts but does not act on
-/// ([`args::HugoFlags::ignored`]).
+/// ([`args::CompatFlags::ignored`]).
 fn warn_ignored(cli: &Cli) {
     let command = match &cli.command {
-        Some(Command::Build(b)) => Some(&b.hugo),
-        Some(Command::Server(s)) => Some(&s.build.hugo),
+        Some(Command::Build(b)) => Some(&b.compat),
+        Some(Command::Server(s)) => Some(&s.build.compat),
         _ => None,
     };
     let mut warnings: Vec<Diagnostic> = Vec::new();
-    for message in std::iter::once(&cli.build.hugo)
+    for message in std::iter::once(&cli.build.compat)
         .chain(command)
-        .flat_map(args::HugoFlags::ignored)
+        .flat_map(args::CompatFlags::ignored)
     {
         if !warnings.iter().any(|w| w.message == message) {
             warnings.push(Diagnostic::warning(message).with_id("ignored-flag"));

@@ -1,8 +1,8 @@
-//! Capture against the Go oracle `oracle/hugolib/capture/<site>.json.gz` (Hugo's content trees
-//! right after `HugoSites` creation, before drafts are removed): per language the page tree
-//! (key → file, kind), the resource tree (key → file, bundled page or not), and for every page
-//! the capture overrides (`kind`, `lang`, `path`, their normalised params) and its own cascade.
-//! The model is built with drafts, future and expired content included.
+//! Capture against the Go oracle `oracle/sitebuild/capture/<site>.json.gz` (Go's content trees
+//! right after the Go build creates its sites, before drafts are removed): per language the
+//! page tree (key → file, kind), the resource tree (key → file, bundled page or not), and for
+//! every page the capture overrides (`kind`, `lang`, `path`, their normalised params) and its
+//! own cascade. The model is built with drafts, future and expired content included.
 //!
 //! The `sc-err-*` fixtures record shortcode errors of the content phase (T34), not capture.
 
@@ -134,7 +134,7 @@ fn cascade_json(c: &ssg_page::Cascade) -> J {
 
 /// Checks one site; returns the number of pages and resources compared.
 fn check(name: &str) -> usize {
-    let f: J = oracle(&format!("oracle/hugolib/capture/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/capture/{name}.json.gz"));
     let site = Site::new(&f["site"]);
     let m = site.model_all().unwrap_or_else(|e| panic!("{name}: {e}"));
     let dev = expected::capture(name);

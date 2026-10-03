@@ -6,11 +6,11 @@
 use comrak::nodes::NodeValue;
 use comrak::{Arena, Options, parse_document};
 
-use super::corpus::HugoCfg;
+use super::corpus::GoCfg;
 
-/// Hugo's goldmark defaults: table, strikethrough, linkify, task list, typographer,
-/// definition list, footnote, `attribute.title`; raw HTML omitted.
-fn hugo_defaults() -> Options<'static> {
+/// The Go implementation's goldmark defaults: table, strikethrough, linkify, task list,
+/// typographer, definition list, footnote, `attribute.title`; raw HTML omitted.
+fn go_defaults() -> Options<'static> {
     let mut o = Options::default();
     o.extension.table = true;
     o.extension.strikethrough = true;
@@ -23,16 +23,16 @@ fn hugo_defaults() -> Options<'static> {
     o
 }
 
-pub fn hugo(cfg: HugoCfg) -> Options<'static> {
-    let mut o = hugo_defaults();
+pub fn go_options(cfg: GoCfg) -> Options<'static> {
+    let mut o = go_defaults();
     match cfg {
-        HugoCfg::Default => {}
-        HugoCfg::Site | HugoCfg::Ascii => o.render.r#unsafe = true,
-        HugoCfg::Blackfriday => {
+        GoCfg::Default => {}
+        GoCfg::Site | GoCfg::Ascii => o.render.r#unsafe = true,
+        GoCfg::Blackfriday => {
             o.render.hardbreaks = true;
             o.parse.smart = false;
         }
-        HugoCfg::Cjk => {
+        GoCfg::Cjk => {
             o.render.r#unsafe = true;
             o.extension.header_attributes = false;
             o.extension.table = false;
@@ -42,7 +42,7 @@ pub fn hugo(cfg: HugoCfg) -> Options<'static> {
             o.extension.description_lists = false;
             o.extension.footnotes = false;
         }
-        HugoCfg::Noattr => o.extension.header_attributes = false,
+        GoCfg::Noattr => o.extension.header_attributes = false,
     }
     o
 }
@@ -51,7 +51,7 @@ pub fn to_html(md: &str, o: &Options<'_>) -> String {
     comrak::markdown_to_html(md, o)
 }
 
-/// [`to_html`] plus the one trivial pass prototyped here: Hugo drops HTML comments (block and
+/// [`to_html`] plus the one trivial pass prototyped here: Go drops HTML comments (block and
 /// inline) instead of writing `<!-- raw HTML omitted -->` when `unsafe = false`.
 pub fn to_html_passes(md: &str, o: &Options<'_>) -> String {
     let arena = Arena::new();

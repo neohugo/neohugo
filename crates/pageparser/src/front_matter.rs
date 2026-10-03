@@ -20,7 +20,7 @@ pub struct Split<'a> {
 /// skipped; delimiter lines may end in CRLF.
 ///
 /// # Errors
-/// A page that starts with `-`, `+` or `{` but has no well-formed front matter (Hugo reads
+/// A page that starts with `-`, `+` or `{` but has no well-formed front matter (Go reads
 /// those as front matter too).
 pub fn split_front_matter(src: &str) -> Result<Split<'_>, LexError> {
     let intro = lex_intro(src.as_bytes())?;

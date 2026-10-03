@@ -1,4 +1,4 @@
-//! CSS lightningcss rejects is passed through, not an error (as Hugo's tdewolff minifier):
+//! CSS lightningcss rejects is passed through, not an error (as Go's tdewolff minifier):
 //! accepted rules are still minified, rejected ones keep their text without comments and
 //! redundant whitespace.
 
@@ -24,7 +24,7 @@ fn min(input: &str) -> String {
 /// rejects `screen(md)` as a media query, which failed the docs build.
 #[test]
 fn docs_tailwind_source() {
-    let path = ssg_testkit::fixture::hugo_docs().join("assets/css/styles.css");
+    let path = ssg_testkit::fixture::legacy_docs().join("assets/css/styles.css");
     let input = std::fs::read_to_string(&path).unwrap_or_else(|e| panic!("{e}"));
     assert!(input.contains("@media screen(md) {"), "fixture changed");
     let out = min(&input);

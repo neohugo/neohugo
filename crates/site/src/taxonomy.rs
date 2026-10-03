@@ -58,7 +58,7 @@ impl Taxonomy {
     }
 }
 
-/// A site's taxonomies in the order Hugo walks them: by plural, each plural once.
+/// A site's taxonomies in the order Go walks them: by plural, each plural once.
 pub(crate) fn views(site: &SiteConfig) -> Vec<TaxonomyIdx> {
     let mut v: Vec<TaxonomyIdx> = site.taxonomies.ids().collect();
     v.sort_by(|a, b| site.taxonomies[*a].plural.cmp(&site.taxonomies[*b].plural));

@@ -14,7 +14,7 @@ use crate::markup::{Markup, MarkupSource};
 use crate::{PageError, value};
 
 /// Front matter that decides where a page goes, applied before the page enters its content
-/// tree (Hugo front matter `kind`, `lang` and `path`).
+/// tree (Go's front matter `kind`, `lang` and `path`).
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CaptureOverrides {
     pub kind: Option<PageKind>,
@@ -177,7 +177,7 @@ pub fn meta_from_params(mut params: Params, ctx: &MetaCtx<'_>) -> Result<PageMet
             .and_then(|w| i32::try_from(w).ok())
             .ok_or_else(|| PageError::field("weight", "expected an integer"))
     })?;
-    // `draft`, else Hugo's undocumented `published: <bool>` as its opposite (a `published`
+    // `draft`, else Go's undocumented `published: <bool>` as its opposite (a `published`
     // date is not a bool and only a date source of `publishDate`).
     let draft = match params.get("draft") {
         Some(v) => value::weak_bool(v).unwrap_or(false),
@@ -215,7 +215,7 @@ pub fn meta_from_params(mut params: Params, ctx: &MetaCtx<'_>) -> Result<PageMet
         })
         .transpose()?;
 
-    // The legacy `_build` wins over `build`, as in Hugo; params keep the key as written.
+    // The legacy `_build` wins over `build`, as in Go; params keep the key as written.
     let mut build = params
         .get("_build")
         .or_else(|| params.get("build"))
@@ -412,7 +412,7 @@ pub(crate) fn decode_menus(v: Option<&Value>) -> Result<Vec<PageMenuEntry>, Page
                     Value::Null => {}
                     Value::Map(pm) => {
                         let pm = Params::fold(pm);
-                        // A boolean reads as `1`/`0` in these text fields, as in Hugo.
+                        // A boolean reads as `1`/`0` in these text fields, as in Go.
                         let s = |k: &str| match pm.get(k) {
                             Some(Value::Bool(b)) => if *b { "1" } else { "0" }.to_owned(),
                             v => v.and_then(value::weak_string).unwrap_or_default(),

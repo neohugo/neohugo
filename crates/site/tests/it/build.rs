@@ -1,7 +1,7 @@
 //! Which pages are written in which formats, and to which files, against the Go build oracle
-//! `oracle/hugolib/build/<site>.json.gz` (the renders and the files of a full build): the
-//! (language, page, format) triples Hugo rendered are among the rendered pages' formats here,
-//! and their target files are files Hugo wrote. (Hugo skips a format without a template; which
+//! `oracle/sitebuild/build/<site>.json.gz` (the renders and the files of a full build): the
+//! (language, page, format) triples Go rendered are among the rendered pages' formats here,
+//! and their target files are files Go wrote. (Go skips a format without a template; which
 //! templates exist is the layouts' concern, so formats rendered only here are not counted.)
 
 use std::collections::BTreeSet;
@@ -17,7 +17,7 @@ fn s(v: &J) -> &str {
 }
 
 fn check(name: &str, t: &mut Tally) {
-    let f: J = oracle(&format!("oracle/hugolib/build/{name}.json.gz"));
+    let f: J = oracle(&format!("oracle/sitebuild/build/{name}.json.gz"));
     let site = Site::new(&f["site"]);
     let m = site.model().unwrap_or_else(|e| panic!("{name}: {e}"));
     let dev = crate::expected::assemble(name);
@@ -118,8 +118,8 @@ fn check(name: &str, t: &mut Tally) {
 }
 
 #[test]
-fn rendered_pages_and_targets_match_hugo_build() {
-    let dir = testdata("oracle/hugolib/build");
+fn rendered_pages_and_targets_match_go_build() {
+    let dir = testdata("oracle/sitebuild/build");
     let mut names: Vec<String> = std::fs::read_dir(&dir)
         .unwrap()
         .map(|e| e.unwrap().file_name().into_string().unwrap())

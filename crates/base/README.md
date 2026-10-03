@@ -10,13 +10,13 @@ tera for `to_tera`, regex, unicode-properties, unicode-normalization, thiserror)
 | `kind` | `PageKind` (serde names `home` … `404`, `robotstxt`), `KindSet` |
 | `value` | `Value`, case-preserving byte-ordered `Map`, `Date` (`Zoned`/`Local`); `from_json[_str]`, `from_toml[_str]`, `from_yaml_str`, `Deserialize`, `Serialize`, `to_tera` |
 | `params` | `Params::fold` (lower-case keys, not inside arrays), `get`, `get_path`, `insert`, `fill_missing_from`, `merge_deep` |
-| `paths` | `ContentKey`, `TermKey`, `OutputPath`, `UrlPath`, `Permalink`; `sanitize` (Hugo `MakePath`), `make_title`, `normalize_key`, `clean`, `join`, `split`, `base`, `parent`, `dir`, `ext`, `file_and_ext`, `filename`, `trim_ext`, `prettify_url_path`, `prettify_url`, `uglify` |
-| `url` | `UrlRef` (parse/serialise with Hugo's escaping rules), `escape`/`unescape` per `Component`, `url_escape`, `path_escape`, `is_abs_url`, `make_permalink`, `add_context_root`, `BaseUrl`, `SiteUrls` (`make_path[_sanitized]`, `urlize`, `abs[_lang]_url`, `rel[_lang]_url`, `prepend_base_path[_abs]`, `permalink_for_base_url`) with `LinkStyle`/`PathCase`/`Accents` |
+| `paths` | `ContentKey`, `TermKey`, `OutputPath`, `UrlPath`, `Permalink`; `sanitize` (Go's `MakePath`), `make_title`, `normalize_key`, `clean`, `join`, `split`, `base`, `parent`, `dir`, `ext`, `file_and_ext`, `filename`, `trim_ext`, `prettify_url_path`, `prettify_url`, `uglify` |
+| `url` | `UrlRef` (parse/serialise with Go's escaping rules), `escape`/`unescape` per `Component`, `url_escape`, `path_escape`, `is_abs_url`, `make_permalink`, `add_context_root`, `BaseUrl`, `SiteUrls` (`make_path[_sanitized]`, `urlize`, `abs[_lang]_url`, `rel[_lang]_url`, `prepend_base_path[_abs]`, `permalink_for_base_url`) with `LinkStyle`/`PathCase`/`Accents` |
 | `anchor` | `anchorize(s, Style::{Github, GithubAscii, Blackfriday})`, `Deduper` (`-1`, `-2` suffixes) |
 | `inflect` | `pluralize`, `singularize`, `humanize`, `humanize_text` (template `humanize`), `titleize`, `ordinalize(i64)`, `ordinalize_str`; `Inflector` (+ `CustomInflections`) |
 | `title` | `title_case(s, Style::{Ap, Chicago, Go, FirstUpper, None})`, `Style::parse` |
-| `glob` | `compile(pattern, GlobOpts { case, separator }) -> Glob` (Hugo/gobwas syntax) |
-| `time` | `parse_date(s, &TimeZone)` (Hugo's 21 date layouts), `Clock`, `DateError` |
+| `glob` | `compile(pattern, GlobOpts { case, separator }) -> Glob` (gobwas syntax, as the Go implementation uses it) |
+| `time` | `parse_date(s, &TimeZone)` (the Go implementation's 21 date layouts), `Clock`, `DateError` |
 | `diag` | `Position`, `Severity`, `Diagnostic`, `Diagnostics` (thread-safe, ignoreLogs, sorted + de-duplicated report) |
 | `text` | general-category predicates, simple case mappings, `remove_accents`, `nfc` |
 | crate root | `Collate` (+ `ByteOrder`), `Sink` |
@@ -25,7 +25,7 @@ tera for `to_tera`, regex, unicode-properties, unicode-normalization, thiserror)
 
 `cargo test -p ssg-base -- --nocapture` prints the tallies. "Not applicable" counts cases
 the Rust API cannot express (Go strings that are not UTF-8, argument values outside the Rust
-parameter type, configurations Hugo never uses); they are not checks.
+parameter type, configurations the Go implementation never uses); they are not checks.
 
 | fixture | checks | passed | accepted deviations | not applicable |
 |---|---|---|---|---|
@@ -39,7 +39,7 @@ parameter type, configurations Hugo never uses); they are not checks.
 | `common/prose` corpus (AP, Chicago, CreateTitle, AP∘pluralize) + upstream table | 13,201 | 13,201 | 0 | 7 |
 | `common/cast` date strings (UTC, fixed +07:00, America/New_York) | 1,584 | 1,582 | 2 | 416 |
 | `common/glob/compile` | 1,406 | 1,405 | 1 | 1 |
-| `common/glob/match` (Hugo mode + raw `""`/`"/"` separators) | 915,178 | 913,208 | 1,970 | 179,248 |
+| `common/glob/match` (case-folded `GetGlob` mode + raw `""`/`"/"` separators) | 915,178 | 913,208 | 1,970 | 179,248 |
 
 Out of scope here (owned elsewhere): `common/paths/pathparser` (vfs `PathParser`, T20),
 `common/glob/filter` (mount include/exclude filters, T20), `common/locales` (T12), the non-date
@@ -59,7 +59,7 @@ offline registry of this workspace (network use was not approved for T10), so th
 run against the oracle; from their documented rules none can reach 100%: `pluralizer` (a port
 of pluralize.js) and `cruet` (Rails' inflector) have other irregular/uncountable lists and
 suffix rules than flect, and neither splits words or upper-cases acronyms the way flect does
-(`humanize("api_key")` is `"API key"` in Hugo); `titlecase` implements John Gruber's rules,
+(`humanize("api_key")` is `"API key"` in Go); `titlecase` implements John Gruber's rules,
 not AP/Chicago as jdkato/prose implements them. So `inflect` and `title` carry their own data
 tables: flect v1.0.3's dictionary, suffix rules and acronym list, and prose v1.2.1's small-word
 and preposition lists (both MIT; see *Provenance* below). The algorithms are written from the
@@ -67,7 +67,9 @@ rules, not transliterated.
 
 ## Accepted deviations
 
-- **YAML `.inf` / `-.inf` / `.nan`** decode to those strings, not to non-finite floats: an untyped serde-saphyr value cannot carry them, and rejecting them (the crate default) failed the whole document. Hugo (yaml.v2) gives float ±Inf/NaN.
+- **YAML `.inf` / `-.inf` / `.nan`** decode to those strings, not to non-finite floats: an untyped
+  serde-saphyr value cannot carry them, and rejecting them (the crate default) failed the whole
+  document. The Go implementation (yaml.v2) gives float ±Inf/NaN.
 1. **Strings that are not UTF-8** (not applicable): the API takes `&str`. Affects 7 inputs of
    each string corpus, 44 of the 274 glob inputs and one glob pattern.
 2. **`BaseUrl`**
@@ -77,7 +79,7 @@ rules, not transliterated.
      returns `None`; Go saturates the port to `i64::MAX`.
    - `with_port` takes a `u16`, so the oracle's ports `-1` and `65536` are not applicable.
 3. **`humanize` of text without words** (`"-"`, `"_"`, `"+"`, a lone combining mark; 13
-   inputs × `humanize` and template `humanize`): Hugo fails with an index panic; we return the
+   inputs × `humanize` and template `humanize`): Go fails with an index panic; we return the
    input (template `humanize`: the result of the steps that succeed).
 4. **Custom inflections** (`inflections.json`, `acronyms.json`): loading errors are `Result`s
    (`InflectError`) instead of messages printed to stdout, and a custom word that repeats a
@@ -87,35 +89,35 @@ rules, not transliterated.
    (`9999-12-30T22:00Z`) and is rejected (2 checks). Typed Go strings (`template.HTML` …) and
    non-string inputs are the value layer's concern (not applicable).
 6. **Globs**: the patterns in `expected_diffs.toml` `[glob]` (102 patterns, 1,970 checks; 673
-   of the 304,980 Hugo-mode checks) hit bugs of gobwas/glob's optimiser: an empty alternative
+   of the 304,980 `GetGlob`-mode checks) hit bugs of gobwas/glob's optimiser: an empty alternative
    group (`{}`, `{,}`, a trailing `{`) makes it match nothing; alternatives of different shapes
    (`{a*,b?}`) next to other wildcards are mis-compiled; `?` and `[!x]` match the empty string;
    fixed-width rows are measured in bytes (`[a-c]é` fails on `aé`); two negated classes in a row
    match anything. We implement the documented semantics instead. gobwas also rejects a pattern
    containing U+FFFD (it cannot tell it from a decoding error); here it is an ordinary
    character. Separator sets other than none and `/` (the oracle's `.`, `/.`, `é`) are not
-   supported: Hugo only uses `/`.
+   supported: the Go implementation only uses `/`.
 
 ## Design notes
 
 - **Globs use `regex`, not `globset`.** The plan names globset, but globset matches bytes
   (`(?-u)`): `?` matches one byte and classes of non-ASCII characters are wrong (`[ก-ฮ]*`
-  matched `é`), which matters for Thai paths; it also cannot express Hugo's `**` inside a
+  matched `é`), which matters for Thai paths; it also cannot express Go's `**` inside a
   segment (`**.json`) or nested alternatives. The pattern is parsed into a small syntax tree and
   compiled to an anchored Unicode regex (`regex` is already a workspace dependency).
 - **Dates are parsed by a typed layout table, not jiff `strptime`.** strptime accepts
-  one-digit months and days where Hugo's layouts require two, skips leading spaces, cannot parse
+  one-digit months and days where Go's layouts require two, skips leading spaces, cannot parse
   zone abbreviations, and needs care for 12-hour clocks. jiff still builds and zones the result;
-  gaps and folds resolve to the earlier instant (Hugo's result).
-- **URLs** follow Hugo's escaping: components are kept decoded and re-escaped per component; an
+  gaps and folds resolve to the earlier instant (Go's result).
+- **URLs** follow Go's escaping: components are kept decoded and re-escaped per component; an
   escaping seen at parse time is reused while it still decodes to the component (so `%2F` in a
   base URL survives joins).
 - **Title case (AP/Chicago)** locates each word in a copy of the input with typographic
   punctuation replaced by ASCII and advances by the word's character count. Both belong to the
-  rules as Hugo applies them (they decide which small words count as first or last); they are
-  kept, which is why the prose oracle is at 100% including curly-quote titles.
+  rules as the Go implementation applies them (they decide which small words count as first or
+  last); they are kept, which is why the prose oracle is at 100% including curly-quote titles.
 - **`Params` collisions** (`Title` and `title` in one map): a key that was not lower case wins
-  over one that was; among several, the last in byte order. Hugo's result depends on Go map
+  over one that was; among several, the last in byte order. Go's result depends on its map
   order there; this is the deterministic rule.
 
 ## Provenance

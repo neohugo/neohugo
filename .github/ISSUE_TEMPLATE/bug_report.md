@@ -22,10 +22,10 @@ $ fugo version
 
 **Does this issue reproduce with the latest release?**
 
-**Does Hugo behave differently on the same site?**
+**Does the same site build differently with a Go-template generator?**
 <!--
-fugo aims at Hugo's output for the same content and configuration (its layouts are Tera templates, not Go templates). Describe what Hugo (which version?) does with the same site, or say that you have not checked.
-If Hugo has the same defect, please also report it at https://github.com/gohugoio/hugo/.
+fugo follows the output of the Go implementation it was rewritten from for the same content and configuration (its layouts are Tera templates, not Go templates). If you also build the site with a Go-template generator, describe what it (which version?) does with the same site, or say that you have not checked.
+Report only fugo issues here.
 -->
 
 **Step to reproduce?**

@@ -7,14 +7,14 @@ Please report (suspected) security vulnerabilities in fugo privately through Git
 for this repository, not in a public issue or discussion. If we can confirm the issue, we will
 release a patch as soon as possible depending on the complexity of the issue.
 
-fugo is not maintained by the Hugo project: please do not send reports about fugo to Hugo's
-maintainers. A vulnerability that also affects Hugo itself should be reported to Hugo as well,
-following [Hugo's security policy](https://github.com/gohugoio/hugo/security/policy).
+Report only fugo issues here.
 
 ### Security model
 
-fugo follows [Hugo's Security Model](https://gohugo.io/about/security/) and applies Hugo's
-`security` configuration (`exec.allow`, `exec.osEnv`, `funcs.getenv`, `http.urls`,
-`http.methods`), but its layouts are Tera templates, not Go's `html/template`: output is escaped
-by output format (HTML and XML), not by context, so a value in `<script>` needs `jsonify | safe`
-and one in a query string `urlencode` ([docs/rust-port/template-api.md](docs/rust-port/template-api.md)).
+Templates and themes are code. fugo's `security` configuration (`exec.allow`, `exec.osEnv`,
+`funcs.getenv`, `http.urls`, `http.methods`;
+[docs/content/configuration/security.md](docs/content/configuration/security.md)) limits the
+programs they may run, the environment variables they may read and the URLs they may fetch.
+Layouts are Tera templates, not Go's `html/template`: output is escaped by output format (HTML
+and XML), not by context, so a value in `<script>` needs `jsonify | safe` and one in a query
+string `urlencode` ([docs/rust-port/template-api.md](docs/rust-port/template-api.md)).

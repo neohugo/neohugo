@@ -1,4 +1,4 @@
-//! Front matter decoding against Hugo's `ParseFrontMatterAndContent`
+//! Front matter decoding against the Go implementation's `ParseFrontMatterAndContent`
 //! (`parser/pageparser/pages.json.gz`).
 
 use serde_json::Value as J;
@@ -15,7 +15,7 @@ use crate::support::{Tally, expected_diffs, page_cases};
 enum Numbers {
     /// An integer only equals an integer, a float a float.
     Typed,
-    /// An integer equals the float with its value (Hugo decodes JSON numbers as floats).
+    /// An integer equals the float with its value (Go decodes JSON numbers as floats).
     ByValue,
 }
 
@@ -40,7 +40,7 @@ fn same(ours: &Value, go: &J, numbers: Numbers) -> bool {
         (Value::Bool(a), J::Bool(b)) => a == b,
         (Value::String(a), J::String(b)) => **a == **b,
         (Value::Int(a), J::Number(n)) if numbers == Numbers::ByValue => {
-            #[expect(clippy::cast_precision_loss, reason = "compared as Hugo's float")]
+            #[expect(clippy::cast_precision_loss, reason = "compared as Go's float")]
             let a = *a as f64;
             n.as_f64() == Some(a)
         }
@@ -74,7 +74,7 @@ fn format_of(name: &str) -> Option<FrontMatterFormat> {
 }
 
 #[test]
-fn front_matter_decodes_like_hugo() {
+fn front_matter_decodes_like_go() {
     let diffs = expected_diffs();
     let accepted = &diffs["front_matter"];
     let json_numbers = &diffs["front_matter_rules"]["json_numbers"];
@@ -119,7 +119,7 @@ fn front_matter_decodes_like_hugo() {
         } else {
             tally.check(ok, || {
                 format!(
-                    "{id}: {got:?}\n  Hugo {}",
+                    "{id}: {got:?}\n  Go {}",
                     serde_json::to_string(fm).unwrap_or_default()
                 )
             });

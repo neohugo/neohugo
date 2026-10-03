@@ -259,9 +259,9 @@ pub(crate) fn encode(
     let mut out = Vec::new();
     match enc.format {
         ImageFormat::Jpeg => {
-            // Go's encoder, as Hugo: 4:2:0 from the RGB of the (opaque, flattened) result, or
-            // one component for a greyscale source whose result is still grey (Go's
-            // `*image.Gray`).
+            // Go's encoder, as the Go implementation uses it: 4:2:0 from the RGB of the (opaque,
+            // flattened) result, or one component for a greyscale source whose result is still grey
+            // (Go's `*image.Gray`).
             let (bytes, layout) = packed(&img, gray_source);
             let pixels = match layout {
                 ExtendedColorType::L8 => jpeg::Pixels::Gray(&bytes),

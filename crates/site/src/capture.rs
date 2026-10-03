@@ -72,7 +72,7 @@ pub(crate) struct CapturedPage {
 }
 
 /// A content adapter: a `_content.html` Tera template that adds pages and resources to its
-/// directory when the model is built (Hugo's `_content.gotmpl`).
+/// directory when the model is built (Go's `_content.gotmpl`).
 #[derive(Clone, Debug)]
 pub struct ContentAdapter {
     pub file: FileRef,
@@ -254,7 +254,7 @@ pub(crate) fn adapter_resource(
     })
 }
 
-/// The page `adapter` added in `lang` with an `add_page` map: Hugo gives it the adapter's file
+/// The page `adapter` added in `lang` with an `add_page` map: Go gives it the adapter's file
 /// (`.File` is the adapter) and the path `/<path>/index.<suffix>` (`_index` for branch kinds),
 /// so it is a bundle named after its last path element.
 pub(crate) fn adapter_page(

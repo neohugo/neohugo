@@ -1,5 +1,5 @@
 //! `minify`: the configured minifier of the resource's media type (`ssg-minify`). A media
-//! type without a minifier (text, images, unknown) is an error, as in Hugo. A leading byte
+//! type without a minifier (text, images, unknown) is an error, as in Go. A leading byte
 //! order mark (dart-sass writes one before non-ASCII compressed CSS) is kept in front of the
 //! minified text.
 

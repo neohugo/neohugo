@@ -5,7 +5,7 @@ weight: 40
 ---
 
 fugo renders pages with [Tera](https://keats.github.io/tera/) templates, under the layout names
-of Hugo v0.146. Start with the [introduction](/templates/introduction/) for Tera's syntax, then
+Go-template sites use (`home.html`, `single.html`, `_partials/`). Start with the [introduction](/templates/introduction/) for Tera's syntax, then
 the [lookup order](/templates/lookup-order/) for which file renders which page.
 
 Run `fugo templates check` after you change templates: it reports syntax errors, unknown names

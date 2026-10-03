@@ -234,7 +234,7 @@ impl ImageQueue {
         Ok(id)
     }
 
-    /// The font of a text filter: the default one (Go Regular, as Hugo), a registered one, or
+    /// The font of a text filter: the default one (Go Regular, as in Go), a registered one, or
     /// a font file (read once per path).
     fn font(&self, input: Option<&FontInput>) -> Result<FontData, ImageError> {
         let registered = |id: FontId| {

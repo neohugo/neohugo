@@ -6,7 +6,7 @@
 class = "accepted-deviation"
 fixtures = ["capture/edge-tree", "assemble/edge-tree"]
 path = "/tagsfoo"
-reason = """Hugo finds a branch's taxonomy by a character-level prefix (go-radix), so
+reason = """Go finds a branch's taxonomy by a character-level prefix (go-radix), so
 `content/tagsfoo/_index.md` becomes a term of `tags`. Keys are matched segment-wise here
 (REWRITE_PLAN.md §1.2: no go-radix emulation): `/tagsfoo` is a section."""
 
@@ -40,13 +40,13 @@ test = "structure"
 id = "segment-wise-taxonomy-prefix"
 count = 2
 reason = """The home page's `.Pages` and `.Sections` of edge-tree hold `/tagsfoo`, a section here
-and a term of `tags` in Hugo (the `/tagsfoo` deviation above: prefixes are segment-wise)."""
+and a term of `tags` in Go (the `/tagsfoo` deviation above: prefixes are segment-wise)."""
 
 [[class]]
 test = "structure"
 id = "single-page-takes-sibling-bundle"
 count = 1
-reason = """asm-taxo: Hugo lists the files of the leaf bundle `leafy/b/` as resources of the
+reason = """asm-taxo: Go lists the files of the leaf bundle `leafy/b/` as resources of the
 single-file page `leafy.md` too (it takes every file below `/leafy/` without checking who
 owns it). A file belongs to its owner only (the longest page key above it)."""
 
@@ -54,7 +54,7 @@ owns it). A file belongs to its owner only (the longest page key above it)."""
 test = "structure"
 id = "resource-named-by-owner"
 count = 1
-reason = """asm-taxo: Hugo names a bundle file after the first page that walks it: `leafy.md`
+reason = """asm-taxo: Go names a bundle file after the first page that walks it: `leafy.md`
 (the case above) makes `leafy/b/img.jpg` the resource `b/img.jpg`, also for its owner
 `leafy/b`. Here a file is named below its owner (`img.jpg`); its URL is the same."""
 
@@ -63,12 +63,12 @@ test = "calls"
 id = "segment-wise-taxonomy-prefix"
 count = 17
 reason = """edge-tree: calls whose result or argument is `/tagsfoo` (a section here, a term of `tags`
-in Hugo; the `/tagsfoo` deviation above)."""
+in Go; the `/tagsfoo` deviation above)."""
 
 [[class]]
 test = "calls"
 id = "ref-from-bundled-page"
 count = 205
-reason = """`ref`/`relref` called on a bundled page (a content file inside a leaf bundle): Hugo's
+reason = """`ref`/`relref` called on a bundled page (a content file inside a leaf bundle): Go's
 bundled pages have no working site (`.Sites` panics), so every ref returns `""`. Here refs
 resolve from a bundled page like from any page."""

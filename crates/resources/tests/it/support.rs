@@ -56,15 +56,19 @@ pub fn synth_site(tmp: &Path) -> PathBuf {
 /// The repository root.
 pub use ssg_testkit::fixture::repo_dir;
 
+/// The Go program's configuration file name, which a frozen fixture of the Go build has.
+const GO_CONFIG_FILE: &str = "hugo.toml";
+
 /// The configuration of the project at `dir`, with a private home (cache) directory. A frozen
-/// Hugo fixture read in place (the repository's `docs/`) has a `hugo.toml` this port does not look
-/// for: it is named explicitly, as `--config hugo.toml` would.
+/// fixture of the Go build read in place (the legacy docs site, `testdata/legacy-docs`) has the
+/// Go program's configuration file, which this port does not look for: it is named explicitly,
+/// as `--config` with that file would.
 pub fn config(dir: &Path, home: &Path) -> Config {
-    let hugo_site = !dir.join("config.toml").exists() && dir.join("hugo.toml").exists();
+    let go_site = !dir.join("config.toml").exists() && dir.join(GO_CONFIG_FILE).exists();
     load(&LoadOptions {
         source: dir.to_owned(),
-        config_files: if hugo_site {
-            vec!["hugo.toml".into()]
+        config_files: if go_site {
+            vec![GO_CONFIG_FILE.into()]
         } else {
             Vec::new()
         },
@@ -81,8 +85,8 @@ pub fn store(dir: &Path, home: &Path) -> ResourceStore {
     ResourceStore::new(StoreConfig::from_config(&cfg, Some(vfs), None))
 }
 
-/// A store as [`store`] whose external tools (PostCSS, Tailwind, Babel) are never found: no
-/// `FUGO_*_BIN` / `FUGO_NODE_MODULES` directories and no `PATH`, like the Go oracle runs
+/// A store as [`store`] whose external tools (Tailwind, Babel) are never found: no extra
+/// `node_modules` and no `PATH`, like the Go oracle runs
 /// that had none of them (their `na:` chains), whatever this machine or CI has installed.
 pub fn store_without_tools(dir: &Path, home: &Path) -> ResourceStore {
     let cfg = config(dir, home);

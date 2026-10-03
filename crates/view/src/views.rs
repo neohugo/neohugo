@@ -486,7 +486,7 @@ pub struct SiteView {
     pub last_mod: Option<DateView>,
     pub config: tera::Value,
     pub sitemap_abs_url: Option<String>,
-    /// The port of the language's base URL, 0 without one (Hugo's `.Site.ServerPort`; the
+    /// The port of the language's base URL, 0 without one (Go's `.Site.ServerPort`; the
     /// server points the base URLs at its listeners).
     pub server_port: u16,
 }
@@ -648,9 +648,11 @@ pub struct ShortcodeView {
     pub position: String,
 }
 
-/// `build`: the version and the build environment.
+/// `build`: the program, its version and the build environment.
 #[derive(Clone, Debug, Serialize)]
 pub struct BuildView {
+    /// The program's name (`build.name`), e.g. for a feed's `<generator>`.
+    pub name: &'static str,
     pub version: &'static str,
     pub app_version: &'static str,
     pub environment: String,
@@ -665,6 +667,7 @@ impl BuildView {
     #[must_use]
     pub fn new(cfg: &Config, server: bool) -> Self {
         Self {
+            name: ssg_base::APP_NAME,
             version: "0.149.0-DEV",
             app_version: env!("CARGO_PKG_VERSION"),
             environment: cfg.environment.clone(),
@@ -732,7 +735,7 @@ pub struct PrivacyView {
 
 /// The privacy switches of one service.
 #[derive(Clone, Debug, Default, Serialize)]
-#[allow(clippy::struct_excessive_bools)] // configuration switches, as Hugo names them
+#[allow(clippy::struct_excessive_bools)] // configuration switches, as Go names them
 pub struct PrivacyServiceView {
     pub disable: bool,
     pub simple: bool,

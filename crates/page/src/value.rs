@@ -1,4 +1,4 @@
-//! Lenient conversions of front matter values (Hugo's `cast` rules).
+//! Lenient conversions of front matter values (Go's `cast` rules).
 
 use std::sync::Arc;
 

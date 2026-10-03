@@ -7,16 +7,16 @@
 //!   Markdown (a single line loses its `<p>`).
 //! - `ordinal` counts per nesting level; `parent` is the enclosing call.
 //! - A call without inner content whose tag is indented gets the indentation on every further
-//!   line of its output, includes inserted first (`hugolib/shortcode.go`
+//!   line of its output, includes inserted first (Go's `shortcode.go`
 //!   `doRenderShortcode`: the indentation applies to the template's result).
 //! - Includes (`render_shortcodes` in the content phase) come back as inclusion tokens: in
 //!   `{{% %}}` output (and the output of calls nested in a `{{% %}}` call) they are replaced by
 //!   the included source with its placeholders renumbered into this page's table and a context
 //!   span for the included page (top-level calls only). On a Markdown page the source is
-//!   wrapped in context marker lines (`ssg_markup::wrap_context`, Hugo's `hugocontext.Wrap`
+//!   wrapped in context marker lines (`ssg_markup::wrap_context`, Go's context `Wrap`
 //!   of `.RenderShortcodes` inside goldmark): they shape the blocks around the include the way
-//!   Hugo's markers do. In a `{{< >}}` call's output the included source has its placeholders
-//!   resolved, before the call's indentation, as Hugo renders those calls after Markdown.
+//!   Go's markers do. In a `{{< >}}` call's output the included source has its placeholders
+//!   resolved, before the call's indentation, as Go renders those calls after Markdown.
 
 use std::collections::BTreeMap;
 use std::ops::Range;
@@ -49,7 +49,7 @@ fn scalar(s: &Scalar) -> tera::Value {
     }
 }
 
-/// `inner` with the call's indentation removed from every line that starts with it (Hugo
+/// `inner` with the call's indentation removed from every line that starts with it (Go
 /// `.InnerDeindent`).
 fn deindent(inner: &str, indentation: &str) -> String {
     if indentation.is_empty() {
@@ -61,7 +61,7 @@ fn deindent(inner: &str, indentation: &str) -> String {
         .collect()
 }
 
-/// `out` with `indentation` added before every line after the first (Hugo's
+/// `out` with `indentation` added before every line after the first (Go's
 /// `text.VisitLinesAfter` loop), and the offsets of `out` where it was inserted.
 fn indent(out: &str, indentation: &str) -> (String, Vec<usize>) {
     if indentation.is_empty() {
@@ -81,7 +81,7 @@ fn indent(out: &str, indentation: &str) -> (String, Vec<usize>) {
     (s, at)
 }
 
-/// The indentation Hugo adds to the further lines of `call`'s output: its tag's, when the call
+/// The indentation Go adds to the further lines of `call`'s output: its tag's, when the call
 /// has no inner content.
 fn output_indentation<'c>(call: &ShortcodeCall<'c>) -> &'c str {
     match &call.closing {
@@ -90,7 +90,7 @@ fn output_indentation<'c>(call: &ShortcodeCall<'c>) -> &'c str {
     }
 }
 
-/// Hugo's cleanup of a one-line inner rendered as Markdown: `<p>x</p>\n` → `x`.
+/// Go's cleanup of a one-line inner rendered as Markdown: `<p>x</p>\n` → `x`.
 fn one_line(html: String) -> String {
     match html
         .strip_prefix("<p>")
@@ -119,7 +119,7 @@ pub(crate) struct Expander<'s> {
     contexts: Vec<(Range<usize>, PageId)>,
     /// Inline shortcode templates defined so far (`name.inline`).
     inline: BTreeMap<String, String>,
-    /// Whether the top-level call being expanded is a `{{% %}}` call: Hugo renders those (and
+    /// Whether the top-level call being expanded is a `{{% %}}` call: Go renders those (and
     /// the calls nested in them) before Markdown, so the pages they include keep their own
     /// `{{< >}}` outputs as placeholders (`page__content.go` `RenderShortcodes` with the
     /// content callback), and on a Markdown page their texts get context markers
@@ -214,7 +214,7 @@ impl<'s> Expander<'s> {
                     match call.delim {
                         Delim::Markdown => self.splice(&output, indentation),
                         Delim::Html => {
-                            // Hugo renders a `{{< >}}` call after Markdown, where the pages it
+                            // Go renders a `{{< >}}` call after Markdown, where the pages it
                             // includes have their own `{{< >}}` outputs in place: they are
                             // indented with the rest.
                             let text = self.session.inclusions().resolve_all(&output);

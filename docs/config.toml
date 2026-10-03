@@ -12,7 +12,7 @@ disableKinds = ["taxonomy", "term"]
 timeZone = "UTC"
 
 [params]
-description = "fugo is a fast static site generator written in Rust: Hugo's content model with Tera templates, in a single binary."
+description = "fugo is a fast static site generator written in Rust: Markdown content, page bundles and taxonomies with Tera templates, in a single binary."
 tagline = "The Rust-powered static site generator"
 repository = "https://github.com/getfugo/fugo"
 editURL = "https://github.com/getfugo/fugo/edit/main/docs/content/"
@@ -57,8 +57,8 @@ notAlternative = true
     pageRef = "/reference/"
     weight = 20
   [[menus.main]]
-    name = "Coming from Hugo"
-    pageRef = "/coming-from-hugo/"
+    name = "Migrating"
+    pageRef = "/migrating/"
     weight = 30
 
 [sitemap]

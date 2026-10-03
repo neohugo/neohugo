@@ -1,7 +1,7 @@
-//! The `server` command (REWRITE_PLAN.md T71): Hugo's development server.
+//! The `server` command (REWRITE_PLAN.md T71): the Go implementation's development server.
 //!
 //! [`Server::start`] loads the configuration, opens the listeners (one per language of a
-//! multihost site), points every language's base URL at its listener (Hugo's `fixURL`),
+//! multihost site), points every language's base URL at its listener (Go's `fixURL`),
 //! starts watching, builds the site, then serves it:
 //!
 //! - **Builds** go into memory by default ([`Target::Memory`]; a new sink per build, swapped

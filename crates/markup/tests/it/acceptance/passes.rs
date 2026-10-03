@@ -1,6 +1,6 @@
 //! The passes the plan names (definition-term ids, alert title and sign, block attributes,
-//! passthrough, emoji, linkify), on small documents with Hugo's expected output. The corpus
-//! tests (`docs`, `hooks`) measure the same passes at scale.
+//! passthrough, emoji, linkify), on small documents with the Go implementation's expected
+//! output. The corpus tests (`docs`, `hooks`) measure the same passes at scale.
 
 use std::sync::Mutex;
 
@@ -10,7 +10,7 @@ use ssg_markup::{
 };
 
 use super::super::comrak_spike::normalize::{Fold, normalize};
-use super::{CONVERT, HugoCfg, Row, html, options, print, render_with, show};
+use super::{CONVERT, GoCfg, Row, html, options, print, render_with, show};
 
 #[derive(Default)]
 struct Capture {
@@ -34,12 +34,12 @@ impl Hooks for Capture {
     }
 }
 
-/// Heading ids by Hugo's rules (cases once verified against Hugo's Go build, with neutral
-/// wording): Thai headings, the first-child quirk, entities, dedupe, setext.
+/// Heading ids by the Go implementation's rules (cases once verified against the Go build,
+/// with neutral wording): Thai headings, the first-child quirk, entities, dedupe, setext.
 #[test]
 fn heading_ids() {
     let md = "### **Sample Item - Sour Cream Flavor (Green Pea Style)**\n\n### รสชาติ\n\n### ขนมทดสอบ รสดั้งเดิม (ขนมอบกรอบ)\n\n### Sample - Seasoned Roller Snack Hot&Spicy\n\n### White Bear's Biscuit (Chocolate Filling )\n\n### Stick Cookies & Cream taste ( Chocolate biscuit stick) Example brand ([Example 50th anniversaries](https://example.com/50th/))\n\n## **Strong *em* more** tail\n\n## ![alt *x*](img.png \"T\") img\n\n## &amp; &copy; entity\n\n## Ünïcödé İstanbul ǅ\n\n## 🍫\n\n## Dup\n\n## Dup\n\n## dup-1\n\nSetext line one\nline two\n===\n\n### Edit layouts/_default/index.JSON\n";
-    let got = render_with(md, &options(HugoCfg::Site), &ssg_markup::NoHooks);
+    let got = render_with(md, &options(GoCfg::Site), &ssg_markup::NoHooks);
     let mut ids = got.fragments.identifiers.clone();
     let order: Vec<String> = {
         fn walk(h: &[ssg_markup::Heading], out: &mut Vec<String>) {
@@ -81,7 +81,7 @@ fn heading_ids() {
 
 #[test]
 fn definition_term_ids() {
-    let o = options(HugoCfg::Ascii);
+    let o = options(GoCfg::Ascii);
     assert_eq!(
         html(
             "Term 1\n: Definition 1\n\nTerm *2*\n: 2a\n: 2b\n\n# Term 1\n",
@@ -137,7 +137,7 @@ fn alerts_with_title_and_sign() {
             ),
         ]
     );
-    // Without a hook an alert is a plain blockquote (Hugo's default renderer).
+    // Without a hook an alert is a plain blockquote (Go's default renderer).
     assert!(
         out.html
             .starts_with("<blockquote>\n<p>[!WARNING]+ Be careful\nwith this.</p></blockquote>\n")
@@ -146,7 +146,7 @@ fn alerts_with_title_and_sign() {
 
 #[test]
 fn block_attributes() {
-    let o = options(HugoCfg::Ascii);
+    let o = options(GoCfg::Ascii);
     let md = "A paragraph\n{.para-class #para-id}\n\n> quote\n{.q}\n\n- item 1\n- item 2\n{.list-class}\n\n| a | b |\n|---|---|\n| 1 | 2 |\n{.table-class data-t=\"x\"}\n\n{.solitary}\n\nText\n\n```go\ncode\n```\n{.not-for-fences}\n";
     let got = html(md, &o);
     for want in [
@@ -195,7 +195,7 @@ fn passthrough_math() {
     );
     assert_eq!(
         out,
-        // a block hook's output is followed by the next block directly, as in Hugo
+        // a block hook's output is followed by the next block directly, as in Go
         "<p>Inline <math>a_1 * b_2</math> and <code>\\(code\\)</code>.</p>\n<math>\nx^2 *y* \\\\\nz\n</math><math>\\frac{1}{2}</math><pre><code>$$no$$\n</code></pre>\n"
     );
     // Without a hook the source is written as is.
@@ -250,7 +250,7 @@ fn adversarial_documents() {
         footnotes: false,
     };
     let mut rows = Vec::new();
-    for cfg in HugoCfg::ALL {
+    for cfg in GoCfg::ALL {
         let o = options(cfg);
         let (mut total, mut ok) = (0, 0);
         for case in CONVERT
@@ -273,8 +273,9 @@ fn adversarial_documents() {
         ));
     }
     print("Adversarial documents (convert oracle, normalised)", &rows);
-    // Residuals: Hugo's textual context markers (hugo-ctx-inline), invalid UTF-8 (the input
-    // here is already `str`), the oracle's table replica (`s:` values) and CJK line breaks.
+    // Residuals: Go's textual context markers (the inline-context document), invalid UTF-8
+    // (the input here is already `str`), the oracle's table replica (`s:` values) and CJK line
+    // breaks.
     for (r, min) in rows.iter().zip([18, 18, 17, 18, 15, 17]) {
         assert!(r.matched >= min, "{}: {} < {min}", r.what, r.matched);
     }

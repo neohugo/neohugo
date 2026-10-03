@@ -1,6 +1,6 @@
-//! Hugo's glob patterns.
+//! Glob patterns, as the Go implementation matches them.
 //!
-//! The syntax (Hugo's, from gobwas/glob):
+//! The syntax (the Go implementation's, from gobwas/glob):
 //!
 //! | pattern | matches |
 //! |---|---|
@@ -13,7 +13,7 @@
 //! | `\x` | `x` literally |
 //!
 //! `,` and `}` outside alternatives and `]` outside a class are literals. With
-//! [`Case::Fold`] (Hugo's `GetGlob`) the pattern and the matched strings are lower-cased.
+//! [`Case::Fold`] (Go's `GetGlob`) the pattern and the matched strings are lower-cased.
 //!
 //! A pattern compiles to an anchored regular expression over characters. (`globset` is not
 //! used: it matches bytes, so `?` and classes are wrong for non-ASCII text, and it cannot
@@ -24,7 +24,7 @@ use crate::text;
 /// Whether pattern and input are lower-cased before matching.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Case {
-    /// Hugo's globs: both are lower-cased.
+    /// Go's globs: both are lower-cased.
     #[default]
     Fold,
     Sensitive,
@@ -33,7 +33,7 @@ pub enum Case {
 /// Whether `/` separates path segments.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Separator {
-    /// `*` and `?` do not match `/` (Hugo's globs).
+    /// `*` and `?` do not match `/` (Go's globs).
     #[default]
     Slash,
     /// No separator: `*` matches any string.
@@ -80,7 +80,7 @@ impl Glob {
     }
 }
 
-/// Compiles a Hugo glob pattern.
+/// Compiles a glob pattern.
 ///
 /// # Errors
 /// An unterminated, reversed or empty character class.

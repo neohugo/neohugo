@@ -1,13 +1,14 @@
-//! Markdown through comrak behind an engine-neutral API, plus Hugo's passes: heading anchors,
-//! TOC and fragments, summaries, word count, the [`Hooks`] and [`Highlighter`] traits and
-//! source-context spans (REWRITE_PLAN.md §2.4).
+//! Markdown through comrak behind an engine-neutral API, plus the Go implementation's passes:
+//! heading anchors, TOC and fragments, summaries, word count, the [`Hooks`] and
+//! [`Highlighter`] traits and source-context spans (REWRITE_PLAN.md §2.4).
 //!
-//! [`render`] parses the expanded Markdown of a page, runs Hugo's passes (goldmark's pipe
-//! tables and definition lists, heading and definition-term ids, heading and block
-//! attributes, the context markers of includes, passthrough, linkify, typographer, dropped
-//! comments) and renders HTML the way Hugo's goldmark setup does, calling the render hooks
-//! post-order. [`fragments`] is the parse-only variant for the fragments memo stage. The
-//! crate `README.md` records the engine decision and the accepted differences from Hugo.
+//! [`render`] parses the expanded Markdown of a page, runs the Go implementation's passes
+//! (goldmark's pipe tables and definition lists, heading and definition-term ids, heading and
+//! block attributes, the context markers of includes, passthrough, linkify, typographer,
+//! dropped comments) and renders HTML the way the Go implementation's goldmark setup does,
+//! calling the render hooks post-order. [`fragments`] is the parse-only variant for the
+//! fragments memo stage. The crate `README.md` records the engine decision and the accepted
+//! differences from the Go implementation.
 
 #![forbid(unsafe_code)]
 

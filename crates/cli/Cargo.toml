@@ -26,12 +26,16 @@ path = "tests/it/main.rs"
 workspace = true
 
 [features]
-# The SHOULD template functions the Hugo documentation site needs (A-D2), on in the shipped
-# binary: `diagrams_goat` (GoAT port) and `to_math` (KaTeX in QuickJS, rquickjs).
+# The SHOULD template functions the legacy docs site needs (A-D2), on in the shipped binary:
+# `diagrams_goat` (GoAT port) and `to_math` (KaTeX in QuickJS, rquickjs).
 # `--no-default-features` builds without them; the functions then fail when called.
-default = ["goat", "math"]
+# `npm`: the project's npm packages (package.json) are installed before a build, and the
+# Tailwind and Babel pipes run them with the embedded JavaScript runtime (ssg-npm: Deno's
+# installer and runtime, V8). Without it, those tools need Node.js and an installed node_modules.
+default = ["goat", "math", "npm"]
 goat = ["ssg-funcs/goat"]
 math = ["ssg-funcs/math"]
+npm = ["dep:ssg-npm", "dep:deno_napi"]
 
 [dependencies]
 ssg-workspace-hack.workspace = true
@@ -45,6 +49,8 @@ ssg-funcs.workspace = true
 ssg-render.workspace = true
 ssg-build.workspace = true
 ssg-serve.workspace = true
+ssg-resources.workspace = true
+ssg-npm = { workspace = true, optional = true }
 tera.workspace = true
 clap.workspace = true
 anyhow.workspace = true
@@ -52,11 +58,14 @@ jiff.workspace = true
 serde_json.workspace = true
 toml.workspace = true
 
+[build-dependencies]
+# `npm`: the binary exports the N-API symbols that addons (Tailwind's oxide, lightningcss) link to.
+deno_napi = { workspace = true, optional = true }
+
 [dev-dependencies]
 ssg-testkit.workspace = true
-# T60: the collector for A-T's `hugo_stats.json` sets, the getresource cache key for the
+# T60: the collector for A-T's stats file sets, the getresource cache key for the
 # embedded x/vimeo snapshots.
 ssg-publish.workspace = true
-ssg-resources.workspace = true
 insta.workspace = true
 tempfile.workspace = true

@@ -53,7 +53,7 @@ expression: "read(&site, \"embedded/hooks/index.html\")"
 </head>
 <main><p>Links: <a href="https://example.org/about/" title="About title">page</a>, <a href="https://example.org/posts/one/">relative</a>, <a href="https://example.org/posts/two/">md file</a>,
 <a href="https://example.org/embedded/hooks/#frag">fragment</a>, <a href="https://example.org/about/#sec?x=1">page fragment</a>, <a href="https://example.org/posts/three/?a=b&amp;c=d#top">query</a>,
-<a href="bundle/feature.png">resource</a>, <a href="https://example.org/img/logo.png">asset</a>, <a href="https://example.org/nope/">missing</a>, <a href="https://gohugo.io/x?y=1">external</a>,
+<a href="bundle/feature.png">resource</a>, <a href="https://example.org/img/logo.png">asset</a>, <a href="https://example.org/nope/">missing</a>, <a href="https://example.com/x?y=1">external</a>,
 <a href="mailto:a@example.org">mail</a>, <a href="https://auto.example.org/">https://auto.example.org/</a>, <a href="">empty</a>.</p>
 <p>Images: <img src="https://example.org/img/logo.png" alt="alt text" title="Img title">, <img src="https://cdn.example.org/p.png" alt="plain">,
 <img src="missing.png?x=1#f" alt="missing"></p>

@@ -1,6 +1,6 @@
-//! Phase B3: the pages Hugo makes itself, and the order of the structure phases.
+//! Phase B3: the pages Go makes itself, and the order of the structure phases.
 //!
-//! Per language, in this order (Hugo's): a taxonomy page for every configured taxonomy that
+//! Per language, in this order (Go's): a taxonomy page for every configured taxonomy that
 //! has none; a section page for every root section that has none, and the home page if there
 //! is none; the standalone pages (404; robots.txt and the sitemap index once per build, on the
 //! default language, unless multihost; a sitemap per language); then the term pages

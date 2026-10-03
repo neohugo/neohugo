@@ -113,11 +113,11 @@ fn base_url_examples() {
         "webcal://example.com/"
     );
     assert!(b.with_protocol("mailto:").is_err());
-    let m = BaseUrl::parse("mailto:hugo@rules.com").unwrap();
-    assert_eq!(m.as_str(), "mailto:hugo@rules.com");
+    let m = BaseUrl::parse("mailto:site@rules.com").unwrap();
+    assert_eq!(m.as_str(), "mailto:site@rules.com");
     assert_eq!(
         m.with_protocol("webcal").unwrap().as_str(),
-        "webcal:hugo@rules.com"
+        "webcal:site@rules.com"
     );
     assert_eq!(BaseUrl::parse("").unwrap().as_str(), "/");
     let s = BaseUrl::parse("http://example.com/sub").unwrap();

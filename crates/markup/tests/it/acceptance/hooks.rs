@@ -1,5 +1,5 @@
 //! The hooks oracle: every document rendered with recording hooks for all hook kinds; the
-//! sequence of hook invocations and the fields each hook saw must match Hugo's.
+//! sequence of hook invocations and the fields each hook saw must match Go's.
 //!
 //! The recorder mirrors the oracle's (`mdoracle.Recorder`): each hook writes a marker
 //! (`[L3|text]`, `[I4]`, `<bq5>…</bq>`, …) that nested hooks see in their `text`.
@@ -16,7 +16,7 @@ use ssg_markup::{
 };
 use ssg_testkit::fixture::{GoString, oracle};
 
-use super::{HugoCfg, PAGE, Row, file, options, print, show, text};
+use super::{GoCfg, PAGE, Row, file, options, print, show, text};
 
 #[derive(Deserialize)]
 struct Doc {
@@ -310,9 +310,10 @@ fn norm(field: &str, v: &str) -> String {
     s
 }
 
-/// The oracle's wrapped document (`hugocontext.Wrap` of the source as page 7, then of a
-/// fixed document as page 9) with this crate's context markers: the original source becomes
-/// a context span of page 7 (page 9 of the oracle has no page, so it is not a span).
+/// The oracle's wrapped document (the Go implementation's context markers around the source as
+/// page 7, then around a fixed document as page 9) with this crate's context markers: the
+/// original source becomes a context span of page 7 (page 9 of the oracle has no page, so it
+/// is not a span).
 fn wrapped(src: &str) -> (String, Range<usize>) {
     let mut s = String::from("Intro *text*\n\n");
     let (w, inner) = wrap_context(src);
@@ -353,7 +354,7 @@ fn hook_invocations_and_fields() {
     for r in &fx.results {
         let doc = &fx.docs[r.doc];
         let src = text(&doc.src);
-        let cfg = HugoCfg::ALL[r.cfg];
+        let cfg = GoCfg::ALL[r.cfg];
         let o = options(cfg);
         let (md, spans) = if r.wrap {
             let (md, span) = wrapped(&src);
@@ -393,7 +394,7 @@ fn hook_invocations_and_fields() {
             }
             let mut all = true;
             for name in COMPARED {
-                // Only code blocks have options (always empty elsewhere in Hugo).
+                // Only code blocks have options (always empty elsewhere in Go).
                 if *name == "Options" && wk != "codeblock" {
                     continue;
                 }
@@ -430,7 +431,7 @@ fn hook_invocations_and_fields() {
     }
     let mut rows = Vec::new();
     for (cfg, c) in &by_cfg {
-        let name = HugoCfg::ALL[*cfg].name();
+        let name = GoCfg::ALL[*cfg].name();
         rows.push(Row::new(
             format!("same hook invocations, cfg {name}"),
             c[1],

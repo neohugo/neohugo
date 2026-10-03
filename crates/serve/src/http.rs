@@ -1,4 +1,4 @@
-//! The HTTP side (Hugo's `fileServer`): the files of the served tree, directory indexes and
+//! The HTTP side (Go's `fileServer`): the files of the served tree, directory indexes and
 //! redirects as Go's `http.FileServer` does them, the 404 page, `livereload.js` and the
 //! LiveReload WebSocket.
 
@@ -60,7 +60,7 @@ async fn handle(State(s): State<HostState>, req: Request) -> Response {
     response
 }
 
-/// The LiveReload WebSocket, behind Hugo's origin check.
+/// The LiveReload WebSocket, behind Go's origin check.
 async fn websocket(shared: &Shared, parts: &mut Parts) -> Response {
     if !livereload::origin_allowed(&parts.headers) {
         return respond(
@@ -121,7 +121,7 @@ async fn files(served: &Served, host: &Host, req: &Parts, path: &str) -> Respons
     plain_not_found()
 }
 
-/// Hugo's default `[[server.redirects]]` (`/**` → `/404.html`, status 404), per language: the
+/// Go's default `[[server.redirects]]` (`/**` → `/404.html`, status 404), per language: the
 /// 404 page of the language directory the path is in, else the site's, else the first
 /// language's.
 async fn not_found_page(served: &Served, host: &Host, rel: &str) -> Response {
@@ -227,7 +227,7 @@ fn byte_range(spec: &str, len: usize) -> Option<Option<(usize, usize)>> {
     Some(Some((start, end)))
 }
 
-/// Hugo's test for a page navigation: `Sec-Fetch-Mode: navigate`, else a path that ends with
+/// Go's test for a page navigation: `Sec-Fetch-Mode: navigate`, else a path that ends with
 /// `/`, `html` or `htm`, or has no `.`.
 fn is_navigation(headers: &HeaderMap, path: &str) -> bool {
     headers

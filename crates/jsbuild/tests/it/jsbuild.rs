@@ -1,6 +1,6 @@
 //! `js.Build` against the `jsbuild` Go oracle (`testdata/oracle/resource-transformers/jsbuild`):
-//! Hugo's `js.Build` (esbuild 0.25.6 linked in) on the `t16site` fixture site (62 cases) and on
-//! the docs site's scripts (6 cases).
+//! the Go implementation's `js.Build` (esbuild 0.25.6 linked in) on the `t16site` fixture site
+//! (62 cases) and on the docs site's scripts (6 cases).
 //!
 //! A case gets an asset (or concatenates earlier cases' results), then optionally runs
 //! `js.Build` and fingerprints. This port bundles with rolldown, so the bytes differ; what must
@@ -11,7 +11,7 @@
 //! esbuild (unresolved imports, the es5 target) must have the same text too.
 //!
 //! External/linked source maps must name every bundled file by URL, with the file's contents,
-//! and include the files Hugo's map names.
+//! and include the files the Go implementation's map names.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::path::{Path, PathBuf};
@@ -22,6 +22,10 @@ use ssg_jsbuild::{
     JsBuildError, JsBuildOptions, JsBuildOutput, JsBuilder, MountedDirs, OptionsError, Source,
 };
 use ssg_testkit::fixture::oracle;
+
+/// The namespace prefix of bundled modules in the recorded Go output; this port writes
+/// `ns-ssg-`.
+const GO_NAMESPACE: &str = "ns-hugo-";
 
 /// What a case produced.
 enum Outcome {
@@ -44,7 +48,7 @@ fn site(fixture_dir: &str) -> Site {
     if fixture_dir == "docs" {
         let root = crate::scratch("jsbuild-docs").join("site");
         copy_tree(
-            &crate::repo_root().join("testdata/hugo-docs/assets"),
+            &crate::repo_root().join("testdata/legacy-docs/assets"),
             &root.join("assets"),
         );
         let assets = MountedDirs::new().mount(root.join("assets"), "");
@@ -125,7 +129,7 @@ fn run_case(
             (path, std::fs::read(file).unwrap())
         }
         "concat" => {
-            // Hugo separates concatenated scripts with "\n;\n".
+            // Go separates concatenated scripts with "\n;\n".
             let parts: Vec<&[u8]> = steps[0]["refs"]
                 .as_array()
                 .unwrap()
@@ -294,7 +298,7 @@ fn describe(o: &Outcome) -> String {
 }
 
 /// Checks a source map: every source a file URL whose contents are in `sourcesContent`
-/// (unless contents are left out), and every file of Hugo's map among them.
+/// (unless contents are left out), and every file of the Go implementation's map among them.
 fn check_map(got: &str, want: Option<&str>, entry_contents: &[u8]) -> Result<(), String> {
     let got: Json = serde_json::from_str(got).map_err(|e| e.to_string())?;
     // `mappings` is empty when nothing in the script comes from a source.
@@ -403,7 +407,7 @@ impl Checker<'_> {
             .as_str()
             .unwrap()
             .replace("$SITE", site)
-            .replace("ns-hugo-", "ns-ssg-");
+            .replace(GO_NAMESPACE, "ns-ssg-");
         let (code, out) = match outcome {
             Outcome::Built(out) => (String::from_utf8(out.code.clone()).unwrap(), out),
             Outcome::Raw(b) => {
@@ -474,7 +478,7 @@ impl Checker<'_> {
                 .as_str()
                 .unwrap()
                 .replace("$SITE", site)
-                .replace("ns-hugo-", "ns-ssg-");
+                .replace(GO_NAMESPACE, "ns-ssg-");
             if let Some(script) = path.strip_suffix(".map") {
                 if script != out.target_path {
                     return Err(format!("map at {path}, target {}", out.target_path));

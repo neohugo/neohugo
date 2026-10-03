@@ -195,7 +195,7 @@ fn meta_rejects_bad_values() {
     assert_eq!(meta.cascade.rules().len(), 1);
 }
 
-/// Hugo's undocumented `published: <bool>` and the legacy `_build` key.
+/// Go's undocumented `published: <bool>` and the legacy `_build` key.
 #[test]
 fn published_and_legacy_build() {
     let site = Site::new();
@@ -217,7 +217,7 @@ fn published_and_legacy_build() {
     assert_eq!(legacy.build.render, RenderMode::Link);
     assert!(legacy.params.get("_build").is_some());
     assert!(legacy.params.get("build").is_none());
-    // `_build` wins over `build`, as in Hugo.
+    // `_build` wins over `build`, as in Go.
     let both = meta("_build = { list = \"never\" }\nbuild = { list = \"local\" }");
     assert_eq!(both.build.list, ListMode::Never);
     assert!(matches!(
@@ -473,7 +473,7 @@ fn go_layouts_format() {
 /// Content adapters: the `add_page` map is placed below the adapter's directory, its fields
 /// are read from the top level with the cascade's fields filled in, `.Params` are only the
 /// cascade's params and the map's `params`, and the dates follow the `[frontmatter]` chains
-/// over the four date fields (Hugo's `createContentAdapterDatesHandler`).
+/// over the four date fields (Go's `createContentAdapterDatesHandler`).
 #[test]
 fn adapter_pages() {
     use ssg_page::{AdapterPage, meta_from_adapter};
@@ -625,11 +625,11 @@ fn adapter_pages() {
     }
 }
 
-/// Hugo's `createContentAdapterDatesHandler` runs the date, lastmod, publishDate and
+/// Go's `createContentAdapterDatesHandler` runs the date, lastmod, publishDate and
 /// expiryDate chains one after the other on the given dates: a chain reads what the earlier
 /// ones set, and a date whose chain finds nothing keeps its given value. The cases are the
-/// Go binary's results (Hugo at 44529028) for the same `add_page` maps. The slug is used as
-/// given (Hugo trims `-` from front matter slugs only).
+/// Go binary's results (at 44529028) for the same `add_page` maps. The slug is used as
+/// given (Go trims `-` from front matter slugs only).
 #[test]
 fn adapter_dates_follow_the_chains_in_turn() {
     use ssg_config::decode_front_matter;

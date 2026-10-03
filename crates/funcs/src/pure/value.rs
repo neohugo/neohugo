@@ -131,7 +131,7 @@ pub fn step<'v>(v: &'v Value, seg: &str) -> Option<&'v Value> {
     v.as_array()?.get(idx)
 }
 
-/// A sort key as Hugo compares it: text, or a number (dates by instant, booleans as 0/1, and
+/// A sort key as Go compares it: text, or a number (dates by instant, booleans as 0/1, and
 /// missing values, maps and arrays as 0).
 enum SortKey<'v> {
     Text(&'v str),
@@ -158,7 +158,7 @@ fn sort_key(v: Option<&Value>) -> SortKey<'_> {
     SortKey::Number(v.as_f64().filter(|_| v.is_number()).unwrap_or(0.0))
 }
 
-/// Hugo's ordering of two sort keys: two texts by the language's collation; otherwise
+/// Go's ordering of two sort keys: two texts by the language's collation; otherwise
 /// numerically, where numeric strings are numbers, dates their instant, and other texts,
 /// missing values and none count as 0 (so they keep their place: the sort is stable).
 pub fn compare(a: Option<&Value>, b: Option<&Value>, collate: &dyn Collate) -> Ordering {

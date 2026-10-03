@@ -7,7 +7,8 @@
 //! the final file name and size at once. Build phase E6 calls [`ImageQueue::process`] for the
 //! operations whose URLs were published; it decodes, runs the planned steps with rayon and
 //! encodes (JPEG with [`jpeg`], a port of Go's encoder; PNG, GIF, TIFF and BMP with `image`;
-//! WebP with libwebp). See the crate README for the accepted differences from Hugo.
+//! WebP with libwebp). See the crate README for the accepted differences from the Go
+//! implementation.
 
 #![forbid(unsafe_code)]
 

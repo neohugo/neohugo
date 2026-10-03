@@ -1,5 +1,5 @@
-//! The text filter (`images.Text`): text drawn onto the image, wrapped and aligned as Hugo's
-//! `resources/images/text.go` does.
+//! The text filter (`images.Text`): text drawn onto the image, wrapped and aligned as the Go
+//! implementation's `resources/images/text.go` does.
 //!
 //! Layout, in 26.6 fixed point where Go uses it ([`crate::font`]):
 //!
@@ -53,11 +53,11 @@ pub enum FontInput {
 
 /// The options of the text filter.
 ///
-/// In template maps (Hugo's option names, any case; `line_spacing`, `align_x` and `align_y`
-/// are accepted too): `text` (required), `color` (`#rrggbb`, white by default), `size` (pixels,
-/// 20), `x` and `y` (10), `alignx` (`left`, `center`, `right`), `aligny` (`top`, `center`,
-/// `bottom`), `linespacing` (pixels between lines, 2), `font` (Go Regular by default). Numbers
-/// may be given as strings; `x`, `y` and `linespacing` are truncated to integers like Go's
+/// In template maps (the Go implementation's option names, any case; `line_spacing`, `align_x` and
+/// `align_y` are accepted too): `text` (required), `color` (`#rrggbb`, white by default), `size`
+/// (pixels, 20), `x` and `y` (10), `alignx` (`left`, `center`, `right`), `aligny` (`top`, `center`,
+/// `bottom`), `linespacing` (pixels between lines, 2), `font` (Go Regular by default). Numbers may
+/// be given as strings; `x`, `y` and `linespacing` are truncated to integers like Go's
 /// `cast.ToInt`.
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(try_from = "RawText")]
@@ -78,7 +78,7 @@ pub struct TextSpec {
 }
 
 impl TextSpec {
-    /// `text` with Hugo's defaults.
+    /// `text` with the Go implementation's defaults.
     #[must_use]
     pub fn new(text: impl Into<String>) -> Self {
         Self {
@@ -266,7 +266,7 @@ pub(crate) struct Line {
     pub y: i64,
 }
 
-/// Hugo's line breaking and placement of `spec` on an image `width` pixels wide.
+/// The Go implementation's line breaking and placement of `spec` on an image `width` pixels wide.
 pub(crate) fn layout(face: &Face<'_>, spec: &TextSpec, width: u32) -> Vec<Line> {
     let max_width = i64::from(width) - 20;
     let available = match spec.align_x {
@@ -347,7 +347,7 @@ mod tests {
     }
 
     #[test]
-    fn defaults_are_hugo_s() {
+    fn defaults_are_go_s() {
         let t = TextSpec::new("x");
         assert_eq!((t.size, t.x, t.y, t.line_spacing), (20.0, 10, 10, 2));
         assert_eq!(

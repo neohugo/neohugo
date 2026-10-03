@@ -1,10 +1,10 @@
 //! The `tplimpl` Go-oracle fixtures, normalised to v0.146 layout files.
 //!
-//! The store fixture of a site (`oracle/tplimpl/store/<site>.json.gz`) dumps Hugo's template
-//! tree after Hugo mapped legacy names: every entry has a key (directory), a category and a
+//! The store fixture of a site (`oracle/tplimpl/store/<site>.json.gz`) dumps Go's template
+//! tree after Go mapped legacy names: every entry has a key (directory), a category and a
 //! descriptor (kind, layout, language, output format, media type, variants). The Go lookup
 //! fixtures name their winners by these entries. The sites use legacy names (`_default/`,
-//! `partials/`, `taxonomy/tag.html`, …) that this crate refuses, and Hugo may keep one file
+//! `partials/`, `taxonomy/tag.html`, …) that this crate refuses, and Go may keep one file
 //! under several keys (a legacy mapping plus the file's own place).
 //!
 //! **Normalisation.** Every tree entry of the categories this crate models (layouts, base
@@ -17,10 +17,10 @@
 //! derives exactly Go's descriptor from every synthesised name.
 //!
 //! Left out (counted, see the crate README): entries whose spelling is a refused legacy name
-//! (Go keeps `term/term.html` at `term/` besides mapping it), Go's internal `_hugo/` and `_server/` templates,
-//! inline partials (`{{ define "partials/x" }}`, a Go-template feature), files without a suffix
-//! (no media type: they never match, and the scan refuses them), and the lookups whose
-//! winner is one of them.
+//! (Go keeps `term/term.html` at `term/` besides mapping it), Go's internal templates (its
+//! private directory and `_server/`), inline partials (`{{ define "partials/x" }}`, a
+//! Go-template feature), files without a suffix (no media type: they never match, and the scan
+//! refuses them), and the lookups whose winner is one of them.
 
 use std::collections::{BTreeMap, BTreeSet};
 use std::sync::Arc;
@@ -397,7 +397,7 @@ impl Site {
     }
 
     /// The embedded-hook policy of the fixture's configuration (`auto` means `never` in a
-    /// configuration dump: Hugo resolved it to `fallback` before where it applies).
+    /// configuration dump: Go resolved it to `fallback` before where it applies).
     pub fn embedded_hooks(&self) -> EmbeddedHooks {
         let p = |k: &str| match s(&self.cfg, k) {
             "always" => HookUse::Always,

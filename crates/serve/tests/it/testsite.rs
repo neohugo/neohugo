@@ -50,7 +50,7 @@ fn write_txtar(archive: &str, to: &Path) {
 /// `sites/testsite/layouts`.
 fn testsite(dir: &Path) {
     let root = repo_dir();
-    copy_tree(&repo_file("hugolib/testsite"), dir);
+    copy_tree(&repo_file("testsite"), dir);
     let txtar = fs::read_to_string(root.join("tools/rust-port/i01/testsite.txtar")).expect("txtar");
     write_txtar(&txtar, dir);
     fs::remove_dir_all(dir.join("layouts")).expect("remove Go layouts");

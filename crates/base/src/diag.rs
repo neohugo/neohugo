@@ -143,7 +143,7 @@ pub struct Diagnostics {
 
 impl Diagnostics {
     /// A collector that drops diagnostics whose id is in `ignore_logs` (compared ignoring ASCII
-    /// case, as Hugo does).
+    /// case, as Go does).
     #[must_use]
     pub fn new<I, S>(ignore_logs: I) -> Self
     where

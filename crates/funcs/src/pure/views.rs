@@ -63,7 +63,7 @@ fn compile(pattern: &str) -> TeraResult<glob::Glob> {
         .map_err(|e| tera::Error::chain(format!("invalid glob `{pattern}`"), e))
 }
 
-/// Hugo's `.Get` on a shortcode value: by position (`index`) for positional arguments, by
+/// Go's `.Get` on a shortcode value: by position (`index`) for positional arguments, by
 /// `name` for named ones. A missing argument is `default` (else `""`); asking a named shortcode
 /// by position or a positional one by name is `default` (else none).
 fn arg(v: &Value, kw: &Kwargs) -> TeraResult<Value> {

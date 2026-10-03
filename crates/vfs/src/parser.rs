@@ -1,7 +1,7 @@
 //! The path parser: a component-relative file path → [`PathInfo`] (identity, language, output
 //! format, bundle kind, section).
 //!
-//! The rules (Hugo's `common/paths/pathparser.go`):
+//! The rules (the Go implementation's `common/paths/pathparser.go`):
 //!
 //! - **Normalisation.** The key and every derived name come from the lower-cased path with
 //!   spaces replaced by `-` ([`normalize_key`]); nothing else changes (`&`, `'`, `.` stay).
@@ -14,7 +14,7 @@
 //! - **Bundle kind** (content and archetypes with a content suffix): `index` is a leaf bundle,
 //!   `_index` a branch bundle, anything else a single page. `_content.gotmpl` is a content
 //!   adapter, and so is `_content.html` in the content component: our adapters are Tera
-//!   templates (Hugo would read that file as an HTML page). Files inside a leaf bundle are made
+//!   templates (Go would read that file as an HTML page). Files inside a leaf bundle are made
 //!   resources by discovery ([`PathInfo::into_bundled`]).
 //! - **Key.** A page's key drops the extension, the language and the `index`/`_index` element;
 //!   a resource keeps its extension (`blog/post/cover.jpg`, `blog/post/notes.md`).
@@ -37,7 +37,7 @@ pub enum BundleKind {
     Leaf,
     /// A branch bundle's index: `posts/_index.md`.
     Branch,
-    /// A content adapter: `_content.html` (a Tera template), or Hugo's `_content.gotmpl`.
+    /// A content adapter: `_content.html` (a Tera template), or Go's `_content.gotmpl`.
     ContentAdapter,
     /// A content file inside a leaf bundle (other than the bundle's own index).
     ContentResource,
@@ -110,7 +110,7 @@ pub struct Original {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PathInfo {
     pub component: Component,
-    /// The tree key (Hugo's `Base()` without the leading slash).
+    /// The tree key (Go's `Base()` without the leading slash).
     pub key: ContentKey,
     /// The normalised full path with a leading slash (`/posts/my-post.en.md`).
     pub path: String,

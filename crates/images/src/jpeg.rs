@@ -1,6 +1,6 @@
-//! Baseline JPEG encoding as Go's `image/jpeg` `Encode` writes it, which Hugo uses for every
-//! JPEG it writes. A port of Go's `src/image/jpeg/writer.go` (© The Go Authors, BSD-3-Clause,
-//! `THIRD_PARTY/go/LICENSE`).
+//! Baseline JPEG encoding as Go's `image/jpeg` `Encode` writes it, which the Go implementation uses
+//! for every JPEG it writes. A port of Go's `src/image/jpeg/writer.go` (© The Go Authors,
+//! BSD-3-Clause, `THIRD_PARTY/go/LICENSE`).
 //!
 //! What Go writes, and so what this writes: SOI, one DQT segment with the two tables of the
 //! JPEG specification (K.1) scaled by quality as libjpeg does, SOF0 (8-bit, three components
@@ -15,11 +15,10 @@
 //! samples it, at the chroma sample of each pixel.
 //!
 //! The forward DCT: Go 1.26 replaced the IJG `jfdctint.c` port of earlier releases with a new
-//! fixed-point implementation (Hugo's reference outputs come from Go 1.27.1). Its output is
-//! the exactly rounded DCT but for a rare coefficient near a rounding boundary, so the DCT
-//! here computes the exact one (in `f64`, rounded): the bytes equal Go 1.27's for most images
-//! and differ in a few coefficients of large ones (crate README, `expected_diffs.toml`
-//! `[jpeg]`).
+//! fixed-point implementation (the Go implementation's reference outputs come from Go 1.27.1). Its
+//! output is the exactly rounded DCT but for a rare coefficient near a rounding boundary, so the
+//! DCT here computes the exact one (in `f64`, rounded): the bytes equal Go 1.27's for most images
+//! and differ in a few coefficients of large ones (crate README, `expected_diffs.toml` `[jpeg]`).
 
 use std::fmt;
 
@@ -78,7 +77,7 @@ pub struct YCbCr<'a> {
 #[derive(Clone, Copy, Debug)]
 pub enum Pixels<'a> {
     /// Four bytes per pixel, R G B and an alpha that is ignored (Go's `*image.RGBA` path,
-    /// which Hugo takes for opaque results): three components, 4:2:0.
+    /// which the Go implementation takes for opaque results): three components, 4:2:0.
     Rgba(&'a [u8]),
     /// Three bytes per pixel, R G B: encoded as [`Pixels::Rgba`].
     Rgb(&'a [u8]),

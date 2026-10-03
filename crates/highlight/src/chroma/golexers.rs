@@ -375,7 +375,7 @@ impl Lexer for HttpBodyContentTyper {
                     None => token.ty = T::Text,
                     Some(l) => {
                         // Chroma's iterator returns EOF here and the body's tokens after the
-                        // message's: Hugo's `Coalesce` ends a run there and reads on; a
+                        // message's: Go's `Coalesce` ends a run there and reads on; a
                         // consumer of a nested iterator stops ([`until_eof`]).
                         body = Some(l.tokenise(reg, None, &token.value));
                         out.push(Token::new(T::EOFType, ""));

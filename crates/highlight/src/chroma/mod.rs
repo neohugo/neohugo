@@ -140,7 +140,7 @@ pub(crate) trait Lexer: Send + Sync {
 /// Chroma's `Coalesce`: drops empty tokens and joins runs of one type (while the run is
 /// shorter than 8 KiB). At an `EOF` before the end (HTTP's body; [`Token::is_eof`]) it hands
 /// out the pending run, and the next token starts a new one; with no run pending, `EOF` ends
-/// the stream (Hugo's formatter reads up to the first `EOF`).
+/// the stream (the Go implementation's formatter reads up to the first `EOF`).
 pub(crate) fn coalesce(tokens: Vec<Token>) -> Vec<Token> {
     let mut out: Vec<Token> = Vec::with_capacity(tokens.len());
     // Go's `prev != EOF`: the last token of `out` is a run that may grow.

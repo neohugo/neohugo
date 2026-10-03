@@ -1,9 +1,9 @@
 //! Fonts of the text filter: TrueType/OpenType bytes with their identity, the default font,
-//! and a face that measures, kerns and draws strings the way Hugo's does.
+//! and a face that measures, kerns and draws strings the way the Go implementation's does.
 //!
-//! Hugo draws text with `golang.org/x/image/font/opentype` (hinting none, 72 dpi) and
-//! `font.Drawer`. This face reproduces what decides where glyphs land, so that line breaks
-//! and alignment equal Go's:
+//! The Go implementation draws text with `golang.org/x/image/font/opentype` (hinting none, 72 dpi)
+//! and `font.Drawer`. This face reproduces what decides where glyphs land, so that line breaks and
+//! alignment equal Go's:
 //!
 //! * sizes are 26.6 fixed point: `ppem = int(0.5 + size·64)`, and every font-unit value `v`
 //!   is scaled to `round(v·ppem / unitsPerEm)` (half away from zero), as `sfnt` does;
@@ -30,8 +30,8 @@ use crate::color::Color;
 use crate::error::ImageError;
 use crate::pixels::over;
 
-/// Go Regular, the font Hugo embeds (`golang.org/x/image/font/gofont/goregular` v0.28.0;
-/// BSD-3-Clause, `THIRD_PARTY/gofont/LICENSE`).
+/// Go Regular, the font the Go implementation embeds (`golang.org/x/image/font/gofont/goregular`
+/// v0.28.0; BSD-3-Clause, `THIRD_PARTY/gofont/LICENSE`).
 static GO_REGULAR_TTF: &[u8] = include_bytes!("../../../THIRD_PARTY/gofont/Go-Regular.ttf");
 
 static GO_REGULAR: LazyLock<FontData> = LazyLock::new(|| FontData::new(Arc::from(GO_REGULAR_TTF)));
@@ -636,7 +636,7 @@ mod tests {
     #[test]
     fn gpos_kerning_of_a_real_font() {
         // The docs' opengraph font (Mulish Black): GPOS pair adjustments, no kern table.
-        let path = ssg_testkit::fixture::hugo_docs().join("assets/opengraph/mulish-black.ttf");
+        let path = ssg_testkit::fixture::legacy_docs().join("assets/opengraph/mulish-black.ttf");
         let bytes = std::fs::read(&path).expect("mulish-black.ttf");
         let face = Face::new(&bytes, 70.0, "mulish").expect("face");
         let Kerning::Gpos(tables) = &face.kerning else {

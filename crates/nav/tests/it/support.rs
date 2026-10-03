@@ -187,7 +187,7 @@ pub fn output_format(f: &J) -> (OutputFormat, String) {
     (format, s(&f["mediaType"]["fullSuffix"]).to_owned())
 }
 
-/// A recorded Hugo path (`paths` of the fixtures): the source path and `Base()`.
+/// A recorded Go path (`paths` of the fixtures): the source path and `Base()`.
 pub struct OraclePath {
     pub source: SourcePath,
     pub base: String,
