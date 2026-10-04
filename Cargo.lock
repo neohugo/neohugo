@@ -7083,7 +7083,6 @@ dependencies = [
  "either",
  "fastrand",
  "getrandom 0.3.4",
- "hashbrown 0.16.1",
  "hashbrown 0.17.1",
  "icu_locale_core",
  "icu_provider",
